@@ -11,7 +11,9 @@ public static class OverburstBuildUtility
     public static void BuildWindowsDevelopment()
     {
         string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-        string output = Path.Combine(root, "_개인파일", "Builds", "Windows_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+        DirectoryInfo workspace = Directory.GetParent(root)
+            ?? throw new DirectoryNotFoundException("OVERBURST workspace root was not found.");
+        string output = Path.Combine(workspace.FullName, "개인파일", "코덱스산출", "Builds", "Windows_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
         Build(output);
     }
 
