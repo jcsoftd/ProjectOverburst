@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fa9c1177d52e74f9779d5ae0758d6d, type: 3}
+  m_Name: ExtraLargeHealPotion
+  m_EditorClassIdentifier: Assembly-CSharp::ConsumableItemData
+  itemName: 회복물약(특대)
+  icon: {fileID: 21300000, guid: 3b8c9d0e1f2a4b5c9d8e7f6a5b4c3d2e, type: 3}
+  color: {r: 1, g: 0.22, b: 0.14, a: 1}
+  description: 즉시 최대 체력의 40%를 회복한다.
+  weight: 0.1
+  sellPrice: 120
+  possibleStats: []
+  consumableType: 0
+  defaultGrade: 4
+  effectValue: 0.4
+  duration: 0
+  cooldown: 20
+  maxStack: 10
+  consumeOnUse: 1
+  targetBuffId: extra_large_heal_potion
+  moveSpeedMultiplier: 1
+  useMessage: 회복물약(특대) 사용: 최대 체력의 40% 회복

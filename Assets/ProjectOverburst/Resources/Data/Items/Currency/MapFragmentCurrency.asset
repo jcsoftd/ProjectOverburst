@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcc8124ba2444014a8b5b66667a8fe6e, type: 3}
+  m_Name: MapFragmentCurrency
+  m_EditorClassIdentifier: Assembly-CSharp::CurrencyItemData
+  itemName: "\uC9C0\uB3C4\uC870\uAC01"
+  icon: {fileID: 0}
+  color: {r: 0.62, g: 0.92, b: 0.55, a: 1}
+  description: "\uC9C0\uB3C4 \uAD00\uB828 \uD574\uAE08\uACFC \uAC70\uB798\uC5D0 \uC4F0\uC774\uB294
+    \uC870\uAC01 \uC7AC\uD654\uC785\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 0
+  possibleStats: []
+  currencyType: 2
+  maxStack: 1000

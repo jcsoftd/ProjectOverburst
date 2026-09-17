@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
+  m_Name: AIP_MurlocSquad
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
+  presetId: MurlocSquad
+  displayName: "\uBA40\uB85D \uBD80\uB300 AI"
+  defaultMonsterPrefabs:
+  - {fileID: 3297604823692967727, guid: 4ca46d57181e9c4419ed8dd25977b323, type: 3}
+  - {fileID: 5881533766461330917, guid: ac38cd4976d1ed14cae3ee4d385dd2da, type: 3}
+  - {fileID: 400928781387210697, guid: b629ce05a7807844583c9aa3c55a7d2e, type: 3}
+  - {fileID: 7834640390633090519, guid: f1b2c748afbcb554cb6719fea8fdd8df, type: 3}
+  - {fileID: 3245051699805235718, guid: 2b8cabbd624b6ff468c6a0b0dd721e62, type: 3}
+  - {fileID: 1299881143101622028, guid: c7eda4bf3cc45b1419dd15ad95a13abf, type: 3}
+  activationCount: 41
+  minimumSquadSize: 4
+  maximumSquadSize: 8
+  slotRadius: 4
+  directCommitRadius: 6
+  nearReleaseDistance: 3.75
+  farActivationDistance: 9
+  reserveSpeedMultiplier: 0.9
+  remnantRatio: 0.4
+  slotArrivalDistance: 1
+  reserveOrbitRadius: 9.5
+  reserveOrbitAngularSpeed: 10
+  curveRadiusMultiplier: 1.25

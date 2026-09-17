@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: EAP_Gobbler
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: Gobbler
+  runtimeController: {fileID: 22100000, guid: 1f133bbe50c43024192ab0c1aed404c5, type: 2}
+  idle: {fileID: 1827226128182048838, guid: c166d06012e131944914a80c958289e8, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 71baed67575d9744081394b4319d0427, type: 3}
+  run: {fileID: 1827226128182048838, guid: 6af2f48a5a25830489b46bc7cea89397, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 302d2d39997bdbc4d81acf034e20fbc0, type: 3}
+  - {fileID: 1827226128182048838, guid: 113114a479b5a564fabeaf0cc75b863e, type: 3}
+  - {fileID: 1827226128182048838, guid: 302d2d39997bdbc4d81acf034e20fbc0, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 6e8f8d3352243454d9935c5dbbc4dd00, type: 3}
+  death: {fileID: 1827226128182048838, guid: ff129881d909b6f44b07e6da1640ddbd, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 70b3c7de6c51f634bad02fea67c81bb7, type: 3}
+  - {fileID: 1827226128182048838, guid: 5e2673287c398a248849f49147dd530d, type: 3}
+  - {fileID: 1827226128182048838, guid: 0e9af2b9e6128414e86ffcdf97248d31, type: 3}
+  - {fileID: 1827226128182048838, guid: c40f534f86f5e5d41894a02c70f147bc, type: 3}
+  - {fileID: 1827226128182048838, guid: 723c9486f6d008340ad16af93d541bec, type: 3}
+  - {fileID: 1827226128182048838, guid: 9aecc8d678f370347b00222bda6f4dbe, type: 3}
+  - {fileID: 1827226128182048838, guid: 002dcf73a5f7cd4448a8974ccffd2065, type: 3}
+  - {fileID: 1827226128182048838, guid: 3d5aa6d7ff2fe6241a19f7c16f1fa5b1, type: 3}
+  - {fileID: 1827226128182048838, guid: 8c6b85b935a800948ac3e15a191eab19, type: 3}
+  - {fileID: 1827226128182048838, guid: b262ec4fb8ce32546957730c1517b6a8, type: 3}
+  - {fileID: 1827226128182048838, guid: 8613b9d0e00e28e40a125d71826bffe4, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@BiteAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@RamAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@Roll_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gobbler/FBX Files/Gobbler@Walk_RM.fbx"

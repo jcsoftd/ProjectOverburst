@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 347259cef64ae0e498671b06a5346627, type: 3}
+  m_Name: SF_Grass
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceProfile
+  surfaceId: Grass
+  walkClips:
+  - {fileID: 8300000, guid: 65ac77ff573d95c458b76c9177749513, type: 3}
+  - {fileID: 8300000, guid: 6033f7b51b2cdec4c9788026518da42c, type: 3}
+  - {fileID: 8300000, guid: e0139f8334bdae84f8771de3dfd065a3, type: 3}
+  - {fileID: 8300000, guid: 580a6577fb121c5409d30e656b97ca74, type: 3}
+  runClips:
+  - {fileID: 8300000, guid: 5375e76405742b143a52b25378f9c903, type: 3}
+  - {fileID: 8300000, guid: 7a1ebdc359129984bb0c095062ffc6ca, type: 3}
+  - {fileID: 8300000, guid: ce678848ef49b8c4c99552612cd0e951, type: 3}
+  - {fileID: 8300000, guid: ef6204c231e258142b6cf27c9a294383, type: 3}
+  landingClips:
+  - {fileID: 8300000, guid: b56bfc516aa7f554b80ffc51b86bf24d, type: 3}
+  - {fileID: 8300000, guid: eaabdb6be573a734cb95d5586558f7b4, type: 3}
+  - {fileID: 8300000, guid: 962b0f2987d37544283963542b143f63, type: 3}
+  - {fileID: 8300000, guid: 1230de80ce939bc43b301270998ee227, type: 3}
+  volumeMin: 0.72
+  volumeMax: 0.9
+  pitchMin: 0.94
+  pitchMax: 1.06

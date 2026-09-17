@@ -1,0 +1,804 @@
+using System;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using UnityEditor;
+using UnityEditor.Animations;
+using UnityEngine;
+
+namespace HeraAgent.Tools
+{
+    [HeraActionSafety("create_clip", MayReloadDomain = true)]
+    [HeraActionSafety("set_curve", MayReloadDomain = true)]
+    [HeraActionSafety("create_controller", MayReloadDomain = true)]
+    [HeraActionSafety("add_parameter", MayReloadDomain = true)]
+    [HeraActionSafety("add_state", MayReloadDomain = true)]
+    [HeraActionSafety("add_transition", MayReloadDomain = true)]
+    [HeraActionContract("create_clip", typeof(ManageAnimation.CreateClipParameters), ResultType = typeof(ManageAnimation.ClipResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("set_curve", typeof(ManageAnimation.SetCurveParameters), ResultType = typeof(ManageAnimation.CurveResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("create_controller", typeof(ManageAnimation.PathParameters), ResultType = typeof(ManageAnimation.ControllerResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("add_parameter", typeof(ManageAnimation.AddParameterParameters), ResultType = typeof(ManageAnimation.ParameterResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("add_state", typeof(ManageAnimation.AddStateParameters), ResultType = typeof(ManageAnimation.StateResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("add_transition", typeof(ManageAnimation.AddTransitionParameters), ResultType = typeof(ManageAnimation.TransitionResult), RiskClass = HeraRiskClass.Write)]
+    [HeraActionContract("get_clip", typeof(ManageAnimation.GetClipParameters), ResultType = typeof(ManageAnimation.ClipInfoResult), RiskClass = HeraRiskClass.ReadOnly)]
+    [HeraActionContract("get_controller", typeof(ManageAnimation.PathParameters), RiskClass = HeraRiskClass.ReadOnly)]
+    [HeraTool(
+        Name = "manage_animation",
+        Description = "Author animation assets without exec boilerplate: create_clip / set_curve / remove_curve build an AnimationClip (.anim) and its float curves; create_controller / add_parameter / add_layer / add_state / add_transition build an AnimatorController (.controller); get_clip / get_controller read the authored structure back for verification. Paths are constrained to Assets/.",
+        Destructive = true,
+        MayReloadDomain = true,
+        Examples = new[]
+        {
+            "manage_animation create_clip --path Assets/Anim/Bob.anim --frame_rate 60 --loop true",
+            "manage_animation set_curve --path Assets/Anim/Bob.anim --type Transform --property localPosition.y --params '{\"keys\":[{\"time\":0,\"value\":0},{\"time\":0.5,\"value\":0.3},{\"time\":1,\"value\":0}]}'",
+            "manage_animation create_controller --path Assets/Anim/Player.controller",
+            "manage_animation add_parameter --path Assets/Anim/Player.controller --name Speed --type float",
+            "manage_animation add_state --path Assets/Anim/Player.controller --name Run --motion Assets/Anim/Bob.anim --default true",
+            "manage_animation add_transition --path Assets/Anim/Player.controller --from Idle --to Run --params '{\"conditions\":[{\"parameter\":\"Speed\",\"mode\":\"Greater\",\"threshold\":0.1}]}'",
+            "manage_animation get_clip --path Assets/Anim/Bob.anim --include_keys true",
+            "manage_animation get_controller --path Assets/Anim/Player.controller",
+        },
+        ExampleDescriptions = new[]
+        {
+            "Create a looping 60fps AnimationClip",
+            "Set a float curve on a clip (keyframes via --params)",
+            "Create an AnimatorController (base layer + state machine)",
+            "Add a typed parameter (float/int/bool/trigger)",
+            "Add a state with a motion clip and make it the layer default",
+            "Add a transition between states with a condition",
+            "Read a clip's metadata and curve bindings (keyframes included)",
+            "Read a controller's parameters, layers, states, and transitions",
+        },
+        Profiles = new[] { "scene" },
+        RiskClass = HeraRiskClass.Write,
+        ContractMode = ToolContractMode.Strict)]
+    public static partial class ManageAnimation
+    {
+        private const string ScalarSchema =
+            "{\"oneOf\":[{\"type\":\"string\"},{\"type\":\"number\"},{\"type\":\"boolean\"}]}";
+        private const string KeysSchema =
+            "{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"object\",\"required\":[\"time\",\"value\"],\"properties\":{\"time\":{\"type\":\"number\"},\"value\":{\"type\":\"number\"},\"in_tangent\":{\"type\":\"number\"},\"out_tangent\":{\"type\":\"number\"}},\"additionalProperties\":false}}";
+        private const string ConditionsSchema =
+            "{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"parameter\"],\"properties\":{\"parameter\":{\"type\":\"string\"},\"mode\":{\"type\":\"string\",\"pattern\":\"^(?i:If|IfNot|Greater|Less|Equals|NotEqual)$\"},\"threshold\":{\"type\":\"number\"}},\"additionalProperties\":false}}";
+
+        public class PathParameters
+        {
+            [ToolParameter("Animation asset path under Assets/.", Required = true)]
+            public string Path { get; set; }
+        }
+
+        public sealed class GetClipParameters : PathParameters
+        {
+            [ToolParameter("Include per-binding keyframes (time/value/tangents). Off by default to keep the payload small.")]
+            public bool? IncludeKeys { get; set; }
+        }
+
+        public sealed class CreateClipParameters : PathParameters
+        {
+            [ToolParameter(
+                "Sampling rate in frames per second (default 60).",
+                SchemaJson = "{\"type\":\"number\",\"minimum\":0.0001}")]
+            public float? FrameRate { get; set; }
+
+            [ToolParameter("Whether the clip loops.")]
+            public bool? Loop { get; set; }
+        }
+
+        public sealed class SetCurveParameters : PathParameters
+        {
+            [ToolParameter("Animated component type.", Required = true)]
+            public string Type { get; set; }
+
+            [ToolParameter("Animated property path.", Required = true)]
+            public string Property { get; set; }
+
+            [ToolParameter("GameObject path relative to the Animator root.")]
+            public string RelativePath { get; set; }
+
+            [ToolParameter("Animation keyframes.", Required = true, SchemaJson = KeysSchema)]
+            public JArray Keys { get; set; }
+        }
+
+        public sealed class AddParameterParameters : PathParameters
+        {
+            [ToolParameter("Animator parameter name.", Required = true)]
+            public string Name { get; set; }
+
+            [ToolParameter(
+                "Animator parameter type.",
+                Required = true,
+                SchemaJson = "{\"type\":\"string\",\"enum\":[\"float\",\"int\",\"bool\",\"trigger\"]}")]
+            public string Type { get; set; }
+
+            [ToolParameter("Optional default value.", SchemaJson = ScalarSchema)]
+            public JToken Default { get; set; }
+        }
+
+        public sealed class AddStateParameters : PathParameters
+        {
+            [ToolParameter("State name.", Required = true)]
+            public string Name { get; set; }
+
+            [ToolParameter("Optional AnimationClip asset path.")]
+            public string Motion { get; set; }
+
+            [ToolParameter("Make the state the base-layer default.")]
+            public bool? Default { get; set; }
+        }
+
+        public sealed class AddTransitionParameters : PathParameters
+        {
+            [ToolParameter("Source state name.", Required = true)]
+            public string From { get; set; }
+
+            [ToolParameter("Destination state name.", Required = true)]
+            public string To { get; set; }
+
+            [ToolParameter("Transition conditions.", SchemaJson = ConditionsSchema)]
+            public JArray Conditions { get; set; }
+
+            [ToolParameter("Whether the transition has exit time.")]
+            public bool? HasExitTime { get; set; }
+
+            [ToolParameter(
+                "Transition duration.",
+                SchemaJson = "{\"type\":\"number\",\"minimum\":0}")]
+            public float? Duration { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public class AssetResult
+        {
+            public string Path { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class ClipResult : AssetResult
+        {
+            public string Guid { get; set; }
+            public float FrameRate { get; set; }
+            public bool Loop { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class KeyframeInfo
+        {
+            public float Time { get; set; }
+            public float Value { get; set; }
+            public float InTangent { get; set; }
+            public float OutTangent { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class BindingInfo
+        {
+            public string RelativePath { get; set; }
+            public string Type { get; set; }
+            public string Property { get; set; }
+            public int Keys { get; set; }
+
+            /// Present only with --include_keys.
+            [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+            public KeyframeInfo[] Keyframes { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class ClipInfoResult : AssetResult
+        {
+            public string Guid { get; set; }
+            public float FrameRate { get; set; }
+            public bool Loop { get; set; }
+            public float Length { get; set; }
+            public BindingInfo[] Bindings { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class CurveResult : AssetResult
+        {
+            public string RelativePath { get; set; }
+            public string Type { get; set; }
+            public string Property { get; set; }
+            public int Keys { get; set; }
+            public int TotalBindings { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class ControllerResult : AssetResult
+        {
+            public string Guid { get; set; }
+            public int Layers { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class ParameterResult : AssetResult
+        {
+            public string Name { get; set; }
+            public string Type { get; set; }
+            public int Parameters { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class StateResult : AssetResult
+        {
+            public string Name { get; set; }
+            public string Motion { get; set; }
+            public bool IsDefault { get; set; }
+            public int States { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class TransitionConditionResult
+        {
+            public string Parameter { get; set; }
+            public string Mode { get; set; }
+            public float Threshold { get; set; }
+        }
+
+        [Newtonsoft.Json.JsonObject(NamingStrategyType = typeof(Newtonsoft.Json.Serialization.SnakeCaseNamingStrategy))]
+        public sealed class TransitionResult : AssetResult
+        {
+            public string From { get; set; }
+            public string To { get; set; }
+            public bool HasExitTime { get; set; }
+            public TransitionConditionResult[] Conditions { get; set; }
+        }
+
+        public class Parameters
+        {
+            [ToolParameter("Action: create_clip, set_curve, remove_curve, create_controller, add_parameter, add_layer, add_state, add_transition, get_clip, get_controller.", Required = true)]
+            public string Action { get; set; }
+
+            [ToolParameter("Asset path under Assets/. create_clip -> .anim, create_controller -> .controller (appended if omitted); the other actions target an existing asset by path.", Required = false)]
+            public string Path { get; set; }
+
+            [ToolParameter("create_clip: sampling rate in fps (default 60).", Required = false)]
+            public float FrameRate { get; set; }
+
+            [ToolParameter("create_clip: loop the clip (default false).", Required = false)]
+            public bool Loop { get; set; }
+
+            [ToolParameter("set_curve: animated component type — short 'Transform' or fully-qualified. add_parameter: float | int | bool | trigger.", Required = false)]
+            public string Type { get; set; }
+
+            [ToolParameter("set_curve: animated property path, e.g. localPosition.y, m_Color.a.", Required = false)]
+            public string Property { get; set; }
+
+            [ToolParameter("set_curve: GameObject path relative to the Animator root (default \"\" = the root object).", Required = false)]
+            public string RelativePath { get; set; }
+
+            [ToolParameter("add_parameter / add_state: the parameter or state name.", Required = false)]
+            public string Name { get; set; }
+
+            [ToolParameter("add_state: motion clip asset path (optional).", Required = false)]
+            public string Motion { get; set; }
+
+            [ToolParameter("add_state: make this the base-layer default state.", Required = false)]
+            public bool Default { get; set; }
+
+            [ToolParameter("add_transition: source state name.", Required = false)]
+            public string From { get; set; }
+
+            [ToolParameter("add_transition: destination state name.", Required = false)]
+            public string To { get; set; }
+
+            [ToolParameter("Complex payloads via --params: set_curve 'keys' [{time,value[,in_tangent,out_tangent]}]; add_parameter 'default'; add_transition 'conditions' [{parameter,mode,threshold}], 'has_exit_time', 'duration'.", Required = false)]
+            public object Params { get; set; }
+        }
+
+        public static object HandleCommand(JObject @params)
+        {
+            var p = new ToolParams(@params ?? new JObject());
+            var action = (p.GetRaw("args") as JArray)?[0]?.ToString() ?? p.Get("action");
+            if (string.IsNullOrWhiteSpace(action))
+                return new ErrorResponse("MISSING_PARAM", "'action' required: create_clip, set_curve, create_controller, add_parameter, add_state, or add_transition.");
+
+            switch (action.ToLowerInvariant())
+            {
+                case "create_clip": return CreateClip(p);
+                case "set_curve": return SetCurve(p);
+                case "remove_curve": return RemoveCurve(p);
+                case "create_controller": return CreateController(p);
+                case "add_parameter": return AddParameter(p);
+                case "add_layer": return AddLayer(p);
+                case "add_state": return AddState(p);
+                case "add_transition": return AddTransition(p);
+                case "get_clip": return GetClip(p);
+                case "get_controller": return GetController(p);
+                default:
+                    return new ErrorResponse("UNKNOWN_ACTION", $"Unknown action '{action}'. Valid: create_clip, set_curve, remove_curve, create_controller, add_parameter, add_layer, add_state, add_transition, get_clip, get_controller.");
+            }
+        }
+
+        // ---- AnimationClip ----
+
+        private static object CreateClip(ToolParams p)
+        {
+            if (!TryPrepareNewAsset(p.Get("path"), ".anim", out var path, out var err))
+                return err;
+
+            var clip = new AnimationClip { frameRate = p.GetFloat("frame_rate", 60f) ?? 60f };
+            var loop = p.GetBool("loop");
+            if (loop)
+            {
+                var settings = AnimationUtility.GetAnimationClipSettings(clip);
+                settings.loopTime = true;
+                AnimationUtility.SetAnimationClipSettings(clip, settings);
+            }
+            AssetDatabase.CreateAsset(clip, path);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            return new SuccessResponse("Clip created", new
+            {
+                path,
+                guid = AssetDatabase.AssetPathToGUID(path),
+                frame_rate = clip.frameRate,
+                loop,
+            });
+        }
+
+        private static object SetCurve(ToolParams p)
+        {
+            var clip = LoadClip(
+                p.Get("path"), "ASSET_NOT_FOUND",
+                "No AnimationClip at that path (expects an existing .anim).", out var clipErr);
+            if (clip == null) return clipErr;
+
+            var typeName = p.Get("type");
+            var type = ComponentTypeResolver.Resolve(typeName);
+            if (type == null)
+                return new ErrorResponse("UNKNOWN_COMPONENT_TYPE",
+                    $"Could not resolve animated type '{typeName}'.",
+                    data: new { did_you_mean = ComponentTypeResolver.SuggestSimilar(typeName) });
+
+            var property = p.Get("property");
+            if (string.IsNullOrEmpty(property))
+                return new ErrorResponse("MISSING_PARAM", "'property' required for set_curve (e.g. localPosition.y).");
+
+            if (!(p.GetRaw("keys") is JArray keysToken) || keysToken.Count == 0)
+                return new ErrorResponse("MISSING_PARAM", "'keys' required for set_curve: a JSON array of {time,value[,in_tangent,out_tangent]} via --params.");
+
+            var frames = new List<Keyframe>(keysToken.Count);
+            foreach (var k in keysToken)
+            {
+                if (!(k is JObject key) || key["time"] == null || key["value"] == null)
+                    return new ErrorResponse("INVALID_KEY", "Each key needs numeric 'time' and 'value'.");
+                var frame = new Keyframe(key["time"].Value<float>(), key["value"].Value<float>());
+                if (key["in_tangent"] != null) frame.inTangent = key["in_tangent"].Value<float>();
+                if (key["out_tangent"] != null) frame.outTangent = key["out_tangent"].Value<float>();
+                frames.Add(frame);
+            }
+
+            var curve = new AnimationCurve(frames.ToArray());
+            var relativePath = p.Get("relative_path", "") ?? "";
+            clip.SetCurve(relativePath, type, property, curve);
+            EditorUtility.SetDirty(clip);
+            AssetDatabase.SaveAssets();
+
+            return new SuccessResponse("Curve set", new
+            {
+                path = AssetDatabase.GetAssetPath(clip),
+                relative_path = relativePath,
+                type = type.FullName,
+                property,
+                keys = frames.Count,
+                total_bindings = AnimationUtility.GetCurveBindings(clip).Length,
+            });
+        }
+
+        // ---- AnimatorController ----
+
+        private static object CreateController(ToolParams p)
+        {
+            if (!TryPrepareNewAsset(p.Get("path"), ".controller", out var path, out var err))
+                return err;
+
+            var ctrl = AnimatorController.CreateAnimatorControllerAtPath(path);
+            if (ctrl == null)
+                return new ErrorResponse("ASSET_CREATE_FAILED", $"Unity could not create an AnimatorController at '{path}'.");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            return new SuccessResponse("Controller created", new
+            {
+                path,
+                guid = AssetDatabase.AssetPathToGUID(path),
+                layers = ctrl.layers.Length,
+            });
+        }
+
+        private static object AddParameter(ToolParams p)
+        {
+            var ctrl = LoadController(p.Get("path"), out var err);
+            if (ctrl == null) return err;
+
+            var name = p.Get("name");
+            if (string.IsNullOrEmpty(name))
+                return new ErrorResponse("MISSING_PARAM", "'name' required for add_parameter.");
+            if (Array.Exists(ctrl.parameters, x => x.name == name))
+                return new ErrorResponse("PARAMETER_EXISTS", $"Parameter '{name}' already exists on this controller.");
+
+            if (!TryParseParameterType(p.Get("type"), out var pType, out var typeErr))
+                return typeErr;
+
+            var param = new AnimatorControllerParameter { name = name, type = pType };
+            var def = p.GetRaw("default");
+            if (def != null && def.Type != JTokenType.Null)
+            {
+                switch (pType)
+                {
+                    case AnimatorControllerParameterType.Float: param.defaultFloat = def.Value<float>(); break;
+                    case AnimatorControllerParameterType.Int: param.defaultInt = def.Value<int>(); break;
+                    case AnimatorControllerParameterType.Bool: param.defaultBool = def.Value<bool>(); break;
+                }
+            }
+            ctrl.AddParameter(param);
+            AssetDatabase.SaveAssets();
+
+            return new SuccessResponse("Parameter added", new
+            {
+                path = AssetDatabase.GetAssetPath(ctrl),
+                name,
+                type = pType.ToString(),
+                parameters = ctrl.parameters.Length,
+            });
+        }
+
+        private static object AddState(ToolParams p)
+        {
+            var ctrl = LoadController(p.Get("path"), out var err);
+            if (ctrl == null) return err;
+
+            var name = p.Get("name");
+            if (string.IsNullOrEmpty(name))
+                return new ErrorResponse("MISSING_PARAM", "'name' required for add_state.");
+
+            var sm = ctrl.layers[0].stateMachine;
+            if (Array.Exists(sm.states, s => s.state.name == name))
+                return new ErrorResponse("STATE_EXISTS", $"State '{name}' already exists on the base layer.");
+
+            var motionPath = p.Get("motion");
+            string motionAssigned = null;
+            AnimationClip motion = null;
+            if (!string.IsNullOrEmpty(motionPath))
+            {
+                motion = LoadClip(
+                    motionPath, "MOTION_NOT_FOUND",
+                    $"No AnimationClip at motion path '{motionPath}'.", out var motionErr);
+                if (motion == null) return motionErr;
+                motionAssigned = AssetDatabase.GetAssetPath(motion);
+            }
+
+            var isDefault = p.GetBool("default");
+            var state = sm.AddState(name);
+            if (motion != null)
+                state.motion = motion;
+            if (isDefault)
+                sm.defaultState = state;
+
+            EditorUtility.SetDirty(ctrl);
+            AssetDatabase.SaveAssets();
+
+            return new SuccessResponse("State added", new
+            {
+                path = AssetDatabase.GetAssetPath(ctrl),
+                name,
+                motion = motionAssigned,
+                is_default = isDefault,
+                states = sm.states.Length,
+            });
+        }
+
+        private static object AddTransition(ToolParams p)
+        {
+            var ctrl = LoadController(p.Get("path"), out var err);
+            if (ctrl == null) return err;
+
+            var sm = ctrl.layers[0].stateMachine;
+            var from = FindState(sm, p.Get("from"));
+            var to = FindState(sm, p.Get("to"));
+            if (from == null)
+                return new ErrorResponse("STATE_NOT_FOUND", $"Source state '{p.Get("from")}' not found on the base layer.");
+            if (to == null)
+                return new ErrorResponse("STATE_NOT_FOUND", $"Destination state '{p.Get("to")}' not found on the base layer.");
+
+            if (!TryPrepareConditions(ctrl, p.GetRaw("conditions"), out var conditions, out var conditionErr))
+                return conditionErr;
+
+            var transition = from.AddTransition(to);
+            transition.hasExitTime = p.GetBool("has_exit_time");
+            var duration = p.GetFloat("duration");
+            if (duration.HasValue)
+                transition.duration = duration.Value;
+
+            var added = new List<object>();
+            foreach (var condition in conditions)
+            {
+                transition.AddCondition(condition.mode, condition.threshold, condition.parameter);
+                added.Add(new { parameter = condition.parameter, mode = condition.mode.ToString(), threshold = condition.threshold });
+            }
+
+            EditorUtility.SetDirty(ctrl);
+            AssetDatabase.SaveAssets();
+
+            return new SuccessResponse("Transition added", new
+            {
+                path = AssetDatabase.GetAssetPath(ctrl),
+                from = from.name,
+                to = to.name,
+                has_exit_time = transition.hasExitTime,
+                conditions = added,
+            });
+        }
+
+        // ---- helpers ----
+
+        // ---- Read-back ----
+
+        private static object GetClip(ToolParams p)
+        {
+            var clip = LoadClip(
+                p.Get("path"), "ASSET_NOT_FOUND",
+                "No AnimationClip at that path (expects an existing .anim).", out var err);
+            if (clip == null) return err;
+
+            bool includeKeys = p.GetBool("include_keys");
+            var settings = AnimationUtility.GetAnimationClipSettings(clip);
+            var bindings = new List<object>();
+            foreach (var binding in AnimationUtility.GetCurveBindings(clip))
+            {
+                var curve = AnimationUtility.GetEditorCurve(clip, binding);
+                if (curve == null) continue;
+                List<object> keyframes = null;
+                if (includeKeys)
+                {
+                    keyframes = new List<object>(curve.length);
+                    foreach (var key in curve.keys)
+                    {
+                        keyframes.Add(new
+                        {
+                            time = key.time,
+                            value = key.value,
+                            in_tangent = key.inTangent,
+                            out_tangent = key.outTangent,
+                        });
+                    }
+                }
+                bindings.Add(includeKeys
+                    ? (object)new
+                    {
+                        relative_path = binding.path,
+                        type = binding.type?.Name,
+                        property = binding.propertyName,
+                        keys = curve.length,
+                        keyframes,
+                    }
+                    : new
+                    {
+                        relative_path = binding.path,
+                        type = binding.type?.Name,
+                        property = binding.propertyName,
+                        keys = curve.length,
+                    });
+            }
+
+            return new SuccessResponse(
+                $"{clip.name}: {bindings.Count} binding(s), {clip.length:0.###}s.",
+                new
+                {
+                    path = AssetDatabase.GetAssetPath(clip),
+                    guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(clip)),
+                    frame_rate = clip.frameRate,
+                    loop = settings.loopTime,
+                    length = clip.length,
+                    bindings,
+                });
+        }
+
+        private static object GetController(ToolParams p)
+        {
+            var ctrl = LoadController(p.Get("path"), out var err);
+            if (ctrl == null) return err;
+
+            var parameters = new List<object>();
+            foreach (var parameter in ctrl.parameters)
+            {
+                object defaultValue;
+                switch (parameter.type)
+                {
+                    case AnimatorControllerParameterType.Float: defaultValue = parameter.defaultFloat; break;
+                    case AnimatorControllerParameterType.Int: defaultValue = parameter.defaultInt; break;
+                    case AnimatorControllerParameterType.Bool: defaultValue = parameter.defaultBool; break;
+                    default: defaultValue = null; break;
+                }
+                parameters.Add(new
+                {
+                    name = parameter.name,
+                    type = parameter.type.ToString().ToLowerInvariant(),
+                    @default = defaultValue,
+                });
+            }
+
+            var layers = new List<object>();
+            foreach (var layer in ctrl.layers)
+            {
+                var sm = layer.stateMachine;
+                var states = new List<object>();
+                if (sm != null)
+                {
+                    foreach (var child in sm.states)
+                    {
+                        var state = child.state;
+                        var transitions = new List<object>();
+                        foreach (var transition in state.transitions)
+                        {
+                            var conditions = new List<object>();
+                            foreach (var condition in transition.conditions)
+                            {
+                                conditions.Add(new
+                                {
+                                    parameter = condition.parameter,
+                                    mode = condition.mode.ToString(),
+                                    threshold = condition.threshold,
+                                });
+                            }
+                            transitions.Add(new
+                            {
+                                to = transition.destinationState != null
+                                    ? transition.destinationState.name
+                                    : (transition.isExit ? "(exit)" : null),
+                                has_exit_time = transition.hasExitTime,
+                                duration = transition.duration,
+                                conditions,
+                            });
+                        }
+                        states.Add(new
+                        {
+                            name = state.name,
+                            motion = state.motion != null ? AssetDatabase.GetAssetPath(state.motion) : null,
+                            is_default = sm.defaultState == state,
+                            transitions,
+                        });
+                    }
+                }
+                layers.Add(new
+                {
+                    name = layer.name,
+                    weight = layer.defaultWeight,
+                    blending = layer.blendingMode.ToString().ToLowerInvariant(),
+                    states,
+                });
+            }
+
+            return new SuccessResponse(
+                $"{ctrl.name}: {parameters.Count} parameter(s), {layers.Count} layer(s).",
+                new
+                {
+                    path = AssetDatabase.GetAssetPath(ctrl),
+                    guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(ctrl)),
+                    parameters,
+                    layers,
+                });
+        }
+
+        private static AnimatorController LoadController(string rawPath, out ErrorResponse err)
+        {
+            err = null;
+            // Both loaders name an existing asset, so a durable handle is a
+            // valid way to name it; a sub-asset handle resolves to the object
+            // itself, which the type check below then accepts or rejects.
+            if (!AssetPathGuard.TryNormalizeExistingAssetFile(
+                    rawPath, out var path, out var resolved, out var pathCode, out var pathErr))
+            {
+                err = new ErrorResponse(pathCode, pathErr);
+                return null;
+            }
+            var ctrl = resolved as AnimatorController
+                ?? AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (ctrl == null)
+                err = new ErrorResponse("ASSET_NOT_FOUND", "No AnimatorController at that path (expects an existing .controller).");
+            return ctrl;
+        }
+
+        private static AnimationClip LoadClip(string rawPath, string missingCode, string missingMessage, out ErrorResponse err)
+        {
+            err = null;
+            if (!AssetPathGuard.TryNormalizeExistingAssetFile(
+                    rawPath, out var path, out var resolved, out var pathCode, out var pathErr))
+            {
+                err = new ErrorResponse(pathCode, pathErr);
+                return null;
+            }
+            var clip = resolved as AnimationClip
+                ?? AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+            if (clip == null)
+                err = new ErrorResponse(missingCode, missingMessage);
+            return clip;
+        }
+
+        private static AnimatorState FindState(AnimatorStateMachine sm, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            foreach (var child in sm.states)
+                if (child.state.name == name)
+                    return child.state;
+            return null;
+        }
+
+        private static bool TryParseParameterType(string raw, out AnimatorControllerParameterType type, out ErrorResponse err)
+        {
+            err = null;
+            switch ((raw ?? "").ToLowerInvariant())
+            {
+                case "float": type = AnimatorControllerParameterType.Float; return true;
+                case "int": type = AnimatorControllerParameterType.Int; return true;
+                case "bool": type = AnimatorControllerParameterType.Bool; return true;
+                case "trigger": type = AnimatorControllerParameterType.Trigger; return true;
+                default:
+                    type = AnimatorControllerParameterType.Float;
+                    err = new ErrorResponse("MISSING_PARAM", "'type' required for add_parameter: float, int, bool, or trigger.");
+                    return false;
+            }
+        }
+
+        // Validate a destination for a new asset: Assets/-contained, correct
+        // extension, non-existing, with an existing parent folder.
+        private static bool TryPrepareNewAsset(string rawPath, string extension, out string path, out ErrorResponse err)
+        {
+            err = null;
+            if (AssetPathGuard.TryPrepareNewAssetFile(
+                    rawPath, extension, appendExtension: true,
+                    out path, out var errorCode, out var error))
+                return true;
+            err = new ErrorResponse(errorCode, error);
+            return false;
+        }
+
+        private static bool TryPrepareConditions(
+            AnimatorController controller,
+            JToken rawConditions,
+            out List<(string parameter, AnimatorConditionMode mode, float threshold)> conditions,
+            out ErrorResponse err)
+        {
+            conditions = new List<(string parameter, AnimatorConditionMode mode, float threshold)>();
+            err = null;
+            if (rawConditions == null || rawConditions.Type == JTokenType.Null)
+                return true;
+            if (!(rawConditions is JArray tokens))
+            {
+                err = new ErrorResponse("INVALID_CONDITION", "'conditions' must be an array of condition objects.");
+                return false;
+            }
+
+            foreach (var token in tokens)
+            {
+                if (!(token is JObject condition) || string.IsNullOrWhiteSpace(condition["parameter"]?.ToString()))
+                {
+                    err = new ErrorResponse("INVALID_CONDITION", "Each condition needs a non-empty 'parameter' (and optional 'mode' / 'threshold').");
+                    return false;
+                }
+                var parameter = condition["parameter"].ToString();
+                if (!Array.Exists(controller.parameters, p => p.name == parameter))
+                {
+                    err = new ErrorResponse("PARAMETER_NOT_FOUND", $"AnimatorController has no parameter '{parameter}'.");
+                    return false;
+                }
+                var modeText = condition["mode"]?.ToString() ?? "If";
+                if (!Enum.TryParse<AnimatorConditionMode>(modeText, true, out var mode))
+                {
+                    err = new ErrorResponse("INVALID_CONDITION", $"Unknown condition mode '{modeText}'. Valid: If, IfNot, Greater, Less, Equals, NotEqual.");
+                    return false;
+                }
+
+                float threshold;
+                try { threshold = condition["threshold"]?.Value<float>() ?? 0f; }
+                catch (Exception)
+                {
+                    err = new ErrorResponse("INVALID_CONDITION", $"Condition threshold for '{parameter}' must be numeric.");
+                    return false;
+                }
+                conditions.Add((parameter, mode, threshold));
+            }
+            return true;
+        }
+    }
+}

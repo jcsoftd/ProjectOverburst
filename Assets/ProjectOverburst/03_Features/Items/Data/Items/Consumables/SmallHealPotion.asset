@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fa9c1177d52e74f9779d5ae0758d6d, type: 3}
+  m_Name: SmallHealPotion
+  m_EditorClassIdentifier: Assembly-CSharp::ConsumableItemData
+  itemName: 회복물약(소)
+  icon: {fileID: 21300000, guid: 9c7b5a6f1d8e4b70b2c345d90a1f2e33, type: 3}
+  color: {r: 0.85, g: 0.18, b: 0.18, a: 1}
+  description: 즉시 최대 체력의 10%를 회복한다.
+  weight: 0.1
+  sellPrice: 20
+  possibleStats: []
+  consumableType: 0
+  defaultGrade: 0
+  effectValue: 0.1
+  duration: 0
+  cooldown: 20
+  maxStack: 10
+  consumeOnUse: 1
+  targetBuffId: small_heal_potion
+  moveSpeedMultiplier: 1
+  useMessage: 회복물약(소) 사용: 최대 체력의 10% 회복

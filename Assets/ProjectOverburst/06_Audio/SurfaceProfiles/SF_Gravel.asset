@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 347259cef64ae0e498671b06a5346627, type: 3}
+  m_Name: SF_Gravel
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceProfile
+  surfaceId: Gravel
+  walkClips:
+  - {fileID: 8300000, guid: abe500d839e08dd49ad4bb7face54e2a, type: 3}
+  - {fileID: 8300000, guid: cd4ea4253ad250440899dc77b6f2b58a, type: 3}
+  - {fileID: 8300000, guid: aa636d01c0daa9c458f950a8b6bf292f, type: 3}
+  - {fileID: 8300000, guid: 68f5bd01f0d14514db9f1d47684340d4, type: 3}
+  runClips:
+  - {fileID: 8300000, guid: dd33f9be7fa2b5f47b1c3c2c9986eab3, type: 3}
+  - {fileID: 8300000, guid: 896f418d08d71104e9e200b749e561aa, type: 3}
+  - {fileID: 8300000, guid: 3346f32593e7cf54789ae02e3fe98e35, type: 3}
+  - {fileID: 8300000, guid: e66659326f7718c459e1f38936bedcf4, type: 3}
+  landingClips:
+  - {fileID: 8300000, guid: 4dd4f5ca1b5d9d840b754c64d5974f67, type: 3}
+  - {fileID: 8300000, guid: e781ecae92a1df9439434699b8663dc2, type: 3}
+  - {fileID: 8300000, guid: e5904563fc5134c4bb44fdab268ae76c, type: 3}
+  - {fileID: 8300000, guid: 0e8b134cc56616b4ea35c84d4d10d55b, type: 3}
+  volumeMin: 0.72
+  volumeMax: 0.9
+  pitchMin: 0.94
+  pitchMax: 1.06

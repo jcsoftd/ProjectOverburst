@@ -1,0 +1,103 @@
+# Unity가 다시 생성하는 로컬 캐시/출력
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emory[Cc]aptures/
+/[Rr]ecordings/
+
+# IDE 및 로컬 개발 도구 설정
+.vs/
+.vscode/
+.idea/
+.fleet/
+.consulo/
+.gradle/
+.plastic/
+.agents/
+.codex/
+
+# Unity/IDE 자동 생성 프로젝트 파일
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# 빌드 결과 및 패키지 산출물
+*.apk
+*.aab
+*.app
+*.unitypackage
+sysinfo.txt
+crashlytics-build.properties
+ExportedObj/
+
+# 운영체제 임시 파일
+.DS_Store*
+Thumbs.db
+Desktop.ini
+~UnityDirMonSyncFile~*
+
+# 프로젝트 로컬 백업/캡처/문서 작업 폴더
+bak/
+MapCaptures/
+Docs/.tmp.driveupload/
+
+# 내려받아 복원하거나 로컬에서만 사용하는 외부 에셋
+Assets/AssetStoreTools/
+Assets/Plugins/PlasticSCM*
+Assets/_BrokenSceneBackup/
+Assets/_BrokenSceneBackup.meta
+Assets/ThirdParty/
+Assets/ThirdParty.meta
+
+# 공개 저장소에 재배포하지 않는 Unity Asset Store 원본 패키지
+/Packages/com.shadercrew.seethroughshader.core/
+
+# 로컬 이관에서만 사용한 일회성 Editor 검사 도구
+/Assets/Editor/Tools/Overburst/OverburstIdentitySetup.cs
+/Assets/Editor/Tools/Overburst/OverburstIdentitySetup.cs.meta
+/Assets/Editor/Tools/Overburst/OverburstRemovalAudit.cs
+/Assets/Editor/Tools/Overburst/OverburstRemovalAudit.cs.meta
+
+# 로컬 전용 파일
+*.private
+*.private.meta
+*.private.[0-9]*
+*.private.[0-9]*.meta
+
+# ChatGPT Hybrid MCP 런타임/로그
+/artifacts/chatgpt-hybrid-mcp/
+
+# 제출 완료 과제 로컬 보관본
+/_LegacyBackup/SubmittedAssignments/
+
+# Addressables 빌드 캐시
+Assets/AddressableAssetsData/*/*.bin*
+Assets/StreamingAssets/aa.meta
+Assets/StreamingAssets/aa/
+
+# OVERBURST local reports and private workspace
+/_개인파일/
+/JC_Workstation_친구PC_설정용_Codex_지시서.md
+
+# 내부 기획·작업 지시·문서
+/Docs/
+/AGENTS.md
+/ignore.conf

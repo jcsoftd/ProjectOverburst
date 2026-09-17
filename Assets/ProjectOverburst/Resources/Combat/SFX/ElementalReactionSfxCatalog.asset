@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ba99998f6950104b90f05fe242dfb17, type: 3}
+  m_Name: ElementalReactionSfxCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ElementalReactionSfxCatalog
+  vaporize:
+    clips:
+    - {fileID: 8300000, guid: 14b2388402ef2da4186adae338e63588, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  thermalFracture:
+    clips: []
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  freeze:
+    clips:
+    - {fileID: 8300000, guid: 259dcdb0ee8336c4286c72f94594424f, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  plasmaExplosion:
+    clips:
+    - {fileID: 8300000, guid: b465f547a56c8cd4db8e2c85651ff5d8, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  shatter:
+    clips:
+    - {fileID: 8300000, guid: e40986eedd28a0449b9b6e021df6e891, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  coldChargeExplosion:
+    clips:
+    - {fileID: 8300000, guid: a3189309e1fbb7541bf472c3c7a7945b, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0.03
+  chainTransition:
+    clips:
+    - {fileID: 8300000, guid: 93ab2e5794c1db04391d3c25f014448e, type: 3}
+    - {fileID: 8300000, guid: 4ecc9353a062cbb46b9fa77ab92eacb0, type: 3}
+    volume: 1
+    minPitch: 1
+    maxPitch: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 35
+    cooldown: 0

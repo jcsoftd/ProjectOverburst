@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: EAD_Ursacetus_Stomp
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: Ursacetus_Stomp
+  animatorTrigger: Attack2
+  executionMode: 3
+  damage: 12
+  minimumRange: 0
+  range: 4
+  hitRadius: 4
+  hitAngle: 360
+  verticalTolerance: 1.25
+  requireLineOfSight: 1
+  cooldown: 4.2
+  hitDelay: 0.45
+  hitNormalizedTime: 0.52
+  attackAnimationDuration: 5.166667
+  attackLockDuration: 4.7533336
+  weight: 0.8
+  priority: 10
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0

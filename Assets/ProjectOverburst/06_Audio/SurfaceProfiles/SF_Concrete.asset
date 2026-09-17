@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 347259cef64ae0e498671b06a5346627, type: 3}
+  m_Name: SF_Concrete
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceProfile
+  surfaceId: Concrete
+  walkClips:
+  - {fileID: 8300000, guid: 42c42b0a11573cb47be1893736a7f0ab, type: 3}
+  - {fileID: 8300000, guid: daa3593f8f536d147a4a685ec3cea7f5, type: 3}
+  - {fileID: 8300000, guid: 1d49be3932520814e973b8b2c9b9ef51, type: 3}
+  - {fileID: 8300000, guid: a81bd506110814e4a847b6d5c75558af, type: 3}
+  runClips:
+  - {fileID: 8300000, guid: 6ec4f8156c1364348b676dcbe4123bc1, type: 3}
+  - {fileID: 8300000, guid: 103a9630b7e1f5d4a90a8b6320d2d5fb, type: 3}
+  - {fileID: 8300000, guid: a40aa9c55590a0f428ffe74d858bf91c, type: 3}
+  - {fileID: 8300000, guid: f406d6b1e9ea8b6439c85efd77004d9d, type: 3}
+  landingClips:
+  - {fileID: 8300000, guid: 01e53c3f9df5af74e94030f336e5908d, type: 3}
+  - {fileID: 8300000, guid: 47b43bcb8f276624aa937d7406945c4b, type: 3}
+  - {fileID: 8300000, guid: 7344d419bbeecb0468a15407736f264e, type: 3}
+  - {fileID: 8300000, guid: 4910d625f4c9c0243b9fdea92c00cc97, type: 3}
+  volumeMin: 0.72
+  volumeMax: 0.9
+  pitchMin: 0.94
+  pitchMax: 1.06

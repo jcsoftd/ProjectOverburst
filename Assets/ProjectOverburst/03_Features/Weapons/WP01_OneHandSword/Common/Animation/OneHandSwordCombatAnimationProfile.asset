@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10074fc968731ca48b1ad9b3d0c76071, type: 3}
+  m_Name: OneHandSwordCombatAnimationProfile
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponCombatAnimationProfile
+  combatStyle: 10
+  animatorOverrideController: {fileID: 0}
+  animatorLayerName: Combat_MeleeWeapon
+  transitionLowerLayerName: Combat_MeleeWeapon_TransitionLower
+  emptyStateName: Melee_Empty
+  equipStateName: Melee_Equip
+  locomotionStateName: Melee_Locomotion
+  guardLocomotionStateName: Melee_GuardLocomotion
+  unequipStateName: Melee_Unequip
+  blockStateName: Melee_Block
+  movingBlockStateName: Melee_MovingBlock
+  hitStateNamePrefix: Melee_Hit
+  jumpStateName: Melee_Jump
+  rollStateName: Melee_Roll
+  attackStateName: Melee_Attack
+  attackTemplateClip: {fileID: 7400000, guid: 181645acac6152547a230a079ade8bf2, type: 2}
+  transitionLowerEmptyStateName: Melee_TransitionLower_Empty
+  transitionLowerLocomotionStateName: Melee_TransitionLower_Locomotion
+  actionSpeedParameterName: Melee_ActionSpeed
+  equipClip: {fileID: 7400000, guid: 2b3b9a7884d69604b8965cf272caee14, type: 3}
+  unequipClip: {fileID: 7400000, guid: cb2450a4bacd09e49b7f5973d896e97b, type: 2}
+  combatIdleClip: {fileID: 1827226128182048838, guid: ea745456ee2b4a748ad110d5b7d9581e, type: 3}
+  locomotion:
+    forward: {fileID: 1827226128182048838, guid: 5e7f0f2b7d05d9341af17ee065787ce4, type: 3}
+    backward: {fileID: 1827226128182048838, guid: 81838b3f961ac5c49a1cf18df84670d1, type: 3}
+    left: {fileID: 1827226128182048838, guid: 6759154be2049ad4f82612f04c854bce, type: 3}
+    right: {fileID: 1827226128182048838, guid: ef001405e61617048827f06d09fcdc2f, type: 3}
+    forwardLeft: {fileID: 1827226128182048838, guid: baba680bfa19c9e40831b9c4e9cf0010, type: 3}
+    forwardRight: {fileID: 1827226128182048838, guid: b43fdd23d7065d34aa268dc54e62e54b, type: 3}
+    backwardLeft: {fileID: 1827226128182048838, guid: 9e2b9a0d389b4754caa8fb2404e7eec6, type: 3}
+    backwardRight: {fileID: 1827226128182048838, guid: 5de9e2f68a1e39240ad05609ea0e6282, type: 3}
+  guardIdleClip: {fileID: 1827226128182048838, guid: d259cb287cf20bc419698b0d8482564d, type: 3}
+  guardLocomotion:
+    forward: {fileID: 1827226128182048838, guid: 53115c52dc3128b49b9ec8686f83f83f, type: 3}
+    backward: {fileID: 1827226128182048838, guid: 8b36a1996d1627e4b9a70689a04cc40c, type: 3}
+    left: {fileID: 1827226128182048838, guid: 5ec008f43b823df43ad1402f2600fc3a, type: 3}
+    right: {fileID: 1827226128182048838, guid: bd82e647b77ec1148b2dff6ee5fb9318, type: 3}
+  useTransitionLowerBodyWhileGuarding: 0
+  blockClip: {fileID: 1827226128182048838, guid: aca530f9fe2a3654eba7b4bc1ab5ccc3, type: 3}
+  movingBlockClip: {fileID: 1827226128182048838, guid: 015992e88f216b24ea6b12493f220288, type: 3}
+  hitClips:
+  - {fileID: 1827226128182048838, guid: d9c16bc7059961545a26d37e6654493c, type: 3}
+  - {fileID: 1827226128182048838, guid: e5632a5d7a52bd84cb164fc11e5c34a6, type: 3}
+  - {fileID: 1827226128182048838, guid: cd011e3816874dd409babe2c536a178b, type: 3}
+  jumpClip: {fileID: 1827226128182048838, guid: bc54cb15c4f523442a250a93eeb21af8, type: 3}
+  rollClip: {fileID: 7400000, guid: 1240215b87b5b9343abcc089deb36e27, type: 2}
+  layerFadeInDuration: 0.08
+  layerFadeOutDuration: 0.12
+  equipToLocomotionTransitionDuration: 0.12
+  locomotionToGuardTransitionDuration: 0.08
+  guardLocomotionEnterTransitionDuration: 0.16
+  guardLocomotionExitTransitionDuration: 0.12
+  guardLocomotionStartOffsetSeconds: 0.05
+  actionTransitionDuration: 0.06
+  movingTransitionEndBlendDuration: 0.18
+  unequipWeaponBackLeadTime: 0.3
+  legacyActionSuppressionFadeDuration: 0.04
+  transitionLowerLayerFadeDuration: 0.05
+  transitionLowerMoveInputThreshold: 0.05
+  equipAnimationSpeedMultiplier: 1.3
+  unequipAnimationSpeedMultiplier: 1.5
+  unequipAnimationStartOffsetSeconds: 0.1

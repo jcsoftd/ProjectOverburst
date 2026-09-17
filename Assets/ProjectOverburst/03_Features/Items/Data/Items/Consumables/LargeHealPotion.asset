@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fa9c1177d52e74f9779d5ae0758d6d, type: 3}
+  m_Name: LargeHealPotion
+  m_EditorClassIdentifier: Assembly-CSharp::ConsumableItemData
+  itemName: 회복물약(대)
+  icon: {fileID: 21300000, guid: 2a7b8c9d0e1f4a5b8c7d6e5f4a3b2c1d, type: 3}
+  color: {r: 0.96, g: 0.18, b: 0.18, a: 1}
+  description: 즉시 최대 체력의 25%를 회복한다.
+  weight: 0.1
+  sellPrice: 70
+  possibleStats: []
+  consumableType: 0
+  defaultGrade: 3
+  effectValue: 0.25
+  duration: 0
+  cooldown: 20
+  maxStack: 10
+  consumeOnUse: 1
+  targetBuffId: large_heal_potion
+  moveSpeedMultiplier: 1
+  useMessage: 회복물약(대) 사용: 최대 체력의 25% 회복

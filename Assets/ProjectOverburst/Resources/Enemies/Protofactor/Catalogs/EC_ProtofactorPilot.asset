@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42649c9d7cc8e434c907173073177ff3, type: 3}
+  m_Name: EC_ProtofactorPilot
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyCatalog
+  definitions:
+  - {fileID: 11400000, guid: 15286ad10a6559e4983b48a07ce9b222, type: 2}
+  - {fileID: 11400000, guid: 4f632ee01350cb44099f22e7c315e139, type: 2}
+  - {fileID: 11400000, guid: 7bab9ddaf35919a4c8acc8c4d05c6a37, type: 2}
+  - {fileID: 11400000, guid: 894e9595b33d5a94f866e128f714646a, type: 2}
+  - {fileID: 11400000, guid: 8543d0adb8855c5468c5cdace9014cee, type: 2}
+  - {fileID: 11400000, guid: e199addad912e4e4389c1cc6bc08a156, type: 2}
+  - {fileID: 11400000, guid: 17a3124fdbf87f140913d917063c35ac, type: 2}

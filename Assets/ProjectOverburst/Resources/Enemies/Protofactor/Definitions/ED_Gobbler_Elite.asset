@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: ED_Gobbler_Elite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: Gobbler_Elite
+  displayName: Gobbler Elite
+  species: {fileID: 11400000, guid: 817b2b51dde31274fba80e3b181a0824, type: 2}
+  grade: {fileID: 11400000, guid: d5fdc5baeec7d2b49b6f3c96d0b61c19, type: 2}
+  variant: {fileID: 11400000, guid: d9ed378b1b426064f9d94b71128fd112, type: 2}
+  actorPrefab: {fileID: 5443319970299156170, guid: f3a8ad3b1fbb50746896fd346a609d9f, type: 3}
+  animationProfile: {fileID: 11400000, guid: 6d5f62a2b52e7dd449f33f093db5f1ca, type: 2}
+  abilitySet: {fileID: 11400000, guid: a084c47d3860bd24992383cf2b44556a, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 740c27e923ee8734c9b0b41a4f4831cd, type: 2}
+  movementProfile: {fileID: 11400000, guid: 8276193647d90a140a7d584f6793e9f3, type: 2}
+  aiPreset: {fileID: 11400000, guid: 421b890fed39ac04a888f23016532821, type: 2}
+  squadParticipationMode: 0

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa3b7e6093d78d14684c2620dbc6361b, type: 3}
+  m_Name: OHS01_FleurDeLys
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponItemData
+  itemName: Sword
+  icon: {fileID: 21300000, guid: b4f249795464408cc25ec36cd9e3e7d4, type: 3}
+  color: {r: 0.82, g: 0.86, b: 0.92, a: 1}
+  description: One-handed melee weapon.
+  weight: 0
+  sellPrice: 35
+  worldPickupPrefab: {fileID: 5978879455263835597, guid: b75ccee12334c2a4e9889efe52f0459d, type: 3}
+  possibleStats: []
+  weaponClass: 8
+  defaultElement: 0
+  baseStats:
+    damage: 16
+    criticalChance: 10
+    criticalDamageMultiplier: 1.4
+    range: 2.6
+    knockback: 3
+  maxGemSlotCount: 4
+  weaponRootPrefab: {fileID: 110000000, guid: 4d6e12b25d96bf04aa7264798d7b5b99, type: 3}
+  combatDefinition: {fileID: 11400000, guid: 14e75970c466d394ea1b9e4799b65561, type: 2}

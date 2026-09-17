@@ -1,0 +1,8 @@
+# Preserve imported source bytes in the independent local repository.
+* -text
+*.cs diff=csharp
+*.unity diff
+*.prefab diff
+*.asset diff
+*.meta diff
+*.md diff

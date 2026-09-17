@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30802bd0910b77d4d9f0c5464368aa7f, type: 3}
+  m_Name: GreatswordDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponDefinition
+  usage:
+    canAim: 1
+    canPrimaryAttack: 1
+    aimType: 3
+    attackType: 8
+    fireMode: 5
+    attackRateDisplayType: 0
+  aim:
+    mode: 6
+    usesCombatMove: 1
+    usesUpperBodyPose: 0
+    rotatesToMouse: 1
+    poseBodyMode: 0
+    upperBodyChannel: 0
+    meleeUpperBodyYawOffset: 60
+    poseClip: {fileID: 7400000, guid: 22e4ced2e8c48cb4080bc2e85f10cbac, type: 2}
+    alternatePoseClip: {fileID: 0}
+    useAlternatePoseClip: 0
+    moveSpeedMultiplier: 0.6
+  animation:
+    primaryAttackClip: {fileID: 0}
+    primaryAttackSpeed: 1.65
+    reloadClip: {fileID: 0}
+    quickFireAimPoseClip: {fileID: 0}
+    quickFireClip: {fileID: 0}
+  baseSettings:
+    attackSpeedMultiplier: 1
+    slashAngle: 100
+    hitWidth: 1
+    hitStunDuration: 0.8
+    vfxScaleMultiplier: 1
+  combatStyle: 10
+  animationProfile: {fileID: 11400000, guid: 1920cbd39a6783043a6711486dd83cfd, type: 2}
+  comboDefinition: {fileID: 11400000, guid: e58ddec26f9bed44c89989f51ad14e43, type: 2}
+  guard:
+    lockMovementWhileGuarding: 0
+    incomingDamageMultiplier: 0.3
+    parryWindow: 0.3
+    parryDamage: 1
+  grip:
+    enabled: 1
+    positionWeight: 0.9
+    blendSpeed: 14

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
+  m_Name: AIP_ProtofactorSquad
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
+  presetId: ProtofactorSquad
+  displayName: "Protofactor \uC77C\uBC18 \uBAAC\uC2A4\uD130 \uBD80\uB300"
+  defaultMonsterPrefabs:
+  - {fileID: 4810170822042958181, guid: ba37a93c91d29dd45abd5c658125926b, type: 3}
+  - {fileID: 7544915028327854900, guid: 74ee65212e61bc2468ac9ee8b14781a0, type: 3}
+  - {fileID: 8455278516852402588, guid: f3a8ad3b1fbb50746896fd346a609d9f, type: 3}
+  activationCount: 41
+  minimumSquadSize: 4
+  maximumSquadSize: 8
+  slotRadius: 6
+  directCommitRadius: 10
+  nearReleaseDistance: 4.5
+  farActivationDistance: 13
+  reserveSpeedMultiplier: 0.82
+  remnantRatio: 0.35
+  slotArrivalDistance: 1.6
+  reserveOrbitRadius: 15
+  reserveOrbitAngularSpeed: 6
+  curveRadiusMultiplier: 1

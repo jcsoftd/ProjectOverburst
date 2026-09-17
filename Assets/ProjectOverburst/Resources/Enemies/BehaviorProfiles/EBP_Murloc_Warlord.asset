@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8f746f902e69343b2d1c79bd3cdcc8, type: 3}
+  m_Name: EBP_Murloc_Warlord
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviorProfile
+  profileId: Murloc_Warlord
+  tendency: 2
+  repositionStyle: 0
+  patrolChance: 0.2
+  idleDurationMin: 1.5
+  idleDurationMax: 4
+  patrolRadius: 3.5
+  patrolSpeedMultiplier: 0.55
+  patrolStuckCheckDuration: 0.75
+  patrolStuckMinDistance: 0.08
+  noticeRange: 16
+  investigateRange: 12
+  discoverRange: 7
+  discoverFieldOfView: 170
+  noticeDuration: 0.6
+  noticeCooldown: 3
+  investigateMemoryDuration: 3.2
+  investigateSpeedMultiplier: 0.55
+  supportCallRange: 16
+  alertDuration: 1.4
+  playTauntOnAlert: 1
+  idleBreakMinInterval: 5
+  idleBreakMaxInterval: 9
+  recoveryDuration: 0.45
+  preferredMinDistance: 0.9
+  repositionDistance: 1.1
+  repositionDuration: 0.55
+  lowHealthRepositionThreshold: 0.3
+  lowHealthRepositionDistance: 1.8
+  lowHealthRepositionDuration: 0.65
+  dodgeLungeMinDistance: 2.3
+  dodgeLungeMaxDistance: 5
+  dodgeLungeDistance: 2.4
+  dodgeLungeDuration: 0.65
+  dodgeLungeCooldown: 3
+  dodgeLungeChance: 0.35
+  dodgeVisualHeight: 0.75
+  runApproachMinDistance: 7
+  preferredApproachDistance: 1.55
+  approachSideAngle: 35
+  separationRadius: 2
+  separationWeight: 0.9
+  approachDirectionMinDuration: 2
+  approachDirectionMaxDuration: 4
+  attackTurnCooldown: 1.6
+  attackWaitDuration: 0.6
+  memberEngageRange: 2.5
+  memberEngageVerticalTolerance: 1.5
+  hasShield: 1
+  defendChance: 0.45
+  defendDuration: 1
+  blockedDamageMultiplier: 0.3
+  blockAngle: 140

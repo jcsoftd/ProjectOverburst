@@ -1,0 +1,487 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using UnityEngine;
+
+namespace HeraAgent
+{
+    /// <summary>
+    /// Routes incoming command requests to the appropriate tool handler.
+    /// All requests are serialized through a single queue to prevent
+    /// race conditions when multiple CLI agents access the same Unity instance.
+    /// </summary>
+    public static class CommandRouter
+    {
+        static readonly SemaphoreSlim s_Lock = new(1, 1);
+
+        // 120s is the lock-acquisition timeout, not the per-command execution
+        // budget. Long-running operations (compile, profiler capture) are
+        // handled separately via heartbeat polling on the CLI side. If a
+        // command holds the lock longer than this, something is wedged and
+        // the caller deserves a clear error instead of an indefinite hang.
+        static readonly TimeSpan s_LockTimeout = TimeSpan.FromSeconds(120);
+
+        public class BatchCommandItem
+        {
+            public string Command { get; set; }
+            public JObject Params { get; set; }
+        }
+
+        public class BatchOptions
+        {
+            public bool FailFast { get; set; } = true;
+
+            // When true, wrap the whole batch in a single editor Undo group and
+            // revert it if any command fails. Only Undo-aware editor mutations
+            // (scene / GameObject / component edits) roll back — exec,
+            // AssetDatabase and file-system side effects are NOT transactional.
+            public bool Atomic { get; set; }
+        }
+
+        public class BatchCommandResponse
+        {
+            public bool success = true;
+            public List<object> Results { get; set; }
+            public int Completed { get; set; }
+            public int Failed { get; set; }
+        }
+
+        sealed class PreparedRequest
+        {
+            internal ToolContract Contract;
+            internal JObject Parameters;
+            internal string Action;
+            internal ToolValidationResult Validation;
+            internal ToolSafetyContract Safety;
+        }
+
+        public static async Task<object> Dispatch(string command, JObject parameters)
+        {
+            return await Dispatch(command, parameters, null);
+        }
+
+        public static async Task<object> Dispatch(
+            string command,
+            JObject parameters,
+            CommandRequestContext requestContext)
+        {
+            if (!await s_Lock.WaitAsync(s_LockTimeout))
+            {
+                return new ErrorResponse("COMMAND_LOCK_TIMEOUT",
+                    "[Hera] I waited 120s for the command lock but another command is still running.");
+            }
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                var result = await DispatchInternal(command, parameters, requestContext);
+                sw.Stop();
+                ResponseTimings.Set(result, "total_ms", sw.ElapsedMilliseconds);
+                return result;
+            }
+            finally
+            {
+                s_Lock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Run multiple commands sequentially while holding the same lock so
+        /// the batch is observed atomically from the CLI's perspective. The
+        /// CLI side serialises requests anyway, but batching saves one HTTP
+        /// round-trip per command and lets the editor avoid releasing /
+        /// re-acquiring the work queue between steps.
+        /// </summary>
+        public static async Task<object> DispatchBatch(List<BatchCommandItem> commands, BatchOptions options)
+        {
+            var prepared = new List<PreparedRequest>(commands.Count);
+            foreach (var item in commands)
+            {
+                var request = PrepareRequest(item.Command, item.Params);
+                prepared.Add(request);
+                if (request?.Safety?.RequiresConfirmation == true)
+                {
+                    return new ErrorResponse(
+                        "APPROVAL_REQUIRED",
+                        $"Batch item '{item.Command}' requires individual approval.");
+                }
+            }
+
+            if (!await s_Lock.WaitAsync(s_LockTimeout))
+            {
+                return new ErrorResponse("COMMAND_LOCK_TIMEOUT",
+                    "[Hera] I waited 120s for the command lock but another command is still running.");
+            }
+
+            var results = new List<object>();
+            int failed = 0;
+
+            // Atomic batches run inside one Undo group so the whole sequence can be
+            // reverted as a unit on failure. Caveat: only Undo-aware editor
+            // mutations roll back — exec / AssetDatabase / file effects do not.
+            int undoGroup = -1;
+            if (options.Atomic)
+            {
+                UnityEditor.Undo.IncrementCurrentGroup();
+                undoGroup = UnityEditor.Undo.GetCurrentGroup();
+                UnityEditor.Undo.SetCurrentGroupName("Hera Batch");
+            }
+
+            try
+            {
+                for (var index = 0; index < commands.Count; index++)
+                {
+                    var item = commands[index];
+                    var sw = Stopwatch.StartNew();
+                    var result = await DispatchInternal(
+                        item.Command,
+                        item.Params,
+                        prepared: prepared[index]);
+                    sw.Stop();
+                    ResponseTimings.Set(result, "total_ms", sw.ElapsedMilliseconds);
+                    results.Add(result);
+
+                    bool isError = result is ErrorResponse;
+                    if (isError) failed++;
+
+                    if (options.FailFast && isError)
+                    {
+                        break;
+                    }
+                }
+
+                if (options.Atomic && undoGroup >= 0)
+                {
+                    if (failed > 0)
+                        UnityEditor.Undo.RevertAllDownToGroup(undoGroup);
+                    else
+                        UnityEditor.Undo.CollapseUndoOperations(undoGroup);
+                }
+            }
+            finally
+            {
+                s_Lock.Release();
+            }
+
+            return new BatchCommandResponse
+            {
+                Results = results,
+                Completed = results.Count,
+                Failed = failed
+            };
+        }
+
+        static string ExtractAction(JObject parameters)
+        {
+            if (parameters == null) return null;
+
+            var action = parameters["action"]?.ToString();
+            if (!string.IsNullOrEmpty(action))
+                return action.ToLowerInvariant();
+
+            var args = parameters["args"] as JArray;
+            if (args != null && args.Count >= 1)
+                return args[0].ToString().ToLowerInvariant();
+
+            return null;
+        }
+
+        static async Task<object> DispatchInternal(
+            string command,
+            JObject parameters,
+            CommandRequestContext requestContext = null,
+            PreparedRequest prepared = null)
+        {
+            if (requestContext != null)
+            {
+                var protocolError = requestContext.ValidateProtocol();
+                if (protocolError != null)
+                    return protocolError;
+
+                var catalogError = requestContext.ValidateCatalog();
+                if (catalogError != null)
+                    return catalogError;
+            }
+
+            if (command == "list")
+                return HandleList(parameters);
+
+            // Prefer an explicit action when one is supplied; fall back to the
+            // tool's default HandleCommand so `manage_ui --element button` still
+            // works even though `create` is the usual action.
+            var contract = prepared?.Contract ?? ToolContractRegistry.Get(command);
+            parameters = prepared?.Parameters
+                ?? (parameters == null ? new JObject() : (JObject)parameters.DeepClone());
+            string action = prepared?.Action ?? NormalizeAction(contract, ExtractAction(parameters));
+            bool usedAction = false;
+            MethodInfo handler = null;
+            var actionNames = contract?.Actions.Keys
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray()
+                ?? ToolDiscovery.GetActionNames(command).ToArray();
+            bool namedAction = parameters?["action"] != null;
+            if (!string.IsNullOrEmpty(action))
+            {
+                handler = ToolDiscovery.FindActionHandler(command, action);
+                usedAction = handler != null;
+                if (handler == null
+                    && contract != null
+                    && contract.Actions.ContainsKey(action))
+                {
+                    handler = ToolDiscovery.FindDefaultHandler(command);
+                    usedAction = handler != null;
+                }
+                if (handler == null && ((namedAction && actionNames.Length > 0)
+                    || (ToolDiscovery.FindDefaultHandler(command) == null && actionNames.Length > 0)))
+                {
+                    return UnknownAction(action, actionNames);
+                }
+            }
+            if (handler == null)
+                handler = ToolDiscovery.FindDefaultHandler(command);
+
+            if (handler == null)
+            {
+                var similar = ToolDiscovery.SuggestSimilarCommands(command);
+                var suggestionList = new List<string>();
+                foreach (var s in similar) suggestionList.Add($"Did you mean '{s}'?");
+                suggestionList.Add("Run 'hera-agent-unity list --names' to see all tools");
+
+                return new ErrorResponse(
+                    code: "UNKNOWN_COMMAND",
+                    message: $"Unknown command: {command}",
+                    data: similar.Count > 0 ? new { did_you_mean = similar } : null,
+                    suggestions: suggestionList);
+            }
+
+            ToolValidationResult validation;
+            if (prepared == null)
+            {
+                if (usedAction)
+                    parameters["action"] = action;
+                validation = ToolContractValidator.Validate(
+                    contract,
+                    parameters,
+                    usedAction ? action : null);
+            }
+            else
+            {
+                validation = prepared.Validation;
+            }
+            if (!validation.IsValid)
+                return validation.Error;
+            parameters = validation.Normalized;
+
+            var safety = prepared?.Safety
+                ?? ResolveSafety(contract, usedAction ? action : null, parameters);
+            if (safety.RequiresConfirmation && requestContext == null)
+            {
+                return new ErrorResponse(
+                    "APPROVAL_REQUIRED",
+                    $"{command}{(usedAction ? ":" + action : "")} requires individual approval.");
+            }
+            var useLedger = ShouldUseOperationLedger(requestContext, safety);
+            if (useLedger)
+            {
+                var decision = OperationLedger.Default.Begin(
+                    requestContext,
+                    command,
+                    usedAction ? action : null,
+                    safety);
+                if (!decision.Execute)
+                    return decision.Response;
+            }
+
+            object Commit(object response) =>
+                !useLedger
+                    ? response
+                    : OperationLedger.Default.Commit(requestContext, response);
+
+            try
+            {
+                object result;
+                if (handler.IsStatic)
+                {
+                    result = handler.Invoke(null, new object[] { parameters ?? new JObject() });
+                }
+                else
+                {
+                    var toolType = handler.DeclaringType;
+                    if (toolType == null)
+                        return Commit(new ErrorResponse("TOOL_TYPE_NOT_FOUND", $"Tool type not found: {command}"));
+
+                    object instance;
+                    try
+                    {
+                        instance = Activator.CreateInstance(toolType);
+                    }
+                    catch (MissingMethodException)
+                    {
+                        return Commit(new ErrorResponse("TOOL_MISSING_CONSTRUCTOR",
+                            $"Tool '{command}' requires a parameterless constructor"));
+                    }
+                    catch (MemberAccessException)
+                    {
+                        return Commit(new ErrorResponse("TOOL_CONSTRUCTOR_INACCESSIBLE",
+                            $"Tool '{command}' constructor is not accessible (must be public)"));
+                    }
+                    if (instance == null)
+                        return Commit(new ErrorResponse("TOOL_INSTANCE_CREATE_FAILED",
+                            $"Failed to create tool instance: {command}"));
+
+                    result = handler.Invoke(instance, new object[] { parameters ?? new JObject() });
+                }
+
+                if (result is Task<object> asyncTask)
+                {
+                    result = await asyncTask;
+                }
+                else if (result is Task task)
+                {
+                    await task;
+                    result = new SuccessResponse(
+                        $"{command}{(usedAction ? ":" + action : "")} completed");
+                }
+                result ??= new SuccessResponse(
+                    $"{command}{(usedAction ? ":" + action : "")} completed");
+                ResponseDiagnostics.Set(result, validation.Diagnostics);
+                return Commit(result);
+            }
+            catch (Exception ex)
+            {
+                var inner = ex.InnerException ?? ex;
+                UnityEngine.Debug.LogException(inner);
+                string code = usedAction ? "TOOL_ACTION_FAILED" : "TOOL_FAILED";
+                string suffix = usedAction ? $":{action}" : "";
+                return Commit(new ErrorResponse(code, $"{command}{suffix} failed: {inner.Message}"));
+            }
+        }
+
+        internal static bool ShouldUseOperationLedger(
+            CommandRequestContext context,
+            ToolSafetyContract safety) => context != null
+                && safety != null
+                && !(safety.ReadOnly && safety.Idempotent);
+
+        static PreparedRequest PrepareRequest(string command, JObject parameters)
+        {
+            var contract = ToolContractRegistry.Get(command);
+            if (contract == null)
+                return null;
+            parameters = parameters == null ? new JObject() : (JObject)parameters.DeepClone();
+            var action = NormalizeAction(contract, ExtractAction(parameters));
+            var usedAction = !string.IsNullOrEmpty(action) && contract.Actions.ContainsKey(action);
+            if (usedAction)
+                parameters["action"] = action;
+            var validation = ToolContractValidator.Validate(
+                contract,
+                parameters,
+                usedAction ? action : null);
+            return new PreparedRequest
+            {
+                Contract = contract,
+                Parameters = validation.Normalized,
+                Action = action,
+                Validation = validation,
+                Safety = validation.IsValid
+                    ? ResolveSafety(
+                        contract,
+                        usedAction ? action : null,
+                        validation.Normalized)
+                    : null,
+            };
+        }
+
+        static ToolSafetyContract ResolveSafety(
+            ToolContract contract,
+            string action,
+            JObject parameters)
+        {
+            var fallback = contract.Safety;
+            if (action != null && contract.Actions.TryGetValue(action, out var actionContract))
+                fallback = actionContract.Safety;
+            return ToolContractSafety.Resolve(fallback, contract.SafetyRules, parameters);
+        }
+
+        static string NormalizeAction(ToolContract contract, string action)
+        {
+            if (contract == null || string.IsNullOrWhiteSpace(action))
+                return action;
+            action = action.ToLowerInvariant();
+            if (contract.Actions.ContainsKey(action))
+                return action;
+            foreach (var entry in contract.Actions)
+            {
+                if (entry.Value.Aliases.Contains(action, StringComparer.Ordinal))
+                    return entry.Key;
+            }
+            return action;
+        }
+
+        static ErrorResponse UnknownAction(string action, IReadOnlyList<string> expected)
+        {
+            return new ErrorResponse(
+                "UNKNOWN_ACTION",
+                $"Unknown action: {action}",
+                new
+                {
+                    path = "/action",
+                    expected,
+                    actual = action,
+                });
+        }
+
+        static object HandleList(JObject parameters)
+        {
+            var catalog = parameters?["catalog"]?.Type == JTokenType.Boolean
+                && parameters["catalog"].Value<bool>();
+            if (catalog)
+            {
+                var schemaVersion = parameters?["schema_version"]?.ToString();
+                if (!string.Equals(
+                    schemaVersion,
+                    ToolCatalogBuilder.SchemaVersion,
+                    StringComparison.Ordinal))
+                {
+                    return new ErrorResponse(
+                        "SCHEMA_INVALID",
+                        $"Unsupported tool catalog schema: {schemaVersion ?? "(missing)"}",
+                        new
+                        {
+                            path = "/schema_version",
+                            expected = ToolCatalogBuilder.SchemaVersion,
+                            actual = schemaVersion,
+                        });
+                }
+                return new SuccessResponse("Tool catalog", ToolCatalogRuntime.Catalog);
+            }
+
+            var tool = parameters?["tool"]?.ToString();
+            if (!string.IsNullOrEmpty(tool))
+            {
+                var schema = ToolDiscovery.GetToolSchema(tool);
+                if (schema == null)
+                    return new ErrorResponse("UNKNOWN_TOOL",
+                        $"Tool not found: {tool}",
+                        suggestions: new System.Collections.Generic.List<string>
+                        {
+                            "Run 'hera-agent-unity list --names' to see all tools"
+                        });
+                return new SuccessResponse($"Tool: {tool}", schema);
+            }
+
+            var namesOnly = parameters?["names"]?.Type == JTokenType.Boolean
+                && parameters["names"].Value<bool>();
+            var compact = parameters?["compact"]?.Type == JTokenType.Boolean
+                && parameters["compact"].Value<bool>();
+            if (namesOnly || compact)
+                return new SuccessResponse("Available tools", ToolDiscovery.GetToolNames());
+
+            return new SuccessResponse("Available tools", ToolDiscovery.GetToolSummaries());
+        }
+    }
+}

@@ -1,0 +1,141 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1897215407467c4798665b08346fbf2, type: 3}
+  m_Name: MeleeElementSfxCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementSfxCatalog
+  entries:
+  - element: 0
+    slash:
+      clips:
+      - {fileID: 8300000, guid: 37fa1d21b3607bd48bd5b2247ea7d7c4, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: 55e46a78bf935ff4c840aa490b913026, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+  - element: 1
+    slash:
+      clips:
+      - {fileID: 8300000, guid: 9ed4573abd1465749b538474846f4995, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: 495cf15e3eea75a4ab09b559c1c7bd7f, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+  - element: 4
+    slash:
+      clips:
+      - {fileID: 8300000, guid: 9523e52410d044e4e94d656080e3c674, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: 7b76d09668d0cbf42b9508b19c417d8e, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+  - element: 2
+    slash:
+      clips:
+      - {fileID: 8300000, guid: ab4bc40957895ac4d82c7657c3658dc2, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: 3f1fb7d69b142814db8f44f6cb621cd8, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+  - element: 5
+    slash:
+      clips:
+      - {fileID: 8300000, guid: e354edf2516f59d44b7deb2e58061f3b, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: 71edecf670ce60e4c8a6d72ff68d2f6d, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+  - element: 3
+    slash:
+      clips:
+      - {fileID: 8300000, guid: dafe33d88ed91a94e8838ce36188ade2, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+    hit:
+      clips:
+      - {fileID: 8300000, guid: d34038f1b73833143b596968754af22d, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03

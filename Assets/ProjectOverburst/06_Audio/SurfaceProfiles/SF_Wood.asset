@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 347259cef64ae0e498671b06a5346627, type: 3}
+  m_Name: SF_Wood
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceProfile
+  surfaceId: Wood
+  walkClips:
+  - {fileID: 8300000, guid: 10d3cde3443ee5e4c8df9b76fc216e2c, type: 3}
+  - {fileID: 8300000, guid: a03a1cccea2e1764c97f0ee513ec7299, type: 3}
+  - {fileID: 8300000, guid: b4a0c418a7c49b64d8b98588ea8b8c07, type: 3}
+  - {fileID: 8300000, guid: f0247c8107e862649b5c2c45cc950117, type: 3}
+  runClips:
+  - {fileID: 8300000, guid: 3da771cb5909fa44bb5ead0da1f10edc, type: 3}
+  - {fileID: 8300000, guid: c1b404421870ac94c9af423ab7ea46d5, type: 3}
+  - {fileID: 8300000, guid: 8b3302aeffef7444cae959d7866fa1e0, type: 3}
+  - {fileID: 8300000, guid: 690fea94ba8b1774882e2d71d5010813, type: 3}
+  landingClips:
+  - {fileID: 8300000, guid: 1f691af636a961247b30d53e95d22ab1, type: 3}
+  - {fileID: 8300000, guid: 60e826970564b8143b94ba1a649a6c47, type: 3}
+  - {fileID: 8300000, guid: 96ab0671a01dc144b8d35b4a54af8b48, type: 3}
+  - {fileID: 8300000, guid: c75ca5931c63a2341b631571dc2415ca, type: 3}
+  volumeMin: 0.72
+  volumeMax: 0.9
+  pitchMin: 0.94
+  pitchMax: 1.06

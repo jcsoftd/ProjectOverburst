@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: ESD_Rapax
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: Rapax
+  displayName: Rapax
+  vendorPrefab: {fileID: 5433860827178499720, guid: 02ab46ef7501bec47a006d5bb22f0f93, type: 3}
+  animationProfile: {fileID: 11400000, guid: 1d79b9a86714fe745be268ed291f6d29, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 45fc44c99c2d2374ca41fe280a530515, type: 2}
+  combatRole: 2
+  baseMaxHealth: 100
+  movementProfile: {fileID: 11400000, guid: 4babfe2a129ba744a920939095833f48, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: d0e878a9954eca94e9e082ef2e0d268b, type: 2}
+  threatCost: 1

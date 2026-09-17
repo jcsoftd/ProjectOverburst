@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: EAP_Ursacetus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: Ursacetus
+  runtimeController: {fileID: 22100000, guid: fbd0be7d0f94ec540812c02e6e5ee837, type: 2}
+  idle: {fileID: 7400000, guid: b067b228ddc3b3543a5c9806cff35a2b, type: 3}
+  walk: {fileID: 7400000, guid: 66ccb7fc3bee5c541a317dfb4007fc40, type: 3}
+  run: {fileID: 7400000, guid: 66ccb7fc3bee5c541a317dfb4007fc40, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 4657efa32609d3542b08cf05146ab40f, type: 3}
+  - {fileID: 7400000, guid: 0eac3cbd6bc45c047b7e6f32147fbdc3, type: 3}
+  - {fileID: 7400000, guid: 3faf891af64d44047b858668dc875df1, type: 3}
+  hit: {fileID: 7400000, guid: ced72a8e8386f5646a358f8c9c968dbc, type: 3}
+  death: {fileID: 7400000, guid: 8dc1dfa99b4dc3b4e9977cbff59e5177, type: 3}
+  optional:
+  - {fileID: 7400000, guid: f028759b58dd06e46a5cc0bf0cd2586b, type: 3}
+  - {fileID: 7400000, guid: 3e7034f5eea7ff14e8659fb025af1ff0, type: 3}
+  - {fileID: 7400000, guid: 99c3298b255bfb24daa39ab81e4f56d3, type: 3}
+  - {fileID: 7400000, guid: 4096ef9115eb5c74f9e6c62e553d9736, type: 3}
+  - {fileID: 7400000, guid: 76c6d1e9185138a46995091863b45fa1, type: 3}
+  - {fileID: 7400000, guid: 58ee3bf0e12b00d42ac4f9c95cb53d41, type: 3}
+  - {fileID: 7400000, guid: 29fe47d160eb5e740bad941bbcad5628, type: 3}
+  - {fileID: 7400000, guid: 0eafc90c6eeb80c42b3a4dc222337061, type: 3}
+  - {fileID: 7400000, guid: 5106357e6676a9d49864d1161c753f2a, type: 3}
+  - {fileID: 7400000, guid: 78904d7c0fb0f934884e50fd2ee3f331, type: 3}
+  - {fileID: 7400000, guid: f9dcc4662d58bcc41b1acc2f8c8fd24a, type: 3}
+  - {fileID: 7400000, guid: 39db7a0ddf2728547a3c9387adbbbd4c, type: 3}
+  - {fileID: 7400000, guid: d33c7d7f2ee2e1741beb56220b871195, type: 3}
+  - {fileID: 7400000, guid: b0de202d081d80345bcf2e532f0d5b87, type: 3}
+  - {fileID: 7400000, guid: da7d10d9e96676a4c8503db9fb7f27dd, type: 3}
+  - {fileID: 7400000, guid: 1335cefcc3716e04cba102532a117678, type: 3}
+  - {fileID: 7400000, guid: 4233af2e1f6fff5418723fa37657cf0c, type: 3}
+  - {fileID: 7400000, guid: 4707d947283e91a43a535282feeb2c17, type: 3}
+  - {fileID: 7400000, guid: 348935e64cb52eb44ae61500ddb37c3c, type: 3}
+  - {fileID: 7400000, guid: 867261505a04b294d8e45a5b11ea35c6, type: 3}
+  - {fileID: 7400000, guid: 216b3799ffeba224fae8fddb49aa8003, type: 3}
+  - {fileID: 7400000, guid: b4e2bbd634a386944b86a31dca81f4a7, type: 3}
+  - {fileID: 7400000, guid: 06ccfcb837ec48642bd80e3a54d4f2e7, type: 3}
+  - {fileID: 7400000, guid: f2ae753d7dfe6df49832451220ce38eb, type: 3}
+  - {fileID: 7400000, guid: 15e5d105eaac4664082ff4e14b3b0fe2, type: 3}
+  - {fileID: 7400000, guid: cf87583aca34c244791400d99cc3cfaf, type: 3}
+  - {fileID: 7400000, guid: fe00a39070b9bf54c8a69981543fe45c, type: 3}
+  - {fileID: 7400000, guid: 05001f7ea39ba5f4a8e99dd311356839, type: 3}
+  - {fileID: 7400000, guid: fd98c8a26872b1d4495c669717d80673, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@2HandsSmashAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@2HitComboAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn180Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn180Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90LeftFootStompAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90LeftHandAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90RightFootStompAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90RightHandAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkBackwardsWithRock_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkForwardWithRock_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@WalkRight_RM.fbx"

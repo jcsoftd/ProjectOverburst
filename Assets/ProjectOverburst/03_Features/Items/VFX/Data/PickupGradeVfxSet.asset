@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b787928773ff4c6890dd7051ec675def, type: 3}
+  m_Name: PickupGradeVfxSet
+  m_EditorClassIdentifier: 
+  fallbackPrefab: {fileID: 5265337960979591625, guid: b3a0a16fc18324b4b897190e0c2f8c4b, type: 3}
+  entries:
+  - grade: 0
+    prefab: {fileID: 5265337960979591625, guid: b3a0a16fc18324b4b897190e0c2f8c4b, type: 3}
+  - grade: 1
+    prefab: {fileID: 7036566586332757290, guid: 5e2503ecf82ecec448576bebc72ba13e, type: 3}
+  - grade: 2
+    prefab: {fileID: 752307952971637664, guid: 8690a6a11422da545b512089b1851f7c, type: 3}
+  - grade: 3
+    prefab: {fileID: 3981418593166933176, guid: 43c3931bb25f5a14898373c910f2e435, type: 3}
+  - grade: 4
+    prefab: {fileID: 5841861562920568071, guid: 33179154c259d774bbfbd277777eac3f, type: 3}
+  - grade: 5
+    prefab: {fileID: 1955973962944581622, guid: a75aadedb92860e4ea6654aa10e1a7fc, type: 3}
+  - grade: 6
+    prefab: {fileID: 6666460035059902207, guid: a859715d63d37164eba62a3fd317c107, type: 3}
+  - grade: 7
+    prefab: {fileID: 0}

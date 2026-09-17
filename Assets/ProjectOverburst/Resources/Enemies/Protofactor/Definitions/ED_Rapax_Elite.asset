@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: ED_Rapax_Elite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: Rapax_Elite
+  displayName: Rapax Elite
+  species: {fileID: 11400000, guid: c3a92d6008ecda049b3cfbcfacb09f5d, type: 2}
+  grade: {fileID: 11400000, guid: d5fdc5baeec7d2b49b6f3c96d0b61c19, type: 2}
+  variant: {fileID: 11400000, guid: 080c7510560783543a66196c33df83e5, type: 2}
+  actorPrefab: {fileID: 5876932829942903272, guid: 74ee65212e61bc2468ac9ee8b14781a0, type: 3}
+  animationProfile: {fileID: 11400000, guid: 1d79b9a86714fe745be268ed291f6d29, type: 2}
+  abilitySet: {fileID: 11400000, guid: 45fc44c99c2d2374ca41fe280a530515, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: d0e878a9954eca94e9e082ef2e0d268b, type: 2}
+  movementProfile: {fileID: 11400000, guid: 4babfe2a129ba744a920939095833f48, type: 2}
+  aiPreset: {fileID: 11400000, guid: 421b890fed39ac04a888f23016532821, type: 2}
+  squadParticipationMode: 0

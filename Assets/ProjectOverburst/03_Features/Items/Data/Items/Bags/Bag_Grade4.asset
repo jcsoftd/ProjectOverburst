@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40d3caaea5c44a849a22017d471a0f56, type: 3}
+  m_Name: Bag_Grade4
+  m_EditorClassIdentifier: Assembly-CSharp::BagItemData
+  itemName: "\uC5EC\uD589\uAC00\uBC29"
+  icon: {fileID: 21300000, guid: 91a9a0eb904b46518324b24a1001a72f, type: 3}
+  color: {r: 0.75, g: 0.35, b: 1, a: 1}
+  description: "\uB4F1\uAE09\uBCC4 \uD14C\uC2A4\uD2B8 \uAC00\uBC29\uC785\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 130
+  possibleStats: []
+  level: 4
+  defaultGrade: 3
+  additionalSlots: 12

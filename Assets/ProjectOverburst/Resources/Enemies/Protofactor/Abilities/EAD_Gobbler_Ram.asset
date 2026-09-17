@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: EAD_Gobbler_Ram
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: Gobbler_Ram
+  animatorTrigger: Attack2
+  executionMode: 1
+  damage: 12
+  minimumRange: 0
+  range: 2.05
+  hitRadius: 0.8
+  hitAngle: 120
+  verticalTolerance: 0.75
+  requireLineOfSight: 1
+  cooldown: 1.35
+  hitDelay: 0.45
+  hitNormalizedTime: 0.5
+  attackAnimationDuration: 2
+  attackLockDuration: 1.8
+  weight: 0.85
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 1

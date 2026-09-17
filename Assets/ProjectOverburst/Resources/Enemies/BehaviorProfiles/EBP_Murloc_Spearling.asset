@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8f746f902e69343b2d1c79bd3cdcc8, type: 3}
+  m_Name: EBP_Murloc_Spearling
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviorProfile
+  profileId: Murloc_Spearling
+  tendency: 1
+  repositionStyle: 0
+  patrolChance: 0.6
+  idleDurationMin: 1.5
+  idleDurationMax: 4
+  patrolRadius: 4.8
+  patrolSpeedMultiplier: 0.65
+  patrolStuckCheckDuration: 0.75
+  patrolStuckMinDistance: 0.08
+  noticeRange: 15
+  investigateRange: 11
+  discoverRange: 6.5
+  discoverFieldOfView: 160
+  noticeDuration: 0.7
+  noticeCooldown: 3.5
+  investigateMemoryDuration: 2.8
+  investigateSpeedMultiplier: 0.6
+  supportCallRange: 13
+  alertDuration: 0.28
+  playTauntOnAlert: 0
+  idleBreakMinInterval: 5
+  idleBreakMaxInterval: 9
+  recoveryDuration: 0.42
+  preferredMinDistance: 1.35
+  repositionDistance: 1.35
+  repositionDuration: 0.6
+  lowHealthRepositionThreshold: 0.4
+  lowHealthRepositionDistance: 2.2
+  lowHealthRepositionDuration: 0.7
+  dodgeLungeMinDistance: 2.3
+  dodgeLungeMaxDistance: 5
+  dodgeLungeDistance: 2.4
+  dodgeLungeDuration: 0.65
+  dodgeLungeCooldown: 3
+  dodgeLungeChance: 0.35
+  dodgeVisualHeight: 0.75
+  runApproachMinDistance: 7
+  preferredApproachDistance: 1.65
+  approachSideAngle: 60
+  separationRadius: 1.65
+  separationWeight: 1.2
+  approachDirectionMinDuration: 2
+  approachDirectionMaxDuration: 4
+  attackTurnCooldown: 1.3
+  attackWaitDuration: 0.6
+  memberEngageRange: 2.5
+  memberEngageVerticalTolerance: 1.5
+  hasShield: 0
+  defendChance: 0
+  defendDuration: 0.8
+  blockedDamageMultiplier: 1
+  blockAngle: 120

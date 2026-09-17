@@ -1,0 +1,101 @@
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+namespace HeraAgent.Tools
+{
+    [HeraTool(
+        Name = "ui_slop",
+        Description = "Look up a Unity UI-slop tell from the connector-bundled taxonomy (areas A-E: decorative sweep, layout/RectTransform/containers, spacing, typography, color). Most tells are predicates you measure from the live scene; a few say plainly that they need visual or semantic judgement instead. Returns { id, area, severity, tell, check, exception, fix, borrow, deep_topic }. `check` is the uGUI predicate; `fix` is the mechanical repair; `exception` lists the functional cases that must NOT be treated as slop (inventory slots, interactive surfaces); `borrow` carries a quantitative target when the tell owns one, and is null otherwise. No id (or 'list') returns the area-grouped index with the live count. Always available; Unity De-slop Mode (Beta) additionally makes other tools point at these tells via agent_hint.",
+        Profiles = new[] { "ui" },
+        RiskClass = HeraRiskClass.ReadOnly,
+        ContractMode = ToolContractMode.Strict,
+        Examples = new[]
+        {
+            "ui_slop",
+            "ui_slop box-in-box",
+            "ui_slop unscaled-spacing-ladder",
+            "ui_slop tmp-italic",
+            "ui_slop low-contrast-text",
+        },
+        ExampleDescriptions = new[]
+        {
+            "Taxonomy index grouped by area (A decorative, B layout, C spacing, D typography, E color)",
+            "Surface-in-surface flatten rule + the game-UI exception gate (inventory slots are not flattened)",
+            "Spacing ladder: 4 px base x fixed multiples, snap to the nearest rung",
+            "Decorative italics: fontStyle & Italic == 0",
+            "WCAG contrast: foreground vs background >= 4.5:1, measured live",
+        })]
+    public static class UiSlop
+    {
+        public class Parameters
+        {
+            [ToolParameter("Tell id (box-in-box, unscaled-spacing-ladder, tmp-italic, low-contrast-text, ...). Omit or pass 'list' for the taxonomy index.")]
+            public string Id { get; set; }
+        }
+
+        public static object HandleCommand(JObject parameters)
+        {
+            if (parameters == null) return new ErrorResponse("MISSING_PARAM", "Parameters cannot be null.");
+            var p = new ToolParams(parameters);
+            var argsToken = p.GetRaw("args") as JArray;
+
+            string id = p.Get("id")
+                ?? (argsToken != null && argsToken.Count >= 1 ? argsToken[0].ToString() : null);
+
+            // Surface a load-time failure (bundled file missing / unreadable) with
+            // a structured code so the caller can tell it apart from a genuine miss.
+            if (UiSlopStore.Count == 0)
+            {
+                var err = UiSlopStore.LoadError;
+                return new ErrorResponse(
+                    "UI_SLOP_BUNDLE_UNAVAILABLE",
+                    err ?? "Bundled ui-slop data is unavailable on this connector install.",
+                    suggestions: new List<string>
+                    {
+                        "Reinstall the AgentConnector UPM package — the ui-slop file ships inside it.",
+                        "If you're working from a local checkout, run `go run ./tools/build-ui-slop-docs`.",
+                    });
+            }
+
+            if (string.IsNullOrEmpty(id) || id == "list")
+            {
+                return new SuccessResponse(
+                    $"ui_slop: {UiSlopStore.Count} tells across areas A-E. Query one with `ui_slop <id>`. Execute A -> B -> C -> D -> E.",
+                    new { areas = UiSlopStore.BuildIndex() });
+            }
+
+            var entry = UiSlopStore.Lookup(id);
+            if (entry != null)
+            {
+                var check = UiSlopStore.CheckFor(id);
+                return new SuccessResponse(
+                    $"ui_slop {entry.area}: {entry.id}",
+                    new
+                    {
+                        id = entry.id,
+                        area = entry.area,
+                        severity = entry.severity,
+                        tell = entry.tell,
+                        check,
+                        exception = entry.exception,
+                        fix = entry.fix,
+                        borrow = entry.borrow,
+                        deep_topic = entry.deep_topic,
+                    });
+            }
+
+            var suggests = UiSlopStore.SuggestSimilar(id);
+            var data = suggests.Count > 0 ? (object)new { did_you_mean = suggests } : null;
+            var hints = new List<string>();
+            foreach (var s in suggests) hints.Add($"ui_slop {s}");
+            if (hints.Count == 0)
+                hints.Add("Run `ui_slop list` for the full taxonomy index.");
+
+            return new ErrorResponse(
+                "TELL_NOT_FOUND",
+                $"No ui-slop tell matches '{id}'.",
+                data: data,
+                suggestions: hints);
+        }
+    }
+}

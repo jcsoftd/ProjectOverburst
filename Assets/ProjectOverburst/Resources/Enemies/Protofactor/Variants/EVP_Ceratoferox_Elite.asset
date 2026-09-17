@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38c3d333097126c4b8209a6470c15880, type: 3}
+  m_Name: EVP_Ceratoferox_Elite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyVariantProfile
+  variantId: Ceratoferox_Elite
+  displayName: "\uC815\uC608 \uC678\uD615"
+  visualScale: {x: 1.15, y: 1.15, z: 1.15}
+  tint: {r: 1, g: 0.66, b: 0.58, a: 1}
+  collisionScale: {x: 1.15, y: 1.15, z: 1.15}
+  anchorScale: {x: 1.15, y: 1.15, z: 1.15}
+  healthMultiplier: 1
+  damageMultiplier: 1
+  moveSpeedMultiplier: 1
+  attackSpeedMultiplier: 1
