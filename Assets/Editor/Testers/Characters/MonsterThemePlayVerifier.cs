@@ -27,12 +27,16 @@ public static class MonsterThemePlayVerifier
     { Start(false); }
     [MenuItem("OVERBURST/Enemies/Themes/Validate Safety Play Mode")]
     public static void RunSafety() { Start(true); }
-    private static void Start(bool safety)
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Review Play Mode")]
+    public static void RunReview() { Start(false,true); }
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Scene Transition Play Mode")]
+    public static void RunTransition() { Start(false,false,true); }
+    private static void Start(bool safety,bool review=false,bool transition=false)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
         var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
-        SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
+        SessionState.SetBool(Key+".transition",transition);SessionState.SetBool(Key+".review",review);SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
     }
     private static void Changed(PlayModeStateChange state)
     {
@@ -60,7 +64,7 @@ public static class MonsterThemePlayVerifier
             while(work.Count>0){var next=work.Peek();if(!next.MoveNext()){work.Pop();continue;}if(next.Current is IEnumerator nested){work.Push(nested);continue;}return;}
             Check(errors.Count==0,string.Join(" | ",errors));Finish("PASS "+string.Join("; ",passed)+"; errors=0");
         }
-        catch(Exception exception){Finish("FAIL "+exception.Message+"; passed="+string.Join("; ",passed));}
+        catch(Exception exception){Finish("FAIL "+exception+"; passed="+string.Join("; ",passed));}
     }
     private static void Finish(string result){SessionState.SetString(Key+".result",result);EditorApplication.update-=Tick;EditorApplication.ExitPlaymode();}
     private static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
@@ -89,6 +93,9 @@ public static class MonsterThemePlayVerifier
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".transition",false)){yield return SceneTransition();yield break;}
+        if(SessionState.GetBool(Key+".review",false))
+        {yield return Review();ui.Clear();ui.ToggleArena();yield return null;yield break;}
         if(SessionState.GetBool(Key+".safety",false))
         {
             yield return Safety();ui.Clear();ui.ToggleArena();yield return null;yield break;
@@ -234,5 +241,57 @@ public static class MonsterThemePlayVerifier
         ui.spawnButtons[2].onClick.Invoke();encounter=DebugEncounter();yield return Until(()=>encounter.SpawnedCount==50,15,"Death setup");
         var roster=encounter.SnapshotActors();health.TakeDamage(new DamageInfo(health.MaxHp+1000,player.transform.position,null,Vector3.zero));
         yield return Until(()=>!encounter.Running,5,"Dead target did not stop encounter");Check(roster.All(a=>!a.IsLeased),"Dead player cleanup");health.ResetHealth();Pass("player death stops and clears encounter");
+    }
+    private static IEnumerator Review()
+    {
+        string output=SessionState.GetString(Key+".output","");Check(System.IO.Directory.Exists(output),"Set existing review output directory before running");
+        CombatDebugSettings.SetEnemyAiStateDebug(false);CombatDebugSettings.SetAttackPatternDebug(false);
+        var playerActor=PlayerContext.GetOrCreate().CurrentActor;
+        var sword=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP01_OneHandSword/OHS01_FleurDeLys/OHS01_FleurDeLys.asset");
+        Check(playerActor.Equipment.EquipWeaponItem(new ItemData(sword,1,ItemGrade.Common)),"Review equip");
+        PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);yield return Seconds(.5f);
+        for(int index=0;index<3;index++)
+        {
+            if(SessionState.GetBool(Key+".skipCapture",false))break;
+            Teleport(center);ui.spawnButtons[index].onClick.Invoke();var encounter=DebugEncounter();yield return Until(()=>encounter.SpawnedCount==50,15,"Review spawn");
+            yield return Seconds(5);var samples=new List<float>();
+            for(int frame=0;frame<180;frame++){samples.Add(Time.unscaledDeltaTime*1000);yield return null;}
+            samples.Sort();Pass("Editor 50 "+ui.tables[index].ThemeId+" frame-ms median="+samples[90].ToString("F2")+" p95="+samples[171].ToString("F2"));
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(output,ui.tables[index].ThemeId+"-play.png"));yield return Seconds(.3f);ui.Clear();yield return null;
+        }
+        var melee=player.GetComponent<MeleeRuntime>();
+        Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform,out var service),"Review spawn service");
+        foreach(var table in ui.tables)Check(service.RegisterAdditionalCatalog(table.Catalog,out _),"Review catalog");
+        foreach(var table in ui.tables)
+        foreach(EnemyThemeTier tier in Enum.GetValues(typeof(EnemyThemeTier)))
+        {
+            var definition=table.Entries.First(e=>e.tier==tier).definition;
+            Teleport(center);var enemy=Spawn(definition,center+Vector3.forward*1.25f);int swings=0;float hp=enemy.Health.MaxHp;
+            yield return Seconds(.2f);
+            while(!enemy.Health.IsDead && swings<64)
+            {
+                Teleport(center);enemy.transform.position=center+Vector3.forward*1.25f;Physics.SyncTransforms();
+                yield return Until(()=>!melee.IsAttackInProgress && melee.IsAttackReady && player.GetComponent<PlayerMovement>().IsGrounded
+                    && player.GetComponent<PlayerStateCoordinator>().CurrentCondition==PlayerConditionState.Normal,10,"Weapon not ready");
+                var request=new WeaponActionRequest(WeaponActionSource.PlayerInput,enemy.GetComponent<CombatTarget>(),Vector3.forward);
+                var result=melee.TryStartAction(request,out _);Check(result==WeaponActionResult.Accepted,"Player attack rejected: "+result);swings++;
+                yield return Seconds(1.25f);
+            }
+            Check(enemy.Health.IsDead,"Player weapon never killed "+definition.EnemyId);
+            Pass("weapon duel "+definition.EnemyId+" HP="+hp+" swings="+swings);enemy.RequestPoolRelease();melee.CancelCurrentAttackState();yield return Seconds(.2f);
+        }
+    }
+    private static IEnumerator SceneTransition()
+    {
+        ui.spawnButtons[0].onClick.Invoke();var encounter=DebugEncounter();yield return Until(()=>encounter.SpawnedCount==50,15,"Transition spawn");
+        var roster=encounter.SnapshotActors();var flow=PersistentSceneFlow.Instance;
+        flow.EnterDungeon(DungeonRunEntryRequest.Create(731,PersistentSceneFlow.HideoutSceneName,"DungeonPortal"));
+        yield return Until(()=>!flow.IsSwitching && flow.CurrentSubSceneName==PersistentSceneFlow.DungeonRunSceneName,90,"Dungeon transition");
+        Check(!ui.InArena && roster.All(a=>a==null || !a.IsLeased),"Arena/monster leaked into dungeon");
+        Check(RunSceneReadinessRegistry.GetState(PersistentSceneFlow.DungeonRunSceneName)==RunSceneReadinessState.Ready,"Dungeon readiness");
+        Check(!UnityEngine.Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Any(a=>a.IsLeased && ui.tables.Any(t=>t.Entries.Any(e=>e.definition==a.Definition))),"Theme replaced default dungeon spawns");
+        flow.ReturnToHub(RunSceneReturnContext.CreateHubTransfer(PersistentSceneFlow.HideoutSceneName,"DungeonPortal"));
+        yield return Until(()=>!flow.IsSwitching && flow.CurrentSubSceneName==PersistentSceneFlow.HideoutSceneName,60,"Hideout return");
+        Check(player.transform.position.x<900,"Arena coordinate leaked into return");Pass("50 active -> DungeonRun -> Hideout / owned cleanup / default spawn unchanged");
     }
 }

@@ -18,7 +18,7 @@ MonoBehaviour:
   animationProfile: {fileID: 11400000, guid: adf50005210e95d4c926581c28ef7ff5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 91b0bc2a04a3d5a4e9c2dffb14de579f, type: 2}
   combatRole: 3
-  baseMaxHealth: 500
+  baseMaxHealth: 330
   movementProfile: {fileID: 11400000, guid: 562888db3c8ce6847ab0beac6ab95936, type: 2}
   behaviorProfile: {fileID: 11400000, guid: 34b099acf50c26542aa192cdf4f1dabc, type: 2}
   threatCost: 12

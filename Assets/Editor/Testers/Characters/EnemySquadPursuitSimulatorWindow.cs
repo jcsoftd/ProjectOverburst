@@ -1326,6 +1326,10 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
                 for (int frame=0;frame<120;frame++) window.StepSimulation(1f/60f);
                 if (window.enemies.Any(e => float.IsNaN(e.Position.x) || float.IsNaN(e.Position.z)))
                     throw new InvalidOperationException("Invalid simulator position");
+                var saved=window.CaptureSettings();window.selectedThemeTable=null;window.ApplySettings(saved);
+                if(window.selectedThemeTable!=table)throw new InvalidOperationException("Theme setting persistence failed");
+                window.KillEnemy(window.enemies.First(e=>e.Alive && e.SquadParticipant));window.RebuildStrategicSquads();
+                if(window.enemies.Any(e=>!e.SquadParticipant && e.SquadId>=0))throw new InvalidOperationException("Elite recruited during reformation");
             }
             Debug.Log("[ThemeSquadSimulator] PASS 3 tables / 50 total / 49 participants / 1 independent / 6 squads / body radii / 120 steps each");
         }
@@ -1412,7 +1416,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         if (selectedAiPreset == null)
             return;
 
-        Undo.RecordObject(selectedAiPreset, "멀록 AI 프리셋 튜닝값 저장");
+        Undo.RecordObject(selectedAiPreset, "선택 AI 프리셋 튜닝값 저장");
         selectedAiPreset.ConfigureSquadPursuit(
             selectedAiPreset.ActivationCount,
             minimumSquadSize,
@@ -1777,7 +1781,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
             supportCallRange = EditorGUILayout.Slider("지원 요청 거리", supportCallRange, 0f, 30f);
             EditorGUI.EndDisabledGroup();
             if (usesPrefabAggroRanges)
-                EditorGUILayout.LabelField("현재 멀록 프리팹별 원본 거리 사용 중", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("선택 로스터 프리팹별 원본 거리 사용 중", EditorStyles.miniLabel);
             baseAggroReleaseDistance = EditorGUILayout.Slider(
                 "어그로 해제 거리",
                 baseAggroReleaseDistance,
@@ -1888,7 +1892,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
             EditorGUILayout.LabelField(
                 "탐지·지원 거리",
                 simulationDataMode == SimulationDataMode.AI프리셋데이터 && !overridePrefabAggroRanges
-                    ? "멀록 프리팹별 원본"
+                    ? "선택 로스터 프리팹별 원본"
                     : aggroDetectionRange.ToString("0.0") + "m · " + supportCallRange.ToString("0.0") + "m");
             EditorGUILayout.LabelField("부대", CountLivingSquads().ToString());
             EditorGUILayout.LabelField(
@@ -1913,11 +1917,11 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
                 EditorGUILayout.LabelField("AI 로스터 원본 데이터", subHeaderStyle);
                 if (aiMinimumData.Count == 0)
                     EditorGUILayout.LabelField("프리팹 데이터를 찾지 못했습니다.", EditorStyles.miniLabel);
-                for (int dataIndex = 0; dataIndex < aiMinimumData.Count; dataIndex++)
+                foreach (var group in aiMinimumData.GroupBy(data => data.Name))
                 {
-                    EnemyMinimumData data = aiMinimumData[dataIndex];
+                    EnemyMinimumData data = group.First();
                     EditorGUILayout.LabelField(
-                        data.Name,
+                        data.Name + " ×" + group.Count() + (data.SquadParticipant ? "" : " · 독립"),
                         "Walk " + data.WalkSpeed.ToString("0.00")
                         + " · Run " + data.RunSpeed.ToString("0.00")
                         + " · R " + data.BodyRadius.ToString("0.00"));

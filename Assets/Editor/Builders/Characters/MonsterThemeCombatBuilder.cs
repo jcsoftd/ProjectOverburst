@@ -111,7 +111,7 @@ public static class MonsterThemeCombatBuilder
             var species=Asset<EnemySpeciesDefinition>("Species/"+id);
             species.Configure(id,display.displayName,AssetDatabase.LoadAssetAtPath<GameObject>(display.sourcePath),animation,abilitySet);
             species.ConfigureRuntime(spec.tier==0?EnemyCombatRole.Swarm:spec.tier==1?EnemyCombatRole.Vanguard:EnemyCombatRole.Bruiser,
-                spec.tier==0?38:spec.tier==1?150:500,movement,behavior,spec.tier==0?1:spec.tier==1?3:12);
+                spec.tier==0?38:spec.tier==1?110:330,movement,behavior,spec.tier==0?1:spec.tier==1?3:12);
             var definition=Asset<EnemyDefinition>("Definitions/"+id);definition.ConfigureIdentity(id,display.displayName);
             var participation=spec.tier==2?EnemySquadParticipationMode.Independent:EnemySquadParticipationMode.SquadMember;
             definition.ConfigureRuntime(animation,abilitySet,behavior,movement,presets[spec.theme],participation);
