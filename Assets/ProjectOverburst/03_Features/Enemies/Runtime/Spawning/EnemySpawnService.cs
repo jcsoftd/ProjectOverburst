@@ -6,6 +6,8 @@ public sealed class EnemySpawnService : MonoBehaviour
 {
     [SerializeField] private EnemyCatalog catalog;
     [SerializeField] private EnemyPoolService pool;
+    private readonly System.Collections.Generic.Dictionary<string, EnemyDefinition> additionalDefinitions =
+        new System.Collections.Generic.Dictionary<string, EnemyDefinition>(System.StringComparer.Ordinal);
 
     public static EnemySpawnService Current { get; private set; }
     public EnemyCatalog Catalog => catalog;
@@ -124,6 +126,23 @@ public sealed class EnemySpawnService : MonoBehaviour
         return pool != null ? pool.Prewarm(definition, count) : 0;
     }
 
+    // Add content for a scene without mutating its authored catalog or replacing the shared pool.
+    public bool RegisterAdditionalCatalog(EnemyCatalog additional, out string message)
+    {
+        if (catalog == null || additional == null) { message = "카탈로그가 없습니다."; return false; }
+        if (!additional.Validate(out message)) return false;
+        for (int i = 0; i < additional.Count; i++)
+        {
+            var entry = additional.GetDefinition(i);
+            if ((catalog.TryGet(entry.EnemyId, out var existing) && existing != entry)
+                || (additionalDefinitions.TryGetValue(entry.EnemyId, out existing) && existing != entry))
+            { message = "기존 몬스터 ID와 충돌합니다: " + entry.EnemyId; return false; }
+        }
+        for (int i = 0; i < additional.Count; i++)
+        { var entry = additional.GetDefinition(i); additionalDefinitions[entry.EnemyId] = entry; }
+        message = string.Empty; return true;
+    }
+
     private bool TryResolveDefinition(
         EnemySpawnRequest request,
         out EnemyDefinition definition)
@@ -132,7 +151,8 @@ public sealed class EnemySpawnService : MonoBehaviour
         if (catalog == null || !request.HasDefinitionId)
             return false;
 
-        if (!catalog.TryGet(request.DefinitionId, out EnemyDefinition registered))
+        if (!catalog.TryGet(request.DefinitionId, out EnemyDefinition registered)
+            && !additionalDefinitions.TryGetValue(request.DefinitionId, out registered))
             return false;
 
         if (request.Definition != null && request.Definition != registered)

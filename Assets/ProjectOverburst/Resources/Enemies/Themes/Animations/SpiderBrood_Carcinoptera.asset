@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_Carcinoptera
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_Carcinoptera
+  runtimeController: {fileID: 9100000, guid: b08178c9d35b04a4b81f750671d9d4ae, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 71cb6630650e4c44a8727e4f0c0c955f, type: 3}
+  walk: {fileID: 1827226128182048838, guid: dca3788c333debd45a175fe99e1f2475, type: 3}
+  run: {fileID: 1827226128182048838, guid: dca3788c333debd45a175fe99e1f2475, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: ab3760688d7bc014799881ed1783c961, type: 3}
+  - {fileID: 1827226128182048838, guid: c0972091dc4b66f4ab89e902300a87f3, type: 3}
+  - {fileID: 1827226128182048838, guid: ba354ddb90c63f047be86a54a9beceb0, type: 3}
+  hit: {fileID: 1827226128182048838, guid: b0edd19a1fef904479e8c89bf01b015d, type: 3}
+  death: {fileID: 1827226128182048838, guid: 386c5503cc288834c9fba44cbdeb0961, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 88689e4da6793154bab3cb1841638dda, type: 3}
+  - {fileID: 1827226128182048838, guid: 659c5583caab8a34e86b3f7633f392d2, type: 3}
+  - {fileID: 1827226128182048838, guid: cb5e9b176ceff6b4cbb004c5065d77a0, type: 3}
+  - {fileID: 1827226128182048838, guid: 32c8d9d40b07122418ceb8293068a75f, type: 3}
+  - {fileID: 1827226128182048838, guid: 093bb5c8bcbd62c46a607fcd02d8fc1c, type: 3}
+  - {fileID: 1827226128182048838, guid: bd2de3ad41add4f47bbfc8561b4d1d5a, type: 3}
+  - {fileID: 1827226128182048838, guid: 0a72fa21757681c4e9f56af9ce21de86, type: 3}
+  - {fileID: 1827226128182048838, guid: 261fa15ade77df4479a1b12e052283ae, type: 3}
+  - {fileID: 1827226128182048838, guid: 47c8d826892d5e143a72c2ec3d0538e8, type: 3}
+  - {fileID: 1827226128182048838, guid: 74cce48900c3911439eb6977d54b161c, type: 3}
+  - {fileID: 1827226128182048838, guid: 7d74ef10fccd81148bf247fc72d1a7e4, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@BiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@ClawsAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@CrawlBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@CrawlForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@CrawlLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@CrawlRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@JumpBiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@Turn90Right_RM.fbx"

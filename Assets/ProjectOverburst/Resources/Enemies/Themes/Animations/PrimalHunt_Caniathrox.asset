@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: PrimalHunt_Caniathrox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: PrimalHunt_Caniathrox
+  runtimeController: {fileID: 9100000, guid: dcc53f1a34a515942ab01a55a7aaaa28, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 88e366233e02a9b4da04a77ce5f18869, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 3450d1eb8d882404289f89fa0811b03b, type: 3}
+  run: {fileID: 1827226128182048838, guid: e87f85b90b704f74f834009672903ad3, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: ffc9ae3758bbf064e8a86c4b55871fb9, type: 3}
+  - {fileID: 1827226128182048838, guid: 463af4bc9ccab6b4f9ad80ff380c4117, type: 3}
+  hit: {fileID: 1827226128182048838, guid: b88135b19f36be64e9a6626ae09aa1cc, type: 3}
+  death: {fileID: 1827226128182048838, guid: 7ef505a3f8c73fa46b6b5bd7dfbc9c9e, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: b83ee0ec08fcde34abfa4183098ec63f, type: 3}
+  - {fileID: 1827226128182048838, guid: 14f14a1a916b95c448f6e3d712bf77cc, type: 3}
+  - {fileID: 1827226128182048838, guid: 6835121a1f709cb4e81f662f69e5bda7, type: 3}
+  - {fileID: 1827226128182048838, guid: 4c733101d22953b43b7e223062181f2c, type: 3}
+  - {fileID: 1827226128182048838, guid: fdd53a57eb151854bb606ee12b211bd6, type: 3}
+  - {fileID: 1827226128182048838, guid: 5bc86b7b297d633469bc09b27c6cface, type: 3}
+  - {fileID: 1827226128182048838, guid: 3e494b3b497026246b7d856aff3609c4, type: 3}
+  - {fileID: 1827226128182048838, guid: 350b1f86e25c87742b0ce13e88df6f18, type: 3}
+  - {fileID: 1827226128182048838, guid: d26053e7c350289469f317de157eab45, type: 3}
+  - {fileID: 1827226128182048838, guid: f00eb7fc906e5cb4287fd061222c50f8, type: 3}
+  - {fileID: 1827226128182048838, guid: 9225555e581895443b4134bc2e53250f, type: 3}
+  - {fileID: 1827226128182048838, guid: 749b9908a1513a74cbd4af4e5cd60373, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@BiteForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@Jump_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@JumpBite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@WalkRight_RM.fbx"

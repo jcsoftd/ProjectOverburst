@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: VenomBrood_Kupolobrach_Tint_Orange
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: VenomBrood_Kupolobrach_Tint_Orange
+  displayName: Kupolobrach_Tint_Orange
+  vendorPrefab: {fileID: 1096052370314814114, guid: 79b292f9638ec414991ea3ea0208a7c0, type: 3}
+  animationProfile: {fileID: 11400000, guid: adf50005210e95d4c926581c28ef7ff5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 91b0bc2a04a3d5a4e9c2dffb14de579f, type: 2}
+  combatRole: 3
+  baseMaxHealth: 500
+  movementProfile: {fileID: 11400000, guid: 562888db3c8ce6847ab0beac6ab95936, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 34b099acf50c26542aa192cdf4f1dabc, type: 2}
+  threatCost: 12

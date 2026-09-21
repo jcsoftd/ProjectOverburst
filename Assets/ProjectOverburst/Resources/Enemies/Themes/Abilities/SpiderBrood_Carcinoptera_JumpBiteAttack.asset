@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: SpiderBrood_Carcinoptera_JumpBiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: SpiderBrood_Carcinoptera_JumpBiteAttack
+  animatorTrigger: Attack3
+  executionMode: 2
+  damage: 10
+  minimumRange: 1.8
+  range: 4.8
+  hitRadius: 1.522
+  hitAngle: 125
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 5
+  hitDelay: 0.62
+  hitNormalizedTime: 0.62
+  attackAnimationDuration: 1
+  attackLockDuration: 0.95
+  weight: 0.45
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_Horridomorph
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_Horridomorph
+  runtimeController: {fileID: 9100000, guid: 80ca7e67345dbcc42a9ff8d08d77504d, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 05496753f587a5e4ca9fce6cee3cf433, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 1acf3e896dbe7c64f9182d5441a4f558, type: 3}
+  run: {fileID: 1827226128182048838, guid: 1acf3e896dbe7c64f9182d5441a4f558, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 42de12de929a65046a35c1859fcd4764, type: 3}
+  - {fileID: 1827226128182048838, guid: a8d2105f83d303547b6b735236e4f62a, type: 3}
+  - {fileID: 1827226128182048838, guid: dedb6d7acb2f5c947abefc9e32a5625e, type: 3}
+  hit: {fileID: 1827226128182048838, guid: c3fe3ee031f24d64fb26683642a36f58, type: 3}
+  death: {fileID: 1827226128182048838, guid: 56de293f00eed71478bbfa156ec0aec7, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 493a8ce5bcdad11429f49e2a00387f76, type: 3}
+  - {fileID: 1827226128182048838, guid: 9be0f96f0042dad4da4056e72b2ddbc5, type: 3}
+  - {fileID: 1827226128182048838, guid: 1459cd2ab39a14f45a675e5022a12b51, type: 3}
+  - {fileID: 1827226128182048838, guid: 72743094fb3f6b243a4d24b6cb113f42, type: 3}
+  - {fileID: 1827226128182048838, guid: b110dc4fedeb0584ebb2d954c31594a5, type: 3}
+  - {fileID: 1827226128182048838, guid: f6b804ee3e6e1454d9087f89e85bb73e, type: 3}
+  - {fileID: 1827226128182048838, guid: 05ff00a6598b5704c992e448104c8e0d, type: 3}
+  - {fileID: 1827226128182048838, guid: a92856503b1f5ab4881ec52e68bda0c9, type: 3}
+  - {fileID: 1827226128182048838, guid: b8ebe8cb80205c14983a03fc8e01070c, type: 3}
+  - {fileID: 1827226128182048838, guid: 48f5a63bf0791664a92147d23215dedc, type: 3}
+  - {fileID: 1827226128182048838, guid: 3bda0a5e3fd27e04896f9d1ca91fb507, type: 3}
+  - {fileID: 1827226128182048838, guid: 51cd4cde4109581419ef8bebf0939ed8, type: 3}
+  - {fileID: 1827226128182048838, guid: 14285ab63fd840f4f94986a5a132cc36, type: 3}
+  - {fileID: 1827226128182048838, guid: 6691401c0b56cbc4b86e05b9ab1d9a53, type: 3}
+  - {fileID: 1827226128182048838, guid: f2ea7a79d532be842b6c431aa5deb791, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@BiteAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@ClawsAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@JumpBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@JumpBiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@JumpForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@JumpLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@JumpRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@WalkRight_RM.fbx"

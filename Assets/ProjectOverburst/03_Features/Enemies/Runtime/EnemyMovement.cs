@@ -38,6 +38,18 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     private float statusMoveSpeedMultiplier = 1f; // 상태이상 이동 배율
     private float earthZoneMoveSpeedMultiplier = 1f; // 진흙 장판 전용 이동 배율
     private Vector3 pendingAreaDisplacement; // 자기장 pulse의 다음 FixedUpdate 이동 요청
+    private Vector3 pendingAttackDisplacement;
+
+    public bool RequestAttackDisplacement(Vector3 displacement)
+    {
+        if (!isActiveAndEnabled || !IsActionLocked || IsStatusMovementLocked || health == null || health.IsDead
+            || (reaction != null && (reaction.IsHitStunActive || reaction.IsKnockbackActive))) return false;
+        displacement.y = 0;
+        pendingAttackDisplacement = Vector3.ClampMagnitude(displacement, .35f);
+        return true;
+    }
+
+    public void ClearAttackDisplacement() { pendingAttackDisplacement = Vector3.zero; }
     private EnemyLocomotionMode locomotionMode = EnemyLocomotionMode.Idle; // 현재 이동 모드
     private readonly List<EnemyCrowdAgent> crowdNeighbors = new List<EnemyCrowdAgent>(16);
 
@@ -85,6 +97,8 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void FixedUpdate()
     {
+        Vector3 attackDisplacement = pendingAttackDisplacement;
+        pendingAttackDisplacement = Vector3.zero;
         if (health != null && health.IsDead)
         {
             ClearMotorAndAnimation();
@@ -107,6 +121,10 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         if ((reaction != null && reaction.IsHitStunActive) || IsActionLocked)
         {
             PauseMotorAndAnimation(); // 일시 정지 후 기존 이동 재개
+            if (IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
+                && attackDisplacement.sqrMagnitude > .000001f && motor != null
+                && TryResolveCrowdPosition(transform.position + attackDisplacement, false, out Vector3 attackPosition))
+                motor.MoveToPosition(attackPosition);
             return;
         }
 

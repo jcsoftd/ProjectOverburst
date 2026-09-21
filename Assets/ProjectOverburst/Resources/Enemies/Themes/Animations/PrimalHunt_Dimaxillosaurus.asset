@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: PrimalHunt_Dimaxillosaurus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: PrimalHunt_Dimaxillosaurus
+  runtimeController: {fileID: 9100000, guid: 2242892bb34b2de40ae05c9a85dbdb02, type: 2}
+  idle: {fileID: 1827226128182048838, guid: c6be510d31a7aea4fa4ef1d276943c1f, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 22b725c46ed8b354a8c6ac6c43b681d1, type: 3}
+  run: {fileID: 1827226128182048838, guid: 113e00bd1a749964b9b093a7c5390217, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 338f16ef3772829419d9a898b0c9011f, type: 3}
+  - {fileID: 1827226128182048838, guid: 9f9f3d1c9bd44244d81866b6ac06f12f, type: 3}
+  - {fileID: 1827226128182048838, guid: 5ffa023da6e13f449802682a59ebc729, type: 3}
+  - {fileID: 1827226128182048838, guid: e6dfaaaf0f45d8347b6224d1cd3a5294, type: 3}
+  hit: {fileID: 1827226128182048838, guid: d3790889da80fb94e8ed3c38660d0538, type: 3}
+  death: {fileID: 1827226128182048838, guid: b09af253bc4891a4fb9b723bf32980ab, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 2c69a97a9dd290d4e9b5861538484230, type: 3}
+  - {fileID: 1827226128182048838, guid: 630ad0d2e09e5e347b9ba73b6fc3b23b, type: 3}
+  - {fileID: 1827226128182048838, guid: 6251e23dfc6f56b4ab8268b603c4f585, type: 3}
+  - {fileID: 1827226128182048838, guid: 67a7140344ea3574e8e4f365b82ec681, type: 3}
+  - {fileID: 1827226128182048838, guid: 3774d512819c5a34ea04a3dbcea6a293, type: 3}
+  - {fileID: 1827226128182048838, guid: 8e11f307b31126f418adc2737e0a7d50, type: 3}
+  - {fileID: 1827226128182048838, guid: 182b6e17cdaee8c44ba1dd2ee9363f1b, type: 3}
+  - {fileID: 1827226128182048838, guid: 5ef02f16dc901a24998534531da05a31, type: 3}
+  - {fileID: 1827226128182048838, guid: a39496e38e803e84c8bff399cbce118d, type: 3}
+  - {fileID: 1827226128182048838, guid: 907817e2da5a29e4d859cfaae5b2c1ef, type: 3}
+  - {fileID: 1827226128182048838, guid: 420a8676d3ef66043bf344f397d1824c, type: 3}
+  - {fileID: 1827226128182048838, guid: fb3aa754c6ae7d546b13baa9ecc3fa5d, type: 3}
+  - {fileID: 1827226128182048838, guid: f1789d426a7ca82409296b69877bc9d8, type: 3}
+  - {fileID: 1827226128182048838, guid: 0a983571c5cffaa45a9634c1a85ecc48, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@2HitComboClawsAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@BiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@Jump_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@JumpClawsAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@LeftClawsAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@RightClawsAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@WalkRight_RM.fbx"

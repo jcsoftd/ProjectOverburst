@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: PrimalHunt_Venosaur_Tint_Brown_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: PrimalHunt_Venosaur_Tint_Brown
+  abilities:
+  - {fileID: 11400000, guid: 06a544c18e61fa442977c9f97cc06e44, type: 2}
+  - {fileID: 11400000, guid: 33f3def87918afd4eba4acf3e63018fc, type: 2}
+  - {fileID: 11400000, guid: d8005c26f7271544aa091814e466eef6, type: 2}
+  - {fileID: 11400000, guid: 7112b46a727deed4984c0d45976ba676, type: 2}
+  - {fileID: 11400000, guid: 84a288e63a11f654c9d7fbd9ccb89a7f, type: 2}

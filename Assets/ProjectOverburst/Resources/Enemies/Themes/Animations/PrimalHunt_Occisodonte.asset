@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: PrimalHunt_Occisodonte
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: PrimalHunt_Occisodonte
+  runtimeController: {fileID: 9100000, guid: 6cdebad54eb0e0a4f9a1f881d91a6d8b, type: 2}
+  idle: {fileID: 1827226128182048838, guid: df8ef54835abeb34da7804328a823e2e, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 040bd63a15beef64e9c8e0205a40b6a1, type: 3}
+  run: {fileID: 1827226128182048838, guid: 040bd63a15beef64e9c8e0205a40b6a1, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 6617991b879f9414cbada84d2a4f8642, type: 3}
+  - {fileID: 1827226128182048838, guid: 3dc66d269b87543408cec03b56d4ada6, type: 3}
+  hit: {fileID: 1827226128182048838, guid: f20cfb9208ca69f4b914b186f97772a3, type: 3}
+  death: {fileID: 1827226128182048838, guid: 7c04666a09232fe43a10ca94b5c99723, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: c612c645fc5a9e84cb41f63df551280e, type: 3}
+  - {fileID: 1827226128182048838, guid: 2ea472da022bd8247869d8205311f670, type: 3}
+  - {fileID: 1827226128182048838, guid: 55fa77906bca1db469183834e63691a2, type: 3}
+  - {fileID: 1827226128182048838, guid: d5917d7637c786a4283d8bcf5dcc2681, type: 3}
+  - {fileID: 1827226128182048838, guid: 23821c472f1ed3f41ada7b2a05599e12, type: 3}
+  - {fileID: 1827226128182048838, guid: 406619b1ae798ec4ab406fb984c0f205, type: 3}
+  - {fileID: 1827226128182048838, guid: 92934be45a831164e8132944382c44aa, type: 3}
+  - {fileID: 1827226128182048838, guid: d7eb69661a850e34fa774bd2b7d3779b, type: 3}
+  - {fileID: 1827226128182048838, guid: f2e5f51bb8379324bb5c958ab1bdd762, type: 3}
+  - {fileID: 1827226128182048838, guid: a15be99be18a08041adae2a11c526264, type: 3}
+  - {fileID: 1827226128182048838, guid: 492dc5592f6fe8841940b3a34b72fc2d, type: 3}
+  - {fileID: 1827226128182048838, guid: a2e33ffb0ec01e046930911a3f8cb7db, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@BiteForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@JumpBite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Occisodonte/FBX Files/Occisodonte@WalkRight_RM.fbx"

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
+  m_Name: AIP_ProtofactorSquad
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
+  presetId: Theme_VenomBrood
+  displayName: "\uB3C5\uB0AD \uC678\uACE8\uACA9 \uAD70\uB77D"
+  defaultMonsterPrefabs:
+  - {fileID: 5119254518068260491, guid: 97ae65691c06bfb42847de4278b6f3e6, type: 3}
+  - {fileID: 4570057587784831911, guid: 8bb799894ea0b524796bc22133876f33, type: 3}
+  - {fileID: 6208213465318903433, guid: fd3119c0e918bf64b9a4b54c9b3c06ce, type: 3}
+  - {fileID: 8254815201204877975, guid: a2777094d81024a42a953836c4b0b21a, type: 3}
+  activationCount: 41
+  minimumSquadSize: 4
+  maximumSquadSize: 8
+  slotRadius: 6
+  directCommitRadius: 10
+  nearReleaseDistance: 4.5
+  farActivationDistance: 13
+  reserveSpeedMultiplier: 0.82
+  remnantRatio: 0.35
+  slotArrivalDistance: 1.6
+  reserveOrbitRadius: 15
+  reserveOrbitAngularSpeed: 6
+  curveRadiusMultiplier: 1

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: VenomBrood_Venodonte_Tint3
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: VenomBrood_Venodonte_Tint3
+  runtimeController: {fileID: 9100000, guid: 91e0522d80a8c2c4eac972e053ae073f, type: 2}
+  idle: {fileID: 1827226128182048838, guid: a71a7e8822de6544b8ed123fc31b8ceb, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 72afd112fd872714c8208c66b1bddf9e, type: 3}
+  run: {fileID: 1827226128182048838, guid: 72afd112fd872714c8208c66b1bddf9e, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: a6c8607dead8d854f805d69dc891f486, type: 3}
+  - {fileID: 1827226128182048838, guid: 726380aadb3be834c949d7c760562df6, type: 3}
+  hit: {fileID: 1827226128182048838, guid: b0cbde4e72a5933428805b6d6f2ee641, type: 3}
+  death: {fileID: 1827226128182048838, guid: 29fc4d891748ba44db05589dbef12375, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 2f7fc70362968e54c97a1ca8373cb825, type: 3}
+  - {fileID: 1827226128182048838, guid: 970da2de833e012419c5b196fe18cc76, type: 3}
+  - {fileID: 1827226128182048838, guid: c4921f52d13e8b04f8de7b6f53674752, type: 3}
+  - {fileID: 1827226128182048838, guid: 2c90f87900e490640b8721677fabfde1, type: 3}
+  - {fileID: 1827226128182048838, guid: 7f3e534c89f62304fba357579d6a06c3, type: 3}
+  - {fileID: 1827226128182048838, guid: c0ec9a25557d3764e99d7391617a6606, type: 3}
+  - {fileID: 1827226128182048838, guid: 2323adfe9dc00594487790371883276b, type: 3}
+  - {fileID: 1827226128182048838, guid: ec9c83e78f72413478c982001b57099d, type: 3}
+  - {fileID: 1827226128182048838, guid: e12a66bd890e9914c872e28aeeb0bb67, type: 3}
+  - {fileID: 1827226128182048838, guid: 083ae30c6ad22974288d984e94e492e2, type: 3}
+  - {fileID: 1827226128182048838, guid: 81f23a6ed36e91e43a5b82a0835240ae, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@BiteForwardAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@CrawlBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@CrawlForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@CrawlLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@CrawlRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@JumpBiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@Turn90Right_RM.fbx"

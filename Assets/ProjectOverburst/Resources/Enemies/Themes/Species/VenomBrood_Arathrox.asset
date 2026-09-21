@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: VenomBrood_Arathrox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: VenomBrood_Arathrox
+  displayName: Arathrox
+  vendorPrefab: {fileID: 8036466330315957418, guid: fca509132bd195146920acf570ca228a, type: 3}
+  animationProfile: {fileID: 11400000, guid: 6c5d8282f213d574baa9f2faf7a99aeb, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: ec7d30cf0027eb04b89b6a87cf61117f, type: 2}
+  combatRole: 1
+  baseMaxHealth: 150
+  movementProfile: {fileID: 11400000, guid: 140db8bed42120249af4607ed00c301d, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: b5f8ca4e383bf8e4a8012fa438e67461, type: 2}
+  threatCost: 3

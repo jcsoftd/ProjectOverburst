@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbeba349f1ced524b8f2728ab69e760d, type: 3}
+  m_Name: VenomBrood
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
+  themeId: VenomBrood
+  displayName: "\uB3C5\uB0AD \uC678\uACE8\uACA9 \uAD70\uB77D"
+  entries:
+  - definition: {fileID: 11400000, guid: 78a6a0b88d4065e43875b91615f0a925, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: d380c81f710d5164f807859c002ce5a3, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: d80671d286866b540ad0713d8518634a, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 6639a24bf53b7ef4aaa83dfda97e1bee, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 6b795c81119b496469cd6377091f49fa, type: 2}
+    tier: 2
+    weight: 1
+  catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
+  accent: {r: 1, g: 0.6, b: 0.12, a: 1}

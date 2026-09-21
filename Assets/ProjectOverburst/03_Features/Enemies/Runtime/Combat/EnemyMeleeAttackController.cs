@@ -236,7 +236,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         if (movement != null)
         {
             float minimumImpactLock =
-                resolvedAnimationDuration * resolvedHitNormalizedTime + 0.05f;
+                resolvedAnimationDuration * (ability != null ? ability.GetHitNormalizedTime(ability.HitCount - 1) : resolvedHitNormalizedTime) + 0.05f;
             movement.ApplyActionLock(
                 ResolveScaledTime(
                     Mathf.Max(resolvedAttackLockDuration, minimumImpactLock),
@@ -249,75 +249,82 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             animationBridge.PlayAttack(triggerName); // 선택 공격 재생
         }
 
-        bool stayedInRange = true;
-        bool observedAttackAnimation = false;
-        bool useAnimatorTiming = animationBridge != null && animationBridge.HasAnimator;
-        float resolvedHitDelay = ResolveScaledTime(resolvedHitDelayBase, resolvedAttackSpeed); // 애니메이터 미연결 보조 시간
-        float attackStateEntryGrace = Mathf.Min(0.35f, Mathf.Max(0.15f, resolvedHitDelay));
-        float maximumHitWait = Mathf.Max(
-            resolvedHitDelay,
-            ResolveScaledTime(resolvedAttackLockDuration, resolvedAttackSpeed) + 0.25f,
-            ResolveScaledTime(resolvedAnimationDuration, resolvedAttackSpeed) + 0.15f);
         float elapsed = 0f;
-        while (elapsed < maximumHitWait)
+        int hitCount = ability != null ? ability.HitCount : 1;
+        for (int impactIndex = 0; impactIndex < hitCount; impactIndex++)
         {
-            if (IsAttackInterrupted())
+            float impactTime = ability != null ? ability.GetHitNormalizedTime(impactIndex) : resolvedHitNormalizedTime;
+            bool stayedInRange = true;
+            bool observedAttackAnimation = false;
+            bool useAnimatorTiming = animationBridge != null && animationBridge.HasAnimator;
+            float resolvedHitDelay = ResolveScaledTime(impactIndex == 0 ? resolvedHitDelayBase : resolvedAnimationDuration * impactTime, resolvedAttackSpeed); // 애니메이터 미연결 보조 시간
+            float attackStateEntryGrace = Mathf.Min(0.35f, Mathf.Max(0.15f, resolvedHitDelay));
+            float maximumHitWait = Mathf.Max(
+                resolvedHitDelay,
+                ResolveScaledTime(resolvedAttackLockDuration, resolvedAttackSpeed) + 0.25f,
+                ResolveScaledTime(resolvedAnimationDuration, resolvedAttackSpeed) + 0.15f);
+            while (elapsed < maximumHitWait)
             {
-                attackRoutine = null;
-                yield break; // 피격 공격 취소
+                if (IsAttackInterrupted())
+                {
+                    attackRoutine = null;
+                    yield break; // 피격 공격 취소
+                }
+
+                if (keepRangeGate
+                    && !directTargetExecution
+                    && !IsTargetWithinAttackRange(resolvedRange))
+                {
+                    stayedInRange = false; // 사거리 이탈
+                    break;
+                }
+
+                if (useAnimatorTiming
+                    && animationBridge.TryGetAttackNormalizedTime(triggerName, out float normalizedTime))
+                {
+                    observedAttackAnimation = true;
+                    if (normalizedTime >= Mathf.Clamp01(impactTime))
+                        break; // 실제 공격 모션 타격 구간
+                }
+                else if (!useAnimatorTiming || (!observedAttackAnimation && elapsed >= attackStateEntryGrace))
+                {
+                    if (elapsed >= resolvedHitDelay)
+                        break; // 애니메이션 미연결 시간 판정
+                }
+                else if (observedAttackAnimation)
+                {
+                    stayedInRange = false;
+                    break; // 타격 전 공격 상태 종료
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
             }
 
-            if (keepRangeGate
-                && !directTargetExecution
-                && !IsTargetWithinAttackRange(resolvedRange))
+            if (stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
-                stayedInRange = false; // 사거리 이탈
-                break;
+                float resolvedDamage = (ability != null ? ability.Damage : damage) * definitionDamageMultiplier;
+                if (directTargetExecution)
+                {
+                    ResolveDirectTargetHit(
+                        committedTarget,
+                        ability,
+                        resolvedDamage,
+                        keepRangeGate);
+                }
+                else
+                {
+                    float resolvedRadius = ability != null ? ability.HitRadius : hitRadius;
+                    float resolvedAngle = ability != null ? ability.HitAngle : hitAngle;
+                    ResolveArcHit(
+                        resolvedDamage,
+                        resolvedRadius,
+                        resolvedAngle,
+                        ability);
+                }
             }
 
-            if (useAnimatorTiming
-                && animationBridge.TryGetAttackNormalizedTime(triggerName, out float normalizedTime))
-            {
-                observedAttackAnimation = true;
-                if (normalizedTime >= Mathf.Clamp01(resolvedHitNormalizedTime))
-                    break; // 실제 공격 모션 타격 구간
-            }
-            else if (!useAnimatorTiming || (!observedAttackAnimation && elapsed >= attackStateEntryGrace))
-            {
-                if (elapsed >= resolvedHitDelay)
-                    break; // 애니메이션 미연결 시간 판정
-            }
-            else if (observedAttackAnimation)
-            {
-                stayedInRange = false;
-                break; // 타격 전 공격 상태 종료
-            }
-
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        if (stayedInRange && !IsAttackInterrupted() && CanResolveHit())
-        {
-            float resolvedDamage = (ability != null ? ability.Damage : damage) * definitionDamageMultiplier;
-            if (directTargetExecution)
-            {
-                ResolveDirectTargetHit(
-                    committedTarget,
-                    ability,
-                    resolvedDamage,
-                    keepRangeGate);
-            }
-            else
-            {
-                float resolvedRadius = ability != null ? ability.HitRadius : hitRadius;
-                float resolvedAngle = ability != null ? ability.HitAngle : hitAngle;
-                ResolveArcHit(
-                    resolvedDamage,
-                    resolvedRadius,
-                    resolvedAngle,
-                    ability);
-            }
+            if (!stayedInRange) break;
         }
 
         attackRoutine = null;

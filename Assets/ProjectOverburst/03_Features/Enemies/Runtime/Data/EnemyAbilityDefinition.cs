@@ -35,6 +35,20 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float minimumSelfHealthNormalized;
     [SerializeField, Range(0f, 1f)] private float maximumSelfHealthNormalized = 1f;
     [SerializeField] private bool requireTargetInRangeUntilHit = true;
+    [SerializeField] private float[] additionalHitNormalizedTimes;
+    public int HitCount => 1 + (additionalHitNormalizedTimes != null ? additionalHitNormalizedTimes.Length : 0);
+    public float GetHitNormalizedTime(int index) => index == 0 ? HitNormalizedTime : additionalHitNormalizedTimes[index - 1];
+    public void ConfigureAdditionalHits(params float[] times)
+    {
+        float previous = HitNormalizedTime;
+        foreach (float time in times)
+        {
+            if (float.IsNaN(time) || time <= previous || time > .95f)
+                throw new System.ArgumentException("추가 타격 시점은 첫 타격 이후 오름차순이어야 합니다.");
+            previous = time;
+        }
+        additionalHitNormalizedTimes = (float[])times.Clone();
+    }
 
     public string AbilityId => abilityId;
     public string AnimatorTrigger => animatorTrigger;

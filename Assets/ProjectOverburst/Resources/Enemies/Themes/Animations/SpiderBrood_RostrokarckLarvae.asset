@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_RostrokarckLarvae
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_RostrokarckLarvae
+  runtimeController: {fileID: 9100000, guid: 8b209af7ceeb9c44187b37824d56801b, type: 2}
+  idle: {fileID: 1827226128182048838, guid: fc788bd7966ff214a8521553af90fd84, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 057e355dfe11cfd44b932988a6128aab, type: 3}
+  run: {fileID: 1827226128182048838, guid: 057e355dfe11cfd44b932988a6128aab, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 735a711da2bf8b748ab41c412d4949f6, type: 3}
+  - {fileID: 1827226128182048838, guid: 7de8aaf0dc6a4cf499ff0eb2802535a8, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 917b3dac19cec9549b7af7f1373e3e97, type: 3}
+  death: {fileID: 1827226128182048838, guid: 5535fbe720a703d4e90cb9d27fc8ccf2, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 0cf6917495e44604e9b2ac77359bf297, type: 3}
+  - {fileID: 1827226128182048838, guid: c038542c3db18644b975a6728f80aa7c, type: 3}
+  - {fileID: 1827226128182048838, guid: 5c83d952ebf02ec43b3a0b2f970c9988, type: 3}
+  - {fileID: 1827226128182048838, guid: ad852a53a9f45a247b4a1ad3086680ea, type: 3}
+  - {fileID: 1827226128182048838, guid: 9e9e161b79e8c284aa62050fe04d4bc1, type: 3}
+  - {fileID: 1827226128182048838, guid: 60410f76f6ac9d64eb3e0125444cb529, type: 3}
+  - {fileID: 1827226128182048838, guid: b95b6219b2a79194397140daff31602e, type: 3}
+  - {fileID: 1827226128182048838, guid: a3e8f7588da424648a1a2f671c32bdc0, type: 3}
+  - {fileID: 1827226128182048838, guid: f91d58cc2cf03fa4ba35fb01975c173b, type: 3}
+  - {fileID: 1827226128182048838, guid: f1677d14dfe0c274695a235505be5b9d, type: 3}
+  - {fileID: 1827226128182048838, guid: 6f4981de936707f4d84793be185a4940, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@Bite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@CrawlBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@CrawlForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@CrawlLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@CrawlRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@JumpBite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@Turn90Right_RM.fbx"

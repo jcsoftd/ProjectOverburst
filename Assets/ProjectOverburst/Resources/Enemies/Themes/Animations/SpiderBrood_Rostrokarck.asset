@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_Rostrokarck
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_Rostrokarck
+  runtimeController: {fileID: 9100000, guid: 62be1bbc16091664981d9f0748884722, type: 2}
+  idle: {fileID: 1827226128182048838, guid: ad2e13978a53e2242a7f511d077366fd, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 09cbe860cb204ab41af61b36d8917411, type: 3}
+  run: {fileID: 1827226128182048838, guid: 09cbe860cb204ab41af61b36d8917411, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 2cf61f45081854442937bcd5764d09b5, type: 3}
+  - {fileID: 1827226128182048838, guid: c0d1d415fdd2ad140a060fcb87a749f5, type: 3}
+  - {fileID: 1827226128182048838, guid: 8087534b058e1c94eab306c2f2e7075e, type: 3}
+  - {fileID: 1827226128182048838, guid: 5dc9929e1c6523f41b652c1d0f7e581e, type: 3}
+  - {fileID: 1827226128182048838, guid: 337b3d0f8bc88234eb6e77a61d240f91, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 3f288f17770e7de4b82137f501ce5c2a, type: 3}
+  death: {fileID: 1827226128182048838, guid: 790746adfceb57543a383f057b55ed9d, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 72d71a5c3a0d69e4baba6c3faad26b34, type: 3}
+  - {fileID: 1827226128182048838, guid: d6bf294e02d1c0e4c853e9941e7950cf, type: 3}
+  - {fileID: 1827226128182048838, guid: 06788a7f57f326547b1effa71d20f77e, type: 3}
+  - {fileID: 1827226128182048838, guid: 05dbbafc15041854c9c3bc68caeb4de5, type: 3}
+  - {fileID: 1827226128182048838, guid: 84aa4a7a795e07041b6d2d89d0e70410, type: 3}
+  - {fileID: 1827226128182048838, guid: df780a534e8fb9b4aae5726c50a9a106, type: 3}
+  - {fileID: 1827226128182048838, guid: e5ae85931cecf1142a1b84fead3ccccd, type: 3}
+  - {fileID: 1827226128182048838, guid: cd82ce9c0b21c124f918bae64ebd992c, type: 3}
+  - {fileID: 1827226128182048838, guid: af6777b973b5eb544bb808342de355c5, type: 3}
+  - {fileID: 1827226128182048838, guid: 9e6ee48e83147894cb57718d306ee526, type: 3}
+  - {fileID: 1827226128182048838, guid: e5093c59eaccf9b46840a636f6c02b66, type: 3}
+  - {fileID: 1827226128182048838, guid: fcef968cd5d24dd4f969367c897e59d8, type: 3}
+  - {fileID: 1827226128182048838, guid: 3a3351b681fd7b3429c1820e82f75c03, type: 3}
+  - {fileID: 1827226128182048838, guid: 867e65869bc93044493682f37ea8bb95, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@2HitComboAttackClawAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@ClawAttackLeftForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@ClawAttackRightForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@CrawlBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@CrawlForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@CrawlLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@CrawlRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@DoubleClawsAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@Turn90Right_RM.fbx"

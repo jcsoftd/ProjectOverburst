@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: PrimalHunt_Caniathrox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: PrimalHunt_Caniathrox
+  displayName: Caniathrox
+  vendorPrefab: {fileID: 4329468938340597551, guid: 6f67a923f63e300428d51bc8490d6e5f, type: 3}
+  animationProfile: {fileID: 11400000, guid: 3c1f3bffa5946bc45b187f9b3290d685, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 32b426622f191c14db9b05419aa72882, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: d6cd9002401a101489ab3a3c80bad1cf, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 48bb0ded78ace874d826c32c9466f4e8, type: 2}
+  threatCost: 1

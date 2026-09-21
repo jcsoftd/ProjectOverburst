@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: PrimalHunt_Dimaxillosaurus_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: PrimalHunt_Dimaxillosaurus
+  abilities:
+  - {fileID: 11400000, guid: 769f3cd56fe0fb941a7a4a51cbb63916, type: 2}
+  - {fileID: 11400000, guid: e9ed2b4def4eb9f47b46c19efdfa6db6, type: 2}
+  - {fileID: 11400000, guid: aa54ad86581d4204abce14074f8bb0d8, type: 2}
+  - {fileID: 11400000, guid: 4c24177a2df3499448eefa27844ddd40, type: 2}

@@ -58,6 +58,7 @@ public sealed class EnemyActor : MonoBehaviour
     public EnemyBossOutcomeController BossOutcomeController =>
         bossOutcomeController;
     public bool IsLeased => leased;
+    public uint LeaseVersion { get; private set; }
     public bool IsAuthoringValid => transform.localScale == Vector3.one
         && visualRoot != null
         && collisionRoot != null
@@ -135,6 +136,7 @@ public sealed class EnemyActor : MonoBehaviour
             return false;
 
         leased = true;
+        LeaseVersion++;
         definition = enemyDefinition;
         runtimeStats = stats;
         identity?.SetDefinition(enemyDefinition);

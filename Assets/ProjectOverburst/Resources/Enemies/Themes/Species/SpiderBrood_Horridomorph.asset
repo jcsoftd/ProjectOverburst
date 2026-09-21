@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: SpiderBrood_Horridomorph
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: SpiderBrood_Horridomorph
+  displayName: Horridomorph
+  vendorPrefab: {fileID: 1223343079437016695, guid: f16ce536157c8b244a716fb05ea3fb87, type: 3}
+  animationProfile: {fileID: 11400000, guid: cd455b3766cfe754abec291df96bd256, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 56064bcee7809774ab5494b0e83796c5, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: cfd3bc04ec569a24592850b553dac49b, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: b8969842f6ed4e94a9c20f0b1ce54b63, type: 2}
+  threatCost: 1

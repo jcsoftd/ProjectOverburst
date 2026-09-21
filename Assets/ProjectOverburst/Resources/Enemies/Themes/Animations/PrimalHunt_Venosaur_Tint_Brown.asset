@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: PrimalHunt_Venosaur_Tint_Brown
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: PrimalHunt_Venosaur_Tint_Brown
+  runtimeController: {fileID: 9100000, guid: a6495fb01427bc349b0b7e0d9f95f2f5, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 1a2a0695b8e49a54b84711c4015ac8d8, type: 3}
+  walk: {fileID: 1827226128182048838, guid: d55b00de51664154f90d7a29fd39851d, type: 3}
+  run: {fileID: 1827226128182048838, guid: 2c875092731b6e443b8a5c594adcb9d5, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 76c7f03dc28f1ad43b4fdb355fd8a0ba, type: 3}
+  - {fileID: 1827226128182048838, guid: e9837cffd3675734ea67f8a7a860e513, type: 3}
+  - {fileID: 1827226128182048838, guid: 8f4d9b985f4cc99408c82e2acab07aa8, type: 3}
+  - {fileID: 1827226128182048838, guid: 247d930700a93814ba241646584d53b0, type: 3}
+  - {fileID: 1827226128182048838, guid: 711382fa8f78ddf4c90f4f826d9ef5e2, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 687782e31a0ed5f41a8878f1dd5ad1bd, type: 3}
+  death: {fileID: 1827226128182048838, guid: c854de7106ddbc74a9af3cdae0868a5b, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 20553959b04c05243a0bcb2278ff24d0, type: 3}
+  - {fileID: 1827226128182048838, guid: 1c21e78c0fac97046aebba32b11b4cf4, type: 3}
+  - {fileID: 1827226128182048838, guid: 0d5654fb53c9efa48a1a7f08592d4be1, type: 3}
+  - {fileID: 1827226128182048838, guid: 200a86c45c104b444a76001dc704d272, type: 3}
+  - {fileID: 1827226128182048838, guid: 80a4e0fee14a20e4e96377b7eb817e9d, type: 3}
+  - {fileID: 1827226128182048838, guid: 9d8fbcf41cde34144ad795acc00ad2e0, type: 3}
+  - {fileID: 1827226128182048838, guid: 58634ad3fca01a94eb9649390865cdc1, type: 3}
+  - {fileID: 1827226128182048838, guid: 21c7d31d9ea40b345b2a57bd7504bdc4, type: 3}
+  - {fileID: 1827226128182048838, guid: 3f2662277b794a64e81a489dcc7e5785, type: 3}
+  - {fileID: 1827226128182048838, guid: 0e5b648db286a1c4ba4e6498ecd9adbe, type: 3}
+  - {fileID: 1827226128182048838, guid: f4c66917205815143a30971e3b947895, type: 3}
+  - {fileID: 1827226128182048838, guid: 9b068f97816b23a42b95d000a900de01, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@2HitComboClawsAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@ClawsAttackLeftForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@ClawsAttackRightForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@JumpClawsAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@WalkRight_RM.fbx"

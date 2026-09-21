@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8f746f902e69343b2d1c79bd3cdcc8, type: 3}
+  m_Name: EBP_Protofactor_Ceratoferox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviorProfile
+  profileId: SpiderBrood_RostrokarckLarvae
+  tendency: 0
+  repositionStyle: 0
+  patrolChance: 0.5
+  idleDurationMin: 1.5
+  idleDurationMax: 4
+  patrolRadius: 4
+  patrolSpeedMultiplier: 0.65
+  patrolStuckCheckDuration: 0.75
+  patrolStuckMinDistance: 0.08
+  noticeRange: 14
+  investigateRange: 10
+  discoverRange: 6
+  discoverFieldOfView: 150
+  noticeDuration: 0.7
+  noticeCooldown: 3.5
+  investigateMemoryDuration: 2.5
+  investigateSpeedMultiplier: 0.55
+  supportCallRange: 12
+  alertDuration: 0.2
+  playTauntOnAlert: 0
+  idleBreakMinInterval: 5
+  idleBreakMaxInterval: 9
+  recoveryDuration: 0.28
+  preferredMinDistance: 0.769
+  repositionDistance: 1
+  repositionDuration: 0.45
+  lowHealthRepositionThreshold: 0.25
+  lowHealthRepositionDistance: 1.5
+  lowHealthRepositionDuration: 0.6
+  dodgeLungeMinDistance: 2.3
+  dodgeLungeMaxDistance: 5
+  dodgeLungeDistance: 2.4
+  dodgeLungeDuration: 0.65
+  dodgeLungeCooldown: 3
+  dodgeLungeChance: 0
+  dodgeVisualHeight: 0.75
+  runApproachMinDistance: 6
+  preferredApproachDistance: 1.119
+  approachSideAngle: 15
+  separationRadius: 1.5
+  separationWeight: 1
+  approachDirectionMinDuration: 2
+  approachDirectionMaxDuration: 4
+  attackTurnCooldown: 0.8
+  attackWaitDuration: 0.45
+  memberEngageRange: 2.5
+  memberEngageVerticalTolerance: 1.5
+  hasShield: 0
+  defendChance: 0
+  defendDuration: 0.8
+  blockedDamageMultiplier: 1
+  blockAngle: 120

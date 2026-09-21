@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: VenomBrood_Arathrox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: VenomBrood_Arathrox
+  runtimeController: {fileID: 9100000, guid: f1edd95716cd06c4a8cb0417bd4e8af9, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 8d7fe8825ed6a2e478ca4eaaa8225352, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 173fb166e7cc91249a1892fb8c28de25, type: 3}
+  run: {fileID: 1827226128182048838, guid: 173fb166e7cc91249a1892fb8c28de25, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: f8c7b834281425341be9833573619610, type: 3}
+  - {fileID: 1827226128182048838, guid: 42338923402d8b04ea0b949636e0f3b5, type: 3}
+  - {fileID: 1827226128182048838, guid: 1ffca02c0dfb8424093259e9b41f67e3, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 663111da595e98b4cbeb771c895b43c0, type: 3}
+  death: {fileID: 1827226128182048838, guid: 48cb6d4c3f5f75a458e4864f231eb80c, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 811277c15427c0944893ac80690b1dd1, type: 3}
+  - {fileID: 1827226128182048838, guid: 0dfd72963c4202a40a174cde47cde3a0, type: 3}
+  - {fileID: 1827226128182048838, guid: aefcf73f1e3770b41952f2508485b79d, type: 3}
+  - {fileID: 1827226128182048838, guid: 06e0e1ec5d247514c86b0ad9ec146047, type: 3}
+  - {fileID: 1827226128182048838, guid: 62278ed11728e2c4a8d302f2779961c0, type: 3}
+  - {fileID: 1827226128182048838, guid: ed0ea8cc1a4e0a44181a17fcaec014a6, type: 3}
+  - {fileID: 1827226128182048838, guid: 77384183eb6ef654d99351d75d15a183, type: 3}
+  - {fileID: 1827226128182048838, guid: d3dc5741c84261245a51cc966d01f9cf, type: 3}
+  - {fileID: 1827226128182048838, guid: 61828ae49972d0943904ae4af60a9bd1, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@Bite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@JumpBite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@WalkRight_RM.fbx"

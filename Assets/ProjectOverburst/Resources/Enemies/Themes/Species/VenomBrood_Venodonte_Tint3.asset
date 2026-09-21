@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: VenomBrood_Venodonte_Tint3
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: VenomBrood_Venodonte_Tint3
+  displayName: Venodonte_Tint3
+  vendorPrefab: {fileID: 8690812021642620850, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
+  animationProfile: {fileID: 11400000, guid: 467a527a0bb59034b98f87b8e8a54883, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 0a68e6653f83fec4c9500f8358b206cf, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 6de2cfd79b79ef54bb974b49da2f695c, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 8b0dc95de9be4b948babeb780cc17414, type: 2}
+  threatCost: 1

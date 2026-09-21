@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: SpiderBrood_Rostrokarck_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: SpiderBrood_Rostrokarck
+  abilities:
+  - {fileID: 11400000, guid: 215c000346a5d2e48b922b6f9c266f57, type: 2}
+  - {fileID: 11400000, guid: a7a2de85b2ed89f42a4169670065cbac, type: 2}
+  - {fileID: 11400000, guid: c3cd9d5397756c14d9e38995c3a20ccc, type: 2}
+  - {fileID: 11400000, guid: 271123517fe771842b7a5406071434b6, type: 2}
+  - {fileID: 11400000, guid: 7a09038a37e097c4c89b57d9e285a063, type: 2}

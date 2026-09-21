@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: SpiderBrood_RostrokarckLarvae
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: SpiderBrood_RostrokarckLarvae
+  displayName: RostrokarckLarvae
+  vendorPrefab: {fileID: 2797339434073595338, guid: 4b14efc10cab29c4a8a02818f115fa5b, type: 3}
+  animationProfile: {fileID: 11400000, guid: 47adb95258d166b4683c1357de2d0964, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 1106bfc723bbe93478de443acac465d1, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 60fefd04a44b8e14dae362d48977481a, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: eb7ea7e6d230a3c4fa44cea1a096b1a3, type: 2}
+  threatCost: 1
