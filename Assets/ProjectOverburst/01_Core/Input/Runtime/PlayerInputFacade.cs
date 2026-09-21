@@ -55,6 +55,13 @@ public sealed class PlayerInputFacade : MonoBehaviour
     [SerializeField] private bool autoEnableUi = true;
     [SerializeField] private bool autoEnableDebugValidation;
 
+    [Header("Combat Input Buffer (unscaled seconds)")]
+    [SerializeField, Min(0f)] private float attackBufferDuration = 0.15f;
+    [SerializeField, Min(0f)] private float evadeBufferDuration = 0.15f;
+    public float AttackBufferDuration => attackBufferDuration;
+    public float EvadeBufferDuration => evadeBufferDuration;
+    public PlayerCombatInputBuffer CombatInputs { get; private set; }
+
     private InputActionAsset runtimeAsset;
     private InputActionMap gameplayMap;
     private InputActionMap uiMap;
@@ -189,10 +196,14 @@ public sealed class PlayerInputFacade : MonoBehaviour
             EnableUi();
         if (autoEnableDebugValidation)
             EnableDebugValidation();
+        CombatInputs?.Dispose();
+        CombatInputs = new PlayerCombatInputBuffer(this);
     }
 
     private void OnDisable()
     {
+        CombatInputs?.Dispose();
+        CombatInputs = null;
         DisableAllMaps();
         UnsubscribeActionChange();
         if (Current == this)
@@ -201,6 +212,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
 
     private void OnDestroy()
     {
+        CombatInputs?.Dispose();
+        CombatInputs = null;
         DisableAllMaps();
         UnsubscribeActionChange();
         gameplayActions.Clear();
@@ -261,8 +274,19 @@ public sealed class PlayerInputFacade : MonoBehaviour
 
     public void DisableGameplay()
     {
+        CombatInputs?.Invalidate();
         if (gameplayMap != null && gameplayMap.enabled)
             gameplayMap.Disable();
+    }
+
+    private void OnApplicationFocus(bool focused)
+    {
+        if (!focused) CombatInputs?.Invalidate();
+    }
+
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused) CombatInputs?.Invalidate();
     }
 
     public void EnableUi()
@@ -509,6 +533,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
 
     private void HandleActionChange(object actionOrMap, InputActionChange change)
     {
+        if (change == InputActionChange.ActionMapDisabled && ReferenceEquals(actionOrMap, gameplayMap))
+            CombatInputs?.Invalidate();
         if (change != InputActionChange.ActionPerformed
             && change != InputActionChange.ActionStarted
             && change != InputActionChange.ActionCanceled)

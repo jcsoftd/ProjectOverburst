@@ -116,6 +116,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private void OnDisable()
     {
+        ResolveFacade()?.CombatInputs?.Invalidate();
         OverburstTimeEffectArbiter.ClearOwner(this);
         if (isEvading)
             EndEvade();
@@ -186,27 +187,32 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private void ReadEvadeInput()
     {
-        // GOAL A2: Shift 직접 읽기 대신 Gameplay Evade를 사용한다. 쿨다운/모드 계약은 유지.
+        TryExecuteBufferedEvade();
+    }
+
+    public bool TryExecuteBufferedEvade()
+    {
+        if (!isActiveAndEnabled) return false;
+        ResolveReferences();
         PlayerInputFacade facade = ResolveFacade();
-        if (facade == null)
-            return;
+        if (facade == null || facade.CombatInputs == null || !facade.CombatInputs.HasEvade)
+            return false;
 
         if (GameplayInputBlocker.IsGameplayInputBlocked)
-            return;
+            return false;
 
         if (isEvading || Time.unscaledTime < nextEvadeTime)
-            return;
+            return false;
 
         if (playerMovement != null && playerMovement.IsMeleeAttackMoveLocked && !CanCancelMeleeComboForEvade())
-            return; // 이동 잠금 중에는 MeleeRuntime 회피 취소 계약을 따른다.
-
-        if (!facade.EvadePressedThisFrame)
-            return;
+            return false; // 이동 잠금 중에는 MeleeRuntime 회피 취소 계약을 따른다.
 
         if (!CanStartRollInCurrentMode())
-            return;
+            return false;
 
-        TryStartEvade(PlayerEvadeType.Roll);
+        if (!TryStartEvade(PlayerEvadeType.Roll)) return false;
+        facade.CombatInputs.ConsumeEvade();
+        return true;
     }
 
     private bool CanStartRollInCurrentMode()
@@ -214,10 +220,10 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         return playerMovement != null && playerMovement.IsMeleeCombatLocomotionMode;
     }
 
-    private void TryStartEvade(PlayerEvadeType evadeType)
+    private bool TryStartEvade(PlayerEvadeType evadeType)
     {
         if (staminaController == null || !staminaController.TryConsume(staminaCost))
-            return;
+            return false;
 
         meleeRuntime?.CancelActiveComboForEvade(); // 공격 취소와 콤보 연결 상태 초기화는 10번대 위임
 
@@ -250,6 +256,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         PlayEvadeAnimation(activeType, activeDuration);
         OnEvadeStarted?.Invoke(activeType);
         OverburstFeelFeedbackHub.Request(OverburstFeelCue.Evade, transform.position);
+        return true;
     }
 
     private bool CanCancelMeleeComboForEvade()

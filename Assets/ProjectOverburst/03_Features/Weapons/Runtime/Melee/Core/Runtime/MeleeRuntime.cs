@@ -63,6 +63,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private WeaponActionState terminalActionState; // 마지막 종료 결과
     private PlayerInputFacade inputFacade; // GOAL A2 파사드 캐시
     private PlayerStateCoordinator stateCoordinator; // GOAL A2 상태 보고
+    private PlayerEvadeController inputEvadeController;
 
     public WeaponRuntimeKind RuntimeKind => WeaponRuntimeKind.Melee;
     public bool CanUseCurrentWeapon => playerEquipment != null && playerEquipment.CanCurrentWeaponUseMeleeSlash;
@@ -86,6 +87,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     public void SetManualInputEnabled(bool enabledValue)
     {
         manualInputEnabled = enabledValue;
+        if (!enabledValue) ResolveFacade()?.CombatInputs?.Invalidate();
     }
 
     public void CancelCurrentAttackState()
@@ -183,6 +185,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return WeaponActionResult.RejectedNotReady;
 
         handle = new WeaponActionHandle(actionId);
+        if (request.Source == WeaponActionSource.PlayerInput)
+            ResolveFacade()?.CombatInputs?.ConsumeAttack();
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;
     }
@@ -219,6 +223,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (!TryStartAttackStep(true, attackDirection))
             return WeaponActionResult.RejectedNotReady;
 
+        if (request.Source == WeaponActionSource.PlayerInput)
+            ResolveFacade()?.CombatInputs?.ConsumeAttack();
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;
     }
@@ -341,6 +347,12 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         ResolveReferences();
         ResetStateIfWeaponChanged();
 
+        // Resolve an executable evade before accepting an attack, independent of
+        // MonoBehaviour Update order. Cooldown/locks/cost remain owned by evade.
+        if (manualInputEnabled && inputEvadeController != null
+            && inputEvadeController.TryExecuteBufferedEvade())
+            return;
+
         if (!CombatDebugSettings.ShowAttackPatternDebug)
             attackPatternDebugRenderer?.Hide();
 
@@ -389,6 +401,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         if (stateCoordinator == null)
             stateCoordinator = GetComponent<PlayerStateCoordinator>();
+        if (inputEvadeController == null)
+            inputEvadeController = GetComponent<PlayerEvadeController>();
     }
 
     private int AllocateActionId()
@@ -881,7 +895,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         // GOAL A2: Space 직접 읽기 대신 Gameplay Jump 눌림으로 공격 시작을 차단한다(점프 우선). 부정 로직 보존.
         PlayerInputFacade facade = ResolveFacade();
-        return facade == null || !facade.JumpPressedThisFrame;
+        return (stateCoordinator == null || stateCoordinator.CurrentCondition == PlayerConditionState.Normal)
+            && !GameplayInputBlocker.IsGameplayInputBlocked
+            && (facade == null || !facade.JumpPressedThisFrame);
     }
 
     private Vector3 CaptureAttackStartDirection()
@@ -980,7 +996,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         // GOAL A2: 좌클릭 홀드 직접 읽기 대신 Gameplay Attack 유지를 사용한다. 콤보 계속 의미 유지.
         PlayerInputFacade facade = ResolveFacade();
-        return facade != null && facade.AttackHeld;
+        return facade != null && facade.CombatInputs != null
+            && (facade.CombatInputs.HasAttack || facade.CombatInputs.AllowsHeldAttack);
     }
 
     private void ContinueActiveCombo()
@@ -1075,6 +1092,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         WeaponActionCompletionReason completionReason,
         bool resetCombo)
     {
+        ResolveFacade()?.CombatInputs?.ClearAttack();
         Vector3 committedDirection = activeAttackDirection;
         StopActiveAttackStep();
         if (resetCombo)
