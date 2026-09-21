@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -139,6 +140,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         public Vector3 Velocity;
         public Vector3 LocalOffset;
         public string ArchetypeName = "Uniform";
+        public bool SquadParticipant = true;
         public float WalkSpeed = DefaultBaseMonsterSpeed;
         public float PursuitSpeed = DefaultBaseMonsterSpeed;
         public float BodyRadius = MonsterBodyRadius;
@@ -180,6 +182,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
 
     private sealed class EnemyMinimumData
     {
+        public bool SquadParticipant = true;
         public string Name;
         public float WalkSpeed;
         public float RunSpeed;
@@ -249,6 +252,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
     private sealed class SimulatorSettings // 프로젝트별 EditorPrefs 자동 저장 데이터
     {
         public string aiPresetId;
+        public string themeTableGuid;
         public int spawnPreset;
         public int simulationDataMode;
         public int partySimulationMode;
@@ -334,6 +338,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
     private SpawnPreset spawnPreset = SpawnPreset.한쪽밀집;
     private SimulationDataMode simulationDataMode = SimulationDataMode.AI프리셋데이터;
     private PartySimulationMode partySimulationMode = PartySimulationMode.고정리더3인파티;
+    [SerializeField] private EnemyThemeTable selectedThemeTable;
     private EnemyAiPreset selectedAiPreset;
     private string selectedAiPresetId = ActiveAiPresetId;
     private int selectedAiPresetIndex;
@@ -978,6 +983,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
 
     private void SaveSettings()
     {
+        if (suppressSettingsSave) return;
         NormalizeSettings();
         EditorPrefs.SetString(SettingsKey, JsonUtility.ToJson(CaptureSettings()));
     }
@@ -1060,6 +1066,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
     {
         return new SimulatorSettings
         {
+            themeTableGuid = selectedThemeTable != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(selectedThemeTable)) : "",
             aiPresetId = selectedAiPreset != null ? selectedAiPreset.PresetId : selectedAiPresetId,
             spawnPreset = (int)spawnPreset,
             simulationDataMode = (int)simulationDataMode,
@@ -1107,6 +1114,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
 
     private void ApplySettings(SimulatorSettings settings)
     {
+        selectedThemeTable = string.IsNullOrEmpty(settings.themeTableGuid) ? null : AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(AssetDatabase.GUIDToAssetPath(settings.themeTableGuid));
         selectedAiPresetId = string.IsNullOrWhiteSpace(settings.aiPresetId)
             || string.Equals(settings.aiPresetId, "MurlocSquad", StringComparison.Ordinal)
             ? ActiveAiPresetId
@@ -1278,13 +1286,62 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         AssetDatabase.SaveAssets();
     }
 
+    public void ApplyThemeTable(EnemyThemeTable table)
+    {
+        if (table == null || !table.Validate(out _)) throw new InvalidOperationException("유효한 테마 테이블이 필요합니다.");
+        selectedThemeTable = table;
+        selectedAiPreset = table.Entries.First(e => e.tier == EnemyThemeTier.Small).definition.AiPreset;
+        selectedAiPresetId = selectedAiPreset.PresetId;
+        selectedAiPresetIndex = aiPresets.IndexOf(selectedAiPreset);
+        requestedMonsterCount = 50; continuousSpawnerEnabled = false; spawnWithAggro = true;
+        partySimulationMode = PartySimulationMode.단일리더;
+        ApplySelectedAiPresetValues();
+        AddEvent(table.DisplayName + " · 40/9/1 · 정예 독립");
+    }
+
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Squad Simulator")]
+    public static void ValidateThemeSimulator()
+    {
+        var window = CreateInstance<EnemySquadPursuitSimulatorWindow>();
+        window.suppressSettingsSave = true;
+        try
+        {
+            foreach (string id in new[] { "SpiderBrood", "VenomBrood", "PrimalHunt" })
+            {
+                var table = AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(MonsterThemeCombatBuilder.Root + "/Tables/" + id + ".asset");
+                window.ApplyThemeTable(table);
+                if (window.enemies.Count != 50 || window.enemies.Count(e => e.SquadParticipant) != 49)
+                    throw new InvalidOperationException("Simulator roster mismatch: " + id);
+                if (window.enemies.Any(e => !e.SquadParticipant && e.SquadId >= 0))
+                    throw new InvalidOperationException("Elite joined a squad");
+                if (window.CountLivingSquads() != 6)
+                    throw new InvalidOperationException("Expected six squads from 49 participants: " + id);
+                var roster = table.BuildRoster(40,9,1,window.stableSeed);
+                for (int i=0;i<roster.Count;i++)
+                {
+                    float radius = EnemyCrowdAgent.EstimateBodyRadius(roster[i].ActorPrefab.gameObject);
+                    if (Mathf.Abs(window.enemies[i].BodyRadius-radius) > .001f)
+                        throw new InvalidOperationException("Runtime body radius mismatch");
+                }
+                for (int frame=0;frame<120;frame++) window.StepSimulation(1f/60f);
+                if (window.enemies.Any(e => float.IsNaN(e.Position.x) || float.IsNaN(e.Position.z)))
+                    throw new InvalidOperationException("Invalid simulator position");
+            }
+            Debug.Log("[ThemeSquadSimulator] PASS 3 tables / 50 total / 49 participants / 1 independent / 6 squads / body radii / 120 steps each");
+        }
+        finally { DestroyImmediate(window); }
+    }
+
     private void LoadSelectedAiMinimumData()
     {
         aiMinimumData.Clear();
-        int prefabCount = selectedAiPreset != null ? selectedAiPreset.DefaultMonsterCount : 0;
+        if (selectedThemeTable != null && selectedThemeTable.Entries.First(e => e.tier == EnemyThemeTier.Small).definition.AiPreset != selectedAiPreset)
+            selectedThemeTable = null;
+        List<EnemyDefinition> themeRoster = selectedThemeTable != null ? selectedThemeTable.BuildRoster(40, 9, 1, stableSeed) : null;
+        int prefabCount = themeRoster != null ? themeRoster.Count : selectedAiPreset != null ? selectedAiPreset.DefaultMonsterCount : 0;
         for (int index = 0; index < prefabCount; index++)
         {
-            GameObject prefab = selectedAiPreset.GetDefaultMonsterPrefab(index);
+            GameObject prefab = themeRoster != null ? themeRoster[index].ActorPrefab.gameObject : selectedAiPreset.GetDefaultMonsterPrefab(index);
             if (prefab == null)
                 continue;
 
@@ -1306,6 +1363,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
             aiMinimumData.Add(new EnemyMinimumData
             {
                 Name = archetypeName,
+                SquadParticipant = themeRoster == null || themeRoster[index].SquadParticipationMode != EnemySquadParticipationMode.Independent,
                 WalkSpeed = walkSpeed,
                 RunSpeed = walkSpeed * runMultiplier,
                 BodyRadius = EnemyCrowdAgent.EstimateBodyRadius(prefab),
@@ -1388,6 +1446,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         {
             EnemyMinimumData data = aiMinimumData[stableIndex % aiMinimumData.Count];
             enemy.ArchetypeName = data.Name;
+            enemy.SquadParticipant = data.SquadParticipant;
             enemy.WalkSpeed = data.WalkSpeed;
             enemy.PursuitSpeed = data.RunSpeed;
             enemy.BodyRadius = data.BodyRadius;
@@ -1402,6 +1461,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         }
 
         enemy.ArchetypeName = "Uniform";
+        enemy.SquadParticipant = true;
         enemy.WalkSpeed = baseMonsterSpeed;
         enemy.PursuitSpeed = baseMonsterSpeed;
         enemy.BodyRadius = MonsterBodyRadius;
@@ -1581,6 +1641,23 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
             EditorGUILayout.LabelField("AI 프리셋·파티 경로 계산을 게임 런타임과 공유", EditorStyles.miniLabel);
 
             EditorGUILayout.Space(8f);
+            EditorGUILayout.LabelField("테마 테이블 · 실제 40/9/1 편성", subHeaderStyle);
+            var changedTheme = (EnemyThemeTable)EditorGUILayout.ObjectField("테마", selectedThemeTable, typeof(EnemyThemeTable), false);
+            if (changedTheme != selectedThemeTable)
+            {
+                selectedThemeTable = changedTheme;
+                if (selectedThemeTable != null) ApplyThemeTable(selectedThemeTable);
+                else { LoadSelectedAiMinimumData(); ResetSimulation(); }
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("거미")) ApplyThemeTable(AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(MonsterThemeCombatBuilder.Root + "/Tables/SpiderBrood.asset"));
+                if (GUILayout.Button("독낭")) ApplyThemeTable(AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(MonsterThemeCombatBuilder.Root + "/Tables/VenomBrood.asset"));
+                if (GUILayout.Button("포식")) ApplyThemeTable(AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(MonsterThemeCombatBuilder.Root + "/Tables/PrimalHunt.asset"));
+            }
+            if (selectedThemeTable != null)
+                EditorGUILayout.HelpBox("50마리 기준 소형 40 / 중형 9 / 정예 1. 분대 참여 49, 정예 독립 1(분홍 테두리). 이동·편성 비교용이며 공격/애니메이션은 실제 Play에서 확인합니다.", MessageType.Info);
+
             EditorGUILayout.LabelField("시나리오", subHeaderStyle);
             spawnPreset = (SpawnPreset)EditorGUILayout.EnumPopup("배치", spawnPreset);
             simulationDataMode = (SimulationDataMode)EditorGUILayout.EnumPopup("개체 데이터", simulationDataMode);
@@ -2314,6 +2391,11 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
             if (enemy.Alive)
             {
                 Handles.DrawSolidDisc(point, Vector3.forward, radius);
+                if (!enemy.SquadParticipant)
+                {
+                    Handles.color = new Color(1f, .35f, .65f);
+                    Handles.DrawWireDisc(point, Vector3.forward, radius + 3f);
+                }
                 if (enemySquad != null)
                 {
                     Handles.color = WithAlpha(ResolveSquadVisualColor(enemySquad), 0.85f);
@@ -2610,6 +2692,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
 
     private void ResetSimulation()
     {
+        if (selectedThemeTable != null) LoadSelectedAiMinimumData();
         random = new System.Random(stableSeed);
         enemies.Clear();
         squads.Clear();
@@ -2958,7 +3041,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         int activationCount = selectedAiPreset != null
             ? selectedAiPreset.ActivationCount
             : EnemySquadPursuitPlanner.DefaultActivationCount;
-        if (encounterActive || CountAggroEnemies() < activationCount)
+        if (encounterActive || enemies.Count(e => e.Alive && e.AggroActive && e.SquadParticipant) < activationCount)
             return;
 
         encounterActive = true;
@@ -2979,7 +3062,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         for (int i = 0; i < enemies.Count; i++)
         {
             SimEnemy enemy = enemies[i];
-            if (enemy.Alive && enemy.AggroActive && enemy.SquadId < 0)
+            if (enemy.Alive && enemy.AggroActive && enemy.SquadParticipant && enemy.SquadId < 0)
                 unassignedBuffer.Add(enemy);
         }
 
@@ -3486,7 +3569,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         for (int i = 0; i < enemies.Count; i++)
         {
             SimEnemy enemy = enemies[i];
-            if (enemy.Alive && enemy.AggroActive && enemy.SquadId < 0)
+            if (enemy.Alive && enemy.AggroActive && enemy.SquadParticipant && enemy.SquadId < 0)
                 unassignedBuffer.Add(enemy);
         }
         EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
@@ -3669,7 +3752,7 @@ public sealed class EnemySquadPursuitSimulatorWindow : EditorWindow
         for (int i = 0; i < enemies.Count; i++)
         {
             SimEnemy enemy = enemies[i];
-            if (enemy.Alive && enemy.AggroActive && enemy.SquadId < 0)
+            if (enemy.Alive && enemy.AggroActive && enemy.SquadParticipant && enemy.SquadId < 0)
                 unassignedBuffer.Add(enemy);
         }
         if (unassignedBuffer.Count == 0)

@@ -36,6 +36,9 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool hasDeathTrigger;
     private bool hasMoveAnimSpeedParameter;
     private bool hasAttackAnimSpeedParameter;
+    private bool hasDirectionalHit;
+    private static readonly int HitXHash = Animator.StringToHash("HitX");
+    private static readonly int HitZHash = Animator.StringToHash("HitZ");
     private bool isDead;
     private Coroutine hitSpeedRoutine;
     private float animatorSpeedBeforeHit = 1f;
@@ -320,6 +323,13 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (defenseController != null && defenseController.ConsumeBlockedHit())
             return; // 방패 반응이 일반 피격보다 우선
 
+        if (hasDirectionalHit && animator != null)
+        {
+            Vector3 towardSource = info.source != null ? info.source.transform.position - transform.position : -info.direction;
+            Vector3 local = transform.InverseTransformDirection(towardSource);local.y = 0f;
+            local = local.sqrMagnitude > .0001f ? local.normalized : Vector3.forward;
+            animator.SetFloat(HitXHash, local.x);animator.SetFloat(HitZHash, local.z);
+        }
         PlayHit();
 
         if (movementReaction == null)
@@ -518,6 +528,8 @@ public class EnemyAnimationBridge : MonoBehaviour
         hasDeathTrigger = HasParameter(deathTrigger, AnimatorControllerParameterType.Trigger);
         hasMoveAnimSpeedParameter = HasParameter(moveAnimSpeedParameter, AnimatorControllerParameterType.Float);
         hasAttackAnimSpeedParameter = HasParameter(attackAnimSpeedParameter, AnimatorControllerParameterType.Float);
+        hasDirectionalHit = HasParameter("HitX", AnimatorControllerParameterType.Float)
+            && HasParameter("HitZ", AnimatorControllerParameterType.Float);
     }
 
     private bool HasParameter(string parameterName, AnimatorControllerParameterType parameterType)

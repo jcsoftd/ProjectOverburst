@@ -36,6 +36,7 @@ public sealed class EnemySpawnService : MonoBehaviour
 
     public void Configure(EnemyCatalog enemyCatalog, EnemyPoolService poolService)
     {
+        additionalDefinitions.Clear();
         catalog = enemyCatalog;
         pool = poolService;
     }

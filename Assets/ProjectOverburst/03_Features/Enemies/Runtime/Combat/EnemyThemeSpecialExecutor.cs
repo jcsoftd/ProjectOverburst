@@ -14,6 +14,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private GameObject bolt;
     private bool boltFlying;
     private Vector3 boltDirection;
+    private Vector3 boltPosition;
     private float boltRemaining, boltDamage;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     public override bool IsExecuting => routine != null;
@@ -99,7 +100,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
                 committed = true; warning.enabled = false;
                 if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 {
-                    bolt.transform.position = Origin;
+                    boltPosition = Origin;
+                    bolt.transform.position = boltPosition;
                     boltDirection = (destination + Vector3.up*.8f - Origin).normalized;
                     boltRemaining = ability.Range + 2; boltDamage = ability.Damage * actor.RuntimeStats.DamageMultiplier;
                     boltFlying = true; bolt.SetActive(true); LaunchCount++;
@@ -130,12 +132,13 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (!boltFlying) return;
         if (!Usable()) { EndBolt(); return; }
         float step = Mathf.Min(boltRemaining,10f*Time.fixedDeltaTime);
-        int count = Physics.SphereCastNonAlloc(bolt.transform.position,.14f,boltDirection,hits,step,Mask,QueryTriggerInteraction.Ignore);
+        int count = Physics.SphereCastNonAlloc(boltPosition,.14f,boltDirection,hits,step,Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
         if (nearest>=0) { Damage(hits[nearest],boltDamage,boltDirection);EndBolt();return; }
-        bolt.transform.position += boltDirection*step; boltRemaining-=step;
+        boltPosition += boltDirection*step; bolt.transform.position = boltPosition; boltRemaining-=step;
         if (boltRemaining<=0) EndBolt();
     }
+    private void LateUpdate() { if (boltFlying && bolt != null) bolt.transform.position = boltPosition; }
     private void EnsureVisuals()
     {
         if (warning == null)

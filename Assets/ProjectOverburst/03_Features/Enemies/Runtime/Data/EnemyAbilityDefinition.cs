@@ -149,6 +149,7 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
         float animationDuration = 1f)
     {
         abilityId = id != null ? id.Trim() : string.Empty;
+        additionalHitNormalizedTimes = System.Array.Empty<float>();
         animatorTrigger = trigger != null ? trigger.Trim() : string.Empty;
         executionMode = mode;
         damage = Mathf.Max(0f, abilityDamage);

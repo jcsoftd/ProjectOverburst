@@ -111,7 +111,8 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         State=EnemyThemeEncounterState.Completed;LastMessage="전투 완료";sequence=null;
     }
     private bool TargetAvailable()
-    {var health=target!=null?target.GetComponent<CombatHealth>():null;return target!=null && target.gameObject.activeInHierarchy && (health==null || !health.IsDead);}
+    {var health=target!=null?target.GetComponent<CombatHealth>():null;return target!=null && target.gameObject.activeInHierarchy && (health==null || !health.IsDead)
+        && (PersistentSceneFlow.Instance==null || !PersistentSceneFlow.Instance.IsSwitching);}
     private bool TryPosition(EnemyDefinition definition,System.Random random,bool arc,float angle,out Vector3 result)
     {
         result=default;
@@ -167,7 +168,11 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         State=EnemyThemeEncounterState.Stopped;LastMessage=clear?"시험 소환 정리 완료":"공세 중지";
     }
     private void OnDisable(){StopEncounter(true);}
-    private void Fail(string message){State=EnemyThemeEncounterState.Failed;LastMessage=message;Debug.LogWarning("[EnemyThemeEncounter] "+message,this);}
+    private void Fail(string message)
+    {
+        // A failed exact-count batch must not leave an unintended partial encounter behind.
+        StopEncounter(true);State=EnemyThemeEncounterState.Failed;LastMessage=message;Debug.LogWarning("[EnemyThemeEncounter] "+message,this);
+    }
     private void ShowWarning(float angle)
     {
         if(warning==null)

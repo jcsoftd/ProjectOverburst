@@ -192,12 +192,18 @@ public static class MonsterThemeCombatBuilder
         tree.AddChild(back,-1);tree.AddChild(idle,0);tree.AddChild(walk,1);tree.AddChild(run,2);
         var locomotion=machine.AddState("Locomotion");locomotion.motion=tree;locomotion.speedParameter="MoveAnimSpeed";locomotion.speedParameterActive=true;machine.defaultState=locomotion;
         for(int i=0;i<attacks.Length;i++)Action(controller,machine,locomotion,"Attack"+(i+1),"Attack_"+(i+1),attacks[i],true);
-        Action(controller,machine,locomotion,"GotHit","Get_hit",hit,false);
+        controller.AddParameter("HitX",AnimatorControllerParameterType.Float);controller.AddParameter(new AnimatorControllerParameter{name="HitZ",type=AnimatorControllerParameterType.Float,defaultFloat=1});
+        var hitTree=new BlendTree{name="Directional hit",blendParameter="HitX",blendParameterY="HitZ",blendType=BlendTreeType.FreeformDirectional2D};AssetDatabase.AddObjectToAsset(hitTree,controller);
+        hitTree.AddChild(hit,Vector2.up);
+        hitTree.AddChild(all.FirstOrDefault(c=>c.name=="GetHitBack")??hit,Vector2.down);
+        hitTree.AddChild(all.FirstOrDefault(c=>c.name=="GetHitLeft")??hit,Vector2.left);
+        hitTree.AddChild(all.FirstOrDefault(c=>c.name=="GetHitRight")??hit,Vector2.right);
+        Action(controller,machine,locomotion,"GotHit","Get_hit",hitTree,false);
         var taunt=all.FirstOrDefault(c=>c.name=="Roar"||c.name=="Taunt");if(taunt!=null)Action(controller,machine,locomotion,"Taunt","Taunt",taunt,false);
         var idleBreak=all.FirstOrDefault(c=>c.name=="IdleAngry")??idle;Action(controller,machine,locomotion,"IdleBreak","Idle_break",idleBreak,false);
         Action(controller,machine,locomotion,"Death","Death",death,false,true);EditorUtility.SetDirty(controller);return controller;
     }
-    private static void Action(AnimatorController controller,AnimatorStateMachine machine,AnimatorState locomotion,string trigger,string name,AnimationClip clip,bool attack,bool terminal=false)
+    private static void Action(AnimatorController controller,AnimatorStateMachine machine,AnimatorState locomotion,string trigger,string name,Motion clip,bool attack,bool terminal=false)
     {
         controller.AddParameter(trigger,AnimatorControllerParameterType.Trigger);var state=machine.AddState(name);state.motion=clip;
         if(attack){state.speedParameter="AttackAnimSpeed";state.speedParameterActive=true;}

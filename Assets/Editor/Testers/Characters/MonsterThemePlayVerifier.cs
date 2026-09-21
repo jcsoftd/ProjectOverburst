@@ -1,0 +1,238 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+// Uses actual runtime updates, serialized debug buttons, spawn service and pool. No asset writes.
+[InitializeOnLoad]
+public static class MonsterThemePlayVerifier
+{
+    private const string Key="MonsterThemePlayVerifier";
+    private static readonly Stack<IEnumerator> work=new Stack<IEnumerator>();
+    private static readonly List<string> passed=new List<string>(),errors=new List<string>();
+    private static EnemyThemeDebugUI ui;
+    private static PlayerInputFacade player;
+    private static CombatHealth health;
+    private static Vector3 center;
+    private static int lastFrame;
+    private static double deadline;
+    private static bool background;
+    private static int frameRate;
+    public static string LastResult=>SessionState.GetString(Key+".result","NOT_RUN");
+    static MonsterThemePlayVerifier(){EditorApplication.playModeStateChanged+=Changed;}
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Play Mode")]
+    public static void Run()
+    { Start(false); }
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Safety Play Mode")]
+    public static void RunSafety() { Start(true); }
+    private static void Start(bool safety)
+    {
+        Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
+        var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
+        SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
+    }
+    private static void Changed(PlayModeStateChange state)
+    {
+        if(!SessionState.GetBool(Key,false))return;
+        if(state==PlayModeStateChange.EnteredPlayMode)
+        {
+            background=Application.runInBackground;frameRate=Application.targetFrameRate;Application.runInBackground=true;Application.targetFrameRate=60;
+            passed.Clear();errors.Clear();work.Clear();work.Push(Verify());lastFrame=-1;deadline=EditorApplication.timeSinceStartup+900;
+            Application.logMessageReceived+=Log;EditorApplication.update+=Tick;
+        }
+        if(state==PlayModeStateChange.ExitingPlayMode)
+        {
+            Application.logMessageReceived-=Log;EditorApplication.update-=Tick;Application.runInBackground=background;Application.targetFrameRate=frameRate;
+            if(LastResult=="RUNNING")SessionState.SetString(Key+".result","FAIL interrupted");
+        }
+        if(state==PlayModeStateChange.EnteredEditMode){SessionState.SetBool(Key,false);Debug.Log("[MonsterThemePlay] "+LastResult);}
+    }
+    private static void Log(string message,string trace,LogType type){if(type==LogType.Error || type==LogType.Exception || type==LogType.Assert)errors.Add(message);}
+    private static void Tick()
+    {
+        EditorApplication.QueuePlayerLoopUpdate();if(!EditorApplication.isPlaying || lastFrame==Time.frameCount)return;lastFrame=Time.frameCount;
+        try
+        {
+            Check(EditorApplication.timeSinceStartup<deadline,"Timeout");
+            while(work.Count>0){var next=work.Peek();if(!next.MoveNext()){work.Pop();continue;}if(next.Current is IEnumerator nested){work.Push(nested);continue;}return;}
+            Check(errors.Count==0,string.Join(" | ",errors));Finish("PASS "+string.Join("; ",passed)+"; errors=0");
+        }
+        catch(Exception exception){Finish("FAIL "+exception.Message+"; passed="+string.Join("; ",passed));}
+    }
+    private static void Finish(string result){SessionState.SetString(Key+".result",result);EditorApplication.update-=Tick;EditorApplication.ExitPlaymode();}
+    private static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
+    private static void Pass(string message){passed.Add(message);Debug.Log("[MonsterThemePlay] PASS "+message);}
+    private static IEnumerator Seconds(float seconds){float end=Time.time+seconds;while(Time.time<end)yield return null;}
+    private static IEnumerator Until(Func<bool> condition,float seconds,string message)
+    {float end=Time.time+seconds;while(!condition()){Check(Time.time<end,message);yield return null;}}
+    private static void Teleport(Vector3 position)
+    {
+        var cc=player.GetComponent<CharacterController>();bool enabled=cc.enabled;cc.enabled=false;player.transform.SetPositionAndRotation(position,Quaternion.identity);cc.enabled=enabled;
+        player.GetComponent<PlayerMovement>().ResetMotionAfterTeleport();Physics.SyncTransforms();
+    }
+    private static EnemyThemeEncounter DebugEncounter()=>UnityEngine.Object.FindObjectsByType<EnemyThemeEncounter>(FindObjectsSortMode.None).FirstOrDefault(e=>e.name=="Theme debug encounter");
+    private static void Kill(EnemyActor actor){actor.Health.TakeDamage(new DamageInfo(actor.Health.MaxHp+10000,actor.transform.position,player.gameObject,Vector3.forward));}
+    private static EnemyActor Spawn(EnemyDefinition definition,Vector3 position)
+    {
+        var request=new EnemySpawnRequest(definition,position,Quaternion.identity,player.transform,null,player.transform,null,1,1,77);
+        Check(EnemySpawnService.Current.TrySpawn(request,out var actor),"Spawn failed "+definition.EnemyId);
+        actor.AI.enabled=false;actor.Movement.StopMovement();return actor;
+    }
+    private static IEnumerator Verify()
+    {
+        yield return Until(()=>PersistentSceneFlow.Instance!=null && !PersistentSceneFlow.Instance.IsSwitching && PersistentSceneFlow.Instance.CurrentSubSceneName==PersistentSceneFlow.HideoutSceneName,45,"Hideout load");
+        player=PlayerInputFacade.Current;Check(player!=null,"Player missing");health=player.GetComponent<CombatHealth>();health.SetMaxHp(100000,true);
+        ui=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);Check(ui!=null,"Debug UI missing");ui.gameObject.SetActive(true);
+        ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
+        Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
+        CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".safety",false))
+        {
+            yield return Safety();ui.Clear();ui.ToggleArena();yield return null;yield break;
+        }
+        for(int index=0;index<3;index++)
+        {
+            Teleport(center);ui.spawnButtons[index].onClick.Invoke();var encounter=DebugEncounter();Check(encounter!=null,"Serialized spawn button");
+            Check(!ui.Begin((index+1)%3,false),"Duplicate admission accepted");
+            yield return Until(()=>encounter.State==EnemyThemeEncounterState.Combat || encounter.State==EnemyThemeEncounterState.Failed,15,"Spawn timeout");
+            Check(encounter.SpawnedCount==50 && encounter.AliveCount==50 && encounter.FailedPlacements==0,"Exact roster failed "+index+" "+encounter.LastMessage);
+            var roster=encounter.SnapshotActors();
+            Check(roster.Count(a=>a.Definition.SquadParticipationMode==EnemySquadParticipationMode.Independent)==1,"Elite participation");
+            yield return Seconds(3);
+            var stats=EnemySquadPursuitRuntimeService.GetRuntimeStats();Check(stats.SquadCount==6,"Expected six squads: "+stats.SquadCount);
+            Check(roster.All(a=>a.Animator!=null && a.Animator.enabled && !a.Animator.applyRootMotion),"Animator ownership");
+            ui.clearButton.onClick.Invoke();yield return null;
+            Check(roster.All(a=>!a.IsLeased),"Owned clear leaked actors");Pass("table "+index+" / 50 / 6 squads / duplicate blocked / clear");
+        }
+        var definitions=ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().ToArray();
+        foreach(var definition in definitions)
+        {
+            EnemySpawnService.Current.RegisterAdditionalCatalog(ui.tables.First(t=>t.Entries.Any(e=>e.definition==definition)).Catalog,out _);
+            EnemyActor prior=null;uint version=0;
+            for(int cycle=0;cycle<20;cycle++)
+            {
+                var actor=Spawn(definition,center+Vector3.forward*8);Check(actor.Health.CurrentHp==actor.Health.MaxHp,"HP reset");
+                if(prior==actor)Check(actor.LeaseVersion>version,"Lease version not advanced");
+                actor.Animator.Play("Locomotion",0,0);yield return null;
+                Check(!actor.Animator.applyRootMotion && actor.VisualRoot.localScale==Vector3.one,"Pooled model scale/root motion");
+                version=actor.LeaseVersion;prior=actor;actor.RequestPoolRelease();
+                Check(!actor.IsLeased && !actor.AbilityController.IsExecuting,"Pool execution leak");
+            }
+        }
+        Pass("14 actors x 20 pool leases / HP / version / scale / cancellation");
+        foreach(var definition in definitions)
+        {
+            var set=definition.ActorPrefab.AbilityController.AbilitySet;
+            // Definition-owned sets are assigned on lease; prefab shell may retain a different set.
+            var probe=Spawn(definition,center+Vector3.forward*8);set=probe.AbilityController.AbilitySet;probe.RequestPoolRelease();
+            for(int i=0;i<set.Count;i++)
+            {
+                var ability=set.GetAbility(i);Teleport(center);health.ResetHealth();
+                float distance=ability.ExecutionMode==EnemyAbilityExecutionMode.Projectile?4:ability.ExecutionMode==EnemyAbilityExecutionMode.Charge?3:Mathf.Min(1.1f,ability.Range*.75f);
+                var actor=Spawn(definition,center-Vector3.forward*distance);actor.transform.rotation=Quaternion.identity;Physics.SyncTransforms();yield return Seconds(.2f);
+                var executor=actor.GetComponents<EnemyAbilityExecutor>().First(e=>e.Supports(ability));
+                float hp=health.CurrentHp;Vector3 start=actor.transform.position;
+                int impacts=0;
+                void CountImpact(CombatHealth source,DamageInfo info){if(info.source==actor.gameObject)impacts++;}
+                health.OnDamaged+=CountImpact;
+                Check(executor.TryStart(ability,i,player.transform),"Attack refused "+definition.EnemyId+" "+ability.AnimatorTrigger);
+                yield return Seconds(ability.AttackAnimationDuration+1.1f);
+                health.OnDamaged-=CountImpact;
+                Check(health.CurrentHp<hp,"No attack impact "+definition.EnemyId+" "+ability.AnimatorTrigger+" mode="+ability.ExecutionMode);
+                if(ability.HitCount>1)Check(impacts==ability.HitCount,"Combo impact count "+definition.EnemyId+" expected="+ability.HitCount+" actual="+impacts);
+                if(ability.ExecutionMode==EnemyAbilityExecutionMode.Charge)Check(Vector3.Distance(start,actor.transform.position)>.3f,"Charge never moved");
+                actor.RequestPoolRelease();float after=health.CurrentHp;yield return Seconds(.15f);Check(health.CurrentHp==after,"Late damage after pool");
+            }
+            Pass("attacks "+definition.EnemyId+" ("+set.Count+")");
+        }
+        Teleport(center);ui.waveButtons[1].onClick.Invoke();var waves=DebugEncounter();
+        for(int wave=1;wave<=3;wave++)
+        {
+            int expected=wave*50;yield return Until(()=>waves.SpawnedCount==expected || waves.State==EnemyThemeEncounterState.Failed,25,"Wave timeout "+wave);
+            Check(waves.State!=EnemyThemeEncounterState.Failed,"Wave placement "+waves.LastMessage);
+            foreach(var actor in waves.SnapshotActors())if(!actor.Health.IsDead)Kill(actor);
+        }
+        yield return Until(()=>waves.State==EnemyThemeEncounterState.Completed,10,"Wave completion");
+        Check(waves.DefeatedCount==150,"Kill accounting");ui.Clear();yield return null;Pass("3 direction waves / 150 / 150 deaths / complete");
+        var arena=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugArena>();var zones=arena.GetComponentsInChildren<EnemyThemeTriggerZone>();
+        for(int index=0;index<zones.Length;index++)
+        {
+            var zone=zones[index];var encounter=zone.GetComponent<EnemyThemeEncounter>();
+            Check(encounter.Table==ui.tables[index],"Map default/zone override");
+            Teleport(zone.transform.position+Vector3.up*.2f);yield return Until(()=>zone.HasTriggered,3,"Physics trigger entry");
+            Check(!zone.TryActivate(player.transform),"Trigger double entry");encounter.StopEncounter(true);Check(zone.Rearm(),"Rearm");
+            Teleport(center);yield return Seconds(.2f);
+        }
+        Pass("map default / 2 overrides / physical trigger x3 / once / rearm");
+        ui.Clear();ui.ToggleArena();Check(!ui.InArena,"Arena return");yield return Seconds(.5f);Check(player.transform.position.x<900,"Player return position");
+        Pass("arena exit / owned cleanup / return");
+    }
+    private static IEnumerator Safety()
+    {
+        ui.spawnButtons[0].onClick.Invoke();var encounter=DebugEncounter();
+        yield return Until(()=>encounter.SpawnedCount==50,15,"Safety setup spawn");
+        var leased=encounter.SnapshotActors()[0];var definition=leased.Definition;uint oldVersion=leased.LeaseVersion;
+        leased.RequestPoolRelease();var replacement=Spawn(definition,center+Vector3.forward*8);
+        Check(replacement==leased && replacement.LeaseVersion!=oldVersion,"Reacquire fixture");
+        ui.Clear();Check(replacement.IsLeased,"Old owner reclaimed a new lease");replacement.RequestPoolRelease();yield return null;
+        Pass("stale owner cannot release a new lease");
+        foreach(var table in ui.tables)EnemySpawnService.Current.RegisterAdditionalCatalog(table.Catalog,out _);
+        var definitions=ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().ToArray();
+        var sourceObject=new GameObject("Directional hit fixture");
+        foreach(var def in definitions)
+        {
+            var actor=Spawn(def,center+Vector3.forward*8);yield return null;
+            foreach(Vector3 local in new[]{Vector3.forward,Vector3.back,Vector3.left,Vector3.right})
+            {
+                sourceObject.transform.position=actor.transform.position+actor.transform.TransformDirection(local)*2;
+                actor.Health.TakeDamage(new DamageInfo(1,actor.transform.position,sourceObject,-local));
+                Check(Mathf.Abs(actor.Animator.GetFloat("HitX")-local.x)<.01f && Mathf.Abs(actor.Animator.GetFloat("HitZ")-local.z)<.01f,"Directional hit parameter "+def.EnemyId);
+                yield return Seconds(.1f);
+                string expected="GetHit"+(local.z>.5f?"Front":local.z<-.5f?"Back":local.x<0?"Left":"Right");
+                var clip=actor.Animator.GetCurrentAnimatorClipInfo(0).OrderByDescending(c=>c.weight).FirstOrDefault().clip;
+                Check(clip!=null && clip.name==expected,"Directional clip "+def.EnemyId+" expected="+expected+" actual="+(clip!=null?clip.name:"none"));
+            }
+            actor.RequestPoolRelease();
+        }
+        UnityEngine.Object.Destroy(sourceObject);Pass("14 actors x four directional hit clips");
+        foreach(var def in definitions)
+        {
+            var actor=Spawn(def,center-Vector3.forward*3);var set=actor.AbilityController.AbilitySet;actor.RequestPoolRelease();
+            for(int i=0;i<set.Count;i++)
+            {
+                var ability=set.GetAbility(i);float distance=ability.ExecutionMode==EnemyAbilityExecutionMode.Projectile?4:ability.ExecutionMode==EnemyAbilityExecutionMode.Charge?3:1;
+                Teleport(center);actor=Spawn(def,center-Vector3.forward*distance);yield return Seconds(.2f);
+                var executor=actor.GetComponents<EnemyAbilityExecutor>().First(e=>e.Supports(ability));
+                Check(executor.TryStart(ability,i,player.transform),"Cancel fixture attack start "+def.EnemyId+" "+ability.AnimatorTrigger+" distance="+Vector3.Distance(actor.transform.position,player.transform.position));actor.RequestPoolRelease();
+            }
+        }
+        float hp=health.CurrentHp;yield return Seconds(3);Check(health.CurrentHp==hp,"Late damage from canceled attacks");
+        Pass("all 45 attacks canceled on return / no late damage");
+        var shooter=definitions.First(d=>d.EnemyId.Contains("Arathrox"));
+        var enemy=Spawn(shooter,center-Vector3.forward*4);var abilitySet=enemy.AbilityController.AbilitySet;
+        var projectile=Enumerable.Range(0,abilitySet.Count).Select(abilitySet.GetAbility).First(a=>a.ExecutionMode==EnemyAbilityExecutionMode.Projectile);
+        enemy.RequestPoolRelease();
+        for(int scenario=0;scenario<3;scenario++)
+        {
+            Teleport(center);enemy=Spawn(shooter,center-Vector3.forward*4);yield return Seconds(.2f);var executor=enemy.GetComponent<EnemyThemeSpecialExecutor>();hp=health.CurrentHp;
+            Check(executor.TryStart(projectile,0,player.transform),"Projectile safety start");GameObject wall=null;
+            if(scenario==0){wall=GameObject.CreatePrimitive(PrimitiveType.Cube);wall.transform.position=center-Vector3.forward*2+Vector3.up;wall.transform.localScale=new Vector3(8,3,.35f);Physics.SyncTransforms();}
+            if(scenario==1)Teleport(center+Vector3.right*6);
+            if(scenario==2){Kill(enemy);}
+            yield return Seconds(projectile.AttackAnimationDuration+1.2f);
+            Check(health.CurrentHp==hp,"Projectile wall/miss/death safety "+scenario);
+            Check(!executor.HasProjectile,"Projectile lifetime leak");enemy.RequestPoolRelease();if(wall!=null)UnityEngine.Object.Destroy(wall);yield return null;
+        }
+        Teleport(center);Pass("projectile wall obstruction / committed aim miss / death cancellation");
+        var root=new GameObject("Constrained encounter fixture");var bounds=root.AddComponent<BoxCollider>();bounds.isTrigger=true;bounds.size=Vector3.one;root.transform.position=center;
+        var constrained=root.AddComponent<EnemyThemeEncounter>();constrained.Configure(ui.tables[0],bounds);Check(constrained.Begin(player.transform,false),"Constrained start");
+        yield return Until(()=>constrained.State==EnemyThemeEncounterState.Failed,10,"Constrained should fail");Check(constrained.AliveCount==0,"Failed batch retained actors");UnityEngine.Object.Destroy(root);
+        Pass("insufficient placement fails and returns entire batch");
+        ui.spawnButtons[2].onClick.Invoke();encounter=DebugEncounter();yield return Until(()=>encounter.SpawnedCount==50,15,"Death setup");
+        var roster=encounter.SnapshotActors();health.TakeDamage(new DamageInfo(health.MaxHp+1000,player.transform.position,null,Vector3.zero));
+        yield return Until(()=>!encounter.Running,5,"Dead target did not stop encounter");Check(roster.All(a=>!a.IsLeased),"Dead player cleanup");health.ResetHealth();Pass("player death stops and clears encounter");
+    }
+}

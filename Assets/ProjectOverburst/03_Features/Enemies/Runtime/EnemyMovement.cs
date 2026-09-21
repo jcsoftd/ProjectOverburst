@@ -77,6 +77,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void OnEnable()
     {
+        ClearAttackDisplacement();
         ResolveReferences();
         SetStatusMoveSpeedMultiplier(1f);
         SetEarthZoneMoveSpeedMultiplier(1f);
@@ -90,6 +91,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void OnDisable()
     {
+        ClearAttackDisplacement();
         SetStatusMoveSpeedMultiplier(1f);
         SetEarthZoneMoveSpeedMultiplier(1f);
         pendingAreaDisplacement = Vector3.zero;

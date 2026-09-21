@@ -251,11 +251,12 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         float elapsed = 0f;
         int hitCount = ability != null ? ability.HitCount : 1;
+        bool observedAttackAnimation = false;
         for (int impactIndex = 0; impactIndex < hitCount; impactIndex++)
         {
             float impactTime = ability != null ? ability.GetHitNormalizedTime(impactIndex) : resolvedHitNormalizedTime;
             bool stayedInRange = true;
-            bool observedAttackAnimation = false;
+            bool impactReached = false;
             bool useAnimatorTiming = animationBridge != null && animationBridge.HasAnimator;
             float resolvedHitDelay = ResolveScaledTime(impactIndex == 0 ? resolvedHitDelayBase : resolvedAnimationDuration * impactTime, resolvedAttackSpeed); // 애니메이터 미연결 보조 시간
             float attackStateEntryGrace = Mathf.Min(0.35f, Mathf.Max(0.15f, resolvedHitDelay));
@@ -284,12 +285,18 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 {
                     observedAttackAnimation = true;
                     if (normalizedTime >= Mathf.Clamp01(impactTime))
+                    {
+                        impactReached = true;
                         break; // 실제 공격 모션 타격 구간
+                    }
                 }
                 else if (!useAnimatorTiming || (!observedAttackAnimation && elapsed >= attackStateEntryGrace))
                 {
                     if (elapsed >= resolvedHitDelay)
+                    {
+                        impactReached = true;
                         break; // 애니메이션 미연결 시간 판정
+                    }
                 }
                 else if (observedAttackAnimation)
                 {
@@ -301,7 +308,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 yield return null;
             }
 
-            if (stayedInRange && !IsAttackInterrupted() && CanResolveHit())
+            if (impactReached && stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
                 float resolvedDamage = (ability != null ? ability.Damage : damage) * definitionDamageMultiplier;
                 if (directTargetExecution)
