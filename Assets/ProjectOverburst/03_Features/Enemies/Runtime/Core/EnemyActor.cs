@@ -182,6 +182,7 @@ public sealed class EnemyActor : MonoBehaviour
         ai.enabled = true;
         ai.RefreshCombatRangesFromAbilities();
         ai.SetBehaviorProfile(enemyDefinition.BehaviorProfile);
+        ai.SetTacticalProfile(enemyDefinition.TacticalProfile);
         ai.SetSquadPursuitProfile(
             enemyDefinition.SquadPursuitPreset,
             enemyDefinition.SquadParticipationMode);

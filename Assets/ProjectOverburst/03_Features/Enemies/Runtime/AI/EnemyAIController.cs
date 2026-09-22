@@ -143,6 +143,47 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             return current != null ? current.Name : "None";
         }
     }
+    private EnemyTacticalProfile tacticalProfile;
+    private EnemyTacticalPositioning tacticalPositioning;
+    public EnemyTacticalProfile TacticalProfile => tacticalProfile;
+    public bool UsesRangedTactics => tacticalProfile != null && tacticalProfile.UsesRangedPositioning;
+    public bool UsesMeleeSquadMovement => !UsesRangedTactics;
+    public string TacticalReason => tacticalPositioning != null ? tacticalPositioning.Reason : "Legacy";
+    public bool TacticalRetreatUsed => tacticalPositioning != null && tacticalPositioning.RetreatUsed;
+    public uint TacticalContextGeneration => tacticalPositioning != null ? tacticalPositioning.ContextGeneration : 0;
+    public Vector3 TacticalDestination => tacticalPositioning != null ? tacticalPositioning.Destination : transform.position;
+    public void SetTacticalProfile(EnemyTacticalProfile profile)
+    {
+        bool registered = isActiveAndEnabled && UsesSquadPursuit;
+        if (registered) EnemySquadPursuitRuntimeService.Unregister(this);
+        tacticalProfile = profile;
+        if (tacticalPositioning == null) tacticalPositioning = new EnemyTacticalPositioning(this);
+        tacticalPositioning.Bind();
+        if (registered) EnemySquadPursuitRuntimeService.Register(this);
+    }
+    internal bool TryHandleTacticalCombat()
+    {
+        if (!UsesRangedTactics || tacticalPositioning == null || !IsTargetValid()) return false;
+        if (IsAttackInProgress() || movement != null && (movement.IsActionLocked || movement.IsStatusMovementLocked)
+            || animationBridge != null && animationBridge.IsBlockingActionActive) return true;
+        // Do not replace a committed aim while its turn is still completing.
+        if (abilityController.HasPreparedAim(target) && !movement.IsFacingForAttack(abilityController.ResolveAimPosition(target)))
+        { movement.StopMovement(); FaceTarget(); return true; }
+        var decision = tacticalPositioning.Evaluate(out Vector3 destination);
+        if (decision == EnemyTacticalDecision.Legacy) return false;
+        if (decision == EnemyTacticalDecision.Hold)
+        { movement?.StopMovement(); ChangeToAttack(); return true; }
+        if (CurrentStateName != "Chase") { ChangeToChase(); return true; }
+        if (decision == EnemyTacticalDecision.Retreat)
+        {
+            movement.SetFacingDestination(destination, .15f, target.position, EnemyLocomotionMode.Backpedal, 1f);
+            tacticalPositioning.CommitRetreat();
+        }
+        else movement.SetDestination(decision == EnemyTacticalDecision.Navigate ? ResolveChasePlan() : destination,
+            .15f, SelectChaseLocomotion(), 1f);
+        return true;
+    }
+
     public Transform Target => target;
     public EnemyPartyTargetPhase PartyTargetPhase => EnemyCombatCoordinator.GetPartyTargetPhase(this);
     public int TargetPartyMemberIndex => EnemyCombatCoordinator.GetPartyTargetMemberIndex(this);
@@ -339,6 +380,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
         ResetDensityApproachPlan();
         ResetAiTickSchedule();
         EnemySquadPursuitRuntimeService.Register(this);
+        tacticalPositioning?.Bind();
 
         if (health != null)
         {
@@ -357,6 +399,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void OnDisable()
     {
+        tacticalPositioning?.Dispose();
         ActiveEnemies.Remove(this);
         EnemySquadPursuitRuntimeService.Unregister(this);
         EnemyCombatCoordinator.Unregister(this);
@@ -439,6 +482,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
         squadEncounterOwner = encounterOwner; // 타깃과 분리된 전투 구역
         squadEncounterAnchor = encounterAnchor; // 플레이어 기준 포위 중심
+        tacticalPositioning?.Bind();
         EnemySquadPursuitRuntimeService.NotifyEncounterBindingChanged(this);
         RequestImmediateAiTick();
     }
@@ -825,6 +869,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     internal void UpdateCombatWaitSeparation()
     {
+        if (UsesRangedTactics) { movement?.StopMovement(); return; }
         if (movement == null)
             return;
 
@@ -1055,6 +1100,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     internal void ChangeToDefend() => ChangeState(defendState);
     internal void ChangeToReturn()
     {
+        tacticalPositioning?.Reset();
         EnemyCombatCoordinator.Release(this);
         ResetAggroReleaseCandidate();
         ChangeState(returnState);
@@ -1281,6 +1327,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     {
         if (target != newTarget)
         {
+            tacticalPositioning?.Reset();
             nextApproachDirectionRefreshTime = 0f;
             smoothedSeparationDirection = Vector3.zero;
             ResetAggroReleaseCandidate();

@@ -17,6 +17,8 @@ public sealed class EnemyCombatBehavior // 전투 거리 기반 단순 판단
             return;
         }
 
+        if (owner.TryHandleTacticalCombat()) return;
+
         EnemyBehaviorProfile profile = owner.BehaviorProfile;
         if (owner.TryConsumeLowHealthReposition())
         {

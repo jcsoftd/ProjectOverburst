@@ -1546,7 +1546,7 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
         for (int i = 0; i < encounter.Agents.Count; i++)
         {
             AgentData agent = encounter.Agents[i];
-            if (agent.Squad == null && IsAgentParticipating(agent))
+            if (agent.Squad == null && IsAgentParticipating(agent) && agent.Controller.UsesMeleeSquadMovement)
                 encounter.Unassigned.Add(agent);
         }
     }
@@ -1692,7 +1692,7 @@ public static class EnemySquadPursuitRuntimeService // 프리셋별 대량 웨�
 
     private static bool IsSquadMoveEligible(AgentData agent)
     {
-        return IsAgentAlive(agent) && agent.Controller.CurrentStateName == "Chase";
+        return IsAgentAlive(agent) && agent.Controller.UsesMeleeSquadMovement && agent.Controller.CurrentStateName == "Chase";
     }
 
     private static Vector3 ResolveCombatTargetPosition(AgentData agent, Vector3 fallbackPosition)

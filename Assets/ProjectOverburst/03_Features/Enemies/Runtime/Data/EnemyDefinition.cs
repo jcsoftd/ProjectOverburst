@@ -16,6 +16,10 @@ public sealed class EnemyDefinition : ScriptableObject
     [SerializeField] private EnemyAiPreset aiPreset;
     [SerializeField] private EnemySquadParticipationMode squadParticipationMode = EnemySquadParticipationMode.SquadMember;
 
+    [SerializeField] private EnemyTacticalProfile tacticalProfile;
+    public EnemyTacticalProfile TacticalProfile => tacticalProfile;
+    public void SetTacticalProfile(EnemyTacticalProfile profile) { tacticalProfile = profile; }
+
     public string EnemyId => enemyId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? enemyId : displayName;
     public EnemySpeciesDefinition Species => species;

@@ -85,6 +85,28 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         return readyRange > 0f ? readyRange : float.IsPositiveInfinity(fallbackRange) ? AttackRange : fallbackRange;
     }
 
+    // Read-only geometry selection: cooldown, facing, prepared aim and reservations are untouched.
+    public bool TryGetRangedPositioningAbility(out EnemyAbilityDefinition selected)
+    {
+        selected = null;
+        if (abilitySet == null) return false;
+        float hp = health != null ? health.NormalizedHp : 1f;
+        for (int i = 0; i < abilitySet.Count; i++)
+        {
+            var ability = abilitySet.GetAbility(i);
+            if (ability == null || !ability.IsValid || ability.ExecutionMode != EnemyAbilityExecutionMode.Projectile
+                || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized
+                || !(FindExecutor(ability) is EnemyThemeSpecialExecutor)) continue;
+            if (selected == null || ability.Range > selected.Range) selected = ability;
+        }
+        return selected != null;
+    }
+    public bool HasRangedPositioningLine(EnemyAbilityDefinition ability, Transform target, Vector3 originPosition)
+    {
+        return FindExecutor(ability) is EnemyThemeSpecialExecutor executor
+            && executor.HasPositioningLine(target, originPosition, target != null ? target.position : originPosition);
+    }
+
     private void Awake()
     {
         ResolveReferences();

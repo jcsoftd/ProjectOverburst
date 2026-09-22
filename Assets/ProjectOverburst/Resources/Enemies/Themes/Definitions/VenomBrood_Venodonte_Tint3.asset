@@ -24,3 +24,4 @@ MonoBehaviour:
   movementProfile: {fileID: 11400000, guid: 6de2cfd79b79ef54bb974b49da2f695c, type: 2}
   aiPreset: {fileID: 11400000, guid: 72a0cca54e01bf647a20a50130c0a738, type: 2}
   squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 6a8e121e8b71c494ba1b353457aa880a, type: 2}

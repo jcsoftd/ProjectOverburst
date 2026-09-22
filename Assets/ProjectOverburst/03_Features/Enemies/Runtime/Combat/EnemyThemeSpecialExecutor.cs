@@ -17,7 +17,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private Vector3 boltPosition;
     private float boltRemaining, boltDamage;
     private readonly RaycastHit[] hits = new RaycastHit[24];
-    public override bool IsExecuting => routine != null;
+    // Flight belongs to the attack too: a short animation must not cancel a distant shot.
+    public override bool IsExecuting => routine != null || boltFlying;
     public bool HasProjectile => boltFlying;
     public int LaunchCount { get; private set; }
     public int ImpactCount { get; private set; }
@@ -48,13 +49,28 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         Vector3 point = actor.AbilityController.ResolveAimPosition(target);
         float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);
         return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp)
-            && actor.Movement.IsFacingForAttack(point) && HasLineOfSight(target, point);
+            && actor.Movement.IsFacingForAttack(point)
+            && (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile
+                ? HasPositioningLine(target, transform.position, point) : HasLineOfSight(target, point));
     }
     private bool Usable() => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked
         && (reaction == null || !reaction.IsHitStunActive && !reaction.IsKnockbackActive);
     private int Mask => ~((1 << LayerMask.NameToLayer("Enemy")) | (1 << LayerMask.NameToLayer("Ignore Raycast")));
     private Vector3 Origin => transform.position + Vector3.up * .8f;
+    public bool HasPositioningLine(Transform target, Vector3 position, Vector3 point)
+    {
+        if (target == null) return false;
+        Vector3 origin = position + Vector3.up * .8f;
+        Vector3 delta = point + Vector3.up * .8f - origin;
+        if (delta.sqrMagnitude < .0001f) return true;
+        if (Physics.SphereCast(origin, .14f, delta.normalized, out var hit, delta.magnitude, Mask, QueryTriggerInteraction.Ignore))
+        {
+            var targetHealth = target.GetComponentInParent<CombatHealth>();
+            return targetHealth != null && hit.collider.GetComponentInParent<CombatHealth>() == targetHealth;
+        }
+        return true;
+    }
     private bool HasLineOfSight(Transform target, Vector3 point)
     {
         Vector3 delta = point + Vector3.up * .8f - Origin;
