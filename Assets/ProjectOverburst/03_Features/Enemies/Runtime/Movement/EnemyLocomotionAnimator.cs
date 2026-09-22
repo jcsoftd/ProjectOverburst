@@ -16,18 +16,6 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
     private bool turnEntered;
     private string turnState;
     public bool IsTurning { get; private set; }
-    public int TurnSequence { get; private set; }
-    public float TurnDirection => turnDirection;
-    public float TurnNormalizedTime
-    {
-        get
-        {
-            if (!IsTurning || animator == null) return 0f;
-            var state = animator.GetCurrentAnimatorStateInfo(0);
-            if (!state.IsName(turnState) && animator.IsInTransition(0)) state = animator.GetNextAnimatorStateInfo(0);
-            return state.IsName(turnState) ? Mathf.Clamp01(state.normalizedTime) : 0f;
-        }
-    }
 
     public bool BeginFacingTurn(Vector3 direction)
     {
@@ -41,7 +29,6 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
         animator.SetFloat("TurnMagnitude",Mathf.Abs(angle)/90f);
         animator.CrossFadeInFixedTime(turnState,.06f,0,0f);
         IsTurning=true;turnEntered=false;turnBegan=Time.time;
-        TurnSequence++;
         return true;
     }
 

@@ -28,7 +28,6 @@ public static class MonsterThemeStrideCalibration
     }
     private sealed class Sole
     {
-        public Transform foot;
         public string name;
         public float initialHeight;
         public int[] indices;
@@ -49,42 +48,6 @@ public static class MonsterThemeStrideCalibration
             }
             return point/indices.Length;
         }
-    }
-
-    public static EnemyTurnFootPlanting.Binding[] CreateTurnBindings(EnemyDefinition definition)
-    {
-        var scene=EditorSceneManager.NewPreviewScene();
-        try
-        {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(definition.ActorPrefab.gameObject,scene);
-            root.SetActive(false);
-            var actor=root.GetComponent<EnemyActor>();var profile=definition.AnimationProfile;
-            profile.Idle.SampleAnimation(actor.Animator.gameObject,0f);
-            var soles=FindSoles(actor);
-            var bindings=soles.Select(s=>new EnemyTurnFootPlanting.Binding {
-                endPath=AnimationUtility.CalculateTransformPath(s.foot,actor.transform),
-                soleInFoot=s.foot.InverseTransformPoint(s.WorldPosition())}).ToArray();
-            foreach(bool left in new[]{true,false})
-            {
-                var clip=Enumerable.Range(0,profile.OptionalClipCount).Select(profile.GetOptionalClip).First(c=>c.name==(left?"Turn90Left":"Turn90Right"));
-                const int count=90;var heights=new float[count+1][];
-                for(int i=0;i<=count;i++)
-                {
-                    clip.SampleAnimation(actor.Animator.gameObject,clip.length*i/count);
-                    heights[i]=soles.Select(s=>s.WorldPosition().y).ToArray();
-                }
-                for(int foot=0;foot<soles.Count;foot++)
-                {
-                    float low=heights.Min(h=>h[foot]);float lift=Mathf.Max(.02f,heights.Max(h=>h[foot])-low);
-                    var keys=Enumerable.Range(0,count+1).Select(i=>new Keyframe(i/(float)count,1f-Mathf.SmoothStep(0,1,Mathf.InverseLerp(low+lift*.12f,low+lift*.38f,heights[i][foot])))).ToArray();
-                    var curve=new AnimationCurve(keys);
-                    for(int i=0;i<curve.length;i++){AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}
-                    if(left)bindings[foot].leftContact=curve;else bindings[foot].rightContact=curve;
-                }
-            }
-            return bindings;
-        }
-        finally{EditorSceneManager.ClosePreviewScene(scene);}
     }
 
     public static Result Measure(EnemyDefinition definition, AnimationClip walk, AnimationClip run, AnimationClip back)
@@ -157,7 +120,7 @@ public static class MonsterThemeStrideCalibration
                         low=Mathf.Min(low,renderer.transform.TransformPoint(pose[i]).y);indices.Add(i);
                     }
                     indices.RemoveAll(i=>renderer.transform.TransformPoint(pose[i]).y>low+.015f);
-                    if(indices.Count>0)result.Add(new Sole {foot=foot,name=foot.name,initialHeight=low,indices=indices.ToArray(),vertices=mesh.vertices,weights=weights,bindposes=mesh.bindposes,bones=bones});
+                    if(indices.Count>0)result.Add(new Sole {name=foot.name,initialHeight=low,indices=indices.ToArray(),vertices=mesh.vertices,weights=weights,bindposes=mesh.bindposes,bones=bones});
                 }
             }
             finally {Object.DestroyImmediate(baked);}

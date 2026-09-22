@@ -41,7 +41,7 @@ public static class MonsterThemePlayVerifier
     public static void RunFacing() { Start(false,facing:true); }
     [MenuItem("OVERBURST/Enemies/Themes/Validate Fine Turns Play Mode")]
     public static void RunFineTurns() { Start(false,fineTurns:true); }
-    [MenuItem("OVERBURST/Enemies/Themes/Capture Turn Comparison")]
+    [MenuItem("OVERBURST/Enemies/Themes/Capture Authored Turns")]
     public static void RunTurnReview() { Start(false,turnReview:true); }
     private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false,bool fineTurns=false,bool turnReview=false)
     {
@@ -114,7 +114,7 @@ public static class MonsterThemePlayVerifier
         if(SessionState.GetBool(Key+".turnReview",false))
         {
             yield return MonsterThemeTurnReviewCapture.Capture(ui,player);
-            ui.Clear();ui.ToggleArena();Pass("selected species / before-after / evaluated Unity turn frames");yield break;
+            ui.Clear();ui.ToggleArena();Pass("selected species / authored turns without foot planting / evaluated Unity frames");yield break;
         }
         if(SessionState.GetBool(Key+".fineTurns",false))
         {

@@ -23,45 +23,16 @@ public static class MonsterThemeFineTurnVerifier
         Require(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform,out var service),"Spawn service");
         foreach(var table in ui.tables)Require(service.RegisterAdditionalCatalog(table.Catalog,out _),"Catalog");
         var results=new List<object>();
-        bool staticIdle=SessionState.GetBool("MonsterThemeFineTurn.staticIdle",false);
-        bool planting=SessionState.GetBool("MonsterThemeFineTurn.planting",false);
-        bool configured=SessionState.GetBool("MonsterThemeFineTurn.configured",false);
         string filter=SessionState.GetString("MonsterThemeFineTurn.species","");
-        string suffix=configured?"-configured":planting?"-plant":staticIdle?"-static":"";
+        const string suffix="-authored";
         foreach(var definition in ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().Where(d=>string.IsNullOrEmpty(filter)||filter.Split(',').Contains(d.EnemyId)))
         {
             Vector3 home=player.transform.position+Vector3.forward*8;
             var request=new EnemySpawnRequest(definition,home,Quaternion.identity,player.transform,null,player.transform,null,1,1,77);
             Require(service.TrySpawn(request,out var actor),"Spawn "+definition.EnemyId);
             actor.AI.enabled=false;var previousCulling=actor.Animator.cullingMode;actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
-            var originalController=actor.Animator.runtimeAnimatorController;
-            AnimationClip rest=null;AnimatorOverrideController overrideController=null;
-            EnemyTurnFootPlanting plantedFeet=null;
-            var existingSupport=actor.GetComponent<EnemyTurnFootPlanting>();
-            bool originalSupportEnabled=existingSupport!=null && existingSupport.enabled;
             try
             {
-                if(configured)Require(existingSupport!=null && existingSupport.enabled && existingSupport.HasValidBindings,"Configured support "+definition.EnemyId);
-                if(planting)
-                {
-                    var contacts=MonsterThemeStrideCalibration.CreateTurnBindings(definition);
-                    plantedFeet=existingSupport ?? actor.gameObject.AddComponent<EnemyTurnFootPlanting>();
-                    plantedFeet.Configure(contacts);
-                    plantedFeet.enabled=true;
-                }
-                if(staticIdle)
-                {
-                    var idle=definition.AnimationProfile.Idle;
-                    rest=UnityEngine.Object.Instantiate(idle);
-                    foreach(var binding in AnimationUtility.GetCurveBindings(rest))
-                    {
-                        float value=AnimationUtility.GetEditorCurve(rest,binding).Evaluate(0);
-                        AnimationUtility.SetEditorCurve(rest,binding,AnimationCurve.Constant(0,idle.length,value));
-                    }
-                    AnimationUtility.SetAnimationEvents(rest,Array.Empty<AnimationEvent>());
-                    overrideController=new AnimatorOverrideController(originalController);
-                    overrideController[idle.name]=rest;actor.Animator.runtimeAnimatorController=overrideController;
-                }
                 var probes=MonsterThemeStrideCalibration.CreateRuntimeProbes(actor);
                 Require(probes.Length>=2,"Sole probes");
                 foreach(float angle in new[]{15f,45f,-45f,135f})
@@ -111,11 +82,6 @@ public static class MonsterThemeFineTurnVerifier
             }
             finally
             {
-                actor.Animator.runtimeAnimatorController=originalController;
-                if(plantedFeet!=null && plantedFeet!=existingSupport)UnityEngine.Object.Destroy(plantedFeet);
-                if(existingSupport!=null)existingSupport.enabled=originalSupportEnabled;
-                if(overrideController!=null)UnityEngine.Object.Destroy(overrideController);
-                if(rest!=null)UnityEngine.Object.Destroy(rest);
                 actor.Animator.cullingMode=previousCulling;actor.RequestPoolRelease();
             }
         }

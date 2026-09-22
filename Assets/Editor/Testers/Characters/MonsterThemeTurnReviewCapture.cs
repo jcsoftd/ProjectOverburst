@@ -20,22 +20,16 @@ public static class MonsterThemeTurnReviewCapture
         var names=SessionState.GetString("MonsterThemeTurnReview.species","VenomBrood_Venodonte_Tint1,PrimalHunt_Venosaur_Tint_Brown,PrimalHunt_Caniathrox").Split(',');
         foreach(var definition in ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().Where(d=>names.Contains(d.EnemyId)))
         {
-            var contacts=MonsterThemeStrideCalibration.CreateTurnBindings(definition);
-            foreach(bool planting in new[]{false,true})
             {
-                string folder=Path.Combine(output,definition.EnemyId+(planting?"-after":"-before"));Directory.CreateDirectory(folder);
+                string folder=Path.Combine(output,definition.EnemyId+"-authored");Directory.CreateDirectory(folder);
                 Vector3 home=player.transform.position+Vector3.forward*8;
                 var request=new EnemySpawnRequest(definition,home,Quaternion.identity,player.transform,null,player.transform,null,1,1,77);
                 if(!service.TrySpawn(request,out var actor))throw new Exception("Spawn failed");
                 actor.AI.enabled=false;var originalCulling=actor.Animator.cullingMode;actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
-                EnemyTurnFootPlanting support=null;GameObject fixture=null;var materials=new List<Material>();
-                var existingSupport=actor.GetComponent<EnemyTurnFootPlanting>();
-                bool originalSupportEnabled=existingSupport!=null && existingSupport.enabled;
+                GameObject fixture=null;var materials=new List<Material>();
                 RenderTexture texture=null;Texture2D pixels=null;
                 try
                 {
-                    if(existingSupport!=null)existingSupport.enabled=planting;
-                    if(planting){support=existingSupport ?? actor.gameObject.AddComponent<EnemyTurnFootPlanting>();support.Configure(contacts);}
                     MonsterThemeFacingVerifier.Reset(actor,home);
                     float settle=Time.time+.35f;while(Time.time<settle)yield return null;
                     fixture=new GameObject("Turn review fixture");
@@ -83,13 +77,11 @@ public static class MonsterThemeTurnReviewCapture
                         yield return null;
                     }
                     camera.targetTexture=null;
-                    File.WriteAllText(Path.Combine(folder,"frames.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{id=definition.EnemyId,planting,angle=45,frames},Newtonsoft.Json.Formatting.Indented));
-                    Debug.Log("[MonsterTurnReview] captured "+definition.EnemyId+" / "+planting+" / "+frames.Count);
+                    File.WriteAllText(Path.Combine(folder,"frames.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{id=definition.EnemyId,footPlanting=false,angle=45,frames},Newtonsoft.Json.Formatting.Indented));
+                    Debug.Log("[MonsterTurnReview] captured "+definition.EnemyId+" / authored turn / "+frames.Count);
                 }
                 finally
                 {
-                    if(support!=null && support!=existingSupport)Object.Destroy(support);
-                    if(existingSupport!=null)existingSupport.enabled=originalSupportEnabled;
                     if(fixture!=null)Object.Destroy(fixture);
                     foreach(var material in materials)Object.Destroy(material);
                     if(texture!=null)RenderTexture.ReleaseTemporary(texture);
