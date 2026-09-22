@@ -115,10 +115,11 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         }
 
-        Vector3 delta = attackTarget.position - transform.position;
+        Vector3 aimPosition = ResolveAimPosition(attackTarget);
+        Vector3 delta = aimPosition - transform.position;
         delta.y = 0f;
         return delta.sqrMagnitude <= ability.Range * ability.Range
-            && (movement == null || movement.IsFacingForAttack(attackTarget.position));
+            && (movement == null || movement.IsFacingForAttack(aimPosition));
     }
 
     public bool TryStartAbility(
@@ -147,9 +148,10 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         if (!CanStartAttack(resolvedRange))
             return false;
 
-        if (movement != null && !movement.IsFacingForAttack(target.position))
+        Vector3 aimPosition = ResolveAimPosition(target);
+        if (movement != null && !movement.IsFacingForAttack(aimPosition))
         {
-            movement.FacePosition(target.position);
+            movement.FacePosition(aimPosition);
             return false;
         }
 
@@ -235,6 +237,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         bool keepRangeGate = ability != null
             ? ability.RequireTargetInRangeUntilHit
             : requireTargetInRangeUntilHit;
+        if (abilityController != null && abilityController.HasPreparedAim(target)
+            && ability != null && ability.ExecutionMode != EnemyAbilityExecutionMode.DirectTarget)
+            keepRangeGate = false; // Spatial hit geometry decides whether the committed strike misses.
         bool directTargetExecution = ability != null
             && ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget;
         float resolvedAttackSpeed = ResolveAttackSpeedMultiplier();
@@ -349,7 +354,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         if (!CanBeginAttackAttempt())
             return false;
 
-        Vector3 delta = target.position - transform.position;
+        Vector3 delta = ResolveAimPosition(target) - transform.position;
         delta.y = 0f;
         return delta.sqrMagnitude <= resolvedRange * resolvedRange;
     }
@@ -695,6 +700,13 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return;
 
         transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up); // 공격 방향 정렬
+    }
+
+    private EnemyAbilityController abilityController;
+    private Vector3 ResolveAimPosition(Transform aimTarget)
+    {
+        if (abilityController == null) abilityController = GetComponent<EnemyAbilityController>();
+        return abilityController != null ? abilityController.ResolveAimPosition(aimTarget) : aimTarget.position;
     }
 
     private void ResolveReferences()

@@ -24,6 +24,11 @@ public sealed class EnemyAttackState : IEnemyState // 플레이어 근접 공격
             return; // 전환 후 공격 중단
         }
 
+        // A target leaving the aimed point is a miss, not a request to cancel
+        // the committed animation and chase it before the swing/release ends.
+        if (attackStarted && owner.IsCommittedAttackPlaying)
+            return;
+
         if (owner.IsTargetBeyond(owner.AttackExitRange))
         {
             owner.ChangeToChase(); // 공격 거리 이탈 시 다시 접근

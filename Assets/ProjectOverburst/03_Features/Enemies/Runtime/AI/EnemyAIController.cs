@@ -487,6 +487,20 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             : meleeAttack != null && meleeAttack.IsAttacking;
     }
 
+    internal bool IsCommittedAttackPlaying => abilityController != null && abilityController.UsesCommittedAim
+        && (abilityController.IsExecuting || (animationBridge != null && animationBridge.IsBlockingActionActive)
+            || (movement != null && movement.IsActionLocked));
+
+    internal float AttackTargetDistance
+    {
+        get
+        {
+            if (!IsTargetValid()) return float.PositiveInfinity;
+            Vector3 point = abilityController != null ? abilityController.ResolveAimPosition(target) : target.position;
+            return Mathf.Sqrt(HorizontalSqrDistance(transform.position, point));
+        }
+    }
+
     public void CancelAttack()
     {
         if (abilityController != null)
@@ -632,7 +646,11 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     internal void FaceTarget()
     {
         if (IsTargetValid())
-            movement?.FacePosition(target.position);
+        {
+            Vector3 point = ReferenceEquals(stateMachine?.CurrentState, combatWaitState) && abilityController != null
+                ? abilityController.PrepareAttackAim(target) : target.position;
+            movement?.FacePosition(point);
+        }
     }
 
     internal void ChangeToRoam()
@@ -1049,6 +1067,8 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void ChangeState(IEnemyState nextState)
     {
+        if (!ReferenceEquals(nextState, combatWaitState) && !ReferenceEquals(nextState, attackState))
+            abilityController?.ClearPreparedAim();
         stateMachine?.ChangeState(nextState);
     }
 

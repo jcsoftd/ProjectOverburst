@@ -16,6 +16,45 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
     private CombatHealth health;
     private int lastCommittedAbilityIndex = -1;
     private EnemyAbilityDefinition lastCommittedAbility;
+    private EnemyMovement movement;
+    private EnemyMovementReaction reaction;
+    private EnemyAnimationBridge animationBridge;
+    private Transform preparedTarget;
+    private Vector3 preparedPosition;
+
+    public bool UsesCommittedAim => movement != null && movement.Profile != null && movement.Profile.HasTurnAnimation;
+    public bool HasPreparedAim(Transform target) => UsesCommittedAim && target != null && preparedTarget == target;
+    public Vector3 ResolveAimPosition(Transform target) => HasPreparedAim(target) ? preparedPosition : target != null ? target.position : transform.position;
+    public Vector3 PrepareAttackAim(Transform target)
+    {
+        ResolveReferences();
+        if (UsesCommittedAim && target != null && !HasPreparedAim(target)
+            && !IsExecuting && !movement.IsActionLocked && !movement.IsStatusMovementLocked
+            && (animationBridge == null || !animationBridge.IsBlockingActionActive)
+            && (reaction == null || !reaction.IsStunned))
+        {
+            preparedTarget = target;
+            preparedPosition = target.position;
+        }
+        return ResolveAimPosition(target);
+    }
+    public void ClearPreparedAim() { preparedTarget = null; }
+    private void OnEnable()
+    {
+        ResolveReferences(); ClearPreparedAim();
+        if (health != null) { health.OnDamaged += ClearAimOnDamage; health.OnDead += ClearAimOnDamage; }
+        if (reaction != null) reaction.ReactionStarted += ClearPreparedAim;
+    }
+    private void OnDisable()
+    {
+        if (health != null) { health.OnDamaged -= ClearAimOnDamage; health.OnDead -= ClearAimOnDamage; }
+        if (reaction != null) reaction.ReactionStarted -= ClearPreparedAim;
+        ClearPreparedAim();
+    }
+    private void ClearAimOnDamage(CombatHealth source, DamageInfo info)
+    {
+        if (source.IsDead || !info.isDamageOverTime && info.triggersOnHitEffects) ClearPreparedAim();
+    }
 
     public EnemyAbilitySet AbilitySet => abilitySet;
     public float AttackRange => ResolveMaximumAttackRange();
@@ -26,7 +65,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
     public float ResolveEngagementRange(Transform target)
     {
         if (target == null || abilitySet == null || !abilitySet.IsValid) return AttackRange;
-        Vector3 delta = target.position - transform.position;
+        Vector3 delta = ResolveAimPosition(target) - transform.position;
         delta.y = 0f;
         float distance = delta.magnitude;
         float hp = health != null ? health.NormalizedHp : 1f;
@@ -58,6 +97,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
     {
         ResolveReferences();
         abilitySet = configuredAbilitySet;
+        ClearPreparedAim();
         readyTimeByAbility.Clear();
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
@@ -73,6 +113,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         ResolveReferences();
         if (target == null || ResolveIsExecuting())
             return false;
+
+        PrepareAttackAim(target);
 
         if (abilitySet == null || !abilitySet.IsValid || executors.Length == 0)
             return meleeExecutor != null && meleeExecutor.TryStartAttack(target);
@@ -97,7 +139,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         if (target == null || ResolveIsExecuting()) return false;
         if (abilitySet == null || !abilitySet.IsValid || executors.Length == 0)
             return true; // Preserve the legacy melee-only start path.
-        Vector3 delta = target.position - transform.position; delta.y = 0f;
+        Vector3 delta = ResolveAimPosition(target) - transform.position; delta.y = 0f;
         float distance = delta.magnitude;
         float hp = health != null ? health.NormalizedHp : 1f;
         for (int i = 0; i < abilitySet.Count; i++)
@@ -108,6 +150,9 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
             var executor = FindExecutor(ability);
             if (executor != null && executor.CanStart(ability, target)) return true;
         }
+        // If the completed aim cannot be used (wall, cooldown, range), release it
+        // before the next decision. Do not invalidate a turn still in progress.
+        if (HasPreparedAim(target) && movement.IsFacingForAttack(preparedPosition)) ClearPreparedAim();
         return false;
     }
 
@@ -131,6 +176,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
 
     public void Cancel()
     {
+        ClearPreparedAim();
         ResolveReferences();
         for (int i = 0; i < executors.Length; i++)
             executors[i]?.Cancel();
@@ -140,11 +186,13 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
 
     public void ClearTarget()
     {
+        ClearPreparedAim();
         meleeExecutor?.ClearTarget();
     }
 
     public void ResetForReuse()
     {
+        ClearPreparedAim();
         ResolveReferences();
         for (int i = 0; i < executors.Length; i++)
             executors[i]?.ResetForReuse();
@@ -168,7 +216,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
     {
         selected = default;
         candidates.Clear();
-        Vector3 delta = target.position - transform.position;
+        Vector3 delta = ResolveAimPosition(target) - transform.position;
         delta.y = 0f;
         float distance = delta.magnitude;
         float selfHealth = health != null ? health.NormalizedHp : 1f;
@@ -296,6 +344,9 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
 
     private void ResolveReferences()
     {
+        if (movement == null) movement = GetComponent<EnemyMovement>();
+        if (reaction == null) reaction = GetComponent<EnemyMovementReaction>();
+        if (animationBridge == null) animationBridge = GetComponent<EnemyAnimationBridge>();
         if (meleeExecutor == null)
             meleeExecutor = GetComponent<EnemyMeleeAttackController>();
         if (health == null)

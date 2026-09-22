@@ -45,18 +45,19 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         Resolve();
         if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
             || actor.Movement.IsActionLocked || actor.AnimationBridge.IsBlockingActionActive) return false;
-        float distance = Vector3.Distance(new Vector3(target.position.x, transform.position.y, target.position.z), transform.position);
+        Vector3 point = actor.AbilityController.ResolveAimPosition(target);
+        float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);
         return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp)
-            && actor.Movement.IsFacingForAttack(target.position) && HasLineOfSight(target);
+            && actor.Movement.IsFacingForAttack(point) && HasLineOfSight(target, point);
     }
     private bool Usable() => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked
         && (reaction == null || !reaction.IsHitStunActive && !reaction.IsKnockbackActive);
     private int Mask => ~((1 << LayerMask.NameToLayer("Enemy")) | (1 << LayerMask.NameToLayer("Ignore Raycast")));
     private Vector3 Origin => transform.position + Vector3.up * .8f;
-    private bool HasLineOfSight(Transform target)
+    private bool HasLineOfSight(Transform target, Vector3 point)
     {
-        Vector3 delta = target.position + Vector3.up * .8f - Origin;
+        Vector3 delta = point + Vector3.up * .8f - Origin;
         if (Physics.Raycast(Origin, delta.normalized, out var hit, delta.magnitude, Mask, QueryTriggerInteraction.Ignore))
             return hit.collider.GetComponentInParent<CombatHealth>() == target.GetComponentInParent<CombatHealth>();
         return true;
@@ -71,7 +72,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override float ResolveCooldown(float duration) { Resolve(); return actor != null ? actor.Melee.ResolveAbilityCooldown(duration) : duration; }
     private IEnumerator Execute(EnemyAbilityDefinition ability, Transform target)
     {
-        Vector3 destination = target.position;
+        Vector3 destination = actor.AbilityController.ResolveAimPosition(target);
         Vector3 direction = destination - transform.position; direction.y = 0; direction.Normalize();
         // Facing is completed before CanStart succeeds. Aim and release keep this committed direction.
         float duration = ResolveCooldown(ability.AttackAnimationDuration);

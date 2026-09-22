@@ -24,7 +24,7 @@ public sealed class EnemyCombatBehavior // 전투 거리 기반 단순 판단
             return;
         }
 
-        if (owner.IsTargetBeyond(owner.AttackEnterRange))
+        if (owner.AttackTargetDistance > owner.AttackEnterRange)
         {
             owner.ChangeToChase();
             return;
@@ -38,7 +38,7 @@ public sealed class EnemyCombatBehavior // 전투 거리 기반 단순 판단
             return;
         }
 
-        if (owner.TargetDistance < Mathf.Min(profile.PreferredMinDistance, owner.AttackEnterRange * .75f))
+        if (owner.AttackTargetDistance < Mathf.Min(profile.PreferredMinDistance, owner.AttackEnterRange * .75f))
         {
             owner.ChangeToReposition();
             return;
