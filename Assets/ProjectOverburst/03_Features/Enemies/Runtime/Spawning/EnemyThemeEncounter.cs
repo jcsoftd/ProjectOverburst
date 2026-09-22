@@ -149,7 +149,10 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         for(int i=owned.Count-1;i>=0;i--)
         {
             var lease=owned[i];if(!IsCurrent(lease)){if(lease.actor!=null)lease.actor.Health.OnDead-=OnDeath;owned.RemoveAt(i);continue;}
-            if(lease.diedAt>=0 && Time.time-lease.diedAt>3)
+            // The actor owns its death animation and return. Only legacy actors
+            // without a lifetime controller use the encounter's fallback.
+            var lifetime = lease.actor.GetComponent<EnemyController>();
+            if(lease.diedAt>=0 && (lifetime==null || !lifetime.OwnsDeathLifetime) && Time.time-lease.diedAt>3)
             {lease.actor.Health.OnDead-=OnDeath;lease.actor.RequestPoolRelease();owned.RemoveAt(i);}
         }
     }

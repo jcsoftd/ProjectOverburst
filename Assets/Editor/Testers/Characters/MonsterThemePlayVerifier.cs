@@ -43,12 +43,15 @@ public static class MonsterThemePlayVerifier
     public static void RunFineTurns() { Start(false,fineTurns:true); }
     [MenuItem("OVERBURST/Enemies/Themes/Capture Authored Turns")]
     public static void RunTurnReview() { Start(false,turnReview:true); }
-    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false,bool fineTurns=false,bool turnReview=false)
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Combat Recovery Play Mode")]
+    public static void RunCombatRecovery() { Start(false,combatRecovery:true); }
+    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false,bool fineTurns=false,bool turnReview=false,bool combatRecovery=false)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
         var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
         SessionState.SetBool(Key+".survival",survival);
+        SessionState.SetBool(Key+".combatRecovery",combatRecovery);
         SessionState.SetBool(Key+".facing",facing);
         SessionState.SetBool(Key+".fineTurns",fineTurns);
         SessionState.SetBool(Key+".turnReview",turnReview);
@@ -111,6 +114,11 @@ public static class MonsterThemePlayVerifier
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".combatRecovery",false))
+        {
+            yield return MonsterThemeCombatRecoveryVerifier.Verify(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("combat recovery audit; inspect recorded findings and footage");yield break;
+        }
         if(SessionState.GetBool(Key+".turnReview",false))
         {
             yield return MonsterThemeTurnReviewCapture.Capture(ui,player);

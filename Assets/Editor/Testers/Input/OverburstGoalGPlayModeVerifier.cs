@@ -260,8 +260,18 @@ public static class OverburstGoalGPlayModeVerifier
         yield return StartAndCloseWindow();
         yield return TapAttack();
         actor.Health.TakeDamage(new DamageInfo { damage = 1f, isDamageOverTime = true });
-        Require(!input.CombatInputs.HasAttack, "Hit retained input");
-        passed.Add("damage-clear");
+        Require(input.CombatInputs.HasAttack, "Non-interrupting damage erased buffered combo");
+        passed.Add("periodic damage preserves buffered combo; actual condition boundaries clear");
+
+        yield return ResetCombat();
+        sequence = Get<int>(melee, "nextHitFeedbackSequenceId");
+        MouseAttack(true);
+        yield return Until(() => melee.IsAttackInProgress, 3f);
+        actor.Health.TakeDamage(new DamageInfo(1f, actor.transform.position));
+        Require(input.CombatInputs.AllowsHeldAttack, "Direct damage locked held attack until release");
+        yield return Until(() => Get<int>(melee, "nextHitFeedbackSequenceId") >= sequence + 3, 5f);
+        MouseAttack(false); yield return null;
+        passed.Add("direct damage during held attack continues at least three combo steps");
 
         yield return ResetCombat();
         // Gamepad uses the same buffer through the actual configured Attack action.

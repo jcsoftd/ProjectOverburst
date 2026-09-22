@@ -23,6 +23,29 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     public int LastCommittedAbilityIndex => lastCommittedAbilityIndex;
     public EnemyAbilityDefinition LastCommittedAbility => lastCommittedAbility;
 
+    public float ResolveEngagementRange(Transform target)
+    {
+        if (target == null || abilitySet == null || !abilitySet.IsValid) return AttackRange;
+        Vector3 delta = target.position - transform.position;
+        delta.y = 0f;
+        float distance = delta.magnitude;
+        float hp = health != null ? health.NormalizedHp : 1f;
+        float readyRange = 0f, fallbackRange = float.PositiveInfinity;
+        for (int i = 0; i < abilitySet.Count; i++)
+        {
+            var ability = abilitySet.GetAbility(i);
+            if (ability == null || !ability.IsValid
+                || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized)
+                continue;
+            fallbackRange = Mathf.Min(fallbackRange, ability.Range);
+            // A long-range cooldown or a projectile's minimum-range dead zone
+            // must not stop an actor outside its available close attack range.
+            if (distance >= ability.MinimumRange && IsCooldownReady(ability))
+                readyRange = Mathf.Max(readyRange, ability.Range);
+        }
+        return readyRange > 0f ? readyRange : float.IsPositiveInfinity(fallbackRange) ? AttackRange : fallbackRange;
+    }
+
     private void Awake()
     {
         ResolveReferences();

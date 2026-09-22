@@ -160,7 +160,8 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     public float DetectionRange => Mathf.Max(0f, detectionRange);
     public float LoseTargetRange => Mathf.Max(DetectionRange, loseTargetRange);
     public float MoveStopDistance => Mathf.Max(0f, moveStopDistance);
-    public float AttackEnterRange => Mathf.Max(0f, attackEnterRange);
+    public float AttackEnterRange => Mathf.Max(0f, abilityController != null && !abilityController.IsExecuting
+        ? abilityController.ResolveEngagementRange(target) : attackEnterRange);
     public float AttackExitRange => Mathf.Max(AttackEnterRange, attackExitRange);
     public float ReturnArriveDistance => Mathf.Max(0.01f, returnArriveDistance);
     public float AggroReleaseDelay => Mathf.Max(0f, aggroReleaseDelay);
@@ -854,7 +855,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
         }
 
         ClearSquadPursuitMove();
-        float preferredRadius = BehaviorProfile.PreferredApproachDistance;
+        float preferredRadius = Mathf.Min(BehaviorProfile.PreferredApproachDistance, Mathf.Max(.2f, AttackEnterRange - .15f));
         Vector3 flowDirection = Vector3.zero;
         Vector3 flowWaypoint = transform.position;
         bool hasFlowDirection = target != null

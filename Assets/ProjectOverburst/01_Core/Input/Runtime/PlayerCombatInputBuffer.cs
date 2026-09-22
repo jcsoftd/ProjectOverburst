@@ -147,7 +147,15 @@ public sealed class PlayerCombatInputBuffer : IDisposable
     private void OnBlocked(bool blocked) { if (blocked) Invalidate(); }
     private void OnConditionChanged(PlayerConditionState condition)
     { if (condition != PlayerConditionState.Normal) Invalidate(); }
-    private void OnDamaged(CombatHealth source, DamageInfo damage) => Invalidate();
+    private void OnDamaged(CombatHealth source, DamageInfo damage)
+    {
+        // Damage alone does not interrupt the current attack. Requiring a fresh
+        // press here silently killed held combos, including on periodic damage.
+        // Actual stun/death/UI transitions still invalidate through their owners.
+        if (source == null || source.CurrentHp <= 0f || source.IsDead
+            || (state != null && state.CurrentCondition != PlayerConditionState.Normal))
+            Invalidate();
+    }
     private void OnHealthReset(CombatHealth source) => Invalidate();
     private void OnActiveSceneChanged(Scene previous, Scene next) => Invalidate();
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Invalidate();

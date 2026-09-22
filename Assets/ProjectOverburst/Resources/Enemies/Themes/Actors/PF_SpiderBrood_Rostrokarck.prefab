@@ -70,6 +70,7 @@ GameObject:
   - component: {fileID: 2410553166004636367}
   - component: {fileID: 3921201287495492872}
   - component: {fileID: 2920276270299705382}
+  - component: {fileID: 8477779267085809926}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Rostrokarck
   m_TagString: Untagged
@@ -253,6 +254,7 @@ MonoBehaviour:
   renderers: []
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.08
+  flashBrightness: 2.5
 --- !u!114 &8166431381279361788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -630,6 +632,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyVisualRootGuard
   animatedRoot: {fileID: 2102218432087516205}
+--- !u!114 &8477779267085809926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 132c8a8f68c748e40b1671da2356490c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyCorpseFade
+  duration: 0.35
 --- !u!1 &5224895147244991241
 GameObject:
   m_ObjectHideFlags: 0

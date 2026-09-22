@@ -67,7 +67,22 @@ public static class MonsterThemeRoleBuilder
                 data.ApplyModifiedPropertiesWithoutUndo();
             }
             attacks+=selected.Count;if(selected.Any(a=>a.ExecutionMode==EnemyAbilityExecutionMode.Charge))chargers++;
+            string prefabPath=AssetDatabase.GetAssetPath(definition.ActorPrefab);
+            var prefab=PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                if(prefab.GetComponent<EnemyCorpseFade>()==null)
+                {prefab.AddComponent<EnemyCorpseFade>();PrefabUtility.SaveAsPrefabAsset(prefab,prefabPath);}
+            }
+            finally{PrefabUtility.UnloadPrefabContents(prefab);}
         }
+        var venom=AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(MonsterThemeCombatBuilder.Root+"/Tables/VenomBrood.asset");
+        var roster=venom.Entries.ToArray();
+        for(int i=0;i<roster.Length;i++)
+            roster[i].weight=roster[i].definition.EnemyId=="VenomBrood_Venodonte_Tint1"?4f:
+                roster[i].definition.EnemyId=="VenomBrood_Kupolojuve_Tint_Orange"?2f:1f;
+        venom.Configure(venom.ThemeId,venom.DisplayName,venom.Catalog,venom.Accent,roster);
+        EditorUtility.SetDirty(venom);
         AssetDatabase.SaveAssets();Debug.Log("[MonsterThemeRoles] attacks="+attacks+" chargingSpecies="+chargers+" / 14; inactive source assets preserved");
     }
 }
