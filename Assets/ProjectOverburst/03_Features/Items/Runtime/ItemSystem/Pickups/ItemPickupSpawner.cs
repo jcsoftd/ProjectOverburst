@@ -10,6 +10,9 @@ public class ItemPickupSpawner : MonoBehaviour
     public const float AuthoredWeaponGridSpacing = 1.2f;
     public const float AuthoredWeaponGroupGap = 3.5f;
     public const float DefaultPickupScatterRadius = 0.16f;
+    private const int FlaskColumns = 4;
+    private const float FlaskSpacing = 1.25f;
+    private static readonly Vector3 HideoutFlaskOffset = new Vector3(0f, 0.25f, -2.5f);
 
     private const int ComboGemBlockColumnCount = 2;
     private const int WeaponBlockColumnCount = 4;
@@ -84,7 +87,50 @@ public class ItemPickupSpawner : MonoBehaviour
         if (spawnSmallHealPotionOnStart)
             SpawnSmallHealPotionPickup();
 
+        if (gameObject.scene.name == PersistentSceneFlow.HideoutSceneName)
+            SpawnHideoutFlaskPickups();
+
         // Element gems are retired; retain serialized fixture fields for legacy asset compatibility.
+    }
+
+    public void SpawnHideoutFlaskPickups()
+    {
+        if (gameObject.scene.name != PersistentSceneFlow.HideoutSceneName)
+            return;
+
+        ResolveReferences();
+        FlaskItemData[] catalog = FlaskLootPolicy.Catalog;
+        foreach (FlaskKind kind in System.Enum.GetValues(typeof(FlaskKind)))
+        {
+            FlaskItemData data = null;
+            for (int i = 0; i < catalog.Length; i++)
+                if (catalog[i] != null && catalog[i].kind == kind)
+                {
+                    data = catalog[i];
+                    break;
+                }
+
+            if (data == null)
+            {
+                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 물약 자산 누락: {kind}", this);
+                continue;
+            }
+
+            int index = (int)kind;
+            int column = index % FlaskColumns;
+            int row = index / FlaskColumns;
+            Vector3 offset = HideoutFlaskOffset + new Vector3(
+                (column - (FlaskColumns - 1) * 0.5f) * FlaskSpacing,
+                0f,
+                -row * FlaskSpacing);
+            Vector3 position = GetSpawnPosition(offset);
+            ItemData item = new ItemData(data, 1, RollVtpGrade());
+            WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(
+                item, position, inventory, player, pickupGradeVfxSet);
+            PlaceAuthoredPickup(pickup, position);
+            if (pickup == null)
+                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 물약 생성 실패: {kind}", this);
+        }
     }
 
     public static void SpawnConfiguredPickupsInScene(Scene scene)
