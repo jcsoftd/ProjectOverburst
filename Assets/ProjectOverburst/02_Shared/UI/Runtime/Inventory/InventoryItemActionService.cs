@@ -92,6 +92,14 @@ public class InventoryItemActionService : MonoBehaviour
     {
         ResolveReferences();
 
+        if (key >= 4 && key <= 6)
+        {
+            var flasks = PlayerFlaskController.Current;
+            string reason = "물약을 장착해 주세요.";
+            bool used = flasks != null && flasks.TryUse(key - 4, out reason);
+            if (!used) SpawnPlayerStatusText(reason);
+            return used;
+        }
         ConsumableItemData consumableData = quickSlots != null ? quickSlots.GetBoundConsumable(key) : null;
         if (consumableData == null)
         {
@@ -160,6 +168,8 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
+        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("은신처에서 4~6번 슬롯에 장착해 주세요."); return false; }
+
         IItemUseHandler handler = FindUseHandler(item);
         if (handler == null)
         {
@@ -210,12 +220,21 @@ public class InventoryItemActionService : MonoBehaviour
     public bool BindQuickSlot(int key, ItemData item)
     {
         ResolveReferences();
-        return quickSlots != null && quickSlots.Bind(key, item);
+        if (item?.baseData is FlaskItemData)
+        {
+            string reason = "물약 장착기를 찾을 수 없습니다.";
+            var flasks = PlayerFlaskController.Current;
+            bool bound = flasks != null && flasks.TryEquip(key - 4, item, out reason);
+            if (!bound) SpawnPlayerStatusText(reason);
+            return bound;
+        }
+        return key == 7 && quickSlots != null && quickSlots.Bind(key, item);
     }
 
     public string GetQuickSlotLabel(int key)
     {
         ResolveReferences();
+        if (key >= 4 && key <= 6) return key + " : " + (PlayerFlaskController.Current?.GetItem(key-4)?.itemName ?? "물약 비어 있음");
         string itemName = quickSlots != null ? quickSlots.GetBoundItemDisplayName(key) : "Empty";
         return key + " : " + itemName;
     }

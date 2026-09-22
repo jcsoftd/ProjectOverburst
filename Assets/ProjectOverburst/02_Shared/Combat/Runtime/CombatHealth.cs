@@ -16,8 +16,6 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     [SerializeField] private bool enableSwordParry;
 
     private Coroutine activeDamageOverTimeRoutine; // DoT 루틴
-    private ElementalStatusController elementalStatusController;
-    private CombatTarget combatTarget;
     private readonly HashSet<Behaviour> damageDeathPreventionOwners = new HashSet<Behaviour>();
 
     // Runtime leases: inactive or destroyed owners cannot leave protection behind.
@@ -80,11 +78,12 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         ApplyAimDamageModifier(ref info, ref damage); // 조준/자세 피해 보정
         ApplyEnemyDefenseModifier(ref info, ref damage); // 몬스터 방패 방어
         ApplyPlayerDamageReductionDebug(ref info, ref damage);
+        FlaskCombatModifiers.Incoming(this, ref info, ref damage);
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
-        EarthElementZoneRuntimeService.ReportDirectHit(this, info, actualDamage);
-        TryProcessElementalApplication(info, actualDamage); // 상태·반응 단일 진입점
+        FlaskCombatModifiers.ConfirmedHit(this, info, actualDamage);
+        OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
         ApplyKnockback(info); // 넉백 적용
 
         if (actualDamage > 0f
@@ -216,44 +215,6 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             return; // 물리 대상 아님
 
         targetRigidbody.AddForce(knockbackDirection.normalized * info.knockback, ForceMode.Impulse); // 넉백 힘 적용
-    }
-
-    private void TryProcessElementalApplication(DamageInfo info, float actualDamage)
-    {
-        if (currentHp <= 0f || actualDamage <= 0f)
-        {
-            return;
-        }
-
-        if (elementalStatusController == null
-            && !TryGetComponent(out elementalStatusController))
-        {
-            return; // 조립 누락은 fail-closed
-        }
-
-        if (combatTarget == null)
-            TryGetComponent(out combatTarget);
-
-        ElementalApplicationContext context = new ElementalApplicationContext(
-            this,
-            combatTarget,
-            elementalStatusController,
-            info.element,
-            actualDamage,
-            info.source,
-            info.sourceWeaponRuntimeInstanceId,
-            info.hitPoint,
-            info.direction,
-            info.triggersOnHitEffects && !info.isDamageOverTime,
-            info.triggersOnHitEffects && !info.isDamageOverTime,
-            info.isDamageOverTime,
-            info.triggersOnHitEffects);
-        elementalStatusController.ResolvePendingReactionResults(context); // 저장 proc 먼저 정산
-
-        if (currentHp <= 0f || !ElementalStatusRules.TryGetRule(info.element, out _))
-            return;
-
-        ElementalCombatProcessor.Process(context); // 생존 시 신규 상태·반응 계속 판정
     }
 
     private void ApplyAimDamageModifier(ref DamageInfo info, ref float damage)

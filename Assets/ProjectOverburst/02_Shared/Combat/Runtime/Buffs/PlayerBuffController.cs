@@ -23,9 +23,14 @@ public class PlayerBuffController : MonoBehaviour
             {
                 BuffInstance instance = activeBuffs[i];
                 if (instance != null && instance.Definition != null)
-                    multiplier *= instance.Definition.moveSpeedMultiplier;
+                {
+                    float speed = instance.Definition.moveSpeedMultiplier;
+                    if (speed < 1f) speed = 1f - (1f-speed) * (1f-Mathf.Clamp01(FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.SlowResistance)));
+                    multiplier *= speed;
+                }
             }
 
+            multiplier *= 1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.MoveSpeed);
             return Mathf.Clamp(multiplier, 0.05f, 10f);
         }
     }

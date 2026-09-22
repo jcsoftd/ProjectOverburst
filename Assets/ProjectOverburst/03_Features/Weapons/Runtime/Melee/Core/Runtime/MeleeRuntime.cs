@@ -119,7 +119,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (meleeDefinition == null)
             return false;
 
-        WeaponFinalStats stats = playerEquipment.CurrentWeaponStats;
+        WeaponFinalStats stats = FlaskCombatModifiers.Apply(playerEquipment.CurrentWeaponStats, gameObject);
         float maxDistance = Mathf.Max(0.1f, stats.range);
         float verticalTolerance = 3f;
         MeleeComboDefinition comboDefinition = weaponData.GetMeleeComboDefinition();
@@ -548,7 +548,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         comboMovementCollisionPusher.BeginComboStep(); // 새 타수의 이동 충돌 기록 초기화
         activeHitFeedbackSequenceId = AllocateHitFeedbackSequenceId(); // 홀드 콤보도 타수별 분리
-        activeStats = playerEquipment.CurrentWeaponStats;
+        activeStats = FlaskCombatModifiers.Apply(playerEquipment.CurrentWeaponStats, gameObject);
         activeWeaponData = playerEquipment.CurrentWeaponData;
         activeComboDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeComboDefinition()
@@ -786,7 +786,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private WeaponElement ResolveActiveAttackElement()
     {
         if (!activeAttackUsesCombo)
-            return activeWeaponData != null ? activeWeaponData.defaultElement : WeaponElement.None;
+            return activeAttackWeaponItem != null ? activeAttackWeaponItem.ResolvedElement : WeaponElement.None;
 
         return hasActiveComboAttackModifierSnapshot
             ? activeComboAttackModifierSnapshot.Element

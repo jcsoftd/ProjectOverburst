@@ -82,7 +82,7 @@ public static partial class WeaponComboGemSlotRules // 70번대 슬롯 순수 �
             return false;
 
         if (slotIndex == ElementSlotIndex)
-            return gemType == ComboGemType.Element;
+            return false; // retired slot, retain serialized indices for other gems
 
         return gemType == ComboGemType.Link || gemType == ComboGemType.Enhancement;
     }
@@ -93,7 +93,7 @@ public static partial class WeaponComboGemSlotRules // 70번대 슬롯 순수 �
             return new ComboGemType[0];
 
         if (slotIndex == ElementSlotIndex)
-            return new[] { ComboGemType.Element };
+            return new ComboGemType[0];
 
         return new[] { ComboGemType.Link, ComboGemType.Enhancement };
     }

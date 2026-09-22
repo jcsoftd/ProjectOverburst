@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbefb236d1899814f9e7c72b89e61a38, type: 3}
+  m_Name: OverburstElementTuning
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstElementTuning
+  maximumEnergy: 100
+  energyPerAttack: 10
+  maximumStacks: 5
+  statusDuration: 8
+  freezeDuration: 2
+  dischargeDamageAtFullEnergy: 2
+  statusDamagePerStack: 0.15
+  shatterDamage: 1
+  minimumRadius: 1.5
+  maximumRadius: 4
+  maximumChainTargets: 6
+  maximumWaterPullDistance: 0.8
+  fireIceElectricWaterWeights: {x: 1, y: 1, z: 1, w: 1}

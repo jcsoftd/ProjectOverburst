@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 345992bb36a681647adaa97d80e8237f, type: 3}
+  m_Name: Flask_Regeneration
+  m_EditorClassIdentifier: Assembly-CSharp::FlaskItemData
+  itemName: "\uC7AC\uC0DD \uBB3C\uC57D"
+  icon: {fileID: 21300000, guid: 34e9adc647ef8044bbeb3b68924a0824, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uC9C0\uC18D\uC801\uC73C\uB85C \uCCB4\uB825\uC744 \uD68C\uBCF5\uD558\uBA70
+    \uB3C5 \uB4F1 \uC9C0\uC18D \uD53C\uD574\uB97C \uC904\uC785\uB2C8\uB2E4."
+  weight: 1
+  sellPrice: 100
+  worldPickupPrefab: {fileID: 1127752855016383087, guid: 17b7e5a4639f1cf4393fd53898eb14e4, type: 3}
+  possibleStats: []
+  consumableType: 0
+  defaultGrade: 0
+  effectValue: 0
+  duration: 6
+  cooldown: 0
+  maxStack: 1
+  consumeOnUse: 0
+  targetBuffId: overburst_flask_regeneration
+  moveSpeedMultiplier: 1
+  useMessage: 
+  kind: 1
+  primaryEffect: 1
+  secondaryEffect: 3
+  primaryValue: 0.05
+  secondaryValue: 0.25
+  chargeCost: 60
+  chargeCapacity: 120
+  passesEnemyBodies: 0

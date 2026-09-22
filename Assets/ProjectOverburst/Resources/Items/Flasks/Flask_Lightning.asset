@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 345992bb36a681647adaa97d80e8237f, type: 3}
+  m_Name: Flask_Lightning
+  m_EditorClassIdentifier: Assembly-CSharp::FlaskItemData
+  itemName: "\uB1CC\uAD11 \uBB3C\uC57D"
+  icon: {fileID: 21300000, guid: 62b6fc46b228aa349932731a03ef5f93, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uBC88\uAC1C \uBC29\uCD9C \uD53C\uD574\uC640 \uC5F0\uC1C4 \uD0D0\uC0C9
+    \uAC70\uB9AC\uB97C \uB192\uC785\uB2C8\uB2E4. \uC5F0\uC1C4 \uB300\uC0C1 \uC218\uB294
+    \uB298\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+  weight: 1
+  sellPrice: 100
+  worldPickupPrefab: {fileID: 4025395385144328827, guid: 32f2d4ea34fcf884ea4f015f84ef5dda, type: 3}
+  possibleStats: []
+  consumableType: 0
+  defaultGrade: 0
+  effectValue: 0
+  duration: 6
+  cooldown: 0
+  maxStack: 1
+  consumeOnUse: 0
+  targetBuffId: overburst_flask_lightning
+  moveSpeedMultiplier: 1
+  useMessage: 
+  kind: 10
+  primaryEffect: 19
+  secondaryEffect: 20
+  primaryValue: 0.25
+  secondaryValue: 0.25
+  chargeCost: 50
+  chargeCapacity: 100
+  passesEnemyBodies: 0

@@ -234,6 +234,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     private RectTransform tooltipRect;
     private Canvas canvas;
     private CanvasGroup tooltipCanvasGroup;
+    private float nextFlaskRefresh;
     private ItemData currentItem; // 현재 표시 아이템
     private bool currentShopPriceContextActive;
     private bool currentShopMerchantSelling;
@@ -337,6 +338,11 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         if (tooltipPanel == null || !tooltipPanel.activeSelf || tooltipRect == null)
             return;
 
+        if (currentItem?.baseData is FlaskItemData && Time.unscaledTime >= nextFlaskRefresh)
+        {
+            nextFlaskRefresh = Time.unscaledTime + .2f;
+            SetConsumableTooltipContent(currentItem, (ConsumableItemData)currentItem.baseData);
+        }
         UpdateTooltipPosition(ReadPointerScreenPosition()); // 실제 크기 기준 화면 안쪽
     }
 
@@ -713,7 +719,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         string weaponClassName = weaponData != null
             ? ItemTooltipFormatter.GetWeaponClassName(weaponData.weaponClass)
             : string.Empty;
-        string elementName = weaponData != null ? GetWeaponElementName(weaponData.defaultElement) : "무속성";
+        string elementName = item != null ? GetWeaponElementName(item.ResolvedElement) : "무속성";
         SetItemHeader(item, displayName, categoryName + " / " + weaponClassName + " · " + elementName);
     }
 
@@ -741,7 +747,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     {
         switch (element)
         {
-            case WeaponElement.Fire: return "화염";
+            case WeaponElement.Fire: return "불";
+            case WeaponElement.Ice: return "얼음";
+            case WeaponElement.Electric: return "번개";
+            case WeaponElement.Water: return "물";
             default: return "무속성";
         }
     }
@@ -896,8 +905,17 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
         SetItemHeader(item, item.itemName, "소비아이템 / " + GetConsumableSubtypeName(consumableData));
 
-        basicStatsText.text = BuildConsumableEffectText(consumableData);
-        weaponStatsText.text = BuildConsumableTimingText(consumableData);
+        if (consumableData is FlaskItemData)
+        {
+            SetItemHeader(item, item.itemName, "장착형 물약 / 영구 보유");
+            basicStatsText.text = FlaskTooltip.Effects(item);
+            weaponStatsText.text = FlaskTooltip.Details(item);
+        }
+        else
+        {
+            basicStatsText.text = BuildConsumableEffectText(consumableData);
+            weaponStatsText.text = BuildConsumableTimingText(consumableData);
+        }
         priceText.text = BuildPriceText(item);
     }
 

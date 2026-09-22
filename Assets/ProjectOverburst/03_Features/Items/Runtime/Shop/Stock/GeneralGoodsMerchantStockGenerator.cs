@@ -18,7 +18,7 @@ public sealed class GeneralGoodsMerchantStockGenerator : MerchantStockGenerator
         AddRandomGeneralGoodsStack(inventory, context.MediumHealPotion, minTotal, maxTotal);
         AddRandomGeneralGoodsStack(inventory, context.LargeHealPotion, minTotal, maxTotal);
         AddRandomGeneralGoodsStack(inventory, context.ExtraLargeHealPotion, minTotal, maxTotal);
-        AddFixedGeneralGoodsStack(inventory, context.PermanentHealPotion, 1);
+        foreach (var flask in FlaskLootPolicy.GameplayCatalog) AddFixedGeneralGoodsStack(inventory, flask, 1);
         AddRandomGeneralGoodsStack(inventory, context.MoveSpeedPotion, minTotal, maxTotal);
         return inventory;
     }

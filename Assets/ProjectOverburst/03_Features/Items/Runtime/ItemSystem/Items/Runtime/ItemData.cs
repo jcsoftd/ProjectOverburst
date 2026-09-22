@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -1159,12 +1159,30 @@ public class ItemData // 런타임 아이템
     private static long nextAcquisitionOrder = 1; // 획득 순번
 
     public BaseItemData baseData; // 원본 에셋
+    public FlaskInstanceState flaskState;
     public string runtimeInstanceId; // 고유 id
     public long acquisitionOrder; // 획득 순서
     public int level; // 레벨
     public ItemGrade grade; // 등급
     public int stackCount; // 스택 수
 
+    [UnityEngine.SerializeField] private WeaponElement instanceElement;
+    [UnityEngine.SerializeField] private bool hasInstanceElement;
+    public WeaponElement ResolvedElement
+    {
+        get
+        {
+            if (!(baseData is WeaponItemData weapon)) return WeaponElement.None;
+            WeaponElement element = hasInstanceElement ? instanceElement : weapon.defaultElement;
+            return OverburstElementRules.IsActive(element) ? element : WeaponElement.None;
+        }
+    }
+    // Explicit authoring/test assignment; never called by read/ensure/pickup paths.
+    public bool TryAssignElementOnce(WeaponElement element)
+    {
+        if (hasInstanceElement || !(baseData is WeaponItemData) || !OverburstElementRules.IsActive(element)) return false;
+        instanceElement = element; hasInstanceElement = true; return true;
+    }
     public List<WeaponGradeStatRoll> weaponGradeStatRolls; // 무기 별
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
     public List<BagRandomOptionRoll> bagOptions; // 가방 랜덤 옵션
@@ -1175,7 +1193,15 @@ public class ItemData // 런타임 아이템
     public bool HasValidBaseData { get { return baseData != null; } }
     public List<WeaponGradeStatRoll> weaponGradeStats { get { return weaponGradeStatRolls; } }
 
-    public string itemName { get { return baseData != null ? baseData.itemName : string.Empty; } }
+    public string itemName
+    {
+        get
+        {
+            string name = baseData != null ? baseData.itemName : string.Empty;
+            string element = OverburstElementRules.Label(ResolvedElement);
+            return element.Length > 0 ? name + " (" + element + ")" : name;
+        }
+    }
     public Sprite icon
     {
         get
@@ -1245,7 +1271,7 @@ public class ItemData // 런타임 아이템
         }
     }
 
-    public ItemData(BaseItemData data, int lv, ItemGrade itemGrade, int stack = 1)
+    public ItemData(BaseItemData data, int lv, ItemGrade itemGrade, int stack = 1, WeaponElement? element = null)
     {
         EnsureRuntimeInstanceId(); // id 보장
         baseData = data;
@@ -1267,6 +1293,13 @@ public class ItemData // 런타임 아이템
         else if (baseData is BagItemData)
             RollBagOptions(); // 가방 옵션
 
+        if (baseData is WeaponItemData weapon)
+        {
+            instanceElement = element.HasValue ? element.Value : OverburstElementRules.RollNewWeapon(weapon);
+            if (!OverburstElementRules.IsActive(instanceElement)) instanceElement = WeaponElement.None;
+            hasInstanceElement = true;
+        }
+        if (baseData is FlaskItemData) FlaskRuntime.State(this);
         InitWeaponComboGemLoadouts(); // 콤보별 슬롯
     }
 
@@ -1289,6 +1322,8 @@ public class ItemData // 런타임 아이템
     public void EnsureRuntimeState()
     {
         EnsureRuntimeInstanceId(); // id 보장
+
+        if (baseData is FlaskItemData) FlaskRuntime.State(this);
 
         bool comboGemOptionsMissing = comboGemOptions == null; // 신규 보석 구 데이터
         bool bagOptionsMissing = bagOptions == null; // 구 데이터

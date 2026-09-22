@@ -66,6 +66,13 @@ public class ActionSlotHudUI : MonoBehaviour
                 continue;
 
             slot.SetKeyNumber(key);
+            if (i < PlayerFlaskController.SlotCount)
+            {
+                var flasks = PlayerFlaskController.Current;
+                slot.SetFlask(flasks != null ? flasks.GetItem(i) : null, flasks != null ? flasks.Remaining(i) : 0f,
+                    flasks != null && flasks.GetItem(i)?.baseData is FlaskItemData f && flasks.MatchesWeapon(f));
+                continue;
+            }
             ConsumableItemData consumableData = actionService != null ? actionService.GetQuickSlotConsumable(key) : quickSlotBindingController != null ? quickSlotBindingController.GetBoundConsumable(key) : null;
             if (consumableData == null)
             {

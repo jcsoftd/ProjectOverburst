@@ -268,6 +268,8 @@ GameObject:
   - component: {fileID: 4742288503407650392}
   - component: {fileID: 538897919583715081}
   - component: {fileID: 4969743958401337325}
+  - component: {fileID: 4180381286012201543}
+  - component: {fileID: 1215682338855239813}
   m_Layer: 8
   m_Name: PF_PlayerActor
   m_TagString: Player
@@ -567,11 +569,21 @@ MonoBehaviour:
   activeWeaponSlotIndex: 0
   weaponSlotItems:
   - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      charge: 0
+      chargeInitialized: 0
+      equippedSlot: -1
     runtimeInstanceId: 
     acquisitionOrder: 0
     level: 0
     grade: 0
     stackCount: 0
+    instanceElement: 0
+    hasInstanceElement: 0
     weaponGradeStatRolls: []
     meleeStarDistributionProfile: 0
     bagOptions: []
@@ -969,6 +981,8 @@ MonoBehaviour:
   autoEnableGameplay: 1
   autoEnableUi: 1
   autoEnableDebugValidation: 0
+  attackBufferDuration: 0.15
+  evadeBufferDuration: 0.15
 --- !u!114 &2609849373169436281
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1123,6 +1137,34 @@ MonoBehaviour:
   landingMinimumFallSpeed: 2
   animationEventGraceSeconds: 0.3
   minimumEmissionInterval: 0.08
+--- !u!114 &4180381286012201543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778037010099676702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e00fbf0f217616743a2568091544cdb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFlaskController
+  equippedIds:
+  - 
+  - 
+  - 
+--- !u!114 &1215682338855239813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778037010099676702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1efdf88e1d7ae6242ba83bcdc17e0c25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlaskGhostCollision
 --- !u!1 &8279916159605575939
 GameObject:
   m_ObjectHideFlags: 0

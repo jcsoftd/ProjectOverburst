@@ -85,6 +85,12 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         ResolveReferences();
 
         Vector3 dropOrigin = GetDropOriginPosition(); // 드랍 기준점
+        var run = FindFirstObjectByType<DungeonRunFlow>();
+        if (run != null)
+        {
+            ItemData flask = FlaskLootPolicy.Roll(GetComponent<EnemyRank>(), run.ActiveParameters.DifficultyLevel);
+            if (flask != null) WorldItemDropFactory.CreateWorldPickup(flask, dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
+        }
         DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
         if (dropTable == null)

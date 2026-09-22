@@ -28,7 +28,7 @@ public sealed class WeaponComboGemSlotView : MonoBehaviour, IDropHandler, IPoint
 
     public void Bind(string boundAttackId, WeaponComboGemSlotViewData data)
     {
-        if (data == null)
+        if (data == null || (data.SlotIndex == WeaponComboGemSlotRules.ElementSlotIndex && !data.IsOccupied))
         {
             gameObject.SetActive(false);
             return;
@@ -46,7 +46,7 @@ public sealed class WeaponComboGemSlotView : MonoBehaviour, IDropHandler, IPoint
         if (lockOverlay != null)
             lockOverlay.SetActive(!isUnlocked);
         if (roleText != null)
-            roleText.text = !isUnlocked ? "잠금" : data.Role == WeaponComboGemSlotRole.Element ? "원소" : "연계·강화";
+            roleText.text = !isUnlocked ? "잠금" : data.Role == WeaponComboGemSlotRole.Element ? "해제 전용" : "연계·강화";
 
         bool showGem = isUnlocked && data.IsOccupied;
         if (iconImage != null)
@@ -81,7 +81,7 @@ public sealed class WeaponComboGemSlotView : MonoBehaviour, IDropHandler, IPoint
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (!DragSlot.IsDragging)
+        if (!DragSlot.IsDragging || slotIndex == WeaponComboGemSlotRules.ElementSlotIndex)
             return;
         if (DragSlot.EquippedComboGemSource != null)
         {
@@ -96,7 +96,7 @@ public sealed class WeaponComboGemSlotView : MonoBehaviour, IDropHandler, IPoint
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!DragSlot.IsDragging)
+        if (!DragSlot.IsDragging || slotIndex == WeaponComboGemSlotRules.ElementSlotIndex)
             return;
         SetDragPreview(true, DragSlot.EquippedComboGemSource == null && CanAcceptDraggedGem(DragSlot.DraggedItem));
     }

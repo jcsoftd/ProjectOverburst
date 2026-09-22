@@ -164,6 +164,22 @@ public class InventoryContextMenuController : MonoBehaviour
             return;
         }
 
+        if (item.baseData is FlaskItemData)
+        {
+            AddButton("물약 장착", PlayerFlaskController.CanChangeLoadout, ShowQuickSlotSubmenu);
+            var flasks = PlayerFlaskController.Current;
+            for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+                if (flasks != null && flasks.GetItem(i) == item)
+                {
+                    int slot = i;
+                    AddButton("장착 해제", PlayerFlaskController.CanChangeLoadout, () => { flasks.TryUnequip(slot, out _); Close(); });
+                    break;
+                }
+            AddButton("정보", true, ShowSelectedItemInfo);
+            AddButton("버리기", PlayerFlaskController.CanChangeLoadout, DropSelectedItem);
+            AddButton("닫기", true, Close);
+            return;
+        }
         switch (item.itemType)
         {
             case "Weapon":
@@ -214,7 +230,7 @@ public class InventoryContextMenuController : MonoBehaviour
         ShowRootMenu();
         ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
 
-        for (int key = 4; key <= 7; key++)
+        for (int key = item?.baseData is FlaskItemData ? 4 : 7; key <= (item?.baseData is FlaskItemData ? 6 : 7); key++)
         {
             int bindKey = key;
             string label = actionService != null ? actionService.GetQuickSlotLabel(key) : key + " : 비어있음";

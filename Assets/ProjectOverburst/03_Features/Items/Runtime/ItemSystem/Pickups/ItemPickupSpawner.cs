@@ -84,8 +84,7 @@ public class ItemPickupSpawner : MonoBehaviour
         if (spawnSmallHealPotionOnStart)
             SpawnSmallHealPotionPickup();
 
-        if (spawnComboGemsOnStart)
-            SpawnRandomComboGemPickups();
+        // Element gems are retired; retain serialized fixture fields for legacy asset compatibility.
     }
 
     public static void SpawnConfiguredPickupsInScene(Scene scene)
@@ -392,6 +391,7 @@ public class ItemPickupSpawner : MonoBehaviour
         for (int i = 0; i < testComboGemItems.Length; i++)
         {
             if (!(testComboGemItems[i] is ElementComboGemItemData elementGemData)
+                || !WeaponContentPolicy.IsAllowedItemData(elementGemData)
                 || !elementGemData.TryGetElementDefinition(out WeaponElement element)
                 || !IsActiveHideoutElement(element)
                 || !elements.Add(element))

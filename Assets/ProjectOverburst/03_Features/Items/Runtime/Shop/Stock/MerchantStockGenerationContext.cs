@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 public sealed class MerchantStockGenerationContext
 {
@@ -64,7 +64,7 @@ public sealed class MerchantStockGenerationContext
         for (int i = 0; i < pool.Length; i++)
         {
             ComboGemItemData data = pool[i] as ComboGemItemData;
-            if (data != null && (int)data.minGrade <= (int)ItemGrade.Uncommon)
+            if (data != null && WeaponContentPolicy.IsAllowedItemData(data) && (int)data.minGrade <= (int)ItemGrade.Uncommon)
                 results.Add(data);
         }
 

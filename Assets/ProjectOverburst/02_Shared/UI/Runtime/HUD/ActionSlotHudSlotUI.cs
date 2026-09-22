@@ -1,9 +1,20 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class ActionSlotHudSlotUI : MonoBehaviour
+public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
+    private ItemData tooltipItem;
+    private TooltipManager flaskTooltip;
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (!(tooltipItem?.baseData is FlaskItemData)) return;
+        if (flaskTooltip == null) flaskTooltip = TooltipManager.Instance != null ? TooltipManager.Instance : FindFirstObjectByType<TooltipManager>();
+        flaskTooltip?.ShowTooltip(tooltipItem);
+    }
+    public void OnPointerExit(PointerEventData eventData) { flaskTooltip?.HideTooltip(); }
+    private void OnDisable() { flaskTooltip?.HideTooltip(); }
     private static readonly Color SlotBackgroundColor = Color.white;
     private static readonly Color KeyTextColor = new Color(0.9f, 0.94f, 1f, 0.95f);
     private static readonly Color ActiveKeyTextColor = new Color(0.36f, 0.82f, 1f, 1f);
@@ -71,6 +82,50 @@ public class ActionSlotHudSlotUI : MonoBehaviour
 
         ItemGrade grade = displayItem != null ? displayItem.grade : ItemGrade.Common;
         ApplyItemVisual(consumableData, grade, count, false, !consumableData.IsPermanentSingleItem);
+    }
+
+    public void SetFlask(ItemData item, float remaining, bool matchesWeapon)
+    {
+        tooltipItem = item;
+        BindVisuals();
+        if (slotBackground != null) slotBackground.raycastTarget = item != null;
+        if (item == null) { SetEmpty(false); SetCooldown(0f); return; }
+        var state = FlaskRuntime.State(item);
+        var stats = FlaskRuntime.Stats(item);
+        int uses = FlaskChargeRules.Uses(state, stats);
+        SetItem(item, uses, remaining > 0f, true);
+        SetCooldown(remaining);
+        if (cooldownText != null)
+        {
+            // Keep the active duration clear of the bottom charge count and hotkey.
+            RectTransform durationRect = cooldownText.rectTransform;
+            durationRect.anchorMin = new Vector2(0f, 1f);
+            durationRect.anchorMax = Vector2.one;
+            durationRect.pivot = new Vector2(.5f, 1f);
+            durationRect.offsetMin = new Vector2(4f, -24f);
+            durationRect.offsetMax = new Vector2(-4f, -4f);
+            cooldownText.alignment = TextAlignmentOptions.Center;
+            cooldownText.fontSize = 14f;
+        }
+        if (countText != null) { countText.gameObject.SetActive(true); countText.text = uses + "회"; }
+        if (itemIcon != null) itemIcon.color = matchesWeapon && (uses > 0 || remaining > 0f) ? Color.white : new Color(.4f,.4f,.4f,1f);
+        if (cooldownOverlay != null && remaining > 0f)
+        {
+            cooldownOverlay.color = new Color(.12f,.6f,.42f,.27f);
+            cooldownOverlay.type = Image.Type.Filled;
+            cooldownOverlay.fillMethod = Image.FillMethod.Vertical;
+            cooldownOverlay.fillOrigin = 0;
+            cooldownOverlay.fillAmount = Mathf.Clamp01(remaining / Mathf.Max(.1f, stats.duration));
+        }
+        else if (cooldownOverlay != null && state != null && uses == 0)
+        {
+            cooldownOverlay.gameObject.SetActive(true);
+            cooldownOverlay.color = new Color(.2f,.5f,.8f,.25f);
+            cooldownOverlay.type = Image.Type.Filled;
+            cooldownOverlay.fillMethod = Image.FillMethod.Vertical;
+            cooldownOverlay.fillOrigin = 0;
+            cooldownOverlay.fillAmount = Mathf.Clamp01(state.charge / Mathf.Max(1f, stats.cost));
+        }
     }
 
     public void SetCooldown(float remainingSeconds)

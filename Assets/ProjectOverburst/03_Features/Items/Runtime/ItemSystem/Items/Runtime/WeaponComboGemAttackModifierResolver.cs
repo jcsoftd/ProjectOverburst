@@ -57,144 +57,24 @@ public readonly struct WeaponComboGemAttackModifierSnapshot // 공격 시작 시
     }
 }
 
-public static class WeaponComboGemAttackModifierResolver // 70번대 전투 조회 계약
+// Compatibility name for existing attack snapshot callers. Element gems no longer influence combat.
+public static class WeaponComboGemAttackModifierResolver
 {
-    public static bool TryResolve(
-        ItemData weapon,
-        string attackId,
-        out WeaponComboGemAttackModifierSnapshot snapshot,
+    public static bool TryResolve(ItemData weapon, string attackId, out WeaponComboGemAttackModifierSnapshot snapshot,
         out WeaponComboGemAttackModifierResolveFailureReason failureReason)
     {
         snapshot = default;
+        failureReason = WeaponComboGemAttackModifierResolveFailureReason.InvalidWeapon;
+        if (weapon == null || !(weapon.baseData is WeaponItemData data)) return false;
+        MeleeComboDefinition combo = data.GetMeleeComboDefinition();
+        failureReason = WeaponComboGemAttackModifierResolveFailureReason.InvalidWeaponComboData;
+        if (combo == null || !combo.TryGetStableAttackIds(out string[] ids, out _)) return false;
+        failureReason = WeaponComboGemAttackModifierResolveFailureReason.InvalidAttackId;
+        if (string.IsNullOrWhiteSpace(attackId) || System.Array.IndexOf(ids, attackId) < 0) return false;
+        WeaponElement element = weapon.ResolvedElement;
+        snapshot = element == WeaponElement.None ? WeaponComboGemAttackModifierSnapshot.Physical(attackId)
+            : WeaponComboGemAttackModifierSnapshot.Elemental(attackId, element, 0f, string.Empty);
         failureReason = WeaponComboGemAttackModifierResolveFailureReason.None;
-
-        if (weapon == null || !(weapon.baseData is WeaponItemData))
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidWeapon, out failureReason);
-
-        if (string.IsNullOrWhiteSpace(attackId))
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidAttackId, out failureReason);
-
-        int attackCount = weapon.GetWeaponComboGemLoadoutCount();
-        if (attackCount <= 0)
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidWeaponComboData, out failureReason);
-
-        bool hasAttackId = false;
-        for (int stepIndex = 0; stepIndex < attackCount; stepIndex++)
-        {
-            if (!weapon.TryGetWeaponComboAttackId(stepIndex, out string stableAttackId))
-                return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidWeaponComboData, out failureReason);
-
-            if (string.Equals(stableAttackId, attackId, System.StringComparison.Ordinal))
-                hasAttackId = true;
-        }
-
-        if (!hasAttackId)
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidAttackId, out failureReason);
-
-        if (!TryFindLoadout(weapon, attackId, out WeaponComboGemLoadout loadout))
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidLoadoutData, out failureReason);
-
-        if (loadout.SlotCount != WeaponComboGemSlotRules.SlotCapacity
-            || !WeaponComboGemSlotRules.IsValidUnlockedSlotCount(loadout.UnlockedSlotCount)
-            || !loadout.IsSlotUnlocked(WeaponComboGemSlotRules.ElementSlotIndex))
-        {
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidElementSlotData, out failureReason);
-        }
-
-        ItemData elementGem = loadout.GetGemAt(WeaponComboGemSlotRules.ElementSlotIndex);
-        if (elementGem == null)
-        {
-            snapshot = WeaponComboGemAttackModifierSnapshot.Physical(attackId); // 정상 무속성 공격
-            return true;
-        }
-
-        if (!(elementGem.baseData is ElementComboGemItemData elementGemData)
-            || !elementGemData.TryGetElementDefinition(out WeaponElement element)
-            || element == WeaponElement.None)
-        {
-            return Fail(WeaponComboGemAttackModifierResolveFailureReason.InvalidElementGem, out failureReason);
-        }
-
-        if (string.IsNullOrWhiteSpace(elementGem.runtimeInstanceId))
-        {
-            return Fail(
-                WeaponComboGemAttackModifierResolveFailureReason.InvalidElementGemRuntimeState,
-                out failureReason);
-        }
-
-        if (!TryReadElementDamageIncrease(elementGem, out float damageIncreasePercent))
-        {
-            return Fail(
-                WeaponComboGemAttackModifierResolveFailureReason.InvalidElementDamageOption,
-                out failureReason);
-        }
-
-        snapshot = WeaponComboGemAttackModifierSnapshot.Elemental(
-            attackId,
-            element,
-            damageIncreasePercent,
-            elementGem.runtimeInstanceId); // 인스턴스 롤 고정
         return true;
-    }
-
-    private static bool TryFindLoadout(
-        ItemData weapon,
-        string attackId,
-        out WeaponComboGemLoadout result)
-    {
-        result = null;
-        if (weapon.weaponComboGemLoadouts == null)
-            return false;
-
-        for (int i = 0; i < weapon.weaponComboGemLoadouts.Count; i++)
-        {
-            WeaponComboGemLoadout loadout = weapon.weaponComboGemLoadouts[i];
-            if (loadout == null)
-                return false;
-
-            if (!string.Equals(loadout.AttackId, attackId, System.StringComparison.Ordinal))
-                continue;
-
-            if (result != null)
-                return false; // 중복 attackId 차단
-
-            result = loadout;
-        }
-
-        return result != null;
-    }
-
-    private static bool TryReadElementDamageIncrease(ItemData elementGem, out float value)
-    {
-        value = 0f;
-        if (elementGem.comboGemOptions == null)
-            return false;
-
-        bool found = false;
-        for (int i = 0; i < elementGem.comboGemOptions.Count; i++)
-        {
-            ComboGemRolledOption option = elementGem.comboGemOptions[i];
-            if (option == null)
-                return false;
-
-            if (option.optionType != ComboGemRandomOptionType.ElementDamageIncrease)
-                continue;
-
-            if (found || float.IsNaN(option.value) || float.IsInfinity(option.value) || option.value < 0f)
-                return false;
-
-            value = option.value;
-            found = true;
-        }
-
-        return found;
-    }
-
-    private static bool Fail(
-        WeaponComboGemAttackModifierResolveFailureReason reason,
-        out WeaponComboGemAttackModifierResolveFailureReason failureReason)
-    {
-        failureReason = reason;
-        return false;
     }
 }

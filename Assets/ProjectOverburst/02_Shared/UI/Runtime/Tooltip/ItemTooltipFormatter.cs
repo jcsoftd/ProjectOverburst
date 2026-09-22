@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using UnityEngine;
 
 public static class ItemTooltipFormatter // 툴팁 포맷
@@ -56,7 +56,10 @@ public static class ItemTooltipFormatter // 툴팁 포맷
     {
         switch (element)
         {
-            case WeaponElement.Fire: return "화염";
+            case WeaponElement.Fire: return "불";
+            case WeaponElement.Ice: return "얼음";
+            case WeaponElement.Electric: return "번개";
+            case WeaponElement.Water: return "물";
             default: return "무속성";
         }
     }

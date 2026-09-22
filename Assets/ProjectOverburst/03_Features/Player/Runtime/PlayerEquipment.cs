@@ -169,7 +169,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         CurrentWeaponStats = CurrentWeaponItem != null // 최종 스탯
             ? WeaponStatCalculator.Calculate(CurrentWeaponItem)
             : WeaponFinalStats.Empty;
-        CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats);
+        CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, CurrentWeaponItem != null ? CurrentWeaponItem.ResolvedElement : WeaponElement.None);
     }
 
     public bool EquipWeaponItem(ItemData item)
