@@ -29,6 +29,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         new MeleeElementStatusAuraController[ControllerCapacity];
     private readonly MeleeElementStatusAuraPresentation[] inactivePresentations =
         new MeleeElementStatusAuraPresentation[PresentationCapacity];
+    private readonly MeleeElementStatusAuraPresentation[] pendingReturns =
+        new MeleeElementStatusAuraPresentation[PresentationCapacity];
+    private int pendingReturnCount;
     private int activeControllerCount;
     private int roundRobinCursor;
     private int inactivePresentationCount;
@@ -196,6 +199,7 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     private void Advance(Camera camera, int budget)
     {
+        FlushPendingReturns();
         int checkCount = Mathf.Min(Mathf.Max(0, budget), activeControllerCount);
 #if UNITY_EDITOR
         LastCheckedCountForValidation = 0;
@@ -266,9 +270,43 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         if (presentation == null)
             return;
         presentation.ClearAllAuras();
-        presentation.transform.SetParent(transform, false);
+        bool deferParentChange = !presentation.gameObject.activeInHierarchy || !isActiveAndEnabled;
         presentation.gameObject.SetActive(false);
         leasedPresentationCount = Mathf.Max(0, leasedPresentationCount - 1);
+        // A parent's OnDisable cannot reparent its children. Retire the lease now,
+        // but only make it available for reuse after a safe scheduler update.
+        if (deferParentChange)
+        {
+            if (pendingReturnCount < pendingReturns.Length)
+                pendingReturns[pendingReturnCount++] = presentation;
+            else
+            {
+                createdPresentationCount = Mathf.Max(0, createdPresentationCount - 1);
+                DestroyObject(presentation.gameObject);
+            }
+            return;
+        }
+        CacheReturnedPresentation(presentation);
+    }
+
+    private void FlushPendingReturns()
+    {
+        while (pendingReturnCount > 0)
+        {
+            int index = --pendingReturnCount;
+            MeleeElementStatusAuraPresentation returned = pendingReturns[index];
+            pendingReturns[index] = null;
+            // Scene/owner destruction may have destroyed the still-parented child.
+            if (returned == null)
+                createdPresentationCount = Mathf.Max(0, createdPresentationCount - 1);
+            else
+                CacheReturnedPresentation(returned);
+        }
+    }
+
+    private void CacheReturnedPresentation(MeleeElementStatusAuraPresentation presentation)
+    {
+        presentation.transform.SetParent(transform, false);
         if (inactivePresentationCount < inactivePresentations.Length)
             inactivePresentations[inactivePresentationCount++] = presentation;
         else
@@ -340,6 +378,13 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     private void DestroyPooledPresentations()
     {
+        for (int i = 0; i < pendingReturnCount; i++)
+        {
+            if (pendingReturns[i] != null)
+                DestroyObject(pendingReturns[i].gameObject);
+            pendingReturns[i] = null;
+        }
+        pendingReturnCount = 0;
         for (int i = 0; i < inactivePresentationCount; i++)
         {
             if (inactivePresentations[i] != null)
