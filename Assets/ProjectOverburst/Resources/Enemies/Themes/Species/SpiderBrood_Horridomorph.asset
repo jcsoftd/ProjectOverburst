@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Horridomorph
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Horridomorph
-  displayName: Horridomorph
+  displayName: "\uD749\uD3EC \uBCC0\uC774\uCDA9"
   vendorPrefab: {fileID: 1223343079437016695, guid: f16ce536157c8b244a716fb05ea3fb87, type: 3}
   animationProfile: {fileID: 11400000, guid: cd455b3766cfe754abec291df96bd256, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 56064bcee7809774ab5494b0e83796c5, type: 2}

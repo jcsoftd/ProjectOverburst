@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_CrustaspikanLarvae
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: PrimalHunt_CrustaspikanLarvae
-  displayName: CrustaspikanLarvae
+  displayName: "\uAC00\uC2DC\uAC11 \uC720\uCCB4"
   vendorPrefab: {fileID: 3438673837367667287, guid: 5cbb9314d047c4b4cbc3fd9bd6b86f91, type: 3}
   animationProfile: {fileID: 11400000, guid: fcffeec03fd56e54ca18368e72b3296c, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: cadefab150e31c14588950a83a3f6864, type: 2}

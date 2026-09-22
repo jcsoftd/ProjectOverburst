@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Limadon
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Limadon
-  displayName: Limadon
+  displayName: "\uCD09\uC218 \uC0AC\uC218"
   vendorPrefab: {fileID: 7704895131363459432, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}
   animationProfile: {fileID: 11400000, guid: ca36c669e9db86d409cddfdc45bc9dcf, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f7a8a2d22367e8045b7992320522c9b2, type: 2}

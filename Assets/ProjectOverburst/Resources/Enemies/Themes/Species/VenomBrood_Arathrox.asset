@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Arathrox
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: VenomBrood_Arathrox
-  displayName: Arathrox
+  displayName: "\uC0B0\uC131 \uC0AC\uC218"
   vendorPrefab: {fileID: 8036466330315957418, guid: fca509132bd195146920acf570ca228a, type: 3}
   animationProfile: {fileID: 11400000, guid: 6c5d8282f213d574baa9f2faf7a99aeb, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: ec7d30cf0027eb04b89b6a87cf61117f, type: 2}

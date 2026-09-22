@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Venosaur_Tint_Brown
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: PrimalHunt_Venosaur_Tint_Brown
-  displayName: Venosaur_Tint_Brown
+  displayName: "\uB3C5\uC228 \uD3EC\uC2DD\uB8E1"
   vendorPrefab: {fileID: 4243544481913066744, guid: 606eb3be8a606c24b90d3dd281b1faca, type: 3}
   animationProfile: {fileID: 11400000, guid: 3e920f21ec6ca3246902dfbe50ab1b78, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 38b53fbafc7e8b5439efd1bad3038dc3, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Dimaxillosaurus
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: PrimalHunt_Dimaxillosaurus
-  displayName: Dimaxillosaurus
+  displayName: "\uC30D\uBC1C\uD1B1 \uD3EC\uC2DD\uB8E1"
   vendorPrefab: {fileID: 4026326723524121887, guid: e321099fc4750a040972b33d26dfb4b6, type: 3}
   animationProfile: {fileID: 11400000, guid: 3ef542c13385c844381df5c19f0b375c, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f64f0361a53b1e448a0927d1ce3628e9, type: 2}

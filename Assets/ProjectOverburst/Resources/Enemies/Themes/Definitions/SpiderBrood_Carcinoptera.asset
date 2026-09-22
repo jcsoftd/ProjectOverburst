@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Carcinoptera
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: SpiderBrood_Carcinoptera
-  displayName: Carcinoptera
+  displayName: "\uB3C4\uC57D\uAC11\uCDA9"
   species: {fileID: 11400000, guid: d569a1a5fb7c46042afbdb9ee0d91d85, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

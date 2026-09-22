@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Kupolobrach_Tint_Orange
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: VenomBrood_Kupolobrach_Tint_Orange
-  displayName: Kupolobrach_Tint_Orange
+  displayName: "\uB3C5\uB0AD \uAC70\uC218"
   species: {fileID: 11400000, guid: c52e582c36a9b9d43a1e91c0712f230a, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

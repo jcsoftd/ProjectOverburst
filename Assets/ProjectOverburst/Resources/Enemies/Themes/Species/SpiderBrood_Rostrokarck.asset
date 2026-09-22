@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Rostrokarck
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Rostrokarck
-  displayName: Rostrokarck
+  displayName: "\uAC08\uD034\uD131 \uC6B0\uB450\uBA38\uB9AC"
   vendorPrefab: {fileID: 4409877515169095192, guid: 66802a39bff22ec4fb395aeead14f888, type: 3}
   animationProfile: {fileID: 11400000, guid: 5e15a5728127a144f94f81a6f25a09ce, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f8bd69f23ce578147ab46b690d1ed296, type: 2}

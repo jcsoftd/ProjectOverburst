@@ -54,6 +54,17 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     private float impactMicroShakeAmplitude;
     private float impactPositionSafetyLimit;
     private float impactRollSafetyLimit;
+    private CombatCameraRequestKind activeImpactKind;
+    private float queuedGroundStepAmplitude;
+    private float lastGroundStepUnscaledTime = float.NegativeInfinity;
+    private float lastGroundStepAmplitude;
+    [SerializeField, Range(0f, 1f)] private float groundStepCameraStrength = 1f;
+    public int GroundStepEmissionCount { get; private set; }
+    public float GroundStepCameraStrength
+    {
+        get => groundStepCameraStrength;
+        set => groundStepCameraStrength = Mathf.Clamp01(value);
+    }
     private Camera cachedCamera;
     private bool forceCameraCut;
 
@@ -77,6 +88,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         if (ActiveInstance == this)
             ActiveInstance = null;
+        queuedGroundStepAmplitude = 0f;
         cinemachineRig?.CancelCombatImpact();
     }
 
@@ -90,6 +102,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         UpdateZoomDistance();
         UpdateFocusPosition();
         ApplyCameraTransform();
+        FlushGroundStepRequest();
         ApplyCombatImpact();
         if (UsesCinemachine)
             cinemachineRig.RenderNow();
@@ -166,6 +179,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         impactPositionAmplitude = resolvedPositionAmplitude;
         impactRollAmplitude = resolvedRollAmplitude;
         impactPriority = Mathf.Max(0f, priority);
+        activeImpactKind = requestKind;
         impactKickStartUnscaledTime = now;
         impactKickDuration = resolvedDuration * Mathf.Clamp01(returnRatio);
         impactKickAmplitude = resolvedPositionAmplitude;
@@ -216,6 +230,39 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
             return;
 
         yaw += input * rotateSpeed * Time.deltaTime; // Q/E 회전
+    }
+
+    // Footfalls are queued until the camera update so several elites can submit at
+    // once. They never enter the lower-priority microshake accumulation path.
+    public void QueueGroundStep(float positionAmplitude)
+    {
+        if (groundStepCameraStrength <= 0f || !isActiveAndEnabled)
+            return;
+        queuedGroundStepAmplitude = Mathf.Max(queuedGroundStepAmplitude,
+            Mathf.Clamp(positionAmplitude, 0f, 0.015f) * groundStepCameraStrength);
+    }
+
+    private void FlushGroundStepRequest()
+    {
+        float amplitude = queuedGroundStepAmplitude;
+        queuedGroundStepAmplitude = 0f;
+        if (amplitude <= 0f)
+            return;
+
+        float now = Time.unscaledTime;
+        bool impactActive = now < impactEndUnscaledTime;
+        if (impactActive && activeImpactKind != CombatCameraRequestKind.GroundStep)
+            return;
+        if (now - lastGroundStepUnscaledTime < 0.24f && amplitude <= lastGroundStepAmplitude)
+            return;
+        if (impactActive && amplitude <= impactPositionAmplitude)
+            return;
+
+        RequestCombatImpact(CombatCameraRequestKind.GroundStep, transform.up, transform.up, true,
+            0.09f, amplitude, 0f, 0.78f, 0f, 0f, 0f, 0.015f, 0f);
+        lastGroundStepUnscaledTime = now;
+        lastGroundStepAmplitude = amplitude;
+        GroundStepEmissionCount++;
     }
 
     private void UpdateZoomInput()

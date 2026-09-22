@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Ursacetus
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Ursacetus
-  displayName: Ursacetus
+  displayName: "\uC554\uAD74 \uAC70\uC218"
   vendorPrefab: {fileID: 426067758178803455, guid: aec70ee47e2751447a74d70d740a1f8f, type: 3}
   animationProfile: {fileID: 11400000, guid: b66aa3fa68ce6014f97350acee554e01, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 79dad85abe871d842ab639d6845d9c83, type: 2}

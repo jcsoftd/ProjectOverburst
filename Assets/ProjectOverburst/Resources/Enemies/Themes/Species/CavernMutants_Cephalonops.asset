@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Cephalonops
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Cephalonops
-  displayName: Cephalonops
+  displayName: "\uC554\uAD74 \uCD94\uACA9\uC218"
   vendorPrefab: {fileID: 3162314323729117833, guid: 66b6d4bad43053941a8574a2065cd267, type: 3}
   animationProfile: {fileID: 11400000, guid: 23c4b73890db47a4ca70adb3a46fdd46, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: b8559630997438f488a67bc31509758a, type: 2}

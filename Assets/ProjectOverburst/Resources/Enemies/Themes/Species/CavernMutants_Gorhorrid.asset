@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Gorhorrid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Gorhorrid
-  displayName: Gorhorrid
+  displayName: "\uAE34\uD600 \uD3EC\uC2DD\uC218"
   vendorPrefab: {fileID: 5411643272445625928, guid: 38a0b3b30fe282447bbbcbd3b1f4d1e7, type: 3}
   animationProfile: {fileID: 11400000, guid: 21acc35f7a4eef446af12807e4bab959, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: d76baecb5808c9349b2f1e43c0d28ffa, type: 2}

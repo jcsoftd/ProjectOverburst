@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Caniathrox
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: PrimalHunt_Caniathrox
-  displayName: Caniathrox
+  displayName: "\uC1A1\uACF3\uB2C8 \uC0AC\uB0E5\uAC1C"
   vendorPrefab: {fileID: 4329468938340597551, guid: 6f67a923f63e300428d51bc8490d6e5f, type: 3}
   animationProfile: {fileID: 11400000, guid: 3c1f3bffa5946bc45b187f9b3290d685, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 32b426622f191c14db9b05419aa72882, type: 2}

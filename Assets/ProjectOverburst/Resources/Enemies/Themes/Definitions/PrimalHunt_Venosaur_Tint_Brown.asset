@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Venosaur_Tint_Brown
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: PrimalHunt_Venosaur_Tint_Brown
-  displayName: Venosaur_Tint_Brown
+  displayName: "\uB3C5\uC228 \uD3EC\uC2DD\uB8E1"
   species: {fileID: 11400000, guid: 69e33c18945133d438979d38a60c8d84, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

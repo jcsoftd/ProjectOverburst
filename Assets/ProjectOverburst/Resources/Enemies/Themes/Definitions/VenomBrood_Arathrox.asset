@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Arathrox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: VenomBrood_Arathrox
-  displayName: Arathrox
+  displayName: "\uC0B0\uC131 \uC0AC\uC218"
   species: {fileID: 11400000, guid: e1a164af34fba6241891684e981eadaf, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

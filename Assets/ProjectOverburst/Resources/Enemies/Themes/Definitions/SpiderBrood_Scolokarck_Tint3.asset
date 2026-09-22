@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Scolokarck_Tint3
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: SpiderBrood_Scolokarck_Tint3
-  displayName: Scolokarck_Tint3
+  displayName: "\uBD84\uC0AC\uAC11\uCDA9"
   species: {fileID: 11400000, guid: 0e1b7069756cd7e4588f88b1b6d2f09d, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

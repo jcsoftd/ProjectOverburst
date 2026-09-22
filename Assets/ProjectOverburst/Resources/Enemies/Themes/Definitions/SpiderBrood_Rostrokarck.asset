@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Rostrokarck
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: SpiderBrood_Rostrokarck
-  displayName: Rostrokarck
+  displayName: "\uAC08\uD034\uD131 \uC6B0\uB450\uBA38\uB9AC"
   species: {fileID: 11400000, guid: 0a3a362c247103749b0f42f25e976d27, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}

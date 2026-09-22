@@ -72,6 +72,7 @@ GameObject:
   - component: {fileID: 2920276270299705382}
   - component: {fileID: 8477779267085809926}
   - component: {fileID: 7315756850521297022}
+  - component: {fileID: 5484523748806734918}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Rostrokarck
   m_TagString: Untagged
@@ -673,6 +674,21 @@ MonoBehaviour:
   strongDisplacement: 0.2
   strongLift: 0.025
   displacementDuration: 0.26
+--- !u!114 &5484523748806734918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3414ec6d8b8b841a8df664862f9bff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyEliteFootstepEmitter
+  actor: {fileID: 9124137652462741590}
+  profile: {fileID: 11400000, guid: 56c3bbafc657c8d40a5add2cb832db19, type: 2}
+  minimumMoveSpeed: 0.3
 --- !u!1 &5224895147244991241
 GameObject:
   m_ObjectHideFlags: 0

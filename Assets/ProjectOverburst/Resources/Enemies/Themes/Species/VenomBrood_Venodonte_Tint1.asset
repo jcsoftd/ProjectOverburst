@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Venodonte_Tint1
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: VenomBrood_Venodonte_Tint1
-  displayName: Venodonte_Tint1
+  displayName: "\uB3C5\uB2C8\uCDA9"
   vendorPrefab: {fileID: 1520251822999461392, guid: 328c0817618a94d4d8065e353ddf2c4c, type: 3}
   animationProfile: {fileID: 11400000, guid: 46e3d9673f389694694ec94f0b3950a9, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: ad02d0c9c9a0a85479747cc1ca3df091, type: 2}

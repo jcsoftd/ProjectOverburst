@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Ceratoferox
-  displayName: Ceratoferox
+  displayName: "\uBFD4\uBC1C\uD1B1 \uC57C\uC218"
   vendorPrefab: {fileID: 9201754953148960480, guid: f615bb15a8382e14b85c9c065104303d, type: 3}
   animationProfile: {fileID: 11400000, guid: 044383dc46669f641b93d4d38edd8f34, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 1e216451188554d44bd056c84e33a9a2, type: 2}

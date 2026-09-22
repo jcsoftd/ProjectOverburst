@@ -63,7 +63,8 @@ public readonly struct CombatHitFeedbackRequest
 public enum CombatCameraRequestKind
 {
     AttackHit,
-    PlayerDamage
+    PlayerDamage,
+    GroundStep
 }
 
 [DefaultExecutionOrder(-900)]

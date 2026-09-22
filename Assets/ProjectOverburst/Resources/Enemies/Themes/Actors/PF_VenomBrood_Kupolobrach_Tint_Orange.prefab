@@ -665,6 +665,7 @@ GameObject:
   - component: {fileID: 7897473711034822307}
   - component: {fileID: 8705732093268873398}
   - component: {fileID: 3835216472039324058}
+  - component: {fileID: 910424187452209112}
   m_Layer: 7
   m_Name: PF_VenomBrood_Kupolobrach_Tint_Orange
   m_TagString: Untagged
@@ -1266,6 +1267,21 @@ MonoBehaviour:
   strongDisplacement: 0.2
   strongLift: 0.025
   displacementDuration: 0.26
+--- !u!114 &910424187452209112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7234183645417013779}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3414ec6d8b8b841a8df664862f9bff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyEliteFootstepEmitter
+  actor: {fileID: 966101985607141419}
+  profile: {fileID: 11400000, guid: 0a70644a7ee2b504898c3d9610e4d61f, type: 2}
+  minimumMoveSpeed: 0.3
 --- !u!1 &7628901543186096153
 GameObject:
   m_ObjectHideFlags: 0

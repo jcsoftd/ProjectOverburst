@@ -41,6 +41,7 @@ GameObject:
   - component: {fileID: 2937420970468847350}
   - component: {fileID: 2441476716290557822}
   - component: {fileID: 7462781405025489343}
+  - component: {fileID: 7078063066502977415}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ursacetus
   m_TagString: Untagged
@@ -642,6 +643,21 @@ MonoBehaviour:
   strongDisplacement: 0.2
   strongLift: 0.025
   displacementDuration: 0.26
+--- !u!114 &7078063066502977415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 881338938614917874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3414ec6d8b8b841a8df664862f9bff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyEliteFootstepEmitter
+  actor: {fileID: 6884855128011413227}
+  profile: {fileID: 11400000, guid: 91a81bde997d6054d91ec06b184cf794, type: 2}
+  minimumMoveSpeed: 0.3
 --- !u!1 &1100991635629342362
 GameObject:
   m_ObjectHideFlags: 0

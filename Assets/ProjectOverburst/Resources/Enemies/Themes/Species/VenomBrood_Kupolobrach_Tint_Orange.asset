@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Kupolobrach_Tint_Orange
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: VenomBrood_Kupolobrach_Tint_Orange
-  displayName: Kupolobrach_Tint_Orange
+  displayName: "\uB3C5\uB0AD \uAC70\uC218"
   vendorPrefab: {fileID: 1096052370314814114, guid: 79b292f9638ec414991ea3ea0208a7c0, type: 3}
   animationProfile: {fileID: 11400000, guid: adf50005210e95d4c926581c28ef7ff5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 91b0bc2a04a3d5a4e9c2dffb14de579f, type: 2}

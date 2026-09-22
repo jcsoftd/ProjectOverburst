@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Occisodonte
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: PrimalHunt_Occisodonte
-  displayName: Occisodonte
+  displayName: "\uAC70\uB300 \uC1A1\uACF3\uB2C8"
   vendorPrefab: {fileID: 4800442172485478096, guid: 14f974a05da719c498f82d0d2a7426a5, type: 3}
   animationProfile: {fileID: 11400000, guid: 8dada7ca3dd14f74a9ebd9e1e66e4f07, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 1f88cbf923bb30641866787caf4f8047, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Scolokarck_Tint3
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Scolokarck_Tint3
-  displayName: Scolokarck_Tint3
+  displayName: "\uBD84\uC0AC\uAC11\uCDA9"
   vendorPrefab: {fileID: 6781172734509208155, guid: 109dc40f3f779494ea35cdadcb975942, type: 3}
   animationProfile: {fileID: 11400000, guid: f25540f53d4bbf34483f965b88f793a1, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: d36daa9f516ee9741887ed87cc2e0c62, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Gasterobrach
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: CavernMutants_Gasterobrach
-  displayName: Gasterobrach
+  displayName: "\uC554\uAD74 \uAC15\uD0C0\uC218"
   vendorPrefab: {fileID: 2386009625532289283, guid: 1bc78eb3fce5e6740968f96f2fc769f7, type: 3}
   animationProfile: {fileID: 11400000, guid: 07e906d2f26054d4baaa56dc653dfdcc, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: a065093ccf2b64e4b84116e74a8e4112, type: 2}

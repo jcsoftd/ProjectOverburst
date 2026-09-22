@@ -1,0 +1,143 @@
+using UnityEngine;
+
+[DefaultExecutionOrder(500)]
+[DisallowMultipleComponent]
+[RequireComponent(typeof(EnemyActor))]
+public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
+{
+    private static readonly RaycastHit[] GroundHits = new RaycastHit[16];
+    [SerializeField] private EnemyActor actor;
+    [SerializeField] private EnemyFootfallProfile profile;
+    [SerializeField, Min(0f)] private float minimumMoveSpeed = 0.3f;
+
+    private Vector3 previousPosition;
+    private float previousNormalizedTime;
+    private uint observedLeaseVersion;
+    private bool hasTracking;
+
+    public EnemyFootfallProfile Profile => profile;
+    public int ContactCount { get; private set; }
+
+    public void Configure(EnemyActor owner, EnemyFootfallProfile footfallProfile)
+    {
+        actor = owner;
+        profile = footfallProfile;
+        ResetTracking();
+    }
+
+    private void Awake()
+    {
+        if (actor == null) actor = GetComponent<EnemyActor>();
+    }
+
+    private void OnEnable() => ResetTracking();
+    private void OnDisable() => ResetTracking();
+
+    private void LateUpdate()
+    {
+        if (actor == null || profile == null || !profile.IsValid || !actor.IsLeased
+            || actor.Definition == null || actor.Definition.EnemyId != profile.EnemyId
+            || actor.Health == null || actor.Health.IsDead || actor.Animator == null
+            || actor.Movement == null || actor.Movement.IsStatusMovementLocked)
+        {
+            ResetTracking();
+            return;
+        }
+
+        if (observedLeaseVersion != actor.LeaseVersion)
+        {
+            observedLeaseVersion = actor.LeaseVersion;
+            ResetTracking();
+        }
+
+        Vector3 position = transform.position;
+        Animator animator = actor.Animator;
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        EnemyLocomotionMode mode = actor.Movement.LocomotionMode;
+        bool locomoting = !animator.IsInTransition(0) && state.IsName("Locomotion")
+            && (mode == EnemyLocomotionMode.Walk || mode == EnemyLocomotionMode.Run)
+            && actor.Movement.HasDestination && !actor.Movement.IsActionLocked;
+        float normalizedTime = state.normalizedTime;
+        if (!locomoting || normalizedTime < 0f)
+        {
+            previousPosition = position;
+            hasTracking = false;
+            return;
+        }
+
+        if (!hasTracking || normalizedTime < previousNormalizedTime)
+        {
+            previousPosition = position;
+            previousNormalizedTime = normalizedTime;
+            hasTracking = true;
+            return;
+        }
+
+        Vector3 delta = position - previousPosition;
+        previousPosition = position;
+        float horizontalDistance = new Vector2(delta.x, delta.z).magnitude;
+        float speed = horizontalDistance / Mathf.Max(Time.deltaTime, 0.0001f);
+        if (speed < minimumMoveSpeed || horizontalDistance > 0.75f || Mathf.Abs(delta.y) > 0.15f)
+        {
+            previousNormalizedTime = normalizedTime;
+            return;
+        }
+
+        bool crossed = false;
+        for (int i = 0; i < profile.ContactCount; i++)
+        {
+            float phase = profile.GetContactPhase(i);
+            if (Mathf.FloorToInt(normalizedTime - phase) > Mathf.FloorToInt(previousNormalizedTime - phase))
+            {
+                crossed = true;
+                break;
+            }
+        }
+        previousNormalizedTime = normalizedTime;
+        if (crossed) EmitContact(position);
+    }
+
+    private void EmitContact(Vector3 position)
+    {
+        QuarterViewCamera camera = QuarterViewCamera.ActiveInstance;
+        if (camera == null || camera.CurrentTarget == null) return;
+        Vector3 difference = camera.CurrentTarget.position - position;
+        difference.y = 0f;
+        float distance = difference.magnitude;
+        if (distance > 12f) return;
+
+        int mask = LayerMask.GetMask("Default", "Environment", "Ground");
+        int count = Physics.RaycastNonAlloc(position + Vector3.up * 0.6f, Vector3.down,
+            GroundHits, 1.6f, mask, QueryTriggerInteraction.Ignore);
+        float nearest = float.PositiveInfinity;
+        Vector3 groundPoint = position;
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit hit = GroundHits[i];
+            if (hit.collider == null || hit.collider.transform.IsChildOf(transform)
+                || hit.distance >= nearest) continue;
+            nearest = hit.distance;
+            groundPoint = hit.point;
+        }
+        if (float.IsPositiveInfinity(nearest) || Mathf.Abs(groundPoint.y - position.y) > 0.4f)
+            return;
+
+        Vector3 point = groundPoint + Vector3.up * 0.03f;
+        ContactCount++;
+        EnemyEliteFootstepFeel.Play(point, distance);
+        if (distance >= 8f) return;
+        float amplitude = distance >= 4f
+            ? Mathf.Lerp(0.004f, 0.012f,
+                Mathf.SmoothStep(0f, 1f, (8f - distance) / 4f))
+            : Mathf.Lerp(0.012f, 0.015f,
+                Mathf.SmoothStep(0f, 1f, (4f - distance) / 4f));
+        camera.QueueGroundStep(amplitude);
+    }
+
+    private void ResetTracking()
+    {
+        hasTracking = false;
+        previousPosition = transform.position;
+        previousNormalizedTime = 0f;
+    }
+}
