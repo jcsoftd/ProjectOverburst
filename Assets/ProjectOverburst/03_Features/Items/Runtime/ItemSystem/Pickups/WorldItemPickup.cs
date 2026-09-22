@@ -200,6 +200,37 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
             dropMotion.SettleImmediately();
 
         transform.position = position; // 테스트 배치물은 드랍 산개 없이 지정 위치에 고정
+        SetAuthoredVisualOnGround();
+    }
+
+    private void SetAuthoredVisualOnGround()
+    {
+        WorldPickupPresentation presentation = GetComponent<WorldPickupPresentation>();
+        Transform visualRoot = presentation != null ? presentation.VisualRoot : transform;
+        MeshRenderer[] renderers = visualRoot.GetComponentsInChildren<MeshRenderer>(false);
+        float visualBottom = float.PositiveInfinity;
+        for (int i = 0; i < renderers.Length; i++)
+            visualBottom = Mathf.Min(visualBottom, renderers[i].bounds.min.y);
+        if (float.IsPositiveInfinity(visualBottom)) return;
+
+        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 3f,
+            Vector3.down, 8f, ~0, QueryTriggerInteraction.Ignore);
+        float groundY = float.NegativeInfinity;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider candidate = hits[i].collider;
+            if (candidate == null || hits[i].normal.y < .35f
+                || candidate.transform.IsChildOf(transform)
+                || candidate.GetComponentInParent<WorldItemPickup>() != null
+                || candidate.GetComponentInParent<CurrencyWorldPickup>() != null
+                || candidate.GetComponentInParent<CombatHealth>() != null
+                || hits[i].point.y > transform.position.y + .5f) continue;
+            groundY = Mathf.Max(groundY, hits[i].point.y);
+        }
+
+        if (float.IsNegativeInfinity(groundY)) return;
+        float clearance = presentation != null ? Mathf.Min(.035f, presentation.GroundClearance) : .025f;
+        transform.position += Vector3.up * (groundY + clearance - visualBottom);
     }
 
     private void BuildRuntimeItemIfNeeded()
@@ -225,6 +256,8 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
         Transform anchor = gradeVfxAnchor != null ? gradeVfxAnchor : transform; // 시각 효과 기준점
         spawnedGradeVfx = VfxPrefabFactory.SpawnFollowing(prefab, anchor); // 아이템을 따라가는 등급 VFX
+        if (spawnedGradeVfx != null && runtimeItem.baseData is FlaskItemData)
+            spawnedGradeVfx.transform.localScale *= .48f;
     }
 
     private void ResolveReferences()
