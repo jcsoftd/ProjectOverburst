@@ -10,27 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: PrimalHunt_Pistriptere_2HitComboClawsAttack
+  m_Name: PrimalHunt_CrustaspikanLarvae_BiteForward
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
-  abilityId: PrimalHunt_Pistriptere_2HitComboClawsAttack
-  animatorTrigger: Attack4
+  abilityId: PrimalHunt_CrustaspikanLarvae_BiteForward
+  animatorTrigger: Attack2
   executionMode: 0
   damage: 5
   minimumRange: 0
-  range: 1.386
-  hitRadius: 0.936
+  range: 1.3640001
+  hitRadius: 0.914
   hitAngle: 125
   verticalTolerance: 1.25
   requireLineOfSight: 1
-  cooldown: 2
-  hitDelay: 0.62
-  hitNormalizedTime: 0.31
-  attackAnimationDuration: 2
-  attackLockDuration: 1.9
-  weight: 0.65
+  cooldown: 1.35
+  hitDelay: 0.35833335
+  hitNormalizedTime: 0.43
+  attackAnimationDuration: 0.8333334
+  attackLockDuration: 0.7916667
+  weight: 1
   priority: 0
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
-  additionalHitNormalizedTimes:
-  - 0.66
+  additionalHitNormalizedTimes: []

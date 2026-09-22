@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: PrimalHunt_Lacercharias_RollToBiteAttack
+  m_Name: PrimalHunt_CrustaspikanLarvae_Bite
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
-  abilityId: PrimalHunt_Lacercharias_RollToBiteAttack
-  animatorTrigger: Attack2
-  executionMode: 2
+  abilityId: PrimalHunt_CrustaspikanLarvae_Bite
+  animatorTrigger: Attack1
+  executionMode: 0
   damage: 5
-  minimumRange: 1.8
-  range: 3.5
-  hitRadius: 0.903
-  hitAngle: 95
+  minimumRange: 0
+  range: 1.3640001
+  hitRadius: 0.914
+  hitAngle: 125
   verticalTolerance: 1.25
   requireLineOfSight: 1
-  cooldown: 7
-  hitDelay: 0.68
-  hitNormalizedTime: 0.68
-  attackAnimationDuration: 1
-  attackLockDuration: 0.95
-  weight: 0.25
+  cooldown: 1.35
+  hitDelay: 0.35833335
+  hitNormalizedTime: 0.43
+  attackAnimationDuration: 0.8333334
+  attackLockDuration: 0.7916667
+  weight: 1
   priority: 0
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1

@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
-  m_Name: PrimalHunt_Lacercharias
+  m_Name: PrimalHunt_CrustaspikanLarvae
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
-  enemyId: PrimalHunt_Lacercharias
-  displayName: Lacercharias
-  species: {fileID: 11400000, guid: 10057644a8c22f74faef854ab541a7cc, type: 2}
+  enemyId: PrimalHunt_CrustaspikanLarvae
+  displayName: CrustaspikanLarvae
+  species: {fileID: 11400000, guid: a66e284fe0d467a43a13d18e0aeed304, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
   variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
-  actorPrefab: {fileID: 9146963004018948161, guid: b501889d1ffe55c42857206db47d2011, type: 3}
-  animationProfile: {fileID: 11400000, guid: 155b1d3b24699d04c91f8501b25ecc35, type: 2}
-  abilitySet: {fileID: 11400000, guid: d1aaa18ec3f6e284bb62d3c8b5f47051, type: 2}
-  behaviorProfile: {fileID: 11400000, guid: ff8fef5b4b4f2664b8ed3245eac11ff8, type: 2}
-  movementProfile: {fileID: 11400000, guid: 1c863de652d111e4abf494fe4441b8be, type: 2}
+  actorPrefab: {fileID: 5917693397499559560, guid: ce4298e82a3841a49960fb975c3d45d6, type: 3}
+  animationProfile: {fileID: 11400000, guid: fcffeec03fd56e54ca18368e72b3296c, type: 2}
+  abilitySet: {fileID: 11400000, guid: cadefab150e31c14588950a83a3f6864, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 8b0660b79d4fa0949b618d169779f2f9, type: 2}
+  movementProfile: {fileID: 11400000, guid: 5c870f97189c07647aa5f6c1fec9d409, type: 2}
   aiPreset: {fileID: 11400000, guid: 8674eb3e0a9410d4fa2059d594058a82, type: 2}
   squadParticipationMode: 0
   tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

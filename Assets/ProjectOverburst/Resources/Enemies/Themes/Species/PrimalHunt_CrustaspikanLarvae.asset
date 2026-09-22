@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: PrimalHunt_CrustaspikanLarvae
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: PrimalHunt_CrustaspikanLarvae
+  displayName: CrustaspikanLarvae
+  vendorPrefab: {fileID: 3438673837367667287, guid: 5cbb9314d047c4b4cbc3fd9bd6b86f91, type: 3}
+  animationProfile: {fileID: 11400000, guid: fcffeec03fd56e54ca18368e72b3296c, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: cadefab150e31c14588950a83a3f6864, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 5c870f97189c07647aa5f6c1fec9d409, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 8b0660b79d4fa0949b618d169779f2f9, type: 2}
+  threatCost: 1

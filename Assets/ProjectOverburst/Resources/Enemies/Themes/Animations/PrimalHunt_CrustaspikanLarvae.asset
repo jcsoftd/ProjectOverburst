@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: PrimalHunt_CrustaspikanLarvae
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: PrimalHunt_CrustaspikanLarvae
+  runtimeController: {fileID: 9100000, guid: 0e3cfebc1533a3a4b813ed4bb737f6e0, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 647cd07f7194d294097acf73a510cdbf, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 542c7fed5536df74bb5ec9d961c339e6, type: 3}
+  run: {fileID: 1827226128182048838, guid: 542c7fed5536df74bb5ec9d961c339e6, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 2f6368f030c665549968d111a4ead004, type: 3}
+  - {fileID: 1827226128182048838, guid: 913b392eae292d740b47041c82ded079, type: 3}
+  hit: {fileID: 1827226128182048838, guid: bcda13caf17e6c840ba2cc1c968a4b04, type: 3}
+  death: {fileID: 1827226128182048838, guid: 015ee943c8c8e2e438a40bd1c20a049e, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 2b5ae9d6355271a44b66b7bf365d243c, type: 3}
+  - {fileID: 1827226128182048838, guid: 562e68056b58503469f663fb2e239123, type: 3}
+  - {fileID: 1827226128182048838, guid: cf8dc09b865c69543b801b78ffe2c147, type: 3}
+  - {fileID: 1827226128182048838, guid: c498335a21cfb1a4ead18836d72d5e5d, type: 3}
+  - {fileID: 1827226128182048838, guid: 5339e22b7815a564eb142f056381fb02, type: 3}
+  - {fileID: 1827226128182048838, guid: a614024417b32c94492d70155495975a, type: 3}
+  - {fileID: 1827226128182048838, guid: 0b3490930265072439c6acb03d6a1cdb, type: 3}
+  - {fileID: 1827226128182048838, guid: 3ecb759b5472fb74fb9da2e8b80779f6, type: 3}
+  - {fileID: 1827226128182048838, guid: 7fbba64b5ca3e9d4193bba31a991975a, type: 3}
+  - {fileID: 1827226128182048838, guid: dc7353f52f7fa9d4884e46d04d5a8d77, type: 3}
+  - {fileID: 1827226128182048838, guid: 652128374fc1cb445b4bb652c4de0bcd, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@BiteForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@JumpBite_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@WalkRight_RM.fbx"

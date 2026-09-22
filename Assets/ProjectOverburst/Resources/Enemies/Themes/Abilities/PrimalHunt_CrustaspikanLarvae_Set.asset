@@ -10,11 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
-  m_Name: PrimalHunt_Pistriptere_Set
+  m_Name: PrimalHunt_CrustaspikanLarvae_Set
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
-  abilitySetId: PrimalHunt_Pistriptere
+  abilitySetId: PrimalHunt_CrustaspikanLarvae
   abilities:
-  - {fileID: 11400000, guid: 6a6da3e0f3f741947940b1aedca6aca8, type: 2}
-  - {fileID: 11400000, guid: 6839ff382cbcb90409921a866898fc59, type: 2}
-  - {fileID: 11400000, guid: 24c54c8fdf800704bae89897e3610781, type: 2}
-  - {fileID: 11400000, guid: 554ee7743c11b3f4c8e8ead6ed95972a, type: 2}
+  - {fileID: 11400000, guid: 4b918527fec19794a98fbf6ae9a19a82, type: 2}
+  - {fileID: 11400000, guid: b4a95e072d0a8e94786631742a7a7334, type: 2}
