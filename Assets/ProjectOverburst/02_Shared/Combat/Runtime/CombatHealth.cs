@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
@@ -17,6 +18,25 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     private Coroutine activeDamageOverTimeRoutine; // DoT 루틴
     private ElementalStatusController elementalStatusController;
     private CombatTarget combatTarget;
+    private readonly HashSet<Behaviour> damageDeathPreventionOwners = new HashSet<Behaviour>();
+
+    // Runtime leases: inactive or destroyed owners cannot leave protection behind.
+    public bool IsDeathFromDamagePrevented
+    {
+        get
+        {
+            foreach (var owner in damageDeathPreventionOwners)
+                if (owner != null && owner.isActiveAndEnabled) return true;
+            return false;
+        }
+    }
+
+    public void SetDamageDeathPrevention(Behaviour owner, bool enabled)
+    {
+        if (owner == null) return;
+        if (enabled) damageDeathPreventionOwners.Add(owner);
+        else damageDeathPreventionOwners.Remove(owner);
+    }
 
     public event Action<CombatHealth, DamageInfo> OnDamaged;
     public event Action<CombatHealth, float, float> OnHealthChanged;
@@ -61,7 +81,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         ApplyEnemyDefenseModifier(ref info, ref damage); // 몬스터 방패 방어
         ApplyPlayerDamageReductionDebug(ref info, ref damage);
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
-        currentHp = Mathf.Max(0f, currentHp - damage); // HP 감소
+        currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
         EarthElementZoneRuntimeService.ReportDirectHit(this, info, actualDamage);
         TryProcessElementalApplication(info, actualDamage); // 상태·반응 단일 진입점

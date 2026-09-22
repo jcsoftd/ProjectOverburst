@@ -71,9 +71,10 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
         previousHideoutSpawn=CombatDebugSettings.SpawnHideoutMonsters;CombatDebugSettings.SetHideoutMonsterSpawn(false);
         arena=Instantiate(arenaPrefab,new Vector3(1000,0,1000),Quaternion.identity);
         SceneManager.MoveGameObjectToScene(arena.gameObject,arenaPlayer.gameObject.scene);
+        arena.ProtectPlayer(arenaPlayer.GetComponent<CombatHealth>());
         Teleport(arena.entry.position,arena.entry.rotation);
         if(arenaButton!=null)arenaButton.GetComponentInChildren<TextMeshProUGUI>().text="하이드아웃으로 돌아가기";
-        statusLabel.text="50마리 버튼 또는 색상 발판으로 시작 · 정리 버튼으로 재시험";
+        statusLabel.text="시험장 사망 방지 · 최소 체력 1\n50마리 버튼 또는 색상 발판으로 시작 · 정리 버튼으로 재시험";
     }
     private void Teleport(Vector3 position,Quaternion rotation)
     {
@@ -87,6 +88,7 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
     private void ExitArena(bool restorePosition)
     {
         if(arena==null)return;
+        arena.ReleasePlayerProtection();
         Clear();if(restorePosition)Teleport(returnPosition,returnRotation);
         Destroy(arena.gameObject);arena=null;arenaPlayer=null;
         CombatDebugSettings.SetHideoutMonsterSpawn(previousHideoutSpawn);

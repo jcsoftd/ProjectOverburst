@@ -31,11 +31,14 @@ public static class MonsterThemePlayVerifier
     public static void RunReview() { Start(false,true); }
     [MenuItem("OVERBURST/Enemies/Themes/Validate Scene Transition Play Mode")]
     public static void RunTransition() { Start(false,false,true); }
-    private static void Start(bool safety,bool review=false,bool transition=false)
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Arena Survival Play Mode")]
+    public static void RunSurvival() { Start(false,survival:true); }
+    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
         var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
+        SessionState.SetBool(Key+".survival",survival);
         SessionState.SetBool(Key+".transition",transition);SessionState.SetBool(Key+".review",review);SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
     }
     private static void Changed(PlayModeStateChange state)
@@ -93,12 +96,13 @@ public static class MonsterThemePlayVerifier
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".survival",false)){yield return ArenaSurvival();yield break;}
         if(SessionState.GetBool(Key+".transition",false)){yield return SceneTransition();yield break;}
         if(SessionState.GetBool(Key+".review",false))
         {yield return Review();ui.Clear();ui.ToggleArena();yield return null;yield break;}
         if(SessionState.GetBool(Key+".safety",false))
         {
-            yield return Safety();ui.Clear();ui.ToggleArena();yield return null;yield break;
+            yield return Safety();ui.Clear();if(ui.InArena)ui.ToggleArena();yield return null;yield break;
         }
         for(int index=0;index<3;index++)
         {
@@ -238,9 +242,53 @@ public static class MonsterThemePlayVerifier
         var constrained=root.AddComponent<EnemyThemeEncounter>();constrained.Configure(ui.tables[0],bounds);Check(constrained.Begin(player.transform,false),"Constrained start");
         yield return Until(()=>constrained.State==EnemyThemeEncounterState.Failed,10,"Constrained should fail");Check(constrained.AliveCount==0,"Failed batch retained actors");UnityEngine.Object.Destroy(root);
         Pass("insufficient placement fails and returns entire batch");
+        // Arena survival is intentional; death cleanup belongs to ordinary combat outside it.
+        ui.ToggleArena();Check(!health.IsDeathFromDamagePrevented,"Protection leaked outside arena");
         ui.spawnButtons[2].onClick.Invoke();encounter=DebugEncounter();yield return Until(()=>encounter.SpawnedCount==50,15,"Death setup");
         var roster=encounter.SnapshotActors();health.TakeDamage(new DamageInfo(health.MaxHp+1000,player.transform.position,null,Vector3.zero));
         yield return Until(()=>!encounter.Running,5,"Dead target did not stop encounter");Check(roster.All(a=>!a.IsLeased),"Dead player cleanup");health.ResetHealth();Pass("player death stops and clears encounter");
+    }
+    private static IEnumerator ArenaSurvival()
+    {
+        int deaths=0,hits=0;
+        void Died(CombatHealth target,DamageInfo info){deaths++;}
+        void Hit(CombatHealth target,DamageInfo info){hits++;}
+        health.OnDead+=Died;health.OnDamaged+=Hit;
+        try
+        {
+            health.SetMaxHp(100,true);
+            for(int i=0;i<5;i++)health.TakeDamage(new DamageInfo(10000,player.transform.position));
+            Check(health.CurrentHp==1 && !health.IsDead && deaths==0 && hits==5,"Repeated lethal damage must leave 1 HP and emit hits without death");
+            health.ApplyDamageOverTime(10000,.3f,.05f,null,Vector3.zero);yield return Seconds(.5f);
+            Check(health.CurrentHp==1 && !health.IsDead && hits>5,"DoT bypassed survival");
+            ui.Clear();Check(health.IsDeathFromDamagePrevented && health.MaxHp==100,"Clear changed protection or max HP");
+            Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform,out var service),"Survival spawn service");
+            Check(service.RegisterAdditionalCatalog(ui.tables[0].Catalog,out _),"Survival catalog");
+            var enemy=Spawn(ui.tables[0].Entries[0].definition,center+Vector3.forward*8);
+            Kill(enemy);Check(enemy.Health.IsDead && !enemy.Health.IsDeathFromDamagePrevented,"Monster incorrectly protected");enemy.RequestPoolRelease();
+            Pass("arena repeated lethal damage / DoT / hit events / 1 HP / unchanged max HP / monster death");
+            ui.ToggleArena();Check(!health.IsDeathFromDamagePrevented,"Return did not release protection immediately");
+            health.TakeDamage(new DamageInfo(10000,player.transform.position));
+            Check(health.IsDead && deaths==1,"Normal death outside arena");health.ResetHealth();yield return null;
+            for(int cycle=0;cycle<2;cycle++)
+            {
+                ui.ToggleArena();Check(ui.InArena && health.IsDeathFromDamagePrevented,"Reentry protection");
+                var arena=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugArena>();
+                if(cycle==0)
+                {
+                    arena.enabled=false;Check(!health.IsDeathFromDamagePrevented,"Disabled arena retained protection");
+                    ui.ToggleArena();
+                }
+                else
+                {
+                    UnityEngine.Object.Destroy(arena.gameObject);yield return null;
+                    Check(!health.IsDeathFromDamagePrevented,"Destroyed arena retained protection");
+                }
+                health.TakeDamage(new DamageInfo(10000,player.transform.position));Check(health.IsDead,"Lifecycle cleanup still prevents death");health.ResetHealth();yield return null;
+            }
+            Pass("normal return / outside death / repeated entry / disable / destruction restore damage");
+        }
+        finally {health.OnDead-=Died;health.OnDamaged-=Hit;}
     }
     private static IEnumerator Review()
     {
@@ -288,6 +336,7 @@ public static class MonsterThemePlayVerifier
         flow.EnterDungeon(DungeonRunEntryRequest.Create(731,PersistentSceneFlow.HideoutSceneName,"DungeonPortal"));
         yield return Until(()=>!flow.IsSwitching && flow.CurrentSubSceneName==PersistentSceneFlow.DungeonRunSceneName,90,"Dungeon transition");
         Check(!ui.InArena && roster.All(a=>a==null || !a.IsLeased),"Arena/monster leaked into dungeon");
+        Check(!health.IsDeathFromDamagePrevented,"Arena survival leaked into dungeon");
         Check(RunSceneReadinessRegistry.GetState(PersistentSceneFlow.DungeonRunSceneName)==RunSceneReadinessState.Ready,"Dungeon readiness");
         Check(!UnityEngine.Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Any(a=>a.IsLeased && ui.tables.Any(t=>t.Entries.Any(e=>e.definition==a.Definition))),"Theme replaced default dungeon spawns");
         flow.ReturnToHub(RunSceneReturnContext.CreateHubTransfer(PersistentSceneFlow.HideoutSceneName,"DungeonPortal"));
