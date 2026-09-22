@@ -24,6 +24,10 @@ public static class MonsterThemeContentValidator
             foreach(var entry in table.Entries)
             {
                 var definition=entry.definition;Require(definition.IsValid,definition.EnemyId+" invalid");
+                var locomotionController=(UnityEditor.Animations.AnimatorController)definition.AnimationProfile.RuntimeController;
+                var locomotionState=locomotionController.layers[0].stateMachine.states.First(s=>s.state.name=="Locomotion").state;
+                foreach(var child in ((UnityEditor.Animations.BlendTree)locomotionState.motion).children)
+                    ValidateLoop(child.motion,definition.EnemyId);
                 Require(definition.SquadParticipationMode==(entry.tier==EnemyThemeTier.Elite?EnemySquadParticipationMode.Independent:EnemySquadParticipationMode.SquadMember),"Participation");
                 Require(definition.AiPreset==sharedPreset,"Split preset would fragment the swarm");
                 string path=AssetDatabase.GetAssetPath(definition.ActorPrefab);
@@ -58,5 +62,10 @@ public static class MonsterThemeContentValidator
     }
     private static int attacksFor(EnemyDefinition definition,EnemyAbilityDefinition ability)
     {for(int i=0;i<definition.AbilitySet.Count;i++)if(definition.AbilitySet.GetAbility(i)==ability)return i;return -1;}
+    private static void ValidateLoop(Motion motion,string id)
+    {
+        if(motion is UnityEditor.Animations.BlendTree tree)foreach(var child in tree.children)ValidateLoop(child.motion,id);
+        else Require(motion is AnimationClip clip && clip.isLooping,"Non-looping gait: "+id+" / "+motion);
+    }
     private static void Require(bool condition,string message){if(!condition)throw new InvalidOperationException("[MonsterThemeContent] "+message);}
 }

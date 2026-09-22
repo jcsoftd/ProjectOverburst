@@ -46,7 +46,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
             || actor.Movement.IsActionLocked || actor.AnimationBridge.IsBlockingActionActive) return false;
         float distance = Vector3.Distance(new Vector3(target.position.x, transform.position.y, target.position.z), transform.position);
-        return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp) && HasLineOfSight(target);
+        return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp) && HasLineOfSight(target)
+            && actor.Movement.IsFacingForAttack(target.position);
     }
     private bool Usable() => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked
@@ -72,7 +73,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         Vector3 destination = target.position;
         Vector3 direction = destination - transform.position; direction.y = 0; direction.Normalize();
-        actor.Movement.FacePosition(destination);
+        // Facing is completed before CanStart succeeds. Aim and release keep this committed direction.
         float duration = ResolveCooldown(ability.AttackAnimationDuration);
         actor.Movement.ApplyActionLock(duration + .12f);
         actor.AnimationBridge.SetAttackAnimSpeed(ability.AttackAnimationDuration / Mathf.Max(.01f,duration));

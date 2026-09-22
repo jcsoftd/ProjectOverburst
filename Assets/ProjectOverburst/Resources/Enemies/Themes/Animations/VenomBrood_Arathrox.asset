@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: VenomBrood_Arathrox
   runtimeController: {fileID: 9100000, guid: f1edd95716cd06c4a8cb0417bd4e8af9, type: 2}
-  idle: {fileID: 1827226128182048838, guid: 8d7fe8825ed6a2e478ca4eaaa8225352, type: 3}
-  walk: {fileID: 1827226128182048838, guid: 173fb166e7cc91249a1892fb8c28de25, type: 3}
-  run: {fileID: 1827226128182048838, guid: 173fb166e7cc91249a1892fb8c28de25, type: 3}
+  idle: {fileID: 7400000, guid: a86c9303658b9fe4ea25f2d0dd6ebb00, type: 2}
+  walk: {fileID: 7400000, guid: 9d96cf4ddc602144ca8dfd6d8a1cf479, type: 2}
+  run: {fileID: 7400000, guid: 9d96cf4ddc602144ca8dfd6d8a1cf479, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: f8c7b834281425341be9833573619610, type: 3}
   - {fileID: 1827226128182048838, guid: 42338923402d8b04ea0b949636e0f3b5, type: 3}

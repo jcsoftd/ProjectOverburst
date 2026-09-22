@@ -33,12 +33,21 @@ public static class MonsterThemePlayVerifier
     public static void RunTransition() { Start(false,false,true); }
     [MenuItem("OVERBURST/Enemies/Themes/Validate Arena Survival Play Mode")]
     public static void RunSurvival() { Start(false,survival:true); }
-    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false)
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Locomotion Play Mode")]
+    public static void RunLocomotion() { Start(false,locomotion:true); }
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Crowd Motion Play Mode")]
+    public static void RunCrowdMotion() { Start(false,crowdMotion:true); }
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Facing Play Mode")]
+    public static void RunFacing() { Start(false,facing:true); }
+    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
         var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
         SessionState.SetBool(Key+".survival",survival);
+        SessionState.SetBool(Key+".facing",facing);
+        SessionState.SetBool(Key+".locomotion",locomotion);
+        SessionState.SetBool(Key+".crowdMotion",crowdMotion);
         SessionState.SetBool(Key+".transition",transition);SessionState.SetBool(Key+".review",review);SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
     }
     private static void Changed(PlayModeStateChange state)
@@ -96,6 +105,21 @@ public static class MonsterThemePlayVerifier
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".facing",false))
+        {
+            yield return MonsterThemeFacingVerifier.Verify(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("14 species / left-right turns / 45 committed attacks / evade / recovery");yield break;
+        }
+        if(SessionState.GetBool(Key+".crowdMotion",false))
+        {
+            yield return MonsterThemeCrowdMotionVerifier.Verify(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("3 tables / 50 each / visible moving poses / Gameplay pursuit / six squads");yield break;
+        }
+        if(SessionState.GetBool(Key+".locomotion",false))
+        {
+            yield return MonsterThemeLocomotionVerifier.Verify(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("14 species / looping bone poses / walk-run-backpedal / stop / hit-attack return / reuse");yield break;
+        }
         if(SessionState.GetBool(Key+".survival",false)){yield return ArenaSurvival();yield break;}
         if(SessionState.GetBool(Key+".transition",false)){yield return SceneTransition();yield break;}
         if(SessionState.GetBool(Key+".review",false))

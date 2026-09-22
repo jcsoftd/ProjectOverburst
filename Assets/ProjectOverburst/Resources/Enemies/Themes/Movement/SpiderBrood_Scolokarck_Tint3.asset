@@ -13,11 +13,14 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: SpiderBrood_Scolokarck_Tint3
-  moveSpeed: 1.9
+  moveSpeed: 1.55
   turnSpeed: 420
-  animationReferenceSpeed: 1.9
-  runAnimationReferenceSpeed: 6.985657
-  runSpeedMultiplier: 1.6
+  animationReferenceSpeed: 1.6844857
+  runAnimationReferenceSpeed: 1.6844857
+  backpedalAnimationReferenceSpeed: 1.8550478
+  runSpeedMultiplier: 1.4193549
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20
   crowdWeight: 1.8
+  crowdAnimationSpeedLimit: 1.12
+  turnAnimationReferenceSpeeds: {x: 107.99999, y: 107.99999}

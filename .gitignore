@@ -101,3 +101,7 @@ Assets/StreamingAssets/aa/
 /Docs/
 /AGENTS.md
 /ignore.conf
+
+# Supplier-derived looping clips: restore locally with their original meta files.
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/Locomotion/
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/Locomotion.meta

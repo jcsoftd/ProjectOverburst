@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: SpiderBrood_RostrokarckLarvae
   runtimeController: {fileID: 9100000, guid: 8b209af7ceeb9c44187b37824d56801b, type: 2}
-  idle: {fileID: 1827226128182048838, guid: fc788bd7966ff214a8521553af90fd84, type: 3}
-  walk: {fileID: 1827226128182048838, guid: 057e355dfe11cfd44b932988a6128aab, type: 3}
-  run: {fileID: 1827226128182048838, guid: 057e355dfe11cfd44b932988a6128aab, type: 3}
+  idle: {fileID: 7400000, guid: bc95cb5720178ae4bb024bf838ab94e7, type: 2}
+  walk: {fileID: 7400000, guid: a891294245556dd4a8f03d359b38626e, type: 2}
+  run: {fileID: 7400000, guid: a891294245556dd4a8f03d359b38626e, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: 735a711da2bf8b748ab41c412d4949f6, type: 3}
   - {fileID: 1827226128182048838, guid: 7de8aaf0dc6a4cf499ff0eb2802535a8, type: 3}

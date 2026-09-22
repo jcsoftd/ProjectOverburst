@@ -117,7 +117,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         Vector3 delta = attackTarget.position - transform.position;
         delta.y = 0f;
-        return delta.sqrMagnitude <= ability.Range * ability.Range;
+        return delta.sqrMagnitude <= ability.Range * ability.Range
+            && (movement == null || movement.IsFacingForAttack(attackTarget.position));
     }
 
     public bool TryStartAbility(
@@ -145,6 +146,12 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         float resolvedRange = ability != null ? ability.Range : Mathf.Max(0f, attackRange);
         if (!CanStartAttack(resolvedRange))
             return false;
+
+        if (movement != null && !movement.IsFacingForAttack(target.position))
+        {
+            movement.FacePosition(target.position);
+            return false;
+        }
 
         FaceTargetOnce();
         string triggerName = ability != null
@@ -677,6 +684,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
     private void FaceTargetOnce()
     {
+        if (movement != null && movement.Profile != null && movement.Profile.HasTurnAnimation)
+            return; // 테마 몬스터는 회전 동작을 완료한 방향으로 공격하며 순간 정렬하지 않는다.
         if (target == null)
             return;
 

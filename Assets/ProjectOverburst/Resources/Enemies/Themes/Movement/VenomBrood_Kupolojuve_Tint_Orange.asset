@@ -13,11 +13,14 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: VenomBrood_Kupolojuve_Tint_Orange
-  moveSpeed: 1.9
+  moveSpeed: 1.45
   turnSpeed: 420
-  animationReferenceSpeed: 1.9
-  runAnimationReferenceSpeed: 1.9
-  runSpeedMultiplier: 1.6
+  animationReferenceSpeed: 1.5808501
+  runAnimationReferenceSpeed: 1.5808501
+  backpedalAnimationReferenceSpeed: 1.5843742
+  runSpeedMultiplier: 1.4482758
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20
   crowdWeight: 1.8
+  crowdAnimationSpeedLimit: 1.12
+  turnAnimationReferenceSpeeds: {x: 135, y: 135}

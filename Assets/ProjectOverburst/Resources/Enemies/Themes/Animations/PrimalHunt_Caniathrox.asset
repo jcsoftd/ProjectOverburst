@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: PrimalHunt_Caniathrox
   runtimeController: {fileID: 9100000, guid: dcc53f1a34a515942ab01a55a7aaaa28, type: 2}
-  idle: {fileID: 1827226128182048838, guid: 88e366233e02a9b4da04a77ce5f18869, type: 3}
-  walk: {fileID: 1827226128182048838, guid: 3450d1eb8d882404289f89fa0811b03b, type: 3}
-  run: {fileID: 1827226128182048838, guid: e87f85b90b704f74f834009672903ad3, type: 3}
+  idle: {fileID: 7400000, guid: 2d52dbba9ab889347b93542d045913aa, type: 2}
+  walk: {fileID: 7400000, guid: 72f917cf0069a8441b9323a6d788a118, type: 2}
+  run: {fileID: 7400000, guid: 0879189c7e0476d4b893c73880e29707, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: ffc9ae3758bbf064e8a86c4b55871fb9, type: 3}
   - {fileID: 1827226128182048838, guid: 463af4bc9ccab6b4f9ad80ff380c4117, type: 3}

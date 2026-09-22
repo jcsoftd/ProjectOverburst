@@ -91,6 +91,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void OnDisable()
     {
+        facingRequestUntil = 0f;
         ClearAttackDisplacement();
         SetStatusMoveSpeedMultiplier(1f);
         SetEarthZoneMoveSpeedMultiplier(1f);
@@ -120,6 +121,16 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return;
         }
 
+        if (profile != null && profile.HasTurnAnimation && Time.time < facingRequestUntil
+            && !hasDestination && !IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
+            && (locomotionAnimator == null || locomotionAnimator.AllowsMovement(locomotionMode)))
+        {
+            Vector3 direction = requestedFacingPosition - transform.position; direction.y = 0f;
+            float angle = Vector3.SignedAngle(transform.forward, direction, Vector3.up);
+            if (Mathf.Abs(angle) > 2f)
+                motor?.Face(direction, Mathf.Min(profile.TurnSpeed, profile.TurnAnimationReferenceSpeed(angle) * 1.15f));
+        }
+
         if ((reaction != null && reaction.IsHitStunActive) || IsActionLocked)
         {
             PauseMotorAndAnimation(); // 일시 정지 후 기존 이동 재개
@@ -143,6 +154,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     public void SetProfile(EnemyMovementProfile movementProfile)
     {
         profile = movementProfile;
+        if (motor != null) motor.ContinuousFacing = profile != null && profile.HasTurnAnimation;
     }
 
     public void SetRuntimeSpeedMultiplier(float multiplier)
@@ -263,6 +275,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     public void StopMovement()
     {
+        facingRequestUntil = 0f;
         hasDestination = false;
         hasFacingPosition = false;
         ClearMovementCommand();
@@ -284,10 +297,27 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         PauseMotorAndAnimation();
     }
 
+    private Vector3 requestedFacingPosition;
+    private float facingRequestUntil;
+
+    public bool IsFacingForAttack(Vector3 worldPosition)
+    {
+        if (profile == null || !profile.HasTurnAnimation) return true;
+        Vector3 direction = worldPosition - transform.position; direction.y = 0f;
+        return direction.sqrMagnitude < .0001f || Vector3.Angle(transform.forward, direction) <= 5f;
+    }
+
     public void FacePosition(Vector3 worldPosition)
     {
         if (IsStatusMovementLocked)
             return;
+
+        if (profile != null && profile.HasTurnAnimation)
+        {
+            requestedFacingPosition = worldPosition;
+            facingRequestUntil = Time.time + .35f;
+            return; // AI Update 요청을 한 번의 물리 tick에서 소비한다.
+        }
 
         Vector3 direction = worldPosition - transform.position;
         float turnSpeed = profile != null ? profile.TurnSpeed : 360f;
@@ -343,6 +373,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             crowdAgent = GetComponent<EnemyCrowdAgent>();
 
         motor?.ResolveReferences();
+        if (motor != null) motor.ContinuousFacing = profile != null && profile.HasTurnAnimation;
         reaction?.ResolveReferences();
         locomotionAnimator?.ResolveReferences();
     }
@@ -554,7 +585,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         float actualMoveSpeed = actualMovement.magnitude / Mathf.Max(0.0001f, Time.fixedDeltaTime);
         locomotionAnimator?.SetMovement(
             movementAnimationAmount,
-            Mathf.Max(commandedMoveSpeed, actualMoveSpeed),
+            profile != null ? profile.ResolveCrowdAnimationSpeed(commandedMoveSpeed, actualMoveSpeed) : Mathf.Max(commandedMoveSpeed, actualMoveSpeed),
             ResolveAnimationReferenceSpeed());
     }
 

@@ -13,6 +13,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     private RigidbodyConstraints movementConstraints; // 이동 가능한 원본 제약
     private bool isPositionHeld; // 정지 상태 XZ 고정 여부
     private bool isFrozen; // 빙결 위치·회전 하드 락
+    public bool ContinuousFacing { get; set; }
 
     public bool IsPositionHeld { get { return isPositionHeld; } }
     public bool IsFrozen { get { return isFrozen; } }
@@ -207,7 +208,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         if (direction.sqrMagnitude <= rotationDeadZone * rotationDeadZone)
             return;
 
-        if (Time.time < nextFacingRefreshTime && desiredFacingDirection.sqrMagnitude > 0.0001f)
+        if (!ContinuousFacing && Time.time < nextFacingRefreshTime && desiredFacingDirection.sqrMagnitude > 0.0001f)
             return;
 
         desiredFacingDirection = direction.normalized;
@@ -220,7 +221,8 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
             return;
 
         Quaternion targetRotation = Quaternion.LookRotation(desiredFacingDirection, Vector3.up);
-        Quaternion nextRotation = Quaternion.RotateTowards(transform.rotation, targetRotation, turnSpeed * Time.fixedDeltaTime);
+        Quaternion currentRotation = body != null && !body.isKinematic ? body.rotation : transform.rotation;
+        Quaternion nextRotation = Quaternion.RotateTowards(currentRotation, targetRotation, turnSpeed * Time.fixedDeltaTime);
 
         if (body != null && !body.isKinematic)
             body.MoveRotation(nextRotation);

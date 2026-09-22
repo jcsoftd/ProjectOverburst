@@ -13,11 +13,14 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: VenomBrood_Arathrox
-  moveSpeed: 1.9
+  moveSpeed: 1.65
   turnSpeed: 420
-  animationReferenceSpeed: 2.9662154
-  runAnimationReferenceSpeed: 2.9662154
-  runSpeedMultiplier: 1.6
+  animationReferenceSpeed: 2.947254
+  runAnimationReferenceSpeed: 2.947254
+  backpedalAnimationReferenceSpeed: 2.9497395
+  runSpeedMultiplier: 1.4242424
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20
   crowdWeight: 1.8
+  crowdAnimationSpeedLimit: 1.12
+  turnAnimationReferenceSpeeds: {x: 90, y: 90}

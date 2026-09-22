@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: PrimalHunt_Dimaxillosaurus
   runtimeController: {fileID: 9100000, guid: 2242892bb34b2de40ae05c9a85dbdb02, type: 2}
-  idle: {fileID: 1827226128182048838, guid: c6be510d31a7aea4fa4ef1d276943c1f, type: 3}
-  walk: {fileID: 1827226128182048838, guid: 22b725c46ed8b354a8c6ac6c43b681d1, type: 3}
-  run: {fileID: 1827226128182048838, guid: 113e00bd1a749964b9b093a7c5390217, type: 3}
+  idle: {fileID: 7400000, guid: a4b7570981ad91142bbeb521b722e7d0, type: 2}
+  walk: {fileID: 7400000, guid: cd63dfeab0e10114c98d8474deb95573, type: 2}
+  run: {fileID: 7400000, guid: cd63dfeab0e10114c98d8474deb95573, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: 338f16ef3772829419d9a898b0c9011f, type: 3}
   - {fileID: 1827226128182048838, guid: 9f9f3d1c9bd44244d81866b6ac06f12f, type: 3}
@@ -39,6 +39,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: fb3aa754c6ae7d546b13baa9ecc3fa5d, type: 3}
   - {fileID: 1827226128182048838, guid: f1789d426a7ca82409296b69877bc9d8, type: 3}
   - {fileID: 1827226128182048838, guid: 0a983571c5cffaa45a9634c1a85ecc48, type: 3}
+  - {fileID: 1827226128182048838, guid: 113e00bd1a749964b9b093a7c5390217, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@2HitComboClawsAttackForward_RM.fbx"

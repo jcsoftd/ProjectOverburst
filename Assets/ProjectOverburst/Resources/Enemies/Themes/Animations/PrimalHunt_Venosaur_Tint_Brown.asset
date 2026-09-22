@@ -16,7 +16,7 @@ MonoBehaviour:
   runtimeController: {fileID: 9100000, guid: a6495fb01427bc349b0b7e0d9f95f2f5, type: 2}
   idle: {fileID: 1827226128182048838, guid: 1a2a0695b8e49a54b84711c4015ac8d8, type: 3}
   walk: {fileID: 1827226128182048838, guid: d55b00de51664154f90d7a29fd39851d, type: 3}
-  run: {fileID: 1827226128182048838, guid: 2c875092731b6e443b8a5c594adcb9d5, type: 3}
+  run: {fileID: 1827226128182048838, guid: d55b00de51664154f90d7a29fd39851d, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: 76c7f03dc28f1ad43b4fdb355fd8a0ba, type: 3}
   - {fileID: 1827226128182048838, guid: e9837cffd3675734ea67f8a7a860e513, type: 3}
@@ -38,6 +38,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 0e5b648db286a1c4ba4e6498ecd9adbe, type: 3}
   - {fileID: 1827226128182048838, guid: f4c66917205815143a30971e3b947895, type: 3}
   - {fileID: 1827226128182048838, guid: 9b068f97816b23a42b95d000a900de01, type: 3}
+  - {fileID: 1827226128182048838, guid: 2c875092731b6e443b8a5c594adcb9d5, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@2HitComboClawsAttack_RM.fbx"
