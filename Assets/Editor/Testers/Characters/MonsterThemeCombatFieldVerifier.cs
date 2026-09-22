@@ -1,0 +1,184 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using Object = UnityEngine.Object;
+
+// Real Gameplay input, production AI and weapon damage. Nothing is saved to scenes.
+public static class MonsterThemeCombatFieldVerifier
+{
+    private sealed class Observation
+    {
+        public EnemyActor actor;
+        public string id;
+        public uint lease;
+        public Vector3 position;
+        public float travel, inactive, maxInactive, wait, maxWait;
+        public int attacks, hits, deaths;
+        public bool executing;
+        public readonly HashSet<string> abilities = new HashSet<string>();
+    }
+
+    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    {
+        string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
+        if (!Directory.Exists(output)) throw new Exception("Artifact output missing");
+        var keyboard = InputSystem.AddDevice<Keyboard>("CombatFieldKeyboard");
+        var mouse = InputSystem.AddDevice<Mouse>("CombatFieldMouse");
+        var physical = InputSystem.devices.Where(d => d.enabled && d != keyboard && d != mouse && (d is Keyboard || d is Mouse)).ToArray();
+        var previousDevices = player.RuntimeAsset.devices;
+        player.RuntimeAsset.devices = new InputDevice[] { keyboard, mouse };
+        Key[] keys = Array.Empty<Key>(); bool attacking = false;
+        Vector2 aim = Vector2.zero;
+        Action drive = () =>
+        {
+            if(InputState.currentUpdateType != InputUpdateType.Dynamic)return;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys));
+            var state = new MouseState { position = aim };
+            if (attacking) state = state.WithButton(MouseButton.Left);
+            InputSystem.QueueStateEvent(mouse, state);
+        };
+        InputSystem.onBeforeUpdate += drive;
+        foreach (var d in physical) InputSystem.DisableDevice(d);
+        var sword = AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP01_OneHandSword/OHS01_FleurDeLys/OHS01_FleurDeLys.asset");
+        var actor = PlayerContext.GetOrCreate().CurrentActor;
+        if (!actor.Equipment.EquipWeaponItem(new ItemData(sword, 1, ItemGrade.Common))) throw new Exception("Equip weapon");
+        PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
+        var results = new List<object>();
+        int playerHits = 0;
+        void OnPlayerHit(CombatHealth h, DamageInfo d) { playerHits++; }
+        actor.Health.OnDamaged += OnPlayerHit;
+        var cameraObject = new GameObject("Combat field review camera");
+        var camera = cameraObject.AddComponent<Camera>(); camera.enabled = false;
+        camera.CopyFrom(Camera.main); camera.enabled = false;
+        var texture = RenderTexture.GetTemporary(768,432,24);
+        var pixels = new Texture2D(768,432,TextureFormat.RGB24,false);
+        camera.targetTexture = texture;
+        bool attackDebug=CombatDebugSettings.ShowAttackPatternDebug, aiDebug=CombatDebugSettings.ShowEnemyAiStateDebug;
+        try
+        {
+            CombatDebugSettings.SetAttackPatternDebug(false);CombatDebugSettings.SetEnemyAiStateDebug(false);
+            for (int index=0; index<ui.tables.Length; index++)
+            {
+                string selected=SessionState.GetString("MonsterThemeCombatField.table","");
+                if(!string.IsNullOrEmpty(selected) && ui.tables[index].ThemeId!=selected)continue;
+                keys=Array.Empty<Key>();attacking=false;ui.Clear();yield return Seconds(.3f);
+                if(!ui.Begin(index,false))throw new Exception("Cannot spawn table "+index);
+                var encounter=Object.FindObjectsByType<EnemyThemeEncounter>(FindObjectsSortMode.None).First(e=>e.name=="Theme debug encounter");
+                float timeout=Time.time+20;
+                while(encounter.SpawnedCount!=50){if(Time.time>timeout)throw new Exception("Spawn timeout");yield return null;}
+                // Exercise normal combat densities without changing the shipped 50-spawn debug button.
+                // Spawn placement remains a 50-actor test; this fixture retains a table-weighted subset.
+                int count=SessionState.GetInt("MonsterThemeCombatField.count",50);
+                if(count!=10 && count!=20 && count!=50)throw new Exception("Supported sample counts: 10, 20, 50");
+                if(count<50)
+                {
+                    var quota=ui.tables[index].BuildRoster(count==10?8:16,count==10?1:3,1,731)
+                        .GroupBy(d=>d.EnemyId).ToDictionary(g=>g.Key,g=>g.Count());
+                    foreach(var a in encounter.SnapshotActors())
+                    {
+                        if(quota.TryGetValue(a.Definition.EnemyId,out int remaining) && remaining>0)quota[a.Definition.EnemyId]=remaining-1;
+                        else a.RequestPoolRelease();
+                    }
+                    yield return null;
+                }
+                var observations=encounter.SnapshotActors().Select(a=>new Observation{actor=a,id=a.Definition.EnemyId,lease=a.LeaseVersion,position=a.transform.position}).ToArray();
+                if(observations.Length!=count)throw new Exception("Combat sample count mismatch");
+                var handlers=new List<(CombatHealth health,Action<CombatHealth,DamageInfo> hit,Action<CombatHealth,DamageInfo> death)>();
+                foreach(var o in observations)
+                {
+                    Action<CombatHealth,DamageInfo> hit=(h,d)=>o.hits++;
+                    Action<CombatHealth,DamageInfo> died=(h,d)=>o.deaths++;
+                    o.actor.Health.OnDamaged+=hit;o.actor.Health.OnDead+=died;handlers.Add((o.actor.Health,hit,died));
+                }
+                string folder=Path.Combine(output,"FieldReview",ui.tables[index].ThemeId);Directory.CreateDirectory(folder);
+                var frames=new List<object>();var traces=new List<object>();
+                float begin=Time.time,last=begin,nextTrace=begin,nextCapture=begin;int beforeHits=playerHits;
+                Vector3 playerPrevious=player.transform.position;float playerTravel=0;
+                float unreadAttackSeconds=0;int playerAttackFrames=0;
+                while(Time.time-begin<60)
+                {
+                    float elapsed=Time.time-begin;
+                    // Stand for arrival, then short directional movement and sustained attacks.
+                    // Target selection changes the mouse aim, never the monster or combat state.
+                    bool moving=elapsed>=12 && elapsed<24 || elapsed>=38 && elapsed<46;
+                    keys=moving?new[]{new[]{Key.W,Key.D,Key.S,Key.A}[(int)(elapsed/.65f)%4]}:Array.Empty<Key>();
+                    attacking=elapsed>=24 && elapsed<38 || elapsed>=46;
+                    var target=observations.Where(o=>o.actor!=null && o.actor.IsLeased && o.actor.LeaseVersion==o.lease && !o.actor.Health.IsDead)
+                        .OrderBy(o=>(o.actor.transform.position-player.transform.position).sqrMagnitude).FirstOrDefault();
+                    if(target!=null) aim=Camera.main.WorldToScreenPoint(target.actor.transform.position+Vector3.up*.2f);
+                    yield return null;
+                    var liveArena=Object.FindFirstObjectByType<EnemyThemeDebugArena>();
+                    if(liveArena==null || Vector3.Distance(player.transform.position,liveArena.entry.position)>75)
+                        throw new Exception("Player left the real test arena");
+                    float now=Time.time,dt=now-last;last=now;
+                    if(attacking && !player.AttackHeld)unreadAttackSeconds+=dt;
+                    if(player.GetComponent<MeleeRuntime>().IsAttackInProgress)playerAttackFrames++;
+                    playerTravel+=Vector3.Distance(playerPrevious,player.transform.position);playerPrevious=player.transform.position;
+                    foreach(var o in observations)
+                    {
+                        var a=o.actor;if(a==null || !a.IsLeased || a.LeaseVersion!=o.lease || a.Health.IsDead)continue;
+                        float step=Vector3.Distance(o.position,a.transform.position);o.travel+=step;o.position=a.transform.position;
+                        bool executing=a.AbilityController.IsExecuting;
+                        if(executing && !o.executing)o.attacks++;
+                        o.executing=executing;
+                        if(a.AbilityController.LastCommittedAbility!=null)o.abilities.Add(a.AbilityController.LastCommittedAbility.name);
+                        o.inactive=step>.002f || executing || a.AnimationBridge.IsBlockingActionActive?0:o.inactive+dt;
+                        o.maxInactive=Mathf.Max(o.maxInactive,o.inactive);
+                        o.wait=a.AI.CurrentStateName=="CombatWait"?o.wait+dt:0;o.maxWait=Mathf.Max(o.maxWait,o.wait);
+                    }
+                    if(now>=nextTrace)
+                    {
+                        nextTrace=now+.5f;
+                        var melee=player.GetComponent<MeleeRuntime>();var playerState=player.GetComponent<PlayerStateCoordinator>();
+                        traces.Add(new{time=elapsed,alive=encounter.AliveCount,playerHits,
+                            player=new{requestedAttack=attacking,mouseDown=mouse.leftButton.ReadValue(),y=player.transform.position.y,grounded=player.GetComponent<PlayerMovement>().IsGrounded,
+                                held=player.AttackHeld,allowed=player.CombatInputs.AllowsHeldAttack,buffered=player.CombatInputs.HasAttack,
+                                pickupSuppressed=PlayerPickupInteractor.IsPrimaryAttackSuppressed,condition=playerState.CurrentCondition.ToString(),action=playerState.CurrentAction.ToString(),
+                                attacking=melee.IsAttackInProgress,ready=melee.IsAttackReady,canUse=melee.CanUseCurrentWeapon},
+                            states=observations.Where(o=>o.actor!=null && o.actor.IsLeased && o.actor.LeaseVersion==o.lease && !o.actor.Health.IsDead)
+                            .Select(o=>new{id=o.id,instance=o.actor.GetInstanceID(),state=o.actor.AI.CurrentDebugStateName,distance=o.actor.AI.TargetDistance,inactive=o.inactive,range=o.actor.AI.AttackEnterRange}).ToArray()});
+                    }
+                    if(elapsed>=26 && elapsed<38 && now>=nextCapture)
+                    {
+                        nextCapture=now+.083333f;
+                        camera.transform.SetPositionAndRotation(Camera.main.transform.position,Camera.main.transform.rotation);
+                        camera.Render();var previous=RenderTexture.active;
+                        try{RenderTexture.active=texture;pixels.ReadPixels(new Rect(0,0,768,432),0,0);pixels.Apply();}
+                        finally{RenderTexture.active=previous;}
+                        string name=frames.Count.ToString("D4")+".png";File.WriteAllBytes(Path.Combine(folder,name),pixels.EncodeToPNG());
+                        frames.Add(new{time=elapsed-26,file=name,alive=encounter.AliveCount});
+                    }
+                }
+                attacking=false;keys=Array.Empty<Key>();
+                foreach(var h in handlers){h.health.OnDamaged-=h.hit;h.health.OnDead-=h.death;}
+                var summary=observations.Select(o=>new{o.id,o.travel,o.attacks,o.hits,o.deaths,o.maxWait,o.maxInactive,abilities=o.abilities.ToArray()}).ToArray();
+                var suspects=summary.Where(o=>o.maxInactive>12 && o.deaths==0).ToArray();
+                var result=new{table=ui.tables[index].ThemeId,count=observations.Length,playerTravel,unreadAttackSeconds,playerAttackFrames,playerHits=playerHits-beforeHits,killed=summary.Sum(o=>o.deaths),summary,suspects};
+                results.Add(result);
+                File.WriteAllText(Path.Combine(folder,"frames.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{frames},Newtonsoft.Json.Formatting.Indented));
+                File.WriteAllText(Path.Combine(output,ui.tables[index].ThemeId+"-field.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{result,traces},Newtonsoft.Json.Formatting.Indented));
+                File.WriteAllText(Path.Combine(output,"field-summary.json"),Newtonsoft.Json.JsonConvert.SerializeObject(results,Newtonsoft.Json.Formatting.Indented));
+                Debug.Log("[MonsterCombatField] "+ui.tables[index].ThemeId+" killed="+summary.Sum(o=>o.deaths)+" suspects="+suspects.Length);
+                if(unreadAttackSeconds>1 || playerAttackFrames<20)throw new Exception("Input/attack coverage failed: "+ui.tables[index].ThemeId+" unread="+unreadAttackSeconds+" attackFrames="+playerAttackFrames);
+                if(suspects.Length>0)throw new Exception("Inactive survivors require inspection: "+ui.tables[index].ThemeId);
+                ui.Clear();yield return Seconds(.4f);
+            }
+        }
+        finally
+        {
+            CombatDebugSettings.SetAttackPatternDebug(attackDebug);CombatDebugSettings.SetEnemyAiStateDebug(aiDebug);
+            actor.Health.OnDamaged-=OnPlayerHit;InputSystem.onBeforeUpdate-=drive;
+            player.RuntimeAsset.devices=previousDevices;
+            InputSystem.RemoveDevice(keyboard);InputSystem.RemoveDevice(mouse);
+            foreach(var d in physical)if(d.added)InputSystem.EnableDevice(d);
+            camera.targetTexture=null;RenderTexture.ReleaseTemporary(texture);Object.Destroy(pixels);Object.Destroy(cameraObject);ui.Clear();
+        }
+    }
+    private static IEnumerator Seconds(float duration){float until=Time.time+duration;while(Time.time<until)yield return null;}
+}

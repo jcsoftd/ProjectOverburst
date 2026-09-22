@@ -134,6 +134,15 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
     private IEnumerator EnsureInitialSubScene()
     {
+        // Initial load also includes the deferred hub spawn placement. Publishing
+        // "ready" before that teleport let arena entry be overwritten next frame.
+        isSwitching = true;
+        try { yield return EnsureInitialSubSceneCore(); }
+        finally { isSwitching = false; }
+    }
+
+    private IEnumerator EnsureInitialSubSceneCore()
+    {
         currentSubSceneName = FindLoadedSubSceneName(); // 기존 로드 확인
         if (!string.IsNullOrEmpty(currentSubSceneName))
         {

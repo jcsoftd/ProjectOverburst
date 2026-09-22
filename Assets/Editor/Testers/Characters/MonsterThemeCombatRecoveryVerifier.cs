@@ -22,6 +22,8 @@ public static class MonsterThemeCombatRecoveryVerifier
         var failures = new List<string>();
         var definitions = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Distinct().ToArray();
         Vector3 home = player.transform.position;
+        if (mode == "field") { yield return MonsterThemeCombatFieldVerifier.Verify(ui, player); yield break; }
+        if (mode == "visual") { yield return MonsterThemeDamageReviewCapture.Capture(ui, player); yield break; }
         if (mode == "individual")
         {
             foreach (var definition in definitions)
@@ -49,12 +51,25 @@ public static class MonsterThemeCombatRecoveryVerifier
                     yield return null;
                 }
                 actor.AI.enabled = false; actor.Movement.StopMovement();
+                var slots=actor.VisualRoot.GetComponentsInChildren<Renderer>()
+                    .SelectMany(r=>r.sharedMaterials.Select((m,i)=>(renderer:r,index:i,material:m))).ToArray();
+                var block=new MaterialPropertyBlock();
+                Color ReadColor(Renderer r,int i,Material m)
+                { r.GetPropertyBlock(block,i);return block.HasColor(Shader.PropertyToID("_BaseColor"))?block.GetColor("_BaseColor"):m.GetColor("_BaseColor"); }
+                var colors=slots.Select(s=>ReadColor(s.renderer,s.index,s.material)).ToArray();
+                actor.Health.TakeDamage(new DamageInfo(1,actor.transform.position,player.gameObject,Vector3.forward));
+                bool wholeBodyFlash=slots.All(s=>ReadColor(s.renderer,s.index,s.material).r>1.1f);
+                float flashEnd=Time.time+.2f;while(Time.time<flashEnd)yield return null;
+                bool tintRestored=slots.Select((s,i)=>((Vector4)(ReadColor(s.renderer,s.index,s.material)-colors[i])).sqrMagnitude<.0001f).All(b=>b);
+                var aliveBody=actor.GetComponent<Rigidbody>();bool aliveGravity=aliveBody.useGravity,aliveKinematic=aliveBody.isKinematic;
                 float startY = actor.transform.position.y, minimumY = startY;
                 actor.Health.TakeDamage(new DamageInfo(actor.Health.MaxHp+10000, actor.transform.position, player.gameObject, Vector3.forward));
                 float deathStart = Time.time;
                 var death = new List<object>();
+                bool wholeBodyFade=false;
                 while (actor.IsLeased && Time.time - deathStart < definition.AnimationProfile.Death.length + 2f)
                 {
+                    wholeBodyFade|=slots.All(s=>ReadColor(s.renderer,s.index,s.material).a<.8f);
                     minimumY = Mathf.Min(minimumY,actor.transform.position.y);
                     if (Time.time >= next)
                     {
@@ -64,12 +79,17 @@ public static class MonsterThemeCombatRecoveryVerifier
                     }
                     yield return null;
                 }
-                results.Add(new {id=definition.EnemyId,distanceMoved,states,abilities,trace,death,startY,minimumY,rootDrop=startY-minimumY,released=!actor.IsLeased});
+                bool released=!actor.IsLeased;
+                bool materialsRestored=slots.All(s=>s.renderer.sharedMaterials[s.index]==s.material);
+                bool physicsRestored=aliveBody.useGravity==aliveGravity && aliveBody.isKinematic==aliveKinematic;
+                results.Add(new {id=definition.EnemyId,distanceMoved,states,abilities,trace,death,startY,minimumY,rootDrop=startY-minimumY,released,wholeBodyFlash,tintRestored,wholeBodyFade,materialsRestored,physicsRestored});
                 if (phase != "baseline")
                 {
                     if (startY-minimumY > .025f) failures.Add(definition.EnemyId+": death root sank");
                     if (abilities.Count == 0) failures.Add(definition.EnemyId+": no actual attack in 18 seconds");
                     if (actor.IsLeased) failures.Add(definition.EnemyId+": death did not return to pool");
+                    if(!wholeBodyFlash || !tintRestored || !wholeBodyFade || !materialsRestored || !physicsRestored)
+                        failures.Add(definition.EnemyId+": flash/fade/tint/physics restoration contract");
                 }
                 if (actor.IsLeased) actor.RequestPoolRelease();
                 File.WriteAllText(Path.Combine(output,phase+"-individual.json"),Newtonsoft.Json.JsonConvert.SerializeObject(results,Newtonsoft.Json.Formatting.Indented));

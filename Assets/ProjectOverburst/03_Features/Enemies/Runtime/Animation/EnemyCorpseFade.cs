@@ -10,9 +10,9 @@ public sealed class EnemyCorpseFade : MonoBehaviour
     [SerializeField, Min(.05f)] private float duration = .35f;
     private Renderer[] targets;
     private Material[][] original, fading;
-    private MaterialPropertyBlock[] saved, working;
+    private MaterialPropertyBlock[][] saved, working;
     private ShadowCastingMode[] shadows;
-    private Color[] colors;
+    private Color[][] colors;
     private bool applied;
     private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -23,11 +23,15 @@ public sealed class EnemyCorpseFade : MonoBehaviour
         for (int i = 0; i < targets.Length; i++)
         {
             if (targets[i] == null) continue;
-            targets[i].GetPropertyBlock(saved[i]);
-            targets[i].GetPropertyBlock(working[i]);
-            colors[i] = saved[i].HasColor(BaseColor) ? saved[i].GetColor(BaseColor)
-                : original[i].Length > 0 && original[i][0].HasProperty(BaseColor)
-                ? original[i][0].GetColor(BaseColor) : Color.white;
+            for (int j = 0; j < original[i].Length; j++)
+            {
+                targets[i].GetPropertyBlock(saved[i][j], j);
+                targets[i].GetPropertyBlock(working[i][j], j);
+                if (working[i][j].isEmpty) targets[i].GetPropertyBlock(working[i][j]);
+                colors[i][j] = working[i][j].HasColor(BaseColor) ? working[i][j].GetColor(BaseColor)
+                    : original[i][j] != null && original[i][j].HasProperty(BaseColor)
+                    ? original[i][j].GetColor(BaseColor) : Color.white;
+            }
             shadows[i] = targets[i].shadowCastingMode;
             targets[i].sharedMaterials = fading[i];
             targets[i].shadowCastingMode = ShadowCastingMode.Off;
@@ -47,9 +51,12 @@ public sealed class EnemyCorpseFade : MonoBehaviour
         for (int i = 0; i < targets.Length; i++)
         {
             if (targets[i] == null) continue;
-            Color color = colors[i]; color.a *= alpha;
-            working[i].SetColor(BaseColor, color);
-            targets[i].SetPropertyBlock(working[i]);
+            for (int j = 0; j < original[i].Length; j++)
+            {
+                Color color = colors[i][j]; color.a *= alpha;
+                working[i][j].SetColor(BaseColor, color);
+                targets[i].SetPropertyBlock(working[i][j], j);
+            }
         }
     }
 
@@ -59,15 +66,17 @@ public sealed class EnemyCorpseFade : MonoBehaviour
         var actor = GetComponent<EnemyActor>();
         targets = (actor != null ? actor.VisualRoot : transform).GetComponentsInChildren<Renderer>(true);
         original = new Material[targets.Length][]; fading = new Material[targets.Length][];
-        saved = new MaterialPropertyBlock[targets.Length]; working = new MaterialPropertyBlock[targets.Length];
-        colors = new Color[targets.Length]; shadows = new ShadowCastingMode[targets.Length];
+        saved = new MaterialPropertyBlock[targets.Length][]; working = new MaterialPropertyBlock[targets.Length][];
+        colors = new Color[targets.Length][]; shadows = new ShadowCastingMode[targets.Length];
         for (int i = 0; i < targets.Length; i++)
         {
-            saved[i] = new MaterialPropertyBlock(); working[i] = new MaterialPropertyBlock();
             original[i] = targets[i].sharedMaterials;
             fading[i] = new Material[original[i].Length];
+            saved[i] = new MaterialPropertyBlock[original[i].Length]; working[i] = new MaterialPropertyBlock[original[i].Length];
+            colors[i] = new Color[original[i].Length];
             for (int j = 0; j < original[i].Length; j++)
             {
+                saved[i][j] = new MaterialPropertyBlock(); working[i][j] = new MaterialPropertyBlock();
                 Material source = original[i][j];
                 if (source == null || source.shader.name != "Universal Render Pipeline/Lit")
                 { fading[i][j] = source; continue; }
@@ -94,7 +103,8 @@ public sealed class EnemyCorpseFade : MonoBehaviour
         {
             if (targets[i] == null) continue;
             targets[i].sharedMaterials = original[i];
-            targets[i].SetPropertyBlock(saved[i]);
+            for (int j = 0; j < original[i].Length; j++)
+                targets[i].SetPropertyBlock(saved[i][j].isEmpty ? null : saved[i][j], j);
             targets[i].shadowCastingMode = shadows[i];
         }
         applied = false;

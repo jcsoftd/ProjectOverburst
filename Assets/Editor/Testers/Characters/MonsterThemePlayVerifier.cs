@@ -20,6 +20,7 @@ public static class MonsterThemePlayVerifier
     private static double deadline;
     private static bool background;
     private static int frameRate;
+    private static bool stopping;
     public static string LastResult=>SessionState.GetString(Key+".result","NOT_RUN");
     static MonsterThemePlayVerifier(){EditorApplication.playModeStateChanged+=Changed;}
     [MenuItem("OVERBURST/Enemies/Themes/Validate Play Mode")]
@@ -65,11 +66,24 @@ public static class MonsterThemePlayVerifier
         if(state==PlayModeStateChange.EnteredPlayMode)
         {
             background=Application.runInBackground;frameRate=Application.targetFrameRate;Application.runInBackground=true;Application.targetFrameRate=60;
-            passed.Clear();errors.Clear();work.Clear();work.Push(Verify());lastFrame=-1;deadline=EditorApplication.timeSinceStartup+900;
+            stopping=false;passed.Clear();errors.Clear();work.Clear();work.Push(Verify());lastFrame=-1;deadline=EditorApplication.timeSinceStartup+900;
             Application.logMessageReceived+=Log;EditorApplication.update+=Tick;
         }
         if(state==PlayModeStateChange.ExitingPlayMode)
         {
+            stopping=true;EditorApplication.update-=Tick;
+            if(LastResult=="RUNNING")SessionState.SetString(Key+".result","FAIL interrupted");
+            // Run nested fixture finally blocks even when Play Mode is interrupted.
+            // In particular, synthetic input must not leave native devices disabled.
+            while(work.Count>0)
+            {
+                try { (work.Pop() as IDisposable)?.Dispose(); }
+                catch(Exception exception)
+                {
+                    SessionState.SetString(Key+".result","FAIL cleanup: "+exception+"; previous="+LastResult);
+                    Debug.LogException(exception);
+                }
+            }
             Application.logMessageReceived-=Log;EditorApplication.update-=Tick;Application.runInBackground=background;Application.targetFrameRate=frameRate;
             if(LastResult=="RUNNING")SessionState.SetString(Key+".result","FAIL interrupted");
         }
@@ -78,6 +92,7 @@ public static class MonsterThemePlayVerifier
     private static void Log(string message,string trace,LogType type){if(type==LogType.Error || type==LogType.Exception || type==LogType.Assert)errors.Add(message);}
     private static void Tick()
     {
+        if(stopping)return;
         EditorApplication.QueuePlayerLoopUpdate();if(!EditorApplication.isPlaying || lastFrame==Time.frameCount)return;lastFrame=Time.frameCount;
         try
         {
@@ -87,7 +102,7 @@ public static class MonsterThemePlayVerifier
         }
         catch(Exception exception){Finish("FAIL "+exception+"; passed="+string.Join("; ",passed));}
     }
-    private static void Finish(string result){SessionState.SetString(Key+".result",result);EditorApplication.update-=Tick;EditorApplication.ExitPlaymode();}
+    private static void Finish(string result){stopping=true;SessionState.SetString(Key+".result",result);EditorApplication.update-=Tick;EditorApplication.ExitPlaymode();}
     private static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
     private static void Pass(string message){passed.Add(message);Debug.Log("[MonsterThemePlay] PASS "+message);}
     private static IEnumerator Seconds(float seconds){float end=Time.time+seconds;while(Time.time<end)yield return null;}
@@ -112,6 +127,9 @@ public static class MonsterThemePlayVerifier
         player=PlayerInputFacade.Current;Check(player!=null,"Player missing");health=player.GetComponent<CombatHealth>();health.SetMaxHp(100000,true);
         ui=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);Check(ui!=null,"Debug UI missing");ui.gameObject.SetActive(true);
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
+        var liveArena=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugArena>();
+        Check(liveArena!=null && Vector3.Distance(player.transform.position,liveArena.entry.position)<1f,
+            "Arena entry was overwritten or player is outside the test arena");
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
         if(SessionState.GetBool(Key+".combatRecovery",false))
