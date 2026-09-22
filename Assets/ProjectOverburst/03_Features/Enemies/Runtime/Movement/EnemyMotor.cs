@@ -127,6 +127,13 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         Rotate(turnSpeed);
     }
 
+    public void ApplyFacingRotation(Quaternion rotation)
+    {
+        if (isFrozen) return;
+        if (body != null && !body.isKinematic) body.MoveRotation(rotation);
+        else transform.rotation=rotation;
+    }
+
     public void Stop()
     {
         if (body == null || body.isKinematic)

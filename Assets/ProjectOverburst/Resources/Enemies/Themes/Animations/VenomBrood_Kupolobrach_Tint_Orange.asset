@@ -21,7 +21,6 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 6c060b95f2a3c9e42a14bb8afe8d1762, type: 3}
   - {fileID: 1827226128182048838, guid: 7c9cb3285e4e1de4d82645a20fd85caf, type: 3}
   - {fileID: 1827226128182048838, guid: 0a45ed47aea16fe4aa265c935b1bbae8, type: 3}
-  - {fileID: 1827226128182048838, guid: b94698a17da79a44eb9e7db3fd7e442a, type: 3}
   - {fileID: 1827226128182048838, guid: af734e454c6ca354883e4c3cd2528e6e, type: 3}
   - {fileID: 1827226128182048838, guid: d1350384c77792e4ab37c3d482969494, type: 3}
   hit: {fileID: 1827226128182048838, guid: c3ab2a24094a94449929c1ef1122c2af, type: 3}
@@ -44,6 +43,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 101296dacaf2d9a4b9738357036605af, type: 3}
   - {fileID: 1827226128182048838, guid: 53fb401a4472a3b41b69b73282eea933, type: 3}
   - {fileID: 1827226128182048838, guid: c378234d3b3c5bc409ffd659a4d97eca, type: 3}
+  - {fileID: 1827226128182048838, guid: b94698a17da79a44eb9e7db3fd7e442a, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 11/Kupolobrach/FBX Files/Kupolobrach@2HitComboClawsAttackForward_RM.fbx"

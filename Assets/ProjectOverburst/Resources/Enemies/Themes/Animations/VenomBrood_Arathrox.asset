@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 7400000, guid: 9d96cf4ddc602144ca8dfd6d8a1cf479, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: f8c7b834281425341be9833573619610, type: 3}
-  - {fileID: 1827226128182048838, guid: 42338923402d8b04ea0b949636e0f3b5, type: 3}
   - {fileID: 1827226128182048838, guid: 1ffca02c0dfb8424093259e9b41f67e3, type: 3}
   hit: {fileID: 1827226128182048838, guid: 663111da595e98b4cbeb771c895b43c0, type: 3}
   death: {fileID: 1827226128182048838, guid: 48cb6d4c3f5f75a458e4864f231eb80c, type: 3}
@@ -33,6 +32,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 77384183eb6ef654d99351d75d15a183, type: 3}
   - {fileID: 1827226128182048838, guid: d3dc5741c84261245a51cc966d01f9cf, type: 3}
   - {fileID: 1827226128182048838, guid: 61828ae49972d0943904ae4af60a9bd1, type: 3}
+  - {fileID: 1827226128182048838, guid: 42338923402d8b04ea0b949636e0f3b5, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@Bite_RM.fbx"

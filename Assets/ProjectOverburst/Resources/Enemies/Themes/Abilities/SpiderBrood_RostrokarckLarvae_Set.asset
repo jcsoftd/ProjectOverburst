@@ -15,4 +15,3 @@ MonoBehaviour:
   abilitySetId: SpiderBrood_RostrokarckLarvae
   abilities:
   - {fileID: 11400000, guid: bf197d37ea38ada4da8ce35a8e45d76e, type: 2}
-  - {fileID: 11400000, guid: 3da9c9f01cb0551488da530fe26a4d1f, type: 2}

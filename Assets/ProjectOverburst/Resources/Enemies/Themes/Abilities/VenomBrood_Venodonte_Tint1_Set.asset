@@ -15,4 +15,3 @@ MonoBehaviour:
   abilitySetId: VenomBrood_Venodonte_Tint1
   abilities:
   - {fileID: 11400000, guid: f950302500384df4892269604758c472, type: 2}
-  - {fileID: 11400000, guid: c7e71f42c65e9c94693ad65a257d9c6d, type: 2}

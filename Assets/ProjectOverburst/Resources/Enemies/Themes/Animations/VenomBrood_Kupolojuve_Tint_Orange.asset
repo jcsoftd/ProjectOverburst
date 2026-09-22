@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: 060a39e492cb2054c84e0939d1308b48, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: d8a60550b59738948aa9d0d34217050c, type: 3}
-  - {fileID: 1827226128182048838, guid: b70d16d4a0622ea4c9c3b3689d3ab83a, type: 3}
   - {fileID: 1827226128182048838, guid: f1815977ead6e764bb04d7f67b217bc1, type: 3}
   hit: {fileID: 1827226128182048838, guid: f8307d1b2a107c54585043db21eeabc1, type: 3}
   death: {fileID: 1827226128182048838, guid: a8f313fd8ad1e0c4cb5873d27aa5b01e, type: 3}
@@ -35,6 +34,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: f7b62945e4af65c43831cce83dcc0f02, type: 3}
   - {fileID: 1827226128182048838, guid: 8d39f0a9e0da3ca479385007795470c0, type: 3}
   - {fileID: 1827226128182048838, guid: 9f51dff4feb63a045a9e3ee3946b44a9, type: 3}
+  - {fileID: 1827226128182048838, guid: b70d16d4a0622ea4c9c3b3689d3ab83a, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 11/Kupolobrach Juvenile/FBX Files/Kupolojuve@DashSpikeAttack_RM.fbx"

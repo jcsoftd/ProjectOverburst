@@ -15,5 +15,4 @@ MonoBehaviour:
   abilitySetId: SpiderBrood_Scolokarck_Tint3
   abilities:
   - {fileID: 11400000, guid: 2441ded1c85cc2b49a623647b207b5d2, type: 2}
-  - {fileID: 11400000, guid: 5bf3779107a040b43bacecfc9081c880, type: 2}
   - {fileID: 11400000, guid: 6568502b5746f6a46bad6d9a8aeb786b, type: 2}

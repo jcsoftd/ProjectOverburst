@@ -36,6 +36,7 @@ public static class MonsterThemeLocomotionBuilder
                 var turnLeft = optional.First(c => c.name == "Turn90Left");
                 var turnRight = optional.First(c => c.name == "Turn90Right");
                 movement.ConfigureTurnAnimation(90f / turnLeft.length, 90f / turnRight.length);
+                movement.ConfigureTurnProgress(TurnProgress(animation,"Turn90Left_RM"),TurnProgress(animation,"Turn90Right_RM"));
                 float walkSpeed, runSpeed;
                 switch (definition.EnemyId)
                 {
@@ -73,30 +74,26 @@ public static class MonsterThemeLocomotionBuilder
                 var controller = (AnimatorController)animation.RuntimeController;
                 var state = controller.layers[0].stateMachine.states.First(s => s.state.name == "Locomotion").state;
                 var tree = (BlendTree)state.motion;
-                if (!controller.parameters.Any(p => p.name == "Turn")) controller.AddParameter("Turn", AnimatorControllerParameterType.Float);
-                var turnTree = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).OfType<BlendTree>().FirstOrDefault(t => t.name == "StationaryFacing");
-                if (turnTree == null)
-                {
-                    turnTree = new BlendTree { name = "StationaryFacing", blendType = BlendTreeType.Simple1D, blendParameter = "Turn", useAutomaticThresholds = false };
-                    AssetDatabase.AddObjectToAsset(turnTree, controller);
-                }
-                turnTree.children = new[] {
-                    new ChildMotion { motion = Loop(definition.EnemyId, turnLeft), threshold = -1, timeScale = 1 },
-                    new ChildMotion { motion = idle, threshold = 0, timeScale = 1 },
-                    new ChildMotion { motion = Loop(definition.EnemyId, turnRight), threshold = 1, timeScale = 1 } };
+                if (!controller.parameters.Any(p=>p.name=="TurnMagnitude"))controller.AddParameter("TurnMagnitude",AnimatorControllerParameterType.Float);
+                BuildTurnState(controller,state,"FacingTurnLeft",idle,turnLeft);
+                BuildTurnState(controller,state,"FacingTurnRight",idle,turnRight);
                 var children = tree.children;
                 foreach (float threshold in new[] { -1f, 0f, 1f, 2f })
                 {
                     int index = Array.FindIndex(children, c => Mathf.Approximately(c.threshold, threshold));
                     if (index < 0) throw new InvalidOperationException("Missing gait threshold: " + definition.EnemyId);
-                    children[index].motion = threshold < 0 ? back : threshold == 0 ? (Motion)turnTree : threshold == 1 ? walk : run;
+                    children[index].motion = threshold < 0 ? back : threshold == 0 ? idle : threshold == 1 ? walk : run;
                 }
                 tree.children = children;
+                foreach(var obsolete in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).OfType<BlendTree>().Where(t=>t.name=="StationaryFacing").ToArray())
+                    UnityEngine.Object.DestroyImmediate(obsolete,true);
+                int obsoleteParameter=Array.FindIndex(controller.parameters,p=>p.name=="Turn");
+                if(obsoleteParameter>=0)controller.RemoveParameter(obsoleteParameter);
                 animation.Configure(animation.ProfileId, controller, idle, walk, run,
                     Enumerable.Range(0, animation.AttackClipCount).Select(animation.GetAttackClip).ToArray(),
                     animation.Hit, animation.Death, optional.ToArray(),
                     Enumerable.Range(0, animation.ExcludedRootMotionClipCount).Select(animation.GetExcludedRootMotionClipPath).ToArray());
-                EditorUtility.SetDirty(turnTree); EditorUtility.SetDirty(tree); EditorUtility.SetDirty(controller);
+                EditorUtility.SetDirty(tree); EditorUtility.SetDirty(controller);
                 EditorUtility.SetDirty(animation); EditorUtility.SetDirty(movement); count++;
             }
         }
@@ -118,5 +115,40 @@ public static class MonsterThemeLocomotionBuilder
         clip.wrapMode = WrapMode.Loop;
         EditorUtility.SetDirty(clip);
         return clip;
+    }
+
+    private static void BuildTurnState(AnimatorController controller,AnimatorState locomotion,string name,AnimationClip idle,AnimationClip turn)
+    {
+        var machine=controller.layers[0].stateMachine;
+        var state=machine.states.Select(s=>s.state).FirstOrDefault(s=>s.name==name)??machine.AddState(name);
+        var tree=state.motion as BlendTree;
+        if(tree==null){tree=new BlendTree{name=name+"Amplitude"};AssetDatabase.AddObjectToAsset(tree,controller);state.motion=tree;}
+        tree.blendType=BlendTreeType.Simple1D;tree.blendParameter="TurnMagnitude";tree.useAutomaticThresholds=false;
+        tree.children=new[]{new ChildMotion{motion=idle,threshold=0,timeScale=idle.length/turn.length},new ChildMotion{motion=turn,threshold=1,timeScale=1}};
+        state.speed=1f;state.speedParameterActive=false;
+        if(state.transitions.Length==0){var exit=state.AddTransition(locomotion);exit.hasExitTime=true;exit.exitTime=1f;exit.duration=.06f;exit.hasFixedDuration=true;}
+        EditorUtility.SetDirty(tree);EditorUtility.SetDirty(state);
+    }
+
+    private static AnimationCurve TurnProgress(EnemyAnimationProfile profile,string name)
+    {
+        var clip=Enumerable.Range(0,profile.ExcludedRootMotionClipCount).Select(profile.GetExcludedRootMotionClipPath).Distinct()
+            .SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<AnimationClip>().First(c=>c.name==name);
+        var bindings=AnimationUtility.GetCurveBindings(clip);
+        foreach(var group in bindings.Where(b=>b.propertyName=="RootQ.x" || b.propertyName=="m_LocalRotation.x"))
+        {
+            string prefix=group.propertyName.Substring(0,group.propertyName.Length-1);
+            var curves=new[]{"x","y","z","w"}.Select(axis=>{
+                var binding=bindings.First(b=>b.path==group.path && b.propertyName==prefix+axis);
+                return AnimationUtility.GetEditorCurve(clip,binding);}).ToArray();
+            Quaternion Q(float t)=>new Quaternion(curves[0].Evaluate(t),curves[1].Evaluate(t),curves[2].Evaluate(t),curves[3].Evaluate(t));
+            var start=Q(0);float total=Quaternion.Angle(start,Q(clip.length));
+            if(total<70f || total>110f)continue;
+            var keys=Enumerable.Range(0,33).Select(i=>new Keyframe(i/32f,Mathf.Clamp01(Quaternion.Angle(start,Q(clip.length*i/32f))/total))).ToArray();
+            var curve=new AnimationCurve(keys);
+            for(int i=0;i<curve.length;i++){AnimationUtility.SetKeyLeftTangentMode(curve,i,AnimationUtility.TangentMode.Linear);AnimationUtility.SetKeyRightTangentMode(curve,i,AnimationUtility.TangentMode.Linear);}
+            return curve;
+        }
+        throw new InvalidOperationException("No authored 90-degree rotation curve: "+profile.ProfileId+" / "+name);
     }
 }

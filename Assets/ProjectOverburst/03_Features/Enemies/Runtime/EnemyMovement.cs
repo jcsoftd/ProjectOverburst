@@ -116,6 +116,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
         if (reaction != null && reaction.IsKnockbackActive)
         {
+            locomotionAnimator?.CancelFacingTurn();
             reaction.TickFixed();
             StopLocomotionOutput(); // 넉백 중 기존 이동 명령 보존
             return;
@@ -126,13 +127,12 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             && (locomotionAnimator == null || locomotionAnimator.AllowsMovement(locomotionMode)))
         {
             Vector3 direction = requestedFacingPosition - transform.position; direction.y = 0f;
-            float angle = Vector3.SignedAngle(transform.forward, direction, Vector3.up);
-            if (Mathf.Abs(angle) > 2f)
-                motor?.Face(direction, Mathf.Min(profile.TurnSpeed, profile.TurnAnimationReferenceSpeed(angle) * 1.15f));
+            locomotionAnimator?.BeginFacingTurn(direction);
         }
 
         if ((reaction != null && reaction.IsHitStunActive) || IsActionLocked)
         {
+            locomotionAnimator?.CancelFacingTurn();
             PauseMotorAndAnimation(); // 일시 정지 후 기존 이동 재개
             if (IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
                 && attackDisplacement.sqrMagnitude > .000001f && motor != null
@@ -143,9 +143,12 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
         if (locomotionAnimator != null && !locomotionAnimator.AllowsMovement(locomotionMode))
         {
+            locomotionAnimator.CancelFacingTurn();
             PauseMotorAndAnimation(); // 정지형 단발 애니메이션이 끝날 때까지 목적지만 보존
             return;
         }
+
+        if (locomotionAnimator != null && locomotionAnimator.TickFacingTurn(motor)) return;
 
         ApplyPendingAreaDisplacement();
         UpdateDestinationMovement();
@@ -303,6 +306,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     public bool IsFacingForAttack(Vector3 worldPosition)
     {
         if (profile == null || !profile.HasTurnAnimation) return true;
+        if (locomotionAnimator != null && locomotionAnimator.IsTurning) return false;
         Vector3 direction = worldPosition - transform.position; direction.y = 0f;
         return direction.sqrMagnitude < .0001f || Vector3.Angle(transform.forward, direction) <= 5f;
     }

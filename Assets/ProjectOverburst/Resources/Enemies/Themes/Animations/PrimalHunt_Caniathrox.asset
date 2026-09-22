@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 7400000, guid: 0879189c7e0476d4b893c73880e29707, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: ffc9ae3758bbf064e8a86c4b55871fb9, type: 3}
-  - {fileID: 1827226128182048838, guid: 463af4bc9ccab6b4f9ad80ff380c4117, type: 3}
   hit: {fileID: 1827226128182048838, guid: b88135b19f36be64e9a6626ae09aa1cc, type: 3}
   death: {fileID: 1827226128182048838, guid: 7ef505a3f8c73fa46b6b5bd7dfbc9c9e, type: 3}
   optional:
@@ -35,6 +34,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: f00eb7fc906e5cb4287fd061222c50f8, type: 3}
   - {fileID: 1827226128182048838, guid: 9225555e581895443b4134bc2e53250f, type: 3}
   - {fileID: 1827226128182048838, guid: 749b9908a1513a74cbd4af4e5cd60373, type: 3}
+  - {fileID: 1827226128182048838, guid: 463af4bc9ccab6b4f9ad80ff380c4117, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 8/Caniathrox/FBX Files/Caniathrox@BiteForward_RM.fbx"

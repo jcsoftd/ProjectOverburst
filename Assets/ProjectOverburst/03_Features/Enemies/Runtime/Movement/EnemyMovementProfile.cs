@@ -31,9 +31,13 @@ public sealed class EnemyMovementProfile : ScriptableObject // 몬스터 이동 
     public float CrowdWeight { get { return Mathf.Max(0.1f, crowdWeight); } }
     public bool MatchAnimationToActualMovement => crowdAnimationSpeedLimit > 0f;
     [SerializeField] private Vector2 turnAnimationReferenceSpeeds;
+    [SerializeField] private AnimationCurve leftTurnProgress = AnimationCurve.Linear(0,0,1,1);
+    [SerializeField] private AnimationCurve rightTurnProgress = AnimationCurve.Linear(0,0,1,1);
     public bool HasTurnAnimation => turnAnimationReferenceSpeeds.x > 0f && turnAnimationReferenceSpeeds.y > 0f;
     public float TurnAnimationReferenceSpeed(float direction) => direction < 0f ? turnAnimationReferenceSpeeds.x : turnAnimationReferenceSpeeds.y;
     public void ConfigureTurnAnimation(float left, float right) => turnAnimationReferenceSpeeds = new Vector2(left, right);
+    public void ConfigureTurnProgress(AnimationCurve left, AnimationCurve right) { leftTurnProgress=left; rightTurnProgress=right; }
+    public float TurnProgress(float direction,float normalizedTime) => Mathf.Clamp01((direction<0f?leftTurnProgress:rightTurnProgress).Evaluate(Mathf.Clamp01(normalizedTime)));
 
     public void ConfigureCrowdAnimationSpeedLimit(float multiplier)
     {

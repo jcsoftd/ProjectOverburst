@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 7400000, guid: a891294245556dd4a8f03d359b38626e, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: 735a711da2bf8b748ab41c412d4949f6, type: 3}
-  - {fileID: 1827226128182048838, guid: 7de8aaf0dc6a4cf499ff0eb2802535a8, type: 3}
   hit: {fileID: 1827226128182048838, guid: 917b3dac19cec9549b7af7f1373e3e97, type: 3}
   death: {fileID: 1827226128182048838, guid: 5535fbe720a703d4e90cb9d27fc8ccf2, type: 3}
   optional:
@@ -34,6 +33,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: f91d58cc2cf03fa4ba35fb01975c173b, type: 3}
   - {fileID: 1827226128182048838, guid: f1677d14dfe0c274695a235505be5b9d, type: 3}
   - {fileID: 1827226128182048838, guid: 6f4981de936707f4d84793be185a4940, type: 3}
+  - {fileID: 1827226128182048838, guid: 7de8aaf0dc6a4cf499ff0eb2802535a8, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack vol 9/RostrokarckLarvae/FBX Files/RostrokarckLarvae@Bite_RM.fbx"

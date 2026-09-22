@@ -15,5 +15,4 @@ MonoBehaviour:
   abilitySetId: VenomBrood_Kupolojuve_Tint_Orange
   abilities:
   - {fileID: 11400000, guid: 36f92a47b27266a49ac6903fc8146b69, type: 2}
-  - {fileID: 11400000, guid: 65e4d6ada29328f45ad734fddad1d577, type: 2}
   - {fileID: 11400000, guid: 620aaaac664fb404e93ce9468fa4d6f4, type: 2}

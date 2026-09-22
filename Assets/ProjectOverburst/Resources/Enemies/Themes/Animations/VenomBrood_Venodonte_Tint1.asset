@@ -19,7 +19,6 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: 72afd112fd872714c8208c66b1bddf9e, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: a6c8607dead8d854f805d69dc891f486, type: 3}
-  - {fileID: 1827226128182048838, guid: 726380aadb3be834c949d7c760562df6, type: 3}
   hit: {fileID: 1827226128182048838, guid: b0cbde4e72a5933428805b6d6f2ee641, type: 3}
   death: {fileID: 1827226128182048838, guid: 29fc4d891748ba44db05589dbef12375, type: 3}
   optional:
@@ -34,6 +33,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: e12a66bd890e9914c872e28aeeb0bb67, type: 3}
   - {fileID: 1827226128182048838, guid: 083ae30c6ad22974288d984e94e492e2, type: 3}
   - {fileID: 1827226128182048838, guid: 81f23a6ed36e91e43a5b82a0835240ae, type: 3}
+  - {fileID: 1827226128182048838, guid: 726380aadb3be834c949d7c760562df6, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 11/Venodonte/FBX Files/Venodonte@BiteForwardAttack_RM.fbx"

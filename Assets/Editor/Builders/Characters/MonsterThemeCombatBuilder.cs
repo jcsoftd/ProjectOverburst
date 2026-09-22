@@ -133,6 +133,7 @@ public static class MonsterThemeCombatBuilder
             if(!table.Validate(out string error))throw new InvalidOperationException(error);
         }
         EditorUtility.SetDirty(normal);EditorUtility.SetDirty(elite);AssetDatabase.SaveAssets();
+        MonsterThemeRoleBuilder.Apply();
         MonsterThemeLocomotionBuilder.Apply();
         Debug.Log("[MonsterThemeCombat] Created 14 actors / 3 tables using existing actor and squad runtime.");
     }

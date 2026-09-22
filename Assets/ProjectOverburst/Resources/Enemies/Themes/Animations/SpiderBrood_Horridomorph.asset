@@ -20,7 +20,6 @@ MonoBehaviour:
   attackClips:
   - {fileID: 1827226128182048838, guid: 42de12de929a65046a35c1859fcd4764, type: 3}
   - {fileID: 1827226128182048838, guid: a8d2105f83d303547b6b735236e4f62a, type: 3}
-  - {fileID: 1827226128182048838, guid: dedb6d7acb2f5c947abefc9e32a5625e, type: 3}
   hit: {fileID: 1827226128182048838, guid: c3fe3ee031f24d64fb26683642a36f58, type: 3}
   death: {fileID: 1827226128182048838, guid: 56de293f00eed71478bbfa156ec0aec7, type: 3}
   optional:
@@ -39,6 +38,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 14285ab63fd840f4f94986a5a132cc36, type: 3}
   - {fileID: 1827226128182048838, guid: 6691401c0b56cbc4b86e05b9ab1d9a53, type: 3}
   - {fileID: 1827226128182048838, guid: f2ea7a79d532be842b6c431aa5deb791, type: 3}
+  - {fileID: 1827226128182048838, guid: dedb6d7acb2f5c947abefc9e32a5625e, type: 3}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 7/Horridomorph/FBX Files/Horridomorph@BiteAttackForward_RM.fbx"

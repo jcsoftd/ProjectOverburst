@@ -10,18 +10,53 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
     private float referenceSpeed = 1f;
     private float lastMovingAmount = 1f;
     private float lastMovingReference = 1f;
-    private float previousYaw;
     private Animator animator;
-    private static readonly int TurnHash = Animator.StringToHash("Turn");
+    private Quaternion turnStart, turnEnd;
+    private float turnDirection, turnBegan;
+    private bool turnEntered;
+    private string turnState;
+    public bool IsTurning { get; private set; }
 
-    private void OnEnable() { previousPosition = transform.position; previousYaw = transform.eulerAngles.y; observedSpeed = 0f; requestedAmount = 0f; }
+    public bool BeginFacingTurn(Vector3 direction)
+    {
+        ResolveReferences();
+        if(IsTurning || animator==null || movement==null || !movement.Profile.HasTurnAnimation || animationBridge.IsBlockingActionActive)return false;
+        direction.y=0f;if(direction.sqrMagnitude<.0001f)return false;
+        float angle=Mathf.Clamp(Vector3.SignedAngle(transform.forward,direction,Vector3.up),-90f,90f);
+        if(Mathf.Abs(angle)<=5f)return false;
+        turnDirection=angle;turnStart=transform.rotation;turnEnd=Quaternion.AngleAxis(angle,Vector3.up)*turnStart;
+        turnState=angle<0f?"FacingTurnLeft":"FacingTurnRight";
+        animator.SetFloat("TurnMagnitude",Mathf.Abs(angle)/90f);
+        animator.CrossFadeInFixedTime(turnState,.06f,0,0f);
+        IsTurning=true;turnEntered=false;turnBegan=Time.time;
+        return true;
+    }
+
+    public void CancelFacingTurn() { IsTurning=false; turnEntered=false; }
+
+    public bool TickFacingTurn(EnemyMotor motor)
+    {
+        if(!IsTurning)return false;
+        var state=animator.GetCurrentAnimatorStateInfo(0);
+        if(!state.IsName(turnState) && animator.IsInTransition(0))state=animator.GetNextAnimatorStateInfo(0);
+        motor.HoldPosition();
+        if(state.IsName(turnState))
+        {
+            turnEntered=true;
+            motor.ApplyFacingRotation(Quaternion.Slerp(turnStart,turnEnd,movement.Profile.TurnProgress(turnDirection,state.normalizedTime)));
+        }
+        else if(turnEntered || Time.time-turnBegan>.75f)CancelFacingTurn();
+        return IsTurning;
+    }
+
+    private void OnEnable() { previousPosition = transform.position; observedSpeed = 0f; requestedAmount = 0f; lastMovingAmount=1f;lastMovingReference=1f;CancelFacingTurn(); }
+    private void OnDisable() { CancelFacingTurn(); }
 
     private void LateUpdate()
     {
         Vector3 displacement = transform.position - previousPosition;
-        float yaw = transform.eulerAngles.y;
-        float turnDelta = Mathf.DeltaAngle(previousYaw, yaw); previousYaw = yaw;
         previousPosition = transform.position; displacement.y = 0f;
+        if(IsTurning)return;
         if (movement == null || movement.Profile == null || !movement.Profile.MatchAnimationToActualMovement || animationBridge == null) return;
         float dt = Time.deltaTime;
         if (dt <= .00001f) return;
@@ -30,15 +65,11 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
         { observedSpeed = 0f; return; }
         observedSpeed = Mathf.Lerp(observedSpeed, displacement.magnitude / dt, 1f - Mathf.Exp(-dt / .06f));
         bool moving = observedSpeed > .06f && !movement.IsActionLocked && !animationBridge.IsBlockingActionActive && !animationBridge.IsFrozen;
-        bool turning = !moving && movement.Profile.HasTurnAnimation && Mathf.Abs(turnDelta) / dt > 8f && !animationBridge.IsFrozen;
-        if (animator != null && movement.Profile.HasTurnAnimation)
-            animator.SetFloat(TurnHash, turning ? Mathf.Sign(turnDelta) : 0f, .06f, dt);
         float gait = Mathf.Abs(requestedAmount) > .01f ? requestedAmount : lastMovingAmount;
         float strideReference = Mathf.Abs(requestedAmount) > .01f ? referenceSpeed : lastMovingReference;
         animationBridge.SetMoveAmount(moving ? gait : 0f);
         float speed = movement.Profile.ResolveCrowdAnimationSpeed(movement.ActiveMoveSpeed, observedSpeed);
-        animationBridge.SetMoveAnimSpeed(moving ? Mathf.Max(.01f, speed / strideReference)
-            : turning ? Mathf.Clamp(Mathf.Abs(turnDelta) / dt / movement.Profile.TurnAnimationReferenceSpeed(turnDelta), .35f, 1.5f) : 1f);
+        animationBridge.SetMoveAnimSpeed(moving ? Mathf.Max(.01f, speed / strideReference) : 1f);
     }
 
     public bool IsFrozen { get { return animationBridge != null && animationBridge.IsFrozen; } }
@@ -74,6 +105,7 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
 
     public void SetFrozen(bool frozen)
     {
+        if(frozen)CancelFacingTurn();
         if (animationBridge == null)
             ResolveReferences();
         animationBridge?.SetFrozen(frozen);
