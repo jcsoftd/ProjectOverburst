@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: CavernMutants_Limadon
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: CavernMutants_Limadon
+  displayName: Limadon
+  vendorPrefab: {fileID: 7704895131363459432, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}
+  animationProfile: {fileID: 11400000, guid: ca36c669e9db86d409cddfdc45bc9dcf, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: f7a8a2d22367e8045b7992320522c9b2, type: 2}
+  combatRole: 5
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: e2692fa67e585bc4ca0ab92cd05ba225, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 3ce1673f6aac4724ca25140a73222b55, type: 2}
+  threatCost: 3

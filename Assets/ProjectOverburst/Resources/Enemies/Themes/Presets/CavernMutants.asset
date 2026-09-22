@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
+  m_Name: AIP_ProtofactorSquad
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
+  presetId: Theme_CavernMutants
+  displayName: "\uC554\uAD74 \uBCC0\uC774 \uAD70\uB77D"
+  defaultMonsterPrefabs:
+  - {fileID: 2989860340918798508, guid: f3570fc78b5697b42929325dd2aac293, type: 3}
+  - {fileID: 272275322220572443, guid: a8c6a0bd76bbc9149aa901773aa26624, type: 3}
+  - {fileID: 2525296777039982481, guid: c1fe14a5155457c4bb07dfa80bd29141, type: 3}
+  - {fileID: 6195546670040126410, guid: 3909230b31694ee4aad7b52cc6325c37, type: 3}
+  - {fileID: 6481229745826855543, guid: e11af370018dffd4faab1b451070f374, type: 3}
+  activationCount: 41
+  minimumSquadSize: 4
+  maximumSquadSize: 8
+  slotRadius: 6
+  directCommitRadius: 10
+  nearReleaseDistance: 4.5
+  farActivationDistance: 13
+  reserveSpeedMultiplier: 0.82
+  remnantRatio: 0.35
+  slotArrivalDistance: 1.6
+  reserveOrbitRadius: 15
+  reserveOrbitAngularSpeed: 6
+  curveRadiusMultiplier: 1

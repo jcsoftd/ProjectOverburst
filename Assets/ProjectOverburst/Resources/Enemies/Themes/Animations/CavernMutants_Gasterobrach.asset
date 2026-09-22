@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: CavernMutants_Gasterobrach
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: CavernMutants_Gasterobrach
+  runtimeController: {fileID: 9100000, guid: 5e473fdfe8fcabb49a6f2e6ab9a7571a, type: 2}
+  idle: {fileID: 1827226128182048838, guid: ccadd46881adcd24cbd96fb58951348d, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 2605f4664af73f54a9af4a0e86fb08b3, type: 3}
+  run: {fileID: 1827226128182048838, guid: 145fbd73145033c4e8c345b5611d7bc3, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: a2c7699b700b40740bf2b0dc3ac388c5, type: 3}
+  - {fileID: 1827226128182048838, guid: d720c82f437298a40ba33afefb04c76a, type: 3}
+  - {fileID: 1827226128182048838, guid: 758560dabeee30f49a206d32c9ddfd63, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 5c6b4f96161508f44b76bad55419c805, type: 3}
+  death: {fileID: 1827226128182048838, guid: 6be7be7f89855a449a7ca83713ec0b1b, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: ffa7e81940d72ab469858ce8b90a5c18, type: 3}
+  - {fileID: 1827226128182048838, guid: 52123b8e26af2794b99e9a4a861dc046, type: 3}
+  - {fileID: 1827226128182048838, guid: e18f90aeacc30194290336ac299d6191, type: 3}
+  - {fileID: 1827226128182048838, guid: 0a2cf870538fb9b49a738db4b1c908f3, type: 3}
+  - {fileID: 1827226128182048838, guid: c1e4fced48bcc3f4baee2bf3831c8d40, type: 3}
+  - {fileID: 1827226128182048838, guid: 90f53288d2beafc4f9aa23c6abb24db5, type: 3}
+  - {fileID: 1827226128182048838, guid: 5402b6a210134424ebc9710f5b765068, type: 3}
+  - {fileID: 1827226128182048838, guid: 1f926c5e5dbbeba4c999c7a01db98e2b, type: 3}
+  - {fileID: 1827226128182048838, guid: 2e592007d57a0644586545885de754f9, type: 3}
+  - {fileID: 1827226128182048838, guid: 2cb50f15ecc250e41b458257fc2b6009, type: 3}
+  - {fileID: 1827226128182048838, guid: 93225d6094aaaa94baa4f2e61713e1ba, type: 3}
+  - {fileID: 1827226128182048838, guid: 7f87a0ca1fcf4bd4887cd022ac1ce156, type: 3}
+  - {fileID: 1827226128182048838, guid: 9f115b0a67e4db84e97bbf7c5cf38d43, type: 3}
+  - {fileID: 1827226128182048838, guid: 1052dd80fff2edd4a897fda6609ccf31, type: 3}
+  - {fileID: 1827226128182048838, guid: e73e11e4db4474b45b81ac03526e4bcc, type: 3}
+  - {fileID: 1827226128182048838, guid: 96cfbb34c88e4454580842e70562aced, type: 3}
+  - {fileID: 1827226128182048838, guid: 32bde612a8e5ae640ae6a7593421bbdc, type: 3}
+  - {fileID: 1827226128182048838, guid: 4685164ef0c260d458bc06a7bc610776, type: 3}
+  - {fileID: 1827226128182048838, guid: ef04421dcd84bbb4ca526fde1dff46b1, type: 3}
+  - {fileID: 1827226128182048838, guid: 488a206f250610849a514332494ee65f, type: 3}
+  - {fileID: 1827226128182048838, guid: 4eca6b2795f4ff849ab49e992d87c3e9, type: 3}
+  - {fileID: 1827226128182048838, guid: f1f6fd85a24dd72479b26d02236211d1, type: 3}
+  - {fileID: 1827226128182048838, guid: e18129ae62114b34789da3a626f45a79, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Attack2HitComboForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Attack3HitComboForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackJumpSmash_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackLeftForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackRightForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackSmashForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackTurn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@AttackTurn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@JumpBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@JumpForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@StrafeLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@StrafeRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Walk_RM.fbx"

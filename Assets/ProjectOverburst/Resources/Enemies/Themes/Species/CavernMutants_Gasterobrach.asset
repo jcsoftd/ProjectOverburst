@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: CavernMutants_Gasterobrach
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: CavernMutants_Gasterobrach
+  displayName: Gasterobrach
+  vendorPrefab: {fileID: 2386009625532289283, guid: 1bc78eb3fce5e6740968f96f2fc769f7, type: 3}
+  animationProfile: {fileID: 11400000, guid: 07e906d2f26054d4baaa56dc653dfdcc, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: a065093ccf2b64e4b84116e74a8e4112, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 8b3e52ece77457548b325f928922ca5a, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 7da30e7a7369fcc4f972ef5b3b0de8fe, type: 2}
+  threatCost: 3

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: CavernMutants_Gorhorrid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: CavernMutants_Gorhorrid
+  runtimeController: {fileID: 9100000, guid: 41ad3643c5630294b89f8ccfe6bd8871, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 01363fe66adfab548994db863a9a5079, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 875dd371d3333fb48ae6143f0e9136c9, type: 3}
+  run: {fileID: 1827226128182048838, guid: caefdb5ba660e2949b623838361cd2a0, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: c956a49f4bb655f44b51465186896097, type: 3}
+  - {fileID: 1827226128182048838, guid: 4d19cf6f6a6611646923012e6c131d46, type: 3}
+  - {fileID: 1827226128182048838, guid: 94ed68203595a7f479abf5bae3b12a6d, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 1d5dfc3d1a2d37f46863f597dee80b97, type: 3}
+  death: {fileID: 1827226128182048838, guid: 924b40755a6579d47aea1549a3492048, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 4a7784be33ed14442a2ff8e5e00a5202, type: 3}
+  - {fileID: 1827226128182048838, guid: 4587862ebc748634c9737337da138a51, type: 3}
+  - {fileID: 1827226128182048838, guid: c86c431d5472e4349be76e83631eef9e, type: 3}
+  - {fileID: 1827226128182048838, guid: a23b2fb24c1844f4dae0d8dc4ac31f11, type: 3}
+  - {fileID: 1827226128182048838, guid: 1ef56aa318fee3247b95add7fcc3d1c2, type: 3}
+  - {fileID: 1827226128182048838, guid: 0c5d3bf33453f5443925f2a38c7ae467, type: 3}
+  - {fileID: 1827226128182048838, guid: 39ec675a6276f0940a837de17c4b780a, type: 3}
+  - {fileID: 1827226128182048838, guid: 2cb1b7800b2e1b14ba6aea3afcbfe30d, type: 3}
+  - {fileID: 1827226128182048838, guid: 382d575312a361e478747c239d361752, type: 3}
+  - {fileID: 1827226128182048838, guid: 2f98c5b1112978a49a1a9cd0453dea2c, type: 3}
+  - {fileID: 1827226128182048838, guid: 78ee7e758d43b2e4a911a119ba93c5a0, type: 3}
+  - {fileID: 1827226128182048838, guid: 12ed393cf5bacf243adcbe278f7440b5, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@2HitComboSmashAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@SmashAttackLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@SmashAttackRight_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@WalkRight_RM.fbx"

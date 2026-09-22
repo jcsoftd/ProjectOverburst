@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: CavernMutants_Gasterobrach_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: CavernMutants_Gasterobrach
+  abilities:
+  - {fileID: 11400000, guid: 1ed8147d206989b4182de85aa2260d45, type: 2}
+  - {fileID: 11400000, guid: ac5879ae2785a1440a9cb501944dd246, type: 2}
+  - {fileID: 11400000, guid: f2882d7d6cf9fac4f83acded30ae091b, type: 2}

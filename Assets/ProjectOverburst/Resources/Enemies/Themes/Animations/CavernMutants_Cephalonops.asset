@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: CavernMutants_Cephalonops
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: CavernMutants_Cephalonops
+  runtimeController: {fileID: 9100000, guid: a44ce3e024a3c2e41b5b408d2e63c82f, type: 2}
+  idle: {fileID: 7400000, guid: 992e058208fad2847a4532650718cd3f, type: 2}
+  walk: {fileID: 7400000, guid: d1de309d8d3e5b84580d62f88036fa97, type: 2}
+  run: {fileID: 7400000, guid: 08360d2e71622074e8070fe23f532edb, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: e20997dbe4e66f5499e7abe0b283ee52, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 353249912ca85e24ca48ad94fee90501, type: 3}
+  death: {fileID: 1827226128182048838, guid: 3e6f235c11856d1479630468a449c6e1, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 5aeccbdee9dff06458283b9e34995b1c, type: 3}
+  - {fileID: 1827226128182048838, guid: cd67a363c50ca2048bfa0289db7cc618, type: 3}
+  - {fileID: 1827226128182048838, guid: 15a4fb7fcf1c29a41b489e8ae71b8bfe, type: 3}
+  - {fileID: 1827226128182048838, guid: 2b3ffaa359df58948bcbe75dd108ddb3, type: 3}
+  - {fileID: 1827226128182048838, guid: 0b80bb8635ec2b145b39ae71ac96f721, type: 3}
+  - {fileID: 1827226128182048838, guid: e52fc76bdfc7dd844b504db250b2c806, type: 3}
+  - {fileID: 1827226128182048838, guid: 10dc1c44b659877488192d73a24ba0a0, type: 3}
+  - {fileID: 1827226128182048838, guid: 321901431a7e3014abd6479a123e3b08, type: 3}
+  - {fileID: 1827226128182048838, guid: 7616d6ee6fd74a946965bbb56f9e412c, type: 3}
+  - {fileID: 1827226128182048838, guid: 8b8298f0f63ee9a4d89084b5a8e6e425, type: 3}
+  - {fileID: 1827226128182048838, guid: fef2a093aa2f64d4ba7fcdb4d1ee647a, type: 3}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@BiteAttackForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@JumpBiteAttack_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@Run_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@Turn90Left_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@Turn90Right_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@WalkBackwards_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@WalkForward_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@WalkLeft_RM.fbx"
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@WalkRight_RM.fbx"
