@@ -64,8 +64,16 @@ public static class MonsterThemeCombatFieldVerifier
         var pixels = new Texture2D(768,432,TextureFormat.RGB24,false);
         camera.targetTexture = texture;
         bool attackDebug=CombatDebugSettings.ShowAttackPatternDebug, aiDebug=CombatDebugSettings.ShowEnemyAiStateDebug;
+        var originalInputSettings=InputSystem.settings;
+        InputSettings fixtureInputSettings=null;
         try
         {
+            // Synthetic Gameplay events must be evaluated even if a user selects another Editor tab.
+            // Clone settings so the saved project asset and the player's focus rules stay unchanged.
+            fixtureInputSettings=Object.Instantiate(originalInputSettings);
+            fixtureInputSettings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            fixtureInputSettings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings=fixtureInputSettings;
             CombatDebugSettings.SetAttackPatternDebug(false);CombatDebugSettings.SetEnemyAiStateDebug(false);
             for (int index=0; index<ui.tables.Length; index++)
             {
@@ -143,6 +151,8 @@ public static class MonsterThemeCombatFieldVerifier
                         var melee=player.GetComponent<MeleeRuntime>();var playerState=player.GetComponent<PlayerStateCoordinator>();
                         traces.Add(new{time=elapsed,alive=encounter.AliveCount,playerHits,
                             player=new{requestedAttack=attacking,mouseDown=mouse.leftButton.ReadValue(),y=player.transform.position.y,grounded=player.GetComponent<PlayerMovement>().IsGrounded,
+                                focused=Application.isFocused,gameplayEnabled=player.IsGameplayEnabled,mouseEnabled=mouse.enabled,keyboardEnabled=keyboard.enabled,
+                                inputRouting=InputSystem.settings.editorInputBehaviorInPlayMode.ToString(),
                                 held=player.AttackHeld,allowed=player.CombatInputs.AllowsHeldAttack,buffered=player.CombatInputs.HasAttack,
                                 pickupSuppressed=PlayerPickupInteractor.IsPrimaryAttackSuppressed,condition=playerState.CurrentCondition.ToString(),action=playerState.CurrentAction.ToString(),
                                 attacking=melee.IsAttackInProgress,ready=melee.IsAttackReady,canUse=melee.CanUseCurrentWeapon},
@@ -193,6 +203,8 @@ public static class MonsterThemeCombatFieldVerifier
             player.RuntimeAsset.devices=previousDevices;
             InputSystem.RemoveDevice(keyboard);InputSystem.RemoveDevice(mouse);
             foreach(var d in physical)if(d.added)InputSystem.EnableDevice(d);
+            InputSystem.settings=originalInputSettings;
+            if(fixtureInputSettings!=null)Object.Destroy(fixtureInputSettings);
             camera.targetTexture=null;RenderTexture.ReleaseTemporary(texture);Object.Destroy(pixels);Object.Destroy(cameraObject);ui.Clear();
         }
     }
