@@ -36,7 +36,7 @@ MonoBehaviour:
   idleBreakMinInterval: 5
   idleBreakMaxInterval: 9
   recoveryDuration: 0.75
-  preferredMinDistance: 1.182784
+  preferredMinDistance: 1.3010623
   repositionDistance: 1
   repositionDuration: 0.45
   lowHealthRepositionThreshold: 0.25
@@ -50,7 +50,7 @@ MonoBehaviour:
   dodgeLungeChance: 0
   dodgeVisualHeight: 0.75
   runApproachMinDistance: 6
-  preferredApproachDistance: 1.532784
+  preferredApproachDistance: 1.6860625
   approachSideAngle: 15
   separationRadius: 1.5
   separationWeight: 1

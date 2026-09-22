@@ -9,6 +9,8 @@ using Object = UnityEngine.Object;
 public static class MonsterThemeCombatBuilder
 {
     public const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes";
+    public const float SmallTierSizeMultiplier = .6f;
+    public const float EliteTierSizeMultiplier = 1.1f;
     private sealed class Spec
     {
         public int number,tier,theme;
@@ -70,12 +72,13 @@ public static class MonsterThemeCombatBuilder
             var animation=Asset<EnemyAnimationProfile>("Animations/"+id);
             animation.Configure(id,controller,idle,walk,run,attacks,hit,death,optional,display.clips.Where(c=>c.name.EndsWith("_RM")).Select(AssetDatabase.GetAssetPath).Distinct().ToArray());
             float footprint=spec.tier==0?1.45f:spec.tier==1?2.6f:4.9f, height=spec.tier==0?1.15f:spec.tier==1?2.15f:3.6f;
-            float scale=Mathf.Min(footprint/Mathf.Max(display.displaySize.x,display.displaySize.z),height/display.displaySize.y);
+            float sizeFactor=spec.tier==0?SmallTierSizeMultiplier:spec.tier==2?EliteTierSizeMultiplier:1f;
+            float scale=Mathf.Min(footprint/Mathf.Max(display.displaySize.x,display.displaySize.z),height/display.displaySize.y)*sizeFactor;
             Vector3 size=display.displaySize*scale;
-            float radius=Mathf.Clamp(Mathf.Max(size.x,size.z)*.22f,.22f,1.1f);
+            float radius=Mathf.Clamp(Mathf.Max(size.x,size.z)/sizeFactor*.22f,.22f,1.1f)*sizeFactor;
             float bodyHeight=Mathf.Max(radius*2,size.y*.88f);
             var movement=Clone(sourceDef.MovementProfile,"Movement/"+id);
-            float speed=spec.tier==0?2.3f:spec.tier==1?1.9f:1.5f;
+            float speed=(spec.tier==0?2.3f:spec.tier==1?1.9f:1.5f)*Mathf.Min(1f,sizeFactor);
             movement.Configure(id,speed,spec.tier==2?200:420,speed,1.6f,2.2f);
             float walkReference=ReferenceSpeed(display.clips,walk,scale,speed);
             float runReference=run==walk?walkReference:ReferenceSpeed(display.clips,run,scale,speed*1.6f);
@@ -85,7 +88,7 @@ public static class MonsterThemeCombatBuilder
             var behavior=Clone(sourceDef.BehaviorProfile,"Behavior/"+id);
             Set(behavior,"profileId",id);Set(behavior,"recoveryDuration",spec.tier==0?.28f:spec.tier==1?.45f:.75f);
             Set(behavior,"attackTurnCooldown",spec.tier==0?.8f:1.15f);Set(behavior,"dodgeLungeChance",0f);
-            Set(behavior,"preferredApproachDistance",radius+.8f);Set(behavior,"preferredMinDistance",radius+.45f);
+            Set(behavior,"preferredApproachDistance",radius+.8f*sizeFactor);Set(behavior,"preferredMinDistance",radius+.45f*sizeFactor);
             Set(behavior,"playTauntOnAlert",spec.tier>0 && display.clips.Any(c=>c.name=="Roar"||c.name=="Taunt"));
             var abilities=new List<EnemyAbilityDefinition>();
             for(int a=0;a<attacks.Length;a++)
@@ -98,9 +101,9 @@ public static class MonsterThemeCombatBuilder
                 var ability=Asset<EnemyAbilityDefinition>("Abilities/"+id+"_"+name);
                 float impact=combo?.3f:charge?.62f:projectile?.52f:.43f;
                 float damage=spec.tier==0?5:spec.tier==1?10:18;
-                float range=projectile?8:charge?4.8f:radius+1.25f;
+                float range=projectile?8:charge?4.8f:radius+1.25f*sizeFactor;
                 float duration=attacks[a].length;
-                ability.Configure(id+"_"+name,"Attack"+(a+1),damage,range,radius+.95f,gas?360:125,
+                ability.Configure(id+"_"+name,"Attack"+(a+1),damage,range,projectile?radius/sizeFactor+.95f:radius+.95f*sizeFactor,gas?360:125,
                     charge?5:projectile?4:spec.tier==2?2.8f:1.6f,duration*impact,impact,duration*.95f,
                     charge?.45f:projectile?.6f:1,false,mode,1.5f,true,duration);
                 ability.ConfigureAdditionalHits(combo?new[]{.66f}:Array.Empty<float>());
@@ -115,7 +118,7 @@ public static class MonsterThemeCombatBuilder
             var definition=Asset<EnemyDefinition>("Definitions/"+id);definition.ConfigureIdentity(id,display.displayName);
             var participation=spec.tier==2?EnemySquadParticipationMode.Independent:EnemySquadParticipationMode.SquadMember;
             definition.ConfigureRuntime(animation,abilitySet,behavior,movement,presets[spec.theme],participation);
-            var prefab=BuildActor(template,display,id,definition,scale,size,radius,bodyHeight,controller,abilitySet,movement,behavior,presets[spec.theme],participation,signals[spec.theme],Colors[spec.theme]);
+            var prefab=BuildActor(template,display,id,definition,scale,size,radius,bodyHeight,sizeFactor,controller,abilitySet,movement,behavior,presets[spec.theme],participation,signals[spec.theme],Colors[spec.theme]);
             definition.ConfigureComposition(species,spec.tier==2?elite:normal,variant,prefab);
             definitions.Add(definition);
             foreach(var asset in new Object[]{animation,movement,behavior,abilitySet,species,definition})EditorUtility.SetDirty(asset);
@@ -138,7 +141,7 @@ public static class MonsterThemeCombatBuilder
         Debug.Log("[MonsterThemeCombat] Created 14 actors / 3 tables using existing actor and squad runtime.");
     }
 
-    private static EnemyActor BuildActor(GameObject template,MonsterShowcaseActor display,string id,EnemyDefinition definition,float scale,Vector3 size,float radius,float height,
+    private static EnemyActor BuildActor(GameObject template,MonsterShowcaseActor display,string id,EnemyDefinition definition,float scale,Vector3 size,float radius,float height,float sizeFactor,
         RuntimeAnimatorController controller,EnemyAbilitySet abilities,EnemyMovementProfile movement,EnemyBehaviorProfile behavior,EnemyAiPreset preset,EnemySquadParticipationMode participation,Material signal,Color color)
     {
         var root=Object.Instantiate(template);root.name="PF_"+id;root.SetActive(false);
@@ -162,7 +165,7 @@ public static class MonsterThemeCombatBuilder
             foreach(var rb in model.GetComponentsInChildren<Rigidbody>(true)){rb.isKinematic=true;rb.useGravity=false;}
             foreach(var t in root.GetComponentsInChildren<Transform>(true))t.gameObject.layer=LayerMask.NameToLayer("Enemy");
             var capsule=actor.CollisionRoot.GetComponentInChildren<CapsuleCollider>();capsule.radius=radius;capsule.height=height;capsule.center=Vector3.up*(height*.5f+.02f);
-            actor.Anchors.Find("AttackPoint").localPosition=new Vector3(0,Mathf.Clamp(height*.5f,.65f,1.5f),radius+.35f);
+            actor.Anchors.Find("AttackPoint").localPosition=new Vector3(0,Mathf.Clamp(height/sizeFactor*.5f,.65f,1.5f)*sizeFactor,radius+.35f*sizeFactor);
             actor.Anchors.Find("HitVfxPoint").localPosition=Vector3.up*height*.55f;
             actor.Anchors.Find("HpBarAnchor").localPosition=Vector3.up*(Mathf.Max(size.y,height)+.3f);
             actor.Identity.SetDefinition(definition);Set(actor,"definition",definition);

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: SpiderBrood_Rostrokarck
   moveSpeed: 1.4
   turnSpeed: 200
-  animationReferenceSpeed: 2.7271414
-  runAnimationReferenceSpeed: 2.7271414
-  backpedalAnimationReferenceSpeed: 2.7222438
+  animationReferenceSpeed: 2.9998555
+  runAnimationReferenceSpeed: 2.9998555
+  backpedalAnimationReferenceSpeed: 2.9944682
   runSpeedMultiplier: 1.4285715
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55

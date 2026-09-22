@@ -17,8 +17,8 @@ MonoBehaviour:
   executionMode: 0
   damage: 18
   minimumRange: 0
-  range: 2.328
-  hitRadius: 2.028
+  range: 2.5608
+  hitRadius: 2.2308002
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1

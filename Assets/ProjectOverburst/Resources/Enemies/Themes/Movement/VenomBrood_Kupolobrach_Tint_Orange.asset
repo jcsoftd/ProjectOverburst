@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: VenomBrood_Kupolobrach_Tint_Orange
   moveSpeed: 1.2
   turnSpeed: 200
-  animationReferenceSpeed: 1.7263415
-  runAnimationReferenceSpeed: 1.7263415
-  backpedalAnimationReferenceSpeed: 1.7366083
+  animationReferenceSpeed: 1.8989757
+  runAnimationReferenceSpeed: 1.8989757
+  backpedalAnimationReferenceSpeed: 1.9102691
   runSpeedMultiplier: 1.4999999
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55

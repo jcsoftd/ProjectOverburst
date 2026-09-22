@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: PrimalHunt_Occisodonte
   moveSpeed: 1.2
   turnSpeed: 200
-  animationReferenceSpeed: 2.1022453
-  runAnimationReferenceSpeed: 2.1022453
-  backpedalAnimationReferenceSpeed: 2.1023092
+  animationReferenceSpeed: 2.31247
+  runAnimationReferenceSpeed: 2.31247
+  backpedalAnimationReferenceSpeed: 2.3125403
   runSpeedMultiplier: 1.5416666
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55

@@ -58,6 +58,8 @@ public static class MonsterThemeLocomotionBuilder
                 }
 
                 // Measure each supporting sole at the final model scale, including clips without root motion.
+                float sizeFactor=entry.tier==EnemyThemeTier.Small?MonsterThemeCombatBuilder.SmallTierSizeMultiplier:1f;
+                walkSpeed=Mathf.Max(EnemyMovementProfile.MinimumMoveSpeed,walkSpeed*sizeFactor);runSpeed*=sizeFactor;
                 var stride = MonsterThemeStrideCalibration.Measure(definition, walk, run, back);
                 float walkReference = stride.walk.naturalSpeed;
                 float runReference = stride.run.naturalSpeed;

@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: PrimalHunt_Caniathrox
-  moveSpeed: 1.05
+  moveSpeed: 1
   turnSpeed: 420
-  animationReferenceSpeed: 0.83982146
-  runAnimationReferenceSpeed: 4.1354895
-  backpedalAnimationReferenceSpeed: 0.8975489
-  runSpeedMultiplier: 2.5238097
+  animationReferenceSpeed: 0.5038929
+  runAnimationReferenceSpeed: 2.4812937
+  backpedalAnimationReferenceSpeed: 0.5385294
+  runSpeedMultiplier: 1.5900002
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1

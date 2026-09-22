@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: SpiderBrood_Horridomorph
-  moveSpeed: 1.1
+  moveSpeed: 1
   turnSpeed: 420
-  animationReferenceSpeed: 1.227279
-  runAnimationReferenceSpeed: 1.227279
-  backpedalAnimationReferenceSpeed: 1.2238314
-  runSpeedMultiplier: 1.5454545
+  animationReferenceSpeed: 0.7363674
+  runAnimationReferenceSpeed: 0.7363674
+  backpedalAnimationReferenceSpeed: 0.7342989
+  runSpeedMultiplier: 1.4
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1
