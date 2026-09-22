@@ -323,6 +323,10 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (defenseController != null && defenseController.ConsumeBlockedHit())
             return; // 방패 반응이 일반 피격보다 우선
 
+        if (movementReaction == null) ResolveMovementReaction();
+        bool weighted = movementReaction != null && movementReaction.HitWeightProfile != null;
+        if (weighted && !movementReaction.TryApplyWeightedHit(info)) return;
+
         if (hasDirectionalHit && animator != null)
         {
             Vector3 towardSource = info.source != null ? info.source.transform.position - transform.position : -info.direction;
@@ -331,6 +335,8 @@ public class EnemyAnimationBridge : MonoBehaviour
             animator.SetFloat(HitXHash, local.x);animator.SetFloat(HitZHash, local.z);
         }
         PlayHit();
+
+        if (weighted) return; // 공유 무게 프로필이 이동/경직 시간을 함께 소유
 
         if (movementReaction == null)
             ResolveMovementReaction(); // 지연 연결

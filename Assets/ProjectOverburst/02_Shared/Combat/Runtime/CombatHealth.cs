@@ -205,6 +205,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         EnemyMovementReaction movementReaction = GetComponentInParent<EnemyMovementReaction>();
         if (movementReaction != null)
         {
+            // Weighted enemies resolve physical and visual feedback together after shield/freeze checks.
+            if (movementReaction.HitWeightProfile != null) return;
             movementReaction.ApplyKnockback(knockbackDirection.normalized, info.knockback); // 적 제어형 넉백
             return;
         }

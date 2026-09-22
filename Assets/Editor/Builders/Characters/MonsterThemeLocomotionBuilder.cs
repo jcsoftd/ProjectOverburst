@@ -40,17 +40,17 @@ public static class MonsterThemeLocomotionBuilder
                 float walkSpeed, runSpeed;
                 switch (definition.EnemyId)
                 {
-                    case "PrimalHunt_Caniathrox": walkSpeed = 1.05f; runSpeed = 2.65f; break;
+                    case "PrimalHunt_Caniathrox": walkSpeed = 1.10f; runSpeed = 3.05f; break;
                     case "PrimalHunt_Dimaxillosaurus": walkSpeed = 1.55f; runSpeed = 2.20f; run = walk; break;
                     case "PrimalHunt_Venosaur_Tint_Brown": walkSpeed = 1.35f; runSpeed = 1.95f; run = walk; break;
                     case "PrimalHunt_Occisodonte": walkSpeed = 1.20f; runSpeed = 1.85f; break;
-                    case "SpiderBrood_RostrokarckLarvae": walkSpeed = 1.75f; runSpeed = 2.65f; break;
-                    case "SpiderBrood_Horridomorph": walkSpeed = 1.10f; runSpeed = 1.70f; break;
+                    case "SpiderBrood_RostrokarckLarvae": walkSpeed = 1.65f; runSpeed = 2.80f; break;
+                    case "SpiderBrood_Horridomorph": walkSpeed = 1.10f; runSpeed = 2.45f; break;
                     case "SpiderBrood_Scolokarck_Tint3": walkSpeed = 1.55f; runSpeed = 2.20f; run = walk; break;
                     case "SpiderBrood_Carcinoptera": walkSpeed = 1.45f; runSpeed = 2.15f; break;
                     case "SpiderBrood_Rostrokarck": walkSpeed = 1.40f; runSpeed = 2.00f; break;
-                    case "VenomBrood_Venodonte_Tint1":
-                    case "VenomBrood_Venodonte_Tint3": walkSpeed = 1.70f; runSpeed = 2.55f; break;
+                    case "VenomBrood_Venodonte_Tint1": walkSpeed = 1.65f; runSpeed = 2.70f; break;
+                    case "VenomBrood_Venodonte_Tint3": walkSpeed = 1.55f; runSpeed = 2.55f; break;
                     case "VenomBrood_Arathrox": walkSpeed = 1.65f; runSpeed = 2.35f; break;
                     case "VenomBrood_Kupolojuve_Tint_Orange": walkSpeed = 1.45f; runSpeed = 2.10f; break;
                     case "VenomBrood_Kupolobrach_Tint_Orange": walkSpeed = 1.20f; runSpeed = 1.80f; break;
@@ -58,8 +58,7 @@ public static class MonsterThemeLocomotionBuilder
                 }
 
                 // Measure each supporting sole at the final model scale, including clips without root motion.
-                float sizeFactor=entry.tier==EnemyThemeTier.Small?MonsterThemeCombatBuilder.SmallTierSizeMultiplier:1f;
-                walkSpeed=Mathf.Max(EnemyMovementProfile.MinimumMoveSpeed,walkSpeed*sizeFactor);runSpeed*=sizeFactor;
+                // Species pace is independent of body scale; measured stride controls playback speed.
                 var stride = MonsterThemeStrideCalibration.Measure(definition, walk, run, back);
                 float walkReference = stride.walk.naturalSpeed;
                 float runReference = stride.run.naturalSpeed;

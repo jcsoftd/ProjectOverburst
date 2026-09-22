@@ -51,10 +51,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.1914
-  m_Height: 0.40977246
+  m_Radius: 0.2233
+  m_Height: 0.47806785
   m_Direction: 1
-  m_Center: {x: 0, y: 0.22488624, z: 0}
+  m_Center: {x: 0, y: 0.25903395, z: 0}
 --- !u!1 &2919519562204963139
 GameObject:
   m_ObjectHideFlags: 0
@@ -146,7 +146,7 @@ Transform:
   m_GameObject: {fileID: 5288478604322641621}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.7656505, z: 0}
+  m_LocalPosition: {x: 0, y: 0.8432589, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -178,7 +178,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.80243653, y: 0.80243653, z: 0.80243653}
+  m_LocalScale: {x: 0.93617594, y: 0.93617594, z: 0.93617594}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7205052139762127608}
@@ -209,7 +209,7 @@ Transform:
   m_GameObject: {fileID: 5391681208406373534}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.39000002, z: 0.40140003}
+  m_LocalPosition: {x: 0, y: 0.455, z: 0.4683}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -240,7 +240,7 @@ Transform:
   m_GameObject: {fileID: 7937078263732089598}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.22537486, z: 0}
+  m_LocalPosition: {x: 0, y: 0.26293734, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -549,6 +549,7 @@ MonoBehaviour:
   combatTarget: {fileID: 0}
   knockbackDistancePerStrength: 0.1
   knockbackTravelDuration: 0.12
+  visualReactionRoot: {fileID: 9202515528177053142}
 --- !u!114 &6721896492105741592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -958,7 +959,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3285927644341094256, guid: 4b14efc10cab29c4a8a02818f115fa5b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.031933717
+      value: 0.028373133
       objectReference: {fileID: 0}
     - target: {fileID: 3285927644341094256, guid: 4b14efc10cab29c4a8a02818f115fa5b, type: 3}
       propertyPath: m_LocalPosition.z

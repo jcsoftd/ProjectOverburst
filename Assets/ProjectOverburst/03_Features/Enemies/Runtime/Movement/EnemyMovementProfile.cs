@@ -18,6 +18,7 @@ public sealed class EnemyMovementProfile : ScriptableObject // 몬스터 이동 
     [SerializeField, Min(1f)] private float dodgeSpeedMultiplier = DefaultDodgeSpeedMultiplier; // 회피 이동 배율
     [SerializeField, Range(0f, 100f)] private float knockbackReductionPercent; // 넉백 이동 감소율
     [SerializeField, Min(0.1f)] private float crowdWeight = 1f; // 군집 보정 양보 비율
+    [SerializeField] private EnemyHitWeightProfile hitWeightProfile; // 피격 체급. 군집 양보와 별도
     [SerializeField, Min(0f)] private float crowdAnimationSpeedLimit; // 0: 기존 동작, 1 이상: 명령 속도 대비 배속 상한
 
     public string ProfileId { get { return profileId; } }
@@ -29,6 +30,8 @@ public sealed class EnemyMovementProfile : ScriptableObject // 몬스터 이동 
     public float DodgeSpeedMultiplier { get { return Mathf.Max(1f, dodgeSpeedMultiplier); } }
     public float KnockbackReductionPercent { get { return Mathf.Clamp(knockbackReductionPercent, 0f, 100f); } }
     public float CrowdWeight { get { return Mathf.Max(0.1f, crowdWeight); } }
+    public EnemyHitWeightProfile HitWeightProfile => hitWeightProfile;
+    public void ConfigureHitWeight(EnemyHitWeightProfile value) => hitWeightProfile = value;
     public bool MatchAnimationToActualMovement => crowdAnimationSpeedLimit > 0f;
     [SerializeField] private Vector2 turnAnimationReferenceSpeeds;
     [SerializeField] private AnimationCurve leftTurnProgress = AnimationCurve.Linear(0,0,1,1);

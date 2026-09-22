@@ -22,6 +22,7 @@ MonoBehaviour:
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55
   crowdWeight: 4
+  hitWeightProfile: {fileID: 11400000, guid: ffc270ad5b652de498ca414a8fc33bf1, type: 2}
   crowdAnimationSpeedLimit: 1.12
   turnAnimationReferenceSpeeds: {x: 59.999996, y: 59.999996}
   leftTurnProgress:

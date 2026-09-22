@@ -428,6 +428,7 @@ MonoBehaviour:
   combatTarget: {fileID: 0}
   knockbackDistancePerStrength: 0.1
   knockbackTravelDuration: 0.12
+  visualReactionRoot: {fileID: 7002719153750584930}
 --- !u!114 &4531185742001240962
 MonoBehaviour:
   m_ObjectHideFlags: 0

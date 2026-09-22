@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 public static class MonsterThemeCombatBuilder
 {
     public const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes";
-    public const float SmallTierSizeMultiplier = .6f;
+    public const float SmallTierSizeMultiplier = .7f;
     public const float EliteTierSizeMultiplier = 1.1f;
     private sealed class Spec
     {
@@ -85,6 +85,7 @@ public static class MonsterThemeCombatBuilder
             movement.ConfigureAnimationReferenceSpeeds(walkReference,runReference);
             movement.ConfigureKnockbackReductionPercent(spec.tier==2?55:spec.tier==1?20:0);
             movement.ConfigureCrowdWeight(spec.tier==2?4:spec.tier==1?1.8f:1);
+            movement.ConfigureHitWeight(MonsterThemeWeightBuilder.Resolve(spec.tier==0?EnemyThemeTier.Small:spec.tier==2?EnemyThemeTier.Elite:EnemyThemeTier.Medium));
             var behavior=Clone(sourceDef.BehaviorProfile,"Behavior/"+id);
             Set(behavior,"profileId",id);Set(behavior,"recoveryDuration",spec.tier==0?.28f:spec.tier==1?.45f:.75f);
             Set(behavior,"attackTurnCooldown",spec.tier==0?.8f:1.15f);Set(behavior,"dodgeLungeChance",0f);
@@ -149,6 +150,7 @@ public static class MonsterThemeCombatBuilder
         {
             var actor=root.GetComponent<EnemyActor>();var visual=actor.VisualRoot;var oldAnimator=actor.Animator;
             var scaled=new GameObject("Authored model scale").transform;scaled.SetParent(visual,false);scaled.localScale=Vector3.one*scale;
+            root.GetComponent<EnemyMovementReaction>().ConfigureVisualReactionRoot(scaled);
             var model=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(display.sourcePath),scaled);
             model.transform.localPosition=display.transform.GetChild(0).localPosition+Vector3.up*(.02f/scale);
             model.transform.localRotation=display.transform.GetChild(0).localRotation;

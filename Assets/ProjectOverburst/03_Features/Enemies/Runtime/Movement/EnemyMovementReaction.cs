@@ -17,6 +17,57 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     [SerializeField] private CombatTarget combatTarget; // 물리 부피
     [SerializeField, Min(0f)] private float knockbackDistancePerStrength = 0.1f; // 넉백 수치당 거리
     [SerializeField, Min(0f)] private float knockbackTravelDuration = 0.12f; // 실제 이동 시간
+    [SerializeField] private Transform visualReactionRoot; // 모델 부모만 들고 충돌체/공격점은 지면 유지
+    private Vector3 visualBasePosition;
+    private bool visualBaseCaptured;
+    private float liftStartedAt, liftHeight, liftDuration, nextWeightedReaction;
+    public EnemyHitWeightProfile HitWeightProfile => movement != null && movement.Profile != null ? movement.Profile.HitWeightProfile : null;
+    public float VisualLift { get; private set; }
+
+    public void ConfigureVisualReactionRoot(Transform root)
+    {
+        ResetVisualLift(); visualReactionRoot=root; visualBaseCaptured=false;
+    }
+
+    public bool TryApplyWeightedHit(DamageInfo info)
+    {
+        var profile=HitWeightProfile;
+        if(profile==null || IsDead() || info.isDamageOverTime || !info.triggersOnHitEffects || Time.time<nextWeightedReaction) return false;
+        nextWeightedReaction=Time.time+profile.ReactionCooldown;
+        Vector3 direction=info.direction;
+        if(direction.sqrMagnitude<.0001f && info.source!=null) direction=transform.position-info.source.transform.position;
+        ApplyKnockback(direction,info.knockback);
+        float stagger=info.hitReaction.overridesTargetDefaults
+            ? (info.knockback>0f?info.hitReaction.knockbackReactionDuration:info.hitReaction.hitStunDuration)
+            : profile.StaggerDuration;
+        if(IsKnockbackActive) ExtendKnockbackReaction(stagger);
+        else ApplyHitStun(stagger);
+        if(visualReactionRoot!=null && profile.VisualLiftHeight>0f)
+        {
+            if(!visualBaseCaptured){visualBasePosition=visualReactionRoot.localPosition;visualBaseCaptured=true;}
+            liftStartedAt=Time.time;liftHeight=profile.VisualLiftHeight;liftDuration=profile.VisualLiftDuration;
+        }
+        return true;
+    }
+
+    private void LateUpdate()
+    {
+        if(liftHeight<=0f || visualReactionRoot==null) return;
+        if(IsDead()){ResetVisualLift();return;}
+        float t=Mathf.Clamp01((Time.time-liftStartedAt)/liftDuration);
+        // Smooth takeoff and landing; no accumulated lift on repeated hits.
+        float bell=Mathf.Sin(Mathf.PI*t);VisualLift=liftHeight*bell*bell;
+        visualReactionRoot.localPosition=visualBasePosition+Vector3.up*VisualLift;
+        if(t>=1f) ResetVisualLift();
+    }
+
+    private void ResetVisualLift()
+    {
+        if(visualReactionRoot!=null && visualBaseCaptured) visualReactionRoot.localPosition=visualBasePosition;
+        liftHeight=0f;VisualLift=0f;
+    }
+
+    private void OnDisable() { ResetReaction(); }
 
     private float knockbackEndTime; // 넉백 반응 종료
     private float hitStunEndTime; // 제자리 경직 종료
@@ -73,7 +124,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
 
         Vector3 startPosition = transform.position;
         float distance = ResolveKnockbackDistance(resolvedStrength);
-        float travelDuration = Mathf.Max(Time.fixedDeltaTime, knockbackTravelDuration);
+        float travelDuration = Mathf.Max(Time.fixedDeltaTime, HitWeightProfile != null ? HitWeightProfile.TravelDuration : knockbackTravelDuration);
         knockbackStartPosition = startPosition;
         knockbackTargetPosition = startPosition + direction.normalized * distance;
         knockbackTravelStartTime = Time.time;
@@ -98,6 +149,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
 
     public float ResolveKnockbackDistance(float strength)
     {
+        if(HitWeightProfile!=null) return HitWeightProfile.ResolveDistance(strength);
         float baseDistance = Mathf.Max(0f, strength) * Mathf.Max(0f, knockbackDistancePerStrength);
         return baseDistance * (1f - KnockbackReductionPercent * 0.01f);
     }
@@ -138,6 +190,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
 
     public void ResetReaction()
     {
+        ResetVisualLift(); nextWeightedReaction=0f;
         knockbackEndTime = 0f;
         hitStunEndTime = 0f;
         knockbackTravelEndTime = 0f;

@@ -13,15 +13,16 @@ MonoBehaviour:
   m_Name: EMP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: VenomBrood_Venodonte_Tint1
-  moveSpeed: 1.0200001
+  moveSpeed: 1.65
   turnSpeed: 420
-  animationReferenceSpeed: 1.3011327
-  runAnimationReferenceSpeed: 1.3011327
-  backpedalAnimationReferenceSpeed: 1.3006049
-  runSpeedMultiplier: 1.4999999
+  animationReferenceSpeed: 1.5179881
+  runAnimationReferenceSpeed: 1.5179881
+  backpedalAnimationReferenceSpeed: 1.5173724
+  runSpeedMultiplier: 1.6363637
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1
+  hitWeightProfile: {fileID: 11400000, guid: c3232b65cad03454caa74d5e24473033, type: 2}
   crowdAnimationSpeedLimit: 1.12
   turnAnimationReferenceSpeeds: {x: 107.99999, y: 107.99999}
   leftTurnProgress:

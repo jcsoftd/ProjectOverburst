@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4706172b3982f514594982e3f1350239, type: 3}
+  m_Name: Heavy
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitWeightProfile
+  weight: 2
+  distancePerStrength: 0.03
+  maximumDistance: 0.14
+  travelDuration: 0.14
+  staggerDuration: 0.1
+  visualLiftHeight: 0
+  visualLiftDuration: 0.16
+  reactionCooldown: 0.48
