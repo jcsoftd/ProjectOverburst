@@ -1,10 +1,11 @@
 using System;
 using TMPro;
 using UnityEngine;
+using MoreMountains.Feedbacks;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(TextMeshProUGUI))]
-public sealed class DamageNumberPopup : MonoBehaviour
+public sealed class DamageNumberPopup : MMFloatingText
 {
     public const float ReactionFontSize = 18f; // 원소반응 문구 크기 축소
     public const float ReactionCharacterSpacing = 4f;
@@ -28,7 +29,11 @@ public sealed class DamageNumberPopup : MonoBehaviour
     private Vector3 worldPosition;
     private Vector2 randomOffset;
     private Color startColor;
-    private float spawnTime;
+    private bool initialized;
+    private static readonly AnimationCurve RiseCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    private static readonly AnimationCurve NormalScale = new AnimationCurve(new Keyframe(0f, .72f), new Keyframe(.09f, 1.12f), new Keyframe(.22f, 1f), new Keyframe(1f, 1f));
+    private static readonly AnimationCurve CriticalScale = new AnimationCurve(new Keyframe(0f, .65f), new Keyframe(.09f, 1.42f), new Keyframe(.24f, 1f), new Keyframe(1f, 1f));
+    private AnimationCurve opacityCurve;
 
     private void Awake()
     {
@@ -36,34 +41,38 @@ public sealed class DamageNumberPopup : MonoBehaviour
         ResolveText();
     }
 
-    private void Update()
+    protected override void Initialization()
     {
-        if (targetCamera == null)
-            targetCamera = Camera.main;
+        // The existing screen-space pool owns following/projection; no MMFollowTarget is needed.
+        _startedAt = GetTime();
+        rectTransform = transform as RectTransform;
+        MovingPart = transform;
+        ResolveText();
+    }
 
-        float age = Time.time - spawnTime;
-        float fadeDuration = Mathf.Max(0.0001f, lifetime - fadeStartDelay);
-        float fadeProgress = age > fadeStartDelay ? Mathf.Clamp01((age - fadeStartDelay) / fadeDuration) : 0f;
-        bool projected = RefreshProjectedPosition(age, ExitScreenMargin);
-
-        if (!projected)
+    protected override void UpdateFloatingText()
+    {
+        if (!initialized) return;
+        if (GetTime() - _startedAt >= _lifetime || !RefreshProjectedPosition(0f, ExitScreenMargin))
         {
             CompleteAndReturn();
             return;
         }
-
-        if (text != null)
-        {
-            Color color = startColor;
-            color.a = Mathf.Lerp(startColor.a, 0f, fadeProgress);
-            text.color = color;
-        }
-
-        if (age >= lifetime)
-        {
-            CompleteAndReturn();
-        }
+        base.UpdateFloatingText();
     }
+
+    protected override void HandleMovement()
+    {
+        base.HandleMovement();
+        // Feel supplies the rise curve; retain the game's camera/canvas projection contract.
+        RefreshProjectedPosition(_newPosition.y, ExitScreenMargin);
+    }
+
+    protected override void HandleAlignment() { }
+    protected override void TurnOff() => CompleteAndReturn();
+    public override void SetText(string value) { ResolveText(); text.text = value; }
+    public override void SetColor(Color color) { ResolveText(); text.color = color; }
+    public override void SetOpacity(float opacity) { var color = text.color; color.a = startColor.a * opacity; text.color = color; }
 
     public void SetProjectionRoot(RectTransform root)
     {
@@ -85,15 +94,16 @@ public sealed class DamageNumberPopup : MonoBehaviour
     {
         InitializeText(
             null,
-            damageColor,
+            isCritical && damageColor == Color.white ? new Color(1f, .77f, .24f) : damageColor,
             position,
-            isCritical ? 27f : 24f,
+            isCritical ? 34f : 24f,
             finishedCallback,
             isCritical ? FontStyles.Bold : FontStyles.Normal,
             false,
             horizontalRandomOffsetRange,
             true,
-            Mathf.Max(1, Mathf.RoundToInt(damage)));
+            Mathf.Max(1, Mathf.RoundToInt(damage)),
+            isCritical);
     }
 
     public void InitializeCustom(
@@ -136,7 +146,8 @@ public sealed class DamageNumberPopup : MonoBehaviour
         bool isReaction,
         float horizontalRandomOffsetRange,
         bool useIntegerText,
-        int integerValue)
+        int integerValue,
+        bool isCritical = false)
     {
         ResolveText();
         if (projectionRoot == null)
@@ -145,7 +156,7 @@ public sealed class DamageNumberPopup : MonoBehaviour
         if (targetCamera == null)
             targetCamera = Camera.main;
         onFinished = finishedCallback;
-        spawnTime = Time.time;
+        _startedAt = GetTime();
         startColor = color;
         worldPosition = position;
         float resolvedHorizontalOffsetRange = horizontalRandomOffsetRange > 0f
@@ -169,7 +180,7 @@ public sealed class DamageNumberPopup : MonoBehaviour
         {
             Material baseFontMaterial = ApplyFont();
             if (useIntegerText)
-                text.SetText("{0:0}", integerValue);
+                text.SetText(isCritical ? "{0:0}!" : "{0:0}", integerValue);
             else
                 text.text = displayText;
             text.fontSize = fontSize;
@@ -191,13 +202,25 @@ public sealed class DamageNumberPopup : MonoBehaviour
             text.color = displayColor;
         }
 
-        gameObject.SetActive(true);
         if (!projected)
+        {
             CompleteAndReturn();
+            return;
+        }
+        initialized = true;
+        gameObject.SetActive(true);
+        MovingPart = transform;
+        opacityCurve ??= new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(Mathf.Clamp01(fadeStartDelay / Mathf.Max(.01f, lifetime)), 1f), new Keyframe(1f, 0f));
+        SetProperties(text.text, lifetime, Vector3.up, true,
+            MMFloatingTextSpawner.AlignmentModes.Fixed, Vector3.up, false, null,
+            false, null, 0f, 0f, true, RiseCurve, 0f, riseSpeed * lifetime * (isCritical ? 1.15f : 1f),
+            false, null, 0f, 0f, true, opacityCurve, 0f, 1f,
+            true, isCritical ? CriticalScale : NormalScale, 0f, 1f, false, null);
     }
 
-    private bool RefreshProjectedPosition(float age, float screenMargin)
+    private bool RefreshProjectedPosition(float rise, float screenMargin)
     {
+        if (targetCamera == null) targetCamera = Camera.main;
         bool projected = WorldUiScreenProjection.TryProject(
             projectionRoot,
             targetCamera,
@@ -207,7 +230,7 @@ public sealed class DamageNumberPopup : MonoBehaviour
         if (rectTransform == null || !projected)
             return projected;
 
-        Vector2 screenRise = Vector2.up * riseSpeed * Mathf.Max(0f, age);
+        Vector2 screenRise = Vector2.up * rise;
         Vector2 finalPosition = anchoredPosition + randomOffset + screenRise;
         finalPosition.x = Mathf.Round(finalPosition.x);
         finalPosition.y = Mathf.Round(finalPosition.y);
@@ -222,7 +245,7 @@ public sealed class DamageNumberPopup : MonoBehaviour
         worldPosition = Vector3.zero;
         randomOffset = Vector2.zero;
         startColor = Color.clear;
-        spawnTime = 0f;
+        initialized = false;
 
         if (rectTransform != null)
         {
@@ -245,6 +268,7 @@ public sealed class DamageNumberPopup : MonoBehaviour
 
     private void CompleteAndReturn()
     {
+        initialized = false;
         Action<DamageNumberPopup> finishedCallback = onFinished;
         onFinished = null;
         gameObject.SetActive(false);
