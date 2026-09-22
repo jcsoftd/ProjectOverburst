@@ -24,6 +24,10 @@ public sealed class CombatTarget : MonoBehaviour
     [SerializeField] private Vector3 localCenter = new Vector3(0f, 1f, 0f);
     [SerializeField, Min(0.05f)] private float radius = 0.45f;
     [SerializeField, Min(0.1f)] private float height = 2f;
+    [SerializeField] private bool useCustomHurtVolume;
+    [SerializeField] private Vector3 hurtLocalCenter;
+    [SerializeField, Min(0.05f)] private float hurtRadius = 0.45f;
+    [SerializeField, Min(0.1f)] private float hurtHeight = 2f;
     private IElementalStatusReceiver elementalStatusReceiver;
 
     public CombatHealth DamageReceiver => damageReceiver;
@@ -57,6 +61,14 @@ public sealed class CombatTarget : MonoBehaviour
         get { return ResolveVolumeAtRootPosition(transform.position); }
     }
 
+    // Weapon contact can be forgiving without changing body clearance or AI spacing.
+    public CombatTargetVolume CurrentHurtVolume
+    {
+        get { return ResolveHurtVolumeAtRootPosition(transform.position); }
+    }
+
+    public bool HasCustomHurtVolume => useCustomHurtVolume;
+
     public CombatTargetVolume ResolveVolumeAtRootPosition(Vector3 rootWorldPosition)
     {
         Vector3 scale = transform.lossyScale;
@@ -72,6 +84,30 @@ public sealed class CombatTarget : MonoBehaviour
     {
         CombatTargetVolume current = CurrentVolume;
         CombatTargetVolume intended = ResolveVolumeAtRootPosition(intendedRootWorldPosition);
+        return CombineSweptVolumes(current, intended);
+    }
+
+    public CombatTargetVolume ResolveHurtVolumeAtRootPosition(Vector3 rootWorldPosition)
+    {
+        if (!useCustomHurtVolume)
+            return ResolveVolumeAtRootPosition(rootWorldPosition);
+
+        Vector3 scale = transform.lossyScale;
+        float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
+        float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
+        return new CombatTargetVolume(
+            rootWorldPosition + transform.TransformVector(hurtLocalCenter),
+            hurtRadius * planarScale,
+            hurtHeight * verticalScale * 0.5f);
+    }
+
+    public CombatTargetVolume ResolveSweptHurtVolume(Vector3 intendedRootWorldPosition)
+    {
+        return CombineSweptVolumes(CurrentHurtVolume, ResolveHurtVolumeAtRootPosition(intendedRootWorldPosition));
+    }
+
+    private static CombatTargetVolume CombineSweptVolumes(CombatTargetVolume current, CombatTargetVolume intended)
+    {
         Vector3 planarDelta = intended.Center - current.Center;
         planarDelta.y = 0f;
         return new CombatTargetVolume(
@@ -109,6 +145,8 @@ public sealed class CombatTarget : MonoBehaviour
         ResolveReferences();
         radius = Mathf.Max(0.05f, radius);
         height = Mathf.Max(0.1f, height);
+        hurtRadius = Mathf.Max(0.05f, hurtRadius);
+        hurtHeight = Mathf.Max(0.1f, hurtHeight);
     }
 
     public void Configure(CombatTeam configuredTeam, bool refreshVolume)
@@ -131,20 +169,48 @@ public sealed class CombatTarget : MonoBehaviour
             CombatTargetRegistry.NotifySpatialChanged(this);
     }
 
+    public void ConfigureHurtVolume(Vector3 configuredLocalCenter, float configuredRadius, float configuredHeight)
+    {
+        useCustomHurtVolume = true;
+        hurtLocalCenter = configuredLocalCenter;
+        hurtRadius = Mathf.Max(0.05f, configuredRadius);
+        hurtHeight = Mathf.Max(0.1f, configuredHeight);
+        if (isActiveAndEnabled)
+            CombatTargetRegistry.NotifySpatialChanged(this);
+    }
+
     public void RefreshVolumeFromPrimaryCollider()
     {
-        Collider primaryCollider = ResolvePrimaryCollider();
+        RefreshVolumeFromCollider(ResolvePrimaryCollider());
+    }
+
+    public void RefreshVolumeFromCollider(Collider primaryCollider)
+    {
         if (primaryCollider == null)
             return;
 
-        Bounds bounds = primaryCollider.bounds;
         Vector3 scale = transform.lossyScale;
         float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
-
-        localCenter = transform.InverseTransformPoint(bounds.center);
-        radius = Mathf.Max(0.05f, Mathf.Max(bounds.extents.x, bounds.extents.z) / planarScale);
-        height = Mathf.Max(0.1f, bounds.size.y / verticalScale);
+        if (primaryCollider is CapsuleCollider capsule && capsule.direction == 1)
+        {
+            // Pooled actors are inactive while leased. Collider.bounds is empty then.
+            Vector3 capsuleScale = capsule.transform.lossyScale;
+            float worldRadius = capsule.radius * Mathf.Max(Mathf.Abs(capsuleScale.x), Mathf.Abs(capsuleScale.z));
+            float worldHeight = Mathf.Max(capsule.height * Mathf.Abs(capsuleScale.y), worldRadius * 2f);
+            localCenter = transform.InverseTransformPoint(capsule.transform.TransformPoint(capsule.center));
+            radius = Mathf.Max(0.05f, worldRadius / planarScale);
+            height = Mathf.Max(0.1f, worldHeight / verticalScale);
+        }
+        else
+        {
+            Bounds bounds = primaryCollider.bounds;
+            if (bounds.size.sqrMagnitude <= 0f)
+                return;
+            localCenter = transform.InverseTransformPoint(bounds.center);
+            radius = Mathf.Max(0.05f, Mathf.Max(bounds.extents.x, bounds.extents.z) / planarScale);
+            height = Mathf.Max(0.1f, bounds.size.y / verticalScale);
+        }
         if (isActiveAndEnabled)
             CombatTargetRegistry.NotifySpatialChanged(this);
     }

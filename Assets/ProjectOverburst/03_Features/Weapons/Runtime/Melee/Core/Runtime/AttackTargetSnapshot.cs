@@ -57,7 +57,7 @@ public sealed class AttackTargetSnapshot
             if (!AttackPatternEvaluator.TryEvaluate(
                     pattern,
                     basis,
-                    target.CurrentVolume,
+                    target.CurrentHurtVolume,
                     out float requiredProgress))
             {
                 continue;

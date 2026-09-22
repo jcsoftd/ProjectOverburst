@@ -381,7 +381,7 @@ public sealed class AttackPhaseExecutor
             if (!AttackPatternEvaluator.TryEvaluate(
                     state.Pattern,
                     state.Basis,
-                    target.CurrentVolume,
+                    target.CurrentHurtVolume,
                     state.Pattern.HitRevalidationTolerance,
                     out float currentRequiredProgress))
             {
@@ -400,7 +400,8 @@ public sealed class AttackPhaseExecutor
             if (target == null || !state.HitRegistry.TryRegister(target.TargetId))
                 continue;
 
-            Vector3 hitPoint = target.WorldCenter;
+            CombatTargetVolume hurtVolume = target.CurrentHurtVolume;
+            Vector3 hitPoint = hurtVolume.Center;
             Vector3 direction;
             if (state.Pattern.IsThrust)
             {
@@ -416,8 +417,8 @@ public sealed class AttackPhaseExecutor
                     direction.Normalize();
             }
 
-            // The damage volume stays unchanged; presentation uses its incoming surface.
-            hitPoint -= direction * target.CurrentVolume.Radius;
+            // Place contact feedback on the same authored volume used for the hit.
+            hitPoint -= direction * hurtVolume.Radius;
             onHit?.Invoke(new AttackPhaseHit(
                 state.Phase,
                 state.RuntimeData,

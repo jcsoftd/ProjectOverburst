@@ -443,7 +443,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return WeaponActionResult.RejectedUnsupported;
 
         CombatTargetVolume ownerVolume = combatTarget.CurrentVolume;
-        CombatTargetVolume targetVolume = target.CurrentVolume;
+        CombatTargetVolume targetVolume = target.CurrentHurtVolume;
         Vector3 offset = targetVolume.Center - ownerVolume.Center;
         float planarCenterDistance = new Vector2(offset.x, offset.z).magnitude;
         float surfaceDistance = Mathf.Max(

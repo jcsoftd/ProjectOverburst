@@ -147,6 +147,8 @@ public sealed class EnemyActor : MonoBehaviour
         collisionRoot.localScale = stats.CollisionScale;
         anchors.localScale = stats.AnchorScale;
         RestoreColliderStates();
+        GetComponent<CombatTarget>()?.RefreshVolumeFromCollider(
+            collisionRoot.GetComponentInChildren<CapsuleCollider>(true));
         ApplyTint(stats.Tint);
 
         EnemyAnimationProfile animationProfile = enemyDefinition.AnimationProfile;

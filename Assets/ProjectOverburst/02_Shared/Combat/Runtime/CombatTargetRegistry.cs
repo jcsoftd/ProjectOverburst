@@ -114,7 +114,7 @@ public static class CombatTargetRegistry
             return;
         }
 
-        SpatialIndex.RegisterOrUpdate(target, target.ResolveSweptVolume(intendedRootWorldPosition));
+        SpatialIndex.RegisterOrUpdate(target, target.ResolveSweptHurtVolume(intendedRootWorldPosition));
         MarkSpatialChanged();
     }
 

@@ -900,9 +900,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTarget
   damageReceiver: {fileID: 8021431468660323047}
   affiliation: {fileID: 8267865879037407313}
-  localCenter: {x: 0, y: 0, z: 0}
-  radius: 0.05
-  height: 0.1
+  localCenter: {x: 0, y: 0.966, z: 0}
+  radius: 0.45431948
+  height: 1.8920001
+  useCustomHurtVolume: 1
+  hurtLocalCenter: {x: 0, y: 0.8, z: 0.36}
+  hurtRadius: 0.7
+  hurtHeight: 1.6
 --- !u!114 &2126767754120576408
 MonoBehaviour:
   m_ObjectHideFlags: 0

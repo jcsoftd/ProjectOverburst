@@ -23,7 +23,7 @@ public sealed class CombatSpatialIndex
         if (target == null)
             return false;
 
-        return RegisterOrUpdate(target, target.CurrentVolume);
+        return RegisterOrUpdate(target, target.CurrentHurtVolume);
     }
 
     public bool RegisterOrUpdate(CombatTarget target, CombatTargetVolume volume)
@@ -63,7 +63,7 @@ public sealed class CombatSpatialIndex
             if (target == null || !target.IsAlive)
                 continue;
 
-            CombatTargetVolume currentVolume = target.CurrentVolume;
+            CombatTargetVolume currentVolume = target.CurrentHurtVolume;
             Vector3 offset = currentVolume.Center - origin;
             float combinedRadius = Mathf.Max(0f, radius) + currentVolume.Radius;
             float planarDistanceSquared = offset.x * offset.x + offset.z * offset.z;

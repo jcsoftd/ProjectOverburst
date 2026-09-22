@@ -327,9 +327,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTarget
   damageReceiver: {fileID: 889698925737745357}
   affiliation: {fileID: 8003439228783162896}
-  localCenter: {x: 0, y: 0, z: 0}
-  radius: 0.05
-  height: 0.1
+  localCenter: {x: 0, y: 0.8167326, z: 0}
+  radius: 0.572
+  height: 1.5934652
+  useCustomHurtVolume: 1
+  hurtLocalCenter: {x: 0, y: 0.88, z: 0.02}
+  hurtRadius: 0.87
+  hurtHeight: 1.8
 --- !u!114 &346463543370923838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -629,6 +633,7 @@ MonoBehaviour:
   enemyMovement: {fileID: 6519486011608823844}
   enemyAttackController: {fileID: 6254108857581957452}
   auraController: {fileID: 4289564921249301384}
+  freezeControlImmune: 0
 --- !u!114 &4289564921249301384
 MonoBehaviour:
   m_ObjectHideFlags: 0
