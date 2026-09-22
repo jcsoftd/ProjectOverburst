@@ -23,6 +23,9 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     private float liftStartedAt, liftHeight, liftDuration, nextWeightedReaction;
     public EnemyHitWeightProfile HitWeightProfile => movement != null && movement.Profile != null ? movement.Profile.HitWeightProfile : null;
     public float VisualLift { get; private set; }
+    public Transform VisualReactionRoot => visualReactionRoot;
+    public Vector3 VisualRestPosition => visualBaseCaptured ? visualBasePosition
+        : visualReactionRoot != null ? visualReactionRoot.localPosition : Vector3.zero;
 
     public void ConfigureVisualReactionRoot(Transform root)
     {

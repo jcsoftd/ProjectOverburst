@@ -76,6 +76,8 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
             return; // 중복 방지
 
         deathVfxSpawned = true;
+        if (TryGetComponent<EnemyDeathPresentation>(out var presentation) && presentation.isActiveAndEnabled)
+            return; // Theme corpses use authored death + Feel landing, without the temporary burst.
         VfxPrefabFactory.Spawn(deathVfxPrefab, GetAnchorPosition(deathVfxAnchor), Quaternion.identity);
     }
 

@@ -180,6 +180,7 @@ public static class MonsterThemeCombatBuilder
             var all=root.GetComponents<EnemyAbilityExecutor>();executors.arraySize=all.Length;for(int i=0;i<all.Length;i++)executors.GetArrayElementAtIndex(i).objectReferenceValue=all[i];soAbilities.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<EnemyVisualRootGuard>().Configure(animator.transform);
             root.AddComponent<EnemyCorpseFade>();
+            CombatImpactFeelBuilder.ConfigureActor(actor, definition);
             root.SetActive(true);
             var saved=PrefabUtility.SaveAsPrefabAsset(root,Root+"/Actors/PF_"+id+".prefab");return saved.GetComponent<EnemyActor>();
         }

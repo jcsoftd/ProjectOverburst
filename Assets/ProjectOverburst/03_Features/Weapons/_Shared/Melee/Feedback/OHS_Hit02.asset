@@ -12,10 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b6dcd78f8aeaa948967b9c104046140, type: 3}
   m_Name: OHS_Hit02
   m_EditorClassIdentifier: Assembly-CSharp::CombatHitFeedbackProfile
-  hitStopDuration: 0.025
+  hitStopDuration: 0.03
   hitStopTimeScale: 0.05
   cameraDuration: 0.08
   cameraPositionAmplitude: 0.045
   cameraRollAmplitude: 0.2
-  criticalStrengthMultiplier: 1.2
-  maximumHitStopDuration: 0.06
+  cameraKickReturnRatio: 0.72
+  cameraMicroShakeDuration: 0.045
+  cameraMicroShakeAmplitude: 0.12
+  cameraPriority: 1
+  cameraPositionSafetyLimit: 0.16
+  cameraRollSafetyLimit: 3
+  criticalStrengthMultiplier: 1.35
+  maximumHitStopDuration: 0.075

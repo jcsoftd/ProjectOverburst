@@ -18,6 +18,7 @@ public static class OverburstGoalEFeelPlayModeVerifier
         Bootstrap,
         Presets,
         CombatDedupe,
+        CombatDedupeResult,
         Stress10,
         Stress41,
         TimeHitStop,
@@ -119,6 +120,7 @@ public static class OverburstGoalEFeelPlayModeVerifier
                 case Step.Bootstrap: BootstrapAndWarm(); break;
                 case Step.Presets: VerifyPresets(); break;
                 case Step.CombatDedupe: VerifyCombatDedupe(); break;
+                case Step.CombatDedupeResult: VerifyCombatDedupeResult(); break;
                 case Step.Stress10: VerifyStress10(); break;
                 case Step.Stress41: VerifyStress41(); break;
                 case Step.TimeHitStop: BeginTimeHitStop(); break;
@@ -172,10 +174,16 @@ public static class OverburstGoalEFeelPlayModeVerifier
         CombatHitFeedbackService.Request(normal);
         CombatHitFeedbackService.Request(CreateRequest(1001, true, false));
         CombatHitFeedbackService.Request(CreateRequest(1001, false, true));
-        Require(hub.GetPlayCount(OverburstFeelCue.WeakHit) == 1, "same attack weak hit was not deduped");
-        Require(hub.GetPlayCount(OverburstFeelCue.StrongHit) == 1, "critical upgrade did not route once");
+        step = Step.CombatDedupeResult;
+        WaitFrames(2);
+    }
+
+    private static void VerifyCombatDedupeResult()
+    {
+        Require(hub.GetPlayCount(OverburstFeelCue.WeakHit) == 0, "weaker representative escaped frame grouping");
+        Require(hub.GetPlayCount(OverburstFeelCue.StrongHit) == 0, "critical caused a second global accent");
         Require(hub.GetPlayCount(OverburstFeelCue.Death) == 1, "same attack lethal upgrade did not route once");
-        Require(hub.TotalPlayCount == 3, "combat approved playback count expected 3 actual=" + hub.TotalPlayCount);
+        Require(hub.TotalPlayCount == 1, "combat approved playback count expected 1 actual=" + hub.TotalPlayCount);
         OverburstTimeEffectArbiter.ClearAll();
         OverburstFeelFeedbackHub.StopAllActive();
         hub.ResetCountersForValidation();
@@ -296,7 +304,7 @@ public static class OverburstGoalEFeelPlayModeVerifier
     {
         Require(runtimeErrors.Count == 0, "managed errors=" + string.Join(" | ", runtimeErrors));
         SessionState.SetString(ResultKey,
-            "presets=6 combatApproved=3 dedupe=1 criticalUpgrade=1 lethal=1"
+            "presets=6 combatApproved=1 groupedCriticalAndLethal=1 dedupe=1"
             + " sample10=10/8pool sample41=41/6pool instantiatedDuringHits=0"
             + " time=hitstop>perfectEvade>hitstop>restore cleanup=1 errors=0");
         EditorApplication.ExitPlaymode();

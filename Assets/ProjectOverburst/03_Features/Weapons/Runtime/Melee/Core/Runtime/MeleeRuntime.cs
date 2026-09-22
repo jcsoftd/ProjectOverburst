@@ -1252,7 +1252,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         AttackImpactData impact = phase.impact;
         MeleeAttackRuntimeData runtimeData = hit.RuntimeData;
         WeaponElement attackElement = ResolveActiveAttackElement();
-        bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement);
+        bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
+            || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
         MeleeDamageResult result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
             hit.Damageable,
             runtimeData.Damage,
@@ -1289,7 +1290,15 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
                 CombatCameraRequestKind.AttackHit,
                 hit.Direction,
                 impact.hitFeedbackProfile != null ? impact.hitFeedbackProfile.CameraPriority : 1f,
-                isLethal: result.TargetHealth != null && result.TargetHealth.IsDead)); // 조작 플레이어의 전역 연출
+                isLethal: result.TargetHealth != null && result.TargetHealth.IsDead,
+                phaseIndex: hit.PhaseIndex,
+                target: result.TargetHealth,
+                impactShape: runtimeData.Pattern.IsThrust ? CombatImpactShape.Thrust
+                    : phase.vfxSwingSettings.orientation == AttackVfxSwingOrientation.Vertical
+                        ? CombatImpactShape.Downward : CombatImpactShape.Sweep,
+                impactDirection: runtimeData.Pattern.IsThrust || phase.vfxSwingSettings.orientation == AttackVfxSwingOrientation.Vertical
+                    ? hit.Direction : Vector3.Cross(Vector3.up, hit.Direction)
+                        * (phase.vfxSwingSettings.reverseDirection ? -1f : 1f)));
         }
 
         if (impact.triggersOnHitEffects)

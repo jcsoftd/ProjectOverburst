@@ -10,13 +10,15 @@ public readonly struct AttackPhaseHit
     public readonly CombatHealth TargetHealth;
     public readonly Vector3 HitPoint;
     public readonly Vector3 Direction;
+    public readonly int PhaseIndex;
 
     public AttackPhaseHit(
         AttackPhaseData phase,
         MeleeAttackRuntimeData runtimeData,
         CombatTarget target,
         Vector3 hitPoint,
-        Vector3 direction)
+        Vector3 direction,
+        int phaseIndex = 0)
     {
         Phase = phase;
         RuntimeData = runtimeData;
@@ -24,6 +26,7 @@ public readonly struct AttackPhaseHit
         TargetHealth = target != null ? target.DamageReceiver : null;
         HitPoint = hitPoint;
         Direction = direction;
+        PhaseIndex = phaseIndex;
     }
 }
 
@@ -79,6 +82,7 @@ public sealed class AttackPhaseExecutor
     private sealed class PhaseState
     {
         public AttackPhaseData Phase;
+        public int PhaseIndex;
         public AttackPatternRuntimeData Pattern;
         public MeleeAttackRuntimeData RuntimeData;
         public AttackPatternBasis Basis;
@@ -182,6 +186,7 @@ public sealed class AttackPhaseExecutor
             AttackPhaseData phase = phaseData[i];
             PhaseState state = AcquireState();
             state.Phase = phase;
+            state.PhaseIndex = i;
             state.RuntimeData = MeleeAttackStatResolver.Resolve(
                 weaponStats,
                 meleeSettings,
@@ -411,12 +416,15 @@ public sealed class AttackPhaseExecutor
                     direction.Normalize();
             }
 
+            // The damage volume stays unchanged; presentation uses its incoming surface.
+            hitPoint -= direction * target.CurrentVolume.Radius;
             onHit?.Invoke(new AttackPhaseHit(
                 state.Phase,
                 state.RuntimeData,
                 target,
                 hitPoint,
-                direction));
+                direction,
+                state.PhaseIndex));
         }
     }
 

@@ -69,7 +69,11 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
 
         ParticleSystem[] particles = target.GetComponentsInChildren<ParticleSystem>(true);
         for (int i = 0; i < particles.Length; i++)
+        {
+            var main = particles[i].main;
+            main.useUnscaledTime = true; // Contact flashes remain visible during hit-stop.
             particles[i].Play(false);
+        }
     }
 
     public void StopAndClearVfx()

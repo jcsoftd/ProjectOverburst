@@ -17,5 +17,11 @@ MonoBehaviour:
   cameraDuration: 0.12
   cameraPositionAmplitude: 0.1
   cameraRollAmplitude: 0.45
-  criticalStrengthMultiplier: 1.2
-  maximumHitStopDuration: 0.06
+  cameraKickReturnRatio: 0.72
+  cameraMicroShakeDuration: 0.045
+  cameraMicroShakeAmplitude: 0.12
+  cameraPriority: 1
+  cameraPositionSafetyLimit: 0.16
+  cameraRollSafetyLimit: 3
+  criticalStrengthMultiplier: 1.35
+  maximumHitStopDuration: 0.075
