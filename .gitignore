@@ -105,3 +105,21 @@ Assets/StreamingAssets/aa/
 # Supplier-derived looping clips: restore locally with their original meta files.
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/Locomotion/
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/Locomotion.meta
+
+# Local authoring builders and test tools (keep files locally).
+/Assets/Editor/Builders/
+/Assets/Editor/Builders.meta
+/Assets/Editor/Testers/
+/Assets/Editor/Testers.meta
+/Assets/Editor/Tools/Characters/MonsterThemeShowcaseBuilder.cs
+/Assets/Editor/Tools/Characters/MonsterThemeShowcaseBuilder.cs.meta
+/Assets/Editor/Tools/Characters/MonsterVol2ShowcaseBuilder.cs
+/Assets/Editor/Tools/Characters/MonsterVol2ShowcaseBuilder.cs.meta
+/Assets/Editor/Tools/Overburst/OverburstBuildUtility.cs
+/Assets/Editor/Tools/Overburst/OverburstBuildUtility.cs.meta
+/Assets/Editor/Tools/Audio/AudioCatalogManagerWindow.cs
+/Assets/Editor/Tools/Audio/AudioCatalogManagerWindow.cs.meta
+/Assets/Editor/Tools/World/Dungeon/DungeonSeedPreviewWindow.cs
+/Assets/Editor/Tools/World/Dungeon/DungeonSeedPreviewWindow.cs.meta
+/Assets/Editor/Tools/UI/UiQualityTool.cs
+/Assets/Editor/Tools/UI/UiQualityTool.cs.meta
