@@ -89,6 +89,28 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         return true;
     }
 
+    // Readiness is checked before reserving an attack turn. A facing/animation
+    // refusal must not incur recovery or the coordinator's re-entry cooldown.
+    public bool HasAvailableAbility(Transform target)
+    {
+        ResolveReferences();
+        if (target == null || ResolveIsExecuting()) return false;
+        if (abilitySet == null || !abilitySet.IsValid || executors.Length == 0)
+            return true; // Preserve the legacy melee-only start path.
+        Vector3 delta = target.position - transform.position; delta.y = 0f;
+        float distance = delta.magnitude;
+        float hp = health != null ? health.NormalizedHp : 1f;
+        for (int i = 0; i < abilitySet.Count; i++)
+        {
+            var ability = abilitySet.GetAbility(i);
+            if (ability == null || !ability.IsValid || !ability.MatchesUseConditions(distance, hp) || !IsCooldownReady(ability))
+                continue;
+            var executor = FindExecutor(ability);
+            if (executor != null && executor.CanStart(ability, target)) return true;
+        }
+        return false;
+    }
+
     public bool IsCooldownReady(EnemyAbilityDefinition ability)
     {
         return ability != null

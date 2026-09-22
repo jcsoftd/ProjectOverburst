@@ -46,8 +46,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
             || actor.Movement.IsActionLocked || actor.AnimationBridge.IsBlockingActionActive) return false;
         float distance = Vector3.Distance(new Vector3(target.position.x, transform.position.y, target.position.z), transform.position);
-        return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp) && HasLineOfSight(target)
-            && actor.Movement.IsFacingForAttack(target.position);
+        return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp)
+            && actor.Movement.IsFacingForAttack(target.position) && HasLineOfSight(target);
     }
     private bool Usable() => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked

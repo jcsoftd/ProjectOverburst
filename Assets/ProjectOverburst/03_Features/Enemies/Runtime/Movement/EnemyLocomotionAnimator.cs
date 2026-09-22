@@ -15,12 +15,14 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
     private float turnDirection, turnBegan;
     private bool turnEntered;
     private string turnState;
+    private int completedTurnFrame = -1;
+    private EnemyAIController ai;
     public bool IsTurning { get; private set; }
 
     public bool BeginFacingTurn(Vector3 direction)
     {
         ResolveReferences();
-        if(IsTurning || animator==null || movement==null || !movement.Profile.HasTurnAnimation || animationBridge.IsBlockingActionActive)return false;
+        if(IsTurning || Time.frameCount==completedTurnFrame || animator==null || movement==null || !movement.Profile.HasTurnAnimation || animationBridge.IsBlockingActionActive)return false;
         direction.y=0f;if(direction.sqrMagnitude<.0001f)return false;
         float angle=Mathf.Clamp(Vector3.SignedAngle(transform.forward,direction,Vector3.up),-90f,90f);
         if(Mathf.Abs(angle)<=5f)return false;
@@ -45,11 +47,19 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
             turnEntered=true;
             motor.ApplyFacingRotation(Quaternion.Slerp(turnStart,turnEnd,movement.Profile.TurnProgress(turnDirection,state.normalizedTime)));
         }
-        else if(turnEntered || Time.time-turnBegan>.75f)CancelFacingTurn();
+        else if(turnEntered)
+        {
+            CancelFacingTurn();
+            // Several FixedUpdates can precede one AI Update. Give the brain one
+            // decision after a completed turn before starting another full clip.
+            completedTurnFrame=Time.frameCount;
+            ai?.NotifyFacingTurnCompleted();
+        }
+        else if(Time.time-turnBegan>.75f)CancelFacingTurn();
         return IsTurning;
     }
 
-    private void OnEnable() { previousPosition = transform.position; observedSpeed = 0f; requestedAmount = 0f; lastMovingAmount=1f;lastMovingReference=1f;CancelFacingTurn(); }
+    private void OnEnable() { completedTurnFrame=-1;previousPosition = transform.position; observedSpeed = 0f; requestedAmount = 0f; lastMovingAmount=1f;lastMovingReference=1f;CancelFacingTurn(); }
     private void OnDisable() { CancelFacingTurn(); }
 
     private void LateUpdate()
@@ -121,6 +131,7 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
 
     public void ResolveReferences()
     {
+        if (ai == null) ai = GetComponent<EnemyAIController>();
         if (animator == null) animator = GetComponentInChildren<Animator>(true);
         if (movement == null) movement = GetComponent<EnemyMovement>();
         if (animationBridge == null)

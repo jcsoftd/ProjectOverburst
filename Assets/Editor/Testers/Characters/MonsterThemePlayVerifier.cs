@@ -270,7 +270,18 @@ public static class MonsterThemePlayVerifier
                 yield return Seconds(.1f);
                 string expected="GetHit"+(local.z>.5f?"Front":local.z<-.5f?"Back":local.x<0?"Left":"Right");
                 var clip=actor.Animator.GetCurrentAnimatorClipInfo(0).OrderByDescending(c=>c.weight).FirstOrDefault().clip;
-                Check(clip!=null && clip.name==expected,"Directional clip "+def.EnemyId+" expected="+expected+" actual="+(clip!=null?clip.name:"none"));
+                // Observe the evaluated hit state across its entry transition instead of
+                // depending on one render sample landing exactly 0.1 seconds after damage.
+                float hitDeadline=Time.time+.3f;
+                while((clip==null || clip.name!=expected) && Time.time<hitDeadline)
+                {
+                    yield return null;
+                    clip=actor.Animator.GetCurrentAnimatorClipInfo(0).OrderByDescending(c=>c.weight).FirstOrDefault().clip;
+                }
+                Check(clip!=null && clip.name==expected,"Directional clip "+def.EnemyId+" expected="+expected+" actual="+(clip!=null?clip.name:"none")
+                    +" culling="+actor.Animator.cullingMode+" transition="+actor.Animator.IsInTransition(0)
+                    +" next="+string.Join(",",actor.Animator.GetNextAnimatorClipInfo(0).Select(c=>c.clip.name+":"+c.weight))
+                    +" visible="+actor.VisualRoot.GetComponentsInChildren<Renderer>().Any(r=>r.isVisible));
             }
             actor.RequestPoolRelease();
         }

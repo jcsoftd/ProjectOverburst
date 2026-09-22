@@ -976,6 +976,16 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     }
     internal void ChangeToAttack()
     {
+        // Keep completing the current facing action when no attack can start.
+        // Entering Attack on a refusal would charge recovery and a turn cooldown.
+        if (abilityController != null && !abilityController.HasAvailableAbility(target))
+        {
+            // Chase calls this on entering range; CombatWait owns stationary facing.
+            // Do not restart its timer while it is already completing that turn.
+            if (!ReferenceEquals(stateMachine?.CurrentState, combatWaitState))
+                ChangeToCombatWait();
+            return;
+        }
         if (EnemyCombatCoordinator.TryAcquireAttackTurn(this, target))
             ChangeState(attackState);
         else
@@ -1182,6 +1192,8 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
         aiTickCount = 0;
         aiSkippedUpdateCount = 0;
     }
+
+    internal void NotifyFacingTurnCompleted() => RequestImmediateAiTick();
 
     private void RequestImmediateAiTick()
     {

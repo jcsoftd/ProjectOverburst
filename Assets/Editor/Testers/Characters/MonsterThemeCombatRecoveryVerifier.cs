@@ -24,6 +24,7 @@ public static class MonsterThemeCombatRecoveryVerifier
         Vector3 home = player.transform.position;
         if (mode == "field") { yield return MonsterThemeCombatFieldVerifier.Verify(ui, player); yield break; }
         if (mode == "visual") { yield return MonsterThemeDamageReviewCapture.Capture(ui, player); yield break; }
+        if (mode == "readiness") { yield return MonsterThemeAttackReadinessVerifier.Verify(ui,player); yield break; }
         if (mode == "individual")
         {
             foreach (var definition in definitions)

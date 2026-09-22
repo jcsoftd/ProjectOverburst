@@ -90,5 +90,3 @@ public static class MonsterThemeDamageReviewCapture
         }
     }
 }
-
-

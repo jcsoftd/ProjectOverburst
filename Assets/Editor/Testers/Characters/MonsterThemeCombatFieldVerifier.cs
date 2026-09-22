@@ -28,6 +28,10 @@ public static class MonsterThemeCombatFieldVerifier
     {
         string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         if (!Directory.Exists(output)) throw new Exception("Artifact output missing");
+        Application.targetFrameRate=SessionState.GetInt("MonsterThemeCombatField.frameRate",60);
+        float captureStart=SessionState.GetFloat("MonsterThemeCombatField.captureStart",26f);
+        float captureEnd=SessionState.GetFloat("MonsterThemeCombatField.captureEnd",38f);
+        bool focusTurning=SessionState.GetBool("MonsterThemeCombatField.focusTurning",false);
         var keyboard = InputSystem.AddDevice<Keyboard>("CombatFieldKeyboard");
         var mouse = InputSystem.AddDevice<Mouse>("CombatFieldMouse");
         var physical = InputSystem.devices.Where(d => d.enabled && d != keyboard && d != mouse && (d is Keyboard || d is Mouse)).ToArray();
@@ -97,7 +101,7 @@ public static class MonsterThemeCombatFieldVerifier
                     o.actor.Health.OnDamaged+=hit;o.actor.Health.OnDead+=died;handlers.Add((o.actor.Health,hit,died));
                 }
                 string folder=Path.Combine(output,"FieldReview",ui.tables[index].ThemeId);Directory.CreateDirectory(folder);
-                var frames=new List<object>();var traces=new List<object>();
+                var frames=new List<object>();var traces=new List<object>();var alignmentFrames=new List<object>();
                 float begin=Time.time,last=begin,nextTrace=begin,nextCapture=begin;int beforeHits=playerHits;
                 Vector3 playerPrevious=player.transform.position;float playerTravel=0;
                 float unreadAttackSeconds=0;int playerAttackFrames=0;
@@ -130,6 +134,7 @@ public static class MonsterThemeCombatFieldVerifier
                         if(a.AbilityController.LastCommittedAbility!=null)o.abilities.Add(a.AbilityController.LastCommittedAbility.name);
                         o.inactive=step>.002f || executing || a.AnimationBridge.IsBlockingActionActive?0:o.inactive+dt;
                         o.maxInactive=Mathf.Max(o.maxInactive,o.inactive);
+                        if(o.inactive>3 && o.id.Contains("Venosaur"))alignmentFrames.Add(new{time=elapsed,detail=Describe(o,player)});
                         o.wait=a.AI.CurrentStateName=="CombatWait"?o.wait+dt:0;o.maxWait=Mathf.Max(o.maxWait,o.wait);
                     }
                     if(now>=nextTrace)
@@ -142,31 +147,42 @@ public static class MonsterThemeCombatFieldVerifier
                                 pickupSuppressed=PlayerPickupInteractor.IsPrimaryAttackSuppressed,condition=playerState.CurrentCondition.ToString(),action=playerState.CurrentAction.ToString(),
                                 attacking=melee.IsAttackInProgress,ready=melee.IsAttackReady,canUse=melee.CanUseCurrentWeapon},
                             states=observations.Where(o=>o.actor!=null && o.actor.IsLeased && o.actor.LeaseVersion==o.lease && !o.actor.Health.IsDead)
-                            .Select(o=>new{id=o.id,instance=o.actor.GetInstanceID(),state=o.actor.AI.CurrentDebugStateName,distance=o.actor.AI.TargetDistance,inactive=o.inactive,range=o.actor.AI.AttackEnterRange}).ToArray()});
+                            .Select(o=>Describe(o,player)).ToArray()});
                     }
-                    if(elapsed>=26 && elapsed<38 && now>=nextCapture)
+                    if(elapsed>=captureStart && elapsed<captureEnd && now>=nextCapture)
                     {
                         nextCapture=now+.083333f;
                         camera.transform.SetPositionAndRotation(Camera.main.transform.position,Camera.main.transform.rotation);
+                        if(focusTurning)
+                        {
+                            var focus=observations.Where(o=>o.id.Contains("Venosaur") && o.actor!=null && o.actor.IsLeased && o.actor.LeaseVersion==o.lease && !o.actor.Health.IsDead)
+                                .OrderByDescending(o=>o.inactive).FirstOrDefault();
+                            if(focus!=null)
+                            {
+                                Vector3 point=focus.actor.transform.position+Vector3.up*.6f;
+                                camera.transform.position=point+new Vector3(0,6,-7);
+                                camera.transform.LookAt(point);camera.orthographic=true;camera.orthographicSize=4f;
+                            }
+                        }
                         camera.Render();var previous=RenderTexture.active;
                         try{RenderTexture.active=texture;pixels.ReadPixels(new Rect(0,0,768,432),0,0);pixels.Apply();}
                         finally{RenderTexture.active=previous;}
                         string name=frames.Count.ToString("D4")+".png";File.WriteAllBytes(Path.Combine(folder,name),pixels.EncodeToPNG());
-                        frames.Add(new{time=elapsed-26,file=name,alive=encounter.AliveCount});
+                        frames.Add(new{time=elapsed-captureStart,file=name,alive=encounter.AliveCount});
                     }
                 }
                 attacking=false;keys=Array.Empty<Key>();
                 foreach(var h in handlers){h.health.OnDamaged-=h.hit;h.health.OnDead-=h.death;}
-                var summary=observations.Select(o=>new{o.id,o.travel,o.attacks,o.hits,o.deaths,o.maxWait,o.maxInactive,abilities=o.abilities.ToArray()}).ToArray();
-                var suspects=summary.Where(o=>o.maxInactive>12 && o.deaths==0).ToArray();
+                var summary=observations.Select(o=>new{o.id,instance=o.actor.GetInstanceID(),o.travel,o.attacks,o.hits,o.deaths,o.maxWait,o.maxInactive,abilities=o.abilities.ToArray()}).ToArray();
+                var suspects=summary.Where(o=>o.maxInactive>12).ToArray();
                 var result=new{table=ui.tables[index].ThemeId,count=observations.Length,playerTravel,unreadAttackSeconds,playerAttackFrames,playerHits=playerHits-beforeHits,killed=summary.Sum(o=>o.deaths),summary,suspects};
                 results.Add(result);
                 File.WriteAllText(Path.Combine(folder,"frames.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{frames},Newtonsoft.Json.Formatting.Indented));
-                File.WriteAllText(Path.Combine(output,ui.tables[index].ThemeId+"-field.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{result,traces},Newtonsoft.Json.Formatting.Indented));
+                File.WriteAllText(Path.Combine(output,ui.tables[index].ThemeId+"-field.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{result,traces,alignmentFrames},Newtonsoft.Json.Formatting.Indented));
                 File.WriteAllText(Path.Combine(output,"field-summary.json"),Newtonsoft.Json.JsonConvert.SerializeObject(results,Newtonsoft.Json.Formatting.Indented));
                 Debug.Log("[MonsterCombatField] "+ui.tables[index].ThemeId+" killed="+summary.Sum(o=>o.deaths)+" suspects="+suspects.Length);
                 if(unreadAttackSeconds>1 || playerAttackFrames<20)throw new Exception("Input/attack coverage failed: "+ui.tables[index].ThemeId+" unread="+unreadAttackSeconds+" attackFrames="+playerAttackFrames);
-                if(suspects.Length>0)throw new Exception("Inactive survivors require inspection: "+ui.tables[index].ThemeId);
+                if(suspects.Length>0)throw new Exception("Inactive actors require inspection: "+ui.tables[index].ThemeId);
                 ui.Clear();yield return Seconds(.4f);
             }
         }
@@ -179,6 +195,21 @@ public static class MonsterThemeCombatFieldVerifier
             foreach(var d in physical)if(d.added)InputSystem.EnableDevice(d);
             camera.targetTexture=null;RenderTexture.ReleaseTemporary(texture);Object.Destroy(pixels);Object.Destroy(cameraObject);ui.Clear();
         }
+    }
+    private static object Describe(Observation o,PlayerInputFacade player)
+    {
+        var a=o.actor;var delta=player.transform.position-a.transform.position;delta.y=0;
+        string obstacle=null;
+        if(o.inactive>4 && Physics.Raycast(a.transform.position+Vector3.up*.8f,delta.normalized,out var hit,delta.magnitude,
+            ~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast"))),QueryTriggerInteraction.Ignore))
+            obstacle=hit.collider.name+"/"+LayerMask.LayerToName(hit.collider.gameObject.layer);
+        return new{id=o.id,instance=a.GetInstanceID(),state=a.AI.CurrentDebugStateName,actualState=a.AI.CurrentStateName,
+            frame=Time.frameCount,aiTick=a.AI.AiTickCount,turning=a.GetComponent<EnemyLocomotionAnimator>().IsTurning,
+            normalized=a.Animator.GetCurrentAnimatorStateInfo(0).normalizedTime,anim=a.Animator.GetCurrentAnimatorStateInfo(0).shortNameHash,
+            inTransition=a.Animator.IsInTransition(0),
+            distance=a.AI.TargetDistance,inactive=o.inactive,range=a.AI.AttackEnterRange,yaw=Vector3.Angle(a.transform.forward,delta),
+            facing=a.Movement.IsFacingForAttack(player.transform.position),locked=a.Movement.IsActionLocked,blocking=a.AnimationBridge.IsBlockingActionActive,
+            bolt=a.GetComponent<EnemyThemeSpecialExecutor>().HasProjectile,obstacle,x=a.transform.position.x,z=a.transform.position.z};
     }
     private static IEnumerator Seconds(float duration){float until=Time.time+duration;while(Time.time<until)yield return null;}
 }
