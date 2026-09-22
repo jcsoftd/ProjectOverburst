@@ -49,7 +49,7 @@ MonoBehaviour:
   dodgeLungeCooldown: 3
   dodgeLungeChance: 0
   dodgeVisualHeight: 0.75
-  runApproachMinDistance: 6
+  runApproachMinDistance: 4.6
   preferredApproachDistance: 1.3352482
   approachSideAngle: 15
   separationRadius: 1.5

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: PrimalHunt_Pistriptere_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: PrimalHunt_Pistriptere
+  abilities:
+  - {fileID: 11400000, guid: 6a6da3e0f3f741947940b1aedca6aca8, type: 2}
+  - {fileID: 11400000, guid: 6839ff382cbcb90409921a866898fc59, type: 2}
+  - {fileID: 11400000, guid: 24c54c8fdf800704bae89897e3610781, type: 2}
+  - {fileID: 11400000, guid: 554ee7743c11b3f4c8e8ead6ed95972a, type: 2}

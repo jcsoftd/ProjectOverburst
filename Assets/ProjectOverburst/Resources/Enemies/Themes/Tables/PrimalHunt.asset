@@ -17,7 +17,7 @@ MonoBehaviour:
   entries:
   - definition: {fileID: 11400000, guid: 929ea20f8561197468ee5338b5fd42a3, type: 2}
     tier: 0
-    weight: 1
+    weight: 22
   - definition: {fileID: 11400000, guid: aafb8628bea9d7d40bca6c787790efd7, type: 2}
     tier: 1
     weight: 1
@@ -27,5 +27,11 @@ MonoBehaviour:
   - definition: {fileID: 11400000, guid: 506de4abb08bc5f45bf213cb083cfb2d, type: 2}
     tier: 2
     weight: 1
+  - definition: {fileID: 11400000, guid: 5ab178221e86b5f4f89838e0771d0e31, type: 2}
+    tier: 0
+    weight: 10
+  - definition: {fileID: 11400000, guid: d21a89dd99dc38e4db5ac1c11e95137d, type: 2}
+    tier: 0
+    weight: 8
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 1, g: 0.3, b: 0.15, a: 1}

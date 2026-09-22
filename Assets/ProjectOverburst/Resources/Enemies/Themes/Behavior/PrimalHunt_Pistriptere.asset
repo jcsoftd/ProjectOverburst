@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f8f746f902e69343b2d1c79bd3cdcc8, type: 3}
   m_Name: EBP_Protofactor_Ceratoferox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviorProfile
-  profileId: SpiderBrood_Horridomorph
+  profileId: PrimalHunt_Pistriptere
   tendency: 0
   repositionStyle: 0
   patrolChance: 0.5
@@ -36,7 +36,7 @@ MonoBehaviour:
   idleBreakMinInterval: 5
   idleBreakMaxInterval: 9
   recoveryDuration: 0.28
-  preferredMinDistance: 0.5383
+  preferredMinDistance: 0.58599997
   repositionDistance: 1
   repositionDuration: 0.45
   lowHealthRepositionThreshold: 0.25
@@ -49,8 +49,8 @@ MonoBehaviour:
   dodgeLungeCooldown: 3
   dodgeLungeChance: 0
   dodgeVisualHeight: 0.75
-  runApproachMinDistance: 4
-  preferredApproachDistance: 0.7833
+  runApproachMinDistance: 3.5
+  preferredApproachDistance: 0.83599997
   approachSideAngle: 15
   separationRadius: 1.5
   separationWeight: 1
