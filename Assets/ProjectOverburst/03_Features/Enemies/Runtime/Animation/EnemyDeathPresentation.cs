@@ -92,13 +92,19 @@ public sealed class EnemyDeathPresentation : MonoBehaviour
         visualRoot.localPosition = restPosition;
         positionFeedback.InitialPosition = Vector3.zero; // RelativePosition captures the restored local base.
         positionFeedback.AnimatePositionDuration = displacementDuration;
-        positionFeedback.AnimatePositionTweenX = new MMTweenType(AnimationCurve.EaseInOut(0, 0, 1, local.x));
-        positionFeedback.AnimatePositionTweenZ = new MMTweenType(AnimationCurve.EaseInOut(0, 0, 1, local.z));
+        // Most of the displacement happens at contact; the last part settles
+        // into the authored death clip instead of slowly starting to slide.
+        positionFeedback.AnimatePositionTweenX = new MMTweenType(FastOut(local.x));
+        positionFeedback.AnimatePositionTweenZ = new MMTweenType(FastOut(local.z));
         positionFeedback.AnimatePositionTweenY = new MMTweenType(new AnimationCurve(
             new Keyframe(0, carriedLift, 0, 0), new Keyframe(.35f, Mathf.Max(carriedLift, localLift), 0, 0), new Keyframe(1, 0, 0, 0)));
         feedback.Initialization(true);
         feedback.PlayFeedbacks(transform.position, 1f);
     }
+
+    private static AnimationCurve FastOut(float distance) => new AnimationCurve(
+        new Keyframe(0f, 0f, 2.8f * distance, 2.8f * distance),
+        new Keyframe(1f, distance, 0f, 0f));
 
     private Vector3 ClampToGround(Vector3 displacement)
     {

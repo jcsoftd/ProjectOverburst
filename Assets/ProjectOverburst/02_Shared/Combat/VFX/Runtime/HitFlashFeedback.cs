@@ -17,6 +17,7 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
     private Renderer[] slotRenderers;
     private int[] slotIndices;
     private bool flashApplied;
+    private bool corpseTintActive;
     private Coroutine flashRoutine; // flash 루틴
     private const string BaseColorProperty = "_BaseColor"; // URP 색상
     private const string ColorProperty = "_Color"; // 기본 색상
@@ -31,41 +32,59 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
 
     private void OnEnable()
     {
+        corpseTintActive = false;
         if (health != null)
+        {
             health.OnDamaged += HandleDamaged;
+            health.OnDead += HandleDead;
+            health.OnReset += HandleReset;
+        }
     }
 
     private void OnDisable()
     {
         if (health != null)
+        {
             health.OnDamaged -= HandleDamaged;
+            health.OnDead -= HandleDead;
+            health.OnReset -= HandleReset;
+        }
 
         if (flashRoutine != null) StopCoroutine(flashRoutine);
         RestoreColors();
+        corpseTintActive = false;
         flashRoutine = null;
+    }
+
+    private void HandleReset(CombatHealth source)
+    {
+        if (flashRoutine != null) StopCoroutine(flashRoutine);
+        RestoreColors();
+        corpseTintActive = false;
+        flashRoutine = null;
+    }
+
+    private void HandleDead(CombatHealth source, DamageInfo info)
+    {
+        // This component already owns per-material hit colors. Keep corpse tone in
+        // the same owner so the hit flash cannot restore a live color over a death.
+        if (GetComponent<EnemyDeathPresentation>() == null) return;
+        if (!flashApplied) CaptureBeforeFlash();
+        flashApplied = true;
+        corpseTintActive = true;
+        if (flashRoutine == null) ApplyCorpseTint();
     }
 
     private void HandleDamaged(CombatHealth source, DamageInfo info)
     {
-        if (info.isDamageOverTime || !info.triggersOnHitEffects)
+        if (corpseTintActive || info.isDamageOverTime || !info.triggersOnHitEffects)
             return;
 
         if (flashRoutine != null)
             StopCoroutine(flashRoutine);
 
         // Preserve tint and other presentation properties, even on repeated hits.
-        if (!flashApplied)
-            for (int i = 0; i < slotRenderers.Length; i++)
-                if (slotRenderers[i] != null)
-                {
-                    slotRenderers[i].GetPropertyBlock(beforeFlash[i], slotIndices[i]);
-                    slotRenderers[i].GetPropertyBlock(propertyBlocks[i], slotIndices[i]);
-                    if (propertyBlocks[i].isEmpty) slotRenderers[i].GetPropertyBlock(propertyBlocks[i]);
-                    var block = propertyBlocks[i];
-                    baseColors[i] = block.HasColor(Shader.PropertyToID(BaseColorProperty))
-                        ? block.GetColor(BaseColorProperty) : block.HasColor(Shader.PropertyToID(ColorProperty))
-                        ? block.GetColor(ColorProperty) : GetRendererColor(i);
-                }
+        if (!flashApplied) CaptureBeforeFlash();
         flashApplied = true;
 
         flashRoutine = StartCoroutine(FlashRoutine());
@@ -78,14 +97,46 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         while (elapsed < flashDuration)
         {
             yield return null;
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             float weight = 1f - Mathf.Clamp01(elapsed / Mathf.Max(.001f, flashDuration));
             for (int i = 0; i < slotRenderers.Length; i++)
-                ApplyColor(i, Color.Lerp(baseColors[i], BrightFlash(), weight));
+                ApplyColor(i, Color.Lerp(corpseTintActive ? CorpseColor(baseColors[i]) : baseColors[i],
+                    BrightFlash(), weight));
         }
 
-        RestoreColors();
+        if (corpseTintActive) ApplyCorpseTint();
+        else RestoreColors();
         flashRoutine = null;
+    }
+
+    private void CaptureBeforeFlash()
+    {
+        for (int i = 0; i < slotRenderers.Length; i++)
+            if (slotRenderers[i] != null)
+            {
+                beforeFlash[i].Clear();
+                propertyBlocks[i].Clear();
+                slotRenderers[i].GetPropertyBlock(beforeFlash[i], slotIndices[i]);
+                slotRenderers[i].GetPropertyBlock(propertyBlocks[i], slotIndices[i]);
+                if (propertyBlocks[i].isEmpty) slotRenderers[i].GetPropertyBlock(propertyBlocks[i]);
+                var block = propertyBlocks[i];
+                baseColors[i] = block.HasColor(Shader.PropertyToID(BaseColorProperty))
+                    ? block.GetColor(BaseColorProperty) : block.HasColor(Shader.PropertyToID(ColorProperty))
+                    ? block.GetColor(ColorProperty) : GetRendererColor(i);
+            }
+    }
+
+    private static Color CorpseColor(Color baseColor)
+    {
+        float luminance = baseColor.grayscale;
+        return Color.Lerp(baseColor,
+            new Color(luminance * .43f, luminance * .46f, luminance * .50f, baseColor.a), .86f);
+    }
+
+    private void ApplyCorpseTint()
+    {
+        for (int i = 0; i < slotRenderers.Length; i++)
+            ApplyColor(i, CorpseColor(baseColors[i]));
     }
 
     private void CacheRenderers()

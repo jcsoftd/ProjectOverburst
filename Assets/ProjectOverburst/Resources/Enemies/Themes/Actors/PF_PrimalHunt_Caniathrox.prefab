@@ -1261,10 +1261,10 @@ MonoBehaviour:
   visualRoot: {fileID: 4122617304219207702}
   feedback: {fileID: 1748699593165398334}
   landingNormalizedTime: 0.5
-  normalDisplacement: 0.2
-  strongDisplacement: 0.36
-  strongLift: 0.055
-  displacementDuration: 0.32
+  normalDisplacement: 0.52
+  strongDisplacement: 0.85
+  strongLift: 0.09
+  displacementDuration: 0.19
 --- !u!1 &6155118219506054012
 GameObject:
   m_ObjectHideFlags: 0

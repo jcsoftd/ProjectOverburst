@@ -125,7 +125,8 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
         if (request.Target != null && request.Target.TryGetComponent<EnemyDeathPresentation>(out var presentation))
         {
             CombatImpactFeel.Play(presentation.Surface,
-                request.ImpactShape, request.HitPoint, request.ImpactDirection, request.IsCritical);
+                request.ImpactShape, request.HitPoint, request.ImpactDirection, request.IsCritical,
+                lethal: request.IsLethal);
         }
 
         int index = -1;

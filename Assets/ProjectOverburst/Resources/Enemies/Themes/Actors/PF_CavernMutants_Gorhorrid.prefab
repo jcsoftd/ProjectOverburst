@@ -1360,10 +1360,10 @@ MonoBehaviour:
   visualRoot: {fileID: 3032633273878127240}
   feedback: {fileID: 5405407264784760770}
   landingNormalizedTime: 0.5
-  normalDisplacement: 0.08
-  strongDisplacement: 0.14
-  strongLift: 0
-  displacementDuration: 0.24
+  normalDisplacement: 0.27
+  strongDisplacement: 0.46
+  strongLift: 0.055
+  displacementDuration: 0.23
 --- !u!1001 &6732071428621281937
 PrefabInstance:
   m_ObjectHideFlags: 0
