@@ -39,13 +39,19 @@ public static class MonsterThemePlayVerifier
     public static void RunCrowdMotion() { Start(false,crowdMotion:true); }
     [MenuItem("OVERBURST/Enemies/Themes/Validate Facing Play Mode")]
     public static void RunFacing() { Start(false,facing:true); }
-    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false)
+    [MenuItem("OVERBURST/Enemies/Themes/Validate Fine Turns Play Mode")]
+    public static void RunFineTurns() { Start(false,fineTurns:true); }
+    [MenuItem("OVERBURST/Enemies/Themes/Capture Turn Comparison")]
+    public static void RunTurnReview() { Start(false,turnReview:true); }
+    private static void Start(bool safety,bool review=false,bool transition=false,bool survival=false,bool locomotion=false,bool crowdMotion=false,bool facing=false,bool fineTurns=false,bool turnReview=false)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode,"Already playing");
         var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Check(scene.name==PersistentSceneFlow.PersistentSceneName && !scene.isDirty,"Requires saved PersistentScene");
         SessionState.SetBool(Key+".survival",survival);
         SessionState.SetBool(Key+".facing",facing);
+        SessionState.SetBool(Key+".fineTurns",fineTurns);
+        SessionState.SetBool(Key+".turnReview",turnReview);
         SessionState.SetBool(Key+".locomotion",locomotion);
         SessionState.SetBool(Key+".crowdMotion",crowdMotion);
         SessionState.SetBool(Key+".transition",transition);SessionState.SetBool(Key+".review",review);SessionState.SetBool(Key+".safety",safety);SessionState.SetBool(Key,true);SessionState.SetString(Key+".result","RUNNING");EditorApplication.EnterPlaymode();
@@ -105,10 +111,20 @@ public static class MonsterThemePlayVerifier
         ui.ToggleArena();Check(ui.InArena,"Arena entry");center=player.transform.position;yield return Seconds(.5f);
         Check(player.GetComponent<PlayerMovement>().IsGrounded,"Arena floor grounding");
         CombatDebugSettings.SetPlayerDamageReductionDebug(false);
+        if(SessionState.GetBool(Key+".turnReview",false))
+        {
+            yield return MonsterThemeTurnReviewCapture.Capture(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("selected species / before-after / evaluated Unity turn frames");yield break;
+        }
+        if(SessionState.GetBool(Key+".fineTurns",false))
+        {
+            yield return MonsterThemeFineTurnVerifier.Verify(ui,player);
+            ui.Clear();ui.ToggleArena();Pass("selected species / 15-45-minus45-135 degree turns / world sole traces; see per-species results");yield break;
+        }
         if(SessionState.GetBool(Key+".facing",false))
         {
             yield return MonsterThemeFacingVerifier.Verify(ui,player);
-            ui.Clear();ui.ToggleArena();Pass("14 species / left-right turns / 45 committed attacks / evade / recovery");yield break;
+            ui.Clear();ui.ToggleArena();Pass("14 species / complete turns / all configured attacks committed / evade / recovery");yield break;
         }
         if(SessionState.GetBool(Key+".crowdMotion",false))
         {
@@ -245,7 +261,7 @@ public static class MonsterThemePlayVerifier
             }
         }
         float hp=health.CurrentHp;yield return Seconds(3);Check(health.CurrentHp==hp,"Late damage from canceled attacks");
-        Pass("all 45 attacks canceled on return / no late damage");
+        Pass("all configured attacks canceled on return / no late damage");
         var shooter=definitions.First(d=>d.EnemyId.Contains("Arathrox"));
         var enemy=Spawn(shooter,center-Vector3.forward*4);var abilitySet=enemy.AbilityController.AbilitySet;
         var projectile=Enumerable.Range(0,abilitySet.Count).Select(abilitySet.GetAbility).First(a=>a.ExecutionMode==EnemyAbilityExecutionMode.Projectile);

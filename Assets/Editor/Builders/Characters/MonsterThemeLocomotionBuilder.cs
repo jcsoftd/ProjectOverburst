@@ -98,7 +98,34 @@ public static class MonsterThemeLocomotionBuilder
             }
         }
         AssetDatabase.SaveAssets();
+        ApplyTurnFootSupport();
         Debug.Log("[MonsterThemeLocomotion] Tuned " + count + " actors; supplier assets unchanged.");
+    }
+
+    [MenuItem("OVERBURST/Enemies/Themes/Apply Turn Foot Support")]
+    public static void ApplyTurnFootSupport()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException("Exit Play Mode before changing actor prefabs.");
+        var definitions = AssetDatabase.FindAssets("t:EnemyThemeTable", new[] { MonsterThemeCombatBuilder.Root })
+            .Select(guid => AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(AssetDatabase.GUIDToAssetPath(guid)))
+            .SelectMany(table => table.Entries).Select(entry => entry.definition).Distinct().ToArray();
+        foreach (var definition in definitions)
+        {
+            var bindings = MonsterThemeStrideCalibration.CreateTurnBindings(definition);
+            string path = AssetDatabase.GetAssetPath(definition.ActorPrefab);
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var support = root.GetComponent<EnemyTurnFootPlanting>() ?? root.AddComponent<EnemyTurnFootPlanting>();
+                support.Configure(bindings);
+                if (!support.HasValidBindings)
+                    throw new InvalidOperationException("Invalid turn support bindings: " + definition.EnemyId);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        Debug.Log("[MonsterThemeTurnSupport] Configured " + definitions.Length + " project actor prefabs.");
     }
 
     private static AnimationClip Loop(string id, AnimationClip source)

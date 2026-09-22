@@ -19,7 +19,7 @@ public static class MonsterThemeCrowdMotionVerifier
         public SkinnedMeshRenderer[] renderers;
         public Vector3 position;
         public float frozen, idle, maxFrozen, maxIdle, maxRate;
-        public int visibleMoving;
+        public int visibleMoving, attackFrames;
     }
     public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
     {
@@ -72,6 +72,8 @@ public static class MonsterThemeCrowdMotionVerifier
                         bool locomotion=a.Animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion") && !a.Animator.IsInTransition(0);
                         float amount=a.Animator.GetFloat("Locomotion"),rate=a.Animator.GetFloat("MoveAnimSpeed");
                         bool moving=visible && locomotion && speed>.25f && !a.Movement.IsActionLocked;
+                        bool attacking=a.AbilityController.IsExecuting;
+                        if(attacking)f.attackFrames++;
                         if(moving)
                         {
                             f.visibleMoving++;f.maxRate=Mathf.Max(f.maxRate,rate);
@@ -81,7 +83,7 @@ public static class MonsterThemeCrowdMotionVerifier
                         }
                         else {f.frozen=0;f.idle=0;}
                         Vector3 localVelocity=a.transform.InverseTransformDirection(delta/dt);
-                        rows.Add(new{id=a.Definition.EnemyId,elapsed,speed,amount,rate,visible,locomotion,poseDelta,sideSpeed=localVelocity.x,forwardSpeed=localVelocity.z,locked=a.Movement.IsActionLocked});
+                        rows.Add(new{id=a.Definition.EnemyId,elapsed,speed,amount,rate,visible,locomotion,poseDelta,sideSpeed=localVelocity.x,forwardSpeed=localVelocity.z,locked=a.Movement.IsActionLocked,attacking});
                     }
                     if(shot<3 && elapsed>=new[]{2f,8f,14f}[shot])
                     {ScreenCapture.CaptureScreenshot(Path.Combine(output,ui.tables[table].ThemeId+"-crowd-"+shot+".png"));shot++;}
@@ -90,6 +92,7 @@ public static class MonsterThemeCrowdMotionVerifier
                 File.WriteAllText(Path.Combine(output,ui.tables[table].ThemeId+"-crowd-diagnostic.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{playerTravel,gameplayEnabled=player.IsGameplayEnabled,move=player.MoveValue.ToString(),rows}));
                 Require(playerTravel>10f,"Gameplay movement input did not move the target: "+playerTravel+" / enabled="+player.IsGameplayEnabled+" / move="+player.MoveValue);
                 var stats=EnemySquadPursuitRuntimeService.GetRuntimeStats();Require(stats.SquadCount==6,"Squad count changed");
+                Require(fixtures.Sum(f=>f.attackFrames)>0,"Real AI did not reach an attack after pursuit");
                 foreach(var f in fixtures)
                 {
                     Require(f.maxFrozen<.5f,"Frozen visible moving bones: "+f.actor.Definition.EnemyId+" / "+f.maxFrozen);
@@ -98,7 +101,7 @@ public static class MonsterThemeCrowdMotionVerifier
                 }
                 foreach(var entry in ui.tables[table].Entries)
                     Require(fixtures.Where(f=>f.actor.Definition==entry.definition).Sum(f=>f.visibleMoving)>5,"No visible moving coverage: "+entry.definition.EnemyId);
-                var summary=fixtures.GroupBy(f=>f.actor.Definition.EnemyId).Select(g=>new{id=g.Key,count=g.Count(),visibleMoving=g.Sum(f=>f.visibleMoving),maxFrozen=g.Max(f=>f.maxFrozen),maxIdle=g.Max(f=>f.maxIdle),maxRate=g.Max(f=>f.maxRate)}).ToArray();
+                var summary=fixtures.GroupBy(f=>f.actor.Definition.EnemyId).Select(g=>new{id=g.Key,count=g.Count(),visibleMoving=g.Sum(f=>f.visibleMoving),maxFrozen=g.Max(f=>f.maxFrozen),maxIdle=g.Max(f=>f.maxIdle),maxRate=g.Max(f=>f.maxRate),attackFrames=g.Sum(f=>f.attackFrames)}).ToArray();
                 reports.Add(new{table=ui.tables[table].ThemeId,playerTravel,summary,status="PASS"});
                 File.WriteAllText(Path.Combine(output,ui.tables[table].ThemeId+"-crowd-motion.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{summary,rows}));
                 File.WriteAllText(Path.Combine(output,"crowd-results.json"),Newtonsoft.Json.JsonConvert.SerializeObject(reports,Newtonsoft.Json.Formatting.Indented));
