@@ -1,484 +1,236 @@
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using Unity.Profiling;
 
 public sealed class WorldMinimapController : MonoBehaviour
 {
-    private const float MapPadding = 8f;
-    private const float UpdateInterval = 0.08f;
-
-    [Header("UI References")]
-    [SerializeField] private GameObject minimapRoot;
-    [SerializeField] private RectTransform rotatingRoot;
-    [SerializeField] private RawImage minimapImage;
-    [SerializeField] private RawImage fogOverlay;
-    [SerializeField] private RectTransform playerMarker;
-    [SerializeField] private Image playerMarkerImage;
-    [SerializeField] private RectTransform facingCone;
-    [SerializeField] private Image facingConeImage;
-    [SerializeField] private Button zoomInButton;
-    [SerializeField] private Button zoomOutButton;
-    [SerializeField] private TextMeshProUGUI zoomValueText;
-
-    [Header("Display")]
-    [SerializeField] private int interactiveSortingOrder = 45;
-    [SerializeField] private int inventoryOpenSortingOrder = -10;
-    [SerializeField] private float minimapSize = 240f;
-    [SerializeField] private float playerMarkerSize = 10f;
-    [SerializeField] private float facingConeSize = 44f;
-
-    [Header("Zoom")]
+    [SerializeField] private MinimapView view;
     [SerializeField] private float defaultZoomSize = 55f;
     [SerializeField] private float currentZoomSize = 55f;
     [SerializeField] private float minZoomSize = 20f;
     [SerializeField] private float maxZoomSize = 80f;
     [SerializeField] private float zoomStep = 10f;
-
-    [Header("Markers")]
-    [SerializeField] private float normalEnemyMarkerSize = 4.6f;
-    [SerializeField] private float eliteEnemyMarkerSize = 6.2f;
-    [SerializeField] private int maxEnemyMarkers = 160;
-
     private static WorldMinimapController instance;
-    private static Sprite circleSprite;
-
-    private readonly List<Image> enemyMarkerPool = new List<Image>(160);
-    private readonly List<EnemyRank> enemyBuffer = new List<EnemyRank>(160);
-
-    private RectTransform contentRoot;
-    private RectTransform topologyRoot;
-    private RectTransform markerRoot;
+    private static readonly ProfilerMarker ProjectMarker = new ProfilerMarker("Minimap.Project");
+    private readonly MinimapEnemySource source = new MinimapEnemySource();
+    private readonly MinimapMarkerGraphic.Marker[] markers = new MinimapMarkerGraphic.Marker[MinimapEnemySource.Capacity];
+    private PlayerContext playerContext;
     private Transform playerTarget;
-    private Camera playerViewCamera;
-    private Canvas minimapCanvas;
-    private GraphicRaycaster minimapRaycaster;
-    private InventoryUI inventoryUI;
-    private StashUI stashUI;
-    private float nextUpdateTime;
-    private bool warnedMissingReferences;
+    private bool requested, blocked, forceRefresh, warned, hasYaw;
+    private int contentScene = int.MinValue;
+    private Scene contentSceneInfo;
+    private float nextCandidates, nextProjection, nextBinding, yaw;
 
     public static WorldMinimapController Instance
     {
         get
         {
-            if (instance == null)
-            {
-                instance = FindFirstObjectByType<WorldMinimapController>(
-                    FindObjectsInactive.Include);
-            }
+            if (instance == null) instance = FindFirstObjectByType<WorldMinimapController>(FindObjectsInactive.Include);
             return instance;
         }
     }
+    public MinimapView View => view;
+    public float ZoomRadius => currentZoomSize;
+    public bool IsVisible => requested && view != null && view.ViewRoot.activeSelf;
+    public int ProjectionCount { get; private set; }
+    public int CandidateCount { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => instance = null;
 
     private void Awake()
     {
-        if (instance != null && instance != this)
-        {
-            enabled = false;
-            return;
-        }
-
+        if (instance != null && instance != this) { enabled = false; return; }
         instance = this;
-        EnsureLightweightView();
-        ApplyUiDefaults();
+        minZoomSize = Mathf.Max(5f, minZoomSize);
+        maxZoomSize = Mathf.Max(minZoomSize, maxZoomSize);
+        currentZoomSize = Mathf.Clamp(defaultZoomSize, minZoomSize, maxZoomSize);
+        view?.SetVisible(false);
     }
 
     private void OnEnable()
     {
-        EnsureLightweightView();
-        RegisterZoomButtons();
-        RunFallGuard.TargetTeleported -= HandleTargetTeleported;
-        RunFallGuard.TargetTeleported += HandleTargetTeleported; // 낙하 복구 연결
+        if (instance != null && instance != this) return;
+        instance = this;
+        if (view != null && view.IsReady)
+        {
+            view.ZoomInButton.onClick.AddListener(ZoomIn);
+            view.ZoomOutButton.onClick.AddListener(ZoomOut);
+        }
+        GameplayInputBlocker.BlockStateChanged += HandleBlocked;
+        RunFallGuard.TargetTeleported += HandleTeleported;
+        HandleBlocked(GameplayInputBlocker.IsGameplayInputBlocked);
+        nextBinding = 0;
     }
 
     private void OnDisable()
     {
-        RunFallGuard.TargetTeleported -= HandleTargetTeleported;
-        UnregisterZoomButtons();
+        GameplayInputBlocker.BlockStateChanged -= HandleBlocked;
+        RunFallGuard.TargetTeleported -= HandleTeleported;
+        if (view != null && view.IsReady)
+        {
+            view.ZoomInButton.onClick.RemoveListener(ZoomIn);
+            view.ZoomOutButton.onClick.RemoveListener(ZoomOut);
+        }
+        UnbindPlayer();
+        source.Dispose();
+        view?.SetVisible(false);
     }
 
-    private void Start()
-    {
-        ShowForHub(FindPlayer());
-    }
+    private void OnDestroy() { if (instance == this) instance = null; }
 
-    private void LateUpdate()
-    {
-        UpdateInteractionLayer();
-        if (Time.unscaledTime < nextUpdateTime || !HasRequiredReferences())
-            return;
-
-        nextUpdateTime = Time.unscaledTime + UpdateInterval;
-        Transform resolvedPlayer = FindPlayer();
-        if (resolvedPlayer != null)
-            playerTarget = resolvedPlayer;
-
-        if (playerTarget == null)
-            return;
-
-        RefreshTrackedView();
-    }
-
-    private void RefreshTrackedView()
-    {
-        playerViewCamera = playerViewCamera != null ? playerViewCamera : Camera.main;
-        UpdateContentRotation();
-        UpdatePlayerMarker();
-        UpdateEnemyMarkers();
-    }
-
-    private void HandleTargetTeleported(Transform teleportedTarget)
-    {
-        Transform resolvedPlayer = FindPlayer(); // 현재 리더 또는 Player
-        if (teleportedTarget == null || (teleportedTarget != playerTarget && teleportedTarget != resolvedPlayer))
-            return;
-
-        playerTarget = resolvedPlayer != null ? resolvedPlayer : teleportedTarget;
-        nextUpdateTime = 0f; // 주기 대기 제거
-        if (HasRequiredReferences())
-            RefreshTrackedView();
-    }
-
-    public static void ShowHubMinimap(Transform player)
-    {
-        if (Instance != null)
-            Instance.ShowForHub(player);
-    }
-
-    public static void ShowHideoutMinimap(Transform player)
-    {
-        ShowHubMinimap(player); // 기존 호출 호환
-    }
+    public static void ShowHubMinimap(Transform player) => Instance?.ShowForHub(player);
+    public static void ShowHideoutMinimap(Transform player) => ShowHubMinimap(player);
+    public void ShowForHideout(Transform player) => ShowForHub(player);
 
     public void ShowForHub(Transform player)
     {
-        if (!HasRequiredReferences())
-            return;
-
-        playerTarget = ResolvePlayerActor(player);
-        ClearTopology();
-        SetRootVisible(true);
-        UpdatePlayerMarker();
-        UpdateEnemyMarkers();
+        Scene scene = SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
+        ShowForScene(player, scene.IsValid() && scene.isLoaded ? scene.handle : int.MinValue);
     }
 
-    public void ShowForHideout(Transform player)
+    // Explicit scene scope also supports the monster test arena without depending on the active persistent scene.
+    public void ShowForScene(Transform player, int sceneHandle)
     {
-        ShowForHub(player); // 기존 호출 호환
+        source.Dispose();
+        contentScene = sceneHandle;
+        contentSceneInfo = default;
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene candidate = SceneManager.GetSceneAt(i);
+            if (candidate.handle == sceneHandle) { contentSceneInfo = candidate; break; }
+        }
+        playerTarget = player;
+        requested = true;
+        hasYaw = false;
+        forceRefresh = true;
+        nextBinding = 0;
+        view?.SetVisible(false);
+        TryBindPlayer();
     }
 
     public void ForceHide()
     {
-        SetRootVisible(false);
+        requested = false;
+        source.Dispose();
+        UnbindPlayer();
+        playerTarget = null;
+        contentScene = int.MinValue;
+        view?.SetVisible(false);
     }
 
-    private void EnsureLightweightView()
+    private void LateUpdate()
     {
-        if (rotatingRoot == null)
+        if (!requested) return;
+        if (view == null || !view.IsReady)
+        {
+            if (!warned) { warned = true; Debug.LogWarning("[WorldMinimap] Run OverburstMinimapMigration before using the minimap.", this); }
             return;
-
-        Transform existing = rotatingRoot.Find("LightweightMapContent");
-        if (existing == null)
-        {
-            GameObject rootObject = new GameObject("LightweightMapContent", typeof(RectTransform));
-            rootObject.transform.SetParent(rotatingRoot, false);
-            existing = rootObject.transform;
         }
-
-        contentRoot = existing as RectTransform;
-        Stretch(contentRoot);
-        topologyRoot = EnsureRectChild(contentRoot, "Topology");
-        markerRoot = EnsureRectChild(contentRoot, "Markers");
-        Stretch(topologyRoot);
-        Stretch(markerRoot);
-
-        if (minimapImage != null)
+        float now = Time.unscaledTime;
+        if (now >= nextBinding)
         {
-            minimapImage.texture = null;
-            minimapImage.enabled = false;
+            nextBinding = now + 0.25f;
+            TryBindPlayer();
         }
-
-        if (fogOverlay != null)
+        if (playerTarget == null || !playerTarget.gameObject.activeInHierarchy
+            || contentScene == int.MinValue || !contentSceneInfo.isLoaded)
+        { view.SetVisible(false); return; }
+        QuarterViewCamera camera = QuarterViewCamera.ActiveInstance;
+        if (camera != null)
         {
-            fogOverlay.texture = null;
-            fogOverlay.enabled = false;
+            float nextYaw = camera.CurrentYaw;
+            if (!hasYaw || Mathf.Abs(Mathf.DeltaAngle(yaw, nextYaw)) > 0.01f) forceRefresh = true;
+            yaw = nextYaw;
+            hasYaw = true;
+        }
+        if (!hasYaw) return;
+        view.SetVisible(true);
+        view.UpdateSafeArea();
+        view.SetFacing(yaw - playerTarget.eulerAngles.y);
+        view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
+        bool dirty = source.IsDirty || forceRefresh;
+        if (dirty || now >= nextCandidates)
+        {
+            source.Select(playerTarget.position, currentZoomSize, contentScene);
+            CandidateCount++;
+            nextCandidates = now + 0.1f;
+            dirty = true;
+        }
+        if (dirty || now >= nextProjection)
+        {
+            ProjectMarkers();
+            nextProjection = now + 1f / 30f;
+            forceRefresh = false;
         }
     }
 
-    private void ApplyUiDefaults()
+    private void ProjectMarkers()
     {
-        minZoomSize = Mathf.Max(5f, minZoomSize);
-        maxZoomSize = Mathf.Max(minZoomSize, maxZoomSize);
-        currentZoomSize = Mathf.Clamp(currentZoomSize <= 0f ? defaultZoomSize : currentZoomSize, minZoomSize, maxZoomSize);
-
-        if (minimapRoot != null)
+        using (ProjectMarker.Auto())
         {
-            minimapCanvas = minimapRoot.GetComponent<Canvas>();
-            minimapRaycaster = minimapRoot.GetComponent<GraphicRaycaster>();
+            float radians = yaw * Mathf.Deg2Rad, cos = Mathf.Cos(radians), sin = Mathf.Sin(radians);
+            float scale = view.Radius / currentZoomSize;
+            Vector3 origin = playerTarget.position;
+            int count = 0;
+            for (int i = 0; i < source.Count; i++)
+            {
+                if (!source.TryGet(i, origin, currentZoomSize * currentZoomSize, out Vector3 position, out EnemyGradeType grade, out int id)) continue;
+                markers[count++] = new MinimapMarkerGraphic.Marker
+                {
+                    Position = MinimapProjection.ProjectBasis(position, origin, cos, sin, scale), Grade = grade, Id = id,
+                    Size = grade == EnemyGradeType.Normal ? 4.6f : grade == EnemyGradeType.Boss ? 8f : 6.2f,
+                    Color = grade == EnemyGradeType.Normal ? new Color32(255, 74, 65, 245)
+                        : grade == EnemyGradeType.Boss ? new Color32(255, 211, 105, 255) : new Color32(255, 139, 48, 255)
+                };
+            }
+            view.Markers.SetMarkers(markers, count);
+            ProjectionCount++;
         }
-
-        if (playerMarker != null)
-            playerMarker.sizeDelta = Vector2.one * playerMarkerSize;
-        if (facingCone != null)
-            facingCone.sizeDelta = Vector2.one * facingConeSize;
-
-        UpdateZoomValueText();
     }
 
-    private void ClearTopology()
+    private void TryBindPlayer()
     {
-        if (topologyRoot == null)
+        PlayerContext context = PlayerContext.Instance;
+        if (context == playerContext)
+        {
+            // CurrentActor resolves late actors; only use its fallback search while waiting.
+            if (context != null && (playerTarget == null || !playerTarget.gameObject.activeInHierarchy))
+                HandlePlayerChanged(context.CurrentActor);
             return;
-
-        for (int i = topologyRoot.childCount - 1; i >= 0; i--)
-        {
-            Transform child = topologyRoot.GetChild(i);
-            if (child != null)
-                Destroy(child.gameObject);
         }
+        UnbindPlayer();
+        playerContext = context;
+        if (context == null) return;
+        context.CurrentActorChanged += HandlePlayerChanged;
+        HandlePlayerChanged(context.CurrentActor);
     }
 
-    private void UpdateEnemyMarkers()
+    private void UnbindPlayer()
     {
-        if (markerRoot == null || playerTarget == null)
-            return;
-
-        EnemyRank.CollectActive(enemyBuffer);
-        int used = 0;
-        int count = Mathf.Min(enemyBuffer.Count, maxEnemyMarkers);
-        for (int i = 0; i < count; i++)
-        {
-            EnemyRank enemy = enemyBuffer[i];
-            if (enemy == null)
-                continue;
-
-            Vector2 flat = new Vector2(enemy.transform.position.x - playerTarget.position.x, enemy.transform.position.z - playerTarget.position.z);
-            if (flat.sqrMagnitude > currentZoomSize * currentZoomSize)
-                continue;
-
-            Image marker = GetEnemyMarker(used++);
-            bool elite = enemy.Rank == EnemyRankType.Elite;
-            marker.rectTransform.anchoredPosition = ProjectRelative(flat);
-            marker.rectTransform.sizeDelta = Vector2.one * (elite ? eliteEnemyMarkerSize : normalEnemyMarkerSize);
-            marker.color = elite ? new Color(1f, 0.42f, 0.12f, 1f) : new Color(1f, 0.22f, 0.2f, 0.95f);
-            marker.gameObject.SetActive(true);
-        }
-
-        for (int i = used; i < enemyMarkerPool.Count; i++)
-            enemyMarkerPool[i].gameObject.SetActive(false);
+        if (playerContext != null) playerContext.CurrentActorChanged -= HandlePlayerChanged;
+        playerContext = null;
     }
 
-    private Image GetEnemyMarker(int index)
+    private void HandlePlayerChanged(PlayerActorRuntime actor)
     {
-        while (enemyMarkerPool.Count <= index)
-        {
-            Image marker = CreateImage("EnemyMarker", markerRoot, Color.red);
-            marker.sprite = GetCircleSprite();
-            enemyMarkerPool.Add(marker);
-        }
-        return enemyMarkerPool[index];
+        playerTarget = actor != null ? actor.transform : null;
+        view?.Markers?.Clear();
+        forceRefresh = true;
     }
-
-    private void UpdateContentRotation()
+    private void HandleTeleported(Transform target) { if (target == playerTarget) forceRefresh = true; }
+    private void HandleBlocked(bool value)
     {
-        if (contentRoot == null || playerViewCamera == null)
-            return;
-        contentRoot.localRotation = Quaternion.Euler(0f, 0f, playerViewCamera.transform.eulerAngles.y);
+        blocked = value;
+        view?.SetBlocked(value);
+        if (view != null && view.IsReady) view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
     }
-
-    private void UpdatePlayerMarker()
+    private void ZoomIn() { if (!blocked) SetZoom(currentZoomSize - zoomStep); }
+    private void ZoomOut() { if (!blocked) SetZoom(currentZoomSize + zoomStep); }
+    public void SetZoom(float radius)
     {
-        if (playerMarker != null)
-            playerMarker.anchoredPosition = Vector2.zero;
-        if (facingCone != null)
-        {
-            facingCone.anchoredPosition = Vector2.zero;
-            float cameraYaw = playerViewCamera != null ? playerViewCamera.transform.eulerAngles.y : 0f;
-            float playerYaw = playerTarget != null ? playerTarget.eulerAngles.y : 0f;
-            facingCone.localRotation = Quaternion.Euler(0f, 0f, cameraYaw - playerYaw);
-        }
-    }
-
-    private Vector2 ProjectRelative(Vector2 flat)
-    {
-        return flat / Mathf.Max(1f, currentZoomSize) * MapPixelRadius;
-    }
-
-    private float MapPixelRadius => Mathf.Max(1f, minimapSize * 0.5f - MapPadding);
-
-    private void ZoomIn()
-    {
-        SetZoom(currentZoomSize - zoomStep);
-    }
-
-    private void ZoomOut()
-    {
-        SetZoom(currentZoomSize + zoomStep);
-    }
-
-    private void SetZoom(float value)
-    {
-        currentZoomSize = Mathf.Clamp(value, minZoomSize, maxZoomSize);
-        UpdateZoomValueText();
-        UpdateEnemyMarkers();
-    }
-
-    private void UpdateZoomValueText()
-    {
-        if (zoomValueText == null)
-            return;
-        float ratio = Mathf.Clamp(defaultZoomSize / Mathf.Max(1f, currentZoomSize), 0.1f, 9.9f);
-        zoomValueText.text = $"x{ratio:0.0}";
-    }
-
-    private void RegisterZoomButtons()
-    {
-        if (zoomInButton != null)
-        {
-            zoomInButton.onClick.RemoveListener(ZoomIn);
-            zoomInButton.onClick.AddListener(ZoomIn);
-        }
-        if (zoomOutButton != null)
-        {
-            zoomOutButton.onClick.RemoveListener(ZoomOut);
-            zoomOutButton.onClick.AddListener(ZoomOut);
-        }
-    }
-
-    private void UnregisterZoomButtons()
-    {
-        if (zoomInButton != null)
-            zoomInButton.onClick.RemoveListener(ZoomIn);
-        if (zoomOutButton != null)
-            zoomOutButton.onClick.RemoveListener(ZoomOut);
-    }
-
-    private void UpdateInteractionLayer()
-    {
-        if (minimapCanvas == null)
-            return;
-
-        if (inventoryUI == null)
-            inventoryUI = FindFirstObjectByType<InventoryUI>(FindObjectsInactive.Include);
-        if (stashUI == null)
-            stashUI = FindFirstObjectByType<StashUI>(FindObjectsInactive.Include);
-
-        bool blocked = (inventoryUI != null && inventoryUI.IsVisible) || (stashUI != null && stashUI.IsOpen);
-        minimapCanvas.overrideSorting = true;
-        minimapCanvas.sortingOrder = blocked ? inventoryOpenSortingOrder : interactiveSortingOrder;
-        if (minimapRaycaster != null)
-            minimapRaycaster.enabled = !blocked;
-    }
-
-    private bool HasRequiredReferences()
-    {
-        bool valid = minimapRoot != null && rotatingRoot != null && contentRoot != null && markerRoot != null;
-        if (!valid && !warnedMissingReferences)
-        {
-            warnedMissingReferences = true;
-            Debug.LogWarning(
-                "[WorldMinimap] Lightweight minimap references are missing. "
-                + "Re-run the HUD objectizer.");
-        }
-        return valid;
-    }
-
-    private void SetRootVisible(bool visible)
-    {
-        if (minimapRoot != null && minimapRoot.activeSelf != visible)
-            minimapRoot.SetActive(visible);
-    }
-
-    private static Transform FindPlayer()
-    {
-        Transform leader = ResolvePlayerActor(null);
-        if (leader != null)
-            return leader;
-
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-            return player.transform;
-
-        PlayerMovement movement = FindFirstObjectByType<PlayerMovement>();
-        if (movement != null)
-            return movement.transform;
-
-        PlayerInventory inventory = FindFirstObjectByType<PlayerInventory>();
-        return inventory != null && inventory.GetComponentInParent<PlayerMovement>() != null
-            ? inventory.GetComponentInParent<PlayerMovement>().transform
-            : null; // 계정 서비스 오인 방지
-    }
-
-    private static Transform ResolvePlayerActor(Transform fallback)
-    {
-        PlayerContext context = PlayerContext.GetOrCreate();
-        PlayerActorRuntime leader = context != null ? context.CurrentActor : null;
-        return leader != null ? leader.transform : fallback;
-    }
-
-    private static RectTransform EnsureRectChild(Transform parent, string objectName)
-    {
-        Transform child = parent.Find(objectName);
-        if (child == null)
-        {
-            GameObject childObject = new GameObject(objectName, typeof(RectTransform));
-            childObject.transform.SetParent(parent, false);
-            child = childObject.transform;
-        }
-        return child as RectTransform;
-    }
-
-    private static Image CreateImage(string objectName, RectTransform parent, Color color)
-    {
-        GameObject imageObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        imageObject.transform.SetParent(parent, false);
-        Image image = imageObject.GetComponent<Image>();
-        image.color = color;
-        image.raycastTarget = false;
-        return image;
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        if (rect == null)
-            return;
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-    }
-
-    private static Sprite GetCircleSprite()
-    {
-        if (circleSprite != null)
-            return circleSprite;
-
-        const int size = 32;
-        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-        {
-            name = "LightweightMinimapCircleTexture",
-            hideFlags = HideFlags.HideAndDontSave,
-            filterMode = FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp
-        };
-        Vector2 center = Vector2.one * ((size - 1) * 0.5f);
-        float radius = size * 0.47f;
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-                texture.SetPixel(x, y, Vector2.Distance(new Vector2(x, y), center) <= radius ? Color.white : Color.clear);
-        }
-        texture.Apply(false, true);
-        circleSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
-        circleSprite.name = "LightweightMinimapCircleSprite";
-        circleSprite.hideFlags = HideFlags.HideAndDontSave;
-        return circleSprite;
-    }
-
-    private void OnDestroy()
-    {
-        if (instance == this)
-            instance = null;
+        currentZoomSize = Mathf.Clamp(radius, minZoomSize, maxZoomSize);
+        forceRefresh = true;
+        if (view != null && view.IsReady) view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
     }
 }

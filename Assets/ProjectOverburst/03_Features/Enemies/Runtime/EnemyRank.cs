@@ -10,6 +10,23 @@ public enum EnemyRankType
 public sealed class EnemyRank : MonoBehaviour
 {
     private static readonly HashSet<EnemyRank> activeEnemies = new HashSet<EnemyRank>();
+    public static uint ActiveRevision { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetRegistry()
+    {
+        activeEnemies.Clear();
+        unchecked { ActiveRevision++; }
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void RestoreActiveRegistry()
+    {
+        // Covers Enter Play Mode with both domain and scene reload disabled.
+        foreach (EnemyRank enemy in FindObjectsByType<EnemyRank>(FindObjectsSortMode.None))
+            if (enemy.isActiveAndEnabled) activeEnemies.Add(enemy);
+        unchecked { ActiveRevision++; }
+    }
 
     [SerializeField] private EnemyRankType rank = EnemyRankType.Normal;
     [SerializeField] private string displayName;
@@ -28,12 +45,12 @@ public sealed class EnemyRank : MonoBehaviour
 
     private void OnEnable()
     {
-        activeEnemies.Add(this);
+        if (activeEnemies.Add(this)) { unchecked { ActiveRevision++; } }
     }
 
     private void OnDisable()
     {
-        activeEnemies.Remove(this);
+        if (activeEnemies.Remove(this)) { unchecked { ActiveRevision++; } }
     }
 
     public static void CollectActive(List<EnemyRank> buffer)
@@ -58,10 +75,12 @@ public sealed class EnemyRank : MonoBehaviour
             ? EnemyRankType.Normal
             : EnemyRankType.Elite;
         displayName = definition != null ? definition.DisplayName : authoredDisplayName;
+        unchecked { ActiveRevision++; }
     }
 
     public void ResetForPool()
     {
+        unchecked { ActiveRevision++; }
         CaptureAuthoredState();
         rank = authoredRank;
         displayName = authoredDisplayName;
