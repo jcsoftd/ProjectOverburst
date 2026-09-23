@@ -610,6 +610,7 @@ GameObject:
   - component: {fileID: 3755149544015514033}
   - component: {fileID: 6225924797321260381}
   - component: {fileID: 2130825550709024272}
+  - component: {fileID: 3796970785472341169}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Scolokarck_Tint3
   m_TagString: Untagged
@@ -1211,6 +1212,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &3796970785472341169
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1964193565842774903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &4598379472218943706
 GameObject:
   m_ObjectHideFlags: 0

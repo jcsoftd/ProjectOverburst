@@ -763,6 +763,7 @@ GameObject:
   - component: {fileID: 1774671530152124724}
   - component: {fileID: 1923307290238096593}
   - component: {fileID: 5404946464854265017}
+  - component: {fileID: 5373638007924248559}
   m_Layer: 7
   m_Name: PF_CavernMutants_Gorhorrid
   m_TagString: Untagged
@@ -1364,6 +1365,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &5373638007924248559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6481229745826855543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1001 &6732071428621281937
 PrefabInstance:
   m_ObjectHideFlags: 0

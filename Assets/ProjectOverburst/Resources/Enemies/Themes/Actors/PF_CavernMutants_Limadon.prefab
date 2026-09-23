@@ -256,6 +256,7 @@ GameObject:
   - component: {fileID: 1960517984383916792}
   - component: {fileID: 1294063740265864062}
   - component: {fileID: 2413948395521322900}
+  - component: {fileID: 9171129961387363593}
   m_Layer: 7
   m_Name: PF_CavernMutants_Limadon
   m_TagString: Untagged
@@ -857,6 +858,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &9171129961387363593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6195546670040126410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &7501883198109454282
 GameObject:
   m_ObjectHideFlags: 0

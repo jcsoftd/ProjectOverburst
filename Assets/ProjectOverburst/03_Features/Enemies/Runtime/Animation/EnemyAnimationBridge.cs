@@ -24,6 +24,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     [SerializeField] private float hitAnimationSpeedBoostDuration = 0.45f;
 
     private CombatHealth health;
+    private EnemyHitResponseCoordinator hitResponseCoordinator;
     private int moveParameterHash;
     private int attackTriggerHash;
     private int hitTriggerHash;
@@ -72,6 +73,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
         CacheParameters();
         health = GetComponent<CombatHealth>();
+        hitResponseCoordinator = GetComponent<EnemyHitResponseCoordinator>();
         ResolveMovementReaction();
         ResolveDefenseController();
     }
@@ -85,10 +87,13 @@ public class EnemyAnimationBridge : MonoBehaviour
 
         ResolveMovementReaction();
         ResolveDefenseController();
+        if (hitResponseCoordinator == null)
+            hitResponseCoordinator = GetComponent<EnemyHitResponseCoordinator>();
 
         if (health != null)
         {
-            health.OnDamaged += HandleDamaged;
+            if (hitResponseCoordinator == null)
+                health.OnDamaged += HandleDamaged;
             health.OnDead += HandleDead;
         }
     }
@@ -327,14 +332,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         bool weighted = movementReaction != null && movementReaction.HitWeightProfile != null;
         if (weighted && !movementReaction.TryApplyWeightedHit(info)) return;
 
-        if (hasDirectionalHit && animator != null)
-        {
-            Vector3 towardSource = info.source != null ? info.source.transform.position - transform.position : -info.direction;
-            Vector3 local = transform.InverseTransformDirection(towardSource);local.y = 0f;
-            local = local.sqrMagnitude > .0001f ? local.normalized : Vector3.forward;
-            animator.SetFloat(HitXHash, local.x);animator.SetFloat(HitZHash, local.z);
-        }
-        PlayHit();
+        PlayResolvedHit(info);
 
         if (weighted) return; // 공유 무게 프로필이 이동/경직 시간을 함께 소유
 
@@ -358,6 +356,24 @@ public class EnemyAnimationBridge : MonoBehaviour
             movementReaction.ExtendKnockbackReaction(resolvedKnockbackReactionDuration); // 넉백 경직
         else
             movementReaction.ApplyHitStun(resolvedHitStunDuration); // 피격 경직
+    }
+
+    // Invoked by the single hit-response owner after it allows a flinch.
+    public void PlayResolvedHit(DamageInfo info)
+    {
+        if (isDead || isFrozen)
+            return;
+
+        if (hasDirectionalHit && animator != null)
+        {
+            Vector3 towardSource = info.source != null ? info.source.transform.position - transform.position : -info.direction;
+            Vector3 local = transform.InverseTransformDirection(towardSource);
+            local.y = 0f;
+            local = local.sqrMagnitude > .0001f ? local.normalized : Vector3.forward;
+            animator.SetFloat(HitXHash, local.x);
+            animator.SetFloat(HitZHash, local.z);
+        }
+        PlayHit();
     }
 
     private void HandleDead(CombatHealth source, DamageInfo info)

@@ -42,7 +42,12 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private void OnEnable()
     {
         ResolveReferences(); ClearPreparedAim();
-        if (health != null) { health.OnDamaged += ClearAimOnDamage; health.OnDead += ClearAimOnDamage; }
+        if (health != null)
+        {
+            if (GetComponent<EnemyHitResponseCoordinator>() == null)
+                health.OnDamaged += ClearAimOnDamage;
+            health.OnDead += ClearAimOnDamage;
+        }
         if (reaction != null) reaction.ReactionStarted += ClearPreparedAim;
     }
     private void OnDisable()

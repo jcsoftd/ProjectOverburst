@@ -41,6 +41,7 @@ GameObject:
   - component: {fileID: 6147087917838270160}
   - component: {fileID: 7392818105384862337}
   - component: {fileID: 5872375590746329115}
+  - component: {fileID: 8606600181924054629}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Horridomorph
   m_TagString: Untagged
@@ -642,6 +643,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &8606600181924054629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 518271336578342469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &1334449474308429586
 GameObject:
   m_ObjectHideFlags: 0

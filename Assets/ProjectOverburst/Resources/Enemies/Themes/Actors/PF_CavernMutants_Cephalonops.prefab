@@ -41,6 +41,7 @@ GameObject:
   - component: {fileID: 4774750645164036944}
   - component: {fileID: 6428191248386695056}
   - component: {fileID: 4383640105018990314}
+  - component: {fileID: 8240492073217603506}
   m_Layer: 7
   m_Name: PF_CavernMutants_Cephalonops
   m_TagString: Untagged
@@ -642,6 +643,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &8240492073217603506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272275322220572443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &2743427199486079686
 GameObject:
   m_ObjectHideFlags: 0

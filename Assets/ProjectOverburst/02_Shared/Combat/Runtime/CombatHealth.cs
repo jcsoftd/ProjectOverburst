@@ -37,6 +37,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     }
 
     public event Action<CombatHealth, DamageInfo> OnDamaged;
+    // Emitted after mitigation with the actual HP loss. Enemy poise must not infer this from OnDamaged.
+    public event Action<CombatHealth, DamageInfo, float, bool> OnDamageResolved;
     public event Action<CombatHealth, float, float> OnHealthChanged;
     public event Action<CombatHealth, DamageInfo> OnDead;
     public event Action<CombatHealth> OnReset;
@@ -94,7 +96,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             PlayCombatDamagedHitAnimation(info);
         }
 
-        OnDamaged?.Invoke(this, info); // 모든 실제 피해 통지
+        OnDamageResolved?.Invoke(this, info, actualDamage, currentHp <= 0f);
+        OnDamaged?.Invoke(this, info); // 기존 UI·어그로·사망 표현 구독자 유지
         RaiseHealthChanged(); // HP바 갱신
 
         if (showDamageNumbers)
@@ -204,6 +207,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         EnemyMovementReaction movementReaction = GetComponentInParent<EnemyMovementReaction>();
         if (movementReaction != null)
         {
+            // A coordinated enemy applies physical displacement only after its poise decision.
+            if (GetComponentInParent<EnemyHitResponseCoordinator>() != null) return;
             // Weighted enemies resolve physical and visual feedback together after shield/freeze checks.
             if (movementReaction.HitWeightProfile != null) return;
             movementReaction.ApplyKnockback(knockbackDirection.normalized, info.knockback); // 적 제어형 넉백

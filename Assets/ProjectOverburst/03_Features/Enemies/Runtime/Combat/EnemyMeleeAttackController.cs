@@ -61,7 +61,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         if (health != null)
         {
-            health.OnDamaged += HandleDamaged;
+            if (GetComponent<EnemyHitResponseCoordinator>() == null)
+                health.OnDamaged += HandleDamaged;
             health.OnDead += HandleDead;
         }
     }

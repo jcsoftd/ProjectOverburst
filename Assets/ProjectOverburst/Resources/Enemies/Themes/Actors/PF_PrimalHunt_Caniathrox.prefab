@@ -664,6 +664,7 @@ GameObject:
   - component: {fileID: 5606994694939073223}
   - component: {fileID: 4595531803891878052}
   - component: {fileID: 814909541471433397}
+  - component: {fileID: 3326506716954356286}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Caniathrox
   m_TagString: Untagged
@@ -1265,6 +1266,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &3326506716954356286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6024500269617527656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &6155118219506054012
 GameObject:
   m_ObjectHideFlags: 0

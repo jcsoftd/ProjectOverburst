@@ -634,6 +634,7 @@ GameObject:
   - component: {fileID: 8687388676967203577}
   - component: {fileID: 3856512920193886234}
   - component: {fileID: 5604596487442929511}
+  - component: {fileID: 4980825396085242662}
   m_Layer: 7
   m_Name: PF_VenomBrood_Arathrox
   m_TagString: Untagged
@@ -1235,6 +1236,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &4980825396085242662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6208213465318903433}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &6679831113033357472
 GameObject:
   m_ObjectHideFlags: 0

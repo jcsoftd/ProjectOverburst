@@ -170,6 +170,7 @@ GameObject:
   - component: {fileID: 2427784002901976138}
   - component: {fileID: 5376073461619300270}
   - component: {fileID: 6193492710216404077}
+  - component: {fileID: 8679490687204224975}
   m_Layer: 7
   m_Name: PF_VenomBrood_Venodonte_Tint1
   m_TagString: Untagged
@@ -771,6 +772,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &8679490687204224975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5119254518068260491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &5124614282259971113
 GameObject:
   m_ObjectHideFlags: 0

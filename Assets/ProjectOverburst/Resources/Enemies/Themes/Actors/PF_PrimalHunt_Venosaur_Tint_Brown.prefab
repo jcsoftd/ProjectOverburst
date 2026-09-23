@@ -190,6 +190,7 @@ GameObject:
   - component: {fileID: 4804232170951975663}
   - component: {fileID: 4961986454329153104}
   - component: {fileID: 233063580879604896}
+  - component: {fileID: 8039611819135132639}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Venosaur_Tint_Brown
   m_TagString: Untagged
@@ -791,6 +792,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &8039611819135132639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3285127751773417009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &5155752461605611244
 GameObject:
   m_ObjectHideFlags: 0

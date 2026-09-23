@@ -127,6 +127,7 @@ GameObject:
   - component: {fileID: 1694484600564539316}
   - component: {fileID: 7356571447713292683}
   - component: {fileID: 8552035924702623554}
+  - component: {fileID: 2249419503144698247}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ceratoferox
   m_TagString: Untagged
@@ -728,6 +729,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &2249419503144698247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2989860340918798508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &3554911881725910702
 GameObject:
   m_ObjectHideFlags: 0

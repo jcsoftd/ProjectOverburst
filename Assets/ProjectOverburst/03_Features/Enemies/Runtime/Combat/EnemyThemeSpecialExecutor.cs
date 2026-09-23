@@ -28,7 +28,12 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private void OnEnable()
     {
         Resolve();
-        if (actor != null && actor.Health != null) { actor.Health.OnDead += Damaged; actor.Health.OnDamaged += Damaged; }
+        if (actor != null && actor.Health != null)
+        {
+            actor.Health.OnDead += Damaged;
+            if (GetComponent<EnemyHitResponseCoordinator>() == null)
+                actor.Health.OnDamaged += Damaged;
+        }
         if (reaction != null) reaction.ReactionStarted += Cancel;
     }
     private void OnDisable()

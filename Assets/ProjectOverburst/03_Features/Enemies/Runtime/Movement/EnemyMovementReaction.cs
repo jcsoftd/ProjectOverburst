@@ -24,6 +24,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     public EnemyHitWeightProfile HitWeightProfile => movement != null && movement.Profile != null ? movement.Profile.HitWeightProfile : null;
     public float VisualLift { get; private set; }
     public Transform VisualReactionRoot => visualReactionRoot;
+    public bool CanApplyWeightedHit => HitWeightProfile != null && !IsDead() && Time.time >= nextWeightedReaction;
     public Vector3 VisualRestPosition => visualBaseCaptured ? visualBasePosition
         : visualReactionRoot != null ? visualReactionRoot.localPosition : Vector3.zero;
 
@@ -35,7 +36,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     public bool TryApplyWeightedHit(DamageInfo info)
     {
         var profile=HitWeightProfile;
-        if(profile==null || IsDead() || info.isDamageOverTime || !info.triggersOnHitEffects || Time.time<nextWeightedReaction) return false;
+        if(!CanApplyWeightedHit || info.isDamageOverTime || !info.triggersOnHitEffects) return false;
         nextWeightedReaction=Time.time+profile.ReactionCooldown;
         Vector3 direction=info.direction;
         if(direction.sqrMagnitude<.0001f && info.source!=null) direction=transform.position-info.source.transform.position;

@@ -700,6 +700,7 @@ GameObject:
   - component: {fileID: 4576358527149155846}
   - component: {fileID: 4161169291787696228}
   - component: {fileID: 625854518479758432}
+  - component: {fileID: 6191341551787520374}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Carcinoptera
   m_TagString: Untagged
@@ -1301,6 +1302,18 @@ MonoBehaviour:
   strongDisplacement: 0.46
   strongLift: 0.055
   displacementDuration: 0.23
+--- !u!114 &6191341551787520374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5984709002563124745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &6129475259670029066
 GameObject:
   m_ObjectHideFlags: 0

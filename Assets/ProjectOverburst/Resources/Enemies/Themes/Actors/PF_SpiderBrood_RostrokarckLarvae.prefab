@@ -731,6 +731,7 @@ GameObject:
   - component: {fileID: 8783246688856151507}
   - component: {fileID: 7451878341725662312}
   - component: {fileID: 5444995903676890217}
+  - component: {fileID: 9106537096733218533}
   m_Layer: 7
   m_Name: PF_SpiderBrood_RostrokarckLarvae
   m_TagString: Untagged
@@ -1332,6 +1333,18 @@ MonoBehaviour:
   strongDisplacement: 0.85
   strongLift: 0.09
   displacementDuration: 0.19
+--- !u!114 &9106537096733218533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8201098357881587490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
 --- !u!1 &9113998070291543019
 GameObject:
   m_ObjectHideFlags: 0
