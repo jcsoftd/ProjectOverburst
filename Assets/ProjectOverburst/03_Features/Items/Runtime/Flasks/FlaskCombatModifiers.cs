@@ -36,22 +36,4 @@ public static class FlaskCombatModifiers
         info.knockback *= 1f - Mathf.Clamp(flasks.Bonus(FlaskEffect.IncomingImpactReduction), 0f, .7f);
     }
 
-    public static void ConfirmedHit(CombatHealth target, DamageInfo info, float actualDamage)
-    {
-        if (actualDamage <= 0f || info.source == null || target.GetComponent<TrainingDummy>() != null) return;
-        var sourceTeam = info.source.GetComponentInParent<CombatTarget>();
-        var targetTeam = target.GetComponent<CombatTarget>();
-        if (sourceTeam == null || targetTeam == null || sourceTeam.Team == targetTeam.Team) return;
-        var attacker = info.source.GetComponentInParent<PlayerFlaskController>();
-        var defender = target.GetComponent<PlayerFlaskController>();
-        if (target.CurrentHp <= 0f)
-        {
-            var rank = target.GetComponent<EnemyRank>();
-            attacker?.GrantBonus(rank != null && rank.GradeType != EnemyGradeType.Normal ? 5f : 1f);
-        }
-        if (info.isDamageOverTime || !info.triggersOnHitEffects) return;
-        if (sourceTeam.GetComponent<TrainingDummy>() != null) return;
-        attacker?.ReportCombat();
-        defender?.ReportCombat();
-    }
 }

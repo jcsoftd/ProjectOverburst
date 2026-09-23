@@ -84,7 +84,6 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
-        FlaskCombatModifiers.ConfirmedHit(this, info, actualDamage);
         OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
         ApplyKnockback(info); // 넉백 적용
 

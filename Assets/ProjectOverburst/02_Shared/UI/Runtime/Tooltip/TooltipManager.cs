@@ -240,6 +240,8 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     private bool currentShopMerchantSelling;
     private MerchantDefinition currentShopMerchant;
     private MerchantTradeValueCalculator priceValueCalculator;
+    private TMP_FontAsset regularConsumableStatsFont;
+    private TMP_FontAsset flaskStatsFont;
 
     private TooltipAuthoredView activeAuthoredView;
     private bool suppressed;
@@ -905,14 +907,25 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
         SetItemHeader(item, item.itemName, "소비아이템 / " + GetConsumableSubtypeName(consumableData));
 
-        if (consumableData is FlaskItemData)
+        if (regularConsumableStatsFont == null)
+            regularConsumableStatsFont = weaponStatsText.font;
+
+        if (consumableData is FlaskItemData flaskData)
         {
-            SetItemHeader(item, item.itemName, "장착형 물약 / 영구 보유");
-            basicStatsText.text = FlaskTooltip.Effects(item);
+            if (flaskStatsFont == null)
+                flaskStatsFont = Resources.Load<TMP_FontAsset>("UI/Tooltip/FlaskTooltipFont");
+            if (flaskStatsFont != null)
+                weaponStatsText.font = flaskStatsFont;
+            SetItemHeader(item, item.itemName, FlaskTooltip.Subtitle(flaskData));
+            basicStatsText.text = FlaskTooltip.Status(item);
             weaponStatsText.text = FlaskTooltip.Details(item);
+            SetActive(dividerPrice, currentShopPriceContextActive);
+            SetActive(priceText, currentShopPriceContextActive);
         }
         else
         {
+            if (regularConsumableStatsFont != null)
+                weaponStatsText.font = regularConsumableStatsFont;
             basicStatsText.text = BuildConsumableEffectText(consumableData);
             weaponStatsText.text = BuildConsumableTimingText(consumableData);
         }

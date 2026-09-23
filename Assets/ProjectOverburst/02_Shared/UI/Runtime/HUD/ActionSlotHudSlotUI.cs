@@ -25,13 +25,16 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     [SerializeField] private Image slotBackground;
     [SerializeField] private Image itemIcon;
     [SerializeField] private TextMeshProUGUI keyText;
+    [SerializeField] private Text legacyKeyText;
     [SerializeField] private TextMeshProUGUI countText;
     [SerializeField] private TextMeshProUGUI cooldownText;
     [SerializeField] private Image cooldownOverlay;
     [SerializeField] private GameObject activeBorder;
     [SerializeField] private SlotGradeEffect gradeEffect;
+    [SerializeField] private bool useVendorSlotVisual;
 
     private BaseItemData displayedBaseData;
+    private IQuickSlotSkill displayedSkill;
     private ItemGrade displayedGrade;
     private int displayedCount;
     private bool displayedActive;
@@ -49,10 +52,17 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     public void SetKeyNumber(int keyNumber)
     {
         BindVisuals();
+        string number = keyNumber > 0 ? keyNumber.ToString() : string.Empty;
         if (keyText != null)
         {
-            keyText.text = keyNumber > 0 ? keyNumber.ToString() : string.Empty;
+            keyText.text = number;
             NormalizeKeyTextRect();
+            RefreshKeyVisual(displayedActive);
+        }
+        if (legacyKeyText != null)
+        {
+            legacyKeyText.text = number;
+            legacyKeyText.raycastTarget = false;
             RefreshKeyVisual(displayedActive);
         }
     }
@@ -72,6 +82,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetConsumable(ConsumableItemData consumableData, ItemData displayItem, int count)
     {
+        tooltipItem = null;
         BindVisuals();
 
         if (consumableData == null)
@@ -84,48 +95,71 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         ApplyItemVisual(consumableData, grade, count, false, !consumableData.IsPermanentSingleItem);
     }
 
-    public void SetFlask(ItemData item, float remaining, bool matchesWeapon)
+    public void SetFlask(ItemData item, float remaining, float cooldownRemaining, bool matchesWeapon)
     {
-        tooltipItem = item;
         BindVisuals();
         if (slotBackground != null) slotBackground.raycastTarget = item != null;
         if (item == null) { SetEmpty(false); SetCooldown(0f); return; }
-        var state = FlaskRuntime.State(item);
         var stats = FlaskRuntime.Stats(item);
-        int uses = FlaskChargeRules.Uses(state, stats);
-        SetItem(item, uses, remaining > 0f, true);
-        SetCooldown(remaining);
+        SetItem(item, 0, remaining > 0f, false);
+        tooltipItem = item;
+        SetCooldown(cooldownRemaining);
         if (cooldownText != null)
         {
-            // Keep the active duration clear of the bottom charge count and hotkey.
+            // Show either active time or individual cooldown in the slot.
             RectTransform durationRect = cooldownText.rectTransform;
-            durationRect.anchorMin = new Vector2(0f, 1f);
+            durationRect.anchorMin = useVendorSlotVisual ? Vector2.zero : new Vector2(0f, 1f);
             durationRect.anchorMax = Vector2.one;
-            durationRect.pivot = new Vector2(.5f, 1f);
-            durationRect.offsetMin = new Vector2(4f, -24f);
-            durationRect.offsetMax = new Vector2(-4f, -4f);
+            durationRect.pivot = useVendorSlotVisual ? new Vector2(.5f, .5f) : new Vector2(.5f, 1f);
+            durationRect.offsetMin = useVendorSlotVisual ? new Vector2(8f, 8f) : new Vector2(4f, -24f);
+            durationRect.offsetMax = useVendorSlotVisual ? new Vector2(-8f, -8f) : new Vector2(-4f, -4f);
             cooldownText.alignment = TextAlignmentOptions.Center;
-            cooldownText.fontSize = 14f;
+            cooldownText.fontSize = useVendorSlotVisual ? 28f : 14f;
         }
-        if (countText != null) { countText.gameObject.SetActive(true); countText.text = uses + "회"; }
-        if (itemIcon != null) itemIcon.color = matchesWeapon && (uses > 0 || remaining > 0f) ? Color.white : new Color(.4f,.4f,.4f,1f);
+        if (countText != null) countText.gameObject.SetActive(false);
+        if (itemIcon != null) itemIcon.color = matchesWeapon && (cooldownRemaining <= 0f || remaining > 0f) ? Color.white : new Color(.4f,.4f,.4f,1f);
         if (cooldownOverlay != null && remaining > 0f)
         {
+            cooldownOverlay.gameObject.SetActive(true);
             cooldownOverlay.color = new Color(.12f,.6f,.42f,.27f);
             cooldownOverlay.type = Image.Type.Filled;
             cooldownOverlay.fillMethod = Image.FillMethod.Vertical;
             cooldownOverlay.fillOrigin = 0;
             cooldownOverlay.fillAmount = Mathf.Clamp01(remaining / Mathf.Max(.1f, stats.duration));
         }
-        else if (cooldownOverlay != null && state != null && uses == 0)
+        if (cooldownText != null && remaining > 0f)
         {
-            cooldownOverlay.gameObject.SetActive(true);
-            cooldownOverlay.color = new Color(.2f,.5f,.8f,.25f);
-            cooldownOverlay.type = Image.Type.Filled;
-            cooldownOverlay.fillMethod = Image.FillMethod.Vertical;
-            cooldownOverlay.fillOrigin = 0;
-            cooldownOverlay.fillAmount = Mathf.Clamp01(state.charge / Mathf.Max(1f, stats.cost));
+            cooldownText.gameObject.SetActive(true);
+            cooldownText.text = FormatCooldownText(remaining);
         }
+    }
+
+    public void SetSkill(IQuickSlotSkill skill)
+    {
+        tooltipItem = null;
+        BindVisuals();
+        if (skill == null) { SetEmpty(false); SetCooldown(0f); return; }
+        if (ReferenceEquals(displayedSkill, skill)) { SetCooldown(skill.CooldownRemaining); return; }
+        if (slotBackground != null) slotBackground.raycastTarget = false;
+        if (itemIcon != null)
+        {
+            itemIcon.gameObject.SetActive(true);
+            itemIcon.sprite = skill.Icon;
+            itemIcon.color = skill.Icon != null ? Color.white : new Color(.38f, .7f, 1f, .6f);
+            itemIcon.preserveAspect = true;
+        }
+        if (countText != null) countText.gameObject.SetActive(false);
+        gradeEffect?.Clear();
+        SetActiveBorder(false);
+        ResetSlotBackgroundColor();
+        RefreshKeyVisual(false);
+        displayedBaseData = null;
+        displayedSkill = skill;
+        displayedActive = false;
+        hasDisplayedItem = true;
+        hasDisplayedGrade = false;
+        hasDisplayedState = true;
+        SetCooldown(skill.CooldownRemaining);
     }
 
     public void SetCooldown(float remainingSeconds)
@@ -149,6 +183,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             countText.transform.SetAsLastSibling();
         if (keyText != null)
             keyText.transform.SetAsLastSibling();
+        if (legacyKeyText != null && legacyKeyText.transform.parent != null)
+            legacyKeyText.transform.parent.SetAsLastSibling();
         if (cooldownText != null)
         {
             cooldownText.gameObject.SetActive(active);
@@ -161,6 +197,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetEmpty(bool active)
     {
+        tooltipItem = null;
         BindVisuals();
 
         if (hasDisplayedState && !hasDisplayedItem && displayedActive == active)
@@ -175,6 +212,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         hasDisplayedItem = false;
         hasDisplayedGrade = false;
         displayedBaseData = null;
+        displayedSkill = null;
         displayedCount = 0;
         displayedActive = active;
         displayedShowCount = false;
@@ -217,6 +255,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             SetEmpty(active);
             return;
         }
+
+        displayedSkill = null;
 
         bool itemChanged = !hasDisplayedItem || displayedBaseData != baseData;
         bool gradeChanged = itemChanged || !hasDisplayedGrade || displayedGrade != grade;
@@ -347,12 +387,14 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     private void RefreshKeyVisual(bool active)
     {
-        if (keyText == null)
-            return;
-
-        keyText.fontStyle = FontStyles.Bold;
-        keyText.fontSize = active ? ActiveKeyTextFontSize : KeyTextFontSize;
-        keyText.color = active ? ActiveKeyTextColor : KeyTextColor;
+        if (keyText != null)
+        {
+            keyText.fontStyle = FontStyles.Bold;
+            keyText.fontSize = active ? ActiveKeyTextFontSize : KeyTextFontSize;
+            keyText.color = active ? ActiveKeyTextColor : KeyTextColor;
+        }
+        if (legacyKeyText != null)
+            legacyKeyText.color = active ? ActiveKeyTextColor : Color.white;
     }
 
     private void EnsureCooldownOverlayRect()

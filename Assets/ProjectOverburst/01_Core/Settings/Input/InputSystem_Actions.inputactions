@@ -1102,15 +1102,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "CameraRotate",
-                    "type": "Value",
-                    "id": "a3b56e4f-891d-41c9-aa35-661fe9e24201",
-                    "expectedControlType": "Axis",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                },
-                {
                     "name": "Zoom",
                     "type": "Value",
                     "id": "bd152c4a-130f-4eba-ba52-da0468b7f2a4",
@@ -1159,6 +1150,42 @@
                     "name": "LootModeCycle",
                     "type": "Button",
                     "id": "58b427cb-4ebb-4b26-b1e0-f54f0173d59c",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "ZoomReset",
+                    "type": "Button",
+                    "id": "66f17a5d-6453-4278-8d85-f346689cfe9d",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "QuickSlot1",
+                    "type": "Button",
+                    "id": "adddef25-33c3-47ff-b544-c573241e0522",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "QuickSlot2",
+                    "type": "Button",
+                    "id": "0e5c63c5-372b-466a-bbc1-4bff89958ff8",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "QuickSlot3",
+                    "type": "Button",
+                    "id": "835f9af9-3e5d-4f1a-b628-dd4012d3cb82",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -1431,39 +1458,6 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "1DAxis",
-                    "id": "82da7de6-3b37-46d5-8cd7-623c1e32ef10",
-                    "path": "1DAxis",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "CameraRotate",
-                    "isComposite": true,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "Negative",
-                    "id": "b0f2882a-5c66-4a3e-a5ea-94496c9d56d6",
-                    "path": "<Keyboard>/q",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "CameraRotate",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "Positive",
-                    "id": "e68e814b-548a-4d68-b3ae-31cd4c6d890e",
-                    "path": "<Keyboard>/e",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "CameraRotate",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
                     "name": "",
                     "id": "2123d6cb-8f19-471b-9686-b5ba760fe490",
                     "path": "<Mouse>/scroll",
@@ -1570,6 +1564,83 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "LootModeCycle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8e01113e-cbd9-44ad-a0cf-ea1043393517",
+                    "path": "<Mouse>/middleButton",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "ZoomReset",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4b46107c-8634-4771-9e9c-1a2f188a24cd",
+                    "path": "<Keyboard>/1",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4e0cafd9-9af6-48aa-b3d6-89846e66ee19",
+                    "path": "<Keyboard>/numpad1",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "326ca4d3-35b8-469c-b5e1-3846b2032ad6",
+                    "path": "<Keyboard>/2",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "da06ae3e-8c3e-4d90-9cfd-1adadc894f06",
+                    "path": "<Keyboard>/numpad2",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "25f4f6a1-238b-4c06-b5ee-1a470c6958b4",
+                    "path": "<Keyboard>/3",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot3",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "82d928d5-412a-438b-84ef-861203673a4b",
+                    "path": "<Keyboard>/numpad3",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QuickSlot3",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

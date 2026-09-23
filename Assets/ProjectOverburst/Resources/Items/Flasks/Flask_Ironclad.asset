@@ -26,7 +26,7 @@ MonoBehaviour:
   defaultGrade: 0
   effectValue: 0
   duration: 6
-  cooldown: 0
+  cooldown: 24
   maxStack: 1
   consumeOnUse: 0
   targetBuffId: overburst_flask_ironclad
@@ -37,6 +37,4 @@ MonoBehaviour:
   secondaryEffect: 12
   primaryValue: 0.2
   secondaryValue: 0.3
-  chargeCost: 50
-  chargeCapacity: 100
   passesEnemyBodies: 0

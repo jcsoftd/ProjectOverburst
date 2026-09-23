@@ -257,7 +257,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         Transform anchor = gradeVfxAnchor != null ? gradeVfxAnchor : transform; // 시각 효과 기준점
         spawnedGradeVfx = VfxPrefabFactory.SpawnFollowing(prefab, anchor); // 아이템을 따라가는 등급 VFX
         if (spawnedGradeVfx != null && runtimeItem.baseData is FlaskItemData)
-            spawnedGradeVfx.transform.localScale *= .48f;
+            spawnedGradeVfx.transform.localScale *= .40f;
     }
 
     private void ResolveReferences()

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// GOAL A2: Gameplay 18 action + UI Point/Submit/Cancel + Current 수명주기를 제공한다.
+// Gameplay 21 action(퀵슬롯 1~7 포함) + UI Point/Submit/Cancel + Current 수명주기를 제공한다.
 // 기존 공개 API(맵 enable/disable, TryGet, 값/눌림 API)는 유지한다.
 [DisallowMultipleComponent]
 public sealed class PlayerInputFacade : MonoBehaviour
@@ -32,8 +32,11 @@ public sealed class PlayerInputFacade : MonoBehaviour
         "Jump",
         "WalkToggle",
         "Aim",
-        "CameraRotate",
         "Zoom",
+        "ZoomReset",
+        "QuickSlot1",
+        "QuickSlot2",
+        "QuickSlot3",
         "QuickSlot4",
         "QuickSlot5",
         "QuickSlot6",
@@ -103,8 +106,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
     // 값 입력.
     public Vector2 MoveValue => ReadVector2("Move");
     public Vector2 LookValue => ReadVector2("Look");
-    public float CameraRotateValue => ReadAxis("CameraRotate");
     public Vector2 ZoomValue => ReadVector2("Zoom");
+    public bool ZoomResetPressedThisFrame => WasPressedThisFrame("ZoomReset");
 
     // 버튼 의미: Pressed(이번 프레임 눌림), Held(유지), Released(이번 프레임 해제).
     public bool AttackPressedThisFrame => WasPressedThisFrame("Attack");
@@ -142,6 +145,12 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public bool AimPressedThisFrame => WasPressedThisFrame("Aim");
     public bool AimHeld => IsPressed("Aim");
     public bool AimReleasedThisFrame => WasReleasedThisFrame("Aim");
+
+    public bool QuickSlotPressedThisFrame(int key) => key >= 1 && key <= 7 && WasPressedThisFrame("QuickSlot" + key);
+
+    public bool QuickSlot1PressedThisFrame => WasPressedThisFrame("QuickSlot1");
+    public bool QuickSlot2PressedThisFrame => WasPressedThisFrame("QuickSlot2");
+    public bool QuickSlot3PressedThisFrame => WasPressedThisFrame("QuickSlot3");
 
     public bool QuickSlot4PressedThisFrame => WasPressedThisFrame("QuickSlot4");
     public bool QuickSlot4Held => IsPressed("QuickSlot4");
@@ -245,7 +254,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             return;
         }
 
-        runtimeAsset = Instantiate(sourceAsset);
+        // Recreate action-map state from the authoring JSON. Instantiate can retain a stale
+        // resolved map index after the .inputactions asset is reimported during Editor Play.
+        runtimeAsset = InputActionAsset.FromJson(sourceAsset.ToJson());
         runtimeAsset.name = sourceAsset.name + " (Runtime)";
         gameplayMap = runtimeAsset.FindActionMap(GameplayMapName);
         uiMap = runtimeAsset.FindActionMap(UiMapName);
@@ -366,19 +377,6 @@ public sealed class PlayerInputFacade : MonoBehaviour
         {
         }
         return Vector2.zero;
-    }
-
-    private float ReadAxis(string actionName)
-    {
-        try
-        {
-            if (TryGetGameplayAction(actionName, out InputAction action) && action != null && action.enabled)
-                return action.ReadValue<float>();
-        }
-        catch (Exception)
-        {
-        }
-        return 0f;
     }
 
     private bool IsPressed(string actionName)

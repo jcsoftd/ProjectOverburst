@@ -23,8 +23,6 @@ public sealed class FlaskItemData : ConsumableItemData
     public FlaskEffect secondaryEffect;
     [Min(0f)] public float primaryValue;
     [Min(0f)] public float secondaryValue;
-    [Min(1f)] public float chargeCost = 50f;
-    [Min(1f)] public float chargeCapacity = 100f;
     public bool passesEnemyBodies;
 
     public bool IsElemental => kind >= FlaskKind.Fire;
@@ -38,9 +36,7 @@ public sealed class FlaskItemData : ConsumableItemData
         maxStack = 1;
         defaultGrade = ItemGrade.Common;
         duration = 6f;
-        cooldown = 0f;
-        chargeCost = 50f;
-        chargeCapacity = 100f;
+        cooldown = 24f;
         weight = 1f;
         sellPrice = 100;
         targetBuffId = "overburst_flask_" + kind.ToString().ToLowerInvariant();
@@ -50,11 +46,11 @@ public sealed class FlaskItemData : ConsumableItemData
             case FlaskKind.Life:
                 Set("생명 물약", FlaskEffect.InstantHeal, .20f, FlaskEffect.HealPerSecond, .015f,
                     "체력을 즉시 회복하고 잠시 동안 추가로 회복합니다.");
-                chargeCost = 60f; chargeCapacity = 120f; break;
+                cooldown = 30f; break;
             case FlaskKind.Regeneration:
                 Set("재생 물약", FlaskEffect.HealPerSecond, .05f, FlaskEffect.DotDamageReduction, .25f,
                     "지속적으로 체력을 회복하며 독 등 지속 피해를 줄입니다.");
-                chargeCost = 60f; chargeCapacity = 120f; break;
+                cooldown = 30f; break;
             case FlaskKind.Berserker:
                 Set("광전사 물약", FlaskEffect.AttackSpeed, .15f, FlaskEffect.DirectDamage, .15f,
                     "공격속도와 직접 공격의 피해를 높여 빠르게 몰아붙입니다."); break;
@@ -67,7 +63,7 @@ public sealed class FlaskItemData : ConsumableItemData
             case FlaskKind.Overcharge:
                 Set("과충전 물약", FlaskEffect.EnergyGain, .30f, FlaskEffect.EnergyDischargeDamage, .25f,
                     "직접 적중의 원소 에너지 획득량과 에너지 방출 피해를 높입니다.");
-                chargeCost = 60f; chargeCapacity = 120f; break;
+                cooldown = 30f; break;
             case FlaskKind.Ironclad:
                 Set("철갑 물약", FlaskEffect.DirectDamageReduction, .20f, FlaskEffect.IncomingImpactReduction, .30f,
                     "받는 직접 피해와 피격 충격량을 줄입니다. 무적이나 기절 면역을 주지는 않습니다."); break;

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum FlaskStat { Primary, Secondary, Duration, Efficiency, Capacity }
+public enum FlaskStat { Primary, Secondary, Duration, Cooldown }
 
 [Serializable]
 public sealed class FlaskStatRoll
@@ -29,8 +29,7 @@ public sealed class FlaskInstanceState
     public ItemGrade rolledGrade;
     public MeleeStarDistributionProfile profile;
     public List<FlaskStatRoll> rolls = new List<FlaskStatRoll>();
-    public float charge;
-    public bool chargeInitialized;
+    public float cooldownRemaining;
     public int equippedSlot = -1;
 
     public float Weight(FlaskStat stat)
@@ -44,9 +43,9 @@ public sealed class FlaskInstanceState
 
 public readonly struct FlaskStats
 {
-    public readonly float primary, secondary, duration, cost, capacity;
-    public FlaskStats(float p, float s, float d, float c, float max)
-    { primary = p; secondary = s; duration = d; cost = c; capacity = max; }
+    public readonly float primary, secondary, duration, cooldown;
+    public FlaskStats(float p, float s, float d, float c)
+    { primary = p; secondary = s; duration = d; cooldown = c; }
 
     public static FlaskStats Calculate(FlaskItemData data, FlaskInstanceState state)
     {
@@ -54,25 +53,23 @@ public readonly struct FlaskStats
         float p = state != null ? state.Weight(FlaskStat.Primary) : 0f;
         float s = state != null ? state.Weight(FlaskStat.Secondary) : 0f;
         float d = state != null ? state.Weight(FlaskStat.Duration) : 0f;
-        float e = state != null ? state.Weight(FlaskStat.Efficiency) : 0f;
-        float c = state != null ? state.Weight(FlaskStat.Capacity) : 0f;
+        float c = state != null ? state.Weight(FlaskStat.Cooldown) : 0f;
         return new FlaskStats(
             Mathf.Max(0f, data.primaryValue) * (1f + .08f * Mathf.Clamp(p, 0f, 12f)),
             Mathf.Max(0f, data.secondaryValue) * (1f + .08f * Mathf.Clamp(s, 0f, 12f)),
             Mathf.Max(.1f, data.duration) * (1f + .05f * Mathf.Clamp(d, 0f, 12f)),
-            Mathf.Max(1f, data.chargeCost) * (1f - .02f * Mathf.Clamp(e, 0f, 12f)),
-            Mathf.Max(data.chargeCost, data.chargeCapacity) + 5f * Mathf.Clamp(c, 0f, 12f));
+            Mathf.Max(1f, data.cooldown) * (1f - .02f * Mathf.Clamp(c, 0f, 12f)));
     }
 }
 
 public static class FlaskGradeRoller
 {
-    public const int RowCount = 5;
+    public const int RowCount = 4;
     public const int MaxStarsPerRow = 6;
     private static readonly WeaponGradeStatType[] weaponMapping =
     {
-        WeaponGradeStatType.Damage, WeaponGradeStatType.AttackSpeed, WeaponGradeStatType.AttackRange,
-        WeaponGradeStatType.CritChance, WeaponGradeStatType.CritDamage
+        WeaponGradeStatType.Damage, WeaponGradeStatType.AttackSpeed,
+        WeaponGradeStatType.AttackRange, WeaponGradeStatType.CritChance
     };
 
     public static FlaskInstanceState Roll(ItemGrade grade, int seed)
@@ -93,7 +90,7 @@ public static class FlaskGradeRoller
             int guaranteed = WeaponGradeStatRoller.GetGuaranteedMeleePositiveStarCount(grade, weaponMapping[i]);
             for (int n = 0; n < guaranteed; n++) { row.stars.Add(RollColor(grade, rng)); assigned++; }
         }
-        int[] priority = { 0, 1, 2, 3, 4 };
+        int[] priority = { 0, 1, 2, 3 };
         for (int i = priority.Length - 1; i > 0; i--)
         { int j = rng.Next(i + 1); int value = priority[j]; priority[j] = priority[i]; priority[i] = value; }
         float[] weights = new float[RowCount];

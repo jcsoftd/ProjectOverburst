@@ -25,7 +25,7 @@ MonoBehaviour:
   defaultGrade: 0
   effectValue: 0
   duration: 6
-  cooldown: 0
+  cooldown: 30
   maxStack: 1
   consumeOnUse: 0
   targetBuffId: overburst_flask_overcharge
@@ -36,6 +36,4 @@ MonoBehaviour:
   secondaryEffect: 11
   primaryValue: 0.3
   secondaryValue: 0.25
-  chargeCost: 60
-  chargeCapacity: 120
   passesEnemyBodies: 0

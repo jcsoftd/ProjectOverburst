@@ -89,6 +89,11 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
 
     public void SynchronizeView(Vector3 focusPosition, float pitch, float yaw, float distance, bool cut)
     {
+        SynchronizeView(focusPosition, pitch, yaw, distance, cut, 1f);
+    }
+
+    public void SynchronizeView(Vector3 focusPosition, float pitch, float yaw, float distance, bool cut, float frameScale)
+    {
         if (!IsConfigured)
             return;
 
@@ -105,7 +110,8 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         lens.ModeOverride = LensSettings.OverrideModes.Orthographic;
         lens.OrthographicSize = referenceOrthographicSize
             * Mathf.Max(0.01f, distance)
-            / referenceDistance;
+            / referenceDistance
+            * Mathf.Max(0.05f, frameScale);
         virtualCamera.Lens = lens;
 
         if (cut)

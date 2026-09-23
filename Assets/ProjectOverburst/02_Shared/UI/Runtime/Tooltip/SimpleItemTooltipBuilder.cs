@@ -21,7 +21,9 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         if (item.baseData is BagItemData bagData)
             return BuildBagTooltip(item, bagData);
 
-        if (item.baseData is FlaskItemData) return item.itemName + "\n장착형 물약\n" + FlaskTooltip.Effects(item) + "\n\n" + FlaskTooltip.Details(item);
+        if (item.baseData is FlaskItemData flaskData)
+            return item.itemName + "\n" + FlaskTooltip.Subtitle(flaskData) + "\n"
+                + FlaskTooltip.Status(item) + "\n\n" + FlaskTooltip.Details(item);
 
         if (item.baseData is ConsumableItemData consumableData)
             return BuildConsumableTooltip(item, consumableData);

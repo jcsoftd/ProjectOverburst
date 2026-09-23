@@ -365,6 +365,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
         if (sceneName == DungeonRunSceneName)
             cameraController.SetYaw(DungeonRunCameraYaw); // 던전 진입 시 초기화
+        else
+            cameraController.SetYaw(QuarterViewCamera.DefaultYaw); // 허브 진입/복귀는 기본 대각선 시점
     }
 
     private string GetSourceSceneName()

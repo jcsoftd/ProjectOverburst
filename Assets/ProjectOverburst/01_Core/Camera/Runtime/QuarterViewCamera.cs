@@ -1,32 +1,36 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 [DefaultExecutionOrder(520)]
 public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
 {
+    public const float DefaultYaw = 45f;
     public static QuarterViewCamera ActiveInstance { get; private set; }
     [Header("Target")]
     [SerializeField] private Transform target;
     [SerializeField] private Vector3 targetOffset;
 
     [Header("View")]
-    [SerializeField] private float distance = 15f;
+    [SerializeField] private float distance = 20f;
     [SerializeField] private float pitch = 55f;
-    [SerializeField] private float yaw;
+    // 방향은 기본 대각선 시점과 씬 전환 SetYaw에서만 결정한다.
+    private float yaw = DefaultYaw;
 
     [Header("Mouse Wheel Zoom")]
     [SerializeField] private bool enableMouseWheelZoom = true;
     [SerializeField] private float zoomSpeed = 1.25f;
     [SerializeField] private float minDistance = 6f;
-    [SerializeField] private float maxDistance = 22f;
+    [SerializeField] private float maxZoomDistance = 28f;
+    [SerializeField] private float defaultZoomDistance = 20f;
     [SerializeField] private float zoomSharpness = 18f;
 
-    [Header("Manual Rotate")]
-#pragma warning disable 0414 // 직렬화 호환용 레거시 키. 입력은 Gameplay CameraRotate 축을 사용한다.
-    [SerializeField] private Key rotateLeftKey = Key.Q;
-    [SerializeField] private Key rotateRightKey = Key.E;
-#pragma warning restore 0414
-    [SerializeField] private float rotateSpeed = 90f;
+    [Header("Close-up Framing")]
+    [Tooltip("이 거리보다 가까워지면 상반신 구도로 부드럽게 전환한다.")]
+    [SerializeField, Min(0f)] private float closeUpStartDistance = 14f;
+    [SerializeField, Range(0f, 89f)] private float closeUpPitch = 12f;
+    [Tooltip("최대 확대에서 기본 targetOffset에 더할 상체 시선 높이 (월드 단위).")]
+    [SerializeField, Min(0f)] private float closeUpFocusHeight = 1.3f;
+    [Tooltip("최대 확대에서 기존 줌 화면 크기에 적용할 배율.")]
+    [SerializeField, Range(0.05f, 1f)] private float closeUpFrameScale = 0.32f;
 
     [Header("Follow Smoothing")]
     [SerializeField] private float followSharpness = 24f;
@@ -71,12 +75,24 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     public Transform CurrentTarget => target;
     public float CurrentDistance => distance;
     public float CurrentYaw => yaw;
+    public float CloseUpBlend
+    {
+        get
+        {
+            float start = Mathf.Clamp(closeUpStartDistance, minDistance, maxZoomDistance);
+            if (start <= minDistance)
+                return 0f;
+            float blend = Mathf.InverseLerp(start, minDistance, distance);
+            return Mathf.SmoothStep(0f, 1f, blend);
+        }
+    }
+    public float CurrentPitch => Mathf.Lerp(pitch, closeUpPitch, CloseUpBlend);
     public OverburstCinemachineCameraRig CinemachineRig => cinemachineRig;
     public bool UsesCinemachine => cinemachineRig != null && cinemachineRig.IsConfigured;
 
     private void Awake()
     {
-        targetDistance = Mathf.Clamp(distance, minDistance, maxDistance); // 줌 초기값
+        targetDistance = Mathf.Clamp(distance, minDistance, maxZoomDistance); // 줌 초기값
         cachedCamera = GetComponent<Camera>(); // 카메라 캐시
         if (cinemachineRig == null)
             cinemachineRig = FindFirstObjectByType<OverburstCinemachineCameraRig>(FindObjectsInactive.Include);
@@ -97,7 +113,6 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         if (target == null)
             return;
 
-        UpdateYawInput();
         UpdateZoomInput();
         UpdateZoomDistance();
         UpdateFocusPosition();
@@ -214,24 +229,6 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         }
     }
 
-    private void UpdateYawInput()
-    {
-        if (GameplayInputBlocker.IsGameplayInputBlocked)
-            return; // UI 입력 차단
-
-        // GOAL A2: Q/E 직접 읽기 대신 Gameplay CameraRotate 축을 사용한다. rotateLeftKey/RightKey는 직렬화 호환용으로 유지.
-        PlayerInputFacade facade = PlayerInputFacade.Current;
-        if (facade == null)
-            return;
-
-        float input = facade.CameraRotateValue;
-
-        if (Mathf.Approximately(input, 0f))
-            return;
-
-        yaw += input * rotateSpeed * Time.deltaTime; // Q/E 회전
-    }
-
     // Footfalls are queued until the camera update so several elites can submit at
     // once. They never enter the lower-priority microshake accumulation path.
     public void QueueGroundStep(float positionAmplitude)
@@ -275,16 +272,28 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         if (facade == null)
             return;
 
+        // 클릭과 스크롤이 겹치면 기본 구도 복귀를 우선한다.
+        if (facade.ZoomResetPressedThisFrame)
+        {
+            ResetZoom();
+            return;
+        }
+
         float scroll = facade.ZoomValue.y; // 휠 입력
         if (Mathf.Abs(scroll) <= 0.01f)
             return;
 
-        targetDistance = Mathf.Clamp(targetDistance - Mathf.Sign(scroll) * zoomSpeed, minDistance, maxDistance); // 목표 줌
+        targetDistance = Mathf.Clamp(targetDistance - Mathf.Sign(scroll) * zoomSpeed, minDistance, maxZoomDistance); // 목표 줌
+    }
+
+    public void ResetZoom()
+    {
+        targetDistance = Mathf.Clamp(defaultZoomDistance, minDistance, maxZoomDistance);
     }
 
     private void UpdateZoomDistance()
     {
-        targetDistance = Mathf.Clamp(targetDistance, minDistance, maxDistance); // 범위 보정
+        targetDistance = Mathf.Clamp(targetDistance, minDistance, maxZoomDistance); // 범위 보정
         float t = 1f - Mathf.Exp(-Mathf.Max(0f, zoomSharpness) * Time.deltaTime); // 보간값
         distance = Mathf.Lerp(distance, targetDistance, t); // 거리 보간
     }
@@ -320,19 +329,27 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
 
     private void ApplyCameraTransform()
     {
+        // 이미 보간된 줌 거리 하나로 각도/시선/화면 크기를 함께 계산한다.
+        // 이동 추적 위치에 누적하지 않아 확대/축소 반전에서도 구도가 뒤늦게 따라오지 않는다.
+        float blend = CloseUpBlend;
+        float viewPitch = Mathf.Lerp(pitch, closeUpPitch, blend);
+        Vector3 viewFocus = focusPosition + Vector3.up * (closeUpFocusHeight * blend);
+        float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend);
         if (UsesCinemachine)
         {
-            cinemachineRig.SynchronizeView(focusPosition, pitch, yaw, distance, forceCameraCut);
+            cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, distance, forceCameraCut, frameScale);
             forceCameraCut = false;
             return;
         }
 
-        Quaternion viewRotation = Quaternion.Euler(pitch, yaw, 0f); // 뷰 회전
-        Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0f, distance); // 카메라 offset
-        Vector3 cameraPosition = focusPosition + cameraOffset; // 카메라 위치
+        Quaternion viewRotation = Quaternion.Euler(viewPitch, yaw, 0f); // 뷰 회전
+        Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, distance * frameScale);
+        Vector3 cameraPosition = viewFocus + cameraOffset;
+        if (cachedCamera != null && cachedCamera.orthographic)
+            cachedCamera.orthographicSize = Mathf.Max(0.01f, distance * frameScale * Mathf.Tan(cachedCamera.fieldOfView * 0.5f * Mathf.Deg2Rad));
 
         transform.position = cameraPosition;
-        transform.rotation = Quaternion.LookRotation(focusPosition - cameraPosition, Vector3.up); // 대상 바라봄
+        transform.rotation = viewRotation;
     }
 
     private void ApplyCombatImpact()

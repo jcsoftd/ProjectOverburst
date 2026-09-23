@@ -166,15 +166,25 @@ public class InventoryContextMenuController : MonoBehaviour
 
         if (item.baseData is FlaskItemData)
         {
-            AddButton("물약 장착", PlayerFlaskController.CanChangeLoadout, ShowQuickSlotSubmenu);
             var flasks = PlayerFlaskController.Current;
+            bool equipped = false;
             for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
                 if (flasks != null && flasks.GetItem(i) == item)
                 {
-                    int slot = i;
-                    AddButton("장착 해제", PlayerFlaskController.CanChangeLoadout, () => { flasks.TryUnequip(slot, out _); Close(); });
+                    equipped = true;
                     break;
                 }
+            if (equipped)
+            {
+                AddButton("퀵슬롯 번호 변경", PlayerFlaskController.CanChangeLoadout, ShowQuickSlotSubmenu);
+                AddButton("장착 해제", PlayerFlaskController.CanChangeLoadout, () => { actionService?.UnequipFlask(item); Close(); });
+            }
+            else
+                AddButton("장착", PlayerFlaskController.CanChangeLoadout, () =>
+                {
+                    if (actionService != null && actionService.EquipFlask(item)) Close();
+                    else ShowFlaskEquipSubmenu();
+                });
             AddButton("정보", true, ShowSelectedItemInfo);
             AddButton("버리기", PlayerFlaskController.CanChangeLoadout, DropSelectedItem);
             AddButton("닫기", true, Close);
@@ -230,7 +240,7 @@ public class InventoryContextMenuController : MonoBehaviour
         ShowRootMenu();
         ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
 
-        for (int key = item?.baseData is FlaskItemData ? 4 : 7; key <= (item?.baseData is FlaskItemData ? 6 : 7); key++)
+        for (int key = InventoryQuickSlotBindingController.FirstKey; key <= InventoryQuickSlotBindingController.SlotCount; key++)
         {
             int bindKey = key;
             string label = actionService != null ? actionService.GetQuickSlotLabel(key) : key + " : 비어있음";
@@ -242,6 +252,26 @@ public class InventoryContextMenuController : MonoBehaviour
         }
 
         AddButton("닫기", true, Close);
+        PositionMenu(lastScreenPosition);
+    }
+
+    private void ShowFlaskEquipSubmenu()
+    {
+        ClearMenu();
+        ShowRootMenu();
+        ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
+        PlayerFlaskController flasks = PlayerFlaskController.Current;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+        {
+            int target = i;
+            ItemData current = flasks != null ? flasks.GetItem(i) : null;
+            string label = "물약 " + (i + 1) + "칸" + (current != null ? " · " + current.itemName : " · 비어있음");
+            AddButton(label, item != null, () =>
+            {
+                if (actionService != null && actionService.EquipFlaskToSlot(item, target)) Close();
+            });
+        }
+        AddButton("뒤로", true, () => BuildRootMenu(item));
         PositionMenu(lastScreenPosition);
     }
 

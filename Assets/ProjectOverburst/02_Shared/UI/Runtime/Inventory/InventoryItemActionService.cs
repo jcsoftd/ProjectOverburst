@@ -91,12 +91,25 @@ public class InventoryItemActionService : MonoBehaviour
     public bool UseQuickSlot(int key)
     {
         ResolveReferences();
+        if (key < InventoryQuickSlotBindingController.FirstKey || key > InventoryQuickSlotBindingController.SlotCount)
+            return false;
+        quickSlots?.ImportLegacyFlasks();
 
-        if (key >= 4 && key <= 6)
+        IQuickSlotSkill skill = quickSlots != null ? quickSlots.GetBoundSkill(key) : null;
+        if (skill != null)
+        {
+            bool used = skill.TryUse(out string skillReason);
+            if (!used && !string.IsNullOrEmpty(skillReason)) SpawnPlayerStatusText(skillReason);
+            return used;
+        }
+
+        ItemData boundFlask = quickSlots != null ? quickSlots.GetBoundFlask(key) : null;
+        if (boundFlask != null)
         {
             var flasks = PlayerFlaskController.Current;
             string reason = "물약을 장착해 주세요.";
-            bool used = flasks != null && flasks.TryUse(key - 4, out reason);
+            int equippedIndex = FlaskRuntime.State(boundFlask)?.equippedSlot ?? -1;
+            bool used = flasks != null && equippedIndex >= 0 && flasks.TryUse(equippedIndex, out reason);
             if (!used) SpawnPlayerStatusText(reason);
             return used;
         }
@@ -168,7 +181,7 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
-        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("은신처에서 4~6번 슬롯에 장착해 주세요."); return false; }
+        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("물약 장비칸에 장착한 뒤 1~7번으로 사용합니다."); return false; }
 
         IItemUseHandler handler = FindUseHandler(item);
         if (handler == null)
@@ -220,21 +233,101 @@ public class InventoryItemActionService : MonoBehaviour
     public bool BindQuickSlot(int key, ItemData item)
     {
         ResolveReferences();
+        if (key < InventoryQuickSlotBindingController.FirstKey || key > InventoryQuickSlotBindingController.SlotCount || quickSlots == null || item == null)
+            return false;
+        quickSlots.ImportLegacyFlasks();
         if (item?.baseData is FlaskItemData)
         {
-            string reason = "물약 장착기를 찾을 수 없습니다.";
             var flasks = PlayerFlaskController.Current;
-            bool bound = flasks != null && flasks.TryEquip(key - 4, item, out reason);
-            if (!bound) SpawnPlayerStatusText(reason);
-            return bound;
+            if (flasks == null || FlaskRuntime.State(item)?.equippedSlot < 0)
+            { SpawnPlayerStatusText("먼저 물약 장비칸에 장착해 주세요."); return false; }
+            if (!PlayerFlaskController.CanChangeLoadout)
+            { SpawnPlayerStatusText("물약 등록은 은신처에서 변경할 수 있습니다."); return false; }
+            return quickSlots.Bind(key, item);
         }
-        return key == 7 && quickSlots != null && quickSlots.Bind(key, item);
+
+        if (item.itemType != "Consumable" || !(item.baseData is ConsumableItemData))
+            return false;
+        return quickSlots.Bind(key, item);
+    }
+
+    public bool EquipFlask(ItemData item)
+    {
+        ResolveReferences();
+        PlayerFlaskController flasks = PlayerFlaskController.Current;
+        if (flasks == null) return false;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            if (flasks.GetItem(i) == item) return true;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            if (flasks.GetItem(i) == null) return EquipFlaskToSlot(item, i);
+        SpawnPlayerStatusText("물약 장비칸이 가득 찼습니다. 교체할 칸을 선택해 주세요.");
+        return false;
+    }
+
+    public bool EquipFlaskToSlot(ItemData item, int slotIndex)
+    {
+        ResolveReferences();
+        PlayerFlaskController flasks = PlayerFlaskController.Current;
+        if (item == null || !(item.baseData is FlaskItemData) || flasks == null || quickSlots == null
+            || slotIndex < 0 || slotIndex >= PlayerFlaskController.SlotCount) return false;
+        if (!PlayerFlaskController.CanChangeLoadout)
+        { SpawnPlayerStatusText("물약은 은신처에서 교체할 수 있습니다."); return false; }
+        quickSlots.ImportLegacyFlasks();
+        ItemData previous = flasks.GetItem(slotIndex);
+        if (previous == item) return true;
+        int key = previous != null ? quickSlots.GetFlaskKey(previous) : 0;
+        if (key == 0) key = quickSlots.FindFreeFlaskKey();
+        if (!flasks.TryEquip(slotIndex, item, out string reason))
+        { SpawnPlayerStatusText(reason); return false; }
+        if (previous != null) quickSlots.ClearFlask(previous);
+        if (key == 0)
+        {
+            SpawnPlayerStatusText("물약을 장착했습니다. 1~7번 중 사용할 번호를 선택해 주세요.");
+            return true;
+        }
+        if (quickSlots.Bind(key, item)) return true;
+        if (previous != null)
+        {
+            flasks.TryEquip(slotIndex, previous, out _);
+            quickSlots.Bind(key, previous);
+        }
+        else flasks.TryUnequip(slotIndex, out _);
+        return false;
+    }
+
+    public bool BindSkillQuickSlot(int key, IQuickSlotSkill skill)
+    {
+        ResolveReferences();
+        if (key < InventoryQuickSlotBindingController.FirstKey || key > InventoryQuickSlotBindingController.SlotCount || skill == null || quickSlots == null)
+            return false;
+        quickSlots?.ImportLegacyFlasks();
+        return quickSlots != null && quickSlots.BindSkill(key, skill);
+    }
+
+    public bool UnequipFlask(ItemData item)
+    {
+        ResolveReferences();
+        var flasks = PlayerFlaskController.Current;
+        if (item == null || flasks == null)
+            return false;
+        for (int i = 0; i < PlayerFlaskController.SlotCount; i++)
+            if (flasks.GetItem(i) == item)
+            {
+                if (!flasks.TryUnequip(i, out string reason))
+                {
+                    if (!string.IsNullOrEmpty(reason)) SpawnPlayerStatusText(reason);
+                    return false;
+                }
+                quickSlots?.ClearFlask(item);
+                return true;
+            }
+        return false;
     }
 
     public string GetQuickSlotLabel(int key)
     {
         ResolveReferences();
-        if (key >= 4 && key <= 6) return key + " : " + (PlayerFlaskController.Current?.GetItem(key-4)?.itemName ?? "물약 비어 있음");
+        quickSlots?.ImportLegacyFlasks();
         string itemName = quickSlots != null ? quickSlots.GetBoundItemDisplayName(key) : "Empty";
         return key + " : " + itemName;
     }

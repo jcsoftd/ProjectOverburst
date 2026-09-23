@@ -2,12 +2,10 @@ using UnityEngine;
 
 public class ActionSlotHudUI : MonoBehaviour
 {
-    [SerializeField] private PlayerEquipment playerEquipment;
     [SerializeField] private PlayerInventory playerInventory;
     [SerializeField] private InventoryQuickSlotBindingController quickSlotBindingController;
     [SerializeField] private InventoryItemActionService actionService;
-    [SerializeField] private ActionSlotHudSlotUI[] weaponSlots = new ActionSlotHudSlotUI[1];
-    [SerializeField] private ActionSlotHudSlotUI[] consumableSlots = new ActionSlotHudSlotUI[4];
+    [SerializeField] private ActionSlotHudSlotUI[] quickSlots = new ActionSlotHudSlotUI[InventoryQuickSlotBindingController.SlotCount];
 
     private void Awake()
     {
@@ -24,53 +22,49 @@ public class ActionSlotHudUI : MonoBehaviour
     private void Update()
     {
         ResolveReferences();
-        HandleConsumableHotkeys();
+        HandleQuickSlotHotkeys();
         Refresh();
     }
 
     public void Refresh()
     {
-        RefreshWeaponSlots();
-        RefreshConsumableSlots();
+        RefreshQuickSlots();
     }
 
-    private void RefreshWeaponSlots()
+    private void RefreshQuickSlots()
     {
         BindVisuals();
-
-        for (int i = 0; i < weaponSlots.Length; i++)
+        if (quickSlotBindingController != null)
         {
-            ActionSlotHudSlotUI slot = weaponSlots[i];
-            if (slot == null)
-                continue;
-
-            slot.SetKeyNumber(0);
-            ItemData item = playerEquipment != null ? playerEquipment.GetWeaponSlotItem(0) : null;
-            bool active = playerEquipment != null && playerEquipment.IsActiveWeaponSlot(0);
-            slot.SetItem(item, 0, active, false);
-            slot.SetCooldown(0f);
+            quickSlotBindingController.ImportLegacyFlasks();
+            if (playerInventory != null)
+                quickSlotBindingController.ClearMissingConsumables(playerInventory);
+            quickSlotBindingController.ClearMissingFlasks();
         }
-    }
 
-    private void RefreshConsumableSlots()
-    {
-        BindVisuals();
-        if (quickSlotBindingController != null && playerInventory != null)
-            quickSlotBindingController.ClearMissingConsumables(playerInventory);
-
-        for (int i = 0; i < consumableSlots.Length; i++)
+        for (int i = 0; i < quickSlots.Length; i++)
         {
-            int key = i + 4;
-            ActionSlotHudSlotUI slot = consumableSlots[i];
+            int key = i + InventoryQuickSlotBindingController.FirstKey;
+            ActionSlotHudSlotUI slot = quickSlots[i];
             if (slot == null)
                 continue;
 
             slot.SetKeyNumber(key);
-            if (i < PlayerFlaskController.SlotCount)
+            ItemData boundFlask = quickSlotBindingController != null ? quickSlotBindingController.GetBoundFlask(key) : null;
+            if (boundFlask != null)
             {
                 var flasks = PlayerFlaskController.Current;
-                slot.SetFlask(flasks != null ? flasks.GetItem(i) : null, flasks != null ? flasks.Remaining(i) : 0f,
-                    flasks != null && flasks.GetItem(i)?.baseData is FlaskItemData f && flasks.MatchesWeapon(f));
+                int equippedIndex = FlaskRuntime.State(boundFlask)?.equippedSlot ?? -1;
+                slot.SetFlask(boundFlask, flasks != null && equippedIndex >= 0 ? flasks.Remaining(equippedIndex) : 0f,
+                    flasks != null && equippedIndex >= 0 ? flasks.CooldownRemaining(equippedIndex) : 0f,
+                    flasks != null && boundFlask.baseData is FlaskItemData f && flasks.MatchesWeapon(f));
+                continue;
+            }
+
+            IQuickSlotSkill skill = quickSlotBindingController != null ? quickSlotBindingController.GetBoundSkill(key) : null;
+            if (skill != null)
+            {
+                slot.SetSkill(skill);
                 continue;
             }
             ConsumableItemData consumableData = actionService != null ? actionService.GetQuickSlotConsumable(key) : quickSlotBindingController != null ? quickSlotBindingController.GetBoundConsumable(key) : null;
@@ -96,22 +90,19 @@ public class ActionSlotHudUI : MonoBehaviour
         }
     }
 
-    private void HandleConsumableHotkeys()
+    private void HandleQuickSlotHotkeys()
     {
-        // GOAL A2: 숫자열/numpad 4~7 직접 읽기 대신 Gameplay QuickSlot4~7을 사용한다.
-        // 기존 감각(이번 프레임 눌림, 4>5>6>7 우선 1개 실행)을 else-if로 보존.
+        // One gameplay action per key; only the first pressed slot runs this frame.
         PlayerInputFacade facade = PlayerInputFacade.Current;
         if (facade == null || GameplayInputBlocker.IsGameplayInputBlocked || actionService == null)
             return;
 
-        if (facade.QuickSlot4PressedThisFrame)
-            actionService.UseQuickSlot(4);
-        else if (facade.QuickSlot5PressedThisFrame)
-            actionService.UseQuickSlot(5);
-        else if (facade.QuickSlot6PressedThisFrame)
-            actionService.UseQuickSlot(6);
-        else if (facade.QuickSlot7PressedThisFrame)
-            actionService.UseQuickSlot(7);
+        for (int key = InventoryQuickSlotBindingController.FirstKey; key <= InventoryQuickSlotBindingController.SlotCount; key++)
+            if (facade.QuickSlotPressedThisFrame(key))
+            {
+                actionService.UseQuickSlot(key);
+                break;
+            }
     }
 
     private void ResolveReferences()
@@ -119,7 +110,6 @@ public class ActionSlotHudUI : MonoBehaviour
         PlayerContext context = PlayerContext.GetOrCreate();
         if (context != null)
         {
-            playerEquipment = context.CurrentActorEquipment;
             playerInventory = context.CurrentActorInventory;
         }
 
@@ -134,14 +124,10 @@ public class ActionSlotHudUI : MonoBehaviour
 
     private void BindVisuals()
     {
-        if (weaponSlots == null || weaponSlots.Length != 1)
-            weaponSlots = new ActionSlotHudSlotUI[1];
+        if (quickSlots == null || quickSlots.Length != InventoryQuickSlotBindingController.SlotCount)
+            quickSlots = new ActionSlotHudSlotUI[InventoryQuickSlotBindingController.SlotCount];
 
-        if (consumableSlots == null || consumableSlots.Length != 4)
-            consumableSlots = new ActionSlotHudSlotUI[4];
-
-        BindSlots("WeaponSlotHud", 1, weaponSlots);
-        BindSlots("ConsumableSlotHud", 4, consumableSlots);
+        BindSlots("QuickSlotHud", 1, quickSlots);
     }
 
     private void BindSlots(string groupName, int firstKey, ActionSlotHudSlotUI[] targetSlots)
@@ -156,7 +142,7 @@ public class ActionSlotHudUI : MonoBehaviour
                 continue;
 
             Transform slot = group.Find("ActionSlot_" + (firstKey + i));
-            targetSlots[i] = slot != null ? slot.GetComponent<ActionSlotHudSlotUI>() : null;
+            targetSlots[i] = slot != null ? slot.GetComponentInChildren<ActionSlotHudSlotUI>(true) : null;
         }
     }
 }
