@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: SpiderBrood_RostrokarckLarvae
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: SpiderBrood_RostrokarckLarvae
+  locomotionClip: {fileID: 7400000, guid: a891294245556dd4a8f03d359b38626e, type: 2}
+  contactPhases:
+  - 0.14166667
+  - 0.49166667
+  - 0.7083333
+  - 0.975
+  runClip: {fileID: 7400000, guid: a891294245556dd4a8f03d359b38626e, type: 2}
+  visualWeight: 0
+  walkContacts:
+  - phase: 0.14166667
+    localPosition: {x: 0.37237322, y: 0.038743716, z: 0.14726907}
+  - phase: 0.49166667
+    localPosition: {x: 0.44749635, y: 0.050545044, z: 0.533753}
+  - phase: 0.7083333
+    localPosition: {x: -0.37479538, y: 0.050674386, z: 0.13366728}
+  - phase: 0.975
+    localPosition: {x: -0.44152474, y: 0.055132348, z: 0.49433032}
+  runContacts:
+  - phase: 0.14166667
+    localPosition: {x: 0.37237322, y: 0.038743716, z: 0.14726907}
+  - phase: 0.49166667
+    localPosition: {x: 0.44749635, y: 0.050545044, z: 0.533753}
+  - phase: 0.7083333
+    localPosition: {x: -0.37479538, y: 0.050674386, z: 0.13366728}
+  - phase: 0.975
+    localPosition: {x: -0.44152474, y: 0.055132348, z: 0.49433032}

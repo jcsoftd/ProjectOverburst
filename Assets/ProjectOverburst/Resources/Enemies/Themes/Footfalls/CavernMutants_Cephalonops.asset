@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: CavernMutants_Cephalonops
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: CavernMutants_Cephalonops
+  locomotionClip: {fileID: 7400000, guid: d1de309d8d3e5b84580d62f88036fa97, type: 2}
+  contactPhases:
+  - 0
+  - 0.5
+  runClip: {fileID: 7400000, guid: 08360d2e71622074e8070fe23f532edb, type: 2}
+  visualWeight: 0
+  walkContacts:
+  - phase: 0
+    localPosition: {x: 0.18202463, y: 0.038445033, z: -0.17326301}
+  - phase: 0.5
+    localPosition: {x: -0.24634138, y: 0.021692397, z: -0.069091715}
+  runContacts:
+  - phase: 0.175
+    localPosition: {x: 0.20635489, y: 0.036334537, z: 0.48458788}
+  - phase: 0.7416667
+    localPosition: {x: -0.2074617, y: 0.0227996, z: 0.41429666}
+  - phase: 0.85
+    localPosition: {x: -0.19879165, y: 0.022018563, z: 0.1553971}

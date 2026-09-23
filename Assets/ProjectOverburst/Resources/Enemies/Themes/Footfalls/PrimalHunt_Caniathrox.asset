@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: PrimalHunt_Caniathrox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: PrimalHunt_Caniathrox
+  locomotionClip: {fileID: 7400000, guid: 72f917cf0069a8441b9323a6d788a118, type: 2}
+  contactPhases:
+  - 0.1
+  - 0.43333334
+  - 0.625
+  - 0.93333334
+  runClip: {fileID: 7400000, guid: 0879189c7e0476d4b893c73880e29707, type: 2}
+  visualWeight: 0
+  walkContacts:
+  - phase: 0.1
+    localPosition: {x: 0.33173922, y: 0.09309978, z: -0.27863544}
+  - phase: 0.43333334
+    localPosition: {x: 0.25351864, y: 0.08789292, z: 0.37414688}
+  - phase: 0.625
+    localPosition: {x: -0.40836063, y: 0.061944608, z: -0.19102724}
+  - phase: 0.93333334
+    localPosition: {x: -0.2591487, y: 0.088945754, z: 0.3667649}
+  runContacts:
+  - phase: 0.058333334
+    localPosition: {x: 0.2638393, y: 0.08513591, z: 0.50223297}
+  - phase: 0.425
+    localPosition: {x: -0.37313616, y: 0.06495067, z: -0.037008468}
+  - phase: 0.53333336
+    localPosition: {x: 0.37654558, y: 0.06101707, z: -0.02752842}
+  - phase: 0.9583333
+    localPosition: {x: -0.27017736, y: 0.08760269, z: 0.43334866}

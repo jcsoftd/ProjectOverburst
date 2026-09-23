@@ -28,10 +28,13 @@ public class EnemyController : MonoBehaviour
         IsDead = health != null && health.IsDead;
         if (health != null)
             health.OnDead += HandleDead;
+        if (Application.isPlaying && GetComponent<EnemyActor>() == null)
+            EnemyFootfallRuntime.RegisterLegacy(this);
     }
 
     private void OnDisable()
     {
+        if (Application.isPlaying) EnemyFootfallRuntime.UnregisterLegacy(this);
         if (health != null)
             health.OnDead -= HandleDead;
         RestoreDeathPhysics();

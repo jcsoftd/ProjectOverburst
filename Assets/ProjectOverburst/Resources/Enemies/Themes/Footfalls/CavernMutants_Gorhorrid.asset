@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: CavernMutants_Gorhorrid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: CavernMutants_Gorhorrid
+  locomotionClip: {fileID: 1827226128182048838, guid: 875dd371d3333fb48ae6143f0e9136c9, type: 3}
+  contactPhases:
+  - 0.11666667
+  - 0.225
+  - 0.49166667
+  - 0.6
+  - 0.7083333
+  - 0.98333335
+  runClip: {fileID: 1827226128182048838, guid: caefdb5ba660e2949b623838361cd2a0, type: 3}
+  visualWeight: 1
+  walkContacts:
+  - phase: 0.11666667
+    localPosition: {x: 0.54075575, y: 0.05409542, z: -0.0004369678}
+  - phase: 0.225
+    localPosition: {x: -0.54403806, y: 0.08009668, z: -0.69379294}
+  - phase: 0.49166667
+    localPosition: {x: 0.5588899, y: 0.08424253, z: 0.85829717}
+  - phase: 0.6
+    localPosition: {x: -0.568577, y: 0.06594672, z: 0.056961395}
+  - phase: 0.7083333
+    localPosition: {x: 0.425984, y: 0.07588947, z: -0.57997787}
+  - phase: 0.98333335
+    localPosition: {x: -0.54322237, y: 0.07053722, z: 0.8186328}
+  runContacts:
+  - phase: 0
+    localPosition: {x: -0.4073498, y: 0.053308167, z: -0.2642773}
+  - phase: 0.15833333
+    localPosition: {x: -0.527439, y: 0.0610236, z: 0.3067565}
+  - phase: 0.31666666
+    localPosition: {x: 0.6216491, y: 0.06312647, z: 0.3762427}
+  - phase: 0.675
+    localPosition: {x: -0.8021614, y: 0.067598015, z: 0.4914067}

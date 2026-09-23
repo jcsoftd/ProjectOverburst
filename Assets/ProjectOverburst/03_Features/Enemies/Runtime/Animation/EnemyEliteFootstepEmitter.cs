@@ -5,7 +5,7 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyActor))]
 public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
 {
-    private static readonly RaycastHit[] GroundHits = new RaycastHit[16];
+    private static readonly RaycastHit[] GroundHits = new RaycastHit[32];
     [SerializeField] private EnemyActor actor;
     [SerializeField] private EnemyFootfallProfile profile;
     [SerializeField, Min(0f)] private float minimumMoveSpeed = 0.3f;
@@ -83,47 +83,59 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
             return;
         }
 
-        bool crossed = false;
-        for (int i = 0; i < profile.ContactCount; i++)
+        bool running = mode == EnemyLocomotionMode.Run;
+        int crossedIndex = -1;
+        for (int i = 0; i < profile.GetContactCount(running); i++)
         {
-            float phase = profile.GetContactPhase(i);
+            float phase = profile.GetContact(running, i).Phase;
             if (Mathf.FloorToInt(normalizedTime - phase) > Mathf.FloorToInt(previousNormalizedTime - phase))
             {
-                crossed = true;
+                crossedIndex = i;
                 break;
             }
         }
         previousNormalizedTime = normalizedTime;
-        if (crossed) EmitContact(position);
+        if (crossedIndex >= 0) EmitContact(position, delta, running, crossedIndex);
     }
 
-    private void EmitContact(Vector3 position)
+    private void EmitContact(Vector3 position, Vector3 travel, bool running, int contactIndex)
     {
         QuarterViewCamera camera = QuarterViewCamera.ActiveInstance;
         if (camera == null || camera.CurrentTarget == null) return;
         Vector3 difference = camera.CurrentTarget.position - position;
         difference.y = 0f;
         float distance = difference.magnitude;
-        if (distance > 12f) return;
-
+        Vector3 foot = transform.TransformPoint(profile.GetContact(running, contactIndex).LocalPosition);
+        bool audible = distance <= 12f;
+        bool dustEligible = EnemyFootDustVfx.IsEligible(foot, profile.VisualWeight, distance);
+        if (!audible && !dustEligible) return;
         int mask = LayerMask.GetMask("Default", "Environment", "Ground");
-        int count = Physics.RaycastNonAlloc(position + Vector3.up * 0.6f, Vector3.down,
+        int count = Physics.RaycastNonAlloc(foot + Vector3.up * 0.55f, Vector3.down,
             GroundHits, 1.6f, mask, QueryTriggerInteraction.Ignore);
         float nearest = float.PositiveInfinity;
-        Vector3 groundPoint = position;
+        RaycastHit chosen = default;
         for (int i = 0; i < count; i++)
         {
             RaycastHit hit = GroundHits[i];
-            if (hit.collider == null || hit.collider.transform.IsChildOf(transform)
+            if (hit.collider == null || hit.collider.GetComponentInParent<EnemyActor>() != null
+                || hit.collider.GetComponentInParent<EnemyController>() != null
                 || hit.distance >= nearest) continue;
             nearest = hit.distance;
-            groundPoint = hit.point;
+            chosen = hit;
         }
-        if (float.IsPositiveInfinity(nearest) || Mathf.Abs(groundPoint.y - position.y) > 0.4f)
+        if (float.IsPositiveInfinity(nearest) || Mathf.Abs(chosen.point.y - foot.y) > 0.45f)
+        {
+            EnemyFootDustVfx.RecordGroundMiss();
             return;
+        }
 
-        Vector3 point = groundPoint + Vector3.up * 0.03f;
+        Vector3 point = chosen.point;
         ContactCount++;
+        travel.y = 0f;
+        if (dustEligible)
+            EnemyFootDustVfx.TryEmit(point, chosen.normal, travel,
+                profile.VisualWeight, distance, chosen.collider);
+        if (!audible) return;
         EnemyEliteFootstepFeel.Play(point, distance);
         if (distance >= 8f) return;
         float amplitude = distance >= 4f

@@ -40,6 +40,13 @@ public sealed class EnemyEliteFootstepFeel : MonoBehaviour
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
         DontDestroyOnLoad(gameObject);
+        // Dust is emitted by the three shared ParticleSystems. Keep these Feel slots for audio.
+        foreach (Slot slot in slots)
+        {
+            if (slot?.player?.FeedbacksList == null) continue;
+            foreach (MMF_Feedback feedback in slot.player.FeedbacksList)
+                if (feedback is MMF_Particles) feedback.Active = false;
+        }
         SceneManager.sceneLoaded += SceneLoaded;
     }
 
@@ -60,8 +67,6 @@ public sealed class EnemyEliteFootstepFeel : MonoBehaviour
         if (selected.audio != null) selected.audio.Stop();
         selected.player.transform.SetPositionAndRotation(point, Quaternion.identity);
         float nearness = 1f - Mathf.Clamp01(distance / 12f);
-        var main = selected.dust.main;
-        main.startSizeMultiplier = Mathf.Lerp(0.6f, 1f, nearness);
         selected.player.Initialization(true);
         selected.player.PlayFeedbacks(point, Mathf.Lerp(0.45f, 1f, nearness));
         selected.availableAt = now + 0.3f;

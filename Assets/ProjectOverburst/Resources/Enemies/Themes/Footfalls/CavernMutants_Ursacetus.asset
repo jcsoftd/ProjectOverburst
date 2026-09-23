@@ -17,3 +17,15 @@ MonoBehaviour:
   contactPhases:
   - 0.47
   - 0.9
+  runClip: {fileID: 7400000, guid: 66ccb7fc3bee5c541a317dfb4007fc40, type: 3}
+  visualWeight: 2
+  walkContacts:
+  - phase: 0.47
+    localPosition: {x: -0.6003597, y: -0.06370462, z: 0.2311591}
+  - phase: 0.9
+    localPosition: {x: 0.22089389, y: 0.013596395, z: 0.24343981}
+  runContacts:
+  - phase: 0.47
+    localPosition: {x: -0.6003597, y: -0.06370462, z: 0.2311591}
+  - phase: 0.9
+    localPosition: {x: 0.22089389, y: 0.013596395, z: 0.24343981}

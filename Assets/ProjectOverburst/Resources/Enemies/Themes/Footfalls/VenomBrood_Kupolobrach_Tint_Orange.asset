@@ -19,3 +19,23 @@ MonoBehaviour:
   - 0.4
   - 0.6
   - 0.8
+  runClip: {fileID: 1827226128182048838, guid: 64f7b63a806dc33428e2dee5206281ec, type: 3}
+  visualWeight: 2
+  walkContacts:
+  - phase: 0.18
+    localPosition: {x: -1.5264363, y: 0.018212058, z: 1.7316842}
+  - phase: 0.4
+    localPosition: {x: 0.9190424, y: -0.018065566, z: -1.5535831}
+  - phase: 0.6
+    localPosition: {x: 1.5614952, y: 0.012724579, z: 2.377128}
+  - phase: 0.8
+    localPosition: {x: -0.8742478, y: -0.012281546, z: -0.9686372}
+  runContacts:
+  - phase: 0.18
+    localPosition: {x: -1.5264363, y: 0.018212058, z: 1.7316842}
+  - phase: 0.4
+    localPosition: {x: 0.9190424, y: -0.018065566, z: -1.5535831}
+  - phase: 0.6
+    localPosition: {x: 1.5614952, y: 0.012724579, z: 2.377128}
+  - phase: 0.8
+    localPosition: {x: -0.8742478, y: -0.012281546, z: -0.9686372}

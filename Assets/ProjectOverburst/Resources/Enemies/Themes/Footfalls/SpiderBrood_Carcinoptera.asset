@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: SpiderBrood_Carcinoptera
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: SpiderBrood_Carcinoptera
+  locomotionClip: {fileID: 1827226128182048838, guid: dca3788c333debd45a175fe99e1f2475, type: 3}
+  contactPhases:
+  - 0.46666667
+  - 0.64166665
+  - 0.80833334
+  - 0.96666664
+  runClip: {fileID: 1827226128182048838, guid: dca3788c333debd45a175fe99e1f2475, type: 3}
+  visualWeight: 1
+  walkContacts:
+  - phase: 0.46666667
+    localPosition: {x: 0.8876376, y: 0.059121948, z: 1.2726715}
+  - phase: 0.64166665
+    localPosition: {x: -1.0825405, y: 0.051897954, z: 0.015970541}
+  - phase: 0.80833334
+    localPosition: {x: 0.7125964, y: 0.05162871, z: -0.6916634}
+  - phase: 0.96666664
+    localPosition: {x: -0.8870388, y: 0.05786598, z: 1.270288}
+  runContacts:
+  - phase: 0.46666667
+    localPosition: {x: 0.8876376, y: 0.059121948, z: 1.2726715}
+  - phase: 0.64166665
+    localPosition: {x: -1.0825405, y: 0.051897954, z: 0.015970541}
+  - phase: 0.80833334
+    localPosition: {x: 0.7125964, y: 0.05162871, z: -0.6916634}
+  - phase: 0.96666664
+    localPosition: {x: -0.8870388, y: 0.05786598, z: 1.270288}

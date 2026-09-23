@@ -79,6 +79,7 @@ public sealed class EnemyActor : MonoBehaviour
 
     private void OnDisable()
     {
+        EnemyFootfallRuntime.Unregister(this);
         if (leased && poolOwner != null)
             poolOwner.NotifyActorDisabled(this);
     }
@@ -205,11 +206,13 @@ public sealed class EnemyActor : MonoBehaviour
         {
             return false;
         }
+        EnemyFootfallRuntime.Register(this);
         return true;
     }
 
     public void ResetForPool()
     {
+        EnemyFootfallRuntime.Unregister(this);
         CaptureAuthoredState();
         ResolveOptionalComponents();
         ai?.SetTarget(null);

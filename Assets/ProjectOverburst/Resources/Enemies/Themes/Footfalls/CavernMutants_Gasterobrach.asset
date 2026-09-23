@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: CavernMutants_Gasterobrach
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: CavernMutants_Gasterobrach
+  locomotionClip: {fileID: 1827226128182048838, guid: 2605f4664af73f54a9af4a0e86fb08b3, type: 3}
+  contactPhases:
+  - 0.05
+  - 0.46666667
+  - 0.71666664
+  runClip: {fileID: 1827226128182048838, guid: 145fbd73145033c4e8c345b5611d7bc3, type: 3}
+  visualWeight: 1
+  walkContacts:
+  - phase: 0.05
+    localPosition: {x: -0.49804565, y: 0.067388676, z: -0.68439394}
+  - phase: 0.46666667
+    localPosition: {x: -0.9114898, y: 0.06578072, z: 1.0796959}
+  - phase: 0.71666664
+    localPosition: {x: 0.53256977, y: 0.07868353, z: -0.14560771}
+  runContacts:
+  - phase: 0.3
+    localPosition: {x: -0.49399474, y: 0.10458162, z: -0.14383952}
+  - phase: 0.9
+    localPosition: {x: -0.98816377, y: 0.04856242, z: 1.1245449}

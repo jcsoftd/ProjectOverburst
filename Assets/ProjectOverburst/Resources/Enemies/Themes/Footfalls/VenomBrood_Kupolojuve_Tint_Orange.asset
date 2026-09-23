@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: VenomBrood_Kupolojuve_Tint_Orange
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: VenomBrood_Kupolojuve_Tint_Orange
+  locomotionClip: {fileID: 1827226128182048838, guid: 060a39e492cb2054c84e0939d1308b48, type: 3}
+  contactPhases:
+  - 0.075
+  - 0.49166667
+  - 0.5833333
+  - 0.98333335
+  runClip: {fileID: 1827226128182048838, guid: 060a39e492cb2054c84e0939d1308b48, type: 3}
+  visualWeight: 1
+  walkContacts:
+  - phase: 0.075
+    localPosition: {x: 0.5446192, y: 0.06035556, z: 0.29058534}
+  - phase: 0.49166667
+    localPosition: {x: -0.45609194, y: 0.04815626, z: 0.21475136}
+  - phase: 0.5833333
+    localPosition: {x: 0.51390874, y: 0.051346455, z: 1.0031961}
+  - phase: 0.98333335
+    localPosition: {x: -0.5108718, y: 0.05472885, z: 0.96323067}
+  runContacts:
+  - phase: 0.075
+    localPosition: {x: 0.5446192, y: 0.06035556, z: 0.29058534}
+  - phase: 0.49166667
+    localPosition: {x: -0.45609194, y: 0.04815626, z: 0.21475136}
+  - phase: 0.5833333
+    localPosition: {x: 0.51390874, y: 0.051346455, z: 1.0031961}
+  - phase: 0.98333335
+    localPosition: {x: -0.5108718, y: 0.05472885, z: 0.96323067}
