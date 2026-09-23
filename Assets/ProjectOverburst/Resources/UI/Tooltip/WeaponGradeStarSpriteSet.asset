@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7dcfd2fe227bdc944aa616f67e3e2e98, type: 3}
   m_Name: WeaponGradeStarSpriteSet
   m_EditorClassIdentifier: Assembly-CSharp::WeaponGradeStarSpriteSet
-  whiteStar: {fileID: 21300000, guid: 06d727740bbdc7848a9e4adde1599632, type: 3}
-  greenStar: {fileID: 21300000, guid: cb9834090fdec7447a66043c1a971a70, type: 3}
-  yellowStar: {fileID: 21300000, guid: cb6c1dc3f7a8e994485bdf1b31ab69e6, type: 3}
-  redStar: {fileID: 21300000, guid: f9aad16636f807547be4830ab98f79a7, type: 3}
+  whiteStar: {fileID: 21300000, guid: 98851a8b5ceb6ce43a6edf3b71b7c007, type: 3}
+  greenStar: {fileID: 21300000, guid: d882ccec496993744b714fdcce88327d, type: 3}
+  yellowStar: {fileID: 21300000, guid: 19774b38ebdf07247a9e88e25abcdb4b, type: 3}
+  redStar: {fileID: 21300000, guid: 244b64975d6ce0a489540b55676b4fa1, type: 3}

@@ -9,7 +9,7 @@ public class WeaponGradeStarStrip : MonoBehaviour // 능력치 한 줄의 별 �
 
     private const float TextStarWidth = 12f;
     private const float TextStarHeight = 18f;
-    private const float ImageStarSize = 15f;
+    private const float ImageStarSize = 13f;
 
     [SerializeField] private HorizontalLayoutGroup layoutGroup; // 정식 레이아웃
     [SerializeField] private GameObject[] starRoots; // 정식 별 루트
@@ -105,7 +105,7 @@ public class WeaponGradeStarStrip : MonoBehaviour // 능력치 한 줄의 별 �
             return;
         }
 
-        text.text = "★";
+        text.text = "◆";
         text.color = GetTextColor(starType);
     }
 
@@ -138,10 +138,10 @@ public class WeaponGradeStarStrip : MonoBehaviour // 능력치 한 줄의 별 �
     {
         switch (starType)
         {
-            case WeaponGradeStarType.Green: return new Color32(89, 255, 89, 255);
-            case WeaponGradeStarType.Yellow: return new Color32(255, 216, 74, 255);
-            case WeaponGradeStarType.Red: return new Color32(255, 74, 74, 255);
-            default: return new Color32(242, 242, 242, 255);
+            case WeaponGradeStarType.Green: return new Color32(104, 170, 132, 255);
+            case WeaponGradeStarType.Yellow: return new Color32(210, 168, 93, 255);
+            case WeaponGradeStarType.Red: return new Color32(174, 89, 98, 255);
+            default: return new Color32(213, 216, 216, 255);
         }
     }
 }

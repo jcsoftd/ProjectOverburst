@@ -80,12 +80,12 @@ public static class FlaskTooltip
             .Append(value).Append("</b></color>");
         if (roll?.stars != null && roll.stars.Count > 0)
         {
-            text.Append(" <size=55%>");
+            text.Append(" <size=60%>");
             foreach (WeaponGradeStarType star in roll.stars)
             {
-                string color = star == WeaponGradeStarType.Yellow ? "#FFD65A"
-                    : star == WeaponGradeStarType.Green ? "#74DE94" : "#DCE2E8";
-                text.Append("<color=").Append(color).Append(">★</color>");
+                string color = star == WeaponGradeStarType.Yellow ? "#D2A85D"
+                    : star == WeaponGradeStarType.Green ? "#68AA84" : "#D5D8D8";
+                text.Append("<color=").Append(color).Append(">◆</color>");
             }
             text.Append("</size>");
         }
@@ -175,7 +175,7 @@ public static class FlaskTooltip
             case FlaskEffect.FireRadius: return "폭발 반경";
             case FlaskEffect.ShatterDamage: return "쇄빙 피해";
             case FlaskEffect.FreezeDuration: return "빙결 시간";
-            case FlaskEffect.LightningDischargeDamage: return "번개 방출 피해";
+            case FlaskEffect.LightningDischargeDamage: return "번개 방출";
             case FlaskEffect.ChainRange: return "연쇄 거리";
             case FlaskEffect.CompressionDamage: return "압착 피해";
             case FlaskEffect.SuctionRadius: return "흡인 반경";

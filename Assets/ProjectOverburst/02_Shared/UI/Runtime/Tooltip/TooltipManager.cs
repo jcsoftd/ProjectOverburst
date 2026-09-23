@@ -703,6 +703,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         }
         else
         {
+            if (flaskStatsFont == null)
+                flaskStatsFont = Resources.Load<TMP_FontAsset>("UI/Tooltip/FlaskTooltipFont");
+            if (flaskStatsFont != null)
+                basicStatsText.font = flaskStatsFont;
             basicStatsText.text = isMagicWeapon
                 ? BuildMagicWeaponGradeStatComparisonFixed(item, baseStats, finalStats)
                 : BuildWeaponGradeStatComparisonFixed(item, baseStats, finalStats);
@@ -1076,7 +1080,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         return value.ToString("0.##");
     }
 
-    private const char GradeStarMarker = '★'; // 텍스트 별
+    private const char GradeStarMarker = '◆'; // 장비 공통 품질 각인
 
     private string BuildWeaponGradeStatComparisonFixed(ItemData item, WeaponFinalStats baseStats, WeaponFinalStats finalStats)
     {
@@ -1184,7 +1188,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         if (stars.Count <= 0)
             return;
 
-        builder.Append(" ");
+        builder.Append(" <size=68%>");
         for (int i = 0; i < stars.Count; i++)
         {
             WeaponGradeStarType starType = stars[i] != null ? stars[i].starType : WeaponGradeStarType.White;
@@ -1192,16 +1196,17 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
             builder.Append(GradeStarMarker);
             builder.Append("</color>");
         }
+        builder.Append("</size>");
     }
 
     private static string GetGradeStarTextColor(WeaponGradeStarType starType)
     {
         switch (starType)
         {
-            case WeaponGradeStarType.Green: return "#59FF59";
-            case WeaponGradeStarType.Yellow: return "#FFD84A";
-            case WeaponGradeStarType.Red: return "#FF4A4A";
-            default: return "#F2F2F2";
+            case WeaponGradeStarType.Green: return "#68AA84";
+            case WeaponGradeStarType.Yellow: return "#D2A85D";
+            case WeaponGradeStarType.Red: return "#AE5962";
+            default: return "#D5D8D8";
         }
     }
 

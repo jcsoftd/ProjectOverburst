@@ -12,7 +12,7 @@ public class WeaponMeleeStatListView : MonoBehaviour // 미확장 밀리 능력�
     private const float LabelWidth = 82f;
     private const float ValueWidth = 54f;
     private const float RowSpacing = 4f;
-    private const float ImageStarPitch = 14f;
+    private const float ImageStarPitch = 12f;
     private const float ImageStarEndCap = 1f;
 
     [SerializeField] private GameObject[] rowRoots; // 정식 능력치 행
