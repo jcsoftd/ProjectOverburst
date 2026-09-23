@@ -5,6 +5,74 @@ using UnityEngine;
 
 public enum EnemyThemeEncounterState { Idle, Telegraph, Spawning, Combat, Breather, Completed, Stopped, Failed }
 
+public enum EnemyThemeTrialMode { Normal, Elite, Large, Stress50 }
+
+public readonly struct EnemyThemeTrialRoster
+{
+    public int Small { get; }
+    public int Medium { get; }
+    public int Elite { get; }
+    public int Total => Small + Medium + Elite;
+
+    public EnemyThemeTrialRoster(int small, int medium, int elite)
+    {
+        long total = (long)small + medium + elite;
+        if (small < 0 || medium < 0 || elite < 0 || total < 1 || total > 50)
+            throw new ArgumentOutOfRangeException(nameof(small), "시험 명단은 1~50마리여야 합니다.");
+        Small = small;
+        Medium = medium;
+        Elite = elite;
+    }
+}
+
+// Debug-only tier counts. Species within each tier still use the existing theme-table weights.
+public static class EnemyThemeTrialPresets
+{
+    public static readonly EnemyThemeTrialRoster StressRoster = new EnemyThemeTrialRoster(40, 9, 1);
+
+    public static string Label(EnemyThemeTrialMode mode)
+    {
+        switch (mode)
+        {
+            case EnemyThemeTrialMode.Normal: return "일반";
+            case EnemyThemeTrialMode.Elite: return "정예";
+            case EnemyThemeTrialMode.Large: return "대규모";
+            case EnemyThemeTrialMode.Stress50: return "50부하";
+            default: throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+    }
+
+    public static EnemyThemeTrialRoster Resolve(EnemyThemeTable table, EnemyThemeTrialMode mode)
+    {
+        if (table == null) throw new ArgumentNullException(nameof(table));
+        if (mode == EnemyThemeTrialMode.Stress50) return StressRoster;
+        switch (table.ThemeId)
+        {
+            case "SpiderBrood":
+                if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(14, 4, 0);
+                if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(12, 3, 1);
+                if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(40, 7, 1);
+                break;
+            case "VenomBrood":
+                if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(11, 3, 0);
+                if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(9, 2, 1);
+                if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(33, 8, 1);
+                break;
+            case "PrimalHunt":
+                if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(12, 4, 0);
+                if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(10, 3, 1);
+                if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(36, 8, 1);
+                break;
+            case "CavernMutants":
+                if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(8, 4, 0);
+                if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(6, 3, 1);
+                if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(30, 9, 1);
+                break;
+        }
+        throw new ArgumentException($"지원하지 않는 시험 테마/모드: {table.ThemeId} / {mode}");
+    }
+}
+
 [DisallowMultipleComponent]
 public sealed class EnemyThemeEncounter : MonoBehaviour
 {
@@ -25,6 +93,8 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
     private Coroutine sequence;
     private LineRenderer warning;
     private bool admissionBusy;
+    private EnemyThemeTrialRoster configuredRoster;
+    private EnemyThemeTrialRoster activeRoster;
     public EnemyThemeEncounterState State { get; private set; }
     public string LastMessage { get; private set; } = "대기";
     public int SpawnedCount { get; private set; }
@@ -32,6 +102,8 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
     public int FailedPlacements { get; private set; }
     public int Wave { get; private set; }
     public EnemyThemeTable Table => EnemyMapTheme.Resolve(transform,tableOverride);
+    public EnemyThemeTrialRoster TrialRoster => configuredRoster.Total > 0 ? configuredRoster : EnemyThemeTrialPresets.StressRoster;
+    public bool HasOutstandingLeases => Running || owned.Count > 0;
     public int AliveCount
     {
         get { int count=0;foreach(var lease in owned)if(IsCurrent(lease) && !lease.actor.Health.IsDead)count++;return count; }
@@ -45,6 +117,12 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         if(Running || owned.Count>0)throw new InvalidOperationException("진행 중인 전투를 먼저 정리하세요.");
         tableOverride=table;spawnBounds=bounds;warningMaterial=material;
     }
+    public void ConfigureTrialRoster(EnemyThemeTrialRoster roster)
+    {
+        if (HasOutstandingLeases) throw new InvalidOperationException("진행 중인 시험을 먼저 정리하세요.");
+        if (roster.Total <= 0 || roster.Total > 50) throw new ArgumentOutOfRangeException(nameof(roster));
+        configuredRoster = roster;
+    }
     public bool Begin(Transform player,bool onslaught,int seed=731)
     {
         if(!Application.isPlaying || Running || owned.Count>0 || player==null) return false;
@@ -54,7 +132,7 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         service=EnemySpawnService.Current;
         if(service==null && !EnemyDebugSpawnRuntimeContext.TryGetSpawnService(transform,out service)){Fail("스폰 서비스를 준비하지 못했습니다.");return false;}
         if(!service.RegisterAdditionalCatalog(table.Catalog,out string error)){Fail(error);return false;}
-        target=player;SpawnedCount=0;DefeatedCount=0;FailedPlacements=0;Wave=0;
+        target=player;activeRoster=TrialRoster;SpawnedCount=0;DefeatedCount=0;FailedPlacements=0;Wave=0;
         admissionBusy=true;sequence=StartCoroutine(Run(onslaught,seed));admissionBusy=false;return true;
     }
     private IEnumerator Run(bool onslaught,int seed)
@@ -62,6 +140,8 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
         // StartCoroutine must return its handle before the sequence can finish/fail.
         yield return null;
         int waves=onslaught?Mathf.Max(1,waveCount):1;
+        int waveSize=activeRoster.Total;
+        int nextWaveSurvivors=Mathf.Min(12,Mathf.Max(2,waveSize/4));
         for(int w=0;w<waves;w++)
         {
             Wave=w+1;
@@ -69,7 +149,7 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
             if(w>0)
             {
                 State=EnemyThemeEncounterState.Combat;LastMessage="남은 무리를 정리하세요";
-                while(AliveCount>12){if(!TargetAvailable()){StopEncounter(true);yield break;}yield return new WaitForSeconds(.2f);}
+                while(AliveCount>nextWaveSurvivors){if(!TargetAvailable()){StopEncounter(true);yield break;}yield return new WaitForSeconds(.2f);}
                 State=EnemyThemeEncounterState.Breather;LastMessage="다음 공세까지 잠시 정비";
                 yield return new WaitForSeconds(restSeconds);
             }
@@ -81,17 +161,17 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
             }
             State=EnemyThemeEncounterState.Spawning;LastMessage=$"{Table.DisplayName} 소환 중";
             reserved.Clear();reservedRadii.Clear();
-            var roster=Table.BuildRoster(40,9,1,seed+w*7919);var random=new System.Random(seed+w*7919);
+            var roster=Table.BuildRoster(activeRoster.Small,activeRoster.Medium,activeRoster.Elite,seed+w*7919);var random=new System.Random(seed+w*7919);
             int before=SpawnedCount;
             for(int i=0;i<roster.Count;i++)
             {
                 if(!TargetAvailable()){StopEncounter(true);yield break;}
-                if(AliveCount>=Mathf.Max(50,aliveLimit)){Fail("생존 몬스터 상한에 도달했습니다.");break;}
+                if(AliveCount>=Mathf.Max(waveSize,aliveLimit)){Fail("생존 몬스터 상한에 도달했습니다.");yield break;}
                 var definition=roster[i];
                 if(TryPosition(definition,random,onslaught,angle,out Vector3 position))
                 {
                     Quaternion rotation=Quaternion.LookRotation(Vector3.ProjectOnPlane(target.position-position,Vector3.up).normalized);
-                    var request=new EnemySpawnRequest(definition,position,rotation,target,gameObject,target,transform,1,1,seed+i+w*50);
+                    var request=new EnemySpawnRequest(definition,position,rotation,target,gameObject,target,transform,1,1,seed+i+w*waveSize);
                     if(service.TrySpawn(request,out var actor))
                     {
                         var lease=new Lease{actor=actor,version=actor.LeaseVersion};owned.Add(lease);actor.Health.OnDead+=OnDeath;
@@ -101,10 +181,10 @@ public sealed class EnemyThemeEncounter : MonoBehaviour
                 }
                 else FailedPlacements++;
                 if((i+1)%5==0)yield return null;
-                if(onslaught && i==39)yield return new WaitForSeconds(.8f);
+                if(onslaught && i==activeRoster.Small-1)yield return new WaitForSeconds(.8f);
             }
-            if(SpawnedCount-before!=50)
-            {Fail($"안전한 위치 부족 등으로 {SpawnedCount-before}/50마리 생성. 배치 공간과 로그를 확인하세요.");sequence=null;yield break;}
+            if(SpawnedCount-before!=waveSize)
+            {Fail($"안전한 위치 부족 등으로 {SpawnedCount-before}/{waveSize}마리 생성. 배치 공간과 로그를 확인하세요.");sequence=null;yield break;}
         }
         State=EnemyThemeEncounterState.Combat;LastMessage="소환 완료";
         while(AliveCount>0){if(!TargetAvailable()){StopEncounter(true);yield break;}yield return new WaitForSeconds(.2f);}
