@@ -10,7 +10,10 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
     private Collider targetCollider;
     private WorldUiOverlayService overlayService;
     private EnemyHpBarView activeView;
-    private bool isElite;
+    private EnemyRank rank;
+    private EnemyIdentity identity;
+    private EnemyMovementReaction movementReaction;
+    private EnemyHpBarTier activeTier;
 
     private void Awake()
     {
@@ -18,17 +21,26 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
         targetCollider = GetComponent<Collider>();
         if (targetCollider == null)
             targetCollider = GetComponentInChildren<Collider>();
-
+        rank = GetComponent<EnemyRank>();
+        identity = GetComponent<EnemyIdentity>();
+        movementReaction = GetComponent<EnemyMovementReaction>();
     }
 
     private void OnEnable()
     {
-        isElite = TryGetComponent(out EnemyRank rank) && rank.Rank == EnemyRankType.Elite;
+        activeTier = ResolveTier();
         AcquireView();
     }
 
     private void LateUpdate()
     {
+        EnemyHpBarTier currentTier = ResolveTier();
+        if (activeView != null && currentTier != activeTier)
+        {
+            ReleaseView();
+            activeTier = currentTier;
+        }
+
         if (activeView == null)
             AcquireView();
 
@@ -59,7 +71,8 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
         if (!WorldUiOverlayService.TryResolve(out overlayService))
             return;
 
-        activeView = overlayService.AcquireHealthBar(health, isElite);
+        activeTier = ResolveTier();
+        activeView = overlayService.AcquireHealthBar(health, activeTier);
     }
 
     private void ReleaseView()
@@ -68,11 +81,26 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
             return;
 
         if (overlayService != null)
-            overlayService.ReleaseHealthBar(activeView, isElite);
+            overlayService.ReleaseHealthBar(activeView, activeTier);
         else
             Destroy(activeView.gameObject);
 
         activeView = null;
+    }
+
+    private EnemyHpBarTier ResolveTier()
+    {
+        if (rank != null && rank.Rank == EnemyRankType.Elite)
+            return EnemyHpBarTier.Elite;
+        if (identity != null && identity.GradeType != EnemyGradeType.Normal)
+            return EnemyHpBarTier.Elite;
+
+        EnemyHitWeightProfile profile = movementReaction != null ? movementReaction.HitWeightProfile : null;
+        if (profile != null)
+        {
+            if (profile.Weight == EnemyHitWeight.Light) return EnemyHpBarTier.Small;
+        }
+        return EnemyHpBarTier.Medium;
     }
 
     private Vector3 ResolveHeadWorldPosition()

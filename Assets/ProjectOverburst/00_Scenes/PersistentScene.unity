@@ -19134,9 +19134,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WorldUiOverlayService
   healthBarRoot: {fileID: 1509724088}
   damagePopupRoot: {fileID: 640149405}
-  normalHealthBarPrefab: {fileID: 1341718419577826388, guid: 476536d119a09874f9fd8b5651781652, type: 3}
-  eliteHealthBarPrefab: {fileID: 178825499637590207, guid: 196447453d0a5384590784807e2a3499, type: 3}
+  normalHealthBarPrefab: {fileID: 4862647445316932816, guid: 6244a5d4347482845a854e89ae33908c, type: 3}
+  mediumHealthBarPrefab: {fileID: 6521369317970056624, guid: bff6111662653344ca3c419ef12fea6f, type: 3}
+  eliteHealthBarPrefab: {fileID: 733061409224401068, guid: 0e22eb567efd2734785fdd2233e95a36, type: 3}
   normalHealthBarPrewarm: 16
+  mediumHealthBarPrewarm: 8
   eliteHealthBarPrewarm: 8
 --- !u!1001 &165107284
 PrefabInstance:

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum EnemyHpBarTier { Small, Medium, Elite }
+
 [DisallowMultipleComponent]
 public sealed class WorldUiOverlayService : MonoBehaviour
 {
@@ -10,15 +12,19 @@ public sealed class WorldUiOverlayService : MonoBehaviour
 
     [Header("Health Bar Prefabs")]
     [SerializeField] private EnemyHpBarView normalHealthBarPrefab;
+    [SerializeField] private EnemyHpBarView mediumHealthBarPrefab;
     [SerializeField] private EnemyHpBarView eliteHealthBarPrefab;
     [Min(0)]
     [SerializeField] private int normalHealthBarPrewarm = 16;
+    [Min(0)]
+    [SerializeField] private int mediumHealthBarPrewarm = 8;
     [Min(0)]
     [SerializeField] private int eliteHealthBarPrewarm = 8;
 
     private static WorldUiOverlayService instance;
 
     private readonly Queue<EnemyHpBarView> normalHealthBarPool = new Queue<EnemyHpBarView>();
+    private readonly Queue<EnemyHpBarView> mediumHealthBarPool = new Queue<EnemyHpBarView>();
     private readonly Queue<EnemyHpBarView> eliteHealthBarPool = new Queue<EnemyHpBarView>();
     private Camera targetCamera;
 
@@ -53,10 +59,10 @@ public sealed class WorldUiOverlayService : MonoBehaviour
         return service != null && service.isActiveAndEnabled;
     }
 
-    public EnemyHpBarView AcquireHealthBar(CombatHealth health, bool isElite)
+    public EnemyHpBarView AcquireHealthBar(CombatHealth health, EnemyHpBarTier tier)
     {
-        Queue<EnemyHpBarView> pool = isElite ? eliteHealthBarPool : normalHealthBarPool;
-        EnemyHpBarView prefab = isElite ? eliteHealthBarPrefab : normalHealthBarPrefab;
+        Queue<EnemyHpBarView> pool = PoolFor(tier);
+        EnemyHpBarView prefab = PrefabFor(tier);
         EnemyHpBarView view = DequeueValid(pool);
         if (view == null)
             view = CreateHealthBar(prefab);
@@ -71,7 +77,7 @@ public sealed class WorldUiOverlayService : MonoBehaviour
         return view;
     }
 
-    public void ReleaseHealthBar(EnemyHpBarView view, bool isElite)
+    public void ReleaseHealthBar(EnemyHpBarView view, EnemyHpBarTier tier)
     {
         if (view == null)
             return;
@@ -79,8 +85,14 @@ public sealed class WorldUiOverlayService : MonoBehaviour
         view.Unbind();
         view.gameObject.SetActive(false);
         view.transform.SetParent(healthBarRoot, false);
-        (isElite ? eliteHealthBarPool : normalHealthBarPool).Enqueue(view);
+        PoolFor(tier).Enqueue(view);
     }
+
+    public EnemyHpBarView AcquireHealthBar(CombatHealth health, bool isElite) =>
+        AcquireHealthBar(health, isElite ? EnemyHpBarTier.Elite : EnemyHpBarTier.Small);
+
+    public void ReleaseHealthBar(EnemyHpBarView view, bool isElite) =>
+        ReleaseHealthBar(view, isElite ? EnemyHpBarTier.Elite : EnemyHpBarTier.Small);
 
     public bool TryProject(Vector3 worldPosition, out Vector2 anchoredPosition)
     {
@@ -93,7 +105,29 @@ public sealed class WorldUiOverlayService : MonoBehaviour
     private void PrewarmHealthBars()
     {
         Prewarm(normalHealthBarPrefab, normalHealthBarPool, normalHealthBarPrewarm);
+        if (mediumHealthBarPrefab != null)
+            Prewarm(mediumHealthBarPrefab, mediumHealthBarPool, mediumHealthBarPrewarm);
         Prewarm(eliteHealthBarPrefab, eliteHealthBarPool, eliteHealthBarPrewarm);
+    }
+
+    private Queue<EnemyHpBarView> PoolFor(EnemyHpBarTier tier)
+    {
+        switch (tier)
+        {
+            case EnemyHpBarTier.Medium: return mediumHealthBarPool;
+            case EnemyHpBarTier.Elite: return eliteHealthBarPool;
+            default: return normalHealthBarPool;
+        }
+    }
+
+    private EnemyHpBarView PrefabFor(EnemyHpBarTier tier)
+    {
+        switch (tier)
+        {
+            case EnemyHpBarTier.Medium: return mediumHealthBarPrefab != null ? mediumHealthBarPrefab : normalHealthBarPrefab;
+            case EnemyHpBarTier.Elite: return eliteHealthBarPrefab;
+            default: return normalHealthBarPrefab;
+        }
     }
 
     private void Prewarm(EnemyHpBarView prefab, Queue<EnemyHpBarView> pool, int count)

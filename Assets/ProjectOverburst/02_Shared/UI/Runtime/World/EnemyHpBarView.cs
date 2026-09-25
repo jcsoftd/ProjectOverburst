@@ -13,6 +13,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     [Header("Target")]
     [SerializeField] private CombatHealth health;
+    [SerializeField] private OverburstEnemyHealthBarView rpgView;
 
     [Header("UI")]
     [SerializeField] private RectTransform barRoot;
@@ -22,10 +23,22 @@ public sealed class EnemyHpBarView : MonoBehaviour
     [SerializeField] private Image segmentLinePrefab;
     [SerializeField] private ElementalStatusIconStrip elementalStatusIcons;
 
+    [Header("Tier Nameplate")]
+    [SerializeField] private CanvasGroup visualCanvasGroup;
+    [SerializeField] private Image currentHealthImage;
+    [SerializeField] private Image damageTrailImage;
+    [SerializeField] private TextMeshProUGUI compactNameText;
+
     [Header("Visibility")]
     [SerializeField] private bool hideUntilDamaged = true;
     [Min(0.1f)]
     [SerializeField] private float visibleSeconds = 1.35f;
+    [Min(0.01f)]
+    [SerializeField] private float fadeSeconds = 0.22f;
+    [Min(0f)]
+    [SerializeField] private float trailHoldSeconds = 0.09f;
+    [Min(0.01f)]
+    [SerializeField] private float trailCatchupSeconds = 0.42f;
 
     [Header("Simple Style")]
     [SerializeField] private bool useRoundedStyle = true;
@@ -73,6 +86,11 @@ public sealed class EnemyHpBarView : MonoBehaviour
     private RectTransform fillRect;
     private CanvasGroup barCanvasGroup;
     private float hideTime;
+    private float lastHealthFraction = -1f;
+    private float trailStartFill;
+    private float trailTargetFill;
+    private float trailStartsAt;
+    private bool trailAnimationActive;
     private bool barVisible;
     private bool projectionVisible = true;
     private float cachedMaxHp = -1f;
@@ -136,8 +154,14 @@ public sealed class EnemyHpBarView : MonoBehaviour
         if (IsAiStateDebugVisible && Time.unscaledTime >= nextAiStateRefreshTime)
             RefreshAiStateDebugText();
 
-        if (hideUntilDamaged && barVisible && Time.time >= hideTime)
-            HideBar();
+        UpdateDamageTrail();
+        if (hideUntilDamaged && barVisible && Time.unscaledTime >= hideTime)
+        {
+            if (Time.unscaledTime >= hideTime + fadeSeconds)
+                HideBar();
+            else
+                RefreshVisibility();
+        }
     }
 
     public void Bind(CombatHealth targetHealth)
@@ -147,19 +171,25 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
         UnsubscribeFromHealth();
         health = targetHealth;
+        lastHealthFraction = -1f;
+        trailAnimationActive = false;
         aiController = health != null ? health.GetComponent<EnemyAIController>() : null;
         BindElementalStatusIcons();
         SubscribeToHealth();
         RefreshBarLayoutIfNeeded(true);
         RefreshFillAmount();
         RefreshAiStateDebugText(true);
-        HideImmediately();
+        hideTime = 0f;
+        barVisible = !hideUntilDamaged;
+        RefreshVisibility();
     }
 
     public void Unbind()
     {
         UnsubscribeFromHealth();
         health = null;
+        lastHealthFraction = -1f;
+        trailAnimationActive = false;
         aiController = null;
         if (elementalStatusIcons != null)
             elementalStatusIcons.Unbind();
@@ -239,7 +269,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
         if (source == null || source.IsDead)
             return;
 
-        hideTime = Time.time + visibleSeconds;
+        hideTime = Time.unscaledTime + visibleSeconds;
         ShowBar();
     }
 
@@ -251,11 +281,13 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void HandleDead(CombatHealth source, DamageInfo info)
     {
-        HideBar();
+        barVisible = false;
+        RefreshVisibility();
     }
 
     private void ApplySimpleStyle()
     {
+        if (rpgView != null || currentHealthImage != null) return;
         if (backgroundImage != null)
         {
             backgroundImage.color = backgroundColor;
@@ -290,6 +322,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void RefreshBarLayoutIfNeeded(bool force = false)
     {
+        if (rpgView != null || currentHealthImage != null) return;
         float maxHp = health != null ? health.MaxHp : 1f;
         if (!force
             && Mathf.Approximately(cachedMaxHp, maxHp)
@@ -350,6 +383,45 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void RefreshFillAmount()
     {
+        if (health == null)
+            return;
+
+        if (currentHealthImage != null)
+        {
+            float next = Mathf.Clamp01(health.NormalizedHp);
+            float previous = lastHealthFraction;
+            if (rpgView != null)
+                rpgView.PresentTarget(ResolveDisplayName(), ResolveGradeName(), health.GetComponent<EnemyRank>()?.Level ?? 1, next);
+            if (compactNameText != null)
+                compactNameText.text = ResolveDisplayName();
+
+            currentHealthImage.fillAmount = next;
+            currentHealthImage.enabled = next > 0.001f;
+            if (damageTrailImage != null)
+            {
+                if (previous < 0f || next > previous + 0.001f)
+                {
+                    damageTrailImage.fillAmount = next;
+                    trailAnimationActive = false;
+                }
+                else if (next < previous - 0.001f)
+                {
+                    trailStartFill = Mathf.Max(previous, damageTrailImage.fillAmount);
+                    trailTargetFill = next;
+                    damageTrailImage.fillAmount = trailStartFill;
+                    trailStartsAt = Time.unscaledTime + trailHoldSeconds;
+                    trailAnimationActive = true;
+                }
+            }
+            lastHealthFraction = next;
+            return;
+        }
+
+        if (rpgView != null)
+        {
+            rpgView.PresentTarget(ResolveDisplayName(), ResolveGradeName(), health.GetComponent<EnemyRank>()?.Level ?? 1, health.NormalizedHp);
+            return;
+        }
         if (fillRect == null || fillImage == null || health == null)
             return;
 
@@ -360,6 +432,36 @@ public sealed class EnemyHpBarView : MonoBehaviour
         fillImage.enabled = hpRate > 0.001f;
         fillImage.fillAmount = 1f;
         fillRect.sizeDelta = new Vector2(fillWidth * hpRate, fillHeight);
+    }
+
+    private void UpdateDamageTrail()
+    {
+        if (!trailAnimationActive || damageTrailImage == null || Time.unscaledTime < trailStartsAt)
+            return;
+
+        float t = Mathf.Clamp01((Time.unscaledTime - trailStartsAt) / trailCatchupSeconds);
+        float eased = 1f - Mathf.Pow(1f - t, 3f);
+        damageTrailImage.fillAmount = Mathf.Lerp(trailStartFill, trailTargetFill, eased);
+        if (t >= 1f)
+            trailAnimationActive = false;
+    }
+
+    private string ResolveDisplayName()
+    {
+        EnemyIdentity identity = health.GetComponent<EnemyIdentity>();
+        if (identity != null)
+            return identity.DisplayName;
+        EnemyRank rank = health.GetComponent<EnemyRank>();
+        return rank != null ? rank.DisplayName : health.name;
+    }
+
+    private string ResolveGradeName()
+    {
+        EnemyIdentity identity = health.GetComponent<EnemyIdentity>();
+        if (identity != null && identity.GradeType != EnemyGradeType.Normal)
+            return identity.GradeType.ToString();
+        EnemyRank rank = health.GetComponent<EnemyRank>();
+        return rank != null ? rank.GradeType.ToString() : "Normal";
     }
 
     private void RebuildSegmentLines(float fillWidth, float fillHeight, float maxHp)
@@ -431,6 +533,10 @@ public sealed class EnemyHpBarView : MonoBehaviour
         SetBarAlpha(projectionVisible && (barVisible || debugVisible) ? 1f : 0f);
 
         float hpAlpha = barVisible && projectionVisible ? 1f : 0f;
+        if (hideUntilDamaged && barVisible && Time.unscaledTime > hideTime)
+            hpAlpha *= 1f - Mathf.Clamp01((Time.unscaledTime - hideTime) / fadeSeconds);
+        if (visualCanvasGroup != null)
+            visualCanvasGroup.alpha = hpAlpha;
         if (elementalStatusIcons != null)
             elementalStatusIcons.SetPresentationVisible(hpAlpha > 0f);
         if (backgroundImage != null)
