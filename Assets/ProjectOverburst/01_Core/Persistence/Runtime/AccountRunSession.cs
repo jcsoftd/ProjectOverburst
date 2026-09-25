@@ -29,6 +29,10 @@ namespace Overburst.Persistence
             => account.ExecuteState("transfer-" + runId + "-" + objectId,
                 state => AccountRunCommands.Transfer(state, runId, objectId, itemId, tab, slot));
 
+        public bool Transfer(string runId, string objectId, string itemId)
+            => account.ExecuteState("transfer-" + runId + "-" + objectId,
+                state => AccountRunCommands.Transfer(state, runId, objectId, itemId, account.ContentRegistry));
+
         public bool ClearBoss(string runId, long utcTicks)
         {
             var run = account.Read().run;

@@ -18,6 +18,7 @@ namespace Overburst.Persistence
         private bool restoring;
         public bool IsEditing => editing;
         public static bool ShouldRoute => Current != null && !Current.editing && !Current.restoring;
+        internal AccountContentRegistry ContentRegistry => registry;
         public long Revision => transactions.Revision;
         public AccountSnapshot Read() => transactions.Read();
 

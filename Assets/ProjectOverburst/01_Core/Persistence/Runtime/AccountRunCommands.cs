@@ -56,12 +56,75 @@ namespace Overburst.Persistence
                 throw new InvalidOperationException("Stash destination is unavailable.");
             if (!PlayerContainers(state).Any(x => x.Contains(itemId))) throw new InvalidOperationException("Item is not owned by player.");
             var item = state.items.Single(x => x.instanceId == itemId);
-            foreach (var container in PlayerContainers(state)) ClearReferences(container, new HashSet<string> { itemId });
-            ClearReferences(state.flasks, new HashSet<string> { itemId });
-            foreach (var quick in state.quickSlots) if (quick.flaskInstanceId == itemId) quick.flaskInstanceId = null;
-            item.originRunId = null;
+            DetachForTransfer(state, item);
             state.stashTabs[tab].slots[slot] = itemId;
             run.transferredObjects.Add(objectId);
+        }
+
+        public static void Transfer(AccountSnapshot state, string runId, string objectId, string itemId, AccountContentRegistry registry)
+        {
+            var run = RequireActive(state, runId);
+            if (string.IsNullOrWhiteSpace(objectId) || run.transferredObjects.Contains(objectId))
+                throw new InvalidOperationException("Transfer object has already been used.");
+            if (!PlayerContainers(state).Any(x => x.Contains(itemId)))
+                throw new InvalidOperationException("Item is not carried by player.");
+            var item = state.items.Single(x => x.instanceId == itemId);
+            var runtime = ItemSnapshotCodec.Restore(item, registry);
+            int maxStack = 1;
+            if (runtime.baseData is ConsumableItemData consumable)
+                maxStack = consumable.IsPermanentSingleItem ? 1 : UnityEngine.Mathf.Max(1, consumable.maxStack);
+            else if (runtime.baseData is CurrencyItemData currency)
+                maxStack = UnityEngine.Mathf.Max(1, currency.maxStack);
+            else if (runtime.itemType == "Junk" || runtime.itemType == "QuestItem") maxStack = 99;
+            var merges = new List<KeyValuePair<ItemSnapshot, int>>();
+            int remaining = item.count;
+            int emptyTab = -1, emptySlot = -1;
+            for (int tab = 0; tab < state.stashTabs.Count; tab++)
+                for (int slot = 0; slot < state.stashTabs[tab].slots.Count; slot++)
+                {
+                    string id = state.stashTabs[tab].slots[slot];
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        if (emptyTab < 0) { emptyTab = tab; emptySlot = slot; }
+                        continue;
+                    }
+                    if (maxStack <= 1 || remaining <= 0) continue;
+                    var target = state.items.Single(x => x.instanceId == id);
+                    if (target.contentId != item.contentId || target.level != item.level || target.grade != item.grade
+                        || !string.IsNullOrEmpty(target.originRunId)) continue;
+                    int count = Math.Min(remaining, Math.Max(0, maxStack - target.count));
+                    if (count == 0) continue;
+                    merges.Add(new KeyValuePair<ItemSnapshot, int>(target, count));
+                    remaining -= count;
+                }
+            if (remaining > 0 && (emptyTab < 0 || remaining > maxStack))
+                throw new InvalidOperationException("Stash has no room for the entire selected stack.");
+            // Planning above is read-only: a rejected transfer neither merges a partial stack nor spends the object.
+            DetachForTransfer(state, item);
+            foreach (var merge in merges) merge.Key.count += merge.Value;
+            if (remaining == 0) state.items.Remove(item);
+            else
+            {
+                item.count = remaining;
+                state.stashTabs[emptyTab].slots[emptySlot] = itemId;
+            }
+            run.transferredObjects.Add(objectId);
+        }
+
+        private static void DetachForTransfer(AccountSnapshot state, ItemSnapshot item)
+        {
+            var removed = new HashSet<string> { item.instanceId };
+            foreach (var container in PlayerContainers(state)) ClearReferences(container, removed);
+            ClearReferences(state.flasks, removed);
+            foreach (var quick in state.quickSlots)
+            {
+                if (quick.flaskInstanceId == item.instanceId) quick.flaskInstanceId = null;
+                if (quick.consumableContentId == item.contentId && !state.inventory.Any(id =>
+                    !string.IsNullOrEmpty(id) && state.items.Any(x => x.instanceId == id && x.contentId == item.contentId)))
+                    quick.consumableContentId = null;
+            }
+            if (item.flask != null) { item.flask.equippedSlot = -1; item.flask.cooldownRemaining = 0f; }
+            item.originRunId = null;
         }
 
         public static void ClearBoss(AccountSnapshot state, string runId, long utcTicks)
