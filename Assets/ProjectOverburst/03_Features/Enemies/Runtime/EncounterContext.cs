@@ -29,6 +29,6 @@ public sealed class EncounterContext
         return IsRun ? active && string.Equals(run.runId, RunId, StringComparison.Ordinal) : !active;
     }
 
-    public bool CanGrantRewards => MatchesRun(AccountGameplaySession.Current?.Read().run)
+    public bool CanGrantRewards => MatchesRun(AccountGameplaySession.Current?.ReadRun())
         && (IsRun ? WorldSessionState.Phase == WorldPhase.Run : WorldSessionState.IsHideout);
 }

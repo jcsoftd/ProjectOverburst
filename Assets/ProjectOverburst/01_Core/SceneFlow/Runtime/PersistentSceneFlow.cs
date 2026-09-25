@@ -102,6 +102,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             loadingScreen?.Show("저장 데이터 오류", Overburst.Persistence.AccountBootstrap.Error);
             yield break;
         }
+        if (GetComponent<Overburst.Persistence.RunLifetimeDriver>() == null)
+            gameObject.AddComponent<Overburst.Persistence.RunLifetimeDriver>();
         yield return EnsureInitialSubScene();
         GameplayInputBlocker.Unblock(this);
     }

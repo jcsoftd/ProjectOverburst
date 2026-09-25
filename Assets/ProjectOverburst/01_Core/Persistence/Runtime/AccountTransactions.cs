@@ -65,6 +65,7 @@ namespace Overburst.Persistence
         public event Action<AccountSnapshot> Committed;
         public long Revision => current.revision;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
+        public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);
 
         public AccountTransactions(AccountSnapshot initial, EasySaveAccountStore store, AccountContentRegistry registry)
         {

@@ -22,6 +22,7 @@ namespace Overburst.Persistence
         internal PlayerAccountInventoryService Owner => account;
         public long Revision => transactions.Revision;
         public AccountSnapshot Read() => transactions.Read();
+        public RunSnapshot ReadRun() => transactions.ReadRun();
 
         public AccountGameplaySession(PlayerAccountInventoryService account, AccountContentRegistry registry, EasySaveAccountStore store, AccountSnapshot initial)
         {

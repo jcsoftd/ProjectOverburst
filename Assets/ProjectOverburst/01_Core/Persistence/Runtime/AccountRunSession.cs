@@ -2,12 +2,27 @@ using System;
 
 namespace Overburst.Persistence
 {
+    public enum RunOutcome { None, Failed, Extracted }
     // Entry readiness is supplied by the world adapter; the map is consumed only by Activate.
     public sealed class AccountRunSession
     {
         private readonly AccountGameplaySession account;
         public AccountRunSession(AccountGameplaySession account)
         { this.account = account ?? throw new ArgumentNullException(nameof(account)); }
+
+        public const int ExitDelaySeconds = 180;
+
+        public RunOutcome ResolveOutcome(long utcTicks, bool playerDead, bool portalRequested = false, bool abandoned = false)
+        {
+            var run = account.ReadRun();
+            if (run == null || run.phase == RunPhase.Failed || run.phase == RunPhase.Extracted) return RunOutcome.None;
+            if (playerDead || abandoned)
+                return Fail(run.runId) ? RunOutcome.Failed : RunOutcome.None;
+            if (run.phase != RunPhase.BossCleared) return RunOutcome.None;
+            bool expired = utcTicks >= run.bossClearedAtUtcTicks
+                && utcTicks - run.bossClearedAtUtcTicks >= TimeSpan.TicksPerSecond * ExitDelaySeconds;
+            return (portalRequested || expired) && Extract(run.runId) ? RunOutcome.Extracted : RunOutcome.None;
+        }
 
         public bool Prepare(string runId, MapInstanceState map, string mapItemId = null)
         {
@@ -35,7 +50,7 @@ namespace Overburst.Persistence
 
         public bool ClearBoss(string runId, long utcTicks)
         {
-            var run = account.Read().run;
+            var run = account.ReadRun();
             if (run != null && run.runId == runId && run.phase == RunPhase.BossCleared) return false;
             return account.ExecuteState("boss-" + runId,
                 state => AccountRunCommands.ClearBoss(state, runId, utcTicks));
@@ -44,7 +59,7 @@ namespace Overburst.Persistence
         public WorldItemPickup ClearBossWithMapReward(string runId, MapItemData mapDefinition,
             UnityEngine.Vector3 position, System.Collections.Generic.IReadOnlyList<MapOptionRoll> rolledOptions = null)
         {
-            var run = account.Read().run;
+            var run = account.ReadRun();
             if (run == null || run.runId != runId) throw new InvalidOperationException("Stale run identity.");
             if (run.phase == RunPhase.BossCleared) return null;
             if (run.phase != RunPhase.Active) throw new InvalidOperationException("Run is not active.");
@@ -70,7 +85,7 @@ namespace Overburst.Persistence
 
         public bool Fail(string runId)
         {
-            var run = account.Read().run;
+            var run = account.ReadRun();
             if (run != null && run.runId == runId && run.phase == RunPhase.Failed) return false;
             bool committed = account.ExecuteState("fail-" + runId,
                 state => AccountRunCommands.Fail(state, runId));
@@ -80,7 +95,7 @@ namespace Overburst.Persistence
 
         public bool Extract(string runId)
         {
-            var run = account.Read().run;
+            var run = account.ReadRun();
             if (run != null && run.runId == runId && run.phase == RunPhase.Extracted) return false;
             bool committed = account.ExecuteState("extract-" + runId,
                 state => AccountRunCommands.Extract(state, runId));
