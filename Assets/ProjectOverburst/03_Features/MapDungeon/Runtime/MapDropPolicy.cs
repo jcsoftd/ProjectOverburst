@@ -18,7 +18,7 @@ public static class MapDropPolicy
         int dungeonLevel, EnemyThemeTier tier, string runId)
     {
         if (definition == null || registry == null || string.IsNullOrEmpty(runId)
-            || Random.value >= Chance(tier)) return null;
+            || Random.value >= Mathf.Min(1f, Chance(tier) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         int level = Random.Range(MinimumLevel(dungeonLevel, tier), MaximumLevel(dungeonLevel, tier) + 1);
         ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
         var item = new ItemData(definition, level, grade) { originRunId = runId };

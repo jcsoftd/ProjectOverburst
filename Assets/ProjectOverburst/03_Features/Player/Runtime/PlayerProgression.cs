@@ -21,7 +21,8 @@ public sealed class PlayerProgression : MonoBehaviour
     public int ExperienceToNext => OverburstGrowthRules.ExperienceToNext(Level);
     public float ExperienceProgress => Level >= OverburstGrowthRules.MaximumLevel ? 1f
         : ExperienceToNext > 0 ? Mathf.Clamp01((float)Experience / ExperienceToNext) : 0f;
-    public float Armor => OverburstGrowthRules.PlayerArmorBonus(Level) + GearStatTotals.From(equipment).Armor;
+    public float Armor => OverburstGrowthRules.PlayerArmorBonus(Level) + GearStatTotals.From(equipment).Armor
+        + MapRunBuffs.Bonus(MapBuffKind.Armor);
     public event Action Changed;
     public event Action<int, int> LeveledUp;
 
@@ -118,9 +119,13 @@ public sealed class PlayerProgression : MonoBehaviour
     {
         if (equipment != null) equipment.RefreshCurrentWeaponStats();
         if (health == null) return;
-        float bonus = OverburstGrowthRules.PlayerHealthBonus(Level) + GearStatTotals.From(equipment).MaxHealth;
         float previousMaximum = health.MaxHp;
-        float nextMaximum = Mathf.Max(1f, previousMaximum - appliedHealthBonus + bonus);
+        float baseMaximum = Mathf.Max(1f, previousMaximum - appliedHealthBonus);
+        float permanentBonus = OverburstGrowthRules.PlayerHealthBonus(Level)
+            + GearStatTotals.From(equipment).MaxHealth;
+        float preRunMaximum = Mathf.Max(1f, baseMaximum + permanentBonus);
+        float bonus = permanentBonus + preRunMaximum * MapRunBuffs.Bonus(MapBuffKind.MaxHealth);
+        float nextMaximum = Mathf.Max(1f, baseMaximum + bonus);
         appliedHealthBonus = bonus;
         health.SetMaxHp(nextMaximum, false);
         if (!health.IsDead && nextMaximum > previousMaximum)

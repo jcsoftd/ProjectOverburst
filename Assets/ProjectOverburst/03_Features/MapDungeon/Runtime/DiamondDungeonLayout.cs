@@ -34,7 +34,7 @@ public static class DiamondDungeonLayout
         float minimumProgress, float maximumProgress, Vector3[] existing, float minimumSpacing)
     {
         if (random == null) throw new ArgumentNullException(nameof(random));
-        for (int attempt = 0; attempt < 500; attempt++)
+        for (int attempt = 0; attempt < 3000; attempt++)
         {
             float x = ((float)random.NextDouble() * 2f - 1f) * Radius;
             float z = ((float)random.NextDouble() * 2f - 1f) * Radius;

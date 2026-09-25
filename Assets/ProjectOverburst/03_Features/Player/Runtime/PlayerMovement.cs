@@ -1024,7 +1024,8 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
         if (playerBuffController == null)
             playerBuffController = ResolveBuffController();
 
-        return playerBuffController != null ? playerBuffController.ActiveMoveSpeedMultiplier : 1f;
+        return (playerBuffController != null ? playerBuffController.ActiveMoveSpeedMultiplier : 1f)
+            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed));
     }
 
     private PlayerBuffController ResolveBuffController()

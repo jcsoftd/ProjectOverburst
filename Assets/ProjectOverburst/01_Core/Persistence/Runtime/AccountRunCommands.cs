@@ -64,6 +64,7 @@ namespace Overburst.Persistence
                 throw new InvalidOperationException("Stash destination is unavailable.");
             if (!PlayerContainers(state).Any(x => x.Contains(itemId))) throw new InvalidOperationException("Item is not owned by player.");
             var item = state.items.Single(x => x.instanceId == itemId);
+            if (item.originRunId != runId) throw new InvalidOperationException("Item was not acquired in this run.");
             DetachForTransfer(state, item);
             state.stashTabs[tab].slots[slot] = itemId;
             run.transferredObjects.Add(objectId);
@@ -77,6 +78,8 @@ namespace Overburst.Persistence
             if (!PlayerContainers(state).Any(x => x.Contains(itemId)))
                 throw new InvalidOperationException("Item is not carried by player.");
             var item = state.items.Single(x => x.instanceId == itemId);
+            if (item.originRunId != runId)
+                throw new InvalidOperationException("Item was not acquired in this run.");
             var runtime = ItemSnapshotCodec.Restore(item, registry);
             int maxStack = 1;
             if (runtime.baseData is ConsumableItemData consumable)
@@ -117,6 +120,27 @@ namespace Overburst.Persistence
                 state.stashTabs[emptyTab].slots[emptySlot] = itemId;
             }
             run.transferredObjects.Add(objectId);
+        }
+
+        public static void ClaimEventCard(AccountSnapshot state, string runId, string eventId, int experience)
+        {
+            var run = RequireActive(state, runId);
+            if (string.IsNullOrWhiteSpace(eventId) || run.rewardedEncounters.Contains(eventId))
+                throw new InvalidOperationException("Event card was already claimed.");
+            if (experience < 0) throw new ArgumentOutOfRangeException(nameof(experience));
+            if (experience > 0 && state.level < OverburstGrowthRules.MaximumLevel)
+            {
+                state.experience = checked(state.experience + experience);
+                while (state.level < OverburstGrowthRules.MaximumLevel)
+                {
+                    int needed = OverburstGrowthRules.ExperienceToNext(state.level);
+                    if (state.experience < needed) break;
+                    state.experience -= needed;
+                    state.level++;
+                }
+                if (state.level >= OverburstGrowthRules.MaximumLevel) state.experience = 0;
+            }
+            run.rewardedEncounters.Add(eventId);
         }
 
         private static void DetachForTransfer(AccountSnapshot state, ItemSnapshot item)

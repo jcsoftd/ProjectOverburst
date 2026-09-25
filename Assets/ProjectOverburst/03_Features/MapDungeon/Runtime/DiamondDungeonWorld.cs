@@ -27,11 +27,13 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
     private Material accentMaterial;
     private Mesh floorMesh;
     private readonly List<MapMonsterField> fields = new List<MapMonsterField>();
+    private MapDungeonEventDirector eventDirector;
 
     public DiamondCorner StartCorner => startCorner;
     public DiamondCorner BossCorner => DiamondDungeonLayout.Opposite(startCorner);
     public EnemyThemeTable Theme => theme;
     public IReadOnlyList<MapMonsterField> Fields => fields;
+    public MapDungeonEventDirector EventDirector => eventDirector;
 
     private void Awake() => gate = GetComponent<RunWorldGate>();
 
@@ -82,6 +84,11 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         BuildExitPortal();
         BuildSpawnService();
         BuildFields(random, account);
+        var runBuffs = gameObject.AddComponent<MapRunBuffs>();
+        runBuffs.Configure(gate.Context.RunId);
+        eventDirector = Child("DungeonEvents").AddComponent<MapDungeonEventDirector>();
+        eventDirector.Configure(startCorner, theme, spawnService, gate.Context, gate.Map,
+            accentMaterial, fields, random.Next());
 
         if (!gate.CompletePreparation(gate.Context.RunId, entry))
             throw new InvalidOperationException("던전 준비 완료 신호를 전달하지 못했습니다.");

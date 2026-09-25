@@ -119,7 +119,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             if (attackingEnemy != null)
                 damage *= OverburstGrowthRules.EnemyDamageFactor(attackingEnemy.Level);
             PlayerProgression progression = PlayerProgression.Current;
-            if (progression != null)
+            if (progression != null && GetComponentInParent<PlayerActorRuntime>() != null)
                 damage *= 100f / (100f + Mathf.Max(0f, progression.Armor));
         }
         else if (info.source != null)
@@ -133,6 +133,9 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             if ((info.playerAttackKind & PlayerAttackKind.Heavy) != 0) bonus += stats.HeavyDamage;
             if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0) bonus += stats.ElementalDamage;
             damage *= Mathf.Max(.1f, 1f + bonus / 100f);
+            damage *= 1f + MapRunBuffs.Bonus(MapBuffKind.Attack);
+            if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0)
+                damage *= 1f + MapRunBuffs.Bonus(MapBuffKind.ElementalDamage);
         }
         info.damage = damage;
     }

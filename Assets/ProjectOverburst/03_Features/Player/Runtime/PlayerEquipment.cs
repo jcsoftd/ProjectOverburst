@@ -214,6 +214,10 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
             stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
                 stats.meleeAttackSpeedMultiplier + gear.AttackSpeed / 100f);
             stats.critDamageMultiplier = Mathf.Min(2.2f, stats.critDamageMultiplier + gear.CriticalDamage / 100f);
+            float runSpeed = MapRunBuffs.Bonus(MapBuffKind.AttackSpeed);
+            stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
+                stats.meleeAttackSpeedMultiplier + runSpeed);
+            if (stats.attackInterval > 0f) stats.attackInterval /= 1f + runSpeed;
         }
         CurrentWeaponStats = stats;
         CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, CurrentWeaponItem != null ? CurrentWeaponItem.ResolvedElement : WeaponElement.None);

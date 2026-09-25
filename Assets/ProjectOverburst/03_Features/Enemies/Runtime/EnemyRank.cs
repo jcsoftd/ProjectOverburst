@@ -143,7 +143,8 @@ public sealed class EnemyRank : MonoBehaviour
         experienceGranted = true;
         PlayerProgression progression = PlayerProgression.Current;
         if (progression != null)
-            progression.AddExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level) * Encounter.ExperienceMultiplier));
+            progression.AddExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level)
+                * Encounter.ExperienceMultiplier * (1f + MapRunBuffs.Bonus(MapBuffKind.ExperienceGain))));
     }
 
     public string DisplayName

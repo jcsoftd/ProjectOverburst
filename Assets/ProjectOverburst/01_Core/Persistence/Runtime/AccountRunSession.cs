@@ -48,6 +48,10 @@ namespace Overburst.Persistence
             => account.ExecuteState("transfer-" + runId + "-" + objectId,
                 state => AccountRunCommands.Transfer(state, runId, objectId, itemId, account.ContentRegistry));
 
+        public bool ClaimEventCard(string runId, string eventId, int experience = 0)
+            => account.ExecuteState("event-card-" + runId + "-" + eventId,
+                state => AccountRunCommands.ClaimEventCard(state, runId, eventId, experience));
+
         public bool ClearBoss(string runId, long utcTicks)
         {
             var run = account.ReadRun();
