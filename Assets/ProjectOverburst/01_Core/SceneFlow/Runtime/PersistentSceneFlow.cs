@@ -203,6 +203,9 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         }
         currentSubSceneName = sceneName;
         ActivateSubScene(sceneName);
+        PlayerContext.Instance?.CurrentActorHealth?.SetRunMapModifiers(
+            1f - MapOptionPolicy.Value(gate.Map, MapOptionPolicy.PlayerHealth),
+            1f - MapOptionPolicy.Value(gate.Map, MapOptionPolicy.PlayerHealing));
         PlayerContext.Instance?.CurrentActorKit?.CancelCurrentActions(WeaponActionCancelReason.Recovery);
         ActorTeleportUtility.TeleportSafely(FindPlayer(), gate.EntryPoint.position, gate.EntryPoint.rotation);
         if (!string.IsNullOrEmpty(previous) && previous != sceneName && IsSceneLoaded(previous))
@@ -394,6 +397,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     {
         Scene scene = SceneManager.GetSceneByName(currentSubSceneName);
         ItemPickupSpawner.SpawnConfiguredPickupsInScene(scene);
+        MapDungeonPortal.SpawnInHideout(scene);
     }
 
     private IEnumerator LoadSubScene(string sceneName)

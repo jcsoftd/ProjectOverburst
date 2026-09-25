@@ -17,6 +17,9 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     private Coroutine activeDamageOverTimeRoutine; // DoT 루틴
     private readonly HashSet<Behaviour> damageDeathPreventionOwners = new HashSet<Behaviour>();
+    private float runMaxHpMultiplier = 1f;
+    private float runHealingMultiplier = 1f;
+    private float appliedRunMaxHpPenalty;
 
     // Runtime leases: inactive or destroyed owners cannot leave protection behind.
     public bool IsDeathFromDamagePrevented
@@ -139,7 +142,18 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (amount <= 0f || IsDead)
             return;
 
-        currentHp = Mathf.Min(maxHp, currentHp + amount);
+        currentHp = Mathf.Min(maxHp, currentHp + amount * runHealingMultiplier);
+        RaiseHealthChanged();
+    }
+
+    public void SetRunMapModifiers(float maxHpMultiplier, float healingMultiplier)
+    {
+        float unmodifiedMax = maxHp + appliedRunMaxHpPenalty;
+        runMaxHpMultiplier = Mathf.Clamp(maxHpMultiplier, .1f, 1f);
+        runHealingMultiplier = Mathf.Clamp(healingMultiplier, .1f, 1f);
+        maxHp = Mathf.Max(1f, unmodifiedMax * runMaxHpMultiplier);
+        appliedRunMaxHpPenalty = unmodifiedMax - maxHp;
+        currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
         RaiseHealthChanged();
     }
 
@@ -185,7 +199,9 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     public void SetMaxHp(float value, bool refill)
     {
-        maxHp = Mathf.Max(1f, value);
+        float unmodifiedMax = Mathf.Max(1f, value + appliedRunMaxHpPenalty);
+        maxHp = Mathf.Max(1f, unmodifiedMax * runMaxHpMultiplier);
+        appliedRunMaxHpPenalty = unmodifiedMax - maxHp;
 
         if (refill)
             currentHp = maxHp;

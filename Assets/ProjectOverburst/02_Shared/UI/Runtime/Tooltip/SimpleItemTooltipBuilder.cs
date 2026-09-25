@@ -33,6 +33,9 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         if (item.baseData is CurrencyItemData currencyData)
             return BuildCurrencyTooltip(item, currencyData);
 
+        if (item.baseData is MapItemData)
+            return BuildMapTooltip(item);
+
         return BuildDefaultTooltip(item);
     }
 
@@ -179,6 +182,27 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         AppendTitle(builder, item, item.itemName, item.level > 0);
         AppendDescription(builder, item);
         AppendPrice(builder, item);
+        return builder.ToString();
+    }
+
+    private static string BuildMapTooltip(ItemData item)
+    {
+        var builder = new StringBuilder();
+        AppendTitle(builder, item, item.itemName, true);
+        AppendSubtitle(builder, "지도 / " + MapThemeCatalog.DisplayName(item.mapState?.monsterThemeId));
+        AppendDescription(builder, item);
+        builder.Append("획득 경험치 +")
+            .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(item.mapState) - 1f) * 100f))
+            .AppendLine("%");
+        builder.Append("고등급 장비 보정 +")
+            .Append(Mathf.RoundToInt(MapOptionPolicy.HighGradeRollBias(item.grade) * 100f))
+            .AppendLine("%");
+        if (item.mapState?.options != null)
+            foreach (var option in item.mapState.options)
+            {
+                string text = MapOptionPolicy.Describe(option);
+                if (!string.IsNullOrEmpty(text)) builder.AppendLine(text);
+            }
         return builder.ToString();
     }
 

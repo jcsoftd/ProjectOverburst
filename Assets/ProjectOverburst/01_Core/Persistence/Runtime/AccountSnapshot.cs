@@ -91,6 +91,7 @@ namespace Overburst.Persistence
     [Serializable] public sealed class MapInstanceState
     {
         public string mapContentId;
+        public string monsterThemeId;
         public int level = 1;
         public ItemGrade grade;
         public List<MapOptionRoll> options = new List<MapOptionRoll>();

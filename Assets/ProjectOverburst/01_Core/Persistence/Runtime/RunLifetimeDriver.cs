@@ -89,7 +89,12 @@ namespace Overburst.Persistence
         private void WorldChanged(WorldPhase phase)
         {
             if (phase != WorldPhase.Hideout || !returnPending) return;
-            PlayerContext.Instance?.CurrentActorHealth?.ResetHealth();
+            var health = PlayerContext.Instance?.CurrentActorHealth;
+            if (health != null)
+            {
+                health.SetRunMapModifiers(1f, 1f);
+                health.ResetHealth();
+            }
             returnPending = returnRequested = false;
             outcome = RunOutcome.None;
             GameplayInputBlocker.Unblock(this);

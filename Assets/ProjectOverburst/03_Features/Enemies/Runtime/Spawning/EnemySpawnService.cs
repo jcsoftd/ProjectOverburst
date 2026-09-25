@@ -91,6 +91,7 @@ public sealed class EnemySpawnService : MonoBehaviour
         EnemyRuntimeStats stats = definition.ResolveRuntimeStats(
             request.DifficultyMultiplier,
             request.EncounterMultiplier);
+        stats = MapOptionPolicy.ApplyEnemyStats(stats, request.Encounter.Map);
         if (!rented.PrepareForLease(definition, stats, request))
         {
             pool.Release(rented);

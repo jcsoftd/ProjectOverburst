@@ -10,14 +10,16 @@ public static class FlaskLootPolicy
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() { catalog = null; gameplayCatalog = null; }
 
-    public static ItemData Roll(EnemyRank rank, int mapLevel)
+    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
     {
         if (GameplayCatalog.Length == 0) return null;
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
         float chance = boss ? 1f : elite ? .30f : .04f;
         if (Random.value >= chance) return null;
-        ItemGrade grade = SelectGrade(Random.value, mapLevel, boss, elite);
+        float roll = Random.value;
+        ItemGrade grade = SelectGrade(Mathf.Lerp(roll, 1f,
+            MapOptionPolicy.HighGradeRollBias(mapGrade)), mapLevel, boss, elite);
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         return new ItemData(GameplayCatalog[Random.Range(0, GameplayCatalog.Length)],
             itemLevel, grade);

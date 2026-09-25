@@ -8,10 +8,12 @@ public sealed class EncounterContext
     public int MapLevel { get; }
     public ItemGrade MapGrade { get; }
     public float ExperienceMultiplier { get; }
+    public MapInstanceState Map { get; }
     public bool IsRun => !string.IsNullOrEmpty(RunId);
     public static EncounterContext Test { get; } = new EncounterContext(null, 1, ItemGrade.Common);
 
-    public EncounterContext(string runId, int mapLevel, ItemGrade mapGrade, float experienceMultiplier = 1f)
+    public EncounterContext(string runId, int mapLevel, ItemGrade mapGrade, float experienceMultiplier = 1f,
+        MapInstanceState map = null)
     {
         if (mapLevel < 1 || mapLevel > 100) throw new ArgumentOutOfRangeException(nameof(mapLevel));
         if (!Enum.IsDefined(typeof(ItemGrade), mapGrade)) throw new ArgumentOutOfRangeException(nameof(mapGrade));
@@ -21,6 +23,7 @@ public sealed class EncounterContext
         MapLevel = mapLevel;
         MapGrade = mapGrade;
         ExperienceMultiplier = experienceMultiplier;
+        Map = map;
     }
 
     public bool MatchesRun(RunSnapshot run)

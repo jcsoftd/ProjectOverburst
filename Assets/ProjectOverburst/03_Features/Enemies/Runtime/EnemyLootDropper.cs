@@ -91,9 +91,9 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         if (encounter.IsRun)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
-            ItemData flask = FlaskLootPolicy.Roll(rank, encounter.MapLevel);
+            ItemData flask = FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade);
             if (flask != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(flask), dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
-            ItemData gear = GearLootPolicy.Roll(rank, encounter.MapLevel);
+            ItemData gear = GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade);
             if (gear != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(gear), dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
         }
         DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화

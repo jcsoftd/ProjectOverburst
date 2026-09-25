@@ -44,9 +44,13 @@ namespace Overburst.Persistence
             ItemGrade grade = ItemGradeAvailabilityPolicy.ResolveWeightedGrade(gradeRoll,
                 ItemGradeAvailabilityPolicy.IsEnabled(ItemGrade.Cursed));
             var item = new ItemData(definition, level, grade) { originRunId = runId };
-            item.mapState = new MapInstanceState { mapContentId = contentId, level = level, grade = grade };
-            if (rolledOptions != null)
-                foreach (var option in rolledOptions) item.mapState.options.Add(ItemSnapshotCodec.CopyValues(option));
+            item.mapState = new MapInstanceState
+            {
+                mapContentId = contentId, monsterThemeId = MapThemeCatalog.RollThemeId(),
+                level = level, grade = grade
+            };
+            var options = rolledOptions ?? MapOptionPolicy.Roll(grade);
+            foreach (var option in options) item.mapState.options.Add(ItemSnapshotCodec.CopyValues(option));
             return item;
         }
     }

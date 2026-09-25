@@ -50,6 +50,15 @@ public sealed class EnemyRank : MonoBehaviour
         AssignLevel();
     }
 
+    public void ConfigureTemporaryBoss(EncounterContext context)
+    {
+        ConfigureEncounter(context);
+        GradeType = EnemyGradeType.Boss;
+        rank = EnemyRankType.Elite;
+        displayName = "던전 보스";
+        unchecked { ActiveRevision++; }
+    }
+
     private void Awake()
     {
         CaptureAuthoredState();

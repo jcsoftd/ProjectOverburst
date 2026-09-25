@@ -14,8 +14,9 @@ public sealed class RunWorldGate : MonoBehaviour
     public void BeginPreparation(RunSnapshot run)
     {
         if (run == null || run.phase != RunPhase.EntryPending) throw new ArgumentException("Pending run required.");
-        Context = new EncounterContext(run.runId, run.map.level, run.map.grade);
         Map = ItemSnapshotCodec.CopyValues(run.map);
+        Context = new EncounterContext(run.runId, Map.level, Map.grade,
+            MapOptionPolicy.ExperienceMultiplier(Map), Map);
         IsReady = false; EntryPoint = null; Error = null;
     }
 
