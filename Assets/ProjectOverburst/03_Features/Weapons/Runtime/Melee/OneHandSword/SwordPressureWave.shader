@@ -71,15 +71,21 @@ Shader "OVERBURST/VFX/Sword Pressure Wave"
                 float angle = abs(atan2(p.x, p.y)) * 57.29578;
                 float tip = _ArcHalfAngle > 179.0 ? 1.0 :
                     1.0 - smoothstep(_ArcHalfAngle - _TipFadeDegrees, _ArcHalfAngle, angle);
-                float life = smoothstep(0.0, 0.075, t) * (1.0 - smoothstep(0.30, 1.0, t));
-                float front = lerp(_StartRadius, 0.965, 1.0 - pow(1.0 - t, 2.4));
+                float life = smoothstep(0.0, 0.045, t) * (1.0 - smoothstep(0.55, 1.0, t));
+                float front = lerp(_StartRadius, 0.96, pow(t, 0.72));
                 float width = _BandWidth * lerp(0.25, 1.0, tip);
                 float d = (radius - front) / max(width, 0.005);
-                float compression = exp2(-d * d * 5.0);
-                float tailD = (radius - front + width * 1.5) / max(width, 0.005);
-                float tail = exp2(-tailD * tailD * 7.0) * 0.32;
-                float mask = (compression + tail) * tip * life * _WaveOpacity;
+                // 선두 압축파 뒤의 두 잔파가 서로 다른 속도로 벌어진다.
+                float spacing = lerp(0.60, 1.10, t);
+                float compression = exp2(-d * d * 16.0);
+                float tailD = d + spacing;
+                float wakeD = d + spacing * 1.95;
+                float tail = exp2(-tailD * tailD * 20.0) * 0.58;
+                float wake = exp2(-wakeD * wakeD * 24.0) * 0.28;
+                float rarefaction = exp2(-pow(d + spacing * 0.45, 2.0) * 18.0) * 0.8;
+                float mask = (compression + tail + wake + rarefaction) * tip * life * _WaveOpacity;
                 mask *= 1.0 - smoothstep(0.975, 1.0, radius);
+                mask *= smoothstep(0.04, 0.15, radius);
 
                 float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
                 float rawDepth = SampleSceneDepth(screenUV);
@@ -100,12 +106,14 @@ Shader "OVERBURST/VFX/Sword Pressure Wave"
                     radial.y + waveNormal.x * 0.24);
                 float3 directionVS = TransformWorldToViewDir(TransformObjectToWorldDir(directionOS));
                 float2 screenDirection = directionVS.xy / max(length(directionVS.xy), 0.2);
-                float signedPressure = compression - tail * 1.4;
+                float signedPressure = compression - rarefaction + tail * 0.65 - wake * 0.4;
                 float2 offset = screenDirection * (_DistortionPixels / _ScaledScreenParams.xy)
                     * signedPressure * tip * life * (0.8 + waveNormal.z * 0.2);
                 half3 refracted = SampleSceneColor(saturate(screenUV + offset));
-                float crest = exp2(-d * d * 90.0);
-                refracted += _RimColor.rgb * crest * _RimStrength * tip * life;
+                float crest = exp2(-d * d * 55.0) + tail * 0.75 + wake * 0.45;
+                float surface = lerp(0.80, 1.0, saturate(waveNormal.z));
+                refracted *= 1.0 - rarefaction * tip * life * 0.13;
+                refracted += _RimColor.rgb * crest * _RimStrength * tip * life * surface;
                 return half4(refracted, saturate(mask * 0.92));
             }
             ENDHLSL

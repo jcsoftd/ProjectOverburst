@@ -30,11 +30,11 @@ Material:
     m_Ints: []
     m_Floats:
     - _ArcHalfAngle: 67.5
-    - _BandWidth: 0.13
+    - _BandWidth: 0.24
     - _DepthFade: 0.08
-    - _DistortionPixels: 16
-    - _RimStrength: 0.22
-    - _StartRadius: 0.5
+    - _DistortionPixels: 32
+    - _RimStrength: 0.52
+    - _StartRadius: 0.24
     - _TipFadeDegrees: 24
     - _WaveOpacity: 1
     - _WaveProgress: 0

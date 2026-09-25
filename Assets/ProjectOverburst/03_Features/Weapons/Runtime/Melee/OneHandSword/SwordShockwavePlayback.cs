@@ -32,6 +32,7 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
             return;
         }
         ApplyWaveProgress(0f, true);
+        SwordDistortionSurfaces.Set(this, true);
         for (int i = 0; i < particles.Length; i++)
         {
             if (particles[i] == null || !particles[i].gameObject.activeInHierarchy)
@@ -43,6 +44,7 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
 
     public void StopAndClearVfx()
     {
+        SwordDistortionSurfaces.Set(this, false);
         expanding = false;
         CacheParticles();
         ApplyWaveProgress(1f, false);
@@ -63,8 +65,13 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
         ApplyScale(progress);
         ApplyWaveProgress(progress, progress < 1f);
         if (progress >= 1f)
+        {
             expanding = false;
+            SwordDistortionSurfaces.Set(this, false);
+        }
     }
+
+    private void OnDisable() => SwordDistortionSurfaces.Set(this, false);
 
     private void ApplyScale(float progress)
     {
