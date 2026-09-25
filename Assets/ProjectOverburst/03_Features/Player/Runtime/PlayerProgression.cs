@@ -10,6 +10,8 @@ public sealed class PlayerProgression : MonoBehaviour
     private PlayerEquipment equipment;
     private CombatHealth health;
     private float appliedHealthBonus;
+    private int pendingExperience;
+    private float nextExperienceRetry;
 
     public static PlayerProgression Current => PlayerContext.Instance != null
         ? PlayerContext.Instance.GetComponent<PlayerProgression>() : null;
@@ -61,12 +63,33 @@ public sealed class PlayerProgression : MonoBehaviour
         BindActor(context != null ? context.CurrentActor : null);
     }
 
+    private void LateUpdate()
+    {
+        if (pendingExperience > 0 && Time.unscaledTime >= nextExperienceRetry)
+            FlushPendingExperience();
+    }
+
+    public bool FlushPendingExperience()
+    {
+        if (pendingExperience == 0) return true;
+        if (!Overburst.Persistence.AccountGameplaySession.ShouldRoute) return false;
+        int amount = pendingExperience;
+        bool committed = Overburst.Persistence.AccountGameplaySession.Run(() =>
+        {
+            AddExperience(amount);
+            return true;
+        });
+        if (committed) { pendingExperience -= amount; nextExperienceRetry = 0f; }
+        else nextExperienceRetry = Time.unscaledTime + 1f;
+        return committed;
+    }
+
     public void AddExperience(int amount)
     {
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
         {
-            Overburst.Persistence.AccountGameplaySession.Run(() => { AddExperience(amount); return true; });
+            pendingExperience = checked(pendingExperience + amount);
             return;
         }
         int previousLevel = Level;
@@ -118,6 +141,7 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void Save()
     {
+        FlushPendingExperience();
         if (Overburst.Persistence.AccountGameplaySession.Current != null || Overburst.Persistence.AccountBootstrap.Attempted) return;
         PlayerPrefs.SetInt(LevelKey, Level);
         PlayerPrefs.SetInt(ExperienceKey, Experience);
