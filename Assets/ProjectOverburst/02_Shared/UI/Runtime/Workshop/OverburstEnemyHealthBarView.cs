@@ -10,7 +10,12 @@ public sealed class OverburstEnemyHealthBarView : MonoBehaviour
     [SerializeField] private Text levelText;
     [SerializeField] private Text nameText;
     public Image HealthFill => healthFill;
-    public void PresentTarget(string displayName,string rank,float health){Present(displayName,1,health);}
+    public void PresentTarget(string displayName,string rank,float health){PresentTarget(displayName,rank,1,health);}
+    public void PresentTarget(string displayName,string rank,int level,float health)
+    {
+        Present(displayName,level,health);
+        if(levelText)levelText.text=Mathf.Clamp(level,1,OverburstGrowthRules.MaximumLevel).ToString();
+    }
     public void Configure(Image fill, Text percentage, Text level, Text name)
     { healthFill = fill; percentageText = percentage; levelText = level; nameText = name; }
     public void Present(string displayName, int level, float normalizedHealth)

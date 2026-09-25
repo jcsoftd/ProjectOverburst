@@ -173,7 +173,7 @@ public sealed class PlayerControlKit : MonoBehaviour
         SetEnabled(health, active);
         SetEnabled(inventory, active);
         SetEnabled(equipment, active);
-        SetEnabled(staminaController, active);
+        SetEnabled(staminaController, false);
         SetEnabled(buffController, active);
         SetEnabled(movementInputSource, player);
         SetEnabled(movement, controllable);

@@ -13,8 +13,12 @@ public sealed class OverburstGameUI : MonoBehaviour
     public FlaskEquipmentPanelUI flaskEquipment;
     public Text inventoryCapacity,stashCapacity;
     private Text hpText,energyText,region,regionDetails,characterDetail;
+    private Text levelText,xpText;
     private Image hpFill,energyFill;
+    private RectTransform xpFillMask;
+    private float xpTrackWidth;
     private Text[] stats;
+    private GearEquipmentPanelUI gearPanel;
     private float nextRefresh;
     private PlayerContext context;
     private StashSlotBridge stashBridge;
@@ -43,16 +47,22 @@ public sealed class OverburstGameUI : MonoBehaviour
         hpFill=hud.Find("Action Bar Unit Frame/Bar (Health)/Fill").GetComponent<Image>();
         energyFill=hud.Find("Action Bar Unit Frame/Bar (Power)/Fill").GetComponent<Image>();
         region=hud.Find("Current Region/Region Name").GetComponent<Text>();regionDetails=hud.Find("Current Region/Region Details").GetComponent<Text>();
-        // Level progression does not exist yet; never ship workshop example levels as live data.
-        hud.Find("Action Bar Unit Frame/Level Frame/Text").GetComponent<Text>().text="—";
+        levelText=hud.Find("Action Bar Unit Frame/Level Frame/Text").GetComponent<Text>();
         var xpBar=hud.Find("Action Bar/XP Bar");
         if(xpBar){
             xpBar.gameObject.SetActive(true);
-            var fillMask=xpBar.Find("Fill Rect/Fill Mask") as RectTransform;
-            if(fillMask)fillMask.sizeDelta=new Vector2(0,fillMask.sizeDelta.y);
+            xpFillMask=xpBar.Find("Fill Rect/Fill Mask") as RectTransform;
+            var fillRect=xpBar.Find("Fill Rect") as RectTransform;
+            xpTrackWidth=fillRect?fillRect.sizeDelta.x:0f;
+            xpText=xpBar.Find("Tooltip/XP Text")?.GetComponent<Text>();
         }
         characterDetail=equipmentWindow.transform.Find("Layout/Character Detail").GetComponent<Text>();
         stats=new Text[12];for(int i=0;i<12;i++)stats[i]=equipmentWindow.transform.Find("Layout/Stat Value "+i/4+" "+i%4).GetComponent<Text>();
+        string[] bonusLabels={"일반 몬스터 피해","약공 피해","강공 피해","정예·보스 피해"};
+        for(int i=8;i<12;i++)equipmentWindow.transform.Find("Layout/Stat Label "+i/4+" "+i%4).GetComponent<Text>().text=bonusLabels[i-8];
+        gearPanel=equipmentWindow.GetComponent<GearEquipmentPanelUI>();
+        if(!gearPanel)gearPanel=equipmentWindow.gameObject.AddComponent<GearEquipmentPanelUI>();
+        gearPanel.Bind();
         equipmentWindow.gameObject.SetActive(false);
         Refresh();
     }
@@ -75,6 +85,12 @@ public sealed class OverburstGameUI : MonoBehaviour
     public void Refresh(){
         if(!context)context=PlayerContext.GetOrCreate();if(!context)return;
         var health=context.CurrentActorHealth;var equipment=context.CurrentActorEquipment;
+        var progression=PlayerProgression.Current;
+        int playerLevel=progression?progression.Level:1;
+        levelText.text=playerLevel.ToString();
+        if(xpFillMask)xpFillMask.sizeDelta=new Vector2(xpTrackWidth*(progression?progression.ExperienceProgress:0f),xpFillMask.sizeDelta.y);
+        if(xpText)xpText.text=progression&&playerLevel<OverburstGrowthRules.MaximumLevel
+            ? $"{progression.Experience:N0} / {progression.ExperienceToNext:N0}" : "MAX";
         var energy=equipment?equipment.GetComponent<OverburstElementEnergy>():null;
         if(health){hpFill.fillAmount=health.NormalizedHp;hpText.text=$"{health.CurrentHp:N0} / {health.MaxHp:N0}";}
         energyFill.fillAmount=energy?energy.Normalized:0;
@@ -90,13 +106,16 @@ public sealed class OverburstGameUI : MonoBehaviour
         var inv=context.CurrentActorInventory;if(inv){int used=0;foreach(var item in inv.Items)if(item!=null)used++;inventoryCapacity.text=$"{used} / {inv.UnlockedSlotCount}";}
         if(stashBridge&&stashWindow.gameObject.activeSelf){int tab=stashBridge.CurrentTabIndex;if(tab!=lastTab){lastTab=tab;var buttons=stashWindow.transform.Find("Tab Menu/Buttons Group");for(int i=0;i<3;i++)buttons.Find("Tab Button ("+(i+1)+")/Active").gameObject.SetActive(i==tab);}int used=0;foreach(var slot in stashWindow.GetComponentsInChildren<SlotUI>(true))if(slot.DisplayItem!=null)used++;stashCapacity.text=$"{used} / 63";}
         if(!equipmentWindow.gameObject.activeSelf)return;
-        var weapon=equipment?equipment.CurrentWeaponItem:null;var calculated=WeaponStatCalculator.Calculate(weapon);
-        characterDetail.text=weapon!=null?weapon.itemName:"무기 미장착";
-        stats[0].text=health?health.MaxHp.ToString("N0"):"—";stats[1].text=energyValue;stats[2].text="—";
+        gearPanel.Refresh(equipment);
+        var weapon=equipment?equipment.CurrentWeaponItem:null;var calculated=equipment?equipment.CurrentWeaponStats:WeaponFinalStats.Empty;
+        var gear=GearStatTotals.From(equipment);
+        characterDetail.text=(weapon!=null?weapon.itemName:"무기 미장착")+$"  ·  원소 피해 +{gear.ElementalDamage:0.##}%";
+        stats[0].text=health?health.MaxHp.ToString("N0"):"—";stats[1].text=energyValue;stats[2].text=progression?progression.Armor.ToString("0.#"):"0";
         stats[3].text=context.CurrentActorMovement?context.CurrentActorMovement.RunMoveSpeed.ToString("0.0"):"—";
         stats[4].text=weapon!=null?calculated.damage.ToString("0.##"):"—";stats[5].text=weapon!=null?calculated.meleeAttackSpeedMultiplier.ToString("0.##")+"×":"—";
         stats[6].text=weapon!=null?calculated.critChance.ToString("0.##")+"%":"—";stats[7].text=weapon!=null?(calculated.critDamageMultiplier*100).ToString("0.##")+"%":"—";
-        for(int i=8;i<12;i++)stats[i].text="—";
+        stats[8].text=$"+{gear.NormalDamage:0.##}%";stats[9].text=$"+{gear.WeakDamage:0.##}%";
+        stats[10].text=$"+{gear.HeavyDamage:0.##}%";stats[11].text=$"+{gear.EliteBossDamage:0.##}%";
         var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;if(shownFlasks[i]!=item||shownKeys[i]!=key){shownFlasks[i]=item;shownKeys[i]=key;flasks[i].Present(item?.icon,item!=null?item.grade:ItemGrade.Common,key>0?(key%10).ToString():"");}}
     }
 }

@@ -1,12 +1,19 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
 public static class FloatingFeedbackTextStyle
 {
     private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.8f);
-    private static Material sourceMaterial;
-    private static Material sharedNormalMaterial;
-    private static Material sharedReactionMaterial;
+    private sealed class StyleMaterials
+    {
+        public Material Normal;
+        public Material Reaction;
+    }
+
+    // Several font families can be visible at once while the player cycles debug choices.
+    private static readonly Dictionary<Material, StyleMaterials> MaterialsBySource =
+        new Dictionary<Material, StyleMaterials>();
 
     public static void Apply(TMP_Text text, Material baseMaterial)
     {
@@ -30,42 +37,31 @@ public static class FloatingFeedbackTextStyle
         if (source == null)
             return;
 
-        EnsureSharedMaterials(source);
-        text.fontSharedMaterial = isReaction ? sharedReactionMaterial : sharedNormalMaterial;
+        StyleMaterials materials = EnsureSharedMaterials(source);
+        text.fontSharedMaterial = isReaction ? materials.Reaction : materials.Normal;
     }
 
-    private static void EnsureSharedMaterials(Material source)
+    private static StyleMaterials EnsureSharedMaterials(Material source)
     {
-        if (sourceMaterial == source && sharedNormalMaterial != null && sharedReactionMaterial != null)
-            return;
+        if (MaterialsBySource.TryGetValue(source, out StyleMaterials existing)
+            && existing.Normal != null && existing.Reaction != null)
+            return existing;
 
-        DestroySharedMaterial(ref sharedNormalMaterial);
-        DestroySharedMaterial(ref sharedReactionMaterial);
-        sourceMaterial = source;
-        sharedNormalMaterial = new Material(source)
+        var materials = new StyleMaterials();
+        materials.Normal = new Material(source)
         {
             name = source.name + "_FloatingShadow_Shared",
             hideFlags = HideFlags.HideAndDontSave
         };
-        sharedReactionMaterial = new Material(source)
+        materials.Reaction = new Material(source)
         {
             name = source.name + "_ReactionShadow_Shared",
             hideFlags = HideFlags.HideAndDontSave
         };
-        ApplyMaterial(sharedNormalMaterial, false);
-        ApplyMaterial(sharedReactionMaterial, true);
-    }
-
-    private static void DestroySharedMaterial(ref Material material)
-    {
-        if (material == null)
-            return;
-
-        if (Application.isPlaying)
-            Object.Destroy(material);
-        else
-            Object.DestroyImmediate(material);
-        material = null;
+        ApplyMaterial(materials.Normal, false);
+        ApplyMaterial(materials.Reaction, true);
+        MaterialsBySource[source] = materials;
+        return materials;
     }
 
     private static void ApplyMaterial(Material material, bool isReaction)

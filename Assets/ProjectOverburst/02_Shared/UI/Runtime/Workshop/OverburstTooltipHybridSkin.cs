@@ -98,12 +98,14 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         SetRect(headerRule.rectTransform, 26f, ruleY, ContentWidth, 1f);
 
         HideStructuredContent();
-        if (item.baseData is WeaponItemData || item.baseData is FlaskItemData)
+        if (item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData)
         {
             List<Stat> stats = new List<Stat>(12);
             string notes = string.Empty;
             bool isFlask = item.baseData is FlaskItemData;
-            if (isFlask)
+            if (item.baseData is GearItemData)
+                CollectGearStats(item, rawLines, stats);
+            else if (isFlask)
                 CollectFlaskStats(item, rawLines, stats, out notes);
             else
                 CollectWeaponStats(item, rawLines, stats);
@@ -216,12 +218,13 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private void RenderStats(ItemData item, bool isFlask, List<Stat> stats, string notes,
         string priceOverride, float ruleY, TMP_SpriteAsset spriteAsset)
     {
-        int primaryCount = Mathf.Min(isFlask ? 2 : 5, stats.Count);
+        bool isGear = item.baseData is GearItemData;
+        int primaryCount = Mathf.Min(isGear ? 1 : isFlask ? 2 : 5, stats.Count);
         float rowHeight = isFlask ? 41f : 34f;
         float y = ruleY + 19f;
         primaryHeading.text = isFlask && item.baseData is FlaskItemData flask &&
             (flask.kind == FlaskKind.Life || flask.kind == FlaskKind.Regeneration)
-            ? "회복 성능" : isFlask ? "주요 효과" : "전투 성능";
+            ? "회복 성능" : isFlask ? "주요 효과" : isGear ? "주능력치" : "전투 성능";
         qualityHeading.text = "품질 각인";
         SetRect(primaryHeading.rectTransform, 26f, y, 180f, 24f);
         SetRect(qualityHeading.rectTransform, 286f, y, 120f, 24f);
@@ -239,7 +242,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             SetRect(secondaryRule.rectTransform, 26f, y, ContentWidth, 1f);
             secondaryRule.gameObject.SetActive(true);
             y += 18f;
-            secondaryHeading.text = isFlask ? "사용 주기" : "보조 성능";
+            secondaryHeading.text = isFlask ? "사용 주기" : isGear ? "보조능력치" : "보조 성능";
             SetRect(secondaryHeading.rectTransform, 26f, y, ContentWidth, 24f);
             secondaryHeading.gameObject.SetActive(true);
             y += 30f;
@@ -338,8 +341,21 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         for (int i = 2; i < lines.Length; i++)
         {
             string plain = Tags.Replace(lines[i], string.Empty).Trim();
-            if (plain.StartsWith("가치", StringComparison.Ordinal)) continue;
+            if (plain.StartsWith("가치", StringComparison.Ordinal)
+                || plain.StartsWith("아이템 레벨", StringComparison.Ordinal)) continue;
             if (TryParseStat(item, lines[i], out Stat stat)) stats.Add(stat);
+        }
+    }
+
+    private static void CollectGearStats(ItemData item, string[] lines, List<Stat> stats)
+    {
+        for (int i = 2; i < lines.Length; i++)
+        {
+            string raw = lines[i].Trim();
+            if (raw.StartsWith("주능력치  ", StringComparison.Ordinal)) raw = raw.Substring("주능력치  ".Length);
+            else if (raw.StartsWith("보조능력치  ", StringComparison.Ordinal)) raw = raw.Substring("보조능력치  ".Length);
+            else continue;
+            if (TryParseStat(item, raw, out Stat stat)) stats.Add(stat);
         }
     }
 
@@ -353,6 +369,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             string raw = lines[i].Trim();
             if (raw.Length == 0) continue;
             string plain = Tags.Replace(raw, string.Empty).Trim();
+            if (plain.StartsWith("아이템 레벨", StringComparison.Ordinal)) continue;
             if (plain == "최종 효과") { inDetails = true; continue; }
             if (!inDetails) { status = raw; continue; }
             if (stats.Count < 4 && TryParseStat(item, raw, out Stat stat)) stats.Add(stat);
@@ -392,7 +409,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             string color = m.Groups[1].Value.ToUpperInvariant();
             int index = color == "#59FF59" || color == "#68AA84" ? 1
                 : color == "#FFD84A" || color == "#D2A85D" ? 2
-                : color == "#FF4A4A" || color == "#E29A8E" ? 3 : 0;
+                : color == "#FF4A4A" || color == "#E29A8E" || color == "#D76A63" ? 3 : 0;
             int count = m.Value.Count(c => c == '★' || c == '◆');
             return string.Concat(Enumerable.Repeat("<sprite index=" + index + " tint=0>", count));
         }));

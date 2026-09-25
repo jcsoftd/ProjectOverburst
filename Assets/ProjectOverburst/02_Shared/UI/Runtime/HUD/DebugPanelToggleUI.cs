@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,7 @@ public class DebugPanelToggleUI : MonoBehaviour
         }
 
         ResolveReferences();
+        AttachDamageNumberFeelControls();
         RegisterButton();
         SetExpanded(startsExpanded);
     }
@@ -67,6 +69,34 @@ public class DebugPanelToggleUI : MonoBehaviour
 
         if (label == null)
             label = GetComponentInChildren<TextMeshProUGUI>(true);
+    }
+
+    private void AttachDamageNumberFeelControls()
+    {
+        if (transform.parent == null || transform.parent.name != "DebugPanel")
+            return;
+
+        Transform existing = transform.parent.Find("DamageNumberFeelDebugUI");
+        GameObject controls = existing != null ? existing.gameObject : null;
+        if (controls == null)
+        {
+            GameObject prefab = Resources.Load<GameObject>("UI/Debug/PF_DamageNumberFeelDebugUI");
+            if (prefab == null)
+            {
+                Debug.LogWarning("[DebugPanelToggleUI] 데미지 숫자 비교 UI 프리팹을 찾지 못했습니다.", this);
+                return;
+            }
+            controls = Instantiate(prefab, transform.parent, false);
+            controls.name = "DamageNumberFeelDebugUI";
+        }
+
+        GameObject[] previous = controlledObjects ?? Array.Empty<GameObject>();
+        if (Array.IndexOf(previous, controls) >= 0)
+            return;
+        var next = new GameObject[previous.Length + 1];
+        Array.Copy(previous, next, previous.Length);
+        next[previous.Length] = controls;
+        controlledObjects = next;
     }
 
     private void RegisterButton()

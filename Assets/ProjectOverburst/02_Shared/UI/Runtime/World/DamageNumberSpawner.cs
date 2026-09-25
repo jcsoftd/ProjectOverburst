@@ -22,6 +22,8 @@ public sealed class DamageNumberSpawner : MonoBehaviour
     private static readonly Color ChainShockReactionColor = new Color(201f / 255f, 164f / 255f, 1f, 1f);
     private static readonly Color ColdChargeReactionColor = new Color(191f / 255f, 215f / 255f, 1f, 1f);
     private static readonly Color ColdChargeProcColor = new Color(221f / 255f, 244f / 255f, 1f, 1f);
+    private static readonly Color[] PreviewColors = { Color.white, Color.white, Color.white, Color.white };
+    private static readonly int[] PreviewAmounts = { 128, 256, 184, 72 };
     private const float ReactionWorldOffset = 1.15f;
 
     [SerializeField] private GameObject damageNumberPrefab;
@@ -106,13 +108,39 @@ public sealed class DamageNumberSpawner : MonoBehaviour
         }
     }
 
+    public static int PreviewSelectedPreset()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!TryResolveInstance(out DamageNumberSpawner spawner))
+            return 0;
+        Camera camera = spawner.ResolvePresentationCamera();
+        if (camera == null)
+            return 0;
+
+        int shown = 0;
+        float depth = Mathf.Max(4f, camera.nearClipPlane + 1f);
+        for (int i = 0; i < PreviewAmounts.Length; i++)
+        {
+            Vector3 position = camera.ViewportToWorldPoint(new Vector3(.39f + i * .075f, .62f, depth));
+            if (!spawner.CanPresent(position))
+                continue;
+            DamageNumberPopup popup = spawner.GetPopup();
+            if (popup == null)
+                break;
+            popup.Initialize(PreviewAmounts[i], i == 1, PreviewColors[i], position, spawner.ReleasePopup);
+            shown++;
+        }
+        return shown;
+#else
+        return 0;
+#endif
+    }
+
     public static Color ResolveDamageNumberColor(DamageInfo info)
     {
-        if (info.elementalReactionType == ElementalReactionType.Vaporize)
-            return VaporizeReactionColor;
-        if (info.elementalReactionType == ElementalReactionType.ThermalFracture)
-            return FractureReactionColor;
-        return ResolveElementDamageColor(info.element);
+        // Standard attacks share one palette regardless of the weapon element or reaction.
+        // A future status-damage path can choose its own color without changing this one.
+        return info.isCritical ? DamageNumberPopup.CriticalAttackColor : Color.white;
     }
 
     public static float ResolveDamageNumberHorizontalOffsetRange(DamageInfo info)
