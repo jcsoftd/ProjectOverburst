@@ -90,6 +90,12 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     public int StoreAllInventoryItemsToCurrentTab()
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            int moved = 0;
+            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => { moved = StoreAllInventoryItemsToCurrentTab(); return moved > 0; });
+            return committed ? moved : 0;
+        }
         ResolveReferences(); // 이동 전 참조
         LastStoreAllFailedCount = 0; // 실패 초기화
 
@@ -97,7 +103,7 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
             return 0;
 
         int movedCount = 0; // 이동 수
-        int unlockedCount = inventory.UnlockedSlotCount; // 일반 슬롯
+        int unlockedCount = inventory.Items.Count; // 초과 보관품도 창고 이동 허용
 
         for (int i = 0; i < unlockedCount; i++)
         {
@@ -284,14 +290,18 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     private bool TryMoveInventoryToStash(int inventoryIndex, int stashIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TryMoveInventoryToStash(inventoryIndex, stashIndex));
         if (inventory == null || stash == null)
             return false;
 
         ItemData sourceItem = inventory.GetItemAt(inventoryIndex); // 원본
         ItemData targetItem = stash.GetItemAt(stashIndex); // 대상
 
-        if (sourceItem == null || inventoryIndex < 0 || inventoryIndex >= inventory.UnlockedSlotCount)
+        if (sourceItem == null || inventoryIndex < 0 || inventoryIndex >= inventory.Capacity || !string.IsNullOrEmpty(sourceItem.originRunId))
             return false;
+
+        if (inventoryIndex >= inventory.UnlockedSlotCount && targetItem != null && !stash.CanStack(sourceItem, targetItem)) return false;
 
         if (targetItem != null && (ReferenceEquals(sourceItem, targetItem) || sourceItem.IsSameRuntimeItem(targetItem)))
             return false;
@@ -344,8 +354,12 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     private bool TryMoveStashToInventory(int stashIndex, int inventoryIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TryMoveStashToInventory(stashIndex, inventoryIndex));
         if (inventory == null || stash == null)
             return false;
+
+        if (inventory.IsOverCapacity) return false;
 
         if (inventoryIndex < 0 || inventoryIndex >= inventory.UnlockedSlotCount)
             return false;

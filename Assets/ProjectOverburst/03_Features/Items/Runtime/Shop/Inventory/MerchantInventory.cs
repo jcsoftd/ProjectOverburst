@@ -10,6 +10,18 @@ public class MerchantInventory
 
     public IReadOnlyList<ItemData> Items { get { return items; } }
     public int Capacity { get { return capacity; } }
+    internal IReadOnlyList<ItemData> CurrencyItems => currencyItems;
+
+    internal void ApplyAccountItems(int savedCapacity, IEnumerable<ItemData> stock, IEnumerable<ItemData> currency)
+    {
+        if (savedCapacity < 1) throw new System.ArgumentOutOfRangeException(nameof(savedCapacity));
+        var restoredStock = new List<ItemData>(stock);
+        var restoredCurrency = new List<ItemData>(currency);
+        if (restoredStock.Count != savedCapacity) throw new System.ArgumentException("Invalid merchant stock size.");
+        capacity = savedCapacity;
+        items.Clear(); items.AddRange(restoredStock);
+        currencyItems.Clear(); currencyItems.AddRange(restoredCurrency);
+    }
 
     public void InitializeEmpty(int inventoryCapacity)
     {
@@ -104,7 +116,7 @@ public class MerchantInventory
             }
             else
             {
-                stackItem = new ItemData(item.baseData, item.level, item.grade, stackCount);
+                stackItem = item.CopyStack(stackCount, true);
             }
 
             stackItem.EnsureRuntimeState();
@@ -419,6 +431,7 @@ public class MerchantInventory
         return source.baseData == target.baseData
             && source.grade == target.grade
             && source.level == target.level
+            && source.originRunId == target.originRunId
             && target.stackCount > 0
             && target.stackCount < GetMaxStack(target)
             && IsStackableItem(source);
@@ -426,7 +439,7 @@ public class MerchantInventory
 
     private ItemData CloneForSimulation(ItemData item)
     {
-        return new ItemData(item.baseData, item.level, item.grade, item.stackCount);
+        return item.CopyStack(item.stackCount, false);
     }
 
     private bool IsCurrency(ItemData item, CurrencyType type)

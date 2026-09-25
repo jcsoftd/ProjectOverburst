@@ -38,7 +38,8 @@ public sealed class HealConsumableUseHandler : IItemUseHandler
         if (!canUse.Success)
             return canUse;
 
-        PlayerHealFeedback.ApplyHeal(context.PlayerHealth, ResolveHealAmount(context));
+        float amount = ResolveHealAmount(context);
+        Overburst.Persistence.AccountGameplaySession.Notify(() => PlayerHealFeedback.ApplyHeal(context.PlayerHealth, amount));
         return ItemUseResult.Ok(GetUseMessage(context.Item, context.ConsumableData, "Consumable used."));
     }
 

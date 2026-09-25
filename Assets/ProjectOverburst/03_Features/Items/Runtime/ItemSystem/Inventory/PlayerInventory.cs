@@ -13,6 +13,18 @@ public class PlayerInventory : MonoBehaviour
     public IReadOnlyList<ItemData> Items => items;
     public int Capacity => capacity;
     public int UnlockedSlotCount => Mathf.Clamp(unlockedSlotCount, 0, capacity);
+    public bool IsOverCapacity => HasItemsAtOrBeyond(UnlockedSlotCount);
+
+    internal void ApplyAccountItems(List<ItemData> values, int savedCapacity, int savedUnlockedSlots)
+    {
+        if (values == null || values.Count != savedCapacity || savedUnlockedSlots < 0 || savedUnlockedSlots > savedCapacity)
+            throw new System.ArgumentException("Invalid account inventory projection.");
+        capacity = savedCapacity;
+        unlockedSlotCount = savedUnlockedSlots;
+        items = values;
+    }
+
+    internal void NotifyAccountApplied() => Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
 
     private void Awake()
     {
@@ -22,6 +34,10 @@ public class PlayerInventory : MonoBehaviour
 
     public bool AddItem(ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => AddItem(item));
+        Overburst.Persistence.AccountGameplaySession.TrackStack(item);
+        if (IsOverCapacity) return false;
         if (item == null || !item.HasValidBaseData)
             return false;
 
@@ -67,7 +83,7 @@ public class PlayerInventory : MonoBehaviour
             }
             else
             {
-                stackItem = new ItemData(item.baseData, item.level, item.grade, stackCount);
+                stackItem = item.CopyStack(stackCount, true);
             }
 
             stackItem.EnsureRuntimeState();
@@ -81,13 +97,15 @@ public class PlayerInventory : MonoBehaviour
         }
 
         if (changed)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
 
         return changed;
     }
 
     public bool RemoveItem(ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => RemoveItem(item));
         if (item == null)
             return false;
 
@@ -96,6 +114,8 @@ public class PlayerInventory : MonoBehaviour
 
     public bool ConsumeItem(ItemData item, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ConsumeItem(item, amount));
         if (item == null || amount <= 0)
             return false;
 
@@ -104,7 +124,8 @@ public class PlayerInventory : MonoBehaviour
             return false;
 
         ItemData target = items[index];
-        if (target == null || target.stackCount <= 0)
+        Overburst.Persistence.AccountGameplaySession.TrackStack(target);
+        if (target == null || target.stackCount <= 0 || amount > target.stackCount)
             return false;
 
         if (target.stackCount > amount)
@@ -112,7 +133,7 @@ public class PlayerInventory : MonoBehaviour
         else
             items[index] = null;
 
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -188,6 +209,8 @@ public class PlayerInventory : MonoBehaviour
 
     public bool SetItemAt(int index, ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SetItemAt(index, item));
         if (index < 0 || index >= UnlockedSlotCount)
             return false;
 
@@ -202,7 +225,7 @@ public class PlayerInventory : MonoBehaviour
 
         EnsureSlotExists(index);
         items[index] = item;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -227,18 +250,22 @@ public class PlayerInventory : MonoBehaviour
 
     public bool TryReplaceOwnedItemAt(int index, ItemData expected, ItemData replacement)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TryReplaceOwnedItemAt(index, expected, replacement));
         if (!CanReplaceOwnedItemAt(index, expected, replacement))
             return false;
 
         replacement?.EnsureRuntimeState();
         EnsureSlotExists(index);
         items[index] = replacement; // 한 슬롯에서 소유권 교체
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool MoveOrSwapItems(int fromIndex, int toIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => MoveOrSwapItems(fromIndex, toIndex));
         return MoveMergeOrSwapItems(fromIndex, toIndex);
     }
 
@@ -250,6 +277,8 @@ public class PlayerInventory : MonoBehaviour
 
     public bool SplitStackAt(int index, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SplitStackAt(index, amount));
         int activeCapacity = UnlockedSlotCount;
         if (index < 0 || index >= items.Count || index >= activeCapacity)
             return false;
@@ -263,22 +292,24 @@ public class PlayerInventory : MonoBehaviour
         if (emptySlot < 0)
             return false;
 
-        ItemData splitItem = new ItemData(source.baseData, source.level, source.grade, splitCount);
+        ItemData splitItem = source.CopyStack(splitCount, true);
         splitItem.EnsureRuntimeState();
         splitItem.acquisitionOrder = source.acquisitionOrder;
 
         source.stackCount -= splitCount;
         EnsureSlotExists(emptySlot);
         items[emptySlot] = splitItem;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool MoveMergeOrSwapItems(int fromIndex, int toIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => MoveMergeOrSwapItems(fromIndex, toIndex));
         int activeCapacity = UnlockedSlotCount;
 
-        if (fromIndex < 0 || fromIndex >= items.Count || fromIndex >= activeCapacity || toIndex < 0 || toIndex >= activeCapacity)
+        if (fromIndex < 0 || fromIndex >= items.Count || toIndex < 0 || toIndex >= activeCapacity)
             return false;
 
         if (fromIndex == toIndex)
@@ -300,18 +331,20 @@ public class PlayerInventory : MonoBehaviour
             if (fromItem.stackCount <= 0)
                 items[fromIndex] = null;
 
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
             return true;
         }
 
         items[fromIndex] = targetItem;
         items[toIndex] = fromItem;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool ClearSlot(int index)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearSlot(index));
         if (index < 0 || index >= items.Count)
             return false;
 
@@ -319,12 +352,14 @@ public class PlayerInventory : MonoBehaviour
             return false;
 
         items[index] = null;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool ClearFirstMatchingItem(ItemData item, int exceptIndex = -1)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearFirstMatchingItem(item, exceptIndex));
         if (item == null)
             return false;
 
@@ -334,7 +369,7 @@ public class PlayerInventory : MonoBehaviour
                 continue;
 
             items[i] = null;
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
             return true;
         }
 
@@ -343,6 +378,8 @@ public class PlayerInventory : MonoBehaviour
 
     public bool ClearAllMatchingItems(ItemData item, int exceptIndex = -1)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearAllMatchingItems(item, exceptIndex));
         if (item == null)
             return false;
 
@@ -358,13 +395,14 @@ public class PlayerInventory : MonoBehaviour
         }
 
         if (changed)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
 
         return changed;
     }
 
     public int FindFirstEmptySlot()
     {
+        if (IsOverCapacity) return -1;
         for (int i = 0; i < UnlockedSlotCount; i++)
         {
             EnsureSlotExists(i);
@@ -380,14 +418,11 @@ public class PlayerInventory : MonoBehaviour
     {
         int clamped = Mathf.Clamp(value, 0, capacity);
 
-        if (HasItemsAtOrBeyond(clamped))
-            return false;
-
         if (unlockedSlotCount == clamped)
             return true;
 
         unlockedSlotCount = clamped;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -433,11 +468,13 @@ public class PlayerInventory : MonoBehaviour
     public void Clear()
     {
         items.Clear();
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
 
     public bool SortUnlockedSlots(ItemSortMode sortMode, ItemSortDirection sortDirection)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SortUnlockedSlots(sortMode, sortDirection));
         int activeCapacity = UnlockedSlotCount;
         if (activeCapacity <= 1)
             return false;
@@ -447,7 +484,7 @@ public class PlayerInventory : MonoBehaviour
 
         ConsolidateUnlockedStacks(activeCapacity);
         ItemSortComparer.Sort(items, 0, activeCapacity, sortMode, sortDirection);
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -520,7 +557,7 @@ public class PlayerInventory : MonoBehaviour
         if (source.baseData == null || target.baseData == null || source.baseData != target.baseData)
             return false;
 
-        if (source.grade != target.grade || source.level != target.level)
+        if (source.grade != target.grade || source.level != target.level || source.originRunId != target.originRunId)
             return false;
 
         if (source.stackCount <= 0 || target.stackCount <= 0)
@@ -599,4 +636,6 @@ public class PlayerInventory : MonoBehaviour
 
         return IsSameRuntimeItem(left, right);
     }
+
+    private void RaiseChanged() => Changed?.Invoke();
 }

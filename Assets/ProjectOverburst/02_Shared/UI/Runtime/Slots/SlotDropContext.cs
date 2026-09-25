@@ -1,4 +1,4 @@
-﻿using UnityEngine.EventSystems;
+using UnityEngine.EventSystems;
 
 public class SlotDropContext // 드롭 정보
 {
@@ -9,7 +9,6 @@ public class SlotDropContext // 드롭 정보
     public ItemData OriginItem { get; private set; }
     public PointerEventData EventData { get; private set; }
     public ISlotInteractionBridge Bridge { get; private set; }
-    public EquippedComboGemInventoryDropSource EquippedComboGemSource { get; private set; }
 
     public bool TargetIsWeaponSlot => TargetSlot != null && TargetSlot.IsWeaponSlot;
     public int TargetSlotIndex => TargetSlot != null ? TargetSlot.SlotIndex : -1;
@@ -22,8 +21,7 @@ public class SlotDropContext // 드롭 정보
             return null; // target 없음
 
         SlotUI originSlot = DragSlot.OriginSlot;
-        EquippedComboGemInventoryDropSource comboGemSource = DragSlot.EquippedComboGemSource;
-        if (originSlot == null && comboGemSource == null)
+        if (originSlot == null)
             return null; // source 없음
 
         ISlotInteractionBridge targetBridge = targetDrop.Slot.OwnerBridge;
@@ -46,7 +44,6 @@ public class SlotDropContext // 드롭 정보
             OriginItem = originSlot != null ? originSlot.DisplayItem : DragSlot.DraggedItem,
             EventData = eventData,
             Bridge = bridge,
-            EquippedComboGemSource = comboGemSource
         };
     }
 }

@@ -181,6 +181,8 @@ public class InventoryItemActionService : MonoBehaviour
 
     private bool UseConsumableItem(ItemData item, int inventorySlotIndex, ItemUseSource source)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UseConsumableItem(item, inventorySlotIndex, source));
         if (item == null || item.stackCount <= 0 || item.itemType != "Consumable" || !(item.baseData is ConsumableItemData consumableData))
         {
             ReportConsumableResult("Cannot use this item.", true);
@@ -236,14 +238,19 @@ public class InventoryItemActionService : MonoBehaviour
         if (consumeOnUse)
             ClearQuickSlotIfEmpty(consumableData);
 
-        cooldownController?.StartCooldown(context.CooldownKey, context.CooldownDuration);
-        slotBridge?.RefreshSlotsFromContextMenu();
-        ReportConsumableResult(useResult.Message, false);
+        Overburst.Persistence.AccountGameplaySession.Notify(() =>
+        {
+            cooldownController?.StartCooldown(context.CooldownKey, context.CooldownDuration);
+            slotBridge?.RefreshSlotsFromContextMenu();
+            ReportConsumableResult(useResult.Message, false);
+        });
         return true;
     }
 
     public bool BindQuickSlot(int key, ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => BindQuickSlot(key, item));
         ResolveReferences();
         if (key < InventoryQuickSlotBindingController.FirstKey || key > InventoryQuickSlotBindingController.SlotCount || quickSlots == null || item == null)
             return false;
@@ -278,6 +285,8 @@ public class InventoryItemActionService : MonoBehaviour
 
     public bool EquipFlaskToSlot(ItemData item, int slotIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => EquipFlaskToSlot(item, slotIndex));
         ResolveReferences();
         PlayerFlaskController flasks = PlayerFlaskController.Current;
         if (item == null || !(item.baseData is FlaskItemData) || flasks == null || quickSlots == null
@@ -318,6 +327,8 @@ public class InventoryItemActionService : MonoBehaviour
 
     public bool UnequipFlask(ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipFlask(item));
         ResolveReferences();
         var flasks = PlayerFlaskController.Current;
         if (item == null || flasks == null)

@@ -1023,139 +1023,8 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
 }
 
 [System.Serializable]
-public sealed class WeaponComboGemLoadout // 콤보 Step별 런타임 보석 묶음
-{
-    public const int SlotCapacity = WeaponComboGemSlotRules.SlotCapacity;
-    public const int InitialUnlockedSlotCount = WeaponComboGemSlotRules.InitialUnlockedSlotCount;
-
-    [SerializeField] private string attackId; // 배열 순서와 무관한 신원
-    [SerializeField] private int unlockedSlotCount = InitialUnlockedSlotCount; // 초기 1~3번 사용
-    [SerializeReference] private ItemData[] gemSlots = new ItemData[SlotCapacity]; // 개별 보석 참조
-
-    public string AttackId { get { return attackId; } }
-    public int SlotCount { get { return gemSlots != null ? gemSlots.Length : 0; } }
-    public int UnlockedSlotCount { get { return unlockedSlotCount; } }
-
-    public WeaponComboGemLoadout()
-    {
-    }
-
-    public WeaponComboGemLoadout(string stableAttackId)
-    {
-        attackId = stableAttackId;
-        unlockedSlotCount = InitialUnlockedSlotCount;
-        gemSlots = new ItemData[SlotCapacity];
-    }
-
-    internal bool TryEnsureLayout(out string error)
-    {
-        if (string.IsNullOrWhiteSpace(attackId))
-        {
-            error = "Combo gem loadout attack ID is missing.";
-            return false;
-        }
-
-        if (gemSlots != null && gemSlots.Length > SlotCapacity)
-        {
-            for (int i = SlotCapacity; i < gemSlots.Length; i++)
-            {
-                if (gemSlots[i] != null)
-                {
-                    error = "Combo gem loadout has occupied slots beyond capacity: " + attackId;
-                    return false;
-                }
-            }
-        }
-
-        if (gemSlots == null || gemSlots.Length != SlotCapacity)
-        {
-            ItemData[] previousSlots = gemSlots;
-            gemSlots = new ItemData[SlotCapacity]; // 항상 네 칸 유지
-            if (previousSlots != null)
-            {
-                int copyCount = Mathf.Min(previousSlots.Length, gemSlots.Length);
-                for (int i = 0; i < copyCount; i++)
-                    gemSlots[i] = previousSlots[i]; // 기존 위치 보존
-            }
-        }
-
-        unlockedSlotCount = Mathf.Clamp(
-            unlockedSlotCount < InitialUnlockedSlotCount ? InitialUnlockedSlotCount : unlockedSlotCount,
-            InitialUnlockedSlotCount,
-            SlotCapacity); // 4번만 후속 해금
-        error = null;
-        return true;
-    }
-
-    public bool IsSlotUnlocked(int slotIndex)
-    {
-        return WeaponComboGemSlotRules.IsSlotUnlocked(slotIndex, unlockedSlotCount);
-    }
-
-    public ItemData GetGemAt(int slotIndex)
-    {
-        if (gemSlots == null || slotIndex < 0 || slotIndex >= gemSlots.Length)
-            return null;
-
-        return gemSlots[slotIndex];
-    }
-
-    internal bool TryAssignGemReference(int slotIndex, ItemData gem)
-    {
-        if (gemSlots == null || !IsSlotUnlocked(slotIndex) || gem == null || gemSlots[slotIndex] != null)
-            return false;
-
-        gemSlots[slotIndex] = gem; // 타입 검증은 50번대 서비스 책임
-        return true;
-    }
-
-    internal ItemData RemoveGemReference(int slotIndex)
-    {
-        if (gemSlots == null || slotIndex < 0 || slotIndex >= gemSlots.Length)
-            return null;
-
-        ItemData removed = gemSlots[slotIndex];
-        gemSlots[slotIndex] = null;
-        return removed;
-    }
-
-    internal bool ContainsRuntimeItem(ItemData item)
-    {
-        if (item == null || gemSlots == null)
-            return false;
-
-        for (int i = 0; i < gemSlots.Length; i++)
-        {
-            if (gemSlots[i] != null && gemSlots[i].IsSameRuntimeItem(item))
-                return true;
-        }
-
-        return false;
-    }
-
-    internal bool TrySetUnlockedSlotCount(int count)
-    {
-        if (!WeaponComboGemSlotRules.IsValidUnlockedSlotCount(count))
-            return false;
-
-        if (gemSlots != null && count < unlockedSlotCount)
-        {
-            for (int i = count; i < gemSlots.Length; i++)
-            {
-                if (gemSlots[i] != null)
-                    return false; // 장착 보석을 숨기는 재잠금 차단
-            }
-        }
-
-        unlockedSlotCount = count;
-        return true;
-    }
-}
-
-[System.Serializable]
 public class ItemData // 런타임 아이템
 {
-    private static long nextRuntimeInstanceId = 1; // 임시 id
     private static long nextAcquisitionOrder = 1; // 획득 순번
 
     public BaseItemData baseData; // 원본 에셋
@@ -1165,6 +1034,10 @@ public class ItemData // 런타임 아이템
     public int level; // 레벨
     public ItemGrade grade; // 등급
     public int stackCount; // 스택 수
+    public string originRunId;
+    public Overburst.Persistence.MapInstanceState mapState;
+    [System.NonSerialized] private bool restoredFromValidatedSnapshot;
+    public bool HasInstanceElement => hasInstanceElement;
 
     [UnityEngine.SerializeField] private WeaponElement instanceElement;
     [UnityEngine.SerializeField] private bool hasInstanceElement;
@@ -1188,8 +1061,6 @@ public class ItemData // 런타임 아이템
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
     public List<BagRandomOptionRoll> bagOptions; // 가방 랜덤 옵션
 
-    public List<ComboGemRolledOption> comboGemOptions; // 콤보 보석 옵션
-    public List<WeaponComboGemLoadout> weaponComboGemLoadouts; // 콤보 Step별 신규 슬롯
 
     public bool HasValidBaseData { get { return baseData != null; } }
     public List<WeaponGradeStatRoll> weaponGradeStats { get { return weaponGradeStatRolls; } }
@@ -1207,8 +1078,6 @@ public class ItemData // 런타임 아이템
     {
         get
         {
-            if (baseData is ComboGemItemData comboGemData)
-                return comboGemData.GetIcon(grade);
 
             if (baseData is CurrencyItemData currencyData)
                 return currencyData.GetDisplayIcon(stackCount);
@@ -1241,7 +1110,7 @@ public class ItemData // 런타임 아이템
             if (baseData is ConsumableItemData) return "Consumable";
             if (baseData is CurrencyItemData) return "Currency";
             if (baseData is BagItemData) return "Bag";
-            if (baseData is ComboGemItemData) return "ComboGem";
+            if (baseData is MapItemData) return "Map";
             if (baseData is JunkItemData) return "Junk";
             if (baseData is QuestItemData) return "QuestItem";
             return "Unknown";
@@ -1284,15 +1153,11 @@ public class ItemData // 런타임 아이템
         weaponGradeStatRolls = new List<WeaponGradeStatRoll>();
         gearRolls = new List<GearStatRoll>();
         bagOptions = new List<BagRandomOptionRoll>();
-        comboGemOptions = new List<ComboGemRolledOption>();
-        weaponComboGemLoadouts = new List<WeaponComboGemLoadout>();
 
         if (baseData == null)
             return;
 
-        if (baseData is ComboGemItemData)
-            RollComboGemOptions(); // 신규 보석 옵션
-        else if (baseData is WeaponItemData)
+        if (baseData is WeaponItemData)
             RollWeaponGradeStats(); // 무기 별
         else if (baseData is GearItemData gear)
             gearRolls = GearQuality.Roll(gear, grade, GearSeed(runtimeInstanceId));
@@ -1306,7 +1171,41 @@ public class ItemData // 런타임 아이템
             hasInstanceElement = true;
         }
         if (baseData is FlaskItemData) FlaskRuntime.State(this);
-        InitWeaponComboGemLoadouts(); // 콤보별 슬롯
+    }
+
+    private ItemData() { }
+
+    public ItemData CopyStack(int count, bool newIdentity)
+    {
+        if (count <= 0) throw new System.ArgumentOutOfRangeException(nameof(count));
+        var copy = (ItemData)MemberwiseClone();
+        copy.stackCount = count;
+        copy.weaponGradeStatRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(weaponGradeStatRolls);
+        copy.gearRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(gearRolls);
+        copy.bagOptions = Overburst.Persistence.ItemSnapshotCodec.CopyValues(bagOptions);
+        copy.flaskState = Overburst.Persistence.ItemSnapshotCodec.CopyValues(flaskState);
+        copy.mapState = Overburst.Persistence.ItemSnapshotCodec.CopyValues(mapState);
+        if (newIdentity)
+        {
+            copy.runtimeInstanceId = System.Guid.NewGuid().ToString("N");
+            copy.acquisitionOrder = nextAcquisitionOrder++;
+        }
+        return copy;
+    }
+
+    internal static ItemData RestoreSaved(Overburst.Persistence.ItemSnapshot value, BaseItemData data)
+    {
+        var item = new ItemData
+        {
+            baseData = data, runtimeInstanceId = value.instanceId, acquisitionOrder = value.acquisitionOrder,
+            level = value.level, grade = value.grade, stackCount = value.count,
+            originRunId = value.originRunId, instanceElement = value.element, hasInstanceElement = value.hasElement,
+            meleeStarDistributionProfile = value.qualityProfile, weaponGradeStatRolls = value.weaponRolls,
+            gearRolls = value.gearRolls, bagOptions = value.bagRolls, flaskState = value.flask,
+            mapState = value.map, restoredFromValidatedSnapshot = true
+        };
+        nextAcquisitionOrder = System.Math.Max(nextAcquisitionOrder, checked(value.acquisitionOrder + 1));
+        return item;
     }
 
     public void EnsureRuntimeInstanceId()
@@ -1314,7 +1213,7 @@ public class ItemData // 런타임 아이템
         if (!string.IsNullOrEmpty(runtimeInstanceId))
             return;
 
-        runtimeInstanceId = System.DateTime.UtcNow.Ticks.ToString("x") + "_" + nextRuntimeInstanceId++; // 세션 id
+        runtimeInstanceId = System.Guid.NewGuid().ToString("N");
     }
 
     public void EnsureAcquisitionOrder()
@@ -1327,6 +1226,7 @@ public class ItemData // 런타임 아이템
 
     public void EnsureRuntimeState()
     {
+        if (restoredFromValidatedSnapshot) return;
         EnsureRuntimeInstanceId(); // id 보장
 
         if (baseData is WeaponItemData || baseData is GearItemData || baseData is FlaskItemData)
@@ -1334,7 +1234,6 @@ public class ItemData // 런타임 아이템
 
         if (baseData is FlaskItemData) FlaskRuntime.State(this);
 
-        bool comboGemOptionsMissing = comboGemOptions == null; // 신규 보석 구 데이터
         bool bagOptionsMissing = bagOptions == null; // 구 데이터
 
         if (weaponGradeStatRolls == null)
@@ -1346,21 +1245,11 @@ public class ItemData // 런타임 아이템
         if (bagOptionsMissing)
             bagOptions = new List<BagRandomOptionRoll>(); // 구 데이터
 
-        if (comboGemOptionsMissing)
-            comboGemOptions = new List<ComboGemRolledOption>(); // 신규 롤 보존
-
-        if (weaponComboGemLoadouts == null)
-            weaponComboGemLoadouts = new List<WeaponComboGemLoadout>(); // 신규 콤보 슬롯
-
         if (baseData is WeaponItemData)
         {
             EnsureWeaponGradeStatRolls(); // 별 보정
-            TryEnsureWeaponComboGemLoadouts(out _); // 유효한 attackId만 신규 기반 생성
         }
-        else if (baseData is ComboGemItemData && comboGemOptionsMissing)
-        {
-            RollComboGemOptions(); // 누락된 신규 옵션
-        }
+
         else if (baseData is BagItemData)
         {
             EnsureBagOptions(); // 누락 옵션
@@ -1379,6 +1268,7 @@ public class ItemData // 런타임 아이템
 
     public void EnsureWeaponGradeStatRolls()
     {
+        if (restoredFromValidatedSnapshot) return;
         if (!(baseData is WeaponItemData weaponData))
             return;
 
@@ -1416,69 +1306,6 @@ public class ItemData // 런타임 아이템
         return runtimeInstanceId == other.runtimeInstanceId;
     }
 
-    public bool TryEnsureWeaponComboGemLoadouts(out string error)
-    {
-        if (!(baseData is WeaponItemData weaponData))
-        {
-            error = "Item is not a weapon.";
-            return false;
-        }
-
-        MeleeComboDefinition comboDefinition = weaponData.GetMeleeComboDefinition();
-        if (comboDefinition == null)
-        {
-            error = "Melee combo definition is missing.";
-            return false;
-        }
-
-        if (!comboDefinition.TryGetStableAttackIds(out string[] attackIds, out error))
-            return false;
-
-        if (weaponComboGemLoadouts == null)
-            weaponComboGemLoadouts = new List<WeaponComboGemLoadout>();
-
-        HashSet<string> storedIds = new HashSet<string>(System.StringComparer.Ordinal);
-        for (int i = 0; i < weaponComboGemLoadouts.Count; i++)
-        {
-            WeaponComboGemLoadout loadout = weaponComboGemLoadouts[i];
-            if (loadout == null)
-                continue;
-
-            if (string.IsNullOrWhiteSpace(loadout.AttackId))
-            {
-                error = "Stored combo gem loadout attack ID is missing at index " + i + ".";
-                return false;
-            }
-
-            if (!storedIds.Add(loadout.AttackId))
-            {
-                error = "Duplicate stored combo gem loadout attack ID: " + loadout.AttackId;
-                return false;
-            }
-
-            if (!loadout.TryEnsureLayout(out error))
-                return false;
-        }
-
-        weaponComboGemLoadouts.RemoveAll(loadout => loadout == null); // 빈 직렬화 항목만 제거
-        for (int i = 0; i < attackIds.Length; i++)
-        {
-            if (storedIds.Add(attackIds[i]))
-                weaponComboGemLoadouts.Add(new WeaponComboGemLoadout(attackIds[i])); // Step별 독립 묶음
-        }
-
-        error = null;
-        return true;
-    }
-
-    public int GetWeaponComboGemLoadoutCount()
-    {
-        if (!TryGetStableWeaponComboAttackIds(out string[] attackIds, out _))
-            return 0;
-
-        return attackIds.Length;
-    }
-
     public bool TryGetWeaponComboAttackId(int comboStepIndex, out string attackId)
     {
         attackId = null;
@@ -1491,61 +1318,6 @@ public class ItemData // 런타임 아이템
 
         attackId = attackIds[comboStepIndex];
         return true;
-    }
-
-    public WeaponComboGemLoadout GetWeaponComboGemLoadout(string attackId)
-    {
-        if (string.IsNullOrEmpty(attackId) || !TryEnsureWeaponComboGemLoadouts(out _))
-            return null;
-
-        for (int i = 0; i < weaponComboGemLoadouts.Count; i++)
-        {
-            WeaponComboGemLoadout loadout = weaponComboGemLoadouts[i];
-            if (loadout != null && string.Equals(loadout.AttackId, attackId, System.StringComparison.Ordinal))
-                return loadout;
-        }
-
-        return null;
-    }
-
-    public ItemData GetWeaponComboGemAt(string attackId, int slotIndex)
-    {
-        WeaponComboGemLoadout loadout = GetWeaponComboGemLoadout(attackId);
-        return loadout != null ? loadout.GetGemAt(slotIndex) : null;
-    }
-
-    public bool IsWeaponComboGemSlotUnlocked(string attackId, int slotIndex)
-    {
-        WeaponComboGemLoadout loadout = GetWeaponComboGemLoadout(attackId);
-        return loadout != null && loadout.IsSlotUnlocked(slotIndex);
-    }
-
-    public bool TryAssignWeaponComboGemReference(string attackId, int slotIndex, ItemData gem)
-    {
-        WeaponComboGemLoadout loadout = GetWeaponComboGemLoadout(attackId);
-        if (loadout == null || gem == null || !loadout.IsSlotUnlocked(slotIndex))
-            return false;
-
-        ItemData current = loadout.GetGemAt(slotIndex);
-        if (current != null)
-            return current.IsSameRuntimeItem(gem); // 같은 참조 재요청만 허용
-
-        if (ContainsInstalledGemRuntimeItem(gem))
-            return false;
-
-        return loadout.TryAssignGemReference(slotIndex, gem);
-    }
-
-    public ItemData RemoveWeaponComboGemReference(string attackId, int slotIndex)
-    {
-        WeaponComboGemLoadout loadout = GetWeaponComboGemLoadout(attackId);
-        return loadout != null ? loadout.RemoveGemReference(slotIndex) : null;
-    }
-
-    public bool TrySetWeaponComboUnlockedSlotCount(string attackId, int count)
-    {
-        WeaponComboGemLoadout loadout = GetWeaponComboGemLoadout(attackId);
-        return loadout != null && loadout.TrySetUnlockedSlotCount(count);
     }
 
     private bool TryGetStableWeaponComboAttackIds(out string[] attackIds, out string error)
@@ -1565,37 +1337,6 @@ public class ItemData // 런타임 아이템
         }
 
         return comboDefinition.TryGetStableAttackIds(out attackIds, out error);
-    }
-
-    private bool ContainsInstalledGemRuntimeItem(ItemData gem)
-    {
-        if (gem == null)
-            return false;
-
-        if (weaponComboGemLoadouts == null)
-            return false;
-
-        for (int i = 0; i < weaponComboGemLoadouts.Count; i++)
-        {
-            WeaponComboGemLoadout loadout = weaponComboGemLoadouts[i];
-            if (loadout != null && loadout.ContainsRuntimeItem(gem))
-                return true;
-        }
-
-        return false;
-    }
-
-    private void InitWeaponComboGemLoadouts()
-    {
-        TryEnsureWeaponComboGemLoadouts(out _); // 콤보별 신규 슬롯 보장
-    }
-
-    private void RollComboGemOptions()
-    {
-        if (!(baseData is ComboGemItemData comboGemData))
-            return;
-
-        comboGemOptions = comboGemData.RollOptions(grade); // 인스턴스별 신규 롤
     }
 
     private void RollWeaponGradeStats()

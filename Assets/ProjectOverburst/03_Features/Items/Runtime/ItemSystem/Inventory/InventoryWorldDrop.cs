@@ -19,6 +19,12 @@ public static class InventoryWorldDrop // 인벤토리 월드 드롭
 {
     public static InventoryActionResult TryDropInventorySlotToWorld(InventoryWorldDropRequest request)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            InventoryActionResult result = default;
+            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => { result = TryDropInventorySlotToWorld(request); return result.Succeeded; });
+            return committed ? result : InventoryActionResult.Fail(InventoryActionFailureReason.InventoryRemoveFailed, "월드 드롭을 완료하지 못했습니다.");
+        }
         if (request.SourceSlot == null || request.SourceSlot.DisplayItem == null)
             return InventoryActionResult.Fail(InventoryActionFailureReason.InvalidSource, "드롭할 인벤토리 슬롯이 없습니다.");
 
@@ -40,6 +46,13 @@ public static class InventoryWorldDrop // 인벤토리 월드 드롭
 
         if (pickupObject == null)
             return InventoryActionResult.Fail(InventoryActionFailureReason.WorldCreationFailed, "월드 아이템 생성에 실패했습니다.");
+
+        Overburst.Persistence.AccountGameplaySession.OnRollback(() =>
+        {
+            if (pickupObject == null) return;
+            pickupObject.SetActive(false);
+            Object.Destroy(pickupObject);
+        });
 
         if (!request.Inventory.ClearSlot(request.SourceSlot.SlotIndex))
         {

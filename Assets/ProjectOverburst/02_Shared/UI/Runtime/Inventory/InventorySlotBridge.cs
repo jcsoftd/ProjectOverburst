@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotSingleClickInteractionBridge, ISlotRightClickInteractionBridge // 인벤토리 슬롯 정책
 {
-    public event Action<WeaponComboGemEquipResult> ComboGemInventoryDropCompleted;
 
     [Header("References")]
     [SerializeField] private PlayerInventory inventory; // 일반 슬롯 데이터
@@ -28,17 +27,16 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
     private const int EquippedBagSlotCount = 1; // 현재 장착 가방 슬롯 수
 
-    private ItemData[] equippedBags = new ItemData[EquippedBagSlotCount]; // 장착 가방
+    private ItemData[] equippedBags
+    {
+        get => PlayerAccountInventoryService.Loadout.Bags;
+        set => PlayerAccountInventoryService.Loadout.Bags = value;
+    }
     private SlotUI previewOriginSlot; // preview 원본
     private bool normalizingEquippedWeaponOwnership; // 중복 정리 중
     private bool allowEquippedWeaponInInventory; // 장착 이동 예외
     private bool synchronizingInventoryState; // 동기화 중
     private bool suppressSlotEventRefresh; // 이벤트 억제
-    private PlayerMovement appliedBagMovementTarget; // 이동속도 적용 대상
-    private PlayerStaminaController appliedBagStaminaTarget; // 스태미너 적용 대상
-    private CombatHealth appliedBagHealthTarget; // HP 적용 대상
-    private float appliedBagMaxStaminaBonus; // 기존 적용 스태미너
-    private float appliedBagMaxHpBonus; // 기존 적용 HP
     private const int RequiredWeaponSlotCount = 1; // 무기 슬롯 수
 
     private readonly struct SlotMoveResult // 슬롯 이동 결과
@@ -144,7 +142,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
                 ItemData item = inventory != null && i < inventory.Items.Count ? inventory.Items[i] : null;
                 inventorySlots[i].SetDisplayItem(item);
-                inventorySlots[i].SetLocked(i >= unlockedSlotCount); // 잠금 표시
+                inventorySlots[i].SetLocked(i >= unlockedSlotCount && item == null);
                 inventorySlots[i].SetNewItemMarker(item != null && i < unlockedSlotCount && inventoryUI != null && inventoryUI.IsNewlyAcquiredItem(item)); // 신규 표시
             }
         }
@@ -249,6 +247,23 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
         try
         {
+            if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            {
+                T result = default;
+                bool committed = Overburst.Persistence.AccountGameplaySession.Run(() =>
+                {
+                    result = operation();
+                    if (result is bool flag) return flag;
+                    if (result is SlotMoveResult move) return move.Succeeded;
+                    if (result is InventoryActionResult action) return action.Succeeded;
+                    throw new InvalidOperationException("Unsupported inventory operation result.");
+                });
+                if (committed) return result;
+                if (typeof(T) == typeof(bool)) return (T)(object)false;
+                if (typeof(T) == typeof(SlotMoveResult)) return (T)(object)SlotMoveResult.Fail("아이템 변경을 완료하지 못했습니다.");
+                if (typeof(T) == typeof(InventoryActionResult)) return (T)(object)InventoryActionResult.Fail(InventoryActionFailureReason.InventoryRemoveFailed, "아이템 변경을 완료하지 못했습니다.");
+                return result;
+            }
             return operation();
         }
         finally
@@ -265,7 +280,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
     public void ShowDragPreviewForTarget(SlotUI targetSlot)
     {
-        if (previewOriginSlot == null && DragSlot.EquippedComboGemSource == null)
+        if (previewOriginSlot == null)
         {
             previewOriginSlot = DragSlot.OriginSlot; // 다른 bridge에서 시작한 드래그 보정
             if (previewOriginSlot == null)
@@ -322,43 +337,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         if (ShopUI.TryConsumeOpenPlayerInventorySingleClick())
             return true;
 
-        return context != null
-            && context.IsWeaponSlot
-            && WeaponComboGemPopupPresenter.TryOpen(context.Item, this); // 장착 무기 상세 고정 팝업
-    }
-
-    public bool TryGetComboGemInventory(out PlayerInventory ownerInventory)
-    {
-        ownerInventory = inventory;
-        return ownerInventory != null;
-    }
-
-    public bool TryGetComboGemEquipment(out PlayerEquipment equipment)
-    {
-        ResolveReferences();
-        equipment = playerEquipment;
-        return equipment != null;
-    }
-
-    public bool TryResolveComboGemCandidate(int slotIndex, out PlayerInventory ownerInventory, out ItemData candidate)
-    {
-        ownerInventory = inventory;
-        candidate = null;
-        if (inventory == null
-            || slotIndex < 0
-            || slotIndex >= inventory.UnlockedSlotCount
-            || inventorySlots == null
-            || slotIndex >= inventorySlots.Length
-            || inventorySlots[slotIndex] == null
-            || inventorySlots[slotIndex].IsWeaponSlot
-            || inventorySlots[slotIndex].IsBagSlot
-            || inventorySlots[slotIndex].IsLocked)
-        {
-            return false;
-        }
-
-        candidate = inventory.GetItemAt(slotIndex);
-        return candidate != null && candidate.baseData is ComboGemItemData;
+        return false;
     }
 
     public bool HandleSlotRightClick(SlotClickContext context)
@@ -371,8 +350,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         if (context == null)
             return false;
 
-        if (context.EquippedComboGemSource != null)
-            return HandleEquippedComboGemDrop(context);
 
         bool handled;
         if (context.TargetSlot != null && context.TargetSlot.IsBagSlot)
@@ -754,8 +731,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
     private bool CanPreviewDropToTarget(SlotUI targetSlot)
     {
-        if (DragSlot.EquippedComboGemSource != null)
-            return CanAcceptEquippedComboGemDrop(DragSlot.EquippedComboGemSource, targetSlot);
 
         SlotUI sourceSlot = previewOriginSlot != null ? previewOriginSlot : DragSlot.OriginSlot;
 
@@ -778,42 +753,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
             return targetSlot.DisplayItem == null;
 
         return !targetSlot.IsBagSlot && !targetSlot.IsWeaponSlot;
-    }
-
-    private bool HandleEquippedComboGemDrop(SlotDropContext context)
-    {
-        EquippedComboGemInventoryDropSource source = context.EquippedComboGemSource;
-        SlotUI targetSlot = context.TargetSlot;
-        if (!CanAcceptEquippedComboGemDrop(source, targetSlot))
-            return false;
-
-        WeaponComboGemEquipResult result = RunSlotDataMutation(
-            () => source.TryUnequip(inventory, targetSlot.SlotIndex)); // 70 원자 서비스 위임
-        ComboGemInventoryDropCompleted?.Invoke(result);
-        if (!result.Succeeded)
-            return false;
-
-        RefreshSlotsAfterDataChange();
-        return true;
-    }
-
-    private bool CanAcceptEquippedComboGemDrop(EquippedComboGemInventoryDropSource source, SlotUI targetSlot)
-    {
-        if (inventory == null || source == null || !source.MatchesCurrentSource()
-            || targetSlot == null || !ReferenceEquals(targetSlot.OwnerBridge, this)
-            || targetSlot.IsWeaponSlot || targetSlot.IsBagSlot || targetSlot.IsLocked
-            || targetSlot.DisplayItem != null)
-        {
-            return false;
-        }
-
-        int targetSlotIndex = targetSlot.SlotIndex;
-        return targetSlotIndex >= 0
-            && targetSlotIndex < inventory.UnlockedSlotCount
-            && inventorySlots != null
-            && targetSlotIndex < inventorySlots.Length
-            && inventorySlots[targetSlotIndex] == targetSlot
-            && inventory.GetItemAt(targetSlotIndex) == null;
     }
 
     private bool CanPreviewUnequipBagToTarget(SlotUI sourceBagSlot, SlotUI targetSlot)
@@ -1248,52 +1187,8 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
     private void ApplyEquippedBagStatBonuses()
     {
-        CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxStaminaBonus, out float maxHpBonus);
         ResolveBagStatTargets();
-        ApplyBagMoveSpeedBonus(moveSpeedPercent);
-        ApplyBagMaxStaminaBonus(maxStaminaBonus);
-        ApplyBagMaxHpBonus(maxHpBonus);
-    }
-
-    private void CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxStaminaBonus, out float maxHpBonus)
-    {
-        moveSpeedPercent = 0f;
-        maxStaminaBonus = 0f;
-        maxHpBonus = 0f;
-
-        if (equippedBags == null)
-            return;
-
-        for (int i = 0; i < equippedBags.Length; i++)
-        {
-            ItemData bag = equippedBags[i];
-            if (!IsBagItem(bag))
-                continue;
-
-            bag.EnsureRuntimeState();
-            if (bag.bagOptions == null)
-                continue;
-
-            for (int optionIndex = 0; optionIndex < bag.bagOptions.Count; optionIndex++)
-            {
-                BagRandomOptionRoll option = bag.bagOptions[optionIndex];
-                if (option == null)
-                    continue;
-
-                switch (option.optionType)
-                {
-                    case BagRandomOptionType.MoveSpeedPercent:
-                        moveSpeedPercent += Mathf.Max(0f, option.value);
-                        break;
-                    case BagRandomOptionType.MaxStamina:
-                        maxStaminaBonus += Mathf.Max(0f, option.value);
-                        break;
-                    case BagRandomOptionType.MaxHp:
-                        maxHpBonus += Mathf.Max(0f, option.value);
-                        break;
-                }
-            }
-        }
+        PlayerAccountInventoryService.Instance?.RefreshBagBonuses(playerMovement, playerStaminaController, playerHealth);
     }
 
     private void ResolveBagStatTargets()
@@ -1326,56 +1221,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         }
 
         return FindFirstObjectByType<T>();
-    }
-
-    private void ApplyBagMoveSpeedBonus(float moveSpeedPercent)
-    {
-        if (appliedBagMovementTarget != null && appliedBagMovementTarget != playerMovement)
-            appliedBagMovementTarget.SetBagMoveSpeedBonusPercent(0f);
-
-        appliedBagMovementTarget = playerMovement;
-        if (appliedBagMovementTarget != null)
-            appliedBagMovementTarget.SetBagMoveSpeedBonusPercent(moveSpeedPercent);
-    }
-
-    private void ApplyBagMaxStaminaBonus(float maxStaminaBonus)
-    {
-        maxStaminaBonus = Mathf.Max(0f, maxStaminaBonus);
-
-        if (appliedBagStaminaTarget != null && appliedBagStaminaTarget != playerStaminaController)
-        {
-            float previousBase = Mathf.Max(1f, appliedBagStaminaTarget.MaxStamina - appliedBagMaxStaminaBonus);
-            appliedBagStaminaTarget.SetMaxStamina(previousBase, false);
-            appliedBagMaxStaminaBonus = 0f;
-        }
-
-        appliedBagStaminaTarget = playerStaminaController;
-        if (appliedBagStaminaTarget == null)
-            return;
-
-        float baseMaxStamina = Mathf.Max(1f, appliedBagStaminaTarget.MaxStamina - appliedBagMaxStaminaBonus);
-        appliedBagStaminaTarget.SetMaxStamina(baseMaxStamina + maxStaminaBonus, false);
-        appliedBagMaxStaminaBonus = maxStaminaBonus;
-    }
-
-    private void ApplyBagMaxHpBonus(float maxHpBonus)
-    {
-        maxHpBonus = Mathf.Max(0f, maxHpBonus);
-
-        if (appliedBagHealthTarget != null && appliedBagHealthTarget != playerHealth)
-        {
-            float previousBase = Mathf.Max(1f, appliedBagHealthTarget.MaxHp - appliedBagMaxHpBonus);
-            appliedBagHealthTarget.SetMaxHp(previousBase, false);
-            appliedBagMaxHpBonus = 0f;
-        }
-
-        appliedBagHealthTarget = playerHealth;
-        if (appliedBagHealthTarget == null)
-            return;
-
-        float baseMaxHp = Mathf.Max(1f, appliedBagHealthTarget.MaxHp - appliedBagMaxHpBonus);
-        appliedBagHealthTarget.SetMaxHp(baseMaxHp + maxHpBonus, false);
-        appliedBagMaxHpBonus = maxHpBonus;
     }
 
     private int GetUnlockedInventorySlotCount()

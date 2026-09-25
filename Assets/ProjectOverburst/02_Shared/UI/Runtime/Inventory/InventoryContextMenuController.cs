@@ -221,11 +221,7 @@ public class InventoryContextMenuController : MonoBehaviour
                 AddButton("버리기", true, DropSelectedItem);
                 AddButton("닫기", true, Close);
                 break;
-            case "ComboGem":
-                AddButton("정보", true, ShowSelectedItemInfo);
-                AddButton("버리기", true, DropSelectedItem);
-                AddButton("닫기", true, Close);
-                break;
+
             case "Consumable":
                 AddButton("사용", true, UseSelectedConsumable);
                 AddButton("퀵슬롯 등록", true, ShowQuickSlotSubmenu);
@@ -358,7 +354,7 @@ public class InventoryContextMenuController : MonoBehaviour
     {
         ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
         Close();
-        if (item != null) tooltipManager?.ShowTooltip(item);
+        if(item!=null)tooltipManager?.ShowTooltip(item);
     }
 
     private void EnsureView()

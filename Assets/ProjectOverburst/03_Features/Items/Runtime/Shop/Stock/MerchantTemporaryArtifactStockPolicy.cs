@@ -1,23 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public static class MerchantTemporaryArtifactStockPolicy
 {
     public const int RequiredReputationLevel = 3;
     private const float ArtifactStockChance = 0.10f;
-
-    public static bool TryAddArtifactStock(MerchantInventory inventory, MerchantDefinition merchant, IList<ComboGemItemData> candidates)
-    {
-        if (inventory == null || !IsSupportedMerchant(merchant) || merchant.Category != ShopCategory.ComboGem || candidates == null || candidates.Count == 0)
-            return false;
-
-        if (Random.value > ArtifactStockChance)
-            return false;
-
-        ComboGemItemData data = candidates[Random.Range(0, candidates.Count)];
-        ItemData item = CreateStockItem(data, ItemGrade.Artifact);
-        return item != null && inventory.AddItem(item);
-    }
 
     public static bool TryAddArtifactStock(MerchantInventory inventory, MerchantDefinition merchant, IList<WeaponItemData> candidates)
     {
@@ -107,7 +94,7 @@ public static class MerchantTemporaryArtifactStockPolicy
 
     private static bool IsSupportedMerchant(MerchantDefinition merchant)
     {
-        return merchant != null && (merchant.Category == ShopCategory.ComboGem || merchant.Category == ShopCategory.Weapon);
+        return merchant != null && merchant.Category == ShopCategory.Weapon;
     }
 
     private static bool IsRestrictedArtifactStockItem(MerchantDefinition merchant, ItemData item)
@@ -115,8 +102,7 @@ public static class MerchantTemporaryArtifactStockPolicy
         if (!IsSupportedMerchant(merchant) || item == null || item.grade != ItemGrade.Artifact)
             return false;
 
-        return merchant.Category == ShopCategory.ComboGem && item.baseData is ComboGemItemData
-            || merchant.Category == ShopCategory.Weapon && item.baseData is WeaponItemData;
+        return merchant.Category == ShopCategory.Weapon && item.baseData is WeaponItemData;
     }
 
     private static ItemData CreateStockItem(BaseItemData data, ItemGrade grade)

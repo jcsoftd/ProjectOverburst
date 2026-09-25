@@ -2,6 +2,8 @@ public static class GearEquipmentService
 {
     public static bool EquipFromInventorySlot(int inventorySlot, int preferredGearSlot = -1)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => EquipFromInventorySlot(inventorySlot, preferredGearSlot));
         PlayerContext context = PlayerContext.Instance;
         PlayerInventory inventory = context != null ? context.CurrentActorInventory : null;
         PlayerEquipment equipment = context != null ? context.CurrentActorEquipment : null;
@@ -20,6 +22,8 @@ public static class GearEquipmentService
 
     public static bool UnequipToInventory(int gearSlot)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => UnequipToInventory(gearSlot));
         PlayerContext context = PlayerContext.Instance;
         PlayerInventory inventory = context != null ? context.CurrentActorInventory : null;
         PlayerEquipment equipment = context != null ? context.CurrentActorEquipment : null;

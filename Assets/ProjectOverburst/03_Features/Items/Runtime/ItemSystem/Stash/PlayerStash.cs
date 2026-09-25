@@ -21,6 +21,21 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
     public int CurrentTabIndex => currentTabIndex; // 내부 index
     public int CurrentTabNumber => currentTabIndex + 1; // 표시 번호
 
+    internal void ApplyAccountItems(List<ItemData>[] tabs, int savedCapacity, int selectedTab)
+    {
+        if (tabs == null || tabs.Length != TotalTabCount) throw new ArgumentException("Invalid account stash tabs.");
+        foreach (var tab in tabs) if (tab == null || tab.Count != savedCapacity) throw new ArgumentException("Invalid account stash capacity.");
+        capacity = savedCapacity;
+        items = tabs[0]; tab2Items = tabs[1]; tab3Items = tabs[2];
+        currentTabIndex = Mathf.Clamp(selectedTab, 0, TotalTabCount - 1);
+    }
+
+    internal void NotifyAccountApplied()
+    {
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseCurrentTabChanged);
+    }
+
     private void Awake()
     {
         currentTabIndex = Mathf.Clamp(currentTabIndex, 0, TotalTabCount - 1); // 탭 보정
@@ -55,16 +70,22 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
     public bool SetItemAt(int index, ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SetItemAt(index, item));
         return SetItemAt(currentTabIndex, index, item, true);
     }
 
     public bool SetItemAt(int tabIndex, int index, ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SetItemAt(tabIndex, index, item));
         return SetItemAt(tabIndex, index, item, true);
     }
 
     public bool SetItemAt(int tabIndex, int index, ItemData item, bool notify)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SetItemAt(tabIndex, index, item, notify));
         if (index < 0 || index >= Capacity)
             return false;
 
@@ -82,29 +103,35 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
         targetItems[index] = item; // 참조 배치
         if (notify)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool ClearSlot(int index)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearSlot(index));
         return ClearSlot(currentTabIndex, index, true);
     }
 
     public bool ClearSlot(int tabIndex, int index)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearSlot(tabIndex, index));
         return ClearSlot(tabIndex, index, true);
     }
 
     public bool ClearSlot(int tabIndex, int index, bool notify)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearSlot(tabIndex, index, notify));
         List<ItemData> targetItems = GetItemsForTab(tabIndex); // 대상 탭
         if (targetItems == null || index < 0 || index >= targetItems.Count || targetItems[index] == null)
             return false;
 
         targetItems[index] = null; // 슬롯 비움
         if (notify)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -129,6 +156,8 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
     public bool MoveMergeOrSwapItems(int fromIndex, int toIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => MoveMergeOrSwapItems(fromIndex, toIndex));
         EnsureAllTabCapacity(); // 용량 보장
         List<ItemData> currentItems = CurrentItems; // 현재 탭
 
@@ -144,13 +173,13 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         {
             targetItem.stackCount += fromItem.stackCount; // 스택 병합
             currentItems[fromIndex] = null; // 출발 비움
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
             return true;
         }
 
         currentItems[fromIndex] = targetItem; // 교환
         currentItems[toIndex] = fromItem; // 교환
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -163,6 +192,8 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
     public bool SplitStackAt(int index, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SplitStackAt(index, amount));
         EnsureAllTabCapacity(); // 용량 보장
         List<ItemData> currentItems = CurrentItems;
 
@@ -178,13 +209,13 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
             return false;
 
         int splitCount = Mathf.Clamp(amount, 1, source.stackCount - 1);
-        ItemData splitItem = new ItemData(source.baseData, source.level, source.grade, splitCount);
+        ItemData splitItem = source.CopyStack(splitCount, true);
         splitItem.EnsureRuntimeState();
         splitItem.acquisitionOrder = source.acquisitionOrder;
 
         source.stackCount -= splitCount;
         currentItems[emptySlot] = splitItem;
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
@@ -210,11 +241,15 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
     public bool ClearFirstMatchingItem(ItemData item, int exceptIndex = -1)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearFirstMatchingItem(item, exceptIndex));
         return ClearFirstMatchingItem(item, currentTabIndex, exceptIndex, true);
     }
 
     public bool ClearFirstMatchingItem(ItemData item, int exceptTabIndex, int exceptIndex, bool notify)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearFirstMatchingItem(item, exceptTabIndex, exceptIndex, notify));
         if (item == null)
             return false;
 
@@ -235,7 +270,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         }
 
         if (changed && notify)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
 
         return changed;
     }
@@ -253,21 +288,25 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
         currentTabIndex = clamped; // 탭 변경
         EnsureAllTabCapacity(); // 용량 보장
-        CurrentTabChanged?.Invoke();
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseCurrentTabChanged);
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool SortCurrentTab(ItemSortMode sortMode, ItemSortDirection sortDirection)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => SortCurrentTab(sortMode, sortDirection));
         EnsureAllTabCapacity(); // 용량 보장
         ItemSortComparer.Sort(CurrentItems, 0, Capacity, sortMode, sortDirection); // 현재 탭 정렬
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
         return true;
     }
 
     public bool TryStoreInCurrentTab(ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TryStoreInCurrentTab(item));
         if (item == null || !item.HasValidBaseData)
             return false;
 
@@ -281,7 +320,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         if (CanStackItems(item, targetItem))
         {
             targetItem.stackCount += item.stackCount; // 스택 병합
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
             return true;
         }
 
@@ -290,7 +329,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
     public void NotifyChanged()
     {
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
 
     private int FindPreferredTarget(ItemData item)
@@ -355,7 +394,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         changed |= SanitizeInvalidItems(tab3Items); // 3번 탭
 
         if (changed)
-            Changed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
 
     private bool SanitizeInvalidItems(List<ItemData> targetItems)
@@ -384,7 +423,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         if (source.baseData == null || target.baseData == null || source.baseData != target.baseData)
             return false;
 
-        if (source.grade != target.grade || source.level != target.level)
+        if (source.grade != target.grade || source.level != target.level || source.originRunId != target.originRunId)
             return false;
 
         if (source.stackCount <= 0 || target.stackCount <= 0)
@@ -434,4 +473,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
 
         return left.IsSameRuntimeItem(right);
     }
+
+    private void RaiseChanged() => Changed?.Invoke();
+    private void RaiseCurrentTabChanged() => CurrentTabChanged?.Invoke();
 }

@@ -1,6 +1,6 @@
-﻿public enum CurrencyType
+public enum CurrencyType
 {
-    Gold,
-    GemPowder,
-    MapFragment
+    Gold = 0,
+    // Value 1 retired.
+    MapFragment = 2
 }

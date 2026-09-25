@@ -4,9 +4,6 @@ using UnityEngine.SceneManagement;
 
 public class ItemPickupSpawner : MonoBehaviour
 {
-    public const float MinimumComboGemCenterSpacing = 0.8f;
-    public const float AuthoredComboGemGridSpacing = 1.2f;
-    public const float AuthoredComboGemGroupGap = 3.5f;
     public const float AuthoredWeaponGridSpacing = 1.2f;
     public const float AuthoredWeaponGroupGap = 3.5f;
     public const float DefaultPickupScatterRadius = 0.16f;
@@ -26,13 +23,11 @@ public class ItemPickupSpawner : MonoBehaviour
         "Items/Gear/Gear_Necklace"
     };
 
-    private const int ComboGemBlockColumnCount = 2;
     private const int WeaponBlockColumnCount = 4;
 
     private const int MinimumWeaponCopiesPerClass = 2;
     public const int DefaultWeaponCopiesPerGroup = 10;
     private static readonly ItemGrade[] GuaranteedWeaponGrades = ItemGradeAvailabilityPolicy.GetEnabledGrades();
-    private static readonly ItemGrade[] GuaranteedComboGemGrades = ElementComboGemGradePolicy.GetGenerationGrades();
     private bool configuredSpawnCompleted;
 
     [Header("References")]
@@ -40,7 +35,6 @@ public class ItemPickupSpawner : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private WeaponItemData testWeaponItem;
     [SerializeField] private WeaponItemData[] weaponItemAssets;
-    [SerializeField] private ComboGemItemData[] testComboGemItems;
     [SerializeField] private BaseItemData moveSpeedPotionItem;
     [SerializeField] private BaseItemData smallHealPotionItem;
 
@@ -53,9 +47,7 @@ public class ItemPickupSpawner : MonoBehaviour
     [SerializeField] private bool spawnRandomWeaponsOnStart;
     [SerializeField] private bool spawnMoveSpeedPotionOnStart = true;
     [SerializeField] private bool spawnSmallHealPotionOnStart = true;
-    [SerializeField] private bool spawnComboGemsOnStart = true;
     [SerializeField] private int spawnWeaponCount = 1;
-    [SerializeField] private int spawnComboGemCount = ElementComboGemGradePolicy.GenerationGradeCount;
     [SerializeField] private int moveSpeedPotionPickupCount = 15;
     [SerializeField] private int smallHealPotionPickupCount = 10;
     [SerializeField] private float spawnRadius = 3f;
@@ -64,8 +56,6 @@ public class ItemPickupSpawner : MonoBehaviour
     [SerializeField] private Vector3 moveSpeedPotionSpawnSpacing = new Vector3(0.36f, 0f, 0.36f);
     [SerializeField] private Vector3 smallHealPotionSpawnOffset = new Vector3(2.8f, 0.25f, -2.2f);
     [SerializeField] private Vector3 smallHealPotionSpawnSpacing = new Vector3(0.36f, 0f, 0.36f);
-    [SerializeField] private Vector3 comboGemSpawnOffset = new Vector3(0f, 0.25f, 2.4f);
-    [SerializeField] private Vector3 comboGemSpawnSpacing = new Vector3(AuthoredComboGemGridSpacing, 0f, AuthoredComboGemGridSpacing);
 
     private void Start()
     {
@@ -105,7 +95,6 @@ public class ItemPickupSpawner : MonoBehaviour
             SpawnHideoutGearPickups();
         }
 
-        // Element gems are retired; retain serialized fixture fields for legacy asset compatibility.
     }
 
     public void SpawnHideoutFlaskPickups()
@@ -252,85 +241,6 @@ public class ItemPickupSpawner : MonoBehaviour
         return grades;
     }
 
-    [ContextMenu("Spawn/Test Combo Gem Pickups")]
-    public void SpawnTestComboGemPickups()
-    {
-        ResolveReferences();
-
-        if (testComboGemItems == null)
-            return;
-
-        for (int i = 0; i < testComboGemItems.Length; i++)
-        {
-            ComboGemItemData comboGemData = testComboGemItems[i];
-            if (comboGemData == null)
-                continue;
-
-            ItemData item = new ItemData(comboGemData, 1, ItemGrade.Rare);
-            Vector3 position = GetComboGemSpawnPosition(i, 0, testComboGemItems.Length, 1);
-            CreatePickupObject("WorldPickup_TestComboGem_" + comboGemData.GemType, item, position, new Vector3(0.24f, 0.24f, 0.24f), comboGemData.color, PrimitiveType.Sphere);
-        }
-    }
-
-    [ContextMenu("Spawn Random Combo Gem Pickups")]
-    public void SpawnRandomComboGemPickups()
-    {
-        ResolveReferences();
-
-        if (testComboGemItems == null || testComboGemItems.Length == 0)
-            return;
-
-        List<ItemGrade> grades = BuildComboGemGradeSequence(spawnComboGemCount);
-        List<ElementComboGemItemData> comboGemAssets = CollectValidElementComboGemAssets();
-        if (comboGemAssets.Count == 0)
-        {
-            Debug.LogError("[ItemPickupSpawner] 유효한 원소 콤보 보석이 없습니다.", this);
-            return;
-        }
-
-        HashSet<string> runtimeInstanceIds = new HashSet<string>();
-        int spawnedCount = 0;
-        for (int elementIndex = 0; elementIndex < comboGemAssets.Count; elementIndex++)
-        {
-            ElementComboGemItemData comboGemData = comboGemAssets[elementIndex];
-            for (int gradeIndex = 0; gradeIndex < grades.Count; gradeIndex++)
-            {
-                ItemGrade grade = grades[gradeIndex];
-                ItemData item = new ItemData(comboGemData, 1, grade);
-                if (!ValidateComboGemSpawnItem(comboGemData, item))
-                    continue;
-                if (!runtimeInstanceIds.Add(item.runtimeInstanceId))
-                {
-                    Debug.LogError("[ItemPickupSpawner] 콤보 보석 runtimeInstanceId가 중복됐습니다.", this);
-                    continue;
-                }
-
-                Vector3 position = GetComboGemSpawnPosition(elementIndex, gradeIndex, comboGemAssets.Count, grades.Count);
-                WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(
-                    item,
-                    position,
-                    inventory,
-                    player,
-                    pickupGradeVfxSet);
-                PlaceAuthoredPickup(pickup, position);
-                if (pickup == null || !ReferenceEquals(pickup.RuntimeItem, item))
-                {
-                    Debug.LogError("[ItemPickupSpawner] 콤보 보석 ItemData 전달이 보존되지 않았습니다.", this);
-                    continue;
-                }
-
-                spawnedCount++;
-            }
-        }
-
-        int expectedCount = comboGemAssets.Count * grades.Count;
-        if (spawnedCount != expectedCount)
-            Debug.LogError($"[ItemPickupSpawner] 콤보 보석 생성 수가 올바르지 않습니다. {spawnedCount}/{expectedCount}", this);
-
-        if (spawnedCount == 0)
-            Debug.LogError("[ItemPickupSpawner] 유효한 콤보 보석을 생성하지 못했습니다.", this);
-    }
-
     [ContextMenu("Spawn/Test Move Speed Potion Pickup")]
     public void SpawnMoveSpeedPotionPickup()
     {
@@ -367,21 +277,6 @@ public class ItemPickupSpawner : MonoBehaviour
             ItemData item = new ItemData(potionData, 1, potionData.defaultGrade, 1);
             Vector3 position = GetSmallHealPotionSpawnPosition(i, count);
             CreatePickupObject("WorldPickup_SmallHealPotion_" + (i + 1).ToString("00"), item, position, new Vector3(0.2f, 0.3f, 0.2f), color, PrimitiveType.Capsule);
-        }
-    }
-
-    [ContextMenu("Test/Add Combo Gems To Inventory")]
-    public void AddTestComboGemsToInventory()
-    {
-        ResolveReferences();
-
-        if (inventory == null || testComboGemItems == null)
-            return;
-
-        for (int i = 0; i < testComboGemItems.Length; i++)
-        {
-            if (testComboGemItems[i] != null)
-                inventory.AddItem(new ItemData(testComboGemItems[i], 1, ItemGrade.Rare));
         }
     }
 
@@ -467,31 +362,6 @@ public class ItemPickupSpawner : MonoBehaviour
             && WeaponContentPolicy.IsActiveWeapon(weaponData);
     }
 
-    private List<ElementComboGemItemData> CollectValidElementComboGemAssets()
-    {
-        List<ElementComboGemItemData> result = new List<ElementComboGemItemData>();
-        HashSet<WeaponElement> elements = new HashSet<WeaponElement>();
-        if (testComboGemItems == null)
-            return result;
-
-        for (int i = 0; i < testComboGemItems.Length; i++)
-        {
-            if (!(testComboGemItems[i] is ElementComboGemItemData elementGemData)
-                || !WeaponContentPolicy.IsAllowedItemData(elementGemData)
-                || !elementGemData.TryGetElementDefinition(out WeaponElement element)
-                || !IsActiveHideoutElement(element)
-                || !elements.Add(element))
-            {
-                continue;
-            }
-
-            result.Add(elementGemData);
-        }
-
-        result.Sort(CompareElementComboGemAssets); // 실제 원소 ID 기준 정렬
-        return result;
-    }
-
     private static bool IsActiveHideoutElement(WeaponElement element)
     {
         return element == WeaponElement.Fire
@@ -499,73 +369,6 @@ public class ItemPickupSpawner : MonoBehaviour
             || element == WeaponElement.Ice
             || element == WeaponElement.Electric
             || element == WeaponElement.Earth; // 하이드아웃 신규 생성 원소를 명시한다
-    }
-
-    private static int CompareElementComboGemAssets(ElementComboGemItemData left, ElementComboGemItemData right)
-    {
-        left.TryGetElementDefinition(out WeaponElement leftElement);
-        right.TryGetElementDefinition(out WeaponElement rightElement);
-        return ((int)leftElement).CompareTo((int)rightElement);
-    }
-
-    private List<ItemGrade> BuildComboGemGradeSequence(int count)
-    {
-        int targetCount = Mathf.Clamp(count, 1, GuaranteedComboGemGrades.Length);
-        List<ItemGrade> grades = new List<ItemGrade>(targetCount);
-
-        for (int i = 0; i < targetCount && i < GuaranteedComboGemGrades.Length; i++)
-            grades.Add(GuaranteedComboGemGrades[i]); // 속성 보석 생성 정책 사용
-
-        return grades;
-    }
-
-    private bool ValidateComboGemSpawnItem(ComboGemItemData comboGemData, ItemData item)
-    {
-        if (comboGemData == null || item == null)
-            return false;
-
-        if (!(comboGemData is ElementComboGemItemData elementGemData)
-            || !elementGemData.TryGetElementDefinition(out _)
-            || !ReferenceEquals(item.baseData, comboGemData))
-            return false;
-
-        ItemGrade grade = item.grade;
-        if (!TryGetComboGemOptionValue(item, ComboGemRandomOptionType.ElementDamageIncrease, out float rolledElementDamage))
-        {
-            Debug.LogError("[ItemPickupSpawner] 원소 콤보 보석에 원소 피해 옵션이 없습니다.", this);
-            return false;
-        }
-
-        string runtimeInstanceId = item.runtimeInstanceId;
-        item.EnsureRuntimeState(); // 생성 롤 보존 확인
-        item.EnsureAcquisitionOrder();
-        if (string.IsNullOrEmpty(runtimeInstanceId)
-            || item.runtimeInstanceId != runtimeInstanceId
-            || item.grade != grade
-            || !ReferenceEquals(item.baseData, comboGemData))
-            return false;
-
-        return TryGetComboGemOptionValue(item, ComboGemRandomOptionType.ElementDamageIncrease, out float preservedElementDamage)
-            && Mathf.Approximately(rolledElementDamage, preservedElementDamage);
-    }
-
-    private bool TryGetComboGemOptionValue(ItemData item, ComboGemRandomOptionType optionType, out float value)
-    {
-        value = 0f;
-        if (item == null || item.comboGemOptions == null)
-            return false;
-
-        for (int i = 0; i < item.comboGemOptions.Count; i++)
-        {
-            ComboGemRolledOption option = item.comboGemOptions[i];
-            if (option != null && option.optionType == optionType)
-            {
-                value = option.value;
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private WeaponItemData CreateSpawnWeaponData(WeaponItemData sourceWeapon)
@@ -605,52 +408,6 @@ public class ItemPickupSpawner : MonoBehaviour
     {
         float centeredIndex = index - (count - 1) * 0.5f;
         return GetSpawnPosition(weaponSpawnOffset + Vector3.right * (centeredIndex * 0.8f));
-    }
-
-    private Vector3 GetComboGemSpawnPosition(int elementIndex, int gradeIndex, int elementCount, int gradeCount)
-    {
-        Vector3 gridOffset = CalculateComboGemGridOffset(
-            elementIndex,
-            gradeIndex,
-            elementCount,
-            gradeCount,
-            comboGemSpawnSpacing);
-        return GetSpawnPosition(comboGemSpawnOffset + gridOffset);
-    }
-
-    public static Vector3 CalculateComboGemGridOffset(
-        int elementIndex,
-        int gradeIndex,
-        int elementCount,
-        int gradeCount,
-        Vector3 spacing)
-    {
-        float spacingX = Mathf.Max(AuthoredComboGemGridSpacing, Mathf.Abs(spacing.x));
-        float spacingZ = Mathf.Max(AuthoredComboGemGridSpacing, Mathf.Abs(spacing.z));
-        int safeElementCount = Mathf.Max(1, elementCount);
-        int safeGradeCount = Mathf.Max(1, gradeCount);
-        int groupsPerRow = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(safeElementCount)));
-        int groupRows = Mathf.CeilToInt(safeElementCount / (float)groupsPerRow);
-        int safeElementIndex = Mathf.Clamp(elementIndex, 0, safeElementCount - 1);
-        int groupColumn = safeElementIndex % groupsPerRow;
-        int groupRow = safeElementIndex / groupsPerRow;
-        int blockColumns = Mathf.Min(ComboGemBlockColumnCount, safeGradeCount);
-        int blockRows = Mathf.CeilToInt(safeGradeCount / (float)blockColumns);
-        float blockSpanX = (blockColumns - 1) * spacingX;
-        float blockSpanZ = (blockRows - 1) * spacingZ;
-        float groupStepX = blockSpanX + AuthoredComboGemGroupGap;
-        float groupStepZ = blockSpanZ + AuthoredComboGemGroupGap;
-        float centeredGroupColumn = groupColumn - (groupsPerRow - 1) * 0.5f;
-        float centeredGroupRow = groupRow - (groupRows - 1) * 0.5f;
-        int safeGradeIndex = Mathf.Clamp(gradeIndex, 0, safeGradeCount - 1);
-        int gradeColumn = safeGradeIndex % blockColumns;
-        int gradeRow = safeGradeIndex / blockColumns;
-        float centeredGradeColumn = gradeColumn - (blockColumns - 1) * 0.5f;
-        float centeredGradeRow = gradeRow - (blockRows - 1) * 0.5f;
-        return new Vector3(
-            centeredGroupColumn * groupStepX + centeredGradeColumn * spacingX,
-            0f,
-            centeredGroupRow * groupStepZ + centeredGradeRow * spacingZ);
     }
 
     public static Vector3 CalculateWeaponGroupBlockOffset(

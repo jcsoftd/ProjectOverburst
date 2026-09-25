@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -21,8 +21,10 @@ public sealed class OverburstUITooltipView : MonoBehaviour
         if(!approvedSkin)approvedSkin=GetComponent<OverburstTooltipHybridSkin>();
         if(!body.spriteAsset)body.spriteAsset=Resources.Load<TMP_SpriteAsset>("OverburstUI/QualityDiamonds");
         string[] lines=SimpleItemTooltipBuilder.Build(item).Replace("\r","").Split('\n');
-        bool hasSubtitle=item.baseData is WeaponItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ComboGemItemData||item.baseData is ConsumableItemData;
+        bool hasSubtitle=item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ConsumableItemData;
         subtitle.text=hasSubtitle&&lines.Length>1?System.Text.RegularExpressions.Regex.Replace(lines[1],"<[^>]+>",""):item.baseData is ConsumableItemData?"소비 아이템":"아이템";
+        if(item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData)
+            subtitle.text+=" · 아이템 레벨 "+OverburstGrowthRules.ClampLevel(item.level);
         if(item.baseData is WeaponItemData){
             string element=OverburstElementRules.Label(item.ResolvedElement);
             if(!string.IsNullOrEmpty(element)&&!subtitle.text.Contains(" · "+element))subtitle.text+=" · "+element;

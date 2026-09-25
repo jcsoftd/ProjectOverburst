@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,7 +11,23 @@ public class MerchantReputationService : MonoBehaviour
     [SerializeField] private int experienceRequiredPerLevel = 30;
     [SerializeField] private MerchantReputationLevelSetting[] levelSettings;
 
-    private readonly Dictionary<string, MerchantReputationData> reputations = new Dictionary<string, MerchantReputationData>();
+    private static readonly Dictionary<string, MerchantReputationData> reputations = new Dictionary<string, MerchantReputationData>();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetAccountReputations()
+    {
+        instance = null;
+        reputations.Clear();
+        ReputationChanged = null;
+    }
+
+    internal static void RestoreAccountReputation(MerchantDefinition merchant, int level, int experience)
+    {
+        string id = merchant != null ? merchant.name : string.Empty;
+        reputations[id] = MerchantReputationData.Restore(id, level, experience);
+    }
+
+    internal static void ClearAccountReputations() => reputations.Clear();
 
     public static event Action<string, int> ReputationChanged;
 
@@ -42,7 +58,8 @@ public class MerchantReputationService : MonoBehaviour
     public static int GetLevel(MerchantDefinition merchant)
     {
         MerchantReputationService service = ResolveInstance();
-        return service != null ? service.GetLevelInternal(merchant) : 0;
+        return service != null ? service.GetLevelInternal(merchant)
+            : merchant != null && reputations.TryGetValue(merchant.name, out var saved) ? saved.Level : 0;
     }
 
     public static float GetDiscountRate(MerchantDefinition merchant)
@@ -71,7 +88,7 @@ public class MerchantReputationService : MonoBehaviour
     {
         MerchantReputationService service = ResolveInstance();
         if (service == null)
-            return 0;
+            return merchant != null && reputations.TryGetValue(merchant.name, out var saved) ? saved.Experience : 0;
 
         MerchantReputationData data = service.EnsureData(service.GetMerchantId(merchant));
         return data != null ? data.Experience : 0;
@@ -139,27 +156,6 @@ public class MerchantReputationService : MonoBehaviour
         MerchantReputationLevelSetting setting = service.GetSetting(merchant);
         min = setting.GeneralGoodsMinTotal;
         max = setting.GeneralGoodsMaxTotal;
-    }
-
-    public static void GetComboGemStockRange(MerchantDefinition merchant, out int min, out int max, int fallbackMin, int fallbackMax)
-    {
-        MerchantReputationService service = ResolveInstance();
-        if (service == null)
-        {
-            min = Mathf.Max(0, fallbackMin);
-            max = Mathf.Max(min, fallbackMax);
-            return;
-        }
-
-        MerchantReputationLevelSetting setting = service.GetSetting(merchant);
-        min = setting.ComboGemMinStockCount;
-        max = setting.ComboGemMaxStockCount;
-    }
-
-    public static float GetComboGemUncommonChance(MerchantDefinition merchant, float fallback)
-    {
-        MerchantReputationService service = ResolveInstance();
-        return service != null ? service.GetSetting(merchant).ComboGemUncommonChance : Mathf.Clamp01(fallback);
     }
 
     private static MerchantReputationService ResolveInstance()
@@ -272,10 +268,10 @@ public class MerchantReputationService : MonoBehaviour
 
         levelSettings = new[]
         {
-            new MerchantReputationLevelSetting(0, 0f, 1000, 2000, 15, 29, 10, 15, 0.5f),
-            new MerchantReputationLevelSetting(1, 0.05f, 1200, 2400, 18, 32, 12, 17, 0.5f),
-            new MerchantReputationLevelSetting(2, 0.10f, 1500, 3000, 22, 36, 15, 20, 0.7f),
-            new MerchantReputationLevelSetting(3, 0.10f, 2000, 4000, 25, 40, 18, 22, 0.8f)
+            new MerchantReputationLevelSetting(0, 0f, 1000, 2000, 15, 29),
+            new MerchantReputationLevelSetting(1, 0.05f, 1200, 2400, 18, 32),
+            new MerchantReputationLevelSetting(2, 0.10f, 1500, 3000, 22, 36),
+            new MerchantReputationLevelSetting(3, 0.10f, 2000, 4000, 25, 40)
         };
     }
 

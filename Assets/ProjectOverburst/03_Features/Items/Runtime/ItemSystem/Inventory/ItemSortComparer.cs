@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 public static class ItemSortComparer // 아이템 정렬
 {
@@ -41,7 +41,7 @@ public static class ItemSortComparer // 아이템 정렬
             return "정렬 안 함";
 
         if (mode == ItemSortMode.Default)
-            return "기본 = 무기/콤보 보석/기타 + 등급순";
+            return "기본 = 무기/장비/기타 + 등급순";
 
         return "현재 정렬: " + GetDisplayName(mode);
     }
@@ -260,8 +260,7 @@ public static class ItemSortComparer // 아이템 정렬
         {
             case "Weapon":
                 return 0;
-            case "ComboGem":
-                return 1;
+
             case "Bag":
                 return 2;
             case "Consumable":
@@ -286,8 +285,7 @@ public static class ItemSortComparer // 아이템 정렬
         {
             case "Weapon":
                 return 0;
-            case "ComboGem":
-                return 1;
+
             default:
                 return 2;
         }

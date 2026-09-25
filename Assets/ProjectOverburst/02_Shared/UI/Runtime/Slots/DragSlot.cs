@@ -9,7 +9,6 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private static ISlotInteractionBridge originBridge; // 출발 Bridge
     public static ItemData DraggedItem { get; private set; }
     public static bool IsDragging => DraggedItem != null;
-    public static EquippedComboGemInventoryDropSource EquippedComboGemSource { get; private set; }
 
     private SlotUI slotUI; // 출발 슬롯
     private Canvas canvas; // UI 캔버스
@@ -40,7 +39,6 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         OriginSlot = slotUI; // 출발 슬롯
         DraggedItem = slotUI.DisplayItem; // 드래그 아이템
-        EquippedComboGemSource = null; // 일반 슬롯 출처
         dropHandled = false; // 드롭 초기화
         originBridge = slotUI.OwnerBridge; // 정책 Bridge
         originBridge?.BeginDragPreview(slotUI); // 미리보기 시작
@@ -64,7 +62,6 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         OriginSlot = originSlot; // 출발 슬롯
         DraggedItem = item; // 드래그 아이템
-        EquippedComboGemSource = null; // 일반 외부 출처
         dropHandled = false; // 드롭 초기화
         originBridge = originSlot.OwnerBridge; // 정책 Bridge
         originBridge?.BeginDragPreview(originSlot); // 미리보기 시작
@@ -73,27 +70,6 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             TooltipManager.Instance.HideTooltip(); // Tooltip 정리
 
         CreateDragIcon(sourceCanvas, item, position);
-        return true;
-    }
-
-    public static bool BeginEquippedComboGemDrag(
-        EquippedComboGemInventoryDropSource source,
-        Canvas sourceCanvas,
-        Vector2 position)
-    {
-        if (source == null || !source.MatchesCurrentSource() || sourceCanvas == null)
-            return false;
-
-        OriginSlot = null; // 팝업 슬롯은 SlotUI가 아님
-        DraggedItem = source.Gem;
-        EquippedComboGemSource = source;
-        dropHandled = false;
-        originBridge = null;
-
-        if (TooltipManager.Instance != null)
-            TooltipManager.Instance.HideTooltip();
-
-        CreateDragIcon(sourceCanvas, source.Gem, position);
         return true;
     }
 
@@ -185,7 +161,6 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         OriginSlot = null; // 출발 해제
         DraggedItem = null; // 아이템 해제
-        EquippedComboGemSource = null; // 장착 보석 출처 해제
         dropHandled = false; // 드롭 초기화
         pendingDropSlot = null; // 대상 해제
         originBridge?.ClearDragPreview(); // 미리보기 정리

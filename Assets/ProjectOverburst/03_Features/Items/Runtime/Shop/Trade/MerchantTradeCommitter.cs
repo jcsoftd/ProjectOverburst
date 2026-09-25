@@ -15,6 +15,26 @@ public sealed class MerchantTradeCommitter
         if (playerInventory == null || merchantInventory == null)
             return plan.ToFailureResult(MerchantTradeFailureReason.MissingService, "거래 참조가 부족합니다.");
 
+        var accountSession = Overburst.Persistence.AccountGameplaySession.Current;
+        if (accountSession != null && !accountSession.IsEditing)
+        {
+            MerchantTradeResult committedResult = default;
+            try
+            {
+                bool committed = accountSession.Execute(() =>
+                {
+                    committedResult = Commit(plan, playerInventory, merchantInventory, stashCurrencyService);
+                    return committedResult.success;
+                });
+                return committed ? committedResult : committedResult.success
+                    ? plan.ToFailureResult(MerchantTradeFailureReason.TransferFailed, "거래를 저장하지 못했습니다.") : committedResult;
+            }
+            catch (System.IO.IOException)
+            {
+                return plan.ToFailureResult(MerchantTradeFailureReason.TransferFailed, "저장에 실패해 거래를 취소했습니다. 저장 공간과 파일 접근 상태를 확인해 주세요.");
+            }
+        }
+
         IReadOnlyList<MerchantTradeItemMove> playerToMerchantMoves = plan.PlayerToMerchantMoves;
         IReadOnlyList<MerchantTradeItemMove> merchantToPlayerMoves = plan.MerchantToPlayerMoves;
 

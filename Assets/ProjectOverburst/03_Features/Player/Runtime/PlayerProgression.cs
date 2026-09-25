@@ -64,20 +64,31 @@ public sealed class PlayerProgression : MonoBehaviour
     public void AddExperience(int amount)
     {
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { AddExperience(amount); return true; });
+            return;
+        }
         int previousLevel = Level;
-        Experience += amount;
+        Experience = checked(Experience + amount);
         while (Level < OverburstGrowthRules.MaximumLevel && Experience >= ExperienceToNext)
         {
             Experience -= ExperienceToNext;
             Level++;
         }
         if (Level >= OverburstGrowthRules.MaximumLevel) Experience = 0;
-        PlayerPrefs.SetInt(LevelKey, Level);
-        PlayerPrefs.SetInt(ExperienceKey, Experience);
-        RefreshStats();
-        if (Level > previousLevel)
-            LeveledUp?.Invoke(previousLevel, Level);
-        Changed?.Invoke();
+        if (Overburst.Persistence.AccountGameplaySession.Current == null)
+        {
+            PlayerPrefs.SetInt(LevelKey, Level);
+            PlayerPrefs.SetInt(ExperienceKey, Experience);
+        }
+        int nextLevel = Level;
+        Overburst.Persistence.AccountGameplaySession.Notify(() =>
+        {
+            RefreshStats();
+            if (nextLevel > previousLevel) LeveledUp?.Invoke(previousLevel, nextLevel);
+            Changed?.Invoke();
+        });
     }
 
     public void RefreshStats()
@@ -107,6 +118,7 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void Save()
     {
+        if (Overburst.Persistence.AccountGameplaySession.Current != null) return;
         PlayerPrefs.SetInt(LevelKey, Level);
         PlayerPrefs.SetInt(ExperienceKey, Experience);
         PlayerPrefs.Save();

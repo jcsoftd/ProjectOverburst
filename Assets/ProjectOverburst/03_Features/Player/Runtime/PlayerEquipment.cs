@@ -25,9 +25,27 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     [SerializeField] private WeaponAimSource currentWeaponAimSource;
     [SerializeField] private WeaponPose currentWeaponPose;
     [SerializeField] private WeaponTraceBinding currentWeaponTraceBinding;
-    [SerializeField] private int activeWeaponSlotIndex;
-    [SerializeField] private ItemData[] weaponSlotItems = new ItemData[WeaponSlotCount];
-    [SerializeField] private ItemData[] gearSlotItems = new ItemData[7];
+    [UnityEngine.Serialization.FormerlySerializedAs("activeWeaponSlotIndex")]
+    [SerializeField] private int initialActiveWeaponSlot;
+    [UnityEngine.Serialization.FormerlySerializedAs("weaponSlotItems")]
+    [SerializeField] private ItemData[] initialWeaponSlotItems = new ItemData[WeaponSlotCount];
+    [UnityEngine.Serialization.FormerlySerializedAs("gearSlotItems")]
+    [SerializeField] private ItemData[] initialGearSlotItems = new ItemData[7];
+    private int activeWeaponSlotIndex
+    {
+        get => PlayerAccountInventoryService.Loadout.ActiveWeaponSlot;
+        set => PlayerAccountInventoryService.Loadout.ActiveWeaponSlot = value;
+    }
+    private ItemData[] weaponSlotItems
+    {
+        get => PlayerAccountInventoryService.Loadout.Weapons;
+        set => PlayerAccountInventoryService.Loadout.Weapons = value;
+    }
+    private ItemData[] gearSlotItems
+    {
+        get => PlayerAccountInventoryService.Loadout.Gear;
+        set => PlayerAccountInventoryService.Loadout.Gear = value;
+    }
 
     [Header("Test")]
     [SerializeField] private WeaponItemData testWeaponItemData;
@@ -82,6 +100,14 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private void Awake()
     {
+        var loadout = PlayerAccountInventoryService.Loadout;
+        if (!loadout.EquipmentInitialized)
+        {
+            loadout.Weapons = initialWeaponSlotItems != null ? (ItemData[])initialWeaponSlotItems.Clone() : new ItemData[WeaponSlotCount];
+            loadout.Gear = initialGearSlotItems != null ? (ItemData[])initialGearSlotItems.Clone() : new ItemData[7];
+            loadout.ActiveWeaponSlot = Mathf.Clamp(initialActiveWeaponSlot, 0, WeaponSlotCount - 1);
+            loadout.EquipmentInitialized = true;
+        }
         EnsureWeaponSlots(); // 슬롯 보장
         EnsureGearSlots();
         ResolveInventory(); // 인벤토리
@@ -91,6 +117,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private void Start()
     {
+        SynchronizeAccountLoadoutVisual();
         if (useDefaultWeaponFallback && currentWeaponRoot == null && defaultWeaponRoot != null)
             RegisterCurrentWeapon(defaultWeaponRoot); // 기본 무기
     }
@@ -113,6 +140,8 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     public bool ClearWeaponSlot(int slotIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearWeaponSlot(slotIndex));
         EnsureWeaponSlots();
 
         if (!IsWeaponSlotIndexValid(slotIndex) || weaponSlotItems[slotIndex] == null)
@@ -122,8 +151,13 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
         if (slotIndex == activeWeaponSlotIndex)
         {
-            ResetWeaponRuntimeStateForSwitch(); // 런타임 정리
-            ClearCurrentWeaponVisual(); // 표시 정리
+            if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing == true)
+                Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
+            else
+            {
+                ResetWeaponRuntimeStateForSwitch();
+                ClearCurrentWeaponVisual();
+            }
         }
 
         NotifyWeaponSlotsChanged();
@@ -185,6 +219,19 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, CurrentWeaponItem != null ? CurrentWeaponItem.ResolvedElement : WeaponElement.None);
     }
 
+    public void SynchronizeAccountLoadoutVisual()
+    {
+        EnsureWeaponSlots();
+        EnsureGearSlots();
+        var item = weaponSlotItems[activeWeaponSlotIndex];
+        if (CurrentWeaponItem == item && (item == null || currentWeaponRoot != null)) return;
+        ResetWeaponRuntimeStateForSwitch();
+        EquipCurrentWeaponVisual(item);
+        RefreshCurrentWeaponStats();
+        NotifyWeaponSlotsChanged();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseGearSlotsChanged);
+    }
+
     public ItemData GetGearSlotItem(int slotIndex)
     {
         EnsureGearSlots();
@@ -196,6 +243,13 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     public bool EquipGearItemToSlot(ItemData item, int slotIndex, out ItemData previous)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            ItemData displaced = null;
+            bool result = Overburst.Persistence.AccountGameplaySession.Run(() => EquipGearItemToSlot(item, slotIndex, out displaced));
+            previous = result ? displaced : null;
+            return result;
+        }
         previous = null;
         EnsureGearSlots();
         if (item == null || !(item.baseData is GearItemData data)
@@ -206,16 +260,23 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         for (int i = 0; i < gearSlotItems.Length; i++)
             if (i != slotIndex && IsSameRuntimeItem(gearSlotItems[i], item)) gearSlotItems[i] = null;
         gearSlotItems[slotIndex] = item;
-        GearSlotsChanged?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseGearSlotsChanged);
         return true;
     }
 
     public bool ClearGearSlot(int slotIndex, out ItemData removed)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            ItemData displaced = null;
+            bool result = Overburst.Persistence.AccountGameplaySession.Run(() => ClearGearSlot(slotIndex, out displaced));
+            removed = result ? displaced : null;
+            return result;
+        }
         removed = GetGearSlotItem(slotIndex);
         if (removed == null) return false;
         gearSlotItems[slotIndex] = null;
-        GearSlotsChanged?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseGearSlotsChanged);
         return true;
     }
 
@@ -240,6 +301,8 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     public bool EquipWeaponItemToSlot(ItemData item, int slotIndex)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => EquipWeaponItemToSlot(item, slotIndex));
         if (item == null || item.itemType != "Weapon")
             return false; // 무기 전용
 
@@ -259,6 +322,14 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         ItemData previousSlotItem = weaponSlotItems[slotIndex]; // 롤백 item
         ClearMatchingWeaponSlot(item, slotIndex); // 중복 제거
         weaponSlotItems[slotIndex] = item; // 슬롯 배치
+        if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing == true)
+        {
+            activeWeaponSlotIndex = slotIndex;
+            inventory?.RemoveItem(item);
+            Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
+            NotifyWeaponSlotsChanged();
+            return true;
+        }
         ResetWeaponRuntimeStateForSwitch(); // 런타임 정리
         activeWeaponSlotIndex = slotIndex; // 활성 슬롯
 
@@ -558,7 +629,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private void NotifyWeaponSlotsChanged()
     {
-        WeaponSlotsChanged?.Invoke(); // UI 갱신
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseWeaponSlotsChanged); // UI 갱신
     }
 
     private WeaponAimMode GetCurrentWeaponAimMode()
@@ -638,4 +709,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
         return null;
     }
+
+    private void RaiseWeaponSlotsChanged() => WeaponSlotsChanged?.Invoke();
+    private void RaiseGearSlotsChanged() => GearSlotsChanged?.Invoke();
 }

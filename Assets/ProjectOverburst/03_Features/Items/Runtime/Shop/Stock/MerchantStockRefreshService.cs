@@ -13,10 +13,32 @@ public class MerchantStockRefreshService : MonoBehaviour
 
     private static MerchantStockRefreshService instance;
     private static readonly Dictionary<MerchantDefinition, MerchantInventory> inventories = new Dictionary<MerchantDefinition, MerchantInventory>();
+    internal static IReadOnlyDictionary<MerchantDefinition, MerchantInventory> AccountInventories => inventories;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetAccountStocks()
+    {
+        instance = null;
+        inventories.Clear();
+        StocksRefreshed = null;
+    }
+
+    internal static void ApplyAccountInventories(Dictionary<MerchantDefinition, MerchantInventory> restored)
+    {
+        foreach (var key in new List<MerchantDefinition>(inventories.Keys))
+            if (!restored.ContainsKey(key)) inventories.Remove(key);
+        foreach (var pair in restored)
+        {
+            if (inventories.TryGetValue(pair.Key, out var existing))
+                existing.ApplyAccountItems(pair.Value.Capacity, pair.Value.Items, pair.Value.CurrencyItems);
+            else inventories.Add(pair.Key, pair.Value);
+        }
+    }
+
+    internal static void NotifyAccountApplied() => StocksRefreshed?.Invoke();
     private readonly MerchantStockGenerator[] stockGenerators =
     {
         new GeneralGoodsMerchantStockGenerator(),
-        new ComboGemMerchantStockGenerator(),
         new WeaponMerchantStockGenerator()
     };
 
@@ -35,14 +57,6 @@ public class MerchantStockRefreshService : MonoBehaviour
     [SerializeField] private int generalGoodsMinStackTotal = 15;
     [SerializeField] private int generalGoodsMaxStackTotal = 29;
 
-    [Header("Combo Gems")]
-    [SerializeField] private BaseItemData[] comboGemPool;
-    [FormerlySerializedAs("modPartMinStockCount")]
-    [FormerlySerializedAs("enchantGemMinStockCount")]
-    [SerializeField] private int comboGemMinStockCount = 10;
-    [FormerlySerializedAs("modPartMaxStockCount")]
-    [FormerlySerializedAs("enchantGemMaxStockCount")]
-    [SerializeField] private int comboGemMaxStockCount = 15;
 
     [Header("Weapons")]
     [SerializeField] private BaseItemData[] weaponPool;
@@ -173,9 +187,6 @@ public class MerchantStockRefreshService : MonoBehaviour
             ResolveGeneralGoodsItem(moveSpeedPotion, MoveSpeedPotionPath),
             generalGoodsMinStackTotal,
             generalGoodsMaxStackTotal,
-            comboGemPool,
-            comboGemMinStockCount,
-            comboGemMaxStockCount,
             weaponPool,
             weaponMinStockCount,
             weaponMaxStockCount,

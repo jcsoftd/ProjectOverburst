@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
@@ -61,10 +61,7 @@ public class MerchantDefinition : ScriptableObject
 
         switch (category)
         {
-            case ShopCategory.ComboGem:
-                AddTab(results, ShopTab.GemDismantle);
-                AddTab(results, ShopTab.GemCombine);
-                break;
+
             case ShopCategory.Weapon:
                 AddTab(results, ShopTab.WeaponCombine);
                 AddTab(results, ShopTab.WeaponEnhance);

@@ -41,17 +41,6 @@ public static class ItemTooltipFormatter // 툴팁 포맷
         }
     }
 
-    public static string GetComboGemTypeName(ComboGemType gemType)
-    {
-        switch (gemType)
-        {
-            case ComboGemType.Element: return "속성";
-            case ComboGemType.Link: return "연계";
-            case ComboGemType.Enhancement: return "강화";
-            default: return "미분류";
-        }
-    }
-
     public static string GetWeaponElementName(WeaponElement element)
     {
         switch (element)
@@ -62,54 +51,6 @@ public static class ItemTooltipFormatter // 툴팁 포맷
             case WeaponElement.Water: return "물";
             default: return "무속성";
         }
-    }
-
-    public static string FormatComboGemOptionWithRollRange(
-        ComboGemRolledOption option,
-        ComboGemItemData gemData,
-        ItemGrade grade,
-        string rangeColorHex)
-    {
-        if (option == null)
-            return string.Empty;
-
-        string text = GetComboGemOptionName(option.optionType) + " +" + FormatNumber(option.value) + "%";
-        if (!TryGetComboGemOptionRange(gemData, option.optionType, grade, out float minValue, out float maxValue))
-            return text;
-
-        string color = string.IsNullOrEmpty(rangeColorHex) ? "#8A8A8A" : rangeColorHex;
-        return text + " <color=" + color + ">(" + FormatNumber(minValue) + "~" + FormatNumber(maxValue) + "%)</color>";
-    }
-
-    private static string GetComboGemOptionName(ComboGemRandomOptionType optionType)
-    {
-        switch (optionType)
-        {
-            case ComboGemRandomOptionType.ElementDamageIncrease: return "원소 피해 증가";
-            default: return "알 수 없는 옵션";
-        }
-    }
-
-    private static bool TryGetComboGemOptionRange(
-        ComboGemItemData gemData,
-        ComboGemRandomOptionType optionType,
-        ItemGrade grade,
-        out float minValue,
-        out float maxValue)
-    {
-        minValue = 0f;
-        maxValue = 0f;
-        if (gemData == null || gemData.randomOptionRanges == null)
-            return false;
-
-        for (int i = 0; i < gemData.randomOptionRanges.Length; i++)
-        {
-            ComboGemRandomOptionRange range = gemData.randomOptionRanges[i];
-            if (range != null && range.optionType == optionType)
-                return range.TryGetRange(grade, out minValue, out maxValue);
-        }
-
-        return false;
     }
 
     public static string FormatBagOption(BagRandomOptionRoll option)

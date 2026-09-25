@@ -7,7 +7,13 @@ public sealed class PlayerFlaskController : MonoBehaviour
 {
     public const int SlotCount = 3;
     public const int FirstKey = 4; // Legacy 4-6 layout, imported once into the shared 1-7 bar.
-    [SerializeField] private string[] equippedIds = new string[SlotCount];
+    [UnityEngine.Serialization.FormerlySerializedAs("equippedIds")]
+    [SerializeField] private string[] initialEquippedIds = new string[SlotCount];
+    private string[] equippedIds
+    {
+        get => PlayerAccountInventoryService.Loadout.FlaskIds;
+        set => PlayerAccountInventoryService.Loadout.FlaskIds = value;
+    }
     private PlayerInventory inventory;
     private CombatHealth health;
     private PlayerEquipment equipment;
@@ -28,6 +34,12 @@ public sealed class PlayerFlaskController : MonoBehaviour
 
     private void OnEnable()
     {
+        var loadout = PlayerAccountInventoryService.Loadout;
+        if (!loadout.FlasksInitialized)
+        {
+            loadout.FlaskIds = initialEquippedIds != null ? (string[])initialEquippedIds.Clone() : new string[SlotCount];
+            loadout.FlasksInitialized = true;
+        }
         health = GetComponent<CombatHealth>(); equipment = GetComponent<PlayerEquipment>();
         conditions = GetComponent<PlayerStateCoordinator>();
         if (health != null) { health.OnDead += Died; health.OnReset += ResetHealth; }
@@ -60,7 +72,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         float heal = effects.Advance(previousTime, now, out bool changed);
         if (heal > 0f) health.Heal(health.MaxHp * heal);
         previousTime = now;
-        if (changed) Changed?.Invoke();
+        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
 
     public ItemData GetItem(int index)
@@ -92,7 +104,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         FlaskInstanceState equippedState = FlaskRuntime.State(item);
         equippedState.equippedSlot = index;
         equippedState.cooldownRemaining = 0f;
-        Changed?.Invoke(); return true;
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
     public bool TryUnequip(int index, out string reason)
@@ -103,7 +115,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         ItemData item = GetItem(index);
         if (item != null && FlaskRuntime.State(item) != null) FlaskRuntime.State(item).equippedSlot = -1;
         effects.Remove(equippedIds[index]); equippedIds[index] = null; equippedItems[index] = null;
-        Changed?.Invoke(); return true;
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
     public bool TryUse(int index, out string reason)
@@ -132,7 +144,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
             : data.secondaryEffect == FlaskEffect.InstantHeal ? stats.secondary : 0f;
         if (immediate > 0f) PlayerHealFeedback.ApplyHealPercent(health, immediate);
         DamageNumberSpawner.SpawnStatusText(health.transform.position, data.itemName, new Color(.65f, 1f, .85f, 1f));
-        Changed?.Invoke(); return true;
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
     public float Bonus(FlaskEffect effect) => effects.Get(effect);
@@ -157,9 +169,9 @@ public sealed class PlayerFlaskController : MonoBehaviour
             FlaskInstanceState state = FlaskRuntime.State(item);
             if (state != null) state.cooldownRemaining = 0f;
         }
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
-    public void ClearEffects() { effects.Clear(); GetComponent<FlaskGhostCollision>()?.Restore(); Changed?.Invoke(); }
+    public void ClearEffects() { effects.Clear(); GetComponent<FlaskGhostCollision>()?.Restore(); Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); }
 
     public static bool CanChangeLoadout
     {
@@ -203,13 +215,13 @@ public sealed class PlayerFlaskController : MonoBehaviour
                 if (equippedItems[i]?.flaskState != null) equippedItems[i].flaskState.equippedSlot = -1;
                 equippedItems[i] = null;
             }
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
     private void WeaponChanged()
     {
         for (int i = 0; i < SlotCount; i++)
         { ItemData item = GetItem(i); if (item != null && !MatchesWeapon((FlaskItemData)item.baseData)) effects.Remove(item.runtimeInstanceId); }
-        Changed?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
     private void Died(CombatHealth _, DamageInfo info) { ClearEffects(); ResetCooldowns(); }
     private void ResetHealth(CombatHealth _) { ClearEffects(); if (CanChangeLoadout) ResetCooldowns(); previousTime = Time.time; }
@@ -218,4 +230,6 @@ public sealed class PlayerFlaskController : MonoBehaviour
         if (scene.name != "DungeonRunScene" && scene.name.IndexOf("Hideout", StringComparison.OrdinalIgnoreCase) < 0) return;
         ClearEffects(); previousTime = Time.time; ResetCooldowns();
     }
+
+    private void RaiseChanged() => Changed?.Invoke();
 }

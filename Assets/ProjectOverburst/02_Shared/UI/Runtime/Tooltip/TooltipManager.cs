@@ -8,12 +8,12 @@ using UnityEngine.UI;
 
 public enum TooltipAuthoredViewKind
 {
-    Weapon,
-    ComboGem,
-    Bag,
-    Consumable,
-    Currency,
-    Default
+    Weapon = 0,
+    // Value 1 retired. Preserve authored asset values.
+    Bag = 2,
+    Consumable = 3,
+    Currency = 4,
+    Default = 5
 }
 
 [System.Serializable]
@@ -30,15 +30,10 @@ public class TooltipAuthoredView // 타입별 정식 툴팁 뷰 참조
     [SerializeField] private TextMeshProUGUI basicStatsText;
     [SerializeField] private WeaponMeleeStatListView meleeStatListView;
     [SerializeField] private TextMeshProUGUI weaponStatsText;
-    [SerializeField] private TextMeshProUGUI gemStatsText;
     [SerializeField] private TextMeshProUGUI priceText;
     [SerializeField] private GameObject dividerBasic;
     [SerializeField] private GameObject dividerWeapon;
-    [SerializeField] private GameObject dividerGem;
     [SerializeField] private GameObject dividerPrice;
-    [SerializeField] private RectTransform gemSlotRoot;
-    [SerializeField] private Image[] gemSlotImages;
-    [SerializeField] private TemporaryTooltipGemSlotOutlineEffect[] gemSlotOutlineEffects;
 
     public TooltipAuthoredViewKind Kind => kind;
     public GameObject Panel => panel;
@@ -52,15 +47,10 @@ public class TooltipAuthoredView // 타입별 정식 툴팁 뷰 참조
     public TextMeshProUGUI BasicStatsText => basicStatsText;
     public WeaponMeleeStatListView MeleeStatListView => meleeStatListView;
     public TextMeshProUGUI WeaponStatsText => weaponStatsText;
-    public TextMeshProUGUI GemStatsText => gemStatsText;
     public TextMeshProUGUI PriceText => priceText;
     public GameObject DividerBasic => dividerBasic;
     public GameObject DividerWeapon => dividerWeapon;
-    public GameObject DividerGem => dividerGem;
     public GameObject DividerPrice => dividerPrice;
-    public RectTransform GemSlotRoot => gemSlotRoot;
-    public Image[] GemSlotImages => gemSlotImages;
-    public TemporaryTooltipGemSlotOutlineEffect[] GemSlotOutlineEffects => gemSlotOutlineEffects;
 
     public void Configure(
         TooltipAuthoredViewKind viewKind,
@@ -74,15 +64,10 @@ public class TooltipAuthoredView // 타입별 정식 툴팁 뷰 참조
         TextMeshProUGUI authoredBasicStatsText,
         WeaponMeleeStatListView authoredMeleeStatListView,
         TextMeshProUGUI authoredWeaponStatsText,
-        TextMeshProUGUI authoredGemStatsText,
         TextMeshProUGUI authoredPriceText,
         GameObject authoredDividerBasic,
         GameObject authoredDividerWeapon,
-        GameObject authoredDividerGem,
-        GameObject authoredDividerPrice,
-        RectTransform authoredGemSlotRoot,
-        Image[] authoredGemSlotImages,
-        TemporaryTooltipGemSlotOutlineEffect[] authoredGemSlotOutlineEffects)
+        GameObject authoredDividerPrice)
     {
         kind = viewKind;
         panel = panelObject;
@@ -95,15 +80,10 @@ public class TooltipAuthoredView // 타입별 정식 툴팁 뷰 참조
         basicStatsText = authoredBasicStatsText;
         meleeStatListView = authoredMeleeStatListView;
         weaponStatsText = authoredWeaponStatsText;
-        gemStatsText = authoredGemStatsText;
         priceText = authoredPriceText;
         dividerBasic = authoredDividerBasic;
         dividerWeapon = authoredDividerWeapon;
-        dividerGem = authoredDividerGem;
         dividerPrice = authoredDividerPrice;
-        gemSlotRoot = authoredGemSlotRoot;
-        gemSlotImages = authoredGemSlotImages;
-        gemSlotOutlineEffects = authoredGemSlotOutlineEffects;
     }
 
     public bool HasRequiredReferences
@@ -129,18 +109,11 @@ public class TooltipAuthoredView // 타입별 정식 툴팁 뷰 참조
                         && meleeStatListView != null
                         && meleeStatListView.HasAuthoredView
                         && weaponStatsText != null
-                        && gemStatsText != null
                         && priceText != null
                         && dividerBasic != null
                         && dividerWeapon != null
-                        && dividerGem != null
-                        && dividerPrice != null
-                        && gemSlotRoot != null
-                        && HasFour(gemSlotImages)
-                        && HasFour(gemSlotOutlineEffects);
-                case TooltipAuthoredViewKind.ComboGem:
-                    return gemStatsText != null && priceText != null
-                        && dividerGem != null && dividerPrice != null;
+                        && dividerPrice != null;
+
                 case TooltipAuthoredViewKind.Bag:
                     return basicStatsText != null && priceText != null
                         && dividerBasic != null && dividerPrice != null;
@@ -222,15 +195,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     [SerializeField] private TextMeshProUGUI basicStatsText;
     [SerializeField] private WeaponMeleeStatListView meleeStatListView;
     [SerializeField] private TextMeshProUGUI weaponStatsText;
-    [SerializeField] private TextMeshProUGUI gemStatsText;
     [SerializeField] private TextMeshProUGUI priceText;
     [SerializeField] private GameObject dividerBasic;
     [SerializeField] private GameObject dividerWeapon;
-    [SerializeField] private GameObject dividerGem;
     [SerializeField] private GameObject dividerPrice;
-    [SerializeField] private RectTransform gemSlotRoot;
-    [SerializeField] private Image[] gemSlotImages;
-    [SerializeField] private TemporaryTooltipGemSlotOutlineEffect[] gemSlotOutlineEffects;
 
     private RectTransform tooltipRect;
     private Canvas canvas;
@@ -338,15 +306,12 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
     private void Update()
     {
-        if (rpgTooltip)
-        {
-            if (currentItem?.baseData is FlaskItemData && rpgTooltip.view.gameObject.activeSelf && Time.unscaledTime >= nextFlaskRefresh)
-            {
-                nextFlaskRefresh = Time.unscaledTime + .2f;
-                rpgTooltip.view.Present(currentItem, currentShopPriceContextActive ? GetCurrentShopPrice(currentItem).ToString("N0") + "G" : null);
+        if(rpgTooltip){
+            if(currentItem?.baseData is FlaskItemData && rpgTooltip.view.gameObject.activeSelf && Time.unscaledTime >= nextFlaskRefresh){
+                nextFlaskRefresh=Time.unscaledTime+.2f;
+                rpgTooltip.view.Present(currentItem,currentShopPriceContextActive?GetCurrentShopPrice(currentItem).ToString("N0")+"G":null);
             }
-            rpgTooltip.Place();
-            return;
+            rpgTooltip.Place();return;
         }
         if (tooltipPanel == null || !tooltipPanel.activeSelf || tooltipRect == null)
             return;
@@ -380,14 +345,9 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         if (item == null || !item.HasValidBaseData)
             return;
 
-        if (rpgTooltip)
-        {
-            currentItem = item;
-            currentShopPriceContextActive = shopPriceContextActive;
-            currentShopMerchant = merchant;
-            currentShopMerchantSelling = merchantSelling;
-            rpgTooltip.Show(item, shopPriceContextActive ? GetCurrentShopPrice(item).ToString("N0") + "G" : null);
-            return;
+        if(rpgTooltip){
+            currentItem=item;currentShopPriceContextActive=shopPriceContextActive;currentShopMerchant=merchant;currentShopMerchantSelling=merchantSelling;
+            rpgTooltip.Show(item,shopPriceContextActive?GetCurrentShopPrice(item).ToString("N0")+"G":null);return;
         }
 
         ActivateAuthoredView(ResolveViewKind(item)); // 타입별 실제 뷰 선택
@@ -419,7 +379,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
     public void HideTooltip()
     {
-        if (rpgTooltip) rpgTooltip.Hide();
+        if(rpgTooltip)rpgTooltip.Hide();
         if (HasAuthoredViewGallery())
         {
             for (int i = 0; i < authoredViews.Length; i++)
@@ -494,15 +454,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         basicStatsText = view.BasicStatsText;
         meleeStatListView = view.MeleeStatListView;
         weaponStatsText = view.WeaponStatsText;
-        gemStatsText = view.GemStatsText;
         priceText = view.PriceText;
         dividerBasic = view.DividerBasic;
         dividerWeapon = view.DividerWeapon;
-        dividerGem = view.DividerGem;
         dividerPrice = view.DividerPrice;
-        gemSlotRoot = view.GemSlotRoot;
-        gemSlotImages = view.GemSlotImages;
-        gemSlotOutlineEffects = view.GemSlotOutlineEffects;
         authoredViewReady = view.HasRequiredReferences;
     }
 
@@ -543,8 +498,6 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     {
         if (item?.baseData is WeaponItemData)
             return TooltipAuthoredViewKind.Weapon;
-        if (item?.baseData is ComboGemItemData)
-            return TooltipAuthoredViewKind.ComboGem;
         if (item?.baseData is BagItemData)
             return TooltipAuthoredViewKind.Bag;
         if (item?.baseData is ConsumableItemData)
@@ -611,15 +564,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
             || meleeStatListView == null
             || !meleeStatListView.HasAuthoredView
             || weaponStatsText == null
-            || gemStatsText == null
             || priceText == null
             || dividerBasic == null
             || dividerWeapon == null
-            || dividerGem == null
-            || dividerPrice == null
-            || gemSlotRoot == null
-            || !HasAuthoredArray(gemSlotImages, 4)
-            || !HasAuthoredArray(gemSlotOutlineEffects, 4))
+            || dividerPrice == null)
         {
             return false;
         }
@@ -664,12 +612,6 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
             return;
         }
 
-        if (item.baseData is ComboGemItemData comboGemData)
-        {
-            SetComboGemTooltipContent(item, comboGemData); // 콤보 보석 툴팁
-            return;
-        }
-
         if (item.baseData is BagItemData bagData)
         {
             SetBagTooltipContent(item, bagData); // 가방 툴팁
@@ -698,10 +640,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         bool isMagicWeapon = weaponData.CombatFamily == WeaponCombatFamily.Magic || weaponData.combatDefinition.usage.attackType == WeaponAttackType.Chain; // 마법 분기
         SetActive(dividerWeapon, false);
         SetActive(weaponStatsText, false);
-        SetActive(dividerGem, false);
-        SetActive(gemStatsText, false);
 
-        SetActive(gemSlotRoot, false);
         SetActive(dividerPrice, true);
         SetActive(priceText, true);
 
@@ -734,7 +673,6 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
                 : BuildWeaponGradeStatComparisonFixed(item, baseStats, finalStats);
         }
         weaponStatsText.text = string.Empty;
-        gemStatsText.text = string.Empty;
         priceText.text = BuildPriceText(item);
     }
 
@@ -783,71 +721,13 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         }
     }
 
-    private void SetComboGemTooltipContent(ItemData item, ComboGemItemData comboGemData)
-    {
-        item.EnsureRuntimeState();
-        SetActive(dividerBasic, false);
-        SetActive(basicStatsText, false);
-        SetActive(gemSlotRoot, false);
-        SetActive(dividerWeapon, false);
-        SetActive(weaponStatsText, false);
-        SetActive(dividerGem, true);
-        SetActive(gemStatsText, true);
-        SetActive(dividerPrice, true);
-        SetActive(priceText, true);
-
-        SetItemHeader(
-            item,
-            item.itemName,
-            "콤보 보석 / " + ItemTooltipFormatter.GetComboGemTypeName(comboGemData.GemType));
-
-        gemStatsText.text = BuildComboGemTooltipText(item, comboGemData);
-        priceText.text = BuildPriceText(item);
-    }
-
-    private static string BuildComboGemTooltipText(ItemData item, ComboGemItemData gemData)
-    {
-        if (gemData == null || gemData.GemType == ComboGemType.Unspecified)
-            return string.Empty;
-
-        StringBuilder builder = new StringBuilder();
-        builder.Append("역할: ").Append(ItemTooltipFormatter.GetComboGemTypeName(gemData.GemType));
-        if (gemData is ElementComboGemItemData elementGemData)
-        {
-            builder.AppendLine();
-            builder.Append("원소: ").Append(ItemTooltipFormatter.GetWeaponElementName(elementGemData.element));
-        }
-
-        if (item.comboGemOptions != null)
-        {
-            for (int i = 0; i < item.comboGemOptions.Count; i++)
-            {
-                string optionText = ItemTooltipFormatter.FormatComboGemOptionWithRollRange(
-                    item.comboGemOptions[i],
-                    gemData,
-                    item.grade,
-                    "#8A8A8A");
-                if (string.IsNullOrEmpty(optionText))
-                    continue;
-
-                builder.AppendLine();
-                builder.Append(optionText);
-            }
-        }
-
-        return builder.ToString();
-    }
-
     private void SetBagTooltipContent(ItemData item, BagItemData bagData)
     {
         item.EnsureRuntimeState(); // 가방 옵션 보정
         SetActive(dividerBasic, true);
         SetActive(basicStatsText, true);
-        SetActive(gemSlotRoot, false);
         SetActive(dividerWeapon, false);
         SetActive(weaponStatsText, false);
-        SetActive(dividerGem, false);
-        SetActive(gemStatsText, false);
         SetActive(dividerPrice, true);
         SetActive(priceText, true);
         SetActive(dividerPrice, true);
@@ -887,11 +767,8 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     {
         SetActive(dividerBasic, true);
         SetActive(basicStatsText, true);
-        SetActive(gemSlotRoot, false);
         SetActive(dividerWeapon, false);
         SetActive(weaponStatsText, false);
-        SetActive(dividerGem, false);
-        SetActive(gemStatsText, false);
 
         SetItemHeader(item, item.itemName, "일반 아이템");
 
@@ -903,11 +780,8 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     {
         SetActive(dividerBasic, true);
         SetActive(basicStatsText, true);
-        SetActive(gemSlotRoot, false);
         SetActive(dividerWeapon, false);
         SetActive(weaponStatsText, false);
-        SetActive(dividerGem, false);
-        SetActive(gemStatsText, false);
         SetActive(dividerPrice, false);
         SetActive(priceText, false);
 
@@ -923,11 +797,8 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     {
         SetActive(dividerBasic, true);
         SetActive(basicStatsText, true);
-        SetActive(gemSlotRoot, false);
         SetActive(dividerWeapon, true);
         SetActive(weaponStatsText, true);
-        SetActive(dividerGem, false);
-        SetActive(gemStatsText, false);
         SetActive(dividerPrice, true);
         SetActive(priceText, true);
 
@@ -1071,7 +942,6 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         switch (type)
         {
             case CurrencyType.Gold: return "골드";
-            case CurrencyType.GemPowder: return "보석가루";
             case CurrencyType.MapFragment: return "지도조각";
             default: return "재화";
         }
@@ -1341,7 +1211,6 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         UpdateMaxLineLength(ref maxLineLength, weaponNameText);
         UpdateMaxLineLength(ref maxLineLength, basicStatsText);
         UpdateMaxLineLength(ref maxLineLength, weaponStatsText);
-        UpdateMaxLineLength(ref maxLineLength, gemStatsText);
         UpdateMaxLineLength(ref maxLineLength, priceText);
 
         float textWidth = VtpPanelWidth + Mathf.Max(0, maxLineLength - 16) * 5.6f; // 글자 폭
@@ -1504,8 +1373,4 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         return 0f;
     }
 }
-
-
-
-
 

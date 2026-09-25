@@ -168,7 +168,7 @@ public sealed class MerchantTradeValidator
             if (item.stackCount <= spend)
                 simulation[i] = null;
             else
-                simulation[i] = new ItemData(item.baseData, item.level, item.grade, item.stackCount - spend);
+                simulation[i] = item.CopyStack(item.stackCount - spend, false);
 
             remaining -= spend;
         }
@@ -186,7 +186,7 @@ public sealed class MerchantTradeValidator
 
         int removeCount = Mathf.Max(1, offer.StackCount);
         if (current.stackCount > removeCount)
-            simulation[index] = new ItemData(current.baseData, current.level, current.grade, current.stackCount - removeCount);
+            simulation[index] = current.CopyStack(current.stackCount - removeCount, false);
         else
             simulation[index] = null;
 
@@ -210,7 +210,7 @@ public sealed class MerchantTradeValidator
                     continue;
 
                 int addCount = Mathf.Min(maxStack - target.stackCount, remaining);
-                simulation[i] = new ItemData(target.baseData, target.level, target.grade, target.stackCount + addCount);
+                simulation[i] = target.CopyStack(target.stackCount + addCount, false);
                 remaining -= addCount;
             }
         }
@@ -222,7 +222,7 @@ public sealed class MerchantTradeValidator
                 return false;
 
             int stackCount = Mathf.Min(maxStack, remaining);
-            simulation[empty] = new ItemData(item.baseData, item.level, item.grade, stackCount);
+            simulation[empty] = item.CopyStack(stackCount, false);
             remaining -= stackCount;
         }
 

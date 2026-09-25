@@ -1,9 +1,8 @@
-﻿public enum ShopTab
+public enum ShopTab
 {
-    Trade,
-    Quest,
-    GemDismantle,
-    GemCombine,
-    WeaponCombine,
-    WeaponEnhance
+    Trade = 0,
+    Quest = 1,
+    // Values 2 and 3 retired.
+    WeaponCombine = 4,
+    WeaponEnhance = 5
 }

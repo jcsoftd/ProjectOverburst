@@ -37,7 +37,8 @@ public sealed class MoveSpeedPotionUseHandler : IItemUseHandler
             return canUse;
 
         bool alreadyActive = context.PlayerBuffController.HasBuff(GetBuffId(context.ConsumableData));
-        context.PlayerBuffController.ApplyBuff(CreateBuff(context.Item, context.ConsumableData));
+        var effect = CreateBuff(context.Item, context.ConsumableData);
+        Overburst.Persistence.AccountGameplaySession.Notify(() => context.PlayerBuffController.ApplyBuff(effect));
         return ItemUseResult.Ok(alreadyActive
             ? "Move speed effect duration refreshed to 60 seconds."
             : GetUseMessage(context.Item, context.ConsumableData, "Move speed potion used: +30% move speed for 60 seconds."));

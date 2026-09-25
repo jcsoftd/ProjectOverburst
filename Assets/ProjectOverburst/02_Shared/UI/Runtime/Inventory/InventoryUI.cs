@@ -113,7 +113,6 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
         if (!visible)
         {
             CloseContextMenuIfNeeded();
-            WeaponComboGemPopupPresenter.CloseOpenPopup(); // 인벤토리 종료 시 상세 정리
             ClearNewItemMarkers(false); // 닫을 때 초기화
         }
 
@@ -232,7 +231,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
             return;
 
         int inventoryGold = GetInventoryGoldAmount();
-        if (compactGoldSummary) { goldSummaryText.text = inventoryGold.ToString("N0") + " G"; return; }
+        if(compactGoldSummary){goldSummaryText.text=inventoryGold.ToString("N0")+" G";return;}
         if (ShouldShowStashGold())
         {
             int stashGold = stashCurrencyService != null ? stashCurrencyService.GetAmount(CurrencyType.Gold) : 0;
@@ -439,7 +438,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
         if (sortRefreshButtonText != null)
         {
-            sortRefreshButtonText.text = (compactGoldSummary ? "정렬 " : "") + (sortDirection == ItemSortDirection.Ascending ? "▲" : "▼"); // 방향 표시
+            sortRefreshButtonText.text = (compactGoldSummary?"정렬 ":"")+(sortDirection == ItemSortDirection.Ascending ? "▲" : "▼"); // 방향 표시
             ApplyKoreanFont(sortRefreshButtonText);
         }
 

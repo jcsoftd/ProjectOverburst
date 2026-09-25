@@ -182,7 +182,7 @@ public class MerchantTradeSession
 
     private ItemData CreateOfferItem(ItemData sourceItem, int stackCount)
     {
-        ItemData offerItem = new ItemData(sourceItem.baseData, sourceItem.level, sourceItem.grade, Mathf.Max(1, stackCount));
+        ItemData offerItem = sourceItem.CopyStack(Mathf.Max(1, stackCount), true);
         offerItem.acquisitionOrder = sourceItem.acquisitionOrder;
         offerItem.EnsureRuntimeState();
         return offerItem;

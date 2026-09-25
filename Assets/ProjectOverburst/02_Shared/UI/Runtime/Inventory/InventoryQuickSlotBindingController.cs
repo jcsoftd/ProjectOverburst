@@ -5,10 +5,14 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
     public const int FirstKey = 1;
     public const int SlotCount = 10;
 
-    private readonly ConsumableItemData[] boundConsumables = new ConsumableItemData[SlotCount];
-    private readonly string[] boundFlaskIds = new string[SlotCount];
-    private readonly IQuickSlotSkill[] boundSkills = new IQuickSlotSkill[SlotCount];
-    private bool legacyFlasksImported;
+    private ConsumableItemData[] boundConsumables => PlayerAccountInventoryService.Loadout.QuickConsumables;
+    private string[] boundFlaskIds => PlayerAccountInventoryService.Loadout.QuickFlaskIds;
+    private IQuickSlotSkill[] boundSkills => PlayerAccountInventoryService.Loadout.QuickSkills;
+    private bool legacyFlasksImported
+    {
+        get => PlayerAccountInventoryService.Loadout.LegacyFlasksImported;
+        set => PlayerAccountInventoryService.Loadout.LegacyFlasksImported = value;
+    }
 
     public event System.Action BindingsChanged;
 
@@ -29,11 +33,13 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
             if (item != null && IsEmpty(index))
                 boundFlaskIds[index] = item.runtimeInstanceId;
         }
-        BindingsChanged?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
     }
 
     public bool Bind(int key, ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => Bind(key, item));
         int index = ToIndex(key);
         if (index < 0 || item == null || item.itemType != "Consumable")
             return false;
@@ -122,7 +128,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         if (skill is Object owner && owner == null)
         {
             ClearAt(index);
-            BindingsChanged?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
             return null;
         }
         return skill;
@@ -130,16 +136,20 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
 
     public bool Clear(int key)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => Clear(key));
         int index = ToIndex(key);
         if (index < 0 || IsEmpty(index))
             return false;
         ClearAt(index);
-        BindingsChanged?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return true;
     }
 
     public bool ClearFlask(ItemData item)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearFlask(item));
         if (item == null)
             return false;
         bool changed = false;
@@ -149,12 +159,14 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
                 ClearAt(i);
                 changed = true;
             }
-        if (changed) BindingsChanged?.Invoke();
+        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return changed;
     }
 
     public bool ClearConsumable(ConsumableItemData consumableData)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => ClearConsumable(consumableData));
         if (consumableData == null)
             return false;
         bool changed = false;
@@ -167,7 +179,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
             ClearAt(i);
             changed = true;
         }
-        if (changed) BindingsChanged?.Invoke();
+        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return changed;
     }
 
@@ -184,7 +196,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
             ClearAt(i);
             changed = true;
         }
-        if (changed) BindingsChanged?.Invoke();
+        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return changed;
     }
 
@@ -199,7 +211,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
                 ClearAt(i);
                 changed = true;
             }
-        if (changed) BindingsChanged?.Invoke();
+        if (changed) Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
         return changed;
     }
 
@@ -236,7 +248,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         boundConsumables[index] = consumable;
         boundFlaskIds[index] = flaskId;
         boundSkills[index] = skill;
-        BindingsChanged?.Invoke();
+        Overburst.Persistence.AccountGameplaySession.Notify(RaiseBindingsChanged);
     }
 
     private void ClearDuplicateFlask(int targetIndex, string flaskId)
@@ -260,4 +272,6 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
         if (consumableData == null) return string.Empty;
         return !string.IsNullOrWhiteSpace(consumableData.targetBuffId) ? consumableData.targetBuffId : consumableData.name;
     }
+
+    private void RaiseBindingsChanged() => BindingsChanged?.Invoke();
 }

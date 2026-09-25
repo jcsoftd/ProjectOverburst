@@ -1,4 +1,4 @@
-﻿public static class ShopTabDisplayPolicy
+public static class ShopTabDisplayPolicy
 {
     public static string GetHeaderTitle(ShopTab tab)
     {
@@ -23,10 +23,8 @@
                 return "거래";
             case ShopTab.Quest:
                 return "퀘스트";
-            case ShopTab.GemDismantle:
-                return "보석분해";
-            case ShopTab.GemCombine:
-                return "보석조합";
+
+
             case ShopTab.WeaponCombine:
                 return "무기조합";
             case ShopTab.WeaponEnhance:
@@ -40,10 +38,8 @@
     {
         switch (tab)
         {
-            case ShopTab.GemDismantle:
-                return "인챈트보석을 분해해 보석가루로 되돌리는 기능을 연결할 자리입니다.";
-            case ShopTab.GemCombine:
-                return "인챈트보석을 조합해 새 보석을 만드는 기능을 연결할 자리입니다.";
+
+
             case ShopTab.WeaponCombine:
                 return "무기 재료를 조합해 새 무기를 만드는 기능을 연결할 자리입니다.";
             case ShopTab.WeaponEnhance:
@@ -57,9 +53,8 @@
     {
         switch (tab)
         {
-            case ShopTab.GemDismantle:
-            case ShopTab.GemCombine:
-                return "인챈트보석상인 전용 기능으로 구현 예정";
+
+
             case ShopTab.WeaponCombine:
             case ShopTab.WeaponEnhance:
                 return "무기상인 전용 기능으로 구현 예정";

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public static class MerchantDisplayPolicy
 {
@@ -28,11 +28,7 @@ public static class MerchantDisplayPolicy
                 int goodsMax;
                 MerchantReputationService.GetGeneralGoodsRange(merchant, out goodsMin, out goodsMax, 15, 29);
                 return "물약 " + goodsMin + "~" + goodsMax + "개";
-            case ShopCategory.ComboGem:
-                int modMin;
-                int modMax;
-                MerchantReputationService.GetComboGemStockRange(merchant, out modMin, out modMax, 10, 15);
-                return "콤보 보석 " + modMin + "~" + modMax + "개";
+
             case ShopCategory.Weapon:
                 return "무기 10~15개";
             default:
@@ -64,8 +60,7 @@ public static class MerchantDisplayPolicy
         {
             case ShopCategory.GeneralGoods:
                 return "잡화";
-            case ShopCategory.ComboGem:
-                return "콤보 보석";
+
             case ShopCategory.Weapon:
                 return "무기";
             default:
@@ -82,7 +77,7 @@ public static class MerchantDisplayPolicy
         {
             case ShopCategory.GeneralGoods:
                 return FormatGradeLabel(ItemGrade.Common) + " ~ " + FormatGradeLabel(ItemGrade.Mythic);
-            case ShopCategory.ComboGem:
+
             case ShopCategory.Weapon:
                 ItemGrade minGrade = MerchantTemporaryArtifactStockPolicy.GetMinimumDisplayGrade(merchant);
                 ItemGrade maxGrade = MerchantTemporaryArtifactStockPolicy.GetMaximumDisplayGrade(merchant);

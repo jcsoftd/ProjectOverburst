@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -6,8 +6,6 @@ public class StashCurrencySummaryUI : MonoBehaviour
 {
     [SerializeField] private StashCurrencyService currencyService;
     [SerializeField] private TextMeshProUGUI goldText;
-    [FormerlySerializedAs("partFragmentText")]
-    [SerializeField] private TextMeshProUGUI gemPowderText;
     [SerializeField] private TextMeshProUGUI mapFragmentText;
 
     private PlayerStash subscribedStash;
@@ -41,7 +39,6 @@ public class StashCurrencySummaryUI : MonoBehaviour
         Subscribe();
 
         SetText(goldText, "골드", CurrencyType.Gold);
-        SetText(gemPowderText, "보석가루", CurrencyType.GemPowder);
         SetText(mapFragmentText, "지도조각", CurrencyType.MapFragment);
     }
 

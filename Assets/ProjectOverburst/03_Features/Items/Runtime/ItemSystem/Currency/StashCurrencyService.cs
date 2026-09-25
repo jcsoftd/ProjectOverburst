@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Serialization;
 
 public class StashCurrencyService : MonoBehaviour
@@ -6,7 +6,6 @@ public class StashCurrencyService : MonoBehaviour
     [SerializeField] private PlayerStash stash;
     [SerializeField] private CurrencyItemData goldItem;
     [FormerlySerializedAs("partFragmentItem")]
-    [SerializeField] private CurrencyItemData gemPowderItem;
     [SerializeField] private CurrencyItemData mapFragmentItem;
 
     public PlayerStash Stash
@@ -156,8 +155,7 @@ public class StashCurrencyService : MonoBehaviour
         {
             case CurrencyType.Gold:
                 return goldItem;
-            case CurrencyType.GemPowder:
-                return gemPowderItem;
+
             case CurrencyType.MapFragment:
                 return mapFragmentItem;
             default:
@@ -216,8 +214,6 @@ public class StashCurrencyService : MonoBehaviour
         if (goldItem == null)
             goldItem = CurrencyItemRegistry.Get(CurrencyType.Gold);
 
-        if (gemPowderItem == null)
-            gemPowderItem = CurrencyItemRegistry.Get(CurrencyType.GemPowder);
 
         if (mapFragmentItem == null)
             mapFragmentItem = CurrencyItemRegistry.Get(CurrencyType.MapFragment);

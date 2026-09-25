@@ -18,8 +18,6 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         if (item.baseData is GearItemData gearData)
             return BuildGearTooltip(item, gearData);
 
-        if (item.baseData is ComboGemItemData comboGemData)
-            return BuildComboGemTooltip(item, comboGemData);
 
         if (item.baseData is BagItemData bagData)
             return BuildBagTooltip(item, bagData);
@@ -141,43 +139,6 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
     private static bool IsMagicWeapon(WeaponItemData weaponData)
     {
         return weaponData != null && (weaponData.CombatFamily == WeaponCombatFamily.Magic || weaponData.combatDefinition.usage.attackType == WeaponAttackType.Chain);
-    }
-
-    private static string BuildComboGemTooltip(ItemData item, ComboGemItemData comboGemData)
-    {
-        item.EnsureRuntimeState();
-        StringBuilder builder = new StringBuilder(); // 툴팁 본문
-        AppendTitle(builder, item, item.itemName, false);
-        AppendSubtitle(builder, "콤보 보석 / " + ItemTooltipFormatter.GetComboGemTypeName(comboGemData.GemType));
-        AppendComboGemDetails(builder, item, comboGemData);
-
-        AppendPrice(builder, item);
-        return builder.ToString();
-    }
-
-    private static void AppendComboGemDetails(StringBuilder builder, ItemData item, ComboGemItemData gemData)
-    {
-        if (gemData == null || gemData.GemType == ComboGemType.Unspecified)
-            return;
-
-        AppendDivider(builder);
-        builder.Append("역할: ").Append(ItemTooltipFormatter.GetComboGemTypeName(gemData.GemType)).AppendLine();
-        if (gemData is ElementComboGemItemData elementGemData)
-            builder.Append("원소: ").Append(ItemTooltipFormatter.GetWeaponElementName(elementGemData.element)).AppendLine();
-
-        if (item.comboGemOptions == null)
-            return;
-
-        for (int i = 0; i < item.comboGemOptions.Count; i++)
-        {
-            string optionText = ItemTooltipFormatter.FormatComboGemOptionWithRollRange(
-                item.comboGemOptions[i],
-                gemData,
-                item.grade,
-                DisabledOptionColor);
-            if (!string.IsNullOrEmpty(optionText))
-                builder.Append(optionText).AppendLine();
-        }
     }
 
     private static string BuildBagTooltip(ItemData item, BagItemData bagData)
@@ -340,7 +301,6 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         switch (type)
         {
             case CurrencyType.Gold: return "골드";
-            case CurrencyType.GemPowder: return "보석가루";
             case CurrencyType.MapFragment: return "지도조각";
             default: return "재화";
         }

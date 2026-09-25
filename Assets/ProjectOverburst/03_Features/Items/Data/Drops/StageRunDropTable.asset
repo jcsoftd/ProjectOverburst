@@ -22,12 +22,3 @@ MonoBehaviour:
     minGrade: 0
     maxGrade: 6
     useVtpGradeRoll: 1
-  - itemData: {fileID: 11400000, guid: e16acd154e7aa144dbe10a1bbef3970b, type: 2}
-    dropChance: 0.08
-    minStack: 1
-    maxStack: 1
-    minLevel: 1
-    maxLevel: 1
-    minGrade: 0
-    maxGrade: 6
-    useVtpGradeRoll: 1

@@ -11,6 +11,12 @@ public sealed class MerchantReputationData
     public int Level { get { return level; } }
     public int Experience { get { return experience; } }
 
+    internal static MerchantReputationData Restore(string merchantId, int level, int experience)
+    {
+        if (string.IsNullOrEmpty(merchantId) || level < 0 || experience < 0) throw new System.ArgumentException("Invalid merchant reputation snapshot.");
+        return new MerchantReputationData(merchantId, level) { experience = experience };
+    }
+
     public MerchantReputationData(string merchantId, int level)
     {
         this.merchantId = merchantId;

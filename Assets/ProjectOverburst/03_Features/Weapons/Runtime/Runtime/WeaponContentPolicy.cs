@@ -15,7 +15,6 @@ public static class WeaponContentPolicy
         if (itemData == null)
             return false;
 
-        if (itemData is ElementComboGemItemData) return false; // retired elemental gems
 
         if (itemData is WeaponItemData weaponData)
             return IsActiveWeapon(weaponData);
@@ -25,6 +24,6 @@ public static class WeaponContentPolicy
 
     public static bool IsAllowedRuntimeItem(ItemData item)
     {
-        return item != null && (item.baseData is ElementComboGemItemData || IsAllowedItemData(item.baseData)); // preserve existing ownership until migration is decided
+        return item != null && IsAllowedItemData(item.baseData);
     }
 }

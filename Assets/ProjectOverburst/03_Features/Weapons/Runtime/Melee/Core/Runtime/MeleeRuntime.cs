@@ -46,8 +46,6 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private Vector3 activeAttackDirection; // 공격 방향
     private IWeaponTrailController activeAttackTrail;
     private MeleeComboStepData activeAttackStep;
-    private WeaponComboGemAttackModifierSnapshot activeComboAttackModifierSnapshot; // 현재 타수 보석값
-    private bool hasActiveComboAttackModifierSnapshot; // 현재 타수 조회 완료
     private bool activeAttackUsedMeleeCombatStance; // 전투 자세
     private ItemData activeAttackWeaponItem; // 공격 아이템
     private bool manualInputEnabled = true; // 파티 전환 중 기존 공격은 유지하고 신규 입력만 막는다.
@@ -557,11 +555,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackUsedMeleeCombatStance = playerController != null && playerController.IsMeleeCombatStance;
         activeAttackUsesCombo = ShouldUseCombo(activeWeaponData);
         ResolveAttackAnimation(isDirectComboContinuation);
-        if (!TryResolveActiveComboAttackModifier())
-        {
-            CancelActiveAttack(WeaponActionCompletionReason.InvalidConfiguration, true);
-            return false;
-        }
+
 
         attackDuration = ResolveAttackDuration();
         ResolveAttackTrail(activeAttackStep);
@@ -749,61 +743,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackPhases = activeAttackStep.attackPhases;
     }
 
-    private bool TryResolveActiveComboAttackModifier()
-    {
-        ResetActiveComboAttackModifier();
-        if (!activeAttackUsesCombo)
-            return true; // 비콤보는 기존 무기값 유지
-
-        if (!WeaponComboGemAttackModifierResolver.TryResolve(
-                activeAttackWeaponItem,
-                activeAttackStep.attackId,
-                out WeaponComboGemAttackModifierSnapshot snapshot,
-                out WeaponComboGemAttackModifierResolveFailureReason failureReason))
-        {
-            Debug.LogError(
-                $"[MeleeRuntime] Combo attack modifier resolve failed. AttackId={activeAttackStep.attackId}, Reason={failureReason}",
-                this);
-            return false;
-        }
-
-        if (!string.Equals(snapshot.AttackId, activeAttackStep.attackId, System.StringComparison.Ordinal)
-            || float.IsNaN(snapshot.DamageMultiplier)
-            || float.IsInfinity(snapshot.DamageMultiplier)
-            || snapshot.DamageMultiplier <= 0f)
-        {
-            Debug.LogError(
-                $"[MeleeRuntime] Combo attack modifier snapshot is invalid. AttackId={activeAttackStep.attackId}",
-                this);
-            return false;
-        }
-
-        activeComboAttackModifierSnapshot = snapshot; // 타격 종료까지 고정
-        hasActiveComboAttackModifierSnapshot = true;
-        return true;
-    }
-
     private WeaponElement ResolveActiveAttackElement()
     {
-        if (!activeAttackUsesCombo)
-            return activeAttackWeaponItem != null ? activeAttackWeaponItem.ResolvedElement : WeaponElement.None;
-
-        return hasActiveComboAttackModifierSnapshot
-            ? activeComboAttackModifierSnapshot.Element
-            : WeaponElement.None;
-    }
-
-    private float ResolveActiveAttackDamageMultiplier()
-    {
-        return activeAttackUsesCombo && hasActiveComboAttackModifierSnapshot
-            ? activeComboAttackModifierSnapshot.DamageMultiplier
-            : 1f;
-    }
-
-    private void ResetActiveComboAttackModifier()
-    {
-        activeComboAttackModifierSnapshot = default;
-        hasActiveComboAttackModifierSnapshot = false;
+        return activeAttackWeaponItem != null ? activeAttackWeaponItem.ResolvedElement : WeaponElement.None;
     }
 
     private bool TryBeginAttackPhases()
@@ -846,7 +788,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeStats,
             meleeDefinition.baseSettings,
             ResolveActiveAttackElement(),
-            ResolveActiveAttackDamageMultiplier(),
+            1f,
             bakedTrajectoryStep,
             playerEquipment.CurrentWeaponTraceBinding,
             attackPatternDebugRenderer,
@@ -1111,7 +1053,6 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackAnimationSpeed = 1f;
         activeAttackTransitionDuration = 0f;
         activeAttackPhases = null;
-        ResetActiveComboAttackModifier();
         attackPhaseExecutor.Cancel();
         attackMovementExecutor.Cancel();
         attackTrailExecutor.Cancel();
@@ -1152,7 +1093,6 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         ReleaseAttackStates();
         activeAttackStep = default;
         activeAttackPhases = null;
-        ResetActiveComboAttackModifier();
         attackPhaseExecutor.Cancel();
         attackMovementExecutor.Cancel();
         attackTrailExecutor.Cancel();
