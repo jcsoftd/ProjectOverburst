@@ -636,9 +636,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         if (!TryBuildProposedBagsForPreview(targetSlot, out proposedBags, out ignoredInventorySlotIndex))
             return;
 
-        if (!CanApplyBagLoadout(proposedBags, ignoredInventorySlotIndex))
-            return;
-
         int currentUnlockedSlots = GetUnlockedInventorySlotCount();
         int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags);
 
@@ -721,12 +718,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         ItemData oldBag = equippedBags[bagSlotIndex];
         ItemData[] proposedBags = CopyEquippedBags();
         proposedBags[bagSlotIndex] = newBag;
-        int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags);
-
-        if (!CanApplyBagLoadout(proposedBags, sourceSlot.SlotIndex))
-            return false;
-
-        return oldBag == null || sourceSlot.SlotIndex < proposedUnlockedSlots;
+        return inventory.CanReplaceOwnedItemAt(sourceSlot.SlotIndex, newBag, oldBag);
     }
 
     private bool CanPreviewDropToTarget(SlotUI targetSlot)
@@ -769,7 +761,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
         proposedBags[sourceBagSlot.SlotIndex] = null;
         int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags);
-        return targetSlot.SlotIndex < proposedUnlockedSlots && CanApplyBagLoadout(proposedBags);
+        return targetSlot.SlotIndex < proposedUnlockedSlots;
     }
 
     private bool CanPreviewWeaponSlotTarget(SlotUI sourceSlot, SlotUI targetWeaponSlot)
@@ -1012,31 +1004,12 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         proposedBags[bagSlotIndex] = newBag;
         int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags); // 예상 칸
 
-        if (!CanApplyBagLoadout(proposedBags, source.SlotIndex))
-            return SlotMoveResult.Fail("Bag loadout would lock occupied slots.");
-
-        if (oldBag != null && source.SlotIndex >= proposedUnlockedSlots)
-            return SlotMoveResult.Fail("Old bag cannot return to source slot.");
-
-        if (!ClearInventorySource(source))
-            return SlotMoveResult.Fail("Failed to clear source bag.");
+        // Exchange while both original ownership references are still available.
+        if (!inventory.TryReplaceOwnedItemAt(source.SlotIndex, newBag, oldBag))
+            return SlotMoveResult.Fail("Failed to exchange bag ownership.");
 
         equippedBags[bagSlotIndex] = newBag;
-
-        if (!inventory.SetUnlockedSlotCount(proposedUnlockedSlots))
-        {
-            equippedBags[bagSlotIndex] = oldBag; // 가방 롤백
-            RestoreInventorySource(source); // 원본 복구
-            return SlotMoveResult.Fail("Failed to apply bag capacity.");
-        }
-
-        if (oldBag != null && !TryPlaceInventoryItemAtOrRestore(source.SlotIndex, oldBag))
-        {
-            equippedBags[bagSlotIndex] = oldBag;
-            inventory.SetUnlockedSlotCount(GetUnlockedInventorySlotCount());
-            RestoreInventorySource(source);
-            return SlotMoveResult.Fail("Failed to return replaced bag.");
-        }
+        inventory.SetUnlockedSlotCount(proposedUnlockedSlots);
 
         return SlotMoveResult.Success();
     }
@@ -1091,23 +1064,11 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         if (targetSlotIndex < 0 || targetSlotIndex >= proposedUnlockedSlots || inventory.GetItemAt(targetSlotIndex) != null)
             return SlotMoveResult.Fail("Target inventory slot is invalid.");
 
-        if (!CanApplyBagLoadout(proposedBags))
-            return SlotMoveResult.Fail("Bag removal would lock occupied slots.");
+        if (!inventory.TryReplaceOwnedItemAt(targetSlotIndex, null, bag))
+            return SlotMoveResult.Fail("Failed to return equipped bag.");
 
         equippedBags[bagSlotIndex] = null;
-
-        if (!inventory.SetUnlockedSlotCount(proposedUnlockedSlots))
-        {
-            equippedBags[bagSlotIndex] = bag; // 가방 롤백
-            return SlotMoveResult.Fail("Failed to apply bag capacity.");
-        }
-
-        if (!inventory.SetItemAt(targetSlotIndex, bag))
-        {
-            equippedBags[bagSlotIndex] = bag;
-            inventory.SetUnlockedSlotCount(GetUnlockedInventorySlotCount());
-            return SlotMoveResult.Fail("Failed to place bag in inventory.");
-        }
+        inventory.SetUnlockedSlotCount(proposedUnlockedSlots);
 
         return SlotMoveResult.Success();
     }
@@ -1170,21 +1131,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         return emptySlot >= 0 && inventory.SetItemAt(emptySlot, source.Item);
     }
 
-    private bool TryPlaceInventoryItemAtOrRestore(int preferredSlotIndex, ItemData item)
-    {
-        if (inventory == null || item == null)
-            return false;
-
-        if (inventory.ContainsItem(item))
-            return true;
-
-        if (inventory.GetItemAt(preferredSlotIndex) == null && inventory.SetItemAt(preferredSlotIndex, item))
-            return true;
-
-        int emptySlot = inventory.FindFirstEmptySlot();
-        return emptySlot >= 0 && inventory.SetItemAt(emptySlot, item);
-    }
-
     private void ApplyEquippedBagStatBonuses()
     {
         ResolveBagStatTargets();
@@ -1243,30 +1189,6 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
 
         int maxSlots = inventorySlots != null && inventorySlots.Length > 0 ? inventorySlots.Length : inventory != null ? inventory.Capacity : total; // UI 한계
         return Mathf.Clamp(total, 0, maxSlots);
-    }
-
-    private bool CanApplyBagLoadout(ItemData[] bags)
-    {
-        return CanApplyBagLoadout(bags, -1);
-    }
-
-    private bool CanApplyBagLoadout(ItemData[] bags, int ignoredInventorySlotIndex)
-    {
-        if (inventory == null)
-            return false;
-
-        int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(bags); // 예상 칸
-
-        for (int i = proposedUnlockedSlots; i < inventory.Items.Count; i++)
-        {
-            if (i == ignoredInventorySlotIndex)
-                continue;
-
-            if (inventory.Items[i] != null)
-                return false;
-        }
-
-        return true;
     }
 
     private ItemData[] CopyEquippedBags()

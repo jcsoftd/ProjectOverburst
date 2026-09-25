@@ -235,13 +235,16 @@ public class PlayerInventory : MonoBehaviour
     {
         if (index < 0 || index >= capacity)
             return false;
-        if (replacement != null && (index >= UnlockedSlotCount ||
-            (IsOverCapacity && !ContainsItem(replacement))))
-            return false;
-
         ItemData current = index < items.Count ? items[index] : null;
         if (!AreSameStoredItem(current, expected))
             return false; // 예상 소유권 불일치
+
+        // Returning equipped property is an internal move, not new loot.
+        // An occupied overflow slot may exchange its item, but empty locked slots stay closed.
+        bool equippedReplacement = IsEquippedProperty(replacement);
+        if (replacement != null && ((index >= UnlockedSlotCount && (current == null || !equippedReplacement)) ||
+            (IsOverCapacity && !ContainsItem(replacement) && !equippedReplacement)))
+            return false;
 
         if (replacement == null)
             return true;
@@ -251,6 +254,16 @@ public class PlayerInventory : MonoBehaviour
 
         int duplicateIndex = FindFirstMatchingItemIndex(replacement);
         return duplicateIndex < 0 || duplicateIndex == index;
+    }
+
+    private static bool IsEquippedProperty(ItemData item)
+    {
+        if (item == null) return false;
+        var loadout = PlayerAccountInventoryService.Loadout;
+        foreach (var equipped in loadout.Weapons) if (ReferenceEquals(equipped, item)) return true;
+        foreach (var equipped in loadout.Gear) if (ReferenceEquals(equipped, item)) return true;
+        foreach (var equipped in loadout.Bags) if (ReferenceEquals(equipped, item)) return true;
+        return false;
     }
 
     public bool TryReplaceOwnedItemAt(int index, ItemData expected, ItemData replacement)
