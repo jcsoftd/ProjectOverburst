@@ -396,6 +396,11 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         if (sourceSlot.IsBagSlot)
             return InventoryActionResult.Fail(InventoryActionFailureReason.BlockedSlotType, "장착 가방 슬롯 월드 드롭은 1차에서 지원하지 않습니다.");
 
+        ItemData current = sourceSlot.IsWeaponSlot ? GetEquippedWeapon(sourceSlot.SlotIndex)
+            : inventory != null ? inventory.GetItemAt(sourceSlot.SlotIndex) : null;
+        if (!ReferenceEquals(current, sourceSlot.DisplayItem))
+            return InventoryActionResult.Fail(InventoryActionFailureReason.InvalidSource, "슬롯 아이템이 변경되었습니다.");
+
         InventoryWorldDropRequest request = new InventoryWorldDropRequest
         {
             Inventory = inventory, // 드롭 주체
@@ -1104,7 +1109,7 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
             return false;
 
         ItemData inventoryItem = inventory.GetItemAt(sourceInventoryIndex); // 실제 데이터
-        if (!IsSameRuntimeItem(inventoryItem, displayItem))
+        if (sourceInventoryIndex != sourceSlot.SlotIndex || !ReferenceEquals(inventoryItem, displayItem))
             return false;
 
         source = new InventorySourceSnapshot(sourceInventoryIndex, inventoryItem); // 원본 백업

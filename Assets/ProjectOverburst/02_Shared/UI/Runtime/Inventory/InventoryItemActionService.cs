@@ -73,13 +73,13 @@ public class InventoryItemActionService : MonoBehaviour
     public bool CanSplitStack(SlotUI sourceSlot)
     {
         ResolveReferences();
-        return inventory != null && sourceSlot != null && inventory.CanSplitStackAt(sourceSlot.SlotIndex);
+        return IsCurrentInventorySlot(sourceSlot) && inventory.CanSplitStackAt(sourceSlot.SlotIndex);
     }
 
     public bool SplitStack(SlotUI sourceSlot, int amount)
     {
         ResolveReferences();
-        if (inventory == null || sourceSlot == null)
+        if (!IsCurrentInventorySlot(sourceSlot))
             return false;
 
         bool split = inventory.SplitStackAt(sourceSlot.SlotIndex, amount);
@@ -89,6 +89,12 @@ public class InventoryItemActionService : MonoBehaviour
             Debug.LogWarning("[InventoryItemActionService] Stack split failed. Check split amount and empty inventory slot.", this);
 
         return split;
+    }
+
+    private bool IsCurrentInventorySlot(SlotUI slot)
+    {
+        return inventory != null && slot != null && !slot.IsWeaponSlot && !slot.IsBagSlot
+            && slot.DisplayItem != null && ReferenceEquals(inventory.GetItemAt(slot.SlotIndex), slot.DisplayItem);
     }
 
     public bool UseConsumable(SlotUI sourceSlot)
@@ -189,7 +195,7 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
-        if (inventory == null || !inventory.ContainsItem(item))
+        if (inventory == null || !ReferenceEquals(inventory.GetItemAt(inventorySlotIndex), item))
         {
             ReportConsumableResult("Consumable is not in inventory.", true);
             return false;
