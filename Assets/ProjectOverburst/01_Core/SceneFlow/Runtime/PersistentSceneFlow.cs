@@ -298,6 +298,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         WorldSessionState.SetPhase(WorldPhase.Loading);
         isSwitching = true; // 전환 잠금
         ClosePersistentUiForSceneSwitch(); // UI 정리
+        GameplayInputBlocker.Block(this);
         ResolveLoadingScreen(); // 로딩 UI
 
         bool isReturnToHub = IsHubSceneName(newSceneName) && returnContext != null; // 허브 복귀 여부
@@ -385,6 +386,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
         isSwitching = false; // 전환 해제
         switchRoutine = null; // 루틴 해제
+        GameplayInputBlocker.Unblock(this);
 
     }
 

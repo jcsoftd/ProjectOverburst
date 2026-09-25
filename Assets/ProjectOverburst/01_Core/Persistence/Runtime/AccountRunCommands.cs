@@ -10,8 +10,11 @@ namespace Overburst.Persistence
         {
             if (state.run != null && (AccountInvariants.IsRunning(state.run.phase) || state.run.phase == RunPhase.EntryPending))
                 throw new InvalidOperationException("A run is already pending or active.");
-            if (string.IsNullOrWhiteSpace(runId) || map == null || map.level < 1 || map.level > 100)
+            if (string.IsNullOrWhiteSpace(runId) || map == null || map.level < 1 || map.level > 100
+                || !Enum.IsDefined(typeof(ItemGrade), map.grade) || map.options == null)
                 throw new ArgumentException("Invalid run/map.");
+            if (state.run != null && state.run.runId == runId)
+                throw new InvalidOperationException("A completed run identity cannot be reused.");
             if (map.level > 1)
             {
                 var item = state.items.SingleOrDefault(x => x.instanceId == mapItemId);
@@ -30,6 +33,8 @@ namespace Overburst.Persistence
             {
                 var item = state.items.Single(x => x.instanceId == run.mapInstanceId);
                 if (!state.inventory.Contains(item.instanceId)) throw new InvalidOperationException("Reserved map has moved.");
+                if (item.count < 1 || item.map == null || !ES3.Serialize(item.map).SequenceEqual(ES3.Serialize(run.map)))
+                    throw new InvalidOperationException("Reserved map properties have changed.");
                 if (--item.count == 0) Remove(state, new HashSet<string> { item.instanceId });
             }
             run.phase = RunPhase.Active;
