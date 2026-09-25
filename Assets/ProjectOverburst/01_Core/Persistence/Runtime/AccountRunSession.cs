@@ -98,7 +98,11 @@ namespace Overburst.Persistence
             var run = account.ReadRun();
             if (run != null && run.runId == runId && run.phase == RunPhase.Extracted) return false;
             bool committed = account.ExecuteState("extract-" + runId,
-                state => AccountRunCommands.Extract(state, runId));
+                state =>
+                {
+                    AccountRunCommands.Extract(state, runId);
+                    AccountMerchantProjection.RefreshForSuccessfulRun(state, account.ContentRegistry);
+                });
             if (committed) WorldSessionState.SetPhase(WorldPhase.Settling);
             return committed;
         }

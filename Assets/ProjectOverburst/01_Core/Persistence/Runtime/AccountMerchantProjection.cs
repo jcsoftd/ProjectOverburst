@@ -28,6 +28,36 @@ namespace Overburst.Persistence
             target.items = table.Values.ToList();
         }
 
+        // Replace only candidate merchant state. Live stock changes after the whole settlement is saved.
+        public static void RefreshForSuccessfulRun(AccountSnapshot target, AccountContentRegistry registry)
+        {
+            var replacements = MerchantStockRefreshService.CreateSuccessfulRunStocks();
+            var table = target.items.ToDictionary(x => x.instanceId, StringComparer.Ordinal);
+            foreach (var pair in replacements)
+            {
+                string contentId = registry.IdFor(pair.Key);
+                var merchant = target.merchants.Find(x => x.contentId == contentId);
+                if (merchant == null)
+                {
+                    merchant = new MerchantSnapshot
+                    {
+                        contentId = contentId,
+                        reputationLevel = MerchantReputationService.GetLevel(pair.Key),
+                        reputationExperience = MerchantReputationService.GetExperience(pair.Key)
+                    };
+                    target.merchants.Add(merchant);
+                }
+                foreach (var id in merchant.stock.Concat(merchant.currency))
+                    if (!string.IsNullOrEmpty(id)) table.Remove(id);
+                merchant.capacity = pair.Value.Capacity;
+                merchant.stockInitialized = true;
+                merchant.stock = pair.Value.Items.Select(item => CaptureItem(item, table, registry)).ToList();
+                merchant.currency = pair.Value.CurrencyItems.Select(item => CaptureItem(item, table, registry)).ToList();
+            }
+            target.items = table.Values.ToList();
+            target.nextAcquisitionOrder = target.items.Count == 0 ? 1 : checked(target.items.Max(x => x.acquisitionOrder) + 1);
+        }
+
         private static string CaptureItem(ItemData item, Dictionary<string, ItemSnapshot> table, AccountContentRegistry registry)
         {
             if (item == null) return null;

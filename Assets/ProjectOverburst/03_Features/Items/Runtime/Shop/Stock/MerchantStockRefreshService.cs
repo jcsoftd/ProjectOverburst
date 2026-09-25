@@ -123,6 +123,26 @@ public class MerchantStockRefreshService : MonoBehaviour
         return instance.RefreshAllMerchants();
     }
 
+    internal static Dictionary<MerchantDefinition, MerchantInventory> CreateSuccessfulRunStocks()
+    {
+        var result = new Dictionary<MerchantDefinition, MerchantInventory>();
+        if (instance == null || instance.merchantDefinitions == null) return result;
+        foreach (var definition in instance.merchantDefinitions)
+        {
+            if (definition == null || result.ContainsKey(definition)) continue;
+            if (Random.value >= Mathf.Clamp01(instance.successfulRunRefreshChance)) continue;
+            result.Add(definition, instance.CreateInventory(definition));
+        }
+        return result;
+    }
+
+    private static void ReplaceStock(MerchantDefinition definition, MerchantInventory replacement)
+    {
+        if (inventories.TryGetValue(definition, out var existing))
+            existing.ApplyAccountItems(replacement.Capacity, replacement.Items, replacement.CurrencyItems);
+        else inventories.Add(definition, replacement);
+    }
+
     public void RefreshMerchantsAfterSuccessfulRun()
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
@@ -130,25 +150,9 @@ public class MerchantStockRefreshService : MonoBehaviour
             Overburst.Persistence.AccountGameplaySession.Run(() => { RefreshMerchantsAfterSuccessfulRun(); return true; });
             return;
         }
-        if (merchantDefinitions == null)
-            return;
-
-        bool refreshedAny = false;
-        for (int i = 0; i < merchantDefinitions.Length; i++)
-        {
-            MerchantDefinition definition = merchantDefinitions[i];
-            if (definition == null)
-                continue;
-
-            if (Random.value > Mathf.Clamp01(successfulRunRefreshChance))
-                continue;
-
-            inventories[definition] = CreateInventory(definition);
-            Debug.Log("[MerchantStock] Refreshed stock: " + definition.MerchantName, this);
-            refreshedAny = true;
-        }
-
-        if (refreshedAny)
+        var replacements = CreateSuccessfulRunStocks();
+        foreach (var pair in replacements) ReplaceStock(pair.Key, pair.Value);
+        if (replacements.Count > 0)
             Overburst.Persistence.AccountGameplaySession.Notify(NotifyAccountApplied);
     }
 
@@ -166,7 +170,7 @@ public class MerchantStockRefreshService : MonoBehaviour
             if (definition == null)
                 continue;
 
-            inventories[definition] = CreateInventory(definition);
+            ReplaceStock(definition, CreateInventory(definition));
             Debug.Log("[MerchantStock] Force refreshed stock: " + definition.MerchantName, this);
             refreshedAny = true;
         }
