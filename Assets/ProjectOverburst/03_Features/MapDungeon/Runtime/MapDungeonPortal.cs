@@ -75,6 +75,9 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
 
     private void Update()
     {
+        if (entering && WorldSessionState.IsHideout
+            && PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching)
+            entering = false;
         if (panel != null && PlayerInputFacade.Current?.UiCancelPressedThisFrame == true)
             ClosePanel();
     }

@@ -15,14 +15,17 @@ namespace Overburst.Persistence
                 throw new ArgumentException("Invalid run/map.");
             if (state.run != null && state.run.runId == runId)
                 throw new InvalidOperationException("A completed run identity cannot be reused.");
-            if (map.level > 1)
+            if (!string.IsNullOrEmpty(mapItemId))
             {
                 var item = state.items.SingleOrDefault(x => x.instanceId == mapItemId);
                 if (item?.map == null || !state.inventory.Contains(mapItemId) || item.map.level != map.level || item.map.grade != map.grade || item.map.mapContentId != map.mapContentId)
                     throw new InvalidOperationException("The selected map is not available.");
                 map = item.map;
             }
-            state.run = new RunSnapshot { runId = runId, phase = RunPhase.EntryPending, mapInstanceId = map.level == 1 ? null : mapItemId, map = ItemSnapshotCodec.CopyValues(map) };
+            else if (map.level != 1 || map.grade != ItemGrade.Common || map.options.Count != 0)
+                throw new InvalidOperationException("A map item is required for this run.");
+            state.run = new RunSnapshot { runId = runId, phase = RunPhase.EntryPending,
+                mapInstanceId = mapItemId, map = ItemSnapshotCodec.CopyValues(map) };
         }
 
         public static void Activate(AccountSnapshot state, string runId)
