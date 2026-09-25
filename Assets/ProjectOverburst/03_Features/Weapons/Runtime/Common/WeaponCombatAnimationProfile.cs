@@ -179,8 +179,8 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     [Header("재생 속도")]
     [InspectorName("전투 이동 애니메이션 속도 배율")]
     public float locomotionAnimationSpeedMultiplier = 1f;
-    [InspectorName("실제 이동속도에 전투 이동 재생속도 맞춤")]
-    public bool matchLocomotionToMovementSpeed;
+    [InspectorName("8방향 달리기 원본 속도에 실제 이동속도 맞춤")]
+    public bool matchMovementToLocomotionSpeed;
     [InspectorName("8방향 원본 이동속도 (m/s)")]
     public DirectionalLocomotionSpeedSet8 locomotionReferenceSpeeds;
     [InspectorName("장착 애니메이션 속도 배율")]

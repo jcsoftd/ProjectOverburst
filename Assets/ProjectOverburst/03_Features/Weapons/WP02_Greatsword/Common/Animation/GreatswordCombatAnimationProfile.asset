@@ -72,8 +72,8 @@ MonoBehaviour:
   legacyActionSuppressionFadeDuration: 0.04
   transitionLowerLayerFadeDuration: 0.05
   transitionLowerMoveInputThreshold: 0.05
-  locomotionAnimationSpeedMultiplier: 1.3
-  matchLocomotionToMovementSpeed: 1
+  locomotionAnimationSpeedMultiplier: 1
+  matchMovementToLocomotionSpeed: 1
   locomotionReferenceSpeeds:
     forward: 3.434542
     backward: 3.990869

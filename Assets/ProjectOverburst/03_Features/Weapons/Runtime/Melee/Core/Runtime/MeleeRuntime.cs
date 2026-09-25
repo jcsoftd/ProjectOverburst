@@ -48,6 +48,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private readonly AttackMovementExecutor attackMovementExecutor = new AttackMovementExecutor();
     private readonly ComboMovementCollisionPusher comboMovementCollisionPusher = new ComboMovementCollisionPusher();
     private readonly AttackTrailExecutor attackTrailExecutor = new AttackTrailExecutor();
+    private readonly MeleeHeavyDischargeExecutor heavyDischargeExecutor = new MeleeHeavyDischargeExecutor();
     private AttackPatternDebugRenderer attackPatternDebugRenderer;
     private Vector3 activeAttackDirection; // 공격 방향
     private IWeaponTrailController activeAttackTrail;
@@ -750,7 +751,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeAttackAnimationClip = activeAttackStep.animationClip;
             activeAttackAnimationSpeed = Mathf.Max(
                 0.01f,
-                MeleeAttackSpeedPolicy.ToPlaybackMultiplier(activeStats.meleeAttackSpeedMultiplier)
+                ResolveAttackPlaybackMultiplier()
                     * Mathf.Max(0.01f, activeAttackStep.animationSpeedMultiplier));
             activeAttackTransitionDuration = Mathf.Max(0f, activeAttackStep.transitionDuration);
             return;
@@ -802,10 +803,19 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private float CalculateComboAnimationSpeed(MeleeComboDefinition comboDefinition, MeleeComboStepData step)
     {
-        float attackSpeedMultiplier = Mathf.Max(0.01f, activeStats.meleeAttackSpeedMultiplier);
         float baseSpeed = comboDefinition != null ? comboDefinition.baseAnimationSpeed : 1f;
-        float playbackAttackSpeed = MeleeAttackSpeedPolicy.ToPlaybackMultiplier(attackSpeedMultiplier);
+        float playbackAttackSpeed = ResolveAttackPlaybackMultiplier();
         return Mathf.Max(0.01f, baseSpeed * playbackAttackSpeed * Mathf.Max(0.01f, step.animationSpeedMultiplier));
+    }
+
+    private float ResolveAttackPlaybackMultiplier()
+    {
+        MeleeWeaponDefinition melee = activeWeaponData != null ? activeWeaponData.GetMeleeDefinition() : null;
+        float baseline = melee != null
+            ? melee.baseSettings.SafeAnimationPlaybackBaseline
+            : MeleeAttackSpeedPolicy.BaselineAnimationSpeedMultiplier;
+        return MeleeAttackSpeedPolicy.ToPlaybackMultiplier(
+            Mathf.Max(0.01f, activeStats.meleeAttackSpeedMultiplier), baseline);
     }
 
     private void ResolveAttackPhases()
@@ -968,6 +978,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         CommitHeavyDischargeAtImpact(normalizedTime);
         attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
+        heavyDischargeExecutor.ResolvePendingArea();
+        heavyDischargeExecutor.Tick(Time.deltaTime);
 
         if (shouldContinueCombo)
         {
@@ -1092,9 +1104,18 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return;
 
         heavyDischargeCommitted = true;
-        activeHeavyEnergy?.TryCommitDischarge(
+        if (activeHeavyEnergy == null || !activeHeavyEnergy.TryCommitDischarge(
             activeStats.damage * activeAttackDamageMultiplier,
-            out activeDischarge);
+            out activeDischarge)) return;
+
+        MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
+            ? activeWeaponData.GetMeleeDefinition() : null;
+        if (meleeDefinition == null || activeHeavyDefinition == null) return;
+        AttackPatternRuntimeData pattern = activeAttackPhases[0].ResolvePattern(
+            activeStats.range, activeStats.meleeSlashAngle, meleeDefinition.baseSettings.hitWidth);
+        Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
+        heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
+            combatTarget, gameObject, center, activeAttackDirection);
     }
 
     private void KeepComboWindowForCancel()
@@ -1130,6 +1151,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void StopActiveAttackStep()
     {
+        heavyDischargeExecutor.End();
         activeDischarge?.End();
         activeDischarge = null;
         activeHeavyEnergy = null;
@@ -1182,6 +1204,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void FinishActiveAttackStep()
     {
+        heavyDischargeExecutor.End();
         activeDischarge?.End();
         activeDischarge = null;
         activeHeavyEnergy = null;
@@ -1308,7 +1331,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             hit.HitPoint,
             gameObject,
             hit.Direction,
-            ApplyCombatStanceKnockback(runtimeData.Knockback),
+            activeAttackIsHeavy && attackElement == WeaponElement.Water
+                ? 0f : ApplyCombatStanceKnockback(runtimeData.Knockback),
             useElementHitVfx,
             attackElement,
             activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
@@ -1317,19 +1341,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         if (hasDischargeTarget && result.ActualDamage > 0f
             && activeDischarge.TryResolveConfirmedHit(
-                dischargeTarget, result.ActualDamage, out OverburstDischargeResult dischargeResult)
-            && dischargeResult.BonusDamage > 0f && hit.TargetHealth != null && !hit.TargetHealth.IsDead)
-        {
-            hit.TargetHealth.TakeDamage(new DamageInfo(
-                dischargeResult.BonusDamage,
-                hit.HitPoint,
-                gameObject,
-                hit.Direction,
-                triggersOnHitEffects: false,
-                suppressDefaultHitVfx: true,
-                element: dischargeResult.Element,
-                playerAttackKind: PlayerAttackKind.Elemental));
-        }
+                dischargeTarget, result.ActualDamage, out OverburstDischargeResult dischargeResult))
+            heavyDischargeExecutor.ResolveDirectHit(hit.TargetHealth, hit.HitPoint, dischargeResult);
 
         ApplyAirborne(
             result.TargetHealth,

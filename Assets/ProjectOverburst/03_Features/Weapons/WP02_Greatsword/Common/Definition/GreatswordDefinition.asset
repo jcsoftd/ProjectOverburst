@@ -39,14 +39,16 @@ MonoBehaviour:
     quickFireClip: {fileID: 0}
   baseSettings:
     attackSpeedMultiplier: 1
+    animationPlaybackBaseline: 1
     slashAngle: 100
     hitWidth: 1
     hitStunDuration: 0.8
     vfxScaleMultiplier: 1
   combatStyle: 10
   animationProfile: {fileID: 11400000, guid: 1920cbd39a6783043a6711486dd83cfd, type: 2}
-  combatMoveSpeed: 5.4
+  combatMoveSpeed: 3.434542
   comboDefinition: {fileID: 11400000, guid: e58ddec26f9bed44c89989f51ad14e43, type: 2}
+  heavyAttackDefinition: {fileID: 11400000, guid: 817ba740e4f2ddd4cb3a608d19f228f2, type: 2}
   guard:
     lockMovementWhileGuarding: 0
     incomingDamageMultiplier: 0.3

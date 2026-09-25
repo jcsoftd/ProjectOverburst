@@ -42,8 +42,12 @@ public static class MeleeSingleTargetDpsCalculator
         int hitCount = 0;
         float criticalChance01 = Mathf.Clamp01(stats.critChance / 100f);
         float criticalDamageMultiplier = Mathf.Max(1f, stats.critDamageMultiplier);
+        MeleeWeaponDefinition melee = weaponData.GetMeleeDefinition();
+        float baseline = melee != null
+            ? melee.baseSettings.SafeAnimationPlaybackBaseline
+            : MeleeAttackSpeedPolicy.BaselineAnimationSpeedMultiplier;
         float attackSpeedMultiplier = MeleeAttackSpeedPolicy.ToPlaybackMultiplier(
-            Mathf.Max(0.01f, stats.meleeAttackSpeedMultiplier));
+            Mathf.Max(0.01f, stats.meleeAttackSpeedMultiplier), baseline);
         float comboBaseSpeed = Mathf.Max(0.01f, combo.baseAnimationSpeed);
 
         for (int stepIndex = 0; stepIndex < combo.StepCount; stepIndex++)

@@ -123,6 +123,8 @@ public sealed class OverburstElementDischarge
     public string WeaponInstanceId { get; }
     public float Energy { get; }
     public float NormalizedEnergy { get; }
+    public float Radius => radius;
+    public float BaseDamage => attackDamage * energyCoefficient + baseDischargePower * NormalizedEnergy;
     internal OverburstElementDischarge(OverburstElementEnergy owner, int token, WeaponElement element, string weaponId,
         float energy, float normalized, float attackDamage)
     {
@@ -174,9 +176,11 @@ public sealed class OverburstElementDischarge
         bool shattered = snapshot.Frozen;
         if (snapshot.Status != null && !snapshot.Health.IsDead)
             consumed = snapshot.Status.ConsumeForDischarge(Element, out shattered);
-        float bonus = attackDamage * (energyCoefficient + consumed * stackCoefficient + (shattered ? shatterCoefficient : 0f))
-            + baseDischargePower * NormalizedEnergy;
-        result = new OverburstDischargeResult(Element, bonus, radius, Element == WeaponElement.Electric ? chainTargets : 0, consumed, shattered, waterPullDistance);
+        float bonus = BaseDamage + attackDamage * (consumed * stackCoefficient + (shattered ? shatterCoefficient : 0f));
+        int resolvedChainTargets = Element == WeaponElement.Electric
+            ? Mathf.Min(OverburstElementTuning.Current.maximumChainTargets, chainTargets + consumed / 2)
+            : 0;
+        result = new OverburstDischargeResult(Element, bonus, radius, resolvedChainTargets, consumed, shattered, waterPullDistance);
         return true;
     }
     public bool TryResolveConfirmedHit(CombatHealth target, float actualDirectDamage, out OverburstDischargeResult result)

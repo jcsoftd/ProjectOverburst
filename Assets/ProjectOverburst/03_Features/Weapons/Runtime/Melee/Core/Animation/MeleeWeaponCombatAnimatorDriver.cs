@@ -93,7 +93,6 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
     private RuntimeAnimatorController baseAnimatorController;
     private AnimatorOverrideController runtimeOverrideController;
     private WeaponCombatAnimationProfile runtimeOverrideProfile;
-    private OverburstCharacterMotor3D characterMotor;
 
     public bool IsAvailable
     {
@@ -208,7 +207,6 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
             return;
 
         ApplyCurrentProfile();
-        UpdateLocomotionPlaybackSpeed();
         UpdateLegacySuppression();
         UpdateActionState();
         UpdateLocomotionState();
@@ -424,41 +422,6 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
                 ResolvePositiveOrDefault(profile.locomotionAnimationSpeedMultiplier, 1f));
             return;
         }
-    }
-
-    private void UpdateLocomotionPlaybackSpeed()
-    {
-        if (targetAnimator == null
-            || activeProfile == null
-            || !activeProfile.matchLocomotionToMovementSpeed
-            || playerMovement == null
-            || !combatRequested
-            || playerMovement.IsMeleeGuarding
-            || activeAction != DriverAction.None)
-        {
-            return;
-        }
-
-        if (characterMotor == null)
-            characterMotor = playerMovement.GetComponent<OverburstCharacterMotor3D>();
-        if (characterMotor == null)
-            return;
-
-        Vector3 velocity = characterMotor.ControllerPlanarVelocity
-            - characterMotor.PlatformVelocity
-            - characterMotor.ExternalVelocity;
-        velocity.y = 0f;
-        float speed = velocity.magnitude;
-        float playback = 1f; // 멈춘 상태의 대기 모션은 정상 속도로 유지
-        if (playerMovement.MoveInput.sqrMagnitude > 0.001f && speed > 0.05f)
-        {
-            Vector3 localDirection = playerMovement.transform.InverseTransformDirection(velocity);
-            float referenceSpeed = activeProfile.locomotionReferenceSpeeds.GetSpeed(localDirection);
-            if (referenceSpeed > 0.05f)
-                playback = speed / referenceSpeed;
-        }
-
-        targetAnimator.SetFloat(LocomotionSpeedParameterHash, playback);
     }
 
     private void CaptureBaseAnimatorController()

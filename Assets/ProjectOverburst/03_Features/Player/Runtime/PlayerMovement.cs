@@ -1009,6 +1009,15 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
         MeleeWeaponDefinition melee = playerEquipment != null
             ? playerEquipment.CurrentWeaponContext.Melee
             : null;
+        WeaponCombatAnimationProfile profile = melee != null ? melee.animationProfile : null;
+        if (profile != null && profile.matchMovementToLocomotionSpeed && moveDirection.sqrMagnitude > 0.001f)
+        {
+            Vector3 localDirection = transform.InverseTransformDirection(moveDirection);
+            float authoredSpeed = profile.locomotionReferenceSpeeds.GetSpeed(localDirection);
+            if (authoredSpeed > 0.05f)
+                return authoredSpeed;
+        }
+
         return melee != null && melee.combatMoveSpeed > 0f
             ? melee.combatMoveSpeed
             : Mathf.Max(0f, meleeCombatMoveSpeed);

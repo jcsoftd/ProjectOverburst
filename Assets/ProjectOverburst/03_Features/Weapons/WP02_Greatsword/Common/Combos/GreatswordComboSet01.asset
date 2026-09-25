@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GreatswordComboSet01
   m_EditorClassIdentifier: Assembly-CSharp::MeleeComboDefinition
   resetDelay: 0.55
-  baseAnimationSpeed: 1.2
+  baseAnimationSpeed: 1
   entryTransitionDuration: 0.07
   steps:
   - attackId: Greatsword.ComboSet01.1
@@ -60,9 +60,7 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases:
-    - startNormalizedTime: 0.17
-      endNormalizedTime: 0.34
+    trailPhases: []
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 091a04fd6e7b71a428a84bac2033bdf3, type: 2}
       startNormalizedTime: 0.18
@@ -142,9 +140,7 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases:
-    - startNormalizedTime: 0.38
-      endNormalizedTime: 0.51
+    trailPhases: []
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: e0af939a2d398cc45b683cba7d17b781, type: 2}
       startNormalizedTime: 0.39
@@ -224,11 +220,7 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases:
-    - startNormalizedTime: 0.18
-      endNormalizedTime: 0.36
-    - startNormalizedTime: 0.39
-      endNormalizedTime: 0.53
+    trailPhases: []
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: c4373cd29ec46ca48aa249ba874177d1, type: 2}
       startNormalizedTime: 0.185
@@ -301,7 +293,7 @@ MonoBehaviour:
   - attackId: Greatsword.ComboSet01.4
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 4\uD0C0 \uB3C4\uC57D \uD68C\uC804 3\uC5F0\uD0C0"
     animationClip: {fileID: 7400000, guid: dbafa21378d2163439454ad6fdf05807, type: 3}
-    animationSpeedMultiplier: 1.25
+    animationSpeedMultiplier: 1
     transitionDuration: 0.06
     comboInputWindow:
       startNormalizedTime: 0.47
@@ -342,13 +334,7 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases:
-    - startNormalizedTime: 0.08
-      endNormalizedTime: 0.154
-    - startNormalizedTime: 0.154
-      endNormalizedTime: 0.287
-    - startNormalizedTime: 0.287
-      endNormalizedTime: 0.39
+    trailPhases: []
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 62cc4ec52b8c83e499f99c85f74fbba5, type: 2}
       startNormalizedTime: 0.09

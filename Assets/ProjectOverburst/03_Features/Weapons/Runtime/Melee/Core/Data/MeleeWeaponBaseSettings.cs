@@ -6,9 +6,9 @@ public static class MeleeAttackSpeedPolicy // 표시 공격속도와 실제 재�
     public const float BaselineAnimationSpeedMultiplier = 1.30f;
     public const float MaximumDisplayedAttackSpeedMultiplier = 1.50f;
 
-    public static float ToPlaybackMultiplier(float displayedAttackSpeedMultiplier)
+    public static float ToPlaybackMultiplier(float displayedAttackSpeedMultiplier, float weaponBaseline = BaselineAnimationSpeedMultiplier)
     {
-        return BaselineAnimationSpeedMultiplier * displayedAttackSpeedMultiplier;
+        return weaponBaseline * displayedAttackSpeedMultiplier;
     }
 }
 
@@ -17,6 +17,9 @@ public struct MeleeWeaponBaseSettings
 {
     [InspectorName("기본 공격속도 배율")]
     [Min(0.01f)] public float attackSpeedMultiplier;
+
+    [InspectorName("기본 공격 모션 재생 배율 (0 = 기존 1.3배)")]
+    [Min(0f)] public float animationPlaybackBaseline;
 
     [InspectorName("기본 부채꼴 각도")]
     [Range(1f, 180f)] public float slashAngle;
@@ -28,4 +31,7 @@ public struct MeleeWeaponBaseSettings
     [Min(0.01f)] public float vfxScaleMultiplier;
 
     public float SafeAttackSpeedMultiplier => attackSpeedMultiplier > 0f ? attackSpeedMultiplier : 1f;
+    public float SafeAnimationPlaybackBaseline => animationPlaybackBaseline > 0f
+        ? animationPlaybackBaseline
+        : MeleeAttackSpeedPolicy.BaselineAnimationSpeedMultiplier;
 }

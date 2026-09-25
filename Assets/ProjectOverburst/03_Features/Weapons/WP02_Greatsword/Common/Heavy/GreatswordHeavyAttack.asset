@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374dec6ac1f82124ab15ab786550a088, type: 3}
+  m_Name: GreatswordHeavyAttack
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeHeavyAttackDefinition
+  attack:
+    attackId: Greatsword.Heavy.FrontCircle
+    attackName: "\uB300\uAC80 \uC804\uBC29 \uC6D0\uD615 \uAC15\uACF5"
+    animationClip: {fileID: 7400000, guid: 469e00b226cf5904f8f20fd7061f25bc, type: 3}
+    animationSpeedMultiplier: 1
+    transitionDuration: 0.08
+    comboInputWindow:
+      startNormalizedTime: 0
+      endNormalizedTime: 0
+    actionCancelStartNormalized: 1
+    movementPhases: []
+    trailPhases: []
+    attackPhases:
+    - attackPattern: {fileID: 11400000, guid: 05d907197b513f747a136417b565898b, type: 2}
+      startNormalizedTime: 0.48
+      endNormalizedTime: 0.64
+      geometry:
+        rangeMultiplier: 0.72
+        angleMultiplier: 1
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 1
+        forwardOffset: 2.3
+      progressSource: 0
+      basisFollowMode: 0
+      impact:
+        damageMultiplier: 1
+        knockbackMultiplier: 1.25
+        hitStunMultiplier: 1
+        knockbackReactionDuration: 0.36
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues: []
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 0
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 140
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 0
+  chargedDamageMultiplier: 1.35
+  emptyDamageMultiplier: 0.6
+  elementVfx:
+    fireImpact: {fileID: 8122398794927976415, guid: 080e8ed6074988c42b618cd734708f24, type: 3}
+    iceImpact: {fileID: 224993903656217306, guid: 764ee38cd0dd9814e996a1604c18df09, type: 3}
+    iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
+    electricImpact: {fileID: 3767897547946517131, guid: 28a5d51fe6e7d5e49a504b3ca0afa6dd, type: 3}
+    electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
+    waterImpact: {fileID: 9077682241068869429, guid: fe2e4d08899945f42b71c9c11aa275a5, type: 3}

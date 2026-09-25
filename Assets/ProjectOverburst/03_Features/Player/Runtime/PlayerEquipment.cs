@@ -89,7 +89,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     public bool CanCurrentWeaponUseMeleeGuard => CanUseCurrentWeaponAimMode(WeaponAimMode.MeleeGuard);
     public bool CanCurrentWeaponMoveWhileGuarding => !HasCurrentWeapon
         || CurrentWeaponData.GetMeleeGuardSettings().AllowsMovementWhileGuarding;
-    public bool CanCurrentWeaponUseMeleeCombatStance => CanUseCurrentWeaponAimMode(WeaponAimMode.MeleeStance) || CanUseCurrentWeaponAimMode(WeaponAimMode.MeleeGuard);
+    public bool CanCurrentWeaponUseMeleeCombatStance => HasCurrentMeleeDefinition;
     public bool CanCurrentWeaponAimAny => CanCurrentWeaponUseMagicAim;
     public IWeaponRuntimeController CurrentWeaponRuntimeController => GetCurrentWeaponRuntimeController();
     public WeaponRuntimeStatus CurrentWeaponRuntimeStatus => GetCurrentWeaponRuntimeStatus();

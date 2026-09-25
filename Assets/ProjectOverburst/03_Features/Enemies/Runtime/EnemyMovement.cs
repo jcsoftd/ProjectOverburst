@@ -138,6 +138,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
                 && attackDisplacement.sqrMagnitude > .000001f && motor != null
                 && TryResolveCrowdPosition(transform.position + attackDisplacement, false, out Vector3 attackPosition))
                 motor.MoveToPosition(attackPosition);
+            ApplyPendingAreaDisplacement(); // 경직 중에도 수압 흡인은 이동 모터·지형 검사를 거친다.
             return;
         }
 
@@ -213,7 +214,9 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return;
 
         Vector3 candidate = transform.position + displacement;
-        if (TryResolveCrowdPosition(candidate, false, out Vector3 resolved))
+        if (IsWalkablePosition(candidate)
+            && TryResolveCrowdPosition(candidate, false, out Vector3 resolved)
+            && IsWalkablePosition(resolved))
             motor.MoveToPosition(resolved);
     }
 

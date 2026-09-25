@@ -464,10 +464,10 @@ MonoBehaviour:
   auraParticleSizeScale: 0.42
   auraEmissionScale: 0.45
   auraSurfaceScale: 0.28
-  fireTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
-  waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
-  iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
-  electricTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
+  fireTrail: {fileID: 0}
+  waterTrail: {fileID: 0}
+  iceTrail: {fileID: 0}
+  electricTrail: {fileID: 0}
   trailWidthScale: 0.16
   trailLifetime: 0.23
   trailOffsets:
