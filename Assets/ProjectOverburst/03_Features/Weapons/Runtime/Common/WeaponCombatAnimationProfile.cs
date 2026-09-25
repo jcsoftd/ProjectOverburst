@@ -138,6 +138,8 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     public float transitionLowerMoveInputThreshold = 0.05f;
 
     [Header("재생 속도")]
+    [InspectorName("전투 이동 애니메이션 속도 배율")]
+    public float locomotionAnimationSpeedMultiplier = 1f;
     [InspectorName("장착 애니메이션 속도 배율")]
     public float equipAnimationSpeedMultiplier = 1.3f;
     [InspectorName("해제 애니메이션 속도 배율")]

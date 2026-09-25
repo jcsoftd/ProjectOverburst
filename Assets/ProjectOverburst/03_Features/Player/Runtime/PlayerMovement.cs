@@ -1003,7 +1003,15 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
             return 0f;
         }
 
-        return Mathf.Max(0f, IsMeleeGuarding ? meleeCombatGuardMoveSpeed : meleeCombatMoveSpeed);
+        if (IsMeleeGuarding)
+            return Mathf.Max(0f, meleeCombatGuardMoveSpeed);
+
+        MeleeWeaponDefinition melee = playerEquipment != null
+            ? playerEquipment.CurrentWeaponContext.Melee
+            : null;
+        return melee != null && melee.combatMoveSpeed > 0f
+            ? melee.combatMoveSpeed
+            : Mathf.Max(0f, meleeCombatMoveSpeed);
     }
 
     public void SetBagMoveSpeedBonusPercent(float percent)

@@ -16,6 +16,10 @@ public sealed class MeleeWeaponDefinition : WeaponCombatDefinition
     [InspectorName("전투 애니메이션 프로필")]
     public WeaponCombatAnimationProfile animationProfile;
 
+    [Header("전투 이동")]
+    [InspectorName("일반 전투 이동속도 (0 = 공용 값)")]
+    [Min(0f)] public float combatMoveSpeed;
+
     [Header("공격")]
     [InspectorName("콤보 데이터")]
     public MeleeComboDefinition comboDefinition;

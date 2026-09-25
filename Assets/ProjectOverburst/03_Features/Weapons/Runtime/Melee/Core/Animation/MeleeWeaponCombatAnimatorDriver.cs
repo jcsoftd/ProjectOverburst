@@ -7,6 +7,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
     private const float DefaultGuardLocomotionEnterTransitionDuration = 0.16f;
     private const float DefaultGuardLocomotionExitTransitionDuration = 0.12f;
     private const float DefaultGuardLocomotionStartOffsetSeconds = 0.05f;
+    private static readonly int LocomotionSpeedParameterHash = Animator.StringToHash("Melee_LocomotionSpeed");
 
     private enum DriverAction
     {
@@ -400,8 +401,27 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         equipAnimationSpeedMultiplier = profile.equipAnimationSpeedMultiplier;
         unequipAnimationSpeedMultiplier = profile.unequipAnimationSpeedMultiplier;
         unequipAnimationStartOffsetSeconds = profile.unequipAnimationStartOffsetSeconds;
+        SetLocomotionSpeedForProfile(profile);
         layerIndex = -1;
         transitionLowerLayerIndex = -1;
+    }
+
+    private void SetLocomotionSpeedForProfile(WeaponCombatAnimationProfile profile)
+    {
+        if (targetAnimator == null)
+            return;
+
+        foreach (AnimatorControllerParameter parameter in targetAnimator.parameters)
+        {
+            if (parameter.type != AnimatorControllerParameterType.Float
+                || parameter.nameHash != LocomotionSpeedParameterHash)
+                continue;
+
+            targetAnimator.SetFloat(
+                LocomotionSpeedParameterHash,
+                ResolvePositiveOrDefault(profile.locomotionAnimationSpeedMultiplier, 1f));
+            return;
+        }
     }
 
     private void CaptureBaseAnimatorController()
