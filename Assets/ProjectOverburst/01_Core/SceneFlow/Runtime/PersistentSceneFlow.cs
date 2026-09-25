@@ -40,7 +40,9 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BootstrapAfterSceneLoad()
     {
-        if (SceneManager.GetActiveScene().name != PersistentSceneName) // Persistent 한정
+        if (SceneManager.GetActiveScene().name == HideoutSceneName)
+            WorldSessionState.SetPhase(WorldPhase.Hideout);
+        if (SceneManager.GetActiveScene().name != PersistentSceneName)
             return;
 
         EnsureInstance();
@@ -137,6 +139,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         // Initial load also includes the deferred hub spawn placement. Publishing
         // "ready" before that teleport let arena entry be overwritten next frame.
         isSwitching = true;
+        WorldSessionState.SetPhase(WorldPhase.Loading);
         try { yield return EnsureInitialSubSceneCore(); }
         finally { isSwitching = false; }
     }
@@ -151,6 +154,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             {
                 yield return PlacePlayerAtHubSpawn("Default"); // 플레이어 초기 배치
                 SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
+                WorldSessionState.SetPhase(WorldPhase.Hideout);
                 WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
             }
 
@@ -162,6 +166,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         ActivateSubScene(currentSubSceneName); // 활성 씬
         yield return PlacePlayerAtHubSpawn("Default"); // 플레이어 초기 배치
         SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
+        WorldSessionState.SetPhase(WorldPhase.Hideout);
         WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
     }
 
@@ -182,6 +187,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string newSceneName,
         RunSceneReturnContext returnContext)
     {
+        WorldSessionState.SetPhase(WorldPhase.Loading);
         isSwitching = true; // 전환 잠금
         RunSceneReturnContext deferredRecoveryContext = null; // 생성 실패 후 재전환
         ClosePersistentUiForSceneSwitch(); // UI 정리
@@ -270,6 +276,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             if (loadingScreen != null)
                 loadingScreen.SetProgress(1f); // 완료
 
+            WorldSessionState.SetPhase(WorldPhase.Hideout);
             WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
         }
         else if (newSceneName == DungeonRunSceneName)
@@ -294,6 +301,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             if (readiness == RunSceneReadinessState.Ready)
             {
                 pendingDungeonFailureReturnContext = null;
+                WorldSessionState.SetPhase(WorldPhase.Run);
                 if (loadingScreen != null)
                     loadingScreen.SetProgress(1f);
             }
@@ -317,6 +325,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         {
             yield return PlacePlayerAtHubSpawn("Default"); // 허브 직접 로드
             SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
+            WorldSessionState.SetPhase(WorldPhase.Hideout);
             WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
         }
 

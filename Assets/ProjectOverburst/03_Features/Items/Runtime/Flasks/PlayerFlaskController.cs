@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public sealed class PlayerFlaskController : MonoBehaviour
@@ -44,7 +43,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         conditions = GetComponent<PlayerStateCoordinator>();
         if (health != null) { health.OnDead += Died; health.OnReset += ResetHealth; }
         if (equipment != null) equipment.WeaponSlotsChanged += WeaponChanged;
-        SceneManager.sceneLoaded += SceneLoaded;
+        WorldSessionState.Changed += WorldChanged;
         previousTime = Time.time;
         ResolveInventory();
     }
@@ -53,7 +52,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
         if (health != null) { health.OnDead -= Died; health.OnReset -= ResetHealth; }
         if (equipment != null) equipment.WeaponSlotsChanged -= WeaponChanged;
         if (inventory != null) inventory.Changed -= InventoryChanged;
-        SceneManager.sceneLoaded -= SceneLoaded;
+        WorldSessionState.Changed -= WorldChanged;
         ClearEffects(); inventory = null;
     }
     private void Update() { Tick(Time.time); }
@@ -173,20 +172,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
     }
     public void ClearEffects() { effects.Clear(); GetComponent<FlaskGhostCollision>()?.Restore(); Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); }
 
-    public static bool CanChangeLoadout
-    {
-        get
-        {
-            bool hideout = false;
-            for (int i = 0; i < SceneManager.sceneCount; i++)
-            {
-                string name = SceneManager.GetSceneAt(i).name;
-                if (name == "DungeonRunScene") return false;
-                if (name.IndexOf("Hideout", StringComparison.OrdinalIgnoreCase) >= 0) hideout = true;
-            }
-            return hideout;
-        }
-    }
+    public static bool CanChangeLoadout => WorldSessionState.IsHideout;
     private void ResolveInventory()
     {
         PlayerInventory next = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorInventory : null;
@@ -225,9 +211,9 @@ public sealed class PlayerFlaskController : MonoBehaviour
     }
     private void Died(CombatHealth _, DamageInfo info) { ClearEffects(); ResetCooldowns(); }
     private void ResetHealth(CombatHealth _) { ClearEffects(); if (CanChangeLoadout) ResetCooldowns(); previousTime = Time.time; }
-    private void SceneLoaded(Scene scene, LoadSceneMode mode)
+    private void WorldChanged(WorldPhase phase)
     {
-        if (scene.name != "DungeonRunScene" && scene.name.IndexOf("Hideout", StringComparison.OrdinalIgnoreCase) < 0) return;
+        if (phase != WorldPhase.Run && phase != WorldPhase.Hideout) return;
         ClearEffects(); previousTime = Time.time; ResetCooldowns();
     }
 

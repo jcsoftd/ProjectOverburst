@@ -391,9 +391,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
     private bool ShouldShowStashGold()
     {
-        Scene dungeonScene = SceneManager.GetSceneByName(
-            PersistentSceneFlow.DungeonRunSceneName);
-        return !dungeonScene.IsValid() || !dungeonScene.isLoaded;
+        return WorldSessionState.IsHideout;
     }
 
     private void HandleSortDropdownChanged(int optionIndex)
