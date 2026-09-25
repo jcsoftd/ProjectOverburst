@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: GreatswordDefinition
   m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponDefinition
   usage:
-    canAim: 1
+    canAim: 0
     canPrimaryAttack: 1
     aimType: 3
     attackType: 8
     fireMode: 5
     attackRateDisplayType: 0
   aim:
-    mode: 6
+    mode: 1
     usesCombatMove: 1
     usesUpperBodyPose: 0
     rotatesToMouse: 1
