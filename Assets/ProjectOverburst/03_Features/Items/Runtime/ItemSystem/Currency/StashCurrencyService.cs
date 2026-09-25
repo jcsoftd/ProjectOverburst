@@ -60,6 +60,8 @@ public class StashCurrencyService : MonoBehaviour
 
     public bool TrySpend(CurrencyAmount cost)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TrySpend(cost));
         ResolveReferences();
         if (!cost.IsValid)
             return true;
@@ -94,6 +96,8 @@ public class StashCurrencyService : MonoBehaviour
 
     public bool TryAddCurrency(CurrencyType type, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() => TryAddCurrency(type, amount));
         ResolveReferences();
         if (stash == null || amount <= 0)
             return false;

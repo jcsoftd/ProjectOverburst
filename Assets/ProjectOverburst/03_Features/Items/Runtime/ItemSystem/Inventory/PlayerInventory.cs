@@ -167,7 +167,7 @@ public class PlayerInventory : MonoBehaviour
         if (baseData == null)
             return null;
 
-        for (int i = 0; i < items.Count && i < UnlockedSlotCount; i++)
+        for (int i = 0; i < items.Count; i++)
         {
             ItemData item = items[i];
             if (item != null && item.baseData == baseData && item.stackCount > 0)
@@ -183,7 +183,7 @@ public class PlayerInventory : MonoBehaviour
             return 0;
 
         int count = 0;
-        for (int i = 0; i < items.Count && i < UnlockedSlotCount; i++)
+        for (int i = 0; i < items.Count; i++)
         {
             ItemData item = items[i];
             if (item != null && item.baseData == baseData && item.stackCount > 0)
@@ -211,7 +211,9 @@ public class PlayerInventory : MonoBehaviour
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() => SetItemAt(index, item));
-        if (index < 0 || index >= UnlockedSlotCount)
+        if (index < 0 || index >= capacity || (item != null && index >= UnlockedSlotCount))
+            return false;
+        if (item != null && IsOverCapacity && !ContainsItem(item))
             return false;
 
         if (item != null && !item.HasValidBaseData)
@@ -231,7 +233,10 @@ public class PlayerInventory : MonoBehaviour
 
     public bool CanReplaceOwnedItemAt(int index, ItemData expected, ItemData replacement)
     {
-        if (index < 0 || index >= UnlockedSlotCount)
+        if (index < 0 || index >= capacity)
+            return false;
+        if (replacement != null && (index >= UnlockedSlotCount ||
+            (IsOverCapacity && !ContainsItem(replacement))))
             return false;
 
         ItemData current = index < items.Count ? items[index] : null;
@@ -467,6 +472,11 @@ public class PlayerInventory : MonoBehaviour
 
     public void Clear()
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { Clear(); return true; });
+            return;
+        }
         items.Clear();
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
