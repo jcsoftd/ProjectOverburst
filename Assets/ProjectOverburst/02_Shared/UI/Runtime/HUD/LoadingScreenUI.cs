@@ -10,6 +10,9 @@ public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private TextMeshProUGUI hintText;
     [SerializeField] private Image progressFill;
+    [SerializeField] private RectTransform themedProgressMask;
+    [SerializeField] private Text themedPercentageText;
+    [SerializeField] private float themedFillWidth = 3194f;
 
     private bool warnedMissingReferences;
 
@@ -45,8 +48,13 @@ public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
 
     public void SetProgress(float value)
     {
+        float progress = Mathf.Clamp01(value);
         if (progressFill != null)
-            progressFill.fillAmount = Mathf.Clamp01(value);
+            progressFill.fillAmount = progress;
+        if (themedProgressMask != null)
+            themedProgressMask.sizeDelta = new Vector2(themedFillWidth * progress, themedProgressMask.sizeDelta.y);
+        if (themedPercentageText != null)
+            themedPercentageText.text = Mathf.RoundToInt(progress * 100f) + "%";
     }
 
     public void Hide()

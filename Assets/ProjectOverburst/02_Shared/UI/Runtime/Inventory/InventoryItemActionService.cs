@@ -28,6 +28,18 @@ public class InventoryItemActionService : MonoBehaviour
         return slotBridge != null && slotBridge.EquipWeaponFromContextMenu(sourceSlot, weaponSlotIndex);
     }
 
+    public bool EquipBag(SlotUI sourceSlot)
+    {
+        ResolveReferences();
+        return slotBridge != null && slotBridge.EquipBagFromContextMenu(sourceSlot);
+    }
+
+    public bool UnequipBagSlot(int bagSlotIndex)
+    {
+        ResolveReferences();
+        return slotBridge != null && slotBridge.UnequipBagFromContextMenu(bagSlotIndex);
+    }
+
     public bool UnequipWeaponSlot(int weaponSlotIndex)
     {
         ResolveReferences();
@@ -181,7 +193,7 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
-        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("물약 장비칸에 장착한 뒤 1~7번으로 사용합니다."); return false; }
+        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("물약 장비칸에 장착한 뒤 1~9·0번으로 사용합니다."); return false; }
 
         IItemUseHandler handler = FindUseHandler(item);
         if (handler == null)
@@ -282,7 +294,7 @@ public class InventoryItemActionService : MonoBehaviour
         if (previous != null) quickSlots.ClearFlask(previous);
         if (key == 0)
         {
-            SpawnPlayerStatusText("물약을 장착했습니다. 1~7번 중 사용할 번호를 선택해 주세요.");
+            SpawnPlayerStatusText("물약을 장착했습니다. 1~9·0번 중 사용할 번호를 선택해 주세요.");
             return true;
         }
         if (quickSlots.Bind(key, item)) return true;
@@ -329,7 +341,7 @@ public class InventoryItemActionService : MonoBehaviour
         ResolveReferences();
         quickSlots?.ImportLegacyFlasks();
         string itemName = quickSlots != null ? quickSlots.GetBoundItemDisplayName(key) : "Empty";
-        return key + " : " + itemName;
+        return (key % 10) + " : " + itemName;
     }
 
     public void ShowItemInfo(ItemData item)

@@ -20,6 +20,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
     [SerializeField] private TextMeshProUGUI sortRefreshButtonText;
     [SerializeField] private TextMeshProUGUI sortStatusText;
     [SerializeField] private TextMeshProUGUI goldSummaryText;
+    [SerializeField] private bool compactGoldSummary;
     [SerializeField] private PlayerInventory playerInventory;
     [SerializeField] private StashCurrencyService stashCurrencyService;
     [SerializeField] private InventorySelectionController selectionController;
@@ -231,6 +232,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
             return;
 
         int inventoryGold = GetInventoryGoldAmount();
+        if (compactGoldSummary) { goldSummaryText.text = inventoryGold.ToString("N0") + " G"; return; }
         if (ShouldShowStashGold())
         {
             int stashGold = stashCurrencyService != null ? stashCurrencyService.GetAmount(CurrencyType.Gold) : 0;
@@ -437,7 +439,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
         if (sortRefreshButtonText != null)
         {
-            sortRefreshButtonText.text = sortDirection == ItemSortDirection.Ascending ? "▲" : "▼"; // 방향 표시
+            sortRefreshButtonText.text = (compactGoldSummary ? "정렬 " : "") + (sortDirection == ItemSortDirection.Ascending ? "▲" : "▼"); // 방향 표시
             ApplyKoreanFont(sortRefreshButtonText);
         }
 

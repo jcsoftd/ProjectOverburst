@@ -6,9 +6,9 @@ using UnityEngine.UI;
 
 public class InventoryContextMenuController : MonoBehaviour
 {
-    private const float MinMenuWidth = 180f;
+    private const float MinMenuWidth = 240f;
     private const float MaxMenuWidth = 440f;
-    private const float ButtonHeight = 34f;
+    private const float ButtonHeight = 38f;
 
     [Header("Objectized View")]
     [SerializeField] private RectTransform blockerRoot;
@@ -164,6 +164,14 @@ public class InventoryContextMenuController : MonoBehaviour
             return;
         }
 
+        if (selectedSlot != null && selectedSlot.IsBagSlot)
+        {
+            AddButton("장착 해제", true, UnequipSelectedBagSlot);
+            AddButton("정보", true, ShowSelectedItemInfo);
+            AddButton("닫기", true, Close);
+            return;
+        }
+
         if (item.baseData is FlaskItemData)
         {
             var flasks = PlayerFlaskController.Current;
@@ -197,6 +205,12 @@ public class InventoryContextMenuController : MonoBehaviour
                 {
                     if (selectedSlot != null && GearEquipmentService.EquipFromInventorySlot(selectedSlot.SlotIndex)) Close();
                 });
+                AddButton("정보", true, ShowSelectedItemInfo);
+                AddButton("버리기", true, DropSelectedItem);
+                AddButton("닫기", true, Close);
+                break;
+            case "Bag":
+                AddButton("장착", true, EquipSelectedBag);
                 AddButton("정보", true, ShowSelectedItemInfo);
                 AddButton("버리기", true, DropSelectedItem);
                 AddButton("닫기", true, Close);
@@ -241,6 +255,18 @@ public class InventoryContextMenuController : MonoBehaviour
     {
         actionService?.EquipWeapon(selectedSlot, 0);
         Close();
+    }
+
+    private void EquipSelectedBag()
+    {
+        if (actionService != null && actionService.EquipBag(selectedSlot))
+            Close();
+    }
+
+    private void UnequipSelectedBagSlot()
+    {
+        if (selectedSlot != null && actionService != null && actionService.UnequipBagSlot(selectedSlot.SlotIndex))
+            Close();
     }
 
     private void ShowQuickSlotSubmenu()
@@ -331,8 +357,8 @@ public class InventoryContextMenuController : MonoBehaviour
     private void ShowSelectedItemInfo()
     {
         ItemData item = selectedSlot != null ? selectedSlot.DisplayItem : null;
-        actionService?.ShowItemInfo(item);
         Close();
+        if (item != null) tooltipManager?.ShowTooltip(item);
     }
 
     private void EnsureView()
@@ -371,14 +397,14 @@ public class InventoryContextMenuController : MonoBehaviour
         {
             splitOkButton.onClick.RemoveListener(ConfirmObjectizedSplit);
             splitOkButton.onClick.AddListener(ConfirmObjectizedSplit);
-            SetButtonText(splitOkButton, "OK");
+            SetButtonText(splitOkButton, "확인");
         }
 
         if (splitCancelButton != null)
         {
             splitCancelButton.onClick.RemoveListener(Close);
             splitCancelButton.onClick.AddListener(Close);
-            SetButtonText(splitCancelButton, "Cancel");
+            SetButtonText(splitCancelButton, "취소");
         }
     }
 

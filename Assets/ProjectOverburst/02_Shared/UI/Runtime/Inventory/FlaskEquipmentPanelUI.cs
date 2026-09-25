@@ -106,7 +106,7 @@ public sealed class FlaskEquipmentPanelUI : MonoBehaviour
                 && (quickSlots.GetBoundConsumable(key) != null || quickSlots.GetBoundSkill(key) != null));
             if (keyLabels[i] != null)
             {
-                keyLabels[i].text = key + "번";
+                keyLabels[i].text = (key % 10) + "번";
                 keyLabels[i].color = selected ? new Color(.62f, .96f, .72f)
                     : occupied ? new Color(.98f, .76f, .48f) : Color.white;
             }

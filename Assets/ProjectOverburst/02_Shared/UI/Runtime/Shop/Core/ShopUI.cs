@@ -562,8 +562,7 @@ public class ShopUI : MonoBehaviour
         if (item == null)
             return;
 
-        SetStatus(item.itemName + " 정보 표시 준비 중");
-        Debug.Log("[ShopUI] ShowItemInfo reserved: " + item.itemName, this);
+        TooltipManager.Instance?.ShowTooltip(item);
     }
 
     public void ShowShopContextStatus(string message)

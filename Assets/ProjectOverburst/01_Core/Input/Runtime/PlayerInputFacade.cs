@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Gameplay 21 action(퀵슬롯 1~7 포함) + UI Point/Submit/Cancel + Current 수명주기를 제공한다.
+// Gameplay action(퀵슬롯 1~9·0 포함) + UI Point/Submit/Cancel/Equipment + Current 수명주기를 제공한다.
 // 기존 공개 API(맵 enable/disable, TryGet, 값/눌림 API)는 유지한다.
 [DisallowMultipleComponent]
 public sealed class PlayerInputFacade : MonoBehaviour
@@ -41,6 +41,10 @@ public sealed class PlayerInputFacade : MonoBehaviour
         "QuickSlot5",
         "QuickSlot6",
         "QuickSlot7",
+        "QuickSlot8",
+        "QuickSlot9",
+        "QuickSlot10",
+        "Equipment",
         "LootModeCycle",
     };
 
@@ -146,7 +150,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public bool AimHeld => IsPressed("Aim");
     public bool AimReleasedThisFrame => WasReleasedThisFrame("Aim");
 
-    public bool QuickSlotPressedThisFrame(int key) => key >= 1 && key <= 7 && WasPressedThisFrame("QuickSlot" + key);
+    public bool QuickSlotPressedThisFrame(int key) => key >= 1 && key <= 10 && WasPressedThisFrame("QuickSlot" + key);
+    public bool EquipmentPressedThisFrame => WasPressedThisFrame("Equipment") || WasUiPressedThisFrame("Equipment");
 
     public bool QuickSlot1PressedThisFrame => WasPressedThisFrame("QuickSlot1");
     public bool QuickSlot2PressedThisFrame => WasPressedThisFrame("QuickSlot2");

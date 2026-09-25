@@ -447,6 +447,16 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
         return EquipWeaponFromInventorySlot(sourceSlot, weaponSlotIndex);
     }
 
+    public bool EquipBagFromContextMenu(SlotUI sourceSlot)
+    {
+        return EquipBagFromInventorySlot(sourceSlot);
+    }
+
+    public bool UnequipBagFromContextMenu(int bagSlotIndex)
+    {
+        return UnequipBagToFirstAvailableSlot(bagSlotIndex);
+    }
+
     public bool UnequipWeaponFromContextMenu(int weaponSlotIndex, out string failureMessage)
     {
         failureMessage = string.Empty;

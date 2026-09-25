@@ -77,6 +77,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         }
 
         DisplayItem = item; // 표시 아이템
+        GetComponent<OverburstUIItemSlotView>()?.Present(item.icon,item.grade);
         SetIconActive(true);
 
         if (iconImage != null)
@@ -229,10 +230,10 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         EnsureSlotBackgroundImage();
         RefreshBackgroundVisual();
 
-        if (gradeEffect == null)
+        if (gradeEffect == null && GetComponent<OverburstUIItemSlotView>() == null)
             gradeEffect = GetComponent<SlotGradeEffect>() ?? gameObject.AddComponent<SlotGradeEffect>(); // 등급 효과
 
-        gradeEffect.Init(iconImage, GetEffectBackgroundImage());
+        gradeEffect?.Init(iconImage, GetEffectBackgroundImage());
 
         if (slotTooltip == null)
             slotTooltip = GetComponent<SlotTooltip>() ?? gameObject.AddComponent<SlotTooltip>(); // 툴팁
@@ -285,6 +286,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
     private void Clear()
     {
+        GetComponent<OverburstUIItemSlotView>()?.Present(null,ItemGrade.Common);
         SetIconActive(false);
 
         if (iconImage != null)
@@ -697,7 +699,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         if (activeWeaponBorder == null)
             return;
 
-        activeWeaponBorder.SetActive(IsWeaponSlot && IsActiveWeaponSlot && !IsLocked); // 장착 표시
+        activeWeaponBorder.SetActive(IsWeaponSlot && IsActiveWeaponSlot && !IsLocked && DisplayItem != null); // 장착 표시
 
         if (activeWeaponBorder.activeSelf)
             activeWeaponBorder.transform.SetAsLastSibling(); // 최상단

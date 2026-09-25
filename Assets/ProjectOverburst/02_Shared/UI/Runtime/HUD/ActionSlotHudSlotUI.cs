@@ -9,7 +9,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     private TooltipManager flaskTooltip;
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!(tooltipItem?.baseData is FlaskItemData)) return;
+        if (tooltipItem == null) return;
         if (flaskTooltip == null) flaskTooltip = TooltipManager.Instance != null ? TooltipManager.Instance : FindFirstObjectByType<TooltipManager>();
         flaskTooltip?.ShowTooltip(tooltipItem);
     }
@@ -52,7 +52,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     public void SetKeyNumber(int keyNumber)
     {
         BindVisuals();
-        string number = keyNumber > 0 ? keyNumber.ToString() : string.Empty;
+        string number = keyNumber > 0 ? (keyNumber % 10).ToString() : string.Empty;
         if (keyText != null)
         {
             keyText.text = number;
@@ -82,8 +82,9 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetConsumable(ConsumableItemData consumableData, ItemData displayItem, int count)
     {
-        tooltipItem = null;
+        tooltipItem = displayItem;
         BindVisuals();
+        if (slotBackground != null) slotBackground.raycastTarget = displayItem != null;
 
         if (consumableData == null)
         {
@@ -223,6 +224,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             itemIcon.sprite = null;
             itemIcon.color = Color.clear;
         }
+        GetComponent<OverburstUISlotGradePreview>()?.Refresh();
 
         if (countText != null)
         {
@@ -284,7 +286,10 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         ResetSlotBackgroundColor();
 
         if (gradeChanged)
+        {
             gradeEffect?.SetGrade(grade, GradeConfig.GetGradeColor(grade));
+            GetComponent<OverburstUISlotGradePreview>()?.Present(grade);
+        }
 
         if (activeChanged)
             SetActiveBorder(active);

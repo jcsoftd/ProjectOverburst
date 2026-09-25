@@ -3,7 +3,7 @@ using UnityEngine;
 public class InventoryQuickSlotBindingController : MonoBehaviour
 {
     public const int FirstKey = 1;
-    public const int SlotCount = 7;
+    public const int SlotCount = 10;
 
     private readonly ConsumableItemData[] boundConsumables = new ConsumableItemData[SlotCount];
     private readonly string[] boundFlaskIds = new string[SlotCount];
@@ -64,7 +64,7 @@ public class InventoryQuickSlotBindingController : MonoBehaviour
 
     public int FindFreeFlaskKey()
     {
-        int[] preferred = { 4, 5, 6, 1, 2, 3, 7 };
+        int[] preferred = { 4, 5, 6, 1, 2, 3, 7, 8, 9, 10 };
         foreach (int key in preferred)
             if (IsEmpty(key - FirstKey)) return key;
         return 0;

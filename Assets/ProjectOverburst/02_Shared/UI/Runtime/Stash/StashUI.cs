@@ -215,7 +215,7 @@ public class StashUI : MonoBehaviour // 창고 UI
 
                 Image image = tabButtons[i].GetComponent<Image>();
                 if (image != null)
-                    image.color = i == currentTabIndex ? new Color(0.36f, 0.48f, 0.62f, 1f) : new Color(0.18f, 0.22f, 0.26f, 0.96f); // 탭 강조
+                    image.color = i == currentTabIndex ? new Color(.36f, .24f, .12f, 1f) : new Color(.12f, .10f, .08f, 1f);
             }
         }
 
@@ -393,7 +393,7 @@ public class StashUI : MonoBehaviour // 창고 UI
 
         if (sortRefreshButtonText != null)
         {
-            sortRefreshButtonText.text = "리프레시"; // 고정 라벨
+            sortRefreshButtonText.text = "정렬 적용";
             ApplyKoreanFont(sortRefreshButtonText);
         }
 

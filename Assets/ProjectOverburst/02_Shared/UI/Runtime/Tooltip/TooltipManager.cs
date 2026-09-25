@@ -193,6 +193,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     private const string SubtitleSizeOpen = "<size=85%>";
     private const string SubtitleSizeClose = "</size>";
     public static TooltipManager Instance { get; private set; }
+    [SerializeField] private OverburstGameTooltip rpgTooltip;
 
 #if UNITY_EDITOR
     public TooltipAuthoredView[] EditorAuthoredViews => authoredViews;
@@ -337,6 +338,16 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
     private void Update()
     {
+        if (rpgTooltip)
+        {
+            if (currentItem?.baseData is FlaskItemData && rpgTooltip.view.gameObject.activeSelf && Time.unscaledTime >= nextFlaskRefresh)
+            {
+                nextFlaskRefresh = Time.unscaledTime + .2f;
+                rpgTooltip.view.Present(currentItem, currentShopPriceContextActive ? GetCurrentShopPrice(currentItem).ToString("N0") + "G" : null);
+            }
+            rpgTooltip.Place();
+            return;
+        }
         if (tooltipPanel == null || !tooltipPanel.activeSelf || tooltipRect == null)
             return;
 
@@ -369,6 +380,16 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         if (item == null || !item.HasValidBaseData)
             return;
 
+        if (rpgTooltip)
+        {
+            currentItem = item;
+            currentShopPriceContextActive = shopPriceContextActive;
+            currentShopMerchant = merchant;
+            currentShopMerchantSelling = merchantSelling;
+            rpgTooltip.Show(item, shopPriceContextActive ? GetCurrentShopPrice(item).ToString("N0") + "G" : null);
+            return;
+        }
+
         ActivateAuthoredView(ResolveViewKind(item)); // 타입별 실제 뷰 선택
         EnsureRuntimeView();
         if (!authoredViewReady || tooltipPanel == null)
@@ -398,6 +419,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
     public void HideTooltip()
     {
+        if (rpgTooltip) rpgTooltip.Hide();
         if (HasAuthoredViewGallery())
         {
             for (int i = 0; i < authoredViews.Length; i++)
