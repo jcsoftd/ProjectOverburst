@@ -32,6 +32,45 @@ public struct DirectionalAnimationSet4
     }
 }
 
+[System.Serializable]
+public struct DirectionalLocomotionSpeedSet8
+{
+    [InspectorName("앞")] public float forward;
+    [InspectorName("뒤")] public float backward;
+    [InspectorName("왼쪽")] public float left;
+    [InspectorName("오른쪽")] public float right;
+    [InspectorName("왼쪽 앞")] public float forwardLeft;
+    [InspectorName("오른쪽 앞")] public float forwardRight;
+    [InspectorName("왼쪽 뒤")] public float backwardLeft;
+    [InspectorName("오른쪽 뒤")] public float backwardRight;
+
+    public float GetSpeed(Vector3 localDirection)
+    {
+        float sector = Mathf.Repeat(Mathf.Atan2(localDirection.x, localDirection.z) * Mathf.Rad2Deg, 360f) / 45f;
+        int first = Mathf.FloorToInt(sector);
+        float firstSpeed = GetSpeedAtSector(first);
+        float secondSpeed = GetSpeedAtSector((first + 1) % 8);
+        return firstSpeed > 0f && secondSpeed > 0f
+            ? Mathf.Lerp(firstSpeed, secondSpeed, sector - first)
+            : 0f;
+    }
+
+    private float GetSpeedAtSector(int sector)
+    {
+        switch (sector)
+        {
+            case 0: return forward;
+            case 1: return forwardRight;
+            case 2: return right;
+            case 3: return backwardRight;
+            case 4: return backward;
+            case 5: return backwardLeft;
+            case 6: return left;
+            default: return forwardLeft;
+        }
+    }
+}
+
 public enum WeaponCombatStyle
 {
     None = 0,
@@ -140,6 +179,10 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     [Header("재생 속도")]
     [InspectorName("전투 이동 애니메이션 속도 배율")]
     public float locomotionAnimationSpeedMultiplier = 1f;
+    [InspectorName("실제 이동속도에 전투 이동 재생속도 맞춤")]
+    public bool matchLocomotionToMovementSpeed;
+    [InspectorName("8방향 원본 이동속도 (m/s)")]
+    public DirectionalLocomotionSpeedSet8 locomotionReferenceSpeeds;
     [InspectorName("장착 애니메이션 속도 배율")]
     public float equipAnimationSpeedMultiplier = 1.3f;
     [InspectorName("해제 애니메이션 속도 배율")]

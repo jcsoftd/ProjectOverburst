@@ -73,6 +73,16 @@ MonoBehaviour:
   transitionLowerLayerFadeDuration: 0.05
   transitionLowerMoveInputThreshold: 0.05
   locomotionAnimationSpeedMultiplier: 1.3
+  matchLocomotionToMovementSpeed: 1
+  locomotionReferenceSpeeds:
+    forward: 3.434542
+    backward: 3.990869
+    left: 3.9653728
+    right: 3.9773626
+    forwardLeft: 3.6283026
+    forwardRight: 3.618703
+    backwardLeft: 3.9671924
+    backwardRight: 3.9621782
   equipAnimationSpeedMultiplier: 1.3
   unequipAnimationSpeedMultiplier: 1.5
   unequipAnimationStartOffsetSeconds: 0.1

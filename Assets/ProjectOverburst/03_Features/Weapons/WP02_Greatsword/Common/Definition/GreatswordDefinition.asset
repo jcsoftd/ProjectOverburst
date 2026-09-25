@@ -45,7 +45,7 @@ MonoBehaviour:
     vfxScaleMultiplier: 1
   combatStyle: 10
   animationProfile: {fileID: 11400000, guid: 1920cbd39a6783043a6711486dd83cfd, type: 2}
-  combatMoveSpeed: 4.5
+  combatMoveSpeed: 5.4
   comboDefinition: {fileID: 11400000, guid: e58ddec26f9bed44c89989f51ad14e43, type: 2}
   guard:
     lockMovementWhileGuarding: 0
