@@ -47,6 +47,11 @@ namespace Overburst.Persistence
         {
             var account = AccountGameplaySession.Current;
             if (account == null) return;
+            if (!account.TryRecoverProjection())
+            {
+                nextPoll = Time.unscaledTime + 1f;
+                return;
+            }
             if (returnPending) { TryReturn(); return; }
             if (WorldSessionState.Phase != WorldPhase.Run && !abandoned) return;
             var health = PlayerContext.Instance?.CurrentActorHealth;

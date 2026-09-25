@@ -17,6 +17,8 @@ namespace Overburst.Persistence
         private bool editing;
         private bool restoring;
         public bool IsEditing => editing;
+        public string ProjectionError { get; private set; }
+        public bool NeedsProjectionRecovery => ProjectionError != null;
         public static bool ShouldRoute => Current != null && !Current.editing && !Current.restoring;
         internal AccountContentRegistry ContentRegistry => registry;
         internal PlayerAccountInventoryService Owner => account;
@@ -32,7 +34,7 @@ namespace Overburst.Persistence
         }
 
         public void Attach() => Current = this;
-        public void Detach() { if (Current == this) Current = null; }
+        public void Detach() { if (Current == this) { Current = null; GameplayInputBlocker.Unblock(account); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSession() => Current = null;
@@ -42,6 +44,7 @@ namespace Overburst.Persistence
             if (operation == null) throw new ArgumentNullException(nameof(operation));
             if (restoring) throw new InvalidOperationException("Cannot edit while restoring account state.");
             if (editing) return operation();
+            EnsureProjectionReady();
             var before = transactions.Read();
             bool committed = false;
             editing = true;
@@ -53,7 +56,11 @@ namespace Overburst.Persistence
                 if (!operation()) return false;
                 committed = transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), before.revision,
                     () => AccountGameplayProjection.Capture(before, account, registry));
-                if (committed) AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry);
+                if (committed)
+                {
+                    try { AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry); }
+                    catch (Exception error) { RequireProjectionRecovery(error); RestoreAuthoritativeProjection(); }
+                }
                 return committed;
             }
             finally
@@ -69,12 +76,7 @@ namespace Overburst.Persistence
                         bool needsRestore;
                         try { needsRestore = !ES3.Serialize(before).SequenceEqual(ES3.Serialize(AccountGameplayProjection.Capture(before, account, registry))); }
                         catch { needsRestore = true; }
-                        if (needsRestore)
-                        {
-                            restoring = true;
-                            try { AccountGameplayProjection.Restore(before, account, registry); }
-                            finally { restoring = false; }
-                        }
+                        if (needsRestore) RestoreAuthoritativeProjection();
                     }
                 }
                 finally
@@ -93,15 +95,14 @@ namespace Overburst.Persistence
         public bool ExecuteState(string transactionId, Action<AccountSnapshot> mutation)
         {
             if (editing || restoring) throw new InvalidOperationException("A gameplay command is already running.");
+            EnsureProjectionReady();
             editing = true;
             notifications.Clear();
             try
             {
                 bool committed = transactions.Execute(transactionId, transactions.Revision, mutation);
                 if (!committed) return false;
-                restoring = true;
-                try { AccountGameplayProjection.Restore(transactions.Read(), account, registry); }
-                finally { restoring = false; }
+                RestoreAuthoritativeProjection();
                 return true;
             }
             finally
@@ -111,6 +112,42 @@ namespace Overburst.Persistence
                 foreach (var notification in queued)
                     try { notification(); } catch (Exception error) { Debug.LogException(error); }
             }
+        }
+
+        private void EnsureProjectionReady()
+        {
+            if (NeedsProjectionRecovery)
+                throw new System.IO.IOException("저장된 계정 상태의 화면 복구를 기다리는 중입니다.");
+        }
+
+        private void RequireProjectionRecovery(Exception error)
+        {
+            if (ProjectionError != error.Message)
+                Debug.LogError("계정 화면 복원에 실패했습니다. 확정된 저장 상태에서 복구합니다: " + error.Message);
+            ProjectionError = error.Message;
+            GameplayInputBlocker.Block(account);
+        }
+
+        // A projection error must never turn a durable commit into a failed command.
+        private bool RestoreAuthoritativeProjection()
+        {
+            restoring = true;
+            try
+            {
+                AccountGameplayProjection.Restore(transactions.Read(), account, registry);
+                ProjectionError = null;
+                GameplayInputBlocker.Unblock(account);
+                return true;
+            }
+            catch (Exception error) { RequireProjectionRecovery(error); return false; }
+            finally { restoring = false; }
+        }
+
+        public bool TryRecoverProjection()
+        {
+            if (!NeedsProjectionRecovery) return true;
+            if (editing || restoring) return false;
+            return RestoreAuthoritativeProjection();
         }
 
         public static bool Run(Func<bool> operation)
