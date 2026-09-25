@@ -330,6 +330,7 @@ GameObject:
   - component: {fileID: 2263836722206789063}
   - component: {fileID: 2470969878425525572}
   - component: {fileID: 7824028131085561545}
+  - component: {fileID: 4570639705267171849}
   m_Layer: 0
   m_Name: PF_GRS01_AzureStarblade_Equipped
   m_TagString: Untagged
@@ -440,6 +441,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponGripMount
   rightHandGripPoint: {fileID: 8118325546763654363}
   backGripPoint: {fileID: 6161559849330505962}
+--- !u!114 &4570639705267171849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8891578251911373367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08518be15bd326f44aa57578dcc6de1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
+  bladeRenderer: {fileID: 6466484016234506534}
+  auraAnchor: {fileID: 1995058104938080718}
+  trailAnchor: {fileID: 6712952312756092826}
+  fireAura: {fileID: 3199540439946060812, guid: bfa5e1ad8aae47f4b9f353e36ebdf7aa, type: 3}
+  waterAura: {fileID: 5185098487912784215, guid: d0dc97dd268613b43a53181d9d47c6e5, type: 3}
+  iceAura: {fileID: 2080067106486110468, guid: ee2150003cc5bc146b7591e1727fe79c, type: 3}
+  electricAura: {fileID: 3951614152475905818, guid: f94f9185192a5d749b8a65f7729fde51, type: 3}
+  auraStartNormalized: 0.1
+  auraParticleSizeScale: 0.42
+  auraEmissionScale: 0.45
+  auraSurfaceScale: 0.28
+  fireTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
+  waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
+  iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+  electricTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
+  trailWidthScale: 0.16
+  trailLifetime: 0.23
+  trailOffsets:
+  - {x: 0, y: 0.55, z: 0}
+  - {x: 0, y: 0.07, z: 0}
+  - {x: 0, y: 0.42, z: 0}
 --- !u!1001 &7446110052785293388
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -500,5 +534,10 @@ PrefabInstance:
 --- !u!4 &2777738515011742056 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4744937834396885284, guid: 7d44fdf2e7076404c94293aa8fd25f01, type: 3}
+  m_PrefabInstance: {fileID: 7446110052785293388}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6466484016234506534 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4533002045293961578, guid: 7d44fdf2e7076404c94293aa8fd25f01, type: 3}
   m_PrefabInstance: {fileID: 7446110052785293388}
   m_PrefabAsset: {fileID: 0}
