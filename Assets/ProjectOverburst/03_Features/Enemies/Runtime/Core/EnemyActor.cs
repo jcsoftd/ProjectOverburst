@@ -141,7 +141,9 @@ public sealed class EnemyActor : MonoBehaviour
         definition = enemyDefinition;
         runtimeStats = stats;
         identity?.SetDefinition(enemyDefinition);
+        rank?.ConfigureEncounter(request.Encounter);
         rank?.ConfigureFromDefinition(enemyDefinition);
+        lootDropper?.ConfigureEncounter(request.Encounter);
 
         transform.localScale = Vector3.one; // ActorRoot 크기는 변형에 사용하지 않음
         visualRoot.localScale = stats.VisualScale;

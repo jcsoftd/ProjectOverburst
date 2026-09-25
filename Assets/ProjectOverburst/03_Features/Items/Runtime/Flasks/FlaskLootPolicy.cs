@@ -10,17 +10,17 @@ public static class FlaskLootPolicy
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() { catalog = null; gameplayCatalog = null; }
 
-    public static ItemData Roll(EnemyRank rank, int difficulty)
+    public static ItemData Roll(EnemyRank rank, int mapLevel)
     {
         if (GameplayCatalog.Length == 0) return null;
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
         float chance = boss ? 1f : elite ? .30f : .04f;
         if (Random.value >= chance) return null;
-        ItemGrade grade = SelectGrade(Random.value, difficulty, boss, elite);
-        int monsterLevel = rank != null ? rank.Level : OverburstGrowthRules.MonsterLevelForDifficulty(difficulty);
+        ItemGrade grade = SelectGrade(Random.value, mapLevel, boss, elite);
+        int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         return new ItemData(GameplayCatalog[Random.Range(0, GameplayCatalog.Length)],
-            OverburstGrowthRules.RollDropItemLevel(monsterLevel, boss), grade);
+            itemLevel, grade);
     }
 
     // Later dungeon tiers unlock artifact/mythic; starter-zone farming cannot supply them.

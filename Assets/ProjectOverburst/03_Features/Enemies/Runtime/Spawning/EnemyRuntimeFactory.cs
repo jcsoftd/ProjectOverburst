@@ -20,7 +20,8 @@ public static class EnemyRuntimeFactory // 공용 몬스터 생성 경로
         PickupGradeVfxSet pickupGradeVfxSet,
         GameObject hitVfxPrefab,
         GameObject deathVfxPrefab,
-        bool attachRunFallGuard)
+        bool attachRunFallGuard,
+        EncounterContext encounter = null)
     {
         if (prefab == null)
             return null;
@@ -60,7 +61,9 @@ public static class EnemyRuntimeFactory // 공용 몬스터 생성 경로
             health = monster.AddComponent<CombatHealth>();
         CombatTarget.EnsureConfigured(monster, CombatTeam.Enemy);
 
-        EnsureComponent<EnemyRank>(monster);
+        var enemyRank = EnsureComponent<EnemyRank>(monster);
+        enemyRank.ConfigureEncounter(encounter);
+        enemyRank.ApplyLevelToHealth(health.MaxHp);
         EnsureComponent<EnemyTargetHpReporter>(monster);
         EnsureComponent<EnemyController>(monster);
         EnsureComponent<HitFlashFeedback>(monster);
@@ -78,6 +81,7 @@ public static class EnemyRuntimeFactory // 공용 몬스터 생성 경로
         aiController.Configure(player, position, detectionRange, stopDistance);
 
         EnemyLootDropper dropper = EnsureComponent<EnemyLootDropper>(monster);
+        dropper.ConfigureEncounter(encounter);
         dropper.Configure(dropTable, targetInventory, player, pickupGradeVfxSet);
         return monster;
     }

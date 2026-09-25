@@ -41,6 +41,14 @@ public sealed class EnemyRank : MonoBehaviour
     private CombatHealth health;
     private float authoredMaxHealth;
     private bool experienceGranted;
+    private EncounterContext encounter;
+    public EncounterContext Encounter => encounter ?? EncounterContext.Test;
+
+    public void ConfigureEncounter(EncounterContext context)
+    {
+        encounter = context ?? EncounterContext.Test;
+        AssignLevel();
+    }
 
     private void Awake()
     {
@@ -102,6 +110,7 @@ public sealed class EnemyRank : MonoBehaviour
             ? EnemyGradeType.Elite
             : EnemyGradeType.Normal;
         Level = 1;
+        encounter = null;
         experienceGranted = false;
     }
 
@@ -114,22 +123,18 @@ public sealed class EnemyRank : MonoBehaviour
 
     private void AssignLevel()
     {
-        DungeonRunFlow run = FindFirstObjectByType<DungeonRunFlow>();
-        int tier = run != null ? run.ActiveParameters.DifficultyLevel : 1;
-        int baseline = OverburstGrowthRules.MonsterLevelForDifficulty(tier);
-        int gradeOffset = GradeType == EnemyGradeType.Boss ? 3 : GradeType == EnemyGradeType.Elite ? 2 : 0;
-        Level = OverburstGrowthRules.ClampLevel(baseline + Random.Range(-2, 3) + gradeOffset);
+        Level = Encounter.MapLevel;
         unchecked { ActiveRevision++; }
     }
 
     private void AwardExperience(CombatHealth source, DamageInfo info)
     {
-        if (experienceGranted || info.source == null
+        if (!Encounter.CanGrantRewards || experienceGranted || info.source == null
             || info.source.GetComponentInParent<PlayerActorRuntime>() == null) return;
         experienceGranted = true;
         PlayerProgression progression = PlayerProgression.Current;
         if (progression != null)
-            progression.AddExperience(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level));
+            progression.AddExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level) * Encounter.ExperienceMultiplier));
     }
 
     public string DisplayName

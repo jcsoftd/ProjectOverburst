@@ -27,6 +27,8 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     [SerializeField] private int maxWeightedDropRollAttempts = 12;
 
     private bool dropped; // 중복 드랍 방지
+    private EncounterContext encounter = EncounterContext.Test;
+    public void ConfigureEncounter(EncounterContext context) => encounter = context ?? EncounterContext.Test;
 
     private DropTable authoredDropTable;
     private PlayerInventory authoredTargetInventory;
@@ -68,6 +70,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     public void ResetForPool()
     {
         CaptureAuthoredPresentation();
+        encounter = EncounterContext.Test;
         dropTable = authoredDropTable;
         targetInventory = authoredTargetInventory;
         player = authoredPlayer;
@@ -77,7 +80,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
     private void HandleDead(CombatHealth source, DamageInfo info)
     {
-        if (dropped)
+        if (dropped || !encounter.CanGrantRewards)
             return;
 
         dropped = true;
@@ -85,14 +88,13 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         ResolveReferences();
 
         Vector3 dropOrigin = GetDropOriginPosition(); // 드랍 기준점
-        var run = FindFirstObjectByType<DungeonRunFlow>();
-        if (run != null)
+        if (encounter.IsRun)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
-            ItemData flask = FlaskLootPolicy.Roll(rank, run.ActiveParameters.DifficultyLevel);
-            if (flask != null) WorldItemDropFactory.CreateWorldPickup(flask, dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
-            ItemData gear = GearLootPolicy.Roll(rank, run.ActiveParameters.DifficultyLevel);
-            if (gear != null) WorldItemDropFactory.CreateWorldPickup(gear, dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
+            ItemData flask = FlaskLootPolicy.Roll(rank, encounter.MapLevel);
+            if (flask != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(flask), dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
+            ItemData gear = GearLootPolicy.Roll(rank, encounter.MapLevel);
+            if (gear != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(gear), dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
         }
         DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
@@ -105,17 +107,18 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         for (int i = 0; i < drops.Count; i++)
         {
-            if (run != null && (drops[i].baseData is WeaponItemData || drops[i].baseData is GearItemData
-                || drops[i].baseData is FlaskItemData))
-            {
-                EnemyRank rank = GetComponent<EnemyRank>();
-                drops[i].level = OverburstGrowthRules.RollDropItemLevel(rank != null ? rank.Level
-                    : OverburstGrowthRules.MonsterLevelForDifficulty(run.ActiveParameters.DifficultyLevel),
-                    rank != null && rank.GradeType == EnemyGradeType.Boss);
-            }
+            StampLoot(drops[i]);
             Vector3 offset = dropOffset + GetScatterOffset(i, drops.Count); // 흩뿌림
             WorldItemDropFactory.CreateWorldPickup(drops[i], dropOrigin + offset, targetInventory, player, pickupGradeVfxSet);
         }
+    }
+
+    private ItemData StampLoot(ItemData item)
+    {
+        if (item == null) return null;
+        item.level = encounter.MapLevel;
+        item.originRunId = encounter.RunId;
+        return item;
     }
 
     private List<ItemData> CreateDropList()
@@ -290,7 +293,8 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         int max = Mathf.Max(min, maxGoldAmount);
         int amount = Random.Range(min, max + 1);
         Vector3 position = dropOrigin + dropOffset + GetScatterOffset(0, 2);
-        WorldItemDropFactory.CreateCurrencyWorldPickup(goldItem, amount, position, targetInventory);
+        WorldItemDropFactory.CreateCurrencyWorldPickupFromExistingItem(
+            StampLoot(new ItemData(goldItem, encounter.MapLevel, ItemGrade.Common, amount)), position, targetInventory);
     }
 
     private void CaptureAuthoredPresentation()

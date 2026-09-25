@@ -16,6 +16,9 @@ public struct EnemySpawnRequest
     [SerializeField, Min(0.01f)] private float encounterMultiplier;
     [SerializeField] private int runSeed;
 
+    private EncounterContext encounterContext;
+    public EncounterContext Encounter => encounterContext ?? EncounterContext.Test;
+
     public EnemySpawnRequest(
         EnemyDefinition enemyDefinition,
         Vector3 spawnPosition,
@@ -26,7 +29,8 @@ public struct EnemySpawnRequest
         Transform spawnParent = null,
         float difficultyStatMultiplier = 1f,
         float encounterStatMultiplier = 1f,
-        int seed = 0)
+        int seed = 0,
+        EncounterContext context = null)
     {
         definition = enemyDefinition;
         definitionId = enemyDefinition != null ? enemyDefinition.EnemyId : string.Empty;
@@ -39,6 +43,7 @@ public struct EnemySpawnRequest
         difficultyMultiplier = Mathf.Max(0.01f, difficultyStatMultiplier);
         encounterMultiplier = Mathf.Max(0.01f, encounterStatMultiplier);
         runSeed = seed;
+        encounterContext = context ?? EncounterContext.Test;
     }
 
     public EnemySpawnRequest(
@@ -51,7 +56,8 @@ public struct EnemySpawnRequest
         Transform spawnParent = null,
         float difficultyStatMultiplier = 1f,
         float encounterStatMultiplier = 1f,
-        int seed = 0)
+        int seed = 0,
+        EncounterContext context = null)
     {
         definition = null;
         definitionId = enemyDefinitionId != null ? enemyDefinitionId.Trim() : string.Empty;
@@ -64,6 +70,7 @@ public struct EnemySpawnRequest
         difficultyMultiplier = Mathf.Max(0.01f, difficultyStatMultiplier);
         encounterMultiplier = Mathf.Max(0.01f, encounterStatMultiplier);
         runSeed = seed;
+        encounterContext = context ?? EncounterContext.Test;
     }
 
     public EnemyDefinition Definition => definition;
