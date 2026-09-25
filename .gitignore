@@ -123,3 +123,15 @@ Assets/StreamingAssets/aa/
 /Assets/Editor/Tools/World/Dungeon/DungeonSeedPreviewWindow.cs.meta
 /Assets/Editor/Tools/UI/UiQualityTool.cs
 /Assets/Editor/Tools/UI/UiQualityTool.cs.meta
+
+# Licensed supplier-derived blood graphs; restore with original meta files.
+/Assets/ProjectOverburst/02_Shared/Combat/VFX/BloodGraphs/
+/Assets/ProjectOverburst/02_Shared/Combat/VFX/BloodGraphs.meta
+
+# Generated performance-test inputs (local verification only).
+/Assets/Resources/PerformanceTestRun*.json
+/Assets/Resources/PerformanceTestRun*.json.meta
+
+# Supplier-derived DeathKnight loops; restore from the private asset backup.
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/DeathHarvest_DeathKnight_Loop*.anim
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/DeathHarvest_DeathKnight_Loop*.anim.meta
