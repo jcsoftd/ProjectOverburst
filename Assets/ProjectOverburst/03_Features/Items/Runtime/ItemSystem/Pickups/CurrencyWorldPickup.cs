@@ -1,4 +1,5 @@
 using UnityEngine;
+using Overburst.Persistence;
 
 public class CurrencyWorldPickup : MonoBehaviour
 {
@@ -115,6 +116,14 @@ public class CurrencyWorldPickup : MonoBehaviour
         ItemData item = runtimeCurrencyItem != null
             ? runtimeCurrencyItem
             : new ItemData(currencyData, 1, ItemGrade.Common, amount);
+
+        if (!string.IsNullOrEmpty(item.originRunId))
+        {
+            var run = AccountGameplaySession.Current?.ReadRun();
+            if (run == null || run.runId != item.originRunId
+                || !AccountInvariants.IsRunning(run.phase))
+                return false;
+        }
 
         item.EnsureRuntimeState();
         item.EnsureAcquisitionOrder();

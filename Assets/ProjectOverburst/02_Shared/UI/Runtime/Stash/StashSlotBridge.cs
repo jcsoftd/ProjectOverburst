@@ -191,13 +191,13 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
     public bool CanSplitStackFromContextMenu(SlotUI sourceSlot)
     {
         ResolveReferences(); // 메뉴 기준 최신화
-        return stash != null && IsStashSlot(sourceSlot) && stash.CanSplitStackAt(sourceSlot.SlotIndex);
+        return stash != null && IsStashSlot(sourceSlot) && IsCurrentSlot(sourceSlot) && stash.CanSplitStackAt(sourceSlot.SlotIndex);
     }
 
     public bool SplitStackFromContextMenu(SlotUI sourceSlot, int amount)
     {
         ResolveReferences(); // 메뉴 기준 최신화
-        if (stash == null || !IsStashSlot(sourceSlot))
+        if (stash == null || !IsStashSlot(sourceSlot) || !IsCurrentSlot(sourceSlot))
             return false;
 
         bool split = stash.SplitStackAt(sourceSlot.SlotIndex, amount);
@@ -234,7 +234,8 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     public bool HandleSlotClick(SlotClickContext context)
     {
-        if (context == null || context.Slot == null || context.Item == null || !IsStashSlot(context.Slot))
+        if (context == null || context.Slot == null || context.Item == null || !IsStashSlot(context.Slot)
+            || !IsCurrentSlot(context.Slot) || !ReferenceEquals(context.Item, context.Slot.DisplayItem))
             return false;
 
         int targetIndex = inventory != null ? inventory.FindFirstEmptySlot() : -1; // 빈 인벤토리
@@ -261,7 +262,7 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
         bool sourceIsStash = IsStashSlot(sourceSlot); // 출발 창고
         bool targetIsStash = IsStashSlot(targetSlot); // 도착 창고
 
-        if (!sourceIsStash && !targetIsStash)
+        if ((!sourceIsStash && !targetIsStash) || !IsCurrentSlot(sourceSlot) || !IsCurrentSlot(targetSlot))
             return false;
 
         if (sourceIsStash && targetIsStash)
@@ -413,6 +414,17 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
             return false;
 
         return IsStashSlot(sourceSlot) || IsStashSlot(targetSlot);
+    }
+
+    private bool IsCurrentSlot(SlotUI slot)
+    {
+        if (slot == null || slot.IsWeaponSlot || slot.IsBagSlot || slot.SlotIndex < 0)
+            return false;
+
+        ItemData current = IsStashSlot(slot)
+            ? stash?.GetItemAt(slot.SlotIndex)
+            : inventory?.GetItemAt(slot.SlotIndex);
+        return ReferenceEquals(current, slot.DisplayItem);
     }
 
     private bool IsStashSlot(SlotUI slot)
