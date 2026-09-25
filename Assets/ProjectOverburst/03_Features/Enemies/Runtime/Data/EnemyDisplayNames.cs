@@ -1,10 +1,10 @@
 /// <summary>
-/// The authored Korean labels for the 21 playable theme enemies. IDs and supplier asset
+/// The authored Korean labels for the playable theme enemies. IDs and supplier asset
 /// names remain stable; builders use this mapping when they regenerate definitions.
 /// </summary>
 public static class EnemyDisplayNames
 {
-    public const int AuthoredCount = 21;
+    public const int AuthoredCount = 29;
 
     public static bool TryGet(string enemyId, out string displayName)
     {
@@ -31,6 +31,14 @@ public static class EnemyDisplayNames
             case "CavernMutants_Limadon": displayName = "촉수 사수"; return true;
             case "CavernMutants_Gorhorrid": displayName = "긴혀 포식수"; return true;
             case "CavernMutants_Ursacetus": displayName = "암굴 거수"; return true;
+            case "DeathHarvest_RakeSkulker": displayName = "창백한 숲갈퀴"; return true;
+            case "DeathHarvest_RakeStalker": displayName = "뒤틀린 숲갈퀴"; return true;
+            case "DeathHarvest_BoneAsh": displayName = "잿빛 해골"; return true;
+            case "DeathHarvest_BoneMoss": displayName = "이끼 해골"; return true;
+            case "DeathHarvest_RakeBrute": displayName = "거목 갈퀴"; return true;
+            case "DeathHarvest_BoneWarden": displayName = "묘지 파수 해골"; return true;
+            case "DeathHarvest_DeathKnight": displayName = "사령 기사"; return true;
+            case "DeathHarvest_Reaper": displayName = "영혼 수확자"; return true;
             default: displayName = null; return false;
         }
     }

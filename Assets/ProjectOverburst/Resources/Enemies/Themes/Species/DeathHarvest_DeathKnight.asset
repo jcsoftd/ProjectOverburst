@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_DeathKnight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_DeathKnight
+  displayName: "\uC0AC\uB839 \uAE30\uC0AC"
+  vendorPrefab: {fileID: 7474275920677473972, guid: ecc27b4fc40ca484c803c1b64cd17aef, type: 3}
+  animationProfile: {fileID: 11400000, guid: ce20695e9b9ce4c4fa86371971795e72, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: f0bc4dc1062b41f4394d4e37c02762e3, type: 2}
+  combatRole: 1
+  baseMaxHealth: 135
+  movementProfile: {fileID: 11400000, guid: b15e67358d7180846b60e05ece20702a, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 4d95016c2748ce7499f5d46722d7cf99, type: 2}
+  threatCost: 3

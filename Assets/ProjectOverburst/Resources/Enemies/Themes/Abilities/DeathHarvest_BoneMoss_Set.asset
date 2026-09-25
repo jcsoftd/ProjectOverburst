@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: DeathHarvest_BoneMoss_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: DeathHarvest_BoneMoss
+  abilities:
+  - {fileID: 11400000, guid: a723ecd75d53b5747b78c843457b7460, type: 2}
+  - {fileID: 11400000, guid: ad096e56d9cdda142991dc9d65110401, type: 2}
+  - {fileID: 11400000, guid: c0d824d3d956c794f9112dd4a29f2d17, type: 2}

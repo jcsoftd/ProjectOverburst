@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_Reaper
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_Reaper
+  displayName: "\uC601\uD63C \uC218\uD655\uC790"
+  vendorPrefab: {fileID: 176992, guid: 5d7ae9409ad6a3a4990b27ad20ccb157, type: 3}
+  animationProfile: {fileID: 11400000, guid: e41406711951e3d4ab6a113dda7b3339, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 40f2f49cd8301fe48b4e82a12f8552fb, type: 2}
+  combatRole: 3
+  baseMaxHealth: 400
+  movementProfile: {fileID: 11400000, guid: 7509c930b03230a4a82dedf4114f50ae, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: f8c9ae6454fbe9c4989b890df34a0ae3, type: 2}
+  threatCost: 12

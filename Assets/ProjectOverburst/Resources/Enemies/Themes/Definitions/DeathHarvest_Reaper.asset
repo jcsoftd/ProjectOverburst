@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: DeathHarvest_Reaper
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: DeathHarvest_Reaper
+  displayName: "\uC601\uD63C \uC218\uD655\uC790"
+  species: {fileID: 11400000, guid: c58e7eda4d079774ea40b8c544403482, type: 2}
+  grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 1039025595324448582, guid: 1c53691384ac26844975029f10c34eab, type: 3}
+  animationProfile: {fileID: 11400000, guid: e41406711951e3d4ab6a113dda7b3339, type: 2}
+  abilitySet: {fileID: 11400000, guid: 40f2f49cd8301fe48b4e82a12f8552fb, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: f8c9ae6454fbe9c4989b890df34a0ae3, type: 2}
+  movementProfile: {fileID: 11400000, guid: 7509c930b03230a4a82dedf4114f50ae, type: 2}
+  aiPreset: {fileID: 11400000, guid: 0e0604a6ca96d3b48b08be22a106ad70, type: 2}
+  squadParticipationMode: 1
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

@@ -130,9 +130,15 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             visualContact = CombatTargetVfxPlacement.ResolveContact(
                 visualTarget, request.HitPoint, request.WorldDirection, out hitSize);
         MeleeElementHitVfxService.TryPlay(request.Element, visualContact, hitSize);
+        BloodHitVfxService.Request(request, visualContact, hitSize);
         if (request.Target != null && request.Target.TryGetComponent<EnemyDeathPresentation>(out var presentation))
         {
-            CombatImpactFeel.Play(presentation.Surface,
+            var impactSurface = presentation.Surface;
+            if (impactSurface == CombatImpactSurface.Flesh
+                && request.Target.TryGetComponent<BloodHitTarget>(out var bloodTarget)
+                && bloodTarget.Profile != null && bloodTarget.Profile.suppressBlood)
+                impactSurface = CombatImpactSurface.Shell;
+            CombatImpactFeel.Play(impactSurface,
                 request.ImpactShape, visualContact, request.ImpactDirection, request.IsCritical,
                 lethal: request.IsLethal);
         }

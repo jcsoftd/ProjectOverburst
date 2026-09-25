@@ -304,6 +304,10 @@ MonoBehaviour:
   localCenter: {x: 0, y: 0, z: 0}
   radius: 0.05
   height: 0.1
+  useCustomHurtVolume: 0
+  hurtLocalCenter: {x: 0, y: 0, z: 0}
+  hurtRadius: 0.45
+  hurtHeight: 2
 --- !u!114 &5910665662634110012
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,6 +352,7 @@ MonoBehaviour:
   renderers: []
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.08
+  flashBrightness: 2.5
 --- !u!114 &3473608525099709331
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -427,6 +432,7 @@ MonoBehaviour:
   combatTarget: {fileID: 0}
   knockbackDistancePerStrength: 0.1
   knockbackTravelDuration: 0.12
+  visualReactionRoot: {fileID: 0}
 --- !u!114 &1214875003963177452
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -600,6 +606,7 @@ MonoBehaviour:
   enemyRank: {fileID: 4008552176276446921}
   enemyMovement: {fileID: 5760941464065019702}
   enemyAttackController: {fileID: 8035577378853919049}
+  freezeControlImmune: 0
 --- !u!114 &3748720413964601519
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -670,6 +677,28 @@ MonoBehaviour:
   runFallGuard: {fileID: 1881148378022522118}
   bossPhaseController: {fileID: 0}
   bossOutcomeController: {fileID: 0}
+--- !u!114 &19005434068781620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7544915028327854900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.0063408846, y: 1.1807675, z: 0.0048338734}
+  bodyRadius: 0.5625
+  bodyHeight: 2.2837713
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.010870088, y: 1.1942546, z: 0.00828664}
+  hitRadius: 0.63
+  hitHeight: 2.2837713
+  contactRadiusFraction: 0.85
+  contactHeightFraction: 0.55
 --- !u!1 &7588628589954161792
 GameObject:
   m_ObjectHideFlags: 0
@@ -1046,25 +1075,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4621576183238239282, guid: 02ab46ef7501bec47a006d5bb22f0f93, type: 3}
   m_PrefabInstance: {fileID: 807290617040925468}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &19005434068781620
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7544915028327854900}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
-  useAuthoredVolume: 1
-  localBodyCenter: {x: 0.0063408846, y: 1.1807675, z: 0.0048338734}
-  bodyRadius: 0.5625
-  bodyHeight: 2.2837713
-  useAuthoredHitVolume: 1
-  localHitCenter: {x: 0.010870088, y: 1.1942546, z: 0.00828664}
-  hitRadius: 0.63
-  hitHeight: 2.2837713
-  contactRadiusFraction: 0.85
-  contactHeightFraction: 0.55

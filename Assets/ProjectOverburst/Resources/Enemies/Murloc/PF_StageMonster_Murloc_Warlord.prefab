@@ -132,6 +132,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMover
   profile: {fileID: 11400000, guid: ffe44602a1224dd47b86420584872ac3, type: 2}
+  runtimeSpeedMultiplier: 1
   health: {fileID: 7396568089451500693}
   motor: {fileID: 4221925434618230394}
   reaction: {fileID: 3055484350921191813}
@@ -211,6 +212,7 @@ MonoBehaviour:
   - {fileID: 4511564519210139681}
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.08
+  flashBrightness: 2.5
 --- !u!136 &7800076454959316482
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -278,6 +280,7 @@ MonoBehaviour:
   movementReaction: {fileID: 3055484350921191813}
   animationBridge: {fileID: 8367683909537773478}
   attackPoint: {fileID: 697397374219924904}
+  abilitySet: {fileID: 0}
   attackTriggers:
   - Attack1
   - Attack2
@@ -388,6 +391,10 @@ MonoBehaviour:
   localCenter: {x: 0, y: 1, z: 0}
   radius: 0.6000001
   height: 2
+  useCustomHurtVolume: 0
+  hurtLocalCenter: {x: 0, y: 0, z: 0}
+  hurtRadius: 0.45
+  hurtHeight: 2
 --- !u!114 &8576199306147088720
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -405,9 +412,12 @@ MonoBehaviour:
   movementReaction: {fileID: 3055484350921191813}
   sensor: {fileID: 94567651367750424}
   meleeAttack: {fileID: 8735186374263171135}
+  abilityController: {fileID: 0}
   animationBridge: {fileID: 8367683909537773478}
   defenseController: {fileID: 317486299475624802}
   behaviorProfile: {fileID: 11400000, guid: 51a085e0dff53a448b46e1ce888999a7, type: 2}
+  squadPursuitPreset: {fileID: 0}
+  squadParticipationMode: 0
   target: {fileID: 0}
   detectionRange: 10
   loseTargetRange: 14
@@ -432,6 +442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41a451fabcbf344478368a1ac39cb005, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyOverheadHpBar
+  hpBarAnchor: {fileID: 0}
 --- !u!114 &4221925434618230394
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -466,6 +477,7 @@ MonoBehaviour:
   combatTarget: {fileID: 0}
   knockbackDistancePerStrength: 0.1
   knockbackTravelDuration: 0.12
+  visualReactionRoot: {fileID: 0}
 --- !u!114 &3004946473320763511
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,6 +547,29 @@ MonoBehaviour:
   enemyRank: {fileID: 2699839453369000624}
   enemyMovement: {fileID: 3265889040077518404}
   enemyAttackController: {fileID: 8735186374263171135}
+  freezeControlImmune: 0
+--- !u!114 &7644489540251475340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1299881143101622028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.09977972, y: 0.9030383, z: -0.031178148}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.17105095, y: 0.83377993, z: -0.05344826}
+  hitRadius: 0.84
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55
 --- !u!1 &2708678803188739685
 GameObject:
   m_ObjectHideFlags: 0
@@ -1273,25 +1308,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4358006477589180, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 4574367852267600431}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7644489540251475340
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1299881143101622028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
-  useAuthoredVolume: 1
-  localBodyCenter: {x: 0.09977972, y: 0.9030383, z: -0.031178148}
-  bodyRadius: 0.75
-  bodyHeight: 2
-  useAuthoredHitVolume: 1
-  localHitCenter: {x: 0.17105095, y: 0.83377993, z: -0.05344826}
-  hitRadius: 0.84
-  hitHeight: 2
-  contactRadiusFraction: 0.5
-  contactHeightFraction: 0.55

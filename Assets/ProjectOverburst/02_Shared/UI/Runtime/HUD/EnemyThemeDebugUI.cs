@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -39,6 +40,7 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
     }
     private void InitializeRuntimeUi()
     {
+        if (Application.isPlaying) AppendDeathHarvestButton();
         if (!Application.isPlaying || tables == null || spawnButtons == null || waveButtons == null
             || statusLabel == null || tables.Length != spawnButtons.Length || tables.Length != waveButtons.Length)
             return;
@@ -61,6 +63,44 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
         }
         BuildModeControls();
         SetTrialMode(trialMode);
+    }
+
+    private void AppendDeathHarvestButton()
+    {
+        if (tables == null || tables.Length != 4 || spawnButtons == null || waveButtons == null
+            || spawnButtons.Length != 4 || waveButtons.Length != 4
+            || tables[0] == null || tables[3] == null)
+            return;
+        var table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/DeathHarvest");
+        if (table == null) return;
+        var panel = transform as RectTransform;
+        if (panel == null) return;
+        var spawn = Instantiate(spawnButtons[3], transform);
+        var wave = Instantiate(waveButtons[3], transform);
+        spawn.name = "DeathHarvest spawn";
+        wave.name = "DeathHarvest waves";
+        TextMeshProUGUI lastName = null;
+        foreach (Transform child in transform)
+            if (child.name == "Theme name") lastName = child.GetComponent<TextMeshProUGUI>();
+        if (lastName != null)
+        {
+            var nameLabel = Instantiate(lastName, transform);
+            nameLabel.name = "Theme name";
+            nameLabel.text = table.DisplayName;
+        }
+        Array.Resize(ref tables, 5);
+        tables[4] = table;
+        Array.Resize(ref spawnButtons, 5);
+        spawnButtons[4] = spawn;
+        Array.Resize(ref waveButtons, 5);
+        waveButtons[4] = wave;
+        var warning = Resources.Load<Material>("Enemies/Themes/Materials/DeathHarvest");
+        if (warningMaterials == null) warningMaterials = new Material[5];
+        else Array.Resize(ref warningMaterials, 5);
+        warningMaterials[4] = warning;
+        panel.sizeDelta = new Vector2(panel.sizeDelta.x, 444);
+        var header = transform.Find("Header") as RectTransform;
+        if (header != null) header.anchoredPosition = new Vector2(header.anchoredPosition.x, 409);
     }
     public bool SetTrialMode(EnemyThemeTrialMode mode)
     {
@@ -89,20 +129,20 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
     {
         var panel = transform as RectTransform;
         if (panel == null) return;
-        // Keep the authored panel height: increasing it clips the header at 720p.
+        int topRow = Mathf.RoundToInt(panel.rect.height) - 85;
         int themeLabelIndex = 0;
         for (int i = 0; i < transform.childCount; i++)
         {
             var child = transform.GetChild(i) as RectTransform;
             if (child != null && child.name == "Theme name")
-                child.anchoredPosition = new Vector2(child.anchoredPosition.x, 310 - themeLabelIndex++ * 41);
+                child.anchoredPosition = new Vector2(child.anchoredPosition.x, topRow - themeLabelIndex++ * 41);
         }
         for (int i = 0; i < tables.Length; i++)
         {
             var spawnRect = spawnButtons[i].transform as RectTransform;
             var waveRect = waveButtons[i].transform as RectTransform;
-            spawnRect.anchoredPosition = new Vector2(spawnRect.anchoredPosition.x, 310 - i * 41);
-            waveRect.anchoredPosition = new Vector2(waveRect.anchoredPosition.x, 310 - i * 41);
+            spawnRect.anchoredPosition = new Vector2(spawnRect.anchoredPosition.x, topRow - i * 41);
+            waveRect.anchoredPosition = new Vector2(waveRect.anchoredPosition.x, topRow - i * 41);
         }
         var bar = transform.Find("Roster modes") as RectTransform;
         if (bar == null)
@@ -153,14 +193,18 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
     }
     private void SetIdleStatus()
     {
-        if (statusLabel == null || tables == null || tables.Length < 4) return;
-        int spider = EnemyThemeTrialPresets.Resolve(tables[0], trialMode).Total;
-        int venom = EnemyThemeTrialPresets.Resolve(tables[1], trialMode).Total;
-        int primal = EnemyThemeTrialPresets.Resolve(tables[2], trialMode).Total;
-        int cavern = EnemyThemeTrialPresets.Resolve(tables[3], trialMode).Total;
-        string counts = $"{EnemyThemeTrialPresets.Label(trialMode)} · 거미{spider} 독낭{venom} 원시{primal} 암굴{cavern}";
-        statusLabel.text = InArena ? $"시험장 보호 · 최소 체력 1\n{counts}"
-            : $"{counts}\n왼쪽 1회 / 오른쪽 3회 공세";
+        if (statusLabel == null || tables == null || tables.Length == 0) return;
+        string[] names = { "거미", "독낭", "원시", "암굴", "사령" };
+        string[] counts = new string[tables.Length];
+        for (int i = 0; i < tables.Length; i++)
+            counts[i] = (i < names.Length ? names[i] : tables[i].DisplayName)
+                + EnemyThemeTrialPresets.Resolve(tables[i], trialMode).Total;
+        int split = Mathf.Min(3, counts.Length);
+        string first = EnemyThemeTrialPresets.Label(trialMode) + " · "
+            + string.Join(" ", counts, 0, split);
+        string second = string.Join(" ", counts, split, counts.Length - split);
+        statusLabel.text = InArena ? $"시험장 보호 · 최소 체력 1\n{first} {second}"
+            : $"{first}\n{second} · 왼쪽 1회 / 오른쪽 3회";
     }
     public bool Begin(int index,bool waves)
     {
@@ -208,11 +252,36 @@ public sealed class EnemyThemeDebugUI : MonoBehaviour
         previousHideoutSpawn=CombatDebugSettings.SpawnHideoutMonsters;CombatDebugSettings.SetHideoutMonsterSpawn(false);
         arena=Instantiate(arenaPrefab,new Vector3(1000,0,1000),Quaternion.identity);
         SceneManager.MoveGameObjectToScene(arena.gameObject,arenaPlayer.gameObject.scene);
+        EnsureDeathHarvestArenaZone();
         arena.ConfigureTrialMode(trialMode);
         arena.ProtectPlayer(arenaPlayer.GetComponent<CombatHealth>());
         Teleport(arena.entry.position,arena.entry.rotation);
         if(arenaButton!=null)arenaButton.GetComponentInChildren<TextMeshProUGUI>().text="하이드아웃으로 돌아가기";
         SetIdleStatus();
+    }
+
+    private void EnsureDeathHarvestArenaZone()
+    {
+        if (arena == null || tables == null || tables.Length < 5) return;
+        var zones = arena.GetComponentsInChildren<EnemyThemeTriggerZone>(true);
+        if (zones.Length == tables.Length - 1)
+        {
+            var extra = Instantiate(zones[zones.Length - 1], arena.transform);
+            extra.name = tables[tables.Length - 1].DisplayName + " trigger";
+            var encounter = extra.GetComponent<EnemyThemeEncounter>();
+            var material = warningMaterials != null && warningMaterials.Length >= tables.Length
+                ? warningMaterials[tables.Length - 1] : null;
+            encounter.Configure(tables[tables.Length - 1], null, material);
+            extra.Configure(encounter, true);
+            var label = extra.transform.Find("Zone label")?.GetComponent<TextMeshPro>();
+            if (label != null) label.text = tables[tables.Length - 1].DisplayName + "\n진입하면 3회 공세";
+            var marker = extra.transform.Find("Entry marker")?.GetComponent<Renderer>();
+            if (marker != null && material != null) marker.sharedMaterial = material;
+            zones = arena.GetComponentsInChildren<EnemyThemeTriggerZone>(true);
+        }
+        if (zones.Length != tables.Length) return;
+        for (int i = 0; i < zones.Length; i++)
+            zones[i].transform.localPosition = new Vector3((i - (zones.Length - 1) * .5f) * 40f, 0f, 0f);
     }
     private void Teleport(Vector3 position,Quaternion rotation)
     {

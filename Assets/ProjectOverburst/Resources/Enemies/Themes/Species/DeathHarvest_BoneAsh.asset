@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_BoneAsh
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_BoneAsh
+  displayName: "\uC7BF\uBE5B \uD574\uACE8"
+  vendorPrefab: {fileID: 4540337149844903067, guid: 3101d354dbcca0742a997527d4672a0a, type: 3}
+  animationProfile: {fileID: 11400000, guid: 9d1fb706d9f0d77429e9078ff71d4a6d, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 556b8e7477071ae4b828af964b32535d, type: 2}
+  combatRole: 0
+  baseMaxHealth: 42
+  movementProfile: {fileID: 11400000, guid: fddce8091ac894b43a267275f1b1f18a, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 4a9c5928e84925044a878c948a654a97, type: 2}
+  threatCost: 1

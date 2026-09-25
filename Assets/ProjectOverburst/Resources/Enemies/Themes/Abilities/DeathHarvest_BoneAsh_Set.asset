@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: DeathHarvest_BoneAsh_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: DeathHarvest_BoneAsh
+  abilities:
+  - {fileID: 11400000, guid: 4a7e5883815c7d948bfcdfc96d3341a3, type: 2}
+  - {fileID: 11400000, guid: 7bbc2d0533a69804db484f8cd6552d87, type: 2}
+  - {fileID: 11400000, guid: fd84576b3ee750646b4fe9ca53613d1a, type: 2}

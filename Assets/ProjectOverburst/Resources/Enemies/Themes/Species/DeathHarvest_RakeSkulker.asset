@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_RakeSkulker
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_RakeSkulker
+  displayName: "\uCC3D\uBC31\uD55C \uC232\uAC08\uD034"
+  vendorPrefab: {fileID: 2059285391703717515, guid: 78ea2c65a2242ca4d859415663f21f83, type: 3}
+  animationProfile: {fileID: 11400000, guid: 74aeff074f5e84e44acbec5b1c158e76, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 253e0d020f5f6084f9e0a606f62b653f, type: 2}
+  combatRole: 0
+  baseMaxHealth: 42
+  movementProfile: {fileID: 11400000, guid: 6731c4ad84be7fb43b5b28131617b6a2, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 408384843955b304287ca65e5d3847c8, type: 2}
+  threatCost: 1

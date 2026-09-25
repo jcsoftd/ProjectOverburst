@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_BoneMoss
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_BoneMoss
+  displayName: "\uC774\uB07C \uD574\uACE8"
+  vendorPrefab: {fileID: 4409888647042732004, guid: 1926267e796e1e94c9c14a4d7dfe5663, type: 3}
+  animationProfile: {fileID: 11400000, guid: 030eaf61e5fc34d48a16e0f88c52ba06, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 14ea25752ab274249933ac1007db016e, type: 2}
+  combatRole: 0
+  baseMaxHealth: 42
+  movementProfile: {fileID: 11400000, guid: 563a78897efd54b469613210f0243d2d, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 8365a3db2fc70494eb707ad64d1be058, type: 2}
+  threatCost: 1

@@ -74,6 +74,7 @@ GameObject:
   - component: {fileID: 5484523748806734918}
   - component: {fileID: 2901776870009301419}
   - component: {fileID: 9167266858906836875}
+  - component: {fileID: 8113703347898051434}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Rostrokarck
   m_TagString: Untagged
@@ -689,6 +690,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
+--- !u!114 &9167266858906836875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.0034930706, y: 1.0077153, z: 0.28118032}
+  bodyRadius: 1.8125
+  bodyHeight: 1.9
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.0059881215, y: 1.0489405, z: 0.32488054}
+  hitRadius: 2.03
+  hitHeight: 2.5474355
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55
+--- !u!114 &8113703347898051434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7cc50238cd31aa43b8ea292c4a55c63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
+  profile: {fileID: 11400000, guid: f4f12184b7fa3d04eae14b7836787e73, type: 2}
 --- !u!1 &5224895147244991241
 GameObject:
   m_ObjectHideFlags: 0
@@ -1651,25 +1687,3 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6960581798429417176, guid: 66802a39bff22ec4fb395aeead14f888, type: 3}
   m_PrefabInstance: {fileID: 3122204101006876815}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &9167266858906836875
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4365012782904227232}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
-  useAuthoredVolume: 1
-  localBodyCenter: {x: 0.0034930706, y: 1.0077153, z: 0.28118032}
-  bodyRadius: 1.8125
-  bodyHeight: 1.9
-  useAuthoredHitVolume: 1
-  localHitCenter: {x: 0.0059881215, y: 1.0489405, z: 0.32488054}
-  hitRadius: 2.03
-  hitHeight: 2.5474355
-  contactRadiusFraction: 0.5
-  contactHeightFraction: 0.55

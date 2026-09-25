@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: DeathHarvest_BoneWarden
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: DeathHarvest_BoneWarden
+  displayName: "\uBB18\uC9C0 \uD30C\uC218 \uD574\uACE8"
+  vendorPrefab: {fileID: 3131262925474912411, guid: 7d5f46c5f66aaca4cbe1d453fadee76c, type: 3}
+  animationProfile: {fileID: 11400000, guid: 9fa2a9eb27f054047b6c199ff95c7e71, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 56da79ac19372194a8a3c8c225239f63, type: 2}
+  combatRole: 1
+  baseMaxHealth: 135
+  movementProfile: {fileID: 11400000, guid: ce39ca8b77268984c93abc4774c8b2b3, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 5df950f460ca85c4c9d168e5aea3cef1, type: 2}
+  threatCost: 3

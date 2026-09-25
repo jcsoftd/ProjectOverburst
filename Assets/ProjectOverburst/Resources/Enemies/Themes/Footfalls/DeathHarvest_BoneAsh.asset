@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60651cde8dc5c034aaaddeacf94d3750, type: 3}
+  m_Name: DeathHarvest_BoneAsh
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyFootfallProfile
+  enemyId: DeathHarvest_BoneAsh
+  locomotionClip: {fileID: 8993902097722301239, guid: c1b741fb069f4cb45a76e190ed789d57, type: 3}
+  contactPhases:
+  - 0.12
+  - 0.62
+  runClip: {fileID: 8993902097722301239, guid: fbcdde5d46592134d9f9a563b6f38f2a, type: 3}
+  visualWeight: 0
+  walkContacts:
+  - phase: 0.12
+    localPosition: {x: -0.21, y: 0, z: 0.17}
+  - phase: 0.62
+    localPosition: {x: 0.21, y: 0, z: 0.17}
+  runContacts:
+  - phase: 0.1
+    localPosition: {x: -0.25, y: 0, z: 0.22}
+  - phase: 0.58
+    localPosition: {x: 0.25, y: 0, z: 0.22}

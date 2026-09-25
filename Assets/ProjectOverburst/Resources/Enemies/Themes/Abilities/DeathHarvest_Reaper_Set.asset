@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: DeathHarvest_Reaper_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: DeathHarvest_Reaper
+  abilities:
+  - {fileID: 11400000, guid: 97eaefb72721a054eaa5641b32f13787, type: 2}
+  - {fileID: 11400000, guid: 324c8977d675bb349a98cd656776d0cc, type: 2}
+  - {fileID: 11400000, guid: 48811784242fd224b9542046f35e3b6a, type: 2}
+  - {fileID: 11400000, guid: ade06c0e55cac30498ecbfc84f713a65, type: 2}
+  - {fileID: 11400000, guid: 55e08bac2e15c354087acd24592f7d94, type: 2}

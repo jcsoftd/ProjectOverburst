@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: DeathHarvest_DeathKnight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: DeathHarvest_DeathKnight
+  runtimeController: {fileID: 9100000, guid: 995476af53fd09d46a0e34c56d412d04, type: 2}
+  idle: {fileID: 7400000, guid: 0a56d39b9416d2443b16770387e47752, type: 2}
+  walk: {fileID: 7400000, guid: 98af979808571b145830ce75f9dcb211, type: 2}
+  run: {fileID: 7400000, guid: c572a6c517de47a45a0b0374853bd785, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 62e8c04b200ca4c409a077ebe715a998, type: 3}
+  - {fileID: 1827226128182048838, guid: 17979f54c4e684e42837e175a65224c9, type: 3}
+  - {fileID: 1827226128182048838, guid: 6d8d8f5e8d4218e4e80c3ae49cd8f8ad, type: 3}
+  - {fileID: 1827226128182048838, guid: 1a55cd6723d7c2147ba64e0e709d6cef, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 2be5999f2ad7cf74ea5344dbc3de96e6, type: 3}
+  death: {fileID: 1827226128182048838, guid: d37dcf794dc8060458c256f6f89915ca, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 3157dd6c547da594291686a2be810e8d, type: 2}
+  - {fileID: 1827226128182048838, guid: 97f39b3556d122347a2fd5ed297f94b3, type: 3}
+  excludedRootMotionClipPaths: []

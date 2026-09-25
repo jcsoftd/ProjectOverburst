@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec595eda36977694d97a87ee1e6e45bd, type: 3}
+  m_Name: BloodHitCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::BloodHitCatalog
+  slash: {fileID: 8926484042661614526, guid: 174cf0c7d4e390444a9f0530476eb81a, type: 3}
+  stab: {fileID: 8926484042661614526, guid: bdd8fb1720dac094892235075b24b1e6, type: 3}
+  burst: {fileID: 8926484042661614526, guid: 3b25bb1c08e094743990245e0038f1af, type: 3}
+  directionalDecal: {fileID: 5362654747711157031, guid: 7b058911e7309f94aa642b25aec74928, type: 3}
+  spotDecal: {fileID: 7956933238142667545, guid: 8391e03ae01e0524a9fb33f2251f91d1, type: 3}
+  splatterDecal: {fileID: 8759256684978916287, guid: 83b5cf1a2298ec74fbab312d1ca8d2f7, type: 3}
+  puddleDecal: {fileID: 43481317786896717, guid: a384da7dfd0c0d3439323ac972138e12, type: 3}
+  sweepDecals:
+  - {fileID: 5362654747711157031, guid: 7b058911e7309f94aa642b25aec74928, type: 3}
+  - {fileID: 5471910614081026960, guid: d469b30f4ef8d314e82475507d25112f, type: 3}
+  - {fileID: 2246834155783734478, guid: 20c714822ea1c154ab5d971f3dec3f98, type: 3}
+  thrustDecals:
+  - {fileID: 4520928889886773832, guid: 376a3b3b52f1ba54c9744795c3950749, type: 3}
+  - {fileID: 7956933238142667545, guid: 8391e03ae01e0524a9fb33f2251f91d1, type: 3}
+  - {fileID: 7085865934631658536, guid: e54f333a7139d0c44a2550cca2c89a56, type: 3}
+  downwardDecals:
+  - {fileID: 8759256684978916287, guid: 83b5cf1a2298ec74fbab312d1ca8d2f7, type: 3}
+  - {fileID: 7769573322817941803, guid: 1807d767d9d60ac48bd45c3612a3b462, type: 3}
+  - {fileID: 8548040751485966269, guid: 7cf0d11922d6b6d47b27b7f96c34b3c9, type: 3}
+  lethalDecals:
+  - {fileID: 43481317786896717, guid: a384da7dfd0c0d3439323ac972138e12, type: 3}
+  - {fileID: 2716457411630357888, guid: 62b5f3c0b77a6e84fb5fe51ab3e42eb5, type: 3}
+  - {fileID: 6563824369585507153, guid: d0ea0ee6ed549df42abe0ff0edf17721, type: 3}
+  - {fileID: 7780323448050119854, guid: 9f01cc9a057f0ab4886b9debbab87d72, type: 3}
+  lifetime: 2.5

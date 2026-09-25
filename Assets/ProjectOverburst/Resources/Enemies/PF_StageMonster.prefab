@@ -127,6 +127,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMover
   profile: {fileID: 11400000, guid: 589f1d5b9fecef5438ff9569e589b109, type: 2}
+  runtimeSpeedMultiplier: 1
   health: {fileID: 100003}
   motor: {fileID: 2459730922898004823}
   reaction: {fileID: 10340776181028293}
@@ -195,6 +196,7 @@ MonoBehaviour:
   - {fileID: 110003}
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.08
+  flashBrightness: 2.5
 --- !u!114 &9191459500227579674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -225,6 +227,10 @@ MonoBehaviour:
   localCenter: {x: 0, y: 0, z: 0}
   radius: 0.40000007
   height: 2
+  useCustomHurtVolume: 0
+  hurtLocalCenter: {x: 0, y: 0, z: 0}
+  hurtRadius: 0.45
+  hurtHeight: 2
 --- !u!114 &4142742921359180207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,6 +247,7 @@ MonoBehaviour:
   movementReaction: {fileID: 10340776181028293}
   animationBridge: {fileID: 0}
   attackPoint: {fileID: 9016597432394581148}
+  abilitySet: {fileID: 0}
   attackTriggers:
   - Attack1
   - Attack2
@@ -276,9 +283,12 @@ MonoBehaviour:
   movementReaction: {fileID: 10340776181028293}
   sensor: {fileID: 7990939634768303489}
   meleeAttack: {fileID: 4142742921359180207}
+  abilityController: {fileID: 0}
   animationBridge: {fileID: 0}
   defenseController: {fileID: 0}
   behaviorProfile: {fileID: 11400000, guid: 78470008be7303848a3122a65da7dd96, type: 2}
+  squadPursuitPreset: {fileID: 0}
+  squadParticipationMode: 0
   target: {fileID: 0}
   detectionRange: 10
   loseTargetRange: 14
@@ -317,6 +327,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41a451fabcbf344478368a1ac39cb005, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyOverheadHpBar
+  hpBarAnchor: {fileID: 0}
 --- !u!114 &2459730922898004823
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,6 +362,7 @@ MonoBehaviour:
   combatTarget: {fileID: 0}
   knockbackDistancePerStrength: 0.1
   knockbackTravelDuration: 0.12
+  visualReactionRoot: {fileID: 0}
 --- !u!114 &1779860445391629992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -406,6 +418,29 @@ MonoBehaviour:
   enemyRank: {fileID: 2979610414357099364}
   enemyMovement: {fileID: 100005}
   enemyAttackController: {fileID: 4142742921359180207}
+  freezeControlImmune: 0
+--- !u!114 &8419944059729132729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 0
+  localBodyCenter: {x: 0, y: 1, z: 0}
+  bodyRadius: 0.6
+  bodyHeight: 2
+  useAuthoredHitVolume: 0
+  localHitCenter: {x: 0, y: 1, z: 0}
+  hitRadius: 0.6
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55
 --- !u!1 &110000
 GameObject:
   m_ObjectHideFlags: 0
@@ -551,25 +586,3 @@ Transform:
   m_Children: []
   m_Father: {fileID: 100001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8419944059729132729
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
-  useAuthoredVolume: 0
-  localBodyCenter: {x: 0, y: 1, z: 0}
-  bodyRadius: 0.6
-  bodyHeight: 2
-  useAuthoredHitVolume: 0
-  localHitCenter: {x: 0, y: 1, z: 0}
-  hitRadius: 0.6
-  hitHeight: 2
-  contactRadiusFraction: 0.5
-  contactHeightFraction: 0.55

@@ -764,6 +764,7 @@ GameObject:
   - component: {fileID: 5404946464854265017}
   - component: {fileID: 5373638007924248559}
   - component: {fileID: 7224294479047094825}
+  - component: {fileID: 3861463203614218336}
   m_Layer: 7
   m_Name: PF_CavernMutants_Gorhorrid
   m_TagString: Untagged
@@ -1364,6 +1365,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e10fc18b2c93214b9122aa3191a334e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitResponseCoordinator
+--- !u!114 &7224294479047094825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6481229745826855543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: -0.0000005625439, y: 0.7464867, z: 0.5476757}
+  bodyRadius: 0.875
+  bodyHeight: 1.6
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: -0.0000009643611, y: 0.7082629, z: 0.6817298}
+  hitRadius: 0.97999996
+  hitHeight: 2.8799999
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55
+--- !u!114 &3861463203614218336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6481229745826855543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7cc50238cd31aa43b8ea292c4a55c63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
+  profile: {fileID: 11400000, guid: 9cc06ed53a0f08b42a68f4e9b93bba85, type: 2}
 --- !u!1001 &6732071428621281937
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1851,25 +1887,3 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 1635361481204467336, guid: 38a0b3b30fe282447bbbcbd3b1f4d1e7, type: 3}
   m_PrefabInstance: {fileID: 6732071428621281937}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7224294479047094825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6481229745826855543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
-  useAuthoredVolume: 1
-  localBodyCenter: {x: -0.0000005625439, y: 0.7464867, z: 0.5476757}
-  bodyRadius: 0.875
-  bodyHeight: 1.6
-  useAuthoredHitVolume: 1
-  localHitCenter: {x: -0.0000009643611, y: 0.7082629, z: 0.6817298}
-  hitRadius: 0.97999996
-  hitHeight: 2.8799999
-  contactRadiusFraction: 0.5
-  contactHeightFraction: 0.55

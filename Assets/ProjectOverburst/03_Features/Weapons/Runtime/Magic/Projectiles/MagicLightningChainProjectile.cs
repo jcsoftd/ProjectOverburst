@@ -377,6 +377,8 @@ public class MagicLightningChainProjectile : MonoBehaviour, IMagicProjectile // 
         CombatHealth targetHealth = damageable as CombatHealth;
         float targetHpBeforeHit = targetHealth != null ? targetHealth.CurrentHp : -1f;
         DamageInfo info = new DamageInfo(finalDamage, hitPoint, source, knockbackDirection, knockback, critical); // 피해 정보
+        info.element = WeaponElement.Electric;
+        info.playerAttackKind = PlayerAttackKind.Weak | PlayerAttackKind.Elemental;
         damageable.TakeDamage(info);
         float actualDamage = GetActualDamageDealt(finalDamage, targetHealth, targetHpBeforeHit);
         ApplyOnHitEffects(targetHealth, actualDamage);

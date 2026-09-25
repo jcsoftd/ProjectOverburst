@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
+  m_Name: DeathHarvest
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
+  presetId: Theme_DeathHarvest
+  displayName: "\uC0AC\uB839\uC758 \uC218\uD655\uB2E8"
+  defaultMonsterPrefabs:
+  - {fileID: 8598702782355341532, guid: 0d06a2754bff3fa4a82af58e16746764, type: 3}
+  - {fileID: 8359752780237756128, guid: 44300c79cd7a64a4dad0dccadec64d5c, type: 3}
+  - {fileID: 6882114341736218777, guid: 282b1cb44a3827346a90a6467f508bbb, type: 3}
+  - {fileID: 6363030571810016634, guid: c9afc277ac8f77743aea5ccb6376ccde, type: 3}
+  - {fileID: 7630111263970318984, guid: 5e06601979e87a6408827b85fc60abca, type: 3}
+  - {fileID: 6893060950518277590, guid: b8d691104d826224b9110dfb4a1a89b5, type: 3}
+  - {fileID: 8288495529886999227, guid: 36afbb07af451c04aa047b594d3cabe8, type: 3}
+  activationCount: 41
+  minimumSquadSize: 4
+  maximumSquadSize: 8
+  slotRadius: 6
+  directCommitRadius: 10
+  nearReleaseDistance: 4.5
+  farActivationDistance: 13
+  reserveSpeedMultiplier: 0.82
+  remnantRatio: 0.35
+  slotArrivalDistance: 1.6
+  reserveOrbitRadius: 15
+  reserveOrbitAngularSpeed: 6
+  curveRadiusMultiplier: 1

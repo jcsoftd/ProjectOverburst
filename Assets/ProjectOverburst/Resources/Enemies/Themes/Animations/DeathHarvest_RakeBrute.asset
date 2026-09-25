@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: DeathHarvest_RakeBrute
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: DeathHarvest_RakeBrute
+  runtimeController: {fileID: 9100000, guid: 235d88531625d6949b08e48d4ad14f05, type: 2}
+  idle: {fileID: 8993902097722301239, guid: f53fadef3b6d3734bb8c8237c2ce5751, type: 3}
+  walk: {fileID: 8993902097722301239, guid: 4ac6d4673b23a454d8303ede26bbaf27, type: 3}
+  run: {fileID: 8993902097722301239, guid: fbcdde5d46592134d9f9a563b6f38f2a, type: 3}
+  attackClips:
+  - {fileID: 8993902097722301239, guid: aa1309852e3e0674981003944b280a38, type: 3}
+  - {fileID: 8993902097722301239, guid: 634ec6ebcfa6dd04192f081ecc744b89, type: 3}
+  - {fileID: 8993902097722301239, guid: 5f97f17ac2f7a0f40b86c4185918f537, type: 3}
+  - {fileID: 8993902097722301239, guid: 714da30514f853d44b31f7ec3843acea, type: 3}
+  hit: {fileID: 8993902097722301239, guid: 98971071d6487274298d5b9a4d8e252f, type: 3}
+  death: {fileID: 8993902097722301239, guid: 49118fafc216ec7408eef058dd7bc6b0, type: 3}
+  optional:
+  - {fileID: 8993902097722301239, guid: 5770def3f84d9f74f8a7d1d5777d8208, type: 3}
+  - {fileID: 8993902097722301239, guid: 41f0129a33ed0b549935ff0618603c22, type: 3}
+  - {fileID: 8993902097722301239, guid: f06e7c0e926538d4a8a8438dbb5bd79b, type: 3}
+  excludedRootMotionClipPaths: []

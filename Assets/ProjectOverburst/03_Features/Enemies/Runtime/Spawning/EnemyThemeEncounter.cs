@@ -68,6 +68,11 @@ public static class EnemyThemeTrialPresets
                 if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(6, 3, 1);
                 if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(30, 9, 1);
                 break;
+            case "DeathHarvest":
+                if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(10, 3, 0);
+                if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(8, 2, 1);
+                if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(33, 8, 1);
+                break;
         }
         throw new ArgumentException($"지원하지 않는 시험 테마/모드: {table.ThemeId} / {mode}");
     }

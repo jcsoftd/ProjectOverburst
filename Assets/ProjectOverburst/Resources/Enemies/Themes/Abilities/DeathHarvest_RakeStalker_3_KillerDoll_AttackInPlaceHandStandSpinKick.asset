@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: DeathHarvest_RakeStalker_3_KillerDoll_AttackInPlaceHandStandSpinKick
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: DeathHarvest_RakeStalker_3_KillerDoll_AttackInPlaceHandStandSpinKick
+  animatorTrigger: Attack4
+  executionMode: 3
+  damage: 5
+  minimumRange: 0
+  range: 2.1
+  hitRadius: 1.75
+  hitAngle: 360
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 1.7
+  hitDelay: 2.874667
+  hitNormalizedTime: 0.56
+  attackAnimationDuration: 5.1333337
+  attackLockDuration: 4.9280005
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []

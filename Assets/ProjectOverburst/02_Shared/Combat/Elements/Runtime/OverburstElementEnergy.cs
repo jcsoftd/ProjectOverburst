@@ -115,7 +115,7 @@ public sealed class OverburstElementDischarge
     private readonly OverburstElementEnergy owner;
     private readonly int token;
     private readonly HashSet<int> targets = new HashSet<int>();
-    private readonly float attackDamage, energyCoefficient, stackCoefficient, shatterCoefficient, radius;
+    private readonly float attackDamage, baseDischargePower, energyCoefficient, stackCoefficient, shatterCoefficient, radius;
     private readonly int chainTargets;
     private readonly float waterPullDistance;
     private bool ended;
@@ -127,6 +127,10 @@ public sealed class OverburstElementDischarge
         float energy, float normalized, float attackDamage)
     {
         this.owner = owner; this.token = token; this.attackDamage = attackDamage;
+        PlayerEquipment equipped = owner != null ? owner.GetComponent<PlayerEquipment>() : null;
+        baseDischargePower = equipped != null && equipped.CurrentWeaponItem != null
+            && equipped.CurrentWeaponItem.runtimeInstanceId == weaponId
+            ? WeaponStatCalculator.GetElementalDischargePower(equipped.CurrentWeaponItem) : 0f;
         Element = element; WeaponInstanceId = weaponId; Energy = energy; NormalizedEnergy = normalized;
         OverburstElementTuning tuning = OverburstElementTuning.Current;
         float elementBonus = element == WeaponElement.Fire ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireDischargeDamage)
@@ -170,7 +174,8 @@ public sealed class OverburstElementDischarge
         bool shattered = snapshot.Frozen;
         if (snapshot.Status != null && !snapshot.Health.IsDead)
             consumed = snapshot.Status.ConsumeForDischarge(Element, out shattered);
-        float bonus = attackDamage * (energyCoefficient + consumed * stackCoefficient + (shattered ? shatterCoefficient : 0f));
+        float bonus = attackDamage * (energyCoefficient + consumed * stackCoefficient + (shattered ? shatterCoefficient : 0f))
+            + baseDischargePower * NormalizedEnergy;
         result = new OverburstDischargeResult(Element, bonus, radius, Element == WeaponElement.Electric ? chainTargets : 0, consumed, shattered, waterPullDistance);
         return true;
     }
