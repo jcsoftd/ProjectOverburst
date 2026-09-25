@@ -7,8 +7,13 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
     [SerializeField, Min(0.01f)] private float expansionDuration = 0.28f;
     [SerializeField, Min(0.01f)] private float startScale = 0.72f;
     [SerializeField, Min(0.01f)] private float endScale = 1.16f;
+    [SerializeField] private OneHandSwordDistortionStyle comparisonStyle;
 
     private ParticleSystem[] particles;
+    private MeshRenderer[] waveRenderers;
+    private MaterialPropertyBlock waveProperties;
+    private static readonly int WaveProgress = Shader.PropertyToID("_WaveProgress");
+    private static readonly int WaveOpacity = Shader.PropertyToID("_WaveOpacity");
     private Vector3 resolvedScale;
     private float elapsed;
     private bool expanding;
@@ -21,6 +26,12 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
         ApplyScale(0f);
 
         CacheParticles();
+        if (comparisonStyle != null && comparisonStyle.version == SwordDistortionVersion.BladeTrail)
+        {
+            StopAndClearVfx();
+            return;
+        }
+        ApplyWaveProgress(0f, true);
         for (int i = 0; i < particles.Length; i++)
         {
             if (particles[i] == null || !particles[i].gameObject.activeInHierarchy)
@@ -34,6 +45,7 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
     {
         expanding = false;
         CacheParticles();
+        ApplyWaveProgress(1f, false);
         for (int i = 0; i < particles.Length; i++)
         {
             if (particles[i] != null)
@@ -49,6 +61,7 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
         elapsed += Time.deltaTime;
         float progress = Mathf.Clamp01(elapsed / expansionDuration);
         ApplyScale(progress);
+        ApplyWaveProgress(progress, progress < 1f);
         if (progress >= 1f)
             expanding = false;
     }
@@ -63,5 +76,23 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
     {
         if (particles == null)
             particles = GetComponentsInChildren<ParticleSystem>(true);
+        if (waveRenderers == null)
+            waveRenderers = GetComponentsInChildren<MeshRenderer>(true);
+    }
+
+    private void ApplyWaveProgress(float progress, bool visible)
+    {
+        if (waveRenderers == null || waveRenderers.Length == 0)
+            return;
+        if (waveProperties == null)
+            waveProperties = new MaterialPropertyBlock();
+        waveProperties.SetFloat(WaveProgress, progress);
+        waveProperties.SetFloat(WaveOpacity, visible ? 1f : 0f);
+        foreach (MeshRenderer renderer in waveRenderers)
+        {
+            if (renderer == null) continue;
+            renderer.SetPropertyBlock(waveProperties);
+            renderer.enabled = visible;
+        }
     }
 }

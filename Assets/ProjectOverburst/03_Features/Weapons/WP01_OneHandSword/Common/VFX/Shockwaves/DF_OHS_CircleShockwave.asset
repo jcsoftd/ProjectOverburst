@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: DF_OHS_CircleShockwave
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackVfxDefinition
   neutralPrefab: {fileID: 3487560267814829102, guid: e4fead7e1a2385a40a48c457812601ef, type: 3}
-  baseScale: {x: 2.2, y: 2.2, z: 2.2}
-  localPositionOffset: {x: 0, y: 0.26, z: 0}
+  baseScale: {x: 2.7, y: 2.7, z: 2.7}
+  localPositionOffset: {x: 0, y: 0.6, z: 0}
   localEulerOffset: {x: 0, y: 0, z: 0}
   mirrorRightToLeft: 0
   horizontalMirrorScaleAxis: 0
@@ -24,5 +24,5 @@ MonoBehaviour:
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundSurfaceOffset: 0.02
-  lifetime: 0.68
+  lifetime: 0.63
   poolCapacity: 6

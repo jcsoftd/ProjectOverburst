@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: DF_OHS_HeavyShockwave
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackVfxDefinition
   neutralPrefab: {fileID: 9053075370485124731, guid: 18e731867939fce43a8c240ca7d8840e, type: 3}
-  baseScale: {x: 3.6, y: 3.6, z: 3.6}
-  localPositionOffset: {x: 0, y: 0.27, z: 0}
+  baseScale: {x: 4.1, y: 4.1, z: 4.1}
+  localPositionOffset: {x: 0, y: 0.32, z: 0}
   localEulerOffset: {x: 0, y: 0, z: 0}
   mirrorRightToLeft: 0
   horizontalMirrorScaleAxis: 0
@@ -24,5 +24,5 @@ MonoBehaviour:
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundSurfaceOffset: 0.02
-  lifetime: 1.15
+  lifetime: 0.92999995
   poolCapacity: 4
