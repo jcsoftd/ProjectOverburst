@@ -89,9 +89,6 @@ namespace Overburst.Persistence
         public static Dictionary<string, ItemData> Restore(AccountSnapshot source, PlayerInventory inventory, PlayerStash stash, PlayerProgression progression, AccountContentRegistry registry, bool notify = true)
         {
             AccountInvariants.Validate(source, registry);
-            if (source.weapons.Count != 1 || source.gear.Count != 7 || source.bags.Count != 1 || source.flasks.Count != 3 || source.quickSlots.Count != 10 || source.stashTabs.Count != 3)
-                throw new InvalidDataException("Unsupported account loadout dimensions.");
-            if (source.activeWeaponSlot != 0) throw new InvalidDataException("Invalid active weapon slot.");
             var table = source.items.ToDictionary(x => x.instanceId, x => ItemSnapshotCodec.Restore(x, registry), StringComparer.Ordinal);
             Func<IEnumerable<string>, List<ItemData>> resolve = ids => ids.Select(id => string.IsNullOrEmpty(id) ? null : table[id]).ToList();
             var next = new PlayerAccountLoadout
