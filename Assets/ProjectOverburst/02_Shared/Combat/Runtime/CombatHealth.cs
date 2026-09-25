@@ -77,6 +77,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (TryCancelDamageByEvade(info))
             return; // 회피 무적
 
+        ApplyProgressionDamageModifiers(ref info, ref damage);
+
         ApplyAimDamageModifier(ref info, ref damage); // 조준/자세 피해 보정
         ApplyEnemyDefenseModifier(ref info, ref damage); // 몬스터 방패 방어
         ApplyPlayerDamageReductionDebug(ref info, ref damage);
@@ -104,6 +106,32 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
         if (currentHp <= 0f)
             Die(info); // HP 0 사망 처리
+    }
+
+    private void ApplyProgressionDamageModifiers(ref DamageInfo info, ref float damage)
+    {
+        if (CombatTeamUtility.IsPlayerActorHealth(this))
+        {
+            EnemyRank attackingEnemy = info.source != null ? info.source.GetComponentInParent<EnemyRank>() : null;
+            if (attackingEnemy != null)
+                damage *= OverburstGrowthRules.EnemyDamageFactor(attackingEnemy.Level);
+            PlayerProgression progression = PlayerProgression.Current;
+            if (progression != null)
+                damage *= 100f / (100f + Mathf.Max(0f, progression.Armor));
+        }
+        else if (info.source != null)
+        {
+            PlayerEquipment equipment = info.source.GetComponentInParent<PlayerEquipment>();
+            if (equipment == null) return;
+            GearStatTotals stats = GearStatTotals.From(equipment);
+            EnemyRank targetRank = GetComponentInParent<EnemyRank>();
+            float bonus = targetRank != null ? stats.TargetDamage(targetRank.GradeType) : 0f;
+            if ((info.playerAttackKind & PlayerAttackKind.Weak) != 0) bonus += stats.WeakDamage;
+            if ((info.playerAttackKind & PlayerAttackKind.Heavy) != 0) bonus += stats.HeavyDamage;
+            if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0) bonus += stats.ElementalDamage;
+            damage *= Mathf.Max(.1f, 1f + bonus / 100f);
+        }
+        info.damage = damage;
     }
 
     public void Heal(float amount)

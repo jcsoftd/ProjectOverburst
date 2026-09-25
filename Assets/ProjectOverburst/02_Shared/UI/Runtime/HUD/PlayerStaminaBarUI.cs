@@ -17,10 +17,7 @@ public class PlayerStaminaBarUI : MonoBehaviour // 플레이어 스태미너 HUD
 
     private void OnEnable()
     {
-        ResolveReferences();
-        SubscribeLeaderContext();
-        Subscribe();
-        Refresh();
+        gameObject.SetActive(false);
     }
 
     private void OnDisable()

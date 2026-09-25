@@ -16,7 +16,6 @@ public static class PlayerCapabilityInstaller
         CombatTarget.EnsureConfigured(memberObject, CombatTeam.PlayerParty, refreshCombatVolume);
         EnsureComponent<PlayerEquipment>(memberObject);
         EnsureComponent<WeaponRuntimeHub>(memberObject);
-        EnsureComponent<PlayerStaminaController>(memberObject);
         EnsureComponent<PlayerBuffController>(memberObject);
         EnsureComponent<PlayerMovementInputSource>(memberObject);
         EnsureComponent<OverburstCharacterMotor3D>(memberObject);

@@ -105,7 +105,9 @@ public static class MeleeDamageResolver
             request.Element,
             request.SourceWeaponRuntimeInstanceId,
             ElementalReactionType.None,
-            request.SourceAttackSequenceId);
+            request.SourceAttackSequenceId,
+            request.Element == WeaponElement.None ? PlayerAttackKind.Weak
+                : PlayerAttackKind.Weak | PlayerAttackKind.Elemental);
 
         request.Target.TakeDamage(info);
         float actualDamage = targetHealth != null && hpBeforeHit >= 0f

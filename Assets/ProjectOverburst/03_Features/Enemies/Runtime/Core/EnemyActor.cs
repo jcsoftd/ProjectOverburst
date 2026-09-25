@@ -160,6 +160,7 @@ public sealed class EnemyActor : MonoBehaviour
         }
 
         health.SetMaxHp(stats.MaxHealth, true);
+        rank?.ApplyLevelToHealth(stats.MaxHealth);
         health.ResetHealth();
         movement.enabled = true;
         movement.SetProfile(enemyDefinition.MovementProfile);

@@ -305,6 +305,8 @@ public class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge, ISlotS
             handled = UnequipBagToFirstAvailableSlot(context.Slot.SlotIndex);
         else if (context.Item.itemType == "Bag")
             handled = EquipBagFromInventorySlot(context.Slot);
+        else if (context.Item.itemType == "Gear" && !context.Slot.IsWeaponSlot)
+            handled = GearEquipmentService.EquipFromInventorySlot(context.Slot.SlotIndex);
         else if (context.Item.itemType != "Weapon")
             handled = false;
         else if (context.IsWeaponSlot)

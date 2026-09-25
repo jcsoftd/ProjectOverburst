@@ -35,6 +35,14 @@ public sealed class PlayerRuntimeBootstrap : MonoBehaviour
             actor.ResolveReferences();
             kit.ApplyAuthority(ActorControlAuthority.Player);
             context.Bind(actor);
+            PlayerProgression progression = context.GetComponent<PlayerProgression>();
+            if (progression == null)
+                progression = context.gameObject.AddComponent<PlayerProgression>();
+            progression.Bind(context);
+            PlayerLevelUpVfx levelUpVfx = context.GetComponent<PlayerLevelUpVfx>();
+            if (levelUpVfx == null)
+                levelUpVfx = context.gameObject.AddComponent<PlayerLevelUpVfx>();
+            levelUpVfx.Bind(progression, context);
             PlayerCameraBinder cameraBinder = context.GetComponent<PlayerCameraBinder>();
             if (cameraBinder == null)
                 cameraBinder = context.gameObject.AddComponent<PlayerCameraBinder>();

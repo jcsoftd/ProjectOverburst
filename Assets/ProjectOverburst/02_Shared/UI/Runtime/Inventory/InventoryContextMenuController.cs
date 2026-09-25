@@ -192,6 +192,15 @@ public class InventoryContextMenuController : MonoBehaviour
         }
         switch (item.itemType)
         {
+            case "Gear":
+                AddButton("장착", true, () =>
+                {
+                    if (selectedSlot != null && GearEquipmentService.EquipFromInventorySlot(selectedSlot.SlotIndex)) Close();
+                });
+                AddButton("정보", true, ShowSelectedItemInfo);
+                AddButton("버리기", true, DropSelectedItem);
+                AddButton("닫기", true, Close);
+                break;
             case "Weapon":
                 AddButton("장착", true, EquipSelectedWeapon);
                 AddButton("정보", true, ShowSelectedItemInfo);

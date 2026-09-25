@@ -26,7 +26,7 @@ public static class FlaskRuntime
         return item.flaskState;
     }
 
-    public static FlaskStats Stats(ItemData item) => FlaskStats.Calculate(item != null ? item.baseData as FlaskItemData : null, State(item));
+    public static FlaskStats Stats(ItemData item) => FlaskStats.Calculate(item != null ? item.baseData as FlaskItemData : null, State(item), item != null ? item.level : 1);
 
     private static bool TryMigrateLegacy(FlaskInstanceState state, ItemGrade grade)
     {

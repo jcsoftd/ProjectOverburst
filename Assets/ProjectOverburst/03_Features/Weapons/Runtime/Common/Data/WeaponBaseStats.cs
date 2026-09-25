@@ -7,6 +7,9 @@ public struct WeaponBaseStats
     [InspectorName("기본 데미지")]
     [Min(0f)] public float damage;
 
+    [InspectorName("원소 방출 기본력")]
+    [Min(0f)] public float elementalDischargePower;
+
     [InspectorName("치명타 확률")]
     [Range(0f, 100f)] public float criticalChance;
 

@@ -36,6 +36,8 @@ public static class WeaponStatCalculator // 무기 스탯 계산
             return WeaponFinalStats.Empty;
 
         WeaponFinalStats stats = CreateBaseStats(weaponData); // 원본 스탯
+        if (item != null)
+            stats.damage *= OverburstGrowthRules.ItemFactor(item.level);
         float originalMeleeRange = stats.range;
         ApplyWeaponGradeStats(ref stats, item); // 등급 보정
         ProjectileRangeBehavior rangeBehavior = ResolveRangeBehavior(weaponData);
@@ -44,6 +46,14 @@ public static class WeaponStatCalculator // 무기 스탯 계산
         UpdateMeleeRangeScale(ref stats, weaponData.CombatFamily, originalMeleeRange);
 
         return stats;
+    }
+
+    public static float GetElementalDischargePower(ItemData item)
+    {
+        if (item == null || !(item.baseData is WeaponItemData weapon)) return 0f;
+        float authored = weapon.baseStats.elementalDischargePower;
+        float baseline = authored > 0f ? authored : Mathf.Max(0f, weapon.baseStats.damage) * .25f;
+        return baseline * OverburstGrowthRules.ItemFactor(item.level);
     }
 
     private static WeaponFinalStats CreateBaseStats(WeaponItemData weaponData)

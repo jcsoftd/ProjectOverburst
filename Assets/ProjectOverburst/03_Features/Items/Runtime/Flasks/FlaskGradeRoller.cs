@@ -47,16 +47,17 @@ public readonly struct FlaskStats
     public FlaskStats(float p, float s, float d, float c)
     { primary = p; secondary = s; duration = d; cooldown = c; }
 
-    public static FlaskStats Calculate(FlaskItemData data, FlaskInstanceState state)
+    public static FlaskStats Calculate(FlaskItemData data, FlaskInstanceState state, int itemLevel = 1)
     {
         if (data == null) return default;
         float p = state != null ? state.Weight(FlaskStat.Primary) : 0f;
         float s = state != null ? state.Weight(FlaskStat.Secondary) : 0f;
         float d = state != null ? state.Weight(FlaskStat.Duration) : 0f;
         float c = state != null ? state.Weight(FlaskStat.Cooldown) : 0f;
+        float levelFactor = 1f + .1f * (OverburstGrowthRules.ClampLevel(itemLevel) - 1) / 99f;
         return new FlaskStats(
-            Mathf.Max(0f, data.primaryValue) * (1f + .08f * Mathf.Clamp(p, 0f, 12f)),
-            Mathf.Max(0f, data.secondaryValue) * (1f + .08f * Mathf.Clamp(s, 0f, 12f)),
+            Mathf.Max(0f, data.primaryValue) * levelFactor * (1f + .08f * Mathf.Clamp(p, 0f, 12f)),
+            Mathf.Max(0f, data.secondaryValue) * levelFactor * (1f + .08f * Mathf.Clamp(s, 0f, 12f)),
             Mathf.Max(.1f, data.duration) * (1f + .05f * Mathf.Clamp(d, 0f, 12f)),
             Mathf.Max(1f, data.cooldown) * (1f - .02f * Mathf.Clamp(c, 0f, 12f)));
     }

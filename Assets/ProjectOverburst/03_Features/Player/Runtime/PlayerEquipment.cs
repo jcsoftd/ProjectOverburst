@@ -27,6 +27,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     [SerializeField] private WeaponTraceBinding currentWeaponTraceBinding;
     [SerializeField] private int activeWeaponSlotIndex;
     [SerializeField] private ItemData[] weaponSlotItems = new ItemData[WeaponSlotCount];
+    [SerializeField] private ItemData[] gearSlotItems = new ItemData[7];
 
     [Header("Test")]
     [SerializeField] private WeaponItemData testWeaponItemData;
@@ -77,10 +78,12 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private Transform spawnedWeaponRoot; // 생성 무기
     public event System.Action WeaponSlotsChanged; // 슬롯 변경
+    public event System.Action GearSlotsChanged;
 
     private void Awake()
     {
         EnsureWeaponSlots(); // 슬롯 보장
+        EnsureGearSlots();
         ResolveInventory(); // 인벤토리
         ResolveWeaponStateControllers(); // 상태 컨트롤러
         RefreshCurrentWeaponReferences(); // 무기 참조
@@ -166,10 +169,68 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     public void RefreshCurrentWeaponStats()
     {
-        CurrentWeaponStats = CurrentWeaponItem != null // 최종 스탯
+        WeaponFinalStats stats = CurrentWeaponItem != null
             ? WeaponStatCalculator.Calculate(CurrentWeaponItem)
             : WeaponFinalStats.Empty;
+        if (CurrentWeaponItem != null)
+        {
+            GearStatTotals gear = GearStatTotals.From(this);
+            stats.damage = (stats.damage + gear.Attack) * OverburstGrowthRules.PlayerAttackFactor(PlayerProgression.CurrentLevel);
+            stats.critChance = Mathf.Min(65f, stats.critChance + gear.CriticalChance);
+            stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
+                stats.meleeAttackSpeedMultiplier + gear.AttackSpeed / 100f);
+            stats.critDamageMultiplier = Mathf.Min(2.2f, stats.critDamageMultiplier + gear.CriticalDamage / 100f);
+        }
+        CurrentWeaponStats = stats;
         CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, CurrentWeaponItem != null ? CurrentWeaponItem.ResolvedElement : WeaponElement.None);
+    }
+
+    public ItemData GetGearSlotItem(int slotIndex)
+    {
+        EnsureGearSlots();
+        if (slotIndex < 0 || slotIndex >= gearSlotItems.Length) return null;
+        ItemData item = gearSlotItems[slotIndex];
+        item?.EnsureRuntimeState();
+        return item;
+    }
+
+    public bool EquipGearItemToSlot(ItemData item, int slotIndex, out ItemData previous)
+    {
+        previous = null;
+        EnsureGearSlots();
+        if (item == null || !(item.baseData is GearItemData data)
+            || slotIndex < 0 || slotIndex >= gearSlotItems.Length
+            || !GearItemData.Fits(data.kind, (GearSlot)slotIndex)) return false;
+        item.EnsureRuntimeState();
+        previous = gearSlotItems[slotIndex];
+        for (int i = 0; i < gearSlotItems.Length; i++)
+            if (i != slotIndex && IsSameRuntimeItem(gearSlotItems[i], item)) gearSlotItems[i] = null;
+        gearSlotItems[slotIndex] = item;
+        GearSlotsChanged?.Invoke();
+        return true;
+    }
+
+    public bool ClearGearSlot(int slotIndex, out ItemData removed)
+    {
+        removed = GetGearSlotItem(slotIndex);
+        if (removed == null) return false;
+        gearSlotItems[slotIndex] = null;
+        GearSlotsChanged?.Invoke();
+        return true;
+    }
+
+    private void EnsureGearSlots()
+    {
+        if (gearSlotItems == null || gearSlotItems.Length != 7)
+        {
+            ItemData[] original = gearSlotItems;
+            gearSlotItems = new ItemData[7];
+            if (original != null)
+                for (int i = 0; i < Mathf.Min(original.Length, gearSlotItems.Length); i++)
+                    gearSlotItems[i] = original[i];
+        }
+        for (int i = 0; i < gearSlotItems.Length; i++)
+            if (gearSlotItems[i] != null && !gearSlotItems[i].HasValidBaseData) gearSlotItems[i] = null;
     }
 
     public bool EquipWeaponItem(ItemData item)

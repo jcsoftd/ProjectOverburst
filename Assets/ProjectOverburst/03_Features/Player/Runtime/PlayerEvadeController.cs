@@ -18,7 +18,6 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private const string EditorDefaultRollAnimationClipPath = "Assets/ProjectOverburst/03_Features/Player/Animations/Roll/InPlace/RM_Roll_front_InPlace.anim";
 #endif
     [Header("Common")]
-    [SerializeField] private float staminaCost = 10f;
     [SerializeField] private float cooldown = 0.25f;
 
     [Header("Dash")]
@@ -51,7 +50,6 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private PlayerMovement playerMovement;
     private MeleeRuntime meleeRuntime;
     [SerializeField] private CombatMotionDriver combatMotion;
-    private PlayerStaminaController staminaController;
     private bool isEvading;
     private bool perfectEvadeTriggered;
     private PlayerEvadeType activeType;
@@ -167,9 +165,6 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (combatMotion == null)
             combatMotion = GetComponent<CombatMotionDriver>();
 
-        if (staminaController == null)
-            staminaController = GetComponent<PlayerStaminaController>();
-
         if (playerAnimation == null)
             playerAnimation = GetComponent<PlayerAnimation>();
 
@@ -222,9 +217,6 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private bool TryStartEvade(PlayerEvadeType evadeType)
     {
-        if (staminaController == null || !staminaController.TryConsume(staminaCost))
-            return false;
-
         meleeRuntime?.CancelActiveComboForEvade(); // 공격 취소와 콤보 연결 상태 초기화는 10번대 위임
 
         activeType = evadeType;

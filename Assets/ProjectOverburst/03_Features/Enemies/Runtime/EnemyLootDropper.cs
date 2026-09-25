@@ -88,8 +88,11 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         var run = FindFirstObjectByType<DungeonRunFlow>();
         if (run != null)
         {
-            ItemData flask = FlaskLootPolicy.Roll(GetComponent<EnemyRank>(), run.ActiveParameters.DifficultyLevel);
+            EnemyRank rank = GetComponent<EnemyRank>();
+            ItemData flask = FlaskLootPolicy.Roll(rank, run.ActiveParameters.DifficultyLevel);
             if (flask != null) WorldItemDropFactory.CreateWorldPickup(flask, dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
+            ItemData gear = GearLootPolicy.Roll(rank, run.ActiveParameters.DifficultyLevel);
+            if (gear != null) WorldItemDropFactory.CreateWorldPickup(gear, dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
         }
         DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
@@ -102,6 +105,14 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         for (int i = 0; i < drops.Count; i++)
         {
+            if (run != null && (drops[i].baseData is WeaponItemData || drops[i].baseData is GearItemData
+                || drops[i].baseData is FlaskItemData))
+            {
+                EnemyRank rank = GetComponent<EnemyRank>();
+                drops[i].level = OverburstGrowthRules.RollDropItemLevel(rank != null ? rank.Level
+                    : OverburstGrowthRules.MonsterLevelForDifficulty(run.ActiveParameters.DifficultyLevel),
+                    rank != null && rank.GradeType == EnemyGradeType.Boss);
+            }
             Vector3 offset = dropOffset + GetScatterOffset(i, drops.Count); // 흩뿌림
             WorldItemDropFactory.CreateWorldPickup(drops[i], dropOrigin + offset, targetInventory, player, pickupGradeVfxSet);
         }

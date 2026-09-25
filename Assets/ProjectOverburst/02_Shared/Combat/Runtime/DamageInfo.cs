@@ -1,5 +1,8 @@
 using UnityEngine;
 
+[System.Flags]
+public enum PlayerAttackKind { Unspecified = 0, Weak = 1, Heavy = 2, Elemental = 4 }
+
 [System.Serializable]
 public struct DamageInfo
 {
@@ -17,6 +20,7 @@ public struct DamageInfo
     public string sourceWeaponRuntimeInstanceId;
     public ElementalReactionType elementalReactionType;
     public int sourceAttackSequenceId;
+    public PlayerAttackKind playerAttackKind;
 
     public DamageInfo(
         float damage,
@@ -32,7 +36,8 @@ public struct DamageInfo
         WeaponElement element = WeaponElement.None,
         string sourceWeaponRuntimeInstanceId = "",
         ElementalReactionType elementalReactionType = ElementalReactionType.None,
-        int sourceAttackSequenceId = 0)
+        int sourceAttackSequenceId = 0,
+        PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified)
     {
         this.damage = damage;
         this.hitPoint = hitPoint;
@@ -48,5 +53,6 @@ public struct DamageInfo
         this.sourceWeaponRuntimeInstanceId = sourceWeaponRuntimeInstanceId ?? string.Empty;
         this.elementalReactionType = elementalReactionType;
         this.sourceAttackSequenceId = sourceAttackSequenceId;
+        this.playerAttackKind = playerAttackKind;
     }
 }

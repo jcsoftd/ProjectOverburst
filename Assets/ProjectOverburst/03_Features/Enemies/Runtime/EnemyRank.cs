@@ -33,24 +33,37 @@ public sealed class EnemyRank : MonoBehaviour
 
     public EnemyRankType Rank { get { return rank; } }
     public EnemyGradeType GradeType { get; private set; } = EnemyGradeType.Normal;
+    public int Level { get; private set; } = 1;
 
     private EnemyRankType authoredRank;
     private string authoredDisplayName;
     private bool authoredStateCaptured;
+    private CombatHealth health;
+    private float authoredMaxHealth;
+    private bool experienceGranted;
 
     private void Awake()
     {
         CaptureAuthoredState();
+        health = GetComponent<CombatHealth>();
+        if (health != null) authoredMaxHealth = health.MaxHp;
     }
 
     private void OnEnable()
     {
         if (activeEnemies.Add(this)) { unchecked { ActiveRevision++; } }
+        if (health == null) health = GetComponent<CombatHealth>();
+        if (health != null) health.OnDead += AwardExperience;
+        experienceGranted = false;
+        AssignLevel();
+        if (health != null && GetComponent<EnemyActor>() == null)
+            ApplyLevelToHealth(authoredMaxHealth > 0f ? authoredMaxHealth : health.MaxHp);
     }
 
     private void OnDisable()
     {
         if (activeEnemies.Remove(this)) { unchecked { ActiveRevision++; } }
+        if (health != null) health.OnDead -= AwardExperience;
     }
 
     public static void CollectActive(List<EnemyRank> buffer)
@@ -75,6 +88,7 @@ public sealed class EnemyRank : MonoBehaviour
             ? EnemyRankType.Normal
             : EnemyRankType.Elite;
         displayName = definition != null ? definition.DisplayName : authoredDisplayName;
+        AssignLevel();
         unchecked { ActiveRevision++; }
     }
 
@@ -87,6 +101,35 @@ public sealed class EnemyRank : MonoBehaviour
         GradeType = authoredRank == EnemyRankType.Elite
             ? EnemyGradeType.Elite
             : EnemyGradeType.Normal;
+        Level = 1;
+        experienceGranted = false;
+    }
+
+    public void ApplyLevelToHealth(float authoredBase)
+    {
+        if (health == null) health = GetComponent<CombatHealth>();
+        if (health != null)
+            health.SetMaxHp(Mathf.Max(1f, authoredBase) * OverburstGrowthRules.EnemyHealthFactor(Level), true);
+    }
+
+    private void AssignLevel()
+    {
+        DungeonRunFlow run = FindFirstObjectByType<DungeonRunFlow>();
+        int tier = run != null ? run.ActiveParameters.DifficultyLevel : 1;
+        int baseline = OverburstGrowthRules.MonsterLevelForDifficulty(tier);
+        int gradeOffset = GradeType == EnemyGradeType.Boss ? 3 : GradeType == EnemyGradeType.Elite ? 2 : 0;
+        Level = OverburstGrowthRules.ClampLevel(baseline + Random.Range(-2, 3) + gradeOffset);
+        unchecked { ActiveRevision++; }
+    }
+
+    private void AwardExperience(CombatHealth source, DamageInfo info)
+    {
+        if (experienceGranted || info.source == null
+            || info.source.GetComponentInParent<PlayerActorRuntime>() == null) return;
+        experienceGranted = true;
+        PlayerProgression progression = PlayerProgression.Current;
+        if (progression != null)
+            progression.AddExperience(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level));
     }
 
     public string DisplayName

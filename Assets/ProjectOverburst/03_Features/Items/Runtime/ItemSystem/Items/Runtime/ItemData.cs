@@ -1184,6 +1184,7 @@ public class ItemData // 런타임 아이템
         instanceElement = element; hasInstanceElement = true; return true;
     }
     public List<WeaponGradeStatRoll> weaponGradeStatRolls; // 무기 별
+    public List<GearStatRoll> gearRolls; // 방어구·장신구 고정 주능력치와 보조 3종
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
     public List<BagRandomOptionRoll> bagOptions; // 가방 랜덤 옵션
 
@@ -1235,6 +1236,7 @@ public class ItemData // 런타임 아이템
         {
             if (baseData == null) return "Unknown";
             if (baseData is WeaponItemData) return "Weapon";
+            if (baseData is GearItemData) return "Gear";
             if (baseData is EquipmentItemData) return "Equipment";
             if (baseData is ConsumableItemData) return "Consumable";
             if (baseData is CurrencyItemData) return "Currency";
@@ -1275,10 +1277,12 @@ public class ItemData // 런타임 아이템
     {
         EnsureRuntimeInstanceId(); // id 보장
         baseData = data;
-        level = lv;
+        level = data is WeaponItemData || data is GearItemData || data is FlaskItemData
+            ? OverburstGrowthRules.ClampLevel(lv) : lv;
         grade = itemGrade;
         stackCount = stack;
         weaponGradeStatRolls = new List<WeaponGradeStatRoll>();
+        gearRolls = new List<GearStatRoll>();
         bagOptions = new List<BagRandomOptionRoll>();
         comboGemOptions = new List<ComboGemRolledOption>();
         weaponComboGemLoadouts = new List<WeaponComboGemLoadout>();
@@ -1290,6 +1294,8 @@ public class ItemData // 런타임 아이템
             RollComboGemOptions(); // 신규 보석 옵션
         else if (baseData is WeaponItemData)
             RollWeaponGradeStats(); // 무기 별
+        else if (baseData is GearItemData gear)
+            gearRolls = GearQuality.Roll(gear, grade, GearSeed(runtimeInstanceId));
         else if (baseData is BagItemData)
             RollBagOptions(); // 가방 옵션
 
@@ -1323,6 +1329,9 @@ public class ItemData // 런타임 아이템
     {
         EnsureRuntimeInstanceId(); // id 보장
 
+        if (baseData is WeaponItemData || baseData is GearItemData || baseData is FlaskItemData)
+            level = OverburstGrowthRules.ClampLevel(level);
+
         if (baseData is FlaskItemData) FlaskRuntime.State(this);
 
         bool comboGemOptionsMissing = comboGemOptions == null; // 신규 보석 구 데이터
@@ -1330,6 +1339,9 @@ public class ItemData // 런타임 아이템
 
         if (weaponGradeStatRolls == null)
             weaponGradeStatRolls = new List<WeaponGradeStatRoll>(); // 구 데이터
+
+        if (baseData is GearItemData gear && !GearQuality.IsValid(gear, grade, gearRolls))
+            gearRolls = GearQuality.Roll(gear, grade, GearSeed(runtimeInstanceId));
 
         if (bagOptionsMissing)
             bagOptions = new List<BagRandomOptionRoll>(); // 구 데이터
@@ -1352,6 +1364,16 @@ public class ItemData // 런타임 아이템
         else if (baseData is BagItemData)
         {
             EnsureBagOptions(); // 누락 옵션
+        }
+    }
+
+    private static int GearSeed(string id)
+    {
+        unchecked
+        {
+            uint hash = 2166136261;
+            foreach (char value in id) { hash ^= value; hash *= 16777619; }
+            return (int)hash;
         }
     }
 

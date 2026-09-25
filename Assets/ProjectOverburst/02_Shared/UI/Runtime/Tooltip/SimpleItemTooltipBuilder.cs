@@ -15,6 +15,9 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         if (item.baseData is WeaponItemData weaponData)
             return BuildWeaponTooltip(item, weaponData);
 
+        if (item.baseData is GearItemData gearData)
+            return BuildGearTooltip(item, gearData);
+
         if (item.baseData is ComboGemItemData comboGemData)
             return BuildComboGemTooltip(item, comboGemData);
 
@@ -23,6 +26,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
 
         if (item.baseData is FlaskItemData flaskData)
             return item.itemName + "\n" + FlaskTooltip.Subtitle(flaskData) + "\n"
+                + "아이템 레벨 " + OverburstGrowthRules.ClampLevel(item.level) + "\n"
                 + FlaskTooltip.Status(item) + "\n\n" + FlaskTooltip.Details(item);
 
         if (item.baseData is ConsumableItemData consumableData)
@@ -39,6 +43,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         StringBuilder builder = new StringBuilder(); // 툴팁 본문
         AppendTitle(builder, item, item.itemName, false);
         AppendSubtitle(builder, GetWeaponSubtitle(weaponData));
+        AppendItemLevel(builder, item);
         AppendDescription(builder, item);
 
         WeaponFinalStats baseStats = WeaponStatCalculator.CalculateWeaponBase(item); // 기본 스탯
@@ -54,8 +59,72 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
             AppendMagicWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
         else
             AppendWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
+        builder.Append("원소 방출 기본 위력 ")
+            .Append(FormatOneDecimal(WeaponStatCalculator.GetElementalDischargePower(item)))
+            .AppendLine();
         AppendPrice(builder, item);
         return builder.ToString();
+    }
+
+    private static string BuildGearTooltip(ItemData item, GearItemData data)
+    {
+        item.EnsureRuntimeState();
+        var builder = new StringBuilder();
+        AppendTitle(builder, item, item.itemName, false);
+        AppendSubtitle(builder, data.kind == GearKind.Helmet ? "방어구 / 투구"
+            : data.kind == GearKind.Chest ? "방어구 / 흉갑"
+            : data.kind == GearKind.Gloves ? "방어구 / 장갑"
+            : data.kind == GearKind.Boots ? "방어구 / 신발"
+            : data.kind == GearKind.Earring ? "장신구 / 귀걸이" : "장신구 / 목걸이");
+        AppendItemLevel(builder, item);
+        AppendDescription(builder, item);
+        AppendDivider(builder);
+        for (int i = 0; i < item.gearRolls.Count; i++)
+        {
+            GearStatRoll roll = item.gearRolls[i];
+            builder.Append(i == 0 ? "주능력치  " : "보조능력치  ");
+            float value = GearQuality.Value(item, roll);
+            builder.Append(GearStatLabel(roll.stat)).Append(value < 0f ? " " : " +")
+                .Append(value.ToString("0.##", CultureInfo.InvariantCulture))
+                .Append(roll.stat == GearStat.MaxHealth || roll.stat == GearStat.Armor || roll.stat == GearStat.Attack ? ""
+                    : roll.stat == GearStat.CriticalChance || roll.stat == GearStat.AttackSpeed || roll.stat == GearStat.CriticalDamage ? "%p" : "%");
+            if (roll.stars != null && roll.stars.Count > 0)
+            {
+                builder.Append("  <size=60%>");
+                foreach (WeaponGradeStarType star in roll.stars)
+                    builder.Append("<color=")
+                        .Append(star == WeaponGradeStarType.Red ? "#D76A63"
+                            : star == WeaponGradeStarType.Yellow ? "#D2A85D" : star == WeaponGradeStarType.Green ? "#68AA84" : "#D5D8D8")
+                        .Append(">◆</color>");
+                builder.Append("</size>");
+            }
+            builder.AppendLine();
+        }
+        AppendPrice(builder, item);
+        return builder.ToString();
+    }
+
+    private static string GearStatLabel(GearStat stat)
+    {
+        switch (stat)
+        {
+            case GearStat.MaxHealth: return "최대 체력";
+            case GearStat.Armor: return "방어력";
+            case GearStat.Attack: return "공격력";
+            case GearStat.CriticalChance: return "치명타 확률";
+            case GearStat.AttackSpeed: return "공격 속도";
+            case GearStat.NormalDamage: return "일반 몬스터 피해";
+            case GearStat.WeakDamage: return "약공 피해";
+            case GearStat.HeavyDamage: return "강공 피해";
+            case GearStat.EliteBossDamage: return "정예·보스 피해";
+            case GearStat.ElementalDamage: return "원소 피해";
+            default: return "치명타 피해";
+        }
+    }
+
+    private static void AppendItemLevel(StringBuilder builder, ItemData item)
+    {
+        builder.Append("아이템 레벨 ").Append(OverburstGrowthRules.ClampLevel(item.level)).AppendLine();
     }
 
     private static string GetWeaponSubtitle(WeaponItemData weaponData)
