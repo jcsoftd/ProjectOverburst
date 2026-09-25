@@ -13,6 +13,18 @@ public class ItemPickupSpawner : MonoBehaviour
     private const int FlaskColumns = 4;
     private const float FlaskSpacing = 1.25f;
     private static readonly Vector3 HideoutFlaskOffset = new Vector3(0f, 0.25f, -2.5f);
+    private const float HideoutGearSpacing = 1.2f;
+    private static readonly Vector3 HideoutGearOffset = new Vector3(-9f, 0.25f, 1.8f);
+    private static readonly string[] HideoutGearAssetPaths =
+    {
+        "Items/Gear/Gear_Helmet",
+        "Items/Gear/Gear_Chest",
+        "Items/Gear/Gear_Gloves",
+        "Items/Gear/Gear_Boots",
+        "Items/Gear/Gear_EarringA",
+        "Items/Gear/Gear_EarringB",
+        "Items/Gear/Gear_Necklace"
+    };
 
     private const int ComboGemBlockColumnCount = 2;
     private const int WeaponBlockColumnCount = 4;
@@ -88,7 +100,10 @@ public class ItemPickupSpawner : MonoBehaviour
             SpawnSmallHealPotionPickup();
 
         if (gameObject.scene.name == PersistentSceneFlow.HideoutSceneName)
+        {
             SpawnHideoutFlaskPickups();
+            SpawnHideoutGearPickups();
+        }
 
         // Element gems are retired; retain serialized fixture fields for legacy asset compatibility.
     }
@@ -130,6 +145,31 @@ public class ItemPickupSpawner : MonoBehaviour
             PlaceAuthoredPickup(pickup, position);
             if (pickup == null)
                 Debug.LogError($"[ItemPickupSpawner] 하이드아웃 물약 생성 실패: {kind}", this);
+        }
+    }
+
+    private void SpawnHideoutGearPickups()
+    {
+        ResolveReferences();
+        int itemLevel = PlayerProgression.CurrentLevel;
+        for (int i = 0; i < HideoutGearAssetPaths.Length; i++)
+        {
+            GearItemData data = Resources.Load<GearItemData>(HideoutGearAssetPaths[i]);
+            if (data == null)
+            {
+                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 장비 자산 누락: {HideoutGearAssetPaths[i]}", this);
+                continue;
+            }
+
+            float centeredIndex = i - (HideoutGearAssetPaths.Length - 1) * 0.5f;
+            Vector3 position = GetSpawnPosition(HideoutGearOffset
+                + Vector3.right * (centeredIndex * HideoutGearSpacing));
+            ItemData item = new ItemData(data, itemLevel, RollVtpGrade());
+            WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(
+                item, position, inventory, player, pickupGradeVfxSet);
+            PlaceAuthoredPickup(pickup, position);
+            if (pickup == null)
+                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 장비 생성 실패: {data.itemName}", this);
         }
     }
 
