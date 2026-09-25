@@ -25,6 +25,7 @@ public sealed class OneHandSwordShieldSet : MonoBehaviour
     private bool missingSocketWarningLogged;
 
     public GameObject ShieldInstance => shieldInstance; // 현재 생성된 세트 방패
+    public Vector3 HandSocketLocalRotationOffset => handSocketLocalRotationOffset;
 
     public void Configure(GameObject prefab)
     {
