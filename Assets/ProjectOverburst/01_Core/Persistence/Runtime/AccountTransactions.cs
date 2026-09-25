@@ -38,7 +38,7 @@ namespace Overburst.Persistence
             foreach (var merchant in state.merchants)
             {
                 registry.Resolve<MerchantDefinition>(merchant.contentId);
-                if (!merchants.Add(merchant.contentId) || merchant.capacity < 1 || merchant.stock.Count != merchant.capacity || merchant.reputationLevel < 0 || merchant.reputationExperience < 0)
+                if (!merchants.Add(merchant.contentId) || (merchant.stockInitialized ? merchant.capacity < 1 : merchant.capacity != 0 || merchant.currency.Count != 0) || merchant.stock.Count != merchant.capacity || merchant.reputationLevel < 0 || merchant.reputationExperience < 0)
                     throw new InvalidDataException("Invalid merchant state.");
                 container(merchant.stock); container(merchant.currency);
             }

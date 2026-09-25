@@ -136,6 +136,14 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         if (pickedUp || inventory == null || runtimeItem == null || !WeaponContentPolicy.IsAllowedRuntimeItem(runtimeItem))
             return false; // 중복 획득/무효 인벤토리 차단
 
+        if (!string.IsNullOrEmpty(runtimeItem.originRunId))
+        {
+            var run = Overburst.Persistence.AccountGameplaySession.Current?.ReadRun();
+            if (run == null || run.runId != runtimeItem.originRunId
+                || !Overburst.Persistence.AccountInvariants.IsRunning(run.phase))
+                return false;
+        }
+
         if (!inventory.AddItem(runtimeItem))
             return false; // 인벤토리 추가 실패 시 월드 유지
 

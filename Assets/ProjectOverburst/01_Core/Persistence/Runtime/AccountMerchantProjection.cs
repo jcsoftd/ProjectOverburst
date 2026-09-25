@@ -12,17 +12,19 @@ namespace Overburst.Persistence
             var oldMerchantItems = new HashSet<string>(target.merchants.SelectMany(x => x.stock.Concat(x.currency)).Where(x => !string.IsNullOrEmpty(x)));
             var table = target.items.Where(x => !oldMerchantItems.Contains(x.instanceId)).ToDictionary(x => x.instanceId, StringComparer.Ordinal);
             target.merchants.Clear();
-            foreach (var entry in MerchantStockRefreshService.AccountInventories)
+            foreach (var definition in registry.Entries.Select(x => x.asset).OfType<MerchantDefinition>())
             {
-                var definition = entry.Key;
-                var inventory = entry.Value;
+                MerchantStockRefreshService.AccountInventories.TryGetValue(definition, out var inventory);
                 var merchant = new MerchantSnapshot
                 {
-                    contentId = registry.IdFor(definition), capacity = inventory.Capacity, stockInitialized = true,
+                    contentId = registry.IdFor(definition), capacity = inventory != null ? inventory.Capacity : 0, stockInitialized = inventory != null,
                     reputationLevel = MerchantReputationService.GetLevel(definition), reputationExperience = MerchantReputationService.GetExperience(definition)
                 };
-                foreach (var item in inventory.Items) merchant.stock.Add(CaptureItem(item, table, registry));
-                foreach (var item in inventory.CurrencyItems) merchant.currency.Add(CaptureItem(item, table, registry));
+                if (inventory != null)
+                {
+                    foreach (var item in inventory.Items) merchant.stock.Add(CaptureItem(item, table, registry));
+                    foreach (var item in inventory.CurrencyItems) merchant.currency.Add(CaptureItem(item, table, registry));
+                }
                 target.merchants.Add(merchant);
             }
             target.items = table.Values.ToList();
@@ -73,7 +75,7 @@ namespace Overburst.Persistence
             foreach (var merchant in source.merchants)
             {
                 var definition = registry.Resolve<MerchantDefinition>(merchant.contentId);
-                if (!merchant.stockInitialized) throw new InvalidDataException("Merchant snapshot has no initialized stock.");
+                if (!merchant.stockInitialized) continue; // Reputation may exist before the first shop visit.
                 var inventory = new MerchantInventory();
                 inventory.ApplyAccountItems(merchant.capacity,
                     merchant.stock.Select(id => string.IsNullOrEmpty(id) ? null : items[id]),
