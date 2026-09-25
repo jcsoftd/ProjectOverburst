@@ -8,8 +8,9 @@ using UnityEngine.Rendering.Universal;
 
 public sealed class ModelAnimationPreviewWindow : EditorWindow
 {
-    private const string WindowTitle = "모델 애니메이션 미리보기";
-    private const string MenuPath = "JC Tool/Animation/모델 애니메이션 미리보기";
+    private const string WindowTitle = "캐릭터·무기 애니메이션 프리뷰";
+    private const string MenuPath = "JC Tool/Animation/캐릭터·무기 애니메이션 프리뷰";
+    private const string LegacyMenuPath = "JC Tool/Animation/모델 애니메이션 미리보기";
     private const string FooterBrandText = "JC Soft";
     private const string PreviewFloorName = "[JC Animation Preview Floor]";
     private const string PreviewFloorMaterialName = "[JC Animation Preview Floor Material]";
@@ -25,11 +26,9 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private const float FooterHeight = 30f;
     private const float FooterBrandWidth = 72f;
     private const float GridHorizontalMargin = 8f;
-    private const float LeftColumnMinWidth = 310f;
-    private const float RightColumnMinWidth = 360f;
-    private const float TopRowMinHeight = 118f;
-    private const float TopRowMaxHeight = 240f;
-    private const float BottomRowHeight = 146f;
+    private const float SidebarWidth = 346f;
+    private const float PlaybackPanelHeight = 146f;
+    private const float CameraPanelHeight = 128f;
     private const float MinPreviewHeight = 240f;
     private const float MinCameraPitch = -85f;
     private const float MaxCameraPitch = 85f;
@@ -51,7 +50,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private static readonly Color PreviewAmbientColor = new Color(0.38f, 0.41f, 0.46f, 1f);
     private static readonly Color PreviewKeyLightColor = new Color(1f, 0.96f, 0.9f, 1f);
     private static readonly Color PreviewFillLightColor = new Color(0.58f, 0.7f, 1f, 1f);
-    private static readonly Vector2 MinimumWindowSize = new Vector2(700f, 620f);
+    private static readonly Vector2 MinimumWindowSize = new Vector2(960f, 680f);
 
     private static readonly ViewPreset[] ViewPresets =
     {
@@ -69,16 +68,33 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
     private readonly List<ClipEntry> clipEntries = new List<ClipEntry>();
     private readonly HashSet<AnimationClip> clipSet = new HashSet<AnimationClip>();
+    private readonly List<SocketEntry> socketEntries = new List<SocketEntry>();
+    private readonly List<SocketEntry> visibleSocketEntries = new List<SocketEntry>();
+    private readonly List<PreviewConstraintBinding> previewConstraintBindings = new List<PreviewConstraintBinding>();
 
-    private GameObject selectedModelPrefab;
+    [SerializeField] private GameObject selectedModelPrefab;
+    [SerializeField] private GameObject selectedWeaponPrefab;
+    [SerializeField] private AnimationClip activeClip;
+    [SerializeField] private string selectedSocketPath = string.Empty;
+    [SerializeField] private string socketFilter = string.Empty;
+    [SerializeField] private WeaponPoseSlot selectedPoseSlot = WeaponPoseSlot.Hold;
+    [SerializeField] private Vector3 previewWeaponPositionOffset;
+    [SerializeField] private Vector3 previewWeaponRotationOffset;
     private GameObject previewInstance;
-    private GameObject floorInstance;
+    private GameObject previewWeaponInstance;
+    private WeaponPose previewWeaponPose;
+    private WeaponGripMount previewWeaponGripMount;
+    private Transform previewWeaponSocket;
+    private bool backPoseAvailable = true;
+    private Mesh floorMesh;
+    private Matrix4x4 floorMatrix;
     private Material floorMaterial;
     private PreviewRenderUtility previewUtility;
-    private AnimationClip activeClip;
     private Animator previewAnimator;
+    private readonly List<Animator> secondaryAnimators = new List<Animator>();
     private PlayableGraph previewPlayableGraph;
     private AnimationClipPlayable previewClipPlayable;
+    private readonly List<AnimationClipPlayable> secondaryClipPlayables = new List<AnimationClipPlayable>();
     private AnimationClip previewPlayableClip;
     private Renderer[] renderers = Array.Empty<Renderer>();
     private Vector3 frameCenter = Vector3.up;
@@ -87,6 +103,8 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private float cameraYaw = 180f;
     private float cameraPitch = 10f;
     private float cameraDistanceScale = 1f;
+    private Vector3 cameraPanOffset;
+    private bool focusWeapon;
     private bool cameraBlendActive;
     private float cameraBlendStartYaw;
     private float cameraBlendStartPitch;
@@ -99,13 +117,14 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private float playbackSpeed = 1f;
     private bool isPlaying;
     private bool loopPlayback = true;
-    private bool inPlacePreview;
+    private bool inPlacePreview = true;
     private bool autoUseAnimationSelection = true;
-    private bool modelAnimationListLoaded;
     private double lastUpdateTime;
     private string filterText = string.Empty;
     private string previewMessage;
+    private string attachmentMessage;
     private Vector2 clipScroll;
+    private Vector2 sidebarScroll;
     private Vector3 previewRootAnchorPosition;
     private Quaternion previewRootAnchorRotation = Quaternion.identity;
 
@@ -132,12 +151,24 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         window.TryUseSelection();
     }
 
+    [MenuItem(LegacyMenuPath)]
+    private static void OpenLegacy()
+    {
+        Open();
+    }
+
     private void OnEnable()
     {
         minSize = MinimumWindowSize;
         EnsurePreviewUtility();
         EditorApplication.update += TickPreview;
         ResetPreviewClock();
+        if (selectedModelPrefab != null)
+        {
+            RebuildPreviewInstance();
+            RefreshClipEntries();
+            SampleActiveClip();
+        }
         TryUseSelection();
     }
 
@@ -161,9 +192,9 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     {
         EnsureStyles();
 
+        HandleKeyboardInput();
         DrawHeader();
-        DrawControlGrid();
-        DrawPreviewSection();
+        DrawWorkspace();
         DrawFooter();
     }
 
@@ -176,8 +207,9 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         GUI.Label(new Rect(backgroundRect.x + 14f, backgroundRect.y + 7f, backgroundRect.width - 28f, 24f), WindowTitle, headerTitleStyle);
 
         string modelName = selectedModelPrefab != null ? selectedModelPrefab.name : "모델 없음";
+        string weaponName = selectedWeaponPrefab != null ? selectedWeaponPrefab.name : "무기 없음";
         string clipName = activeClip != null ? activeClip.name : "애니메이션 없음";
-        GUI.Label(new Rect(backgroundRect.x + 14f, backgroundRect.y + 35f, backgroundRect.width - 28f, 18f), modelName + "  /  " + clipName, headerMetaStyle);
+        GUI.Label(new Rect(backgroundRect.x + 14f, backgroundRect.y + 35f, backgroundRect.width - 28f, 18f), modelName + "  /  " + weaponName + "  /  " + clipName, headerMetaStyle);
     }
 
     private void DrawSection(string title, Action drawBody)
@@ -190,59 +222,43 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         }
     }
 
-    private void DrawControlGrid()
+    private void DrawWorkspace()
     {
-        float topRowHeight = ResolveTopRowHeight();
-        float availableWidth = Mathf.Max(0f, position.width - GridHorizontalMargin * 2f - SectionGap);
-        float leftColumnWidth = ResolveLeftColumnWidth(availableWidth);
-        float rightColumnWidth = Mathf.Max(RightColumnMinWidth, availableWidth - leftColumnWidth);
+        float workspaceHeight = Mathf.Max(480f, position.height - HeaderHeight - FooterHeight - 12f);
+        float previewHeight = Mathf.Max(MinPreviewHeight, workspaceHeight - PlaybackPanelHeight - CameraPanelHeight - SectionGap * 2f);
 
-        using (new EditorGUILayout.HorizontalScope())
+        using (new EditorGUILayout.HorizontalScope(GUILayout.Height(workspaceHeight)))
         {
             GUILayout.Space(GridHorizontalMargin);
-            DrawGridPanel("모델", DrawModelPicker, leftColumnWidth, topRowHeight);
+            sidebarScroll = EditorGUILayout.BeginScrollView(sidebarScroll, GUILayout.Width(SidebarWidth), GUILayout.Height(workspaceHeight));
+            DrawSection("01  캐릭터", DrawModelPicker);
             GUILayout.Space(SectionGap);
-            DrawGridPanel("클립", DrawAnimationPicker, rightColumnWidth, topRowHeight);
+            DrawSection("02  장착 무기", DrawWeaponPicker);
+            GUILayout.Space(SectionGap);
+            DrawSection("03  애니메이션", DrawAnimationPicker);
+            EditorGUILayout.EndScrollView();
+
+            GUILayout.Space(SectionGap);
+            using (new EditorGUILayout.VerticalScope(GUILayout.ExpandWidth(true)))
+            {
+                DrawPreviewSection(previewHeight);
+                GUILayout.Space(SectionGap);
+                DrawFixedPanel("재생 · 타임라인", DrawPlaybackControls, PlaybackPanelHeight);
+                GUILayout.Space(SectionGap);
+                DrawFixedPanel("카메라", DrawViewButtons, CameraPanelHeight);
+            }
             GUILayout.Space(GridHorizontalMargin);
         }
-
-        GUILayout.Space(SectionGap);
-
-        using (new EditorGUILayout.HorizontalScope())
-        {
-            GUILayout.Space(GridHorizontalMargin);
-            DrawGridPanel("카메라", DrawViewButtons, leftColumnWidth, BottomRowHeight);
-            GUILayout.Space(SectionGap);
-            DrawGridPanel("재생", DrawPlaybackControls, rightColumnWidth, BottomRowHeight);
-            GUILayout.Space(GridHorizontalMargin);
-        }
-
-        GUILayout.Space(SectionGap);
     }
 
-    private void DrawGridPanel(string title, Action drawBody, float width, float height)
+    private void DrawFixedPanel(string title, Action drawBody, float height)
     {
-        using (new EditorGUILayout.VerticalScope(sectionStyle, GUILayout.Width(width), GUILayout.Height(height)))
+        using (new EditorGUILayout.VerticalScope(sectionStyle, GUILayout.Height(height)))
         {
             EditorGUILayout.LabelField(title, sectionTitleStyle);
             EditorGUILayout.Space(4f);
             drawBody();
-            GUILayout.FlexibleSpace();
         }
-    }
-
-    private float ResolveTopRowHeight()
-    {
-        float availableHeight = position.height - HeaderHeight - BottomRowHeight - MinPreviewHeight - FooterHeight - 48f;
-        float maxHeight = clipEntries.Count > 0 ? TopRowMaxHeight : TopRowMinHeight;
-        return Mathf.Clamp(availableHeight, TopRowMinHeight, maxHeight);
-    }
-
-    private static float ResolveLeftColumnWidth(float availableWidth)
-    {
-        float usableWidth = Mathf.Max(0f, availableWidth);
-        float maxLeftForRightColumn = usableWidth - RightColumnMinWidth;
-        return Mathf.Clamp(LeftColumnMinWidth, 0f, Mathf.Max(0f, maxLeftForRightColumn));
     }
 
     private void DrawModelPicker()
@@ -251,9 +267,10 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         {
             GUILayout.Label("대상", fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
 
-            Rect modelDropRect = GUILayoutUtility.GetRect(10f, ControlHeight, GUILayout.ExpandWidth(true), GUILayout.Height(ControlHeight));
-            string modelLabel = selectedModelPrefab != null ? selectedModelPrefab.name : "모델 드롭";
-            DrawModelDropTarget(modelDropRect, modelLabel);
+            EditorGUI.BeginChangeCheck();
+            GameObject nextModel = (GameObject)EditorGUILayout.ObjectField(selectedModelPrefab, typeof(GameObject), true, GUILayout.Height(ControlHeight));
+            if (EditorGUI.EndChangeCheck())
+                SetModelPrefab(nextModel);
 
             GUILayout.Space(RowGap);
 
@@ -261,7 +278,146 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
                 SetModelPrefab(null);
         }
 
+        if (GUILayout.Button("Project / Hierarchy 선택을 캐릭터로 사용", compactButtonStyle, GUILayout.Height(ControlHeight)))
+        {
+            if (Selection.activeGameObject != null && IsSupportedModel(Selection.activeGameObject))
+                SetModelPrefab(Selection.activeGameObject);
+        }
+
         DrawModelDropZone();
+    }
+
+    private void DrawWeaponPicker()
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label("프리팹", fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
+            EditorGUI.BeginChangeCheck();
+            GameObject nextWeapon = (GameObject)EditorGUILayout.ObjectField(selectedWeaponPrefab, typeof(GameObject), true, GUILayout.Height(ControlHeight));
+            if (EditorGUI.EndChangeCheck())
+                SetWeaponPrefab(nextWeapon);
+
+            if (GUILayout.Button("비우기", compactButtonStyle, GUILayout.Width(ShortButtonWidth), GUILayout.Height(ControlHeight)))
+                SetWeaponPrefab(null);
+        }
+
+        if (GUILayout.Button("Project / Hierarchy 선택을 무기로 사용", compactButtonStyle, GUILayout.Height(ControlHeight)))
+        {
+            if (Selection.activeGameObject != null && IsSupportedModel(Selection.activeGameObject))
+                SetWeaponPrefab(Selection.activeGameObject);
+        }
+
+        if (selectedWeaponPrefab == null)
+        {
+            DrawInlineNotice("장착 프리팹을 지정하면 캐릭터와 함께 움직입니다.", true);
+            return;
+        }
+
+        EditorGUILayout.Space(5f);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label("소켓", fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
+            DrawSocketPopup();
+        }
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label("본 검색", fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
+            socketFilter = EditorGUILayout.TextField(socketFilter, GUILayout.Height(ControlHeight));
+        }
+
+        if (previewWeaponSocket != null)
+            DrawInlineNotice("연결: " + previewWeaponSocket.name, true);
+        else if (selectedModelPrefab != null)
+            DrawInlineNotice("소켓을 찾지 못했습니다. 본 검색 후 직접 선택하세요.", false);
+
+        if (previewWeaponPose != null)
+        {
+            EditorGUILayout.Space(5f);
+            GUILayout.Label("무기 포즈", sectionTitleStyle);
+            string[] poseLabels = { "손", "등", "조준", "방어" };
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                for (int i = 0; i < poseLabels.Length; i++)
+                {
+                    EditorGUI.BeginDisabledGroup(i == (int)WeaponPoseSlot.Back && !backPoseAvailable);
+                    Color previous = GUI.backgroundColor;
+                    if (i == (int)selectedPoseSlot)
+                        GUI.backgroundColor = new Color(0.55f, 0.72f, 0.96f, 1f);
+                    if (GUILayout.Button(poseLabels[i], compactButtonStyle, GUILayout.ExpandWidth(true), GUILayout.Height(ControlHeight)))
+                    {
+                        selectedPoseSlot = (WeaponPoseSlot)i;
+                        ApplyWeaponPose();
+                        RefitCameraFromCurrentPose();
+                        Repaint();
+                    }
+                    GUI.backgroundColor = previous;
+                    EditorGUI.EndDisabledGroup();
+                }
+            }
+            DrawInlineNotice("WeaponPose의 저장된 값을 미리보기 복제본에 적용합니다.", true);
+            if (!backPoseAvailable)
+                DrawInlineNotice("이 모델에는 BackWeaponAnchor가 없어 등 포즈를 사용할 수 없습니다.", false);
+        }
+        else if (previewWeaponInstance != null)
+        {
+            DrawInlineNotice(previewWeaponGripMount != null
+                ? "WeaponGripMount 기준으로 손 소켓에 정렬했습니다."
+                : "무기 루트를 손 소켓 원점에 장착했습니다.", true);
+        }
+
+        EditorGUILayout.Space(5f);
+        EditorGUI.BeginChangeCheck();
+        Vector3 nextPosition = EditorGUILayout.Vector3Field("미리보기 위치", previewWeaponPositionOffset);
+        Vector3 nextRotation = EditorGUILayout.Vector3Field("미리보기 회전", previewWeaponRotationOffset);
+        if (EditorGUI.EndChangeCheck())
+        {
+            previewWeaponPositionOffset = nextPosition;
+            previewWeaponRotationOffset = nextRotation;
+            ApplyWeaponPose();
+            Repaint();
+        }
+        if (GUILayout.Button("임시 보정 초기화", compactButtonStyle, GUILayout.Height(ControlHeight)))
+        {
+            previewWeaponPositionOffset = Vector3.zero;
+            previewWeaponRotationOffset = Vector3.zero;
+            ApplyWeaponPose();
+        }
+        DrawInlineNotice("보정값은 이 창에서만 적용되며 원본 자산을 바꾸지 않습니다.", true);
+    }
+
+    private void DrawSocketPopup()
+    {
+        visibleSocketEntries.Clear();
+        for (int i = 0; i < socketEntries.Count; i++)
+        {
+            SocketEntry entry = socketEntries[i];
+            bool selected = entry.Path == selectedSocketPath;
+            bool matches = string.IsNullOrWhiteSpace(socketFilter)
+                ? IsLikelySocket(entry.Transform.name)
+                : entry.Label.IndexOf(socketFilter, StringComparison.OrdinalIgnoreCase) >= 0;
+            if (selected || matches)
+                visibleSocketEntries.Add(entry);
+        }
+
+        string[] labels = new string[visibleSocketEntries.Count + 1];
+        labels[0] = "자동";
+        int currentIndex = 0;
+        for (int i = 0; i < visibleSocketEntries.Count; i++)
+        {
+            labels[i + 1] = visibleSocketEntries[i].Label;
+            if (visibleSocketEntries[i].Path == selectedSocketPath)
+                currentIndex = i + 1;
+        }
+
+        EditorGUI.BeginChangeCheck();
+        int nextIndex = EditorGUILayout.Popup(currentIndex, labels, GUILayout.Height(ControlHeight));
+        if (EditorGUI.EndChangeCheck())
+        {
+            selectedSocketPath = nextIndex == 0 ? string.Empty : visibleSocketEntries[nextIndex - 1].Path;
+            RebuildPreviewInstance();
+            SampleActiveClip();
+            Repaint();
+        }
     }
 
     private void DrawAnimationPicker()
@@ -287,28 +443,24 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         {
             GUILayout.Label("소스", fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
             EditorGUI.BeginDisabledGroup(selectedModelPrefab == null);
-            if (GUILayout.Button("모델 클립 불러오기", compactButtonStyle, GUILayout.Width(138f), GUILayout.Height(ControlHeight)))
+            if (GUILayout.Button("목록 새로고침", compactButtonStyle, GUILayout.Width(110f), GUILayout.Height(ControlHeight)))
                 LoadModelAnimatorClips();
             EditorGUI.EndDisabledGroup();
 
             GUILayout.Space(RowGap);
-            string loadStatus = modelAnimationListLoaded ? clipEntries.Count + "개" : "미불러옴";
-            GUILayout.Label(loadStatus, footerStyle, GUILayout.Width(72f), GUILayout.Height(ControlHeight));
-            GUILayout.FlexibleSpace();
-            autoUseAnimationSelection = EditorGUILayout.ToggleLeft("파일 클릭 재생", autoUseAnimationSelection, GUILayout.Width(112f));
+            GUILayout.Label(clipEntries.Count + "개", footerStyle, GUILayout.Height(ControlHeight));
         }
+        autoUseAnimationSelection = EditorGUILayout.ToggleLeft("Project 애니메이션 파일 클릭 시 자동 재생", autoUseAnimationSelection);
 
         if (selectedModelPrefab == null)
         {
-            DrawInlineNotice("모델을 드롭하면 클립 선택을 사용할 수 있습니다.", true);
+            DrawInlineNotice("모델을 지정하면 클립 목록을 자동으로 불러옵니다.", true);
             return;
         }
 
         if (clipEntries.Count == 0)
         {
-            string message = modelAnimationListLoaded
-                ? "모델에서 클립을 찾지 못했습니다."
-                : "모델 클립은 버튼으로 불러옵니다. Project 애니메이션 파일 클릭도 가능합니다.";
+            string message = "모델에서 클립을 찾지 못했습니다. Project의 애니메이션 파일을 선택할 수 있습니다.";
             DrawInlineNotice(message, true);
             return;
         }
@@ -354,19 +506,26 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
             Color previousBackground = GUI.backgroundColor;
             GUI.backgroundColor = isPlaying ? new Color(1f, 0.78f, 0.45f, 1f) : new Color(0.56f, 0.84f, 0.62f, 1f);
-            if (GUILayout.Button(isPlaying ? "정지" : "재생", compactButtonStyle, GUILayout.Width(PlaybackButtonWidth), GUILayout.Height(ControlHeight)))
+            if (GUILayout.Button(isPlaying ? "일시정지" : "재생", compactButtonStyle, GUILayout.Width(PlaybackButtonWidth), GUILayout.Height(ControlHeight)))
                 TogglePlayback();
             GUI.backgroundColor = previousBackground;
 
-            if (GUILayout.Button("처음", compactButtonStyle, GUILayout.Width(PlaybackButtonWidth), GUILayout.Height(ControlHeight)))
+            if (GUILayout.Button("처음부터", compactButtonStyle, GUILayout.Width(PlaybackButtonWidth), GUILayout.Height(ControlHeight)))
                 RestartPlayback();
+
+            EditorGUI.BeginDisabledGroup(activeClip == null);
+            if (GUILayout.Button("◀ 1F", compactButtonStyle, GUILayout.Width(54f), GUILayout.Height(ControlHeight)))
+                StepFrame(-1);
+            if (GUILayout.Button("1F ▶", compactButtonStyle, GUILayout.Width(54f), GUILayout.Height(ControlHeight)))
+                StepFrame(1);
+            EditorGUI.EndDisabledGroup();
 
             loopPlayback = GUILayout.Toggle(loopPlayback, "반복", compactButtonStyle, GUILayout.Width(ShortButtonWidth), GUILayout.Height(ControlHeight));
 
             GUILayout.FlexibleSpace();
 
             EditorGUI.BeginChangeCheck();
-            bool nextInPlace = EditorGUILayout.ToggleLeft("In-place", inPlacePreview, GUILayout.Width(88f), GUILayout.Height(ControlHeight));
+            bool nextInPlace = EditorGUILayout.ToggleLeft("제자리", inPlacePreview, GUILayout.Width(70f), GUILayout.Height(ControlHeight));
             if (EditorGUI.EndChangeCheck())
             {
                 inPlacePreview = nextInPlace;
@@ -404,6 +563,8 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
             GUILayout.Label(FormatTime(playbackTime) + " / " + FormatTime(clipLength), footerStyle, GUILayout.Width(112f));
         }
+
+        GUILayout.Label("Space 재생/일시정지   ← → 한 프레임   우클릭 회전   가운데 드래그 이동   휠 확대", footerStyle);
     }
 
     private void DrawViewButtons()
@@ -428,9 +589,16 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             GUILayout.Space(ViewButtonWidth);
             if (GUILayout.Button("맞춤", compactButtonStyle, GUILayout.Width(ViewButtonWidth), GUILayout.Height(ControlHeight)))
             {
+                focusWeapon = false;
+                cameraPanOffset = Vector3.zero;
+                cameraDistanceScale = 1f;
                 RefitCameraFromCurrentPose();
                 Repaint();
             }
+            EditorGUI.BeginDisabledGroup(previewWeaponInstance == null);
+            if (GUILayout.Button("무기", compactButtonStyle, GUILayout.Width(ViewButtonWidth), GUILayout.Height(ControlHeight)))
+                FocusPreviewWeapon();
+            EditorGUI.EndDisabledGroup();
 
             GUILayout.FlexibleSpace();
         }
@@ -470,16 +638,6 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         HandleModelDrop(rect);
     }
 
-    private void DrawModelDropTarget(Rect rect, string label)
-    {
-        GUIContent content = selectedModelPrefab != null
-            ? EditorGUIUtility.ObjectContent(selectedModelPrefab, typeof(GameObject))
-            : new GUIContent(label);
-
-        GUI.Box(rect, content, EditorStyles.objectField);
-        HandleModelDrop(rect);
-    }
-
     private void HandleModelDrop(Rect rect)
     {
         Event current = Event.current;
@@ -503,48 +661,35 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         current.Use();
     }
 
-    private void DrawPreviewSection()
+    private void DrawPreviewSection(float previewSectionHeight)
     {
-        float previewSectionHeight = ResolvePreviewSectionHeight();
-
-        using (new EditorGUILayout.HorizontalScope())
+        using (new EditorGUILayout.VerticalScope(sectionStyle, GUILayout.ExpandWidth(true), GUILayout.Height(previewSectionHeight)))
         {
-            GUILayout.Space(GridHorizontalMargin);
-            using (new EditorGUILayout.VerticalScope(sectionStyle, GUILayout.ExpandWidth(true), GUILayout.Height(previewSectionHeight)))
+            EditorGUILayout.LabelField("장착 상태 미리보기", sectionTitleStyle);
+            EditorGUILayout.Space(4f);
+
+            Rect rect = GUILayoutUtility.GetRect(10f, Mathf.Max(1f, previewSectionHeight - 40f), GUILayout.ExpandWidth(true), GUILayout.Height(Mathf.Max(1f, previewSectionHeight - 40f)));
+            EditorGUI.DrawRect(rect, new Color(0.08f, 0.085f, 0.095f, 1f));
+
+            if (previewInstance == null)
             {
-                EditorGUILayout.LabelField("미리보기", sectionTitleStyle);
-                EditorGUILayout.Space(4f);
-
-                Rect rect = GUILayoutUtility.GetRect(10f, Mathf.Max(1f, previewSectionHeight - 40f), GUILayout.ExpandWidth(true), GUILayout.Height(Mathf.Max(1f, previewSectionHeight - 40f)));
-                EditorGUI.DrawRect(rect, new Color(0.08f, 0.085f, 0.095f, 1f));
-
-                if (previewInstance == null)
-                {
-                    DrawCenteredLabel(rect, "미리볼 모델을 지정하세요.");
-                }
-                else
-                {
-                    HandlePreviewCameraInput(rect);
-
-                    Texture texture = RenderPreviewTexture(rect);
-                    if (texture != null)
-                        GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit, false);
-
-                    DrawCameraAxisOverlay(rect);
-
-                    if (!string.IsNullOrEmpty(previewMessage))
-                        DrawPreviewMessage(rect, previewMessage);
-                }
+                DrawCenteredLabel(rect, "왼쪽에서 캐릭터 모델을 지정하세요.");
             }
-            GUILayout.Space(GridHorizontalMargin);
-        }
-    }
+            else
+            {
+                HandlePreviewCameraInput(rect);
 
-    private float ResolvePreviewSectionHeight()
-    {
-        float controlGridHeight = ResolveTopRowHeight() + SectionGap + BottomRowHeight + SectionGap;
-        float availableHeight = position.height - HeaderHeight - controlGridHeight - FooterHeight - 18f;
-        return Mathf.Max(MinPreviewHeight, availableHeight);
+                Texture texture = RenderPreviewTexture(rect);
+                if (texture != null)
+                    GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit, false);
+
+                DrawCameraAxisOverlay(rect);
+
+                string message = !string.IsNullOrEmpty(previewMessage) ? previewMessage : attachmentMessage;
+                if (!string.IsNullOrEmpty(message))
+                    DrawPreviewMessage(rect, message);
+            }
+        }
     }
 
     private void DrawFooter()
@@ -554,10 +699,11 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         EditorGUI.DrawRect(statusRect, new Color(0.12f, 0.13f, 0.145f, 1f));
 
         string modelName = selectedModelPrefab != null ? selectedModelPrefab.name : "-";
+        string weaponName = selectedWeaponPrefab != null ? selectedWeaponPrefab.name : "-";
         string clipName = activeClip != null ? activeClip.name : "-";
         Rect brandRect = new Rect(statusRect.xMax - FooterBrandWidth - 10f, statusRect.y + 3f, FooterBrandWidth, statusRect.height - 4f);
         Rect textRect = new Rect(statusRect.x + 10f, statusRect.y + 3f, Mathf.Max(1f, brandRect.x - statusRect.x - 18f), statusRect.height - 4f);
-        GUI.Label(textRect, "모델 " + modelName + "   애니메이션 " + clipName + "   방식 Animator   클립 " + clipEntries.Count + "   Renderer " + renderers.Length, footerStyle);
+        GUI.Label(textRect, "모델 " + modelName + "   무기 " + weaponName + "   클립 " + clipName + "   목록 " + clipEntries.Count + "   Renderer " + renderers.Length, footerStyle);
         GUI.Label(brandRect, FooterBrandText, footerBrandStyle);
     }
 
@@ -582,9 +728,9 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         if (noticeStyle == null)
             EnsureStyles();
 
-        Rect messageRect = new Rect(rect.x + 12f, rect.y + 12f, Mathf.Min(rect.width - 24f, 420f), 26f);
+        Rect messageRect = new Rect(rect.x + 12f, rect.y + 12f, Mathf.Min(rect.width - 24f, 420f), 42f);
         EditorGUI.DrawRect(messageRect, new Color(0.08f, 0.09f, 0.11f, 0.82f));
-        GUI.Label(new Rect(messageRect.x + 8f, messageRect.y + 5f, messageRect.width - 16f, 18f), text, noticeStyle ?? EditorStyles.wordWrappedMiniLabel);
+        GUI.Label(new Rect(messageRect.x + 8f, messageRect.y + 5f, messageRect.width - 16f, 32f), text, noticeStyle ?? EditorStyles.wordWrappedMiniLabel);
     }
 
     private void TryUseSelection()
@@ -624,7 +770,10 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         bool activeClipWasModelClip = activeClip != null && clipSet.Contains(activeClip);
 
         selectedModelPrefab = prefab;
-        modelAnimationListLoaded = false;
+        selectedSocketPath = string.Empty;
+        focusWeapon = false;
+        cameraPanOffset = Vector3.zero;
+        cameraDistanceScale = 1f;
         clipEntries.Clear();
         clipSet.Clear();
         playbackTime = 0f;
@@ -635,6 +784,10 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             activeClip = null;
 
         RebuildPreviewInstance();
+        if (selectedModelPrefab != null)
+        {
+            RefreshClipEntries();
+        }
 
         if (activeClip != null)
             SampleActiveClip();
@@ -644,13 +797,29 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         Repaint();
     }
 
+    private void SetWeaponPrefab(GameObject prefab)
+    {
+        if (selectedWeaponPrefab == prefab)
+            return;
+
+        selectedWeaponPrefab = prefab;
+        selectedPoseSlot = WeaponPoseSlot.Hold;
+        focusWeapon = false;
+        cameraPanOffset = Vector3.zero;
+        cameraDistanceScale = 1f;
+        previewWeaponPositionOffset = Vector3.zero;
+        previewWeaponRotationOffset = Vector3.zero;
+        RebuildPreviewInstance();
+        SampleActiveClip();
+        Repaint();
+    }
+
     private void LoadModelAnimatorClips()
     {
         if (selectedModelPrefab == null)
             return;
 
         RefreshClipEntries();
-        modelAnimationListLoaded = true;
         Repaint();
     }
 
@@ -663,6 +832,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             isPlaying = false;
             previewMessage = null;
             DestroyAnimatorPreviewGraph();
+            RebuildPreviewInstance();
             Repaint();
             return;
         }
@@ -678,7 +848,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             RefitCameraFromCurrentPose();
         }
 
-        isPlaying = playImmediately;
+        isPlaying = playImmediately && previewInstance != null;
         ResetPreviewClock();
         Repaint();
     }
@@ -701,6 +871,36 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         ResetPreviewClock();
         SampleActiveClip();
         Repaint();
+    }
+
+    private void StepFrame(int direction)
+    {
+        if (activeClip == null)
+            return;
+
+        float frameRate = activeClip.frameRate > 0f ? activeClip.frameRate : 30f;
+        playbackTime = Mathf.Clamp(playbackTime + direction / frameRate, 0f, GetActiveClipLength());
+        isPlaying = false;
+        SampleActiveClip();
+        Repaint();
+    }
+
+    private void HandleKeyboardInput()
+    {
+        Event current = Event.current;
+        if (current == null || current.type != EventType.KeyDown || EditorGUIUtility.editingTextField)
+            return;
+
+        if (current.keyCode == KeyCode.Space)
+            TogglePlayback();
+        else if (current.keyCode == KeyCode.LeftArrow)
+            StepFrame(-1);
+        else if (current.keyCode == KeyCode.RightArrow)
+            StepFrame(1);
+        else
+            return;
+
+        current.Use();
     }
 
     private void TickPreview()
@@ -756,10 +956,13 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
     private void SampleActiveClip()
     {
-        if (previewInstance == null || activeClip == null)
+        if (previewInstance == null)
             return;
 
-        EvaluateAnimatorPreviewClip();
+        if (activeClip != null)
+            EvaluateAnimatorPreviewClip();
+        ApplyPreviewConstraintBindings();
+        ApplyWeaponPose();
     }
 
     private void EvaluateAnimatorPreviewClip()
@@ -817,6 +1020,31 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
             AnimationPlayableOutput output = AnimationPlayableOutput.Create(previewPlayableGraph, "Animation", previewAnimator);
             output.SetSourcePlayable(previewClipPlayable);
+
+            if (activeClip.humanMotion)
+            {
+                Animator[] animators = previewInstance.GetComponentsInChildren<Animator>(true);
+                for (int i = 0; i < animators.Length; i++)
+                {
+                    Animator animator = animators[i];
+                    if (animator == null || animator == previewAnimator || !animator.gameObject.activeInHierarchy
+                        || animator.avatar == null || !animator.avatar.isValid || !animator.avatar.isHuman
+                        || (previewWeaponInstance != null && animator.transform.IsChildOf(previewWeaponInstance.transform)))
+                        continue;
+
+                    animator.enabled = true;
+                    animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    animator.applyRootMotion = false;
+                    AnimationClipPlayable secondaryClip = AnimationClipPlayable.Create(previewPlayableGraph, activeClip);
+                    secondaryClip.SetApplyFootIK(false);
+                    secondaryClip.SetApplyPlayableIK(false);
+                    secondaryClip.SetSpeed(0d);
+                    AnimationPlayableOutput secondaryOutput = AnimationPlayableOutput.Create(previewPlayableGraph, "Character part " + i, animator);
+                    secondaryOutput.SetSourcePlayable(secondaryClip);
+                    secondaryAnimators.Add(animator);
+                    secondaryClipPlayables.Add(secondaryClip);
+                }
+            }
             previewPlayableGraph.Play();
             previewPlayableClip = activeClip;
             return true;
@@ -840,7 +1068,8 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         for (int i = 0; i < animators.Length; i++)
         {
             Animator animator = animators[i];
-            if (animator == null)
+            if (animator == null
+                || (previewWeaponInstance != null && animator.transform.IsChildOf(previewWeaponInstance.transform)))
                 continue;
 
             if (fallback == null)
@@ -860,12 +1089,19 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
         previewPlayableClip = null;
         previewAnimator = null;
+        secondaryAnimators.Clear();
+        secondaryClipPlayables.Clear();
     }
 
     private void EvaluateClipAtTime(float time)
     {
         previewClipPlayable.SetTime(time);
         previewClipPlayable.SetSpeed(0d);
+        for (int i = 0; i < secondaryClipPlayables.Count; i++)
+        {
+            secondaryClipPlayables[i].SetTime(time);
+            secondaryClipPlayables[i].SetSpeed(0d);
+        }
         previewPlayableGraph.Evaluate(0f);
     }
 
@@ -880,6 +1116,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private void RebuildPreviewInstance()
     {
         ClearPreviewInstance();
+        previewMessage = null;
 
         if (selectedModelPrefab == null)
         {
@@ -887,26 +1124,243 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             return;
         }
 
-        EnsurePreviewUtility();
+        try
+        {
+            EnsurePreviewUtility();
 
-        previewInstance = Instantiate(selectedModelPrefab);
-        previewInstance.name = "[JC Animation Preview] " + selectedModelPrefab.name;
-        previewInstance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-        previewInstance.transform.localScale = ResolvePreviewRootScale(selectedModelPrefab);
-        previewRootAnchorPosition = previewInstance.transform.position;
-        previewRootAnchorRotation = previewInstance.transform.rotation;
-        previewInstance.SetActive(true);
-        DisableRuntimeBehaviours(previewInstance);
-        SetHideFlagsRecursive(previewInstance, HideFlags.HideAndDontSave);
-        previewUtility.AddSingleGO(previewInstance);
-        RefreshRendererCache();
-        RefitCameraFromCurrentPose();
+            previewInstance = Instantiate(selectedModelPrefab, previewUtility.camera.transform, false);
+            previewInstance.transform.SetParent(null, false);
+            previewInstance.name = "[JC Animation Preview] " + selectedModelPrefab.name;
+            previewInstance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            previewInstance.transform.localScale = ResolvePreviewRootScale(selectedModelPrefab);
+            previewRootAnchorPosition = previewInstance.transform.position;
+            previewRootAnchorRotation = previewInstance.transform.rotation;
+            previewInstance.SetActive(true);
+            DisableRuntimeBehaviours(previewInstance);
+            CapturePreviewConstraintBindings();
+            RefreshSocketEntries();
+            AttachPreviewWeapon();
+            SetHideFlagsRecursive(previewInstance, HideFlags.HideAndDontSave);
+            previewUtility.AddSingleGO(previewInstance);
+            RefreshRendererCache();
+            RefitCameraFromCurrentPose();
+        }
+        catch (Exception exception)
+        {
+            ClearPreviewInstance();
+            previewMessage = "미리보기 구성 오류: " + exception.GetType().Name;
+        }
+    }
+
+    private void AttachPreviewWeapon()
+    {
+        attachmentMessage = null;
+        if (previewInstance == null || selectedWeaponPrefab == null)
+            return;
+
+        previewWeaponSocket = ResolvePreviewWeaponSocket();
+        if (previewWeaponSocket == null)
+        {
+            attachmentMessage = string.IsNullOrEmpty(selectedSocketPath)
+                ? "오른손 소켓을 찾지 못했습니다. 본 검색으로 직접 지정하세요."
+                : "선택한 소켓이 모델에 없습니다. 자동 또는 다른 본을 지정하세요.";
+            return;
+        }
+
+        previewWeaponInstance = Instantiate(selectedWeaponPrefab, previewWeaponSocket, false);
+        previewWeaponInstance.name = "[JC Preview Weapon] " + selectedWeaponPrefab.name;
+        previewWeaponInstance.transform.localPosition = Vector3.zero;
+        previewWeaponInstance.transform.localRotation = Quaternion.identity;
+        previewWeaponInstance.transform.localScale = ResolvePreviewRootScale(selectedWeaponPrefab);
+        previewWeaponInstance.SetActive(true);
+        DisableRuntimeBehaviours(previewWeaponInstance);
+
+        previewWeaponPose = previewWeaponInstance.GetComponentInChildren<WeaponPose>(true);
+        previewWeaponGripMount = previewWeaponInstance.GetComponentInChildren<WeaponGripMount>(true);
+        if (previewWeaponPose != null)
+            ConfigurePreviewBackPose();
+        ApplyWeaponPose();
+    }
+
+    private void ApplyWeaponPose()
+    {
+        if (previewWeaponInstance == null)
+            return;
+
+        try
+        {
+            Transform target = previewWeaponInstance.transform;
+            if (previewWeaponPose != null)
+            {
+                previewWeaponPose.PreviewPoseInstant(selectedPoseSlot);
+                target = previewWeaponPose.GetPoseTargetForTuning();
+            }
+            else
+            {
+                target.localPosition = Vector3.zero;
+                target.localRotation = Quaternion.identity;
+                if (previewWeaponGripMount != null
+                    && previewWeaponGripMount.TryResolveRootLocalPose(
+                        target, WeaponGripAnchor.RightHand, Vector3.zero, Quaternion.identity,
+                        out Vector3 rootPosition, out Quaternion rootRotation))
+                {
+                    target.localPosition = rootPosition;
+                    target.localRotation = rootRotation;
+                }
+            }
+
+            if (target == null)
+                return;
+
+            target.localPosition += previewWeaponPositionOffset;
+            target.localRotation = Quaternion.Euler(previewWeaponRotationOffset) * target.localRotation;
+            if (attachmentMessage != null && attachmentMessage.StartsWith("무기 자세 오류:", StringComparison.Ordinal))
+                attachmentMessage = null;
+        }
+        catch (Exception exception)
+        {
+            isPlaying = false;
+            attachmentMessage = "무기 자세 오류: " + exception.GetType().Name;
+        }
+    }
+
+    private void ConfigurePreviewBackPose()
+    {
+        if (previewInstance == null || previewWeaponPose == null)
+            return;
+
+        PlayerMovement movement = previewWeaponPose.GetComponentInParent<PlayerMovement>();
+        Transform anchorRoot = movement != null ? movement.transform : previewInstance.transform;
+        SerializedObject serializedPose = new SerializedObject(previewWeaponPose);
+        SerializedProperty useBack = serializedPose.FindProperty("useBackFloatingPose");
+        backPoseAvailable = useBack == null || !useBack.boolValue || anchorRoot.Find("BackWeaponAnchor") != null;
+        if (backPoseAvailable)
+            return;
+
+        useBack.boolValue = false;
+        serializedPose.ApplyModifiedPropertiesWithoutUndo();
+        if (selectedPoseSlot == WeaponPoseSlot.Back)
+            selectedPoseSlot = WeaponPoseSlot.Hold;
+    }
+
+    private void RefreshSocketEntries()
+    {
+        socketEntries.Clear();
+        if (previewInstance == null)
+            return;
+
+        Transform[] transforms = previewInstance.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate == previewInstance.transform)
+                continue;
+
+            string path = GetSocketPath(candidate);
+            socketEntries.Add(new SocketEntry(path, GetSocketLabel(previewInstance.transform, candidate), candidate));
+        }
+    }
+
+    private Transform ResolvePreviewWeaponSocket()
+    {
+        if (previewInstance == null)
+            return null;
+
+        if (!string.IsNullOrEmpty(selectedSocketPath))
+        {
+            for (int i = 0; i < socketEntries.Count; i++)
+            {
+                if (socketEntries[i].Path == selectedSocketPath)
+                    return socketEntries[i].Transform;
+            }
+            return null;
+        }
+
+        MonoBehaviour[] behaviours = previewInstance.GetComponentsInChildren<MonoBehaviour>(true);
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            if (!(behaviours[i] is ICharacterWeaponSocketProvider provider))
+                continue;
+
+            try
+            {
+                Transform socket = provider.GetWeaponSocket(null);
+                if (socket != null && socket.IsChildOf(previewInstance.transform))
+                    return socket;
+            }
+            catch (Exception)
+            {
+                // A preview must keep working when a project-specific provider needs play state.
+            }
+        }
+
+        Transform named = FindDeepChild(previewInstance.transform, P09CharacterVisualAdapter.RightHandWeaponSocketName);
+        if (named != null)
+            return named;
+
+        Animator animator = previewInstance.GetComponentInChildren<Animator>(true);
+        if (animator != null && animator.isHuman)
+        {
+            Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            if (hand != null)
+                return hand;
+        }
+
+        string[] fallbackNames = { "RightHand", "Right Hand", "Hand_R", "hand_r", "R_Hand" };
+        for (int i = 0; i < fallbackNames.Length; i++)
+        {
+            named = FindDeepChild(previewInstance.transform, fallbackNames[i]);
+            if (named != null)
+                return named;
+        }
+        return null;
+    }
+
+    private static Transform FindDeepChild(Transform root, string childName)
+    {
+        Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            if (transforms[i] != null && transforms[i].name == childName)
+                return transforms[i];
+        }
+        return null;
+    }
+
+    private static string GetSocketPath(Transform transform)
+    {
+        if (transform.parent == null)
+            return transform.name;
+        return GetSocketPath(transform.parent) + "/" + transform.GetSiblingIndex() + ":" + transform.name;
+    }
+
+    private static string GetSocketLabel(Transform root, Transform candidate)
+    {
+        List<string> names = new List<string>();
+        Transform current = candidate;
+        while (current != null && current != root)
+        {
+            names.Add(current.name);
+            current = current.parent;
+        }
+        names.Reverse();
+        return string.Join(" / ", names);
+    }
+
+    private static bool IsLikelySocket(string name)
+    {
+        return name.IndexOf("hand", StringComparison.OrdinalIgnoreCase) >= 0
+            || name.IndexOf("weapon", StringComparison.OrdinalIgnoreCase) >= 0
+            || name.IndexOf("socket", StringComparison.OrdinalIgnoreCase) >= 0
+            || name.IndexOf("grip", StringComparison.OrdinalIgnoreCase) >= 0
+            || name.IndexOf("wrist", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void ClearPreviewInstance()
     {
         DestroyAnimatorPreviewGraph();
         ClearPreviewFloor();
+        previewConstraintBindings.Clear();
 
         if (previewInstance != null)
         {
@@ -914,6 +1368,13 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             previewInstance = null;
         }
 
+        previewWeaponInstance = null;
+        previewWeaponPose = null;
+        previewWeaponGripMount = null;
+        previewWeaponSocket = null;
+        backPoseAvailable = true;
+        attachmentMessage = null;
+        socketEntries.Clear();
         RefreshRendererCache();
     }
 
@@ -926,7 +1387,55 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     {
         MonoBehaviour[] behaviours = root.GetComponentsInChildren<MonoBehaviour>(true);
         for (int i = 0; i < behaviours.Length; i++)
-            behaviours[i].enabled = false;
+        {
+            if (behaviours[i] != null)
+                behaviours[i].enabled = false;
+        }
+    }
+
+    private void CapturePreviewConstraintBindings()
+    {
+        previewConstraintBindings.Clear();
+        if (previewInstance == null)
+            return;
+
+        // The preview scene is sampled manually, so Unity's regular constraint update never runs.
+        // Capture the rest relationship before the first animation sample, then follow the source bone.
+        ParentConstraint[] constraints = previewInstance.GetComponentsInChildren<ParentConstraint>(true);
+        for (int i = 0; i < constraints.Length; i++)
+        {
+            ParentConstraint constraint = constraints[i];
+            if (!constraint.gameObject.activeInHierarchy || !constraint.enabled || !constraint.constraintActive
+                || constraint.sourceCount != 1 || !Mathf.Approximately(constraint.weight, 1f))
+                continue;
+
+            ConstraintSource source = constraint.GetSource(0);
+            if (source.sourceTransform == null || !Mathf.Approximately(source.weight, 1f)
+                || !source.sourceTransform.IsChildOf(previewInstance.transform))
+                continue;
+
+            Transform sourceTransform = source.sourceTransform;
+            Transform targetTransform = constraint.transform;
+            previewConstraintBindings.Add(new PreviewConstraintBinding(
+                sourceTransform, targetTransform,
+                sourceTransform.InverseTransformPoint(targetTransform.position),
+                Quaternion.Inverse(sourceTransform.rotation) * targetTransform.rotation));
+            constraint.enabled = false;
+        }
+    }
+
+    private void ApplyPreviewConstraintBindings()
+    {
+        for (int i = 0; i < previewConstraintBindings.Count; i++)
+        {
+            PreviewConstraintBinding binding = previewConstraintBindings[i];
+            if (binding.Source == null || binding.Target == null)
+                continue;
+
+            binding.Target.SetPositionAndRotation(
+                binding.Source.TransformPoint(binding.LocalPosition),
+                binding.Source.rotation * binding.LocalRotation);
+        }
     }
 
     private void RefreshClipEntries()
@@ -1028,21 +1537,39 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         frameBottomY = bounds.min.y;
 
         RebuildPreviewFloor();
+        if (focusWeapon && TryResolveWeaponRendererBounds(out Bounds weaponBounds))
+        {
+            frameCenter = weaponBounds.center;
+            frameRadius = Mathf.Max(0.35f, weaponBounds.extents.magnitude);
+        }
         UpdatePreviewCameraTransform();
     }
 
     private bool TryResolvePreviewRendererBounds(out Bounds bounds)
     {
+        return TryResolveRendererBounds(renderers, out bounds);
+    }
+
+    private bool TryResolveWeaponRendererBounds(out Bounds bounds)
+    {
+        Renderer[] weaponRenderers = previewWeaponInstance != null
+            ? previewWeaponInstance.GetComponentsInChildren<Renderer>(true)
+            : Array.Empty<Renderer>();
+        return TryResolveRendererBounds(weaponRenderers, out bounds);
+    }
+
+    private static bool TryResolveRendererBounds(Renderer[] candidates, out Bounds bounds)
+    {
         bounds = default;
 
-        if (renderers.Length == 0)
+        if (candidates.Length == 0)
             return false;
 
         bool hasBounds = false;
-        for (int i = 0; i < renderers.Length; i++)
+        for (int i = 0; i < candidates.Length; i++)
         {
-            Renderer renderer = renderers[i];
-            if (renderer == null || !renderer.enabled)
+            Renderer renderer = candidates[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
                 continue;
 
             if (!hasBounds)
@@ -1057,6 +1584,20 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         }
 
         return hasBounds;
+    }
+
+    private void FocusPreviewWeapon()
+    {
+        if (!TryResolveWeaponRendererBounds(out Bounds bounds))
+            return;
+
+        focusWeapon = true;
+        cameraPanOffset = Vector3.zero;
+        cameraDistanceScale = 1f;
+        frameCenter = bounds.center;
+        frameRadius = Mathf.Max(0.35f, bounds.extents.magnitude);
+        UpdatePreviewCameraTransform();
+        Repaint();
     }
 
     private Texture RenderPreviewTexture(Rect rect)
@@ -1076,6 +1617,8 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         {
             previewUtility.BeginPreview(rect, GUIStyle.none);
             beganPreview = true;
+            if (floorMesh != null && floorMaterial != null)
+                previewUtility.DrawMesh(floorMesh, floorMatrix, floorMaterial, 0);
             previewUtility.Render(true);
             previewTexture = previewUtility.EndPreview();
         }
@@ -1145,38 +1688,43 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
 
     private void RebuildPreviewFloor()
     {
-        ClearPreviewFloor();
-
         if (previewUtility == null || previewInstance == null)
             return;
 
-        floorInstance = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        floorInstance.name = PreviewFloorName;
-        floorInstance.transform.SetPositionAndRotation(new Vector3(frameCenter.x, frameBottomY - FloorYOffset, frameCenter.z), Quaternion.identity);
-
+        if (floorMesh == null)
+        {
+            floorMesh = new Mesh
+            {
+                name = PreviewFloorName,
+                hideFlags = HideFlags.HideAndDontSave,
+                vertices = new[]
+                {
+                    new Vector3(-0.5f, 0f, -0.5f),
+                    new Vector3(-0.5f, 0f, 0.5f),
+                    new Vector3(0.5f, 0f, 0.5f),
+                    new Vector3(0.5f, 0f, -0.5f)
+                },
+                normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up },
+                uv = new[] { Vector2.zero, Vector2.up, Vector2.one, Vector2.right },
+                triangles = new[] { 0, 1, 2, 0, 2, 3 }
+            };
+            floorMesh.RecalculateBounds();
+        }
+        if (floorMaterial == null)
+            floorMaterial = CreatePreviewFloorMaterial();
         float floorSize = Mathf.Max(MinFloorSize, frameRadius * FloorPaddingMultiplier);
-        float planeScale = floorSize / 10f;
-        floorInstance.transform.localScale = new Vector3(planeScale, 1f, planeScale);
-
-        Collider floorCollider = floorInstance.GetComponent<Collider>();
-        if (floorCollider != null)
-            DestroyImmediate(floorCollider);
-
-        Renderer floorRenderer = floorInstance.GetComponent<Renderer>();
-        floorMaterial = CreatePreviewFloorMaterial();
-        if (floorRenderer != null)
-            floorRenderer.sharedMaterial = floorMaterial;
-
-        SetHideFlagsRecursive(floorInstance, HideFlags.HideAndDontSave);
-        previewUtility.AddSingleGO(floorInstance);
+        floorMatrix = Matrix4x4.TRS(
+            new Vector3(frameCenter.x, frameBottomY - FloorYOffset, frameCenter.z),
+            Quaternion.identity,
+            new Vector3(floorSize, 1f, floorSize));
     }
 
     private void ClearPreviewFloor()
     {
-        if (floorInstance != null)
+        if (floorMesh != null)
         {
-            DestroyImmediate(floorInstance);
-            floorInstance = null;
+            DestroyImmediate(floorMesh);
+            floorMesh = null;
         }
 
         if (floorMaterial != null)
@@ -1231,6 +1779,19 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             return;
         }
 
+        if (current.type == EventType.MouseDrag && current.button == 2 && previewUtility != null)
+        {
+            CancelCameraBlend();
+            float distance = Mathf.Max(1.5f, frameRadius * CameraFitPadding * cameraDistanceScale * 2.2f);
+            float unitsPerPixel = distance * 1.5f / Mathf.Max(1f, rect.height);
+            cameraPanOffset += (-previewUtility.camera.transform.right * current.delta.x
+                + previewUtility.camera.transform.up * current.delta.y) * unitsPerPixel;
+            UpdatePreviewCameraTransform();
+            Repaint();
+            current.Use();
+            return;
+        }
+
         if (current.type == EventType.ScrollWheel)
         {
             CancelCameraBlend();
@@ -1249,7 +1810,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         float distance = Mathf.Max(1.5f, frameRadius * CameraFitPadding * cameraDistanceScale * 2.2f);
         Quaternion rotation = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
         Vector3 forward = rotation * Vector3.forward;
-        Vector3 cameraTarget = frameCenter + Vector3.up * (frameRadius * CameraTargetYOffsetFactor);
+        Vector3 cameraTarget = frameCenter + Vector3.up * (frameRadius * CameraTargetYOffsetFactor) + cameraPanOffset;
         Vector3 position = cameraTarget - forward * distance;
 
         previewUtility.camera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(forward, Vector3.up));
@@ -1611,6 +2172,36 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
         {
             Clip = clip;
             Source = source;
+        }
+    }
+
+    private struct PreviewConstraintBinding
+    {
+        public readonly Transform Source;
+        public readonly Transform Target;
+        public readonly Vector3 LocalPosition;
+        public readonly Quaternion LocalRotation;
+
+        public PreviewConstraintBinding(Transform source, Transform target, Vector3 localPosition, Quaternion localRotation)
+        {
+            Source = source;
+            Target = target;
+            LocalPosition = localPosition;
+            LocalRotation = localRotation;
+        }
+    }
+
+    private struct SocketEntry
+    {
+        public readonly string Path;
+        public readonly string Label;
+        public readonly Transform Transform;
+
+        public SocketEntry(string path, string label, Transform transform)
+        {
+            Path = path;
+            Label = label;
+            Transform = transform;
         }
     }
 
