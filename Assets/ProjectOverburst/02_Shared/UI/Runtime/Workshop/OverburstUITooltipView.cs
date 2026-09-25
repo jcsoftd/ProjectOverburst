@@ -23,6 +23,7 @@ public sealed class OverburstUITooltipView : MonoBehaviour
         string[] lines=SimpleItemTooltipBuilder.Build(item).Replace("\r","").Split('\n');
         bool hasSubtitle=item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ConsumableItemData;
         subtitle.text=hasSubtitle&&lines.Length>1?System.Text.RegularExpressions.Regex.Replace(lines[1],"<[^>]+>",""):item.baseData is ConsumableItemData?"소비 아이템":"아이템";
+        if(item.baseData is MapItemData)subtitle.text="지도 · 레벨 "+Mathf.Clamp(item.mapState!=null?item.mapState.level:item.level,1,100);
         if(item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData)
             subtitle.text+=" · 아이템 레벨 "+OverburstGrowthRules.ClampLevel(item.level);
         if(item.baseData is WeaponItemData){

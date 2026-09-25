@@ -1079,6 +1079,9 @@ public class ItemData // 런타임 아이템
         get
         {
 
+            if (baseData is MapItemData mapData)
+                return mapData.ResolveIconForLevel(mapState != null ? mapState.level : level);
+
             if (baseData is CurrencyItemData currencyData)
                 return currencyData.GetDisplayIcon(stackCount);
 

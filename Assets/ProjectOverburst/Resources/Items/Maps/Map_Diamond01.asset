@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1e246cd2f1801d4da7da95ab2a8bd2f, type: 3}
+  m_Name: Map_Diamond01
+  m_EditorClassIdentifier: Assembly-CSharp::MapItemData
+  itemName: "\uBBF8\uC9C0\uC758 \uC9C0\uB3C4"
+  icon: {fileID: 21300000, guid: 7a8c1265495f8e64f8bda94b78a9646c, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uD558\uC774\uB4DC\uC544\uC6C3 \uD3EC\uD0C8\uC5D0\uC11C \uC0AC\uC6A9\uD574
+    \uD45C\uC2DC\uB41C \uB808\uBCA8\uC758 \uB358\uC804\uC5D0 \uC785\uC7A5\uD558\uB294
+    \uC9C0\uB3C4."
+  weight: 0.1
+  sellPrice: 0
+  worldPickupPrefab: {fileID: 0}
+  possibleStats: []
+  dungeonThemeId: first_diamond
+  levelBandIcons:
+  - {fileID: 21300000, guid: 7a8c1265495f8e64f8bda94b78a9646c, type: 3}
+  - {fileID: 21300000, guid: 44fd101f223abf44bb8c5448ef4e714b, type: 3}
+  - {fileID: 21300000, guid: 57b8c1488a433e148940645f89e947bc, type: 3}
+  - {fileID: 21300000, guid: dce29b715ca8aa647a0d98163ce9330b, type: 3}
+  - {fileID: 21300000, guid: fcdbd1559e31ddf4385fe8e1365bfec7, type: 3}
+  - {fileID: 21300000, guid: 7b9ea323fb62b46429ed60bf7425e2d9, type: 3}
+  - {fileID: 21300000, guid: e6dcc0e3b8935c942afc64b9f17d4321, type: 3}
+  - {fileID: 21300000, guid: e6698db5d98a6ab49a6025c027d2e941, type: 3}
+  - {fileID: 21300000, guid: 554b6f5ba4ba2634dbe329e7283109d1, type: 3}
+  - {fileID: 21300000, guid: 1b5b5d66a56f8ad44a0b478338084b2e, type: 3}

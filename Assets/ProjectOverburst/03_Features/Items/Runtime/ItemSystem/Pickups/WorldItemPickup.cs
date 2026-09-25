@@ -90,6 +90,9 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
             if (runtimeItem == null || string.IsNullOrEmpty(runtimeItem.itemName))
                 return "Item";
 
+            if (runtimeItem.baseData is MapItemData)
+                return runtimeItem.itemName + " Lv." + runtimeItem.level;
+
             return runtimeItem.itemName;
         }
     }
