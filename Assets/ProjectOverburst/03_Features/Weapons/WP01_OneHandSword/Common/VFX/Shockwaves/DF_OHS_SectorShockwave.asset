@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: DF_OHS_SectorShockwave
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackVfxDefinition
   neutralPrefab: {fileID: 8305577685367537755, guid: 44a27b8ff247e374bb32c174d9cbd545, type: 3}
-  baseScale: {x: 0.65, y: 0.65, z: 0.65}
-  localPositionOffset: {x: 0, y: 0.28, z: 0}
+  baseScale: {x: 1.55, y: 1.55, z: 1.55}
+  localPositionOffset: {x: 0, y: 0.34, z: 0}
   localEulerOffset: {x: 0, y: 0, z: 0}
   mirrorRightToLeft: 0
   horizontalMirrorScaleAxis: 0
@@ -24,5 +24,5 @@ MonoBehaviour:
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundSurfaceOffset: 0.02
-  lifetime: 0.72
+  lifetime: 0.68
   poolCapacity: 10
