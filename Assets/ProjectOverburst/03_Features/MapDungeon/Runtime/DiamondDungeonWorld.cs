@@ -88,7 +88,7 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         runBuffs.Configure(gate.Context.RunId);
         eventDirector = Child("DungeonEvents").AddComponent<MapDungeonEventDirector>();
         eventDirector.Configure(startCorner, theme, spawnService, gate.Context, gate.Map,
-            accentMaterial, fields, random.Next());
+            mapDefinition, account.ContentRegistry, accentMaterial, fields, random.Next());
 
         if (!gate.CompletePreparation(gate.Context.RunId, entry))
             throw new InvalidOperationException("던전 준비 완료 신호를 전달하지 못했습니다.");

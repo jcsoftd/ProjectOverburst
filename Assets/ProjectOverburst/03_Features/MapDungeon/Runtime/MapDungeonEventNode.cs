@@ -11,10 +11,13 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
 {
     private const float ActivationRadius = 8f;
     private const float GuardSeconds = 45f;
-    private readonly HashSet<CombatHealth> living = new HashSet<CombatHealth>();
+    private readonly Dictionary<CombatHealth, EnemyThemeTier> living =
+        new Dictionary<CombatHealth, EnemyThemeTier>();
     private EnemyThemeTable theme;
     private EnemySpawnService spawnService;
     private EncounterContext encounter;
+    private MapItemData mapDefinition;
+    private AccountContentRegistry registry;
     private System.Random random;
     private string eventId;
     private int band;
@@ -54,6 +57,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
 
     public void Configure(string id, MapEventKind kind, int progressBand, int seed,
         EnemyThemeTable selectedTheme, EnemySpawnService service, EncounterContext context,
+        MapItemData definition, AccountContentRegistry contentRegistry,
         int mapLevel, int playerLevel, Material accent)
     {
         eventId = id;
@@ -62,6 +66,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
         theme = selectedTheme;
         spawnService = service;
         encounter = context;
+        mapDefinition = definition;
+        registry = contentRegistry;
         random = new System.Random(seed);
         offer = MapRunCardPolicy.Roll(random, mapLevel, playerLevel);
         BuildVisual(accent, mapLevel);
@@ -77,8 +83,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private void OnDisable()
     {
         InteractionRegistry.Unregister(this);
-        foreach (CombatHealth health in living)
-            if (health != null) health.OnDead -= HandleEnemyDead;
+        foreach (var pair in living)
+            if (pair.Key != null) pair.Key.OnDead -= HandleEnemyDead;
         living.Clear();
         if (guardHealth != null) guardHealth.OnDead -= HandleGuardDead;
     }
@@ -159,7 +165,9 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
             var request = new EnemySpawnRequest(roster[i], position, rotation, target,
                 gameObject, transform, transform, 1f, 1f, random.Next(), encounter);
             if (!spawnService.TrySpawn(request, out EnemyActor actor)) continue;
-            living.Add(actor.Health);
+            EnemyThemeTier tier = i < small ? EnemyThemeTier.Small
+                : i < small + medium ? EnemyThemeTier.Medium : EnemyThemeTier.Elite;
+            living.Add(actor.Health, tier);
             actor.Health.OnDead += HandleEnemyDead;
             if (Kind == MapEventKind.Guard) actor.AI?.RequestAggro(target);
             spawned++;
@@ -194,8 +202,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
         // The shared enemy AI prioritizes the player. Remaining enemies still pressure the relic,
         // so leaving the area cannot turn the timed objective into a free reward.
         GameObject source = null;
-        foreach (CombatHealth enemy in living)
-            if (enemy != null && !enemy.IsDead) { source = enemy.gameObject; break; }
+        foreach (var pair in living)
+            if (pair.Key != null && !pair.Key.IsDead) { source = pair.Key.gameObject; break; }
         if (source == null) return;
         guardHealth.TakeDamage(new DamageInfo(2f * living.Count,
             guardHealth.transform.position, source, suppressDefaultHitVfx: true));
@@ -203,8 +211,20 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
 
     private void HandleEnemyDead(CombatHealth health, DamageInfo info)
     {
-        if (!living.Remove(health)) return;
+        if (!living.TryGetValue(health, out EnemyThemeTier tier)) return;
+        living.Remove(health);
         health.OnDead -= HandleEnemyDead;
+        if (encounter.CanGrantRewards && info.source != null
+            && info.source.GetComponentInParent<PlayerActorRuntime>() != null)
+        {
+            ItemData mapItem = MapDropPolicy.Roll(mapDefinition, registry,
+                encounter.MapLevel, tier, encounter.RunId);
+            if (mapItem != null)
+                WorldItemDropFactory.CreateWorldPickup(mapItem,
+                    health.transform.position + Vector3.up * .4f,
+                    PlayerAccountInventoryService.SharedInventory,
+                    PlayerContext.Instance?.CurrentActor?.transform);
+        }
         if (Phase != MapEventPhase.Active || Kind != MapEventKind.Hunt || living.Count > 0) return;
         if (wave == 0)
         {

@@ -54,7 +54,6 @@ public sealed class MapMonsterField : MonoBehaviour
     {
         if (triggered || theme == null || service == null || context == null || player == null
             || !context.CanGrantRewards) return false;
-        triggered = true;
         int[] small = { 5, 6, 7 };
         int[] medium = { 1, 2, 3 };
         int[] elite = { 0, 1, 2 };
@@ -85,7 +84,9 @@ public sealed class MapMonsterField : MonoBehaviour
         }
         if (SpawnedCount != roster.Count)
             Debug.LogWarning($"[MapMonsterField] {name}: {SpawnedCount}/{roster.Count} 소환", this);
-        return true;
+        triggered = SpawnedCount > 0;
+        if (!triggered) nextCheck = Time.time + 1f;
+        return triggered;
     }
 
     private bool TryPosition(System.Random random, out Vector3 position)

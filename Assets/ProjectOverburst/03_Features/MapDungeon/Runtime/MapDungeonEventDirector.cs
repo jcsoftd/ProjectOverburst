@@ -26,6 +26,7 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
 
     public void Configure(DiamondCorner start, EnemyThemeTable selectedTheme,
         EnemySpawnService service, EncounterContext context, MapInstanceState activeMap,
+        MapItemData mapDefinition, AccountContentRegistry registry,
         Material accentMaterial, IReadOnlyList<MapMonsterField> fields, int seed)
     {
         theme = selectedTheme;
@@ -51,7 +52,8 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
                 var root = Child("MapEvent_" + band + "_" + local, point);
                 var node = root.AddComponent<MapDungeonEventNode>();
                 node.Configure(id, kind, band, random.Next(), theme, spawnService,
-                    encounter, map.level, PlayerProgression.CurrentLevel, accent);
+                    encounter, mapDefinition, registry, map.level,
+                    PlayerProgression.CurrentLevel, accent);
                 node.ChestRequested += OpenCards;
                 events.Add(node);
                 eventIndex++;
