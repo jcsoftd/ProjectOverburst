@@ -60,6 +60,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     private float impactRollSafetyLimit;
     private CombatCameraRequestKind activeImpactKind;
     private float queuedGroundStepAmplitude;
+    private float queuedGroundStepDuration;
     private float lastGroundStepUnscaledTime = float.NegativeInfinity;
     private float lastGroundStepAmplitude;
     [SerializeField, Range(0f, 1f)] private float groundStepCameraStrength = 1f;
@@ -105,6 +106,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         if (ActiveInstance == this)
             ActiveInstance = null;
         queuedGroundStepAmplitude = 0f;
+        queuedGroundStepDuration = 0f;
         cinemachineRig?.CancelCombatImpact();
     }
 
@@ -231,18 +233,22 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
 
     // Footfalls are queued until the camera update so several elites can submit at
     // once. They never enter the lower-priority microshake accumulation path.
-    public void QueueGroundStep(float positionAmplitude)
+    public void QueueGroundStep(float positionAmplitude, float duration = .09f)
     {
         if (groundStepCameraStrength <= 0f || !isActiveAndEnabled)
             return;
-        queuedGroundStepAmplitude = Mathf.Max(queuedGroundStepAmplitude,
-            Mathf.Clamp(positionAmplitude, 0f, 0.015f) * groundStepCameraStrength);
+        float scaled = Mathf.Clamp(positionAmplitude, 0f, .05f) * groundStepCameraStrength;
+        if (scaled <= queuedGroundStepAmplitude) return;
+        queuedGroundStepAmplitude = scaled;
+        queuedGroundStepDuration = Mathf.Clamp(duration, .08f, .16f);
     }
 
     private void FlushGroundStepRequest()
     {
         float amplitude = queuedGroundStepAmplitude;
+        float duration = queuedGroundStepDuration;
         queuedGroundStepAmplitude = 0f;
+        queuedGroundStepDuration = 0f;
         if (amplitude <= 0f)
             return;
 
@@ -256,7 +262,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
             return;
 
         RequestCombatImpact(CombatCameraRequestKind.GroundStep, transform.up, transform.up, true,
-            0.09f, amplitude, 0f, 0.78f, 0f, 0f, 0f, 0.015f, 0f);
+            duration, amplitude, 0f, 0.78f, 0f, 0f, 0f, .05f, 0f);
         lastGroundStepUnscaledTime = now;
         lastGroundStepAmplitude = amplitude;
         GroundStepEmissionCount++;

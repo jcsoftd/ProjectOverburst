@@ -20,6 +20,7 @@ MonoBehaviour:
   - 0.71666664
   runClip: {fileID: 1827226128182048838, guid: 145fbd73145033c4e8c345b5611d7bc3, type: 3}
   visualWeight: 1
+  groundStepTier: 1
   walkContacts:
   - phase: 0.05
     localPosition: {x: -0.49804565, y: 0.067388676, z: -0.68439394}

@@ -121,6 +121,12 @@ public sealed class EnemyFootfallRuntime : MonoBehaviour
 
     private void RegisterInternal(EnemyActor actor)
     {
+        // An elite without authored ground contacts may be airborne (for example Reaper).
+        // Never invent fallback feet for it.
+        string id = actor.Definition != null ? actor.Definition.EnemyId : string.Empty;
+        if (!profiles.ContainsKey(id) && actor.Definition != null
+            && actor.Definition.Grade != null
+            && actor.Definition.Grade.GradeType == EnemyGradeType.Elite) return;
         for (int i = 0; i < trackers.Count; i++)
         {
             if (trackers[i].actor == actor)
@@ -277,7 +283,11 @@ public sealed class EnemyFootfallRuntime : MonoBehaviour
     {
         EnemyActor actor = tracker.actor;
         Vector3 foot = actor.transform.TransformPoint(localFoot);
-        if (!EnemyFootDustVfx.IsEligible(foot, tracker.weight, distance)) return;
+        bool dustEligible = EnemyFootDustVfx.IsEligible(foot, tracker.weight, distance);
+        bool audible = tracker.profile != null
+            && tracker.profile.GroundStepTier == EnemyGroundStepTier.Medium
+            && distance < EnemyGroundStepTuning.AudibleDistance(EnemyGroundStepTier.Medium);
+        if (!dustEligible && !audible) return;
         if (!TryResolveGround(actor.transform, foot, out RaycastHit chosen))
         {
             EnemyFootDustVfx.RecordGroundMiss();
@@ -285,8 +295,13 @@ public sealed class EnemyFootfallRuntime : MonoBehaviour
         }
         ContactCount++;
         travel.y = 0f;
-        EnemyFootDustVfx.TryEmit(chosen.point, chosen.normal, travel,
-            tracker.weight, distance, chosen.collider);
+        if (dustEligible)
+            EnemyFootDustVfx.TryEmit(chosen.point, chosen.normal, travel,
+                tracker.weight, distance, chosen.collider);
+        if (!audible) return;
+        EnemyEliteFootstepFeel.Play(chosen.point, distance, EnemyGroundStepTier.Medium);
+        float amplitude = EnemyGroundStepTuning.CameraAmplitude(EnemyGroundStepTier.Medium, distance);
+        if (amplitude > 0f) QuarterViewCamera.ActiveInstance?.QueueGroundStep(amplitude, .1f);
     }
 
     private void TickLegacy(LegacyTracker tracker, Transform target)

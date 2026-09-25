@@ -106,7 +106,9 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
         difference.y = 0f;
         float distance = difference.magnitude;
         Vector3 foot = transform.TransformPoint(profile.GetContact(running, contactIndex).LocalPosition);
-        bool audible = distance <= 12f;
+        EnemyGroundStepTier tier = profile.GroundStepTier;
+        bool audible = tier == EnemyGroundStepTier.Elite
+            && distance < EnemyGroundStepTuning.AudibleDistance(tier);
         bool dustEligible = EnemyFootDustVfx.IsEligible(foot, profile.VisualWeight, distance);
         if (!audible && !dustEligible) return;
         int mask = LayerMask.GetMask("Default", "Environment", "Ground");
@@ -136,14 +138,9 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
             EnemyFootDustVfx.TryEmit(point, chosen.normal, travel,
                 profile.VisualWeight, distance, chosen.collider);
         if (!audible) return;
-        EnemyEliteFootstepFeel.Play(point, distance);
-        if (distance >= 8f) return;
-        float amplitude = distance >= 4f
-            ? Mathf.Lerp(0.004f, 0.012f,
-                Mathf.SmoothStep(0f, 1f, (8f - distance) / 4f))
-            : Mathf.Lerp(0.012f, 0.015f,
-                Mathf.SmoothStep(0f, 1f, (4f - distance) / 4f));
-        camera.QueueGroundStep(amplitude);
+        EnemyEliteFootstepFeel.Play(point, distance, tier);
+        float amplitude = EnemyGroundStepTuning.CameraAmplitude(tier, distance);
+        if (amplitude > 0f) camera.QueueGroundStep(amplitude, .14f);
     }
 
     private void ResetTracking()

@@ -25,6 +25,7 @@ public sealed class EnemyFootfallProfile : ScriptableObject
     [SerializeField] private float[] contactPhases;
     [SerializeField] private AnimationClip runClip;
     [SerializeField] private EnemyHitWeight visualWeight = EnemyHitWeight.Standard;
+    [SerializeField] private EnemyGroundStepTier groundStepTier;
     [SerializeField] private EnemyFootfallContact[] walkContacts = Array.Empty<EnemyFootfallContact>();
     [SerializeField] private EnemyFootfallContact[] runContacts = Array.Empty<EnemyFootfallContact>();
 
@@ -32,6 +33,7 @@ public sealed class EnemyFootfallProfile : ScriptableObject
     public AnimationClip LocomotionClip => locomotionClip;
     public AnimationClip RunClip => runClip != null ? runClip : locomotionClip;
     public EnemyHitWeight VisualWeight => visualWeight;
+    public EnemyGroundStepTier GroundStepTier => groundStepTier;
     public bool HasDetailedContacts => walkContacts != null && walkContacts.Length > 0;
     public int ContactCount => GetContactCount(false);
     public bool IsValid => !string.IsNullOrWhiteSpace(enemyId)
