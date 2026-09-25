@@ -57,7 +57,7 @@ public static class MeleeAttackVfxSlopeBakeUtility
     private static readonly BakeProfile[] Profiles =
     {
         new BakeProfile(OneHandSwordItemPath, OneHandSwordComboPath, "한손검", 3, 3),
-        new BakeProfile(GreatswordItemPath, GreatswordComboPath, "대검", 3, 3)
+        new BakeProfile(GreatswordItemPath, GreatswordComboPath, "대검", 4, 0)
     };
 
     public static void RunFromCommandLine()
@@ -372,6 +372,8 @@ public static class MeleeAttackVfxSlopeBakeUtility
                     rawSamples = rawSamples,
                     phases = bakedPhases
                 };
+                report.Add(step.attackId + " / TrajectorySamples=" + rawSamples.Length
+                    + " / HitPhases=" + bakedPhases.Length);
             }
 
             if (slashCount != profile.ExpectedSlashCount)
