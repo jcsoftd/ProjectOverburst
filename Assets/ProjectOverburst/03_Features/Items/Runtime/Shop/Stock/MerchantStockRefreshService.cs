@@ -90,6 +90,16 @@ public class MerchantStockRefreshService : MonoBehaviour
         if (inventories.TryGetValue(definition, out inventory) && inventory != null)
             return inventory;
 
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            MerchantInventory created = null;
+            return Overburst.Persistence.AccountGameplaySession.Run(() =>
+            {
+                created = GetOrCreateInventory(definition);
+                return created != null;
+            }) ? created : null;
+        }
+
         inventory = instance != null
             ? instance.CreateInventory(definition)
             : CreateFallbackInventory(definition);
@@ -115,6 +125,11 @@ public class MerchantStockRefreshService : MonoBehaviour
 
     public void RefreshMerchantsAfterSuccessfulRun()
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { RefreshMerchantsAfterSuccessfulRun(); return true; });
+            return;
+        }
         if (merchantDefinitions == null)
             return;
 
@@ -134,11 +149,13 @@ public class MerchantStockRefreshService : MonoBehaviour
         }
 
         if (refreshedAny)
-            StocksRefreshed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(NotifyAccountApplied);
     }
 
     private bool RefreshAllMerchants()
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(RefreshAllMerchants);
         if (merchantDefinitions == null)
             return false;
 
@@ -155,7 +172,7 @@ public class MerchantStockRefreshService : MonoBehaviour
         }
 
         if (refreshedAny)
-            StocksRefreshed?.Invoke();
+            Overburst.Persistence.AccountGameplaySession.Notify(NotifyAccountApplied);
 
         return refreshedAny;
     }

@@ -102,6 +102,11 @@ public class MerchantReputationService : MonoBehaviour
 
     public static void AddReputation(MerchantDefinition merchant, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { AddReputation(merchant, amount); return true; });
+            return;
+        }
         MerchantReputationService service = ResolveInstance();
         if (service != null)
             service.AddReputationInternal(merchant, amount);
@@ -109,6 +114,11 @@ public class MerchantReputationService : MonoBehaviour
 
     public static void AddReputationToAll(int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { AddReputationToAll(amount); return true; });
+            return;
+        }
         MerchantReputationService service = ResolveInstance();
         if (service != null)
             service.AddReputationToAllInternal(amount);
@@ -116,6 +126,11 @@ public class MerchantReputationService : MonoBehaviour
 
     public static void AddReputationExperience(MerchantDefinition merchant, int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { AddReputationExperience(merchant, amount); return true; });
+            return;
+        }
         MerchantReputationService service = ResolveInstance();
         if (service != null)
             service.AddReputationExperienceInternal(merchant, amount);
@@ -123,6 +138,11 @@ public class MerchantReputationService : MonoBehaviour
 
     public static void AddReputationExperienceToAll(int amount)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            Overburst.Persistence.AccountGameplaySession.Run(() => { AddReputationExperienceToAll(amount); return true; });
+            return;
+        }
         MerchantReputationService service = ResolveInstance();
         if (service != null)
             service.AddReputationExperienceToAllInternal(amount);
@@ -193,7 +213,7 @@ public class MerchantReputationService : MonoBehaviour
 
         int previous = data.Level;
         if (data.SetLevel(previous + amount, maxLevel, GetRequiredExperienceInternal()))
-            ReputationChanged?.Invoke(data.MerchantId, data.Level);
+            Overburst.Persistence.AccountGameplaySession.Notify(() => ReputationChanged?.Invoke(data.MerchantId, data.Level));
     }
 
     private void AddReputationToAllInternal(int amount)
@@ -213,7 +233,7 @@ public class MerchantReputationService : MonoBehaviour
             return;
 
         if (data.AddExperience(amount, maxLevel, GetRequiredExperienceInternal()))
-            ReputationChanged?.Invoke(data.MerchantId, data.Level);
+            Overburst.Persistence.AccountGameplaySession.Notify(() => ReputationChanged?.Invoke(data.MerchantId, data.Level));
     }
 
     private void AddReputationExperienceToAllInternal(int amount)

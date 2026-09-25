@@ -84,7 +84,26 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (loadingScreen != null)
             loadingScreen.ForceHide(); // 시작 숨김
 
-        StartCoroutine(EnsureInitialSubScene()); // 초기 SubScene
+        StartCoroutine(BootAccountAndWorld());
+    }
+
+    private IEnumerator BootAccountAndWorld()
+    {
+        isSwitching = true;
+        GameplayInputBlocker.Block(this);
+        yield return null; // Persistent account/actor Start callbacks finish first.
+        int waited = 0;
+        while ((PlayerAccountInventoryService.Instance == null || PlayerProgression.Current == null
+            || PlayerContext.Instance?.CurrentActor == null) && waited++ < PlayerReadyWaitFrames)
+            yield return null;
+        if (!Overburst.Persistence.AccountBootstrap.Initialize(PlayerAccountInventoryService.Instance))
+        {
+            ResolveLoadingScreen();
+            loadingScreen?.Show("저장 데이터 오류", Overburst.Persistence.AccountBootstrap.Error);
+            yield break;
+        }
+        yield return EnsureInitialSubScene();
+        GameplayInputBlocker.Unblock(this);
     }
 
     public void ReturnToHub(RunSceneReturnContext context)

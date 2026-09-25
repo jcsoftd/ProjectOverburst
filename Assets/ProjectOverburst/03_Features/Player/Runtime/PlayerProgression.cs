@@ -77,7 +77,7 @@ public sealed class PlayerProgression : MonoBehaviour
             Level++;
         }
         if (Level >= OverburstGrowthRules.MaximumLevel) Experience = 0;
-        if (Overburst.Persistence.AccountGameplaySession.Current == null)
+        if (Overburst.Persistence.AccountGameplaySession.Current == null && !Overburst.Persistence.AccountBootstrap.Attempted)
         {
             PlayerPrefs.SetInt(LevelKey, Level);
             PlayerPrefs.SetInt(ExperienceKey, Experience);
@@ -118,7 +118,7 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void Save()
     {
-        if (Overburst.Persistence.AccountGameplaySession.Current != null) return;
+        if (Overburst.Persistence.AccountGameplaySession.Current != null || Overburst.Persistence.AccountBootstrap.Attempted) return;
         PlayerPrefs.SetInt(LevelKey, Level);
         PlayerPrefs.SetInt(ExperienceKey, Experience);
         PlayerPrefs.Save();
