@@ -25,6 +25,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private float nextRunCheck;
     private bool mayRun;
     private CombatHealth guardHealth;
+    private GameObject activationBoundary;
     private GameObject rewardChestVisual;
     private MapCardOffer offer;
 
@@ -134,6 +135,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
         if (!SpawnWave(target)) return false;
         nextGuardPressure = Time.time + 2.5f;
         Phase = MapEventPhase.Active;
+        if (activationBoundary != null) activationBoundary.SetActive(false);
         StateChanged?.Invoke(this);
         return true;
     }
@@ -252,6 +254,22 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
 
     private void BuildVisual(Material accent, int mapLevel)
     {
+        activationBoundary = new GameObject("ActivationBoundary");
+        activationBoundary.transform.SetParent(transform, false);
+        var line = activationBoundary.AddComponent<LineRenderer>();
+        line.sharedMaterial = accent;
+        line.useWorldSpace = false;
+        line.loop = true;
+        line.widthMultiplier = .09f;
+        line.positionCount = 64;
+        line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        line.receiveShadows = false;
+        for (int i = 0; i < line.positionCount; i++)
+        {
+            float angle = i * Mathf.PI * 2f / line.positionCount;
+            line.SetPosition(i, new Vector3(Mathf.Cos(angle) * ActivationRadius,
+                .10f, Mathf.Sin(angle) * ActivationRadius));
+        }
         var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         pedestal.name = "EventPedestal";
         pedestal.transform.SetParent(transform, false);
