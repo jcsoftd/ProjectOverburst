@@ -14,13 +14,17 @@ public sealed class PlayerCombatInputBuffer : IDisposable
     private PlayerEvadeController evade;
     private PlayerMovement movement;
     private bool attackPending;
+    private bool heavyPending;
     private bool evadePending;
     private float attackExpiresAt;
+    private float heavyExpiresAt;
     private float evadeExpiresAt;
     private int attackFrame;
+    private int heavyFrame;
     private int evadeFrame;
     private int sampledFrame = -1;
     private bool attackNeedsRelease;
+    private bool heavyNeedsRelease;
     private bool evadeNeedsRelease;
     private int attackSuppressedFrame = -1;
 
@@ -36,6 +40,7 @@ public sealed class PlayerCombatInputBuffer : IDisposable
     }
 
     public bool HasAttack { get { Refresh(); return attackPending; } }
+    public bool HasHeavy { get { Refresh(); return heavyPending; } }
     public bool HasEvade { get { Refresh(); return evadePending; } }
     public bool AllowsHeldAttack
     {
@@ -95,20 +100,33 @@ public sealed class PlayerCombatInputBuffer : IDisposable
         sampledFrame = Time.frameCount;
         float now = Time.unscaledTime;
         if (attackFrame != Time.frameCount && now >= attackExpiresAt) attackPending = false;
+        if (heavyFrame != Time.frameCount && now >= heavyExpiresAt) heavyPending = false;
         if (evadeFrame != Time.frameCount && now >= evadeExpiresAt) evadePending = false;
         if (!input.AttackHeld && !PlayerPickupInteractor.IsPrimaryAttackSuppressed) attackNeedsRelease = false;
+        if (!input.AimHeld) heavyNeedsRelease = false;
         if (!input.EvadeHeld) evadeNeedsRelease = false;
         bool canAttack = melee != null && melee.isActiveAndEnabled
             && equipment != null && equipment.CanCurrentWeaponUseMeleeSlash;
+        MeleeWeaponDefinition meleeDefinition = canAttack && equipment.CurrentWeaponData != null
+            ? equipment.CurrentWeaponData.GetMeleeDefinition()
+            : null;
+        bool canHeavy = meleeDefinition != null && meleeDefinition.heavyAttackDefinition != null;
         bool canEvade = evade != null && evade.isActiveAndEnabled
             && movement != null && movement.IsMeleeCombatLocomotionMode;
         if (!canAttack) attackPending = false;
+        if (!canHeavy) heavyPending = false;
         if (!canEvade) evadePending = false;
         if (canAttack && !attackNeedsRelease && input.AttackPressedThisFrame)
         {
             attackPending = true;
             attackFrame = Time.frameCount;
             attackExpiresAt = now + Mathf.Max(0f, input.AttackBufferDuration);
+        }
+        if (canHeavy && !heavyNeedsRelease && input.AimPressedThisFrame)
+        {
+            heavyPending = true;
+            heavyFrame = Time.frameCount;
+            heavyExpiresAt = now + Mathf.Max(0f, input.AttackBufferDuration);
         }
         if (canEvade && !evadeNeedsRelease && input.EvadePressedThisFrame)
         {
@@ -119,12 +137,14 @@ public sealed class PlayerCombatInputBuffer : IDisposable
     }
 
     public void ConsumeAttack() { Refresh(); attackPending = false; }
+    public void ConsumeHeavy() { Refresh(); heavyPending = false; }
 
     public void ConsumeEvade()
     {
         Refresh();
         evadePending = false;
         attackPending = false;
+        heavyPending = false;
         attackSuppressedFrame = Time.frameCount;
     }
 
@@ -136,10 +156,17 @@ public sealed class PlayerCombatInputBuffer : IDisposable
         attackSuppressedFrame = Time.frameCount;
     }
 
+    public void ClearHeavy()
+    {
+        Refresh();
+        heavyPending = false;
+        heavyNeedsRelease = input != null && input.AimHeld;
+    }
+
     public void Invalidate()
     {
-        attackPending = evadePending = false;
-        attackNeedsRelease = evadeNeedsRelease = true;
+        attackPending = heavyPending = evadePending = false;
+        attackNeedsRelease = heavyNeedsRelease = evadeNeedsRelease = true;
         sampledFrame = Time.frameCount;
         attackSuppressedFrame = Time.frameCount;
     }

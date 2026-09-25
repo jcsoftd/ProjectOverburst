@@ -23,6 +23,8 @@ public sealed class MeleeWeaponDefinition : WeaponCombatDefinition
     [Header("공격")]
     [InspectorName("콤보 데이터")]
     public MeleeComboDefinition comboDefinition;
+    [InspectorName("강공 데이터")]
+    public MeleeHeavyAttackDefinition heavyAttackDefinition;
 
     [Header("가드")]
     [InspectorName("가드 설정")]

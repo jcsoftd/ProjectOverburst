@@ -28,6 +28,12 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private WeaponFinalStats activeStats; // 공격 스탯
     private WeaponItemData activeWeaponData; // 공격 무기
     private MeleeComboDefinition activeComboDefinition; // 근접 콤보 정의
+    private MeleeHeavyAttackDefinition activeHeavyDefinition;
+    private OverburstElementEnergy activeHeavyEnergy;
+    private OverburstElementDischarge activeDischarge;
+    private bool heavyDischargeCommitted;
+    private bool activeAttackIsHeavy;
+    private float activeAttackDamageMultiplier = 1f;
     private bool isAttacking; // 공격 중
     private float attackStartTime; // 시작 시간
     private float attackDuration; // 공격 시간
@@ -185,6 +191,33 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         handle = new WeaponActionHandle(actionId);
         if (request.Source == WeaponActionSource.PlayerInput)
             ResolveFacade()?.CombatInputs?.ConsumeAttack();
+        NotifyAcceptedMeleeAction();
+        return WeaponActionResult.Accepted;
+    }
+
+    public WeaponActionResult TryStartHeavyAttack(Vector3 requestedDirection)
+    {
+        ResolveReferences();
+        if (isAttacking || activeActionId > 0)
+            return WeaponActionResult.RejectedBusy;
+        if (!CanUseCurrentWeapon)
+            return WeaponActionResult.RejectedUnsupported;
+        if (!manualInputEnabled || IsPlayerEvading() || !CanAttackFromCurrentMovementState())
+            return WeaponActionResult.RejectedNotReady;
+
+        MeleeHeavyAttackDefinition heavy = playerEquipment.CurrentWeaponData
+            .GetMeleeDefinition().heavyAttackDefinition;
+        if (heavy == null || !heavy.IsConfigured)
+            return WeaponActionResult.RejectedUnsupported;
+
+        ResetComboState();
+        activeActionId = AllocateActionId();
+        activeActionSource = WeaponActionSource.PlayerInput;
+        activeRequestedTarget = null;
+        if (!TryStartAttackStep(false, requestedDirection, true))
+            return WeaponActionResult.RejectedNotReady;
+
+        ResolveFacade()?.CombatInputs?.ConsumeHeavy();
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;
     }
@@ -362,7 +395,11 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return;
         }
 
-        if (ShouldStartAttack())
+        if (ShouldStartHeavyAttack())
+        {
+            TryStartHeavyAttack(CaptureAttackStartDirection());
+        }
+        else if (ShouldStartAttack())
         {
             WeaponActionRequest request = new WeaponActionRequest(
                 WeaponActionSource.PlayerInput,
@@ -510,22 +547,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private bool ShouldStartAttack()
     {
-        if (isAttacking)
-            return false;
-
-        if (!manualInputEnabled)
-            return false;
-
-        if (GameplayInputBlocker.IsGameplayInputBlocked)
-            return false;
-
-        if (IsPlayerEvading())
-            return false;
-
-        if (playerEquipment == null || !playerEquipment.CanCurrentWeaponUseMeleeSlash)
-            return false;
-
-        if (!CanAttackFromCurrentMovementState())
+        if (!CanStartManualAttackInput())
             return false;
 
         if (bufferedHandoffComboContinuation)
@@ -534,12 +556,33 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         return IsPrimaryAttackInputPressed();
     }
 
+    private bool ShouldStartHeavyAttack()
+    {
+        if (!CanStartManualAttackInput())
+            return false;
+
+        MeleeWeaponDefinition melee = playerEquipment.CurrentWeaponData.GetMeleeDefinition();
+        PlayerInputFacade facade = ResolveFacade();
+        return melee != null && melee.heavyAttackDefinition != null
+            && facade != null && facade.CombatInputs != null
+            && facade.CombatInputs.HasHeavy;
+    }
+
+    private bool CanStartManualAttackInput()
+    {
+        return !isAttacking && manualInputEnabled
+            && !GameplayInputBlocker.IsGameplayInputBlocked
+            && !IsPlayerEvading()
+            && playerEquipment != null && playerEquipment.CanCurrentWeaponUseMeleeSlash
+            && CanAttackFromCurrentMovementState();
+    }
+
     private bool IsPlayerEvading()
     {
         return playerController != null && playerController.IsEvading;
     }
 
-    private bool TryStartAttackStep(bool isDirectComboContinuation, Vector3 requestedDirection)
+    private bool TryStartAttackStep(bool isDirectComboContinuation, Vector3 requestedDirection, bool isHeavy = false)
     {
         if (isAttacking)
             StopActiveAttackStep();
@@ -551,10 +594,25 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeComboDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeComboDefinition()
             : null;
+        activeHeavyDefinition = isHeavy && activeWeaponData != null
+            ? activeWeaponData.GetMeleeDefinition()?.heavyAttackDefinition
+            : null;
+        activeAttackIsHeavy = isHeavy;
+        heavyDischargeCommitted = false;
+        activeDischarge = null;
         activeAttackWeaponItem = playerEquipment.CurrentWeaponItem;
         activeAttackUsedMeleeCombatStance = playerController != null && playerController.IsMeleeCombatStance;
-        activeAttackUsesCombo = ShouldUseCombo(activeWeaponData);
+        activeAttackUsesCombo = !isHeavy && ShouldUseCombo(activeWeaponData);
         ResolveAttackAnimation(isDirectComboContinuation);
+
+        activeHeavyEnergy = isHeavy ? GetComponent<OverburstElementEnergy>() : null;
+        bool hasEnergy = activeHeavyEnergy != null && activeHeavyEnergy.Amount > 0f
+            && activeAttackWeaponItem != null
+            && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
+            && activeHeavyEnergy.Element == activeAttackWeaponItem.ResolvedElement;
+        activeAttackDamageMultiplier = isHeavy
+            ? activeHeavyDefinition.GetDamageMultiplier(hasEnergy)
+            : 1f;
 
 
         attackDuration = ResolveAttackDuration();
@@ -598,7 +656,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         bool animationStarted = playerAnimatorController != null
             && playerAnimatorController.PlayMeleeCombatAttack(
-                comboStepIndex,
+                isHeavy ? 0 : comboStepIndex,
                 activeAttackAnimationClip,
                 activeAttackAnimationSpeed,
                 attackDuration,
@@ -685,6 +743,18 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackTransitionDuration = 0f;
         activeAttackStep = default;
         ResetActiveTrailState();
+
+        if (activeAttackIsHeavy)
+        {
+            activeAttackStep = activeHeavyDefinition.attack;
+            activeAttackAnimationClip = activeAttackStep.animationClip;
+            activeAttackAnimationSpeed = Mathf.Max(
+                0.01f,
+                MeleeAttackSpeedPolicy.ToPlaybackMultiplier(activeStats.meleeAttackSpeedMultiplier)
+                    * Mathf.Max(0.01f, activeAttackStep.animationSpeedMultiplier));
+            activeAttackTransitionDuration = Mathf.Max(0f, activeAttackStep.transitionDuration);
+            return;
+        }
 
         if (!activeAttackUsesCombo)
             return;
@@ -788,7 +858,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeStats,
             meleeDefinition.baseSettings,
             ResolveActiveAttackElement(),
-            1f,
+            activeAttackDamageMultiplier,
             bakedTrajectoryStep,
             playerEquipment.CurrentWeaponTraceBinding,
             attackPatternDebugRenderer,
@@ -896,6 +966,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             attackTrailExecutor.Tick(normalizedTime);
         }
 
+        CommitHeavyDischargeAtImpact(normalizedTime);
         attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
 
         if (shouldContinueCombo)
@@ -1013,6 +1084,19 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         playerAnimatorController?.CancelWeaponRuntimeState(); // 후반 이동 취소 시 공격 애니메이션도 종료
     }
 
+    private void CommitHeavyDischargeAtImpact(float normalizedTime)
+    {
+        if (!activeAttackIsHeavy || heavyDischargeCommitted || activeAttackPhases == null
+            || activeAttackPhases.Length == 0
+            || normalizedTime < activeAttackPhases[0].SafeStart)
+            return;
+
+        heavyDischargeCommitted = true;
+        activeHeavyEnergy?.TryCommitDischarge(
+            activeStats.damage * activeAttackDamageMultiplier,
+            out activeDischarge);
+    }
+
     private void KeepComboWindowForCancel()
     {
         if (activeAttackUsesCombo && IsActiveComboActionOpen())
@@ -1035,6 +1119,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         bool resetCombo)
     {
         ResolveFacade()?.CombatInputs?.ClearAttack();
+        ResolveFacade()?.CombatInputs?.ClearHeavy();
         Vector3 committedDirection = activeAttackDirection;
         StopActiveAttackStep();
         if (resetCombo)
@@ -1045,6 +1130,13 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void StopActiveAttackStep()
     {
+        activeDischarge?.End();
+        activeDischarge = null;
+        activeHeavyEnergy = null;
+        heavyDischargeCommitted = false;
+        activeAttackIsHeavy = false;
+        activeHeavyDefinition = null;
+        activeAttackDamageMultiplier = 1f;
         isAttacking = false;
         ReleaseAttackStates();
         activeAttackWeaponItem = null;
@@ -1090,6 +1182,13 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void FinishActiveAttackStep()
     {
+        activeDischarge?.End();
+        activeDischarge = null;
+        activeHeavyEnergy = null;
+        heavyDischargeCommitted = false;
+        activeAttackIsHeavy = false;
+        activeHeavyDefinition = null;
+        activeAttackDamageMultiplier = 1f;
         ReleaseAttackStates();
         activeAttackStep = default;
         activeAttackPhases = null;
@@ -1188,6 +1287,11 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (hit.Damageable == null)
             return;
 
+        OverburstElementDischarge.TargetSnapshot dischargeTarget = default;
+        bool hasDischargeTarget = activeDischarge != null
+            && hit.TargetHealth != null
+            && activeDischarge.TryCaptureTarget(hit.TargetHealth, out dischargeTarget);
+
         AttackPhaseData phase = hit.Phase;
         AttackImpactData impact = phase.impact;
         MeleeAttackRuntimeData runtimeData = hit.RuntimeData;
@@ -1208,7 +1312,24 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             useElementHitVfx,
             attackElement,
             activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
-            activeHitFeedbackSequenceId));
+            activeHitFeedbackSequenceId,
+            activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak));
+
+        if (hasDischargeTarget && result.ActualDamage > 0f
+            && activeDischarge.TryResolveConfirmedHit(
+                dischargeTarget, result.ActualDamage, out OverburstDischargeResult dischargeResult)
+            && dischargeResult.BonusDamage > 0f && hit.TargetHealth != null && !hit.TargetHealth.IsDead)
+        {
+            hit.TargetHealth.TakeDamage(new DamageInfo(
+                dischargeResult.BonusDamage,
+                hit.HitPoint,
+                gameObject,
+                hit.Direction,
+                triggersOnHitEffects: false,
+                suppressDefaultHitVfx: true,
+                element: dischargeResult.Element,
+                playerAttackKind: PlayerAttackKind.Elemental));
+        }
 
         ApplyAirborne(
             result.TargetHealth,

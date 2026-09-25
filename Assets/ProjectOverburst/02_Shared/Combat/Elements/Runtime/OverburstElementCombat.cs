@@ -6,6 +6,7 @@ public static class OverburstElementCombat
     public static void ReportConfirmedHit(CombatHealth target, DamageInfo info, float actualDamage)
     {
         if (target == null || info.source == null || !info.triggersOnHitEffects || info.isDamageOverTime
+            || (info.playerAttackKind & PlayerAttackKind.Heavy) != 0
             || info.elementalReactionType != ElementalReactionType.None || info.sourceAttackSequenceId <= 0
             || !OverburstElementTuning.IsFinitePositive(actualDamage) || !OverburstElementRules.IsActive(info.element)) return;
         PlayerEquipment equipment = info.source.GetComponentInParent<PlayerEquipment>();

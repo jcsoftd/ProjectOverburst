@@ -61,7 +61,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         Changed?.Invoke();
         return true;
     }
-    // Future heavy runtime calls once when its action is committed. No input/animation is invented here.
+    // Heavy attacks commit once at their impact window.
     public bool TryCommitDischarge(float attackDamage, out OverburstElementDischarge discharge)
     {
         discharge = null;
