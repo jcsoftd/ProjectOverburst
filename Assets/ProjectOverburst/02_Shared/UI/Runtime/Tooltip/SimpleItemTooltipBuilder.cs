@@ -194,8 +194,8 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         builder.Append("획득 경험치 +")
             .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(item.mapState) - 1f) * 100f))
             .AppendLine("%");
-        builder.Append("고등급 장비 보정 +")
-            .Append(Mathf.RoundToInt(MapOptionPolicy.HighGradeRollBias(item.grade) * 100f))
+        builder.Append("장비·물약 고등급 보정 +")
+            .Append((MapOptionPolicy.HighGradeRollBias(item.grade) * 100f).ToString("0.#"))
             .AppendLine("%");
         if (item.mapState?.options != null)
             foreach (var option in item.mapState.options)

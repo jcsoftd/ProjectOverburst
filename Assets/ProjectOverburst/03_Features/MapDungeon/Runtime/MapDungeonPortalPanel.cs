@@ -135,6 +135,9 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour
             .Append("몬스터 테마: ").Append(MapThemeCatalog.DisplayName(map.monsterThemeId)).AppendLine()
             .Append("획득 경험치 +")
             .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(map) - 1f) * 100f))
+            .AppendLine("%")
+            .Append("장비·물약 고등급 보정 +")
+            .Append((MapOptionPolicy.HighGradeRollBias(map.grade) * 100f).ToString("0.#"))
             .AppendLine("%").AppendLine();
         if (map.options != null && map.options.Count > 0)
             foreach (var option in map.options)
