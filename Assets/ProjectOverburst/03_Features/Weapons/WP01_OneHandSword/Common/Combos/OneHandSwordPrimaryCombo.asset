@@ -340,6 +340,16 @@ MonoBehaviour:
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
         elementOverrideKey: BasicSlash
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 8ceeea5543130404686a2f159cfa9e61, type: 2}
+        triggerProgress: 0.35
+        placementMode: 0
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 1
       bakedVfxSwingSlopeDegrees: 11.996422
       vfxSwingSlopeOffsetDegrees: 0
@@ -684,6 +694,16 @@ MonoBehaviour:
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
         elementOverrideKey: BasicSlash
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 8ceeea5543130404686a2f159cfa9e61, type: 2}
+        triggerProgress: 0.35
+        placementMode: 0
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 1
       bakedVfxSwingSlopeDegrees: -14.061715
       vfxSwingSlopeOffsetDegrees: 0
@@ -1145,6 +1165,16 @@ MonoBehaviour:
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
         elementOverrideKey: CircularSlash
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: bb87c8269d4a68149807c3c7c7ed6f74, type: 2}
+        triggerProgress: 0.35
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 1
       bakedVfxSwingSlopeDegrees: -27.02098
       vfxSwingSlopeOffsetDegrees: 0
