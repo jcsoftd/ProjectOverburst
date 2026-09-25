@@ -108,6 +108,110 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         GameplayInputBlocker.Unblock(this);
     }
 
+    public string RunEntryError { get; private set; }
+    private bool cancelRunEntry;
+
+    public bool EnterRun(string sceneName, Overburst.Persistence.MapInstanceState map, string mapItemId = null)
+    {
+        var account = Overburst.Persistence.AccountGameplaySession.Current;
+        if (isSwitching || !WorldSessionState.IsHideout || account == null
+            || string.IsNullOrWhiteSpace(sceneName) || sceneName == PersistentSceneName || IsHubSceneName(sceneName)) return false;
+        if (!IsSceneLoaded(sceneName) && !Application.CanStreamedLevelBeLoaded(sceneName))
+        { RunEntryError = "입장할 월드 씬을 찾을 수 없습니다."; return false; }
+        string runId = System.Guid.NewGuid().ToString("N");
+        try
+        {
+            if (!new Overburst.Persistence.AccountRunSession(account).Prepare(runId, map, mapItemId)) return false;
+        }
+        catch (System.Exception error) { RunEntryError = error.Message; return false; }
+        RunEntryError = null; cancelRunEntry = false; isSwitching = true;
+        ClosePersistentUiForSceneSwitch();
+        GameplayInputBlocker.Block(this);
+        switchRoutine = StartCoroutine(EnterPreparedRun(sceneName, runId));
+        return true;
+    }
+
+    public void CancelRunEntry()
+    {
+        if (isSwitching && Overburst.Persistence.AccountGameplaySession.Current?.ReadRun()?.phase
+            == Overburst.Persistence.RunPhase.EntryPending) cancelRunEntry = true;
+    }
+
+    private IEnumerator EnterPreparedRun(string sceneName, string runId)
+    {
+        var account = Overburst.Persistence.AccountGameplaySession.Current;
+        var run = new Overburst.Persistence.AccountRunSession(account);
+        string previous = currentSubSceneName;
+        ResolveLoadingScreen();
+        loadingScreen?.Show("ENTERING", "월드 준비 중...");
+        AsyncOperation loading = null;
+        if (!IsSceneLoaded(sceneName))
+        {
+            try { loading = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive); }
+            catch (System.Exception error) { RunEntryError = error.Message; }
+            if (loading != null) yield return loading;
+        }
+        RunWorldGate gate = null;
+        if (RunEntryError == null)
+        {
+            foreach (var candidate in FindObjectsByType<RunWorldGate>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (candidate.gameObject.scene.name == sceneName)
+                {
+                    if (gate != null) { RunEntryError = "월드 준비 게이트가 중복되었습니다."; break; }
+                    gate = candidate;
+                }
+            if (gate == null) RunEntryError = "월드 준비 게이트를 찾을 수 없습니다.";
+            if (RunEntryError == null)
+                try { gate.BeginPreparation(account.ReadRun()); }
+                catch (System.Exception error) { RunEntryError = error.Message; }
+        }
+        float deadline = Time.realtimeSinceStartup + 60f;
+        while (RunEntryError == null && !cancelRunEntry && gate != null && !gate.IsReady && gate.Error == null
+            && Time.realtimeSinceStartup < deadline) yield return null;
+        if (RunEntryError == null)
+        {
+            if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
+            else if (gate == null || !gate.IsReady || gate.EntryPoint == null)
+                RunEntryError = gate != null && gate.Error != null ? gate.Error : "월드 준비 시간이 초과됐습니다.";
+            else if (FindPlayer() == null) RunEntryError = "플레이어가 준비되지 않았습니다.";
+        }
+        if (RunEntryError == null)
+        {
+            try
+            {
+                if (!run.Activate(runId)) RunEntryError = "지도 입장을 확정하지 못했습니다.";
+            }
+            catch (System.Exception error) { RunEntryError = error.Message; }
+        }
+        if (RunEntryError != null)
+        {
+            // Do not return control while the pending entry cannot be durably cancelled.
+            bool cancelled = false;
+            while (!cancelled)
+            {
+                try { run.Fail(runId); cancelled = true; }
+                catch (System.Exception error) { loadingScreen?.SetStatus("입장 취소 저장 재시도: " + error.Message); }
+                if (!cancelled) yield return new WaitForSecondsRealtime(1f);
+            }
+            if (IsSceneLoaded(sceneName)) yield return SceneManager.UnloadSceneAsync(sceneName);
+            ActivateSubScene(previous);
+            WorldSessionState.SetPhase(WorldPhase.Hideout);
+            loadingScreen?.Hide();
+            isSwitching = false; switchRoutine = null;
+            GameplayInputBlocker.Unblock(this);
+            yield break;
+        }
+        currentSubSceneName = sceneName;
+        ActivateSubScene(sceneName);
+        PlayerContext.Instance?.CurrentActorKit?.CancelCurrentActions(WeaponActionCancelReason.Recovery);
+        ActorTeleportUtility.TeleportSafely(FindPlayer(), gate.EntryPoint.position, gate.EntryPoint.rotation);
+        if (!string.IsNullOrEmpty(previous) && previous != sceneName && IsSceneLoaded(previous))
+            yield return SceneManager.UnloadSceneAsync(previous);
+        loadingScreen?.Hide();
+        isSwitching = false; switchRoutine = null;
+        GameplayInputBlocker.Unblock(this);
+    }
+
     public void ReturnToHub(RunSceneReturnContext context)
     {
         RunSceneReturnContext resolvedContext = context
