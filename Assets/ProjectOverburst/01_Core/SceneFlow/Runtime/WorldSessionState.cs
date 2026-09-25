@@ -8,6 +8,8 @@ public enum WorldPhase { Booting, Hideout, Loading, Run, Settling }
 public static class WorldSessionState
 {
     public static WorldPhase Phase { get; private set; } = WorldPhase.Booting;
+    public static UnityEngine.SceneManagement.Scene ContentScene { get; private set; }
+    internal static void SetContentScene(UnityEngine.SceneManagement.Scene scene) => ContentScene = scene;
     public static bool IsHideout => Phase == WorldPhase.Hideout;
     public static event Action<WorldPhase> Changed;
 
@@ -15,6 +17,7 @@ public static class WorldSessionState
     private static void Reset()
     {
         Phase = WorldPhase.Booting;
+        ContentScene = default;
         Changed = null;
     }
 

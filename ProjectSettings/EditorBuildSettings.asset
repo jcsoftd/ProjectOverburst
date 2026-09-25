@@ -11,9 +11,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/ProjectOverburst/00_Scenes/HideoutScene.unity
     guid: 9df285f4799aeb247b976047ee6e985a
-  - enabled: 1
-    path: Assets/ProjectOverburst/00_Scenes/DungeonRunScene.unity
-    guid: af953030fdfe74d419925fc3ffc2cc4b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

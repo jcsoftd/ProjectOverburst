@@ -80,8 +80,8 @@ public sealed class OverburstGameUI : MonoBehaviour
         energyFill.fillAmount=energy?energy.Normalized:0;
         string energyValue=$"{(energy?energy.Amount:0):0} / {OverburstElementTuning.Current.maximumEnergy:0}";
         energyText.text=energyValue;
-        bool dungeon=UnityEngine.SceneManagement.SceneManager.GetSceneByName(PersistentSceneFlow.DungeonRunSceneName).isLoaded;
-        var contentScene=UnityEngine.SceneManagement.SceneManager.GetSceneByName(dungeon?PersistentSceneFlow.DungeonRunSceneName:PersistentSceneFlow.HideoutSceneName);
+        bool dungeon=WorldSessionState.Phase==WorldPhase.Run;
+        var contentScene=WorldSessionState.ContentScene;
         if(contentScene.isLoaded&&contentScene.handle!=minimapScene&&context.CurrentActor&&WorldMinimapController.Instance&&PersistentSceneFlow.Instance&&!PersistentSceneFlow.Instance.IsSwitching){
             minimapScene=contentScene.handle;
             WorldMinimapController.Instance.ShowForScene(context.CurrentActor.transform,minimapScene);

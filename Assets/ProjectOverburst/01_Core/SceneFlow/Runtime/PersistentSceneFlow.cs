@@ -7,8 +7,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     public const string PersistentSceneName = "PersistentScene"; // 상주 씬
     public const string HideoutSceneName = "HideoutScene"; // 전투 테스트 씬
     public const string DefaultHubSceneName = HideoutSceneName; // 기본 허브
-    public const string DungeonRunSceneName = "DungeonRunScene"; // 절차형 던전 씬
-    private const float DungeonRunCameraYaw = 135f; // 던전 기본 시점
     private const int PlayerReadyWaitFrames = 180; // 플레이어 준비 대기
     private const float HubGroundRayHeight = 30f; // 허브 지면 탐색 높이
     private const float HubGroundRayDistance = 100f; // 허브 지면 탐색 거리
@@ -20,7 +18,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private bool isSwitching; // 전환 중
     private Coroutine switchRoutine; // 전환 루틴
     private LoadingScreenUI loadingScreen; // 로딩 UI
-    private RunSceneReturnContext pendingDungeonFailureReturnContext; // 던전 생성 실패 복귀
 
     public static PersistentSceneFlow Instance
     {
@@ -41,7 +38,10 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private static void BootstrapAfterSceneLoad()
     {
         if (SceneManager.GetActiveScene().name == HideoutSceneName)
+        {
+            WorldSessionState.SetContentScene(SceneManager.GetActiveScene());
             WorldSessionState.SetPhase(WorldPhase.Hideout);
+        }
         if (SceneManager.GetActiveScene().name != PersistentSceneName)
             return;
 
@@ -85,23 +85,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             loadingScreen.ForceHide(); // 시작 숨김
 
         StartCoroutine(EnsureInitialSubScene()); // 초기 SubScene
-    }
-
-    public void EnterDungeon(DungeonRunEntryRequest request)
-    {
-        DungeonRunEntryRequest resolvedRequest = request
-            ?? DungeonRunEntryRequest.CreateRandom(GetSourceSceneName());
-        DungeonRunLaunchContextHolder.Set(resolvedRequest);
-
-        string sourceSceneName =
-            IsHubSceneName(resolvedRequest.SourceSceneName)
-                ? resolvedRequest.SourceSceneName
-                : DefaultHubSceneName;
-        pendingDungeonFailureReturnContext =
-            RunSceneReturnContext.CreateHubTransfer(
-                sourceSceneName,
-                resolvedRequest.ReturnPointId);
-        StartSubSceneSwitch(DungeonRunSceneName, null);
     }
 
     public void ReturnToHub(RunSceneReturnContext context)
@@ -189,7 +172,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     {
         WorldSessionState.SetPhase(WorldPhase.Loading);
         isSwitching = true; // 전환 잠금
-        RunSceneReturnContext deferredRecoveryContext = null; // 생성 실패 후 재전환
         ClosePersistentUiForSceneSwitch(); // UI 정리
         ResolveLoadingScreen(); // 로딩 UI
 
@@ -198,8 +180,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         {
             if (isReturnToHub)
                 loadingScreen.Show("RETURNING", "현재 지역 연결 해제 중...");
-            else if (IsRunSceneName(newSceneName))
-                loadingScreen.Show("SIGNAL LINKING", "허브 연결 해제 중...");
             else
                 loadingScreen.Show("LOADING", "씬 전환 준비 중...");
 
@@ -210,7 +190,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             ? FindLoadedSubSceneName()
             : currentSubSceneName;
 
-        if (IsRunSceneName(previousSceneName) || IsHubSceneName(newSceneName))
+        if (IsHubSceneName(newSceneName))
         {
             if (loadingScreen != null && isReturnToHub)
             {
@@ -231,12 +211,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 yield return unloadOperation; // SubScene 언로드
         }
 
-        if (IsRunSceneName(previousSceneName)
-            && previousSceneName != newSceneName)
-        {
-            RunSceneReadinessRegistry.Clear(previousSceneName);
-        }
-
         if (loadingScreen != null)
         {
             loadingScreen.SetStatus(newSceneName + " 로드 중...");
@@ -248,10 +222,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
         if (loadingScreen != null)
         {
-            loadingScreen.SetStatus(
-                newSceneName == DungeonRunSceneName
-                    ? "던전 생성 중..."
-                    : "허브 위치 정리 중...");
+            loadingScreen.SetStatus("허브 위치 정리 중...");
             loadingScreen.SetProgress(0.65f); // 생성 대기
         }
 
@@ -270,56 +241,11 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             yield return PlacePlayerAtHubSpawn(returnContext.ReturnPointId); // 플레이어 복귀 배치
             SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
 
-            if (returnContext.IsExtractSuccess)
-                MerchantStockRefreshService.HandleSuccessfulRunReturn(); // 상점 재고 갱신 판정
-
             if (loadingScreen != null)
                 loadingScreen.SetProgress(1f); // 완료
 
             WorldSessionState.SetPhase(WorldPhase.Hideout);
             WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
-        }
-        else if (newSceneName == DungeonRunSceneName)
-        {
-            WorldMinimapController.Instance?.ForceHide(); // 던전 미니맵 구현 전 Hub 표시 차단
-            float waitStartTime = Time.realtimeSinceStartup;
-            while (!RunSceneReadinessRegistry.IsTerminal(newSceneName))
-            {
-                if (Time.realtimeSinceStartup - waitStartTime > 50f)
-                {
-                    RunSceneReadinessRegistry.MarkFailed(
-                        newSceneName,
-                        "DungeonRunScene ready wait timed out.");
-                    break;
-                }
-
-                yield return null;
-            }
-
-            RunSceneReadinessState readiness =
-                RunSceneReadinessRegistry.GetState(newSceneName);
-            if (readiness == RunSceneReadinessState.Ready)
-            {
-                pendingDungeonFailureReturnContext = null;
-                WorldSessionState.SetPhase(WorldPhase.Run);
-                if (loadingScreen != null)
-                    loadingScreen.SetProgress(1f);
-            }
-            else
-            {
-                string failureMessage =
-                    RunSceneReadinessRegistry.GetMessage(newSceneName);
-                Debug.LogError(
-                    "[SceneFlow] DungeonRunScene generation failed. "
-                    + failureMessage);
-                DungeonRunLaunchContextHolder.Clear();
-                deferredRecoveryContext =
-                    pendingDungeonFailureReturnContext
-                    ?? RunSceneReturnContext.CreateHubTransfer(
-                        DefaultHubSceneName,
-                        "Default");
-                pendingDungeonFailureReturnContext = null;
-            }
         }
         else if (IsHubSceneName(newSceneName))
         {
@@ -329,18 +255,12 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
         }
 
-        if (loadingScreen != null && deferredRecoveryContext == null)
+        if (loadingScreen != null)
             loadingScreen.Hide(); // 로딩 종료
 
         isSwitching = false; // 전환 해제
         switchRoutine = null; // 루틴 해제
 
-        if (deferredRecoveryContext != null)
-        {
-            StartSubSceneSwitch(
-                deferredRecoveryContext.TargetSceneName,
-                deferredRecoveryContext);
-        }
     }
 
     private void SpawnConfiguredSceneItems()
@@ -363,6 +283,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             return;
 
         SceneManager.SetActiveScene(scene); // 활성 씬
+        WorldSessionState.SetContentScene(scene);
         ApplyDefaultCameraYaw(sceneName); // 씬별 기본 시점
     }
 
@@ -372,19 +293,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (cameraController == null)
             return;
 
-        if (sceneName == DungeonRunSceneName)
-            cameraController.SetYaw(DungeonRunCameraYaw); // 던전 진입 시 초기화
-        else
-            cameraController.SetYaw(QuarterViewCamera.DefaultYaw); // 허브 진입/복귀는 기본 대각선 시점
-    }
-
-    private string GetSourceSceneName()
-    {
-        if (!string.IsNullOrEmpty(currentSubSceneName))
-            return currentSubSceneName;
-
-        string loadedSubScene = FindLoadedSubSceneName(); // 로드 씬
-        return string.IsNullOrEmpty(loadedSubScene) ? DefaultHubSceneName : loadedSubScene;
+        cameraController.SetYaw(QuarterViewCamera.DefaultYaw);
     }
 
     private static string FindLoadedSubSceneName()
@@ -392,9 +301,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string activeSceneName = SceneManager.GetActiveScene().name;
         if (IsManagedSubSceneName(activeSceneName) && IsSceneLoaded(activeSceneName))
             return activeSceneName;
-
-        if (IsSceneLoaded(DungeonRunSceneName))
-            return DungeonRunSceneName;
 
         if (IsSceneLoaded(HideoutSceneName))
             return HideoutSceneName;
@@ -407,14 +313,9 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         return sceneName == HideoutSceneName;
     }
 
-    public static bool IsRunSceneName(string sceneName)
-    {
-        return sceneName == DungeonRunSceneName;
-    }
-
     private static bool IsManagedSubSceneName(string sceneName)
     {
-        return IsRunSceneName(sceneName) || IsHubSceneName(sceneName);
+        return IsHubSceneName(sceneName);
     }
 
     private static bool IsSceneLoaded(string sceneName)

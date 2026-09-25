@@ -980,63 +980,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 938567701}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &506141752
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 282750946664840924, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_Name
-      value: ModPartMerchantObject
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 6.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 10.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8368845863661180003, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2df8aed3c2575564ca8e7debf5e802d6, type: 3}
 --- !u!1 &518706607
 GameObject:
   m_ObjectHideFlags: 0
@@ -1643,7 +1586,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1234423427}
   - {fileID: 2040593035}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2451,12 +2393,6 @@ MonoBehaviour:
   testWeaponItem: {fileID: 11400000, guid: 9f2f854bfa52a1d45b0a708a5ba264c2, type: 2}
   weaponItemAssets:
   - {fileID: 11400000, guid: d9b32fb76d97abf4b8e2023ad8af775f, type: 2}
-  testComboGemItems:
-  - {fileID: 11400000, guid: e16acd154e7aa144dbe10a1bbef3970b, type: 2}
-  - {fileID: 11400000, guid: ac646e5c7a8b9b5458dc9b79a7f99bb9, type: 2}
-  - {fileID: 11400000, guid: d2fb3435494667247bb0a715ef2d9fe3, type: 2}
-  - {fileID: 11400000, guid: ba20f633728193741b323dc9dea30717, type: 2}
-  - {fileID: 11400000, guid: ba733d5bb843b1344854adebe8ba427c, type: 2}
   moveSpeedPotionItem: {fileID: 11400000, guid: 7d48fabb71e33e74d927ce7bef860d85, type: 2}
   smallHealPotionItem: {fileID: 0}
   pickupGradeVfxSet: {fileID: 11400000, guid: dde8d2907fd646bcab787ebc9d2dff0a, type: 2}
@@ -2465,9 +2401,7 @@ MonoBehaviour:
   spawnRandomWeaponsOnStart: 1
   spawnMoveSpeedPotionOnStart: 0
   spawnSmallHealPotionOnStart: 0
-  spawnComboGemsOnStart: 1
   spawnWeaponCount: 1
-  spawnComboGemCount: 6
   moveSpeedPotionPickupCount: 15
   smallHealPotionPickupCount: 10
   spawnRadius: 3
@@ -2476,8 +2410,6 @@ MonoBehaviour:
   moveSpeedPotionSpawnSpacing: {x: 0.36, y: 0, z: 0.36}
   smallHealPotionSpawnOffset: {x: 2.8, y: 0.25, z: -2.2}
   smallHealPotionSpawnSpacing: {x: 0.36, y: 0, z: 0.36}
-  comboGemSpawnOffset: {x: -9, y: 0.25, z: 1.8}
-  comboGemSpawnSpacing: {x: 1.2, y: 0, z: 1.2}
 --- !u!1 &1205000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -2554,105 +2486,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1155625086}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1234423426
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 862357097}
-    m_Modifications:
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.06
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.92387956
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.38268346
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7209950452453374143, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      propertyPath: m_Name
-      value: DungeonPortal_ToMultistory
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5402073835492574706, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1234423429}
-  m_SourcePrefab: {fileID: 100100000, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
---- !u!4 &1234423427 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2544039206299299846, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-  m_PrefabInstance: {fileID: 1234423426}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &1234423428 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5402073835492574706, guid: 82e53267b17a0df4691cc7a806771801, type: 3}
-  m_PrefabInstance: {fileID: 1234423426}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1234423429
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1234423428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
-  m_UsePipelineSettings: 1
-  m_AdditionalLightsShadowResolutionTier: 2
-  m_CustomShadowLayers: 0
-  m_LightCookieSize: {x: 1, y: 1}
-  m_LightCookieOffset: {x: 0, y: 0}
-  m_SoftShadowQuality: 0
-  m_RenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_ShadowRenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_Version: 4
-  m_LightLayerMask: 1
-  m_ShadowLayerMask: 1
-  m_RenderingLayers: 1
-  m_ShadowRenderingLayers: 1
 --- !u!1 &1331082328
 GameObject:
   m_ObjectHideFlags: 0
@@ -3634,7 +3467,6 @@ SceneRoots:
   - {fileID: 1205000001}
   - {fileID: 1390833923}
   - {fileID: 2129225251}
-  - {fileID: 506141752}
   - {fileID: 1001422114}
   - {fileID: 81968541}
   - {fileID: 862357097}
