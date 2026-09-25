@@ -176,7 +176,7 @@ internal sealed class SlotShieldTopOverlayRuntime : MonoBehaviour
                 if (!TryResolveTarget(layer, target, out Rect screenRect, out Color gradeTint))
                     continue;
 
-                visibleCount = RenderTargetOverlays(layer, screenRect, gradeTint, baseFrameIndex, visibleCount);
+                visibleCount = RenderTargetOverlays(layer, target, screenRect, gradeTint, baseFrameIndex, visibleCount);
             }
 
             layer.HideUnusedOverlays(visibleCount);
@@ -201,7 +201,7 @@ internal sealed class SlotShieldTopOverlayRuntime : MonoBehaviour
             AddTarget(effects[i] != null ? effects[i].transform as RectTransform : null);
     }
 
-    private int RenderTargetOverlays(SlotShieldLayerState layer, Rect screenRect, Color gradeTint, int baseFrameIndex, int startIndex)
+    private int RenderTargetOverlays(SlotShieldLayerState layer, RectTransform target, Rect screenRect, Color gradeTint, int baseFrameIndex, int startIndex)
     {
         int visibleCount = startIndex;
         int runnerCount = Mathf.Clamp(layer.RuntimeRunnerCount, 1, MaxRunnerCount);
@@ -215,7 +215,8 @@ internal sealed class SlotShieldTopOverlayRuntime : MonoBehaviour
             {
                 SlotShieldFlipbookOverlayElement overlay = layer.EnsureOverlay(visibleCount, canvasRect);
                 overlay.SetMaterial(layer.OverlayMaterial);
-                overlay.SetRect(canvasRect, ApplyRuntimeScale(layer, layerRect, runner, afterImage));
+                overlay.BindTo(target);
+                overlay.SetRect(target, ApplyRuntimeScale(layer, layerRect, runner, afterImage));
                 overlay.SetFrame(
                     layer.FlipbookTexture,
                     ResolveRuntimeFrame(layer, baseFrameIndex, runner, runnerCount, afterImage, afterImageFrameStep),
@@ -651,15 +652,18 @@ internal sealed class SlotShieldLayerState
     public SlotShieldFlipbookOverlayElement EnsureOverlay(int index, RectTransform canvasRect)
     {
         while (overlays.Count <= index)
+            overlays.Add(null);
+
+        if (overlays[index] == null || !overlays[index].IsValid)
         {
-            GameObject overlayObject = new GameObject(Label + "FlipbookOverlay_" + overlays.Count, typeof(RectTransform), typeof(RawImage));
+            GameObject overlayObject = new GameObject(Label + "FlipbookOverlay_" + index, typeof(RectTransform), typeof(RawImage));
             overlayObject.transform.SetParent(canvasRect, false);
 
             RawImage image = overlayObject.GetComponent<RawImage>();
             image.raycastTarget = false;
             image.color = Color.white;
 
-            overlays.Add(new SlotShieldFlipbookOverlayElement(overlayObject, image));
+            overlays[index] = new SlotShieldFlipbookOverlayElement(overlayObject, image);
         }
 
         return overlays[index];
@@ -1205,6 +1209,7 @@ internal sealed class SlotShieldFlipbookOverlayElement
     private readonly GameObject gameObject;
     private readonly RectTransform rectTransform;
     private readonly RawImage image;
+    public bool IsValid => gameObject != null;
 
     public SlotShieldFlipbookOverlayElement(GameObject gameObject, RawImage image)
     {
@@ -1216,12 +1221,22 @@ internal sealed class SlotShieldFlipbookOverlayElement
         rectTransform.pivot = new Vector2(0.5f, 0.5f);
     }
 
-    public void SetRect(RectTransform canvasRect, Rect screenRect)
+    public void BindTo(RectTransform target)
     {
-        Vector2 center = screenRect.center;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, center, null, out Vector2 localCenter);
-        rectTransform.anchoredPosition = localCenter;
-        rectTransform.sizeDelta = new Vector2(screenRect.width, screenRect.height);
+        if (rectTransform.parent != target)
+            rectTransform.SetParent(target, false);
+        if (rectTransform.GetSiblingIndex() != target.childCount - 1)
+            rectTransform.SetAsLastSibling();
+    }
+
+    public void SetRect(RectTransform target, Rect screenRect)
+    {
+        Canvas canvas = target.GetComponentInParent<Canvas>();
+        Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(target, screenRect.min, camera, out Vector2 min);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(target, screenRect.max, camera, out Vector2 max);
+        rectTransform.anchoredPosition = (min + max) * 0.5f - target.rect.center;
+        rectTransform.sizeDelta = max - min;
     }
 
     public void SetMaterial(Material material)
@@ -1253,7 +1268,7 @@ internal sealed class SlotShieldFlipbookOverlayElement
 
     public void Hide()
     {
-        if (gameObject.activeSelf)
+        if (gameObject != null && gameObject.activeSelf)
             gameObject.SetActive(false);
     }
 }
