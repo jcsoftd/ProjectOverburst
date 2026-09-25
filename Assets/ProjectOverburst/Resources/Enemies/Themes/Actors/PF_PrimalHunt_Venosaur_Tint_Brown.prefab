@@ -180,7 +180,6 @@ GameObject:
   - component: {fileID: 2547513380991553882}
   - component: {fileID: 2471741432845360847}
   - component: {fileID: 3953816316877362685}
-  - component: {fileID: 4289564921249301384}
   - component: {fileID: 6675275670208299022}
   - component: {fileID: 6581597566059173436}
   - component: {fileID: 6148502077120968196}
@@ -191,6 +190,7 @@ GameObject:
   - component: {fileID: 4961986454329153104}
   - component: {fileID: 233063580879604896}
   - component: {fileID: 8039611819135132639}
+  - component: {fileID: 8851841686969704270}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Venosaur_Tint_Brown
   m_TagString: Untagged
@@ -633,20 +633,7 @@ MonoBehaviour:
   enemyRank: {fileID: 3945499139090621686}
   enemyMovement: {fileID: 6519486011608823844}
   enemyAttackController: {fileID: 6254108857581957452}
-  auraController: {fileID: 4289564921249301384}
   freezeControlImmune: 0
---- !u!114 &4289564921249301384
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3285127751773417009}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &6675275670208299022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1708,3 +1695,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 7444420776523125816, guid: 606eb3be8a606c24b90d3dd281b1faca, type: 3}
   m_PrefabInstance: {fileID: 182480337820392140}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8851841686969704270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3285127751773417009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: -0.00009644329, y: 0.95357716, z: 0.028647784}
+  bodyRadius: 0.92895544
+  bodyHeight: 1.8
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: -0.00016533137, y: 1.0061322, z: 0.034824774}
+  hitRadius: 1.171913
+  hitHeight: 1.8
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

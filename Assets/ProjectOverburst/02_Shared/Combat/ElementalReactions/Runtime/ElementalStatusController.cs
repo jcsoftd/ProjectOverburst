@@ -11,7 +11,6 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
     [SerializeField] private EnemyRank enemyRank;
     [SerializeField] private EnemyMovement enemyMovement;
     [SerializeField] private EnemyMeleeAttackController enemyAttackController;
-    [SerializeField] private MeleeElementStatusAuraController auraController;
     [SerializeField] private bool freezeControlImmune;
     private readonly OverburstElementState state = new OverburstElementState();
     private readonly ElementalStatusOwnerSnapshot[] owners = new ElementalStatusOwnerSnapshot[4];
@@ -52,7 +51,6 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         if (enemyRank == null) enemyRank = GetComponent<EnemyRank>();
         if (enemyMovement == null) enemyMovement = GetComponent<EnemyMovement>();
         if (enemyAttackController == null) enemyAttackController = GetComponent<EnemyMeleeAttackController>();
-        if (auraController == null) auraController = GetComponent<MeleeElementStatusAuraController>();
     }
     private void Died(CombatHealth _, DamageInfo info) => ClearAllStatuses(ElementalStatusClearReason.Death);
     private void ResetHealth(CombatHealth _) => ClearAllStatuses(ElementalStatusClearReason.Reset);
@@ -79,7 +77,6 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         if (!state.Add(application.Element, Time.time, OverburstElementTuning.Current, freezeMultiplier)) return false;
         owners[OverburstElementRules.Index(application.Element)] = new ElementalStatusOwnerSnapshot(application);
         RefreshControl();
-        RefreshAuras();
         TryGetStatus(application.Element, out ElementalStatusSnapshot snapshot);
         StatusChanged?.Invoke(snapshot, snapshot.StackCount == 1 ? ElementalStatusChangeReason.Applied : ElementalStatusChangeReason.StackIncreased);
         ElementalStatusScheduler.Register(this);
@@ -101,7 +98,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         int count = state.Consume(element, Time.time, out shattered);
         if (count <= 0) return 0;
         owners[OverburstElementRules.Index(element)] = default;
-        RefreshControl(); RefreshAuras();
+        RefreshControl();
         StatusRemoved?.Invoke(element, ElementalStatusRemoveReason.Cleared);
         if (!state.HasAny) ElementalStatusScheduler.Unregister(this);
         return count;
@@ -110,7 +107,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
     {
         if (reason == ElementalStatusClearReason.Reset || reason == ElementalStatusClearReason.Disabled) LifecycleVersion++;
         state.Clear(); Array.Clear(owners, 0, owners.Length); hits.Clear(); hitOrder.Clear();
-        RefreshControl(); auraController?.ClearAllAuras();
+        RefreshControl();
         ElementalStatusScheduler.Unregister(this);
         StatusesCleared?.Invoke(reason);
         ReactionStatesCleared?.Invoke(reason);
@@ -120,7 +117,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
     private void Advance(float now)
     {
         if (!state.Expire(now)) return;
-        RefreshControl(); RefreshAuras();
+        RefreshControl();
         for (int i = 0; i < 4; i++)
             if (state.Count(OverburstElementRules.At(i), now) == 0)
             {
@@ -145,17 +142,6 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
             ReactionStateChanged?.Invoke(snapshot, ElementalReactionStateChangeReason.Applied);
         }
         else ReactionStateRemoved?.Invoke(ElementalReactionType.Freeze, ElementalReactionStateRemoveReason.Cleared);
-    }
-    private void RefreshAuras()
-    {
-        if (auraController == null) return;
-        for (int i = 0; i < 4; i++)
-        {
-            var aura = i == 0 ? MeleeElementStatusAuraType.Burning : i == 1 ? MeleeElementStatusAuraType.Chilled
-                : i == 2 ? MeleeElementStatusAuraType.Shocked : MeleeElementStatusAuraType.Wet;
-            if (state.Count(OverburstElementRules.At(i), Time.time) > 0) auraController.StartAura(aura);
-            else auraController.ClearAura(aura);
-        }
     }
     private ElementalReactionStateSnapshot FreezeSnapshot() => new ElementalReactionStateSnapshot(
         ElementalReactionType.Freeze, true, state.FrozenRemaining(Time.time), 1f, default, 0f, MoveSpeedMultiplier, ActionSpeedMultiplier);

@@ -118,7 +118,6 @@ GameObject:
   - component: {fileID: 5246270515159827899}
   - component: {fileID: 3626360776798049889}
   - component: {fileID: 8320866283450727621}
-  - component: {fileID: 2395846953399819844}
   - component: {fileID: 9214530297469809041}
   - component: {fileID: 9165732027252699691}
   - component: {fileID: 1006934927147511404}
@@ -129,6 +128,7 @@ GameObject:
   - component: {fileID: 4671815083965958470}
   - component: {fileID: 3221369277256591007}
   - component: {fileID: 2574751187136081489}
+  - component: {fileID: 2116194031627886533}
   m_Layer: 7
   m_Name: PF_PrimalHunt_CrustaspikanLarvae
   m_TagString: Untagged
@@ -571,20 +571,7 @@ MonoBehaviour:
   enemyRank: {fileID: 5590201198795122676}
   enemyMovement: {fileID: 1682250389497712303}
   enemyAttackController: {fileID: 6204587556386437901}
-  auraController: {fileID: 2395846953399819844}
   freezeControlImmune: 0
---- !u!114 &2395846953399819844
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2654542685511227936}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &9214530297469809041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1572,3 +1559,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2662558727395799277, guid: 5cbb9314d047c4b4cbc3fd9bd6b86f91, type: 3}
   m_PrefabInstance: {fileID: 5427951316530020233}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2116194031627886533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2654542685511227936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: -0.00000009387731, y: 0.2605189, z: 0.002840686}
+  bodyRadius: 0.46
+  bodyHeight: 0.64
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: -0.00000016093254, y: 0.25709772, z: 0.0048697474}
+  hitRadius: 0.55837536
+  hitHeight: 0.68459713
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

@@ -31,7 +31,6 @@ GameObject:
   - component: {fileID: 2106688078398439605}
   - component: {fileID: 7156467993184808830}
   - component: {fileID: 6544969416579480582}
-  - component: {fileID: 1277498606877903648}
   - component: {fileID: 1231194977097169062}
   - component: {fileID: 4526411013825748132}
   - component: {fileID: 7737778722509079298}
@@ -43,6 +42,7 @@ GameObject:
   - component: {fileID: 7462781405025489343}
   - component: {fileID: 7078063066502977415}
   - component: {fileID: 7288882344403842662}
+  - component: {fileID: 4736015745710446969}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ursacetus
   m_TagString: Untagged
@@ -485,20 +485,7 @@ MonoBehaviour:
   enemyRank: {fileID: 1265445540867062283}
   enemyMovement: {fileID: 8204355365131800004}
   enemyAttackController: {fileID: 7394319376622681864}
-  auraController: {fileID: 1277498606877903648}
   freezeControlImmune: 0
---- !u!114 &1277498606877903648
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 881338938614917874}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &1231194977097169062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1676,3 +1663,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 426067758186229053, guid: aec70ee47e2751447a74d70d740a1f8f, type: 3}
   m_PrefabInstance: {fileID: 632178600180353009}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4736015745710446969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 881338938614917874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: -0.013586225, y: 1.9378252, z: -0.34210247}
+  bodyRadius: 1.9058375
+  bodyHeight: 3.55
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: -0.023290671, y: 2.0005577, z: -0.38646138}
+  hitRadius: 2.352
+  hitHeight: 4.42263
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

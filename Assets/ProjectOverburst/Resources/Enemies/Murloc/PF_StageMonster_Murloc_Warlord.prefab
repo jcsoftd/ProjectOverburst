@@ -33,7 +33,7 @@ GameObject:
   - component: {fileID: 317486299475624802}
   - component: {fileID: 2939318605258817176}
   - component: {fileID: 2280826450393846698}
-  - component: {fileID: 3473635742627181359}
+  - component: {fileID: 7644489540251475340}
   m_Layer: 7
   m_Name: PF_StageMonster_Murloc_Warlord
   m_TagString: Untagged
@@ -535,19 +535,6 @@ MonoBehaviour:
   enemyRank: {fileID: 2699839453369000624}
   enemyMovement: {fileID: 3265889040077518404}
   enemyAttackController: {fileID: 8735186374263171135}
-  auraController: {fileID: 3473635742627181359}
---- !u!114 &3473635742627181359
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1299881143101622028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1 &2708678803188739685
 GameObject:
   m_ObjectHideFlags: 0
@@ -1286,3 +1273,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4358006477589180, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 4574367852267600431}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7644489540251475340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1299881143101622028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.09977972, y: 0.9030383, z: -0.031178148}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.17105095, y: 0.83377993, z: -0.05344826}
+  hitRadius: 0.84
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

@@ -603,7 +603,6 @@ GameObject:
   - component: {fileID: 8971654309968728900}
   - component: {fileID: 2355116089575631992}
   - component: {fileID: 8270559215907160870}
-  - component: {fileID: 5035524489220519871}
   - component: {fileID: 3470556140297904827}
   - component: {fileID: 3467020069684786385}
   - component: {fileID: 2108685526551966585}
@@ -614,6 +613,7 @@ GameObject:
   - component: {fileID: 4214674491419908831}
   - component: {fileID: 4727460292320890455}
   - component: {fileID: 5675217132553447677}
+  - component: {fileID: 1161374119120396290}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Dimaxillosaurus
   m_TagString: Untagged
@@ -1056,20 +1056,7 @@ MonoBehaviour:
   enemyRank: {fileID: 1917341722957748394}
   enemyMovement: {fileID: 4981794992739200191}
   enemyAttackController: {fileID: 3615536391168467370}
-  auraController: {fileID: 5035524489220519871}
   freezeControlImmune: 0
---- !u!114 &5035524489220519871
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5743882186582413383}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &3470556140297904827
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1732,3 +1719,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4371784117593903013, guid: e321099fc4750a040972b33d26dfb4b6, type: 3}
   m_PrefabInstance: {fileID: 5398424815786896793}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1161374119120396290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5743882186582413383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.00000049239674, y: 1.1330264, z: 0.043341994}
+  bodyRadius: 1.2558215
+  bodyHeight: 2.15
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.0000008441087, y: 1.192331, z: 0.052871987}
+  hitRadius: 1.4419999
+  hitHeight: 2.15
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

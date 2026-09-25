@@ -63,7 +63,7 @@ GameObject:
   - component: {fileID: 4682898388477242650}
   - component: {fileID: 8954383712553598646}
   - component: {fileID: 4199364097965201022}
-  - component: {fileID: 4848619674130492846}
+  - component: {fileID: 1445303752955689782}
   m_Layer: 7
   m_Name: PF_StageMonster_Murloc_Scout
   m_TagString: Untagged
@@ -551,19 +551,6 @@ MonoBehaviour:
   enemyRank: {fileID: 7478793059115252871}
   enemyMovement: {fileID: 3390939449295556369}
   enemyAttackController: {fileID: 5571038261669763814}
-  auraController: {fileID: 4848619674130492846}
---- !u!114 &4848619674130492846
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5881533766461330917}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1 &8731803250346545133
 GameObject:
   m_ObjectHideFlags: 0
@@ -1375,3 +1362,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 95506757485283782, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 7969182957888895377}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1445303752955689782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5881533766461330917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.099779725, y: 0.90303826, z: -0.031178202}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.17105097, y: 0.8337799, z: -0.05344835}
+  hitRadius: 0.84
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

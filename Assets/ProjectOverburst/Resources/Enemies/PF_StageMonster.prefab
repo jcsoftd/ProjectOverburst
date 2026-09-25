@@ -28,7 +28,7 @@ GameObject:
   - component: {fileID: 7990939634768303489}
   - component: {fileID: 586191158544835879}
   - component: {fileID: 5957111262124030454}
-  - component: {fileID: 839816549304292114}
+  - component: {fileID: 8419944059729132729}
   m_Layer: 7
   m_Name: PF_StageMonster
   m_TagString: Untagged
@@ -406,19 +406,6 @@ MonoBehaviour:
   enemyRank: {fileID: 2979610414357099364}
   enemyMovement: {fileID: 100005}
   enemyAttackController: {fileID: 4142742921359180207}
-  auraController: {fileID: 839816549304292114}
---- !u!114 &839816549304292114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1 &110000
 GameObject:
   m_ObjectHideFlags: 0
@@ -564,3 +551,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 100001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8419944059729132729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 0
+  localBodyCenter: {x: 0, y: 1, z: 0}
+  bodyRadius: 0.6
+  bodyHeight: 2
+  useAuthoredHitVolume: 0
+  localHitCenter: {x: 0, y: 1, z: 0}
+  hitRadius: 0.6
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

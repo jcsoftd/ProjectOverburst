@@ -13,12 +13,16 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
     private GameObject authoredHitVfxPrefab;
     private GameObject authoredDeathVfxPrefab;
     private bool authoredPresentationCaptured;
+    private CombatTarget combatTarget;
+    private CombatTargetVfxPlacement vfxPlacement;
 
     private void Awake()
     {
         CaptureAuthoredPresentation();
         if (health == null)
             health = GetComponent<CombatHealth>();
+        combatTarget = GetComponent<CombatTarget>();
+        vfxPlacement = GetComponent<CombatTargetVfxPlacement>();
     }
 
     private void OnEnable()
@@ -60,14 +64,25 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
     {
         if (info.isDamageOverTime || !info.triggersOnHitEffects || info.suppressDefaultHitVfx)
             return; // 정식 원소 Hit와 임시 Hit 중복 차단
+        if (hitVfxPrefab == null)
+            return;
 
         Transform anchor = hitVfxAnchor != null ? hitVfxAnchor : transform;
-        Vector3 localPosition = Vector3.zero;
+        bool hasHitPoint = info.hitPoint.sqrMagnitude > 0.0001f;
+        Vector3 worldContact = hasHitPoint ? info.hitPoint : anchor.position;
+        float sizeMultiplier = 1f;
+        if (combatTarget != null && vfxPlacement != null)
+        {
+            if (!hasHitPoint)
+                worldContact = combatTarget.CurrentHurtVolume.Center;
+            worldContact = CombatTargetVfxPlacement.ResolveContact(
+                combatTarget, worldContact, info.direction, out sizeMultiplier);
+        }
 
-        if (info.hitPoint.sqrMagnitude > 0.0001f)
-            localPosition = anchor.InverseTransformPoint(info.hitPoint); // 피격점
-
-        VfxPrefabFactory.SpawnFollowing(hitVfxPrefab, anchor, localPosition, false, true);
+        GameObject instance = VfxPrefabFactory.SpawnFollowing(hitVfxPrefab, anchor,
+            anchor.InverseTransformPoint(worldContact), false, true);
+        if (instance != null)
+            instance.transform.localScale = hitVfxPrefab.transform.localScale * sizeMultiplier;
     }
 
     private void HandleDead(CombatHealth source, DamageInfo info)

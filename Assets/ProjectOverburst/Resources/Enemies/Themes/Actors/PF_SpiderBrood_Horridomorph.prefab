@@ -31,7 +31,6 @@ GameObject:
   - component: {fileID: 1169326847861116488}
   - component: {fileID: 7906643427620123551}
   - component: {fileID: 2793878056538093396}
-  - component: {fileID: 892736743657786574}
   - component: {fileID: 3147697797279666382}
   - component: {fileID: 4200239901753264980}
   - component: {fileID: 1075395348684412780}
@@ -42,6 +41,7 @@ GameObject:
   - component: {fileID: 7392818105384862337}
   - component: {fileID: 5872375590746329115}
   - component: {fileID: 8606600181924054629}
+  - component: {fileID: 4406667915651124474}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Horridomorph
   m_TagString: Untagged
@@ -484,20 +484,7 @@ MonoBehaviour:
   enemyRank: {fileID: 5421082334897373525}
   enemyMovement: {fileID: 4562136619897873757}
   enemyAttackController: {fileID: 8026016374848956756}
-  auraController: {fileID: 892736743657786574}
   freezeControlImmune: 0
---- !u!114 &892736743657786574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 518271336578342469}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &3147697797279666382
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1636,3 +1623,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 5571459014896328375, guid: f16ce536157c8b244a716fb05ea3fb87, type: 3}
   m_PrefabInstance: {fileID: 291818783639890313}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4406667915651124474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 518271336578342469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.000014628532, y: 0.2697132, z: 0.05128592}
+  bodyRadius: 0.425
+  bodyHeight: 0.54
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.000025077485, y: 0.2766512, z: 0.06649015}
+  hitRadius: 0.476
+  hitHeight: 0.972
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

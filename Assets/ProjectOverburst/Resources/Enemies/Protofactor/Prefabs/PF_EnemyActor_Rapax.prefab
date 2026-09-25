@@ -160,11 +160,11 @@ GameObject:
   - component: {fileID: 6473429436663852388}
   - component: {fileID: 4078746672361033502}
   - component: {fileID: 7940684012587296358}
-  - component: {fileID: 6874374370117812700}
   - component: {fileID: 3748720413964601519}
   - component: {fileID: 3924703021275617444}
   - component: {fileID: 8249805703073509345}
   - component: {fileID: 5876932829942903272}
+  - component: {fileID: 19005434068781620}
   m_Layer: 7
   m_Name: PF_EnemyActor_Rapax
   m_TagString: Untagged
@@ -600,19 +600,6 @@ MonoBehaviour:
   enemyRank: {fileID: 4008552176276446921}
   enemyMovement: {fileID: 5760941464065019702}
   enemyAttackController: {fileID: 8035577378853919049}
-  auraController: {fileID: 6874374370117812700}
---- !u!114 &6874374370117812700
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7544915028327854900}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &3748720413964601519
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1059,3 +1046,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4621576183238239282, guid: 02ab46ef7501bec47a006d5bb22f0f93, type: 3}
   m_PrefabInstance: {fileID: 807290617040925468}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &19005434068781620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7544915028327854900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.0063408846, y: 1.1807675, z: 0.0048338734}
+  bodyRadius: 0.5625
+  bodyHeight: 2.2837713
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.010870088, y: 1.1942546, z: 0.00828664}
+  hitRadius: 0.63
+  hitHeight: 2.2837713
+  contactRadiusFraction: 0.85
+  contactHeightFraction: 0.55

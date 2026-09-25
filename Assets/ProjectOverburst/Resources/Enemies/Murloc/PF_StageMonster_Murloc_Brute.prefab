@@ -64,7 +64,7 @@ GameObject:
   - component: {fileID: 6491729677622302368}
   - component: {fileID: 5541377997815156290}
   - component: {fileID: 4008365422569358067}
-  - component: {fileID: 2901701626561348926}
+  - component: {fileID: 2980626338717232342}
   m_Layer: 7
   m_Name: PF_StageMonster_Murloc_Brute
   m_TagString: Untagged
@@ -552,19 +552,6 @@ MonoBehaviour:
   enemyRank: {fileID: 1223967750236855476}
   enemyMovement: {fileID: 1721704838721351910}
   enemyAttackController: {fileID: 2039671482828123819}
-  auraController: {fileID: 2901701626561348926}
---- !u!114 &2901701626561348926
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3245051699805235718}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1 &6526375264163875460
 GameObject:
   m_ObjectHideFlags: 0
@@ -1351,3 +1338,25 @@ SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: 137361134508489684, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 4902072097407823095}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2980626338717232342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3245051699805235718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.099779725, y: 0.9030383, z: -0.031178167}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.17105095, y: 0.83377993, z: -0.05344829}
+  hitRadius: 0.84
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

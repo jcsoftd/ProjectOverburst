@@ -21,6 +21,11 @@ public static class MeleeElementHitVfxService
 
     public static bool TryPlay(WeaponElement element, Vector3 hitPoint)
     {
+        return TryPlay(element, hitPoint, 1f);
+    }
+
+    public static bool TryPlay(WeaponElement element, Vector3 hitPoint, float sizeMultiplier)
+    {
         if (!TryResolve(element, out GameObject prefab))
             return false;
 
@@ -45,6 +50,8 @@ public static class MeleeElementHitVfxService
 
                 controller.StopAndClearVfx();
                 controller.SetElement(element); // 활성 전 원소 주입
+                spawned.transform.localScale = prefab.transform.localScale
+                    * Mathf.Clamp(sizeMultiplier, 0.55f, 1.5f);
             });
         return instance != null;
     }

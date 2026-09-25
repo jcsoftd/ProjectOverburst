@@ -303,7 +303,7 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         record.OwnerObject = owner as Object;
         record.Target = target;
         record.ReactionType = snapshot.ReactionType;
-        record.LastPosition = target.WorldCenter;
+        record.LastPosition = CombatTargetVfxPlacement.ResolveVolume(target).Center;
         TryAcquireLoop(recordIndex);
     }
 
@@ -317,7 +317,8 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
 
         ref LoopRecord record = ref loopRecords[index];
         CombatTarget target = record.Target;
-        Vector3 endPosition = target != null ? target.WorldCenter : record.LastPosition;
+        Vector3 endPosition = target != null
+            ? CombatTargetVfxPlacement.ResolveVolume(target).Center : record.LastPosition;
         ReleaseLoopRecord(index);
 
         if (reactionType == ElementalReactionType.ThermalFracture
@@ -440,7 +441,7 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
                 continue;
             }
 
-            record.LastPosition = record.Target.WorldCenter;
+            record.LastPosition = CombatTargetVfxPlacement.ResolveVolume(record.Target).Center;
             bool visible = IsVisible(record.LastPosition);
             if (!visible)
                 ReleaseLoopInstance(ref record);
@@ -567,7 +568,8 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
                 position = request.WorldPosition;
                 break;
             case ElementalReactionVfxSpawnBasis.TargetCenter:
-                position = target != null ? target.WorldCenter : request.WorldPosition;
+                position = target != null
+                    ? CombatTargetVfxPlacement.ResolveVolume(target).Center : request.WorldPosition;
                 break;
             case ElementalReactionVfxSpawnBasis.TargetGround:
                 position = target != null ? target.CurrentVolume.Center : request.WorldPosition;
@@ -575,14 +577,16 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
                     position.y = target.transform.position.y;
                 break;
             case ElementalReactionVfxSpawnBasis.TargetVolume:
-                position = target != null ? target.CurrentVolume.Center : request.WorldPosition;
+                position = target != null
+                    ? CombatTargetVfxPlacement.ResolveVolume(target).Center : request.WorldPosition;
                 break;
             case ElementalReactionVfxSpawnBasis.SourceToTarget:
             {
                 Vector3 from = request.SourceTarget != null
-                    ? request.SourceTarget.WorldCenter
+                    ? CombatTargetVfxPlacement.ResolveVolume(request.SourceTarget).Center
                     : request.SourcePosition;
-                Vector3 to = target != null ? target.WorldCenter : request.TargetPosition;
+                Vector3 to = target != null
+                    ? CombatTargetVfxPlacement.ResolveVolume(target).Center : request.TargetPosition;
                 Vector3 direction = to - from;
                 float distance = direction.magnitude;
                 position = (from + to) * 0.5f;
@@ -606,7 +610,7 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
             && target != null
             && slot.AuthoredRadius > 0f)
         {
-            CombatTargetVolume volume = target.CurrentVolume;
+            CombatTargetVolume volume = CombatTargetVfxPlacement.ResolveVolume(target);
             scaleMultiplier = new Vector3(
                 volume.Radius / slot.AuthoredRadius,
                 volume.HalfHeight / slot.AuthoredRadius,
@@ -726,7 +730,8 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
 
         ref LoopRecord record = ref loopRecords[recordIndex];
         CombatTarget target = record.Target;
-        Vector3 endPosition = target != null ? target.WorldCenter : record.LastPosition;
+        Vector3 endPosition = target != null
+            ? CombatTargetVfxPlacement.ResolveVolume(target).Center : record.LastPosition;
         ReleaseLoopRecord(recordIndex);
 
         if (reactionType == ElementalReactionType.ThermalFracture

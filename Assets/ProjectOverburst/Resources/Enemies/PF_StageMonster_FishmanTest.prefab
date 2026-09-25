@@ -95,7 +95,7 @@ GameObject:
   - component: {fileID: 6924071612221285142}
   - component: {fileID: 8590229572558051637}
   - component: {fileID: 3976787563017867458}
-  - component: {fileID: 9114718582360088138}
+  - component: {fileID: 2639230264030482421}
   m_Layer: 7
   m_Name: PF_StageMonster_FishmanTest
   m_TagString: Untagged
@@ -583,19 +583,6 @@ MonoBehaviour:
   enemyRank: {fileID: 6478380657644028087}
   enemyMovement: {fileID: 4832817220323563895}
   enemyAttackController: {fileID: 9099701854170538066}
-  auraController: {fileID: 9114718582360088138}
---- !u!114 &9114718582360088138
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8500454089243508932}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1001 &1274795282566662897
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -787,3 +774,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4358006477589180, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 1274795282566662897}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2639230264030482421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8500454089243508932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.09977973, y: 0.9030383, z: -0.0311782}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.17105098, y: 0.83377993, z: -0.053448346}
+  hitRadius: 0.84000003
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

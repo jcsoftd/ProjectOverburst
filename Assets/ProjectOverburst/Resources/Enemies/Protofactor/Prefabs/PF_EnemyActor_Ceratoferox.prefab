@@ -277,11 +277,11 @@ GameObject:
   - component: {fileID: 2999127839312149242}
   - component: {fileID: 9140401560626289260}
   - component: {fileID: 5519024170898217212}
-  - component: {fileID: 4221769479767772413}
   - component: {fileID: 392991271090914808}
   - component: {fileID: 2691528688130391675}
   - component: {fileID: 5888140058028318144}
   - component: {fileID: 6228636748810983308}
+  - component: {fileID: 8257348035846814875}
   m_Layer: 7
   m_Name: PF_EnemyActor_Ceratoferox
   m_TagString: Untagged
@@ -717,19 +717,6 @@ MonoBehaviour:
   enemyRank: {fileID: 8237635196051998423}
   enemyMovement: {fileID: 4861739574653470885}
   enemyAttackController: {fileID: 7678056675199428350}
-  auraController: {fileID: 4221769479767772413}
---- !u!114 &4221769479767772413
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4810170822042958181}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &392991271090914808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1123,3 +1110,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 2456941300384992800, guid: f615bb15a8382e14b85c9c065104303d, type: 3}
   m_PrefabInstance: {fileID: 6797910054312936652}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8257348035846814875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4810170822042958181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.00000016529796, y: 1.0203673, z: 0.1151054}
+  bodyRadius: 0.7351024
+  bodyHeight: 1.958477
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.00000028336797, y: 1.0354592, z: 0.19732355}
+  hitRadius: 0.8233147
+  hitHeight: 2.871142
+  contactRadiusFraction: 0.85
+  contactHeightFraction: 0.55

@@ -98,7 +98,6 @@ GameObject:
   - component: {fileID: 3737232905868876642}
   - component: {fileID: 5256668696581034821}
   - component: {fileID: 4623191954720104442}
-  - component: {fileID: 6785710568248337844}
   - component: {fileID: 5090494002043990194}
   - component: {fileID: 18070233928553649}
   - component: {fileID: 6669958735008750625}
@@ -109,6 +108,7 @@ GameObject:
   - component: {fileID: 5131421979018387847}
   - component: {fileID: 5882959627111081550}
   - component: {fileID: 8962432804237667061}
+  - component: {fileID: 1140505615929004682}
   m_Layer: 7
   m_Name: PF_CavernMutants_Gasterobrach
   m_TagString: Untagged
@@ -551,20 +551,7 @@ MonoBehaviour:
   enemyRank: {fileID: 4835959647698625901}
   enemyMovement: {fileID: 7148727082757426091}
   enemyAttackController: {fileID: 7928024578883557631}
-  auraController: {fileID: 6785710568248337844}
   freezeControlImmune: 0
---- !u!114 &6785710568248337844
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2525296777039982481}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &5090494002043990194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1656,3 +1643,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 8986708090314183107, guid: 1bc78eb3fce5e6740968f96f2fc769f7, type: 3}
   m_PrefabInstance: {fileID: 532233346505894258}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1140505615929004682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2525296777039982481}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.00000010729662, y: 1.1582292, z: -0.10831222}
+  bodyRadius: 1.225
+  bodyHeight: 2.05
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.00000018393708, y: 1.2712501, z: -0.11424952}
+  hitRadius: 1.372
+  hitHeight: 3.163229
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

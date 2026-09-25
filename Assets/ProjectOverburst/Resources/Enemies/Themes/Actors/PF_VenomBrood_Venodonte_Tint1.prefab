@@ -160,7 +160,6 @@ GameObject:
   - component: {fileID: 8446948493778780463}
   - component: {fileID: 2598349655439619928}
   - component: {fileID: 1120140454955175144}
-  - component: {fileID: 4755388421804650883}
   - component: {fileID: 4701133387225432491}
   - component: {fileID: 5062790632044000227}
   - component: {fileID: 2631764546252896907}
@@ -171,6 +170,7 @@ GameObject:
   - component: {fileID: 5376073461619300270}
   - component: {fileID: 6193492710216404077}
   - component: {fileID: 8679490687204224975}
+  - component: {fileID: 2952157416299981037}
   m_Layer: 7
   m_Name: PF_VenomBrood_Venodonte_Tint1
   m_TagString: Untagged
@@ -613,20 +613,7 @@ MonoBehaviour:
   enemyRank: {fileID: 4556206721417271932}
   enemyMovement: {fileID: 2043781314210719713}
   enemyAttackController: {fileID: 2455347179577841208}
-  auraController: {fileID: 4755388421804650883}
   freezeControlImmune: 0
---- !u!114 &4755388421804650883
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5119254518068260491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &4701133387225432491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1624,3 +1611,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2185042239048484010, guid: 328c0817618a94d4d8065e353ddf2c4c, type: 3}
   m_PrefabInstance: {fileID: 7539022438987711197}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2952157416299981037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5119254518068260491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.005760087, y: 0.22223832, z: 0.08501681}
+  bodyRadius: 0.40409285
+  bodyHeight: 0.5
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.009874435, y: 0.21669427, z: 0.08860025}
+  hitRadius: 0.5097787
+  hitHeight: 0.5075306
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

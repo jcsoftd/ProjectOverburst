@@ -65,7 +65,7 @@ GameObject:
   - component: {fileID: 4397537809789724539}
   - component: {fileID: 1281783830805160049}
   - component: {fileID: 1786520744679370908}
-  - component: {fileID: 5004343796233666110}
+  - component: {fileID: 4878260749856130385}
   m_Layer: 7
   m_Name: PF_StageMonster_Murloc_Guard
   m_TagString: Untagged
@@ -567,19 +567,6 @@ MonoBehaviour:
   enemyRank: {fileID: 7499328226637150080}
   enemyMovement: {fileID: 2458874868757267077}
   enemyAttackController: {fileID: 71164827565275093}
-  auraController: {fileID: 5004343796233666110}
---- !u!114 &5004343796233666110
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7834640390633090519}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!1 &7958189315519810002
 GameObject:
   m_ObjectHideFlags: 0
@@ -1314,3 +1301,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 95506757485283782, guid: a9f247865a62b44bcb678c441984a669, type: 3}
   m_PrefabInstance: {fileID: 7831260634827734736}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4878260749856130385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7834640390633090519}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.09977975, y: 0.9030383, z: -0.031178176}
+  bodyRadius: 0.75
+  bodyHeight: 2
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.171051, y: 0.83378, z: -0.053448305}
+  hitRadius: 0.84000003
+  hitHeight: 2
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

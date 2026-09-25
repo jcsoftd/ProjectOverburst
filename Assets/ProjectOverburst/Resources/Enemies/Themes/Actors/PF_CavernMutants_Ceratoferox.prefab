@@ -117,7 +117,6 @@ GameObject:
   - component: {fileID: 8922351135406427373}
   - component: {fileID: 1219651212387655234}
   - component: {fileID: 4609444629023566081}
-  - component: {fileID: 2616555486580611615}
   - component: {fileID: 7453628696565200384}
   - component: {fileID: 2342596489019296117}
   - component: {fileID: 4566588252673358607}
@@ -128,6 +127,7 @@ GameObject:
   - component: {fileID: 7356571447713292683}
   - component: {fileID: 8552035924702623554}
   - component: {fileID: 2249419503144698247}
+  - component: {fileID: 7991182917141109182}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ceratoferox
   m_TagString: Untagged
@@ -570,20 +570,7 @@ MonoBehaviour:
   enemyRank: {fileID: 7858547360352882677}
   enemyMovement: {fileID: 6971863865337127673}
   enemyAttackController: {fileID: 7172835938908259008}
-  auraController: {fileID: 2616555486580611615}
   freezeControlImmune: 0
---- !u!114 &2616555486580611615
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2989860340918798508}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &7453628696565200384
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1700,3 +1687,25 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 2456941300384992800, guid: f615bb15a8382e14b85c9c065104303d, type: 3}
   m_PrefabInstance: {fileID: 7027662664203284837}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7991182917141109182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2989860340918798508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: -0.0027259276, y: 0.34200326, z: 0.050467327}
+  bodyRadius: 0.41250002
+  bodyHeight: 0.56
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: -0.004673019, y: 0.37200558, z: 0.057943992}
+  hitRadius: 0.462
+  hitHeight: 1.008
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

@@ -690,7 +690,6 @@ GameObject:
   - component: {fileID: 2426360187690464509}
   - component: {fileID: 4986277851608970565}
   - component: {fileID: 6930416546661752453}
-  - component: {fileID: 767991820130553520}
   - component: {fileID: 4873795266779020158}
   - component: {fileID: 5266234729852065545}
   - component: {fileID: 1352909609474790706}
@@ -701,6 +700,7 @@ GameObject:
   - component: {fileID: 4161169291787696228}
   - component: {fileID: 625854518479758432}
   - component: {fileID: 6191341551787520374}
+  - component: {fileID: 115963120271739973}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Carcinoptera
   m_TagString: Untagged
@@ -1143,20 +1143,7 @@ MonoBehaviour:
   enemyRank: {fileID: 4742588657939137299}
   enemyMovement: {fileID: 3106671489988073022}
   enemyAttackController: {fileID: 7923157940721170476}
-  auraController: {fileID: 767991820130553520}
   freezeControlImmune: 0
---- !u!114 &767991820130553520
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5984709002563124745}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &4873795266779020158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1668,3 +1655,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 348320845119709142, guid: ea1f28b7133898641857853db877efac, type: 3}
   m_PrefabInstance: {fileID: 8892721418062518803}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &115963120271739973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5984709002563124745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.00000012516975, y: 1.0633271, z: 0.1383927}
+  bodyRadius: 0.99147946
+  bodyHeight: 1.8
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.00000021457673, y: 1.144275, z: 0.16581607}
+  hitRadius: 1.2507895
+  hitHeight: 2.5089583
+  contactRadiusFraction: 0.5
+  contactHeightFraction: 0.55

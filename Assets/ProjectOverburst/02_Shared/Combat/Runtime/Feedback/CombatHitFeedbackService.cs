@@ -122,11 +122,18 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
 
     private void HandleRequest(CombatHitFeedbackRequest request)
     {
-        MeleeElementHitVfxService.TryPlay(request.Element, request.HitPoint); // 유효 적중점마다 재생
+        Vector3 visualContact = request.HitPoint;
+        float hitSize = 1f;
+        if (request.Target != null
+            && request.Target.TryGetComponent(out CombatTarget visualTarget)
+            && visualTarget.TryGetComponent<CombatTargetVfxPlacement>(out _))
+            visualContact = CombatTargetVfxPlacement.ResolveContact(
+                visualTarget, request.HitPoint, request.WorldDirection, out hitSize);
+        MeleeElementHitVfxService.TryPlay(request.Element, visualContact, hitSize);
         if (request.Target != null && request.Target.TryGetComponent<EnemyDeathPresentation>(out var presentation))
         {
             CombatImpactFeel.Play(presentation.Surface,
-                request.ImpactShape, request.HitPoint, request.ImpactDirection, request.IsCritical,
+                request.ImpactShape, visualContact, request.ImpactDirection, request.IsCritical,
                 lethal: request.IsLethal);
         }
 
@@ -143,7 +150,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             index = nextGroup;
             nextGroup = (nextGroup + 1) % groups.Length;
             groups[index] = new HitGroup { Occupied = true, Request = request };
-            MeleeElementSfxService.TryPlayHit(request.Element, request.HitPoint);
+            MeleeElementSfxService.TryPlayHit(request.Element, visualContact);
         }
         if (!request.AllowGlobalFeedback || request.Profile == null || groups[index].Dispatched) return;
         groups[index].AnyCritical |= request.IsCritical;

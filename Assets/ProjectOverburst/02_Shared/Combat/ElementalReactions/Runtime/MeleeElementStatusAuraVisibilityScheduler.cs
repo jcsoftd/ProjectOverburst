@@ -61,7 +61,6 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         instance = null;
     }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void EnsureRuntimeService()
     {
         if (instance != null)

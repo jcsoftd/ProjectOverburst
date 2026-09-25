@@ -31,7 +31,6 @@ GameObject:
   - component: {fileID: 2133416064432505324}
   - component: {fileID: 2853338580818439652}
   - component: {fileID: 1373838123214154257}
-  - component: {fileID: 7972895168918134612}
   - component: {fileID: 7178149401679923097}
   - component: {fileID: 3062238476559763983}
   - component: {fileID: 628007416011719594}
@@ -39,6 +38,7 @@ GameObject:
   - component: {fileID: 12714264580543986}
   - component: {fileID: 4896095473391216979}
   - component: {fileID: 2677243353581086437}
+  - component: {fileID: 6251428083338919884}
   m_Layer: 7
   m_Name: PF_EnemyActor_Ursacetus
   m_TagString: Untagged
@@ -474,19 +474,6 @@ MonoBehaviour:
   enemyRank: {fileID: 4179195943513444301}
   enemyMovement: {fileID: 172307248613170636}
   enemyAttackController: {fileID: 5065376216115746000}
-  auraController: {fileID: 7972895168918134612}
---- !u!114 &7972895168918134612
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 675881248768892762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b40b25b5fe88d2443837e2f27fc6138d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraController
 --- !u!114 &7178149401679923097
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1130,3 +1117,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 426067758178435807, guid: aec70ee47e2751447a74d70d740a1f8f, type: 3}
   m_PrefabInstance: {fileID: 7746530219525443482}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6251428083338919884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 675881248768892762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afa88dbbd71293d4f8c1e88ca9b6b55f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
+  useAuthoredVolume: 1
+  localBodyCenter: {x: 0.00000075998275, y: 4.0614753, z: 0.26120168}
+  bodyRadius: 2
+  bodyHeight: 7.706051
+  useAuthoredHitVolume: 1
+  localHitCenter: {x: 0.0000013028276, y: 4.196082, z: 0.44777435}
+  hitRadius: 2.24
+  hitHeight: 9.613498
+  contactRadiusFraction: 0.85
+  contactHeightFraction: 0.55
