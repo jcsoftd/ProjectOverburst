@@ -85,6 +85,30 @@ namespace Overburst.Persistence
             }
         }
 
+        // Run state commands edit the same authoritative account, then project only after disk commit.
+        public bool ExecuteState(string transactionId, Action<AccountSnapshot> mutation)
+        {
+            if (editing || restoring) throw new InvalidOperationException("A gameplay command is already running.");
+            editing = true;
+            notifications.Clear();
+            try
+            {
+                bool committed = transactions.Execute(transactionId, transactions.Revision, mutation);
+                if (!committed) return false;
+                restoring = true;
+                try { AccountGameplayProjection.Restore(transactions.Read(), account, registry); }
+                finally { restoring = false; }
+                return true;
+            }
+            finally
+            {
+                editing = false;
+                var queued = notifications.ToArray(); notifications.Clear();
+                foreach (var notification in queued)
+                    try { notification(); } catch (Exception error) { Debug.LogException(error); }
+            }
+        }
+
         public static bool Run(Func<bool> operation)
         {
             try { return Current != null ? Current.Execute(operation) : operation(); }
