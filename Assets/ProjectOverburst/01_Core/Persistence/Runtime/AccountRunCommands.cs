@@ -189,6 +189,7 @@ namespace Overburst.Persistence
             ClearReferences(state.flasks, removed);
             foreach (var quick in state.quickSlots) if (removed.Contains(quick.flaskInstanceId ?? "")) quick.flaskInstanceId = null;
             state.items.RemoveAll(x => removed.Contains(x.instanceId));
+            AccountPlayerProjection.NormalizeBindings(state);
         }
     }
 }

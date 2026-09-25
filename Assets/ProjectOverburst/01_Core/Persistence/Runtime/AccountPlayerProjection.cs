@@ -52,8 +52,38 @@ namespace Overburst.Persistence
                 });
             }
             target.items = table.Values.ToList();
+            NormalizeBindings(target);
             target.nextAcquisitionOrder = target.items.Count > 0 ? checked(target.items.Max(x => x.acquisitionOrder) + 1) : 1;
             if (progression != null) { target.level = progression.Level; target.experience = progression.Experience; }
+        }
+
+        internal static void ApplyCommittedBindings(AccountSnapshot state, PlayerInventory inventory, AccountContentRegistry registry)
+        {
+            var loadout = PlayerAccountInventoryService.Loadout;
+            state.flasks.CopyTo(loadout.FlaskIds);
+            for (int i = 0; i < state.quickSlots.Count; i++)
+            {
+                var quick = state.quickSlots[i];
+                loadout.QuickConsumables[i] = string.IsNullOrEmpty(quick.consumableContentId) ? null : registry.Resolve<ConsumableItemData>(quick.consumableContentId);
+                loadout.QuickFlaskIds[i] = quick.flaskInstanceId;
+            }
+            foreach (var item in inventory.Items)
+                if (item?.flaskState != null) item.flaskState.equippedSlot = state.flasks.IndexOf(item.runtimeInstanceId);
+        }
+
+        internal static void NormalizeBindings(AccountSnapshot state)
+        {
+            var carried = new HashSet<string>(state.inventory.Where(id => !string.IsNullOrEmpty(id)));
+            var content = new HashSet<string>(state.items.Where(item => carried.Contains(item.instanceId)).Select(item => item.contentId));
+            for (int i = 0; i < state.flasks.Count; i++)
+                if (!string.IsNullOrEmpty(state.flasks[i]) && !carried.Contains(state.flasks[i])) state.flasks[i] = null;
+            foreach (var quick in state.quickSlots)
+            {
+                if (!string.IsNullOrEmpty(quick.consumableContentId) && !content.Contains(quick.consumableContentId)) quick.consumableContentId = null;
+                if (!string.IsNullOrEmpty(quick.flaskInstanceId) && !state.flasks.Contains(quick.flaskInstanceId)) quick.flaskInstanceId = null;
+            }
+            foreach (var item in state.items)
+                if (item.flask != null) item.flask.equippedSlot = state.flasks.IndexOf(item.instanceId);
         }
 
         public static Dictionary<string, ItemData> Restore(AccountSnapshot source, PlayerInventory inventory, PlayerStash stash, PlayerProgression progression, AccountContentRegistry registry, bool notify = true)

@@ -53,6 +53,7 @@ namespace Overburst.Persistence
                 if (!operation()) return false;
                 committed = transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), before.revision,
                     () => AccountGameplayProjection.Capture(before, account, registry));
+                if (committed) AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry);
                 return committed;
             }
             finally

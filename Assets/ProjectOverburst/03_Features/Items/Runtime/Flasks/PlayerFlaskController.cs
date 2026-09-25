@@ -84,6 +84,13 @@ public sealed class PlayerFlaskController : MonoBehaviour
 
     public bool TryEquip(int index, ItemData item, out string reason)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            string failure = string.Empty;
+            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => TryEquip(index, item, out failure));
+            reason = committed ? string.Empty : string.IsNullOrEmpty(failure) ? "물약 장착 변경을 저장하지 못했습니다." : failure;
+            return committed;
+        }
         reason = string.Empty;
         ResolveInventory();
         if (!CanChangeLoadout) { reason = "물약은 은신처에서 교체할 수 있습니다."; return false; }
@@ -97,7 +104,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
             { reason = "같은 종류의 물약은 하나만 장착할 수 있습니다."; return false; }
         }
         ItemData previous = GetItem(index);
-        if (previous != null) { effects.Remove(previous.runtimeInstanceId); FlaskRuntime.State(previous).equippedSlot = -1; }
+        if (previous != null) { Overburst.Persistence.AccountGameplaySession.Notify(() => effects.Remove(previous.runtimeInstanceId)); FlaskRuntime.State(previous).equippedSlot = -1; }
         equippedIds[index] = item.runtimeInstanceId;
         equippedItems[index] = item;
         FlaskInstanceState equippedState = FlaskRuntime.State(item);
@@ -108,12 +115,21 @@ public sealed class PlayerFlaskController : MonoBehaviour
 
     public bool TryUnequip(int index, out string reason)
     {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+        {
+            string failure = string.Empty;
+            bool committed = Overburst.Persistence.AccountGameplaySession.Run(() => TryUnequip(index, out failure));
+            reason = committed ? string.Empty : string.IsNullOrEmpty(failure) ? "물약 장착 변경을 저장하지 못했습니다." : failure;
+            return committed;
+        }
         reason = string.Empty;
         if (!CanChangeLoadout) { reason = "물약은 은신처에서 해제할 수 있습니다."; return false; }
         if (index < 0 || index >= SlotCount) return false;
         ItemData item = GetItem(index);
         if (item != null && FlaskRuntime.State(item) != null) FlaskRuntime.State(item).equippedSlot = -1;
-        effects.Remove(equippedIds[index]); equippedIds[index] = null; equippedItems[index] = null;
+        string removedId = equippedIds[index];
+        Overburst.Persistence.AccountGameplaySession.Notify(() => effects.Remove(removedId));
+        equippedIds[index] = null; equippedItems[index] = null;
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged); return true;
     }
 
