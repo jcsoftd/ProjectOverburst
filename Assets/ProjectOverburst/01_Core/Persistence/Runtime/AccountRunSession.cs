@@ -41,6 +41,33 @@ namespace Overburst.Persistence
                 state => AccountRunCommands.ClearBoss(state, runId, utcTicks));
         }
 
+        public WorldItemPickup ClearBossWithMapReward(string runId, MapItemData mapDefinition,
+            UnityEngine.Vector3 position, System.Collections.Generic.IReadOnlyList<MapOptionRoll> rolledOptions = null)
+        {
+            var run = account.Read().run;
+            if (run == null || run.runId != runId) throw new InvalidOperationException("Stale run identity.");
+            if (run.phase == RunPhase.BossCleared) return null;
+            if (run.phase != RunPhase.Active) throw new InvalidOperationException("Run is not active.");
+            var reward = MapRewardPolicy.CreateBossMap(mapDefinition, account.ContentRegistry, run.map.level,
+                UnityEngine.Random.value, UnityEngine.Random.value, runId, rolledOptions);
+            var pickup = WorldItemDropFactory.CreateWorldPickup(reward, position, account.Owner.Inventory,
+                PlayerContext.Instance?.CurrentActor?.transform);
+            if (pickup == null) throw new InvalidOperationException("Boss map pickup could not be created.");
+            pickup.gameObject.SetActive(false);
+            bool committed = false;
+            try
+            {
+                committed = ClearBoss(runId, DateTime.UtcNow.Ticks);
+                if (!committed) return null;
+                pickup.gameObject.SetActive(true);
+                return pickup;
+            }
+            finally
+            {
+                if (!committed) UnityEngine.Object.Destroy(pickup.gameObject);
+            }
+        }
+
         public bool Fail(string runId)
         {
             var run = account.Read().run;
