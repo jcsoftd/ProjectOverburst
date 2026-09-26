@@ -433,7 +433,7 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
         float actionDuration,
         float transitionDuration,
         bool allowCombatEntry,
-        float normalizedStartTime = 0f)
+        float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default)
     {
         if (IsWeaponCombatAnimatorRouterActive())
         {
@@ -443,10 +443,10 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
                 actionDuration,
                 transitionDuration,
                 allowCombatEntry,
-                normalizedStartTime);
+                normalizedStartTime, playbackAcceleration);
         }
 
-        if (normalizedStartTime > 0f) return false;
+        if (normalizedStartTime > 0f || playbackAcceleration.IsEnabled) return false;
         PlayMeleeFullBodyFire(attackClip, animationSpeed, actionDuration, transitionDuration);
         return attackClip != null;
     }

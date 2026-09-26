@@ -81,6 +81,11 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
     private float targetTransitionLowerLayerWeight;
     private DriverAction activeAction;
     private float activeActionEndTime;
+    private MeleePlaybackAcceleration attackAcceleration;
+    private float attackClockOrigin;
+    private float attackBaseDuration;
+    private float attackPreviousSampleTime;
+    private AnimationClip acceleratedAttackClip;
     private bool combatRequested;
     private bool legacySuppressed;
     private float legacySuppressedUntil;
@@ -208,6 +213,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
         ApplyCurrentProfile();
         UpdateLegacySuppression();
+        UpdateAttackPlaybackSpeed();
         UpdateActionState();
         UpdateLocomotionState();
         UpdateTransitionLowerBodyLayer(deltaTime);
@@ -277,7 +283,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         float actionDuration,
         float transitionDuration,
         bool allowCombatEntry,
-        float normalizedStartTime = 0f)
+        float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default)
     {
         ApplyCurrentProfile();
         if (!CanPlayAttack(allowCombatEntry) || stepIndex < 0 || expectedClip == null)
@@ -293,8 +299,13 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
         float duration = Mathf.Max(0.01f, actionDuration);
         normalizedStartTime = Mathf.Clamp(normalizedStartTime, 0f, .95f);
-        float fullPlaybackDuration = duration / (1f - normalizedStartTime);
+        float fullPlaybackDuration = duration / (playbackAcceleration.ToElapsed(1f) - playbackAcceleration.ToElapsed(normalizedStartTime));
         SetActionSpeedForClip(expectedClip, fullPlaybackDuration);
+        attackAcceleration = playbackAcceleration;
+        acceleratedAttackClip = expectedClip;
+        attackBaseDuration = fullPlaybackDuration;
+        attackClockOrigin = Time.time - fullPlaybackDuration * playbackAcceleration.ToElapsed(normalizedStartTime);
+        attackPreviousSampleTime = Time.time;
         PlayActionState(
             attackStateName,
             DriverAction.Attack,
@@ -541,6 +552,23 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         legacySuppressed = false;
         if (combatRequested && activeAction != DriverAction.Unequip)
             targetLayerWeight = 1f;
+    }
+
+    private void UpdateAttackPlaybackSpeed()
+    {
+        if (activeAction != DriverAction.Attack || !attackAcceleration.IsEnabled
+            || acceleratedAttackClip == null || attackBaseDuration <= 0f)
+            return;
+
+        float now = Time.time;
+        float delta = now - attackPreviousSampleTime;
+        if (delta <= 0f) return;
+        // Integrate the same clock as hit/movement/VFX timing, including frames crossing a boundary.
+        float previous = attackAcceleration.ToClipProgress((attackPreviousSampleTime - attackClockOrigin) / attackBaseDuration);
+        float current = attackAcceleration.ToClipProgress((now - attackClockOrigin) / attackBaseDuration);
+        float rate = Mathf.Max(.01f, (current - previous) / delta);
+        SetActionSpeedForClip(acceleratedAttackClip, 1f / rate);
+        attackPreviousSampleTime = now;
     }
 
     private void UpdateActionState()

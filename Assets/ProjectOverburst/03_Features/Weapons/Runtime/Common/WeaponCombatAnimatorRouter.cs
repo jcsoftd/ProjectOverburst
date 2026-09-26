@@ -70,7 +70,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         float actionDuration,
         float transitionDuration,
         bool allowCombatEntry,
-        float normalizedStartTime = 0f)
+        float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default)
     {
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null
@@ -80,7 +80,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
                 actionDuration,
                 transitionDuration,
                 allowCombatEntry,
-                normalizedStartTime);
+                normalizedStartTime, playbackAcceleration);
     }
 
     public void CancelCombatAttack()
@@ -199,7 +199,7 @@ public interface IWeaponCombatAnimatorDriver
         float actionDuration,
         float transitionDuration,
         bool allowCombatEntry,
-        float normalizedStartTime = 0f);
+        float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default);
     void CancelAttack();
     void SuppressForLegacyFullBodyAction(float duration);
 }

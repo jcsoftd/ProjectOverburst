@@ -22,6 +22,10 @@ MonoBehaviour:
     animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
     comboInputWindow:
       startNormalizedTime: 0.3529412
       endNormalizedTime: 0.92
@@ -113,8 +117,12 @@ MonoBehaviour:
     animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0.2
+    playbackAcceleration:
+      startNormalized: 0.5
+      endNormalized: 0.85
+      peakMultiplier: 1.8
     comboInputWindow:
-      startNormalizedTime: 0.7
+      startNormalizedTime: 0.85
       endNormalizedTime: 0.92
     actionCancelStartNormalized: 0.53
     movementPhases:
@@ -204,6 +212,10 @@ MonoBehaviour:
     animationSpeedMultiplier: 1.1
     transitionDuration: 0.08
     continuationStartNormalizedTime: 0.0625
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
     comboInputWindow:
       startNormalizedTime: 0.625
       endNormalizedTime: 0.92
@@ -329,6 +341,10 @@ MonoBehaviour:
     animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0.024390243
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
     comboInputWindow:
       startNormalizedTime: 0.43
       endNormalizedTime: 0.92

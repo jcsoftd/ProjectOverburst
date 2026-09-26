@@ -626,7 +626,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         attackDuration = ResolveAttackDuration();
         float entryProgress = isDirectComboContinuation && activeAttackUsesCombo
             ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
-        float remainingDuration = attackDuration * (1f - entryProgress);
+        MeleePlaybackAcceleration acceleration = activeAttackStep.playbackAcceleration;
+        float remainingDuration = attackDuration * (acceleration.ToElapsed(1f) - acceleration.ToElapsed(entryProgress));
         ResolveAttackTrail(activeAttackStep);
         ResolveAttackPhases();
 
@@ -654,7 +655,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         RotateOwnerToAttackDirection();
         isAttacking = true;
-        attackStartTime = Time.time - attackDuration * entryProgress;
+        attackStartTime = Time.time - attackDuration * acceleration.ToElapsed(entryProgress);
 
         playerEquipment.CurrentWeaponPose?.BeginActivePose(remainingDuration);
 
@@ -674,7 +675,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
                 remainingDuration,
                 activeAttackTransitionDuration,
                 activeActionSource == WeaponActionSource.PlayerInput,
-                entryProgress);
+                entryProgress, acceleration);
         if (!animationStarted)
         {
             Debug.LogError("[MeleeRuntime] Formal melee combat animation could not start.", this);
@@ -976,8 +977,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (!isAttacking)
             return;
 
-        float elapsed = Time.time - attackStartTime;
-        float normalizedTime = attackDuration > 0f ? Mathf.Clamp01(elapsed / attackDuration) : 1f;
+        float normalizedTime = GetAttackNormalizedTime();
         bool shouldContinueCombo = ShouldContinueActiveCombo(normalizedTime);
         bool shouldCancelByMoveInput = !shouldContinueCombo
             && ShouldCancelActiveComboByMoveInput(normalizedTime);
@@ -1005,8 +1005,15 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return;
         }
 
-        if (elapsed >= attackDuration)
+        if (normalizedTime >= 1f)
             FinishActiveAttack();
+    }
+
+    private float GetAttackNormalizedTime()
+    {
+        return attackDuration > 0f
+            ? Mathf.Clamp01(activeAttackStep.playbackAcceleration.ToClipProgress((Time.time - attackStartTime) / attackDuration))
+            : 1f;
     }
 
     private bool ShouldContinueActiveCombo(float normalizedTime)
@@ -1057,7 +1064,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return false;
         }
 
-        float normalizedTime = Mathf.Clamp01((Time.time - attackStartTime) / attackDuration);
+        float normalizedTime = GetAttackNormalizedTime();
         return activeAttackStep.comboInputWindow.Contains(normalizedTime);
     }
 
@@ -1066,7 +1073,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (!activeAttackUsesCombo || attackDuration <= 0f)
             return false;
 
-        float normalizedTime = Mathf.Clamp01((Time.time - attackStartTime) / attackDuration);
+        float normalizedTime = GetAttackNormalizedTime();
         return normalizedTime >= Mathf.Clamp01(activeAttackStep.actionCancelStartNormalized);
     }
 
