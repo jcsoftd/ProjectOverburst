@@ -129,7 +129,7 @@ Material:
     - _Minimum: -1
     - _NormalizeDistortion: 1
     - _NormalizedDistortion: 0
-    - _OHSArcHalfAngle: 67.5
+    - _OHSArcHalfAngle: 80
     - _OHSArcTipFade: 25
     - _OcclusionStrength: 1
     - _OuterRadialDistortionMaskPower: 0.5

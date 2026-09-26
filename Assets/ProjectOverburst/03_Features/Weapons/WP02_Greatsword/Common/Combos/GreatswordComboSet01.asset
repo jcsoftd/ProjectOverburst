@@ -84,7 +84,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: c2d6576cdf3745f41a4852f16fc31903, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -164,7 +174,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: ff821cf30995f454eb096100edbbb844, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: c2d6576cdf3745f41a4852f16fc31903, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -244,7 +264,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -278,7 +308,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -358,7 +398,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -392,7 +442,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -426,7 +486,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0

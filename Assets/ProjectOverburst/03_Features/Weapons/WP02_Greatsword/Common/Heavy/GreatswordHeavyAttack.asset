@@ -47,7 +47,17 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: f35e2d47ec7cc8a4083dcff993506b37, type: 2}
+        triggerProgress: 0
+        placementMode: 0
+        scaleMultiplier: 1
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
