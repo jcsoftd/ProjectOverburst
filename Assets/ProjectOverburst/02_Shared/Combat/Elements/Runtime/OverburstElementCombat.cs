@@ -18,7 +18,8 @@ public static class OverburstElementCombat
         if (sourceTarget == null || targetActor == null || sourceTarget.Team == targetActor.Team) return;
         OverburstElementEnergy energy = equipment.GetComponent<OverburstElementEnergy>();
         if (energy == null) energy = equipment.gameObject.AddComponent<OverburstElementEnergy>();
-        energy.RecordConfirmedHit(info.sourceWeaponRuntimeInstanceId, info.element, info.sourceAttackSequenceId, actualDamage);
+        energy.RecordConfirmedHit(info.sourceWeaponRuntimeInstanceId, info.element, info.sourceAttackSequenceId, actualDamage,
+            info.isCritical, info.sourceAttackPhaseIndex);
         if (target.IsDead || target.CurrentHp <= 0f) return;
         ElementalStatusController status = target.GetComponent<ElementalStatusController>();
         if (status != null) status.ApplyConfirmedHit(info, actualDamage);

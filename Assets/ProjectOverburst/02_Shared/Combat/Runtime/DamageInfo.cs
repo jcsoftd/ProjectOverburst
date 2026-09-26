@@ -20,6 +20,7 @@ public struct DamageInfo
     public string sourceWeaponRuntimeInstanceId;
     public ElementalReactionType elementalReactionType;
     public int sourceAttackSequenceId;
+    public int sourceAttackPhaseIndex;
     public PlayerAttackKind playerAttackKind;
 
     public DamageInfo(
@@ -37,7 +38,8 @@ public struct DamageInfo
         string sourceWeaponRuntimeInstanceId = "",
         ElementalReactionType elementalReactionType = ElementalReactionType.None,
         int sourceAttackSequenceId = 0,
-        PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified)
+        PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified,
+        int sourceAttackPhaseIndex = 0)
     {
         this.damage = damage;
         this.hitPoint = hitPoint;
@@ -53,6 +55,7 @@ public struct DamageInfo
         this.sourceWeaponRuntimeInstanceId = sourceWeaponRuntimeInstanceId ?? string.Empty;
         this.elementalReactionType = elementalReactionType;
         this.sourceAttackSequenceId = sourceAttackSequenceId;
+        this.sourceAttackPhaseIndex = sourceAttackPhaseIndex;
         this.playerAttackKind = playerAttackKind;
     }
 }

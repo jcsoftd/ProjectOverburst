@@ -1356,7 +1356,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             attackElement,
             activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
             activeHitFeedbackSequenceId,
-            activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak));
+            activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
+            hit.PhaseIndex));
 
         if (hasDischargeTarget && result.ActualDamage > 0f
             && activeDischarge.TryResolveConfirmedHit(

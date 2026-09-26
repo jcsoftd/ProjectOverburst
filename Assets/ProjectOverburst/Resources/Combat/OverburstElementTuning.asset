@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::OverburstElementTuning
   maximumEnergy: 100
   energyPerAttack: 10
+  criticalEnergyFraction: 0.2
   maximumStacks: 5
   statusDuration: 8
   freezeDuration: 2

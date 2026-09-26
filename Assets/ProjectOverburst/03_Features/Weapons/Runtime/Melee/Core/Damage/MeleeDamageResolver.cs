@@ -16,6 +16,7 @@ public readonly struct MeleeDamageRequest
     public readonly WeaponElement Element;
     public readonly string SourceWeaponRuntimeInstanceId;
     public readonly int SourceAttackSequenceId;
+    public readonly int SourceAttackPhaseIndex;
     public readonly PlayerAttackKind AttackKind;
 
     public MeleeDamageRequest(
@@ -33,7 +34,8 @@ public readonly struct MeleeDamageRequest
         WeaponElement element = WeaponElement.None,
         string sourceWeaponRuntimeInstanceId = "",
         int sourceAttackSequenceId = 0,
-        PlayerAttackKind attackKind = PlayerAttackKind.Weak)
+        PlayerAttackKind attackKind = PlayerAttackKind.Weak,
+        int sourceAttackPhaseIndex = 0)
     {
         Target = target;
         Damage = damage;
@@ -49,6 +51,7 @@ public readonly struct MeleeDamageRequest
         Element = element;
         SourceWeaponRuntimeInstanceId = sourceWeaponRuntimeInstanceId ?? string.Empty;
         SourceAttackSequenceId = sourceAttackSequenceId;
+        SourceAttackPhaseIndex = sourceAttackPhaseIndex;
         AttackKind = attackKind;
     }
 }
@@ -110,7 +113,8 @@ public static class MeleeDamageResolver
             ElementalReactionType.None,
             request.SourceAttackSequenceId,
             request.Element == WeaponElement.None ? request.AttackKind
-                : request.AttackKind | PlayerAttackKind.Elemental);
+                : request.AttackKind | PlayerAttackKind.Elemental,
+            request.SourceAttackPhaseIndex);
 
         request.Target.TakeDamage(info);
         float actualDamage = targetHealth != null && hpBeforeHit >= 0f

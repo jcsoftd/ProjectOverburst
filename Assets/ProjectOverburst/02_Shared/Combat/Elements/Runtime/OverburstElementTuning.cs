@@ -6,6 +6,7 @@ public sealed class OverburstElementTuning : ScriptableObject
 {
     [Min(1f)] public float maximumEnergy = 100f;
     [Min(0f)] public float energyPerAttack = 10f;
+    [Range(0f, 1f)] public float criticalEnergyFraction = .2f;
     [Min(1)] public int maximumStacks = 5;
     [Min(0.1f)] public float statusDuration = 8f;
     [Min(0.1f)] public float freezeDuration = 2f;

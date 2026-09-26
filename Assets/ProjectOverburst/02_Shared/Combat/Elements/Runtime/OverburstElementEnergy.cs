@@ -7,8 +7,8 @@ public sealed class OverburstElementEnergy : MonoBehaviour
 {
     private PlayerEquipment equipment;
     private CombatHealth health;
-    private readonly HashSet<int> attacks = new HashSet<int>();
-    private readonly Queue<int> attackOrder = new Queue<int>();
+    private readonly Dictionary<long, float> attacks = new Dictionary<long, float>();
+    private readonly Queue<long> attackOrder = new Queue<long>();
     private int generation;
     public WeaponElement Element { get; private set; }
     public string WeaponInstanceId { get; private set; } = string.Empty;
@@ -47,17 +47,26 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         Element = element;
         Changed?.Invoke();
     }
-    public bool RecordConfirmedHit(string weaponId, WeaponElement element, int attackSequenceId, float actualDamage)
+    public bool RecordConfirmedHit(string weaponId, WeaponElement element, int attackSequenceId, float actualDamage,
+        bool isCritical = false, int attackPhaseIndex = 0)
     {
         if (!isActiveAndEnabled || (health != null && health.IsDead)
             || !OverburstElementTuning.IsFinitePositive(actualDamage) || attackSequenceId <= 0
             || string.IsNullOrWhiteSpace(weaponId) || !OverburstElementRules.IsActive(element)) return false;
         if (equipment != null) SyncWeapon();
-        if (WeaponInstanceId != weaponId || Element != element || !attacks.Add(attackSequenceId)) return false;
-        attackOrder.Enqueue(attackSequenceId);
-        while (attackOrder.Count > 128) attacks.Remove(attackOrder.Dequeue());
+        if (WeaponInstanceId != weaponId || Element != element) return false;
         OverburstElementTuning tuning = OverburstElementTuning.Current;
-        Amount = Mathf.Min(Mathf.Max(1f, tuning.maximumEnergy), Amount + Mathf.Max(0f, tuning.energyPerAttack) * (1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.EnergyGain)));
+        long key = ((long)attackSequenceId << 32) | (uint)Mathf.Max(0, attackPhaseIndex);
+        float baseGain = isCritical ? Mathf.Max(1f, tuning.maximumEnergy) * Mathf.Clamp01(tuning.criticalEnergyFraction)
+            : Mathf.Max(0f, tuning.energyPerAttack);
+        float gain = baseGain * (1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.EnergyGain));
+        bool alreadyHit = attacks.TryGetValue(key, out float credited);
+        if (alreadyHit && gain <= credited) return false;
+        // A later critical target upgrades this swing's total, independent of target iteration order.
+        attacks[key] = gain;
+        if (!alreadyHit) attackOrder.Enqueue(key);
+        while (attackOrder.Count > 128) attacks.Remove(attackOrder.Dequeue());
+        Amount = Mathf.Min(Mathf.Max(1f, tuning.maximumEnergy), Amount + Mathf.Max(0f, gain - credited));
         Changed?.Invoke();
         return true;
     }
