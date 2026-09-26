@@ -14,7 +14,8 @@ public sealed class AttackMovementExecutor
     public bool Begin(
         AttackMovementPhaseData[] movementPhases,
         Vector3 movementDirection,
-        Action<Vector3> displacementCallback)
+        Action<Vector3> displacementCallback,
+        float startNormalizedTime = 0f)
     {
         Cancel();
 
@@ -31,6 +32,15 @@ public sealed class AttackMovementExecutor
         applyDisplacement = displacementCallback;
         phases = movementPhases;
         appliedLocalDisplacements = new Vector3[phases.Length];
+        for (int i = 0; i < phases.Length; i++)
+        {
+            if (startNormalizedTime <= 0f || startNormalizedTime < phases[i].SafeStart)
+                continue;
+            float progress = Mathf.Clamp01(Mathf.InverseLerp(phases[i].SafeStart,
+                phases[i].SafeEnd, startNormalizedTime) * ComboMovementSpeedMultiplier);
+            appliedLocalDisplacements[i] = phases[i].EvaluateLocalDisplacement(progress)
+                * ComboMovementDistanceMultiplier;
+        }
         return applyDisplacement != null;
     }
 

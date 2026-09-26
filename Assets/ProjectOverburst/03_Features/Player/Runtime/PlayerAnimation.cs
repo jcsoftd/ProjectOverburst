@@ -432,7 +432,8 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
         float animationSpeed,
         float actionDuration,
         float transitionDuration,
-        bool allowCombatEntry)
+        bool allowCombatEntry,
+        float normalizedStartTime = 0f)
     {
         if (IsWeaponCombatAnimatorRouterActive())
         {
@@ -441,9 +442,11 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
                 attackClip,
                 actionDuration,
                 transitionDuration,
-                allowCombatEntry);
+                allowCombatEntry,
+                normalizedStartTime);
         }
 
+        if (normalizedStartTime > 0f) return false;
         PlayMeleeFullBodyFire(attackClip, animationSpeed, actionDuration, transitionDuration);
         return attackClip != null;
     }

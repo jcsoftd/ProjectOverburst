@@ -624,6 +624,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
 
         attackDuration = ResolveAttackDuration();
+        float entryProgress = isDirectComboContinuation && activeAttackUsesCombo
+            ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
+        float remainingDuration = attackDuration * (1f - entryProgress);
         ResolveAttackTrail(activeAttackStep);
         ResolveAttackPhases();
 
@@ -638,7 +641,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (!attackMovementExecutor.Begin(
                 activeAttackStep.movementPhases,
                 activeAttackDirection,
-                ApplyAttackDisplacement)
+                ApplyAttackDisplacement,
+                entryProgress)
             || !attackTrailExecutor.Begin(
                 activeAttackStep.trailPhases,
                 StartAttackTrail,
@@ -650,13 +654,13 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         RotateOwnerToAttackDirection();
         isAttacking = true;
-        attackStartTime = Time.time;
+        attackStartTime = Time.time - attackDuration * entryProgress;
 
-        playerEquipment.CurrentWeaponPose?.BeginActivePose(attackDuration);
+        playerEquipment.CurrentWeaponPose?.BeginActivePose(remainingDuration);
 
         MeleeAttackLock.Begin(
             playerController,
-            attackDuration,
+            remainingDuration,
             activeAttackDirection);
 
         // GOAL A2: 공격 이동 ControlledMove와 melee action Attack을 명시 요청한다.
@@ -667,9 +671,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
                 isHeavy ? 0 : comboStepIndex,
                 activeAttackAnimationClip,
                 activeAttackAnimationSpeed,
-                attackDuration,
+                remainingDuration,
                 activeAttackTransitionDuration,
-                activeActionSource == WeaponActionSource.PlayerInput);
+                activeActionSource == WeaponActionSource.PlayerInput,
+                entryProgress);
         if (!animationStarted)
         {
             Debug.LogError("[MeleeRuntime] Formal melee combat animation could not start.", this);

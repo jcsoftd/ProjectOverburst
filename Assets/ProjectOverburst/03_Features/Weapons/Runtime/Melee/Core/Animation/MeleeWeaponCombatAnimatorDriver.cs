@@ -276,7 +276,8 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         AnimationClip expectedClip,
         float actionDuration,
         float transitionDuration,
-        bool allowCombatEntry)
+        bool allowCombatEntry,
+        float normalizedStartTime = 0f)
     {
         ApplyCurrentProfile();
         if (!CanPlayAttack(allowCombatEntry) || stepIndex < 0 || expectedClip == null)
@@ -291,12 +292,13 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
             PrepareCombatLayerForAttackEntry();
 
         float duration = Mathf.Max(0.01f, actionDuration);
-        SetActionSpeedForClip(expectedClip, duration);
+        normalizedStartTime = Mathf.Clamp(normalizedStartTime, 0f, .95f);
+        SetActionSpeedForClip(expectedClip, duration / (1f - normalizedStartTime));
         PlayActionState(
             attackStateName,
             DriverAction.Attack,
             duration,
-            Mathf.Max(0f, transitionDuration));
+            Mathf.Max(0f, transitionDuration), normalizedStartTime, expectedClip.length);
         return true;
     }
 
@@ -681,9 +683,10 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         DriverAction action,
         float duration,
         float transitionDuration,
-        float normalizedStartTime)
+        float normalizedStartTime,
+        float clipLength = 1f)
     {
-        if (!PlayState(stateName, Mathf.Max(0f, transitionDuration), normalizedStartTime))
+        if (!PlayState(layerIndex, layerName, stateName, Mathf.Max(0f, transitionDuration), normalizedStartTime, clipLength))
             return;
 
         activeAction = action;
@@ -710,7 +713,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         return IsCurrentOrNextState(layerIndex, layerName, stateName);
     }
 
-    private bool PlayState(int animatorLayerIndex, string animatorLayerName, string stateName, float transitionDuration, float normalizedTime)
+    private bool PlayState(int animatorLayerIndex, string animatorLayerName, string stateName, float transitionDuration, float normalizedTime, float clipLength = 1f)
     {
         if (targetAnimator == null || animatorLayerIndex < 0 || string.IsNullOrEmpty(stateName))
             return false;
@@ -724,7 +727,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         }
 
         if (transitionDuration > 0f)
-            targetAnimator.CrossFadeInFixedTime(stateHash, transitionDuration, animatorLayerIndex, Mathf.Clamp01(normalizedTime));
+            targetAnimator.CrossFadeInFixedTime(stateHash, transitionDuration, animatorLayerIndex, Mathf.Clamp01(normalizedTime) * clipLength);
         else
             targetAnimator.Play(stateHash, animatorLayerIndex, Mathf.Clamp01(normalizedTime));
 

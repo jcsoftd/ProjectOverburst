@@ -69,7 +69,8 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         AnimationClip expectedClip,
         float actionDuration,
         float transitionDuration,
-        bool allowCombatEntry)
+        bool allowCombatEntry,
+        float normalizedStartTime = 0f)
     {
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null
@@ -78,7 +79,8 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
                 expectedClip,
                 actionDuration,
                 transitionDuration,
-                allowCombatEntry);
+                allowCombatEntry,
+                normalizedStartTime);
     }
 
     public void CancelCombatAttack()
@@ -196,7 +198,8 @@ public interface IWeaponCombatAnimatorDriver
         AnimationClip expectedClip,
         float actionDuration,
         float transitionDuration,
-        bool allowCombatEntry);
+        bool allowCombatEntry,
+        float normalizedStartTime = 0f);
     void CancelAttack();
     void SuppressForLegacyFullBodyAction(float duration);
 }
