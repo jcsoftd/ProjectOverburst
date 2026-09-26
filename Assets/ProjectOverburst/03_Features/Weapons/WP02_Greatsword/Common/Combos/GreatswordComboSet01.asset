@@ -19,13 +19,13 @@ MonoBehaviour:
   - attackId: Greatsword.ComboSet01.1
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 1\uD0C0 \uC6B0\u2192\uC88C \uBCA0\uAE30"
     animationClip: {fileID: 7400000, guid: fd7a03db86f31e843b7771b6aaf1aafe, type: 3}
-    animationSpeedMultiplier: 1
+    animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0
     comboInputWindow:
-      startNormalizedTime: 0.38235295
+      startNormalizedTime: 0.3529412
       endNormalizedTime: 0.92
-    actionCancelStartNormalized: 0.6
+    actionCancelStartNormalized: 0.36
     movementPhases:
     - startNormalizedTime: 0.09
       endNormalizedTime: 0.3
@@ -110,13 +110,13 @@ MonoBehaviour:
   - attackId: Greatsword.ComboSet01.2
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 2\uD0C0 \uC88C\u2192\uC6B0 \uBCA0\uAE30"
     animationClip: {fileID: 7400000, guid: c8db3314b02fb5247b2e0202c3f59c6d, type: 3}
-    animationSpeedMultiplier: 1
+    animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0.2
     comboInputWindow:
-      startNormalizedTime: 0.85
+      startNormalizedTime: 0.7
       endNormalizedTime: 0.92
-    actionCancelStartNormalized: 0.62
+    actionCancelStartNormalized: 0.53
     movementPhases:
     - startNormalizedTime: 0.08
       endNormalizedTime: 0.47
@@ -201,13 +201,13 @@ MonoBehaviour:
   - attackId: Greatsword.ComboSet01.3
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 3\uD0C0 \uD68C\uC804 2\uC5F0\uD0C0"
     animationClip: {fileID: 7400000, guid: 5c37fd0ee688f9942aada956de1b0cac, type: 3}
-    animationSpeedMultiplier: 1
-    transitionDuration: 0.06
+    animationSpeedMultiplier: 1.1
+    transitionDuration: 0.08
     continuationStartNormalizedTime: 0.0625
     comboInputWindow:
-      startNormalizedTime: 0.7083333
+      startNormalizedTime: 0.625
       endNormalizedTime: 0.92
-    actionCancelStartNormalized: 0.61
+    actionCancelStartNormalized: 0.54499996
     movementPhases:
     - startNormalizedTime: 0.1
       endNormalizedTime: 0.51
@@ -267,17 +267,7 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues:
-      - motionRole: 2
-        mirrorAxis: 0
-        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
-        triggerProgress: 0.25
-        placementMode: 3
-        scaleMultiplier: 1
-        autoSwingSlope: 0
-        swingSlopeOffsetDegrees: 0
-        localEulerOffset: {x: 0, y: 0, z: 0}
-        elementOverrideKey: 
+      vfxCues: []
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -336,13 +326,13 @@ MonoBehaviour:
   - attackId: Greatsword.ComboSet01.4
     attackName: "\uB300\uAC80 \uCF64\uBCF4 03 4\uD0C0 \uB3C4\uC57D \uD68C\uC804 3\uC5F0\uD0C0"
     animationClip: {fileID: 7400000, guid: dbafa21378d2163439454ad6fdf05807, type: 3}
-    animationSpeedMultiplier: 1
+    animationSpeedMultiplier: 1.1
     transitionDuration: 0.06
     continuationStartNormalizedTime: 0.024390243
     comboInputWindow:
-      startNormalizedTime: 0.47
+      startNormalizedTime: 0.43
       endNormalizedTime: 0.92
-    actionCancelStartNormalized: 0.48
+    actionCancelStartNormalized: 0.415
     movementPhases:
     - startNormalizedTime: 0.07
       endNormalizedTime: 0.36

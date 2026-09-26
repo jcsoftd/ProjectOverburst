@@ -293,12 +293,14 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
         float duration = Mathf.Max(0.01f, actionDuration);
         normalizedStartTime = Mathf.Clamp(normalizedStartTime, 0f, .95f);
-        SetActionSpeedForClip(expectedClip, duration / (1f - normalizedStartTime));
+        float fullPlaybackDuration = duration / (1f - normalizedStartTime);
+        SetActionSpeedForClip(expectedClip, fullPlaybackDuration);
         PlayActionState(
             attackStateName,
             DriverAction.Attack,
             duration,
-            Mathf.Max(0f, transitionDuration), normalizedStartTime, expectedClip.length);
+            // Fixed-time offsets use the state's playback duration, including its speed multiplier.
+            Mathf.Max(0f, transitionDuration), normalizedStartTime, fullPlaybackDuration);
         return true;
     }
 
@@ -633,7 +635,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
     {
         return (combatRequested || allowCombatEntry)
             && !legacySuppressed
-            && activeAction != DriverAction.Unequip
+            && (activeAction != DriverAction.Unequip || allowCombatEntry)
             && IsAvailable;
     }
 
