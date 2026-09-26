@@ -199,7 +199,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     public WeaponActionResult TryStartHeavyAttack(Vector3 requestedDirection)
     {
         ResolveReferences();
-        if (isAttacking || activeActionId > 0)
+        if ((isAttacking || activeActionId > 0) && (!activeAttackUsesCombo || activeAttackIsHeavy))
             return WeaponActionResult.RejectedBusy;
         if (!CanUseCurrentWeapon)
             return WeaponActionResult.RejectedUnsupported;
@@ -211,6 +211,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (heavy == null || !heavy.IsConfigured)
             return WeaponActionResult.RejectedUnsupported;
 
+        if (isAttacking)
+            CancelActiveAttack(WeaponActionCompletionReason.CancelledByRequest, true);
+
+        suppressHandoffMoveCancelUntilRelease = false;
         ResetComboState();
         activeActionId = AllocateActionId();
         activeActionSource = WeaponActionSource.PlayerInput;
@@ -559,7 +563,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private bool ShouldStartHeavyAttack()
     {
-        if (!CanStartManualAttackInput())
+        if (!manualInputEnabled || activeAttackIsHeavy
+            || (isAttacking && !activeAttackUsesCombo)
+            || !CanUseCurrentWeapon || IsPlayerEvading()
+            || !CanAttackFromCurrentMovementState())
             return false;
 
         MeleeWeaponDefinition melee = playerEquipment.CurrentWeaponData.GetMeleeDefinition();
@@ -1061,7 +1068,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private bool ShouldCancelActiveComboByMoveInput(float normalizedTime)
     {
         if (!manualInputEnabled
-            || !activeAttackUsesCombo
+            || (!activeAttackUsesCombo && !activeAttackIsHeavy)
             || normalizedTime < Mathf.Clamp01(activeAttackStep.actionCancelStartNormalized))
         {
             return false;
@@ -1255,7 +1262,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             playerController,
             combatTarget,
             displacement); // CharacterController 이동 전에 선행 밀어내기
-        playerController?.ApplyWeaponRootMotionDisplacement(displacement);
+        playerController?.ApplyWeaponRootMotionDisplacement(displacement, !activeAttackIsHeavy);
     }
 
     private bool IsSameRuntimeItem(ItemData left, ItemData right)

@@ -147,6 +147,8 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     public AnimationClip jumpClip;
     [InspectorName("구르기 / 회피")]
     public AnimationClip rollClip;
+    [InspectorName("구르기 이동 방향 기준 몸 회전각")]
+    public float rollFacingYawOffset;
 
     [Header("전환 시간")]
     [InspectorName("레이어 진입 페이드")]

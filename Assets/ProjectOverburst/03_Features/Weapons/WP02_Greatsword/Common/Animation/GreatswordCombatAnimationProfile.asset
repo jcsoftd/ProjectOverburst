@@ -59,6 +59,7 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 52fad8c32014a9f4aa1c30451c125491, type: 3}
   jumpClip: {fileID: 7400000, guid: 3abfe72d2cb119c45a7bc86fd6ce6d7c, type: 3}
   rollClip: {fileID: 7400000, guid: f4a36e0d6d44a5a4aa7212cfdba69abd, type: 3}
+  rollFacingYawOffset: 180
   layerFadeInDuration: 0.08
   layerFadeOutDuration: 0.12
   equipToLocomotionTransitionDuration: 0.12

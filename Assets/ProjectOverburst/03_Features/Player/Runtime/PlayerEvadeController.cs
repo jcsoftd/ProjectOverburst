@@ -54,6 +54,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private bool perfectEvadeTriggered;
     private PlayerEvadeType activeType;
     private Vector3 activeDirection;
+    private float activeRollFacingYawOffset;
     private float activeDistance;
     private float activeDuration;
     private float activeMovedDistance;
@@ -221,6 +222,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
         activeType = evadeType;
         activeDirection = ResolveEvadeDirection();
+        var weaponProfile = GetComponent<PlayerEquipment>()?.CurrentWeaponData?.GetCombatAnimationProfile();
+        activeRollFacingYawOffset = weaponProfile != null ? weaponProfile.rollFacingYawOffset : 0f;
         activeDirection.y = 0f;
         activeDirection = activeDirection.sqrMagnitude > 0.001f ? activeDirection.normalized : transform.forward;
 
@@ -242,6 +245,9 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         rollRotationRecoveryEndTime = 0f;
         // GOAL A2: 회피 구간 Locomotion.Evading을 명시 요청한다.
         ResolveStateCoordinator()?.RequestLocomotion(this, PlayerLocomotionState.Evading);
+        if (activeType == PlayerEvadeType.Roll && Mathf.Abs(activeRollFacingYawOffset) > .01f)
+            transform.rotation = Quaternion.LookRotation(activeDirection, Vector3.up)
+                * Quaternion.Euler(0f, activeRollFacingYawOffset, 0f);
         MaintainEvadeDirection(Time.unscaledDeltaTime);
 
         playerMovement?.PrepareEvadeMotion();
@@ -264,7 +270,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (direction.sqrMagnitude <= 0.001f)
             return;
 
-        Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up)
+            * Quaternion.Euler(0f, activeRollFacingYawOffset, 0f);
         float blend = 1f - Mathf.Exp(-Mathf.Max(0f, rollDirectionBlendSpeed) * Mathf.Max(0f, deltaTime));
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Mathf.Clamp01(blend));
     }

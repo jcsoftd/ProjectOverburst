@@ -158,6 +158,10 @@ public class AimPointerUI : MonoBehaviour
         if (hideWhenGameplayInputBlocked && GameplayInputBlocker.IsGameplayInputBlocked)
             return false;
 
+        if (playerEquipment != null && playerEquipment.CanCurrentWeaponUseMeleeSlash
+            && !playerEquipment.CanCurrentWeaponUseAimInput)
+            return false;
+
         bool hasMagicAimWeapon = playerEquipment != null
             && playerEquipment.CanCurrentWeaponUseMagicCaster
             && playerController != null

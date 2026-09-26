@@ -1135,12 +1135,12 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
         jumpAnimationRequested = false; // 점프 애니 제거
     }
 
-    public void ApplyWeaponRootMotionDisplacement(Vector3 displacement)
+    public void ApplyWeaponRootMotionDisplacement(Vector3 displacement, bool inheritLocomotionVelocity = true)
     {
         if (combatMotion == null)
             return;
         Vector3 controllerVelocity = combatMotion.ApplyWeaponRootMotion(displacement);
-        locomotion?.SetHorizontalVelocity(controllerVelocity);
+        locomotion?.SetHorizontalVelocity(inheritLocomotionVelocity ? controllerVelocity : Vector3.zero);
     }
 
     private float ResolveCurrentBaseMoveSpeed()

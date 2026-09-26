@@ -16,13 +16,47 @@ MonoBehaviour:
     attackId: Greatsword.Heavy.FrontCircle
     attackName: "\uB300\uAC80 \uC804\uBC29 \uC6D0\uD615 \uAC15\uACF5"
     animationClip: {fileID: 7400000, guid: 469e00b226cf5904f8f20fd7061f25bc, type: 3}
-    animationSpeedMultiplier: 1
+    animationSpeedMultiplier: 1.2
     transitionDuration: 0.08
     comboInputWindow:
       startNormalizedTime: 0
       endNormalizedTime: 0
-    actionCancelStartNormalized: 1
-    movementPhases: []
+    actionCancelStartNormalized: 0.64
+    movementPhases:
+    - startNormalizedTime: 0.12
+      endNormalizedTime: 0.84
+      movementMode: 0
+      distance: 3.3333333
+      progressCurve:
+        serializedVersion: 2
+        m_Curve:
+        - serializedVersion: 3
+          time: 0
+          value: 0
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+          weightedMode: 0
+          inWeight: 0
+          outWeight: 0
+        - serializedVersion: 3
+          time: 1
+          value: 1
+          inSlope: 0
+          outSlope: 0
+          tangentMode: 0
+          weightedMode: 0
+          inWeight: 0
+          outWeight: 0
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      localForwardCurve:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
     trailPhases: []
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 05d907197b513f747a136417b565898b, type: 2}
