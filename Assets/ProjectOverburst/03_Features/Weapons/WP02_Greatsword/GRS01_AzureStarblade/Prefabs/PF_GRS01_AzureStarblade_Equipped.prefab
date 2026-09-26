@@ -469,7 +469,7 @@ MonoBehaviour:
   waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
   iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
   electricTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
-  trailWidthScale: 0.3
+  trailWidthScale: 1
   trailLifetime: 0.12
   trailOffsets:
   - {x: 0, y: 0.55, z: 0}

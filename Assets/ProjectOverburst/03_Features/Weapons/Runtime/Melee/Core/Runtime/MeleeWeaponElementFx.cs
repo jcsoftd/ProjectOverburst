@@ -25,7 +25,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     [SerializeField] private GameObject waterTrail;
     [SerializeField] private GameObject iceTrail;
     [SerializeField] private GameObject electricTrail;
-    [SerializeField, Range(0.01f, 1f)] private float trailWidthScale = 0.16f;
+    [SerializeField, Range(0.01f, 1f)] private float trailWidthScale = 1f;
     [SerializeField, Min(0.01f)] private float trailLifetime = 0.23f;
     [SerializeField] private Vector3[] trailOffsets =
     {
@@ -328,13 +328,19 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         }
         Bounds bounds = auraEmissionMesh.bounds;
         trailRenderers = trailInstance.GetComponentsInChildren<TrailRenderer>(true);
+        float sourceMaxWidth = 0f;
+        foreach (TrailRenderer trail in trailRenderers)
+            if (trail != null) sourceMaxWidth = Mathf.Max(sourceMaxWidth, trail.widthMultiplier);
+        float bladeLength = bounds.size.z;
         foreach (TrailRenderer trail in trailRenderers)
         {
             trail.emitting = false;
             trail.enabled = false;
             trail.Clear();
             trail.time = trailLifetime;
-            trail.widthMultiplier = Mathf.Min(trail.widthMultiplier, 2f) * bounds.size.x * trailWidthScale;
+            trail.widthMultiplier = sourceMaxWidth > 0f
+                ? trail.widthMultiplier / sourceMaxWidth * bladeLength * trailWidthScale
+                : 0f;
             trail.minVertexDistance = .015f;
             // The prefab layers share one blade anchor; never offset them beyond WeaponTip.
             trail.transform.position = trailInstance.transform.TransformPoint(new Vector3(bounds.center.x, bounds.center.y,
