@@ -20,6 +20,15 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     [SerializeField, Range(0.01f, 1f)] private float auraEmissionScale = 0.45f;
     [SerializeField, Range(0.01f, 1f)] private float auraSurfaceScale = 0.28f;
 
+    [Header("Weapon Effects 2 blade accents")]
+    [SerializeField] private GameObject fireBladeAccent;
+    [SerializeField] private GameObject waterBladeAccent;
+    [SerializeField] private GameObject iceBladeAccent;
+    [SerializeField] private GameObject electricBladeAccent;
+    [SerializeField, Range(0.01f, 1f)] private float bladeAccentStartNormalized = 0.35f;
+    [SerializeField, Range(0.1f, 2f)] private float bladeAccentScale = 0.72f;
+    [SerializeField, Range(0.1f, 2f)] private float fireBladeAccentScale = 0.48f;
+
     [Header("Swing trail")]
     [SerializeField] private GameObject fireTrail;
     [SerializeField] private GameObject waterTrail;
@@ -39,6 +48,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     private WeaponElement shownElement;
     private GameObject auraContainer;
     private GameObject trailInstance;
+    private GameObject bladeAccentContainer;
     private ParticleSystem[] auraParticles;
     private ParticleSystem.MinMaxCurve[] auraBaseSizes;
     private float[] auraBaseRates;
@@ -78,6 +88,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         if (energy != null) energy.Changed -= Refresh;
         ClearTrail();
         DestroyTrail();
+        DestroyBladeAccent();
         DestroyAura();
         shownElement = WeaponElement.None;
         awaitingOwner = false;
@@ -134,6 +145,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         {
             ClearTrail();
             DestroyTrail();
+            DestroyBladeAccent();
             DestroyAura();
             shownElement = nextElement;
             if (shownElement != WeaponElement.None) CreateTrail();
@@ -142,12 +154,18 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         if (shownElement == WeaponElement.None || energy == null
             || energy.Normalized < auraStartNormalized)
         {
+            DestroyBladeAccent();
             DestroyAura();
             return;
         }
 
         if (auraContainer == null) CreateAura();
         if (auraContainer != null) ApplyAuraStrength(energy.Normalized);
+        if (energy.Normalized >= bladeAccentStartNormalized)
+        {
+            if (bladeAccentContainer == null) CreateBladeAccent();
+        }
+        else DestroyBladeAccent();
     }
 
     private void BindOwner()
@@ -316,6 +334,44 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         auraBaseRates = null;
     }
 
+    private void CreateBladeAccent()
+    {
+        GameObject source = SelectBladeAccent(shownElement);
+        if (source == null || bladeRenderer == null || auraEmissionMesh == null) return;
+
+        bladeAccentContainer = CreateBladeSpace("ElementBladeAccent");
+        GameObject instance = Instantiate(source, bladeAccentContainer.transform, false);
+        // The supplier sword runs toward local -Z. The equipped greatsword blade
+        // runs from its guard toward local -Z too; keep the supplier orientation.
+        instance.transform.localPosition = new Vector3(0f, 0f, auraEmissionMesh.bounds.max.z * .66f);
+        instance.transform.localRotation = Quaternion.identity;
+        instance.transform.localScale = Vector3.one * (shownElement == WeaponElement.Fire
+            ? fireBladeAccentScale : bladeAccentScale);
+
+        // The existing MeshFX already lights the blade. Do not add another point light.
+        foreach (Light light in instance.GetComponentsInChildren<Light>(true)) light.enabled = false;
+        foreach (MonoBehaviour behaviour in instance.GetComponentsInChildren<MonoBehaviour>(true))
+            if (behaviour != null && behaviour.GetType().Name == "ME2_Light") behaviour.enabled = false;
+
+        ParticleSystem[] particles = instance.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particle in particles)
+        {
+            particle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particle.main;
+            main.playOnAwake = false;
+        }
+        bladeAccentContainer.SetActive(true);
+        foreach (ParticleSystem particle in particles) particle.Play(false);
+    }
+
+    private void DestroyBladeAccent()
+    {
+        if (bladeAccentContainer == null) return;
+        bladeAccentContainer.SetActive(false);
+        DestroyRuntimeObject(bladeAccentContainer);
+        bladeAccentContainer = null;
+    }
+
     private void CreateTrail()
     {
         GameObject source = SelectTrail(shownElement);
@@ -375,6 +431,18 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             case WeaponElement.Water: return waterTrail;
             case WeaponElement.Ice: return iceTrail;
             case WeaponElement.Electric: return electricTrail;
+            default: return null;
+        }
+    }
+
+    private GameObject SelectBladeAccent(WeaponElement element)
+    {
+        switch (element)
+        {
+            case WeaponElement.Fire: return fireBladeAccent;
+            case WeaponElement.Water: return waterBladeAccent;
+            case WeaponElement.Ice: return iceBladeAccent;
+            case WeaponElement.Electric: return electricBladeAccent;
             default: return null;
         }
     }

@@ -465,6 +465,13 @@ MonoBehaviour:
   auraParticleSizeScale: 0.54
   auraEmissionScale: 1
   auraSurfaceScale: 0.85
+  fireBladeAccent: {fileID: 4824730990175752085, guid: 5cbe1eebf41ffe54484fffa320e93c58, type: 3}
+  waterBladeAccent: {fileID: 0}
+  iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricBladeAccent: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
+  bladeAccentStartNormalized: 0.35
+  bladeAccentScale: 0.72
+  fireBladeAccentScale: 0.48
   fireTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
   waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
   iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
