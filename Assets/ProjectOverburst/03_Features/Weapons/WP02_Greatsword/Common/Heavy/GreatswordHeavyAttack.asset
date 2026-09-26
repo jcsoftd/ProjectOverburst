@@ -19,6 +19,10 @@ MonoBehaviour:
     animationSpeedMultiplier: 1.1
     transitionDuration: 0.08
     continuationStartNormalizedTime: 0
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
     comboInputWindow:
       startNormalizedTime: 0
       endNormalizedTime: 0
@@ -107,9 +111,9 @@ MonoBehaviour:
   chargedDamageMultiplier: 1.35
   emptyDamageMultiplier: 0.6
   elementVfx:
-    fireImpact: {fileID: 8122398794927976415, guid: 080e8ed6074988c42b618cd734708f24, type: 3}
-    iceImpact: {fileID: 224993903656217306, guid: 764ee38cd0dd9814e996a1604c18df09, type: 3}
-    iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
-    electricImpact: {fileID: 3767897547946517131, guid: 28a5d51fe6e7d5e49a504b3ca0afa6dd, type: 3}
-    electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
-    waterImpact: {fileID: 9077682241068869429, guid: fe2e4d08899945f42b71c9c11aa275a5, type: 3}
+    fireImpact: {fileID: 0}
+    iceImpact: {fileID: 0}
+    iceShatter: {fileID: 0}
+    electricImpact: {fileID: 0}
+    electricChainLink: {fileID: 0}
+    waterImpact: {fileID: 0}
