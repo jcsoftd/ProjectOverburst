@@ -65,7 +65,9 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases: []
+    trailPhases:
+    - startNormalizedTime: 0.18
+      endNormalizedTime: 0.33
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 091a04fd6e7b71a428a84bac2033bdf3, type: 2}
       startNormalizedTime: 0.18
@@ -160,7 +162,9 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases: []
+    trailPhases:
+    - startNormalizedTime: 0.39
+      endNormalizedTime: 0.5
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: e0af939a2d398cc45b683cba7d17b781, type: 2}
       startNormalizedTime: 0.39
@@ -255,7 +259,11 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases: []
+    trailPhases:
+    - startNormalizedTime: 0.185
+      endNormalizedTime: 0.36
+    - startNormalizedTime: 0.39
+      endNormalizedTime: 0.515
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: c4373cd29ec46ca48aa249ba874177d1, type: 2}
       startNormalizedTime: 0.185
@@ -384,7 +392,13 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases: []
+    trailPhases:
+    - startNormalizedTime: 0.09
+      endNormalizedTime: 0.154
+    - startNormalizedTime: 0.154
+      endNormalizedTime: 0.287
+    - startNormalizedTime: 0.287
+      endNormalizedTime: 0.385
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 62cc4ec52b8c83e499f99c85f74fbba5, type: 2}
       startNormalizedTime: 0.09

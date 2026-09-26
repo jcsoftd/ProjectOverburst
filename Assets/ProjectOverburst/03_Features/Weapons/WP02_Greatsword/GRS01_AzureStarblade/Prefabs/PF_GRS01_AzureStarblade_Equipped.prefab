@@ -448,12 +448,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8891578251911373367}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 08518be15bd326f44aa57578dcc6de1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
   bladeRenderer: {fileID: 6466484016234506534}
+  auraEmissionMesh: {fileID: 4300000, guid: 22d6785455f29db498436d5de895634c, type: 2}
   auraAnchor: {fileID: 1995058104938080718}
   trailAnchor: {fileID: 6712952312756092826}
   fireAura: {fileID: 3199540439946060812, guid: bfa5e1ad8aae47f4b9f353e36ebdf7aa, type: 3}
@@ -461,15 +462,15 @@ MonoBehaviour:
   iceAura: {fileID: 2080067106486110468, guid: ee2150003cc5bc146b7591e1727fe79c, type: 3}
   electricAura: {fileID: 3951614152475905818, guid: f94f9185192a5d749b8a65f7729fde51, type: 3}
   auraStartNormalized: 0.1
-  auraParticleSizeScale: 0.42
-  auraEmissionScale: 0.45
-  auraSurfaceScale: 0.28
-  fireTrail: {fileID: 0}
-  waterTrail: {fileID: 0}
-  iceTrail: {fileID: 0}
-  electricTrail: {fileID: 0}
-  trailWidthScale: 0.16
-  trailLifetime: 0.23
+  auraParticleSizeScale: 0.45
+  auraEmissionScale: 1
+  auraSurfaceScale: 0.85
+  fireTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
+  waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
+  iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+  electricTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
+  trailWidthScale: 0.3
+  trailLifetime: 0.12
   trailOffsets:
   - {x: 0, y: 0.55, z: 0}
   - {x: 0, y: 0.07, z: 0}
