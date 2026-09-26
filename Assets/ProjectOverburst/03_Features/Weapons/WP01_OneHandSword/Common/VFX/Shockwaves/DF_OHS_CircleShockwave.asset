@@ -24,5 +24,5 @@ MonoBehaviour:
   groundProbeHeight: 2
   groundProbeDistance: 6
   groundSurfaceOffset: 0.02
-  lifetime: 0.75
+  lifetime: 0.6818182
   poolCapacity: 6
