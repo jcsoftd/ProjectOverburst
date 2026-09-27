@@ -23,6 +23,32 @@ public class CurrencyWorldPickup : MonoBehaviour
     private float spawnTime;
     private ItemData runtimeCurrencyItem;
 
+    internal bool IsPoolLease { get; set; }
+    private void OnDestroy() { CurrencyPickupPool.LeaseDestroyed(this); }
+
+    internal void ResetForPool()
+    {
+        pickedUp = false;
+        magnetTarget = null;
+        nextPickupAttemptTime = 0f;
+        runtimeCurrencyItem = null;
+        targetInventory = null;
+        currencyData = null;
+        amount = 1;
+        var motion = GetComponent<WorldItemDropMotion>();
+        if (motion != null) motion.ResetForPool();
+        var guard = GetComponent<RunFallGuard>();
+        if (guard != null) guard.Configure(null, RunFallGuardMode.ClampToLastSafePosition, Vector3.zero, 0f);
+    }
+
+    private void BeginLease()
+    {
+        pickedUp = false;
+        magnetTarget = null;
+        nextPickupAttemptTime = 0f;
+        spawnTime = Time.time;
+    }
+
     public CurrencyType CurrencyType => currencyType;
     public int Amount => amount;
     public Transform VfxAnchor => vfxAnchor != null ? vfxAnchor : transform;
@@ -48,6 +74,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     public void Initialize(CurrencyItemData currencyData, int stackAmount, PlayerInventory inventory)
     {
+        BeginLease();
         runtimeCurrencyItem = null;
         if (currencyData != null)
         {
@@ -65,6 +92,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     public void Initialize(ItemData currencyItem, PlayerInventory inventory)
     {
+        BeginLease();
         runtimeCurrencyItem = currencyItem;
         targetInventory = inventory;
 
@@ -84,7 +112,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     public void BeginMagnet(Transform target, PlayerInventory inventoryOverride = null)
     {
-        if (pickedUp || target == null)
+        if (!isActiveAndEnabled || pickedUp || target == null)
             return;
 
         if (inventoryOverride != null)
@@ -105,7 +133,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     public bool TryPickup(PlayerInventory inventoryOverride = null)
     {
-        if (pickedUp || Time.time < nextPickupAttemptTime)
+        if (!isActiveAndEnabled || pickedUp || Time.time < nextPickupAttemptTime)
             return false;
 
         ResolveInventory(inventoryOverride);
@@ -117,6 +145,7 @@ public class CurrencyWorldPickup : MonoBehaviour
             ? runtimeCurrencyItem
             : new ItemData(currencyData, 1, ItemGrade.Common, amount);
 
+        runtimeCurrencyItem = item; // Preserve identity through failed/uncertain saves.
         if (!string.IsNullOrEmpty(item.originRunId))
         {
             var run = AccountGameplaySession.Current?.ReadRun();
@@ -138,7 +167,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
         ShowPickupText();
         runtimeCurrencyItem = null;
-        Destroy(gameObject);
+        if (!CurrencyPickupPool.TryReturn(this)) Destroy(gameObject);
         return true;
     }
 
@@ -189,7 +218,7 @@ public class CurrencyWorldPickup : MonoBehaviour
             targetInventory = inventoryOverride;
 
         if (targetInventory == null)
-            targetInventory = FindFirstObjectByType<PlayerInventory>();
+            targetInventory = PlayerAccountInventoryService.FindSharedInventory();
     }
 
     private void ResolveCurrencyData()
@@ -206,7 +235,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     private void CacheColliders()
     {
-        pickupColliders = GetComponentsInChildren<Collider>();
+        if (pickupColliders == null) pickupColliders = GetComponentsInChildren<Collider>(true);
         for (int i = 0; i < pickupColliders.Length; i++)
         {
             if (pickupColliders[i] != null)

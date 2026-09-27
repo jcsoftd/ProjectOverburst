@@ -22,10 +22,20 @@ public sealed class WorldItemDropMotion : MonoBehaviour
     private float arcHeight;
     private bool started;
     private bool landed;
+    private bool authoredRotationCaptured;
+    private Quaternion authoredVisualRotation;
 
     public event Action Landed; // 착지 상태 변경 알림
 
     public bool IsLanded => !started || landed;
+
+    internal void ResetForPool()
+    {
+        started = landed = false;
+        elapsed = 0f;
+        enabled = false;
+        if (authoredRotationCaptured && visualRoot != null) visualRoot.localRotation = authoredVisualRotation;
+    }
 
     public void Begin()
     {
@@ -34,6 +44,11 @@ public sealed class WorldItemDropMotion : MonoBehaviour
             presentation = gameObject.AddComponent<WorldPickupPresentation>();
 
         visualRoot = presentation.VisualRoot;
+        if (!authoredRotationCaptured)
+        {
+            authoredVisualRotation = visualRoot.localRotation;
+            authoredRotationCaptured = true;
+        }
         startPosition = transform.position;
         landingPosition = ResolveLandingPosition(startPosition, presentation.ScatterRadius, presentation.GroundClearance);
         startVisualRotation = visualRoot.localRotation;

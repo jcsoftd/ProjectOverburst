@@ -4,6 +4,13 @@ public static class WorldItemDropFactory // 월드 아이템 생성
 {
     private const string GoldCurrencyPickupPrefabPath = "Pickups/PF_CurrencyWorldPickup_Gold";
 
+    private static GameObject goldPickupPrefab;
+    internal static GameObject GoldPickupPrefab => goldPickupPrefab != null
+        ? goldPickupPrefab : goldPickupPrefab = Resources.Load<GameObject>(GoldCurrencyPickupPrefabPath);
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetCache() { goldPickupPrefab = null; }
+
     public static ItemData CreateRuntimeItem(BaseItemData itemData, int minLevel, int maxLevel, ItemGrade minGrade, ItemGrade maxGrade, bool useVtpGradeRoll, int stackCount)
     {
         if (itemData == null)
@@ -64,6 +71,7 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         pickup.Initialize(currencyData, amount, inventory);
         BeginScriptedDrop(pickupObject);
         RunWalkableContext.TryAttachFallGuard(pickupObject);
+        pickupObject.SetActive(true);
         return pickup;
     }
 
@@ -79,6 +87,7 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         pickup.Initialize(item, inventory);
         BeginScriptedDrop(pickupObject);
         RunWalkableContext.TryAttachFallGuard(pickupObject);
+        pickupObject.SetActive(true);
         return pickup;
     }
 
@@ -119,7 +128,7 @@ public static class WorldItemDropFactory // 월드 아이템 생성
     {
         GameObject prefab = ResolveCurrencyPickupPrefab(currencyData);
         GameObject pickupObject = prefab != null
-            ? Object.Instantiate(prefab)
+            ? CurrencyPickupPool.Acquire(prefab, position + Vector3.up * 0.05f)
             : CreateCurrencyPickupFallback(currencyData);
 
         pickupObject.transform.position = position + Vector3.up * 0.05f;
@@ -129,7 +138,7 @@ public static class WorldItemDropFactory // 월드 아이템 생성
     private static GameObject ResolveCurrencyPickupPrefab(CurrencyItemData currencyData)
     {
         if (currencyData != null && currencyData.currencyType == CurrencyType.Gold)
-            return Resources.Load<GameObject>(GoldCurrencyPickupPrefabPath);
+            return GoldPickupPrefab;
 
         return null;
     }

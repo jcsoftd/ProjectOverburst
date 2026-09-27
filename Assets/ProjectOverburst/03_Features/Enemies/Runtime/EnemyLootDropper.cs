@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Profiling;
 
 [RequireComponent(typeof(CombatHealth))]
 public class EnemyLootDropper : MonoBehaviour // 적 드랍
@@ -26,6 +27,10 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     [SerializeField, Range(0f, 1f)] private float twoDropChance = 0.1f;
     [SerializeField] private int maxWeightedDropRollAttempts = 12;
 
+    private static readonly ProfilerMarker ResolveMarker = new ProfilerMarker("Overburst.Loot.Resolve");
+    private static readonly ProfilerMarker OriginMarker = new ProfilerMarker("Overburst.Loot.Origin");
+    private static readonly ProfilerMarker GoldMarker = new ProfilerMarker("Overburst.Loot.Gold");
+    private static readonly ProfilerMarker ItemsMarker = new ProfilerMarker("Overburst.Loot.Items");
     private bool dropped; // 중복 드랍 방지
     private EncounterContext encounter = EncounterContext.Test;
     public void ConfigureEncounter(EncounterContext context) => encounter = context ?? EncounterContext.Test;
@@ -85,9 +90,10 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         dropped = true;
 
-        ResolveReferences();
+        using (ResolveMarker.Auto()) ResolveReferences();
 
-        Vector3 dropOrigin = GetDropOriginPosition(); // 드랍 기준점
+        Vector3 dropOrigin;
+        using (OriginMarker.Auto()) dropOrigin = GetDropOriginPosition(); // 드랍 기준점
         if (encounter.IsRun)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
@@ -96,11 +102,12 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             ItemData gear = GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade);
             if (gear != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(gear), dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
         }
-        DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
+        using (GoldMarker.Auto()) DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
         if (dropTable == null)
             return;
 
+        using var itemsScope = ItemsMarker.Auto();
         List<ItemData> drops = CreateDropList(); // 드랍 목록
         if (drops == null || drops.Count == 0)
             return;
@@ -265,19 +272,42 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         return new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0f, Mathf.Sin(angle * Mathf.Deg2Rad)) * scatterRadius;
     }
 
+    // Missing references are resolved once per frame across the whole death batch.
+    // Authored/Configure references remain authoritative; destroyed Unity objects are retried.
+    private static PlayerInventory sharedInventory;
+    private static Transform sharedPlayer;
+    private static int inventoryLookupFrame = -1, playerLookupFrame = -1;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSharedReferences()
+    {
+        sharedInventory = null; sharedPlayer = null;
+        inventoryLookupFrame = playerLookupFrame = -1;
+    }
+
     private void ResolveReferences()
     {
         if (targetInventory == null)
-            targetInventory = FindFirstObjectByType<PlayerInventory>();
-
+        {
+            if (sharedInventory == null && inventoryLookupFrame != Time.frameCount)
+            {
+                inventoryLookupFrame = Time.frameCount;
+                sharedInventory = PlayerAccountInventoryService.FindSharedInventory();
+            }
+            targetInventory = sharedInventory;
+        }
         if (goldCurrencyItem == null)
             goldCurrencyItem = CurrencyItemRegistry.Get(CurrencyType.Gold);
-
-        if (player != null)
-            return;
-
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        player = playerObject != null ? playerObject.transform : null;
+        if (player != null) return;
+        if ((sharedPlayer == null || !sharedPlayer.gameObject.activeInHierarchy)
+            && playerLookupFrame != Time.frameCount)
+        {
+            playerLookupFrame = Time.frameCount;
+            var actor = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null;
+            var playerObject = actor != null ? actor.gameObject : GameObject.FindGameObjectWithTag("Player");
+            sharedPlayer = playerObject != null ? playerObject.transform : null;
+        }
+        player = sharedPlayer;
     }
 
     private void DropGoldCurrency(Vector3 dropOrigin)
