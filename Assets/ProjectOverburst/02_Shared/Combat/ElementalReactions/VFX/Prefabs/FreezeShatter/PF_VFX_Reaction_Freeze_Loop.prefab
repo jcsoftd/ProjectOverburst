@@ -50,7 +50,7 @@ MonoBehaviour:
   spawnBasis: 5
   followTarget: 1
   scaleMode: 2
-  authoredRadius: 0
+  authoredRadius: 0.5
   localOffset: {x: 0, y: 0, z: 0}
   lifetime: 0
   poolCapacity: 100

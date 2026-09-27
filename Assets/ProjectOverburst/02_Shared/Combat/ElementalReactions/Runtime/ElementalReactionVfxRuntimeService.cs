@@ -304,6 +304,9 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         record.Target = target;
         record.ReactionType = snapshot.ReactionType;
         record.LastPosition = CombatTargetVfxPlacement.ResolveVolume(target).Center;
+        if (snapshot.ReactionType == ElementalReactionType.Freeze && reason == ElementalReactionStateChangeReason.Applied)
+            TryPlay(ElementalReactionType.Freeze, ElementalReactionVfxSlotType.Start,
+                new SpawnRequest(target, null, record.LastPosition, record.LastPosition, record.LastPosition, 0f));
         TryAcquireLoop(recordIndex);
     }
 

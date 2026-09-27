@@ -22,6 +22,18 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
     private readonly List<Material> materialScratch = new List<Material>(8);
     private bool flashApplied;
     private bool corpseTintActive;
+    private int elementColdStacks;
+    public void SetElementColdStacks(int stacks)
+    {
+        stacks = Mathf.Clamp(stacks, 0, 5);
+        if (elementColdStacks == stacks || corpseTintActive) return;
+        if (!flashApplied) CaptureBeforeFlash();
+        elementColdStacks = stacks;
+        flashApplied = true;
+        if (flashRoutine == null) RestoreColors();
+    }
+    private Color StatusColor(Color original) => Color.Lerp(original,
+        new Color(.22f, .55f, 1f, original.a), elementColdStacks * .15f);
     private Coroutine flashRoutine; // flash 루틴
     private const string BaseColorProperty = "_BaseColor"; // URP 색상
     private const string ColorProperty = "_Color"; // 기본 색상
@@ -47,6 +59,7 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
 
     private void OnDisable()
     {
+        elementColdStacks = 0;
         if (health != null)
         {
             health.OnDamaged -= HandleDamaged;
@@ -62,6 +75,7 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
 
     private void HandleReset(CombatHealth source)
     {
+        elementColdStacks = 0;
         if (flashRoutine != null) StopCoroutine(flashRoutine);
         RestoreColors();
         corpseTintActive = false;
@@ -104,7 +118,7 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
             elapsed += Time.unscaledDeltaTime;
             float weight = 1f - Mathf.Clamp01(elapsed / Mathf.Max(.001f, flashDuration));
             for (int i = 0; i < slotRenderers.Length; i++)
-                ApplyColor(i, Color.Lerp(corpseTintActive ? CorpseColor(baseColors[i]) : baseColors[i],
+                ApplyColor(i, Color.Lerp(corpseTintActive ? CorpseColor(baseColors[i]) : StatusColor(baseColors[i]),
                     BrightFlash(), weight));
         }
 
@@ -215,6 +229,11 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         for (int i = 0; i < slotRenderers.Length; i++)
             if (slotRenderers[i] != null) slotRenderers[i].SetPropertyBlock(beforeFlash[i].isEmpty ? null : beforeFlash[i], slotIndices[i]);
         flashApplied = false;
+        if (elementColdStacks > 0 && !corpseTintActive)
+        {
+            for (int i = 0; i < slotRenderers.Length; i++) ApplyColor(i, StatusColor(baseColors[i]));
+            flashApplied = true;
+        }
     }
 
     private void ApplyColor(Color color)
