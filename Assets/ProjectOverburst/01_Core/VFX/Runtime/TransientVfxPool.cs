@@ -66,7 +66,8 @@ public static class TransientVfxPool
         int poolCapacity,
         Transform parent = null,
         Action<GameObject> prepareBeforeActivation = null,
-        TransientVfxReturnMode returnMode = TransientVfxReturnMode.FixedLifetime)
+        TransientVfxReturnMode returnMode = TransientVfxReturnMode.FixedLifetime,
+        bool useUnscaledTime = false)
     {
         if (prefab == null || shuttingDown)
             return null;
@@ -105,8 +106,39 @@ public static class TransientVfxPool
             prefab,
             lifetime,
             Mathf.Max(1, poolCapacity),
-            returnMode);
+            returnMode,
+            useUnscaledTime);
         return instance;
+    }
+
+    // Prepare during loading, before contact effects can exhaust the idle queue.
+    // Warm instances through Awake/OnEnable once, then keep them inactive.
+    public static int Prewarm(GameObject prefab, int count)
+    {
+        if (prefab == null || shuttingDown || count <= 0) return 0;
+        EnsureHost();
+        if (!Pools.TryGetValue(prefab, out Queue<GameObject> pool))
+        {
+            pool = new Queue<GameObject>(count);
+            Pools.Add(prefab, pool);
+        }
+        // Destroyed scene objects must not count as ready instances.
+        int existing = pool.Count;
+        for (int i = 0; i < existing; i++)
+        {
+            GameObject instance = pool.Dequeue();
+            if (instance != null) pool.Enqueue(instance);
+        }
+        int created = 0;
+        while (pool.Count < count)
+        {
+            GameObject instance = Object.Instantiate(prefab, host.transform);
+            StopAndClearPlayback(instance);
+            instance.SetActive(false);
+            pool.Enqueue(instance);
+            created++;
+        }
+        return created;
     }
 
     public static float ResolveLifetime(GameObject prefab, float explicitLifetime)
@@ -314,9 +346,10 @@ public static class TransientVfxPool
             GameObject prefab,
             float lifetime,
             int poolCapacity,
-            TransientVfxReturnMode returnMode)
+            TransientVfxReturnMode returnMode,
+            bool useUnscaledTime)
         {
-            float now = Time.time;
+            float now = useUnscaledTime ? Time.unscaledTime : Time.time;
             float safetyLifetime = returnMode == TransientVfxReturnMode.NaturalParticleCompletion
                 ? Mathf.Max(NaturalCompletionSafetyLifetime, lifetime * 4f)
                 : Mathf.Max(MinimumLifetime, lifetime);
@@ -326,15 +359,16 @@ public static class TransientVfxPool
                 now + MinimumLifetime,
                 now + safetyLifetime,
                 poolCapacity,
-                returnMode));
+                returnMode,
+                useUnscaledTime));
         }
 
         private void Update()
         {
-            float now = Time.time;
             for (int i = activeLeases.Count - 1; i >= 0; i--)
             {
                 ActiveLease lease = activeLeases[i];
+                float now = lease.UseUnscaledTime ? Time.unscaledTime : Time.time;
                 bool isPlaybackAlive = lease.ReturnMode
                     == TransientVfxReturnMode.NaturalParticleCompletion
                     && IsPlaybackAlive(lease.Instance);
@@ -374,6 +408,7 @@ public static class TransientVfxPool
         public readonly float SafetyReturnTime;
         public readonly int PoolCapacity;
         public readonly TransientVfxReturnMode ReturnMode;
+        public readonly bool UseUnscaledTime;
 
         public ActiveLease(
             GameObject instance,
@@ -381,7 +416,8 @@ public static class TransientVfxPool
             float earliestReturnTime,
             float safetyReturnTime,
             int poolCapacity,
-            TransientVfxReturnMode returnMode)
+            TransientVfxReturnMode returnMode,
+            bool useUnscaledTime)
         {
             Instance = instance;
             Prefab = prefab;
@@ -389,6 +425,7 @@ public static class TransientVfxPool
             SafetyReturnTime = safetyReturnTime;
             PoolCapacity = poolCapacity;
             ReturnMode = returnMode;
+            UseUnscaledTime = useUnscaledTime;
         }
     }
 }
