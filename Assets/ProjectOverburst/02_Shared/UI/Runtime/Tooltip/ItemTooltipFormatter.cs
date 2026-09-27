@@ -43,14 +43,8 @@ public static class ItemTooltipFormatter // 툴팁 포맷
 
     public static string GetWeaponElementName(WeaponElement element)
     {
-        switch (element)
-        {
-            case WeaponElement.Fire: return "불";
-            case WeaponElement.Ice: return "얼음";
-            case WeaponElement.Electric: return "번개";
-            case WeaponElement.Water: return "물";
-            default: return "무속성";
-        }
+        string label = OverburstElementRules.Label(OverburstElementRules.MigrateLegacy(element));
+        return string.IsNullOrEmpty(label) ? "무속성" : label;
     }
 
     public static string FormatBagOption(BagRandomOptionRoll option)

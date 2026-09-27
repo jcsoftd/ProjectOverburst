@@ -17,12 +17,29 @@ MonoBehaviour:
   criticalEnergyFraction: 0.2
   maximumStacks: 5
   statusDuration: 8
-  freezeDuration: 2
+  freezeDuration: 5
+  burnDuration: 5
+  burnTickInterval: 0.5
+  burnTickDamagePerStack: 0.01
+  shockTickInterval: 1.5
+  shockTickDamagePerStack: 0.02
+  shockStaggerBase: 0.2
+  shockStaggerPerStack: 0.08
+  shatterBlastFraction: 1.5
+  lightningChainBaseFraction: 0.25
+  lightningChainFractionPerStack: 0.05
   dischargeDamageAtFullEnergy: 2
   statusDamagePerStack: 0.15
   shatterDamage: 1
   minimumRadius: 1.5
   maximumRadius: 4
   maximumChainTargets: 6
-  maximumWaterPullDistance: 0.8
-  fireIceElectricWaterWeights: {x: 1, y: 1, z: 1, w: 1}
+  darkPullDuration: 0.3
+  darkPullDistance: 1.25
+  darkPullMaxTargets: 24
+  lightAfterglowDelay: 0.12
+  lightAfterglowDuration: 0.25
+  lightAfterglowRadiusMultiplier: 1.2
+  lightAfterglowDamageFraction: 0.35
+  fireIceElectricDarkWeights: {x: 1, y: 1, z: 1, w: 1}
+  lightWeight: 1

@@ -14,6 +14,8 @@ public struct AttackMovementPhaseData
     [Range(0f, 1f)] public float startNormalizedTime;
     [InspectorName("이동 종료 시간")]
     [Range(0f, 1f)] public float endNormalizedTime;
+    [InspectorName("설정한 시간 구간 그대로 이동")]
+    public bool useAuthoredTiming;
     [InspectorName("이동 방식")]
     public AttackMovementMode movementMode;
     [InspectorName("이동 거리")]

@@ -35,7 +35,10 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     private void SyncWeapon()
     {
         ItemData item = equipment != null ? equipment.CurrentWeaponItem : null;
+        bool changed = WeaponInstanceId != (item != null ? item.runtimeInstanceId : string.Empty)
+            || Element != (item != null ? item.ResolvedElement : WeaponElement.None);
         BindWeapon(item != null ? item.runtimeInstanceId : string.Empty, item != null ? item.ResolvedElement : WeaponElement.None);
+        if (changed) MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, Element);
     }
     public void BindWeapon(string weaponId, WeaponElement element)
     {
@@ -67,6 +70,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         if (!alreadyHit) attackOrder.Enqueue(key);
         while (attackOrder.Count > 128) attacks.Remove(attackOrder.Dequeue());
         Amount = Mathf.Min(Mathf.Max(1f, tuning.maximumEnergy), Amount + Mathf.Max(0f, gain - credited));
+        MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, element);
         Changed?.Invoke();
         return true;
     }
@@ -75,7 +79,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     {
         discharge = null;
         if (equipment != null) SyncWeapon();
-        if (!isActiveAndEnabled || (health != null && health.IsDead) || Amount <= 0f
+        if (!isActiveAndEnabled || (health != null && health.IsDead)
             || !OverburstElementRules.IsActive(Element) || !OverburstElementTuning.IsFinitePositive(attackDamage)) return false;
         discharge = new OverburstElementDischarge(this, ++generation, Element, WeaponInstanceId, Amount, Normalized, attackDamage);
         Amount = 0f;
@@ -101,9 +105,8 @@ public readonly struct OverburstDischargeResult
     public readonly int ChainTargets;
     public readonly int ConsumedStacks;
     public readonly bool Shattered;
-    public readonly float RequestedPullDistance;
-    public OverburstDischargeResult(WeaponElement element, float damage, float radius, int chainTargets, int stacks, bool shattered, float pullDistance)
-    { Element = element; BonusDamage = damage; Radius = radius; ChainTargets = chainTargets; ConsumedStacks = stacks; Shattered = shattered; RequestedPullDistance = pullDistance; }
+    public OverburstDischargeResult(WeaponElement element, float damage, float radius, int chainTargets, int stacks, bool shattered)
+    { Element = element; BonusDamage = damage; Radius = radius; ChainTargets = chainTargets; ConsumedStacks = stacks; Shattered = shattered; }
 }
 
 // A capability owned by one committed action. Multi-target hits share energy but consume each target only once.
@@ -125,8 +128,7 @@ public sealed class OverburstElementDischarge
     private readonly int token;
     private readonly HashSet<int> targets = new HashSet<int>();
     private readonly float attackDamage, baseDischargePower, energyCoefficient, stackCoefficient, shatterCoefficient, radius;
-    private readonly int chainTargets;
-    private readonly float waterPullDistance;
+    private readonly int energyChainBonus;
     private bool ended;
     public WeaponElement Element { get; }
     public string WeaponInstanceId { get; }
@@ -134,6 +136,8 @@ public sealed class OverburstElementDischarge
     public float NormalizedEnergy { get; }
     public float Radius => radius;
     public float BaseDamage => attackDamage * energyCoefficient + baseDischargePower * NormalizedEnergy;
+    public float FirstBlastDamage => attackDamage * Mathf.Lerp(.6f, 1.35f, NormalizedEnergy) * (1f + energyCoefficient)
+        + baseDischargePower * NormalizedEnergy;
     internal OverburstElementDischarge(OverburstElementEnergy owner, int token, WeaponElement element, string weaponId,
         float energy, float normalized, float attackDamage)
     {
@@ -148,13 +152,12 @@ public sealed class OverburstElementDischarge
             : element == WeaponElement.Electric ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.LightningDischargeDamage) : 0f;
         energyCoefficient = Mathf.Max(0f, tuning.dischargeDamageAtFullEnergy) * normalized
             * (1f + elementBonus + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.EnergyDischargeDamage));
-        stackCoefficient = Mathf.Max(0f, tuning.statusDamagePerStack) * (1f + elementBonus + (element == WeaponElement.Water ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.CompressionDamage) : 0f));
-        shatterCoefficient = Mathf.Max(0f, tuning.shatterDamage) * (1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ShatterDamage));
+        stackCoefficient = Mathf.Max(0f, tuning.statusDamagePerStack) * (1f + elementBonus);
+        shatterCoefficient = Mathf.Max(0f, tuning.shatterBlastFraction) * (1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ShatterDamage));
         radius = Mathf.Lerp(Mathf.Max(0f, tuning.minimumRadius), Mathf.Max(0f, tuning.maximumRadius), normalized);
-        FlaskEffect areaEffect = element == WeaponElement.Fire ? FlaskEffect.FireRadius : element == WeaponElement.Electric ? FlaskEffect.ChainRange : FlaskEffect.SuctionRadius;
-        if (element != WeaponElement.Ice) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, areaEffect);
-        chainTargets = Mathf.Clamp(1 + Mathf.FloorToInt(normalized * (tuning.maximumChainTargets - 1)), 1, Mathf.Max(1, tuning.maximumChainTargets));
-        waterPullDistance = element == WeaponElement.Water ? Mathf.Max(0f, tuning.maximumWaterPullDistance) * normalized : 0f;
+        if (element == WeaponElement.Fire) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireRadius);
+        if (element == WeaponElement.Electric) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ChainRange);
+        energyChainBonus = normalized >= .99999f ? 2 : normalized >= .5f ? 1 : 0;
     }
     public void End() { ended = true; }
     // Capture immediately before the direct damage dispatch, so lethal hits retain their prepared bonus.
@@ -185,11 +188,13 @@ public sealed class OverburstElementDischarge
         bool shattered = snapshot.Frozen;
         if (snapshot.Status != null && !snapshot.Health.IsDead)
             consumed = snapshot.Status.ConsumeForDischarge(Element, out shattered);
-        float bonus = BaseDamage + attackDamage * (consumed * stackCoefficient + (shattered ? shatterCoefficient : 0f));
-        int resolvedChainTargets = Element == WeaponElement.Electric
-            ? Mathf.Min(OverburstElementTuning.Current.maximumChainTargets, chainTargets + consumed / 2)
+        float bonus = Element == WeaponElement.Ice ? (shattered ? FirstBlastDamage * shatterCoefficient : 0f)
+            : Element == WeaponElement.Fire || Element == WeaponElement.Electric ? 0f
+            : attackDamage * consumed * stackCoefficient;
+        int resolvedChainTargets = Element == WeaponElement.Electric && consumed > 0
+            ? Mathf.Min(7, consumed + energyChainBonus)
             : 0;
-        result = new OverburstDischargeResult(Element, bonus, radius, resolvedChainTargets, consumed, shattered, waterPullDistance);
+        result = new OverburstDischargeResult(Element, bonus, radius, resolvedChainTargets, consumed, shattered);
         return true;
     }
     public bool TryResolveConfirmedHit(CombatHealth target, float actualDirectDamage, out OverburstDischargeResult result)

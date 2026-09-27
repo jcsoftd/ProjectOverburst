@@ -25,7 +25,9 @@ public static class FlaskTooltip
             case FlaskKind.Fire: role = "불"; break;
             case FlaskKind.Ice: role = "얼음"; break;
             case FlaskKind.Lightning: role = "번개"; break;
-            default: role = "물"; break;
+            case FlaskKind.Dark: role = "어둠"; break;
+            case FlaskKind.Light: role = "빛"; break;
+            default: role = "기타"; break;
         }
         return "영구 장착 물약  ·  " + role;
     }
@@ -148,7 +150,9 @@ public static class FlaskTooltip
             case FlaskKind.Fire: return "불";
             case FlaskKind.Ice: return "얼음";
             case FlaskKind.Lightning: return "번개";
-            default: return "물";
+            case FlaskKind.Dark: return "어둠";
+            case FlaskKind.Light: return "빛";
+            default: return "무속성";
         }
     }
 
@@ -177,8 +181,6 @@ public static class FlaskTooltip
             case FlaskEffect.FreezeDuration: return "빙결 시간";
             case FlaskEffect.LightningDischargeDamage: return "번개 방출";
             case FlaskEffect.ChainRange: return "연쇄 거리";
-            case FlaskEffect.CompressionDamage: return "압착 피해";
-            case FlaskEffect.SuctionRadius: return "흡인 반경";
             default: return effect.ToString();
         }
     }

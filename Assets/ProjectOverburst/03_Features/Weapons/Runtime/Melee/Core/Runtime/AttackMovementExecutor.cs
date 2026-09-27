@@ -37,7 +37,7 @@ public sealed class AttackMovementExecutor
             if (startNormalizedTime <= 0f || startNormalizedTime < phases[i].SafeStart)
                 continue;
             float progress = Mathf.Clamp01(Mathf.InverseLerp(phases[i].SafeStart,
-                phases[i].SafeEnd, startNormalizedTime) * ComboMovementSpeedMultiplier);
+                phases[i].SafeEnd, startNormalizedTime) * (phases[i].useAuthoredTiming ? 1f : ComboMovementSpeedMultiplier));
             appliedLocalDisplacements[i] = phases[i].EvaluateLocalDisplacement(progress)
                 * ComboMovementDistanceMultiplier;
         }
@@ -58,7 +58,7 @@ public sealed class AttackMovementExecutor
 
             float progress = Mathf.Clamp01(
                 Mathf.InverseLerp(phase.SafeStart, phase.SafeEnd, normalizedTime)
-                * ComboMovementSpeedMultiplier); // 동일 거리를 기존 시간의 1/2에 이동
+                * (phase.useAuthoredTiming ? 1f : ComboMovementSpeedMultiplier));
             Vector3 targetLocalDisplacement = phase.EvaluateLocalDisplacement(progress)
                 * ComboMovementDistanceMultiplier;
             Vector3 deltaLocalDisplacement = targetLocalDisplacement - appliedLocalDisplacements[i];

@@ -33,6 +33,7 @@ MonoBehaviour:
     movementPhases:
     - startNormalizedTime: 0.09
       endNormalizedTime: 0.3
+      useAuthoredTiming: 0
       movementMode: 0
       distance: 0.4
       progressCurve:
@@ -65,6 +66,12 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
     trailPhases:
     - startNormalizedTime: 0.18
       endNormalizedTime: 0.33
@@ -98,6 +105,8 @@ MonoBehaviour:
         triggerProgress: 0.25
         placementMode: 3
         scaleMultiplier: 1
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
         autoSwingSlope: 0
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
@@ -130,6 +139,7 @@ MonoBehaviour:
     movementPhases:
     - startNormalizedTime: 0.08
       endNormalizedTime: 0.47
+      useAuthoredTiming: 0
       movementMode: 0
       distance: 0.9
       progressCurve:
@@ -162,6 +172,12 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
     trailPhases:
     - startNormalizedTime: 0.39
       endNormalizedTime: 0.5
@@ -195,6 +211,8 @@ MonoBehaviour:
         triggerProgress: 0.25
         placementMode: 3
         scaleMultiplier: 1
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
         autoSwingSlope: 0
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
@@ -227,6 +245,7 @@ MonoBehaviour:
     movementPhases:
     - startNormalizedTime: 0.1
       endNormalizedTime: 0.51
+      useAuthoredTiming: 0
       movementMode: 0
       distance: 0.75
       progressCurve:
@@ -259,6 +278,12 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
     trailPhases:
     - startNormalizedTime: 0.185
       endNormalizedTime: 0.36
@@ -269,7 +294,7 @@ MonoBehaviour:
       startNormalizedTime: 0.185
       endNormalizedTime: 0.36
       geometry:
-        rangeMultiplier: 0.75
+        rangeMultiplier: 1
         angleMultiplier: 1
         widthMultiplier: 1
         vfxScaleMultiplier: 1
@@ -287,7 +312,19 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -303,7 +340,7 @@ MonoBehaviour:
       startNormalizedTime: 0.39
       endNormalizedTime: 0.515
       geometry:
-        rangeMultiplier: 0.75
+        rangeMultiplier: 1
         angleMultiplier: 1
         widthMultiplier: 1
         vfxScaleMultiplier: 1
@@ -327,7 +364,9 @@ MonoBehaviour:
         definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
         triggerProgress: 0.25
         placementMode: 3
-        scaleMultiplier: 1
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
         autoSwingSlope: 0
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
@@ -360,6 +399,7 @@ MonoBehaviour:
     movementPhases:
     - startNormalizedTime: 0.07
       endNormalizedTime: 0.36
+      useAuthoredTiming: 0
       movementMode: 0
       distance: 0.55
       progressCurve:
@@ -392,6 +432,12 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
     trailPhases:
     - startNormalizedTime: 0.09
       endNormalizedTime: 0.154
@@ -404,7 +450,7 @@ MonoBehaviour:
       startNormalizedTime: 0.09
       endNormalizedTime: 0.154
       geometry:
-        rangeMultiplier: 0.75
+        rangeMultiplier: 1
         angleMultiplier: 1
         widthMultiplier: 1
         vfxScaleMultiplier: 1
@@ -422,7 +468,19 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -438,7 +496,7 @@ MonoBehaviour:
       startNormalizedTime: 0.154
       endNormalizedTime: 0.287
       geometry:
-        rangeMultiplier: 0.75
+        rangeMultiplier: 1
         angleMultiplier: 1
         widthMultiplier: 1
         vfxScaleMultiplier: 1
@@ -456,7 +514,19 @@ MonoBehaviour:
         hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
         airborneImpulse: 0
         airborneStunDuration: 0
-      vfxCues: []
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
       useBakedVfxSwingSlope: 0
       bakedVfxSwingSlopeDegrees: 0
       vfxSwingSlopeOffsetDegrees: 0
@@ -472,7 +542,7 @@ MonoBehaviour:
       startNormalizedTime: 0.287
       endNormalizedTime: 0.385
       geometry:
-        rangeMultiplier: 0.75
+        rangeMultiplier: 1.2
         angleMultiplier: 1
         widthMultiplier: 1
         vfxScaleMultiplier: 1
@@ -496,7 +566,9 @@ MonoBehaviour:
         definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
         triggerProgress: 0.25
         placementMode: 3
-        scaleMultiplier: 1
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
         autoSwingSlope: 0
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
@@ -514,9 +586,9 @@ MonoBehaviour:
         reverseDirection: 0
   attackTrajectoryBakeData:
     schemaVersion: 1
-    sourceFingerprint: 5ac6f5ceec8a3c3b7d14b678a4e0faf1
-    derivedFingerprint: 882431214229f179e0b91c2f983147da
-    bakedUtc: 2026-09-25T15:26:06.1530970Z
+    sourceFingerprint: 60d1c72beb5558a95154080ca285f8fe
+    derivedFingerprint: af80d1ebd432d5fff2e62917a2bf65f4
+    bakedUtc: 2026-09-27T04:15:13.8594073Z
     steps:
     - attackId: Greatsword.ComboSet01.1
       rawSamples:

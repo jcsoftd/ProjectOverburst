@@ -1046,7 +1046,8 @@ public class ItemData // 런타임 아이템
         get
         {
             if (!(baseData is WeaponItemData weapon)) return WeaponElement.None;
-            WeaponElement element = hasInstanceElement ? instanceElement : weapon.defaultElement;
+            WeaponElement element = OverburstElementRules.MigrateLegacy(
+                hasInstanceElement ? instanceElement : weapon.defaultElement);
             return OverburstElementRules.IsActive(element) ? element : WeaponElement.None;
         }
     }
@@ -1169,7 +1170,8 @@ public class ItemData // 런타임 아이템
 
         if (baseData is WeaponItemData weapon)
         {
-            instanceElement = element.HasValue ? element.Value : OverburstElementRules.RollNewWeapon(weapon);
+            instanceElement = OverburstElementRules.MigrateLegacy(
+                element.HasValue ? element.Value : OverburstElementRules.RollNewWeapon(weapon));
             if (!OverburstElementRules.IsActive(instanceElement)) instanceElement = WeaponElement.None;
             hasInstanceElement = true;
         }

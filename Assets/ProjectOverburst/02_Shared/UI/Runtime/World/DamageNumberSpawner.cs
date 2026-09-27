@@ -9,7 +9,8 @@ public sealed class DamageNumberSpawner : MonoBehaviour
     private static readonly Color DefaultCurrencyPickupColor = new Color(1f, 0.82f, 0.2f, 1f);
     private static readonly Color PhysicalDamageColor = Color.white;
     private static readonly Color FireDamageColor = new Color(1f, 0.40f, 0.08f, 1f);
-    private static readonly Color WaterDamageColor = new Color(0.18f, 0.55f, 1f, 1f);
+    private static readonly Color DarkDamageColor = new Color(0.61f, 0.24f, 0.78f, 1f);
+    private static readonly Color LightDamageColor = new Color(1f, 0.85f, 0.35f, 1f);
     private static readonly Color IceDamageColor = new Color(0.32f, 0.92f, 1f, 1f);
     private static readonly Color ElectricDamageColor = new Color(0.72f, 0.36f, 1f, 1f);
     private static readonly Color WindDamageColor = new Color(0.28f, 0.92f, 0.38f, 1f);
@@ -156,8 +157,10 @@ public sealed class DamageNumberSpawner : MonoBehaviour
         {
             case WeaponElement.Fire:
                 return FireDamageColor;
-            case WeaponElement.Water:
-                return WaterDamageColor;
+            case WeaponElement.Dark:
+                return DarkDamageColor;
+            case WeaponElement.Light:
+                return LightDamageColor;
             case WeaponElement.Ice:
                 return IceDamageColor;
             case WeaponElement.Electric:

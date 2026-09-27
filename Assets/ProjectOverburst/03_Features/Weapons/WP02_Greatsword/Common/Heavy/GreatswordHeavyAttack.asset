@@ -16,7 +16,7 @@ MonoBehaviour:
     attackId: Greatsword.Heavy.FrontCircle
     attackName: "\uB300\uAC80 \uC804\uBC29 \uC6D0\uD615 \uAC15\uACF5"
     animationClip: {fileID: 7400000, guid: 469e00b226cf5904f8f20fd7061f25bc, type: 3}
-    animationSpeedMultiplier: 1.1
+    animationSpeedMultiplier: 1
     transitionDuration: 0.08
     continuationStartNormalizedTime: 0
     playbackAcceleration:
@@ -28,8 +28,9 @@ MonoBehaviour:
       endNormalizedTime: 0
     actionCancelStartNormalized: 0.64
     movementPhases:
-    - startNormalizedTime: 0.12
-      endNormalizedTime: 0.84
+    - startNormalizedTime: 0.08
+      endNormalizedTime: 0.36
+      useAuthoredTiming: 1
       movementMode: 0
       distance: 3.3333333
       progressCurve:
@@ -40,6 +41,24 @@ MonoBehaviour:
           value: 0
           inSlope: 0
           outSlope: 0
+          tangentMode: 0
+          weightedMode: 0
+          inWeight: 0
+          outWeight: 0
+        - serializedVersion: 3
+          time: 0.35
+          value: 0.55
+          inSlope: 1.5
+          outSlope: 1.5
+          tangentMode: 0
+          weightedMode: 0
+          inWeight: 0
+          outWeight: 0
+        - serializedVersion: 3
+          time: 0.8
+          value: 0.96
+          inSlope: 0.4
+          outSlope: 0.4
           tangentMode: 0
           weightedMode: 0
           inWeight: 0
@@ -62,11 +81,91 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
-    trailPhases: []
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.06
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.15
+        value: 0.35
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.23
+        value: 0.6
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.28
+        value: 0.52
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.32
+        value: 0.25
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.36
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    trailPhases:
+    - startNormalizedTime: 0.28
+      endNormalizedTime: 0.37
     attackPhases:
     - attackPattern: {fileID: 11400000, guid: 05d907197b513f747a136417b565898b, type: 2}
-      startNormalizedTime: 0.48
-      endNormalizedTime: 0.64
+      startNormalizedTime: 0.36
+      endNormalizedTime: 0.43
       geometry:
         rangeMultiplier: 0.72
         angleMultiplier: 1
@@ -92,7 +191,9 @@ MonoBehaviour:
         definition: {fileID: 11400000, guid: f35e2d47ec7cc8a4083dcff993506b37, type: 2}
         triggerProgress: 0
         placementMode: 0
-        scaleMultiplier: 1
+        scaleMultiplier: 0.6
+        shockwaveIntensityMultiplier: 0.7
+        shockwaveSpeedMultiplier: 1.2
         autoSwingSlope: 0
         swingSlopeOffsetDegrees: 0
         localEulerOffset: {x: 0, y: 0, z: 0}
@@ -111,9 +212,15 @@ MonoBehaviour:
   chargedDamageMultiplier: 1.35
   emptyDamageMultiplier: 0.6
   elementVfx:
-    fireImpact: {fileID: 0}
+    fireImpact: {fileID: 8047783058320162170, guid: e42acee08ce5f814192c872ee42c1ffa, type: 3}
+    fireChainExplosion: {fileID: 6581819978879567992, guid: 73086537f8dd7a649b1da0cf099d12fa, type: 3}
     iceImpact: {fileID: 0}
-    iceShatter: {fileID: 0}
-    electricImpact: {fileID: 0}
-    electricChainLink: {fileID: 0}
-    waterImpact: {fileID: 0}
+    iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
+    electricImpact: {fileID: 8998586211582852003, guid: 168926113b636a242af02695c901ffa2, type: 3}
+    electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
+    electricChainStart: {fileID: 7885690904474262181, guid: 62a4a728cf7141347bd95022f2e6165a, type: 3}
+    electricChainProc: {fileID: 8629265764243855797, guid: 9b1bde879b85497469962ac32ba06867, type: 3}
+    fireImpactRadius: 3.5
+    electricImpactRadius: 5.5
+    iceImpactRadius: 1
+    fireChainRadius: 1.3

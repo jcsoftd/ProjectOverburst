@@ -9,21 +9,71 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         public readonly GameObject Root;
         public readonly ParticleSystem[] Particles;
         public bool Active;
+        public int Stacks;
+        public readonly float[] Rates, DistanceRates, Sizes, SizesY, SizesZ;
 
         public AuraModule(GameObject root, ParticleSystem[] particles)
         {
             Root = root;
             Particles = particles;
+            Rates=new float[particles.Length];DistanceRates=new float[particles.Length];
+            Sizes=new float[particles.Length];SizesY=new float[particles.Length];SizesZ=new float[particles.Length];
+            for(int i=0;i<particles.Length;i++)
+            {
+                var main=particles[i].main;var emission=particles[i].emission;
+                Rates[i]=emission.rateOverTimeMultiplier;DistanceRates[i]=emission.rateOverDistanceMultiplier;
+                Sizes[i]=main.startSizeMultiplier;SizesY[i]=main.startSizeYMultiplier;SizesZ[i]=main.startSizeZMultiplier;
+            }
         }
     }
 
     [SerializeField] private GameObject burningAura;
-    [SerializeField] private GameObject wetAura;
     [SerializeField] private GameObject shockedAura;
     [SerializeField] private GameObject chilledAura;
 
-    private readonly AuraModule[] modules = new AuraModule[4];
+    private readonly AuraModule[] modules = new AuraModule[3];
     private bool modulesCached;
+
+    public void ConfigureTarget(CombatTarget target)
+    {
+        if(target==null||shockedAura==null)return;
+        var volume=CombatTargetVfxPlacement.ResolveVolume(target);
+        // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
+        shockedAura.transform.position=volume.Center;
+        float size=Mathf.Clamp(volume.Radius/.6f,.45f,3f);
+        Vector3 parentScale=transform.lossyScale;
+        shockedAura.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
+            size/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),size/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+        if(burningAura!=null)
+        {
+            float burnSize=Mathf.Clamp(Mathf.Sqrt(volume.Radius/.56f),.75f,1.6f);
+            burningAura.transform.localScale=new Vector3(burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
+                burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            Vector3 sourceOffset=burningAura.transform.childCount>0
+                ?burningAura.transform.TransformVector(burningAura.transform.GetChild(0).localPosition):Vector3.zero;
+            burningAura.transform.position=volume.Center+Vector3.up*(volume.HalfHeight*.9f)-sourceOffset;
+        }
+    }
+
+    public void SetStackCount(MeleeElementStatusAuraType type,int count)
+    {
+        AuraModule module=GetModule(type);
+        if(module==null)return;
+        count=Mathf.Clamp(count,0,5);
+        if(module.Stacks==count)return;
+        module.Stacks=count;
+        if(count==0)return;
+        float density=count>=5?1f:count>=3?.75f+(count-3)*.1f:.45f+(count-1)*.1f;
+        float size=count>=5?1.1f:count>=3?.9f+(count-3)*.1f:.72f+(count-1)*.08f;
+        for(int i=0;i<module.Particles.Length;i++)
+        {
+            var particle=module.Particles[i];if(particle==null)continue;
+            var emission=particle.emission;emission.rateOverTimeMultiplier=module.Rates[i]*density;
+            emission.rateOverDistanceMultiplier=module.DistanceRates[i]*density;
+            var main=particle.main;main.startSizeMultiplier=module.Sizes[i]*size;
+            if(main.startSize3D){main.startSizeYMultiplier=module.SizesY[i]*size;main.startSizeZMultiplier=module.SizesZ[i]*size;}
+        }
+    }
 
 #if UNITY_EDITOR
     public int CacheBuildCountForValidation { get; private set; }
@@ -50,6 +100,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         {
             HideModule(module);
             module.Active = false;
+            module.Stacks = 0;
             return true;
         }
 
@@ -81,6 +132,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
                 continue;
             HideModule(module);
             module.Active = false;
+            module.Stacks = 0;
         }
     }
 
@@ -99,7 +151,6 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         switch (auraType)
         {
             case MeleeElementStatusAuraType.Burning: return burningAura;
-            case MeleeElementStatusAuraType.Wet: return wetAura;
             case MeleeElementStatusAuraType.Shocked: return shockedAura;
             case MeleeElementStatusAuraType.Chilled: return chilledAura;
             default: return null;
@@ -108,6 +159,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
 
     private void Restart(AuraModule module)
     {
+        using var costScope = ElementCombatCostMarkers.Aura_Restart.Auto();
         StopAndClear(module);
         SetActive(module.Root, true);
         for (int i = 0; i < module.Particles.Length; i++)
@@ -115,7 +167,8 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
             ParticleSystem particle = module.Particles[i];
             if (particle == null)
                 continue;
-            particle.Play(false);
+            // The opt-in shared prototype does not yet distinguish per-stack particle settings.
+            if (module.Stacks > 0 || !SharedLocalAuraRenderer.TryRegister(particle)) particle.Play(false);
 #if UNITY_EDITOR
             PlayCommandCountForValidation++;
 #endif
@@ -133,11 +186,13 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
 
     private void StopAndClear(AuraModule module)
     {
+        using var costScope = ElementCombatCostMarkers.Aura_StopClear.Auto();
         for (int i = 0; i < module.Particles.Length; i++)
         {
             ParticleSystem particle = module.Particles[i];
             if (particle == null)
                 continue;
+            SharedLocalAuraRenderer.Release(particle);
             particle.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
 #if UNITY_EDITOR
             StopCommandCountForValidation++;

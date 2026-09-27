@@ -83,7 +83,8 @@ public static class FlaskRuntime
             case FlaskKind.Fire: return WeaponElement.Fire;
             case FlaskKind.Ice: return WeaponElement.Ice;
             case FlaskKind.Lightning: return WeaponElement.Electric;
-            case FlaskKind.Water: return WeaponElement.Water;
+            case FlaskKind.Dark: return WeaponElement.Dark;
+            case FlaskKind.Light: return WeaponElement.Light;
             default: return WeaponElement.None;
         }
     }

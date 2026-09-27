@@ -241,13 +241,13 @@ MonoBehaviour:
       y: 0.013556619
       width: 0.44976076
       height: 0.97767144
-  - sprite: {fileID: 21300000, guid: 4f4a984eab7302444bc249772450a92e, type: 3}
+  - sprite: {fileID: 21300000, guid: 2ca667f145f854048b0e2cf1b92a5449, type: 3}
     bounds:
       serializedVersion: 2
-      x: 0.2830941
-      y: 0.030303031
-      width: 0.43141946
-      height: 0.94577354
+      x: 0.22886762
+      y: 0.006379585
+      width: 0.54226476
+      height: 0.98724085
   - sprite: {fileID: 21300000, guid: 3b8c9d0e1f2a4b5c9d8e7f6a5b4c3d2e, type: 3}
     bounds:
       serializedVersion: 2
@@ -297,6 +297,13 @@ MonoBehaviour:
       y: 0.109375
       width: 0.578125
       height: 0.796875
+  - sprite: {fileID: 21300000, guid: c034ae095ac2c8d44b27cc4cf95d7af7, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.17942584
+      y: 0.00877193
+      width: 0.6411483
+      height: 0.98245615
 --- !u!1 &3882602937928084634
 GameObject:
   m_ObjectHideFlags: 0

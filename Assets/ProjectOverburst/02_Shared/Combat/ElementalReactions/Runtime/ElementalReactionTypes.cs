@@ -185,34 +185,6 @@ public readonly struct ElementalReactionChainCompletedEvent
     }
 }
 
-public readonly struct ElementalBasicStatusSet
-{
-    public readonly bool Burning;
-    public readonly bool Wet;
-    public readonly bool Chilled;
-    public readonly bool Shocked;
-
-    public ElementalBasicStatusSet(bool burning, bool wet, bool chilled, bool shocked)
-    {
-        Burning = burning;
-        Wet = wet;
-        Chilled = chilled;
-        Shocked = shocked;
-    }
-
-    public static ElementalBasicStatusSet Capture(IElementalStatusReceiver receiver)
-    {
-        if (receiver == null)
-            return default;
-
-        return new ElementalBasicStatusSet(
-            receiver.TryGetStatus(WeaponElement.Fire, out _),
-            receiver.TryGetStatus(WeaponElement.Water, out _),
-            receiver.TryGetStatus(WeaponElement.Ice, out _),
-            receiver.TryGetStatus(WeaponElement.Electric, out _));
-    }
-}
-
 public readonly struct ElementalApplicationContext
 {
     public readonly CombatHealth TargetHealth;

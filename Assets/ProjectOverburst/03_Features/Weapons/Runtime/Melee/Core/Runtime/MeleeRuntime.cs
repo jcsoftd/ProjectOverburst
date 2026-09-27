@@ -32,6 +32,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private OverburstElementEnergy activeHeavyEnergy;
     private OverburstElementDischarge activeDischarge;
     private bool heavyDischargeCommitted;
+    private bool resolvingHeavyBlast;
     private bool activeAttackIsHeavy;
     private float activeAttackDamageMultiplier = 1f;
     private bool isAttacking; // 공격 중
@@ -45,6 +46,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private float activeAttackTransitionDuration; // 공격 전환 보간
     private AttackPhaseData[] activeAttackPhases;
     private readonly AttackPhaseExecutor attackPhaseExecutor = new AttackPhaseExecutor();
+    private readonly AttackVisualHeightExecutor attackVisualHeight = new AttackVisualHeightExecutor();
     private readonly AttackMovementExecutor attackMovementExecutor = new AttackMovementExecutor();
     private readonly ComboMovementCollisionPusher comboMovementCollisionPusher = new ComboMovementCollisionPusher();
     private readonly AttackTrailExecutor attackTrailExecutor = new AttackTrailExecutor();
@@ -653,6 +655,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return false;
         }
 
+        attackVisualHeight.Begin(transform.Find("VisualRoot"), activeAttackStep.visualHeightCurve);
+        attackVisualHeight.Tick(entryProgress);
         RotateOwnerToAttackDirection();
         isAttacking = true;
         attackStartTime = Time.time - attackDuration * acceleration.ToElapsed(entryProgress);
@@ -988,6 +992,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         if (!shouldContinueCombo && !shouldCancelByMoveInput)
         {
             attackMovementExecutor.Tick(normalizedTime);
+            attackVisualHeight.Tick(normalizedTime);
             attackTrailExecutor.Tick(normalizedTime);
         }
 
@@ -1120,6 +1125,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void CommitHeavyDischargeAtImpact(float normalizedTime)
     {
+        using var costScope = ElementCombatCostMarkers.Heavy_Commit.Auto();
         if (!activeAttackIsHeavy || heavyDischargeCommitted || activeAttackPhases == null
             || activeAttackPhases.Length == 0
             || normalizedTime < activeAttackPhases[0].SafeStart)
@@ -1128,7 +1134,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         float normalizedEnergy = activeHeavyEnergy != null ? activeHeavyEnergy.Normalized : 0f;
         heavyDischargeCommitted = true;
         bool hasDischarge = activeHeavyEnergy != null && activeHeavyEnergy.TryCommitDischarge(
-            activeStats.damage * activeAttackDamageMultiplier, out activeDischarge);
+            activeStats.damage * activeAttackPhases[0].impact.SafeDamageMultiplier, out activeDischarge);
 
         MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeDefinition() : null;
@@ -1137,10 +1143,36 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeStats.range, activeStats.meleeSlashAngle, meleeDefinition.baseSettings.hitWidth);
         Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
-            CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
+        {
+            bool fireGroundReplaced = hasDischarge && activeDischarge.Element == WeaponElement.Fire
+                && MeleeElementSfxService.TryPlayHeavyImpact(WeaponElement.Fire, center);
+            if (!fireGroundReplaced)
+                CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
+        }
         if (!hasDischarge) return;
+        if (activeWeaponData.weaponClass == WeaponClass.Greatsword && activeDischarge.Element != WeaponElement.Fire)
+            MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center);
+        attackPhaseExecutor.OverrideUnstartedCircleRadius(activeDischarge.Radius);
         heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
-            combatTarget, gameObject, center, activeAttackDirection);
+            combatTarget, gameObject, center, activeAttackDirection, activeDischarge.Radius, pattern.VerticalTolerance);
+        MeleeAttackRuntimeData baseRuntime = MeleeAttackStatResolver.Resolve(activeStats,
+            meleeDefinition.baseSettings, activeAttackPhases[0], 1f);
+        var blastRuntime = new MeleeAttackRuntimeData(pattern, activeDischarge.FirstBlastDamage,
+            baseRuntime.Knockback, baseRuntime.HitStunDuration, baseRuntime.VfxScale, baseRuntime.AttackRangeScale);
+        resolvingHeavyBlast = true;
+        try
+        {
+            for (int i = 0; i < heavyDischargeExecutor.SnapshotCount; i++)
+            {
+                CombatTarget target = heavyDischargeExecutor.FirstBlastTarget(i);
+                if (target == null) continue;
+                Vector3 direction = target.WorldCenter - center; direction.y = 0f;
+                if (direction.sqrMagnitude < .0001f) direction = activeAttackDirection;
+                DealPatternDamage(new AttackPhaseHit(activeAttackPhases[0], blastRuntime, target,
+                    target.WorldCenter, direction.normalized));
+            }
+        }
+        finally { resolvingHeavyBlast = false; }
     }
 
     private void KeepComboWindowForCancel()
@@ -1194,6 +1226,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackPhases = null;
         attackPhaseExecutor.Cancel();
         attackMovementExecutor.Cancel();
+        attackVisualHeight.Cancel();
         attackTrailExecutor.Cancel();
         activeAttackStep = default;
         ClearAttackTrail();
@@ -1242,6 +1275,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackPhases = null;
         attackPhaseExecutor.Cancel();
         attackMovementExecutor.Cancel();
+        attackVisualHeight.Cancel();
         attackTrailExecutor.Cancel();
         ResetActiveTrailState();
         isAttacking = false;
@@ -1332,6 +1366,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void DealPatternDamage(AttackPhaseHit hit)
     {
+        // The elemental first circle commits once at impact. The phase executor still drives its visual wave.
+        if (activeAttackIsHeavy && activeDischarge != null && !resolvingHeavyBlast) return;
         if (hit.Damageable == null)
             return;
 
@@ -1356,7 +1392,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             hit.HitPoint,
             gameObject,
             hit.Direction,
-            activeAttackIsHeavy && attackElement == WeaponElement.Water
+            activeAttackIsHeavy && activeDischarge != null && activeDischarge.Element == WeaponElement.Dark
                 ? 0f : ApplyCombatStanceKnockback(runtimeData.Knockback),
             useElementHitVfx,
             attackElement,

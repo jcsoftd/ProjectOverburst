@@ -33,6 +33,7 @@ namespace Overburst.Persistence
         {
             Validate(snapshot, registry);
             var copy = CopyValues(snapshot);
+            copy.element = OverburstElementRules.MigrateLegacy(copy.element);
             return ItemData.RestoreSaved(copy, registry.Resolve<BaseItemData>(copy.contentId));
         }
 

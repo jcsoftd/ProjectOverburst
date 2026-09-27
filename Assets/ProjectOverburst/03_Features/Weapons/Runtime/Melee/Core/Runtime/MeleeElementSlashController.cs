@@ -7,11 +7,10 @@ public sealed class MeleeElementSlashController : MonoBehaviour, ITransientVfxPl
     [SerializeField] private WeaponElement selectedElement = WeaponElement.None;
     [SerializeField] private GameObject neutralSlash;
     [SerializeField] private GameObject fireSlash;
-    [SerializeField] private GameObject waterSlash;
     [SerializeField] private GameObject iceSlash;
     [SerializeField] private GameObject electricSlash;
-    [SerializeField] private GameObject windSlash;
-    [SerializeField] private GameObject earthSlash;
+    [SerializeField] private GameObject darkSlash;
+    [SerializeField] private GameObject lightSlash;
     [SerializeField, Min(0f)] private float startOffsetSeconds = 0.06f;
 
     public WeaponElement SelectedElement => selectedElement;
@@ -75,16 +74,14 @@ public sealed class MeleeElementSlashController : MonoBehaviour, ITransientVfxPl
         {
             case WeaponElement.Fire:
                 return fireSlash;
-            case WeaponElement.Water:
-                return waterSlash;
             case WeaponElement.Ice:
                 return iceSlash;
             case WeaponElement.Electric:
                 return electricSlash;
-            case WeaponElement.Wind:
-                return windSlash;
-            case WeaponElement.Earth:
-                return earthSlash;
+            case WeaponElement.Dark:
+                return darkSlash;
+            case WeaponElement.Light:
+                return lightSlash;
             default:
                 return neutralSlash;
         }
@@ -94,11 +91,10 @@ public sealed class MeleeElementSlashController : MonoBehaviour, ITransientVfxPl
     {
         SetActive(neutralSlash, false);
         SetActive(fireSlash, false);
-        SetActive(waterSlash, false);
         SetActive(iceSlash, false);
         SetActive(electricSlash, false);
-        SetActive(windSlash, false);
-        SetActive(earthSlash, false);
+        SetActive(darkSlash, false);
+        SetActive(lightSlash, false);
 
         SetActive(GetElementObject(selectedElement), true);
     }
@@ -128,11 +124,10 @@ public sealed class MeleeElementSlashController : MonoBehaviour, ITransientVfxPl
     {
         StopAndClear(neutralSlash);
         StopAndClear(fireSlash);
-        StopAndClear(waterSlash);
         StopAndClear(iceSlash);
         StopAndClear(electricSlash);
-        StopAndClear(windSlash);
-        StopAndClear(earthSlash);
+        StopAndClear(darkSlash);
+        StopAndClear(lightSlash);
     }
 
     private static void StopAndClear(GameObject target)
@@ -157,11 +152,10 @@ public sealed class MeleeElementSlashController : MonoBehaviour, ITransientVfxPl
         {
             case WeaponElement.None:
             case WeaponElement.Fire:
-            case WeaponElement.Water:
             case WeaponElement.Ice:
             case WeaponElement.Electric:
-            case WeaponElement.Wind:
-            case WeaponElement.Earth:
+            case WeaponElement.Dark:
+            case WeaponElement.Light:
                 return element;
             default:
                 return WeaponElement.None;

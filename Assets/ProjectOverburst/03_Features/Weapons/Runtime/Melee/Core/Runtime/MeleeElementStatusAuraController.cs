@@ -3,17 +3,17 @@ using UnityEngine;
 public enum MeleeElementStatusAuraType
 {
     Burning = 0,
-    Wet = 1,
-    Shocked = 2,
-    Chilled = 3
+    Shocked = 1,
+    Chilled = 2
 }
 
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-10000)]
 public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransientVfxPlayback
 {
-    private const int AuraTypeCount = 4;
+    private const int AuraTypeCount = 3;
     private readonly bool[] logicalStates = new bool[AuraTypeCount];
+    private readonly int[] stackCounts = new int[AuraTypeCount];
     private int logicalActiveCount;
     private int schedulerIndex = -1;
     private CombatTarget cachedCombatTarget;
@@ -54,6 +54,8 @@ public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransient
             return false;
 
         bool wasActive = logicalStates[index];
+        if (!active) stackCounts[index] = 0;
+        else if (stackCounts[index] == 0) stackCounts[index] = 1;
         if (wasActive != active)
         {
             logicalStates[index] = active;
@@ -70,8 +72,22 @@ public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransient
 
         MeleeElementStatusAuraVisibilityScheduler.Register(this);
         if (presentation != null)
+        {
+            presentation.SetStackCount(auraType,stackCounts[index]);
             presentation.SetAuraActive(auraType, true, !wasActive || restartIfAlreadyActive);
+        }
         return true;
+    }
+
+    public void SetStackCount(MeleeElementStatusAuraType type, int count)
+    {
+        int index=(int)type;
+        if(index<0||index>=AuraTypeCount)return;
+        count=Mathf.Clamp(count,0,5);
+        if(stackCounts[index]==count&&logicalStates[index]==(count>0))return;
+        stackCounts[index]=count;
+        presentation?.SetStackCount(type,count);
+        SetAuraActive(type,count>0,false);
     }
 
     public bool StartAura(MeleeElementStatusAuraType auraType)
@@ -104,7 +120,10 @@ public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransient
     public void ClearAllAuras()
     {
         for (int i = 0; i < logicalStates.Length; i++)
+        {
             logicalStates[i] = false;
+            stackCounts[i] = 0;
+        }
 
         logicalActiveCount = 0;
         MeleeElementStatusAuraVisibilityScheduler.Unregister(this);
@@ -150,7 +169,10 @@ public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransient
         for (int i = 0; i < logicalStates.Length; i++)
         {
             if (logicalStates[i])
+            {
+                presentation.SetStackCount((MeleeElementStatusAuraType)i,stackCounts[i]);
                 presentation.SetAuraActive((MeleeElementStatusAuraType)i, true, false);
+            }
         }
     }
 

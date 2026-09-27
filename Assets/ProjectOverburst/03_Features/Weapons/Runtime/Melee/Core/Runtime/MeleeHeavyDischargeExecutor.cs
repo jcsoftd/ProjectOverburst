@@ -4,12 +4,18 @@ using UnityEngine;
 // Executes the committed heavy discharge. Derived damage never charges energy or reapplies status.
 public sealed class MeleeHeavyDischargeExecutor
 {
-    private const float PullDuration = 0.24f;
-    private const float MinimumPullSeparation = 0.35f;
+    private ElementDischargeBatch batch = new ElementDischargeBatch();
+    private System.Action<Vector3, float> fireVfx;
+    private System.Action<Vector3, Vector3> chainVfx;
+    private bool pendingElectricChain;
+    public int CandidateChecks => batch.CandidateChecks;
+    public int SecondaryHits => batch.SecondaryHits;
+    public int OriginCount => batch.OriginCount;
+    public int SnapshotCount => batch.Count;
+    public CombatTarget FirstBlastTarget(int index) => batch.FirstBlastTarget(index, impactCenter, blastRadius);
     private readonly List<CombatTarget> candidates = new List<CombatTarget>(32);
-    private readonly List<CombatTarget> fireTargets = new List<CombatTarget>(32);
-    private readonly HashSet<int> chainVisited = new HashSet<int>();
-    private readonly List<PullRequest> pulls = new List<PullRequest>(12);
+    private readonly List<CombatTarget> darkTargets = new List<CombatTarget>(24);
+    private readonly HashSet<int> lightVisited = new HashSet<int>();
 
     private OverburstElementDischarge discharge;
     private MeleeHeavyAttackDefinition definition;
@@ -17,17 +23,15 @@ public sealed class MeleeHeavyDischargeExecutor
     private GameObject sourceActor;
     private Vector3 impactCenter;
     private Vector3 facing;
-    private bool chainExecuted;
+    private float blastRadius;
+    private float blastVerticalTolerance;
+    private float darkPullRemaining;
+    private float lightElapsed;
+    private float lightPreviousRadius;
     private bool pendingFireExplosion;
-
-    private struct PullRequest
-    {
-        public CombatHealth Target;
-        public float RemainingDistance;
-        public float Speed;
-        public float ExpiresAt;
-        public float PendingDistance;
-    }
+    private bool pendingDarkPull;
+    private bool pendingLightAfterglow;
+    private bool lightStarted;
 
     public void Begin(
         OverburstElementDischarge committedDischarge,
@@ -35,27 +39,63 @@ public sealed class MeleeHeavyDischargeExecutor
         CombatTarget attacker,
         GameObject attackerObject,
         Vector3 center,
-        Vector3 direction)
+        Vector3 direction,
+        float firstBlastRadius,
+        float firstBlastVerticalTolerance)
     {
+        using var costScope = ElementCombatCostMarkers.Heavy_Begin.Auto();
         End();
         discharge = committedDischarge;
         definition = heavyDefinition;
         sourceTarget = attacker;
         sourceActor = attackerObject;
         impactCenter = center;
+        blastRadius = Mathf.Max(0f, firstBlastRadius);
+        blastVerticalTolerance = Mathf.Max(0f, firstBlastVerticalTolerance);
         facing = direction;
         facing.y = 0f;
         if (facing.sqrMagnitude > 0.0001f) facing.Normalize();
         PlayImpact();
+        batch.Capture(sourceTarget, discharge.Element, blastVerticalTolerance);
+        if (fireVfx == null) fireVfx = PlayFireOrigin;
+        if (chainVfx == null) chainVfx = PlayChainLink;
         pendingFireExplosion = discharge.Element == WeaponElement.Fire;
-        if (pendingFireExplosion) PrepareFireExplosionTargets();
+        pendingElectricChain = discharge.Element == WeaponElement.Electric;
+        pendingDarkPull = discharge.Element == WeaponElement.Dark && discharge.Energy > 0f;
+        pendingLightAfterglow = discharge.Element == WeaponElement.Light && discharge.Energy > 0f;
     }
 
     public void ResolvePendingArea()
     {
-        if (!pendingFireExplosion) return;
-        pendingFireExplosion = false;
-        ExecuteFireExplosion();
+        if (pendingFireExplosion || pendingElectricChain)
+        {
+            pendingFireExplosion = false;
+            pendingElectricChain = false;
+            batch = ElementChainScheduler.Submit(batch, impactCenter, discharge.FirstBlastDamage,
+                discharge.NormalizedEnergy, sourceActor, definition.elementVfx.FireChainExplosion,
+                definition.elementVfx.electricChainLink, definition.elementVfx.electricChainProc,
+                definition.elementVfx.FireChainReferenceRadius);
+        }
+        if (pendingDarkPull)
+        {
+            pendingDarkPull = false;
+            PrepareDarkPullTargets();
+            darkPullRemaining = OverburstElementTuning.Current.SafeDarkPullDuration;
+        }
+        if (pendingLightAfterglow)
+        {
+            pendingLightAfterglow = false;
+            lightStarted = true;
+            lightElapsed = 0f;
+            lightPreviousRadius = 0f;
+        }
+    }
+
+    public void Tick(float deltaTime)
+    {
+        if (discharge == null || deltaTime <= 0f) return;
+        if (darkPullRemaining > 0f) AdvanceDarkPull(deltaTime);
+        if (lightStarted) AdvanceLightAfterglow(deltaTime);
     }
 
     public void ResolveDirectHit(
@@ -63,199 +103,217 @@ public sealed class MeleeHeavyDischargeExecutor
         Vector3 hitPoint,
         OverburstDischargeResult result)
     {
+        using var costScope = ElementCombatCostMarkers.Heavy_StatusReaction.Auto();
         if (discharge == null || target == null)
             return;
 
-        float directBonus = result.Element == WeaponElement.Fire
-            ? Mathf.Max(0f, result.BonusDamage - discharge.BaseDamage)
-            : result.BonusDamage;
-        DealDerivedDamage(target, directBonus, hitPoint, facing);
+        float directBonus = result.BonusDamage;
         if (result.Element == WeaponElement.Ice && result.Shattered)
-            Spawn(definition.elementVfx.iceShatter, hitPoint, Quaternion.identity, 1f);
-        if (result.Element == WeaponElement.Water && !target.IsDead)
-            SchedulePull(target, result.RequestedPullDistance);
-        if (result.Element == WeaponElement.Electric && !chainExecuted)
-        {
-            chainExecuted = true;
-            ExecuteElectricChain(target, hitPoint, result);
-        }
-    }
-
-    public void Tick(float deltaTime)
-    {
-        for (int i = pulls.Count - 1; i >= 0; i--)
-        {
-            PullRequest pull = pulls[i];
-            if (pull.Target == null || pull.Target.IsDead || Time.time >= pull.ExpiresAt)
-            {
-                pulls.RemoveAt(i);
-                continue;
-            }
-
-            EnemyMovement movement = pull.Target.GetComponent<EnemyMovement>();
-            if (movement == null)
-            {
-                pulls.RemoveAt(i);
-                continue;
-            }
-
-            Vector3 offset = impactCenter - movement.transform.position;
-            offset.y = 0f;
-            float separation = offset.magnitude;
-            if (separation <= MinimumPullSeparation)
-            {
-                pulls.RemoveAt(i);
-                continue;
-            }
-
-            float available = Mathf.Min(pull.RemainingDistance,
-                Mathf.Min(separation - MinimumPullSeparation, 0.25f));
-            pull.PendingDistance = Mathf.Min(available,
-                pull.PendingDistance + pull.Speed * Mathf.Max(0f, deltaTime));
-            if (pull.PendingDistance < 0.01f)
-            {
-                pulls[i] = pull;
-                continue;
-            }
-            float step = pull.PendingDistance;
-            if (!movement.RequestAreaDisplacement(offset / separation * step))
-            {
-                pulls.RemoveAt(i);
-                continue;
-            }
-
-            pull.RemainingDistance -= step;
-            pull.PendingDistance = 0f;
-            if (pull.RemainingDistance <= 0.001f) pulls.RemoveAt(i);
-            else pulls[i] = pull;
-        }
+            ShatterWaveScheduler.Submit(target, directBonus, sourceActor,
+                definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius);
+        else
+            DealDerivedDamage(target, directBonus, hitPoint, facing);
+        if (result.Element == WeaponElement.Fire || result.Element == WeaponElement.Electric)
+            batch.ConfirmInitial(target);
+        if (result.Element == WeaponElement.Electric && result.ConsumedStacks > 0)
+            Spawn(definition.elementVfx.electricChainStart, hitPoint, Quaternion.identity, 1f);
     }
 
     public void End()
     {
         discharge = null;
+        batch.Clear();
+        pendingElectricChain = false;
         definition = null;
         sourceTarget = null;
         sourceActor = null;
-        chainExecuted = false;
         pendingFireExplosion = false;
+        pendingDarkPull = false;
+        pendingLightAfterglow = false;
+        lightStarted = false;
+        darkPullRemaining = 0f;
+        lightElapsed = 0f;
+        lightPreviousRadius = 0f;
+        blastRadius = 0f;
+        blastVerticalTolerance = 0f;
         candidates.Clear();
-        fireTargets.Clear();
-        chainVisited.Clear();
-        pulls.Clear();
+        darkTargets.Clear();
+        lightVisited.Clear();
     }
 
-    private void ExecuteFireExplosion()
+    private void PrepareDarkPullTargets()
     {
-        if (sourceTarget == null || discharge.BaseDamage <= 0f)
-            return;
-        for (int i = 0; i < fireTargets.Count; i++)
-        {
-            CombatTarget target = fireTargets[i];
-            if (!IsValidEnemy(target)) continue;
-            CombatHealth health = target.DamageReceiver;
-            bool hasSnapshot = discharge.TryCaptureTarget(
-                health, out OverburstElementDischarge.TargetSnapshot snapshot);
-            float before = health.CurrentHp;
-            DealDerivedDamage(health, discharge.BaseDamage, target.WorldCenter, facing);
-            float actualDamage = Mathf.Max(0f, before - health.CurrentHp);
-            if (!hasSnapshot || !discharge.TryResolveConfirmedHit(
-                    snapshot, actualDamage, out OverburstDischargeResult result))
-                continue;
-            float statusBonus = Mathf.Max(0f, result.BonusDamage - discharge.BaseDamage);
-            DealDerivedDamage(health, statusBonus, target.WorldCenter, facing);
-        }
-        fireTargets.Clear();
-    }
-
-    private void PrepareFireExplosionTargets()
-    {
-        CombatTargetRegistry.CollectPotentialTargets(impactCenter, discharge.Radius, candidates);
+        darkTargets.Clear();
+        if (sourceTarget == null || blastRadius <= 0f) return;
+        CombatTargetRegistry.CollectPotentialTargets(impactCenter, blastRadius, candidates);
+        int limit = OverburstElementTuning.Current.SafeDarkPullMaxTargets;
         for (int i = 0; i < candidates.Count; i++)
         {
             CombatTarget target = candidates[i];
-            if (!IsValidEnemy(target) || !IsInRadius(target, impactCenter, discharge.Radius))
+            if (!IsValidEnemy(target) || !IsInRadius(target, impactCenter, blastRadius)
+                || !IsInBlastHeight(target)
+                || target.GetComponent<EnemyMovement>() == null) continue;
+
+            if (darkTargets.Count < limit)
+            {
+                darkTargets.Add(target);
                 continue;
-            Vector3 fromOwner = target.WorldCenter - sourceActor.transform.position;
-            fromOwner.y = 0f;
-            if (facing.sqrMagnitude > 0.0001f && Vector3.Dot(fromOwner, facing) < -0.05f)
-                continue;
-            fireTargets.Add(target);
+            }
+
+            int farthest = 0;
+            float farthestDistance = -1f;
+            for (int j = 0; j < darkTargets.Count; j++)
+            {
+                float distance = PlanarDistanceSquared(darkTargets[j].WorldCenter, impactCenter);
+                if (distance <= farthestDistance) continue;
+                farthest = j;
+                farthestDistance = distance;
+            }
+            if (PlanarDistanceSquared(target.WorldCenter, impactCenter) < farthestDistance)
+                darkTargets[farthest] = target;
         }
         candidates.Clear();
     }
 
-    private void ExecuteElectricChain(CombatHealth firstTarget, Vector3 firstPoint, OverburstDischargeResult result)
+    private void AdvanceDarkPull(float deltaTime)
     {
-        if (sourceTarget == null || result.ChainTargets <= 1 || result.Radius <= 0f)
-            return;
-
-        chainVisited.Clear();
-        chainVisited.Add(firstTarget.GetInstanceID());
-        Vector3 previous = firstPoint;
-        for (int hop = 1; hop < result.ChainTargets; hop++)
+        OverburstElementTuning tuning = OverburstElementTuning.Current;
+        float step = Mathf.Min(deltaTime, darkPullRemaining);
+        darkPullRemaining -= step;
+        float movement = tuning.SafeDarkPullDistance * step / tuning.SafeDarkPullDuration;
+        for (int i = 0; i < darkTargets.Count; i++)
         {
-            CombatTargetRegistry.CollectPotentialTargets(previous, result.Radius, candidates);
-            CombatTarget nearest = null;
-            float nearestDistance = float.PositiveInfinity;
-            for (int i = 0; i < candidates.Count; i++)
-            {
-                CombatTarget candidate = candidates[i];
-                if (!IsValidEnemy(candidate) || chainVisited.Contains(candidate.DamageReceiver.GetInstanceID())
-                    || !IsInRadius(candidate, previous, result.Radius))
-                    continue;
-                float distance = (candidate.WorldCenter - previous).sqrMagnitude;
-                if (distance < nearestDistance || Mathf.Approximately(distance, nearestDistance)
-                    && (nearest == null || candidate.TargetId < nearest.TargetId))
-                {
-                    nearest = candidate;
-                    nearestDistance = distance;
-                }
-            }
-            candidates.Clear();
-            if (nearest == null) break;
-
-            chainVisited.Add(nearest.DamageReceiver.GetInstanceID());
-            Vector3 next = nearest.WorldCenter;
-            PlayChainLink(previous, next);
-            float damage = result.BonusDamage * Mathf.Pow(0.7f, hop);
-            DealDerivedDamage(nearest.DamageReceiver, damage, next, (next - previous).normalized);
-            previous = next;
+            CombatTarget target = darkTargets[i];
+            if (!IsValidEnemy(target)) continue;
+            EnemyMovement motor = target.GetComponent<EnemyMovement>();
+            if (motor == null) continue;
+            EnemyRank rank = target.GetComponent<EnemyRank>();
+            float resistance = ResolvePullResistance(rank);
+            if (resistance <= 0f) continue;
+            Vector3 towardCenter = impactCenter - motor.transform.position;
+            towardCenter.y = 0f;
+            float gap = towardCenter.magnitude - 0.35f;
+            if (gap <= 0f) continue;
+            motor.RequestAreaDisplacement(towardCenter.normalized * Mathf.Min(gap, movement * resistance));
         }
-        chainVisited.Clear();
+        if (darkPullRemaining <= 0f) darkTargets.Clear();
     }
 
-    private void SchedulePull(CombatHealth target, float requestedDistance)
+    private static float ResolvePullResistance(EnemyRank rank)
     {
-        EnemyRank rank = target.GetComponent<EnemyRank>();
-        float resistance = 1f;
-        if (rank != null)
+        if (rank == null) return 0.5f;
+        switch (rank.GradeType)
         {
-            switch (rank.GradeType)
-            {
-                case EnemyGradeType.Elite: resistance = 0.5f; break;
-                case EnemyGradeType.GreaterElite: resistance = 0.25f; break;
-                case EnemyGradeType.Boss: resistance = 0f; break;
-            }
+            case EnemyGradeType.Normal: return 1f;
+            case EnemyGradeType.Elite: return 0.5f;
+            case EnemyGradeType.GreaterElite: return 0.25f;
+            default: return 0f;
         }
-        float distance = Mathf.Max(0f, requestedDistance) * resistance;
-        if (distance <= 0.001f || target.GetComponent<EnemyMovement>() == null)
-            return;
-        pulls.Add(new PullRequest
+    }
+
+    private void AdvanceLightAfterglow(float deltaTime)
+    {
+        OverburstElementTuning tuning = OverburstElementTuning.Current;
+        float previousTime = lightElapsed;
+        lightElapsed += deltaTime;
+        float delay = tuning.SafeLightAfterglowDelay;
+        if (lightElapsed < delay) return;
+        if (previousTime < delay) PlayLightAfterglow();
+
+        float duration = tuning.SafeLightAfterglowDuration;
+        float outerRadius = blastRadius * tuning.SafeLightAfterglowRadiusMultiplier;
+        float currentRadius = outerRadius * Mathf.Clamp01((lightElapsed - delay) / duration);
+        CombatTargetRegistry.CollectPotentialTargets(impactCenter, currentRadius, candidates);
+        for (int i = 0; i < candidates.Count; i++)
         {
-            Target = target,
-            RemainingDistance = distance,
-            Speed = distance / PullDuration,
-            ExpiresAt = Time.time + PullDuration
-        });
+            CombatTarget target = candidates[i];
+            if (!IsValidEnemy(target) || !IsInRing(target, lightPreviousRadius, currentRadius)
+                || !IsInBlastHeight(target)) continue;
+            CombatHealth health = target.DamageReceiver;
+            if (!lightVisited.Add(health.GetInstanceID())) continue;
+
+            bool captured = discharge.TryCaptureTarget(health, out OverburstElementDischarge.TargetSnapshot snapshot);
+            float before = health.CurrentHp;
+            DealDerivedDamage(health, discharge.BaseDamage * tuning.SafeLightAfterglowDamageFraction,
+                target.WorldCenter, (target.WorldCenter - impactCenter).normalized);
+            if (!captured || !discharge.TryResolveConfirmedHit(snapshot,
+                    Mathf.Max(0f, before - health.CurrentHp), out OverburstDischargeResult result)) continue;
+            float statusBonus = Mathf.Max(0f, result.BonusDamage);
+            DealDerivedDamage(health, statusBonus, target.WorldCenter, facing);
+        }
+        candidates.Clear();
+        lightPreviousRadius = currentRadius;
+        if (lightElapsed < delay + duration) return;
+        lightStarted = false;
+        lightVisited.Clear();
+    }
+
+    private bool IsInRing(CombatTarget target, float innerRadius, float outerRadius)
+    {
+        Vector3 delta = target.CurrentHurtVolume.Center - impactCenter;
+        delta.y = 0f;
+        float distance = delta.magnitude;
+        float targetRadius = target.CurrentHurtVolume.Radius;
+        return distance - targetRadius <= outerRadius && distance + targetRadius >= innerRadius;
+    }
+
+    private bool IsInBlastHeight(CombatTarget target)
+    {
+        CombatTargetVolume volume = target.CurrentHurtVolume;
+        return Mathf.Max(0f, Mathf.Abs(volume.Center.y - impactCenter.y) - volume.HalfHeight)
+            <= blastVerticalTolerance;
+    }
+
+    private void PlayLightAfterglow()
+    {
+        if (definition == null || definition.attack.attackPhases == null
+            || definition.attack.attackPhases.Length == 0) return;
+        AttackVfxCueData[] cues = definition.attack.attackPhases[0].vfxCues;
+        if (cues == null) return;
+        for (int i = 0; i < cues.Length; i++)
+        {
+            AttackVfxCueData cue = cues[i];
+            MeleeAttackVfxDefinition visual = cue.definition;
+            if (visual == null || cue.motionRole != AttackVfxMotionRole.HorizontalCircular) continue;
+            GameObject prefab = MeleeAttackVfxResolver.Current.ResolvePrefab(visual, cue.elementOverrideKey);
+            if (prefab == null) continue;
+            float speed = Mathf.Clamp(0.28f / OverburstElementTuning.Current.SafeLightAfterglowDuration, 0.1f, 4f);
+            float scale = cue.SafeScaleMultiplier * OverburstElementTuning.Current.SafeLightAfterglowRadiusMultiplier;
+            Quaternion rotation = facing.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(facing, Vector3.up) : Quaternion.identity;
+            TransientVfxPool.Spawn(prefab, impactCenter + rotation * visual.localPositionOffset,
+                rotation * Quaternion.Euler(visual.localEulerOffset + cue.localEulerOffset),
+                SwordShockwavePlayback.ResolveCueLifetime(prefab, visual.lifetime, speed),
+                visual.SafePoolCapacity, null,
+                instance =>
+                {
+                    instance.transform.localScale = visual.baseScale * scale;
+                    instance.GetComponent<SwordShockwavePlayback>()?.Configure(cue.SafeShockwaveIntensity, speed);
+                }, MeleeSharedSlashSpawnContract.ResolveReturnMode(cue.elementOverrideKey));
+            return;
+        }
+    }
+
+    private static float PlanarDistanceSquared(Vector3 a, Vector3 b)
+    {
+        Vector3 delta = a - b;
+        delta.y = 0f;
+        return delta.sqrMagnitude;
     }
 
     private void PlayImpact()
     {
+        using var costScope = ElementCombatCostMarkers.Heavy_ImpactVfx.Auto();
         if (definition == null || discharge == null) return;
         GameObject prefab = definition.elementVfx.GetImpact(discharge.Element);
-        float scale = Mathf.Lerp(0.6f, 1.2f, discharge.NormalizedEnergy);
+        float scale = definition.elementVfx.ImpactScale(discharge.Element, blastRadius);
         Spawn(prefab, impactCenter, Quaternion.identity, scale);
+    }
+    private void PlayFireOrigin(Vector3 point, float radius)
+    {
+        if (definition == null) return;
+        Spawn(definition.elementVfx.FireChainExplosion, point, Quaternion.identity,
+            radius / definition.elementVfx.FireChainReferenceRadius);
     }
 
     private void PlayChainLink(Vector3 from, Vector3 to)
@@ -264,6 +322,8 @@ public sealed class MeleeHeavyDischargeExecutor
         Vector3 direction = to - from;
         float distance = direction.magnitude;
         if (prefab == null || distance <= 0.05f) return;
+        Spawn(definition.elementVfx.electricChainProc, to, Quaternion.identity, 1f);
+        if (ChainElectricityBatchRenderer.TrySpawn(prefab, from, to)) return;
         TransientVfxPool.Spawn(prefab, (from + to) * 0.5f,
             Quaternion.LookRotation(direction / distance, Vector3.up), 0f, 12,
             prepareBeforeActivation: instance => instance.transform.localScale =
@@ -274,7 +334,7 @@ public sealed class MeleeHeavyDischargeExecutor
     private static void Spawn(GameObject prefab, Vector3 position, Quaternion rotation, float scale)
     {
         if (prefab == null) return;
-        TransientVfxPool.Spawn(prefab, position, rotation, 0f, 12,
+        TransientVfxPool.Spawn(prefab, position, rotation, 0f, MeleeHeavyVfxPreparation.RetainedCapacity(prefab),
             prepareBeforeActivation: instance =>
                 instance.transform.localScale = prefab.transform.localScale * scale);
     }

@@ -41,10 +41,9 @@ internal sealed class SlotVefectsTopOverlayRuntime : MonoBehaviour
         new SlotVefectsFlipbookDefinition("Electric", "UI/SlotVefects/SlotVefects_Electric_Flipbook"),
         new SlotVefectsFlipbookDefinition("Fire", "UI/SlotVefects/SlotVefects_Fire_Flipbook"),
         new SlotVefectsFlipbookDefinition("Ice", "UI/SlotVefects/SlotVefects_Ice_Flipbook"),
-        new SlotVefectsFlipbookDefinition("Water", "UI/SlotVefects/SlotVefects_Water_Flipbook"),
+        new SlotVefectsFlipbookDefinition("Dark", "UI/SlotVefects/SlotVefects_Dark_Flipbook"),
         new SlotVefectsFlipbookDefinition("Nature", "UI/SlotVefects/SlotVefects_Nature_Flipbook"),
         new SlotVefectsFlipbookDefinition("Earth", "UI/SlotVefects/SlotVefects_Earth_Flipbook"),
-        new SlotVefectsFlipbookDefinition("Dark", "UI/SlotVefects/SlotVefects_Dark_Flipbook"),
         new SlotVefectsFlipbookDefinition("Void", "UI/SlotVefects/SlotVefects_Void_Flipbook"),
         new SlotVefectsFlipbookDefinition("Cosmos", "UI/SlotVefects/SlotVefects_Cosmos_Flipbook"),
         new SlotVefectsFlipbookDefinition("Sound", "UI/SlotVefects/SlotVefects_Sound_Flipbook")

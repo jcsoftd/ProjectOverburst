@@ -45,6 +45,11 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         return TryPlay(element, MeleeElementSfxCueType.Hit, position);
     }
 
+    public static bool TryPlayHeavyImpact(WeaponElement element, Vector3 position)
+    {
+        return TryPlay(element, MeleeElementSfxCueType.HeavyImpact, position);
+    }
+
     public static bool IsSlashCueKey(string key)
     {
         return key == MeleeElementAttackVfxCatalog.BasicSlashKey
@@ -118,7 +123,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
             return false;
         }
 
-        int cooldownKey = ((int)element * 2) + (int)cueType;
+        int cooldownKey = ((int)element * 3) + (int)cueType;
         float now = Time.unscaledTime;
         if (nextAllowedTime.TryGetValue(cooldownKey, out float allowedTime) && now < allowedTime)
             return false;

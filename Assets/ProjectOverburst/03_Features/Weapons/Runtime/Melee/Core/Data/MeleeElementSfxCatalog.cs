@@ -4,7 +4,8 @@ using UnityEngine;
 public enum MeleeElementSfxCueType
 {
     Slash,
-    Hit
+    Hit,
+    HeavyImpact
 }
 
 [Serializable]
@@ -53,10 +54,17 @@ public sealed class MeleeElementSfxEntry
     public WeaponElement element;
     public MeleeElementSfxCueSettings slash = new MeleeElementSfxCueSettings();
     public MeleeElementSfxCueSettings hit = new MeleeElementSfxCueSettings();
+    public MeleeElementSfxCueSettings heavyImpact = new MeleeElementSfxCueSettings();
 
     public MeleeElementSfxCueSettings GetSettings(MeleeElementSfxCueType cueType)
     {
-        return cueType == MeleeElementSfxCueType.Slash ? slash : hit;
+        switch (cueType)
+        {
+            case MeleeElementSfxCueType.Slash: return slash;
+            case MeleeElementSfxCueType.Hit: return hit;
+            case MeleeElementSfxCueType.HeavyImpact: return heavyImpact;
+            default: return null;
+        }
     }
 }
 

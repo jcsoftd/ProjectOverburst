@@ -21,26 +21,21 @@ public readonly struct ElementalStatusRule
 
 public static class ElementalStatusRules
 {
-    public const float WetMoveSlow = 0.10f;
     public const float ChilledSlowPerStack = 0.04f;
     public const float MaxMoveSlow = 0.30f;
     public const float MaxActionSlow = 0.20f;
 
-    private static readonly ElementalStatusRule Burning = new ElementalStatusRule(WeaponElement.Fire, 5, 5f, 1f, 0.02f);
-    private static readonly ElementalStatusRule Wet = new ElementalStatusRule(WeaponElement.Water, 1, 6f, 0f, 0f);
-    private static readonly ElementalStatusRule Chilled = new ElementalStatusRule(WeaponElement.Ice, 5, 5f, 0f, 0f);
-    private static readonly ElementalStatusRule Shocked = new ElementalStatusRule(WeaponElement.Electric, 3, 4f, 1.5f, 0.06f);
-
     public static bool TryGetRule(WeaponElement element, out ElementalStatusRule rule)
     {
-        switch (element)
+        if (!OverburstElementRules.IsActive(element))
         {
-            case WeaponElement.Fire: rule = Burning; return true;
-            case WeaponElement.Water: rule = Wet; return true;
-            case WeaponElement.Ice: rule = Chilled; return true;
-            case WeaponElement.Electric: rule = Shocked; return true;
-            default: rule = default; return false;
+            rule = default;
+            return false;
         }
+
+        OverburstElementTuning tuning = OverburstElementTuning.Current;
+        rule = new ElementalStatusRule(element, tuning.maximumStacks, tuning.StatusDuration(element), tuning.TickInterval(element), tuning.TickCoefficient(element));
+        return true;
     }
 
     public static float ResolveControlEffectMultiplier(EnemyRank enemyRank)
@@ -61,15 +56,14 @@ public static class ElementalStatusRules
     }
 
     public static void ResolveSpeedMultipliers(
-        bool wetActive,
         int chilledStacks,
         float controlEffectMultiplier,
         out float moveSpeedMultiplier,
         out float actionSpeedMultiplier)
     {
-        int resolvedChilledStacks = Mathf.Clamp(chilledStacks, 0, Chilled.MaxStacks);
+        int resolvedChilledStacks = Mathf.Clamp(chilledStacks, 0, Mathf.Max(1, OverburstElementTuning.Current.maximumStacks));
         float chilledSlow = resolvedChilledStacks * ChilledSlowPerStack;
-        float rawMoveSlow = Mathf.Min(MaxMoveSlow, (wetActive ? WetMoveSlow : 0f) + chilledSlow);
+        float rawMoveSlow = Mathf.Min(MaxMoveSlow, chilledSlow);
         float rawActionSlow = Mathf.Min(MaxActionSlow, chilledSlow);
         float resistanceScale = Mathf.Clamp01(controlEffectMultiplier);
         moveSpeedMultiplier = Mathf.Clamp01(1f - rawMoveSlow * resistanceScale);

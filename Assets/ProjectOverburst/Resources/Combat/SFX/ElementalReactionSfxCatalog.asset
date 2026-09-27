@@ -53,7 +53,9 @@ MonoBehaviour:
     cooldown: 0.03
   shatter:
     clips:
+    - {fileID: 8300000, guid: 07121959d141245fdb59a0f76ddfd68c, type: 3}
     - {fileID: 8300000, guid: e40986eedd28a0449b9b6e021df6e891, type: 3}
+    - {fileID: 8300000, guid: 178c7e977140a49ffa008796ed052174, type: 3}
     volume: 1
     minPitch: 1
     maxPitch: 1

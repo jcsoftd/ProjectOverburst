@@ -24,6 +24,9 @@ public struct MeleeComboStepData
     [Range(0f, 1f)] public float actionCancelStartNormalized;
     [InspectorName("이동 구간")]
     public AttackMovementPhaseData[] movementPhases;
+    [InspectorName("비주얼 Y 높이 (m)")]
+    [Tooltip("클립 진행률 0~1에 따른 시각 높이입니다. 캐릭터 충돌체는 지면을 유지합니다.")]
+    public AnimationCurve visualHeightCurve;
     [InspectorName("무기 트레일 구간")]
     public AttackTrailPhaseData[] trailPhases;
     [InspectorName("공격 판정 구간")]

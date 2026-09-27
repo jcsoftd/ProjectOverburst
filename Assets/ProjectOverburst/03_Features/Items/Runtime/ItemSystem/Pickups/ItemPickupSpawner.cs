@@ -364,11 +364,7 @@ public class ItemPickupSpawner : MonoBehaviour
 
     private static bool IsActiveHideoutElement(WeaponElement element)
     {
-        return element == WeaponElement.Fire
-            || element == WeaponElement.Water
-            || element == WeaponElement.Ice
-            || element == WeaponElement.Electric
-            || element == WeaponElement.Earth; // 하이드아웃 신규 생성 원소를 명시한다
+        return OverburstElementRules.IsActive(element);
     }
 
     private WeaponItemData CreateSpawnWeaponData(WeaponItemData sourceWeapon)

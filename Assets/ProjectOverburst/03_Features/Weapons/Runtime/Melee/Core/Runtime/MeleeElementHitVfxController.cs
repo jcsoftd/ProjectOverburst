@@ -5,25 +5,30 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
 {
     [SerializeField] private WeaponElement selectedElement = WeaponElement.None;
     [SerializeField] private GameObject fireHit;
-    [SerializeField] private GameObject waterHit;
     [SerializeField] private GameObject iceHit;
     [SerializeField] private GameObject electricHit;
-    [SerializeField] private GameObject earthHit;
+    [SerializeField] private GameObject darkHit;
+    [SerializeField] private GameObject lightHit;
+    private ParticleSystem[][] cachedParticles;
+    private bool playbackCleared;
 
     public WeaponElement SelectedElement => selectedElement;
 
     private void Awake()
     {
+        EnsureParticleCache();
         ApplySelection(); // 첫 활성 전 단일 모듈 선택
     }
 
     private void OnEnable()
     {
+        playbackCleared = false; // ParticleSystem playOnAwake may have run on activation.
         ApplySelection(); // 풀 복귀 선택 복원
     }
 
     public void SetElement(WeaponElement element)
     {
+        if (selectedElement != element) StopAndClearVfx();
         selectedElement = MeleeElementHitVfxCatalog.Supports(element)
             ? element
             : WeaponElement.None;
@@ -36,14 +41,14 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
         {
             case WeaponElement.Fire:
                 return fireHit;
-            case WeaponElement.Water:
-                return waterHit;
             case WeaponElement.Ice:
                 return iceHit;
             case WeaponElement.Electric:
                 return electricHit;
-            case WeaponElement.Earth:
-                return earthHit;
+            case WeaponElement.Dark:
+                return darkHit;
+            case WeaponElement.Light:
+                return lightHit;
             default:
                 return null;
         }
@@ -51,59 +56,68 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
 
     public bool HasPlayableContent(WeaponElement element)
     {
-        GameObject target = GetElementObject(element);
-        if (target == null)
-            return false;
-
-        // 기존 원소는 이미 내용물이 확정되어 있다. 빈 저작 슬롯인 대지만 실제 입자를 확인한다.
-        return element != WeaponElement.Earth
-            || target.GetComponentInChildren<ParticleSystem>(true) != null;
+        return GetParticles(element).Length != 0;
     }
 
     public void RestartVfx()
     {
         StopAndClearVfx();
-        GameObject target = GetElementObject(selectedElement);
-        if (target == null)
-            return;
-
-        ParticleSystem[] particles = target.GetComponentsInChildren<ParticleSystem>(true);
+        ParticleSystem[] particles = GetParticles(selectedElement);
         for (int i = 0; i < particles.Length; i++)
         {
+            if (particles[i] == null) continue;
             var main = particles[i].main;
             main.useUnscaledTime = true; // Contact flashes remain visible during hit-stop.
             particles[i].Play(false);
         }
+        playbackCleared = false;
     }
 
     public void StopAndClearVfx()
     {
-        StopAndClear(fireHit);
-        StopAndClear(waterHit);
-        StopAndClear(iceHit);
-        StopAndClear(electricHit);
-        StopAndClear(earthHit);
+        if (playbackCleared) return;
+        EnsureParticleCache();
+        for (int i = 0; i < cachedParticles.Length; i++)
+            for (int j = 0; j < cachedParticles[i].Length; j++)
+                if (cachedParticles[i][j] != null)
+                    cachedParticles[i][j].Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        playbackCleared = true;
     }
 
     private void ApplySelection()
     {
         SetActive(fireHit, false);
-        SetActive(waterHit, false);
         SetActive(iceHit, false);
         SetActive(electricHit, false);
-        SetActive(earthHit, false);
+        SetActive(darkHit, false);
+        SetActive(lightHit, false);
         SetActive(GetElementObject(selectedElement), true);
     }
 
-    private static void StopAndClear(GameObject target)
+    private void EnsureParticleCache()
     {
-        if (target == null)
-            return;
-
-        ParticleSystem[] particles = target.GetComponentsInChildren<ParticleSystem>(true);
-        for (int i = 0; i < particles.Length; i++)
-            particles[i].Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (cachedParticles != null) return;
+        cachedParticles = new[] { Cache(fireHit), Cache(iceHit), Cache(electricHit), Cache(darkHit), Cache(lightHit) };
     }
+
+    private static ParticleSystem[] Cache(GameObject root) => root != null
+        ? root.GetComponentsInChildren<ParticleSystem>(true) : System.Array.Empty<ParticleSystem>();
+
+    private ParticleSystem[] GetParticles(WeaponElement element)
+    {
+        EnsureParticleCache();
+        switch (element)
+        {
+            case WeaponElement.Fire: return cachedParticles[0];
+            case WeaponElement.Ice: return cachedParticles[1];
+            case WeaponElement.Electric: return cachedParticles[2];
+            case WeaponElement.Dark: return cachedParticles[3];
+            case WeaponElement.Light: return cachedParticles[4];
+            default: return System.Array.Empty<ParticleSystem>();
+        }
+    }
+
+    private void OnValidate() { cachedParticles = null; playbackCleared = false; }
 
     private static void SetActive(GameObject target, bool active)
     {

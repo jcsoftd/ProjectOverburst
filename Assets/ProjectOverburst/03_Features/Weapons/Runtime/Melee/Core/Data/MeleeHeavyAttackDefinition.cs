@@ -4,11 +4,31 @@ using UnityEngine;
 public struct MeleeHeavyElementVfxSet
 {
     public GameObject fireImpact;
+    [Tooltip("연소 대상에서 전파되는 연쇄폭발. 비어 있으면 기존 착지 폭발 참조를 사용합니다.")]
+    public GameObject fireChainExplosion;
     public GameObject iceImpact;
     public GameObject iceShatter;
     public GameObject electricImpact;
     public GameObject electricChainLink;
-    public GameObject waterImpact;
+    public GameObject electricChainStart;
+    public GameObject electricChainProc;
+
+    [Header("원본 배율에서 주 폭발의 XZ 반경 (m)")]
+    [Min(0.01f)] public float fireImpactRadius;
+    [Min(0.01f)] public float electricImpactRadius;
+    [Min(0.01f)] public float iceImpactRadius;
+    [Min(0.01f)] public float fireChainRadius;
+
+    public float ImpactScale(WeaponElement element, float damageRadius)
+    {
+        float reference = element == WeaponElement.Fire ? fireImpactRadius
+            : element == WeaponElement.Electric ? electricImpactRadius : iceImpactRadius;
+        return Mathf.Max(0f, damageRadius) / Mathf.Max(.01f, reference > 0f ? reference : 1f);
+    }
+
+    public float FireChainReferenceRadius => fireChainRadius > 0f ? fireChainRadius : 1f;
+
+    public GameObject FireChainExplosion => fireChainExplosion != null ? fireChainExplosion : fireImpact;
 
     public GameObject GetImpact(WeaponElement element)
     {
@@ -17,7 +37,6 @@ public struct MeleeHeavyElementVfxSet
             case WeaponElement.Fire: return fireImpact;
             case WeaponElement.Ice: return iceImpact;
             case WeaponElement.Electric: return electricImpact;
-            case WeaponElement.Water: return waterImpact;
             default: return null;
         }
     }

@@ -19,9 +19,10 @@ public static class MeleeSharedSlashSpawnContract
         switch (element)
         {
             case WeaponElement.Fire:
-            case WeaponElement.Water:
             case WeaponElement.Ice:
             case WeaponElement.Electric:
+            case WeaponElement.Dark:
+            case WeaponElement.Light:
                 return !horizontalMirror; // 수정 원소 VFX 발동 방향 반전
             default:
                 return horizontalMirror; // 무속성·바람 기존 방향 유지

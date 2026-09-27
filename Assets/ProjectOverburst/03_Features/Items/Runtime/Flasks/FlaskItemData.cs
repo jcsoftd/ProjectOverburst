@@ -3,7 +3,7 @@ using UnityEngine;
 public enum FlaskKind
 {
     Life, Regeneration, Berserker, Giant, Executioner, Overcharge,
-    Ironclad, Ghost, Fire, Ice, Lightning, Water
+    Ironclad, Ghost, Fire, Ice, Lightning, Dark, Light
 }
 
 public enum FlaskEffect
@@ -12,7 +12,7 @@ public enum FlaskEffect
     AttackSpeed, DirectDamage, AttackRadius, OutgoingImpact, CritChance, CritDamage,
     EnergyGain, EnergyDischargeDamage, IncomingImpactReduction, MoveSpeed, SlowResistance,
     FireDischargeDamage, FireRadius, ShatterDamage, FreezeDuration,
-    LightningDischargeDamage, ChainRange, CompressionDamage, SuctionRadius
+    LightningDischargeDamage, ChainRange
 }
 
 [CreateAssetMenu(fileName = "Flask", menuName = "Items/Equipment Flask")]
@@ -79,9 +79,14 @@ public sealed class FlaskItemData : ConsumableItemData
             case FlaskKind.Lightning:
                 Set("뇌광 물약", FlaskEffect.LightningDischargeDamage, .25f, FlaskEffect.ChainRange, .25f,
                     "번개 방출 피해와 연쇄 탐색 거리를 높입니다. 연쇄 대상 수는 늘지 않습니다."); break;
+            case FlaskKind.Dark:
+                Set("암흑 물약", FlaskEffect.EnergyGain, .25f, FlaskEffect.EnergyDischargeDamage, .20f,
+                    "어둠 무기의 원소 에너지 획득량과 기본 방출 피해를 높입니다."); break;
+            case FlaskKind.Light:
+                Set("광휘 물약", FlaskEffect.EnergyGain, .25f, FlaskEffect.EnergyDischargeDamage, .20f,
+                    "빛 무기의 원소 에너지 획득량과 기본 방출 피해를 높입니다."); break;
             default:
-                Set("심해 물약", FlaskEffect.CompressionDamage, .30f, FlaskEffect.SuctionRadius, .20f,
-                    "물 무기의 젖음 소비 압착 피해와 흡인 반경을 높입니다."); break;
+                throw new System.ArgumentOutOfRangeException(nameof(value), value, "Unknown flask kind");
         }
     }
 

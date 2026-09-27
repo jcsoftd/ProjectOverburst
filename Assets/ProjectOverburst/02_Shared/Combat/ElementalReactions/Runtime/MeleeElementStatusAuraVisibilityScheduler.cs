@@ -5,7 +5,7 @@ using Object = UnityEngine.Object;
 public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 {
     public const int DefaultChecksPerFrame = 256;
-    public const int DefaultMaxVisiblePresentations = 64;
+    public const int DefaultMaxVisiblePresentations = 24;
     public const float DefaultEnterDistance = 42f;
     public const float DefaultExitDistance = 48f;
     public const float DefaultEnterViewportMargin = 0.03f;
@@ -20,6 +20,8 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
     [SerializeField, Min(1)] private int checksPerFrame = DefaultChecksPerFrame;
     [SerializeField, Range(1, PresentationCapacity)]
     private int maxVisiblePresentations = DefaultMaxVisiblePresentations;
+    // Comparison-only prototype. Product defaults preserve the original effect for every visible owner.
+    [SerializeField] private bool experimentalSimplifiedOverflow;
     [SerializeField, Min(0f)] private float enterDistance = DefaultEnterDistance;
     [SerializeField, Min(0f)] private float exitDistance = DefaultExitDistance;
     [SerializeField, Range(0f, 0.25f)] private float enterViewportMargin = DefaultEnterViewportMargin;
@@ -34,6 +36,14 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
     private int pendingReturnCount;
     private int activeControllerCount;
     private int roundRobinCursor;
+    private struct VisibleCandidate { public MeleeElementStatusAuraController Owner; public float Distance; }
+    private sealed class CandidateComparer : System.Collections.Generic.IComparer<VisibleCandidate>
+    { public int Compare(VisibleCandidate a, VisibleCandidate b) => a.Distance.CompareTo(b.Distance); }
+    private static readonly CandidateComparer PriorityComparer = new CandidateComparer();
+    private readonly bool[] visibility = new bool[ControllerCapacity];
+    private readonly VisibleCandidate[] visibleCandidates = new VisibleCandidate[ControllerCapacity];
+    private readonly ElementStatusBillboards billboards = new ElementStatusBillboards();
+    public int LowCostVisibleCount => billboards.LastCount;
     private int inactivePresentationCount;
     private int createdPresentationCount;
     private int leasedPresentationCount;
@@ -89,6 +99,7 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     private void OnDestroy()
     {
+        billboards.Dispose();
         ClearRegistrations();
         DestroyPooledPresentations();
         if (instance == this)
@@ -186,10 +197,12 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         {
             MeleeElementStatusAuraController moved = activeControllers[lastIndex];
             activeControllers[index] = moved;
+            visibility[index] = visibility[lastIndex];
             if (moved != null)
                 moved.SetSchedulerIndex(index);
         }
         activeControllers[lastIndex] = null;
+        visibility[lastIndex] = false;
         if (removed != null)
             removed.SetSchedulerIndex(-1);
         if (activeControllerCount == 0 || roundRobinCursor >= activeControllerCount)
@@ -221,15 +234,49 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
             }
             bool visible = ResolveVisibility(
                 camera, controller.VisibilityPosition, controller.IsPresentationVisible);
-            controller.ApplyScheduledVisibility(visible);
+            visibility[roundRobinCursor] = visible;
             roundRobinCursor++;
         }
+        if (!experimentalSimplifiedOverflow)
+        {
+            billboards.Begin();
+            for (int i = 0; i < activeControllerCount; i++)
+                if (activeControllers[i] != null)
+                    activeControllers[i].ApplyScheduledVisibility(visibility[i]);
+            return;
+        }
+        int visibleCount = 0;
+        Vector3 cameraPosition = camera != null ? camera.transform.position : Vector3.zero;
+        for (int i = 0; i < activeControllerCount; i++)
+        {
+            var owner = activeControllers[i];
+            if (owner == null) continue;
+            if (!visibility[i]) { owner.ReleasePresentation(); continue; }
+            visibleCandidates[visibleCount++] = new VisibleCandidate { Owner = owner,
+                Distance = (owner.VisibilityPosition - cameraPosition).sqrMagnitude };
+        }
+        System.Array.Sort(visibleCandidates, 0, visibleCount, PriorityComparer);
+        // Return distant leases before renting closer ones, so the budget is actually reusable.
+        for (int i = maxVisiblePresentations; i < visibleCount; i++) visibleCandidates[i].Owner.ReleasePresentation();
+        billboards.Begin();
+        Quaternion rotation = camera != null ? camera.transform.rotation : Quaternion.identity;
+        for (int i = 0; i < visibleCount; i++)
+        {
+            var owner = visibleCandidates[i].Owner;
+            if (i < maxVisiblePresentations) owner.ApplyScheduledVisibility(true);
+            if (!owner.IsPresentationVisible)
+                billboards.Add(owner.VisibilityPosition, rotation,
+                    owner.IsAuraActive(MeleeElementStatusAuraType.Burning), owner.IsAuraActive(MeleeElementStatusAuraType.Shocked));
+            visibleCandidates[i] = default;
+        }
+        billboards.Draw(camera);
     }
 
     private MeleeElementStatusAuraPresentation LeasePresentation(
         MeleeElementStatusAuraController owner)
     {
-        if (owner == null || leasedPresentationCount >= maxVisiblePresentations)
+        int leaseLimit = experimentalSimplifiedOverflow ? maxVisiblePresentations : ControllerCapacity;
+        if (owner == null || leasedPresentationCount >= leaseLimit)
             return null;
 
         MeleeElementStatusAuraPresentation leased = null;
@@ -242,7 +289,7 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
         if (leased == null)
         {
-            if (createdPresentationCount >= maxVisiblePresentations)
+            if (createdPresentationCount >= leaseLimit)
                 return null;
             MeleeElementStatusAuraPresentation prefab = ResolvePresentationPrefab();
             if (prefab == null)
@@ -261,6 +308,7 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         if (!leased.gameObject.activeSelf)
             leased.gameObject.SetActive(true);
         leased.ClearAllAuras();
+        leased.ConfigureTarget(owner.GetComponent<CombatTarget>());
         return leased;
     }
 

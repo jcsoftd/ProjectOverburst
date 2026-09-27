@@ -13,9 +13,26 @@ MonoBehaviour:
   m_Name: MeleeElementHitVfxCatalog
   m_EditorClassIdentifier: Assembly-CSharp::MeleeElementHitVfxCatalog
   sharedHitPrefab: {fileID: 4546765122416471607, guid: 441542608b4bcda48b1d80886cd5a6d9, type: 3}
+  runtimePools:
+  - element: 1
+    prefab: {fileID: 4684223947600339611, guid: e5ac8fbc89690e54aa479072265fd799, type: 3}
+    prewarmCount: 768
+  - element: 3
+    prefab: {fileID: 7460635721944247986, guid: 75b884a6890158b4794510969aad8548, type: 3}
+    prewarmCount: 1280
+  - element: 4
+    prefab: {fileID: 745427251108477717, guid: 7a7d3f1d639738742bca01d60bbe8211, type: 3}
+    prewarmCount: 1024
+  - element: 8
+    prefab: {fileID: 8276451724685526509, guid: 99108b747123290438896c8b80c71404, type: 3}
+    prewarmCount: 768
+  - element: 9
+    prefab: {fileID: 7638838746576953639, guid: 1577d4ed73b3f834a977ca72d6e9d6ab, type: 3}
+    prewarmCount: 384
   fireLifetime: 5.15
-  waterLifetime: 10
   iceLifetime: 10
   electricLifetime: 7.5
-  earthLifetime: 5
+  darkLifetime: 5
+  lightLifetime: 2
   poolCapacity: 32
+  prewarmCount: 128

@@ -8,9 +8,10 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
     private static readonly WeaponElement[] DisplayOrder =
     {
         WeaponElement.Fire,
-        WeaponElement.Water,
         WeaponElement.Ice,
-        WeaponElement.Electric
+        WeaponElement.Electric,
+        WeaponElement.Dark,
+        WeaponElement.Light
     };
 
     [Header("Layout")]
@@ -20,12 +21,12 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
 
     [Header("Element Icons")]
     [SerializeField] private Sprite fireIcon;
-    [SerializeField] private Sprite waterIcon;
     [SerializeField] private Sprite iceIcon;
     [SerializeField] private Sprite electricIcon;
-    [SerializeField] private Sprite windIcon;
-    [SerializeField] private Sprite natureIcon;
-    [SerializeField] private Sprite earthIcon;
+    [SerializeField] private Sprite darkIcon;
+    [SerializeField] private Sprite lightIcon;
+    private static Sprite darkFallbackIcon;
+    private static Sprite lightFallbackIcon;
 
     private ElementalStatusController statusController;
     private ElementalStatusController subscribedController;
@@ -195,14 +196,26 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
         {
             case WeaponElement.Fire:
                 return fireIcon;
-            case WeaponElement.Water:
-                return waterIcon;
             case WeaponElement.Ice:
                 return iceIcon;
             case WeaponElement.Electric:
                 return electricIcon;
-            case WeaponElement.Wind:
-                return windIcon;
+            case WeaponElement.Dark:
+                if (darkIcon != null) return darkIcon;
+                if (darkFallbackIcon == null)
+                {
+                    FlaskItemData flask = Resources.Load<FlaskItemData>("Items/Flasks/Flask_Dark");
+                    if (flask != null) darkFallbackIcon = flask.icon;
+                }
+                return darkFallbackIcon;
+            case WeaponElement.Light:
+                if (lightIcon != null) return lightIcon;
+                if (lightFallbackIcon == null)
+                {
+                    FlaskItemData flask = Resources.Load<FlaskItemData>("Items/Flasks/Flask_Light");
+                    if (flask != null) lightFallbackIcon = flask.icon;
+                }
+                return lightFallbackIcon;
             default:
                 return null;
         }

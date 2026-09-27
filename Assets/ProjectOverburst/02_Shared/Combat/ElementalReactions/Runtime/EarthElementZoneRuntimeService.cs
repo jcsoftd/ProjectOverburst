@@ -616,7 +616,6 @@ public sealed class EarthElementZoneRuntimeService : MonoBehaviour
         switch (element)
         {
             case WeaponElement.Fire: return EarthZoneKind.LavaEruption;
-            case WeaponElement.Water: return EarthZoneKind.Mud;
             case WeaponElement.Ice: return EarthZoneKind.Crystallization;
             case WeaponElement.Electric: return EarthZoneKind.MagneticField;
             default: return EarthZoneKind.Basic;
@@ -640,7 +639,7 @@ public sealed class EarthElementZoneRuntimeService : MonoBehaviour
         switch (kind)
         {
             case EarthZoneKind.LavaEruption: return WeaponElement.Fire;
-            case EarthZoneKind.Mud: return WeaponElement.Water;
+            case EarthZoneKind.Mud: return WeaponElement.None;
             case EarthZoneKind.Crystallization: return WeaponElement.Ice;
             case EarthZoneKind.MagneticField: return WeaponElement.Electric;
             default: return WeaponElement.Earth;
@@ -663,7 +662,6 @@ public sealed class EarthElementZoneRuntimeService : MonoBehaviour
     private static bool CanTransformWith(WeaponElement element)
     {
         return element == WeaponElement.Fire
-            || element == WeaponElement.Water
             || element == WeaponElement.Ice
             || element == WeaponElement.Electric;
     }

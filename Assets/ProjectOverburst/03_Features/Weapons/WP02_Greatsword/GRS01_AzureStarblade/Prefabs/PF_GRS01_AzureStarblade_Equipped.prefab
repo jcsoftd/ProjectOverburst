@@ -454,34 +454,76 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
   bladeRenderer: {fileID: 6466484016234506534}
-  auraEmissionMesh: {fileID: 4300000, guid: 22d6785455f29db498436d5de895634c, type: 2}
+  bladeEffectBounds:
+    m_Center: {x: 0, y: 0, z: 0.52}
+    m_Extent: {x: 0.06, y: 0.03, z: 0.52}
   auraAnchor: {fileID: 1995058104938080718}
   trailAnchor: {fileID: 6712952312756092826}
-  fireAura: {fileID: 3199540439946060812, guid: bfa5e1ad8aae47f4b9f353e36ebdf7aa, type: 3}
-  waterAura: {fileID: 5185098487912784215, guid: d0dc97dd268613b43a53181d9d47c6e5, type: 3}
-  iceAura: {fileID: 2080067106486110468, guid: ee2150003cc5bc146b7591e1727fe79c, type: 3}
-  electricAura: {fileID: 3951614152475905818, guid: f94f9185192a5d749b8a65f7729fde51, type: 3}
-  auraStartNormalized: 0.1
-  auraParticleSizeScale: 0.54
-  auraEmissionScale: 1
-  auraSurfaceScale: 0.85
-  fireBladeAccent: {fileID: 4824730990175752085, guid: 5cbe1eebf41ffe54484fffa320e93c58, type: 3}
-  waterBladeAccent: {fileID: 0}
+  fireBladeAccent: {fileID: 3488039642409251120, guid: fd85977a2bc400241be8265e488f072f, type: 3}
   iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
   electricBladeAccent: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
-  bladeAccentStartNormalized: 0.35
-  bladeAccentScale: 0.72
-  fireBladeAccentScale: 0.48
-  fireTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
-  waterTrail: {fileID: 1826059589380599827, guid: 07a0367c119e4ca408ec23af0e377799, type: 3}
-  iceTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
-  electricTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
-  trailWidthScale: 1
-  trailLifetime: 0.12
-  trailOffsets:
-  - {x: 0, y: 0.55, z: 0}
-  - {x: 0, y: 0.07, z: 0}
-  - {x: 0, y: 0.42, z: 0}
+  darkBladeAccent: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
+  lightBladeAccent: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
+  fireTrail: {fileID: 4824730990175752085, guid: 5cbe1eebf41ffe54484fffa320e93c58, type: 3}
+  iceTrail: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricTrail: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
+  darkTrail: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
+  lightTrail: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
+  fireSettings:
+    idleStrength: 0.26
+    bladeThickness: 1.9738059
+    bladeCenter: 0.3997298
+    bladeLength: 1.2672966
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 0.25
+    trailParticleSize: 3
+    trailSpread: 0
+  iceSettings:
+    idleStrength: 0.2
+    bladeThickness: 0.85
+    bladeCenter: 0.5735742
+    bladeLength: 1.147148
+    trailScale: 0.9
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 1
+    trailParticleSize: 1
+    trailSpread: 1
+  electricSettings:
+    idleStrength: 0.2
+    bladeThickness: 1.4999534
+    bladeCenter: 0.49451685
+    bladeLength: 1.0109663
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 1
+    trailParticleSize: 1.5
+    trailSpread: 0.1
+  darkSettings:
+    idleStrength: 0.2
+    bladeThickness: 0.65
+    bladeCenter: 0.5
+    bladeLength: 1
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 2
+    trailParticleSize: 1
+    trailSpread: 0
+  lightSettings:
+    idleStrength: 0.08
+    bladeThickness: 0.8
+    bladeCenter: 0.5301148
+    bladeLength: 1
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 2
+    trailParticleSize: 1
+    trailSpread: 0
 --- !u!1001 &7446110052785293388
 PrefabInstance:
   m_ObjectHideFlags: 0
