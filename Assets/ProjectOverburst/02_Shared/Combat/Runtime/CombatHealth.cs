@@ -80,12 +80,16 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (TryCancelDamageByEvade(info))
             return; // 회피 무적
 
-        ApplyProgressionDamageModifiers(ref info, ref damage);
-
-        ApplyAimDamageModifier(ref info, ref damage); // 조준/자세 피해 보정
-        ApplyEnemyDefenseModifier(ref info, ref damage); // 몬스터 방패 방어
-        ApplyPlayerDamageReductionDebug(ref info, ref damage);
-        FlaskCombatModifiers.Incoming(this, ref info, ref damage);
+        // Element status ticks are a fraction of a previously resolved HP loss.
+        // Keep health/death/evade gates, but never apply that hit's stat scaling twice.
+        if (!(info.isDamageOverTime && info.usesResolvedTickDamage && !info.triggersOnHitEffects))
+        {
+            ApplyProgressionDamageModifiers(ref info, ref damage);
+            ApplyAimDamageModifier(ref info, ref damage);
+            ApplyEnemyDefenseModifier(ref info, ref damage);
+            ApplyPlayerDamageReductionDebug(ref info, ref damage);
+            FlaskCombatModifiers.Incoming(this, ref info, ref damage);
+        }
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);

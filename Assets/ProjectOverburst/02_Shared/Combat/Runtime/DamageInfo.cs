@@ -14,6 +14,7 @@ public struct DamageInfo
     public float knockback;
     public bool triggersOnHitEffects;
     public bool isDamageOverTime;
+    public bool usesResolvedTickDamage;
     public bool suppressDefaultHitVfx;
     public HitReactionData hitReaction;
     public WeaponElement element;
@@ -39,7 +40,8 @@ public struct DamageInfo
         ElementalReactionType elementalReactionType = ElementalReactionType.None,
         int sourceAttackSequenceId = 0,
         PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified,
-        int sourceAttackPhaseIndex = 0)
+        int sourceAttackPhaseIndex = 0,
+        bool usesResolvedTickDamage = false)
     {
         this.damage = damage;
         this.hitPoint = hitPoint;
@@ -49,6 +51,7 @@ public struct DamageInfo
         this.isCritical = isCritical;
         this.triggersOnHitEffects = triggersOnHitEffects;
         this.isDamageOverTime = isDamageOverTime;
+        this.usesResolvedTickDamage = usesResolvedTickDamage;
         this.suppressDefaultHitVfx = suppressDefaultHitVfx;
         this.hitReaction = hitReaction;
         this.element = element;
