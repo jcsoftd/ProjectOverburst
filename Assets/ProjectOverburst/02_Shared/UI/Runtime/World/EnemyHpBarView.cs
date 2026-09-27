@@ -143,6 +143,21 @@ public sealed class EnemyHpBarView : MonoBehaviour
         UnsubscribeFromHealth();
     }
 
+    private bool healthPresentationDirty;
+    private bool healthLayoutDirty;
+    public int HealthPresentationRefreshCount { get; private set; }
+
+    private void LateUpdate()
+    {
+        if (healthPresentationDirty)
+        {
+            if (healthLayoutDirty) RefreshBarLayoutIfNeeded();
+            healthLayoutDirty = false;
+            RefreshFillAmount();
+        }
+        UpdateDamageTrail();
+    }
+
     private void Update()
     {
         if (health == null)
@@ -154,7 +169,6 @@ public sealed class EnemyHpBarView : MonoBehaviour
         if (IsAiStateDebugVisible && Time.unscaledTime >= nextAiStateRefreshTime)
             RefreshAiStateDebugText();
 
-        UpdateDamageTrail();
         if (hideUntilDamaged && barVisible && Time.unscaledTime >= hideTime)
         {
             if (Time.unscaledTime >= hideTime + fadeSeconds)
@@ -186,6 +200,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     public void Unbind()
     {
+        healthPresentationDirty = healthLayoutDirty = false;
         UnsubscribeFromHealth();
         health = null;
         lastHealthFraction = -1f;
@@ -265,7 +280,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void HandleDamaged(CombatHealth source, DamageInfo info)
     {
-        RefreshFillAmount();
+        healthPresentationDirty = true;
         if (source == null || source.IsDead)
             return;
 
@@ -275,8 +290,7 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void HandleHealthChanged(CombatHealth source, float currentHp, float maxHp)
     {
-        RefreshBarLayoutIfNeeded();
-        RefreshFillAmount();
+        healthLayoutDirty = healthPresentationDirty = true;
     }
 
     private void HandleDead(CombatHealth source, DamageInfo info)
@@ -383,8 +397,10 @@ public sealed class EnemyHpBarView : MonoBehaviour
 
     private void RefreshFillAmount()
     {
+        healthPresentationDirty = false;
         if (health == null)
             return;
+        HealthPresentationRefreshCount++;
 
         if (currentHealthImage != null)
         {
