@@ -201,7 +201,7 @@ public static class MeleeAttackVfxSlopeBakeUtility
             EditorUtility.SetDirty(combo); // 모든 결과 검증 뒤 한 번만 커밋
             Undo.FlushUndoRecordObjects();
             SessionState.EraseString(GetFailureSessionKey(combo));
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(combo);
             Debug.Log("[MeleeAttackTrajectoryBake]\n" + report, combo);
             return report;
         }
@@ -234,6 +234,21 @@ public static class MeleeAttackVfxSlopeBakeUtility
         return ValidateStructure(combo, profile, out error);
     }
 
+    // Authoring previews bake their private copy; no persistent asset is touched.
+    public static string BakeWorkingCopy(MeleeComboDefinition source, MeleeComboDefinition working)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || AnimationMode.InAnimationMode())
+            throw new InvalidOperationException("Play 또는 다른 애니메이션 편집을 마친 뒤 베이크하세요.");
+        if (working == null || EditorUtility.IsPersistent(working) || !TryResolveProfile(source, out BakeProfile profile))
+            throw new InvalidOperationException("등록된 원본 콤보와 비영구 작업 사본이 필요합니다.");
+        int cueCount = 0;
+        foreach (var step in working.steps)
+            foreach (var phase in step.attackPhases ?? Array.Empty<AttackPhaseData>())
+                if (TryGetSlashCueKey(phase, out _)) cueCount++;
+        return BuildBake(new BakeProfile(profile.ItemPath, profile.ComboPath, profile.DisplayName,
+            working.StepCount, cueCount), working);
+    }
+
     public static bool TryGetSlashCueKey(AttackPhaseData phase, out string cueKey)
     {
         int cueIndex = FindSlashCueIndex(phase.vfxCues);
@@ -243,6 +258,7 @@ public static class MeleeAttackVfxSlopeBakeUtility
 
     private static string BuildBake(BakeProfile profile, MeleeComboDefinition combo)
     {
+        profile = WithCurrentShape(profile, combo);
         WeaponItemData item = AssetDatabase.LoadAssetAtPath<WeaponItemData>(profile.ItemPath);
         GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
         if (item == null || item.weaponRootPrefab == null || playerPrefab == null || combo == null)
@@ -264,12 +280,14 @@ public static class MeleeAttackVfxSlopeBakeUtility
         if (meleeDefinition == null)
             throw new MissingReferenceException("근접 무기 정의가 없습니다: " + profile.ItemPath);
 
-        GameObject player = UnityEngine.Object.Instantiate(playerPrefab);
+        var previewScene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+        GameObject player = null;
         GameObject weapon = null;
         bool startedAnimationMode = false;
         List<string> report = new List<string>();
         try
         {
+            player = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, previewScene);
             P09CharacterVisualAdapter adapter = player.GetComponentInChildren<P09CharacterVisualAdapter>(true);
             if (adapter == null)
                 throw new MissingComponentException("플레이어 리그 어댑터가 없습니다.");
@@ -405,7 +423,8 @@ public static class MeleeAttackVfxSlopeBakeUtility
                 AnimationMode.StopAnimationMode();
             if (weapon != null)
                 UnityEngine.Object.DestroyImmediate(weapon);
-            UnityEngine.Object.DestroyImmediate(player);
+            if (player != null) UnityEngine.Object.DestroyImmediate(player);
+            UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(previewScene);
         }
     }
 
@@ -1045,6 +1064,7 @@ public static class MeleeAttackVfxSlopeBakeUtility
         BakeProfile profile,
         out string error)
     {
+        profile = WithCurrentShape(profile, combo);
         MeleeAttackTrajectoryBakeData data = combo != null ? combo.AttackTrajectoryBakeData : null;
         if (data == null || !data.IsStructurallyValid)
         {
@@ -1135,13 +1155,23 @@ public static class MeleeAttackVfxSlopeBakeUtility
         {
             if (string.Equals(Profiles[i].ComboPath, comboPath, StringComparison.Ordinal))
             {
-                profile = Profiles[i];
+                profile = WithCurrentShape(Profiles[i], combo);
                 return true;
             }
         }
 
         profile = default;
         return false;
+    }
+
+    private static BakeProfile WithCurrentShape(BakeProfile registered, MeleeComboDefinition combo)
+    {
+        int cueCount = 0;
+        foreach (var step in combo != null ? combo.steps ?? Array.Empty<MeleeComboStepData>() : Array.Empty<MeleeComboStepData>())
+            foreach (var phase in step.attackPhases ?? Array.Empty<AttackPhaseData>())
+                if (TryGetSlashCueKey(phase, out _)) cueCount++;
+        return new BakeProfile(registered.ItemPath, registered.ComboPath,
+            registered.DisplayName, combo != null ? combo.StepCount : 0, cueCount);
     }
 
     private static int FindSlashCueIndex(AttackVfxCueData[] cues)
