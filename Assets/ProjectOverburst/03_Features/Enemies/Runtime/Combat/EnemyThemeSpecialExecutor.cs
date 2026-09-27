@@ -10,7 +10,6 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private EnemyActor actor;
     private EnemyMovementReaction reaction;
     private Coroutine routine;
-    private LineRenderer warning;
     private GameObject bolt;
     private bool boltFlying;
     private Vector3 boltDirection;
@@ -86,7 +85,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override bool TryStart(EnemyAbilityDefinition ability, int index, Transform target)
     {
         if (!CanStart(ability,target)) return false;
-        EnsureVisuals();
+        if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile) EnsureProjectileVisual();
         routine = StartCoroutine(Execute(ability,target));
         return true;
     }
@@ -100,7 +99,6 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         actor.Movement.ApplyActionLock(duration + .12f);
         actor.AnimationBridge.SetAttackAnimSpeed(ability.AttackAnimationDuration / Mathf.Max(.01f,duration));
         actor.AnimationBridge.PlayAttack(ability.AnimatorTrigger);
-        warning.enabled = true;
         float elapsed = 0, progress = 0;
         bool entered = false, committed = false;
         float remainingTravel = Mathf.Max(0, Vector3.Distance(transform.position,destination) - .9f);
@@ -111,8 +109,6 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             if (inState) { entered = true; progress = normalized; }
             else if (entered) break;
             else if (elapsed > .4f) break; // An unconnected animation never produces an invisible attack.
-            warning.SetPosition(0,transform.position+Vector3.up*.08f);
-            warning.SetPosition(1,(ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile ? destination : transform.position+direction*Mathf.Min(remainingTravel,ability.Range))+Vector3.up*.08f);
             if (inState && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge && progress > .2f && progress < ability.HitNormalizedTime && remainingTravel > 0)
             {
                 float step = Mathf.Min(remainingTravel, Mathf.Min(.3f, ability.Range * Time.fixedDeltaTime / Mathf.Max(.15f,duration*(ability.HitNormalizedTime-.2f))));
@@ -120,7 +116,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             }
             if (inState && !committed && progress >= ability.HitNormalizedTime)
             {
-                committed = true; warning.enabled = false;
+                committed = true;
                 if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 {
                     boltPosition = Origin;
@@ -134,7 +130,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
-        warning.enabled = false; actor.Movement.ClearAttackDisplacement(); routine = null;
+        actor.Movement.ClearAttackDisplacement(); routine = null;
     }
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)
     {
@@ -162,15 +158,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (boltRemaining<=0) EndBolt();
     }
     private void LateUpdate() { if (boltFlying && bolt != null) bolt.transform.position = boltPosition; }
-    private void EnsureVisuals()
+    private void EnsureProjectileVisual()
     {
-        if (warning == null)
-        {
-            var go=new GameObject("Attack direction warning");go.transform.SetParent(transform,false);
-            warning=go.AddComponent<LineRenderer>();warning.sharedMaterial=signalMaterial;warning.positionCount=2;
-            warning.startWidth=.12f;warning.endWidth=.32f;warning.startColor=signalColor;warning.endColor=signalColor;
-            warning.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;warning.receiveShadows=false;
-        }
         if (bolt == null)
         {
             bolt=GameObject.CreatePrimitive(PrimitiveType.Sphere);bolt.name="Reusable theme projectile";
@@ -184,7 +173,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }
         if(actor!=null && actor.Movement!=null)actor.Movement.ClearAttackDisplacement();
-        if(warning!=null)warning.enabled=false;EndBolt();
+        EndBolt();
     }
     public override void ResetForReuse() { Resolve();Cancel();LaunchCount=0;ImpactCount=0; }
 }
