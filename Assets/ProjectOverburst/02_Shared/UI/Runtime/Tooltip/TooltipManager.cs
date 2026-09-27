@@ -235,7 +235,10 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
     private void OnDisable()
     {
         if (Instance == this)
-            RefreshActiveInstance();
+        {
+            Instance = null;
+            RefreshActiveInstance(this);
+        }
     }
 
     private void OnDestroy()
@@ -243,11 +246,16 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         if (Instance == this)
         {
             Instance = null;
-            RefreshActiveInstance();
+            RefreshActiveInstance(this);
         }
     }
 
     public static void RefreshActiveInstance()
+    {
+        RefreshActiveInstance(null);
+    }
+
+    private static void RefreshActiveInstance(TooltipManager excluded)
     {
         TooltipManager[] managers = FindObjectsByType<TooltipManager>(FindObjectsSortMode.None);
         TooltipManager best = null;
@@ -255,7 +263,7 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
         for (int i = 0; i < managers.Length; i++)
         {
             TooltipManager manager = managers[i];
-            if (!IsUsableInstance(manager))
+            if (manager == excluded || !IsUsableInstance(manager))
                 continue;
 
             if (best == null || IsPreferredInstance(manager, best))
@@ -463,21 +471,24 @@ public class TooltipManager : MonoBehaviour // 툴팁 표시
 
     private bool HasAuthoredViewGallery()
     {
-        int expectedCount = System.Enum.GetValues(typeof(TooltipAuthoredViewKind)).Length;
+        TooltipAuthoredViewKind[] expectedKinds =
+            (TooltipAuthoredViewKind[])System.Enum.GetValues(typeof(TooltipAuthoredViewKind));
+        int expectedCount = expectedKinds.Length;
         if (authoredViews == null || authoredViews.Length != expectedCount)
             return false;
 
-        bool[] found = new bool[expectedCount];
+        HashSet<TooltipAuthoredViewKind> found = new HashSet<TooltipAuthoredViewKind>();
         for (int i = 0; i < authoredViews.Length; i++)
         {
             TooltipAuthoredView view = authoredViews[i];
-            int kindIndex = view != null ? (int)view.Kind : -1;
-            if (kindIndex < 0 || kindIndex >= found.Length || found[kindIndex] || !view.HasRequiredReferences)
+            if (view == null
+                || System.Array.IndexOf(expectedKinds, view.Kind) < 0
+                || !found.Add(view.Kind)
+                || !view.HasRequiredReferences)
                 return false;
-            found[kindIndex] = true;
         }
 
-        return true;
+        return found.Count == expectedCount;
     }
 
     private TooltipAuthoredView FindAuthoredView(TooltipAuthoredViewKind kind)
