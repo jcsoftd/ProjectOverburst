@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Profiling;
 using Object = UnityEngine.Object;
 
 public interface ITransientVfxPlayback
@@ -49,11 +50,51 @@ public static class TransientVfxPool
         new Dictionary<GameObject, Queue<GameObject>>();
     private static PoolHost host;
     private static bool shuttingDown;
+    private static readonly Dictionary<GameObject, Counters> Diagnostics = new Dictionary<GameObject, Counters>();
+    private static readonly ProfilerMarker CreateMarker = new ProfilerMarker("Overburst.TransientVfx.Create");
+
+    private sealed class Counters
+    {
+        public long Created, Destroyed, Requests, Misses, Returns;
+        public int Active, PeakActive;
+    }
+
+    public readonly struct PoolStatistics
+    {
+        public readonly long Created, Destroyed, Requests, Misses, Returns;
+        public readonly int Active, PeakActive, Idle;
+        public PoolStatistics(long created, long destroyed, long requests, long misses, long returns, int active, int peakActive, int idle)
+        { Created = created; Destroyed = destroyed; Requests = requests; Misses = misses; Returns = returns; Active = active; PeakActive = peakActive; Idle = idle; }
+    }
+
+    public static PoolStatistics GetStatistics(GameObject prefab)
+    {
+        if (prefab == null || !Diagnostics.TryGetValue(prefab, out Counters c)) return default;
+        return new PoolStatistics(c.Created, c.Destroyed, c.Requests, c.Misses, c.Returns,
+            c.Active, c.PeakActive, Pools.TryGetValue(prefab, out Queue<GameObject> pool) ? pool.Count : 0);
+    }
+
+    private static Counters GetCounters(GameObject prefab)
+    {
+        if (!Diagnostics.TryGetValue(prefab, out Counters c)) Diagnostics.Add(prefab, c = new Counters());
+        return c;
+    }
+
+    private static GameObject CreateInstance(GameObject prefab, Transform parent = null)
+    {
+        using (CreateMarker.Auto())
+        {
+            GameObject instance = Object.Instantiate(prefab, parent);
+            GetCounters(prefab).Created++;
+            return instance;
+        }
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         Pools.Clear();
+        Diagnostics.Clear();
         host = null;
         shuttingDown = false;
     }
@@ -73,6 +114,7 @@ public static class TransientVfxPool
             return null;
 
         EnsureHost();
+        GetCounters(prefab).Requests++;
         GameObject instance = Acquire(prefab);
         if (instance == null)
             return null;
@@ -132,13 +174,40 @@ public static class TransientVfxPool
         int created = 0;
         while (pool.Count < count)
         {
-            GameObject instance = Object.Instantiate(prefab, host.transform);
+            GameObject instance = CreateInstance(prefab, host.transform);
             StopAndClearPlayback(instance);
             instance.SetActive(false);
             pool.Enqueue(instance);
             created++;
         }
         return created;
+    }
+
+    // One indivisible preparation unit; callers own their frame/time budget.
+    public static bool PrepareOne(GameObject prefab, int targetTotal)
+    {
+        if (prefab == null || shuttingDown || targetTotal <= 0) return false;
+        var stats = GetStatistics(prefab);
+        if (stats.Active + stats.Idle >= targetTotal) return false;
+        EnsureHost();
+        if (!Pools.TryGetValue(prefab, out var pool))
+            Pools.Add(prefab, pool = new Queue<GameObject>());
+        var instance = CreateInstance(prefab, host.transform);
+        StopAndClearPlayback(instance);
+        instance.SetActive(false);
+        pool.Enqueue(instance);
+        return true;
+    }
+
+    // Never touches active leases. Destruction is amortized by the maintenance owner.
+    public static bool TrimOne(GameObject prefab, int retainedTotal)
+    {
+        if (prefab == null || !Pools.TryGetValue(prefab, out var pool) || pool.Count == 0) return false;
+        var stats = GetStatistics(prefab);
+        if (stats.Active + stats.Idle <= Mathf.Max(0, retainedTotal)) return false;
+        var instance = pool.Dequeue();
+        if (instance != null) { GetCounters(prefab).Destroyed++; Object.Destroy(instance); }
+        return true;
     }
 
     public static float ResolveLifetime(GameObject prefab, float explicitLifetime)
@@ -181,7 +250,8 @@ public static class TransientVfxPool
             }
         }
 
-        return Object.Instantiate(prefab);
+        GetCounters(prefab).Misses++;
+        return CreateInstance(prefab);
     }
 
     private static void Release(GameObject instance, GameObject prefab, int poolCapacity)
@@ -202,11 +272,13 @@ public static class TransientVfxPool
 
         if (pool.Count >= poolCapacity)
         {
+            GetCounters(prefab).Destroyed++;
             Object.Destroy(instance);
             return;
         }
 
         pool.Enqueue(instance);
+        GetCounters(prefab).Returns++;
     }
 
     private static void EnsureHost()
@@ -268,18 +340,7 @@ public static class TransientVfxPool
         GameObject instance,
         out ITransientVfxPlayback playback)
     {
-        MonoBehaviour[] behaviours = instance.GetComponents<MonoBehaviour>();
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            if (behaviours[i] is ITransientVfxPlayback candidate)
-            {
-                playback = candidate;
-                return true;
-            }
-        }
-
-        playback = null;
-        return false;
+        return instance.TryGetComponent(out playback);
     }
 
     private static bool IsPlaybackAlive(GameObject instance)
@@ -287,12 +348,8 @@ public static class TransientVfxPool
         if (instance == null || !instance.activeInHierarchy)
             return false;
 
-        MonoBehaviour[] behaviours = instance.GetComponents<MonoBehaviour>();
-        for (int i = 0; i < behaviours.Length; i++)
-        {
-            if (behaviours[i] is ITransientVfxCompletion completion)
-                return completion.IsPlaybackAlive;
-        }
+        if (instance.TryGetComponent(out ITransientVfxCompletion completion))
+            return completion.IsPlaybackAlive;
 
         ParticleSystem[] particleSystems = instance.GetComponentsInChildren<ParticleSystem>(true);
         for (int i = 0; i < particleSystems.Length; i++)
@@ -349,6 +406,9 @@ public static class TransientVfxPool
             TransientVfxReturnMode returnMode,
             bool useUnscaledTime)
         {
+            Counters counters = GetCounters(prefab);
+            counters.Active++;
+            counters.PeakActive = Mathf.Max(counters.PeakActive, counters.Active);
             float now = useUnscaledTime ? Time.unscaledTime : Time.time;
             float safetyLifetime = returnMode == TransientVfxReturnMode.NaturalParticleCompletion
                 ? Mathf.Max(NaturalCompletionSafetyLifetime, lifetime * 4f)
@@ -384,6 +444,7 @@ public static class TransientVfxPool
                 }
 
                 activeLeases.RemoveAt(i);
+                GetCounters(lease.Prefab).Active--;
                 Release(lease.Instance, lease.Prefab, lease.PoolCapacity);
             }
         }
