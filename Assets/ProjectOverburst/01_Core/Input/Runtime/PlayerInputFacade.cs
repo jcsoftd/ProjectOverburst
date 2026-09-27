@@ -220,6 +220,7 @@ public sealed class PlayerInputFacade : MonoBehaviour
         CombatInputs = null;
         DisableAllMaps();
         UnsubscribeActionChange();
+        ReleaseRuntimeAsset();
         if (Current == this)
             Current = null;
     }
@@ -230,19 +231,27 @@ public sealed class PlayerInputFacade : MonoBehaviour
         CombatInputs = null;
         DisableAllMaps();
         UnsubscribeActionChange();
+        ReleaseRuntimeAsset();
+        lastDevice = null;
+        if (Current == this)
+            Current = null;
+    }
+
+    private void ReleaseRuntimeAsset()
+    {
         gameplayActions.Clear();
         uiActions.Clear();
         gameplayMap = null;
         uiMap = null;
         debugValidationMap = null;
-        if (runtimeAsset != null)
-        {
+        if (runtimeAsset == null)
+            return;
+
+        if (Application.isPlaying)
             Destroy(runtimeAsset);
-            runtimeAsset = null;
-        }
-        lastDevice = null;
-        if (Current == this)
-            Current = null;
+        else
+            DestroyImmediate(runtimeAsset);
+        runtimeAsset = null;
     }
 
     public void EnsureInitialized()
