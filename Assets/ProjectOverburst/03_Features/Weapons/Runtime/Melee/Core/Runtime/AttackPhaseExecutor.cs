@@ -128,6 +128,20 @@ public sealed class AttackPhaseExecutor
     private string sourceWeaponRuntimeInstanceId;
 
     public bool IsRunning { get; private set; }
+    public void OverrideUnstartedCircleRadius(float radius)
+    {
+        foreach (PhaseState state in phases)
+        {
+            if (state.Started || state.Pattern.Shape != AttackAreaShape.Circle) continue;
+            AttackPatternRuntimeData p = state.Pattern;
+            state.Pattern = new AttackPatternRuntimeData(p.Shape, p.FillMode, p.Direction, radius,
+                p.Angle, p.Width, p.ForwardOffset, p.AngleOffset, p.VerticalTolerance, p.HitRevalidationTolerance, p.ProgressCurve);
+            MeleeAttackRuntimeData d = state.RuntimeData;
+            float scale = radius / Mathf.Max(.01f, p.Range);
+            state.RuntimeData = new MeleeAttackRuntimeData(state.Pattern, d.Damage, d.Knockback,
+                d.HitStunDuration, d.VfxScale, d.AttackRangeScale * scale);
+        }
+    }
 
     public bool Begin(
         AttackPhaseData[] phaseData,

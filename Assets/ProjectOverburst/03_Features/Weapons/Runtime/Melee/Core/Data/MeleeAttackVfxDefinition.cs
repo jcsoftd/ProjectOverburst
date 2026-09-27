@@ -18,6 +18,9 @@ public sealed class MeleeAttackVfxDefinition : ScriptableObject
     [InspectorName("기본 크기")]
     public Vector3 baseScale = Vector3.one;
 
+    [Tooltip("0이면 기존 배율 사용. 원형 범위 효과는 루트 배율1에서의 반경을 지정하면 최종 판정 반경에 맞춥니다.")]
+    [Min(0f)] public float authoredCircleRadius;
+
     [InspectorName("로컬 위치 보정")]
     public Vector3 localPositionOffset;
 

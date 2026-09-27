@@ -111,6 +111,8 @@ public sealed class AttackVfxCuePlayer
             : 1f;
         float scale = Mathf.Max(0.01f, phaseVfxScale * cue.SafeScaleMultiplier * rangeScale);
         Vector3 resolvedScale = definition.baseScale * scale;
+        if (pattern.Shape == AttackAreaShape.Circle && definition.authoredCircleRadius > 0f)
+            resolvedScale = Vector3.one * (pattern.Range / definition.authoredCircleRadius);
         bool sharedSlash = MeleeElementAttackVfxCatalog.IsSharedSlashKey(
             cue.elementOverrideKey);
         bool horizontalMirror = cue.mirrorAxis == AttackVfxMirrorAxis.Horizontal
