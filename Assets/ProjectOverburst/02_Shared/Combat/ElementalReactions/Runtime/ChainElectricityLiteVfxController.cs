@@ -5,6 +5,7 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
     ITransientVfxPlayback,
     ITransientVfxCompletion
 {
+    private static readonly Unity.Profiling.ProfilerMarker UpdateMarker = new Unity.Profiling.ProfilerMarker("Overburst.Chain.Original.Update");
     [SerializeField] private LineRenderer mainGlow;
     [SerializeField] private LineRenderer mainCore;
     [SerializeField] private LineRenderer[] branchGlows;
@@ -36,6 +37,17 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
         branchGlows != null ? branchGlows.Length : 0,
         branchCores != null ? branchCores.Length : 0);
     public float Lifetime => lifetime;
+    public float ShapeRefreshInterval => shapeRefreshInterval;
+    public float MainAmplitude => mainAmplitude;
+    public float BranchAmplitude => branchAmplitude;
+    public LineRenderer GetBatchLine(int index)
+    {
+        if (index == 0) return mainGlow;
+        if (index == 1) return mainCore;
+        int branch = (index - 2) / 2;
+        return branch >= 0 && branch < BranchCount
+            ? ((index & 1) == 0 ? branchGlows[branch] : branchCores[branch]) : null;
+    }
 
     private void Awake()
     {
@@ -56,6 +68,7 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
 
     private void Update()
     {
+        using var measurement = UpdateMarker.Auto();
         if (!alive)
             return;
 
