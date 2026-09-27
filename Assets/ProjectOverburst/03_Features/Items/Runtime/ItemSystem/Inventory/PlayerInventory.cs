@@ -396,6 +396,13 @@ public class PlayerInventory : MonoBehaviour
 
     public bool ClearAllMatchingItems(ItemData item, int exceptIndex = -1)
     {
+        // UI ownership checks frequently ask to remove an equipped item which is
+        // already absent. Do not start/copy/rollback an account transaction for that no-op.
+        if (item == null) return false;
+        bool hasMatch = false;
+        for (int i = 0; i < items.Count; i++)
+            if (i != exceptIndex && IsSameRuntimeItem(items[i], item)) { hasMatch = true; break; }
+        if (!hasMatch) return false;
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() => ClearAllMatchingItems(item, exceptIndex));
         if (item == null)

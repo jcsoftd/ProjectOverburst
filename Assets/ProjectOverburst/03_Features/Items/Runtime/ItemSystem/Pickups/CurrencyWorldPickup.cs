@@ -16,7 +16,12 @@ public class CurrencyWorldPickup : MonoBehaviour
     [SerializeField] private float magnetActivationDelay = 1.5f;
     [SerializeField] private Transform vfxAnchor;
 
+    private static readonly Unity.Profiling.ProfilerMarker CollectMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Collect");
+    private static readonly Unity.Profiling.ProfilerMarker FeedbackMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Feedback");
+    private static readonly Unity.Profiling.ProfilerMarker ReturnMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Return");
     private bool pickedUp;
+    private bool pickupQueued;
+    private uint leaseVersion;
     private Transform magnetTarget;
     private Collider[] pickupColliders;
     private float nextPickupAttemptTime;
@@ -29,6 +34,7 @@ public class CurrencyWorldPickup : MonoBehaviour
     internal void ResetForPool()
     {
         pickedUp = false;
+        pickupQueued = false;
         magnetTarget = null;
         nextPickupAttemptTime = 0f;
         runtimeCurrencyItem = null;
@@ -43,6 +49,8 @@ public class CurrencyWorldPickup : MonoBehaviour
 
     private void BeginLease()
     {
+        unchecked { leaseVersion++; }
+        pickupQueued = false;
         pickedUp = false;
         magnetTarget = null;
         nextPickupAttemptTime = 0f;
@@ -69,7 +77,7 @@ public class CurrencyWorldPickup : MonoBehaviour
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, GetEffectiveMagnetSpeed() * Time.deltaTime);
 
         if (Vector3.Distance(transform.position, targetPosition) <= Mathf.Max(0.05f, pickupDistance))
-            TryPickup(targetInventory);
+            RequestPickup(targetInventory);
     }
 
     public void Initialize(CurrencyItemData currencyData, int stackAmount, PlayerInventory inventory)
@@ -120,7 +128,7 @@ public class CurrencyWorldPickup : MonoBehaviour
 
         if (IsDirectPickupTarget(target))
         {
-            TryPickup(targetInventory);
+            RequestPickup(targetInventory);
             return;
         }
 
@@ -131,44 +139,70 @@ public class CurrencyWorldPickup : MonoBehaviour
         SetCollidersTrigger(true);
     }
 
+    // Magnet arrivals are coalesced into one inventory transaction per frame.
+    public void RequestPickup(PlayerInventory inventoryOverride = null)
+    {
+        if (pickupQueued || !CanAttemptPickup()) return;
+        if (inventoryOverride != null) targetInventory = inventoryOverride;
+        pickupQueued = true;
+        CurrencyPickupBatch.Enqueue(this, leaseVersion);
+    }
+
     public bool TryPickup(PlayerInventory inventoryOverride = null)
     {
-        if (!isActiveAndEnabled || pickedUp || Time.time < nextPickupAttemptTime)
-            return false;
+        if (pickupQueued || AccountGameplaySession.Current?.IsEditing == true
+            || !TryPrepareItem(inventoryOverride, out var item)) return false;
+        bool acquired;
+        using (CollectMarker.Auto())
+            acquired = AccountGameplaySession.RunCurrencyAcquisition(() => targetInventory.AddItem(item));
+        CompleteAcquisition(acquired);
+        return acquired;
+    }
 
+    internal bool TryAddQueued(uint version)
+    {
+        if (version != leaseVersion || !pickupQueued || !TryPrepareItem(null, out var item)) return false;
+        return targetInventory.AddItem(item);
+    }
+
+    internal void CompleteQueued(uint version, bool acquired)
+    {
+        if (version != leaseVersion || !pickupQueued) return;
+        pickupQueued = false;
+        if (!isActiveAndEnabled) return;
+        CompleteAcquisition(acquired);
+    }
+
+    private bool CanAttemptPickup() => isActiveAndEnabled && !pickedUp && Time.time >= nextPickupAttemptTime;
+
+    private bool TryPrepareItem(PlayerInventory inventoryOverride, out ItemData item)
+    {
+        item = null;
+        if (!CanAttemptPickup()) return false;
         ResolveInventory(inventoryOverride);
         ResolveCurrencyData();
-        if (targetInventory == null || currencyData == null)
-            return false;
-
-        ItemData item = runtimeCurrencyItem != null
-            ? runtimeCurrencyItem
-            : new ItemData(currencyData, 1, ItemGrade.Common, amount);
-
-        runtimeCurrencyItem = item; // Preserve identity through failed/uncertain saves.
-        if (!string.IsNullOrEmpty(item.originRunId))
-        {
-            var run = AccountGameplaySession.Current?.ReadRun();
-            if (run == null || run.runId != item.originRunId
-                || !AccountInvariants.IsRunning(run.phase))
-                return false;
-        }
-
+        if (targetInventory == null || currencyData == null) return false;
+        item = runtimeCurrencyItem ?? (runtimeCurrencyItem = new ItemData(currencyData, 1, ItemGrade.Common, amount));
+        if (!string.IsNullOrEmpty(item.originRunId)
+            && AccountGameplaySession.Current?.CanAcquireFromRun(item.originRunId) != true) return false;
         item.EnsureRuntimeState();
         item.EnsureAcquisitionOrder();
+        return true;
+    }
 
-        pickedUp = targetInventory.AddItem(item);
-        if (!pickedUp)
+    private void CompleteAcquisition(bool acquired)
+    {
+        if (!acquired)
         {
             nextPickupAttemptTime = Time.time + 0.5f;
             ReleaseMagnet();
-            return false;
+            return;
         }
-
-        ShowPickupText();
+        pickedUp = true;
+        using (FeedbackMarker.Auto()) ShowPickupText();
         runtimeCurrencyItem = null;
-        if (!CurrencyPickupPool.TryReturn(this)) Destroy(gameObject);
-        return true;
+        using (ReturnMarker.Auto())
+            if (!CurrencyPickupPool.TryReturn(this)) Destroy(gameObject);
     }
 
     private Vector3 GetMagnetTargetPosition()

@@ -23,14 +23,18 @@ namespace Overburst.Persistence
         internal AccountContentRegistry ContentRegistry => registry;
         internal PlayerAccountInventoryService Owner => account;
         public long Revision => transactions.Revision;
+        public long PersistedRevision => transactions.PersistedRevision;
+        public bool HasPendingSave => transactions.HasPendingSave;
+        public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
+        public bool CanAcquireFromRun(string runId) => transactions.CanAcquireFromRun(runId);
         public RunSnapshot ReadRun() => transactions.ReadRun();
 
-        public AccountGameplaySession(PlayerAccountInventoryService account, AccountContentRegistry registry, EasySaveAccountStore store, AccountSnapshot initial)
+        public AccountGameplaySession(PlayerAccountInventoryService account, AccountContentRegistry registry, EasySaveAccountStore store, AccountSnapshot initial, bool deferDiskWrites = false)
         {
             this.account = account;
             this.registry = registry;
-            transactions = new AccountTransactions(initial, store, registry);
+            transactions = new AccountTransactions(initial, store, registry, deferDiskWrites);
         }
 
         public void Attach() => Current = this;
@@ -39,13 +43,40 @@ namespace Overburst.Persistence
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSession() => Current = null;
 
-        public bool Execute(Func<bool> operation)
+        public bool Execute(Func<bool> operation) => Execute(operation, false);
+
+        public static bool RequiresPickupCheckpoint(ItemGrade grade) =>
+            grade >= ItemGrade.Legendary && ItemGradeAvailabilityPolicy.IsEnabled(grade);
+
+        public static bool AcquireWorldItem(PlayerInventory inventory, ItemData item)
+        {
+            if (inventory == null || item == null) return false;
+            if (Current == null) return inventory.AddItem(item);
+            if (Current.editing || Current.restoring) return false; // A pickup owns its completion boundary.
+            bool checkpoint = RequiresPickupCheckpoint(item.grade);
+            if (checkpoint)
+            {
+                CurrencyPickupBatch.DrainPending();
+                if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
+            }
+            try { return Current.Execute(() => inventory.AddItem(item), false, checkpoint); }
+            catch (System.IO.IOException error) { Debug.LogError("아이템 획득 저장에 실패했습니다: " + error.Message); return false; }
+        }
+
+        // Only CurrencyWorldPickup may use this restricted inventory-only mutation path.
+        internal static bool RunCurrencyAcquisition(Func<bool> operation)
+        {
+            try { return Current != null ? Current.Execute(operation, true) : operation(); }
+            catch (System.IO.IOException error) { Debug.LogError("재화 획득을 확정하지 못했습니다: " + error.Message); return false; }
+        }
+
+        private bool Execute(Func<bool> operation, bool currencyOnly, bool saveImmediately = false)
         {
             if (operation == null) throw new ArgumentNullException(nameof(operation));
             if (restoring) throw new InvalidOperationException("Cannot edit while restoring account state.");
             if (editing) return operation();
             EnsureProjectionReady();
-            var before = transactions.Read();
+            var before = currencyOnly ? transactions.CurrentForCurrencyCapture : transactions.Read();
             bool committed = false;
             editing = true;
             notifications.Clear();
@@ -55,8 +86,10 @@ namespace Overburst.Persistence
             {
                 if (!operation()) return false;
                 committed = transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), before.revision,
-                    () => AccountGameplayProjection.Capture(before, account, registry));
-                if (committed)
+                    () => currencyOnly
+                        ? AccountGameplayProjection.CaptureCurrencyInventory(before, account.Inventory, registry)
+                        : AccountGameplayProjection.Capture(before, account, registry), saveImmediately);
+                if (committed && !currencyOnly)
                 {
                     try { AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry); }
                     catch (Exception error) { RequireProjectionRecovery(error); RestoreAuthoritativeProjection(); }
@@ -107,8 +140,8 @@ namespace Overburst.Persistence
             }
             catch (System.IO.IOException error)
             {
-                // Runtime progression is unchanged until the durable write succeeds.
-                Debug.LogError("계정 저장에 실패해 경험치 확정을 보류했습니다: " + error.Message);
+                // Runtime progression is unchanged when candidate validation fails.
+                Debug.LogError("계정 경험치 확정을 보류했습니다: " + error.Message);
                 return false;
             }
             finally
@@ -129,7 +162,7 @@ namespace Overburst.Persistence
             notifications.Clear();
             try
             {
-                bool committed = transactions.Execute(transactionId, transactions.Revision, mutation);
+                bool committed = transactions.Execute(transactionId, transactions.Revision, mutation, saveImmediately: true);
                 if (!committed) return false;
                 RestoreAuthoritativeProjection();
                 return true;

@@ -147,7 +147,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
                 return false;
         }
 
-        if (!inventory.AddItem(runtimeItem))
+        if (!Overburst.Persistence.AccountGameplaySession.AcquireWorldItem(inventory, runtimeItem))
             return false; // 인벤토리 추가 실패 시 월드 유지
 
         InventoryUI.NotifyWorldPickupAdded(runtimeItem); // 닫힌 인벤토리 신규 표시

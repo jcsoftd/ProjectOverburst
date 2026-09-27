@@ -112,27 +112,49 @@ namespace Overburst.Persistence
         public static bool IsRunning(RunPhase phase) => phase == RunPhase.Active || phase == RunPhase.BossCleared;
     }
 
-    // Only a candidate is edited. Disk commit precedes ownership replacement and notifications.
+    // Validated runtime commits may be coalesced; explicit checkpoints still save before publication.
     public sealed class AccountTransactions
     {
+        private static readonly Unity.Profiling.ProfilerMarker SaveMarker = new Unity.Profiling.ProfilerMarker("Overburst.Account.DiskSave");
         private AccountSnapshot current;
         private readonly EasySaveAccountStore store;
         private readonly AccountContentRegistry registry;
         private bool executing;
+        private readonly bool deferDiskWrites;
+        public long PersistedRevision { get; private set; }
+        public bool HasPendingSave => current.revision != PersistedRevision;
+        internal AccountSnapshot CurrentForCurrencyCapture => current; // Read-only, transaction-owner use only.
+
+        public bool FlushPendingSave()
+        {
+            if (executing) return false;
+            if (!HasPendingSave) return true;
+            executing = true;
+            try
+            {
+                using (SaveMarker.Auto()) store.Save(current, current.lastTransactionId);
+                PersistedRevision = current.revision;
+                return true;
+            }
+            finally { executing = false; }
+        }
         public event Action<AccountSnapshot> Committed;
         public long Revision => current.revision;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
+        internal bool CanAcquireFromRun(string runId) => current.run != null && current.run.runId == runId && AccountInvariants.IsRunning(current.run.phase);
         public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);
 
-        public AccountTransactions(AccountSnapshot initial, EasySaveAccountStore store, AccountContentRegistry registry)
+        public AccountTransactions(AccountSnapshot initial, EasySaveAccountStore store, AccountContentRegistry registry, bool deferDiskWrites = false)
         {
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
             AccountInvariants.Validate(initial, registry);
             current = ItemSnapshotCodec.CopyValues(initial);
+            this.deferDiskWrites = deferDiskWrites;
+            PersistedRevision = initial.revision;
         }
 
-        public bool Execute(string transactionId, long expectedRevision, Action<AccountSnapshot> mutation)
+        public bool Execute(string transactionId, long expectedRevision, Action<AccountSnapshot> mutation, bool saveImmediately = false)
         {
             if (mutation == null) throw new ArgumentNullException(nameof(mutation));
             return ExecuteWithCandidate(transactionId, expectedRevision, () =>
@@ -140,7 +162,7 @@ namespace Overburst.Persistence
                 var candidate = Read();
                 mutation(candidate);
                 return candidate;
-            });
+            }, saveImmediately);
         }
 
         public bool GrantExperience(string transactionId, long expectedRevision, int amount,
@@ -148,7 +170,7 @@ namespace Overburst.Persistence
         {
             if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
             // No live inventory capture or ES3 round-trip clone for a scalar change.
-            // ExecuteWithCandidate retains revision, validation, durable save and notifications.
+            // ExecuteWithCandidate retains revision, validation and notifications; autosave owns durability.
             bool committed = ExecuteWithCandidate(transactionId, expectedRevision, () =>
             {
                 int nextLevel = current.level;
@@ -168,7 +190,7 @@ namespace Overburst.Persistence
             return committed;
         }
 
-        public bool ExecuteWithCandidate(string transactionId, long expectedRevision, Func<AccountSnapshot> createCandidate)
+        public bool ExecuteWithCandidate(string transactionId, long expectedRevision, Func<AccountSnapshot> createCandidate, bool saveImmediately = false)
         {
             if (string.IsNullOrWhiteSpace(transactionId) || createCandidate == null) throw new ArgumentException("Transaction identity and mutation are required.");
             if (executing) throw new InvalidOperationException("Nested account transactions are not permitted.");
@@ -182,7 +204,11 @@ namespace Overburst.Persistence
                 candidate.revision = checked(current.revision + 1);
                 candidate.lastTransactionId = transactionId;
                 AccountInvariants.Validate(candidate, registry);
-                store.Save(candidate, transactionId);
+                if (!deferDiskWrites || saveImmediately)
+                {
+                    using (SaveMarker.Auto()) store.Save(candidate, transactionId);
+                    PersistedRevision = candidate.revision;
+                }
                 current = candidate;
             }
             finally { executing = false; }

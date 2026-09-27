@@ -53,7 +53,9 @@ namespace Overburst.Persistence
                     }
                 }
                 AccountGameplayProjection.Restore(state, account, registry);
-                new AccountGameplaySession(account, registry, store, state).Attach();
+                var session = new AccountGameplaySession(account, registry, store, state, deferDiskWrites: true);
+                session.Attach();
+                AccountAutosave.StartFor(session);
                 Ready = true;
                 return true;
             }
