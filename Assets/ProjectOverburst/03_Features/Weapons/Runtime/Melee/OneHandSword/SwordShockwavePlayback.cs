@@ -17,6 +17,37 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
     private Vector3 resolvedScale;
     private float elapsed;
     private bool expanding;
+    private float intensity = 1f, playbackSpeed = 1f;
+    private float[] authoredSimulationSpeeds;
+    private Renderer[] intensityRenderers;
+    private static readonly int Distortion = Shader.PropertyToID("_Distortion");
+
+    public void Configure(float intensityMultiplier, float speedMultiplier)
+    {
+        CacheParticles();
+        intensity = Mathf.Clamp(intensityMultiplier, .05f, 4f);
+        playbackSpeed = Mathf.Clamp(speedMultiplier, .1f, 4f);
+        for (int i = 0; i < particles.Length; i++)
+        {
+            var main = particles[i].main;
+            main.simulationSpeed = authoredSimulationSpeeds[i] * playbackSpeed;
+        }
+        var block = new MaterialPropertyBlock();
+        foreach (var renderer in intensityRenderers)
+        {
+            var material = renderer.sharedMaterial;
+            if (material == null || !material.HasProperty(Distortion)) continue;
+            renderer.GetPropertyBlock(block);
+            block.SetFloat(Distortion, material.GetFloat(Distortion) * intensity);
+            renderer.SetPropertyBlock(block);
+        }
+    }
+
+    public static float ResolveCueLifetime(GameObject prefab, float lifetime, float speed)
+    {
+        return prefab != null && prefab.GetComponent<SwordShockwavePlayback>() != null
+            ? TransientVfxPool.ResolveLifetime(prefab, lifetime) / Mathf.Clamp(speed, .1f, 4f) : lifetime;
+    }
 
     public void RestartVfx()
     {
@@ -55,12 +86,14 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
         }
     }
 
-    private void Update()
+    private void Update() => Advance(Time.deltaTime);
+
+    public void Advance(float deltaTime)
     {
         if (!expanding)
             return;
 
-        elapsed += Time.deltaTime;
+        elapsed += Mathf.Max(0f, deltaTime) * playbackSpeed;
         float progress = Mathf.Clamp01(elapsed / expansionDuration);
         ApplyScale(progress);
         ApplyWaveProgress(progress, progress < 1f);
@@ -82,9 +115,14 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
     private void CacheParticles()
     {
         if (particles == null)
+        {
             particles = GetComponentsInChildren<ParticleSystem>(true);
+            authoredSimulationSpeeds = new float[particles.Length];
+            for (int i = 0; i < particles.Length; i++) authoredSimulationSpeeds[i] = particles[i].main.simulationSpeed;
+        }
         if (waveRenderers == null)
             waveRenderers = GetComponentsInChildren<MeshRenderer>(true);
+        if (intensityRenderers == null) intensityRenderers = GetComponentsInChildren<Renderer>(true);
     }
 
     private void ApplyWaveProgress(float progress, bool visible)
@@ -94,7 +132,7 @@ public sealed class SwordShockwavePlayback : MonoBehaviour, ITransientVfxPlaybac
         if (waveProperties == null)
             waveProperties = new MaterialPropertyBlock();
         waveProperties.SetFloat(WaveProgress, progress);
-        waveProperties.SetFloat(WaveOpacity, visible ? 1f : 0f);
+        waveProperties.SetFloat(WaveOpacity, visible ? intensity : 0f);
         foreach (MeshRenderer renderer in waveRenderers)
         {
             if (renderer == null) continue;

@@ -161,7 +161,8 @@ public sealed class AttackVfxCuePlayer
                 element,
                 horizontalMirror,
                 sharedSlash,
-                MeleeSharedSlashSpawnContract.ResolveReturnMode(cue.elementOverrideKey));
+                MeleeSharedSlashSpawnContract.ResolveReturnMode(cue.elementOverrideKey),
+                cue.SafeShockwaveIntensity, cue.SafeShockwaveSpeed);
         }
     }
 
@@ -174,11 +175,12 @@ public sealed class AttackVfxCuePlayer
         WeaponElement element,
         bool horizontalMirror,
         bool sharedSlash,
-        TransientVfxReturnMode returnMode)
+        TransientVfxReturnMode returnMode, float shockwaveIntensity, float shockwaveSpeed)
     {
         Action<GameObject> prepare = instance =>
         {
             instance.transform.localScale = scale;
+            instance.GetComponent<SwordShockwavePlayback>()?.Configure(shockwaveIntensity, shockwaveSpeed);
             instance.GetComponent<VfxMirrorCompensation>()?.Apply(horizontalMirror);
             if (sharedSlash)
             {
@@ -194,7 +196,7 @@ public sealed class AttackVfxCuePlayer
             prefab,
             position,
             rotation,
-            definition.lifetime,
+            SwordShockwavePlayback.ResolveCueLifetime(prefab, definition.lifetime, shockwaveSpeed),
             definition.SafePoolCapacity,
             null,
             prepare,

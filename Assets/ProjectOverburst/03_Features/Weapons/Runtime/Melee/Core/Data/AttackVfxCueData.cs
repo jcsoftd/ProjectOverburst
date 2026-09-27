@@ -50,6 +50,11 @@ public struct AttackVfxCueData
     [InspectorName("크기 배율 (%)")]
     [Multiplier(0.01f)] public float scaleMultiplier;
 
+    [Tooltip("충격파 왜곡 강도 배율. 기존 자산의 0은 원본 1배입니다.")]
+    [Range(.05f, 4f)] public float shockwaveIntensityMultiplier;
+    [Tooltip("충격파 재생 속도 배율. 0.5는 느리게, 2는 빠르게. 기존 자산의 0은 원본 1배입니다.")]
+    [Range(.1f, 4f)] public float shockwaveSpeedMultiplier;
+
     [InspectorName("WeaponTip 경사 자동 적용")]
     public bool autoSwingSlope;
 
@@ -63,6 +68,8 @@ public struct AttackVfxCueData
     public string elementOverrideKey;
 
     public float SafeScaleMultiplier => scaleMultiplier > 0f ? scaleMultiplier : 1f;
+    public float SafeShockwaveIntensity => shockwaveIntensityMultiplier > 0f ? Mathf.Clamp(shockwaveIntensityMultiplier, .05f, 4f) : 1f;
+    public float SafeShockwaveSpeed => shockwaveSpeedMultiplier > 0f ? Mathf.Clamp(shockwaveSpeedMultiplier, .1f, 4f) : 1f;
 
     public float ResolveSwingSlope(float attackSwingSlope)
     {
