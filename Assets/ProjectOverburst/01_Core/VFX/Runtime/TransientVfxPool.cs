@@ -110,6 +110,7 @@ public static class TransientVfxPool
         TransientVfxReturnMode returnMode = TransientVfxReturnMode.FixedLifetime,
         bool useUnscaledTime = false)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_Spawn.Auto();
         if (prefab == null || shuttingDown)
             return null;
 
@@ -212,6 +213,7 @@ public static class TransientVfxPool
 
     public static float ResolveLifetime(GameObject prefab, float explicitLifetime)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_ResolveLifetime.Auto();
         if (explicitLifetime > 0f)
             return Mathf.Max(MinimumLifetime, explicitLifetime);
 
@@ -240,6 +242,7 @@ public static class TransientVfxPool
 
     private static GameObject Acquire(GameObject prefab)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_Acquire.Auto();
         if (Pools.TryGetValue(prefab, out Queue<GameObject> pool))
         {
             while (pool.Count > 0)
@@ -256,6 +259,7 @@ public static class TransientVfxPool
 
     private static void Release(GameObject instance, GameObject prefab, int poolCapacity)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_Release.Auto();
         if (instance == null)
             return;
 
@@ -293,6 +297,7 @@ public static class TransientVfxPool
 
     private static void RestartParticles(GameObject instance)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_RestartParticles.Auto();
         ParticleSystem[] particleSystems = instance.GetComponentsInChildren<ParticleSystem>(true);
         for (int i = 0; i < particleSystems.Length; i++)
         {
@@ -306,6 +311,7 @@ public static class TransientVfxPool
 
     private static void RestartPlayback(GameObject instance)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_RestartPlayback.Auto();
         if (TryGetCustomPlayback(instance, out ITransientVfxPlayback playback))
         {
             playback.RestartVfx();
@@ -317,6 +323,7 @@ public static class TransientVfxPool
 
     private static void StopAndClearParticles(GameObject instance)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_StopAndClearParticles.Auto();
         ParticleSystem[] particleSystems = instance.GetComponentsInChildren<ParticleSystem>(true);
         for (int i = 0; i < particleSystems.Length; i++)
         {
@@ -327,6 +334,7 @@ public static class TransientVfxPool
 
     private static void StopAndClearPlayback(GameObject instance)
     {
+        using var costScope = ElementCombatCostMarkers.Pool_StopAndClearPlayback.Auto();
         if (TryGetCustomPlayback(instance, out ITransientVfxPlayback playback))
         {
             playback.StopAndClearVfx();
