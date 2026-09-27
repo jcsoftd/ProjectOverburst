@@ -16,6 +16,10 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
     private MaterialPropertyBlock[] beforeFlash;
     private Renderer[] slotRenderers;
     private int[] slotIndices;
+    private Material[] slotMaterials;
+    private Shader[] slotShaders;
+    private bool[] hasBaseColor, hasColor;
+    private readonly List<Material> materialScratch = new List<Material>(8);
     private bool flashApplied;
     private bool corpseTintActive;
     private Coroutine flashRoutine; // flash 루틴
@@ -111,6 +115,11 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
 
     private void CaptureBeforeFlash()
     {
+        if (!MaterialsMatchCache())
+        {
+            RestoreColors();
+            CacheRenderers();
+        }
         for (int i = 0; i < slotRenderers.Length; i++)
             if (slotRenderers[i] != null)
             {
@@ -145,18 +154,28 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
             renderers = GetComponentsInChildren<Renderer>(true);
 
         // EnemyActor tint uses indexed blocks. A renderer-wide block cannot override them.
-        var targets = new List<Renderer>(); var indices = new List<int>();
+        var targets = new List<Renderer>(); var indices = new List<int>(); var materials = new List<Material>();
         foreach (var target in renderers)
             if (target != null)
-                for (int index = 0; index < target.sharedMaterials.Length; index++)
-                { targets.Add(target); indices.Add(index); }
+            {
+                target.GetSharedMaterials(materialScratch);
+                for (int index = 0; index < materialScratch.Count; index++)
+                { targets.Add(target); indices.Add(index); materials.Add(materialScratch[index]); }
+            }
         slotRenderers = targets.ToArray(); slotIndices = indices.ToArray();
+        slotMaterials = materials.ToArray();
+        slotShaders = new Shader[slotMaterials.Length];
+        hasBaseColor = new bool[slotMaterials.Length]; hasColor = new bool[slotMaterials.Length];
         propertyBlocks = new MaterialPropertyBlock[slotRenderers.Length];
         beforeFlash = new MaterialPropertyBlock[slotRenderers.Length];
         baseColors = new Color[slotRenderers.Length];
 
         for (int i = 0; i < slotRenderers.Length; i++)
         {
+            Material material = slotMaterials[i];
+            slotShaders[i] = material != null ? material.shader : null;
+            hasBaseColor[i] = material != null && material.HasProperty(BaseColorProperty);
+            hasColor[i] = material != null && material.HasProperty(ColorProperty);
             propertyBlocks[i] = new MaterialPropertyBlock();
             beforeFlash[i] = new MaterialPropertyBlock();
             baseColors[i] = GetRendererColor(i);
@@ -169,12 +188,12 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         if (targetRenderer == null)
             return Color.white;
 
-        Material material = targetRenderer.sharedMaterials[slotIndices[index]];
+        Material material = slotMaterials[index];
         if (material == null) return Color.white;
-        if (material.HasProperty(BaseColorProperty))
+        if (hasBaseColor[index])
             return material.GetColor(BaseColorProperty);
 
-        if (material.HasProperty(ColorProperty))
+        if (hasColor[index])
             return material.GetColor(ColorProperty);
 
         return Color.white;
@@ -212,7 +231,7 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         if (slotRenderers == null || index < 0 || index >= slotRenderers.Length || slotRenderers[index] == null)
             return;
 
-        Material material = slotRenderers[index].sharedMaterials[slotIndices[index]];
+        Material material = slotMaterials[index];
         if (material == null)
             return;
 
@@ -220,12 +239,31 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         if (block == null)
             block = new MaterialPropertyBlock();
 
-        if (material.HasProperty(BaseColorProperty))
+        if (hasBaseColor[index])
             block.SetColor(BaseColorProperty, color);
 
-        if (material.HasProperty(ColorProperty))
+        if (hasColor[index])
             block.SetColor(ColorProperty, color);
 
         slotRenderers[index].SetPropertyBlock(block, slotIndices[index]);
+    }
+
+    private bool MaterialsMatchCache()
+    {
+        if (slotMaterials == null || renderers == null) return false;
+        int slot = 0;
+        foreach (Renderer target in renderers)
+        {
+            if (target == null) continue;
+            target.GetSharedMaterials(materialScratch);
+            for (int i = 0; i < materialScratch.Count; i++, slot++)
+            {
+                Material material = materialScratch[i];
+                if (slot >= slotMaterials.Length || slotRenderers[slot] != target
+                    || slotIndices[slot] != i || slotMaterials[slot] != material
+                    || slotShaders[slot] != (material != null ? material.shader : null)) return false;
+            }
+        }
+        return slot == slotMaterials.Length;
     }
 }
