@@ -1,0 +1,56 @@
+.combo-maker { flex-grow: 1; background-color: rgb(28, 32, 39); color: rgb(220, 226, 233); }
+.row { flex-direction: row; align-items: center; flex-shrink: 0; }
+.header { height: 76px; padding: 12px 18px; background-color: rgb(34, 40, 49); border-bottom-width: 1px; border-bottom-color: rgb(66, 74, 86); }
+.brand { font-size: 21px; -unity-font-style: bold; letter-spacing: 2px; margin-bottom: 4px; }
+.muted { color: rgb(150, 166, 183); font-size: 11px; }
+.badge { margin-right: 16px; color: rgb(157, 179, 186); }
+.badge.dirty { color: rgb(248, 192, 112); }
+.combo-maker Button { min-height: 27px; margin: 3px; padding: 5px 9px; border-radius: 5px; background-color: rgb(49, 57, 69); color: rgb(222, 231, 238); border-width: 1px; border-color: rgb(73, 86, 99); }
+.combo-maker Button:hover { background-color: rgb(62, 77, 91); border-color: rgb(114, 161, 171); }
+.combo-maker Button:disabled { opacity: 0.45; }
+.combo-maker Button.primary { background-color: rgb(49, 111, 112); border-color: rgb(83, 159, 158); -unity-font-style: bold; padding: 7px 16px; }
+.combo-maker Button.selected { background-color: rgb(43, 80, 86); border-color: rgb(104, 189, 183); }
+.workspace { flex-grow: 1; min-height: 0; margin: 8px; }
+.library { background-color: rgb(34, 39, 47); padding: 8px; border-radius: 7px; }
+.library-scroll { flex-grow: 1; }
+.weapon-search { margin: 5px 3px; min-height: 24px; }
+.weapon-search .unity-base-field__label { min-width: 30px; width: 30px; }
+.section-title { font-size: 12px; -unity-font-style: bold; margin: 8px 4px; color: rgb(221, 233, 239); }
+.weapon-card { height: 36px; -unity-font-style: bold; }
+.step-card { align-items: flex-start; height: 76px; white-space: normal; }
+.step-card Label { -unity-text-align: middle-left; width: 100%; margin-top: 2px; }
+.clip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; font-size: 11px; }
+.preview-panel { flex-grow: 1; min-height: 0; padding: 0 9px; }
+.transport { height: 37px; }
+.transport .unity-toggle { margin: 0 6px; }
+.transport .unity-base-field { margin: 0 3px; }
+.preview-host { flex-grow: 1; min-height: 190px; position: relative; overflow: hidden; background-color: rgb(18, 23, 29); border-radius: 7px; border-width: 1px; border-color: rgb(67, 78, 92); }
+.preview-image, .overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.preview-label { position: absolute; left: 12px; top: 11px; color: rgb(235, 243, 247); -unity-font-style: bold; background-color: rgba(24, 29, 36, 0.72); padding: 5px 8px; border-radius: 4px; }
+.view-toolbar { height: 37px; justify-content: space-between; }
+.view-toolbar Button { flex-grow: 1; }
+.view-toolbar .unity-toggle { margin-left: 7px; }
+.time-label { height: 22px; margin-left: 4px; font-size: 11px; color: rgb(182, 196, 205); }
+.timeline { background-color: rgb(24, 29, 36); padding: 0 4px; border-radius: 5px; }
+.preview-footer { margin-top: 7px; }
+.preview-footer .unity-base-field__label { min-width: 80px; }
+.energy-row .unity-base-field__label { min-width: 80px; width: 80px; }
+.energy-row .unity-base-slider__text-field { min-width: 36px; width: 36px; }
+.energy-row Button { padding-left: 4px; padding-right: 4px; }
+.preview-help { font-size: 10px; color: rgb(146, 164, 180); margin: 6px 2px; white-space: normal; }
+.editor-panel { background-color: rgb(34, 39, 47); border-radius: 7px; padding: 7px; }
+.editor-scroll { flex-grow: 1; min-height: 0; }
+.tab { flex-grow: 1; font-size: 11px; padding-left: 4px; padding-right: 4px; }
+.card { margin: 5px 2px 9px 2px; padding: 7px; background-color: rgb(40, 47, 56); border-radius: 6px; border-width: 1px; border-color: rgb(64, 76, 89); }
+.card .section-title { margin-top: 1px; margin-bottom: 9px; }
+.data-field { margin: 4px 2px; min-height: 21px; }
+.editor-panel .unity-base-field__label { min-width: 125px; width: 125px; font-size: 11px; }
+.editor-panel .unity-base-slider__text-field { min-width: 64px; }
+.editor-panel .unity-vector3-field .unity-float-field__label { min-width: 12px; width: 12px; }
+.editor-panel .unity-foldout__text { font-size: 11px; color: rgb(199, 215, 224); }
+.editor-panel .unity-foldout__content { margin-left: 7px; }
+.array-item { padding: 5px; margin-top: 5px; border-radius: 4px; background-color: rgb(33, 39, 47); }
+.hint { white-space: normal; font-size: 11px; color: rgb(164, 185, 196); margin: 6px 4px; }
+.validation { max-height: 100px; margin-top: 7px; }
+.status { height: 27px; padding: 5px 15px; color: rgb(152, 175, 188); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.unity-two-pane-split-view__dragline-anchor { background-color: rgb(27, 32, 39); }
