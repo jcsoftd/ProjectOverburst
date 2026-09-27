@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
 {
     private const float DefaultCharacterControllerSkinWidthRadiusRatio = 0.1f;
+    public const float GreatswordLocomotionSpeedMultiplier = 1.1f;
 
     [Header("Move")]
     [SerializeField] private float walkSpeed = 4.5f;
@@ -114,6 +115,10 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
 
     public float WalkMoveSpeed => ResolveAuthoredMoveSpeed(walkSpeed);
     public float RunMoveSpeed => ResolveAuthoredMoveSpeed(runSpeed);
+
+    public bool HasGreatswordEquipped => playerEquipment != null
+        && playerEquipment.HasCurrentWeapon
+        && playerEquipment.CurrentWeaponContext.Class == WeaponClass.Greatsword;
 
     public float MoveAcceleration => Mathf.Max(0f, acceleration);
     public float MoveDeceleration => Mathf.Max(0f, deceleration);
@@ -842,7 +847,8 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
             return 0f;
 
         if (IsCombatWalkLocomotionMode)
-            return GetMeleeCombatMoveSpeed() * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier();
+            return GetMeleeCombatMoveSpeed() * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier()
+                * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
         float speed = IsAimCombatMoveActive ? walkSpeed * GetActiveAimMoveSpeedMultiplier() : IsQuickFiring ? walkSpeed * activeQuickFireMoveSpeedMultiplier : baseMoveSpeed; // 상태별 속도
@@ -850,7 +856,8 @@ public class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이동 실행
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속
 
-        return speed * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier();
+        return speed * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier()
+            * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
     }
 
     public void SetControlAuthority(ActorControlAuthority authority)

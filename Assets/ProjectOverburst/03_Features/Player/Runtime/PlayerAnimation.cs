@@ -10,6 +10,7 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
     private const string MagicActionLayerName = "UpperBody_Magic";
     private const string FullBodyAimLayerName = "FullBody_Aim";
     private const string FullBodyAimStateName = "FullBodyAim";
+    private static readonly int ExplorationLocomotionSpeedParameterHash = Animator.StringToHash("ExplorationLocomotionSpeed");
 
     [Header("References")]
     [SerializeField] private Animator targetAnimator;
@@ -228,6 +229,8 @@ public class PlayerAnimation : MonoBehaviour // 플레이어 애니
             moveSmoothTime);
 
         targetAnimator.SetFloat(speedParameter, playerController.AnimationMoveAmount, speedDampTime, Time.deltaTime);
+        targetAnimator.SetFloat(ExplorationLocomotionSpeedParameterHash,
+            playerController.HasGreatswordEquipped ? PlayerMovement.GreatswordLocomotionSpeedMultiplier : 1f);
         targetAnimator.SetFloat(moveXParameter, currentMoveBlend.x);
         targetAnimator.SetFloat(moveYParameter, currentMoveBlend.y);
         targetAnimator.SetBool(groundedParameter, playerController.IsGrounded);
