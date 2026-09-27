@@ -91,6 +91,35 @@ namespace Overburst.Persistence
             }
         }
 
+        public bool GrantExperience(PlayerProgression progression, int amount)
+        {
+            if (progression == null) throw new ArgumentNullException(nameof(progression));
+            if (editing || restoring) throw new InvalidOperationException("A gameplay command is already running.");
+            if (NeedsProjectionRecovery) return false;
+            editing = true;
+            notifications.Clear();
+            try
+            {
+                bool committed = transactions.GrantExperience(Guid.NewGuid().ToString("N"),
+                    transactions.Revision, amount, out int level, out int experience);
+                if (committed) progression.ApplyCommittedExperience(level, experience);
+                return committed;
+            }
+            catch (System.IO.IOException error)
+            {
+                // Runtime progression is unchanged until the durable write succeeds.
+                Debug.LogError("계정 저장에 실패해 경험치 확정을 보류했습니다: " + error.Message);
+                return false;
+            }
+            finally
+            {
+                editing = false;
+                var queued = notifications.ToArray(); notifications.Clear();
+                foreach (var notification in queued)
+                    try { notification(); } catch (Exception error) { Debug.LogException(error); }
+            }
+        }
+
         // Run state commands edit the same authoritative account, then project only after disk commit.
         public bool ExecuteState(string transactionId, Action<AccountSnapshot> mutation)
         {

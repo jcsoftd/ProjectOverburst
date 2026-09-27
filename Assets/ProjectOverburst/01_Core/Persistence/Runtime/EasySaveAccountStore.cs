@@ -26,6 +26,8 @@ namespace Overburst.Persistence
         private AccountSaveEnvelope latest;
         private int latestSlot = -1;
         private bool loaded;
+        private readonly byte[][] verifiedBytes = new byte[2][];
+        private readonly AccountSaveEnvelope[] verifiedEnvelopes = new AccountSaveEnvelope[2];
         public long Generation => latest?.generation ?? 0;
         public string LastTransactionId => latest?.transactionId;
         // Used by fault-injection tests; product code leaves this unset.
@@ -111,7 +113,14 @@ namespace Overburst.Persistence
             FaultInjector?.Invoke("before-write");
             try
             {
-                ES3.Save("account", envelope, Settings(target));
+                // Each slot is one complete account envelope, not a shared key store.
+                // Skip merging the obsolete slot (also permits replacing a corrupt
+                // inactive generation) while retaining ES3's temp-file commit.
+                using (var writer = ES3Writer.Create(Settings(target)))
+                {
+                    writer.Write<AccountSaveEnvelope>("account", envelope);
+                    writer.Save(false);
+                }
                 FaultInjector?.Invoke("after-write");
             }
             catch
@@ -130,12 +139,27 @@ namespace Overburst.Persistence
         {
             try
             {
-                var value = ES3.Load<AccountSaveEnvelope>("account", Settings(slot));
+                var settings = Settings(slot);
+                // Read the actual file under account.lock on every check. Reuse parsing
+                // only for byte-identical, checksum-verified contents, never timestamps.
+                byte[] bytes = ES3.LoadRawBytes(settings);
+                if (SameBytes(bytes, verifiedBytes[slot])) return verifiedEnvelopes[slot];
+                var value = new ES3File(bytes, settings).Load<AccountSaveEnvelope>("account");
                 if (value == null || value.magic != "OVERBURST_ACCOUNT" || value.profileId != profileId || value.generation < 1 || value.payload == null || value.checksum != Checksum(value)) return null;
+                verifiedBytes[slot] = bytes;
+                verifiedEnvelopes[slot] = value;
                 return value;
             }
             catch (Exception e) when (e is IOException || e is FormatException || e is ArgumentException || e is InvalidOperationException || e is System.Collections.Generic.KeyNotFoundException)
             { return null; }
+        }
+
+        private static bool SameBytes(byte[] left, byte[] right)
+        {
+            if (left == null || right == null || left.Length != right.Length) return false;
+            for (int i = 0; i < left.Length; i++)
+                if (left[i] != right[i]) return false;
+            return true;
         }
 
         public static string Checksum(AccountSaveEnvelope e)

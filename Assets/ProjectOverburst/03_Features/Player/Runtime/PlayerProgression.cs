@@ -75,11 +75,7 @@ public sealed class PlayerProgression : MonoBehaviour
         if (pendingExperience == 0) return true;
         if (!Overburst.Persistence.AccountGameplaySession.ShouldRoute) return false;
         int amount = pendingExperience;
-        bool committed = Overburst.Persistence.AccountGameplaySession.Run(() =>
-        {
-            AddExperience(amount);
-            return true;
-        });
+        bool committed = Overburst.Persistence.AccountGameplaySession.Current.GrantExperience(this, amount);
         if (committed) { pendingExperience -= amount; nextExperienceRetry = 0f; }
         else nextExperienceRetry = Time.unscaledTime + 1f;
         return committed;
@@ -106,6 +102,18 @@ public sealed class PlayerProgression : MonoBehaviour
             PlayerPrefs.SetInt(LevelKey, Level);
             PlayerPrefs.SetInt(ExperienceKey, Experience);
         }
+        NotifyExperienceCommitted(previousLevel);
+    }
+
+    internal void ApplyCommittedExperience(int level, int experience)
+    {
+        int previousLevel = Level;
+        ApplyAccountProgression(level, experience, false);
+        NotifyExperienceCommitted(previousLevel);
+    }
+
+    private void NotifyExperienceCommitted(int previousLevel)
+    {
         int nextLevel = Level;
         Overburst.Persistence.AccountGameplaySession.Notify(() =>
         {

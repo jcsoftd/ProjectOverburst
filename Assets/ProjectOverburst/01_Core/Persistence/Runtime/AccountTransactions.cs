@@ -143,6 +143,31 @@ namespace Overburst.Persistence
             });
         }
 
+        public bool GrantExperience(string transactionId, long expectedRevision, int amount,
+            out int level, out int experience)
+        {
+            if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            // No live inventory capture or ES3 round-trip clone for a scalar change.
+            // ExecuteWithCandidate retains revision, validation, durable save and notifications.
+            bool committed = ExecuteWithCandidate(transactionId, expectedRevision, () =>
+            {
+                int nextLevel = current.level;
+                int nextExperience = nextLevel >= OverburstGrowthRules.MaximumLevel
+                    ? 0 : checked(current.experience + amount);
+                while (nextLevel < OverburstGrowthRules.MaximumLevel
+                    && nextExperience >= OverburstGrowthRules.ExperienceToNext(nextLevel))
+                {
+                    nextExperience -= OverburstGrowthRules.ExperienceToNext(nextLevel);
+                    nextLevel++;
+                }
+                if (nextLevel >= OverburstGrowthRules.MaximumLevel) nextExperience = 0;
+                return current.WithProgression(nextLevel, nextExperience);
+            });
+            level = current.level;
+            experience = current.experience;
+            return committed;
+        }
+
         public bool ExecuteWithCandidate(string transactionId, long expectedRevision, Func<AccountSnapshot> createCandidate)
         {
             if (string.IsNullOrWhiteSpace(transactionId) || createCandidate == null) throw new ArgumentException("Transaction identity and mutation are required.");

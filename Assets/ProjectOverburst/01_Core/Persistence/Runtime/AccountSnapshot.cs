@@ -31,6 +31,16 @@ namespace Overburst.Persistence
         public string lastTransactionId;
         public long bossClearCount;
         public bool legacyProgressionImported;
+
+        // Only the transaction owner may share these already-validated collections.
+        // This candidate changes scalar progression; public Read still deep-copies.
+        internal AccountSnapshot WithProgression(int nextLevel, int nextExperience)
+        {
+            var candidate = (AccountSnapshot)MemberwiseClone();
+            candidate.level = nextLevel;
+            candidate.experience = nextExperience;
+            return candidate;
+        }
     }
 
     [Serializable] public sealed class ItemContainerSnapshot
