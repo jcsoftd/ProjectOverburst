@@ -14,6 +14,8 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private const string FooterBrandText = "JC Soft";
     private const string PreviewFloorName = "[JC Animation Preview Floor]";
     private const string PreviewFloorMaterialName = "[JC Animation Preview Floor Material]";
+    private const string DefaultModelPrefabGuid = "4f97a974eab7ea34abcd80e33c41133d";
+    private const string DefaultWeaponPrefabGuid = "4eccfacbe53efa34dbb7ad4a2e73e255";
     private const float ControlHeight = 24f;
     private const float FieldLabelWidth = 64f;
     private const float StandardButtonWidth = 88f;
@@ -148,6 +150,13 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     {
         ModelAnimationPreviewWindow window = GetWindow<ModelAnimationPreviewWindow>(WindowTitle);
         window.minSize = MinimumWindowSize;
+        if (window.FillMissingDefaultPrefabs())
+        {
+            window.RebuildPreviewInstance();
+            window.RefreshClipEntries();
+            window.SampleActiveClip();
+            window.Repaint();
+        }
         window.TryUseSelection();
     }
 
@@ -160,6 +169,7 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
     private void OnEnable()
     {
         minSize = MinimumWindowSize;
+        FillMissingDefaultPrefabs();
         EnsurePreviewUtility();
         EditorApplication.update += TickPreview;
         ResetPreviewClock();
@@ -170,6 +180,30 @@ public sealed class ModelAnimationPreviewWindow : EditorWindow
             SampleActiveClip();
         }
         TryUseSelection();
+    }
+
+    private bool FillMissingDefaultPrefabs()
+    {
+        bool changed = false;
+        if (selectedModelPrefab == null)
+        {
+            selectedModelPrefab = LoadDefaultPrefab(DefaultModelPrefabGuid);
+            changed |= selectedModelPrefab != null;
+        }
+
+        if (selectedWeaponPrefab == null)
+        {
+            selectedWeaponPrefab = LoadDefaultPrefab(DefaultWeaponPrefabGuid);
+            changed |= selectedWeaponPrefab != null;
+        }
+
+        return changed;
+    }
+
+    private static GameObject LoadDefaultPrefab(string guid)
+    {
+        string path = AssetDatabase.GUIDToAssetPath(guid);
+        return string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(path);
     }
 
     private void OnDisable()
