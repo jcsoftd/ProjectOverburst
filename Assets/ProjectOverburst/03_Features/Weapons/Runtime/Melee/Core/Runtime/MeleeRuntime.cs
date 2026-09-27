@@ -683,6 +683,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return false;
         }
 
+        if (activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
+            CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
+
         return true;
     }
 
@@ -1122,10 +1125,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             || normalizedTime < activeAttackPhases[0].SafeStart)
             return;
 
+        float normalizedEnergy = activeHeavyEnergy != null ? activeHeavyEnergy.Normalized : 0f;
         heavyDischargeCommitted = true;
-        if (activeHeavyEnergy == null || !activeHeavyEnergy.TryCommitDischarge(
-            activeStats.damage * activeAttackDamageMultiplier,
-            out activeDischarge)) return;
+        bool hasDischarge = activeHeavyEnergy != null && activeHeavyEnergy.TryCommitDischarge(
+            activeStats.damage * activeAttackDamageMultiplier, out activeDischarge);
 
         MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeDefinition() : null;
@@ -1133,6 +1136,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         AttackPatternRuntimeData pattern = activeAttackPhases[0].ResolvePattern(
             activeStats.range, activeStats.meleeSlashAngle, meleeDefinition.baseSettings.hitWidth);
         Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
+        if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
+            CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
+        if (!hasDischarge) return;
         heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
             combatTarget, gameObject, center, activeAttackDirection);
     }

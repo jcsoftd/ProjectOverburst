@@ -77,6 +77,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
         public CombatHitFeedbackRequest Request;
         public bool Occupied, Pending, Dispatched;
         public bool AnyCritical, AnyLethal;
+        public bool OrganicSfxPlayed;
     }
     private readonly HitGroup[] groups = new HitGroup[128];
     private int nextGroup;
@@ -158,6 +159,9 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             groups[index] = new HitGroup { Occupied = true, Request = request };
             MeleeElementSfxService.TryPlayHit(request.Element, visualContact);
         }
+        if (!groups[index].OrganicSfxPlayed
+            && CombatActionSfxService.TryPlayOrganicHit(request, visualContact))
+            groups[index].OrganicSfxPlayed = true;
         if (!request.AllowGlobalFeedback || request.Profile == null || groups[index].Dispatched) return;
         groups[index].AnyCritical |= request.IsCritical;
         groups[index].AnyLethal |= request.IsLethal;
