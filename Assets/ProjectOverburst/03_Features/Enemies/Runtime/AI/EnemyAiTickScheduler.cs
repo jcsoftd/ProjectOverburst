@@ -18,6 +18,20 @@ public static class EnemyAiTickScheduler // 대량 웨이브 AI 판단 주기 �
     private static Camera cachedMainCamera;
     private static int cameraCacheFrame = -1;
 
+    // Expensive planning has its own clock. Attack/state execution keeps its existing rate.
+    public static float ResolvePlanningInterval(int activeEnemyCount, float sqrDistance)
+    {
+        if (activeEnemyCount <= FullRateEnemyLimit) return 0f;
+        return sqrDistance <= FullRateDistance * FullRateDistance ? 0.05f : 0.1f;
+    }
+
+    public static float NextPlanningTime(float now, float interval, int instanceId)
+    {
+        if (interval <= 0f) return now;
+        float phase = ResolveStaggerDelay(interval, instanceId);
+        return (Mathf.Floor((now - phase) / interval) + 1f) * interval + phase;
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {

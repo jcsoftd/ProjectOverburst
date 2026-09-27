@@ -80,6 +80,15 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     private float currentAiTickInterval;
     private bool aiTickScheduleInitialized;
     private bool forceAiTick;
+    private float nextChasePlanningTime, nextSeparationPlanningTime, nextTargetPlanningTime;
+    private bool hasCachedChasePlan;
+    private float lastChasePlanningTime = -1f, chasePlanningDeltaTime;
+    private Vector3 cachedChasePlan, cachedPlanTargetPosition;
+    private int planningEvaluationCount, planningReuseCount;
+    public int PlanningEvaluationCount => planningEvaluationCount;
+    public int PlanningReuseCount => planningReuseCount;
+    private static readonly Unity.Profiling.ProfilerMarker ChasePlanMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.ChasePlan");
+    private static readonly Unity.Profiling.ProfilerMarker TargetPlanMarker = new Unity.Profiling.ProfilerMarker("Overburst.AI.TargetPlan");
     private int aiTickCount;
     private int aiSkippedUpdateCount;
     private float nextIdleBreakTime;
@@ -872,6 +881,8 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
         if (UsesRangedTactics) { movement?.StopMovement(); return; }
         if (movement == null)
             return;
+        if (target == null || !target.gameObject.activeInHierarchy) { movement.StopMovement(); return; }
+        if (!ConsumePlanningTick(ref nextSeparationPlanningTime)) return;
 
         if (!TryResolveCombatSeparationDestination(out Vector3 destination))
         {
@@ -903,6 +914,27 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     }
 
     internal Vector3 ResolveChasePlan()
+    {
+        bool urgent = !hasCachedChasePlan || target == null
+            || HorizontalSqrDistance(cachedPlanTargetPosition, target.position) > 0.25f
+            || HorizontalSqrDistance(transform.position, cachedChasePlan) < 0.04f;
+        if (!urgent && !ConsumePlanningTick(ref nextChasePlanningTime))
+        {
+            planningReuseCount++;
+            return cachedChasePlan;
+        }
+        if (urgent) nextChasePlanningTime = EnemyAiTickScheduler.NextPlanningTime(Time.time, PlanningInterval, GetInstanceID());
+        chasePlanningDeltaTime = lastChasePlanningTime < 0f ? Time.deltaTime
+            : Mathf.Max(0f, Time.time - lastChasePlanningTime);
+        lastChasePlanningTime = Time.time;
+        using (ChasePlanMarker.Auto()) cachedChasePlan = CalculateChasePlan();
+        cachedPlanTargetPosition = target != null ? target.position : transform.position;
+        hasCachedChasePlan = true;
+        planningEvaluationCount++;
+        return cachedChasePlan;
+    }
+
+    private Vector3 CalculateChasePlan()
     {
         if (EnemySquadPursuitRuntimeService.TryResolveMovePlan(
             this,
@@ -994,6 +1026,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     internal void RefreshChaseApproachDirection()
     {
+        hasCachedChasePlan = false;
         if (clusterFanOutActive)
         {
             EnemyClusterFanOutService.Invalidate(target); // 같은 측면을 유지한 채 군집 외피만 갱신
@@ -1018,6 +1051,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     internal void EndChaseApproach()
     {
+        hasCachedChasePlan = false;
         ClearSquadPursuitMove();
         densityApproachActive = false;
         ClearClusterFanOutActivity(false);
@@ -1251,6 +1285,8 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void ResetAiTickSchedule()
     {
+        ResetPlanningSchedule();
+        planningEvaluationCount = planningReuseCount = 0;
         nextAiTickTime = 0f;
         currentAiTickInterval = 0f;
         aiTickScheduleInitialized = false;
@@ -1263,9 +1299,28 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void RequestImmediateAiTick()
     {
+        ResetPlanningSchedule();
         forceAiTick = true; // 피격·지원 요청은 LOD 대기 없이 반응
         nextAiTickTime = 0f;
         aiTickScheduleInitialized = false;
+    }
+
+    private float PlanningInterval => EnemyAiTickScheduler.ResolvePlanningInterval(
+        ActiveEnemies.Count, ResolveAiLodSqrDistance(target != null && target.gameObject.activeInHierarchy));
+
+    private bool ConsumePlanningTick(ref float nextTime)
+    {
+        float interval = PlanningInterval;
+        if (interval > 0f && Time.time < nextTime) return false;
+        nextTime = EnemyAiTickScheduler.NextPlanningTime(Time.time, interval, GetInstanceID());
+        return true;
+    }
+
+    private void ResetPlanningSchedule()
+    {
+        hasCachedChasePlan = false;
+        lastChasePlanningTime = -1f;
+        nextChasePlanningTime = nextSeparationPlanningTime = nextTargetPlanningTime = 0f;
     }
 
     private void InitializeStateMachine()
@@ -1298,8 +1353,10 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void RefreshPartyTargetPhase()
     {
-        if (EnemyCombatCoordinator.TryMaintainTarget(this, out Transform assignedTarget))
-            ApplyTarget(assignedTarget);
+        if (IsTargetValid() && !ConsumePlanningTick(ref nextTargetPlanningTime)) return;
+        using (TargetPlanMarker.Auto())
+            if (EnemyCombatCoordinator.TryMaintainTarget(this, out Transform assignedTarget))
+                ApplyTarget(assignedTarget);
     }
 
     internal void HandlePartyLeaderChanged(Transform previousLeader, Transform nextLeader)
@@ -1327,6 +1384,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     {
         if (target != newTarget)
         {
+            ResetPlanningSchedule();
             tacticalPositioning?.Reset();
             nextApproachDirectionRefreshTime = 0f;
             smoothedSeparationDirection = Vector3.zero;
@@ -1426,6 +1484,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
 
     private void HandleStateChanged(IEnemyState previousState, IEnemyState nextState)
     {
+        ResetPlanningSchedule();
         if (!logStateChanges)
             return;
         string previousName = previousState != null ? previousState.Name : "None";
@@ -1457,7 +1516,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             smoothedSeparationDirection = Vector3.Lerp(
                 smoothedSeparationDirection,
                 separation,
-                Mathf.Clamp01(Time.deltaTime * 4f));
+                Mathf.Clamp01(chasePlanningDeltaTime * 4f));
         }
 
         float now = Time.time;
@@ -1505,7 +1564,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             smoothedSeparationDirection = Vector3.Lerp(
                 smoothedSeparationDirection,
                 separation,
-                Mathf.Clamp01(Time.deltaTime * 4f));
+                Mathf.Clamp01(chasePlanningDeltaTime * 4f));
 
         float now = Time.time;
         bool decisionDue = chaseBypassTurnSign == 0 || now >= nextChaseBypassDecisionTime;
@@ -1567,7 +1626,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             smoothedSeparationDirection = Vector3.Lerp(
                 smoothedSeparationDirection,
                 separation,
-                Mathf.Clamp01(Time.deltaTime * 4f));
+                Mathf.Clamp01(chasePlanningDeltaTime * 4f));
 
         EnemyClusterFanOutResult result = EnemyClusterFanOutSteering.Resolve(
             new EnemyClusterFanOutInput(
@@ -1655,7 +1714,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             smoothedSeparationDirection = Vector3.Lerp(
                 smoothedSeparationDirection,
                 separation,
-                Mathf.Clamp01(Time.deltaTime * 4f));
+                Mathf.Clamp01(chasePlanningDeltaTime * 4f));
 
         Vector3 direction = flowDirection
             + smoothedSeparationDirection * BehaviorProfile.SeparationWeight;
@@ -1735,7 +1794,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             smoothedSeparationDirection = Vector3.Lerp(
                 smoothedSeparationDirection,
                 separation,
-                Mathf.Clamp01(Time.deltaTime * 4f));
+                Mathf.Clamp01(chasePlanningDeltaTime * 4f));
 
         Vector3 direction = approachDirection
             + smoothedSeparationDirection * BehaviorProfile.SeparationWeight;
