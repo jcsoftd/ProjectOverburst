@@ -61,6 +61,7 @@ public sealed class WorldUiOverlayService : MonoBehaviour
 
     public EnemyHpBarView AcquireHealthBar(CombatHealth health, EnemyHpBarTier tier)
     {
+        if (tier != EnemyHpBarTier.Elite) return null;
         Queue<EnemyHpBarView> pool = PoolFor(tier);
         EnemyHpBarView prefab = PrefabFor(tier);
         EnemyHpBarView view = DequeueValid(pool);
@@ -104,9 +105,7 @@ public sealed class WorldUiOverlayService : MonoBehaviour
 
     private void PrewarmHealthBars()
     {
-        Prewarm(normalHealthBarPrefab, normalHealthBarPool, normalHealthBarPrewarm);
-        if (mediumHealthBarPrefab != null)
-            Prewarm(mediumHealthBarPrefab, mediumHealthBarPool, mediumHealthBarPrewarm);
+        // Small/medium prefab references remain for authoring previews, not runtime allocation.
         Prewarm(eliteHealthBarPrefab, eliteHealthBarPool, eliteHealthBarPrewarm);
     }
 

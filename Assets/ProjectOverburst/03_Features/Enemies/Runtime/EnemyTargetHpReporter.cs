@@ -16,18 +16,19 @@ public sealed class EnemyTargetHpReporter : MonoBehaviour
             health = GetComponent<CombatHealth>();
 
         if (health != null)
-            health.OnDamaged += HandleDamaged;
+            health.OnDamageResolved += HandleDamageResolved;
     }
 
     private void OnDisable()
     {
         if (health != null)
-            health.OnDamaged -= HandleDamaged;
+            health.OnDamageResolved -= HandleDamageResolved;
+        EnemyTargetHpHud.ForgetTarget(health);
     }
 
-    private void HandleDamaged(CombatHealth source, DamageInfo info)
+    private void HandleDamageResolved(CombatHealth source, DamageInfo info, float appliedDamage, bool lethal)
     {
-        if (source == null || source.IsDead)
+        if (source == null || appliedDamage <= 0f)
             return;
 
         EnemyTargetHpHud.ReportPlayerDamage(source, info); // 대상 HUD

@@ -3,159 +3,109 @@ using UnityEngine;
 
 public sealed class EnemyTargetHpHud : MonoBehaviour
 {
-    private static readonly List<CombatHealth> PendingHitTargets = new List<CombatHealth>(8);
     private static EnemyTargetHpHud instance;
-    private static int pendingFrame = -1;
-
+    private static CombatHealth pendingTarget;
+    private static bool hasPendingTarget;
     [SerializeField] private EnemyTargetHpSlotUI slot;
-
     private CombatHealth currentTarget;
     private EnemyRank currentRank;
+    private bool healthDirty;
+    public CombatHealth CurrentTarget => currentTarget;
+    public int PresentationRefreshCount { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        instance = null; pendingTarget = null; hasPendingTarget = false;
+    }
 
     private void Awake()
     {
-        instance = this;
-        if (slot == null)
-            slot = GetComponentInChildren<EnemyTargetHpSlotUI>(true);
-        if (slot != null)
-            slot.Hide();
+        if (slot == null) slot = GetComponentInChildren<EnemyTargetHpSlotUI>(true);
+        if (slot != null) slot.Hide();
     }
-
-    private void OnEnable()
-    {
-        instance = this;
-        Subscribe(currentTarget);
-    }
-
+    private void OnEnable() { instance = this; }
     private void OnDisable()
     {
-        Unsubscribe(currentTarget);
+        Clear();
         if (instance == this)
-            instance = null;
+        {
+            instance = null; pendingTarget = null; hasPendingTarget = false;
+        }
     }
+    private static bool IsAvailable(CombatHealth target) => target != null
+        && target.isActiveAndEnabled && !target.IsDead;
 
     private void LateUpdate()
     {
-        if (currentTarget != null && currentTarget.IsDead)
-            Clear(); // 사망 대상
-
-        if (pendingFrame == Time.frameCount && PendingHitTargets.Count > 0)
+        if (hasPendingTarget)
         {
-            ShowLastHitTarget(PendingHitTargets);
-            PendingHitTargets.Clear();
-            pendingFrame = -1;
+            var next = pendingTarget;
+            pendingTarget = null; hasPendingTarget = false;
+            ShowTarget(next);
         }
-
-        if (currentTarget != null && slot != null)
+        if (!IsAvailable(currentTarget))
+        {
+            if (!ReferenceEquals(currentTarget, null)) Clear();
+            return;
+        }
+        if (healthDirty && slot != null)
+        {
             slot.Refresh(currentTarget);
+            healthDirty = false;
+            PresentationRefreshCount++;
+        }
     }
 
     public static void ReportPlayerDamage(CombatHealth target, DamageInfo info)
     {
-        if (instance == null || target == null || target.IsDead || !IsPlayerDamage(info))
-            return;
-
-        if (pendingFrame != Time.frameCount)
-        {
-            PendingHitTargets.Clear();
-            pendingFrame = Time.frameCount;
-        }
-
-        PendingHitTargets.Remove(target); // 마지막 순서
-        PendingHitTargets.Add(target);
+        if (instance == null || !instance.isActiveAndEnabled || target == null
+            || !CombatTeamUtility.IsPlayerActorDamage(info)) return;
+        // O(1) per hit, including a lethal last hit: it clears the previous target.
+        pendingTarget = target;
+        hasPendingTarget = true;
     }
-
+    public static void ForgetTarget(CombatHealth target)
+    {
+        if (target == null) return;
+        if (pendingTarget == target) { pendingTarget = null; hasPendingTarget = true; }
+        if (instance != null && instance.currentTarget == target) instance.Clear();
+    }
     public void ShowLastHitTarget(IReadOnlyList<CombatHealth> hitTargets)
     {
-        CombatHealth selected = SelectTarget(hitTargets);
-        if (selected != null)
-            ShowTarget(selected);
+        if (hitTargets == null || hitTargets.Count == 0) return;
+        ShowTarget(hitTargets[hitTargets.Count - 1]);
     }
-
     public void ShowTarget(CombatHealth target)
     {
-        if (target == null)
-            return;
-
-        if (currentTarget != target)
-        {
-            Unsubscribe(currentTarget);
-            currentTarget = target;
-            currentRank = target.GetComponentInParent<EnemyRank>();
-            Subscribe(currentTarget);
-        }
-
-        if (slot != null)
-            slot.Show(currentTarget, currentRank);
+        if (!IsAvailable(target)) { Clear(); return; }
+        if (currentTarget == target) { healthDirty = true; return; }
+        Unsubscribe(currentTarget);
+        currentTarget = target;
+        currentRank = target.GetComponentInParent<EnemyRank>();
+        currentTarget.OnHealthChanged += HandleHealthChanged;
+        currentTarget.OnDead += HandleDead;
+        if (slot != null) { slot.Show(currentTarget, currentRank); PresentationRefreshCount++; }
+        healthDirty = false;
     }
-
     public void Clear()
     {
         Unsubscribe(currentTarget);
-        currentTarget = null;
-        currentRank = null;
-        if (slot != null)
-            slot.Hide();
+        currentTarget = null; currentRank = null; healthDirty = false;
+        if (slot != null) slot.Hide();
     }
-
-    private CombatHealth SelectTarget(IReadOnlyList<CombatHealth> hitTargets)
-    {
-        CombatHealth selected = null;
-        EnemyRankType selectedRank = EnemyRankType.Normal;
-
-        if (hitTargets == null)
-            return null;
-
-        for (int i = 0; i < hitTargets.Count; i++)
-        {
-            CombatHealth candidate = hitTargets[i];
-            if (candidate == null || candidate.IsDead)
-                continue;
-
-            EnemyRank rank = candidate.GetComponentInParent<EnemyRank>();
-            EnemyRankType rankType = rank != null ? rank.Rank : EnemyRankType.Normal;
-            if (selected == null || rankType > selectedRank || rankType == selectedRank)
-            {
-                selected = candidate;
-                selectedRank = rankType;
-            }
-        }
-
-        return selected;
-    }
-
-    private void Subscribe(CombatHealth target)
-    {
-        if (target == null)
-            return;
-
-        target.OnHealthChanged += HandleHealthChanged;
-        target.OnDead += HandleDead;
-    }
-
     private void Unsubscribe(CombatHealth target)
     {
-        if (target == null)
-            return;
-
+        if (target == null) return;
         target.OnHealthChanged -= HandleHealthChanged;
         target.OnDead -= HandleDead;
     }
-
     private void HandleHealthChanged(CombatHealth source, float currentHp, float maxHp)
     {
-        if (source == currentTarget && slot != null)
-            slot.Refresh(source);
+        if (source == currentTarget) healthDirty = true;
     }
-
     private void HandleDead(CombatHealth source, DamageInfo info)
     {
-        if (source == currentTarget)
-            Clear(); // 사망 대상
-    }
-
-    private static bool IsPlayerDamage(DamageInfo info)
-    {
-        return CombatTeamUtility.IsPlayerActorDamage(info);
+        if (source == currentTarget) Clear();
     }
 }

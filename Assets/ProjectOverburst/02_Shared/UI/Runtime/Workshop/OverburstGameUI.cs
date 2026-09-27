@@ -64,6 +64,9 @@ public sealed class OverburstGameUI : MonoBehaviour
         if(!gearPanel)gearPanel=equipmentWindow.gameObject.AddComponent<GearEquipmentPanelUI>();
         gearPanel.Bind();
         equipmentWindow.gameObject.SetActive(false);
+        // The authored target HUD was disabled by the old overhead-bar presentation.
+        var targetHud = hud.parent.GetComponentInChildren<EnemyTargetHpHud>(true);
+        if (targetHud != null) { targetHud.enabled = true; targetHud.gameObject.SetActive(true); }
         Refresh();
     }
     private void Update(){

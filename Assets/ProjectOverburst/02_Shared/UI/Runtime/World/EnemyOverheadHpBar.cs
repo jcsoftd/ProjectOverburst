@@ -35,6 +35,11 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
     private void LateUpdate()
     {
         EnemyHpBarTier currentTier = ResolveTier();
+        if (currentTier != EnemyHpBarTier.Elite)
+        {
+            ReleaseView();
+            return; // Normal small/medium enemies use the last-hit screen HUD only.
+        }
         if (activeView != null && currentTier != activeTier)
         {
             ReleaseView();
@@ -65,7 +70,7 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
 
     private void AcquireView()
     {
-        if (activeView != null || health == null)
+        if (activeView != null || health == null || ResolveTier() != EnemyHpBarTier.Elite)
             return;
 
         if (!WorldUiOverlayService.TryResolve(out overlayService))
