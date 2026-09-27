@@ -27,6 +27,9 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     [SerializeField] private EnemyLocomotionAnimator locomotionAnimator; // 이동 애니메이션
     [SerializeField] private EnemyCrowdAgent crowdAgent; // 군집 몸 반경과 체급
 
+    private CombatTarget approachBody;
+    private PlayerActorRuntime approachPlayer;
+    private CombatTarget approachPlayerBody;
     private Vector3 destination; // AI 목적지
     private float destinationStopDistance; // 목적지 정지 거리
     private float actionLockEndTime; // 공격 이동 잠금 종료
@@ -137,7 +140,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             if (IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
                 && attackDisplacement.sqrMagnitude > .000001f && motor != null
                 && TryResolveCrowdPosition(transform.position + attackDisplacement, false, out Vector3 attackPosition))
-                motor.MoveToPosition(attackPosition);
+                motor.MoveToPosition(ConstrainPlayerApproach(attackPosition));
             ApplyPendingAreaDisplacement(); // 경직 중에도 수압 흡인은 이동 모터·지형 검사를 거친다.
             return;
         }
@@ -474,6 +477,27 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         return true;
     }
 
+    private Vector3 ConstrainPlayerApproach(Vector3 candidate)
+    {
+        var player = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null;
+        if (player == null) return candidate;
+        if (approachBody == null) approachBody = GetComponent<CombatTarget>();
+        if (approachPlayer != player)
+        {
+            approachPlayer = player;
+            approachPlayerBody = player.GetComponent<CombatTarget>();
+        }
+        if (approachBody == null || approachPlayerBody == null || !approachPlayerBody.IsAlive)
+            return candidate;
+        var own = approachBody.CurrentVolume;
+        var other = approachPlayerBody.CurrentVolume;
+        if (Mathf.Abs(own.Center.y - other.Center.y) > own.HalfHeight + other.HalfHeight)
+            return candidate;
+        Vector3 current = motor != null ? motor.Position : transform.position;
+        Vector3 offset = own.Center - transform.position;
+        return EnemyPlayerApproachClearance.Clip(current + offset, candidate + offset,
+            other.Center, own.Radius + other.Radius + EnemyPlayerApproachClearance.SurfaceGap) - offset;
+    }
     private void UpdateDestinationMovement()
     {
         if (!hasDestination)
@@ -515,8 +539,9 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return; // 모든 개체의 후보가 모인 뒤 중앙 드라이버가 한 번만 이동
         }
 
-        bool canAdvance = TryResolveCrowdPosition(nextPosition, true, out Vector3 resolvedPosition);
-        if (!canAdvance && (resolvedPosition - currentPosition).sqrMagnitude <= 0.000001f)
+        TryResolveCrowdPosition(nextPosition, true, out Vector3 resolvedPosition);
+        resolvedPosition = ConstrainPlayerApproach(resolvedPosition);
+        if ((resolvedPosition - currentPosition).sqrMagnitude <= 0.000001f)
         {
             motor?.HoldPosition();
             StopLocomotionOutput(); // 군집에 막힌 동안 제자리 발놀림 방지
@@ -579,6 +604,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return;
         }
 
+        resolvedPosition = ConstrainPlayerApproach(resolvedPosition);
         Vector3 actualMovement = resolvedPosition - currentPosition;
         actualMovement.y = 0f;
         if (actualMovement.sqrMagnitude <= 0.000001f)
