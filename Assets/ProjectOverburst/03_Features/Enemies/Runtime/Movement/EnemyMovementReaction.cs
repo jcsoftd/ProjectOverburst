@@ -82,6 +82,17 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
 
     private float knockbackEndTime; // 넉백 반응 종료
     private float hitStunEndTime; // 제자리 경직 종료
+    private float parryStunEndTime;
+    public bool IsParryStunned => Time.time < parryStunEndTime;
+    public float ParryStunRemaining => Mathf.Max(0f, parryStunEndTime - Time.time);
+    public void ApplyParryStun(float duration)
+    {
+        ResolveReferences();
+        if (IsDead() || rank != null && rank.GradeType == EnemyGradeType.Boss || duration <= 0f) return;
+        parryStunEndTime = Mathf.Max(parryStunEndTime, Time.time + duration);
+        motor?.HoldPosition();
+        ReactionStarted?.Invoke();
+    }
     private Vector3 knockbackStartPosition; // 넉백 시작 위치
     private Vector3 knockbackTargetPosition; // 넉백 목표 위치
     private float knockbackTravelStartTime; // 이동 시작 시각
@@ -91,7 +102,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     private readonly Collider[] partyCollisionOverlaps = new Collider[PartyCollisionQueryCapacity];
 
     public bool IsKnockbackActive { get { return Time.time < knockbackEndTime; } }
-    public bool IsHitStunActive { get { return Time.time < hitStunEndTime; } }
+    public bool IsHitStunActive { get { return Time.time < hitStunEndTime || IsParryStunned; } }
     public bool IsStunned { get { return IsKnockbackActive || IsHitStunActive; } }
     public float KnockbackReductionPercent { get { return ResolveKnockbackReductionPercent(); } }
 
@@ -207,6 +218,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         ResetVisualLift(); nextWeightedReaction=0f;
         knockbackEndTime = 0f;
         hitStunEndTime = 0f;
+        parryStunEndTime = 0f;
         knockbackTravelEndTime = 0f;
         motor?.HoldPosition();
     }

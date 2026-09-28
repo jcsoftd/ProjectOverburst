@@ -499,6 +499,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             QueryTriggerInteraction.Ignore);
         for (int i = 0; i < hitCount; i++)
         {
+            if (IsAttackInterrupted()) break; // A parried hit cancels remaining targets in this impact too.
             Collider hitCollider = hitBuffer[i];
             if (hitCollider == null || !IsInFront(hitCollider.transform.position, resolvedAngle))
                 continue;

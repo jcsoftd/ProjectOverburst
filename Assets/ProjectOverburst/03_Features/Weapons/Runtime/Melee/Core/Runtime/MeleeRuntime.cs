@@ -80,6 +80,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     public float CooldownProgress01 => 1f;
 
     public bool IsAttackReady => CanUseCurrentWeapon && !isAttacking;
+    public bool IsHeavyAttackInProgress => isAttacking && activeAttackIsHeavy;
 
     public bool IsAttackInProgress
     {
@@ -225,6 +226,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             return WeaponActionResult.RejectedNotReady;
 
         ResolveFacade()?.CombatInputs?.ConsumeHeavy();
+        var parry = GetComponent<PlayerParryController>();
+        if (parry == null) parry = gameObject.AddComponent<PlayerParryController>();
+        parry.OpenForHeavy(activeActionId);
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;
     }
@@ -1210,6 +1214,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void StopActiveAttackStep()
     {
+        GetComponent<PlayerParryController>()?.CloseWindow();
         heavyDischargeExecutor.End();
         activeDischarge?.End();
         activeDischarge = null;

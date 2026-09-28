@@ -47,6 +47,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     {
         if (visual == null) return;
         if (seconds < -.08f) { Hide(); return; }
+        if (!FinalSignal && seconds <= .30f) CombatActionSfxService.PlayStrongWarning(transform.position);
         FinalSignal = seconds <= .30f;
         Color color = FinalSignal ? (parryable ? new Color(1f, .95f, .35f) : new Color(1f, .25f, .2f))
             : new Color(1f, .45f, .12f);

@@ -6,7 +6,9 @@ using UnityEngine.SceneManagement;
 public enum OverburstTimeEffectKind
 {
     HitStop,
-    PerfectEvade
+    PerfectEvade,
+    ParryHitStop,
+    ParrySlow
 }
 
 [DefaultExecutionOrder(-950)]
@@ -193,7 +195,9 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
 
     private static int ResolvePriority(OverburstTimeEffectKind kind)
     {
-        return kind == OverburstTimeEffectKind.PerfectEvade ? 200 : 100;
+        if (kind == OverburstTimeEffectKind.ParryHitStop) return 300;
+        if (kind == OverburstTimeEffectKind.PerfectEvade) return 200;
+        return kind == OverburstTimeEffectKind.ParrySlow ? 50 : 100;
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)

@@ -162,6 +162,10 @@ public sealed class ComboMovementCollisionPusher
         }
 
         EnemyMovementReaction movementReaction = target.GetComponentInParent<EnemyMovementReaction>();
+        var ability = target.GetComponentInParent<EnemyAbilityController>();
+        var rank = target.GetComponentInParent<EnemyRank>();
+        if (ability != null && ability.IsOrdinaryHitProtected || rank != null && rank.GradeType == EnemyGradeType.Boss)
+            return; // Movement contact must not cancel a protected strong attack before its parryable impact.
         if (movementReaction == null || !pushedTargets.TryRegister(target.TargetId))
             return;
 

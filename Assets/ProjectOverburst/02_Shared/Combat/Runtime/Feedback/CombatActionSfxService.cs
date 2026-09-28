@@ -10,14 +10,19 @@ public sealed class CombatActionSfxService : MonoBehaviour
     {
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
         "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround02", "GreatswordGround03",
-        "OrganicHit01", "OrganicHit02", "OrganicHit03"
+        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParrySuccess", "EnemyStrongWarning"
     };
 
     private static CombatActionSfxService instance;
-    private readonly AudioClip[] clips = new AudioClip[11];
-    private readonly bool[] missingClipReported = new bool[11];
+    private readonly AudioClip[] clips = new AudioClip[13];
+    private readonly bool[] missingClipReported = new bool[13];
     private readonly AudioSource[] voices = new AudioSource[VoiceLimit];
     private int voiceCount;
+
+    public static bool PlayParrySuccess(Vector3 position) => EnsureInstance()
+        && instance.Play(11, position, .25f, .85f, 3f, 30f, 20);
+    public static bool PlayStrongWarning(Vector3 position) => EnsureInstance()
+        && instance.Play(12, position, .8f, .42f, 3f, 22f, 55);
 
     public static bool PlayGreatswordSwing(int comboIndex, bool heavy, Vector3 position)
     {
