@@ -55,7 +55,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour
         Text(window, "던전 입장", new Vector2(174f, 285f), new Vector2(330f, 45f), 22, TextColor,
             TextAlignmentOptions.Left);
         CreateButton(window, "Close", new Vector2(355f, 292f), new Vector2(54f, 42f),
-            "✕", () => owner?.ClosePanel());
+            "X", () => owner?.ClosePanel());
         Text(window, "보유 지도", new Vector2(-220f, 242f), new Vector2(315f, 32f), 19, TextColor,
             TextAlignmentOptions.Left);
         Text(window, "선택한 지도", new Vector2(175f, 242f), new Vector2(337f, 32f), 19, TextColor,
