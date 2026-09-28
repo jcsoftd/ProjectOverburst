@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20abe75ef341dea4bbd6a362d47db85b, type: 3}
+  m_Name: OverburstBalanceTable
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstBalanceTable
+  gearTiers:
+  - 40
+  - 10
+  - 1
+  - 5
+  - 2
+  - 5
+  - 100
+  - 16
+  - 1.5
+  - 8
+  - 3
+  - 8
+  - 180
+  - 24
+  - 2
+  - 12
+  - 5
+  - 12
+  - 280
+  - 32
+  - 3
+  - 16
+  - 7
+  - 16
+  - 400
+  - 44
+  - 4
+  - 22
+  - 9
+  - 20
+  - 550
+  - 56
+  - 5
+  - 28
+  - 12
+  - 25
+  - 720
+  - 70
+  - 6
+  - 35
+  - 15
+  - 30
+  - 920
+  - 86
+  - 7
+  - 43
+  - 18
+  - 35
+  - 1150
+  - 102
+  - 8
+  - 51
+  - 21
+  - 40
+  - 1400
+  - 120
+  - 10
+  - 60
+  - 24
+  - 45
+  playerHealthPerLevel: 15
+  playerArmorEveryLevels: 4
+  playerAttackPerLevel: 0.005
+  itemAttackPerLevel: 0.03
+  enemyMoveGrowth: 0.15
+  enemyAttackGrowth: 0.12
+  enemyMoveCap: 1.35
+  enemyAttackCap: 1.2

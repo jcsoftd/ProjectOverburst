@@ -6,13 +6,13 @@ public static class OverburstGrowthRules
 
     public static int ClampLevel(int level) => Mathf.Clamp(level, 1, MaximumLevel);
 
-    public static float ItemFactor(int level) => 1f + .03f * (ClampLevel(level) - 1);
+    public static float ItemFactor(int level) => 1f + OverburstBalanceTable.Current.ItemAttackPerLevel * (ClampLevel(level) - 1);
 
-    public static float PlayerAttackFactor(int level) => 1f + .005f * (ClampLevel(level) - 1);
+    public static float PlayerAttackFactor(int level) => 1f + OverburstBalanceTable.Current.PlayerAttackPerLevel * (ClampLevel(level) - 1);
 
-    public static float PlayerHealthBonus(int level) => 15f * (ClampLevel(level) - 1);
+    public static float PlayerHealthBonus(int level) => OverburstBalanceTable.Current.PlayerHealthPerLevel * (ClampLevel(level) - 1);
 
-    public static float PlayerArmorBonus(int level) => (ClampLevel(level) - 1) / 4;
+    public static float PlayerArmorBonus(int level) => (ClampLevel(level) - 1) / OverburstBalanceTable.Current.PlayerArmorEveryLevels;
 
     public static float EnemyHealthFactor(int level) => 1f + .055f * (ClampLevel(level) - 1);
 

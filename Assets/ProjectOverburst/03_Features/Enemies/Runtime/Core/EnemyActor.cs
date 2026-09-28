@@ -167,7 +167,8 @@ public sealed class EnemyActor : MonoBehaviour
         movement.enabled = true;
         movement.SetProfile(enemyDefinition.MovementProfile);
         float levelProgress = (OverburstGrowthRules.ClampLevel(rank != null ? rank.Level : 1) - 1) / 99f;
-        movement.SetRuntimeSpeedMultiplier(Mathf.Min(1.35f, stats.MoveSpeedMultiplier * (1f + .15f * levelProgress)));
+        var balance = OverburstBalanceTable.Current;
+        movement.SetRuntimeSpeedMultiplier(Mathf.Min(balance.EnemyMoveCap, stats.MoveSpeedMultiplier * (1f + balance.EnemyMoveGrowth * levelProgress)));
         movement.ResolveReferences();
         movement.StopMovement();
 
@@ -178,7 +179,7 @@ public sealed class EnemyActor : MonoBehaviour
         abilityController.Configure(
             enemyDefinition.AbilitySet,
             stats.DamageMultiplier,
-            Mathf.Min(1.20f, stats.AttackSpeedMultiplier * (1f + .12f * levelProgress)));
+            Mathf.Min(balance.EnemyAttackCap, stats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress)));
         bossOutcomeController?.ResetForPool();
         if (bossPhaseController != null
             && !bossPhaseController.PrepareForLease(this))

@@ -755,7 +755,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         return Mathf.Max(
             0.01f,
-            Mathf.Min(1.20f, attackSpeedMultiplier * runtimeAttackSpeedMultiplier) * statusActionSpeedMultiplier);
+            Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, attackSpeedMultiplier * runtimeAttackSpeedMultiplier) * statusActionSpeedMultiplier);
     }
 
     private float ResolveMaximumAttackRange()

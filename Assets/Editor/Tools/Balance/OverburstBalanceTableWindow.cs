@@ -1,0 +1,341 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
+
+namespace Overburst.EditorBalance
+{
+    public sealed class OverburstBalanceTableWindow : EditorWindow
+    {
+        enum View { Weapons, GearTiers, GearItems, Enemies, Abilities, Growth }
+        sealed class Row
+        {
+            public string Name, Group;
+            public Object Source;
+            public readonly List<BalanceField> Fields = new List<BalanceField>();
+        }
+        readonly Dictionary<Object, BalanceTableDocument> documents = new Dictionary<Object, BalanceTableDocument>();
+        readonly HashSet<Object> pendingSave = new HashSet<Object>();
+        readonly HashSet<Object> appliedSources = new HashSet<Object>();
+        readonly List<Row> rows = new List<Row>();
+        readonly List<Row> filtered = new List<Row>();
+        View view;
+        string[] headings = Array.Empty<string>();
+        string query = "", group = "전체";
+        int sortColumn = -1, itemLevel = 1, playerLevel = 1, seed = 731;
+        bool ascending = true;
+        ItemGrade grade = ItemGrade.Common;
+        Row selected;
+        ListView list;
+        VisualElement tableHost;
+        Label status, preview, count;
+        DropdownField subView, groupFilter;
+        int category;
+        bool rebuilding;
+        bool onlyAvailableLevel;
+        const float NameWidth = 300, CellWidth = 112;
+        public int VisibleRowCount => filtered.Count;
+        public int TotalRowCount => rows.Count;
+        public bool HasDraftChanges => documents.Values.Any(d => d.IsChanged);
+
+        [MenuItem("OVERBURST/Balance/무기·장비·몬스터 밸런스 테이블")]
+        public static OverburstBalanceTableWindow Open()
+        {
+            var window = GetWindow<OverburstBalanceTableWindow>();
+            window.titleContent = new GUIContent("OVERBURST 밸런스");
+            window.minSize = new Vector2(940, 620); window.Show(); return window;
+        }
+        private void OnEnable() => Undo.undoRedoPerformed += UndoChanged;
+        private void OnDisable()
+        {
+            Undo.undoRedoPerformed -= UndoChanged;
+            foreach (var d in documents.Values) d.Dispose(); documents.Clear();
+        }
+        public void CreateGUI()
+        {
+            var root = rootVisualElement; root.Clear();
+            root.style.paddingLeft = root.style.paddingRight = 12;
+            root.style.paddingTop = root.style.paddingBottom = 10;
+            var title = new Label("OVERBURST  /  밸런스 테이블");
+            title.style.fontSize = 21; title.style.unityFontStyleAndWeight = FontStyle.Bold; title.style.marginBottom = 7; root.Add(title);
+            root.Add(new Label("원본값을 편집하고 레벨·품질 결과를 비교합니다. 적용 → 변경 자산 저장 순서로 반영됩니다."));
+            var tabs = new Toolbar();
+            string[] names = { "무기", "장비", "몬스터" };
+            for (int i = 0; i < names.Length; i++) { int index = i; tabs.Add(new ToolbarButton(() => ChooseCategory(index)) { text = names[i] }); }
+            tabs.Add(new VisualElement { style = { flexGrow = 1 } });
+            tabs.Add(new ToolbarButton(ValidateDraft) { text = "검증" });
+            tabs.Add(new ToolbarButton(ApplyDraft) { text = "적용" });
+            tabs.Add(new ToolbarButton(SaveApplied) { text = "변경 자산 저장" });
+            tabs.Add(new ToolbarButton(() => { if (ConfirmDiscard()) Reload(); }) { text = "새로고침" });
+            root.Add(tabs);
+            var filters = new Toolbar();
+            subView = new DropdownField(new List<string> { "무기 원본", "공통 성장" }, 0);
+            subView.style.width = 150; subView.RegisterValueChangedCallback(_ => { if (!rebuilding) ChooseView(); }); filters.Add(subView);
+            var search = new ToolbarSearchField(); search.style.flexGrow = 1;
+            search.RegisterValueChangedCallback(e => { query = e.newValue ?? ""; Filter(); }); filters.Add(search);
+            groupFilter = new DropdownField(new List<string> { "전체" }, 0); groupFilter.style.width = 170;
+            groupFilter.RegisterValueChangedCallback(e => { if (!rebuilding) { group = e.newValue; Filter(); } }); filters.Add(groupFilter);
+            count = new Label(); count.style.minWidth = 95; count.style.unityTextAlign = TextAnchor.MiddleRight; filters.Add(count); root.Add(filters);
+            var levelFilter = new Toggle("장비 도감: 현재 레벨에 등장하는 외형만") { value = onlyAvailableLevel };
+            levelFilter.RegisterValueChangedCallback(e => { onlyAvailableLevel = e.newValue; Filter(); }); root.Add(levelFilter);
+            var conditions = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 6, marginBottom = 6 } };
+            var level = new IntegerField("아이템/몬스터 레벨") { value = itemLevel, isDelayed = true };
+            level.style.width = 265; level.RegisterValueChangedCallback(e => { itemLevel = Mathf.Clamp(e.newValue, 1, 100); level.SetValueWithoutNotify(itemLevel); Filter(); RefreshPreview(); }); conditions.Add(level);
+            var player = new IntegerField("플레이어 레벨") { value = playerLevel, isDelayed = true };
+            player.style.width = 230; player.RegisterValueChangedCallback(e => { playerLevel = Mathf.Clamp(e.newValue, 1, 100); player.SetValueWithoutNotify(playerLevel); RefreshPreview(); }); conditions.Add(player);
+            var quality = new EnumField("품질", grade); quality.style.width = 230;
+            quality.RegisterValueChangedCallback(e => { grade = (ItemGrade)e.newValue; RefreshPreview(); }); conditions.Add(quality);
+            var seedField = new IntegerField("표본 시드") { value = seed, isDelayed = true }; seedField.style.width = 230;
+            seedField.RegisterValueChangedCallback(e => { seed = e.newValue; RefreshPreview(); }); conditions.Add(seedField); root.Add(conditions);
+            tableHost = new VisualElement { style = { flexGrow = 1, minHeight = 240 } }; root.Add(tableHost);
+            preview = new Label("행을 선택하면 계산 결과를 표시합니다."); preview.style.whiteSpace = WhiteSpace.Normal;
+            preview.style.paddingTop = preview.style.paddingBottom = 10; preview.style.minHeight = 90; root.Add(preview);
+            status = new Label(); status.style.whiteSpace = WhiteSpace.Normal; status.style.minHeight = 42; root.Add(status);
+            ChooseCategory(category);
+        }
+        void ChooseCategory(int value)
+        {
+            category = value; rebuilding = true;
+            subView.choices = value == 0 ? new List<string> { "무기 원본", "공통 성장" }
+                : value == 1 ? new List<string> { "공통 10구간", "장비 도감" } : new List<string> { "몬스터 능력치", "공격 패턴" };
+            subView.SetValueWithoutNotify(subView.choices[0]); rebuilding = false; ChooseView();
+        }
+        void ChooseView()
+        {
+            bool first = subView.index == 0;
+            view = category == 0 ? (first ? View.Weapons : View.Growth)
+                : category == 1 ? (first ? View.GearTiers : View.GearItems) : (first ? View.Enemies : View.Abilities);
+            selected = null; sortColumn = -1; group = "전체"; BuildRows(); BuildTable(); Filter(); RefreshPreview(); RefreshStatus();
+        }
+        BalanceTableDocument Document(Object source)
+        {
+            if (!documents.TryGetValue(source, out var d)) { d = new BalanceTableDocument(source); documents.Add(source, d); }
+            return d;
+        }
+        void Add(Row row, Object target, string path, float min, float max, float factor = 1)
+            => row.Fields.Add(target != null ? Document(target).Field(path, min, max, factor) : null);
+        static T[] Assets<T>(string folder) where T : Object => AssetDatabase.FindAssets("t:" + typeof(T).Name, new[] { folder })
+            .Select(g => AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(g))).Where(x => x != null).ToArray();
+        void BuildRows()
+        {
+            rows.Clear();
+            if (view == View.Weapons)
+            {
+                headings = new[] { "공격력", "치확 %", "치명 피해 %", "사거리 m", "넉백", "방출 기본력", "공통 공속 ×" };
+                foreach (var w in Assets<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons"))
+                {
+                    var r = new Row { Name = w.name + "  " + w.itemName + (w.icon == null || w.weaponRootPrefab == null ? "  [외형 미연결]" : ""), Group = w.weaponClass.ToString(), Source = w };
+                    Add(r, w, "baseStats.damage", 1, 10000); Add(r, w, "baseStats.criticalChance", 0, 60);
+                    Add(r, w, "baseStats.criticalDamageMultiplier", 1, 3, 100); Add(r, w, "baseStats.range", .1f, 100);
+                    Add(r, w, "baseStats.knockback", 0, 100); Add(r, w, "baseStats.elementalDischargePower", 0, 10000);
+                    Add(r, w.GetMeleeDefinition(), "baseSettings.attackSpeedMultiplier", .1f, 1.5f); rows.Add(r);
+                }
+            }
+            else if (view == View.GearTiers)
+            {
+                headings = new[] { "투구 HP", "갑옷 방어", "장갑 치확 %p", "신발 방어", "귀걸이 공격", "목걸이 치피 %p" };
+                var table = Assets<OverburstBalanceTable>("Assets/ProjectOverburst/Resources/Balance").Single();
+                for (int tier = 0; tier < 10; tier++)
+                {
+                    var r = new Row { Name = $"Lv {tier * 10 + 1:00}–{tier * 10 + 10:00}", Group = "공통 구간", Source = table };
+                    for (int k = 0; k < 6; k++) Add(r, table, $"gearTiers.Array.data[{tier * 6 + k}]", 0, k == 2 ? 65 : 100000);
+                    rows.Add(r);
+                }
+            }
+            else if (view == View.GearItems)
+            {
+                headings = new[] { "등장 최소 Lv", "등장 최대 Lv" };
+                foreach (var g in Assets<GearItemData>("Assets/ProjectOverburst/Resources/Items/Gear"))
+                {
+                    var r = new Row { Name = g.name + "  " + g.itemName, Group = g.kind.ToString(), Source = g };
+                    Add(r, g, "catalogMinLevel", 1, 100); Add(r, g, "catalogMaxLevel", 1, 100); rows.Add(r);
+                }
+            }
+            else if (view == View.Enemies || view == View.Abilities)
+            {
+                var defs = Assets<EnemyDefinition>("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions");
+                if (view == View.Enemies)
+                {
+                    headings = new[] { "체력 Q 계수", "걷기 m/s", "달리기 ×", "회전 °/s" };
+                    foreach (var d in defs)
+                    {
+                        var r = new Row { Name = d.EnemyId + "  " + d.DisplayName, Group = d.Grade != null ? d.Grade.GradeType.ToString() : "누락", Source = d };
+                        Add(r, d, "referenceHealthCoefficient", .1f, 1000); Add(r, d.MovementProfile, "moveSpeed", 1, 20);
+                        Add(r, d.MovementProfile, "runSpeedMultiplier", 1.4f, 5); Add(r, d.MovementProfile, "turnSpeed", 0, 1440); rows.Add(r);
+                    }
+                }
+                else
+                {
+                    headings = new[] { "피해 예산 %", "강공", "패링", "예고 최소 s", "회복 최소 s", "쿨다운 s", "사거리 m", "반경 m", "각도 °" };
+                    foreach (var a in defs.Where(d => d.AbilitySet != null).SelectMany(d => Enumerable.Range(0, d.AbilitySet.Count).Select(d.AbilitySet.GetAbility)).Where(a => a != null).Distinct())
+                    {
+                        var r = new Row { Name = a.AbilityId, Group = a.ExecutionMode.ToString(), Source = a };
+                        Add(r, a, "referencePatternDamagePercent", .01f, 100); Add(r, a, "telegraphedStrongAttack", 0, 1);
+                        Add(r, a, "parryable", 0, 1); Add(r, a, "minimumWarningTime", 0, 10); Add(r, a, "minimumRecoveryTime", 0, 10);
+                        Add(r, a, "cooldown", .1f, 60); Add(r, a, "range", .1f, 100); Add(r, a, "hitRadius", .01f, 30); Add(r, a, "hitAngle", 1, 360); rows.Add(r);
+                    }
+                }
+            }
+            else
+            {
+                headings = new[] { "수치" };
+                var table = Assets<OverburstBalanceTable>("Assets/ProjectOverburst/Resources/Balance").Single();
+                string[] paths = { "playerHealthPerLevel", "playerArmorEveryLevels", "playerAttackPerLevel", "itemAttackPerLevel", "enemyMoveGrowth", "enemyAttackGrowth", "enemyMoveCap", "enemyAttackCap" };
+                string[] labels = { "플레이어 레벨당 HP", "방어 1당 필요 레벨", "플레이어 레벨당 공격 증가율", "아이템 레벨당 공격 증가율", "몬스터 Lv100 이동 증가율", "몬스터 Lv100 공속 증가율", "몬스터 이동 상한 배율", "몬스터 공속 상한 배율" };
+                for (int i = 0; i < paths.Length; i++)
+                {
+                    var r = new Row { Name = labels[i], Group = "성장", Source = table };
+                    Add(r, table, paths[i], i == 1 || i >= 6 ? 1 : 0, i == 0 ? 1000 : i == 1 ? 100 : i >= 6 ? 2 : 1); rows.Add(r);
+                }
+            }
+            rebuilding = true; groupFilter.choices = new List<string> { "전체" }.Concat(rows.Select(r => r.Group).Distinct().OrderBy(x => x)).ToList();
+            groupFilter.SetValueWithoutNotify("전체"); rebuilding = false;
+        }
+        void BuildTable()
+        {
+            tableHost.Clear();
+            float width = NameWidth + headings.Length * CellWidth;
+            var horizontal = new ScrollView(ScrollViewMode.Horizontal); horizontal.style.flexGrow = 1;
+            var body = new VisualElement { style = { width = width, flexGrow = 1 } };
+            var header = new VisualElement { style = { flexDirection = FlexDirection.Row, height = 30 } };
+            var nameButton = new Button(() => Sort(-1)) { text = "이름 / 번호  ↕" }; nameButton.style.width = NameWidth; header.Add(nameButton);
+            for (int i = 0; i < headings.Length; i++) { int col = i; var b = new Button(() => Sort(col)) { text = headings[i] + " ↕" }; b.style.width = CellWidth; header.Add(b); }
+            body.Add(header);
+            list = new ListView { itemsSource = filtered, fixedItemHeight = 32, selectionType = SelectionType.Single };
+            list.style.flexGrow = 1; list.style.minHeight = 215;
+            list.makeItem = MakeRow; list.bindItem = BindRow;
+            list.selectionChanged += items => { selected = items.OfType<Row>().FirstOrDefault(); RefreshPreview(); };
+            body.Add(list); horizontal.Add(body); tableHost.Add(horizontal);
+        }
+        VisualElement MakeRow()
+        {
+            var root = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+            var label = new Label { name = "row-name" }; label.style.width = NameWidth; label.style.unityTextAlign = TextAnchor.MiddleLeft; root.Add(label);
+            for (int i = 0; i < headings.Length; i++)
+            {
+                var cell = new VisualElement { name = "cell-" + i }; cell.style.width = CellWidth; cell.style.paddingLeft = cell.style.paddingRight = 3;
+                var number = new FloatField { name = "number", isDelayed = true }; number.style.flexGrow = 1;
+                number.RegisterValueChangedCallback(e => { if (number.userData is BalanceField f) { f.Value = e.newValue / f.DisplayFactor; Changed(); } });
+                var toggle = new Toggle { name = "toggle" }; toggle.RegisterValueChangedCallback(e => { if (toggle.userData is BalanceField f) { f.Value = e.newValue ? 1 : 0; Changed(); } });
+                cell.Add(number); cell.Add(toggle); root.Add(cell);
+            }
+            return root;
+        }
+        void BindRow(VisualElement root, int index)
+        {
+            var row = filtered[index]; root.Q<Label>("row-name").text = (row.Fields.Any(f => f != null && f.Changed) ? "● " : "") + row.Name;
+            root.Q<Label>("row-name").tooltip = AssetDatabase.GetAssetPath(row.Source);
+            for (int i = 0; i < headings.Length; i++)
+            {
+                var f = row.Fields[i]; var cell = root.Q("cell-" + i); var number = cell.Q<FloatField>("number"); var toggle = cell.Q<Toggle>("toggle");
+                bool boolean = f != null && f.Type == SerializedPropertyType.Boolean;
+                number.userData = f; toggle.userData = f; number.SetEnabled(f != null); toggle.SetEnabled(f != null);
+                number.style.display = boolean ? DisplayStyle.None : DisplayStyle.Flex; toggle.style.display = boolean ? DisplayStyle.Flex : DisplayStyle.None;
+                if (f != null)
+                {
+                    number.SetValueWithoutNotify(f.Value * f.DisplayFactor); toggle.SetValueWithoutNotify(f.Value > .5f);
+                    cell.tooltip = AssetDatabase.GetAssetPath(f.Document.Source) + "\n" + f.Path + "\n같은 원본을 참조하는 행은 함께 변경됩니다.";
+                }
+                else number.SetValueWithoutNotify(0);
+            }
+        }
+        void Sort(int column) { ascending = sortColumn == column ? !ascending : true; sortColumn = column; Filter(); }
+        void Filter()
+        {
+            filtered.Clear();
+            var source = rows.Where(r => (group == "전체" || r.Group == group) && r.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (onlyAvailableLevel && view == View.GearItems)
+                source = source.Where(r => ((GearItemData)Document(r.Source).Draft).AppearsAtLevel(itemLevel));
+            if (sortColumn < 0) source = ascending ? source.OrderBy(r => r.Name) : source.OrderByDescending(r => r.Name);
+            else source = ascending ? source.OrderBy(r => r.Fields[sortColumn]?.Value ?? 0) : source.OrderByDescending(r => r.Fields[sortColumn]?.Value ?? 0);
+            filtered.AddRange(source); list?.Rebuild(); if (count != null) count.text = $"{filtered.Count} / {rows.Count}행";
+            if (selected != null && !filtered.Contains(selected)) { selected = null; RefreshPreview(); }
+        }
+        void Changed() { hasUnsavedChanges = true; saveChangesMessage = "밸런스 표의 편집 내용을 적용하고 변경한 자산을 저장할까요?"; list?.RefreshItems(); RefreshPreview(); RefreshStatus(); }
+        void RefreshStatus(string message = null)
+        {
+            if (status == null) return;
+            status.text = message ?? $"초안 변경 {documents.Values.Count(d => d.IsChanged)}개 원본 / 적용 후 저장 대기 {pendingSave.Count}개. ●는 편집 중인 행입니다. 헤더를 누르면 정렬합니다.";
+        }
+        public string[] ValidationErrors() => documents.Values.SelectMany(d => d.Validate()).ToArray();
+        void ValidateDraft() { var errors = ValidationErrors(); RefreshStatus(errors.Length == 0 ? "검증 통과. 원본값 범위와 외부 변경 충돌이 없습니다." : string.Join("\n", errors.Take(6))); }
+        public void ApplyDraft()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { RefreshStatus("Play를 종료한 뒤 적용하세요."); return; }
+            var errors = ValidationErrors(); if (errors.Length > 0) { RefreshStatus(string.Join("\n", errors.Take(6))); return; }
+            Undo.IncrementCurrentGroup(); int undoGroup = Undo.GetCurrentGroup(); Undo.SetCurrentGroupName("밸런스 테이블 적용");
+            foreach (var d in documents.Values.Where(d => d.IsChanged).ToArray()) { d.Apply(); pendingSave.Add(d.Source); appliedSources.Add(d.Source); }
+            Undo.CollapseUndoOperations(undoGroup); hasUnsavedChanges = pendingSave.Count > 0; list?.RefreshItems(); RefreshPreview(); RefreshStatus();
+        }
+        public void SaveApplied()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { RefreshStatus("Play를 종료한 뒤 저장하세요."); return; }
+            if (pendingSave.Any(s => s != null && documents.TryGetValue(s, out var d) && d.HasConflict))
+            { RefreshStatus("적용 후 원본이 외부에서 변경되었습니다. 저장을 중단했습니다. 원본을 확인하고 새로고침하세요."); return; }
+            foreach (var source in pendingSave) if (source != null) AssetDatabase.SaveAssetIfDirty(source);
+            pendingSave.Clear(); hasUnsavedChanges = HasDraftChanges; RefreshStatus("이 툴에서 적용한 자산을 저장했습니다. 씬은 저장하지 않았습니다.");
+        }
+        public override void SaveChanges() { ApplyDraft(); if (HasDraftChanges) return; SaveApplied(); if (pendingSave.Count == 0) base.SaveChanges(); }
+        public override void DiscardChanges()
+        {
+            // Applied values stay available for normal Unity Undo; only unapplied drafts are discarded.
+            foreach (var d in documents.Values) d.Rebase();
+            // Closing without saving keeps already applied assets dirty, like the Inspector.
+            // Unity Undo remains available; only the working copies belong to this window.
+            pendingSave.Clear(); base.DiscardChanges(); list?.RefreshItems(); RefreshPreview();
+        }
+        bool ConfirmDiscard() => !HasDraftChanges || EditorUtility.DisplayDialog("초안 새로고침", "적용 전 초안을 버리고 현재 원본을 다시 읽습니다.", "새로고침", "계속 편집");
+        void Reload()
+        {
+            foreach (var d in documents.Values) d.Dispose(); documents.Clear();
+            hasUnsavedChanges = pendingSave.Count > 0; ChooseView();
+        }
+        void UndoChanged()
+        {
+            foreach (var d in documents.Values)
+                if (!d.IsChanged && appliedSources.Contains(d.Source)) { d.Rebase(); if (EditorUtility.IsDirty(d.Source)) pendingSave.Add(d.Source); }
+            hasUnsavedChanges = HasDraftChanges || pendingSave.Count > 0; list?.RefreshItems(); RefreshPreview(); RefreshStatus("Undo/Redo 반영. 되돌린 내용을 유지하려면 변경 자산 저장을 누르세요.");
+        }
+        void RefreshPreview()
+        {
+            if (preview == null) return;
+            string baseline = $"기준 S0 Lv{itemLevel}: HP {OverburstCombatBalance.ReferenceHealth(itemLevel):0} / 방어 {OverburstCombatBalance.ReferenceArmor(itemLevel):0} / 기대 1타 {OverburstCombatBalance.ReferenceExpectedHit(itemLevel):0.##}";
+            if (selected == null) { preview.text = baseline + "\n행 선택 시 초안 기준 계산을 표시합니다. 공통 성장/구간 초안은 적용 후 기준 S0에 반영됩니다."; return; }
+            var draft = Document(selected.Source).Draft;
+            var oldRandom = UnityEngine.Random.state;
+            try
+            {
+                UnityEngine.Random.InitState(seed);
+                if (draft is WeaponItemData w)
+                {
+                    var item = new ItemData(w, itemLevel, grade, element: WeaponElement.Fire);
+                    var stats = WeaponStatCalculator.CalculateWeaponBase(item);
+                    preview.text = $"{selected.Name}\n품질 표본 {grade} · 시드 {seed} / 무기 단독 공격 {stats.damage:0.##}, 공속 ×{stats.meleeAttackSpeedMultiplier:0.###}, 치확 {stats.critChance:0.##}%, 치피 {stats.critDamageMultiplier * 100:0.##}%, 사거리 {stats.range:0.###}m\n플레이어 Lv{playerLevel} 성장만 적용한 공격 {stats.damage * OverburstGrowthRules.PlayerAttackFactor(playerLevel):0.##} (장비/물약/카드 제외). 모델 {(w.weaponRootPrefab != null ? "연결" : "미연결")} / 아이콘 {(w.icon != null ? "연결" : "미연결")}. 공통 공속 초안은 적용 후 계산에 반영됩니다.";
+                }
+                else if (draft is GearItemData g)
+                {
+                    var item = new ItemData(g, itemLevel, grade); item.gearRolls = GearQuality.Roll(g, grade, seed);
+                    preview.text = selected.Name + $"\nLv{itemLevel} · {grade} · 시드 {seed}: " + string.Join(" / ", item.gearRolls.Select(r => $"{r.stat} {GearQuality.Value(item, r):0.##} (별 가중치 {r.Weight:0.#})")) + "\n등장 구간은 외형 선택이며 실제 능력치는 아이템 레벨을 사용합니다.";
+                }
+                else if (draft is EnemyDefinition enemy)
+                {
+                    var stats = enemy.ResolveRuntimeStats(); float levelFactor = (itemLevel - 1) / 99f; var b = OverburstBalanceTable.Current;
+                    var move = enemy.MovementProfile != null ? (EnemyMovementProfile)Document(enemy.MovementProfile).Draft : null;
+                    preview.text = selected.Name + $"\nLv{itemLevel} HP {OverburstCombatBalance.RoundStat(enemy.ReferenceHealthCoefficient * OverburstCombatBalance.ReferenceExpectedHit(itemLevel)):0} / 추격 {(move != null ? move.MoveSpeed * move.RunSpeedMultiplier : 0) * Mathf.Min(b.EnemyMoveCap, stats.MoveSpeedMultiplier * (1 + b.EnemyMoveGrowth * levelFactor)):0.##}m/s / 공격 배율 ×{Mathf.Min(b.EnemyAttackCap, stats.AttackSpeedMultiplier * (1 + b.EnemyAttackGrowth * levelFactor)):0.###}\n" + baseline;
+                }
+                else if (draft is EnemyAbilityDefinition ability)
+                {
+                    float speed = Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, 1 + OverburstBalanceTable.Current.EnemyAttackGrowth * (itemLevel - 1) / 99f);
+                    preview.text = selected.Name + $"\nLv{itemLevel} 원피해 {ability.ResolveDamage(itemLevel):0}/타 × {ability.HitCount}타 / 예정 첫 타격 {ability.ResolveFirstImpactTime(speed):0.###}s / 최소 실행 {ability.ResolveExecutionDuration(speed):0.###}s / 다음 시작 ≥ {Mathf.Max(ability.Cooldown, ability.ResolveExecutionDuration(speed)):0.###}s\n투사체는 발사 시각입니다. 실제 접촉·구르기·패링 체감은 Play에서 확인하세요.";
+                }
+                else preview.text = selected.Name + "\n" + baseline + "\n구간/성장 변경은 장비와 몬스터 기준 곡선에 함께 반영됩니다. 기준 무기는 공격20·치확15%·치피160%의 S0입니다.";
+            }
+            catch (Exception e) { preview.text = "계산 오류: " + e.Message; }
+            finally { UnityEngine.Random.state = oldRandom; }
+        }
+    }
+}

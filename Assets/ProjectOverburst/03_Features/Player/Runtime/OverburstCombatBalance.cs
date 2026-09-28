@@ -10,18 +10,10 @@ public static class OverburstCombatBalance
     public const float EmptyHeavyDamage = .30f;
     public const float FullHeavyDamage = 2f;
 
-    // Helmet HP, chest armor, glove crit points, boots armor, earring attack, necklace crit damage points.
-    private static readonly float[,] GearTiers = {
-        {40,10,1,5,2,5}, {100,16,1.5f,8,3,8}, {180,24,2,12,5,12},
-        {280,32,3,16,7,16}, {400,44,4,22,9,20}, {550,56,5,28,12,25},
-        {720,70,6,35,15,30}, {920,86,7,43,18,35}, {1150,102,8,51,21,40},
-        {1400,120,10,60,24,45}
-    };
-
     public static float RoundStat(float value) => (float)System.Math.Round(value, System.MidpointRounding.AwayFromZero);
 
     public static float GearBase(GearKind kind, int itemLevel)
-        => GearTiers[(OverburstGrowthRules.ClampLevel(itemLevel) - 1) / 10, (int)kind];
+        => OverburstBalanceTable.Current.GearBase(kind, itemLevel);
 
     public static GearStat MainStat(GearKind kind)
         => kind == GearKind.Helmet ? GearStat.MaxHealth
@@ -51,8 +43,8 @@ public static class OverburstCombatBalance
             + GearBase(GearKind.Chest, level) + GearBase(GearKind.Boots, level);
         float damage = RoundStat((20f * OverburstGrowthRules.ItemFactor(level)
             + 2f * GearBase(GearKind.Earring, level)) * OverburstGrowthRules.PlayerAttackFactor(level));
-        float crit = (.15f + .10f + GearBase(GearKind.Gloves, level) / 100f);
-        float critDamage = 1.6f + GearBase(GearKind.Necklace, level) / 100f;
+        float crit = Mathf.Clamp(.15f + .10f + GearBase(GearKind.Gloves, level) / 100f, 0f, FinalCriticalChance / 100f);
+        float critDamage = Mathf.Min(FinalCriticalDamage, 1.6f + GearBase(GearKind.Necklace, level) / 100f);
         return damage * (1f + crit * (critDamage - 1f));
     }
 }
