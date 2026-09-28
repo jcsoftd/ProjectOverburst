@@ -16,6 +16,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
     [SerializeField] private Text modeText;
     [SerializeField] private GameObject gradeSamples;
     [SerializeField] private GameObject tooltipSamples;
+    [SerializeField] private OverburstUIShopPreview shopPreview;
     public void ConfigureTooltips(GameObject samples){tooltipSamples=samples;samples.SetActive(false);}
     public void ShowTooltips(){HideWindows();if(tooltipSamples)tooltipSamples.SetActive(true);Label("아이템 툴팁");}
     public void ConfigureGrades(GameObject samples){gradeSamples=samples;gradeSamples.SetActive(false);}
@@ -30,14 +31,15 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
 
     private void HideWindows()
     {
-        inventory.Close(); equipment.Close(); stash.Close();if(tooltipSamples)tooltipSamples.SetActive(false);GetComponentInChildren<OverburstUITooltipHost>(true)?.Hide();
+        inventory.Close(); equipment.Close(); stash.Close();shopPreview?.Hide();if(tooltipSamples)tooltipSamples.SetActive(false);GetComponentInChildren<OverburstUITooltipHost>(true)?.Hide();
         enemySamples.SetActive(false); notificationSamples.SetActive(false);if(gradeSamples)gradeSamples.SetActive(false);
     }
-    public void ShowHud() { HideWindows(); Label("HUD · I 인벤토리 / C 장비 / B 창고"); }
+    public void ShowHud() { HideWindows(); Label("HUD · I 인벤토리 / C 장비 / B 창고 / S 상점"); }
     public void ShowInventory() { HideWindows(); inventory.ResetPosition(); inventory.Show(); Label("인벤토리 · 제목 표시줄 드래그 / X 닫기"); }
     public void ShowEquipment() { HideWindows(); equipment.ResetPosition(); equipment.Show(); Label("장비 · 능력치 통합창"); }
     public void ShowComparison() { HideWindows(); inventory.ResetPosition(); equipment.ResetPosition(); equipment.Show(); inventory.Show(); Label("장비 + 인벤토리 · 창 위치와 겹침 확인"); }
     public void ShowStash() { HideWindows(); inventory.ResetPosition(); stash.ResetPosition(); stash.Show(); inventory.Show(); Label("창고 + 인벤토리 · 3개 보관함 배치"); }
+    public void ShowShop() { HideWindows(); inventory.ResetPosition(); shopPreview?.Show(); inventory.Show(); inventory.WindowRect.anchoredPosition = new Vector2(622, 64); Label("상점 + 인벤토리 · 공용 상점 뷰"); }
     public void ShowEnemies() { HideWindows(); enemySamples.SetActive(true); Label("몬스터 체력바 · 100% / 45% / 10% 표시"); }
     public void ShowNotifications() { HideWindows(); notificationSamples.SetActive(true); Label("알림 · 레벨 상승 표시"); }
     public void ResetLayout() { inventory.ResetPosition(); equipment.ResetPosition(); stash.ResetPosition(); }
@@ -48,11 +50,29 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null) return;
-        if (keyboard.iKey.wasPressedThisFrame) inventory.Toggle();
-        if (keyboard.cKey.wasPressedThisFrame) equipment.Toggle();
-        if (keyboard.bKey.wasPressedThisFrame) stash.Toggle();
+        if (keyboard.iKey.wasPressedThisFrame)
+        {
+            if (shopPreview != null && shopPreview.IsVisible) ShowInventory();
+            else inventory.Toggle();
+        }
+        if (keyboard.cKey.wasPressedThisFrame)
+        {
+            if (shopPreview != null && shopPreview.IsVisible) ShowEquipment();
+            else equipment.Toggle();
+        }
+        if (keyboard.bKey.wasPressedThisFrame)
+        {
+            if (shopPreview != null && shopPreview.IsVisible) ShowStash();
+            else stash.Toggle();
+        }
+        if (keyboard.sKey.wasPressedThisFrame) ShowShop();
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
+            if (shopPreview != null && shopPreview.IsVisible)
+            {
+                ShowHud();
+                return;
+            }
             OverburstUIWindow front = null;
             foreach (var window in new[] { inventory, equipment, stash })
                 if (window.gameObject.activeSelf && (front == null || window.transform.GetSiblingIndex() > front.transform.GetSiblingIndex())) front = window;
