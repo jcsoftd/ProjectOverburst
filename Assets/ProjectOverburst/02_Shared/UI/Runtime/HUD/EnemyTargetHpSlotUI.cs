@@ -71,6 +71,30 @@ public sealed class EnemyTargetHpSlotUI : MonoBehaviour
             hpText.text = string.Format("{0:0} / {1:0}", currentHp, maxHp);
     }
 
+    public void ShowPreview(string displayName, EnemyRankType rankType, float currentHp, float maxHp)
+    {
+        if (root == null)
+            root = gameObject;
+
+        elementalStatusIcons?.Unbind();
+        SetVisible(true);
+        if (rankText != null)
+            rankText.text = rankType == EnemyRankType.Elite ? "엘리트" : "일반";
+        if (nameText != null)
+            nameText.text = displayName;
+        if (fillImage != null)
+            fillImage.color = rankType == EnemyRankType.Elite ? eliteColor : normalColor;
+
+        float safeMax = Mathf.Max(0f, maxHp);
+        float safeCurrent = Mathf.Clamp(currentHp, 0f, safeMax);
+        float normalized = safeMax > 0f ? safeCurrent / safeMax : 0f;
+        if (fillImage != null)
+            fillImage.fillAmount = normalized;
+        UpdateFillRect(normalized);
+        if (hpText != null)
+            hpText.text = string.Format("{0:0} / {1:0}", safeCurrent, safeMax);
+    }
+
     public void Hide()
     {
         if (root == null)

@@ -160,6 +160,7 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         rank.ApplyLevelToHealth(140f);
         boss.AddComponent<EnemyLootDropper>().ConfigureEncounter(gate.Context);
         CombatTarget.EnsureConfigured(boss, CombatTeam.Enemy);
+        boss.AddComponent<EnemyTargetHpReporter>();
         bossHealth.OnDead += HandleBossDead;
     }
 

@@ -125043,6 +125043,7 @@ GameObject:
   - component: {fileID: 1906061230}
   - component: {fileID: 1906061229}
   - component: {fileID: 1906061228}
+  - component: {fileID: 1906061233}
   m_Layer: 5
   m_Name: "00_PlayPreview \u2022 \uAC8C\uC784 \uD654\uBA74 \uC870\uD569"
   m_TagString: Untagged
@@ -125163,6 +125164,23 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1906061233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906061227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51ad8f8f2ed6dde40a569db453de9e02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstUITargetHpPreview
+  targetHud: {fileID: 2094064559}
+  sampleName: "\uC815\uC608 \uC218\uD638\uC790"
+  sampleRank: 1
+  sampleHp: 450
+  sampleMaxHp: 1000
 --- !u!1 &1906533681
 GameObject:
   m_ObjectHideFlags: 0
@@ -133585,6 +133603,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 761359696522672557, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
   m_PrefabInstance: {fileID: 2094064557}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2094064559 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1140129259284837475, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+  m_PrefabInstance: {fileID: 2094064557}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf545805e992ab94fb9fa79b8daf8d41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTargetHpHud
 --- !u!1 &2120156219
 GameObject:
   m_ObjectHideFlags: 0

@@ -46,7 +46,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     private void Awake()
     {
         BindVisuals();
-        SetEmpty(false);
+        if (GetComponentInParent<OverburstUIWorkshop>(true) == null)
+            SetEmpty(false);
     }
 
     public void SetKeyNumber(int keyNumber)
