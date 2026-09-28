@@ -125825,6 +125825,7 @@ GameObject:
   - component: {fileID: 1906061233}
   - component: {fileID: 1906061234}
   - component: {fileID: 1906061235}
+  - component: {fileID: 1906061236}
   m_Layer: 5
   m_Name: "00_PlayPreview \u2022 \uAC8C\uC784 \uD654\uBA74 \uC870\uD569"
   m_TagString: Untagged
@@ -125854,6 +125855,7 @@ MonoBehaviour:
   tooltipSamples: {fileID: 1265714037}
   shopPreview: {fileID: 1906061234}
   minimapPreview: {fileID: 1906061235}
+  runPreview: {fileID: 1906061236}
 --- !u!114 &1906061229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126007,6 +126009,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OverburstUIMinimapPreview
   view: {fileID: 1917505216}
+--- !u!114 &1906061236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906061227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e6767da1d0fe374c81628fcd7f50314, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstUIRunPreview
 --- !u!1 &1906533681
 GameObject:
   m_ObjectHideFlags: 0

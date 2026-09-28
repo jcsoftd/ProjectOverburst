@@ -253,7 +253,8 @@ public sealed class OverburstRunUi : MonoBehaviour
         if(visible)
         {
             transferRect.anchoredPosition=new Vector2(-726,64);
-            transferStatus.text="장비창의 아이템을 클릭하거나 끌어 넣으세요.";
+            if(string.IsNullOrEmpty(selectedId))
+                transferStatus.text="장비창의 아이템을 클릭하거나 끌어 넣으세요.";
         }
         else PositionBesideInventory(gameUi.inventoryWindow.WindowRect);
     }
