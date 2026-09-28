@@ -135,8 +135,11 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
     public float ResolveAbilityCooldown(float baseCooldown)
     {
-        return ResolveScaledTime(baseCooldown);
+        return Mathf.Max(0f, baseCooldown);
     }
+
+    public float AbilityAnimationSpeed => ResolveAttackSpeedMultiplier();
+    public float ResolveAbilityAnimationTime(float duration) => ResolveScaledTime(duration);
 
     private bool TryStartResolvedAttack(
         EnemyAbilityDefinition ability,
@@ -244,16 +247,24 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         bool directTargetExecution = ability != null
             && ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget;
         float resolvedAttackSpeed = ResolveAttackSpeedMultiplier();
+        float startedAt = Time.time;
+        float windup = ability != null ? ability.ResolveWindupDelay(resolvedAttackSpeed) : 0f;
+        float executionDuration = ability != null ? ability.ResolveExecutionDuration(resolvedAttackSpeed)
+            : resolvedAnimationDuration / resolvedAttackSpeed;
         if (!cooldownOwnedExternally)
-            nextAttackTime = Time.time + ResolveScaledTime(resolvedCooldown, resolvedAttackSpeed);
+            nextAttackTime = Time.time + Mathf.Max(resolvedCooldown, executionDuration);
         if (movement != null)
         {
             float minimumImpactLock =
                 resolvedAnimationDuration * (ability != null ? ability.GetHitNormalizedTime(ability.HitCount - 1) : resolvedHitNormalizedTime) + 0.05f;
-            movement.ApplyActionLock(
-                ResolveScaledTime(
-                    Mathf.Max(resolvedAttackLockDuration, minimumImpactLock),
-                    resolvedAttackSpeed)); // 실제 접촉 시점 전에 이동 잠금이 풀리지 않음
+            movement.ApplyActionLock(Mathf.Max(executionDuration, windup + ResolveScaledTime(
+                Mathf.Max(resolvedAttackLockDuration, minimumImpactLock), resolvedAttackSpeed)));
+        }
+
+        while (Time.time < startedAt + windup)
+        {
+            if (IsAttackInterrupted()) { attackRoutine = null; yield break; }
+            yield return null;
         }
 
         if (animationBridge != null)
@@ -323,6 +334,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
             if (impactReached && stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
+                abilityController?.NotifyAbilityImpact(ability, impactIndex);
                 int level = GetComponent<EnemyRank>()?.Level ?? 1;
                 float resolvedDamage = (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
                 if (directTargetExecution)
@@ -348,6 +360,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             if (!stayedInRange) break;
         }
 
+        float recoveryEnd = Mathf.Max(startedAt + executionDuration,
+            Time.time + (ability != null ? ability.MinimumRecoveryTime : 0f));
+        while (Time.time < recoveryEnd && !IsAttackInterrupted()) yield return null;
         attackRoutine = null;
     }
 
@@ -739,7 +754,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         return Mathf.Max(
             0.01f,
-            attackSpeedMultiplier * runtimeAttackSpeedMultiplier * statusActionSpeedMultiplier);
+            Mathf.Min(1.20f, attackSpeedMultiplier * runtimeAttackSpeedMultiplier) * statusActionSpeedMultiplier);
     }
 
     private float ResolveMaximumAttackRange()

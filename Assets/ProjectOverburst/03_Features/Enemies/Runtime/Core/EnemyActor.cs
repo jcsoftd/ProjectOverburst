@@ -166,7 +166,8 @@ public sealed class EnemyActor : MonoBehaviour
         health.ResetHealth();
         movement.enabled = true;
         movement.SetProfile(enemyDefinition.MovementProfile);
-        movement.SetRuntimeSpeedMultiplier(stats.MoveSpeedMultiplier);
+        float levelProgress = (OverburstGrowthRules.ClampLevel(rank != null ? rank.Level : 1) - 1) / 99f;
+        movement.SetRuntimeSpeedMultiplier(Mathf.Min(1.35f, stats.MoveSpeedMultiplier * (1f + .15f * levelProgress)));
         movement.ResolveReferences();
         movement.StopMovement();
 
@@ -177,7 +178,7 @@ public sealed class EnemyActor : MonoBehaviour
         abilityController.Configure(
             enemyDefinition.AbilitySet,
             stats.DamageMultiplier,
-            stats.AttackSpeedMultiplier);
+            Mathf.Min(1.20f, stats.AttackSpeedMultiplier * (1f + .12f * levelProgress)));
         bossOutcomeController?.ResetForPool();
         if (bossPhaseController != null
             && !bossPhaseController.PrepareForLease(this))

@@ -17,13 +17,17 @@ MonoBehaviour:
   executionMode: 0
   damage: 10
   referencePatternDamagePercent: 8
+  telegraphedStrongAttack: 1
+  minimumWarningTime: 0.9
+  minimumRecoveryTime: 0.65
+  parryable: 1
   minimumRange: 0
   range: 1.822
   hitRadius: 1.522
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 1.6
+  cooldown: 3.5
   hitDelay: 0.35833335
   hitNormalizedTime: 0.43
   attackAnimationDuration: 0.8333334

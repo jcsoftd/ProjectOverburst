@@ -17,16 +17,22 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private int lastCommittedAbilityIndex = -1;
     private EnemyAbilityDefinition lastCommittedAbility;
     private float lastCommittedAt;
+    private float firstImpactAt, lastImpactAt;
+    private Transform strongTarget;
+    private Vector3 strongAim;
+    private EnemyStrongAttackWarning strongWarning;
+    private bool finalImpactDelivered;
+    public void NotifyAbilityImpact(EnemyAbilityDefinition ability, int index)
+    {
+        if (ability != lastCommittedAbility) return;
+        if (index >= ability.HitCount - 1) finalImpactDelivered = true;
+    }
     public bool IsOrdinaryHitProtected
     {
         get
         {
             if (!IsExecuting || lastCommittedAbility == null || !lastCommittedAbility.IsTelegraphedStrongAttack) return false;
-            float natural = meleeExecutor.ResolveAbilityCooldown(lastCommittedAbility.AttackAnimationDuration * lastCommittedAbility.HitNormalizedTime);
-            float first = Mathf.Max(lastCommittedAbility.MinimumWarningTime, natural);
-            float last = first + meleeExecutor.ResolveAbilityCooldown(lastCommittedAbility.AttackAnimationDuration
-                * (lastCommittedAbility.GetHitNormalizedTime(lastCommittedAbility.HitCount - 1) - lastCommittedAbility.HitNormalizedTime));
-            return Time.time >= lastCommittedAt + first - .30f && Time.time <= lastCommittedAt + last;
+            return Time.time >= firstImpactAt - .30f && !finalImpactDelivered;
         }
     }
     private EnemyMovement movement;
@@ -37,7 +43,27 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
     public bool UsesCommittedAim => movement != null && movement.Profile != null && movement.Profile.HasTurnAnimation;
     public bool HasPreparedAim(Transform target) => UsesCommittedAim && target != null && preparedTarget == target;
-    public Vector3 ResolveAimPosition(Transform target) => HasPreparedAim(target) ? preparedPosition : target != null ? target.position : transform.position;
+    public Vector3 ResolveAimPosition(Transform target) => strongTarget != null && strongTarget == target
+        ? strongAim : HasPreparedAim(target) ? preparedPosition : target != null ? target.position : transform.position;
+    private void Update()
+    {
+        if (strongTarget == null) return;
+        if (!IsExecuting) { EndStrongWarning(); return; }
+        if (Time.time < firstImpactAt - .30f)
+        {
+            strongAim = strongTarget.position;
+            Vector3 direction = strongAim - transform.position; direction.y = 0f;
+            if (direction.sqrMagnitude > .0001f)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), 360f * Time.deltaTime);
+        }
+        strongWarning?.SetRemaining(firstImpactAt - Time.time);
+    }
+    private void EndStrongWarning()
+    {
+        strongTarget = null;
+        strongWarning?.Hide();
+        EnemyCombatCoordinator.ReleaseStrongAttack(this);
+    }
     public Vector3 PrepareAttackAim(Transform target)
     {
         ResolveReferences();
@@ -65,6 +91,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     }
     private void OnDisable()
     {
+        EndStrongWarning();
         if (health != null) { health.OnDamaged -= ClearAimOnDamage; health.OnDead -= ClearAimOnDamage; }
         if (reaction != null) reaction.ReactionStarted -= ClearPreparedAim;
         ClearPreparedAim();
@@ -161,14 +188,31 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
         if (!TrySelectAbility(target, out AbilityCandidate selected))
             return false;
+        float speed = meleeExecutor != null ? meleeExecutor.AbilityAnimationSpeed : 1f;
+        float first = selected.Ability.ResolveFirstImpactTime(speed);
+        float duration = selected.Ability.ResolveExecutionDuration(speed);
+        if (selected.Ability.IsTelegraphedStrongAttack
+            && !EnemyCombatCoordinator.TryReserveStrongAttack(this, target.position, Time.time + first, Time.time + duration)) return false;
         if (!selected.Executor.TryStart(selected.Ability, selected.Index, target))
+        {
+            EnemyCombatCoordinator.ReleaseStrongAttack(this);
             return false;
+        }
 
         readyTimeByAbility[selected.Ability] =
-            Time.time + selected.Executor.ResolveCooldown(selected.Ability.Cooldown);
+            Time.time + Mathf.Max(selected.Ability.Cooldown, duration);
         lastCommittedAbilityIndex = selected.Index;
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
+        firstImpactAt = Time.time + first;
+        lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
+        finalImpactDelivered = false;
+        if (selected.Ability.IsTelegraphedStrongAttack)
+        {
+            strongTarget = target; strongAim = target.position;
+            if (strongWarning == null) strongWarning = gameObject.AddComponent<EnemyStrongAttackWarning>();
+            strongWarning.Show(Mathf.Clamp(selected.Ability.HitRadius, .7f, 2.5f), selected.Ability.IsParryable);
+        }
         return true;
     }
 
@@ -217,6 +261,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
     public void Cancel()
     {
+        EndStrongWarning();
         ClearPreparedAim();
         ResolveReferences();
         for (int i = 0; i < executors.Length; i++)
@@ -233,6 +278,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
     public void ResetForReuse()
     {
+        EndStrongWarning();
         ClearPreparedAim();
         ResolveReferences();
         for (int i = 0; i < executors.Length; i++)

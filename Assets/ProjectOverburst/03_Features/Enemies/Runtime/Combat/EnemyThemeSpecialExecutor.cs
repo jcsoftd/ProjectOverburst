@@ -96,16 +96,30 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         Vector3 destination = actor.AbilityController.ResolveAimPosition(target);
         Vector3 direction = destination - transform.position; direction.y = 0; direction.Normalize();
         // Facing is completed before CanStart succeeds. Aim and release keep this committed direction.
-        float duration = ResolveCooldown(ability.AttackAnimationDuration);
-        actor.Movement.ApplyActionLock(duration + .12f);
+        float speed = actor.Melee.AbilityAnimationSpeed;
+        float duration = actor.Melee.ResolveAbilityAnimationTime(ability.AttackAnimationDuration);
+        float windup = ability.ResolveWindupDelay(speed);
+        float startedAt = Time.time;
+        float executionDuration = ability.ResolveExecutionDuration(speed);
+        actor.Movement.ApplyActionLock(executionDuration);
+        while (Time.time < startedAt + windup)
+        {
+            if (!Usable() || target == null) { routine = null; yield break; }
+            yield return null;
+        }
         actor.AnimationBridge.SetAttackAnimSpeed(ability.AttackAnimationDuration / Mathf.Max(.01f,duration));
         actor.AnimationBridge.PlayAttack(ability.AnimatorTrigger);
-        float elapsed = 0, progress = 0;
+        float elapsed = 0, progress = 0, lastImpactTime = startedAt;
         bool entered = false, committed = false;
         float remainingTravel = Mathf.Max(0, Vector3.Distance(transform.position,destination) - .9f);
         while (elapsed < duration + .35f)
         {
             if (!Usable() || target == null) break;
+            if (!committed && ability.IsTelegraphedStrongAttack)
+            {
+                destination = actor.AbilityController.ResolveAimPosition(target);
+                direction = destination - transform.position; direction.y = 0f; direction.Normalize();
+            }
             bool inState = actor.AnimationBridge.TryGetAttackNormalizedTime(ability.AnimatorTrigger,out float normalized);
             if (inState) { entered = true; progress = normalized; }
             else if (entered) break;
@@ -118,6 +132,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             if (inState && !committed && progress >= ability.HitNormalizedTime)
             {
                 committed = true;
+                lastImpactTime = Time.time;
+                actor.AbilityController.NotifyAbilityImpact(ability, ability.HitCount - 1);
                 if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 {
                     boltPosition = Origin;
@@ -132,7 +148,10 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
-        actor.Movement.ClearAttackDisplacement(); routine = null;
+        actor.Movement.ClearAttackDisplacement();
+        float recoveryEnd = Mathf.Max(startedAt + executionDuration, lastImpactTime + ability.MinimumRecoveryTime);
+        while (Time.time < recoveryEnd && Usable()) yield return null;
+        routine = null;
     }
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)
     {

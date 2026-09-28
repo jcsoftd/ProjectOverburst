@@ -30,6 +30,18 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public float MinimumWarningTime => telegraphedStrongAttack ? Mathf.Max(0f, minimumWarningTime) : 0f;
     public float MinimumRecoveryTime => Mathf.Max(0f, minimumRecoveryTime);
     public bool IsParryable => telegraphedStrongAttack && parryable;
+    public float ResolveWindupDelay(float animationSpeed)
+    {
+        float first = AttackAnimationDuration * HitNormalizedTime / Mathf.Max(.01f, animationSpeed);
+        return Mathf.Max(0f, Mathf.Max(.15f, MinimumWarningTime) - first);
+    }
+    public float ResolveFirstImpactTime(float animationSpeed) => ResolveWindupDelay(animationSpeed)
+        + AttackAnimationDuration * HitNormalizedTime / Mathf.Max(.01f, animationSpeed);
+    public float ResolveLastImpactTime(float animationSpeed) => ResolveWindupDelay(animationSpeed)
+        + AttackAnimationDuration * GetHitNormalizedTime(HitCount - 1) / Mathf.Max(.01f, animationSpeed);
+    public float ResolveExecutionDuration(float animationSpeed) => Mathf.Max(
+        ResolveWindupDelay(animationSpeed) + AttackAnimationDuration / Mathf.Max(.01f, animationSpeed),
+        ResolveLastImpactTime(animationSpeed) + MinimumRecoveryTime);
     public float ResolveDamage(int level) => UsesLevelDamageBudget
         ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
             * referencePatternDamagePercent / (100f * HitCount))) : Damage;

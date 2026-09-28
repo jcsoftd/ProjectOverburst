@@ -113,6 +113,33 @@ public static class EnemyPartyTargetPolicy
 
 public static class EnemyCombatCoordinator // 어그로 타깃과 공격 차례 관리
 {
+    private struct StrongReservation
+    {
+        public EnemyAbilityController owner;
+        public Vector3 center;
+        public float impact, until;
+    }
+    private static readonly List<StrongReservation> StrongReservations = new List<StrongReservation>(32);
+    public static bool TryReserveStrongAttack(EnemyAbilityController owner, Vector3 center, float impact, float until)
+    {
+        int nearby = 0;
+        for (int i = StrongReservations.Count - 1; i >= 0; i--)
+        {
+            var r = StrongReservations[i];
+            if (r.owner == null || !r.owner.isActiveAndEnabled || Time.time >= r.until)
+            { StrongReservations.RemoveAt(i); continue; }
+            if ((r.center - center).sqrMagnitude > 64f) continue;
+            nearby++;
+            if (Mathf.Abs(r.impact - impact) < .6f || nearby >= 2) return false;
+        }
+        StrongReservations.Add(new StrongReservation { owner = owner, center = center, impact = impact, until = until });
+        return true;
+    }
+    public static void ReleaseStrongAttack(EnemyAbilityController owner)
+    {
+        for (int i = StrongReservations.Count - 1; i >= 0; i--)
+            if (StrongReservations[i].owner == owner) StrongReservations.RemoveAt(i);
+    }
     private sealed class TargetAssignment
     {
         public CombatTarget Target;
@@ -145,6 +172,7 @@ public static class EnemyCombatCoordinator // 어그로 타깃과 공격 차례 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetRuntimeState()
     {
+        StrongReservations.Clear();
         if (subscribedLeaderContext != null)
             subscribedLeaderContext.CurrentActorChanged -= HandleLeaderChanged;
 

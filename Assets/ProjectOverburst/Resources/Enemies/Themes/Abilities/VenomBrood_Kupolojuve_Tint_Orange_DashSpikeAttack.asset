@@ -17,6 +17,10 @@ MonoBehaviour:
   executionMode: 2
   damage: 10
   referencePatternDamagePercent: 14
+  telegraphedStrongAttack: 1
+  minimumWarningTime: 0.9
+  minimumRecoveryTime: 0.65
+  parryable: 1
   minimumRange: 0
   range: 4.8
   hitRadius: 1.3526684
