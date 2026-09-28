@@ -1317,10 +1317,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
     private void ApplyAttackDisplacement(Vector3 displacement)
     {
-        comboMovementCollisionPusher.PushBeforeMove(
-            playerController,
-            combatTarget,
-            displacement); // CharacterController 이동 전에 선행 밀어내기
+        // Greatsword weak hits already spend the full advance-based knockback budget.
+        // A second, damage-free body push would exceed it before the hit lands.
+        if (activeAttackIsHeavy || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword)
+            comboMovementCollisionPusher.PushBeforeMove(playerController, combatTarget, displacement);
         playerController?.ApplyWeaponRootMotionDisplacement(displacement, !activeAttackIsHeavy);
     }
 
@@ -1476,7 +1476,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             foreach (var move in activeAttackStep.movementPhases) advance += Mathf.Max(0f, move.distance);
         float phaseWeight = 0f;
         foreach (var candidate in activeAttackPhases) phaseWeight += candidate.impact.SafeDamageMultiplier;
-        return advance * Mathf.Min(1f, .9f * Mathf.Max(0f, activeWeaponData.baseStats.knockback) / 4f)
+        return advance * AttackMovementExecutor.ComboMovementDistanceMultiplier
+            * Mathf.Min(1f, .9f * Mathf.Max(0f, activeWeaponData.baseStats.knockback) / 4f)
             * phase.impact.SafeDamageMultiplier / Mathf.Max(.001f, phaseWeight);
     }
 

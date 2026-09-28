@@ -126,7 +126,9 @@ public static class EnemyCombatCoordinator // 어그로 타깃과 공격 차례 
         for (int i = StrongReservations.Count - 1; i >= 0; i--)
         {
             var r = StrongReservations[i];
-            if (r.owner == null || !r.owner.isActiveAndEnabled || Time.time >= r.until)
+            // Animator transitions and hitstop can outlive the predicted execution time.
+            // Keep the slot until the actual attack/recovery finishes or is cancelled.
+            if (r.owner == null || !r.owner.isActiveAndEnabled || Time.time >= r.until && !r.owner.IsExecuting)
             { StrongReservations.RemoveAt(i); continue; }
             if ((r.center - center).sqrMagnitude > 64f) continue;
             nearby++;
