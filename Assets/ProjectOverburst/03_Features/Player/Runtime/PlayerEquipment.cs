@@ -209,11 +209,11 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         if (CurrentWeaponItem != null)
         {
             GearStatTotals gear = GearStatTotals.From(this);
-            stats.damage = (stats.damage + gear.Attack) * OverburstGrowthRules.PlayerAttackFactor(PlayerProgression.CurrentLevel);
+            stats.damage = OverburstCombatBalance.RoundStat((stats.damage + gear.Attack) * OverburstGrowthRules.PlayerAttackFactor(PlayerProgression.CurrentLevel));
             stats.critChance = Mathf.Min(65f, stats.critChance + gear.CriticalChance);
             stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
                 stats.meleeAttackSpeedMultiplier + gear.AttackSpeed / 100f);
-            stats.critDamageMultiplier = Mathf.Min(2.2f, stats.critDamageMultiplier + gear.CriticalDamage / 100f);
+            stats.critDamageMultiplier = Mathf.Min(OverburstCombatBalance.FinalCriticalDamage, stats.critDamageMultiplier + gear.CriticalDamage / 100f);
             float runSpeed = MapRunBuffs.Bonus(MapBuffKind.AttackSpeed);
             stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
                 stats.meleeAttackSpeedMultiplier + runSpeed);

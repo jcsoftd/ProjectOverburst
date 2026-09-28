@@ -43,7 +43,14 @@ namespace Overburst.Persistence
                 }
                 else
                 {
+                    state = ItemBalanceMigration.UpgradeAccount(state, registry, out bool balanceChanged);
                     AccountInvariants.Validate(state, registry);
+                    if (balanceChanged)
+                    {
+                        state.revision = checked(state.revision + 1);
+                        state.lastTransactionId = "item-balance-v" + OverburstCombatBalance.ItemBalanceVersion + "-" + Guid.NewGuid().ToString("N");
+                        store.Save(state, state.lastTransactionId);
+                    }
                     var recovery = new AccountTransactions(state, store, registry);
                     if (state.run != null && state.run.phase != RunPhase.Extracted && state.run.phase != RunPhase.Failed)
                     {

@@ -16,6 +16,7 @@ MonoBehaviour:
   animatorTrigger: Attack3
   executionMode: 0
   damage: 10
+  referencePatternDamagePercent: 7
   minimumRange: 0
   range: 3.6
   hitRadius: 2.5

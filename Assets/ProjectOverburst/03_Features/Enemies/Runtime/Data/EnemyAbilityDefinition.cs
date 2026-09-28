@@ -19,6 +19,12 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     [SerializeField] private EnemyAbilityExecutionMode executionMode =
         EnemyAbilityExecutionMode.MeleeArc;
     [SerializeField, Min(0f)] private float damage = 10f;
+    [SerializeField, Range(0f, 100f)] private float referencePatternDamagePercent;
+    public float ReferencePatternDamagePercent => referencePatternDamagePercent;
+    public bool UsesLevelDamageBudget => referencePatternDamagePercent > 0f;
+    public float ResolveDamage(int level) => UsesLevelDamageBudget
+        ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
+            * referencePatternDamagePercent / (100f * HitCount))) : Damage;
     [SerializeField, Min(0f)] private float minimumRange;
     [SerializeField, Min(0f)] private float range = 1.7f;
     [SerializeField, Min(0.01f)] private float hitRadius = 0.8f;

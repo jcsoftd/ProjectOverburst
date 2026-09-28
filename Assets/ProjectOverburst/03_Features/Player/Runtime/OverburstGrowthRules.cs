@@ -10,9 +10,9 @@ public static class OverburstGrowthRules
 
     public static float PlayerAttackFactor(int level) => 1f + .005f * (ClampLevel(level) - 1);
 
-    public static float PlayerHealthBonus(int level) => 5f * (ClampLevel(level) - 1);
+    public static float PlayerHealthBonus(int level) => 15f * (ClampLevel(level) - 1);
 
-    public static float PlayerArmorBonus(int level) => .25f * (ClampLevel(level) - 1);
+    public static float PlayerArmorBonus(int level) => (ClampLevel(level) - 1) / 4;
 
     public static float EnemyHealthFactor(int level) => 1f + .055f * (ClampLevel(level) - 1);
 

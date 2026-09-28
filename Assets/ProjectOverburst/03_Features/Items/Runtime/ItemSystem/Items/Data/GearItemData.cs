@@ -13,14 +13,9 @@ public sealed class GearItemData : BaseItemData
 {
     public GearKind kind;
 
-    public GearStat MainStat => kind == GearKind.Helmet || kind == GearKind.Necklace
-        ? GearStat.MaxHealth : kind == GearKind.Chest || kind == GearKind.Boots
-            ? GearStat.Armor : kind == GearKind.Gloves
-                ? GearStat.CriticalChance : GearStat.Attack;
+    public GearStat MainStat => OverburstCombatBalance.MainStat(kind);
 
-    public float MainBaseValue => kind == GearKind.Helmet ? 15f : kind == GearKind.Chest ? 10f
-        : kind == GearKind.Gloves ? .75f : kind == GearKind.Boots ? 5f
-            : kind == GearKind.Earring ? 1f : 8f;
+    public float MainBaseValue => OverburstCombatBalance.GearBase(kind, 1);
 
     public static bool Fits(GearKind kind, GearSlot slot)
     {

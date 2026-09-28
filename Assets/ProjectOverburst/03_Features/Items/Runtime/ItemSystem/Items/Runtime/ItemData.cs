@@ -375,7 +375,7 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
     {
         switch (statType)
         {
-            case WeaponGradeStatType.Damage: return 0.25f;
+            case WeaponGradeStatType.Damage: return 0.10f;
             case WeaponGradeStatType.AttackSpeed: return 0.02f;
             case WeaponGradeStatType.AttackRange: return 0.03f;
             case WeaponGradeStatType.CritChance: return 3f;
@@ -1059,6 +1059,7 @@ public class ItemData // 런타임 아이템
     }
     public List<WeaponGradeStatRoll> weaponGradeStatRolls; // 무기 별
     public List<GearStatRoll> gearRolls; // 방어구·장신구 고정 주능력치와 보조 3종
+    public int balanceVersion; // 0 is legacy; preserve saved star identity during upgrades.
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
     public List<BagRandomOptionRoll> bagOptions; // 가방 랜덤 옵션
 
@@ -1148,6 +1149,7 @@ public class ItemData // 런타임 아이템
 
     public ItemData(BaseItemData data, int lv, ItemGrade itemGrade, int stack = 1, WeaponElement? element = null)
     {
+        balanceVersion = OverburstCombatBalance.ItemBalanceVersion;
         EnsureRuntimeInstanceId(); // id 보장
         baseData = data;
         level = data is WeaponItemData || data is GearItemData || data is FlaskItemData
@@ -1207,7 +1209,7 @@ public class ItemData // 런타임 아이템
             originRunId = value.originRunId, instanceElement = value.element, hasInstanceElement = value.hasElement,
             meleeStarDistributionProfile = value.qualityProfile, weaponGradeStatRolls = value.weaponRolls,
             gearRolls = value.gearRolls, bagOptions = value.bagRolls, flaskState = value.flask,
-            mapState = value.map, restoredFromValidatedSnapshot = true
+            mapState = value.map, balanceVersion = value.balanceVersion, restoredFromValidatedSnapshot = true
         };
         nextAcquisitionOrder = System.Math.Max(nextAcquisitionOrder, checked(value.acquisitionOrder + 1));
         return item;
@@ -1231,6 +1233,7 @@ public class ItemData // 런타임 아이템
 
     public void EnsureRuntimeState()
     {
+        Overburst.Persistence.ItemBalanceMigration.UpgradeRuntime(this);
         if (restoredFromValidatedSnapshot) return;
         EnsureRuntimeInstanceId(); // id 보장
 

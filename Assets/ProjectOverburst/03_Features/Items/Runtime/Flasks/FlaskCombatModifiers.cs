@@ -18,9 +18,9 @@ public static class FlaskCombatModifiers
         stats.meleeAttackRangeScale = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackRangeMultiplier,
             previous + Bonus(actor, FlaskEffect.AttackRadius));
         stats.range *= stats.meleeAttackRangeScale / previous;
-        stats.critChance = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeCriticalChance,
+        stats.critChance = Mathf.Min(OverburstCombatBalance.FinalCriticalChance,
             stats.critChance + Bonus(actor, FlaskEffect.CritChance) * 100f);
-        stats.critDamageMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeCriticalDamageMultiplier,
+        stats.critDamageMultiplier = Mathf.Min(OverburstCombatBalance.FinalCriticalDamage,
             stats.critDamageMultiplier + Bonus(actor, FlaskEffect.CritDamage));
         stats.knockback *= 1f + Bonus(actor, FlaskEffect.OutgoingImpact);
         return stats;

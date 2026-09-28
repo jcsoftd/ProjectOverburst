@@ -623,6 +623,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         activeAttackDamageMultiplier = isHeavy
             ? activeHeavyDefinition.GetDamageMultiplier(hasEnergy)
             : 1f;
+        if (activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
+            activeAttackDamageMultiplier = isHeavy ? OverburstCombatBalance.EmptyHeavyDamage : OverburstCombatBalance.GreatswordWeakDamage;
 
 
         attackDuration = ResolveAttackDuration();
@@ -1462,7 +1464,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private float GetActiveCritChance()
     {
         float bonus = activeAttackUsedMeleeCombatStance ? MeleeCombatStanceCritChanceBonus : 0f; // 자세 보너스
-        return activeStats.critChance + bonus;
+        return Mathf.Min(OverburstCombatBalance.FinalCriticalChance, activeStats.critChance + bonus);
     }
 
     private float ApplyCombatStanceKnockback(float knockback)

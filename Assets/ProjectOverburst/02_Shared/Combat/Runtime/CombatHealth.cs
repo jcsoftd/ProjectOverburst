@@ -84,11 +84,17 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         // Keep health/death/evade gates, but never apply that hit's stat scaling twice.
         if (!(info.isDamageOverTime && info.usesResolvedTickDamage && !info.triggersOnHitEffects))
         {
-            ApplyProgressionDamageModifiers(ref info, ref damage);
+            ApplyProgressionDamageModifiers(ref info, ref damage, out float incomingBeforeMitigation);
             ApplyAimDamageModifier(ref info, ref damage);
             ApplyEnemyDefenseModifier(ref info, ref damage);
             ApplyPlayerDamageReductionDebug(ref info, ref damage);
             FlaskCombatModifiers.Incoming(this, ref info, ref damage);
+            if (damage > 0f && CombatTeamUtility.IsPlayerActorHealth(this)
+                && !CombatDebugSettings.ReduceIncomingPlayerDamageBy99_9Percent)
+            {
+                damage = Mathf.Max(damage, incomingBeforeMitigation * .10f);
+                info.damage = damage;
+            }
         }
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
@@ -115,16 +121,18 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             Die(info); // HP 0 사망 처리
     }
 
-    private void ApplyProgressionDamageModifiers(ref DamageInfo info, ref float damage)
+    private void ApplyProgressionDamageModifiers(ref DamageInfo info, ref float damage, out float incomingBeforeMitigation)
     {
+        incomingBeforeMitigation = damage;
         if (CombatTeamUtility.IsPlayerActorHealth(this))
         {
             EnemyRank attackingEnemy = info.source != null ? info.source.GetComponentInParent<EnemyRank>() : null;
-            if (attackingEnemy != null)
+            if (attackingEnemy != null && (info.enemyAbility == null || !info.enemyAbility.UsesLevelDamageBudget))
                 damage *= OverburstGrowthRules.EnemyDamageFactor(attackingEnemy.Level);
+            incomingBeforeMitigation = damage;
             PlayerProgression progression = PlayerProgression.Current;
             if (progression != null && GetComponentInParent<PlayerActorRuntime>() != null)
-                damage *= 100f / (100f + Mathf.Max(0f, progression.Armor));
+                damage *= Mathf.Max(.20f, 100f / (100f + Mathf.Max(0f, progression.Armor)));
         }
         else if (info.source != null)
         {

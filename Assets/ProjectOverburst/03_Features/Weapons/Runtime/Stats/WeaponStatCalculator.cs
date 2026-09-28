@@ -50,10 +50,20 @@ public static class WeaponStatCalculator // 무기 스탯 계산
 
     public static float GetElementalDischargePower(ItemData item)
     {
+        if (item == null) return 0f;
+        return GetElementalDischargePower(item, CalculateWeaponBase(item).damage);
+    }
+
+    public static float GetElementalDischargePower(ItemData item, float assembledAttack)
+    {
         if (item == null || !(item.baseData is WeaponItemData weapon)) return 0f;
-        float authored = weapon.baseStats.elementalDischargePower;
-        float baseline = authored > 0f ? authored : Mathf.Max(0f, weapon.baseStats.damage) * .25f;
-        return baseline * OverburstGrowthRules.ItemFactor(item.level);
+        float ratio = .25f;
+        if (weapon.baseStats.elementalDischargePower > 0f)
+        {
+            if (weapon.baseStats.damage <= 0f) throw new System.InvalidOperationException("Discharge ratio requires positive weapon damage.");
+            ratio = weapon.baseStats.elementalDischargePower / weapon.baseStats.damage;
+        }
+        return Mathf.Max(0f, assembledAttack) * ratio;
     }
 
     private static WeaponFinalStats CreateBaseStats(WeaponItemData weaponData)

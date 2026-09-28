@@ -15,6 +15,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private Vector3 boltDirection;
     private Vector3 boltPosition;
     private float boltRemaining, boltDamage;
+    private EnemyAbilityDefinition boltAbility;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
     public override bool IsExecuting => routine != null || boltFlying;
@@ -122,7 +123,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
                     boltPosition = Origin;
                     bolt.transform.position = boltPosition;
                     boltDirection = (destination + Vector3.up*.8f - Origin).normalized;
-                    boltRemaining = ability.Range + 2; boltDamage = ability.Damage * actor.RuntimeStats.DamageMultiplier;
+                    boltRemaining = ability.Range + 2; boltDamage = ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1) * actor.RuntimeStats.DamageMultiplier;
+                    boltAbility = ability;
                     boltFlying = true; bolt.SetActive(true); LaunchCount++;
                 }
                 else ResolveChargeHit(ability,direction);
@@ -136,15 +138,15 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         int count = Physics.SphereCastNonAlloc(Origin,.4f,direction,hits,Mathf.Max(.8f,ability.HitRadius),Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
-        if (nearest >= 0) Damage(hits[nearest],ability.Damage*actor.RuntimeStats.DamageMultiplier,direction);
+        if (nearest >= 0) Damage(hits[nearest],ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1)*actor.RuntimeStats.DamageMultiplier,direction,ability);
     }
     private int Nearest(int count)
     { int index=-1; for(int i=0;i<count;i++) if(index<0 || hits[i].distance<hits[index].distance)index=i; return index; }
-    private void Damage(RaycastHit hit,float amount,Vector3 direction)
+    private void Damage(RaycastHit hit,float amount,Vector3 direction,EnemyAbilityDefinition ability)
     {
         var target = hit.collider.GetComponentInParent<CombatTarget>();
         if (target == null || !CombatTargetFilter.CanDamage(GetComponent<CombatTarget>(),target) || target.DamageReceiver == null) return;
-        target.DamageReceiver.TakeDamage(new DamageInfo(amount,hit.point,gameObject,direction)); ImpactCount++;
+        target.DamageReceiver.TakeDamage(new DamageInfo(amount,hit.point,gameObject,direction,enemyAbility:ability)); ImpactCount++;
     }
     private void FixedUpdate()
     {
@@ -153,7 +155,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         float step = Mathf.Min(boltRemaining,10f*Time.fixedDeltaTime);
         int count = Physics.SphereCastNonAlloc(boltPosition,.14f,boltDirection,hits,step,Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
-        if (nearest>=0) { Damage(hits[nearest],boltDamage,boltDirection);EndBolt();return; }
+        if (nearest>=0) { Damage(hits[nearest],boltDamage,boltDirection,boltAbility);EndBolt();return; }
         boltPosition += boltDirection*step; bolt.transform.position = boltPosition; boltRemaining-=step;
         if (boltRemaining<=0) EndBolt();
     }
@@ -168,7 +170,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             bolt.GetComponent<Renderer>().sharedMaterial=signalMaterial;bolt.SetActive(false);
         }
     }
-    private void EndBolt() { boltFlying=false;if(bolt!=null)bolt.SetActive(false); }
+    private void EndBolt() { boltFlying=false;boltAbility=null;if(bolt!=null)bolt.SetActive(false); }
     public override void Cancel()
     {
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }

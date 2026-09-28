@@ -59,6 +59,7 @@ namespace Overburst.Persistence
 
     [Serializable] public sealed class ItemSnapshot
     {
+        public int balanceVersion;
         public string contentId;
         public string instanceId;
         public long acquisitionOrder;

@@ -92,7 +92,7 @@ public static class MapRunCardPolicy
         ItemGrade grade = RollGrade(random.NextDouble());
         float factor = GradeFactors[(int)grade];
         float value = kind == MapBuffKind.Armor
-            ? Mathf.Round((10f + mapLevel * 2f) * factor)
+            ? OverburstCombatBalance.RoundStat((100f + OverburstCombatBalance.ReferenceArmor(mapLevel)) * .10f * factor)
             : BaseValues[(int)kind] * factor;
         string detail = kind == MapBuffKind.Armor
             ? $"방어력 +{value:0}"

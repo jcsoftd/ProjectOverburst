@@ -60,7 +60,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
             AppendMagicWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
         else
             AppendWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
-        builder.Append("원소 방출 기본 위력 ")
+        builder.Append("무기 단독 방출 기준력 ")
             .Append(FormatOneDecimal(WeaponStatCalculator.GetElementalDischargePower(item)))
             .AppendLine();
         AppendPrice(builder, item);

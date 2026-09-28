@@ -23,6 +23,7 @@ public struct DamageInfo
     public int sourceAttackSequenceId;
     public int sourceAttackPhaseIndex;
     public PlayerAttackKind playerAttackKind;
+    public EnemyAbilityDefinition enemyAbility;
 
     public DamageInfo(
         float damage,
@@ -41,7 +42,8 @@ public struct DamageInfo
         int sourceAttackSequenceId = 0,
         PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified,
         int sourceAttackPhaseIndex = 0,
-        bool usesResolvedTickDamage = false)
+        bool usesResolvedTickDamage = false,
+        EnemyAbilityDefinition enemyAbility = null)
     {
         this.damage = damage;
         this.hitPoint = hitPoint;
@@ -60,5 +62,6 @@ public struct DamageInfo
         this.sourceAttackSequenceId = sourceAttackSequenceId;
         this.sourceAttackPhaseIndex = sourceAttackPhaseIndex;
         this.playerAttackKind = playerAttackKind;
+        this.enemyAbility = enemyAbility;
     }
 }

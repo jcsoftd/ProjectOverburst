@@ -323,7 +323,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
             if (impactReached && stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
-                float resolvedDamage = (ability != null ? ability.Damage : damage) * definitionDamageMultiplier;
+                int level = GetComponent<EnemyRank>()?.Level ?? 1;
+                float resolvedDamage = (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
                 if (directTargetExecution)
                 {
                     ResolveDirectTargetHit(
@@ -459,7 +460,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             gameObject,
             hitDirection.sqrMagnitude > 0.0001f
                 ? hitDirection.normalized
-                : transform.forward);
+                : transform.forward, enemyAbility: ability);
         targetHealth.TakeDamage(info); // 선택한 단일 대상에게 한 번만 직접 피해
     }
 
@@ -541,7 +542,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 resolvedDamage,
                 hitCollider.ClosestPoint(impactCenter),
                 gameObject,
-                hitDirection.normalized);
+                hitDirection.normalized, enemyAbility: ability);
             targetHealth.TakeDamage(info);
         }
     }

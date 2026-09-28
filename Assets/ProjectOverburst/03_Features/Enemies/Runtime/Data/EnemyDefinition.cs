@@ -5,6 +5,8 @@ public sealed class EnemyDefinition : ScriptableObject
 {
     [SerializeField] private string enemyId;
     [SerializeField] private string displayName;
+    [SerializeField, Min(0f)] private float referenceHealthCoefficient;
+    public float ReferenceHealthCoefficient => referenceHealthCoefficient;
     [SerializeField] private EnemySpeciesDefinition species;
     [SerializeField] private EnemyGradeProfile grade;
     [SerializeField] private EnemyVariantProfile variant;

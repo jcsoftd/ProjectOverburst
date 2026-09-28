@@ -15,9 +15,10 @@ namespace Overburst.Persistence
         public static ItemSnapshot Capture(ItemData item, AccountContentRegistry registry)
         {
             if (item == null) return null;
+            ItemBalanceMigration.UpgradeRuntime(item);
             var snapshot = new ItemSnapshot
             {
-                contentId = registry.IdFor(item.baseData), instanceId = item.runtimeInstanceId,
+                contentId = registry.IdFor(item.baseData), instanceId = item.runtimeInstanceId, balanceVersion = item.balanceVersion,
                 acquisitionOrder = item.acquisitionOrder, level = item.level, grade = item.grade,
                 count = item.stackCount, originRunId = item.originRunId,
                 element = item.ResolvedElement, hasElement = item.HasInstanceElement,
@@ -31,8 +32,9 @@ namespace Overburst.Persistence
 
         public static ItemData Restore(ItemSnapshot snapshot, AccountContentRegistry registry)
         {
-            Validate(snapshot, registry);
             var copy = CopyValues(snapshot);
+            ItemBalanceMigration.Upgrade(copy, registry.Resolve<BaseItemData>(copy.contentId));
+            Validate(copy, registry);
             copy.element = OverburstElementRules.MigrateLegacy(copy.element);
             return ItemData.RestoreSaved(copy, registry.Resolve<BaseItemData>(copy.contentId));
         }
@@ -42,6 +44,8 @@ namespace Overburst.Persistence
             if (s == null || string.IsNullOrWhiteSpace(s.instanceId) || s.count <= 0 || s.acquisitionOrder < 0 || !Enum.IsDefined(typeof(ItemGrade), s.grade))
                 throw new InvalidDataException("Invalid saved item identity/count/grade.");
             var data = registry.Resolve<BaseItemData>(s.contentId);
+            if (s.balanceVersion != OverburstCombatBalance.ItemBalanceVersion)
+                throw new InvalidDataException("Saved item requires balance migration.");
             if (s.level < 1 || s.level > 100) throw new InvalidDataException("Saved item level outside 1..100.");
             if (!Enum.IsDefined(typeof(WeaponElement), s.element)) throw new InvalidDataException("Invalid saved element.");
             if (data is WeaponItemData && (s.weaponRolls == null || !s.hasElement)) throw new InvalidDataException("Missing saved weapon rolls/element.");

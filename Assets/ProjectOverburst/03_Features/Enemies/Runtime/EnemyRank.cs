@@ -42,6 +42,7 @@ public sealed class EnemyRank : MonoBehaviour
     private float authoredMaxHealth;
     private bool experienceGranted;
     private EncounterContext encounter;
+    private EnemyDefinition balanceDefinition;
     public EncounterContext Encounter => encounter ?? EncounterContext.Test;
 
     public void ConfigureEncounter(EncounterContext context)
@@ -98,6 +99,7 @@ public sealed class EnemyRank : MonoBehaviour
 
     public void ConfigureFromDefinition(EnemyDefinition definition)
     {
+        balanceDefinition = definition;
         CaptureAuthoredState();
         EnemyGradeProfile grade = definition != null ? definition.Grade : null;
         GradeType = grade != null ? grade.GradeType : EnemyGradeType.Normal;
@@ -120,14 +122,23 @@ public sealed class EnemyRank : MonoBehaviour
             : EnemyGradeType.Normal;
         Level = 1;
         encounter = null;
+        balanceDefinition = null;
         experienceGranted = false;
     }
 
     public void ApplyLevelToHealth(float authoredBase)
     {
         if (health == null) health = GetComponent<CombatHealth>();
-        if (health != null)
-            health.SetMaxHp(Mathf.Max(1f, authoredBase) * OverburstGrowthRules.EnemyHealthFactor(Level), true);
+        if (health == null) return;
+        if (balanceDefinition != null && balanceDefinition.ReferenceHealthCoefficient > 0f)
+        {
+            float baseHealth = balanceDefinition.ResolveRuntimeStats().MaxHealth;
+            float encounterScale = Mathf.Max(1f, authoredBase) / Mathf.Max(1f, baseHealth);
+            float scaled = OverburstCombatBalance.RoundStat(balanceDefinition.ReferenceHealthCoefficient
+                * OverburstCombatBalance.ReferenceExpectedHit(Level));
+            health.SetMaxHp(scaled * encounterScale, true);
+        }
+        else health.SetMaxHp(Mathf.Max(1f, authoredBase) * OverburstGrowthRules.EnemyHealthFactor(Level), true);
     }
 
     private void AssignLevel()

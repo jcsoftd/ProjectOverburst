@@ -102,23 +102,29 @@ public static class GearQuality
     {
         if (item == null || row == null || !(item.baseData is GearItemData data)) return 0f;
         float w = row.Weight;
-        float f = OverburstGrowthRules.ItemFactor(item.level);
         if (row.stat == data.MainStat && item.gearRolls != null
             && item.gearRolls.Count > 0 && ReferenceEquals(item.gearRolls[0], row))
         {
-            return data.kind == GearKind.Gloves
-                ? .75f + .015f * (OverburstGrowthRules.ClampLevel(item.level) - 1) + .15f * w
-                : data.MainBaseValue * f * (1f + .08f * w);
+            float main = OverburstCombatBalance.GearBase(data.kind, item.level);
+            float value = data.kind == GearKind.Gloves ? main + .15f * w : main * (1f + .08f * w);
+            return IsIntegerStat(row.stat) ? OverburstCombatBalance.RoundStat(value) : value;
         }
         switch (row.stat)
         {
-            case GearStat.MaxHealth: return (4f + w) * f;
-            case GearStat.Armor: return (2f + .5f * w) * f;
-            case GearStat.Attack: return (.25f + .05f * w) * f;
+            case GearStat.MaxHealth: return IntegerSecondary(GearKind.Helmet, item.level, .05f, w);
+            case GearStat.Armor: return IntegerSecondary(GearKind.Chest, item.level, .05f, w);
+            case GearStat.Attack: return IntegerSecondary(GearKind.Earring, item.level, .10f, w);
             case GearStat.AttackSpeed: return .25f + .15f * w;
             default: return .5f + .25f * w;
         }
     }
+
+    private static bool IsIntegerStat(GearStat stat)
+        => stat == GearStat.MaxHealth || stat == GearStat.Armor || stat == GearStat.Attack;
+
+    private static float IntegerSecondary(GearKind kind, int level, float fraction, float weight)
+        => Mathf.Max(1f, OverburstCombatBalance.RoundStat(
+            OverburstCombatBalance.GearBase(kind, level) * fraction * (1f + .08f * weight)));
 
     private static int GuaranteedMainStars(ItemGrade grade)
     {
@@ -152,9 +158,7 @@ public static class GearQuality
 
     private static bool IsSecondaryAllowed(GearKind kind, GearStat stat, List<GearStatRoll> chosen, int priorCount)
     {
-        if (stat == (kind == GearKind.Helmet || kind == GearKind.Necklace ? GearStat.MaxHealth
-            : kind == GearKind.Chest || kind == GearKind.Boots ? GearStat.Armor
-            : kind == GearKind.Gloves ? GearStat.CriticalChance : GearStat.Attack)) return false;
+        if (stat == OverburstCombatBalance.MainStat(kind)) return false;
         bool targetGroup = stat == GearStat.NormalDamage || stat == GearStat.EliteBossDamage;
         bool attackGroup = stat == GearStat.WeakDamage || stat == GearStat.HeavyDamage || stat == GearStat.ElementalDamage;
         for (int i = 0; i < priorCount; i++)

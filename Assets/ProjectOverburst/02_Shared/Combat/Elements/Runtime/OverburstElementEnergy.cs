@@ -136,7 +136,7 @@ public sealed class OverburstElementDischarge
     public float NormalizedEnergy { get; }
     public float Radius => radius;
     public float BaseDamage => attackDamage * energyCoefficient + baseDischargePower * NormalizedEnergy;
-    public float FirstBlastDamage => attackDamage * Mathf.Lerp(.6f, 1.35f, NormalizedEnergy) * (1f + energyCoefficient)
+    public float FirstBlastDamage => attackDamage * Mathf.Lerp(OverburstCombatBalance.EmptyHeavyDamage, OverburstCombatBalance.FullHeavyDamage, NormalizedEnergy) * (1f + energyCoefficient)
         + baseDischargePower * NormalizedEnergy;
     internal OverburstElementDischarge(OverburstElementEnergy owner, int token, WeaponElement element, string weaponId,
         float energy, float normalized, float attackDamage)
@@ -145,7 +145,7 @@ public sealed class OverburstElementDischarge
         PlayerEquipment equipped = owner != null ? owner.GetComponent<PlayerEquipment>() : null;
         baseDischargePower = equipped != null && equipped.CurrentWeaponItem != null
             && equipped.CurrentWeaponItem.runtimeInstanceId == weaponId
-            ? WeaponStatCalculator.GetElementalDischargePower(equipped.CurrentWeaponItem) : 0f;
+            ? WeaponStatCalculator.GetElementalDischargePower(equipped.CurrentWeaponItem, attackDamage) : attackDamage * .25f;
         Element = element; WeaponInstanceId = weaponId; Energy = energy; NormalizedEnergy = normalized;
         OverburstElementTuning tuning = OverburstElementTuning.Current;
         float elementBonus = element == WeaponElement.Fire ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireDischargeDamage)

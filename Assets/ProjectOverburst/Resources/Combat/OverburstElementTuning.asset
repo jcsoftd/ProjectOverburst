@@ -25,7 +25,7 @@ MonoBehaviour:
   shockTickDamagePerStack: 0.02
   shockStaggerBase: 0.2
   shockStaggerPerStack: 0.08
-  shatterBlastFraction: 1.5
+  shatterBlastFraction: 0.6
   lightningChainBaseFraction: 0.25
   lightningChainFractionPerStack: 0.05
   dischargeDamageAtFullEnergy: 2
