@@ -15,11 +15,12 @@ public enum EnemyHitResponseOutcome
 public sealed class EnemyHitResponseCoordinator : MonoBehaviour
 {
     private const float MediumHitWindow = 1.1f;
-    private const float MediumFlinchCooldown = 0.85f;
-    private const float EliteFlinchCooldown = 1.4f;
+    private const float MediumFlinchCooldown = 0.12f;
+    private const float EliteFlinchCooldown = 0.18f;
     private const float MissingSequenceDuplicateWindow = 0.12f;
 
-    private readonly HashSet<long> mediumSequences = new HashSet<long>();
+    private readonly HashSet<(int source, int sequence, int phase)> mediumSequences = new HashSet<(int, int, int)>();
+    private readonly Queue<(int source, int sequence, int phase)> recentSequences = new Queue<(int, int, int)>();
     private readonly Dictionary<int, float> missingSequenceTimes = new Dictionary<int, float>();
     private CombatHealth health;
     private EnemyRank rank;
@@ -65,6 +66,7 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
     public void ResetForReuse()
     {
         mediumSequences.Clear();
+        recentSequences.Clear();
         missingSequenceTimes.Clear();
         distinctHitCount = 0;
         lastDistinctHitAt = 0f;
@@ -94,50 +96,24 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
         }
 
         EnemyGradeType grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
-        EnemyHitWeightProfile profile = reaction != null ? reaction.HitWeightProfile : null;
-        EnemyHitWeight weight = profile != null ? profile.Weight : EnemyHitWeight.Standard;
-        bool attackInProgress = (abilityController != null && abilityController.IsExecuting)
-            || (melee != null && melee.IsAttacking);
-
-        if (grade == EnemyGradeType.Elite || grade == EnemyGradeType.GreaterElite)
-        {
-            if (!info.isCritical || attackInProgress || Time.time < nextFlinchAt)
-            {
-                RecordFeedbackOnly();
-                return;
-            }
-            if (ApplyFlinch(info))
-                nextFlinchAt = Time.time + EliteFlinchCooldown;
-            else
-                RecordFeedbackOnly();
-            return;
-        }
-
-        if (weight == EnemyHitWeight.Light)
-        {
-            if (!ApplyFlinch(info))
-                RecordFeedbackOnly();
-            return;
-        }
-
-        if (Time.time < nextFlinchAt)
+        if (grade == EnemyGradeType.Boss || Time.time < nextFlinchAt
+            || (abilityController != null && abilityController.IsOrdinaryHitProtected))
         {
             RecordFeedbackOnly();
             return;
         }
 
-        bool distinctHit = RegisterMediumHit(info);
-        bool canBreak = info.isCritical || (distinctHit && distinctHitCount >= 2);
-        if (!canBreak || attackInProgress)
+        if (!RegisterMediumHit(info))
         {
             RecordFeedbackOnly();
             return;
         }
 
-        if (ApplyFlinch(info))
+        float cooldown = grade == EnemyGradeType.Elite || grade == EnemyGradeType.GreaterElite
+            ? EliteFlinchCooldown : MediumFlinchCooldown;
+        if (ApplyFlinch(info, cooldown))
         {
-            nextFlinchAt = Time.time + MediumFlinchCooldown;
-            ClearMediumWindow();
+            nextFlinchAt = Time.time + cooldown;
         }
         else
             RecordFeedbackOnly();
@@ -152,9 +128,11 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
         int sourceId = info.source != null ? info.source.GetInstanceID() : 0;
         if (info.sourceAttackSequenceId != 0)
         {
-            long key = ((long)sourceId << 32) ^ (uint)info.sourceAttackSequenceId;
+            var key = (sourceId, info.sourceAttackSequenceId, info.sourceAttackPhaseIndex);
             if (!mediumSequences.Add(key))
                 return false;
+            recentSequences.Enqueue(key);
+            if (recentSequences.Count > 128) mediumSequences.Remove(recentSequences.Dequeue());
         }
         else
         {
@@ -169,11 +147,11 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
         return true;
     }
 
-    private bool ApplyFlinch(DamageInfo info)
+    private bool ApplyFlinch(DamageInfo info, float cooldown)
     {
         if (reaction != null && reaction.HitWeightProfile != null)
         {
-            if (!reaction.TryApplyWeightedHit(info))
+            if (!reaction.TryApplyWeightedHit(info, cooldown))
                 return false;
         }
         else if (reaction != null)
@@ -210,6 +188,7 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
     private void ClearMediumWindow()
     {
         mediumSequences.Clear();
+        recentSequences.Clear();
         missingSequenceTimes.Clear();
         distinctHitCount = 0;
         lastDistinctHitAt = 0f;

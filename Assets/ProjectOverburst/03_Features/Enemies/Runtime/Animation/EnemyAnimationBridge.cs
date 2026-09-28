@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class EnemyAnimationBridge : MonoBehaviour
@@ -20,8 +19,6 @@ public class EnemyAnimationBridge : MonoBehaviour
     [SerializeField] private EnemyDefenseController defenseController; // 방패 방어 연결
     [SerializeField] private float hitStunDuration = 0.4f;
     [SerializeField] private float knockbackReactionDuration = 0.4f;
-    [SerializeField] private float hitReactionAnimationSpeedMultiplier = 2.5f;
-    [SerializeField] private float hitAnimationSpeedBoostDuration = 0.45f;
 
     private CombatHealth health;
     private EnemyHitResponseCoordinator hitResponseCoordinator;
@@ -41,8 +38,6 @@ public class EnemyAnimationBridge : MonoBehaviour
     private static readonly int HitXHash = Animator.StringToHash("HitX");
     private static readonly int HitZHash = Animator.StringToHash("HitZ");
     private bool isDead;
-    private Coroutine hitSpeedRoutine;
-    private float animatorSpeedBeforeHit = 1f;
     private string blockingActionStateName;
     private float blockingActionRequestTime;
     private bool blockingActionEntered;
@@ -102,7 +97,6 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         RestoreFrozenAnimatorSpeed();
         isFrozen = false;
-        ResetHitAnimationSpeed();
         ClearBlockingAction();
 
         if (health != null)
@@ -129,7 +123,6 @@ public class EnemyAnimationBridge : MonoBehaviour
     public void ResetForReuse()
     {
         RestoreFrozenAnimatorSpeed();
-        ResetHitAnimationSpeed();
         ClearBlockingAction();
         isDead = false;
         isFrozen = false;
@@ -208,7 +201,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (isDead || isFrozen)
             return;
 
-        BeginHitAnimationSpeedBoost();
+        // Hit/Death state speeds are authored independently; never accelerate the whole Animator.
         BeginBlockingAction(hitStateName);
 
         if (IsHitAnimationActive())
@@ -268,7 +261,6 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         RestoreFrozenAnimatorSpeed();
         isFrozen = false; // 사망 표현이 빙결보다 우선
-        ResetHitAnimationSpeed();
         ClearBlockingAction();
         isDead = true;
         SetMoveAmount(0f);
@@ -499,7 +491,6 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private void ForceFrozenIdle()
     {
-        ResetHitAnimationSpeed();
         ClearBlockingAction();
         if (animator == null)
             return;
@@ -588,41 +579,6 @@ public class EnemyAnimationBridge : MonoBehaviour
             defenseController = GetComponentInParent<EnemyDefenseController>();
         if (defenseController == null)
             defenseController = GetComponentInChildren<EnemyDefenseController>(true);
-    }
-
-    private void BeginHitAnimationSpeedBoost()
-    {
-        if (animator == null)
-            return;
-
-        if (hitSpeedRoutine != null)
-        {
-            StopCoroutine(hitSpeedRoutine);
-            animator.speed = animatorSpeedBeforeHit;
-        }
-
-        animatorSpeedBeforeHit = animator.speed;
-        animator.speed = animatorSpeedBeforeHit * Mathf.Max(0.01f, hitReactionAnimationSpeedMultiplier);
-        hitSpeedRoutine = StartCoroutine(RestoreHitAnimationSpeedAfterDelay());
-    }
-
-    private IEnumerator RestoreHitAnimationSpeedAfterDelay()
-    {
-        yield return new WaitForSeconds(Mathf.Max(0f, hitAnimationSpeedBoostDuration));
-        if (animator != null)
-            animator.speed = animatorSpeedBeforeHit;
-        hitSpeedRoutine = null;
-    }
-
-    private void ResetHitAnimationSpeed()
-    {
-        if (hitSpeedRoutine == null)
-            return;
-
-        StopCoroutine(hitSpeedRoutine);
-        hitSpeedRoutine = null;
-        if (animator != null)
-            animator.speed = animatorSpeedBeforeHit;
     }
 
     private static string ResolveAttackStateName(string triggerName)

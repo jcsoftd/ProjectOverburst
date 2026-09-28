@@ -16,6 +16,19 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private CombatHealth health;
     private int lastCommittedAbilityIndex = -1;
     private EnemyAbilityDefinition lastCommittedAbility;
+    private float lastCommittedAt;
+    public bool IsOrdinaryHitProtected
+    {
+        get
+        {
+            if (!IsExecuting || lastCommittedAbility == null || !lastCommittedAbility.IsTelegraphedStrongAttack) return false;
+            float natural = meleeExecutor.ResolveAbilityCooldown(lastCommittedAbility.AttackAnimationDuration * lastCommittedAbility.HitNormalizedTime);
+            float first = Mathf.Max(lastCommittedAbility.MinimumWarningTime, natural);
+            float last = first + meleeExecutor.ResolveAbilityCooldown(lastCommittedAbility.AttackAnimationDuration
+                * (lastCommittedAbility.GetHitNormalizedTime(lastCommittedAbility.HitCount - 1) - lastCommittedAbility.HitNormalizedTime));
+            return Time.time >= lastCommittedAt + first - .30f && Time.time <= lastCommittedAt + last;
+        }
+    }
     private EnemyMovement movement;
     private EnemyMovementReaction reaction;
     private EnemyAnimationBridge animationBridge;
@@ -155,6 +168,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             Time.time + selected.Executor.ResolveCooldown(selected.Ability.Cooldown);
         lastCommittedAbilityIndex = selected.Index;
         lastCommittedAbility = selected.Ability;
+        lastCommittedAt = Time.time;
         return true;
     }
 

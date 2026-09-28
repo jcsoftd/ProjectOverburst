@@ -1401,7 +1401,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
             activeHitFeedbackSequenceId,
             activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
-            hit.PhaseIndex));
+            hit.PhaseIndex,
+            ResolveWeakKnockbackDistance(phase)));
 
         if (hasDischargeTarget && result.ActualDamage > 0f
             && activeDischarge.TryResolveConfirmedHit(
@@ -1459,6 +1460,19 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         EnemyMovementReaction movementReaction = targetHealth.GetComponentInParent<EnemyMovementReaction>();
         if (movementReaction != null)
             movementReaction.ExtendKnockbackReaction(airborneStunDuration > 0f ? airborneStunDuration : 0.35f);
+    }
+
+    private float ResolveWeakKnockbackDistance(AttackPhaseData phase)
+    {
+        if (activeAttackIsHeavy || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword)
+            return -1f;
+        float advance = 0f;
+        if (activeAttackStep.movementPhases != null)
+            foreach (var move in activeAttackStep.movementPhases) advance += Mathf.Max(0f, move.distance);
+        float phaseWeight = 0f;
+        foreach (var candidate in activeAttackPhases) phaseWeight += candidate.impact.SafeDamageMultiplier;
+        return advance * Mathf.Min(1f, .9f * Mathf.Max(0f, activeWeaponData.baseStats.knockback) / 4f)
+            * phase.impact.SafeDamageMultiplier / Mathf.Max(.001f, phaseWeight);
     }
 
     private float GetActiveCritChance()

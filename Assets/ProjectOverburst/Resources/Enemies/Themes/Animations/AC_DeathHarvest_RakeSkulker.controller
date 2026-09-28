@@ -181,7 +181,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Get_hit
-  m_Speed: 1
+  m_Speed: 1.35
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 8354020595116732600}
@@ -262,7 +262,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Death
-  m_Speed: 1
+  m_Speed: 1.35
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []

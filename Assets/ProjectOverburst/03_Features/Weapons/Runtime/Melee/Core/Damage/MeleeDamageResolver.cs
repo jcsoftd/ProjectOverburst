@@ -18,6 +18,7 @@ public readonly struct MeleeDamageRequest
     public readonly int SourceAttackSequenceId;
     public readonly int SourceAttackPhaseIndex;
     public readonly PlayerAttackKind AttackKind;
+    public readonly float WeakKnockbackDistance;
 
     public MeleeDamageRequest(
         IDamageable target,
@@ -35,7 +36,8 @@ public readonly struct MeleeDamageRequest
         string sourceWeaponRuntimeInstanceId = "",
         int sourceAttackSequenceId = 0,
         PlayerAttackKind attackKind = PlayerAttackKind.Weak,
-        int sourceAttackPhaseIndex = 0)
+        int sourceAttackPhaseIndex = 0,
+        float weakKnockbackDistance = -1f)
     {
         Target = target;
         Damage = damage;
@@ -53,6 +55,7 @@ public readonly struct MeleeDamageRequest
         SourceAttackSequenceId = sourceAttackSequenceId;
         SourceAttackPhaseIndex = sourceAttackPhaseIndex;
         AttackKind = attackKind;
+        WeakKnockbackDistance = weakKnockbackDistance;
     }
 }
 
@@ -114,7 +117,8 @@ public static class MeleeDamageResolver
             request.SourceAttackSequenceId,
             request.Element == WeaponElement.None ? request.AttackKind
                 : request.AttackKind | PlayerAttackKind.Elemental,
-            request.SourceAttackPhaseIndex);
+            request.SourceAttackPhaseIndex,
+            weakKnockbackDistance: request.WeakKnockbackDistance);
 
         request.Target.TakeDamage(info);
         float actualDamage = targetHealth != null && hpBeforeHit >= 0f

@@ -22,6 +22,14 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     [SerializeField, Range(0f, 100f)] private float referencePatternDamagePercent;
     public float ReferencePatternDamagePercent => referencePatternDamagePercent;
     public bool UsesLevelDamageBudget => referencePatternDamagePercent > 0f;
+    [SerializeField] private bool telegraphedStrongAttack;
+    [SerializeField, Min(0f)] private float minimumWarningTime;
+    [SerializeField, Min(0f)] private float minimumRecoveryTime;
+    [SerializeField] private bool parryable;
+    public bool IsTelegraphedStrongAttack => telegraphedStrongAttack;
+    public float MinimumWarningTime => telegraphedStrongAttack ? Mathf.Max(0f, minimumWarningTime) : 0f;
+    public float MinimumRecoveryTime => Mathf.Max(0f, minimumRecoveryTime);
+    public bool IsParryable => telegraphedStrongAttack && parryable;
     public float ResolveDamage(int level) => UsesLevelDamageBudget
         ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
             * referencePatternDamagePercent / (100f * HitCount))) : Damage;

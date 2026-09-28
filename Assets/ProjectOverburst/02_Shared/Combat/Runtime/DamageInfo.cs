@@ -24,6 +24,7 @@ public struct DamageInfo
     public int sourceAttackPhaseIndex;
     public PlayerAttackKind playerAttackKind;
     public EnemyAbilityDefinition enemyAbility;
+    public float weakKnockbackDistance;
 
     public DamageInfo(
         float damage,
@@ -43,7 +44,8 @@ public struct DamageInfo
         PlayerAttackKind playerAttackKind = PlayerAttackKind.Unspecified,
         int sourceAttackPhaseIndex = 0,
         bool usesResolvedTickDamage = false,
-        EnemyAbilityDefinition enemyAbility = null)
+        EnemyAbilityDefinition enemyAbility = null,
+        float weakKnockbackDistance = -1f)
     {
         this.damage = damage;
         this.hitPoint = hitPoint;
@@ -63,5 +65,6 @@ public struct DamageInfo
         this.sourceAttackPhaseIndex = sourceAttackPhaseIndex;
         this.playerAttackKind = playerAttackKind;
         this.enemyAbility = enemyAbility;
+        this.weakKnockbackDistance = weakKnockbackDistance;
     }
 }

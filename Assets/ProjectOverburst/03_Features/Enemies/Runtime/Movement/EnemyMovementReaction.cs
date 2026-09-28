@@ -33,14 +33,21 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         ResetVisualLift(); visualReactionRoot=root; visualBaseCaptured=false;
     }
 
-    public bool TryApplyWeightedHit(DamageInfo info)
+    public bool TryApplyWeightedHit(DamageInfo info, float coordinatedCooldown = -1f)
     {
         var profile=HitWeightProfile;
         if(!CanApplyWeightedHit || info.isDamageOverTime || !info.triggersOnHitEffects) return false;
-        nextWeightedReaction=Time.time+profile.ReactionCooldown;
+        nextWeightedReaction=Time.time+(coordinatedCooldown >= 0f ? coordinatedCooldown : profile.ReactionCooldown);
         Vector3 direction=info.direction;
         if(direction.sqrMagnitude<.0001f && info.source!=null) direction=transform.position-info.source.transform.position;
-        ApplyKnockback(direction,info.knockback);
+        if (info.weakKnockbackDistance >= 0f && (info.playerAttackKind & PlayerAttackKind.Weak) != 0)
+        {
+            float weight = rank != null && rank.GradeType == EnemyGradeType.Boss ? 0f
+                : rank != null && rank.Rank == EnemyRankType.Elite ? .2f
+                : profile.Weight == EnemyHitWeight.Light ? 1f : .5f;
+            ApplyKnockbackDistance(direction, info.weakKnockbackDistance * weight);
+        }
+        else ApplyKnockback(direction,info.knockback);
         float stagger=info.hitReaction.overridesTargetDefaults
             ? (info.knockback>0f?info.hitReaction.knockbackReactionDuration:info.hitReaction.hitStunDuration)
             : profile.StaggerDuration;
@@ -115,26 +122,30 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
 
     public void ApplyKnockback(Vector3 direction, float strength)
     {
+        ResolveReferences();
+        ApplyKnockbackDistance(direction, ResolveKnockbackDistance(strength));
+    }
+
+    public void ApplyKnockbackDistance(Vector3 direction, float distance)
+    {
         if (IsDead())
             return;
 
         direction.y = 0f;
-        float resolvedStrength = Mathf.Max(0f, strength);
-        if (direction.sqrMagnitude <= 0.0001f || resolvedStrength <= 0f)
+        distance = Mathf.Max(0f, distance);
+        if (direction.sqrMagnitude <= 0.0001f || distance <= 0f)
             return;
 
         ResolveReferences();
         motor?.Stop();
 
         Vector3 startPosition = transform.position;
-        float distance = ResolveKnockbackDistance(resolvedStrength);
         float travelDuration = Mathf.Max(Time.fixedDeltaTime, HitWeightProfile != null ? HitWeightProfile.TravelDuration : knockbackTravelDuration);
         knockbackStartPosition = startPosition;
         knockbackTargetPosition = startPosition + direction.normalized * distance;
         knockbackTravelStartTime = Time.time;
         knockbackTravelEndTime = Time.time + travelDuration;
         knockbackEndTime = Mathf.Max(knockbackEndTime, knockbackTravelEndTime);
-        hitStunEndTime = 0f;
         ReactionStarted?.Invoke();
     }
 
@@ -148,7 +159,6 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             return;
 
         knockbackEndTime = Mathf.Max(knockbackEndTime, Time.time + resolvedDuration);
-        hitStunEndTime = 0f;
     }
 
     public float ResolveKnockbackDistance(float strength)
