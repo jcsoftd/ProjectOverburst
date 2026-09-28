@@ -101,9 +101,14 @@ public sealed class OverburstGameUI : MonoBehaviour
         energyText.text=energyValue;
         bool dungeon=WorldSessionState.Phase==WorldPhase.Run;
         var contentScene=WorldSessionState.ContentScene;
-        if(contentScene.isLoaded&&contentScene.handle!=minimapScene&&context.CurrentActor&&WorldMinimapController.Instance&&PersistentSceneFlow.Instance&&!PersistentSceneFlow.Instance.IsSwitching){
+        var minimap=WorldMinimapController.Instance;
+        var sceneFlow=PersistentSceneFlow.Instance;
+        if(!WorldSessionState.IsHideout||(sceneFlow!=null&&sceneFlow.IsSwitching)){
+            if(minimapScene!=int.MinValue){minimap?.ForceHide();minimapScene=int.MinValue;}
+        }
+        else if(contentScene.isLoaded&&contentScene.handle!=minimapScene&&context.CurrentActor&&minimap&&sceneFlow){
             minimapScene=contentScene.handle;
-            WorldMinimapController.Instance.ShowForScene(context.CurrentActor.transform,minimapScene);
+            minimap.ShowForScene(context.CurrentActor.transform,minimapScene);
         }
         region.text=dungeon?"던전":"은신처";regionDetails.text=dungeon?"던전 탐험 중":"상인 · 창고 · 던전 포탈";
         var inv=context.CurrentActorInventory;if(inv){int used=0;foreach(var item in inv.Items)if(item!=null)used++;inventoryCapacity.text=$"{used} / {inv.UnlockedSlotCount}";}
