@@ -108,11 +108,13 @@ public sealed class MeleeHeavyDischargeExecutor
             return;
 
         float directBonus = result.BonusDamage;
+        var resolvingDischarge = discharge;
         if (result.Element == WeaponElement.Ice && result.Shattered)
             ShatterWaveScheduler.Submit(target, directBonus, sourceActor,
                 definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius);
         else
             DealDerivedDamage(target, directBonus, hitPoint, facing);
+        if (discharge != resolvingDischarge) return;
         if (result.Element == WeaponElement.Fire || result.Element == WeaponElement.Electric)
             batch.ConfirmInitial(target);
         if (result.Element == WeaponElement.Electric && result.ConsumedStacks > 0)
@@ -233,9 +235,11 @@ public sealed class MeleeHeavyDischargeExecutor
             if (!lightVisited.Add(health.GetInstanceID())) continue;
 
             bool captured = discharge.TryCaptureTarget(health, out OverburstElementDischarge.TargetSnapshot snapshot);
+            var resolvingDischarge = discharge;
             float before = health.CurrentHp;
             DealDerivedDamage(health, discharge.BaseDamage * tuning.SafeLightAfterglowDamageFraction,
                 target.WorldCenter, (target.WorldCenter - impactCenter).normalized);
+            if (discharge != resolvingDischarge) return;
             if (!captured || !discharge.TryResolveConfirmedHit(snapshot,
                     Mathf.Max(0f, before - health.CurrentHp), out OverburstDischargeResult result)) continue;
             float statusBonus = Mathf.Max(0f, result.BonusDamage);

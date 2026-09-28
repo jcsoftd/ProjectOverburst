@@ -1003,7 +1003,9 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         }
 
         CommitHeavyDischargeAtImpact(normalizedTime);
+        if (!isAttacking) return;
         attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
+        if (!isAttacking) return;
         heavyDischargeExecutor.ResolvePendingArea();
         heavyDischargeExecutor.Tick(Time.deltaTime);
 
@@ -1389,6 +1391,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         WeaponElement attackElement = ResolveActiveAttackElement();
         bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
             || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
+        int hitActionId = activeActionId;
+        var hitDischarge = activeDischarge;
         MeleeDamageResult result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
             hit.Damageable,
             runtimeData.Damage,
@@ -1408,6 +1412,10 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
             hit.PhaseIndex,
             ResolveWeakKnockbackDistance(phase)));
+
+        // Lethal-hit rewards may synchronously restore the account projection and end this action.
+        // Its damage has committed, but its cleared discharge/feedback state must not be reused.
+        if (activeActionId != hitActionId || activeDischarge != hitDischarge) return;
 
         if (hasDischargeTarget && result.ActualDamage > 0f
             && activeDischarge.TryResolveConfirmedHit(
