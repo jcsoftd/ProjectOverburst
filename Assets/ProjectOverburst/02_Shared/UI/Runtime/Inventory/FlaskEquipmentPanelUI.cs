@@ -34,6 +34,7 @@ public sealed class FlaskEquipmentPanelUI : MonoBehaviour
 
     private void Awake() { Resolve(); BindListeners(); }
     private void OnEnable() { Resolve(); BindListeners(); Refresh(); }
+    private void OnDisable() { CloseKeyPicker(); }
     private void Update() { Refresh(); }
 
     private void Resolve()

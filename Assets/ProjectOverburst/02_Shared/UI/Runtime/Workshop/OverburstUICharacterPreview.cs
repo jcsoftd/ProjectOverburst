@@ -197,12 +197,19 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
             Transform sourceRoot = adapter ? adapter.ModelRoot : null;
             if (!sourceRoot)
             {
-                model.SetActive(false);
                 ClearEquipmentVisuals();
                 displayedActor = actor;
                 displayedWeapon = null;
                 displayedShield = null;
                 displayedAppearance = 0;
+                if (FindFirstObjectByType<OverburstUIWorkshop>(FindObjectsInactive.Include) != null)
+                {
+                    model.SetActive(true);
+                    SampleIdle(GetIdleTime(Time.realtimeSinceStartupAsDouble));
+                    FrameModel();
+                }
+                else
+                    model.SetActive(false);
                 return;
             }
 
