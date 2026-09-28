@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa3b7e6093d78d14684c2620dbc6361b, type: 3}
+  m_Name: GRS_Catalog036
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponItemData
+  itemName: "\uBC14\uC2A4\uD0C0\uB4DC \uC18C\uB4DC"
+  icon: {fileID: 21300000, guid: 144e43a0d4d65be4f84df6c64a1af7f5, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uC911\uAC04\uD615 \xB7 \uADE0\uD615 \uC7A1\uD78C \uD3ED \xB7 \uD3ED\uC774
+    \uACE0\uB978 \uB0A0 \xB7 \uADE0\uD615\uD615"
+  weight: 0
+  sellPrice: 35
+  worldPickupPrefab: {fileID: 0}
+  possibleStats: []
+  weaponClass: 9
+  defaultElement: 0
+  baseStats:
+    damage: 20
+    elementalDischargePower: 0
+    criticalChance: 15
+    criticalDamageMultiplier: 1.6
+    range: 3
+    knockback: 4
+  weaponRootPrefab: {fileID: 0}
+  combatDefinition: {fileID: 11400000, guid: b764ae19e095800489166de710633a9f, type: 2}
