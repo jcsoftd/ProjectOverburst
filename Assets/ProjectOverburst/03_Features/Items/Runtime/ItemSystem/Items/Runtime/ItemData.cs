@@ -418,7 +418,8 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
         IList<WeaponGradeStatRoll> rolls,
         MeleeStarDistributionProfile distributionProfile)
     {
-        if (!IsMeleeWeapon(weaponData) || rolls == null || rolls.Count != MeleeRollableStats.Length)
+        if (!IsMeleeWeapon(weaponData) || rolls == null || rolls.Count != MeleeRollableStats.Length
+            || !System.Enum.IsDefined(typeof(MeleeStarDistributionProfile), distributionProfile))
             return false;
 
         HashSet<WeaponGradeStatType> foundStats = new HashSet<WeaponGradeStatType>();
@@ -430,7 +431,9 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
             WeaponGradeStatRoll roll = rolls[rollIndex];
             if (roll == null || !IsMeleeStat(roll.statType) || !foundStats.Add(roll.statType))
                 return false;
-            if (roll.positiveStarCount < 0 || roll.negativeStarCount < 0)
+            if (roll.positiveStarCount < 0 || roll.negativeStarCount < 0
+                || float.IsNaN(roll.positiveTotalValue) || float.IsInfinity(roll.positiveTotalValue)
+                || float.IsNaN(roll.negativeTotalValue) || float.IsInfinity(roll.negativeTotalValue))
                 return false;
             if (roll.starRolls == null || roll.starRolls.Count != roll.TotalStarCount)
                 return false;
@@ -440,7 +443,7 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
             for (int starIndex = 0; starIndex < roll.starRolls.Count; starIndex++)
             {
                 WeaponGradeStarRoll star = roll.starRolls[starIndex];
-                if (star == null)
+                if (star == null || !System.Enum.IsDefined(typeof(WeaponGradeStarType), star.starType))
                     return false;
 
                 bool shouldBeNegative = starIndex >= roll.positiveStarCount;
@@ -460,9 +463,9 @@ public static class WeaponGradeStatRoller // 등급 별 롤러
                 return false;
             }
 
-            float positiveCap = GetMeleeMaximumPositiveGradeValue(weaponData, roll.statType);
-            if (!float.IsPositiveInfinity(positiveCap) && roll.positiveTotalValue > positiveCap + 0.0001f)
-                return false;
+            // 저장된 별의 유효성은 현재 무기 기본 수치에 종속되지 않는다.
+            // 생성 한도는 롤러에서, 실제 적용 상한은 WeaponStatCalculator에서 처리한다.
+            // 기본 수치가 상향돼도 정상 보유품의 별을 버리거나 다시 뽑지 않는다.
 
             totalPositive += roll.positiveStarCount;
             totalNegative += roll.negativeStarCount;
