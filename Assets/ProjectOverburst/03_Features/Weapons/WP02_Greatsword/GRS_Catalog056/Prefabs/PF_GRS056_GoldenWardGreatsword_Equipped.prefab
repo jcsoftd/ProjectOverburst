@@ -1,0 +1,605 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1518677139326967757
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8643421670709007643}
+  m_Layer: 0
+  m_Name: SlashVfxAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8643421670709007643
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1518677139326967757}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.1, z: 0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4067497505629750694}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2546509135192626782
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 898631166385620047}
+  m_Layer: 0
+  m_Name: RightHandGripPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &898631166385620047
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2546509135192626782}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: -0.13052624, w: 0.9914449}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7412322023707934607}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -15}
+--- !u!1 &2623852652948037869
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 529544589139858367}
+  m_Layer: 0
+  m_Name: WeaponTip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &529544589139858367
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2623852652948037869}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8160505925683580182}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3906833439135235798
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2684055560773533936}
+  - component: {fileID: 6416525379994445167}
+  - component: {fileID: 7371681402397799188}
+  - component: {fileID: 210847888033934246}
+  - component: {fileID: 8570053113170010812}
+  - component: {fileID: 1591377604016817728}
+  m_Layer: 0
+  m_Name: PF_GRS056_GoldenWardGreatsword_Equipped
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2684055560773533936
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5011652435873985761}
+  - {fileID: 7412322023707934607}
+  - {fileID: 4067497505629750694}
+  - {fileID: 8160505925683580182}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6416525379994445167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e56c1c838e47b6a42e8ad36095d21a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerController: {fileID: 0}
+  playerEquipment: {fileID: 0}
+  poseTarget: {fileID: 2684055560773533936}
+  gripMount: {fileID: 0}
+  autoUpdate: 1
+  holdLocalPosition: {x: 0, y: 0, z: 0}
+  holdLocalRotation: {x: 0, y: 0, z: 0}
+  useBackFloatingPose: 1
+  backAnchorLocalPosition: {x: 0, y: 0, z: 0}
+  backAnchorLocalRotation: {x: 0, y: 0, z: 0}
+  backLocalPosition: {x: 0, y: 0, z: 0}
+  backLocalRotation: {x: 0, y: 0, z: 0}
+  aimLocalPosition: {x: 0, y: 0, z: 0}
+  aimLocalRotation: {x: 0, y: 0, z: 0}
+  guardLocalPosition: {x: -0.05, y: 0.03, z: 0}
+  guardLocalRotation: {x: 0, y: 0, z: 40}
+  poseChangeSpeed: 14
+  snapWhenReturningToBack: 1
+  enableBackFloatLag: 1
+  backFollowSmoothTime: 0.08
+  backFloatMaxLagDistance: 0.12
+  backFloatLagStrength: 0.8
+  backFloatBobAmount: 0.015
+  backFloatBobSpeed: 2.2
+  enableWeaponFade: 1
+  fadeInSpeed: 12
+  fadeOutSpeed: 18
+--- !u!114 &7371681402397799188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3b7c9d1e2f445a6b8c90123456789ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aimBackPoint: {fileID: 0}
+  aimForwardPoint: {fileID: 0}
+  attackSpawnPoint: {fileID: 0}
+  fireVfxAnchor: {fileID: 8643421670709007643}
+  reloadVfxAnchor: {fileID: 0}
+  shellEjectAnchor: {fileID: 0}
+--- !u!114 &210847888033934246
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5182393d12f0766479a6748685941e88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponTraceBinding
+  weaponTip: {fileID: 529544589139858367}
+--- !u!114 &8570053113170010812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04bf3dd4da4981841b76b54057fea2be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponGripMount
+  rightHandGripPoint: {fileID: 898631166385620047}
+  backGripPoint: {fileID: 4598846942984267259}
+--- !u!114 &1591377604016817728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3906833439135235798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08518be15bd326f44aa57578dcc6de1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
+  bladeRenderer: {fileID: 1579097325961213696}
+  bladeEffectBounds:
+    m_Center: {x: 0, y: 0, z: 0.52}
+    m_Extent: {x: 0.06, y: 0.03, z: 0.52}
+  auraAnchor: {fileID: 4067497505629750694}
+  trailAnchor: {fileID: 529544589139858367}
+  fireBladeAccent: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
+  iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricBladeAccent: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
+  darkBladeAccent: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
+  lightBladeAccent: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
+  fireTrail: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
+  iceTrail: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricTrail: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
+  darkTrail: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
+  lightTrail: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
+  fireTipTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
+  iceTipTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+  electricTipTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
+  darkTipTrail: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+  lightTipTrail: {fileID: 8099074118825668027, guid: a92ebdf897fa283428c50a41fe4411a5, type: 3}
+  tipTrailLifetime: 0.2
+  tipTrailWidthScale: 0.15
+  fireSettings:
+    idleStrength: 0.26
+    bladeThickness: 1.9738059
+    bladeCenter: 0.3997298
+    bladeLength: 1.2672966
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 0.5
+    trailParticleSize: 3
+    trailParticleLifetime: 0.3
+    trailSpread: 0.1
+  iceSettings:
+    idleStrength: 0.2
+    bladeThickness: 0.93682325
+    bladeCenter: 0.4327029
+    bladeLength: 1.3578037
+    trailScale: 0.9
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 2.03
+    trailParticleSize: 5
+    trailParticleLifetime: 0.34
+    trailSpread: 0.1
+  electricSettings:
+    idleStrength: 0.2
+    bladeThickness: 3
+    bladeCenter: 0.54836345
+    bladeLength: 1.0820272
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 1
+    trailParticleSize: 4
+    trailParticleLifetime: 0.34
+    trailSpread: 0.497
+  darkSettings:
+    idleStrength: 0.2
+    bladeThickness: 2.1847808
+    bladeCenter: 0.5
+    bladeLength: 1
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 2
+    trailParticleSize: 1
+    trailParticleLifetime: 1
+    trailSpread: 0
+  lightSettings:
+    idleStrength: 0.08
+    bladeThickness: 1.8416866
+    bladeCenter: 0.5301148
+    bladeLength: 1
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 0.25
+    trailParticleSize: 5
+    trailParticleLifetime: 1
+    trailSpread: 0.7
+--- !u!1 &4701686856106725625
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6181541249268388647}
+  m_Layer: 0
+  m_Name: ModelRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6181541249268388647
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4701686856106725625}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8423123156361254537}
+  m_Father: {fileID: 5011652435873985761}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5958689630833043994
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4067497505629750694}
+  m_Layer: 0
+  m_Name: VfxRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4067497505629750694
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5958689630833043994}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8643421670709007643}
+  m_Father: {fileID: 2684055560773533936}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6273510686006516645
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5011652435873985761}
+  m_Layer: 0
+  m_Name: VisualRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5011652435873985761
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6273510686006516645}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6181541249268388647}
+  m_Father: {fileID: 2684055560773533936}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6433600074160019362
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7412322023707934607}
+  m_Layer: 0
+  m_Name: GripRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7412322023707934607
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6433600074160019362}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.24, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 898631166385620047}
+  - {fileID: 4302026088976455210}
+  - {fileID: 4598846942984267259}
+  m_Father: {fileID: 2684055560773533936}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7466749257407236338
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4598846942984267259}
+  m_Layer: 0
+  m_Name: BackGripPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4598846942984267259
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7466749257407236338}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.17364816, w: 0.9848078}
+  m_LocalPosition: {x: 0, y: -0.278, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7412322023707934607}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 20}
+--- !u!1 &8682212274044599205
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8160505925683580182}
+  m_Layer: 0
+  m_Name: WeaponTrace
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8160505925683580182
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8682212274044599205}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 529544589139858367}
+  m_Father: {fileID: 2684055560773533936}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8929062746320919815
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4302026088976455210}
+  m_Layer: 0
+  m_Name: LeftHandGripPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4302026088976455210
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8929062746320919815}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.068, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7412322023707934607}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &7100549163658681132
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6181541249268388647}
+    m_Modifications:
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4012655943567015075, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+      propertyPath: m_Name
+      value: PF_GRS056_GoldenWardGreatsword_Visual
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+--- !u!23 &1579097325961213696 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8601914316003568684, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+  m_PrefabInstance: {fileID: 7100549163658681132}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8423123156361254537 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1616447268688563621, guid: 5ea4253984a34b84f80bea5731241f46, type: 3}
+  m_PrefabInstance: {fileID: 7100549163658681132}
+  m_PrefabAsset: {fileID: 0}
