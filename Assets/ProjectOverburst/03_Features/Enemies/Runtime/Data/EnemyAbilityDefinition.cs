@@ -23,24 +23,60 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public float ReferencePatternDamagePercent => referencePatternDamagePercent;
     public bool UsesLevelDamageBudget => referencePatternDamagePercent > 0f;
     [SerializeField] private bool telegraphedStrongAttack;
+    [SerializeField] private bool telegraphedAttack;
+    [SerializeField, Min(.1f)] private float preparationDuration = .55f;
+    [SerializeField, Min(.05f)] private float releaseDuration = .14f;
+    [SerializeField, Min(.05f)] private float recoveryDuration = .28f;
+    public bool IsTelegraphedAttack => telegraphedAttack || telegraphedStrongAttack;
+    public bool UsesPacedTimeline => telegraphedAttack;
+    private float PreparationEnd => Mathf.Max(.02f, HitNormalizedTime - .12f);
+    private float LastHit => GetHitNormalizedTime(HitCount - 1);
     [SerializeField, Min(0f)] private float minimumWarningTime;
     [SerializeField, Min(0f)] private float minimumRecoveryTime;
     [SerializeField] private bool parryable;
     public bool IsTelegraphedStrongAttack => telegraphedStrongAttack;
     public float MinimumWarningTime => telegraphedStrongAttack ? Mathf.Max(0f, minimumWarningTime) : 0f;
     public float MinimumRecoveryTime => Mathf.Max(0f, minimumRecoveryTime);
-    public bool IsParryable => telegraphedStrongAttack && parryable;
+    public bool IsParryable => IsTelegraphedAttack && parryable;
+    private float PreparationSeconds(float speed) => Mathf.Max(.42f,
+        preparationDuration / Mathf.Max(.01f, speed));
+    private float ReleaseSeconds(float speed) => Mathf.Max(.10f,
+        releaseDuration / Mathf.Max(.01f, speed));
+    private float RecoverySeconds(float speed) => Mathf.Max(MinimumRecoveryTime,
+        recoveryDuration / Mathf.Max(.01f, speed));
+    public float ResolvePacedTime(float normalized, float speed)
+    {
+        normalized = Mathf.Clamp01(normalized);
+        if (!UsesPacedTimeline) return AttackAnimationDuration * normalized / Mathf.Max(.01f, speed);
+        float prep = PreparationEnd;
+        float releaseRate = ReleaseSeconds(speed) / (HitNormalizedTime - prep);
+        if (normalized <= prep) return PreparationSeconds(speed) * normalized / prep;
+        float time = PreparationSeconds(speed);
+        if (normalized <= LastHit) return time + (normalized - prep) * releaseRate;
+        return time + (LastHit - prep) * releaseRate
+            + (normalized - LastHit) * RecoverySeconds(speed) / Mathf.Max(.01f, 1f - LastHit);
+    }
+    public float ResolvePhaseAnimationSpeed(float normalized, float speed)
+    {
+        if (!UsesPacedTimeline) return Mathf.Max(.01f, speed);
+        float secondsPerNormalized = normalized < PreparationEnd
+            ? PreparationSeconds(speed) / PreparationEnd
+            : normalized < LastHit ? ReleaseSeconds(speed) / (HitNormalizedTime - PreparationEnd)
+            : RecoverySeconds(speed) / Mathf.Max(.01f, 1f - LastHit);
+        return AttackAnimationDuration / secondsPerNormalized;
+    }
     public float ResolveWindupDelay(float animationSpeed)
     {
+        if (UsesPacedTimeline) return 0f;
         float first = AttackAnimationDuration * HitNormalizedTime / Mathf.Max(.01f, animationSpeed);
         return Mathf.Max(0f, Mathf.Max(.15f, MinimumWarningTime) - first);
     }
     public float ResolveFirstImpactTime(float animationSpeed) => ResolveWindupDelay(animationSpeed)
-        + AttackAnimationDuration * HitNormalizedTime / Mathf.Max(.01f, animationSpeed);
+        + ResolvePacedTime(HitNormalizedTime, animationSpeed);
     public float ResolveLastImpactTime(float animationSpeed) => ResolveWindupDelay(animationSpeed)
-        + AttackAnimationDuration * GetHitNormalizedTime(HitCount - 1) / Mathf.Max(.01f, animationSpeed);
+        + ResolvePacedTime(LastHit, animationSpeed);
     public float ResolveExecutionDuration(float animationSpeed) => Mathf.Max(
-        ResolveWindupDelay(animationSpeed) + AttackAnimationDuration / Mathf.Max(.01f, animationSpeed),
+        ResolveWindupDelay(animationSpeed) + ResolvePacedTime(1f, animationSpeed),
         ResolveLastImpactTime(animationSpeed) + MinimumRecoveryTime);
     public float ResolveDamage(int level) => UsesLevelDamageBudget
         ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)

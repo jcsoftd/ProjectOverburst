@@ -24,17 +24,19 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private EnemyActor actor;
     private EnemyThemeSpecialExecutor themeExecutor;
     private bool finalImpactDelivered;
+    private int nextImpactIndex;
+    private bool warningAimLocked;
     public void NotifyAbilityImpact(EnemyAbilityDefinition ability, int index)
     {
         if (ability != lastCommittedAbility) return;
+        nextImpactIndex = Mathf.Min(index + 1, ability.HitCount - 1);
         if (index >= ability.HitCount - 1) finalImpactDelivered = true;
     }
     public bool IsOrdinaryHitProtected
     {
         get
         {
-            if (!IsExecuting || lastCommittedAbility == null || !lastCommittedAbility.IsTelegraphedStrongAttack) return false;
-            return Time.time >= firstImpactAt - .30f && !finalImpactDelivered;
+            return IsExecuting && reaction != null && reaction.CanActThroughOrdinaryHit;
         }
     }
     public bool IsParryThreatTo(CombatTarget player)
@@ -61,7 +63,19 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         if (strongTarget == null) return;
         if (!IsExecuting) { EndStrongWarning(); return; }
-        if (Time.time < firstImpactAt - .30f)
+        if (finalImpactDelivered) { strongWarning?.Hide(); return; }
+        var currentAbility = lastCommittedAbility;
+        if (currentAbility != null && currentAbility.UsesPacedTimeline && animationBridge != null
+            && animationBridge.TryGetAttackNormalizedTime(currentAbility.AnimatorTrigger, out float progress))
+        {
+            float speed = meleeExecutor != null ? meleeExecutor.AbilityAnimationSpeed : 1f;
+            float elapsed = currentAbility.ResolvePacedTime(progress, speed);
+            firstImpactAt = Time.time + Mathf.Max(0f,
+                currentAbility.ResolvePacedTime(currentAbility.GetHitNormalizedTime(nextImpactIndex), speed) - elapsed);
+            lastImpactAt = Time.time + Mathf.Max(0f, currentAbility.ResolveLastImpactTime(speed) - elapsed);
+        }
+        if (Time.time >= firstImpactAt - .30f) warningAimLocked = true;
+        if (!warningAimLocked)
         {
             strongAim = strongTarget.position;
             Vector3 direction = strongAim - transform.position; direction.y = 0f;
@@ -71,14 +85,16 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         if (strongWarning != null)
         {
             EnemyAbilityDefinition ability = lastCommittedAbility;
-            Vector3 center = ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
+            Vector3 center = ability != null && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
+                    || ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 ? transform.position : ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
                     ? transform.position : meleeExecutor != null && meleeExecutor.AttackPoint != null
                         ? meleeExecutor.AttackPoint.position : transform.position;
             strongWarning.SetCenter(center);
-            if (ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge)
+            if (ability != null && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
+                || ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile))
             {
-                strongWarning.SetFacing(themeExecutor != null
+                strongWarning.SetFacing(ability.ExecutionMode == EnemyAbilityExecutionMode.Charge && themeExecutor != null
                     ? themeExecutor.ChargeDirection : strongAim - transform.position);
             }
             strongWarning.SetRemaining(firstImpactAt - Time.time);
@@ -95,8 +111,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         ResolveReferences();
         if (UsesCommittedAim && target != null && !HasPreparedAim(target)
             && !IsExecuting && !movement.IsActionLocked && !movement.IsStatusMovementLocked
-            && (animationBridge == null || !animationBridge.IsBlockingActionActive)
-            && (reaction == null || !reaction.IsStunned))
+            && (animationBridge == null || !animationBridge.BlocksAttackStart)
+            && (reaction == null || !reaction.BlocksAttack))
         {
             preparedTarget = target;
             preparedPosition = target.position;
@@ -233,19 +249,23 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         firstImpactAt = Time.time + first;
         lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
         finalImpactDelivered = false;
-        if (selected.Ability.IsTelegraphedStrongAttack)
+        nextImpactIndex = 0;
+        warningAimLocked = false;
+        if (selected.Ability.IsTelegraphedAttack)
         {
             strongTarget = target; strongAim = target.position;
             if (strongWarning == null) strongWarning = gameObject.AddComponent<EnemyStrongAttackWarning>();
             if (actor == null) actor = GetComponent<EnemyActor>();
-            strongWarning.Show(EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
+            bool projectile = selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile;
+            strongWarning.Show(projectile ? selected.Ability.Range + 2f
+                    : EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
                 selected.Ability.IsParryable,
                 selected.Ability.HitAngle,
-                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
+                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || projectile,
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
                     || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
-                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
-                first);
+                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || projectile,
+                first, projectile ? .14f : .4f);
         }
         return true;
     }

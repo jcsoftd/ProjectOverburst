@@ -19,6 +19,7 @@ public sealed class ParrySuccessVfx : MonoBehaviour
         var sparkMaterial = Resources.Load<Material>("Combat/VFX/MAT_OverburstParrySparks");
 
         sparks = root.AddComponent<ParticleSystem>();
+        sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = sparks.main;
         main.playOnAwake = false;
         main.loop = false;

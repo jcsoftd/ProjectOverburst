@@ -52,6 +52,9 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public bool HasAnimator { get { return animator != null; } }
     public bool IsFrozen { get { return isFrozen; } }
+    public bool BlocksAttackStart => IsBlockingActionActive
+        && !(blockingActionStateName == hitStateName && movementReaction != null
+            && movementReaction.CanActThroughOrdinaryHit && !movementReaction.BlocksAttack);
     public bool IsBlockingActionActive
     {
         get
@@ -198,7 +201,19 @@ public class EnemyAnimationBridge : MonoBehaviour
             return;
         }
 
-        PlayBlockingTrigger(triggerName, ResolveAttackStateName(triggerName));
+        string stateName = ResolveAttackStateName(triggerName);
+        bool interruptHit = (blockingActionStateName == hitStateName || IsHitAnimationActive()) && movementReaction != null
+            && movementReaction.CanActThroughOrdinaryHit && !movementReaction.BlocksAttack;
+        if (interruptHit && animator != null && HasState(stateName))
+        {
+            if (hasHitTrigger) animator.ResetTrigger(hitTriggerHash);
+            BeginBlockingAction(stateName);
+            int full = Animator.StringToHash("Base Layer." + stateName);
+            animator.CrossFadeInFixedTime(animator.HasState(0, full) ? full
+                : Animator.StringToHash(stateName), .07f, 0, 0f);
+            return;
+        }
+        PlayBlockingTrigger(triggerName, stateName);
     }
 
     public void PlayHit()
@@ -397,9 +412,9 @@ public class EnemyAnimationBridge : MonoBehaviour
             : knockbackReactionDuration;
 
         if (info.knockback > 0f)
-            movementReaction.ExtendKnockbackReaction(resolvedKnockbackReactionDuration); // 넉백 경직
+            movementReaction.ExtendKnockbackReaction(resolvedKnockbackReactionDuration, true); // 넉백 경직
         else
-            movementReaction.ApplyHitStun(resolvedHitStunDuration); // 피격 경직
+            movementReaction.ApplyHitStun(resolvedHitStunDuration, true); // 피격 경직
     }
 
     // Invoked by the single hit-response owner after it allows a flinch.

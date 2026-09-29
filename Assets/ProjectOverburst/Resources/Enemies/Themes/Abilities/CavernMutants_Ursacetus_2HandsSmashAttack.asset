@@ -18,8 +18,12 @@ MonoBehaviour:
   damage: 18
   referencePatternDamagePercent: 22
   telegraphedStrongAttack: 1
-  minimumWarningTime: 1.1
-  minimumRecoveryTime: 0.85
+  telegraphedAttack: 1
+  preparationDuration: 0.7
+  releaseDuration: 0.16
+  recoveryDuration: 0.34
+  minimumWarningTime: 0.86
+  minimumRecoveryTime: 0.34
   parryable: 1
   minimumRange: 0
   range: 2.0728047
@@ -27,7 +31,7 @@ MonoBehaviour:
   hitAngle: 360
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 6
+  cooldown: 2.8
   hitDelay: 2.6133335
   hitNormalizedTime: 0.49
   attackAnimationDuration: 5.3333335

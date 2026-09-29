@@ -81,8 +81,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         if (movementReaction != null)
         {
-            movementReaction.ReactionStarted -= CancelAttack;
-            movementReaction.ReactionStarted += CancelAttack;
+            movementReaction.ReactionStarted -= HandleReactionStarted;
+            movementReaction.ReactionStarted += HandleReactionStarted;
         }
 
         if (health != null)
@@ -98,7 +98,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         statusActionSpeedMultiplier = 1f;
 
         if (movementReaction != null)
-            movementReaction.ReactionStarted -= CancelAttack;
+            movementReaction.ReactionStarted -= HandleReactionStarted;
 
         if (health != null)
         {
@@ -126,6 +126,11 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         if (abilitySet != null && abilitySet.IsValid && ability == null)
             return false;
         return TryStartResolvedAttack(ability, selectedIndex, false);
+    }
+
+    private void HandleReactionStarted()
+    {
+        if (movementReaction == null || movementReaction.BlocksAttack) CancelAttack();
     }
 
     public bool CanStartAbility(
@@ -206,6 +211,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         }
 
+        movementReaction?.PrepareForAttack();
         attackRoutine = StartCoroutine(
             AttackRoutine(
                 triggerName,
@@ -267,6 +273,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         bool keepRangeGate = ability != null
             ? ability.RequireTargetInRangeUntilHit
             : requireTargetInRangeUntilHit;
+        if (ability != null && ability.IsTelegraphedAttack
+            && ability.ExecutionMode != EnemyAbilityExecutionMode.DirectTarget) keepRangeGate = false;
         if (abilityController != null && abilityController.HasPreparedAim(target)
             && ability != null && ability.ExecutionMode != EnemyAbilityExecutionMode.DirectTarget)
             keepRangeGate = false; // Spatial hit geometry decides whether the committed strike misses.
@@ -283,8 +291,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         {
             float minimumImpactLock =
                 resolvedAnimationDuration * (ability != null ? ability.GetHitNormalizedTime(ability.HitCount - 1) : resolvedHitNormalizedTime) + 0.05f;
-            movement.ApplyActionLock(Mathf.Max(executionDuration, windup + ResolveScaledTime(
-                Mathf.Max(resolvedAttackLockDuration, minimumImpactLock), resolvedAttackSpeed)));
+            movement.ApplyActionLock(ability != null && ability.UsesPacedTimeline ? executionDuration
+                : Mathf.Max(executionDuration, windup + ResolveScaledTime(
+                    Mathf.Max(resolvedAttackLockDuration, minimumImpactLock), resolvedAttackSpeed)));
         }
 
         while (Time.time < startedAt + windup)
@@ -295,7 +304,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         if (animationBridge != null)
         {
-            animationBridge.SetAttackAnimSpeed(resolvedAttackSpeed); // 공격 속도 적용
+            animationBridge.SetAttackAnimSpeed(ability != null
+                ? ability.ResolvePhaseAnimationSpeed(0f, resolvedAttackSpeed) : resolvedAttackSpeed);
             animationBridge.PlayAttack(triggerName); // 선택 공격 재생
         }
 
@@ -308,12 +318,15 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             bool stayedInRange = true;
             bool impactReached = false;
             bool useAnimatorTiming = animationBridge != null && animationBridge.HasAnimator;
-            float resolvedHitDelay = ResolveScaledTime(impactIndex == 0 ? resolvedHitDelayBase : resolvedAnimationDuration * impactTime, resolvedAttackSpeed); // 애니메이터 미연결 보조 시간
+            float resolvedHitDelay = ability != null && ability.UsesPacedTimeline
+                ? ability.ResolvePacedTime(impactTime, resolvedAttackSpeed)
+                : ResolveScaledTime(impactIndex == 0 ? resolvedHitDelayBase : resolvedAnimationDuration * impactTime, resolvedAttackSpeed);
             float attackStateEntryGrace = Mathf.Min(0.35f, Mathf.Max(0.15f, resolvedHitDelay));
             float maximumHitWait = Mathf.Max(
                 resolvedHitDelay,
                 ResolveScaledTime(resolvedAttackLockDuration, resolvedAttackSpeed) + 0.25f,
                 ResolveScaledTime(resolvedAnimationDuration, resolvedAttackSpeed) + 0.15f);
+            if (ability != null && ability.UsesPacedTimeline) maximumHitWait = executionDuration + .5f;
             while (elapsed < maximumHitWait)
             {
                 if (IsAttackInterrupted())
@@ -334,11 +347,19 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                     && animationBridge.TryGetAttackNormalizedTime(triggerName, out float normalizedTime))
                 {
                     observedAttackAnimation = true;
+                    if (ability != null) animationBridge.SetAttackAnimSpeed(
+                        ability.ResolvePhaseAnimationSpeed(normalizedTime, resolvedAttackSpeed));
                     if (normalizedTime >= Mathf.Clamp01(impactTime))
                     {
                         impactReached = true;
                         break; // 실제 공격 모션 타격 구간
                     }
+                }
+                else if (useAnimatorTiming && ability != null && ability.UsesPacedTimeline
+                    && !observedAttackAnimation && elapsed >= attackStateEntryGrace)
+                {
+                    stayedInRange = false;
+                    break; // 예고형 공격은 연결된 모션에 진입하지 못하면 피해도 취소한다.
                 }
                 else if (!useAnimatorTiming || (!observedAttackAnimation && elapsed >= attackStateEntryGrace))
                 {
@@ -390,7 +411,13 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         float recoveryEnd = Mathf.Max(startedAt + executionDuration,
             Time.time + (ability != null ? ability.MinimumRecoveryTime : 0f));
-        while (Time.time < recoveryEnd && !IsAttackInterrupted()) yield return null;
+        while (Time.time < recoveryEnd && !IsAttackInterrupted())
+        {
+            if (ability != null && animationBridge != null
+                && animationBridge.TryGetAttackNormalizedTime(triggerName, out float progress))
+                animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress, resolvedAttackSpeed));
+            yield return null;
+        }
         attackRoutine = null;
     }
 
@@ -412,10 +439,10 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         if (attackRoutine != null || Time.time < nextAttackTime)
             return false;
-        if ((movementReaction != null && movementReaction.IsStunned)
+        if ((movementReaction != null && movementReaction.BlocksAttack)
             || (movement != null && movement.IsActionLocked))
             return false;
-        if (animationBridge != null && animationBridge.IsBlockingActionActive)
+        if (animationBridge != null && animationBridge.BlocksAttackStart)
             return false; // 이전 공격 모션이 끝나기 전 새 타격 예약 금지
 
         if (candidateTarget == null && target == null)
@@ -440,7 +467,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         if (statusActionSpeedMultiplier <= 0f)
             return false;
-        if (movementReaction != null && movementReaction.IsStunned)
+        if (movementReaction != null && movementReaction.BlocksAttack)
             return false;
 
         return attackPoint != null;
@@ -452,7 +479,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return true;
         if (statusActionSpeedMultiplier <= 0f)
             return true;
-        if (movementReaction != null && movementReaction.IsStunned)
+        if (movementReaction != null && movementReaction.BlocksAttack)
             return true;
 
         return false;

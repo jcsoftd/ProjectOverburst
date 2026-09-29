@@ -174,7 +174,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     {
         if (!UsesRangedTactics || tacticalPositioning == null || !IsTargetValid()) return false;
         if (IsAttackInProgress() || movement != null && (movement.IsActionLocked || movement.IsStatusMovementLocked)
-            || animationBridge != null && animationBridge.IsBlockingActionActive) return true;
+            || animationBridge != null && animationBridge.BlocksAttackStart) return true;
         // Do not replace a committed aim while its turn is still completing.
         if (abilityController.HasPreparedAim(target) && !movement.IsFacingForAttack(abilityController.ResolveAimPosition(target)))
         { movement.StopMovement(); FaceTarget(); return true; }
@@ -440,7 +440,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
             ChangeToRoam();
         }
 
-        if (movementReaction != null && movementReaction.IsStunned)
+        if (movementReaction != null && movementReaction.BlocksAttack)
             return;
 
         if (!ShouldRunAiTick())
@@ -541,7 +541,7 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     }
 
     internal bool IsCommittedAttackPlaying => abilityController != null && abilityController.UsesCommittedAim
-        && (abilityController.IsExecuting || (animationBridge != null && animationBridge.IsBlockingActionActive)
+        && (abilityController.IsExecuting || (animationBridge != null && animationBridge.BlocksAttackStart)
             || (movement != null && movement.IsActionLocked));
 
     internal float AttackTargetDistance

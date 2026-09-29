@@ -45,14 +45,14 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             float weight = rank != null && rank.GradeType == EnemyGradeType.Boss ? 0f
                 : rank != null && rank.Rank == EnemyRankType.Elite ? .2f
                 : profile.Weight == EnemyHitWeight.Light ? 1f : .5f;
-            ApplyKnockbackDistance(direction, info.weakKnockbackDistance * weight);
+            ApplyKnockbackDistance(direction, info.weakKnockbackDistance * weight, true);
         }
-        else ApplyKnockback(direction,info.knockback);
+        else ApplyKnockback(direction,info.knockback, true);
         float stagger=info.hitReaction.overridesTargetDefaults
             ? (info.knockback>0f?info.hitReaction.knockbackReactionDuration:info.hitReaction.hitStunDuration)
             : profile.StaggerDuration;
-        if(IsKnockbackActive) ExtendKnockbackReaction(stagger);
-        else ApplyHitStun(stagger);
+        if(IsKnockbackActive) ExtendKnockbackReaction(stagger, true);
+        else ApplyHitStun(stagger, true);
         if(visualReactionRoot!=null && profile.VisualLiftHeight>0f)
         {
             if(!visualBaseCaptured){visualBasePosition=visualReactionRoot.localPosition;visualBaseCaptured=true;}
@@ -83,6 +83,18 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     private float knockbackEndTime; // 넉백 반응 종료
     private float hitStunEndTime; // 제자리 경직 종료
     private float parryStunEndTime;
+    private float forcedReactionEndTime;
+    public bool CanActThroughOrdinaryHit => rank != null
+        && (rank.GradeType == EnemyGradeType.Elite || rank.GradeType == EnemyGradeType.GreaterElite);
+    public bool BlocksAttack => IsParryStunned || Time.time < forcedReactionEndTime
+        || (!CanActThroughOrdinaryHit && IsStunned);
+    public void PrepareForAttack()
+    {
+        if (!CanActThroughOrdinaryHit || BlocksAttack) return;
+        knockbackEndTime = hitStunEndTime = knockbackTravelEndTime = 0f;
+        ResetVisualLift();
+        motor?.HoldPosition();
+    }
     public bool IsParryStunned => Time.time < parryStunEndTime;
     public float ParryStunRemaining => Mathf.Max(0f, parryStunEndTime - Time.time);
     public void ApplyParryStun(float duration)
@@ -117,9 +129,9 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             Debug.LogError("[EnemyMovementReaction] Player physical layer is missing.", this);
     }
 
-    public void ApplyHitStun(float duration)
+    public void ApplyHitStun(float duration, bool ordinaryHit = false)
     {
-        if (IsDead() || IsKnockbackActive)
+        if (IsDead())
             return;
 
         float resolvedDuration = Mathf.Max(0f, duration);
@@ -127,17 +139,18 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             return;
 
         hitStunEndTime = Mathf.Max(hitStunEndTime, Time.time + resolvedDuration);
+        if (!ordinaryHit) forcedReactionEndTime = Mathf.Max(forcedReactionEndTime, hitStunEndTime);
         motor?.HoldPosition();
         ReactionStarted?.Invoke();
     }
 
-    public void ApplyKnockback(Vector3 direction, float strength)
+    public void ApplyKnockback(Vector3 direction, float strength, bool ordinaryHit = false)
     {
         ResolveReferences();
-        ApplyKnockbackDistance(direction, ResolveKnockbackDistance(strength));
+        ApplyKnockbackDistance(direction, ResolveKnockbackDistance(strength), ordinaryHit);
     }
 
-    public void ApplyKnockbackDistance(Vector3 direction, float distance)
+    public void ApplyKnockbackDistance(Vector3 direction, float distance, bool ordinaryHit = false)
     {
         if (IsDead())
             return;
@@ -157,10 +170,11 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         knockbackTravelStartTime = Time.time;
         knockbackTravelEndTime = Time.time + travelDuration;
         knockbackEndTime = Mathf.Max(knockbackEndTime, knockbackTravelEndTime);
+        if (!ordinaryHit) forcedReactionEndTime = Mathf.Max(forcedReactionEndTime, knockbackEndTime);
         ReactionStarted?.Invoke();
     }
 
-    public void ExtendKnockbackReaction(float duration)
+    public void ExtendKnockbackReaction(float duration, bool ordinaryHit = false)
     {
         if (IsDead())
             return;
@@ -170,6 +184,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             return;
 
         knockbackEndTime = Mathf.Max(knockbackEndTime, Time.time + resolvedDuration);
+        if (!ordinaryHit) forcedReactionEndTime = Mathf.Max(forcedReactionEndTime, knockbackEndTime);
     }
 
     public float ResolveKnockbackDistance(float strength)
@@ -219,6 +234,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         knockbackEndTime = 0f;
         hitStunEndTime = 0f;
         parryStunEndTime = 0f;
+        forcedReactionEndTime = 0f;
         knockbackTravelEndTime = 0f;
         motor?.HoldPosition();
     }

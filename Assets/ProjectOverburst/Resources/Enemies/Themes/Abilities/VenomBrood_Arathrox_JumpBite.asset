@@ -16,13 +16,22 @@ MonoBehaviour:
   animatorTrigger: Attack2
   executionMode: 2
   damage: 10
+  referencePatternDamagePercent: 0
+  telegraphedStrongAttack: 0
+  telegraphedAttack: 1
+  preparationDuration: 0.72
+  releaseDuration: 0.14
+  recoveryDuration: 0.24
+  minimumWarningTime: 0.86
+  minimumRecoveryTime: 0.24
+  parryable: 1
   minimumRange: 1.8
   range: 4.8
   hitRadius: 1.522
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 5
+  cooldown: 2.8
   hitDelay: 0.41333336
   hitNormalizedTime: 0.62
   attackAnimationDuration: 0.6666667

@@ -36,12 +36,12 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             if (GetComponent<EnemyHitResponseCoordinator>() == null)
                 actor.Health.OnDamaged += Damaged;
         }
-        if (reaction != null) reaction.ReactionStarted += Cancel;
+        if (reaction != null) reaction.ReactionStarted += HandleReactionStarted;
     }
     private void OnDisable()
     {
         if (actor != null && actor.Health != null) { actor.Health.OnDead -= Damaged; actor.Health.OnDamaged -= Damaged; }
-        if (reaction != null) reaction.ReactionStarted -= Cancel;
+        if (reaction != null) reaction.ReactionStarted -= HandleReactionStarted;
         Cancel();
     }
     private void Damaged(CombatHealth source, DamageInfo info) { if (!info.isDamageOverTime && info.triggersOnHitEffects || source.IsDead) Cancel(); }
@@ -52,7 +52,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         Resolve();
         if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
-            || actor.Movement.IsActionLocked || actor.AnimationBridge.IsBlockingActionActive) return false;
+            || actor.Movement.IsActionLocked || actor.AnimationBridge.BlocksAttackStart) return false;
         Vector3 point = actor.AbilityController.ResolveAimPosition(target);
         float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);
         return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp)
@@ -62,7 +62,11 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     }
     private bool Usable() => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked
-        && (reaction == null || !reaction.IsHitStunActive && !reaction.IsKnockbackActive);
+        && (reaction == null || !reaction.BlocksAttack);
+    private void HandleReactionStarted()
+    {
+        if (reaction == null || reaction.BlocksAttack) Cancel();
+    }
     private int Mask => ~((1 << LayerMask.NameToLayer("Enemy")) | (1 << LayerMask.NameToLayer("Ignore Raycast")));
     private Vector3 Origin => transform.position + Vector3.up * .8f;
     public bool HasPositioningLine(Transform target, Vector3 position, Vector3 point)
@@ -88,6 +92,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override bool TryStart(EnemyAbilityDefinition ability, int index, Transform target)
     {
         if (!CanStart(ability,target)) return false;
+        reaction?.PrepareForAttack();
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile) EnsureProjectileVisual();
         routine = StartCoroutine(Execute(ability,target));
         return true;
@@ -100,7 +105,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         chargeDirection = direction;
         // Facing is completed before CanStart succeeds. Aim and release keep this committed direction.
         float speed = actor.Melee.AbilityAnimationSpeed;
-        float duration = actor.Melee.ResolveAbilityAnimationTime(ability.AttackAnimationDuration);
+        float duration = ability.ResolvePacedTime(1f, speed);
         float windup = ability.ResolveWindupDelay(speed);
         float startedAt = Time.time;
         float executionDuration = ability.ResolveExecutionDuration(speed);
@@ -110,7 +115,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             if (!Usable() || target == null) { routine = null; yield break; }
             yield return null;
         }
-        actor.AnimationBridge.SetAttackAnimSpeed(ability.AttackAnimationDuration / Mathf.Max(.01f,duration));
+        actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(0f, speed));
         actor.AnimationBridge.PlayAttack(ability.AnimatorTrigger);
         float elapsed = 0, progress = 0, lastImpactTime = startedAt;
         bool entered = false, committed = false;
@@ -118,14 +123,18 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         while (elapsed < duration + .35f)
         {
             if (!Usable() || target == null) break;
-            if (!committed && ability.IsTelegraphedStrongAttack)
+            if (!committed && ability.IsTelegraphedAttack)
             {
                 destination = actor.AbilityController.ResolveAimPosition(target);
                 direction = destination - transform.position; direction.y = 0f; direction.Normalize();
                 chargeDirection = direction;
             }
             bool inState = actor.AnimationBridge.TryGetAttackNormalizedTime(ability.AnimatorTrigger,out float normalized);
-            if (inState) { entered = true; progress = normalized; }
+            if (inState)
+            {
+                entered = true; progress = normalized;
+                actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress, speed));
+            }
             else if (entered) break;
             else if (elapsed > .4f) break; // An unconnected animation never produces an invisible attack.
             if (inState && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge && progress > .2f && progress < ability.HitNormalizedTime && remainingTravel > 0)
@@ -154,7 +163,12 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         }
         actor.Movement.ClearAttackDisplacement();
         float recoveryEnd = Mathf.Max(startedAt + executionDuration, lastImpactTime + ability.MinimumRecoveryTime);
-        while (Time.time < recoveryEnd && Usable()) yield return null;
+        while (Time.time < recoveryEnd && Usable())
+        {
+            if (actor.AnimationBridge.TryGetAttackNormalizedTime(ability.AnimatorTrigger, out float recoveryProgress))
+                actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(recoveryProgress, speed));
+            yield return null;
+        }
         routine = null;
     }
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)

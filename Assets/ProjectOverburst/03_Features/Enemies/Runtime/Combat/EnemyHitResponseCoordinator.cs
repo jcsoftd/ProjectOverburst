@@ -161,13 +161,13 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
                 Vector3 direction = info.direction;
                 if (direction.sqrMagnitude < 0.0001f && info.source != null)
                     direction = transform.position - info.source.transform.position;
-                reaction.ApplyKnockback(direction, info.knockback);
+                reaction.ApplyKnockback(direction, info.knockback, true);
                 reaction.ExtendKnockbackReaction(info.hitReaction.overridesTargetDefaults
-                    ? info.hitReaction.knockbackReactionDuration : 0.4f);
+                    ? info.hitReaction.knockbackReactionDuration : 0.4f, true);
             }
             else
                 reaction.ApplyHitStun(info.hitReaction.overridesTargetDefaults
-                    ? info.hitReaction.hitStunDuration : 0.4f);
+                    ? info.hitReaction.hitStunDuration : 0.4f, true);
         }
 
         abilityController?.Cancel();
