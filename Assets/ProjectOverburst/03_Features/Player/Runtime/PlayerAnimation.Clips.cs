@@ -144,14 +144,6 @@ public partial class PlayerAnimation
         return FindControllerClip(baseFireClipName);
     }
 
-    private AnimationClip GetBaseRecoverClip()
-    {
-        if (baseRecoverClip != null)
-            return baseRecoverClip;
-
-        return FindControllerClip(baseRecoverClipName);
-    }
-
     private AnimationClip FindControllerClip(string clipName)
     {
         if (string.IsNullOrEmpty(clipName))
@@ -211,14 +203,4 @@ public partial class PlayerAnimation
         return !string.IsNullOrEmpty(baseFireClipName) && clip.name == baseFireClipName;
     }
 
-    private bool IsBaseRecoverClip(AnimationClip clip)
-    {
-        if (clip == null)
-            return false;
-
-        if (baseRecoverClip != null && clip == baseRecoverClip)
-            return true;
-
-        return !string.IsNullOrEmpty(baseRecoverClipName) && clip.name == baseRecoverClipName;
-    }
 }

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
 {
     private const string BaseLayerName = "Base Layer";
-    private const string MagicActionLayerName = "UpperBody_Magic";
     private const string FullBodyAimLayerName = "FullBody_Aim";
     private const string FullBodyAimStateName = "FullBodyAim";
     private static readonly int ExplorationLocomotionSpeedParameterHash = Animator.StringToHash("ExplorationLocomotionSpeed");
@@ -28,7 +27,6 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     [SerializeField] private string fireTriggerParameter = "FireTrigger";
     [SerializeField] private string recoverTriggerParameter = "RecoverTrigger";
     [SerializeField] private string fireAnimationSpeedParameter = "FireAnimationSpeed";
-    [SerializeField] private string recoverAnimationSpeedParameter = "RecoverAnimationSpeed";
     [SerializeField] private string combatModeParameter = "IsCombatMode";
     [SerializeField] private string guardingParameter = "IsGuarding";
 
@@ -45,16 +43,13 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     [SerializeField] private bool useWeaponActionClipOverride = true;
     [SerializeField] private AnimationClip baseFireClip;
     [SerializeField] private string baseFireClipName = "MagicCast";
-    [SerializeField] private AnimationClip baseRecoverClip;
-    [SerializeField] private string baseRecoverClipName = "MagicRecover";
 
     [Header("Weapon Action States")]
     [SerializeField] private bool restartWeaponActionStates = true;
-    [SerializeField] private string weaponActionLayerName = MagicActionLayerName;
+    [SerializeField] private string weaponActionLayerName = "UpperBody_Magic"; // 옛 마법 기본값. 프리팹 저장값이라 남긴다.
     [SerializeField] private string aimStateName = "MagicAim";
     [SerializeField] private string fireStateName = "MagicCast";
     [SerializeField] private string recoverStateName = "MagicRecover";
-    [SerializeField] private float weaponActionLayerBlendSpeed = 18f;
 
     [Header("Melee Full Body Action")]
     [SerializeField] private string meleeFullBodyStateName = "NormalIdle";
@@ -100,7 +95,6 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     private AnimatorOverrideController weaponOverrideController; // 무기 override
     private AnimationClip activeAimPoseClip; // 조준 포즈
     private AnimationClip activeFireClip; // 발사 clip
-    private AnimationClip activeRecoverClip; // 회복 액션 clip
     private AnimationClip forcedAimPoseClip; // 강제 포즈
     private float forcedAimPoseNormalizedTime; // 강제 시간
     private bool useForcedAimPoseTime; // 시간 고정
@@ -109,7 +103,6 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     private readonly List<KeyValuePair<AnimationClip, AnimationClip>> weaponOverrides = new List<KeyValuePair<AnimationClip, AnimationClip>>(); // override 목록
     private readonly List<KeyValuePair<AnimationClip, AnimationClip>> meleeFullBodyRestoreOverrides = new List<KeyValuePair<AnimationClip, AnimationClip>>(); // 복구 목록
     private int weaponActionLayerIndex = -1; // 액션 layer
-    private int magicActionLayerIndex = -1; // 마법 상체 layer
     private int fullBodyAimLayerIndex = -1; // 전신 조준 layer
     private int fireStateHash; // 발사 hash
     private int recoverStateHash; // 회복 액션 hash
@@ -123,7 +116,6 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     private bool isFullBodyAimPoseActive; // 전신 조준 포즈
     private AnimationClip activeFullBodyAimPoseClip; // 전신 조준 clip
     private float weaponActionLayerWeight = 1f; // 상체 layer weight
-    private float magicActionLayerWeight; // 마법 layer weight
     private float fullBodyAimLayerWeight; // 전신 layer weight
     private float weaponActionLayerHoldUntil; // 액션 layer 유지
     private string activeWeaponActionLayerName; // 실제 사용 layer

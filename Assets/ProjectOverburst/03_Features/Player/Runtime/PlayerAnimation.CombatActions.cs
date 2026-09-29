@@ -5,27 +5,6 @@ using System.Collections.Generic;
 // PlayerAnimation partial: 외부에서 부르는 전투 동작 진입점과 피격 클립 선택. 필드와 Unity 수명주기는 PlayerAnimation.cs에 있다.
 public partial class PlayerAnimation
 {
-    public void PlayWeaponFire(AnimationClip fireClip)
-    {
-        PlayWeaponFire(fireClip, 1f);
-    }
-
-    public void PlayWeaponFire(AnimationClip fireClip, float animationSpeed)
-    {
-        if (!useLegacyWeaponAimLayers)
-            return;
-
-        AnimationClip desiredClip = fireClip != null ? fireClip : GetBaseFireClip(); // 발사 clip
-        PlayWeaponAction(
-            desiredClip,
-            IsBaseFireClip,
-            ref activeFireClip,
-            fireTriggerParameter,
-            fireAnimationSpeedParameter,
-            Mathf.Max(0.01f, animationSpeed),
-            fireStateName);
-    }
-
     public void PlayMeleeFullBodyFire(AnimationClip fireClip, float animationSpeed, float actionDuration)
     {
         PlayMeleeFullBodyFire(fireClip, animationSpeed, actionDuration, 0f);
@@ -185,28 +164,6 @@ public partial class PlayerAnimation
         }
 
         BeginMeleeFullBodyAction(clip, 1f, actionDuration, transitionDuration, 0f, !reverse);
-    }
-
-    public void PlayWeaponRecover(AnimationClip recoverClip)
-    {
-        PlayWeaponRecover(recoverClip, 0f);
-    }
-
-    public void PlayWeaponRecover(AnimationClip recoverClip, float targetDuration)
-    {
-        if (!useLegacyWeaponAimLayers)
-            return;
-
-        AnimationClip desiredClip = recoverClip != null ? recoverClip : GetBaseRecoverClip(); // 회복 액션 clip
-        float animationSpeed = CalculateRecoverAnimationSpeed(desiredClip, targetDuration); // 속도 보정
-        PlayWeaponAction(
-            desiredClip,
-            IsBaseRecoverClip,
-            ref activeRecoverClip,
-            recoverTriggerParameter,
-            recoverAnimationSpeedParameter,
-            animationSpeed,
-            recoverStateName);
     }
 
     public void CancelWeaponRuntimeState()

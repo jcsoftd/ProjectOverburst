@@ -5,43 +5,6 @@ using System.Collections.Generic;
 // PlayerAnimation partial: 무기 조준 포즈·상체 액션 레이어 가중치·레이어 찾기. 필드와 Unity 수명주기는 PlayerAnimation.cs에 있다.
 public partial class PlayerAnimation
 {
-    public void BeginQuickFireAimPose(AnimationClip aimPoseClip, float holdTime)
-    {
-        if (!useLegacyWeaponAimLayers)
-            return;
-
-        quickFireAimPoseClip = aimPoseClip; // QuickFire 포즈
-        quickFireAimPoseUntil = Mathf.Max(quickFireAimPoseUntil, Time.time + Mathf.Max(0f, holdTime)); // 유지 시간
-        SetWeaponActionLayerWeight(1f);
-    }
-
-    public void SetForcedWeaponAimPose(AnimationClip aimPoseClip)
-    {
-        if (!useLegacyWeaponAimLayers)
-            return;
-
-        forcedAimPoseClip = aimPoseClip; // 강제 포즈
-        useForcedAimPoseTime = false; // 시간 해제
-        SetWeaponActionLayerWeight(1f);
-    }
-
-    public void SetForcedWeaponAimPose(AnimationClip aimPoseClip, float normalizedTime)
-    {
-        if (!useLegacyWeaponAimLayers)
-            return;
-
-        forcedAimPoseClip = aimPoseClip; // 강제 포즈
-        forcedAimPoseNormalizedTime = Mathf.Clamp01(normalizedTime); // 고정 시간
-        useForcedAimPoseTime = true; // 시간 사용
-        SetWeaponActionLayerWeight(1f);
-    }
-
-    public void ClearForcedWeaponAimPose()
-    {
-        forcedAimPoseClip = null; // 강제 해제
-        useForcedAimPoseTime = false; // 시간 해제
-    }
-
     private void RefreshWeaponAimPoseOverride()
     {
         if (!useWeaponAimPoseOverride || targetAnimator == null)
@@ -92,37 +55,8 @@ public partial class PlayerAnimation
     {
         EnsureActionStateHashes();
 
-        WeaponUpperBodyAimChannel targetChannel = ShouldUseWeaponActionLayer()
-            ? GetCurrentUpperBodyAimChannel()
-            : WeaponUpperBodyAimChannel.None;
-        float step = Mathf.Max(0f, weaponActionLayerBlendSpeed) * Time.deltaTime;
-
-        magicActionLayerWeight = MoveLayerWeight(magicActionLayerIndex, magicActionLayerWeight, targetChannel == WeaponUpperBodyAimChannel.Magic ? 1f : 0f, step);
-
-        weaponActionLayerWeight = GetCurrentActionLayerWeight(targetChannel);
-    }
-
-    private bool ShouldUseWeaponActionLayer()
-    {
-        if (isMeleeFullBodyActionActive)
-            return false;
-
-        if (isFullBodyAimPoseActive)
-            return false;
-
-        if (GetCurrentUpperBodyAimChannel() == WeaponUpperBodyAimChannel.None)
-            return false;
-
-        if (playerController != null && playerController.IsWeaponAimPoseActive)
-            return true;
-
-        if (forcedAimPoseClip != null)
-            return true;
-
-        if (Time.time < quickFireAimPoseUntil)
-            return true;
-
-        return Time.time < weaponActionLayerHoldUntil;
+        // 마법 상체 레이어를 없앤 뒤 상체 조준 채널은 None뿐이라, 액션 레이어 가중치는 매 프레임 0으로 돌아간다.
+        weaponActionLayerWeight = 0f;
     }
 
     private void ApplyMeleeAimUpperBodyYawOffset()
@@ -176,11 +110,6 @@ public partial class PlayerAnimation
             return;
 
         weaponActionLayerWeight = Mathf.Clamp01(weight);
-        WeaponUpperBodyAimChannel targetChannel = weaponActionLayerWeight > 0f
-            ? GetCurrentUpperBodyAimChannel()
-            : WeaponUpperBodyAimChannel.None;
-
-        magicActionLayerWeight = SetLayerWeightImmediate(magicActionLayerIndex, targetChannel == WeaponUpperBodyAimChannel.Magic ? weaponActionLayerWeight : 0f);
     }
 
     private void SetFullBodyAimLayerWeight(float weight)
@@ -190,43 +119,6 @@ public partial class PlayerAnimation
         fullBodyAimLayerWeight = Mathf.Clamp01(weight);
         if (targetAnimator != null && fullBodyAimLayerIndex >= 0)
             targetAnimator.SetLayerWeight(fullBodyAimLayerIndex, fullBodyAimLayerWeight);
-    }
-
-    private float MoveLayerWeight(int layerIndex, float currentWeight, float targetWeight, float step)
-    {
-        float nextWeight = Mathf.MoveTowards(currentWeight, Mathf.Clamp01(targetWeight), step);
-        if (targetAnimator != null && layerIndex >= 0)
-            targetAnimator.SetLayerWeight(layerIndex, nextWeight);
-
-        return nextWeight;
-    }
-
-    private float SetLayerWeightImmediate(int layerIndex, float weight)
-    {
-        float clampedWeight = Mathf.Clamp01(weight);
-        if (targetAnimator != null && layerIndex >= 0)
-            targetAnimator.SetLayerWeight(layerIndex, clampedWeight);
-
-        return clampedWeight;
-    }
-
-    private float GetCurrentActionLayerWeight(WeaponUpperBodyAimChannel channel)
-    {
-        switch (channel)
-        {
-            case WeaponUpperBodyAimChannel.Magic:
-                return magicActionLayerWeight;
-            default:
-                return 0f;
-        }
-    }
-
-    private float CalculateRecoverAnimationSpeed(AnimationClip recoverClip, float targetDuration)
-    {
-        if (recoverClip == null || targetDuration <= 0f)
-            return 1f;
-
-        return Mathf.Max(0.01f, recoverClip.length / targetDuration);
     }
 
     private bool RestartWeaponActionState(string stateName)
@@ -283,38 +175,12 @@ public partial class PlayerAnimation
         if (targetAnimator == null)
             return;
 
-        magicActionLayerIndex = ResolveLayerIndexWithFallback(MagicActionLayerName, weaponActionLayerName);
         fullBodyAimLayerIndex = targetAnimator.GetLayerIndex(FullBodyAimLayerName);
     }
 
     private int ResolveWeaponActionLayerIndex(WeaponUpperBodyAimChannel channel)
     {
-        switch (channel)
-        {
-            case WeaponUpperBodyAimChannel.Magic:
-                return magicActionLayerIndex;
-            default:
-                return -1;
-        }
-    }
-
-    private int ResolveLayerIndexWithFallback(params string[] layerNames)
-    {
-        if (targetAnimator == null || layerNames == null)
-            return -1;
-
-        for (int i = 0; i < layerNames.Length; i++)
-        {
-            string layerName = layerNames[i];
-            if (string.IsNullOrEmpty(layerName))
-                continue;
-
-            int layerIndex = targetAnimator.GetLayerIndex(layerName);
-            if (layerIndex >= 0)
-                return layerIndex;
-        }
-
-        return -1;
+        return -1; // 마법 상체 레이어 제거 뒤 연결된 상체 액션 레이어가 없다.
     }
 
     private WeaponUpperBodyAimChannel GetCurrentUpperBodyAimChannel()
@@ -328,13 +194,7 @@ public partial class PlayerAnimation
 
     private string GetActionLayerName(WeaponUpperBodyAimChannel channel)
     {
-        switch (channel)
-        {
-            case WeaponUpperBodyAimChannel.Magic:
-                return magicActionLayerIndex >= 0 ? MagicActionLayerName : weaponActionLayerName;
-            default:
-                return null;
-        }
+        return null; // 마법 상체 레이어 제거 뒤 연결된 상체 액션 레이어가 없다.
     }
 
     private string BuildActionStatePath(string stateName)
