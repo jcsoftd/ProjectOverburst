@@ -6,7 +6,7 @@ public sealed class HideoutMonsterSpawnDebugController : MonoBehaviour // 하이
 
     [SerializeField, HideInInspector] private EnemySpawnPackConfig spawnConfig =
         new EnemySpawnPackConfig();
-    [Header("Protofactor Debug Roster")]
+    [Header("Theme Debug Roster")]
     [SerializeField, Min(1)] private int monstersPerPack = 4;
     [SerializeField, Min(0.01f)] private float difficultyMultiplier = 1f;
     [SerializeField, Min(0.01f)] private float encounterMultiplier = 1f;

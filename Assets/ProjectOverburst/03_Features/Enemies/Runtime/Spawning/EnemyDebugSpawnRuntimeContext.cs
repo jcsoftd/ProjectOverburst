@@ -1,20 +1,10 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public static class EnemyDebugSpawnRuntimeContext // 디버그 소환의 신규 몬스터 공용 진입점
+public static class EnemyDebugSpawnRuntimeContext // 디버그 소환의 테마 몬스터 공용 진입점
 {
     public const string CatalogResourcePath =
-        "Enemies/Protofactor/Catalogs/EC_ProtofactorPilot";
-    public const string CeratoferoxDefinitionId = "Ceratoferox_Normal";
-    public const string RapaxDefinitionId = "Rapax_Normal";
-    public const string GobblerDefinitionId = "Gobbler_Normal";
-
-    private static readonly string[] RequiredPilotDefinitionIds =
-    {
-        CeratoferoxDefinitionId,
-        RapaxDefinitionId,
-        GobblerDefinitionId
-    };
+        "Enemies/Themes/Catalog";
 
     private static EnemyCatalog debugCatalog;
     private static EnemySpawnService debugSpawnService;
@@ -81,7 +71,7 @@ public static class EnemyDebugSpawnRuntimeContext // 디버그 소환의 신규 
             {
                 Debug.LogError(
                     "[EnemyDebugSpawnRuntimeContext] 현재 씬의 EnemySpawnService가 "
-                    + "Protofactor 디버그 Catalog 계약과 다릅니다.",
+                    + "테마 디버그 Catalog 계약과 다릅니다.",
                     current);
                 return false;
             }
@@ -121,25 +111,17 @@ public static class EnemyDebugSpawnRuntimeContext // 디버그 소환의 신규 
     {
         if (catalog == null)
         {
-            message = "Protofactor EnemyCatalog을 Resources에서 찾지 못했습니다.";
+            message = "테마 EnemyCatalog을 Resources에서 찾지 못했습니다.";
             return false;
         }
 
         if (!catalog.Validate(out message))
             return false;
 
-        for (int i = 0; i < RequiredPilotDefinitionIds.Length; i++)
+        if (CountDebugDefinitions(catalog) == 0)
         {
-            if (!catalog.TryGet(
-                    RequiredPilotDefinitionIds[i],
-                    out EnemyDefinition definition)
-                || definition == null
-                || !definition.IsValid)
-            {
-                message = "필수 Pilot Definition이 Catalog에 없습니다: "
-                    + RequiredPilotDefinitionIds[i];
-                return false;
-            }
+            message = "테마 Catalog에 일반 등급 몬스터가 없습니다.";
+            return false;
         }
 
         message = string.Empty;

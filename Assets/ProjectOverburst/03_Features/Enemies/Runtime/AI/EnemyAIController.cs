@@ -241,7 +241,6 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
     public EnemySquadParticipationMode SquadParticipationMode => squadParticipationMode;
     public bool UsesSquadPursuit => squadParticipationMode == EnemySquadParticipationMode.SquadMember
         && ResolveSquadPursuitPreset() != null;
-    public bool UsesMurlocSquadPursuit => UsesSquadPursuit; // 레거시 검증기 호환 표면
     public int CrowdMovePriority => EnemySquadPursuitRuntimeService.GetMovePriority(this);
     public string SquadPursuitDebugModeName => EnemySquadPursuitRuntimeService.GetDebugModeName(this);
     public float CurrentChaseSpeedMultiplier => squadPursuitMoveActive
@@ -331,37 +330,14 @@ public sealed class EnemyAIController : MonoBehaviour // 적 상태 조립 및 �
         if (useDensityApproachSteering)
             return true;
 
-        return IsCoreMurlocProfile();
-    }
-
-    private bool IsCoreMurlocProfile()
-    {
-        string profileId = behaviorProfile != null ? behaviorProfile.ProfileId : string.Empty;
-        switch (profileId)
-        {
-            case "Murloc_Grunt":
-            case "Murloc_Scout":
-            case "Murloc_Spearling":
-            case "Murloc_Guard":
-            case "Murloc_Brute":
-            case "Murloc_Warlord":
-                return true;
-            default:
-                return false;
-        }
+        return false;
     }
 
     private EnemyAiPreset ResolveSquadPursuitPreset()
     {
         if (squadParticipationMode != EnemySquadParticipationMode.SquadMember)
             return null;
-        if (squadPursuitPreset != null)
-            return squadPursuitPreset;
-        if (!IsCoreMurlocProfile())
-            return null;
-
-        squadPursuitPreset = Resources.Load<EnemyAiPreset>("Enemies/AiPresets/AIP_MurlocSquad");
-        return squadPursuitPreset; // 기존 6종만 사용하는 이관 폴백
+        return squadPursuitPreset;
     }
 
     private void Awake()
