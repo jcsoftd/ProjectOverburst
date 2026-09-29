@@ -79,8 +79,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3a6712a44742ad8f520123456789ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldItemPickup
-  itemDataAsset: {fileID: 0}
-  itemLevel: 1
+  itemDataAsset: {fileID: 11400000, guid: d9b32fb76d97abf4b8e2023ad8af775f, type: 2}
+  itemLevel: 50
   itemGrade: 0
   stackCount: 1
   targetInventory: {fileID: 0}
