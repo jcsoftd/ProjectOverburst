@@ -19,7 +19,7 @@ MonoBehaviour:
     \uB0A0\uACFC \uB113\uC740 \uAC00\uB4DC \xB7 \uADE0\uD615\uD615"
   weight: 0
   sellPrice: 35
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 1956797595404881201, guid: 9d850a890e17c2548b8a6812b2c51404, type: 3}
   possibleStats: []
   weaponClass: 9
   defaultElement: 0
@@ -30,5 +30,5 @@ MonoBehaviour:
     criticalDamageMultiplier: 1.65
     range: 2.91
     knockback: 3
-  weaponRootPrefab: {fileID: 0}
+  weaponRootPrefab: {fileID: 3225869890727091668, guid: deb4ae0dbc733aa4fb506c0fb4cbf089, type: 3}
   combatDefinition: {fileID: 11400000, guid: b764ae19e095800489166de710633a9f, type: 2}
