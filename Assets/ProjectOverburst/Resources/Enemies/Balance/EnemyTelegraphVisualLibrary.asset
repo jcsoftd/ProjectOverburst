@@ -15,3 +15,7 @@ MonoBehaviour:
   cone: {fileID: 8839379843591537560, guid: 55a51c403edec12489b9aaf003b60ce5, type: 3}
   nova: {fileID: 7176700610846920861, guid: a078c1a32abbe584393e91050e2dd214, type: 3}
   rectangle: {fileID: 9198170465328186566, guid: bdf9b89da77863a4785bc0693ffbbe64, type: 3}
+  parryGlint: {fileID: 2100000, guid: 84b98206933271844bba93fa1faa0ebc, type: 2}
+  groundImpact: {fileID: 4363365278825521352, guid: fdb720c92da82a8408b3bc9336b5f9ab, type: 3}
+  strongRelease: {fileID: 8300000, guid: 90a40230eb0314210b36546a791be2db, type: 3}
+  groundImpactSound: {fileID: 8300000, guid: a4e95e9a1c578024e87026aa5b2008f5, type: 3}

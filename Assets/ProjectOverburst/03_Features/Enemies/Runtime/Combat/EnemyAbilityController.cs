@@ -163,11 +163,12 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
             if (ability == null || !ability.IsValid
                 || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized)
                 continue;
-            fallbackRange = Mathf.Min(fallbackRange, ability.Range);
+            float startRange = EnemyAttackThreatGeometry.ResolveStartRange(actor, ability);
+            fallbackRange = Mathf.Min(fallbackRange, startRange);
             // A long-range cooldown or a projectile's minimum-range dead zone
             // must not stop an actor outside its available close attack range.
             if (distance >= ability.MinimumRange && IsCooldownReady(ability))
-                readyRange = Mathf.Max(readyRange, ability.Range);
+                readyRange = Mathf.Max(readyRange, startRange);
         }
         return readyRange > 0f ? readyRange : float.IsPositiveInfinity(fallbackRange) ? AttackRange : fallbackRange;
     }
@@ -284,7 +285,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid || !ability.MatchesUseConditions(distance, hp) || !IsCooldownReady(ability))
+            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsCooldownReady(ability))
                 continue;
             var executor = FindExecutor(ability);
             if (executor != null && executor.CanStart(ability, target)) return true;
@@ -368,7 +369,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
             EnemyAbilityDefinition ability = abilitySet.GetAbility(i);
             if (ability == null
                 || !ability.IsValid
-                || !ability.MatchesUseConditions(distance, selfHealth)
+                || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
                 || !IsCooldownReady(ability))
             {
                 continue;
@@ -478,7 +479,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         {
             EnemyAbilityDefinition ability = abilitySet.GetAbility(i);
             if (ability != null && ability.IsValid)
-                maximum = Mathf.Max(maximum, ability.Range);
+                maximum = Mathf.Max(maximum, EnemyAttackThreatGeometry.ResolveStartRange(actor, ability));
         }
         return maximum;
     }

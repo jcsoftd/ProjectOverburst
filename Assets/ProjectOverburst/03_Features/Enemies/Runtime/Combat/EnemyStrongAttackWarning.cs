@@ -18,6 +18,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private readonly ParticleSystem[][] telegraphSystems = new ParticleSystem[3][];
     private int activeTelegraph = -1;
     private static EnemyTelegraphVisualLibrary telegraphLibrary;
+    private static Camera signalCamera;
     public bool IsVisible => visual != null && visual.activeSelf;
     public bool FinalSignal { get; private set; }
 
@@ -39,7 +40,13 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         {
             signalSocketIndex = signalSequence++ % 3;
             EnsureSignal();
+            if (body != null)
+            {
+                var main = signalParticles.main;
+                main.startSize = Mathf.Clamp(body.CurrentVolume.Radius * 2.15f, 3.2f, 4.7f);
+            }
         }
+        EnemyStrongAttackImpactVfx.Prewarm();
         visual.SetActive(true);
         ConfigureTelegraph(size, angle, charge, useTelegraph, leadSeconds);
         SetRemaining(leadSeconds);
@@ -166,16 +173,16 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         var main = signalParticles.main;
         main.playOnAwake = false;
         main.loop = false;
-        main.duration = .22f;
-        main.startLifetime = .22f;
-        main.startSpeed = .02f;
-        main.startSize = .24f;
-        main.startColor = new Color(1f, .94f, .54f, 1f);
-        main.maxParticles = 12;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.duration = .55f;
+        main.startLifetime = .55f;
+        main.startSpeed = 0f;
+        main.startSize = 3.2f;
+        main.startColor = new Color(4f, 3.2f, 1.7f, 1f);
+        main.maxParticles = 1;
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
         var emission = signalParticles.emission;
         emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 9) });
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 1) });
         var shape = signalParticles.shape;
         shape.enabled = false;
         var fade = signalParticles.colorOverLifetime;
@@ -183,20 +190,29 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         var fadeGradient = new Gradient();
         fadeGradient.SetKeys(
             new[] { new GradientColorKey(Color.white, 0f),
-                new GradientColorKey(Color.white * .5f, .45f),
-                new GradientColorKey(Color.black, 1f) },
+                new GradientColorKey(Color.white, .80f),
+                new GradientColorKey(Color.white, 1f) },
             new[] { new GradientAlphaKey(1f, 0f),
-                new GradientAlphaKey(.55f, .45f), new GradientAlphaKey(0f, 1f) });
+                new GradientAlphaKey(1f, .80f), new GradientAlphaKey(0f, 1f) });
         fade.color = fadeGradient;
+        var pulse = signalParticles.sizeOverLifetime;
+        pulse.enabled = true;
+        pulse.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            new Keyframe(0f, 1.1f), new Keyframe(.08f, 1.45f),
+            new Keyframe(.25f, .85f), new Keyframe(.8f, .6f),
+            new Keyframe(1f, .35f)));
         var renderer = point.GetComponent<ParticleSystemRenderer>();
-        renderer.sharedMaterial = Resources.Load<Material>("Feel/MAT_OverburstFeelParticles");
+        if (telegraphLibrary == null)
+            telegraphLibrary = Resources.Load<EnemyTelegraphVisualLibrary>(
+                "Enemies/Balance/EnemyTelegraphVisualLibrary");
+        renderer.sharedMaterial = telegraphLibrary != null ? telegraphLibrary.ParryGlint : null;
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         renderer.receiveShadows = false;
         signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         signalFeel = point.AddComponent<MMF_Player>();
         signalFeel.FeedbacksList = new List<MMF_Feedback>
         {
-            new MMF_Particles { BoundParticleSystem = signalParticles, DeclaredDuration = .22f }
+            new MMF_Particles { BoundParticleSystem = signalParticles, DeclaredDuration = .55f }
         };
         // In an Editor preview Awake may not run; FEEL normally creates Events there.
         if (signalFeel.Events == null)
@@ -213,10 +229,17 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         Vector3 center = body != null ? body.CurrentVolume.Center
             : transform.position + Vector3.up * 1.2f;
         float width = body != null ? body.CurrentVolume.Radius : .5f;
-        float lateral = (signalSocketIndex - 1) * width * .42f;
-        float vertical = signalSocketIndex == 1 ? .34f : .14f;
-        signalParticles.transform.position = center + transform.right * lateral
-            + Vector3.up * vertical;
+        if (signalCamera == null) signalCamera = Camera.main;
+        Vector3 facing = signalCamera != null ? signalCamera.transform.position - center
+            : -transform.forward;
+        facing.y = 0f;
+        if (facing.sqrMagnitude < .0001f) facing = -transform.forward;
+        facing.Normalize();
+        Vector3 right = Vector3.Cross(Vector3.up, facing).normalized;
+        float lateral = (signalSocketIndex - 1) * width * .27f;
+        float vertical = (signalSocketIndex == 1 ? .25f : .4f) + width * .22f;
+        signalParticles.transform.position = center + facing * Mathf.Max(.8f, width * 1.25f)
+            + right * lateral + Vector3.up * vertical;
     }
     public void Hide()
     {

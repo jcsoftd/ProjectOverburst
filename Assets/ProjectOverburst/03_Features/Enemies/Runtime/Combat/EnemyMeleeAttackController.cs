@@ -150,7 +150,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         Vector3 aimPosition = ResolveAimPosition(attackTarget);
         Vector3 delta = aimPosition - transform.position;
         delta.y = 0f;
-        return delta.sqrMagnitude <= ability.Range * ability.Range
+        float startRange = EnemyAttackThreatGeometry.ResolveStartRange(actor, ability);
+        return delta.sqrMagnitude <= startRange * startRange
             && (movement == null || movement.IsFacingForAttack(aimPosition));
     }
 
@@ -179,7 +180,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         if (ability != null && !ability.IsValid)
             return false;
-        float resolvedRange = ability != null ? ability.Range : Mathf.Max(0f, attackRange);
+        float resolvedRange = ability != null ? EnemyAttackThreatGeometry.ResolveStartRange(actor, ability) : Mathf.Max(0f, attackRange);
         if (!CanStartAttack(resolvedRange))
             return false;
 
@@ -269,7 +270,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         float resolvedAnimationDuration = ability != null
             ? ability.AttackAnimationDuration
             : resolvedAttackLockDuration;
-        float resolvedRange = ability != null ? ability.Range : attackRange;
+        float resolvedRange = ability != null ? EnemyAttackThreatGeometry.ResolveStartRange(actor, ability) : attackRange;
         bool keepRangeGate = ability != null
             ? ability.RequireTargetInRangeUntilHit
             : requireTargetInRangeUntilHit;
@@ -312,6 +313,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         float elapsed = 0f;
         int hitCount = ability != null ? ability.HitCount : 1;
         bool observedAttackAnimation = false;
+        bool strongReleasePlayed = false;
         for (int impactIndex = 0; impactIndex < hitCount; impactIndex++)
         {
             float impactTime = ability != null ? ability.GetHitNormalizedTime(impactIndex) : resolvedHitNormalizedTime;
@@ -347,6 +349,13 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                     && animationBridge.TryGetAttackNormalizedTime(triggerName, out float normalizedTime))
                 {
                     observedAttackAnimation = true;
+                    if (!strongReleasePlayed && impactIndex == 0
+                        && ability != null && ability.IsTelegraphedStrongAttack
+                        && normalizedTime >= impactTime - .055f)
+                    {
+                        strongReleasePlayed = true;
+                        CombatActionSfxService.PlayEnemyStrongRelease(transform.position);
+                    }
                     if (ability != null) animationBridge.SetAttackAnimSpeed(
                         ability.ResolvePhaseAnimationSpeed(normalizedTime, resolvedAttackSpeed));
                     if (normalizedTime >= Mathf.Clamp01(impactTime))
@@ -363,6 +372,13 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 }
                 else if (!useAnimatorTiming || (!observedAttackAnimation && elapsed >= attackStateEntryGrace))
                 {
+                    if (!strongReleasePlayed && impactIndex == 0
+                        && ability != null && ability.IsTelegraphedStrongAttack
+                        && elapsed >= resolvedHitDelay - .08f)
+                    {
+                        strongReleasePlayed = true;
+                        CombatActionSfxService.PlayEnemyStrongRelease(transform.position);
+                    }
                     if (elapsed >= resolvedHitDelay)
                     {
                         impactReached = true;
@@ -382,6 +398,13 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             if (impactReached && stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
                 abilityController?.NotifyAbilityImpact(ability, impactIndex);
+                if (ability != null && ability.IsTelegraphedStrongAttack && impactIndex == 0)
+                {
+                    Vector3 impactOrigin = ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
+                        ? transform.position : attackPoint.position;
+                    CombatActionSfxService.PlayEnemyGroundImpact(impactOrigin);
+                    EnemyStrongAttackImpactVfx.Play(impactOrigin);
+                }
                 int level = GetComponent<EnemyRank>()?.Level ?? 1;
                 float resolvedDamage = (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
                 if (directTargetExecution)
@@ -825,7 +848,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         {
             EnemyAbilityDefinition ability = abilitySet.GetAbility(i);
             if (ability != null && ability.IsValid)
-                maximum = Mathf.Max(maximum, ability.Range);
+                maximum = Mathf.Max(maximum, EnemyAttackThreatGeometry.ResolveStartRange(actor, ability));
         }
         return maximum;
     }

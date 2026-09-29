@@ -19,6 +19,9 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private readonly AudioSource[] voices = new AudioSource[VoiceLimit];
     private int voiceCount;
     private float nextWarningAt;
+    private float nextEnemyReleaseAt;
+    private float nextEnemyImpactAt;
+    private static EnemyTelegraphVisualLibrary enemyVisuals;
 
     public static bool PlayParrySuccess(Vector3 position) => EnsureInstance()
         && instance.Play(11, position, .08f, .90f, 4f, 32f, 10);
@@ -27,6 +30,30 @@ public sealed class CombatActionSfxService : MonoBehaviour
         if (!EnsureInstance() || Time.unscaledTime < instance.nextWarningAt) return false;
         bool played = instance.Play(12, position, .40f, .68f, 3f, 20f, 45);
         if (played) instance.nextWarningAt = Time.unscaledTime + .09f;
+        return played;
+    }
+
+    public static bool PlayEnemyStrongRelease(Vector3 position)
+    {
+        if (!EnsureInstance() || Time.unscaledTime < instance.nextEnemyReleaseAt) return false;
+        if (enemyVisuals == null) enemyVisuals = Resources.Load<EnemyTelegraphVisualLibrary>(
+            "Enemies/Balance/EnemyTelegraphVisualLibrary");
+        AudioClip clip = enemyVisuals != null ? enemyVisuals.StrongRelease : null;
+        if (clip == null) return false;
+        bool played = instance.Play(clip, position, 1f, .72f, 3f, 24f, 65);
+        if (played) instance.nextEnemyReleaseAt = Time.unscaledTime + .08f;
+        return played;
+    }
+
+    public static bool PlayEnemyGroundImpact(Vector3 position)
+    {
+        if (!EnsureInstance() || Time.unscaledTime < instance.nextEnemyImpactAt) return false;
+        if (enemyVisuals == null) enemyVisuals = Resources.Load<EnemyTelegraphVisualLibrary>(
+            "Enemies/Balance/EnemyTelegraphVisualLibrary");
+        AudioClip clip = enemyVisuals != null ? enemyVisuals.GroundImpactSound : null;
+        if (clip == null) return false;
+        bool played = instance.Play(clip, position, 1f, .60f, 4f, 30f, 55);
+        if (played) instance.nextEnemyImpactAt = Time.unscaledTime + .08f;
         return played;
     }
 
@@ -89,6 +116,12 @@ public sealed class CombatActionSfxService : MonoBehaviour
             clips[index] = clip;
         }
 
+        return Play(clip, position, spatialBlend, volume, minDistance, maxDistance, priority);
+    }
+
+    private bool Play(AudioClip clip, Vector3 position, float spatialBlend, float volume,
+        float minDistance, float maxDistance, int priority)
+    {
         AudioSource source = null;
         for (int i = 0; i < voiceCount; i++)
             if (!voices[i].isPlaying) { source = voices[i]; break; }

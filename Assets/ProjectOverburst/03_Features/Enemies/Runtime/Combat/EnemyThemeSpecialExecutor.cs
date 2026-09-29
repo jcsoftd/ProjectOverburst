@@ -55,7 +55,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             || actor.Movement.IsActionLocked || actor.AnimationBridge.BlocksAttackStart) return false;
         Vector3 point = actor.AbilityController.ResolveAimPosition(target);
         float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);
-        return ability.MatchesUseConditions(distance, actor.Health.NormalizedHp)
+        return EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, actor.Health.NormalizedHp)
             && actor.Movement.IsFacingForAttack(point)
             && (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile
                 ? HasPositioningLine(target, transform.position, point) : HasLineOfSight(target, point));
@@ -147,6 +147,12 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
                 committed = true;
                 lastImpactTime = Time.time;
                 actor.AbilityController.NotifyAbilityImpact(ability, ability.HitCount - 1);
+                if (ability.IsTelegraphedStrongAttack && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge)
+                {
+                    CombatActionSfxService.PlayEnemyStrongRelease(transform.position);
+                    CombatActionSfxService.PlayEnemyGroundImpact(transform.position);
+                    EnemyStrongAttackImpactVfx.Play(transform.position);
+                }
                 if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 {
                     boltPosition = Origin;

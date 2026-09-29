@@ -42,8 +42,10 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
         preparationDuration / Mathf.Max(.01f, speed));
     private float ReleaseSeconds(float speed) => Mathf.Max(.10f,
         releaseDuration / Mathf.Max(.01f, speed));
+    // Very long authored tails must not be crushed into a few frames on return.
     private float RecoverySeconds(float speed) => Mathf.Max(MinimumRecoveryTime,
-        recoveryDuration / Mathf.Max(.01f, speed));
+        recoveryDuration / Mathf.Max(.01f, speed),
+        UsesPacedTimeline ? AttackAnimationDuration * (1f - LastHit) / 3f : 0f);
     public float ResolvePacedTime(float normalized, float speed)
     {
         normalized = Mathf.Clamp01(normalized);
