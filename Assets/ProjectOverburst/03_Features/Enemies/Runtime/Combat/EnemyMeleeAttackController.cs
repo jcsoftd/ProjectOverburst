@@ -29,6 +29,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private readonly HashSet<CombatHealth> damagedTargets = new HashSet<CombatHealth>();
     private CombatHealth health; // 사망 및 피격 확인
     private CombatTarget combatTarget; // 직접 타격 소유자
+    private EnemyActor actor;
     private Transform target; // 현재 공격 대상
     private Coroutine attackRoutine; // 진행 중인 공격
     private float nextAttackTime; // 다음 공격 가능 시각
@@ -38,6 +39,31 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private float runtimeAttackSpeedMultiplier = 1f; // 등급·변형 공격속도 배율
 
     public float AttackRange { get { return ResolveMaximumAttackRange(); } }
+    public Transform AttackPoint => attackPoint != null ? attackPoint : transform;
+    // Preview only: run the same collider, facing, height and sight checks as ResolveArcHit.
+    public bool WouldAbilityHitTarget(EnemyAbilityDefinition ability, CombatTarget target)
+    {
+        if (ability == null || target == null || attackPoint == null
+            || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
+        Vector3 center = ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
+            ? transform.position : attackPoint.position;
+        int count = Physics.OverlapSphereNonAlloc(center,
+            EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
+            hitBuffer, targetLayer, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
+        {
+            Collider collider = hitBuffer[i];
+            if (collider == null || CombatTarget.Resolve(collider) != target
+                || !IsInFront(collider.transform.position, ability.HitAngle)) continue;
+            CombatTargetVolume volume = target.CurrentVolume;
+            if (Mathf.Abs(center.y - volume.Center.y) > volume.HalfHeight + ability.VerticalTolerance)
+                continue;
+            if (ability.RequireLineOfSight
+                && !HasDirectLineOfSight(target, volume.Center, center)) continue;
+            return true;
+        }
+        return false;
+    }
     public bool IsAttacking { get { return attackRoutine != null; } }
     public bool IsCooldownReady { get { return Time.time >= nextAttackTime; } }
     public float StatusActionSpeedMultiplier { get { return statusActionSpeedMultiplier; } }
@@ -347,7 +373,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 }
                 else
                 {
-                    float resolvedRadius = ability != null ? ability.HitRadius : hitRadius;
+                    float resolvedRadius = ability != null
+                        ? EnemyAttackThreatGeometry.ResolveRadius(actor, ability)
+                        : hitRadius;
                     float resolvedAngle = ability != null ? ability.HitAngle : hitAngle;
                     ResolveArcHit(
                         resolvedDamage,
@@ -729,6 +757,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
     private void ResolveReferences()
     {
+        if (actor == null)
+            actor = GetComponent<EnemyActor>();
         if (health == null)
             health = GetComponent<CombatHealth>();
         if (combatTarget == null)

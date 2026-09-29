@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class EnemyAnimationBridge : MonoBehaviour
@@ -46,6 +47,8 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool isFrozen;
     private bool hasFrozenAnimatorSpeed;
     private float animatorSpeedBeforeFreeze = 1f;
+    private Coroutine parryRewindRoutine;
+    private float speedBeforeParryRewind = 1f;
 
     public bool HasAnimator { get { return animator != null; } }
     public bool IsFrozen { get { return isFrozen; } }
@@ -95,6 +98,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private void OnDisable()
     {
+        StopParryRewind();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false;
         ClearBlockingAction();
@@ -122,6 +126,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void ResetForReuse()
     {
+        StopParryRewind();
         RestoreFrozenAnimatorSpeed();
         ClearBlockingAction();
         isDead = false;
@@ -223,6 +228,52 @@ public class EnemyAnimationBridge : MonoBehaviour
         SetTrigger(hitTriggerHash, hasHitTrigger);
     }
 
+    public void PlayParryRewind(string triggerName, float normalizedTime)
+    {
+        StopParryRewind();
+        if (isDead || isFrozen || animator == null || normalizedTime <= .02f)
+        {
+            PlayHit();
+            return;
+        }
+        string stateName = ResolveAttackStateName(triggerName);
+        int stateHash = Animator.StringToHash("Base Layer." + stateName);
+        if (!animator.HasState(0, stateHash))
+        {
+            PlayHit();
+            return;
+        }
+        speedBeforeParryRewind = animator.speed;
+        animator.speed = 0f;
+        parryRewindRoutine = StartCoroutine(RewindAttackPose(stateHash,
+            Mathf.Clamp01(normalizedTime)));
+    }
+
+    private IEnumerator RewindAttackPose(int stateHash, float start)
+    {
+        const float duration = .19f;
+        float elapsed = 0f;
+        while (elapsed < duration && !isDead && !isFrozen)
+        {
+            float remaining = 1f - Mathf.Clamp01(elapsed / duration);
+            animator.Play(stateHash, 0, start * remaining * remaining);
+            animator.Update(0f);
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        parryRewindRoutine = null;
+        animator.speed = speedBeforeParryRewind;
+        if (!isDead && !isFrozen) PlayHit();
+    }
+
+    private void StopParryRewind()
+    {
+        if (parryRewindRoutine == null) return;
+        StopCoroutine(parryRewindRoutine);
+        parryRewindRoutine = null;
+        if (animator != null) animator.speed = speedBeforeParryRewind;
+    }
+
     public void PlayTaunt()
     {
         PlayBlockingTrigger("Taunt", "Taunt");
@@ -259,6 +310,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayDeath()
     {
+        StopParryRewind();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false; // 사망 표현이 빙결보다 우선
         ClearBlockingAction();

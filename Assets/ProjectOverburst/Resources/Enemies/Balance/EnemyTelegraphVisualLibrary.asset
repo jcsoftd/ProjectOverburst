@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9018f244b1e89114ea933472f01a0a38, type: 3}
+  m_Name: EnemyTelegraphVisualLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTelegraphVisualLibrary
+  cone: {fileID: 8839379843591537560, guid: 55a51c403edec12489b9aaf003b60ce5, type: 3}
+  nova: {fileID: 7176700610846920861, guid: a078c1a32abbe584393e91050e2dd214, type: 3}
+  rectangle: {fileID: 9198170465328186566, guid: bdf9b89da77863a4785bc0693ffbbe64, type: 3}

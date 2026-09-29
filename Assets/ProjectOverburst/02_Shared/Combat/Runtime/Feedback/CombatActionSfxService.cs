@@ -10,7 +10,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
     {
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
         "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround02", "GreatswordGround03",
-        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParrySuccess", "EnemyStrongWarning"
+        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_v3", "ParryWindowPing_v3"
     };
 
     private static CombatActionSfxService instance;
@@ -18,11 +18,17 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private readonly bool[] missingClipReported = new bool[13];
     private readonly AudioSource[] voices = new AudioSource[VoiceLimit];
     private int voiceCount;
+    private float nextWarningAt;
 
     public static bool PlayParrySuccess(Vector3 position) => EnsureInstance()
-        && instance.Play(11, position, .25f, .85f, 3f, 30f, 20);
-    public static bool PlayStrongWarning(Vector3 position) => EnsureInstance()
-        && instance.Play(12, position, .8f, .42f, 3f, 22f, 55);
+        && instance.Play(11, position, .08f, .90f, 4f, 32f, 10);
+    public static bool PlayStrongWarning(Vector3 position)
+    {
+        if (!EnsureInstance() || Time.unscaledTime < instance.nextWarningAt) return false;
+        bool played = instance.Play(12, position, .40f, .68f, 3f, 20f, 45);
+        if (played) instance.nextWarningAt = Time.unscaledTime + .09f;
+        return played;
+    }
 
     public static bool PlayGreatswordSwing(int comboIndex, bool heavy, Vector3 position)
     {
@@ -88,11 +94,29 @@ public sealed class CombatActionSfxService : MonoBehaviour
             if (!voices[i].isPlaying) { source = voices[i]; break; }
         if (source == null)
         {
-            if (voiceCount >= VoiceLimit) return false;
-            var voice = new GameObject("CombatSfxVoice_" + voiceCount);
-            voice.transform.SetParent(transform, false);
-            source = voice.AddComponent<AudioSource>();
-            voices[voiceCount++] = source;
+            if (voiceCount < VoiceLimit)
+            {
+                var voice = new GameObject("CombatSfxVoice_" + voiceCount);
+                voice.transform.SetParent(transform, false);
+                source = voice.AddComponent<AudioSource>();
+                voices[voiceCount++] = source;
+            }
+            else
+            {
+                // A successful parry must cut through a crowded mix. Lower-priority
+                // effects may be replaced; ordinary sounds may never evict the clash.
+                int replaceIndex = -1;
+                int lowestImportance = priority;
+                for (int i = 0; i < voiceCount; i++)
+                {
+                    if (voices[i].priority <= lowestImportance) continue;
+                    replaceIndex = i;
+                    lowestImportance = voices[i].priority;
+                }
+                if (replaceIndex < 0) return false;
+                source = voices[replaceIndex];
+                source.Stop();
+            }
         }
 
         source.transform.position = position;

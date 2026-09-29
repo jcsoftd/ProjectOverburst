@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // One window belongs to the accepted heavy action, independently of energy and ordinary hit stun.
@@ -6,6 +7,10 @@ public sealed class PlayerParryController : MonoBehaviour
 {
     private MeleeRuntime melee;
     private CombatHealth health;
+    private CombatTarget playerTarget;
+    private ParrySuccessVfx successVfx;
+    private readonly List<EnemyRank> activeEnemies = new List<EnemyRank>(160);
+    private readonly List<EnemyActor> eligibleEnemies = new List<EnemyActor>(12);
     private int actionId;
     private float windowEndsAt;
     private bool windowOpen;
@@ -13,11 +18,19 @@ public sealed class PlayerParryController : MonoBehaviour
     public bool IsWindowOpen => windowOpen && Time.unscaledTime <= windowEndsAt;
     public float RemainingWindow => IsWindowOpen ? Mathf.Max(0f, windowEndsAt - Time.unscaledTime) : 0f;
 
-    private void Awake() { melee = GetComponent<MeleeRuntime>(); health = GetComponent<CombatHealth>(); }
+    private void Awake()
+    {
+        melee = GetComponent<MeleeRuntime>();
+        health = GetComponent<CombatHealth>();
+        playerTarget = GetComponent<CombatTarget>();
+        successVfx = GetComponent<ParrySuccessVfx>();
+        if (successVfx == null) successVfx = gameObject.AddComponent<ParrySuccessVfx>();
+    }
     public void OpenForHeavy(int acceptedActionId)
     {
         if (acceptedActionId <= 0 || actionId == acceptedActionId) return;
         actionId = acceptedActionId; windowEndsAt = Time.unscaledTime + .40f; windowOpen = true;
+        TryParryThreats();
     }
     public void CloseWindow() => windowOpen = false;
     private void Update()
@@ -27,6 +40,58 @@ public sealed class PlayerParryController : MonoBehaviour
         if (GameplayInputBlocker.IsGameplayInputBlocked || Time.timeScale <= 0f)
             windowEndsAt += Time.unscaledDeltaTime;
         else if (Time.unscaledTime > windowEndsAt) CloseWindow();
+        else TryParryThreats();
+    }
+    private void TryParryThreats()
+    {
+        if (!IsWindowOpen || playerTarget == null || !playerTarget.IsAlive
+            || melee == null || !melee.IsHeavyAttackInProgress
+            || GameplayInputBlocker.IsGameplayInputBlocked) return;
+
+        activeEnemies.Clear();
+        eligibleEnemies.Clear();
+        EnemyRank.CollectActive(activeEnemies);
+        for (int i = 0; i < activeEnemies.Count; i++)
+        {
+            EnemyRank rank = activeEnemies[i];
+            if (rank == null || rank.GradeType == EnemyGradeType.Boss) continue;
+            EnemyActor enemy = rank.GetComponent<EnemyActor>();
+            if (enemy == null || !enemy.IsLeased || enemy.Health == null || enemy.Health.IsDead
+                || enemy.AbilityController == null) continue;
+            if (enemy.AbilityController.IsParryThreatTo(playerTarget))
+                eligibleEnemies.Add(enemy);
+        }
+
+        if (eligibleEnemies.Count == 0) return;
+        CloseWindow();
+        for (int i = 0; i < eligibleEnemies.Count; i++)
+        {
+            successVfx?.EmitEnemy(eligibleEnemies[i]);
+            CancelAndStun(eligibleEnemies[i]);
+        }
+        PlaySuccess();
+    }
+    private static void CancelAndStun(EnemyActor enemy)
+    {
+        EnemyRank rank = enemy.GetComponent<EnemyRank>();
+        EnemyAbilityDefinition ability = enemy.AbilityController.LastCommittedAbility;
+        float progress = 0f;
+        bool hasPose = ability != null && enemy.AnimationBridge != null
+            && enemy.AnimationBridge.TryGetAttackNormalizedTime(
+                ability.AnimatorTrigger, out progress);
+        enemy.AbilityController.Cancel();
+        enemy.GetComponent<EnemyMovementReaction>()?.ApplyParryStun(
+            (rank != null && rank.Rank == EnemyRankType.Elite ? .8f : 1.2f)
+            + (hasPose ? .19f : 0f));
+        if (hasPose) enemy.AnimationBridge.PlayParryRewind(ability.AnimatorTrigger, progress);
+        else enemy.AnimationBridge?.PlayHit();
+    }
+    private void PlaySuccess()
+    {
+        SuccessCount++;
+        successVfx?.Pulse();
+        CombatActionSfxService.PlayParrySuccess(transform.position);
+        OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParrySlow, .75f, .21f);
     }
     public bool TryCancelDamage(DamageInfo info)
     {
@@ -41,18 +106,10 @@ public sealed class PlayerParryController : MonoBehaviour
             || enemy.AbilityController.LastCommittedAbility != info.enemyAbility) return false;
         var rank = enemy.GetComponent<EnemyRank>();
         if (rank != null && rank.GradeType == EnemyGradeType.Boss) return false;
-        Vector3 approach = enemy.transform.position - transform.position; approach.y = 0f;
-        if (approach.sqrMagnitude < .0001f) { approach = -info.direction; approach.y = 0f; }
-        if (approach.sqrMagnitude > .0001f && Vector3.Dot(transform.forward, approach.normalized) < 0f) return false;
-
-        CloseWindow(); SuccessCount++;
-        enemy.AbilityController.Cancel();
-        enemy.GetComponent<EnemyMovementReaction>()?.ApplyParryStun(rank != null && rank.Rank == EnemyRankType.Elite ? .8f : 1.2f);
-        enemy.AnimationBridge.PlayHit();
-        CombatActionSfxService.PlayParrySuccess(transform.position);
-        // The slow request lasts through the preceding hitstop. Their durations never add on repeat requests.
-        OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParrySlow, .75f, .21f);
-        OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParryHitStop, .01f, .06f);
+        CloseWindow();
+        successVfx?.EmitEnemy(enemy);
+        CancelAndStun(enemy);
+        PlaySuccess();
         return true;
     }
     private void OnDisable() { CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(this); }

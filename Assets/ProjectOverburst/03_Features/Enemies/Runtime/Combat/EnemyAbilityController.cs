@@ -21,6 +21,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private Transform strongTarget;
     private Vector3 strongAim;
     private EnemyStrongAttackWarning strongWarning;
+    private EnemyActor actor;
+    private EnemyThemeSpecialExecutor themeExecutor;
     private bool finalImpactDelivered;
     public void NotifyAbilityImpact(EnemyAbilityDefinition ability, int index)
     {
@@ -34,6 +36,16 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             if (!IsExecuting || lastCommittedAbility == null || !lastCommittedAbility.IsTelegraphedStrongAttack) return false;
             return Time.time >= firstImpactAt - .30f && !finalImpactDelivered;
         }
+    }
+    public bool IsParryThreatTo(CombatTarget player)
+    {
+        EnemyAbilityDefinition ability = lastCommittedAbility;
+        if (player == null || ability == null || !ability.IsParryable
+            || !IsExecuting || finalImpactDelivered
+            || Time.time < firstImpactAt - .50f || Time.time > lastImpactAt + .03f)
+            return false;
+        if (actor == null) actor = GetComponent<EnemyActor>();
+        return EnemyAttackThreatGeometry.WouldHit(actor, ability, player);
     }
     private EnemyMovement movement;
     private EnemyMovementReaction reaction;
@@ -56,7 +68,21 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             if (direction.sqrMagnitude > .0001f)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), 360f * Time.deltaTime);
         }
-        strongWarning?.SetRemaining(firstImpactAt - Time.time);
+        if (strongWarning != null)
+        {
+            EnemyAbilityDefinition ability = lastCommittedAbility;
+            Vector3 center = ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
+                ? transform.position : ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
+                    ? transform.position : meleeExecutor != null && meleeExecutor.AttackPoint != null
+                        ? meleeExecutor.AttackPoint.position : transform.position;
+            strongWarning.SetCenter(center);
+            if (ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.Charge)
+            {
+                strongWarning.SetFacing(themeExecutor != null
+                    ? themeExecutor.ChargeDirection : strongAim - transform.position);
+            }
+            strongWarning.SetRemaining(firstImpactAt - Time.time);
+        }
     }
     private void EndStrongWarning()
     {
@@ -211,7 +237,14 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         {
             strongTarget = target; strongAim = target.position;
             if (strongWarning == null) strongWarning = gameObject.AddComponent<EnemyStrongAttackWarning>();
-            strongWarning.Show(Mathf.Clamp(selected.Ability.HitRadius, .7f, 2.5f), selected.Ability.IsParryable);
+            if (actor == null) actor = GetComponent<EnemyActor>();
+            strongWarning.Show(EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
+                selected.Ability.IsParryable,
+                selected.Ability.HitAngle,
+                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
+                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
+                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
+                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge);
         }
         return true;
     }
@@ -431,6 +464,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
     private void ResolveReferences()
     {
+        if (actor == null) actor = GetComponent<EnemyActor>();
+        if (themeExecutor == null) themeExecutor = GetComponent<EnemyThemeSpecialExecutor>();
         if (movement == null) movement = GetComponent<EnemyMovement>();
         if (reaction == null) reaction = GetComponent<EnemyMovementReaction>();
         if (animationBridge == null) animationBridge = GetComponent<EnemyAnimationBridge>();

@@ -16,10 +16,12 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private Vector3 boltPosition;
     private float boltRemaining, boltDamage;
     private EnemyAbilityDefinition boltAbility;
+    private Vector3 chargeDirection;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
     public override bool IsExecuting => routine != null || boltFlying;
     public bool HasProjectile => boltFlying;
+    public Vector3 ChargeDirection => chargeDirection;
     public int LaunchCount { get; private set; }
     public int ImpactCount { get; private set; }
 
@@ -95,6 +97,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         Vector3 destination = actor.AbilityController.ResolveAimPosition(target);
         Vector3 direction = destination - transform.position; direction.y = 0; direction.Normalize();
+        chargeDirection = direction;
         // Facing is completed before CanStart succeeds. Aim and release keep this committed direction.
         float speed = actor.Melee.AbilityAnimationSpeed;
         float duration = actor.Melee.ResolveAbilityAnimationTime(ability.AttackAnimationDuration);
@@ -119,6 +122,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             {
                 destination = actor.AbilityController.ResolveAimPosition(target);
                 direction = destination - transform.position; direction.y = 0f; direction.Normalize();
+                chargeDirection = direction;
             }
             bool inState = actor.AnimationBridge.TryGetAttackNormalizedTime(ability.AnimatorTrigger,out float normalized);
             if (inState) { entered = true; progress = normalized; }
@@ -155,9 +159,20 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     }
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)
     {
-        int count = Physics.SphereCastNonAlloc(Origin,.4f,direction,hits,Mathf.Max(.8f,ability.HitRadius),Mask,QueryTriggerInteraction.Ignore);
+        float reach = EnemyAttackThreatGeometry.ResolveRadius(actor, ability);
+        int count = Physics.SphereCastNonAlloc(Origin,.4f,direction,hits,Mathf.Max(.8f,reach),Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
         if (nearest >= 0) Damage(hits[nearest],ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1)*actor.RuntimeStats.DamageMultiplier,direction,ability);
+    }
+    public bool WouldChargeHit(EnemyAbilityDefinition ability, CombatTarget target)
+    {
+        if (ability == null || target == null || chargeDirection.sqrMagnitude < .0001f)
+            return false;
+        int count = Physics.SphereCastNonAlloc(Origin, .4f, chargeDirection, hits,
+            Mathf.Max(.8f, EnemyAttackThreatGeometry.ResolveRadius(actor, ability)),
+            Mask, QueryTriggerInteraction.Ignore);
+        int nearest = Nearest(count);
+        return nearest >= 0 && CombatTarget.Resolve(hits[nearest].collider) == target;
     }
     private int Nearest(int count)
     { int index=-1; for(int i=0;i<count;i++) if(index<0 || hits[i].distance<hits[index].distance)index=i; return index; }
@@ -194,6 +209,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }
         if(actor!=null && actor.Movement!=null)actor.Movement.ClearAttackDisplacement();
+        chargeDirection = Vector3.zero;
         EndBolt();
     }
     public override void ResetForReuse() { Resolve();Cancel();LaunchCount=0;ImpactCount=0; }
