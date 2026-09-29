@@ -30,7 +30,6 @@ public static class PlayerCapabilityInstaller
         EnsureComponent<PlayerPickupInteractor>(memberObject);
         EnsureComponent<PlayerCurrencyAutoPickup>(memberObject);
         EnsureComponent<MeleeRuntime>(memberObject);
-        EnsureComponent<MagicRuntime>(memberObject);
         PlayerControlKit kit = EnsureComponent<PlayerControlKit>(memberObject);
         kit.ResolveReferences();
         return kit;

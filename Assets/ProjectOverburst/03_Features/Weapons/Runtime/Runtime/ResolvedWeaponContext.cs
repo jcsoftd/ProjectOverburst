@@ -22,7 +22,6 @@ public readonly struct ResolvedWeaponContext
     public WeaponAimSettings Aim => CombatDefinition != null ? CombatDefinition.aim : default;
     public WeaponAnimationSettings Animation => CombatDefinition != null ? CombatDefinition.animation : default;
     public MeleeWeaponDefinition Melee => CombatDefinition as MeleeWeaponDefinition;
-    public MagicWeaponDefinition Magic => CombatDefinition as MagicWeaponDefinition;
 
     public static ResolvedWeaponContext Empty => default;
 }

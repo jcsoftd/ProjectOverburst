@@ -27,7 +27,6 @@ public sealed class PlayerControlKit : MonoBehaviour
 
     [Header("Weapon Runtime")]
     [SerializeField] private MeleeRuntime meleeRuntime;
-    [SerializeField] private MagicRuntime magicRuntime;
 
     [SerializeField] private ActorControlAuthority authority = ActorControlAuthority.Disabled;
 
@@ -51,7 +50,6 @@ public sealed class PlayerControlKit : MonoBehaviour
     public PlayerCurrencyAutoPickup CurrencyAutoPickup => currencyAutoPickup;
     public PlayerStarterLoadout StarterLoadout => starterLoadout;
     public MeleeRuntime MeleeRuntime => meleeRuntime;
-    public MagicRuntime MagicRuntime => magicRuntime;
     public ActorControlAuthority Authority => authority;
     public bool IsIncapacitated => incapacitated;
     public bool IsMeleeManualInputArmed => authority == ActorControlAuthority.Player
@@ -149,9 +147,6 @@ public sealed class PlayerControlKit : MonoBehaviour
         if (meleeRuntime == null)
             meleeRuntime = GetComponent<MeleeRuntime>();
 
-        if (magicRuntime == null)
-            magicRuntime = GetComponent<MagicRuntime>();
-
         if (weaponRuntimeHub != null)
             weaponRuntimeHub.ResolveControllers();
     }
@@ -191,9 +186,7 @@ public sealed class PlayerControlKit : MonoBehaviour
         waitingForMeleeInputRelease = player
             && (enteringPlayer || activeMeleeAction || attackInputHeld);
         SetMeleeManualInputEnabled(player && !waitingForMeleeInputRelease);
-        SetMagicManualInputEnabled(player);
         SetEnabled(meleeRuntime, active);
-        SetEnabled(magicRuntime, active);
     }
 
     public bool TryAcceptMeleeComboHandoff()
@@ -215,7 +208,6 @@ public sealed class PlayerControlKit : MonoBehaviour
     public void CancelCurrentActions(WeaponActionCancelReason reason)
     {
         meleeRuntime?.CancelCurrentAction(reason);
-        magicRuntime?.CancelCurrentAction();
 
         if (authority != ActorControlAuthority.Player)
             return;
@@ -250,12 +242,6 @@ public sealed class PlayerControlKit : MonoBehaviour
     {
         if (meleeRuntime != null)
             meleeRuntime.SetManualInputEnabled(enabledValue);
-    }
-
-    private void SetMagicManualInputEnabled(bool enabledValue)
-    {
-        if (magicRuntime != null)
-            magicRuntime.SetManualInputEnabled(enabledValue);
     }
 
     private static void SetEnabled(Behaviour behaviour, bool enabledValue)

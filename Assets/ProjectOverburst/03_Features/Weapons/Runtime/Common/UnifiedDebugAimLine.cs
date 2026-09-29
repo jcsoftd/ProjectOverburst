@@ -7,7 +7,6 @@ public class UnifiedDebugAimLine : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerEquipment playerEquipment;
     [SerializeField] private PlayerMovement playerController;
-    [SerializeField] private MagicRuntime magicRuntimeController;
     [SerializeField] private Camera aimCamera;
 
     [Header("Line")]
@@ -15,7 +14,6 @@ public class UnifiedDebugAimLine : MonoBehaviour
     [SerializeField] private float lineWidth = 0.035f;
     [SerializeField] private float meleeOriginHeightOffset = 0.08f;
     [SerializeField] private Color meleeColor = new Color(1f, 0f, 0f, 0.9f);
-    [SerializeField] private Color magicColor = new Color(0.45f, 0.85f, 1f, 0.92f);
 
     private LineRenderer primaryLine;
     private LineRenderer secondaryLine;
@@ -88,9 +86,6 @@ public class UnifiedDebugAimLine : MonoBehaviour
         if (playerController == null)
             playerController = GetComponent<PlayerMovement>();
 
-        if (magicRuntimeController == null)
-            magicRuntimeController = GetComponent<MagicRuntime>();
-
         if (aimCamera == null)
             aimCamera = Camera.main;
     }
@@ -106,9 +101,6 @@ public class UnifiedDebugAimLine : MonoBehaviour
         }
 
         if (TryDrawMelee())
-            return;
-
-        if (TryDrawMagic())
             return;
 
         HideDebugLine();
@@ -147,34 +139,6 @@ public class UnifiedDebugAimLine : MonoBehaviour
             return false;
 
         return playerEquipment.CanCurrentWeaponUseMeleeSlash && aimCamera != null;
-    }
-
-    private bool TryDrawMagic()
-    {
-        if (!ShouldShowMagicLine())
-            return false;
-
-        if (!magicRuntimeController.TryGetCurrentAimLine(out MagicAimLine aimLine))
-            return false;
-
-        SetLine(primaryLine, aimLine.origin, aimLine.End, magicColor);
-        SetVisible(true, false, false);
-        return true;
-    }
-
-    private bool ShouldShowMagicLine()
-    {
-        WeaponRuntimeStatus runtimeStatus = playerEquipment.CurrentWeaponRuntimeStatus;
-        if (runtimeStatus.Kind != WeaponRuntimeKind.Magic || !runtimeStatus.IsUsable)
-            return false;
-
-        if (!playerEquipment.CanCurrentWeaponUseMagicAim)
-            return false;
-
-        if (playerController != null && !playerController.IsAiming)
-            return false;
-
-        return magicRuntimeController != null;
     }
 
     private void EnsureLines()

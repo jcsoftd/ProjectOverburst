@@ -71,14 +71,11 @@ public static class WeaponStatCalculator // 무기 스탯 계산
         WeaponBaseStats baseStats = weaponData.baseStats;
         WeaponCombatDefinition combatDefinition = weaponData.combatDefinition;
         WeaponAimSettings aim = combatDefinition != null ? combatDefinition.aim : default;
-        MagicWeaponDefinition magicDefinition = weaponData.GetMagicDefinition();
-        MagicWeaponSettings magic = magicDefinition != null ? magicDefinition.magic : default;
         MeleeWeaponDefinition meleeDefinition = weaponData.GetMeleeDefinition();
 
         return new WeaponFinalStats
         {
             damage = baseStats.damage,
-            attackInterval = magic.actionInterval,
             meleeAttackSpeedMultiplier = meleeDefinition != null
                 ? meleeDefinition.baseSettings.SafeAttackSpeedMultiplier
                 : 1f,
@@ -86,40 +83,9 @@ public static class WeaponStatCalculator // 무기 스탯 계산
             critChance = baseStats.criticalChance,
             critDamageMultiplier = baseStats.criticalDamageMultiplier,
             range = baseStats.range,
-            maxTravelDistance = magic.maxTravelDistance,
-            outOfRangeDamageMultiplier = magic.outOfRangeDamageMultiplier,
-            projectileSpeed = magic.projectileSpeed,
-            projectileSize = magic.projectileSize,
-            projectileCount = magic.projectileCount,
-            spreadAngle = magic.spreadAngle,
-            pierceCount = magic.pierceCount,
-            radius = magic.radius,
-            explosionRadius = magic.explosionRadius,
-            duration = magic.duration,
             knockback = baseStats.knockback,
-            recoil = magic.recoil,
-            recoilAmount = magic.recoilAmount,
-            recoilPerShot = magic.recoilPerShot,
-            recoilYawMin = magic.recoilYawMin,
-            recoilYawMax = magic.recoilYawMax,
-            recoilPitchMin = magic.recoilPitchMin,
-            recoilPitchMax = magic.recoilPitchMax,
-            maxRecoilAngle = magic.maxRecoilAngle,
-            recoilRampShots = magic.recoilRampShots,
-            recoilRecoverySpeed = magic.recoilRecoverySpeed,
-            aimedRecoilMultiplier = magic.aimedRecoilMultiplier,
-            hipFireRecoilMultiplier = magic.hipFireRecoilMultiplier,
-            quickFireHoldTime = magic.quickFireHoldTime,
-            quickFireMoveSpeedMultiplier = magic.quickFireMoveSpeedMultiplier,
             aimMoveSpeedMultiplier = aim.moveSpeedMultiplier,
             meleeSlashAngle = meleeDefinition != null ? meleeDefinition.baseSettings.slashAngle : 0f,
-            magazineSize = magic.magazineSize,
-            reloadDuration = magic.reloadDuration,
-            chainRange = magic.chainRange,
-            maxChainDepth = magic.maxChainDepth,
-            chainBranchCount = magic.chainBranchCount,
-            chainDelay = magic.chainDelay,
-            chainDamageFalloff = magic.chainDamageFalloff
         };
     }
 
@@ -300,10 +266,7 @@ public static class WeaponStatCalculator // 무기 스탯 계산
 
     private static ProjectileRangeBehavior ResolveRangeBehavior(WeaponItemData weaponData)
     {
-        MagicWeaponDefinition definition = weaponData != null ? weaponData.GetMagicDefinition() : null;
-        return definition != null
-            ? definition.magic.rangeBehavior
-            : ProjectileRangeBehavior.DestroyAtRange;
+        return ProjectileRangeBehavior.DestroyAtRange; // 투사체 무기(옛 마법 무기) 제거 뒤 기본 동작
     }
 
     private static void UpdateMeleeRangeScale(

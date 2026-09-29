@@ -988,7 +988,6 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
             return WorldLootPickupRequestResult.InputBlocked;
 
         if ((kit.MeleeRuntime != null && kit.MeleeRuntime.IsAttackInProgress)
-            || (kit.MagicRuntime != null && kit.MagicRuntime.IsBusy)
             || (kit.Movement != null && kit.Movement.IsMeleeAttackMoveLocked)
             || (kit.EvadeController != null
                 && (kit.EvadeController.IsEvading || kit.EvadeController.IsRollExitRecovering)))

@@ -13,8 +13,6 @@ public class PlayerAimRotation : MonoBehaviour
 
     [Header("Rotate")]
     [SerializeField] private float aimRotationSpeed = 60f;
-    [SerializeField] private float fallbackMagicCastHeight = 1.1f;
-    [SerializeField] private float fallbackMagicCastForwardOffset = 0.65f;
 
     private float quickAimUntil;
 
@@ -92,25 +90,6 @@ public class PlayerAimRotation : MonoBehaviour
 
         if (playerEquipment == null)
             return MeleeAimCalculator.TryGetMouseDirectionFromPlayer(transform, aimCamera, out direction);
-
-        if (playerEquipment.CanCurrentWeaponUseMagicAim)
-        {
-            playerEquipment.RefreshCurrentWeaponReferences();
-            if (!MagicTargeting.TryGetDirectionalAimLine(
-                    transform,
-                    playerEquipment,
-                    aimCamera,
-                    playerEquipment.CurrentWeaponStats,
-                    fallbackMagicCastHeight,
-                    fallbackMagicCastForwardOffset,
-                    out MagicAimLine aimLine))
-            {
-                return false;
-            }
-
-            direction = aimLine.direction;
-            return direction.sqrMagnitude > 0.0001f;
-        }
 
         if (playerEquipment.CanCurrentWeaponUseMeleeCombatStance)
         {

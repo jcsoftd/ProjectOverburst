@@ -106,11 +106,6 @@ public class WeaponItemData : BaseItemData // 무기 데이터
         return combatDefinition as MeleeWeaponDefinition;
     }
 
-    public MagicWeaponDefinition GetMagicDefinition()
-    {
-        return combatDefinition as MagicWeaponDefinition;
-    }
-
     public AnimationClip GetAimPoseClip()
     {
         return combatDefinition != null ? combatDefinition.aim.ResolvePoseClip() : null;
@@ -132,9 +127,6 @@ public class WeaponItemData : BaseItemData // 무기 데이터
         if (combatDefinition != null && combatDefinition.aim.upperBodyChannel != WeaponUpperBodyAimChannel.None)
             return combatDefinition.aim.upperBodyChannel;
 
-        if (CombatFamily == WeaponCombatFamily.Magic)
-            return WeaponUpperBodyAimChannel.Magic;
-
         return WeaponUpperBodyAimChannel.None;
     }
 
@@ -145,9 +137,6 @@ public class WeaponItemData : BaseItemData // 무기 데이터
 
         if (combatDefinition.aim.mode != WeaponAimMode.Auto)
             return combatDefinition.aim.mode;
-
-        if (CombatFamily == WeaponCombatFamily.Magic && combatDefinition.usage.aimType == WeaponAimType.CasterLine)
-            return WeaponAimMode.Magic;
 
         if (CombatFamily == WeaponCombatFamily.Melee
             && combatDefinition.usage.attackType == WeaponAttackType.MeleeSlash

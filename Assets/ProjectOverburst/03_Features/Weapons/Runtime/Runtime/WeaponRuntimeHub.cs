@@ -5,19 +5,14 @@ public class WeaponRuntimeHub : MonoBehaviour
 {
     [Header("Runtime Controllers")]
     [SerializeField] private MeleeRuntime meleeController;
-    [SerializeField] private MagicRuntime magicController;
 
     public IWeaponRuntimeController MeleeRuntime => meleeController;
-    public IWeaponRuntimeController MagicRuntime => magicController;
     public IWeaponActionPort MeleeActionPort => meleeController;
 
     public void ResolveControllers()
     {
         if (meleeController == null)
             meleeController = GetComponent<MeleeRuntime>();
-
-        if (magicController == null)
-            magicController = GetComponent<MagicRuntime>();
     }
 
     public IWeaponRuntimeController GetRuntime(WeaponRuntimeKind runtimeKind)
@@ -29,11 +24,8 @@ public class WeaponRuntimeHub : MonoBehaviour
             case WeaponRuntimeKind.Melee:
                 return MeleeRuntime;
 
-            case WeaponRuntimeKind.Magic:
-                return MagicRuntime;
-
             default:
-                return null;
+                return null; // WeaponRuntimeKind.Magic은 2026-09-30 마법 무기 제거로 대응 런타임이 없다.
         }
     }
 
@@ -45,10 +37,6 @@ public class WeaponRuntimeHub : MonoBehaviour
         if (context.Family == WeaponCombatFamily.Melee
             && context.Usage.attackType == WeaponAttackType.MeleeSlash)
             return GetRuntime(WeaponRuntimeKind.Melee);
-
-        if (context.Family == WeaponCombatFamily.Magic
-            && context.Usage.attackType == WeaponAttackType.Chain)
-            return GetRuntime(WeaponRuntimeKind.Magic);
 
         return null;
     }
@@ -68,6 +56,5 @@ public class WeaponRuntimeHub : MonoBehaviour
     {
         ResolveControllers();
         MeleeRuntime?.CancelCurrentAction();
-        MagicRuntime?.CancelCurrentAction();
     }
 }

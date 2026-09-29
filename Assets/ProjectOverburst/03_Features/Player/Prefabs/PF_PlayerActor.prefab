@@ -241,7 +241,6 @@ GameObject:
   - component: {fileID: 3853973983778718115}
   - component: {fileID: 2299222960054195725}
   - component: {fileID: 1058986554465660183}
-  - component: {fileID: 5237656048083519483}
   - component: {fileID: 1212765871243366266}
   - component: {fileID: 5806982113689276545}
   - component: {fileID: 251831868484462218}
@@ -566,34 +565,227 @@ MonoBehaviour:
   currentWeaponAimSource: {fileID: 0}
   currentWeaponPose: {fileID: 0}
   currentWeaponTraceBinding: {fileID: 0}
-  activeWeaponSlotIndex: 0
-  weaponSlotItems:
+  initialActiveWeaponSlot: 0
+  initialWeaponSlotItems:
   - baseData: {fileID: 0}
     flaskState:
       seed: 0
       rolledGrade: 0
       profile: 0
       rolls: []
-      charge: 0
-      chargeInitialized: 0
+      cooldownRemaining: 0
       equippedSlot: -1
     runtimeInstanceId: 
     acquisitionOrder: 0
     level: 0
     grade: 0
     stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
     instanceElement: 0
     hasInstanceElement: 0
     weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
     meleeStarDistributionProfile: 0
     bagOptions: []
-    comboGemOptions: []
-    weaponComboGemLoadouts: []
+  initialGearSlotItems:
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
+  - baseData: {fileID: 0}
+    flaskState:
+      seed: 0
+      rolledGrade: 0
+      profile: 0
+      rolls: []
+      cooldownRemaining: 0
+      equippedSlot: -1
+    runtimeInstanceId: 
+    acquisitionOrder: 0
+    level: 0
+    grade: 0
+    stackCount: 0
+    originRunId: 
+    mapState:
+      mapContentId: 
+      monsterThemeId: 
+      level: 1
+      grade: 0
+      options: []
+    instanceElement: 0
+    hasInstanceElement: 0
+    weaponGradeStatRolls: []
+    gearRolls: []
+    balanceVersion: 0
+    meleeStarDistributionProfile: 0
+    bagOptions: []
   testWeaponItemData: {fileID: 11400000, guid: 9f2f854bfa52a1d45b0a708a5ba264c2, type: 2}
   testWeaponGrade: 0
-  references:
-    version: 2
-    RefIds: []
 --- !u!114 &1058986554465660183
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -612,28 +804,6 @@ MonoBehaviour:
   destroyOnDeath: 0
   showDamageNumbers: 1
   enableSwordParry: 0
---- !u!114 &5237656048083519483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5778037010099676702}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b52c7508b684f3290a122b1e2b47121, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MagicWeaponCaster
-  playerEquipment: {fileID: 2299222960054195725}
-  playerController: {fileID: 7267795241096372142}
-  playerAnimatorController: {fileID: 3391135747592105502}
-  aimCamera: {fileID: 0}
-  magicChainProjectilePrefab: {fileID: 0}
-  fallbackCastHeight: 1.1
-  fallbackCastForwardOffset: 0.65
-  hipFireDamageMultiplier: 0.5
-  hipFireExplosionRadiusMultiplier: 0.5
-  enableProjectileDebugLogs: 1
 --- !u!143 &1212765871243366266
 CharacterController:
   m_ObjectHideFlags: 0
@@ -710,7 +880,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRuntimeHub
   meleeController: {fileID: 2957589915240667922}
-  magicController: {fileID: 5237656048083519483}
+  magicController: {fileID: 0}
 --- !u!114 &9128834677009160950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -738,7 +908,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 872cbf2c245441e7a361e3734e8a040a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEvadeController
-  staminaCost: 10
   cooldown: 0.25
   dashDistance: 5.5
   dashDuration: 0.16
@@ -836,7 +1005,7 @@ MonoBehaviour:
   currencyAutoPickup: {fileID: 1994137954335074282}
   starterLoadout: {fileID: 0}
   meleeRuntime: {fileID: 2957589915240667922}
-  magicRuntime: {fileID: 5237656048083519483}
+  magicRuntime: {fileID: 0}
   authority: 2
 --- !u!114 &6154574667041729290
 MonoBehaviour:
@@ -953,6 +1122,10 @@ MonoBehaviour:
   localCenter: {x: 0, y: 0, z: 0}
   radius: 0.5
   height: 2
+  useCustomHurtVolume: 0
+  hurtLocalCenter: {x: 0, y: 0, z: 0}
+  hurtRadius: 0.45
+  hurtHeight: 2
 --- !u!114 &7026736677916535603
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1149,7 +1322,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00fbf0f217616743a2568091544cdb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFlaskController
-  equippedIds:
+  initialEquippedIds:
   - 
   - 
   - 
