@@ -13,14 +13,8 @@ MonoBehaviour:
   m_Name: GreatswordCatalog
   m_EditorClassIdentifier: Assembly-CSharp::Overburst.Persistence.AccountContentRegistry
   entries:
-  - id: item.weapon.greatsword.catalog.005
-    asset: {fileID: 11400000, guid: ce4daaeab83064a4c8a73914f4a2e4a1, type: 2}
-  - id: item.weapon.greatsword.catalog.007
-    asset: {fileID: 11400000, guid: 6719752925991a747ad2e55c9d217e62, type: 2}
   - id: item.weapon.greatsword.catalog.008
     asset: {fileID: 11400000, guid: 1e39bbd895bf7be4eb579471af31157c, type: 2}
-  - id: item.weapon.greatsword.catalog.009
-    asset: {fileID: 11400000, guid: 83d9ca35d2587ea4f84233f903700179, type: 2}
   - id: item.weapon.greatsword.catalog.010
     asset: {fileID: 11400000, guid: 80c93b0c4f42fb4408799af96c6e140b, type: 2}
   - id: item.weapon.greatsword.catalog.011
@@ -33,10 +27,6 @@ MonoBehaviour:
     asset: {fileID: 11400000, guid: a6a5b2702deaa39468a3898303495fdc, type: 2}
   - id: item.weapon.greatsword.catalog.019
     asset: {fileID: 11400000, guid: b7f41ddfdc0f2bd4ebe0ff1f890503b2, type: 2}
-  - id: item.weapon.greatsword.catalog.020
-    asset: {fileID: 11400000, guid: 817239ec3a0a87e458f85dcf2a042683, type: 2}
-  - id: item.weapon.greatsword.catalog.022
-    asset: {fileID: 11400000, guid: 9f9eddf58daae604c92f46f0df82e0e3, type: 2}
   - id: item.weapon.greatsword.catalog.024
     asset: {fileID: 11400000, guid: 28ebdd7ccff459b44b77c98027c86aa6, type: 2}
   - id: item.weapon.greatsword.catalog.025
@@ -81,10 +71,6 @@ MonoBehaviour:
     asset: {fileID: 11400000, guid: c943da57772d8f740855e3ae4a6f2d87, type: 2}
   - id: item.weapon.greatsword.catalog.062
     asset: {fileID: 11400000, guid: 561082994a261c04ca44b40bcbf4ddd0, type: 2}
-  - id: item.weapon.greatsword.catalog.063
-    asset: {fileID: 11400000, guid: f9db28da657ac214b9bb3b890b151172, type: 2}
-  - id: item.weapon.greatsword.catalog.065
-    asset: {fileID: 11400000, guid: 265c6af912fac954391d9159849fca59, type: 2}
   - id: item.weapon.greatsword.catalog.068
     asset: {fileID: 11400000, guid: d8ef06e3b37b247418224b2d4de57fd0, type: 2}
   - id: item.weapon.greatsword.catalog.069

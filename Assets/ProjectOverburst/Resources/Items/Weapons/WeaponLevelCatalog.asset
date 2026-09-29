@@ -13,18 +13,9 @@ MonoBehaviour:
   m_Name: WeaponLevelCatalog
   m_EditorClassIdentifier: Assembly-CSharp::WeaponLevelCatalog
   entries:
-  - weapon: {fileID: 11400000, guid: ce4daaeab83064a4c8a73914f4a2e4a1, type: 2}
-    minimumLevel: 20
-    maximumLevel: 29
-  - weapon: {fileID: 11400000, guid: 6719752925991a747ad2e55c9d217e62, type: 2}
-    minimumLevel: 40
-    maximumLevel: 49
   - weapon: {fileID: 11400000, guid: 1e39bbd895bf7be4eb579471af31157c, type: 2}
     minimumLevel: 50
     maximumLevel: 59
-  - weapon: {fileID: 11400000, guid: 83d9ca35d2587ea4f84233f903700179, type: 2}
-    minimumLevel: 10
-    maximumLevel: 19
   - weapon: {fileID: 11400000, guid: 80c93b0c4f42fb4408799af96c6e140b, type: 2}
     minimumLevel: 70
     maximumLevel: 79
@@ -43,12 +34,6 @@ MonoBehaviour:
   - weapon: {fileID: 11400000, guid: b7f41ddfdc0f2bd4ebe0ff1f890503b2, type: 2}
     minimumLevel: 90
     maximumLevel: 99
-  - weapon: {fileID: 11400000, guid: 817239ec3a0a87e458f85dcf2a042683, type: 2}
-    minimumLevel: 50
-    maximumLevel: 59
-  - weapon: {fileID: 11400000, guid: 9f9eddf58daae604c92f46f0df82e0e3, type: 2}
-    minimumLevel: 30
-    maximumLevel: 39
   - weapon: {fileID: 11400000, guid: 28ebdd7ccff459b44b77c98027c86aa6, type: 2}
     minimumLevel: 1
     maximumLevel: 9
@@ -115,12 +100,6 @@ MonoBehaviour:
   - weapon: {fileID: 11400000, guid: 561082994a261c04ca44b40bcbf4ddd0, type: 2}
     minimumLevel: 40
     maximumLevel: 49
-  - weapon: {fileID: 11400000, guid: f9db28da657ac214b9bb3b890b151172, type: 2}
-    minimumLevel: 80
-    maximumLevel: 89
-  - weapon: {fileID: 11400000, guid: 265c6af912fac954391d9159849fca59, type: 2}
-    minimumLevel: 60
-    maximumLevel: 69
   - weapon: {fileID: 11400000, guid: d8ef06e3b37b247418224b2d4de57fd0, type: 2}
     minimumLevel: 80
     maximumLevel: 89

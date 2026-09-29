@@ -10,8 +10,15 @@ namespace Overburst.Persistence
         private static readonly HashSet<string> RetiredIds = new HashSet<string>(StringComparer.Ordinal)
         {
             "item.weapon.greatsword.catalog.001",
+            "item.weapon.greatsword.catalog.005",
+            "item.weapon.greatsword.catalog.007",
+            "item.weapon.greatsword.catalog.009",
+            "item.weapon.greatsword.catalog.020",
+            "item.weapon.greatsword.catalog.022",
             "item.weapon.greatsword.catalog.053",
-            "item.weapon.greatsword.catalog.058"
+            "item.weapon.greatsword.catalog.058",
+            "item.weapon.greatsword.catalog.063",
+            "item.weapon.greatsword.catalog.065"
         };
 
         public static AccountSnapshot Remove(AccountSnapshot source, out int removedCount)
