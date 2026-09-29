@@ -80,6 +80,9 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         get { return isEvading; }
     }
 
+    public bool IsRollExitRecovering => isActiveAndEnabled
+        && Time.unscaledTime < rollRotationRecoveryEndTime;
+
     public bool IsInvincible
     {
         get { return Time.unscaledTime < invincibleEndTime; }

@@ -23,7 +23,8 @@ public enum WorldLootPickupRequestResult // UI/자동 이동 요청 결과
     AutoMovePending,
     AutoMoveCancelled,
     AutoMoveFailed,
-    OutOfRange
+    OutOfRange,
+    ActionBusy
 }
 
 public enum WorldLootAutoMoveDriverResult // 40번대 이동 종료 결과
@@ -510,6 +511,13 @@ public sealed class WorldLootInteractionSnapshot
 [DisallowMultipleComponent]
 public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아이템 상호작용 코어 호스트
 {
+    private enum PickupRequestSource
+    {
+        Interact,
+        LabelPointer,
+        AutoMove
+    }
+
     [Header("References")]
     [SerializeField] private PlayerInventory inventory;
 
@@ -535,6 +543,9 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
     private int publishedSignature; // 마지막 변경 서명
     private int revision;
     private WorldLootPickupRequestResult lastRequestResult;
+    private PlayerActorRuntime ownerActor;
+    private PlayerStateCoordinator ownerState;
+    private PlayerInputFacade ownerInput;
 
     public static PlayerPickupInteractor ActiveCore
     {
@@ -606,6 +617,9 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
 
     private void Awake()
     {
+        ownerActor = GetComponent<PlayerActorRuntime>();
+        ownerState = GetComponent<PlayerStateCoordinator>();
+        ownerInput = GetComponent<PlayerInputFacade>();
         ResolveInventory();
         RebuildSnapshot();
     }
@@ -657,16 +671,18 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
 
     public WorldLootPickupRequestResult RequestPickupByLabelPointerDown(WorldItemPickup target)
     {
-        if (GameplayInputBlocker.IsGameplayInputBlocked)
-            return SetRequestResult(WorldLootPickupRequestResult.InputBlocked);
+        WorldLootPickupRequestResult rejection = GetPickupActionRejection(
+            ResolveOwnerActor(), PickupRequestSource.LabelPointer);
+        if (rejection != WorldLootPickupRequestResult.None)
+            return SetRequestResult(rejection);
 
-        BeginPrimaryAttackSuppression(); // PointerDown 공격 누출 차단
+        BeginPrimaryAttackSuppression(); // 수락 가능한 라벨 클릭만 공격 입력으로 새지 않게 한다.
 
         if (!IsValidPickup(target))
             return SetRequestResult(WorldLootPickupRequestResult.InvalidTarget);
 
         if (IsWithinPickupRange(target))
-            return TryPickupTarget(target);
+            return TryPickupTarget(target, PickupRequestSource.LabelPointer);
 
         if (autoMoveDriver == null)
             return SetRequestResult(WorldLootPickupRequestResult.AutoMoveUnavailable);
@@ -734,7 +750,8 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
 
     public bool IsInteractionAvailable(PlayerActorRuntime actor)
     {
-        if (actor == null || GameplayInputBlocker.IsGameplayInputBlocked)
+        if (GetPickupActionRejection(actor, PickupRequestSource.Interact)
+            != WorldLootPickupRequestResult.None)
             return false;
 
         WorldItemPickup nearest = ResolveNearestSelectablePickup();
@@ -750,7 +767,8 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (!IsInteractionAvailable(actor) || selectedPickup == null)
             return InteractionExecutionResult.Rejected;
 
-        WorldLootPickupRequestResult result = TryPickupTarget(selectedPickup);
+        WorldLootPickupRequestResult result = TryPickupTarget(
+            selectedPickup, PickupRequestSource.Interact);
         return result == WorldLootPickupRequestResult.Succeeded
             ? InteractionExecutionResult.Succeeded
             : InteractionExecutionResult.Rejected;
@@ -858,10 +876,20 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         activePickupSnapshotCache = new WorldLootPickupSnapshot[requiredCount]; // 구성 수 변경 시에만 할당
     }
 
-    private WorldLootPickupRequestResult TryPickupTarget(WorldItemPickup target)
+    public bool CanContinueAutoMove(PlayerActorRuntime actor)
     {
-        if (GameplayInputBlocker.IsGameplayInputBlocked)
-            return SetRequestResult(WorldLootPickupRequestResult.InputBlocked);
+        return GetPickupActionRejection(actor, PickupRequestSource.AutoMove)
+            == WorldLootPickupRequestResult.None;
+    }
+
+    private WorldLootPickupRequestResult TryPickupTarget(
+        WorldItemPickup target,
+        PickupRequestSource source)
+    {
+        WorldLootPickupRequestResult rejection = GetPickupActionRejection(
+            ResolveOwnerActor(), source);
+        if (rejection != WorldLootPickupRequestResult.None)
+            return SetRequestResult(rejection);
 
         if (!IsValidPickup(target))
             return SetRequestResult(WorldLootPickupRequestResult.InvalidTarget);
@@ -903,7 +931,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
             return;
         }
 
-        TryPickupTarget(target); // 도착 후 같은 대상만 획득
+        TryPickupTarget(target, PickupRequestSource.AutoMove); // 도착 후 같은 대상과 행동 상태를 재검증
     }
 
     private void ValidatePendingAutoMove()
@@ -911,8 +939,75 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (pendingAutoMovePickup == null)
             return;
 
+        WorldLootPickupRequestResult rejection = GetPickupActionRejection(
+            ResolveOwnerActor(), PickupRequestSource.AutoMove);
+        if (rejection != WorldLootPickupRequestResult.None)
+        {
+            CancelPendingAutoMove(rejection);
+            return;
+        }
+
         if (!IsValidPickup(pendingAutoMovePickup))
             CancelPendingAutoMove(WorldLootPickupRequestResult.InvalidTarget);
+    }
+
+    private PlayerActorRuntime ResolveOwnerActor()
+    {
+        if (ownerActor == null)
+            ownerActor = GetComponent<PlayerActorRuntime>();
+        return ownerActor;
+    }
+
+    private WorldLootPickupRequestResult GetPickupActionRejection(
+        PlayerActorRuntime actor,
+        PickupRequestSource source)
+    {
+        PlayerActorRuntime owner = ResolveOwnerActor();
+        PlayerContext context = PlayerContext.Instance;
+        if (!isActiveAndEnabled || actor == null || actor != owner
+            || (context != null && context.CurrentActor != actor)
+            || actor.Authority != ActorControlAuthority.Player
+            || actor.Health == null || actor.Health.IsDead)
+        {
+            return WorldLootPickupRequestResult.InputBlocked;
+        }
+
+        if (GameplayInputBlocker.IsGameplayInputBlocked)
+            return WorldLootPickupRequestResult.InputBlocked;
+
+        if (ownerState == null)
+            ownerState = actor.GetComponent<PlayerStateCoordinator>();
+        if (ownerState == null || ownerState.CurrentCondition != PlayerConditionState.Normal)
+            return WorldLootPickupRequestResult.InputBlocked;
+
+        if (ownerState.CurrentAction != PlayerActionState.None)
+            return WorldLootPickupRequestResult.ActionBusy;
+
+        PlayerControlKit kit = actor.PlayerKit;
+        if (kit == null || kit.IsIncapacitated)
+            return WorldLootPickupRequestResult.InputBlocked;
+
+        if ((kit.MeleeRuntime != null && kit.MeleeRuntime.IsAttackInProgress)
+            || (kit.MagicRuntime != null && kit.MagicRuntime.IsBusy)
+            || (kit.Movement != null && kit.Movement.IsMeleeAttackMoveLocked)
+            || (kit.EvadeController != null
+                && (kit.EvadeController.IsEvading || kit.EvadeController.IsRollExitRecovering)))
+        {
+            return WorldLootPickupRequestResult.ActionBusy;
+        }
+
+        if (ownerInput == null)
+            ownerInput = actor.GetComponent<PlayerInputFacade>();
+        PlayerCombatInputBuffer combatInputs = ownerInput != null ? ownerInput.CombatInputs : null;
+        if (combatInputs != null
+            && (combatInputs.HasHeavy || combatInputs.HasEvade
+                || (source != PickupRequestSource.LabelPointer
+                    && (combatInputs.HasAttack || combatInputs.AllowsHeldAttack))))
+        {
+            return WorldLootPickupRequestResult.ActionBusy;
+        }
+
+        return WorldLootPickupRequestResult.None;
     }
 
     private void CancelPendingAutoMove(WorldLootPickupRequestResult result)

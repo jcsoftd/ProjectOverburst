@@ -60,6 +60,12 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
             return;
         }
 
+        if (boundInteractor == null || !boundInteractor.CanContinueAutoMove(activeActor))
+        {
+            CompleteActive(WorldLootAutoMoveDriverResult.Cancelled);
+            return;
+        }
+
         if (GameplayInputBlocker.IsGameplayInputBlocked
             || HasRawMoveInput()
             || HasEvadeInput()
@@ -107,6 +113,10 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
 
         ResolveRuntime();
         BindCurrentActorInteractor();
+        PlayerActorRuntime actor = playerContext != null ? playerContext.CurrentActor : null;
+        if (boundInteractor == null || !boundInteractor.CanContinueAutoMove(actor))
+            return false;
+
         CompleteActive(WorldLootAutoMoveDriverResult.Cancelled); // 새 라벨 요청은 기존 접근을 먼저 교체
 
         WorldItemPickup target = request.Target;
@@ -116,15 +126,13 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
             return true;
         }
 
-        PlayerActorRuntime actor = playerContext != null ? playerContext.CurrentActor : null;
         PlayerControlKit actorKit = actor != null ? actor.PlayerKit : null;
         if (!TryResolveActorControl(actor, actorKit, out PlayerMovement movement))
             return false;
 
         if (PlayerPickupInteractor.IsPrimaryAttackSuppressed)
         {
-            actorKit.CancelCurrentActions(WeaponActionCancelReason.Request); // PointerDown 공격 누출 제거
-            actorKit.RequireMeleeInputRelease(); // release까지 신규 공격 차단
+            actorKit.RequireMeleeInputRelease(); // 라벨 클릭 release까지 신규 공격 차단
         }
 
         if (GetFlatDistanceSqr(actor.transform.position, target.transform.position)
