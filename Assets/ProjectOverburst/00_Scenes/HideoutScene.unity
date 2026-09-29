@@ -701,6 +701,63 @@ Transform:
   - {fileID: 1957975351}
   m_Father: {fileID: 148806766}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &402438072
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2910338382400975073, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_Name
+      value: GRS024_TrainingIronGreatsword_Hideout_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1993,6 +2050,63 @@ Transform:
   - {fileID: 296202159}
   m_Father: {fileID: 148806766}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &998787257
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2910338382400975073, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_Name
+      value: GRS024_TrainingIronGreatsword_Hideout_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
 --- !u!1001 &1001422114
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3177,6 +3291,63 @@ Transform:
   - {fileID: 481643806}
   m_Father: {fileID: 148806766}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1750677489
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2910338382400975073, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_Name
+      value: GRS024_TrainingIronGreatsword_Hideout_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7854664015322517586, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8ffc2c55fb9429749946166d35d8372f, type: 3}
 --- !u!1 &1758215551
 GameObject:
   m_ObjectHideFlags: 0
@@ -3565,3 +3736,6 @@ SceneRoots:
   - {fileID: 1001422114}
   - {fileID: 81968541}
   - {fileID: 862357097}
+  - {fileID: 402438072}
+  - {fileID: 998787257}
+  - {fileID: 1750677489}
