@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43e5731be55438347b41378ece6ad648, type: 3}
+  m_Name: ItemDropSfxCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDropSfxCatalog
+  weapon:
+  - {fileID: 8300000, guid: 37006eacc771d48ae92420c224f05290, type: 3}
+  - {fileID: 8300000, guid: dd90e3d2d63de44aead22c9bbd952940, type: 3}
+  armor:
+  - {fileID: 8300000, guid: 7e7dcec95fd4a724ab7d7fc48b072e46, type: 3}
+  - {fileID: 8300000, guid: 2ce80a07574841d4391e2e8a039c0357, type: 3}
+  - {fileID: 8300000, guid: 59fdba02fd13cf146a3509be502883ac, type: 3}
+  - {fileID: 8300000, guid: 9a68606676d4416448c3d664e7fe4833, type: 3}
+  - {fileID: 8300000, guid: 85bdf16bd56af1f4a9ed2b482be1466d, type: 3}
+  accessory:
+  - {fileID: 8300000, guid: 2f175bb40d86cb14691a4984f56f282b, type: 3}
+  - {fileID: 8300000, guid: ac5f168773e22dd4694084224fad97bf, type: 3}
+  - {fileID: 8300000, guid: 96cf2758053142647809b426da01317f, type: 3}
+  - {fileID: 8300000, guid: 4383581d35bd3f54dac37247f535e7a4, type: 3}
+  potion:
+  - {fileID: 8300000, guid: 5fdcbb9f54af1a94b999b4e75e711b28, type: 3}
+  - {fileID: 8300000, guid: bf54b54c81e34294b94c18cc2a901e44, type: 3}
+  - {fileID: 8300000, guid: d8898253da16c0c43b30a90e340cf6fb, type: 3}
+  - {fileID: 8300000, guid: 6d617a2949e007b44a5895b2d327c558, type: 3}
+  - {fileID: 8300000, guid: ec975893cb67fc048b0a9816a0862203, type: 3}
+  gold: []
+  map:
+  - {fileID: 8300000, guid: 2dd5ec9b6981d44419309e9cf4c7b79d, type: 3}
+  - {fileID: 8300000, guid: 7282b46dde73d1a438dfa4ddd86d59df, type: 3}
+  - {fileID: 8300000, guid: 93f8ac985dcde704994e253601a1efda, type: 3}
+  bag:
+  - {fileID: 8300000, guid: 2ce1969cef0f87746a4792edf95d23e0, type: 3}
+  - {fileID: 8300000, guid: 3e82166d4f23149459ed9c04f9173758, type: 3}
+  - {fileID: 8300000, guid: 70cbd14bb90411b469556e3a944d45d5, type: 3}
+  - {fileID: 8300000, guid: b3addf59761de054198f563c44947958, type: 3}
+  dropVolume: 0.7
+  legendary: {fileID: 8300000, guid: 001aaa8c889a54202909acfd12153dc3, type: 3}
+  artifact: {fileID: 8300000, guid: 39044d675b17a43c8b895248f2baf8cc, type: 3}
+  mythic: {fileID: 8300000, guid: 30a533dc87b434e4b9e1054c2834bfd5, type: 3}
+  revealVolume: 0.8
+  spatialBlend: 0.6
+  minDistance: 3
+  maxDistance: 30
+  sameCueCooldown: 0.05

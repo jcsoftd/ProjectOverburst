@@ -257,6 +257,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         PlayEvadeAnimation(activeType, activeDuration);
         OnEvadeStarted?.Invoke(activeType);
         OverburstFeelFeedbackHub.Request(OverburstFeelCue.Evade, transform.position);
+        CombatActionSfxService.PlayPlayerEvade(transform.position);
         return true;
     }
 

@@ -23,6 +23,8 @@ public sealed class OverburstRunCardView : MonoBehaviour
     [SerializeField] private Image glow;
     [SerializeField] private Button choose;
     [SerializeField] private AudioClip revealSound;
+    [Tooltip("전설 이상 등급 카드 공개음. 비어 있으면 revealSound를 쓴다.")]
+    [SerializeField] private AudioClip legendaryRevealSound;
     private MMF_Player flip;
     private AudioSource audioSource;
     private RunCardPresentation data;
@@ -98,10 +100,13 @@ public sealed class OverburstRunCardView : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(RevealDuration * .5f);
         float strength = data.IsReward ? .5f : Mathf.Clamp01((int)data.Grade / 6f);
-        if (revealSound != null)
+        bool legendary = !data.IsReward && data.Grade >= ItemGrade.Legendary && legendaryRevealSound != null;
+        AudioClip clip = legendary ? legendaryRevealSound : revealSound;
+        if (clip != null)
         {
-            audioSource.pitch = Mathf.Lerp(1.14f, .82f, strength);
-            audioSource.PlayOneShot(revealSound, Mathf.Lerp(.28f, .64f, strength));
+            // 전설 이상 전용음은 원래 음높이로, 기본음은 등급에 따라 음높이·크기를 바꾼다.
+            audioSource.pitch = legendary ? 1f : Mathf.Lerp(1.14f, .82f, strength);
+            audioSource.PlayOneShot(clip, legendary ? .6f : Mathf.Lerp(.28f, .64f, strength));
         }
         float elapsed = 0;
         while (elapsed < .48f)

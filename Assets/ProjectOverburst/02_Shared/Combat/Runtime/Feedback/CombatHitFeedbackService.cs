@@ -157,7 +157,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             index = nextGroup;
             nextGroup = (nextGroup + 1) % groups.Length;
             groups[index] = new HitGroup { Occupied = true, Request = request };
-            MeleeElementSfxService.TryPlayHit(request.Element, visualContact);
+            MeleeElementSfxService.TryPlayHit(request.Element, visualContact, request.IsCritical);
         }
         if (!groups[index].OrganicSfxPlayed
             && CombatActionSfxService.TryPlayOrganicHit(request, visualContact))

@@ -332,10 +332,13 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         dropMotion.Landed -= HandleDropLanded;
         dropMotion.Landed += HandleDropLanded;
         dropMotion.Begin();
+        ItemDropSfxService.PlayReveal(runtimeItem.grade, transform.position); // 등장 등급음(전설 이상)
     }
 
     private void HandleDropLanded()
     {
+        if (runtimeItem != null)
+            ItemDropSfxService.PlayLanded(runtimeItem.baseData, transform.position); // 종류별 착지 드랍음
         NotifyRegistryChanged(); // 착지 후 유효 멤버십 갱신
     }
 

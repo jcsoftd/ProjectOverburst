@@ -24,9 +24,10 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
-      - {fileID: 8300000, guid: 55e46a78bf935ff4c840aa490b913026, type: 3}
+      - {fileID: 8300000, guid: d11bbb2562f19481589dcb85f8e65384, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -34,6 +35,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips: []
       volume: 1
@@ -43,6 +45,28 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips:
+      - {fileID: 8300000, guid: f80164fbfaa784985a17f78957899856, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
   - element: 1
     slash:
       clips:
@@ -54,9 +78,10 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
-      - {fileID: 8300000, guid: 495cf15e3eea75a4ab09b559c1c7bd7f, type: 3}
+      - {fileID: 8300000, guid: 81705b8aab10c4932809aed082d68927, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -64,6 +89,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips:
       - {fileID: 8300000, guid: 1c81cdd2f8239461885eb33ce7d62a6a, type: 3}
@@ -74,6 +100,28 @@ MonoBehaviour:
       minDistance: 5
       maxDistance: 42
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips:
+      - {fileID: 8300000, guid: 4303b9262c9d749a3a2d303f7967a017, type: 3}
+      volume: 0.8
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.05
+      maxVoices: 2
   - element: 4
     slash:
       clips:
@@ -85,6 +133,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
       - {fileID: 8300000, guid: 44723f9b6427c49d38b520a979b2e65e, type: 3}
@@ -97,9 +146,10 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips:
-      - {fileID: 8300000, guid: 19230453264234da897563c8cbaa307e, type: 3}
+      - {fileID: 8300000, guid: 70485ce117ab045418afa73d836fc4b2, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -107,6 +157,30 @@ MonoBehaviour:
       minDistance: 5
       maxDistance: 42
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips:
+      - {fileID: 8300000, guid: 61f6a166a25964c738455db6715551da, type: 3}
+      - {fileID: 8300000, guid: b0aa63314699e4fcb90801b6b2870f98, type: 3}
+      - {fileID: 8300000, guid: b0b558154833d4cccb6769f530ab14c9, type: 3}
+      volume: 0.8
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 3
   - element: 3
     slash:
       clips:
@@ -118,6 +192,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
       - {fileID: 8300000, guid: b3d9403a7ac784a41873d14836b75237, type: 3}
@@ -130,6 +205,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips:
       - {fileID: 8300000, guid: 6824842e64f3c4b6e8fc36ee061257e8, type: 3}
@@ -140,10 +216,32 @@ MonoBehaviour:
       minDistance: 5
       maxDistance: 42
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips:
+      - {fileID: 8300000, guid: 70344848c54f05b4c87c185ecfaf863d, type: 3}
+      volume: 0.7
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.02
+      maxVoices: 4
   - element: 8
     slash:
       clips:
-      - {fileID: 8300000, guid: 37fa1d21b3607bd48bd5b2247ea7d7c4, type: 3}
+      - {fileID: 8300000, guid: 25ba360a5b2de884395a74051337f843, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -151,9 +249,12 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
-      - {fileID: 8300000, guid: fd50b234071eb4233884faea09712761, type: 3}
+      - {fileID: 8300000, guid: fe3f74bf552d24b4aa2d81a5749aec3b, type: 3}
+      - {fileID: 8300000, guid: 5ab9c969b786845aa89ee13d54e74a7e, type: 3}
+      - {fileID: 8300000, guid: d34be573a0003478b86f01834b2ec5d7, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -161,6 +262,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips:
       - {fileID: 8300000, guid: 7f033ac2320744b92bd76e7d2fe6a79f, type: 3}
@@ -171,10 +273,31 @@ MonoBehaviour:
       minDistance: 5
       maxDistance: 42
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
   - element: 9
     slash:
       clips:
-      - {fileID: 8300000, guid: 37fa1d21b3607bd48bd5b2247ea7d7c4, type: 3}
+      - {fileID: 8300000, guid: 88b449830d0074cbeac5774d474f5255, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -182,9 +305,12 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     hit:
       clips:
-      - {fileID: 8300000, guid: b45897424a0da447689fe5e605033ec6, type: 3}
+      - {fileID: 8300000, guid: 322eb68a3b35f4aa7890103e4eedb910, type: 3}
+      - {fileID: 8300000, guid: 5147903f3a2554cf99089a50755b6381, type: 3}
+      - {fileID: 8300000, guid: b59f0fc29af054ffeac1cd0aabd182ea, type: 3}
       volume: 1
       minPitch: 1
       maxPitch: 1
@@ -192,6 +318,7 @@ MonoBehaviour:
       minDistance: 2
       maxDistance: 40
       cooldown: 0.03
+      maxVoices: 0
     heavyImpact:
       clips: []
       volume: 1
@@ -201,3 +328,116 @@ MonoBehaviour:
       minDistance: 5
       maxDistance: 42
       cooldown: 0.03
+      maxVoices: 0
+    criticalHit:
+      clips:
+      - {fileID: 8300000, guid: f01bdfd8b4abb4859a67979c4ae046fb, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    followUp:
+      clips: []
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+  upperHeavy:
+    darkPull:
+      clips:
+      - {fileID: 8300000, guid: 623ece0078876484aafa90e8f00ab322, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    darkForm:
+      clips:
+      - {fileID: 8300000, guid: f974aabce40e54d5b8e74b5fcbdfb8db, type: 3}
+      volume: 0.9
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    darkBurst:
+      clips:
+      - {fileID: 8300000, guid: 39899440f495d427abb37146933481f3, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    darkFormDelay: 0.7
+    lightHit1:
+      clips:
+      - {fileID: 8300000, guid: e91918db3632a40aea6b02ebcaa9199f, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightHit2:
+      clips:
+      - {fileID: 8300000, guid: 946e5010a1b55452fb2b01f057795991, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightHit3:
+      clips:
+      - {fileID: 8300000, guid: 6a891d184944446c0bc8ad323b75e348, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightBuildUp:
+      clips:
+      - {fileID: 8300000, guid: cee62d11376021241b32b42f108f8cbd, type: 3}
+      volume: 0.7
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightSparkle:
+      clips:
+      - {fileID: 8300000, guid: f8f3d8b4def422d408b9478fca7f6901, type: 3}
+      volume: 0.8
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightSparkleDelay: 0.15

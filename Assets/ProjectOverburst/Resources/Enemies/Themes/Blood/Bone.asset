@@ -18,3 +18,6 @@ MonoBehaviour:
   specularColor: {r: 0.425, g: 0.3875, b: 0.325, a: 1.25}
   specular: 0.12
   size: 5
+  bloodlessHitClips:
+  - {fileID: 8300000, guid: 561d2d0e492fb1445acc8cb741c02b24, type: 3}
+  - {fileID: 8300000, guid: 39dcefc6c9c668148985b8fe7ee9c961, type: 3}

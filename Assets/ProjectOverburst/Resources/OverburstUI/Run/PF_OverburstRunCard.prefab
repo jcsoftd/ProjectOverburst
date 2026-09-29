@@ -1551,7 +1551,8 @@ MonoBehaviour:
   icon: {fileID: 7527038748167738846}
   glow: {fileID: 5340412440709484542}
   choose: {fileID: 7947095038524794077}
-  revealSound: {fileID: 8300000, guid: 86aa66a501648034f8ec69ba5d404514, type: 3}
+  revealSound: {fileID: 8300000, guid: df4e42596eb764f929c54721569d7190, type: 3}
+  legendaryRevealSound: {fileID: 8300000, guid: 2fac387695ab946faa8591490522be85, type: 3}
 --- !u!1 &6144499073374266885
 GameObject:
   m_ObjectHideFlags: 0

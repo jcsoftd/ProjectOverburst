@@ -6,16 +6,18 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private const string ResourceRoot = "Combat/SFX/CombatAction/";
     private const int VoiceLimit = 32;
 
+    // 2026-09-30 청음 결정: 지면 2·3단 = Earth_Explosion_1·2_M, 예고 핑 = Metallic Ring 긴 판, 회피·에너지 가득 신규.
     private static readonly string[] ClipNames =
     {
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
-        "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround02", "GreatswordGround03",
-        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_ImpactRinging", "ParryWindowPing_MetallicRing"
+        "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround_EarthExplosion1", "GreatswordGround_EarthExplosion2",
+        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_ImpactRinging", "ParryWindowPing_MetallicRingLong",
+        "PlayerEvadeCloth", "ElementEnergyFull"
     };
 
     private static CombatActionSfxService instance;
-    private readonly AudioClip[] clips = new AudioClip[13];
-    private readonly bool[] missingClipReported = new bool[13];
+    private readonly AudioClip[] clips = new AudioClip[ClipNames.Length];
+    private readonly bool[] missingClipReported = new bool[ClipNames.Length];
     private readonly AudioSource[] voices = new AudioSource[VoiceLimit];
     private int voiceCount;
     private float nextWarningAt;
@@ -77,15 +79,30 @@ public sealed class CombatActionSfxService : MonoBehaviour
     {
         if (request.Target == null
             || !request.Target.TryGetComponent<BloodHitTarget>(out var bloodTarget)
-            || bloodTarget.Profile == null || bloodTarget.Profile.suppressBlood
+            || bloodTarget.Profile == null
             || !EnsureInstance())
             return false;
+
+        if (bloodTarget.Profile.suppressBlood)
+        {
+            // 무혈 몬스터는 살점 대신 재질음(뼈 등). 프로필에 지정한 종만 재생한다.
+            AudioClip material = bloodTarget.Profile.PickBloodlessHitClip();
+            return material != null && instance.Play(material, position, 0.8f, 0.9f, 2f, 22f, 95);
+        }
 
         int tier = request.IsCritical || request.IsLethal ? 2
             : request.ImpactShape == CombatImpactShape.Downward ? 1
             : (request.AttackSequenceId + request.PhaseIndex) & 1;
         return instance.Play(8 + tier, position, 0.8f, 0.95f, 2f, 22f, 95);
     }
+
+    // B09: 회피 시작 1회.
+    public static bool PlayPlayerEvade(Vector3 position) => EnsureInstance()
+        && instance.Play(13, position, 0.5f, 0.75f, 3f, 24f, 110);
+
+    // A24: 원소 에너지 게이지가 100%에 처음 닿은 순간 1회. 전투음 사이에서 튀지 않게 낮게 둔다.
+    public static bool PlayElementEnergyFull(Vector3 position) => EnsureInstance()
+        && instance.Play(14, position, 0f, 0.45f, 2f, 20f, 60);
 
     private static bool EnsureInstance()
     {

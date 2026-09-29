@@ -11,6 +11,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     {
         public AudioSource Source;
         public double EndDspTime;
+        public int Key = -1; // 속성·큐 키 (maxVoices 계산용)
     }
 
     private static MeleeElementSfxService instance;
@@ -31,8 +32,53 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     public static void Configure(MeleeElementSfxCatalog catalog)
     {
         resolver = catalog != null ? new MeleeElementSfxResolver(catalog) : null;
+        configuredCatalog = catalog;
         EnsureInstance();
         instance?.nextAllowedTime.Clear();
+    }
+
+    private static MeleeElementSfxCatalog configuredCatalog;
+    private const int UpperHeavyKeyBase = 1000; // 속성·큐 키(최대 9*5+4)와 겹치지 않게
+
+    public static float DarkFormDelay => configuredCatalog != null && configuredCatalog.upperHeavy != null
+        ? configuredCatalog.upperHeavy.darkFormDelay : 0.7f;
+    public static float LightSparkleDelay => configuredCatalog != null && configuredCatalog.upperHeavy != null
+        ? configuredCatalog.upperHeavy.lightSparkleDelay : 0.15f;
+
+    // 60D 암흑·빛 강공 단계음 한 번.
+    public static bool TryPlayUpperHeavy(UpperHeavySfxStage stage, Vector3 position)
+    {
+        EnsureInstance();
+        MeleeElementSfxCueSettings settings = configuredCatalog != null && configuredCatalog.upperHeavy != null
+            ? configuredCatalog.upperHeavy.Get(stage) : null;
+        return instance != null && settings != null && settings.TryPickClip(out AudioClip clip)
+            && instance.TryPlaySettings(settings, clip, UpperHeavyKeyBase + (int)stage, position);
+    }
+
+    // 빛 강공 N타(0·1·2). 2연타는 1타부터 시작한다.
+    public static bool TryPlayLightHeavyHit(int hitIndex, Vector3 position)
+    {
+        UpperHeavySfxStage stage = hitIndex <= 0 ? UpperHeavySfxStage.LightHit1
+            : hitIndex == 1 ? UpperHeavySfxStage.LightHit2 : UpperHeavySfxStage.LightHit3;
+        return TryPlayUpperHeavy(stage, position);
+    }
+
+    // 화염·암흑(에너지 있음)·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
+    public static bool ReplacesGreatswordGround(OverburstElementDischarge discharge)
+    {
+        return discharge != null && (discharge.Element == WeaponElement.Fire
+            || discharge.Element == WeaponElement.Light
+            || (discharge.Element == WeaponElement.Dark && discharge.Energy > 0f));
+    }
+
+    // 내려치는 순간 한 번. 재생했으면 true(지면음 생략). lightSlamHitIndex: 빛 3연타 0 · 2연타 1.
+    public static bool TryPlayUpperSlam(OverburstElementDischarge discharge, int lightSlamHitIndex, Vector3 position)
+    {
+        if (!ReplacesGreatswordGround(discharge)) return false;
+        if (discharge.Element != WeaponElement.Light)
+            return TryPlayHeavyImpact(discharge.Element, position);
+        if (lightSlamHitIndex <= 0) TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position);
+        return TryPlayLightHeavyHit(lightSlamHitIndex, position);
     }
 
     public static bool TryPlaySlash(WeaponElement element, Vector3 position)
@@ -40,14 +86,22 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         return TryPlay(element, MeleeElementSfxCueType.Slash, position);
     }
 
-    public static bool TryPlayHit(WeaponElement element, Vector3 position)
+    public static bool TryPlayHit(WeaponElement element, Vector3 position, bool critical = false)
     {
-        return TryPlay(element, MeleeElementSfxCueType.Hit, position);
+        // 치명타 큐가 비어 있거나 재생되지 않으면 일반 타격음으로 대체한다.
+        return (critical && TryPlay(element, MeleeElementSfxCueType.CriticalHit, position))
+            || TryPlay(element, MeleeElementSfxCueType.Hit, position);
     }
 
     public static bool TryPlayHeavyImpact(WeaponElement element, Vector3 position)
     {
         return TryPlay(element, MeleeElementSfxCueType.HeavyImpact, position);
+    }
+
+    // 강공 방출 후속 한 번: 번개 홉 도착점, 화염 전파 폭발점, 얼음 쇄빙 대상 위치.
+    public static bool TryPlayFollowUp(WeaponElement element, Vector3 position)
+    {
+        return TryPlay(element, MeleeElementSfxCueType.FollowUp, position);
     }
 
     public static bool IsSlashCueKey(string key)
@@ -123,9 +177,16 @@ public sealed class MeleeElementSfxService : MonoBehaviour
             return false;
         }
 
-        int cooldownKey = ((int)element * 3) + (int)cueType;
+        int cooldownKey = ((int)element * CueTypeCount) + (int)cueType;
+        return TryPlaySettings(settings, clip, cooldownKey, position);
+    }
+
+    private bool TryPlaySettings(MeleeElementSfxCueSettings settings, AudioClip clip, int cooldownKey, Vector3 position)
+    {
         float now = Time.unscaledTime;
         if (nextAllowedTime.TryGetValue(cooldownKey, out float allowedTime) && now < allowedTime)
+            return false;
+        if (settings.maxVoices > 0 && CountActive(cooldownKey) >= settings.maxVoices)
             return false;
 
         Voice voice = AcquireVoice();
@@ -137,9 +198,21 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         source.Play();
         float pitch = Mathf.Max(0.1f, Mathf.Abs(source.pitch));
         voice.EndDspTime = AudioSettings.dspTime + clip.length / pitch + 0.05d;
+        voice.Key = cooldownKey;
         active.Add(voice);
         nextAllowedTime[cooldownKey] = now + Mathf.Max(0f, settings.cooldown); // 실제 재생 뒤 소비
         return true;
+    }
+
+    private const int CueTypeCount = 5;
+
+    private int CountActive(int key)
+    {
+        int count = 0;
+        for (int i = 0; i < active.Count; i++)
+            if (active[i].Key == key)
+                count++;
+        return count;
     }
 
     private Voice AcquireVoice()
@@ -171,6 +244,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         ResetSource(voice.Source);
         voice.Source.gameObject.SetActive(false);
         voice.EndDspTime = 0d;
+        voice.Key = -1;
         available.Push(voice);
     }
 

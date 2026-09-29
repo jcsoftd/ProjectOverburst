@@ -13,10 +13,15 @@ public sealed class ElementChainScheduler : MonoBehaviour
         public readonly Action<Vector3,float> FireCallback;
         public readonly Action<Vector3,Vector3> LinkCallback;
         public Cast(){FireCallback=PlayFire;LinkCallback=PlayLink;}
-        private void PlayFire(Vector3 point,float radius)=>Spawn(Fire,point,radius/FireReferenceRadius);
+        private void PlayFire(Vector3 point,float radius)
+        {
+            Spawn(Fire,point,radius/FireReferenceRadius);
+            MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Fire,point); // A20 화염 전파
+        }
         private void PlayLink(Vector3 from,Vector3 to)
         {
             Spawn(Proc,to,1);
+            MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Electric,to); // A19 번개 홉
             if(Link==null||ChainElectricityBatchRenderer.TrySpawn(Link,from,to))return;
             Vector3 delta=to-from;float length=delta.magnitude;if(length<=.05f)return;
             var prefab=Link;

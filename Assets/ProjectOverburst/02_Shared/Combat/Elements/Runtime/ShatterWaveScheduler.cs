@@ -75,6 +75,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         }
         if (item.Prefab != null)
             TransientVfxPool.Spawn(item.Prefab, item.Point, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));
+        MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Ice, item.Point); // A21 대상별 쇄빙음
     }
     private void OnDestroy()
     {

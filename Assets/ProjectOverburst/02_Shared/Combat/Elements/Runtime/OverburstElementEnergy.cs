@@ -69,7 +69,11 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         attacks[key] = gain;
         if (!alreadyHit) attackOrder.Enqueue(key);
         while (attackOrder.Count > 128) attacks.Remove(attackOrder.Dequeue());
-        Amount = Mathf.Min(Mathf.Max(1f, tuning.maximumEnergy), Amount + Mathf.Max(0f, gain - credited));
+        float maximum = Mathf.Max(1f, tuning.maximumEnergy);
+        bool wasFull = Amount >= maximum - 0.0001f;
+        Amount = Mathf.Min(maximum, Amount + Mathf.Max(0f, gain - credited));
+        if (!wasFull && Amount >= maximum - 0.0001f)
+            CombatActionSfxService.PlayElementEnergyFull(transform.position); // A24 가득 참 알림 1회
         MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, element);
         Changed?.Invoke();
         return true;
