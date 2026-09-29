@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4fa0e4bda0e6404686858a069f4f6ad, type: 3}
+  m_Name: Gear_L04_EarringA
+  m_EditorClassIdentifier: Assembly-CSharp::GearItemData
+  itemName: "\uB179\uAC01\uC758 \uC528\uC557\uACE0\uB9AC"
+  icon: {fileID: 21300000, guid: 392db7e4ebab1524eb9f3cf960c10f7c, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uB179\uAC01 \uC0AC\uB0E5\uB2E8. \uC232\uC18D\uC5D0\uC11C \uC18C\uB9AC\uB97C
+    \uC8FD\uC774\uACE0 \uC6C0\uC9C1\uC774\uB294 \uC0AC\uB0E5\uB2E8\uC758 \uC7A5\uBE44.
+    \uB2E8\uB2E8\uD55C \uB179\uC0C9 \uAC00\uC8FD\uACFC \uBC1D\uC740 \uBFD4 \uC870\uAC01\uC5D0
+    \uC78E\uB9E5 \uBB34\uB2AC\uB97C \uC0C8\uACBC\uC2B5\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 100
+  worldPickupPrefab: {fileID: 0}
+  possibleStats: []
+  kind: 4
+  catalogMinLevel: 31
+  catalogMaxLevel: 40

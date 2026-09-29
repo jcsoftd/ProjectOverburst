@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4fa0e4bda0e6404686858a069f4f6ad, type: 3}
+  m_Name: Gear_L04B_Necklace
+  m_EditorClassIdentifier: Assembly-CSharp::GearItemData
+  itemName: "\uC120\uBD09\uB300\uC758 \uB9F9\uC138\uC778\uC7A5"
+  icon: {fileID: 21300000, guid: b39f588076cee614594ba21122010095, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uACE0\uC6D0 \uC120\uBD09\uB300. \uAC00\uD30C\uB978 \uACE0\uAC1C\uC5D0\uC11C
+    \uC55E\uC904\uC744 \uB9E1\uB294 \uC911\uBB34\uC7A5 \uC120\uBD09\uB300. \uAC01\uC9C4
+    \uAC15\uCCA0 \uD22C\uAD6C\uC640 \uC5B4\uAE68\uD310, \uC190\uB4F1\uACFC \uBC1C\uB05D\uC758
+    \uAE08\uC18D \uBC29\uD638\uD310\uC5D0 \uC0B0\uBD09\uC6B0\uB9AC \uBB38\uC7A5\uC744
+    \uC0C8\uACBC\uC2B5\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 100
+  worldPickupPrefab: {fileID: 0}
+  possibleStats: []
+  kind: 5
+  catalogMinLevel: 31
+  catalogMaxLevel: 40

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4fa0e4bda0e6404686858a069f4f6ad, type: 3}
+  m_Name: Gear_L01_Chest
+  m_EditorClassIdentifier: Assembly-CSharp::GearItemData
+  itemName: "\uAE38\uBAA9\uC758 \uB204\uBE44\uC870\uB07C"
+  icon: {fileID: 21300000, guid: b4eb1d53b14f96c42903e6c0ac2ae329, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uAE38\uBAA9\uC758 \uACAC\uC2B5. \uC5EC\uD589\uC744 \uB9C9 \uC2DC\uC791\uD55C
+    \uC774\uB4E4\uC774 \uC190\uC5D0 \uB2FF\uB294 \uC7AC\uB8CC\uB85C \uC218\uC120\uD574
+    \uC785\uC740 \uCCAB \uC7A5\uBE44. \uB2E8\uB2E8\uD55C \uCCA0\uD310\uBCF4\uB2E4
+    \uBC14\uB290\uC9C8\uACFC \uB9E4\uB4ED\uC774 \uBA3C\uC800 \uBCF4\uC785\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 100
+  worldPickupPrefab: {fileID: 0}
+  possibleStats: []
+  kind: 1
+  catalogMinLevel: 1
+  catalogMaxLevel: 10

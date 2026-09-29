@@ -22,3 +22,5 @@ MonoBehaviour:
   worldPickupPrefab: {fileID: 0}
   possibleStats: []
   kind: 3
+  catalogMinLevel: 51
+  catalogMaxLevel: 60
