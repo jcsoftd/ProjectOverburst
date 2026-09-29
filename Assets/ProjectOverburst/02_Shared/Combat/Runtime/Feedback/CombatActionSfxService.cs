@@ -10,7 +10,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
     {
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
         "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround02", "GreatswordGround03",
-        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_v3", "ParryWindowPing_v3"
+        "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_ImpactRinging", "ParryWindowPing_MetallicRing"
     };
 
     private static CombatActionSfxService instance;
