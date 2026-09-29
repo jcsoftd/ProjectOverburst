@@ -487,8 +487,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &93621926726713385
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -861,10 +859,10 @@ MonoBehaviour:
   visualRoot: {fileID: 7227393398706492502}
   feedback: {fileID: 4442913957642541481}
   landingNormalizedTime: 0.5
-  normalDisplacement: 0.08
-  strongDisplacement: 0.14
-  strongLift: 0
-  displacementDuration: 0.24
+  normalDisplacement: 0.27
+  strongDisplacement: 0.46
+  strongLift: 0.055
+  displacementDuration: 0.23
 --- !u!114 &1786997236888690588
 MonoBehaviour:
   m_ObjectHideFlags: 0
