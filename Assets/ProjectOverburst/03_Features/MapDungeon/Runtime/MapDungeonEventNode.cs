@@ -14,6 +14,10 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private readonly Dictionary<CombatHealth, EnemyThemeTier> living =
         new Dictionary<CombatHealth, EnemyThemeTier>();
     private EnemyThemeTable theme;
+    private MapSpawnBudget budget;
+    private bool spawning;
+    private bool combatStarted;
+    public bool IsSpawning => spawning;
     private EnemySpawnService spawnService;
     private EncounterContext encounter;
     private MapItemData mapDefinition;
@@ -65,6 +69,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
         band = Mathf.Clamp(progressBand, 0, 2);
         theme = selectedTheme;
         spawnService = service;
+        budget = service.GetComponent<MapSpawnBudget>();
         encounter = context;
         mapDefinition = definition;
         registry = contentRegistry;
@@ -83,6 +88,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private void OnDisable()
     {
         InteractionRegistry.Unregister(this);
+        if (budget != null) budget.Cancel(this);
+        spawning = false;
         foreach (var pair in living)
             if (pair.Key != null) pair.Key.OnDead -= HandleEnemyDead;
         living.Clear();
@@ -108,17 +115,19 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
             if (delta.sqrMagnitude <= ActivationRadius * ActivationRadius) Activate(player);
         }
         else if (Phase == MapEventPhase.Active && Kind == MapEventKind.Hunt
-            && wave == 0 && living.Count == 0 && Time.time >= nextCheck)
+            && !spawning && living.Count == 0 && Time.time >= nextCheck)
         {
             nextCheck = Time.time + 1f;
             Transform player = PlayerContext.Instance?.CurrentActor?.transform;
-            if (player != null && SpawnWave(player)) wave = 1;
+            if (wave == 0) { if (player != null && SpawnWave(player)) wave = 1; }
+            else Complete();
         }
         else if (Phase == MapEventPhase.Active && Kind == MapEventKind.Guard)
         {
             if (guardHealth == null || guardHealth.IsDead) { Fail(); return; }
+            if (!combatStarted) return;
             elapsed += Time.deltaTime;
-            if (wave < 2 && elapsed >= (wave + 1) * 15f && Time.time >= nextCheck)
+            if (!spawning && wave < 2 && elapsed >= (wave + 1) * 15f && Time.time >= nextCheck)
             {
                 nextCheck = Time.time + 1f;
                 if (SpawnWave(guardHealth.transform)) wave++;
@@ -148,32 +157,25 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
 
     private bool SpawnWave(Transform target)
     {
-        int small = Kind == MapEventKind.Hunt ? 4 + band + wave : 3 + band;
-        int medium = Kind == MapEventKind.Hunt ? 1 + (band > 0 || wave > 0 ? 1 : 0)
-            : band == 0 ? 0 : band;
-        int elite = band == 2 && wave > 0 ? 1 : 0;
-        if (Kind == MapEventKind.Guard && band == 2) elite = 1;
-        var roster = theme.BuildRoster(small, medium, elite, random.Next());
-        int spawned = 0;
-        for (int i = 0; i < roster.Count; i++)
+        if (spawning || budget == null) return false;
+        var roster = MapSpawnPolicy.Roster(theme, encounter.Map, band, random.Next());
+        var requests = new List<EnemySpawnRequest>(roster.Count);
+        foreach (var definition in roster)
         {
-            if (!TrySpawnPoint(out Vector3 position)) continue;
-            Vector3 direction = target.position - position;
-            direction.y = 0f;
-            Quaternion rotation = direction.sqrMagnitude > .001f
-                ? Quaternion.LookRotation(direction.normalized) : Quaternion.identity;
-            var request = new EnemySpawnRequest(roster[i], position, rotation, target,
-                gameObject, transform, transform, 1f, 1f, random.Next(), encounter);
-            if (!spawnService.TrySpawn(request, out EnemyActor actor)) continue;
-            EnemyThemeTier tier = i < small ? EnemyThemeTier.Small
-                : i < small + medium ? EnemyThemeTier.Medium : EnemyThemeTier.Elite;
-            living.Add(actor.Health, tier);
+            if (!TrySpawnPoint(out Vector3 position)) return false;
+            Vector3 direction = target.position - position; direction.y = 0;
+            requests.Add(new EnemySpawnRequest(definition, position,
+                direction.sqrMagnitude > .001f ? Quaternion.LookRotation(direction) : Quaternion.identity,
+                target, gameObject, transform, transform, 1, 1, random.Next(), encounter));
+        }
+        spawning = budget.Enqueue(this, requests, (actor, index) =>
+        {
+            combatStarted = true;
+            living.Add(actor.Health, MapSpawnPolicy.Tier(theme, roster[index]));
             actor.Health.OnDead += HandleEnemyDead;
             if (Kind == MapEventKind.Guard) actor.AI?.RequestAggro(target);
-            spawned++;
-        }
-        if (spawned == 0) Debug.LogWarning("[MapEvent] 소환 실패, 다음 근접 검사에서 재시도: " + eventId, this);
-        return spawned > 0;
+        }, count => { spawning = false; nextCheck = Time.time + .1f; if (count == 0) Fail(); });
+        return spawning;
     }
 
     private bool TrySpawnPoint(out Vector3 position)
@@ -205,7 +207,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
         foreach (var pair in living)
             if (pair.Key != null && !pair.Key.IsDead) { source = pair.Key.gameObject; break; }
         if (source == null) return;
-        guardHealth.TakeDamage(new DamageInfo(2f * living.Count,
+        guardHealth.TakeDamage(new DamageInfo(2f * Mathf.Min(living.Count, 8),
             guardHealth.transform.position, source, suppressDefaultHitVfx: true));
     }
 
@@ -225,7 +227,7 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
                     PlayerAccountInventoryService.SharedInventory,
                     PlayerContext.Instance?.CurrentActor?.transform);
         }
-        if (Phase != MapEventPhase.Active || Kind != MapEventKind.Hunt || living.Count > 0) return;
+        if (Phase != MapEventPhase.Active || Kind != MapEventKind.Hunt || spawning || living.Count > 0) return;
         if (wave == 0)
         {
             Transform player = PlayerContext.Instance?.CurrentActor?.transform;
@@ -238,6 +240,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private void Complete()
     {
         if (Phase != MapEventPhase.Active) return;
+        if (budget != null) budget.Cancel(this);
+        spawning = false;
         Phase = MapEventPhase.Complete;
         if (rewardChestVisual != null) rewardChestVisual.SetActive(true);
         StateChanged?.Invoke(this);
@@ -246,6 +250,8 @@ public sealed class MapDungeonEventNode : MonoBehaviour, IInteractable
     private void Fail()
     {
         if (Phase != MapEventPhase.Active) return;
+        if (budget != null) budget.Cancel(this);
+        spawning = false;
         Phase = MapEventPhase.Failed;
         StateChanged?.Invoke(this);
     }

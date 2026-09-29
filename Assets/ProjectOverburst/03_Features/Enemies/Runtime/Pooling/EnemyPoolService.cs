@@ -20,6 +20,8 @@ public sealed class EnemyPoolService : MonoBehaviour
     public int DefaultPrewarmCount => Mathf.Max(0, defaultPrewarmCount);
     public int LeasedCount => leasedPrefabByActor.Count;
     public int AvailableCount => availableActors.Count;
+    public int CreatedCount { get; private set; }
+    public int PendingReturnCount => pendingPrefabByActor.Count;
     public bool IsAuthoringValid => inactivePoolRoot != null
         && inactivePoolRoot != transform
         && !inactivePoolRoot.gameObject.activeSelf;
@@ -195,6 +197,7 @@ public sealed class EnemyPoolService : MonoBehaviour
             return null;
         }
 
+        CreatedCount++;
         actor.gameObject.SetActive(false);
         actor.transform.localScale = Vector3.one;
         actor.AttachPool(this, prefab);

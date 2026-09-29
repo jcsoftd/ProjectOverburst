@@ -10,6 +10,9 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
 {
     public const string SceneName = "DiamondDungeon01";
     private RunWorldGate gate;
+    private System.Collections.IEnumerator poolWarmup;
+    private Transform preparedEntry;
+    public MapSpawnBudget SpawnBudget { get; private set; }
     private RunWalkableArea walkable;
     private EnemyThemeTable theme;
     private MapItemData mapDefinition;
@@ -50,6 +53,23 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
                 gate.RejectPreparation(gate.Context.RunId, error.Message);
             }
         }
+        if (poolWarmup != null)
+        {
+            try
+            {
+                if (!poolWarmup.MoveNext())
+                {
+                    poolWarmup = null;
+                    if (!gate.CompletePreparation(gate.Context.RunId, preparedEntry))
+                        throw new InvalidOperationException("던전 준비 완료 신호 실패");
+                }
+            }
+            catch (Exception error)
+            {
+                poolWarmup = null; Debug.LogException(error, this);
+                gate.RejectPreparation(gate.Context.RunId, error.Message);
+            }
+        }
         if (bossDeathPending && !bossSettled && Time.unscaledTime >= nextBossRetry)
             TrySettleBoss();
     }
@@ -65,7 +85,7 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
 
         string themeId = string.IsNullOrEmpty(gate.Map.monsterThemeId)
             ? MapThemeCatalog.RollThemeId() : gate.Map.monsterThemeId;
-        theme = MapThemeCatalog.Resolve(themeId);
+        theme = MapThemeCatalog.ResolveForRun(themeId);
         if (theme == null) throw new InvalidOperationException("지도 몬스터 테마를 찾을 수 없습니다: " + themeId);
         var random = new System.Random(StableSeed(gate.Context.RunId));
         startCorner = (DiamondCorner)random.Next(4);
@@ -90,8 +110,8 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         eventDirector.Configure(startCorner, theme, spawnService, gate.Context, gate.Map,
             mapDefinition, account.ContentRegistry, accentMaterial, fields, random.Next());
 
-        if (!gate.CompletePreparation(gate.Context.RunId, entry))
-            throw new InvalidOperationException("던전 준비 완료 신호를 전달하지 못했습니다.");
+        preparedEntry = entry;
+        poolWarmup = SpawnBudget.Warmup(theme, gate.Map);
     }
 
     private void BuildMaterials()
@@ -184,6 +204,8 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         spawnService = root.AddComponent<EnemySpawnService>();
         spawnService.Configure(theme.Catalog, pool);
         if (!spawnService.Validate(out string reason)) throw new InvalidOperationException(reason);
+        SpawnBudget = root.AddComponent<MapSpawnBudget>();
+        SpawnBudget.Configure(spawnService, gate.Map);
     }
 
     private void BuildFields(System.Random random, AccountGameplaySession account)

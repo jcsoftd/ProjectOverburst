@@ -38,9 +38,20 @@ public static class MapThemeCatalog
         return table != null ? table.DisplayName : "미지정";
     }
 
+    public static bool IsEnabledForRuns(string themeId) => themeId != "DeathHarvest";
+
+    public static EnemyThemeTable ResolveForRun(string themeId)
+    {
+        if (IsEnabledForRuns(themeId)) return Resolve(themeId);
+        // Existing saved maps remain usable while this theme is temporarily disabled.
+        foreach (var table in Tables) if (IsEnabledForRuns(table.ThemeId)) return table;
+        return null;
+    }
+
     public static string RollThemeId()
     {
-        var available = Tables;
+        var available = new List<EnemyThemeTable>();
+        foreach (var table in Tables) if (IsEnabledForRuns(table.ThemeId)) available.Add(table);
         if (available.Count == 0) throw new InvalidOperationException("사용 가능한 몬스터 테마가 없습니다.");
         return available[UnityEngine.Random.Range(0, available.Count)].ThemeId;
     }

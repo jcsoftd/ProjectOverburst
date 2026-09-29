@@ -5,7 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class MapMonsterField : MonoBehaviour
 {
-    private const float TriggerDistance = 17f;
+    private const float TriggerDistance = 25f;
+    private MapSpawnBudget budget;
+    public bool IsSpawning { get; private set; }
     private readonly Dictionary<CombatHealth, EnemyThemeTier> living =
         new Dictionary<CombatHealth, EnemyThemeTier>();
     private EnemyThemeTable theme;
@@ -30,6 +32,7 @@ public sealed class MapMonsterField : MonoBehaviour
     {
         theme = selectedTheme;
         service = spawnService;
+        budget = service.GetComponent<MapSpawnBudget>();
         context = encounter;
         map = activeMap;
         mapDefinition = definition;
@@ -54,38 +57,30 @@ public sealed class MapMonsterField : MonoBehaviour
     {
         if (triggered || theme == null || service == null || context == null || player == null
             || !context.CanGrantRewards) return false;
-        int[] small = { 5, 6, 7 };
-        int[] medium = { 1, 2, 3 };
-        int[] elite = { 0, 1, 2 };
-        int mediumCount = medium[band];
-        int eliteCount = elite[band];
-        if (MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0f)
-        {
-            mediumCount++;
-            if (band > 0) eliteCount++;
-        }
-        var roster = theme.BuildRoster(small[band], mediumCount, eliteCount, seed);
+        if (budget == null) return false;
+        // Two minimum-30 waves establish a real crowd even in the first level band.
+        var roster = MapSpawnPolicy.Roster(theme, map, band, seed);
+        roster.AddRange(MapSpawnPolicy.Roster(theme, map, band, seed + 1));
         var random = new System.Random(seed);
-        for (int i = 0; i < roster.Count; i++)
+        var requests = new List<EnemySpawnRequest>(roster.Count);
+        foreach (var definition in roster)
         {
-            if (!TryPosition(random, out Vector3 position)) continue;
-            var direction = player.position - position;
-            direction.y = 0f;
-            var rotation = direction.sqrMagnitude > .01f
-                ? Quaternion.LookRotation(direction.normalized) : Quaternion.identity;
-            var request = new EnemySpawnRequest(roster[i], position, rotation, player,
-                gameObject, transform, transform, 1f, 1f, seed + i, context);
-            if (!service.TrySpawn(request, out var actor)) continue;
-            var tier = i < small[band] ? EnemyThemeTier.Small
-                : i < small[band] + mediumCount ? EnemyThemeTier.Medium : EnemyThemeTier.Elite;
-            living.Add(actor.Health, tier);
+            if (!TryPosition(random, out Vector3 position)) return false;
+            Vector3 direction = player.position - position; direction.y = 0;
+            requests.Add(new EnemySpawnRequest(definition, position,
+                direction.sqrMagnitude > .01f ? Quaternion.LookRotation(direction) : Quaternion.identity,
+                player, gameObject, transform, transform, 1, 1, random.Next(), context));
+        }
+        IsSpawning = triggered = budget.Enqueue(this, requests, (actor, index) =>
+        {
+            living.Add(actor.Health, MapSpawnPolicy.Tier(theme, roster[index]));
             actor.Health.OnDead += HandleDead;
             SpawnedCount++;
-        }
-        if (SpawnedCount != roster.Count)
-            Debug.LogWarning($"[MapMonsterField] {name}: {SpawnedCount}/{roster.Count} 소환", this);
-        triggered = SpawnedCount > 0;
-        if (!triggered) nextCheck = Time.time + 1f;
+        }, count =>
+        {
+            IsSpawning = false;
+            if (count == 0) { triggered = false; nextCheck = Time.time + 1; }
+        });
         return triggered;
     }
 
@@ -124,6 +119,8 @@ public sealed class MapMonsterField : MonoBehaviour
 
     private void OnDisable()
     {
+        if (budget != null) budget.Cancel(this);
+        IsSpawning = false;
         foreach (var pair in living)
             if (pair.Key != null) pair.Key.OnDead -= HandleDead;
         living.Clear();
