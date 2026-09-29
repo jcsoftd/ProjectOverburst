@@ -145,14 +145,16 @@ public partial class InventorySlotBridge
 
     private void ResolveBagStatTargets()
     {
+        // 현재 플레이어는 PlayerContext가 안다. 씬 전체 탐색은 PlayerContext가 없는 개발용 씬을 위한 예비로만 남긴다.
+        PlayerContext context = PlayerContext.Instance;
         if (playerMovement == null)
-            playerMovement = FindFirstObjectByType<PlayerMovement>();
+            playerMovement = context != null && context.CurrentActorMovement != null ? context.CurrentActorMovement : FindFirstObjectByType<PlayerMovement>();
 
         if (playerStaminaController == null)
-            playerStaminaController = ResolvePlayerComponent<PlayerStaminaController>();
+            playerStaminaController = context != null && context.CurrentActorStaminaController != null ? context.CurrentActorStaminaController : ResolvePlayerComponent<PlayerStaminaController>();
 
         if (playerHealth == null)
-            playerHealth = ResolvePlayerComponent<CombatHealth>();
+            playerHealth = context != null && context.CurrentActorHealth != null ? context.CurrentActorHealth : ResolvePlayerComponent<CombatHealth>();
     }
 
     private T ResolvePlayerComponent<T>() where T : Component

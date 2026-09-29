@@ -28,6 +28,7 @@ public partial class TooltipManager : MonoBehaviour // 툴팁 표시
     private const string SubtitleSizeOpen = "<size=85%>";
     private const string SubtitleSizeClose = "</size>";
     public static TooltipManager Instance { get; private set; }
+    private static readonly List<TooltipManager> EnabledInstances = new List<TooltipManager>(); // 켜진 인스턴스. 재선출 때 씬 전체 탐색 대신 쓴다.
     [SerializeField] private OverburstGameTooltip rpgTooltip;
 
 #if UNITY_EDITOR
@@ -89,13 +90,19 @@ public partial class TooltipManager : MonoBehaviour // 툴팁 표시
         HideTooltip();
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetEnabledInstances() => EnabledInstances.Clear();
+
     private void OnEnable()
     {
+        if (!EnabledInstances.Contains(this))
+            EnabledInstances.Add(this);
         RegisterInstanceCandidate(this);
     }
 
     private void OnDisable()
     {
+        EnabledInstances.Remove(this);
         if (Instance == this)
         {
             Instance = null;
@@ -105,6 +112,7 @@ public partial class TooltipManager : MonoBehaviour // 툴팁 표시
 
     private void OnDestroy()
     {
+        EnabledInstances.Remove(this);
         if (Instance == this)
         {
             Instance = null;
@@ -119,10 +127,10 @@ public partial class TooltipManager : MonoBehaviour // 툴팁 표시
 
     private static void RefreshActiveInstance(TooltipManager excluded)
     {
-        TooltipManager[] managers = FindObjectsByType<TooltipManager>(FindObjectsSortMode.None);
+        List<TooltipManager> managers = EnabledInstances;
         TooltipManager best = null;
 
-        for (int i = 0; i < managers.Length; i++)
+        for (int i = 0; i < managers.Count; i++)
         {
             TooltipManager manager = managers[i];
             if (manager == excluded || !IsUsableInstance(manager))
