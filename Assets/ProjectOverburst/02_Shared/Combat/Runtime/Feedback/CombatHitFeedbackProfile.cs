@@ -3,10 +3,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "CombatHitFeedbackProfile", menuName = "OVERBURST/Combat/Hit Feedback Profile")]
 public sealed class CombatHitFeedbackProfile : ScriptableObject
 {
-    [Header("Hit Stop")]
-    [SerializeField, Min(0f)] private float hitStopDuration = 0.02f;
-    [SerializeField, Range(0.01f, 1f)] private float hitStopTimeScale = 0.05f;
-
+    // 일반 타격 히트스탑은 2026-09-29 사용자 결정으로 삭제했다. 패링 히트스탑은 PlayerParryController가 소유한다.
     [Header("Camera Impact")]
     [SerializeField, Min(0f)] private float cameraDuration = 0.08f;
     [SerializeField, Min(0f)] private float cameraPositionAmplitude = 0.04f;
@@ -20,15 +17,7 @@ public sealed class CombatHitFeedbackProfile : ScriptableObject
 
     [Header("Critical")]
     [SerializeField, Min(1f)] private float criticalStrengthMultiplier = 1.2f;
-    [SerializeField, Min(0f)] private float maximumHitStopDuration = 0.06f;
 
-    public float ResolveHitStopDuration(bool isCritical)
-    {
-        float multiplier = isCritical ? Mathf.Max(1f, criticalStrengthMultiplier) : 1f;
-        return Mathf.Min(Mathf.Max(0f, maximumHitStopDuration), Mathf.Max(0f, hitStopDuration) * multiplier);
-    }
-
-    public float HitStopTimeScale => Mathf.Clamp(hitStopTimeScale, 0.01f, 1f);
     public float CameraDuration => Mathf.Max(0f, cameraDuration);
     public float CameraKickReturnRatio => Mathf.Clamp01(cameraKickReturnRatio);
     public float CameraMicroShakeDuration => Mathf.Max(0f, cameraMicroShakeDuration);

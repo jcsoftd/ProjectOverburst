@@ -202,7 +202,6 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             request.HitPoint,
             request.IsLethal ? 1.35f : request.IsCritical ? 1.15f : 1f);
         RequestCameraImpact(request);
-        RequestHitStop(request.Profile, request.IsCritical);
     }
 
     private static void RequestCameraImpact(CombatHitFeedbackRequest request)
@@ -233,18 +232,5 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             CombatCameraRequestKind.PlayerDamage, worldDirection, Vector3.zero, false,
             duration, amplitude, amplitude * 2f, 0.82f, duration * 0.45f, 0.16f,
             2f, amplitude * 1.5f, amplitude * 3f);
-    }
-
-    private void RequestHitStop(CombatHitFeedbackProfile profile, bool isCritical)
-    {
-        float duration = profile.ResolveHitStopDuration(isCritical);
-        if (duration <= 0f)
-            return;
-
-        OverburstTimeEffectArbiter.Request(
-            this,
-            OverburstTimeEffectKind.HitStop,
-            profile.HitStopTimeScale,
-            duration);
     }
 }

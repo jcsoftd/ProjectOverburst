@@ -15,8 +15,6 @@ public enum OverburstTimeEffectKind
 public sealed class OverburstTimeEffectArbiter : MonoBehaviour
 {
     private const float NormalTimeScaleThreshold = 0.999f;
-    // 끊김 체감 비교용 임시 비활성화. false로 되돌리면 기존 프로필 수치로 복원된다.
-    private const bool TemporarilyDisableHitStop = true;
 
     private sealed class RequestState
     {
@@ -57,10 +55,6 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         float duration)
     {
         if (owner == null || duration <= 0f)
-            return false;
-
-        if (TemporarilyDisableHitStop
-            && (kind == OverburstTimeEffectKind.HitStop || kind == OverburstTimeEffectKind.ParryHitStop))
             return false;
 
         if (instance == null)

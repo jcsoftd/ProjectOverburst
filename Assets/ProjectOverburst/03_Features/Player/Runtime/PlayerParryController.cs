@@ -91,7 +91,9 @@ public sealed class PlayerParryController : MonoBehaviour
         SuccessCount++;
         successVfx?.Pulse();
         CombatActionSfxService.PlayParrySuccess(transform.position);
+        // 슬로우는 앞의 패링 히트스톱을 지나서도 이어진다. 두 요청은 종류별로 따로 유지된다.
         OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParrySlow, .75f, .21f);
+        OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParryHitStop, .01f, .06f);
     }
     public bool TryCancelDamage(DamageInfo info)
     {
