@@ -6,8 +6,11 @@ namespace Overburst.Persistence
 {
     public static class AccountRunCommands
     {
-        public static void PrepareEntry(AccountSnapshot state, string runId, MapInstanceState map, string mapItemId)
+        public static void PrepareEntry(AccountSnapshot state, string runId, MapInstanceState map, string mapItemId, bool debugEntry = false)
         {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+            debugEntry = false;
+#endif
             if (state.run != null && (AccountInvariants.IsRunning(state.run.phase) || state.run.phase == RunPhase.EntryPending))
                 throw new InvalidOperationException("A run is already pending or active.");
             if (string.IsNullOrWhiteSpace(runId) || map == null || map.level < 1 || map.level > 100
@@ -22,7 +25,7 @@ namespace Overburst.Persistence
                     throw new InvalidOperationException("The selected map is not available.");
                 map = item.map;
             }
-            else if (map.level != 1 || map.grade != ItemGrade.Common || map.options.Count != 0)
+            else if (!debugEntry && (map.level != 1 || map.grade != ItemGrade.Common || map.options.Count != 0))
                 throw new InvalidOperationException("A map item is required for this run.");
             state.run = new RunSnapshot { runId = runId, phase = RunPhase.EntryPending,
                 mapInstanceId = mapItemId, map = ItemSnapshotCodec.CopyValues(map) };

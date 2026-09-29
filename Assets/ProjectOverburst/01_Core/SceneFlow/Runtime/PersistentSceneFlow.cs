@@ -112,6 +112,18 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private bool cancelRunEntry;
 
     public bool EnterRun(string sceneName, Overburst.Persistence.MapInstanceState map, string mapItemId = null)
+        => BeginRun(sceneName, map, mapItemId, false);
+
+    public bool EnterDebugRun(string sceneName, Overburst.Persistence.MapInstanceState map)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        return BeginRun(sceneName, map, null, true);
+#else
+        return false;
+#endif
+    }
+
+    private bool BeginRun(string sceneName, Overburst.Persistence.MapInstanceState map, string mapItemId, bool debugEntry)
     {
         var account = Overburst.Persistence.AccountGameplaySession.Current;
         if (isSwitching || !WorldSessionState.IsHideout || account == null
@@ -121,7 +133,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string runId = System.Guid.NewGuid().ToString("N");
         try
         {
-            if (!new Overburst.Persistence.AccountRunSession(account).Prepare(runId, map, mapItemId)) return false;
+            if (!new Overburst.Persistence.AccountRunSession(account).Prepare(runId, map, mapItemId, debugEntry)) return false;
         }
         catch (System.Exception error) { RunEntryError = error.Message; return false; }
         RunEntryError = null; cancelRunEntry = false; isSwitching = true;

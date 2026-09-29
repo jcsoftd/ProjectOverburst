@@ -24,10 +24,10 @@ namespace Overburst.Persistence
             return (portalRequested || expired) && Extract(run.runId) ? RunOutcome.Extracted : RunOutcome.None;
         }
 
-        public bool Prepare(string runId, MapInstanceState map, string mapItemId = null)
+        public bool Prepare(string runId, MapInstanceState map, string mapItemId = null, bool debugEntry = false)
         {
             bool committed = account.ExecuteState("prepare-" + runId,
-                state => AccountRunCommands.PrepareEntry(state, runId, map, mapItemId));
+                state => AccountRunCommands.PrepareEntry(state, runId, map, mapItemId, debugEntry));
             if (committed) WorldSessionState.SetPhase(WorldPhase.Loading);
             return committed;
         }

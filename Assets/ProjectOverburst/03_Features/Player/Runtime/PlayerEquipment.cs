@@ -317,7 +317,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
         WeaponItemData weaponData = item.baseData as WeaponItemData;
 
-        if (weaponData == null || weaponData.weaponRootPrefab == null || !WeaponContentPolicy.IsActiveWeapon(weaponData))
+        if (weaponData == null || WeaponLevelCatalog.ResolveVisual(weaponData) == null || !WeaponContentPolicy.IsActiveWeapon(weaponData))
             return false; // prefab 없음
 
         item.EnsureRuntimeState(); // 런타임 보정
@@ -361,7 +361,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
         WeaponItemData weaponData = item.baseData as WeaponItemData;
 
-        if (weaponData == null || weaponData.weaponRootPrefab == null)
+        if (weaponData == null || WeaponLevelCatalog.ResolveVisual(weaponData) == null)
             return false;
 
         Transform holder = GetWeaponHolder(weaponData);
@@ -369,7 +369,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         if (holder == null)
             return false; // 부모 없음
 
-        GameObject weaponPrefab = weaponData.weaponRootPrefab; // 무기 prefab
+        GameObject weaponPrefab = WeaponLevelCatalog.ResolveVisual(weaponData); // 무기 prefab
         if (currentWeaponRoot != spawnedWeaponRoot)
             HideCurrentWeaponRoot(); // 기존 무기 숨김
 

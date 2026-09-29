@@ -26,6 +26,14 @@ public class DebugPanelToggleUI : MonoBehaviour
 
         ResolveReferences();
         AttachDamageNumberFeelControls();
+        var dungeonButton = DungeonDebugEntryUI.Attach(transform.parent);
+        var previous = controlledObjects ?? Array.Empty<GameObject>();
+        if (Array.IndexOf(previous, dungeonButton) < 0)
+        {
+            var next = new GameObject[previous.Length + 1];
+            Array.Copy(previous, next, previous.Length); next[previous.Length] = dungeonButton;
+            controlledObjects = next;
+        }
         RegisterButton();
         SetExpanded(startsExpanded);
     }

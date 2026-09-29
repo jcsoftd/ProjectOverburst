@@ -48,6 +48,20 @@ namespace Overburst.Persistence
                 ids.Add(entry.id, entry.asset);
                 assets.Add(entry.asset, entry.id);
             }
+            // Supplemental catalogs retain stable IDs without rewriting the shared main registry.
+            foreach (var catalog in Resources.LoadAll<AccountContentRegistry>("Persistence/Supplemental"))
+                foreach (var entry in catalog.entries)
+                {
+                    if (entry == null || string.IsNullOrEmpty(entry.id) || entry.asset == null)
+                        throw new InvalidDataException("Invalid supplemental account content.");
+                    if (assets.TryGetValue(entry.asset, out var existingId))
+                    {
+                        if (existingId != entry.id) throw new InvalidDataException("Conflicting supplemental content ID: " + entry.id);
+                        continue;
+                    }
+                    if (ids.ContainsKey(entry.id)) throw new InvalidDataException("Duplicate supplemental content ID: " + entry.id);
+                    ids.Add(entry.id, entry.asset); assets.Add(entry.asset, entry.id);
+                }
             byId = ids;
             byAsset = assets;
         }

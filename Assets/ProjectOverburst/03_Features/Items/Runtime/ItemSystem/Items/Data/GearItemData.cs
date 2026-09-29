@@ -12,6 +12,10 @@ public enum GearStat
 public sealed class GearItemData : BaseItemData
 {
     public GearKind kind;
+    [Min(1)] public int catalogMinLevel = 1;
+    [Min(1)] public int catalogMaxLevel = 100;
+
+    public bool AppearsAtLevel(int level) => level >= catalogMinLevel && level <= catalogMaxLevel;
 
     public GearStat MainStat => OverburstCombatBalance.MainStat(kind);
 
