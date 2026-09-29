@@ -43,12 +43,15 @@ namespace Overburst.Persistence
                 }
                 else
                 {
+                    state = RetiredGreatswordMigration.Remove(state, out int retiredRemoved);
                     state = ItemBalanceMigration.UpgradeAccount(state, registry, out bool balanceChanged);
                     AccountInvariants.Validate(state, registry);
-                    if (balanceChanged)
+                    if (retiredRemoved > 0 || balanceChanged)
                     {
                         state.revision = checked(state.revision + 1);
-                        state.lastTransactionId = "item-balance-v" + OverburstCombatBalance.ItemBalanceVersion + "-" + Guid.NewGuid().ToString("N");
+                        state.lastTransactionId = retiredRemoved > 0
+                            ? "retired-greatswords-" + Guid.NewGuid().ToString("N")
+                            : "item-balance-v" + OverburstCombatBalance.ItemBalanceVersion + "-" + Guid.NewGuid().ToString("N");
                         store.Save(state, state.lastTransactionId);
                     }
                     var recovery = new AccountTransactions(state, store, registry);

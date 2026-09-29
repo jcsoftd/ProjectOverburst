@@ -13,8 +13,6 @@ MonoBehaviour:
   m_Name: GreatswordCatalog
   m_EditorClassIdentifier: Assembly-CSharp::Overburst.Persistence.AccountContentRegistry
   entries:
-  - id: item.weapon.greatsword.catalog.001
-    asset: {fileID: 11400000, guid: 82f1a00906c2e3d4b9bada93d68e5e33, type: 2}
   - id: item.weapon.greatsword.catalog.005
     asset: {fileID: 11400000, guid: ce4daaeab83064a4c8a73914f4a2e4a1, type: 2}
   - id: item.weapon.greatsword.catalog.007
@@ -71,8 +69,6 @@ MonoBehaviour:
     asset: {fileID: 11400000, guid: b10fd5a5f80814d43a742ab8b3ed295f, type: 2}
   - id: item.weapon.greatsword.catalog.050
     asset: {fileID: 11400000, guid: 85b903ce961ea8c4bbe2e4ad0abf68d0, type: 2}
-  - id: item.weapon.greatsword.catalog.053
-    asset: {fileID: 11400000, guid: 9177bc176b97b9f4881d80425b435175, type: 2}
   - id: item.weapon.greatsword.catalog.054
     asset: {fileID: 11400000, guid: 7c535966a9b44c441be9cca3cb8ac633, type: 2}
   - id: item.weapon.greatsword.catalog.055
@@ -81,8 +77,6 @@ MonoBehaviour:
     asset: {fileID: 11400000, guid: 9d66ac2d76b1f1844b07e3e2d3d9e473, type: 2}
   - id: item.weapon.greatsword.catalog.057
     asset: {fileID: 11400000, guid: 43b61324ba8d1564ba668556c986a277, type: 2}
-  - id: item.weapon.greatsword.catalog.058
-    asset: {fileID: 11400000, guid: ce54e17e1b6e0b04dbfaf3c418adfaac, type: 2}
   - id: item.weapon.greatsword.catalog.061
     asset: {fileID: 11400000, guid: c943da57772d8f740855e3ae4a6f2d87, type: 2}
   - id: item.weapon.greatsword.catalog.062
