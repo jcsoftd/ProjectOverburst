@@ -244,7 +244,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
                     || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
-                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge);
+                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
+                first);
         }
         return true;
     }

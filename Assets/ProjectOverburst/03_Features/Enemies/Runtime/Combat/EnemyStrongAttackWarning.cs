@@ -27,7 +27,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     public bool FinalSignal { get; private set; }
 
     public void Show(float size, bool canParry, float angle = 360f,
-        bool charge = false, bool useTelegraph = true)
+        bool charge = false, bool useTelegraph = true, float leadSeconds = 1f)
     {
         if (visual == null)
         {
@@ -63,10 +63,11 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             EnsureSignal();
         }
         visual.SetActive(true);
-        ConfigureTelegraph(size, angle, charge, useTelegraph);
-        SetRemaining(1f);
+        ConfigureTelegraph(size, angle, charge, useTelegraph, leadSeconds);
+        SetRemaining(leadSeconds);
     }
-    private void ConfigureTelegraph(float size, float angle, bool charge, bool enabled)
+    private void ConfigureTelegraph(float size, float angle, bool charge, bool enabled,
+        float leadSeconds)
     {
         StopTelegraph();
         if (!enabled) return;
@@ -130,6 +131,12 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         foreach (var system in telegraphSystems[kind])
         {
             if (!system.gameObject.activeInHierarchy) continue;
+            // The supplier's five-second bloom is nearly invisible during our
+            // short windup. Advance the authored fill, border and ambient
+            // layers together so the composite reaches its bright phase just
+            // before impact, without a multi-second spawn-time simulation.
+            var main = system.main;
+            main.simulationSpeed = Mathf.Clamp(4.2f / Mathf.Max(.1f, leadSeconds), .5f, 9f);
             system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
             system.Play(false);
         }
