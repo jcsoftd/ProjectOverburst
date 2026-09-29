@@ -103,8 +103,11 @@ public sealed class OverburstGameUI : MonoBehaviour
         var contentScene=WorldSessionState.ContentScene;
         var minimap=WorldMinimapController.Instance;
         var sceneFlow=PersistentSceneFlow.Instance;
-        if(!WorldSessionState.IsHideout||(sceneFlow!=null&&sceneFlow.IsSwitching)){
-            if(minimapScene!=int.MinValue){minimap?.ForceHide();minimapScene=int.MinValue;}
+        bool showMinimap=(WorldSessionState.IsHideout||dungeon)&&sceneFlow!=null&&!sceneFlow.IsSwitching;
+        if(!showMinimap){
+            if(minimapScene!=int.MinValue||(minimap!=null&&minimap.IsVisible)){
+                minimap?.ForceHide();minimapScene=int.MinValue;
+            }
         }
         else if(contentScene.isLoaded&&contentScene.handle!=minimapScene&&context.CurrentActor&&minimap&&sceneFlow){
             minimapScene=contentScene.handle;
