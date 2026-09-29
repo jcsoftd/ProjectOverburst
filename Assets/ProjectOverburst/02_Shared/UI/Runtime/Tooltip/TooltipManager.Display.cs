@@ -263,20 +263,6 @@ public partial class TooltipManager
         return true;
     }
 
-    private static bool HasAuthoredArray<T>(T[] values, int expectedCount) where T : Object
-    {
-        if (values == null || values.Length != expectedCount)
-            return false;
-
-        for (int i = 0; i < values.Length; i++)
-        {
-            if (values[i] == null)
-                return false;
-        }
-
-        return true;
-    }
-
     private void LogMissingAuthoredView()
     {
         if (missingAuthoredViewLogged)

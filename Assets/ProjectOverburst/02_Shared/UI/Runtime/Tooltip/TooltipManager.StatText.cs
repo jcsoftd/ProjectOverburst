@@ -26,37 +26,6 @@ public partial class TooltipManager
         return builder.ToString().TrimEnd();
     }
 
-    private string BuildMeleeWeaponGradeStatComparisonFixed(ItemData item, WeaponFinalStats baseStats, WeaponFinalStats finalStats)
-    {
-        StringBuilder builder = new StringBuilder();
-
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.Damage, "데미지", baseStats.damage, finalStats.damage, FormatZeroDecimal);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.AttackSpeed, "공격속도", baseStats.meleeAttackSpeedMultiplier * 100f, finalStats.meleeAttackSpeedMultiplier * 100f, FormatPercentZeroDecimal);
-        AppendWeaponFloatFixed(builder, item, ResolveMeleeRangeGradeStatType(), "공격 범위", baseStats.range, finalStats.range, FormatMetersOneDecimal);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.CritChance, "치명타확률", baseStats.critChance, finalStats.critChance, FormatPercentZeroDecimal);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.CritDamage, "치명타피해", baseStats.critDamageMultiplier, finalStats.critDamageMultiplier, FormatMultiplierAsPercent);
-        AppendWeaponFloatNoStarsFixed(builder, "넉백", baseStats.knockback, finalStats.knockback, FormatZeroDecimal);
-
-        return builder.ToString().TrimEnd();
-    }
-
-    private static WeaponGradeStatType ResolveMeleeRangeGradeStatType()
-    {
-        return WeaponGradeStatType.AttackRange;
-    }
-
-    private void AppendWeaponFloatNoStarsFixed(StringBuilder builder, string label, float baseValue, float finalValue, System.Func<float, string> formatter)
-    {
-        builder.Append(label).Append(" ");
-
-        if (!Mathf.Approximately(baseValue, finalValue))
-            builder.Append("(").Append(formatter(baseValue)).Append(" -> <color=").Append(ChangedValueColor).Append(">").Append(formatter(finalValue)).Append("</color>)");
-        else
-            builder.Append(formatter(baseValue));
-
-        builder.AppendLine();
-    }
-
     private void AppendWeaponFloatFixed(StringBuilder builder, ItemData item, WeaponGradeStatType statType, string label, float baseValue, float finalValue, System.Func<float, string> formatter)
     {
         builder.Append(label).Append(" ");
@@ -120,13 +89,6 @@ public partial class TooltipManager
         return Mathf.RoundToInt(value).ToString(CultureInfo.InvariantCulture);
     }
 
-    private string FormatMeleeAttackRange(float value)
-    {
-        return Mathf.Approximately(value, Mathf.Round(value))
-            ? Mathf.RoundToInt(value).ToString(CultureInfo.InvariantCulture)
-            : value.ToString("0.0", CultureInfo.InvariantCulture);
-    }
-
     private string FormatSecondsTwoDecimals(float value)
     {
         return value.ToString("0.00", CultureInfo.InvariantCulture) + "초";
@@ -147,40 +109,4 @@ public partial class TooltipManager
         return Mathf.RoundToInt(value * 100f).ToString(CultureInfo.InvariantCulture) + "%";
     }
 
-    private void AppendComparedAttackRate(StringBuilder builder, WeaponFinalStats baseStats, WeaponFinalStats finalStats)
-    {
-        AppendComparedFloat(builder, "쿨다운", baseStats.attackInterval, finalStats.attackInterval, ItemTooltipFormatter.FormatSeconds, true);
-    }
-
-    private void AppendComparedFloat(StringBuilder builder, string label, float baseValue, float finalValue, System.Func<float, string> formatter, bool showWhenZero)
-    {
-        if (!showWhenZero && Mathf.Approximately(baseValue, 0f) && Mathf.Approximately(finalValue, 0f))
-            return;
-
-        bool changed = !Mathf.Approximately(baseValue, finalValue); // 변경 여부
-        builder.Append(label).Append(" : ").Append(formatter(baseValue));
-
-        if (changed)
-            builder.Append(" -> <color=").Append(ChangedValueColor).Append(">(").Append(formatter(finalValue)).Append(")</color>");
-
-        builder.AppendLine();
-    }
-
-    private void AppendComparedInt(StringBuilder builder, string label, int baseValue, int finalValue, System.Func<int, string> formatter, bool showWhenZero)
-    {
-        if (!showWhenZero && baseValue == 0 && finalValue == 0)
-            return;
-
-        builder.Append(label).Append(" : ").Append(formatter(baseValue));
-
-        if (baseValue != finalValue)
-            builder.Append(" -> <color=").Append(ChangedValueColor).Append(">(").Append(formatter(finalValue)).Append(")</color>");
-
-        builder.AppendLine();
-    }
-
-    private bool HasValueOrChanged(float baseValue, float finalValue)
-    {
-        return !Mathf.Approximately(baseValue, 0f) || !Mathf.Approximately(finalValue, 0f) || !Mathf.Approximately(baseValue, finalValue);
-    }
 }
