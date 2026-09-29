@@ -87,6 +87,7 @@ public sealed class InteractionDirector : MonoBehaviour
             }
             if (coordinator != null
                 && coordinator.CurrentAction != PlayerActionState.None
+                && !(candidate is PlayerPickupInteractor)
                 && !candidate.AllowsInteractionWhileInputBlocked)
             {
                 continue;

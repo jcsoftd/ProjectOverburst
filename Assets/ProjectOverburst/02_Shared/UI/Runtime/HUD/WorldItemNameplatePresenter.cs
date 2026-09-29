@@ -114,8 +114,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
         bool isInputBlocked,
         bool canPickup)
     {
-        return mode == WorldLootInteractionMode.LootFocus
-            && !isInputBlocked
+        return !isInputBlocked
             && canPickup; // 거리 밖도 50 자동 이동 요청 가능
     }
 
@@ -266,7 +265,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
                 continue;
             }
 
-            bool hovered = instanceId == hoveredInstanceId;
+            bool hovered = instanceId == hoveredInstanceId || pickup == rowHoverOverride;
             bool stableVisible = displaySet.Contains(instanceId);
             bool temporaryHover = hovered
                 && snapshot.Mode != WorldLootInteractionMode.LootFocus
@@ -383,8 +382,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
         if (rowHoverOverride == null)
             return;
 
-        if (snapshot.Mode != WorldLootInteractionMode.LootFocus
-            || snapshot.IsInputBlocked
+        if (snapshot.IsInputBlocked
             || !pickupHoverResolver.Contains(rowHoverOverride))
         {
             rowHoverOverride = null;
@@ -410,7 +408,6 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
     private void HandleRowPointerEnter(WorldItemPickup pickup)
     {
         if (snapshot != null
-            && snapshot.Mode == WorldLootInteractionMode.LootFocus
             && !snapshot.IsInputBlocked
             && pickupHoverResolver.Contains(pickup))
         {

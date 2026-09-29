@@ -92,7 +92,7 @@ public sealed class WorldItemNameplateView : MonoBehaviour
             if (i < visibleCount)
             {
                 WorldItemNameplatePlacement placement = placements[i];
-                bool clickable = allowPointerInput && !placement.Candidate.IsTemporaryHover;
+                bool clickable = allowPointerInput;
                 row.Show(placement.Candidate, placement.Position, clickable);
             }
             else

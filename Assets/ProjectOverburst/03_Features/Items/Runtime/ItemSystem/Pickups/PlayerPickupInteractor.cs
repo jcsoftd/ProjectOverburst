@@ -660,9 +660,6 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (GameplayInputBlocker.IsGameplayInputBlocked)
             return SetRequestResult(WorldLootPickupRequestResult.InputBlocked);
 
-        if (sessionMode != WorldLootInteractionMode.LootFocus)
-            return SetRequestResult(WorldLootPickupRequestResult.ModeRejected);
-
         BeginPrimaryAttackSuppression(); // PointerDown 공격 누출 차단
 
         if (!IsValidPickup(target))
@@ -731,8 +728,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (facade.LootModeCyclePressedThisFrame)
         {
             sessionMode = GetNextMode(sessionMode); // 최초 Auto 이후 2상태 전환
-            if (sessionMode != WorldLootInteractionMode.LootFocus)
-                CancelPendingAutoMove(WorldLootPickupRequestResult.AutoMoveCancelled);
+            // Label visibility does not revoke an explicit pickup request.
         }
     }
 
@@ -915,7 +911,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (pendingAutoMovePickup == null)
             return;
 
-        if (sessionMode != WorldLootInteractionMode.LootFocus || !IsValidPickup(pendingAutoMovePickup))
+        if (!IsValidPickup(pendingAutoMovePickup))
             CancelPendingAutoMove(WorldLootPickupRequestResult.InvalidTarget);
     }
 

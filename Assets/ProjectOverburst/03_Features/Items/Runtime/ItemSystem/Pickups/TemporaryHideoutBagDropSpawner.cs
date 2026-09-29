@@ -11,7 +11,7 @@ public sealed class TemporaryHideoutBagDropSpawner : MonoBehaviour
 #if UNITY_EDITOR
     private const string HideoutSceneName = "HideoutScene";
     private const string BagAssetFolder = "Assets/ProjectOverburst/03_Features/Items/Data/Items/Bags";
-    private const string PickupGradeVfxSetPath = "Assets/ProjectOverburst/03_Features/Items/VFX/Data/PickupGradeVfxSet.asset";
+    private const string PickupGradeVfxSetPath = "Assets/ProjectOverburst/Resources/Items/VFX/PickupGradeVfxSet.asset";
     private const float SpawnDistance = 3.05f;
     private const float SpawnSpacing = 0.58f;
     private const float SpawnHeight = 0.38f;

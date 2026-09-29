@@ -27,6 +27,10 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private ItemData runtimeItem; // 런타임 아이템
     private bool pickedUp; // 획득 상태
+    private ItemGrade renderedGrade;
+    private BaseItemData renderedDefinition;
+    private PickupGradeVfxSet renderedSet;
+    public GameObject GradeEffect => spawnedGradeVfx;
     private GameObject spawnedGradeVfx; // 등급 VFX
     private Collider[] pickupColliders; // 충돌체 캐시
     private WorldItemDropMotion dropMotion; // 비물리 드랍 연출
@@ -55,12 +59,15 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
             dropMotion.Landed += HandleDropLanded;
         }
 
+        RefreshGradeVfx();
+        if (spawnedGradeVfx != null) spawnedGradeVfx.SetActive(true);
         if (activePickups.Add(this))
             NotifyRegistryChanged(); // 활성 등록
     }
 
     private void OnDisable()
     {
+        if (spawnedGradeVfx != null) spawnedGradeVfx.SetActive(false);
         UnbindDropMotion();
         if (activePickups.Remove(this))
             NotifyRegistryChanged(); // 비활성 해제
@@ -256,19 +263,35 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         runtimeItem = new ItemData(itemDataAsset, itemLevel, grade, stackCount); // 씬 배치용
     }
 
+    private void LateUpdate()
+    {
+        if (runtimeItem != null && (spawnedGradeVfx == null || renderedGrade != runtimeItem.grade))
+            RefreshGradeVfx();
+        if (spawnedGradeVfx != null && !spawnedGradeVfx.activeSelf) spawnedGradeVfx.SetActive(true);
+    }
+
+    private void OnDestroy()
+    {
+        if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
+    }
+
     private void RefreshGradeVfx()
     {
-        if (runtimeItem == null || gradeVfxSet == null || spawnedGradeVfx != null)
-            return; // VFX 생성 조건 확인
-
-        GameObject prefab = gradeVfxSet.GetPrefab(runtimeItem.grade); // 등급 prefab
-        if (prefab == null)
-            return; // 등급 매핑 없음
-
-        Transform anchor = gradeVfxAnchor != null ? gradeVfxAnchor : transform; // 시각 효과 기준점
-        spawnedGradeVfx = VfxPrefabFactory.SpawnFollowing(prefab, anchor); // 아이템을 따라가는 등급 VFX
-        if (spawnedGradeVfx != null && runtimeItem.baseData is FlaskItemData)
-            spawnedGradeVfx.transform.localScale *= .40f;
+        if (runtimeItem == null)
+        {
+            if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
+            spawnedGradeVfx = null;
+            return;
+        }
+        if (spawnedGradeVfx != null && renderedGrade == runtimeItem.grade
+            && renderedDefinition == runtimeItem.baseData && renderedSet == gradeVfxSet) return;
+        if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
+        Transform anchor = gradeVfxAnchor != null ? gradeVfxAnchor : transform;
+        spawnedGradeVfx = PickupGradeVfxSet.SpawnRequired(gradeVfxSet, runtimeItem.grade, anchor);
+        renderedGrade = runtimeItem.grade;
+        renderedDefinition = runtimeItem.baseData; renderedSet = gradeVfxSet;
+        if (runtimeItem.baseData is FlaskItemData) spawnedGradeVfx.transform.localScale *= .40f;
+        spawnedGradeVfx.SetActive(isActiveAndEnabled);
     }
 
     private void ResolveReferences()

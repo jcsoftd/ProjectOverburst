@@ -16,13 +16,12 @@ public sealed class WorldItemNameplateBridge : MonoBehaviour
         WorldLootInteractionSnapshot snapshot = core != null ? core.CurrentSnapshot : null;
         if (core == null
             || snapshot == null
-            || snapshot.Mode != WorldLootInteractionMode.LootFocus
             || snapshot.IsInputBlocked)
         {
             return;
         }
 
-        eventData?.Use(); // LootFocus 라벨이 최초 PointerDown 소유
+        eventData?.Use(); // 표시 모드와 관계없이 클릭한 라벨이 입력 소유
         LastRequestResult = core.RequestPickupByLabelPointerDown(pickup); // 50 코어에 의도 전달
     }
 
