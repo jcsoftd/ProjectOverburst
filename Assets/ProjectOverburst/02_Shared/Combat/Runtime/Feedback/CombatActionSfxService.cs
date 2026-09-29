@@ -6,7 +6,8 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private const string ResourceRoot = "Combat/SFX/CombatAction/";
     private const int VoiceLimit = 32;
 
-    // 2026-09-30 청음 결정: 지면 2·3단 = Earth_Explosion_1·2_M, 예고 핑 = Metallic Ring 긴 판, 회피·에너지 가득 신규.
+    // 2026-09-30 청음 결정: 지면음 2·3단 = Earth_Explosion_1·2_M, 예고 핑 = Metallic Ring 긴 판, 회피·에너지 가득 신규.
+    // 이 다섯 칸은 복사본 없이 CombatActionSfxCatalog가 ThirdParty 원본을 직접 참조한다.
     private static readonly string[] ClipNames =
     {
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
@@ -104,6 +105,28 @@ public sealed class CombatActionSfxService : MonoBehaviour
     public static bool PlayElementEnergyFull(Vector3 position) => EnsureInstance()
         && instance.Play(14, position, 0f, 0.45f, 2f, 20f, 60);
 
+    private static CombatActionSfxCatalog directClips;
+    private static bool directClipsLoaded;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetDirectClips()
+    {
+        directClips = null;
+        directClipsLoaded = false;
+    }
+
+    // 공급사 원본을 직접 가리키는 카탈로그가 먼저, 없으면 기존 Resources 클립. 다른 전투 소리도 같은 이름으로 쓸 수 있다.
+    public static AudioClip ResolveNamedClip(string clipName)
+    {
+        if (!directClipsLoaded)
+        {
+            directClips = Resources.Load<CombatActionSfxCatalog>(CombatActionSfxCatalog.ResourcePath);
+            directClipsLoaded = true;
+        }
+        AudioClip direct = directClips != null ? directClips.Find(clipName) : null;
+        return direct != null ? direct : Resources.Load<AudioClip>(ResourceRoot + clipName);
+    }
+
     private static bool EnsureInstance()
     {
         if (!Application.isPlaying) return false;
@@ -120,7 +143,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
         AudioClip clip = clips[index];
         if (clip == null)
         {
-            clip = Resources.Load<AudioClip>(ResourceRoot + ClipNames[index]);
+            clip = ResolveNamedClip(ClipNames[index]);
             if (clip == null)
             {
                 if (!missingClipReported[index])
