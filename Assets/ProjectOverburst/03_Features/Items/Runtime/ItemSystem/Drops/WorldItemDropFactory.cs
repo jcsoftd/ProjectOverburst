@@ -3,13 +3,21 @@ using UnityEngine;
 public static class WorldItemDropFactory // 월드 아이템 생성
 {
     private const string GoldCurrencyPickupPrefabPath = "Pickups/PF_CurrencyWorldPickup_Gold";
+    private const string SharedGearPickupPath = "Items/WorldPickups/PF_SharedGear_";
 
     private static GameObject goldPickupPrefab;
+    private static GameObject[] sharedGearPickupPrefabs = new GameObject[6];
+    private static GameObject sharedBagPickupPrefab;
     internal static GameObject GoldPickupPrefab => goldPickupPrefab != null
         ? goldPickupPrefab : goldPickupPrefab = Resources.Load<GameObject>(GoldCurrencyPickupPrefabPath);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetCache() { goldPickupPrefab = null; }
+    private static void ResetCache()
+    {
+        goldPickupPrefab = null;
+        sharedGearPickupPrefabs = new GameObject[6];
+        sharedBagPickupPrefab = null;
+    }
 
     public static ItemData CreateRuntimeItem(BaseItemData itemData, int minLevel, int maxLevel, ItemGrade minGrade, ItemGrade maxGrade, bool useVtpGradeRoll, int stackCount)
     {
@@ -94,10 +102,34 @@ public static class WorldItemDropFactory // 월드 아이템 생성
     private static GameObject InstantiateWorldPickupObject(ItemData item)
     {
         GameObject prefab = item != null && item.baseData != null ? item.baseData.worldPickupPrefab : null;
+        if (prefab == null && item != null)
+            prefab = ResolveSharedEquipmentPickupPrefab(item.baseData);
         if (prefab != null)
             return Object.Instantiate(prefab);
 
         return CreateWorldPickupFallback(item);
+    }
+
+    private static GameObject ResolveSharedEquipmentPickupPrefab(BaseItemData data)
+    {
+        if (data is GearItemData gear)
+        {
+            int index = (int)gear.kind;
+            if (index < 0 || index >= sharedGearPickupPrefabs.Length)
+                return null;
+            if (sharedGearPickupPrefabs[index] == null)
+                sharedGearPickupPrefabs[index] = Resources.Load<GameObject>(SharedGearPickupPath + gear.kind);
+            return sharedGearPickupPrefabs[index];
+        }
+
+        if (data is BagItemData)
+        {
+            if (sharedBagPickupPrefab == null)
+                sharedBagPickupPrefab = Resources.Load<GameObject>(SharedGearPickupPath + "Bag");
+            return sharedBagPickupPrefab;
+        }
+
+        return null;
     }
 
     private static WorldItemPickup EnsureWorldItemPickupComponent(GameObject pickupObject)
