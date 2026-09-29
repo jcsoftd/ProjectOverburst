@@ -29,6 +29,8 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
     private uint randomState;
     private bool alive;
     private bool initialized;
+    private float energyMultiplier = 1f;
+    private float widthEnvelope = 1f;
 
     public bool IsPlaybackAlive => alive;
     public int MainPointCount => mainPointCount;
@@ -69,10 +71,32 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
     private void Update()
     {
         using var measurement = UpdateMarker.Auto();
+        Advance(Time.deltaTime);
+    }
+
+    // Weapon preview scenes have no player-loop Update. Use the same animation clock there.
+    public void AdvanceForPreview(float deltaTime)
+    {
+        if (!Application.isPlaying)
+            Advance(Mathf.Max(0f, deltaTime));
+    }
+
+    // Weapon aura only. Combat links keep the authored multiplier of one.
+    public void SetEnergyMultiplier(float value)
+    {
+        float next = Mathf.Clamp01(value);
+        if (Mathf.Approximately(energyMultiplier, next)) return;
+        InitializeOnce();
+        energyMultiplier = next;
+        if (alive) ApplyWidths(widthEnvelope);
+    }
+
+    private void Advance(float deltaTime)
+    {
         if (!alive)
             return;
 
-        elapsed += Time.deltaTime;
+        elapsed += deltaTime;
         if (elapsed >= lifetime)
         {
             alive = false;
@@ -226,6 +250,8 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
 
     private void ApplyWidths(float multiplier)
     {
+        widthEnvelope = multiplier;
+        multiplier *= energyMultiplier;
         if (mainGlow != null)
             mainGlow.widthMultiplier = mainGlowWidth * multiplier;
         if (mainCore != null)

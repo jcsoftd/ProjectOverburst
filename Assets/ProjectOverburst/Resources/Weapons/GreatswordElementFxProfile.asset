@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b52adb92ff8b57648ad47168b3e54b35, type: 3}
+  m_Name: GreatswordElementFxProfile
+  m_EditorClassIdentifier: Assembly-CSharp::GreatswordElementFxProfile
+  fireBladeAccent: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
+  iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricBladeAccent: {fileID: 6756656558803171133, guid: 2407d79d80f400240a4a15a2766a481d, type: 3}
+  darkBladeAccent: {fileID: 1051310549566118079, guid: 01a2a2f8d77ab3f44a12c8470c742f09, type: 3}
+  lightBladeAccent: {fileID: 3114542950414459293, guid: a1543f3bb8c203043a47436ff49a8eeb, type: 3}
+  fireTrail: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
+  iceTrail: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
+  electricTrail: {fileID: 6756656558803171133, guid: 2407d79d80f400240a4a15a2766a481d, type: 3}
+  darkTrail: {fileID: 1051310549566118079, guid: 01a2a2f8d77ab3f44a12c8470c742f09, type: 3}
+  lightTrail: {fileID: 3114542950414459293, guid: a1543f3bb8c203043a47436ff49a8eeb, type: 3}
+  fireTipTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
+  iceTipTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+  electricTipTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
+  darkTipTrail: {fileID: 5724298755707616604, guid: f932038a78fab674f8635de5aad79953, type: 3}
+  lightTipTrail: {fileID: 8099074118825668027, guid: a92ebdf897fa283428c50a41fe4411a5, type: 3}
+  tipTrailLifetime: 0.203
+  tipTrailWidthScale: 0.047
+  fireSettings:
+    idleStrength: 0.26
+    bladeThickness: 1.9738059
+    bladeCenter: 0.3997298
+    bladeLength: 1.2672966
+    trailScale: 0.72
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 0.5
+    trailParticleSize: 3
+    trailParticleLifetime: 0.3
+    trailSpread: 0.1
+  iceSettings:
+    idleStrength: 0.2
+    bladeThickness: 0.93682325
+    bladeCenter: 0.4327029
+    bladeLength: 1.3578037
+    trailScale: 0.9
+    trailCenter: 0.5
+    trailLength: 1
+    trailDensity: 2.03
+    trailParticleSize: 5
+    trailParticleLifetime: 0.34
+    trailSpread: 0.1
+  electricSettings:
+    idleStrength: 0.2
+    bladeThickness: 3
+    bladeCenter: 0.7710967
+    bladeLength: 1.2630078
+    trailScale: 0.72
+    trailCenter: 0.52676904
+    trailLength: 0.946462
+    trailDensity: 1
+    trailParticleSize: 4
+    trailParticleLifetime: 0.34
+    trailSpread: 0.497
+  darkSettings:
+    idleStrength: 0.2
+    bladeThickness: 2.1847808
+    bladeCenter: 0.5151168
+    bladeLength: 0.9697664
+    trailScale: 0.72
+    trailCenter: 0.4889863
+    trailLength: 1.1699551
+    trailDensity: 3.52
+    trailParticleSize: 3.03
+    trailParticleLifetime: 0.81
+    trailSpread: 0.038
+  lightSettings:
+    idleStrength: 0.08
+    bladeThickness: 1.8416866
+    bladeCenter: 0.5420798
+    bladeLength: 0.9760701
+    trailScale: 0.93
+    trailCenter: 0.47562885
+    trailLength: 1.1341755
+    trailDensity: 0.25
+    trailParticleSize: 1.88
+    trailParticleLifetime: 0.47
+    trailSpread: 0.25

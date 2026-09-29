@@ -279,7 +279,7 @@ namespace Overburst.EditorTools.ComboMaker
             {
                 bool supported=GreatswordElementFxTunerWindow.Supports(selectedWeapon);
                 elementFxButton.SetEnabled(supported&&!EditorApplication.isPlayingOrWillChangePlaymode);
-                elementFxButton.tooltip=supported?"현재 프리뷰 원소의 Weapon Effects 2 검신·트레일을 조절합니다.":"Weapon Effects 2 대검에서 사용할 수 있습니다.";
+                elementFxButton.tooltip=supported?"현재 프리뷰 원소의 검신·트레일을 모든 대검에 공통 적용합니다.":"원소 FX가 있는 대검에서 사용할 수 있습니다.";
             }
             applyButton.SetEnabled(session.Working!=null&&session.Dirty&&validation.Count==0&&!EditorApplication.isPlayingOrWillChangePlaymode);
             statusLabel.text=message;statusLabel.tooltip=message;
@@ -300,7 +300,7 @@ namespace Overburst.EditorTools.ComboMaker
         private void ElementFxSaved()
         {
             if(!GreatswordElementFxTunerWindow.Supports(selectedWeapon))return;
-            message="대검 원소 효과 프리팹이 저장되어 프리뷰를 다시 불러옵니다.";
+            message="대검 공통 원소 효과 설정이 저장되어 프리뷰를 다시 불러옵니다.";
             ScheduleRebuild();
         }
         private void ClampStep()=>selectedStep=Mathf.Clamp(selectedStep,0,Mathf.Max(0,session.Working.StepCount-1));
