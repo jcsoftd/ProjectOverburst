@@ -46,7 +46,6 @@ public partial class TooltipManager
     {
         SetActive(dividerBasic, true);
         bool isMeleeSlash = weaponData.combatDefinition.usage.attackType == WeaponAttackType.MeleeSlash; // 근접 분기
-        bool isMagicWeapon = weaponData.CombatFamily == WeaponCombatFamily.Magic || weaponData.combatDefinition.usage.attackType == WeaponAttackType.Chain; // 마법 분기
         SetActive(dividerWeapon, false);
         SetActive(weaponStatsText, false);
 
@@ -55,9 +54,7 @@ public partial class TooltipManager
 
         string categoryName = isMeleeSlash
             ? "근접무기"
-            : isMagicWeapon
-                ? "마법무기"
-                : ItemTooltipFormatter.GetWeaponFamilyName(weaponData.CombatFamily);
+            : ItemTooltipFormatter.GetWeaponFamilyName(weaponData.CombatFamily);
         SetWeaponHeader(item, weaponData, categoryName);
 
         WeaponFinalStats baseStats = WeaponStatCalculator.CalculateWeaponBase(item); // 기본 스탯
@@ -77,9 +74,7 @@ public partial class TooltipManager
                 flaskStatsFont = Resources.Load<TMP_FontAsset>("UI/Tooltip/FlaskTooltipFont");
             if (flaskStatsFont != null)
                 basicStatsText.font = flaskStatsFont;
-            basicStatsText.text = isMagicWeapon
-                ? BuildMagicWeaponGradeStatComparisonFixed(item, baseStats, finalStats)
-                : BuildWeaponGradeStatComparisonFixed(item, baseStats, finalStats);
+            basicStatsText.text = BuildWeaponGradeStatComparisonFixed(item, baseStats, finalStats);
         }
         weaponStatsText.text = string.Empty;
         priceText.text = BuildPriceText(item);

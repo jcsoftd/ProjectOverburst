@@ -45,28 +45,6 @@ public partial class TooltipManager
         return WeaponGradeStatType.AttackRange;
     }
 
-    private string BuildMagicWeaponGradeStatComparisonFixed(ItemData item, WeaponFinalStats baseStats, WeaponFinalStats finalStats)
-    {
-        StringBuilder builder = new StringBuilder();
-
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.Damage, "데미지", baseStats.damage, finalStats.damage, FormatZeroDecimal);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.Rpm, "쿨타임", baseStats.attackInterval, finalStats.attackInterval, FormatSecondsTwoDecimals);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.Range, "사거리", baseStats.range, finalStats.range, FormatMetersOneDecimal);
-        AppendWeaponFloatNoStarsFixed(builder, "투사체속도", baseStats.projectileSpeed, finalStats.projectileSpeed, FormatZeroDecimal);
-        AppendWeaponFloatNoStarsFixed(builder, "투사체수", baseStats.projectileCount, finalStats.projectileCount, FormatZeroDecimal);
-        WeaponItemData weaponData = item != null ? item.baseData as WeaponItemData : null;
-        if (weaponData == null || weaponData.combatDefinition.usage.attackType != WeaponAttackType.Chain)
-        {
-            AppendWeaponFloatNoStarsFixed(builder, "투사체크기", baseStats.projectileSize, finalStats.projectileSize, FormatOneDecimal);
-            AppendWeaponFloatNoStarsFixed(builder, "폭발범위", baseStats.explosionRadius, finalStats.explosionRadius, FormatMetersOneDecimal);
-        }
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.CritChance, "치명타확률", baseStats.critChance, finalStats.critChance, FormatPercentZeroDecimal);
-        AppendWeaponFloatFixed(builder, item, WeaponGradeStatType.CritDamage, "치명타피해", baseStats.critDamageMultiplier, finalStats.critDamageMultiplier, FormatMultiplierAsPercent);
-        AppendWeaponFloatNoStarsFixed(builder, "넉백", baseStats.knockback, finalStats.knockback, FormatZeroDecimal);
-
-        return builder.ToString().TrimEnd();
-    }
-
     private void AppendWeaponFloatNoStarsFixed(StringBuilder builder, string label, float baseValue, float finalValue, System.Func<float, string> formatter)
     {
         builder.Append(label).Append(" ");
@@ -147,11 +125,6 @@ public partial class TooltipManager
         return Mathf.Approximately(value, Mathf.Round(value))
             ? Mathf.RoundToInt(value).ToString(CultureInfo.InvariantCulture)
             : value.ToString("0.0", CultureInfo.InvariantCulture);
-    }
-
-    private string FormatOneDecimal(float value)
-    {
-        return value.ToString("0.0", CultureInfo.InvariantCulture);
     }
 
     private string FormatSecondsTwoDecimals(float value)
