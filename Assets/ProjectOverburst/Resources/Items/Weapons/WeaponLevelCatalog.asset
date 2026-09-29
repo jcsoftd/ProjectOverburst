@@ -142,4 +142,7 @@ MonoBehaviour:
   - weapon: {fileID: 11400000, guid: f5683a6300020f744892dd266bae1db7, type: 2}
     minimumLevel: 90
     maximumLevel: 99
+  - weapon: {fileID: 11400000, guid: d9b32fb76d97abf4b8e2023ad8af775f, type: 2}
+    minimumLevel: 50
+    maximumLevel: 59
   unfinishedGreatswordVisual: {fileID: 8891578251911373367, guid: 4eccfacbe53efa34dbb7ad4a2e73e255, type: 3}

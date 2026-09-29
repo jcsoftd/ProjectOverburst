@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa3b7e6093d78d14684c2620dbc6361b, type: 3}
   m_Name: GRS01_AzureStarblade
   m_EditorClassIdentifier: Assembly-CSharp::WeaponItemData
-  itemName: Greatsword
+  itemName: "\uCCAD\uAE08 \uC7A5\uC2DD\uB300\uAC80"
   icon: {fileID: 21300000, guid: 6a342ae6a1171434cb4590f6ef3b817b, type: 3}
   color: {r: 0.82, g: 0.86, b: 0.92, a: 1}
-  description: One-handed melee weapon.
+  description: "\uC740\uBE5B \uAC80\uC2E0\uACFC \uAE08\uBE5B \uBB38\uC591\uC758 \uC2ED\uC790
+    \uAC00\uB4DC\uB97C \uAC16\uCD98 \uC591\uC190 \uB300\uAC80."
   weight: 0
   sellPrice: 35
   worldPickupPrefab: {fileID: 1192951697678664373, guid: 58a2abc989ddbfa449f291e2f498efcd, type: 3}
@@ -24,10 +25,10 @@ MonoBehaviour:
   defaultElement: 0
   baseStats:
     damage: 20
-    criticalChance: 15
-    criticalDamageMultiplier: 1.6
+    elementalDischargePower: 0
+    criticalChance: 16
+    criticalDamageMultiplier: 1.65
     range: 3
     knockback: 4
-  maxGemSlotCount: 4
   weaponRootPrefab: {fileID: 8891578251911373367, guid: 4eccfacbe53efa34dbb7ad4a2e73e255, type: 3}
   combatDefinition: {fileID: 11400000, guid: b764ae19e095800489166de710633a9f, type: 2}
