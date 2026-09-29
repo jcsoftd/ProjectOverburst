@@ -11,7 +11,6 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     [SerializeField] private float walkSpeed = 4.5f;
     [SerializeField] private float runSpeed = 7.8f;
     [SerializeField] private float aimMoveSpeedMultiplier = 0.6f;
-    [SerializeField] private float quickFireMoveSpeedMultiplier = 0.8f;
     [SerializeField] private float acceleration = 55f;
     [SerializeField] private float deceleration = 70f;
     [SerializeField] private float airControl = 0.35f;
@@ -83,9 +82,6 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     private bool aimBlockedUntilRelease; // 조준 재입력
     private bool jumpRequested; // 점프 예약
     private bool jumpAnimationRequested; // 점프 애니
-    private float quickFireUntil; // QuickFire 유지
-    private float externalAimUntil; // 외부 조준
-    private float activeQuickFireMoveSpeedMultiplier = 0.8f; // QuickFire 속도
     private float bagMoveSpeedMultiplier = 1f; // 가방 이동속도
     private float meleeAttackMoveLockUntil; // 근접 이동 잠금
     private bool meleeAttackRotationLocked; // 근접 회전 잠금
@@ -160,7 +156,7 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
 
     public bool IsAiming
     {
-        get { return isAiming || IsExternalAiming; }
+        get { return isAiming; }
     }
 
     public bool IsMeleeCombatStance
@@ -223,22 +219,17 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
 
     public bool IsQuickFiring
     {
-        get { return Time.time < quickFireUntil && !GameplayInputBlocker.IsGameplayInputBlocked; } // QuickFire 상태
+        get { return false; } // 옛 총기·마법 빠른 사격. 시작 경로가 없어 늘 false다. 조준 커서 UI가 읽어서 남긴다.
     }
 
     public bool IsCombatMoveMode
     {
-        get { return !lootAutoMoveActive && (IsCombatWalkLocomotionMode || IsAimCombatMoveActive || IsQuickFiring); } // 자동 접근은 Run 우선
+        get { return !lootAutoMoveActive && (IsCombatWalkLocomotionMode || IsAimCombatMoveActive); } // 자동 접근은 Run 우선
     }
 
     private bool IsAimCombatMoveActive
     {
         get { return IsWeaponAimInputActive && !IsMeleeCombatStance && CanUseAimCombatMoveWithCurrentWeapon(); }
-    }
-
-    private bool IsExternalAiming
-    {
-        get { return Time.time < externalAimUntil && !GameplayInputBlocker.IsGameplayInputBlocked; }
     }
 
     public bool IsMeleeAttackMoveLocked

@@ -13,7 +13,7 @@ public partial class PlayerMovement
                 * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
-        float speed = IsAimCombatMoveActive ? walkSpeed * GetActiveAimMoveSpeedMultiplier() : IsQuickFiring ? walkSpeed * activeQuickFireMoveSpeedMultiplier : baseMoveSpeed; // 상태별 속도
+        float speed = IsAimCombatMoveActive ? walkSpeed * GetActiveAimMoveSpeedMultiplier() : baseMoveSpeed; // 상태별 속도
 
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속

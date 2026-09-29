@@ -15,13 +15,6 @@ public partial class PlayerMovement
         meleeAttackLockedDirection = Vector3.zero; // 방향 초기화
     }
 
-    public void BeginQuickFireCombatMove(float holdTime, float moveSpeedMultiplier)
-    {
-        quickFireUntil = Mathf.Max(quickFireUntil, Time.time + Mathf.Max(0f, holdTime)); // QuickFire 시간
-        activeQuickFireMoveSpeedMultiplier = moveSpeedMultiplier > 0f ? moveSpeedMultiplier : quickFireMoveSpeedMultiplier; // QuickFire 속도
-        isRunning = false; // 달리기 차단
-    }
-
     public void BeginMeleeAttackMoveLock(float duration)
     {
         BeginMeleeAttackMoveLock(duration, transform.forward);
@@ -54,7 +47,5 @@ public partial class PlayerMovement
         isRunning = false;
         jumpRequested = false;
         jumpAnimationRequested = false;
-        quickFireUntil = 0f;
-        externalAimUntil = 0f;
     }
 }

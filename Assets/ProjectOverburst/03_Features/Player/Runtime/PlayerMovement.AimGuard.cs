@@ -13,8 +13,6 @@ public partial class PlayerMovement
             meleeAttackMoveLockUntil = 0f; // 이동 잠금 해제
             meleeAttackRotationLocked = false; // 회전 잠금 해제
             meleeAttackLockedDirection = Vector3.zero; // 방향 초기화
-            quickFireUntil = 0f; // QuickFire 해제
-            externalAimUntil = 0f; // 외부 조준 해제
             aimBlockedUntilRelease = true; // 재입력 대기
             return;
         }
@@ -24,8 +22,6 @@ public partial class PlayerMovement
             isAiming = false; // 회피 중 조준 차단
             isMeleeCombatStance = false; // 회피 중 자세 차단
             ResetSwordGuardTiming();
-            quickFireUntil = 0f;
-            externalAimUntil = 0f;
             return;
         }
 
@@ -107,8 +103,7 @@ public partial class PlayerMovement
 
     private bool CanAimWithCurrentWeapon()
     {
-        return playerEquipment == null
-            || playerEquipment.CanCurrentWeaponUseMagicAim; // 우클릭 직접 조준
+        return playerEquipment == null; // 우클릭 직접 조준(옛 마법 무기)은 제거됐다. 장비가 없을 때만 디버그 조준을 허용한다.
     }
 
     private bool CanUseMeleeCombatStanceWithCurrentWeapon()
@@ -119,11 +114,6 @@ public partial class PlayerMovement
     private bool CanUseMeleeGuardWithCurrentWeapon()
     {
         return playerEquipment != null && playerEquipment.CanCurrentWeaponUseMeleeGuard;
-    }
-
-    private bool CanUseMagicAimWithCurrentWeapon()
-    {
-        return playerEquipment != null && playerEquipment.CanCurrentWeaponUseMagicAim;
     }
 
     private bool CanUseAimCombatMoveWithCurrentWeapon()
@@ -184,17 +174,10 @@ public partial class PlayerMovement
         return true;
     }
 
-    public void BeginExternalAim(float holdTime)
-    {
-        externalAimUntil = Mathf.Max(externalAimUntil, Time.time + Mathf.Max(0f, holdTime));
-        isRunning = false;
-    }
-
     public void CancelWeaponAimStateForSwitch()
     {
         isAiming = false;
         isMeleeCombatStance = false;
-        externalAimUntil = 0f;
         aimBlockedUntilRelease = true;
         ResetSwordGuardTiming();
     }

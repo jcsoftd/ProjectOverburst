@@ -42,12 +42,6 @@ public partial class PlayerMovement
             return;
         }
 
-        if (IsAiming && CanUseMagicAimWithCurrentWeapon() && CanRotateAimWithCurrentWeapon())
-        {
-            RotateToMagicAimDirection();
-            return;
-        }
-
         if (IsCombatMoveMode)
             return;
 
@@ -55,14 +49,6 @@ public partial class PlayerMovement
     }
 
     private void RotateToMeleeAimDirection()
-    {
-        if (!MeleeAimCalculator.TryGetMouseDirectionFromPlayer(transform, meleeAimCamera, out Vector3 direction))
-            return;
-
-        RotateToDirection(direction, meleeFacingRotationSpeed);
-    }
-
-    private void RotateToMagicAimDirection()
     {
         if (!MeleeAimCalculator.TryGetMouseDirectionFromPlayer(transform, meleeAimCamera, out Vector3 direction))
             return;
