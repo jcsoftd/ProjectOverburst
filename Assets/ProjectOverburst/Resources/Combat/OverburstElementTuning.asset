@@ -42,7 +42,7 @@ MonoBehaviour:
   lightAfterglowRadiusMultiplier: 1.2
   lightAfterglowDamageFraction: 0.35
   lightOverchargeMaximum: 200
-  lightOverchargeDecayPerSecond: 3
+  lightOverchargeDecayPerSecond: 10
   lightOverchargeFullHold: 2
   lightRadianceStacksPerPhase: 5
   lightRadianceMaxStacks: 100
