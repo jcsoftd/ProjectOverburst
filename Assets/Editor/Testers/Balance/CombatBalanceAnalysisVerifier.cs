@@ -47,6 +47,8 @@ namespace Overburst.EditorBalance.Analysis
                 Check(result.rows.All(r => r.normalSurvivable != 0 || r.strongSurvivable != 0), "생존 피격 수 계산");
                 Check(result.findings.Any(f => f.id == "D01") && result.findings.All(f => !string.IsNullOrEmpty(f.condition) && !string.IsNullOrEmpty(f.cause)
                     && !string.IsNullOrEmpty(f.impact) && !string.IsNullOrEmpty(f.proposal)), "발견 4요소(재현 조건·원인·영향·수정 후보)", result.findings.Count + "건");
+                var tooltipFinding = result.findings.FirstOrDefault(f => f.id == "D01");
+                Check(tooltipFinding != null && tooltipFinding.severity == "정보", "무기 툴팁 DPS = 실제 약공 경로(±1%)", tooltipFinding?.impact);
                 // 결정성: 같은 조건 두 번 → 같은 값
                 var small = new AnalysisConditions { levelBuckets = new List<int> { 0, 5, 9 }, grades = new List<ItemGrade> { ItemGrade.Common, ItemGrade.Epic }, seedCount = 3 };
                 var a = CombatBalanceAnalysisRunner.Run(small); var b = CombatBalanceAnalysisRunner.Run(small);

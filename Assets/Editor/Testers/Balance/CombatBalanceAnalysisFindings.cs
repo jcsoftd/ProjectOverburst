@@ -72,7 +72,7 @@ namespace Overburst.EditorBalance.Analysis
         public static List<Finding> Build(CombatBalanceAnalysisModel.Catalog catalog, WeaponItemData weapon, AnalysisResult result)
         {
             var list = new List<Finding>();
-            Tooltip(list, weapon);
+            Tooltip(list, catalog);
             LegacyGrowth(list, catalog);
             StrongBudget(list, catalog);
             TuningDefaults(list);
@@ -84,31 +84,49 @@ namespace Overburst.EditorBalance.Analysis
             return list;
         }
 
-        static void Tooltip(List<Finding> list, WeaponItemData weapon)
+        // 무기 툴팁·장착 비교 '단일 DPS'(MeleeSingleTargetDpsCalculator)를 Play로 대조한 약공 경로(콤보 시간표 + 약공 배율)와 맞춰 본다.
+        // 10-01 05:40 수정 전에는 대검 약공 0.35배와 재생 가속을 빼서 2.33배 과대였다.
+        static void Tooltip(List<Finding> list, CombatBalanceAnalysisModel.Catalog catalog)
         {
-            var item = CombatBalanceAnalysisModel.NewWeapon(weapon, 1, ItemGrade.Common, WeaponElement.Fire, 1);
-            var stats = WeaponStatCalculator.Calculate(item);
-            MeleeSingleTargetDpsEstimate tooltip = MeleeSingleTargetDpsCalculator.Estimate(weapon, stats);
-            float multiplier = CombatBalanceFormulas.AttackDamageMultiplier(weapon, CombatBalanceAnalysisModel.HeavyDefinition(weapon), false, false);
-            float cycleDamage = 0f, cycleTime = 0f;
-            for (int i = 0; i < weapon.GetMeleeComboDefinition().StepCount; i++)
+            float worst = 1f; string worstLabel = "", worstDetail = ""; int count = 0;
+            foreach (var weapon in catalog.weapons)
+            foreach (int level in new[] { 1, 55 })
             {
-                var st = CombatBalanceAnalysisModel.TimeComboStep(weapon, i, true, stats.meleeAttackSpeedMultiplier);
-                foreach (var ph in st.phases)
+                var item = CombatBalanceAnalysisModel.NewWeapon(weapon, level, ItemGrade.Common, WeaponElement.Fire, 1);
+                var stats = WeaponStatCalculator.Calculate(item);
+                MeleeSingleTargetDpsEstimate tooltip = MeleeSingleTargetDpsCalculator.Estimate(weapon, stats);
+                float multiplier = CombatBalanceFormulas.AttackDamageMultiplier(weapon, CombatBalanceAnalysisModel.HeavyDefinition(weapon), false, false);
+                float crit01 = Mathf.Clamp01(CombatBalanceFormulas.EffectiveCriticalChance(stats.critChance, false) / 100f);
+                float cycleDamage = 0f, cycleTime = 0f;
+                for (int i = 0; i < weapon.GetMeleeComboDefinition().StepCount; i++)
                 {
-                    float b = stats.damage * ph.coefficient * multiplier;
-                    cycleDamage += Mathf.Lerp(CombatBalanceFormulas.RoundedHitDamage(b, false, stats.critDamageMultiplier),
-                        CombatBalanceFormulas.RoundedHitDamage(b, true, stats.critDamageMultiplier), Mathf.Clamp01(stats.critChance / 100f));
+                    var st = CombatBalanceAnalysisModel.TimeComboStep(weapon, i, true, stats.meleeAttackSpeedMultiplier);
+                    foreach (var ph in st.phases)
+                    {
+                        float b = stats.damage * ph.coefficient * multiplier;
+                        cycleDamage += Mathf.Lerp(CombatBalanceFormulas.RoundedHitDamage(b, false, stats.critDamageMultiplier),
+                            CombatBalanceFormulas.RoundedHitDamage(b, true, stats.critDamageMultiplier), crit01);
+                    }
+                    cycleTime += st.chainAt;
                 }
-                cycleTime += st.chainAt;
+                float modelDps = cycleTime > 0 ? cycleDamage / cycleTime : 0f;
+                float ratio = tooltip.IsValid && modelDps > 0f ? tooltip.Dps / modelDps : float.NaN;
+                count++;
+                if (float.IsNaN(ratio) || Mathf.Abs(ratio - 1f) > Mathf.Abs(worst - 1f) || count == 1)
+                {
+                    worst = float.IsNaN(ratio) ? float.PositiveInfinity : ratio;
+                    worstLabel = $"{weapon.name} Lv{level} 일반";
+                    worstDetail = $"툴팁 {F(tooltip.Dps)}(순환 {F(tooltip.CycleDuration)}초·판정 {tooltip.HitCount}) vs 실제 경로 {F(modelDps)}(순환 {F(cycleTime)}초)";
+                }
             }
-            float modelDps = cycleTime > 0 ? cycleDamage / cycleTime : 0f;
-            list.Add(new Finding("D01", "문서·구현 차이", "높음", "무기 툴팁 DPS가 대검 약공 0.35배를 빼고 계산한다",
-                $"{weapon.name} Lv1 일반, 무기 툴팁의 단일 대상 DPS",
-                "`MeleeSingleTargetDpsCalculator.Estimate`가 `stats.damage × Phase 배율`만 쓴다. 실제 약공은 `MeleeRuntime`이 `OverburstCombatBalance.GreatswordWeakDamage`(0.35)를 곱한다. 시간도 가속 구간(`MeleePlaybackAcceleration`)과 직접 연계 시작 진행률을 무시한다.",
-                $"툴팁 DPS {F(tooltip.Dps)}(순환 {F(tooltip.CycleDuration)}초) vs 실제 경로 {F(modelDps)}(순환 {F(cycleTime)}초) → {F(tooltip.Dps / Mathf.Max(.001f, modelDps))}배 과대 표시. 플레이어가 무기를 비교할 때 수치가 실제 약공과 맞지 않는다.",
-                "툴팁 계산기가 `CombatBalanceFormulas.AttackDamageMultiplier`와 콤보 가속·연계 시작을 쓰게 하거나, 표시 이름을 '원본 기준 DPS'로 바꾼다. (UI 수정 제안, 이번 작업에서 바꾸지 않음)",
-                $"Estimate.ExpectedCycleDamage={F(tooltip.ExpectedCycleDamage)}, 모델 순환 피해={F(cycleDamage)}"));
+            bool match = Mathf.Abs(worst - 1f) <= .01f;
+            list.Add(new Finding("D01", "문서·구현 차이", match ? "정보" : "높음",
+                match ? "무기 툴팁 DPS가 실제 약공 경로와 일치한다(10-01 수정)" : "무기 툴팁 DPS가 실제 약공 경로와 다르다",
+                $"무기 {catalog.weapons.Count}종 × Lv1·Lv55 일반, 무기 툴팁·장착 비교의 단일 대상 DPS. 가장 큰 차이: {worstLabel}",
+                "`MeleeSingleTargetDpsCalculator.Estimate`는 `CombatBalanceFormulas.AttackDamageMultiplier`(대검 약공 0.35)·`EffectiveCriticalChance`·`RoundedHitDamage`와 `MeleePlaybackAcceleration`·이어 치기 진입 진행률을 쓴다. 비교 기준은 Play 콤보 시간표·약공 피해로 대조한 모델 경로.",
+                $"{worstDetail} → {F(worst, "0.###")}배. " + (match ? "무기 비교 수치가 실제 약공과 맞는다(10-01 수정 전 2.33배 과대)." : "플레이어가 무기를 비교할 때 수치가 실제 약공과 맞지 않는다."),
+                match ? "없음. 장비 옵션·원소 에너지·강공은 무기 단독 비교값이라 넣지 않는다." : "툴팁 계산기가 실제 약공 경로와 같은 입력을 쓰게 한다.",
+                $"대조 {count}건, 허용 ±1%"));
         }
 
         // 통합 설계 v2 6절: 패턴 전체 피해 예산 상한(기준 HP %) 소형 6 / 중형 일반 12·강공 18 / 정예 일반 14·강공 24.
