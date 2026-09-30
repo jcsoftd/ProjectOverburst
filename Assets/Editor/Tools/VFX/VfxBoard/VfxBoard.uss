@@ -1,0 +1,325 @@
+/* VFX 관리 보드. 강조는 배경·사방 테두리·제목 색으로만 준다(한쪽 세로 강조선 없음). */
+
+.vb-root {
+    flex-grow: 1;
+    background-color: #11161d;
+    color: #e2e9f0;
+    font-size: 12px;
+}
+
+/* ---------- 머리 ---------- */
+.vb-header {
+    flex-direction: row;
+    align-items: center;
+    min-height: 54px;
+    padding: 8px 14px;
+    background-color: #18212c;
+    border-bottom-width: 1px;
+    border-bottom-color: #2c3947;
+}
+.vb-header__text { flex-grow: 1; }
+.vb-header__actions { flex-direction: row; }
+.vb-title { font-size: 16px; -unity-font-style: bold; color: #f3f7fb; }
+.vb-summary { margin-top: 3px; color: #93a4b5; font-size: 11px; }
+
+/* ---------- 버튼 ---------- */
+.vb-button {
+    height: 24px;
+    margin: 0 0 0 6px;
+    padding: 0 10px;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: #3a4a5c;
+    background-color: #223041;
+    color: #dbe6f1;
+    -unity-text-align: middle-center;
+}
+.vb-button:hover { background-color: #2b3d52; }
+.vb-button:active { background-color: #34506c; }
+.vb-button:disabled { opacity: 0.45; }
+.vb-button--small { height: 22px; padding: 0 8px; font-size: 11px; margin-left: 0; margin-right: 6px; }
+.vb-button--ghost { background-color: rgba(0, 0, 0, 0); }
+.vb-button--primary { background-color: #2f5f9e; border-color: #4f84c8; color: #ffffff; }
+.vb-button--primary:hover { background-color: #3a70b5; }
+.vb-button--apply { background-color: #2f7a55; border-color: #48a577; color: #ffffff; -unity-font-style: bold; }
+.vb-button--apply:hover { background-color: #378e63; }
+.vb-toggle.is-on { background-color: #2f5f9e; border-color: #5d92d6; color: #ffffff; }
+.vb-link {
+    height: 20px;
+    margin: 0 8px 0 0;
+    padding: 0 2px;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    color: #8fb3d9;
+    font-size: 11px;
+}
+.vb-link:hover { color: #c6dcf5; background-color: rgba(0, 0, 0, 0); }
+
+/* 붙어 있는 버튼 묶음 */
+.vb-seg { flex-direction: row; flex-shrink: 0; }
+.vb-seg__item {
+    height: 24px;
+    min-width: 30px;
+    margin: 0;
+    padding: 0 8px;
+    border-width: 1px 1px 1px 0;
+    border-radius: 0;
+    border-color: #3a4a5c;
+    background-color: #1f2a37;
+    color: #c9d6e3;
+    font-size: 11px;
+}
+.vb-seg__item:hover { background-color: #2a394b; }
+.vb-seg__item--first { border-left-width: 1px; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.vb-seg__item--last { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+.vb-seg__item.is-on { background-color: #2f5f9e; border-color: #5d92d6; color: #ffffff; }
+
+/* ---------- 왼쪽 목록 ---------- */
+.vb-split { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.vb-header, .vb-draftbar, .vb-search-host, .vb-filters, .vb-tree-actions { flex-shrink: 0; }
+.vb-left {
+    min-width: 300px;
+    min-height: 0;
+    background-color: #141b23;
+    border-right-width: 1px;
+    border-right-color: #2a3643;
+}
+.vb-search-host { padding: 8px 8px 4px 8px; }
+.vb-search-host .unity-toolbar-search-field { width: auto; flex-grow: 1; height: 22px; margin: 0; }
+.vb-filters { flex-direction: row; flex-wrap: wrap; padding: 2px 8px 6px 8px; border-bottom-width: 1px; border-bottom-color: #232e3a; }
+.vb-filter {
+    height: 22px;
+    margin: 0 4px 4px 0;
+    padding: 0 9px;
+    border-width: 1px;
+    border-radius: 11px;
+    border-color: #334253;
+    background-color: #1e2835;
+    color: #b9c7d5;
+    font-size: 11px;
+}
+.vb-filter:hover { background-color: #283647; }
+.vb-filter.is-on { background-color: #2f5f9e; border-color: #5d92d6; color: #ffffff; }
+.vb-tree-host { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.vb-tree { flex-grow: 1; }
+.vb-tree .unity-tree-view__item-content { flex-shrink: 1; min-width: 0; overflow: hidden; }
+.vb-tree .unity-collection-view__item--selected { background-color: #26405e; }
+.vb-tree .unity-collection-view__item:hover { background-color: #1c2835; }
+.vb-tree .unity-collection-view__item--selected:hover { background-color: #2c4a6c; }
+.vb-tree-empty {
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    -unity-text-align: middle-center;
+    color: #7e8fa0;
+}
+.vb-tree-actions { flex-direction: row; padding: 4px 10px; border-top-width: 1px; border-top-color: #232e3a; }
+
+.vb-row { flex-grow: 1; flex-shrink: 1; min-width: 0; overflow: hidden; flex-direction: row; align-items: center; padding-right: 8px; }
+.vb-dot {
+    width: 8px;
+    height: 8px;
+    margin-right: 7px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0);
+    flex-shrink: 0;
+}
+.vb-dot--assigned { background-color: #4cc38a; }
+.vb-dot--empty { background-color: rgba(0, 0, 0, 0); border-color: #7c8a99; }
+.vb-dot--missing { background-color: #e0605a; }
+.vb-dot--group { width: 6px; height: 6px; border-radius: 3px; }
+.vb-row__texts { flex-grow: 1; flex-shrink: 1; min-width: 0; flex-direction: row; align-items: center; overflow: hidden; }
+.vb-row__title { color: #e2e9f0; flex-shrink: 0; }
+.vb-row__sub {
+    margin-left: 8px;
+    color: #7f90a2;
+    font-size: 11px;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vb-row--group .vb-row__title { -unity-font-style: bold; color: #c9d6e3; }
+.vb-row--depth0 .vb-row__title { color: #f0f5fa; font-size: 12px; }
+.vb-row__count { margin-left: 6px; min-width: 38px; color: #8ea0b3; font-size: 10px; -unity-text-align: middle-right; flex-shrink: 0; }
+.vb-tag {
+    margin-left: 6px;
+    padding: 0 5px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: #384656;
+    color: #8fa0b2;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+.vb-badge {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background-color: #3a3f7a;
+    color: #dadfff;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+.vb-badge--error { background-color: #6a2d33; color: #ffd9dc; }
+.vb-hidden { display: none; }
+
+/* ---------- 오른쪽 상세 ---------- */
+.vb-right { flex-grow: 1; min-width: 560px; min-height: 0; padding: 10px 12px 8px 12px; }
+.vb-detail-head { flex-shrink: 0; flex-direction: row; align-items: center; min-height: 44px; margin-bottom: 8px; }
+.vb-detail-head__text { flex-grow: 1; min-width: 0; }
+.vb-breadcrumb { color: #8fb3d9; font-size: 11px; }
+.vb-slot-title { margin-top: 2px; font-size: 17px; -unity-font-style: bold; color: #f3f7fb; }
+.vb-state { padding: 3px 9px; border-radius: 10px; font-size: 11px; -unity-font-style: bold; }
+.vb-state--assigned { background-color: #1d4a38; color: #bff0d6; }
+.vb-state--empty { background-color: #3b3f47; color: #d6dbe2; }
+.vb-state--missing { background-color: #6a2d33; color: #ffd9dc; }
+.vb-state--draft { background-color: #3a3f7a; color: #dadfff; }
+
+.vb-detail-body { flex-grow: 1; flex-direction: row; min-height: 0; }
+.vb-detail-main { flex-grow: 1; min-width: 380px; }
+.vb-detail-side { width: 320px; min-width: 280px; margin-left: 10px; }
+
+.vb-stage {
+    flex-grow: 1;
+    min-height: 240px;
+    border-width: 1px;
+    border-radius: 6px;
+    border-color: #2c3947;
+    background-color: #0b0f14;
+    overflow: hidden;
+}
+.vb-viewport-host { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.vb-viewport { flex-grow: 1; }
+.vb-viewport__image { flex-grow: 1; }
+.vb-axis {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    background-color: rgba(8, 12, 18, 0.62);
+}
+.vb-axis__label { position: absolute; font-size: 10px; -unity-font-style: bold; }
+.vb-overlay-top {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.vb-overlay-top .vb-seg__item { background-color: rgba(18, 26, 36, 0.85); }
+.vb-overlay-top .vb-seg__item.is-on { background-color: #2f5f9e; }
+.vb-stage-message {
+    position: absolute;
+    top: 42%;
+    left: 40px;
+    right: 40px;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    color: #cfd8e2;
+    font-size: 13px;
+}
+.vb-stage-hint {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(8, 12, 18, 0.72);
+    color: #b9c7d5;
+    font-size: 11px;
+}
+
+.vb-transport, .vb-viewbar { flex-shrink: 0; flex-direction: row; align-items: center; min-height: 32px; margin-top: 6px; }
+.vb-play { min-width: 84px; margin-left: 0; }
+.vb-transport .vb-seg { margin-left: 8px; }
+.vb-time { flex-grow: 1; margin: 0 8px; }
+.vb-time .unity-base-field__label { display: none; }
+.vb-clock { min-width: 96px; color: #b6c5d4; font-size: 11px; -unity-text-align: middle-right; }
+.vb-field-label { color: #93a4b5; font-size: 11px; margin-right: 6px; }
+.vb-viewbar .vb-seg { margin-right: 2px; }
+.vb-viewbar .vb-seg__item { min-width: 28px; padding: 0 6px; }
+.vb-stats { flex-grow: 1; color: #7f90a2; font-size: 10px; -unity-text-align: middle-right; margin-left: 8px; }
+
+/* ---------- 오른쪽 카드 ---------- */
+.vb-card {
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-width: 1px;
+    border-radius: 6px;
+    border-color: #2a3746;
+    background-color: #161f29;
+}
+.vb-card__title { margin-bottom: 6px; color: #8fb3d9; font-size: 11px; -unity-font-style: bold; }
+.vb-card__actions { flex-direction: row; flex-wrap: wrap; margin-top: 6px; }
+.vb-asset {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: #2f3d4d;
+    background-color: #1b2531;
+}
+.vb-asset:hover { background-color: #223043; border-color: #45617e; }
+.vb-asset__icon { width: 32px; height: 32px; margin-right: 8px; flex-shrink: 0; }
+.vb-asset__text { flex-grow: 1; min-width: 0; }
+.vb-asset__name { -unity-font-style: bold; color: #edf3f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-asset__path { margin-top: 2px; color: #7f90a2; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-field-host .unity-object-field { margin: 0; }
+.vb-field-host .unity-base-field__label { display: none; }
+.vb-draft-state { margin-top: 6px; color: #c8ceff; font-size: 11px; white-space: normal; }
+.vb-messages { margin-top: 4px; }
+.vb-msg {
+    margin-top: 4px;
+    padding: 5px 7px;
+    border-width: 1px;
+    border-radius: 4px;
+    white-space: normal;
+    font-size: 11px;
+}
+.vb-msg--warn { background-color: #3a3220; border-color: #6b5a2c; color: #f1ddb0; }
+.vb-msg--error { background-color: #3d2226; border-color: #7a3a41; color: #ffd4d8; }
+.vb-meta { color: #c9d6e3; white-space: normal; font-size: 11px; }
+.vb-meta--faint { margin-top: 2px; color: #7f90a2; }
+.vb-readonly {
+    margin-top: 8px;
+    padding: 5px 7px;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: #3a4a5c;
+    background-color: #1c2632;
+    color: #b9c7d5;
+    white-space: normal;
+    font-size: 11px;
+}
+.vb-note { margin-top: 8px; color: #a9b8c7; white-space: normal; font-size: 11px; }
+
+/* ---------- 아래 초안 막대 ---------- */
+.vb-draftbar {
+    padding: 6px 12px;
+    border-top-width: 1px;
+    border-top-color: #2c3947;
+    background-color: #151c25;
+}
+.vb-draftbar.has-drafts { background-color: #1a1f33; border-top-color: #4d5aa8; }
+.vb-draftbar__main { flex-direction: row; align-items: center; }
+.vb-draftbar__count { margin-right: 10px; color: #c9d6e3; -unity-font-style: bold; }
+.vb-draftbar.has-drafts .vb-draftbar__count { color: #dadfff; }
+.vb-spacer { flex-grow: 1; }
+.vb-draftbar__list { max-height: 170px; margin-top: 6px; }
+.vb-draft-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 26px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.vb-draft-row:hover { background-color: #232a44; }
+.vb-draft-row__path { width: 260px; color: #b9c7d5; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-draft-row__change { flex-grow: 1; color: #e2e9f0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

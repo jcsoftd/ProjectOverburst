@@ -1,0 +1,118 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="True">
+    <ui:VisualElement name="board" class="vb-root">
+        <ui:VisualElement class="vb-header">
+            <ui:VisualElement class="vb-header__text">
+                <ui:Label text="VFX 관리 보드" class="vb-title" />
+                <ui:Label name="summary" class="vb-summary" />
+            </ui:VisualElement>
+            <ui:VisualElement class="vb-header__actions">
+                <ui:Button name="deep-scan" text="미분류 검사" tooltip="등록된 목록 밖에서 VFX를 참조하는 SO·프리팹 필드를 찾습니다. 수십 초 걸릴 수 있습니다." class="vb-button vb-button--ghost" />
+                <ui:Button name="refresh" text="새로고침" class="vb-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:TwoPaneSplitView name="split" fixed-pane-index="0" fixed-pane-initial-dimension="390" orientation="Horizontal" class="vb-split">
+            <ui:VisualElement name="left" class="vb-left">
+                <ui:VisualElement name="search-host" class="vb-search-host" />
+                <ui:VisualElement name="filters" class="vb-filters" />
+                <ui:VisualElement name="tree-host" class="vb-tree-host">
+                    <ui:Label name="tree-empty" text="조건에 맞는 슬롯이 없습니다." class="vb-tree-empty" />
+                </ui:VisualElement>
+                <ui:VisualElement class="vb-tree-actions">
+                    <ui:Button name="expand-all" text="모두 펼치기" class="vb-link" />
+                    <ui:Button name="collapse-all" text="모두 접기" class="vb-link" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="right" class="vb-right">
+                <ui:VisualElement class="vb-detail-head">
+                    <ui:VisualElement class="vb-detail-head__text">
+                        <ui:Label name="breadcrumb" class="vb-breadcrumb" />
+                        <ui:Label name="slot-title" text="왼쪽 목록에서 VFX 슬롯을 고르세요" class="vb-slot-title" />
+                    </ui:VisualElement>
+                    <ui:Label name="state-chip" class="vb-state" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="vb-detail-body">
+                    <ui:VisualElement class="vb-detail-main">
+                        <ui:VisualElement name="stage" class="vb-stage">
+                            <ui:VisualElement name="viewport-host" class="vb-viewport-host" />
+                            <ui:VisualElement class="vb-overlay-top">
+                                <ui:VisualElement name="compare" class="vb-seg" />
+                                <ui:VisualElement name="environments" class="vb-seg" />
+                            </ui:VisualElement>
+                            <ui:Label name="stage-message" class="vb-stage-message" />
+                            <ui:Label name="stage-hint" class="vb-stage-hint" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="vb-transport">
+                            <ui:Button name="play" text="▶ 재생" class="vb-button vb-button--primary vb-play" />
+                            <ui:Button name="restart" text="처음부터" class="vb-button" />
+                            <ui:Button name="loop" text="반복" class="vb-button vb-toggle" />
+                            <ui:VisualElement name="speeds" class="vb-seg" />
+                            <ui:Slider name="time" low-value="0" high-value="1" class="vb-time" />
+                            <ui:Label name="clock" class="vb-clock" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="vb-viewbar">
+                            <ui:Label text="방향" class="vb-field-label" />
+                            <ui:VisualElement name="views" class="vb-seg" />
+                            <ui:Button name="floor" text="바닥" class="vb-button vb-toggle" />
+                            <ui:Button name="bloom" text="블룸" tooltip="게임처럼 밝은 부분이 번지게 보입니다." class="vb-button vb-toggle" />
+                            <ui:Button name="fit" text="맞춤" class="vb-button" />
+                            <ui:Label name="stats" class="vb-stats" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:ScrollView name="side" class="vb-detail-side">
+                        <ui:VisualElement class="vb-card">
+                            <ui:Label text="연결된 프리팹" class="vb-card__title" />
+                            <ui:VisualElement name="current-asset" class="vb-asset">
+                                <ui:Image name="current-icon" class="vb-asset__icon" />
+                                <ui:VisualElement class="vb-asset__text">
+                                    <ui:Label name="current-name" class="vb-asset__name" />
+                                    <ui:Label name="current-path" class="vb-asset__path" />
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="draft-card" class="vb-card">
+                            <ui:Label text="교체안" class="vb-card__title" />
+                            <ui:VisualElement name="draft-host" class="vb-field-host" />
+                            <ui:VisualElement class="vb-card__actions">
+                                <ui:Button name="draft-clear" text="비우기 초안" tooltip="적용하면 이 슬롯을 비웁니다." class="vb-button vb-button--small" />
+                                <ui:Button name="draft-remove" text="초안 취소" class="vb-button vb-button--small" />
+                            </ui:VisualElement>
+                            <ui:Label name="draft-state" class="vb-draft-state" />
+                            <ui:VisualElement name="messages" class="vb-messages" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="vb-card">
+                            <ui:Label text="연결 위치" class="vb-card__title" />
+                            <ui:Label name="owner" class="vb-meta" />
+                            <ui:Label name="property" class="vb-meta vb-meta--faint" />
+                            <ui:VisualElement class="vb-card__actions">
+                                <ui:Button name="ping-owner" text="소유 에셋 선택" class="vb-button vb-button--small" />
+                                <ui:Button name="open-owner" text="열기" class="vb-button vb-button--small" />
+                            </ui:VisualElement>
+                            <ui:Label name="readonly" class="vb-readonly" />
+                            <ui:Label name="note" class="vb-note" />
+                        </ui:VisualElement>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:TwoPaneSplitView>
+
+        <ui:VisualElement name="draft-bar" class="vb-draftbar">
+            <ui:VisualElement class="vb-draftbar__main">
+                <ui:Label name="draft-count" class="vb-draftbar__count" />
+                <ui:Button name="draft-toggle" text="목록 보기" class="vb-button vb-button--small" />
+                <ui:VisualElement class="vb-spacer" />
+                <ui:Button name="revert-last" text="직전 적용 되돌리기" tooltip="마지막으로 적용한 변경을 거꾸로 돌리는 초안을 만듭니다. 확인한 뒤 다시 적용하세요." class="vb-button vb-button--ghost" />
+                <ui:Button name="discard-all" text="초안 모두 취소" class="vb-button" />
+                <ui:Button name="apply-all" text="모두 적용" class="vb-button vb-button--apply" />
+            </ui:VisualElement>
+            <ui:ScrollView name="draft-list" class="vb-draftbar__list" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
