@@ -59,6 +59,26 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         && impulseSource != null
         && impulseListener != null;
 
+    private void Awake()
+    {
+        ApplyOcclusionPolicy();
+    }
+
+    // 2026-10-01: 직교 쿼터뷰에서 Deoccluder의 PullCameraForward는 가림을 풀지 못하고 카메라만 앞으로 당겨
+    // 가까운 땅을 근거리 클리핑면으로 잘라낸다(뒤쪽 Default 레이어 캐릭터에 가려질 때 화면 아래 절반이 배경색).
+    // 가림 회피는 끄고 가리는 물체는 그대로 둔다. 씬 직렬화 값과 무관하게 실행 시 이 정책을 적용한다.
+    public void ApplyOcclusionPolicy()
+    {
+        if (deoccluder == null)
+            return;
+
+        CinemachineDeoccluder.ObstacleAvoidance avoidance = deoccluder.AvoidObstacles;
+        if (!avoidance.Enabled)
+            return;
+        avoidance.Enabled = false;
+        deoccluder.AvoidObstacles = avoidance;
+    }
+
     public void Configure(
         Camera configuredOutputCamera,
         CinemachineBrain configuredBrain,

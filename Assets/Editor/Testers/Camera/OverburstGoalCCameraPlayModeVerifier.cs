@@ -234,7 +234,9 @@ public static class OverburstGoalCCameraPlayModeVerifier
 
     private static void VerifyOcclusionAndRecover()
     {
-        Require(rig.Deoccluder.CameraWasDisplaced(rig.VirtualCamera), "Deoccluder did not displace the camera for a blocking wall.");
+        // 2026-10-01: 가림 회피는 끈다. 벽이 가려도 카메라를 앞으로 당기지 않아야 화면 아래가 잘리지 않는다.
+        Require(!rig.Deoccluder.AvoidObstacles.Enabled, "Deoccluder obstacle avoidance must be off at runtime.");
+        Require(!rig.Deoccluder.CameraWasDisplaced(rig.VirtualCamera), "Deoccluder pulled the camera forward for a blocking wall.");
         UnityEngine.Object.Destroy(occluder);
         occluder = null;
         quarter.SetYaw(0f);

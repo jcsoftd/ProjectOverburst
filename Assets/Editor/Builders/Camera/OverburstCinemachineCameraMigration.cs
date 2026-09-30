@@ -161,9 +161,10 @@ public static class OverburstCinemachineCameraMigration
         deoccluder.TransparentLayers = 0;
         deoccluder.IgnoreTag = "Player";
         deoccluder.MinimumDistanceFromTarget = 0.3f;
+        // 2026-10-01: 직교 쿼터뷰에서 앞으로 당기기는 화면 아래를 잘라내므로 가림 회피는 끈다(런타임 리그도 같은 정책).
         deoccluder.AvoidObstacles = new CinemachineDeoccluder.ObstacleAvoidance
         {
-            Enabled = true,
+            Enabled = false,
             DistanceLimit = 0f,
             MinimumOcclusionTime = 0f,
             CameraRadius = 0.35f,

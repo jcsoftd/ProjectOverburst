@@ -161,10 +161,10 @@ public static class OverburstGoalCCameraValidator
             "CinemachineFollow WorldSpace/무중복 damping 계약 오류.");
         Require(errors, rig.RotationComposer != null && rig.RotationComposer.Damping == Vector2.zero,
             "RotationComposer가 없거나 중복 damping이 있다.");
+        // 2026-10-01: 가림 회피는 OverburstCinemachineCameraRig.ApplyOcclusionPolicy가 실행 시 끈다. 씬 값은 검사하지 않는다.
         Require(errors, rig.Deoccluder != null
-            && rig.Deoccluder.AvoidObstacles.Enabled
             && rig.Deoccluder.CollideAgainst.value == OverburstCinemachineCameraMigration.EnvironmentOcclusionMask,
-            "Deoccluder 환경 mask/회피 설정 오류.");
+            "Deoccluder 환경 mask 설정 오류.");
         Require(errors, rig.Confiner != null, "Confiner 3D 확장점이 없다.");
         Require(errors, rig.ImpulseSource != null
             && rig.ImpulseSource.ImpulseDefinition.ImpulseChannel == OverburstCinemachineCameraRig.CombatImpulseChannel,
