@@ -28,12 +28,20 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
     }
 
     [SerializeField] private GameObject burningAura;
+    [Tooltip("화상 불 크기 배율. 몸 반경에 맞춘 뒤 곱한다.")]
+    [SerializeField, Range(.2f, 2f)] private float burningAuraScale = 1f;
+    [Tooltip("화상 불 높이. 몸 중심에서 몸 절반 높이의 몇 배 위에서 나오는지(0 = 몸 중심).")]
+    [SerializeField, Range(-1f, 1f)] private float burningAuraHeight = 0f;
     [SerializeField] private GameObject shockedAura;
     [SerializeField] private GameObject chilledAura;
     [Tooltip("어둠 잠식 상태. 60D: Piloto DarkAura")]
     [SerializeField] private GameObject corrodedAura;
     [Tooltip("잠식 오라 크기 배율. 몸 크기에 맞춘 뒤 곱한다.")]
-    [SerializeField, Range(.2f, 1.5f)] private float corrodedAuraScale = .8f;
+    [SerializeField, Range(.2f, 1.5f)] private float corrodedAuraScale = .7f;
+
+    // Burning grows with stacks: embers at 1, full-body fire at 5 (size, emission).
+    private static readonly float[] BurnStackSize = { .85f, .92f, 1f, 1.07f, 1.15f };
+    private static readonly float[] BurnStackDensity = { .55f, .65f, .75f, .85f, 1f };
 
     private readonly AuraModule[] modules = new AuraModule[4];
     private bool modulesCached;
@@ -45,27 +53,36 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         Vector3 parentScale=transform.lossyScale;
         if(corrodedAura!=null)
         {
-            // The source aura is centered at its origin: fit the body like the shock aura.
+            // The source aura is a sphere centered at its origin and must stay larger than the body to be seen,
+            // so it follows body width; only very flat bodies are limited by height.
             corrodedAura.transform.position=volume.Center;
-            float darkSize=Mathf.Clamp(volume.Radius/.6f,.45f,3f)*Mathf.Clamp(corrodedAuraScale,.2f,1.5f);
-            corrodedAura.transform.localScale=new Vector3(darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
-                darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            float fit=Mathf.Min(volume.Radius/.6f,volume.HalfHeight*2f/.7f);
+            float darkSize=Mathf.Clamp(fit,.45f,3f)*Mathf.Clamp(corrodedAuraScale,.2f,1.5f);
+            SetWorldSize(corrodedAura.transform,darkSize,parentScale);
         }
-        if(shockedAura==null)return;
-        // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
-        shockedAura.transform.position=volume.Center;
-        float size=Mathf.Clamp(volume.Radius/.6f,.45f,3f);
-        shockedAura.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
-            size/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),size/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+        if(shockedAura!=null)
+        {
+            // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
+            shockedAura.transform.position=volume.Center;
+            SetWorldSize(shockedAura.transform,Mathf.Clamp(volume.Radius/.6f,.45f,3f),parentScale);
+        }
         if(burningAura!=null)
         {
-            float burnSize=Mathf.Clamp(Mathf.Sqrt(volume.Radius/.56f),.75f,1.6f);
-            burningAura.transform.localScale=new Vector3(burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
-                burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),burnSize/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            // Flames rise, so only body width drives the size (linear, so large monsters burn large).
+            CombatTargetVfxPlacement.ResolveBurnTuning(target,out Vector3 burnOffset,out float burnTune);
+            float burnSize=Mathf.Clamp(volume.Radius/.55f,.6f,3f)*Mathf.Clamp(burningAuraScale,.2f,2f)*burnTune;
+            SetWorldSize(burningAura.transform,burnSize,parentScale);
             Vector3 sourceOffset=burningAura.transform.childCount>0
                 ?burningAura.transform.TransformVector(burningAura.transform.GetChild(0).localPosition):Vector3.zero;
-            burningAura.transform.position=volume.Center+Vector3.up*(volume.HalfHeight*.9f)-sourceOffset;
+            burningAura.transform.position=volume.Center+Vector3.up*(volume.HalfHeight*burningAuraHeight)
+                +burnOffset-sourceOffset;
         }
+    }
+
+    private static void SetWorldSize(Transform aura,float size,Vector3 parentScale)
+    {
+        aura.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
+            size/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),size/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
     }
 
     public void SetStackCount(MeleeElementStatusAuraType type,int count)
@@ -78,6 +95,9 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         if(count==0)return;
         float density=count>=5?1f:count>=3?.75f+(count-3)*.1f:.45f+(count-1)*.1f;
         float size=count>=5?1.1f:count>=3?.9f+(count-3)*.1f:.72f+(count-1)*.08f;
+        if(type==MeleeElementStatusAuraType.Burning){density=BurnStackDensity[count-1];size=BurnStackSize[count-1];}
+        // Corrosion reaches five stacks almost at once, so it barely grows (.85 -> 1).
+        else if(type==MeleeElementStatusAuraType.Corroded)size=.85f+(count-1)*.0375f;
         for(int i=0;i<module.Particles.Length;i++)
         {
             var particle=module.Particles[i];if(particle==null)continue;

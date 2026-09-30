@@ -17,6 +17,10 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
     [SerializeField, Min(0.1f)] private float hitHeight = 2f;
     [SerializeField, Range(0.4f, 1f)] private float contactRadiusFraction = 0.5f;
     [SerializeField, Range(0f, 0.8f)] private float contactHeightFraction = 0.55f;
+    [Tooltip("화상 불 위치 보정(몬스터 방향 기준, m). 몸 모양이 튀는 몬스터만 쓴다.")]
+    [SerializeField] private Vector3 burnOffset;
+    [Tooltip("화상 불 크기 보정. 기본 1")]
+    [SerializeField, Range(0.3f, 2f)] private float burnScale = 1f;
 
     private CombatTarget target;
 
@@ -51,6 +55,16 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         if (target == null) return default;
         return target.TryGetComponent(out CombatTargetVfxPlacement placement)
             ? placement.VisualVolume : target.CurrentHurtVolume;
+    }
+
+    /// <summary>Per-monster burning aura correction: world-space offset and size factor (zero / one when unset).</summary>
+    public static void ResolveBurnTuning(CombatTarget target, out Vector3 worldOffset, out float scale)
+    {
+        worldOffset = Vector3.zero;
+        scale = 1f;
+        if (target == null || !target.TryGetComponent(out CombatTargetVfxPlacement placement)) return;
+        worldOffset = placement.transform.rotation * placement.burnOffset;
+        scale = placement.burnScale;
     }
 
     public static Vector3 ResolveContact(CombatTarget target, Vector3 rawHitPoint,
@@ -97,6 +111,7 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         hitHeight = Mathf.Max(0.1f, hitHeight);
         contactRadiusFraction = Mathf.Clamp(contactRadiusFraction, 0.4f, 1f);
         contactHeightFraction = Mathf.Clamp(contactHeightFraction, 0f, 0.8f);
+        burnScale = Mathf.Clamp(burnScale, 0.3f, 2f);
     }
 #endif
 }
