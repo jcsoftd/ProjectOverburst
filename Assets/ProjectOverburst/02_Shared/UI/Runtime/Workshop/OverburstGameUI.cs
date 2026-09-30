@@ -13,7 +13,7 @@ public sealed class OverburstGameUI : MonoBehaviour
     public FlaskEquipmentPanelUI flaskEquipment;
     public Text inventoryCapacity,stashCapacity;
     private Text hpText,energyText,region,regionDetails,characterDetail;
-    private Text levelText,xpText;
+    private Text levelText,xpText,xpPercentText;
     private Image hpFill,energyFill;
     private RectTransform xpFillMask;
     private float xpTrackWidth;
@@ -55,6 +55,11 @@ public sealed class OverburstGameUI : MonoBehaviour
             var fillRect=xpBar.Find("Fill Rect") as RectTransform;
             xpTrackWidth=fillRect?fillRect.sizeDelta.x:0f;
             xpText=xpBar.Find("Tooltip/XP Text")?.GetComponent<Text>();
+            xpPercentText=xpBar.Find("Tooltip/Percentage Text")?.GetComponent<Text>(); // 원본 예시 "91%"가 남아 있던 칸
+            // 원본 Demo_XPTooltip이 HUD 프리팹에서 빠져 마우스 오버 설명창이 뜨지 않았다.
+            var xpTooltip=xpBar.GetComponent<ExperienceBarTooltip>();
+            if(!xpTooltip)xpTooltip=xpBar.gameObject.AddComponent<ExperienceBarTooltip>();
+            xpTooltip.Configure(xpBar.Find("Tooltip") as RectTransform,fillRect);
         }
         characterDetail=equipmentWindow.transform.Find("Layout/Character Detail").GetComponent<Text>();
         stats=new Text[12];for(int i=0;i<12;i++)stats[i]=equipmentWindow.transform.Find("Layout/Stat Value "+i/4+" "+i%4).GetComponent<Text>();
@@ -94,6 +99,8 @@ public sealed class OverburstGameUI : MonoBehaviour
         if(xpFillMask)xpFillMask.sizeDelta=new Vector2(xpTrackWidth*(progression?progression.ExperienceProgress:0f),xpFillMask.sizeDelta.y);
         if(xpText)xpText.text=progression&&playerLevel<OverburstGrowthRules.MaximumLevel
             ? $"{progression.Experience:N0} / {progression.ExperienceToNext:N0}" : "MAX";
+        if(xpPercentText)xpPercentText.text=progression&&playerLevel<OverburstGrowthRules.MaximumLevel
+            ? $"{Mathf.FloorToInt(progression.ExperienceProgress*1000f)/10f:0.0}%" : "MAX";
         var energy=equipment?equipment.GetComponent<OverburstElementEnergy>():null;
         if(health){hpFill.fillAmount=health.NormalizedHp;hpText.text=$"{health.CurrentHp:N0} / {health.MaxHp:N0}";}
         energyFill.fillAmount=energy?energy.Normalized:0;
