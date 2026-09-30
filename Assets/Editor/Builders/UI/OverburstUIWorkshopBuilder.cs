@@ -25,6 +25,7 @@ public static partial class OverburstUIWorkshopBuilder
     public static void Open()
     {
         if (Application.isPlaying) throw new InvalidOperationException("Exit Play Mode first.");
+        EditorSceneSafety.RequireNoUnsavedScenes("Open UI Management Workshop"); // 2026-10-01: Single 열기로 다른 작업의 저장 안 된 씬을 닫지 않는다.
         if (File.Exists(ScenePath)) EditorSceneManager.OpenScene(ScenePath);
         else Build();
     }

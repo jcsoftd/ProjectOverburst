@@ -163,6 +163,7 @@ public static class ProtofactorEnemyPilotBuilder
 
     private static void BuildAll()
     {
+        MonsterThemeAuthoringPolicy.RefuseRetiredContent("Build Protofactor Enemy Pilot");
         Type speciesType = RequireProjectType("EnemySpeciesDefinition", typeof(ScriptableObject));
         Type gradeType = RequireProjectType("EnemyGradeProfile", typeof(ScriptableObject));
         Type variantType = RequireProjectType("EnemyVariantProfile", typeof(ScriptableObject));

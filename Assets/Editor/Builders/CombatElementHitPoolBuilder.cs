@@ -53,8 +53,10 @@ public static class CombatElementHitPoolBuilder
                 string path = Folder + "/" + root.name + ".prefab";
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
                 if (prefab == null) throw new IOException("Prefab save failed: " + path);
-                entries[i] = new MeleeElementHitVfxCatalog.RuntimePool { element = Elements[i], prefab = prefab, prewarmCount = WarmCounts[i] };
-                report.Add(Elements[i] + " particles=" + prefab.GetComponentsInChildren<ParticleSystem>(true).Length + " warm=" + WarmCounts[i]);
+                int warm = WarmCounts[i]; // 2026-10-01: 이미 정한 미리 만들기 수는 유지
+                if (catalog.runtimePools != null) foreach (var old in catalog.runtimePools) if (old != null && old.element == Elements[i] && old.prewarmCount > 0) warm = old.prewarmCount;
+                entries[i] = new MeleeElementHitVfxCatalog.RuntimePool { element = Elements[i], prefab = prefab, prewarmCount = warm };
+                report.Add(Elements[i] + " particles=" + prefab.GetComponentsInChildren<ParticleSystem>(true).Length + " warm=" + warm);
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
         }

@@ -33,6 +33,8 @@ public static class OverburstCinemachineCameraMigration
 
     public static string ApplyAndReport()
     {
+        // 2026-10-01: PersistentScene을 Single로 열므로(실패 시에도 다시 연다) 다른 작업의 저장 안 된 씬이 있으면 쓰기 전에 멈춘다.
+        EditorSceneSafety.RequireNoUnsavedScenes("Apply GOAL C Cinemachine Camera");
         string fullScenePath = ResolveProjectPath(PersistentScenePath);
         byte[] beforeBytes = File.ReadAllBytes(fullScenePath);
         string beforeHash = Sha256(beforeBytes);
@@ -40,6 +42,9 @@ public static class OverburstCinemachineCameraMigration
         try
         {
             Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
+            // 2026-10-01: 리그가 이미 있으면 1회 이관은 끝났다. 이후 조정한 리그·렌즈·충격 값을 되돌리지 않는다.
+            if (FindRoot(scene, RigRootName) != null)
+                return "[OverburstCinemachineCameraMigration] NO_CHANGE (rig already migrated; tuned rig, lens and impulse values are kept)";
             ApplyScene(scene);
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, PersistentScenePath))

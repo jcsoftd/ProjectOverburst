@@ -19,15 +19,42 @@ public static class OverburstHudFollowupBuilder
     {
         if (EditorApplication.isPlaying)
             throw new InvalidOperationException("Exit Play Mode before editing the HUD.");
+        // 2026-10-01 폐기: 현재 HUD(d222412 이후 자원 바·초상화·글꼴 배치)가 원본이다. 이 도구는 옛 바탕판·목표 배경을 다시 넣고
+        // 위치·색·예시 문구를 처음 값으로 되돌린다(2026-10-01 04:33 사고). 다시 쓰지 않는다.
+        EditorSceneSafety.RefuseRetired("Finalize HUD, Objectives And Loading", "The current HUD layout (after d222412: resource bars, portrait, fonts) is the source of truth. "
+            + "This tool re-adds the old slot backplate and objective backdrop and resets positions, colors and sample texts.");
         Scene scene = EditorSceneManager.GetActiveScene();
         if (scene.name != "PersistentScene" || scene.isDirty)
             throw new InvalidOperationException("Open a clean PersistentScene before applying the HUD follow-up.");
+
+        // 2026-10-01: 이미 적용된 HUD는 그 뒤의 HUD 조정(자원 바 연출·초상화·글꼴·배치)이 원본이다. 다시 적용하면 위치·크기·색·예시 문구를
+        // 처음 값으로 되돌리므로 적용 흔적이 모두 있으면 아무것도 쓰지 않는다.
+        if (IsAlreadyApplied(scene))
+        {
+            Debug.Log("[OverburstHudFollowupBuilder] NO_CHANGE: follow-up already applied; HUD prefab layout and scene overrides are kept.");
+            return;
+        }
 
         UpdateHudPrefab();
         EnsureLoadingBarPrefab();
         UpdatePersistentScene(scene);
         AssetDatabase.SaveAssets();
         EditorSceneManager.SaveScene(scene);
+    }
+
+    private static bool IsAlreadyApplied(Scene scene)
+    {
+        GameObject hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+        if (!hud || !hud.transform.Find("Action Bar/Slot Backplate") || !hud.transform.Find("Quest Tracker/Objective Backdrop"))
+            return false;
+        if (!AssetDatabase.LoadAssetAtPath<GameObject>(LoadingBarPath))
+            return false;
+        var roots = scene.GetRootGameObjects();
+        var game = roots.SelectMany(x => x.GetComponentsInChildren<OverburstGameUI>(true)).FirstOrDefault();
+        var loading = roots.SelectMany(x => x.GetComponentsInChildren<LoadingScreenUI>(true)).FirstOrDefault();
+        Transform tracker = game && game.hud ? game.hud.Find("Quest Tracker") : null;
+        return tracker && tracker.GetComponent<OverburstObjectiveTracker>() && loading
+            && loading.transform.Find("PF_OverburstLoadingBar_Rpg11");
     }
 
     private static void UpdateHudPrefab()

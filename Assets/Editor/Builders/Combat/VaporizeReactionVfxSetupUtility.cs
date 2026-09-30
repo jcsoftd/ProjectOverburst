@@ -42,6 +42,12 @@ public static class VaporizeReactionVfxSetupUtility
             if (contentRoot == null)
                 throw new InvalidOperationException("증발 wrapper에 VFX_CONTENT가 없습니다.");
 
+            // 2026-10-01: 이미 내용물이 있는 증발 wrapper는 그 뒤 조정(색·크기·재생)이 원본이라 지우고 다시 복제하지 않는다.
+            if (contentRoot.childCount > 0)
+            {
+                Debug.Log("[VaporizeReactionVfxSetup] NO_CHANGE: VFX_CONTENT already has content; it is kept.");
+                return;
+            }
             ClearChildren(contentRoot);
             CloneSmoke(sourceTwirly, contentRoot, TwirlyColor);
             CloneSmoke(sourceHarsh, contentRoot, HarshColor);

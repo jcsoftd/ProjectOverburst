@@ -40,6 +40,10 @@ public static class MeleeSlashSetupUtility
 
     public static void RunFromCommandLine()
     {
+        // 2026-10-01: 대상 슬래시 프리팹·정의가 정리돼 없다. 예전에는 폴더를 만든 뒤 멈췄고, 프리팹이 있으면 정의를 기본값으로 되돌리고
+        // 모든 콤보의 슬래시 큐를 이 정의로 다시 연결하면서 크기·경사·회전 조정값을 지웠다. 이제 쓰기 전에 멈춘다.
+        throw new InvalidOperationException("Setup Melee Slash: its targets (unified melee slash prefabs/definitions, one-hand sword combo, thrust/ground-slam VFX) were cleaned up and the greatsword now uses its own DF_GRS cue definitions. It no longer recreates or rewires them, so current greatsword VFX cues stay as tuned.");
+#pragma warning disable CS0162
         EnsureFolder(TargetFolder);
         GameObject basePrefab = LoadRequiredPrefab(BasePrefabPath);
         GameObject horizontalPrefab = LoadRequiredPrefab(HorizontalPrefabPath);
@@ -79,6 +83,7 @@ public static class MeleeSlashSetupUtility
         AssetDatabase.Refresh();
         Validate(basePrefab, horizontalPrefab, circularPrefab, horizontal, circular, verticalRising, verticalFalling);
         Debug.Log("[MeleeSlashSetup] Authored slash prefabs were preserved; references and mirror policy are active.");
+#pragma warning restore CS0162
     }
 
     private static GameObject LoadRequiredPrefab(string path)

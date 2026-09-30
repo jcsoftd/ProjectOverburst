@@ -23,6 +23,7 @@ public static class MeleeElementSfxSetupUtility
         EnsureFolder("Assets/ProjectOverburst/Resources/Combat/SFX");
         MeleeElementSfxCatalog catalog =
             AssetDatabase.LoadAssetAtPath<MeleeElementSfxCatalog>(CatalogPath);
+        bool created = false;
         if (catalog == null)
         {
             if (AssetDatabase.LoadMainAssetAtPath(CatalogPath) != null)
@@ -30,15 +31,19 @@ public static class MeleeElementSfxSetupUtility
 
             catalog = ScriptableObject.CreateInstance<MeleeElementSfxCatalog>();
             AssetDatabase.CreateAsset(catalog, CatalogPath);
+            created = true;
         }
 
-        ApplyDefaultMapping(catalog);
-        EditorUtility.SetDirty(catalog);
-        AssetDatabase.SaveAssetIfDirty(catalog);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
+        // 2026-10-01: 기본 매핑은 카탈로그를 처음 만들 때만 쓴다. 기존 카탈로그의 원소 항목(어둠·빛 포함)·클립·볼륨·피치와
+        // 강공·치명타·후속 SFX는 SFX 조정 작업의 원본이라 다시 쓰지 않는다(예전에는 6항목을 옛 기본값으로 통째로 바꿨다).
+        if (created)
+        {
+            ApplyDefaultMapping(catalog);
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssetIfDirty(catalog);
+        }
         ValidateCatalog(catalog);
-        Debug.Log("[ProjectVTP] Melee element SFX setup and validation passed.");
+        Debug.Log("[ProjectVTP] Melee element SFX " + (created ? "catalog created with defaults" : "catalog kept as tuned") + "; validation passed.");
     }
 
     public static void ApplyDefaultMapping(MeleeElementSfxCatalog catalog)
@@ -97,34 +102,27 @@ public static class MeleeElementSfxSetupUtility
 
     public static void ValidateCatalog(MeleeElementSfxCatalog catalog)
     {
-        if (catalog.entries == null || catalog.entries.Length != Specs.Length)
+        // 2026-10-01: 기본 매핑과 같은지가 아니라 현재 카탈로그의 구조를 검사한다(원소별 1항목, 베기·타격 클립, 값 범위, 해석기 연결).
+        if (catalog.entries == null || catalog.entries.Length == 0)
             throw new InvalidOperationException("Melee element SFX catalog entry count is invalid.");
 
         HashSet<WeaponElement> elements = new HashSet<WeaponElement>();
         MeleeElementSfxResolver resolver = new MeleeElementSfxResolver(catalog);
-        for (int i = 0; i < Specs.Length; i++)
+        for (int i = 0; i < catalog.entries.Length; i++)
         {
-            MeleeElementSfxDefaultSpec spec = Specs[i];
-            if (!elements.Add(spec.Element))
-                throw new InvalidOperationException("Duplicate melee SFX element: " + spec.Element);
+            MeleeElementSfxEntry entry = catalog.entries[i];
+            if (entry == null || !elements.Add(entry.element))
+                throw new InvalidOperationException("Null or duplicate melee SFX element entry at " + i);
 
-            MeleeElementSfxEntry entry = FindRequiredEntry(catalog, spec.Element);
-            ValidateCue(
-                entry.slash,
-                MeleeElementSfxEditorDefaults.FindRequiredSlash(spec.SlashName),
-                spec.Element,
-                "Slash");
-            ValidateCue(
-                entry.hit,
-                MeleeElementSfxEditorDefaults.FindRequiredHit(spec.HitName),
-                spec.Element,
-                "Hit");
-            if (!resolver.TryResolve(spec.Element, MeleeElementSfxCueType.Slash, out var slash)
+            FindRequiredEntry(catalog, entry.element);
+            ValidateCue(entry.slash, null, entry.element, "Slash");
+            ValidateCue(entry.hit, null, entry.element, "Hit");
+            if (!resolver.TryResolve(entry.element, MeleeElementSfxCueType.Slash, out var slash)
                 || slash != entry.slash
-                || !resolver.TryResolve(spec.Element, MeleeElementSfxCueType.Hit, out var hit)
+                || !resolver.TryResolve(entry.element, MeleeElementSfxCueType.Hit, out var hit)
                 || hit != entry.hit)
             {
-                throw new InvalidOperationException("Melee element SFX resolver mapping failed: " + spec.Element);
+                throw new InvalidOperationException("Melee element SFX resolver mapping failed: " + entry.element);
             }
         }
 
@@ -165,8 +163,9 @@ public static class MeleeElementSfxSetupUtility
     {
         if (settings == null
             || settings.clips == null
-            || settings.clips.Length != 1
-            || settings.clips[0] != expected
+            || settings.clips.Length == 0
+            || Array.IndexOf(settings.clips, null) >= 0
+            || (expected != null && (settings.clips.Length != 1 || settings.clips[0] != expected))
             || settings.volume < 0f
             || settings.minPitch <= 0f
             || settings.maxPitch <= 0f

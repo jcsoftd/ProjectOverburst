@@ -41,24 +41,26 @@ public static class MonsterThemeCombatBuilder
         if(gallery.gameObject.scene.isDirty)throw new InvalidOperationException("Save scene changes before content generation.");
         Folder(Root);
         foreach(string f in new[]{"Actors","Definitions","Species","Grades","Animations","Abilities","Movement","Behavior","Presets","Tables","Materials"})Folder(Root+"/"+f);
+        // 2026-10-01: 기존 액터는 보존하고 없는 액터만 만든다(MonsterThemeAuthoringPolicy). 템플릿은 새 액터를 만들 때만 필요하다.
         var template=AssetDatabase.LoadAssetAtPath<GameObject>(ProtofactorEnemyPilotBuilder.PrefabPaths[0]);
         var sourceDef=AssetDatabase.LoadAssetAtPath<EnemyDefinition>(ProtofactorEnemyPilotBuilder.DefinitionPaths[0]);
-        if(template==null || sourceDef==null)throw new InvalidOperationException("Existing actor baseline is missing.");
-        var normal=Asset<EnemyGradeProfile>("Grades/Normal");normal.Configure("ThemeNormal","일반",EnemyGradeType.Normal,1,1,1,1);
-        var elite=Asset<EnemyGradeProfile>("Grades/Elite");elite.Configure("ThemeElite","정예",EnemyGradeType.Elite,1,1,1,1);
+        var touched=new List<Object>();
+        var normal=MonsterThemeAuthoringPolicy.Grade("Grades/Normal","ThemeNormal","일반",EnemyGradeType.Normal,touched);
+        var elite=MonsterThemeAuthoringPolicy.Grade("Grades/Elite","ThemeElite","정예",EnemyGradeType.Elite,touched);
         var variant=AssetDatabase.LoadAssetAtPath<EnemyVariantProfile>(ProtofactorEnemyPilotBuilder.DefaultVariantPath);
         var presets=new EnemyAiPreset[3];var signals=new Material[3];
         for(int i=0;i<3;i++)
         {
-            presets[i]=Clone(sourceDef.AiPreset,"Presets/"+Ids[i]);presets[i].ConfigureIdentity("Theme_"+Ids[i],Labels[i],Array.Empty<GameObject>());
-            signals[i]=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Materials/"+Ids[i]+".mat");
-            if(signals[i]==null){signals[i]=new Material(Shader.Find("Universal Render Pipeline/Unlit"));AssetDatabase.CreateAsset(signals[i],Root+"/Materials/"+Ids[i]+".mat");}
-            signals[i].SetColor("_BaseColor",Colors[i]);EditorUtility.SetDirty(signals[i]);
+            presets[i]=MonsterThemeAuthoringPolicy.Preset("Presets/"+Ids[i],sourceDef,"Theme_"+Ids[i],Labels[i],touched);
+            signals[i]=MonsterThemeAuthoringPolicy.SignalMaterial("Materials/"+Ids[i],Colors[i],touched);
         }
-        var definitions=new List<EnemyDefinition>();
+        var definitions=new List<EnemyDefinition>();var created=new List<EnemyDefinition>();
         foreach(var spec in Specs)
         {
             var display=gallery.actors[spec.number-1];string id=Ids[spec.theme]+"_"+display.displayName;
+            var existing=MonsterThemeAuthoringPolicy.FindExisting(id);
+            if(existing!=null){definitions.Add(existing);continue;}
+            MonsterThemeAuthoringPolicy.RequireTemplate(template,sourceDef,id);
             AnimationClip Clip(string name) => display.clips.FirstOrDefault(c=>string.Equals(c.name,name,StringComparison.OrdinalIgnoreCase))
                 ?? throw new InvalidOperationException(id+" missing clip "+name);
             var idle=Clip("Idle");var walk=display.clips.FirstOrDefault(c=>new[]{"WalkForward","CrawlForward"}.Any(n=>string.Equals(n,c.name,StringComparison.OrdinalIgnoreCase)));
@@ -122,27 +124,31 @@ public static class MonsterThemeCombatBuilder
             definition.ConfigureRuntime(animation,abilitySet,behavior,movement,presets[spec.theme],participation);
             var prefab=BuildActor(template,display,id,definition,scale,size,radius,bodyHeight,sizeFactor,controller,abilitySet,movement,behavior,presets[spec.theme],participation,signals[spec.theme],Colors[spec.theme]);
             definition.ConfigureComposition(species,spec.tier==2?elite:normal,variant,prefab);
-            definitions.Add(definition);
+            definitions.Add(definition);created.Add(definition);
             foreach(var asset in new Object[]{animation,movement,behavior,abilitySet,species,definition})EditorUtility.SetDirty(asset);
             foreach(var ability in abilities)EditorUtility.SetDirty(ability);
         }
-        var catalog=Asset<EnemyCatalog>("Catalog");
-        var retained=Enumerable.Range(0,catalog.Count).Select(catalog.GetDefinition).Where(d=>d!=null && !definitions.Any(n=>n.EnemyId==d.EnemyId));
-        catalog.Configure(definitions.Concat(retained).ToArray());EditorUtility.SetDirty(catalog);
+        var catalog=MonsterThemeAuthoringPolicy.LoadOrCreate<EnemyCatalog>("Catalog",out _);
+        MonsterThemeAuthoringPolicy.MergeCatalog(catalog,definitions,touched);
         for(int i=0;i<3;i++)
         {
-            int theme=i;var table=Asset<EnemyThemeTable>("Tables/"+Ids[i]);
-            var roster=Specs.Select((s,index)=>new {s,index}).Where(x=>x.s.theme==theme)
+            int theme=i;var table=MonsterThemeAuthoringPolicy.LoadOrCreate<EnemyThemeTable>("Tables/"+Ids[i],out bool tableCreated);
+            // 기본 가중치 1은 새로 붙는 항목에만 쓴다. 다른 빌더가 추가한 종과 조정된 가중치는 그대로 둔다.
+            var generated=Specs.Select((s,index)=>new {s,index}).Where(x=>x.s.theme==theme)
                 .Select(x=>new EnemyThemeTable.Entry{definition=definitions[x.index],tier=(EnemyThemeTier)x.s.tier,weight=1}).ToArray();
-            table.Configure(Ids[i],Labels[i],catalog,Colors[i],roster);
-            presets[i].ConfigureIdentity("Theme_"+Ids[i],Labels[i],roster.Where(e=>e.tier!=EnemyThemeTier.Elite).Select(e=>e.definition.ActorPrefab.gameObject).ToArray());
-            EditorUtility.SetDirty(table);EditorUtility.SetDirty(presets[i]);
+            MonsterThemeAuthoringPolicy.MergeTable(table,tableCreated,Ids[i],Labels[i],catalog,Colors[i],generated,touched);
+            MonsterThemeAuthoringPolicy.AppendPresetRoster(presets[i],generated.Where(e=>e.tier!=EnemyThemeTier.Elite && created.Contains(e.definition)).Select(e=>e.definition.ActorPrefab.gameObject),touched);
             if(!table.Validate(out string error))throw new InvalidOperationException(error);
         }
-        EditorUtility.SetDirty(normal);EditorUtility.SetDirty(elite);AssetDatabase.SaveAssets();
-        MonsterThemeRoleBuilder.Apply();
-        MonsterThemeLocomotionBuilder.Apply();
-        Debug.Log("[MonsterThemeCombat] Created 14 actors / 3 tables using existing actor and squad runtime.");
+        MonsterThemeAuthoringPolicy.Save(touched);
+        if(created.Count>0)
+        {
+            AssetDatabase.SaveAssets();
+            string[] createdIds=created.Select(d=>d.EnemyId).ToArray();
+            MonsterThemeRoleBuilder.ApplyToCreated(createdIds);
+            MonsterThemeLocomotionBuilder.ApplyCreated(createdIds);
+        }
+        Debug.Log("[MonsterThemeCombat] actors created="+created.Count+" preserved="+(definitions.Count-created.Count)+"; existing tuning untouched.");
     }
 
     internal static EnemyActor BuildActor(GameObject template,MonsterShowcaseActor display,string id,EnemyDefinition definition,float scale,Vector3 size,float radius,float height,float sizeFactor,

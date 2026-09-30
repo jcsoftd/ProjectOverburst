@@ -37,15 +37,17 @@ public static class EquipmentCatalogBuilder
 
         Entry[] entries = ReadManifest();
         var created = new List<GearItemData>();
+        var touched = new List<GearItemData>();
         for (int i = firstSet * 7; i < (firstSet + setCount) * 7; i++)
         {
             Entry entry = entries[i];
             ValidateSource(entry);
             GearItemData data = BuildEntry(entry);
+            touched.Add(data);
             if (!entry.existing) created.Add(data);
         }
         Register(created);
-        AssetDatabase.SaveAssets();
+        foreach (GearItemData item in touched) AssetDatabase.SaveAssetIfDirty(item);
         Debug.Log($"EQUIPMENT_CATALOG_BATCH_PASS: sets {firstSet}..{firstSet + setCount - 1}, items {setCount * 7}");
     }
 
@@ -116,6 +118,7 @@ public static class EquipmentCatalogBuilder
     {
         string assetPath = DataPath(entry);
         GearItemData data = AssetDatabase.LoadAssetAtPath<GearItemData>(assetPath);
+        bool createdNow = false;
         if (entry.existing)
         {
             if (data == null || data.itemName != entry.itemName || data.icon == null ||
@@ -159,13 +162,18 @@ public static class EquipmentCatalogBuilder
                 data.weight = 0f;
                 data.sellPrice = 100;
                 AssetDatabase.CreateAsset(data, assetPath);
+                createdNow = true;
             }
             else if (data.itemName != entry.itemName || data.icon != icon || data.kind != Kind(entry.slot))
                 throw new InvalidOperationException("Existing catalog asset differs: " + assetPath);
         }
-        data.catalogMinLevel = entry.minLevel;
-        data.catalogMaxLevel = entry.maxLevel;
-        EditorUtility.SetDirty(data);
+        // 2026-10-01: 매니페스트 레벨 구간은 새로 만든 장비의 기본값이다. 기존 장비의 구간은 밸런스 테이블이 조정하는 값이라 보존한다.
+        if (createdNow || (data.catalogMinLevel <= 0 && data.catalogMaxLevel <= 0))
+        {
+            data.catalogMinLevel = entry.minLevel;
+            data.catalogMaxLevel = entry.maxLevel;
+            EditorUtility.SetDirty(data);
+        }
         return data;
     }
 

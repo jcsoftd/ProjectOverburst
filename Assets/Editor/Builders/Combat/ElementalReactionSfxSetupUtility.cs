@@ -70,27 +70,36 @@ public static class ElementalReactionSfxSetupUtility
             AssetDatabase.CreateAsset(catalog, CatalogPath);
         }
 
-        catalog.vaporize = CreateSettings(clipsByCue, ElementalReactionSfxCueType.Vaporize);
-        catalog.thermalFracture = CreateSettings(
-            new List<AudioClip>(),
-            ElementalReactionSfxCueType.ThermalFracture);
-        catalog.plasmaExplosion = CreateSettings(
-            clipsByCue,
-            ElementalReactionSfxCueType.PlasmaExplosion);
-        catalog.freeze = CreateSettings(clipsByCue, ElementalReactionSfxCueType.Freeze);
-        catalog.shatter = CreateSettings(clipsByCue, ElementalReactionSfxCueType.Shatter);
-        catalog.chainTransition = CreateSettings(
-            clipsByCue,
-            ElementalReactionSfxCueType.ChainTransition);
-        catalog.coldChargeExplosion = CreateSettings(
-            clipsByCue,
-            ElementalReactionSfxCueType.ColdChargeExplosion);
+        // 2026-10-01: 클립이 이미 들어 있는 슬롯(후보 수·볼륨·피치·거리)은 SFX 조정값이라 보존하고, 비어 있는 슬롯만 기본값으로 채운다.
+        // 예전에는 매번 전 슬롯을 장바구니 기본 클립 1~2개와 볼륨·피치 1로 바꿔 쇄빙 3후보 등을 되돌렸다.
+        int filled = 0;
+        filled += Fill(ref catalog.vaporize, CreateSettings(clipsByCue, ElementalReactionSfxCueType.Vaporize));
+        if (catalog.thermalFracture == null)
+        {
+            catalog.thermalFracture = CreateSettings(new List<AudioClip>(), ElementalReactionSfxCueType.ThermalFracture);
+            filled++;
+        }
+        filled += Fill(ref catalog.plasmaExplosion, CreateSettings(clipsByCue, ElementalReactionSfxCueType.PlasmaExplosion));
+        filled += Fill(ref catalog.freeze, CreateSettings(clipsByCue, ElementalReactionSfxCueType.Freeze));
+        filled += Fill(ref catalog.shatter, CreateSettings(clipsByCue, ElementalReactionSfxCueType.Shatter));
+        filled += Fill(ref catalog.chainTransition, CreateSettings(clipsByCue, ElementalReactionSfxCueType.ChainTransition));
+        filled += Fill(ref catalog.coldChargeExplosion, CreateSettings(clipsByCue, ElementalReactionSfxCueType.ColdChargeExplosion));
 
-        EditorUtility.SetDirty(catalog);
-        AssetDatabase.SaveAssetIfDirty(catalog);
-        AssetDatabase.SaveAssets();
+        if (filled > 0)
+        {
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssetIfDirty(catalog);
+        }
         ValidateCatalog(catalog);
         Debug.Log("[ProjectVTP] 원소반응 SFX 카탈로그 생성·연결 검증 완료.");
+    }
+
+    private static int Fill(ref ElementalReactionSfxCueSettings slot, ElementalReactionSfxCueSettings defaults)
+    {
+        if (slot != null && slot.clips != null && slot.clips.Length > 0)
+            return 0;
+        slot = defaults;
+        return 1;
     }
 
     private static void NormalizeBasketFolders()
@@ -211,7 +220,8 @@ public static class ElementalReactionSfxSetupUtility
     {
         ElementalReactionSfxCueSettings settings = ResolveSettings(catalog, cueType);
         int actualCount = settings?.clips?.Length ?? 0;
-        if (actualCount != expectedClipCount)
+        // 2026-10-01: 후보 수는 최소 기준이다. 조정 작업이 후보를 늘린 슬롯(쇄빙 3개 등)은 정상이다. 빈 슬롯 계약(0)은 그대로다.
+        if (expectedClipCount == 0 ? actualCount != 0 : actualCount < expectedClipCount)
             throw new InvalidOperationException(
                 $"원소반응 SFX 후보 수 오류: {cueType} {actualCount}/{expectedClipCount}");
 

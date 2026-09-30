@@ -17,6 +17,9 @@ public static class SwordInPlaceAnimationUtility
     public static void RunOnceFromCommandLine()
     {
         StringBuilder report = new StringBuilder();
+        // 2026-10-01 폐기: 한손검(OHS01)과 콤보가 삭제됐다. 실행하면 WP01 제자리 클립 폴더를 다시 만들고 없는 무기 자산에서 멈춘다.
+        EditorSceneSafety.RefuseRetired("Create Sword InPlace Animations", "The one-hand sword (OHS01) and its combo were removed; "
+            + "this tool would recreate the WP01 in-place clip folder and then fail on the missing sword asset.");
         report.AppendLine("Sword in-place animation setup");
         report.AppendLine("GeneratedAt=" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         report.AppendLine();

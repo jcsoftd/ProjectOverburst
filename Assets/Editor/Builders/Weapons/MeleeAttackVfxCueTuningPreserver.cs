@@ -101,6 +101,9 @@ public static class MeleeAttackVfxCueTuningPreserver
         if (existingCues == null || rebuiltCues == null)
             return rebuiltCues;
 
+        // 2026-10-01: 큐는 elementOverrideKey로만 짝짓는다. 키가 비었거나 한 목록 안에서 겹치면 순서로 추측하지 않고 멈춘다.
+        RequireStableKeys(existingCues, "existing");
+        RequireStableKeys(rebuiltCues, "rebuilt");
         for (int rebuiltIndex = 0; rebuiltIndex < rebuiltCues.Length; rebuiltIndex++)
         {
             AttackVfxCueData rebuilt = rebuiltCues[rebuiltIndex];
@@ -113,12 +116,27 @@ public static class MeleeAttackVfxCueTuningPreserver
                 rebuilt.triggerProgress = existing.triggerProgress;
                 rebuilt.swingSlopeOffsetDegrees = existing.swingSlopeOffsetDegrees;
                 rebuilt.localEulerOffset = existing.localEulerOffset;
+                rebuilt.scaleMultiplier = existing.scaleMultiplier;
+                rebuilt.shockwaveIntensityMultiplier = existing.shockwaveIntensityMultiplier;
+                rebuilt.shockwaveSpeedMultiplier = existing.shockwaveSpeedMultiplier;
                 rebuiltCues[rebuiltIndex] = rebuilt;
                 break;
             }
         }
 
         return rebuiltCues;
+    }
+
+    private static void RequireStableKeys(AttackVfxCueData[] cues, string label)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < cues.Length; i++)
+        {
+            string key = cues[i].elementOverrideKey;
+            if (string.IsNullOrWhiteSpace(key) || !keys.Add(key))
+                throw new InvalidOperationException("VFX cue tuning cannot be matched: " + label + " cue " + i
+                    + " has an empty or duplicate elementOverrideKey '" + key + "'.");
+        }
     }
 
     private static Dictionary<PhaseKey, PhaseSlopeTuning> CapturePhaseTuning(

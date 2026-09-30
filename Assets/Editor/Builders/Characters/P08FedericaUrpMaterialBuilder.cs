@@ -133,6 +133,10 @@ public static class P08FedericaUrpMaterialBuilder
 
     private static void Run(bool updateProjectScenes)
     {
+        // 2026-10-01: 이미 정식화한 프로젝트 재질·프리팹·씬 연결은 그 뒤 조정값이 원본이다. 출력 재질이 있으면 다시 변환하지 않는다.
+        if (AssetDatabase.IsValidFolder(OutputMaterialRoot) && AssetDatabase.FindAssets("t:Material", new[] { OutputMaterialRoot }).Length > 0)
+            throw new InvalidOperationException("P08 Federica URP 정식화: already converted (" + OutputMaterialRoot + "). "
+                + "Project-owned materials, prefabs and scene links were tuned afterwards. Delete the output folders first to convert again.");
         Require(AssetDatabase.IsValidFolder(SourceRoot),
             $"P08 원본 폴더 누락: {SourceRoot}");
 

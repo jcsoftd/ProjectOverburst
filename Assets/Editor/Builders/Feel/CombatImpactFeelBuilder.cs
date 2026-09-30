@@ -9,40 +9,66 @@ public static class CombatImpactFeelBuilder
 {
     private const string Root = "Assets/ProjectOverburst/Resources/Feel";
 
-    [MenuItem("OVERBURST/Codex/Migrate/Feel/Apply Contact And Death Presentation")]
+    // 2026-10-01: 일반 재적용은 없는 것만 만든다. 이미 있는 공용 풀 프리팹과 액터별 사망 연출(밀림·높이·시간·착지 시점·Feel 목록)은
+    // 조정값의 원본이라 다시 쓰지 않는다. 치명타 카메라 배율은 옛 기본값 1.2에 머문 프로필만 1.35로 옮긴다(1회성 이관).
+    [MenuItem("OVERBURST/Codex/Migrate/Feel/Apply Contact And Death Presentation (Missing Only)")]
     public static void Apply()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Edit mode required");
-        BuildImpactPool();
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/PF_CombatImpactFeel.prefab") == null) BuildImpactPool();
+        int configured = 0, preserved = 0;
         foreach (string guid in AssetDatabase.FindAssets("t:EnemyDefinition", new[] { MonsterThemeCombatBuilder.Root }))
         {
             var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(guid));
             if (definition.ActorPrefab == null) continue;
             string path = AssetDatabase.GetAssetPath(definition.ActorPrefab);
             var root = PrefabUtility.LoadPrefabContents(path);
-            try { ConfigureActor(root.GetComponent<EnemyActor>(), definition); PrefabUtility.SaveAsPrefabAsset(root, path); }
+            try
+            {
+                if (ConfigureActor(root.GetComponent<EnemyActor>(), definition)) { PrefabUtility.SaveAsPrefabAsset(root, path); configured++; }
+                else preserved++;
+            }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
         string[] names = { "OHS_Hit01", "OHS_Hit02", "OHS_Hit03", "GRS_Hit01", "GRS_Hit02", "GRS_Hit03" };
         // 일반 타격 히트스탑은 삭제됐다. 치명타 카메라 충격 배율만 맞춘다.
+        var migrated = new List<CombatHitFeedbackProfile>();
         for (int i = 0; i < names.Length; i++)
         {
             string path = $"Assets/ProjectOverburst/03_Features/Weapons/_Shared/Melee/Feedback/{names[i]}.asset";
             var profile = AssetDatabase.LoadAssetAtPath<CombatHitFeedbackProfile>(path);
-            if (profile == null) throw new InvalidOperationException(path);
+            if (profile == null) { Debug.Log("[CombatImpactFeel] skipped missing (retired) feedback profile: " + path); continue; }
             var serialized = new SerializedObject(profile);
-            serialized.FindProperty("criticalStrengthMultiplier").floatValue = 1.35f;
+            var multiplier = serialized.FindProperty("criticalStrengthMultiplier");
+            if (!Mathf.Approximately(multiplier.floatValue, 1.2f)) continue;
+            multiplier.floatValue = 1.35f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(profile);
+            migrated.Add(profile);
         }
-        AssetDatabase.SaveAssets();
+        foreach (var profile in migrated) AssetDatabase.SaveAssetIfDirty(profile);
+        Debug.Log("[CombatImpactFeel] death presentation configured=" + configured + " preserved=" + preserved
+            + "; critical multiplier migrated=" + migrated.Count);
     }
 
-    public static void ConfigureActor(EnemyActor actor, EnemyDefinition definition)
+    // 사망 연출이 없거나 연결이 끊긴 액터만 설정하고 true를 돌려준다. 이미 연결된 액터의 조정값은 보존하고 false.
+    public static bool ConfigureActor(EnemyActor actor, EnemyDefinition definition)
     {
         var visual = actor.VisualRoot.Find("Authored model scale");
         if (visual == null || definition.MovementProfile.HitWeightProfile == null) throw new InvalidOperationException(actor.name);
-        var presentation = actor.GetComponent<EnemyDeathPresentation>() ?? actor.gameObject.AddComponent<EnemyDeathPresentation>();
-        Transform child = actor.transform.Find("Death Feel");
+        var existing = actor.GetComponent<EnemyDeathPresentation>();
+        Transform existingChild = actor.transform.Find("Death Feel");
+        var existingFeel = existingChild != null ? existingChild.GetComponent<MMF_Player>() : null;
+        if (existing != null && existingFeel != null)
+        {
+            var wiring = new SerializedObject(existing);
+            if (wiring.FindProperty("visualRoot").objectReferenceValue == visual
+                && wiring.FindProperty("feedback").objectReferenceValue == existingFeel
+                && existingFeel.FeedbacksList != null && existingFeel.FeedbacksList.Count > 0)
+                return false;
+        }
+        var presentation = existing ?? actor.gameObject.AddComponent<EnemyDeathPresentation>();
+        Transform child = existingChild;
         if (child == null) { child = new GameObject("Death Feel").transform; child.SetParent(actor.transform, false); }
         var player = child.GetComponent<MMF_Player>() ?? child.gameObject.AddComponent<MMF_Player>();
         ConfigurePlayer(player, false);
@@ -66,6 +92,7 @@ public static class CombatImpactFeelBuilder
         presentation.Configure(surface, visual, player, light ? .52f : heavy ? .10f : .27f,
             light ? .85f : heavy ? .20f : .46f, light ? .09f : heavy ? .025f : .055f,
             light ? .19f : heavy ? .26f : .23f, landing);
+        return true;
     }
 
     private static void ConfigurePlayer(MMF_Player player, bool unscaled)

@@ -22,7 +22,9 @@ public static class EliteFootstepBuilder
         new[] { .47f, .90f }
     };
 
-    [MenuItem("OVERBURST/Enemies/Elites/Build Footstep Feel")]
+    // 2026-10-01: 없는 것만 만든다. 기존 발걸음 프로필은 발 먼지 빌더가 측정한 세부 접촉(위치·달리기)을 담고 있어 다시 쓰지 않고,
+    // 표의 접촉 시점은 프로필이 없을 때의 기본값이다. 방출기는 참조 연결만 맞추고, 공용 Feel 풀은 없을 때만 만든다.
+    [MenuItem("OVERBURST/Enemies/Elites/Build Footstep Feel (Missing Only)")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -30,6 +32,8 @@ public static class EliteFootstepBuilder
         if (!AssetDatabase.IsValidFolder(ThemeRoot + "/Footfalls"))
             AssetDatabase.CreateFolder(ThemeRoot, "Footfalls");
 
+        int createdProfiles = 0, wiredPrefabs = 0;
+        var touched = new List<UnityEngine.Object>();
         for (int i = 0; i < Ids.Length; i++)
         {
             string id = Ids[i];
@@ -42,9 +46,11 @@ public static class EliteFootstepBuilder
             {
                 profile = ScriptableObject.CreateInstance<EnemyFootfallProfile>();
                 AssetDatabase.CreateAsset(profile, profilePath);
+                profile.Configure(id, definition.AnimationProfile.Walk, Contacts[i]);
+                EditorUtility.SetDirty(profile);
+                touched.Add(profile);
+                createdProfiles++;
             }
-            profile.Configure(id, definition.AnimationProfile.Walk, Contacts[i]);
-            EditorUtility.SetDirty(profile);
 
             string prefabPath = AssetDatabase.GetAssetPath(definition.ActorPrefab);
             var root = PrefabUtility.LoadPrefabContents(prefabPath);
@@ -52,17 +58,27 @@ public static class EliteFootstepBuilder
             {
                 var actor = root.GetComponent<EnemyActor>();
                 if (actor == null) throw new InvalidOperationException("Missing actor: " + id);
-                var emitter = root.GetComponent<EnemyEliteFootstepEmitter>()
-                    ?? root.AddComponent<EnemyEliteFootstepEmitter>();
-                emitter.Configure(actor, profile);
-                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                var emitter = root.GetComponent<EnemyEliteFootstepEmitter>();
+                bool addedEmitter = emitter == null;
+                if (addedEmitter) emitter = root.AddComponent<EnemyEliteFootstepEmitter>();
+                var wiring = new SerializedObject(emitter);
+                bool wired = wiring.FindProperty("actor").objectReferenceValue == actor
+                    && wiring.FindProperty("profile").objectReferenceValue == profile;
+                if (addedEmitter || !wired)
+                {
+                    emitter.Configure(actor, profile);
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    wiredPrefabs++;
+                }
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
-        BuildFeelPool();
-        AssetDatabase.SaveAssets();
-        Debug.Log("[EliteFootstepBuilder] 4 elite footfall profiles and 3 Feel slots saved.");
+        bool builtPool = AssetDatabase.LoadAssetAtPath<GameObject>(FeelRoot + "/PF_EnemyEliteFootstepFeel.prefab") == null;
+        if (builtPool) BuildFeelPool();
+        foreach (var asset in touched) AssetDatabase.SaveAssetIfDirty(asset);
+        Debug.Log("[EliteFootstepBuilder] profiles created=" + createdProfiles + " emitters wired=" + wiredPrefabs
+            + " feelPoolBuilt=" + builtPool + "; existing profiles and emitter tuning kept.");
     }
 
     private static void BuildFeelPool()

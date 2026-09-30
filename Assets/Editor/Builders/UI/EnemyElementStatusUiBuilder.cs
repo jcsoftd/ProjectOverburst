@@ -36,7 +36,7 @@ public static class EnemyElementStatusUiBuilder
         "Icon_Element_Earth.png"
     };
 
-    [MenuItem("Tools/Project VTP/UI/몬스터 원소 상태 아이콘 다시 만들기")]
+    [MenuItem("Tools/Project VTP/UI/몬스터 원소 상태 아이콘 만들기 (없는 것만)")]
     public static void RebuildFromMenu()
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
@@ -62,6 +62,7 @@ public static class EnemyElementStatusUiBuilder
 
     private static void Rebuild()
     {
+        EditorSceneSafety.RequireNoUnsavedScenes("몬스터 원소 상태 아이콘 만들기"); // 2026-10-01: PersistentScene을 Single로 연다
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         Sprite[] icons = ImportAndLoadIcons();
         ConfigureHpBarPrefab(NormalHpBarPath, icons);
@@ -109,6 +110,12 @@ public static class EnemyElementStatusUiBuilder
             if (hpBarView == null)
                 throw new InvalidOperationException("EnemyHpBarView가 없습니다: " + prefabPath);
 
+            // 2026-10-01: 이미 구성된 원소 상태 줄은 그 뒤 조정값(크기·위치)이 원본이라 지우고 다시 만들지 않는다.
+            if (root.GetComponent<ElementalStatusIconStrip>() != null && root.transform.Find("ElementalStatusStrip") != null)
+            {
+                Debug.Log("[EnemyElementStatusUiBuilder] NO_CHANGE: " + prefabPath + " already has its elemental status strip.");
+                return;
+            }
             ElementalStatusIconStrip strip = ConfigureStrip(
                 root,
                 icons,
@@ -145,6 +152,12 @@ public static class EnemyElementStatusUiBuilder
             if (hudRect == null)
                 throw new InvalidOperationException("EnemyTargetHpSlotUI의 RectTransform이 없습니다.");
 
+            // 2026-10-01: 대상 HP 칸에 이미 원소 상태 줄이 있으면 크기·위치 조정값을 유지한다(씬 저장 안 함).
+            if (slot.GetComponent<ElementalStatusIconStrip>() != null && slot.transform.Find("ElementalStatusStrip") != null)
+            {
+                Debug.Log("[EnemyElementStatusUiBuilder] NO_CHANGE: PersistentScene target HP slot already has its elemental status strip.");
+                return;
+            }
             hudRect.sizeDelta = new Vector2(hudRect.sizeDelta.x, 90f);
             ElementalStatusIconStrip strip = ConfigureStrip(
                 slot.gameObject,

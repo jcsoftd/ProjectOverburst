@@ -37,10 +37,21 @@ public static class EnemyHpBarGameApplier
     {
         if (EditorApplication.isPlaying || EditorApplication.isCompiling)
             throw new InvalidOperationException("Exit Play Mode and wait for compilation before building HP bars.");
+        RefuseRebuildOfTunedLiveBars();
         BuildLivePrefab("Normal", "Small");
         BuildLivePrefab("Normal", "Medium");
         BuildLivePrefab("Elite", "Elite");
         AssetDatabase.SaveAssets();
+    }
+
+    // 2026-10-01: 게임 HP 바(소형·중형·정예)는 적용 뒤 원소 상태 줄 등 조정값이 원본이다. 이미 있으면 컨셉에서 다시 만들지 않는다.
+    private static void RefuseRebuildOfTunedLiveBars()
+    {
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Small")) != null
+            && AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Medium")) != null
+            && AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Elite")) != null)
+            throw new InvalidOperationException("Apply Monster HP Bars To Game: live HP bars already exist and were tuned afterwards "
+                + "(elemental status strip, layout). Delete them first to rebuild from the concepts.");
     }
 
     public static void ApplyManagementSceneOnly()
@@ -210,6 +221,11 @@ public static class EnemyHpBarGameApplier
             throw new InvalidOperationException("PersistentScene has no WorldUiOverlayService.");
 
         SerializedObject serialized = new SerializedObject(service);
+        // 2026-10-01: 이미 게임 HP 바가 연결돼 있으면 미리 만들기 수(prewarm) 조정값을 되돌리지 않는다.
+        if (serialized.FindProperty("normalHealthBarPrefab").objectReferenceValue == LoadLive("Small")
+            && serialized.FindProperty("mediumHealthBarPrefab").objectReferenceValue == LoadLive("Medium")
+            && serialized.FindProperty("eliteHealthBarPrefab").objectReferenceValue == LoadLive("Elite"))
+            return;
         serialized.FindProperty("normalHealthBarPrefab").objectReferenceValue = LoadLive("Small");
         serialized.FindProperty("mediumHealthBarPrefab").objectReferenceValue = LoadLive("Medium");
         serialized.FindProperty("eliteHealthBarPrefab").objectReferenceValue = LoadLive("Elite");

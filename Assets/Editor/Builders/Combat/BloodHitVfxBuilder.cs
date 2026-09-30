@@ -34,18 +34,18 @@ public static class BloodHitVfxBuilder
             EditorUtility.SetDirty(profiles[i]);
         }
         var catalog = Get<BloodHitCatalog>("Assets/ProjectOverburst/Resources/Combat/BloodHitCatalog.asset");
-        catalog.slash = BloodHitGraphBuilder.Create("Slash");
-        catalog.stab = BloodHitGraphBuilder.Create("Stab");
-        catalog.burst = BloodHitGraphBuilder.Create("Burst");
+        if (catalog.slash == null) catalog.slash = BloodHitGraphBuilder.Create("Slash"); // 2026-10-01: 연결된 그래프 유지
+        if (catalog.stab == null) catalog.stab = BloodHitGraphBuilder.Create("Stab"); // 2026-10-01: 연결된 그래프 유지
+        if (catalog.burst == null) catalog.burst = BloodHitGraphBuilder.Create("Burst"); // 2026-10-01: 연결된 그래프 유지
         if (catalog.slash == null || catalog.stab == null || catalog.burst == null) throw new Exception("Restore URP vendor pack first.");
-        catalog.lifetime = 2.5f;
+        if (catalog.lifetime <= 0f) catalog.lifetime = 2.5f; // 2026-10-01: 조정한 수명 유지
         EditorUtility.SetDirty(catalog);
         int count = 0;
         foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/ProjectOverburst/Resources/Enemies/Themes/Actors" }))
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             int theme = Array.FindIndex(themes, x => path.Contains(x));
-            if (theme < 0) throw new Exception("Unmapped actor " + path);
+            if (theme < 0) continue; // 2026-10-01: 매핑 없는 테마(DeathHarvest 등)는 피 효과를 새로 붙이지 않고 그대로 둔다(중간 저장 뒤 예외 방지).
             string backup = Path.GetFullPath("../개인파일/코덱스산출/CombatVfx/20260923_BloodGoal/Before/" + path);
             Directory.CreateDirectory(Path.GetDirectoryName(backup));
             if (!File.Exists(backup)) { File.Copy(path, backup); File.Copy(path + ".meta", backup + ".meta"); }
@@ -53,16 +53,23 @@ public static class BloodHitVfxBuilder
             try
             {
                 if (root.GetComponent<CombatHealth>() == null) throw new Exception("Health must be on actor root " + path);
-                var target = root.GetComponent<BloodHitTarget>() ?? root.AddComponent<BloodHitTarget>();
-                var serialized = new SerializedObject(target);
-                serialized.FindProperty("profile").objectReferenceValue = profiles[theme];
-                serialized.ApplyModifiedPropertiesWithoutUndo();
-                PrefabUtility.SaveAsPrefabAsset(root, path);
+                // 2026-10-01: 이미 피 효과 프로필이 연결된 액터는 그대로 둔다(저장하지 않음).
+                var target = root.GetComponent<BloodHitTarget>();
+                var serialized = target != null ? new SerializedObject(target) : null;
+                if (serialized == null || serialized.FindProperty("profile").objectReferenceValue == null)
+                {
+                    if (target == null) { target = root.AddComponent<BloodHitTarget>(); serialized = new SerializedObject(target); }
+                    serialized.FindProperty("profile").objectReferenceValue = profiles[theme];
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
                 count++;
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
-        AssetDatabase.SaveAssets();
+        // 2026-10-01: 전체 SaveAssets 대신 이 도구의 프로필·카탈로그만 저장(프리팹은 SaveAsPrefabAsset이 저장)
+        foreach (var profile in profiles) AssetDatabase.SaveAssetIfDirty(profile);
+        AssetDatabase.SaveAssetIfDirty(catalog);
         return "Configured " + count + " theme actors; 4 palettes; 3 Low graphs.";
     }
     private static T Get<T>(string path) where T : ScriptableObject

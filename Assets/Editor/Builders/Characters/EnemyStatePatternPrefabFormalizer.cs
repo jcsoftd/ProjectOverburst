@@ -67,6 +67,7 @@ public static class EnemyStatePatternPrefabFormalizer
 
     public static void FormalizeElementalStatusAssemblyFromCommandLine()
     {
+        MonsterThemeAuthoringPolicy.RefuseRetiredContent("Formalize Elemental Status Assembly");
         List<string> failures = new List<string>();
         int savedCount = 0;
 
@@ -302,6 +303,7 @@ public static class EnemyStatePatternPrefabFormalizer
 
     private static void FormalizeAll()
     {
+        MonsterThemeAuthoringPolicy.RefuseRetiredContent("Formalize State Pattern AI Prefabs");
         List<string> failures = new List<string>();
         int savedCount = 0;
 

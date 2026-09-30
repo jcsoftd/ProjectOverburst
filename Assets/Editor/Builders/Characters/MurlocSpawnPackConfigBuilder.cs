@@ -24,6 +24,7 @@ public static class MurlocSpawnPackConfigBuilder // 멀록 pack 등록
 
     private static void RunOnce()
     {
+        MonsterThemeAuthoringPolicy.RefuseRetiredContent("Configure Murloc Spawn Packs");
         Scene scene = EditorSceneManager.OpenScene(
             HideoutScenePath,
             OpenSceneMode.Single);

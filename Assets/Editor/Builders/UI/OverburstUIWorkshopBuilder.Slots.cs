@@ -11,6 +11,8 @@ public static partial class OverburstUIWorkshopBuilder
     private static GameObject sharedSlot;
     private static void BuildSharedSlot()
     {
+        // 2026-10-01: 게임 공용 아이템 칸 프리팹은 만든 뒤 조정값(등급·효과 연결)이 원본이다. 이미 있으면 다시 만들지 않는다.
+        var existingSlot=AssetDatabase.LoadAssetAtPath<GameObject>(SharedSlotPath);if(existingSlot!=null){sharedSlot=existingSlot;return;}
         System.IO.Directory.CreateDirectory(Root+"/Slots");AssetDatabase.Refresh();
         var root=Rect("PF_OverburstItemSlot_Rpg11",null,Vector2.zero,Vector2.one*UnifiedSlotSize);
         var hit=root.gameObject.AddComponent<Image>();hit.color=Color.clear;hit.raycastTarget=true;

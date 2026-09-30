@@ -76,36 +76,37 @@ public static class DeathHarvestThemeBuilder
             "Movement","Behavior","Presets","Tables","Materials","Footfalls","Blood"})
             Folder(Root+"/"+part);
         Folder(Root+"/Materials/DeathHarvest");
+        // 2026-10-01: 기존 액터는 보존하고 없는 액터만 만든다(MonsterThemeAuthoringPolicy). 템플릿은 새 액터를 만들 때만 필요하다.
         var template=AssetDatabase.LoadAssetAtPath<GameObject>(ProtofactorEnemyPilotBuilder.PrefabPaths[0]);
         var sourceDef=AssetDatabase.LoadAssetAtPath<EnemyDefinition>(ProtofactorEnemyPilotBuilder.DefinitionPaths[0]);
-        if(template==null||sourceDef==null) throw new InvalidOperationException("Existing actor baseline is missing.");
-        var normal=Asset<EnemyGradeProfile>("Grades/Normal");
-        normal.Configure("ThemeNormal","일반",EnemyGradeType.Normal,1,1,1,1);
-        var elite=Asset<EnemyGradeProfile>("Grades/Elite");
-        elite.Configure("ThemeElite","정예",EnemyGradeType.Elite,1,1,1,1);
+        var touched=new List<Object>();
+        var normal=MonsterThemeAuthoringPolicy.Grade("Grades/Normal","ThemeNormal","일반",EnemyGradeType.Normal,touched);
+        var elite=MonsterThemeAuthoringPolicy.Grade("Grades/Elite","ThemeElite","정예",EnemyGradeType.Elite,touched);
         var variant=AssetDatabase.LoadAssetAtPath<EnemyVariantProfile>(ProtofactorEnemyPilotBuilder.DefaultVariantPath);
-        var preset=Clone(sourceDef.AiPreset,"Presets/"+ThemeId);
-        preset.name=ThemeId;
-        preset.ConfigureIdentity("Theme_"+ThemeId,"사령의 수확단",Array.Empty<GameObject>());
-        var signal=AssetDatabase.LoadAssetAtPath<Material>(Root+"/Materials/"+ThemeId+".mat");
-        if(signal==null){signal=new Material(Shader.Find("Universal Render Pipeline/Unlit"));AssetDatabase.CreateAsset(signal,Root+"/Materials/"+ThemeId+".mat");}
-        signal.SetColor("_BaseColor",Accent);EditorUtility.SetDirty(signal);
-        var defs=new List<EnemyDefinition>();
-        foreach(var spec in Specs) defs.Add(BuildOne(spec,template,sourceDef,normal,elite,variant,preset,signal));
-        var catalog=Asset<EnemyCatalog>("Catalog");
-        var retained=Enumerable.Range(0,catalog.Count).Select(catalog.GetDefinition)
-            .Where(d=>d!=null&&!d.EnemyId.StartsWith(ThemeId+"_",StringComparison.Ordinal));
-        catalog.Configure(retained.Concat(defs).ToArray());EditorUtility.SetDirty(catalog);
-        var table=Asset<EnemyThemeTable>("Tables/"+ThemeId);
+        var preset=MonsterThemeAuthoringPolicy.Preset("Presets/"+ThemeId,sourceDef,"Theme_"+ThemeId,"사령의 수확단",touched);
+        var signal=MonsterThemeAuthoringPolicy.SignalMaterial("Materials/"+ThemeId,Accent,touched);
+        var defs=new List<EnemyDefinition>();var created=new List<EnemyDefinition>();
+        foreach(var spec in Specs)
+        {
+            string id=ThemeId+"_"+spec.key;
+            var existing=MonsterThemeAuthoringPolicy.FindExisting(id);
+            if(existing!=null){defs.Add(existing);continue;}
+            MonsterThemeAuthoringPolicy.RequireTemplate(template,sourceDef,id);
+            var built=BuildOne(spec,template,sourceDef,normal,elite,variant,preset,signal);
+            defs.Add(built);created.Add(built);
+        }
+        var catalog=MonsterThemeAuthoringPolicy.LoadOrCreate<EnemyCatalog>("Catalog",out _);
+        MonsterThemeAuthoringPolicy.MergeCatalog(catalog,defs,touched);
+        var table=MonsterThemeAuthoringPolicy.LoadOrCreate<EnemyThemeTable>("Tables/"+ThemeId,out bool tableCreated);
+        // spec.weight는 새로 붙는 항목의 기본 가중치다. 기존 항목의 등급·가중치는 테이블이 원본이다.
         var entries=Specs.Select((s,i)=>new EnemyThemeTable.Entry{definition=defs[i],tier=s.tier,weight=s.weight}).ToArray();
-        table.Configure(ThemeId,"사령의 수확단",catalog,Accent,entries);
+        MonsterThemeAuthoringPolicy.MergeTable(table,tableCreated,ThemeId,"사령의 수확단",catalog,Accent,entries,touched);
         if(!table.Validate(out string error)) throw new InvalidOperationException(error);
-        preset.ConfigureIdentity("Theme_"+ThemeId,"사령의 수확단",
-            entries.Where(e=>e.tier!=EnemyThemeTier.Elite).Select(e=>e.definition.ActorPrefab.gameObject).ToArray());
-        EditorUtility.SetDirty(table);EditorUtility.SetDirty(catalog);EditorUtility.SetDirty(preset);
-        EditorUtility.SetDirty(normal);EditorUtility.SetDirty(elite);
-        AssetDatabase.SaveAssets();
-        Debug.Log("[DeathHarvest] Authored 8 actors, 1 table, and "+defs.Sum(d=>d.AbilitySet.Count)+" attacks.");
+        MonsterThemeAuthoringPolicy.AppendPresetRoster(preset,
+            entries.Where(e=>e.tier!=EnemyThemeTier.Elite && created.Contains(e.definition)).Select(e=>e.definition.ActorPrefab.gameObject),touched);
+        MonsterThemeAuthoringPolicy.Save(touched);
+        if(created.Count>0)AssetDatabase.SaveAssets();
+        Debug.Log("[DeathHarvest] actors created="+created.Count+" preserved="+(defs.Count-created.Count)+"; existing tuning untouched.");
     }
 
     private static EnemyDefinition BuildOne(Spec spec,GameObject template,EnemyDefinition sourceDef,

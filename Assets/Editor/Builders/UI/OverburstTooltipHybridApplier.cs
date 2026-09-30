@@ -20,6 +20,9 @@ public static class OverburstTooltipHybridApplier
     {
         if (Application.isPlaying) throw new InvalidOperationException("Exit Play Mode before editing the tooltip prefab.");
         if (!AssetDatabase.LoadAssetAtPath<GameObject>(path)) throw new FileNotFoundException("Tooltip prefab", path);
+        // 2026-10-01: 승인 E+C 외형이 이미 적용된 툴팁은 그 뒤 조정(장착 비교 등)이 원본이라 다시 쓰지 않는다.
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(path).transform.Find("Approved Outer Frame") != null)
+            return "NO_CHANGE " + path + " (approved E+C look already applied; later tooltip edits are kept)";
         Sprite glowSprite = EnsureGlowSprite();
         GameObject prefab = PrefabUtility.LoadPrefabContents(path);
         try

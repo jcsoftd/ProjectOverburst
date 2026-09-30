@@ -73,35 +73,23 @@ public static class ElementalReactionVfxSelectedContentUtility
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             return;
 
+        // 2026-10-01: 재로드 때 자동으로 하는 일은 카탈로그와 wrapper의 연결(구조)뿐이다. wrapper 내용 교체·풀 용량·옛 슬롯 비우기는
+        // 사람이 고른 VFX나 조정한 용량을 되돌릴 수 있어 자동으로 하지 않고 경고만 남긴다. 적용은 아래 메뉴로 한다.
         if (ElementalReactionVfxAuthoringUtility.NeedsCatalogSynchronization())
-        {
-            RunFromCommandLine();
-            return;
-        }
+            ElementalReactionVfxAuthoringUtility.SynchronizeCatalogFromCommandLine();
 
-        if (NeedsClear(ObsoleteFractureLoopPath))
-        {
-            RunFromCommandLine();
-            return;
-        }
-        if (NeedsPoolCapacityUpdate(PlasmaLoopPath)
-            || NeedsPoolCapacityUpdate(ColdChargeLoopPath))
-        {
-            RunFromCommandLine();
-            return;
-        }
-
+        var pending = new System.Collections.Generic.List<string>();
+        if (NeedsClear(ObsoleteFractureLoopPath)) pending.Add("clear " + ObsoleteFractureLoopPath);
+        if (NeedsPoolCapacityUpdate(PlasmaLoopPath)) pending.Add("pool " + PlasmaLoopPath);
+        if (NeedsPoolCapacityUpdate(ColdChargeLoopPath)) pending.Add("pool " + ColdChargeLoopPath);
         for (int i = 0; i < Selections.Length; i++)
-        {
-            if (NeedsApply(Selections[i]))
-            {
-                RunFromCommandLine();
-                return;
-            }
-        }
+            if (NeedsApply(Selections[i])) pending.Add("content " + Selections[i].Id);
+        if (pending.Count > 0)
+            Debug.LogWarning("[ElementalReactionVfxSelectedContent] Wrapper content differs from the confirmed selection; not changed automatically. "
+                + "Run 'Apply Selected Elemental Reaction VFX (Replace Mismatched Content)' to apply: " + string.Join(", ", pending));
     }
 
-    [MenuItem("OVERBURST/Codex/Setup/Combat/Apply Selected Elemental Reaction VFX")]
+    [MenuItem("OVERBURST/Codex/Setup/Combat/Apply Selected Elemental Reaction VFX (Replace Mismatched Content)")]
     public static void RunFromMenu()
     {
         RunFromCommandLine();

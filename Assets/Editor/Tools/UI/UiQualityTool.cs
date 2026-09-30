@@ -30,6 +30,7 @@ public static class UiQualityTool // UI 품질 유틸
         if (!ConfirmPersistentSceneQualityFix("Validate And Fix Canvas Scale"))
             return;
 
+        EditorSceneSafety.RequireNoUnsavedScenes("UI Quality Tool"); // 2026-10-01: 다른 작업의 저장 안 된 씬을 닫지 않는다.
         Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
         ValidateAndFixCanvasScaleInternal(scene);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -43,6 +44,7 @@ public static class UiQualityTool // UI 품질 유틸
         if (!ConfirmPersistentSceneQualityFix("Create Minimap Zoom Size Text"))
             return;
 
+        EditorSceneSafety.RequireNoUnsavedScenes("UI Quality Tool"); // 2026-10-01: 다른 작업의 저장 안 된 씬을 닫지 않는다.
         Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
         CreateMinimapZoomSizeTextInternal(scene);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -56,6 +58,7 @@ public static class UiQualityTool // UI 품질 유틸
         if (!ConfirmPersistentSceneQualityFix("Fix Sort Dropdown Hierarchy"))
             return;
 
+        EditorSceneSafety.RequireNoUnsavedScenes("UI Quality Tool"); // 2026-10-01: 다른 작업의 저장 안 된 씬을 닫지 않는다.
         Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
         FixSortDropdownHierarchyInternal(scene);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -66,6 +69,7 @@ public static class UiQualityTool // UI 품질 유틸
 
     private static void ApplyUiQualityFixFirstPassInternal()
     {
+        EditorSceneSafety.RequireNoUnsavedScenes("UI Quality Tool"); // 2026-10-01: 다른 작업의 저장 안 된 씬을 닫지 않는다.
         Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single); // 씬 열기
         ValidateAndFixCanvasScaleInternal(scene);
         CreateMinimapZoomSizeTextInternal(scene);

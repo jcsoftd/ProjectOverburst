@@ -29,8 +29,8 @@ public static class MonsterMixedSquadBuilder
                 if (!hasShot) throw new InvalidOperationException("Missing ranged ability: " + definition.EnemyId);
                 rangedCount++;
             }
-            definition.SetTacticalProfile(profile);
-            EditorUtility.SetDirty(definition); AssetDatabase.SaveAssetIfDirty(definition); count++;
+            if (definition.TacticalProfile == null) { definition.SetTacticalProfile(profile); EditorUtility.SetDirty(definition); AssetDatabase.SaveAssetIfDirty(definition); } // 2026-10-01: 이미 정한 전술 프로필은 유지
+            count++;
         }
         if (count != 14 || rangedCount != 3) throw new InvalidOperationException("Unexpected roster: " + count + "/" + rangedCount);
         Debug.Log("[MixedSquad] PASS profiles=3 definitions=14 rangedSpecies=3; prefabs/abilities preserved");

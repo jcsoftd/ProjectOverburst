@@ -23,6 +23,9 @@ public static class FlaskModelBuilder
     public static void Build()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Build 3D Flask Models requires Edit Mode.");
+        // 2026-10-01 폐기: 물약 픽업은 조각 FBX 모델(Assemble Sculpted Flasks)을 쓴다. 이 도구는 ModelRoot를 지우고 옛 병·충돌체·재질을 다시 만든다.
+        EditorSceneSafety.RefuseRetired("Build 3D Flask Models", "Flask pickups use the sculpted FBX models assembled by Assemble Sculpted Flasks (Missing Only); "
+            + "this tool deletes ModelRoot and rebuilds the old lathe bottles, collider size and materials.");
         Directory.CreateDirectory(MeshFolder);
         Directory.CreateDirectory(MaterialFolder);
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);

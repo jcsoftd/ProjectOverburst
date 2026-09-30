@@ -19,6 +19,7 @@ public static class OverburstMinimapMigration
     public static string Apply()
     {
         if (Application.isPlaying) throw new InvalidOperationException("Stop Play Mode before minimap migration.");
+        EditorSceneSafety.RequireNoUnsavedScenes("Migrate Circular Minimap");
         Scene scene = SceneManager.GetSceneByPath(ScenePath);
         if (!scene.IsValid() || !scene.isLoaded) scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
         WorldMinimapController controller = null;

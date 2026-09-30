@@ -29,6 +29,14 @@ public static class ChainElectricityLiteVfxSetupUtility
 
     public static void RunSetupFromCommandLine()
     {
+        // 2026-10-01: 이미 생성된 연쇄감전 링크 선은 그 뒤 조정(두께·색)이 원본이라 재질과 선을 다시 만들지 않는다.
+        GameObject existingWrapper = AssetDatabase.LoadAssetAtPath<GameObject>(WrapperPath);
+        Transform existingContent = existingWrapper != null ? existingWrapper.transform.Find(ContentRootName) : null;
+        if (existingContent != null && existingContent.Find(GeneratedRootName) != null)
+        {
+            Debug.Log("[ChainElectricityLiteVfxSetup] NO_CHANGE: generated link lines already exist; material and lines are kept.");
+            return;
+        }
         Material material = CreateOrUpdateMaterial();
         GameObject wrapperRoot = PrefabUtility.LoadPrefabContents(WrapperPath);
         try

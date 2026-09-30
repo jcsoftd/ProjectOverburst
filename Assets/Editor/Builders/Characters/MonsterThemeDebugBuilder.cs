@@ -12,6 +12,7 @@ public static class MonsterThemeDebugBuilder
     public static void Connect()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit Play first.");
+        EditorSceneSafety.RequireNoUnsavedScenes("Connect Debug Buttons");
         var current=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         if(current.isDirty)throw new InvalidOperationException("Save current scene first.");
         var scene=EditorSceneManager.OpenScene("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
@@ -21,6 +22,8 @@ public static class MonsterThemeDebugBuilder
         var previous=toggle.transform.parent.Find("Monster Theme Controls") as RectTransform;
         var ids=new[]{"SpiderBrood","VenomBrood","PrimalHunt","CavernMutants","DeathHarvest"};
         float panelHeight=346+(ids.Length-3)*49;
+        // 2026-10-01: 이미 있는 테마 시험 패널은 지우고 다시 만들지 않는다(배치 조정값 보존, 디버그 창 통합 90C가 대체 중).
+        if(previous!=null)throw new InvalidOperationException("Connect Debug Buttons: 'Monster Theme Controls' already exists; its layout is kept (the debug window integration replaces it). Delete the panel first to rebuild.");
         var root=previous!=null?previous:Rect("Monster Theme Controls",toggle.transform.parent,168,235,310,panelHeight);
         for(int child=root.childCount-1;child>=0;child--)UnityEngine.Object.DestroyImmediate(root.GetChild(child).gameObject);
         root.sizeDelta=new Vector2(310,panelHeight);

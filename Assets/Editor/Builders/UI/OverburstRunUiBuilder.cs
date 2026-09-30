@@ -19,6 +19,9 @@ public static class OverburstRunUiBuilder
     public static void Build()
     {
         if (Application.isPlaying) throw new InvalidOperationException("Run UI authoring requires Edit Mode.");
+        // 2026-10-01: 런 UI 프리팹은 만든 뒤 효과음 연결(24b4ecc) 등 조정값이 원본이다. 이미 있으면 다시 만들지 않는다.
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/PF_OverburstRunUI.prefab") != null)
+            throw new InvalidOperationException("Build GOAL 4 Run UI: run UI prefabs already exist and were tuned afterwards (layout, SFX links). Delete them first to rebuild.");
         var source = Path.GetFullPath(Path.Combine(Application.dataPath,
             "../../개인파일/코덱스산출/Design/20260925_RunCardVisuals"));
         var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(

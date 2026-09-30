@@ -53,36 +53,31 @@ public static class PrimalHuntSmallRosterBuilder
             var signal = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/PrimalHunt.mat");
             var table = AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(Root + "/Tables/PrimalHunt.asset");
             var catalog = AssetDatabase.LoadAssetAtPath<EnemyCatalog>(Root + "/Catalog.asset");
-            if (baseline == null || template == null || normal == null || variant == null || preset == null
+            if (baseline == null || normal == null || variant == null || preset == null
                 || signal == null || table == null || catalog == null) throw new InvalidOperationException("Primal baseline missing");
-            var added = new List<EnemyDefinition>();
+            // 2026-10-01: 이미 있는 종은 보존한다. 새 종만 만들고, 기존 테이블 가중치(Caniathrox 등)와 프리셋 로스터는 그대로 둔다.
+            var added = new List<EnemyDefinition>(); int preserved = 0;
             foreach (var spec in Specs)
+            {
+                string id = Theme + "_" + spec.Name;
+                if (MonsterThemeAuthoringPolicy.FindExisting(id) != null) { preserved++; continue; }
+                MonsterThemeAuthoringPolicy.RequireTemplate(template, baseline, id);
                 added.Add(BuildSpecies(gallery.actors[spec.Number - 1], spec, baseline, template, normal, variant, preset, signal));
-
-            var definitions = Enumerable.Range(0, catalog.Count).Select(catalog.GetDefinition)
-                .Where(d => d != null && d.EnemyId != "PrimalHunt_Pistriptere" && d.EnemyId != "PrimalHunt_Lacercharias").ToList();
-            foreach (var definition in added)
-                if (!definitions.Any(d => d.EnemyId == definition.EnemyId)) definitions.Add(definition);
-            catalog.Configure(definitions.ToArray()); EditorUtility.SetDirty(catalog);
-            var roster = table.Entries.Where(e => e.definition != null && !added.Any(d => d.EnemyId == e.definition.EnemyId)
-                && e.definition.EnemyId != "PrimalHunt_Pistriptere" && e.definition.EnemyId != "PrimalHunt_Lacercharias").ToList();
-            for (int i = 0; i < roster.Count; i++)
-                if (roster[i].definition.EnemyId == "PrimalHunt_Caniathrox")
-                { var entry = roster[i]; entry.weight = 30f; roster[i] = entry; }
-            foreach (var definition in added)
-                roster.Add(new EnemyThemeTable.Entry
-                { definition = definition, tier = EnemyThemeTier.Small, weight = 10f });
-            table.Configure(table.ThemeId, table.DisplayName, catalog, table.Accent, roster.ToArray());
-            preset.ConfigureIdentity("Theme_PrimalHunt", table.DisplayName,
-                roster.Where(e => e.tier != EnemyThemeTier.Elite).Select(e => e.definition.ActorPrefab.gameObject).ToArray());
-            EditorUtility.SetDirty(table); EditorUtility.SetDirty(preset); AssetDatabase.SaveAssets();
-            foreach (var definition in added) MonsterThemeLocomotionBuilder.ApplySpecies(definition.EnemyId);
+            }
+            if (added.Count == 0)
+            {
+                Debug.Log("[PrimalHuntSmallRoster] created=0 preserved=" + preserved + "; catalog, table weights and preset unchanged.");
+                return;
+            }
+            var touched = new List<Object>();
+            MonsterThemeAuthoringPolicy.MergeCatalog(catalog, added, touched);
+            MonsterThemeAuthoringPolicy.MergeTable(table, false, table.ThemeId, table.DisplayName, catalog, table.Accent,
+                added.Select(d => new EnemyThemeTable.Entry { definition = d, tier = EnemyThemeTier.Small, weight = 10f }), touched);
+            MonsterThemeAuthoringPolicy.AppendPresetRoster(preset, added.Select(d => d.ActorPrefab.gameObject), touched);
+            MonsterThemeAuthoringPolicy.Save(touched); AssetDatabase.SaveAssets();
+            MonsterThemeLocomotionBuilder.ApplyCreated(added.Select(d => d.EnemyId).ToArray());
             if (!table.Validate(out string error)) throw new InvalidOperationException("Primal table: " + error);
-            var counts = table.BuildRoster(40, 9, 1, 731).GroupBy(d => d.EnemyId).ToDictionary(g => g.Key, g => g.Count());
-            if (counts["PrimalHunt_Caniathrox"] != 30 || counts["PrimalHunt_CrustaspikanLarvae"] != 10)
-                throw new InvalidOperationException("Unexpected 50-actor mix");
-            AssetDatabase.SaveAssets();
-            Debug.Log("[PrimalHuntSmallRoster] PASS Caniathrox=30 CrustaspikanLarvae=10 medium=9 elite=1");
+            Debug.Log("[PrimalHuntSmallRoster] created=" + added.Count + " preserved=" + preserved + "; existing weights kept.");
         }
         finally { EditorSceneManager.CloseScene(scene, true); }
     }

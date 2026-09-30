@@ -73,9 +73,13 @@ public static class PlayerAmbientLightAuthoringBuilder
             }
 
             Light light = lightObject.GetComponent<Light>();
-            if (light == null)
+            bool created = light == null;
+            if (created)
                 light = lightObject.AddComponent<Light>();
 
+            // 2026-10-01: 이미 있는 조명은 그 뒤 조정값(밝기·범위·색·위치)이 원본이라 기본 정책을 다시 쓰지 않는다.
+            if (!created)
+                return "[PlayerAmbientLightAuthoring] NO_CHANGE: existing player ambient light is kept.";
             ApplyPolicy(light);
             PrefabUtility.SaveAsPrefabAsset(
                 root,

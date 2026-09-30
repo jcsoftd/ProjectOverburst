@@ -18,6 +18,10 @@ public static class FlaskEquipmentPanelBuilder
     public static void Build()
     {
         if (EditorApplication.isPlaying) throw new System.InvalidOperationException("Edit mode required");
+        // 2026-10-01 폐기: 장비 칸·물약 칸은 Install Approved UI In Game이 장비 창으로 옮겼다. 옛 InventoryPanel/TopPanel 패널을 다시 만들지 않는다.
+        EditorSceneSafety.RefuseRetired("Build Flask Equipment Panel", "Install Approved UI In Game moved the flask equipment panel into the equipment window; "
+            + "the old InventoryPanel/TopPanel/EquipmentSlotsPanel no longer exists, so this tool would add an obsolete panel back.");
+        EditorSceneSafety.RequireNoUnsavedScenes("Build Flask Equipment Panel");
         font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
         if (font == null) throw new System.InvalidOperationException("Build flask font first");
         Scene scene = SceneManager.GetSceneByPath(ScenePath);
@@ -29,7 +33,12 @@ public static class FlaskEquipmentPanelBuilder
                     top = rect;
         if (top == null) throw new System.InvalidOperationException("Inventory TopPanel missing");
         Transform previous = top.Find("EquipmentSlotsPanel");
-        if (previous != null) Object.DestroyImmediate(previous.gameObject);
+        // 2026-10-01: 이미 있는 장비 칸 패널은 배치 조정값이라 지우고 다시 만들지 않는다. 다시 만들려면 패널을 직접 지운 뒤 실행한다.
+        if (previous != null)
+        {
+            Debug.Log("[FlaskEquipmentPanelBuilder] NO_CHANGE: EquipmentSlotsPanel already exists; its layout is kept.");
+            return;
+        }
 
         RectTransform panel = Rect("EquipmentSlotsPanel", top, Vector2.zero, new Vector2(600f, 370f));
         AddText("EquipmentHeading", panel, "방어구 · 장신구", new Vector2(40f, 118f),

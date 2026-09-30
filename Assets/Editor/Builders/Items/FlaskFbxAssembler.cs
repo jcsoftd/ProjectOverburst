@@ -9,7 +9,8 @@ public static class FlaskFbxAssembler
     private const string Models = Root + "/Art/Models/Flasks";
     private const string Prefabs = Root + "/Prefabs/Flasks";
 
-    [MenuItem("JC Tool/Items/Assemble Sculpted Flasks")]
+    // 2026-10-01: 없는 것만 만든다. 이미 조립된 플라스크(ModelRoot/Sculpted_*)는 월드 크기·콜라이더·지면 간격·재질 조정을 보존한다.
+    [MenuItem("JC Tool/Items/Assemble Sculpted Flasks (Missing Only)")]
     public static void Build()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Edit mode required");
@@ -21,15 +22,24 @@ public static class FlaskFbxAssembler
         Material gold = GetMaterial("Metal_AgedBrass", new Color(.59f,.34f,.11f), .78f,.68f,Color.black,shader);
         Material ivory = GetMaterial("Bone_Ivory", new Color(.80f,.74f,.58f), .08f,.44f,Color.black,shader);
 
-        int count = 0;
+        int count = 0, skipped = 0;
         foreach (FlaskKind kind in Enum.GetValues(typeof(FlaskKind)))
         {
             string fbxPath = Models + "/FBX/SM_Flask_" + kind + ".fbx";
             string prefabPath = Prefabs + "/PF_Flask_" + kind + ".prefab";
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existing == null)
+                throw new InvalidOperationException("Missing pickup prefab: " + prefabPath);
+            // 이미 조립된 플라스크(ModelRoot 아래 모델이 있음)는 모델 배율·콜라이더·지면 간격·재질 조정을 보존한다.
+            // 예전 이름(Sculpted_*)이 아니라 중첩 FBX 인스턴스로 저장된 것도 조립된 것으로 본다.
+            Transform assembled = existing.transform.Find("ModelRoot");
+            if (assembled != null && assembled.childCount > 0)
+            {
+                skipped++;
+                continue;
+            }
             GameObject sculpt = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
             if (sculpt == null) throw new InvalidOperationException("Missing sculpted mesh: " + fbxPath);
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null)
-                throw new InvalidOperationException("Missing pickup prefab: " + prefabPath);
 
             Color tint = Tint(kind);
             Color shell = Color.Lerp(tint, Color.white, .45f);
@@ -86,8 +96,8 @@ public static class FlaskFbxAssembler
             }
             finally { PrefabUtility.UnloadPrefabContents(prefab); }
         }
-        AssetDatabase.SaveAssets();
-        Debug.Log("SCULPTED_FLASK_PASS: " + count + " small, detailed, material-assigned 3D flasks");
+        Debug.Log("SCULPTED_FLASK_PASS: assembled=" + count + " kept=" + skipped
+            + " (already assembled flasks keep model scale, collider, clearance and materials)");
     }
 
     private static Material GetMaterial(string name, Color baseColor, float metallic, float smoothness,
@@ -95,11 +105,11 @@ public static class FlaskFbxAssembler
     {
         string path = Models + "/Materials/MAT_Flask_" + name + ".mat";
         Material result = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (result == null)
-        {
-            result = new Material(shader) {name = "MAT_Flask_" + name};
-            AssetDatabase.CreateAsset(result,path);
-        }
+        // 이미 있는 재질의 색·금속감·투명 설정은 조정값이라 보존한다. 처음 만들 때만 기본값을 칠한다.
+        if (result != null)
+            return result;
+        result = new Material(shader) {name = "MAT_Flask_" + name};
+        AssetDatabase.CreateAsset(result,path);
         result.shader=shader;
         result.SetColor("_BaseColor",baseColor);
         result.SetFloat("_Metallic",metallic);
@@ -117,6 +127,7 @@ public static class FlaskFbxAssembler
         if (transparent) result.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         else result.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
         EditorUtility.SetDirty(result);
+        AssetDatabase.SaveAssetIfDirty(result);
         return result;
     }
 

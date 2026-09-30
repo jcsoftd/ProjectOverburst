@@ -17,6 +17,9 @@ public static class DamageNumberFeelDebugBuilder
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new InvalidOperationException("Stop Play before authoring the debug prefab.");
+        // 2026-10-01: 옛 데미지 숫자 디버그 UI는 디버그 창 통합(90C)으로 옮겨 가는 중이다. 이미 있으면 다시 만들지 않는다.
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null)
+            throw new InvalidOperationException("Build Damage Number Feel Debug UI: the prefab already exists (the debug window integration is replacing it). Delete it first to rebuild.");
         if (!AssetDatabase.IsValidFolder(Folder))
             AssetDatabase.CreateFolder("Assets/ProjectOverburst/Resources/UI", "Debug");
         TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);

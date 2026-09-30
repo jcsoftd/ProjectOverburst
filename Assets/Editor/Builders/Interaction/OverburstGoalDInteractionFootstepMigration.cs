@@ -20,6 +20,11 @@ public static class OverburstGoalDInteractionFootstepMigration
     {
         string prefabFile = ResolveProjectPath(PrefabPath);
         Require(File.Exists(prefabFile), "플레이어 프리팹이 없다: " + PrefabPath);
+        // 2026-10-01: 1회 이관이 끝난 플레이어(상호작용·발소리 구성 있음)는 이후 조정한 표면 음원·발소리·오디오 값을 되돌리지 않는다.
+        GameObject migrated = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        if (migrated != null && migrated.GetComponentInChildren<FootstepEmitter>(true) != null
+            && migrated.GetComponentInChildren<InteractionDirector>(true) != null)
+            return "[OverburstGoalDInteractionFootstepMigration] NO_CHANGE (already migrated; surface profiles, resolver rules, footstep emitter and audio source values are kept)";
         byte[] prefabBefore = File.ReadAllBytes(prefabFile);
         string beforeHash = Sha256(prefabBefore);
         List<string> createdAssets = new List<string>();

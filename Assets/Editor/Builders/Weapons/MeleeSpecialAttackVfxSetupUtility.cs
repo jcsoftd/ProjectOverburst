@@ -49,6 +49,10 @@ public static class MeleeSpecialAttackVfxSetupUtility
 
     public static void RunFromCommandLine()
     {
+        // 2026-10-01: 예전에는 공급사 원본에서 찌르기·내려찍기 프리팹과 정의를 다시 만들고(부활) 전체 저장한 뒤,
+        // 없는 한손검 콤보에서 예외로 멈췄다. 원형 베기 큐는 기본값에 없어 지워질 수 있었다. 이제 쓰기 전에 멈춘다.
+        throw new InvalidOperationException("Setup Melee Special Attack VFX: its targets (unified melee slash prefabs/definitions, one-hand sword combo, thrust/ground-slam VFX) were cleaned up and the greatsword now uses its own DF_GRS cue definitions. It no longer recreates or rewires them, so current greatsword VFX cues stay as tuned.");
+#pragma warning disable CS0162
         EnsureFolder(ThrustFolder);
         EnsureFolder(GroundSlamFolder);
 
@@ -105,6 +109,7 @@ public static class MeleeSpecialAttackVfxSetupUtility
         AssetDatabase.Refresh();
         Validate();
         Debug.Log("[MeleeSpecialAttackVfxSetup] Circular-slash and ground-slam VFX are ready.");
+#pragma warning restore CS0162
     }
 
     [MenuItem("OVERBURST/Codex/Setup/Combat/Separate Ground Slam Slash And Impact")]

@@ -49,13 +49,15 @@ public static class MonsterCombatHurtVolumeBuilder
         new Spec("CavernMutants_Ursacetus", 1.85f, -.28f, 1.68f, 3.55f)
     };
 
-    [MenuItem("OVERBURST/Enemies/Themes/Apply Combat Hurt Volumes")]
+    // 2026-10-01: 이미 저장된 전투 피격 볼륨은 조정값으로 보존한다. 표의 볼륨은 아직 볼륨이 없는 액터의 기본값이다.
+    [MenuItem("OVERBURST/Enemies/Themes/Apply Combat Hurt Volumes (Missing Only)")]
     public static void Apply()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new InvalidOperationException("Exit Play Mode before changing prefabs.");
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        int applied = 0, preserved = 0;
         foreach (Spec spec in Specs)
         {
             string path = $"{ActorFolder}/PF_{spec.Id}.prefab";
@@ -72,17 +74,18 @@ public static class MonsterCombatHurtVolumeBuilder
                 if (target == null || body == null)
                     throw new InvalidOperationException("Body or target missing: " + path);
 
+                if (target.HasCustomHurtVolume) { preserved++; continue; }
                 target.RefreshVolumeFromCollider(body);
                 if (spec.Radius < target.CurrentVolume.Radius || spec.Height < target.CurrentVolume.HalfHeight * 2f * .45f)
                     throw new InvalidOperationException("Hurt volume smaller than body: " + path);
                 target.ConfigureHurtVolume(spec.Center, spec.Radius, spec.Height);
                 EditorUtility.SetDirty(target);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
+                applied++;
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
-        AssetDatabase.SaveAssets();
-        Debug.Log($"[MonsterCombatHurtVolumeBuilder] Saved {seen.Count} authored hurt volumes; body colliders and crowd profiles unchanged.");
+        Debug.Log($"[MonsterCombatHurtVolumeBuilder] applied={applied} preserved={preserved}; body colliders and crowd profiles unchanged.");
     }
 
     [MenuItem("OVERBURST/Enemies/Themes/Validate Combat Hurt Volumes")]
