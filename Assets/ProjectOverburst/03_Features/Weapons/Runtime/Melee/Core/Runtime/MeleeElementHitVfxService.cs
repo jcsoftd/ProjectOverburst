@@ -7,7 +7,7 @@ public static class MeleeElementHitVfxService
     private static MeleeElementHitVfxCatalog catalog;
     private static bool loadAttempted;
     private static readonly ProfilerMarker PlayMarker = new ProfilerMarker("Overburst.ElementHit.Play");
-    public const float UniformHitScale = .65f; // 소형(몸 반경 약 0.5m) 기준 크기
+    public const float UniformHitScale = MeleeElementHitVfxCatalog.SmallTierHitScale; // 크기값 없이 부를 때(소형 기준) 크기
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
@@ -43,18 +43,21 @@ public static class MeleeElementHitVfxService
             && controller.HasPlayableContent(element);
     }
 
+    // 맞은 몬스터 크기를 모르는 곳(연쇄번개 튐·빛 3연타·몬스터 번개탄)은 소형 기준 0.65배로 고정한다.
     public static bool TryPlay(WeaponElement element, Vector3 hitPoint)
     {
-        return TryPlay(element, hitPoint, 1f);
+        using (PlayMarker.Auto())
+            return Play(element, hitPoint, -1f);
     }
 
+    // sizeMultiplier = CombatTargetVfxPlacement.ResolveContact의 몸 크기 배율(0.55~1.5).
     public static bool TryPlay(WeaponElement element, Vector3 hitPoint, float sizeMultiplier)
     {
         using (PlayMarker.Auto())
-            return Play(element, hitPoint, sizeMultiplier);
+            return Play(element, hitPoint, Mathf.Max(.01f, sizeMultiplier));
     }
 
-    private static bool Play(WeaponElement element, Vector3 hitPoint, float sizeMultiplier)
+    private static bool Play(WeaponElement element, Vector3 hitPoint, float bodySizeMultiplier)
     {
         if (!TryResolve(element, out GameObject prefab))
             return false;
@@ -66,7 +69,8 @@ public static class MeleeElementHitVfxService
 
         MeleeElementPoolMaintenance.Touch(prefab);
         float playbackSpeed = catalog.ResolvePlaybackSpeed(element);
-        float hitScale = UniformHitScale * catalog.ResolveHitScale(element);
+        float tierScale = bodySizeMultiplier > 0f ? catalog.ResolveTierScale(bodySizeMultiplier) : UniformHitScale;
+        float hitScale = tierScale * catalog.ResolveHitScale(element);
         GameObject instance = TransientVfxPool.Spawn(
             prefab,
             hitPoint,
@@ -83,9 +87,9 @@ public static class MeleeElementHitVfxService
 
                 controller.SetElement(element); // 활성 전 원소 주입
                 controller.SetPlaybackSpeed(playbackSpeed);
-                // 2026-09-30: 원소 타격 VFX는 몬스터 크기와 상관없이 소형 기준 크기로 통일한다.
-                // (몸 반경 0.5m 소형의 √(0.5/1.2)≈0.65배. 혈흔은 BloodHitVfxService가 몸 크기대로 따로 키운다.)
-                // 2026-10-01: 원소끼리 크기를 맞추려 카탈로그의 원소별 배율(불 1.1·빛 0.85)을 곱한다.
+                // 2026-10-01: 몸 크기 비례로 되돌리되 차이는 카탈로그 체급 차이 강도(0.6)만큼만 남긴다
+                // (소형 0.63·중형 약 0.8~0.9·대형 약 1.0배). 혈흔은 BloodHitVfxService가 몸 크기대로 따로 키운다.
+                // 원소끼리 크기를 맞추려 카탈로그의 원소별 배율(불 1.1·빛 0.8)을 곱한다.
                 spawned.transform.localScale = prefab.transform.localScale * hitScale;
             },
             useUnscaledTime: true);

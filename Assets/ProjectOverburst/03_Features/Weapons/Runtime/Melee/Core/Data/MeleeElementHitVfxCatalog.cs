@@ -14,6 +14,8 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
     }
 
     public const string ResourcePath = "Combat/VFX/MeleeElementHitVfxCatalog";
+    public const float SmallTierHitScale = .65f; // 소형(몸 반경 약 0.5m) 기준 크기
+    private const float SmallTierBodySize = .645f; // 몸 반경 0.5m의 옛 배율 √(0.5/1.2)
 
     [InspectorName("공용 원소 적중 프리팹")]
     public GameObject sharedHitPrefab;
@@ -31,7 +33,7 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
     [Min(0.01f)] public float iceHitScale = 1f;
     [Min(0.01f)] public float electricHitScale = 1f;
     [Min(0.01f)] public float darkHitScale = 1f;
-    [Min(0.01f)] public float lightHitScale = .85f;
+    [Min(0.01f)] public float lightHitScale = .8f;
     [Header("원소별 재생속도(배)")]
     [Tooltip("파티클 재생속도 배율. 불은 약 0.45초 보이던 것을 약 0.3초로 줄인다.")]
     [Range(0.1f, 4f)] public float firePlaybackSpeed = 1.5f;
@@ -39,6 +41,9 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
     [Range(0.1f, 4f)] public float electricPlaybackSpeed = 1f;
     [Range(0.1f, 4f)] public float darkPlaybackSpeed = 1f;
     [Range(0.1f, 4f)] public float lightPlaybackSpeed = 1f;
+    [Header("몬스터 체급별 크기")]
+    [Tooltip("몸 크기에 따른 크기 차이를 얼마나 남길지. 0 = 모두 소형 크기(0.65배), 1 = 옛 몸 크기 비례(0.55~1.5배), 0.6 = 중형 약 0.8~0.9배·대형 약 1.0배.")]
+    [Range(0f, 1f)] public float tierSizeStrength = .6f;
     [InspectorName("풀 최대 보관 수")]
     [Min(1)] public int poolCapacity = 32;
 
@@ -89,6 +94,14 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
             default:
                 return 0f;
         }
+    }
+
+    // 몸 크기 배율(CombatTargetVfxPlacement: √(반경/1.2), 0.55~1.5)을 체급 차이 강도만큼 줄인다.
+    // 소형 기준(0.645 → 0.65배)은 그대로 두고, 그보다 크거나 작은 차이만 강도 제곱으로 좁힌다.
+    public float ResolveTierScale(float bodySizeMultiplier)
+    {
+        float ratio = Mathf.Max(.01f, bodySizeMultiplier) / SmallTierBodySize;
+        return SmallTierHitScale * Mathf.Pow(ratio, Mathf.Clamp01(tierSizeStrength));
     }
 
     public float ResolveHitScale(WeaponElement element)
