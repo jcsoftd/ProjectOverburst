@@ -135,6 +135,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 5150072966119826026}
     m_Modifications:
     - target: {fileID: 181795017595943065, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: EmissionModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 181795017595943065, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
       propertyPath: ShapeModule.radius.value
       value: 0.18
       objectReference: {fileID: 0}
