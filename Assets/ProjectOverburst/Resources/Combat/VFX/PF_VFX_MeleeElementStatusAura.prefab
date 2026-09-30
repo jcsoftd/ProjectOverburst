@@ -49,8 +49,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeElementStatusAuraPresentation
   burningAura: {fileID: 5142149027333099848}
-  burningAuraScale: 0.5
-  burningAuraHeight: 0.4
+  burningAuraScale: 0.26
+  burningAuraHeight: 1
   shockedAura: {fileID: 792865032845018198}
   chilledAura: {fileID: 4644777838901169227}
   corrodedAura: {fileID: 7010687451071775870}

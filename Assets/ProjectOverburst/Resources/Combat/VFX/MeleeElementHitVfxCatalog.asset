@@ -29,7 +29,7 @@ MonoBehaviour:
   - element: 9
     prefab: {fileID: 7638838746576953639, guid: 1577d4ed73b3f834a977ca72d6e9d6ab, type: 3}
     prewarmCount: 384
-  fireLifetime: 5.15
+  fireLifetime: 3.2
   iceLifetime: 10
   electricLifetime: 7.5
   darkLifetime: 1.2
