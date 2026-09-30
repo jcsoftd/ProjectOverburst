@@ -71,18 +71,20 @@ public static class DeathHarvestThemeBuilder
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Edit Mode required.");
+        // 2026-10-01: 기존 액터는 보존하고 없는 액터만 만든다(MonsterThemeAuthoringPolicy). 새 액터에 필요한 템플릿(MonsterThemeTemplate)이
+        // 없으면 폴더·등급·재질·프리셋을 만들기 전에 멈춘다.
+        var template=MonsterThemeTemplate.LoadActor();
+        var sourceDef=MonsterThemeTemplate.LoadSource();
+        MonsterThemeAuthoringPolicy.RequireTemplateBeforeWrites(Specs.Select(s=>ThemeId+"_"+s.key),template,sourceDef);
         Folder(Root);
         foreach(string part in new[]{"Actors","Definitions","Species","Grades","Animations","Abilities",
             "Movement","Behavior","Presets","Tables","Materials","Footfalls","Blood"})
             Folder(Root+"/"+part);
         Folder(Root+"/Materials/DeathHarvest");
-        // 2026-10-01: 기존 액터는 보존하고 없는 액터만 만든다(MonsterThemeAuthoringPolicy). 템플릿은 새 액터를 만들 때만 필요하다.
-        var template=AssetDatabase.LoadAssetAtPath<GameObject>(ProtofactorEnemyPilotBuilder.PrefabPaths[0]);
-        var sourceDef=AssetDatabase.LoadAssetAtPath<EnemyDefinition>(ProtofactorEnemyPilotBuilder.DefinitionPaths[0]);
         var touched=new List<Object>();
         var normal=MonsterThemeAuthoringPolicy.Grade("Grades/Normal","ThemeNormal","일반",EnemyGradeType.Normal,touched);
         var elite=MonsterThemeAuthoringPolicy.Grade("Grades/Elite","ThemeElite","정예",EnemyGradeType.Elite,touched);
-        var variant=AssetDatabase.LoadAssetAtPath<EnemyVariantProfile>(ProtofactorEnemyPilotBuilder.DefaultVariantPath);
+        var variant=MonsterThemeTemplate.LoadDefaultVariant();
         var preset=MonsterThemeAuthoringPolicy.Preset("Presets/"+ThemeId,sourceDef,"Theme_"+ThemeId,"사령의 수확단",touched);
         var signal=MonsterThemeAuthoringPolicy.SignalMaterial("Materials/"+ThemeId,Accent,touched);
         var defs=new List<EnemyDefinition>();var created=new List<EnemyDefinition>();

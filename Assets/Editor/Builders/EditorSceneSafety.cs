@@ -19,10 +19,4 @@ public static class EditorSceneSafety
                     + "Save or discard them first; this tool would otherwise close them or save them with its own edits.");
         }
     }
-
-    // 대상이 정리됐거나, 만든 뒤 수작업 조정이 원본이 된 1회 이관·생성 도구의 공용 거부. 쓰기 전에 항상 멈춘다.
-    public static void RefuseRetired(string tool, string reason)
-    {
-        throw new InvalidOperationException(tool + ": retired. " + reason);
-    }
 }

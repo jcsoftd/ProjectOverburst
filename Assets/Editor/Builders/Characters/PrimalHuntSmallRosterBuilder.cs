@@ -46,9 +46,9 @@ public static class PrimalHuntSmallRosterBuilder
                 .First(g => g.gameObject.scene == scene);
             if (gallery.actors.Length != 47) throw new InvalidOperationException("Expected saved 47-actor showcase");
             var baseline = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(Root + "/Definitions/PrimalHunt_Caniathrox.asset");
-            var template = AssetDatabase.LoadAssetAtPath<GameObject>(ProtofactorEnemyPilotBuilder.PrefabPaths[0]);
+            var template = MonsterThemeTemplate.LoadActor(); // 2026-10-01: 옛 Protofactor 템플릿 삭제, 새 템플릿은 미정
             var normal = AssetDatabase.LoadAssetAtPath<EnemyGradeProfile>(Root + "/Grades/Normal.asset");
-            var variant = AssetDatabase.LoadAssetAtPath<EnemyVariantProfile>(ProtofactorEnemyPilotBuilder.DefaultVariantPath);
+            var variant = MonsterThemeTemplate.LoadDefaultVariant();
             var preset = AssetDatabase.LoadAssetAtPath<EnemyAiPreset>(Root + "/Presets/PrimalHunt.asset");
             var signal = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/PrimalHunt.mat");
             var table = AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(Root + "/Tables/PrimalHunt.asset");
@@ -56,6 +56,8 @@ public static class PrimalHuntSmallRosterBuilder
             if (baseline == null || normal == null || variant == null || preset == null
                 || signal == null || table == null || catalog == null) throw new InvalidOperationException("Primal baseline missing");
             // 2026-10-01: 이미 있는 종은 보존한다. 새 종만 만들고, 기존 테이블 가중치(Caniathrox 등)와 프리셋 로스터는 그대로 둔다.
+            // 새 종이 필요한데 템플릿이 없으면 쓰기 전에 멈춘다.
+            MonsterThemeAuthoringPolicy.RequireTemplateBeforeWrites(Specs.Select(s => Theme + "_" + s.Name), template, baseline);
             var added = new List<EnemyDefinition>(); int preserved = 0;
             foreach (var spec in Specs)
             {

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -29,7 +31,6 @@ public static class EnemyHpBarGameApplier
         BuildPrefabsOnly();
         ApplyPersistentScene();
         ApplyManagementScene();
-        AssetDatabase.SaveAssets();
         Debug.Log("[EnemyHpBarGameApplier] Three live HP bars, PersistentScene and UI management preview updated.");
     }
 
@@ -37,22 +38,55 @@ public static class EnemyHpBarGameApplier
     {
         if (EditorApplication.isPlaying || EditorApplication.isCompiling)
             throw new InvalidOperationException("Exit Play Mode and wait for compilation before building HP bars.");
-        RefuseRebuildOfTunedLiveBars();
-        BuildLivePrefab("Normal", "Small");
-        BuildLivePrefab("Normal", "Medium");
-        BuildLivePrefab("Elite", "Elite");
-        AssetDatabase.SaveAssets();
+        // 2026-10-01: 게임 HP 바(소형·중형·정예)는 적용 뒤 원소 상태 줄 등 조정값이 원본이다. 이미 있는 체급은 건드리지 않고 없는 체급만 만든다.
+        // 만들 체급의 원본·컨셉을 모두 먼저 확인하고, 하나라도 맞지 않으면 아무것도 저장하지 않는다.
+        List<string> missing = PlanMissingTiers(path => AssetDatabase.LoadAssetAtPath<GameObject>(path) != null);
+        foreach (string tier in missing)
+            ValidateBuildSource(tier);
+        foreach (string tier in missing)
+            BuildLivePrefab(SourceTier(tier), tier);
+        Debug.Log(missing.Count == 0
+            ? "[EnemyHpBarGameApplier] NO_CHANGE live HP bars (Small, Medium, Elite) already exist; their tuned values are kept."
+            : "[EnemyHpBarGameApplier] created missing tiers: " + string.Join(", ", missing) + "; existing tiers were not touched.");
     }
 
-    // 2026-10-01: 게임 HP 바(소형·중형·정예)는 적용 뒤 원소 상태 줄 등 조정값이 원본이다. 이미 있으면 컨셉에서 다시 만들지 않는다.
-    private static void RefuseRebuildOfTunedLiveBars()
+    public static readonly string[] Tiers = { "Small", "Medium", "Elite" };
+
+    public static string SourceTier(string tier) => tier == "Elite" ? "Elite" : "Normal";
+
+    // 쓰기 없이 계획만 세운다. exists(path)는 그 경로에 프리팹이 있는지 알려 준다. 만들 체급의 원본이나 컨셉이 없으면 쓰기 전에 멈춘다.
+    public static List<string> PlanMissingTiers(Func<string, bool> exists)
     {
-        if (AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Small")) != null
-            && AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Medium")) != null
-            && AssetDatabase.LoadAssetAtPath<GameObject>(LivePath("Elite")) != null)
-            throw new InvalidOperationException("Apply Monster HP Bars To Game: live HP bars already exist and were tuned afterwards "
-                + "(elemental status strip, layout). Delete them first to rebuild from the concepts.");
+        List<string> missing = Tiers.Where(tier => !exists(LivePath(tier))).ToList();
+        List<string> absent = new List<string>();
+        foreach (string tier in missing)
+        {
+            if (!exists(SourcePath(tier))) absent.Add(SourcePath(tier));
+            if (!exists(ConceptPath(tier))) absent.Add(ConceptPath(tier));
+        }
+        if (absent.Count > 0)
+            throw new InvalidOperationException("Apply Monster HP Bars: nothing was written; missing source for "
+                + string.Join(", ", missing) + ": " + string.Join(", ", absent.Distinct()));
+        return missing;
     }
+
+    // 만들기 전에 원본의 체력바 구성과 컨셉 참조를 확인한다(쓰기 없음). BuildLivePrefab이 중간에 멈추지 않게 같은 조건을 먼저 본다.
+    private static void ValidateBuildSource(string tier)
+    {
+        GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(SourcePath(tier));
+        GameObject concept = AssetDatabase.LoadAssetAtPath<GameObject>(ConceptPath(tier));
+        if (source.GetComponent<EnemyHpBarView>() == null)
+            throw new InvalidOperationException("Apply Monster HP Bars: nothing was written; missing EnemyHpBarView: " + SourcePath(tier));
+        if (source.transform.Find("ElementalStatusStrip") == null || source.GetComponent<ElementalStatusIconStrip>() == null)
+            throw new InvalidOperationException("Apply Monster HP Bars: nothing was written; missing elemental status strip: " + SourcePath(tier));
+        EnemyHpBarConceptPreview preview = concept.GetComponent<EnemyHpBarConceptPreview>();
+        if (preview == null || preview.CurrentFill == null || preview.DamageTrail == null || concept.GetComponent<CanvasGroup>() == null)
+            throw new InvalidOperationException("Apply Monster HP Bars: nothing was written; concept references incomplete: " + ConceptPath(tier));
+    }
+
+    private static string SourcePath(string tier) => LiveFolder + "/PF_EnemyHpBar_" + SourceTier(tier) + ".prefab";
+
+    private static string ConceptPath(string tier) => ConceptFolder + "/PF_EnemyHpBar_Concept_" + tier + ".prefab";
 
     public static void ApplyManagementSceneOnly()
     {
@@ -221,23 +255,35 @@ public static class EnemyHpBarGameApplier
             throw new InvalidOperationException("PersistentScene has no WorldUiOverlayService.");
 
         SerializedObject serialized = new SerializedObject(service);
-        // 2026-10-01: 이미 게임 HP 바가 연결돼 있으면 미리 만들기 수(prewarm) 조정값을 되돌리지 않는다.
-        if (serialized.FindProperty("normalHealthBarPrefab").objectReferenceValue == LoadLive("Small")
-            && serialized.FindProperty("mediumHealthBarPrefab").objectReferenceValue == LoadLive("Medium")
-            && serialized.FindProperty("eliteHealthBarPrefab").objectReferenceValue == LoadLive("Elite"))
+        // 2026-10-01: 연결이 다른 체급만 바꾼다. 미리 만들기 수(prewarm)는 조정값이라 비어 있을 때(0)만 기본값을 쓴다.
+        // 바뀐 것이 없으면 씬을 저장하지 않는다.
+        bool changed = LinkLive(serialized, "normalHealthBarPrefab", "Small");
+        changed |= LinkLive(serialized, "mediumHealthBarPrefab", "Medium");
+        changed |= LinkLive(serialized, "eliteHealthBarPrefab", "Elite");
+        if (!changed)
             return;
-        serialized.FindProperty("normalHealthBarPrefab").objectReferenceValue = LoadLive("Small");
-        serialized.FindProperty("mediumHealthBarPrefab").objectReferenceValue = LoadLive("Medium");
-        serialized.FindProperty("eliteHealthBarPrefab").objectReferenceValue = LoadLive("Elite");
-        serialized.FindProperty("normalHealthBarPrewarm").intValue = 16;
-        serialized.FindProperty("mediumHealthBarPrewarm").intValue = 8;
+        if (serialized.FindProperty("normalHealthBarPrewarm").intValue <= 0)
+            serialized.FindProperty("normalHealthBarPrewarm").intValue = 16;
+        if (serialized.FindProperty("mediumHealthBarPrewarm").intValue <= 0)
+            serialized.FindProperty("mediumHealthBarPrewarm").intValue = 8;
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
     }
 
+    private static bool LinkLive(SerializedObject serialized, string property, string tier)
+    {
+        SerializedProperty field = serialized.FindProperty(property);
+        EnemyHpBarView live = LoadLive(tier);
+        if (field.objectReferenceValue == live)
+            return false;
+        field.objectReferenceValue = live;
+        return true;
+    }
+
     private static void ApplyManagementScene()
     {
+        bool wasLoaded = SceneManager.GetSceneByPath(ManagementScene).isLoaded;
         Scene scene = EditorSceneManager.OpenScene(ManagementScene, OpenSceneMode.Additive);
         Transform group = null;
         foreach (GameObject root in scene.GetRootGameObjects())
@@ -247,6 +293,14 @@ public static class EnemyHpBarGameApplier
         }
         if (group == null)
             throw new InvalidOperationException("UI management scene has no Monster Health Preview group.");
+
+        // 2026-10-01: 미리보기 갤러리가 이미 있으면 다시 만들지 않고 씬도 저장하지 않는다(표본은 게임 HP 바 프리팹 인스턴스라 자동으로 최신이다).
+        if (group.Find("HP Tier Gallery") != null)
+        {
+            if (!wasLoaded)
+                EditorSceneManager.CloseScene(scene, true);
+            return;
+        }
 
         for (int i = group.childCount - 1; i >= 0; i--)
         {
@@ -305,7 +359,8 @@ public static class EnemyHpBarGameApplier
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
-        EditorSceneManager.CloseScene(scene, true);
+        if (!wasLoaded)
+            EditorSceneManager.CloseScene(scene, true);
     }
 
     private static EnemyHpBarView LoadLive(string tier)

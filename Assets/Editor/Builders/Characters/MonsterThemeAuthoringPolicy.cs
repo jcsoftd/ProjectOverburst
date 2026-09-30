@@ -53,10 +53,22 @@ public static class MonsterThemeAuthoringPolicy
     public static void RequireTemplate(GameObject template, EnemyDefinition source, string enemyId)
     {
         if (template == null || source == null)
-            throw new InvalidOperationException("Creating " + enemyId + " needs the actor template baseline ("
-                + ProtofactorEnemyPilotBuilder.PrefabPaths[0] + "), which is no longer in the project. "
-                + "Existing actors were left unchanged. Choose a new template baseline before creating actors.");
+            throw new InvalidOperationException(NoTemplateMessage(new[] { enemyId }));
     }
+
+    // 2026-10-01: 없는 액터가 하나라도 있으면 폴더·등급·재질·프리셋을 만들기 전에 템플릿을 확인한다.
+    // 템플릿이 없으면 아무것도 쓰지 않고 멈춘다. 기존 액터만 있으면 그대로 통과하고 없는 액터 ID 목록(빈 목록)을 돌려준다.
+    public static List<string> RequireTemplateBeforeWrites(IEnumerable<string> enemyIds, GameObject template, EnemyDefinition source)
+    {
+        var missing = enemyIds.Where(id => FindExisting(id) == null).ToList();
+        if (missing.Count > 0 && (template == null || source == null))
+            throw new InvalidOperationException(NoTemplateMessage(missing));
+        return missing;
+    }
+
+    private static string NoTemplateMessage(IEnumerable<string> enemyIds) =>
+        "Creating " + string.Join(", ", enemyIds) + " needs a new actor template (MonsterThemeTemplate), which has not been chosen yet. "
+        + "The old Protofactor template was retired in 188dcdb. Nothing was written; existing actors were left unchanged.";
 
     public static T LoadOrCreate<T>(string relative, out bool created) where T : ScriptableObject
     {
@@ -105,7 +117,7 @@ public static class MonsterThemeAuthoringPolicy
         var preset = AssetDatabase.LoadAssetAtPath<EnemyAiPreset>(path);
         if (preset != null) return preset;
         if (source == null || source.AiPreset == null)
-            throw new InvalidOperationException("Creating AI preset " + relative + " needs the retired template baseline.");
+            throw new InvalidOperationException("Creating AI preset " + relative + " needs a new actor template (MonsterThemeTemplate). Nothing was written.");
         preset = ScriptableObject.CreateInstance<EnemyAiPreset>();
         AssetDatabase.CreateAsset(preset, path);
         EditorUtility.CopySerialized(source.AiPreset, preset);
@@ -167,13 +179,6 @@ public static class MonsterThemeAuthoringPolicy
         EditorUtility.SetDirty(preset);
         touched.Add(preset);
         return true;
-    }
-
-    // 188dcdb(2026-09-30)에서 지운 옛 시험 몬스터(Protofactor 파일럿·머록·StageMonster)용 도구는 쓰기 전에 멈춘다.
-    public static void RefuseRetiredContent(string tool)
-    {
-        throw new InvalidOperationException(tool + " targets content retired in 188dcdb (Protofactor pilot, Murloc, StageMonster). "
-            + "It no longer writes prefabs, scenes or spawn settings, so the retired content is not revived.");
     }
 
     public static void Save(IEnumerable<Object> touched)

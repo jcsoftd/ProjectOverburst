@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 // 2026-10-01: 몬스터 제작 도구 재실행 보존 검증(쓰기 없음).
 // 실제 빌더가 쓰는 함수(MonsterThemeAuthoringPolicy, CombatImpactFeelBuilder.ConfigureActor)를
 // 제품 자산의 메모리 사본(Object.Instantiate, 저장하지 않는 LoadPrefabContents)에 실행해 보존·반복·신규·편집값·재정렬을 확인한다.
-// 폐기 콘텐츠 도구는 쓰기 전에 거부하는지 확인한다.
+// 새 액터 템플릿이 없을 때 테마 빌더가 쓰기 전에 멈추는지 확인한다(2026-10-01 폐기 생성기 삭제 뒤).
 public static class MonsterAuthoringRerunVerifier
 {
     private const string Root = MonsterThemeCombatBuilder.Root;
@@ -30,7 +30,7 @@ public static class MonsterAuthoringRerunVerifier
             VerifyCatalog(Check, clones);
             VerifyPresetRoster(Check, clones);
             VerifyDeathPresentation(Check);
-            VerifyRetiredTools(Check);
+            VerifyTemplateGate(Check);
         }
         finally
         {
@@ -195,18 +195,19 @@ public static class MonsterAuthoringRerunVerifier
         return string.Join(";", parts);
     }
 
-    private static void VerifyRetiredTools(Action<bool, string> check)
+    // 기존 액터만 다시 확인하는 실행은 템플릿 없이 통과하고, 없는 액터가 섞이면 쓰기 전에 멈춘다(판정 함수만 호출, 쓰기 없음).
+    private static void VerifyTemplateGate(Action<bool, string> check)
     {
-        void Refuses(string name, Action run)
-        {
-            bool refused = false;
-            try { run(); }
-            catch (InvalidOperationException ex) { refused = ex.Message.Contains("retired in 188dcdb"); }
-            check(refused, name + " refuses before writing");
-        }
-        Refuses("Build Protofactor Enemy Pilot", ProtofactorEnemyPilotBuilder.RunOnceFromCommandLine);
-        Refuses("Formalize State Pattern AI Prefabs", EnemyStatePatternPrefabFormalizer.RunOnceFromCommandLine);
-        Refuses("Formalize Elemental Status Assembly", EnemyStatePatternPrefabFormalizer.FormalizeElementalStatusAssemblyFromCommandLine);
-        Refuses("Configure Murloc Spawn Packs", MurlocSpawnPackConfigBuilder.RunOnceFromCommandLine);
+        var existing = AssetDatabase.FindAssets("t:EnemyDefinition", new[] { Root + "/Definitions" })
+            .Select(guid => AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(guid)))
+            .Where(d => d != null).Select(d => d.EnemyId).ToArray();
+        var missing = MonsterThemeAuthoringPolicy.RequireTemplateBeforeWrites(existing, null, null);
+        check(missing.Count == 0 && existing.Length > 0, "template gate: rerun of existing actors passes without a template (" + existing.Length + " actors)");
+        bool refused = false;
+        try { MonsterThemeAuthoringPolicy.RequireTemplateBeforeWrites(existing.Concat(new[] { "VerifierOnly_NotAnActor" }), null, null); }
+        catch (InvalidOperationException ex) { refused = ex.Message.Contains("Nothing was written") && ex.Message.Contains("VerifierOnly_NotAnActor"); }
+        check(refused, "template gate: a missing actor without a template stops before any write");
+        check(!MonsterThemeTemplate.IsConfigured && MonsterThemeTemplate.LoadDefaultVariant() != null,
+            "template contract: no new template chosen yet, default variant is present");
     }
 }

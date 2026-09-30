@@ -11,7 +11,6 @@ public static class FiveElementCombatAssetValidationUtility
     {
         ElementalReactionValidationUtility.ValidateFromCommandLine();
         MeleeElementHitSetupUtility.ValidateFromCommandLine();
-        MeleeElementStatusAuraSetupUtility.ValidateFromCommandLine();
         Debug.Log("[FiveElementCombatAssets] All current combat-asset boundaries PASS.");
     }
 }

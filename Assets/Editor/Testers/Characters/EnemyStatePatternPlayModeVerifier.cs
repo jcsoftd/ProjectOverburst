@@ -5,6 +5,8 @@ using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
+// 2026-10-01: 옛 머록·StageMonster 픽스처와 그 전용 값 검사를 정리했다. 픽스처 없는 AI 계약은 EnemyAiContractVerifier로 옮겼고,
+// 남은 Play 검사(상태 순환·피격 반응·그룹 어그로·조향 통합·부하)는 현재 테마 몬스터를 픽스처로 쓴다.
 [InitializeOnLoad]
 public static class EnemyStatePatternPlayModeVerifier
 {
@@ -42,6 +44,12 @@ public static class EnemyStatePatternPlayModeVerifier
         SetupStress200,
         CheckStress200
     }
+
+    // 2026-10-01: 옛 머록·StageMonster 프리팹(188dcdb 삭제) 대신 현재 테마 몬스터를 픽스처로 쓴다.
+    // 이 목록은 검증 픽스처일 뿐 제품 자산을 바꾸지 않는다.
+    private const string FixtureMeleePath = "Assets/ProjectOverburst/Resources/Enemies/Themes/Actors/PF_CavernMutants_Ceratoferox.prefab";
+    private const string FixtureMediumPath = "Assets/ProjectOverburst/Resources/Enemies/Themes/Actors/PF_CavernMutants_Gasterobrach.prefab";
+    private static readonly string[] FixturePrefabPaths = { FixtureMeleePath, FixtureMediumPath };
 
     private static readonly List<string> passedPrefabs = new List<string>();
     private static VerifyStep step;
@@ -96,15 +104,13 @@ public static class EnemyStatePatternPlayModeVerifier
         Begin(true);
     }
 
-    public static void VerifySquadPursuitPlannerPureContract()
-    {
-        VerifySquadPursuitPlannerContract();
-    }
 
     private static void Begin(bool batchMode)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new System.InvalidOperationException("PlayMode is already active or changing.");
+        // 2026-10-01: 빈 씬을 Single로 만들므로 다른 작업의 저장 안 된 씬이 있으면 닫기 전에 멈춘다.
+        EditorSceneSafety.RequireNoUnsavedScenes("Verify Enemy State Pattern PlayMode");
 
         SessionState.SetBool(ActiveKey, true);
         SessionState.SetBool(BatchKey, batchMode);
@@ -208,7 +214,7 @@ public static class EnemyStatePatternPlayModeVerifier
                     monsterObject.transform.position = Vector3.zero;
                     playerHealth.ResetHealth();
                     playerHpBeforeAttack = playerHealth.CurrentHp;
-                    // Existing Fishman first impact can occur around 5 seconds after range entry.
+                    // The fixture's first impact can occur several seconds after range entry.
                     // Wait for actual damage with a bounded deadline, without changing AI or animation.
                     attackDamageDeadline = Time.time + 8f;
                     MovePlayerAndWait(new Vector3(0f, 0f, 1.6f), VerifyStep.CheckAttack, 3, 0.05f);
@@ -376,7 +382,6 @@ public static class EnemyStatePatternPlayModeVerifier
                     Debug.Log(
                         "[EnemyStatePatternPlayModeVerifier] Passed Return "
                         + "reaggro and encounter group retention");
-                    VerifyHideoutDebugSpawnerToggle();
                     CleanupBeforeStressVerification();
                     WaitFor(VerifyStep.SetupStress40, 2, 0.05f);
                     break;
@@ -417,34 +422,21 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void SetupMonster()
     {
-        IReadOnlyList<string> paths = EnemyStatePatternPrefabFormalizer.TargetPrefabPaths;
+        IReadOnlyList<string> paths = FixturePrefabPaths;
         if (prefabIndex >= paths.Count)
         {
-            VerifyShieldDefense();
             VerifyLocomotionModes();
-            VerifyKnockbackReductionProfiles();
-            VerifyCrowdWeightProfiles();
             VerifyEnemyCollisionPolicy();
-            VerifyAiTickPolicy();
-            VerifyRunUsesInPlaceClip();
-            VerifyBehaviorProfileMigration();
+            EnemyAiContractVerifier.RunAll();
             VerifyTacticalDecisions();
             VerifyCombatCoordination();
             VerifyGroupAttackRhythm();
             VerifyWalkableAndApproachContracts();
             VerifyNarrowCorridorCrowdContract();
-            VerifyReservationFreeApproachSteeringCalculator();
-            VerifySquadPursuitPlannerContract();
-            VerifyClusterFanOutSteeringCalculator();
             VerifyClusterFanOutIntegrationContract();
-            VerifyChaseBypassSteeringCalculator();
             VerifyChaseBypassIntegrationContract();
-            VerifyFlowFieldCalculatorContract();
-            VerifySharedFlowFieldServiceContract();
             VerifyFlowFieldChaseIntegrationContract();
-            VerifyDensityApproachCoreRosterContract();
             VerifyEncirclementDestinationSpread();
-            VerifyLegacySurroundRemovalContract();
             VerifyInRangeChaseAttackPriority();
             VerifyEnemyStateDebugLabel();
             SetupHitReactionVerification();
@@ -467,13 +459,6 @@ public static class EnemyStatePatternPlayModeVerifier
         PrepareBody(monsterObject);
 
         monsterAI = RequireComponent<EnemyAIController>(monsterObject);
-        bool expectedDensityApproach = EnemyStatePatternPrefabFormalizer.UsesDensityApproachByDefault(prefab.name);
-        if (monsterAI.UsesDensityApproachSteering != expectedDensityApproach)
-        {
-            throw new System.InvalidOperationException(
-                CurrentPath() + " density approach mismatch expected=" + expectedDensityApproach
-                + " actual=" + monsterAI.UsesDensityApproachSteering);
-        }
         ApplyVerificationBehavior(monsterAI);
         monsterMovement = RequireComponent<EnemyMovement>(monsterObject);
         monsterMovementReaction = RequireComponent<EnemyMovementReaction>(monsterObject);
@@ -485,43 +470,10 @@ public static class EnemyStatePatternPlayModeVerifier
         WaitFor(VerifyStep.CheckRoam, 4, 0.1f);
     }
 
-    private static void VerifyShieldDefense()
-    {
-        const string guardPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Guard.prefab";
-        GameObject guardPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(guardPath);
-        if (guardPrefab == null)
-            throw new System.InvalidOperationException("Guard defense verification prefab is missing");
-
-        GameObject guard = Object.Instantiate(guardPrefab, Vector3.zero, Quaternion.identity);
-        try
-        {
-            PrepareBody(guard);
-            EnemyDefenseController defense = RequireComponent<EnemyDefenseController>(guard);
-            EnemyMovementReaction reaction = RequireComponent<EnemyMovementReaction>(guard);
-            CombatHealth health = RequireComponent<CombatHealth>(guard);
-            float hpBefore = health.CurrentHp;
-
-            playerObject.transform.position = guard.transform.position + guard.transform.forward * 1.5f;
-            defense.SetDefending(true);
-            health.TakeDamage(new DamageInfo(100f, guard.transform.position, playerObject, guard.transform.forward, 5f));
-
-            float appliedDamage = hpBefore - health.CurrentHp;
-            if (Mathf.Abs(appliedDamage - 35f) > 0.05f)
-                throw new System.InvalidOperationException("Guard shield expected damage=35 actual=" + appliedDamage);
-            if (reaction.IsStunned)
-                throw new System.InvalidOperationException("Guard shield block incorrectly applied hit-stun or knockback");
-
-            Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed Guard shield damage and reaction block");
-        }
-        finally
-        {
-            Object.DestroyImmediate(guard);
-        }
-    }
 
     private static void VerifyLocomotionModes()
     {
-        const string scoutPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Scout.prefab";
+        string scoutPath = FixtureMeleePath;
         GameObject scoutPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(scoutPath);
         if (scoutPrefab == null)
             throw new System.InvalidOperationException("Scout locomotion verification prefab is missing");
@@ -646,105 +598,11 @@ public static class EnemyStatePatternPlayModeVerifier
         }
     }
 
-    private static void VerifyKnockbackReductionProfiles()
-    {
-        VerifyKnockbackReduction("Murloc_Grunt", 0f);
-        VerifyKnockbackReduction("Murloc_Scout", 0f);
-        VerifyKnockbackReduction("Murloc_Spearling", 5f);
-        VerifyKnockbackReduction("Murloc_Guard", 10f);
-        VerifyKnockbackReduction("Murloc_Brute", 15f);
-        VerifyKnockbackReduction("Murloc_Warlord", 20f);
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed role-based knockback reduction and elite resistance");
-    }
 
-    private static void VerifyCrowdWeightProfiles()
-    {
-        VerifyCrowdWeight("Default", 1f);
-        VerifyCrowdWeight("Murloc_Grunt", 1f);
-        VerifyCrowdWeight("Murloc_Scout", 0.9f);
-        VerifyCrowdWeight("Murloc_Spearling", 1.05f);
-        VerifyCrowdWeight("Murloc_Guard", 1.2f);
-        VerifyCrowdWeight("Murloc_Brute", 1.4f);
-        VerifyCrowdWeight("Murloc_Warlord", 1.55f);
-        // Authored 0.64-scale roster preserved from VTP; see monster content master reference.
-        VerifyCrowdBodyRadius("Murloc_Scout", 0.33792f);
-        VerifyCrowdBodyRadius("Murloc_Grunt", 0.384f);
-        VerifyCrowdBodyRadius("Murloc_Spearling", 0.39168f);
-        VerifyCrowdBodyRadius("Murloc_Guard", 0.43008f);
-        VerifyCrowdBodyRadius("Murloc_Brute", 0.48f);
-        VerifyCrowdBodyRadius("Murloc_Warlord", 0.4992f);
-        VerifyEliteCrowdWeight("Murloc_Brute", 1.54f);
-        VerifyEliteCrowdWeight("Murloc_Warlord", 1.705f);
-        VerifySeparationProfile("Murloc_Grunt", 1.5f, 1f);
-        VerifySeparationProfile("Murloc_Scout", 1.55f, 1.25f);
-        VerifySeparationProfile("Murloc_Spearling", 1.65f, 1.2f);
-        VerifySeparationProfile("Murloc_Guard", 1.7f, 1f);
-        VerifySeparationProfile("Murloc_Brute", 1.85f, 0.75f);
-        VerifySeparationProfile("Murloc_Warlord", 2f, 0.9f);
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed tuned crowd weights, body radii, elite multiplier and Separation profiles");
-    }
 
-    private static void VerifyCrowdWeight(string id, float expectedWeight)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/MovementProfiles/EMP_" + id + ".asset";
-        EnemyMovementProfile profile = AssetDatabase.LoadAssetAtPath<EnemyMovementProfile>(path);
-        if (profile == null)
-            throw new System.InvalidOperationException("Crowd weight profile is missing: " + path);
-        if (Mathf.Abs(profile.CrowdWeight - expectedWeight) > 0.01f)
-        {
-            throw new System.InvalidOperationException(
-                id + " crowd weight mismatch expected=" + expectedWeight + " actual=" + profile.CrowdWeight);
-        }
-    }
 
-    private static void VerifyCrowdBodyRadius(string id, float expectedRadius)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_" + id + ".prefab";
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        if (prefab == null)
-            throw new System.InvalidOperationException("Crowd radius prefab is missing: " + path);
 
-        float actualRadius = EnemyCrowdAgent.EstimateBodyRadius(prefab);
-        if (Mathf.Abs(actualRadius - expectedRadius) > 0.005f)
-        {
-            throw new System.InvalidOperationException(
-                id + " crowd radius mismatch expected=" + expectedRadius + " actual=" + actualRadius);
-        }
-    }
 
-    private static void VerifyEliteCrowdWeight(string id, float expectedWeight)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_" + id + ".prefab";
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        GameObject instance = Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
-        try
-        {
-            EnemyCrowdAgent agent = RequireComponent<EnemyCrowdAgent>(instance);
-            if (Mathf.Abs(agent.EffectiveCrowdWeight - expectedWeight) > 0.01f)
-            {
-                throw new System.InvalidOperationException(
-                    id + " elite crowd weight mismatch expected=" + expectedWeight + " actual=" + agent.EffectiveCrowdWeight);
-            }
-        }
-        finally
-        {
-            Object.DestroyImmediate(instance);
-        }
-    }
-
-    private static void VerifySeparationProfile(string id, float expectedRadius, float expectedWeight)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/BehaviorProfiles/EBP_" + id + ".asset";
-        EnemyBehaviorProfile profile = AssetDatabase.LoadAssetAtPath<EnemyBehaviorProfile>(path);
-        if (profile == null)
-            throw new System.InvalidOperationException("Separation profile is missing: " + path);
-        if (Mathf.Abs(profile.SeparationRadius - expectedRadius) > 0.01f
-            || Mathf.Abs(profile.SeparationWeight - expectedWeight) > 0.01f)
-        {
-            throw new System.InvalidOperationException(
-                id + " Separation mismatch radius=" + profile.SeparationRadius + " weight=" + profile.SeparationWeight);
-        }
-    }
 
     private static void VerifyEnemyCollisionPolicy()
     {
@@ -766,67 +624,7 @@ public static class EnemyStatePatternPlayModeVerifier
         Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed Enemy self-collision off and Ground/Wall/Player collision preservation");
     }
 
-    private static void VerifyAiTickPolicy()
-    {
-        float farSqr = 80f * 80f;
-        if (EnemyAiTickScheduler.ResolveInterval(40, farSqr, false, false) != 0f)
-            throw new System.InvalidOperationException("40-enemy AI policy must remain full rate");
-        if (Mathf.Abs(EnemyAiTickScheduler.ResolveInterval(100, farSqr, false, false) - 0.1f) > 0.001f)
-            throw new System.InvalidOperationException("100-enemy hidden AI policy must use 0.1s ticks");
-        if (Mathf.Abs(EnemyAiTickScheduler.ResolveInterval(200, farSqr, false, false) - 0.25f) > 0.001f)
-            throw new System.InvalidOperationException("200-enemy hidden AI policy must use 0.25s ticks");
-        if (Mathf.Abs(EnemyAiTickScheduler.ResolveInterval(201, farSqr, false, false) - 0.5f) > 0.001f)
-            throw new System.InvalidOperationException("200+ very-far hidden AI policy must use 0.5s ticks");
-        if (EnemyAiTickScheduler.ResolveInterval(200, 10f * 10f, false, false) != 0f)
-            throw new System.InvalidOperationException("near combat AI must remain full rate");
-        if (EnemyAiTickScheduler.ResolveInterval(200, farSqr, false, true) != 0f)
-            throw new System.InvalidOperationException("urgent AI event must bypass tick LOD");
 
-        HashSet<int> staggerSlots = new HashSet<int>();
-        for (int i = 0; i < 200; i++)
-        {
-            float delay = EnemyAiTickScheduler.ResolveStaggerDelay(0.25f, i + 1);
-            staggerSlots.Add(Mathf.FloorToInt(delay / 0.01f));
-        }
-        if (staggerSlots.Count < 12)
-            throw new System.InvalidOperationException("AI tick staggering produced too few time slots");
-
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed 40/100/200 AI tick LOD policy and stable staggering");
-    }
-
-    private static void VerifyKnockbackReduction(string id, float expectedPercent)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_" + id + ".prefab";
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        if (prefab == null)
-            throw new System.InvalidOperationException("Knockback verification prefab is missing: " + path);
-
-        GameObject instance = Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
-        try
-        {
-            EnemyMovementReaction reaction = RequireComponent<EnemyMovementReaction>(instance);
-            reaction.ResolveReferences();
-            if (Mathf.Abs(reaction.KnockbackReductionPercent - expectedPercent) > 0.01f)
-            {
-                throw new System.InvalidOperationException(
-                    id + " knockback reduction mismatch. expected=" + expectedPercent
-                    + " actual=" + reaction.KnockbackReductionPercent);
-            }
-
-            float expectedDistance = 1f * (1f - expectedPercent * 0.01f);
-            float actualDistance = reaction.ResolveKnockbackDistance(10f);
-            if (Mathf.Abs(actualDistance - expectedDistance) > 0.001f)
-            {
-                throw new System.InvalidOperationException(
-                    id + " knockback distance mismatch. expected=" + expectedDistance
-                    + " actual=" + actualDistance);
-            }
-        }
-        finally
-        {
-            Object.DestroyImmediate(instance);
-        }
-    }
 
     private static void VerifyWalkableAndApproachContracts()
     {
@@ -846,8 +644,8 @@ public static class EnemyStatePatternPlayModeVerifier
         try
         {
             playerObject.transform.position = Vector3.forward * 0.5f;
-            first = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
-            second = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
+            first = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
+            second = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
             EnemyMovement movement = RequireComponent<EnemyMovement>(first);
             if (!movement.TryResolveWalkableDestination(Vector3.right * 20f, out Vector3 resolved)
                 || !walkableArea.IsWalkable(resolved))
@@ -985,10 +783,10 @@ public static class EnemyStatePatternPlayModeVerifier
             Vector3 firstPosition = new Vector3(0.45f, 0f, 0f);
             Vector3 secondPosition = new Vector3(-0.7f, 0f, 0f);
             first = InstantiateTacticMonster(
-                "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                FixtureMeleePath,
                 firstPosition);
             second = InstantiateTacticMonster(
-                "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                FixtureMeleePath,
                 secondPosition);
 
             EnemyMovement firstMovement = RequireComponent<EnemyMovement>(first);
@@ -1037,7 +835,7 @@ public static class EnemyStatePatternPlayModeVerifier
                 float angle = i * Mathf.PI * 2f / enemyCount;
                 Vector3 position = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 2.5f;
                 GameObject monster = InstantiateTacticMonster(
-                    "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                    FixtureMeleePath,
                     position);
                 EnemyAIController ai = RequireComponent<EnemyAIController>(monster);
                 ai.SetTarget(playerObject.transform);
@@ -1070,1253 +868,20 @@ public static class EnemyStatePatternPlayModeVerifier
         }
     }
 
-    private static void VerifyReservationFreeApproachSteeringCalculator()
-    {
-        List<EnemyApproachNeighbor> neighbors = new List<EnemyApproachNeighbor>(4);
-        EnemyApproachSteeringResult farResult = EnemyApproachSteering.Resolve(
-            new EnemyApproachSteeringInput(
-                new Vector3(0f, 0f, 8f),
-                Vector3.zero,
-                Vector3.back,
-                Vector3.zero,
-                1.7f,
-                0.6f,
-                101),
-            neighbors);
-        if (farResult.LocalBlend > 0.0001f || Vector3.Dot(farResult.Direction, Vector3.back) < 0.999f)
-        {
-            throw new System.InvalidOperationException(
-                "Far approach did not preserve navigation direction blend=" + farResult.LocalBlend
-                + " direction=" + farResult.Direction);
-        }
 
-        EnemyApproachSteeringResult closeResult = EnemyApproachSteering.Resolve(
-            new EnemyApproachSteeringInput(
-                new Vector3(0f, 0f, 1f),
-                Vector3.zero,
-                Vector3.back,
-                Vector3.zero,
-                1.7f,
-                0.6f,
-                102),
-            neighbors);
-        if (Vector3.Dot(closeResult.RadialCorrection, Vector3.forward) < 0.8f
-            || Vector3.Dot(closeResult.Direction, Vector3.forward) < 0.5f)
-        {
-            throw new System.InvalidOperationException(
-                "Too-close approach did not steer outward radial=" + closeResult.RadialCorrection
-                + " direction=" + closeResult.Direction);
-        }
 
-        neighbors.Add(new EnemyApproachNeighbor(new Vector3(0.45f, 0f, 1.6f), 0.6f));
-        neighbors.Add(new EnemyApproachNeighbor(new Vector3(0.7f, 0f, 2f), 0.8f));
-        EnemyApproachSteeringInput densityInput = new EnemyApproachSteeringInput(
-            new Vector3(0f, 0f, 2.2f),
-            Vector3.zero,
-            Vector3.back,
-            Vector3.zero,
-            1.7f,
-            0.6f,
-            103);
-        EnemyApproachSteeringResult leftCrowded = EnemyApproachSteering.Resolve(densityInput, neighbors);
-        if (leftCrowded.LeftDensity <= leftCrowded.RightDensity
-            || leftCrowded.TurnSign != -1
-            || Vector3.Dot(leftCrowded.Direction, Vector3.left) < 0.2f)
-        {
-            throw new System.InvalidOperationException(
-                "Left density did not produce a right tangent left=" + leftCrowded.LeftDensity
-                + " right=" + leftCrowded.RightDensity
-                + " sign=" + leftCrowded.TurnSign
-                + " direction=" + leftCrowded.Direction);
-        }
 
-        neighbors.Clear();
-        neighbors.Add(new EnemyApproachNeighbor(new Vector3(-0.45f, 0f, 1.6f), 0.6f));
-        neighbors.Add(new EnemyApproachNeighbor(new Vector3(-0.7f, 0f, 2f), 0.8f));
-        EnemyApproachSteeringResult rightCrowded = EnemyApproachSteering.Resolve(densityInput, neighbors);
-        if (rightCrowded.RightDensity <= rightCrowded.LeftDensity
-            || rightCrowded.TurnSign != 1
-            || Vector3.Dot(rightCrowded.Direction, Vector3.right) < 0.2f)
-        {
-            throw new System.InvalidOperationException(
-                "Right density did not produce a left tangent left=" + rightCrowded.LeftDensity
-                + " right=" + rightCrowded.RightDensity
-                + " sign=" + rightCrowded.TurnSign
-                + " direction=" + rightCrowded.Direction);
-        }
 
-        if (EnemyApproachSteering.ResolveTurnSign(1, 4f, 0f, false, 104) != 1)
-            throw new System.InvalidOperationException("Turn lock did not preserve the current side");
-        if (EnemyApproachSteering.ResolveTurnSign(1, 1f, 0.8f, true, 104) != 1)
-            throw new System.InvalidOperationException("Turn hysteresis switched on less than 25 percent improvement");
-        if (EnemyApproachSteering.ResolveTurnSign(1, 1f, 0.7f, true, 104) != -1)
-            throw new System.InvalidOperationException("Turn hysteresis did not switch on more than 25 percent improvement");
-        int stableTurn = EnemyApproachSteering.ResolveStableTurnSign(105);
-        if (EnemyApproachSteering.ResolveTurnSign(0, 1f, 1f, true, 105) != stableTurn)
-            throw new System.InvalidOperationException("Equal density did not use the stable turn side");
 
-        EnemyApproachSteeringResult noSeparation = EnemyApproachSteering.Resolve(
-            new EnemyApproachSteeringInput(
-                new Vector3(0f, 0f, 4f),
-                Vector3.zero,
-                Vector3.back,
-                Vector3.right * 0.25f,
-                1.7f,
-                0.6f,
-                106,
-                separationWeight: 0f),
-            null);
-        EnemyApproachSteeringResult weightedSeparation = EnemyApproachSteering.Resolve(
-            new EnemyApproachSteeringInput(
-                new Vector3(0f, 0f, 4f),
-                Vector3.zero,
-                Vector3.back,
-                Vector3.right * 0.25f,
-                1.7f,
-                0.6f,
-                106,
-                separationWeight: 2f),
-            null);
-        if (Mathf.Abs(noSeparation.Direction.x) > 0.001f
-            || Vector3.Dot(weightedSeparation.Direction, Vector3.right) < 0.2f)
-        {
-            throw new System.InvalidOperationException(
-                "Separation pressure or role weight was discarded zero=" + noSeparation.Direction
-                + " weighted=" + weightedSeparation.Direction);
-        }
 
-        if (Mathf.Abs(EnemyApproachSteering.ResolveNeighborQueryRadius(0.3f) - 2f) > 0.0001f
-            || Mathf.Abs(EnemyApproachSteering.ResolveNeighborQueryRadius(0.8f) - 3.2f) > 0.0001f)
-        {
-            throw new System.InvalidOperationException("Body-radius neighbor query contract changed");
-        }
 
-        Vector3 origin = new Vector3(2f, 3f, 4f);
-        Vector3 minimumDestination = EnemyApproachSteering.ResolveShortHorizonDestination(
-            origin,
-            new Vector3(10f, 5f, 0f),
-            0f);
-        Vector3 maximumDestination = EnemyApproachSteering.ResolveShortHorizonDestination(
-            origin,
-            Vector3.right,
-            10f);
-        Vector3 stoppedDestination = EnemyApproachSteering.ResolveShortHorizonDestination(
-            origin,
-            Vector3.zero,
-            10f);
-        if (Mathf.Abs(Vector3.Distance(origin, minimumDestination)
-                - EnemyApproachSteering.MinimumShortHorizonDistance) > 0.0001f
-            || Mathf.Abs(Vector3.Distance(origin, maximumDestination)
-                - EnemyApproachSteering.MaximumShortHorizonDistance) > 0.0001f
-            || Mathf.Abs(minimumDestination.y - origin.y) > 0.0001f
-            || stoppedDestination != origin)
-        {
-            throw new System.InvalidOperationException(
-                "Short-horizon destination contract failed min=" + minimumDestination
-                + " max=" + maximumDestination
-                + " stopped=" + stoppedDestination);
-        }
 
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed reservation-free approach steering density, radius, hysteresis and short horizon");
-    }
 
-    private static void VerifyFlowFieldCalculatorContract()
-    {
-        const int width = 12;
-        const int height = 7;
-        const int wallX = 5;
-        const int gapZ = 6;
-        bool[,] cells = CreateFlowFieldCells(width, height, wallX, gapZ);
-        RunWalkableArea area =
-            new RunWalkableArea(cells, width, height, 0f, 0f, 1f);
-        EnemyFlowField field = new EnemyFlowField(area, 10, 3);
-        int firstAdvance = field.Advance(3);
-        if (firstAdvance != 3 || field.IsComplete)
-            throw new System.InvalidOperationException("Flow Field incremental build budget was ignored");
 
-        int guard = width * height + 1;
-        while (!field.IsComplete && guard-- > 0)
-        {
-            if (field.Advance(7) > 7)
-                throw new System.InvalidOperationException("Flow Field exceeded one incremental build budget");
-        }
-        if (!field.IsComplete || guard <= 0 || field.ProcessedCellCount > width * height)
-            throw new System.InvalidOperationException("Flow Field did not complete inside the cell count bound");
-
-        Vector3 current = ResolveCellCenter(area, 1, 3);
-        if (!field.TryGetDirection(current, out Vector3 firstDirection, out Vector3 firstWaypoint)
-            || firstDirection.z <= 0.1f
-            || !area.IsWalkable(firstWaypoint))
-        {
-            throw new System.InvalidOperationException(
-                "Flow Field did not route toward the wall gap direction=" + firstDirection
-                + " waypoint=" + firstWaypoint);
-        }
-
-        bool reachedTarget = false;
-        for (int step = 0; step < width * height; step++)
-        {
-            if (area.TryGetCell(current, out int currentX, out int currentZ)
-                && currentX == field.TargetX
-                && currentZ == field.TargetZ)
-            {
-                reachedTarget = true;
-                break;
-            }
-
-            if (!field.TryGetDirection(current, out _, out Vector3 waypoint)
-                || !area.IsWalkable(waypoint))
-            {
-                throw new System.InvalidOperationException("Flow Field path left the walkable cells step=" + step);
-            }
-            current = waypoint;
-        }
-        if (!reachedTarget)
-            throw new System.InvalidOperationException("Flow Field path did not reach its target cell");
-
-        bool[,] blockedCells = CreateFlowFieldCells(width, height, wallX, -1);
-        RunWalkableArea blockedArea = new RunWalkableArea(
-            blockedCells,
-            width,
-            height,
-            0f,
-            0f,
-            1f);
-        EnemyFlowField blockedField = new EnemyFlowField(blockedArea, 10, 3);
-        blockedField.Advance(width * height);
-        if (blockedField.TryGetDirection(ResolveCellCenter(blockedArea, 1, 3), out _, out _))
-            throw new System.InvalidOperationException("Disconnected Flow Field returned a false route");
-
-        if (!field.Rebuild(10, 4))
-            throw new System.InvalidOperationException("Flow Field target-cell rebuild failed");
-        field.Advance(width * height);
-        if (!field.TryGetIntegrationCost(10, 4, out int targetCost) || targetCost != 0)
-            throw new System.InvalidOperationException("Flow Field target-cell rebuild retained stale integration data");
-
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed incremental Flow Field detour, corner safety, unreachable and rebuild contracts");
-    }
-
-    private static void VerifyChaseBypassSteeringCalculator()
-    {
-        Vector3 agentPosition = new Vector3(0f, 0f, 8f);
-        List<EnemyApproachNeighbor> blockers = new List<EnemyApproachNeighbor>
-        {
-            new EnemyApproachNeighbor(new Vector3(0f, 0f, 6.5f), 0.6f),
-            new EnemyApproachNeighbor(new Vector3(0f, 0f, 5f), 0.6f)
-        };
-        EnemyChaseBypassInput input = new EnemyChaseBypassInput(
-            agentPosition,
-            Vector3.zero,
-            Vector3.back,
-            Vector3.zero,
-            0.6f,
-            201);
-        EnemyChaseBypassResult result = EnemyChaseBypassSteering.Resolve(input, blockers);
-        if (!result.IsActive
-            || result.ForwardBlockerCount != 2
-            || Mathf.Abs(result.Direction.x) < 0.5f
-            || Vector3.Dot(result.Direction, Vector3.back) <= 0.1f
-            || result.SpeedMultiplier < EnemyChaseBypassSteering.MinimumSpeedMultiplier
-            || result.SpeedMultiplier > EnemyChaseBypassSteering.MaximumSpeedMultiplier)
-        {
-            throw new System.InvalidOperationException(
-                "Chase bypass did not produce a fast spiral direction blockers=" + result.ForwardBlockerCount
-                + " direction=" + result.Direction
-                + " speed=" + result.SpeedMultiplier);
-        }
-
-        blockers.Clear();
-        blockers.Add(new EnemyApproachNeighbor(new Vector3(0.5f, 0f, 6.5f), 0.6f));
-        blockers.Add(new EnemyApproachNeighbor(new Vector3(0.8f, 0f, 5f), 0.6f));
-        EnemyChaseBypassResult leftCrowded = EnemyChaseBypassSteering.Resolve(input, blockers);
-        if (!leftCrowded.IsActive
-            || leftCrowded.LeftDensity <= leftCrowded.RightDensity
-            || leftCrowded.TurnSign != -1
-            || Vector3.Dot(leftCrowded.Direction, Vector3.left) < 0.5f)
-        {
-            throw new System.InvalidOperationException(
-                "Left queue did not bypass toward the open right side left=" + leftCrowded.LeftDensity
-                + " right=" + leftCrowded.RightDensity
-                + " sign=" + leftCrowded.TurnSign
-                + " direction=" + leftCrowded.Direction);
-        }
-
-        blockers.RemoveAt(1);
-        EnemyChaseBypassResult oneBlocker = EnemyChaseBypassSteering.Resolve(input, blockers);
-        EnemyChaseBypassResult farResult = EnemyChaseBypassSteering.Resolve(
-            new EnemyChaseBypassInput(
-                new Vector3(0f, 0f, 12f),
-                Vector3.zero,
-                Vector3.back,
-                Vector3.zero,
-                0.6f,
-                202),
-            new List<EnemyApproachNeighbor>
-            {
-                new EnemyApproachNeighbor(new Vector3(0f, 0f, 10.5f), 0.6f),
-                new EnemyApproachNeighbor(new Vector3(0f, 0f, 9f), 0.6f)
-            });
-        blockers.Add(new EnemyApproachNeighbor(new Vector3(0.8f, 0f, 5f), 0.6f));
-        EnemyChaseBypassResult detourResult = EnemyChaseBypassSteering.Resolve(
-            new EnemyChaseBypassInput(
-                agentPosition,
-                Vector3.zero,
-                Vector3.right,
-                Vector3.zero,
-                0.6f,
-                203),
-            blockers);
-        if (oneBlocker.IsActive || farResult.IsActive || detourResult.IsActive)
-        {
-            throw new System.InvalidOperationException(
-                "Chase bypass ignored activation guards one=" + oneBlocker.IsActive
-                + " far=" + farResult.IsActive
-                + " detour=" + detourResult.IsActive);
-        }
-
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed Chase forward blockage, spiral bypass, side choice and speed boost contracts");
-    }
-
-    private static void VerifyClusterFanOutSteeringCalculator()
-    {
-        EnemyClusterFanOutMemberData rearMember = new EnemyClusterFanOutMemberData(
-            50,
-            new Vector3(0f, 0f, 6f),
-            Vector3.back,
-            Vector3.left,
-            -2f,
-            0.4f,
-            0.9f,
-            1.2f,
-            4.9f,
-            1f,
-            1);
-        EnemyClusterFanOutResult rearResult = EnemyClusterFanOutSteering.Resolve(
-            new EnemyClusterFanOutInput(
-                rearMember,
-                Vector3.back,
-                Vector3.zero,
-                0,
-                301));
-        if (!rearResult.IsActive
-            || Vector3.Dot(rearResult.Direction, Vector3.back) <= 0.1f
-            || Vector3.Dot(rearResult.Direction, Vector3.left) <= 0.5f
-            || rearResult.SpeedMultiplier < EnemyClusterFanOutSteering.MinimumSpeedMultiplier
-            || rearResult.SpeedMultiplier > EnemyClusterFanOutSteering.MaximumSpeedMultiplier)
-        {
-            throw new System.InvalidOperationException(
-                "Cluster rear row did not fan out direction=" + rearResult.Direction
-                + " speed=" + rearResult.SpeedMultiplier);
-        }
-
-        EnemyClusterFanOutResult lockedSideResult = EnemyClusterFanOutSteering.Resolve(
-            new EnemyClusterFanOutInput(
-                rearMember,
-                Vector3.back,
-                Vector3.zero,
-                -1,
-                301));
-        if (!lockedSideResult.IsActive
-            || lockedSideResult.SideSign != -1
-            || Vector3.Dot(lockedSideResult.Direction, Vector3.right) <= 0.5f)
-        {
-            throw new System.InvalidOperationException(
-                "Cluster fan-out did not preserve its assigned side sign="
-                + lockedSideResult.SideSign
-                + " direction=" + lockedSideResult.Direction);
-        }
-
-        EnemyClusterFanOutMemberData frontMember = new EnemyClusterFanOutMemberData(
-            50,
-            Vector3.zero,
-            Vector3.back,
-            Vector3.left,
-            2f,
-            -0.4f,
-            0.1f,
-            1.2f,
-            4.9f,
-            1f,
-            -1);
-        EnemyClusterFanOutResult frontResult = EnemyClusterFanOutSteering.Resolve(
-            new EnemyClusterFanOutInput(
-                frontMember,
-                Vector3.back,
-                Vector3.zero,
-                0,
-                302));
-        EnemyClusterFanOutMemberData smallMember = new EnemyClusterFanOutMemberData(
-            7,
-            Vector3.zero,
-            Vector3.back,
-            Vector3.left,
-            -1f,
-            0.2f,
-            0.9f,
-            0.5f,
-            2f,
-            1f,
-            1);
-        EnemyClusterFanOutResult smallResult = EnemyClusterFanOutSteering.Resolve(
-            new EnemyClusterFanOutInput(
-                smallMember,
-                Vector3.back,
-                Vector3.zero,
-                0,
-                303));
-        if (frontResult.IsActive || smallResult.IsActive)
-        {
-            throw new System.InvalidOperationException(
-                "Cluster fan-out ignored front-row or minimum-size guards front="
-                + frontResult.IsActive
-                + " small=" + smallResult.IsActive);
-        }
-
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed cluster front hold, rear fan-out, side lock and speed contracts");
-    }
-
-    private static void VerifySquadPursuitPlannerContract()
-    {
-        VerifyMaximumFirstSquadSizes(4, 8, 0);
-        VerifyMaximumFirstSquadSizes(4, 8, 3);
-        VerifyMaximumFirstSquadSizes(4, 8, 4, 4);
-        VerifyMaximumFirstSquadSizes(4, 8, 7, 7);
-        VerifyMaximumFirstSquadSizes(4, 8, 8, 8);
-        VerifyMaximumFirstSquadSizes(4, 8, 9, 8);
-        VerifyMaximumFirstSquadSizes(4, 8, 11, 8);
-        VerifyMaximumFirstSquadSizes(4, 8, 12, 8, 4);
-        VerifyMaximumFirstSquadSizes(4, 8, 15, 8, 7);
-        VerifyMaximumFirstSquadSizes(4, 8, 16, 8, 8);
-        VerifyMaximumFirstSquadSizes(4, 8, 20, 8, 8, 4);
-        VerifyMaximumFirstSquadSizes(4, 8, 41, 8, 8, 8, 8, 8);
-
-        VerifyMaximumFirstSquadSizes(8, 12, 0);
-        VerifyMaximumFirstSquadSizes(8, 12, 7);
-        VerifyMaximumFirstSquadSizes(8, 12, 8, 8);
-        VerifyMaximumFirstSquadSizes(8, 12, 11, 11);
-        VerifyMaximumFirstSquadSizes(8, 12, 12, 12);
-        VerifyMaximumFirstSquadSizes(8, 12, 13, 12);
-        VerifyMaximumFirstSquadSizes(8, 12, 19, 12);
-        VerifyMaximumFirstSquadSizes(8, 12, 20, 12, 8);
-        VerifyMaximumFirstSquadSizes(8, 12, 23, 12, 11);
-        VerifyMaximumFirstSquadSizes(8, 12, 24, 12, 12);
-        VerifyMaximumFirstSquadSizes(8, 12, 25, 12, 12);
-        VerifyMaximumFirstSquadSizes(8, 12, 41, 12, 12, 12);
-
-        VerifyMaximumFirstSquadRange(4, 8);
-        VerifyMaximumFirstSquadRange(8, 12);
-
-        Vector3 player = Vector3.zero;
-        Vector3 directOutward = Vector3.right;
-        Vector3 changedOutward = EnemySquadPursuitPlanner.ResolveDirectOutward(
-            player,
-            Vector3.forward * 12f);
-        if (Vector3.Dot(changedOutward, Vector3.forward) < 0.99f
-            || Mathf.Abs(Vector3.Dot(changedOutward, directOutward)) > 0.01f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit direct axis did not follow the current nearest squad center");
-        }
-        List<EnemySquadPursuitSlot> slots = new List<EnemySquadPursuitSlot>(8);
-        EnemySquadPursuitPlanner.BuildSlots(
-            player,
-            directOutward,
-            EnemySquadPursuitPlanner.DefaultSlotRadius,
-            slots);
-        EnemySquadPursuitSlot directSlot = FindSlotByKind(slots, EnemySquadPursuitSlotKind.Direct);
-        EnemySquadPursuitSlot rightSlot = FindSlotByKind(slots, EnemySquadPursuitSlotKind.RightBypass);
-        EnemySquadPursuitSlot rearSlot = FindSlotByKind(slots, EnemySquadPursuitSlotKind.Rear);
-        if (slots.Count != 8
-            || Vector3.Dot(directSlot.OutwardDirection, directOutward) < 0.99f
-            || Mathf.Abs(Vector3.Dot(rightSlot.OutwardDirection, directOutward)) > 0.01f
-            || Vector3.Dot(rearSlot.OutwardDirection, directOutward) > -0.99f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit slots did not preserve direct, side and rear axes");
-        }
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (slots[i].Index != i
-                || slots[i].PointIndex != i
-                || Mathf.Abs(slots[i].Radius - EnemySquadPursuitPlanner.DefaultSlotRadius) > 0.0001f)
-            {
-                throw new System.InvalidOperationException(
-                    "Squad pursuit physical point order or uniform radius changed index="
-                    + i + " radius=" + slots[i].Radius);
-            }
-        }
-
-        List<EnemySquadPursuitSlot> changedSlots = new List<EnemySquadPursuitSlot>(8);
-        EnemySquadPursuitPlanner.BuildSlots(
-            player,
-            changedOutward,
-            EnemySquadPursuitPlanner.DefaultSlotRadius,
-            changedSlots);
-        EnemySquadPursuitSlot changedDirectSlot = FindSlotByKind(
-            changedSlots,
-            EnemySquadPursuitSlotKind.Direct);
-        if (changedSlots.Count != 8
-            || changedDirectSlot.PointIndex == directSlot.PointIndex
-            || Vector3.Dot(changedDirectSlot.OutwardDirection, changedOutward) < 0.99f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit direct role did not move to the nearest fixed point");
-        }
-        for (int pointIndex = 0; pointIndex < 8; pointIndex++)
-        {
-            EnemySquadPursuitSlot before = FindSlotAtPoint(slots, pointIndex);
-            EnemySquadPursuitSlot after = FindSlotAtPoint(changedSlots, pointIndex);
-            if ((before.Position - after.Position).sqrMagnitude > 0.0001f)
-            {
-                throw new System.InvalidOperationException(
-                    "Squad pursuit fixed point moved while its role changed point=P" + pointIndex);
-            }
-        }
-        for (int directPointIndex = 0; directPointIndex < 8; directPointIndex++)
-        {
-            Vector3 axis = Quaternion.AngleAxis(directPointIndex * 45f, Vector3.up) * Vector3.right;
-            EnemySquadPursuitPlanner.BuildSlots(
-                player,
-                axis,
-                EnemySquadPursuitPlanner.DefaultSlotRadius,
-                changedSlots);
-            changedDirectSlot = FindSlotByKind(changedSlots, EnemySquadPursuitSlotKind.Direct);
-            if (changedDirectSlot.PointIndex != directPointIndex)
-            {
-                throw new System.InvalidOperationException(
-                    "Squad pursuit direct role selected the wrong fixed point expected=P"
-                    + directPointIndex + " actual=P" + changedDirectSlot.PointIndex);
-            }
-            for (int pointIndex = 0; pointIndex < changedSlots.Count; pointIndex++)
-            {
-                EnemySquadPursuitSlot fixedPoint = FindSlotAtPoint(slots, pointIndex);
-                EnemySquadPursuitSlot remappedPoint = FindSlotAtPoint(changedSlots, pointIndex);
-                EnemySquadPursuitSlotKind expectedKind = (EnemySquadPursuitSlotKind)(
-                    (pointIndex - directPointIndex + 8) % 8);
-                if ((fixedPoint.Position - remappedPoint.Position).sqrMagnitude > 0.0001f
-                    || remappedPoint.Kind != expectedKind)
-                {
-                    throw new System.InvalidOperationException(
-                        "Squad pursuit 8-direction role sweep changed a fixed point or role mapping axis=P"
-                        + directPointIndex + " point=P" + pointIndex);
-                }
-            }
-        }
-
-        EnemySquadPursuitPlanner.BuildSlots(
-            player,
-            directOutward,
-            EnemySquadPursuitPlanner.DefaultSlotRadius,
-            slots);
-        List<int> balancedSlots = new List<int>(7);
-        EnemySquadPursuitPlanner.BuildBalancedSlotIndices(slots, 5, balancedSlots);
-        if (balancedSlots.Count != 5
-            || !balancedSlots.Contains(FindSlotByKind(slots, EnemySquadPursuitSlotKind.Direct).Index)
-            || balancedSlots.Contains(FindSlotByKind(slots, EnemySquadPursuitSlotKind.Rear).Index)
-            || ResolveMaximumSelectedPointGap(balancedSlots) > 2)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit balanced subset did not distribute five slots around the player");
-        }
-        EnemySquadPursuitPlanner.BuildBalancedSlotIndices(slots, 7, balancedSlots);
-        if (balancedSlots.Count != 7
-            || balancedSlots.Contains(FindSlotByKind(slots, EnemySquadPursuitSlotKind.Rear).Index))
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit far assignment must use every non-rear slot and exclude rear center");
-        }
-        Vector3 rearClaimInside = player
-            + Quaternion.AngleAxis(29f, Vector3.up) * rearSlot.OutwardDirection * 13f;
-        Vector3 rearClaimOutside = player
-            + Quaternion.AngleAxis(31f, Vector3.up) * rearSlot.OutwardDirection * 13f;
-        Vector3 rearReleaseInside = player
-            + Quaternion.AngleAxis(44f, Vector3.up) * rearSlot.OutwardDirection * 13f;
-        if (EnemySquadPursuitPlanner.DefaultRearSlotClaimAngle
-                >= EnemySquadPursuitPlanner.DefaultRearSlotReleaseAngle
-            || !EnemySquadPursuitPlanner.IsWithinSlotAngularSector(
-                player,
-                rearClaimInside,
-                rearSlot.OutwardDirection,
-                EnemySquadPursuitPlanner.DefaultRearSlotClaimAngle)
-            || EnemySquadPursuitPlanner.IsWithinSlotAngularSector(
-                player,
-                rearClaimOutside,
-                rearSlot.OutwardDirection,
-                EnemySquadPursuitPlanner.DefaultRearSlotClaimAngle)
-            || !EnemySquadPursuitPlanner.IsWithinSlotAngularSector(
-                player,
-                rearReleaseInside,
-                rearSlot.OutwardDirection,
-                EnemySquadPursuitPlanner.DefaultRearSlotReleaseAngle))
-        {
-            throw new System.InvalidOperationException(
-                "Squad conditional rear-orbit sector or release hysteresis contract failed");
-        }
-        EnemySquadPursuitPlanner.BuildBalancedSlotIndices(slots, 1, balancedSlots);
-        if (balancedSlots.Count != 1
-            || balancedSlots[0] != FindSlotByKind(slots, EnemySquadPursuitSlotKind.Direct).Index
-            || EnemySquadPursuitPlanner.DefaultNearReleaseDistance
-                >= EnemySquadPursuitPlanner.DefaultSlotRadius
-            || EnemySquadPursuitPlanner.DefaultSlotRadius
-                >= EnemySquadPursuitPlanner.DefaultDirectCommitRadius
-            || EnemySquadPursuitPlanner.DefaultDirectCommitRadius
-                >= EnemySquadPursuitPlanner.DefaultFarActivationDistance)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit direct priority or near/slot/commit/far distance ordering changed");
-        }
-
-        Vector3 sideSquadCenter = new Vector3(15f, 0f, 1f);
-        EnemySquadPursuitSlot sideSlot = FindSlotByKind(slots, EnemySquadPursuitSlotKind.RightBypass);
-        EnemySquadPursuitRoute sideRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            sideSlot,
-            slots);
-        Vector3 rightDirection = new Vector3(directOutward.z, 0f, -directOutward.x);
-        Vector3 previousPoint = sideSquadCenter;
-        Vector3 previousSegment = Vector3.zero;
-        float accumulatedTurn = 0f;
-        for (int waypointIndex = 0; waypointIndex < sideRoute.WaypointCount; waypointIndex++)
-        {
-            Vector3 waypoint = sideRoute.GetWaypoint(waypointIndex);
-            Vector3 segment = waypoint - previousPoint;
-            segment.y = 0f;
-            if (segment.sqrMagnitude <= 0.0001f
-                || (waypointIndex > 0 && Vector3.Dot(previousSegment.normalized, segment.normalized) <= 0.25f))
-            {
-                throw new System.InvalidOperationException(
-                    "Squad side pursuit curve contained a zero or sharp reverse segment index="
-                    + waypointIndex);
-            }
-            if (waypointIndex > 0)
-                accumulatedTurn += Mathf.Abs(Vector3.Cross(previousSegment.normalized, segment.normalized).y);
-            previousSegment = segment;
-            previousPoint = waypoint;
-        }
-        if (sideRoute.WaypointCount != 5
-            || (sideRoute.GetWaypoint(4) - sideSlot.Position).sqrMagnitude > 0.0001f
-            || Vector3.Dot(sideRoute.GetWaypoint(2) - player, rightDirection) <= 0f
-            || accumulatedTurn <= 0.1f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad right pursuit route did not form a smooth right-side quadratic curve");
-        }
-
-        EnemySquadPursuitSlot leftSlot = FindSlotByKind(slots, EnemySquadPursuitSlotKind.LeftBypass);
-        EnemySquadPursuitRoute leftRoute = EnemySquadPursuitPlanner.BuildRoute(
-            new Vector3(15f, 0f, -1f),
-            player,
-            directOutward,
-            leftSlot,
-            slots);
-        if (leftRoute.WaypointCount != 5
-            || Vector3.Dot(leftRoute.GetWaypoint(2) - player, rightDirection) >= 0f
-            || (leftRoute.GetWaypoint(4) - leftSlot.Position).sqrMagnitude > 0.0001f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad left pursuit route did not form a smooth left-side quadratic curve");
-        }
-
-        EnemySquadPursuitSlot frontDiagonalSlot = FindSlotByKind(
-            slots,
-            EnemySquadPursuitSlotKind.FrontRightDiagonal);
-        EnemySquadPursuitSlot rearDiagonalSlot = FindSlotByKind(
-            slots,
-            EnemySquadPursuitSlotKind.RearRightDiagonal);
-        EnemySquadPursuitSlot frontLeftDiagonalSlot = FindSlotByKind(
-            slots,
-            EnemySquadPursuitSlotKind.FrontLeftDiagonal);
-        EnemySquadPursuitSlot rearLeftDiagonalSlot = FindSlotByKind(
-            slots,
-            EnemySquadPursuitSlotKind.RearLeftDiagonal);
-        EnemySquadPursuitRoute frontDiagonalRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            frontDiagonalSlot,
-            slots);
-        EnemySquadPursuitRoute rearDiagonalRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            rearDiagonalSlot,
-            slots);
-        EnemySquadPursuitRoute frontLeftDiagonalRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            frontLeftDiagonalSlot,
-            slots);
-        EnemySquadPursuitRoute rearLeftDiagonalRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            rearLeftDiagonalSlot,
-            slots);
-        float frontDiagonalBulge = MeasureRouteBulge(
-            sideSquadCenter,
-            frontDiagonalSlot.Position,
-            frontDiagonalRoute);
-        float sideBypassBulge = MeasureRouteBulge(
-            sideSquadCenter,
-            sideSlot.Position,
-            sideRoute);
-        EnemySquadPursuitRoute compactSideRoute = EnemySquadPursuitPlanner.BuildRoute(
-            sideSquadCenter,
-            player,
-            directOutward,
-            sideSlot,
-            slots,
-            0.8f);
-        float compactSideBulge = MeasureRouteBulge(
-            sideSquadCenter,
-            sideSlot.Position,
-            compactSideRoute);
-        float rearDiagonalBulge = MeasureRouteBulge(
-            sideSquadCenter,
-            rearDiagonalSlot.Position,
-            rearDiagonalRoute);
-        if (frontDiagonalRoute.WaypointCount != 5
-            || rearDiagonalRoute.WaypointCount != 5
-            || frontLeftDiagonalRoute.WaypointCount != 5
-            || rearLeftDiagonalRoute.WaypointCount != 5
-            || frontDiagonalBulge >= sideBypassBulge
-            || sideBypassBulge >= rearDiagonalBulge
-            || compactSideBulge >= sideBypassBulge
-            || Vector3.Dot(frontLeftDiagonalRoute.GetWaypoint(2) - player, rightDirection) >= 0f
-            || Vector3.Dot(rearLeftDiagonalRoute.GetWaypoint(2) - player, rightDirection) >= 0f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit curve tiers must remain small front-diagonal, large side and largest rear-diagonal");
-        }
-
-        EnemySquadPursuitRoute rearRoute = EnemySquadPursuitPlanner.BuildRoute(
-            new Vector3(15f, 0f, -2f),
-            player,
-            directOutward,
-            FindSlotByKind(slots, EnemySquadPursuitSlotKind.Rear),
-            slots);
-        int[] expectedPriority = { 0, 2, 6, 1, 7, 3, 5, 4 };
-        HashSet<int> preferredSlots = new HashSet<int>();
-        HashSet<Color32> fixedRoleColors = new HashSet<Color32>();
-        for (int order = 0; order < expectedPriority.Length; order++)
-        {
-            int actual = EnemySquadPursuitPlanner.GetPreferredSlotIndex(order);
-            preferredSlots.Add(actual);
-            fixedRoleColors.Add((Color32)EnemySquadPursuitSimulatorWindow.ResolveSlotRoleColor(
-                (EnemySquadPursuitSlotKind)actual));
-            if (actual != expectedPriority[order])
-            {
-                throw new System.InvalidOperationException(
-                    "Squad pursuit slot priority changed order=" + order
-                    + " expected=" + expectedPriority[order] + " actual=" + actual);
-            }
-        }
-
-        List<Vector3> distancePrioritySquads = new List<Vector3>
-        {
-            new Vector3(1f, 0f, 0f),
-            new Vector3(-2f, 0f, 0f)
-        };
-        List<Vector3> distancePrioritySlots = new List<Vector3>
-        {
-            Vector3.zero,
-            new Vector3(10f, 0f, 0f)
-        };
-        List<int> squadIndexBySlot = new List<int>();
-        EnemySquadPursuitPlanner.BuildMinimumDistanceAssignment(
-            distancePrioritySquads,
-            distancePrioritySlots,
-            squadIndexBySlot);
-        if (squadIndexBySlot.Count != 2
-            || squadIndexBySlot[0] != 1
-            || squadIndexBySlot[1] != 0)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit slots must use minimum-total-distance pairing instead of slot-first greedy pairing");
-        }
-
-        distancePrioritySquads.Clear();
-        distancePrioritySquads.Add(new Vector3(9f, 0f, 0f));
-        distancePrioritySlots.Clear();
-        distancePrioritySlots.Add(new Vector3(-10f, 0f, 0f));
-        distancePrioritySlots.Add(new Vector3(10f, 0f, 0f));
-        EnemySquadPursuitPlanner.BuildMinimumDistanceAssignment(
-            distancePrioritySquads,
-            distancePrioritySlots,
-            squadIndexBySlot);
-        if (squadIndexBySlot.Count != 2
-            || squadIndexBySlot[0] != -1
-            || squadIndexBySlot[1] != 0)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit must leave a farther priority slot vacant when a nearer slot is available");
-        }
-
-        distancePrioritySquads[0] = Vector3.zero;
-        distancePrioritySlots[0] = Vector3.left;
-        distancePrioritySlots[1] = Vector3.right;
-        EnemySquadPursuitPlanner.BuildMinimumDistanceAssignment(
-            distancePrioritySquads,
-            distancePrioritySlots,
-            squadIndexBySlot);
-        if (squadIndexBySlot[0] != 0 || squadIndexBySlot[1] != -1)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit role priority must break an exact distance tie deterministically");
-        }
-
-        if (rearRoute.WaypointCount != 1
-            || (rearRoute.GetWaypoint(0) - rearSlot.Position).sqrMagnitude > 0.0001f
-            || preferredSlots.Count != 8
-            || fixedRoleColors.Count != 8
-            || !preferredSlots.Contains(0)
-            || !preferredSlots.Contains(2)
-            || !preferredSlots.Contains(6)
-            || !preferredSlots.Contains(4))
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit direct rear route, slot priority or fixed role color contract failed");
-        }
-
-        Vector3 reserveDirectionSum = Vector3.zero;
-        int reserveQuadrants = 0;
-        bool[] occupiedQuadrants = new bool[4];
-        for (int squadId = 1; squadId <= 16; squadId++)
-        {
-            Vector3 reserveDirection = EnemySquadPursuitPlanner.ResolveReserveOrbitDirection(401, squadId);
-            reserveDirectionSum += reserveDirection;
-            int quadrant = reserveDirection.x >= 0f
-                ? reserveDirection.z >= 0f ? 0 : 1
-                : reserveDirection.z < 0f ? 2 : 3;
-            if (!occupiedQuadrants[quadrant])
-            {
-                occupiedQuadrants[quadrant] = true;
-                reserveQuadrants++;
-            }
-            float reserveRadius = EnemySquadPursuitPlanner.ResolveReserveOrbitRadius(
-                EnemySquadPursuitPlanner.DefaultReserveOrbitRadius,
-                squadId);
-            if (reserveRadius < EnemySquadPursuitPlanner.DefaultFarActivationDistance + 2f)
-            {
-                throw new System.InvalidOperationException(
-                    "Squad reserve orbit entered the active slot ring squad=" + squadId);
-            }
-        }
-
-        float oppositeRadius = EnemySquadPursuitPlanner.ResolveReserveOrbitRadius(
-            EnemySquadPursuitPlanner.DefaultReserveOrbitRadius,
-            2);
-        Vector3 clockwiseDestination = EnemySquadPursuitPlanner.ResolveReserveOrbitDestination(
-            player,
-            player + Vector3.right * oppositeRadius,
-            Vector3.left,
-            oppositeRadius,
-            2);
-        Vector3 counterClockwiseDestination = EnemySquadPursuitPlanner.ResolveReserveOrbitDestination(
-            player,
-            player + Vector3.right * oppositeRadius,
-            Vector3.left,
-            oppositeRadius,
-            3);
-        Vector3 clockwiseDirection = (clockwiseDestination - player).normalized;
-        Vector3 counterClockwiseDirection = (counterClockwiseDestination - player).normalized;
-        Vector3 reserveStartDirection = EnemySquadPursuitPlanner.ResolveReserveOrbitDirection(401, 2, 0f);
-        Vector3 reserveQuarterTurnDirection = EnemySquadPursuitPlanner.ResolveReserveOrbitDirection(401, 2, 90f);
-        float clockwiseProjectedClearance = Vector3.Dot(
-            clockwiseDestination - player,
-            Vector3.right);
-        float counterClockwiseProjectedClearance = Vector3.Dot(
-            counterClockwiseDestination - player,
-            Vector3.right);
-        if (reserveQuadrants != 4
-            || reserveDirectionSum.magnitude >= 2f
-            || clockwiseProjectedClearance < oppositeRadius - 0.001f
-            || counterClockwiseProjectedClearance < oppositeRadius - 0.001f
-            || Vector3.Dot(clockwiseDirection, Vector3.right) <= 0.8f
-            || Vector3.Dot(counterClockwiseDirection, Vector3.right) <= 0.8f
-            || clockwiseDestination.z >= 0f
-            || counterClockwiseDestination.z <= 0f
-            || Mathf.Abs(Vector3.Dot(reserveStartDirection, reserveQuarterTurnDirection)) > 0.001f
-            || Mathf.Abs(reserveQuarterTurnDirection.magnitude - 1f) > 0.001f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad reserve orbit did not distribute, rotate or preserve player clearance");
-        }
-
-        Vector3 formationDestination = new Vector3(4f, 0f, -2f);
-        Vector3 formationOffset = new Vector3(1.5f, 0f, 0.5f);
-        Vector3 arrivedMemberPosition = formationDestination + formationOffset * 0.52f;
-        if (!EnemySquadPursuitSimulatorWindow.IsMemberAtFormationDestination(
-                arrivedMemberPosition,
-                formationDestination,
-                formationOffset,
-                0.52f,
-                0.2f)
-            || EnemySquadPursuitSimulatorWindow.IsMemberAtFormationDestination(
-                arrivedMemberPosition + Vector3.right,
-                formationDestination,
-                formationOffset,
-                0.52f,
-                0.2f))
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit member-first formation arrival contract failed");
-        }
-
-        if (!EnemySquadPursuitSimulatorWindow.IsOutsidePlayerDistance(
-                Vector3.right * 11.1f,
-                Vector3.zero,
-                11f)
-            || EnemySquadPursuitSimulatorWindow.IsOutsidePlayerDistance(
-                Vector3.right * 11f,
-                Vector3.zero,
-                11f))
-        {
-            throw new System.InvalidOperationException(
-                "Squad Rush Far-area release boundary contract failed");
-        }
-
-        Vector3 forwardPreserved = EnemySquadPursuitSimulatorWindow.PreserveMinimumForwardProgress(
-            Vector3.left,
-            Vector3.right * 0.8f + Vector3.forward,
-            0.2f);
-        if (Vector3.Dot(forwardPreserved, Vector3.left) < 0.199f
-            || forwardPreserved.magnitude > 1.001f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit separation cancelled the guaranteed forward progress");
-        }
-
-        EnemySquadPursuitRoute translatedSideRoute = EnemySquadPursuitPlanner.TranslateRoute(
-            sideRoute,
-            new Vector3(2f, 9f, -3f));
-        if (EnemySquadPursuitPlanner.ShouldRefreshRoute(0.99f, 1f, 1f, false)
-            || !EnemySquadPursuitPlanner.ShouldRefreshRoute(1f, 1f, 1f, false)
-            || EnemySquadPursuitPlanner.ShouldRefreshRoute(1f, 0.99f, 1f, false)
-            || EnemySquadPursuitPlanner.ShouldRefreshRoute(1f, 1f, 1f, true)
-            || EnemySquadPursuitPlanner.ShouldRefreshFullReformation(11.99f, 9.99f, 10f, 0f)
-            || !EnemySquadPursuitPlanner.ShouldRefreshFullReformation(0f, 10f, 10f, 0f)
-            || EnemySquadPursuitPlanner.ShouldRefreshFullReformation(12f, 4.99f, 10f, 0f)
-            || !EnemySquadPursuitPlanner.ShouldRefreshFullReformation(12f, 5f, 10f, 0f)
-            || Vector3.Distance(
-                translatedSideRoute.GetWaypoint(0),
-                sideRoute.GetWaypoint(0) + new Vector3(2f, 0f, -3f)) > 0.001f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad route translation, limited rebuild, or full reformation contract failed");
-        }
-
-        Vector3 cohesionDestination = EnemySquadPursuitPlanner.ResolveCohesionDestination(
-            new Vector3(0f, 2f, 3f),
-            Vector3.zero,
-            Vector3.zero,
-            Vector3.right * 10f,
-            0.52f);
-        Vector3 cohesionDeadZoneDestination = EnemySquadPursuitPlanner.ResolveCohesionDestination(
-            new Vector3(0f, 2f, 0.5f),
-            Vector3.zero,
-            Vector3.zero,
-            Vector3.right * 10f,
-            0.52f);
-        float trailingBoost = EnemySquadPursuitPlanner.ResolveCohesionSpeedMultiplier(
-            Vector3.left * 5f,
-            Vector3.zero,
-            Vector3.right * 10f);
-        float lateralBoost = EnemySquadPursuitPlanner.ResolveCohesionSpeedMultiplier(
-            Vector3.forward * 5f,
-            Vector3.zero,
-            Vector3.right * 10f);
-        if (cohesionDestination.x <= 0f
-            || cohesionDestination.z >= 3f
-            || !Mathf.Approximately(cohesionDestination.y, 2f)
-            || Vector3.Distance(cohesionDeadZoneDestination, new Vector3(10f, 2f, 0f)) > 0.001f
-            || trailingBoost < 1.119f
-            || trailingBoost > 1.121f
-            || !Mathf.Approximately(lateralBoost, 1f))
-        {
-            throw new System.InvalidOperationException(
-                "Squad moving cohesion steering or catch-up speed contract failed");
-        }
-
-        if (EnemySquadPursuitSimulatorWindow.ResolveMovePriorityValue(true, false, false) != 3
-            || EnemySquadPursuitSimulatorWindow.ResolveMovePriorityValue(false, true, false) != 2
-            || EnemySquadPursuitSimulatorWindow.ResolveMovePriorityValue(false, false, true) != 1
-            || EnemySquadPursuitSimulatorWindow.ResolveMovePriorityValue(false, false, false) != 0
-            || !EnemySquadPursuitSimulatorWindow.ShouldUseRemnantPattern(false, 3, 10, 0.4f)
-            || EnemySquadPursuitSimulatorWindow.ShouldUseRemnantPattern(false, 4, 10, 0.4f)
-            || !EnemySquadPursuitSimulatorWindow.ShouldUseRemnantPattern(true, 10, 10, 0.4f)
-            || EnemySquadPursuitSimulatorWindow.ShouldUseRemnantPattern(true, 0, 10, 0.4f))
-        {
-            throw new System.InvalidOperationException(
-                "Squad Near/Remnant priority or permanent slot-revocation contract failed");
-        }
-
-        float priorityOwnerShare = EnemySquadPursuitSimulatorWindow.ResolvePriorityCorrectionShare(
-            1f,
-            1f,
-            2,
-            0);
-        float reserveShare = EnemySquadPursuitSimulatorWindow.ResolvePriorityCorrectionShare(
-            1f,
-            1f,
-            0,
-            2);
-        float weightedShare = EnemySquadPursuitSimulatorWindow.ResolvePriorityCorrectionShare(
-            1f,
-            2f,
-            0,
-            0);
-        Vector3 stablePairA = EnemySquadPursuitSimulatorWindow.ResolveStablePairDirection(17, 29);
-        Vector3 stablePairB = EnemySquadPursuitSimulatorWindow.ResolveStablePairDirection(29, 17);
-        if (Mathf.Abs(priorityOwnerShare - 0.1f) > 0.0001f
-            || Mathf.Abs(reserveShare - 0.9f) > 0.0001f
-            || Mathf.Abs(weightedShare - 2f / 3f) > 0.0001f
-            || Mathf.Abs(EnemySquadPursuitSimulatorWindow.ResolvePrioritySeparationScale(2, 0) - 0.15f) > 0.0001f
-            || Mathf.Abs(EnemySquadPursuitSimulatorWindow.ResolvePrioritySeparationScale(0, 2) - 1.35f) > 0.0001f
-            || (stablePairA + stablePairB).sqrMagnitude > 0.0001f)
-        {
-            throw new System.InvalidOperationException(
-                "Squad pursuit priority Hard Overlap or stable pair-direction contract failed");
-        }
-
-        EnemyCrowdPriorityBody highPriorityBody = new EnemyCrowdPriorityBody
-        {
-            StableId = 101,
-            DesiredPosition = Vector3.zero,
-            ResolvedPosition = Vector3.zero,
-            BodyRadius = 0.5f,
-            CrowdWeight = 1f,
-            MovePriority = 2,
-            CanMove = true
-        };
-        EnemyCrowdPriorityBody reserveBody = new EnemyCrowdPriorityBody
-        {
-            StableId = 202,
-            DesiredPosition = Vector3.right * 0.8f,
-            ResolvedPosition = Vector3.right * 0.8f,
-            BodyRadius = 0.5f,
-            CrowdWeight = 1f,
-            MovePriority = 0,
-            CanMove = true
-        };
-        if (!EnemyCrowdPrioritySolver.TryCalculatePair(
-                highPriorityBody,
-                reserveBody,
-                out EnemyCrowdPairCorrection centralPair)
-            || Mathf.Abs(centralPair.CorrectionA.magnitude - 0.02f) > 0.0001f
-            || Mathf.Abs(centralPair.CorrectionB.magnitude - 0.18f) > 0.0001f
-            || centralPair.YieldCorrectionA.sqrMagnitude > 0.000001f
-            || centralPair.YieldCorrectionB.sqrMagnitude <= 0.000001f)
-        {
-            throw new System.InvalidOperationException(
-                "Central crowd solver bidirectional 10:90 or Reserve Yield contract failed");
-        }
-
-        if (!EnemyCrowdPrioritySolver.TryCalculatePair(
-                reserveBody,
-                highPriorityBody,
-                out EnemyCrowdPairCorrection reversedCentralPair)
-            || (reversedCentralPair.CorrectionA - centralPair.CorrectionB).sqrMagnitude > 0.000001f
-            || (reversedCentralPair.CorrectionB - centralPair.CorrectionA).sqrMagnitude > 0.000001f)
-        {
-            throw new System.InvalidOperationException(
-                "Central crowd solver pair-order independence contract failed");
-        }
-
-        EnemyCrowdPriorityBody lockedBody = highPriorityBody;
-        lockedBody.CanMove = false;
-        if (!EnemyCrowdPrioritySolver.TryCalculatePair(
-                lockedBody,
-                reserveBody,
-                out EnemyCrowdPairCorrection lockedPair)
-            || lockedPair.CorrectionA.sqrMagnitude > 0.000001f
-            || Mathf.Abs(lockedPair.CorrectionB.magnitude - 0.2f) > 0.0001f)
-        {
-            throw new System.InvalidOperationException(
-                "Central crowd solver position-lock contract failed");
-        }
-
-        EnemyCrowdPriorityBody forcedBody = highPriorityBody;
-        forcedBody.IsForcedMotion = true;
-        if (!EnemyCrowdPrioritySolver.TryCalculatePair(
-                forcedBody,
-                reserveBody,
-                out EnemyCrowdPairCorrection forcedPair)
-            || forcedPair.CorrectionA.sqrMagnitude > 0.000001f
-            || Mathf.Abs(forcedPair.CorrectionB.magnitude - 0.2f) > 0.0001f)
-        {
-            throw new System.InvalidOperationException(
-                "Central crowd solver forced-motion authority contract failed");
-        }
-
-        EnemyCrowdPriorityBody cappedBody = highPriorityBody;
-        Vector3 cappedCorrection = EnemyCrowdPrioritySolver.ApplyAccumulatedCorrection(
-            ref cappedBody,
-            Vector3.left,
-            EnemyCrowdService.MaximumCentralCorrection);
-        if (Mathf.Abs(cappedCorrection.magnitude - EnemyCrowdService.MaximumCentralCorrection) > 0.0001f)
-        {
-            throw new System.InvalidOperationException(
-                "Central crowd solver per-FixedUpdate correction cap failed");
-        }
-
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed maximum-first squad formation (4~8, 8~12, 0~200), uniform physical slots, conditional rear Reserve, route translation, full reformation, central priority pair solver, member-first Rush, all-outside release and reserve contracts");
-    }
-
-    private static void VerifyMaximumFirstSquadSizes(
-        int minimum,
-        int maximum,
-        int monsterCount,
-        params int[] expected)
-    {
-        List<int> sizes = new List<int>();
-        EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
-            monsterCount,
-            minimum,
-            maximum,
-            sizes);
-        if (sizes.Count != expected.Length)
-        {
-            throw new System.InvalidOperationException(
-                "Maximum-first squad count mismatch range=" + minimum + "~" + maximum
-                + " monsters=" + monsterCount + " actual=" + sizes.Count
-                + " expected=" + expected.Length);
-        }
-
-        for (int i = 0; i < expected.Length; i++)
-        {
-            if (sizes[i] != expected[i])
-            {
-                throw new System.InvalidOperationException(
-                    "Maximum-first squad size mismatch range=" + minimum + "~" + maximum
-                    + " monsters=" + monsterCount + " index=" + i
-                    + " actual=" + sizes[i] + " expected=" + expected[i]);
-            }
-        }
-    }
-
-    private static void VerifyMaximumFirstSquadRange(int minimum, int maximum)
-    {
-        List<int> sizes = new List<int>();
-        for (int monsterCount = 0; monsterCount <= 200; monsterCount++)
-        {
-            EnemySquadPursuitPlanner.BuildMaximumFirstSquadSizes(
-                monsterCount,
-                minimum,
-                maximum,
-                sizes);
-            int assignedCount = 0;
-            for (int i = 0; i < sizes.Count; i++)
-            {
-                if (sizes[i] < minimum
-                    || sizes[i] > maximum
-                    || i < sizes.Count - 1 && sizes[i] != maximum)
-                {
-                    throw new System.InvalidOperationException(
-                        "Maximum-first range sweep produced invalid size range="
-                        + minimum + "~" + maximum + " monsters=" + monsterCount
-                        + " index=" + i + " size=" + sizes[i]);
-                }
-                assignedCount += sizes[i];
-            }
-
-            int remainder = monsterCount - assignedCount;
-            int rawRemainder = monsterCount % maximum;
-            int expectedAssigned = monsterCount / maximum * maximum
-                + (rawRemainder >= minimum ? rawRemainder : 0);
-            if (assignedCount != expectedAssigned || remainder < 0 || remainder >= minimum)
-            {
-                throw new System.InvalidOperationException(
-                    "Maximum-first range sweep assignment mismatch range="
-                    + minimum + "~" + maximum + " monsters=" + monsterCount
-                    + " assigned=" + assignedCount + " expected=" + expectedAssigned
-                    + " remainder=" + remainder);
-            }
-        }
-    }
-
-    private static float MeasureRouteBulge(
-        Vector3 start,
-        Vector3 end,
-        EnemySquadPursuitRoute route)
-    {
-        if (route.WaypointCount < 3)
-            return 0f;
-
-        Vector3 linearPoint = Vector3.Lerp(start, end, 0.6f);
-        Vector3 delta = route.GetWaypoint(2) - linearPoint;
-        delta.y = 0f;
-        return delta.magnitude;
-    }
-
-    private static EnemySquadPursuitSlot FindSlotAtPoint(
-        List<EnemySquadPursuitSlot> slots,
-        int pointIndex)
-    {
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (slots[i].PointIndex == pointIndex)
-                return slots[i];
-        }
-
-        throw new System.InvalidOperationException(
-            "Squad pursuit fixed point mapping is missing point=P" + pointIndex);
-    }
-
-    private static EnemySquadPursuitSlot FindSlotByKind(
-        List<EnemySquadPursuitSlot> slots,
-        EnemySquadPursuitSlotKind kind)
-    {
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (slots[i].Kind == kind)
-                return slots[i];
-        }
-
-        throw new System.InvalidOperationException(
-            "Squad pursuit role mapping is missing kind=" + kind);
-    }
-
-    private static int ResolveMaximumSelectedPointGap(List<int> selectedPointIndices)
-    {
-        bool[] selected = new bool[8];
-        for (int i = 0; i < selectedPointIndices.Count; i++)
-        {
-            int pointIndex = selectedPointIndices[i];
-            if (pointIndex >= 0 && pointIndex < selected.Length)
-                selected[pointIndex] = true;
-        }
-
-        int first = -1;
-        int previous = -1;
-        int maximumGap = 0;
-        for (int pointIndex = 0; pointIndex < selected.Length; pointIndex++)
-        {
-            if (!selected[pointIndex])
-                continue;
-            if (first < 0)
-                first = pointIndex;
-            if (previous >= 0)
-                maximumGap = Mathf.Max(maximumGap, pointIndex - previous);
-            previous = pointIndex;
-        }
-
-        if (first >= 0 && previous >= 0)
-            maximumGap = Mathf.Max(maximumGap, first + 8 - previous);
-        return maximumGap;
-    }
 
     private static void VerifyClusterFanOutIntegrationContract()
     {
-        const string gruntPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab";
+        string gruntPath = FixtureMeleePath;
         List<GameObject> monsters = new List<GameObject>(12);
         Vector3 previousPlayerPosition = playerObject.transform.position;
         try
@@ -2450,7 +1015,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyChaseBypassIntegrationContract()
     {
-        const string gruntPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab";
+        string gruntPath = FixtureMeleePath;
         List<GameObject> monsters = new List<GameObject>(3);
         Vector3 previousPlayerPosition = playerObject.transform.position;
         try
@@ -2548,107 +1113,10 @@ public static class EnemyStatePatternPlayModeVerifier
         }
     }
 
-    private static void VerifySharedFlowFieldServiceContract()
-    {
-        GameObject firstTarget = null;
-        GameObject secondTarget = null;
-        try
-        {
-            bool[,] cells = CreateFlowFieldCells(6, 4, -1, -1);
-            RunWalkableArea firstArea =
-                new RunWalkableArea(cells, 6, 4, 0f, 0f, 1f);
-            int revisionBefore = RunWalkableContext.Revision;
-            RunWalkableContext.SetCurrent(firstArea);
-            if (RunWalkableContext.Revision == revisionBefore)
-                throw new System.InvalidOperationException("Walkable context revision did not advance");
-
-            EnemyFlowFieldService.SetEnabled(true);
-            EnemyFlowFieldService.ClearCache();
-            firstTarget = new GameObject("FlowFieldSharedTargetA");
-            firstTarget.transform.position = ResolveCellCenter(firstArea, 4, 1);
-            Vector3 firstAgent = ResolveCellCenter(firstArea, 1, 1);
-            if (!EnemyFlowFieldService.TryGetDirection(
-                    firstTarget.transform,
-                    firstAgent,
-                    out _,
-                    out _)
-                || EnemyFlowFieldService.CachedTargetCount != 1
-                || EnemyFlowFieldService.BuildCount != 1)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field did not create one target cache");
-            }
-
-            if (!EnemyFlowFieldService.TryGetDirection(
-                    firstTarget.transform,
-                    ResolveCellCenter(firstArea, 1, 2),
-                    out _,
-                    out _)
-                || EnemyFlowFieldService.BuildCount != 1
-                || EnemyFlowFieldService.CacheHitCount <= 0)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field was rebuilt per enemy request");
-            }
-
-            firstTarget.transform.position = ResolveCellCenter(firstArea, 4, 2);
-            if (!EnemyFlowFieldService.TryGetDirection(firstTarget.transform, firstAgent, out _, out _)
-                || EnemyFlowFieldService.BuildCount != 2
-                || EnemyFlowFieldService.CachedTargetCount != 1)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field target-cell rebuild contract failed");
-            }
-
-            RunWalkableArea secondArea = new RunWalkableArea(
-                cells,
-                6,
-                4,
-                10f,
-                0f,
-                1f);
-            RunWalkableContext.SetCurrent(secondArea);
-            firstTarget.transform.position = ResolveCellCenter(secondArea, 4, 2);
-            Vector3 secondAreaAgent = ResolveCellCenter(secondArea, 1, 2);
-            if (!EnemyFlowFieldService.TryGetDirection(firstTarget.transform, secondAreaAgent, out _, out _)
-                || EnemyFlowFieldService.BuildCount != 3
-                || EnemyFlowFieldService.CachedTargetCount != 1)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field map revision invalidation failed");
-            }
-
-            secondTarget = new GameObject("FlowFieldSharedTargetB");
-            secondTarget.transform.position = ResolveCellCenter(secondArea, 4, 1);
-            if (!EnemyFlowFieldService.TryGetDirection(secondTarget.transform, secondAreaAgent, out _, out _)
-                || EnemyFlowFieldService.BuildCount != 4
-                || EnemyFlowFieldService.CachedTargetCount != 2
-                || EnemyFlowFieldService.BuiltCellCountThisFrame > EnemyFlowFieldService.MaximumBuildCellsPerFrame)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field multi-target cache or frame budget failed");
-            }
-
-            EnemyFlowFieldService.SetEnabled(false);
-            if (EnemyFlowFieldService.TryGetDirection(firstTarget.transform, secondAreaAgent, out _, out _)
-                || EnemyFlowFieldService.CachedTargetCount != 0)
-            {
-                throw new System.InvalidOperationException("Shared Flow Field rollback switch did not clear and disable caches");
-            }
-
-            Debug.Log(
-                "[EnemyStatePatternPlayModeVerifier] Passed shared Flow Field cache, target/map rebuild, multi-target and rollback contracts");
-        }
-        finally
-        {
-            EnemyFlowFieldService.SetEnabled(true);
-            EnemyFlowFieldService.ClearCache();
-            RunWalkableContext.Clear();
-            if (firstTarget != null)
-                Object.DestroyImmediate(firstTarget);
-            if (secondTarget != null)
-                Object.DestroyImmediate(secondTarget);
-        }
-    }
 
     private static void VerifyFlowFieldChaseIntegrationContract()
     {
-        const string gruntPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab";
+        string gruntPath = FixtureMeleePath;
         const int width = 12;
         const int height = 7;
         GameObject longMonster = null;
@@ -2755,205 +1223,7 @@ public static class EnemyStatePatternPlayModeVerifier
         return new Vector3(center.x, y, center.y);
     }
 
-    private static void VerifyDensityApproachCoreRosterContract()
-    {
-        List<GameObject> monsters = new List<GameObject>();
-        Vector3 previousPlayerPosition = playerObject.transform.position;
-        try
-        {
-            EnemyAIController.SetDensityApproachSteeringEnabled(true);
-            playerObject.transform.position = Vector3.zero;
 
-            System.Reflection.MethodInfo resolveApproach = typeof(EnemyAIController).GetMethod(
-                "ResolveChaseDestination",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            System.Reflection.MethodInfo changeToChase = typeof(EnemyAIController).GetMethod(
-                "ChangeToChase",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            System.Reflection.MethodInfo fixedUpdate = typeof(EnemyMovement).GetMethod(
-                "FixedUpdate",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            if (resolveApproach == null || changeToChase == null || fixedUpdate == null)
-                throw new System.InvalidOperationException("Density Chase reflection hook missing");
-
-            EnemyAIController primaryAi = null;
-            EnemyMovement primaryMovement = null;
-            GameObject primaryMonster = null;
-            IReadOnlyList<string> allPaths = EnemyStatePatternPrefabFormalizer.TargetPrefabPaths;
-            const int firstCorePathIndex = 2;
-            int corePathCount = allPaths.Count - firstCorePathIndex;
-            for (int i = 0; i < corePathCount; i++)
-            {
-                string corePath = allPaths[firstCorePathIndex + i];
-                float angle = i * Mathf.PI * 2f / corePathCount;
-                Vector3 position = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 4f;
-                GameObject monster = InstantiateTacticMonster(corePath, position);
-                monsters.Add(monster);
-
-                EnemyAIController ai = RequireComponent<EnemyAIController>(monster);
-                ai.SetHomePosition(position);
-                ai.SetTarget(playerObject.transform);
-                if (!ai.UsesDensityApproachSteering)
-                    throw new System.InvalidOperationException("Core Murloc density approach is disabled: " + corePath);
-
-                Vector3 destination = (Vector3)resolveApproach.Invoke(ai, null);
-                Vector3 delta = destination - position;
-                delta.y = 0f;
-                if (!ai.IsDensityApproachActive
-                    || delta.magnitude < EnemyApproachSteering.MinimumShortHorizonDistance - 0.001f
-                    || delta.magnitude > EnemyApproachSteering.MaximumShortHorizonDistance + 0.001f)
-                {
-                    throw new System.InvalidOperationException(
-                        "Core Murloc did not use reservation-free short steering path=" + corePath
-                        + " active=" + ai.IsDensityApproachActive
-                        + " distance=" + delta.magnitude);
-                }
-
-                if (i == 0)
-                {
-                    primaryMonster = monster;
-                    primaryAi = ai;
-                    primaryMovement = RequireComponent<EnemyMovement>(monster);
-                }
-            }
-
-            string[] optOutPaths =
-            {
-                "Assets/ProjectOverburst/Resources/Enemies/PF_StageMonster.prefab",
-                "Assets/ProjectOverburst/Resources/Enemies/PF_StageMonster_FishmanTest.prefab"
-            };
-            for (int i = 0; i < optOutPaths.Length; i++)
-            {
-                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(optOutPaths[i]);
-                EnemyAIController ai = prefab != null ? prefab.GetComponent<EnemyAIController>() : null;
-                if (ai == null || ai.UsesDensityApproachSteering)
-                    throw new System.InvalidOperationException("Non-core density opt-out mismatch: " + optOutPaths[i]);
-            }
-
-            primaryAi.SetDensityApproachSteeringOptIn(false);
-            Vector3 individualOffDestination = (Vector3)resolveApproach.Invoke(primaryAi, null);
-            Vector3 individualOffDelta = individualOffDestination - primaryMonster.transform.position;
-            individualOffDelta.y = 0f;
-            if (primaryAi.UsesDensityApproachSteering
-                || primaryAi.IsDensityApproachActive
-                || individualOffDelta.magnitude <= EnemyApproachSteering.MaximumShortHorizonDistance)
-            {
-                throw new System.InvalidOperationException("Core Murloc individual density OFF did not use natural approach");
-            }
-
-            primaryAi.SetDensityApproachSteeringOptIn(true);
-            resolveApproach.Invoke(primaryAi, null);
-            if (!primaryAi.UsesDensityApproachSteering || !primaryAi.IsDensityApproachActive)
-                throw new System.InvalidOperationException("Core Murloc individual density ON did not restore steering");
-
-            int lockedTurnSign = primaryAi.CurrentDensityApproachTurnSign;
-            resolveApproach.Invoke(primaryAi, null);
-            if (lockedTurnSign == 0 || primaryAi.CurrentDensityApproachTurnSign != lockedTurnSign)
-                throw new System.InvalidOperationException("Density Chase turn lock changed inside one decision interval");
-
-            EnemyAIController.SetDensityApproachSteeringEnabled(false);
-            Vector3 rollbackDestination = (Vector3)resolveApproach.Invoke(primaryAi, null);
-            Vector3 rollbackDelta = rollbackDestination - primaryMonster.transform.position;
-            rollbackDelta.y = 0f;
-            if (primaryAi.UsesDensityApproachSteering
-                || primaryAi.IsDensityApproachActive
-                || rollbackDelta.magnitude <= EnemyApproachSteering.MaximumShortHorizonDistance)
-            {
-                throw new System.InvalidOperationException(
-                    "Density global rollback did not restore reservation-free natural approach active="
-                    + primaryAi.IsDensityApproachActive
-                    + " distance=" + rollbackDelta.magnitude);
-            }
-
-            EnemyAIController.SetDensityApproachSteeringEnabled(true);
-            resolveApproach.Invoke(primaryAi, null);
-            if (!primaryAi.IsDensityApproachActive)
-                throw new System.InvalidOperationException("Density steering did not resume after restoring the global switch");
-
-            changeToChase.Invoke(primaryAi, null);
-            EnemyLocomotionMode expectedMode = primaryAi.TargetDistance >= primaryAi.BehaviorProfile.RunApproachMinDistance
-                ? EnemyLocomotionMode.Run
-                : EnemyLocomotionMode.Walk;
-            RequireMovingLocomotion(primaryMovement, "Density Chase");
-            if (primaryMovement.LocomotionMode != expectedMode || primaryMovement.ActiveMoveSpeed <= 0f)
-            {
-                throw new System.InvalidOperationException(
-                    "Density Chase movement mode or animation speed contract failed expected=" + expectedMode
-                    + " actual=" + primaryMovement.LocomotionMode
-                    + " speed=" + primaryMovement.ActiveMoveSpeed);
-            }
-
-            Vector3 movementStart = primaryMonster.transform.position;
-            fixedUpdate.Invoke(primaryMovement, null);
-            Vector3 moved = primaryMonster.transform.position - movementStart;
-            moved.y = 0f;
-            if (moved.sqrMagnitude <= 0.000001f)
-                throw new System.InvalidOperationException("Density Chase locomotion command produced no movement");
-            RequireMovingLocomotion(primaryMovement, "Density Chase actual movement");
-
-            primaryMonster.transform.position = Vector3.forward * 1.5f;
-            primaryAi.SetHomePosition(primaryMonster.transform.position);
-            Physics.SyncTransforms();
-            InvokeAIUpdate(primaryAi);
-            if (primaryAi.CurrentStateName != "Attack" && primaryAi.CurrentStateName != "CombatWait")
-            {
-                throw new System.InvalidOperationException(
-                    "In-range density Chase did not prioritize Attack state=" + primaryAi.CurrentStateName);
-            }
-            if (primaryMovement.HasDestination)
-                throw new System.InvalidOperationException("In-range density Chase retained its short destination");
-
-            Debug.Log(
-                "[EnemyStatePatternPlayModeVerifier] Passed core Murlocs=" + corePathCount
-                + " density steering, individual/global natural rollback, locomotion and Attack priority");
-        }
-        finally
-        {
-            EnemyAIController.SetDensityApproachSteeringEnabled(true);
-            playerObject.transform.position = previousPlayerPosition;
-            for (int i = 0; i < monsters.Count; i++)
-            {
-                if (monsters[i] != null)
-                    Object.DestroyImmediate(monsters[i]);
-            }
-        }
-    }
-
-    private static void VerifyLegacySurroundRemovalContract()
-    {
-        const string plannerPath = "Assets/ProjectOverburst/03_Features/Enemies/Runtime/AI/EnemySurroundRingPlanner.cs";
-        if (AssetDatabase.LoadAssetAtPath<MonoScript>(plannerPath) != null)
-            throw new System.InvalidOperationException("Legacy surrounding planner asset still exists");
-
-        string[] removedMembers =
-        {
-            "AdaptiveSurroundingRingsEnabled",
-            "useAdaptiveSurroundingRings",
-            "UsesAdaptiveSurroundingRings",
-            "surroundDirection",
-            "surroundRingRadius",
-            "currentSurroundRingIndex",
-            "currentSurroundInnerCapacity",
-            "CurrentSurroundRingIndex",
-            "CurrentSurroundInnerCapacity",
-            "CurrentSurroundDestination",
-            "SetAdaptiveSurroundingRingsEnabled",
-            "ClearSurroundPlan"
-        };
-        System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Public
-            | System.Reflection.BindingFlags.NonPublic
-            | System.Reflection.BindingFlags.Instance
-            | System.Reflection.BindingFlags.Static
-            | System.Reflection.BindingFlags.DeclaredOnly;
-        System.Type controllerType = typeof(EnemyAIController);
-        for (int i = 0; i < removedMembers.Length; i++)
-        {
-            if (controllerType.GetMember(removedMembers[i], flags).Length > 0)
-                throw new System.InvalidOperationException("Legacy surrounding member still exists: " + removedMembers[i]);
-        }
-
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed legacy surrounding planner, fields and toggle removal");
-    }
 
     private static void VerifyInRangeChaseAttackPriority()
     {
@@ -2963,7 +1233,7 @@ public static class EnemyStatePatternPlayModeVerifier
         {
             playerObject.transform.position = Vector3.zero;
             monster = InstantiateTacticMonster(
-                "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                FixtureMeleePath,
                 Vector3.forward * 1.5f);
             EnemyAIController ai = RequireComponent<EnemyAIController>(monster);
             EnemyMovement movement = RequireComponent<EnemyMovement>(monster);
@@ -3000,7 +1270,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyEnemyStateDebugLabel()
     {
-        const string monsterPath = "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab";
+        string monsterPath = FixtureMeleePath;
         const string hpBarPath = "Assets/ProjectOverburst/Resources/UI/World/MonsterHpBars/PF_EnemyHpBar_Normal.prefab";
         GameObject monster = null;
         GameObject viewObject = null;
@@ -3063,38 +1333,7 @@ public static class EnemyStatePatternPlayModeVerifier
         }
     }
 
-    private static void VerifyBehaviorProfileMigration()
-    {
-        VerifyBehaviorProfile("Default", EnemyBehaviorTendency.Assault, EnemyRepositionStyle.Backpedal, 6f, false);
-        VerifyBehaviorProfile("Murloc_Grunt", EnemyBehaviorTendency.Assault, EnemyRepositionStyle.Dodge, 6f, false);
-        VerifyBehaviorProfile("Murloc_Scout", EnemyBehaviorTendency.Disruptor, EnemyRepositionStyle.Dodge, 4f, false);
-        VerifyBehaviorProfile("Murloc_Spearling", EnemyBehaviorTendency.Disruptor, EnemyRepositionStyle.Backpedal, 7f, false);
-        VerifyBehaviorProfile("Murloc_Guard", EnemyBehaviorTendency.Defender, EnemyRepositionStyle.Backpedal, 8f, true);
-        VerifyBehaviorProfile("Murloc_Brute", EnemyBehaviorTendency.Assault, EnemyRepositionStyle.Dodge, 7f, false);
-        VerifyBehaviorProfile("Murloc_Warlord", EnemyBehaviorTendency.Defender, EnemyRepositionStyle.Backpedal, 7f, true);
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed seven behavior profiles and three-tendency migration");
-    }
 
-    private static void VerifyBehaviorProfile(
-        string id,
-        EnemyBehaviorTendency tendency,
-        EnemyRepositionStyle repositionStyle,
-        float runApproachMinDistance,
-        bool hasShield)
-    {
-        string path = "Assets/ProjectOverburst/Resources/Enemies/BehaviorProfiles/EBP_" + id + ".asset";
-        EnemyBehaviorProfile profile = AssetDatabase.LoadAssetAtPath<EnemyBehaviorProfile>(path);
-        if (profile == null)
-            throw new System.InvalidOperationException("Behavior profile is missing: " + path);
-        if (profile.ProfileId != id
-            || profile.Tendency != tendency
-            || profile.RepositionStyle != repositionStyle
-            || profile.HasShield != hasShield
-            || !Mathf.Approximately(profile.RunApproachMinDistance, runApproachMinDistance))
-        {
-            throw new System.InvalidOperationException("Behavior profile migration mismatch: " + path);
-        }
-    }
 
     private static void VerifyTacticalDecisions()
     {
@@ -3121,7 +1360,6 @@ public static class EnemyStatePatternPlayModeVerifier
         {
             throw new System.InvalidOperationException("Squad simulator distance-only aggro acquisition contract mismatch");
         }
-        VerifyPartyTargetPhasePolicy();
         Rect simulatorView = new Rect(0f, 0f, 800f, 600f);
         Vector3 simulatorCenter = new Vector3(7f, 0f, -4f);
         Vector3 simulatorWorld = new Vector3(18f, 0f, 13f);
@@ -3144,206 +1382,10 @@ public static class EnemyStatePatternPlayModeVerifier
         VerifyDistanceBasedChaseDecision();
         VerifyDisruptorSideApproach();
         VerifyLowHealthRepositionDecision();
-        VerifyDodgeDecision();
         Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed three-tendency distance-based combat decisions");
     }
 
-    private static void VerifyPartyTargetPhasePolicy()
-    {
-        const float enemyRadius = 0.4f;
-        const float memberRadius = 0.5f;
-        const float memberEngageRange = 2.5f;
-        float engageCenterRadius = EnemyCombatCoordinator.ResolveMemberEngageCenterRadius(
-            enemyRadius,
-            memberRadius,
-            memberEngageRange);
-        if (!Mathf.Approximately(engageCenterRadius, 3.4f)
-            || !EnemyCombatCoordinator.IsInsideMemberEngageRange(
-                Vector3.zero,
-                enemyRadius,
-                Vector3.right * engageCenterRadius,
-                memberRadius,
-                memberEngageRange)
-            || EnemyCombatCoordinator.IsInsideMemberEngageRange(
-                Vector3.zero,
-                enemyRadius,
-                Vector3.right * (engageCenterRadius + 0.001f),
-                memberRadius,
-                memberEngageRange))
-        {
-            throw new System.InvalidOperationException(
-                "MemberEngage orange-zone center radius does not match the runtime surface-distance boundary");
-        }
 
-        var farCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f),
-            new EnemyPartyTargetCandidate(1, true, false, false, 8f),
-            new EnemyPartyTargetCandidate(2, true, false, false, 9f)
-        };
-        EnemyPartyTargetDecision farDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            new EnemyPartyTargetDecision(EnemyPartyTargetPhase.None, -1),
-            0,
-            farCandidates);
-        RequirePartyTargetDecision(
-            farDecision,
-            EnemyPartyTargetPhase.LeaderApproach,
-            0,
-            "Far party candidates must all approach P1");
-
-        var nearP2Candidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f),
-            new EnemyPartyTargetCandidate(1, true, true, false, 0.25f),
-            new EnemyPartyTargetCandidate(2, true, false, false, 8f)
-        };
-        EnemyPartyTargetDecision nearP2Decision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            0,
-            nearP2Candidates);
-        RequirePartyTargetDecision(
-            nearP2Decision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            1,
-            "Only the enemy inside P2 engage range may lock P2");
-
-        var nearDirectAttackerCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, true, false, 0.1f),
-            new EnemyPartyTargetCandidate(1, true, true, true, 0.8f),
-            new EnemyPartyTargetCandidate(2, true, true, false, 0.4f)
-        };
-        EnemyPartyTargetDecision nearDirectAttackerDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            0,
-            nearDirectAttackerCandidates);
-        RequirePartyTargetDecision(
-            nearDirectAttackerDecision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            1,
-            "An in-range direct attacker must beat closer non-attacker candidates");
-
-        var nearestSurfaceCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, true, false, 1.2f),
-            new EnemyPartyTargetCandidate(1, true, true, false, 0.3f),
-            new EnemyPartyTargetCandidate(2, true, true, false, 0.8f)
-        };
-        EnemyPartyTargetDecision nearestSurfaceDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            0,
-            nearestSurfaceCandidates);
-        RequirePartyTargetDecision(
-            nearestSurfaceDecision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            1,
-            "Without a direct attacker the nearest surface-distance candidate must win");
-
-        var equalDistanceCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(2, true, true, false, 0.5f),
-            new EnemyPartyTargetCandidate(1, true, true, false, 0.5f),
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f)
-        };
-        EnemyPartyTargetDecision equalDistanceDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            0,
-            equalDistanceCandidates);
-        RequirePartyTargetDecision(
-            equalDistanceDecision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            1,
-            "Equal surface-distance candidates must use the lowest MemberIndex");
-
-        var farDirectAttackerCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f),
-            new EnemyPartyTargetCandidate(1, true, false, true, 8f),
-            new EnemyPartyTargetCandidate(2, true, false, false, 9f)
-        };
-        EnemyPartyTargetDecision farDirectAttackerDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            0,
-            farDirectAttackerCandidates);
-        RequirePartyTargetDecision(
-            farDirectAttackerDecision,
-            EnemyPartyTargetPhase.LeaderApproach,
-            0,
-            "A direct attacker outside engage range must not replace P1");
-
-        EnemyPartyTargetDecision invalidLock = new EnemyPartyTargetDecision(
-            EnemyPartyTargetPhase.MemberEngaged,
-            1);
-        var fallbackNearCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f),
-            new EnemyPartyTargetCandidate(1, false, false, false, float.PositiveInfinity),
-            new EnemyPartyTargetCandidate(2, true, true, false, 0.4f)
-        };
-        EnemyPartyTargetDecision nearFallbackDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            invalidLock,
-            0,
-            fallbackNearCandidates);
-        RequirePartyTargetDecision(
-            nearFallbackDecision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            2,
-            "An invalid lock must prefer another nearby party member");
-
-        var invalidNoNearCandidates = new List<EnemyPartyTargetCandidate>
-        {
-            new EnemyPartyTargetCandidate(0, true, false, false, 7f),
-            new EnemyPartyTargetCandidate(1, false, false, false, float.PositiveInfinity),
-            new EnemyPartyTargetCandidate(2, true, false, false, 9f)
-        };
-        EnemyPartyTargetDecision leaderFallbackDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            invalidLock,
-            2,
-            invalidNoNearCandidates);
-        RequirePartyTargetDecision(
-            leaderFallbackDecision,
-            EnemyPartyTargetPhase.LeaderApproach,
-            2,
-            "An invalid lock without a nearby candidate must use the current leader");
-
-        EnemyPartyTargetDecision reboundLeaderDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            farDecision,
-            2,
-            farCandidates);
-        RequirePartyTargetDecision(
-            reboundLeaderDecision,
-            EnemyPartyTargetPhase.LeaderApproach,
-            2,
-            "Leader change must rebind LeaderApproach");
-
-        EnemyPartyTargetDecision preservedLockDecision = EnemyCombatCoordinator.ResolvePartyTargetPhase(
-            nearP2Decision,
-            2,
-            nearP2Candidates);
-        RequirePartyTargetDecision(
-            preservedLockDecision,
-            EnemyPartyTargetPhase.MemberEngaged,
-            1,
-            "Leader change must preserve a valid MemberEngaged lock");
-
-        Debug.Log(
-            "[EnemyStatePatternPlayModeVerifier] Passed party target direct-attacker, surface-distance and MemberIndex priority");
-    }
-
-    private static void RequirePartyTargetDecision(
-        EnemyPartyTargetDecision decision,
-        EnemyPartyTargetPhase expectedPhase,
-        int expectedMemberIndex,
-        string message)
-    {
-        if (decision.Phase != expectedPhase || decision.TargetMemberIndex != expectedMemberIndex)
-        {
-            throw new System.InvalidOperationException(
-                message
-                + ". phase=" + decision.Phase
-                + " member=" + decision.TargetMemberIndex);
-        }
-    }
 
     private static void VerifyCombatCoordination()
     {
@@ -3377,7 +1419,7 @@ public static class EnemyStatePatternPlayModeVerifier
                 float angle = i * Mathf.PI * 2f / enemyCount;
                 Vector3 position = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 8f;
                 GameObject monster = InstantiateTacticMonster(
-                    "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                    FixtureMeleePath,
                     position);
                 monsters.Add(monster);
 
@@ -3576,7 +1618,7 @@ public static class EnemyStatePatternPlayModeVerifier
                 float angle = i * Mathf.PI * 2f / enemyCount;
                 Vector3 position = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.5f;
                 GameObject monster = InstantiateTacticMonster(
-                    "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab",
+                    FixtureMeleePath,
                     position);
                 monsters.Add(monster);
 
@@ -3626,7 +1668,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyRoamPatrolMode()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Scout.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateTacticProfile(EnemyBehaviorTendency.Disruptor, EnemyRepositionStyle.Dodge, 1f);
         profile.ConfigurePeace(1f, 5f, 0.7f);
         try
@@ -3672,7 +1714,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyOutsideDetectionRangeRemainsRoam()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateAwarenessProfile(0.55f, 12f);
         try
         {
@@ -3690,7 +1732,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyInsideDetectionRangeStartsChase()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateAwarenessProfile(0.55f, 12f);
         try
         {
@@ -3708,8 +1750,8 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyDiscoverySupportCall()
     {
-        GameObject caller = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
-        GameObject receiver = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Guard.prefab", Vector3.right * 3f);
+        GameObject caller = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
+        GameObject receiver = InstantiateTacticMonster(FixtureMediumPath, Vector3.right * 3f);
         EnemyBehaviorProfile callerProfile = CreateAwarenessProfile(0.55f, 12f);
         EnemyBehaviorProfile receiverProfile = CreateAwarenessProfile(0.5f, 12f);
         try
@@ -3736,7 +1778,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyOcclusionDoesNotBlockDistanceAggro()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         GameObject obstacle = GameObject.CreatePrimitive(PrimitiveType.Cube);
         EnemyBehaviorProfile profile = CreateAwarenessProfile(0.55f, 12f);
         try
@@ -3794,73 +1836,7 @@ public static class EnemyStatePatternPlayModeVerifier
         evaluate.Invoke(ai, null);
     }
 
-    private static void VerifyRunUsesInPlaceClip()
-    {
-        const string controllerPath = "Assets/ProjectOverburst/03_Features/Enemies/Animations/Fishman/AC_Enemy_Fishman.controller";
-        const string inPlaceWalkPath = "Assets/ProjectOverburst/03_Features/Enemies/Animations/Fishman/InPlace/Fishman_Walk_InPlace.anim";
-        AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
-        AnimationClip inPlaceWalk = AssetDatabase.LoadAssetAtPath<AnimationClip>(inPlaceWalkPath);
-        if (controller == null || inPlaceWalk == null)
-            throw new System.InvalidOperationException("Fishman InPlace locomotion assets are missing");
 
-        VerifyInPlaceTranslationCurves(inPlaceWalk);
-        bool runFound = false;
-        AnimatorControllerLayer[] layers = controller.layers;
-        for (int layerIndex = 0; layerIndex < layers.Length; layerIndex++)
-        {
-            ChildAnimatorState[] states = layers[layerIndex].stateMachine.states;
-            for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
-            {
-                if (states[stateIndex].state == null
-                    || states[stateIndex].state.name != "Locomotion"
-                    || !(states[stateIndex].state.motion is BlendTree blendTree))
-                    continue;
-
-                ChildMotion[] children = blendTree.children;
-                for (int childIndex = 0; childIndex < children.Length; childIndex++)
-                {
-                    if (!Mathf.Approximately(children[childIndex].threshold, 2f))
-                        continue;
-
-                    runFound = true;
-                    if (children[childIndex].motion != inPlaceWalk)
-                        throw new System.InvalidOperationException("Run must reuse the verified Fishman InPlace Walk clip");
-                }
-            }
-        }
-
-        if (!runFound)
-            throw new System.InvalidOperationException("Fishman Locomotion Run threshold is missing");
-
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed Run InPlace clip contract");
-    }
-
-    private static void VerifyInPlaceTranslationCurves(AnimationClip clip)
-    {
-        EditorCurveBinding[] bindings = AnimationUtility.GetCurveBindings(clip);
-        for (int bindingIndex = 0; bindingIndex < bindings.Length; bindingIndex++)
-        {
-            EditorCurveBinding binding = bindings[bindingIndex];
-            if (!IsRootXZTranslation(binding))
-                continue;
-
-            AnimationCurve curve = AnimationUtility.GetEditorCurve(clip, binding);
-            if (curve == null || curve.length <= 1)
-                continue;
-
-            float minimum = float.PositiveInfinity;
-            float maximum = float.NegativeInfinity;
-            for (int keyIndex = 0; keyIndex < curve.length; keyIndex++)
-            {
-                minimum = Mathf.Min(minimum, curve.keys[keyIndex].value);
-                maximum = Mathf.Max(maximum, curve.keys[keyIndex].value);
-            }
-
-            if (maximum - minimum > 0.001f)
-                throw new System.InvalidOperationException(
-                    "Fishman InPlace clip contains rollback translation. path=" + binding.path + " property=" + binding.propertyName);
-        }
-    }
 
     private static bool IsRootXZTranslation(EditorCurveBinding binding)
     {
@@ -3889,7 +1865,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyDistanceBasedChaseDecision()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Brute.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMediumPath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateTacticProfile(EnemyBehaviorTendency.Assault, EnemyRepositionStyle.Backpedal, 0.5f);
         profile.ConfigureRunApproach(4f);
         try
@@ -3916,7 +1892,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyDisruptorSideApproach()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Scout.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateTacticProfile(EnemyBehaviorTendency.Disruptor, EnemyRepositionStyle.Backpedal, 0.5f);
         profile.ConfigureRunApproach(10f);
         profile.ConfigureApproach(1.35f, 60f, 1.5f, 1f);
@@ -3955,7 +1931,7 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static void VerifyLowHealthRepositionDecision()
     {
-        GameObject monster = InstantiateTacticMonster("Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Spearling.prefab", Vector3.zero);
+        GameObject monster = InstantiateTacticMonster(FixtureMeleePath, Vector3.zero);
         EnemyBehaviorProfile profile = CreateTacticProfile(
             EnemyBehaviorTendency.Disruptor,
             EnemyRepositionStyle.Backpedal,
@@ -3980,55 +1956,7 @@ public static class EnemyStatePatternPlayModeVerifier
         }
     }
 
-    private static void VerifyDodgeDecision()
-    {
-        VerifyDodgeDecision(
-            "Murloc_Grunt",
-            "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Grunt.prefab");
-        VerifyDodgeDecision(
-            "Murloc_Scout",
-            "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Scout.prefab");
-        VerifyDodgeDecision(
-            "Murloc_Brute",
-            "Assets/ProjectOverburst/Resources/Enemies/Murloc/PF_StageMonster_Murloc_Brute.prefab");
-    }
 
-    private static void VerifyDodgeDecision(string id, string prefabPath)
-    {
-        GameObject monster = InstantiateTacticMonster(prefabPath, Vector3.zero);
-        EnemyBehaviorProfile sourceProfile = AssetDatabase.LoadAssetAtPath<EnemyBehaviorProfile>(
-            "Assets/ProjectOverburst/Resources/Enemies/BehaviorProfiles/EBP_" + id + ".asset");
-        if (sourceProfile == null)
-            throw new System.InvalidOperationException("Dodge verification profile missing: " + id);
-        EnemyBehaviorProfile profile = Object.Instantiate(sourceProfile);
-        profile.ConfigureDodgeLunge(
-            sourceProfile.DodgeLungeMinDistance,
-            sourceProfile.DodgeLungeMaxDistance,
-            sourceProfile.DodgeLungeDistance,
-            sourceProfile.DodgeLungeDuration,
-            sourceProfile.DodgeLungeCooldown,
-            1f,
-            sourceProfile.DodgeVisualHeight);
-
-        try
-        {
-            EnemyAIController ai = RequireComponent<EnemyAIController>(monster);
-            EnemyMovement movement = RequireComponent<EnemyMovement>(monster);
-            float triggerDistance = (profile.DodgeLungeMinDistance + profile.DodgeLungeMaxDistance) * 0.5f;
-            playerObject.transform.position = Vector3.forward * triggerDistance;
-            PrepareTacticDecision(ai, profile);
-            InvokeAIUpdate(ai);
-            if (ai.CurrentStateName != "Reposition" || movement.LocomotionMode != EnemyLocomotionMode.Dodge)
-                throw new System.InvalidOperationException(id + " did not select forward Dodge lunge. state=" + ai.CurrentStateName + " mode=" + movement.LocomotionMode);
-            if (movement.ActiveMoveSpeed <= movement.MoveSpeed || movement.ActiveMoveSpeed > 2.5f)
-                throw new System.InvalidOperationException(id + " Dodge speed is outside the readable range. walk=" + movement.MoveSpeed + " dodge=" + movement.ActiveMoveSpeed);
-        }
-        finally
-        {
-            Object.DestroyImmediate(profile);
-            Object.DestroyImmediate(monster);
-        }
-    }
 
     private static GameObject InstantiateTacticMonster(string path, Vector3 position)
     {
@@ -4104,7 +2032,7 @@ public static class EnemyStatePatternPlayModeVerifier
         if (monsterObject != null)
             Object.DestroyImmediate(monsterObject);
 
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyStatePatternPrefabFormalizer.TargetPrefabPaths[0]);
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(FixturePrefabPaths[0]);
         if (prefab == null)
             throw new System.InvalidOperationException("Hit reaction verification prefab is missing");
 
@@ -4140,7 +2068,7 @@ public static class EnemyStatePatternPlayModeVerifier
         playerHealth.ResetHealth();
         playerObject.transform.position = new Vector3(0f, 0f, 20f);
 
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyStatePatternPrefabFormalizer.TargetPrefabPaths[2]);
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(FixturePrefabPaths[0]);
         if (prefab == null)
             throw new System.InvalidOperationException("Group aggro verification prefab is missing");
 
@@ -4174,7 +2102,7 @@ public static class EnemyStatePatternPlayModeVerifier
         if (monsterObject != null)
             Object.DestroyImmediate(monsterObject);
 
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyStatePatternPrefabFormalizer.TargetPrefabPaths[1]);
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(FixturePrefabPaths[1]);
         if (prefab == null)
             throw new System.InvalidOperationException("Repeated hit animation verification prefab is missing");
 
@@ -4215,61 +2143,6 @@ public static class EnemyStatePatternPlayModeVerifier
         return true;
     }
 
-    private static void VerifyHideoutDebugSpawnerToggle()
-    {
-        if (groupMonsterA != null)
-            Object.DestroyImmediate(groupMonsterA);
-        if (groupMonsterB != null)
-            Object.DestroyImmediate(groupMonsterB);
-        if (groupAreaObject != null)
-            Object.DestroyImmediate(groupAreaObject);
-
-        playerHealth.ResetHealth();
-        playerObject.transform.position = Vector3.zero;
-
-        GameObject spawnerObject = new GameObject("EnemyAI_VerificationHideoutDebugSpawner");
-        HideoutMonsterSpawnDebugController spawnPoint = spawnerObject.AddComponent<HideoutMonsterSpawnDebugController>();
-        GameObject enemyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyStatePatternPrefabFormalizer.TargetPrefabPaths[0]);
-        SerializedObject serializedSpawner = new SerializedObject(spawnPoint);
-        SerializedProperty spawnConfig = serializedSpawner.FindProperty("spawnConfig");
-        MurlocSpawnPackConfigBuilder.ConfigureSharedSpawnConfig(spawnConfig);
-        VerifyConfiguredSpawnPacks(spawnConfig, "Hideout");
-        spawnConfig.FindPropertyRelative("detectionRange").floatValue = 10f;
-        spawnConfig.FindPropertyRelative("stopDistance").floatValue = 1.5f;
-        serializedSpawner.FindProperty("spawnRadius").floatValue = 20f;
-        serializedSpawner.ApplyModifiedPropertiesWithoutUndo();
-
-        CombatDebugSettings.SetHideoutMonsterSpawn(false);
-        if (spawnPoint.TrySpawnPackNow() != 0)
-            throw new System.InvalidOperationException("Hideout debug spawner created monsters while toggle was off");
-
-        CombatDebugSettings.SetHideoutMonsterSpawn(true);
-        int firstSpawned = spawnPoint.TrySpawnPackNow();
-        if (firstSpawned <= 0)
-            throw new System.InvalidOperationException("Hideout debug spawner did not create a configured spawn pack");
-
-        int firstChildCount = spawnerObject.transform.childCount;
-        int secondSpawned = spawnPoint.TrySpawnPackNow();
-        if (secondSpawned <= 0 || spawnerObject.transform.childCount <= firstChildCount)
-            throw new System.InvalidOperationException("Hideout debug spawner did not continue without a spawn cap");
-
-        int childCount = spawnerObject.transform.childCount;
-        CombatDebugSettings.SetHideoutMonsterSpawn(false);
-        if (spawnPoint.TrySpawnPackNow() != 0 || spawnerObject.transform.childCount != childCount)
-            throw new System.InvalidOperationException("Hideout debug spawner did not stop cleanly");
-
-        for (int i = 0; i < spawnerObject.transform.childCount; i++)
-        {
-            GameObject spawnedMonster = spawnerObject.transform.GetChild(i).gameObject;
-            RequireComponent<EnemyAIController>(spawnedMonster);
-            RequireComponent<EnemySensor>(spawnedMonster);
-            RequireComponent<EnemyMovement>(spawnedMonster);
-            RequireComponent<EnemyMeleeAttackController>(spawnedMonster);
-            RequireComponent<EnemyLootDropper>(spawnedMonster);
-        }
-        Object.DestroyImmediate(spawnerObject);
-        Debug.Log("[EnemyStatePatternPlayModeVerifier] Passed Hideout five-pack unlimited spawn toggle on/off");
-    }
 
     private static void MovePlayerAndWait(Vector3 position, VerifyStep nextStep, int frames, float seconds)
     {
@@ -4278,54 +2151,6 @@ public static class EnemyStatePatternPlayModeVerifier
         WaitFor(nextStep, frames, seconds);
     }
 
-    private static void VerifyConfiguredSpawnPacks(SerializedProperty spawnConfig, string context)
-    {
-        if (spawnConfig == null)
-            throw new System.InvalidOperationException(context + " spawn config is missing");
-
-        SerializedProperty enemyPrefabs = spawnConfig.FindPropertyRelative("enemyPrefabs");
-        if (enemyPrefabs == null || !enemyPrefabs.isArray || enemyPrefabs.arraySize != 6)
-            throw new System.InvalidOperationException(context + " expected six core murloc prefabs");
-
-        string[] expectedPackIds =
-        {
-            "Murloc_BasicMob",
-            "Murloc_ScoutPack",
-            "Murloc_ShieldLine",
-            "Murloc_BruteRaid",
-            "Murloc_WarlordEscort"
-        };
-        SerializedProperty packs = spawnConfig.FindPropertyRelative("spawnPacks");
-        if (packs == null || !packs.isArray || packs.arraySize != expectedPackIds.Length)
-            throw new System.InvalidOperationException(context + " expected five spawn packs");
-
-        for (int packIndex = 0; packIndex < packs.arraySize; packIndex++)
-        {
-            SerializedProperty pack = packs.GetArrayElementAtIndex(packIndex);
-            string packId = pack.FindPropertyRelative("packId")?.stringValue;
-            SerializedProperty entries = pack.FindPropertyRelative("entries");
-            if (packId != expectedPackIds[packIndex]
-                || entries == null
-                || !entries.isArray
-                || entries.arraySize <= 0)
-            {
-                throw new System.InvalidOperationException(context + " spawn pack contract mismatch: " + packIndex);
-            }
-
-            for (int entryIndex = 0; entryIndex < entries.arraySize; entryIndex++)
-            {
-                SerializedProperty prefab = entries.GetArrayElementAtIndex(entryIndex).FindPropertyRelative("prefab");
-                if (prefab == null || prefab.objectReferenceValue == null)
-                    throw new System.InvalidOperationException(context + " spawn pack prefab is missing: " + packId);
-            }
-        }
-
-        if (spawnConfig.FindPropertyRelative("respawnWaveCount")?.intValue != 6
-            || !Mathf.Approximately(spawnConfig.FindPropertyRelative("respawnWaveInterval")?.floatValue ?? 0f, 5f))
-        {
-            throw new System.InvalidOperationException(context + " respawn sequence contract mismatch");
-        }
-    }
 
     private static void WaitFor(VerifyStep nextStep, int frames, float seconds)
     {
@@ -4578,16 +2403,16 @@ public static class EnemyStatePatternPlayModeVerifier
 
     private static string CurrentPath()
     {
-        IReadOnlyList<string> paths = EnemyStatePatternPrefabFormalizer.TargetPrefabPaths;
+        IReadOnlyList<string> paths = FixturePrefabPaths;
         return prefabIndex >= 0 && prefabIndex < paths.Count ? paths[prefabIndex] : "<complete>";
     }
 
     private static void CompleteSuccessfully()
     {
-        if (passedPrefabs.Count != EnemyStatePatternPrefabFormalizer.TargetPrefabPaths.Count)
+        if (passedPrefabs.Count != FixturePrefabPaths.Length)
         {
             Fail(new System.InvalidOperationException(
-                "Expected " + EnemyStatePatternPrefabFormalizer.TargetPrefabPaths.Count + " passed prefabs but got " + passedPrefabs.Count));
+                "Expected " + FixturePrefabPaths.Length + " passed prefabs but got " + passedPrefabs.Count));
             return;
         }
 
