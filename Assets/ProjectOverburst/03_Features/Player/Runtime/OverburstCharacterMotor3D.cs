@@ -62,6 +62,12 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private const int GroundProbeCapacity = 8;
     private const int HeightQueryCapacity = 32;
     private const float DefaultSkinWidthRadiusRatio = 0.1f;
+    // 2026-09-30: 적 몸은 바닥이 아니다. CharacterController는 발판 높이·경사 한도 안이면 적 캡슐도 딛고 올라선다.
+    // 이번 이동에서 발밑에 적 몸만 닿았으면 접지로 보지 않고 적 바깥쪽으로 미끄러뜨린다.
+    private const string EnemyPhysicalLayerName = "Enemy";
+    private const float SupportContactMinNormalY = 0.3f;
+    private const float EnemySlideOffSpeed = 4f;
+    private const float EnemySupportMaxFallSpeed = 2f;
 
     [SerializeField] private PlayerMovement movement;
 
@@ -97,6 +103,12 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private float lastAirVerticalVelocity;
     private bool didLandThisStep;
     private float landingFallSpeed;
+    private int enemyLayerMask = -1;
+    private bool trackingSupportContacts;
+    private bool enemySupportContact;
+    private bool groundSupportContact;
+    private Vector3 enemySupportCenter;
+    private bool standingOnEnemy;
 
     public CharacterController Controller
     {
@@ -121,6 +133,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     public bool GroundSnapActive => groundSnapActive;
     public bool DidLandThisStep => didLandThisStep;
     public float LandingFallSpeed => landingFallSpeed;
+    public bool StandingOnEnemy => standingOnEnemy;
     public Vector3 ExternalVelocity => externalVelocity;
     public Transform CurrentPlatform => currentPlatform;
     public Vector3 PlatformVelocity => platformVelocity;
@@ -215,7 +228,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     {
         EnsureInitialized();
         bool wasGrounded = isGrounded;
-        bool controllerGrounded = controller != null && controller.isGrounded;
+        bool controllerGrounded = controller != null && controller.isGrounded && !standingOnEnemy;
         hasWalkableGround = TryProbeWalkableGround(out RaycastHit groundHit, out groundGap);
         bool withinContact = hasWalkableGround && groundGap <= GroundContactTolerance;
         groundSnapActive = !jumpStartedThisStep
@@ -285,7 +298,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         ApplyPlatformRotation(platformRotationDelta);
         ResolveExternalCollisions(flags);
         DecayExternalVelocity(safeDeltaTime);
-        bool controllerGrounded = controller.isGrounded || (flags & CollisionFlags.Below) != 0;
+        bool controllerGrounded = (controller.isGrounded && !standingOnEnemy) || (flags & CollisionFlags.Below) != 0;
         bool followedGround = RefreshGroundAfterMove(startedGrounded, controllerGrounded);
         isGrounded = controllerGrounded || followedGround;
         groundSnapActive = followedGround && !controllerGrounded;
@@ -329,7 +342,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
             return;
 
         CollisionFlags flags = ExecuteMove(displacement);
-        isGrounded = controller.isGrounded || (flags & CollisionFlags.Below) != 0;
+        isGrounded = (controller.isGrounded && !standingOnEnemy) || (flags & CollisionFlags.Below) != 0;
         ResolveExternalCollisions(flags);
         ReanchorPlatform();
     }
@@ -417,6 +430,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         groundGap = float.PositiveInfinity;
         hasWalkableGround = false;
         groundSnapActive = false;
+        standingOnEnemy = false;
         DetachFromPlatformInternal(false, true);
     }
 
@@ -814,9 +828,64 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         if (controller == null || !controller.enabled)
             return CollisionFlags.None;
 
+        trackingSupportContacts = true;
+        enemySupportContact = false;
+        groundSupportContact = false;
         CollisionFlags flags = controller.Move(displacement);
+        trackingSupportContacts = false;
+        standingOnEnemy = enemySupportContact && !groundSupportContact;
+        if (standingOnEnemy)
+        {
+            flags &= ~CollisionFlags.Below; // 적 몸은 접지로 보지 않는다
+            SlideOffEnemy();
+        }
         CombatTargetRegistry.NotifySpatialChanged(transform);
         return flags;
+    }
+
+    // CharacterController.Move 중 닿은 면마다 호출된다. 발밑(윗방향 법선) 접촉만 적 몸과 그 밖으로 나눈다.
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (!trackingSupportContacts || hit.collider == null || hit.normal.y < SupportContactMinNormalY)
+            return;
+
+        if (IsEnemyBody(hit.collider))
+        {
+            enemySupportContact = true;
+            enemySupportCenter = hit.collider.bounds.center;
+        }
+        else
+        {
+            groundSupportContact = true;
+        }
+    }
+
+    private bool IsEnemyBody(Collider candidate)
+    {
+        if (enemyLayerMask < 0)
+        {
+            int layer = LayerMask.NameToLayer(EnemyPhysicalLayerName);
+            enemyLayerMask = layer >= 0 ? 1 << layer : 0;
+        }
+        return (enemyLayerMask & (1 << candidate.gameObject.layer)) != 0;
+    }
+
+    // 적 몸 위에 올라섰으면 적 중심 반대쪽으로 밀어내고, 그동안 낙하 속도가 쌓이지 않게 한다.
+    private void SlideOffEnemy()
+    {
+        if (verticalVelocity < -EnemySupportMaxFallSpeed)
+            verticalVelocity = -EnemySupportMaxFallSpeed;
+
+        Vector3 away = transform.position - enemySupportCenter;
+        away.y = 0f;
+        if (away.sqrMagnitude <= 0.0001f)
+        {
+            away = -transform.forward;
+            away.y = 0f;
+        }
+        float step = EnemySlideOffSpeed * Mathf.Max(0f, Time.deltaTime);
+        if (away.sqrMagnitude > 0.0001f && step > 0f)
+            controller.Move(away.normalized * step);
     }
 
     private static Vector3 Planar(Vector3 value)
