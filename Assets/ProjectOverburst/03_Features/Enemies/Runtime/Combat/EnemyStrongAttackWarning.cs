@@ -19,6 +19,14 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private int activeTelegraph = -1;
     private static EnemyTelegraphVisualLibrary telegraphLibrary;
     private static Camera signalCamera;
+    private static readonly HashSet<EnemyStrongAttackWarning> ThreatSignals = new HashSet<EnemyStrongAttackWarning>();
+    private bool signalPlayed;
+    // Registered by PlayerParryController; the warning never searches the scene for it.
+    public static CombatTarget PlayerTarget { get; set; }
+    // Parry-ready signals that are about to hit the player. Read by the player-side cue.
+    public static int ActiveThreatSignalCount => ThreatSignals.Count;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() { ThreatSignals.Clear(); PlayerTarget = null; }
     public bool IsVisible => visual != null && visual.activeSelf;
     public bool FinalSignal { get; private set; }
 
@@ -35,7 +43,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         radius = size;
         corridorHalfWidth = Mathf.Max(.01f, halfWidth);
         visual.transform.localRotation = Quaternion.identity;
-        parryable = canParry; FinalSignal = false;
+        parryable = canParry; FinalSignal = false; signalPlayed = false;
         if (canParry)
         {
             signalSocketIndex = signalSequence++ % 3;
@@ -148,18 +156,24 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         visual.transform.position = new Vector3(worldPosition.x,
             transform.position.y + .045f, worldPosition.z);
     }
-    public void SetRemaining(float seconds)
+    public void SetRemaining(float seconds) => SetRemaining(seconds, true);
+
+    // threatensPlayer: 간이 판정으로 플레이어를 때릴 공격만 빛·핑을 낸다(수십 마리 전투의 신호 난립 방지).
+    public void SetRemaining(float seconds, bool threatensPlayer)
     {
         if (visual == null) return;
         if (seconds < -.08f) { Hide(); return; }
-        if (!FinalSignal && seconds <= .50f && parryable)
+        FinalSignal = seconds <= EnemyAbilityController.ParryLeadSeconds;
+        bool threat = FinalSignal && parryable && threatensPlayer;
+        if (threat) ThreatSignals.Add(this); else ThreatSignals.Remove(this);
+        if (threat && !signalPlayed)
         {
+            signalPlayed = true;
             PositionSignal();
             signalFeel?.PlayFeedbacks(signalParticles.transform.position);
             CombatActionSfxService.PlayStrongWarning(transform.position);
         }
-        FinalSignal = seconds <= .50f;
-        if (FinalSignal && parryable) PositionSignal();
+        if (signalPlayed) PositionSignal();
         visual.transform.localScale = new Vector3(radius, 1f, radius);
     }
     private void EnsureSignal()
@@ -173,8 +187,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         var main = signalParticles.main;
         main.playOnAwake = false;
         main.loop = false;
-        main.duration = .55f;
-        main.startLifetime = .55f;
+        main.duration = .70f;
+        main.startLifetime = .70f;
         main.startSpeed = 0f;
         main.startSize = 3.2f;
         main.startColor = new Color(4f, 3.2f, 1.7f, 1f);
@@ -212,7 +226,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         signalFeel = point.AddComponent<MMF_Player>();
         signalFeel.FeedbacksList = new List<MMF_Feedback>
         {
-            new MMF_Particles { BoundParticleSystem = signalParticles, DeclaredDuration = .55f }
+            new MMF_Particles { BoundParticleSystem = signalParticles, DeclaredDuration = .70f }
         };
         // In an Editor preview Awake may not run; FEEL normally creates Events there.
         if (signalFeel.Events == null)
@@ -243,6 +257,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     }
     public void Hide()
     {
+        ThreatSignals.Remove(this);
+        signalPlayed = false;
         StopTelegraph();
         if (visual != null) visual.SetActive(false);
         signalFeel?.StopFeedbacks();

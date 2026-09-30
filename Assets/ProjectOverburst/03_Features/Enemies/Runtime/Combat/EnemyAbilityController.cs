@@ -39,12 +39,14 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             return IsExecuting && reaction != null && reaction.CanActThroughOrdinaryHit;
         }
     }
+    // 2026-09-30: 핵앤슬래시 기준으로 인정 구간을 첫 타격 0.70초 전부터 연다(신호와 동일).
+    public const float ParryLeadSeconds = .70f;
     public bool IsParryThreatTo(CombatTarget player)
     {
         EnemyAbilityDefinition ability = lastCommittedAbility;
         if (player == null || ability == null || !ability.IsParryable
             || !IsExecuting || finalImpactDelivered
-            || Time.time < firstImpactAt - .50f || Time.time > lastImpactAt + .03f)
+            || Time.time < firstImpactAt - ParryLeadSeconds || Time.time > lastImpactAt + .03f)
             return false;
         if (actor == null) actor = GetComponent<EnemyActor>();
         return EnemyAttackThreatGeometry.WouldHit(actor, ability, player);
@@ -97,7 +99,13 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
                 strongWarning.SetFacing(ability.ExecutionMode == EnemyAbilityExecutionMode.Charge && themeExecutor != null
                     ? themeExecutor.ChargeDirection : strongAim - transform.position);
             }
-            strongWarning.SetRemaining(firstImpactAt - Time.time);
+            float remaining = firstImpactAt - Time.time;
+            CombatTarget player = EnemyStrongAttackWarning.PlayerTarget;
+            if (actor == null) actor = GetComponent<EnemyActor>();
+            bool threatens = ability != null && ability.IsParryable && player != null && player.IsAlive
+                && remaining <= ParryLeadSeconds + .05f
+                && EnemyAttackThreatGeometry.IsLikelyThreatTo(actor, ability, center, player.transform.position);
+            strongWarning.SetRemaining(remaining, threatens);
         }
     }
     private void EndStrongWarning()
@@ -261,7 +269,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             strongWarning.Show(projectile ? selected.Ability.Range + 2f
                     : EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
                 selected.Ability.IsParryable,
-                selected.Ability.HitAngle,
+                EnemyAttackThreatGeometry.ResolveHitAngle(actor, selected.Ability),
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || projectile,
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
                     || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam

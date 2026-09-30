@@ -54,7 +54,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         {
             Collider collider = hitBuffer[i];
             if (collider == null || CombatTarget.Resolve(collider) != target
-                || !IsInFront(collider.transform.position, ability.HitAngle)) continue;
+                || !IsInFront(collider.transform.position,
+                    EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability))) continue;
             CombatTargetVolume volume = target.CurrentVolume;
             if (Mathf.Abs(center.y - volume.Center.y) > volume.HalfHeight + ability.VerticalTolerance)
                 continue;
@@ -420,7 +421,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                     float resolvedRadius = ability != null
                         ? EnemyAttackThreatGeometry.ResolveRadius(actor, ability)
                         : hitRadius;
-                    float resolvedAngle = ability != null ? ability.HitAngle : hitAngle;
+                    float resolvedAngle = ability != null
+                        ? EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability) : hitAngle;
                     ResolveArcHit(
                         resolvedDamage,
                         resolvedRadius,
