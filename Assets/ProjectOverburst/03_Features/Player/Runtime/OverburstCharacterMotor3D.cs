@@ -68,6 +68,9 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private const float SupportContactMinNormalY = 0.3f;
     private const float EnemySlideOffSpeed = 4f;
     private const float EnemySupportMaxFallSpeed = 2f;
+    // 2026-10-01: 올라타기는 사후 처리가 아니라 이동 단계에서 막는다. 적에게 닿은 이동이 이만큼 넘게 올라가면 되돌린다.
+    private const float EnemyClimbTolerance = 0.002f;
+    private const float EnemyBlockedSlopeLimit = 5f;
 
     [SerializeField] private PlayerMovement movement;
 
@@ -106,6 +109,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private int enemyLayerMask = -1;
     private bool trackingSupportContacts;
     private bool enemySupportContact;
+    private bool enemyTouchContact;
     private bool groundSupportContact;
     private Vector3 enemySupportCenter;
     private bool standingOnEnemy;
@@ -828,28 +832,70 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         if (controller == null || !controller.enabled)
             return CollisionFlags.None;
 
-        trackingSupportContacts = true;
-        enemySupportContact = false;
-        groundSupportContact = false;
-        CollisionFlags flags = controller.Move(displacement);
-        trackingSupportContacts = false;
+        Vector3 startPosition = transform.position;
+        CollisionFlags flags = MoveTrackingSupport(displacement);
+        // 2026-10-01: 적 몸을 딛고 올라가는 이동은 처음부터 막는다.
+        // 공격·이동 변위는 수평이고 강공 높이는 VisualRoot만 올린다. 그래도 캡슐이 요청보다 높아졌다면
+        // CharacterController의 자동 턱·경사 오르기가 적 몸에 적용된 것이다(계단·경사는 땅 접촉이 함께 있어 제외).
+        // 시작 위치로 되돌리고, 이 한 번만 턱·경사 오르기를 끈 채 같은 변위로 다시 움직여 적 몸을 벽처럼 막는다.
+        float allowedHeight = startPosition.y + Mathf.Max(0f, displacement.y) + EnemyClimbTolerance;
+        if (enemyTouchContact && !groundSupportContact && transform.position.y > allowedHeight)
+            flags = RetryMoveWithoutClimbing(startPosition, displacement);
+
         standingOnEnemy = enemySupportContact && !groundSupportContact;
         if (standingOnEnemy)
         {
             flags &= ~CollisionFlags.Below; // 적 몸은 접지로 보지 않는다
-            SlideOffEnemy();
+            SlideOffEnemy(); // 점프 착지처럼 위에서 내려앉은 경우의 예비 처리
         }
         CombatTargetRegistry.NotifySpatialChanged(transform);
+        return flags;
+    }
+
+    private CollisionFlags MoveTrackingSupport(Vector3 displacement)
+    {
+        trackingSupportContacts = true;
+        enemySupportContact = false;
+        enemyTouchContact = false;
+        groundSupportContact = false;
+        CollisionFlags flags = controller.Move(displacement);
+        trackingSupportContacts = false;
+        return flags;
+    }
+
+    // ActorTeleportUtility와 같이 컨트롤러를 끄고 위치를 옮긴 뒤 다시 켜서 시작 위치로 되돌린다.
+    // 턱 오르기와 경사 한도는 재이동 한 번에만 낮추고 바로 원래 값으로 돌린다. 평상시 stepOffset은 그대로다.
+    private CollisionFlags RetryMoveWithoutClimbing(Vector3 startPosition, Vector3 displacement)
+    {
+        controller.enabled = false;
+        transform.position = startPosition;
+        if (legacyRigidbody != null)
+            legacyRigidbody.position = startPosition;
+        controller.enabled = true;
+
+        float savedStepOffset = controller.stepOffset;
+        float savedSlopeLimit = controller.slopeLimit;
+        controller.stepOffset = 0f;
+        controller.slopeLimit = Mathf.Min(savedSlopeLimit, EnemyBlockedSlopeLimit);
+        CollisionFlags flags = MoveTrackingSupport(displacement);
+        controller.stepOffset = savedStepOffset;
+        controller.slopeLimit = savedSlopeLimit;
         return flags;
     }
 
     // CharacterController.Move 중 닿은 면마다 호출된다. 발밑(윗방향 법선) 접촉만 적 몸과 그 밖으로 나눈다.
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        if (!trackingSupportContacts || hit.collider == null || hit.normal.y < SupportContactMinNormalY)
+        if (!trackingSupportContacts || hit.collider == null)
             return;
 
-        if (IsEnemyBody(hit.collider))
+        bool enemyBody = IsEnemyBody(hit.collider);
+        if (enemyBody)
+            enemyTouchContact = true; // 옆면으로 닿아 턱 오르기가 일어나는 경우도 잡는다
+        if (hit.normal.y < SupportContactMinNormalY)
+            return;
+
+        if (enemyBody)
         {
             enemySupportContact = true;
             enemySupportCenter = hit.collider.bounds.center;
