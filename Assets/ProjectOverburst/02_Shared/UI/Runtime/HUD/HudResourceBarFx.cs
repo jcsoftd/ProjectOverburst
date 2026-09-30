@@ -302,7 +302,7 @@ public sealed class HudResourceBarFx : MonoBehaviour
             Material auraRendering = aura.canvasRenderer.materialCount > 0 ? aura.canvasRenderer.GetMaterial() : null;
             if (auraRendering != null && auraRendering != auraMaterial) ApplyAura(auraRendering, charge, pulse);
         }
-        weaponFx?.Tick(kind == BarKind.Energy ? lastElement : WeaponElement.None, shownFill, active);
+        weaponFx?.Tick(kind == BarKind.Energy ? lastElement : WeaponElement.None, shownFill, target, active);
     }
 
     private void ApplyAura(Material target, float charge, float pulse)

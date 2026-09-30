@@ -45,6 +45,9 @@ internal sealed class HudEnergyWeaponFx
     private ParticleSystem.Particle[] fireBuffer = System.Array.Empty<ParticleSystem.Particle>();
     private float shownLength = -1f, shownEnergy = -1f;
     private bool running = true;
+    // 게이지가 0이 되면(방출 등) 크기를 그대로 둔 채 빠르게 투명해지며 사라진다. 1 = 보임, 0 = 사라짐.
+    private const float FadeOutSeconds = .22f;
+    private float presence;
 
     private HudEnergyWeaponFx(Image fill, RawImage view, Material viewMaterial, GameObject stage, Transform blade,
         Transform length, Camera camera, UniversalAdditionalCameraData cameraData, float barLength)
@@ -139,15 +142,22 @@ internal sealed class HudEnergyWeaponFx
         return fx;
     }
 
-    internal void Tick(WeaponElement nextElement, float filled, bool visible)
+    // filled = 화면에 보이는 부드럽게 한 채움, target = 실제 에너지 비율.
+    internal void Tick(WeaponElement nextElement, float filled, float target, bool visible)
     {
         if (nextElement != element) Build(nextElement);
-        bool show = visible && playback != null && filled > .001f;
+        // 실제 에너지가 비면 줄어드는 채움을 따라 0까지 작아지지 않고, 지금 크기 그대로 빠르게 투명해진다.
+        bool emptied = target <= .001f;
+        if (!visible || playback == null) presence = 0f;
+        else if (!emptied) presence = filled > .001f ? 1f : 0f;
+        else if (presence > 0f) presence = Mathf.Max(0f, presence - Time.unscaledDeltaTime / FadeOutSeconds);
+        bool show = presence > 0f;
         view.enabled = show;
         camera.enabled = show;
+        if (view.color.a != presence) view.color = new Color(1f, 1f, 1f, presence);
         if (playback == null) return;
         SetRunning(show);
-        if (!show) return;
+        if (!show || emptied) return;   // 사라지는 동안은 크기·세기를 마지막 값으로 고정
         if (Time.unscaledTime >= nextSizeCheckAt) { nextSizeCheckAt = Time.unscaledTime + 1f; EnsureTexture(); }
 
         if (Mathf.Abs(filled - shownLength) > .003f)
