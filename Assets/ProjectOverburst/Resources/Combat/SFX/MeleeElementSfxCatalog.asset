@@ -441,3 +441,47 @@ MonoBehaviour:
       cooldown: 0.03
       maxVoices: 0
     lightSparkleDelay: 0.15
+    lightHit2Layer:
+      clips:
+      - {fileID: 8300000, guid: 19185e988b9050949b5226bad254d393, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    lightHit3Layer:
+      clips:
+      - {fileID: 8300000, guid: abbf72c4c6a60da4cb844db34e65fd3c, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    darkBurstLayer:
+      clips:
+      - {fileID: 8300000, guid: acf8a57a17a8cf74fb691ff7e0ae7fd8, type: 3}
+      volume: 1
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0
+    heavyLowBoom:
+      clips:
+      - {fileID: 8300000, guid: 06769cc81815440e98189d7523f477a6, type: 3}
+      volume: 0.8
+      minPitch: 1
+      maxPitch: 1
+      spatial: 1
+      minDistance: 2
+      maxDistance: 40
+      cooldown: 0.03
+      maxVoices: 0

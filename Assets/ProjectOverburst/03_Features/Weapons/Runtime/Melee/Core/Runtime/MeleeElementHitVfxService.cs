@@ -7,6 +7,7 @@ public static class MeleeElementHitVfxService
     private static MeleeElementHitVfxCatalog catalog;
     private static bool loadAttempted;
     private static readonly ProfilerMarker PlayMarker = new ProfilerMarker("Overburst.ElementHit.Play");
+    public const float UniformHitScale = .65f; // 소형(몸 반경 약 0.5m) 기준 크기
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
@@ -79,8 +80,9 @@ public static class MeleeElementHitVfxService
                     throw new MissingComponentException(nameof(MeleeElementHitVfxController));
 
                 controller.SetElement(element); // 활성 전 원소 주입
-                spawned.transform.localScale = prefab.transform.localScale
-                    * Mathf.Clamp(sizeMultiplier, 0.55f, 1.5f);
+                // 2026-09-30: 원소 타격 VFX는 몬스터 크기와 상관없이 소형 기준 크기로 통일한다.
+                // (몸 반경 0.5m 소형의 √(0.5/1.2)≈0.65배. 혈흔은 BloodHitVfxService가 몸 크기대로 따로 키운다.)
+                spawned.transform.localScale = prefab.transform.localScale * UniformHitScale;
             },
             useUnscaledTime: true);
         return instance != null;

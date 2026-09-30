@@ -61,7 +61,11 @@ public enum UpperHeavySfxStage
     LightHit2,
     LightHit3,
     LightBuildUp, // 3연타 첫 타부터 3타까지 차오름
-    LightSparkle // 마지막 타 뒤 반짝임
+    LightSparkle, // 마지막 타 뒤 반짝임
+    LightHit2Layer, // 2타와 함께 겹치는 폭발
+    LightHit3Layer, // 마지막 타와 함께 겹치는 폭발
+    DarkBurstLayer, // 폭발과 함께 겹치는 폭발
+    HeavyLowBoom // 빛 2·3타·암흑 폭발 공용 저음
 }
 
 // 60D 상위 원소 강공 단계음. 암흑 내려치기는 Dark.heavyImpact를 그대로 쓴다.
@@ -85,6 +89,14 @@ public sealed class UpperHeavySfxSettings
     [Tooltip("마지막 타 뒤 반짝임 시각(초).")]
     [Min(0f)] public float lightSparkleDelay = 0.15f;
 
+    // 2026-09-30 청음 결정: 한 칸은 여러 클립 중 하나만 고르므로, 같은 순간 겹쳐 낼 소리는 칸을 따로 둔다.
+    [Header("겹침 — 2타·마지막 타·암흑 폭발과 같은 순간")]
+    public MeleeElementSfxCueSettings lightHit2Layer = new MeleeElementSfxCueSettings();
+    public MeleeElementSfxCueSettings lightHit3Layer = new MeleeElementSfxCueSettings();
+    public MeleeElementSfxCueSettings darkBurstLayer = new MeleeElementSfxCueSettings();
+    [Tooltip("빛 2·3타와 암흑 폭발에 함께 까는 공용 저음.")]
+    public MeleeElementSfxCueSettings heavyLowBoom = new MeleeElementSfxCueSettings();
+
     public MeleeElementSfxCueSettings Get(UpperHeavySfxStage stage)
     {
         switch (stage)
@@ -97,6 +109,10 @@ public sealed class UpperHeavySfxSettings
             case UpperHeavySfxStage.LightHit3: return lightHit3;
             case UpperHeavySfxStage.LightBuildUp: return lightBuildUp;
             case UpperHeavySfxStage.LightSparkle: return lightSparkle;
+            case UpperHeavySfxStage.LightHit2Layer: return lightHit2Layer;
+            case UpperHeavySfxStage.LightHit3Layer: return lightHit3Layer;
+            case UpperHeavySfxStage.DarkBurstLayer: return darkBurstLayer;
+            case UpperHeavySfxStage.HeavyLowBoom: return heavyLowBoom;
             default: return null;
         }
     }

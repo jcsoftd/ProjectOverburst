@@ -222,7 +222,9 @@ public sealed class DarkGatherBurstScheduler : MonoBehaviour
     private void Burst(Cast cast, OverburstElementTuning tuning)
     {
         using var costScope = ElementCombatCostMarkers.Dark_Gather_Burst.Auto();
-        MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurst, cast.Center); // 폭발
+        MeleeElementSfxService.TryPlayDarkBurst(cast.Center); // 폭발 + 겹침 폭발 + 공용 저음
+        UpperHeavyImpactFeedback.PlayShockwave(cast.Center, cast.Radius);
+        if (cast.Source != null) UpperHeavyImpactFeedback.RequestCamera(cast.Source.transform.position, cast.Center, 1f);
         CombatTargetRegistry.CollectPotentialTargets(cast.Center, cast.Radius, candidates);
         visited.Clear();
         int stackSum = 0;

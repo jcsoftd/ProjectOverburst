@@ -144,6 +144,10 @@ public sealed class MeleeHeavyDischargeExecutor
                 ? OverburstElementTuning.Current.SafeLightTripleVfxPlaybackSpeed
                 : OverburstElementTuning.Current.SafeDarkVfxPlaybackSpeed;
             SpawnWithPlayback(upper, impactCenter, FacingRotation(), upperScale, speed);
+            // 빛 1타(내려치기)·암흑 내려치기의 공간 왜곡 충격파. 뒤따르는 타·폭발은 각 스케줄러가 낸다.
+            float slamRadius = element == WeaponElement.Light
+                ? discharge.LightHitRadius(discharge.LightFirstHitIndex) : discharge.Radius;
+            UpperHeavyImpactFeedback.PlayShockwave(impactCenter, slamRadius);
             return;
         }
         GameObject prefab = definition.elementVfx.GetImpact(element);

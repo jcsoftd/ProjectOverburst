@@ -95,6 +95,10 @@ public sealed class LightTripleImpactScheduler : MonoBehaviour
         MeleeElementSfxService.TryPlayLightHeavyHit(item.HitIndex, item.Center);
         if (item.HitIndex >= 2)
             pending.Add(new Pending { Center = item.Center, Due = clock + MeleeElementSfxService.LightSparkleDelay, SparkleOnly = true });
+        // 2타·마지막 타: 충격파 + 카메라 흔들림(마지막 타가 더 세게). 내려치기(1타)는 MeleeHeavyDischargeExecutor가 낸다.
+        UpperHeavyImpactFeedback.PlayShockwave(item.Center, item.Radius);
+        if (item.Source != null)
+            UpperHeavyImpactFeedback.RequestCamera(item.Source.transform.position, item.Center, item.HitIndex >= 2 ? 0.75f : 0.5f);
         using var costScope = ElementCombatCostMarkers.Light_TripleImpact_Dispatch.Auto();
         if (item.Source == null) return;
         CombatTargetRegistry.CollectPotentialTargets(item.Center, item.Radius, candidates);

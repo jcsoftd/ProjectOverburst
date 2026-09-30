@@ -25,14 +25,14 @@ MonoBehaviour:
     prewarmCount: 1024
   - element: 8
     prefab: {fileID: 8276451724685526509, guid: 99108b747123290438896c8b80c71404, type: 3}
-    prewarmCount: 768
+    prewarmCount: 384
   - element: 9
     prefab: {fileID: 7638838746576953639, guid: 1577d4ed73b3f834a977ca72d6e9d6ab, type: 3}
     prewarmCount: 384
   fireLifetime: 5.15
   iceLifetime: 10
   electricLifetime: 7.5
-  darkLifetime: 5
+  darkLifetime: 1.2
   lightLifetime: 2
   poolCapacity: 32
   prewarmCount: 128

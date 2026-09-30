@@ -54,7 +54,7 @@ MonoBehaviour:
   lightTripleHit2Base: 0.5
   lightTripleHit2PerOvercharge: 1
   lightTripleHit3Scale: 1
-  lightTripleVfxPlaybackSpeed: 1.25
+  lightTripleVfxPlaybackSpeed: 1.6
   lightTripleSourceHitTimes: {x: 1, y: 2, z: 3}
   darkMagnetRadius: 3
   darkMagnetTickInterval: 0.1
@@ -64,7 +64,7 @@ MonoBehaviour:
   darkGatherEnd: 1.4
   darkBurstTime: 1.95
   darkGatherHoldSpeedFraction: 0.25
-  darkVfxPlaybackSpeed: 1
+  darkVfxPlaybackSpeed: 1.3
   darkGatherRadiusMultiplier: 2.5
   darkGatherInnerRadius: 0.8
   darkGatherMaxTargets: 48

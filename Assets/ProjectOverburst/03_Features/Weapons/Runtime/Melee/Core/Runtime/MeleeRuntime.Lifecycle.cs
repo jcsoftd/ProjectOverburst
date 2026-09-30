@@ -74,7 +74,8 @@ public partial class MeleeRuntime
         {
             // 화염·암흑·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
             bool groundReplaced = hasDischarge && MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center);
-            if (!groundReplaced)
+            // 빛·암흑(에너지 있음)은 자기 내려치기 소리 위에 지면강타 2단계를 겹친다(2026-09-30 청음 결정).
+            if (!groundReplaced || MeleeElementSfxService.LayersGreatswordGround(activeDischarge))
                 CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
         }
         if (!hasDischarge) return;

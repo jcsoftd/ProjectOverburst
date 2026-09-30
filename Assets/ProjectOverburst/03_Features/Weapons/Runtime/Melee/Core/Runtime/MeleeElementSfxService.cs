@@ -51,19 +51,53 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         EnsureInstance();
         MeleeElementSfxCueSettings settings = configuredCatalog != null && configuredCatalog.upperHeavy != null
             ? configuredCatalog.upperHeavy.Get(stage) : null;
-        return instance != null && settings != null && settings.TryPickClip(out AudioClip clip)
+        bool played = instance != null && settings != null && settings.TryPickClip(out AudioClip clip)
             && instance.TryPlaySettings(settings, clip, UpperHeavyKeyBase + (int)stage, position);
+        if (played && (int)stage < UpperHeavyStageSlots)
+        {
+            upperHeavyPlays[(int)stage]++;
+            upperHeavyLastTime[(int)stage] = Time.time;
+        }
+        return played;
     }
 
-    // 빛 강공 N타(0·1·2). 2연타는 1타부터 시작한다.
+    // 검증용: 단계별 재생 횟수와 마지막 재생 시각(Time.time).
+    private const int UpperHeavyStageSlots = 16;
+    private static readonly int[] upperHeavyPlays = new int[UpperHeavyStageSlots];
+    private static readonly float[] upperHeavyLastTime = new float[UpperHeavyStageSlots];
+    public static int UpperHeavyPlayCount(UpperHeavySfxStage stage)
+        => (int)stage < UpperHeavyStageSlots ? upperHeavyPlays[(int)stage] : 0;
+    public static float UpperHeavyLastPlayTime(UpperHeavySfxStage stage)
+        => (int)stage < UpperHeavyStageSlots ? upperHeavyLastTime[(int)stage] : -1f;
+    public static void ResetUpperHeavyCounters()
+    {
+        System.Array.Clear(upperHeavyPlays, 0, upperHeavyPlays.Length);
+        for (int i = 0; i < upperHeavyLastTime.Length; i++) upperHeavyLastTime[i] = -1f;
+    }
+
+    // 빛 강공 N타(0 내려치기 · 1 2타 · 2 마지막 타). 2연타는 내려치기 뒤 곧바로 마지막 타(2)다.
+    // 2타·마지막 타에는 폭발과 공용 저음을 같은 순간 겹친다(2026-09-30 청음 결정).
     public static bool TryPlayLightHeavyHit(int hitIndex, Vector3 position)
     {
         UpperHeavySfxStage stage = hitIndex <= 0 ? UpperHeavySfxStage.LightHit1
             : hitIndex == 1 ? UpperHeavySfxStage.LightHit2 : UpperHeavySfxStage.LightHit3;
-        return TryPlayUpperHeavy(stage, position);
+        bool played = TryPlayUpperHeavy(stage, position);
+        if (hitIndex <= 0) return played;
+        TryPlayUpperHeavy(hitIndex == 1 ? UpperHeavySfxStage.LightHit2Layer : UpperHeavySfxStage.LightHit3Layer, position);
+        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position);
+        return played;
     }
 
-    // 화염·암흑(에너지 있음)·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
+    // 암흑 강공 폭발: 폭발음 + 겹침 폭발 + 공용 저음.
+    public static bool TryPlayDarkBurst(Vector3 position)
+    {
+        bool played = TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurst, position);
+        TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurstLayer, position);
+        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position);
+        return played;
+    }
+
+    // 화염·암흑(에너지 있음)·빛 강공은 내려치는 순간 자기 소리를 낸다(2026-09-30 청음 결정).
     public static bool ReplacesGreatswordGround(OverburstElementDischarge discharge)
     {
         return discharge != null && (discharge.Element == WeaponElement.Fire
@@ -71,14 +105,22 @@ public sealed class MeleeElementSfxService : MonoBehaviour
             || (discharge.Element == WeaponElement.Dark && discharge.Energy > 0f));
     }
 
-    // 내려치는 순간 한 번. 재생했으면 true(지면음 생략). lightSlamHitIndex: 빛 3연타 0 · 2연타 1.
+    // 빛·암흑(에너지 있음)은 자기 내려치기 소리 위에 대검 지면강타(2단계)를 겹친다. 화염은 자기 소리만.
+    public static bool LayersGreatswordGround(OverburstElementDischarge discharge)
+    {
+        return discharge != null && (discharge.Element == WeaponElement.Light
+            || (discharge.Element == WeaponElement.Dark && discharge.Energy > 0f));
+    }
+
+    // 내려치는 순간 한 번. 재생했으면 true. 빛은 3연타·2연타 모두 차오름 + 1타(내려치기) 소리로 시작하고,
+    // 뒤따르는 타는 LightTripleImpactScheduler가 2타(3연타만)·마지막 타 순서로 낸다.
     public static bool TryPlayUpperSlam(OverburstElementDischarge discharge, int lightSlamHitIndex, Vector3 position)
     {
         if (!ReplacesGreatswordGround(discharge)) return false;
         if (discharge.Element != WeaponElement.Light)
             return TryPlayHeavyImpact(discharge.Element, position);
-        if (lightSlamHitIndex <= 0) TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position);
-        return TryPlayLightHeavyHit(lightSlamHitIndex, position);
+        TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position);
+        return TryPlayLightHeavyHit(0, position);
     }
 
     public static bool TryPlaySlash(WeaponElement element, Vector3 position)
@@ -88,6 +130,8 @@ public sealed class MeleeElementSfxService : MonoBehaviour
 
     public static bool TryPlayHit(WeaponElement element, Vector3 position, bool critical = false)
     {
+        // 2026-09-30 17:56 결정: 무속성 무기는 무기 타격음이 없다(치명타 포함). 몬스터 공용 피격음이 모든 적에게 난다.
+        if (element == WeaponElement.None) return false;
         // 치명타 큐가 비어 있거나 재생되지 않으면 일반 타격음으로 대체한다.
         return (critical && TryPlay(element, MeleeElementSfxCueType.CriticalHit, position))
             || TryPlay(element, MeleeElementSfxCueType.Hit, position);
