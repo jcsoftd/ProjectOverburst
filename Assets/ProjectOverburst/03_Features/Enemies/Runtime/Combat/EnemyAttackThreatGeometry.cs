@@ -68,14 +68,28 @@ public static class EnemyAttackThreatGeometry
 
     // Reach affects when a windup may begin; the actual hit uses ResolveRadius.
     // Projectile and boss ranges remain authored values.
+    // 2026-09-30 강공 발동 거리: 중형·정예 근접·범위 강공은 판정 반경이 넓은데 발동은 너무 붙어서 했다.
+    // 발동 거리를 더 늘리되, 선 채로 맞을 수 있게 판정 반경(근접은 공격점 여유 포함) 안으로 제한한다.
+    private const float StandardStrongStartBonus = .5f, EliteStrongStartBonus = .7f;
+    private const float MeleeArcStartCapMargin = .4f, AreaSlamStartCapMargin = .25f;
+
     public static float ResolveStartRange(EnemyActor actor, EnemyAbilityDefinition ability)
     {
         if (ability == null) return 0f;
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile
             || ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)
             return ability.Range;
-        float extraRadius = ResolveRadius(actor, ability) - ability.HitRadius;
-        return ability.Range + extraRadius * .6f;
+        float resolvedRadius = ResolveRadius(actor, ability);
+        float start = ability.Range + (resolvedRadius - ability.HitRadius) * .6f;
+        bool strongStrike = ability.IsTelegraphedStrongAttack
+            && (ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
+                || ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam);
+        ThreatTier tier = strongStrike ? ResolveTier(actor) : ThreatTier.None;
+        if (tier == ThreatTier.None) return start;
+        float bonus = tier == ThreatTier.Elite ? EliteStrongStartBonus : StandardStrongStartBonus;
+        float cap = resolvedRadius
+            + (ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc ? MeleeArcStartCapMargin : AreaSlamStartCapMargin);
+        return Mathf.Max(start, Mathf.Min(start + bonus, cap));
     }
 
     public static bool MatchesUseConditions(EnemyActor actor, EnemyAbilityDefinition ability,

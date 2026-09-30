@@ -236,6 +236,9 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         }
         signalFeel.Initialization(true);
     }
+    // 2026-09-30: 패링 빛은 몸·강공 장판과 겹치지 않도록 머리 바로 위에 띄운다(몸 꼭대기 +0.35m).
+    // 여러 강공이 겹칠 때 구분되게 소켓마다 좌우로 조금 벌리고, 머리에 가리지 않게 카메라 쪽으로 살짝 당긴다.
+    private const float SignalAboveHead = .35f;
     private void PositionSignal()
     {
         if (signalParticles == null) return;
@@ -243,6 +246,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         Vector3 center = body != null ? body.CurrentVolume.Center
             : transform.position + Vector3.up * 1.2f;
         float width = body != null ? body.CurrentVolume.Radius : .5f;
+        float halfHeight = body != null ? body.CurrentVolume.HalfHeight : 1f;
         if (signalCamera == null) signalCamera = Camera.main;
         Vector3 facing = signalCamera != null ? signalCamera.transform.position - center
             : -transform.forward;
@@ -251,9 +255,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         facing.Normalize();
         Vector3 right = Vector3.Cross(Vector3.up, facing).normalized;
         float lateral = (signalSocketIndex - 1) * width * .27f;
-        float vertical = (signalSocketIndex == 1 ? .25f : .4f) + width * .22f;
-        signalParticles.transform.position = center + facing * Mathf.Max(.8f, width * 1.25f)
-            + right * lateral + Vector3.up * vertical;
+        signalParticles.transform.position = center + Vector3.up * (halfHeight + SignalAboveHead)
+            + facing * width * .15f + right * lateral;
     }
     public void Hide()
     {
