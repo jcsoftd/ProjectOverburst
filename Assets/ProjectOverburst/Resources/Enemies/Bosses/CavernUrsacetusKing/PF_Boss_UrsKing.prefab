@@ -1,0 +1,234 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &7468184116408890535
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_Name
+      value: PF_Boss_UrsKing
+      objectReference: {fileID: 0}
+    - target: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: executors.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: 'executors.Array.data[0]'
+      value: 
+      objectReference: {fileID: 5951052582059308689}
+    - target: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: 'executors.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8552974149010263041}
+    - target: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: 'executors.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8610392867971744830}
+    - target: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: 'executors.Array.data[3]'
+      value: 
+      objectReference: {fileID: 5202236165444805288}
+    - target: {fileID: 4905564622851981668, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6884855128011413227, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: bossPhaseController
+      value: 
+      objectReference: {fileID: 3945506141148208866}
+    - target: {fileID: 6884855128011413227, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: bossOutcomeController
+      value: 
+      objectReference: {fileID: 246458835367222155}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8070012536043150697, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9148204224669477600, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3945506141148208866}
+    - targetCorrespondingSourceObject: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 246458835367222155}
+    - targetCorrespondingSourceObject: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8731114011248710118}
+    - targetCorrespondingSourceObject: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5951052582059308689}
+  m_SourcePrefab: {fileID: 100100000, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+--- !u!114 &4048659787810972236 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6884855128011413227, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c6366e0a086b1442b216fb65cc3ab5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyActor
+--- !u!114 &5202236165444805288 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3429033549364401679, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bab92d932caecc4fb11d5ba409afb22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAreaSlamAbilityExecutor
+--- !u!114 &6446158735407310851 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4526411013825748132, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a44b51d93c39a71468004ed02a03f9de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityController
+--- !u!1 &7755045704289525333 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 881338938614917874, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3945506141148208866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15461b6cd5589874cafdda3ebbb6dcb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossPhaseController
+  bossDefinition: {fileID: 11400000, guid: beb4ede22ddd7b34d8f0b87cc23fae54, type: 2}
+  actor: {fileID: 4048659787810972236}
+  health: {fileID: 9000464085597269070}
+  abilityController: {fileID: 6446158735407310851}
+--- !u!114 &246458835367222155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f1b40c059440479833cb1dad8a3e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossOutcomeController
+  boss: {fileID: 3945506141148208866}
+  rewardProfileId: MapBoss
+--- !u!114 &8731114011248710118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1145fe39193ecfd4490525e95be86a31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCombatDirector
+  profile: {fileID: 11400000, guid: edc9f7b2d94395847b521337c9991761, type: 2}
+--- !u!114 &5951052582059308689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2119f701d8de684418e5cc873212e47a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossPatternExecutor
+  director: {fileID: 8731114011248710118}
+--- !u!114 &8552974149010263041 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1231194977097169062, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37d4d2dc0c94f7a4ba7f685e41f69bcb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeAbilityExecutor
+--- !u!114 &8610392867971744830 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1214304297534582937, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e312e06b6e299f648b5434d451550b0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
+--- !u!114 &9000464085597269070 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1967021373690452201, guid: b5b714f12a51b4449af004531b9a6feb, type: 3}
+  m_PrefabInstance: {fileID: 7468184116408890535}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7755045704289525333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a41fdd18545491f877a693b7290d680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatHealth

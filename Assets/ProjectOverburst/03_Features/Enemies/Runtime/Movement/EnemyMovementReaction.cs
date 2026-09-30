@@ -115,6 +115,16 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         motor?.HoldPosition();
         ReactionStarted?.Invoke();
     }
+    // 2026-10-01 대표 보스: 보스 등급은 위 일반 패링 기절을 받지 않는다. 보스 지휘(EnemyBossCombatDirector)만
+    // 패링 경직·그로기를 같은 기절 상태로 건다(공격 차단·기절 표시·받는 피해 보너스는 기존 그대로).
+    public void ApplyBossStun(float duration)
+    {
+        ResolveReferences();
+        if (IsDead() || duration <= 0f) return;
+        parryStunEndTime = Mathf.Max(parryStunEndTime, Time.time + duration);
+        motor?.HoldPosition();
+        ReactionStarted?.Invoke();
+    }
     private Vector3 knockbackStartPosition; // 넉백 시작 위치
     private Vector3 knockbackTargetPosition; // 넉백 목표 위치
     private float knockbackTravelStartTime; // 이동 시작 시각

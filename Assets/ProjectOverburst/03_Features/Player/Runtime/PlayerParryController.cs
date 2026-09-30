@@ -71,7 +71,8 @@ public sealed class PlayerParryController : MonoBehaviour
         for (int i = 0; i < activeEnemies.Count; i++)
         {
             EnemyRank rank = activeEnemies[i];
-            if (rank == null || rank.GradeType == EnemyGradeType.Boss) continue;
+            // 보스는 보스 지휘가 받아들이는 대표 보스만 후보가 된다(판정·보상은 일반 패링과 같다).
+            if (rank == null || rank.GradeType == EnemyGradeType.Boss && !EnemyBossCombatDirector.AcceptsParry(rank)) continue;
             EnemyActor enemy = rank.GetComponent<EnemyActor>();
             if (enemy == null || parriedThisAction.Contains(enemy) || !enemy.IsLeased
                 || enemy.Health == null || enemy.Health.IsDead || enemy.AbilityController == null) continue;
@@ -128,7 +129,9 @@ public sealed class PlayerParryController : MonoBehaviour
                 ability.AnimatorTrigger, out progress);
         enemy.AbilityController.Cancel();
         EnemyMovementReaction reaction = enemy.GetComponent<EnemyMovementReaction>();
-        reaction?.ApplyParryStun(
+        EnemyBossCombatDirector boss = enemy.GetComponent<EnemyBossCombatDirector>();
+        if (boss != null) boss.NotifyParried(); // 보스 전용 경직 길이와 그로기 적립
+        else reaction?.ApplyParryStun(
             (rank != null && rank.Rank == EnemyRankType.Elite ? .8f : 1.2f)
             + (hasPose ? EnemyAnimationBridge.ParryRewindSeconds : 0f));
         // 튕겨나는 느낌만 준다. 멀리 밀면 이어지는 내 강공이 빗나간다.
@@ -167,7 +170,7 @@ public sealed class PlayerParryController : MonoBehaviour
         if (!enemy.AbilityController.IsExecuting
             || enemy.AbilityController.LastCommittedAbility != info.enemyAbility) return false;
         var rank = enemy.GetComponent<EnemyRank>();
-        if (rank != null && rank.GradeType == EnemyGradeType.Boss) return false;
+        if (rank != null && rank.GradeType == EnemyGradeType.Boss && !EnemyBossCombatDirector.AcceptsParry(rank)) return false;
         eligibleEnemies.Clear();
         eligibleEnemies.Add(enemy);
         ResolveParry(eligibleEnemies);

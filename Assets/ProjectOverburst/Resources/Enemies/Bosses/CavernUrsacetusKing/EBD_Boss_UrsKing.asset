@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebb69ffcdf9ea774d8a8926a8caa8b88, type: 3}
+  m_Name: EBD_Boss_UrsKing
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossDefinition
+  bossId: UrsacetusKing
+  displayName: "\uC554\uAD74 \uAC70\uC218\uC655"
+  phases:
+  - {fileID: 11400000, guid: cc9a7b07be44206429344c66fc3df7b7, type: 2}
+  - {fileID: 11400000, guid: 198ecb93cd70f0c409e82aa524cf743e, type: 2}

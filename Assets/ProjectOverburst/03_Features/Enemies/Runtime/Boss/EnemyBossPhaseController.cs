@@ -130,6 +130,9 @@ public sealed class EnemyBossPhaseController : MonoBehaviour
             health != null ? health.NormalizedHp : 1f);
         if (nextPhase < 0)
             return false;
+        // 2026-10-01: 교전 중 페이즈는 앞으로만 진행한다(회복으로 이전 페이즈로 돌아가 전환이 반복되지 않게).
+        if (!force && nextPhase < CurrentPhaseIndex)
+            return true;
         if (!force && nextPhase == CurrentPhaseIndex)
             return true;
 

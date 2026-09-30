@@ -100,9 +100,9 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         var entry = Child("EntryPoint").transform;
         entry.position = DiamondDungeonLayout.InsetPoint(startCorner, 12f) + Vector3.up * .18f;
         entry.rotation = Quaternion.LookRotation(-DiamondDungeonLayout.Direction(startCorner), Vector3.up);
-        BuildBoss();
         BuildExitPortal();
         BuildSpawnService();
+        BuildBoss(); // 스폰 서비스 뒤: 대표 보스는 풀에서 대여한다
         BuildFields(random, account);
         var runBuffs = gameObject.AddComponent<MapRunBuffs>();
         runBuffs.Configure(gate.Context.RunId);
@@ -169,6 +169,7 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
 
     private void BuildBoss()
     {
+        if (TryBuildRepresentativeBoss()) return;
         boss = Primitive("CapsuleBoss_Temporary", PrimitiveType.Capsule,
             bossPosition + Vector3.up * 2.2f, new Vector3(2.8f, 2.2f, 2.8f));
         boss.GetComponent<Renderer>().sharedMaterial = accentMaterial;
@@ -182,6 +183,33 @@ public sealed class DiamondDungeonWorld : MonoBehaviour
         CombatTarget.EnsureConfigured(boss, CombatTeam.Enemy);
         boss.AddComponent<EnemyTargetHpReporter>();
         bossHealth.OnDead += HandleBossDead;
+    }
+
+    // 2026-10-01: 테마에 대표 보스가 등록돼 있으면 반대 모서리에 실제 보스를 대여한다.
+    // 처치 정산은 캡슐과 같은 HandleBossDead → ClearBossWithMapReward 한 경로이고, 실패하면 캡슐로 돌아간다.
+    public EnemyActor RepresentativeBoss { get; private set; }
+
+    private bool TryBuildRepresentativeBoss()
+    {
+        var entry = EnemyBossRoster.Resolve(theme != null ? theme.ThemeId : null);
+        if (entry == null) return false;
+        if (!spawnService.RegisterAdditionalCatalog(entry.catalog, out string reason))
+        {
+            Debug.LogWarning("대표 보스 카탈로그 등록 실패, 임시 보스 사용: " + reason, this);
+            return false;
+        }
+        var facing = Quaternion.LookRotation(-DiamondDungeonLayout.Direction(BossCorner), Vector3.up);
+        var request = new EnemySpawnRequest(entry.boss, bossPosition + Vector3.up * .06f, facing,
+            PlayerContext.Instance?.CurrentActor?.transform, spawnParent: transform, context: gate.Context);
+        if (!spawnService.TrySpawn(request, out EnemyActor actor) || actor == null)
+        {
+            Debug.LogWarning("대표 보스 스폰 실패, 임시 보스 사용: " + entry.boss.EnemyId, this);
+            return false;
+        }
+        RepresentativeBoss = actor;
+        bossHealth = actor.Health;
+        bossHealth.OnDead += HandleBossDead;
+        return true;
     }
 
     private void BuildExitPortal()

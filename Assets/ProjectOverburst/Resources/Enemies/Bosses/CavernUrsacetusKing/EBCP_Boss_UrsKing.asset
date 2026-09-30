@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e45f2a17b49c8fa42bda0ecec62419f0, type: 3}
+  m_Name: EBCP_Boss_UrsKing
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCombatProfile
+  patterns:
+  - patternId: A_LeftSwipe
+    displayName: "\uC67C\uC190 \uD560\uD034\uAE30"
+    ability: {fileID: 11400000, guid: 9f2e6cb9c993b6149b901b8defc3cafc, type: 2}
+    phaseMask: 3
+    weight: 3
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: B_RightSwipe
+    displayName: "\uC624\uB978\uC190 \uD560\uD034\uAE30"
+    ability: {fileID: 11400000, guid: 5c4c0284ec843b049ab70a04ed038722, type: 2}
+    phaseMask: 1
+    weight: 3
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: C_DoubleSmash
+    displayName: "\uC591\uC190 \uB0B4\uB824\uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: d97a52849865d7248b96f2085583325b, type: 2}
+    phaseMask: 3
+    weight: 2
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: F_TwinClaw
+  - patternId: D_LeapSmash
+    displayName: "\uB3C4\uC57D \uAC15\uD0C0"
+    ability: {fileID: 11400000, guid: f171a3732da498a4bb7c55fddc19c891, type: 2}
+    phaseMask: 3
+    weight: 2
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: A_LeftSwipe
+  - patternId: E_QuakeStomp
+    displayName: "\uC9C0\uC9C4 \uBC1C\uAD6C\uB974\uAE30"
+    ability: {fileID: 11400000, guid: c52dc9e6464c3bc47b6ad1f242b7cb61, type: 2}
+    phaseMask: 1
+    weight: 2
+    unparryableDangerCue: 1
+    phaseTwoFollowUp: 
+  - patternId: F_TwinClaw
+    displayName: "2\uC5F0\uD0C0 \uD560\uD034\uAE30"
+    ability: {fileID: 11400000, guid: d7d67491c5988624c87fdd411571c45e, type: 2}
+    phaseMask: 2
+    weight: 3
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: E2_GreatQuake
+    displayName: "\uB300\uC9C0\uC9C4 \uBC1C\uAD6C\uB974\uAE30"
+    ability: {fileID: 11400000, guid: b69de409a70d4004db773d823f1ac25f, type: 2}
+    phaseMask: 2
+    weight: 2
+    unparryableDangerCue: 1
+    phaseTwoFollowUp: 
+  decisionInterval: 0.25
+  repeatDelay: 0.8
+  followUpWindow: 1.6
+  groggyMax: 100
+  parryGain: 35
+  heavyHitGain: 10
+  decayDelay: 10
+  decayPerSecond: 5
+  groggyDuration: 4.5
+  groggyProtection: 8
+  parryRecoil: 1
+  groggyState: Boss_Groggy
+  phaseTransitionDuration: 2.4
+  transitionState: Boss_Roar
+  phaseBehaviors:
+  - {fileID: 11400000, guid: 3555027ee5f5f2b42ad2f467a17c948d, type: 2}
+  - {fileID: 11400000, guid: 770b4dbdd3987204d887ae932c04dab9, type: 2}
+  dangerTint: {r: 1, g: 0.16, b: 0.1, a: 1}
+  dangerClip: {fileID: 8300000, guid: c4264dca73c251742919be7f5b08fba5, type: 3}
+  roarClip: {fileID: 8300000, guid: 512890bb731b6ce4ab6e9de8b50f4778, type: 3}
+  groggyClip: {fileID: 8300000, guid: b618ed1f8ca53de498a04e57af870a7e, type: 3}
+  sfxVolume: 0.8

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: EAD_Boss_UrsKing_D_LeapSmash
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: Boss_UrsKing_D_LeapSmash
+  animatorTrigger: Attack6
+  executionMode: 2
+  damage: 1
+  referencePatternDamagePercent: 18
+  telegraphedStrongAttack: 1
+  telegraphedAttack: 1
+  preparationDuration: 1
+  releaseDuration: 0.2
+  recoveryDuration: 0.9
+  minimumWarningTime: 1
+  minimumRecoveryTime: 0.9
+  parryable: 1
+  minimumRange: 4
+  range: 9
+  hitRadius: 2.8
+  hitAngle: 120
+  verticalTolerance: 1.5
+  requireLineOfSight: 0
+  cooldown: 7
+  hitDelay: 2.9166667
+  hitNormalizedTime: 0.5
+  attackAnimationDuration: 5.8333335
+  attackLockDuration: 5.541667
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []

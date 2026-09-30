@@ -10,11 +10,17 @@ public sealed class EnemyBossHudView : MonoBehaviour
     [SerializeField] private TMP_Text phaseText;
     [SerializeField] private TMP_Text healthText;
     [SerializeField] private Image healthFill;
+    [Header("대표 보스(선택)")]
+    [SerializeField] private Image groggyFill;
+    [SerializeField] private TMP_Text stateText;
 
     private EnemyBossPhaseController boundBoss;
     private CombatHealth boundHealth;
+    private EnemyBossCombatDirector boundDirector;
 
     public EnemyBossPhaseController BoundBoss => boundBoss;
+    public float DisplayedGroggy01 => groggyFill != null ? groggyFill.fillAmount : 0f;
+    public string DisplayedState => stateText != null ? stateText.text : string.Empty;
     public bool IsVisible =>
         canvasGroup != null
             ? canvasGroup.alpha > 0.001f
@@ -105,6 +111,7 @@ public sealed class EnemyBossHudView : MonoBehaviour
 
         UnbindHealth();
         boundBoss = boss;
+        boundDirector = boss.GetComponent<EnemyBossCombatDirector>();
         boundHealth = boss.Health;
         if (boundHealth != null)
         {
@@ -113,14 +120,40 @@ public sealed class EnemyBossHudView : MonoBehaviour
         }
 
         Refresh();
-        SetVisible(!boss.IsDefeated);
+        SetVisible(!boss.IsDefeated && (boundDirector == null || boundDirector.IsEngaged));
     }
 
     private void Clear()
     {
         UnbindHealth();
         boundBoss = null;
+        boundDirector = null;
+        RefreshDirector();
         SetVisible(false);
+    }
+
+    // 그로기 게이지와 전환 상태는 매 프레임 바뀌므로 표시 중인 보스 1개만 읽는다.
+    private void LateUpdate()
+    {
+        if (boundBoss == null) return;
+        RefreshDirector();
+        if (boundDirector != null) SetVisible(!boundBoss.IsDefeated && boundDirector.IsEngaged);
+    }
+
+    private void RefreshDirector()
+    {
+        bool has = boundDirector != null && boundBoss != null && !boundBoss.IsDefeated;
+        if (groggyFill != null)
+        {
+            groggyFill.transform.parent.gameObject.SetActive(has);
+            if (has) groggyFill.fillAmount = boundDirector.Groggy01;
+        }
+        if (stateText != null)
+        {
+            string state = !has ? string.Empty : boundDirector.IsGroggy ? "그로기"
+                : boundDirector.IsTransitioning ? "포효" : string.Empty;
+            if (stateText.text != state) stateText.text = state;
+        }
     }
 
     private void UnbindHealth()
@@ -204,5 +237,28 @@ public sealed class EnemyBossHudView : MonoBehaviour
     {
         if (canvasGroup == null)
             canvasGroup = GetComponent<CanvasGroup>();
+        EnsureFillSprite(healthFill);
+        EnsureFillSprite(groggyFill);
+    }
+
+    // 2026-10-01: Filled 이미지는 스프라이트가 없으면 채움 비율을 무시하고 항상 가득 그린다(보스 캡처에서 647/1796인데 막대가 가득).
+    // 다른 HUD 스크립트처럼 런타임 1×1 흰 스프라이트를 공유하고 색은 기존 Image.color를 쓴다. 프리팹에는 저장하지 않는다.
+    private static Sprite runtimeFillSprite;
+
+    private static void EnsureFillSprite(Image image)
+    {
+        if (!Application.isPlaying || image == null || image.sprite != null || image.type != Image.Type.Filled)
+            return;
+        if (runtimeFillSprite == null)
+        {
+            var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
+            { name = "BossHudFill", hideFlags = HideFlags.DontSave };
+            texture.SetPixel(0, 0, Color.white);
+            texture.Apply(false, true);
+            runtimeFillSprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(.5f, .5f), 100f);
+            runtimeFillSprite.name = "BossHudFill";
+            runtimeFillSprite.hideFlags = HideFlags.DontSave;
+        }
+        image.sprite = runtimeFillSprite;
     }
 }
