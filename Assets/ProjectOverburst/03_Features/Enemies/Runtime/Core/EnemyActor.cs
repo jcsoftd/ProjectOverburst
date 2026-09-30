@@ -150,8 +150,15 @@ public sealed class EnemyActor : MonoBehaviour
         collisionRoot.localScale = stats.CollisionScale;
         anchors.localScale = stats.AnchorScale;
         RestoreColliderStates();
-        GetComponent<CombatTarget>()?.RefreshVolumeFromCollider(
-            collisionRoot.GetComponentInChildren<CapsuleCollider>(true));
+        if (TryGetComponent(out CombatTarget combatTarget))
+        {
+            combatTarget.RefreshVolumeFromCollider(
+                collisionRoot.GetComponentInChildren<CapsuleCollider>(true));
+            // 몸 부피는 커진 충돌체에서 다시 재지만, 전용 피격 판정과 오라 기준 부피는 크기 1 기준 값이라 겉모습 배율을 따로 넣는다.
+            combatTarget.SetVariantHurtScale(stats.VisualScale);
+        }
+        if (TryGetComponent(out CombatTargetVfxPlacement vfxPlacement))
+            vfxPlacement.SetVariantScale(stats.VisualScale);
         ApplyTint(stats.Tint);
 
         EnemyAnimationProfile animationProfile = enemyDefinition.AnimationProfile;

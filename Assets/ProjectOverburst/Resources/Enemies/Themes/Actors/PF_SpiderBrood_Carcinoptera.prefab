@@ -1320,7 +1320,7 @@ MonoBehaviour:
   hitHeight: 2.5089583
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
-  burnOffset: {x: 0, y: 0, z: 0}
+  burnOffset: {x: 0, y: -0.45, z: 0}
   burnScale: 1
 --- !u!114 &8131505342895100354
 MonoBehaviour:

@@ -252,9 +252,9 @@ MonoBehaviour:
   radius: 0.5367909
   height: 1.8920001
   useCustomHurtVolume: 1
-  hurtLocalCenter: {x: 0, y: 1, z: -0.1}
-  hurtRadius: 0.98
-  hurtHeight: 2.05
+  hurtLocalCenter: {x: 0, y: 1.05, z: -0.1}
+  hurtRadius: 1.15
+  hurtHeight: 2.16
 --- !u!114 &837685228548192009
 MonoBehaviour:
   m_ObjectHideFlags: 0

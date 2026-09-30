@@ -28,6 +28,9 @@ public sealed class CombatTarget : MonoBehaviour
     [SerializeField] private Vector3 hurtLocalCenter;
     [SerializeField, Min(0.05f)] private float hurtRadius = 0.45f;
     [SerializeField, Min(0.1f)] private float hurtHeight = 2f;
+    // 엘리트·보스 변형 크기. ActorRoot는 크기 1로 고정되고 VisualRoot·CollisionRoot만 커지므로
+    // 전용 피격 판정에 따로 곱한다. 소환할 때마다 다시 넣는 실행 값이라 저장하지 않는다.
+    [System.NonSerialized] private Vector3 variantHurtScale = Vector3.one;
     private IElementalStatusReceiver elementalStatusReceiver;
 
     public CombatHealth DamageReceiver => damageReceiver;
@@ -95,10 +98,28 @@ public sealed class CombatTarget : MonoBehaviour
         Vector3 scale = transform.lossyScale;
         float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
+        float variantPlanar = Mathf.Max(Mathf.Abs(variantHurtScale.x), Mathf.Abs(variantHurtScale.z));
         return new CombatTargetVolume(
-            rootWorldPosition + transform.TransformVector(hurtLocalCenter),
-            hurtRadius * planarScale,
-            hurtHeight * verticalScale * 0.5f);
+            rootWorldPosition + transform.TransformVector(Vector3.Scale(hurtLocalCenter, variantHurtScale)),
+            hurtRadius * variantPlanar * planarScale,
+            hurtHeight * Mathf.Abs(variantHurtScale.y) * verticalScale * 0.5f);
+    }
+
+    public Vector3 VariantHurtScale => variantHurtScale;
+
+    // 변형 크기는 겉모습(VisualRoot) 배율을 넣는다. 판정은 보이는 몸 기준이다. 1이면 결과가 이전과 같다.
+    public void SetVariantHurtScale(Vector3 scale)
+    {
+        Vector3 sanitized = new Vector3(
+            Mathf.Max(0.01f, Mathf.Abs(scale.x)),
+            Mathf.Max(0.01f, Mathf.Abs(scale.y)),
+            Mathf.Max(0.01f, Mathf.Abs(scale.z)));
+        if (sanitized == variantHurtScale)
+            return;
+
+        variantHurtScale = sanitized;
+        if (isActiveAndEnabled)
+            CombatTargetRegistry.NotifySpatialChanged(this);
     }
 
     public CombatTargetVolume ResolveSweptHurtVolume(Vector3 intendedRootWorldPosition)

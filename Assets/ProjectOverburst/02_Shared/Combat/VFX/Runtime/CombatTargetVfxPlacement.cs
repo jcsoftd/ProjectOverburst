@@ -23,8 +23,19 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
     [SerializeField, Range(0.3f, 2f)] private float burnScale = 1f;
 
     private CombatTarget target;
+    // 엘리트·보스 변형 크기(VisualRoot 배율). 소환할 때마다 다시 넣는 실행 값이라 저장하지 않는다.
+    // 화상 불 위치 보정(burnOffset)은 m 단위로 맞춘 값이라 곱하지 않는다.
+    [System.NonSerialized] private Vector3 variantScale = Vector3.one;
 
     private void Awake() => target = GetComponent<CombatTarget>();
+
+    public void SetVariantScale(Vector3 scale)
+    {
+        variantScale = new Vector3(
+            Mathf.Max(0.01f, Mathf.Abs(scale.x)),
+            Mathf.Max(0.01f, Mathf.Abs(scale.y)),
+            Mathf.Max(0.01f, Mathf.Abs(scale.z)));
+    }
 
     public CombatTargetVolume VisualVolume
     {
@@ -46,8 +57,9 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         Vector3 scale = transform.lossyScale;
         float planarScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f);
         float verticalScale = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
-        return new CombatTargetVolume(transform.TransformPoint(center),
-            radius * planarScale, height * verticalScale * 0.5f);
+        float variantPlanar = Mathf.Max(variantScale.x, variantScale.z);
+        return new CombatTargetVolume(transform.TransformPoint(Vector3.Scale(center, variantScale)),
+            radius * variantPlanar * planarScale, height * variantScale.y * verticalScale * 0.5f);
     }
 
     public static CombatTargetVolume ResolveVolume(CombatTarget target)

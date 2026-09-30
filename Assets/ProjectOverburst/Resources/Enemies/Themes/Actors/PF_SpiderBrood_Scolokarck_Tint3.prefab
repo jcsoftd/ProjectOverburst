@@ -755,7 +755,7 @@ MonoBehaviour:
   height: 1.4415481
   useCustomHurtVolume: 1
   hurtLocalCenter: {x: 0, y: 0.92, z: -0.05}
-  hurtRadius: 0.95
+  hurtRadius: 1.3
   hurtHeight: 1.8
 --- !u!114 &5249547975718080640
 MonoBehaviour:
@@ -1230,7 +1230,7 @@ MonoBehaviour:
   hitHeight: 2.4141898
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
-  burnOffset: {x: 0, y: 0, z: 0}
+  burnOffset: {x: 0, y: -0.24, z: 0}
   burnScale: 1
 --- !u!114 &7374085543341645192
 MonoBehaviour:
