@@ -54,7 +54,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     public bool IsFrozen { get { return isFrozen; } }
     public bool BlocksAttackStart => IsBlockingActionActive
         && !(blockingActionStateName == hitStateName && movementReaction != null
-            && movementReaction.CanActThroughOrdinaryHit && !movementReaction.BlocksAttack);
+            && movementReaction.ActsThroughOrdinaryHit && !movementReaction.BlocksAttack);
     public bool IsBlockingActionActive
     {
         get
@@ -203,7 +203,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
         string stateName = ResolveAttackStateName(triggerName);
         bool interruptHit = (blockingActionStateName == hitStateName || IsHitAnimationActive()) && movementReaction != null
-            && movementReaction.CanActThroughOrdinaryHit && !movementReaction.BlocksAttack;
+            && movementReaction.ActsThroughOrdinaryHit && !movementReaction.BlocksAttack;
         if (interruptHit && animator != null && HasState(stateName))
         {
             if (hasHitTrigger) animator.ResetTrigger(hitTriggerHash);

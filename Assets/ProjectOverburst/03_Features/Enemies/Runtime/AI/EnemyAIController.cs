@@ -295,7 +295,10 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
         }
 
         if (movementReaction != null && movementReaction.BlocksAttack)
+        {
+            TryStartStrongThroughHit();
             return;
+        }
 
         if (!ShouldRunAiTick())
             return;

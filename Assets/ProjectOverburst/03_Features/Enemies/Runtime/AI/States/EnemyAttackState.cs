@@ -16,6 +16,13 @@ public sealed class EnemyAttackState : IEnemyState // 플레이어 근접 공격
         attackStarted = owner.TryStartAttack(); // 능력 실행 표면으로 공격 1회 요청
     }
 
+    // 2026-09-30: 끊긴 공격 상태에서 중형이 경직 중 강공을 다시 시작할 때 쓴다(공격 차례는 그대로 유지).
+    public bool Restart()
+    {
+        attackStarted = owner.TryStartAttack();
+        return attackStarted;
+    }
+
     public void Update() // 공격 조건 갱신
     {
         if (owner.ShouldReturnFromCombat())

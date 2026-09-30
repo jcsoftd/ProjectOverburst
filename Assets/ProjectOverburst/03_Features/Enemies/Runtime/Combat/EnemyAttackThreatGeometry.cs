@@ -5,7 +5,8 @@ public static class EnemyAttackThreatGeometry
 {
     // 2026-09-30 패링 타격감: 강공만 더 넓고 넓은 각도로 친다. 일반 예고 공격은 기존 추가량 유지.
     private const float EliteExtra = 1.10f, StandardExtra = .75f;
-    private const float EliteStrongExtra = 1.90f, StandardStrongExtra = 1.40f;
+    // 2026-09-30 강공 사거리 2차: 판정 반경 추가분 중형 1.40→1.90, 정예 1.90→2.50.
+    private const float EliteStrongExtra = 2.50f, StandardStrongExtra = 1.90f;
     private const float StrongArcAngle = 150f;
 
     private enum ThreatTier { None, Standard, Elite }
@@ -70,7 +71,7 @@ public static class EnemyAttackThreatGeometry
     // Projectile and boss ranges remain authored values.
     // 2026-09-30 강공 발동 거리: 중형·정예 근접·범위 강공은 판정 반경이 넓은데 발동은 너무 붙어서 했다.
     // 발동 거리를 더 늘리되, 선 채로 맞을 수 있게 판정 반경(근접은 공격점 여유 포함) 안으로 제한한다.
-    private const float StandardStrongStartBonus = .5f, EliteStrongStartBonus = .7f;
+    private const float StandardStrongStartBonus = 1.0f, EliteStrongStartBonus = 1.2f; // 2차: 중형 .5→1.0, 정예 .7→1.2
     private const float MeleeArcStartCapMargin = .4f, AreaSlamStartCapMargin = .25f;
 
     public static float ResolveStartRange(EnemyActor actor, EnemyAbilityDefinition ability)

@@ -86,11 +86,21 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     private float forcedReactionEndTime;
     public bool CanActThroughOrdinaryHit => rank != null
         && (rank.GradeType == EnemyGradeType.Elite || rank.GradeType == EnemyGradeType.GreaterElite);
+    // 2026-09-30: 중형(Standard 무게)은 강공을 시작하는 순간과 강공 실행 중에만 평타 경직을 뚫고 행동한다.
+    // 정예는 기존처럼 항상 뚫는다. 패링 기절과 강제 반응은 둘 다 막는다.
+    private bool strongStartPass, strongAttackActive;
+    public bool IsStandardTier => rank != null && rank.GradeType != EnemyGradeType.Boss && !CanActThroughOrdinaryHit
+        && HitWeightProfile != null && HitWeightProfile.Weight == EnemyHitWeight.Standard;
+    public bool IsStrongAttackActive => strongAttackActive;
+    public bool ActsThroughOrdinaryHit => CanActThroughOrdinaryHit || strongStartPass || strongAttackActive;
+    public bool CanStartStrongThroughHit => IsStandardTier && !IsParryStunned && Time.time >= forcedReactionEndTime;
+    public void SetStrongStartPass(bool active) => strongStartPass = active && IsStandardTier;
+    public void SetStrongAttackActive(bool active) => strongAttackActive = active && IsStandardTier;
     public bool BlocksAttack => IsParryStunned || Time.time < forcedReactionEndTime
-        || (!CanActThroughOrdinaryHit && IsStunned);
+        || (!ActsThroughOrdinaryHit && IsStunned);
     public void PrepareForAttack()
     {
-        if (!CanActThroughOrdinaryHit || BlocksAttack) return;
+        if (!ActsThroughOrdinaryHit || BlocksAttack) return;
         knockbackEndTime = hitStunEndTime = knockbackTravelEndTime = 0f;
         ResetVisualLift();
         motor?.HoldPosition();
@@ -236,6 +246,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         parryStunEndTime = 0f;
         forcedReactionEndTime = 0f;
         knockbackTravelEndTime = 0f;
+        strongStartPass = strongAttackActive = false;
         motor?.HoldPosition();
     }
 

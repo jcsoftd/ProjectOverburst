@@ -36,8 +36,29 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         get
         {
-            return IsExecuting && reaction != null && reaction.CanActThroughOrdinaryHit;
+            return IsExecuting && reaction != null
+                && (reaction.CanActThroughOrdinaryHit || reaction.IsStrongAttackActive);
         }
+    }
+    // 2026-09-30: 정예는 어떤 타격에도 공격이 끊기지 않는다. 중형 강공은 플레이어 강공 본타(PlayerAttackKind.Heavy)에만 끊긴다.
+    // 강공에 딸린 원소 폭발·번개 연쇄 같은 원소 피해(Elemental)로는 끊기지 않는다.
+    public bool IsProtectedFrom(in DamageInfo info)
+    {
+        if (!IsOrdinaryHitProtected) return false;
+        return reaction.CanActThroughOrdinaryHit || (info.playerAttackKind & PlayerAttackKind.Heavy) == 0;
+    }
+    // 중형이 평타 경직 중에 강공만 골라 시작할 때 AI가 감싸 쓰는 구간.
+    private bool strongOnlyPass;
+    public void BeginStrongOnlyPass()
+    {
+        ResolveReferences();
+        strongOnlyPass = true;
+        reaction?.SetStrongStartPass(true);
+    }
+    public void EndStrongOnlyPass()
+    {
+        strongOnlyPass = false;
+        reaction?.SetStrongStartPass(false);
     }
     // 2026-09-30: 핵앤슬래시 기준으로 인정 구간을 첫 타격 0.70초 전부터 연다(신호와 동일).
     public const float ParryLeadSeconds = .70f;
@@ -110,6 +131,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     }
     private void EndStrongWarning()
     {
+        reaction?.SetStrongAttackActive(false);
         strongTarget = null;
         strongWarning?.Hide();
         EnemyCombatCoordinator.ReleaseStrongAttack(this);
@@ -255,6 +277,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         lastCommittedAbilityIndex = selected.Index;
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
+        if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
         firstImpactAt = Time.time + first;
         lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
         finalImpactDelivered = false;
@@ -293,7 +316,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsCooldownReady(ability))
+            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsCooldownReady(ability)
+                || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
                 continue;
             var executor = FindExecutor(ability);
             if (executor != null && executor.CanStart(ability, target)) return true;
@@ -378,7 +402,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             if (ability == null
                 || !ability.IsValid
                 || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
-                || !IsCooldownReady(ability))
+                || !IsCooldownReady(ability)
+                || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
             {
                 continue;
             }

@@ -26,6 +26,28 @@ public sealed partial class EnemyAIController
         ChangeState(combatWaitState);
     }
 
+    // 2026-09-30: 중형은 평타 경직 중에도 강공(예고 강공)만 골라 시작할 수 있다. 정예는 경직이 공격을 막지 않아 이 경로를 쓰지 않는다.
+    private void TryStartStrongThroughHit()
+    {
+        if (abilityController == null || movementReaction == null || !movementReaction.CanStartStrongThroughHit
+            || !IsAggroActive || !IsTargetValid() || abilityController.IsExecuting)
+            return;
+        abilityController.BeginStrongOnlyPass();
+        try
+        {
+            if (!abilityController.HasAvailableAbility(target))
+                return;
+            if (ReferenceEquals(stateMachine?.CurrentState, attackState))
+                attackState.Restart(); // 맞아서 끊긴 공격 차례를 그대로 이어 쓴다.
+            else
+                ChangeToAttack();
+        }
+        finally
+        {
+            abilityController.EndStrongOnlyPass();
+        }
+    }
+
     internal void ChangeToAttack()
     {
         // Keep completing the current facing action when no attack can start.

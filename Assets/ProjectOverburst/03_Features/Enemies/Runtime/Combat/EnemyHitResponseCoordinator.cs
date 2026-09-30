@@ -97,7 +97,7 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
 
         EnemyGradeType grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
         if (grade == EnemyGradeType.Boss || Time.time < nextFlinchAt
-            || (abilityController != null && abilityController.IsOrdinaryHitProtected))
+            || (abilityController != null && abilityController.IsProtectedFrom(info)))
         {
             RecordFeedbackOnly();
             return;
@@ -128,7 +128,7 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
             return false;
         EnemyGradeType grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
         if (grade == EnemyGradeType.Boss || Time.time < nextFlinchAt
-            || (abilityController != null && abilityController.IsOrdinaryHitProtected))
+            || (abilityController != null && abilityController.IsProtectedFrom(info)))
             return false;
         info.triggersOnHitEffects = true;
         info.isDamageOverTime = false;
