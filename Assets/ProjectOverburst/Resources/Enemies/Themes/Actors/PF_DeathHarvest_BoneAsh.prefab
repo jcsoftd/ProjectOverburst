@@ -734,6 +734,7 @@ GameObject:
   - component: {fileID: 5509019017151876489}
   - component: {fileID: 5216030419288064124}
   - component: {fileID: 2571546558508232365}
+  - component: {fileID: 644917990426646877}
   m_Layer: 7
   m_Name: PF_DeathHarvest_BoneAsh
   m_TagString: Untagged
@@ -1367,6 +1368,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: b653595a8ee7e1d4daa4c5d3194111ba, type: 2}
+--- !u!114 &644917990426646877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882114341736218777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 741d8b916df10c54996c5982146d8a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttackRootMotion
+  travelClips:
+  - {fileID: 8993902097722301239, guid: a0a85de99d8b73d4f93fbd50656f335d, type: 3}
+  - {fileID: 8993902097722301239, guid: 36b2e9c11c8105b41a5284f257090bdd, type: 3}
+  offsetRoot: {fileID: 4416953885553907842}
+  animator: {fileID: 2556331897778059770}
+  movement: {fileID: 5849168716279202551}
 --- !u!1 &9089970690832126895
 GameObject:
   m_ObjectHideFlags: 0

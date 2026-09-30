@@ -699,6 +699,7 @@ GameObject:
   - component: {fileID: 999278498149839561}
   - component: {fileID: 6132940163755234202}
   - component: {fileID: 689268193804330797}
+  - component: {fileID: 266987919114366230}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeStalker
   m_TagString: Untagged
@@ -1332,6 +1333,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 0e422c688fd4c084ca4f2b82ee81b82c, type: 2}
+--- !u!114 &266987919114366230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8359752780237756128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 741d8b916df10c54996c5982146d8a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttackRootMotion
+  travelClips:
+  - {fileID: 8993902097722301239, guid: 634ec6ebcfa6dd04192f081ecc744b89, type: 3}
+  - {fileID: 8993902097722301239, guid: 818fe7458f97787499537e7390bd0107, type: 3}
+  offsetRoot: {fileID: 7474108311715522249}
+  animator: {fileID: 3295034457556785635}
+  movement: {fileID: 4546227153898404590}
 --- !u!1 &8561804577688193799
 GameObject:
   m_ObjectHideFlags: 0

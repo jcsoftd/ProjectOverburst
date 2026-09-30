@@ -321,6 +321,7 @@ GameObject:
   - component: {fileID: 5244397845493771612}
   - component: {fileID: 4799416243891521283}
   - component: {fileID: 6832799404602352867}
+  - component: {fileID: 3508039487466556456}
   m_Layer: 7
   m_Name: PF_DeathHarvest_BoneWarden
   m_TagString: Untagged
@@ -954,6 +955,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: b653595a8ee7e1d4daa4c5d3194111ba, type: 2}
+--- !u!114 &3508039487466556456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6893060950518277590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 741d8b916df10c54996c5982146d8a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttackRootMotion
+  travelClips:
+  - {fileID: 8993902097722301239, guid: a0a85de99d8b73d4f93fbd50656f335d, type: 3}
+  - {fileID: 8993902097722301239, guid: 5f97f17ac2f7a0f40b86c4185918f537, type: 3}
+  offsetRoot: {fileID: 7829260015582738717}
+  animator: {fileID: 160091977187289335}
+  movement: {fileID: 13839463045997607}
 --- !u!1 &8747653263801570314
 GameObject:
   m_ObjectHideFlags: 0

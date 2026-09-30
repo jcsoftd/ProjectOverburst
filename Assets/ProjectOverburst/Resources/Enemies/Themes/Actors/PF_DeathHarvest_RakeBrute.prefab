@@ -702,6 +702,7 @@ GameObject:
   - component: {fileID: 5449985721615118214}
   - component: {fileID: 1072414846166623273}
   - component: {fileID: 8931458856288355145}
+  - component: {fileID: 7978269258270819685}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeBrute
   m_TagString: Untagged
@@ -1335,6 +1336,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 0e422c688fd4c084ca4f2b82ee81b82c, type: 2}
+--- !u!114 &7978269258270819685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630111263970318984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 741d8b916df10c54996c5982146d8a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttackRootMotion
+  travelClips:
+  - {fileID: 8993902097722301239, guid: 634ec6ebcfa6dd04192f081ecc744b89, type: 3}
+  - {fileID: 8993902097722301239, guid: 5f97f17ac2f7a0f40b86c4185918f537, type: 3}
+  offsetRoot: {fileID: 3334814972132684084}
+  animator: {fileID: 2192559949298045591}
+  movement: {fileID: 7473553573119233952}
 --- !u!1 &8397776656497602290
 GameObject:
   m_ObjectHideFlags: 0
