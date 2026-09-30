@@ -3,7 +3,7 @@ using Overburst.DebugTools;
 using UnityEngine;
 
 /// <summary>
-/// 데미지 숫자 비교(90C 8.2). 옛 DamageNumberFeelDebugUI의 버튼 14개·순환 버튼 4개를 선택 4줄 + 토글 1줄로 바꾸고,
+/// 데미지 숫자 비교(90C 8.2). 옛 HUD 데미지 숫자 비교 패널(2026-10-01 삭제)의 버튼 14개·순환 버튼 4개를 선택 4줄 + 토글 1줄로 바꾸고,
 /// A/B 비교 슬롯을 더했다. 슬롯은 Play 세션 동안만 유지한다(선택값 자체와 같은 기준).
 /// </summary>
 internal static class DamageNumberDebugModule

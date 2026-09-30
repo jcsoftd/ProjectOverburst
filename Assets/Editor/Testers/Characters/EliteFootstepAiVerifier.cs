@@ -108,7 +108,7 @@ public static class EliteFootstepAiVerifier
     private static IEnumerator Verify()
     {
         EnemyActor current = null;
-        EnemyThemeDebugUI ui = null;
+        EnemyThemeTrialHarness ui = null;
         EnemySpawnService spawn = null;
         try
         {
@@ -121,9 +121,8 @@ public static class EliteFootstepAiVerifier
             }
             var player = PlayerInputFacade.Current;
             Require(player != null, "Player missing");
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+            ui = EnemyThemeTrialHarness.Current;
             Require(ui != null, "Theme debug UI missing");
-            ui.gameObject.SetActive(true);
             ui.ToggleArena();
             Require(ui.InArena, "Arena entry failed");
             Require(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service missing");

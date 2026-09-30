@@ -24,7 +24,7 @@ public static class MonsterThemeCombatFieldVerifier
         public readonly HashSet<string> abilities = new HashSet<string>();
     }
 
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         if (!Directory.Exists(output)) throw new Exception("Artifact output missing");

@@ -80,8 +80,7 @@ public static class BloodHitVfxPlayVerifier
         Check(Service != null, "Runtime catalog bootstrap");
         var player = PlayerInputFacade.Current;
         Check(player != null, "Player loaded");
-        var ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        ui.gameObject.SetActive(true);
+        var ui = EnemyThemeTrialHarness.Current;
         bool entered = !ui.InArena;
         if (entered) ui.ToggleArena();
         yield return Wait(.7f);
@@ -212,8 +211,7 @@ public static class BloodHitVfxPlayVerifier
     }
     private static IEnumerator Field()
     {
-        var ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        ui.gameObject.SetActive(true);
+        var ui = EnemyThemeTrialHarness.Current;
         bool entered = !ui.InArena;
         if (entered) ui.ToggleArena();
         yield return Wait(.7f);

@@ -19,7 +19,7 @@ public static class DeathHarvestKnightPlayCheck
     private static bool previousBackground;
     private static int previousFrameRate;
     private static EnemyActor actor;
-    private static EnemyThemeDebugUI ui;
+    private static EnemyThemeTrialHarness ui;
     private static string completedDetail;
 
     public static string LastResult => SessionState.GetString(Key + ".result", "NOT_RUN");
@@ -114,9 +114,8 @@ public static class DeathHarvestKnightPlayCheck
         var player = PlayerInputFacade.Current;
         if (player == null) throw new InvalidOperationException("Player missing");
         player.GetComponent<CombatHealth>()?.SetMaxHp(100000, true);
-        ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        ui = EnemyThemeTrialHarness.Current;
         if (ui == null) throw new InvalidOperationException("Theme UI missing");
-        ui.gameObject.SetActive(true);
         yield return null;
         if (!ui.InArena) ui.ToggleArena();
         yield return null;

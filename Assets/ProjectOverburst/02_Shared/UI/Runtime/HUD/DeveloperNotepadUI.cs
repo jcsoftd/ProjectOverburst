@@ -40,8 +40,8 @@ public class DeveloperNotepadUI : MonoBehaviour
 
     private void ResolveReferences()
     {
-        if (openButton == null)
-            openButton = GetComponentInChildren<Button>(true);
+        // 2026-10-01: 여는 버튼은 옛 HUD 디버그 패널에 있었고 패널과 함께 지웠다. 이제 디버그 창(F1 > 시스템 > 메모장)이 Toggle()로 연다.
+        // 비어 있을 때 자식 버튼을 찾아 쓰면 창 안의 닫기 버튼에 '열기'가 붙으므로 찾지 않는다.
 
         if (memoInput == null)
             memoInput = GetComponentInChildren<TMP_InputField>(true);

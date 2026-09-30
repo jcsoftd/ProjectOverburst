@@ -10,7 +10,7 @@ using UnityEngine;
 // Reproduces an attack reservation being charged despite an unfinished facing turn.
 public static class MonsterThemeAttackReadinessVerifier
 {
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output=SessionState.GetString("MonsterThemePlayVerifier.output", "");
         string phase=SessionState.GetString("MonsterThemeCombatRecovery.phase", "baseline");

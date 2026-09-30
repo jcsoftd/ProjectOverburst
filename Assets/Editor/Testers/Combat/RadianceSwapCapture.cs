@@ -97,7 +97,7 @@ public static class RadianceSwapCapture
             throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
         var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
         actor.Health.SetMaxHp(1000000, true);
-        var ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+        var ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
         yield return Wait(0.8f);
         var melee = player.GetComponent<MeleeRuntime>();
         var weapon = AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");

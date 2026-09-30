@@ -20,7 +20,7 @@ public static class DeathHarvestPlayVerifier
     private static bool stopping;
     private static bool previousBackground;
     private static int previousFrameRate;
-    private static EnemyThemeDebugUI ui;
+    private static EnemyThemeTrialHarness ui;
     private static PlayerInputFacade player;
     private static CombatHealth health;
     private static Vector3 center;
@@ -153,9 +153,8 @@ public static class DeathHarvestPlayVerifier
         health = player.GetComponent<CombatHealth>();
         Require(health != null, "Player health missing");
         health.SetMaxHp(100000, true);
-        ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        ui = EnemyThemeTrialHarness.Current;
         Require(ui != null, "Theme debug UI missing");
-        ui.gameObject.SetActive(true);
         yield return null;
         Require(ui.tables != null && ui.tables.Length == 5, "Five theme buttons not assembled");
         var table = ui.tables[4];

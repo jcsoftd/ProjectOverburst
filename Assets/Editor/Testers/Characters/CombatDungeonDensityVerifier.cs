@@ -18,13 +18,15 @@ public static partial class CombatBalanceGoal3Verifier
         deadline=EditorApplication.timeSinceStartup+1000;
         var actor=PlayerContext.Instance.CurrentActor;var player=PlayerInputFacade.Current;
         Check(actor.Equipment.EquipWeaponItem(new ItemData(AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset"),1,ItemGrade.Common)),"fixture weapon");
-        var ui=Object.FindFirstObjectByType<DebugPanelToggleUI>(FindObjectsInactive.Include);
-        ui.GetType().GetMethod("SetExpanded",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(ui,new object[]{true});
-        var debug=Object.FindFirstObjectByType<DungeonDebugEntry>();
-        var entryUi=Object.FindFirstObjectByType<DungeonDebugEntryUI>();
-        Check(debug!=null&&entryUi!=null,"debug button attached");
-        entryUi.Open();for(int i=0;i<5;i++)yield return null;
-        ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(Output,"debug-ui.png"));yield return null;entryUi.Close();yield return null;
+        // 2026-10-01: 옛 HUD 던전 입장 창을 지우고 디버그 창(F1 > 던전·씬)으로 옮겼다. 입장은 같은 DungeonDebugEntry(디버그 창 Host)다.
+        var host=Overburst.DebugTools.DebugHub.Host;
+        var debug=host==null?null:host.TryGetComponent(out DungeonDebugEntry found)?found:host.AddComponent<DungeonDebugEntry>();
+        var levelItem=Overburst.DebugTools.DebugRegistry.Find("world.dungeon.level") as Overburst.DebugTools.DebugNumber;
+        var dropItem=Overburst.DebugTools.DebugRegistry.Find("world.dungeon.dropEquipment") as Overburst.DebugTools.DebugToggle;
+        var enterItem=Overburst.DebugTools.DebugRegistry.Find("world.dungeon.enter") as Overburst.DebugTools.DebugButtons;
+        Check(debug!=null&&levelItem!=null&&dropItem!=null&&enterItem!=null,"debug window dungeon entry registered");
+        Overburst.DebugTools.DebugHub.OpenTab(Overburst.DebugTools.DebugTabs.World);for(int i=0;i<5;i++)yield return null;
+        ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(Output,"debug-ui.png"));yield return null;Overburst.DebugTools.DebugHub.Close();yield return null;
         Check(!debug.TryEnter(0,true)&&!debug.TryEnter(101,true),"range rejected");
         for(int level=1;level<=100;level++)
         {
@@ -77,11 +79,9 @@ public static partial class CombatBalanceGoal3Verifier
                 bool drops=entryIndex<2;
                 Check(actor.Equipment.EquipWeaponItem(new ItemData(AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset"),1,ItemGrade.Common)),"fixture weapon per entry");
                 float started=Time.realtimeSinceStartup;
-                entryUi.Open();
-                var panel=(GameObject)typeof(DungeonDebugEntryUI).GetField("panel",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(entryUi);
-                panel.GetComponentInChildren<TMPro.TMP_InputField>().text=level.ToString();
-                panel.GetComponentInChildren<UnityEngine.UI.Toggle>().isOn=drops;
-                panel.GetComponentsInChildren<UnityEngine.UI.Button>().First(b=>b.name=="입장").onClick.Invoke();
+                levelItem.SetValue(level);
+                if(dropItem.Value!=drops)dropItem.Flip();
+                enterItem.Press(0);
                 Check(debug.IsEntering,"debug UI entry: "+debug.Status);
                 Check(!debug.TryEnter(level,drops),"duplicate entry blocked");
                 while(PersistentSceneFlow.Instance.IsSwitching||debug.IsEntering)yield return null;

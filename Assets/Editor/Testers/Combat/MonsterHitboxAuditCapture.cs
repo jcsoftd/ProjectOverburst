@@ -159,12 +159,12 @@ public static class MonsterHitboxAuditCapture
 
     static IEnumerator Audit()
     {
-        EnemyThemeDebugUI ui = null; GameObject rig = null;
+        EnemyThemeTrialHarness ui = null; GameObject rig = null;
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             var player = PlayerInputFacade.Current; playerRoot = player.transform;
-            ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(.5f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

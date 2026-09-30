@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 // Move the real target during production AI turning; do not force an attack state.
 public static class MonsterThemeAimCommitVerifier
 {
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         var results = new List<object>();
@@ -121,7 +121,7 @@ public static class MonsterThemeAimCommitVerifier
         }
     }
 
-    public static IEnumerator VerifyAbilities(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator VerifyAbilities(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         var results = new List<object>(); Vector3 home = player.transform.position;

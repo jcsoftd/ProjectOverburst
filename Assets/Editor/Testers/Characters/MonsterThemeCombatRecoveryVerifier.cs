@@ -10,7 +10,7 @@ using UnityEngine;
 // saved even when a baseline is broken, rather than stopping at the first monster.
 public static class MonsterThemeCombatRecoveryVerifier
 {
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         if (!Directory.Exists(output)) throw new InvalidOperationException("Select an existing artifact directory");

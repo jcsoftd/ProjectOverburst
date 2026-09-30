@@ -127,7 +127,7 @@ public static class FireAuraHitCompare
 
     static IEnumerator Show()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null;
         var leased = new List<EnemyActor>(); var temp = new List<GameObject>();
         try
         {
@@ -136,7 +136,7 @@ public static class FireAuraHitCompare
                 throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

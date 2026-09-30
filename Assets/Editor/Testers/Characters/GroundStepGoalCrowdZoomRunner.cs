@@ -43,14 +43,13 @@ public static class GroundStepGoalCrowdZoomRunner
 
     private static IEnumerator Run()
     {
-        var ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        var ui = EnemyThemeTrialHarness.Current;
         var player = PlayerInputFacade.Current;
         var camera = QuarterViewCamera.ActiveInstance;
         var runtime = Object.FindFirstObjectByType<EnemyFootfallRuntime>();
         var dust = Object.FindFirstObjectByType<EnemyFootDustVfx>();
         if (!ui || !player || !camera || !runtime || !dust)
             throw new InvalidOperationException("Missing arena/player/camera/footfall service");
-        ui.gameObject.SetActive(true);
         float readyUntil = Time.time + 15f;
         while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
                 || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)

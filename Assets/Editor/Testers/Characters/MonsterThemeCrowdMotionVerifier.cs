@@ -21,7 +21,7 @@ public static class MonsterThemeCrowdMotionVerifier
         public float frozen, idle, maxFrozen, maxIdle, maxRate;
         public int visibleMoving, attackFrames;
     }
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output=SessionState.GetString("MonsterThemePlayVerifier.output","");
         Require(Directory.Exists(output),"Set output directory");

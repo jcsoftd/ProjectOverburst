@@ -144,7 +144,7 @@ public static class UpperElementPlayVerifier
 
     static IEnumerator Verify()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; MeleeRuntime melee = null;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; MeleeRuntime melee = null;
         var leased = new List<EnemyActor>();
         try
         {
@@ -154,7 +154,7 @@ public static class UpperElementPlayVerifier
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             var weapon = AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service");
             foreach (var t in ui.tables) Check(spawn.RegisterAdditionalCatalog(t.Catalog, out string error), error);
             var defs = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Where(d => d != null).Distinct().ToArray();

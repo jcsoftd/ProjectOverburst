@@ -14,8 +14,8 @@ public static partial class CombatBalanceGoal3Verifier
         deadline=EditorApplication.timeSinceStartup+600;
         var player=PlayerInputFacade.Current;
         PlayerContext.Instance.CurrentActor.Health.SetMaxHp(1000000,true);
-        var ui=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        ui.gameObject.SetActive(true);if(!ui.InArena)ui.ToggleArena();
+        var ui=EnemyThemeTrialHarness.Current;
+        if(!ui.InArena)ui.ToggleArena();
         var origin=player.transform.position+Vector3.forward*20;
         try
         {

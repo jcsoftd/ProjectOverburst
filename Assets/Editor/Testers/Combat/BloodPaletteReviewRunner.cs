@@ -38,13 +38,12 @@ public static class BloodPaletteReviewRunner
 
     private static IEnumerator Run(string themeFilter, bool bloodlessOnly)
     {
-        var ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        var ui = EnemyThemeTrialHarness.Current;
         var player = PlayerInputFacade.Current;
         var blood = Object.FindFirstObjectByType<BloodHitVfxService>();
         var ground = blood ? blood.GetComponent<BloodGroundDecalService>() : null;
         if (!ui || !player || !blood || !ground)
             throw new InvalidOperationException("Missing UI, player, or blood service");
-        ui.gameObject.SetActive(true);
         float sceneDeadline = Time.time + 15f;
         while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
                 || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)

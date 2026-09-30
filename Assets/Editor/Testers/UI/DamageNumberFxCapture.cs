@@ -121,7 +121,7 @@ public static class DamageNumberFxCapture
 
     static IEnumerator Capture()
     {
-        EnemySpawnService spawn = null; var leased = new List<EnemyActor>(); EnemyThemeDebugUI debug = null;
+        EnemySpawnService spawn = null; var leased = new List<EnemyActor>(); EnemyThemeTrialHarness debug = null;
         GameObject recorderObject = null;
         try
         {
@@ -134,7 +134,7 @@ public static class DamageNumberFxCapture
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
 
-            debug = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); debug.gameObject.SetActive(true); if (!debug.InArena) debug.ToggleArena();
+            debug = EnemyThemeTrialHarness.Current; if (!debug.InArena) debug.ToggleArena();
             yield return Wait(.8f);
             var cam = Camera.main; var origin = player.transform.position; var plane = new Plane(Vector3.up, origin);
             Vector3 Ground(float vx, float vy) { var ray = cam.ViewportPointToRay(new Vector3(vx, vy, 0f)); return plane.Raycast(ray, out float d) ? ray.GetPoint(d) : origin; }

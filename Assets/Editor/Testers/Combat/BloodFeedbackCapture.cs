@@ -113,7 +113,7 @@ public static class BloodFeedbackCapture
 
     static IEnumerator Capture(string only)
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; MeleeRuntime melee = null;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; MeleeRuntime melee = null;
         var leased = new List<EnemyActor>();
         void ReleaseAll() { if (spawn != null) foreach (var e in leased) if (e != null && e.IsLeased) spawn.Release(e); leased.Clear(); }
         bool Want(string part) => string.IsNullOrEmpty(only) || only.Contains(part);
@@ -124,7 +124,7 @@ public static class BloodFeedbackCapture
                 throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

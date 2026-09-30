@@ -125,7 +125,7 @@ public static class EnemyThemeDebugCountsPlayVerifier
 
     private static IEnumerator Verify()
     {
-        EnemyThemeDebugUI ui = null;
+        EnemyThemeTrialHarness ui = null;
         try
         {
             float limit = Time.realtimeSinceStartup + 45f;
@@ -137,24 +137,14 @@ public static class EnemyThemeDebugCountsPlayVerifier
             }
             var player = PlayerInputFacade.Current;
             Require(player != null, "Player missing");
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-            Require(ui != null && ui.tables.Length == 4, "Four-theme debug UI missing");
-            ui.gameObject.SetActive(true);
+            ui = EnemyThemeTrialHarness.Current;
+            // 2026-10-01: 옛 HUD 테마 패널을 지우고 디버그 창(F1 > 스폰·시험장) 서비스로 옮겼다. 버튼 문구·모드 막대 확인은
+            // DebugHubPlayVerifier가 맡고, 여기서는 같은 서비스로 모드 전환과 수량만 본다.
+            Require(ui != null && ui.tables.Length >= 4, "Theme catalog missing");
             Require(ui.TrialMode == EnemyThemeTrialMode.Normal, "Normal must be the default debug mode");
-            var modeBar = ui.transform.Find("Roster modes");
-            Require(modeBar != null && modeBar.childCount == 4, "Mode selector missing or duplicated");
-            ui.gameObject.SetActive(false);
-            ui.gameObject.SetActive(true);
-            modeBar = ui.transform.Find("Roster modes");
-            Require(modeBar != null && modeBar.childCount == 4, "Mode selector duplicated after re-enable");
-            var eliteButton = modeBar.Find("Mode 정예")?.GetComponent<UnityEngine.UI.Button>();
-            var normalButton = modeBar.Find("Mode 일반")?.GetComponent<UnityEngine.UI.Button>();
-            Require(eliteButton != null && normalButton != null, "Mode buttons missing after re-enable");
-            eliteButton.onClick.Invoke();
-            Require(ui.TrialMode == EnemyThemeTrialMode.Elite, "Elite button was not connected");
-            normalButton.onClick.Invoke();
-            Require(ui.TrialMode == EnemyThemeTrialMode.Normal, "Normal button was not connected");
-            passed.Add("Mode buttons reconnect after panel re-enable");
+            Require(ui.SetTrialMode(EnemyThemeTrialMode.Elite) && ui.TrialMode == EnemyThemeTrialMode.Elite, "Elite mode switch");
+            Require(ui.SetTrialMode(EnemyThemeTrialMode.Normal) && ui.TrialMode == EnemyThemeTrialMode.Normal, "Normal mode switch");
+            passed.Add("Mode switch through debug window service");
 
             foreach (EnemyThemeTrialMode mode in Enum.GetValues(typeof(EnemyThemeTrialMode)))
             foreach (var table in ui.tables)
@@ -190,8 +180,7 @@ public static class EnemyThemeDebugCountsPlayVerifier
                 ui.Clear();
                 Require(ui.SetTrialMode(EnemyThemeTrialMode.Normal), "Select normal mode");
                 int expected = EnemyThemeTrialPresets.Resolve(ui.tables[index], ui.TrialMode).Total;
-                Require(ui.spawnButtons[index].GetComponentInChildren<TextMeshProUGUI>(true).text == expected + "마리",
-                    "Button label " + index);
+
                 Require(ui.Begin(index, false), "Begin normal " + index);
                 var encounter = FindDebugEncounter();
                 Require(encounter != null, "Debug encounter missing");
@@ -260,7 +249,7 @@ public static class EnemyThemeDebugCountsPlayVerifier
         }
     }
 
-    private static IEnumerator VerifyOne(EnemyThemeDebugUI ui, EnemyThemeTrialMode mode, int index, int expected)
+    private static IEnumerator VerifyOne(EnemyThemeTrialHarness ui, EnemyThemeTrialMode mode, int index, int expected)
     {
         Require(ui.SetTrialMode(mode), "Select " + mode);
         Require(ui.Begin(index, false), "Begin " + mode);

@@ -136,7 +136,7 @@ public static class EnemyFootDustPlayVerifier
 
     private static IEnumerator Verify()
     {
-        EnemyThemeDebugUI ui = null;
+        EnemyThemeTrialHarness ui = null;
         EnemySpawnService spawn = null;
         var active = new List<EnemyActor>(64);
         try
@@ -152,9 +152,8 @@ public static class EnemyFootDustPlayVerifier
 
             var player = PlayerInputFacade.Current;
             Require(player != null, "Player missing");
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+            ui = EnemyThemeTrialHarness.Current;
             Require(ui != null, "Theme debug UI missing");
-            ui.gameObject.SetActive(true);
             ui.ToggleArena();
             Require(ui.InArena, "Arena entry failed");
             Require(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn),
@@ -260,7 +259,6 @@ public static class EnemyFootDustPlayVerifier
                 actor.Movement.SetDestination(player.transform.position +
                     cameraForward * 2f + cameraRight * side, .1f, EnemyLocomotionMode.Run);
             }
-            ui.gameObject.SetActive(false);
             SessionState.SetString(Key + ".phase", "VISUAL");
             float visualStart = Time.realtimeSinceStartup;
             float nextTurn = visualStart + 2f;
@@ -426,7 +424,6 @@ public static class EnemyFootDustPlayVerifier
                 foreach (EnemyActor actor in active) if (actor != null) spawn.Release(actor);
             if (ui != null && ui.InArena)
             {
-                ui.gameObject.SetActive(true);
                 ui.Clear();
                 ui.ToggleArena();
             }

@@ -110,7 +110,7 @@ public static class AttackPoseCapture
 
     static IEnumerator Capture(string[] ids, bool comboOnly)
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; var leased = new List<EnemyActor>();
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; var leased = new List<EnemyActor>();
         var rt = new RenderTexture(180, 180, 24); var tex = new Texture2D(180, 180, TextureFormat.RGB24, false);
         var camGo = new GameObject("PoseCam"); var cam = camGo.AddComponent<Camera>();
         cam.enabled = false; cam.orthographic = true; cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(.22f, .23f, .26f); cam.targetTexture = rt;
@@ -118,7 +118,7 @@ public static class AttackPoseCapture
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             var player = PlayerInputFacade.Current;
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

@@ -477,7 +477,7 @@ public static class BurnAuraCrowdPerfProbe
 
     static IEnumerator Verify()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; PlayerInputFacade input = null; bool oldGameplay = false;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; PlayerInputFacade input = null; bool oldGameplay = false;
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
@@ -485,7 +485,7 @@ public static class BurnAuraCrowdPerfProbe
                 "Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return null; yield return null;
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service");
             var theme = MapThemeCatalog.Resolve("SpiderBrood");

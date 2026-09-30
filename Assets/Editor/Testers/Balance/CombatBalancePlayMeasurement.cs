@@ -228,7 +228,7 @@ namespace Overburst.EditorBalance.Analysis
 
         static IEnumerator Measure()
         {
-            EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; MeleeRuntime melee = null; MeasureInput input = null;
+            EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; MeleeRuntime melee = null; MeasureInput input = null;
             var leased = new List<EnemyActor>();
             try
             {
@@ -237,9 +237,9 @@ namespace Overburst.EditorBalance.Analysis
                 if (!Overburst.Persistence.AccountBootstrap.SaveDirectory.StartsWith(Output, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("계정 저장이 격리되지 않았습니다: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
                 var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
-                ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+                ui = EnemyThemeTrialHarness.Current;
                 if (ui == null) throw new InvalidOperationException("독립 투기장 UI 없음");
-                ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+                if (!ui.InArena) ui.ToggleArena();
                 if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new InvalidOperationException("스폰 서비스 없음");
                 foreach (var t in ui.tables) if (!spawn.RegisterAdditionalCatalog(t.Catalog, out string error)) throw new InvalidOperationException(error);
                 yield return null; yield return null;

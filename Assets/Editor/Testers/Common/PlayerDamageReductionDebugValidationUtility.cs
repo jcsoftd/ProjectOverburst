@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.UI;
 
+/// <summary>
+/// 받는 피해 99.9% 감소 디버그 검증. 2026-10-01 옛 HUD 버튼(HUDCanvas/DebugPanel)을 지우고 디버그 창(F1 > 플레이어 > 생존)으로
+/// 옮겼으므로, 씬 검사는 옛 패널이 남아 있지 않은지와 빠진 스크립트가 없는지를 본다.
+/// </summary>
 public static class PlayerDamageReductionDebugValidationUtility
 {
     private const string PersistentScenePath = "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity";
-    private const string ButtonName = "PlayerDamageReductionDebugToggleUI";
 
     [MenuItem("OVERBURST/Codex/Validation/Validate Player Damage Reduction Debug")]
     public static void RunFromMenu()
@@ -26,7 +27,7 @@ public static class PlayerDamageReductionDebugValidationUtility
     {
         ValidateDamageCalculationAndSettingEvent();
         ValidatePersistentSceneWiring();
-        Debug.Log("[ProjectVTP] Player damage reduction debug validation passed: 100 -> 0.1, setting event valid, DebugPanel wiring valid.");
+        Debug.Log("[ProjectVTP] Player damage reduction debug validation passed: 100 -> 0.1, setting event valid, old DebugPanel removed.");
     }
 
     private static void ValidateDamageCalculationAndSettingEvent()
@@ -79,41 +80,10 @@ public static class PlayerDamageReductionDebugValidationUtility
         }
 
         GameObject hudCanvas = GameObject.Find("HUDCanvas");
-        Transform debugPanel = hudCanvas != null ? hudCanvas.transform.Find("DebugPanel") : null;
-        Transform buttonTransform = debugPanel != null ? debugPanel.Find(ButtonName) : null;
-        if (buttonTransform == null)
-            throw new InvalidOperationException($"HUDCanvas/DebugPanel/{ButtonName} was not found.");
-
-        GameObject buttonObject = buttonTransform.gameObject;
-        if (buttonObject.GetComponent<Button>() == null
-            || buttonObject.GetComponentInChildren<TextMeshProUGUI>(true) == null
-            || buttonObject.GetComponent<PlayerDamageReductionDebugToggleUI>() == null)
-        {
-            throw new InvalidOperationException($"{ButtonName} is missing Button, TMP label, or toggle component.");
-        }
-
-        Transform panelToggleTransform = debugPanel.Find("DebugPanelToggleButtonUI");
-        DebugPanelToggleUI panelToggle = panelToggleTransform != null
-            ? panelToggleTransform.GetComponent<DebugPanelToggleUI>()
-            : null;
-        if (panelToggle == null)
-            throw new InvalidOperationException("DebugPanelToggleButtonUI wiring was not found.");
-
-        SerializedObject serializedToggle = new SerializedObject(panelToggle);
-        SerializedProperty controlledObjects = serializedToggle.FindProperty("controlledObjects");
-        bool containsButton = false;
-        for (int i = 0; controlledObjects != null && i < controlledObjects.arraySize; i++)
-        {
-            GameObject controlled = controlledObjects.GetArrayElementAtIndex(i).objectReferenceValue as GameObject;
-            if (controlled != null && controlled.name == ButtonName)
-            {
-                containsButton = true;
-                break;
-            }
-        }
-
-        if (!containsButton)
-            throw new InvalidOperationException($"DebugPanelToggleUI.controlledObjects does not contain {ButtonName}.");
+        if (hudCanvas == null)
+            throw new InvalidOperationException("HUDCanvas was not found.");
+        if (hudCanvas.transform.Find("DebugPanel") != null)
+            throw new InvalidOperationException("HUDCanvas/DebugPanel still exists; the debug window (F1) replaced it.");
     }
 
     private static void AssertApproximately(float expected, float actual, string label)

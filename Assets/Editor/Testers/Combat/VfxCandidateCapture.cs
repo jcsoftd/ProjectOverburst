@@ -88,14 +88,14 @@ public static class VfxCandidateCapture
 
     static IEnumerator Capture(string[] list)
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; EnemyActor dummy = null; GameObject live = null;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; EnemyActor dummy = null; GameObject live = null;
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             if (!Path.GetFullPath(Overburst.Persistence.AccountBootstrap.SaveDirectory).StartsWith(Path.GetFullPath(Output), StringComparison.OrdinalIgnoreCase))
                 throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current;
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

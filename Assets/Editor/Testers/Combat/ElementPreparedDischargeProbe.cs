@@ -30,7 +30,7 @@ public static class ElementPreparedDischargeProbe
     static float firstHeavyTime,firstDerivedTime;
     static ProfilerRecorder draws,gc,sharedBuild;
     static bool sharedAura,oldShared,smallOnly,enteredArena;
-    static EnemyThemeDebugUI arenaUi;
+    static EnemyThemeTrialHarness arenaUi;
     static readonly FrameTiming[] timing=new FrameTiming[1];
     static EnemyThemeTable selectedTheme;
     static string PathName=>Path.GetFullPath("../개인파일/코덱스산출/Combat/ElementStatusGoal20260927/PreparedDischarge_"+selectedTheme.ThemeId+"_InputIsolated_Arena"+(smallOnly?"_SmallOnly":"")+(sharedAura?"_DelayedShared.txt":"_Delayed.txt"));
@@ -60,7 +60,7 @@ public static class ElementPreparedDischargeProbe
     static IEnumerator Run()
     {
         while(PersistentSceneFlow.Instance==null||PersistentSceneFlow.Instance.IsSwitching||PersistentSceneFlow.Instance.CurrentSubSceneName!=PersistentSceneFlow.HideoutSceneName)yield return null;
-        arenaUi=UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        arenaUi=EnemyThemeTrialHarness.Current;
         if(arenaUi==null)throw new Exception("existing independent arena UI missing");
         if(!arenaUi.InArena){arenaUi.ToggleArena();enteredArena=true;}
         if(!arenaUi.InArena)throw new Exception("independent arena entry failed");

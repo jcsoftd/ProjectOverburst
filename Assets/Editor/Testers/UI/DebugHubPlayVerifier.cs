@@ -304,14 +304,15 @@ public static class DebugHubPlayVerifier
         Check("hub exists", DebugHub.Instance != null);
         Check("window closed at start", !DebugHub.IsOpen);
         Check("no gameplay block before open", !GameplayInputBlocker.IsGameplayInputBlocked);
-        // 4단계: 옛 HUD 디버그 버튼 묶음과 분대 오버레이는 숨겨지고, 기존 검증기가 쓰는 컴포넌트는 남아 있다.
-        var oldOverlay = Object.FindFirstObjectByType<EnemySquadDebugOverlayUI>(FindObjectsInactive.Include);
-        var oldPanel = Object.FindFirstObjectByType<DebugPanelToggleUI>(FindObjectsInactive.Include);
-        var oldTheme = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        Check("old squad overlay hidden", oldOverlay != null && !oldOverlay.gameObject.activeInHierarchy);
-        Check("old debug panel button hidden", oldPanel != null && !oldPanel.gameObject.activeInHierarchy);
-        Check("old theme panel hidden but kept for verifiers", oldTheme != null && !oldTheme.gameObject.activeInHierarchy);
-        yield return Shot("hideout_without_old_debug_ui");
+        // 4단계: 옛 HUD 디버그 패널(HUDCanvas/DebugPanel)과 분대 오버레이가 씬에서 지워졌고, 빠진 스크립트가 없다.
+        GameObject hudCanvas = GameObject.Find("HUDCanvas");
+        Check("old debug panel removed", hudCanvas != null && hudCanvas.transform.Find("DebugPanel") == null);
+        Check("old squad overlay removed", hudCanvas != null && hudCanvas.transform.Find("EnemySquadDebugOverlayUI") == null);
+        int missingScripts = hudCanvas == null ? -1 : hudCanvas.GetComponentsInChildren<Transform>(true)
+            .Sum(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject));
+        Check("HUD has no missing scripts", missingScripts == 0, "missing " + missingScripts);
+        Check("notepad still reachable", Object.FindFirstObjectByType<DeveloperNotepadUI>(FindObjectsInactive.Include) != null);
+        yield return Shot("hideout_old_debug_ui_removed");
         string[] expected =
         {
             "player.survival.damageReduction", "combat.display.attackPattern", "combat.display.aimLine",
@@ -336,6 +337,7 @@ public static class DebugHubPlayVerifier
 
         // 3) 토글 6개: 실제 UI 클릭(가상 마우스)으로 켜고 끈다. 창 위에 포인터가 있으면 게임 입력이 막혀야 한다.
         bool blockedOverWindow = true;
+        var notBlocked = new List<string>();
         foreach ((string id, Func<bool> read) in Toggles)
         {
             DebugItem item = DebugRegistry.Find(id);
@@ -350,6 +352,8 @@ public static class DebugHubPlayVerifier
                 continue;
             bool before = read();
             yield return Click(button);
+            if (!GameplayInputBlocker.IsGameplayInputBlocked)
+                notBlocked.Add(id);
             blockedOverWindow &= GameplayInputBlocker.IsGameplayInputBlocked;
             bool afterFirst = read();
             yield return Click(button);
@@ -357,7 +361,8 @@ public static class DebugHubPlayVerifier
             Check("UI click toggles " + id, afterFirst == !before && afterSecond == before,
                 $"before={before} first={afterFirst} second={afterSecond}");
         }
-        Check("pointer over window blocks gameplay input", blockedOverWindow);
+        Check("pointer over window blocks gameplay input", blockedOverWindow, "not blocked at: " + string.Join(",", notBlocked)
+            + " · pointer " + (Mouse.current != null ? Mouse.current.position.ReadValue().ToString() : "-"));
         MouseAt(away);
         yield return Frames(3);
         Check("pointer away releases block", !GameplayInputBlocker.IsGameplayInputBlocked);
@@ -812,15 +817,12 @@ public static class DebugHubPlayVerifier
         // 테마 5종 × 규모 4종: 서비스 숫자가 규칙(EnemyThemeTrialPresets)과 같고, 옛 UI 표와 같은 순서
         var entries = EnemyThemeTrialService.Entries;
         Check("theme catalog has 5 themes", entries.Count == 5, string.Join(",", entries.Select(e => e.ShortName)));
-        EnemyThemeDebugUI oldUi = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        if (oldUi != null)
-        {
-            // 옛 UI는 Awake 때 사령(DeathHarvest)을 5번째로 붙인다.
-            bool sameOrder = oldUi.tables != null && oldUi.tables.Length == entries.Count
-                && Enumerable.Range(0, entries.Count).All(i => oldUi.tables[i] == entries[i].Table);
-            Check("theme order matches old debug UI", sameOrder,
-                oldUi.tables == null ? "old tables null" : string.Join(",", oldUi.tables.Select(t => t != null ? t.ThemeId : "null")));
-        }
+        // 옛 HUD 패널 순서(거미·독낭·원시·암굴, Awake 때 사령을 5번째로 붙임). 검증기 손잡이도 같은 표를 준다.
+        string[] oldOrder = { "SpiderBrood", "VenomBrood", "PrimalHunt", "CavernMutants", "DeathHarvest" };
+        EnemyThemeTable[] harnessTables = EnemyThemeTrialHarness.Current.tables;
+        bool sameOrder = entries.Count == oldOrder.Length && harnessTables.Length == entries.Count
+            && Enumerable.Range(0, entries.Count).All(i => entries[i].Id == oldOrder[i] && harnessTables[i] == entries[i].Table);
+        Check("theme order matches old debug UI", sameOrder, string.Join(",", entries.Select(e => e.Id)));
         int mismatches = 0;
         foreach (EnemyThemeTrialMode mode in Enum.GetValues(typeof(EnemyThemeTrialMode)))
         {
@@ -920,8 +922,56 @@ public static class DebugHubPlayVerifier
         yield return Frames(1);
         Check("loot override always/never/default", always == 50 && never == 0 && CombatDebugSettings.RunLootOverride == RunLootDebugOverride.Default,
             $"always {always}/50 never {never}/50");
+
+        // 5단계: 원소 에너지 가득·비우기·가득 유지(강공 방출 뒤에도 남는지), 끄면 규칙대로 0
+        PlayerEquipment equipment = PlayerContext.Instance.CurrentActor.Equipment;
+        if (equipment != null && equipment.CurrentWeaponItem == null)
+            yield return Press("player.gear.grant", 2, 0.4f); // 인벤토리 첫 무기 장착(2단계에서 만든 무기)
+        if (equipment != null && equipment.CurrentWeaponItem == null)
+        {
+            yield return Press("player.gear.grant", 0, 0.4f); // 시작 무기 지급
+            yield return Press("player.gear.grant", 2, 0.4f);
+        }
+        ItemData weaponItem = equipment != null ? equipment.CurrentWeaponItem : null;
+        string elementBefore = weaponItem != null ? weaponItem.ResolvedElement.ToString() : "no weapon";
+        if (weaponItem != null && !OverburstElementRules.IsActive(weaponItem.ResolvedElement))
+            weaponItem.TryAssignElementOnce(WeaponElement.Fire); // 격리 계정 무기에 원소가 없을 때만 시험용 불 원소
+        Check("energy readout before first hit", (Item<DebugReadout>("combat.element.energy")?.Value ?? "") != "", Item<DebugReadout>("combat.element.energy")?.Value);
+        DebugHub.OpenTab(DebugTabs.Combat);
+        yield return Press("combat.element.energyActions", 0);
+        OverburstElementEnergy energy = equipment != null ? equipment.GetComponent<OverburstElementEnergy>() : null;
+        notes.Add($"energy weapon element {elementBefore} -> {(energy != null ? energy.Element.ToString() : "no energy")}");
+        float filled = energy != null ? energy.Amount : -1f;
+        string energyText = Item<DebugReadout>("combat.element.energy")?.Value ?? "";
+        Check("energy fill to base max", energy != null && OverburstElementRules.IsActive(energy.Element)
+            && Mathf.Approximately(filled, energy.BaseMaximum) && energyText.Contains("/ " + energy.BaseMaximum.ToString("0")),
+            $"{filled:0} · {energyText}");
+        yield return Press("combat.element.energyActions", 1);
+        Check("energy empty", energy != null && energy.Amount == 0f, energy != null ? energy.Amount.ToString("0") : "-");
+        Item<DebugToggle>("combat.element.holdFull")?.Flip();
+        yield return Frames(1);
+        bool heldOnEnable = energy != null && Mathf.Approximately(energy.Amount, energy.BaseMaximum);
+        bool committed = energy != null && EndDischarge(energy.TryCommitDischarge(100f, out OverburstElementDischarge held) ? held : null);
+        bool keptAfterDischarge = energy != null && Mathf.Approximately(energy.Amount, energy.BaseMaximum);
+        yield return Wait(0.3f);
+        yield return Shot("combat_element");
+        Item<DebugToggle>("combat.element.holdFull")?.Flip();
+        yield return Frames(1);
+        bool committedOff = energy != null && EndDischarge(energy.TryCommitDischarge(100f, out OverburstElementDischarge rule) ? rule : null);
+        bool zeroAfterOff = energy != null && energy.Amount == 0f;
+        Check("hold keeps energy full through discharge, off follows rule", heldOnEnable && committed && keptAfterDischarge
+            && committedOff && zeroAfterOff && !ElementEnergyDebug.Hold,
+            $"on {heldOnEnable} commit {committed} kept {keptAfterDischarge} off {committedOff}/{zeroAfterOff}");
+        yield return Press("combat.element.clearStatuses", 0);
+        Check("clear enemy element statuses runs", LastRecord.Success, LastRecord.Message);
         DebugHub.Close();
         yield return Wait(0.3f);
+    }
+
+    private static bool EndDischarge(OverburstElementDischarge discharge)
+    {
+        discharge?.End();
+        return discharge != null;
     }
 
     private static IEnumerator FocusRow(string id)

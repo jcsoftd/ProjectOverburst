@@ -9,7 +9,7 @@ using UnityEngine;
 // Forces target changes during attacks and checks actual body rotation, damage and evaluated clips.
 public static class MonsterThemeFacingVerifier
 {
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         string output=SessionState.GetString("MonsterThemePlayVerifier.output","");
         Require(Directory.Exists(output),"Output directory");

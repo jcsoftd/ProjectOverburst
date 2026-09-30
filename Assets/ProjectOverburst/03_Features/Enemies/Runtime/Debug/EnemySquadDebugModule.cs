@@ -42,7 +42,7 @@ internal static class EnemySquadDebugModule
         RegisterThemeTrial();
     }
 
-    /// <summary>옛 EnemySquadDebugOverlayUI와 같은 문구.</summary>
+    /// <summary>옛 HUD 분대 오버레이(2026-10-01 삭제)와 같은 문구.</summary>
     private static string SquadStateText()
     {
         EnemySquadPursuitRuntimeStats stats = EnemySquadPursuitRuntimeService.GetRuntimeStats();

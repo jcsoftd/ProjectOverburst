@@ -47,7 +47,7 @@ public static partial class CombatBalanceGoal3Verifier
     }
     static IEnumerator VerifyGoal6()
     {
-        EnemySpawnService spawn=null;EnemyThemeDebugUI ui=null;MeleeRuntime melee=null;BalanceInput input=null;
+        EnemySpawnService spawn=null;EnemyThemeTrialHarness ui=null;MeleeRuntime melee=null;BalanceInput input=null;
         var leased=new List<EnemyActor>();
         try {
             while(PersistentSceneFlow.Instance==null||PersistentSceneFlow.Instance.IsSwitching||PersistentSceneFlow.Instance.CurrentSubSceneName!="HideoutScene")yield return null;
@@ -57,7 +57,7 @@ public static partial class CombatBalanceGoal3Verifier
             Check(Overburst.Persistence.AccountGameplaySession.Current.ExecuteState("balance-level-one",s=>{s.level=1;s.experience=0;}),"Reset isolated progression");
             var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
             actor.Health.SetMaxHp(1000000,true);
-            ui=Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);ui.gameObject.SetActive(true);if(!ui.InArena)ui.ToggleArena();
+            ui=EnemyThemeTrialHarness.Current;if(!ui.InArena)ui.ToggleArena();
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform,out spawn),"Spawn service");
             foreach(var t in ui.tables)Check(spawn.RegisterAdditionalCatalog(t.Catalog,out string error),error);
             var defs=ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().ToArray();

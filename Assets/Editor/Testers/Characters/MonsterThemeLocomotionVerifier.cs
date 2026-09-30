@@ -19,7 +19,7 @@ public static class MonsterThemeLocomotionVerifier
     private static int captureIndex;
     private sealed class SoleFrame { public float time; public Vector3 root; public Vector3[] soles; }
 
-    public static IEnumerator Verify(EnemyThemeDebugUI ui, PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui, PlayerInputFacade player)
     {
         output = SessionState.GetString("MonsterThemePlayVerifier.output", "");
         Require(Directory.Exists(output), "Set an existing output directory");

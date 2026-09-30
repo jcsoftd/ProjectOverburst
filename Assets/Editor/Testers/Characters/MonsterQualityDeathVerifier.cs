@@ -70,7 +70,7 @@ public static class MonsterQualityDeathVerifier
     private static IEnumerator Verify()
     {
         EnemyActor current = null;
-        EnemyThemeDebugUI ui = null;
+        EnemyThemeTrialHarness ui = null;
         try
         {
             float end = Time.realtimeSinceStartup + 45f;
@@ -78,8 +78,8 @@ public static class MonsterQualityDeathVerifier
                 || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)
             { Require(Time.realtimeSinceStartup < end, "Hideout did not load"); yield return null; }
             var player = PlayerInputFacade.Current; Require(player != null, "Player missing");
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-            Require(ui != null, "Theme UI missing"); ui.gameObject.SetActive(true); ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current;
+            Require(ui != null, "Theme UI missing"); ui.ToggleArena();
             Require(ui.InArena, "Arena entry failed");
             var table = ui.tables.First(t => t.ThemeId == "PrimalHunt");
             Require(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out var spawn), "Spawn service");

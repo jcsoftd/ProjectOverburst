@@ -132,7 +132,7 @@ public static class ExpBarProbe
             Snapshot("after AddExperience +1.6s", ui);
             Shot("02_half");
             // 2) 몬스터 처치(하이드아웃 시험장)
-            var themeUi = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); themeUi.gameObject.SetActive(true); if (!themeUi.InArena) themeUi.ToggleArena();
+            var themeUi = EnemyThemeTrialHarness.Current; if (!themeUi.InArena) themeUi.ToggleArena();
             yield return Wait(0.8f);
             var player = PlayerInputFacade.Current;
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");

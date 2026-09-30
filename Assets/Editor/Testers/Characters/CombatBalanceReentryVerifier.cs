@@ -20,7 +20,7 @@ public static partial class CombatBalanceGoal3Verifier
         Check(actor.Health.CurrentHp>hp,"Flask heals");
         Check(!flask.TryUse(0,out _),"Duplicate flask use rejected");
         results.Add(new{freshPlayReentry=true,level=PlayerProgression.CurrentLevel,hpBeforeFlask=hp,hpAfterFlask=actor.Health.CurrentHp,weapon=actor.Equipment.CurrentWeaponData.name,flaskCooldown=flask.CooldownRemaining(0)});
-        var ui=Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);ui.gameObject.SetActive(true);if(!ui.InArena)ui.ToggleArena();
+        var ui=EnemyThemeTrialHarness.Current;if(!ui.InArena)ui.ToggleArena();
         Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(p.transform,out var spawn),"Wall spawn service");
         foreach(var table in ui.tables)Check(spawn.RegisterAdditionalCatalog(table.Catalog,out string error),error);
         var defs=ui.tables.SelectMany(t=>t.Entries).Select(e=>e.definition).Distinct().ToArray();

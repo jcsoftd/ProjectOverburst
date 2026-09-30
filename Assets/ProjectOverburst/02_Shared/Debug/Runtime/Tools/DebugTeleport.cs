@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace Overburst.DebugTools
 {
     /// <summary>
-    /// 플레이어 순간이동. <c>EnemyThemeDebugUI.Teleport</c>와 같은 순서다:
+    /// 플레이어 순간이동. 옛 HUD 테마 패널(2026-10-01 삭제)의 순간이동과 같은 순서다:
     /// CharacterController를 끄고 옮긴 뒤 켜고, 이동 상태를 초기화하고, 물리 변환을 맞춘다.
     /// </summary>
     public static class DebugTeleport

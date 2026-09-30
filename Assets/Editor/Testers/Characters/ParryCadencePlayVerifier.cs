@@ -32,7 +32,7 @@ public static partial class CombatBalanceGoal3Verifier
             spawn = world.SpawnBudget.GetComponent<EnemySpawnService>();
             var ranks = new List<EnemyRank>(); EnemyRank.CollectActive(ranks);
             foreach (var rank in ranks) { var e = rank.GetComponent<EnemyActor>(); if (e != null && e.IsLeased) spawn.Release(e); }
-            var ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+            var ui = EnemyThemeTrialHarness.Current;
             foreach (var table in ui.tables) Check(spawn.RegisterAdditionalCatalog(table.Catalog, out string error), error);
             var defs = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Where(d => d != null && !d.EnemyId.StartsWith("DeathHarvest_")).Distinct().ToArray();
             playerActor.Health.SetMaxHp(1000000, true);

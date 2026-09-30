@@ -100,9 +100,9 @@ public static class MonsterMixedSquadVerifier
         { Check(Time.time < wait, "Hideout load"); yield return null; }
         player = PlayerInputFacade.Current; Check(player != null, "Player");
         player.GetComponent<CombatHealth>().SetMaxHp(100000, true);
-        var ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-        Check(ui != null, "Theme UI"); ui.gameObject.SetActive(true); ui.ToggleArena(); Check(ui.InArena, "Arena");
-        Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(ui.transform, out spawnService), "Spawn service setup");
+        var ui = EnemyThemeTrialHarness.Current;
+        Check(ui != null, "Theme UI"); ui.ToggleArena(); Check(ui.InArena, "Arena");
+        Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawnService), "Spawn service setup");
         foreach (var table in ui.tables) Check(spawnService.RegisterAdditionalCatalog(table.Catalog, out _), "Theme catalog registration");
         var definitions = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Distinct().Where(d => MonsterMixedSquadBuilder.IsOriginalTheme(d.EnemyId)).ToArray();
         Check(definitions.Length == 14 && definitions.All(d => d.TacticalProfile != null), "14 profile mappings");

@@ -8,7 +8,7 @@ public static partial class CombatBalanceGoal3Verifier
 {
     static IEnumerator VerifyGoal5()
     {
-        EnemyActor enemy = null; EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null;
+        EnemyActor enemy = null; EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null;
         EnemyAbilitySet fixture = null; MeleeRuntime melee = null;
         try
         {
@@ -21,8 +21,8 @@ public static partial class CombatBalanceGoal3Verifier
             Check(actor.Equipment.EquipWeaponItem(new ItemData(weapon, 1, ItemGrade.Common)), "Equip greatsword");
             PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
             melee = player.GetComponent<MeleeRuntime>(); melee.SetManualInputEnabled(true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-            ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current;
+            if (!ui.InArena) ui.ToggleArena();
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service");
             foreach (var t in ui.tables) Check(spawn.RegisterAdditionalCatalog(t.Catalog, out string error), error);
             var defs = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Distinct().ToArray();

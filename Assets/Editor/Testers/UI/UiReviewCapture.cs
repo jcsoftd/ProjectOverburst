@@ -99,7 +99,7 @@ public static class UiReviewCapture
 
     static IEnumerator Capture()
     {
-        EnemySpawnService spawn = null; var leased = new List<EnemyActor>(); EnemyThemeDebugUI debug = null;
+        EnemySpawnService spawn = null; var leased = new List<EnemyActor>(); EnemyThemeTrialHarness debug = null;
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
@@ -129,7 +129,7 @@ public static class UiReviewCapture
             yield return Wait(0.5f);
 
             // 2) 전투 HUD
-            debug = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); debug.gameObject.SetActive(true); if (!debug.InArena) debug.ToggleArena();
+            debug = EnemyThemeTrialHarness.Current; if (!debug.InArena) debug.ToggleArena();
             yield return Wait(0.8f);
             PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
             var cam = Camera.main; var origin = player.transform.position; var plane = new Plane(Vector3.up, origin);

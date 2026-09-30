@@ -16,7 +16,7 @@ public static class MonsterThemeFineTurnVerifier
         public Vector3[] feet;
     }
 
-    public static IEnumerator Verify(EnemyThemeDebugUI ui,PlayerInputFacade player)
+    public static IEnumerator Verify(EnemyThemeTrialHarness ui,PlayerInputFacade player)
     {
         string output=SessionState.GetString("MonsterThemePlayVerifier.output","");
         Require(Directory.Exists(output),"Output directory");

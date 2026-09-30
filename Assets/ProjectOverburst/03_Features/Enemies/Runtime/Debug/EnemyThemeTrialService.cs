@@ -15,7 +15,7 @@ public sealed class EnemyThemeTrialEntry
 }
 
 /// <summary>
-/// 적 테마 시험 로직(90C 8.1). 옛 <c>EnemyThemeDebugUI</c>의 소환·정리·시험장·순간이동 동작을 UI 없이 옮겼다.
+/// 적 테마 시험 로직(90C 8.1). 옛 HUD 테마 패널(2026-10-01 삭제)의 소환·정리·시험장·순간이동 동작을 UI 없이 옮겼다.
 /// 카탈로그는 Resources의 테마 표·경고 재질·시험장 프리팹을 이름으로 읽는다(SO 에셋 없이 코드 한 줄로 테마 추가).
 /// 옛 UI는 기존 검증기 60여 개가 직접 쓰므로 그대로 두고, 두 경로는 상태를 나누지 않는다.
 /// </summary>
@@ -127,7 +127,8 @@ public static class EnemyThemeTrialService
             return DebugResult.Fail("진행 중인 시험을 먼저 정리하세요");
         Clear();
         EnsureRunner();
-        var root = new GameObject("Theme debug encounter (Debug Hub)");
+        // 이름은 옛 HUD 패널과 같다. 검증기 여럿이 이 이름으로 조우를 찾는다.
+        var root = new GameObject("Theme debug encounter");
         SceneManager.MoveGameObjectToScene(root, player.gameObject.scene);
         encounter = root.AddComponent<EnemyThemeEncounter>();
         encounter.Configure(entry.Table, null, entry.Warning);

@@ -64,13 +64,12 @@ public static class BloodGoalFieldRunner
 
     private static IEnumerator Run(string theme, int count)
     {
-        var ui = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        var ui = EnemyThemeTrialHarness.Current;
         var player = PlayerInputFacade.Current;
         var blood = Object.FindFirstObjectByType<BloodHitVfxService>();
         var ground = Object.FindFirstObjectByType<BloodGroundDecalService>();
         if (!ui || !player || !blood || !ground)
             throw new InvalidOperationException("Missing theme UI, player, blood, or ground service");
-        ui.gameObject.SetActive(true);
         bool entered = !ui.InArena;
         try
         {

@@ -101,7 +101,7 @@ public static class DarkAuraStartCapture
 
     static IEnumerator Capture()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; var leased = new List<EnemyActor>();
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; var leased = new List<EnemyActor>();
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
@@ -109,7 +109,7 @@ public static class DarkAuraStartCapture
                 throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

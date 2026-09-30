@@ -11,7 +11,7 @@ using Object=UnityEngine.Object;
 // Captures evaluated Unity frames at their actual times; no generated or interpolated animation.
 public static class MonsterThemeDamageReviewCapture
 {
-    public static IEnumerator Capture(EnemyThemeDebugUI ui,PlayerInputFacade player)
+    public static IEnumerator Capture(EnemyThemeTrialHarness ui,PlayerInputFacade player)
     {
         string output=Path.Combine(SessionState.GetString("MonsterThemePlayVerifier.output",""),"DamageReview");
         Directory.CreateDirectory(output);

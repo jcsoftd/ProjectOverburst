@@ -167,13 +167,13 @@ public static class DarkVisualCapture
 
     static IEnumerator AuraCandidates()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; var spawned = new List<GameObject>();
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; var spawned = new List<GameObject>();
         var leased = new List<EnemyActor>();
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.5f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);
@@ -245,14 +245,14 @@ public static class DarkVisualCapture
 
     static IEnumerator HeavyRanges(bool iceElectric)
     {
-        EnemyThemeDebugUI ui = null; MeleeRuntime melee = null; var temp = new List<GameObject>();
+        EnemyThemeTrialHarness ui = null; MeleeRuntime melee = null; var temp = new List<GameObject>();
         EnemySpawnService spawn = null; var leased = new List<EnemyActor>();
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.8f);
             melee = player.GetComponent<MeleeRuntime>();
             var weapon = AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
@@ -356,7 +356,7 @@ public static class DarkVisualCapture
 
     static IEnumerator Capture()
     {
-        EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null; MeleeRuntime melee = null; GameObject vendorAura = null;
+        EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null; MeleeRuntime melee = null; GameObject vendorAura = null;
         var leased = new List<EnemyActor>();
         try
         {
@@ -365,7 +365,7 @@ public static class DarkVisualCapture
                 throw new Exception("Account isolation: " + Overburst.Persistence.AccountBootstrap.SaveDirectory);
             var player = PlayerInputFacade.Current; var actor = PlayerContext.GetOrCreate().CurrentActor;
             actor.Health.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current; if (!ui.InArena) ui.ToggleArena();
             yield return Wait(0.5f);
             if (!EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn)) throw new Exception("Spawn service");
             foreach (var t in ui.tables) spawn.RegisterAdditionalCatalog(t.Catalog, out _);

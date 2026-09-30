@@ -74,15 +74,15 @@ public static partial class CombatBalanceGoal3Verifier
     }
     static IEnumerator Verify()
     {
-        EnemyActor current = null; EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null;
+        EnemyActor current = null; EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null;
         try
         {
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || PersistentSceneFlow.Instance.CurrentSubSceneName != "HideoutScene") yield return null;
             Check(Overburst.Persistence.AccountBootstrap.SaveDirectory.StartsWith(Output, StringComparison.OrdinalIgnoreCase), "Account is not isolated");
             var player = PlayerInputFacade.Current;
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+            ui = EnemyThemeTrialHarness.Current;
             Check(ui != null && player != null, "Missing arena/player");
-            ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena(); Check(ui.InArena, "Arena entry");
+            if (!ui.InArena) ui.ToggleArena(); Check(ui.InArena, "Arena entry");
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service");
             foreach (var t in ui.tables) Check(spawn.RegisterAdditionalCatalog(t.Catalog, out string error), error);
             var definitions = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Where(d => d != null).Distinct().ToArray();

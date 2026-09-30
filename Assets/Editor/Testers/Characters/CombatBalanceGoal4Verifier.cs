@@ -8,7 +8,7 @@ public static partial class CombatBalanceGoal3Verifier
 {
     static IEnumerator VerifyGoal4()
     {
-        EnemyActor current = null; EnemySpawnService spawn = null; EnemyThemeDebugUI ui = null;
+        EnemyActor current = null; EnemySpawnService spawn = null; EnemyThemeTrialHarness ui = null;
         EnemyAbilitySet fixture = null;
         try
         {
@@ -17,8 +17,8 @@ public static partial class CombatBalanceGoal3Verifier
             var player = PlayerInputFacade.Current;
             var playerHealth = PlayerContext.GetOrCreate().CurrentActor.Health;
             playerHealth.SetMaxHp(1000000, true);
-            ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
-            ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
+            ui = EnemyThemeTrialHarness.Current;
+            if (!ui.InArena) ui.ToggleArena();
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "Spawn service");
             foreach (var t in ui.tables) Check(spawn.RegisterAdditionalCatalog(t.Catalog, out string error), error);
             var defs = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).Distinct().ToArray();
