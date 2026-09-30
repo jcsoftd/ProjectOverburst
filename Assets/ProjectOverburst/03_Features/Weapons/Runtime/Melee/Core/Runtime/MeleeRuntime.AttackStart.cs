@@ -261,10 +261,7 @@ public partial class MeleeRuntime
             bakedTrajectoryStep,
             playerEquipment.CurrentWeaponTraceBinding,
             attackPatternDebugRenderer,
-            DealPatternDamage,
-            activeHitFeedbackSequenceId,
-            activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
-            EarthElementZoneRuntimeService.ReportAttackRange);
+            DealPatternDamage);
 
         if (!started)
         {

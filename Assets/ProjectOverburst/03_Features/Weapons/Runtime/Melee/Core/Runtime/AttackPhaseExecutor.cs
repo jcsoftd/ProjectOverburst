@@ -30,41 +30,6 @@ public readonly struct AttackPhaseHit
     }
 }
 
-public readonly struct AttackRangeOverlapReport
-{
-    public readonly GameObject SourceActor;
-    public readonly CombatTarget SourceTarget;
-    public readonly int AttackSequenceId;
-    public readonly WeaponElement Element;
-    public readonly string SourceWeaponRuntimeInstanceId;
-    public readonly float DamageSnapshot;
-    public readonly AttackPatternRuntimeData Pattern;
-    public readonly AttackPatternBasis Basis;
-    public readonly float ResolvedProgress;
-
-    public AttackRangeOverlapReport(
-        GameObject sourceActor,
-        CombatTarget sourceTarget,
-        int attackSequenceId,
-        WeaponElement element,
-        string sourceWeaponRuntimeInstanceId,
-        float damageSnapshot,
-        AttackPatternRuntimeData pattern,
-        AttackPatternBasis basis,
-        float resolvedProgress)
-    {
-        SourceActor = sourceActor;
-        SourceTarget = sourceTarget;
-        AttackSequenceId = attackSequenceId;
-        Element = element;
-        SourceWeaponRuntimeInstanceId = sourceWeaponRuntimeInstanceId ?? string.Empty;
-        DamageSnapshot = Mathf.Max(0f, damageSnapshot);
-        Pattern = pattern;
-        Basis = basis;
-        ResolvedProgress = Mathf.Clamp01(resolvedProgress);
-    }
-}
-
 public sealed class AttackPhaseExecutor
 {
     private readonly struct ReachedTarget
@@ -123,9 +88,6 @@ public sealed class AttackPhaseExecutor
     private WeaponElement weaponElement;
     private AttackPatternDebugRenderer debugRenderer;
     private Action<AttackPhaseHit> onHit;
-    private Action<AttackRangeOverlapReport> onRangeOverlap;
-    private int attackSequenceId;
-    private string sourceWeaponRuntimeInstanceId;
 
     public bool IsRunning { get; private set; }
     public void OverrideUnstartedCircleRadius(float radius)
@@ -155,10 +117,7 @@ public sealed class AttackPhaseExecutor
         MeleeAttackStepTrajectoryBakeData bakedTrajectoryStep,
         WeaponTraceBinding weaponTraceBinding,
         AttackPatternDebugRenderer renderer,
-        Action<AttackPhaseHit> hitCallback,
-        int sourceSequenceId = 0,
-        string weaponRuntimeInstanceId = "",
-        Action<AttackRangeOverlapReport> rangeOverlapCallback = null)
+        Action<AttackPhaseHit> hitCallback)
     {
         Cancel();
 
@@ -191,9 +150,6 @@ public sealed class AttackPhaseExecutor
         weaponElement = element;
         debugRenderer = renderer;
         onHit = hitCallback;
-        onRangeOverlap = rangeOverlapCallback;
-        attackSequenceId = sourceSequenceId;
-        sourceWeaponRuntimeInstanceId = weaponRuntimeInstanceId ?? string.Empty;
 
         for (int i = 0; i < phaseData.Length; i++)
         {
@@ -277,18 +233,6 @@ public sealed class AttackPhaseExecutor
                 ApplyReachedTargets(state, resolvedProgress);
 
             if (canApplyHits)
-                onRangeOverlap?.Invoke(new AttackRangeOverlapReport(
-                    owner != null ? owner.gameObject : null,
-                    sourceTarget,
-                    attackSequenceId,
-                    weaponElement,
-                    sourceWeaponRuntimeInstanceId,
-                    state.RuntimeData.Damage,
-                    state.Pattern,
-                    state.Basis,
-                    resolvedProgress));
-
-            if (canApplyHits)
             {
                 AttackProgressSample vfxSample = ResolveVfxTraceSample(
                     state.ProgressSample,
@@ -344,9 +288,6 @@ public sealed class AttackPhaseExecutor
         debugRenderer?.Hide();
         debugRenderer = null;
         onHit = null;
-        onRangeOverlap = null;
-        attackSequenceId = 0;
-        sourceWeaponRuntimeInstanceId = string.Empty;
         IsRunning = false;
     }
 
