@@ -25,3 +25,9 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: df4e42596eb764f929c54721569d7190, type: 3}
   - name: ParryClash_ImpactRinging
     clip: {fileID: 8300000, guid: ff4eff5c824690a4aaa8f1d7515bb6c2, type: 3}
+  - name: MonsterHitCommon01
+    clip: {fileID: 8300000, guid: d11bbb2562f19481589dcb85f8e65384, type: 3}
+  - name: MonsterHitCommon02
+    clip: {fileID: 8300000, guid: 66351c797309d496881fe3dd706308b6, type: 3}
+  - name: MonsterHitCommon03
+    clip: {fileID: 8300000, guid: 3d527f66259f542fd8234b14f1478c9e, type: 3}

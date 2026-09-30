@@ -79,6 +79,16 @@ public sealed class CombatActionSfxService : MonoBehaviour
         return instance.Play(6 + tier, position, 0.85f, 1f, 5f, 42f, 75);
     }
 
+    // 2026-09-30 17:56 구조: 몬스터 피격 = 공용 피격음(모든 몬스터, Stab 01~03 랜덤) + 종류별 추가음.
+    // 추가음은 새 소리를 고르기 전까지 기존 소리 유지 — 피 있는 몬스터 = OrganicHit, 무혈 = BloodHitProfile 재질음.
+    // 청음 기준 공용 100 : 추가음 50이라 추가음은 원래 볼륨의 절반으로 낸다. 공용 클립은 CombatActionSfxCatalog가 원본 직접 참조.
+    private static readonly string[] MonsterHitCommonNames = { "MonsterHitCommon01", "MonsterHitCommon02", "MonsterHitCommon03" };
+    private const float MonsterHitCommonVolume = 0.95f;
+    private const float MonsterHitLayerVolumeScale = 0.5f;
+    private readonly AudioClip[] monsterHitCommonClips = new AudioClip[MonsterHitCommonNames.Length];
+    private bool monsterHitCommonMissingReported;
+    private int lastMonsterHitCommon = -1;
+
     public static bool TryPlayOrganicHit(CombatHitFeedbackRequest request, Vector3 position)
     {
         if (request.Target == null
@@ -87,17 +97,41 @@ public sealed class CombatActionSfxService : MonoBehaviour
             || !EnsureInstance())
             return false;
 
+        bool played = instance.PlayMonsterHitCommon(position);
         if (bloodTarget.Profile.suppressBlood)
         {
-            // 무혈 몬스터는 살점 대신 재질음(뼈 등). 프로필에 지정한 종만 재생한다.
+            // 무혈 몬스터 추가음: 재질음(뼈 등). 프로필에 지정한 종만 재생한다.
             AudioClip material = bloodTarget.Profile.PickBloodlessHitClip();
-            return material != null && instance.Play(material, position, 0.8f, 0.9f, 2f, 22f, 95);
+            return (material != null
+                && instance.Play(material, position, 0.8f, 0.9f * MonsterHitLayerVolumeScale, 2f, 22f, 95)) || played;
         }
 
+        // 피 있는 몬스터 추가음: 살점.
         int tier = request.IsCritical || request.IsLethal ? 2
             : request.ImpactShape == CombatImpactShape.Downward ? 1
             : (request.AttackSequenceId + request.PhaseIndex) & 1;
-        return instance.Play(8 + tier, position, 0.8f, 0.95f, 2f, 22f, 95);
+        return instance.Play(8 + tier, position, 0.8f, 0.95f * MonsterHitLayerVolumeScale, 2f, 22f, 95) || played;
+    }
+
+    // 공용 피격음 하나를 랜덤으로(바로 앞과 같은 소리는 피함).
+    private bool PlayMonsterHitCommon(Vector3 position)
+    {
+        int count = MonsterHitCommonNames.Length;
+        int pick = Random.Range(0, count);
+        if (count > 1 && pick == lastMonsterHitCommon) pick = (pick + 1 + Random.Range(0, count - 1)) % count;
+        if (monsterHitCommonClips[pick] == null) monsterHitCommonClips[pick] = ResolveNamedClip(MonsterHitCommonNames[pick]);
+        AudioClip clip = monsterHitCommonClips[pick];
+        if (clip == null)
+        {
+            if (!monsterHitCommonMissingReported)
+            {
+                Debug.LogError("[CombatActionSfxService] Missing clip: " + MonsterHitCommonNames[pick]);
+                monsterHitCommonMissingReported = true;
+            }
+            return false;
+        }
+        lastMonsterHitCommon = pick;
+        return Play(clip, position, 0.8f, MonsterHitCommonVolume, 2f, 22f, 95);
     }
 
     // B09: 회피 시작 1회.
