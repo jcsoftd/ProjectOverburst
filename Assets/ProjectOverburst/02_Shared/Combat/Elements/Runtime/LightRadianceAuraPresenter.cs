@@ -49,7 +49,10 @@ public sealed class LightRadianceAuraPresenter : MonoBehaviour
 
     private void Awake() => energy = GetComponent<OverburstElementEnergy>();
 
-    private void OnDisable()
+    private void OnDisable() => ClearNow();
+
+    // 빛이 아닌 무기로 바꾸면 흐려지기를 기다리지 않고 바로 지운다(2026-09-30: 수명이 긴 입자가 교체 뒤에도 남았다).
+    private void ClearNow()
     {
         current = 0f; appliedLevel = -1; appliedPersistentAlpha = -1f;
         if (auraRoot != null) auraRoot.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -60,6 +63,11 @@ public sealed class LightRadianceAuraPresenter : MonoBehaviour
     private void LateUpdate()
     {
         if (energy == null) energy = GetComponent<OverburstElementEnergy>();
+        if (energy == null || energy.Element != WeaponElement.Light)
+        {
+            if (emitting || crownOn || current > 0f) ClearNow();
+            return;
+        }
         UpdateCrown();
         float target = energy != null && energy.Element == WeaponElement.Light && energy.RadianceStacks > 0
             ? Mathf.Lerp(MinVisual, 1f, energy.RadianceNormalized) : 0f;
