@@ -214,7 +214,7 @@ MonoBehaviour:
   elementVfx:
     fireImpact: {fileID: 8047783058320162170, guid: e42acee08ce5f814192c872ee42c1ffa, type: 3}
     fireChainExplosion: {fileID: 6581819978879567992, guid: 73086537f8dd7a649b1da0cf099d12fa, type: 3}
-    iceImpact: {fileID: 7101525203640591941, guid: 07836a3026a56f540b6ab82103e9e7d4, type: 3}
+    iceImpact: {fileID: 0}
     iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
     electricImpact: {fileID: 2046859084139038850, guid: 421dc8b9cf9766248b01c5ff9c335761, type: 3}
     electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}

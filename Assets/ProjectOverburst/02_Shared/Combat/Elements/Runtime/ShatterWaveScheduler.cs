@@ -13,7 +13,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         public ElementalStatusController Status;
         public int Life;
         public GameObject Source, Prefab;
-        public Vector3 Point, Direction;
+        public Vector3 Point, Direction, VfxPoint;
         public float Damage, Due;
         public bool VisualOnly;
     }
@@ -42,9 +42,12 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         }
         var status = target.GetComponent<ElementalStatusController>();
         float delay = ResolveDelay(center, point, radius);
+        // 2026-09-30: 쇄빙 VFX는 맞은 지점이 아니라 각 몬스터 몸 중심에서 터진다.
+        var combatTarget = target.GetComponent<CombatTarget>();
+        Vector3 vfxPoint = combatTarget != null ? CombatTargetVfxPlacement.ResolveVolume(combatTarget).Center : point;
         var item = new Pending { Target = target, Status = status,
             Life = status != null ? status.LifecycleVersion : 0,
-            Source = source, Prefab = prefab, Point = point, Direction = direction,
+            Source = source, Prefab = prefab, Point = point, Direction = direction, VfxPoint = vfxPoint,
             Damage = damage, Due = instance.clock + delay, VisualOnly = target.IsDead };
         if (delay <= 0) Dispatch(item);
         else instance.pending.Add(item);
@@ -74,8 +77,8 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
                     element: WeaponElement.Ice, playerAttackKind: PlayerAttackKind.Elemental));
         }
         if (item.Prefab != null)
-            TransientVfxPool.Spawn(item.Prefab, item.Point, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));
-        MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Ice, item.Point); // A21 대상별 쇄빙음
+            TransientVfxPool.Spawn(item.Prefab, item.VfxPoint, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));
+        MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Ice, item.VfxPoint); // A21 대상별 쇄빙음
     }
     private void OnDestroy()
     {
