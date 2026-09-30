@@ -30,18 +30,31 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
     [SerializeField] private GameObject burningAura;
     [SerializeField] private GameObject shockedAura;
     [SerializeField] private GameObject chilledAura;
+    [Tooltip("어둠 잠식 상태. 60D: Piloto DarkAura")]
+    [SerializeField] private GameObject corrodedAura;
+    [Tooltip("잠식 오라 크기 배율. 몸 크기에 맞춘 뒤 곱한다.")]
+    [SerializeField, Range(.2f, 1.5f)] private float corrodedAuraScale = .8f;
 
-    private readonly AuraModule[] modules = new AuraModule[3];
+    private readonly AuraModule[] modules = new AuraModule[4];
     private bool modulesCached;
 
     public void ConfigureTarget(CombatTarget target)
     {
-        if(target==null||shockedAura==null)return;
+        if(target==null)return;
         var volume=CombatTargetVfxPlacement.ResolveVolume(target);
+        Vector3 parentScale=transform.lossyScale;
+        if(corrodedAura!=null)
+        {
+            // The source aura is centered at its origin: fit the body like the shock aura.
+            corrodedAura.transform.position=volume.Center;
+            float darkSize=Mathf.Clamp(volume.Radius/.6f,.45f,3f)*Mathf.Clamp(corrodedAuraScale,.2f,1.5f);
+            corrodedAura.transform.localScale=new Vector3(darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
+                darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),darkSize/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+        }
+        if(shockedAura==null)return;
         // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
         shockedAura.transform.position=volume.Center;
         float size=Mathf.Clamp(volume.Radius/.6f,.45f,3f);
-        Vector3 parentScale=transform.lossyScale;
         shockedAura.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),
             size/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),size/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
         if(burningAura!=null)
@@ -153,6 +166,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
             case MeleeElementStatusAuraType.Burning: return burningAura;
             case MeleeElementStatusAuraType.Shocked: return shockedAura;
             case MeleeElementStatusAuraType.Chilled: return chilledAura;
+            case MeleeElementStatusAuraType.Corroded: return corrodedAura;
             default: return null;
         }
     }

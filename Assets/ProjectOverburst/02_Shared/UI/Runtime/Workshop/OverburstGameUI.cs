@@ -97,7 +97,10 @@ public sealed class OverburstGameUI : MonoBehaviour
         var energy=equipment?equipment.GetComponent<OverburstElementEnergy>():null;
         if(health){hpFill.fillAmount=health.NormalizedHp;hpText.text=$"{health.CurrentHp:N0} / {health.MaxHp:N0}";}
         energyFill.fillAmount=energy?energy.Normalized:0;
-        string energyValue=$"{(energy?energy.Amount:0):0} / {OverburstElementTuning.Current.maximumEnergy:0}";
+        // 60D light: text shows the 200 cap and radiance until the HUD overcharge layer is authored.
+        string energyValue=energy&&energy.Element==WeaponElement.Light
+            ? $"{energy.Amount:0} / {energy.Capacity:0}"+(energy.RadianceStacks>0?$"  광휘 {energy.RadianceStacks}":string.Empty)
+            : $"{(energy?energy.Amount:0):0} / {OverburstElementTuning.Current.maximumEnergy:0}";
         energyText.text=energyValue;
         bool dungeon=WorldSessionState.Phase==WorldPhase.Run;
         var contentScene=WorldSessionState.ContentScene;

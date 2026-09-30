@@ -80,6 +80,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         if (!isActiveAndEnabled || combatHealth == null || combatHealth.IsDead || combatHealth.CurrentHp <= 0f
             || !OverburstElementTuning.IsFinitePositive(application.ActualDirectDamage)
             || !application.TriggersOnHitEffects || application.IsDamageOverTime
+            || application.Element == WeaponElement.Light // 60D: light buffs the player instead of marking enemies.
             || !ElementalStatusRules.TryGetRule(application.Element, out _)) return false;
         Advance(Time.time);
         if (combatHealth.IsDead || !isActiveAndEnabled) return false;
@@ -87,8 +88,10 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
             : 1f + FlaskCombatModifiers.Bonus(application.SourceActor, FlaskEffect.FreezeDuration);
         if (!state.Add(application.Element, Time.time, OverburstElementTuning.Current, freezeMultiplier)) return false;
         owners[OverburstElementRules.Index(application.Element)] = new ElementalStatusOwnerSnapshot(application);
-        if (Application.isPlaying && (application.Element == WeaponElement.Fire || application.Element == WeaponElement.Electric) && aura == null)
+        if (Application.isPlaying && (application.Element == WeaponElement.Fire || application.Element == WeaponElement.Electric
+                || application.Element == WeaponElement.Dark) && aura == null)
             aura = GetComponent<MeleeElementStatusAuraController>() ?? gameObject.AddComponent<MeleeElementStatusAuraController>();
+        if (application.Element == WeaponElement.Dark && Application.isPlaying) DarkMagnetismSystem.Register(this);
         if (application.Element == WeaponElement.Ice && tint == null)
             tint = GetComponent<HitFlashFeedback>() ?? gameObject.AddComponent<HitFlashFeedback>();
         RefreshControl();
@@ -107,6 +110,11 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
     }
     public bool HasStatus(WeaponElement element) => TryGetStatus(element, out _);
     public int GetStackCount(WeaponElement element) => TryGetStatus(element, out ElementalStatusSnapshot snapshot) ? snapshot.StackCount : 0;
+    // Cheap read for per-tick systems. Expiry is advanced by the shared status scheduler.
+    internal int RawStackCount(WeaponElement element) => isActiveAndEnabled ? state.RawCount(element) : 0;
+    internal EnemyGradeType GradeType => enemyRank != null ? enemyRank.GradeType : EnemyGradeType.Normal;
+    internal EnemyMovement Movement => enemyMovement;
+    internal CombatHealth Health => combatHealth;
     public int ConsumeForDischarge(WeaponElement element, out bool shattered)
     {
         using var costScope = ElementCombatCostMarkers.Status_Consume.Auto();
@@ -204,6 +212,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         {
             aura.SetStackCount(MeleeElementStatusAuraType.Burning,state.RawCount(WeaponElement.Fire));
             aura.SetStackCount(MeleeElementStatusAuraType.Shocked,state.RawCount(WeaponElement.Electric));
+            aura.SetStackCount(MeleeElementStatusAuraType.Corroded,state.RawCount(WeaponElement.Dark));
         }
         if (frozenPresentation == frozen) return;
         frozenPresentation = frozen;

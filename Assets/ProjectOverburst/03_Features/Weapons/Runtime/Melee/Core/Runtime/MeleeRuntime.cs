@@ -32,6 +32,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
     private OverburstElementEnergy activeHeavyEnergy;
     private OverburstElementDischarge activeDischarge;
     private bool heavyDischargeCommitted;
+    private bool heavyParried; // 이번 강공이 패링에 성공했는지(에너지 절반 환급)
     private bool resolvingHeavyBlast;
     private bool activeAttackIsHeavy;
     private float activeAttackDamageMultiplier = 1f;
@@ -603,7 +604,8 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
 
         comboMovementCollisionPusher.BeginComboStep(); // 새 타수의 이동 충돌 기록 초기화
         activeHitFeedbackSequenceId = AllocateHitFeedbackSequenceId(); // 홀드 콤보도 타수별 분리
-        activeStats = FlaskCombatModifiers.Apply(playerEquipment.CurrentWeaponStats, gameObject);
+        activeStats = UpperElementCombatUtility.ApplyRadianceAttackSpeed(
+            FlaskCombatModifiers.Apply(playerEquipment.CurrentWeaponStats, gameObject), gameObject);
         activeWeaponData = playerEquipment.CurrentWeaponData;
         activeComboDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeComboDefinition()
@@ -613,6 +615,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             : null;
         activeAttackIsHeavy = isHeavy;
         heavyDischargeCommitted = false;
+        heavyParried = false;
         activeDischarge = null;
         activeAttackWeaponItem = playerEquipment.CurrentWeaponItem;
         activeAttackUsedMeleeCombatStance = playerController != null && playerController.IsMeleeCombatStance;
@@ -1143,6 +1146,7 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         heavyDischargeCommitted = true;
         bool hasDischarge = activeHeavyEnergy != null && activeHeavyEnergy.TryCommitDischarge(
             activeStats.damage * activeAttackPhases[0].impact.SafeDamageMultiplier, out activeDischarge);
+        if (hasDischarge && heavyParried) activeDischarge.TryRefundParried();
 
         MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeDefinition() : null;
@@ -1152,20 +1156,25 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
         Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
         {
-            bool fireGroundReplaced = hasDischarge && activeDischarge.Element == WeaponElement.Fire
-                && MeleeElementSfxService.TryPlayHeavyImpact(WeaponElement.Fire, center);
-            if (!fireGroundReplaced)
+            // 화염·암흑·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
+            bool groundReplaced = hasDischarge && MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center);
+            if (!groundReplaced)
                 CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
         }
         if (!hasDischarge) return;
-        if (activeWeaponData.weaponClass == WeaponClass.Greatsword && activeDischarge.Element != WeaponElement.Fire)
+        if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.ReplacesGreatswordGround(activeDischarge))
             MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center);
-        attackPhaseExecutor.OverrideUnstartedCircleRadius(activeDischarge.Radius);
+        // 60D light: the slam is the triple's 1st hit (overcharged) or the double's 2nd hit, each with its own circle.
+        bool lightHeavy = activeDischarge.Element == WeaponElement.Light;
+        int lightSlamHit = lightHeavy ? activeDischarge.LightFirstHitIndex : 0;
+        float slamRadius = lightHeavy ? activeDischarge.LightHitRadius(lightSlamHit) : activeDischarge.Radius;
+        float slamDamage = lightHeavy ? activeDischarge.LightHitDamage(lightSlamHit) : activeDischarge.FirstBlastDamage;
+        attackPhaseExecutor.OverrideUnstartedCircleRadius(slamRadius);
         heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
-            combatTarget, gameObject, center, activeAttackDirection, activeDischarge.Radius, pattern.VerticalTolerance);
+            combatTarget, gameObject, center, activeAttackDirection, slamRadius, pattern.VerticalTolerance);
         MeleeAttackRuntimeData baseRuntime = MeleeAttackStatResolver.Resolve(activeStats,
             meleeDefinition.baseSettings, activeAttackPhases[0], 1f);
-        var blastRuntime = new MeleeAttackRuntimeData(pattern, activeDischarge.FirstBlastDamage,
+        var blastRuntime = new MeleeAttackRuntimeData(pattern, slamDamage,
             baseRuntime.Knockback, baseRuntime.HitStunDuration, baseRuntime.VfxScale, baseRuntime.AttackRangeScale);
         resolvingHeavyBlast = true;
         try
@@ -1212,6 +1221,14 @@ public class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 런타임
             ResetComboState();
 
         CompleteActiveAction(false, completionReason, committedDirection);
+    }
+
+    // 패링한 강공은 위력은 그대로, 게이지는 절반만 쓴다(행동당 1회). 확정 전 패링이면 확정할 때, 확정 후면 바로 돌려준다.
+    public void NotifyHeavyParried(int actionId)
+    {
+        if (!activeAttackIsHeavy || heavyParried || actionId <= 0 || actionId != activeActionId) return;
+        heavyParried = true;
+        if (heavyDischargeCommitted) activeDischarge?.TryRefundParried();
     }
 
     private void StopActiveAttackStep()

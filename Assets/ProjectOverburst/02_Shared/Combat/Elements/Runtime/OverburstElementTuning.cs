@@ -50,6 +50,98 @@ public sealed class OverburstElementTuning : ScriptableObject
     public float SafeLightAfterglowDuration => lightAfterglowDuration > 0f ? lightAfterglowDuration : 0.25f;
     public float SafeLightAfterglowRadiusMultiplier => lightAfterglowRadiusMultiplier >= 1f ? lightAfterglowRadiusMultiplier : 1.2f;
     public float SafeLightAfterglowDamageFraction => lightAfterglowDamageFraction > 0f ? Mathf.Clamp01(lightAfterglowDamageFraction) : 0.35f;
+    // 60D upper elements. Existing assets lack these fields until saved; zero means "use the design start value".
+    [Header("Light radiance overcharge (60D)")]
+    [Min(0f)] public float lightOverchargeMaximum = 200f;
+    [Min(0f)] public float lightOverchargeDecayPerSecond = 3f;
+    [Min(0f)] public float lightOverchargeFullHold = 2f;
+    [Min(0)] public int lightRadianceStacksPerPhase = 5;
+    [Min(0)] public int lightRadianceMaxStacks = 100;
+    [Min(0f)] public float lightRadianceAttackSpeedPerStack = 0.002f;
+    [Min(0f)] public float lightFinalAttackSpeedCap = 1.8f;
+    [Header("Light triple impact (60D)")]
+    public Vector3 lightTripleRadiusScale = new Vector3(0.43f, 0.57f, 1f);
+    [Min(0f)] public float lightTripleHit1Base = 0.2f;
+    [Min(0f)] public float lightTripleHit1PerStack = 2.6f;
+    [Min(0f)] public float lightTripleHit2Base = 0.5f;
+    [Min(0f)] public float lightTripleHit2PerOvercharge = 1f;
+    [Min(0f)] public float lightTripleHit3Scale = 1f;
+    [Min(0f)] public float lightTripleVfxPlaybackSpeed = 1.25f;
+    [Tooltip("Rune_Multi_Impact original times of the 1st/2nd/3rd explosion bursts (seconds at 1x).")]
+    public Vector3 lightTripleSourceHitTimes = new Vector3(1f, 2f, 3f);
+    [Header("Dark corrosion magnet (60D)")]
+    [Min(0f)] public float darkMagnetRadius = 3f;
+    [Min(0f)] public float darkMagnetTickInterval = 0.1f;
+    [Min(0f)] public float darkMagnetSpeedPerStack = 0.08f;
+    public Vector4 darkMagnetMass = new Vector4(1f, 2f, 4f, 6f);
+    [Header("Dark gather burst (60D, Demon_Runic_Explotion times at 1x)")]
+    [Min(0f)] public float darkGatherStart = 0.6f;
+    [Min(0f)] public float darkGatherEnd = 1.4f;
+    [Min(0f)] public float darkBurstTime = 1.95f;
+    [Min(0f)] public float darkGatherHoldSpeedFraction = 0.25f;
+    [Min(0f)] public float darkVfxPlaybackSpeed = 1f;
+    [Min(0f)] public float darkGatherRadiusMultiplier = 2.5f;
+    [Min(0f)] public float darkGatherInnerRadius = 0.8f;
+    [Min(0)] public int darkGatherMaxTargets = 48;
+    [Min(0f)] public float darkBurstBaseFraction = 0.2f;
+    [Min(0f)] public float darkBurstPerStack = 0.02f;
+    [Min(0)] public int darkBurstStackCap = 50;
+    private static float Positive(float value, float fallback) => value > 0f && !float.IsNaN(value) && !float.IsInfinity(value) ? value : fallback;
+    public float SafeLightOverchargeMaximum => Mathf.Max(Mathf.Max(1f, maximumEnergy), Positive(lightOverchargeMaximum, 200f));
+    public float SafeLightOverchargeDecayPerSecond => Positive(lightOverchargeDecayPerSecond, 3f);
+    public float SafeLightOverchargeFullHold => Positive(lightOverchargeFullHold, 2f);
+    public int SafeLightRadianceStacksPerPhase => lightRadianceStacksPerPhase > 0 ? lightRadianceStacksPerPhase : 5;
+    public int SafeLightRadianceMaxStacks => lightRadianceMaxStacks > 0 ? lightRadianceMaxStacks : 100;
+    public float SafeLightRadianceAttackSpeedPerStack => Positive(lightRadianceAttackSpeedPerStack, 0.002f);
+    public float SafeLightFinalAttackSpeedCap => Positive(lightFinalAttackSpeedCap, 1.8f);
+    public float LightTripleRadiusScale(int hit)
+    {
+        float value = hit == 0 ? lightTripleRadiusScale.x : hit == 1 ? lightTripleRadiusScale.y : lightTripleRadiusScale.z;
+        return Positive(value, hit == 0 ? 0.43f : hit == 1 ? 0.57f : 1f);
+    }
+    public float SafeLightTripleHit1Base => lightTripleHit1Base > 0f ? lightTripleHit1Base : 0.2f;
+    public float SafeLightTripleHit1PerStack => Positive(lightTripleHit1PerStack, 2.6f);
+    public float SafeLightTripleHit2Base => Positive(lightTripleHit2Base, 0.5f);
+    public float SafeLightTripleHit2PerOvercharge => Positive(lightTripleHit2PerOvercharge, 1f);
+    public float SafeLightTripleHit3Scale => Positive(lightTripleHit3Scale, 1f);
+    public float SafeLightTripleVfxPlaybackSpeed => Positive(lightTripleVfxPlaybackSpeed, 1.25f);
+    public float LightTripleSourceHitTime(int hit)
+    {
+        float value = hit == 0 ? lightTripleSourceHitTimes.x : hit == 1 ? lightTripleSourceHitTimes.y : lightTripleSourceHitTimes.z;
+        return Positive(value, hit + 1f);
+    }
+    public float SafeDarkMagnetRadius => Positive(darkMagnetRadius, 3f);
+    public float SafeDarkMagnetTickInterval => Positive(darkMagnetTickInterval, 0.1f);
+    public float SafeDarkMagnetSpeedPerStack => Positive(darkMagnetSpeedPerStack, 0.08f);
+    public float DarkMagnetMass(EnemyGradeType grade)
+    {
+        float value = grade == EnemyGradeType.Normal ? darkMagnetMass.x : grade == EnemyGradeType.Elite ? darkMagnetMass.y
+            : grade == EnemyGradeType.GreaterElite ? darkMagnetMass.z : darkMagnetMass.w;
+        return Positive(value, grade == EnemyGradeType.Normal ? 1f : grade == EnemyGradeType.Elite ? 2f
+            : grade == EnemyGradeType.GreaterElite ? 4f : 6f);
+    }
+    public float SafeDarkGatherStart => Positive(darkGatherStart, 0.6f);
+    public float SafeDarkGatherEnd => Mathf.Max(SafeDarkGatherStart + 0.05f, Positive(darkGatherEnd, 1.4f));
+    public float SafeDarkBurstTime => Mathf.Max(SafeDarkGatherEnd, Positive(darkBurstTime, 1.95f));
+    public float SafeDarkGatherHoldSpeedFraction => Positive(darkGatherHoldSpeedFraction, 0.25f);
+    public float SafeDarkVfxPlaybackSpeed => Positive(darkVfxPlaybackSpeed, 1f);
+    public float SafeDarkGatherRadiusMultiplier => Mathf.Max(1f, Positive(darkGatherRadiusMultiplier, 2.5f));
+    public float SafeDarkGatherInnerRadius => Positive(darkGatherInnerRadius, 0.8f);
+    public int SafeDarkGatherMaxTargets => darkGatherMaxTargets > 0 ? darkGatherMaxTargets : 48;
+    public float SafeDarkBurstBaseFraction => Positive(darkBurstBaseFraction, 0.2f);
+    public float SafeDarkBurstPerStack => Positive(darkBurstPerStack, 0.02f);
+    public int SafeDarkBurstStackCap => darkBurstStackCap > 0 ? darkBurstStackCap : 50;
+    // Pull resistance by grade: normal moves fully, bosses never move.
+    public static float GradeMoveResistance(EnemyGradeType grade)
+    {
+        switch (grade)
+        {
+            case EnemyGradeType.Normal: return 1f;
+            case EnemyGradeType.Elite: return 0.5f;
+            case EnemyGradeType.GreaterElite: return 0.25f;
+            default: return 0f;
+        }
+    }
     [Header("Prototype new-weapon weights (not final economy)")]
     [FormerlySerializedAs("fireIceElectricWaterWeights")]
     public Vector4 fireIceElectricDarkWeights = Vector4.one;

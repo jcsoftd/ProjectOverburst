@@ -181,6 +181,10 @@ public static class FlaskTooltip
             case FlaskEffect.FreezeDuration: return "빙결 시간";
             case FlaskEffect.LightningDischargeDamage: return "번개 방출";
             case FlaskEffect.ChainRange: return "연쇄 거리";
+            case FlaskEffect.DarkGatherRadius: return "흡인 범위";
+            case FlaskEffect.DarkBurstDamage: return "흡인 폭발 피해";
+            case FlaskEffect.LightRadianceGain: return "광휘 중첩 획득";
+            case FlaskEffect.LightTripleImpactDamage: return "빛 연타 피해";
             default: return effect.ToString();
         }
     }

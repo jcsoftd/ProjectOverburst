@@ -41,5 +41,35 @@ MonoBehaviour:
   lightAfterglowDuration: 0.25
   lightAfterglowRadiusMultiplier: 1.2
   lightAfterglowDamageFraction: 0.35
+  lightOverchargeMaximum: 200
+  lightOverchargeDecayPerSecond: 3
+  lightOverchargeFullHold: 2
+  lightRadianceStacksPerPhase: 5
+  lightRadianceMaxStacks: 100
+  lightRadianceAttackSpeedPerStack: 0.002
+  lightFinalAttackSpeedCap: 1.8
+  lightTripleRadiusScale: {x: 0.43, y: 0.57, z: 1}
+  lightTripleHit1Base: 0.2
+  lightTripleHit1PerStack: 2.6
+  lightTripleHit2Base: 0.5
+  lightTripleHit2PerOvercharge: 1
+  lightTripleHit3Scale: 1
+  lightTripleVfxPlaybackSpeed: 1.25
+  lightTripleSourceHitTimes: {x: 1, y: 2, z: 3}
+  darkMagnetRadius: 3
+  darkMagnetTickInterval: 0.1
+  darkMagnetSpeedPerStack: 0.08
+  darkMagnetMass: {x: 1, y: 2, z: 4, w: 6}
+  darkGatherStart: 0.6
+  darkGatherEnd: 1.4
+  darkBurstTime: 1.95
+  darkGatherHoldSpeedFraction: 0.25
+  darkVfxPlaybackSpeed: 1
+  darkGatherRadiusMultiplier: 2.5
+  darkGatherInnerRadius: 0.8
+  darkGatherMaxTargets: 48
+  darkBurstBaseFraction: 0.2
+  darkBurstPerStack: 0.02
+  darkBurstStackCap: 50
   fireIceElectricDarkWeights: {x: 1, y: 1, z: 1, w: 1}
   lightWeight: 1

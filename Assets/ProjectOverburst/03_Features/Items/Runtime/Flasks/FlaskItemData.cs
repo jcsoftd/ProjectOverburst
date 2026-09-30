@@ -12,7 +12,9 @@ public enum FlaskEffect
     AttackSpeed, DirectDamage, AttackRadius, OutgoingImpact, CritChance, CritDamage,
     EnergyGain, EnergyDischargeDamage, IncomingImpactReduction, MoveSpeed, SlowResistance,
     FireDischargeDamage, FireRadius, ShatterDamage, FreezeDuration,
-    LightningDischargeDamage, ChainRange
+    LightningDischargeDamage, ChainRange,
+    // Appended for 60D: serialized integer values of the entries above must not change.
+    DarkGatherRadius, DarkBurstDamage, LightRadianceGain, LightTripleImpactDamage
 }
 
 [CreateAssetMenu(fileName = "Flask", menuName = "Items/Equipment Flask")]
@@ -80,11 +82,11 @@ public sealed class FlaskItemData : ConsumableItemData
                 Set("뇌광 물약", FlaskEffect.LightningDischargeDamage, .25f, FlaskEffect.ChainRange, .25f,
                     "번개 방출 피해와 연쇄 탐색 거리를 높입니다. 연쇄 대상 수는 늘지 않습니다."); break;
             case FlaskKind.Dark:
-                Set("암흑 물약", FlaskEffect.EnergyGain, .25f, FlaskEffect.EnergyDischargeDamage, .20f,
-                    "어둠 무기의 원소 에너지 획득량과 기본 방출 피해를 높입니다."); break;
+                Set("암흑 물약", FlaskEffect.DarkGatherRadius, .20f, FlaskEffect.DarkBurstDamage, .25f,
+                    "어둠 무기 강공의 흡인 범위와 흡인 폭발 피해를 높입니다."); break;
             case FlaskKind.Light:
-                Set("광휘 물약", FlaskEffect.EnergyGain, .25f, FlaskEffect.EnergyDischargeDamage, .20f,
-                    "빛 무기의 원소 에너지 획득량과 기본 방출 피해를 높입니다."); break;
+                Set("광휘 물약", FlaskEffect.LightRadianceGain, .40f, FlaskEffect.LightTripleImpactDamage, .20f,
+                    "빛 무기의 광휘 버프 중첩 획득량과 강공 연타 피해를 높입니다."); break;
             default:
                 throw new System.ArgumentOutOfRangeException(nameof(value), value, "Unknown flask kind");
         }

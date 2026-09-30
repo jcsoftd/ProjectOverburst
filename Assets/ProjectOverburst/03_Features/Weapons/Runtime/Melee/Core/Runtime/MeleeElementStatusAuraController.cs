@@ -4,14 +4,15 @@ public enum MeleeElementStatusAuraType
 {
     Burning = 0,
     Shocked = 1,
-    Chilled = 2
+    Chilled = 2,
+    Corroded = 3
 }
 
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-10000)]
 public sealed class MeleeElementStatusAuraController : MonoBehaviour, ITransientVfxPlayback
 {
-    private const int AuraTypeCount = 3;
+    private const int AuraTypeCount = 4;
     private readonly bool[] logicalStates = new bool[AuraTypeCount];
     private readonly int[] stackCounts = new int[AuraTypeCount];
     private int logicalActiveCount;

@@ -106,6 +106,7 @@ public sealed class PlayerParryController : MonoBehaviour
             CancelAndStun(enemies[i], transform.position);
         }
         PlaySuccess(center, enemies.Count, anyStrong);
+        melee?.NotifyHeavyParried(actionId); // 이 강공의 원소 에너지는 절반만 소모
         chainIndex++;
     }
     private static Vector3 ContactPoint(EnemyActor enemy, Vector3 playerCenter)

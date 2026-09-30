@@ -12,17 +12,32 @@ public struct MeleeHeavyElementVfxSet
     public GameObject electricChainLink;
     public GameObject electricChainStart;
     public GameObject electricChainProc;
+    [Tooltip("번개 강공 착지 원에 직접 맞은 적마다 발밑에서 재생. Vertical Lightning Purple 프로젝트 변형")]
+    public GameObject electricDirectHit;
+    [Header("상위 원소 강공 (60D)")]
+    [Tooltip("어둠 흡인 폭발. Demon_Runic_Explotion 프로젝트 변형")]
+    public GameObject darkGatherBurst;
+    [Tooltip("빛 3연타(에너지 100 초과). Rune_Multi_Impact 프로젝트 변형")]
+    public GameObject lightTripleImpact;
+    [Tooltip("빛 2연타(에너지 100 이하). 1타를 끈 Rune_Multi_Impact 프로젝트 변형")]
+    public GameObject lightDoubleImpact;
 
     [Header("원본 배율에서 주 폭발의 XZ 반경 (m)")]
     [Min(0.01f)] public float fireImpactRadius;
     [Min(0.01f)] public float electricImpactRadius;
     [Min(0.01f)] public float iceImpactRadius;
     [Min(0.01f)] public float fireChainRadius;
+    [Tooltip("어둠 변형이 1배율일 때 폭발 원의 XZ 반경")]
+    [Min(0.01f)] public float darkImpactRadius;
+    [Tooltip("빛 변형이 1배율일 때 가장 큰 3타 충격파의 XZ 반경")]
+    [Min(0.01f)] public float lightImpactRadius;
 
     public float ImpactScale(WeaponElement element, float damageRadius)
     {
         float reference = element == WeaponElement.Fire ? fireImpactRadius
-            : element == WeaponElement.Electric ? electricImpactRadius : iceImpactRadius;
+            : element == WeaponElement.Electric ? electricImpactRadius
+            : element == WeaponElement.Dark ? darkImpactRadius
+            : element == WeaponElement.Light ? lightImpactRadius : iceImpactRadius;
         return Mathf.Max(0f, damageRadius) / Mathf.Max(.01f, reference > 0f ? reference : 1f);
     }
 
@@ -37,9 +52,13 @@ public struct MeleeHeavyElementVfxSet
             case WeaponElement.Fire: return fireImpact;
             case WeaponElement.Ice: return iceImpact;
             case WeaponElement.Electric: return electricImpact;
+            case WeaponElement.Dark: return darkGatherBurst;
+            case WeaponElement.Light: return lightTripleImpact;
             default: return null;
         }
     }
+
+    public GameObject GetLightImpact(bool triple) => triple ? lightTripleImpact : lightDoubleImpact;
 }
 
 [CreateAssetMenu(

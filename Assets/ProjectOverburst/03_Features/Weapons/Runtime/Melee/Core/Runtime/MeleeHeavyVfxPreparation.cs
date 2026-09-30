@@ -21,8 +21,10 @@ public static class MeleeHeavyVfxPreparation
         if (definition == null) return;
         using var scope = RequestMarker.Auto();
         Request(definition.elementVfx.GetImpact(element), 1);
+        if (element == WeaponElement.Light) Request(definition.elementVfx.GetLightImpact(false), 1);
         GameObject burst = element == WeaponElement.Fire ? definition.elementVfx.FireChainExplosion
-            : element == WeaponElement.Ice ? definition.elementVfx.iceShatter : null;
+            : element == WeaponElement.Ice ? definition.elementVfx.iceShatter
+            : element == WeaponElement.Electric ? definition.elementVfx.electricDirectHit : null;
         if (burst == null) return;
         var source = equipment.GetComponent<CombatTarget>();
         if (source == null) return;

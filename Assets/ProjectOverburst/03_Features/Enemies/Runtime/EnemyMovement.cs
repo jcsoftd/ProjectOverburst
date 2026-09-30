@@ -42,6 +42,19 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     private float earthZoneMoveSpeedMultiplier = 1f; // 진흙 장판 전용 이동 배율
     private Vector3 pendingAreaDisplacement; // 자기장 pulse의 다음 FixedUpdate 이동 요청
     private Vector3 pendingAttackDisplacement;
+    private Vector3 statusMagnetVelocity; // 60D 어둠 잠식 자력: 일반 이동 경로에서만 적용
+    private float statusMagnetUntil;
+
+    // Only the normal locomotion branch of FixedUpdate consumes this, so attacks, stagger,
+    // knockback, freeze and death never move by magnet.
+    public void SetStatusMagnetVelocity(Vector3 velocity, float duration)
+    {
+        velocity.y = 0f;
+        bool active = duration > 0f && velocity.sqrMagnitude > 0.000001f
+            && !float.IsNaN(velocity.x) && !float.IsNaN(velocity.z);
+        statusMagnetVelocity = active ? velocity : Vector3.zero;
+        statusMagnetUntil = active ? Time.time + duration : 0f;
+    }
 
     public bool RequestAttackDisplacement(Vector3 displacement)
     {
@@ -85,6 +98,8 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         SetStatusMoveSpeedMultiplier(1f);
         SetEarthZoneMoveSpeedMultiplier(1f);
         pendingAreaDisplacement = Vector3.zero;
+        statusMagnetVelocity = Vector3.zero;
+        statusMagnetUntil = 0f;
         hasDestination = false;
         actionLockEndTime = 0f;
         reaction?.ResetReaction();
@@ -154,7 +169,16 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
         if (locomotionAnimator != null && locomotionAnimator.TickFacingTurn(motor)) return;
 
-        ApplyPendingAreaDisplacement();
+        if (statusMagnetUntil > Time.time)
+            RequestAreaDisplacement(statusMagnetVelocity * Time.fixedDeltaTime);
+        // An idle enemy would re-hold its position in UpdateDestinationMovement within this same step,
+        // which freezes the rigidbody and cancels the MovePosition just issued by the area displacement.
+        if (ApplyPendingAreaDisplacement() && !hasDestination)
+        {
+            ClearMovementCommand();
+            StopLocomotionOutput();
+            return;
+        }
         UpdateDestinationMovement();
     }
 
@@ -209,18 +233,20 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         return true;
     }
 
-    private void ApplyPendingAreaDisplacement()
+    private bool ApplyPendingAreaDisplacement()
     {
         Vector3 displacement = pendingAreaDisplacement;
         pendingAreaDisplacement = Vector3.zero;
         if (displacement.sqrMagnitude <= 0.000001f || motor == null)
-            return;
+            return false;
 
         Vector3 candidate = transform.position + displacement;
-        if (IsWalkablePosition(candidate)
-            && TryResolveCrowdPosition(candidate, false, out Vector3 resolved)
-            && IsWalkablePosition(resolved))
-            motor.MoveToPosition(resolved);
+        if (!IsWalkablePosition(candidate)
+            || !TryResolveCrowdPosition(candidate, false, out Vector3 resolved)
+            || !IsWalkablePosition(resolved))
+            return false;
+        motor.MoveToPosition(resolved);
+        return true;
     }
 
     public void SetDestination(Vector3 worldPosition, float stoppingDistance)
