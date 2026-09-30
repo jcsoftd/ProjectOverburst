@@ -4,7 +4,7 @@ using UnityEngine;
 public sealed class CombatActionSfxService : MonoBehaviour
 {
     private const string ResourceRoot = "Combat/SFX/CombatAction/";
-    private const int VoiceLimit = 32;
+    private const int VoiceLimit = 48; // 23:12 증폭 겹침(같은 클립 2번)으로 32 -> 48
 
     // 2026-09-30 청음 결정: 지면음 2·3단 = Earth_Explosion_1·2_M, 예고 핑 = Metallic Ring 긴 판, 회피·에너지 가득 신규.
     // 이 다섯 칸은 복사본 없이 CombatActionSfxCatalog가 ThirdParty 원본을 직접 참조한다.
@@ -65,6 +65,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
         if (!EnsureInstance()) return false;
         int clipIndex = heavy ? 4 : comboIndex;
         if (clipIndex < 0 || clipIndex > 4) return false;
+        // 23:12 사용자: 다른 소리를 줄이지 않는다 — 약공 휘두름도 원래 0.9.
         return instance.Play(clipIndex, position, 0.6f, 0.9f, 4f, 28f, 100);
     }
 
@@ -80,11 +81,13 @@ public sealed class CombatActionSfxService : MonoBehaviour
     }
 
     // 2026-09-30 17:56 구조: 몬스터 피격 = 공용 피격음(모든 몬스터, Stab 01~03 랜덤) + 종류별 추가음.
-    // 추가음은 새 소리를 고르기 전까지 기존 소리 유지 — 피 있는 몬스터 = OrganicHit, 무혈 = BloodHitProfile 재질음.
-    // 청음 기준 공용 100 : 추가음 50이라 추가음은 원래 볼륨의 절반으로 낸다. 공용 클립은 CombatActionSfxCatalog가 원본 직접 참조.
+    // 22:57 묶음 적용: 추가음은 몬스터 프리팹의 MonsterHitSfxTarget 묶음에서 세트 하나(타격마다 번갈아)를 겹쳐 낸다.
+    // OrganicHit 살점음·BloodHitProfile 재질음은 더 쓰지 않는다(묶음이 대신한다). 묶음이 없으면 공용 피격음만.
+    // 볼륨은 청음 체크리스트 비율 — 23:12부터 줄이지 않고 올리는 방식: 공용·원소·휘두름은 원래 크기, 묶음 층은
+    // 50% -> 1.0, 70% -> 1.2, 100% -> 1.6 (공용 피격음도 x1.6). 1을 넘는 몫은 같은 클립을 한 번 더 겹쳐 증폭한다.
     private static readonly string[] MonsterHitCommonNames = { "MonsterHitCommon01", "MonsterHitCommon02", "MonsterHitCommon03" };
-    private const float MonsterHitCommonVolume = 0.95f;
-    private const float MonsterHitLayerVolumeScale = 0.5f;
+    private const float MonsterHitCommonVolume = 1f;
+    private const float MonsterHitCommonBoost = 1.6f; // 공용 피격음 = 체크리스트 100% (23:38 사용자: 2배 -> 1.6배)
     private readonly AudioClip[] monsterHitCommonClips = new AudioClip[MonsterHitCommonNames.Length];
     private bool monsterHitCommonMissingReported;
     private int lastMonsterHitCommon = -1;
@@ -98,19 +101,26 @@ public sealed class CombatActionSfxService : MonoBehaviour
             return false;
 
         bool played = instance.PlayMonsterHitCommon(position);
-        if (bloodTarget.Profile.suppressBlood)
-        {
-            // 무혈 몬스터 추가음: 재질음(뼈 등). 프로필에 지정한 종만 재생한다.
-            AudioClip material = bloodTarget.Profile.PickBloodlessHitClip();
-            return (material != null
-                && instance.Play(material, position, 0.8f, 0.9f * MonsterHitLayerVolumeScale, 2f, 22f, 95)) || played;
-        }
+        if (!request.Target.TryGetComponent<MonsterHitSfxTarget>(out var sfxTarget) || sfxTarget.Bundle == null)
+            return played;
 
-        // 피 있는 몬스터 추가음: 살점.
-        int tier = request.IsCritical || request.IsLethal ? 2
-            : request.ImpactShape == CombatImpactShape.Downward ? 1
-            : (request.AttackSequenceId + request.PhaseIndex) & 1;
-        return instance.Play(8 + tier, position, 0.8f, 0.95f * MonsterHitLayerVolumeScale, 2f, 22f, 95) || played;
+        MonsterHitSfxBundle bundle = sfxTarget.Bundle;
+        if ((request.IsCritical || request.IsLethal) && bundle.criticalBundle != null) bundle = bundle.criticalBundle;
+        MonsterHitSfxBundle.Set set = bundle.PickSet();
+        if (set == null || set.layers == null) return played;
+        foreach (var layer in set.layers)
+            if (layer != null && layer.clip != null
+                && instance.PlayBoosted(layer.clip, position, layer.volume))
+                played = true;
+        return played;
+    }
+
+    // 1을 넘는 볼륨: 같은 클립을 같은 순간 한 번 더 겹쳐 낸다(AudioSource 볼륨 상한 1 우회, 최대 2배).
+    private bool PlayBoosted(AudioClip clip, Vector3 position, float volume)
+    {
+        bool played = Play(clip, position, 0.8f, Mathf.Min(1f, volume), 2f, 22f, 95);
+        if (played && volume > 1.01f) Play(clip, position, 0.8f, Mathf.Min(1f, volume - 1f), 2f, 22f, 96);
+        return played;
     }
 
     // 공용 피격음 하나를 랜덤으로(바로 앞과 같은 소리는 피함).
@@ -131,7 +141,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
             return false;
         }
         lastMonsterHitCommon = pick;
-        return Play(clip, position, 0.8f, MonsterHitCommonVolume, 2f, 22f, 95);
+        return PlayBoosted(clip, position, MonsterHitCommonVolume * MonsterHitCommonBoost);
     }
 
     // B09: 회피 시작 1회.

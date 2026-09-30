@@ -666,6 +666,7 @@ GameObject:
   - component: {fileID: 3326506716954356286}
   - component: {fileID: 5846575310720360310}
   - component: {fileID: 5046514481167485256}
+  - component: {fileID: 7000806037892677676}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Caniathrox
   m_TagString: Untagged
@@ -868,10 +869,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &3049797714039617637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -898,8 +896,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &7316046889956488503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1288,6 +1284,8 @@ MonoBehaviour:
   hitHeight: 0.99012494
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &5046514481167485256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1301,6 +1299,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9520374fc32f8e643a7e039abdf3675b, type: 2}
+--- !u!114 &7000806037892677676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6024500269617527656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
 --- !u!1 &6155118219506054012
 GameObject:
   m_ObjectHideFlags: 0

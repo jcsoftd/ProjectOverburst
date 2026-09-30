@@ -322,6 +322,7 @@ GameObject:
   - component: {fileID: 4799416243891521283}
   - component: {fileID: 6832799404602352867}
   - component: {fileID: 3508039487466556456}
+  - component: {fileID: 5285788658861590154}
   m_Layer: 7
   m_Name: PF_DeathHarvest_BoneWarden
   m_TagString: Untagged
@@ -524,10 +525,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &8656315280899361102
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -857,6 +855,8 @@ MonoBehaviour:
   hitHeight: 1.536885
   contactRadiusFraction: 0.85
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &5366318331567792958
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -973,6 +973,19 @@ MonoBehaviour:
   offsetRoot: {fileID: 7829260015582738717}
   animator: {fileID: 160091977187289335}
   movement: {fileID: 13839463045997607}
+--- !u!114 &5285788658861590154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6893060950518277590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 84193b7dac3fcf34784448a83482c96f, type: 2}
 --- !u!1 &8747653263801570314
 GameObject:
   m_ObjectHideFlags: 0

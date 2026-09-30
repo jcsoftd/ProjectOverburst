@@ -255,6 +255,7 @@ GameObject:
   - component: {fileID: 371633056182062556}
   - component: {fileID: 1786997236888690588}
   - component: {fileID: 7258700711946593630}
+  - component: {fileID: 1438512043158419785}
   m_Layer: 7
   m_Name: PF_DeathHarvest_DeathKnight
   m_TagString: Untagged
@@ -457,10 +458,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &8604667820438572060
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -890,6 +888,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 754d167da48ada544a8789829ccf91a4, type: 2}
+--- !u!114 &1438512043158419785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8288495529886999227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: aeea7fccd6653c74d9372d525a1afb09, type: 2}
 --- !u!1 &8742375708678109529
 GameObject:
   m_ObjectHideFlags: 0

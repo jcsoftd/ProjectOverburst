@@ -703,6 +703,7 @@ GameObject:
   - component: {fileID: 1072414846166623273}
   - component: {fileID: 8931458856288355145}
   - component: {fileID: 7978269258270819685}
+  - component: {fileID: 9026289371694808442}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeBrute
   m_TagString: Untagged
@@ -905,10 +906,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &1007068142531231233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1238,6 +1236,8 @@ MonoBehaviour:
   hitHeight: 1.536885
   contactRadiusFraction: 0.85
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &1430244186474592112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1354,6 +1354,19 @@ MonoBehaviour:
   offsetRoot: {fileID: 3334814972132684084}
   animator: {fileID: 2192559949298045591}
   movement: {fileID: 7473553573119233952}
+--- !u!114 &9026289371694808442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630111263970318984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
 --- !u!1 &8397776656497602290
 GameObject:
   m_ObjectHideFlags: 0

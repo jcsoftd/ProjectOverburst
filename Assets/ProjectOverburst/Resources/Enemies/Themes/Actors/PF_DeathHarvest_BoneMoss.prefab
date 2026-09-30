@@ -637,6 +637,7 @@ GameObject:
   - component: {fileID: 4404537640710928041}
   - component: {fileID: 4924124372367848138}
   - component: {fileID: 5053709934142954802}
+  - component: {fileID: 3900352298809158014}
   m_Layer: 7
   m_Name: PF_DeathHarvest_BoneMoss
   m_TagString: Untagged
@@ -839,10 +840,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &8937327517537887309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1172,6 +1170,8 @@ MonoBehaviour:
   hitHeight: 1.0671749
   contactRadiusFraction: 0.85
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &7043109078230597497
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1288,6 +1288,19 @@ MonoBehaviour:
   offsetRoot: {fileID: 6815617944545795844}
   animator: {fileID: 7011473145174225840}
   movement: {fileID: 6133636669079641995}
+--- !u!114 &3900352298809158014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6363030571810016634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: cc1a4644659c29d46ac7591a1172fa1e, type: 2}
 --- !u!1 &6525122686475007465
 GameObject:
   m_ObjectHideFlags: 0

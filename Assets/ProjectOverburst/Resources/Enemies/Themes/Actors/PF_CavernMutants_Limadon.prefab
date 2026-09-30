@@ -258,6 +258,7 @@ GameObject:
   - component: {fileID: 9171129961387363593}
   - component: {fileID: 3181254191537108625}
   - component: {fileID: 4394095974272021281}
+  - component: {fileID: 3807093665678668912}
   m_Layer: 7
   m_Name: PF_CavernMutants_Limadon
   m_TagString: Untagged
@@ -460,10 +461,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &7629532910603284292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -490,8 +488,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &1612833037258318796
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -880,6 +876,8 @@ MonoBehaviour:
   hitHeight: 0.8926318
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &4394095974272021281
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -893,6 +891,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9cc06ed53a0f08b42a68f4e9b93bba85, type: 2}
+--- !u!114 &3807093665678668912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6195546670040126410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: f8b6720ab1ec0be4cbcd039d50ba3442, type: 2}
 --- !u!1 &7501883198109454282
 GameObject:
   m_ObjectHideFlags: 0

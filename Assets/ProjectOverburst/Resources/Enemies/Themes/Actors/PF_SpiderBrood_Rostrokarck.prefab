@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 2901776870009301419}
   - component: {fileID: 9167266858906836875}
   - component: {fileID: 8113703347898051434}
+  - component: {fileID: 5410736428556006124}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Rostrokarck
   m_TagString: Untagged
@@ -277,10 +278,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &3605489302863605375
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -725,6 +723,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: f4f12184b7fa3d04eae14b7836787e73, type: 2}
+--- !u!114 &5410736428556006124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
 --- !u!1 &5224895147244991241
 GameObject:
   m_ObjectHideFlags: 0

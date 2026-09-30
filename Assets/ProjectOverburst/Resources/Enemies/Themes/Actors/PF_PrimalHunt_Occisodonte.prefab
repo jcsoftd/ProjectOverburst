@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 1451676626593214011}
   - component: {fileID: 5564008234684725562}
   - component: {fileID: 5905687402893832718}
+  - component: {fileID: 6907072769352965268}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Occisodonte
   m_TagString: Untagged
@@ -246,10 +247,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &9179709532653414307
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,8 +274,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &9203859362340451338
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -681,6 +677,8 @@ MonoBehaviour:
   hitHeight: 2.1
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &5905687402893832718
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -694,6 +692,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9520374fc32f8e643a7e039abdf3675b, type: 2}
+--- !u!114 &6907072769352965268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1948409840280814880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 40686e91a2b879d46a762bd7b78f5f1f, type: 2}
 --- !u!1 &2465806898301015352
 GameObject:
   m_ObjectHideFlags: 0

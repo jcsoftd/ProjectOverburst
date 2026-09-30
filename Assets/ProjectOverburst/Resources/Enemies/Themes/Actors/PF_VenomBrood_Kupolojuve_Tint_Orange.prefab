@@ -734,6 +734,7 @@ GameObject:
   - component: {fileID: 3195585412190356628}
   - component: {fileID: 7884253488322842084}
   - component: {fileID: 7283098022421315249}
+  - component: {fileID: 5535376647701120322}
   m_Layer: 7
   m_Name: PF_VenomBrood_Kupolojuve_Tint_Orange
   m_TagString: Untagged
@@ -936,10 +937,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &2713164954515357321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1369,6 +1367,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 0cf38c24afe56ce43b723b9facf17579, type: 2}
+--- !u!114 &5535376647701120322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8254815201204877975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: e241b1392923f7240aa0f7c166d1e88c, type: 2}
 --- !u!1 &9190913777379684283
 GameObject:
   m_ObjectHideFlags: 0

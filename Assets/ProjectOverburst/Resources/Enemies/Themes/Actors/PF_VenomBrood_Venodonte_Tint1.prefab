@@ -172,6 +172,7 @@ GameObject:
   - component: {fileID: 8679490687204224975}
   - component: {fileID: 2952157416299981037}
   - component: {fileID: 4241196682905767704}
+  - component: {fileID: 77481285937991216}
   m_Layer: 7
   m_Name: PF_VenomBrood_Venodonte_Tint1
   m_TagString: Untagged
@@ -374,10 +375,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &2743175788540315327
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,8 +402,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &3198988690239520159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -794,6 +790,8 @@ MonoBehaviour:
   hitHeight: 0.5075306
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &4241196682905767704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -807,6 +805,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 0cf38c24afe56ce43b723b9facf17579, type: 2}
+--- !u!114 &77481285937991216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5119254518068260491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
 --- !u!1 &5124614282259971113
 GameObject:
   m_ObjectHideFlags: 0

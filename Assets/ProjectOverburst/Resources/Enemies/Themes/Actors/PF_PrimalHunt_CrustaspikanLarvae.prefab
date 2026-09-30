@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 2574751187136081489}
   - component: {fileID: 2116194031627886533}
   - component: {fileID: 2816777030441112611}
+  - component: {fileID: 7584222200148496590}
   m_Layer: 7
   m_Name: PF_PrimalHunt_CrustaspikanLarvae
   m_TagString: Untagged
@@ -332,10 +333,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &513542296312388568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -362,8 +360,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &1275770236145647683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -752,6 +748,8 @@ MonoBehaviour:
   hitHeight: 0.68459713
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &2816777030441112611
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -765,6 +763,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9520374fc32f8e643a7e039abdf3675b, type: 2}
+--- !u!114 &7584222200148496590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2654542685511227936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
 --- !u!1 &3025667151864752190
 GameObject:
   m_ObjectHideFlags: 0

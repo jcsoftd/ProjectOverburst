@@ -192,6 +192,7 @@ GameObject:
   - component: {fileID: 8039611819135132639}
   - component: {fileID: 8851841686969704270}
   - component: {fileID: 4294815431303886689}
+  - component: {fileID: 3900341399976038461}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Venosaur_Tint_Brown
   m_TagString: Untagged
@@ -394,10 +395,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &251574582532941153
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -424,8 +422,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &1463591050354787191
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -814,6 +810,8 @@ MonoBehaviour:
   hitHeight: 1.8
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &4294815431303886689
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -827,6 +825,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9520374fc32f8e643a7e039abdf3675b, type: 2}
+--- !u!114 &3900341399976038461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3285127751773417009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: f8b6720ab1ec0be4cbcd039d50ba3442, type: 2}
 --- !u!1 &5155752461605611244
 GameObject:
   m_ObjectHideFlags: 0

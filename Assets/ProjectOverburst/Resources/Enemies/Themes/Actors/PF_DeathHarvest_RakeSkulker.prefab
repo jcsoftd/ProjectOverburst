@@ -735,6 +735,7 @@ GameObject:
   - component: {fileID: 8164780317738238496}
   - component: {fileID: 1087551730998008986}
   - component: {fileID: 5303469051746116516}
+  - component: {fileID: 6678171851552924950}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeSkulker
   m_TagString: Untagged
@@ -937,10 +938,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &3719727898484747521
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1270,6 +1268,8 @@ MonoBehaviour:
   hitHeight: 1.067175
   contactRadiusFraction: 0.85
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &5425665126252878319
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1386,6 +1386,19 @@ MonoBehaviour:
   offsetRoot: {fileID: 4098696234163147577}
   animator: {fileID: 2092860492809736535}
   movement: {fileID: 3713979502898605118}
+--- !u!114 &6678171851552924950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8598702782355341532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
 --- !u!1 &8880917775195261741
 GameObject:
   m_ObjectHideFlags: 0

@@ -615,6 +615,7 @@ GameObject:
   - component: {fileID: 5675217132553447677}
   - component: {fileID: 1161374119120396290}
   - component: {fileID: 5206783196007004947}
+  - component: {fileID: 2291146787801443010}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Dimaxillosaurus
   m_TagString: Untagged
@@ -817,10 +818,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &7283344160393242170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -847,8 +845,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &6488286106782434463
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1237,6 +1233,8 @@ MonoBehaviour:
   hitHeight: 2.15
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0, z: 0}
+  burnScale: 1
 --- !u!114 &5206783196007004947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1250,6 +1248,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 9520374fc32f8e643a7e039abdf3675b, type: 2}
+--- !u!114 &2291146787801443010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5743882186582413383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 40686e91a2b879d46a762bd7b78f5f1f, type: 2}
 --- !u!1 &6399899884801756462
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92ec2278c5ef91848b4a3debf35503ab, type: 3}
+  m_Name: MHB_Flesh_Large
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxBundle
+  sets:
+  - name: "\uC138\uD2B8 6 \uBB34\uAC81\uAC8C"
+    layers:
+    - clip: {fileID: 8300000, guid: 06960aa47769149ac85f6a6da5e76b70, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: 1bd3be4678556804692bcf6993b88d01, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: e0df6bd8dc15144709c56580a2214a46, type: 3}
+      volume: 1
+  - name: "\uC138\uD2B8 7 \uC815\uC608"
+    layers:
+    - clip: {fileID: 8300000, guid: d57621f4f569bdf48b2804a554a39614, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: e837e2d4412d8d74f870334225653652, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: a767a813e0b539d4699bad3addfb836e, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: cd4856af853f8234685826881a632e63, type: 3}
+      volume: 1
+  criticalBundle: {fileID: 11400000, guid: 8b7c2bb496dc1e441a192a06e5cd551d, type: 2}

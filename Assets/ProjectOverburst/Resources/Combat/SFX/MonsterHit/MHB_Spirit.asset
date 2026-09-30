@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92ec2278c5ef91848b4a3debf35503ab, type: 3}
+  m_Name: MHB_Spirit
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxBundle
+  sets:
+  - name: "\uC138\uD2B8 1 \uACF5\uD5C8 + \uBF08 + \uC27F"
+    layers:
+    - clip: {fileID: 8300000, guid: 6afbeff885dd3d040a27489de3283a89, type: 3}
+      volume: 1.6
+    - clip: {fileID: 8300000, guid: 561d2d0e492fb1445acc8cb741c02b24, type: 3}
+      volume: 1.2
+    - clip: {fileID: 8300000, guid: 66aa85de859040c4d82c88765c8a94f7, type: 3}
+      volume: 1.2
+  - name: "\uC138\uD2B8 3 \uC720\uB839 \uD53C\uACA9 + \uBF08 + \uD719"
+    layers:
+    - clip: {fileID: 8300000, guid: 37d7b26198be7e44ea317a95afd8a416, type: 3}
+      volume: 1.6
+    - clip: {fileID: 8300000, guid: 561d2d0e492fb1445acc8cb741c02b24, type: 3}
+      volume: 1.2
+    - clip: {fileID: 8300000, guid: 72b63f35ac8756b41baa395ca54e2f0b, type: 3}
+      volume: 1.2
+  - name: "\uC138\uD2B8 4 \uC720\uB839 \uD53C\uACA9 + \uCDA9\uB3CC \uD719"
+    layers:
+    - clip: {fileID: 8300000, guid: 17beaedea6c955140acde232afbe03aa, type: 3}
+      volume: 1.6
+    - clip: {fileID: 8300000, guid: eebed6242030d5c4680806399a2bfa05, type: 3}
+      volume: 1.2
+    - clip: {fileID: 8300000, guid: 49c9cb8e30de54a488967edeca71a9a4, type: 3}
+      volume: 1.2
+  criticalBundle: {fileID: 0}

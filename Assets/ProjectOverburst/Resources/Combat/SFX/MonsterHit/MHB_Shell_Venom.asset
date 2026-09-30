@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92ec2278c5ef91848b4a3debf35503ab, type: 3}
+  m_Name: MHB_Shell_Venom
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxBundle
+  sets:
+  - name: "\uC138\uD2B8 6 \uB3C5\uB0AD \uD130\uC9D0 (\uB3C5\uB0AD 3\uC885)"
+    layers:
+    - clip: {fileID: 8300000, guid: a6141596e564d425c99d09e922750574, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: b84d62c9cc1ca7d41a69b24ec02fc090, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: 1cded750eb5ea91488192da4c7f9b139, type: 3}
+      volume: 1
+    - clip: {fileID: 8300000, guid: 84dd66205173d564e891901329a634ca, type: 3}
+      volume: 1
+  criticalBundle: {fileID: 0}

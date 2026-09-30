@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 8900044293710847559}
   - component: {fileID: 1643597675611218228}
   - component: {fileID: 7942608176411265755}
+  - component: {fileID: 4390605088196430773}
   m_Layer: 7
   m_Name: PF_DeathHarvest_Reaper
   m_TagString: Untagged
@@ -338,10 +339,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatVfx
   health: {fileID: 0}
-  hitVfxPrefab: {fileID: 0}
-  deathVfxPrefab: {fileID: 0}
   hitVfxAnchor: {fileID: 0}
-  deathVfxAnchor: {fileID: 0}
 --- !u!114 &4668671752470322711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -771,6 +769,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitTarget
   profile: {fileID: 11400000, guid: 6862e53aa36ea38428e89abe1d648bf2, type: 2}
+--- !u!114 &4390605088196430773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4745963789831692456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577c2d1ff7d1a844f8b4eab0d8967b42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
+  bundle: {fileID: 11400000, guid: 568fd37e747fcd34ab3ffe3d4da8d2bb, type: 2}
 --- !u!1 &5025276219172829565
 GameObject:
   m_ObjectHideFlags: 0
