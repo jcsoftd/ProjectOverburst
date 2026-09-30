@@ -264,14 +264,17 @@ public class EnemyAnimationBridge : MonoBehaviour
             Mathf.Clamp01(normalizedTime)));
     }
 
+    // 2026-09-30: 시작 자세까지 다 감으면 "다시 공격 준비"처럼 보인다. 온 길로 튕겨 돌아가는 만큼만 감는다.
+    public const float ParryRewindSeconds = .15f;
+    private const float ParryRewindKeep = .4f;
     private IEnumerator RewindAttackPose(int stateHash, float start)
     {
-        const float duration = .19f;
         float elapsed = 0f;
-        while (elapsed < duration && !isDead && !isFrozen)
+        float end = start * ParryRewindKeep;
+        while (elapsed < ParryRewindSeconds && !isDead && !isFrozen)
         {
-            float remaining = 1f - Mathf.Clamp01(elapsed / duration);
-            animator.Play(stateHash, 0, start * remaining * remaining);
+            float remaining = 1f - Mathf.Clamp01(elapsed / ParryRewindSeconds);
+            animator.Play(stateHash, 0, Mathf.Lerp(end, start, remaining * remaining));
             animator.Update(0f);
             elapsed += Time.unscaledDeltaTime;
             yield return null;

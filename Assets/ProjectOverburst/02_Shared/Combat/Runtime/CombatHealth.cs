@@ -301,10 +301,25 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         info.damage = damage; // 이벤트/표시 피해량 동기화
     }
 
+    // 2026-09-30 패링 보상: 패링 기절 중인 적은 받는 피해가 늘어 "팅 → 쾅" 마무리가 된다.
+    private const float ParryStunDamageMultiplier = 1.4f;
+    private EnemyMovementReaction parryReaction;
+    private bool parryReactionResolved;
+
     private void ApplyEnemyDefenseModifier(ref DamageInfo info, ref float damage)
     {
         EnemyDefenseController defenseController = GetComponentInParent<EnemyDefenseController>();
         defenseController?.TryModifyIncomingDamage(ref info, ref damage);
+        if (!parryReactionResolved)
+        {
+            parryReaction = GetComponentInParent<EnemyMovementReaction>();
+            parryReactionResolved = true;
+        }
+        if (parryReaction != null && parryReaction.IsParryStunned && damage > 0f)
+        {
+            damage *= ParryStunDamageMultiplier;
+            info.damage = damage;
+        }
     }
 
     private void ApplyPlayerDamageReductionDebug(ref DamageInfo info, ref float damage)
