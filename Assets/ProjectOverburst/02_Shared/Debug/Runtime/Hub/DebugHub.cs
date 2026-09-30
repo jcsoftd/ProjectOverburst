@@ -35,6 +35,8 @@ namespace Overburst.DebugTools
 
         public static DebugHub Instance { get; private set; }
         public static bool IsOpen => Instance != null && Instance.window != null && Instance.window.Visible;
+        /// <summary>씬 전환에도 남는 오브젝트. 전환을 넘어 이어져야 하는 디버그 동작(던전 입장 등)을 여기에 붙인다.</summary>
+        public static GameObject Host => Instance != null ? Instance.gameObject : null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatic()
@@ -143,6 +145,7 @@ namespace Overburst.DebugTools
         private void Update()
         {
             DebugPerf.Tick(Time.unscaledDeltaTime);
+            DebugPerfRecorder.Tick(Time.unscaledDeltaTime);
             DebugLogCapture.Drain();
             DebugTime.Tick();
             ApplyPersistedValues();

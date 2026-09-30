@@ -45,12 +45,27 @@ namespace Overburst.DebugTools
                 Report(what, DebugResult.Fail(item.DisabledReason ?? "지금은 쓸 수 없어요"));
                 return;
             }
-            if (!string.IsNullOrEmpty(item.confirm) && ConfirmHandler != null)
+            if (!string.IsNullOrEmpty(item.confirm) && ConfirmHandler != null && NeedsConfirm(item))
             {
                 ConfirmHandler(item, () => Execute(item, what, action));
                 return;
             }
             Execute(item, what, action);
+        }
+
+        private static bool NeedsConfirm(DebugItem item)
+        {
+            if (item.confirmWhen == null)
+                return true;
+            try
+            {
+                return item.confirmWhen();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                return true;
+            }
         }
 
         /// <summary>항목을 거치지 않는 동작(설정 묶음 적용 등)의 결과를 기록한다.</summary>

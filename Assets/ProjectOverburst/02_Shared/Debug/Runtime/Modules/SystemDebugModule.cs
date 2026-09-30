@@ -44,6 +44,20 @@ namespace Overburst.DebugTools
             perf.Readout("몬스터 수", () => EnemyAIController.AliveEnemyCount + "마리")
                 .WithId("system.perf.monsters")
                 .Pinnable();
+            perf.Buttons("측정")
+                .Add("10초", () => DebugPerfRecorder.Start(10f))
+                .Add("30초", () => DebugPerfRecorder.Start(30f))
+                .WithId("system.perf.record")
+                .EnabledWhen(() => !DebugPerfRecorder.Running, "측정 중이에요")
+                .Tip("평균·1% 느린 프레임·최악·GC 횟수·몬스터 수. 에디터에서는 CSV를 개인파일/코덱스산출/Perf에 쓴다.");
+            perf.Readout("측정 결과", () => DebugPerfRecorder.Progress)
+                .Lines(2)
+                .WithId("system.perf.result");
+
+            DebugSection save = DebugRegistry.Section(DebugTabs.SystemTab, "저장", 35, "디버그 창 설정은 PlayerPrefs, 계정은 저장 폴더");
+            save.Readout("계정", () => $"{DebugAccount.Label} · {DebugAccount.FolderName}")
+                .WithId("system.save.account")
+                .Tip("OVERBURST_SAVE_DIRECTORY가 있으면 격리 계정이다. 실제 계정에서는 계정에 남는 버튼이 한 번 더 묻는다.");
 
             DebugSection log = DebugRegistry.Section(DebugTabs.SystemTab, "로그", 30, "오류가 나면 탭 이름에 빨간 표시");
             log.Readout("오류 · 경고", () => DebugLogCapture.ErrorCount + " · " + DebugLogCapture.WarningCount)
@@ -61,6 +75,18 @@ namespace Overburst.DebugTools
                 .Tip("창이 화면 밖으로 나갔거나 너무 작아졌을 때 쓴다.");
             window.Button("핀 모두 해제", DebugPrefs.ClearPins)
                 .WithId("system.window.clearPins");
+            window.Button("개발자 메모장 열기/닫기", ToggleNotepad)
+                .WithId("system.window.notepad")
+                .Keywords("memo", "메모");
+        }
+
+        private static DebugResult ToggleNotepad()
+        {
+            DeveloperNotepadUI notepad = Object.FindFirstObjectByType<DeveloperNotepadUI>(FindObjectsInactive.Include);
+            if (notepad == null || !notepad.isActiveAndEnabled)
+                return DebugResult.Fail("이 씬에 메모장이 없어요");
+            notepad.Toggle();
+            return DebugResult.Ok(notepad.IsWindowOpen ? "열림" : "닫힘");
         }
     }
 }

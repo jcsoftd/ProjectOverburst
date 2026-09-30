@@ -42,6 +42,7 @@ namespace Overburst.DebugTools
         internal Key hotkey = Key.None;
         internal bool hotkeyCtrl;
         internal string confirm;
+        internal Func<bool> confirmWhen;
         internal string[] keywords = Array.Empty<string>();
         private bool reportedReadError;
 
@@ -556,7 +557,22 @@ namespace Overburst.DebugTools
         public static T Confirm<T>(this T item, string message) where T : DebugItem
         {
             item.confirm = message;
+            item.confirmWhen = null;
             return item;
+        }
+
+        /// <summary>조건이 참일 때만 확인창을 띄운다.</summary>
+        public static T ConfirmWhen<T>(this T item, Func<bool> condition, string message) where T : DebugItem
+        {
+            item.confirm = message;
+            item.confirmWhen = condition;
+            return item;
+        }
+
+        /// <summary>결과가 저장 계정에 남는 항목. 실제 계정(격리 폴더가 아님)일 때만 한 번 더 묻는다(90C 7.5).</summary>
+        public static T ConfirmOnRealAccount<T>(this T item) where T : DebugItem
+        {
+            return item.ConfirmWhen(() => !DebugAccount.IsIsolated, DebugAccount.RealAccountWarning);
         }
 
         public static T Persist<T>(this T item) where T : DebugItem

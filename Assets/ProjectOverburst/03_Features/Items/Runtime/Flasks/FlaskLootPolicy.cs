@@ -11,10 +11,14 @@ public static class FlaskLootPolicy
     private static void Reset() { catalog = null; gameplayCatalog = null; }
 
     public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
+        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade);
+
+    // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
+    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
     {
         if (GameplayCatalog.Length == 0) return null;
-        bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
-        bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
+        bool boss = gradeType == EnemyGradeType.Boss;
+        bool elite = gradeType != EnemyGradeType.Normal;
         float chance = boss ? 1f : elite ? .30f : .04f;
         if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         float roll = Random.value;

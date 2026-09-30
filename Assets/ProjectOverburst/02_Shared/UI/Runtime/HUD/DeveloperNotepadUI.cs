@@ -80,6 +80,17 @@ public class DeveloperNotepadUI : MonoBehaviour
             memoInput.onEndEdit.RemoveListener(HandleMemoChanged);
     }
 
+    public bool IsWindowOpen => windowRoot != null && windowRoot.activeSelf;
+
+    // 디버그 창의 '개발자 메모장 열기'가 부른다(90C 7.8). 메모장 자체 열기 버튼은 그대로다.
+    public void Toggle()
+    {
+        if (IsWindowOpen)
+            CloseWindow();
+        else
+            OpenWindow();
+    }
+
     private void OpenWindow()
     {
         if (windowRoot == null)
