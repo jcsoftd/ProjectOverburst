@@ -191,7 +191,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
             {
                 remainingTickBudget--;
                 var owner = owners[OverburstElementRules.Index(element)];
-                float damage = owner.ActualDirectDamage * count * OverburstElementTuning.Current.TickCoefficient(element);
+                float damage = CombatBalanceFormulas.StatusTickDamage(OverburstElementTuning.Current, element, owner.ActualDirectDamage, count);
                 float before = combatHealth.CurrentHp;
                 int life = LifecycleVersion;
                 combatHealth.TakeDamage(new DamageInfo(damage, transform.position, owner.SourceActor,
@@ -203,9 +203,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
                 if (element == WeaponElement.Electric && combatHealth.CurrentHp < before)
                 {
                     EnemyGradeType grade = enemyRank != null ? enemyRank.GradeType : EnemyGradeType.Normal;
-                    float factor = grade == EnemyGradeType.Boss ? 0f : grade == EnemyGradeType.GreaterElite ? .25f : grade == EnemyGradeType.Elite ? .5f : 1f;
-                    var tuning = OverburstElementTuning.Current;
-                    staggerUntil = Mathf.Max(staggerUntil, now + (tuning.shockStaggerBase + tuning.shockStaggerPerStack * (count - 1)) * factor);
+                    staggerUntil = Mathf.Max(staggerUntil, now + CombatBalanceFormulas.ShockStaggerSeconds(OverburstElementTuning.Current, count, grade));
                     aura?.SetAuraActive(MeleeElementStatusAuraType.Shocked, true, true);
                 }
             }

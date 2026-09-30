@@ -74,9 +74,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         if (WeaponInstanceId != weaponId || Element != element) return false;
         OverburstElementTuning tuning = OverburstElementTuning.Current;
         long key = ((long)attackSequenceId << 32) | (uint)Mathf.Max(0, attackPhaseIndex);
-        float baseGain = isCritical ? Mathf.Max(1f, tuning.maximumEnergy) * Mathf.Clamp01(tuning.criticalEnergyFraction)
-            : Mathf.Max(0f, tuning.energyPerAttack);
-        float gain = baseGain * (1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.EnergyGain));
+        float gain = CombatBalanceFormulas.PhaseEnergyGain(tuning, isCritical, FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.EnergyGain));
         bool alreadyHit = attacks.TryGetValue(key, out float credited);
         if (alreadyHit && gain <= credited) return false;
         // A later critical target upgrades this swing's total, independent of target iteration order.
@@ -212,8 +210,7 @@ public sealed class OverburstElementDischarge
     public float Overcharge { get; }
     public bool LightTriple { get; }
     public float BaseDamage => attackDamage * energyCoefficient + baseDischargePower * NormalizedEnergy;
-    public float FirstBlastDamage => attackDamage * Mathf.Lerp(OverburstCombatBalance.EmptyHeavyDamage, OverburstCombatBalance.FullHeavyDamage, NormalizedEnergy) * (1f + energyCoefficient)
-        + baseDischargePower * NormalizedEnergy;
+    public float FirstBlastDamage => CombatBalanceFormulas.HeavyFirstBlastDamage(attackDamage, NormalizedEnergy, energyCoefficient, baseDischargePower);
     internal OverburstElementDischarge(OverburstElementEnergy owner, int token, WeaponElement element, string weaponId,
         float energy, float normalized, float attackDamage, int radianceStacks = 0, float overcharge = 0f, bool lightTriple = false)
     {
@@ -229,14 +226,14 @@ public sealed class OverburstElementDischarge
         OverburstElementTuning tuning = OverburstElementTuning.Current;
         float elementBonus = element == WeaponElement.Fire ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireDischargeDamage)
             : element == WeaponElement.Electric ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.LightningDischargeDamage) : 0f;
-        energyCoefficient = Mathf.Max(0f, tuning.dischargeDamageAtFullEnergy) * normalized
-            * (1f + elementBonus + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.EnergyDischargeDamage));
+        energyCoefficient = CombatBalanceFormulas.DischargeEnergyCoefficient(tuning, normalized, elementBonus,
+            FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.EnergyDischargeDamage));
         stackCoefficient = Mathf.Max(0f, tuning.statusDamagePerStack) * (1f + elementBonus);
         shatterCoefficient = Mathf.Max(0f, tuning.shatterBlastFraction) * (1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ShatterDamage));
-        radius = Mathf.Lerp(Mathf.Max(0f, tuning.minimumRadius), Mathf.Max(0f, tuning.maximumRadius), normalized);
+        radius = CombatBalanceFormulas.DischargeRadius(tuning, normalized);
         if (element == WeaponElement.Fire) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireRadius);
         if (element == WeaponElement.Electric) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ChainRange);
-        energyChainBonus = normalized >= .99999f ? 2 : normalized >= .5f ? 1 : 0;
+        energyChainBonus = CombatBalanceFormulas.DischargeEnergyChainBonus(normalized);
     }
     public void End() { ended = true; }
     // 패링 환급: 방출당 1회, 이 방출이 아직 주인의 최신 방출일 때만. 빛 광휘 중첩·과충전은 돌려주지 않는다.
@@ -253,10 +250,7 @@ public sealed class OverburstElementDischarge
     {
         OverburstElementTuning tuning = OverburstElementTuning.Current;
         float h = FirstBlastDamage;
-        float scale = hit == 0
-            ? tuning.SafeLightTripleHit1Base + tuning.SafeLightTripleHit1PerStack * RadianceStacks / (float)tuning.SafeLightRadianceMaxStacks
-            : hit == 1 ? tuning.SafeLightTripleHit2Base + tuning.SafeLightTripleHit2PerOvercharge * Overcharge
-            : tuning.SafeLightTripleHit3Scale;
+        float scale = CombatBalanceFormulas.LightTripleHitScale(tuning, hit, RadianceStacks, Overcharge);
         float flask = owner != null ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.LightTripleImpactDamage) : 0f;
         return Mathf.Max(0f, h * scale * (1f + flask));
     }
@@ -292,7 +286,7 @@ public sealed class OverburstElementDischarge
         if (!consumesNow) { consumed = 0; shattered = false; }
         else if (snapshot.Status != null && !snapshot.Health.IsDead)
             consumed = snapshot.Status.ConsumeForDischarge(Element, out shattered);
-        float bonus = Element == WeaponElement.Ice ? (shattered ? FirstBlastDamage * shatterCoefficient : 0f)
+        float bonus = Element == WeaponElement.Ice ? (shattered ? CombatBalanceFormulas.IceShatterDamage(FirstBlastDamage, shatterCoefficient) : 0f)
             : Element == WeaponElement.Fire || Element == WeaponElement.Electric
                 || Element == WeaponElement.Dark || Element == WeaponElement.Light ? 0f
             : attackDamage * consumed * stackCoefficient;
