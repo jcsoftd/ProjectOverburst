@@ -158,7 +158,7 @@ public sealed class AttackImpactDataDrawer : PropertyDrawer
 public static class WeaponDataPropertyDrawerValidation
 {
     private const string ComboAssetPath =
-        "Assets/ProjectOverburst/03_Features/Weapons/WP01_OneHandSword/Common/Combos/OneHandSwordPrimaryCombo.asset";
+        "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Combos/GreatswordComboSet01.asset";
 
     public static void RunOnceFromCommandLine()
     {

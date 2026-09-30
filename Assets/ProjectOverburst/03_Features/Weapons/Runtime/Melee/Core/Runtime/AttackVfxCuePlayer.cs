@@ -44,7 +44,7 @@ public sealed class AttackVfxCuePlayer
                 continue;
 
             played[i] = true;
-            Spawn(cues[i], pattern, basis, element, phaseVfxScale, attackRangeScale);
+            Spawn(cues[i], pattern, basis, phaseVfxScale, attackRangeScale);
         }
     }
 
@@ -78,7 +78,6 @@ public sealed class AttackVfxCuePlayer
         AttackVfxCueData cue,
         AttackPatternRuntimeData pattern,
         AttackPatternBasis basis,
-        WeaponElement element,
         float phaseVfxScale,
         float attackRangeScale)
     {
@@ -97,12 +96,7 @@ public sealed class AttackVfxCuePlayer
             * Quaternion.Euler(0f, 0f, swingSlope)
             * Quaternion.Euler(definition.localEulerOffset + cue.localEulerOffset);
         Vector3 position = ResolvePosition(cue, definition, pattern, basis, basisRotation);
-        if (MeleeElementSfxService.IsSlashCueKey(cue.elementOverrideKey))
-            MeleeElementSfxService.TryPlaySlash(element, position); // 논리 Cue당 한 번
-
-        GameObject prefab = MeleeAttackVfxResolver.Current.ResolvePrefab(
-            definition,
-            cue.elementOverrideKey);
+        GameObject prefab = definition.neutralPrefab;
         if (prefab == null)
             return;
 
@@ -113,18 +107,9 @@ public sealed class AttackVfxCuePlayer
         Vector3 resolvedScale = definition.baseScale * scale;
         if (pattern.Shape == AttackAreaShape.Circle && definition.authoredCircleRadius > 0f)
             resolvedScale = Vector3.one * (pattern.Range / definition.authoredCircleRadius);
-        bool sharedSlash = MeleeElementAttackVfxCatalog.IsSharedSlashKey(
-            cue.elementOverrideKey);
         bool horizontalMirror = cue.mirrorAxis == AttackVfxMirrorAxis.Horizontal
             || (definition.mirrorRightToLeft
                 && pattern.Direction == AttackFillDirection.RightToLeft);
-        if (sharedSlash)
-        {
-            horizontalMirror = MeleeSharedSlashSpawnContract.ResolveHorizontalMirror(
-                cue.elementOverrideKey,
-                element,
-                horizontalMirror); // 원소별 실제 VFX 방향 보정
-        }
         bool verticalMirror = cue.mirrorAxis == AttackVfxMirrorAxis.Vertical;
         if (horizontalMirror)
         {
@@ -146,26 +131,14 @@ public sealed class AttackVfxCuePlayer
             resolvedScale.y = -resolvedScale.y;
         }
 
-        int instanceCount = MeleeSharedSlashSpawnContract.ResolveInstanceCount(
-            cue.elementOverrideKey);
-        for (int i = 0; i < instanceCount; i++)
-        {
-            Quaternion instanceRotation = MeleeSharedSlashSpawnContract.ResolveInstanceRotation(
-                i,
-                rotation,
-                resolvedScale);
-            SpawnResolvedInstance(
-                prefab,
-                position,
-                instanceRotation,
-                resolvedScale,
-                definition,
-                element,
-                horizontalMirror,
-                sharedSlash,
-                MeleeSharedSlashSpawnContract.ResolveReturnMode(cue.elementOverrideKey),
-                cue.SafeShockwaveIntensity, cue.SafeShockwaveSpeed);
-        }
+        SpawnResolvedInstance(
+            prefab,
+            position,
+            rotation,
+            resolvedScale,
+            definition,
+            horizontalMirror,
+            cue.SafeShockwaveIntensity, cue.SafeShockwaveSpeed);
     }
 
     private static void SpawnResolvedInstance(
@@ -174,24 +147,14 @@ public sealed class AttackVfxCuePlayer
         Quaternion rotation,
         Vector3 scale,
         MeleeAttackVfxDefinition definition,
-        WeaponElement element,
         bool horizontalMirror,
-        bool sharedSlash,
-        TransientVfxReturnMode returnMode, float shockwaveIntensity, float shockwaveSpeed)
+        float shockwaveIntensity, float shockwaveSpeed)
     {
         Action<GameObject> prepare = instance =>
         {
             instance.transform.localScale = scale;
             instance.GetComponent<SwordShockwavePlayback>()?.Configure(shockwaveIntensity, shockwaveSpeed);
             instance.GetComponent<VfxMirrorCompensation>()?.Apply(horizontalMirror);
-            if (sharedSlash)
-            {
-                MeleeElementSlashController controller =
-                    instance.GetComponent<MeleeElementSlashController>();
-                if (controller == null)
-                    throw new InvalidOperationException("공용 슬래시 Controller가 없습니다.");
-                controller.SetElement(element); // 활성화 전 인스턴스별 주입
-            }
         };
 
         TransientVfxPool.Spawn(
@@ -202,7 +165,7 @@ public sealed class AttackVfxCuePlayer
             definition.SafePoolCapacity,
             null,
             prepare,
-            returnMode);
+            TransientVfxReturnMode.FixedLifetime);
     }
 
     private static bool ScalesWithAttackRange(AttackVfxMotionRole motionRole)

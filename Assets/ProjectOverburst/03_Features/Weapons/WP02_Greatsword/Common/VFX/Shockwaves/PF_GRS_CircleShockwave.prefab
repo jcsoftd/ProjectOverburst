@@ -48,7 +48,6 @@ MonoBehaviour:
   expansionDuration: 0.5
   startScale: 1
   endScale: 1
-  comparisonStyle: {fileID: 0}
 --- !u!1001 &2575927131305699780
 PrefabInstance:
   m_ObjectHideFlags: 0

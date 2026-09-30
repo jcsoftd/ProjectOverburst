@@ -426,8 +426,7 @@ namespace Overburst.EditorTools.ComboMaker
         {
             var definition = cue.definition;
             if (definition == null) return;
-            var catalog = Resources.Load<MeleeElementAttackVfxCatalog>("Combat/VFX/MeleeElementAttackVfxCatalog");
-            var prefab = new ElementalMeleeAttackVfxResolver(catalog).ResolvePrefab(definition, cue.elementOverrideKey);
+            var prefab = definition.neutralPrefab;
             if (prefab == null) return;
             var rotation = Quaternion.LookRotation(basis.Forward, Vector3.up);
             var position = cue.placementMode == AttackVfxPlacementMode.OwnerOrigin ? basis.Origin
@@ -439,18 +438,12 @@ namespace Overburst.EditorTools.ComboMaker
             rotation *= Quaternion.Euler(0,0,cue.ResolveSwingSlope(slope)) * Quaternion.Euler(definition.localEulerOffset + cue.localEulerOffset);
             Vector3 scale = definition.baseScale * cue.SafeScaleMultiplier * phase.geometry.SafeVfxScaleMultiplier;
             bool mirror = cue.mirrorAxis == AttackVfxMirrorAxis.Horizontal || definition.mirrorRightToLeft && pattern.Direction == AttackFillDirection.RightToLeft;
-            if (MeleeElementAttackVfxCatalog.IsSharedSlashKey(cue.elementOverrideKey))
-                mirror = MeleeSharedSlashSpawnContract.ResolveHorizontalMirror(cue.elementOverrideKey, Element, mirror);
             if (mirror) { int axis = (int)definition.horizontalMirrorScaleAxis; scale[axis] = -scale[axis]; }
             if (cue.mirrorAxis == AttackVfxMirrorAxis.Vertical) scale.y = -scale.y;
-            for (int n = 0; n < MeleeSharedSlashSpawnContract.ResolveInstanceCount(cue.elementOverrideKey); n++)
-            {
-                var go = InstantiateEffect(prefab, position, MeleeSharedSlashSpawnContract.ResolveInstanceRotation(n, rotation, scale), scale);
-                go.GetComponent<MeleeElementSlashController>()?.SetElement(Element);
-                go.GetComponent<VfxMirrorCompensation>()?.Apply(mirror);
-                go.GetComponent<SwordShockwavePlayback>()?.Configure(cue.SafeShockwaveIntensity, cue.SafeShockwaveSpeed);
-                ActivateEffect(go, SwordShockwavePlayback.ResolveCueLifetime(prefab, definition.lifetime, cue.SafeShockwaveSpeed));
-            }
+            var go = InstantiateEffect(prefab, position, rotation, scale);
+            go.GetComponent<VfxMirrorCompensation>()?.Apply(mirror);
+            go.GetComponent<SwordShockwavePlayback>()?.Configure(cue.SafeShockwaveIntensity, cue.SafeShockwaveSpeed);
+            ActivateEffect(go, SwordShockwavePlayback.ResolveCueLifetime(prefab, definition.lifetime, cue.SafeShockwaveSpeed));
         }
 
         private void SpawnHit(AttackPatternRuntimeData pattern,AttackPhaseData phase)

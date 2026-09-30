@@ -99,8 +99,6 @@ public sealed class EnemySpawnPackConfig // 몬스터 스폰 설정
     [Header("Drop/VFX")]
     [SerializeField] private DropTable dropTable; // 몬스터 드랍
     [SerializeField] private PickupGradeVfxSet pickupGradeVfxSet; // 픽업 VFX
-    [SerializeField] private GameObject hitVfxPrefab; // 피격 VFX
-    [SerializeField] private GameObject deathVfxPrefab; // 사망 VFX
 
     public int InitialSpawnCount { get { return Mathf.Max(0, initialSpawnCount); } }
     public int WaveSpawnCount { get { return Mathf.Max(0, waveSpawnCount); } }
@@ -130,8 +128,6 @@ public sealed class EnemySpawnPackConfig // 몬스터 스폰 설정
     public bool EnableDebugLogs { get { return enableDebugLogs; } }
     public DropTable DropTable { get { return dropTable; } }
     public PickupGradeVfxSet PickupGradeVfxSet { get { return pickupGradeVfxSet; } }
-    public GameObject HitVfxPrefab { get { return hitVfxPrefab; } }
-    public GameObject DeathVfxPrefab { get { return deathVfxPrefab; } }
     public int GetWaveIterationCount()
     {
         return Mathf.FloorToInt(WaveDuration / WaveInterval);

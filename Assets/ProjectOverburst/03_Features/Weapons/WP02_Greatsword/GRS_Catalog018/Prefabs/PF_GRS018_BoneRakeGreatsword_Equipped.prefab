@@ -397,16 +397,23 @@ MonoBehaviour:
     m_Extent: {x: 0.06, y: 0.03, z: 0.52}
   auraAnchor: {fileID: 786098969802762688}
   trailAnchor: {fileID: 8471763717745497574}
-  fireBladeAccent: {fileID: 3488039642409251120, guid: fd85977a2bc400241be8265e488f072f, type: 3}
-  iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
-  electricBladeAccent: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
-  darkBladeAccent: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
-  lightBladeAccent: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
-  fireTrail: {fileID: 4824730990175752085, guid: 5cbe1eebf41ffe54484fffa320e93c58, type: 3}
-  iceTrail: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
-  electricTrail: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
-  darkTrail: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
-  lightTrail: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
+  fireBladeAccent: {fileID: 0}
+  iceBladeAccent: {fileID: 0}
+  electricBladeAccent: {fileID: 0}
+  darkBladeAccent: {fileID: 0}
+  lightBladeAccent: {fileID: 0}
+  fireTrail: {fileID: 0}
+  iceTrail: {fileID: 0}
+  electricTrail: {fileID: 0}
+  darkTrail: {fileID: 0}
+  lightTrail: {fileID: 0}
+  fireTipTrail: {fileID: 0}
+  iceTipTrail: {fileID: 0}
+  electricTipTrail: {fileID: 0}
+  darkTipTrail: {fileID: 0}
+  lightTipTrail: {fileID: 0}
+  tipTrailLifetime: 0.2
+  tipTrailWidthScale: 0.15
   fireSettings:
     idleStrength: 0.26
     bladeThickness: 1.9738059

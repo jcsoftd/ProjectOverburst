@@ -130,14 +130,6 @@ public sealed class HideoutMonsterSpawnDebugController : MonoBehaviour // 하이
             targetInventory,
             player,
             spawnConfig.PickupGradeVfxSet);
-
-        if (spawnConfig.HitVfxPrefab != null || spawnConfig.DeathVfxPrefab != null)
-        {
-            CombatVfx combatVfx = actor.GetComponent<CombatVfx>();
-            combatVfx?.Configure(
-                spawnConfig.HitVfxPrefab,
-                spawnConfig.DeathVfxPrefab);
-        }
     }
 
     private Vector3 ResolveSpawnPosition(int serial)

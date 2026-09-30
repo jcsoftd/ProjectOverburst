@@ -586,9 +586,9 @@ MonoBehaviour:
         reverseDirection: 0
   attackTrajectoryBakeData:
     schemaVersion: 1
-    sourceFingerprint: 60d1c72beb5558a95154080ca285f8fe
-    derivedFingerprint: af80d1ebd432d5fff2e62917a2bf65f4
-    bakedUtc: 2026-09-27T04:15:13.8594073Z
+    sourceFingerprint: d830ee087026efa2cc266ad0a2fa5c9f
+    derivedFingerprint: b498624b7d7f221b3b0c02072fa46f88
+    bakedUtc: 2026-09-30T10:51:12.8464217Z
     steps:
     - attackId: Greatsword.ComboSet01.1
       rawSamples:

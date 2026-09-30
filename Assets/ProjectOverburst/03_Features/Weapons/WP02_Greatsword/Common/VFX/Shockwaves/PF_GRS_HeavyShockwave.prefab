@@ -48,7 +48,6 @@ MonoBehaviour:
   expansionDuration: 0.72727275
   startScale: 1
   endScale: 1
-  comparisonStyle: {fileID: 0}
 --- !u!1001 &8124987581889944191
 PrefabInstance:
   m_ObjectHideFlags: 0

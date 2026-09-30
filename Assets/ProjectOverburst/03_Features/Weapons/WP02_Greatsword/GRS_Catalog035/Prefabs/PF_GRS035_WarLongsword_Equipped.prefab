@@ -427,21 +427,21 @@ MonoBehaviour:
     m_Extent: {x: 0.06, y: 0.03, z: 0.52}
   auraAnchor: {fileID: 42058934057982706}
   trailAnchor: {fileID: 1985188723956244322}
-  fireBladeAccent: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
-  iceBladeAccent: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
-  electricBladeAccent: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
-  darkBladeAccent: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
-  lightBladeAccent: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
-  fireTrail: {fileID: 6704765387857366346, guid: 44c4f07294322c7489006fec8856be17, type: 3}
-  iceTrail: {fileID: 3442059549274960536, guid: 30155e051d0f2324cb884f531872d5cd, type: 3}
-  electricTrail: {fileID: 8192757158779992146, guid: a02daae3c5adc73468c0273e683a467b, type: 3}
-  darkTrail: {fileID: 8081853087335511747, guid: cfdc11cd9e8bd934cb9851698ff0abec, type: 3}
-  lightTrail: {fileID: 7942554582123884085, guid: fb3942e300d407346a1872019d3b9ecc, type: 3}
-  fireTipTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
-  iceTipTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
-  electricTipTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}
-  darkTipTrail: {fileID: 8597731318025692521, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
-  lightTipTrail: {fileID: 8099074118825668027, guid: a92ebdf897fa283428c50a41fe4411a5, type: 3}
+  fireBladeAccent: {fileID: 0}
+  iceBladeAccent: {fileID: 0}
+  electricBladeAccent: {fileID: 0}
+  darkBladeAccent: {fileID: 0}
+  lightBladeAccent: {fileID: 0}
+  fireTrail: {fileID: 0}
+  iceTrail: {fileID: 0}
+  electricTrail: {fileID: 0}
+  darkTrail: {fileID: 0}
+  lightTrail: {fileID: 0}
+  fireTipTrail: {fileID: 0}
+  iceTipTrail: {fileID: 0}
+  electricTipTrail: {fileID: 0}
+  darkTipTrail: {fileID: 0}
+  lightTipTrail: {fileID: 0}
   tipTrailLifetime: 0.2
   tipTrailWidthScale: 0.15
   fireSettings:

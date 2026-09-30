@@ -1,24 +1,17 @@
 using UnityEngine;
 
 [RequireComponent(typeof(CombatHealth))]
-public class CombatVfx : MonoBehaviour // 전투 VFX 연결
+public class CombatVfx : MonoBehaviour // 전투 VFX 연결: 치명타 섬광·처치 혈흔
 {
     [SerializeField] private CombatHealth health;
-    [SerializeField] private GameObject hitVfxPrefab;
-    [SerializeField] private GameObject deathVfxPrefab;
     [SerializeField] private Transform hitVfxAnchor;
-    [SerializeField] private Transform deathVfxAnchor;
 
     private bool deathVfxSpawned;
-    private GameObject authoredHitVfxPrefab;
-    private GameObject authoredDeathVfxPrefab;
-    private bool authoredPresentationCaptured;
     private CombatTarget combatTarget;
     private CombatTargetVfxPlacement vfxPlacement;
 
     private void Awake()
     {
-        CaptureAuthoredPresentation();
         if (health == null)
             health = GetComponent<CombatHealth>();
         combatTarget = GetComponent<CombatTarget>();
@@ -45,18 +38,8 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
         }
     }
 
-    public void Configure(GameObject hitPrefab, GameObject deathPrefab)
-    {
-        CaptureAuthoredPresentation();
-        hitVfxPrefab = hitPrefab;
-        deathVfxPrefab = deathPrefab;
-    }
-
     public void ResetForPool()
     {
-        CaptureAuthoredPresentation();
-        hitVfxPrefab = authoredHitVfxPrefab;
-        deathVfxPrefab = authoredDeathVfxPrefab;
         deathVfxSpawned = false;
     }
 
@@ -66,27 +49,6 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
             return;
         if (info.isCritical)
             PlayCritical(info); // 치명타 공용 섬광: 원소 타격 VFX와 별개로 한 번
-        if (info.suppressDefaultHitVfx)
-            return; // 정식 원소 Hit와 임시 Hit 중복 차단
-        if (hitVfxPrefab == null)
-            return;
-
-        Transform anchor = hitVfxAnchor != null ? hitVfxAnchor : transform;
-        bool hasHitPoint = info.hitPoint.sqrMagnitude > 0.0001f;
-        Vector3 worldContact = hasHitPoint ? info.hitPoint : anchor.position;
-        float sizeMultiplier = 1f;
-        if (combatTarget != null && vfxPlacement != null)
-        {
-            if (!hasHitPoint)
-                worldContact = combatTarget.CurrentHurtVolume.Center;
-            worldContact = CombatTargetVfxPlacement.ResolveContact(
-                combatTarget, worldContact, info.direction, out sizeMultiplier);
-        }
-
-        GameObject instance = VfxPrefabFactory.SpawnFollowing(hitVfxPrefab, anchor,
-            anchor.InverseTransformPoint(worldContact), false, true);
-        if (instance != null)
-            instance.transform.localScale = hitVfxPrefab.transform.localScale * sizeMultiplier;
     }
 
     private void PlayCritical(DamageInfo info)
@@ -110,26 +72,5 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
 
         deathVfxSpawned = true;
         BloodHitVfxService.RequestDeath(source, info); // 처치 혈흔 분출(혈흔 없는 몬스터는 내부에서 제외)
-        if (TryGetComponent<EnemyDeathPresentation>(out var presentation) && presentation.isActiveAndEnabled)
-            return; // Theme corpses use authored death + Feel landing, without the temporary burst.
-        VfxPrefabFactory.Spawn(deathVfxPrefab, GetAnchorPosition(deathVfxAnchor), Quaternion.identity);
-    }
-
-    private Vector3 GetAnchorPosition(Transform anchor)
-    {
-        if (anchor != null)
-            return anchor.position;
-
-        return transform.position;
-    }
-
-    private void CaptureAuthoredPresentation()
-    {
-        if (authoredPresentationCaptured)
-            return;
-
-        authoredHitVfxPrefab = hitVfxPrefab;
-        authoredDeathVfxPrefab = deathVfxPrefab;
-        authoredPresentationCaptured = true;
     }
 }

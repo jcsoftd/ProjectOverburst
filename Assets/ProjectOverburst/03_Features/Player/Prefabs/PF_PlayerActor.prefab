@@ -784,7 +784,7 @@ MonoBehaviour:
     balanceVersion: 0
     meleeStarDistributionProfile: 0
     bagOptions: []
-  testWeaponItemData: {fileID: 11400000, guid: 9f2f854bfa52a1d45b0a708a5ba264c2, type: 2}
+  testWeaponItemData: {fileID: 0}
   testWeaponGrade: 0
 --- !u!114 &1058986554465660183
 MonoBehaviour:
@@ -1038,7 +1038,7 @@ MonoBehaviour:
   targetAnimator: {fileID: 7151613634543266744}
   playerMovement: {fileID: 7267795241096372142}
   playerEquipment: {fileID: 2299222960054195725}
-  fallbackProfile: {fileID: 11400000, guid: 9194acf019ebde246b32698313772efe, type: 2}
+  fallbackProfile: {fileID: 11400000, guid: 1920cbd39a6783043a6711486dd83cfd, type: 2}
   layerName: Combat_MeleeWeapon
   transitionLowerLayerName: Combat_MeleeWeapon_TransitionLower
   emptyStateName: Melee_Empty

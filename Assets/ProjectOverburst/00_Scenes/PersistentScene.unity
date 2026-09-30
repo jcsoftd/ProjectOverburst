@@ -99133,7 +99133,6 @@ MonoBehaviour:
   generalGoodsMinStackTotal: 15
   generalGoodsMaxStackTotal: 29
   weaponPool:
-  - {fileID: 11400000, guid: 9f2f854bfa52a1d45b0a708a5ba264c2, type: 2}
   - {fileID: 11400000, guid: d9b32fb76d97abf4b8e2023ad8af775f, type: 2}
   weaponMinStockCount: 10
   weaponMaxStockCount: 15

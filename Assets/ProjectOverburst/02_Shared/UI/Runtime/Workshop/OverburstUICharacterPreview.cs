@@ -31,14 +31,12 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
     private static Dictionary<string, Transform> templateByPath;
     private static Dictionary<string, List<Transform>> templateByName;
     private static GameObject weaponVisual;
-    private static GameObject shieldVisual;
     private static int users;
 
     private PlayerContext subscribedContext;
     private PlayerEquipment subscribedEquipment;
     private PlayerActorRuntime displayedActor;
     private Transform displayedWeapon;
-    private GameObject displayedShield;
     private int displayedAppearance;
     private double nextRefresh;
     private double nextPreviewFrame;
@@ -127,12 +125,9 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         BindCurrentActor();
         PlayerActorRuntime actor = subscribedContext ? subscribedContext.CurrentActor : null;
         Transform weapon = subscribedEquipment ? subscribedEquipment.CurrentWeaponRoot : null;
-        OneHandSwordShieldSet shieldSet = weapon ? weapon.GetComponentInChildren<OneHandSwordShieldSet>(true) : null;
-        GameObject shield = shieldSet ? shieldSet.ShieldInstance : null;
         P09CharacterVisualAdapter adapter = actor ? actor.GetComponentInChildren<P09CharacterVisualAdapter>(true) : null;
-        int appearance = adapter ? ComputeAppearanceFingerprint(adapter.ModelRoot, weapon, shield ? shield.transform : null) : 0;
-        if (actor != displayedActor || weapon != displayedWeapon || shield != displayedShield
-            || appearance != displayedAppearance)
+        int appearance = adapter ? ComputeAppearanceFingerprint(adapter.ModelRoot, weapon) : 0;
+        if (actor != displayedActor || weapon != displayedWeapon || appearance != displayedAppearance)
             RefreshFromCurrentActor();
     }
 
@@ -200,7 +195,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
                 ClearEquipmentVisuals();
                 displayedActor = actor;
                 displayedWeapon = null;
-                displayedShield = null;
                 displayedAppearance = 0;
                 if (FindFirstObjectByType<OverburstUIWorkshop>(FindObjectsInactive.Include) != null)
                 {
@@ -217,11 +211,7 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
             SynchronizeAppearance(sourceRoot, actor.Equipment);
             displayedActor = actor;
             displayedWeapon = actor.Equipment ? actor.Equipment.CurrentWeaponRoot : null;
-            OneHandSwordShieldSet shieldSet = displayedWeapon
-                ? displayedWeapon.GetComponentInChildren<OneHandSwordShieldSet>(true) : null;
-            displayedShield = shieldSet ? shieldSet.ShieldInstance : null;
-            displayedAppearance = ComputeAppearanceFingerprint(sourceRoot, displayedWeapon,
-                displayedShield ? displayedShield.transform : null);
+            displayedAppearance = ComputeAppearanceFingerprint(sourceRoot, displayedWeapon);
             SampleIdle(GetIdleTime(Time.realtimeSinceStartupAsDouble));
             FrameModel();
         }
@@ -231,7 +221,7 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         }
     }
 
-    private static int ComputeAppearanceFingerprint(Transform sourceRoot, Transform weapon, Transform shield)
+    private static int ComputeAppearanceFingerprint(Transform sourceRoot, Transform weapon)
     {
         unchecked
         {
@@ -241,8 +231,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
                 if (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer))
                     continue;
                 if (weapon && renderer.transform.IsChildOf(weapon))
-                    continue;
-                if (shield && renderer.transform.IsChildOf(shield))
                     continue;
                 hash = hash * 31 + (renderer.gameObject.activeInHierarchy && renderer.enabled ? 1 : 0);
                 hash = hash * 31 + (GetMesh(renderer) ? GetMesh(renderer).GetInstanceID() : 0);
@@ -359,8 +347,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
                 renderer.enabled = false;
 
         Transform weaponRoot = equipment ? equipment.CurrentWeaponRoot : null;
-        OneHandSwordShieldSet shieldSet = weaponRoot ? weaponRoot.GetComponentInChildren<OneHandSwordShieldSet>(true) : null;
-        Transform shieldRoot = shieldSet && shieldSet.ShieldInstance ? shieldSet.ShieldInstance.transform : null;
 
         foreach (Renderer source in sourceRoot.GetComponentsInChildren<Renderer>(true))
         {
@@ -369,8 +355,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
             if (!source.enabled || !source.gameObject.activeInHierarchy)
                 continue;
             if (weaponRoot && source.transform.IsChildOf(weaponRoot))
-                continue;
-            if (shieldRoot && source.transform.IsChildOf(shieldRoot))
                 continue;
 
             Renderer destination = MatchRenderer(source, sourceByPath, used);
@@ -384,8 +368,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
 
         if (weaponRoot)
             BuildWeaponVisual(weaponRoot, equipment.CurrentWeaponPose, sourceByPath);
-        if (shieldRoot)
-            BuildShieldVisual(shieldRoot, shieldSet, sourceByPath);
     }
 
     private static Renderer MatchRenderer(Renderer source, Dictionary<Transform, string> sourceByPath, HashSet<Renderer> used)
@@ -511,30 +493,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         }
     }
 
-    private static void BuildShieldVisual(Transform sourceRoot, OneHandSwordShieldSet shieldSet,
-        Dictionary<Transform, string> sourceByPath)
-    {
-        Transform hand = FindNamed(P09CharacterVisualAdapter.LeftHandShieldSocketName);
-        if (!hand)
-            return;
-
-        shieldVisual = CloneVisualHierarchy(sourceRoot, hand, sourceByPath);
-        if (!shieldVisual)
-            return;
-
-        ShieldGripMount grip = sourceRoot.GetComponentInChildren<ShieldGripMount>(true);
-        Transform point = grip ? grip.GripPoint : null;
-        if (!point)
-            return;
-
-        Vector3 pointPosition = sourceRoot.InverseTransformPoint(point.position);
-        Quaternion pointRotation = Quaternion.Inverse(sourceRoot.rotation) * point.rotation;
-        Quaternion offset = Quaternion.Euler(shieldSet.HandSocketLocalRotationOffset);
-        Quaternion rootRotation = offset * Quaternion.Inverse(pointRotation);
-        shieldVisual.transform.localRotation = rootRotation;
-        shieldVisual.transform.localPosition = -(rootRotation * Vector3.Scale(pointPosition, sourceRoot.localScale));
-    }
-
     private static GameObject CloneVisualHierarchy(Transform sourceRoot, Transform parent,
         Dictionary<Transform, string> sourceByPath)
     {
@@ -584,13 +542,7 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
             weaponVisual.SetActive(false);
             DestroyOwned(weaponVisual);
         }
-        if (shieldVisual)
-        {
-            shieldVisual.SetActive(false);
-            DestroyOwned(shieldVisual);
-        }
         weaponVisual = null;
-        shieldVisual = null;
     }
 
     private static void CollectPaths(Transform root, string path, Dictionary<Transform, string> result)
@@ -765,7 +717,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         templateByPath = null;
         templateByName = null;
         weaponVisual = null;
-        shieldVisual = null;
     }
 
     private static void DestroyOwned(UnityEngine.Object value)

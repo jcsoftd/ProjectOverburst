@@ -5,6 +5,7 @@ using System.IO;
 namespace Overburst.Persistence
 {
     // Retire exactly these content IDs before the registry-backed balance migration runs.
+    // 2026-09-30: 한손검 OHS01_FleurDeLys(9f2f854b…)도 삭제되어 같은 경로로 걷어낸다.
     public static class RetiredGreatswordMigration
     {
         private static readonly HashSet<string> RetiredIds = new HashSet<string>(StringComparer.Ordinal)
@@ -18,7 +19,8 @@ namespace Overburst.Persistence
             "item.weapon.greatsword.catalog.053",
             "item.weapon.greatsword.catalog.058",
             "item.weapon.greatsword.catalog.063",
-            "item.weapon.greatsword.catalog.065"
+            "item.weapon.greatsword.catalog.065",
+            "9f2f854bfa52a1d45b0a708a5ba264c2"
         };
 
         public static AccountSnapshot Remove(AccountSnapshot source, out int removedCount)

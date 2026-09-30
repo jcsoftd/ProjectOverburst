@@ -9,10 +9,6 @@ public static class MeleeAttackVfxSlopeBakeUtility
     private const int PhaseDerivedSampleCount = 128;
     private const int MinimumSlopeSampleCount = 8;
     private const string PlayerPrefabPath = "Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab";
-    private const string OneHandSwordItemPath =
-        "Assets/ProjectOverburst/03_Features/Weapons/WP01_OneHandSword/OHS01_FleurDeLys/OHS01_FleurDeLys.asset";
-    private const string OneHandSwordComboPath =
-        "Assets/ProjectOverburst/03_Features/Weapons/WP01_OneHandSword/Common/Combos/OneHandSwordPrimaryCombo.asset";
     private const string GreatswordItemPath =
         "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset";
     private const string GreatswordComboPath =
@@ -56,7 +52,6 @@ public static class MeleeAttackVfxSlopeBakeUtility
 
     private static readonly BakeProfile[] Profiles =
     {
-        new BakeProfile(OneHandSwordItemPath, OneHandSwordComboPath, "한손검", 3, 3),
         new BakeProfile(GreatswordItemPath, GreatswordComboPath, "대검", 4, 0)
     };
 

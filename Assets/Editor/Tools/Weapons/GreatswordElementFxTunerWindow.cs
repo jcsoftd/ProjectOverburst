@@ -451,15 +451,13 @@ public sealed partial class GreatswordElementFxTunerWindow : EditorWindow
             .Where(prefab => prefab != null && prefab.GetComponentInChildren<ParticleSystem>(true) != null)
             .ToList();
         const string variants = "Assets/ProjectOverburst/03_Features/Weapons/Shared/VFX/WeaponEffects2Variants/";
-        foreach (string name in new[] { "Effect1_Fire_NoDistortion", "Effect8_Light", "Effect13_Dark",
-                     "Effect10_Dark", "Effect3_Light", "Effect9_Electric_FineWake" })
+        foreach (string name in new[] { "Effect1_Fire_NoDistortion", "Effect10_Dark", "Effect3_Light",
+                     "Effect9_Electric_FineWake" })
         {
             var variant = AssetDatabase.LoadAssetAtPath<GameObject>(variants + name + ".prefab");
             if (variant != null) sources.Add(variant);
         }
         var names = sources.Select(prefab => prefab.name == "Effect1_Fire_NoDistortion" ? "Effect1 · 불 (왜곡 없음)"
-            : prefab.name == "Effect8_Light" ? "Effect8 · 빛 (흰색·금색)"
-            : prefab.name == "Effect13_Dark" ? "Effect13 · 어둠 (짙은 보라)"
             : prefab.name == "Effect10_Dark" ? "Effect10 · 어둠 (검은 연기·암적색)"
             : prefab.name == "Effect3_Light" ? "Effect3 · 빛 (검끝 Light 색상)"
             : prefab.name == "Effect9_Electric_FineWake" ? "Effect9 · 번개 (검신 연속 전격 잔상)" : prefab.name).ToList();
