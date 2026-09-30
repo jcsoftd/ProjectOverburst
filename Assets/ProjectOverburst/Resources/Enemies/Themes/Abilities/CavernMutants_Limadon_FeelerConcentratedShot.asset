@@ -17,7 +17,7 @@ MonoBehaviour:
   executionMode: 4
   damage: 10
   referencePatternDamagePercent: 9
-  telegraphedStrongAttack: 1
+  telegraphedStrongAttack: 0
   telegraphedAttack: 1
   preparationDuration: 0.7
   releaseDuration: 0.16

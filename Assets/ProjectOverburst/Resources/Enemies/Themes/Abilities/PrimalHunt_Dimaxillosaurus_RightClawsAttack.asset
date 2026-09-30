@@ -24,7 +24,7 @@ MonoBehaviour:
   recoveryDuration: 0.24
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
-  parryable: 1
+  parryable: 0
   minimumRange: 0
   range: 1.7852483
   hitRadius: 1.4852482

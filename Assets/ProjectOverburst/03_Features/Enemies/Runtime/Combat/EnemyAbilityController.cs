@@ -62,6 +62,35 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     }
     // 2026-09-30: 핵앤슬래시 기준으로 인정 구간을 첫 타격 0.70초 전부터 연다(신호와 동일).
     public const float ParryLeadSeconds = .70f;
+    // 2026-10-01: 강공 빈도 규칙. 강공을 쓴 뒤에는 강공이 아닌 공격(평타·원거리)을 중형 3번, 대형(정예) 2번 써야 다음 강공이 열린다.
+    // 싸움 첫 공격은 평타 한 번(그 뒤부터 강공 가능). 경직 중 강공 시작(strongOnlyPass)도 같은 조건이라, 잠겨 있으면 그냥 경직된다.
+    // 강공밖에 없는 공격 목록(은신처 패링 연습대)은 셀 평타가 없으므로 잠그지 않는다.
+    public const int MediumAttacksBetweenStrong = 3;
+    public const int LargeAttacksBetweenStrong = 2;
+    private int attacksSinceStrong;
+    private bool strongUsedInFight;
+    private int RequiredAttacksBetweenStrong => !strongUsedInFight ? 1
+        : reaction != null && reaction.CanActThroughOrdinaryHit ? LargeAttacksBetweenStrong : MediumAttacksBetweenStrong;
+    public bool IsStrongAttackLocked => attacksSinceStrong < RequiredAttacksBetweenStrong && HasNonStrongAbility();
+    private bool IsSelectable(EnemyAbilityDefinition ability) => IsCooldownReady(ability)
+        && !(ability.IsTelegraphedStrongAttack && IsStrongAttackLocked);
+    private bool HasNonStrongAbility()
+    {
+        if (abilitySet == null) return false;
+        for (int i = 0; i < abilitySet.Count; i++)
+        {
+            var ability = abilitySet.GetAbility(i);
+            if (ability != null && ability.IsValid && !ability.IsTelegraphedStrongAttack) return true;
+        }
+        return false;
+    }
+    private void ResetStrongCadence() { attacksSinceStrong = 0; strongUsedInFight = false; }
+    private void CountCommittedAttack(EnemyAbilityDefinition ability)
+    {
+        if (ability.IsTelegraphedStrongAttack) { attacksSinceStrong = 0; strongUsedInFight = true; }
+        else if (attacksSinceStrong < int.MaxValue) attacksSinceStrong++;
+    }
+    private bool strongWarningShown;
     public bool IsParryThreatTo(CombatTarget player)
     {
         EnemyAbilityDefinition ability = lastCommittedAbility;
@@ -105,7 +134,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             if (direction.sqrMagnitude > .0001f)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), 360f * Time.deltaTime);
         }
-        if (strongWarning != null)
+        if (strongWarning != null && strongWarningShown)
         {
             EnemyAbilityDefinition ability = lastCommittedAbility;
             Vector3 center = ability != null && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
@@ -133,6 +162,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         reaction?.SetStrongAttackActive(false);
         strongTarget = null;
+        strongWarningShown = false;
         strongWarning?.Hide();
         EnemyCombatCoordinator.ReleaseStrongAttack(this);
     }
@@ -197,7 +227,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             fallbackRange = Mathf.Min(fallbackRange, startRange);
             // A long-range cooldown or a projectile's minimum-range dead zone
             // must not stop an actor outside its available close attack range.
-            if (distance >= ability.MinimumRange && IsCooldownReady(ability))
+            // A strong attack locked by the cadence rule is treated like one still cooling down.
+            if (distance >= ability.MinimumRange && IsSelectable(ability))
                 readyRange = Mathf.Max(readyRange, startRange);
         }
         return readyRange > 0f ? readyRange : float.IsPositiveInfinity(fallbackRange) ? AttackRange : fallbackRange;
@@ -241,6 +272,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         readyTimeByAbility.Clear();
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
+        ResetStrongCadence();
         if (meleeExecutor == null)
             return;
 
@@ -277,27 +309,29 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         lastCommittedAbilityIndex = selected.Index;
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
+        CountCommittedAttack(selected.Ability);
         if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
         firstImpactAt = Time.time + first;
         lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
         finalImpactDelivered = false;
         nextImpactIndex = 0;
         warningAimLocked = false;
+        // 예고 공격은 모두 준비 동안 대상을 향해 돈다. 바닥 장판과 패링 빛은 근접 강공만(평타·원거리는 없음).
+        strongWarningShown = selected.Ability.IsMeleeStrongAttack;
         if (selected.Ability.IsTelegraphedAttack)
         {
             strongTarget = target; strongAim = target.position;
+        }
+        if (!strongWarningShown) strongWarning?.Hide();
+        else
+        {
             if (strongWarning == null) strongWarning = gameObject.AddComponent<EnemyStrongAttackWarning>();
             if (actor == null) actor = GetComponent<EnemyActor>();
-            bool projectile = selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile;
-            strongWarning.Show(projectile ? selected.Ability.Range + 2f
-                    : EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
+            strongWarning.Show(EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
                 selected.Ability.IsParryable,
                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, selected.Ability),
-                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || projectile,
-                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
-                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
-                    || selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || projectile,
-                first, projectile ? .14f : .4f);
+                selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
+                true, first, .4f);
         }
         return true;
     }
@@ -316,7 +350,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsCooldownReady(ability)
+            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsSelectable(ability)
                 || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
                 continue;
             var executor = FindExecutor(ability);
@@ -382,6 +416,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         candidates.Clear();
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
+        ResetStrongCadence();
     }
 
     private bool TrySelectAbility(
@@ -402,7 +437,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             if (ability == null
                 || !ability.IsValid
                 || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
-                || !IsCooldownReady(ability)
+                || !IsSelectable(ability)
                 || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
             {
                 continue;

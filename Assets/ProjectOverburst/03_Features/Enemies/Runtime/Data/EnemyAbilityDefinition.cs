@@ -37,7 +37,12 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public bool IsTelegraphedStrongAttack => telegraphedStrongAttack;
     public float MinimumWarningTime => telegraphedStrongAttack ? Mathf.Max(0f, minimumWarningTime) : 0f;
     public float MinimumRecoveryTime => Mathf.Max(0f, minimumRecoveryTime);
-    public bool IsParryable => IsTelegraphedAttack && parryable;
+    // 2026-10-01: 패링 가능 공격은 근접 강공(휘두르기·돌진·내려찍기)뿐이다. 평타와 원거리는 자산 값과 관계없이 패링되지 않는다.
+    // 바닥 장판과 머리 위 패링 빛도 근접 강공만 띄운다(EnemyAbilityController).
+    public static bool IsMeleeExecution(EnemyAbilityExecutionMode mode) => mode == EnemyAbilityExecutionMode.MeleeArc
+        || mode == EnemyAbilityExecutionMode.Charge || mode == EnemyAbilityExecutionMode.AreaSlam;
+    public bool IsMeleeStrongAttack => telegraphedStrongAttack && IsMeleeExecution(executionMode);
+    public bool IsParryable => IsMeleeStrongAttack && parryable;
     private float PreparationSeconds(float speed) => Mathf.Max(.42f,
         preparationDuration / Mathf.Max(.01f, speed));
     private float ReleaseSeconds(float speed) => Mathf.Max(.10f,

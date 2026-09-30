@@ -14,29 +14,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: VenomBrood_Kupolojuve_Tint_Orange_JumpClawsAttack
   animatorTrigger: Attack2
-  executionMode: 2
+  executionMode: 0
   damage: 10
-  referencePatternDamagePercent: 0
+  referencePatternDamagePercent: 8
   telegraphedStrongAttack: 0
   telegraphedAttack: 1
-  preparationDuration: 0.72
+  preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
-  minimumWarningTime: 0.86
+  minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
-  parryable: 1
+  parryable: 0
   minimumRange: 0
-  range: 4.8
+  range: 1.6526685
   hitRadius: 1.3526684
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 2.8
+  cooldown: 1.15
   hitDelay: 0.72333336
   hitNormalizedTime: 0.62
   attackAnimationDuration: 1.1666667
   attackLockDuration: 1.1083333
-  weight: 0.45
+  weight: 1
   priority: 0
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1
