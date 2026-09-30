@@ -97,9 +97,10 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     }
 
     public void Request(BloodHitProfile profile, Vector3 hitPoint, Vector3 direction,
-        CombatImpactShape shape, float size, int priority)
+        CombatImpactShape shape, float size, int priority, bool allowSuppressed = false,
+        float landingDelay = LandingDelay)
     {
-        if (catalog == null || !profile || profile.suppressBlood) return;
+        if (catalog == null || !profile || (profile.suppressBlood && !allowSuppressed)) return;
         RequestedCount++;
         if (!TryGround(hitPoint, direction, size, out Vector3 point, out Vector3 normal))
         {
@@ -131,7 +132,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             Size = Mathf.Clamp(size, .55f, 1.95f),
             Lethal = priority >= 2,
             Variant = nextVariant[priority >= 2 ? 3 : (int)shape]++,
-            At = Time.time + LandingDelay
+            At = Time.time + Mathf.Max(0f, landingDelay)
         };
     }
 

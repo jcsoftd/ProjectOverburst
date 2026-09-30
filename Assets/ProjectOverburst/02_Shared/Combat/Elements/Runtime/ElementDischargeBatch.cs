@@ -175,7 +175,11 @@ public sealed partial class ElementDischargeBatch
                 if (nearest < 0) { pathLengths[r] = 0; continue; }
                 paths[r * 8 + length] = nearest; pathLengths[r]++;
                 float fraction = OverburstElementTuning.Current.LightningChainFraction(nodes[origin].Stacks);
-                if (Damage(nearest, damage * fraction, source)) linkVfx?.Invoke(point, nodes[nearest].Point);
+                if (Damage(nearest, damage * fraction, source))
+                {
+                    linkVfx?.Invoke(point, nodes[nearest].Point);
+                    PlayLightningHopFeedback(nearest, point);
+                }
             }
     }
 }

@@ -79,7 +79,12 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
 
     private void HandleDamaged(CombatHealth health, DamageInfo info)
     {
-        if (health == null || health.IsDead)
+        if (health == null)
+            return;
+
+        BloodHitVfxService.RequestPlayerHit(health, info); // 피격 혈흔·바닥 자국(치명타 포함)
+
+        if (health.IsDead)
             return; // 사망 후 무시
 
         if (ignoreDamageOverTime && info.isDamageOverTime)

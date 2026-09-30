@@ -91,6 +91,7 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결
             return; // 중복 방지
 
         deathVfxSpawned = true;
+        BloodHitVfxService.RequestDeath(source, info); // 처치 혈흔 분출(혈흔 없는 몬스터는 내부에서 제외)
         if (TryGetComponent<EnemyDeathPresentation>(out var presentation) && presentation.isActiveAndEnabled)
             return; // Theme corpses use authored death + Feel landing, without the temporary burst.
         VfxPrefabFactory.Spawn(deathVfxPrefab, GetAnchorPosition(deathVfxAnchor), Quaternion.identity);

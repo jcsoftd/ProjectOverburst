@@ -16,6 +16,10 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private Vector3 boltPosition;
     private float boltRemaining, boltDamage;
     private EnemyAbilityDefinition boltAbility;
+    private EnemyBioProjectileVisual boltVisual;
+    private BloodHitProfile boltTint;
+    private bool boltElectric;
+    private float boltScale = 1f;
     private Vector3 chargeDirection;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
@@ -155,12 +159,13 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
                 }
                 if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
                 {
-                    boltPosition = Origin;
+                    boltPosition = ResolveMuzzle(ability);
                     bolt.transform.position = boltPosition;
-                    boltDirection = (destination + Vector3.up*.8f - Origin).normalized;
+                    boltDirection = (destination + Vector3.up*.8f - boltPosition).normalized;
                     boltRemaining = ability.Range + 2; boltDamage = ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1) * actor.RuntimeStats.DamageMultiplier;
                     boltAbility = ability;
                     boltFlying = true; bolt.SetActive(true); LaunchCount++;
+                    LaunchVisual(ability);
                 }
                 else ResolveChargeHit(ability,direction);
             }
@@ -209,22 +214,85 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         float step = Mathf.Min(boltRemaining,10f*Time.fixedDeltaTime);
         int count = Physics.SphereCastNonAlloc(boltPosition,.14f,boltDirection,hits,step,Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
-        if (nearest>=0) { Damage(hits[nearest],boltDamage,boltDirection,boltAbility);EndBolt();return; }
+        if (nearest>=0)
+        {
+            Vector3 impact = hits[nearest].point.sqrMagnitude > .0001f ? hits[nearest].point : boltPosition;
+            SplashBolt(impact); Damage(hits[nearest],boltDamage,boltDirection,boltAbility); EndBolt(); return;
+        }
         boltPosition += boltDirection*step; bolt.transform.position = boltPosition; boltRemaining-=step;
-        if (boltRemaining<=0) EndBolt();
+        if (boltRemaining<=0) { SplashBolt(boltPosition); EndBolt(); }
     }
     private void LateUpdate() { if (boltFlying && bolt != null) bolt.transform.position = boltPosition; }
     private void EnsureProjectileVisual()
     {
         if (bolt == null)
         {
+            var catalog = EnemyProjectileVfxCatalog.Current;
+            if (catalog != null && catalog.projectile != null)
+            {
+                bolt = Instantiate(catalog.projectile, transform, false); bolt.name = "Reusable theme projectile";
+                boltVisual = bolt.GetComponent<EnemyBioProjectileVisual>();
+                bolt.SetActive(false);
+                return;
+            }
             bolt=GameObject.CreatePrimitive(PrimitiveType.Sphere);bolt.name="Reusable theme projectile";
             bolt.transform.SetParent(transform,false);bolt.transform.localScale=Vector3.one*.28f;
             var collider=bolt.GetComponent<Collider>();collider.enabled=false;Destroy(collider);
             bolt.GetComponent<Renderer>().sharedMaterial=signalMaterial;bolt.SetActive(false);
         }
     }
-    private void EndBolt() { boltFlying=false;boltAbility=null;if(bolt!=null)bolt.SetActive(false); }
+    private readonly System.Collections.Generic.Dictionary<string, Transform> muzzleBones = new System.Collections.Generic.Dictionary<string, Transform>();
+    // The shot leaves the authored mouth, tail or hand bone; without one it keeps the old body origin.
+    private Vector3 ResolveMuzzle(EnemyAbilityDefinition ability)
+    {
+        var catalog = EnemyProjectileVfxCatalog.Current;
+        if (catalog == null || !catalog.TryGetOverride(ability, out var entry) || string.IsNullOrEmpty(entry.muzzleBone)) return Origin;
+        if (!muzzleBones.TryGetValue(entry.muzzleBone, out var bone) || bone == null)
+        {
+            bone = null;
+            foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name == entry.muzzleBone) { bone = t; break; }
+            muzzleBones[entry.muzzleBone] = bone;
+        }
+        if (bone == null) return Origin;
+        Vector3 forward = chargeDirection.sqrMagnitude > .0001f ? chargeDirection : transform.forward;
+        return bone.position + forward * entry.muzzleForward;
+    }
+    // Spit leaves the mouth as a short jet in the thrower's blood colour and bursts where it lands.
+    private void LaunchVisual(EnemyAbilityDefinition ability)
+    {
+        var catalog = EnemyProjectileVfxCatalog.Current;
+        var blood = GetComponent<BloodHitTarget>();
+        boltTint = blood != null ? blood.Profile : null;
+        boltElectric = false;
+        float overrideScale = 0f;
+        if (catalog != null && catalog.TryGetOverride(ability, out var entry))
+        {
+            if (entry.tint != null) boltTint = entry.tint;
+            boltElectric = entry.electricImpact;
+            overrideScale = entry.scale;
+        }
+        var rank = GetComponent<EnemyRank>();
+        bool strong = ability.IsTelegraphedStrongAttack || (rank != null && rank.GradeType >= EnemyGradeType.Elite);
+        boltScale = (catalog != null ? catalog.scale * (strong ? catalog.strongScale : 1f) : 1f) * (overrideScale > 0f ? overrideScale : 1f);
+        if (boltVisual != null) boltVisual.Launch(boltTint, boltScale);
+        if (boltTint != null)
+            BloodHitVfxService.RequestAt(boltTint, boltPosition + boltDirection * .3f, boltDirection, CombatImpactShape.Thrust,
+                (catalog != null ? catalog.launchSpraySize : .6f) * Mathf.Sqrt(boltScale), 0, 1f, GetInstanceID(), allowSuppressed: true);
+    }
+    private void SplashBolt(Vector3 point)
+    {
+        var catalog = EnemyProjectileVfxCatalog.Current;
+        if (boltTint != null)
+            BloodHitVfxService.RequestAt(boltTint, point, boltDirection, CombatImpactShape.Downward,
+                (catalog != null ? catalog.impactSplashSize : .9f) * Mathf.Sqrt(boltScale), 1, 1f, GetInstanceID(), allowSuppressed: true);
+        if (boltElectric) MeleeElementHitVfxService.TryPlay(WeaponElement.Electric, point);
+    }
+    private void EndBolt()
+    {
+        boltFlying=false;boltAbility=null;
+        if (boltVisual != null) boltVisual.Stop(); // drips already in the air keep falling
+        else if (bolt != null) bolt.SetActive(false);
+    }
     public override void Cancel()
     {
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }

@@ -119,6 +119,27 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
             RecordFeedbackOnly();
     }
 
+    // Derived hits (lightning hops) never carry on-hit gameplay effects such as stacks or energy.
+    // They borrow only the flinch: same boss immunity, protected attacks, freeze and cooldown rules.
+    public bool TryApplyDerivedFlinch(DamageInfo info)
+    {
+        ResolveReferences();
+        if (health == null || health.IsDead || (animationBridge != null && animationBridge.IsFrozen))
+            return false;
+        EnemyGradeType grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
+        if (grade == EnemyGradeType.Boss || Time.time < nextFlinchAt
+            || (abilityController != null && abilityController.IsOrdinaryHitProtected))
+            return false;
+        info.triggersOnHitEffects = true;
+        info.isDamageOverTime = false;
+        float cooldown = grade == EnemyGradeType.Elite || grade == EnemyGradeType.GreaterElite
+            ? EliteFlinchCooldown : MediumFlinchCooldown;
+        if (!ApplyFlinch(info, cooldown))
+            return false;
+        nextFlinchAt = Time.time + cooldown;
+        return true;
+    }
+
     private bool RegisterMediumHit(DamageInfo info)
     {
         float now = Time.time;

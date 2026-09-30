@@ -21,6 +21,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         public CombatImpactShape Shape;
         public float Size, WeightScale;
         public int Priority, Source, Sequence, Phase, Target;
+        public bool AllowSuppressed;
     }
     private struct Slot { public VisualEffect Effect; public float Until; public int Priority, StartFrame; public bool PendingPlay; }
     private readonly Pending[] queue = new Pending[QueueCapacity];
@@ -78,16 +79,10 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (instance == null) Bootstrap();
         if (instance == null) return;
         instance.RequestedCount++;
-        var camera = Camera.main;
-        if (camera != null)
+        if (IsOffscreen(point))
         {
-            Vector3 viewport = camera.WorldToViewportPoint(point);
-            if (viewport.z <= 0 || viewport.x < -.1f || viewport.x > 1.1f
-                || viewport.y < -.1f || viewport.y > 1.1f)
-            {
-                instance.OffscreenCount++;
-                return;
-            }
+            instance.OffscreenCount++;
+            return;
         }
         var request = new Pending
         {
@@ -99,6 +94,141 @@ public sealed class BloodHitVfxService : MonoBehaviour
             Sequence = hit.AttackSequenceId, Phase = hit.PhaseIndex, Target = hit.Target.GetInstanceID()
         };
         instance.Enqueue(request);
+    }
+
+    public const string PlayerProfilePath = "Combat/Blood/Player";
+    public const int FullDeathBurstsPerFrame = 6;
+    private static BloodHitProfile playerProfile;
+    private static bool playerProfileLoaded;
+    private static int deathFrame = -1, deathsThisFrame;
+
+    // Blood that is not a player melee hit (projectile goo, player wounds, lightning hops, kills).
+    // It shares the queue, pool, per-frame budget, priorities and ground marks with melee blood.
+    public static bool RequestAt(BloodHitProfile profile, Vector3 point, Vector3 direction,
+        CombatImpactShape shape, float size, int priority, float weightScale = 1f,
+        int targetId = 0, bool allowSuppressed = false)
+    {
+        if (profile == null || (profile.suppressBlood && !allowSuppressed)) return false;
+        if (instance == null) Bootstrap();
+        if (instance == null) return false;
+        instance.RequestedCount++;
+        if (IsOffscreen(point))
+        {
+            instance.OffscreenCount++;
+            return false;
+        }
+        instance.Enqueue(new Pending
+        {
+            Profile = profile, Position = point, Direction = direction, Shape = shape,
+            Size = Mathf.Clamp(size, .55f, 1.5f), WeightScale = Mathf.Max(.5f, weightScale),
+            Priority = Mathf.Clamp(priority, 0, 3), Target = targetId, AllowSuppressed = allowSuppressed
+        });
+        return true;
+    }
+
+    public static void RequestTargetHit(CombatHealth health, Vector3 point, Vector3 direction,
+        CombatImpactShape shape, float size, int priority)
+    {
+        if (health == null || !health.TryGetComponent<BloodHitTarget>(out var target)) return;
+        RequestAt(target.Profile, point, direction, shape, size, priority,
+            ResolveWeightScale(health), health.GetInstanceID());
+    }
+
+    // Player wounds use one red profile. Like enemy blood, the spray starts on the side facing the
+    // attacker and travels along the attack; strong attacks burst, projectiles jet.
+    public static void RequestPlayerHit(CombatHealth health, in DamageInfo info)
+    {
+        if (health == null || info.isDamageOverTime || info.damage <= 0f) return;
+        if (!playerProfileLoaded)
+        {
+            playerProfile = Resources.Load<BloodHitProfile>(PlayerProfilePath);
+            playerProfileLoaded = true;
+        }
+        if (playerProfile == null) return;
+        Vector3 direction = Vector3.ProjectOnPlane(info.direction, Vector3.up);
+        if (direction.sqrMagnitude < .0001f && info.source != null)
+            direction = Vector3.ProjectOnPlane(health.transform.position - info.source.transform.position, Vector3.up);
+        if (direction.sqrMagnitude < .0001f) direction = -health.transform.forward;
+        direction.Normalize();
+        Vector3 center = ResolveBodyCenter(health, out float radius);
+        EnemyAbilityDefinition ability = info.enemyAbility;
+        bool strong = ability != null && ability.IsTelegraphedStrongAttack;
+        CombatImpactShape shape = ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile
+            ? CombatImpactShape.Thrust : strong ? CombatImpactShape.Downward : CombatImpactShape.Sweep;
+        Vector3 wound = center - direction * Mathf.Min(radius, .3f);
+        if (!RequestAt(playerProfile, wound, direction, shape, strong ? 1.4f : 1.2f,
+            health.CurrentHp <= 0f ? 2 : 1, 1f, health.GetInstanceID())) return;
+        // A splatter lands behind the player on top of the spray's own mark.
+        if (instance.groundDecals != null)
+            instance.groundDecals.Request(playerProfile, center + direction * .55f, direction,
+                CombatImpactShape.Downward, strong ? 1.35f : 1.1f, 1, false, .22f);
+    }
+
+    // A kill throws a gush: a burst out of the body, two fanned side jets, one rising jet and
+    // splatters flung around the corpse. Past the per-frame budget a kill keeps only the burst.
+    public static void RequestDeath(CombatHealth health, in DamageInfo info)
+    {
+        if (health == null || !health.TryGetComponent<BloodHitTarget>(out var target)
+            || target.Profile == null || target.Profile.suppressBlood) return;
+        if (instance == null) Bootstrap();
+        if (instance == null) return;
+        BloodHitProfile profile = target.Profile;
+        Vector3 center = ResolveBodyCenter(health, out float radius);
+        Vector3 forward = Vector3.ProjectOnPlane(info.direction, Vector3.up);
+        if (forward.sqrMagnitude < .0001f && info.source != null)
+            forward = Vector3.ProjectOnPlane(health.transform.position - info.source.transform.position, Vector3.up);
+        if (forward.sqrMagnitude < .0001f) forward = health.transform.forward;
+        forward.Normalize();
+        float weight = ResolveWeightScale(health);
+        float size = Mathf.Clamp(.85f + radius * .5f, .95f, 1.5f);
+        int id = health.GetInstanceID();
+        if (Time.frameCount != deathFrame)
+        {
+            deathFrame = Time.frameCount;
+            deathsThisFrame = 0;
+        }
+        bool full = deathsThisFrame++ < FullDeathBurstsPerFrame;
+        RequestAt(profile, center, forward, CombatImpactShape.Downward, size, 3, weight, id);
+        if (!full) return;
+        float spread = Random.Range(40f, 65f);
+        RequestAt(profile, center, Quaternion.AngleAxis(spread, Vector3.up) * forward,
+            CombatImpactShape.Sweep, size * .85f, 3, weight, id);
+        RequestAt(profile, center, Quaternion.AngleAxis(-spread - Random.Range(0f, 30f), Vector3.up) * forward,
+            CombatImpactShape.Sweep, size * .85f, 3, weight, id);
+        RequestAt(profile, center + Vector3.up * .15f, (forward + Vector3.up * .8f).normalized,
+            CombatImpactShape.Thrust, size * .8f, 3, weight, id);
+        if (instance.groundDecals == null || IsOffscreen(center)) return;
+        // Flung drops land later the farther they fly.
+        for (int i = 0; i < 5; i++)
+        {
+            Vector3 fling = Quaternion.AngleAxis(Random.Range(-110f, 110f), Vector3.up) * forward;
+            float distance = radius + Random.Range(.35f, 1.9f);
+            instance.groundDecals.Request(profile, center + fling * distance, fling, CombatImpactShape.Downward,
+                Random.Range(.8f, 1.3f) * weight, 1, false, .14f + distance * .12f);
+        }
+    }
+
+    private static Vector3 ResolveBodyCenter(CombatHealth health, out float radius)
+    {
+        var target = health.GetComponent<CombatTarget>();
+        if (target == null) target = health.GetComponentInParent<CombatTarget>();
+        if (target != null)
+        {
+            CombatTargetVolume volume = target.CurrentHurtVolume;
+            radius = volume.Radius;
+            return volume.Center;
+        }
+        radius = .45f;
+        return health.transform.position + Vector3.up;
+    }
+
+    private static bool IsOffscreen(Vector3 point)
+    {
+        var camera = Camera.main;
+        if (camera == null) return false;
+        Vector3 viewport = camera.WorldToViewportPoint(point);
+        return viewport.z <= 0 || viewport.x < -.1f || viewport.x > 1.1f
+            || viewport.y < -.1f || viewport.y > 1.1f;
     }
 
     private static float ResolveWeightScale(CombatHealth health)
@@ -225,7 +355,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         else SweepPlayedCount++;
         if (groundDecals)
             groundDecals.Request(request.Profile, request.Position, request.Direction,
-                request.Shape, visualSize, request.Priority);
+                request.Shape, visualSize, request.Priority, request.AllowSuppressed);
         return true;
     }
 

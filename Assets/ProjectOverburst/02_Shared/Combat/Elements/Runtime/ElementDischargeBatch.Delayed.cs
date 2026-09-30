@@ -96,6 +96,7 @@ public sealed partial class ElementDischargeBatch
                 if(nearest<0||!Damage(nearest,blastDamage*fraction*Mathf.Pow(.8f,hop),source))continue;
                 paths[r*8+length]=nearest;pathLengths[r]++;
                 linkVfx?.Invoke(point,nodes[nearest].Point);
+                PlayLightningHopFeedback(nearest,point);
                 if(hop+1<Mathf.Min(7,nodes[origin].Stacks+extra))scheduledAt[r]=chainClock+LightningHopDelay;
             }
         }

@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c7acc23ca906948b913ea8648cb460, type: 3}
+  m_Name: EnemyProjectileVfxCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyProjectileVfxCatalog
+  projectile: {fileID: 1217757843862523824, guid: 5be4872a8bfb5014d8e2be73a73ef3a8, type: 3}
+  scale: 1
+  strongScale: 1.35
+  launchSpraySize: 0.6
+  impactSplashSize: 0.9
+  overrides:
+  - abilityId: VenomBrood_Kupolojuve_Tint_Orange_ElectroShot
+    tint: {fileID: 0}
+    electricImpact: 1
+    scale: 0
+    muzzleBone: Kupolojuve_FeelerLeft
+    muzzleForward: 0.15
+  - abilityId: VenomBrood_Arathrox_ShootProjectile
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Arathrox_Tail10
+    muzzleForward: 0.15
+  - abilityId: VenomBrood_Kupolobrach_Tint_Orange_SpitProjectiles
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Kupolobrach_ToothFront
+    muzzleForward: 0.2
+  - abilityId: VenomBrood_Venodonte_Tint3_AcidShot
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Venodonte_Tail8
+    muzzleForward: 0.1
+  - abilityId: SpiderBrood_Rostrokarck_SpittersAttack
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Rostrokarck_SpitterLeft
+    muzzleForward: 0.2
+  - abilityId: SpiderBrood_Scolokarck_Tint3_Spit
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Scolokarck_Head
+    muzzleForward: 0.3
+  - abilityId: PrimalHunt_Venosaur_Tint_Brown_Spit
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Venosaur_ HeadNub
+    muzzleForward: 0.15
+  - abilityId: CavernMutants_Limadon_FeelerConcentratedShot
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: Limadon_TentacleMiddleRight_07
+    muzzleForward: 0.15
+  - abilityId: DeathHarvest_Reaper_4_castSpellA
+    tint: {fileID: 0}
+    electricImpact: 0
+    scale: 0
+    muzzleBone: REAPER_ L Finger21
+    muzzleForward: 0.1
