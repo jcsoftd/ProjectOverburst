@@ -33,10 +33,14 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         if (readyFlash != null) { Color c = ReadyFlashColor; c.a = .85f * fade; readyFlash.color = c; }
         if (itemIcon != null) itemIcon.rectTransform.localScale = Vector3.one * (1f + .18f * fade);
     }
-    private static readonly Color SlotBackgroundColor = Color.white;
     private static readonly Color KeyTextColor = new Color(0.9f, 0.94f, 1f, 0.95f);
     private static readonly Color ActiveKeyTextColor = new Color(0.36f, 0.82f, 1f, 1f);
-    private static readonly Color CooldownOverlayColor = new Color(0f, 0f, 0f, 0.58f);
+    // 2026-10-01: 쿨다운 가림막 기본값. 빌더가 프리팹에 같은 값을 저장하고 런타임도 같은 함수로 되돌린다.
+    public static readonly Color CooldownOverlayColor = new Color(0f, 0f, 0f, 0.58f);
+    public const float CooldownOverlayInset = 6f;
+    // 2026-10-01: 슬롯 배경은 프리팹에 저장된 색을 그대로 쓴다(예전에는 런타임에 흰색으로 덮었다).
+    private Color authoredSlotBackgroundColor = Color.white;
+    private bool hasAuthoredSlotBackgroundColor;
     private const float KeyTextFontSize = 14f;
     private const float ActiveKeyTextFontSize = 18f;
 
@@ -202,10 +206,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             return;
 
         bool active = remaining > 0f;
-        EnsureCooldownOverlayRect();
-        cooldownOverlay.color = CooldownOverlayColor;
-        cooldownOverlay.type = Image.Type.Simple;
-        cooldownOverlay.raycastTarget = false;
+        ApplyCooldownOverlayDefaults(cooldownOverlay);
         cooldownOverlay.gameObject.SetActive(active);
         cooldownOverlay.fillAmount = 1f;
         cooldownOverlay.transform.SetAsLastSibling();
@@ -347,6 +348,11 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     {
         if (slotBackground == null)
             slotBackground = FindChildImage("SlotBackground") ?? GetComponent<Image>();
+        if (slotBackground != null && !hasAuthoredSlotBackgroundColor)
+        {
+            authoredSlotBackgroundColor = slotBackground.color;
+            hasAuthoredSlotBackgroundColor = true;
+        }
 
         if (itemIcon == null)
             itemIcon = FindChildImage("ItemIcon");
@@ -398,8 +404,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     private void ResetSlotBackgroundColor()
     {
-        if (slotBackground != null)
-            slotBackground.color = SlotBackgroundColor;
+        if (slotBackground != null && hasAuthoredSlotBackgroundColor)
+            slotBackground.color = authoredSlotBackgroundColor;
     }
 
     private void NormalizeKeyTextRect()
@@ -433,19 +439,24 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             legacyKeyText.color = active ? ActiveKeyTextColor : Color.white;
     }
 
-    private void EnsureCooldownOverlayRect()
+    /// <summary>쿨다운 가림막의 기본 모양(색·채움 방식·클릭 통과·칸 안쪽 여백). 빌더와 런타임이 함께 쓴다.</summary>
+    public static void ApplyCooldownOverlayDefaults(Image overlay)
     {
-        if (cooldownOverlay == null)
+        if (overlay == null)
             return;
 
-        RectTransform rect = cooldownOverlay.rectTransform;
+        overlay.color = CooldownOverlayColor;
+        overlay.type = Image.Type.Simple;
+        overlay.raycastTarget = false;
+
+        RectTransform rect = overlay.rectTransform;
         if (rect == null)
             return;
 
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(6f, 6f);
-        rect.offsetMax = new Vector2(-6f, -6f);
+        rect.offsetMin = new Vector2(CooldownOverlayInset, CooldownOverlayInset);
+        rect.offsetMax = new Vector2(-CooldownOverlayInset, -CooldownOverlayInset);
     }
 
     private TextMeshProUGUI CreateCooldownText()
