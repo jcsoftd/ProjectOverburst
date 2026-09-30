@@ -10,7 +10,8 @@ public class UnifiedDebugAimLine : MonoBehaviour
     [SerializeField] private Camera aimCamera;
 
     [Header("Line")]
-    [SerializeField] private bool debugLineEnabled = true;
+    [Tooltip("디버그 조준선. 2026-09-30부터 기본은 끔(디버그 창 버튼으로 켠다).")]
+    [SerializeField] private bool debugLineEnabled = false;
     [SerializeField] private float lineWidth = 0.035f;
     [SerializeField] private float meleeOriginHeightOffset = 0.08f;
     [SerializeField] private Color meleeColor = new Color(1f, 0f, 0f, 0.9f);

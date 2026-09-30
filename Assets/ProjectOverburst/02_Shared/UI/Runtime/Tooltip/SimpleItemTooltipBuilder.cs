@@ -60,8 +60,11 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
             AppendMagicWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
         else
             AppendWeaponGradeStatLinesFixed(builder, item, baseStats, finalStats);
-        builder.Append("무기 단독 방출 기준력 ")
-            .Append(FormatOneDecimal(WeaponStatCalculator.GetElementalDischargePower(item)))
+        // 2026-09-30: 내부 용어 "무기 단독 방출 기준력"을 플레이어가 알아보는 말로 바꿨다. 값은 에너지 가득일 때 강공 방출에 더해지는 피해다.
+        // 툴팁 행은 이름 칸(70px)과 값 칸(160px)으로 나뉘므로 이름은 짧게, 조건은 값 쪽에 둔다.
+        builder.Append("강공 방출 +")
+            .Append(WeaponStatCalculator.GetElementalDischargePower(item).ToString("0.#", CultureInfo.InvariantCulture))
+            .Append(" (에너지 최대)")
             .AppendLine();
         AppendPrice(builder, item);
         return builder.ToString();

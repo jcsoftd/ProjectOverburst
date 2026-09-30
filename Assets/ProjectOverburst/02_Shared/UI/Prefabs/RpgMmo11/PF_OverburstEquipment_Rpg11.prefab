@@ -2889,7 +2889,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: OVERBURST
+  m_Text: "\uD50C\uB808\uC774\uC5B4"
 --- !u!1 &6503350799795721212
 GameObject:
   m_ObjectHideFlags: 0

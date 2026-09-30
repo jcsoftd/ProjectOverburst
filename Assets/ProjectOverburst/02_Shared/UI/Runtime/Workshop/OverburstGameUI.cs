@@ -37,7 +37,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         stashBridge=stash.GetComponent<StashSlotBridge>();
         inventoryClose.onClick.AddListener(()=>{if(stash.IsOpen)stash.Close();else inventory.SetVisible(false);});
         stashClose.onClick.AddListener(stash.Close);equipmentClose.onClick.AddListener(CloseEquipment);
-        equipmentButton.onClick.AddListener(ToggleEquipment);inventoryButton.onClick.AddListener(()=>inventory.SetVisible(true));
+        equipmentButton.onClick.AddListener(ToggleEquipment);inventoryButton.onClick.AddListener(ToggleInventory);
         hpText=hud.Find("Action Bar Unit Frame/Bar (Health)/Text Group/Percentage Text").GetComponent<Text>();
         energyText=hud.Find("Action Bar Unit Frame/Bar (Power)/Text Group/Percentage Text").GetComponent<Text>();
         hud.Find("Action Bar Unit Frame/Bar (Health)/Text Group/Label Text").GetComponent<Text>().text="HEALTH";
@@ -85,7 +85,21 @@ public sealed class OverburstGameUI : MonoBehaviour
         var input=PlayerInputFacade.Current;
         if(input!=null){if(input.EquipmentPressedThisFrame)ToggleEquipment();else if(input.UiCancelPressedThisFrame&&equipmentWindow.gameObject.activeSelf)CloseEquipment();}
         if(Time.unscaledTime>=nextRefresh){nextRefresh=Time.unscaledTime+.1f;Refresh();}
+        RefreshWindowButtons();
         GameplayInputBlocker.SetBlocked(this,equipmentWindow.gameObject.activeInHierarchy);
+    }
+    // 장비창의 인벤토리 버튼과 인벤토리의 장비 버튼은 서로 여닫는 토글이다. 글자는 지금 상태의 반대 동작을 보인다.
+    public void ToggleInventory(){if(inventory.IsVisible){if(stash.IsOpen)stash.Close();else inventory.SetVisible(false);}else inventory.SetVisible(true);}
+    private bool? shownInventoryOpen,shownEquipmentOpen;
+    private void RefreshWindowButtons(){
+        bool inventoryOpen=inventory.IsVisible,equipmentOpen=equipmentWindow.gameObject.activeSelf;
+        if(shownInventoryOpen!=inventoryOpen){shownInventoryOpen=inventoryOpen;SetButtonLabel(inventoryButton,inventoryOpen?"인벤토리 닫기":"인벤토리 열기");}
+        if(shownEquipmentOpen!=equipmentOpen){shownEquipmentOpen=equipmentOpen;SetButtonLabel(equipmentButton,equipmentOpen?"장비창 닫기":"장비창 열기");}
+    }
+    private static void SetButtonLabel(Button button,string label){
+        if(!button)return;
+        var text=button.GetComponentInChildren<Text>(true);if(text){text.text=label;return;}
+        var tmp=button.GetComponentInChildren<TMPro.TMP_Text>(true);if(tmp)tmp.text=label;
     }
     public void ToggleEquipment(){if(equipmentWindow.gameObject.activeSelf)CloseEquipment();else{equipmentWindow.Show();Refresh();GameplayInputBlocker.Block(this);}}
     public void CloseEquipment(){equipmentWindow.Close();TooltipManager.Instance?.HideTooltip();GameplayInputBlocker.Unblock(this);}

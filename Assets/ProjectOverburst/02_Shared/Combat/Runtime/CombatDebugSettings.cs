@@ -5,8 +5,9 @@ public static class CombatDebugSettings
 {
     public const float ReducedIncomingPlayerDamageMultiplier = 0.001f;
 
-    private static bool showAttackPatternDebug = true;
-    private static bool showEnemyAiStateDebug = true;
+    // 2026-09-30: 플레이어 공격 판정창과 적 AI 상태 글자는 기본으로 끈다(디버그 창에서 켤 수 있다).
+    private static bool showAttackPatternDebug;
+    private static bool showEnemyAiStateDebug;
     private static bool showEnemySquadGeometryDebug;
     private static bool reduceIncomingPlayerDamageBy99_9Percent;
     private static bool spawnHideoutMonsters;
@@ -103,8 +104,8 @@ public static class CombatDebugSettings
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetRuntimeState()
     {
-        showAttackPatternDebug = true;
-        showEnemyAiStateDebug = true;
+        showAttackPatternDebug = false;
+        showEnemyAiStateDebug = false;
         showEnemySquadGeometryDebug = false;
         reduceIncomingPlayerDamageBy99_9Percent = false;
         spawnHideoutMonsters = false;
