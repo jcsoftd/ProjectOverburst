@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyAnimationBridge : MonoBehaviour
@@ -47,8 +48,8 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool isFrozen;
     private bool hasFrozenAnimatorSpeed;
     private float animatorSpeedBeforeFreeze = 1f;
-    private Coroutine parryRewindRoutine;
-    private float speedBeforeParryRewind = 1f;
+    private Coroutine parryStunRoutine;
+    private bool parryStunActive; // 패링 무너짐·기절 루프·회복 재생 중
 
     public bool HasAnimator { get { return animator != null; } }
     public bool IsFrozen { get { return isFrozen; } }
@@ -59,10 +60,12 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         get
         {
+            if (parryStunActive) return true; // 패링 반응 중에는 회전·공격·이동 시작을 막는다
             RefreshBlockingAction();
             return !string.IsNullOrEmpty(blockingActionStateName);
         }
     }
+    public bool IsParryStunAnimating => parryStunActive;
 
     private void Awake()
     {
@@ -101,7 +104,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private void OnDisable()
     {
-        StopParryRewind();
+        StopParryStun();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false;
         ClearBlockingAction();
@@ -129,7 +132,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void ResetForReuse()
     {
-        StopParryRewind();
+        StopParryStun();
         RestoreFrozenAnimatorSpeed();
         ClearBlockingAction();
         isDead = false;
@@ -218,8 +221,8 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayHit()
     {
-        if (isDead || isFrozen)
-            return;
+        if (isDead || isFrozen || parryStunActive)
+            return; // 패링 기절 동작은 일반 피격 모션이 덮지 않는다
 
         // Hit/Death state speeds are authored independently; never accelerate the whole Animator.
         BeginBlockingAction(hitStateName);
@@ -243,53 +246,119 @@ public class EnemyAnimationBridge : MonoBehaviour
         SetTrigger(hitTriggerHash, hasHitTrigger);
     }
 
-    public void PlayParryRewind(string triggerName, float normalizedTime)
+    // 2026-10-01 패링 반응: 공격 되감기 연출을 없애고 몬스터별 3클립을 재생한다.
+    // Parry_Collapse(무너짐) -> Stunned_Loop(기절 루프) -> Stun_Recover(회복). 무너짐->루프, 회복->Locomotion 전이는
+    // 컨트롤러가 클립 끝에서, 루프->회복은 기절 시간이 끝날 때 코드가 넘긴다. 무너짐 1.3배속, 기절 루프 2초(사용자 조정).
+    public const string ParryCollapseStateName = "Parry_Collapse";
+    public const string StunnedLoopStateName = "Stunned_Loop";
+    public const string StunRecoverStateName = "Stun_Recover";
+    public const float ParryStunnedSeconds = 2f;   // 기절 루프 시간. 루프 클립은 모두 2초 이상이다
+    public const float ParryCollapseSpeed = 1.3f;  // 무너짐 재생 속도. 컨트롤러 Parry_Collapse 상태 speed와 같아야 한다
+    private const float ParryCollapseBlend = .1f; // 공격 자세 -> 무너짐 첫 자세
+    private const float StunRecoverBlend = .25f;  // 루프 중간 자세 -> 회복 첫 자세
+
+    private sealed class ParryStunClipSet { public bool valid; public float collapse, loop, recover; }
+    private static readonly Dictionary<RuntimeAnimatorController, ParryStunClipSet> ParryStunClipCache =
+        new Dictionary<RuntimeAnimatorController, ParryStunClipSet>();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetParryStunClipCache() { ParryStunClipCache.Clear(); }
+
+    // 전용 클립이 있으면 무너짐을 재생하고, 공격을 막는 기절 시간(무너짐 + 기절 루프)을 돌려준다.
+    // 회복 동작은 그 뒤에 재생되며 끝날 때까지 회전·이동·공격 시작을 막는다.
+    public bool TryPlayParryStun(out float stunSeconds)
     {
-        StopParryRewind();
-        if (isDead || isFrozen || animator == null || normalizedTime <= .02f)
-        {
-            PlayHit();
-            return;
-        }
-        string stateName = ResolveAttackStateName(triggerName);
-        int stateHash = Animator.StringToHash("Base Layer." + stateName);
-        if (!animator.HasState(0, stateHash))
-        {
-            PlayHit();
-            return;
-        }
-        speedBeforeParryRewind = animator.speed;
-        animator.speed = 0f;
-        parryRewindRoutine = StartCoroutine(RewindAttackPose(stateHash,
-            Mathf.Clamp01(normalizedTime)));
+        stunSeconds = 0f;
+        if (isDead || isFrozen || animator == null || !isActiveAndEnabled
+            || !TryGetParryStunClips(out ParryStunClipSet clips))
+            return false;
+
+        StopParryStun();
+        ClearBlockingAction();
+        ResetActionTriggers();
+        stunSeconds = clips.collapse / ParryCollapseSpeed + ParryStunnedSeconds;
+        parryStunActive = true;
+        SetMoveAmount(0f);
+        animator.CrossFadeInFixedTime(BaseLayerHash(ParryCollapseStateName), ParryCollapseBlend, 0, 0f);
+        parryStunRoutine = StartCoroutine(RunParryStun(stunSeconds, clips.recover));
+        return true;
     }
 
-    // 2026-09-30: 시작 자세까지 다 감으면 "다시 공격 준비"처럼 보인다. 온 길로 튕겨 돌아가는 만큼만 감는다.
-    public const float ParryRewindSeconds = .15f;
-    private const float ParryRewindKeep = .4f;
-    private IEnumerator RewindAttackPose(int stateHash, float start)
+    private IEnumerator RunParryStun(float stunSeconds, float recoverSeconds)
     {
-        float elapsed = 0f;
-        float end = start * ParryRewindKeep;
-        while (elapsed < ParryRewindSeconds && !isDead && !isFrozen)
-        {
-            float remaining = 1f - Mathf.Clamp01(elapsed / ParryRewindSeconds);
-            animator.Play(stateHash, 0, Mathf.Lerp(end, start, remaining * remaining));
-            animator.Update(0f);
-            elapsed += Time.unscaledDeltaTime;
+        // 애니메이터와 같은 게임 시간으로 센다(히트스톱·슬로우 중에는 둘 다 같이 느려진다).
+        for (float t = 0f; t < stunSeconds; t += Time.deltaTime)
             yield return null;
-        }
-        parryRewindRoutine = null;
-        animator.speed = speedBeforeParryRewind;
-        if (!isDead && !isFrozen) PlayHit();
+        if (animator != null)
+            animator.CrossFadeInFixedTime(BaseLayerHash(StunRecoverStateName), StunRecoverBlend, 0, 0f);
+        for (float t = 0f; t < recoverSeconds; t += Time.deltaTime)
+            yield return null;
+        parryStunRoutine = null;
+        parryStunActive = false;
     }
 
-    private void StopParryRewind()
+    // 빙결이 기절 동작을 끊었다가 풀리면, 남은 기절 시간만큼 기절 루프부터 이어 간다.
+    private void ResumeParryStunAfterFreeze()
     {
-        if (parryRewindRoutine == null) return;
-        StopCoroutine(parryRewindRoutine);
-        parryRewindRoutine = null;
-        if (animator != null) animator.speed = speedBeforeParryRewind;
+        if (movementReaction == null)
+            ResolveMovementReaction();
+        if (movementReaction == null || !movementReaction.IsParryStunned || animator == null || !isActiveAndEnabled
+            || !TryGetParryStunClips(out ParryStunClipSet clips))
+            return;
+
+        parryStunActive = true;
+        animator.CrossFadeInFixedTime(BaseLayerHash(StunnedLoopStateName), StunRecoverBlend, 0, 0f);
+        parryStunRoutine = StartCoroutine(RunParryStun(movementReaction.ParryStunRemaining, clips.recover));
+    }
+
+    private void StopParryStun()
+    {
+        if (parryStunRoutine != null)
+            StopCoroutine(parryStunRoutine);
+        parryStunRoutine = null;
+        parryStunActive = false;
+    }
+
+    private bool TryGetParryStunClips(out ParryStunClipSet clips)
+    {
+        clips = null;
+        RuntimeAnimatorController controller = animator != null ? animator.runtimeAnimatorController : null;
+        if (controller == null)
+            return false;
+
+        if (!ParryStunClipCache.TryGetValue(controller, out clips))
+        {
+            clips = new ParryStunClipSet();
+            AnimationClip[] all = controller.animationClips;
+            for (int i = 0; i < all.Length; i++)
+            {
+                AnimationClip clip = all[i];
+                if (clip == null) continue;
+                if (clip.name.EndsWith("_ParryCollapse")) clips.collapse = clip.length;
+                else if (clip.name.EndsWith("_StunnedLoop")) clips.loop = clip.length;
+                else if (clip.name.EndsWith("_StunRecover")) clips.recover = clip.length;
+            }
+            clips.valid = clips.collapse > 0f && clips.loop > 0f && clips.recover > 0f
+                && HasState(ParryCollapseStateName) && HasState(StunnedLoopStateName) && HasState(StunRecoverStateName);
+            ParryStunClipCache[controller] = clips;
+        }
+        return clips.valid;
+    }
+
+    // 무너짐 직전에 걸려 있던 공격·피격 트리거가 AnyState로 기절을 끊지 않게 비운다(사망은 남긴다).
+    private void ResetActionTriggers()
+    {
+        AnimatorControllerParameter[] parameters = animator.parameters;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].type == AnimatorControllerParameterType.Trigger && parameters[i].nameHash != deathTriggerHash)
+                animator.ResetTrigger(parameters[i].nameHash);
+        }
+    }
+
+    private static int BaseLayerHash(string stateName)
+    {
+        return Animator.StringToHash("Base Layer." + stateName);
     }
 
     public void PlayTaunt()
@@ -328,7 +397,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayDeath()
     {
-        StopParryRewind();
+        StopParryStun();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false; // 사망 표현이 빙결보다 우선
         ClearBlockingAction();
@@ -364,7 +433,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public bool AllowsMovement(EnemyLocomotionMode locomotionMode)
     {
-        if (isFrozen)
+        if (isFrozen || parryStunActive)
             return false;
 
         RefreshBlockingAction();
@@ -457,7 +526,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         string stateName,
         EnemyLocomotionMode? allowedMode = null)
     {
-        if (isDead || isFrozen || animator == null || string.IsNullOrWhiteSpace(triggerName))
+        if (isDead || isFrozen || parryStunActive || animator == null || string.IsNullOrWhiteSpace(triggerName))
             return false;
 
         bool hasTrigger = HasParameter(triggerName, AnimatorControllerParameterType.Trigger);
@@ -553,6 +622,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (!frozen)
         {
             RestoreFrozenAnimatorSpeed();
+            ResumeParryStunAfterFreeze();
             return;
         }
 
@@ -561,6 +631,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private void ForceFrozenIdle()
     {
+        StopParryStun(); // 빙결 자세가 우선. 풀리면 남은 기절을 루프부터 잇는다
         ClearBlockingAction();
         if (animator == null)
             return;

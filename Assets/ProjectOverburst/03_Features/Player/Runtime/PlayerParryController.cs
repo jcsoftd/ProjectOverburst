@@ -8,7 +8,9 @@ using UnityEngine;
 public sealed class PlayerParryController : MonoBehaviour
 {
     private const float WindowSeconds = .60f;
-    private const float SlowScale = .5f;
+    // 2026-10-01 사용자 조정: 패링 순간 슬로우를 강하게(.5 -> .15배) 걸고, 마지막 .35초 동안 정상 속도로 서서히 돌아온다.
+    private const float SlowScale = .15f;
+    private const float SlowRecover = .35f;
     private const float SlowCooldown = 1.5f;
     private const float PushBackDistance = .4f;
 
@@ -119,27 +121,30 @@ public sealed class PlayerParryController : MonoBehaviour
         return toPlayer.sqrMagnitude > .0001f
             ? volume.Center + toPlayer.normalized * volume.Radius : volume.Center;
     }
+    // 2026-10-01: 공격 되감기 연출을 없애고 몬스터별 패링 3클립(무너짐 -> 기절 루프 -> 회복)을 쓴다.
+    // 기절 시간 = 무너짐(1.3배속) + 기절 루프 2초. 회복 동작 동안은 애니메이션이 이동·공격을 막는다.
+    // 전용 클립이 없는 몬스터(비활성 테마 등)는 예전처럼 피격 모션과 짧은 기절을 쓴다.
+    private const float FallbackStunMedium = 1.2f, FallbackStunLarge = .8f;
     private static void CancelAndStun(EnemyActor enemy, Vector3 playerPosition)
     {
         EnemyRank rank = enemy.GetComponent<EnemyRank>();
-        EnemyAbilityDefinition ability = enemy.AbilityController.LastCommittedAbility;
-        float progress = 0f;
-        bool hasPose = ability != null && enemy.AnimationBridge != null
-            && enemy.AnimationBridge.TryGetAttackNormalizedTime(
-                ability.AnimatorTrigger, out progress);
+        EnemyAnimationBridge bridge = enemy.AnimationBridge;
         enemy.AbilityController.Cancel();
         EnemyMovementReaction reaction = enemy.GetComponent<EnemyMovementReaction>();
         EnemyBossCombatDirector boss = enemy.GetComponent<EnemyBossCombatDirector>();
-        if (boss != null) boss.NotifyParried(); // 보스 전용 경직 길이와 그로기 적립
-        else reaction?.ApplyParryStun(
-            (rank != null && rank.Rank == EnemyRankType.Elite ? .8f : 1.2f)
-            + (hasPose ? EnemyAnimationBridge.ParryRewindSeconds : 0f));
+        bool playHit = false;
+        if (boss != null) { boss.NotifyParried(); playHit = true; } // 보스 전용 경직 길이와 그로기 적립
+        else if (bridge != null && bridge.TryPlayParryStun(out float stunSeconds)) reaction?.ApplyParryStun(stunSeconds);
+        else
+        {
+            reaction?.ApplyParryStun(rank != null && rank.Rank == EnemyRankType.Elite ? FallbackStunLarge : FallbackStunMedium);
+            playHit = true;
+        }
         // 튕겨나는 느낌만 준다. 멀리 밀면 이어지는 내 강공이 빗나간다.
         Vector3 away = enemy.transform.position - playerPosition; away.y = 0f;
         if (reaction != null && away.sqrMagnitude > .0001f)
             reaction.ApplyKnockbackDistance(away, PushBackDistance, false);
-        if (hasPose) enemy.AnimationBridge.PlayParryRewind(ability.AnimatorTrigger, progress);
-        else enemy.AnimationBridge?.PlayHit();
+        if (playHit) bridge?.PlayHit();
         EnemyParryStunIndicator.Show(enemy);
     }
     private void PlaySuccess(Vector3 center, int parriedCount, bool anyStrong)
@@ -153,7 +158,8 @@ public sealed class PlayerParryController : MonoBehaviour
         if (Time.unscaledTime >= nextSlowAt)
         {
             nextSlowAt = Time.unscaledTime + SlowCooldown;
-            OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParrySlow, SlowScale, tier.HitStop + tier.Slow);
+            OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParrySlow, SlowScale,
+                tier.HitStop + tier.Slow + SlowRecover, SlowRecover);
         }
         OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParryHitStop, .01f, tier.HitStop);
     }

@@ -108,6 +108,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         queuedGroundStepAmplitude = 0f;
         queuedGroundStepDuration = 0f;
         cinemachineRig?.CancelCombatImpact();
+        zoomPunchStart = -1f;
     }
 
     private void LateUpdate()
@@ -146,6 +147,39 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         yaw = newYaw; // yaw 고정
         hasFocusPosition = false; // 즉시 재정렬
         forceCameraCut = true;
+    }
+
+    // 2026-10-01: 패링 등 짧은 화면 확대. amount = 줄일 화면 크기 비율(.09 = 9% 확대).
+    // 슬로우·히트스톱과 상관없이 실제 시간으로 들어갔다(in) 유지했다(hold) 돌아온다(out). 더 약한 요청은 진행 중인 확대를 덮지 않는다.
+    private float zoomPunchAmount, zoomPunchStart = -1f, zoomPunchIn, zoomPunchHold, zoomPunchOut;
+
+    public void RequestZoomPunch(float amount, float inSeconds, float holdSeconds, float outSeconds)
+    {
+        amount = Mathf.Clamp(amount, 0f, .4f);
+        if (amount <= 0f || amount < CurrentZoomPunch())
+            return;
+        zoomPunchAmount = amount;
+        zoomPunchStart = Time.unscaledTime;
+        zoomPunchIn = Mathf.Max(.001f, inSeconds);
+        zoomPunchHold = Mathf.Max(0f, holdSeconds);
+        zoomPunchOut = Mathf.Max(.001f, outSeconds);
+    }
+
+    private float CurrentZoomPunch()
+    {
+        if (zoomPunchStart < 0f)
+            return 0f;
+        float t = Time.unscaledTime - zoomPunchStart;
+        if (t < zoomPunchIn)
+            return zoomPunchAmount * Mathf.SmoothStep(0f, 1f, t / zoomPunchIn);
+        t -= zoomPunchIn;
+        if (t < zoomPunchHold)
+            return zoomPunchAmount;
+        t -= zoomPunchHold;
+        if (t < zoomPunchOut)
+            return zoomPunchAmount * (1f - Mathf.SmoothStep(0f, 1f, t / zoomPunchOut));
+        zoomPunchStart = -1f;
+        return 0f;
     }
 
     public void RequestCombatImpact(
@@ -340,7 +374,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float blend = CloseUpBlend;
         float viewPitch = Mathf.Lerp(pitch, closeUpPitch, blend);
         Vector3 viewFocus = focusPosition + Vector3.up * (closeUpFocusHeight * blend);
-        float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend);
+        float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend) * (1f - CurrentZoomPunch()); // 패링 등 짧은 확대
         if (UsesCinemachine)
         {
             cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, distance, forceCameraCut, frameScale);

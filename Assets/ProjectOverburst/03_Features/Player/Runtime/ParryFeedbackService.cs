@@ -9,16 +9,19 @@ public sealed class ParryFeedbackService : MonoBehaviour
 {
     public struct Tier
     {
-        public float HitStop, Slow, WaveScale, WaveIntensity, KnockbackRadius, CameraAmplitude;
+        public float HitStop, Slow, WaveScale, WaveIntensity, KnockbackRadius, CameraAmplitude, Zoom;
         public bool SecondWave;
     }
 
     // 0: 1마리, 1: 2~3마리, 2: 4마리 이상. 강공 패링이 섞이면 한 단계 올린다.
+    // 2026-10-01 사용자 조정: 카메라 흔들림 2배(.045/.06/.075 -> .09/.12/.15).
+    // 2차 조정: Slow = 히트스톱 뒤 .15배로 버티는 실제 시간(그 뒤 .35초 복귀는 PlayerParryController),
+    // Zoom = 패링 순간 화면 확대 비율(7/9/11%). 확대는 Slow가 끝날 때까지 유지하고 .4초 동안 돌아온다.
     private static readonly Tier[] Tiers =
     {
-        new Tier { HitStop = .07f, Slow = .18f, WaveScale = .50f, WaveIntensity = .8f, KnockbackRadius = 2.0f, CameraAmplitude = .045f },
-        new Tier { HitStop = .08f, Slow = .22f, WaveScale = .65f, WaveIntensity = 1.0f, KnockbackRadius = 2.5f, CameraAmplitude = .060f },
-        new Tier { HitStop = .10f, Slow = .28f, WaveScale = .80f, WaveIntensity = 1.2f, KnockbackRadius = 3.0f, CameraAmplitude = .075f, SecondWave = true },
+        new Tier { HitStop = .07f, Slow = .20f, WaveScale = .50f, WaveIntensity = .8f, KnockbackRadius = 2.0f, CameraAmplitude = .09f, Zoom = .07f },
+        new Tier { HitStop = .08f, Slow = .24f, WaveScale = .65f, WaveIntensity = 1.0f, KnockbackRadius = 2.5f, CameraAmplitude = .12f, Zoom = .09f },
+        new Tier { HitStop = .10f, Slow = .30f, WaveScale = .80f, WaveIntensity = 1.2f, KnockbackRadius = 3.0f, CameraAmplitude = .15f, Zoom = .11f, SecondWave = true },
     };
 
     private const float ShockwaveBaseScale = 3.35f;      // DF_GRS_CircleShockwave baseScale
@@ -30,6 +33,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
     private const float KnockbackNear = 2.2f, KnockbackFar = 1.2f, KnockbackStagger = .45f;
     private const string SfxRoot = "Combat/SFX/CombatAction/";
     private const int VoiceCount = 4;
+    private const float ZoomIn = .06f, ZoomOut = .4f;
 
     private static ParryFeedbackService instance;
     private static EnemyTelegraphVisualLibrary library;
@@ -59,6 +63,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
         KnockbackSmall(center, tier.KnockbackRadius, parried);
         instance.PlayLayers(center, parriedCount, chainIndex);
         RequestCamera(center - playerPosition, tier.CameraAmplitude);
+        QuarterViewCamera.ActiveInstance?.RequestZoomPunch(tier.Zoom, ZoomIn, tier.HitStop + tier.Slow, ZoomOut);
     }
 
     private static bool EnsureInstance()
@@ -189,7 +194,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
         if (direction.sqrMagnitude < .0001f) direction = Vector3.forward;
         QuarterViewCamera.ActiveInstance?.RequestCombatImpact(
             CombatCameraRequestKind.AttackHit, direction.normalized, Vector3.zero, false,
-            .12f, amplitude, amplitude * 1.5f, .82f, .05f, .16f,
-            2.5f, amplitude * 1.5f, amplitude * 3f);
+            .2f, amplitude, amplitude * 4f, .75f, .06f, .2f, // 2026-10-01: 길이 .12->.2초, 기울기 1.5->4배로 더 티 나게
+            2.5f, amplitude * 1.8f, 4f);
     }
 }

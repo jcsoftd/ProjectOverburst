@@ -23,6 +23,7 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         public OverburstTimeEffectKind Kind;
         public float Scale;
         public float EndUnscaledTime;
+        public float RecoverSeconds; // 끝나기 전 이 시간 동안 정상 속도로 서서히 돌아온다(0 = 끝에서 바로 복귀)
     }
 
     private static OverburstTimeEffectArbiter instance;
@@ -54,12 +55,23 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         float scale,
         float duration)
     {
+        return Request(owner, kind, scale, duration, 0f);
+    }
+
+    // recoverSeconds: 요청이 끝나기 전 이 시간 동안 scale에서 정상 속도로 부드럽게 돌아온다(패링 슬로우).
+    public static bool Request(
+        UnityEngine.Object owner,
+        OverburstTimeEffectKind kind,
+        float scale,
+        float duration,
+        float recoverSeconds)
+    {
         if (owner == null || duration <= 0f)
             return false;
 
         if (instance == null)
             Bootstrap();
-        return instance != null && instance.RequestInternal(owner, kind, scale, duration);
+        return instance != null && instance.RequestInternal(owner, kind, scale, duration, recoverSeconds);
     }
 
     public static void ClearOwner(UnityEngine.Object owner)
@@ -123,10 +135,12 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         UnityEngine.Object owner,
         OverburstTimeEffectKind kind,
         float scale,
-        float duration)
+        float duration,
+        float recoverSeconds)
     {
         scale = Mathf.Clamp(scale, 0.01f, 1f);
         duration = Mathf.Max(0f, duration);
+        recoverSeconds = Mathf.Clamp(recoverSeconds, 0f, duration);
 
         if (!ownsTimeScale)
         {
@@ -147,9 +161,9 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
             requests.Add(request);
         }
 
-        request.Scale = request.EndUnscaledTime > Time.unscaledTime
-            ? Mathf.Min(request.Scale, scale)
-            : scale;
+        bool live = request.EndUnscaledTime > Time.unscaledTime;
+        request.Scale = live ? Mathf.Min(request.Scale, scale) : scale;
+        request.RecoverSeconds = live ? Mathf.Max(request.RecoverSeconds, recoverSeconds) : recoverSeconds;
         request.EndUnscaledTime = Mathf.Max(request.EndUnscaledTime, Time.unscaledTime + duration);
         ApplyWinnerOrRestore();
         return true;
@@ -164,10 +178,21 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
             return;
         }
 
-        appliedTimeScale = Mathf.Min(baselineTimeScale, winner.Scale);
+        appliedTimeScale = Mathf.Min(baselineTimeScale, EffectiveScale(winner, Time.unscaledTime));
         Time.timeScale = appliedTimeScale;
         Time.fixedDeltaTime = baselineFixedDeltaTime
             * (appliedTimeScale / Mathf.Max(0.0001f, baselineTimeScale));
+    }
+
+    private static float EffectiveScale(RequestState request, float now)
+    {
+        if (request.RecoverSeconds <= 0f)
+            return request.Scale;
+        float remaining = request.EndUnscaledTime - now;
+        if (remaining >= request.RecoverSeconds)
+            return request.Scale;
+        float t = 1f - Mathf.Clamp01(remaining / request.RecoverSeconds);
+        return Mathf.Lerp(request.Scale, 1f, t * t * (3f - 2f * t));
     }
 
     private RequestState ResolveWinner()
