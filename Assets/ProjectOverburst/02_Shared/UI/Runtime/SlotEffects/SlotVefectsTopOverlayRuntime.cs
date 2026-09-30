@@ -185,8 +185,9 @@ internal sealed class SlotVefectsTopOverlayRuntime : MonoBehaviour
         targets.Clear();
         nextScanTime = Time.unscaledTime + RescanInterval;
 
-        SlotGradeEffect[] effects = Object.FindObjectsByType<SlotGradeEffect>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        for (int i = 0; i < effects.Length && targets.Count < MaxTargetCount; i++)
+        // 2026-09-30: 0.35초마다 하던 씬 전체 검색 대신 SlotGradeEffect가 OnEnable/OnDisable로 관리하는 목록을 읽는다.
+        IReadOnlyList<SlotGradeEffect> effects = SlotGradeEffect.Active;
+        for (int i = 0; i < effects.Count && targets.Count < MaxTargetCount; i++)
             AddTarget(effects[i] != null ? effects[i].transform as RectTransform : null);
     }
 

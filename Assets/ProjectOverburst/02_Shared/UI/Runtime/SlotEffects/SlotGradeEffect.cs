@@ -41,6 +41,8 @@ public class SlotGradeEffect : MonoBehaviour // 등급 연출
     private bool hasCurrentGrade; // 현재 등급 보유 여부
 
     public static bool RuntimeOutlineEnabled { get; private set; } = true; // 실험용 런타임 토글
+    // 2026-09-30: 켜진 슬롯 효과 목록. 상단 오버레이가 씬 전체 검색 대신 읽는다.
+    internal static IReadOnlyList<SlotGradeEffect> Active => ActiveEffects;
 
     public static void SetRuntimeOutlineEnabled(bool enabled)
     {
