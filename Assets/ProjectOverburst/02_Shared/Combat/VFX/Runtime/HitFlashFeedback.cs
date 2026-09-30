@@ -93,6 +93,16 @@ public class HitFlashFeedback : MonoBehaviour // 피격 flash
         if (flashRoutine == null) ApplyCorpseTint();
     }
 
+    // 피해 이벤트 없이 번쩍이는 연출(패링 성공, 파동 넉백)용. 피격과 같은 경로라 색 복원이 보장된다.
+    public void FlashOnce()
+    {
+        if (corpseTintActive || !isActiveAndEnabled) return;
+        if (flashRoutine != null) StopCoroutine(flashRoutine);
+        if (!flashApplied) CaptureBeforeFlash();
+        flashApplied = true;
+        flashRoutine = StartCoroutine(FlashRoutine());
+    }
+
     private void HandleDamaged(CombatHealth source, DamageInfo info)
     {
         if (corpseTintActive || info.isDamageOverTime || !info.triggersOnHitEffects)

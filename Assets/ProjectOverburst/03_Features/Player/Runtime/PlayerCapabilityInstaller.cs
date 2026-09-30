@@ -30,6 +30,8 @@ public static class PlayerCapabilityInstaller
         EnsureComponent<PlayerPickupInteractor>(memberObject);
         EnsureComponent<PlayerCurrencyAutoPickup>(memberObject);
         EnsureComponent<MeleeRuntime>(memberObject);
+        // 첫 강공 전부터 적 빛 신호·발밑 패링 표시가 플레이어를 알아야 한다.
+        EnsureComponent<PlayerParryController>(memberObject);
         PlayerControlKit kit = EnsureComponent<PlayerControlKit>(memberObject);
         kit.ResolveReferences();
         return kit;

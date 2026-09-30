@@ -1,15 +1,18 @@
-using System.Collections;
 using UnityEngine;
 
 // One player-owned emitter renders all enemies in a multi-parry without spawning per-hit objects.
+// 2026-09-30: 성공 순간의 바닥 링은 패링 중심 파동(ParryFeedbackService)으로 대체했다.
+// 링은 "지금 누르면 패링된다" 표시로 쓴다(나를 때릴 패링 가능 공격이 있을 때 발밑에 금색으로).
 [DisallowMultipleComponent]
 public sealed class ParrySuccessVfx : MonoBehaviour
 {
     private const int RingSegments = 64;
+    private const float ReadyRingRadius = .85f;
+    private const float ReadyFadeSpeed = 12f;
     private ParticleSystem sparks;
     private LineRenderer ring;
-    private Coroutine ringRoutine;
     private Camera cachedCamera;
+    private float readyWeight;
 
     private void Awake()
     {
@@ -28,7 +31,7 @@ public sealed class ParrySuccessVfx : MonoBehaviour
         main.startSpeed = 0f;
         main.startSize = .10f;
         main.startColor = Color.white;
-        main.maxParticles = 256;
+        main.maxParticles = 512;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.gravityModifier = .08f;
         var emission = sparks.emission;
@@ -54,9 +57,9 @@ public sealed class ParrySuccessVfx : MonoBehaviour
         particleRenderer.receiveShadows = false;
         sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-        var ringObject = new GameObject("Parry success wave");
-        ringObject.transform.SetParent(root.transform, false);
-        ringObject.transform.localPosition = Vector3.up * .08f;
+        var ringObject = new GameObject("Parry ready ring");
+        ringObject.transform.SetParent(transform, false);
+        ringObject.transform.localPosition = Vector3.up * .06f;
         ring = ringObject.AddComponent<LineRenderer>();
         ring.sharedMaterial = ringMaterial;
         ring.useWorldSpace = false;
@@ -65,9 +68,16 @@ public sealed class ParrySuccessVfx : MonoBehaviour
         ring.numCapVertices = 2;
         ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ring.receiveShadows = false;
+        for (int i = 0; i <= RingSegments; i++)
+        {
+            float angle = i * Mathf.PI * 2f / RingSegments;
+            ring.SetPosition(i, new Vector3(Mathf.Sin(angle) * ReadyRingRadius, 0f,
+                Mathf.Cos(angle) * ReadyRingRadius));
+        }
         ring.enabled = false;
     }
 
+    // Small burst on each parried body; the big burst belongs to the parry center.
     public void EmitEnemy(EnemyActor enemy)
     {
         if (sparks == null || enemy == null) return;
@@ -75,18 +85,35 @@ public sealed class ParrySuccessVfx : MonoBehaviour
         Vector3 center = target != null ? target.CurrentVolume.Center
             : enemy.transform.position + Vector3.up;
         float radius = target != null ? target.CurrentVolume.Radius : .45f;
-        EmitAt(CameraFacingSurface(center, radius + .12f), 14, 1.6f);
+        EmitAt(CameraFacingSurface(center, radius + .12f), 12, 1.6f, 1f);
     }
 
-    public void Pulse()
+    public void EmitCenter(Vector3 center, int count)
     {
-        if (sparks == null || ring == null) return;
-        EmitAt(CameraFacingSurface(transform.position + Vector3.up, .48f), 10, 1.1f);
-        if (ringRoutine != null) StopCoroutine(ringRoutine);
-        ringRoutine = StartCoroutine(AnimateRing());
+        if (sparks == null) return;
+        EmitAt(CameraFacingSurface(center, .1f), Mathf.Clamp(count, 1, 96), 2.4f, 1.8f);
     }
 
-    private void EmitAt(Vector3 position, int count, float speed)
+    private void Update()
+    {
+        if (ring == null) return;
+        bool ready = EnemyStrongAttackWarning.ActiveThreatSignalCount > 0;
+        readyWeight = Mathf.MoveTowards(readyWeight, ready ? 1f : 0f, ReadyFadeSpeed * Time.unscaledDeltaTime);
+        if (readyWeight <= .001f)
+        {
+            if (ring.enabled) ring.enabled = false;
+            return;
+        }
+        ring.enabled = true;
+        float pulse = .72f + .28f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * 5f);
+        float alpha = readyWeight * pulse;
+        Color color = new Color(1f * alpha, .82f * alpha, .38f * alpha, alpha);
+        ring.startColor = color;
+        ring.endColor = color;
+        ring.widthMultiplier = .045f + .015f * pulse;
+    }
+
+    private void EmitAt(Vector3 position, int count, float speed, float sizeScale)
     {
         if (!sparks.isPlaying) sparks.Play();
         if (cachedCamera == null) cachedCamera = Camera.main;
@@ -101,7 +128,7 @@ public sealed class ParrySuccessVfx : MonoBehaviour
                 position = position + direction * .10f,
                 velocity = direction * speed * (1.18f + (i % 4) * .18f),
                 startLifetime = .14f + (i % 4) * .035f,
-                startSize = i % 5 == 0 ? .11f : .065f,
+                startSize = (i % 5 == 0 ? .11f : .065f) * sizeScale,
                 startColor = i % 3 == 0
                     ? new Color(1f, 1f, .92f, 1f)
                     : new Color(1f, .72f, .28f, 1f)
@@ -120,37 +147,9 @@ public sealed class ParrySuccessVfx : MonoBehaviour
             ? center + towardCamera.normalized * distance : center;
     }
 
-    private IEnumerator AnimateRing()
-    {
-        const float duration = .24f;
-        float elapsed = 0f;
-        ring.enabled = true;
-        while (elapsed < duration)
-        {
-            float t = Mathf.Clamp01(elapsed / duration);
-            float radius = Mathf.Lerp(.30f, 2.20f, 1f - (1f - t) * (1f - t));
-            float alpha = (1f - t) * (1f - t);
-            Color color = new Color(alpha, .88f * alpha, .52f * alpha, alpha);
-            ring.startColor = color;
-            ring.endColor = color;
-            ring.widthMultiplier = Mathf.Lerp(.075f, .015f, t);
-            for (int i = 0; i <= RingSegments; i++)
-            {
-                float angle = i * Mathf.PI * 2f / RingSegments;
-                ring.SetPosition(i, new Vector3(Mathf.Sin(angle) * radius, 0f,
-                    Mathf.Cos(angle) * radius));
-            }
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
-        }
-        ring.enabled = false;
-        ringRoutine = null;
-    }
-
     private void OnDisable()
     {
-        if (ringRoutine != null) StopCoroutine(ringRoutine);
-        ringRoutine = null;
+        readyWeight = 0f;
         if (ring != null) ring.enabled = false;
         if (sparks != null) sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
