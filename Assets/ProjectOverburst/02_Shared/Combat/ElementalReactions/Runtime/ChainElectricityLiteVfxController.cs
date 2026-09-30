@@ -91,6 +91,13 @@ public sealed class ChainElectricityLiteVfxController : MonoBehaviour,
         if (alive) ApplyWidths(widthEnvelope);
     }
 
+    // Weapon/HUD aura only: a slower wiggle and a lifetime that outlasts the owner's restart interval.
+    public void SetAuraTiming(float refreshInterval, float configuredLifetime)
+    {
+        shapeRefreshInterval = Mathf.Max(0.01f, refreshInterval);
+        lifetime = Mathf.Max(0.05f, configuredLifetime);
+    }
+
     private void Advance(float deltaTime)
     {
         if (!alive)
