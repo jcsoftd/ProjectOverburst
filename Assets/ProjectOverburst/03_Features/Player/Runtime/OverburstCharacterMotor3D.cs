@@ -71,6 +71,10 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     // 2026-10-01: 올라타기는 사후 처리가 아니라 이동 단계에서 막는다. 적에게 닿은 이동이 이만큼 넘게 올라가면 되돌린다.
     private const float EnemyClimbTolerance = 0.002f;
     private const float EnemyBlockedSlopeLimit = 5f;
+    // 2026-10-01 (2차): 이미 적 몸에 파묻힌 캡슐은 수평으로만 밀어낸다. 조회 버퍼, 여유 거리, 한 이동의 최대 밀어내기.
+    private const int EnemyOverlapCapacity = 16;
+    private const float EnemySeparationSkin = 0.01f;
+    private const float EnemySeparationMaxStep = 0.5f;
 
     [SerializeField] private PlayerMovement movement;
 
@@ -113,6 +117,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private bool groundSupportContact;
     private Vector3 enemySupportCenter;
     private bool standingOnEnemy;
+    private readonly Collider[] enemyOverlaps = new Collider[EnemyOverlapCapacity];
 
     public CharacterController Controller
     {
@@ -832,15 +837,23 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         if (controller == null || !controller.enabled)
             return CollisionFlags.None;
 
+        // 2026-10-01 (2차, Play 로그): 이미 적 몸에 파묻힌 캡슐은 CharacterController가 충돌로 보지 않아 걸어 들어가도 막히지 않고,
+        // 겹침이 풀릴 때 X·Z가 고정된 적 물리와 서로 위로 밀어 올린다(한 프레임 0.76m 상승). 이동 전에 수평으로만 밀어낸다.
+        Vector3 moveDisplacement = displacement + ComputeEnemySeparation();
         Vector3 startPosition = transform.position;
-        CollisionFlags flags = MoveTrackingSupport(displacement);
+        CollisionFlags flags = MoveTrackingSupport(moveDisplacement);
         // 2026-10-01: 적 몸을 딛고 올라가는 이동은 처음부터 막는다.
         // 공격·이동 변위는 수평이고 강공 높이는 VisualRoot만 올린다. 그래도 캡슐이 요청보다 높아졌다면
-        // CharacterController의 자동 턱·경사 오르기가 적 몸에 적용된 것이다(계단·경사는 땅 접촉이 함께 있어 제외).
-        // 시작 위치로 되돌리고, 이 한 번만 턱·경사 오르기를 끈 채 같은 변위로 다시 움직여 적 몸을 벽처럼 막는다.
-        float allowedHeight = startPosition.y + Mathf.Max(0f, displacement.y) + EnemyClimbTolerance;
-        if (enemyTouchContact && !groundSupportContact && transform.position.y > allowedHeight)
-            flags = RetryMoveWithoutClimbing(startPosition, displacement);
+        // 적 몸 때문에 들린 것이다(자동 턱·경사 오르기 또는 겹침 해소). 계단·경사는 땅을 딛고 발판 높이 이내로만 올라 제외된다.
+        // 시작 위치로 되돌리고 이 한 번만 턱·경사 오르기를 끈 채 다시 움직인다. 그래도 들렸으면 높이만 되돌린다.
+        float baseHeight = startPosition.y + Mathf.Max(0f, moveDisplacement.y);
+        float allowedHeight = baseHeight + EnemyClimbTolerance;
+        if (transform.position.y > allowedHeight && IsEnemyLift(startPosition.y))
+        {
+            flags = RetryMoveWithoutClimbing(startPosition, moveDisplacement);
+            if (transform.position.y > allowedHeight && IsEnemyLift(startPosition.y))
+                RestoreHeight(baseHeight);
+        }
 
         standingOnEnemy = enemySupportContact && !groundSupportContact;
         if (standingOnEnemy)
@@ -883,6 +896,125 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         return flags;
     }
 
+    // 이번 이동의 상승이 적 몸 때문인지 본다. 적과 닿았거나 겹쳐 있고, 땅을 딛지 않았거나 발판 높이를 넘게 올랐으면 적 탓이다.
+    // 닿음은 충돌 알림과 물리 조회를 함께 본다. 이미 겹친 적 몸은 충돌 알림이 오지 않기 때문이다.
+    private bool IsEnemyLift(float startY)
+    {
+        if (!enemyTouchContact && OverlapEnemyBodies(controller.skinWidth) == 0)
+            return false;
+        float rise = transform.position.y - startY;
+        return !groundSupportContact || rise > controller.stepOffset + EnemyClimbTolerance;
+    }
+
+    // 수평 위치는 두고 높이만 되돌린다. RetryMoveWithoutClimbing과 같이 컨트롤러를 껐다 켜서 옮긴다.
+    private void RestoreHeight(float height)
+    {
+        Vector3 position = transform.position;
+        position.y = height;
+        controller.enabled = false;
+        transform.position = position;
+        if (legacyRigidbody != null)
+            legacyRigidbody.position = position;
+        controller.enabled = true;
+    }
+
+    // 이미 적 몸과 겹쳐 있으면 겹친 만큼 수평으로만 밀어낼 변위를 돌려준다. 겹치지 않았으면 0이다.
+    private Vector3 ComputeEnemySeparation()
+    {
+        int count = OverlapEnemyBodies(0f);
+        if (count == 0)
+            return Vector3.zero;
+
+        float playerRadius = ControllerWorldRadius();
+        Vector3 total = Vector3.zero;
+        for (int i = 0; i < count; i++)
+            total += HorizontalEscape(enemyOverlaps[i], playerRadius);
+        return Vector3.ClampMagnitude(total, EnemySeparationMaxStep);
+    }
+
+    private Vector3 HorizontalEscape(Collider other, float playerRadius)
+    {
+        Transform otherTransform = other.transform;
+        Vector3 away;
+        CapsuleCollider capsule = other as CapsuleCollider;
+        if (capsule != null && capsule.direction == 1 && Vector3.Dot(otherTransform.up, Vector3.up) > 0.9f)
+        {
+            // 서 있는 적 캡슐: 두 축의 수평 거리가 반경 합보다 가까운 만큼 축 반대쪽으로 민다.
+            Vector3 scale = otherTransform.lossyScale;
+            float otherRadius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+            away = transform.position - otherTransform.TransformPoint(capsule.center);
+            away.y = 0f;
+            float gap = away.magnitude;
+            float needed = playerRadius + otherRadius + EnemySeparationSkin - gap;
+            if (needed <= 0f)
+                return Vector3.zero;
+            return (gap > 0.0001f ? away / gap : FallbackEscapeDirection()) * needed;
+        }
+
+        // 그 밖의 충돌체: 겹침 해소 방향에서 수직 성분을 빼고, 수평만으로 같은 깊이를 풀 거리를 쓴다.
+        if (!Physics.ComputePenetration(
+                controller, transform.position, transform.rotation,
+                other, otherTransform.position, otherTransform.rotation,
+                out Vector3 direction, out float depth))
+            return Vector3.zero;
+        away = direction;
+        away.y = 0f;
+        float planar = away.magnitude;
+        if (planar >= 0.3f)
+            return away / planar * (depth / planar + EnemySeparationSkin);
+        away = transform.position - other.bounds.center;
+        away.y = 0f;
+        planar = away.magnitude;
+        return (planar > 0.0001f ? away / planar : FallbackEscapeDirection()) * (depth + EnemySeparationSkin);
+    }
+
+    private Vector3 FallbackEscapeDirection()
+    {
+        Vector3 back = -transform.forward;
+        back.y = 0f;
+        return back.sqrMagnitude > 0.0001f ? back.normalized : Vector3.back;
+    }
+
+    private float ControllerWorldRadius()
+    {
+        Vector3 scale = transform.lossyScale;
+        return Mathf.Max(0.01f, controller.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z), 0.0001f));
+    }
+
+    // 플레이어 캡슐(반경 + inflate)과 겹친 적 몸을 enemyOverlaps 앞쪽에 모아 개수를 돌려준다.
+    // 자기 충돌체와 충돌 무시가 걸린 적(플라스크의 적 몸 통과 등)은 뺀다.
+    private int OverlapEnemyBodies(float inflate)
+    {
+        int mask = ResolveEnemyLayerMask();
+        if (mask == 0 || controller == null || !controller.enabled)
+            return 0;
+
+        float baseRadius = ControllerWorldRadius();
+        float heightScale = Mathf.Max(Mathf.Abs(transform.lossyScale.y), 0.0001f);
+        float halfSegment = Mathf.Max(0f, controller.height * heightScale * 0.5f - baseRadius);
+        Vector3 center = transform.TransformPoint(controller.center);
+        Vector3 up = transform.up.sqrMagnitude > 0.0001f ? transform.up.normalized : Vector3.up;
+        int count = Physics.OverlapCapsuleNonAlloc(
+            center + up * halfSegment,
+            center - up * halfSegment,
+            baseRadius + Mathf.Max(0f, inflate),
+            enemyOverlaps,
+            mask,
+            QueryTriggerInteraction.Ignore);
+        int kept = 0;
+        for (int i = 0; i < count; i++)
+        {
+            Collider other = enemyOverlaps[i];
+            if (other == null
+                || other.transform == transform
+                || other.transform.IsChildOf(transform)
+                || Physics.GetIgnoreCollision(controller, other))
+                continue;
+            enemyOverlaps[kept++] = other;
+        }
+        return kept;
+    }
+
     // CharacterController.Move 중 닿은 면마다 호출된다. 발밑(윗방향 법선) 접촉만 적 몸과 그 밖으로 나눈다.
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
@@ -908,12 +1040,17 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
 
     private bool IsEnemyBody(Collider candidate)
     {
+        return (ResolveEnemyLayerMask() & (1 << candidate.gameObject.layer)) != 0;
+    }
+
+    private int ResolveEnemyLayerMask()
+    {
         if (enemyLayerMask < 0)
         {
             int layer = LayerMask.NameToLayer(EnemyPhysicalLayerName);
             enemyLayerMask = layer >= 0 ? 1 << layer : 0;
         }
-        return (enemyLayerMask & (1 << candidate.gameObject.layer)) != 0;
+        return enemyLayerMask;
     }
 
     // 적 몸 위에 올라섰으면 적 중심 반대쪽으로 밀어내고, 그동안 낙하 속도가 쌓이지 않게 한다.
