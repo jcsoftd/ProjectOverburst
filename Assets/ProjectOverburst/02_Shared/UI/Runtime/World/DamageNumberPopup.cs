@@ -37,6 +37,16 @@ public sealed class DamageNumberPopup : MMFloatingText
     private Vector2 randomOffset;
     private Color startColor;
     private bool initialized;
+    // 2026-09-30: 종류별 연출(DamageNumberStyle). 값이 없으면 이전 경로 그대로다.
+    private DamageNumberFx fx;
+    private bool hasPendingStyle;
+    private DamageNumberStyleRequest pendingStyle;
+    private DamageNumberMotion pendingMotion;
+    private string pendingFormat;
+    private float pendingFontScale = 1f;
+
+    public float FxElapsed => GetTime() - _startedAt;
+    public float FxProgress => _lifetime > 0f ? Mathf.Clamp01(FxElapsed / _lifetime) : 1f;
     public static DamageNumberFeelPreset SelectedPreset { get; private set; } = DamageNumberFeelPreset.Bounce;
     public static DamageNumberFontChoice SelectedFont { get; private set; } = DamageNumberFontChoice.Spoqa;
     public static DamageNumberWeightChoice SelectedWeight { get; private set; } = DamageNumberWeightChoice.Regular;
@@ -235,6 +245,58 @@ public sealed class DamageNumberPopup : MMFloatingText
         InitializeText(displayText, color, position, fontSize, finishedCallback, fontStyle, false, 0f, false, 0);
     }
 
+    // 종류별 연출. 일반·치명타는 디버그 창에서 고른 FEEL 프리셋 움직임을 그대로 쓰고 색·재질·떨림만 더한다.
+    // 지속 피해·원소 방출·플레이어 피격·회복은 DamageNumberStyles의 FEEL 곡선을 쓴다.
+    public void InitializeStyled(
+        float value,
+        in DamageNumberStyleRequest request,
+        Vector3 position,
+        Action<DamageNumberPopup> finishedCallback = null,
+        string displayText = null)
+    {
+        EnsureFx();
+        hasPendingStyle = true;
+        pendingStyle = request;
+        pendingMotion = DamageNumberStyles.MotionFor(request);
+        pendingFormat = request.Kind == DamageNumberKind.Discharge
+            ? DamageNumberStyles.DischargeFormat(request.Element, request.IsCritical, request.ChainCount)
+            : null;
+        pendingFontScale = (pendingMotion != null ? pendingMotion.FontScale : 1f)
+            * (request.Kind == DamageNumberKind.Discharge && request.IsCritical ? 1.2f : 1f);
+
+        bool custom = request.Kind == DamageNumberKind.PlayerHit || request.Kind == DamageNumberKind.Heal;
+        bool critical = request.IsCritical && request.Kind != DamageNumberKind.DamageOverTime;
+        Color color = request.Kind == DamageNumberKind.DamageOverTime
+            ? DamageNumberStyles.DamageOverTimeColor(request.Element)
+            : request.Kind == DamageNumberKind.Normal ? DamageNumberStyles.NormalColor
+            : DamageNumberStyles.TryGetGradient(request, out _) ? Color.white : CriticalAttackColor;
+        try
+        {
+            // 세리프 원본이 가는 굵기라 종류별 연출은 모두 굵게 쓴다.
+            if (custom)
+                InitializeText(displayText, color, position, 24f * pendingFontScale, finishedCallback,
+                    FontStyles.Bold, false, 0f, false, 0);
+            else
+                InitializeText(null, color, position, FontSize(SelectedSize, critical) * pendingFontScale, finishedCallback,
+                    FontStyles.Bold, false, 0f, true, Mathf.Max(1, Mathf.RoundToInt(value)), critical, true);
+        }
+        finally
+        {
+            hasPendingStyle = false;
+            pendingMotion = null;
+            pendingFormat = null;
+            pendingFontScale = 1f;
+        }
+    }
+
+    private void EnsureFx()
+    {
+        ResolveText();
+        if (fx == null && !TryGetComponent(out fx))
+            fx = gameObject.AddComponent<DamageNumberFx>();
+        fx.Bind(this, text);
+    }
+
     public void InitializeReaction(
         string displayText,
         Color color,
@@ -300,9 +362,14 @@ public sealed class DamageNumberPopup : MMFloatingText
 
         if (text != null)
         {
-            Material baseFontMaterial = ApplyFont(isDamage);
+            Material baseFontMaterial = hasPendingStyle ? ApplyStyledFont(isDamage) : ApplyFont(isDamage);
             if (useIntegerText)
-                text.SetText(isCritical ? "{0:0}!" : "{0:0}", integerValue);
+            {
+                if (pendingFormat != null)
+                    text.SetText(pendingFormat, integerValue, pendingStyle.ChainCount);
+                else
+                    text.SetText(isCritical ? "{0:0}!" : "{0:0}", integerValue);
+            }
             else
                 text.text = displayText;
             text.fontSize = fontSize;
@@ -310,10 +377,19 @@ public sealed class DamageNumberPopup : MMFloatingText
             text.fontWeight = fontStyle == FontStyles.Bold ? FontWeight.Bold : FontWeight.Regular;
             text.characterSpacing = isReaction ? ReactionCharacterSpacing : 0f;
             text.alignment = TextAlignmentOptions.Center;
-            if (isReaction)
+            if (hasPendingStyle)
+                FloatingFeedbackTextStyle.ApplyStyle(text, baseFontMaterial, DamageNumberStyles.MaterialFor(pendingStyle));
+            else if (isReaction)
                 FloatingFeedbackTextStyle.ApplyReaction(text, baseFontMaterial);
             else
                 FloatingFeedbackTextStyle.Apply(text, baseFontMaterial);
+            if (hasPendingStyle && DamageNumberStyles.TryGetGradient(pendingStyle, out VertexGradient gradient))
+            {
+                text.colorGradient = gradient;
+                text.enableVertexGradient = true;
+            }
+            else
+                text.enableVertexGradient = false;
         }
 
         bool projected = RefreshProjectedPosition(Vector2.zero, ExitScreenMargin);
@@ -361,6 +437,15 @@ public sealed class DamageNumberPopup : MMFloatingText
                     activeOpacity = BounceOpacity; break;
             }
         }
+        if (pendingMotion != null)
+        {
+            activeLifetime = pendingMotion.Lifetime;
+            rise = pendingMotion.Rise;
+            lateralRange = pendingMotion.LateralRange;
+            verticalCurve = pendingMotion.Vertical;
+            scaleCurve = pendingMotion.Scale;
+            activeOpacity = pendingMotion.Opacity;
+        }
         if (isCritical && preset != DamageNumberFeelPreset.Original)
             rise *= 1.15f;
         float lateral = lateralRange > 0f
@@ -371,6 +456,13 @@ public sealed class DamageNumberPopup : MMFloatingText
             lateralRange > 0f, SideCurve, 0f, lateral, true, verticalCurve, 0f, rise,
             false, null, 0f, 0f, true, activeOpacity, 0f, 1f,
             true, scaleCurve, 0f, 1f, false, null);
+        if (fx != null)
+        {
+            if (hasPendingStyle)
+                fx.Begin(DamageNumberStyles.FxFor(pendingStyle));
+            else
+                fx.Stop();
+        }
     }
 
     private bool RefreshProjectedPosition(Vector2 motion, float screenMargin)
@@ -402,6 +494,8 @@ public sealed class DamageNumberPopup : MMFloatingText
         initialized = false;
         _newPosition = Vector3.zero;
         SetUseUnscaledTime(false, false);
+        if (fx != null)
+            fx.Stop();
 
         if (rectTransform != null)
         {
@@ -419,6 +513,7 @@ public sealed class DamageNumberPopup : MMFloatingText
             text.fontWeight = FontWeight.Regular;
             text.characterSpacing = 0f;
             text.alignment = TextAlignmentOptions.Center;
+            text.enableVertexGradient = false;
         }
     }
 
@@ -461,6 +556,28 @@ public sealed class DamageNumberPopup : MMFloatingText
         if (cachedFont == null)
             cachedFont = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/Pretendard_Medium SDF");
         return cachedFont;
+    }
+
+    // 2026-09-30 v2: 종류별 연출은 게임 창 제목과 같은 Noto Serif KR로 쓴다(숫자·기호·방출 이름만 구운 전용 자산).
+    private static TMP_FontAsset cachedStyledFont;
+    private static bool styledFontMissingLogged;
+
+    private Material ApplyStyledFont(bool isDamage)
+    {
+        if (cachedStyledFont == null)
+            cachedStyledFont = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Damage SDF");
+        if (cachedStyledFont == null)
+        {
+            if (!styledFontMissingLogged)
+            {
+                styledFontMissingLogged = true;
+                Debug.LogWarning("[DamageNumberPopup] 세리프 피해 숫자 글꼴이 없어 기존 글꼴을 씁니다.");
+            }
+            return ApplyFont(isDamage);
+        }
+        if (text.font != cachedStyledFont)
+            text.font = cachedStyledFont;
+        return cachedStyledFont.material != null ? cachedStyledFont.material : text.fontSharedMaterial;
     }
 
     private static TMP_FontAsset ResolveDamageFont(DamageNumberFontChoice choice)

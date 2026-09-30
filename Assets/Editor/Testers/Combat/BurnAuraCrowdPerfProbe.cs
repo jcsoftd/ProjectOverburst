@@ -115,8 +115,11 @@ public static class BurnAuraCrowdPerfProbe
     {
         "PlayerLoop", "ParticleSystem.UpdateJob", "ParticleSystem.GeometryJob", "ParticleSystem.Draw", "ParticleSystem.ScheduleJobs",
         "ParticleSystem.WaitForPreviousRenderingToFinish", "PreLateUpdate.ParticleSystemBeginUpdateAll", "Gfx.WaitForPresentOnGfxThread",
-        "RenderLoop.DrawSRPBatcher", "Update.ScriptRunBehaviourUpdate", "PostLateUpdate.FinishFrameRendering"
+        "RenderLoop.DrawSRPBatcher", "Update.ScriptRunBehaviourUpdate", "PostLateUpdate.FinishFrameRendering",
+        "PreLateUpdate.ScriptRunBehaviourLateUpdate", "PostLateUpdate.PlayerUpdateCanvases"
     };
+    // dot mode: the damage-number popups (pool of DamageNumberSpawner.DefaultPopupBudget), counted by activeSelf each frame.
+    static readonly List<DamageNumberPopup> popups = new List<DamageNumberPopup>();
 
     static void StartRecorders()
     {
@@ -167,11 +170,19 @@ public static class BurnAuraCrowdPerfProbe
         var frameMs = new List<double>(); var cpu = new List<double>(); var gpu = new List<double>();
         var dc = new List<double>(); var sp = new List<double>(); var markers = new List<double[]>();
         (int auras, int particles) mid = (0, 0);
+        var shown = new List<double>(); int atBudget = 0;
         float start = Time.time, end = Time.time + seconds; bool counted = false;
         while (Time.time < end)
         {
             yield return null;
             frameMs.Add(Time.unscaledDeltaTime * 1000.0);
+            if (popups.Count > 0)
+            {
+                int active = 0;
+                foreach (var p in popups) if (p != null && p.gameObject.activeSelf) active++;
+                shown.Add(active);
+                if (active >= popups.Count) atBudget++;
+            }
             FrameTimingManager.CaptureFrameTimings();
             if (FrameTimingManager.GetLatestTimings(1, timing) > 0)
             {
@@ -197,7 +208,9 @@ public static class BurnAuraCrowdPerfProbe
         {
             scenario = name, frames = frameMs.Count, seconds, alive, activeAuras = mid.auras, auraParticles = mid.particles,
             auraLeasedMax = MeleeElementStatusAuraVisibilityScheduler.LeasedPresentationCount,
-            frameMs = Sum(frameMs), cpuMainMs = Sum(cpu), gpuMs = Sum(gpu), drawCalls = Sum(dc), setPass = Sum(sp), markers = markerMap
+            frameMs = Sum(frameMs), cpuMainMs = Sum(cpu), gpuMs = Sum(gpu), drawCalls = Sum(dc), setPass = Sum(sp), markers = markerMap,
+            popupsShown = Sum(shown), popupPool = popups.Count, framesPoolFull = atBudget,
+            styled = DamageNumberStyleSettings.Enabled
         });
         Write("RUNNING " + name);
         Check(alive == enemies.Count, "fixture lost enemies in " + name + ": " + alive + "/" + enemies.Count);
@@ -216,6 +229,39 @@ public static class BurnAuraCrowdPerfProbe
     static void ClearStatuses() { foreach (var e in enemies) if (e != null) e.GetComponent<ElementalStatusController>()?.ClearAllStatuses(); }
 
     public static void RunSpike(string output) { SessionState.SetString(Key + ".mode", "spike"); Run(output); }
+    public static void RunDotCrowd(string output) { SessionState.SetString(Key + ".mode", "dot"); Run(output); }
+
+    // 2026-09-30: 100 enemies burning at fire 5 stacks, every tick showing its damage number, with the previous
+    // damage-number look and the per-type look (DamageNumberStyleSettings) alternated twice on the same fixture.
+    // Records frame cost plus how many popups were on screen and how many frames the popup pool was full.
+    static IEnumerator DotCrowd(string weaponId, GameObject source)
+    {
+        SessionState.SetString(Key + ".mode", "");
+        popups.Clear();
+        popups.AddRange(UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        notes.Add("damage popups pooled=" + popups.Count + " styleDefault=" + DamageNumberStyleSettings.Enabled);
+        bool original = DamageNumberStyleSettings.Enabled;
+        try
+        {
+            DamageNumberStyleSettings.SetEnabled(false);
+            yield return Measure("idle", 3f, null);
+            yield return Wait(1f);
+            foreach (var (label, styled) in new[] { ("dot-legacy-1", false), ("dot-styled-1", true), ("dot-legacy-2", false), ("dot-styled-2", true) })
+            {
+                DamageNumberStyleSettings.SetEnabled(styled);
+                Inject(WeaponElement.Fire, weaponId, source, 5);
+                yield return Wait(.7f); // popups ramp up to a steady count
+                yield return Measure(label, 4f, MeleeElementStatusAuraType.Burning); // burn lasts 5 s, ends inside it
+                ClearStatuses();
+                yield return Wait(1.5f); // let the last popups expire before the next look
+            }
+        }
+        finally
+        {
+            DamageNumberStyleSettings.SetEnabled(original);
+            popups.Clear();
+        }
+    }
     public static void RunProfile(string output) { SessionState.SetString(Key + ".mode", "profile"); Run(output); }
     // Same, but the status is applied from EditorApplication.update (the RunSpike path) and the Editor loop is profiled too.
     public static void RunProfileEditor(string output) { SessionState.SetString(Key + ".mode", "profile-editor"); Run(output); }
@@ -470,6 +516,7 @@ public static class BurnAuraCrowdPerfProbe
             yield return Wait(3f);
 
             if (SessionState.GetString(Key + ".mode", "") == "spike") { yield return Spike(weaponId, player.gameObject); yield break; }
+            if (SessionState.GetString(Key + ".mode", "") == "dot") { yield return DotCrowd(weaponId, player.gameObject); yield break; }
             if (SessionState.GetString(Key + ".mode", "") == "profile") { yield return ProfileFirstFire(weaponId, player.gameObject, false); yield break; }
             if (SessionState.GetString(Key + ".mode", "") == "profile-editor") { yield return ProfileFirstFire(weaponId, player.gameObject, true); yield break; }
             yield return Measure("idle", 4f, null);

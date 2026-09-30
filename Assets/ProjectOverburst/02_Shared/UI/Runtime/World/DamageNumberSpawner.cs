@@ -97,6 +97,12 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             return;
 
         DamageNumberPopup popup = spawner.GetPopup();
+        if (popup != null && DamageNumberStyleSettings.Enabled)
+        {
+            DamageNumberStyleRequest request = DamageNumberStyles.Classify(info, spawner.NextElectricChainCount(info));
+            popup.InitializeStyled(displayDamage, request, presentationPosition, spawner.ReleasePopup);
+            return;
+        }
         if (popup != null)
         {
             popup.Initialize(
@@ -120,6 +126,8 @@ public sealed class DamageNumberSpawner : MonoBehaviour
 
         int shown = 0;
         float depth = Mathf.Max(4f, camera.nearClipPlane + 1f);
+        if (DamageNumberStyleSettings.Enabled)
+            return PreviewStyles(spawner, camera, depth);
         for (int i = 0; i < PreviewAmounts.Length; i++)
         {
             Vector3 position = camera.ViewportToWorldPoint(new Vector3(.39f + i * .075f, .62f, depth));
@@ -135,6 +143,56 @@ public sealed class DamageNumberSpawner : MonoBehaviour
 #else
         return 0;
 #endif
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // 디버그 창 "다시 보기": 종류별 연출을 한 줄로 늘어놓는다.
+    private static readonly DamageNumberStyleRequest[] PreviewStyleRequests =
+    {
+        new DamageNumberStyleRequest(DamageNumberKind.Normal, WeaponElement.None, false),
+        new DamageNumberStyleRequest(DamageNumberKind.Critical, WeaponElement.None, true),
+        new DamageNumberStyleRequest(DamageNumberKind.DamageOverTime, WeaponElement.Fire, false),
+        new DamageNumberStyleRequest(DamageNumberKind.Discharge, WeaponElement.Fire, false),
+        new DamageNumberStyleRequest(DamageNumberKind.Discharge, WeaponElement.Ice, false),
+        new DamageNumberStyleRequest(DamageNumberKind.Discharge, WeaponElement.Electric, false, 4),
+        new DamageNumberStyleRequest(DamageNumberKind.Discharge, WeaponElement.Dark, false),
+        new DamageNumberStyleRequest(DamageNumberKind.Discharge, WeaponElement.Light, false),
+    };
+    private static readonly int[] PreviewStyleAmounts = { 187, 426, 12, 1240, 980, 312, 540, 760 };
+
+    private static int PreviewStyles(DamageNumberSpawner spawner, Camera camera, float depth)
+    {
+        int shown = 0;
+        for (int i = 0; i < PreviewStyleRequests.Length; i++)
+        {
+            Vector3 position = camera.ViewportToWorldPoint(new Vector3(.2f + i * .085f, .62f, depth));
+            if (!spawner.CanPresent(position))
+                continue;
+            DamageNumberPopup popup = spawner.GetPopup();
+            if (popup == null)
+                break;
+            popup.InitializeStyled(PreviewStyleAmounts[i], PreviewStyleRequests[i], position, spawner.ReleasePopup);
+            shown++;
+        }
+        return shown;
+    }
+#endif
+
+    // 감전 방출이 튕겨 가며 연달아 맞히면 이름 옆에 ×N을 붙인다. 0.3초 안에 이어진 번개 방출 피해를 한 연쇄로 센다.
+    private const float ElectricChainWindow = .3f;
+    private float lastElectricDischargeTime = -10f;
+    private int electricChainCount;
+
+    private int NextElectricChainCount(in DamageInfo info)
+    {
+        if (info.element != WeaponElement.Electric || info.isDamageOverTime
+            || (info.playerAttackKind & PlayerAttackKind.Elemental) == 0
+            || (info.playerAttackKind & (PlayerAttackKind.Weak | PlayerAttackKind.Heavy)) != 0)
+            return 0;
+        float now = Time.unscaledTime;
+        electricChainCount = now - lastElectricDischargeTime <= ElectricChainWindow ? electricChainCount + 1 : 1;
+        lastElectricDischargeTime = now;
+        return electricChainCount;
     }
 
     public static Color ResolveDamageNumberColor(DamageInfo info)
@@ -248,7 +306,10 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             return;
 
         DamageNumberPopup popup = spawner.GetPopup();
-        if (popup != null)
+        if (popup != null && DamageNumberStyleSettings.Enabled)
+            popup.InitializeStyled(displayHeal, new DamageNumberStyleRequest(DamageNumberKind.Heal, WeaponElement.None, false),
+                presentationPosition, spawner.ReleasePopup, "+" + Mathf.RoundToInt(displayHeal));
+        else if (popup != null)
             popup.InitializeCustom("+" + Mathf.RoundToInt(displayHeal), new Color(0.18f, 1f, 0.28f, 1f), presentationPosition, 24f, spawner.ReleasePopup);
     }
 
@@ -262,7 +323,10 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             return;
 
         DamageNumberPopup popup = spawner.GetPopup();
-        if (popup != null)
+        if (popup != null && DamageNumberStyleSettings.Enabled)
+            popup.InitializeStyled(displayDamage, new DamageNumberStyleRequest(DamageNumberKind.PlayerHit, WeaponElement.None, false),
+                presentationPosition, spawner.ReleasePopup, "-" + Mathf.RoundToInt(displayDamage));
+        else if (popup != null)
             popup.InitializeCustom("-" + Mathf.RoundToInt(displayDamage), new Color(1f, 0.16f, 0.12f, 1f), presentationPosition, 24f, spawner.ReleasePopup);
     }
 

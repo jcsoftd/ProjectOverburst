@@ -33,6 +33,9 @@ public sealed class DamageNumberFeelDebugUI : MonoBehaviour
     private UnityAction sizeCycleAction;
     private UnityAction previewAction;
     private UnityAction collapseAction;
+    private UnityAction styleAction;
+    private Button styleButton;
+    private TextMeshProUGUI styleLabel;
     private Image panelBackground;
     private bool detailsExpanded = true;
 
@@ -96,7 +99,39 @@ public sealed class DamageNumberFeelDebugUI : MonoBehaviour
         sizeCycleButton.onClick.AddListener(sizeCycleAction);
         previewAction = Preview;
         previewButton.onClick.AddListener(previewAction);
+        AddStyleToggle();
         Refresh();
+    }
+
+    // 2026-09-30: 종류별 연출 켜기/끄기(이전 연출과 바로 비교하는 스위치). 프리팹은 그대로 두고
+    // 실행 중에 "다시 보기" 버튼을 복제해 머리글 아래에 붙인다. 머리글과 패널은 그만큼 위로 늘린다.
+    private void AddStyleToggle()
+    {
+        const float Height = 30f, Gap = 6f;
+        var root = transform as RectTransform;
+        var header = collapseButton.transform as RectTransform;
+        if (root == null || header == null)
+            return;
+        float slotY = header.anchoredPosition.y;
+        root.sizeDelta += new Vector2(0f, Height + Gap);
+        header.anchoredPosition += new Vector2(0f, Height + Gap);
+
+        styleButton = Instantiate(previewButton, contentRoot.transform, false);
+        styleButton.name = "Style Toggle";
+        var rect = (RectTransform)styleButton.transform;
+        rect.anchoredPosition = new Vector2(8f, slotY);
+        rect.sizeDelta = new Vector2(220f, Height);
+        styleButton.onClick.RemoveAllListeners();
+        styleLabel = styleButton.GetComponentInChildren<TextMeshProUGUI>(true);
+        styleAction = ToggleStyles;
+        styleButton.onClick.AddListener(styleAction);
+    }
+
+    private void ToggleStyles()
+    {
+        DamageNumberStyleSettings.Toggle();
+        Refresh();
+        Preview();
     }
 
     private void OnEnable() => Refresh();
@@ -122,6 +157,8 @@ public sealed class DamageNumberFeelDebugUI : MonoBehaviour
             sizeCycleButton.onClick.RemoveListener(sizeCycleAction);
         if (collapseButton != null && collapseAction != null)
             collapseButton.onClick.RemoveListener(collapseAction);
+        if (styleButton != null && styleAction != null)
+            styleButton.onClick.RemoveListener(styleAction);
     }
 
     private void ToggleDetails()
@@ -226,6 +263,10 @@ public sealed class DamageNumberFeelDebugUI : MonoBehaviour
                     + DamageNumberPopup.WeightLabel(DamageNumberPopup.SelectedWeight) + "·"
                     + DamageNumberPopup.SizeLabel(DamageNumberPopup.SelectedSize) + " ▼"
                 : "데미지 숫자 ▶";
+        if (styleLabel != null)
+            styleLabel.text = DamageNumberStyleSettings.Enabled ? "종류별 연출: 켜짐 (신규)" : "종류별 연출: 꺼짐 (기존)";
+        if (styleButton != null)
+            Highlight(styleButton, DamageNumberStyleSettings.Enabled);
     }
 
     private static bool ValidGroup(Button[] buttons, TextMeshProUGUI[] labels, int count) =>
