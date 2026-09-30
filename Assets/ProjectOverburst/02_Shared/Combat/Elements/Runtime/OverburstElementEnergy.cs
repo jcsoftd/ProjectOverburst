@@ -34,6 +34,8 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         health = GetComponent<CombatHealth>();
         if (equipment != null) equipment.WeaponSlotsChanged += SyncWeapon;
         if (health != null) { health.OnDead += Died; health.OnReset += ResetHealth; }
+        // 60D 빛: 광휘 중첩 동안 플레이어 몸 발광(HolyAura 변형).
+        if (equipment != null && GetComponent<LightRadianceAuraPresenter>() == null) gameObject.AddComponent<LightRadianceAuraPresenter>();
         SyncWeapon();
     }
     private void OnDisable()
