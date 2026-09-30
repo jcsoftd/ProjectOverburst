@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -32,7 +33,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
     private const float GridHorizontalMargin = 8f;
     private const float CameraSectionWidth = 404f;
     private const float PlaybackSectionMinWidth = 420f;
-    private const float ViewPlaybackSectionHeight = 132f;
+    private const float ViewPlaybackSectionHeight = 160f; // 재생 칸 4줄(제어·배속·시간·이동)
     private const float MinPreviewSectionHeight = 140f;
     private const float PreviewSectionInnerOffset = 40f;
     private const float PreviewLayoutSlack = 16f;
@@ -61,6 +62,16 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
     private const float MinCameraPitch = -85f;
     private const float MaxCameraPitch = 85f;
     private const double PlayingPreviewTickInterval = 1d / 60d;
+    private const float MotionPathPointSpacing = 0.05f; // 드래그 경로 기록 간격(m)
+    private const int MotionPathMaxPoints = 2048;
+    private const float MotionDefaultReplaySpeed = 6f; // 왕복 기본 속도(m/s)
+    private const float MinMotionReplaySpeed = 0.2f;
+    private const float MaxMotionReplaySpeed = 60f;
+    private const float MinMotionReplayPathLength = 0.1f;
+    private const float MaxMotionOffset = 200f;
+    private const float MotionTurnSharpness = 18f; // 진행 방향으로 도는 빠르기
+    private const float MotionToggleWidth = 64f;
+    private const int MaxTrailProxyPoints = 512;
     private static readonly Vector2 MinimumWindowSize = new Vector2(860f, 480f);
 
     private static readonly ViewPreset[] ViewPresets =
@@ -126,6 +137,25 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
     private double lastUpdateTime;
     private double lastRepaintTime;
 
+    // 드래그 이동 미리보기: VFX 루트를 원점에서 옮긴 양과 그린 경로(원점 기준 오프셋)
+    private static readonly int MotionDragControlHint = "JcVfxPreviewMotionDrag".GetHashCode();
+    private Vector3 motionOffset;
+    private Vector3 motionLastTickOffset;
+    private Quaternion motionRotation = Quaternion.identity;
+    private bool motionDragging;
+    private Plane motionDragPlane;
+    private Vector3 motionDragGrabOffset;
+    private float motionClock; // 배속이 반영된 미리보기 시계. 트레일 수명 계산에 씀
+    private bool motionReplay = true;
+    private bool motionFaceDirection = true;
+    private float motionReplaySpeed = MotionDefaultReplaySpeed;
+    private float motionReplayDistance;
+    private readonly List<Vector3> motionPath = new List<Vector3>();
+    private readonly List<float> motionPathCumulative = new List<float>();
+    private float motionPathLength;
+    private readonly List<TrailProxy> trailProxies = new List<TrailProxy>();
+    private Vector3[] motionPathScreenBuffer = Array.Empty<Vector3>();
+
     private GUIStyle headerTitleStyle;
     private GUIStyle headerMetaStyle;
     private GUIStyle sectionStyle;
@@ -166,6 +196,16 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
     private void OnSelectionChange()
     {
         TryUseSelection();
+        Repaint();
+    }
+
+    private void OnLostFocus()
+    {
+        if (!motionDragging)
+            return;
+
+        GUIUtility.hotControl = 0;
+        EndMotionDrag();
         Repaint();
     }
 
@@ -412,6 +452,50 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
             GUILayout.Space(RowGap);
             GUILayout.Label(playbackTime.ToString("0.00") + " / " + playbackDuration.ToString("0.00") + "초", footerStyle, GUILayout.Width(112f), GUILayout.Height(ControlHeight));
         }
+
+        EditorGUILayout.Space(4f);
+        DrawMotionControls();
+    }
+
+    private void DrawMotionControls()
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.Label(new GUIContent("이동", "미리보기 칸에서 좌클릭 드래그로 VFX를 옮깁니다."), fieldLabelStyle, GUILayout.Width(FieldLabelWidth));
+
+            if (GUILayout.Button(new GUIContent("원점", "VFX를 원점으로 되돌리고 그린 경로를 지웁니다."), compactButtonStyle, GUILayout.Width(CameraOptionButtonWidth), GUILayout.Height(ControlHeight)))
+            {
+                ResetMotion();
+                Repaint();
+            }
+
+            bool nextReplay = GUILayout.Toggle(motionReplay, new GUIContent("경로 재생", "드래그를 놓으면 그린 경로를 따라 처음부터 반복해서 날립니다."), compactButtonStyle, GUILayout.Width(MotionToggleWidth), GUILayout.Height(ControlHeight));
+            if (nextReplay != motionReplay)
+            {
+                motionReplay = nextReplay;
+                if (HasReplayablePath())
+                    RestartMotionReplayPass();
+                Repaint();
+            }
+
+            bool nextFaceDirection = GUILayout.Toggle(motionFaceDirection, new GUIContent("진행 방향", "움직이는 방향으로 VFX의 앞(+Z)을 돌립니다."), compactButtonStyle, GUILayout.Width(MotionToggleWidth), GUILayout.Height(ControlHeight));
+            if (nextFaceDirection != motionFaceDirection)
+            {
+                motionFaceDirection = nextFaceDirection;
+                EnforcePreviewOrigin();
+                Repaint();
+            }
+
+            GUILayout.Space(RowGap);
+            GUILayout.Label(new GUIContent("속도", "경로 재생 속도(m/s). 어둠 탄막 비행은 14."), fieldLabelStyle, GUILayout.Width(28f));
+            EditorGUI.BeginChangeCheck();
+            float nextSpeed = EditorGUILayout.FloatField(motionReplaySpeed, GUILayout.Width(40f), GUILayout.Height(ControlHeight));
+            if (EditorGUI.EndChangeCheck() && !float.IsNaN(nextSpeed) && !float.IsInfinity(nextSpeed))
+                motionReplaySpeed = Mathf.Clamp(nextSpeed, MinMotionReplaySpeed, MaxMotionReplaySpeed);
+
+            GUILayout.Label("m/s", footerStyle, GUILayout.Width(26f), GUILayout.Height(ControlHeight));
+            GUILayout.FlexibleSpace();
+        }
     }
 
     private void DrawPlaybackSpeedButton(string label, float speed)
@@ -449,11 +533,13 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
                 }
                 else
                 {
+                    HandlePreviewMotionInput(rect);
                     HandlePreviewCameraInput(rect);
                     Texture previewTexture = Event.current.type == EventType.Repaint ? RenderPreviewTexture(rect) : null;
                     if (previewTexture != null)
                         GUI.DrawTexture(rect, previewTexture, ScaleMode.ScaleToFit, false);
 
+                    DrawMotionPathOverlay(rect);
                     DrawCameraAxisOverlay(rect);
                     DrawPreviewInteractionOverlay(rect);
 
@@ -488,7 +574,8 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
             + "  ·  Y " + previewHeightOffset.ToString("0.##")
             + "  ·  " + playbackTime.ToString("0.00") + " / " + playbackDuration.ToString("0.00") + "초"
             + "  ·  " + playbackSpeed.ToString("0.##") + "×"
-            + (hasLoopingParticles ? "  ·  반복" : "  ·  원샷");
+            + (hasLoopingParticles ? "  ·  반복" : "  ·  원샷")
+            + "  ·  " + BuildMotionStatusText();
         string diagnosticsText = "Renderer " + renderers.Length
             + "   |   Particle " + particleSystems.Length
             + "   |   표시 " + visibleParticleCount + " / " + liveParticleCount;
@@ -575,7 +662,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         }
 
         previewInstance.name = PreviewInstancePrefix + selectedPrefab.name;
-        previewInstance.transform.SetPositionAndRotation(new Vector3(0f, previewHeightOffset, 0f), Quaternion.identity);
+        previewInstance.transform.SetPositionAndRotation(ResolveMotionPosition(), ResolveMotionRotation()); // 그린 경로는 프리팹을 바꿔도 유지
         previewInstance.transform.localScale = Vector3.one;
         previewInstance.SetActive(true);
         SetHideFlagsRecursive(previewInstance, HideFlags.HideAndDontSave);
@@ -584,6 +671,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         particleSystems = previewInstance.GetComponentsInChildren<ParticleSystem>(true);
         rootParticleSystems = ResolveRootParticleSystems(particleSystems);
         renderers = previewInstance.GetComponentsInChildren<Renderer>(true);
+        BuildTrailProxies();
         PrepareParticleSystemsForManualPreview();
         ResolvePlaybackDuration();
 
@@ -722,7 +810,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         for (int i = 0; i < renderers.Length; i++)
         {
             Renderer renderer = renderers[i];
-            if (renderer == null)
+            if (!IsFramingRenderer(renderer))
                 continue;
 
             if (!hasBounds)
@@ -754,7 +842,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         for (int i = 0; i < renderers.Length; i++)
         {
             Renderer renderer = renderers[i];
-            if (renderer == null)
+            if (!IsFramingRenderer(renderer))
                 continue;
 
             if (!hasBounds)
@@ -773,6 +861,16 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
 
         frameCenter = hasBounds ? bounds.center : previewCenter;
         frameRadius = hasBounds ? Mathf.Max(bounds.extents.magnitude, 0.5f) : Mathf.Max(previewRadius, 1f);
+    }
+
+    // 빛 모듈만 쓰는 입자처럼 아무것도 그리지 않는 렌더러는 경계가 수십 m로 잡혀 카메라를 멀리 밀어내므로 뺀다.
+    private static bool IsFramingRenderer(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        return !(renderer is ParticleSystemRenderer particleRenderer)
+            || particleRenderer.renderMode != ParticleSystemRenderMode.None;
     }
 
     private static ParticleSystem[] ResolveRootParticleSystems(ParticleSystem[] systems)
@@ -839,7 +937,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
 
         if (isPlaying)
         {
-            AdvancePlayback(deltaTime);
+            StepPlayback(deltaTime);
             changed = true;
         }
 
@@ -848,6 +946,16 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         lastUpdateTime = now;
         if (changed)
             Repaint();
+    }
+
+    private void StepPlayback(float deltaTime)
+    {
+        float scaledDeltaTime = deltaTime * Mathf.Max(0.01f, playbackSpeed);
+        motionClock += scaledDeltaTime;
+        AdvanceMotionReplay(scaledDeltaTime);
+        UpdateMotionFacing(scaledDeltaTime);
+        AdvancePlayback(deltaTime);
+        UpdateTrailProxies();
     }
 
     private void AdvancePlayback(float deltaTime)
@@ -862,6 +970,14 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
             if (loopPlayback)
             {
                 float wrappedTime = nextTime % playbackDuration;
+                if (hasLoopingParticles && IsMotionPreviewActive())
+                {
+                    // 움직이는 중에 처음부터 다시 시뮬레이션하면 월드 입자 궤적이 끊기므로 이어서 진행
+                    AdvanceParticles(scaledDeltaTime);
+                    playbackTime = wrappedTime;
+                    return;
+                }
+
                 ScrubParticlesToTime(wrappedTime);
                 playbackTime = wrappedTime;
                 return;
@@ -882,6 +998,9 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
 
     private void RestartParticlePreview(bool playImmediately)
     {
+        if (HasReplayablePath())
+            PlaceAtMotionReplayStart();
+
         playbackTime = 0f;
         ResetParticleSystems();
         isPlaying = playImmediately;
@@ -947,6 +1066,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         }
 
         restartSimulationOnNextAdvance = true;
+        ClearTrailProxyPoints();
         RefreshLiveParticleCount();
     }
 
@@ -997,9 +1117,12 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         if (previewInstance == null)
             return;
 
-        Vector3 previewPosition = new Vector3(0f, previewHeightOffset, 0f);
-        if (previewInstance.transform.position != previewPosition)
-            previewInstance.transform.position = previewPosition;
+        // 드래그 이동 미리보기: 원점 대신 이동한 위치와 진행 방향을 강제한다.
+        Vector3 previewPosition = ResolveMotionPosition();
+        Quaternion previewRotation = ResolveMotionRotation();
+        Transform previewTransform = previewInstance.transform;
+        if (previewTransform.position != previewPosition || previewTransform.rotation != previewRotation)
+            previewTransform.SetPositionAndRotation(previewPosition, previewRotation);
     }
 
     private void RefreshLiveParticleCount()
@@ -1155,6 +1278,521 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         }
     }
 
+    // ---- 드래그 이동 미리보기 (2026-10-01) ----
+    // 좌클릭 드래그로 VFX 루트를 옮긴다. 파티클은 옮긴 위치에서 이어서 시뮬레이션되어 월드 공간 입자가 궤적을 남긴다.
+    // TrailRenderer는 편집 모드에서 시간이 흐르지 않아 궤적이 남지 않으므로, 같은 재질·폭·색의 LineRenderer 대역이 대신 그린다.
+    private void HandlePreviewMotionInput(Rect rect)
+    {
+        Event current = Event.current;
+        if (current == null || previewUtility == null)
+            return;
+
+        int controlId = GUIUtility.GetControlID(MotionDragControlHint, FocusType.Passive, rect);
+        switch (current.GetTypeForControl(controlId))
+        {
+            case EventType.MouseDown:
+                if (current.button != 0 || !rect.Contains(current.mousePosition))
+                    return;
+
+                if (!BeginMotionDrag(rect, current.mousePosition, current.shift))
+                    return;
+
+                GUIUtility.hotControl = controlId;
+                current.Use();
+                Repaint();
+                break;
+
+            case EventType.MouseDrag:
+                if (GUIUtility.hotControl != controlId)
+                    return;
+
+                ContinueMotionDrag(rect, current.mousePosition);
+                current.Use();
+                Repaint();
+                break;
+
+            case EventType.MouseUp:
+                if (GUIUtility.hotControl != controlId || current.button != 0)
+                    return;
+
+                GUIUtility.hotControl = 0;
+                EndMotionDrag();
+                current.Use();
+                Repaint();
+                break;
+        }
+    }
+
+    // groundPlane(Shift): 바닥과 나란한 면에서 끈다. 기본은 화면과 나란한 면이라 커서를 그대로 따라간다.
+    private bool BeginMotionDrag(Rect rect, Vector2 mousePosition, bool groundPlane)
+    {
+        if (previewUtility == null || previewInstance == null)
+            return false;
+
+        UpdatePreviewCameraTransform();
+        Ray ray = ResolvePreviewRay(rect, mousePosition);
+        Vector3 position = ResolveMotionPosition();
+        Vector3 cameraForward = previewUtility.camera.transform.forward;
+        bool useGround = groundPlane && Mathf.Abs(cameraForward.y) > 0.2f;
+        motionDragPlane = useGround ? new Plane(Vector3.up, position) : new Plane(-cameraForward, position);
+        if (!motionDragPlane.Raycast(ray, out float enter))
+            return false;
+
+        motionDragGrabOffset = position - ray.GetPoint(enter);
+        motionDragging = true;
+        motionPath.Clear();
+        motionPathCumulative.Clear();
+        motionPathLength = 0f;
+        motionReplayDistance = 0f;
+        motionLastTickOffset = motionOffset;
+        AppendMotionPathPoint(motionOffset);
+
+        if (!isPlaying)
+        {
+            if (playbackTime >= playbackDuration - 0.0001f)
+                RestartParticlePreview(true); // 끝난 원샷은 처음부터 다시 틀어 움직임을 보여 준다
+            else
+                isPlaying = true;
+
+            ResetPreviewClock();
+        }
+
+        return true;
+    }
+
+    private void ContinueMotionDrag(Rect rect, Vector2 mousePosition)
+    {
+        if (!motionDragging || previewUtility == null)
+            return;
+
+        Ray ray = ResolvePreviewRay(rect, mousePosition);
+        if (!motionDragPlane.Raycast(ray, out float enter))
+            return;
+
+        Vector3 origin = new Vector3(0f, previewHeightOffset, 0f);
+        motionOffset = Vector3.ClampMagnitude(ray.GetPoint(enter) + motionDragGrabOffset - origin, MaxMotionOffset);
+        AppendMotionPathPoint(motionOffset);
+    }
+
+    private void EndMotionDrag()
+    {
+        if (!motionDragging)
+            return;
+
+        motionDragging = false;
+        if (motionPath.Count > 0 && (motionPath[motionPath.Count - 1] - motionOffset).sqrMagnitude > 0.000001f)
+            AddMotionPathPoint(motionOffset);
+
+        if (HasReplayablePath())
+            RestartMotionReplayPass();
+    }
+
+    private void EndMotionDragState()
+    {
+        if (motionDragging && GUIUtility.hotControl != 0)
+            GUIUtility.hotControl = 0;
+
+        motionDragging = false;
+    }
+
+    private void ResetMotion()
+    {
+        EndMotionDragState();
+        motionPath.Clear();
+        motionPathCumulative.Clear();
+        motionPathLength = 0f;
+        motionReplayDistance = 0f;
+        motionOffset = Vector3.zero;
+        motionLastTickOffset = Vector3.zero;
+        motionRotation = Quaternion.identity;
+
+        if (previewInstance != null)
+            RestartParticlePreview(true); // 먼 곳에서 원점으로 순간 이동한 자국이 남지 않게 새로 시작
+    }
+
+    private void AppendMotionPathPoint(Vector3 offset)
+    {
+        if (motionPath.Count == 0)
+        {
+            AddMotionPathPoint(offset);
+            return;
+        }
+
+        if ((offset - motionPath[motionPath.Count - 1]).sqrMagnitude < MotionPathPointSpacing * MotionPathPointSpacing)
+            return;
+
+        AddMotionPathPoint(offset);
+    }
+
+    private void AddMotionPathPoint(Vector3 offset)
+    {
+        if (motionPath.Count >= MotionPathMaxPoints)
+            return;
+
+        float step = motionPath.Count == 0 ? 0f : Vector3.Distance(motionPath[motionPath.Count - 1], offset);
+        motionPath.Add(offset);
+        motionPathCumulative.Add(motionPathLength + step);
+        motionPathLength += step;
+    }
+
+    private bool HasMotionPath()
+    {
+        return motionPath.Count >= 2 && motionPathLength >= MinMotionReplayPathLength;
+    }
+
+    private bool HasReplayablePath()
+    {
+        return motionReplay && !motionDragging && HasMotionPath();
+    }
+
+    private bool IsMotionPreviewActive()
+    {
+        return motionDragging || HasReplayablePath();
+    }
+
+    private void PlaceAtMotionReplayStart()
+    {
+        motionReplayDistance = 0f;
+        motionOffset = motionPath[0];
+        motionLastTickOffset = motionOffset;
+
+        Vector3 direction = SampleMotionPath(Mathf.Min(0.25f, motionPathLength)) - motionPath[0];
+        if (direction.sqrMagnitude > 0.000001f)
+            motionRotation = ResolveFacingRotation(direction);
+    }
+
+    // 경로 처음으로 돌아가 파티클·트레일을 새로 시작한다(끝→처음 순간 이동 자국 방지).
+    private void RestartMotionReplayPass()
+    {
+        PlaceAtMotionReplayStart();
+        playbackTime = 0f;
+        ResetParticleSystems();
+    }
+
+    private void AdvanceMotionReplay(float deltaTime)
+    {
+        if (deltaTime <= 0f || !HasReplayablePath())
+            return;
+
+        float speed = Mathf.Clamp(motionReplaySpeed, MinMotionReplaySpeed, MaxMotionReplaySpeed);
+        motionReplayDistance += speed * deltaTime;
+
+        // 끝에서 트레일이 따라와 사라질 만큼 잠깐 멈춘 뒤 다시 출발
+        float holdDistance = ResolveMotionReplayHoldTime() * speed;
+        if (motionReplayDistance > motionPathLength + holdDistance)
+        {
+            RestartMotionReplayPass();
+            return;
+        }
+
+        motionOffset = SampleMotionPath(motionReplayDistance);
+    }
+
+    private float ResolveMotionReplayHoldTime()
+    {
+        float hold = 0.3f;
+        for (int i = 0; i < trailProxies.Count; i++)
+        {
+            TrailRenderer source = trailProxies[i].Source;
+            if (source != null)
+                hold = Mathf.Max(hold, source.time);
+        }
+
+        return Mathf.Min(hold, 1f);
+    }
+
+    private Vector3 SampleMotionPath(float distance)
+    {
+        int count = motionPath.Count;
+        if (count == 0)
+            return motionOffset;
+
+        if (distance <= 0f)
+            return motionPath[0];
+
+        if (distance >= motionPathLength)
+            return motionPath[count - 1];
+
+        int low = 0;
+        int high = count - 1;
+        while (high - low > 1)
+        {
+            int mid = (low + high) >> 1;
+            if (motionPathCumulative[mid] <= distance)
+                low = mid;
+            else
+                high = mid;
+        }
+
+        float segment = motionPathCumulative[high] - motionPathCumulative[low];
+        float t = segment > 0.000001f ? (distance - motionPathCumulative[low]) / segment : 0f;
+        return Vector3.Lerp(motionPath[low], motionPath[high], t);
+    }
+
+    private void UpdateMotionFacing(float deltaTime)
+    {
+        Vector3 delta = motionOffset - motionLastTickOffset;
+        motionLastTickOffset = motionOffset;
+        if (!motionFaceDirection || deltaTime <= 0f || delta.sqrMagnitude < 0.00000001f)
+            return;
+
+        float blend = 1f - Mathf.Exp(-MotionTurnSharpness * deltaTime);
+        motionRotation = Quaternion.Slerp(motionRotation, ResolveFacingRotation(delta), blend);
+    }
+
+    private static Quaternion ResolveFacingRotation(Vector3 direction)
+    {
+        Vector3 forward = direction.normalized;
+        Vector3 up = Mathf.Abs(forward.y) > 0.98f ? Vector3.forward : Vector3.up;
+        return Quaternion.LookRotation(forward, up);
+    }
+
+    private Vector3 ResolveMotionPosition()
+    {
+        return new Vector3(0f, previewHeightOffset, 0f) + motionOffset;
+    }
+
+    private Quaternion ResolveMotionRotation()
+    {
+        return motionFaceDirection ? motionRotation : Quaternion.identity;
+    }
+
+    private string BuildMotionStatusText()
+    {
+        if (motionDragging)
+            return "끄는 중 " + motionPathLength.ToString("0.0") + "m";
+
+        if (HasMotionPath())
+            return (motionReplay ? "경로 재생 " : "경로 ") + motionPathLength.ToString("0.0") + "m";
+
+        return motionOffset.sqrMagnitude > 0.0001f ? "이동됨" : "고정";
+    }
+
+    // 미리보기 텍스처는 rect를 꽉 채우므로 카메라 화각과 rect 비율로 광선을 직접 계산한다.
+    private Ray ResolvePreviewRay(Rect rect, Vector2 mousePosition)
+    {
+        Camera camera = previewUtility.camera;
+        float aspect = rect.height > 0f ? rect.width / rect.height : 1f;
+        float tanHalf = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float x = ((mousePosition.x - rect.x) / Mathf.Max(1f, rect.width) * 2f - 1f) * tanHalf * aspect;
+        float y = (1f - (mousePosition.y - rect.y) / Mathf.Max(1f, rect.height) * 2f) * tanHalf;
+        Transform cameraTransform = camera.transform;
+        return new Ray(cameraTransform.position, cameraTransform.TransformDirection(new Vector3(x, y, 1f)).normalized);
+    }
+
+    private bool TryProjectToPreview(Rect rect, Vector3 worldPosition, out Vector2 screenPosition)
+    {
+        screenPosition = default;
+        Camera camera = previewUtility.camera;
+        Vector3 local = camera.transform.InverseTransformPoint(worldPosition);
+        if (local.z <= camera.nearClipPlane)
+            return false;
+
+        float aspect = rect.height > 0f ? rect.width / rect.height : 1f;
+        float tanHalf = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float normalizedX = local.x / (local.z * tanHalf * aspect);
+        float normalizedY = local.y / (local.z * tanHalf);
+        screenPosition = new Vector2(
+            rect.x + (normalizedX * 0.5f + 0.5f) * rect.width,
+            rect.y + (0.5f - normalizedY * 0.5f) * rect.height);
+        return true;
+    }
+
+    private void DrawMotionPathOverlay(Rect rect)
+    {
+        if (Event.current.type != EventType.Repaint || previewUtility == null || motionPath.Count < 2)
+            return;
+
+        if (motionPathScreenBuffer.Length < motionPath.Count)
+            motionPathScreenBuffer = new Vector3[Mathf.NextPowerOfTwo(motionPath.Count)];
+
+        Vector3 origin = new Vector3(0f, previewHeightOffset, 0f);
+        Handles.BeginGUI();
+        Color previousColor = Handles.color;
+        Handles.color = new Color(0.45f, 0.85f, 1f, 0.5f);
+
+        int runCount = 0;
+        for (int i = 0; i < motionPath.Count; i++)
+        {
+            if (TryProjectToPreview(rect, origin + motionPath[i], out Vector2 screen) && rect.Contains(screen))
+            {
+                motionPathScreenBuffer[runCount++] = new Vector3(screen.x, screen.y, 0f);
+                continue;
+            }
+
+            DrawMotionPathRun(runCount);
+            runCount = 0;
+        }
+
+        DrawMotionPathRun(runCount);
+        if (TryProjectToPreview(rect, origin + motionPath[0], out Vector2 start) && rect.Contains(start))
+            Handles.DrawSolidDisc(new Vector3(start.x, start.y, 0f), Vector3.forward, 3.5f);
+
+        Handles.color = previousColor;
+        Handles.EndGUI();
+    }
+
+    private void DrawMotionPathRun(int count)
+    {
+        if (count >= 2)
+            Handles.DrawAAPolyLine(2f, count, motionPathScreenBuffer);
+    }
+
+    private void BuildTrailProxies()
+    {
+        DestroyTrailProxies();
+        if (previewInstance == null || previewUtility == null)
+            return;
+
+        TrailRenderer[] trails = previewInstance.GetComponentsInChildren<TrailRenderer>(true);
+        for (int i = 0; i < trails.Length; i++)
+        {
+            TrailRenderer trail = trails[i];
+            if (trail == null)
+                continue;
+
+            bool authoredEnabled = trail.enabled;
+            trail.Clear();
+            trail.enabled = false; // 원본은 편집 모드 시간으로 그려 궤적이 남지 않으므로 대역이 대신 그린다
+            if (!authoredEnabled)
+                continue;
+
+            GameObject proxyObject = EditorUtility.CreateGameObjectWithHideFlags(
+                PreviewInstancePrefix + "Trail " + trail.name,
+                HideFlags.HideAndDontSave,
+                typeof(LineRenderer));
+            LineRenderer line = proxyObject.GetComponent<LineRenderer>();
+            CopyTrailStyle(trail, line);
+            previewUtility.AddSingleGO(proxyObject);
+            trailProxies.Add(new TrailProxy(trail, line));
+        }
+    }
+
+    private static void CopyTrailStyle(TrailRenderer trail, LineRenderer line)
+    {
+        line.useWorldSpace = true;
+        line.loop = false;
+        line.positionCount = 0;
+        line.sharedMaterials = trail.sharedMaterials;
+        line.widthCurve = trail.widthCurve;
+        line.widthMultiplier = trail.widthMultiplier;
+        line.colorGradient = trail.colorGradient;
+        line.alignment = trail.alignment;
+        line.textureMode = trail.textureMode;
+        line.textureScale = trail.textureScale;
+        line.numCornerVertices = trail.numCornerVertices;
+        line.numCapVertices = trail.numCapVertices;
+        line.generateLightingData = trail.generateLightingData;
+        line.applyActiveColorSpace = trail.applyActiveColorSpace;
+        line.shadowCastingMode = trail.shadowCastingMode;
+        line.receiveShadows = trail.receiveShadows;
+        line.shadowBias = trail.shadowBias;
+        line.lightProbeUsage = trail.lightProbeUsage;
+        line.reflectionProbeUsage = trail.reflectionProbeUsage;
+        line.renderingLayerMask = trail.renderingLayerMask;
+        line.sortingLayerID = trail.sortingLayerID;
+        line.sortingOrder = trail.sortingOrder;
+        line.maskInteraction = trail.maskInteraction;
+    }
+
+    // TrailRenderer처럼 머리(현재 위치)부터 오래된 점 순서로 잇고, 수명(time)이 지난 점은 버린다.
+    private void UpdateTrailProxies()
+    {
+        for (int i = 0; i < trailProxies.Count; i++)
+        {
+            TrailProxy proxy = trailProxies[i];
+            TrailRenderer source = proxy.Source;
+            LineRenderer line = proxy.Line;
+            if (source == null || line == null)
+                continue;
+
+            float lifetime = Mathf.Max(0.0001f, source.time);
+            int expired = 0;
+            while (expired < proxy.Times.Count && motionClock - proxy.Times[expired] > lifetime)
+                expired++;
+
+            if (expired > 0)
+            {
+                proxy.Points.RemoveRange(0, expired);
+                proxy.Times.RemoveRange(0, expired);
+            }
+
+            bool emitting = source.emitting && source.gameObject.activeInHierarchy;
+            Vector3 head = source.transform.position;
+            if (emitting)
+            {
+                float spacing = Mathf.Max(0.01f, source.minVertexDistance);
+                int last = proxy.Points.Count - 1;
+                if (last < 0 || (head - proxy.Points[last]).sqrMagnitude >= spacing * spacing)
+                {
+                    if (proxy.Points.Count >= MaxTrailProxyPoints)
+                    {
+                        proxy.Points.RemoveAt(0);
+                        proxy.Times.RemoveAt(0);
+                    }
+
+                    proxy.Points.Add(head);
+                    proxy.Times.Add(motionClock);
+                }
+            }
+
+            WriteTrailProxyLine(proxy, head, emitting);
+        }
+    }
+
+    private static void WriteTrailProxyLine(TrailProxy proxy, Vector3 head, bool includeHead)
+    {
+        int required = proxy.Points.Count + 1;
+        if (proxy.Buffer.Length < required)
+            proxy.Buffer = new Vector3[Mathf.NextPowerOfTwo(required)];
+
+        int count = 0;
+        if (includeHead)
+            proxy.Buffer[count++] = head;
+
+        for (int i = proxy.Points.Count - 1; i >= 0; i--)
+        {
+            Vector3 point = proxy.Points[i];
+            if (count > 0 && (proxy.Buffer[count - 1] - point).sqrMagnitude < 0.00000001f)
+                continue;
+
+            proxy.Buffer[count++] = point;
+        }
+
+        if (count < 2)
+        {
+            proxy.Line.positionCount = 0;
+            return;
+        }
+
+        proxy.Line.positionCount = count;
+        proxy.Line.SetPositions(proxy.Buffer); // positionCount 뒤의 칸은 무시됨
+    }
+
+    private void ClearTrailProxyPoints()
+    {
+        for (int i = 0; i < trailProxies.Count; i++)
+        {
+            TrailProxy proxy = trailProxies[i];
+            proxy.Points.Clear();
+            proxy.Times.Clear();
+            if (proxy.Line != null)
+                proxy.Line.positionCount = 0;
+        }
+    }
+
+    private void DestroyTrailProxies()
+    {
+        for (int i = 0; i < trailProxies.Count; i++)
+        {
+            LineRenderer line = trailProxies[i].Line;
+            if (line != null)
+                DestroyImmediate(line.gameObject);
+        }
+
+        trailProxies.Clear();
+    }
+
     private void DrawCameraAxisOverlay(Rect previewRect)
     {
         if (previewUtility == null || previewUtility.camera == null || Event.current.type != EventType.Repaint)
@@ -1196,8 +1834,8 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
         float zoomPercent = DefaultCameraDistanceScale / Mathf.Max(cameraDistanceScale, 0.001f) * 100f;
         string text = GetActiveEnvironmentPreset().Label
             + "  ·  줌 " + zoomPercent.ToString("0") + "%"
-            + "  ·  우클릭 드래그 회전  ·  휠 확대/축소";
-        float width = Mathf.Min(360f, Mathf.Max(220f, previewRect.width - 24f));
+            + "  ·  좌클릭 드래그 이동  ·  우클릭 드래그 회전  ·  휠 확대/축소";
+        float width = Mathf.Min(460f, Mathf.Max(220f, previewRect.width - 24f));
         Rect overlayRect = new Rect(previewRect.x + 12f, previewRect.yMax - 36f, width, 24f);
         EditorGUI.DrawRect(overlayRect, new Color(0.035f, 0.042f, 0.052f, 0.78f));
         GUI.Label(new Rect(overlayRect.x + 10f, overlayRect.y, overlayRect.width - 20f, overlayRect.height), text, previewOverlayStyle);
@@ -1526,6 +2164,8 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
     private void ClearPreviewInstance()
     {
         ClearPreviewFloor();
+        DestroyTrailProxies();
+        EndMotionDragState();
 
         if (previewInstance != null)
         {
@@ -1585,7 +2225,7 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
                 activeRendererCount++;
         }
 
-        return activeRendererCount == 0 ? "켜진 Renderer가 없습니다." : string.Empty;
+        return activeRendererCount == 0 && trailProxies.Count == 0 ? "켜진 Renderer가 없습니다." : string.Empty;
     }
 
     private static void DestroyPreviousPreviewInstances()
@@ -1715,6 +2355,21 @@ public sealed class VfxPrefabPreviewWindow : EditorWindow
             normal = { textColor = new Color(0.95f, 0.88f, 0.62f, 1f) }
         };
         GUI.Label(messageRect, text, style);
+    }
+
+    private sealed class TrailProxy
+    {
+        public TrailProxy(TrailRenderer source, LineRenderer line)
+        {
+            Source = source;
+            Line = line;
+        }
+
+        public TrailRenderer Source { get; }
+        public LineRenderer Line { get; }
+        public List<Vector3> Points { get; } = new List<Vector3>(); // 오래된 점 → 새 점
+        public List<float> Times { get; } = new List<float>();
+        public Vector3[] Buffer { get; set; } = Array.Empty<Vector3>();
     }
 
     private readonly struct ViewPreset
