@@ -304,6 +304,14 @@ public static class DebugHubPlayVerifier
         Check("hub exists", DebugHub.Instance != null);
         Check("window closed at start", !DebugHub.IsOpen);
         Check("no gameplay block before open", !GameplayInputBlocker.IsGameplayInputBlocked);
+        // 4단계: 옛 HUD 디버그 버튼 묶음과 분대 오버레이는 숨겨지고, 기존 검증기가 쓰는 컴포넌트는 남아 있다.
+        var oldOverlay = Object.FindFirstObjectByType<EnemySquadDebugOverlayUI>(FindObjectsInactive.Include);
+        var oldPanel = Object.FindFirstObjectByType<DebugPanelToggleUI>(FindObjectsInactive.Include);
+        var oldTheme = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        Check("old squad overlay hidden", oldOverlay != null && !oldOverlay.gameObject.activeInHierarchy);
+        Check("old debug panel button hidden", oldPanel != null && !oldPanel.gameObject.activeInHierarchy);
+        Check("old theme panel hidden but kept for verifiers", oldTheme != null && !oldTheme.gameObject.activeInHierarchy);
+        yield return Shot("hideout_without_old_debug_ui");
         string[] expected =
         {
             "player.survival.damageReduction", "combat.display.attackPattern", "combat.display.aimLine",

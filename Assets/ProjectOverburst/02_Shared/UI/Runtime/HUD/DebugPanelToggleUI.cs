@@ -36,7 +36,19 @@ public class DebugPanelToggleUI : MonoBehaviour
         }
         RegisterButton();
         SetExpanded(startsExpanded);
+        // 2026-10-01: 옛 디버그 버튼 묶음은 디버그 창(F1)으로 옮겼다(90C 4단계). 펼치는 버튼만 숨기고,
+        // 기존 검증기가 쓰는 SetExpanded·하위 오브젝트는 그대로 둔다. 되돌리려면 이 줄을 지운다.
+        if (ReplacedByDebugHub)
+        {
+            SetExpanded(false);
+            if (toggleButton != null)
+                toggleButton.gameObject.SetActive(false);
+            if (label != null)
+                label.gameObject.SetActive(false);
+        }
     }
+
+    private const bool ReplacedByDebugHub = true;
 
     private void OnDestroy()
     {

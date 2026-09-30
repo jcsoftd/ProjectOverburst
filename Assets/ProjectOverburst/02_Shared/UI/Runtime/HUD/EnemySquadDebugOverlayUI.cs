@@ -10,6 +10,7 @@ public sealed class EnemySquadDebugOverlayUI : MonoBehaviour // 왼쪽 아래 �
     [SerializeField, Min(0.05f)] private float refreshInterval = 0.2f;
     [SerializeField] private bool showInEditorOrDevelopmentBuild = true;
 
+    private const bool ReplacedByDebugHub = true;
     private readonly StringBuilder builder = new StringBuilder(256);
     private float nextRefreshTime;
 
@@ -90,6 +91,10 @@ public sealed class EnemySquadDebugOverlayUI : MonoBehaviour // 왼쪽 아래 �
 
     private bool IsDebugUiAllowed()
     {
+        // 2026-10-01: 디버그 창 핀 오버레이가 같은 값(적·AI 탭 실시간 집계, 기본 핀)을 보여 주므로 숨긴다(90C 4단계).
+        // 씬 오브젝트 삭제는 PersistentScene 정리 때 한다. 되돌리려면 이 줄을 지운다.
+        if (ReplacedByDebugHub)
+            return false;
         if (!showInEditorOrDevelopmentBuild)
             return false;
 
