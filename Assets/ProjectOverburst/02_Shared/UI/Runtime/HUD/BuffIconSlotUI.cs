@@ -39,6 +39,7 @@ public sealed class BuffIconSlotUI : MonoBehaviour
 
         ConfigureImage(baseImage, icon, baseColor, Image.Type.Simple);
         ConfigureImage(fillImage, icon, fillColor, Image.Type.Filled);
+        ApplyExpireBlink(instance);
 
         if (fillImage != null)
         {
@@ -62,6 +63,26 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             baseImage.enabled = visible;
         if (fillImage != null)
             fillImage.enabled = visible;
+    }
+
+    // 2026-09-30: 끝나기 3초 전부터 깜빡이고, 마지막 1초는 더 빠르게 깜빡여 곧 사라진다는 것을 알린다.
+    public const float ExpireWarningSeconds = 3f;
+
+    public static float ExpireBlinkAlpha(float remaining, float duration)
+    {
+        if (duration <= ExpireWarningSeconds || remaining > ExpireWarningSeconds || remaining <= 0f)
+            return 1f;
+        float hz = remaining > 1f ? 2.5f : 5f;
+        return .3f + .7f * Mathf.Abs(Mathf.Cos(Time.unscaledTime * Mathf.PI * hz));
+    }
+
+    private void ApplyExpireBlink(BuffInstance instance)
+    {
+        float alpha = ExpireBlinkAlpha(instance.RemainingTime, instance.Definition.duration);
+        if (alpha >= 1f)
+            return;
+        if (baseImage != null) { Color c = baseImage.color; c.a *= alpha; baseImage.color = c; }
+        if (fillImage != null) { Color c = fillImage.color; c.a *= alpha; fillImage.color = c; }
     }
 
     private void BindVisuals()

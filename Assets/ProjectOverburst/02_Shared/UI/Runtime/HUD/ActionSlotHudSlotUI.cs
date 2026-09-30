@@ -14,7 +14,25 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         flaskTooltip?.ShowTooltip(tooltipItem);
     }
     public void OnPointerExit(PointerEventData eventData) { flaskTooltip?.HideTooltip(); }
-    private void OnDisable() { flaskTooltip?.HideTooltip(); }
+    private void OnDisable() { flaskTooltip?.HideTooltip(); EndReadyFlash(); }
+
+    // 2026-09-30: 쿨다운이 끝나 다시 쓸 수 있게 된 순간 슬롯을 한 번 번쩍이고 작은 소리를 낸다.
+    private const float ReadyFlashSeconds = .38f;
+    private static readonly Color ReadyFlashColor = new Color(1f, .9f, .55f, 1f);
+    private Image readyFlash;
+    private object cooldownOwner;
+    private float lastCooldownRemaining;
+    private float readyFlashStartedAt = -1f;
+
+    private void Update()
+    {
+        if (readyFlashStartedAt < 0f) return;
+        float t = (Time.unscaledTime - readyFlashStartedAt) / ReadyFlashSeconds;
+        if (t >= 1f) { EndReadyFlash(); return; }
+        float fade = (1f - t) * (1f - t);
+        if (readyFlash != null) { Color c = ReadyFlashColor; c.a = .85f * fade; readyFlash.color = c; }
+        if (itemIcon != null) itemIcon.rectTransform.localScale = Vector3.one * (1f + .18f * fade);
+    }
     private static readonly Color SlotBackgroundColor = Color.white;
     private static readonly Color KeyTextColor = new Color(0.9f, 0.94f, 1f, 0.95f);
     private static readonly Color ActiveKeyTextColor = new Color(0.36f, 0.82f, 1f, 1f);
@@ -123,7 +141,9 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         if (cooldownOverlay != null && remaining > 0f)
         {
             cooldownOverlay.gameObject.SetActive(true);
-            cooldownOverlay.color = new Color(.12f,.6f,.42f,.27f);
+            // 효과가 끝나기 3초 전부터 버프 아이콘과 같은 규칙으로 깜빡인다.
+            float blink = BuffIconSlotUI.ExpireBlinkAlpha(remaining, stats.duration);
+            cooldownOverlay.color = new Color(.12f,.6f,.42f,.27f * blink);
             cooldownOverlay.type = Image.Type.Filled;
             cooldownOverlay.fillMethod = Image.FillMethod.Vertical;
             cooldownOverlay.fillOrigin = 0;
@@ -133,6 +153,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         {
             cooldownText.gameObject.SetActive(true);
             cooldownText.text = FormatCooldownText(remaining);
+            cooldownText.alpha = BuffIconSlotUI.ExpireBlinkAlpha(remaining, stats.duration);
         }
     }
 
@@ -168,10 +189,18 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     {
         BindVisuals();
 
+        float remaining = Mathf.Max(0f, remainingSeconds);
+        // 같은 물건의 쿨다운이 0으로 떨어진 프레임만 "다시 사용 가능"으로 본다(비우기·교체는 제외).
+        object owner = hasDisplayedItem ? (displayedSkill != null ? (object)displayedSkill : displayedBaseData) : null;
+        bool becameReady = owner != null && ReferenceEquals(owner, cooldownOwner)
+            && lastCooldownRemaining > 0f && remaining <= 0f;
+        cooldownOwner = owner;
+        lastCooldownRemaining = remaining;
+        if (becameReady) PlayReadyFlash();
+
         if (cooldownOverlay == null)
             return;
 
-        float remaining = Mathf.Max(0f, remainingSeconds);
         bool active = remaining > 0f;
         EnsureCooldownOverlayRect();
         cooldownOverlay.color = CooldownOverlayColor;
@@ -191,6 +220,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         {
             cooldownText.gameObject.SetActive(active);
             cooldownText.text = active ? FormatCooldownText(remaining) : string.Empty;
+            cooldownText.alpha = 1f;
             cooldownText.transform.SetAsLastSibling();
         }
         if (activeBorder != null && activeBorder.activeSelf)
@@ -446,6 +476,39 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             return Mathf.CeilToInt(remaining).ToString() + "s";
 
         return remaining.ToString("0.0") + "s";
+    }
+
+    private void PlayReadyFlash()
+    {
+        if (!isActiveAndEnabled) return;
+        if (readyFlash == null) readyFlash = CreateReadyFlash();
+        readyFlash.gameObject.SetActive(true);
+        readyFlash.transform.SetAsLastSibling();
+        readyFlashStartedAt = Time.unscaledTime;
+        CombatActionSfxService.PlayQuickSlotReady();
+    }
+
+    private void EndReadyFlash()
+    {
+        readyFlashStartedAt = -1f;
+        if (readyFlash != null) readyFlash.gameObject.SetActive(false);
+        if (itemIcon != null) itemIcon.rectTransform.localScale = Vector3.one;
+    }
+
+    private Image CreateReadyFlash()
+    {
+        var flashObject = new GameObject("ReadyFlash", typeof(RectTransform));
+        flashObject.transform.SetParent(transform, false);
+        var rect = (RectTransform)flashObject.transform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(4f, 4f);
+        rect.offsetMax = new Vector2(-4f, -4f);
+        var image = flashObject.AddComponent<Image>();
+        image.raycastTarget = false;
+        image.color = Color.clear;
+        flashObject.SetActive(false);
+        return image;
     }
 
 }

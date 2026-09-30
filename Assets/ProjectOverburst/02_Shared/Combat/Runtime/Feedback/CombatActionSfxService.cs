@@ -13,7 +13,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
         "GreatswordLight01", "GreatswordLight02", "GreatswordLight03", "GreatswordLight04",
         "GreatswordHeavySwing", "GreatswordGround01", "GreatswordGround_EarthExplosion1", "GreatswordGround_EarthExplosion2",
         "OrganicHit01", "OrganicHit02", "OrganicHit03", "ParryClash_ImpactRinging", "ParryWindowPing_MetallicRingLong",
-        "PlayerEvadeCloth", "ElementEnergyFull"
+        "PlayerEvadeCloth", "ElementEnergyFull", "QuickSlotReady"
     };
 
     private static CombatActionSfxService instance;
@@ -141,6 +141,17 @@ public sealed class CombatActionSfxService : MonoBehaviour
     // A24: 원소 에너지 게이지가 100%에 처음 닿은 순간 1회. 전투음 사이에서 튀지 않게 낮게 둔다.
     public static bool PlayElementEnergyFull(Vector3 position) => EnsureInstance()
         && instance.Play(14, position, 0f, 0.45f, 2f, 20f, 60);
+
+    // 2026-09-30: 물약·퀵슬롯 쿨다운이 끝나 다시 쓸 수 있게 된 순간 1회(2D). 여러 칸이 같은 순간 풀려도 한 번만 낸다.
+    // 음원은 임시(InfinityPBR Generic_Buff_1_M), 청음 후 교체.
+    private float nextQuickSlotReadyAt;
+    public static bool PlayQuickSlotReady()
+    {
+        if (!EnsureInstance() || Time.unscaledTime < instance.nextQuickSlotReadyAt) return false;
+        bool played = instance.Play(15, instance.transform.position, 0f, 0.35f, 2f, 20f, 90);
+        if (played) instance.nextQuickSlotReadyAt = Time.unscaledTime + .12f;
+        return played;
+    }
 
     private static CombatActionSfxCatalog directClips;
     private static bool directClipsLoaded;
