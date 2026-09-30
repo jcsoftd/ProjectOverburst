@@ -89,7 +89,7 @@ public sealed class CombatImpactFeel : MonoBehaviour
             flash.startRotation = shape == CombatImpactShape.Downward ? Mathf.PI * .5f : 0;
             foreach (var feedback in selectedSlot.player.FeedbacksList)
                 if (feedback is MMF_Particles effect && effect.BoundParticleSystem == selectedSlot.criticalFlash)
-                    effect.Active = critical || lethal;
+                    effect.Active = lethal; // 2026-09-30: 치명타 추가 섬광은 끄고 처치 섬광만 남긴다.
         }
         selectedSlot.player.Initialization(true);
         selectedSlot.player.PlayFeedbacks(point, Mathf.Clamp(lethal ? intensity * 1.12f : intensity, .5f, 1.3f));

@@ -47,8 +47,9 @@ public class CombatVfx : MonoBehaviour // 전투 VFX 연결: 치명타 섬광·�
     {
         if (info.isDamageOverTime || !info.triggersOnHitEffects)
             return;
-        if (info.isCritical)
-            PlayCritical(info); // 치명타 공용 섬광: 원소 타격 VFX와 별개로 한 번
+        // 2026-09-30: 사용자 요청으로 치명타 추가 섬광(VFX_CritHit)을 끈다. 다시 켜려면 아래 주석을 푼다.
+        // if (info.isCritical)
+        //     PlayCritical(info); // 치명타 공용 섬광: 원소 타격 VFX와 별개로 한 번
     }
 
     private void PlayCritical(DamageInfo info)
