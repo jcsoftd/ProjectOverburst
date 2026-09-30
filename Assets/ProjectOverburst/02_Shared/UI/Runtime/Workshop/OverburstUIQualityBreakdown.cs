@@ -30,6 +30,13 @@ public static class OverburstUIQualityBreakdown
                 bool points=effect==FlaskEffect.AttackSpeed||effect==FlaskEffect.AttackRadius||effect==FlaskEffect.CritChance||effect==FlaskEffect.CritDamage;
                 unit=effect==FlaskEffect.HealPerSecond?"%/초":points?"%p":"%";deltaUnit=effect==FlaskEffect.HealPerSecond?"%p/초":"%p";
             }
+        }else if(item.baseData is GearItemData){
+            // 2026-10-01 방어구·장신구: 같은 행을 각인 없이 계산한 값과 비교한다(GearQuality.BaseValue).
+            GearStatRoll roll=item.gearRolls?.FirstOrDefault(r=>r!=null&&SimpleItemTooltipBuilder.GearStatLabel(r.stat)==label);if(roll==null)return false;
+            effectPrefix=true;before=GearQuality.BaseValue(item,roll);after=GearQuality.Value(item,roll);positive=after>=before;
+            bool flat=roll.stat==GearStat.MaxHealth||roll.stat==GearStat.Armor||roll.stat==GearStat.Attack;
+            bool points=roll.stat==GearStat.CriticalChance||roll.stat==GearStat.AttackSpeed||roll.stat==GearStat.CriticalDamage;
+            unit=flat?"":points?"%p":"%";deltaUnit=flat?"":"%p";
         }else return false;
         float delta=after-before;
         string number(float value)=>value.ToString("0.##",CultureInfo.InvariantCulture);

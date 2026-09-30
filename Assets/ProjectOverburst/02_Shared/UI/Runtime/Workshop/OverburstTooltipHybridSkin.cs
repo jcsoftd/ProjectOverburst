@@ -21,6 +21,19 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private const float ValueColumnWidth = 160f;
     private const float MarksColumnX = 244f;
     private const float MarksColumnWidth = 136f;
+    // 2026-10-01 장착 무기 비교: 폭은 그대로 두고, 다른 무기와 비교할 때만 값 칸을 줄여 값과 품질 각인 사이에 "장착 대비" 열을 넣는다.
+    private const float CompareValueWidth = 122f;
+    private const float CompareColumnX = 196f;
+    private const float CompareColumnWidth = 54f;
+    private const float CompareMarksColumnX = 256f;
+    private const float CompareMarksColumnWidth = 124f;
+    private const float SecondaryCompareWidth = 56f;
+    // 방어구·장신구는 소수 둘째 자리 %p까지 보여 장착 대비가 더 길고, 각인이 6개까지 차 각인 칸이 꽉 찬다.
+    // 값 칸을 줄이고 장착 대비 열을 넓혀 왼쪽으로 옮겨, 각인과 12px 이상 떨어뜨린다(열 오른쪽 끝 244, 제목도 같은 끝).
+    private const float GearCompareValueWidth = 102f;
+    private const float GearCompareColumnX = 176f;
+    private const float GearCompareColumnWidth = 68f;
+    private const string LostStatColor = "#8C857C";
     private static readonly Regex Tags = new Regex("<[^>]+>", RegexOptions.Compiled);
     private static readonly Regex NumericRow = new Regex(@"^(.{1,14}?)\s*:?\s+([(+\-−]?\d.*)$", RegexOptions.Compiled);
     private static readonly Regex Stars = new Regex(@"(?:<color=([^>]+)>)?[★◆]+(?:</color>)?", RegexOptions.Compiled);
@@ -33,6 +46,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         public TextMeshProUGUI label;
         public TextMeshProUGUI value;
         public TextMeshProUGUI marks;
+        public TextMeshProUGUI compare; // 프리팹에 비교 오브젝트가 없으면 null(비교 없이 기존 화면)
     }
 
     private sealed class Stat
@@ -42,6 +56,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         public string delta;
         public string marks;
         public bool improved;
+        public string compare; // 이 행의 장착 대비를 직접 정할 때(빠지는 능력치 행). null이면 라벨로 찾는다.
     }
 
     private RectTransform panel;
@@ -66,11 +81,24 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private TextMeshProUGUI footer;
     private Row[] rows;
     private bool resolved;
+    private TextMeshProUGUI compareHeading;
+    private GameObject equippedTag;
+    private bool compareReady;
+    private EquippedWeaponComparison.Result comparison;
+    private bool compareColumns;
+
+    // Auto = 장착 무기와 비교, EquippedReference = Alt 나란히 보기의 "장착 중" 쪽.
+    public TooltipCompareMode CompareMode { get; set; }
 
     public bool TryPresent(ItemData item, string priceOverride, string[] rawLines, TextMeshProUGUI legacyBody)
     {
         if (item == null || !item.baseData || !Resolve())
             return false;
+
+        comparison = compareReady && (item.baseData is WeaponItemData || item.baseData is GearItemData)
+            ? EquippedWeaponComparison.Compare(item, CompareMode) : null;
+        compareColumns = comparison != null && comparison.IsComparable;
+        if (equippedTag) equippedTag.SetActive(comparison != null && comparison.IsEquippedItem);
 
         Color rarity = TooltipTone(item.grade);
         glow.color = new Color(rarity.r, rarity.g, rarity.b, .18f);
@@ -98,13 +126,25 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         SetRect(headerRule.rectTransform, 26f, ruleY, ContentWidth, 1f);
 
         HideStructuredContent();
+        float contentTop = ruleY + 19f;
         if (item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData)
         {
             List<Stat> stats = new List<Stat>(12);
             string notes = string.Empty;
             bool isFlask = item.baseData is FlaskItemData;
             if (item.baseData is GearItemData)
+            {
                 CollectGearStats(item, rawLines, stats);
+                // 바꿔 끼면 빠지는 능력치: 보조능력치 끝에 흐린 행으로 붙이고 장착 대비에 ▼를 보인다.
+                if (compareColumns && stats.Count > 0)
+                    foreach (EquippedWeaponComparison.StatDelta lost in comparison.Lost)
+                        stats.Add(new Stat
+                        {
+                            label = "<color=" + LostStatColor + ">" + lost.Label + "</color>",
+                            value = "<color=" + LostStatColor + ">없음</color>",
+                            delta = string.Empty, marks = string.Empty, compare = lost.Text
+                        });
+            }
             else if (isFlask)
                 CollectFlaskStats(item, rawLines, stats, out notes);
             else
@@ -113,12 +153,12 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             if (stats.Count > 0 && stats.Count <= RowCapacity)
             {
                 legacyBody.enabled = false;
-                RenderStats(item, isFlask, stats, notes, priceOverride, ruleY, legacyBody.spriteAsset);
+                RenderStats(item, isFlask, stats, notes, priceOverride, contentTop, legacyBody.spriteAsset);
                 return true;
             }
         }
 
-        RenderFallback(legacyBody, ruleY);
+        RenderFallback(legacyBody, contentTop);
         return true;
     }
 
@@ -156,7 +196,8 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
                 root = root,
                 label = Find<TextMeshProUGUI>(path + "/Label"),
                 value = Find<TextMeshProUGUI>(path + "/Value"),
-                marks = Find<TextMeshProUGUI>(path + "/Marks")
+                marks = Find<TextMeshProUGUI>(path + "/Marks"),
+                compare = Find<TextMeshProUGUI>(path + "/Compare")
             };
             if (!rows[i].label || !rows[i].value || !rows[i].marks) return false;
         }
@@ -164,7 +205,13 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             primaryHeading && qualityHeading && secondaryHeading && secondaryRule &&
             priceLabel && priceValue && priceRule && footer && footerRule &&
             outerEdges.All(x => x) && innerEdges.All(x => x) && badgeEdges.All(x => x);
-        return resolved;
+        if (!resolved) return false;
+        // 비교 오브젝트는 TooltipCompareObjectizer가 저작한다. 없으면 비교만 끄고 기존 화면을 그대로 쓴다.
+        compareHeading = Find<TextMeshProUGUI>("Approved Content/Compare Heading");
+        Transform tag = transform.Find("Equipped Tag");
+        equippedTag = tag != null ? tag.gameObject : null;
+        compareReady = compareHeading && rows.All(x => x.compare);
+        return true;
     }
 
     private T Find<T>(string path) where T : Component
@@ -212,16 +259,24 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         priceRule.gameObject.SetActive(false);
         footer.gameObject.SetActive(false);
         footerRule.gameObject.SetActive(false);
-        foreach (Row row in rows) row.root.gameObject.SetActive(false);
+        foreach (Row row in rows)
+        {
+            row.root.gameObject.SetActive(false);
+            if (row.compare) row.compare.gameObject.SetActive(false);
+        }
+        if (compareHeading) compareHeading.gameObject.SetActive(false);
     }
 
     private void RenderStats(ItemData item, bool isFlask, List<Stat> stats, string notes,
-        string priceOverride, float ruleY, TMP_SpriteAsset spriteAsset)
+        string priceOverride, float contentTop, TMP_SpriteAsset spriteAsset)
     {
         bool isGear = item.baseData is GearItemData;
+        bool isWeapon = item.baseData is WeaponItemData;
+        // 무기·장비는 품질 각인 변화를 값 아래 줄로 내린다(물약과 같은 두 줄, 행 높이 41).
+        bool twoLine = isFlask || isWeapon || isGear;
         int primaryCount = Mathf.Min(isGear ? 1 : isFlask ? 2 : 5, stats.Count);
-        float rowHeight = isFlask ? 41f : 34f;
-        float y = ruleY + 19f;
+        float rowHeight = twoLine ? 41f : 34f;
+        float y = contentTop;
         primaryHeading.text = isFlask && item.baseData is FlaskItemData flask &&
             (flask.kind == FlaskKind.Life || flask.kind == FlaskKind.Regeneration)
             ? "회복 성능" : isFlask ? "주요 효과" : isGear ? "주능력치" : "전투 성능";
@@ -230,11 +285,18 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         SetRect(qualityHeading.rectTransform, 286f, y, 120f, 24f);
         primaryHeading.gameObject.SetActive(true);
         qualityHeading.gameObject.SetActive(true);
+        if (compareColumns)
+        {
+            compareHeading.text = "장착 대비";
+            float headingRight = isGear ? GearCompareColumnX + GearCompareColumnWidth : CompareColumnX + CompareColumnWidth;
+            SetRect(compareHeading.rectTransform, 26f + headingRight - 70f, y, 70f, 24f);
+            compareHeading.gameObject.SetActive(true);
+        }
         y += 31f;
 
         for (int i = 0; i < primaryCount; i++)
         {
-            y += RenderRow(rows[i], stats[i], isFlask, y, rowHeight, spriteAsset);
+            y += RenderRow(rows[i], stats[i], isFlask, isGear, twoLine, false, y, rowHeight, spriteAsset);
         }
         if (stats.Count > primaryCount)
         {
@@ -248,7 +310,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             y += 30f;
             for (int i = primaryCount; i < stats.Count; i++)
             {
-                y += RenderRow(rows[i], stats[i], isFlask, y, rowHeight, spriteAsset);
+                y += RenderRow(rows[i], stats[i], isFlask, isGear, twoLine, isWeapon, y, rowHeight, spriteAsset);
             }
         }
 
@@ -285,7 +347,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         panel.sizeDelta = new Vector2(432f, Mathf.Ceil(y + 25f));
     }
 
-    private static float RenderRow(Row view, Stat stat, bool isFlask, float y, float baseHeight,
+    private float RenderRow(Row view, Stat stat, bool isFlask, bool isGear, bool twoLine, bool rightAligned, float y, float baseHeight,
         TMP_SpriteAsset spriteAsset)
     {
         MatchCollection sprites = SpriteMark.Matches(stat.marks);
@@ -295,13 +357,24 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         SetRect(view.root, 26f, y, ContentWidth, height);
         view.label.text = stat.label;
         view.value.text = stat.value;
-        if (!string.IsNullOrEmpty(stat.delta) && stat.delta != "—")
+        bool hasDelta = !string.IsNullOrEmpty(stat.delta) && stat.delta != "—";
+        if (hasDelta)
         {
             string tint = stat.improved ? "#9BC8A7" : "#E29A8E";
             string delta = "<size=80%><color=" + tint + ">(" + stat.delta + ")</color></size>";
-            view.value.text += isFlask ? "\n" + delta : " " + delta;
+            view.value.text += twoLine ? "\n" + delta : " " + delta;
         }
-        SetRect(view.value.rectTransform, ValueColumnX, 0f, ValueColumnWidth, 40f);
+        // 모든 행: 이름·값·장착 대비·품질 각인을 행 높이의 가운데에 맞춘다(두 줄 행은 최소 40).
+        // 각인이 두 줄로 넘어가 행이 높아지면 그 높이의 가운데에 모두 맞춘다.
+        float lineBox = twoLine ? Mathf.Max(40f, height) : height;
+        SetRect(view.label.rectTransform, 0f, 0f, 140f, lineBox);
+        // 무기 보조 성능은 품질 각인 칸이 없으므로 값과 장착 대비를 오른쪽 끝(가치 줄과 같은 끝)에 붙인다.
+        float compareX = rightAligned ? ContentWidth - SecondaryCompareWidth : isGear ? GearCompareColumnX : CompareColumnX;
+        float compareWidth = rightAligned ? SecondaryCompareWidth : isGear ? GearCompareColumnWidth : CompareColumnWidth;
+        float valueRight = rightAligned
+            ? (compareColumns ? compareX - 4f : ContentWidth)
+            : ValueColumnX + (!compareColumns ? ValueColumnWidth : isGear ? GearCompareValueWidth : CompareValueWidth);
+        SetRect(view.value.rectTransform, ValueColumnX, 0f, valueRight - ValueColumnX, lineBox);
         view.value.fontSize = 15f;
         if (isFlask)
         {
@@ -309,7 +382,22 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             if (valueWidth > 155f) view.value.fontSize = Mathf.Max(12f, 15f * 155f / valueWidth);
         }
         view.marks.spriteAsset = spriteAsset;
-        SetRect(view.marks.rectTransform, MarksColumnX, 0f, MarksColumnWidth, height + 6f);
+        SetRect(view.marks.rectTransform, compareColumns ? CompareMarksColumnX : MarksColumnX, 0f,
+            compareColumns ? CompareMarksColumnWidth : MarksColumnWidth, lineBox);
+        if (view.compare)
+        {
+            string compareText = stat.compare;
+            if (compareText == null && compareColumns
+                && comparison.Stats.TryGetValue(stat.label, out EquippedWeaponComparison.StatDelta delta))
+                compareText = delta.Text;
+            bool show = compareColumns && compareText != null;
+            if (show)
+            {
+                view.compare.text = compareText;
+                SetRect(view.compare.rectTransform, compareX, 0f, compareWidth, lineBox);
+            }
+            view.compare.gameObject.SetActive(show);
+        }
         if (markLines == 1)
             view.marks.text = stat.marks;
         else
@@ -322,9 +410,9 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         return height;
     }
 
-    private void RenderFallback(TextMeshProUGUI body, float ruleY)
+    private void RenderFallback(TextMeshProUGUI body, float contentTop)
     {
-        float y = ruleY + 19f;
+        float y = contentTop;
         primaryHeading.text = "아이템 정보";
         SetRect(primaryHeading.rectTransform, 26f, y, ContentWidth, 24f);
         primaryHeading.gameObject.SetActive(true);
@@ -393,7 +481,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         if (OverburstUIQualityBreakdown.TryGet(item, label, out _, out string exact, out _,
                 out string change, out bool isImproved))
         {
-            value = item.baseData is FlaskItemData ? exact : exact.TrimStart('+');
+            value = item.baseData is FlaskItemData || item.baseData is GearItemData ? exact : exact.TrimStart('+');
             delta = change;
             improved = isImproved;
         }

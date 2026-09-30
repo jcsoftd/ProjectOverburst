@@ -108,7 +108,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         return builder.ToString();
     }
 
-    private static string GearStatLabel(GearStat stat)
+    public static string GearStatLabel(GearStat stat)
     {
         switch (stat)
         {

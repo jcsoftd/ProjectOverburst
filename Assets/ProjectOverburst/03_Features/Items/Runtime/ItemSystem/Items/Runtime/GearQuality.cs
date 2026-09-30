@@ -99,9 +99,14 @@ public static class GearQuality
     }
 
     public static float Value(ItemData item, GearStatRoll row)
+        => row != null ? ValueAt(item, row, row.Weight) : 0f;
+
+    // 2026-10-01 툴팁 각인 상승분: 같은 행을 각인 없이(가중치 0) 계산한 값. Value와 같은 규칙·반올림을 쓴다.
+    public static float BaseValue(ItemData item, GearStatRoll row) => ValueAt(item, row, 0f);
+
+    private static float ValueAt(ItemData item, GearStatRoll row, float w)
     {
         if (item == null || row == null || !(item.baseData is GearItemData data)) return 0f;
-        float w = row.Weight;
         if (row.stat == data.MainStat && item.gearRolls != null
             && item.gearRolls.Count > 0 && ReferenceEquals(item.gearRolls[0], row))
         {

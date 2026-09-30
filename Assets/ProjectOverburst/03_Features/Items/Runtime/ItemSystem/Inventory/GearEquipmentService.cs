@@ -37,7 +37,8 @@ public static class GearEquipmentService
         return false;
     }
 
-    private static int DefaultSlot(GearKind kind, PlayerEquipment equipment)
+    // 툴팁 장착 대비(EquippedWeaponComparison)도 "두 번 클릭하면 바꿔 낄 칸"을 이 규칙으로 찾는다.
+    public static int DefaultSlot(GearKind kind, PlayerEquipment equipment)
     {
         if (kind != GearKind.Earring) return kind == GearKind.Necklace ? 6 : (int)kind;
         return equipment.GetGearSlotItem(4) == null ? 4 : equipment.GetGearSlotItem(5) == null ? 5 : 4;

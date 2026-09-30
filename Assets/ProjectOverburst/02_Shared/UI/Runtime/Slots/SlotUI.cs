@@ -38,6 +38,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     private Image contextSelectionOverlay;
     private TextMeshProUGUI newItemMarker; // 신규 획득 표시
     private TextMeshProUGUI stackCountText; // 스택 수 표시
+    private TextMeshProUGUI compareMarker; // 2026-10-01 장착품보다 나은 무기(단일 DPS)·방어구·장신구(주능력치) ▲
 
     public int SlotIndex { get; private set; }
     public bool IsWeaponSlot { get; private set; }
@@ -50,6 +51,17 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     private void Awake()
     {
         EnsureInitialized();
+    }
+
+    private void OnEnable()
+    {
+        EquippedWeaponComparison.EquippedChanged += RefreshCompareMarker;
+        RefreshCompareMarker();
+    }
+
+    private void OnDisable()
+    {
+        EquippedWeaponComparison.EquippedChanged -= RefreshCompareMarker;
     }
 
     public void Init(ISlotInteractionBridge bridge, int slotIndex, bool isWeaponSlot)
@@ -98,6 +110,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         RefreshBackgroundVisual();
 
         RefreshActiveWeaponBorder();
+        RefreshCompareMarker();
     }
 
     public void SetNewItemMarker(bool visible)
@@ -135,6 +148,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         RefreshStackCount(DisplayItem);
 
         RefreshActiveWeaponBorder();
+        RefreshCompareMarker();
     }
 
     public void SetDragOverlay(SlotDragOverlayState state)
@@ -258,6 +272,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         EnsureDragOverlay();
         EnsureContextSelectionOverlay();
         EnsureNewItemMarker();
+        EnsureCompareMarker();
         EnsureStackCountText();
         EnsureActiveWeaponBorder();
         RefreshActiveWeaponBorder();
@@ -276,6 +291,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
                 continue;
 
             if (candidate.gameObject.name == "StackCountText")
+                continue;
+
+            if (candidate.gameObject.name == "CompareMarker")
                 continue;
 
             return candidate;
@@ -312,6 +330,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         RefreshBackgroundVisual();
 
         RefreshActiveWeaponBorder();
+        RefreshCompareMarker();
     }
 
     private string GetInfoText(ItemData item)
@@ -589,6 +608,55 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         overlayObject.transform.SetAsLastSibling();
         if (lockedOverlay != null)
             lockedOverlay.transform.SetAsLastSibling();
+    }
+
+    // 2026-10-01 장착 무기 비교: 왼쪽 위 작은 초록 ▲. 기존 신규 표시와 같은 방식으로 슬롯에 붙이고 이름이 있으면 재사용한다.
+    private void EnsureCompareMarker()
+    {
+        if (compareMarker != null)
+            return;
+
+        TMPro.TMP_FontAsset font = EquippedWeaponComparison.CompareFont;
+        if (font == null)
+            return;
+
+        Transform existing = transform.Find("CompareMarker");
+        GameObject markerObject = existing != null ? existing.gameObject : new GameObject("CompareMarker", typeof(RectTransform));
+        markerObject.transform.SetParent(transform, false);
+
+        compareMarker = markerObject.GetComponent<TextMeshProUGUI>();
+        if (compareMarker == null)
+            compareMarker = markerObject.AddComponent<TextMeshProUGUI>();
+
+        compareMarker.font = font;
+        compareMarker.text = "▲";
+        compareMarker.color = new Color(0.56f, 0.84f, 0.56f, 1f);
+        compareMarker.fontSize = 18f;
+        compareMarker.alignment = TextAlignmentOptions.Center;
+        compareMarker.raycastTarget = false;
+
+        RectTransform rect = markerObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(7f, -6f);
+        rect.sizeDelta = new Vector2(18f, 18f);
+
+        markerObject.SetActive(false);
+        markerObject.transform.SetAsLastSibling();
+        if (lockedOverlay != null)
+            lockedOverlay.transform.SetAsLastSibling();
+    }
+
+    private void RefreshCompareMarker()
+    {
+        if (compareMarker == null)
+            return;
+
+        bool better = !IsWeaponSlot && !IsLocked && DisplayItem != null
+            && EquippedWeaponComparison.GetVerdict(DisplayItem) == WeaponCompareVerdict.Better;
+        if (compareMarker.gameObject.activeSelf != better)
+            compareMarker.gameObject.SetActive(better);
     }
 
     private void EnsureNewItemMarker()
