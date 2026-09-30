@@ -78,7 +78,14 @@ public partial class MeleeRuntime
             if (!groundReplaced || MeleeElementSfxService.LayersGreatswordGround(activeDischarge))
                 CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
         }
-        if (!hasDischarge) return;
+        if (!hasDischarge)
+        {
+            // 2026-10-01: 원소 무기의 에너지 0 강공은 방출 없이 일반 강공으로 치되, 판정 원은 방출 최소 반경(1.5m) 그대로 둔다.
+            if (OverburstElementRules.IsActive(ResolveActiveAttackElement()))
+                attackPhaseExecutor.OverrideUnstartedCircleRadius(
+                    CombatBalanceFormulas.DischargeRadius(OverburstElementTuning.Current, 0f));
+            return;
+        }
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.ReplacesGreatswordGround(activeDischarge))
             MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center);
         // 60D light: the slam is the triple's 1st hit (overcharged) or the double's 2nd hit, each with its own circle.

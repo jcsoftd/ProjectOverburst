@@ -131,7 +131,8 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     {
         discharge = null;
         if (equipment != null) SyncWeapon();
-        if (!isActiveAndEnabled || (health != null && health.IsDead)
+        // 2026-10-01: 에너지 0 강공은 원소 방출이 없다(원소 추가 효과·착지 VFX·원소 소리 없이 일반 강공으로 친다).
+        if (!isActiveAndEnabled || (health != null && health.IsDead) || !(Amount > 0f)
             || !OverburstElementRules.IsActive(Element) || !OverburstElementTuning.IsFinitePositive(attackDamage)) return false;
         discharge = new OverburstElementDischarge(this, ++generation, Element, WeaponInstanceId, Amount, Normalized, attackDamage,
             RadianceStacks, OverchargeNormalized, IsOvercharged);

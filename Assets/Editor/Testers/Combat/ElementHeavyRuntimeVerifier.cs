@@ -109,6 +109,14 @@ public static class ElementHeavyRuntimeVerifier
             Require(heavyHits[0] == 1 && heavyHits[1] == 1 && heavyHits[2] == 0 && heavyHits[3] == 0,
                 element + amount + " circular hits=" + string.Join(",", heavyHits));
             Require(energy.Amount == 0, "heavy recharged energy");
+            if (amount == 0)
+            {
+                // 2026-10-01: 에너지 0 강공은 방출이 없다. 원소 파생 피해가 없고, 미리 쌓인 상태도 소비하지 않는다.
+                foreach (int hits in secondaryHits) Require(hits == 0, "empty heavy triggered secondary");
+                for (int i = 0; i < 2; i++) Require(targets[i].GetComponent<ElementalStatusController>().HasStatus(element) == prepared, "empty heavy changed status");
+                results.Add("PASS " + element + " E0 prepared=" + prepared + ": no discharge, first=" + string.Join(",", heavyHits) + ", status kept=" + prepared);
+                continue;
+            }
             for (int i = 0; i < 2; i++) Require(!targets[i].GetComponent<ElementalStatusController>().HasStatus(element), "heavy reapplied status");
             if (!prepared)
                 foreach (int hits in secondaryHits) Require(hits == 0, "unprepared target triggered secondary");

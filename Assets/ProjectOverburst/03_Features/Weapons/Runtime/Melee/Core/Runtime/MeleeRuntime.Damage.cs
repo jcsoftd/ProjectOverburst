@@ -18,7 +18,9 @@ public partial class MeleeRuntime
         AttackPhaseData phase = hit.Phase;
         AttackImpactData impact = phase.impact;
         MeleeAttackRuntimeData runtimeData = hit.RuntimeData;
-        WeaponElement attackElement = ResolveActiveAttackElement();
+        // 2026-10-01: 방출 없는 강공(에너지 0)은 원소 타격 VFX·소리·원소 피해 보너스 없이 일반 타격으로 친다.
+        WeaponElement attackElement = activeAttackIsHeavy && activeDischarge == null
+            ? WeaponElement.None : ResolveActiveAttackElement();
         bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
             || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
         int hitActionId = activeActionId;
