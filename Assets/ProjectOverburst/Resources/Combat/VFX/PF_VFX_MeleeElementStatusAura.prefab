@@ -54,7 +54,7 @@ MonoBehaviour:
   shockedAura: {fileID: 792865032845018198}
   chilledAura: {fileID: 4644777838901169227}
   corrodedAura: {fileID: 7010687451071775870}
-  corrodedAuraScale: 0.8
+  corrodedAuraScale: 0.7
 --- !u!1001 &851926515673963544
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -134,6 +134,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5150072966119826026}
     m_Modifications:
+    - target: {fileID: 181795017595943065, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: ShapeModule.radius.value
+      value: 0.18
+      objectReference: {fileID: 0}
+    - target: {fileID: 181795017595943065, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 0.4
+      objectReference: {fileID: 0}
     - target: {fileID: 1474650691444699219, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -229,6 +237,18 @@ PrefabInstance:
     - target: {fileID: 4395201744293421543, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
       propertyPath: InitialModule.startColor.maxGradient.key3.r
       value: 0.06650943
+      objectReference: {fileID: 0}
+    - target: {fileID: 6745254527182917137, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6745254528402879623, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: ShapeModule.radius.value
+      value: 0.006
+      objectReference: {fileID: 0}
+    - target: {fileID: 6745254528402879623, guid: 1114ca94c34f09d4fb7010caa80584ff, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 0.59999996
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
