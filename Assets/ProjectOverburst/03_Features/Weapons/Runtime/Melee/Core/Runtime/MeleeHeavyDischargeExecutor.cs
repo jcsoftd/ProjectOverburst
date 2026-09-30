@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Executes the committed heavy discharge. Derived damage never charges energy or reapplies status.
-// 60D: dark and light follow-ups are owned by DarkGatherBurstScheduler / LightTripleImpactScheduler,
+// 60D: dark and light follow-ups are owned by DarkBarrageScheduler / LightTripleImpactScheduler,
 // so they finish even when the heavy action is cancelled. The temporary dark pull and light afterglow were removed.
 public sealed class MeleeHeavyDischargeExecutor
 {
@@ -114,9 +114,9 @@ public sealed class MeleeHeavyDischargeExecutor
         if (discharge == null || sourceActor == null || sourceTarget == null) return;
         if (discharge.Element == WeaponElement.Dark)
         {
-            // The slam circle is the shared heavy radius; the scheduler widens only the gather circle.
-            DarkGatherBurstScheduler.Submit(discharge, sourceActor, sourceTarget.Team, impactCenter,
-                discharge.Radius, blastVerticalTolerance);
+            // 60D 4 (2026-10-01): the barrage searches heavy radius x 2.5 and is collected before the slam damage.
+            DarkBarrageScheduler.Submit(discharge, sourceActor, sourceTarget.Team, impactCenter,
+                discharge.Radius, blastVerticalTolerance, definition.elementVfx);
             return;
         }
         if (discharge.Element != WeaponElement.Light) return;
@@ -137,12 +137,11 @@ public sealed class MeleeHeavyDischargeExecutor
             if (element == WeaponElement.Dark && !(discharge.Energy > 0f)) return;
             GameObject upper = element == WeaponElement.Light
                 ? definition.elementVfx.GetLightImpact(discharge.LightTriple)
-                : definition.elementVfx.darkGatherBurst;
+                : definition.elementVfx.darkBarrageSlam;
             // Both variants are authored so the full heavy radius matches their largest ring.
             float upperScale = definition.elementVfx.ImpactScale(element, discharge.Radius);
             float speed = element == WeaponElement.Light
-                ? OverburstElementTuning.Current.SafeLightTripleVfxPlaybackSpeed
-                : OverburstElementTuning.Current.SafeDarkVfxPlaybackSpeed;
+                ? OverburstElementTuning.Current.SafeLightTripleVfxPlaybackSpeed : 1f;
             SpawnWithPlayback(upper, impactCenter, FacingRotation(), upperScale, speed);
             // 빛 1타(내려치기)·암흑 내려치기의 공간 왜곡 충격파. 뒤따르는 타·폭발은 각 스케줄러가 낸다.
             float slamRadius = element == WeaponElement.Light

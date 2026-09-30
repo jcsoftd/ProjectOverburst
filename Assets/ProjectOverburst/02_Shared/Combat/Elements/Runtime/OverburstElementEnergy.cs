@@ -287,7 +287,7 @@ public sealed class OverburstElementDischarge
             || !targets.Add(snapshot.Health.GetInstanceID())) return false;
         int consumed = snapshot.Stacks;
         bool shattered = snapshot.Frozen;
-        // Dark corrosion survives the slam: the gather burst consumes it. Light no longer uses enemy status.
+        // Dark corrosion survives the slam: the barrage's first landing shot consumes it. Light no longer uses enemy status.
         bool consumesNow = Element != WeaponElement.Dark && Element != WeaponElement.Light;
         if (!consumesNow) { consumed = 0; shattered = false; }
         else if (snapshot.Status != null && !snapshot.Health.IsDead)

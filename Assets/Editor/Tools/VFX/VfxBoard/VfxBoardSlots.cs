@@ -177,7 +177,10 @@ namespace Overburst.EditorTools.Vfx
                 ("electricChainStart", 2, "연쇄번개 시작", ""),
                 ("electricChainLink", 2, "연쇄번개 연결", ""),
                 ("electricChainProc", 2, "연쇄번개 발동", ""),
-                ("darkGatherBurst", 3, "흡인 폭발", ""),
+                ("darkBarrageSlam", 3, "탄막 내려찍기", "잠식 탄막 강공 착지 1회입니다."),
+                ("darkBarrageProjectile", 3, "탄막 투사체", "탄 1발입니다. 비어 있으면 피해만 들어갑니다."),
+                ("darkBarrageTrail", 3, "탄막 트레일", "탄 뒤를 따라가는 꼬리입니다."),
+                ("darkBarrageHit", 3, "탄막 명중 폭발", "탄이 맞을 때마다 재생합니다."),
                 ("lightTripleImpact", 4, "3연타 충격", "에너지 100 초과일 때입니다."),
                 ("lightDoubleImpact", 4, "2연타 충격", "에너지 100 이하일 때입니다.")
             };

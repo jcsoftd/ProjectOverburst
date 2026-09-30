@@ -450,7 +450,7 @@ public static class DarkVisualCapture
                 Shot(mark.Item2);
             }
             yield return Wait(0.5f);
-            notes.Add("heavy impact " + impact + " up=" + screenUp + " bursts=" + DarkGatherBurstScheduler.BurstCount + " pulled=" + DarkGatherBurstScheduler.LastPulledCount);
+            notes.Add("heavy impact " + impact + " up=" + screenUp + " barrages=" + DarkBarrageScheduler.CastCount + " shots=" + DarkBarrageScheduler.LastShotCount);
         }
         finally
         {

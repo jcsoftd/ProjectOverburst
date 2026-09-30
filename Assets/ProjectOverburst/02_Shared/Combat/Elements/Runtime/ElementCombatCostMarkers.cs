@@ -23,9 +23,9 @@ public static class ElementCombatCostMarkers
     public static readonly Unity.Profiling.ProfilerMarker Pool_StopAndClearParticles = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Pool.StopAndClearParticles");
     public static readonly Unity.Profiling.ProfilerMarker Aura_Restart = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Aura.Restart");
     public static readonly Unity.Profiling.ProfilerMarker Aura_StopClear = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Aura.StopClear");
-    public static readonly Unity.Profiling.ProfilerMarker Dark_Magnet_Tick = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.MagnetTick");
-    public static readonly Unity.Profiling.ProfilerMarker Dark_Gather_Pull = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.GatherPull");
-    public static readonly Unity.Profiling.ProfilerMarker Dark_Gather_Burst = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.GatherBurst");
+    public static readonly Unity.Profiling.ProfilerMarker Dark_Barrage_Collect = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.BarrageCollect");
+    public static readonly Unity.Profiling.ProfilerMarker Dark_Barrage_Tick = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.BarrageTick");
+    public static readonly Unity.Profiling.ProfilerMarker Dark_Barrage_Hit = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Dark.BarrageHit");
     public static readonly Unity.Profiling.ProfilerMarker Light_Overcharge_Tick = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Light.OverchargeTick");
     public static readonly Unity.Profiling.ProfilerMarker Light_TripleImpact_Dispatch = new Unity.Profiling.ProfilerMarker("Overburst.Cost.Light.TripleImpactDispatch");
 }

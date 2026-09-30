@@ -65,7 +65,12 @@ public enum UpperHeavySfxStage
     LightHit2Layer, // 2타와 함께 겹치는 폭발
     LightHit3Layer, // 마지막 타와 함께 겹치는 폭발
     DarkBurstLayer, // 폭발과 함께 겹치는 폭발
-    HeavyLowBoom // 빛 2·3타·암흑 폭발 공용 저음
+    HeavyLowBoom, // 빛 2·3타·암흑 폭발 공용 저음
+    // 2026-10-01 어둠 잠식 탄막(60D 4.6). 발사·명중음은 0.04초 간격 이하로 묶어 낸다.
+    DarkBarrageLaunch,
+    DarkBarrageHit,
+    DarkBarrageFinisherLaunch,
+    DarkBarrageFinisherHit
 }
 
 // 60D 상위 원소 강공 단계음. 암흑 내려치기는 Dark.heavyImpact를 그대로 쓴다.
@@ -97,6 +102,13 @@ public sealed class UpperHeavySfxSettings
     [Tooltip("빛 2·3타와 암흑 폭발에 함께 까는 공용 저음.")]
     public MeleeElementSfxCueSettings heavyLowBoom = new MeleeElementSfxCueSettings();
 
+    [Header("암흑 잠식 탄막 (2026-10-01) — 이전 흡인·생성·폭발 칸은 쓰지 않는다")]
+    public MeleeElementSfxCueSettings darkBarrageLaunch = new MeleeElementSfxCueSettings();
+    public MeleeElementSfxCueSettings darkBarrageHit = new MeleeElementSfxCueSettings();
+    [Tooltip("완충 대형탄 순환이 시작될 때 한 번.")]
+    public MeleeElementSfxCueSettings darkBarrageFinisherLaunch = new MeleeElementSfxCueSettings();
+    public MeleeElementSfxCueSettings darkBarrageFinisherHit = new MeleeElementSfxCueSettings();
+
     public MeleeElementSfxCueSettings Get(UpperHeavySfxStage stage)
     {
         switch (stage)
@@ -113,6 +125,10 @@ public sealed class UpperHeavySfxSettings
             case UpperHeavySfxStage.LightHit3Layer: return lightHit3Layer;
             case UpperHeavySfxStage.DarkBurstLayer: return darkBurstLayer;
             case UpperHeavySfxStage.HeavyLowBoom: return heavyLowBoom;
+            case UpperHeavySfxStage.DarkBarrageLaunch: return darkBarrageLaunch;
+            case UpperHeavySfxStage.DarkBarrageHit: return darkBarrageHit;
+            case UpperHeavySfxStage.DarkBarrageFinisherLaunch: return darkBarrageFinisherLaunch;
+            case UpperHeavySfxStage.DarkBarrageFinisherHit: return darkBarrageFinisherHit;
             default: return null;
         }
     }

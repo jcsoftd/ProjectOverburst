@@ -83,7 +83,7 @@ public sealed class FlaskItemData : ConsumableItemData
                     "번개 방출 피해와 연쇄 탐색 거리를 높입니다. 연쇄 대상 수는 늘지 않습니다."); break;
             case FlaskKind.Dark:
                 Set("암흑 물약", FlaskEffect.DarkGatherRadius, .20f, FlaskEffect.DarkBurstDamage, .25f,
-                    "어둠 무기 강공의 흡인 범위와 흡인 폭발 피해를 높입니다."); break;
+                    "어둠 무기 강공 탄막의 탐색 범위와 탄 피해를 높입니다."); break;
             case FlaskKind.Light:
                 Set("광휘 물약", FlaskEffect.LightRadianceGain, .40f, FlaskEffect.LightTripleImpactDamage, .20f,
                     "빛 무기의 광휘 버프 중첩 획득량과 강공 연타 피해를 높입니다."); break;

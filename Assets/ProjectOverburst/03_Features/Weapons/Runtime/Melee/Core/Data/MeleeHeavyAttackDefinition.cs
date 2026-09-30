@@ -15,8 +15,14 @@ public struct MeleeHeavyElementVfxSet
     [Tooltip("번개 강공 착지 원에 직접 맞은 적마다 발밑에서 재생. Vertical Lightning Purple 프로젝트 변형")]
     public GameObject electricDirectHit;
     [Header("상위 원소 강공 (60D)")]
-    [Tooltip("어둠 흡인 폭발. Demon_Runic_Explotion 프로젝트 변형")]
-    public GameObject darkGatherBurst;
+    [Tooltip("어둠 잠식 탄막 내려찍기(착지 1회). 60D 4.6, 사용자 지정 대기")]
+    public GameObject darkBarrageSlam;
+    [Tooltip("어둠 탄 1발. 비어 있으면 탄이 보이지 않고 피해만 들어간다")]
+    public GameObject darkBarrageProjectile;
+    [Tooltip("어둠 탄 뒤 꼬리. 투사체와 같은 위치를 따라간다")]
+    public GameObject darkBarrageTrail;
+    [Tooltip("어둠 탄 명중 폭발")]
+    public GameObject darkBarrageHit;
     [Tooltip("빛 3연타(에너지 100 초과). Rune_Multi_Impact 프로젝트 변형")]
     public GameObject lightTripleImpact;
     [Tooltip("빛 2연타(에너지 100 이하). 1타를 끈 Rune_Multi_Impact 프로젝트 변형")]
@@ -27,7 +33,7 @@ public struct MeleeHeavyElementVfxSet
     [Min(0.01f)] public float electricImpactRadius;
     [Min(0.01f)] public float iceImpactRadius;
     [Min(0.01f)] public float fireChainRadius;
-    [Tooltip("어둠 변형이 1배율일 때 폭발 원의 XZ 반경")]
+    [Tooltip("어둠 내려찍기 VFX가 1배율일 때 주 폭발의 XZ 반경")]
     [Min(0.01f)] public float darkImpactRadius;
     [Tooltip("빛 변형이 1배율일 때 가장 큰 3타 충격파의 XZ 반경")]
     [Min(0.01f)] public float lightImpactRadius;
@@ -52,7 +58,7 @@ public struct MeleeHeavyElementVfxSet
             case WeaponElement.Fire: return fireImpact;
             case WeaponElement.Ice: return iceImpact;
             case WeaponElement.Electric: return electricImpact;
-            case WeaponElement.Dark: return darkGatherBurst;
+            case WeaponElement.Dark: return darkBarrageSlam;
             case WeaponElement.Light: return lightTripleImpact;
             default: return null;
         }

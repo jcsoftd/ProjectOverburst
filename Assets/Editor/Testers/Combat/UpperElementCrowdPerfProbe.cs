@@ -225,7 +225,7 @@ public static class UpperElementCrowdPerfProbe
         heavyHits = derivedHits = weakHits = casts = 0;
         var before = trackedPrefabs.Select(p => p != null ? TransientVfxPool.GetStatistics(p) : default).ToArray();
         var s = new Sampler();
-        int auraLeasedMax = 0, auraRegisteredMax = 0, magnetMax = 0, magnetMovingMax = 0, darkActiveMax = 0, lightPendingMax = 0;
+        int auraLeasedMax = 0, auraRegisteredMax = 0, barrageShotsMax = 0, barrageLaunchPerFrameMax = 0, darkActiveMax = 0, lightPendingMax = 0;
         float end = Time.time + seconds;
         while (Time.time < end)
         {
@@ -234,9 +234,9 @@ public static class UpperElementCrowdPerfProbe
             s.Sample(segmentAfter != null ? segmentAfter() : "steady");
             auraLeasedMax = Math.Max(auraLeasedMax, MeleeElementStatusAuraVisibilityScheduler.LeasedPresentationCount);
             auraRegisteredMax = Math.Max(auraRegisteredMax, MeleeElementStatusAuraVisibilityScheduler.RegisteredControllerCount);
-            magnetMax = Math.Max(magnetMax, DarkMagnetismSystem.ParticipantCount);
-            magnetMovingMax = Math.Max(magnetMovingMax, DarkMagnetismSystem.LastMovingCount);
-            darkActiveMax = Math.Max(darkActiveMax, DarkGatherBurstScheduler.ActiveCount);
+            barrageShotsMax = Math.Max(barrageShotsMax, DarkBarrageScheduler.ActiveCount > 0 ? DarkBarrageScheduler.LastShotCount : 0);
+            barrageLaunchPerFrameMax = Math.Max(barrageLaunchPerFrameMax, DarkBarrageScheduler.MaxLaunchedInOneFrame);
+            darkActiveMax = Math.Max(darkActiveMax, DarkBarrageScheduler.ActiveCount);
             lightPendingMax = Math.Max(lightPendingMax, LightTripleImpactScheduler.PendingCount);
         }
         int alive = enemies.Count(e => e != null && e.gameObject.activeInHierarchy && !e.Health.IsDead);
@@ -265,7 +265,7 @@ public static class UpperElementCrowdPerfProbe
         {
             count, scenario = name, frames = s.frameMs.Count, seconds, alive, casts, heavyHits, derivedHits, weakHits,
             frameMs = Sum(s.frameMs), cpuMainMs = Sum(s.cpuMs), gpuMs = Sum(s.gpuMs), drawCalls = Sum(s.drawCalls), setPass = Sum(s.setPass), gcBytes = Sum(s.gcBytes),
-            auraLeasedMax, auraRegisteredMax, magnetParticipantsMax = magnetMax, magnetMovingMax, darkGatherActiveMax = darkActiveMax, lightPendingMax,
+            auraLeasedMax, auraRegisteredMax, barrageShotsMax, barrageLaunchPerFrameMax, darkBarrageActiveMax = darkActiveMax, lightPendingMax,
             extra = extra?.Invoke(), pools, markers = MarkerSummary(s, all), segments = segs, worst
         });
         Write("RUNNING " + count + " " + name);
@@ -289,7 +289,7 @@ public static class UpperElementCrowdPerfProbe
     static IEnumerator Settle(MeleeRuntime melee, float seconds)
     {
         float until = Time.time + 6f;
-        while ((melee.IsAttackInProgress || DarkGatherBurstScheduler.ActiveCount > 0 || LightTripleImpactScheduler.PendingCount > 0
+        while ((melee.IsAttackInProgress || DarkBarrageScheduler.ActiveCount > 0 || LightTripleImpactScheduler.PendingCount > 0
                 || ElementChainScheduler.ActiveCastCount > 0) && Time.time < until) yield return null;
         melee.CancelCurrentAttackState();
         yield return Wait(seconds);
@@ -321,8 +321,8 @@ public static class UpperElementCrowdPerfProbe
             var hitCatalog = Resources.Load<MeleeElementHitVfxCatalog>(MeleeElementHitVfxCatalog.ResourcePath);
             hitCatalog.TryResolve(WeaponElement.Light, out var lightHitPrefab); hitCatalog.TryResolve(WeaponElement.Dark, out var darkHitPrefab); hitCatalog.TryResolve(WeaponElement.Fire, out var fireHitPrefab);
             var v = heavyDef.elementVfx;
-            trackedPrefabs = new[] { v.darkGatherBurst, v.lightTripleImpact, v.lightDoubleImpact, v.fireImpact, v.FireChainExplosion, lightHitPrefab, darkHitPrefab, fireHitPrefab };
-            trackedNames = new[] { "darkGatherBurst", "lightTriple", "lightDouble", "fireImpact", "fireChain", "lightHit", "darkHit", "fireHit" };
+            trackedPrefabs = new[] { v.darkBarrageSlam, v.darkBarrageHit, v.lightTripleImpact, v.lightDoubleImpact, v.fireImpact, v.FireChainExplosion, lightHitPrefab, darkHitPrefab, fireHitPrefab };
+            trackedNames = new[] { "darkBarrageSlam", "darkBarrageHit", "lightTriple", "lightDouble", "fireImpact", "fireChain", "lightHit", "darkHit", "fireHit" };
             actor.Health.SetMaxHp(1000000, true);
             ui = UnityEngine.Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include); ui.gameObject.SetActive(true); if (!ui.InArena) ui.ToggleArena();
             yield return null; yield return null;
@@ -392,16 +392,15 @@ public static class UpperElementCrowdPerfProbe
                 Warp(player, origin, Vector3.forward);
                 Inject(WeaponElement.Dark, darkItem.runtimeInstanceId, player.gameObject, 5);
                 Fill(dark); Check(Mathf.Approximately(dark.Amount, 100f), "dark full");
-                int bursts = DarkGatherBurstScheduler.BurstCount; float commit = -1f; int seenBursts = bursts;
+                int barrages = DarkBarrageScheduler.CastCount; float commit = -1f; int hitsBefore = DarkBarrageScheduler.TotalHits;
                 yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "dark heavy " + lastHeavyResult);
                 yield return Measure(count, "dark-heavy", 5f, null, () =>
                 {
                     if (commit < 0 && dark.Amount <= 0f) commit = Time.time;
-                    if (DarkGatherBurstScheduler.BurstCount != seenBursts) { seenBursts = DarkGatherBurstScheduler.BurstCount; return "burst"; }
                     if (commit < 0) return "windup";
                     float t = Time.time - commit;
-                    return t < 0.15f ? "slam" : DarkGatherBurstScheduler.ActiveCount > 0 ? "gather" : "post";
-                }, () => new { bursts = DarkGatherBurstScheduler.BurstCount - bursts, pulled = DarkGatherBurstScheduler.LastPulledCount, burstTargets = DarkGatherBurstScheduler.LastBurstTargetCount, stackSum = DarkGatherBurstScheduler.LastBurstStackSum });
+                    return t < 0.15f ? "slam" : DarkBarrageScheduler.ActiveCount > 0 ? "barrage" : "post";
+                }, () => new { barrages = DarkBarrageScheduler.CastCount - barrages, targets = DarkBarrageScheduler.LastTargetCount, shots = DarkBarrageScheduler.LastShotCount, stackSum = DarkBarrageScheduler.LastStackSum, hits = DarkBarrageScheduler.TotalHits - hitsBefore, maxLaunchPerFrame = DarkBarrageScheduler.MaxLaunchedInOneFrame });
                 yield return Settle(melee, 0.5f); ClearStatuses();
 
                 Warp(player, origin, Vector3.forward); dark.Clear();

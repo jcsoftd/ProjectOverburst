@@ -221,7 +221,10 @@ MonoBehaviour:
     electricChainStart: {fileID: 7885690904474262181, guid: 62a4a728cf7141347bd95022f2e6165a, type: 3}
     electricChainProc: {fileID: 8629265764243855797, guid: 9b1bde879b85497469962ac32ba06867, type: 3}
     electricDirectHit: {fileID: 1036593267667279857, guid: 49dcd52f6bc06d64fb382d8aa20a5c18, type: 3}
-    darkGatherBurst: {fileID: 3620313043609299361, guid: 55a62ceaf32a98d43ba159d67cc18059, type: 3}
+    darkBarrageSlam: {fileID: 0}
+    darkBarrageProjectile: {fileID: 0}
+    darkBarrageTrail: {fileID: 0}
+    darkBarrageHit: {fileID: 0}
     lightTripleImpact: {fileID: 145832084182221218, guid: 2a2f81ba9ca02b8469c73f4b15f5de25, type: 3}
     lightDoubleImpact: {fileID: 3992710165718288159, guid: 2f9d53fcbbdd8b74ca75c8b43666cbb0, type: 3}
     fireImpactRadius: 3.5

@@ -72,6 +72,21 @@ public sealed class OverburstElementState
         return count;
     }
     public bool Expire(float now) => Expire(now, out _);
+    // Removes up to amount stacks without touching the deadline. Freeze-bearing cold is never partially removed.
+    public int Remove(WeaponElement element, int amount, float now)
+    {
+        Expire(now);
+        int index = OverburstElementRules.Index(element);
+        if (index < 0 || index == 1 || amount <= 0 || stacks[index] <= 0) return 0;
+        int removed = Mathf.Min(amount, stacks[index]);
+        stacks[index] -= removed;
+        if (stacks[index] == 0)
+        {
+            expires[index] = 0f;
+            intervals[index] = nextTicks[index] = 0f;
+        }
+        return removed;
+    }
     public bool Expire(float now, out int expiredMask)
     {
         expiredMask = 0;

@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-// Local-only 60D verifier: light radiance/overcharge + triple/double heavy, dark magnet + gather burst.
+// Local-only 60D verifier: light radiance/overcharge + triple/double heavy, dark corrosion barrage (2026-10-01).
 // Runs in an isolated account (OVERBURST_SAVE_DIRECTORY) from PersistentScene and exits Play itself.
 [InitializeOnLoad]
 public static class UpperElementPlayVerifier
@@ -22,9 +22,14 @@ public static class UpperElementPlayVerifier
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
     static UpperElementPlayVerifier() { EditorApplication.playModeStateChanged += State; }
 
-    public static void Run(string output)
+    public static void Run(string output) => Run(output, false);
+    // 2026-10-01: runs only the dark corrosion barrage part (light checks are owned elsewhere).
+    public static void RunDarkOnly(string output) => Run(output, true);
+
+    static void Run(string output, bool darkOnly)
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode, "Already playing");
+        SessionState.SetBool(Key + ".darkOnly", darkOnly);
         Check(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "PersistentScene", "Persistent scene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
@@ -178,6 +183,9 @@ public static class UpperElementPlayVerifier
                 return energy;
             }
             int seq = 20000;
+            float commit = -1, started = 0;
+            if (!SessionState.GetBool(Key + ".darkOnly", false))
+            {
 
             // ---------- L1: light energy, radiance, decay, hold, attack speed ----------
             var light = Equip(WeaponElement.Light);
@@ -196,7 +204,8 @@ public static class UpperElementPlayVerifier
             float decayed = before - light.Amount;
             string decayDiag = $"decayed={decayed} frames={Time.frameCount - frames0} dt={Time.time - t0} real={Time.realtimeSinceStartup - rt0} scale={Time.timeScale} enabled={light.enabled} active={light.isActiveAndEnabled} element={light.Element} amount={light.Amount} energies={player.GetComponentsInChildren<OverburstElementEnergy>(true).Length} rate={tuning.SafeLightOverchargeDecayPerSecond}";
             results.Add(new { goal = "L1-decay-diag", decayDiag });
-            Check(decayed > 2f && decayed < 4f, "Continuous decay ~3/s above 100: " + decayDiag);
+            float expectedDecay = tuning.SafeLightOverchargeDecayPerSecond * (Time.time - t0);
+            Check(Mathf.Abs(decayed - expectedDecay) < expectedDecay * 0.3f, "Continuous decay at the tuning rate above 100: " + decayDiag);
             for (int i = 0; i < 12; i++) light.RecordConfirmedHit(light.WeaponInstanceId, light.Element, ++seq, 1);
             Check(Mathf.Approximately(light.Amount, 200f), "Capped at 200: " + light.Amount);
             yield return Wait(1.2f);
@@ -229,7 +238,7 @@ public static class UpperElementPlayVerifier
             int dispatched = LightTripleImpactScheduler.DispatchedHitCount;
             var tripleStats = TransientVfxPool.GetStatistics(heavyDef.elementVfx.lightTripleImpact);
             yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Triple heavy start: " + lastHeavyResult);
-            float commit = -1, started = Time.time;
+            commit = -1; started = Time.time;
             while (Time.time < started + 3f) { if (commit < 0 && light.Amount == 0) commit = Time.time; if (commit >= 0) break; yield return null; }
             Check(commit >= 0 && light.RadianceStacks == 0, "Triple commit consumes energy and radiance");
             yield return Wait(2.2f);
@@ -264,159 +273,176 @@ public static class UpperElementPlayVerifier
             while (melee.IsAttackInProgress) yield return null;
             centre.Health.OnDamaged -= LightCentre; ring.Health.OnDamaged -= LightRing;
             ReleaseAll(); yield return null;
+            }
 
-            // ---------- D1: dark corrosion magnet ----------
+            // ---------- 60D 4 (2026-10-01): dark corrosion barrage ----------
             var dark = Equip(WeaponElement.Dark);
             yield return null;
-            Vector3 p0 = origin + Vector3.forward * 8f;
-            var group = new List<EnemyActor>();
-            for (int i = 0; i < 6; i++)
-            {
-                float a = i * Mathf.PI * 2f / 6f;
-                group.Add(Spawn(small, p0 + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 2.5f));
-            }
-            yield return null;
-            foreach (var e in group)
+            void Corrode(EnemyActor e, int stacks)
             {
                 var s = e.GetComponent<ElementalStatusController>();
-                for (int k = 0; k < 5; k++) s.TryApplyDirectHit(new ElementalStatusApplication(WeaponElement.Dark, 10, player.gameObject, dark.WeaponInstanceId, true, false, e.transform.position, Vector3.forward));
-                Check(s.GetStackCount(WeaponElement.Dark) == 5, "Dark 5 stacks");
+                for (int k = 0; k < stacks; k++) s.TryApplyDirectHit(new ElementalStatusApplication(WeaponElement.Dark, 10, player.gameObject, dark.WeaponInstanceId, true, false, e.transform.position, Vector3.forward));
             }
+            int Stacks(EnemyActor e) => e.GetComponent<ElementalStatusController>().GetStackCount(WeaponElement.Dark);
+            int Reserved(EnemyActor e) => e.GetComponent<ElementalStatusController>().ReservedCorrosion;
+            void FillDark() { dark.Clear(); for (int i = 0; i < 10; i++) dark.RecordConfirmedHit(dark.WeaponInstanceId, dark.Element, ++seq, 1); }
+            var barrageHits = new Dictionary<EnemyActor, List<(float time, float damage)>>();
+            var hooks = new List<(CombatHealth health, Action<CombatHealth, DamageInfo> hook)>();
+            void Track(EnemyActor e)
+            {
+                var list = new List<(float, float)>(); barrageHits[e] = list;
+                Action<CombatHealth, DamageInfo> hook = (h, d) =>
+                {
+                    if (d.element == WeaponElement.Dark && !d.triggersOnHitEffects
+                        && (d.playerAttackKind & PlayerAttackKind.Elemental) != 0 && (d.playerAttackKind & PlayerAttackKind.Heavy) == 0)
+                        list.Add((Time.time, d.damage));
+                };
+                e.Health.OnDamaged += hook; hooks.Add((e.Health, hook));
+            }
+            void Untrack() { foreach (var (health, hook) in hooks) if (health != null) health.OnDamaged -= hook; hooks.Clear(); barrageHits.Clear(); }
+            IEnumerator HeavyAndFinish(string label, bool cancel)
+            {
+                yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, label + " heavy start: " + lastHeavyResult);
+                commit = -1; started = Time.time;
+                while (Time.time < started + 3f) { if (dark.Amount == 0) { commit = Time.time; break; } yield return null; }
+                Check(commit >= 0, label + " commit");
+                if (cancel) melee.CancelCurrentAttackState(); // the scheduler must finish anyway
+                while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f) yield return null;
+                Check(DarkBarrageScheduler.ActiveCount == 0, label + " barrage finished");
+                while (melee.IsAttackInProgress) yield return null;
+            }
+
+            // D1: the magnet is gone, the corrosion aura stays.
+            Vector3 p0 = origin + Vector3.forward * 8f;
+            var group = new List<EnemyActor>();
+            for (int i = 0; i < 6; i++) { float a = i * Mathf.PI * 2f / 6f; group.Add(Spawn(small, p0 + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 2.5f)); }
+            yield return null;
+            foreach (var e in group) { Corrode(e, 5); Check(Stacks(e) == 5, "Dark 5 stacks"); }
             float spreadBefore = MeanPairDistance(group);
-            int ticks = DarkMagnetismSystem.TickCount;
             yield return Wait(1.5f);
             float spreadAfter = MeanPairDistance(group);
-            {
-                var m = group[0].Movement; var bf = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-                object F(string n) => typeof(EnemyMovement).GetField(n, bf)?.GetValue(m);
-                var reaction = group[0].GetComponent<EnemyMovementReaction>();
-                var loco = group[0].GetComponent<EnemyLocomotionAnimator>();
-                var walk = RunWalkableContext.Current;
-                results.Add(new { goal = "D1-diag", enabled = m.enabled, actionLocked = m.IsActionLocked, statusLocked = m.IsStatusMovementLocked,
-                    allows = loco != null ? loco.AllowsMovement(EnemyLocomotionMode.Idle) : true, hitStun = reaction != null && reaction.IsHitStunActive,
-                    knockback = reaction != null && reaction.IsKnockbackActive, magnetVelocity = F("statusMagnetVelocity")?.ToString(),
-                    magnetUntil = F("statusMagnetUntil"), now = Time.time, pending = F("pendingAreaDisplacement")?.ToString(),
-                    walkable = walk == null ? "none" : walk.IsWalkable(group[0].transform.position).ToString(), speed = m.ActiveMoveSpeed });
-            }
-            Check(DarkMagnetismSystem.ParticipantCount >= 6 && DarkMagnetismSystem.TickCount > ticks + 10, "Magnet ticking at ~10 Hz");
-            Check(spreadAfter < spreadBefore - 0.1f, "Corroded enemies clump: " + spreadBefore + " -> " + spreadAfter + " moving=" + DarkMagnetismSystem.LastMovingCount + " body=" + (group[0].GetComponent<EnemyCrowdAgent>() != null ? group[0].GetComponent<EnemyCrowdAgent>().BodyRadius : -1f));
+            Check(Mathf.Abs(spreadAfter - spreadBefore) < 0.05f, "Corroded enemies no longer clump: " + spreadBefore + " -> " + spreadAfter);
             var auraController = group[0].GetComponent<MeleeElementStatusAuraController>();
             Check(auraController != null && auraController.IsAuraActive(MeleeElementStatusAuraType.Corroded), "Corrosion aura active");
-            results.Add(new { goal = "D1", spreadBefore, spreadAfter, participants = DarkMagnetismSystem.ParticipantCount, lastMoving = DarkMagnetismSystem.LastMovingCount });
+            results.Add(new { goal = "D1", spreadBefore, spreadAfter });
+
+            // D0: reservation. Collected once, first shot removes only the reserved part, later stacks stay.
+            {
+                var s = group[0].GetComponent<ElementalStatusController>();
+                int first = s.ReserveCorrosion(), second = s.ReserveCorrosion();
+                Check(first == 5 && second == 0 && s.ReservedCorrosion == 5, "Reserve once: " + first + "/" + second + "/" + s.ReservedCorrosion);
+                s.ReleaseCorrosionReservation(5);
+                Check(s.ReservedCorrosion == 0 && Stacks(group[0]) == 5, "Release keeps stacks");
+                s.ConsumeForDischarge(WeaponElement.Dark, out _);
+                Corrode(group[0], 3);
+                Check(s.ReserveCorrosion() == 3, "Reserve 3");
+                Corrode(group[0], 1);
+                int removed = s.ConsumeReservedCorrosion(3);
+                Check(removed == 3 && Stacks(group[0]) == 1 && s.ReservedCorrosion == 0, "First shot removes the reserved 3 only: " + removed + "/" + Stacks(group[0]) + "/" + s.ReservedCorrosion);
+                Check(s.ReserveCorrosion() == 1, "Stack gained after the reservation is free for the next heavy");
+                s.ClearAllStatuses();
+                Check(s.ReservedCorrosion == 0, "Clear resets the reservation");
+                results.Add(new { goal = "D0-reserve", ok = true });
+            }
             ReleaseAll(); yield return null;
 
-            // ---------- D2: dark gather burst (slam R=4 at full energy, gather 10 m) ----------
+            // D2: full energy. Target on the slam point 5, three smalls at 7 m with 5/3/1, one at 15 m outside the 10 m search.
             Warp(player, origin, Vector3.forward); yield return null;
-            Vector3 impact = origin + Vector3.forward * 1.7f; // greatsword heavy forward offset is data-driven; centre enemy sits on it
+            Vector3 impact = origin + Vector3.forward * 1.7f; // greatsword heavy forward offset; the centre enemy sits on it
             var target = Spawn(medium, impact);
             var far = new List<EnemyActor>();
             for (int i = 0; i < 3; i++) far.Add(Spawn(small, impact + Quaternion.Euler(0, -60 + i * 60, 0) * Vector3.forward * 7f));
+            var outside = Spawn(small, impact + Vector3.forward * 15f); // the real slam centre sits ~1.7 m ahead of `impact`
             yield return null;
-            foreach (var e in far.Append(target))
-            {
-                var s = e.GetComponent<ElementalStatusController>();
-                for (int k = 0; k < 5; k++) s.TryApplyDirectHit(new ElementalStatusApplication(WeaponElement.Dark, 10, player.gameObject, dark.WeaponInstanceId, true, false, e.transform.position, Vector3.forward));
-            }
-            dark.Clear(); for (int i = 0; i < 10; i++) dark.RecordConfirmedHit(dark.WeaponInstanceId, dark.Element, ++seq, 1);
-            Check(Mathf.Approximately(dark.Amount, 100f), "Dark full energy");
-            int bursts = DarkGatherBurstScheduler.BurstCount;
-            var darkStats = TransientVfxPool.GetStatistics(heavyDef.elementVfx.darkGatherBurst);
+            var marked = new List<EnemyActor> { target, far[0], far[1], far[2] };
+            int[] wanted = { 5, 5, 3, 1 };
+            for (int i = 0; i < marked.Count; i++) { Corrode(marked[i], wanted[i]); Track(marked[i]); }
+            Corrode(outside, 5); Track(outside);
+            FillDark(); Check(Mathf.Approximately(dark.Amount, 100f), "Dark full energy");
+            int casts = DarkBarrageScheduler.CastCount;
             yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Dark heavy start: " + lastHeavyResult);
             commit = -1; started = Time.time;
             while (Time.time < started + 3f) { if (dark.Amount == 0) { commit = Time.time; break; } yield return null; }
             Check(commit >= 0, "Dark commit");
-            yield return null;
-            int stacksAfterSlam = target.GetComponent<ElementalStatusController>().GetStackCount(WeaponElement.Dark);
-            Check(stacksAfterSlam == 5, "Slam keeps corrosion: " + stacksAfterSlam);
+            Check(DarkBarrageScheduler.CastCount == casts + 1, "Barrage submitted");
+            Check(Stacks(target) == 5 && Reserved(target) == 5, "Slam keeps corrosion, reserved until the first shot: " + Stacks(target) + "/" + Reserved(target));
             melee.CancelCurrentAttackState(); // the scheduler must finish anyway
-            float farBefore = far.Average(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, impact));
-            while (Time.time < commit + 1.5f) yield return null;
-            float farAfter = far.Average(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, impact));
-            Check(farAfter < 4f, "Gathered into slam radius: " + farBefore + " -> " + farAfter);
-            while (DarkGatherBurstScheduler.BurstCount == bursts && Time.time < commit + 3f) yield return null;
-            float burstAt = Time.time - commit;
-            Check(DarkGatherBurstScheduler.BurstCount == bursts + 1, "Burst after cancel");
-            Check(Mathf.Abs(burstAt - 1.95f) < 0.15f, "Burst at ~1.95 s: " + burstAt);
-            Check(DarkGatherBurstScheduler.LastBurstStackSum == 20 && DarkGatherBurstScheduler.LastBurstTargetCount == 4,
-                "Burst counts 4 targets x5: " + DarkGatherBurstScheduler.LastBurstStackSum + "/" + DarkGatherBurstScheduler.LastBurstTargetCount);
-            Check(far.All(e => e.GetComponent<ElementalStatusController>().GetStackCount(WeaponElement.Dark) == 0), "Burst consumes corrosion");
-            Check(TransientVfxPool.GetStatistics(heavyDef.elementVfx.darkGatherBurst).Requests == darkStats.Requests + 1, "Dark VFX spawned once");
-            results.Add(new { goal = "D2", farBefore, farAfter, burstAt, stackSum = DarkGatherBurstScheduler.LastBurstStackSum, burstDamage = DarkGatherBurstScheduler.LastBurstDamage, pulled = DarkGatherBurstScheduler.LastPulledCount });
+            while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f) yield return null;
+            Check(DarkBarrageScheduler.ActiveCount == 0, "Barrage finished after cancel");
+            Check(DarkBarrageScheduler.LastTargetCount == 4 && DarkBarrageScheduler.LastStackSum == 14
+                && DarkBarrageScheduler.LastShotCount == 18 && DarkBarrageScheduler.LastFinisher,
+                "4 targets, 14 stacks, 18 shots with finisher: " + DarkBarrageScheduler.LastTargetCount + "/" + DarkBarrageScheduler.LastStackSum + "/" + DarkBarrageScheduler.LastShotCount + "/" + DarkBarrageScheduler.LastFinisher
+                + " search=" + DarkBarrageScheduler.LastSearchRadius + " centre=" + DarkBarrageScheduler.LastCenter + " expected=" + impact
+                + " dists=" + string.Join(",", marked.Append(outside).Select(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, DarkBarrageScheduler.LastCenter).ToString("F2")))
+                + " stacksNow=" + string.Join(",", marked.Append(outside).Select(Stacks)));
+            float interval = tuning.SafeDarkBarrageFireInterval;
+            Check(Mathf.Abs(DarkBarrageScheduler.LastInterval - interval) < 0.0001f, "Fixed interval " + interval + ": " + DarkBarrageScheduler.LastInterval);
+            float stream = DarkBarrageScheduler.LastFinalLaunchTime - DarkBarrageScheduler.LastFirstLaunchTime;
+            float lastHit = DarkBarrageScheduler.LastFinalHitTime - commit;
+            float rise = tuning.SafeDarkBarrageRiseTime, riseEnd = rise + tuning.SafeDarkBarrageRiseStagger;
+            Check(Mathf.Abs(stream - 17 * interval) < 0.06f, "One shot per interval (17 x " + interval + "): " + stream);
+            Check(DarkBarrageScheduler.MaxLaunchedInOneFrame <= 2, "Never a burst of shots in one frame: " + DarkBarrageScheduler.MaxLaunchedInOneFrame);
+            Check(lastHit <= riseEnd + 17 * interval + tuning.SafeDarkBarrageFlightMax + 0.1f, "Last hit after rise + stream + flight: " + lastHit);
+            for (int i = 0; i < marked.Count; i++)
+                Check(barrageHits[marked[i]].Count == wanted[i] + 1, "Hits = stacks + finisher [" + i + "]: " + barrageHits[marked[i]].Count);
+            Check(barrageHits[outside].Count == 0 && Stacks(outside) == 5 && Reserved(outside) == 0, "Outside the search circle keeps corrosion");
+            Check(marked.All(e => Stacks(e) == 0 && Reserved(e) == 0), "First landing shot consumed corrosion");
+            float firstHit = barrageHits[target].Min(x => x.time) - commit;
+            Check(firstHit >= rise, "Shots gather in the air before the first leaves: " + firstHit);
+            var targetDamage = barrageHits[target].Select(x => x.damage).ToList();
+            float normal = targetDamage.Min(), big = targetDamage.Max();
+            Check(Mathf.Abs(normal - DarkBarrageScheduler.LastShotDamage) < 0.01f && Mathf.Abs(big / normal - 2f) < 0.01f,
+                "Shot = H x0.15, finisher = 2 shots: " + normal + "/" + big + "/" + DarkBarrageScheduler.LastShotDamage);
+            var launchOrder = DarkBarrageScheduler.LastLaunchTargets.ToList();
+            Check(launchOrder.Count == 18 && launchOrder.Take(4).Distinct().Count() == 4 && launchOrder.Skip(14).Distinct().Count() == 4,
+                "Cycles over different enemies (first 4 and finisher 4 distinct): " + string.Join(",", launchOrder));
+            results.Add(new { goal = "D2", stream, lastHit, firstHit, interval = DarkBarrageScheduler.LastInterval, shot = normal, finisher = big,
+                searchRadius = DarkBarrageScheduler.LastSearchRadius, hits = marked.Select(e => barrageHits[e].Count).ToArray(), maxLaunchPerFrame = DarkBarrageScheduler.MaxLaunchedInOneFrame });
+            Untrack(); ReleaseAll(); yield return null;
+
+            // D2-retarget: an enemy the slam kills keeps its shots; they curve onto the survivor.
+            Warp(player, origin, Vector3.forward); yield return null;
+            var victim = Spawn(small, impact + Vector3.right);
+            victim.Health.SetMaxHp(1, true);
+            bool victimDied = false;
+            Action<CombatHealth, DamageInfo> onVictimDead = (h, d) => victimDied = true;
+            victim.Health.OnDead += onVictimDead;
+            var survivor = Spawn(medium, impact + Vector3.forward * 6f);
+            yield return null;
+            Corrode(victim, 3); Corrode(survivor, 1); Track(survivor);
+            FillDark();
+            int retargets = DarkBarrageScheduler.TotalRetargets, fizzles = DarkBarrageScheduler.TotalFizzles;
+            yield return HeavyAndFinish("Retarget", false);
+            victim.Health.OnDead -= onVictimDead;
+            Check(victimDied, "Slam killed the victim");
+            Check(DarkBarrageScheduler.LastShotCount == 6, "Victim 3+1 and survivor 1+1 shots: " + DarkBarrageScheduler.LastShotCount);
+            Check(barrageHits[survivor].Count == 6, "Victim's shots land on the survivor: " + barrageHits[survivor].Count);
+            Check(DarkBarrageScheduler.TotalRetargets >= retargets + 4 && DarkBarrageScheduler.TotalFizzles == fizzles,
+                "Retargeted, none fizzled: " + (DarkBarrageScheduler.TotalRetargets - retargets) + "/" + (DarkBarrageScheduler.TotalFizzles - fizzles));
+            results.Add(new { goal = "D2-retarget", survivorHits = barrageHits[survivor].Count, retargeted = DarkBarrageScheduler.TotalRetargets - retargets });
+            Untrack(); ReleaseAll(); yield return null;
+
+            // D2-half: 50% energy has no finisher and a smaller search circle.
+            Warp(player, origin, Vector3.forward); yield return null;
+            var near = Spawn(small, impact + Vector3.forward * 5.5f);
+            var beyond = Spawn(small, impact + Vector3.forward * 10.5f);
+            yield return null;
+            Corrode(near, 2); Corrode(beyond, 2);
+            dark.Clear(); for (int i = 0; i < 5; i++) dark.RecordConfirmedHit(dark.WeaponInstanceId, dark.Element, ++seq, 1);
+            yield return HeavyAndFinish("Half", true);
+            Check(!DarkBarrageScheduler.LastFinisher && DarkBarrageScheduler.LastTargetCount == 1 && DarkBarrageScheduler.LastShotCount == 2,
+                "Half energy: 1 target, 2 shots, no finisher: " + DarkBarrageScheduler.LastTargetCount + "/" + DarkBarrageScheduler.LastShotCount + "/" + DarkBarrageScheduler.LastFinisher);
+            Check(Stacks(beyond) == 2 && Stacks(near) == 0, "Search circle scales with energy: " + DarkBarrageScheduler.LastSearchRadius);
+            results.Add(new { goal = "D2-half", searchRadius = DarkBarrageScheduler.LastSearchRadius });
             ReleaseAll(); yield return null;
 
-            // ---------- D2: empty dark heavy has no gather ----------
-            dark.Clear(); int activeBefore = DarkGatherBurstScheduler.ActiveCount;
+            // D2-empty: energy 0 submits nothing.
+            dark.Clear(); casts = DarkBarrageScheduler.CastCount;
             yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Empty dark heavy start: " + lastHeavyResult);
             yield return Wait(0.8f);
-            Check(DarkGatherBurstScheduler.ActiveCount == activeBefore, "Energy 0 dark heavy submits nothing");
+            Check(DarkBarrageScheduler.CastCount == casts && DarkBarrageScheduler.ActiveCount == 0, "Energy 0 dark heavy submits nothing");
             while (melee.IsAttackInProgress) yield return null;
             results.Add(new { goal = "D2-empty", ok = true });
-
-            // ---------- D1-walk: magnet must also move enemies that are walking to a destination ----------
-            Warp(player, origin, Vector3.forward); yield return null;
-            var lane = new List<EnemyActor>();
-            for (int i = 0; i < 6; i++)
-            {
-                var e = Spawn(small, origin + new Vector3(-3.25f + i * 1.3f, 0f, 9f));
-                lane.Add(e);
-            }
-            yield return null;
-            foreach (var e in lane)
-            {
-                var s = e.GetComponent<ElementalStatusController>();
-                for (int k = 0; k < 5; k++) s.TryApplyDirectHit(new ElementalStatusApplication(WeaponElement.Dark, 10, player.gameObject, dark.WeaponInstanceId, true, false, e.transform.position, Vector3.forward));
-                e.Movement.SetDestination(e.transform.position + Vector3.back * 12f, 0.1f);
-            }
-            float Lateral(List<EnemyActor> list) { float mx = list.Average(e => e.transform.position.x); return list.Average(e => Mathf.Abs(e.transform.position.x - mx)); }
-            float lateralBefore = Lateral(lane), zBefore = lane.Average(e => e.transform.position.z);
-            yield return Wait(1.5f);
-            float lateralAfter = Lateral(lane), walked = zBefore - lane.Average(e => e.transform.position.z);
-            results.Add(new { goal = "D1-walk", lateralBefore, lateralAfter, walked, moving = DarkMagnetismSystem.LastMovingCount });
-            var walkFailures = new List<string>();
-            if (walked <= 1f) walkFailures.Add("Lane enemies did not walk: " + walked);
-            if (lateralAfter >= lateralBefore - 0.15f) walkFailures.Add("Walking corroded enemies did not clump: " + lateralBefore + " -> " + lateralAfter);
-            ReleaseAll(); yield return null;
-
-            // ---------- D2-walk: gather must pull enemies that are walking to a destination ----------
-            Warp(player, origin, Vector3.forward); yield return null;
-            var walkCentre = Spawn(medium, impact);
-            var walkers = new List<EnemyActor>();
-            for (int i = 0; i < 3; i++)
-            {
-                Vector3 radial = Quaternion.Euler(0, -60 + i * 60, 0) * Vector3.forward;
-                var e = Spawn(small, impact + radial * 7f);
-                walkers.Add(e);
-            }
-            yield return null;
-            foreach (var e in walkers)
-            {
-                Vector3 radial = e.transform.position - impact; radial.y = 0f; radial.Normalize();
-                e.Movement.SetDestination(e.transform.position + Vector3.Cross(Vector3.up, radial) * 6f, 0.1f);
-            }
-            // An idle enemy near the gather edge (2.5R = 10 m at full energy) must still reach the slam circle.
-            EnemyActor edge = null;
-            if (spawn.TrySpawn(new EnemySpawnRequest(small, impact + Vector3.forward * 9.3f, Quaternion.LookRotation(Vector3.back), player.transform), out var edgeActor))
-            {
-                leased.Add(edgeActor); edgeActor.AI.enabled = false; edgeActor.Movement.StopMovement(); edgeActor.Health.SetMaxHp(1000000, true);
-                edgeActor.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; edge = edgeActor;
-            }
-            dark.Clear(); for (int i = 0; i < 10; i++) dark.RecordConfirmedHit(dark.WeaponInstanceId, dark.Element, ++seq, 1);
-            yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Walk dark heavy start: " + lastHeavyResult);
-            commit = -1; started = Time.time;
-            while (Time.time < started + 3f) { if (dark.Amount == 0) { commit = Time.time; break; } yield return null; }
-            Check(commit >= 0, "Walk dark commit");
-            float walkBefore = walkers.Average(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, impact));
-            float edgeBefore = edge != null ? UpperElementCombatUtility.PlanarDistance(edge.transform.position, impact) : -1f;
-            while (Time.time < commit + 1.5f) yield return null;
-            float walkAfter = walkers.Average(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, impact));
-            float edgeAfter = edge != null ? UpperElementCombatUtility.PlanarDistance(edge.transform.position, impact) : -1f;
-            results.Add(new { goal = "D2-walk", walkBefore, walkAfter, edgeBefore, edgeAfter, pulled = DarkGatherBurstScheduler.LastPulledCount });
-            if (walkAfter >= 4f) walkFailures.Add("Walking enemies not gathered: " + walkBefore + " -> " + walkAfter);
-            if (edge != null && edgeAfter >= 4f) walkFailures.Add("Edge enemy not gathered: " + edgeBefore + " -> " + edgeAfter);
-            while (DarkGatherBurstScheduler.ActiveCount > 0 && Time.time < commit + 3f) yield return null;
-            while (melee.IsAttackInProgress) yield return null;
-            ReleaseAll(); yield return null;
-            Check(walkFailures.Count == 0, string.Join(" | ", walkFailures));
         }
         finally { melee?.CancelCurrentAttackState(); if (spawn != null) foreach (var e in leased) if (e != null && e.IsLeased) spawn.Release(e); if (ui != null && ui.InArena) ui.ToggleArena(); }
     }

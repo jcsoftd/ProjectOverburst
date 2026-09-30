@@ -87,11 +87,11 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         float freezeMultiplier = enemyRank != null && enemyRank.GradeType != EnemyGradeType.Normal ? 1f
             : 1f + FlaskCombatModifiers.Bonus(application.SourceActor, FlaskEffect.FreezeDuration);
         if (!state.Add(application.Element, Time.time, OverburstElementTuning.Current, freezeMultiplier)) return false;
+        if (application.Element == WeaponElement.Dark && state.RawCount(WeaponElement.Dark) == 1) reservedCorrosion = 0;
         owners[OverburstElementRules.Index(application.Element)] = new ElementalStatusOwnerSnapshot(application);
         if (Application.isPlaying && (application.Element == WeaponElement.Fire || application.Element == WeaponElement.Electric
                 || application.Element == WeaponElement.Dark) && aura == null)
             aura = GetComponent<MeleeElementStatusAuraController>() ?? gameObject.AddComponent<MeleeElementStatusAuraController>();
-        if (application.Element == WeaponElement.Dark && Application.isPlaying) DarkMagnetismSystem.Register(this);
         if (application.Element == WeaponElement.Ice && tint == null)
             tint = GetComponent<HitFlashFeedback>() ?? gameObject.AddComponent<HitFlashFeedback>();
         RefreshControl();
@@ -121,16 +121,58 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         Advance(Time.time);
         int count = state.Consume(element, Time.time, out shattered);
         if (count <= 0) return 0;
+        if (element == WeaponElement.Dark) reservedCorrosion = 0;
         owners[OverburstElementRules.Index(element)] = default;
         RefreshControl();
         StatusRemoved?.Invoke(element, ElementalStatusRemoveReason.Cleared);
         if (!state.HasAny && !IsShockStaggered) ElementalStatusScheduler.Unregister(this);
         return count;
     }
+    // 60D 4.2 (2026-10-01): corrosion collected by a dark barrage stays on the enemy until that barrage's
+    // first shot lands, so it is reserved meanwhile and another heavy cannot collect it again.
+    private int reservedCorrosion;
+    public int ReservedCorrosion => reservedCorrosion;
+    public int ReserveCorrosion()
+    {
+        Advance(Time.time);
+        if (!isActiveAndEnabled || combatHealth == null || combatHealth.IsDead) return 0;
+        int count = state.RawCount(WeaponElement.Dark);
+        reservedCorrosion = Mathf.Clamp(reservedCorrosion, 0, count);
+        int available = count - reservedCorrosion;
+        if (available <= 0) return 0;
+        reservedCorrosion += available;
+        return available;
+    }
+    // First shot landed: remove the reserved stacks. Stacks gained after the reservation stay.
+    public int ConsumeReservedCorrosion(int amount)
+    {
+        if (amount <= 0) return 0;
+        using var costScope = ElementCombatCostMarkers.Status_Consume.Auto();
+        Advance(Time.time);
+        int take = Mathf.Min(amount, reservedCorrosion);
+        reservedCorrosion = Mathf.Max(0, reservedCorrosion - amount);
+        int removed = take > 0 ? state.Remove(WeaponElement.Dark, take, Time.time) : 0;
+        if (removed <= 0) return 0;
+        bool gone = state.RawCount(WeaponElement.Dark) == 0;
+        if (gone) { owners[OverburstElementRules.Index(WeaponElement.Dark)] = default; reservedCorrosion = 0; }
+        RefreshControl();
+        if (gone)
+        {
+            StatusRemoved?.Invoke(WeaponElement.Dark, ElementalStatusRemoveReason.Cleared);
+            if (!state.HasAny && !IsShockStaggered) ElementalStatusScheduler.Unregister(this);
+        }
+        return removed;
+    }
+    // A barrage that ended before reaching this enemy hands its stacks back to later heavies.
+    public void ReleaseCorrosionReservation(int amount)
+    {
+        if (amount > 0) reservedCorrosion = Mathf.Max(0, reservedCorrosion - amount);
+    }
     public void ClearAllStatuses(ElementalStatusClearReason reason = ElementalStatusClearReason.Explicit)
     {
         if (reason == ElementalStatusClearReason.Reset || reason == ElementalStatusClearReason.Disabled) LifecycleVersion++;
         state.Clear(); Array.Clear(owners, 0, owners.Length); hits.Clear(); hitOrder.Clear();
+        reservedCorrosion = 0;
         staggerUntil = 0f;
         RefreshControl();
         ElementalStatusScheduler.Unregister(this);
@@ -181,6 +223,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
     private void ExpireAndRefresh(float now)
     {
         state.Expire(now, out int expiredMask);
+        if ((expiredMask & (1 << OverburstElementRules.Index(WeaponElement.Dark))) != 0) reservedCorrosion = 0;
         RefreshControl(now);
         for (int i = 0; i < OverburstElementRules.Count; i++)
             if ((expiredMask & (1 << i)) != 0)
