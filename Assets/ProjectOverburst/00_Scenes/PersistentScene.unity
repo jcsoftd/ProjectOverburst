@@ -60588,17 +60588,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a41fdd18545491f877a693b7290d680, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
---- !u!114 &1049173171 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5806982113689276545, guid: 4f97a974eab7ea34abcd80e33c41133d, type: 3}
-  m_PrefabInstance: {fileID: 1049173165}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d67091e9bc32404e8d32c89283d7311, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerStaminaController
 --- !u!1 &1050822944
 GameObject:
   m_ObjectHideFlags: 0
@@ -68203,7 +68192,6 @@ MonoBehaviour:
   inventoryUI: {fileID: 0}
   pickupGradeVfxSet: {fileID: 11400000, guid: dde8d2907fd646bcab787ebc9d2dff0a, type: 2}
   playerMovement: {fileID: 0}
-  playerStaminaController: {fileID: 0}
   playerHealth: {fileID: 0}
   worldDropForwardDistance: 1.25
   worldDropSpawnHeight: 0.85
@@ -78390,12 +78378,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dddffc8eae86254898db95c2b9875de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStaminaBarUI
-  playerContext: {fileID: 0}
-  staminaController: {fileID: 1049173171}
-  staminaFill: {fileID: 1640186115}
-  staminaText: {fileID: 178923778}
-  fillColor: {r: 0.35, g: 0.85, b: 1, a: 1}
-  autoResolveReferences: 1
 --- !u!114 &1372151236 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3286313608973619248, guid: e92cbc0465c7da14ba11a0f7c23d5452, type: 3}

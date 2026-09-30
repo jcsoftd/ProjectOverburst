@@ -140,7 +140,7 @@ public partial class InventorySlotBridge
     private void ApplyEquippedBagStatBonuses()
     {
         ResolveBagStatTargets();
-        PlayerAccountInventoryService.Instance?.RefreshBagBonuses(playerMovement, playerStaminaController, playerHealth);
+        PlayerAccountInventoryService.Instance?.RefreshBagBonuses(playerMovement, playerHealth);
     }
 
     private void ResolveBagStatTargets()
@@ -149,9 +149,6 @@ public partial class InventorySlotBridge
         PlayerContext context = PlayerContext.Instance;
         if (playerMovement == null)
             playerMovement = context != null && context.CurrentActorMovement != null ? context.CurrentActorMovement : FindFirstObjectByType<PlayerMovement>();
-
-        if (playerStaminaController == null)
-            playerStaminaController = context != null && context.CurrentActorStaminaController != null ? context.CurrentActorStaminaController : ResolvePlayerComponent<PlayerStaminaController>();
 
         if (playerHealth == null)
             playerHealth = context != null && context.CurrentActorHealth != null ? context.CurrentActorHealth : ResolvePlayerComponent<CombatHealth>();

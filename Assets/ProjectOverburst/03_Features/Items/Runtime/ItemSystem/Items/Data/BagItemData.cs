@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public enum BagRandomOptionType
 {
     MoveSpeedPercent,
-    MaxStamina,
+    MaxStamina, // 2026-09-30 스태미너 삭제. 구 저장 호환용 값이라 순서를 바꾸지 않는다. 굴리지 않고, 불러올 때 MaxHp로 바꾼다.
     MaxHp
 }
 
@@ -20,9 +20,64 @@ public static class BagRandomOptionRoller
     private static readonly BagRandomOptionType[] RollableOptions =
     {
         BagRandomOptionType.MoveSpeedPercent,
-        BagRandomOptionType.MaxStamina,
         BagRandomOptionType.MaxHp
     };
+
+    // 저장된 스태미너 옵션을 최대 체력으로 바꾼다. 스태미너와 체력 범위가 같아 수치는 그대로 쓰고,
+    // 같은 가방에 체력 옵션이 이미 있으면 한 줄로 합친다. 합쳐져 옵션 수가 모자라면 빠진 종류만 새로 굴린다.
+    public static bool MigrateLegacyOptions(List<BagRandomOptionRoll> options, ItemGrade grade)
+    {
+        if (options == null)
+            return false;
+
+        BagRandomOptionRoll hp = null;
+        for (int i = 0; i < options.Count; i++)
+        {
+            if (options[i] != null && options[i].optionType == BagRandomOptionType.MaxHp)
+            {
+                hp = options[i];
+                break;
+            }
+        }
+
+        bool changed = false;
+        for (int i = options.Count - 1; i >= 0; i--)
+        {
+            BagRandomOptionRoll option = options[i];
+            if (option == null || option.optionType != BagRandomOptionType.MaxStamina)
+                continue;
+
+            changed = true;
+            if (hp != null)
+            {
+                hp.value += Mathf.Max(0f, option.value);
+                options.RemoveAt(i);
+            }
+            else
+            {
+                option.optionType = BagRandomOptionType.MaxHp;
+                hp = option;
+            }
+        }
+
+        if (changed)
+            FillMissing(options, grade);
+        return changed;
+    }
+
+    private static void FillMissing(List<BagRandomOptionRoll> options, ItemGrade grade)
+    {
+        int expected = GetOptionCount(grade);
+        for (int t = 0; t < RollableOptions.Length && options.Count < expected; t++)
+        {
+            BagRandomOptionType type = RollableOptions[t];
+            bool present = false;
+            for (int i = 0; i < options.Count; i++)
+                present |= options[i] != null && options[i].optionType == type;
+            if (!present)
+                options.Add(new BagRandomOptionRoll { optionType = type, value = RollValue(type, grade) });
+        }
+    }
 
     public static List<BagRandomOptionRoll> Roll(ItemGrade grade)
     {
@@ -49,6 +104,12 @@ public static class BagRandomOptionRoller
     }
 
     public static int GetOptionCount(ItemGrade grade)
+    {
+        // 옵션 종류가 이동속도·최대 체력 둘뿐이라 신화도 2개까지만 굴린다.
+        return Mathf.Min(GetGradeOptionCount(grade), RollableOptions.Length);
+    }
+
+    private static int GetGradeOptionCount(ItemGrade grade)
     {
         switch (grade)
         {
@@ -77,7 +138,6 @@ public static class BagRandomOptionRoller
         {
             case BagRandomOptionType.MoveSpeedPercent:
                 return TryGetMoveSpeedRange(grade, out minValue, out maxValue);
-            case BagRandomOptionType.MaxStamina:
             case BagRandomOptionType.MaxHp:
                 return TryGetFlatResourceRange(grade, out minValue, out maxValue);
             default:

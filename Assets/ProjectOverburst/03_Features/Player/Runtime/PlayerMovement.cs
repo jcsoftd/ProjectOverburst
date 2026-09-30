@@ -38,9 +38,6 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     [SerializeField] private PlayerEquipment playerEquipment;
     [SerializeField] private PlayerBuffController playerBuffController;
 
-    [Header("Stamina")]
-    [SerializeField] private PlayerStaminaController playerStaminaController;
-
     [Header("Evade")]
     [SerializeField] private PlayerEvadeController playerEvadeController;
 
@@ -313,9 +310,6 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
 
         if (playerBuffController == null)
             playerBuffController = ResolveBuffController();
-
-        if (playerStaminaController == null)
-            playerStaminaController = GetComponent<PlayerStaminaController>();
 
         if (playerEvadeController == null)
             playerEvadeController = GetComponent<PlayerEvadeController>();

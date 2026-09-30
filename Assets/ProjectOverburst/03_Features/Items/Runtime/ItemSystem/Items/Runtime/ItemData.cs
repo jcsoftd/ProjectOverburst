@@ -1374,6 +1374,7 @@ public class ItemData // 런타임 아이템
             return;
         }
 
+        BagRandomOptionRoller.MigrateLegacyOptions(bagOptions, grade); // 구 스태미너 옵션 → 최대 체력
         if (bagOptions == null || bagOptions.Count != expectedCount)
             RollBagOptions();
     }

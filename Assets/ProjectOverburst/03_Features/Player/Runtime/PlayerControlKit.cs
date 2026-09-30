@@ -13,7 +13,6 @@ public sealed class PlayerControlKit : MonoBehaviour
     [Header("Player Control")]
     [SerializeField] private PlayerMovementInputSource movementInputSource;
     [SerializeField] private PlayerMovement movement;
-    [SerializeField] private PlayerStaminaController staminaController;
     [SerializeField] private PlayerEvadeController evadeController;
     [SerializeField] private PlayerAnimation playerAnimation;
     [SerializeField] private PlayerAimRotation aimRotation;
@@ -40,7 +39,6 @@ public sealed class PlayerControlKit : MonoBehaviour
     public WeaponRuntimeHub WeaponRuntimeHub => weaponRuntimeHub;
     public PlayerMovementInputSource MovementInputSource => movementInputSource;
     public PlayerMovement Movement => movement;
-    public PlayerStaminaController StaminaController => staminaController;
     public PlayerEvadeController EvadeController => evadeController;
     public PlayerAnimation PlayerAnimation => playerAnimation;
     public PlayerAimRotation AimRotation => aimRotation;
@@ -117,9 +115,6 @@ public sealed class PlayerControlKit : MonoBehaviour
 
         movement?.BindInputSource(movementInputSource);
 
-        if (staminaController == null)
-            staminaController = GetComponent<PlayerStaminaController>();
-
         if (evadeController == null)
             evadeController = GetComponent<PlayerEvadeController>();
 
@@ -168,7 +163,6 @@ public sealed class PlayerControlKit : MonoBehaviour
         SetEnabled(health, active);
         SetEnabled(inventory, active);
         SetEnabled(equipment, active);
-        SetEnabled(staminaController, false);
         SetEnabled(buffController, active);
         SetEnabled(movementInputSource, player);
         SetEnabled(movement, controllable);

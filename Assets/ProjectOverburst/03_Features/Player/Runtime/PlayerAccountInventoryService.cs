@@ -131,12 +131,9 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
     }
     private PlayerContext playerContext;
     private PlayerMovement playerMovement;
-    private PlayerStaminaController playerStaminaController;
     private CombatHealth playerHealth;
     private PlayerMovement appliedBagMovementTarget; // 이동속도 적용 대상
-    private PlayerStaminaController appliedBagStaminaTarget; // 스태미너 적용 대상
     private CombatHealth appliedBagHealthTarget; // HP 적용 대상
-    private float appliedBagMaxStaminaBonus; // 기존 적용 스태미너
     private float appliedBagMaxHpBonus; // 기존 적용 HP
 
     private void Start()
@@ -152,15 +149,13 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
     private void OnDestroy()
     {
         if (playerContext != null) playerContext.CurrentActorChanged -= HandleAccountActorChanged;
-        RefreshBagBonuses(null, null, null);
+        RefreshBagBonuses(null, null);
         if (instance == this) instance = null;
     }
 
     private void HandleAccountActorChanged(PlayerActorRuntime actor)
     {
-        RefreshBagBonuses(actor != null ? actor.Movement : null,
-            actor != null && actor.PlayerKit != null ? actor.PlayerKit.StaminaController : null,
-            actor != null ? actor.Health : null);
+        RefreshBagBonuses(actor != null ? actor.Movement : null, actor != null ? actor.Health : null);
     }
 
     public void RefreshBagBonusesForCurrentActor()
@@ -168,21 +163,18 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
         HandleAccountActorChanged(PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null);
     }
 
-    public void RefreshBagBonuses(PlayerMovement movement, PlayerStaminaController stamina, CombatHealth health)
+    public void RefreshBagBonuses(PlayerMovement movement, CombatHealth health)
     {
         playerMovement = movement;
-        playerStaminaController = stamina;
         playerHealth = health;
-        CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxStaminaBonus, out float maxHpBonus);
+        CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxHpBonus);
         ApplyBagMoveSpeedBonus(moveSpeedPercent);
-        ApplyBagMaxStaminaBonus(maxStaminaBonus);
         ApplyBagMaxHpBonus(maxHpBonus);
     }
 
-    private void CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxStaminaBonus, out float maxHpBonus)
+    private void CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxHpBonus)
     {
         moveSpeedPercent = 0f;
-        maxStaminaBonus = 0f;
         maxHpBonus = 0f;
 
         if (Loadout.Bags == null)
@@ -209,9 +201,6 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
                     case BagRandomOptionType.MoveSpeedPercent:
                         moveSpeedPercent += Mathf.Max(0f, option.value);
                         break;
-                    case BagRandomOptionType.MaxStamina:
-                        maxStaminaBonus += Mathf.Max(0f, option.value);
-                        break;
                     case BagRandomOptionType.MaxHp:
                         maxHpBonus += Mathf.Max(0f, option.value);
                         break;
@@ -228,26 +217,6 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
         appliedBagMovementTarget = playerMovement;
         if (appliedBagMovementTarget != null)
             appliedBagMovementTarget.SetBagMoveSpeedBonusPercent(moveSpeedPercent);
-    }
-
-    private void ApplyBagMaxStaminaBonus(float maxStaminaBonus)
-    {
-        maxStaminaBonus = Mathf.Max(0f, maxStaminaBonus);
-
-        if (appliedBagStaminaTarget != null && appliedBagStaminaTarget != playerStaminaController)
-        {
-            float previousBase = Mathf.Max(1f, appliedBagStaminaTarget.MaxStamina - appliedBagMaxStaminaBonus);
-            appliedBagStaminaTarget.SetMaxStamina(previousBase, false);
-            appliedBagMaxStaminaBonus = 0f;
-        }
-
-        appliedBagStaminaTarget = playerStaminaController;
-        if (appliedBagStaminaTarget == null)
-            return;
-
-        float baseMaxStamina = Mathf.Max(1f, appliedBagStaminaTarget.MaxStamina - appliedBagMaxStaminaBonus);
-        appliedBagStaminaTarget.SetMaxStamina(baseMaxStamina + maxStaminaBonus, false);
-        appliedBagMaxStaminaBonus = maxStaminaBonus;
     }
 
     private void ApplyBagMaxHpBonus(float maxHpBonus)

@@ -56,8 +56,6 @@ public static class ItemTooltipFormatter // 툴팁 포맷
         {
             case BagRandomOptionType.MoveSpeedPercent:
                 return "이동속도 +" + FormatNumber(option.value) + "%";
-            case BagRandomOptionType.MaxStamina:
-                return "스태미너 최대치 +" + Mathf.RoundToInt(option.value);
             case BagRandomOptionType.MaxHp:
                 return "HP 최대치 +" + Mathf.RoundToInt(option.value);
             default:
@@ -84,7 +82,6 @@ public static class ItemTooltipFormatter // 툴팁 포맷
         {
             case BagRandomOptionType.MoveSpeedPercent:
                 return FormatNumber(minValue) + "~" + FormatNumber(maxValue) + "%";
-            case BagRandomOptionType.MaxStamina:
             case BagRandomOptionType.MaxHp:
                 return Mathf.RoundToInt(minValue) + "~" + Mathf.RoundToInt(maxValue);
             default:

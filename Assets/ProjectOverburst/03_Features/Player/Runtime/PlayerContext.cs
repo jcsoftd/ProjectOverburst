@@ -13,7 +13,6 @@ public sealed class PlayerContext : MonoBehaviour
     public PlayerMovement CurrentActorMovement => CurrentActor != null ? CurrentActor.Movement : null;
     public PlayerEquipment CurrentActorEquipment => CurrentActor != null ? CurrentActor.Equipment : null;
     public CombatHealth CurrentActorHealth => CurrentActor != null ? CurrentActor.Health : null;
-    public PlayerStaminaController CurrentActorStaminaController => CurrentActorKit != null ? CurrentActorKit.StaminaController : null;
     public PlayerBuffController CurrentActorBuffController => CurrentActorKit != null ? CurrentActorKit.BuffController : null;
     public PlayerInventory CurrentActorInventory => PlayerAccountInventoryService.SharedInventory != null
         ? PlayerAccountInventoryService.SharedInventory

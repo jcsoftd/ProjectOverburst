@@ -10,7 +10,6 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
     [SerializeField] private InventoryUI inventoryUI; // UI 상태
     [SerializeField] private PickupGradeVfxSet pickupGradeVfxSet; // 월드 드롭 VFX
     [SerializeField] private PlayerMovement playerMovement; // 가방 이동속도 적용 대상
-    [SerializeField] private PlayerStaminaController playerStaminaController; // 가방 스태미너 적용 대상
     [SerializeField] private CombatHealth playerHealth; // 가방 HP 적용 대상
 
     [Header("World Drop")]

@@ -242,7 +242,6 @@ GameObject:
   - component: {fileID: 2299222960054195725}
   - component: {fileID: 1058986554465660183}
   - component: {fileID: 1212765871243366266}
-  - component: {fileID: 5806982113689276545}
   - component: {fileID: 251831868484462218}
   - component: {fileID: 6181204622242936607}
   - component: {fileID: 9128834677009160950}
@@ -361,7 +360,6 @@ MonoBehaviour:
   walkSpeed: 4.5
   runSpeed: 7.8
   aimMoveSpeedMultiplier: 0.6
-  quickFireMoveSpeedMultiplier: 0.8
   acceleration: 55
   deceleration: 70
   airControl: 0.35
@@ -382,7 +380,6 @@ MonoBehaviour:
   debugForceAiming: 0
   playerEquipment: {fileID: 0}
   playerBuffController: {fileID: 0}
-  playerStaminaController: {fileID: 5806982113689276545}
   playerEvadeController: {fileID: 0}
   meleeAimCamera: {fileID: 0}
   meleeFacingRotationSpeed: 60
@@ -429,7 +426,6 @@ MonoBehaviour:
   fireTriggerParameter: FireTrigger
   recoverTriggerParameter: RecoverTrigger
   fireAnimationSpeedParameter: FireAnimationSpeed
-  recoverAnimationSpeedParameter: RecoverAnimationSpeed
   combatModeParameter: IsCombatMode
   guardingParameter: IsGuarding
   moveSmoothTime: 0.12
@@ -440,14 +436,11 @@ MonoBehaviour:
   useWeaponActionClipOverride: 1
   baseFireClip: {fileID: 0}
   baseFireClipName: MagicCast
-  baseRecoverClip: {fileID: 0}
-  baseRecoverClipName: MagicRecover
   restartWeaponActionStates: 1
   weaponActionLayerName: UpperBody_Magic
   aimStateName: MagicAim
   fireStateName: MagicCast
   recoverStateName: MagicRecover
-  weaponActionLayerBlendSpeed: 18
   meleeFullBodyStateName: NormalIdle
   meleeFullBodyBaseClip: {fileID: 0}
   meleeFullBodyBaseClipName: Idle_JawFixed
@@ -520,8 +513,6 @@ MonoBehaviour:
   rotateRoot: {fileID: 1266787418806541647}
   autoUpdate: 1
   aimRotationSpeed: 60
-  fallbackMagicCastHeight: 1.1
-  fallbackMagicCastForwardOffset: 0.65
 --- !u!114 &3853973983778718115
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -829,23 +820,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &5806982113689276545
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5778037010099676702}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d67091e9bc32404e8d32c89283d7311, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerStaminaController
-  maxStamina: 100
-  currentStamina: 100
-  staminaRegenPerSecond: 18
-  regenDelayAfterConsume: 0.65
-  dashStaminaCost: 25
 --- !u!114 &251831868484462218
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -880,7 +854,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRuntimeHub
   meleeController: {fileID: 2957589915240667922}
-  magicController: {fileID: 0}
 --- !u!114 &9128834677009160950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -995,7 +968,6 @@ MonoBehaviour:
   weaponRuntimeHub: {fileID: 6181204622242936607}
   movementInputSource: {fileID: 7026736677916535603}
   movement: {fileID: 7267795241096372142}
-  staminaController: {fileID: 5806982113689276545}
   evadeController: {fileID: 4421828933297112903}
   playerAnimation: {fileID: 3391135747592105502}
   aimRotation: {fileID: 7085623591231015063}
@@ -1005,7 +977,6 @@ MonoBehaviour:
   currencyAutoPickup: {fileID: 1994137954335074282}
   starterLoadout: {fileID: 0}
   meleeRuntime: {fileID: 2957589915240667922}
-  magicRuntime: {fileID: 0}
   authority: 2
 --- !u!114 &6154574667041729290
 MonoBehaviour:
