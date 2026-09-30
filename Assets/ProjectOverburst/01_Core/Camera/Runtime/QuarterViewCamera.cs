@@ -197,6 +197,10 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float positionSafetyLimit,
         float rollSafetyLimit)
     {
+        // 2026-10-01 설정 > 전투 표시 > 카메라 흔들림(0~100%). 모든 전투 카메라 반응이 이 입구를 지난다.
+        float shakeScale = OverburstGameSettings.CameraShakeScale;
+        positionAmplitude *= shakeScale;
+        rollAmplitude *= shakeScale;
         float resolvedDuration = Mathf.Max(0f, duration);
         float resolvedPositionAmplitude = Mathf.Max(0f, positionAmplitude);
         float resolvedRollAmplitude = Mathf.Max(0f, rollAmplitude);
@@ -271,7 +275,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         if (groundStepCameraStrength <= 0f || !isActiveAndEnabled)
             return;
-        float scaled = Mathf.Clamp(positionAmplitude, 0f, .05f) * groundStepCameraStrength;
+        float scaled = Mathf.Clamp(positionAmplitude, 0f, .05f) * groundStepCameraStrength * OverburstGameSettings.CameraShakeScale;
         if (scaled <= queuedGroundStepAmplitude) return;
         queuedGroundStepAmplitude = scaled;
         queuedGroundStepDuration = Mathf.Clamp(duration, .08f, .16f);

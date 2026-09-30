@@ -33,10 +33,25 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
     private float appliedTimeScale = 1f;
     private bool ownsTimeScale;
 
+    // 2026-10-01 ESC 메뉴 일시정지: 시간 효과보다 위에서 timeScale을 0으로 둔다.
+    // 멈춘 동안 히트스톱·패링 슬로우의 남은 시간은 줄지 않고, 풀면 그대로 이어진다.
+    private bool paused;
+    private float pausedAtUnscaled;
+    private float pausedTimeScale = 1f;
+    private float totalPausedUnscaled;
+
     public static bool IsActive => instance != null && instance.requests.Count > 0;
     public static int ActiveRequestCount => instance != null ? instance.requests.Count : 0;
     public static OverburstTimeEffectKind? ActiveKind => instance != null ? instance.ResolveWinner()?.Kind : null;
     public static bool OwnsTimeScale => instance != null && instance.ownsTimeScale;
+    public static bool IsPaused => instance != null && instance.paused;
+    // 앱 시작부터 메뉴로 멈춰 있던 실제 시간(초). OverburstGameClock이 쓴다.
+    public static float TotalPausedUnscaled => instance == null ? 0f
+        : instance.totalPausedUnscaled + (instance.paused ? Mathf.Max(0f, Time.unscaledTime - instance.pausedAtUnscaled) : 0f);
+    public static event Action<bool> PauseChanged;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => PauseChanged = null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -89,6 +104,45 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         instance?.ClearAllInternal(true);
     }
 
+    public static void SetPaused(bool value)
+    {
+        if (instance == null)
+            Bootstrap();
+        instance?.SetPausedInternal(value);
+    }
+
+    private void SetPausedInternal(bool value)
+    {
+        if (paused == value)
+            return;
+
+        if (value)
+        {
+            paused = true;
+            pausedAtUnscaled = Time.unscaledTime;
+            pausedTimeScale = Time.timeScale;
+            Time.timeScale = 0f;
+        }
+        else
+        {
+            float pausedFor = Mathf.Max(0f, Time.unscaledTime - pausedAtUnscaled);
+            totalPausedUnscaled += pausedFor;
+            for (int i = 0; i < requests.Count; i++)
+                requests[i].EndUnscaledTime += pausedFor; // 남은 히트스톱·슬로우를 멈춘 만큼 뒤로 민다.
+            paused = false;
+            Time.timeScale = pausedTimeScale;
+        }
+
+        try
+        {
+            PauseChanged?.Invoke(paused);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
+    }
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -104,6 +158,13 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
 
     private void Update()
     {
+        if (paused)
+        {
+            if (Time.timeScale != 0f)
+                Time.timeScale = 0f; // 메뉴가 열린 동안은 다른 시스템이 바꾼 값도 되돌린다.
+            return;
+        }
+
         if (!ownsTimeScale)
             return;
 
@@ -141,6 +202,9 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         scale = Mathf.Clamp(scale, 0.01f, 1f);
         duration = Mathf.Max(0f, duration);
         recoverSeconds = Mathf.Clamp(recoverSeconds, 0f, duration);
+
+        if (paused)
+            return false; // 메뉴 멈춤 중에는 새 시간 효과를 받지 않는다.
 
         if (!ownsTimeScale)
         {
@@ -243,6 +307,9 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
     {
         if (!ownsTimeScale)
             return;
+
+        if (paused)
+            pausedTimeScale = baselineTimeScale; // 멈춘 동안 효과가 지워지면 풀 때 원래 속도로 돌아간다.
 
         if (Mathf.Approximately(Time.timeScale, appliedTimeScale))
         {

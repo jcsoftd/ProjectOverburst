@@ -272,6 +272,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
         // resolved map index after the .inputactions asset is reimported during Editor Play.
         runtimeAsset = InputActionAsset.FromJson(sourceAsset.ToJson());
         runtimeAsset.name = sourceAsset.name + " (Runtime)";
+        // 2026-10-01 설정 > 조작에서 바꾼 키(저장된 바인딩 덮어쓰기)를 새 런타임 에셋에 다시 입힌다.
+        OverburstGameSettings.ApplyBindingOverrides(runtimeAsset);
         gameplayMap = runtimeAsset.FindActionMap(GameplayMapName);
         uiMap = runtimeAsset.FindActionMap(UiMapName);
         debugValidationMap = runtimeAsset.FindActionMap(DebugValidationMapName);

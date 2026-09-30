@@ -13,6 +13,7 @@ namespace Overburst.Persistence
         private bool returnRequested;
         private RunOutcome outcome;
         private float nextPoll;
+        private long pausedTicksSinceBossClear;
         public string LastError { get; private set; }
 
         private void OnEnable() => WorldSessionState.Changed += WorldChanged;
@@ -38,9 +39,18 @@ namespace Overburst.Persistence
 
         private void Update()
         {
+            // 2026-10-01 ESC 메뉴: 보스 처치 뒤 180초 자동 귀환은 실제 시계(UTC)로 잰다.
+            // 멈춘 동안은 정산하지 않고, 보스를 잡은 뒤 멈춰 있던 시간만큼 그 시계를 늦춰 준다.
+            if (OverburstTimeEffectArbiter.IsPaused)
+            {
+                if (AccountGameplaySession.Current?.ReadRun()?.phase == RunPhase.BossCleared)
+                    pausedTicksSinceBossClear += (long)(Time.unscaledDeltaTime * TimeSpan.TicksPerSecond);
+                return;
+            }
             if (Time.unscaledTime < nextPoll) return;
             nextPoll = Time.unscaledTime + .25f;
-            Poll(DateTime.UtcNow.Ticks);
+            if (AccountGameplaySession.Current?.ReadRun()?.phase != RunPhase.BossCleared) pausedTicksSinceBossClear = 0;
+            Poll(DateTime.UtcNow.Ticks - pausedTicksSinceBossClear);
         }
 
         public void Poll(long utcTicks)

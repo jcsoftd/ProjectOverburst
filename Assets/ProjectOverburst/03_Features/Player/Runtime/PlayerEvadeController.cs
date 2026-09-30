@@ -81,16 +81,16 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     }
 
     public bool IsRollExitRecovering => isActiveAndEnabled
-        && Time.unscaledTime < rollRotationRecoveryEndTime;
+        && OverburstGameClock.UnscaledTime < rollRotationRecoveryEndTime;
 
     public bool IsInvincible
     {
-        get { return Time.unscaledTime < invincibleEndTime; }
+        get { return OverburstGameClock.UnscaledTime < invincibleEndTime; }
     }
 
     public bool IsPerfectEvadeWindowActive
     {
-        get { return Time.unscaledTime < perfectWindowEndTime; }
+        get { return OverburstGameClock.UnscaledTime < perfectWindowEndTime; }
     }
 
     public PlayerEvadeType ActiveType
@@ -102,11 +102,11 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     {
         get
         {
-            if (Time.unscaledTime >= rollRotationRecoveryEndTime)
+            if (OverburstGameClock.UnscaledTime >= rollRotationRecoveryEndTime)
                 return 1f;
 
             float duration = Mathf.Max(0.001f, rollExitRotationBlendDuration);
-            float remaining01 = Mathf.Clamp01((rollRotationRecoveryEndTime - Time.unscaledTime) / duration);
+            float remaining01 = Mathf.Clamp01((rollRotationRecoveryEndTime - OverburstGameClock.UnscaledTime) / duration);
             return Mathf.Lerp(1f, Mathf.Clamp01(rollExitRotationSpeedMultiplier), remaining01);
         }
     }
@@ -134,12 +134,13 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     {
         ResolveReferences();
         ReadEvadeInput();
-        UpdateEvadeMotion(Time.unscaledDeltaTime);
+        // 회피는 히트스톱을 무시하려고 unscaled 시간을 쓰되, ESC 메뉴 멈춤 동안에는 흐르지 않는 시계를 쓴다(2026-10-01).
+        UpdateEvadeMotion(OverburstGameClock.UnscaledDeltaTime);
     }
 
     private void LateUpdate()
     {
-        MaintainEvadeDirection(Time.unscaledDeltaTime);
+        MaintainEvadeDirection(OverburstGameClock.UnscaledDeltaTime);
     }
 
     public bool TryCancelDamageByEvade(DamageInfo damageInfo)
@@ -200,7 +201,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (GameplayInputBlocker.IsGameplayInputBlocked)
             return false;
 
-        if (isEvading || Time.unscaledTime < nextEvadeTime)
+        if (isEvading || OverburstGameClock.UnscaledTime < nextEvadeTime)
             return false;
 
         if (playerMovement != null && playerMovement.IsMeleeAttackMoveLocked && !CanCancelMeleeComboForEvade())
@@ -242,7 +243,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         perfectEvadeTriggered = false;
         activeElapsed = 0f;
         activeMovedDistance = 0f;
-        evadeStartTime = Time.unscaledTime;
+        evadeStartTime = OverburstGameClock.UnscaledTime;
         evadeEndTime = evadeStartTime + activeDuration;
         nextEvadeTime = evadeStartTime + Mathf.Max(0f, cooldown);
         rollRotationRecoveryEndTime = 0f;
@@ -251,7 +252,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (activeType == PlayerEvadeType.Roll && Mathf.Abs(activeRollFacingYawOffset) > .01f)
             transform.rotation = Quaternion.LookRotation(activeDirection, Vector3.up)
                 * Quaternion.Euler(0f, activeRollFacingYawOffset, 0f);
-        MaintainEvadeDirection(Time.unscaledDeltaTime);
+        MaintainEvadeDirection(OverburstGameClock.UnscaledDeltaTime);
 
         playerMovement?.PrepareEvadeMotion();
         PlayEvadeAnimation(activeType, activeDuration);
@@ -311,8 +312,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     {
         activeDistance = Mathf.Max(0f, distance);
         activeDuration = Mathf.Max(0.01f, duration);
-        invincibleEndTime = Time.unscaledTime + Mathf.Max(0f, invincibleDuration);
-        perfectWindowEndTime = Time.unscaledTime + Mathf.Max(0f, perfectWindow);
+        invincibleEndTime = OverburstGameClock.UnscaledTime + Mathf.Max(0f, invincibleDuration);
+        perfectWindowEndTime = OverburstGameClock.UnscaledTime + Mathf.Max(0f, perfectWindow);
     }
 
     private Vector3 ResolveEvadeDirection()
@@ -357,7 +358,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
             combatMotion.ApplyEvadeDisplacement(displacement);
         }
 
-        if (Time.unscaledTime >= evadeEndTime || progress >= 1f)
+        if (OverburstGameClock.UnscaledTime >= evadeEndTime || progress >= 1f)
             EndEvade();
     }
 
@@ -383,7 +384,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         isEvading = false;
 
         if (endedType == PlayerEvadeType.Roll)
-            rollRotationRecoveryEndTime = Time.unscaledTime + Mathf.Max(0f, rollExitRotationBlendDuration);
+            rollRotationRecoveryEndTime = OverburstGameClock.UnscaledTime + Mathf.Max(0f, rollExitRotationBlendDuration);
 
         // GOAL A2: Evading 요청을 해제한다. 이동 축은 Movement 보고로 복귀.
         if (stateCoordinator == null)

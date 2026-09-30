@@ -101,9 +101,12 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
         feedbackStartTime = now;
         activeVignetteDuration = Mathf.Max(0.01f, vignetteFadeDuration);
         vignetteEndTime = now + activeVignetteDuration;
-        SetVignetteAlpha(vignettePeakAlpha);
+        SetVignetteAlpha(PeakAlpha);
         CombatHitFeedbackService.RequestPlayerDamage(damageDirection, shakeDuration, shakeAmplitude);
     }
+
+    // 2026-10-01 설정 > 전투 표시 > 피격 화면 효과(0~100%).
+    private float PeakAlpha => Mathf.Clamp01(vignettePeakAlpha) * OverburstGameSettings.HitEffectScale;
 
     private void UpdateVignette()
     {
@@ -118,7 +121,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
 
         float progress = Mathf.Clamp01((Time.time - feedbackStartTime) / activeVignetteDuration);
         float eased = Mathf.SmoothStep(0f, 1f, progress); // 자연 감쇠
-        SetVignetteAlpha(Mathf.Lerp(Mathf.Clamp01(vignettePeakAlpha), 0f, eased));
+        SetVignetteAlpha(Mathf.Lerp(PeakAlpha, 0f, eased));
     }
 
 

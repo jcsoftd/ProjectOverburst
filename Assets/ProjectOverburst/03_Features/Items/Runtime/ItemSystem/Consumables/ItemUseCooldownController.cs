@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class ItemUseCooldownController : MonoBehaviour
 {
+    // 재사용 대기는 ESC 메뉴로 멈춘 동안 줄지 않는다(OverburstGameClock, 2026-10-01).
     private readonly Dictionary<string, CooldownState> cooldowns = new Dictionary<string, CooldownState>();
 
     private struct CooldownState
@@ -21,7 +22,7 @@ public class ItemUseCooldownController : MonoBehaviour
         if (string.IsNullOrWhiteSpace(cooldownKey) || !cooldowns.TryGetValue(cooldownKey, out CooldownState state))
             return 0f;
 
-        float remaining = state.EndTime - Time.unscaledTime;
+        float remaining = state.EndTime - OverburstGameClock.UnscaledTime;
         if (remaining > 0f)
             return remaining;
 
@@ -53,7 +54,7 @@ public class ItemUseCooldownController : MonoBehaviour
 
         cooldowns[cooldownKey] = new CooldownState
         {
-            EndTime = Time.unscaledTime + duration,
+            EndTime = OverburstGameClock.UnscaledTime + duration,
             Duration = duration
         };
     }
