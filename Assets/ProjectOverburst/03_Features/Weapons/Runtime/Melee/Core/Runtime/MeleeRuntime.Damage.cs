@@ -121,8 +121,8 @@ public partial class MeleeRuntime
 
     private float GetActiveCritChance()
     {
-        float bonus = activeAttackUsedMeleeCombatStance ? MeleeCombatStanceCritChanceBonus : 0f; // 자세 보너스
-        return Mathf.Min(OverburstCombatBalance.FinalCriticalChance, activeStats.critChance + bonus);
+        // 전투 자세 치명 보너스 포함, 최종 상한 65%.
+        return CombatBalanceFormulas.EffectiveCriticalChance(activeStats.critChance, activeAttackUsedMeleeCombatStance);
     }
 
     private float ApplyCombatStanceKnockback(float knockback)

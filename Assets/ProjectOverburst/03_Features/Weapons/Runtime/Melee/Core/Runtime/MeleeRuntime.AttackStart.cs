@@ -73,11 +73,8 @@ public partial class MeleeRuntime
             && activeAttackWeaponItem != null
             && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
             && activeHeavyEnergy.Element == activeAttackWeaponItem.ResolvedElement;
-        activeAttackDamageMultiplier = isHeavy
-            ? activeHeavyDefinition.GetDamageMultiplier(hasEnergy)
-            : 1f;
-        if (activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
-            activeAttackDamageMultiplier = isHeavy ? OverburstCombatBalance.EmptyHeavyDamage : OverburstCombatBalance.GreatswordWeakDamage;
+        activeAttackDamageMultiplier = CombatBalanceFormulas.AttackDamageMultiplier(
+            activeWeaponData, activeHeavyDefinition, isHeavy, hasEnergy);
 
 
         attackDuration = ResolveAttackDuration();

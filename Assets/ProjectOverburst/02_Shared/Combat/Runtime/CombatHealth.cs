@@ -95,7 +95,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             if (damage > 0f && CombatTeamUtility.IsPlayerActorHealth(this)
                 && !CombatDebugSettings.ReduceIncomingPlayerDamageBy99_9Percent)
             {
-                damage = Mathf.Max(damage, incomingBeforeMitigation * .10f);
+                damage = Mathf.Max(damage, incomingBeforeMitigation * CombatBalanceFormulas.PlayerIncomingDamageFloor);
                 info.damage = damage;
             }
         }
@@ -130,12 +130,12 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (CombatTeamUtility.IsPlayerActorHealth(this))
         {
             EnemyRank attackingEnemy = info.source != null ? info.source.GetComponentInParent<EnemyRank>() : null;
-            if (attackingEnemy != null && (info.enemyAbility == null || !info.enemyAbility.UsesLevelDamageBudget))
+            if (attackingEnemy != null && CombatBalanceFormulas.UsesLegacyEnemyDamageGrowth(info.enemyAbility))
                 damage *= OverburstGrowthRules.EnemyDamageFactor(attackingEnemy.Level);
             incomingBeforeMitigation = damage;
             PlayerProgression progression = PlayerProgression.Current;
             if (progression != null && GetComponentInParent<PlayerActorRuntime>() != null)
-                damage *= Mathf.Max(.20f, 100f / (100f + Mathf.Max(0f, progression.Armor)));
+                damage *= CombatBalanceFormulas.PlayerArmorMultiplier(progression.Armor);
         }
         else if (info.source != null)
         {
@@ -143,14 +143,9 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             if (equipment == null) return;
             GearStatTotals stats = GearStatTotals.From(equipment);
             EnemyRank targetRank = GetComponentInParent<EnemyRank>();
-            float bonus = targetRank != null ? stats.TargetDamage(targetRank.GradeType) : 0f;
-            if ((info.playerAttackKind & PlayerAttackKind.Weak) != 0) bonus += stats.WeakDamage;
-            if ((info.playerAttackKind & PlayerAttackKind.Heavy) != 0) bonus += stats.HeavyDamage;
-            if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0) bonus += stats.ElementalDamage;
-            damage *= Mathf.Max(.1f, 1f + bonus / 100f);
-            damage *= 1f + MapRunBuffs.Bonus(MapBuffKind.Attack);
-            if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0)
-                damage *= 1f + MapRunBuffs.Bonus(MapBuffKind.ElementalDamage);
+            damage = CombatBalanceFormulas.ApplyPlayerOutgoing(damage, stats, targetRank != null,
+                targetRank != null ? targetRank.GradeType : EnemyGradeType.Normal, info.playerAttackKind,
+                MapRunBuffs.Bonus(MapBuffKind.Attack), MapRunBuffs.Bonus(MapBuffKind.ElementalDamage));
         }
         info.damage = damage;
     }
@@ -302,7 +297,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     }
 
     // 2026-09-30 패링 보상: 패링 기절 중인 적은 받는 피해가 늘어 "팅 → 쾅" 마무리가 된다.
-    private const float ParryStunDamageMultiplier = 1.4f;
+    private const float ParryStunDamageMultiplier = CombatBalanceFormulas.ParryStunDamageMultiplier;
     private EnemyMovementReaction parryReaction;
     private bool parryReactionResolved;
 

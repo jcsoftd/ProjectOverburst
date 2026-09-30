@@ -14,7 +14,6 @@ public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 �
 {
     private const float DamageOverTimeTickInterval = 1f; // 지속 피해 주기
     private const float MinAttackDuration = 0.2f; // 공격 액션 최소 길이
-    private const float MeleeCombatStanceCritChanceBonus = 10f; // 자세 치명 보너스
     private const float MeleeCombatStanceKnockbackMultiplier = 1.5f; // 자세 넉백 배율
 
     [Header("References")]

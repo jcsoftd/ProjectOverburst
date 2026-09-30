@@ -64,11 +64,7 @@ public static class UpperElementCombatUtility
     {
         OverburstElementEnergy energy = actor != null ? actor.GetComponent<OverburstElementEnergy>() : null;
         if (energy == null || energy.RadianceStacks <= 0) return stats;
-        OverburstElementTuning tuning = OverburstElementTuning.Current;
-        float multiplier = 1f + tuning.SafeLightRadianceAttackSpeedPerStack * energy.RadianceStacks;
-        float boosted = Mathf.Min(tuning.SafeLightFinalAttackSpeedCap, stats.meleeAttackSpeedMultiplier * multiplier);
-        stats.meleeAttackSpeedMultiplier = Mathf.Max(stats.meleeAttackSpeedMultiplier, boosted);
-        return stats;
+        return CombatBalanceFormulas.ApplyRadianceAttackSpeed(stats, OverburstElementTuning.Current, energy.RadianceStacks);
     }
 
     public static EnemyGradeType GradeOf(Component actor)

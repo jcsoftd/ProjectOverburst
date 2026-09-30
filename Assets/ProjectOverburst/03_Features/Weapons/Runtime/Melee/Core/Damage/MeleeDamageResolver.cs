@@ -85,11 +85,7 @@ public static class MeleeDamageResolver
         float criticalChance = Mathf.Clamp(request.CriticalChance, 0f, 100f);
         bool isCritical = criticalChance > 0f && Random.value * 100f < criticalChance;
         AttackImpactData impact = request.Impact;
-        float damage = Mathf.Max(0f, request.Damage);
-        if (isCritical)
-            damage *= Mathf.Max(1f, request.CriticalDamageMultiplier);
-
-        int damageAmount = Mathf.Max(1, Mathf.RoundToInt(damage));
+        int damageAmount = CombatBalanceFormulas.RoundedHitDamage(request.Damage, isCritical, request.CriticalDamageMultiplier);
         CombatHealth targetHealth = request.Target as CombatHealth;
         float hpBeforeHit = targetHealth != null ? targetHealth.CurrentHp : -1f;
 

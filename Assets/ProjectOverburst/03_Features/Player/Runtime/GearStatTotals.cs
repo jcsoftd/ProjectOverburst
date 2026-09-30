@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public struct GearStatTotals
@@ -10,29 +11,41 @@ public struct GearStatTotals
         var totals = new GearStatTotals();
         if (equipment == null) return totals;
         for (int i = 0; i < 7; i++)
+            totals.Add(equipment.GetGearSlotItem(i));
+        return totals;
+    }
+
+    // 장착하지 않은 장비 목록의 합계. 밸런스 분석 도구가 장착 합계와 같은 행 계산으로 쓴다.
+    public static GearStatTotals FromItems(IEnumerable<ItemData> items)
+    {
+        var totals = new GearStatTotals();
+        if (items == null) return totals;
+        foreach (ItemData item in items)
+            totals.Add(item);
+        return totals;
+    }
+
+    private void Add(ItemData item)
+    {
+        if (item == null || !(item.baseData is GearItemData) || item.gearRolls == null) return;
+        foreach (GearStatRoll row in item.gearRolls)
         {
-            ItemData item = equipment.GetGearSlotItem(i);
-            if (item == null || !(item.baseData is GearItemData) || item.gearRolls == null) continue;
-            foreach (GearStatRoll row in item.gearRolls)
+            float value = GearQuality.Value(item, row);
+            switch (row.stat)
             {
-                float value = GearQuality.Value(item, row);
-                switch (row.stat)
-                {
-                    case GearStat.MaxHealth: totals.MaxHealth += value; break;
-                    case GearStat.Armor: totals.Armor += value; break;
-                    case GearStat.Attack: totals.Attack += value; break;
-                    case GearStat.CriticalChance: totals.CriticalChance += value; break;
-                    case GearStat.AttackSpeed: totals.AttackSpeed += value; break;
-                    case GearStat.NormalDamage: totals.NormalDamage += value; break;
-                    case GearStat.WeakDamage: totals.WeakDamage += value; break;
-                    case GearStat.HeavyDamage: totals.HeavyDamage += value; break;
-                    case GearStat.EliteBossDamage: totals.EliteBossDamage += value; break;
-                    case GearStat.ElementalDamage: totals.ElementalDamage += value; break;
-                    case GearStat.CriticalDamage: totals.CriticalDamage += value; break;
-                }
+                case GearStat.MaxHealth: MaxHealth += value; break;
+                case GearStat.Armor: Armor += value; break;
+                case GearStat.Attack: Attack += value; break;
+                case GearStat.CriticalChance: CriticalChance += value; break;
+                case GearStat.AttackSpeed: AttackSpeed += value; break;
+                case GearStat.NormalDamage: NormalDamage += value; break;
+                case GearStat.WeakDamage: WeakDamage += value; break;
+                case GearStat.HeavyDamage: HeavyDamage += value; break;
+                case GearStat.EliteBossDamage: EliteBossDamage += value; break;
+                case GearStat.ElementalDamage: ElementalDamage += value; break;
+                case GearStat.CriticalDamage: CriticalDamage += value; break;
             }
         }
-        return totals;
     }
 
     public float TargetDamage(EnemyGradeType grade) => grade == EnemyGradeType.Normal

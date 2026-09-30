@@ -134,8 +134,7 @@ public sealed class EnemyRank : MonoBehaviour
         {
             float baseHealth = balanceDefinition.ResolveRuntimeStats().MaxHealth;
             float encounterScale = Mathf.Max(1f, authoredBase) / Mathf.Max(1f, baseHealth);
-            float scaled = OverburstCombatBalance.RoundStat(balanceDefinition.ReferenceHealthCoefficient
-                * OverburstCombatBalance.ReferenceExpectedHit(Level));
+            float scaled = CombatBalanceFormulas.EnemyReferenceHealth(balanceDefinition.ReferenceHealthCoefficient, Level);
             health.SetMaxHp(scaled * encounterScale, true);
         }
         else health.SetMaxHp(Mathf.Max(1f, authoredBase) * OverburstGrowthRules.EnemyHealthFactor(Level), true);

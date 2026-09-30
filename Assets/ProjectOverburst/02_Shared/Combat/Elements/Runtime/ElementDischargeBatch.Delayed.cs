@@ -56,7 +56,7 @@ public sealed partial class ElementDischargeBatch
             if(element==WeaponElement.Fire)
             {
                 int stack=Mathf.Clamp(nodes[origin].Stacks,1,5);
-                var point=nodes[origin].Point;float radius=1+.2f*(stack-1);
+                var point=nodes[origin].Point;float radius=CombatBalanceFormulas.FireChainRadius(stack);
                 fireVfx?.Invoke(point,radius); // Callback receives the actual damage radius, in metres.
                 for(int i=NextCandidate(0);i<count;i=NextCandidate(i+1))
                 {
@@ -64,7 +64,7 @@ public sealed partial class ElementDischargeBatch
                     if(!Valid(i)){RetireCandidate(i);continue;}
                     if(i==origin||nodes[i].Hits>=2||!InRange(i,point,radius))continue;
                     int burning=!nodes[i].Queued && nodes[i].Status!=null?nodes[i].Status.GetStackCount(WeaponElement.Fire):0;
-                    if(!Damage(i,blastDamage*(.1f+.1f*stack),source)||burning<=0||nodes[i].Queued)continue;
+                    if(!Damage(i,CombatBalanceFormulas.FireChainDamage(blastDamage,stack),source)||burning<=0||nodes[i].Queued)continue;
                     // Capture and consume at ignition; later weak hits belong to a new burn.
                     nodes[i].Stacks=burning;int index=rootCount;Queue(i);
                     if(rootCount>index)
@@ -77,11 +77,11 @@ public sealed partial class ElementDischargeBatch
             else
             {
                 int length=pathLengths[r],hop=length-1;
-                int extra=energy>=.99999f?2:energy>=.5f?1:0;
-                if(length<=0||hop>=Mathf.Min(7,nodes[origin].Stacks+extra))continue;
+                int maxHops=CombatBalanceFormulas.LightningMaxHops(nodes[origin].Stacks,energy);
+                if(length<=0||hop>=maxHops)continue;
                 int previous=paths[r*8+length-1];
                 if(!SameLife(previous))continue;
-                var point=nodes[previous].Point;float radius=Mathf.Lerp(2.5f,4f,energy),best=float.PositiveInfinity;int nearest=-1;
+                var point=nodes[previous].Point;float radius=CombatBalanceFormulas.LightningLinkRadius(energy),best=float.PositiveInfinity;int nearest=-1;
                 for(int i=NextCandidate(0);i<count;i=NextCandidate(i+1))
                 {
                     CandidateChecks++;
@@ -92,12 +92,11 @@ public sealed partial class ElementDischargeBatch
                     float distance=(nodes[i].Point-point).sqrMagnitude;
                     if(distance<best){nearest=i;best=distance;}
                 }
-                float fraction=OverburstElementTuning.Current.LightningChainFraction(nodes[origin].Stacks);
-                if(nearest<0||!Damage(nearest,blastDamage*fraction*Mathf.Pow(.8f,hop),source))continue;
+                if(nearest<0||!Damage(nearest,CombatBalanceFormulas.LightningHopDamage(OverburstElementTuning.Current,blastDamage,nodes[origin].Stacks,hop),source))continue;
                 paths[r*8+length]=nearest;pathLengths[r]++;
                 linkVfx?.Invoke(point,nodes[nearest].Point);
                 PlayLightningHopFeedback(nearest,point);
-                if(hop+1<Mathf.Min(7,nodes[origin].Stacks+extra))scheduledAt[r]=chainClock+LightningHopDelay;
+                if(hop+1<maxHops)scheduledAt[r]=chainClock+LightningHopDelay;
             }
         }
         for(int r=0;r<rootCount;r++)if(!float.IsPositiveInfinity(scheduledAt[r]))return true;
