@@ -10,6 +10,8 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
     [SerializeField] private GameObject darkHit;
     [SerializeField] private GameObject lightHit;
     private ParticleSystem[][] cachedParticles;
+    private float[][] authoredSimulationSpeeds;
+    private float appliedPlaybackSpeed = 1f;
     private bool playbackCleared;
 
     public WeaponElement SelectedElement => selectedElement;
@@ -33,6 +35,22 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
             ? element
             : WeaponElement.None;
         ApplySelection();
+    }
+
+    // 카탈로그의 원소별 재생속도. 원소별 풀은 늘 같은 값이라 처음 한 번만 파티클에 쓴다.
+    public void SetPlaybackSpeed(float speed)
+    {
+        speed = Mathf.Clamp(speed, .1f, 4f);
+        if (Mathf.Approximately(speed, appliedPlaybackSpeed)) return;
+        EnsureParticleCache();
+        for (int i = 0; i < cachedParticles.Length; i++)
+            for (int j = 0; j < cachedParticles[i].Length; j++)
+            {
+                if (cachedParticles[i][j] == null) continue;
+                var main = cachedParticles[i][j].main;
+                main.simulationSpeed = authoredSimulationSpeeds[i][j] * speed;
+            }
+        appliedPlaybackSpeed = speed;
     }
 
     public GameObject GetElementObject(WeaponElement element)
@@ -98,6 +116,13 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
     {
         if (cachedParticles != null) return;
         cachedParticles = new[] { Cache(fireHit), Cache(iceHit), Cache(electricHit), Cache(darkHit), Cache(lightHit) };
+        authoredSimulationSpeeds = new float[cachedParticles.Length][];
+        for (int i = 0; i < cachedParticles.Length; i++)
+        {
+            authoredSimulationSpeeds[i] = new float[cachedParticles[i].Length];
+            for (int j = 0; j < cachedParticles[i].Length; j++)
+                authoredSimulationSpeeds[i][j] = cachedParticles[i][j] != null ? cachedParticles[i][j].main.simulationSpeed : 1f;
+        }
     }
 
     private static ParticleSystem[] Cache(GameObject root) => root != null
@@ -117,7 +142,14 @@ public sealed class MeleeElementHitVfxController : MonoBehaviour, ITransientVfxP
         }
     }
 
-    private void OnValidate() { cachedParticles = null; playbackCleared = false; }
+    private void OnValidate()
+    {
+        // 재생속도를 바꾼 뒤 캐시를 지우면 바뀐 속도를 원본으로 다시 읽게 되므로 그대로 둔다.
+        if (!Mathf.Approximately(appliedPlaybackSpeed, 1f)) return;
+        cachedParticles = null;
+        authoredSimulationSpeeds = null;
+        playbackCleared = false;
+    }
 
     private static void SetActive(GameObject target, bool active)
     {

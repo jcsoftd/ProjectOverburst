@@ -65,11 +65,13 @@ public static class MeleeElementHitVfxService
             return false;
 
         MeleeElementPoolMaintenance.Touch(prefab);
+        float playbackSpeed = catalog.ResolvePlaybackSpeed(element);
+        float hitScale = UniformHitScale * catalog.ResolveHitScale(element);
         GameObject instance = TransientVfxPool.Spawn(
             prefab,
             hitPoint,
             Quaternion.identity,
-            catalog.ResolveLifetime(element),
+            catalog.ResolveLifetime(element) / playbackSpeed, // 빨리 재생한 만큼 풀 반환도 앞당긴다
             catalog.ResolvePoolCapacity(element),
             null,
             spawned =>
@@ -80,9 +82,11 @@ public static class MeleeElementHitVfxService
                     throw new MissingComponentException(nameof(MeleeElementHitVfxController));
 
                 controller.SetElement(element); // 활성 전 원소 주입
+                controller.SetPlaybackSpeed(playbackSpeed);
                 // 2026-09-30: 원소 타격 VFX는 몬스터 크기와 상관없이 소형 기준 크기로 통일한다.
                 // (몸 반경 0.5m 소형의 √(0.5/1.2)≈0.65배. 혈흔은 BloodHitVfxService가 몸 크기대로 따로 키운다.)
-                spawned.transform.localScale = prefab.transform.localScale * UniformHitScale;
+                // 2026-10-01: 원소끼리 크기를 맞추려 카탈로그의 원소별 배율(불 1.1·빛 0.85)을 곱한다.
+                spawned.transform.localScale = prefab.transform.localScale * hitScale;
             },
             useUnscaledTime: true);
         return instance != null;

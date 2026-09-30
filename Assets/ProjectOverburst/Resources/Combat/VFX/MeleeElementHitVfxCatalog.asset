@@ -34,5 +34,15 @@ MonoBehaviour:
   electricLifetime: 7.5
   darkLifetime: 1.2
   lightLifetime: 2
+  fireHitScale: 1.1
+  iceHitScale: 1
+  electricHitScale: 1
+  darkHitScale: 1
+  lightHitScale: 0.85
+  firePlaybackSpeed: 1.5
+  icePlaybackSpeed: 1
+  electricPlaybackSpeed: 1
+  darkPlaybackSpeed: 1
+  lightPlaybackSpeed: 1
   poolCapacity: 32
   prewarmCount: 128
