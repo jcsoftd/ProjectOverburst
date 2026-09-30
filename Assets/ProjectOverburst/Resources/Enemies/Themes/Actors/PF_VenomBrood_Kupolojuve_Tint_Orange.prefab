@@ -966,8 +966,6 @@ MonoBehaviour:
   defenseController: {fileID: 0}
   hitStunDuration: 0.4
   knockbackReactionDuration: 0.4
-  hitReactionAnimationSpeedMultiplier: 1.15
-  hitAnimationSpeedBoostDuration: 0.45
 --- !u!114 &2005926962307656294
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1356,6 +1354,8 @@ MonoBehaviour:
   hitHeight: 1.7
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  burnOffset: {x: 0, y: 0.3, z: 0}
+  burnScale: 1
 --- !u!114 &7283098022421315249
 MonoBehaviour:
   m_ObjectHideFlags: 0
