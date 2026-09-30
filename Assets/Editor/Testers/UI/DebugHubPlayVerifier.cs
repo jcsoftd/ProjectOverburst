@@ -779,6 +779,125 @@ public static class DebugHubPlayVerifier
         Check("window survives scene round trip", DebugHub.Instance != null && DebugRegistry.Find("world.dungeon.enter") != null);
         DebugHub.Close();
         yield return Wait(0.3f);
+        yield return Stage3();
+    }
+
+    // ── 3단계 ────────────────────────────────────────────────────
+
+    private static IEnumerator Stage3()
+    {
+        MouseAt(new Vector2(Screen.width * 0.3f, Screen.height * 0.45f));
+        yield return Frames(2);
+
+        // 기본 핀 = 옛 분대 오버레이 값(Run에서 핀 설정을 비웠으므로 기본값이 쓰인다)
+        foreach (string id in DebugPrefs.DefaultPins)
+            Check("default pin registered " + id, DebugRegistry.Find(id) != null && DebugPrefs.IsPinned(id));
+        yield return Wait(0.5f);
+        RectTransform overlay = ByPath("Debug Pin Overlay");
+        string overlayText = overlay != null ? string.Join(" | ", overlay.GetComponentsInChildren<TMP_Text>().Select(t => t.text)) : "";
+        Check("overlay shows squad values like old overlay", overlayText.Contains("총 몬스터") && overlayText.Contains("어그로")
+            && overlayText.Contains(EnemyAIController.AliveEnemyCount.ToString()), overlayText);
+        yield return Shot("default_pins");
+
+        // 테마 5종 × 규모 4종: 서비스 숫자가 규칙(EnemyThemeTrialPresets)과 같고, 옛 UI 표와 같은 순서
+        var entries = EnemyThemeTrialService.Entries;
+        Check("theme catalog has 5 themes", entries.Count == 5, string.Join(",", entries.Select(e => e.ShortName)));
+        EnemyThemeDebugUI oldUi = Object.FindFirstObjectByType<EnemyThemeDebugUI>(FindObjectsInactive.Include);
+        if (oldUi != null)
+        {
+            // 옛 UI는 Awake 때 사령(DeathHarvest)을 5번째로 붙인다.
+            bool sameOrder = oldUi.tables != null && oldUi.tables.Length == entries.Count
+                && Enumerable.Range(0, entries.Count).All(i => oldUi.tables[i] == entries[i].Table);
+            Check("theme order matches old debug UI", sameOrder,
+                oldUi.tables == null ? "old tables null" : string.Join(",", oldUi.tables.Select(t => t != null ? t.ThemeId : "null")));
+        }
+        int mismatches = 0;
+        foreach (EnemyThemeTrialMode mode in Enum.GetValues(typeof(EnemyThemeTrialMode)))
+        {
+            EnemyThemeTrialService.SetMode(mode);
+            foreach (var entry in entries)
+                if (EnemyThemeTrialService.CountOf(entry) != EnemyThemeTrialPresets.Resolve(entry.Table, mode).Total)
+                    mismatches++;
+        }
+        EnemyThemeTrialService.SetMode(EnemyThemeTrialMode.Normal);
+        Check("theme counts 5x4 match presets", mismatches == 0, "mismatches " + mismatches);
+
+        // 테마 1회 시험 → 소환 → 진행 중 잠금 → 정리
+        DebugHub.OpenTab(DebugTabs.Spawn);
+        yield return Wait(0.35f);
+        int before = EnemyAIController.AliveEnemyCount;
+        yield return Press("spawn.theme.SpiderBrood", 0, 0.1f);
+        yield return WaitUntil(() => EnemyAIController.AliveEnemyCount > before, 8f);
+        Check("theme trial spawns", EnemyAIController.AliveEnemyCount > before, LastRecord.Message);
+        Check("buttons lock while busy", EnemyThemeTrialService.Busy && !(DebugRegistry.Find("spawn.theme.VenomBrood")?.IsEnabled ?? true));
+        yield return Wait(0.5f);
+        yield return Shot("theme_trial_running");
+        yield return Press("spawn.theme.actions", 0, 0.5f);
+        yield return WaitUntil(() => !EnemyThemeTrialService.Busy, 5f);
+        Check("theme trial clear", !EnemyThemeTrialService.Busy, "alive " + EnemyAIController.AliveEnemyCount);
+
+        // 독립 시험장: 입장(구역 5개, 하이드아웃 스폰 꺼짐, 보호) → 복귀(값 복원)
+        CombatDebugSettings.SetHideoutMonsterSpawn(false);
+        Vector3 home = DebugTeleport.Player.position;
+        yield return Press("spawn.theme.actions", 1, 0.8f);
+        Check("arena entered with 5 zones", EnemyThemeTrialService.InArena && EnemyThemeTrialService.ArenaZoneCount == 5
+            && Vector3.Distance(home, DebugTeleport.Player.position) > 100f, LastRecord.Message);
+        CombatHealth hp = PlayerContext.Instance.CurrentActorHealth;
+        hp.TakeDamage(new DamageInfo(hp.MaxHp * 10f, hp.transform.position));
+        yield return Frames(2);
+        Check("arena protects player (min hp 1)", !hp.IsDead && hp.CurrentHp >= 1f, $"hp {hp.CurrentHp:0}");
+        hp.ResetHealth();
+        yield return Shot("theme_arena");
+        yield return Press("spawn.theme.actions", 1, 0.8f);
+        Check("arena exit restores position", !EnemyThemeTrialService.InArena && Vector3.Distance(home, DebugTeleport.Player.position) < 1f);
+
+        // 데미지 숫자: A/B 슬롯 전환이 5개 값을 한 번에 바꾼다
+        var preset = Item<DebugOptionsItem>("presentation.damage.preset");
+        var styled = Item<DebugToggle>("presentation.damage.styled");
+        DamageNumberFeelPreset presetBefore = DamageNumberPopup.SelectedPreset;
+        bool styledBefore = DamageNumberStyleSettings.Enabled;
+        yield return Press("presentation.damage.slots", 0);
+        preset?.Choose((int)(presetBefore == DamageNumberFeelPreset.Pop ? DamageNumberFeelPreset.Burst : DamageNumberFeelPreset.Pop));
+        styled?.Flip();
+        yield return Frames(2);
+        DamageNumberFeelPreset presetB = DamageNumberPopup.SelectedPreset;
+        yield return Press("presentation.damage.slots", 1);
+        yield return Press("presentation.damage.slots", 2);
+        bool atB = DamageNumberPopup.SelectedPreset == presetB && DamageNumberStyleSettings.Enabled != styledBefore;
+        yield return Press("presentation.damage.slots", 2);
+        bool atA = DamageNumberPopup.SelectedPreset == presetBefore && DamageNumberStyleSettings.Enabled == styledBefore;
+        Check("damage number A/B swap applies all values", atB && atA, $"A {presetBefore}/{styledBefore} B {presetB}");
+        DebugHub.OpenTab(DebugTabs.Presentation);
+        yield return Wait(0.35f);
+        yield return Shot("presentation_damage");
+
+        // DPS 측정기: 1마리, 10마리
+        foreach (int count in new[] { 1, 10 })
+        {
+            Pick("combat.dps.count", count + "마리");
+            yield return Press("combat.dps.spawn", 0, 1.0f);
+            Check($"dps spawns {count} dummies", DpsMeterDebugModule.AliveDummies == count, LastRecord.Message);
+            var targets = UnityEngine.Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Where(e => e.IsLeased && e.AI != null && !e.AI.enabled).ToList();
+            for (int k = 0; k < 5; k++)
+            {
+                foreach (EnemyActor target in targets)
+                    target.Health.TakeDamage(new DamageInfo(1000f, target.transform.position, DebugTeleport.Player.gameObject,
+                        Vector3.forward, isCritical: k == 0, playerAttackKind: PlayerAttackKind.Weak));
+                yield return Wait(0.2f);
+            }
+            string dps = Item<DebugReadout>("combat.dps.value")?.Value ?? "";
+            string totalText = Item<DebugReadout>("combat.dps.total")?.Value ?? "";
+            Check($"dps meter records {count} targets", DpsMeterDebugModule.Hits == count * 5 && DpsMeterDebugModule.TotalDamage > 0
+                && totalText.Contains($"맞은 대상 {count}/{count}") && targets.All(t => !t.Health.IsDead), $"{dps} | {totalText}");
+            notes.Add($"dps {count}: {dps} | {totalText}");
+            DebugHub.OpenTab(DebugTabs.Combat);
+            yield return Wait(0.35f);
+            yield return Shot($"dps_{count}");
+        }
+        yield return Press("combat.dps.spawn", 1, 0.5f);
+        Check("dps dummies cleared", DpsMeterDebugModule.AliveDummies == 0);
+        DebugHub.Close();
+        yield return Wait(0.3f);
     }
 
     private static IEnumerator FocusRow(string id)

@@ -118,7 +118,7 @@ namespace Overburst.DebugTools
                     continue;
                 DebugItem item = scratch[i];
                 line.Id = item.Id;
-                SetText(line, $"<color={DebugHubStyle.Hex(style.label)}>{item.Label}</color>  <b>{item.DisplayValue() ?? string.Empty}</b>");
+                SetText(line, $"<color={DebugHubStyle.Hex(style.label)}>{item.Label}</color>  <b>{(item.DisplayValue() ?? string.Empty).Replace('\n', ' ')}</b>");
             }
         }
 
