@@ -94,7 +94,8 @@ internal static class PlayerDebugModule
             return DebugResult.Fail("플레이어가 없어요");
         if (health.IsDead)
             return DebugResult.Fail("사망 상태에서는 채울 수 없어요");
-        health.Heal(health.MaxHp);
+        // 회복 배율(지도 효과 등)과 상관없이 가득 채운다. CombatHealth 우클릭 메뉴 'Reset Health'와 같은 함수다.
+        health.ResetHealth();
         return DebugResult.Ok($"{health.CurrentHp:0} / {health.MaxHp:0}");
     }
 

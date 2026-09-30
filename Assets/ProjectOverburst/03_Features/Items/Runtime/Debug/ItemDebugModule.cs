@@ -294,6 +294,10 @@ internal static class ItemDebugModule
         s.Readout("모의 결과", () => simulationSummary)
             .Lines(3)
             .WithId("items.drop.summary");
+        s.Choice("런 드롭 확률", () => CombatDebugSettings.RunLootOverride, CombatDebugSettings.SetRunLootOverride, LootOverrideLabel)
+            .WithId("items.drop.override")
+            .Tip("던전 몬스터가 죽을 때 물약·장비 드롭 확률(각각)을 강제한다. 등급은 규칙대로 굴린다. 모의·1회 굴림에도 적용된다.")
+            .Keywords("drop", "드롭", "loot");
     }
 
     private static DebugResult RollOnce()
@@ -613,6 +617,9 @@ internal static class ItemDebugModule
     }
 
     private static string CurrencyLabel(CurrencyType value) => value == CurrencyType.MapFragment ? "지도 조각" : "골드";
+
+    private static string LootOverrideLabel(RunLootDebugOverride value)
+        => value == RunLootDebugOverride.Always ? "항상" : value == RunLootDebugOverride.Never ? "안 떨어짐" : "규칙대로";
 
     private static string DisplayName(BaseItemData data)
         => data == null ? "-" : !string.IsNullOrWhiteSpace(data.itemName) ? data.itemName : data.name;

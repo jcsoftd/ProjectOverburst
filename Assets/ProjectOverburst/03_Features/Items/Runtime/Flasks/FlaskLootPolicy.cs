@@ -19,7 +19,7 @@ public static class FlaskLootPolicy
         if (GameplayCatalog.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType != EnemyGradeType.Normal;
-        float chance = boss ? 1f : elite ? .30f : .04f;
+        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .30f : .04f);
         if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         float roll = Random.value;
         ItemGrade grade = SelectGrade(Mathf.Lerp(roll, 1f,

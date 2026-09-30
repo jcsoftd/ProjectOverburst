@@ -561,9 +561,11 @@ public static class DebugHubPlayVerifier
         health.TakeDamage(new DamageInfo(health.MaxHp * 0.3f, actor.transform.position));
         yield return Frames(2);
         float damaged = health.CurrentHp;
-        yield return Press("player.survival.fillHealth", 0);
-        Check("fill health", damaged < health.MaxHp && Mathf.Approximately(health.CurrentHp, health.MaxHp),
-            $"{damaged:0} -> {health.CurrentHp:0}/{health.MaxHp:0}");
+        Item<DebugButtons>("player.survival.fillHealth")?.Press(0);
+        float filled = health.CurrentHp;
+        yield return Wait(0.2f);
+        Check("fill health", damaged < health.MaxHp && Mathf.Approximately(filled, health.MaxHp),
+            $"{damaged:0} -> {filled:0}/{health.MaxHp:0} (0.2초 뒤 {health.CurrentHp:0})");
 
         // F3 순간이동(창 닫힌 상태, 화면 오른쪽 아래 바닥)
         Vector3 before = actor.transform.position;
@@ -896,6 +898,20 @@ public static class DebugHubPlayVerifier
         }
         yield return Press("combat.dps.spawn", 1, 0.5f);
         Check("dps dummies cleared", DpsMeterDebugModule.AliveDummies == 0);
+
+        // 5단계: 런 드롭 확률 강제(기본값은 규칙 그대로)
+        var lootOverride = Item<DebugOptionsItem>("items.drop.override");
+        Check("loot override registered, default rule", lootOverride != null && CombatDebugSettings.RunLootOverride == RunLootDebugOverride.Default);
+        Pick("items.drop.override", "항상");
+        yield return Frames(1);
+        int always = Enumerable.Range(0, 50).Count(_ => FlaskLootPolicy.Roll(EnemyGradeType.Normal, 10) != null && GearLootPolicy.Roll(EnemyGradeType.Normal, 10) != null);
+        Pick("items.drop.override", "안 떨어짐");
+        yield return Frames(1);
+        int never = Enumerable.Range(0, 50).Count(_ => FlaskLootPolicy.Roll(EnemyGradeType.Boss, 10) != null || GearLootPolicy.Roll(EnemyGradeType.Boss, 10) != null);
+        Pick("items.drop.override", "규칙대로");
+        yield return Frames(1);
+        Check("loot override always/never/default", always == 50 && never == 0 && CombatDebugSettings.RunLootOverride == RunLootDebugOverride.Default,
+            $"always {always}/50 never {never}/50");
         DebugHub.Close();
         yield return Wait(0.3f);
     }

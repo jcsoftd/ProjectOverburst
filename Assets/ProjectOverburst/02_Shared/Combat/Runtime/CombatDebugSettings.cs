@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 
+/// <summary>던전 런 몬스터의 물약·장비 드롭(Flask/GearLootPolicy) 확률 디버그 강제. 기본은 규칙 그대로다.</summary>
+public enum RunLootDebugOverride { Default, Always, Never }
+
 public static class CombatDebugSettings
 {
     public const float ReducedIncomingPlayerDamageMultiplier = 0.001f;
@@ -101,6 +104,22 @@ public static class CombatDebugSettings
         SetHideoutMonsterSpawn(!spawnHideoutMonsters);
     }
 
+    // 2026-10-01 디버그 창(90C 11절 5단계): 드롭 규칙 확인용. 기본값이면 확률을 그대로 돌려준다(난수 사용 순서도 같다).
+    private static RunLootDebugOverride runLootOverride;
+    public static RunLootDebugOverride RunLootOverride => runLootOverride;
+
+    public static void SetRunLootOverride(RunLootDebugOverride value) => runLootOverride = value;
+
+    public static float ApplyRunLootChance(float chance)
+    {
+        switch (runLootOverride)
+        {
+            case RunLootDebugOverride.Always: return 1f;
+            case RunLootDebugOverride.Never: return 0f;
+            default: return chance;
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetRuntimeState()
     {
@@ -109,6 +128,7 @@ public static class CombatDebugSettings
         showEnemySquadGeometryDebug = false;
         reduceIncomingPlayerDamageBy99_9Percent = false;
         spawnHideoutMonsters = false;
+        runLootOverride = RunLootDebugOverride.Default;
         AttackPatternDebugChanged = null;
         EnemyAiStateDebugChanged = null;
         EnemySquadGeometryDebugChanged = null;
