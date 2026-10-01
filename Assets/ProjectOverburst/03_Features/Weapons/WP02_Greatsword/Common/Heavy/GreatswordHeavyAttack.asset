@@ -219,7 +219,7 @@ MonoBehaviour:
     electricImpact: {fileID: 2046859084139038850, guid: 421dc8b9cf9766248b01c5ff9c335761, type: 3}
     electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
     electricDirectHit: {fileID: 1036593267667279857, guid: 49dcd52f6bc06d64fb382d8aa20a5c18, type: 3}
-    darkBarrageSlam: {fileID: 0}
+    darkBarrageSlam: {fileID: 5958811752815710291, guid: fc29bd896af32774e8cf64a2d07e103c, type: 3}
     darkBarrageProjectile: {fileID: 1629372112255661342, guid: 41349ff430da2744eabcac8606110068, type: 3}
     darkBarrageTrail: {fileID: 0}
     darkBarrageHit: {fileID: 6516584211004326070, guid: 3fc18d1086185534db762ebf8d278916, type: 3}

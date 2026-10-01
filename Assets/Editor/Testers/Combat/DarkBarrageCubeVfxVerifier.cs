@@ -107,10 +107,15 @@ public static class DarkBarrageCubeVfxVerifier
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageCubeVfxBuilder.ProjectilePath);
             var hit = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageCubeVfxBuilder.HitPath);
             var landingDefinition = AssetDatabase.LoadAssetAtPath<MeleeAttackVfxDefinition>(DarkBarrageCubeVfxBuilder.ShockwaveDefinitionPath);
-            var landing = landingDefinition.neutralPrefab;
-            Check(landing != null && landing.name == "PF_GRS_HeavyShockwave", "Original transparent landing wave restored");
-            Check(landing.GetComponentsInChildren<Renderer>(true).All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
+            var transparentWave = landingDefinition.neutralPrefab;
+            var landing = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageSlamVfxBuilder.PrefabPath);
+            Check(transparentWave != null && transparentWave.name == "PF_GRS_HeavyShockwave", "Original transparent landing wave restored");
+            Check(transparentWave.GetComponentsInChildren<Renderer>(true).All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
                 "Landing wave keeps original neutral color");
+            Check(landing != null && heavy.elementVfx.darkBarrageSlam == landing, "Selected Demon_Explotion is connected to the separate dark slam slot");
+            Check(landing.GetComponentsInChildren<ParticleSystem>(true).Length == 27, "All 27 authored Demon slam layers retained");
+            Check(landing.GetComponentsInChildren<Renderer>(true).Where(r => r.sharedMaterial != null && r.sharedMaterial.shader.name == "Piloto Studio/Piloto Warp")
+                .All(r => AssetDatabase.GetAssetPath(r.sharedMaterial).StartsWith("Assets/ThirdParty/")), "Demon transparent distortion materials stay original");
             Check(heavy.elementVfx.darkBarrageProjectile == body && heavy.elementVfx.darkBarrageHit == hit, "Heavy uses both Cube03 game prefabs");
             Check(!DarkBarrageScheduler.UsesTemporaryProjectile(heavy.elementVfx), "Temporary projectile replaced");
             Check(Mathf.Approximately(body.transform.localScale.x, .28f) && Mathf.Approximately(hit.transform.localScale.x, .4f),
@@ -167,6 +172,7 @@ public static class DarkBarrageCubeVfxVerifier
                 int casts = DarkBarrageScheduler.CastCount, hits = DarkBarrageScheduler.TotalHits;
                 long requests = TransientVfxPool.GetStatistics(hit).Requests;
                 long landingRequests = TransientVfxPool.GetStatistics(landing).Requests;
+                long waveRequests = TransientVfxPool.GetStatistics(transparentWave).Requests;
                 float hp = leased.Sum(e => e.Health.CurrentHp);
                 var accepted = WeaponActionResult.RejectedNotReady; float startDeadline = Time.time + 3f;
                 while (Time.time < startDeadline)
@@ -179,6 +185,7 @@ public static class DarkBarrageCubeVfxVerifier
                 Check(accepted == WeaponActionResult.Accepted, "Round " + round + " actual heavy accepted");
                 bool bodyVisible = false, hitVisible = false, landingVisible = false, bodyShot = false, hitShot = false, landingShot = false;
                 float landingCaptureAt = float.PositiveInfinity;
+                bool landingDetailShot = false;
                 float end = Time.time + 12f;
                 while (Time.time < end)
                 {
@@ -186,27 +193,32 @@ public static class DarkBarrageCubeVfxVerifier
                     bodyVisible |= liveBody; hitVisible |= liveHit;
                     bool liveLanding = Views(landing.name).Any(Visible);
                     landingVisible |= liveLanding;
-                    if (liveLanding && float.IsPositiveInfinity(landingCaptureAt)) landingCaptureAt = Time.time + .12f;
-                    if (round == 0 && liveLanding && !landingShot && Time.time >= landingCaptureAt)
-                    { ScreenCapture.CaptureScreenshot(Path.Combine(Output, "landing.png")); landingShot = true; }
+                    if (liveLanding && float.IsPositiveInfinity(landingCaptureAt)) landingCaptureAt = Time.time;
+                    if (liveLanding && !landingShot)
+                    { ScreenCapture.CaptureScreenshot(Path.Combine(Output, round == 0 ? "landing.png" : "landing-reuse.png")); landingShot = true; }
+                    if (liveLanding && !landingDetailShot && Time.time >= landingCaptureAt + .2f)
+                    { ScreenCapture.CaptureScreenshot(Path.Combine(Output, round == 0 ? "landing-detail.png" : "landing-reuse-detail.png")); landingDetailShot = true; }
                     if (round == 0 && liveBody && !bodyShot) { ScreenCapture.CaptureScreenshot(Path.Combine(Output, "projectile.png")); bodyShot = true; }
                     if (round == 0 && liveHit && !hitShot) { ScreenCapture.CaptureScreenshot(Path.Combine(Output, "hit.png")); hitShot = true; }
-                    if (DarkBarrageScheduler.CastCount > casts && DarkBarrageScheduler.ActiveCount == 0) break;
+                    if (DarkBarrageScheduler.CastCount > casts && DarkBarrageScheduler.ActiveCount == 0 && landingDetailShot) break;
                     yield return null;
                 }
                 Check(DarkBarrageScheduler.CastCount == casts + 1 && DarkBarrageScheduler.ActiveCount == 0, "Round " + round + " barrage finished");
                 Check(bodyVisible && hitVisible, "Round " + round + " visible projectile and hit particles");
                 Check(landingVisible && TransientVfxPool.GetStatistics(landing).Requests == landingRequests + 1,
-                    "Round " + round + " one original transparent landing wave");
-                Check(Views(landing.name).SelectMany(t => t.GetComponentsInChildren<Renderer>(true))
+                    "Round " + round + " one visible Demon ground slam");
+                Check(landingShot && landingDetailShot, "Round " + round + " ground slam capture at onset and after 0.2 seconds");
+                Check(TransientVfxPool.GetStatistics(transparentWave).Requests == waveRequests + 1,
+                    "Round " + round + " original transparent wave still plays once");
+                Check(Views(transparentWave.name).SelectMany(t => t.GetComponentsInChildren<Renderer>(true))
                     .All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
                     "Round " + round + " landing stays neutral during playback");
                 Check(DarkBarrageScheduler.LastShotCount == 6 && DarkBarrageScheduler.TotalHits == hits + 6, "Round " + round + " 4 normal and 2 finisher hits");
                 Check(leased.Sum(e => e.Health.CurrentHp) < hp && Mathf.Approximately(energy.Amount, 0f), "Round " + round + " damage lands without energy recharge");
                 Check(TransientVfxPool.GetStatistics(hit).Requests == requests + 6, "Round " + round + " matching hit VFX requests");
-                float settle = Time.time + TransientVfxPool.ResolveLifetime(hit, 0f) + 1f;
+                float settle = Time.time + Mathf.Max(TransientVfxPool.ResolveLifetime(hit, 0f), TransientVfxPool.ResolveLifetime(landing, 0f)) + 1f;
                 while (Time.time < settle && (Views(body.name).Any(t => t.gameObject.activeInHierarchy)
-                    || TransientVfxPool.GetStatistics(hit).Active > 0)) yield return null;
+                    || TransientVfxPool.GetStatistics(hit).Active > 0 || TransientVfxPool.GetStatistics(landing).Active > 0)) yield return null;
                 Check(!Views(body.name).Any(t => t.gameObject.activeInHierarchy) && TransientVfxPool.GetStatistics(hit).Active == 0, "Round " + round + " all VFX returned to pools");
                 Check(TransientVfxPool.GetStatistics(landing).Active == 0, "Round " + round + " landing returned to pool");
                 var ids = new HashSet<int>(Views(body.name).Select(t => t.GetInstanceID()));
