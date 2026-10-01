@@ -31,7 +31,7 @@ public static class GameMenuCapture
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("Persistent scene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
-        Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();
     }

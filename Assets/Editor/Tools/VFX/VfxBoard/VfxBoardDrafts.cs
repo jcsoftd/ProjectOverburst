@@ -152,6 +152,10 @@ namespace Overburst.EditorTools.Vfx
 
         internal static VfxApplyReport Apply(IReadOnlyList<(VfxSlot slot, VfxDraft draft)> changes)
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("플레이 중에는 VFX를 저장할 수 없습니다.");
+            if (changes == null || changes.Count != 1)
+                throw new ArgumentException("현재 선택 항목 하나만 저장할 수 있습니다.", nameof(changes));
             var report = new VfxApplyReport();
             foreach (IGrouping<string, (VfxSlot slot, VfxDraft draft)> group in changes.GroupBy(c => c.slot.OwnerPath))
             {
@@ -162,7 +166,6 @@ namespace Overburst.EditorTools.Vfx
                     ApplyToAsset(group.Key, list, report);
             }
 
-            AssetDatabase.SaveAssets();
             return report;
         }
 

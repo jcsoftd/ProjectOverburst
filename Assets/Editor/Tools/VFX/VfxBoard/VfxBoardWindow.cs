@@ -13,7 +13,7 @@ namespace Overburst.EditorTools.Vfx
 {
     /// <summary>
     /// 게임 전체 VFX 연결 자리를 카테고리별로 보여 주고, 고르면 미리보기에서 재생한다.
-    /// 프리팹 교체는 초안으로 모았다가 한 번에 적용한다. UI는 UI Toolkit(UXML/USS)만 쓴다.
+    /// 프리팹 교체는 초안으로 보관하고 현재 선택 항목 하나씩 저장한다. UI는 UI Toolkit(UXML/USS)만 쓴다.
     /// </summary>
     public sealed class VfxBoardWindow : EditorWindow
     {
@@ -393,8 +393,8 @@ namespace Overburst.EditorTools.Vfx
             revertButton.clicked += CreateRevertDrafts;
             discardButton = root.Q<Button>("discard-all");
             discardButton.clicked += DiscardAllDrafts;
-            applyButton = root.Q<Button>("apply-all");
-            applyButton.clicked += ApplyAll;
+            applyButton = root.Q<Button>("apply-selected");
+            applyButton.clicked += ApplySelected;
         }
 
         private static void BuildSegment(VisualElement group, IReadOnlyList<string> labels, Action<int> onClick)
@@ -753,6 +753,7 @@ namespace Overburst.EditorTools.Vfx
             noteLabel.EnableInClassList("vb-hidden", string.IsNullOrEmpty(noteLabel.text));
 
             UpdateDraftCard();
+            UpdateDraftBar();
             UpdatePreviewSource(keepCamera);
         }
 
@@ -766,7 +767,7 @@ namespace Overburst.EditorTools.Vfx
             draftClearButton.SetEnabled(canSwap && slot.Binding == VfxSlotBinding.Field && slot.State != VfxSlotState.Empty && (draft == null || !draft.clear));
             draftRemoveButton.SetEnabled(draft != null);
             draftStateLabel.text = draft == null
-                ? (canSwap ? "프로젝트 창에서 프리팹을 끌어 놓거나 ◎ 버튼으로 고르세요. 모아 두었다가 아래 '모두 적용'으로 한 번에 저장합니다." : string.Empty)
+                ? (canSwap ? "프로젝트 창에서 프리팹을 끌어 놓거나 ◎ 버튼으로 고르세요. 아래 '선택 항목 저장'은 현재 항목 하나만 저장합니다." : string.Empty)
                 : draft.clear ? "적용하면 이 슬롯을 비웁니다." : "교체 예정: " + slot.CurrentName + " → " + VfxDraftOperations.DraftName(draft);
 
             messages.Clear();
@@ -1053,7 +1054,7 @@ namespace Overburst.EditorTools.Vfx
 
             lastApplied.Clear();
             DraftsChanged();
-            ShowNotification(new GUIContent("되돌리기 초안 " + created + "건을 만들었습니다. 확인 뒤 '모두 적용'을 누르세요."));
+            ShowNotification(new GUIContent("되돌리기 초안 " + created + "건을 만들었습니다. 확인 뒤 '선택 항목 저장'을 누르세요."));
         }
 
         private void UpdateDraftBar()
@@ -1069,8 +1070,11 @@ namespace Overburst.EditorTools.Vfx
             draftToggleButton.SetEnabled(drafts.Count > 0);
             revertButton.SetEnabled(lastApplied.Count > 0);
             discardButton.SetEnabled(drafts.Count > 0);
-            applyButton.SetEnabled(drafts.Count > blocked && !playing);
-            applyButton.tooltip = playing ? "플레이 중에는 적용하지 않습니다." : string.Empty;
+            VfxDraft currentDraft = selected != null ? FindDraft(selected.Key) : null;
+            bool canSaveSelected = currentDraft != null && !GetCheck(selected, currentDraft).Blocked;
+            applyButton.SetEnabled(canSaveSelected && !playing);
+            applyButton.tooltip = playing ? "플레이 중에는 저장하지 않습니다."
+                : currentDraft == null ? "현재 선택 항목에 변경 초안이 없습니다." : "현재 선택 항목 하나만 저장합니다.";
 
             draftList.Clear();
             draftList.EnableInClassList("vb-hidden", !draftListOpen || drafts.Count == 0);
@@ -1129,7 +1133,7 @@ namespace Overburst.EditorTools.Vfx
             ShowSlot(slot, false);
         }
 
-        private void ApplyAll()
+        private void ApplySelected()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -1137,34 +1141,20 @@ namespace Overburst.EditorTools.Vfx
                 return;
             }
 
-            var ready = new List<(VfxSlot slot, VfxDraft draft)>();
-            var blocked = new List<string>();
-            foreach (VfxDraft draft in drafts)
+            VfxSlot slot = selected;
+            VfxDraft draft = slot != null ? FindDraft(slot.Key) : null;
+            if (draft == null) return;
+            VfxDraftCheck check = GetCheck(slot, draft);
+            if (check.Blocked)
             {
-                slotsByKey.TryGetValue(draft.slotKey, out VfxSlot slot);
-                VfxDraftCheck check = GetCheck(slot, draft);
-                if (slot == null || check.Blocked)
-                    blocked.Add(VfxDraftOperations.Describe(slot) + ": " + string.Join(" ", check.Errors));
-                else
-                    ready.Add((slot, draft));
-            }
-
-            if (ready.Count == 0)
-            {
-                EditorUtility.DisplayDialog(WindowTitle, "적용할 수 있는 변경이 없습니다.\n\n" + string.Join("\n", blocked.Take(DialogLineLimit)), "확인");
+                EditorUtility.DisplayDialog(WindowTitle, "현재 항목을 저장할 수 없습니다.\n\n" + string.Join("\n", check.Errors), "확인");
                 return;
             }
 
-            var text = new StringBuilder();
-            foreach (var (slot, draft) in ready.Take(DialogLineLimit))
-                text.AppendLine("• " + VfxDraftOperations.Describe(slot) + "\n   " + slot.CurrentName + " → " + VfxDraftOperations.DraftName(draft));
-            if (ready.Count > DialogLineLimit)
-                text.AppendLine("… 외 " + (ready.Count - DialogLineLimit) + "건");
-            if (blocked.Count > 0)
-                text.AppendLine().AppendLine("적용 불가 " + blocked.Count + "건은 초안으로 남겨 둡니다.");
-            text.AppendLine().Append("프리팹·에셋 파일이 바로 저장됩니다. 되돌릴 때는 '직전 적용 되돌리기'로 초안을 만들어 다시 적용하세요.");
-            if (!EditorUtility.DisplayDialog("변경 " + ready.Count + "건 적용", text.ToString(), "적용", "취소"))
-                return;
+            string text = VfxDraftOperations.Describe(slot) + "\n" + slot.CurrentName + " → " + VfxDraftOperations.DraftName(draft)
+                + "\n\n현재 선택 항목 하나를 저장합니다. 다른 변경 초안은 대기 목록에 남습니다.";
+            if (!EditorUtility.DisplayDialog("선택 항목 저장", text, "저장", "취소")) return;
+            var ready = new List<(VfxSlot slot, VfxDraft draft)> { (slot, draft) };
 
             VfxApplyReport report;
             try

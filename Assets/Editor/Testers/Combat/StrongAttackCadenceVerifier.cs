@@ -31,8 +31,8 @@ public static class StrongAttackCadenceVerifier
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("Persistent scene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
-        SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
-        Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
+        SessionState.EraseString(Key + ".env");
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();
     }
@@ -57,7 +57,7 @@ public static class StrongAttackCadenceVerifier
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(Key + ".env", ""));
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".env");
             SessionState.SetBool(Key, false);
         }
     }

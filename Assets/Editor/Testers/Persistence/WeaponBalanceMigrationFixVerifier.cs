@@ -100,22 +100,22 @@ public static class WeaponBalanceMigrationFixVerifier
         VerifyData(output);
         string account=Path.Combine(output,"Account");Directory.CreateDirectory(account);
         foreach(var file in Directory.GetFiles(Path.Combine(Root,"OriginalAccount"),"*.es3"))File.Copy(file,Path.Combine(account,Path.GetFileName(file)),false);
-        SessionState.SetString(Key+".output",output);SessionState.SetString(Key+".oldEnv",Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY")??"");
-        SessionState.SetBool(Key,true);Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY",account);EditorApplication.EnterPlaymode();
+        SessionState.SetString(Key+".output",output);SessionState.EraseString(Key + ".oldEnv");
+        SessionState.SetBool(Key,true);IsolatedSavePlayGuard.PrepareIsolatedPlay(account);EditorApplication.EnterPlaymode();
     }
     public static void Reenter(string output)
     {
         Check(!EditorApplication.isPlaying,"already playing");
         File.Copy(Path.Combine(output,"play-results.json"),Path.Combine(output,"first-play-results.json"),false);
-        SessionState.SetString(Key+".output",output);SessionState.SetString(Key+".oldEnv",Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY")??"");
-        SessionState.SetBool(Key,true);Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY",Path.Combine(output,"Account"));EditorApplication.EnterPlaymode();
+        SessionState.SetString(Key+".output",output);SessionState.EraseString(Key + ".oldEnv");
+        SessionState.SetBool(Key,true);IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output,"Account"));EditorApplication.EnterPlaymode();
     }
     static void State(PlayModeStateChange state)
     {
         if(!SessionState.GetBool(Key,false))return;
         if(state==PlayModeStateChange.EnteredPlayMode){SessionState.SetBool(Key+".background",Application.runInBackground);Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+150;readyFrames=0;errors.Clear();Application.logMessageReceived+=Log;EditorApplication.update+=Tick;}
         if(state==PlayModeStateChange.ExitingPlayMode){Application.logMessageReceived-=Log;EditorApplication.update-=Tick;Application.runInBackground=SessionState.GetBool(Key+".background",false);}
-        if(state==PlayModeStateChange.EnteredEditMode){Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY",SessionState.GetString(Key+".oldEnv",""));SessionState.SetBool(Key,false);}
+        if(state==PlayModeStateChange.EnteredEditMode){Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".oldEnv");SessionState.SetBool(Key,false);}
     }
     static void Log(string text,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert)errors.Add(text);}
     static void Tick()

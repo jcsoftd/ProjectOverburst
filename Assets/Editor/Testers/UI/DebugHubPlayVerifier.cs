@@ -77,7 +77,7 @@ public static class DebugHubPlayVerifier
             PlayerPrefs.DeleteKey(pref);
         }
         SessionState.SetString(SessionKey + ".prefs", JsonConvert.SerializeObject(saved));
-        Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(SessionKey, true);
         SessionState.SetString(SessionKey + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();

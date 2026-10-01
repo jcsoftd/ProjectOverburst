@@ -46,7 +46,7 @@ public static class RepresentativeBossPlayVerifier
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("PersistentScene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
-        Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode(); // 저장하지 않은 씬은 종료 때 Unity가 되돌린다
     }

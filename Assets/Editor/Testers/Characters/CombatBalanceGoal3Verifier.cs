@@ -26,8 +26,8 @@ public static partial class CombatBalanceGoal3Verifier
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
         SessionState.SetInt(Key + ".goal", goal);
-        SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
-        Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
+        SessionState.EraseString(Key + ".env");
+        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true);
         SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode(); // Unity restores the existing unsaved scene on exit.
@@ -53,7 +53,7 @@ public static partial class CombatBalanceGoal3Verifier
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(Key + ".env", ""));
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".env");
             SessionState.SetBool(Key, false);
         }
     }

@@ -21,6 +21,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
     private static readonly Color ReadyFlashColor = new Color(1f, .9f, .55f, 1f);
     private Image readyFlash;
     private object cooldownOwner;
+    private string displayedFlaskInstanceId;
+    private string cooldownFlaskInstanceId;
     private float lastCooldownRemaining;
     private float readyFlashStartedAt = -1f;
 
@@ -127,11 +129,13 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             return;
         }
 
+        displayedFlaskInstanceId = item.baseData is FlaskItemData ? item.runtimeInstanceId : null;
         ApplyItemVisual(item.baseData, item.grade, count, active, showCount);
     }
 
     public void SetConsumable(ConsumableItemData consumableData, ItemData displayItem, int count)
     {
+        displayedFlaskInstanceId = null;
         tooltipItem = displayItem;
         BindVisuals();
         if (slotBackground != null) slotBackground.raycastTarget = displayItem != null;
@@ -190,6 +194,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetSkill(IQuickSlotSkill skill)
     {
+        displayedFlaskInstanceId = null;
         tooltipItem = null;
         BindVisuals();
         if (skill == null) { SetEmpty(false); SetCooldown(0f); return; }
@@ -223,9 +228,15 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         float remaining = Mathf.Max(0f, remainingSeconds);
         // 같은 물건의 쿨다운이 0으로 떨어진 프레임만 "다시 사용 가능"으로 본다(비우기·교체는 제외).
         object owner = hasDisplayedItem ? (displayedSkill != null ? (object)displayedSkill : displayedBaseData) : null;
-        bool becameReady = owner != null && ReferenceEquals(owner, cooldownOwner)
-            && lastCooldownRemaining > 0f && remaining <= 0f;
+        // 물약 쿨다운은 SO 종류가 아니라 저장 가능한 개별 물약 ID를 따른다.
+        bool sameOwner = owner != null && ReferenceEquals(owner, cooldownOwner)
+            && (!(displayedBaseData is FlaskItemData)
+                || (!string.IsNullOrEmpty(displayedFlaskInstanceId)
+                    && string.Equals(displayedFlaskInstanceId, cooldownFlaskInstanceId, System.StringComparison.Ordinal)));
+        bool becameReady = sameOwner && lastCooldownRemaining > 0f && remaining <= 0f;
+        if (!sameOwner || remaining > 0f) EndReadyFlash();
         cooldownOwner = owner;
+        cooldownFlaskInstanceId = displayedFlaskInstanceId;
         lastCooldownRemaining = remaining;
         if (becameReady) PlayReadyFlash();
 
@@ -257,6 +268,11 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetEmpty(bool active)
     {
+        displayedFlaskInstanceId = null;
+        cooldownFlaskInstanceId = null;
+        cooldownOwner = null;
+        lastCooldownRemaining = 0f;
+        EndReadyFlash();
         tooltipItem = null;
         BindVisuals();
 

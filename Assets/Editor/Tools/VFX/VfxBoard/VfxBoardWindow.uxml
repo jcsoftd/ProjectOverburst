@@ -110,7 +110,7 @@
                 <ui:VisualElement class="vb-spacer" />
                 <ui:Button name="revert-last" text="직전 적용 되돌리기" tooltip="마지막으로 적용한 변경을 거꾸로 돌리는 초안을 만듭니다. 확인한 뒤 다시 적용하세요." class="vb-button vb-button--ghost" />
                 <ui:Button name="discard-all" text="초안 모두 취소" class="vb-button" />
-                <ui:Button name="apply-all" text="모두 적용" class="vb-button vb-button--apply" />
+                <ui:Button name="apply-selected" text="선택 항목 저장" class="vb-button vb-button--apply" />
             </ui:VisualElement>
             <ui:ScrollView name="draft-list" class="vb-draftbar__list" />
         </ui:VisualElement>
