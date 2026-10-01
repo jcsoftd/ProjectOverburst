@@ -713,6 +713,15 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         RebuildSnapshot();
     }
 
+    public WorldLootPickupRequestResult RequestPickupByModelPointerDown(WorldItemPickup target)
+    {
+        ConsumePrimaryPointerForPickup();
+        return RequestPickupByLabelPointerDown(target);
+    }
+
+    // UI/모델 획득 의도를 공격 소비보다 먼저 등록한다. 실행 중인 공격은 취소하지 않는다.
+    public void ConsumePrimaryPointerForPickup() => BeginPrimaryAttackSuppression();
+
     public static WorldLootInteractionMode GetNextMode(WorldLootInteractionMode current)
     {
         return current == WorldLootInteractionMode.CombatAutoLegendary
@@ -1025,7 +1034,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         suppressPrimaryAttackUntilRelease = true;
         // GOAL A2: 좌클릭 홀드 직접 읽기 대신 Gameplay Attack 유지를 사용한다. release 억제 의미 유지.
         PlayerInputFacade facade = PlayerInputFacade.Current;
-        observedSuppressedPointerPress = facade != null && facade.AttackHeld;
+        observedSuppressedPointerPress = facade != null && (facade.AttackHeld || facade.UiClickHeld);
     }
 
     private void HandleSuppressedPointerRelease()
@@ -1037,7 +1046,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         if (facade == null)
             return;
 
-        if (facade.AttackHeld)
+        if (facade.AttackHeld || facade.UiClickHeld)
         {
             observedSuppressedPointerPress = true;
             return;

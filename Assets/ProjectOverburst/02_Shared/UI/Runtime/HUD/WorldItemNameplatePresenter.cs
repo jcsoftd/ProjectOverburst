@@ -53,6 +53,12 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
     private int observedSelectedInstanceId;
     private int observedPendingInstanceId;
 
+    public static WorldItemNameplatePresenter Active { get; private set; }
+    public WorldItemPickup HighlightedPickup => pickupHoverHighlight.CurrentTarget;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetActive() => Active = null;
+
     private void Awake()
     {
         ResolveReferences();
@@ -63,6 +69,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
 
     private void OnEnable()
     {
+        Active = this;
         ResolveReferences();
         pickupHoverHighlight.SetOutlineMaterial(pickupHoverOutlineMaterial);
         BindBridgeEvents(bridge);
@@ -72,11 +79,12 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
 
     private void OnDisable()
     {
+        if (Active == this) Active = null;
         BindCore(null);
         BindBridgeEvents(null);
         rowHoverOverride = null;
         pickupHoverResolver.Clear();
-        pickupHoverHighlight.Clear();
+        pickupHoverHighlight.Dispose();
         visibilityHysteresis.Clear();
         view?.HideAll();
         hasEvaluatedDisplaySet = false;
@@ -375,6 +383,21 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
 
         pickupHoverHighlight.SetTarget(target, renderers);
         pickupHoverHighlight.RefreshSourceState();
+    }
+
+    // 이번 프레임의 클릭 좌표로 다시 판정한다. 이전 LateUpdate의 대상에 클릭하지 않는다.
+    public WorldItemPickup ResolveModelPointerTarget(Vector2 pointerPosition)
+    {
+        PlayerPickupInteractor core = PlayerPickupInteractor.ActiveCore;
+        snapshot = core != null ? core.CurrentSnapshot : null;
+        Camera camera = ResolveCamera();
+        if (!isActiveAndEnabled || snapshot == null || snapshot.IsInputBlocked
+            || snapshot.ActivePickups == null || camera == null) return null;
+        SynchronizeRendererCache();
+        BuildPickupDistances();
+        WorldItemPickup pickup = pickupHoverResolver.Resolve(camera, pointerPosition,
+            hoverBoundsPaddingPixels, hoverMinimumSizePixels, pickupDistances);
+        return pickup != null && pickup.isActiveAndEnabled && pickup.CanPickup ? pickup : null;
     }
 
     private void ValidateRowHoverOverride()
