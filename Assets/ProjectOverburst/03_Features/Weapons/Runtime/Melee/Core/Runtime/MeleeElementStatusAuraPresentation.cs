@@ -33,7 +33,6 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
     [Tooltip("화상 불 높이. 몸 중심에서 몸 절반 높이의 몇 배 위에서 나오는지(0 = 몸 중심).")]
     [SerializeField, Range(-1f, 1f)] private float burningAuraHeight = 0f;
     [SerializeField] private GameObject shockedAura;
-    [SerializeField] private GameObject chilledAura;
     [Tooltip("어둠 잠식 상태. 60D: Piloto DarkAura")]
     [SerializeField] private GameObject corrodedAura;
     [Tooltip("잠식 오라 크기 배율. 몸 크기에 맞춘 뒤 곱한다.")]
@@ -185,7 +184,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         {
             case MeleeElementStatusAuraType.Burning: return burningAura;
             case MeleeElementStatusAuraType.Shocked: return shockedAura;
-            case MeleeElementStatusAuraType.Chilled: return chilledAura;
+            case MeleeElementStatusAuraType.Chilled: return null; // Retired slot ID is retained for compatibility.
             case MeleeElementStatusAuraType.Corroded: return corrodedAura;
             default: return null;
         }

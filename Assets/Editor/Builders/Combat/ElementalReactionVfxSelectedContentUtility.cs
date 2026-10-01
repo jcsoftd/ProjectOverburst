@@ -9,49 +9,16 @@ public static class ElementalReactionVfxSelectedContentUtility
     private const string ShockRoot = "Assets/ThirdParty/06_VFX/Piloto Studio 1/Elemental VFX Mega Bundle/Shock/";
     private const string LunarRoot = "Assets/ThirdParty/06_VFX/Piloto Studio/Super Realistic FX Bundle 02/Realistic Lunar Spells/";
     private const string ContentRootName = "VFX_CONTENT";
-    private const string ObsoleteFractureLoopPath =
-        WrapperRoot + "ThermalFracture/PF_VFX_Reaction_ThermalFracture_Loop.prefab";
-    private const string PlasmaLoopPath =
-        WrapperRoot + "Plasma/PF_VFX_Reaction_Plasma_Loop.prefab";
-    private const string ColdChargeLoopPath =
-        WrapperRoot + "ColdCharge/PF_VFX_Reaction_ColdCharge_Loop.prefab";
     private const int StatusLoopPoolCapacity = 100;
 
     private static readonly Selection[] Selections =
     {
-        new Selection(
-            "Plasma.Loop",
-            WrapperRoot + "Plasma/PF_VFX_Reaction_Plasma_Loop.prefab",
-            ShockRoot + "Orb_Shock_Blue.prefab",
-            true),
-        new Selection(
-            "Plasma.Proc",
-            WrapperRoot + "Plasma/PF_VFX_Reaction_Plasma_Proc.prefab",
-            ShockRoot + "ExplosionAttacks_ShockBlue.prefab",
-            false),
-        new Selection(
-            "Freeze.Loop",
+        new Selection("Freeze.Loop",
             WrapperRoot + "FreezeShatter/PF_VFX_Reaction_Freeze_Loop.prefab",
-            FrostRoot + "FrostAura.prefab",
-            true),
-        new Selection(
-            "Shatter.Proc",
+            FrostRoot + "FrostAura.prefab", true),
+        new Selection("Shatter.Proc",
             WrapperRoot + "FreezeShatter/PF_VFX_Reaction_Shatter_Proc.prefab",
-            FrostRoot + "FrostFire Impact.prefab",
-            false),
-        new Selection(
-            "ColdCharge.Loop",
-            WrapperRoot + "ColdCharge/PF_VFX_Reaction_ColdCharge_Loop.prefab",
-            FrostRoot + "Frostmist Orb.prefab",
-            true,
-            30f,
-            5f,
-            3),
-        new Selection(
-            "ColdCharge.Proc",
-            WrapperRoot + "ColdCharge/PF_VFX_Reaction_ColdCharge_Proc.prefab",
-            LunarRoot + "Lunar_Light_Hit.prefab",
-            false)
+            FrostRoot + "FrostFire Impact.prefab", false)
     };
 
     [InitializeOnLoadMethod]
@@ -79,9 +46,6 @@ public static class ElementalReactionVfxSelectedContentUtility
             ElementalReactionVfxAuthoringUtility.SynchronizeCatalogFromCommandLine();
 
         var pending = new System.Collections.Generic.List<string>();
-        if (NeedsClear(ObsoleteFractureLoopPath)) pending.Add("clear " + ObsoleteFractureLoopPath);
-        if (NeedsPoolCapacityUpdate(PlasmaLoopPath)) pending.Add("pool " + PlasmaLoopPath);
-        if (NeedsPoolCapacityUpdate(ColdChargeLoopPath)) pending.Add("pool " + ColdChargeLoopPath);
         for (int i = 0; i < Selections.Length; i++)
             if (NeedsApply(Selections[i])) pending.Add("content " + Selections[i].Id);
         if (pending.Count > 0)
@@ -100,13 +64,6 @@ public static class ElementalReactionVfxSelectedContentUtility
         ElementalReactionVfxAuthoringUtility.SynchronizeCatalogFromCommandLine();
 
         int changedCount = 0;
-        changedCount += ApplyPoolCapacityIfNeeded(PlasmaLoopPath);
-        changedCount += ApplyPoolCapacityIfNeeded(ColdChargeLoopPath);
-        if (NeedsClear(ObsoleteFractureLoopPath))
-        {
-            ClearContent(ObsoleteFractureLoopPath);
-            changedCount++;
-        }
 
         for (int i = 0; i < Selections.Length; i++)
         {
@@ -118,15 +75,11 @@ public static class ElementalReactionVfxSelectedContentUtility
             changedCount++;
         }
 
-        AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
         for (int i = 0; i < Selections.Length; i++)
             Validate(Selections[i]);
 
-        ValidateEmpty(ObsoleteFractureLoopPath);
-        ValidatePoolCapacity(PlasmaLoopPath);
-        ValidatePoolCapacity(ColdChargeLoopPath);
         ElementalReactionVfxAuthoringUtility.RunValidationFromCommandLine();
         Debug.Log("[ElementalReactionVfxSelectedContent] 확정 슬롯 "
             + Selections.Length + "개 연결 검증 PASS, 변경=" + changedCount);

@@ -218,8 +218,6 @@ MonoBehaviour:
     iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
     electricImpact: {fileID: 2046859084139038850, guid: 421dc8b9cf9766248b01c5ff9c335761, type: 3}
     electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
-    electricChainStart: {fileID: 7885690904474262181, guid: 62a4a728cf7141347bd95022f2e6165a, type: 3}
-    electricChainProc: {fileID: 8629265764243855797, guid: 9b1bde879b85497469962ac32ba06867, type: 3}
     electricDirectHit: {fileID: 1036593267667279857, guid: 49dcd52f6bc06d64fb382d8aa20a5c18, type: 3}
     darkBarrageSlam: {fileID: 0}
     darkBarrageProjectile: {fileID: 1629372112255661342, guid: 41349ff430da2744eabcac8606110068, type: 3}

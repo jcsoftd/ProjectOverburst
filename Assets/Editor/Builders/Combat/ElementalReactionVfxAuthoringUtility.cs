@@ -11,28 +11,13 @@ public static class ElementalReactionVfxAuthoringUtility
     private const string ContentRootName = "VFX_CONTENT";
     private const int IndividualPoolCapacity = 100;
 
+    // Only cold buildup's persistent freeze belongs to this runtime catalog.
+    // Shatter and lightning links are owned directly by the heavy attack definition.
     private static readonly WrapperSpec[] Specs =
     {
-        OneShot("Vaporize.Start", "Vaporize", "PF_VFX_Reaction_Vaporize_Start", ElementalReactionType.Vaporize, ElementalReactionVfxSlotType.Start, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-
-        OneShot("ThermalFracture.Start", "ThermalFracture", "PF_VFX_Reaction_ThermalFracture_Start", ElementalReactionType.ThermalFracture, ElementalReactionVfxSlotType.Start, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-        Loop("ThermalFracture.Loop", "ThermalFracture", "PF_VFX_Reaction_ThermalFracture_Loop", ElementalReactionType.ThermalFracture, ElementalReactionVfxSpawnBasis.TargetVolume, ElementalReactionVfxScaleMode.TargetVolume, IndividualPoolCapacity),
-        OneShot("ThermalFracture.End", "ThermalFracture", "PF_VFX_Reaction_ThermalFracture_End", ElementalReactionType.ThermalFracture, ElementalReactionVfxSlotType.End, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-
-        Loop("Plasma.Loop", "Plasma", "PF_VFX_Reaction_Plasma_Loop", ElementalReactionType.Plasma, ElementalReactionVfxSpawnBasis.TargetCenter, ElementalReactionVfxScaleMode.None, IndividualPoolCapacity),
-        OneShot("Plasma.Proc", "Plasma", "PF_VFX_Reaction_Plasma_Proc", ElementalReactionType.Plasma, ElementalReactionVfxSlotType.Proc, ElementalReactionVfxSpawnBasis.WorldPosition, IndividualPoolCapacity),
-
-        OneShot("FreezeShatter.Freeze_Start", "FreezeShatter", "PF_VFX_Reaction_Freeze_Start", ElementalReactionType.Freeze, ElementalReactionVfxSlotType.Start, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-        Loop("FreezeShatter.Freeze_Loop", "FreezeShatter", "PF_VFX_Reaction_Freeze_Loop", ElementalReactionType.Freeze, ElementalReactionVfxSpawnBasis.TargetVolume, ElementalReactionVfxScaleMode.TargetVolume, IndividualPoolCapacity),
-        OneShot("FreezeShatter.Shatter_Proc", "FreezeShatter", "PF_VFX_Reaction_Shatter_Proc", ElementalReactionType.Shatter, ElementalReactionVfxSlotType.Proc, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-        OneShot("FreezeShatter.Freeze_End", "FreezeShatter", "PF_VFX_Reaction_Freeze_End", ElementalReactionType.Freeze, ElementalReactionVfxSlotType.End, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-
-        OneShot("ChainElectricity.Start", "ChainElectricity", "PF_VFX_Reaction_ChainElectricity_Start", ElementalReactionType.ChainElectricity, ElementalReactionVfxSlotType.Start, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-        Link("ChainElectricity.Link", "ChainElectricity", "PF_VFX_Reaction_ChainElectricity_Link", ElementalReactionType.ChainElectricity),
-        OneShot("ChainElectricity.Proc", "ChainElectricity", "PF_VFX_Reaction_ChainElectricity_Proc", ElementalReactionType.ChainElectricity, ElementalReactionVfxSlotType.Proc, ElementalReactionVfxSpawnBasis.TargetCenter, IndividualPoolCapacity),
-
-        Loop("ColdCharge.Loop", "ColdCharge", "PF_VFX_Reaction_ColdCharge_Loop", ElementalReactionType.ColdCharge, ElementalReactionVfxSpawnBasis.TargetVolume, ElementalReactionVfxScaleMode.TargetVolume, IndividualPoolCapacity),
-        OneShot("ColdCharge.Proc", "ColdCharge", "PF_VFX_Reaction_ColdCharge_Proc", ElementalReactionType.ColdCharge, ElementalReactionVfxSlotType.Proc, ElementalReactionVfxSpawnBasis.WorldPosition, IndividualPoolCapacity)
+        Loop("FreezeShatter.Freeze_Loop", "FreezeShatter", "PF_VFX_Reaction_Freeze_Loop",
+            ElementalReactionType.Freeze, ElementalReactionVfxSpawnBasis.TargetVolume,
+            ElementalReactionVfxScaleMode.TargetVolume, IndividualPoolCapacity)
     };
 
     [MenuItem("OVERBURST/Codex/Setup/Combat/Setup Elemental Reaction VFX Authoring")]
@@ -53,7 +38,7 @@ public static class ElementalReactionVfxAuthoringUtility
         }
 
         CreateOrCompleteCatalog();
-        AssetDatabase.SaveAssets();
+        SaveCatalogIfDirty();
         AssetDatabase.Refresh();
         RunValidationFromCommandLine();
         Debug.Log($"[ElementalReactionVfxAuthoring] {Specs.Length}개 wrapper와 런타임 카탈로그 연결 검증 완료.");
@@ -95,7 +80,7 @@ public static class ElementalReactionVfxAuthoringUtility
             }
         }
 
-        AssetDatabase.SaveAssets();
+        SaveCatalogIfDirty();
         AssetDatabase.Refresh();
 
         for (int i = 0; i < Specs.Length; i++)
@@ -148,7 +133,7 @@ public static class ElementalReactionVfxAuthoringUtility
         for (int i = 0; i < Specs.Length; i++)
             ValidateWrapperAndCatalog(Specs[i], catalog);
 
-        Debug.Log($"[ElementalReactionVfxAuthoring] 6반응 {Specs.Length} wrapper/VFX_CONTENT/런타임 연결 검증 완료.");
+        Debug.Log($"[ElementalReactionVfxAuthoring] 빙결 {Specs.Length} wrapper/VFX_CONTENT/런타임 연결 검증 완료.");
     }
 
     public static bool NeedsCatalogSynchronization()
@@ -178,8 +163,14 @@ public static class ElementalReactionVfxAuthoringUtility
     {
         EnsureFolder(Path.GetDirectoryName(CatalogPath)?.Replace('\\', '/'));
         CreateOrCompleteCatalog();
-        AssetDatabase.SaveAssets();
+        SaveCatalogIfDirty();
         AssetDatabase.Refresh();
+    }
+
+    private static void SaveCatalogIfDirty()
+    {
+        var catalog = AssetDatabase.LoadAssetAtPath<ElementalReactionVfxCatalog>(CatalogPath);
+        if (catalog != null) AssetDatabase.SaveAssetIfDirty(catalog);
     }
 
     private static void CreateWrapperIfMissing(WrapperSpec spec)

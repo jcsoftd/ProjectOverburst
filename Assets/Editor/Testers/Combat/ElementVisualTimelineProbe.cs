@@ -106,7 +106,7 @@ public sealed class ElementVisualTimelineProbe : ScriptableObject
         var batch=new ElementDischargeBatch();batch.Capture(playerActor.GetComponent<CombatTarget>(),WeaponElement.Fire,3);
         foreach(var a in actors)if((a.transform.position-center).sqrMagnitude<16){batch.ConfirmInitial(a.Health);a.GetComponent<ElementalStatusController>().ConsumeForDischarge(WeaponElement.Fire,out _);}
         rows.Add("Fire delayed scheduler visual capture: 50 real roster, inner4m initial origins; initial heavy animation/blast excluded to isolate secondary timing.");
-        float start=Time.time;var replacement=ElementChainScheduler.Submit(batch,center,100,1,playerActor.gameObject,definition.elementVfx.FireChainExplosion,null,null,definition.elementVfx.FireChainReferenceRadius);replacement.Clear();
+        float start=Time.time;var replacement=ElementChainScheduler.Submit(batch,center,100,1,playerActor.gameObject,definition.elementVfx.FireChainExplosion,null,definition.elementVfx.FireChainReferenceRadius);replacement.Clear();
         for(int i=0;i<=14;i++)
         {
             while(Time.time-start<i*.1f)yield return null;

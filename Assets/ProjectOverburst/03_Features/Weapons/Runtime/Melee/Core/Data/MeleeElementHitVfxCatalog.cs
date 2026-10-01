@@ -17,9 +17,7 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
     public const float SmallTierHitScale = .65f; // 소형(몸 반경 약 0.5m) 기준 크기
     private const float SmallTierBodySize = .645f; // 몸 반경 0.5m의 옛 배율 √(0.5/1.2)
 
-    [InspectorName("공용 원소 적중 프리팹")]
-    public GameObject sharedHitPrefab;
-    [Tooltip("공통 저작 프리팹에서 생성한 단일 원소 런타임 풀")]
+    [Tooltip("게임에서 사용하는 다섯 원소별 타격 프리팹")]
     public RuntimePool[] runtimePools = System.Array.Empty<RuntimePool>();
     [Header("원본 최대 재생시간(초)")]
     [Min(0f)] public float fireLifetime = 5.15f;
@@ -55,7 +53,7 @@ public sealed class MeleeElementHitVfxCatalog : ScriptableObject
     public bool TryResolve(WeaponElement element, out GameObject prefab)
     {
         RuntimePool entry = FindRuntimePool(element);
-        prefab = Supports(element) ? (entry != null ? entry.prefab : sharedHitPrefab) : null;
+        prefab = Supports(element) && entry != null ? entry.prefab : null;
         return prefab != null;
     }
 

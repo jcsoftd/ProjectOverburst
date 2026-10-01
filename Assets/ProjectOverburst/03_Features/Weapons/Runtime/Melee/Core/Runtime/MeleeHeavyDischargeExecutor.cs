@@ -63,7 +63,7 @@ public sealed class MeleeHeavyDischargeExecutor
         pendingElectricChain = false;
         batch = ElementChainScheduler.Submit(batch, impactCenter, discharge.FirstBlastDamage,
             discharge.NormalizedEnergy, sourceActor, definition.elementVfx.FireChainExplosion,
-            definition.elementVfx.electricChainLink, definition.elementVfx.electricChainProc,
+            definition.elementVfx.electricChainLink,
             definition.elementVfx.FireChainReferenceRadius);
     }
 
@@ -89,8 +89,6 @@ public sealed class MeleeHeavyDischargeExecutor
         if (discharge != resolvingDischarge) return;
         if (result.Element == WeaponElement.Fire || result.Element == WeaponElement.Electric)
             batch.ConfirmInitial(target);
-        if (result.Element == WeaponElement.Electric && result.ConsumedStacks > 0)
-            Spawn(definition.elementVfx.electricChainStart, hitPoint, Quaternion.identity, 1f);
         // Every enemy caught by the electric slam is struck from above at its feet.
         if (result.Element == WeaponElement.Electric && definition.elementVfx.electricDirectHit != null)
             Spawn(definition.elementVfx.electricDirectHit, target.transform.position, Quaternion.identity, 1f);
@@ -170,7 +168,6 @@ public sealed class MeleeHeavyDischargeExecutor
         Vector3 direction = to - from;
         float distance = direction.magnitude;
         if (prefab == null || distance <= 0.05f) return;
-        Spawn(definition.elementVfx.electricChainProc, to, Quaternion.identity, 1f);
         if (ChainElectricityBatchRenderer.TrySpawn(prefab, from, to)) return;
         TransientVfxPool.Spawn(prefab, (from + to) * 0.5f,
             Quaternion.LookRotation(direction / distance, Vector3.up), 0f, 12,

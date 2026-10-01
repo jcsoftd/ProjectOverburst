@@ -8,7 +8,7 @@ public sealed class ElementChainScheduler : MonoBehaviour
     private sealed class Cast
     {
         public ElementDischargeBatch Batch;
-        public GameObject Source,Fire,Link,Proc;
+        public GameObject Source,Fire,Link;
         public float Damage,Energy,FireReferenceRadius;
         public readonly Action<Vector3,float> FireCallback;
         public readonly Action<Vector3,Vector3> LinkCallback;
@@ -20,7 +20,6 @@ public sealed class ElementChainScheduler : MonoBehaviour
         }
         private void PlayLink(Vector3 from,Vector3 to)
         {
-            Spawn(Proc,to,1);
             MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Electric,to); // A19 번개 홉
             if(Link==null||ChainElectricityBatchRenderer.TrySpawn(Link,from,to))return;
             Vector3 delta=to-from;float length=delta.magnitude;if(length<=.05f)return;
@@ -35,7 +34,7 @@ public sealed class ElementChainScheduler : MonoBehaviour
             TransientVfxPool.Spawn(prefab,point,Quaternion.identity,0,MeleeHeavyVfxPreparation.RetainedCapacity(prefab),
                 prepareBeforeActivation:g=>g.transform.localScale=prefab.transform.localScale*scale);
         }
-        public void Clear(){Batch.Clear();Source=Fire=Link=Proc=null;Damage=Energy=0;}
+        public void Clear(){Batch.Clear();Source=Fire=Link=null;Damage=Energy=0;}
     }
     private static ElementChainScheduler instance;
     private readonly List<Cast> active=new List<Cast>(8);
@@ -44,7 +43,7 @@ public sealed class ElementChainScheduler : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()=>instance=null;
     public static ElementDischargeBatch Submit(ElementDischargeBatch batch,Vector3 center,
-        float damage,float energy,GameObject source,GameObject fire,GameObject link,GameObject proc,
+        float damage,float energy,GameObject source,GameObject fire,GameObject link,
         float fireReferenceRadius=1f)
     {
         if(batch.OriginCount==0){batch.Clear();return batch;}
@@ -53,7 +52,7 @@ public sealed class ElementChainScheduler : MonoBehaviour
             var go=new GameObject("ElementChainScheduler");DontDestroyOnLoad(go);instance=go.AddComponent<ElementChainScheduler>();
         }
         Cast cast=instance.free.Count>0?instance.free.Pop():new Cast{Batch=new ElementDischargeBatch()};
-        var replacement=cast.Batch;cast.Batch=batch;cast.Source=source;cast.Fire=fire;cast.Link=link;cast.Proc=proc;
+        var replacement=cast.Batch;cast.Batch=batch;cast.Source=source;cast.Fire=fire;cast.Link=link;
         cast.Damage=damage;cast.Energy=energy;cast.FireReferenceRadius=Mathf.Max(.01f,fireReferenceRadius);
         batch.BeginDelayed(center,Time.time);instance.active.Add(cast);
         return replacement;

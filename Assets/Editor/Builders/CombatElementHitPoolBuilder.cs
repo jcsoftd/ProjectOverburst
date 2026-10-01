@@ -5,9 +5,10 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-// Local authoring tool: regenerate after changing the shared source or element modules.
+// Editor-only authoring source is excluded from the game and runtime catalog.
 public static class CombatElementHitPoolBuilder
 {
+    public const string AuthoringSourcePath = "Assets/Editor/Builders/Weapons/Authoring/PF_VFX_MeleeElementHit.prefab";
     private const string Folder = "Assets/ProjectOverburst/03_Features/Weapons/_Shared/Melee/VFX/ElementHit/RuntimePools";
     private static readonly WeaponElement[] Elements = { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light };
     private static readonly string[] Fields = { "fireHit", "iceHit", "electricHit", "darkHit", "lightHit" };
@@ -20,7 +21,8 @@ public static class CombatElementHitPoolBuilder
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Build in Edit mode.");
         var catalog = Resources.Load<MeleeElementHitVfxCatalog>(MeleeElementHitVfxCatalog.ResourcePath);
-        if (catalog == null || catalog.sharedHitPrefab == null) throw new InvalidOperationException("Missing authoring catalog.");
+        var authoringSource = AssetDatabase.LoadAssetAtPath<GameObject>(AuthoringSourcePath);
+        if (catalog == null || authoringSource == null) throw new InvalidOperationException("Missing Editor authoring source/catalog.");
         if (EditorUtility.IsDirty(catalog)) throw new InvalidOperationException("Catalog has unsaved edits; preserve them before rebuilding runtime entries.");
         if (!AssetDatabase.IsValidFolder(Folder))
             AssetDatabase.CreateFolder(Folder.Substring(0, Folder.LastIndexOf('/')), "RuntimePools");
@@ -31,7 +33,7 @@ public static class CombatElementHitPoolBuilder
             var scene = EditorSceneManager.NewPreviewScene();
             try
             {
-                var root = (GameObject)PrefabUtility.InstantiatePrefab(catalog.sharedHitPrefab, scene);
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(authoringSource, scene);
                 PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
                 root.SetActive(false);
                 var controller = root.GetComponent<MeleeElementHitVfxController>();

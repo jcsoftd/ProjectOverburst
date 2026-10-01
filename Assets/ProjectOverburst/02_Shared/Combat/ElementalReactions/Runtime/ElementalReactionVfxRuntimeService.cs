@@ -110,7 +110,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
     private void Update()
     {
         float now = Time.time;
-        UpdateChainTimeouts(now);
         UpdateLoopRecords();
         UpdateActiveInstances(now);
     }
@@ -125,7 +124,9 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         for (int i = 0; i < catalog.Entries.Count; i++)
         {
             ElementalReactionVfxCatalogEntry entry = catalog.Entries[i];
-            if (entry == null || entry.Prefab == null || !HasPlayableContent(entry.Prefab))
+            if (entry == null || entry.ReactionType != ElementalReactionType.Freeze
+                || entry.SlotType != ElementalReactionVfxSlotType.Loop
+                || entry.Prefab == null || !HasPlayableContent(entry.Prefab))
                 continue; // 빈 wrapper는 풀·예산을 만들지 않음
 
             ElementalReactionVfxAuthoring authoring =
@@ -153,10 +154,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         if (subscribed)
             return;
 
-        ElementalReactionEvents.ReactionStarted += HandleReactionStarted;
-        ElementalReactionEvents.ReactionProcExecuted += HandleReactionProcExecuted;
-        ElementalReactionEvents.ChainHopExecuted += HandleChainHopExecuted;
-        ElementalReactionEvents.ChainCompleted += HandleChainCompleted;
         ElementalReactionStateEvents.StateChanged += HandleReactionStateChanged;
         ElementalReactionStateEvents.StateRemoved += HandleReactionStateRemoved;
         ElementalReactionStateEvents.StatesCleared += HandleReactionStatesCleared;
@@ -168,10 +165,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         if (!subscribed)
             return;
 
-        ElementalReactionEvents.ReactionStarted -= HandleReactionStarted;
-        ElementalReactionEvents.ReactionProcExecuted -= HandleReactionProcExecuted;
-        ElementalReactionEvents.ChainHopExecuted -= HandleChainHopExecuted;
-        ElementalReactionEvents.ChainCompleted -= HandleChainCompleted;
         ElementalReactionStateEvents.StateChanged -= HandleReactionStateChanged;
         ElementalReactionStateEvents.StateRemoved -= HandleReactionStateRemoved;
         ElementalReactionStateEvents.StatesCleared -= HandleReactionStatesCleared;
@@ -180,103 +173,22 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
 
     private void HandleReactionStarted(ElementalReactionEvent reactionEvent)
     {
-        TryPlay(
-            reactionEvent.ReactionType,
-            ElementalReactionVfxSlotType.Start,
-            new SpawnRequest(
-                reactionEvent.TriggerTarget,
-                null,
-                reactionEvent.Center,
-                reactionEvent.Center,
-                reactionEvent.Center,
-                ResolveReactionRadius(reactionEvent.ReactionType)));
-
-        if (reactionEvent.ReactionType == ElementalReactionType.ChainElectricity)
-            BeginChainTracking(reactionEvent);
+        // Retired event adapter retained for old Editor validation callers.
     }
 
     private void HandleReactionProcExecuted(ElementalReactionProcEvent procEvent)
     {
-        ElementalReactionType reactionType;
-        float radius;
-        switch (procEvent.ProcType)
-        {
-            case ElementalReactionProcType.Shatter:
-                reactionType = ElementalReactionType.Shatter;
-                radius = 0f;
-                break;
-            case ElementalReactionProcType.Plasma:
-                reactionType = ElementalReactionType.Plasma;
-                radius = ElementalReactionRules.PlasmaRadius;
-                break;
-            case ElementalReactionProcType.ColdCharge:
-                reactionType = ElementalReactionType.ColdCharge;
-                radius = ElementalReactionRules.ColdChargeRadius;
-                break;
-            default:
-                return;
-        }
-
-        TryPlay(
-            reactionType,
-            ElementalReactionVfxSlotType.Proc,
-            new SpawnRequest(
-                procEvent.TriggerTarget,
-                null,
-                procEvent.Center,
-                procEvent.Center,
-                procEvent.Center,
-                radius));
+        // Retired event adapter retained for old Editor validation callers.
     }
 
     private void HandleChainHopExecuted(ElementalReactionChainHopEvent hopEvent)
     {
-        if (hopEvent.HopIndex < 0 || hopEvent.HopIndex >= ElementalReactionRules.ChainMaximumTargetCount)
-            return;
-
-        int recordIndex = FindChainRecord(hopEvent.SequenceId);
-        if (recordIndex < 0)
-            return;
-
-        ref ChainRecord record = ref chainRecords[recordIndex];
-        if (hopEvent.HopIndex <= record.LastHopIndex)
-            return;
-
-        if (hopEvent.HopIndex > 0)
-        {
-            TryPlay(
-                ElementalReactionType.ChainElectricity,
-                ElementalReactionVfxSlotType.Link,
-                new SpawnRequest(
-                    hopEvent.Target,
-                    record.PreviousTarget,
-                    hopEvent.Center,
-                    record.PreviousCenter,
-                    hopEvent.Center,
-                    0f));
-        }
-
-        TryPlay(
-            ElementalReactionType.ChainElectricity,
-            ElementalReactionVfxSlotType.Proc,
-            new SpawnRequest(
-                hopEvent.Target,
-                null,
-                hopEvent.Center,
-                hopEvent.Center,
-                hopEvent.Center,
-                0f));
-        record.PreviousTarget = hopEvent.Target;
-        record.PreviousCenter = hopEvent.Center;
-        record.LastHopIndex = hopEvent.HopIndex;
-        record.ExpiresAt = Time.time + ChainTrackingTimeout;
+        // Retired event adapter retained for old Editor validation callers.
     }
 
     private void HandleChainCompleted(ElementalReactionChainCompletedEvent completedEvent)
     {
-        int index = FindChainRecord(completedEvent.SequenceId);
-        if (index >= 0)
-            chainRecords[index].Clear();
+        // Retired event adapter retained for old Editor validation callers.
     }
 
     private void HandleReactionStateChanged(
@@ -284,7 +196,7 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         ElementalReactionStateSnapshot snapshot,
         ElementalReactionStateChangeReason reason)
     {
-        if (!HasLoopSlot(snapshot.ReactionType) || owner == null)
+        if (snapshot.ReactionType != ElementalReactionType.Freeze || owner == null)
             return;
 
         LoopRecordKey key = new LoopRecordKey(owner, snapshot.ReactionType);
@@ -304,9 +216,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
         record.Target = target;
         record.ReactionType = snapshot.ReactionType;
         record.LastPosition = CombatTargetVfxPlacement.ResolveVolume(target).Center;
-        if (snapshot.ReactionType == ElementalReactionType.Freeze && reason == ElementalReactionStateChangeReason.Applied)
-            TryPlay(ElementalReactionType.Freeze, ElementalReactionVfxSlotType.Start,
-                new SpawnRequest(target, null, record.LastPosition, record.LastPosition, record.LastPosition, 0f));
         TryAcquireLoop(recordIndex);
     }
 
@@ -324,24 +233,13 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
             ? CombatTargetVfxPlacement.ResolveVolume(target).Center : record.LastPosition;
         ReleaseLoopRecord(index);
 
-        if (reactionType == ElementalReactionType.ThermalFracture
-            || reactionType == ElementalReactionType.Freeze)
-        {
-            TryPlay(
-                reactionType,
-                ElementalReactionVfxSlotType.End,
-                new SpawnRequest(target, null, endPosition, endPosition, endPosition, 0f));
-        }
     }
 
     private void HandleReactionStatesCleared(
         IElementalReactionStateOwner owner,
         ElementalStatusClearReason reason)
     {
-        ClearOwnerLoopRecord(owner, ElementalReactionType.ThermalFracture);
-        ClearOwnerLoopRecord(owner, ElementalReactionType.Plasma);
         ClearOwnerLoopRecord(owner, ElementalReactionType.Freeze);
-        ClearOwnerLoopRecord(owner, ElementalReactionType.ColdCharge);
     }
 
     private void BeginChainTracking(ElementalReactionEvent reactionEvent)
@@ -737,14 +635,6 @@ public sealed class ElementalReactionVfxRuntimeService : MonoBehaviour
             ? CombatTargetVfxPlacement.ResolveVolume(target).Center : record.LastPosition;
         ReleaseLoopRecord(recordIndex);
 
-        if (reactionType == ElementalReactionType.ThermalFracture
-            || reactionType == ElementalReactionType.Freeze)
-        {
-            TryPlay(
-                reactionType,
-                ElementalReactionVfxSlotType.End,
-                new SpawnRequest(target, null, endPosition, endPosition, endPosition, 0f));
-        }
     }
 
     private void ResetLoopTracking()

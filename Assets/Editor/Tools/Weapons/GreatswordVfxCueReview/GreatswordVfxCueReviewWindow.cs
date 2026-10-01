@@ -215,18 +215,15 @@ namespace Overburst.EditorTools.Weapons
                 heavy != null ? heavy.elementVfx.iceShatter : null, heavy, "Shatter Proc");
             Add("VFX.ICE.STATUS.LOOP", "얼음 · 빙결", "얼음", "빙결 상태 지속", CueState.Connected,
                 LoadPrefab(Reaction + "FreezeShatter/PF_VFX_Reaction_Freeze_Loop.prefab"),
-                null, "FrostAura Loop 연결 · Start/End wrapper 콘텐츠 없음");
+                null, "FrostAura Loop 연결 · 시작·종료 래퍼 제거");
 
             Add("VFX.ELEC.HIT", "번개 · 원소 타격", "번개", "번개 속성 적중", CueState.Connected,
                 electricHit, hits, "원소 타격 런타임 풀");
             Add("VFX.ELEC.HV.CIRCLE", "번개 · 강공 착지", "번개", "번개 강공 지면 충돌", CueState.Connected,
                 heavy != null ? heavy.elementVfx.electricImpact : null, heavy, "Slam Circular 후반 폭발");
-            bool chainComplete = heavy != null && heavy.elementVfx.electricChainStart != null
-                && heavy.elementVfx.electricChainLink != null && heavy.elementVfx.electricChainProc != null;
+            bool chainComplete = heavy != null && heavy.elementVfx.electricChainLink != null;
             string chainNote = heavy == null ? "강공 정의를 찾을 수 없음" :
-                $"시작 {(heavy.elementVfx.electricChainStart != null ? "연결" : "비어 있음")} / " +
-                $"이동 {(heavy.elementVfx.electricChainLink != null ? "연결" : "비어 있음")} / " +
-                $"도착 {(heavy.elementVfx.electricChainProc != null ? "연결" : "비어 있음")} · 프리뷰는 이동 프리팹";
+                $"연결 줄기 {(chainComplete ? "연결" : "비어 있음")} · 빈 시작·도착 래퍼는 제거됨";
             Add("VFX.ELEC.HV.CHAIN.LINK", "번개 · 연쇄번개", "번개", "첫 적중에서 파생 대상까지", chainComplete ? CueState.Connected : CueState.Missing,
                 heavy != null ? heavy.elementVfx.electricChainLink : null, heavy,
                 chainNote);

@@ -88,9 +88,9 @@ namespace Overburst.EditorTools.Vfx
             ElementCombat, Reactions, WeaponAttacks, CommonCombat, Monsters, Character, Items, Unregistered,
             "불", "얼음", "번개", "어둠", "빛", "무속성",
             "타격", "강공격", "상태이상", "버프",
-            "증기", "균열", "플라즈마", "빙결", "쇄빙", "연쇄감전", "냉전하",
-            "공용", "한손검", "대검",
-            "치명타", "공용 래퍼", "원소 타격 예비 래퍼",
+            "빙결", "쇄빙",
+            "공용", "대검",
+            "치명타",
             "공격 예고", "투사체", "발먼지", "패링",
             "레벨업", "픽업 등급", "회복 픽업", "피해 바닥"
         };
@@ -151,16 +151,7 @@ namespace Overburst.EditorTools.Vfx
                         ElementCombat, ElementName(element), "타격"));
                 }
 
-                add(AssetField(hitCatalog, "sharedHitPrefab", "원소 타격 공용 래퍼",
-                    "원소별 런타임 풀이 비어 있을 때만 쓰는 예비 래퍼입니다.", CommonCombat, "공용 래퍼"));
 
-                GameObject sharedHit = ReadObject(hitCatalog, "sharedHitPrefab") as GameObject;
-                for (int i = 0; sharedHit != null && i < ElementKeys.Length; i++)
-                {
-                    add(PrefabField(sharedHit, "MeleeElementHitVfxController", ElementKeys[i] + "Hit",
-                        ElementNames[i] + " 모듈", "예비 래퍼 안의 원소 모듈입니다. 원소별 풀이 있으면 게임에서는 쓰이지 않습니다.",
-                        CommonCombat, "원소 타격 예비 래퍼"));
-                }
             }
 
             // 대검 검기·궤적(GreatswordElementFxProfile)은 사용자 결정(2026-09-30)으로 관리 대상에서 뺀다.
@@ -174,11 +165,9 @@ namespace Overburst.EditorTools.Vfx
                 ("iceShatter", 1, "쇄빙", ""),
                 ("electricImpact", 2, "강공격 착지", ""),
                 ("electricDirectHit", 2, "직격 번개", "착지 원에 직접 맞은 적마다 발밑에서 재생합니다."),
-                ("electricChainStart", 2, "연쇄번개 시작", ""),
                 ("electricChainLink", 2, "연쇄번개 연결", ""),
-                ("electricChainProc", 2, "연쇄번개 발동", ""),
                 ("darkBarrageSlam", 3, "탄막 내려찍기", "잠식 탄막 강공 착지 1회입니다."),
-                ("darkBarrageProjectile", 3, "탄막 투사체", "탄 1발입니다. 비어 있으면 피해만 들어갑니다."),
+                ("darkBarrageProjectile", 3, "탄막 투사체", "탄 1발입니다. 투사체와 트레일이 모두 비어 있으면 임시 구체와 트레일을 사용합니다."),
                 ("darkBarrageTrail", 3, "탄막 트레일", "탄 뒤를 따라가는 꼬리입니다."),
                 ("darkBarrageHit", 3, "탄막 명중 폭발", "탄이 맞을 때마다 재생합니다."),
                 ("lightTripleImpact", 4, "3연타 충격", "에너지 100 초과일 때입니다."),
@@ -198,7 +187,7 @@ namespace Overburst.EditorTools.Vfx
             {
                 (string field, int element, string label)[] auraFields =
                 {
-                    ("burningAura", 0, "화상"), ("chilledAura", 1, "냉기"),
+                    ("burningAura", 0, "화상"),
                     ("shockedAura", 2, "감전"), ("corrodedAura", 3, "잠식")
                 };
                 foreach (var (field, element, label) in auraFields)
@@ -223,7 +212,10 @@ namespace Overburst.EditorTools.Vfx
             for (int i = 0; entries != null && i < entries.arraySize; i++)
             {
                 SerializedProperty entry = entries.GetArrayElementAtIndex(i);
-                rows.Add((entry.FindPropertyRelative("reactionType")?.intValue ?? 0,
+                int type = entry.FindPropertyRelative("reactionType")?.intValue ?? 0;
+                int slot = entry.FindPropertyRelative("slotType")?.intValue ?? 0;
+                if (type != (int)ElementalReactionType.Freeze || slot != (int)ElementalReactionVfxSlotType.Loop) continue;
+                rows.Add((type,
                     entry.FindPropertyRelative("slotType")?.intValue ?? 0, i,
                     entry.FindPropertyRelative("id")?.stringValue ?? string.Empty));
             }
@@ -233,7 +225,7 @@ namespace Overburst.EditorTools.Vfx
                 bool duplicate = rows.Count(r => r.type == row.type && r.slot == row.slot) > 1;
                 string label = ReactionSlotName(row.slot) + (duplicate ? " · " + row.id : string.Empty);
                 add(AssetField(catalog, "entries.Array.data[" + row.index + "].prefab", label,
-                    "반응 슬롯 식별자: " + row.id, Reactions, ReactionName(row.type)));
+                    "냉기 누적으로 빙결된 적에게 재생합니다.", ElementCombat, "얼음", "빙결"));
             }
         }
 
@@ -251,7 +243,7 @@ namespace Overburst.EditorTools.Vfx
         private static void CollectCommon(Action<VfxSlot> add)
         {
             add(ResourceSlot("Combat/VFX/VFX_CritHit", "치명타 섬광",
-                "치명타 적중 때 타격 원소 색으로 물들여 재생합니다. 무속성은 흰색입니다.", CommonCombat, "치명타"));
+                "현재 자동 재생은 꺼져 있습니다. 추후 연결을 위해 프리팹과 이 칸을 유지합니다.", CommonCombat, "치명타"));
         }
 
         private static void CollectMonsters(Action<VfxSlot> add)
@@ -299,12 +291,7 @@ namespace Overburst.EditorTools.Vfx
                     "등급 항목이 비어 있을 때 씁니다.", Items, "픽업 등급"));
             }
 
-            GameObject health = Resources.Load<GameObject>("Interactions/PF_HealthPickup");
-            add(PrefabField(health, "HealthPickup", "pickupVfxPrefab", "회복 픽업 획득", "", Items, "회복 픽업"));
-            add(PrefabField(health, "HealthPickup", "healingBuff.tickVfxPrefab", "회복 버프 틱", "", Items, "회복 픽업"));
 
-            GameObject damageFloor = Resources.Load<GameObject>("Interactions/PF_DamageFloorZone");
-            add(PrefabField(damageFloor, "DamageFloorZone", "tickVfxPrefab", "피해 바닥 틱", "", Items, "피해 바닥"));
         }
 
         // ---------- 슬롯 생성 ----------
@@ -504,6 +491,7 @@ namespace Overburst.EditorTools.Vfx
                     && type.IndexOf("VisualEffectAsset", StringComparison.Ordinal) < 0) continue;
                 if (iterator.propertyPath.StartsWith("m_", StringComparison.Ordinal)) continue;
 
+                if (IsEmptyOptionalField(target, iterator.propertyPath)) continue;
                 Object value = iterator.objectReferenceValue;
                 if (value == null)
                 {
@@ -533,9 +521,26 @@ namespace Overburst.EditorTools.Vfx
             }
         }
 
+        private static bool IsEmptyOptionalField(Object target, string field)
+        {
+            var data = new SerializedObject(target);
+            var value = data.FindProperty(field);
+            if (value == null) return true; // A removed field in a saved scan.
+            if (value.objectReferenceValue != null) return false;
+            if (target is CombatImpactFeel && field.EndsWith(".criticalFlash", StringComparison.Ordinal))
+            {
+                string surfaceField = field.Substring(0, field.Length - "criticalFlash".Length) + "surface";
+                return data.FindProperty(surfaceField)?.intValue == (int)CombatImpactSurface.Ground;
+            }
+            return target is OverburstFeelEmitter && field == "particleSystem"
+                && data.FindProperty("uiImage")?.objectReferenceValue != null;
+        }
+
         internal static VfxSlot CreateExtraSlot(VfxExtraSlotSpec spec)
         {
             if (spec == null || string.IsNullOrEmpty(spec.ownerPath))
+                return null;
+            if (spec.ownerPath.EndsWith("/ElementalReactionVfxCatalog.asset", StringComparison.Ordinal))
                 return null;
 
             string field = ObjectNames.NicifyVariableName(spec.propertyPath.Replace(".Array.data", string.Empty));
@@ -552,6 +557,7 @@ namespace Overburst.EditorTools.Vfx
             {
                 GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(spec.ownerPath);
                 Component component = FindComponent(root, spec.objectPath, spec.componentType);
+                if (component != null && IsEmptyOptionalField(component, spec.propertyPath)) return null;
                 slot = component == null ? null : ComponentField(root, component, spec.propertyPath,
                     ownerName + " · " + field, note, new[] { Unregistered, spec.componentType });
             }
