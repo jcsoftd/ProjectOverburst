@@ -274,7 +274,7 @@ public class InventoryContextMenuController : MonoBehaviour
         for (int key = InventoryQuickSlotBindingController.FirstKey; key <= InventoryQuickSlotBindingController.SlotCount; key++)
         {
             int bindKey = key;
-            string label = actionService != null ? actionService.GetQuickSlotLabel(key) : key + " : 비어있음";
+            string label = actionService != null ? actionService.GetQuickSlotLabel(key) : QuickSlotKeyLabels.Short(key) + " : 비어있음";
             AddButton(label, item != null && item.itemType == "Consumable", () =>
             {
                 actionService?.BindQuickSlot(bindKey, item);

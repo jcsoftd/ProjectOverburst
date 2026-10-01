@@ -49,7 +49,7 @@ public class ActionSlotHudUI : MonoBehaviour
             if (slot == null)
                 continue;
 
-            slot.SetKeyNumber(key);
+            slot.SetKeyLabel(QuickSlotKeyLabels.Short(key));
             ItemData boundFlask = quickSlotBindingController != null ? quickSlotBindingController.GetBoundFlask(key) : null;
             if (boundFlask != null)
             {

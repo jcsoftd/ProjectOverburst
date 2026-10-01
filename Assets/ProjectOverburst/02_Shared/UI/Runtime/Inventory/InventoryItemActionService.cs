@@ -201,7 +201,11 @@ public class InventoryItemActionService : MonoBehaviour
             return false;
         }
 
-        if (item.baseData is FlaskItemData) { SpawnPlayerStatusText("물약 장비칸에 장착한 뒤 1~9·0번으로 사용합니다."); return false; }
+        if (item.baseData is FlaskItemData)
+        {
+            SpawnPlayerStatusText(QuickSlotKeyLabels.AllDefault ? "물약 장비칸에 장착한 뒤 1~9·0번으로 사용합니다." : "물약 장비칸에 장착한 뒤 퀵슬롯 키로 사용합니다.");
+            return false;
+        }
 
         IItemUseHandler handler = FindUseHandler(item);
         if (handler == null)
@@ -309,7 +313,7 @@ public class InventoryItemActionService : MonoBehaviour
         if (previous != null) quickSlots.ClearFlask(previous);
         if (key == 0)
         {
-            SpawnPlayerStatusText("물약을 장착했습니다. 1~9·0번 중 사용할 번호를 선택해 주세요.");
+            SpawnPlayerStatusText(QuickSlotKeyLabels.AllDefault ? "물약을 장착했습니다. 1~9·0번 중 사용할 번호를 선택해 주세요." : "물약을 장착했습니다. 사용할 퀵슬롯 칸을 선택해 주세요.");
             return true;
         }
         if (quickSlots.Bind(key, item)) return true;
@@ -358,7 +362,7 @@ public class InventoryItemActionService : MonoBehaviour
         ResolveReferences();
         quickSlots?.ImportLegacyFlasks();
         string itemName = quickSlots != null ? quickSlots.GetBoundItemDisplayName(key) : "Empty";
-        return (key % 10) + " : " + itemName;
+        return QuickSlotKeyLabels.Short(key) + " : " + itemName;
     }
 
     public void ShowItemInfo(ItemData item)

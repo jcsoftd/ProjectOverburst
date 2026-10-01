@@ -74,21 +74,48 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
     public void SetKeyNumber(int keyNumber)
     {
+        SetKeyLabel(keyNumber > 0 ? (keyNumber % 10).ToString() : string.Empty);
+    }
+
+    // 2026-10-01 설정 > 조작에서 바꾼 키 글자(QuickSlotKeyLabels.Short). HUD가 매 프레임 부르므로 글자가 같으면 건너뛴다.
+    // "Shift"처럼 긴 글자는 칸 안에 들어가도록 레거시 글자에만 크기 맞춤을 켠다(숫자 한 글자는 원래 크기 그대로).
+    public void SetKeyLabel(string label)
+    {
         BindVisuals();
-        string number = keyNumber > 0 ? (keyNumber % 10).ToString() : string.Empty;
+        label ??= string.Empty;
+        if (keyLabelApplied && string.Equals(appliedKeyLabel, label, System.StringComparison.Ordinal))
+            return;
+        keyLabelApplied = true;
+        appliedKeyLabel = label;
         if (keyText != null)
         {
-            keyText.text = number;
+            keyText.text = label;
+            keyText.enableAutoSizing = label.Length > 2;
+            keyText.fontSizeMin = 9f;
             NormalizeKeyTextRect();
             RefreshKeyVisual(displayedActive);
         }
         if (legacyKeyText != null)
         {
-            legacyKeyText.text = number;
+            if (legacyKeyFontSize <= 0) legacyKeyFontSize = legacyKeyText.fontSize;
+            legacyKeyText.text = label;
             legacyKeyText.raycastTarget = false;
+            legacyKeyText.resizeTextForBestFit = label.Length > 2;
+            legacyKeyText.resizeTextMaxSize = legacyKeyFontSize;
+            legacyKeyText.resizeTextMinSize = Mathf.Min(14, legacyKeyFontSize);
             RefreshKeyVisual(displayedActive);
         }
+        // RPG11 HUD 칸에서 실제로 보이는 키 글자는 같은 오브젝트의 OverburstUIItemSlotView 쪽이다
+        // (legacyKeyText는 설치 도구가 잡은 숨은 Vendor Frame 글자). 둘 다 같은 글자로 맞춘다.
+        if (slotView == null) slotView = GetComponent<OverburstUIItemSlotView>();
+        if (slotView != null) slotView.SetKeyLabel(label);
     }
+
+    public string KeyLabel => appliedKeyLabel ?? string.Empty;
+    private OverburstUIItemSlotView slotView;
+    private string appliedKeyLabel;
+    private bool keyLabelApplied;
+    private int legacyKeyFontSize;
 
     public void SetItem(ItemData item, int count, bool active, bool showCount)
     {
@@ -433,6 +460,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         {
             keyText.fontStyle = FontStyles.Bold;
             keyText.fontSize = active ? ActiveKeyTextFontSize : KeyTextFontSize;
+            keyText.fontSizeMax = keyText.fontSize; // 긴 키 글자에서 자동 크기가 켜져도 원래 크기보다 커지지 않게.
             keyText.color = active ? ActiveKeyTextColor : KeyTextColor;
         }
         if (legacyKeyText != null)

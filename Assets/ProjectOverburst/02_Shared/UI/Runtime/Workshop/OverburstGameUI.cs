@@ -25,6 +25,7 @@ public sealed class OverburstGameUI : MonoBehaviour
     private int lastTab=-1;
     private readonly ItemData[] shownFlasks=new ItemData[3];
     private readonly int[] shownKeys={-1,-1,-1};
+    private readonly string[] shownKeyLabels=new string[3]; // 2026-10-01 설정에서 퀵슬롯 키를 바꾸면 물약 칸 글자도 바뀐다.
     private InventoryQuickSlotBindingController quickSlots;
     private ShopUI shop;
     private bool shopLayout;
@@ -153,6 +154,6 @@ public sealed class OverburstGameUI : MonoBehaviour
         stats[6].text=weapon!=null?calculated.critChance.ToString("0.##")+"%":"—";stats[7].text=weapon!=null?(calculated.critDamageMultiplier*100).ToString("0.##")+"%":"—";
         stats[8].text=$"+{gear.NormalDamage:0.##}%";stats[9].text=$"+{gear.WeakDamage:0.##}%";
         stats[10].text=$"+{gear.HeavyDamage:0.##}%";stats[11].text=$"+{gear.EliteBossDamage:0.##}%";
-        var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;if(shownFlasks[i]!=item||shownKeys[i]!=key){shownFlasks[i]=item;shownKeys[i]=key;flasks[i].Present(item?.icon,item!=null?item.grade:ItemGrade.Common,key>0?(key%10).ToString():"");}}
+        var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;string keyLabel=key>0?QuickSlotKeyLabels.Short(key):"";if(shownFlasks[i]!=item||shownKeys[i]!=key||shownKeyLabels[i]!=keyLabel){shownFlasks[i]=item;shownKeys[i]=key;shownKeyLabels[i]=keyLabel;flasks[i].Present(item?.icon,item!=null?item.grade:ItemGrade.Common,keyLabel);}}
     }
 }

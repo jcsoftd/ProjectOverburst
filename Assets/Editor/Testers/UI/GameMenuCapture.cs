@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -30,7 +31,6 @@ public static class GameMenuCapture
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("Persistent scene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
-        SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
         Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode();
@@ -56,7 +56,7 @@ public static class GameMenuCapture
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(Key + ".env", ""));
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", "");
             SessionState.SetBool(Key, false);
         }
     }
@@ -154,6 +154,8 @@ public static class GameMenuCapture
         Check("ESC closes menu", !OverburstGameMenu.IsOpen);
         Check("timeScale restored", Mathf.Approximately(Time.timeScale, scaleBefore), "timeScale=" + Time.timeScale + " before=" + scaleBefore);
         Check("gameplay restored", !AudioListener.pause && facade.IsGameplayEnabled);
+        Check("hud default key labels", HudLabels() == "1 2 3 4 5 6 7 8 9 0", HudLabels());
+        yield return Shot("hud_default");
 
         // 4) 패링 슬로우 도중 멈춤: 남은 슬로우가 멈춘 만큼 늘어난다.
         var owner = new GameObject("MenuCaptureSlowOwner");
@@ -235,6 +237,73 @@ public static class GameMenuCapture
         Check("ESC cancels rebind only", !panel.keyPrompt.activeSelf && panel.gameObject.activeSelf && OverburstGameMenu.IsOpen && interact.CurrentPath(asset) == "<Keyboard>/tab");
         saved = File.ReadAllText(OverburstGameSettings.FilePath);
         Check("binding overrides saved", saved.Contains("<Keyboard>/tab") && saved.Contains("<Keyboard>/k"));
+
+        // 빈 칸만 비교해서 통과하지 않도록 격리 계정에 서로 다른 물약 세 개를 실제 장착한다.
+        var fixtureFlasks = PlayerFlaskController.Current;
+        var fixtureInventory = UnityEngine.Object.FindFirstObjectByType<PlayerInventory>();
+        var fixtureBindings = ui.GetComponent<InventoryQuickSlotBindingController>();
+        string[] fixtureNames = { "Life", "Ironclad", "Regeneration" };
+        int[] fixtureKeys = { 1, 2, 10 };
+        for (int i = 0; i < fixtureNames.Length; i++)
+        {
+            var data = AssetDatabase.LoadAssetAtPath<FlaskItemData>("Assets/ProjectOverburst/Resources/Items/Flasks/Flask_" + fixtureNames[i] + ".asset");
+            if (data == null || fixtureInventory == null || fixtureFlasks == null || fixtureBindings == null)
+                throw new InvalidOperationException("Flask fixture unavailable: " + fixtureNames[i]);
+            var item = new ItemData(data, 1, ItemGrade.Common);
+            if (!fixtureInventory.AddItem(item) || !fixtureFlasks.TryEquip(i, item, out string reason) || !fixtureBindings.Bind(fixtureKeys[i], item))
+                throw new InvalidOperationException("Flask fixture failed: " + fixtureNames[i]);
+        }
+        yield return WaitReal(.2f);
+        Check("three equipped flask fixtures", Enumerable.Range(0, 3).All(i => fixtureFlasks.GetItem(i) != null && fixtureBindings.GetFlaskKey(fixtureFlasks.GetItem(i)) == fixtureKeys[i]));
+
+        // 7-2) 퀵슬롯 키를 바꾸면 HUD 칸 글자·장비창 물약 칸·등록 메뉴가 따라간다. 왼쪽 Shift는 회피와 겹쳐 맞바꿈이 일어난다.
+        var slot1 = panel.keyRows.First(r => r.actionName == "QuickSlot1");
+        var slot2 = panel.keyRows.First(r => r.actionName == "QuickSlot2");
+        var slot10 = panel.keyRows.First(r => r.actionName == "QuickSlot10");
+        yield return Rebind(slot1, UnityEngine.InputSystem.Key.Q);
+        yield return Rebind(slot2, UnityEngine.InputSystem.Key.LeftShift);
+        yield return Rebind(slot10, UnityEngine.InputSystem.Key.Minus);
+        notes.Add("quickslot paths=" + slot1.CurrentPath(asset) + " " + slot2.CurrentPath(asset) + " " + slot10.CurrentPath(asset)
+            + " evade=" + panel.keyRows.First(r => r.actionName == "Evade").CurrentPath(asset));
+        yield return Shot("settings_controls_quickslots");
+        menu.Close();
+        yield return WaitReal(.4f);
+        string expected = string.Join(" ", Enumerable.Range(1, 10).Select(k =>
+            OverburstKeyBindingRow.ShortName(panel.keyRows.First(r => r.actionName == "QuickSlot" + k).CurrentPath(asset))));
+        Check("hud labels follow rebind", HudLabels() == expected && HudLabels().StartsWith("Q Shift 3 "), "hud=" + HudLabels() + " expected=" + expected);
+        Check("numbered label", QuickSlotKeyLabels.Numbered(1) == "Q 키" && QuickSlotKeyLabels.Numbered(3) == "3번" && !QuickSlotKeyLabels.AllDefault,
+            QuickSlotKeyLabels.Numbered(1) + " / " + QuickSlotKeyLabels.Numbered(3));
+        var actionService = UnityEngine.Object.FindFirstObjectByType<InventoryItemActionService>(FindObjectsInactive.Include);
+        string menuLabel = actionService != null ? actionService.GetQuickSlotLabel(1) : "no service";
+        Check("context menu label follows rebind", menuLabel.StartsWith("Q : "), menuLabel);
+        yield return Shot("hud_rebound");
+        ui.equipmentButton.onClick.Invoke();
+        yield return WaitReal(1f);
+        var flaskController = PlayerFlaskController.Current;
+        var bindings = ui.GetComponent<InventoryQuickSlotBindingController>();
+        var keyField = typeof(OverburstUIItemSlotView).GetField("keyLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+        var flaskReport = new List<string>();
+        bool flaskOk = flaskController != null && bindings != null && ui.flasks.Length == 3;
+        for (int i = 0; flaskOk && i < ui.flasks.Length; i++)
+        {
+            var item = flaskController.GetItem(i);
+            int key = bindings.GetFlaskKey(item);
+            string want = key > 0 ? QuickSlotKeyLabels.Short(key) : "";
+            var text = keyField.GetValue(ui.flasks[i]) as UnityEngine.UI.Text;
+            string shown = text == null ? "null" : text.gameObject.activeSelf ? text.text : "";
+            flaskReport.Add(i + ":" + (item != null ? item.itemName : "-") + " key=" + key + " shown='" + shown + "' want='" + want + "'");
+            flaskOk &= item != null && key == fixtureKeys[i] && text != null && text.gameObject.activeInHierarchy && shown == want;
+        }
+        Check("equipment flask labels follow rebind", flaskOk, string.Join(", ", flaskReport));
+        yield return Shot("equipment_flask_keys");
+        ui.equipmentClose.onClick.Invoke();
+        yield return WaitReal(.3f);
+        menu.Open();
+        yield return WaitReal(.2f);
+        menu.OpenSettings();
+        yield return WaitReal(.3f);
+        panel.tabs[3].isOn = true;
+        yield return WaitReal(.2f);
         panel.resetButton.onClick.Invoke();
         yield return WaitReal(.2f);
         Check("reset restores default keys", interact.CurrentPath(asset) == "<Keyboard>/f" && inventory.CurrentPath(asset) == "<Keyboard>/tab");
@@ -253,5 +322,38 @@ public static class GameMenuCapture
         menu.Close();
         yield return WaitReal(.3f);
         Check("closed at end", !OverburstGameMenu.IsOpen && Mathf.Approximately(Time.timeScale, scaleBefore));
+        yield return WaitReal(.2f);
+        Check("hud labels back to default after reset", HudLabels() == "1 2 3 4 5 6 7 8 9 0" && QuickSlotKeyLabels.AllDefault, HudLabels());
+    }
+
+    static IEnumerator Rebind(OverburstKeyBindingRow row, Key key)
+    {
+        row.keyButton.onClick.Invoke();
+        yield return WaitReal(.25f);
+        yield return Press(key);
+        yield return WaitReal(.3f);
+    }
+
+    // HUD 퀵슬롯 칸에 실제로 보이는 키 글자(1~10 순서). RPG11 칸은 OverburstUIItemSlotView 글자가 보이고, 없으면 칸 자체 글자를 읽는다.
+    static string HudLabels()
+    {
+        var hud = UnityEngine.Object.FindFirstObjectByType<ActionSlotHudUI>(FindObjectsInactive.Include);
+        if (hud == null) return "no hud";
+        const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Instance;
+        var slots = typeof(ActionSlotHudUI).GetField("quickSlots", Flags).GetValue(hud) as ActionSlotHudSlotUI[];
+        var legacy = typeof(ActionSlotHudSlotUI).GetField("legacyKeyText", Flags);
+        var tmp = typeof(ActionSlotHudSlotUI).GetField("keyText", Flags);
+        var viewKey = typeof(OverburstUIItemSlotView).GetField("keyLabel", Flags);
+        if (slots == null) return "no slots";
+        return string.Join(" ", slots.Select(s =>
+        {
+            if (s == null) return "null";
+            var shownTexts = new List<string>();
+            var view = s.GetComponent<OverburstUIItemSlotView>();
+            if (view != null && viewKey.GetValue(view) is UnityEngine.UI.Text v) shownTexts.Add(v.gameObject.activeInHierarchy && v.enabled ? v.text : "");
+            if (legacy.GetValue(s) is UnityEngine.UI.Text l && l.gameObject.activeInHierarchy && l.enabled) shownTexts.Add(l.text);
+            if (tmp.GetValue(s) is TMPro.TMP_Text k && k.gameObject.activeInHierarchy && k.enabled) shownTexts.Add(k.text);
+            return shownTexts.Count == 0 ? "none" : string.Join("/", shownTexts.Distinct());
+        }));
     }
 }

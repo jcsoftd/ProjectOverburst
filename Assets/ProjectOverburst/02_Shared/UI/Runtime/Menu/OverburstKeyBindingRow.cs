@@ -19,7 +19,10 @@ public sealed class OverburstKeyBindingRow : MonoBehaviour
     public InputAction FindAction(InputActionAsset asset)
         => asset != null ? asset.FindAction(PlayerInputFacade.GameplayMapName + "/" + actionName) : null;
 
-    public int ResolveBindingIndex(InputAction action)
+    public int ResolveBindingIndex(InputAction action) => ResolveBindingIndex(action, compositePart);
+
+    // HUD 퀵슬롯 글자(QuickSlotKeyLabels)도 같은 규칙으로 바인딩을 고른다. 설정 창에 보이는 키와 HUD 글자가 어긋나지 않게 한다.
+    public static int ResolveBindingIndex(InputAction action, string compositePart)
     {
         if (action == null) return -1;
         var bindings = action.bindings;
@@ -70,5 +73,42 @@ public sealed class OverburstKeyBindingRow : MonoBehaviour
         if (path.StartsWith("<Keyboard>/numpad")) return "숫자판 " + path.Substring("<Keyboard>/numpad".Length).ToUpperInvariant();
         string readable = InputControlPath.ToHumanReadableString(path, InputControlPath.HumanReadableStringOptions.OmitDevice);
         return readable.Length == 1 ? readable.ToUpperInvariant() : readable;
+    }
+
+    // HUD 칸 모서리처럼 좁은 곳에 쓰는 짧은 이름. 설정 창은 위의 DisplayName(긴 이름)을 쓴다.
+    private static readonly Dictionary<string, string> ShortNames = new Dictionary<string, string>
+    {
+        { "<Mouse>/leftButton", "M1" }, { "<Mouse>/rightButton", "M2" }, { "<Mouse>/middleButton", "M3" },
+        { "<Mouse>/backButton", "M4" }, { "<Mouse>/forwardButton", "M5" },
+        { "<Keyboard>/leftShift", "Shift" }, { "<Keyboard>/rightShift", "Shift" },
+        { "<Keyboard>/leftCtrl", "Ctrl" }, { "<Keyboard>/rightCtrl", "Ctrl" },
+        { "<Keyboard>/leftAlt", "Alt" }, { "<Keyboard>/rightAlt", "Alt" },
+        { "<Keyboard>/space", "Space" }, { "<Keyboard>/tab", "Tab" }, { "<Keyboard>/capsLock", "Caps" },
+        { "<Keyboard>/escape", "Esc" }, { "<Keyboard>/enter", "Enter" }, { "<Keyboard>/backspace", "Back" },
+        { "<Keyboard>/insert", "Ins" }, { "<Keyboard>/delete", "Del" }, { "<Keyboard>/home", "Home" }, { "<Keyboard>/end", "End" },
+        { "<Keyboard>/pageUp", "PgUp" }, { "<Keyboard>/pageDown", "PgDn" },
+        { "<Keyboard>/upArrow", "↑" }, { "<Keyboard>/downArrow", "↓" }, { "<Keyboard>/leftArrow", "←" }, { "<Keyboard>/rightArrow", "→" },
+        { "<Keyboard>/backquote", "`" }, { "<Keyboard>/minus", "-" }, { "<Keyboard>/equals", "=" },
+        { "<Keyboard>/leftBracket", "[" }, { "<Keyboard>/rightBracket", "]" }, { "<Keyboard>/backslash", "\\" },
+        { "<Keyboard>/semicolon", ";" }, { "<Keyboard>/quote", "'" }, { "<Keyboard>/comma", "," },
+        { "<Keyboard>/period", "." }, { "<Keyboard>/slash", "/" },
+        { "<Keyboard>/numpadEnter", "NEnt" }, { "<Keyboard>/numpadPlus", "N+" }, { "<Keyboard>/numpadMinus", "N-" },
+        { "<Keyboard>/numpadMultiply", "N*" }, { "<Keyboard>/numpadDivide", "N/" }, { "<Keyboard>/numpadPeriod", "N." },
+        { "<Keyboard>/numpadEquals", "N=" },
+    };
+
+    public static string ShortName(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return string.Empty;
+        if (ShortNames.TryGetValue(path, out string name)) return name;
+        const string KeyboardPrefix = "<Keyboard>/";
+        if (path.StartsWith(KeyboardPrefix))
+        {
+            string key = path.Substring(KeyboardPrefix.Length);
+            if (key.Length == 7 && key.StartsWith("numpad") && char.IsDigit(key[6])) return "N" + key[6];
+            if (key.Length == 1) return key.ToUpperInvariant();
+            if (key.Length <= 3 && key[0] == 'f' && int.TryParse(key.Substring(1), out _)) return key.ToUpperInvariant();
+        }
+        return DisplayName(path);
     }
 }
