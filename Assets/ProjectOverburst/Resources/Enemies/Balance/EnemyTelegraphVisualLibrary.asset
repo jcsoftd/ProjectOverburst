@@ -19,4 +19,4 @@ MonoBehaviour:
   groundImpact: {fileID: 4363365278825521352, guid: fdb720c92da82a8408b3bc9336b5f9ab, type: 3}
   strongRelease: {fileID: 8300000, guid: 90a40230eb0314210b36546a791be2db, type: 3}
   groundImpactSound: {fileID: 8300000, guid: a4e95e9a1c578024e87026aa5b2008f5, type: 3}
-  parryShockwave: {fileID: 3487560267814829102, guid: d48d17e2eb2372d4c8d2bf620295d2f6, type: 3}
+  parrySuccess: {fileID: 4501586146628845500, guid: 08c519d56f17f7641a8ffdc05c6b2d8b, type: 3}

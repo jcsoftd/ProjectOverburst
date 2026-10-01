@@ -263,8 +263,8 @@ namespace Overburst.EditorTools.Vfx
                 add(AssetField(telegraph, "nova", "원형 공격 예고", "", Monsters, "공격 예고"));
                 add(AssetField(telegraph, "rectangle", "직사각형 공격 예고", "", Monsters, "공격 예고"));
                 add(AssetField(telegraph, "groundImpact", "강공격 착지 먼지", "", Monsters, "강공격"));
-                add(AssetField(telegraph, "parryShockwave", "패링 성공 파동",
-                    "대검 원형 파동을 작게 재사용합니다.", Monsters, "패링"));
+                add(AssetField(telegraph, "parrySuccess", "패링 성공 플레어",
+                    "성공 중심에 무지개 렌즈 플레어를 한 번 재생합니다.", Monsters, "패링"));
             }
 
             Object projectiles = FindFirst("EnemyProjectileVfxCatalog");

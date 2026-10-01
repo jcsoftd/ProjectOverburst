@@ -11,8 +11,9 @@ public sealed class EnemyTelegraphVisualLibrary : ScriptableObject
     [SerializeField] private GameObject groundImpact;
     [SerializeField] private AudioClip strongRelease;
     [SerializeField] private AudioClip groundImpactSound;
-    [Tooltip("패링 성공 파동. 대검 원형 파동(PF_GRS_CircleShockwave)을 작게 재사용한다.")]
-    [SerializeField] private GameObject parryShockwave;
+    [Tooltip("패링 성공 중심에 재생하는 무지개 렌즈 플레어.")]
+    [UnityEngine.Serialization.FormerlySerializedAs("parryShockwave")]
+    [SerializeField] private GameObject parrySuccess;
 
     public GameObject Cone => cone;
     public GameObject Nova => nova;
@@ -21,5 +22,5 @@ public sealed class EnemyTelegraphVisualLibrary : ScriptableObject
     public GameObject GroundImpact => groundImpact;
     public AudioClip StrongRelease => strongRelease;
     public AudioClip GroundImpactSound => groundImpactSound;
-    public GameObject ParryShockwave => parryShockwave;
+    public GameObject ParrySuccess => parrySuccess;
 }

@@ -104,7 +104,6 @@ public sealed class PlayerParryController : MonoBehaviour
 
         for (int i = 0; i < enemies.Count; i++)
         {
-            successVfx?.EmitEnemy(enemies[i]);
             enemies[i].GetComponent<HitFlashFeedback>()?.FlashOnce();
             CancelAndStun(enemies[i], transform.position);
         }
@@ -151,7 +150,6 @@ public sealed class PlayerParryController : MonoBehaviour
     {
         SuccessCount++;
         ParryFeedbackService.Tier tier = ParryFeedbackService.ResolveTier(parriedCount, anyStrong);
-        successVfx?.EmitCenter(center, 36);
         CombatActionSfxService.PlayParrySuccess(center);
         ParryFeedbackService.Play(center, transform.position, tier, parriedCount, chainIndex, parriedThisAction);
         // 히트스톱은 매번, 슬로우는 1.5초에 한 번만. 두 요청은 종류별로 따로 유지된다.

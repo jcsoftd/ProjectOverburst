@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_VFX_Rainbow_Lens_Flare_Spec_01_Parry
+  m_Shader: {fileID: 4800000, guid: be5b0b6b0ab7e8b48941920d07ea19c8, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _ISADDITIVE_ON
+  - _USEHUESHIFT_ON
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CutoutTexture:
+        m_Texture: {fileID: 2800000, guid: 5a9fa4d9f25fa5a42ba1cadd0a45bcd2, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTexture:
+        m_Texture: {fileID: 2800000, guid: 8e216cf9bf80dce4bacc3c653609672d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTexture1:
+        m_Texture: {fileID: 2800000, guid: ad3d33bcd25b0b6409e4f8c40928b06d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Cull1: 2
+    - _CutoutErosion: 0
+    - _CutoutErosionSmoothness: 1
+    - _CutoutMult: 1
+    - _CutoutPower: 1
+    - _DepthFade: 0.1
+    - _Desaturate: 0.3
+    - _Dst1: 1
+    - _EmissiveMult: 15
+    - _ErosionSmoothness: 0.5
+    - _HueShift: 0
+    - _HueShiftSpeed: -1
+    - _IsAdditive: 1
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    - _RealColor: 0.5
+    - _ReceiveShadows: 1
+    - _Src1: 1
+    - _UVDLerp: 0.013
+    - _UseHueShift: 1
+    - _ZTest1: 2
+    - _ZWrite1: 0
+    m_Colors:
+    - _Tint: {r: 1, g: 1, b: 1, a: 0}
+    - _UVDPan: {r: -0.03, g: 0.1, b: 0, a: 0}
+    - _UVDScale: {r: 1, g: 1, b: 0, a: 0}
+    - _UVPan: {r: 0, g: 0, b: 0, a: 0}
+    - _UVScale: {r: 1, g: 1, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
