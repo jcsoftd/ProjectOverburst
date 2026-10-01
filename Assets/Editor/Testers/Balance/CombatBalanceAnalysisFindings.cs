@@ -297,7 +297,8 @@ namespace Overburst.EditorBalance.Analysis
                     $"군집 {result.conditions.crowdCount}마리, 약공 판정당 {F(result.conditions.crowdWeakTargets)}마리·완충 강공 {F(result.conditions.crowdHeavyTargets)}마리·연쇄 밀착 {F(result.conditions.packingDensity)}/㎡",
                     "강공 반경 `CombatBalanceFormulas.DischargeRadius`, 불 연쇄 `FireChainDamage/Radius`, 번개 `LightningHopDamage`, 어둠 후속 규칙, 빛 3연타 반경 배율",
                     string.Join(" · ", byElement.Select(x => $"{AnalysisLabels.Element(x.Key)} {F(x.time)}초(범위 {F(x.aoe, "0")}%, 파생 {F(x.derived, "0")}%)")),
-                    "편차가 크면 원소별 강공 반경·연쇄 계수를 조정한다(수치 제안). 군집 모델은 정리 시간을 Play 실측보다 1.3~2배 길게 잡으므로 순위 비교에만 쓰고, 절대 시간은 Play 군집 측정을 따른다.", "모델 근사: 약공·강공 대상 수와 연쇄 밀착 밀도는 Play 측정으로 맞춘 입력"));
+                    "편차가 크면 원소별 강공 반경·연쇄 계수를 조정한다(수치 제안). 단, 군집 모델은 원소마다 Play 실측과 벗어나는 정도가 달라(보고서의 '군집 정리 시간' 표) 원소 순위도 실측과 다를 수 있다. 원소 순위·절대 시간 모두 '검증' 역할의 Play 군집 측정으로 확인한 뒤에만 조정 근거로 쓴다.",
+                    "모델 근사: 약공·강공 대상 수와 연쇄 밀착 밀도는 '보정' 역할 Play 측정으로 맞춘 입력"));
             }
         }
 

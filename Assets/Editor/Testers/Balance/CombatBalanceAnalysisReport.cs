@@ -35,31 +35,71 @@ namespace Overburst.EditorBalance.Analysis
 
         static string F(float v, string fmt = "0.##") => float.IsNaN(v) ? "—" : float.IsInfinity(v) ? "∞" : v.ToString(fmt, CultureInfo.InvariantCulture);
 
-        // 측정 묶음: 가장 최근 측정과, 그 바로 앞에 이어진 '중단(INTERRUPTED)' 측정들. 완료된 옛 측정은 섞지 않는다.
-        public static List<FileInfo> MeasurementChain()
+        static string Short(string hash) => string.IsNullOrEmpty(hash) ? "없음(옛 기록)" : hash.Substring(0, Math.Min(12, hash.Length));
+
+        // 군집 모델 시간: 새 기록은 필드, 옛 기록은 체크 문장의 "모델 N초"에서 읽는다.
+        public static float CrowdModelTime(MeasurementScenario s)
         {
+            if (!float.IsNaN(s.modelClearTime) && s.modelClearTime > 0f) return s.modelClearTime;
+            foreach (var c in s.checks.Where(c => c.Contains("정리")))
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(c, @"모델 ([0-9.]+)초");
+                if (m.Success && float.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float v)) return v;
+            }
+            return float.NaN;
+        }
+
+        // 보고서에 적는 검사 의미(Codex 검토 10-01 P2-4·P2-5). 검사 이름만 보고 더 넓게 해석하지 않도록 한다.
+        public static readonly string[] CheckMeanings =
+        {
+            "플레이어 조립·몬스터 체력: 같은 시드의 모델 값과 실제 컴포넌트 값이 같은지(±0.5).",
+            "약공 판정 피해: 공격 시퀀스 순서로 콤보 타를 정하고, 각 적중의 판정 번호·계수·치명 여부로 계산한 값과 같은지. 끝까지 친 타는 판정 누락·추가도 본다.",
+            "강공 첫 폭발: 실측한 확정 직전 에너지·광휘·치명 여부로 모델 식을 다시 계산해 같은지. 피해 경로 대조이며 에너지 예측 정확도 검증이 아니다.",
+            "강공 후속(파생) 횟수·시각: 첫 강공 적중을 0초로 두고 모델 이벤트 시각과 실측 파생 적중 시각을 차례로 비교(±0.15초).",
+            "받는 평타·강공: 실제 EnemyAbilityDefinition.ResolveDamage와 CombatHealth.TakeDamage 경로(방어·하한)를 직접 호출해 비교. 몬스터 공격 실행·타격 간격·여러 타·겹치는 공격은 검증하지 않는다. 플레이어 사망 방지가 켜져 있다.",
+            "충전 중 대상 생존: 약공으로 에너지를 채우는 동안 대상 몬스터가 살아 있었는지. 플레이어가 버텼다는 뜻이 아니다.",
+            "1주기 처치: 모델이 0% 또는 100%라고 한 결과와 모순되지 않는지만 본다. 확률 정확도는 아래 확률 요약(여러 표본의 성공 수)으로만 판정한다.",
+            "군집 정리 시간: |모델−실측|/실측 ≤ 50%. 모델 근사가 크게 벗어났는지 알리는 경고 기준이며, 원소 순위 검증이 아니다. '보정' 역할 시나리오는 군집 입력을 맞춘 데이터라 검증 근거로 쓰지 않는다.",
+        };
+
+        // 측정 묶음: 가장 최근 측정과, 그 바로 앞에 이어진 '중단(INTERRUPTED)' 측정 중 계획 버전·지문이 같은 것.
+        // 지문(코드·튜닝·자산·조건)이 다른 회차는 섞지 않는다(Codex 검토 10-01 P2-6). 완료된 옛 측정도 섞지 않는다.
+        public static List<FileInfo> MeasurementChain(string root = null)
+        {
+            root = root ?? MeasurementRoot;
             var chain = new List<FileInfo>();
-            if (!Directory.Exists(MeasurementRoot)) return chain;
-            var files = new DirectoryInfo(MeasurementRoot).GetFiles("measurement.json", SearchOption.AllDirectories).OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+            if (!Directory.Exists(root)) return chain;
+            var files = new DirectoryInfo(root).GetFiles("measurement.json", SearchOption.AllDirectories).OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+            MeasurementReport newest = files.Count > 0 ? Read(files[0]) : null;
             for (int i = 0; i < files.Count; i++)
             {
-                if (i > 0 && StatusOf(files[i]) != "INTERRUPTED") break;
+                if (i > 0)
+                {
+                    var r = Read(files[i]);
+                    if (r == null || r.status != "INTERRUPTED" || !SameRun(newest, r)) break;
+                }
                 chain.Add(files[i]);
             }
             chain.Reverse();
             return chain;
         }
 
-        public static string StatusOf(FileInfo f)
+        // 지문이 없는 옛 기록은 어떤 기록과도 같은 실행으로 보지 않는다.
+        public static bool SameRun(MeasurementReport a, MeasurementReport b)
+            => a != null && b != null && !string.IsNullOrEmpty(a.fingerprint) && a.fingerprint == b.fingerprint && a.planVersion == b.planVersion;
+
+        static MeasurementReport Read(FileInfo f)
         {
-            try { return FromJson<MeasurementReport>(File.ReadAllText(f.FullName, Encoding.UTF8))?.status; }
+            try { return FromJson<MeasurementReport>(File.ReadAllText(f.FullName, Encoding.UTF8)); }
             catch { return null; }
         }
 
-        // 측정 묶음을 합친다. 같은 시나리오는 가장 최근 것을 쓴다.
-        public static MeasurementReport LoadLatestMeasurement()
+        public static string StatusOf(FileInfo f) => Read(f)?.status;
+
+        // 측정 묶음을 합친다. 같은 시나리오는 가장 최근 것을 쓰고, 시나리오·전체 상태는 공용 규칙으로 다시 매긴다.
+        public static MeasurementReport LoadLatestMeasurement(string root = null, List<string> plannedKeys = null)
         {
-            var files = MeasurementChain();
+            var files = MeasurementChain(root);
             if (files.Count == 0) return null;
             var merged = new MeasurementReport();
             var byKey = new Dictionary<string, MeasurementScenario>();
@@ -69,18 +109,18 @@ namespace Overburst.EditorBalance.Analysis
                 MeasurementReport r;
                 try { r = FromJson<MeasurementReport>(File.ReadAllText(f.FullName, Encoding.UTF8)); }
                 catch (Exception e) { merged.errors.Add(f.Directory.Name + " 읽기 실패: " + e.Message); continue; }
-                if (r == null) continue;
+                if (r == null) { merged.errors.Add(f.Directory.Name + " 비어 있음"); continue; }
                 statuses.Add(f.Directory.Name + "=" + r.status);
                 merged.startedAt = merged.startedAt ?? r.startedAt; merged.finishedAt = r.finishedAt ?? merged.finishedAt;
                 merged.unityVersion = r.unityVersion; merged.scope = r.scope;
+                merged.planVersion = r.planVersion; merged.fingerprint = r.fingerprint;
                 foreach (var s in r.scenarios.Where(s => s.status != null)) byKey[s.key] = s;
                 merged.errors.AddRange(r.errors.Select(e => f.Directory.Name + ": " + e));
             }
-            var order = CombatBalancePlayMeasurement.DefaultPlan().Select(p => p.key).ToList();
+            var order = plannedKeys ?? CombatBalancePlayMeasurement.DefaultPlan().Select(p => p.key).ToList();
+            foreach (var s in byKey.Values) s.status = CombatBalanceMeasurementStatus.OfScenario(s);
             merged.scenarios = byKey.Values.OrderBy(s => order.IndexOf(s.key) < 0 ? int.MaxValue : order.IndexOf(s.key)).ToList();
-            int planned = order.Count, measured = merged.scenarios.Count(s => order.Contains(s.key));
-            merged.status = measured < planned ? $"PARTIAL {measured}/{planned}"
-                : merged.scenarios.Any(s => s.status == "FAIL") ? "FAIL" : "PASS";
+            merged.status = CombatBalanceMeasurementStatus.OfRun(merged.scenarios, merged.errors, order.Count, order);
             merged.scope = (merged.scope ?? "") + " · 측정 회차: " + string.Join(", ", statuses);
             return merged;
         }
@@ -125,7 +165,7 @@ namespace Overburst.EditorBalance.Analysis
             foreach (var s in r.selfChecks) sb.AppendLine("- " + s);
             sb.AppendLine();
             sb.AppendLine("## 레벨 구간별 요약 (단일, 표준 추첨 중앙값)").AppendLine();
-            sb.AppendLine("| 레벨 | 품질 | 체급 | 원소 | 공격 | 적 HP | 충전 초 | 준비 생존 | 1주기 처치 | 처치 초 | 평타/강공 버팀 | 문제 |");
+            sb.AppendLine("| 레벨 | 품질 | 체급 | 원소 | 공격 | 적 HP | 충전 초 | 충전 중 대상 생존 | 1주기 처치 | 처치 초 | 평타/강공 버팀 | 문제 |");
             sb.AppendLine("|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|");
             foreach (var x in r.rows.Where(x => x.mode == CombatMode.Single).OrderBy(x => x.level).ThenBy(x => x.grade).ThenBy(x => x.enemyClass).ThenBy(x => x.element))
                 sb.AppendLine($"| {x.level} | {AnalysisLabels.Grade(x.grade)} | {AnalysisLabels.Enemy(x.enemyClass)} | {AnalysisLabels.Element(x.element)} | {F(x.attack)} | {F(x.enemyHealth)} | {F(x.chargeTime)} | {F(x.prepSurvivalRate * 100, "0")}% | {F(x.heavyKillRate * 100, "0")}% | {F(x.killTime)} | {x.normalSurvivable}/{x.strongSurvivable} | {string.Join(" ", x.flags.Select(CombatBalanceAnalysisRunner.RuleLabel))} |");
@@ -156,12 +196,32 @@ namespace Overburst.EditorBalance.Analysis
             if (m == null) sb.AppendLine("Play 측정 결과 없음(NOT_RUN).");
             else
             {
-                sb.AppendLine($"측정 상태 {m.status}, {m.startedAt} ~ {m.finishedAt}, Unity {m.unityVersion}. 범위: {m.scope}").AppendLine();
-                sb.AppendLine("| 시나리오 | 판정 | 공격 모델/실측 | 적 HP | 약공 1타 | 충전 초 | 강공 적중 | 준비 생존 | 1주기 처치 | 받는 평타/강공 | 비고 |");
-                sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|");
-                foreach (var s in m.scenarios)
-                    sb.AppendLine($"| {s.key} | {s.status} | {F(s.modelAttack)}/{F(s.measuredAttack)} | {F(s.modelEnemyHealth)}/{F(s.measuredEnemyHealth)} | {F(s.modelWeakNormalHit)}/{F(s.measuredWeakNormalHit)} | {F(s.modelChargeTime)}/{F(s.measuredChargeTime)} | {F(s.modelHeavyDirect)}/{F(s.measuredHeavyDirect)} | {(s.modelPrepSurvived ? "생존" : "사망")}/{(s.measuredPrepSurvived ? "생존" : "사망")} | {(s.modelHeavyKilled ? "처치" : "실패")}/{(s.measuredHeavyKilled ? "처치" : "실패")} | {F(s.modelIncomingNormal)}/{F(s.measuredIncomingNormal)} · {F(s.modelIncomingStrong)}/{F(s.measuredIncomingStrong)} | {s.note} |");
+                sb.AppendLine($"측정 상태 {m.status}, {m.startedAt} ~ {m.finishedAt}, Unity {m.unityVersion}. 계획 {m.planVersion ?? "—"}, 지문 {Short(m.fingerprint)}. 범위: {m.scope}").AppendLine();
+                sb.AppendLine("검사가 실제로 확인하는 것:").AppendLine();
+                foreach (var line in CheckMeanings) sb.AppendLine("- " + line);
                 sb.AppendLine();
+                sb.AppendLine("| 시나리오 | 역할 | 판정 | 공격 모델/실측 | 적 HP | 약공 1타 | 충전 초 | 강공 적중 | 충전 중 대상 생존 | 1주기 처치 | 받는 평타/강공 | 비고 |");
+                sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
+                foreach (var s in m.scenarios)
+                    sb.AppendLine($"| {s.key} | {s.role ?? "—"} | {s.status} | {F(s.modelAttack)}/{F(s.measuredAttack)} | {F(s.modelEnemyHealth)}/{F(s.measuredEnemyHealth)} | {F(s.modelWeakNormalHit)}/{F(s.measuredWeakNormalHit)} | {F(s.modelChargeTime)}/{F(s.measuredChargeTime)} | {F(s.modelHeavyDirect)}/{F(s.measuredHeavyDirect)} | {(s.modelPrepSurvived ? "생존" : "사망")}/{(s.measuredPrepSurvived ? "생존" : "사망")} | {(s.modelHeavyKilled ? "처치" : "실패")}/{(s.measuredHeavyKilled ? "처치" : "실패")} | {F(s.modelIncomingNormal)}/{F(s.measuredIncomingNormal)} · {F(s.modelIncomingStrong)}/{F(s.measuredIncomingStrong)} | {s.note} |");
+                sb.AppendLine();
+                sb.AppendLine("- " + CombatBalanceMeasurementStatus.KillProbabilitySummary(m.scenarios)).AppendLine();
+                var crowdRuns = m.scenarios.Where(s => s.key.Contains("군집")).Select(s => (s, model: CrowdModelTime(s))).Where(x => !float.IsNaN(x.model)).ToList();
+                if (crowdRuns.Count > 0)
+                {
+                    sb.AppendLine("### 군집 정리 시간 (이 회차 원본에서 생성)").AppendLine();
+                    sb.AppendLine("| 시나리오 | 역할 | 모델 | 실측 | 모델/실측 | |모델−실측|/실측 |");
+                    sb.AppendLine("|---|---|---:|---:|---:|---:|");
+                    foreach (var (s, model) in crowdRuns.OrderBy(x => x.s.measuredElapsed))
+                        sb.AppendLine($"| {s.key} | {s.role ?? "—"} | {F(model)}초 | {F(s.measuredElapsed)}초 | {F(model / Mathf.Max(.01f, s.measuredElapsed), "0.00")}배 | {F(Mathf.Abs(model - s.measuredElapsed) / Mathf.Max(.01f, s.measuredElapsed) * 100f, "0")}% |");
+                    foreach (var group in crowdRuns.GroupBy(x => x.s.role ?? "—"))
+                    {
+                        string Order(Func<(MeasurementScenario s, float model), float> key) => string.Join(" < ", group.OrderBy(key).Select(x => AnalysisLabels.Element(x.s.element)));
+                        sb.AppendLine().AppendLine($"- {group.Key}: 실측 빠른 순 {Order(x => x.s.measuredElapsed)} / 모델 빠른 순 {Order(x => x.model)}"
+                            + (Order(x => x.s.measuredElapsed) == Order(x => x.model) ? " (순위 일치)" : " (순위 불일치)"));
+                    }
+                    sb.AppendLine();
+                }
                 foreach (var s in m.scenarios) { sb.AppendLine($"- {s.key}: " + string.Join("; ", s.checks)); }
                 if (m.errors.Count > 0) sb.AppendLine().AppendLine("오류: " + string.Join(" | ", m.errors));
             }

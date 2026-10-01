@@ -49,8 +49,9 @@ namespace Overburst.EditorBalance.Analysis
         public int seedBase = 731;
         public bool combatStance = true;
         public int crowdCount = 20;
-        // 군집 입력(10-01 05:20 Play 측정 소형 20마리·적 AI 켬, 불·번개·얼음·어둠 정리 시간에 가장 가깝게 맞춘 기본값). 창에서 바꿀 수 있다.
-        // 이 값에서도 모델 정리 시간은 실측보다 1.3~2배 길다(보수적). 원소 순위 비교용이며 절대 시간은 Play 측정을 따른다.
+        // 군집 입력(10-01 05:20 Play 측정 소형 20마리·적 AI 켬, 불·번개·얼음·어둠 정리 시간에 맞춘 기본값). 창에서 바꿀 수 있다.
+        // 맞출 때 쓴 조합은 측정 계획에서 '보정' 역할로 분리하고, 모델 검증은 다른 시드·배치의 '검증' 역할 조합으로만 한다.
+        // 모델과 실측의 차이는 원소마다 달라 원소 순위도 보장하지 않는다(보고서 '군집 정리 시간' 표).
         public float crowdWeakTargets = 4f;     // 약공 판정 1회에 맞는 평균 마리 수
         public float crowdHeavyTargets = 8f;    // 완충(반경 4m) 강공 첫 폭발에 맞는 평균 마리 수. 반경² 비례로 줄어든다
         public float packingDensity = 1.4f;     // 불 연쇄·번개 도약이 이웃을 찾는 밀착 밀도(마리/㎡)
@@ -212,6 +213,10 @@ namespace Overburst.EditorBalance.Analysis
         public float modelIncomingNormal, measuredIncomingNormal, modelIncomingStrong, measuredIncomingStrong;
         public float measuredDot, measuredDerived, measuredElapsed;
         public int measuredWeakHits, measuredCrits;
+        public string role;                                        // 보정용(군집 입력을 맞춘 조합) / 검증용
+        public float modelHeavyKillChance = float.NaN;             // 모델 1주기 처치 확률(단일)
+        public float modelClearTime = float.NaN;                   // 모델 군집 정리 시간
+        public List<float> modelDerivedTimes = new List<float>();  // 첫 강공 뒤 대상이 받는 파생 피해 시각(강공 적중 기준, 모델)
         public List<string> checks = new List<string>();
         public List<MeasuredHit> hits = new List<MeasuredHit>();
     }
@@ -220,6 +225,7 @@ namespace Overburst.EditorBalance.Analysis
     public sealed class MeasurementReport
     {
         public string status, startedAt, finishedAt, unityVersion, scope;
+        public string planVersion, fingerprint;                     // 이어 하기·병합은 같은 계획·같은 지문 회차끼리만
         public List<MeasurementScenario> scenarios = new List<MeasurementScenario>();
         public List<string> errors = new List<string>();
     }

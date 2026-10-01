@@ -306,40 +306,34 @@ namespace Overburst.EditorBalance.Analysis
             return h;
         }
 
-        // ───────────────────────── 어둠 강공 규칙: 작업 중 규칙(부식 탄막)과 이전 규칙(흡인 폭발)을 모두 읽는다.
+        // ───────────────────────── 어둠 강공 규칙: 잠식 탄막(DarkBarrageScheduler, dfb874e 이후 제품 경로)
+        // 튜닝 속성을 직접 읽는다. 이름이 바뀌면 조용히 기본값을 쓰지 않고 컴파일 오류로 드러난다.
         public sealed class DarkRule
         {
-            public bool barrage;
-            public float shotFraction, finisherFraction, searchMultiplier, streamDuration, burstBase, burstPerStack, burstTime;
-            public int minTargets, maxTargets, burstCap;
+            public float shotFraction, finisherFraction, searchMultiplier;
+            public float interval, riseTime, riseStagger, riseHeight, speed, flightMin, flightMax;
+            public int maxConcurrent;
+            public OverburstElementTuning tuning;
             public string source;
-            public int TargetLimit(float e) => Mathf.RoundToInt(Mathf.Lerp(minTargets, maxTargets, Mathf.Clamp01(e)));
+            public int TargetLimit(float e) => tuning.DarkBarrageTargetLimit(e);
+            // 첫 발사 시각(강공 확정 기준): 제출 프레임 다음부터 시계가 돈다 + 솟기 + 최대 지연.
+            public float FirstRelease => 1f / 60f + riseTime + riseStagger;
+            // 유도 비행 시간: 휜 경로 길이(직선 ×1.35) ÷ 속도, 최소·최대로 자른다(DarkBarrageScheduler.BeginHoming).
+            public float Flight(float horizontal) => Mathf.Clamp(Mathf.Sqrt(horizontal * horizontal + riseHeight * riseHeight) * 1.35f / Mathf.Max(.01f, speed), flightMin, flightMax);
         }
 
         public static DarkRule ReadDarkRule(OverburstElementTuning t)
         {
-            // 어둠 규칙은 다른 작업이 바꾸는 중이라 튜닝 속성을 이름으로 읽는다(없으면 기본값). 컴파일 의존을 만들지 않는다.
-            Type type = t.GetType();
-            float Float(string name, float fallback) { var p = type.GetProperty(name); return p != null ? Convert.ToSingle(p.GetValue(t)) : fallback; }
-            int Int(string name, int fallback) { var p = type.GetProperty(name); return p != null ? Convert.ToInt32(p.GetValue(t)) : fallback; }
             var r = new DarkRule
             {
-                searchMultiplier = Float("SafeDarkGatherRadiusMultiplier", 2.5f), burstBase = Float("SafeDarkBurstBaseFraction", .2f),
-                burstPerStack = Float("SafeDarkBurstPerStack", .02f), burstCap = Int("SafeDarkBurstStackCap", 50),
-                burstTime = Float("SafeDarkBurstTime", 1.95f) / Mathf.Max(.01f, Float("SafeDarkVfxPlaybackSpeed", 1f))
+                tuning = t, searchMultiplier = t.SafeDarkGatherRadiusMultiplier,
+                shotFraction = t.SafeDarkBarrageShotDamage, finisherFraction = t.SafeDarkBarrageFinisherDamage,
+                interval = t.SafeDarkBarrageFireInterval, riseTime = t.SafeDarkBarrageRiseTime, riseStagger = t.SafeDarkBarrageRiseStagger,
+                riseHeight = (t.SafeDarkBarrageRiseHeightMin + t.SafeDarkBarrageRiseHeightMax) * .5f, speed = t.SafeDarkBarrageSpeed,
+                flightMin = t.SafeDarkBarrageFlightMin, flightMax = t.SafeDarkBarrageFlightMax, maxConcurrent = t.SafeDarkBarrageMaxConcurrent,
             };
-            if (type.GetProperty("SafeDarkBarrageShotDamage") != null)
-            {
-                r.barrage = true;
-                r.shotFraction = Float("SafeDarkBarrageShotDamage", .15f);
-                r.finisherFraction = Float("SafeDarkBarrageFinisherDamage", .3f);
-                r.minTargets = Int("SafeDarkBarrageMinTargets", 8);
-                r.maxTargets = Int("SafeDarkBarrageMaxTargets", 40);
-                r.streamDuration = Float("SafeDarkBarrageStreamDuration", .8f);
-                r.source = "DarkBarrageScheduler(잠식 탄막, 2026-10-01): 중첩 1개당 탄 1발 H×" + r.shotFraction + ", 완충 대형탄 H×" + r.finisherFraction
-                    + ", 대상 " + r.minTargets + "~" + r.maxTargets + ", 탐색 반경 강공×" + r.searchMultiplier;
-            }
-            else r.source = "DarkGatherBurstScheduler(흡인 폭발): H×(" + r.burstBase + "+" + r.burstPerStack + "×Σ중첩)";
+            r.source = $"DarkBarrageScheduler(잠식 탄막): 중첩 차수마다 대상을 가까운 순으로 돌며 탄 1발 H×{r.shotFraction}, 완충이면 대상마다 대형탄 H×{r.finisherFraction}. "
+                + $"대상 {t.SafeDarkBarrageMinTargets}~{t.SafeDarkBarrageMaxTargets}, 탐색 반경 강공×{r.searchMultiplier}, 첫 발사 {r.FirstRelease:0.###}초 뒤 {r.interval}초 간격, 비행 {r.flightMin}~{r.flightMax}초, 동시 {r.maxConcurrent}";
             return r;
         }
     }

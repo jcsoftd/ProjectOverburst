@@ -18,16 +18,27 @@ namespace Overburst.EditorBalance.Analysis
             public float killTime = float.NaN, heavyCount;
             public float weak, heavy, derived, dot;
             public float firstHeavyKills, weakTargets, heavyTargets;
+            public readonly List<float> firstHeavyDerivedTimes = new List<float>(); // 첫 강공 뒤 파생 적중 시각(강공 확정 기준)
             public float Total => weak + heavy + derived + dot;
         }
 
         sealed class Target
         {
             public float hp, max;
-            public int stacks, derivedHits;
+            public int stacks, derivedHits, reserved; // reserved: 어둠 탄막이 예약한 잠식 중첩(첫 탄이 닿을 때 소비)
             public float expires, nextTick, interval, owner, frozenUntil;
             public int lastSequence = -1;
             public bool Alive => hp > 0f;
+        }
+
+        // 미래 시각의 피해는 즉시 깎지 않고 이 큐에 넣어, 시간이 그 시각을 지날 때 순서대로 처리한다(Codex 검토 10-01 P1-3).
+        sealed class SimEvent { public float time; public int order; public Action run; }
+
+        sealed class DarkCast
+        {
+            public readonly List<(Target x, int stacks)> entries = new List<(Target, int)>();
+            public readonly HashSet<Target> consumed = new HashSet<Target>();
+            public int remaining; public bool stop; public int tag;
         }
 
         sealed class Sim
@@ -38,8 +49,12 @@ namespace Overburst.EditorBalance.Analysis
             public WeaponItemData weapon;
             public WeaponElement element;
             public AnalysisConditions c;
+            public CombatMode mode;
             public readonly List<Target> targets = new List<Target>();
-            public float energy, holdUntil, lastDecay;
+            public readonly List<SimEvent> events = new List<SimEvent>();
+            public readonly List<DarkCast> darkCasts = new List<DarkCast>();
+            public int eventOrder;
+            public float energy, holdUntil, lastDecay, firstHeavyAt = float.NaN;
             public int radiance, sequence, alive;
             public SimOutcome o = new SimOutcome();
             public float Crit01 => Mathf.Clamp01(p.crit / 100f);
@@ -76,7 +91,7 @@ namespace Overburst.EditorBalance.Analysis
         static void ExpireAll(Sim s, float now)
         {
             foreach (var x in s.targets)
-                if (x.stacks > 0 && now >= x.expires) { x.stacks = 0; x.frozenUntil = 0f; }
+                if (x.stacks > 0 && now >= x.expires) { x.stacks = 0; x.frozenUntil = 0f; x.reserved = 0; } // 만료되면 예약도 풀린다(ExpireAndRefresh)
         }
 
         static void ApplyStatus(Sim s, Target x, float actualDirect, float now)
@@ -87,6 +102,7 @@ namespace Overburst.EditorBalance.Analysis
             if (s.element == WeaponElement.Ice && x.frozenUntil > now && x.stacks > 0) return; // 빙결 중 추가·연장 없음
             if (x.stacks == 0) { x.interval = s.t.TickInterval(s.element); x.nextTick = now + x.interval; }
             x.stacks = Mathf.Min(Mathf.Max(1, s.t.maximumStacks), x.stacks + 1);
+            if (s.element == WeaponElement.Dark && x.stacks == 1) x.reserved = 0; // ElementalStatusController.TryApply
             x.expires = now + s.t.StatusDuration(s.element);
             x.owner = actualDirect;
             if (s.element == WeaponElement.Ice && x.stacks >= Mathf.Max(1, s.t.maximumStacks))
@@ -96,17 +112,41 @@ namespace Overburst.EditorBalance.Analysis
             }
         }
 
-        // kind: 0 약공 1 강공 2 파생 3 틱
-        static float Deal(Sim s, Target x, float damage, int kind, float time)
+        // kind: 0 약공 1 강공 2 파생 3 틱. tag: 몇 번째 강공에서 나온 피해인지(0 = 강공 아님)
+        static float Deal(Sim s, Target x, float damage, int kind, float time, int tag = 0)
         {
             if (!x.Alive || damage <= 0f) return 0f;
             float applied = Mathf.Min(x.hp, damage);
             x.hp -= damage;
             if (kind == 2) s.o.derivedRaw += damage;
             if (kind == 0) s.o.weak += applied; else if (kind == 1) s.o.heavy += applied; else if (kind == 2) s.o.derived += applied; else s.o.dot += applied;
-            if (!x.Alive) s.alive--;
+            if (tag == 1 && kind == 2 && (s.mode == CombatMode.Crowd || x == s.targets[0])) s.o.firstHeavyDerivedTimes.Add(time - s.firstHeavyAt);
+            if (!x.Alive)
+            {
+                s.alive--;
+                if (tag == 1) s.o.firstHeavyKills++;
+            }
             if (s.alive == 0 && float.IsNaN(s.o.killTime)) { s.o.killTime = time; s.o.killed = true; }
             return applied;
+        }
+
+        static void Schedule(Sim s, float time, Action run) => s.events.Add(new SimEvent { time = time, order = s.eventOrder++, run = run });
+
+        // until까지 예약 이벤트와 상태 틱을 시간순으로 처리한다. 이벤트가 새 이벤트를 넣어도(연쇄) 같은 호출에서 이어 처리한다.
+        static void Flush(Sim s, float until)
+        {
+            int guard = 0;
+            while (s.events.Count > 0 && guard++ < 20000)
+            {
+                SimEvent next = null;
+                foreach (var ev in s.events)
+                    if (next == null || ev.time < next.time - 1e-6f || (Mathf.Abs(ev.time - next.time) <= 1e-6f && ev.order < next.order)) next = ev;
+                if (next.time > until + 1e-6f) break;
+                s.events.Remove(next);
+                AdvanceTicks(s, next.time);
+                next.run();
+            }
+            AdvanceTicks(s, until);
         }
 
         static void GainEnergy(Sim s, int targetsHit, float now)
@@ -198,58 +238,73 @@ namespace Overburst.EditorBalance.Analysis
                 s.o.heavyCritical = CombatBalanceFormulas.RoundedHitDamage(slam, true, s.p.critDamage);
             }
             s.o.heavyCount++;
+            int tag = Mathf.RoundToInt(s.o.heavyCount);
+            if (tag == 1) s.firstHeavyAt = time;
             int m = Mathf.Max(1, targetsInRadius(slamRadius));
             var hitList = new List<Target>();
             foreach (var x in s.targets) { if (hitList.Count >= m) break; if (x.Alive) hitList.Add(x); }
             s.o.heavyTargets = Mathf.Max(s.o.heavyTargets, hitList.Count);
-            int aliveBefore = s.Alive;
             // 방출 스냅샷은 피해 직전에 대상 상태를 읽는다(TryCaptureTarget).
             var snap = hitList.Select(x => (x, stacks: x.stacks, frozen: s.element == WeaponElement.Ice && x.frozenUntil > time && x.stacks > 0)).ToList();
-            // 어둠 탄막은 강공 피해 전에 잠식 적을 모은다(DarkBarrageScheduler.Submit 주석). 강공으로 죽은 적 몫의 탄도 남는다.
-            List<(Target x, int stacks)> darkCollected = null;
-            if (s.element == WeaponElement.Dark)
-            {
-                int reach = Mathf.Max(1, targetsInRadius(radius * ReadDarkRule(s.t).searchMultiplier));
-                darkCollected = s.targets.Take(reach).Where(v => v.Alive && v.stacks > 0).Select(v => (v, v.stacks)).ToList();
-            }
-            foreach (var (x, _, _) in snap) Deal(s, x, direct, 1, time + .0001f);
+            // 어둠 탄막은 강공 피해 전에 잠식 적을 모으고 예약한다(DarkBarrageScheduler.Submit → Collect). 강공으로 죽은 적 몫의 탄도 남는다.
+            DarkCast darkCast = null;
+            if (s.element == WeaponElement.Dark && e > 0f) darkCast = CollectDark(s, radius, e, targetsInRadius, tag);
+            foreach (var (x, _, _) in snap) Deal(s, x, direct, 1, time, tag);
             float derivedKind(float d) => Outgoing(s, d, PlayerAttackKind.Elemental);
             // 첫 대상이 이 강공에서 받게 될 파생 피해(기대 피해로 먼저 죽었어도 실제로는 이어서 맞는 몫). 처치 확률 판정용.
             var primary = s.targets[0];
             s.o.potentialDerived = 0f;
             if (s.element == WeaponElement.Ice)
             {
+                // 쇄빙: 빙결 중첩은 첫 폭발에서 소비하고, 피해는 중심에서 먼 고리일수록 늦게 닿는다(ShatterWaveScheduler.ResolveDelay).
                 float shatter = derivedKind(CombatBalanceFormulas.IceShatterDamage(blast, Mathf.Max(0f, s.t.shatterBlastFraction)));
+                float delay = ShatterWaveScheduler.ResolveDelay(Vector3.zero, new Vector3(s.mode == CombatMode.Single ? .8f : radius * .6f, 0f, 0f), Mathf.Max(.1f, radius));
                 foreach (var (x, _, frozen) in snap)
                 {
-                    if (frozen && x == primary) s.o.potentialDerived += shatter;
-                    if (frozen) { Deal(s, x, shatter, 2, time + .1f); x.stacks = 0; x.frozenUntil = 0f; }
+                    if (!frozen) continue;
+                    if (x == primary) s.o.potentialDerived += shatter;
+                    x.stacks = 0; x.frozenUntil = 0f;
+                    var target = x;
+                    Schedule(s, time + delay, () => Deal(s, target, shatter, 2, time + delay, tag));
                 }
             }
-            else if (s.element == WeaponElement.Fire) FireChain(s, blast, snap.Where(v => v.stacks > 0).Select(v => (v.x, v.stacks)).ToList(), time, local);
-            else if (s.element == WeaponElement.Electric) LightningChain(s, blast, e, snap.Where(v => v.stacks > 0).Select(v => (v.x, v.stacks)).ToList(), time, local);
-            else if (s.element == WeaponElement.Dark) DarkFollowUp(s, blast, e, radius, time, targetsInRadius, darkCollected);
+            else if (s.element == WeaponElement.Fire) FireChain(s, blast, snap.Where(v => v.stacks > 0).Select(v => (v.x, v.stacks)).ToList(), time, local, tag);
+            else if (s.element == WeaponElement.Electric) LightningChain(s, blast, e, snap.Where(v => v.stacks > 0).Select(v => (v.x, v.stacks)).ToList(), time, local, tag);
+            else if (darkCast != null) DarkBarrage(s, darkCast, blast, e, radius, time, targetsInRadius);
             else if (s.element == WeaponElement.Light)
                 for (int hit = firstHit + 1; hit <= 2; hit++)
                 {
                     float d = derivedKind(blast * CombatBalanceFormulas.LightTripleHitScale(s.t, hit, radianceAtCommit, overcharge));
                     s.o.potentialDerived += d;
-                    int n = Mathf.Max(1, targetsInRadius(radius * s.t.LightTripleRadiusScale(hit)));
+                    float hitRadius = radius * s.t.LightTripleRadiusScale(hit);
                     float at = time + LightTripleImpactScheduler.ResolveDelay(hit, firstHit);
-                    int k = 0;
-                    foreach (var x in s.targets) { if (k >= n) break; if (!x.Alive) continue; Deal(s, x, d, 2, at); k++; }
+                    // 대상은 떨어지는 순간 반경 안에 살아 있는 적으로 다시 고른다(LightTripleImpactScheduler.Dispatch).
+                    Schedule(s, at, () =>
+                    {
+                        int n = Mathf.Max(1, targetsInRadius(hitRadius)), k = 0;
+                        foreach (var x in s.targets) { if (k >= n) break; if (!x.Alive) continue; Deal(s, x, d, 2, at, tag); k++; }
+                    });
                 }
-            if (s.o.heavyCount == 1f) s.o.firstHeavyKills = aliveBefore - s.Alive;
         }
 
-        static void FireChain(Sim s, float blast, List<(Target x, int stacks)> roots, float time, Func<float, int> inRadius)
+        // 불 연쇄(ElementDischargeBatch.AdvanceDelayed): 거리순 원점을 최대 8묶음으로 나눠 0.2초 + 묶음×0.06초에 터뜨리고,
+        // 불붙은 이웃은 점화 순간 중첩을 소비해 0.2초 뒤 다시 터진다. 대상 선택·생존 판정은 터지는 시각에 한다.
+        static void FireChain(Sim s, float blast, List<(Target x, int stacks)> roots, float time, Func<float, int> inRadius, int tag)
         {
-            var queue = new Queue<(Target, int, float)>();
-            foreach (var r in roots) { r.x.stacks = 0; queue.Enqueue((r.x, r.stacks, time + ElementDischargeBatch.FirePropagationDelay)); }
-            int guard = 0;
-            while (queue.Count > 0 && guard++ < 512)
+            foreach (var x in s.targets) x.derivedHits = 0; // 타격 수 한도(2)는 방출 한 번마다 새로 센다(Capture → Clear)
+            int groups = Mathf.Min(8, roots.Count);
+            for (int r = 0; r < roots.Count; r++)
             {
-                var (origin, stack, at) = queue.Dequeue();
+                roots[r].x.stacks = 0;
+                float at = time + ElementDischargeBatch.FirePropagationDelay + r * groups / Mathf.Max(1, roots.Count) * ElementDischargeBatch.OriginGroupDelay;
+                ScheduleFire(s, blast, roots[r].x, roots[r].stacks, at, inRadius, tag);
+            }
+        }
+
+        static void ScheduleFire(Sim s, float blast, Target origin, int stack, float at, Func<float, int> inRadius, int tag)
+        {
+            Schedule(s, at, () =>
+            {
                 int s0 = Mathf.Clamp(stack, 1, 5);
                 float d = Outgoing(s, CombatBalanceFormulas.FireChainDamage(blast, s0), PlayerAttackKind.Elemental);
                 int neighbours = Mathf.Max(0, inRadius(CombatBalanceFormulas.FireChainRadius(s0)) - 1);
@@ -260,68 +315,143 @@ namespace Overburst.EditorBalance.Analysis
                     if (!x.Alive || x.derivedHits >= 2) continue;
                     found++;
                     int burning = x.stacks;
-                    Deal(s, x, d, 2, at); x.derivedHits++;
-                    if (burning > 0 && x.Alive) { x.stacks = 0; queue.Enqueue((x, burning, at + ElementDischargeBatch.FirePropagationDelay)); }
+                    Deal(s, x, d, 2, at, tag); x.derivedHits++;
+                    if (burning > 0 && x.Alive) { x.stacks = 0; ScheduleFire(s, blast, x, burning, at + ElementDischargeBatch.FirePropagationDelay, inRadius, tag); }
                 }
-            }
+            });
         }
 
-        static void LightningChain(Sim s, float blast, float e, List<(Target x, int stacks)> roots, float time, Func<float, int> inRadius)
+        // 번개 연쇄: 원점마다 0.08초 + 묶음×0.06초에 첫 도약, 이후 0.08초마다 한 번. 다음 대상은 도약하는 순간 살아 있는 적 중에서 고른다.
+        static void LightningChain(Sim s, float blast, float e, List<(Target x, int stacks)> roots, float time, Func<float, int> inRadius, int tag)
         {
+            foreach (var x in s.targets) x.derivedHits = 0;
             bool reachable = inRadius(CombatBalanceFormulas.LightningLinkRadius(e)) > 1;
-            foreach (var (origin, stacks) in roots)
+            int groups = Mathf.Min(8, roots.Count);
+            for (int r = 0; r < roots.Count; r++)
             {
+                var (origin, stacks) = roots[r];
                 origin.stacks = 0;
                 if (!reachable) continue;
-                int hops = CombatBalanceFormulas.LightningMaxHops(stacks, e);
-                int start = s.targets.IndexOf(origin);
-                var visited = new HashSet<Target> { origin };
-                for (int hop = 0, k = 1; hop < hops && k < s.targets.Count * 2; k++)
-                {
-                    var x = s.targets[(start + k) % s.targets.Count];
-                    if (!x.Alive || x.derivedHits >= 2 || visited.Contains(x)) continue;
-                    visited.Add(x);
-                    float d = Outgoing(s, CombatBalanceFormulas.LightningHopDamage(s.t, blast, stacks, hop), PlayerAttackKind.Elemental);
-                    Deal(s, x, d, 2, time + ElementDischargeBatch.LightningHopDelay * (hop + 1)); x.derivedHits++;
-                    hop++;
-                }
+                float at = time + ElementDischargeBatch.LightningHopDelay + r * groups / Mathf.Max(1, roots.Count) * ElementDischargeBatch.OriginGroupDelay;
+                ScheduleHop(s, blast, e, stacks, new List<Target> { origin }, 0, at, tag);
             }
         }
 
-        static void DarkFollowUp(Sim s, float blast, float e, float radius, float time, Func<float, int> inRadius, List<(Target x, int stacks)> collected)
+        static void ScheduleHop(Sim s, float blast, float e, int stacks, List<Target> path, int hop, float at, int tag)
+        {
+            Schedule(s, at, () =>
+            {
+                int maxHops = CombatBalanceFormulas.LightningMaxHops(stacks, e);
+                if (hop >= maxHops) return;
+                int start = s.targets.IndexOf(path[path.Count - 1]);
+                Target next = null;
+                for (int k = 1; k < s.targets.Count; k++)
+                {
+                    var x = s.targets[(start + k) % s.targets.Count];
+                    if (x.Alive && x.derivedHits < 2 && !path.Contains(x)) { next = x; break; }
+                }
+                if (next == null) return;
+                float d = Outgoing(s, CombatBalanceFormulas.LightningHopDamage(s.t, blast, stacks, hop), PlayerAttackKind.Elemental);
+                Deal(s, next, d, 2, at, tag); next.derivedHits++;
+                path.Add(next);
+                if (hop + 1 < maxHops) ScheduleHop(s, blast, e, stacks, path, hop + 1, at + ElementDischargeBatch.LightningHopDelay, tag);
+            });
+        }
+
+        // DarkBarrageScheduler.Collect: 강공 피해 전에 탐색 반경 안 잠식 적을 가까운 순으로 대상 한도까지 모으고 중첩을 예약한다.
+        static DarkCast CollectDark(Sim s, float radius, float e, Func<float, int> inRadius, int tag)
         {
             DarkRule rule = ReadDarkRule(s.t);
-            int reach = Mathf.Max(1, inRadius(radius * rule.searchMultiplier));
-            if (rule.barrage)
+            int reach = Mathf.Max(1, inRadius(radius * rule.searchMultiplier)), limit = rule.TargetLimit(e), seen = 0;
+            var cast = new DarkCast { tag = tag };
+            foreach (var x in s.targets)
             {
-                // DarkBarrageScheduler: 강공 피해 전에 모은 잠식 적(가까운 순, 대상 한도)마다 중첩 수만큼 탄, 완충이면 대형탄 1발.
-                // 맞힐 적이 이미 죽었으면 탐색 범위 안 다른 적에게 돌린다(Retarget).
-                var entries = collected.Take(rule.TargetLimit(e)).ToList();
-                float shot = Outgoing(s, blast * rule.shotFraction, PlayerAttackKind.Elemental);
-                float finisher = Outgoing(s, blast * rule.finisherFraction, PlayerAttackKind.Elemental);
-                float at = time + .63f; // 다른 작업 Play 측정: 첫 명중이 착지 후 약 0.63초(05 10-01 절)
-                var shots = new List<(Target x, float damage)>();
-                foreach (var (x, n) in entries) { x.stacks = 0; for (int i = 0; i < n; i++) shots.Add((x, shot)); }
-                if (e >= .999f) foreach (var (x, _) in entries) shots.Add((x, finisher));
-                foreach (var (x, n) in entries) if (x == s.targets[0]) s.o.potentialDerived += shot * n + (e >= .999f ? finisher : 0f);
-                foreach (var (x, damage) in shots)
-                {
-                    var target = x.Alive ? x : s.targets.Take(reach).FirstOrDefault(v => v.Alive);
-                    if (target != null) Deal(s, target, damage, 2, at);
-                }
+                if (seen >= reach || cast.entries.Count >= limit) break;
+                if (!x.Alive) continue;
+                seen++;
+                int available = x.stacks - x.reserved;
+                if (available <= 0) continue;
+                x.reserved += available;
+                cast.entries.Add((x, available));
             }
-            else
+            return cast;
+        }
+
+        // 발사: 차수 k마다 중첩이 k 이상인 대상을 가까운 순으로 한 발씩, 완충이면 대상마다 대형탄 한 바퀴 더(BuildShots).
+        // 첫 발사 FirstRelease 뒤 interval마다 한 발(PlanShots). 발사·도착 순간 대상이 죽었으면 이 탄막의 다른 대상 → 반경 안 다른 적 순으로 다시 고른다.
+        // 대상의 예약 중첩은 그 대상에 첫 탄이 닿을 때 소비된다. 동시 발사 탄막이 한도를 넘으면 가장 오래된 탄막의 남은 탄은 쏘지 않는다.
+        static void DarkBarrage(Sim s, DarkCast cast, float blast, float e, float radius, float time, Func<float, int> inRadius)
+        {
+            DarkRule rule = ReadDarkRule(s.t);
+            int launching = s.darkCasts.Count(c => !c.stop && c.remaining > 0);
+            foreach (var old in s.darkCasts)
             {
-                int stackSum = collected.Sum(v => v.stacks);
-                float d = Outgoing(s, blast * (rule.burstBase + rule.burstPerStack * Mathf.Min(stackSum, rule.burstCap)), PlayerAttackKind.Elemental);
-                foreach (var x in s.targets.Where(v => v.Alive).Take(reach)) { x.stacks = 0; Deal(s, x, d, 2, time + rule.burstTime); }
+                if (launching < rule.maxConcurrent) break;
+                if (old.stop || old.remaining <= 0) continue;
+                old.stop = true; launching--;
+            }
+            float shot = Outgoing(s, blast * rule.shotFraction, PlayerAttackKind.Elemental);
+            float finisher = Outgoing(s, blast * rule.finisherFraction, PlayerAttackKind.Elemental);
+            var shots = new List<(int entry, bool finisher)>();
+            int maxStacks = cast.entries.Count > 0 ? cast.entries.Max(v => v.stacks) : 0;
+            for (int k = 1; k <= maxStacks; k++)
+                for (int i = 0; i < cast.entries.Count; i++) if (cast.entries[i].stacks >= k) shots.Add((i, false));
+            if (e >= .999f) for (int i = 0; i < cast.entries.Count; i++) shots.Add((i, true));
+            foreach (var (x, n) in cast.entries) if (x == s.targets[0]) s.o.potentialDerived += shot * n + (e >= .999f ? finisher : 0f);
+            cast.remaining = shots.Count;
+            if (shots.Count == 0) return;
+            s.darkCasts.Add(cast);
+            float horizontal = s.mode == CombatMode.Single ? 1.2f : radius * rule.searchMultiplier * .5f;
+            int Reach() => Mathf.Max(1, inRadius(radius * rule.searchMultiplier));
+            Target Retarget()
+            {
+                foreach (var (x, _) in cast.entries) if (x.Alive) return x;
+                int reach = Reach(), seen = 0;
+                foreach (var x in s.targets) { if (seen >= reach) break; if (!x.Alive) continue; return x; }
+                return null;
+            }
+            void Done()
+            {
+                if (--cast.remaining > 0) return;
+                s.darkCasts.Remove(cast);
+                foreach (var (x, n) in cast.entries) if (!cast.consumed.Contains(x)) x.reserved = Mathf.Max(0, x.reserved - n); // 닿지 못한 대상은 예약을 돌려받는다
+            }
+            void Arrive(Target aim, float damage, float at)
+            {
+                Schedule(s, at, () =>
+                {
+                    var target = aim.Alive ? aim : Retarget();
+                    if (target == null) { Done(); return; }
+                    if (target != aim) { Arrive(target, damage, at + rule.Flight(horizontal)); return; } // 날아가는 중 재표적: 새 경로로 다시 난다
+                    int index = cast.entries.FindIndex(v => v.x == target);
+                    if (index >= 0 && cast.consumed.Add(target))
+                    {
+                        int n = cast.entries[index].stacks;
+                        target.stacks = Mathf.Max(0, target.stacks - Mathf.Min(n, target.reserved));
+                        target.reserved = Mathf.Max(0, target.reserved - n);
+                    }
+                    Deal(s, target, damage, 2, at, cast.tag);
+                    Done();
+                });
+            }
+            for (int i = 0; i < shots.Count; i++)
+            {
+                var (entry, big) = shots[i];
+                float release = time + rule.FirstRelease + i * rule.interval;
+                Schedule(s, release, () =>
+                {
+                    if (cast.stop) { Done(); return; }
+                    var aim = cast.entries[entry].x.Alive ? cast.entries[entry].x : Retarget();
+                    if (aim == null) { Done(); return; }
+                    Arrive(aim, big ? finisher : shot, release + rule.Flight(horizontal));
+                });
             }
         }
 
         // 단일·군집 공통 루프. heavyEnabled=false면 약공만 친다.
         static SimOutcome Run(PlayerBuild p, EnemyView enemy, WeaponItemData weapon, AnalysisConditions c, CombatMode mode, bool heavyEnabled)
         {
-            var s = new Sim { p = p, e = enemy, t = OverburstElementTuning.Current, weapon = weapon, element = p.element, c = c };
+            var s = new Sim { p = p, e = enemy, t = OverburstElementTuning.Current, weapon = weapon, element = p.element, c = c, mode = mode };
             int count = mode == CombatMode.Single ? 1 : Mathf.Max(2, c.crowdCount);
             for (int i = 0; i < count; i++) s.targets.Add(new Target { hp = enemy.maxHealth, max = enemy.maxHealth });
             s.alive = count;
@@ -356,7 +486,7 @@ namespace Overburst.EditorBalance.Analysis
                 foreach (var ph in timing.phases)
                 {
                     float at = clock + ph.time;
-                    AdvanceTicks(s, at);
+                    Flush(s, at);
                     if (s.Alive == 0) break;
                     int hit = WeakPhase(s, ph.coefficient, at, WeakTargets());
                     weakPhases++; weakTargetSum += hit;
@@ -379,14 +509,15 @@ namespace Overburst.EditorBalance.Analysis
                 if (readyThisStep)
                 {
                     float heavyStart = Mathf.Max(readyAt, clock + timing.cancelAt);
-                    AdvanceTicks(s, heavyStart + heavyTiming.impactAt);
+                    Flush(s, heavyStart + heavyTiming.impactAt);
                     if (s.Alive == 0) break;
                     bool firstHeavy = s.o.heavyCount == 0f;
                     float hpBefore = s.targets[0].hp;
                     Heavy(s, heavyTiming, heavyStart + heavyTiming.impactAt, InRadius, Local);
                     if (firstHeavy && mode == CombatMode.Single)
                     {
-                        s.o.heavyKilled = !s.targets[0].Alive;
+                        // 파생 피해는 이제 예약 이벤트라 강공 직후 HP로는 판정할 수 없다. 첫 폭발 기대 피해 + 이 대상이 받을 후속 몫으로 본다.
+                        s.o.heavyKilled = hpBefore <= s.o.heavyDirect + s.o.potentialDerived + 1e-3f;
                         // 첫 강공 처치 확률: 비치명으로도 죽으면 1, 치명일 때만 죽으면 치명 확률, 치명으로도 못 죽이면 0.
                         // 파생은 기대 피해로 먼저 쓰러졌는지와 무관하게 이 대상이 받을 몫(potentialDerived)으로 본다.
                         float derived = s.o.potentialDerived;
@@ -403,7 +534,8 @@ namespace Overburst.EditorBalance.Analysis
                 step = (step + 1) % stepCount;
                 continuation = true;
             }
-            AdvanceTicks(s, clock);
+            // 시뮬레이션이 끝나도 날아가는 탄·연쇄는 마저 닿는다(예약 이벤트가 남지 않을 때까지, 최대 시간 안에서).
+            Flush(s, Mathf.Max(clock, Mathf.Min(c.maxSimulationSeconds, clock + 5f)));
             s.o.weakTargets = weakPhases > 0 ? weakTargetSum / weakPhases : 0f;
             // 약공 1판정·4타 1순환 기준값
             float bd = p.attack * CombatBalanceFormulas.AttackDamageMultiplier(weapon, HeavyDefinition(weapon), false, false);

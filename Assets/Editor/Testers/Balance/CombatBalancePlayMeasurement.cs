@@ -34,18 +34,54 @@ namespace Overburst.EditorBalance.Analysis
             EditorApplication.update += WatchSchedule;
         }
 
-        // 공유 Editor용 예약: Play·컴파일·자산 갱신이 idleSeconds 동안 없을 때 메인 스레드에서 시작한다.
-        // 다른 작업의 Play와 겹치지 않게 하려는 장치이며, 60분이 지나면 예약을 스스로 거둔다.
-        [MenuItem("OVERBURST/Balance/전투 분석 Play 측정 예약(Editor가 비면 시작)")]
-        public static void ScheduleFromMenu() => Schedule(20f);
-
-        public static void Schedule(float idleSeconds)
+        // 공유 Editor용 예약(Codex 검토 10-01 P2-7): Editor가 비었다는 것만으로는 소유권이 아니다.
+        // 예약은 소유권을 가진 작업이 이름을 밝혀 거는 임대(기본 15분)이고, 시작 직전에 임대가 살아 있는지 다시 확인한다.
+        // 만료·취소되면 시작하지 않는다. 다른 작업의 소유권을 알아내는 장치는 없으므로, 임대는 예약자의 선언이다.
+        [MenuItem("OVERBURST/Balance/전투 분석 Play 측정 예약(소유권 있을 때만)")]
+        public static void ScheduleFromMenu()
         {
+            if (!EditorUtility.DisplayDialog("Play 측정 예약",
+                    "이 작업이 공유 Editor 소유권을 가진 경우에만 예약하세요.\n\nEditor가 20초 비면 시작합니다. 예약은 15분 뒤 만료되고, 시작 직전에 예약자와 만료를 다시 확인합니다. '예약 취소' 메뉴로 거둘 수 있습니다.",
+                    "소유권 있음, 예약", "취소")) return;
+            Schedule(20f, "메뉴 " + Environment.UserName, 15f);
+        }
+
+        [MenuItem("OVERBURST/Balance/전투 분석 Play 측정 예약 취소")]
+        public static void CancelSchedule()
+        {
+            bool had = SessionState.GetFloat(Key + ".pending", 0f) > 0f;
+            ClearLease();
+            if (had) SessionState.SetString(Key + ".status", "NOT_RUN 예약 취소");
+            Debug.Log("[전투 분석] Play 측정 예약 " + (had ? "취소" : "없음"));
+        }
+
+        public static string LeaseOwner => SessionState.GetString(Key + ".leaseOwner", "");
+
+        public static void Schedule(float idleSeconds, string owner, float leaseMinutes = 15f)
+        {
+            if (string.IsNullOrWhiteSpace(owner)) throw new ArgumentException("예약자(소유권을 가진 작업 이름)가 필요합니다.");
+            double now = EditorApplication.timeSinceStartup;
             SessionState.SetFloat(Key + ".pending", Mathf.Max(5f, idleSeconds));
-            SessionState.SetFloat(Key + ".pendingSince", (float)EditorApplication.timeSinceStartup);
-            SessionState.SetString(Key + ".status", "SCHEDULED");
-            lastBusy = EditorApplication.timeSinceStartup;
-            Debug.Log("[전투 분석] Play 측정 예약: Editor가 " + idleSeconds + "초 비면 시작");
+            SessionState.SetString(Key + ".leaseOwner", owner.Trim());
+            SessionState.SetFloat(Key + ".leaseUntil", (float)(now + Mathf.Clamp(leaseMinutes, 1f, 60f) * 60f));
+            SessionState.SetString(Key + ".status", "SCHEDULED " + owner.Trim());
+            lastBusy = now;
+            Debug.Log($"[전투 분석] Play 측정 예약: 예약자 {owner.Trim()}, Editor가 {idleSeconds}초 비면 시작, {leaseMinutes}분 뒤 만료");
+        }
+
+        static void ClearLease()
+        {
+            SessionState.EraseFloat(Key + ".pending");
+            SessionState.EraseString(Key + ".leaseOwner");
+            SessionState.EraseFloat(Key + ".leaseUntil");
+        }
+
+        static bool LeaseValid(double now, out string reason)
+        {
+            reason = null;
+            if (string.IsNullOrWhiteSpace(LeaseOwner)) reason = "예약자 없음";
+            else if (now > SessionState.GetFloat(Key + ".leaseUntil", 0f)) reason = "소유권 임대 만료";
+            return reason == null;
         }
 
         static void WatchSchedule()
@@ -53,39 +89,61 @@ namespace Overburst.EditorBalance.Analysis
             float idle = SessionState.GetFloat(Key + ".pending", 0f);
             if (idle <= 0f) return;
             double now = EditorApplication.timeSinceStartup;
-            if (now - SessionState.GetFloat(Key + ".pendingSince", (float)now) > 3600)
+            if (!LeaseValid(now, out string reason))
             {
-                SessionState.EraseFloat(Key + ".pending"); SessionState.SetString(Key + ".status", "BLOCKED 예약 60분 초과");
+                ClearLease(); SessionState.SetString(Key + ".status", "BLOCKED " + reason);
+                Debug.LogWarning("[전투 분석] 예약 측정을 시작하지 않음: " + reason);
                 return;
             }
             bool busy = EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
                         || SessionState.GetBool(Key, false);
             if (busy) { lastBusy = now; return; }
             if (now - lastBusy < idle) return;
-            SessionState.EraseFloat(Key + ".pending");
-            try { Run(); }
+            // 시작 직전 재확인: 대기 중에 만료·취소됐으면 시작하지 않는다.
+            if (!LeaseValid(EditorApplication.timeSinceStartup, out reason))
+            {
+                ClearLease(); SessionState.SetString(Key + ".status", "BLOCKED " + reason);
+                return;
+            }
+            string owner = LeaseOwner;
+            ClearLease();
+            try { Run(); Debug.Log("[전투 분석] 예약 측정 시작, 예약자 " + owner); }
             catch (Exception e) { SessionState.SetString(Key + ".status", "BLOCKED " + e.Message); Debug.LogWarning("[전투 분석] 예약 측정 시작 실패: " + e.Message); }
         }
 
+        // 계획이 바뀌면 올린다. 이어 하기·병합은 같은 계획 버전·같은 지문끼리만 한다.
+        public const string PlanVersion = "2026-10-01b";
+
         public sealed class Plan
         {
-            public string key; public int level; public ItemGrade grade; public GearPreset preset; public WeaponElement element;
+            public string key, role = "검증"; public int level; public ItemGrade grade; public GearPreset preset; public WeaponElement element;
             public EnemyClass enemy; public bool crowd; public int crowdCount;
+            public int seedOffset; public float spreadScale = 1f, angleOffset; // 검증 배치: 다른 시드·더 넓은 배치·회전
         }
+
+        static readonly WeaponElement[] Elements = { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light };
 
         public static List<Plan> DefaultPlan()
         {
             var list = new List<Plan>();
             foreach (int level in new[] { 5, 55, 95 })
-                foreach (WeaponElement e in new[] { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light })
+                foreach (WeaponElement e in Elements)
                     list.Add(new Plan { level = level, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = e, enemy = EnemyClass.Medium });
             list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = WeaponElement.Fire, enemy = EnemyClass.Small });
             list.Add(new Plan { level = 55, grade = ItemGrade.Epic, preset = GearPreset.Offense, element = WeaponElement.Electric, enemy = EnemyClass.Elite });
-            list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = WeaponElement.Fire, enemy = EnemyClass.Small, crowd = true, crowdCount = 20 });
-            list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = WeaponElement.Electric, enemy = EnemyClass.Small, crowd = true, crowdCount = 20 });
-            list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = WeaponElement.Ice, enemy = EnemyClass.Small, crowd = true, crowdCount = 20 });
-            list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = WeaponElement.Dark, enemy = EnemyClass.Small, crowd = true, crowdCount = 20 });
-            foreach (var p in list) p.key = $"Lv{p.level} {AnalysisLabels.Grade(p.grade)} {AnalysisLabels.Preset(p.preset)} {AnalysisLabels.Element(p.element)} {AnalysisLabels.Enemy(p.enemy)}{(p.crowd ? " 군집" + p.crowdCount : "")}";
+            // 일반 품질 정예 5원소(모델의 정예 단일 원소 편차 R04를 Play로 대조)
+            foreach (WeaponElement e in Elements)
+                list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = e, enemy = EnemyClass.Elite });
+            // 보정: 군집 입력(약공 4·강공 8마리·밀착 1.4/㎡)을 맞출 때 쓴 조합. 검증 근거로 쓰지 않는다.
+            foreach (WeaponElement e in new[] { WeaponElement.Fire, WeaponElement.Electric, WeaponElement.Ice, WeaponElement.Dark })
+                list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = e, enemy = EnemyClass.Small, crowd = true, crowdCount = 20, role = "보정" });
+            // 검증: 다른 시드·더 넓고 회전한 배치의 5원소 군집(보정에 쓰지 않은 데이터)
+            foreach (WeaponElement e in Elements)
+                list.Add(new Plan { level = 55, grade = ItemGrade.Common, preset = GearPreset.Rolled, element = e, enemy = EnemyClass.Small, crowd = true, crowdCount = 20,
+                    seedOffset = 7919, spreadScale = 1.25f, angleOffset = 1.1f });
+            foreach (var p in list)
+                p.key = $"Lv{p.level} {AnalysisLabels.Grade(p.grade)} {AnalysisLabels.Preset(p.preset)} {AnalysisLabels.Element(p.element)} {AnalysisLabels.Enemy(p.enemy)}"
+                        + (p.crowd ? " 군집" + p.crowdCount + (p.role == "보정" ? "" : " 검증배치") : "");
             return list;
         }
 
@@ -101,12 +159,51 @@ namespace Overburst.EditorBalance.Analysis
             output = output ?? Path.Combine(CombatBalanceAnalysisReport.MeasurementRoot, DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture));
             Directory.CreateDirectory(output);
             SessionState.SetString(Key + ".output", output);
+            SessionState.SetString(Key + ".fingerprint", Fingerprint());
             SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
             Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
             SessionState.SetBool(Key, true);
             SessionState.SetString(Key + ".status", "RUNNING");
             EditorApplication.EnterPlaymode();
             return output;
+        }
+
+        public static string CurrentFingerprint => SessionState.GetString(Key + ".fingerprint", "");
+
+        // 실행 지문: 계획 버전·계획 키·기본 조건, 전투 관련 런타임·도구 소스, 원소 튜닝·무기·대표 몬스터 자산의 SHA256.
+        // 지문이 다르면 옛 결과를 이어 하거나 병합하지 않는다(다른 작업이 중간에 규칙을 바꾼 경우를 막는다).
+        public static string Fingerprint()
+        {
+            var parts = new List<string> { PlanVersion, string.Join("|", DefaultPlan().Select(p => p.key)), CombatBalanceAnalysisReport.ToJson(new AnalysisConditions()) };
+            string project = Directory.GetParent(Application.dataPath).FullName;
+            var files = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var dir in new[] { "Assets/Editor/Testers/Balance", "Assets/ProjectOverburst/02_Shared/Combat", "Assets/ProjectOverburst/03_Features/Weapons/Runtime",
+                         "Assets/ProjectOverburst/03_Features/Player/Runtime", "Assets/ProjectOverburst/03_Features/Enemies/Runtime" })
+            {
+                string full = Path.Combine(project, dir);
+                if (Directory.Exists(full))
+                    foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.AllDirectories)) files.Add(f.Substring(project.Length + 1).Replace('\\', '/'));
+            }
+            var assets = new List<string>();
+            if (OverburstElementTuning.Current != null) assets.Add(AssetDatabase.GetAssetPath(OverburstElementTuning.Current));
+            assets.Add(new AnalysisConditions().weaponPath);
+            var catalog = CombatBalanceAnalysisModel.Catalog.Load();
+            assets.AddRange(catalog.representative.Values.Select(AssetDatabase.GetAssetPath));
+            foreach (var a in assets.Where(a => !string.IsNullOrEmpty(a)).ToList())
+                foreach (var dep in AssetDatabase.GetDependencies(a, true))
+                    if (dep.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) files.Add(dep);
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                var sb = new StringBuilder();
+                foreach (var p in parts) sb.Append(p).Append('\n');
+                foreach (var f in files)
+                {
+                    string path = Path.Combine(project, f);
+                    if (!File.Exists(path)) continue;
+                    sb.Append(f).Append(':').Append(BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "")).Append('\n');
+                }
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()))).Replace("-", "").ToLowerInvariant();
+            }
         }
 
         static void State(PlayModeStateChange state)
@@ -118,7 +215,8 @@ namespace Overburst.EditorBalance.Analysis
                 SessionState.SetInt(Key + ".fps", Application.targetFrameRate);
                 Application.runInBackground = true; Application.targetFrameRate = 60;
                 report = new MeasurementReport { status = "RUNNING", startedAt = Now(), unityVersion = Application.unityVersion,
-                    scope = "HideoutScene 독립 투기장, 제품 몬스터 정의·실제 입력 이벤트(가상 키보드·마우스)·실제 무기 충돌. 대상 AI 끔(군집은 AI 켬). 플레이어 사망 방지만 켬. 물약·지도 버프 없음." };
+                    planVersion = PlanVersion, fingerprint = CurrentFingerprint,
+                    scope = "HideoutScene 독립 투기장, 제품 몬스터 정의·실제 입력 이벤트(가상 키보드·마우스)·실제 무기 충돌. 대상 AI 끔(군집은 AI 켬). 플레이어 사망 방지 켬. 받는 피해는 TakeDamage 직접 호출(몬스터 공격 실행은 미검증). 물약·지도 버프 없음." };
                 frame = -1; deadline = EditorApplication.timeSinceStartup + 1200;
                 work = Measure(); Application.logMessageReceived += Log; EditorApplication.update += Tick;
             }
@@ -156,9 +254,10 @@ namespace Overburst.EditorBalance.Analysis
             {
                 if (EditorApplication.timeSinceStartup > deadline) throw new TimeoutException("측정 시간 초과");
                 if (work.MoveNext()) return;
-                bool anyFail = report.scenarios.Any(s => s.status == "FAIL");
-                bool anyBlocked = report.scenarios.Any(s => s.status == "BLOCKED");
-                Finish(report.errors.Count > 0 || anyFail ? "FAIL" : anyBlocked ? "PARTIAL" : "PASS");
+                foreach (var s in report.scenarios) s.status = CombatBalanceMeasurementStatus.OfScenario(s);
+                var keys = DefaultPlan().Select(p => p.key).ToList();
+                // 이어 한 회차는 이번에 잰 시나리오만 담으므로 개수 비교는 병합 단계에서 한다.
+                Finish(CombatBalanceMeasurementStatus.OfRun(report.scenarios, report.errors, 0, keys));
             }
             catch (Exception e) { report.errors.Add(e.ToString()); Finish("FAIL"); }
         }
@@ -253,7 +352,7 @@ namespace Overburst.EditorBalance.Analysis
                 foreach (var plan in DefaultPlan())
                 {
                     if (done.Contains(plan.key)) continue; // 앞선 측정에서 끝난 시나리오는 건너뛴다(중단 뒤 이어 하기).
-                    var s = new MeasurementScenario { key = plan.key, level = plan.level, grade = plan.grade, preset = plan.preset, element = plan.element, enemyClass = plan.enemy };
+                    var s = new MeasurementScenario { key = plan.key, role = plan.role, level = plan.level, grade = plan.grade, preset = plan.preset, element = plan.element, enemyClass = plan.enemy };
                     report.scenarios.Add(s);
                     IEnumerator run = plan.crowd ? Crowd(plan, s, catalog, conditions, weapon, player, actor, melee, input, spawn, origin, leased)
                         : Single(plan, s, catalog, conditions, weapon, player, actor, melee, input, spawn, origin, leased);
@@ -280,13 +379,20 @@ namespace Overburst.EditorBalance.Analysis
             }
         }
 
-        static int SeedFor(Plan p, AnalysisConditions c) => c.seedBase + (p.level - 1) / 10 * 1009 + (int)p.grade * 97;
+        static int SeedFor(Plan p, AnalysisConditions c) => c.seedBase + (p.level - 1) / 10 * 1009 + (int)p.grade * 97 + p.seedOffset;
 
         static HashSet<string> DoneKeys()
         {
-            // 직전 측정이 중단됐을 때만 끝난 시나리오를 건너뛴다. 완료된 측정 뒤에는 전부 새로 잰다.
+            // 직전 측정이 중단됐고 계획 버전·지문이 지금과 같을 때만 끝난 시나리오를 건너뛴다. 아니면 전부 새로 잰다.
             var chain = CombatBalanceAnalysisReport.MeasurementChain();
-            if (chain.Count == 0 || CombatBalanceAnalysisReport.StatusOf(chain[chain.Count - 1]) != "INTERRUPTED") return new HashSet<string>();
+            if (chain.Count == 0) return new HashSet<string>();
+            var last = CombatBalanceAnalysisReport.FromJson<MeasurementReport>(File.ReadAllText(chain[chain.Count - 1].FullName, Encoding.UTF8));
+            var current = new MeasurementReport { planVersion = PlanVersion, fingerprint = CurrentFingerprint };
+            if (last == null || last.status != "INTERRUPTED" || !CombatBalanceAnalysisReport.SameRun(current, last))
+            {
+                if (last != null && last.status == "INTERRUPTED") Debug.Log("[전투 분석] 직전 중단 회차와 계획·지문이 달라 처음부터 잰다");
+                return new HashSet<string>();
+            }
             var merged = CombatBalanceAnalysisReport.LoadLatestMeasurement();
             return new HashSet<string>(merged != null ? merged.scenarios.Where(s => s.status == "PASS" || s.status == "FAIL").Select(s => s.key) : Enumerable.Empty<string>());
         }
@@ -343,6 +449,8 @@ namespace Overburst.EditorBalance.Analysis
             s.modelWeakNormalHit = outcome.weakNormal; s.modelWeakCritHit = outcome.weakCrit;
             s.modelPrepSurvived = outcome.prepSurvived; s.modelHeavyKilled = outcome.heavyKilled;
             float modelKillChance = outcome.prepSurvived ? outcome.heavyKillChance : 0f;
+            s.modelHeavyKillChance = outcome.prepSurvived ? modelKillChance : float.NaN;
+            s.modelDerivedTimes = outcome.firstHeavyDerivedTimes.ToList();
             PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
             Warp(player, origin, Vector3.forward); yield return null;
             var enemy = SpawnEnemy(spawn, def, origin + Vector3.forward * 1.7f, player.transform, plan.level, false);
@@ -403,20 +511,39 @@ namespace Overburst.EditorBalance.Analysis
             s.measuredWeakCritHit = weak.Where(h => h.critical).Select(h => h.damage).DefaultIfEmpty(float.NaN).Max();
             s.measuredDot = s.hits.Where(h => h.dot).Sum(h => h.damage);
             s.measuredDerived = s.hits.Where(h => h.derived).Sum(h => h.damage);
-            // 약공 판정별 기대 목록: Phase 계수마다 비치명·치명 값.
-            var allowedNormal = new List<float>(); var allowedCrit = new List<float>();
+            // 약공 판정 대조(Codex 검토 10-01 P2-4): 공격 시퀀스 순서로 콤보 타를 정하고(첫 타 0, 이후 이어 치기),
+            // 각 적중의 판정 번호로 계수를 골라 치명 여부까지 같은 값인지 본다. 끝까지 친 타는 판정 누락·추가도 센다.
             var combo = weapon.GetMeleeComboDefinition();
             float weakMultiplier = CombatBalanceFormulas.AttackDamageMultiplier(weapon, CombatBalanceAnalysisModel.HeavyDefinition(weapon), false, false);
             PlayerAttackKind weakKind = plan.element == WeaponElement.None ? PlayerAttackKind.Weak : PlayerAttackKind.Weak | PlayerAttackKind.Elemental;
-            for (int i = 0; i < combo.StepCount; i++)
-                foreach (var ph in combo.GetStep(i).attackPhases)
+            float Expected(float coefficient, bool critical) => CombatBalanceFormulas.ApplyPlayerOutgoing(
+                CombatBalanceFormulas.RoundedHitDamage(model.attack * coefficient * weakMultiplier, critical, model.critDamage), model.totals, true, enemyModel.grade, weakKind, 0, 0);
+            var sequences = weak.OrderBy(h => h.time).Select(h => h.sequence).Distinct().ToList();
+            int badPhase = 0, badDamage = 0, missing = 0, extra = 0;
+            float maxNormalModel = 0f;
+            for (int k = 0; k < sequences.Count; k++)
+            {
+                int stepIndex = k % Mathf.Max(1, combo.StepCount);
+                var defs = combo.GetStep(stepIndex).attackPhases ?? Array.Empty<AttackPhaseData>();
+                var timing = CombatBalanceAnalysisModel.TimeComboStep(weapon, stepIndex, k > 0, model.attackSpeed);
+                var chained = new HashSet<int>(timing.phases.Select(p => p.index));
+                var tail = new HashSet<int>(timing.tailPhases.Select(p => p.index));
+                var got = weak.Where(h => h.sequence == sequences[k]).ToList();
+                var seen = new HashSet<int>();
+                foreach (var h in got)
                 {
-                    float b = model.attack * ph.impact.SafeDamageMultiplier * weakMultiplier;
-                    allowedNormal.Add(CombatBalanceFormulas.ApplyPlayerOutgoing(CombatBalanceFormulas.RoundedHitDamage(b, false, model.critDamage), model.totals, true, enemyModel.grade, weakKind, 0, 0));
-                    allowedCrit.Add(CombatBalanceFormulas.ApplyPlayerOutgoing(CombatBalanceFormulas.RoundedHitDamage(b, true, model.critDamage), model.totals, true, enemyModel.grade, weakKind, 0, 0));
+                    if (h.phase < 0 || h.phase >= defs.Length) { badPhase++; continue; }
+                    if (!seen.Add(h.phase)) extra++;
+                    float v = Expected(defs[h.phase].impact.SafeDamageMultiplier, h.critical);
+                    if (!h.critical) maxNormalModel = Mathf.Max(maxNormalModel, v);
+                    if (Mathf.Abs(v - h.damage) >= .51f) badDamage++;
                 }
-            bool weakOk = weak.Count > 0 && weak.All(h => (h.critical ? allowedCrit : allowedNormal).Any(v => Mathf.Abs(v - h.damage) < .51f));
-            s.checks.Add((weakOk ? "PASS" : "FAIL") + $" 약공 판정 피해 {weak.Count}회(치명 {s.measuredCrits}) 모두 모델 값 목록과 일치 — 비치명 최대 {R(s.measuredWeakNormalHit)}/모델 {R(allowedNormal.DefaultIfEmpty(0).Max())}");
+                bool last = k == sequences.Count - 1;
+                if (!last) { missing += chained.Count(i => !seen.Contains(i)); extra += seen.Count(i => !chained.Contains(i)); }
+                else extra += seen.Count(i => !chained.Contains(i) && !tail.Contains(i));
+            }
+            bool weakOk = weak.Count > 0 && badPhase + badDamage + missing + extra == 0;
+            s.checks.Add((weakOk ? "PASS" : "FAIL") + $" 약공 판정 피해 {weak.Count}회·{sequences.Count}타(치명 {s.measuredCrits}): 타·판정 번호별 모델 값 대조 — 값 불일치 {badDamage}, 판정 번호 오류 {badPhase}, 누락 {missing}, 추가 {extra}. 비치명 최대 {R(s.measuredWeakNormalHit)}/모델 {R(maxNormalModel)}");
             if (!weakOk) s.status = "FAIL";
             // 강공: 측정된 확정 직전 에너지로 모델 H를 다시 계산해 경로를 대조한다.
             var heavyHit = s.hits.FirstOrDefault(h => h.heavy);
@@ -442,21 +569,45 @@ namespace Overburst.EditorBalance.Analysis
             }
             else if (s.measuredPrepSurvived) { s.checks.Add("FAIL 강공 적중 없음"); s.status = "FAIL"; }
             else s.checks.Add("NOT_RUN 강공(준비 중 처치)");
-            // 받는 피해: 실제 CombatHealth 경로(방어·하한). 공격 실행(사거리·타이밍)은 이 검사 범위 밖.
+            // 강공 후속(파생) 타격의 횟수·시각: 첫 강공 적중을 0초로 두고 모델 이벤트 시각과 차례로 비교한다.
+            if (heavyHit != null)
+            {
+                var measuredDerived = s.hits.Where(h => h.derived && h.time >= heavyHit.time - 1e-4f).Select(h => h.time - heavyHit.time).OrderBy(t => t).ToList();
+                var modelDerived = s.modelDerivedTimes.OrderBy(t => t).ToList();
+                if (measuredDerived.Count == 0 && modelDerived.Count == 0) s.checks.Add("NOT_RUN 강공 후속 타격 시각(양쪽 모두 후속 적중 없음)");
+                else
+                {
+                    int n = Mathf.Min(measuredDerived.Count, modelDerived.Count);
+                    float worst = 0f;
+                    for (int i = 0; i < n; i++) worst = Mathf.Max(worst, Mathf.Abs(measuredDerived[i] - modelDerived[i]));
+                    bool died = enemy.Health.IsDead; // 대상이 죽으면 남은 탄은 빗나가므로 횟수는 앞부분만 비교한다
+                    bool ok = n > 0 && worst <= .15f && (died || measuredDerived.Count == modelDerived.Count);
+                    s.checks.Add((ok ? "PASS" : "FAIL") + $" 강공 후속 타격 횟수·시각(±0.15초) 실측 {measuredDerived.Count}회 {R(measuredDerived.FirstOrDefault())}~{R(measuredDerived.LastOrDefault())}초 / 모델 {modelDerived.Count}회 {R(modelDerived.FirstOrDefault())}~{R(modelDerived.LastOrDefault())}초, 최대 차이 {R(worst)}초{(died ? ", 대상 사망" : "")}");
+                    if (!ok) s.status = "FAIL";
+                }
+            }
+            // 받는 피해: 실제 ResolveDamage·CombatHealth.TakeDamage 경로(방어·하한)를 직접 호출한다.
+            // 몬스터 공격 실행(사거리·타이밍·여러 타·겹침)은 이 검사 범위 밖이다. 플레이어 사망 방지가 켜져 있다.
             Incoming(s, enemyModel, enemy, actor, plan.level);
             // 시간·판정은 모델 정확도 검사다(피해 경로와 분리해 기록). 치명 여부로 필요한 판정 수가 달라지므로,
             // 실측 판정 수 N의 모델 시각(콤보 시간표)과 비교한다. 기대값 충전 시간은 참고로 함께 남긴다.
             float atN = CombatBalanceAnalysisModel.WeakPhaseTime(weapon, model.attackSpeed, (int)s.measuredChargePhases);
             bool timeOk = !float.IsNaN(atN) && !float.IsNaN(s.measuredChargeTime) && Mathf.Abs(s.measuredChargeTime - atN) <= Mathf.Max(.1f, atN * .15f);
             s.checks.Add((float.IsNaN(s.measuredChargeTime) ? "NOT_RUN" : timeOk ? "PASS" : "FAIL") + $" 콤보 시간표(±15%) 실측 {R(s.measuredChargePhases)}판정 {R(s.measuredChargeTime)}초 / 모델 {R(s.measuredChargePhases)}번째 판정 {R(atN)}초 (기대 충전 {R(s.modelChargeTime)}초·{R(s.modelChargePhases)}판정, 치명 {s.measuredCrits}회)");
-            s.checks.Add((s.modelPrepSurvived == s.measuredPrepSurvived ? "PASS" : "FAIL") + $" 준비 생존 판정 모델 {(s.modelPrepSurvived ? "생존" : "사망")}/실측 {(s.measuredPrepSurvived ? "생존" : "사망")}");
+            s.checks.Add((s.modelPrepSurvived == s.measuredPrepSurvived ? "PASS" : "FAIL") + $" 충전 중 대상 생존(에너지 완충까지 몬스터가 살아 있음) 모델 {(s.modelPrepSurvived ? "생존" : "사망")}/실측 {(s.measuredPrepSurvived ? "생존" : "사망")}");
             if (s.measuredPrepSurvived)
             {
-                bool consistent = s.measuredHeavyKilled ? modelKillChance > 0f : modelKillChance < 1f;
-                s.checks.Add((consistent ? "PASS" : "FAIL") + $" 1주기 처치 모델 확률 {R(modelKillChance * 100f)}% / 실측 {(s.measuredHeavyKilled ? "처치" : "실패")}(강공 치명 {(heavyHit != null && heavyHit.critical ? "예" : "아니오")})");
+                string observed = $"실측 {(s.measuredHeavyKilled ? "처치" : "실패")}(강공 치명 {(heavyHit != null && heavyHit.critical ? "예" : "아니오")})";
+                if (modelKillChance > 0f && modelKillChance < 1f)
+                    s.checks.Add($"NOT_RUN 1주기 처치 모델 확률 {R(modelKillChance * 100f)}% / {observed} — 한 번의 관측으로는 확률을 판정할 수 없다(보고서 확률 요약 참고)");
+                else
+                {
+                    bool consistent = (modelKillChance >= 1f) == s.measuredHeavyKilled;
+                    s.checks.Add((consistent ? "PASS" : "FAIL") + $" 1주기 처치 확정 예측 모델 {R(modelKillChance * 100f)}% / {observed}");
+                }
             }
-            if (s.status == null) s.status = "PASS";
-            s.note = $"피해 경로 {(s.status == "PASS" ? "일치" : "불일치")}, 틱 {R(s.measuredDot)}, 파생 {R(s.measuredDerived)}, 경과 {R(s.measuredElapsed)}초";
+            s.status = CombatBalanceMeasurementStatus.OfScenario(s);
+            s.note = $"판정 {s.status}, 틱 {R(s.measuredDot)}, 파생 {R(s.measuredDerived)}, 경과 {R(s.measuredElapsed)}초";
         }
 
         static void Incoming(MeasurementScenario s, EnemyView enemyModel, EnemyActor enemy, PlayerActorRuntime actor, int level)
@@ -476,7 +627,7 @@ namespace Overburst.EditorBalance.Analysis
                 if (strong) { s.modelIncomingStrong = view.perHit; s.measuredIncomingStrong = measured; }
                 else { s.modelIncomingNormal = view.perHit; s.measuredIncomingNormal = measured; }
                 bool ok = Mathf.Abs(measured - view.perHit) < .51f;
-                s.checks.Add((ok ? "PASS" : "FAIL") + $" 받는 {(strong ? "강공" : "평타")} {view.abilityId} 모델 {R(view.perHit)}/실측 {R(measured)}");
+                s.checks.Add((ok ? "PASS" : "FAIL") + $" 받는 {(strong ? "강공" : "평타")} 계산 경로(TakeDamage 직접 호출) {view.abilityId} 모델 {R(view.perHit)}/실측 {R(measured)}");
                 if (!ok) s.status = "FAIL";
                 actor.Health.SetMaxHp(actor.Health.MaxHp, true);
             }
@@ -492,12 +643,12 @@ namespace Overburst.EditorBalance.Analysis
             var enemyModel = CombatBalanceAnalysisModel.BuildEnemy(def, plan.level, model);
             var copy = c.Clone(); copy.crowdCount = plan.crowdCount;
             var outcome = CombatBalanceAnalysisModel.Simulate(model, enemyModel, weapon, copy, CombatMode.Crowd);
-            s.enemyId = def.EnemyId; s.modelEnemyHealth = enemyModel.maxHealth;
+            s.enemyId = def.EnemyId; s.modelEnemyHealth = enemyModel.maxHealth; s.modelClearTime = outcome.killTime;
             PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
             Warp(player, origin, Vector3.forward); yield return null;
             for (int i = 0; i < plan.crowdCount; i++)
             {
-                float angle = i * 2.39996f, r = 2.2f + Mathf.Sqrt(i) * .9f;
+                float angle = plan.angleOffset + i * 2.39996f, r = (2.2f + Mathf.Sqrt(i) * .9f) * plan.spreadScale;
                 var enemy = SpawnEnemy(spawn, def, origin + new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r), player.transform, plan.level, true);
                 if (enemy == null) { s.status = "BLOCKED"; s.note = "스폰 실패 " + i; yield break; }
                 leased.Add(enemy);
@@ -526,10 +677,14 @@ namespace Overburst.EditorBalance.Analysis
             float total = Mathf.Max(1f, weak + heavy + derived + dot);
             s.measuredElapsed = float.IsNaN(clear) ? Time.time - start : clear;
             s.measuredDot = dot; s.measuredDerived = derived;
-            s.checks.Add((float.IsNaN(clear) ? "FAIL" : Mathf.Abs(clear - outcome.killTime) <= outcome.killTime * .5f ? "PASS" : "FAIL") + $" 군집 {plan.crowdCount}마리 정리(±50%) 실측 {(float.IsNaN(clear) ? "미완료(40초)" : R(clear) + "초")} / 모델 {R(outcome.killTime)}초");
+            // 허용오차 기준(Codex 검토 10-01): |모델−실측|/실측 ≤ 50%. 모델 근사가 크게 벗어났는지 알리는 경고 기준이다.
+            float relative = float.IsNaN(clear) ? float.NaN : Mathf.Abs(outcome.killTime - clear) / Mathf.Max(.01f, clear);
+            s.checks.Add((float.IsNaN(clear) ? "FAIL" : relative <= .5f ? "PASS" : "FAIL")
+                + $" 군집 {plan.crowdCount}마리 정리({plan.role}, |모델−실측|/실측 ≤50%) 실측 {(float.IsNaN(clear) ? "미완료(40초)" : R(clear) + "초")} / 모델 {R(outcome.killTime)}초"
+                + (float.IsNaN(relative) ? "" : $", 차이 {R(relative * 100f)}%·모델/실측 {R(outcome.killTime / Mathf.Max(.01f, clear))}배"));
             s.checks.Add($"{(Mathf.Abs((heavy + derived) / total * 100f - (outcome.heavy + outcome.derived) / Mathf.Max(1f, outcome.Total) * 100f) <= 20f ? "PASS" : "FAIL")} 범위 기여(강공+파생) 실측 {R((heavy + derived) / total * 100f)}% / 모델 {R((outcome.heavy + outcome.derived) / Mathf.Max(1f, outcome.Total) * 100f)}% (±20%p)");
-            s.status = s.status ?? "PASS";
-            s.note = $"실측 약공 {R(weak)} 강공 {R(heavy)} 파생 {R(derived)} 틱 {R(dot)}; 적 AI 켬(접근·공격), 모델은 균일 밀도 근사";
+            s.status = CombatBalanceMeasurementStatus.OfScenario(s);
+            s.note = $"{plan.role} 배치(시드 +{plan.seedOffset}, 반경 ×{R(plan.spreadScale)}). 실측 약공 {R(weak)} 강공 {R(heavy)} 파생 {R(derived)} 틱 {R(dot)}; 적 AI 켬(접근·공격), 모델은 균일 밀도 근사";
         }
     }
 }

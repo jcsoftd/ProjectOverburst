@@ -155,7 +155,7 @@ namespace Overburst.EditorBalance.Analysis
         void RunMeasurement()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) { SetStatus("Play 중에는 측정을 시작할 수 없습니다."); return; }
-            if (!EditorUtility.DisplayDialog("Play 측정", "격리 계정으로 Play에 들어가 대표 조합 21개를 측정합니다(약 3분). 공유 Editor를 이 작업이 쓰는 동안 다른 작업의 Play·컴파일과 겹치지 않아야 합니다. 겹칠 것 같으면 '측정 예약' 메뉴를 쓰세요.", "시작", "취소")) return;
+            if (!EditorUtility.DisplayDialog("Play 측정", $"격리 계정으로 Play에 들어가 대표 조합 {CombatBalancePlayMeasurement.DefaultPlan().Count}개를 측정합니다(약 4분). 이 작업이 공유 Editor 소유권을 가진 경우에만 시작하세요. Editor가 비어 있다는 것만으로는 소유권이 아닙니다.", "소유권 있음, 시작", "취소")) return;
             try { SetStatus("측정 시작: " + CombatBalancePlayMeasurement.Run()); }
             catch (Exception e) { SetStatus("측정 시작 실패: " + e.Message); }
         }
@@ -213,7 +213,7 @@ namespace Overburst.EditorBalance.Analysis
             ("공격", 56, r => F(r.attack, "0"), r => r.attack),
             ("적 HP", 64, r => F(r.enemyHealth, "0"), r => r.enemyHealth),
             ("충전 초", 58, r => F(r.chargeTime), r => r.chargeTime),
-            ("준비 생존", 62, r => r.mode == CombatMode.Single ? F(r.prepSurvivalRate * 100, "0") + "%" : "—", r => r.prepSurvivalRate),
+            ("충전 중 생존", 76, r => r.mode == CombatMode.Single ? F(r.prepSurvivalRate * 100, "0") + "%" : "—", r => r.prepSurvivalRate),
             ("1주기", 50, r => r.mode == CombatMode.Single ? F(r.heavyKillRate * 100, "0") + "%" : "—", r => r.heavyKillRate),
             ("처치 초", 58, r => F(r.killTime), r => r.killTime),
             ("약공만", 58, r => F(r.weakOnlyKillTime), r => r.weakOnlyKillTime),
@@ -358,7 +358,7 @@ namespace Overburst.EditorBalance.Analysis
             measureTable.style.flexGrow = 1;
             (string, float, Func<MeasurementScenario, string>)[] cols =
             {
-                ("시나리오", 230, s => s.key), ("판정", 60, s => s.status), ("공격", 90, s => F(s.modelAttack) + "/" + F(s.measuredAttack)),
+                ("시나리오", 230, s => s.key), ("역할", 50, s => s.role ?? "—"), ("판정", 60, s => s.status), ("공격", 90, s => F(s.modelAttack) + "/" + F(s.measuredAttack)),
                 ("적 HP", 100, s => F(s.modelEnemyHealth) + "/" + F(s.measuredEnemyHealth)), ("충전 초", 90, s => F(s.modelChargeTime) + "/" + F(s.measuredChargeTime)),
                 ("강공", 100, s => F(s.modelHeavyDirect) + "/" + F(s.measuredHeavyDirect)), ("받는 평/강", 130, s => $"{F(s.modelIncomingNormal)}/{F(s.measuredIncomingNormal)} · {F(s.modelIncomingStrong)}/{F(s.measuredIncomingStrong)}"),
                 ("점검 실패", 70, s => s.checks.Count(c => c.StartsWith("FAIL")).ToString()),

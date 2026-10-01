@@ -3,9 +3,8 @@ using UnityEngine;
 // 실제 전투와 밸런스 분석 도구(Assets/Editor/Testers/Balance)가 함께 쓰는 순수 계산식.
 // 식을 새로 만든 것이 아니라 아래 호출 지점에 있던 식을 그대로 옮겼다. 호출 지점은 이 함수만 부른다.
 // CombatHealth · PlayerEquipment · PlayerProgression · MeleeRuntime · MeleeDamageResolver · EnemyRank
-// · ElementDischargeBatch(지연 경로) · UpperElementCombatUtility
-// 에너지·방출(OverburstElementEnergy)과 상태 틱(ElementalStatusController)의 호출 전환은 두 파일을 수정 중인
-// 다른 작업이 끝난 뒤 이어서 한다. 그 전까지 이 두 묶음은 분석 도구만 쓰며, Play 측정으로 실제 값과 대조한다.
+// · ElementDischargeBatch(지연 경로) · UpperElementCombatUtility · OverburstElementEnergy · ElementalStatusController
+// · MeleeSingleTargetDpsCalculator(툴팁). 피해식을 바꿀 때는 이 파일에서 바꾼다.
 public static class CombatBalanceFormulas
 {
     public const float CombatStanceCritChanceBonus = 10f;      // MeleeRuntime 전투 자세 치명 보너스(%p)

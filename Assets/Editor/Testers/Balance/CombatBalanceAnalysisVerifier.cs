@@ -55,6 +55,10 @@ namespace Overburst.EditorBalance.Analysis
                 bool same = a.rows.Count == b.rows.Count && a.rows.Zip(b.rows, (x, y) => x.key == y.key && Same(x.killTime, y.killTime) && Same(x.chargeTime, y.chargeTime)
                     && Same(x.attack, y.attack) && x.normalSurvivable == y.normalSurvivable).All(v => v);
                 Check(same, "같은 시드 두 번 실행 결과 동일", a.rows.Count + "행");
+                // 실패 주입(Codex 검토 10-01 P1-1): FAIL 체크·차단·오류·다른 지문이 전체 PASS로 가려지지 않는지.
+                foreach (var line in InjectedStatusChecks(folder)) checks.Add(line);
+                // 시간순 이벤트 모델(어둠 탄막·불 연쇄)
+                foreach (var line in CombatBalanceAnalysisModel.EventModelSelfChecks()) checks.Add(line);
                 // 창 조작: 조건 → 실행 → 문제 필터 → 선택·비교 → 내보내기
                 var window = CombatBalanceAnalysisWindow.Open();
                 try
@@ -91,5 +95,68 @@ namespace Overburst.EditorBalance.Analysis
         }
 
         static bool Same(float a, float b) => (float.IsNaN(a) && float.IsNaN(b)) || (float.IsInfinity(a) && float.IsInfinity(b)) || Mathf.Abs(a - b) < 1e-4f;
+
+        static MeasurementScenario Scenario(string key, string status, params string[] checks)
+        {
+            var s = new MeasurementScenario { key = key, status = status };
+            s.checks.AddRange(checks);
+            return s;
+        }
+
+        static void WriteRun(string root, string name, MeasurementReport r, DateTime written)
+        {
+            string dir = Path.Combine(root, name);
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, "measurement.json");
+            File.WriteAllText(path, CombatBalanceAnalysisReport.ToJson(r), new UTF8Encoding(false));
+            File.SetLastWriteTimeUtc(path, written);
+        }
+
+        // 실제 측정 폴더를 건드리지 않고 검증 폴더 안에 가짜 회차를 써서 병합까지 확인한다.
+        static List<string> InjectedStatusChecks(string folder)
+        {
+            var list = new List<string>();
+            void Check(bool ok, string label, string detail) => list.Add((ok ? "PASS " : "FAIL ") + label + " — " + detail);
+            var keys = new List<string> { "k1", "k2" };
+            var t0 = DateTime.UtcNow.AddMinutes(-10);
+
+            var hidden = Scenario("k1", "PASS", "PASS 피해", "FAIL 군집 정리");
+            Check(CombatBalanceMeasurementStatus.OfScenario(hidden) == "FAIL", "실패 주입: PASS로 기록됐지만 FAIL 체크가 있는 시나리오", CombatBalanceMeasurementStatus.OfScenario(hidden));
+            var run = CombatBalanceMeasurementStatus.OfRun(new[] { hidden, Scenario("k2", null, "PASS 피해") }, new string[0], 2, keys);
+            Check(run == "FAIL", "실패 주입: 체크 하나의 FAIL이 회차 FAIL로", run);
+            run = CombatBalanceMeasurementStatus.OfRun(new[] { Scenario("k1", null, "PASS 피해"), Scenario("k2", "BLOCKED") }, new string[0], 2, keys);
+            Check(run == "BLOCKED", "실패 주입: 차단 시나리오는 PASS가 아님", run);
+            run = CombatBalanceMeasurementStatus.OfRun(new[] { Scenario("k1", null, "PASS 피해"), Scenario("k2", null, "PASS 피해") }, new[] { "예외" }, 2, keys);
+            Check(run == "FAIL", "실패 주입: 오류가 있으면 FAIL", run);
+            run = CombatBalanceMeasurementStatus.OfRun(new[] { Scenario("k1", "FAIL", "FAIL 예외 NullReferenceException") }, new string[0], 2, keys);
+            Check(run == "FAIL", "실패 주입: 시나리오 예외", run);
+
+            string root = Path.Combine(folder, "InjectedMeasurements");
+            string Merge(string name, params (string run, MeasurementReport report, int minutes)[] runs)
+            {
+                string r = Path.Combine(root, name);
+                foreach (var (dir, report, minutes) in runs) WriteRun(r, dir, report, t0.AddMinutes(minutes));
+                return CombatBalanceAnalysisReport.LoadLatestMeasurement(r, keys)?.status ?? "없음";
+            }
+            MeasurementReport Report(string status, string fingerprint, params MeasurementScenario[] scenarios)
+            {
+                var r = new MeasurementReport { status = status, planVersion = "test", fingerprint = fingerprint };
+                r.scenarios.AddRange(scenarios);
+                return r;
+            }
+            string merged = Merge("hidden", ("a", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해", "FAIL 군집"), Scenario("k2", "PASS", "PASS 피해")), 0));
+            Check(merged == "FAIL", "실패 주입 병합: 옛 기록의 숨은 FAIL", merged);
+            merged = Merge("blocked", ("a", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해"), Scenario("k2", "BLOCKED")), 0));
+            Check(merged == "BLOCKED", "실패 주입 병합: 차단", merged);
+            var withError = Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해"), Scenario("k2", "PASS", "PASS 피해"));
+            withError.errors.Add("예외");
+            merged = Merge("error", ("a", withError, 0));
+            Check(merged == "FAIL", "실패 주입 병합: 오류", merged);
+            merged = Merge("otherprint", ("a", Report("INTERRUPTED", "B", Scenario("k2", "PASS", "PASS 피해")), 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
+            Check(merged.StartsWith("PARTIAL"), "지문이 다른 중단 회차는 병합하지 않음", merged);
+            merged = Merge("sameprint", ("a", Report("INTERRUPTED", "A", Scenario("k2", "PASS", "PASS 피해")), 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
+            Check(merged == "PASS", "지문이 같은 중단 회차는 이어 붙임", merged);
+            return list;
+        }
     }
 }
