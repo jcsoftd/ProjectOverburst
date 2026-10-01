@@ -5,6 +5,9 @@ using UnityEngine;
 // Reuses supplier Telegraph art and the separate body cue; no extra ground outline.
 public sealed class EnemyStrongAttackWarning : MonoBehaviour
 {
+    [SerializeField] private Transform cueSocket;
+    [SerializeField] private Vector3 cueOffset;
+    [SerializeField, Min(.01f)] private float cueScale = 1f;
     private GameObject visual;
     private MMF_Player signalFeel;
     private ParticleSystem signalParticles;
@@ -51,7 +54,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             if (body != null)
             {
                 var main = signalParticles.main;
-                main.startSize = Mathf.Clamp(body.CurrentVolume.Radius * 2.15f, 3.2f, 4.7f);
+                main.startSize = ResolveCueSize();
             }
         }
         EnemyStrongAttackImpactVfx.Prewarm();
@@ -184,45 +187,9 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         point.transform.SetParent(transform, false);
         signalParticles = point.AddComponent<ParticleSystem>();
         signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        var main = signalParticles.main;
-        main.playOnAwake = false;
-        main.loop = false;
-        main.duration = .70f;
-        main.startLifetime = .70f;
-        main.startSpeed = 0f;
-        main.startSize = 3.2f;
-        main.startColor = new Color(4f, 3.2f, 1.7f, 1f);
-        main.maxParticles = 1;
-        main.simulationSpace = ParticleSystemSimulationSpace.Local;
-        var emission = signalParticles.emission;
-        emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 1) });
-        var shape = signalParticles.shape;
-        shape.enabled = false;
-        var fade = signalParticles.colorOverLifetime;
-        fade.enabled = true;
-        var fadeGradient = new Gradient();
-        fadeGradient.SetKeys(
-            new[] { new GradientColorKey(Color.white, 0f),
-                new GradientColorKey(Color.white, .80f),
-                new GradientColorKey(Color.white, 1f) },
-            new[] { new GradientAlphaKey(1f, 0f),
-                new GradientAlphaKey(1f, .80f), new GradientAlphaKey(0f, 1f) });
-        fade.color = fadeGradient;
-        var pulse = signalParticles.sizeOverLifetime;
-        pulse.enabled = true;
-        pulse.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
-            new Keyframe(0f, 1.1f), new Keyframe(.08f, 1.45f),
-            new Keyframe(.25f, .85f), new Keyframe(.8f, .6f),
-            new Keyframe(1f, .35f)));
-        var renderer = point.GetComponent<ParticleSystemRenderer>();
         if (telegraphLibrary == null)
-            telegraphLibrary = Resources.Load<EnemyTelegraphVisualLibrary>(
-                "Enemies/Balance/EnemyTelegraphVisualLibrary");
-        renderer.sharedMaterial = telegraphLibrary != null ? telegraphLibrary.ParryGlint : null;
-        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        renderer.receiveShadows = false;
-        signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            telegraphLibrary = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
+        EnemyParryCueVisual.Configure(signalParticles, telegraphLibrary != null ? telegraphLibrary.ParryGlint : null);
         signalFeel = point.AddComponent<MMF_Player>();
         signalFeel.FeedbacksList = new List<MMF_Feedback>
         {
@@ -243,20 +210,28 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     {
         if (signalParticles == null) return;
         if (body == null) body = GetComponent<CombatTarget>();
-        Vector3 center = body != null ? body.CurrentVolume.Center
-            : transform.position + Vector3.up * 1.2f;
-        float width = body != null ? body.CurrentVolume.Radius : .5f;
-        float halfHeight = body != null ? body.CurrentVolume.HalfHeight : 1f;
         if (signalCamera == null) signalCamera = Camera.main;
-        Vector3 facing = signalCamera != null ? signalCamera.transform.position - center
+        signalParticles.transform.position = ResolveCuePosition(signalCamera, signalSocketIndex);
+    }
+    public float ResolveCueSize() => Mathf.Clamp((GetComponent<CombatTarget>()?.CurrentVolume.Radius ?? .5f) * 2.15f, 3.2f, 4.7f) * Mathf.Max(.01f, cueScale);
+    public Vector3 ResolveCuePosition(Camera camera, int socketIndex = 1)
+    {
+        CombatTarget target = body != null ? body : GetComponent<CombatTarget>();
+        if (cueSocket != null && (cueSocket == transform || cueSocket.IsChildOf(transform)))
+            return cueSocket.TransformPoint(cueOffset);
+        Vector3 center = target != null ? target.CurrentVolume.Center
+            : transform.position + Vector3.up * 1.2f;
+        float width = target != null ? target.CurrentVolume.Radius : .5f;
+        float halfHeight = target != null ? target.CurrentVolume.HalfHeight : 1f;
+        Vector3 facing = camera != null ? camera.transform.position - center
             : -transform.forward;
         facing.y = 0f;
         if (facing.sqrMagnitude < .0001f) facing = -transform.forward;
         facing.Normalize();
         Vector3 right = Vector3.Cross(Vector3.up, facing).normalized;
-        float lateral = (signalSocketIndex - 1) * width * .27f;
-        signalParticles.transform.position = center + Vector3.up * (halfHeight + SignalAboveHead)
-            + facing * width * .15f + right * lateral;
+        float lateral = (socketIndex - 1) * width * .27f;
+        return center + Vector3.up * (halfHeight + SignalAboveHead)
+            + facing * width * .15f + right * lateral + transform.rotation * cueOffset;
     }
     public void Hide()
     {

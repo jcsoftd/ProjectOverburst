@@ -329,15 +329,8 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (!ParryStunClipCache.TryGetValue(controller, out clips))
         {
             clips = new ParryStunClipSet();
-            AnimationClip[] all = controller.animationClips;
-            for (int i = 0; i < all.Length; i++)
-            {
-                AnimationClip clip = all[i];
-                if (clip == null) continue;
-                if (clip.name.EndsWith("_ParryCollapse")) clips.collapse = clip.length;
-                else if (clip.name.EndsWith("_StunnedLoop")) clips.loop = clip.length;
-                else if (clip.name.EndsWith("_StunRecover")) clips.recover = clip.length;
-            }
+            EnemyAnimationRoleResolver.ResolveParryDurations(controller, GetComponent<EnemyActor>()?.Definition?.AnimationProfile,
+                out clips.collapse, out clips.loop, out clips.recover);
             clips.valid = clips.collapse > 0f && clips.loop > 0f && clips.recover > 0f
                 && HasState(ParryCollapseStateName) && HasState(StunnedLoopStateName) && HasState(StunRecoverStateName);
             ParryStunClipCache[controller] = clips;

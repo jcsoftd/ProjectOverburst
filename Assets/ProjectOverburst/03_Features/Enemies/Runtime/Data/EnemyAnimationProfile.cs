@@ -12,6 +12,9 @@ public sealed class EnemyAnimationProfile : ScriptableObject
     [SerializeField] private AnimationClip hit;
     [SerializeField] private AnimationClip death;
     [SerializeField] private AnimationClip[] optional;
+    [SerializeField] private AnimationClip parryCollapse;
+    [SerializeField] private AnimationClip stunnedLoop;
+    [SerializeField] private AnimationClip stunRecover;
     [SerializeField] private string[] excludedRootMotionClipPaths;
 
     public string ProfileId => profileId;
@@ -21,6 +24,9 @@ public sealed class EnemyAnimationProfile : ScriptableObject
     public AnimationClip Run => run;
     public AnimationClip Hit => hit;
     public AnimationClip Death => death;
+    public AnimationClip ParryCollapse => parryCollapse;
+    public AnimationClip StunnedLoop => stunnedLoop;
+    public AnimationClip StunRecover => stunRecover;
     public int AttackClipCount => attackClips != null ? attackClips.Length : 0;
     public int OptionalClipCount => optional != null ? optional.Length : 0;
     public int ExcludedRootMotionClipCount => excludedRootMotionClipPaths != null

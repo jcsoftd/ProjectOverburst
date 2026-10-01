@@ -21,6 +21,10 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
     [SerializeField] private Vector3 burnOffset;
     [Tooltip("화상 불 크기 보정. 기본 1")]
     [SerializeField, Range(0.3f, 2f)] private float burnScale = 1f;
+    [SerializeField] private Vector3 shockOffset;
+    [SerializeField, Min(.01f)] private float shockScale = 1f;
+    [SerializeField] private Vector3 corrosionOffset;
+    [SerializeField, Min(.01f)] private float corrosionScale = 1f;
 
     private CombatTarget target;
     // 엘리트·보스 변형 크기(VisualRoot 배율). 소환할 때마다 다시 넣는 실행 값이라 저장하지 않는다.
@@ -79,6 +83,19 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         scale = placement.burnScale;
     }
 
+    public static void ResolveAuraTuning(CombatTarget target, MeleeElementStatusAuraType type,
+        out Vector3 worldOffset, out float scale)
+    {
+        worldOffset = Vector3.zero; scale = 1f;
+        if (target == null || !target.TryGetComponent(out CombatTargetVfxPlacement placement)) return;
+        Vector3 offset = type == MeleeElementStatusAuraType.Burning ? placement.burnOffset
+            : type == MeleeElementStatusAuraType.Shocked ? placement.shockOffset : placement.corrosionOffset;
+        scale = type == MeleeElementStatusAuraType.Burning ? placement.burnScale
+            : type == MeleeElementStatusAuraType.Shocked ? placement.shockScale : placement.corrosionScale;
+        worldOffset = placement.transform.rotation * offset;
+        scale = float.IsNaN(scale) || float.IsInfinity(scale) ? 1f : Mathf.Max(.01f, scale);
+    }
+
     public static Vector3 ResolveContact(CombatTarget target, Vector3 rawHitPoint,
         Vector3 incomingDirection, out float hitSizeMultiplier)
     {
@@ -124,6 +141,8 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         contactRadiusFraction = Mathf.Clamp(contactRadiusFraction, 0.4f, 1f);
         contactHeightFraction = Mathf.Clamp(contactHeightFraction, 0f, 0.8f);
         burnScale = Mathf.Clamp(burnScale, 0.3f, 2f);
+        shockScale = Mathf.Max(.01f, shockScale);
+        corrosionScale = Mathf.Max(.01f, corrosionScale);
     }
 #endif
 }

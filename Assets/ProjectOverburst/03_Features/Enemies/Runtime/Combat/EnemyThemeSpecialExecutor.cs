@@ -7,6 +7,14 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
 {
     [SerializeField] private Material signalMaterial;
     [SerializeField] private Color signalColor = new Color(1f,.45f,.15f);
+    [System.Serializable]
+    public sealed class MuzzleOverride
+    {
+        public EnemyAbilityDefinition ability;
+        public Transform socket;
+        public Vector3 localOffset;
+    }
+    [SerializeField] private MuzzleOverride[] muzzleOverrides = new MuzzleOverride[0];
     private EnemyActor actor;
     private EnemyMovementReaction reaction;
     private Coroutine routine;
@@ -243,8 +251,19 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     }
     private readonly System.Collections.Generic.Dictionary<string, Transform> muzzleBones = new System.Collections.Generic.Dictionary<string, Transform>();
     // The shot leaves the authored mouth, tail or hand bone; without one it keeps the old body origin.
-    private Vector3 ResolveMuzzle(EnemyAbilityDefinition ability)
+    private Vector3 ResolveMuzzle(EnemyAbilityDefinition ability) => ResolveMuzzlePosition(ability,
+        chargeDirection.sqrMagnitude > .0001f ? chargeDirection : transform.forward);
+
+    public Vector3 ResolveMuzzlePosition(EnemyAbilityDefinition ability, Vector3 direction)
     {
+        for (int i = 0; muzzleOverrides != null && i < muzzleOverrides.Length; i++)
+        {
+            var tuning = muzzleOverrides[i];
+            if (tuning == null || tuning.ability != ability) continue;
+            if (tuning.socket != null && (tuning.socket == transform || tuning.socket.IsChildOf(transform)))
+                return tuning.socket.TransformPoint(tuning.localOffset);
+            break;
+        }
         var catalog = EnemyProjectileVfxCatalog.Current;
         if (catalog == null || !catalog.TryGetOverride(ability, out var entry) || string.IsNullOrEmpty(entry.muzzleBone)) return Origin;
         if (!muzzleBones.TryGetValue(entry.muzzleBone, out var bone) || bone == null)
@@ -254,7 +273,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
             muzzleBones[entry.muzzleBone] = bone;
         }
         if (bone == null) return Origin;
-        Vector3 forward = chargeDirection.sqrMagnitude > .0001f ? chargeDirection : transform.forward;
+        Vector3 forward = direction.sqrMagnitude > .0001f ? direction : transform.forward;
         return bone.position + forward * entry.muzzleForward;
     }
     // Spit leaves the mouth as a short jet in the thrower's blood colour and bursts where it lands.

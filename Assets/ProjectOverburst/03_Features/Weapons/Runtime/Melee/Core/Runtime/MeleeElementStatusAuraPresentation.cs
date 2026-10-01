@@ -54,16 +54,18 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
         {
             // The source aura is a sphere centered at its origin and must stay larger than the body to be seen,
             // so it follows body width; only very flat bodies are limited by height.
-            corrodedAura.transform.position=volume.Center;
+            CombatTargetVfxPlacement.ResolveAuraTuning(target,MeleeElementStatusAuraType.Corroded,out Vector3 darkOffset,out float darkTune);
+            corrodedAura.transform.position=volume.Center+darkOffset;
             float fit=Mathf.Min(volume.Radius/.6f,volume.HalfHeight*2f/.7f);
             float darkSize=Mathf.Clamp(fit,.45f,3f)*Mathf.Clamp(corrodedAuraScale,.2f,1.5f);
-            SetWorldSize(corrodedAura.transform,darkSize,parentScale);
+            SetWorldSize(corrodedAura.transform,darkSize*darkTune,parentScale);
         }
         if(shockedAura!=null)
         {
             // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
-            shockedAura.transform.position=volume.Center;
-            SetWorldSize(shockedAura.transform,Mathf.Clamp(volume.Radius/.6f,.45f,3f),parentScale);
+            CombatTargetVfxPlacement.ResolveAuraTuning(target,MeleeElementStatusAuraType.Shocked,out Vector3 shockOffset,out float shockTune);
+            shockedAura.transform.position=volume.Center+shockOffset;
+            SetWorldSize(shockedAura.transform,Mathf.Clamp(volume.Radius/.6f,.45f,3f)*shockTune,parentScale);
         }
         if(burningAura!=null)
         {
