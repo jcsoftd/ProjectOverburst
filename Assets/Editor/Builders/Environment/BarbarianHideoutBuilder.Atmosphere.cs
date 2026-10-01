@@ -48,6 +48,7 @@ public static partial class BarbarianHideoutBuilder
         }
         var volume = roots.Single(r => r.name == "Global Volume").GetComponent<Volume>();
         volume.sharedProfile = profile; volume.isGlobal = true; volume.weight = 1; volume.priority = 10;
+        if (roots.Any(r => r.GetComponent<HideoutPlayerLightingScope>() != null)) ConfigureEnvironmentLightLayers(scene);
     }
     static Texture2D SoftTexture()
     {

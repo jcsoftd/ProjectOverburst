@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
-public static class BarbarianHideoutVerifier
+public static partial class BarbarianHideoutVerifier
 {
     const string Key = "Overburst.BarbarianHideoutVerifier.";
     static string Output => SessionState.GetString(Key + "output", "");
@@ -119,6 +119,7 @@ public static class BarbarianHideoutVerifier
                 var workshop = scene.GetRootGameObjects().Single(r => r.name == "Weapon Merchant Workshop");
                 Check(workshop.transform.childCount == 14 && workshop.GetComponentsInChildren<MeshCollider>(true).Length >= 8, "Craftsman props and solid workshop obstacles loaded");
                 Check(workshop.GetComponentsInChildren<ParticleSystem>(true).Single().isPlaying, "Forge flame is playing");
+                VerifyPlayerLighting(scene);
                 TestMovement(environment, spawn.transform);
                 SessionState.SetInt(Key + "interaction", 0);
                 Phase = 2; Deadline();
@@ -168,6 +169,7 @@ public static class BarbarianHideoutVerifier
             if (Phase == 5)
             {
                 if (SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName).isLoaded) return;
+                VerifyPlayerLightingReleased();
                 PersistentSceneFlow.Instance.SwitchHubScene(PersistentSceneFlow.HideoutSceneName, "Default");
                 Phase = 6; Deadline(); return;
             }

@@ -61,7 +61,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: -3470075883443381594}
   - {fileID: -5039108900510824522}
-  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba
+  - {fileID: 7641658828236289545}
+  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba0976c08f37a00c6a
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -90,3 +91,16 @@ MonoBehaviour:
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
+--- !u!114 &7641658828236289545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe5dd86bfd9f4b48b45bd937ac8d471, type: 3}
+  m_Name: Hideout Player Original Lighting
+  m_EditorClassIdentifier: Assembly-CSharp::HideoutPlayerLightingRendererFeature
+  m_Active: 1
