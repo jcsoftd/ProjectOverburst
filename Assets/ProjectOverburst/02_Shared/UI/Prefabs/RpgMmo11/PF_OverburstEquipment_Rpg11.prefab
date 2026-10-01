@@ -4934,19 +4934,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5572467372186660565, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Pivot.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5572467372186660565, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5572467372186660565, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchorMin.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5572467372186660565, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 5
+      value: -5
       objectReference: {fileID: 0}
     - target: {fileID: 5761183263846955328, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_IsActive

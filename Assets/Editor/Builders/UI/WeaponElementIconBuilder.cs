@@ -106,14 +106,14 @@ public static class WeaponElementIconBuilder
         return AssetDatabase.LoadAssetAtPath<Sprite>(path) ?? throw new InvalidOperationException("Sprite missing: " + path);
     }
 
-    // 장착 칸에는 비교 ▲가 없으므로 왼쪽 위를 쓴다. 오른쪽 위의 무기 손잡이와 구분되는 바탕을 둔다.
+    // 모든 무기 칸과 같은 오른쪽 위 위치를 쓰고, 장착 칸의 원형 바탕을 유지한다.
     public static void ConfigureEquippedBadge(GameObject equipmentPrefab)
     {
         Transform badge = equipmentPrefab.transform.Find("Layout/Weapon Slot/Weapon Element Badge");
         if (badge == null) throw new InvalidOperationException("Equipped weapon badge missing");
         var rect = (RectTransform)badge;
-        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.up;
-        rect.anchoredPosition = new Vector2(5f, -5f);
+        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
+        rect.anchoredPosition = new Vector2(-5f, -5f);
         rect.sizeDelta = Vector2.one * SlotBadgeSize;
         Image backing = ImageChild(badge, "Backing");
         backing.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectOverburst/Resources/UI/Minimap/Circle.png")
