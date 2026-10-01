@@ -81,7 +81,7 @@ MonoBehaviour:
   - {fileID: -5039108900510824522}
   - {fileID: 7641658828236289545}
   - {fileID: -2215636194960393682}
-  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba0976c08f37a00c6a
+  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba0976c08f37a00c6a2e3ae39f9e7a40e1
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -120,6 +120,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bfe5dd86bfd9f4b48b45bd937ac8d471, type: 3}
-  m_Name: Hideout Player Original Lighting
+  m_Name: Player Original Lighting
   m_EditorClassIdentifier: Assembly-CSharp::HideoutPlayerLightingRendererFeature
   m_Active: 1

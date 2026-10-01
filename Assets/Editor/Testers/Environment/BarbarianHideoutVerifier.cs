@@ -32,6 +32,9 @@ public static partial class BarbarianHideoutVerifier
         if (Phase != 0 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
             throw new InvalidOperationException("Idle Editor required.");
         output = IsolatedSavePlayGuard.ValidateDirectory(output);
+        var bootScene = SceneManager.GetSceneByName(PersistentSceneFlow.PersistentSceneName);
+        if (!bootScene.IsValid() || !bootScene.isLoaded)
+            throw new InvalidOperationException("Loaded PersistentScene required; preserve the current scene setup.");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + "output", output);
         SessionState.SetString(Key + "checks", "[]");
@@ -42,6 +45,8 @@ public static partial class BarbarianHideoutVerifier
         SessionState.SetString(Key + "status", "RUNNING");
         AssetDatabase.DisallowAutoRefresh();
         SessionState.SetBool(Key + "refreshOwned",true);
+        // Activate the product entry only for this test; Restore keeps the prior active scene.
+        SceneManager.SetActiveScene(bootScene);
         Cycle = 1; Phase = 1; Deadline();
         IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(Output, "IsolatedAccount"));
         return "Two isolated Hideout cycles started.";
@@ -81,6 +86,7 @@ public static partial class BarbarianHideoutVerifier
             }
             if (Errors.Count > 0) throw new InvalidOperationException("Runtime error detected; see captured errors.");
             EditorApplication.QueuePlayerLoopUpdate();
+            if (TickLightingRun()) return;
             if (Phase == 1)
             {
                 // Dirty development scenes can contain an inactive scene-flow object.
@@ -161,15 +167,12 @@ public static partial class BarbarianHideoutVerifier
             {
                 if (!Ready) return;
                 VerifyReturn("DungeonPortal");
-                // Exercise loading from disk again through the product hub-return flow.
-                SceneManager.SetActiveScene(SceneManager.GetSceneByName(PersistentSceneFlow.PersistentSceneName));
-                SceneManager.UnloadSceneAsync(PersistentSceneFlow.HideoutSceneName);
-                Phase = 5; Deadline(); return;
+                BeginLightingRun(); return;
             }
             if (Phase == 5)
             {
                 if (SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName).isLoaded) return;
-                VerifyPlayerLightingReleased();
+                VerifyPlayerLightingPersists();
                 PersistentSceneFlow.Instance.SwitchHubScene(PersistentSceneFlow.HideoutSceneName, "Default");
                 Phase = 6; Deadline(); return;
             }

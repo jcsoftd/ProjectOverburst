@@ -9,21 +9,21 @@ public static partial class BarbarianHideoutVerifier
 {
     static void VerifyPlayerLighting(Scene scene)
     {
-        var scope = HideoutPlayerLightingScope.Active;
-        Check(scope != null && scope.gameObject.scene == scene, "Hideout owns player lighting scope");
+        var scope = PlayerLightingScope.Active;
+        Check(scope != null && scope.gameObject.scene.name == "DontDestroyOnLoad", "Global runtime owns player lighting scope");
         scope.RefreshActors();
         Check(Vector3.Distance(new Vector3(scope.OriginalMainColor.r, scope.OriginalMainColor.g, scope.OriginalMainColor.b), Vector3.one * 2) < .001f,
             "Player uses original white directional light intensity 2");
         var body = Actor.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-        Check(body.Length > 0 && body.All(r => r.renderingLayerMask == HideoutPlayerLightingScope.PlayerLayer && r.lightProbeUsage == LightProbeUsage.CustomProvided),
+        Check(body.Length > 0 && body.All(r => r.renderingLayerMask == PlayerLightingScope.PlayerLayer && r.lightProbeUsage == LightProbeUsage.CustomProvided),
             "All character body/face/armor variants exclude camp light layer and use original ambient probe");
-        Check(scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Light>(true)).All(l => ((uint)l.GetUniversalAdditionalLightData().renderingLayers & HideoutPlayerLightingScope.PlayerLayer) == 0),
+        Check(scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Light>(true)).All(l => ((uint)l.GetUniversalAdditionalLightData().renderingLayers & PlayerLightingScope.PlayerLayer) == 0),
             "Camp sun, fire and forge lights exclude playable actors");
         var own = Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight");
-        Check(own.intensity == .3f && ((uint)own.GetUniversalAdditionalLightData().renderingLayers & HideoutPlayerLightingScope.PlayerLayer) != 0, "Existing player ambient light retained");
+        Check(own.intensity == .3f && ((uint)own.GetUniversalAdditionalLightData().renderingLayers & PlayerLightingScope.PlayerLayer) != 0, "Existing player ambient light retained");
         var camera = Camera.main;
         SaveCamera(camera, Path.Combine(Output, "player_original_lighting_" + Cycle + ".png"));
-        Check(HideoutPlayerLightingRendererFeature.LastDrawFrame == Time.frameCount && HideoutPlayerLightingRendererFeature.LastDrawCount > 0,
+        Check(PlayerLightingRendererFeature.LastDrawFrame == Time.frameCount && PlayerLightingRendererFeature.LastDrawCount > 0,
             "Player original materials drawn after camp color grading with scene depth");
         scope.enabled = false;
         try {SaveCamera(camera, Path.Combine(Output, "player_camp_lighting_before_" + Cycle + ".png"));}
@@ -52,12 +52,12 @@ public static partial class BarbarianHideoutVerifier
         finally {Object.DestroyImmediate(before); Object.DestroyImmediate(after);}
     }
 
-    static void VerifyPlayerLightingReleased()
+    static void VerifyPlayerLightingPersists()
     {
-        Check(HideoutPlayerLightingScope.Active == null, "Leaving Hideout releases player lighting scope");
-        Check(Actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).All(r => r.renderingLayerMask == 1 && r.lightProbeUsage != LightProbeUsage.CustomProvided),
-            "Leaving Hideout restores character light layers and ambient probe usage");
-        Check(Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight").renderingLayerMask == 1,
-            "Leaving Hideout restores original player light mask");
+        Check(PlayerLightingScope.Active != null, "Leaving Hideout retains global player lighting scope");
+        Check(Actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).All(r => r.renderingLayerMask == PlayerLightingScope.PlayerLayer && r.lightProbeUsage == LightProbeUsage.CustomProvided),
+            "Leaving Hideout retains character light layers and original ambient probe");
+        Check(Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight").GetUniversalAdditionalLightData().renderingLayers == 3,
+            "Leaving Hideout retains existing player ambient light on player layer");
     }
 }
