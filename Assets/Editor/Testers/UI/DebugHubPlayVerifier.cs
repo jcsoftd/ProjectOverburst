@@ -435,15 +435,11 @@ public static class DebugHubPlayVerifier
         Check("F2 shows overlay again", overlay != null && overlay.gameObject.activeSelf);
         DebugPrefs.TogglePin("system.perf.frame");
 
-        // 8) 확인창(임시 항목)
+        // 8) 정식 확인창 경로. 등록부에 프리팹에 없는 검증용 UI를 추가하지 않는다.
         bool ran = false;
-        DebugRegistry.Section(DebugTabs.SystemTab, "검증용 임시", 999)
-            .Button("확인창 시험", () => ran = true)
-            .WithId("verify.confirm")
-            .Confirm("시험: 실행을 누르면 동작해요");
         DebugHub.OpenTab(DebugTabs.SystemTab);
         yield return Wait(0.35f);
-        ((DebugButtons)DebugRegistry.Find("verify.confirm")).Press(0);
+        DebugRuntime.ConfirmHandler.Invoke(DebugRegistry.Find("system.window.reset"), () => ran = true);
         yield return Frames(3);
         RectTransform confirm = ByPath("Debug Window/Confirm");
         Check("confirm bar shown before running", confirm != null && confirm.gameObject.activeSelf && !ran);
@@ -468,6 +464,7 @@ public static class DebugHubPlayVerifier
         Check("typing blocks gameplay input", GameplayInputBlocker.IsGameplayInputBlocked);
         yield return Press(Key.Escape);
         Check("Esc only leaves search", DebugHub.IsOpen && search != null && !search.isFocused);
+        Check("search Esc does not open pause menu", !OverburstGameMenu.IsOpen);
         yield return Press(Key.F1);
         yield return Frames(2);
         Check("F1 closes window", !DebugHub.IsOpen);

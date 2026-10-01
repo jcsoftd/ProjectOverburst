@@ -31,9 +31,11 @@ namespace Overburst.DebugTools
         private sealed class TabView
         {
             public string Tab;
+            public Button Button;
             public Image Background;
             public TextMeshProUGUI Label;
             public string LastText;
+            public bool Selected;
         }
 
         private static readonly float[] Opacities = { 1f, 0.85f, 0.6f };
@@ -53,6 +55,9 @@ namespace Overburst.DebugTools
         private CanvasGroup group;
         private RectTransform tabList;
         private RectTransform content;
+        private RectTransform contentRoot;
+        private readonly Dictionary<RectTransform, Dictionary<string, DebugRowView>> pageRows =
+            new Dictionary<RectTransform, Dictionary<string, DebugRowView>>();
         private ScrollRect scroll;
         private TMP_InputField search;
         private TextMeshProUGUI info;
@@ -186,7 +191,6 @@ namespace Overburst.DebugTools
                 return;
             dirty = true;
             resetScroll = true;
-            tabSignature = null;
             SaveState();
             Refresh();
         }
@@ -264,7 +268,7 @@ namespace Overburst.DebugTools
             root = DebugUi.Rect(canvasRect, "Debug Window");
             root.anchorMin = root.anchorMax = new Vector2(1f, 1f);
             root.pivot = new Vector2(0f, 1f);
-            group = root.gameObject.AddComponent<CanvasGroup>();
+            group = DebugUi.Component<CanvasGroup>(root.gameObject);
             DebugUi.Column(root, 0f);
 
             // 레이아웃 밖의 틀: 그림자 2겹 → 테두리 → 바탕. 먼저 만든 자식이 뒤에 그려진다.
@@ -298,7 +302,7 @@ namespace Overburst.DebugTools
             Image title = DebugUi.Image(root, "Title", new Color(1f, 1f, 1f, 0f), true);
             DebugUi.FixedHeight(title, 46f);
             DebugUi.Row(title, 8f, new RectOffset(16, 10, 9, 9));
-            DebugDragHandle drag = title.gameObject.AddComponent<DebugDragHandle>();
+            DebugDragHandle drag = DebugUi.Component<DebugDragHandle>(title.gameObject);
             drag.Dragged = delta => Move(delta);
             drag.Ended = SaveState;
 
@@ -343,6 +347,7 @@ namespace Overburst.DebugTools
             DebugUi.Column(tabs, 2f, new RectOffset(8, 8, 10, 10));
 
             content = DebugUi.Scroll(body, "Scroll", out scroll);
+            contentRoot = content;
             DebugUi.Layout(scroll, flexibleWidth: 1f, minWidth: 100f);
             DebugUi.Column(content, 1f, new RectOffset(14, 18, 0, 16));
 
@@ -435,7 +440,7 @@ namespace Overburst.DebugTools
                 dotRect.sizeDelta = new Vector2(2f, 2f);
                 dotRect.anchoredPosition = dots[i];
             }
-            DebugDragHandle drag = handle.gameObject.AddComponent<DebugDragHandle>();
+            DebugDragHandle drag = DebugUi.Component<DebugDragHandle>(handle.gameObject);
             drag.Dragged = Resize;
             drag.Ended = SaveState;
             DebugUi.AddTip(handle, "끌어서 크기 조절");
@@ -447,11 +452,11 @@ namespace Overburst.DebugTools
             tooltip = background.rectTransform;
             tooltip.anchorMin = tooltip.anchorMax = new Vector2(0.5f, 0.5f);
             tooltip.pivot = new Vector2(0f, 1f);
-            CanvasGroup tooltipGroup = background.gameObject.AddComponent<CanvasGroup>();
+            CanvasGroup tooltipGroup = DebugUi.Component<CanvasGroup>(background.gameObject);
             tooltipGroup.blocksRaycasts = false;
             tooltipGroup.interactable = false;
             DebugUi.Column(background, 0f, new RectOffset(10, 10, 7, 8), false);
-            var fitter = background.gameObject.AddComponent<ContentSizeFitter>();
+            var fitter = DebugUi.Component<ContentSizeFitter>(background.gameObject);
             fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             tooltipText = DebugUi.Text(tooltip, "Text", string.Empty, style.smallSize + 1f, style.text);
@@ -478,12 +483,12 @@ namespace Overburst.DebugTools
                     tabScratch.Add(tab);
             }
 
-            string signature = string.Join("|", tabScratch) + "#" + state.tab;
+            if (!tabScratch.Contains(state.tab))
+                state.tab = tabScratch.Count > 1 ? tabScratch[1] : DebugTabs.Favorites;
+            string signature = string.Join("|", tabScratch);
             if (signature != tabSignature)
             {
                 tabSignature = signature;
-                if (!tabScratch.Contains(state.tab))
-                    state.tab = tabScratch.Count > 1 ? tabScratch[1] : DebugTabs.Favorites;
                 RebuildTabs();
             }
 
@@ -492,6 +497,15 @@ namespace Overburst.DebugTools
             for (int i = 0; i < tabViews.Count; i++)
             {
                 TabView view = tabViews[i];
+                bool selected = query.Length == 0 && view.Tab == state.tab;
+                if (view.Selected != selected)
+                {
+                    view.Selected = selected;
+                    view.Background.color = selected ? style.tabSelected : Color.white;
+                    view.Button.colors = selected ? DebugUi.SolidColors() : DebugUi.GhostColors();
+                    view.Label.color = selected ? style.textStrong : style.label;
+                    view.Label.fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
+                }
                 string text = view.Tab == DebugTabs.SystemTab && errors > 0
                     ? $"{view.Tab} <color={DebugHubStyle.Hex(style.error)}>●{errors}</color>"
                     : view.Tab;
@@ -514,7 +528,8 @@ namespace Overburst.DebugTools
                 bool selected = !searching && tab == state.tab;
                 Image background = DebugUi.Panel(tabList, "Tab " + tab, selected ? style.tabSelected : Color.white, 5, true);
                 DebugUi.FixedHeight(background, 32f);
-                var button = background.gameObject.AddComponent<Button>();
+                var button = DebugUi.Component<Button>(background.gameObject);
+                button.onClick.RemoveAllListeners();
                 button.targetGraphic = background;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.colors = selected ? DebugUi.SolidColors() : DebugUi.GhostColors();
@@ -526,13 +541,23 @@ namespace Overburst.DebugTools
                     DebugUi.Deselect();
                     SelectTab(tab);
                 });
-                tabViews.Add(new TabView { Tab = tab, Background = background, Label = label });
+                tabViews.Add(new TabView
+                {
+                    Tab = tab, Button = button, Background = background, Label = label, Selected = selected
+                });
             }
         }
 
         private void RebuildContent()
         {
-            DisposeRows();
+            foreach (DebugRowView row in rows)
+                row.ResetTransientState();
+            rows.Clear();
+            if (highlighted != null)
+                highlighted.SetHighlight(false);
+            DebugUi.ClearChildren(contentRoot);
+            content = DebugUi.Rect(contentRoot, "Page " + (query.Length > 0 ? "Search" : state.tab));
+            DebugUi.Column(content, 1f);
             DebugUi.ClearChildren(content);
             highlighted = null;
 
@@ -549,7 +574,7 @@ namespace Overburst.DebugTools
             if (resetScroll)
             {
                 resetScroll = false;
-                content.anchoredPosition = new Vector2(content.anchoredPosition.x, 0f);
+                contentRoot.anchoredPosition = new Vector2(contentRoot.anchoredPosition.x, 0f);
             }
         }
 
@@ -572,14 +597,10 @@ namespace Overburst.DebugTools
         private void BuildFavorites()
         {
             DebugSectionHeader.Build(content, "즐겨찾기", null, false, false, null);
-            int shown = AddRowsById(DebugPrefs.Favorites);
-            if (shown == 0)
-                AddHint("항목 오른쪽의 ☆를 누르면 여기에 모여요.");
+            BuildFavoriteGroup("Favorites Rows", DebugPrefs.Favorites, "항목 오른쪽의 ☆를 누르면 여기에 모여요.");
 
             DebugSectionHeader.Build(content, "최근 사용", $"마지막으로 쓴 {DebugPrefs.RecentLimit}개", false, false, null);
-            shown = AddRowsById(DebugPrefs.Recent);
-            if (shown == 0)
-                AddHint("버튼이나 선택을 쓰면 여기에 남아요.");
+            BuildFavoriteGroup("Recent Rows", DebugPrefs.Recent, "버튼이나 선택을 쓰면 여기에 남아요.");
 
             IReadOnlyList<DebugSection> sections = DebugRegistry.Sections;
             for (int i = 0; i < sections.Count; i++)
@@ -587,6 +608,60 @@ namespace Overburst.DebugTools
                 if (sections[i].Tab == DebugTabs.Favorites && sections[i].Items.Count > 0)
                     AddSection(sections[i]);
             }
+        }
+
+        private void BuildFavoriteGroup(string name, IReadOnlyList<string> ids, string hint)
+        {
+            RectTransform page = content;
+            content = DebugUi.Rect(page, name);
+            DebugUi.Column(content, 1f);
+            DebugUi.ClearChildren(content);
+            if (AddRowsById(ids) == 0)
+                AddHint(hint);
+            content = page;
+        }
+
+        // Editor 제작 단계에서 모든 탭, 검색과 즐겨찾기 행을 프리팹에 저장한다.
+        public void BakePagesForAuthoring()
+        {
+            if (Application.isPlaying)
+                throw new InvalidOperationException("프리팹 제작은 Edit 모드에서 실행하세요.");
+            RefreshTabs();
+            foreach (string tab in tabScratch)
+            {
+                content = DebugUi.Rect(contentRoot, "Page " + tab);
+                DebugUi.Column(content, 1f);
+                if (tab == DebugTabs.Favorites)
+                {
+                    BuildFavorites();
+                    RectTransform page = content;
+                    foreach (string name in new[] { "Favorites Rows", "Recent Rows" })
+                    {
+                        content = (RectTransform)page.Find(name);
+                        foreach (DebugItem item in DebugRegistry.AllItems)
+                            AddRow(item, item.Section.Tab + " › " + item.Section.Title);
+                        AddHint(string.Empty);
+                        content = page;
+                    }
+                }
+                else
+                    BuildTab(tab);
+                AddHint(string.Empty);
+                content.gameObject.SetActive(false);
+            }
+            content = DebugUi.Rect(contentRoot, "Page Search");
+            DebugUi.Column(content, 1f);
+            foreach (DebugSection section in DebugRegistry.Sections)
+            {
+                DebugSectionHeader.Build(content, section.Tab + " › " + section.Title, null, false, false, null);
+                foreach (DebugItem item in section.Items)
+                    AddRow(item, null);
+            }
+            AddHint(string.Empty);
+            content.gameObject.SetActive(false);
+            content = contentRoot;
+            rows.Clear();
+            root.gameObject.SetActive(false);
         }
 
         private void BuildSearch()
@@ -618,7 +693,7 @@ namespace Overburst.DebugTools
 
         private void AddSection(DebugSection section)
         {
-            bool collapsed = DebugPrefs.IsCollapsed(section.Key);
+            bool collapsed = Application.isPlaying && DebugPrefs.IsCollapsed(section.Key);
             DebugSectionHeader.Build(content, section.Title, section.Note, true, collapsed, () =>
             {
                 DebugPrefs.SetCollapsed(section.Key, !collapsed);
@@ -647,17 +722,29 @@ namespace Overburst.DebugTools
 
         private void AddRow(DebugItem item, string context)
         {
+            if (!pageRows.TryGetValue(content, out Dictionary<string, DebugRowView> cached))
+            {
+                cached = new Dictionary<string, DebugRowView>();
+                pageRows.Add(content, cached);
+            }
+            if (cached.TryGetValue(item.Id, out DebugRowView existing))
+            {
+                existing.Root.SetAsLastSibling();
+                existing.Refresh();
+                rows.Add(existing);
+                return;
+            }
             DebugRowView view = DebugRowView.Create(item);
             try
             {
                 view.Build(content, context);
+                cached.Add(item.Id, view);
                 rows.Add(view);
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
-                if (view.Root != null)
-                    UnityEngine.Object.Destroy(view.Root.gameObject);
+                throw new InvalidOperationException("디버그 프리팹 행 연결 실패: " + item.Id, exception);
             }
         }
 
@@ -671,8 +758,10 @@ namespace Overburst.DebugTools
 
         private void DisposeRows()
         {
-            for (int i = 0; i < rows.Count; i++)
-                rows[i].Dispose();
+            foreach (Dictionary<string, DebugRowView> cached in pageRows.Values)
+                foreach (DebugRowView row in cached.Values)
+                    row.Dispose();
+            pageRows.Clear();
             rows.Clear();
         }
 
@@ -693,13 +782,13 @@ namespace Overburst.DebugTools
             if (row == null || row.Root == null)
                 return;
 
-            float contentHeight = content.rect.height;
+            float contentHeight = contentRoot.rect.height;
             float viewHeight = scroll.viewport.rect.height;
             if (contentHeight > viewHeight)
             {
-                Vector3 top = content.InverseTransformPoint(row.Root.TransformPoint(new Vector3(0f, row.Root.rect.yMax, 0f)));
+                Vector3 top = contentRoot.InverseTransformPoint(row.Root.TransformPoint(new Vector3(0f, row.Root.rect.yMax, 0f)));
                 float target = Mathf.Clamp(-top.y - 24f, 0f, contentHeight - viewHeight);
-                content.anchoredPosition = new Vector2(content.anchoredPosition.x, target);
+                contentRoot.anchoredPosition = new Vector2(contentRoot.anchoredPosition.x, target);
             }
             if (highlighted != null)
                 highlighted.SetHighlight(false);
@@ -729,7 +818,6 @@ namespace Overburst.DebugTools
             query = (value ?? string.Empty).Trim();
             dirty = true;
             resetScroll = true;
-            tabSignature = null;
             Refresh();
         }
 

@@ -141,7 +141,43 @@ public static class OverburstGameMenuBuilder
         var button = group.Find(name).GetComponent<Button>();
         text = button.transform.Find("Text").GetComponent<Text>();
         Restyle(text, label, serif, 50);
+        StyleMainButtonLabel(text);
         return button;
+    }
+
+    // 기존 프리팹의 네 메인 버튼만 갱신한다. 다른 배치와 직렬화 연결은 보존한다.
+    [MenuItem("OVERBURST/Codex/Objectizers/UI/Center Game Menu Button Labels")]
+    public static void ImproveMainButtonLabels()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new System.InvalidOperationException("Stop Play before editing the menu prefab.");
+        var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        try
+        {
+            var menu = root.GetComponent<OverburstGameMenu>();
+            foreach (var button in new[] { menu.resumeButton, menu.settingsButton, menu.returnButton, menu.quitButton })
+                StyleMainButtonLabel(button.transform.Find("Text").GetComponent<Text>());
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
+            if (!saved) throw new System.InvalidOperationException("Menu prefab save failed.");
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void StyleMainButtonLabel(Text text)
+    {
+        var rect = text.rectTransform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(.5f, .5f);
+        rect.offsetMin = new Vector2(44f, 0f);
+        rect.offsetMax = new Vector2(-44f, 0f);
+        text.alignment = TextAnchor.MiddleCenter;
+        // 한글 글꼴의 위아래 여백 대신 실제 글자 정점을 기준으로 가운데에 맞춘다.
+        text.alignByGeometry = true;
+        var shadow = text.GetComponent<Shadow>() ?? text.gameObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, .9f);
+        shadow.effectDistance = new Vector2(3f, -3f);
+        shadow.useGraphicAlpha = true;
     }
 
     // ───────── 설정 창: 키트 "Window (Settings)"

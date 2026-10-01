@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -29,4 +28,3 @@ namespace Overburst.DebugTools
         }
     }
 }
-#endif

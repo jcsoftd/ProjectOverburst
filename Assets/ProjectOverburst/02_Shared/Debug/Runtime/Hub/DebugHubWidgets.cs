@@ -69,6 +69,10 @@ namespace Overburst.DebugTools
         {
         }
 
+        public virtual void ResetTransientState()
+        {
+        }
+
         /// <param name="context">즐겨찾기처럼 원래 탭 밖에 그릴 때 툴팁에 붙일 '탭 › 섹션'.</param>
         public void Build(Transform parent, string context)
         {
@@ -247,7 +251,8 @@ namespace Overburst.DebugTools
             track = DebugUi.Panel(Content, "Switch", Style.off, 10, true);
             DebugUi.Layout(track, preferredWidth: TrackWidth, preferredHeight: TrackHeight, flexibleWidth: 0f,
                 flexibleHeight: 0f, minWidth: TrackWidth, minHeight: TrackHeight);
-            var button = track.gameObject.AddComponent<Button>();
+            var button = DebugUi.Component<Button>(track.gameObject);
+            button.onClick.RemoveAllListeners();
             button.targetGraphic = track;
             button.colors = DebugUi.SolidColors();
             button.navigation = new Navigation { mode = Navigation.Mode.None };
@@ -347,6 +352,20 @@ namespace Overburst.DebugTools
             DebugUi.Layout(group, preferredHeight: ControlHeight + 2f, flexibleWidth: 0f, flexibleHeight: 0f,
                 minHeight: ControlHeight + 2f);
             Rebuild();
+            if (!Application.isPlaying)
+            {
+                for (int i = 0; i < SegmentLimit; i++)
+                    DebugUi.Button(options, "Option " + i, "-", null, out _, 34f, ControlHeight - 2f,
+                        -1f, DebugButtonKind.Ghost, 4).gameObject.SetActive(false);
+                DebugUi.Button(options, "Previous", "‹", null, out _, 24f, ControlHeight - 2f, 15f,
+                    DebugButtonKind.Ghost, 4).gameObject.SetActive(false);
+                DebugUi.Button(options, "Next", "›", null, out _, 24f, ControlHeight - 2f, 15f,
+                    DebugButtonKind.Ghost, 4).gameObject.SetActive(false);
+                DebugUi.Layout(DebugUi.Text(options, "Current", "-", Style.bodySize - 1f, Style.textStrong,
+                    TextAlignmentOptions.Center, true), preferredWidth: 150f, minWidth: 90f);
+                DebugUi.Layout(DebugUi.Text(options, "Empty", "선택지 없음", Style.smallSize, Style.muted,
+                    TextAlignmentOptions.Center), preferredWidth: 80f);
+            }
         }
 
         protected override void RefreshContent(bool force)
@@ -529,6 +548,12 @@ namespace Overburst.DebugTools
 
         private DebugOptionsItem Target => (DebugOptionsItem)Item;
 
+        public override void ResetTransientState()
+        {
+            if (panel != null)
+                panel.gameObject.SetActive(false);
+        }
+
         protected override void BuildContent()
         {
             open = DebugUi.Button(Content, "Open", "-", ToggleOpen, out openLabel, 140f, ControlHeight);
@@ -545,6 +570,18 @@ namespace Overburst.DebugTools
             search.onValueChanged.AddListener(_ => RebuildList());
             list = DebugUi.Rect(panel, "List");
             DebugUi.Column(list, 1f);
+            if (!Application.isPlaying)
+            {
+                for (int i = 0; i < MaxShown; i++)
+                {
+                    Button slot = DebugUi.Button(list, "Option " + i, "-", null, out TextMeshProUGUI text,
+                        60f, 24f, -1f, DebugButtonKind.Ghost, 4);
+                    text.alignment = TextAlignmentOptions.MidlineLeft;
+                    DebugUi.Layout(slot, preferredHeight: 24f, flexibleWidth: 1f, flexibleHeight: 0f, minHeight: 24f);
+                    slot.gameObject.SetActive(false);
+                }
+                DebugUi.Text(list, "Note", string.Empty, Style.smallSize, Style.muted).gameObject.SetActive(false);
+            }
             panel.gameObject.SetActive(false);
         }
 
@@ -592,7 +629,7 @@ namespace Overburst.DebugTools
                 if (matched > MaxShown)
                     continue;
                 int index = i;
-                Button button = DebugUi.Button(list, "Option " + i, label, () => Pick(index), out TextMeshProUGUI text,
+                Button button = DebugUi.Button(list, "Option " + (matched - 1), label, () => Pick(index), out TextMeshProUGUI text,
                     60f, 24f, -1f, DebugButtonKind.Ghost, 4);
                 text.alignment = TextAlignmentOptions.MidlineLeft;
                 DebugUi.Layout(button, preferredHeight: 24f, flexibleWidth: 1f, flexibleHeight: 0f, minHeight: 24f);
@@ -725,6 +762,14 @@ namespace Overburst.DebugTools
             bar = track.rectTransform;
             DebugUi.Layout(track, preferredHeight: 12f, flexibleWidth: 1f, flexibleHeight: 0f, minWidth: 60f, minHeight: 12f);
             DebugUi.Row(track, 2f, new RectOffset(1, 1, 1, 1), TextAnchor.MiddleLeft, true);
+            if (!Application.isPlaying)
+                for (int i = 0; i < 16; i++)
+                {
+                    Image part = DebugUi.Panel(bar, "Part " + i, Color.white, 3);
+                    parts.Add(part);
+                    partLayouts.Add(DebugUi.Layout(part, preferredWidth: 0f, flexibleWidth: 1f));
+                    part.gameObject.SetActive(false);
+                }
         }
 
         protected override void BuildExtra(RectTransform root)
@@ -850,7 +895,8 @@ namespace Overburst.DebugTools
                 TextAlignmentOptions.MidlineRight);
             DebugUi.Layout(noteText, flexibleWidth: 1f, minWidth: 0f);
 
-            var button = bar.gameObject.AddComponent<Button>();
+            var button = DebugUi.Component<Button>(bar.gameObject);
+            button.onClick.RemoveAllListeners();
             button.targetGraphic = bar;
             button.colors = DebugUi.GhostColors();
             button.navigation = new Navigation { mode = Navigation.Mode.None };

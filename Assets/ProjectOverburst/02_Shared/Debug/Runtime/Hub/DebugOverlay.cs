@@ -36,6 +36,7 @@ namespace Overburst.DebugTools
         private readonly RectTransform list;
         private readonly LineView errorLine;
         private readonly State state;
+        private int lineSerial;
 
         public DebugOverlay(DebugHub hub, RectTransform canvas)
         {
@@ -48,14 +49,14 @@ namespace Overburst.DebugTools
             root.anchorMin = root.anchorMax = new Vector2(0f, 0.5f);
             root.pivot = new Vector2(0f, 0.5f);
             DebugUi.Column(background, 2f, new RectOffset(12, 12, 8, 10), false);
-            var fitter = background.gameObject.AddComponent<ContentSizeFitter>();
+            var fitter = DebugUi.Component<ContentSizeFitter>(background.gameObject);
             fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             TextMeshProUGUI header = DebugUi.Text(root, "Header", "핀  ·  F2 숨김  ·  끌어서 이동", style.smallSize - 1f, style.muted);
             header.raycastTarget = true;
             DebugUi.FixedHeight(header, 16f);
-            DebugDragHandle drag = header.gameObject.AddComponent<DebugDragHandle>();
+            DebugDragHandle drag = DebugUi.Component<DebugDragHandle>(header.gameObject);
             drag.Dragged = Move;
             drag.Ended = SaveState;
 
@@ -125,10 +126,11 @@ namespace Overburst.DebugTools
         private LineView CreateLine()
         {
             DebugHubStyle style = DebugUi.Style;
-            Image background = DebugUi.Panel(list, "Line", Color.white, 4, true);
+            Image background = DebugUi.Panel(list, "Line " + lineSerial++, Color.white, 4, true);
             DebugUi.Row(background, 0f, new RectOffset(4, 4, 0, 0));
             DebugUi.FixedHeight(background, 21f);
-            var button = background.gameObject.AddComponent<Button>();
+            var button = DebugUi.Component<Button>(background.gameObject);
+            button.onClick.RemoveAllListeners();
             button.targetGraphic = background;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.colors = DebugUi.GhostColors();
@@ -145,6 +147,16 @@ namespace Overburst.DebugTools
                     DebugHub.OpenTab(DebugTabs.SystemTab);
             });
             return line;
+        }
+
+        public void BakeLines()
+        {
+            while (lines.Count < DebugPrefs.PinLimit)
+                lines.Add(CreateLine());
+            foreach (LineView line in lines)
+                line.Root.SetActive(false);
+            errorLine.Root.SetActive(false);
+            root.gameObject.SetActive(false);
         }
 
         private static void SetText(LineView line, string text)

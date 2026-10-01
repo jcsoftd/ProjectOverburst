@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -11,13 +10,14 @@ using UnityEngine.UI;
 namespace Overburst.DebugTools
 {
     /// <summary>
-    /// OVERBURST 디버그 창. 씬에 두지 않고 Play 시작 때 스스로 만들어 DontDestroyOnLoad로 둔다.
+    /// OVERBURST 디버그 창. 정식 프리팹을 한 번 로드해 DontDestroyOnLoad로 둔다.
     /// F1 창, F2 핀 오버레이, Ctrl+F 검색. 창·오버레이 위에 포인터가 있거나 입력칸에 글자를 넣는 동안
     /// <see cref="GameplayInputBlocker"/>로 게임 입력을 막는다. 게임 코드보다 먼저 돌도록 실행 순서를 앞당긴다.
     /// </summary>
     [DefaultExecutionOrder(-10000)]
     public sealed class DebugHub : MonoBehaviour
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private const float RefreshInterval = 0.2f;
 
         private readonly Dictionary<Key, DebugItem> hotkeys = new Dictionary<Key, DebugItem>();
@@ -32,6 +32,8 @@ namespace Overburst.DebugTools
         private int persistRevision = -1;
         private bool blocking;
         private bool pointerOverWindow;
+        private EventSystem fallbackEventSystem;
+        private bool typingEndedThisFrame;
 
         public static DebugHub Instance { get; private set; }
         public static bool IsOpen => Instance != null && Instance.window != null && Instance.window.Visible;
@@ -49,9 +51,13 @@ namespace Overburst.DebugTools
         {
             if (Instance != null)
                 return;
-            var go = new GameObject("OVERBURST Debug Hub", typeof(RectTransform));
+            GameObject prefab = Resources.Load<GameObject>(DebugHubView.ResourcePath);
+            if (prefab == null)
+                throw new InvalidOperationException("PF_OverburstDebugHub 프리팹이 없어요. Debug Hub 빌더로 제작하세요.");
+            GameObject go = Instantiate(prefab);
+            go.name = "OVERBURST Debug Hub";
             DontDestroyOnLoad(go);
-            go.AddComponent<DebugHub>();
+            go.SetActive(true);
         }
 
         public static void Open()
@@ -112,7 +118,11 @@ namespace Overburst.DebugTools
             Instance = this;
             gameObject.layer = 5;
             BuildCanvas();
-            DebugUi.Initialize(DebugHubStyle.Load());
+            DebugHubView view = GetComponent<DebugHubView>();
+            if (view == null || view.Style == null)
+                throw new InvalidOperationException("디버그 프리팹의 View/Style 연결을 확인하세요.");
+            DebugUi.Initialize(view.Style);
+            fallbackEventSystem = view.FallbackEventSystem;
             overlay = new DebugOverlay(this, canvasRect);
             window = new DebugHubWindow(canvasRect);
             window.SetVisible(false);
@@ -144,11 +154,14 @@ namespace Overburst.DebugTools
 
         private void Update()
         {
+            typingEndedThisFrame = false;
             DebugPerf.Tick(Time.unscaledDeltaTime);
             DebugPerfRecorder.Tick(Time.unscaledDeltaTime);
             DebugLogCapture.Drain();
             DebugTime.Tick();
             ApplyPersistedValues();
+            if (fallbackEventSystem != null && fallbackEventSystem.gameObject.activeSelf)
+                EnsureEventSystem();
             UpdatePointer();
             HandleKeys();
             UpdateInputBlock();
@@ -163,15 +176,6 @@ namespace Overburst.DebugTools
 
         private void BuildCanvas()
         {
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 30000;
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
-            gameObject.AddComponent<GraphicRaycaster>();
             canvasRect = (RectTransform)transform;
         }
 
@@ -197,7 +201,8 @@ namespace Overburst.DebugTools
 
         private void UpdateInputBlock()
         {
-            bool want = pointerOverWindow || (window.Visible && window.IsTyping);
+            // 검색창이 Esc를 처리한 프레임은 뒤에 실행되는 게임 메뉴에 같은 입력을 넘기지 않는다.
+            bool want = pointerOverWindow || (window.Visible && window.IsTyping) || typingEndedThisFrame;
             if (want)
                 GameplayInputBlocker.Block(this); // 씬 전환이 차단을 비워도 다음 프레임에 다시 건다.
             else if (blocking)
@@ -214,7 +219,10 @@ namespace Overburst.DebugTools
             if (window.Visible && window.IsTyping)
             {
                 if (keyboard.escapeKey.wasPressedThisFrame)
+                {
                     window.BlurInputs();
+                    typingEndedThisFrame = true;
+                }
                 return;
             }
             if (IsTypingElsewhere())
@@ -322,13 +330,19 @@ namespace Overburst.DebugTools
 
         private static void EnsureEventSystem()
         {
-            if (EventSystem.current != null || FindFirstObjectByType<EventSystem>() != null)
+            EventSystem fallback = Instance != null ? Instance.fallbackEventSystem : null;
+            foreach (EventSystem system in FindObjectsByType<EventSystem>(FindObjectsSortMode.None))
+            {
+                if (system == fallback)
+                    continue;
+                if (fallback != null)
+                    fallback.gameObject.SetActive(false);
                 return;
-            var go = new GameObject("EventSystem (Debug Hub)");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
-            Debug.LogWarning("[DebugHub] 씬에 EventSystem이 없어 디버그 창용으로 하나 만들었어요.");
+            }
+            if (fallback == null)
+                throw new InvalidOperationException("디버그 프리팹의 예비 EventSystem을 연결하세요.");
+            fallback.gameObject.SetActive(true);
         }
+#endif
     }
 }
-#endif
