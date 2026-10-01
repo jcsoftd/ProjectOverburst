@@ -115,6 +115,7 @@ public static class RepresentativeBossBuilder
         EnsureAttackState(controller, "Attack7", "Attack_7", Clip("RightFootStompAttack"));
         EnsureTimedState(controller, "Boss_Roar", Clip("Roar1"), 1.6f, true);
         EnsureTimedState(controller, "Boss_Groggy", Clip("GetHitFront"), .45f, false);
+        EnsureFacingTurnSpeed(controller, resetTrialValues, log);
         EditorUtility.SetDirty(controller);
 
         var animation = LoadOrCreate<EnemyAnimationProfile>($"{Root}/EAP_Boss_UrsKing.asset", out _);
@@ -331,6 +332,25 @@ public static class RepresentativeBossBuilder
             }
         }
         state.motion = clip;
+    }
+
+    // 2026-10-01 Play07·진단 Probe09: 정예 원본의 제자리 회전(FacingTurnLeft/Right)은 각도와 무관하게 속도 1로 끝까지 재생되고,
+    // 그동안 공격 정면 판정(5°)이 풀리지 않는다. 7°만 어긋나도 약 2.6초 공격을 못 해, 1:1 보스전에서 멍하니 도는 시간이 된다.
+    // 보스 Animator 사본에서만 회전 상태를 빠르게 한다[시험값]. 원본 정예 Animator와 이동 프로필은 건드리지 않는다.
+    // 원본 값(1)일 때나 초기화 때만 쓰고, 손으로 바꾼 값은 보존한다.
+    const float BossFacingTurnSpeed = 2f;
+
+    static void EnsureFacingTurnSpeed(AnimatorController controller, bool reset, List<string> log)
+    {
+        foreach (var child in controller.layers[0].stateMachine.states)
+        {
+            var state = child.state;
+            if (state.name != "FacingTurnLeft" && state.name != "FacingTurnRight") continue;
+            if (!reset && !Mathf.Approximately(state.speed, 1f)) continue;
+            if (Mathf.Approximately(state.speed, BossFacingTurnSpeed)) continue;
+            state.speed = BossFacingTurnSpeed;
+            log.Add($"회전 상태 {state.name} 속도 {BossFacingTurnSpeed}");
+        }
     }
 
     static void EnsureHud(List<string> log)

@@ -46,7 +46,6 @@ public static class RepresentativeBossPlayVerifier
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene") throw new InvalidOperationException("PersistentScene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
-        SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
         Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
         EditorApplication.EnterPlaymode(); // 저장하지 않은 씬은 종료 때 Unity가 되돌린다
@@ -72,7 +71,9 @@ public static class RepresentativeBossPlayVerifier
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(Key + ".env", ""));
+            // 검증 전 값도 다른 테스트 계정일 수 있으므로 종료 뒤에는 실제 계정 경로로 해제한다.
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", "");
+            SessionState.EraseString(Key + ".env");
             SessionState.SetBool(Key, false);
         }
     }
@@ -141,6 +142,8 @@ public static class RepresentativeBossPlayVerifier
                 yield return EnterRun(1, "CavernMutants");
                 holdPhaseOne = true;
                 yield return CornerProbe();
+                // 전체 검증과 같은 순서(원거리→측면→후방→모서리)로 경계 시험을 다시 돌려 교착을 재현한다.
+                yield return Boundaries();
                 holdPhaseOne = false;
                 yield return Abandon();
                 yield break;
@@ -605,8 +608,17 @@ public static class RepresentativeBossPlayVerifier
                 var cc = player.GetComponent<CharacterController>(); cc.enabled = false; player.transform.position = p; cc.enabled = true; Physics.SyncTransforms();
             }
             else Place(dist, lateral);
-            int commits = director.CommitLog.Count; float until = Time.time + 14f;
-            while (director.CommitLog.Count == commits && Time.time < until) { TrackHeight(); boss.Health.Heal(boss.Health.MaxHp); yield return null; }
+            int commits = director.CommitLog.Count; float until = Time.time + 14f, nextSample = 0f;
+            var samples = new List<string>();
+            while (director.CommitLog.Count == commits && Time.time < until)
+            {
+                TrackHeight(); boss.Health.Heal(boss.Health.MaxHp);
+                // 2026-10-01 Play08: 모서리에서 10.9m 접근 상태로 14초 교착. 원인을 추측하지 않도록 0.2초마다 이동 차단 근거를 남긴다.
+                if (Time.time >= nextSample) { nextSample = Time.time + .2f; samples.Add($"{label} t={14f - (until - Time.time):0.0} {BossDiag()}"); }
+                yield return null;
+            }
+            samples.Add($"{label} RESULT {(director.CommitLog.Count > commits ? director.CommitLog[director.CommitLog.Count - 1] : "none")}");
+            File.AppendAllLines(Path.Combine(Output, "boundaries-trace.txt"), samples);
             bool acted = director.CommitLog.Count > commits;
             bool inside = DiamondDungeonLayout.Contains(boss.transform.position, 0f);
             ok &= acted && inside;
@@ -615,6 +627,29 @@ public static class RepresentativeBossPlayVerifier
             details.Add($"{label}:{(acted ? director.CommitLog[director.CommitLog.Count - 1] : "none")} inside={inside} t={14f - (until - Time.time):0.0}{why}");
         }
         Cond("근·원거리·측후방·경계 모서리에서 패턴 교착 없음", ok, string.Join(" ", details));
+    }
+
+    // 이동이 멈춘 이유를 가리는 진단값: 애니메이션 차단(도발·피격 등), 동작 잠금, 경직, 현재 클립, 목적지까지 거리.
+    static string BossDiag()
+    {
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+        var movement = boss.Movement;
+        var bridge = boss.AnimationBridge;
+        var animator = boss.GetComponentInChildren<Animator>();
+        var clips = animator != null ? animator.GetCurrentAnimatorClipInfo(0) : null;
+        string clip = clips != null && clips.Length > 0 && clips[0].clip != null ? clips[0].clip.name : "-";
+        var destinationField = typeof(EnemyMovement).GetField("destination", flags);
+        string destination = movement != null && movement.HasDestination && destinationField != null
+            ? Vector3.Distance(Flat((Vector3)destinationField.GetValue(movement)), Flat(boss.transform.position)).ToString("0.00")
+            : "-";
+        Vector3 aim = boss.AbilityController.ResolveAimPosition(player.transform);
+        return $"ai={boss.AI?.CurrentDebugStateName} dist={Vector3.Distance(Flat(boss.transform.position), Flat(player.transform.position)):0.00}"
+            + $" pos=({boss.transform.position.x:0.0},{boss.transform.position.z:0.0}) dest={destination}"
+            + $" mode={(movement != null ? movement.LocomotionMode.ToString() : "?")} hasDest={(movement != null && movement.HasDestination)}"
+            + $" block={(bridge != null && bridge.IsBlockingActionActive)} allows={(bridge == null || movement == null || bridge.AllowsMovement(movement.LocomotionMode))}"
+            + $" actLock={(movement != null && movement.IsActionLocked)} stun={(boss.AI?.MovementReaction != null && boss.AI.MovementReaction.IsHitStunActive)}"
+            + $" clip={clip} decision={director.CurrentDecisionId} strongLock={boss.AbilityController.IsStrongAttackLocked} lockedOut={director.IsLockedOut}"
+            + $" angle={Vector3.Angle(Flat(boss.transform.forward), Flat(aim - boss.transform.position)):0.0}";
     }
 
     static IEnumerator CornerProbe()
@@ -643,7 +678,8 @@ public static class RepresentativeBossPlayVerifier
                         + $" enter={ai.AttackEnterRange:0.00} within={ai.IsTargetWithin(ai.AttackEnterRange)} decision={director.CurrentDecisionId} strongLock={boss.AbilityController.IsStrongAttackLocked}"
                         + $" quakeReady={(quake != null && boss.AbilityController.IsCooldownReady(quake))} quakeStart={(quake != null ? EnemyAttackThreatGeometry.ResolveStartRange(boss, quake) : 0f):0.00}"
                         + $" moving={(boss.Movement != null ? boss.Movement.HasDestination.ToString() : "?")} bossInset={DiamondDungeonLayout.Radius - (Mathf.Abs(boss.transform.position.x) + Mathf.Abs(boss.transform.position.z)):0.0}"
-                        + $" angle={Vector3.Angle(Flat(boss.transform.forward), Flat(aimPoint - boss.transform.position)):0.0} facingOk={(boss.Movement != null && boss.Movement.IsFacingForAttack(aimPoint))}");
+                        + $" angle={Vector3.Angle(Flat(boss.transform.forward), Flat(aimPoint - boss.transform.position)):0.0} facingOk={(boss.Movement != null && boss.Movement.IsFacingForAttack(aimPoint))}"
+                        + " | " + BossDiag());
                 }
                 yield return null;
             }
