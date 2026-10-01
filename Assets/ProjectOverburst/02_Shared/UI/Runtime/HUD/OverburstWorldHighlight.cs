@@ -12,6 +12,7 @@ public sealed class OverburstWorldHighlight : IDisposable
     private GameObject owner;
     private HighlightEffect effect;
     private Transform target;
+    private Renderer[] targetRenderers;
     public int RendererCount => effect != null && owner.activeSelf ? effect.includedObjectsCount : 0;
     public HighlightEffect Effect => effect;
 
@@ -21,13 +22,22 @@ public sealed class OverburstWorldHighlight : IDisposable
     public void SetTarget(Transform next, Renderer[] renderers)
     {
         if (next == null || renderers == null || renderers.Length == 0) { Clear(); return; }
-        if (next == target && effect != null && owner.activeSelf) return;
+        if (next == target && effect != null && owner.activeSelf && SameRenderers(renderers)) return;
         EnsureEffect();
         effect.SetHighlighted(false);
         owner.SetActive(true);
         effect.SetTargets(next, renderers);
         target = next;
+        targetRenderers = (Renderer[])renderers.Clone();
         effect.SetHighlighted(style != OverburstWorldHighlightStyle.PlayerOcclusion);
+    }
+
+    private bool SameRenderers(Renderer[] renderers)
+    {
+        if (targetRenderers == null || targetRenderers.Length != renderers.Length) return false;
+        for (int i = 0; i < renderers.Length; i++)
+            if (targetRenderers[i] != renderers[i]) return false;
+        return true;
     }
 
     private void EnsureEffect()
@@ -83,6 +93,7 @@ public sealed class OverburstWorldHighlight : IDisposable
         var result = new List<Renderer>();
         foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
         {
+            if (!renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
             if (renderer is not MeshRenderer && renderer is not SkinnedMeshRenderer) continue;
             if (renderer.GetComponentInParent<ParticleSystem>() != null
                 || renderer.gameObject.name == WorldItemPickupHoverResolver.OutlineObjectName
@@ -95,6 +106,7 @@ public sealed class OverburstWorldHighlight : IDisposable
     public void Clear()
     {
         target = null;
+        targetRenderers = null;
         if (effect != null) { effect.SetHighlighted(false); owner.SetActive(false); }
     }
 

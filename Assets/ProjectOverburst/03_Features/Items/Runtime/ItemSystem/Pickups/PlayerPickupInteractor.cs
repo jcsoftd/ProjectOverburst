@@ -1029,17 +1029,21 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
         lastRequestResult = result;
     }
 
+    private int primaryPointerSuppressionFrame = -1;
+
     private void BeginPrimaryAttackSuppression()
     {
         suppressPrimaryAttackUntilRelease = true;
+        primaryPointerSuppressionFrame = Time.frameCount;
         // GOAL A2: 좌클릭 홀드 직접 읽기 대신 Gameplay Attack 유지를 사용한다. release 억제 의미 유지.
         PlayerInputFacade facade = PlayerInputFacade.Current;
-        observedSuppressedPointerPress = facade != null && (facade.AttackHeld || facade.UiClickHeld);
+        observedSuppressedPointerPress = facade != null && (facade.AttackHeld || facade.UiClickHeld
+            || (facade.TryGetUiAction("Click", out var click) && click.WasPressedThisFrame()));
     }
 
     private void HandleSuppressedPointerRelease()
     {
-        if (!suppressPrimaryAttackUntilRelease)
+        if (!suppressPrimaryAttackUntilRelease || primaryPointerSuppressionFrame == Time.frameCount)
             return;
 
         PlayerInputFacade facade = PlayerInputFacade.Current;

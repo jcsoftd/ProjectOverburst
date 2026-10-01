@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 /// <summary>모델 클릭의 획득 의도를 전투 입력보다 먼저 판정하고 플레이어/NPC 표현을 관리한다.</summary>
 [DisallowMultipleComponent]
@@ -17,7 +18,6 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
     private PlayerActorRuntime actor;
     private Transform hoveredInteraction;
     private float nextPlayerRefresh;
-    private bool pointerWasHeld;
     public WorldLootPickupRequestResult LastModelClickResult { get; private set; }
     public int ModelClickCount { get; private set; }
     public int PlayerRendererCount => playerVisual.RendererCount;
@@ -34,9 +34,8 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
     private void Update()
     {
         PlayerInputFacade input = PlayerInputFacade.Current;
-        bool held = input != null && input.UiClickHeld;
-        bool pressed = held && !pointerWasHeld;
-        pointerWasHeld = held;
+        bool pressed = input != null && input.TryGetUiAction("Click", out var click)
+            && click.enabled && click.WasPressedThisFrame();
         if (input == null || !pressed || GameplayInputBlocker.IsGameplayInputBlocked) return;
         bool overUi = ResolvePointerUi(input.PointerPosition, out bool overItemLabel);
         PlayerPickupInteractor core = PlayerPickupInteractor.ActiveCore;
@@ -67,6 +66,7 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         }
         if (actor == null || actor.Health == null || actor.Health.IsDead)
         {
+            hoveredInteraction = null;
             playerVisual.Clear();
             interactionVisual.Clear();
             return;
@@ -74,7 +74,6 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         // 무기/모델 교체를 반영한다. 렌더러 검색은 매 프레임 하지 않는다.
         if (Time.unscaledTime >= nextPlayerRefresh)
         {
-            playerVisual.Clear();
             playerVisual.SetTarget(actor.transform, OverburstWorldHighlight.CollectModelRenderers(actor.transform));
             nextPlayerRefresh = Time.unscaledTime + 1f;
         }
@@ -151,9 +150,19 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         interactionVisual.SetTarget(hoveredInteraction, interactionRenderers[selected.InteractionComponent]);
     }
 
+    private void OnEnable() => SceneManager.sceneUnloaded += OnSceneUnloaded;
+
+    private void OnSceneUnloaded(Scene scene)
+    {
+        interactionRenderers.Clear();
+        hoveredInteraction = null;
+        interactionVisual.Clear();
+        nextPlayerRefresh = 0f;
+    }
+
     private void OnDisable()
     {
-        pointerWasHeld = false;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
         hoveredInteraction = null;
         playerVisual.Dispose();
         interactionVisual.Dispose();
