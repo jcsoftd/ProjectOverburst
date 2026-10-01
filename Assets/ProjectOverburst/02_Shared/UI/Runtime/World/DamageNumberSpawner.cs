@@ -330,12 +330,12 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             popup.InitializeCustom("-" + Mathf.RoundToInt(displayDamage), new Color(1f, 0.16f, 0.12f, 1f), presentationPosition, 24f, spawner.ReleasePopup);
     }
 
-    public static void SpawnStatusText(Vector3 worldPosition, string displayText, Color color)
+    public static void SpawnStatusText(Vector3 worldPosition, string displayText, Color color, float heightOffset = 1.7f)
     {
         if (string.IsNullOrWhiteSpace(displayText) || !TryResolveInstance(out DamageNumberSpawner spawner))
             return;
 
-        Vector3 presentationPosition = worldPosition + Vector3.up * 1.7f;
+        Vector3 presentationPosition = worldPosition + Vector3.up * heightOffset;
         if (!spawner.CanPresent(presentationPosition))
             return;
 

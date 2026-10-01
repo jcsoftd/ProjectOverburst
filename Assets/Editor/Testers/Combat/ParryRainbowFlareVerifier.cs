@@ -273,6 +273,17 @@ public static class ParryRainbowFlareVerifier
                 Check(successClip != null && successVoices.Length == 2, "Two simultaneous parry success voices");
                 Check(successVoices.Any(a => Mathf.Approximately(a.volume, .9f)) && successVoices.Any(a => Mathf.Approximately(a.volume, .6f)), "Main 0.9 plus additional 0.6 success sound");
                 Check(leased.All(e => !e.AbilityController.IsExecuting && e.GetComponent<EnemyMovementReaction>().IsParryStunned), "All threats parry-stunned");
+                var stunPopups = UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsSortMode.None)
+                    .Where(p => p.GetComponent<TMPro.TMP_Text>().text == "기절").ToArray();
+                Check(stunPopups.Length == 1, "One stun floating label for the parried enemy");
+                var stunHead = leased[0].GetComponent<CombatTarget>().CurrentVolume;
+                var popupPosition = (Vector3)typeof(DamageNumberPopup).GetField("worldPosition", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(stunPopups[0]);
+                Check(popupPosition.y > stunHead.Center.y + stunHead.HalfHeight, "Stun label anchored above the enemy head");
+                EnemyParryStunIndicator.Show(leased[0]);
+                Check(UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsSortMode.None).Count(p => p.GetComponent<TMPro.TMP_Text>().text == "기절") == 1, "Extended stun does not duplicate the label");
+                var indicator = UnityEngine.Object.FindFirstObjectByType<EnemyParryStunIndicator>();
+                Check(indicator != null && indicator.GetComponentsInChildren<Renderer>(true).Length == 0, "No stun ring or orbiting star renderer");
+                UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-floating.png"));
                 Check(Mathf.Approximately(hp, actor.Health.CurrentHp), "No incoming damage");
                 var stats = TransientVfxPool.GetStatistics(prefab);
                 Check(stats.Requests == poolBefore.Requests + 1 && stats.Active == 1, "Exactly one pooled flare");
@@ -286,6 +297,9 @@ public static class ParryRainbowFlareVerifier
                 while (Time.unscaledTime < returnAt) yield return null;
                 Check(TransientVfxPool.GetStatistics(prefab).Active == 0, "Flare returned after completion");
                 Check(Mathf.Approximately(Time.timeScale, 1), "Time restored");
+                float popupEnd = Time.time + 1.6f;
+                while (Time.time < popupEnd) yield return null;
+                Check(!stunPopups[0].gameObject.activeSelf, "Stun floating label returned to the shared pool");
                 foreach (var enemy in leased) spawn.Release(enemy);
                 leased.Clear();
             }
