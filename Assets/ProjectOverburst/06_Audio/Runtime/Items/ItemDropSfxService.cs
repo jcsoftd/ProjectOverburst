@@ -23,7 +23,7 @@ public sealed class ItemDropSfxService : MonoBehaviour
         catalogLoaded = false;
     }
 
-    // 아이템이 나타날 때(드랍 시작) 전설·유물·신화면 등급음 1회.
+    // 아이템이 착지해 등급 효과가 나타날 때 전설·유물·신화면 등급음 1회.
     public static bool PlayReveal(ItemGrade grade, Vector3 position)
     {
         ItemDropSfxCatalog source = ResolveCatalog();

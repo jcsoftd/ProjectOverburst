@@ -35,6 +35,8 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     private Collider[] pickupColliders; // 충돌체 캐시
     private WorldItemDropMotion dropMotion; // 비물리 드랍 연출
     private Transform weaponGradeVfxAnchor;
+    private bool CanShowGradeVfx => isActiveAndEnabled && !pickedUp && runtimeItem != null
+        && (dropMotion == null || dropMotion.IsLanded);
 
     public static event Action RegistryChanged; // 활성 목록 변경 알림
 
@@ -62,7 +64,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         }
 
         RefreshGradeVfx();
-        if (spawnedGradeVfx != null) spawnedGradeVfx.SetActive(true);
+        if (CanShowGradeVfx && spawnedGradeVfx != null) spawnedGradeVfx.SetActive(true);
         if (activePickups.Add(this))
             NotifyRegistryChanged(); // 활성 등록
     }
@@ -125,7 +127,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         ApplyItemVisualPresentation();
         ConfigurePickupColliders(); // 충돌/트리거 정책 적용
         BeginScriptedDrop(); // 자연스러운 비물리 낙하 시작
-        RefreshGradeVfx(); // 등급 이펙트 생성
+        RefreshGradeVfx(); // 낙하 중에는 숨기고 착지 후 등급 이펙트 생성
         EnsureInitializedComponentRegistration(); // 비활성 컴포넌트 재사용 등록
         NotifyRegistryChanged(); // 런타임 데이터 갱신
     }
@@ -271,7 +273,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     {
         if (runtimeItem != null && (spawnedGradeVfx == null || renderedGrade != runtimeItem.grade))
             RefreshGradeVfx();
-        if (spawnedGradeVfx != null && !spawnedGradeVfx.activeSelf) spawnedGradeVfx.SetActive(true);
+        if (CanShowGradeVfx && spawnedGradeVfx != null && !spawnedGradeVfx.activeSelf) spawnedGradeVfx.SetActive(true);
     }
 
     private void OnDestroy()
@@ -281,7 +283,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
 
     private void RefreshGradeVfx()
     {
-        if (runtimeItem == null)
+        if (!CanShowGradeVfx)
         {
             if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
             spawnedGradeVfx = null;
@@ -366,13 +368,16 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         dropMotion.Landed -= HandleDropLanded;
         dropMotion.Landed += HandleDropLanded;
         dropMotion.Begin();
-        ItemDropSfxService.PlayReveal(runtimeItem.grade, transform.position); // 등장 등급음(전설 이상)
     }
 
     private void HandleDropLanded()
     {
         if (runtimeItem != null)
+        {
+            RefreshGradeVfx(); // 실제 착지 위치에서 등급 효과와 소리를 함께 시작
+            ItemDropSfxService.PlayReveal(runtimeItem.grade, transform.position);
             ItemDropSfxService.PlayLanded(runtimeItem.baseData, transform.position); // 종류별 착지 드랍음
+        }
         NotifyRegistryChanged(); // 착지 후 유효 멤버십 갱신
     }
 

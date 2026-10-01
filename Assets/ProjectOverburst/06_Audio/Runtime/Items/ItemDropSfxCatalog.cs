@@ -12,7 +12,7 @@ public enum ItemDropSfxKind
     Bag
 }
 
-// 월드 아이템 드랍 소리: 착지 드랍음(종류별) + 등장 등급음(전설 이상). 재생은 ItemDropSfxService.
+// 월드 아이템 착지 소리: 종류별 드랍음 + 등급 효과 등장음(전설 이상). 재생은 ItemDropSfxService.
 [CreateAssetMenu(fileName = "ItemDropSfxCatalog", menuName = "OVERBURST/Items/Item Drop SFX Catalog")]
 public sealed class ItemDropSfxCatalog : ScriptableObject
 {
@@ -30,7 +30,7 @@ public sealed class ItemDropSfxCatalog : ScriptableObject
     public AudioClip[] bag = Array.Empty<AudioClip>();
     [Range(0f, 1f)] public float dropVolume = 0.7f;
 
-    [Header("등장 등급음 — 아이템이 나타날 때 드랍음과 별도로 1회")]
+    [Header("등급 효과 등장음 — 착지할 때 드랍음과 함께 1회")]
     public AudioClip legendary;
     public AudioClip artifact;
     public AudioClip mythic;

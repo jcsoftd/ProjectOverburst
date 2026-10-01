@@ -50,6 +50,8 @@ public static partial class CombatBalanceGoal3Verifier
             {
                 var item=new ItemData(definition,1,ItemGrade.Common);item.grade=(ItemGrade)grade;
                 var pickup=WorldItemDropFactory.CreateWorldPickup(item,player.transform.position+Vector3.forward*5,PlayerAccountInventoryService.SharedInventory,player.transform,null);
+                Check(pickup!=null&&pickup.GradeEffect==null,"grade effect waits for landing");
+                while(!pickup.GetComponent<WorldItemDropMotion>().IsLanded)yield return null;
                 Check(pickup!=null&&pickup.GradeEffect!=null,"mandatory grade effect "+definition.GetType()+grade);
                 var effect=pickup.GradeEffect;
                 if(grade==7){var line=effect.GetComponent<LineRenderer>();Check(line!=null&&line.startColor==GradeConfig.GetGradeColor((ItemGrade)grade),"unmapped grade color fallback");}
@@ -62,10 +64,14 @@ public static partial class CombatBalanceGoal3Verifier
                 Check(effect==null||!effect.activeSelf,"effect cleanup");effectChecks++;
             }
         var reuse=WorldItemDropFactory.CreateWorldPickup(new ItemData(definitions.OfType<FlaskItemData>().First(),1,ItemGrade.Common),player.transform.position+Vector3.forward*5,PlayerAccountInventoryService.SharedInventory,player.transform,null);
+        while(!reuse.GetComponent<WorldItemDropMotion>().IsLanded)yield return null;
         var oldEffect=reuse.GradeEffect;
         reuse.Initialize(new ItemData(definitions.OfType<WeaponItemData>().First(),1,ItemGrade.Common),PlayerAccountInventoryService.SharedInventory,player.transform,null);
+        Check(reuse.GradeEffect==null&&!oldEffect.activeSelf,"reinitialize hides grade effect during flight");
+        while(!reuse.GetComponent<WorldItemDropMotion>().IsLanded)yield return null;
         Check(reuse.GradeEffect!=oldEffect,"same grade different definition rebuilds VFX scale");
-        reuse.Initialize(null,PlayerAccountInventoryService.SharedInventory,player.transform,null);Check(reuse.GradeEffect==null&&!oldEffect.activeSelf,"invalid pickup cleanup");Object.Destroy(reuse.gameObject);
+        var reusedEffect=reuse.GradeEffect;
+        reuse.Initialize(null,PlayerAccountInventoryService.SharedInventory,player.transform,null);Check(reuse.GradeEffect==null&&!reusedEffect.activeSelf,"invalid pickup cleanup");Object.Destroy(reuse.gameObject);
         results.Add(new{mandatoryLootEffects=effectChecks,itemTypes=definitions.Select(d=>d.GetType().Name).ToArray()});
         for(int i=0;i<200;i++)Check(MapThemeCatalog.RollThemeId()!="DeathHarvest","disabled roll");
         Check(MapThemeCatalog.ResolveForRun("DeathHarvest")!=null&&MapThemeCatalog.ResolveForRun("DeathHarvest").ThemeId!="DeathHarvest","old map fallback");
@@ -96,6 +102,7 @@ public static partial class CombatBalanceGoal3Verifier
                 string runId=AccountGameplaySession.Current.ReadRun().runId;
                 var loadout=pickups.Where(p=>p.RuntimeItem.originRunId==runId).ToArray();
                 Check(loadout.Length==(drops?8:0),"drop toggle "+loadout.Length+" / "+debug.Status);
+                while(loadout.Any(p=>!p.GetComponent<WorldItemDropMotion>().IsLanded))yield return null;
                 Check(loadout.All(p=>p.GradeEffect!=null),"debug drops all grade VFX");
                 Check(loadout.All(p=>p.RuntimeItem.level==level&&(p.transform.position-player.transform.position).magnitude<8),"nearby exact level");
                 if(!drops)
