@@ -29,6 +29,7 @@ namespace Overburst.EditorBalance.Analysis
 
         public static string Run()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("자체 검증은 Play가 끝난 뒤 실행해야 합니다.");
             var checks = new List<string>();
             void Check(bool ok, string label, string detail = "") => checks.Add((ok ? "PASS " : "FAIL ") + label + (detail.Length > 0 ? " — " + detail : ""));
             string folder = Path.Combine(CombatBalanceAnalysisReport.OutputRoot, "Verification", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
@@ -57,6 +58,7 @@ namespace Overburst.EditorBalance.Analysis
                 Check(same, "같은 시드 두 번 실행 결과 동일", a.rows.Count + "행");
                 // 실패 주입(Codex 검토 10-01 P1-1): FAIL 체크·차단·오류·다른 지문이 전체 PASS로 가려지지 않는지.
                 foreach (var line in InjectedStatusChecks(folder)) checks.Add(line);
+                foreach (var line in IsolationAndFingerprintChecks(folder)) checks.Add(line);
                 // 시간순 이벤트 모델(어둠 탄막·불 연쇄)
                 foreach (var line in CombatBalanceAnalysisModel.EventModelSelfChecks()) checks.Add(line);
                 // 창 조작: 조건 → 실행 → 문제 필터 → 선택·비교 → 내보내기
@@ -156,6 +158,67 @@ namespace Overburst.EditorBalance.Analysis
             Check(merged.StartsWith("PARTIAL"), "지문이 다른 중단 회차는 병합하지 않음", merged);
             merged = Merge("sameprint", ("a", Report("INTERRUPTED", "A", Scenario("k2", "PASS", "PASS 피해")), 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
             Check(merged == "PASS", "지문이 같은 중단 회차는 이어 붙임", merged);
+            var interrupted = Report("INTERRUPTED", "A", Scenario("k2", "PASS", "PASS 피해"));
+            interrupted.interruptions.Add("측정 도중 Play가 외부에서 종료됨(완료 1개)");
+            merged = Merge("interrupted", ("a", interrupted, 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
+            Check(merged == "PASS", "중단 뒤 이어 완료: 중단 이력은 FAIL이 아님", merged);
+            interrupted = Report("INTERRUPTED", "A", Scenario("k2", "PASS", "PASS 피해"));
+            interrupted.errors.Add("측정 도중 Play가 외부에서 종료됨(완료 1개)");
+            merged = Merge("legacy-interrupted", ("a", interrupted, 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
+            Check(merged == "PASS", "옛 중단 기록의 정확한 표식을 중단 이력으로 변환", merged);
+            interrupted.errors.Add("NullReferenceException 실제 오류");
+            merged = Merge("interrupted-error", ("a", interrupted, 0), ("b", Report("PASS", "A", Scenario("k1", "PASS", "PASS 피해")), 1));
+            Check(merged == "FAIL", "중단 회차의 실제 오류는 이어 완료해도 FAIL", merged);
+            string Follow(float[] measured, float[] scheduled, bool dead) => CombatBalanceMeasurementStatus.OfFollowupTimes(measured, scheduled, dead, out _);
+            Check(Follow(new[] { .64f }, new[] { .63f }, true) == "PASS", "후속 시간표: 사망까지 관측된 적중 대조", "0.64/0.63초");
+            Check(Follow(new[] { .9f }, new[] { .63f }, true) == "FAIL", "후속 시간표: 사망해도 지연 오차는 FAIL", "0.9/0.63초");
+            Check(Follow(new[] { .63f, .8f }, new[] { .63f }, true) == "FAIL", "후속 시간표: 추가 적중은 FAIL", "2/1회");
+            Check(Follow(new float[0], new[] { .63f }, false) == "FAIL", "후속 시간표: 생존 대상의 누락은 FAIL", "0/1회");
+            Check(Follow(new float[0], new[] { .63f }, true) == "NOT_RUN", "후속 시간표: 본타 사망이면 후속 시각 미검증", "NOT_RUN");
+            Check(Follow(new[] { .63f }, new[] { .63f, .8f }, true) == "PASS", "후속 시간표: 사망 뒤 남은 적중은 앞부분만 대조", "1/2회");
+            return list;
+        }
+
+        static List<string> IsolationAndFingerprintChecks(string folder)
+        {
+            var list = new List<string>();
+            void Check(bool ok, string label) => list.Add((ok ? "PASS " : "FAIL ") + label);
+            // 공유 프로세스에 남았던 테스트 값도 해제한다. 이전 값을 다시 넣지 않는다.
+            try
+            {
+                Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(folder, "OldTestAccount"));
+                bool entered = false;
+                CombatBalancePlayMeasurement.BeginIsolatedPlay(Path.Combine(folder, "NewTestAccount"), () => entered = true);
+                CombatBalancePlayMeasurement.ClearIsolatedSaveDirectory();
+                Check(entered && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY")), "격리 종료: 이전 테스트 계정 대신 빈 값으로 해제");
+                bool failed = false;
+                try { CombatBalancePlayMeasurement.BeginIsolatedPlay(Path.Combine(folder, "StartFailure"), () => throw new InvalidOperationException("시작 실패 주입")); }
+                catch (InvalidOperationException) { failed = true; }
+                Check(failed && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY")), "격리 Play 시작 실패도 저장 경로 해제");
+            }
+            finally { CombatBalancePlayMeasurement.ClearIsolatedSaveDirectory(); }
+
+            string root = Path.Combine(folder, "FingerprintFixture");
+            Directory.CreateDirectory(root);
+            var files = new HashSet<string>();
+            foreach (var f in new[] { "enemy.prefab", "motion.anim", "model.fbx", "movement.controller", "input.cs", "item.cs" })
+            {
+                File.WriteAllText(Path.Combine(root, f), "original", Encoding.UTF8);
+                File.WriteAllText(Path.Combine(root, f + ".meta"), "guid: original", Encoding.UTF8);
+                CombatBalancePlayMeasurement.AddFingerprintFile(files, f);
+            }
+            string Hash() => CombatBalancePlayMeasurement.HashFingerprintInputs(root, new[] { "plan" }, files);
+            string original = Hash();
+            Check(original == CombatBalancePlayMeasurement.HashFingerprintInputs(root, new[] { "plan" }, files.Reverse()), "지문: 파일 열거 순서와 무관하게 같은 결과");
+            foreach (var f in new[] { "enemy.prefab", "motion.anim", "model.fbx", "movement.controller", "input.cs", "item.cs", "enemy.prefab.meta" })
+            {
+                string path = Path.Combine(root, f), old = File.ReadAllText(path);
+                File.WriteAllText(path, "changed", Encoding.UTF8);
+                Check(Hash() != original, "지문: " + f + " 변경을 탐지");
+                File.WriteAllText(path, old, Encoding.UTF8);
+            }
+            File.Delete(Path.Combine(root, "enemy.prefab.meta"));
+            Check(Hash() != original, "지문: 의존 파일 삭제도 탐지");
             return list;
         }
     }

@@ -55,7 +55,7 @@ namespace Overburst.EditorBalance.Analysis
             "플레이어 조립·몬스터 체력: 같은 시드의 모델 값과 실제 컴포넌트 값이 같은지(±0.5).",
             "약공 판정 피해: 공격 시퀀스 순서로 콤보 타를 정하고, 각 적중의 판정 번호·계수·치명 여부로 계산한 값과 같은지. 끝까지 친 타는 판정 누락·추가도 본다.",
             "강공 첫 폭발: 실측한 확정 직전 에너지·광휘·치명 여부로 모델 식을 다시 계산해 같은지. 피해 경로 대조이며 에너지 예측 정확도 검증이 아니다.",
-            "강공 후속(파생) 횟수·시각: 첫 강공 적중을 0초로 두고 모델 이벤트 시각과 실측 파생 적중 시각을 차례로 비교(±0.15초).",
+            "강공 후속(파생) 횟수·시각: 첫 강공 적중을 0초로 두고 모델 이벤트 시각과 실측 파생 적중 시각을 차례로 비교(±0.15초). 빛은 실측 에너지의 2/3연타 예약 시간표를 쓴다(기대 치명 피해의 사망 분기와 분리). 사망 시 관측된 앞부분만 비교하며 후속 적중이 없으면 NOT_RUN.",
             "받는 평타·강공: 실제 EnemyAbilityDefinition.ResolveDamage와 CombatHealth.TakeDamage 경로(방어·하한)를 직접 호출해 비교. 몬스터 공격 실행·타격 간격·여러 타·겹치는 공격은 검증하지 않는다. 플레이어 사망 방지가 켜져 있다.",
             "충전 중 대상 생존: 약공으로 에너지를 채우는 동안 대상 몬스터가 살아 있었는지. 플레이어가 버텼다는 뜻이 아니다.",
             "1주기 처치: 모델이 0% 또는 100%라고 한 결과와 모순되지 않는지만 본다. 확률 정확도는 아래 확률 요약(여러 표본의 성공 수)으로만 판정한다.",
@@ -115,7 +115,12 @@ namespace Overburst.EditorBalance.Analysis
                 merged.unityVersion = r.unityVersion; merged.scope = r.scope;
                 merged.planVersion = r.planVersion; merged.fingerprint = r.fingerprint;
                 foreach (var s in r.scenarios.Where(s => s.status != null)) byKey[s.key] = s;
-                merged.errors.AddRange(r.errors.Select(e => f.Directory.Name + ": " + e));
+                // v1 기록은 정상 중단도 errors에 썼다. 그 정확한 표식만 중단 이력으로 옮기고 진짜 오류는 유지한다.
+                foreach (var e in r.errors)
+                    if (r.status == "INTERRUPTED" && e.StartsWith("측정 도중 Play가 외부에서 종료됨(완료 ", StringComparison.Ordinal))
+                        merged.interruptions.Add(f.Directory.Name + ": " + e);
+                    else merged.errors.Add(f.Directory.Name + ": " + e);
+                merged.interruptions.AddRange((r.interruptions ?? new List<string>()).Select(e => f.Directory.Name + ": " + e));
             }
             var order = plannedKeys ?? CombatBalancePlayMeasurement.DefaultPlan().Select(p => p.key).ToList();
             foreach (var s in byKey.Values) s.status = CombatBalanceMeasurementStatus.OfScenario(s);
@@ -223,6 +228,7 @@ namespace Overburst.EditorBalance.Analysis
                     sb.AppendLine();
                 }
                 foreach (var s in m.scenarios) { sb.AppendLine($"- {s.key}: " + string.Join("; ", s.checks)); }
+                if (m.interruptions.Count > 0) sb.AppendLine().AppendLine("중단 이력: " + string.Join(" | ", m.interruptions));
                 if (m.errors.Count > 0) sb.AppendLine().AppendLine("오류: " + string.Join(" | ", m.errors));
             }
             return sb.ToString();

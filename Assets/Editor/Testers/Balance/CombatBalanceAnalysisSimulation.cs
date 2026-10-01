@@ -76,16 +76,22 @@ namespace Overburst.EditorBalance.Analysis
         static void AdvanceTicks(Sim s, float until)
         {
             if (s.element != WeaponElement.Fire && s.element != WeaponElement.Electric) { ExpireAll(s, until); return; }
-            foreach (var x in s.targets)
+            // 대상 배열 순서와 무관하게 모든 대상 중 가장 이른 틱부터 처리한다.
+            // 같은 시각은 대상 순서, 예약 피해와 같은 시각은 틱 우선(Flush의 기존 순서)을 유지한다.
+            while (true)
             {
-                while (x.Alive && x.stacks > 0 && x.interval > 0f && x.nextTick <= until + 1e-5f && x.nextTick <= x.expires + 1e-5f)
-                {
-                    float d = CombatBalanceFormulas.StatusTickDamage(s.t, s.element, x.owner, x.stacks);
-                    Deal(s, x, d, 3, x.nextTick);
-                    x.nextTick += x.interval;
-                }
-                if (x.stacks > 0 && until >= x.expires && !(x.interval > 0f && x.nextTick <= x.expires + 1e-5f)) x.stacks = 0;
+                Target next = null;
+                foreach (var x in s.targets)
+                    if (x.Alive && x.stacks > 0 && x.interval > 0f && x.nextTick <= until + 1e-5f && x.nextTick <= x.expires + 1e-5f
+                        && (next == null || x.nextTick < next.nextTick)) next = x;
+                if (next == null) break;
+                float at = next.nextTick;
+                float d = CombatBalanceFormulas.StatusTickDamage(s.t, s.element, next.owner, next.stacks);
+                Deal(s, next, d, 3, at);
+                next.nextTick = at + next.interval;
             }
+            foreach (var x in s.targets)
+                if (x.stacks > 0 && until >= x.expires && !(x.interval > 0f && x.nextTick <= x.expires + 1e-5f)) x.stacks = 0;
         }
 
         static void ExpireAll(Sim s, float now)

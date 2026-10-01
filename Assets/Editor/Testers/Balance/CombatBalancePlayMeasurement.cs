@@ -15,7 +15,7 @@ namespace Overburst.EditorBalance.Analysis
 {
     // 기존 전투 런타임(PlayerEquipment·MeleeRuntime·CombatHealth·OverburstElementEnergy·EnemyRank·원소 스케줄러)으로
     // 대표 조합을 격리 Play에서 측정하고, 같은 시드의 계산 모델 예상치와 나란히 기록한다.
-    // 격리: 계정 저장 경로를 측정 폴더로 돌리고(OVERBURST_SAVE_DIRECTORY), 끝나면 되돌린다. 씬은 저장하지 않는다.
+    // 격리: 계정 저장 경로를 측정 폴더로 돌리고, 종료·중단·시작 실패 시 빈 값(실제 계정)으로 해제한다. 씬은 저장하지 않는다.
     [InitializeOnLoad]
     public static class CombatBalancePlayMeasurement
     {
@@ -112,7 +112,7 @@ namespace Overburst.EditorBalance.Analysis
         }
 
         // 계획이 바뀌면 올린다. 이어 하기·병합은 같은 계획 버전·같은 지문끼리만 한다.
-        public const string PlanVersion = "2026-10-01b";
+        public const string PlanVersion = "2026-10-01c";
 
         public sealed class Plan
         {
@@ -160,47 +160,101 @@ namespace Overburst.EditorBalance.Analysis
             Directory.CreateDirectory(output);
             SessionState.SetString(Key + ".output", output);
             SessionState.SetString(Key + ".fingerprint", Fingerprint());
-            SessionState.SetString(Key + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", Path.Combine(output, "IsolatedAccount"));
             SessionState.SetBool(Key, true);
             SessionState.SetString(Key + ".status", "RUNNING");
-            EditorApplication.EnterPlaymode();
+            try
+            {
+                BeginIsolatedPlay(Path.Combine(output, "IsolatedAccount"), () =>
+                {
+                    EditorApplication.EnterPlaymode();
+                    if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                        throw new InvalidOperationException("Play 진입이 취소되었습니다: " + IsolatedSavePlayGuard.LastRejection);
+                });
+            }
+            catch
+            {
+                SessionState.SetBool(Key, false);
+                SessionState.SetString(Key + ".status", "BLOCKED Play 시작 실패");
+                throw;
+            }
             return output;
+        }
+
+        // 예전 테스트 경로를 '원래 값'으로 복원하지 않는다(99 공통 지침).
+        internal static void ClearIsolatedSaveDirectory()
+        {
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null);
+            SessionState.EraseString(Key + ".env");
+            if (!EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isCompiling)
+                IsolatedSavePlayGuard.UseRealAccount();
+        }
+
+        internal static void BeginIsolatedPlay(string directory, Action start)
+        {
+            try
+            {
+                IsolatedSavePlayGuard.PrepareIsolatedPlay(directory);
+                start();
+            }
+            catch { ClearIsolatedSaveDirectory(); throw; }
         }
 
         public static string CurrentFingerprint => SessionState.GetString(Key + ".fingerprint", "");
 
-        // 실행 지문: 계획 버전·계획 키·기본 조건, 전투 관련 런타임·도구 소스, 원소 튜닝·무기·대표 몬스터 자산의 SHA256.
+        // 실행 지문: 계획·조건·입력/아이템/전투 소스, 카탈로그 선택 후보와 실제 자산 의존성 및 meta의 SHA256.
         // 지문이 다르면 옛 결과를 이어 하거나 병합하지 않는다(다른 작업이 중간에 규칙을 바꾼 경우를 막는다).
         public static string Fingerprint()
         {
-            var parts = new List<string> { PlanVersion, string.Join("|", DefaultPlan().Select(p => p.key)), CombatBalanceAnalysisReport.ToJson(new AnalysisConditions()) };
+            var parts = new List<string> { PlanVersion, CombatBalanceAnalysisReport.ToJson(DefaultPlan()), CombatBalanceAnalysisReport.ToJson(new AnalysisConditions()) };
             string project = Directory.GetParent(Application.dataPath).FullName;
             var files = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var dir in new[] { "Assets/Editor/Testers/Balance", "Assets/ProjectOverburst/02_Shared/Combat", "Assets/ProjectOverburst/03_Features/Weapons/Runtime",
-                         "Assets/ProjectOverburst/03_Features/Player/Runtime", "Assets/ProjectOverburst/03_Features/Enemies/Runtime" })
+            AddFingerprintFile(files, "Assets/Editor/Tools/Common/IsolatedSavePlayGuard.cs");
+            foreach (var dir in new[] { "Assets/Editor/Testers/Balance", "Assets/ProjectOverburst/01_Core", "Assets/ProjectOverburst/02_Shared", "Assets/ProjectOverburst/03_Features/Weapons/Runtime",
+                         "Assets/ProjectOverburst/03_Features/Player/Runtime", "Assets/ProjectOverburst/03_Features/Enemies/Runtime", "Assets/ProjectOverburst/03_Features/Items/Runtime" })
             {
                 string full = Path.Combine(project, dir);
                 if (Directory.Exists(full))
-                    foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.AllDirectories)) files.Add(f.Substring(project.Length + 1).Replace('\\', '/'));
+                    foreach (var f in Directory.GetFiles(full, "*.cs", SearchOption.AllDirectories)) AddFingerprintFile(files, f.Substring(project.Length + 1).Replace('\\', '/'));
             }
             var assets = new List<string>();
             if (OverburstElementTuning.Current != null) assets.Add(AssetDatabase.GetAssetPath(OverburstElementTuning.Current));
             assets.Add(new AnalysisConditions().weaponPath);
             var catalog = CombatBalanceAnalysisModel.Catalog.Load();
-            assets.AddRange(catalog.representative.Values.Select(AssetDatabase.GetAssetPath));
-            foreach (var a in assets.Where(a => !string.IsNullOrEmpty(a)).ToList())
-                foreach (var dep in AssetDatabase.GetDependencies(a, true))
-                    if (dep.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) files.Add(dep);
+            // 대표 몬스터·장비 선택은 전체 후보의 정렬/레벨 조건에 좌우된다.
+            assets.AddRange(catalog.enemies.Select(AssetDatabase.GetAssetPath));
+            assets.AddRange(catalog.gear.Values.SelectMany(g => g).Select(AssetDatabase.GetAssetPath));
+            assets.Add("Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab");
+            var roots = assets.Where(a => !string.IsNullOrEmpty(a)).Distinct().OrderBy(a => a, StringComparer.Ordinal).ToArray();
+            // 수 GB의 모델/텍스처를 매번 읽지 않고 Unity의 의존성 내용 해시를 사용한다.
+            // 자산 의존성은 확장자로 버리지 않으며, 소스·직렬화 데이터·모든 meta는 원본 SHA256도 기록한다.
+            foreach (var a in roots) parts.Add(a + ":import:" + AssetDatabase.GetAssetDependencyHash(a));
+            foreach (var dep in AssetDatabase.GetDependencies(roots, true)) AddFingerprintFile(files, dep);
+            return HashFingerprintInputs(project, parts, files, path =>
+                !path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) && !path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                && new FileInfo(Path.Combine(project, path)).Length > 1024 * 1024
+                    ? AssetDatabase.GetAssetDependencyHash(path).ToString() : null);
+        }
+
+        internal static void AddFingerprintFile(ISet<string> files, string path)
+        {
+            files.Add(path);
+            files.Add(path + ".meta"); // GUID와 import 설정도 측정 조건에 포함한다.
+        }
+
+        internal static string HashFingerprintInputs(string project, IEnumerable<string> parts, IEnumerable<string> files, Func<string, string> importedHash = null)
+        {
             using (var sha = System.Security.Cryptography.SHA256.Create())
             {
                 var sb = new StringBuilder();
                 foreach (var p in parts) sb.Append(p).Append('\n');
-                foreach (var f in files)
+                foreach (var f in files.Distinct().OrderBy(f => f, StringComparer.Ordinal))
                 {
                     string path = Path.Combine(project, f);
-                    if (!File.Exists(path)) continue;
-                    sb.Append(f).Append(':').Append(BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "")).Append('\n');
+                    if (!File.Exists(path)) { sb.Append(f).Append(":MISSING\n"); continue; }
+                    string cached = importedHash?.Invoke(f);
+                    if (cached != null) { sb.Append(f).Append(":import:").Append(cached).Append('\n'); continue; }
+                    using (var stream = File.OpenRead(path))
+                        sb.Append(f).Append(':').Append(BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "")).Append('\n');
                 }
                 return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()))).Replace("-", "").ToLowerInvariant();
             }
@@ -227,17 +281,21 @@ namespace Overburst.EditorBalance.Analysis
                 {
                     // 다른 작업이 Play를 멈춘 경우: 끝난 시나리오까지 남기고 중단으로 기록한다.
                     report.status = "INTERRUPTED"; report.finishedAt = Now();
-                    report.errors.Add("측정 도중 Play가 외부에서 종료됨(완료 " + report.scenarios.Count(s => s.status != null) + "개)");
+                    report.interruptions.Add("측정 도중 Play가 외부에서 종료됨(완료 " + report.scenarios.Count(s => s.status != null) + "개)");
                     SessionState.SetString(Key + ".status", "INTERRUPTED");
                     Save();
                 }
-                (work as IDisposable)?.Dispose(); work = null;
-                Application.runInBackground = SessionState.GetBool(Key + ".background", false);
-                Application.targetFrameRate = SessionState.GetInt(Key + ".fps", -1);
+                try { (work as IDisposable)?.Dispose(); }
+                finally
+                {
+                    work = null;
+                    Application.runInBackground = SessionState.GetBool(Key + ".background", false);
+                    Application.targetFrameRate = SessionState.GetInt(Key + ".fps", -1);
+                }
             }
             if (state == PlayModeStateChange.EnteredEditMode)
             {
-                Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(Key + ".env", ""));
+                ClearIsolatedSaveDirectory();
                 SessionState.SetBool(Key, false);
             }
         }
@@ -266,8 +324,10 @@ namespace Overburst.EditorBalance.Analysis
         {
             report.status = status; report.finishedAt = Now();
             SessionState.SetString(Key + ".status", status);
-            work = null;
             EditorApplication.update -= Tick;
+            try { (work as IDisposable)?.Dispose(); }
+            catch (Exception e) { report.errors.Add("측정 정리 실패: " + e); report.status = "FAIL"; SessionState.SetString(Key + ".status", "FAIL"); }
+            finally { work = null; }
             try { Save(); }
             finally { EditorApplication.ExitPlaymode(); }
         }
@@ -574,17 +634,19 @@ namespace Overburst.EditorBalance.Analysis
             {
                 var measuredDerived = s.hits.Where(h => h.derived && h.time >= heavyHit.time - 1e-4f).Select(h => h.time - heavyHit.time).OrderBy(t => t).ToList();
                 var modelDerived = s.modelDerivedTimes.OrderBy(t => t).ToList();
-                if (measuredDerived.Count == 0 && modelDerived.Count == 0) s.checks.Add("NOT_RUN 강공 후속 타격 시각(양쪽 모두 후속 적중 없음)");
-                else
+                string timingSource = "기대 전투 모형";
+                if (plan.element == WeaponElement.Light)
                 {
-                    int n = Mathf.Min(measuredDerived.Count, modelDerived.Count);
-                    float worst = 0f;
-                    for (int i = 0; i < n; i++) worst = Mathf.Max(worst, Mathf.Abs(measuredDerived[i] - modelDerived[i]));
-                    bool died = enemy.Health.IsDead; // 대상이 죽으면 남은 탄은 빗나가므로 횟수는 앞부분만 비교한다
-                    bool ok = n > 0 && worst <= .15f && (died || measuredDerived.Count == modelDerived.Count);
-                    s.checks.Add((ok ? "PASS" : "FAIL") + $" 강공 후속 타격 횟수·시각(±0.15초) 실측 {measuredDerived.Count}회 {R(measuredDerived.FirstOrDefault())}~{R(measuredDerived.LastOrDefault())}초 / 모델 {modelDerived.Count}회 {R(modelDerived.FirstOrDefault())}~{R(modelDerived.LastOrDefault())}초, 최대 차이 {R(worst)}초{(died ? ", 대상 사망" : "")}");
-                    if (!ok) s.status = "FAIL";
+                    // 기대 치명 피해로 먼저 죽은 모델의 적중 0회를 실제 비치명 생존 분기와 비교하지 않는다.
+                    // 실측한 강공 에너지로 2/3연타 분기를 정하고 예약 시간표 자체를 대조한다.
+                    int first = lastAmount > tuning.maximumEnergy + .0001f ? 0 : 1;
+                    modelDerived = Enumerable.Range(first + 1, 2 - first).Select(i => LightTripleImpactScheduler.ResolveDelay(i, first)).ToList();
+                    timingSource = "빛 실측 에너지 조건의 예약 시간표";
                 }
+                bool died = enemy.Health.IsDead;
+                string timingStatus = CombatBalanceMeasurementStatus.OfFollowupTimes(measuredDerived, modelDerived, died, out float worst);
+                s.checks.Add(timingStatus + $" 강공 후속 타격 횟수·시각(±0.15초, {timingSource}) 실측 {measuredDerived.Count}회 {R(measuredDerived.FirstOrDefault())}~{R(measuredDerived.LastOrDefault())}초 / 모델 {modelDerived.Count}회 {R(modelDerived.FirstOrDefault())}~{R(modelDerived.LastOrDefault())}초, 최대 차이 {R(worst)}초{(died ? ", 대상 사망" : "")}{(timingStatus == "NOT_RUN" ? ", 후속 적중 미관측" : "")}");
+                if (timingStatus == "FAIL") s.status = "FAIL";
             }
             // 받는 피해: 실제 ResolveDamage·CombatHealth.TakeDamage 경로(방어·하한)를 직접 호출한다.
             // 몬스터 공격 실행(사거리·타이밍·여러 타·겹침)은 이 검사 범위 밖이다. 플레이어 사망 방지가 켜져 있다.

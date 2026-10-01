@@ -88,6 +88,34 @@ namespace Overburst.EditorBalance.Analysis
                 && s.o.firstHeavyDerivedTimes.Count(v => Mathf.Abs(v - ElementDischargeBatch.FirePropagationDelay) < 1e-4f) == 2
                 && s.o.firstHeavyDerivedTimes.Any(v => Mathf.Abs(v - 2f * ElementDischargeBatch.FirePropagationDelay) < 1e-4f);
             Check(fireOk, "불 연쇄 시각", $"피해 시각 {string.Join(", ", fire)}초, 0.2초 전 피해 없음 {before}");
+
+            // 뒤 대상의 틱이 먼저 발생해도 마지막 사망 시각은 4초여야 한다(배열 순서 처리 시 1초가 되던 결함).
+            s = TestSim(2, WeaponElement.Fire, CombatMode.Crowd, 1f);
+            foreach (var x in s.targets) { x.stacks = 1; x.owner = 10000f; x.interval = 10f; }
+            s.targets[0].nextTick = 4f; s.targets[1].nextTick = 1f;
+            Flush(s, 5f);
+            Check(s.o.killed && Mathf.Approximately(s.o.killTime, 4f), "서로 다른 틱 시각: 마지막 두 대상의 처치 시간", "기대 4초 / 실제 " + Fmt(s.o.killTime));
+
+            // 틱/예약 피해를 한 번에 처리한 결과가 작은 시간 단위로 처리한 결과와 같아야 한다.
+            Sim TickFixture()
+            {
+                var v = TestSim(2, WeaponElement.Electric, CombatMode.Crowd, 1f);
+                foreach (var x in v.targets) { x.stacks = 1; x.owner = 10000f; x.interval = 10f; }
+                v.targets[0].nextTick = 4f; v.targets[1].nextTick = 1f;
+                Schedule(v, 2f, () => Deal(v, v.targets[0], 100f, 2, 2f));
+                return v;
+            }
+            var bulk = TickFixture(); var stepped = TickFixture();
+            Flush(bulk, 5f);
+            foreach (float at in new[] { .5f, 1f, 1.5f, 2f, 3f, 5f }) Flush(stepped, at);
+            Check(bulk.o.killTime == stepped.o.killTime && bulk.o.dot == stepped.o.dot && bulk.o.derived == stepped.o.derived && bulk.o.killTime == 2f,
+                "상태 틱과 후속 이벤트를 시간순으로 통합", "한 번/분할 처치 " + Fmt(bulk.o.killTime) + "/" + Fmt(stepped.o.killTime));
+
+            s = TestSim(1, WeaponElement.Fire, CombatMode.Single, 1f);
+            s.targets[0].stacks = 1; s.targets[0].owner = 10000f; s.targets[0].interval = 1f;
+            s.targets[0].nextTick = 2f; s.targets[0].expires = 1f;
+            Flush(s, 5f);
+            Check(s.alive == 1 && s.targets[0].stacks == 0 && s.o.dot == 0f, "상태 만료 뒤 틱은 적용하지 않음", "생존 " + s.alive + ", 중첩 " + s.targets[0].stacks);
             return checks;
         }
     }

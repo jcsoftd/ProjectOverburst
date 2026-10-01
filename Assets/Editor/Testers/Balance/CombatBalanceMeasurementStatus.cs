@@ -47,6 +47,17 @@ namespace Overburst.EditorBalance.Analysis
             return measured > 0 ? Pass : NotRun;
         }
 
+        // 생존 시 모든 예약 적중을 요구하고, 사망 시 관측된 앞부분만 대조한다.
+        // 본타로 사망해 후속을 전혀 관측하지 못한 것은 후속 시간 검증 근거가 아니다.
+        public static string OfFollowupTimes(IReadOnlyList<float> measured, IReadOnlyList<float> scheduled, bool targetDead, out float worst)
+        {
+            worst = 0f;
+            if (measured.Count == 0) return scheduled.Count == 0 || targetDead ? NotRun : Fail;
+            if (measured.Count > scheduled.Count) return Fail;
+            for (int i = 0; i < measured.Count; i++) worst = Mathf.Max(worst, Mathf.Abs(measured[i] - scheduled[i]));
+            return worst <= .15f && (targetDead || measured.Count == scheduled.Count) ? Pass : Fail;
+        }
+
         // 1주기 처치 확률은 한 번의 관측으로 검증할 수 없다. 모델 확률이 0과 1 사이인 시나리오들의 성공 수를
         // 기대값 Σp, 분산 Σp(1−p)의 정규 근사 95% 구간과 비교한다. 불확실 표본이 minSamples보다 적으면 NOT_RUN.
         public static string KillProbabilitySummary(IEnumerable<MeasurementScenario> scenarios, int minSamples = 8)

@@ -228,5 +228,6 @@ namespace Overburst.EditorBalance.Analysis
         public string planVersion, fingerprint;                     // 이어 하기·병합은 같은 계획·같은 지문 회차끼리만
         public List<MeasurementScenario> scenarios = new List<MeasurementScenario>();
         public List<string> errors = new List<string>();
+        public List<string> interruptions = new List<string>();       // 중단 이력은 실제 오류와 분리한다.
     }
 }
