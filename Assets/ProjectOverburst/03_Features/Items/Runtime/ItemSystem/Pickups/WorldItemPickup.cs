@@ -34,6 +34,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     private GameObject spawnedGradeVfx; // 등급 VFX
     private Collider[] pickupColliders; // 충돌체 캐시
     private WorldItemDropMotion dropMotion; // 비물리 드랍 연출
+    private Transform weaponGradeVfxAnchor;
 
     public static event Action RegistryChanged; // 활성 목록 변경 알림
 
@@ -43,6 +44,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
     {
         ResolveReferences(); // 인벤토리/플레이어 참조 확보
         BuildRuntimeItemIfNeeded(); // 에셋 기반 테스트 아이템 생성
+        ApplyItemVisualPresentation();
         ConfigurePickupColliders(); // 플레이어를 막지 않도록 충돌 설정
 
         if (runtimeItem != null)
@@ -120,6 +122,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         runtimeItem = WeaponContentPolicy.IsAllowedRuntimeItem(item) ? item : null; // 드랍된 런타임 ItemData 연결
         targetInventory = inventory; // 획득 대상 인벤토리 연결
         player = playerTransform; // 플레이어 충돌 무시용 참조
+        ApplyItemVisualPresentation();
         ConfigurePickupColliders(); // 충돌/트리거 정책 적용
         BeginScriptedDrop(); // 자연스러운 비물리 낙하 시작
         RefreshGradeVfx(); // 등급 이펙트 생성
@@ -134,6 +137,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         targetInventory = inventory;
         player = playerTransform;
         gradeVfxSet = pickupGradeVfxSet;
+        ApplyItemVisualPresentation();
         ConfigurePickupColliders();
         BeginScriptedDrop();
         RefreshGradeVfx();
@@ -286,12 +290,42 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
         if (spawnedGradeVfx != null && renderedGrade == runtimeItem.grade
             && renderedDefinition == runtimeItem.baseData && renderedSet == gradeVfxSet) return;
         if (spawnedGradeVfx != null) { spawnedGradeVfx.SetActive(false); Destroy(spawnedGradeVfx); }
-        Transform anchor = gradeVfxAnchor != null ? gradeVfxAnchor : transform;
+        Transform anchor = ResolveGradeVfxAnchor();
         spawnedGradeVfx = PickupGradeVfxSet.SpawnRequired(gradeVfxSet, runtimeItem.grade, anchor);
         renderedGrade = runtimeItem.grade;
         renderedDefinition = runtimeItem.baseData; renderedSet = gradeVfxSet;
         if (runtimeItem.baseData is FlaskItemData) spawnedGradeVfx.transform.localScale *= .40f;
         spawnedGradeVfx.SetActive(isActiveAndEnabled);
+    }
+
+    private void ApplyItemVisualPresentation()
+    {
+        if (runtimeItem == null)
+            return;
+
+        WorldPickupPresentation presentation = GetComponent<WorldPickupPresentation>();
+        if (presentation == null && runtimeItem.baseData is WeaponItemData)
+            presentation = gameObject.AddComponent<WorldPickupPresentation>();
+        if (presentation != null)
+            presentation.ApplyItemVisualScale(runtimeItem.baseData);
+    }
+
+    private Transform ResolveGradeVfxAnchor()
+    {
+        if (runtimeItem.baseData is WeaponItemData)
+        {
+            WorldPickupPresentation presentation = GetComponent<WorldPickupPresentation>();
+            if (presentation != null && presentation.TryGetVisualCenter(out Vector3 localCenter))
+            {
+                if (weaponGradeVfxAnchor == null)
+                    weaponGradeVfxAnchor = new GameObject("WeaponGradeVfxCenter").transform;
+                weaponGradeVfxAnchor.SetParent(presentation.VisualRoot, false);
+                weaponGradeVfxAnchor.localPosition = localCenter;
+                return weaponGradeVfxAnchor;
+            }
+        }
+
+        return gradeVfxAnchor != null ? gradeVfxAnchor : transform;
     }
 
     private void ResolveReferences()
