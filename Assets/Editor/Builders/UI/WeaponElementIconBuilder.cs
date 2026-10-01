@@ -11,6 +11,9 @@ public static class WeaponElementIconBuilder
     public const string UiRoot = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/";
     public const string IconRoot = "Assets/ProjectOverburst/Resources/UI/WeaponElements/";
     public const string Output = "../개인파일/코덱스산출/UI/20261001_WeaponElementIcons";
+    public const float SlotBadgeSize = 23f;
+    public const float ShopBadgeSize = 21f;
+    public const float HudIconSize = 46f;
     const string Circle = "Assets/ThirdParty/RPG and MMO UI 11/Textures/HUD/Unit Frames/Unit Frame/UnitFrame_Level_Frame.png";
     static readonly string[] Elements = { "Fire", "Ice", "Electric", "Dark", "Light" };
 
@@ -36,21 +39,21 @@ public static class WeaponElementIconBuilder
             {
                 if (path.Contains("ItemSlot"))
                 {
-                    var badge = Badge(root.transform, sprites, circle, 26f);
+                    var badge = Badge(root.transform, sprites, circle, SlotBadgeSize);
                     root.GetComponent<OverburstUIItemSlotView>().ConfigureElementIcon(badge);
                 }
                 else if (path.Contains("ShopPanel"))
                 {
                     foreach (SlotUI slot in root.GetComponentsInChildren<SlotUI>(true))
                     {
-                        var badge = Badge(slot.transform, sprites, circle, 24f);
+                        var badge = Badge(slot.transform, sprites, circle, ShopBadgeSize);
                         var serialized = new SerializedObject(slot);
                         serialized.FindProperty("weaponElementIcon").objectReferenceValue = badge;
                         serialized.ApplyModifiedPropertiesWithoutUndo();
                     }
                 }
                 else if (path.Contains("Tooltip"))
-                    Badge(root.transform.Find("Approved Icon Frame"), sprites, circle, 26f);
+                    Badge(root.transform.Find("Approved Icon Frame"), sprites, circle, SlotBadgeSize);
                 else
                 {
                     Transform role = root.transform.Find("Action Bar Unit Frame/Role Frame");
@@ -60,7 +63,7 @@ public static class WeaponElementIconBuilder
                     RectTransform rect = image.rectTransform;
                     rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * .5f;
                     rect.anchoredPosition = Vector2.zero;
-                    rect.sizeDelta = Vector2.one * 52f;
+                    rect.sizeDelta = Vector2.one * HudIconSize;
                     var view = image.GetComponent<WeaponElementIconView>() ?? image.gameObject.AddComponent<WeaponElementIconView>();
                     Configure(view, image, null, sprites);
                     var presenter = role.GetComponent<WeaponElementHudIcon>() ?? role.gameObject.AddComponent<WeaponElementHudIcon>();
