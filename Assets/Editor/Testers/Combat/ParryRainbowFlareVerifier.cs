@@ -291,9 +291,6 @@ public static class ParryRainbowFlareVerifier
                 var indicator = UnityEngine.Object.FindFirstObjectByType<EnemyParryStunIndicator>();
                 Check(indicator != null && indicator.GetComponentsInChildren<Renderer>(true).Length == 0, "No stun ring or orbiting star renderer");
                 UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-floating.png"));
-                float styledCaptureAt = Time.unscaledTime + .12f;
-                while (Time.unscaledTime < styledCaptureAt) yield return null;
-                UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-styled.png"));
                 Check(Mathf.Approximately(hp, actor.Health.CurrentHp), "No incoming damage");
                 var stats = TransientVfxPool.GetStatistics(prefab);
                 Check(stats.Requests == poolBefore.Requests + 1 && stats.Active == 1, "Exactly one pooled flare");
@@ -303,6 +300,9 @@ public static class ParryRainbowFlareVerifier
                 var flare = active[0].transform.parent.parent;
                 Check(Mathf.Approximately(flare.localScale.x, expectedScale), "Fixed contact flash scale " + expectedScale);
                 Shot("parry-" + count + "-" + checks.Count, active);
+                float styledCaptureAt = Time.unscaledTime + .12f;
+                while (Time.unscaledTime < styledCaptureAt) yield return null;
+                UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-styled.png"));
                 float returnAt = Time.unscaledTime + 1.5f;
                 while (Time.unscaledTime < returnAt) yield return null;
                 Check(TransientVfxPool.GetStatistics(prefab).Active == 0, "Flare returned after completion");
