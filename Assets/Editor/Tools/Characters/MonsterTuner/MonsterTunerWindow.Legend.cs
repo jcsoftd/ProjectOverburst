@@ -48,7 +48,7 @@ namespace Overburst.EditorTools.MonsterTuner
             else
             {
                 var visible = viewport.Points.Where(viewport.Visible).ToArray();
-                foreach (var point in visible) activeLegend.Add(LegendLabel(point.Label, point.Color));
+                foreach (var point in visible) activeLegend.Add(LegendLabel(point.Label, point.Color, point.OriginalName));
                 if (viewport.Visibility.TryGetValue("projectile-path", out bool flight) && flight && workingAbility?.ExecutionMode == EnemyAbilityExecutionMode.Projectile) activeLegend.Add(LegendLabel("투사체 발사 궤적", new Color(.4f, 1f, .75f)));
                 if (activeLegend.childCount == 0) activeLegend.Add(new Label("표시 꺼짐 · 표시·범례에서 선택"));
             }
@@ -56,7 +56,7 @@ namespace Overburst.EditorTools.MonsterTuner
             {
                 var captured = point;
                 var toggle = new Toggle { value = viewport.Visible(point), name = "overlay:" + point.Key,
-                    text = "● " + point.Label + (point.Segments != null ? " · 범위/중심" : " · 점") };
+                    text = "● " + point.Label + (point.Segments != null ? " · 범위/중심" : " · 점"), tooltip = point.OriginalName ?? point.Label };
                 toggle.style.color = point.Color; toggle.style.fontSize = 11; toggle.style.whiteSpace = WhiteSpace.Normal;
                 toggle.RegisterValueChangedCallback(e => { viewport.Visibility[captured.Key] = e.newValue; PersistVisibility(); RefreshLegend(); viewport.Refresh(); });
                 legendOptions.Add(toggle);
@@ -69,9 +69,9 @@ namespace Overburst.EditorTools.MonsterTuner
             legendOptions.style.display = legendExpanded ? DisplayStyle.Flex : DisplayStyle.None;
             PersistVisibility();
         }
-        private static Label LegendLabel(string text, Color color)
+        private static Label LegendLabel(string text, Color color, string originalName = null)
         {
-            var label = new Label("● " + text); label.style.color = color; label.style.fontSize = 11; label.style.whiteSpace = WhiteSpace.Normal; return label;
+            var label = new Label("● " + text) { tooltip = originalName ?? text }; label.style.color = color; label.style.fontSize = 11; label.style.whiteSpace = WhiteSpace.Normal; return label;
         }
         private void PersistVisibility()
         {

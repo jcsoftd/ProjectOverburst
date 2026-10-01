@@ -49,7 +49,7 @@ namespace Overburst.EditorTools.MonsterTuner
             bool visible = point != null && session != null && stage.Actor != null && tab != 0 && tab != 4;
             pointCard.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!visible) return;
-            pointTitle.text = point.Label; pointTitle.style.color = point.Color;
+            pointTitle.text = point.Label; pointTitle.tooltip = point.OriginalName ?? point.Label; pointTitle.style.color = point.Color;
             pointWorld.text = "현재 world   " + XYZ(point.World()) + " m";
             pointLocal.style.display = DisplayStyle.Flex;
             bool editable = point.Move != null, changed = false;
@@ -90,7 +90,7 @@ namespace Overburst.EditorTools.MonsterTuner
             else { editable = false; pointLocal.style.display = DisplayStyle.None; space = "실효 공격 판정"; hint = "공격 탭의 반경·각도·높이 값으로 조절합니다."; }
             pointParent.text = "부모: " + (parent != null ? MonsterTunerAddress.Names(stage.Actor.transform, parent) : "자동 계산");
             pointParent.tooltip = pointParent.text;
-            pointSpace.text = "좌표: " + space;
+            pointSpace.text = "좌표: " + space + (point.OriginalName != null ? "\n원래 이름: " + point.OriginalName : string.Empty);
             pointLocal.SetValueWithoutNotify(local); pointLocal.SetEnabled(editable);
             pointReset.SetEnabled(changed); pointHint.text = hint;
         }

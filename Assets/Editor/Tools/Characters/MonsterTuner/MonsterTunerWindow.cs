@@ -186,7 +186,7 @@ namespace Overburst.EditorTools.MonsterTuner
                     tab = point.Label.Contains("오라") ? 2 : point.Label.Contains("패링") || point.Label.Contains("머즐") ? 3 : 1;
                     BuildFields();
                 }
-                RefreshPointCard();
+                RefreshLegend(); RefreshPointCard();
                 SetStatus(point != null ? point.Label + " · 축 드래그 또는 오른쪽 숫자 입력" : stage.Message);
             };
             viewport.EditBegan += () => { draggingPoint = true; dragJson = JsonUtility.ToJson(session); Undo.RecordObject(session, "기준점 이동"); };

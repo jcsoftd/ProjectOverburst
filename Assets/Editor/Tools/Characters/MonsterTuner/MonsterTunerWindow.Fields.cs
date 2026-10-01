@@ -132,14 +132,14 @@ namespace Overburst.EditorTools.MonsterTuner
             foreach (var point in viewport.Points)
             {
                 var selected = point;
-                fields.Add(new Button(() => { viewport.Select(selected); SetStatus(selected.Label + " · 위치 " + selected.World().ToString("F3")); }) { text = point.Label });
+                fields.Add(new Button(() => { viewport.Select(selected); SetStatus(selected.Label + " · 위치 " + selected.World().ToString("F3")); }) { text = point.Label, tooltip = point.OriginalName ?? point.Label });
             }
             int detailed = fields.contentContainer.childCount;
             if (stage.Enemy?.Anchors != null)
             {
                 Heading("공격·부착 기준점");
                 foreach (var anchor in stage.Enemy.Anchors.GetComponentsInChildren<Transform>(true).Where(t => t != stage.Enemy.Anchors))
-                    Field(MonsterTunerAddress.Component(stage.Actor, anchor), "m_LocalPosition", anchor.name);
+                    Field(MonsterTunerAddress.Component(stage.Actor, anchor), "m_LocalPosition", AnchorLabel(anchor.name));
             }
             Heading("몸 충돌");
             foreach (var collider in stage.Actor.GetComponentsInChildren<Collider>(true))
@@ -170,17 +170,29 @@ namespace Overburst.EditorTools.MonsterTuner
             }
             FoldDetails(detailed, "point-details", "전체 위치·판정 세부 설정");
         }
+        private static string AnchorLabel(string originalName)
+        {
+            switch (originalName)
+            {
+                case "AttackPoint": return "공격 기준점";
+                case "HitVfxPoint": return "타격 효과 위치";
+                case "HpBarAnchor": return "체력바 위치";
+                case "GroundProbe": return "지면 확인 위치";
+                default: return originalName;
+            }
+        }
         private void RefreshPoints()
         {
             viewport.Points.Clear(); if (stage.Actor == null || session == null) return;
             void Add(Component component, string property, string label, Color color, Func<Vector3> world, Func<Vector3, Vector3> local, Func<IEnumerable<(Vector3, Vector3)>> segments = null, bool editable = true)
             {
                 string address = MonsterTunerAddress.Component(stage.Actor, component), key = address + "|" + property;
-                viewport.Points.Add(new MonsterTunerPoint { Key = key, Label = label, Color = color, World = world, Segments = segments,
+                viewport.Points.Add(new MonsterTunerPoint { Key = key, Label = label, OriginalName = component is Transform && label != component.name ? component.name : null,
+                    Color = color, World = world, Segments = segments,
                     Move = editable ? position => SetVector(address, property, local(position), label) : (Action<Vector3>)null });
             }
             if (stage.Enemy?.Anchors != null) foreach (var anchor in stage.Enemy.Anchors.GetComponentsInChildren<Transform>(true).Where(t => t != stage.Enemy.Anchors))
-                Add(anchor, "m_LocalPosition", anchor.name, new Color(.95f, .78f, .4f), () => anchor.position, p => anchor.parent.InverseTransformPoint(p));
+                Add(anchor, "m_LocalPosition", AnchorLabel(anchor.name), new Color(.95f, .78f, .4f), () => anchor.position, p => anchor.parent.InverseTransformPoint(p));
             foreach (var collider in stage.Actor.GetComponentsInChildren<Collider>(true))
             {
                 var captured = collider;

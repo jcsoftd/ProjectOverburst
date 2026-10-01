@@ -7,7 +7,7 @@ namespace Overburst.EditorTools.MonsterTuner
 {
     internal sealed class MonsterTunerPoint
     {
-        public string Key, Label;
+        public string Key, Label, OriginalName;
         public Color Color;
         public Func<Vector3> World;
         public Action<Vector3> Move;
