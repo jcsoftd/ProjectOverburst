@@ -222,9 +222,9 @@ MonoBehaviour:
     electricChainProc: {fileID: 8629265764243855797, guid: 9b1bde879b85497469962ac32ba06867, type: 3}
     electricDirectHit: {fileID: 1036593267667279857, guid: 49dcd52f6bc06d64fb382d8aa20a5c18, type: 3}
     darkBarrageSlam: {fileID: 0}
-    darkBarrageProjectile: {fileID: 0}
+    darkBarrageProjectile: {fileID: 1629372112255661342, guid: 41349ff430da2744eabcac8606110068, type: 3}
     darkBarrageTrail: {fileID: 0}
-    darkBarrageHit: {fileID: 0}
+    darkBarrageHit: {fileID: 6516584211004326070, guid: 3fc18d1086185534db762ebf8d278916, type: 3}
     lightTripleImpact: {fileID: 145832084182221218, guid: 2a2f81ba9ca02b8469c73f4b15f5de25, type: 3}
     lightDoubleImpact: {fileID: 3992710165718288159, guid: 2f9d53fcbbdd8b74ca75c8b43666cbb0, type: 3}
     fireImpactRadius: 2.9
