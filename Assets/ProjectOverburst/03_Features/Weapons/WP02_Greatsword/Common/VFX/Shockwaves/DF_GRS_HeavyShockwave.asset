@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: DF_GRS_HeavyShockwave
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackVfxDefinition
   neutralPrefab: {fileID: 9053075370485124731, guid: 992e503fef4620943b5edb13c37e1005, type: 3}
-  darkPrefab: {fileID: 8437602674036231511, guid: aededb82cd34a664dbcdd3bb0a338e2a, type: 3}
   baseScale: {x: 5.4, y: 5.4, z: 5.4}
   authoredCircleRadius: 1
   localPositionOffset: {x: 0, y: 0.45, z: 0}

@@ -106,12 +106,11 @@ public static class DarkBarrageCubeVfxVerifier
             var heavy = AssetDatabase.LoadAssetAtPath<MeleeHeavyAttackDefinition>(DarkBarrageCubeVfxBuilder.HeavyPath);
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageCubeVfxBuilder.ProjectilePath);
             var hit = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageCubeVfxBuilder.HitPath);
-            var landing = AssetDatabase.LoadAssetAtPath<GameObject>(DarkBarrageCubeVfxBuilder.LandingPath);
             var landingDefinition = AssetDatabase.LoadAssetAtPath<MeleeAttackVfxDefinition>(DarkBarrageCubeVfxBuilder.ShockwaveDefinitionPath);
-            Check(landing != null && landingDefinition.ResolvePrefab(WeaponElement.Dark) == landing,
-                "Dark landing uses crimson prefab");
-            Check(Enum.GetValues(typeof(WeaponElement)).Cast<WeaponElement>().Where(e => e != WeaponElement.Dark)
-                .All(e => landingDefinition.ResolvePrefab(e) == landingDefinition.neutralPrefab), "Other elements retain neutral landing");
+            var landing = landingDefinition.neutralPrefab;
+            Check(landing != null && landing.name == "PF_GRS_HeavyShockwave", "Original transparent landing wave restored");
+            Check(landing.GetComponentsInChildren<Renderer>(true).All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
+                "Landing wave keeps original neutral color");
             Check(heavy.elementVfx.darkBarrageProjectile == body && heavy.elementVfx.darkBarrageHit == hit, "Heavy uses both Cube03 game prefabs");
             Check(!DarkBarrageScheduler.UsesTemporaryProjectile(heavy.elementVfx), "Temporary projectile replaced");
             Check(Mathf.Approximately(body.transform.localScale.x, .28f) && Mathf.Approximately(hit.transform.localScale.x, .4f),
@@ -198,10 +197,10 @@ public static class DarkBarrageCubeVfxVerifier
                 Check(DarkBarrageScheduler.CastCount == casts + 1 && DarkBarrageScheduler.ActiveCount == 0, "Round " + round + " barrage finished");
                 Check(bodyVisible && hitVisible, "Round " + round + " visible projectile and hit particles");
                 Check(landingVisible && TransientVfxPool.GetStatistics(landing).Requests == landingRequests + 1,
-                    "Round " + round + " one visible crimson landing wave");
+                    "Round " + round + " one original transparent landing wave");
                 Check(Views(landing.name).SelectMany(t => t.GetComponentsInChildren<Renderer>(true))
-                    .All(r => r.sharedMaterial.GetColor("_Colour").r > r.sharedMaterial.GetColor("_Colour").g * 10f),
-                    "Round " + round + " landing crimson survives playback");
+                    .All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
+                    "Round " + round + " landing stays neutral during playback");
                 Check(DarkBarrageScheduler.LastShotCount == 6 && DarkBarrageScheduler.TotalHits == hits + 6, "Round " + round + " 4 normal and 2 finisher hits");
                 Check(leased.Sum(e => e.Health.CurrentHp) < hp && Mathf.Approximately(energy.Amount, 0f), "Round " + round + " damage lands without energy recharge");
                 Check(TransientVfxPool.GetStatistics(hit).Requests == requests + 6, "Round " + round + " matching hit VFX requests");

@@ -15,9 +15,6 @@ public sealed class MeleeAttackVfxDefinition : ScriptableObject
     [InspectorName("기본 VFX 프리팹")]
     public GameObject neutralPrefab;
 
-    [InspectorName("어둠 VFX 프리팹 (비우면 기본 사용)")]
-    public GameObject darkPrefab;
-
     [InspectorName("기본 크기")]
     public Vector3 baseScale = Vector3.one;
 
@@ -56,7 +53,4 @@ public sealed class MeleeAttackVfxDefinition : ScriptableObject
     [Min(1)] public int poolCapacity = 12;
 
     public int SafePoolCapacity => Mathf.Max(1, poolCapacity);
-
-    public GameObject ResolvePrefab(WeaponElement element)
-        => element == WeaponElement.Dark && darkPrefab != null ? darkPrefab : neutralPrefab;
 }

@@ -44,7 +44,7 @@ public sealed class AttackVfxCuePlayer
                 continue;
 
             played[i] = true;
-            Spawn(cues[i], pattern, basis, element, phaseVfxScale, attackRangeScale);
+            Spawn(cues[i], pattern, basis, phaseVfxScale, attackRangeScale);
         }
     }
 
@@ -78,7 +78,6 @@ public sealed class AttackVfxCuePlayer
         AttackVfxCueData cue,
         AttackPatternRuntimeData pattern,
         AttackPatternBasis basis,
-        WeaponElement element,
         float phaseVfxScale,
         float attackRangeScale)
     {
@@ -97,7 +96,7 @@ public sealed class AttackVfxCuePlayer
             * Quaternion.Euler(0f, 0f, swingSlope)
             * Quaternion.Euler(definition.localEulerOffset + cue.localEulerOffset);
         Vector3 position = ResolvePosition(cue, definition, pattern, basis, basisRotation);
-        GameObject prefab = definition.ResolvePrefab(element);
+        GameObject prefab = definition.neutralPrefab;
         if (prefab == null)
             return;
 

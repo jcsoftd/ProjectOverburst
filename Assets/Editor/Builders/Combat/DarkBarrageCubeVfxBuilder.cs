@@ -12,7 +12,6 @@ public static class DarkBarrageCubeVfxBuilder
     public const string AssetRoot = "Assets/ProjectOverburst/Resources/Combat/VFX/DarkCube03";
     public const string ProjectilePath = AssetRoot + "/PF_VFX_DarkBarrage_Cube03_Projectile.prefab";
     public const string HitPath = AssetRoot + "/PF_VFX_DarkBarrage_Cube03_Hit.prefab";
-    public const string LandingPath = AssetRoot + "/PF_GRS_HeavyShockwave_Dark.prefab";
     public const string ShockwaveDefinitionPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/VFX/Shockwaves/DF_GRS_HeavyShockwave.asset";
     public const string HeavyPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Heavy/GreatswordHeavyAttack.asset";
     public const string Output = "../개인파일/코덱스산출/VFX/20261001_DarkCubeBarrage";
@@ -26,9 +25,6 @@ public static class DarkBarrageCubeVfxBuilder
         var definition = AssetDatabase.LoadAssetAtPath<MeleeHeavyAttackDefinition>(HeavyPath);
         if (definition == null || EditorUtility.IsDirty(definition))
             throw new InvalidOperationException("Heavy definition is missing or has unsaved changes");
-        var shockwave = AssetDatabase.LoadAssetAtPath<MeleeAttackVfxDefinition>(ShockwaveDefinitionPath);
-        if (shockwave == null || EditorUtility.IsDirty(shockwave))
-            throw new InvalidOperationException("Landing definition is missing or has unsaved changes");
         EnsureFolder(AssetRoot + "/Materials");
         var projectile = Create("Projectiles/vfx_Projectile_Cube03.prefab", ProjectilePath, false, ProjectileScale);
         var hit = Create("Hits/vfx_Hit_Cube03.prefab", HitPath, true, .4f);
@@ -37,50 +33,6 @@ public static class DarkBarrageCubeVfxBuilder
         serialized.FindProperty("elementVfx.darkBarrageHit").objectReferenceValue = hit;
         serialized.ApplyModifiedPropertiesWithoutUndo();
         AssetDatabase.SaveAssetIfDirty(definition);
-        var landing = CreateLanding(shockwave.neutralPrefab);
-        var landingSerialized = new SerializedObject(shockwave);
-        landingSerialized.FindProperty("darkPrefab").objectReferenceValue = landing;
-        landingSerialized.ApplyModifiedPropertiesWithoutUndo();
-        AssetDatabase.SaveAssetIfDirty(shockwave);
-    }
-
-    private static GameObject CreateLanding(GameObject source)
-    {
-        if (source == null) throw new InvalidOperationException("Landing source missing");
-        var existing = AssetDatabase.LoadAssetAtPath<GameObject>(LandingPath);
-        if (existing != null && EditorUtility.IsDirty(existing))
-            throw new InvalidOperationException("Unsaved dark landing prefab");
-        var scene = EditorSceneManager.NewPreviewScene();
-        try
-        {
-            var root = (GameObject)PrefabUtility.InstantiatePrefab(source, scene);
-            PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            root.name = Path.GetFileNameWithoutExtension(LandingPath);
-            // Preserve the authored pressure wave, playback and particle timing; only its material changes.
-            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
-            {
-                renderer.sharedMaterials = renderer.sharedMaterials.Select(original =>
-                {
-                    if (original == null) return null;
-                    string path = AssetRoot + "/Materials/" + original.name + "_Dark.mat";
-                    var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-                    if (material != null && EditorUtility.IsDirty(material))
-                        throw new InvalidOperationException("Unsaved dark landing material");
-                    if (material == null) { material = new Material(original); AssetDatabase.CreateAsset(material, path); }
-                    else material.CopyPropertiesFromMaterial(original);
-                    material.name = original.name + "_Dark";
-                    if (!material.HasProperty("_Colour")) throw new InvalidOperationException("Landing color property missing");
-                    material.SetColor("_Colour", new Color(.48f, .012f, .04f, original.GetColor("_Colour").a));
-                    EditorUtility.SetDirty(material);
-                    AssetDatabase.SaveAssetIfDirty(material);
-                    return material;
-                }).ToArray();
-            }
-            var prefab = PrefabUtility.SaveAsPrefabAsset(root, LandingPath, out bool saved);
-            if (!saved || prefab == null) throw new InvalidOperationException("Dark landing save failed");
-            return prefab;
-        }
-        finally { EditorSceneManager.ClosePreviewScene(scene); }
     }
 
     private static GameObject Create(string sourceRelative, string destination, bool hit, float scale)
