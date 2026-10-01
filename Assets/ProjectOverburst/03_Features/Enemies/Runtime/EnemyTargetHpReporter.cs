@@ -31,6 +31,6 @@ public sealed class EnemyTargetHpReporter : MonoBehaviour
         if (source == null || appliedDamage <= 0f)
             return;
 
-        EnemyTargetHpHud.ReportPlayerDamage(source, info); // 대상 HUD
+        EnemyTargetHpHud.ReportPlayerDamage(source, info, appliedDamage); // 대상 HUD(맞기 전 체력으로 첫 타격 잔상을 그린다)
     }
 }

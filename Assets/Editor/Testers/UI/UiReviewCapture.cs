@@ -168,7 +168,7 @@ public static class UiReviewCapture
             foreach (var tmp in UnityEngine.Object.FindObjectsByType<TMPro.TMP_Text>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
                 string p = tmp.name; for (var x = tmp.transform.parent; x != null; x = x.parent) p = x.name + "/" + p;
-                if (!(p.Contains("EnemyTargetHpHud/HpText") || p.Contains("ZoomValue"))) continue;
+                if (!(p.Contains("EnemyTargetHpHud/Bar/HpText") || p.Contains("ZoomValue"))) continue; // 2026-10-01 대상 HUD 재구성: HpText는 Bar 아래
                 var cr = tmp.canvasRenderer;
                 var subs = tmp.GetComponentsInChildren<TMPro.TMP_SubMeshUI>(true).Select(s => s.sharedMaterial ? s.sharedMaterial.name : "null");
                 notes.Add($"TMP {p}: text='{tmp.text}' size={tmp.fontSize} col={tmp.color} shared={tmp.fontSharedMaterial?.name} render={tmp.materialForRendering?.name} cr0={(cr.materialCount > 0 ? cr.GetMaterial(0)?.name : "none")} underlay={tmp.materialForRendering?.IsKeywordEnabled("UNDERLAY_ON")} outlineW={tmp.materialForRendering?.GetFloat("_OutlineWidth")} alpha={cr.GetInheritedAlpha()} subs=[{string.Join(",", subs)}] scale={tmp.canvas?.scaleFactor}");

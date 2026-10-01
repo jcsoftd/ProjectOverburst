@@ -8,8 +8,12 @@ public sealed class EnemyBossDefinition : ScriptableObject
     [SerializeField] private string bossId;
     [SerializeField] private string displayName;
     [SerializeField] private EnemyBossPhaseDefinition[] phases;
+    [Header("HUD")]
+    [Tooltip("상단 보스 HUD 마름모 연출. 불꽃·어둠 연기·붉은 맥동 셋을 보스마다 골라 돌려쓴다(2026-10-01).")]
+    [SerializeField] private EnemyBossEmblemFxMode emblemFx = EnemyBossEmblemFxMode.Fire;
 
     public string BossId => bossId;
+    public EnemyBossEmblemFxMode EmblemFx => emblemFx;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName)
         ? bossId
         : displayName;

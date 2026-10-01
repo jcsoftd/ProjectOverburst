@@ -117,3 +117,8 @@ Assets/StreamingAssets/aa/
 # Supplier-derived DeathKnight loops; restore from the private asset backup.
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/DeathHarvest_DeathKnight_Loop*.anim
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/DeathHarvest_DeathKnight_Loop*.anim.meta
+
+# Licensed RPG UI 11 nameplate textures; restore locally or regenerate with the HUD builder.
+/Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarBackground.png*
+/Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarBorders.png*
+/Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarFill_*.png*

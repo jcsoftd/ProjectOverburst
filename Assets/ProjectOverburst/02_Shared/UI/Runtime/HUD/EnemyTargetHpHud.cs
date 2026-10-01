@@ -6,6 +6,7 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     private static EnemyTargetHpHud instance;
     private static CombatHealth pendingTarget;
     private static bool hasPendingTarget;
+    private static float pendingPreHitHp = -1f; // 2026-10-01: 새 대상 첫 타격의 잔상 시작점(맞기 전 체력)
     [SerializeField] private EnemyTargetHpSlotUI slot;
     private CombatHealth currentTarget;
     private EnemyRank currentRank;
@@ -16,7 +17,7 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
-        instance = null; pendingTarget = null; hasPendingTarget = false;
+        instance = null; pendingTarget = null; hasPendingTarget = false; pendingPreHitHp = -1f;
     }
 
     private void Awake()
@@ -41,8 +42,9 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
         if (hasPendingTarget)
         {
             var next = pendingTarget;
-            pendingTarget = null; hasPendingTarget = false;
-            ShowTarget(next);
+            float preHit = pendingPreHitHp;
+            pendingTarget = null; hasPendingTarget = false; pendingPreHitHp = -1f;
+            ShowTarget(next, preHit);
         }
         if (!IsAvailable(currentTarget))
         {
@@ -57,11 +59,15 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
         }
     }
 
-    public static void ReportPlayerDamage(CombatHealth target, DamageInfo info)
+    public static void ReportPlayerDamage(CombatHealth target, DamageInfo info, float appliedDamage = 0f)
     {
         if (instance == null || !instance.isActiveAndEnabled || target == null
             || !CombatTeamUtility.IsPlayerActorDamage(info)) return;
         // O(1) per hit, including a lethal last hit: it clears the previous target.
+        // 같은 프레임에 여러 번 맞으면 처음 맞기 전 체력을 남긴다(대상이 바뀌면 새로 잡는다).
+        float preHit = target.CurrentHp + Mathf.Max(0f, appliedDamage);
+        if (!hasPendingTarget || pendingTarget != target) pendingPreHitHp = preHit;
+        else pendingPreHitHp = Mathf.Max(pendingPreHitHp, preHit);
         pendingTarget = target;
         hasPendingTarget = true;
     }
@@ -78,6 +84,11 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     }
     public void ShowTarget(CombatHealth target)
     {
+        ShowTarget(target, -1f);
+    }
+
+    private void ShowTarget(CombatHealth target, float preHitHp)
+    {
         if (!IsAvailable(target)) { Clear(); return; }
         if (currentTarget == target) { healthDirty = true; return; }
         Unsubscribe(currentTarget);
@@ -85,7 +96,7 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
         currentRank = target.GetComponentInParent<EnemyRank>();
         currentTarget.OnHealthChanged += HandleHealthChanged;
         currentTarget.OnDead += HandleDead;
-        if (slot != null) { slot.Show(currentTarget, currentRank); PresentationRefreshCount++; }
+        if (slot != null) { slot.Show(currentTarget, currentRank, preHitHp); PresentationRefreshCount++; }
         healthDirty = false;
     }
     public void Clear()

@@ -15,7 +15,9 @@ Unity 기반 쿼터뷰 액션 프로젝트다. 직접 조작 전투, 몬스터 �
 
 저장소에는 재생성 캐시, 내부 기획 문서, 개인 작업 파일, `Assets/ThirdParty`와 재배포할 수 없는 Asset Store 패키지를 포함하지 않는다. 프로젝트를 여는 개발자는 자신이 보유한 라이선스 사본을 원래 경로에 복원해야 한다.
 
-Hera Agent Unity와 lilToon처럼 저장소에 포함된 패키지는 각 패키지의 라이선스를 따른다.
+상단 대상·보스 HUD의 네임플레이트 텍스처는 RPG and MMO UI 11 원본에서 만든 로컬 자산이다. 해당 패키지를 복원한 뒤 `Tools/Project VTP/UI/상단 대상·보스 HUD 다시 만들기 (RPG UI 11)`로 텍스처와 프리팹 연결을 다시 만들 수 있다.
+
+Hera Agent Unity와 lilToon처럼 저장소에 포함된 패키지는 각 패키지의 라이선스를 따른다. Noto Serif KR 글꼴과 HUD용 파생 글꼴의 라이선스는 `Assets/ProjectOverburst/05_Art/Fonts/OFL_NotoSerifKR.txt`에 있다.
 
 ## 기본 조작
 

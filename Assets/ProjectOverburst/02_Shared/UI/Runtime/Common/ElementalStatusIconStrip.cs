@@ -37,6 +37,13 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
 
     public bool HasVisibleStatus => hasVisibleStatus;
 
+    // 2026-10-01: 상단 대상·보스 HUD의 원소 상태 칸(EnemyTargetStatusRow)이 같은 아이콘 그림을 쓴다.
+    public bool TryGetIcon(WeaponElement element, out Sprite sprite)
+    {
+        sprite = ResolveSprite(element);
+        return sprite != null;
+    }
+
     private void Awake()
     {
         HideAll();
