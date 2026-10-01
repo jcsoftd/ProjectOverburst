@@ -104,7 +104,8 @@ namespace Overburst.EditorTools.MonsterTuner
         private void BuildScaleFields()
         {
             Heading("이 몬스터 크기");
-            var scale = new FloatField("통합 배율") { value = session.Value("variant", "visualScale").vector.x, isDelayed = true };
+            Note("배율을 올리면 커지고, 내리면 작아집니다. 1은 현재 몬스터의 기준 크기입니다.");
+            var scale = new FloatField("전체 크기 (배율)") { value = session.Value("variant", "visualScale").vector.x, isDelayed = true };
             scale.RegisterValueChangedCallback(e =>
             {
                 Undo.IncrementCurrentGroup(); int group = Undo.GetCurrentGroup();
@@ -113,23 +114,27 @@ namespace Overburst.EditorTools.MonsterTuner
                 if (linkScale) { SetVector("variant", "collisionScale", session.Value("variant", "collisionScale").vector * factor, "충돌 크기"); SetVector("variant", "anchorScale", session.Value("variant", "anchorScale").vector * factor, "기준점 크기"); }
                 Undo.CollapseUndoOperations(group); BuildFields();
             }); fields.Add(scale);
-            var link = new Toggle("외형·충돌·기준점 연동") { value = linkScale }; link.RegisterValueChangedCallback(e => linkScale = e.newValue); fields.Add(link);
+            var link = new Toggle("위치와 충돌 범위도 함께 맞추기") { value = linkScale }; link.RegisterValueChangedCallback(e => linkScale = e.newValue); fields.Add(link);
+            int detailed = fields.contentContainer.childCount;
             Note("체급 공통 배율 " + (session.Definition.Grade != null ? session.Definition.Grade.ScaleMultiplier.ToString("0.##") : "1")
                 + " × 이 몬스터 배율. 공유 프로필은 저장할 때 한 마리용으로 분리합니다.");
             Heading("세부 배율 XYZ");
             Field("variant", "visualScale", "외형"); Field("variant", "collisionScale", "몸 충돌"); Field("variant", "anchorScale", "기준점");
+            FoldDetails(detailed, "scale-details", "세부 크기 조절");
             var target = stage.Actor.GetComponent<CombatTarget>();
             if (target != null) Note("실효 피격 반경 " + target.CurrentHurtVolume.Radius.ToString("F2") + "m · 높이 " + (target.CurrentHurtVolume.HalfHeight * 2f).ToString("F2") + "m");
             fields.Add(new Button(() => { session.Discard(); stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); }) { text = "이 몬스터 변경 폐기" });
         }
         private void BuildPointFields()
         {
-            Heading("기준점");
+            BuildSelectedShapeFields();
+            Heading("조절할 위치·범위 선택");
             foreach (var point in viewport.Points)
             {
                 var selected = point;
                 fields.Add(new Button(() => { viewport.Select(selected); SetStatus(selected.Label + " · 위치 " + selected.World().ToString("F3")); }) { text = point.Label });
             }
+            int detailed = fields.contentContainer.childCount;
             if (stage.Enemy?.Anchors != null)
             {
                 Heading("공격·부착 기준점");
@@ -163,6 +168,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 Field(address, "localHitCenter", "접촉 중심", hit); Field(address, "hitRadius", "접촉 반경", hit); Field(address, "hitHeight", "접촉 높이", hit);
                 Field(address, "contactRadiusFraction", "접촉 반경 비율"); Field(address, "contactHeightFraction", "접촉 높이 비율");
             }
+            FoldDetails(detailed, "point-details", "전체 위치·판정 세부 설정");
         }
         private void RefreshPoints()
         {
@@ -360,9 +366,11 @@ namespace Overburst.EditorTools.MonsterTuner
             Note(workingAbility.ExecutionMode + " · " + (workingAbility.IsParryable ? "패링 가능한 근접 강공" : "패링 신호 없음"));
             fields.Add(new Button(PreviewAttack) { text = "공격 모션 재생" });
             string address = "ability:" + abilityIndex;
+            int timingDetails = fields.contentContainer.childCount;
             Heading("공격 시간"); Field(address, "attackAnimationDuration", "모션 기준 초"); Field(address, "hitNormalizedTime", "첫 타격 비율"); Field(address, "additionalHitNormalizedTimes", "추가 타격 비율");
             if (workingAbility.UsesPacedTimeline) { Field(address, "preparationDuration", "준비 초"); Field(address, "releaseDuration", "발동 초"); Field(address, "recoveryDuration", "회수 초"); }
             Field(address, "minimumWarningTime", "최소 예고 초"); Field(address, "minimumRecoveryTime", "최소 회수 초");
+            FoldDetails(timingDetails, "attack-timing-details", "타격 시점·준비·회복 시간 조절");
             Heading("공격 판정"); Field(address, "hitRadius", "원본 반경"); Field(address, "hitAngle", "원본 각도"); Field(address, "verticalTolerance", "높이 허용"); Field(address, "range", "발동 거리");
             Note("실효 반경 " + EnemyAttackThreatGeometry.ResolveRadius(stage.Enemy, workingAbility).ToString("F2") + "m · 각도 " + EnemyAttackThreatGeometry.ResolveHitAngle(stage.Enemy, workingAbility).ToString("F0") + "°");
             Note("시간축은 1레벨·상태이상 없는 실전 공격 속도 기준입니다. 재생 배속은 프리뷰에만 적용합니다.");
@@ -452,13 +460,15 @@ namespace Overburst.EditorTools.MonsterTuner
         }
         private void BuildAnimationFields()
         {
-            Heading("연결된 모션"); var profile = session.Definition.AnimationProfile;
+            Heading("동작 미리보기"); var profile = session.Definition.AnimationProfile;
             if (profile == null) { Note("애니메이션 프로필이 없습니다."); return; }
+            var bindings = MonsterTunerAnimationBindings.Read(profile);
+            BuildHitPreview(bindings); BuildParryPreview(bindings);
+            int detailed = fields.contentContainer.childCount;
             Note("Controller · " + (profile.RuntimeController != null ? profile.RuntimeController.name : "누락"));
             var timing = new DropdownField("공격 교체 시", new List<string> { "타격 비율 유지", "현재 타격 초 유지" }, preserveHitSeconds ? 1 : 0);
             timing.RegisterValueChangedCallback(_ => preserveHitSeconds = timing.index == 1); fields.Add(timing);
             Note("공격 클립 교체 시 기준 길이를 새 클립에 맞춥니다. 준비·발동·회수 시간을 따로 쓰는 공격은 그 시간을 유지합니다.");
-            var bindings = MonsterTunerAnimationBindings.Read(profile);
             var main = bindings.Where(IsMainMotion).ToList();
             var auxiliary = bindings.Where(b => !IsMainMotion(b)).ToList();
             Heading("주요 모션 · " + main.Count + "개");
@@ -471,11 +481,12 @@ namespace Overburst.EditorTools.MonsterTuner
             }
             if (bindings.Count == 0) Note("지원하는 기존 Controller 상태를 찾지 못했습니다. 원본 Controller를 확인하세요.");
             Note("클립 원본은 읽기 전용입니다. 교체는 이 몬스터의 프로필과 실제 Controller 연결에 저장합니다.");
+            FoldDetails(detailed, "motion-editing", "모션 연결 바꾸기");
         }
         [SerializeField] private bool auxiliaryMotionsExpanded;
         private bool IsMainMotion(MonsterTunerAnimationBindings.Binding binding)
         {
-            if (new[] { "대기", "걷기", "달리기", "피격", "사망" }.Contains(binding.Label) || binding.Label.StartsWith("패링", StringComparison.Ordinal)) return true;
+            if (new[] { "대기", "걷기", "달리기", "피격", "사망" }.Contains(binding.Label) || binding.Label.StartsWith("패링", StringComparison.Ordinal) || MonsterTunerAnimationBindings.IsHit(binding)) return true;
             string state = binding.StatePath.Split('.').Last();
             if (state.StartsWith("Attack_", StringComparison.OrdinalIgnoreCase)) return true;
             for (int i = 0; session.Definition.AbilitySet != null && i < session.Definition.AbilitySet.Count; i++)

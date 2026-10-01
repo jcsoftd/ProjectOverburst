@@ -35,6 +35,9 @@
 .mt-legend { background-color: rgba(28, 33, 40, 0.9); padding: 7px; border-width: 1px; border-color: rgb(78, 88, 102); border-radius: 5px; }
 .mt-legend .unity-toggle { margin-bottom: 4px; }
 .mt-toolbar { flex-wrap: wrap; }
+.mt-quick-motions { flex-direction: row; flex-wrap: wrap; padding: 5px 4px; background-color: rgb(39, 45, 54); }
+.mt-quick-motions Button { flex-grow: 1; min-width: 55px; height: 27px; margin: 2px; }
+.mt-quick-motions Button.selected { background-color: rgb(66, 95, 125); border-color: rgb(125, 175, 224); }
 .mt-toolbar .unity-base-field__label { min-width: 0; width: auto; flex-grow: 0; margin-right: 6px; }
 .mt-toolbar .unity-base-field { flex-shrink: 0; }
 .mt-point-card { background-color: rgb(45, 52, 61); border-width: 1px; border-color: rgb(74, 86, 100); border-radius: 5px; padding: 7px; margin-top: 5px; margin-bottom: 8px; flex-shrink: 0; }

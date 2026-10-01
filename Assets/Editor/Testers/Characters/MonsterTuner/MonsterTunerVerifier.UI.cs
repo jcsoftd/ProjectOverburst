@@ -99,6 +99,7 @@ public static partial class MonsterTunerVerifier
                 Set(window, "legendExpanded", false); Call(window, "RefreshLegend");
                 window.position = new Rect(60, 60, 1100, 720);
                 root.style.width = 1100; root.style.height = 720;
+                ChangeControl(root.Q<Foldout>("scale-details"), true);
                 try
                 {
                     CapturePanel(window, Path.Combine(Output, "toolkit-minimum-window.png"));

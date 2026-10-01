@@ -81,6 +81,7 @@ public static partial class MonsterTunerVerifier
                 var stage = Get<MonsterTunerPreviewStage>(window, "stage");
                 var replay = Get<ScrollView>(window, "fields").Query<Button>().ToList().FirstOrDefault(button => button.text == "▶ " + replacement.name);
                 Check("교체 클립 재생 버튼·길이 즉시 갱신", replay != null && Get<ScrollView>(window, "fields").Query<Label>().ToList().Any(label => label.text.StartsWith("4.00s")));
+                ChangeControl(window.rootVisualElement.Q<Foldout>("motion-editing"), true);
                 CapturePanel(window, Path.Combine(UXOutput, "replaced-motion-layout.png"));
                 Get<ScrollView>(window, "fields").ScrollTo(replay);
                 CapturePanel(window, Path.Combine(UXOutput, "replaced-motion.png")); Click(replay);

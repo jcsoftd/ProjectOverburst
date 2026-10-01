@@ -19,12 +19,14 @@ namespace Overburst.EditorTools.MonsterTuner
             var header = new VisualElement(); header.AddToClassList("mt-row");
             pointTitle = new Label(); pointTitle.AddToClassList("mt-heading"); pointTitle.style.flexGrow = 1; header.Add(pointTitle);
             pointReset = new Button(ResetSelectedPoint) { name = "point-reset", text = "항목 되돌리기" }; header.Add(pointReset); pointCard.Add(header);
-            pointParent = new Label { name = "point-parent" }; pointParent.AddToClassList("mt-note"); pointCard.Add(pointParent);
-            pointSpace = new Label(); pointSpace.AddToClassList("mt-note"); pointCard.Add(pointSpace);
-            pointLocal = new Vector3Field("저장 local") { name = "point-local" };
+            pointLocal = new Vector3Field("위치 (m)") { name = "point-local" };
             pointLocal.Query<FloatField>().ForEach(f => f.isDelayed = true);
             pointLocal.RegisterValueChangedCallback(e => SetSelectedPointLocal(e.newValue)); pointCard.Add(pointLocal);
-            pointWorld = new Label { name = "point-world" }; pointWorld.AddToClassList("mt-note"); pointCard.Add(pointWorld);
+            var details = new Foldout { name = "point-coordinate-details", text = "좌표 기준 확인", value = advancedSections.TryGetValue("point-coordinate-details", out bool expanded) && expanded };
+            details.RegisterValueChangedCallback(e => advancedSections["point-coordinate-details"] = e.newValue); pointCard.Add(details);
+            pointParent = new Label { name = "point-parent" }; pointParent.AddToClassList("mt-note"); details.Add(pointParent);
+            pointSpace = new Label(); pointSpace.AddToClassList("mt-note"); details.Add(pointSpace);
+            pointWorld = new Label { name = "point-world" }; pointWorld.AddToClassList("mt-note"); details.Add(pointWorld);
             pointHint = new Label(); pointHint.AddToClassList("mt-note"); pointCard.Add(pointHint); right.Add(pointCard);
             RefreshPointCard();
         }
@@ -44,7 +46,7 @@ namespace Overburst.EditorTools.MonsterTuner
         {
             if (pointCard == null) return;
             var point = viewport?.Selected;
-            bool visible = point != null && session != null && stage.Actor != null;
+            bool visible = point != null && session != null && stage.Actor != null && tab != 0 && tab != 4;
             pointCard.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!visible) return;
             pointTitle.text = point.Label; pointTitle.style.color = point.Color;

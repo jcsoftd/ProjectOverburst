@@ -171,6 +171,7 @@ namespace Overburst.EditorTools.MonsterTuner
             var points = new Toggle("점") { value = true }; points.RegisterValueChangedCallback(e => { viewport.ShowPoints = e.newValue; viewport.Refresh(); }); controls.Add(points);
             var volumes = new Toggle("범위") { value = true }; volumes.RegisterValueChangedCallback(e => { viewport.ShowVolumes = e.newValue; viewport.Refresh(); }); controls.Add(volumes);
             center.Add(controls);
+            BuildQuickMotions(center);
             viewport = new MonsterTunerViewport(stage); center.Add(viewport);
             BuildLegend(controls);
             var snap = new DropdownField("스냅", new List<string> { "0.01m", "0.05m", "0.1m", "없음" }, 0);
@@ -184,8 +185,6 @@ namespace Overburst.EditorTools.MonsterTuner
                 {
                     tab = point.Label.Contains("오라") ? 2 : point.Label.Contains("패링") || point.Label.Contains("머즐") ? 3 : 1;
                     BuildFields();
-                    var input = fields.Q(name: point.Key);
-                    if (input != null) fields.schedule.Execute(() => { if (fields.contentContainer.Contains(input)) fields.ScrollTo(input); });
                 }
                 RefreshPointCard();
                 SetStatus(point != null ? point.Label + " · 축 드래그 또는 오른쪽 숫자 입력" : stage.Message);
@@ -212,7 +211,7 @@ namespace Overburst.EditorTools.MonsterTuner
         private void BuildTabs(VisualElement right)
         {
             var row = new VisualElement(); row.AddToClassList("mt-row");
-            string[] labels = { "크기", "점·판정", "오라", "공격", "모션" };
+            string[] labels = { "크기", "위치·범위", "효과", "공격", "모션" };
             for (int i = 0; i < labels.Length; i++)
             {
                 int index = i; var button = new Button(() => { tab = index; BuildFields(); }) { text = labels[i], name = "tab" + i };
@@ -237,6 +236,7 @@ namespace Overburst.EditorTools.MonsterTuner
             bool locked = EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling;
             fields?.SetEnabled(!locked); viewport.SetEnabled(!locked);
             pointCard?.SetEnabled(!locked);
+            rootVisualElement.Q("quick-motions")?.SetEnabled(!locked);
             saveButton.SetEnabled(session != null && session.Dirty && !locked);
             if (locked || !rootVisualElement.visible || stage.Actor == null) return;
             stage.Advance(delta);
@@ -256,12 +256,14 @@ namespace Overburst.EditorTools.MonsterTuner
                 timeLabel.text = stage.Time.ToString("F2") + " / " + stage.Duration.ToString("F2") + "s  ·  " + stage.ZoomPercent.ToString("F0") + "%";
                 playButton.text = stage.Playing ? "Ⅱ 정지" : "▶ 재생";
                 RefreshPointCard();
+                RefreshQuickMotionStatus();
             }
             catch (Exception e) { stage.Playing = false; SetStatus("프리뷰: " + e.Message, true); }
         }
         private void TogglePlayback() { stage.Playing = !stage.Playing; RenderNow(); }
         private void UpdateHeader()
         {
+            RefreshQuickMotions();
             if (selection != null) selection.text = session != null ? session.Definition.DisplayName + " · 변경 " + session.edits.Count + "개" : "몬스터를 선택하세요.";
             hasUnsavedChanges = sessions.Values.Any(s => s != null && s.Dirty);
             saveChangesMessage = "미저장 " + sessions.Values.Count(s => s != null && s.Dirty) + "마리의 편집이 있습니다. 저장은 선택 몬스터에만 적용합니다. 다른 사본은 창을 다시 열 때 복원할 수 있습니다. 폐기는 모든 사본을 지웁니다.";
@@ -294,7 +296,7 @@ namespace Overburst.EditorTools.MonsterTuner
         private void PlayState(PlayModeStateChange state)
         {
             if (state == PlayModeStateChange.ExitingEditMode) BeforeReload();
-            if (state == PlayModeStateChange.EnteredEditMode && session != null) { stage.Load(session); RefreshPoints(); BuildFields(); list?.RefreshItems(); }
+            if (state == PlayModeStateChange.EnteredEditMode && session != null) { stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); list?.RefreshItems(); }
         }
         private void OnDisable()
         {

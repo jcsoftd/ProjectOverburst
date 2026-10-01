@@ -47,7 +47,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 string lower = binding.StatePath.ToLowerInvariant();
                 string state = lower.Split('.').Last();
                 string primary = state == "idle" ? "idle" : state == "walk" ? "walk" : state == "run" ? "run"
-                    : state == "death" ? "death" : state.StartsWith("hit") ? "hit" : null;
+                    : state == "death" ? "death" : IsHit(binding) ? "hit" : null;
                 if (state == "locomotion" && binding.Children.Length == 1 && binding.State.motion is BlendTree locomotion)
                 {
                     float threshold = locomotion.children[binding.Children[0]].threshold;
@@ -63,6 +63,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 if (lower.EndsWith("parry_collapse")) binding.Label = "패링 · 무너짐";
                 else if (lower.EndsWith("stunned_loop")) binding.Label = "패링 · 기절 반복";
                 else if (lower.EndsWith("stun_recover")) binding.Label = "패링 · 회복";
+                else if (IsHit(binding)) binding.Label = HitLabel(binding);
                 else if (binding.ProfileProperties.Contains("idle")) binding.Label = "대기";
                 else if (binding.ProfileProperties.Contains("walk")) binding.Label = "걷기";
                 else if (binding.ProfileProperties.Contains("run")) binding.Label = "달리기";
@@ -71,6 +72,22 @@ namespace Overburst.EditorTools.MonsterTuner
                 else binding.Label = binding.StatePath.Split('.').Last();
             }
             return result;
+        }
+        public static bool IsHit(Binding binding)
+        {
+            string state = binding.StatePath.Split('.').Last();
+            return state.Equals("Get_hit", StringComparison.OrdinalIgnoreCase) || state.StartsWith("Hit", StringComparison.OrdinalIgnoreCase);
+        }
+        private static string HitLabel(Binding binding)
+        {
+            if (binding.Children.Length == 0) return "피격";
+            if (binding.Children.Length == 1 && binding.State.motion is BlendTree tree && tree.blendParameter == "HitX" && tree.blendParameterY == "HitZ")
+            {
+                Vector2 direction = tree.children[binding.Children[0]].position;
+                if (direction.sqrMagnitude > .001f)
+                    return "피격 · " + (Mathf.Abs(direction.y) >= Mathf.Abs(direction.x) ? direction.y > 0f ? "정면" : "후면" : direction.x < 0f ? "좌측" : "우측");
+            }
+            return "피격 · 변형 " + string.Join("/", binding.Children);
         }
         public static List<Binding> ReadController(RuntimeAnimatorController runtime)
         {

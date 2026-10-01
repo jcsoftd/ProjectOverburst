@@ -113,6 +113,7 @@ public static partial class MonsterTunerVerifier
                     Set(window, "tab", 4); Call(window, "BuildFields");
                     var bindings = MonsterTunerAnimationBindings.Read(definition.AnimationProfile);
                     var aux = root.Q<Foldout>("auxiliary-motions");
+                    ChangeControl(root.Q<Foldout>("motion-editing"), true);
                     Check("보조 모션 기본 접힘", aux != null && !aux.value);
                     Check("주요 대기·이동·공격·패링 기본 표시", bindings.Where(b => new[] { "대기", "걷기", "달리기", "피격", "사망" }.Contains(b.Label) || b.Label.StartsWith("패링") || b.StatePath.Contains(".Attack_")).All(b => !aux.Contains(root.Q("motion-slot:" + b.Key))));
                     string draft = JsonUtility.ToJson(session); ChangeControl(aux, true); Check("보조 모션 펼치기 사본 불변", aux.value && JsonUtility.ToJson(session) == draft);
