@@ -873,9 +873,13 @@ MonoBehaviour:
   contentRoot: {fileID: 4988190263630627344}
   slotRoot: {fileID: 4481922775517867088}
   iconImage: {fileID: 1279580546574566330}
-  fireIcon: {fileID: 21300000, guid: 96e33608c8d9c1548a9141a6d75ad4c9, type: 3}
-  iceIcon: {fileID: 21300000, guid: 38a9323933265c0418ae6351fe6bed8b, type: 3}
-  electricIcon: {fileID: 21300000, guid: fb631309a4bd49e49afc90278cdf07f6, type: 3}
+  fireIcon: {fileID: 21300000, guid: 7a0346679bdf2ca4699570516a8f9adf, type: 3}
+  iceIcon: {fileID: 21300000, guid: 0c6a553fad5e071429d63b5ee0bae2b4, type: 3}
+  electricIcon: {fileID: 21300000, guid: 19dd9f349b0494c4d9eeef64b3cc8e95, type: 3}
+  darkIcon: {fileID: 21300000, guid: d96de94acd093ea47b02154a044e50da, type: 3}
+  lightIcon: {fileID: 21300000, guid: 7c7d50465a9ea9d4497aab0cc186be6c, type: 3}
+  freezeIcon: {fileID: 21300000, guid: a0c18329221b8db49821124d22162124, type: 3}
+  stunIcon: {fileID: 21300000, guid: 302022c6c147c0b4c9ca170679507f1c, type: 3}
 --- !u!1 &8048792371096584574
 GameObject:
   m_ObjectHideFlags: 0

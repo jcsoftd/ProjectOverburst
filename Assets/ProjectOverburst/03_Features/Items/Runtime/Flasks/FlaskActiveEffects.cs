@@ -43,6 +43,17 @@ public sealed class FlaskActiveEffects
     public float Remaining(string itemId, float now)
     { foreach (Entry e in entries) if (e.itemId == itemId) return Mathf.Max(0f, e.end - now); return 0f; }
 
+    public void GetActive(List<FlaskEffectSnapshot> results, float now)
+    {
+        results.Clear();
+        foreach (Entry entry in entries)
+        {
+            float remaining = Mathf.Max(0f, entry.end - now);
+            if (remaining > 0f)
+                results.Add(new FlaskEffectSnapshot(entry.itemId, entry.data, remaining, entry.stats.duration));
+        }
+    }
+
     // Integrate only the actual active portion of this frame, including a partial last frame.
     public float Advance(float previous, float now, out bool changed)
     {
@@ -61,4 +72,13 @@ public sealed class FlaskActiveEffects
 
     public bool Remove(string itemId) => entries.RemoveAll(e => e.itemId == itemId) > 0;
     public void Clear() { entries.Clear(); }
+}
+
+public readonly struct FlaskEffectSnapshot
+{
+    public readonly string ItemId;
+    public readonly FlaskItemData Data;
+    public readonly float Remaining, Duration;
+    public FlaskEffectSnapshot(string itemId, FlaskItemData data, float remaining, float duration)
+    { ItemId = itemId; Data = data; Remaining = remaining; Duration = duration; }
 }

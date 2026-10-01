@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 2026-10-01: 상단 대상·보스 HUD의 원소 상태 칸. 걸린 상태를 모두(최대 5개) 나란히 보인다.
+// 상단 대상·보스 HUD의 원소 상태와 독립 기절 칸.
 // 지나간 시간만큼 시계방향으로 어두워지는 덮개(Filled Radial360)와 칸 오른쪽 아래 중첩 수를 함께 보인다.
 // 아이콘 그림은 같은 HUD의 ElementalStatusIconStrip에 지정된 원소 스프라이트를 그대로 쓴다(머리 위 바와 같은 그림).
 [DisallowMultipleComponent]
@@ -32,10 +32,11 @@ public sealed class EnemyTargetStatusRow : MonoBehaviour
     [SerializeField] private float cellSpacing = 54f;
 
     private ElementalStatusController controller;
-    private readonly float[] fullDuration = new float[5];
-    private readonly float[] lastRemaining = new float[5];
+    private readonly float[] fullDuration = new float[6];
+    private readonly float[] lastRemaining = new float[6];
     private int[] shownStacks = Array.Empty<int>();
     private int shownCount = -1;
+    private bool wasFrozen;
 
     public int VisibleCount => Mathf.Max(0, shownCount);
 
@@ -59,6 +60,7 @@ public sealed class EnemyTargetStatusRow : MonoBehaviour
         controller = next;
         Array.Clear(fullDuration, 0, fullDuration.Length);
         Array.Clear(lastRemaining, 0, lastRemaining.Length);
+        wasFrozen = false;
         Refresh();
     }
 
@@ -84,15 +86,24 @@ public sealed class EnemyTargetStatusRow : MonoBehaviour
         for (int i = 0; i < DisplayOrder.Length; i++)
         {
             WeaponElement element = DisplayOrder[i];
-            if (controller == null || !controller.TryGetStatus(element, out ElementalStatusSnapshot snapshot)
-                || !snapshot.IsActive)
+            ElementalStatusSnapshot snapshot = default;
+            ElementalReactionStateSnapshot frozen = default;
+            bool isFrozen = element == WeaponElement.Ice && controller != null
+                && controller.TryGetReactionState(ElementalReactionType.Freeze, out frozen);
+            bool active = controller != null && controller.TryGetStatus(element, out snapshot) && snapshot.IsActive;
+            if (element == WeaponElement.Ice && wasFrozen != isFrozen)
+            {
+                fullDuration[i] = lastRemaining[i] = 0f;
+                wasFrozen = isFrozen;
+            }
+            if (!active && !isFrozen)
             {
                 fullDuration[i] = 0f;
                 lastRemaining[i] = 0f;
                 continue;
             }
 
-            float remaining = snapshot.RemainingDuration;
+            float remaining = isFrozen ? frozen.RemainingDuration : snapshot.RemainingDuration;
             if (fullDuration[i] <= 0f || remaining > lastRemaining[i] + 0.01f)
                 fullDuration[i] = Mathf.Max(remaining, 0.01f); // 새로 걸리거나 갱신되면 그때 남은 시간이 전체 길이
             lastRemaining[i] = remaining;
@@ -111,14 +122,35 @@ public sealed class EnemyTargetStatusRow : MonoBehaviour
                 cell.icon.sprite = sprite;
             if (cell.sweep != null)
                 cell.sweep.fillAmount = 1f - Mathf.Clamp01(remaining / fullDuration[i]);
-            if (cell.stack != null && shownStacks[shown] != snapshot.StackCount)
+            int stackCount = isFrozen ? 1 : snapshot.StackCount;
+            if (cell.stack != null && shownStacks[shown] != stackCount)
             {
-                shownStacks[shown] = snapshot.StackCount;
-                cell.stack.text = snapshot.StackCount > 1 ? snapshot.StackCount.ToString() : string.Empty;
+                shownStacks[shown] = stackCount;
+                cell.stack.text = stackCount > 1 ? stackCount.ToString() : string.Empty;
             }
 
             shown++;
         }
+
+        if (shown < cells.Length && iconSource != null && iconSource.TryGetStun(out float stunRemaining, out Sprite stunSprite))
+        {
+            const int index = 5;
+            if (fullDuration[index] <= 0f || stunRemaining > lastRemaining[index] + .01f)
+                fullDuration[index] = stunRemaining;
+            lastRemaining[index] = stunRemaining;
+            Cell cell = cells[shown];
+            if (cell != null && cell.root != null)
+            {
+                cell.root.gameObject.SetActive(true);
+                cell.root.anchoredPosition = new Vector2(shown * cellSpacing, 0f);
+                if (cell.icon != null) cell.icon.sprite = stunSprite;
+                if (cell.sweep != null) cell.sweep.fillAmount = 1f - Mathf.Clamp01(stunRemaining / Mathf.Max(.01f, fullDuration[index]));
+                if (cell.stack != null) cell.stack.text = string.Empty;
+                shownStacks[shown] = -1;
+                shown++;
+            }
+        }
+        else { fullDuration[5] = lastRemaining[5] = 0f; }
 
         HideFrom(shown);
         shownCount = shown;

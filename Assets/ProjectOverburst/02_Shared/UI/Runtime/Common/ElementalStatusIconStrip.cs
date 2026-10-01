@@ -25,6 +25,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
     [SerializeField] private Sprite electricIcon;
     [SerializeField] private Sprite darkIcon;
     [SerializeField] private Sprite lightIcon;
+    [SerializeField] private Sprite freezeIcon;
+    [SerializeField] private Sprite stunIcon;
     private static Sprite darkFallbackIcon;
     private static Sprite lightFallbackIcon;
 
@@ -32,6 +34,9 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
     private ElementalStatusController subscribedController;
     private bool hasVisibleStatus;
     private bool presentationVisible = true;
+    private EnemyMovementReaction movementReaction;
+    private bool lastStunned;
+    public Sprite DisplayedSprite => iconImage != null && hasVisibleStatus ? iconImage.sprite : null;
 
     public event Action<bool> VisibilityChanged;
 
@@ -42,6 +47,19 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
     {
         sprite = ResolveSprite(element);
         return sprite != null;
+    }
+
+    public bool TryGetStun(out float remaining, out Sprite sprite)
+    {
+        remaining = movementReaction != null ? movementReaction.ParryStunRemaining : 0f;
+        sprite = StatusBuffIcons.Status("stun") ?? stunIcon;
+        return remaining > 0f && sprite != null;
+    }
+
+    private void LateUpdate()
+    {
+        bool stunned = movementReaction != null && movementReaction.IsParryStunned;
+        if (stunned != lastStunned) { lastStunned = stunned; Refresh(); }
     }
 
     private void Awake()
@@ -62,6 +80,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
 
     public void Bind(CombatHealth health)
     {
+        movementReaction = health != null ? health.GetComponent<EnemyMovementReaction>() : null;
+        if (movementReaction == null && health != null) movementReaction = health.GetComponentInParent<EnemyMovementReaction>();
         ElementalStatusController nextController = null;
         if (health != null)
         {
@@ -86,6 +106,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
     {
         Unsubscribe();
         statusController = null;
+        movementReaction = null;
+        lastStunned = false;
         HideAll();
     }
 
@@ -108,6 +130,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
         subscribedController.StatusChanged += HandleStatusChanged;
         subscribedController.StatusRemoved += HandleStatusRemoved;
         subscribedController.StatusesCleared += HandleStatusesCleared;
+        subscribedController.ReactionStateChanged += HandleReactionChanged;
+        subscribedController.ReactionStateRemoved += HandleReactionRemoved;
     }
 
     private void Unsubscribe()
@@ -118,6 +142,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
         subscribedController.StatusChanged -= HandleStatusChanged;
         subscribedController.StatusRemoved -= HandleStatusRemoved;
         subscribedController.StatusesCleared -= HandleStatusesCleared;
+        subscribedController.ReactionStateChanged -= HandleReactionChanged;
+        subscribedController.ReactionStateRemoved -= HandleReactionRemoved;
         subscribedController = null;
     }
 
@@ -140,10 +166,16 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
         HideAll();
     }
 
+    private void HandleReactionChanged(ElementalReactionStateSnapshot snapshot, ElementalReactionStateChangeReason reason) => Refresh();
+    private void HandleReactionRemoved(ElementalReactionType type, ElementalReactionStateRemoveReason reason) => Refresh();
+
     private void Refresh()
     {
         Sprite visibleSprite = null;
-        if (statusController != null)
+        if (TryGetStun(out _, out Sprite stunnedSprite)) visibleSprite = stunnedSprite;
+        else if (statusController != null && statusController.IsFrozen)
+            visibleSprite = StatusBuffIcons.Status("freeze") ?? freezeIcon;
+        if (visibleSprite == null && statusController != null)
         {
             for (int i = 0; i < DisplayOrder.Length; i++)
             {
@@ -199,6 +231,8 @@ public sealed class ElementalStatusIconStrip : MonoBehaviour
 
     private Sprite ResolveSprite(WeaponElement element)
     {
+        Sprite selected = StatusBuffIcons.Element(element, element == WeaponElement.Ice && statusController != null && statusController.IsFrozen);
+        if (selected != null) return selected;
         switch (element)
         {
             case WeaponElement.Fire:

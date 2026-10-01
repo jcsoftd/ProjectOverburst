@@ -16,36 +16,36 @@ MonoBehaviour:
   - Key: buff_MaxHealth
     Title: "\uC0DD\uBA85\uC758 \uAC01\uC778"
     Description: "\uCD5C\uB300 \uCCB4\uB825\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 650a51129bd7f4e4e908cec18a126f53, type: 3}
+    Icon: {fileID: 21300000, guid: 593082dc8bbc2e3428b80925ce57b1cd, type: 3}
   - Key: buff_Armor
     Title: "\uAC15\uCCA0\uC758 \uAC01\uC778"
     Description: "\uBC1B\uB294 \uD53C\uD574\uB97C \uC904\uC785\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 581b1ec8c3583ab49bbaa18e1bd49239, type: 3}
+    Icon: {fileID: 21300000, guid: c6a53ba6956062247b83a0826aa8688b, type: 3}
   - Key: buff_Attack
     Title: "\uD30C\uAD34\uC758 \uAC01\uC778"
     Description: "\uACF5\uACA9\uB825\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 10f84c976431925449c6c450abe174fc, type: 3}
+    Icon: {fileID: 21300000, guid: d86f10d3d595d2441ab2793afcb0cc1d, type: 3}
   - Key: buff_ElementalDamage
     Title: "\uC6D0\uC18C\uC758 \uAC01\uC778"
     Description: "\uC6D0\uC18C\uB85C \uAC00\uD558\uB294 \uD53C\uD574\uAC00 \uC99D\uAC00\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 4e95f5e8e8033de40845708bf2ddd853, type: 3}
+    Icon: {fileID: 21300000, guid: 9a756eb76bd70b54d8de59ce54ff3fd0, type: 3}
   - Key: buff_AttackSpeed
     Title: "\uC9C8\uD48D\uC758 \uAC01\uC778"
     Description: "\uACF5\uACA9\uC744 \uB354 \uBE60\uB974\uAC8C \uC774\uC5B4\uAC11\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: a518ce81621bd4946a0ddb435f77e41f, type: 3}
+    Icon: {fileID: 21300000, guid: 90d0c5b6458c5934fb161a1b9a693949, type: 3}
   - Key: buff_MoveSpeed
     Title: "\uC21C\uD48D\uC758 \uAC01\uC778"
     Description: "\uB354 \uBE60\uB974\uAC8C \uC774\uB3D9\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: a518ce81621bd4946a0ddb435f77e41f, type: 3}
+    Icon: {fileID: 21300000, guid: e877a2828c11c0b4e9856f991e2e9fe7, type: 3}
   - Key: buff_ItemDrop
     Title: "\uC218\uD655\uC758 \uAC01\uC778"
     Description: "\uBAAC\uC2A4\uD130\uC5D0\uAC8C\uC11C \uC544\uC774\uD15C\uC744 \uC5BB\uC744
       \uD655\uB960\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 9afa7ff2b60a9c247a04e3f5b55a8c7d, type: 3}
+    Icon: {fileID: 21300000, guid: fcc0eadb7e8f84b40aa63044f7cd15b9, type: 3}
   - Key: buff_ExperienceGain
     Title: "\uC9C0\uD61C\uC758 \uAC01\uC778"
     Description: "\uD68D\uB4DD\uD558\uB294 \uACBD\uD5D8\uCE58\uAC00 \uC99D\uAC00\uD569\uB2C8\uB2E4."
-    Icon: {fileID: 21300000, guid: 3c163b2a4bcb6dd4b9c6c816814681f6, type: 3}
+    Icon: {fileID: 21300000, guid: 1425b51f8d7c2114991b1b84cd21488f, type: 3}
   - Key: loot_chest
     Title: "\uBD09\uC778\uB41C \uC804\uB9AC\uD488"
     Description: "\uC88B\uC740 \uC7A5\uBE44\uAC00 \uB4E0 \uC0C1\uC790\uB97C \uC18C\uD658\uD569\uB2C8\uB2E4."

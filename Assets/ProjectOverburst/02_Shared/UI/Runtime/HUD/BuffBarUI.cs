@@ -5,157 +5,108 @@ using UnityEngine;
 [DefaultExecutionOrder(10003)]
 public sealed class BuffBarUI : MonoBehaviour
 {
-    private const int MaxVisibleBuffs = 5;
-
+    public const int TimedSlotCount = 9;
+    public const int MapSlotCount = 8;
+    public const int SlotCount = TimedSlotCount + MapSlotCount;
     [SerializeField] private PlayerBuffController buffController;
-    [SerializeField] private BuffIconSlotUI[] slots = new BuffIconSlotUI[MaxVisibleBuffs];
+    [SerializeField] private BuffIconSlotUI[] slots = new BuffIconSlotUI[SlotCount];
     [SerializeField] private TextMeshProUGUI moreIndicator;
     [SerializeField] private bool autoResolveReferences = true;
+    private readonly List<BuffInstance> activeBuffs = new List<BuffInstance>(9);
+    private readonly List<FlaskEffectSnapshot> activeFlasks = new List<FlaskEffectSnapshot>(3);
+    private readonly int[] mapStacks = new int[MapSlotCount];
+    private static readonly string[] FlaskKeys = {
+        "flask_Life", "flask_Regeneration", "flask_Berserker", "flask_Giant", "flask_Executioner", "flask_Overcharge",
+        "flask_Ironclad", "flask_Ghost", "flask_Fire", "flask_Ice", "flask_Lightning", "flask_Dark", "flask_Light"
+    };
+    private static readonly string[] MapKeys = {
+        "map_MaxHealth", "map_Armor", "map_Attack", "map_ElementalDamage", "map_AttackSpeed", "map_MoveSpeed", "map_ItemDrop", "map_ExperienceGain"
+    };
+    private CombatHealth actor;
+    private PlayerFlaskController flasks;
+    private OverburstElementEnergy energy;
+    public int VisibleTimedCount { get; private set; }
+    public int VisibleMapCount { get; private set; }
 
-    private readonly List<BuffInstance> activeBuffs = new List<BuffInstance>(MaxVisibleBuffs + 4);
-    private PlayerBuffController subscribedController;
+    private void Awake() => BindVisuals();
+    private void OnEnable() => Refresh();
+    private void OnDisable() => HideAll();
+    private void Update() => Refresh();
 
-    private void Awake()
+    public void Refresh()
     {
         BindVisuals();
-    }
-
-    private void OnEnable()
-    {
-        ResolveReferences();
-        Subscribe();
-        Refresh();
-    }
-
-    private void OnDisable()
-    {
-        Unsubscribe();
-    }
-
-    private void Update()
-    {
-        if (autoResolveReferences && buffController == null)
+        if (autoResolveReferences) ResolveReferences();
+        if (actor == null || actor.IsDead || actor.CurrentHp <= 0f) { HideAll(); return; }
+        int shown = 0, total = 0;
+        activeBuffs.Clear();
+        if (buffController != null) buffController.GetActiveBuffs(activeBuffs);
+        activeBuffs.Sort(CompareRemaining);
+        foreach (BuffInstance buff in activeBuffs)
         {
-            ResolveReferences();
-            Subscribe();
+            if (shown < TimedSlotCount && slots[shown] != null) slots[shown++].SetBuff(buff);
+            total++;
         }
-
-        Refresh();
-    }
-
-    private void HandleBuffsChanged()
-    {
-        Refresh();
-    }
-
-    private void Refresh()
-    {
-        BindVisuals();
-
-        if (buffController == null)
+        activeFlasks.Clear();
+        if (flasks != null) flasks.Effects.GetActive(activeFlasks, Time.time);
+        foreach (FlaskEffectSnapshot flask in activeFlasks)
         {
-            HideAll();
-            return;
+            if (shown < TimedSlotCount && slots[shown] != null)
+                slots[shown++].SetEffect(FlaskKeys[(int)flask.Data.kind], StatusBuffIcons.Flask(flask.Data), flask.Remaining, flask.Duration);
+            total++;
         }
-
-        buffController.GetActiveBuffs(activeBuffs);
-        activeBuffs.Sort(CompareRemainingTimeAscending);
-
-        int slotCount = slots != null ? Mathf.Min(slots.Length, MaxVisibleBuffs) : 0;
-        for (int i = 0; i < slotCount; i++)
+        if (energy != null && energy.Element == WeaponElement.Light && energy.RadianceStacks > 0)
         {
-            BuffIconSlotUI slot = slots[i];
-            if (slot == null)
-                continue;
-
-            if (i < activeBuffs.Count)
-                slot.SetBuff(activeBuffs[i]);
-            else
-                slot.SetVisible(false);
+            if (shown < TimedSlotCount && slots[shown] != null)
+                slots[shown++].SetEffect("radiance", StatusBuffIcons.Status("radiance"), stacks: energy.RadianceStacks, permanent: true);
+            total++;
         }
+        for (int i = shown; i < TimedSlotCount; i++) slots[i]?.SetVisible(false);
+        VisibleTimedCount = shown;
+        if (moreIndicator != null) moreIndicator.gameObject.SetActive(total > TimedSlotCount);
 
-        for (int i = slotCount; i < MaxVisibleBuffs; i++)
+        System.Array.Clear(mapStacks, 0, mapStacks.Length);
+        MapRunBuffs map = MapRunBuffs.Current;
+        if (map != null && WorldSessionState.Phase == WorldPhase.Run)
+            foreach (MapCardChoice card in map.Selected)
+                if (card.Kind == MapCardKind.Buff) mapStacks[(int)card.Buff]++;
+        shown = 0;
+        for (int i = 0; i < MapSlotCount; i++)
         {
-            BuffIconSlotUI slot = slots != null && i < slots.Length ? slots[i] : null;
-            if (slot != null)
-                slot.SetVisible(false);
+            if (mapStacks[i] == 0) continue;
+            BuffIconSlotUI slot = slots[TimedSlotCount + shown++];
+            slot?.SetEffect(MapKeys[i], StatusBuffIcons.Map((MapBuffKind)i), stacks: mapStacks[i], permanent: true);
         }
-
-        if (moreIndicator != null)
-            moreIndicator.gameObject.SetActive(activeBuffs.Count > MaxVisibleBuffs);
+        for (int i = shown; i < MapSlotCount; i++) slots[TimedSlotCount + i]?.SetVisible(false);
+        VisibleMapCount = shown;
     }
 
     private void HideAll()
     {
-        if (slots != null)
-        {
-            for (int i = 0; i < slots.Length; i++)
-            {
-                if (slots[i] != null)
-                    slots[i].SetVisible(false);
-            }
-        }
-
-        if (moreIndicator != null)
-            moreIndicator.gameObject.SetActive(false);
+        if (slots != null) foreach (BuffIconSlotUI slot in slots) slot?.SetVisible(false);
+        if (moreIndicator != null) moreIndicator.gameObject.SetActive(false);
+        VisibleTimedCount = VisibleMapCount = 0;
     }
 
     private void BindVisuals()
     {
-        if (slots == null || slots.Length != MaxVisibleBuffs)
-            slots = new BuffIconSlotUI[MaxVisibleBuffs];
-
-        for (int i = 0; i < MaxVisibleBuffs; i++)
-        {
-            if (slots[i] != null)
-                continue;
-
-            string childName = "BuffIconSlot_" + (i + 1).ToString("00");
-            Transform child = transform.Find(childName);
-            slots[i] = child != null ? child.GetComponent<BuffIconSlotUI>() : null;
-        }
-
-        if (moreIndicator == null)
-        {
-            Transform more = transform.Find("MoreIndicator");
-            moreIndicator = more != null ? more.GetComponent<TextMeshProUGUI>() : null;
-        }
+        if (slots == null || slots.Length != SlotCount) System.Array.Resize(ref slots, SlotCount);
+        for (int i = 0; i < SlotCount; i++)
+            if (slots[i] == null)
+                slots[i] = transform.Find("BuffIconSlot_" + (i + 1).ToString("00"))?.GetComponent<BuffIconSlotUI>();
+        if (moreIndicator == null) moreIndicator = transform.Find("MoreIndicator")?.GetComponent<TextMeshProUGUI>();
     }
 
     private void ResolveReferences()
     {
-        if (buffController != null)
-            return;
-
-        buffController = FindFirstObjectByType<PlayerBuffController>(FindObjectsInactive.Include);
+        CombatHealth next = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorHealth : null;
+        if (actor == next) return;
+        actor = next;
+        buffController = actor != null ? actor.GetComponent<PlayerBuffController>() : null;
+        flasks = actor != null ? actor.GetComponent<PlayerFlaskController>() : null;
+        energy = actor != null ? actor.GetComponent<OverburstElementEnergy>() : null;
     }
 
-    private void Subscribe()
-    {
-        if (subscribedController == buffController)
-            return;
-
-        Unsubscribe();
-        if (buffController == null)
-            return;
-
-        buffController.BuffsChanged += HandleBuffsChanged;
-        subscribedController = buffController;
-    }
-
-    private void Unsubscribe()
-    {
-        if (subscribedController == null)
-            return;
-
-        subscribedController.BuffsChanged -= HandleBuffsChanged;
-        subscribedController = null;
-    }
-
-    private static int CompareRemainingTimeAscending(BuffInstance left, BuffInstance right)
-    {
-        float leftTime = left != null ? left.RemainingTime : float.MaxValue;
-        float rightTime = right != null ? right.RemainingTime : float.MaxValue;
-        return leftTime.CompareTo(rightTime);
-    }
+    private static int CompareRemaining(BuffInstance left, BuffInstance right)
+        => left.RemainingTime.CompareTo(right.RemainingTime);
 }

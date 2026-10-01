@@ -1,15 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public sealed class BuffIconSlotUI : MonoBehaviour
 {
     [SerializeField] private Image baseImage;
     [SerializeField] private Image fillImage;
-    [SerializeField] private Color fallbackBuffColor = new Color(0.12f, 1f, 0.28f, 1f);
-    [SerializeField] private Color fallbackDebuffColor = new Color(1f, 0.18f, 0.12f, 1f);
-    [SerializeField] private Color fallbackBaseColor = new Color(0.35f, 0.35f, 0.35f, 0.85f);
+    [SerializeField] private TMP_Text valueText;
 
     private static Sprite defaultArrowSprite;
+    private int lastNumber = int.MinValue;
+    public string DisplayedKey { get; private set; }
+    public Sprite DisplayedSprite => fillImage != null && fillImage.enabled ? fillImage.sprite : null;
 
     private void Awake()
     {
@@ -27,33 +29,34 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             return;
         }
 
-        BuffDefinition definition = instance.Definition;
-        Sprite icon = definition.icon != null ? definition.icon : GetDefaultArrowSprite();
-        Color fillColor = definition.indicatorColor;
-        if (fillColor.a <= 0f)
-            fillColor = definition.isDebuff ? fallbackDebuffColor : fallbackBuffColor;
+        SetEffect(instance.BuffId, StatusBuffIcons.Buff(instance.Definition) ?? GetDefaultArrowSprite(), instance.RemainingTime,
+            instance.Definition.duration);
+    }
 
-        Color baseColor = definition.baseIndicatorColor;
-        if (baseColor.a <= 0f)
-            baseColor = fallbackBaseColor;
-
-        ConfigureImage(baseImage, icon, baseColor, Image.Type.Simple);
-        ConfigureImage(fillImage, icon, fillColor, Image.Type.Filled);
-        ApplyExpireBlink(instance);
-
+    public void SetEffect(string key, Sprite sprite, float remaining = 0f, float duration = 0f,
+        int stacks = 0, bool permanent = false)
+    {
+        BindVisuals();
+        if (sprite == null) { SetVisible(false); return; }
+        DisplayedKey = key;
+        float alpha = permanent ? 1f : ExpireBlinkAlpha(remaining, duration);
+        ConfigureImage(baseImage, sprite, new Color(1f, 1f, 1f, .22f * alpha), Image.Type.Simple);
+        ConfigureImage(fillImage, sprite, new Color(1f, 1f, 1f, alpha), permanent ? Image.Type.Simple : Image.Type.Filled);
         if (fillImage != null)
         {
-            fillImage.fillMethod = Image.FillMethod.Vertical;
-            fillImage.fillOrigin = (int)Image.OriginVertical.Bottom;
-            fillImage.fillAmount = instance.RemainingRatio;
+            fillImage.fillMethod = Image.FillMethod.Radial360;
+            fillImage.fillOrigin = (int)Image.Origin360.Top;
+            fillImage.fillClockwise = true;
+            fillImage.fillAmount = permanent ? 1f : Mathf.Clamp01(remaining / Mathf.Max(.01f, duration));
         }
-
-        Vector3 rotation = definition.iconPointsDown ? new Vector3(0f, 0f, 180f) : Vector3.zero;
-        if (baseImage != null)
-            baseImage.rectTransform.localEulerAngles = rotation;
-        if (fillImage != null)
-            fillImage.rectTransform.localEulerAngles = rotation;
-
+        if (baseImage != null) baseImage.rectTransform.localEulerAngles = Vector3.zero;
+        if (fillImage != null) fillImage.rectTransform.localEulerAngles = Vector3.zero;
+        int number = stacks > 1 ? stacks : permanent ? 0 : Mathf.CeilToInt(remaining);
+        if (valueText != null)
+        {
+            if (lastNumber != number) { valueText.text = number > 0 ? number.ToString() : string.Empty; lastNumber = number; }
+            valueText.alpha = alpha;
+        }
         SetVisible(true);
     }
 
@@ -63,6 +66,8 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             baseImage.enabled = visible;
         if (fillImage != null)
             fillImage.enabled = visible;
+        if (valueText != null) valueText.enabled = visible;
+        if (!visible) DisplayedKey = null;
     }
 
     // 2026-09-30: 끝나기 3초 전부터 깜빡이고, 마지막 1초는 더 빠르게 깜빡여 곧 사라진다는 것을 알린다.
@@ -76,15 +81,6 @@ public sealed class BuffIconSlotUI : MonoBehaviour
         return .3f + .7f * Mathf.Abs(Mathf.Cos(Time.unscaledTime * Mathf.PI * hz));
     }
 
-    private void ApplyExpireBlink(BuffInstance instance)
-    {
-        float alpha = ExpireBlinkAlpha(instance.RemainingTime, instance.Definition.duration);
-        if (alpha >= 1f)
-            return;
-        if (baseImage != null) { Color c = baseImage.color; c.a *= alpha; baseImage.color = c; }
-        if (fillImage != null) { Color c = fillImage.color; c.a *= alpha; fillImage.color = c; }
-    }
-
     private void BindVisuals()
     {
         if (baseImage == null)
@@ -92,6 +88,8 @@ public sealed class BuffIconSlotUI : MonoBehaviour
 
         if (fillImage == null)
             fillImage = transform.Find("Fill") != null ? transform.Find("Fill").GetComponent<Image>() : null;
+        if (valueText == null)
+            valueText = transform.Find("Value") != null ? transform.Find("Value").GetComponent<TMP_Text>() : null;
     }
 
     private static void ConfigureImage(Image image, Sprite sprite, Color color, Image.Type type)

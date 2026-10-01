@@ -40,7 +40,7 @@ public static class EnemyTargetHudRpg11Builder
     private const float BossWidth = 1180f;
     private const float FrameExtra = 110f;
     private const float StatusSpacing = 54f;
-    private const int StatusCells = 5;
+    private const int StatusCells = 6;
 
     private static readonly Color Cream = new Color32(237, 230, 212, 255);
     private static readonly Color Gold = new Color32(246, 214, 150, 255);
