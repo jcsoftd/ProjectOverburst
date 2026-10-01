@@ -170,7 +170,7 @@ public static class OverburstGoalCCameraPlayModeVerifier
 
         Require(quarter.UsesCinemachine && rig.IsConfigured, "Cinemachine adapter is not configured.");
         Require(quarter.CurrentTarget == actor.transform, "Hideout camera is not bound to PlayerActor_01.");
-        Require(outputCamera.orthographic, "Hideout output camera is not orthographic.");
+        Require(!outputCamera.orthographic, "Hideout output camera is not perspective.");
         Require(UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length == 1,
             "runtime Camera count is not 1.");
         Require(UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length == 1,

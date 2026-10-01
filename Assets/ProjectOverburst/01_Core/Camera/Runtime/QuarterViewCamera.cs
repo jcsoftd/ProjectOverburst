@@ -95,6 +95,8 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         targetDistance = Mathf.Clamp(distance, minDistance, maxZoomDistance); // 줌 초기값
         cachedCamera = GetComponent<Camera>(); // 카메라 캐시
+        if (cachedCamera != null)
+            cachedCamera.orthographic = false;
         if (cinemachineRig == null)
             cinemachineRig = FindFirstObjectByType<OverburstCinemachineCameraRig>(FindObjectsInactive.Include);
     }
@@ -389,8 +391,8 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         Quaternion viewRotation = Quaternion.Euler(viewPitch, yaw, 0f); // 뷰 회전
         Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, distance * frameScale);
         Vector3 cameraPosition = viewFocus + cameraOffset;
-        if (cachedCamera != null && cachedCamera.orthographic)
-            cachedCamera.orthographicSize = Mathf.Max(0.01f, distance * frameScale * Mathf.Tan(cachedCamera.fieldOfView * 0.5f * Mathf.Deg2Rad));
+        if (cachedCamera != null)
+            cachedCamera.orthographic = false;
 
         transform.position = cameraPosition;
         transform.rotation = viewRotation;

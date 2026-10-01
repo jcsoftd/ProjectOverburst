@@ -34,7 +34,7 @@ public static class OverburstGoalCCameraValidator
         if (errors.Count > 0)
             throw new InvalidOperationException("[OverburstGoalCCameraValidator] FAIL\n- " + string.Join("\n- ", errors));
         return "[OverburstGoalCCameraValidator] PASS\n"
-            + "- Cinemachine 3.1.5, Camera/AudioListener 1개, Orthographic 6.887, Follow/RotationComposer/Deoccluder/Confiner/Impulse 연결 확인\n"
+            + "- Cinemachine 3.1.5, Camera/AudioListener 1개, Perspective FOV 38, Follow/RotationComposer/Deoccluder/Confiner/Impulse 연결 확인\n"
             + "- QuarterViewCamera 호환 API, PlayerCameraBinder/SceneFlow/CombatHitFeedbackService 호출 계약, 보호 범위 확인";
     }
 
@@ -129,16 +129,16 @@ public static class OverburstGoalCCameraValidator
         CinemachineBrain brain = output.GetComponent<CinemachineBrain>();
         Require(errors, output.GetComponent<AudioListener>() == listeners[0], "AudioListener가 출력 Camera에 있지 않다.");
         Require(errors, output.GetComponent<QuarterViewCamera>() == quarter, "QuarterViewCamera가 출력 Camera에 있지 않다.");
-        Require(errors, output.orthographic, "출력 Camera가 Orthographic이 아니다.");
-        RequireNear(errors, output.orthographicSize, OverburstCinemachineCameraMigration.ReferenceOrthographicSize, 0.001f, "출력 Camera Orthographic Size");
+        Require(errors, !output.orthographic, "출력 Camera가 Perspective가 아니다.");
+        RequireNear(errors, output.fieldOfView, rig.PerspectiveFieldOfView, 0.001f, "출력 Camera Field of View");
         Require(errors, brain != null, "출력 Camera에 CinemachineBrain이 없다.");
         if (brain != null)
         {
             Require(errors, brain.UpdateMethod == CinemachineBrain.UpdateMethods.ManualUpdate, "Brain UpdateMethod가 ManualUpdate가 아니다.");
             Require(errors, brain.IgnoreTimeScale, "Brain IgnoreTimeScale이 꺼져 있다.");
             Require(errors, brain.LensModeOverride.Enabled
-                && brain.LensModeOverride.DefaultMode == LensSettings.OverrideModes.Orthographic,
-                "Brain LensModeOverride가 Orthographic이 아니다.");
+                && brain.LensModeOverride.DefaultMode == LensSettings.OverrideModes.Perspective,
+                "Brain LensModeOverride가 Perspective가 아니다.");
         }
 
         Require(errors, rig.IsConfigured, "Cinemachine rig 참조가 완전하지 않다.");
@@ -151,10 +151,10 @@ public static class OverburstGoalCCameraValidator
             && virtualCamera.Target.TrackingTarget == rig.FocusTarget
             && virtualCamera.Target.LookAtTarget == rig.FocusTarget,
             "Cinemachine Tracking/LookAt 대상 오류.");
-        Require(errors, virtualCamera.Lens.ModeOverride == LensSettings.OverrideModes.Orthographic,
-            "Virtual Camera lens가 Orthographic이 아니다.");
-        RequireNear(errors, virtualCamera.Lens.OrthographicSize, OverburstCinemachineCameraMigration.ReferenceOrthographicSize, 0.001f,
-            "Virtual Camera Orthographic Size");
+        Require(errors, virtualCamera.Lens.ModeOverride == LensSettings.OverrideModes.Perspective,
+            "Virtual Camera lens가 Perspective가 아니다.");
+        RequireNear(errors, virtualCamera.Lens.FieldOfView, rig.PerspectiveFieldOfView, 0.001f,
+            "Virtual Camera Field of View");
         Require(errors, rig.Follow != null
             && rig.Follow.TrackerSettings.BindingMode == BindingMode.WorldSpace
             && rig.Follow.TrackerSettings.PositionDamping == Vector3.zero,

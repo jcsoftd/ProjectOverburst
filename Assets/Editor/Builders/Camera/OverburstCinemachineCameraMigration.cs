@@ -59,7 +59,7 @@ public static class OverburstCinemachineCameraMigration
             return "[OverburstCinemachineCameraMigration] " + state + "\n"
                 + "- scene=" + PersistentScenePath + "\n"
                 + "- package=com.unity.cinemachine@3.1.5\n"
-                + "- projection=Orthographic size=" + ReferenceOrthographicSize.ToString("F3") + "\n"
+                + "- projection=Perspective fov=" + LegacyFieldOfView.ToString("F1") + "\n"
                 + "- before=" + beforeHash + "\n"
                 + "- after=" + afterHash;
         }
@@ -96,7 +96,7 @@ public static class OverburstCinemachineCameraMigration
         brain.LensModeOverride = new CinemachineBrain.LensModeOverrideSettings
         {
             Enabled = true,
-            DefaultMode = LensSettings.OverrideModes.Orthographic,
+            DefaultMode = LensSettings.OverrideModes.Perspective,
         };
 
         GameObject rigRoot = FindRoot(scene, RigRootName);
@@ -138,7 +138,7 @@ public static class OverburstCinemachineCameraMigration
         };
         virtualCamera.Priority = 100;
         LensSettings lens = LensSettings.FromCamera(outputCamera);
-        lens.ModeOverride = LensSettings.OverrideModes.Orthographic;
+        lens.ModeOverride = LensSettings.OverrideModes.Perspective;
         lens.FieldOfView = LegacyFieldOfView;
         lens.OrthographicSize = ReferenceOrthographicSize * distance / ReferenceDistance;
         lens.Dutch = 0f;
@@ -166,7 +166,7 @@ public static class OverburstCinemachineCameraMigration
         deoccluder.TransparentLayers = 0;
         deoccluder.IgnoreTag = "Player";
         deoccluder.MinimumDistanceFromTarget = 0.3f;
-        // 2026-10-01: 직교 쿼터뷰에서 앞으로 당기기는 화면 아래를 잘라내므로 가림 회피는 끈다(런타임 리그도 같은 정책).
+        // 가림 회피는 런타임 리그와 같은 비활성 정책을 유지한다.
         deoccluder.AvoidObstacles = new CinemachineDeoccluder.ObstacleAvoidance
         {
             Enabled = false,
@@ -226,7 +226,7 @@ public static class OverburstCinemachineCameraMigration
         Quaternion cameraRotation = Quaternion.LookRotation(focusPosition - cameraPosition, Vector3.up);
         virtualCameraTransform.SetPositionAndRotation(cameraPosition, cameraRotation);
         outputCamera.transform.SetPositionAndRotation(cameraPosition, cameraRotation);
-        outputCamera.orthographic = true;
+        outputCamera.orthographic = false;
         outputCamera.orthographicSize = lens.OrthographicSize;
         outputCamera.fieldOfView = LegacyFieldOfView;
 

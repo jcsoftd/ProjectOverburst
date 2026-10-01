@@ -45,9 +45,15 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
     public CombatCameraRequestKind LastImpactKind => lastImpactKind;
     public float ReferenceDistance => referenceDistance;
     public float ReferenceOrthographicSize => referenceOrthographicSize;
-    public float CurrentOrthographicSize => virtualCamera != null
-        ? virtualCamera.Lens.OrthographicSize
+    // 기존 직교 기준 크기를 같은 기본 구도의 원근 시야각으로 환산한다.
+    public float PerspectiveFieldOfView => Mathf.Clamp(
+        2f * Mathf.Atan(referenceOrthographicSize / Mathf.Max(0.01f, referenceDistance)) * Mathf.Rad2Deg,
+        1f, 179f);
+    public float CurrentViewHalfHeight => follow != null
+        ? follow.FollowOffset.magnitude * Mathf.Tan(PerspectiveFieldOfView * 0.5f * Mathf.Deg2Rad)
         : referenceOrthographicSize;
+    // 기존 호출 호환: 충격 크기는 현재 초점 거리에서의 화면 반높이를 사용한다.
+    public float CurrentOrthographicSize => CurrentViewHalfHeight;
     public bool IsConfigured => outputCamera != null
         && brain != null
         && virtualCamera != null
@@ -61,12 +67,34 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
 
     private void Awake()
     {
+        ApplyProjectionPolicy();
         ApplyOcclusionPolicy();
     }
 
-    // 2026-10-01: 직교 쿼터뷰에서 Deoccluder의 PullCameraForward는 가림을 풀지 못하고 카메라만 앞으로 당겨
-    // 가까운 땅을 근거리 클리핑면으로 잘라낸다(뒤쪽 Default 레이어 캐릭터에 가려질 때 화면 아래 절반이 배경색).
-    // 가림 회피는 끄고 가리는 물체는 그대로 둔다. 씬 직렬화 값과 무관하게 실행 시 이 정책을 적용한다.
+    public void ApplyProjectionPolicy()
+    {
+        if (outputCamera != null)
+        {
+            outputCamera.orthographic = false;
+            outputCamera.fieldOfView = PerspectiveFieldOfView;
+        }
+        if (brain != null)
+        {
+            CinemachineBrain.LensModeOverrideSettings mode = brain.LensModeOverride;
+            mode.Enabled = true;
+            mode.DefaultMode = LensSettings.OverrideModes.Perspective;
+            brain.LensModeOverride = mode;
+        }
+        if (virtualCamera != null)
+        {
+            LensSettings lens = virtualCamera.Lens;
+            lens.ModeOverride = LensSettings.OverrideModes.Perspective;
+            lens.FieldOfView = PerspectiveFieldOfView;
+            virtualCamera.Lens = lens;
+        }
+    }
+
+    // 가림 회피는 기존 비활성 정책을 유지한다. 원근 전환과 자동 가림 이동의 체감 조정은 별도다.
     public void ApplyOcclusionPolicy()
     {
         if (deoccluder == null)
@@ -105,6 +133,7 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         impulseListener = configuredImpulseListener;
         referenceDistance = Mathf.Max(0.01f, configuredReferenceDistance);
         referenceOrthographicSize = Mathf.Max(0.01f, configuredReferenceOrthographicSize);
+        ApplyProjectionPolicy();
     }
 
     public void SynchronizeView(Vector3 focusPosition, float pitch, float yaw, float distance, bool cut)
@@ -124,14 +153,12 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         virtualCamera.Target = targets;
 
         Quaternion viewRotation = Quaternion.Euler(pitch, yaw, 0f);
-        follow.FollowOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, distance);
+        float viewDistance = Mathf.Max(0.01f, distance) * Mathf.Max(0.05f, frameScale);
+        follow.FollowOffset = viewRotation * Vector3.back * viewDistance;
 
         LensSettings lens = virtualCamera.Lens;
-        lens.ModeOverride = LensSettings.OverrideModes.Orthographic;
-        lens.OrthographicSize = referenceOrthographicSize
-            * Mathf.Max(0.01f, distance)
-            / referenceDistance
-            * Mathf.Max(0.05f, frameScale);
+        lens.ModeOverride = LensSettings.OverrideModes.Perspective;
+        lens.FieldOfView = PerspectiveFieldOfView;
         virtualCamera.Lens = lens;
 
         if (cut)
@@ -192,7 +219,7 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         Vector2 direction = screenDirection.sqrMagnitude > 0.0001f
             ? screenDirection.normalized
             : Vector2.right;
-        float screenScale = Mathf.Max(0.01f, CurrentOrthographicSize) * 0.1f;
+        float screenScale = Mathf.Max(0.01f, CurrentViewHalfHeight) * 0.1f;
         float resolvedPosition = Mathf.Min(
             Mathf.Max(0f, positionAmplitude),
             Mathf.Max(0f, positionSafetyLimit)) * screenScale;
@@ -240,7 +267,7 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
         if (activeImpactSignal == null || activeImpactEvent == null || activeImpactEvent.Expired)
             return;
 
-        float screenScale = Mathf.Max(0.01f, CurrentOrthographicSize) * 0.1f;
+        float screenScale = Mathf.Max(0.01f, CurrentViewHalfHeight) * 0.1f;
         float resolvedMicro = Mathf.Min(
             Mathf.Max(0f, positionAmplitude) * Mathf.Clamp01(microShakeAmplitude),
             Mathf.Max(0f, positionSafetyLimit)) * screenScale;
