@@ -14,6 +14,8 @@ public static class WeaponElementIconBuilder
     public const float SlotBadgeSize = 23f;
     public const float ShopBadgeSize = 21f;
     public const float HudIconSize = 46f;
+    public static readonly Vector2 BadgeAnchor = new Vector2(1f, 0f);
+    public static readonly Vector2 BadgeOffset = new Vector2(-5f, 5f);
     const string Circle = "Assets/ThirdParty/RPG and MMO UI 11/Textures/HUD/Unit Frames/Unit Frame/UnitFrame_Level_Frame.png";
     static readonly string[] Elements = { "Fire", "Ice", "Electric", "Dark", "Light" };
 
@@ -106,14 +108,14 @@ public static class WeaponElementIconBuilder
         return AssetDatabase.LoadAssetAtPath<Sprite>(path) ?? throw new InvalidOperationException("Sprite missing: " + path);
     }
 
-    // 모든 무기 칸과 같은 오른쪽 위 위치를 쓰고, 장착 칸의 원형 바탕을 유지한다.
+    // 모든 무기 칸과 같은 오른쪽 아래 위치를 쓰고, 장착 칸의 원형 바탕을 유지한다.
     public static void ConfigureEquippedBadge(GameObject equipmentPrefab)
     {
         Transform badge = equipmentPrefab.transform.Find("Layout/Weapon Slot/Weapon Element Badge");
         if (badge == null) throw new InvalidOperationException("Equipped weapon badge missing");
         var rect = (RectTransform)badge;
-        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
-        rect.anchoredPosition = new Vector2(-5f, -5f);
+        rect.anchorMin = rect.anchorMax = rect.pivot = BadgeAnchor;
+        rect.anchoredPosition = BadgeOffset;
         rect.sizeDelta = Vector2.one * SlotBadgeSize;
         Image backing = ImageChild(badge, "Backing");
         backing.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectOverburst/Resources/UI/Minimap/Circle.png")
@@ -133,8 +135,8 @@ public static class WeaponElementIconBuilder
         frame.sprite = circle;
         frame.color = Color.white;
         var rect = frame.rectTransform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
-        rect.anchoredPosition = new Vector2(-5f, -5f);
+        rect.anchorMin = rect.anchorMax = rect.pivot = BadgeAnchor;
+        rect.anchoredPosition = BadgeOffset;
         rect.sizeDelta = Vector2.one * size;
         frame.transform.SetAsLastSibling();
         Image icon = ImageChild(frame.transform, "Icon");

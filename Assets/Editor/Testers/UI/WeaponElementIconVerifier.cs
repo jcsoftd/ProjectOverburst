@@ -165,10 +165,10 @@ public static class WeaponElementIconVerifier
             Check(Icon(equippedSlot).IsVisible, "Equipped badge visible " + item.ResolvedElement);
             var badgeRect = (RectTransform)Icon(equippedSlot).transform;
             var backing = badgeRect.Find("Backing")?.GetComponent<Image>();
-            Check(badgeRect.anchorMin == Vector2.one && badgeRect.anchorMax == Vector2.one
-                && badgeRect.pivot == Vector2.one && badgeRect.anchoredPosition == new Vector2(-5f, -5f)
+            Check(badgeRect.anchorMin == new Vector2(1f, 0f) && badgeRect.anchorMax == new Vector2(1f, 0f)
+                && badgeRect.pivot == new Vector2(1f, 0f) && badgeRect.anchoredPosition == new Vector2(-5f, 5f)
                 && backing != null && backing.color.a >= .9f,
-                "Equipped badge uses shared top right position " + item.ResolvedElement);
+                "Equipped badge uses shared bottom right position " + item.ResolvedElement);
             tooltip.Hide();
             ScreenCapture.CaptureScreenshot(Path.Combine(Output, item.ResolvedElement + ".png"));
             for (int n = 0; n < 4; n++) yield return null;
