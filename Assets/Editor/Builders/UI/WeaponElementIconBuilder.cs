@@ -27,6 +27,7 @@ public static class WeaponElementIconBuilder
         if (circle == null) throw new InvalidOperationException("HUD circle frame is missing");
         string[] paths = {
             UiRoot + "Slots/PF_OverburstItemSlot_Rpg11.prefab",
+            UiRoot + "PF_OverburstEquipment_Rpg11.prefab",
             UiRoot + "PF_OverburstShopPanel_Rpg11.prefab",
             UiRoot + "PF_OverburstTooltip_Rpg11.prefab",
             UiRoot + "PF_OverburstHUD_Rpg11.prefab"
@@ -42,6 +43,8 @@ public static class WeaponElementIconBuilder
                     var badge = Badge(root.transform, sprites, circle, SlotBadgeSize);
                     root.GetComponent<OverburstUIItemSlotView>().ConfigureElementIcon(badge);
                 }
+                else if (path.Contains("Equipment"))
+                    ConfigureEquippedBadge(root);
                 else if (path.Contains("ShopPanel"))
                 {
                     foreach (SlotUI slot in root.GetComponentsInChildren<SlotUI>(true))
@@ -101,6 +104,27 @@ public static class WeaponElementIconBuilder
         importer.wrapMode = TextureWrapMode.Clamp;
         importer.SaveAndReimport();
         return AssetDatabase.LoadAssetAtPath<Sprite>(path) ?? throw new InvalidOperationException("Sprite missing: " + path);
+    }
+
+    // 장착 칸에는 비교 ▲가 없으므로 왼쪽 위를 쓴다. 오른쪽 위의 무기 손잡이와 구분되는 바탕을 둔다.
+    public static void ConfigureEquippedBadge(GameObject equipmentPrefab)
+    {
+        Transform badge = equipmentPrefab.transform.Find("Layout/Weapon Slot/Weapon Element Badge");
+        if (badge == null) throw new InvalidOperationException("Equipped weapon badge missing");
+        var rect = (RectTransform)badge;
+        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.up;
+        rect.anchoredPosition = new Vector2(5f, -5f);
+        rect.sizeDelta = Vector2.one * SlotBadgeSize;
+        Image backing = ImageChild(badge, "Backing");
+        backing.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectOverburst/Resources/UI/Minimap/Circle.png")
+            ?? throw new InvalidOperationException("Circle sprite missing");
+        backing.color = new Color(.018f, .022f, .03f, .97f);
+        backing.type = Image.Type.Simple;
+        backing.rectTransform.anchorMin = backing.rectTransform.anchorMax = backing.rectTransform.pivot = Vector2.one * .5f;
+        backing.rectTransform.anchoredPosition = Vector2.zero;
+        backing.rectTransform.sizeDelta = Vector2.one * SlotBadgeSize * .78f;
+        backing.transform.SetAsFirstSibling();
+        badge.Find("Icon").SetAsLastSibling();
     }
 
     static WeaponElementIconView Badge(Transform parent, Sprite[] sprites, Sprite circle, float size)

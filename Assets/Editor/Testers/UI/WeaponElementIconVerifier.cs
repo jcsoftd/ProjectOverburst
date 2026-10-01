@@ -162,6 +162,12 @@ public static class WeaponElementIconVerifier
             for (int n = 0; n < 10; n++) yield return null;
             var equippedSlot = game.equipmentWindow.GetComponentsInChildren<SlotUI>(true).First(s => s.IsWeaponSlot);
             Check(Shows(Icon(equippedSlot), item.ResolvedElement), "Equipped weapon slot " + item.ResolvedElement);
+            Check(Icon(equippedSlot).IsVisible, "Equipped badge visible " + item.ResolvedElement);
+            var badgeRect = (RectTransform)Icon(equippedSlot).transform;
+            var backing = badgeRect.Find("Backing")?.GetComponent<Image>();
+            Check(badgeRect.anchorMin == Vector2.up && backing != null && backing.color.a >= .9f,
+                "Equipped badge separated from weapon handle " + item.ResolvedElement);
+            tooltip.Hide();
             ScreenCapture.CaptureScreenshot(Path.Combine(Output, item.ResolvedElement + ".png"));
             for (int n = 0; n < 4; n++) yield return null;
         }
@@ -185,8 +191,13 @@ public static class WeaponElementIconVerifier
         hud.gameObject.SetActive(false);
         hud.gameObject.SetActive(true);
         Check(Shows(hud.View, WeaponElement.Electric), "HUD disable and reenable rebinds equipment");
-        game.CloseEquipment(); game.ToggleEquipment();
+        var weaponSlot = game.equipmentWindow.GetComponentsInChildren<SlotUI>(true).First(s => s.IsWeaponSlot);
+        game.CloseEquipment();
+        Icon(weaponSlot).Present(WeaponElement.None);
+        game.ToggleEquipment();
         for (int n = 0; n < 10; n++) yield return null;
+        Check(Shows(Icon(weaponSlot), WeaponElement.Electric) && Icon(weaponSlot).IsVisible,
+            "Equipment reopen restores equipped badge after cleared presentation");
         Check(Shows(hud.View, WeaponElement.Electric), "Window reopen preserves HUD element");
         Check(Object.FindFirstObjectByType<AccountAutosave>().FlushNow(), "Isolated loadout saved");
         ScreenCapture.CaptureScreenshot(Path.Combine(Output, "final-electric.png"));

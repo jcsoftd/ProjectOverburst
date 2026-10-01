@@ -58,6 +58,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     {
         EquippedWeaponComparison.EquippedChanged += RefreshCompareMarker;
         RefreshCompareMarker();
+        RefreshWeaponElementIcon();
     }
 
     private void OnDisable()
@@ -91,7 +92,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         DisplayItem = item; // 표시 아이템
         GetComponent<OverburstUIItemSlotView>()?.Present(item.icon,item.grade);
-        weaponElementIcon?.Present(IsLocked ? null : item);
+        RefreshWeaponElementIcon();
         SetIconActive(true);
 
         if (iconImage != null)
@@ -135,7 +136,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     {
         EnsureInitialized();
         IsLocked = locked; // 잠금 상태
-        weaponElementIcon?.Present(locked ? null : DisplayItem);
+        RefreshWeaponElementIcon();
 
         if (lockedOverlay != null)
             lockedOverlay.gameObject.SetActive(locked); // 잠금 표시
@@ -282,6 +283,13 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         EnsureStackCountText();
         EnsureActiveWeaponBorder();
         RefreshActiveWeaponBorder();
+    }
+
+    private void RefreshWeaponElementIcon()
+    {
+        if (weaponElementIcon == null)
+            weaponElementIcon = transform.Find("Weapon Element Badge")?.GetComponent<WeaponElementIconView>();
+        weaponElementIcon?.Present(!IsLocked && DisplayItem != null && DisplayItem.HasValidBaseData ? DisplayItem : null);
     }
 
     private TextMeshProUGUI FindInfoText()
