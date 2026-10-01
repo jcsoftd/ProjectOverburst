@@ -40,6 +40,8 @@ public static class BarbarianHideoutVerifier
         SessionState.SetString(Key + "active", SceneManager.GetActiveScene().path);
         SessionState.SetBool(Key + "dirty", SceneManager.GetActiveScene().isDirty);
         SessionState.SetString(Key + "status", "RUNNING");
+        AssetDatabase.DisallowAutoRefresh();
+        SessionState.SetBool(Key + "refreshOwned",true);
         Cycle = 1; Phase = 1; Deadline();
         IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(Output, "IsolatedAccount"));
         return "Two isolated Hideout cycles started.";
@@ -77,6 +79,7 @@ public static class BarbarianHideoutVerifier
                 }
                 return;
             }
+            if (Errors.Count > 0) throw new InvalidOperationException("Runtime error detected; see captured errors.");
             EditorApplication.QueuePlayerLoopUpdate();
             if (Phase == 1)
             {
@@ -89,24 +92,32 @@ public static class BarbarianHideoutVerifier
                 var scene = SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
                 Check(scene.isLoaded && SceneManager.GetActiveScene() == scene, "Hideout loaded and active");
                 var environment = scene.GetRootGameObjects().Single(r => r.name == "Barbarian Camp Environment");
-                Check(environment.transform.Find("TD_Barbarian_Camp_Scene").GetComponentsInChildren<Renderer>(true).Length == 514, "All demo visuals loaded");
+                Check(environment.transform.Find("TD_Barbarian_Camp_Scene").GetComponentsInChildren<Renderer>(true).Length == 514, "Imported camp hierarchy loaded");
                 var extensions = environment.transform.Find("Camp Extensions");
-                Check(extensions != null && extensions.childCount == 14 && extensions.Cast<Transform>().Count(t => t.name.EndsWith("Tent",StringComparison.Ordinal)) == 4, "Four additional tents, two canopies and eight supplies loaded");
+                Check(extensions == null && environment.transform.Find("Camp Perimeter") == null && environment.transform.Find("Camp Rest Area") == null, "Original camp composition loaded without expanded additions");
                 Check(RenderSettings.fog, "Camp distance fog enabled");
                 Check(environment.GetComponentsInChildren<ParticleSystem>(true).Length == 5, "Camp flame, smoke, embers, ground mist and dust loaded");
                 Check(environment.GetComponentsInChildren<Light>(true).Any(l => l.type == LightType.Point && l.enabled), "Warm campfire light loaded");
                 var spawn = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<HubReturnPoint>(true)).Single(p => p.ReturnPointId == "Default");
                 Check(Vector2.Distance(new Vector2(Actor.transform.position.x, Actor.transform.position.z), new Vector2(spawn.transform.position.x, spawn.transform.position.z)) < .6f, "Default spawn position applied");
                 Check(Actor.transform.position.y > -.1f && Actor.transform.position.y < .6f, "Player grounded on camp floor");
+                var fireCentre=environment.transform.Find("TD_Barbarian_Camp_Scene/Boiler").GetComponent<MeshRenderer>().bounds.center;
+                var fireDistance=Actor.transform.position-fireCentre;fireDistance.y=0;
+                Check(fireDistance.magnitude<=4.5f,"Player starts near campfire ("+fireDistance.magnitude.ToString("F2")+"m)");
                 Check(Object.FindObjectsByType<MapDungeonPortal>(FindObjectsSortMode.None).Count(p => p.gameObject.scene == scene) == 1, "One map portal spawned");
-                Check(Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Count(p => p.gameObject.scene == scene && p.transform.position.x > 25) > 10, "Configured pickups moved to test area");
+                Check(Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Count(p => p.gameObject.scene == scene && p.transform.position.z < -5) > 10, "Configured pickups placed outside south entrance");
                 Check(Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Count(p => p.gameObject.scene == scene && Vector3.Distance(p.transform.position, spawn.transform.position) < 5f) == 0, "Camp spawn is clear of pickup grid");
                 var weaponMerchant = Object.FindObjectsByType<GeneralGoodsMerchantInteractable>(FindObjectsSortMode.None).Single(m => m.name == "WeaponMerchantObject");
                 var animator = weaponMerchant.transform.Find("Merchant Visual").GetComponent<Animator>();
                 if (!animator.isInitialized || animator.GetCurrentAnimatorStateInfo(0).normalizedTime <= 0) return;
                 Check(animator.avatar.isHuman && animator.GetCurrentAnimatorClipInfo(0).Length == 1 && animator.GetCurrentAnimatorStateInfo(0).loop, "NPC-pack merchant idle is playing");
+                var provision = Object.FindObjectsByType<GeneralGoodsMerchantInteractable>(FindObjectsSortMode.None).Single(m => m != weaponMerchant);
+                var provisionAnimator = provision.transform.Find("Merchant Visual").GetComponent<Animator>();
+                if (!provisionAnimator.isInitialized || provisionAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime <= 0) return;
+                Check(provisionAnimator.avatar.isHuman && provisionAnimator.GetCurrentAnimatorStateInfo(0).loop, "Existing NPC-pack cook is playing provision-merchant idle");
+                Check(weaponMerchant.transform.position.z>=6 && provision.transform.position.z>=6, "Both NPCs stay away from south foreground");
                 var workshop = scene.GetRootGameObjects().Single(r => r.name == "Weapon Merchant Workshop");
-                Check(workshop.transform.childCount == 13 && workshop.GetComponentsInChildren<MeshCollider>(true).Length >= 8, "Craftsman props and solid workshop obstacles loaded");
+                Check(workshop.transform.childCount == 14 && workshop.GetComponentsInChildren<MeshCollider>(true).Length >= 8, "Craftsman props and solid workshop obstacles loaded");
                 Check(workshop.GetComponentsInChildren<ParticleSystem>(true).Single().isPlaying, "Forge flame is playing");
                 TestMovement(environment, spawn.transform);
                 SessionState.SetInt(Key + "interaction", 0);
@@ -119,6 +130,12 @@ public static class BarbarianHideoutVerifier
                 int index = SessionState.GetInt(Key + "interaction", 0);
                 if (index >= interactables.Length)
                 {
+                    var scene=SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
+                    var pickups=Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Where(p=>p.gameObject.scene==scene).ToArray();
+                    Check(pickups.Length>10&&pickups.All(p=>p.transform.position.z < -5),"All startup item pickups remain outside camp entrance");
+                    var testBags=Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Where(p=>p.gameObject.scene==scene&&p.name.StartsWith("[TEMP] HideoutBag_",StringComparison.Ordinal)).ToArray();
+                    Check(testBags.Length==7&&testBags.All(p=>p.transform.position.z<-5),"All seven temporary grade bags stay outside south entrance");
+                    File.WriteAllText(Path.Combine(Output,"pickup_visual_inventory_"+Cycle+".json"),JsonConvert.SerializeObject(Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Where(p=>p.gameObject.scene==scene).Select(p=>new{name=p.name,position=p.transform.position.ToString(),vfx=p.GradeEffect!=null?p.GradeEffect.transform.position.ToString():null}),Formatting.Indented));
                     Capture();
                     PersistentSceneFlow.Instance.SwitchHubScene(PersistentSceneFlow.HideoutSceneName, "DungeonPortal");
                     Phase = 4; Deadline(); return;
@@ -194,7 +211,7 @@ public static class BarbarianHideoutVerifier
     }
     static void TestMovement(GameObject environment, Transform spawn)
     {
-        Capture();
+        Capture(true);
         Physics.SyncTransforms();
         var movement = Actor.GetComponent<PlayerMovement>();
         Check(movement != null && movement.Motor != null, "Product character motor ready");
@@ -225,17 +242,18 @@ public static class BarbarianHideoutVerifier
         Check(travel < 1.8f, "Product motor is blocked by camp cauldron (travel " + travel.ToString("F2") + "m)");
         ActorTeleportUtility.TeleportSafely(Actor.transform, spawn.position, spawn.rotation);
     }
-    static void Capture()
+    static void Capture(bool atSpawn=false)
     {
         var camera = Camera.main;
         if (camera != null) SaveCamera(camera, Path.Combine(Output, "game_camera_" + Cycle + ".png"));
+        if (camera != null && atSpawn) SaveCamera(camera,Path.Combine(Output,"game_camera_spawn_"+Cycle+".png"));
         var root = new GameObject("Hideout Verification Overview Camera");
         try
         {
             var overview = root.AddComponent<Camera>();
-            overview.transform.position = new Vector3(0, 32, -18);
-            overview.transform.LookAt(new Vector3(0, 0, 6));
-            overview.orthographic = true; overview.orthographicSize = 18;
+            overview.transform.position = new Vector3(0, 35, -20);
+            overview.transform.LookAt(new Vector3(0, 0, 9));
+            overview.orthographic = true; overview.orthographicSize = 21;
             UnityEngine.Rendering.Universal.UniversalAdditionalCameraData cameraData = overview.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             cameraData.renderPostProcessing = true;
             overview.clearFlags = CameraClearFlags.Skybox;
@@ -269,13 +287,17 @@ public static class BarbarianHideoutVerifier
         {
             SessionState.SetBool(Key + "background", Application.runInBackground); SessionState.SetBool(Key + "backgroundOwned", true);
             Application.runInBackground = true;
+            EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + "reloadOwned",true);
         }
+        if (state == PlayModeStateChange.ExitingPlayMode && SessionState.GetBool(Key + "reloadOwned",false)) { EditorApplication.UnlockReloadAssemblies(); SessionState.EraseBool(Key + "reloadOwned"); }
         if (state == PlayModeStateChange.ExitingPlayMode && SessionState.GetBool(Key + "backgroundOwned", false)) { Application.runInBackground = SessionState.GetBool(Key + "background", false); SessionState.EraseBool(Key + "backgroundOwned"); }
     }
     static void Log(string message, string trace, LogType type)
     {
         if (Phase == 0 || (type != LogType.Error && type != LogType.Assert && type != LogType.Exception)) return;
-        var errors = Errors; errors.Add(message); SessionState.SetString(Key + "errors", JsonConvert.SerializeObject(errors));
+        var errors = Errors;
+        if (errors.Count >= 50 || errors.Contains(message)) return;
+        errors.Add(message); SessionState.SetString(Key + "errors", JsonConvert.SerializeObject(errors));
     }
     static string RealHash()
     {
@@ -286,7 +308,7 @@ public static class BarbarianHideoutVerifier
     }
     static void Finish(string status, string error)
     {
-        File.WriteAllText(Path.Combine(Output, "play_result.json"), JsonConvert.SerializeObject(new { status, checks = Checks, errors = Errors, error }, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Output, "play_result.json"), JsonConvert.SerializeObject(new { status, environment=BarbarianHideoutBuilder.EnvironmentPath, checks = Checks, errors = Errors, error }, Formatting.Indented));
         SessionState.SetString(Key + "status", status); Phase = 0; SessionState.SetBool(Key + "restore", true);
     }
     static void Restore()
@@ -295,6 +317,9 @@ public static class BarbarianHideoutVerifier
         var scene = SceneManager.GetSceneByPath(SessionState.GetString(Key + "active", ""));
         if (scene.IsValid() && scene.isLoaded) SceneManager.SetActiveScene(scene);
         IsolatedSavePlayGuard.UseRealAccount();
+        if (SessionState.GetBool(Key + "reloadOwned",false)) { EditorApplication.UnlockReloadAssemblies(); SessionState.EraseBool(Key + "reloadOwned"); }
+        if (SessionState.GetBool(Key + "refreshOwned",false)) { AssetDatabase.AllowAutoRefresh(); SessionState.EraseBool(Key + "refreshOwned"); }
         SessionState.SetBool(Key + "restore", false);
     }
+
 }

@@ -150,10 +150,14 @@ public static partial class BarbarianHideoutBuilder
             var lightObject = new GameObject("Forge Warm Light"); lightObject.transform.SetParent(root.transform,false);
             lightObject.transform.position = new Vector3(3.4f,1,-2.8f);
             var light = lightObject.AddComponent<Light>(); light.type = LightType.Point; light.color = new Color(1,.4f,.1f); light.intensity = 2; light.range = 4;
-            var camp = AssetDatabase.LoadAssetAtPath<GameObject>(ExpandedPath);
-            var flameSource = camp.GetComponentsInChildren<ParticleSystem>(true).Single(p => p.name == "Campfire Flames");
-            var flame = Object.Instantiate(flameSource.gameObject,root.transform);
-            flame.name = "Forge Fire"; flame.transform.position = new Vector3(3.4f,.5f,-2.8f);
+            var flame = Particle(root.transform, "Forge Fire", new Vector3(3.4f, .5f, -2.8f), .9f, 24,
+                new Vector2(.2f, .45f), new Color(3.2f, .65f, .08f, .85f), ParticleMaterial("CampFire", true));
+            var velocity = flame.velocityOverLifetime; velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World; velocity.x = 0; velocity.y = .8f; velocity.z = 0;
+            var shape = flame.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 16; shape.radius = .22f;
+            flame.transform.rotation = Quaternion.Euler(-90, 0, 0);
+            var noise = flame.noise; noise.enabled = true; noise.strength = .06f; noise.frequency = 1.4f;
+            RefineWorkshopGeometry(root);
             return PrefabUtility.SaveAsPrefabAsset(root,WorkshopPath);
         }
         finally { EditorSceneManager.ClosePreviewScene(scene); }
@@ -218,9 +222,54 @@ public static partial class BarbarianHideoutBuilder
         Check(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(workshop) == WorkshopPath,"Connected Craftsman workshop prefab.");
         foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true).Concat(workshop.GetComponentsInChildren<Renderer>(true)).Where(r => !(r is ParticleSystemRenderer)))
             Check(renderer.sharedMaterials.All(mat => mat != null && mat.shader.name == "Universal Render Pipeline/Lit" && mat.GetTexture("_BaseMap") != null && !ShaderUtil.ShaderHasError(mat.shader)),"Merchant/workshop URP texture valid: " + renderer.name);
-        Check(workshop.transform.childCount == 13,"Eleven workshop props plus forge fire and light retained.");
+        Check(workshop.transform.childCount == 14,"Eleven workshop props, sign support, forge fire and light retained.");
+        Check(ClearCapsule(roots.Single(r => r.name == "Barbarian Camp Environment"),merchant.transform.position),"Merchant feet clear of original camp obstacles.");
         foreach (var point in roots.SelectMany(r => r.GetComponentsInChildren<HubReturnPoint>(true)))
             Check(ClearCapsule(workshop,point.transform.position),"Workshop clear at return point: " + point.ReturnPointId);
     }
 
+    static Bounds CombinedBounds(GameObject root)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        var bounds = renderers[0].bounds;
+        foreach (var renderer in renderers.Skip(1)) bounds.Encapsulate(renderer.bounds);
+        return bounds;
+    }
+    static void RefineWorkshopGeometry(GameObject root)
+    {
+        var forge = root.transform.Find("SM_Forge_01a");
+        var bounds = forge.GetComponentsInChildren<MeshRenderer>(true).First().bounds;
+        var hearth = new Vector3(bounds.min.x + bounds.size.x * .4f, bounds.min.y + .9f, bounds.center.z);
+        var collider = forge.GetComponentsInChildren<MeshCollider>(true).First();
+        if (collider.Raycast(new Ray(hearth + Vector3.up * 4,Vector3.down),out var hit,5)) hearth.y = hit.point.y + .015f;
+        var fire = root.transform.Find("Forge Fire"); fire.position = hearth;
+        var main = fire.GetComponent<ParticleSystem>().main;
+        main.startColor = new Color(3.2f,.65f,.08f,.85f); main.startSize = new ParticleSystem.MinMaxCurve(.14f,.28f);
+        root.transform.Find("Forge Warm Light").position = hearth + Vector3.up * .3f;
+        var bench = root.transform.Find("SM_WorkBench_01a");
+        foreach (string name in new[] {"SM_BlacksmithTool_01a","SM_BlacksmithTool_01b"})
+        {
+            var tool = root.transform.Find(name); var toolBounds = CombinedBounds(tool.gameObject);
+            var ray = new Ray(toolBounds.center + Vector3.up * 3,Vector3.down);
+            if (bench.GetComponentsInChildren<MeshCollider>(true).First().Raycast(ray,out var topHit,5))
+                tool.position += Vector3.up * (topHit.point.y + .01f - toolBounds.min.y);
+        }
+        if (root.transform.Find("Sign Timber Support") != null) return;
+        var sign = root.transform.Find("SM_Blacksmith_Sign_01a"); sign.position += Vector3.up * .6f;
+        var signBounds = CombinedBounds(sign.gameObject);
+        var support = new GameObject("Sign Timber Support"); support.transform.SetParent(root.transform,false);
+        var wood = bench.GetComponentsInChildren<MeshRenderer>(true).First().sharedMaterial;
+        float height = signBounds.max.y + .1f;
+        float halfWidth = signBounds.extents.x + .08f;
+        void Beam(string name, Vector3 position, Vector3 size)
+        {
+            var piece = GameObject.CreatePrimitive(PrimitiveType.Cube); piece.name = name;
+            piece.transform.SetParent(support.transform,false); piece.transform.position = position; piece.transform.localScale = size;
+            piece.GetComponent<MeshRenderer>().sharedMaterial = wood;
+        }
+        Beam("Sign Left Post",new Vector3(signBounds.center.x-halfWidth,height*.5f,signBounds.center.z),new Vector3(.12f,height,.12f));
+        Beam("Sign Right Post",new Vector3(signBounds.center.x+halfWidth,height*.5f,signBounds.center.z),new Vector3(.12f,height,.12f));
+        Beam("Sign Crossbeam",new Vector3(signBounds.center.x,height,signBounds.center.z),new Vector3(halfWidth*2+.24f,.12f,.14f));
+    }
 }
+

@@ -248,10 +248,10 @@ public static partial class BarbarianHideoutBuilder
             Check(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) == 0, "Missing Script 0: " + transform.name);
         var environment = roots.Single(r => r.name == "Barbarian Camp Environment");
         string prefabPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(environment);
-        Check(prefabPath == EnvironmentPath || prefabPath == ExpandedPath, "Connected environment prefab.");
+        Check(prefabPath == EnvironmentPath, "Connected environment prefab.");
         var renderers = environment.GetComponentsInChildren<Renderer>(true).Where(r => !(r is ParticleSystemRenderer)).ToArray();
         var originalCamp = environment.transform.Find("TD_Barbarian_Camp_Scene");
-        Check(originalCamp.GetComponentsInChildren<Renderer>(true).Length == 514, "All 514 original camp renderers retained, plus floor.");
+        Check(originalCamp.GetComponentsInChildren<Renderer>(true).Length == 514, "Imported camp hierarchy retains 514 renderers, plus floor.");
         foreach (var renderer in renderers)
             Check(renderer.sharedMaterials.All(m => m != null && m.shader != null && m.shader.name == "Universal Render Pipeline/Lit"
                 && m.GetTexture("_BaseMap") != null && !ShaderUtil.ShaderHasError(m.shader)), "URP texture/shader valid: " + renderer.name);
@@ -280,6 +280,7 @@ public static partial class BarbarianHideoutBuilder
         }
         Check(roots.SelectMany(r => r.GetComponentsInChildren<Camera>(true)).Count() == 0, "Persistent camera remains the only game camera.");
         if (roots.Any(r => r.name == "Weapon Merchant Workshop")) ValidateMerchantWorkshop(scene,checks);
+        if (roots.Any(r => r.name == "Weapon Merchant Workshop")) ValidateOriginalLayout(scene, checks);
         return checks;
     }
 

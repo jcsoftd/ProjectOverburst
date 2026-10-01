@@ -82,8 +82,11 @@ public sealed class TemporaryHideoutBagDropSpawner : MonoBehaviour
         PlayerInventory inventory = FindFirstObjectByType<PlayerInventory>();
         Transform player = ResolvePlayerTransform(inventory);
         PickupGradeVfxSet gradeVfxSet = AssetDatabase.LoadAssetAtPath<PickupGradeVfxSet>(PickupGradeVfxSetPath);
-        Vector3 origin = ResolveSpawnOrigin(player);
-        Vector3 right = ResolveFlatDirection(player, Vector3.right, true);
+        Transform authoredOrigin = ResolveAuthoredOrigin();
+        Vector3 origin = authoredOrigin != null
+            ? authoredOrigin.position + new Vector3(0f, SpawnHeight, 6f)
+            : ResolveSpawnOrigin(player);
+        Vector3 right = ResolveFlatDirection(authoredOrigin != null ? authoredOrigin : player, Vector3.right, true);
 
         for (int gradeLevel = 1; gradeLevel <= MaxSpawnGradeLevel; gradeLevel++)
         {
@@ -130,6 +133,20 @@ public sealed class TemporaryHideoutBagDropSpawner : MonoBehaviour
         Vector3 position = player != null ? player.position : Vector3.zero;
         Vector3 forward = ResolveFlatDirection(player, Vector3.forward, false);
         return position + forward * SpawnDistance + Vector3.up * SpawnHeight;
+    }
+
+    private static Transform ResolveAuthoredOrigin()
+    {
+        Scene scene = SceneManager.GetSceneByName(HideoutSceneName);
+        if (!scene.IsValid() || !scene.isLoaded)
+            return null;
+
+        foreach (GameObject root in scene.GetRootGameObjects())
+            foreach (ItemPickupSpawner spawner in root.GetComponentsInChildren<ItemPickupSpawner>(true))
+                if (spawner.AuthoredSpawnOrigin != null)
+                    return spawner.AuthoredSpawnOrigin;
+
+        return null;
     }
 
     private static Vector3 ResolveFlatDirection(Transform player, Vector3 fallback, bool right)

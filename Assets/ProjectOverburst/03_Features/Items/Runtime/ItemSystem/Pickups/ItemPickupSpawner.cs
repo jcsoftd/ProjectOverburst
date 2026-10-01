@@ -35,6 +35,7 @@ public class ItemPickupSpawner : MonoBehaviour
     [SerializeField] private Transform player;
     [Tooltip("지정하면 하이드아웃 테스트 아이템을 이 위치 기준으로 배치한다. 비워 두면 기존 플레이어 위치를 사용한다.")]
     [SerializeField] private Transform authoredSpawnOrigin;
+    public Transform AuthoredSpawnOrigin => authoredSpawnOrigin;
     [SerializeField] private WeaponItemData testWeaponItem;
     [SerializeField] private WeaponItemData[] weaponItemAssets;
     [SerializeField] private BaseItemData moveSpeedPotionItem;
