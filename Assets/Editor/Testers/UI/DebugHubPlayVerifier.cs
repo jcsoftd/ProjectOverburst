@@ -69,7 +69,7 @@ public static class DebugHubPlayVerifier
             throw new InvalidOperationException("Persistent scene required");
         Directory.CreateDirectory(output);
         SessionState.SetString(SessionKey + ".output", output);
-        SessionState.SetString(SessionKey + ".env", Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY") ?? "");
+        SessionState.EraseString(SessionKey + ".env");
         var saved = new Dictionary<string, string>();
         foreach (string pref in PrefKeys)
         {
@@ -129,7 +129,9 @@ public static class DebugHubPlayVerifier
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", SessionState.GetString(SessionKey + ".env", ""));
+            // 격리 Play 종료 시 실제 계정으로 돌아간다. 다른 작업의 테스트 경로를 복원하지 않는다(99 Unity 규칙).
+            Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null);
+            SessionState.EraseString(SessionKey + ".env");
             var saved = JsonConvert.DeserializeObject<Dictionary<string, string>>(SessionState.GetString(SessionKey + ".prefs", "{}"));
             foreach (KeyValuePair<string, string> pair in saved)
             {
