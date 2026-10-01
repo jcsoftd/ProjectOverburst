@@ -3,7 +3,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class WorldPickupPresentation : MonoBehaviour
 {
-    public const float WeaponDropVisualScale = 0.6f;
+    public const float WeaponDropVisualScale = 0.7f;
+    private const float MaximumGroundClearance = 0.035f;
 
     [Header("Visual")]
     [SerializeField] private Transform visualRoot;
@@ -32,7 +33,7 @@ public sealed class WorldPickupPresentation : MonoBehaviour
         }
     }
 
-    public float GroundClearance => Mathf.Max(0f, groundClearance);
+    public float GroundClearance => Mathf.Clamp(groundClearance, 0f, MaximumGroundClearance);
     public float DropDuration => Mathf.Max(0.01f, dropDuration);
     public float ArcHeight => Mathf.Max(0f, arcHeight);
     public float ScatterRadius => Mathf.Max(0f, scatterRadius);
@@ -51,9 +52,27 @@ public sealed class WorldPickupPresentation : MonoBehaviour
 
     public bool TryGetVisualCenter(out Vector3 localCenter)
     {
+        bool hasBounds = TryGetVisualBounds(Matrix4x4.identity, out Bounds bounds);
+        localCenter = hasBounds ? bounds.center : Vector3.zero;
+        return hasBounds;
+    }
+
+    public bool TryGetSettledVisualBottom(Quaternion localRotation, out float bottomOffset)
+    {
+        Transform root = VisualRoot;
+        Matrix4x4 parentToWorld = root.parent != null ? root.parent.localToWorldMatrix : Matrix4x4.identity;
+        Matrix4x4 settledToWorld = parentToWorld * Matrix4x4.TRS(root.localPosition, localRotation, root.localScale);
+        bool hasBounds = TryGetVisualBounds(settledToWorld, out Bounds bounds);
+        bottomOffset = hasBounds ? bounds.min.y - transform.position.y : 0f;
+        return hasBounds;
+    }
+
+    private bool TryGetVisualBounds(Matrix4x4 visualToTarget, out Bounds bounds)
+    {
         Transform root = VisualRoot;
         MeshFilter[] meshes = root.GetComponentsInChildren<MeshFilter>(true);
-        Bounds bounds = default;
+        Matrix4x4 worldToVisual = root.worldToLocalMatrix;
+        bounds = default;
         bool hasBounds = false;
         for (int i = 0; i < meshes.Length; i++)
         {
@@ -61,14 +80,14 @@ public sealed class WorldPickupPresentation : MonoBehaviour
                 continue;
 
             Bounds meshBounds = meshes[i].sharedMesh.bounds;
-            Matrix4x4 toVisual = root.worldToLocalMatrix * meshes[i].transform.localToWorldMatrix;
+            Matrix4x4 toTarget = visualToTarget * worldToVisual * meshes[i].transform.localToWorldMatrix;
             for (int corner = 0; corner < 8; corner++)
             {
                 Vector3 offset = new Vector3(
                     (corner & 1) == 0 ? -meshBounds.extents.x : meshBounds.extents.x,
                     (corner & 2) == 0 ? -meshBounds.extents.y : meshBounds.extents.y,
                     (corner & 4) == 0 ? -meshBounds.extents.z : meshBounds.extents.z);
-                Vector3 point = toVisual.MultiplyPoint3x4(meshBounds.center + offset);
+                Vector3 point = toTarget.MultiplyPoint3x4(meshBounds.center + offset);
                 if (!hasBounds)
                 {
                     bounds = new Bounds(point, Vector3.zero);
@@ -79,7 +98,6 @@ public sealed class WorldPickupPresentation : MonoBehaviour
             }
         }
 
-        localCenter = hasBounds ? bounds.center : Vector3.zero;
         return hasBounds;
     }
 

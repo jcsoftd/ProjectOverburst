@@ -50,9 +50,11 @@ public sealed class WorldItemDropMotion : MonoBehaviour
             authoredRotationCaptured = true;
         }
         startPosition = transform.position;
-        landingPosition = ResolveLandingPosition(startPosition, presentation.ScatterRadius, presentation.GroundClearance);
         startVisualRotation = visualRoot.localRotation;
         settledVisualRotation = presentation.RollSettledLocalRotation();
+        presentation.TryGetSettledVisualBottom(settledVisualRotation, out float visualBottomOffset);
+        landingPosition = ResolveLandingPosition(startPosition, presentation.ScatterRadius,
+            presentation.GroundClearance - visualBottomOffset);
         duration = presentation.DropDuration;
         arcHeight = presentation.ArcHeight;
         elapsed = 0f;
@@ -123,7 +125,8 @@ public sealed class WorldItemDropMotion : MonoBehaviour
         {
             RaycastHit hit = groundHits[i];
             Collider hitCollider = hit.collider;
-            if (!IsValidGround(hitCollider, hit.normal) || hit.distance >= nearestDistance)
+            if (!IsValidGround(hitCollider, hit.normal) || hit.distance >= nearestDistance
+                || hit.point.y > origin.y + 0.5f)
                 continue;
 
             nearestDistance = hit.distance;
