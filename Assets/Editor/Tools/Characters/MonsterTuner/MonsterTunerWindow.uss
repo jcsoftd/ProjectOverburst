@@ -37,3 +37,25 @@
 .mt-toolbar { flex-wrap: wrap; }
 .mt-toolbar .unity-base-field__label { min-width: 0; width: auto; flex-grow: 0; margin-right: 6px; }
 .mt-toolbar .unity-base-field { flex-shrink: 0; }
+.mt-point-card { background-color: rgb(45, 52, 61); border-width: 1px; border-color: rgb(74, 86, 100); border-radius: 5px; padding: 7px; margin-top: 5px; margin-bottom: 8px; flex-shrink: 0; }
+.mt-point-card .mt-heading { margin-top: 0; font-size: 12px; }
+.mt-point-card .mt-note { margin-top: 2px; margin-bottom: 2px; font-size: 11px; }
+.mt-point-card .unity-vector3-field__label { min-width: 65px; width: 65px; }
+.mt-point-card .unity-vector3-field .unity-float-field .unity-base-field__label { min-width: 10px; width: 10px; }
+.mt-point-card .unity-vector3-field .unity-float-field { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.mt-point-card .unity-base-field__input { min-width: 0; }
+.mt-point-card #point-parent, .mt-point-card .mt-heading { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mt-item__text, .mt-item__name { min-width: 0; }
+.mt-item__name, .mt-item__meta { overflow: hidden; text-overflow: ellipsis; }
+.mt-item__state { font-size: 10px; color: rgb(236, 190, 117); flex-shrink: 0; margin-left: 3px; }
+.mt-motion-slot { border-bottom-width: 1px; border-bottom-color: rgb(67, 75, 87); padding-bottom: 8px; margin-bottom: 8px; }
+.mt-review { padding: 12px; background-color: rgb(35, 40, 48); }
+.mt-review .mt-title { margin-bottom: 6px; }
+.mt-review .mt-error, .mt-review-valid { padding: 8px; margin-top: 5px; margin-bottom: 6px; white-space: normal; background-color: rgb(46, 53, 63); border-radius: 4px; }
+.mt-review-valid { color: rgb(166, 224, 184); }
+.mt-review-asset { background-color: rgb(44, 50, 59); border-width: 1px; border-color: rgb(64, 75, 87); border-radius: 4px; padding: 7px; margin-bottom: 6px; }
+.mt-review-asset .mt-heading { margin-top: 0; }
+.mt-review-path { white-space: normal; font-size: 11px; color: rgb(189, 205, 222); margin-top: 3px; }
+.mt-review-row { flex-direction: row; border-bottom-width: 1px; border-bottom-color: rgb(63, 71, 83); padding-top: 6px; padding-bottom: 6px; }
+.mt-review-key { width: 150px; min-width: 125px; flex-shrink: 0; white-space: normal; padding-right: 8px; }
+.mt-review-value { flex-grow: 1; flex-basis: 0; min-width: 0; white-space: normal; padding-left: 8px; padding-right: 8px; }

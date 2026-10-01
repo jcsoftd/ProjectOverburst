@@ -97,19 +97,24 @@ namespace Overburst.EditorTools.MonsterTuner
             list.makeItem = () =>
             {
                 var row = new VisualElement(); row.AddToClassList("mt-item");
-                var icon = new Image { name = "icon", scaleMode = ScaleMode.ScaleToFit }; icon.style.width = 30; icon.style.height = 30; row.Add(icon);
+                var icon = new Image { name = "icon", scaleMode = ScaleMode.ScaleToFit }; icon.style.width = 40; icon.style.height = 40; row.Add(icon);
                 var labels = new VisualElement(); labels.AddToClassList("mt-item__text");
-                var name = new Label { name = "name" }; name.AddToClassList("mt-item__name"); labels.Add(name);
+                var headline = new VisualElement(); headline.style.flexDirection = FlexDirection.Row; labels.Add(headline);
+                var name = new Label { name = "name" }; name.AddToClassList("mt-item__name"); name.style.flexGrow = 1; headline.Add(name);
+                var state = new Label { name = "state" }; state.AddToClassList("mt-item__state"); headline.Add(state);
                 var meta = new Label { name = "meta" }; meta.AddToClassList("mt-item__meta"); labels.Add(meta); row.Add(labels); return row;
             };
             list.bindItem = (row, index) =>
             {
                 if (index >= filtered.Count) return;
                 var entry = filtered[index]; bool dirty = sessions.TryGetValue(entry.Guid, out var draft) && draft.Dirty;
-                row.Q<Label>("name").text = entry.Label + (dirty ? "  ●" : "");
-                row.Q<Label>("meta").text = entry.Theme + " · " + entry.Grade + (!entry.Registered ? " · 미등록" : "");
-                row.Q<Image>("icon").image = AssetPreview.GetMiniThumbnail(entry.Definition.ActorPrefab);
+                row.Q<Label>("name").text = entry.Label;
+                row.Q<Label>("meta").text = entry.Definition.EnemyId;
+                row.Q<Label>("state").text = (dirty ? "미저장" : "") + (!entry.Registered ? (dirty ? " · " : "") + "미등록" : "");
+                row.tooltip = entry.Label + " · " + entry.Theme + " · " + entry.Grade + "\n" + row.Q<Label>("meta").text + " · " + row.Q<Label>("state").text;
+                BindThumbnail(row, entry);
             };
+            list.unbindItem = (row, _) => UnbindThumbnail(row);
             list.selectionChanged += items => { if (!rebuilding) SelectEntry(items.OfType<MonsterTunerCatalog.Entry>().FirstOrDefault()); };
             left.Add(list);
         }
@@ -149,7 +154,7 @@ namespace Overburst.EditorTools.MonsterTuner
                     if (!VerificationOnly && System.IO.File.Exists(session.RecoveryPath) && EditorUtility.DisplayDialog("편집 사본 복원", entry.Label + "의 미저장 편집을 복원할까요?", "복원", "폐기")) session.Restore();
                     else session.Persist();
                 }
-                stage.Load(session); selectedPointKey = null; abilityIndex = 0;
+                CloseSaveReview(); stage.Load(session); selectedPointKey = null; viewport.Select(null, false); abilityIndex = 0;
                 selectedDefinitionGuid = entry.Guid;
                 BuildFields(); RefreshPoints(); UpdateHeader();
                 RenderNow();
@@ -182,6 +187,7 @@ namespace Overburst.EditorTools.MonsterTuner
                     var input = fields.Q(name: point.Key);
                     if (input != null) fields.schedule.Execute(() => { if (fields.contentContainer.Contains(input)) fields.ScrollTo(input); });
                 }
+                RefreshPointCard();
                 SetStatus(point != null ? point.Label + " · 축 드래그 또는 오른쪽 숫자 입력" : stage.Message);
             };
             viewport.EditBegan += () => { draggingPoint = true; dragJson = JsonUtility.ToJson(session); Undo.RecordObject(session, "기준점 이동"); };
@@ -212,11 +218,12 @@ namespace Overburst.EditorTools.MonsterTuner
                 int index = i; var button = new Button(() => { tab = index; BuildFields(); }) { text = labels[i], name = "tab" + i };
                 button.AddToClassList("mt-tab"); row.Add(button);
             }
-            right.Add(row); fields = new ScrollView(); fields.AddToClassList("mt-fields"); right.Add(fields);
+            right.Add(row); BuildPointCard(right);
+            fields = new ScrollView(); fields.AddToClassList("mt-fields"); right.Add(fields);
         }
         private void BuildFields()
         {
-            fields?.Clear(); if (session == null || stage.Actor == null) return;
+            fields?.Clear(); RefreshPointCard(); if (session == null || stage.Actor == null) return;
             for (int i = 0; i < 5; i++) rootVisualElement.Q<Button>("tab" + i)?.EnableInClassList("selected", i == tab);
             if (tab == 0) BuildScaleFields(); else if (tab == 1) BuildPointFields();
             else if (tab == 2) BuildAuraFields(); else if (tab == 3) BuildAttackFields(); else BuildAnimationFields();
@@ -229,9 +236,11 @@ namespace Overburst.EditorTools.MonsterTuner
             float delta = (float)(now - lastTick); lastTick = now;
             bool locked = EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling;
             fields?.SetEnabled(!locked); viewport.SetEnabled(!locked);
+            pointCard?.SetEnabled(!locked);
             saveButton.SetEnabled(session != null && session.Dirty && !locked);
             if (locked || !rootVisualElement.visible || stage.Actor == null) return;
             stage.Advance(delta);
+            TickThumbnails();
             if (stage.Playing || stage.NeedsRender || viewport.contentRect.size != renderedViewportSize) RenderNow();
         }
         private void RenderNow()
@@ -246,6 +255,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 phaseTimeline?.Refresh();
                 timeLabel.text = stage.Time.ToString("F2") + " / " + stage.Duration.ToString("F2") + "s  ·  " + stage.ZoomPercent.ToString("F0") + "%";
                 playButton.text = stage.Playing ? "Ⅱ 정지" : "▶ 재생";
+                RefreshPointCard();
             }
             catch (Exception e) { stage.Playing = false; SetStatus("프리뷰: " + e.Message, true); }
         }
@@ -261,8 +271,7 @@ namespace Overburst.EditorTools.MonsterTuner
         private void ShowChanges()
         {
             if (session == null) return;
-            string text = session.Dirty ? string.Join("\n", session.edits.Select(e => e.label + ": " + e.before.Display + " → " + e.after.Display)) : "저장할 변경이 없습니다.";
-            EditorUtility.DisplayDialog(session.Definition.DisplayName + " 변경 내역", text, "확인");
+            OpenSaveReview(false);
         }
         private void RestorePrevious()
         {
@@ -271,27 +280,21 @@ namespace Overburst.EditorTools.MonsterTuner
             if (history == null) { SetStatus("이 몬스터의 직전 저장 기록이 없습니다."); return; }
             string error = history.RestoreDraft(session);
             if (!string.IsNullOrEmpty(error)) { SetStatus(error, true); return; }
-            stage.Load(session); BuildFields(); RefreshPoints(); UpdateHeader();
+            stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader();
             SetStatus("직전 저장 전의 값을 편집 사본으로 불러왔습니다. 변경 보기와 검증 후 저장에서 확인하세요.");
         }
         private void SaveSelected()
         {
-            if (session == null) return;
-            var errors = MonsterTunerWriter.Validate(session, catalog);
-            if (errors.Count > 0) { SetStatus(errors[0], true); EditorUtility.DisplayDialog("저장 전 확인", string.Join("\n", errors), "확인"); return; }
-            var plan = MonsterTunerWriter.Plan(session, catalog);
-            if (!EditorUtility.DisplayDialog("선택 몬스터 저장", string.Join("\n", plan), "저장", "취소")) return;
-            var result = MonsterTunerWriter.Save(session, catalog); SetStatus(result.Message, !result.Success);
-            if (result.Success) { stage.Load(session); BuildFields(); RefreshPoints(); UpdateHeader(); }
+            OpenSaveReview(false);
         }
-        public override void SaveChanges() { SaveSelected(); if (session != null && !session.Dirty) { foreach (var draft in sessions.Values) draft.Persist(); base.SaveChanges(); } }
+        public override void SaveChanges() { OpenSaveReview(true); if (session != null && !session.Dirty) { foreach (var draft in sessions.Values) draft.Persist(); base.SaveChanges(); } }
         public override void DiscardChanges() { foreach (var draft in sessions.Values) draft.Discard(); base.DiscardChanges(); }
-        private void UndoRedo() { session?.Persist(); if (stage.Actor != null) { stage.Load(session); BuildFields(); RefreshPoints(); UpdateHeader(); RenderNow(); } }
-        private void BeforeReload() { foreach (var draft in sessions.Values) if (draft != null) draft.Persist(); stage.Dispose(); }
+        private void UndoRedo() { session?.Persist(); if (stage.Actor != null) { stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); RenderNow(); } }
+        private void BeforeReload() { CloseSaveReview(); DisposeThumbnails(); foreach (var draft in sessions.Values) if (draft != null) draft.Persist(); stage.Dispose(); }
         private void PlayState(PlayModeStateChange state)
         {
             if (state == PlayModeStateChange.ExitingEditMode) BeforeReload();
-            if (state == PlayModeStateChange.EnteredEditMode && session != null) { stage.Load(session); BuildFields(); RefreshPoints(); }
+            if (state == PlayModeStateChange.EnteredEditMode && session != null) { stage.Load(session); RefreshPoints(); BuildFields(); list?.RefreshItems(); }
         }
         private void OnDisable()
         {

@@ -78,7 +78,7 @@ namespace Overburst.EditorTools.MonsterTuner
             }
             else return;
             input.style.flexGrow = 1; input.SetEnabled(enabled); row.Add(input);
-            var reset = new Button(() => { session.ResetField(target, property); stage.Load(session); BuildFields(); RefreshPoints(); UpdateHeader(); }) { text = "↶", tooltip = "이 항목을 읽기 당시 값으로 되돌리기" };
+            var reset = new Button(() => { session.ResetField(target, property); stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); }) { text = "↶", tooltip = "이 항목을 읽기 당시 값으로 되돌리기" };
             reset.SetEnabled(enabled); row.Add(reset); fields.Add(row);
         }
         private void SetVector(string target, string property, Vector3 vector, string label)
@@ -120,7 +120,7 @@ namespace Overburst.EditorTools.MonsterTuner
             Field("variant", "visualScale", "외형"); Field("variant", "collisionScale", "몸 충돌"); Field("variant", "anchorScale", "기준점");
             var target = stage.Actor.GetComponent<CombatTarget>();
             if (target != null) Note("실효 피격 반경 " + target.CurrentHurtVolume.Radius.ToString("F2") + "m · 높이 " + (target.CurrentHurtVolume.HalfHeight * 2f).ToString("F2") + "m");
-            fields.Add(new Button(() => { session.Discard(); stage.Load(session); BuildFields(); RefreshPoints(); UpdateHeader(); }) { text = "이 몬스터 변경 폐기" });
+            fields.Add(new Button(() => { session.Discard(); stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); }) { text = "이 몬스터 변경 폐기" });
         }
         private void BuildPointFields()
         {
@@ -240,7 +240,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 });
             if (selectedPointKey != null) viewport.Select(viewport.Points.Find(p => p.Key == selectedPointKey), false);
             RefreshLegend();
-            viewport.Refresh();
+            viewport.Refresh(); RefreshPointCard();
         }
         private static IEnumerable<(Vector3, Vector3)> AttackSegments(EnemyActor actor, EnemyAbilityDefinition ability)
         {
@@ -459,16 +459,39 @@ namespace Overburst.EditorTools.MonsterTuner
             timing.RegisterValueChangedCallback(_ => preserveHitSeconds = timing.index == 1); fields.Add(timing);
             Note("공격 클립 교체 시 기준 길이를 새 클립에 맞춥니다. 준비·발동·회수 시간을 따로 쓰는 공격은 그 시간을 유지합니다.");
             var bindings = MonsterTunerAnimationBindings.Read(profile);
-            foreach (var binding in bindings)
+            var main = bindings.Where(IsMainMotion).ToList();
+            var auxiliary = bindings.Where(b => !IsMainMotion(b)).ToList();
+            Heading("주요 모션 · " + main.Count + "개");
+            foreach (var binding in main) MotionSlot(binding, fields);
+            if (auxiliary.Count > 0)
             {
-                AnimationSlot("motion:" + binding.Key, binding.Label);
-                Note(binding.StatePath + (binding.Children.Length > 0 ? " · BlendTree " + string.Join("/", binding.Children) : string.Empty));
+                var fold = new Foldout { name = "auxiliary-motions", text = "보조 모션 · 회전 / BlendTree 등 " + auxiliary.Count + "개", value = auxiliaryMotionsExpanded };
+                fold.RegisterValueChangedCallback(e => auxiliaryMotionsExpanded = e.newValue); fields.Add(fold);
+                foreach (var binding in auxiliary) MotionSlot(binding, fold);
             }
             if (bindings.Count == 0) Note("지원하는 기존 Controller 상태를 찾지 못했습니다. 원본 Controller를 확인하세요.");
             Note("클립 원본은 읽기 전용입니다. 교체는 이 몬스터의 프로필과 실제 Controller 연결에 저장합니다.");
         }
-        private void AnimationSlot(string property, string label)
+        [SerializeField] private bool auxiliaryMotionsExpanded;
+        private bool IsMainMotion(MonsterTunerAnimationBindings.Binding binding)
         {
+            if (new[] { "대기", "걷기", "달리기", "피격", "사망" }.Contains(binding.Label) || binding.Label.StartsWith("패링", StringComparison.Ordinal)) return true;
+            string state = binding.StatePath.Split('.').Last();
+            if (state.StartsWith("Attack_", StringComparison.OrdinalIgnoreCase)) return true;
+            for (int i = 0; session.Definition.AbilitySet != null && i < session.Definition.AbilitySet.Count; i++)
+                if (session.Definition.AbilitySet.GetAbility(i)?.AnimatorTrigger == state) return true;
+            return false;
+        }
+        private void MotionSlot(MonsterTunerAnimationBindings.Binding binding, VisualElement container)
+        {
+            var slot = new VisualElement { name = "motion-slot:" + binding.Key }; slot.AddToClassList("mt-motion-slot"); container.Add(slot);
+            AnimationSlot("motion:" + binding.Key, binding.Label, slot);
+            var path = new Label(binding.StatePath + (binding.Children.Length > 0 ? " · BlendTree " + string.Join("/", binding.Children) : string.Empty));
+            path.AddToClassList("mt-note"); slot.Add(path);
+        }
+        private void AnimationSlot(string property, string label, VisualElement container = null)
+        {
+            container = container ?? fields;
             var value = session.Value("animation", property); var clip = value.Resolve() as AnimationClip;
             var field = new ObjectField(label) { objectType = typeof(AnimationClip), allowSceneObjects = false, value = clip };
             field.RegisterValueChangedCallback(e =>
@@ -477,15 +500,16 @@ namespace Overburst.EditorTools.MonsterTuner
                 var next = session.Value("animation", property); next.text = e.newValue != null ? GlobalObjectId.GetGlobalObjectIdSlow(e.newValue).ToString() : string.Empty;
                 Change("animation", property, next, label + " 교체");
                 UpdateAttackClipTiming(property, e.newValue as AnimationClip);
-                Undo.CollapseUndoOperations(group); stage.SetClip(e.newValue as AnimationClip); RenderNow();
-            }); fields.Add(field);
+                Undo.CollapseUndoOperations(group); stage.SetClip(e.newValue as AnimationClip); RenderNow(); BuildFields();
+            }); container.Add(field);
             if (clip != null)
             {
-                fields.Add(new Button(() => { stage.SetClip(clip); stage.Playing = true; RenderNow(); }) { text = "▶ " + clip.name });
-                Note(clip.length.ToString("F2") + "s · " + clip.frameRate.ToString("F0") + "fps · " + (clip.isLooping ? "반복" : "단발"));
+                container.Add(new Button(() => { stage.SetClip(clip); stage.Playing = true; RenderNow(); }) { text = "▶ " + clip.name });
+                AddNote(clip.length.ToString("F2") + "s · " + clip.frameRate.ToString("F0") + "fps · " + (clip.isLooping ? "반복" : "단발"));
                 string compatibility = MonsterTunerAnimationBindings.Compatibility(session.Definition, clip);
-                Note(string.IsNullOrEmpty(compatibility) ? "Avatar/모델 뼈 경로 호환 확인" : compatibility);
+                AddNote(string.IsNullOrEmpty(compatibility) ? "Avatar/모델 뼈 경로 호환 확인" : compatibility);
             }
+            void AddNote(string text) { var note = new Label(text); note.AddToClassList("mt-note"); container.Add(note); }
         }
         private void UpdateAttackClipTiming(string property, AnimationClip replacement)
         {

@@ -55,7 +55,7 @@ public static partial class MonsterTunerVerifier
                 Check("표시 변경 저장 사본 불변", draftBeforeVisibility == JsonUtility.ToJson(session));
                 Check("범례 색과 점 이름", overlayToggle.text.StartsWith("●") && root.Query<Toggle>().ToList().Any(t => t.text != null && t.text.Contains("몸 충돌")));
                 Set(window, "legendExpanded", false); Call(window, "RefreshLegend");
-                var field = root.Q<Vector3Field>(); var original = field.value;
+                var field = Get<ScrollView>(window, "fields").Q<Vector3Field>(); var original = field.value;
                 var next = original * 1.2f;
                 Change(field, next);
                 Undo.FlushUndoRecordObjects();
@@ -103,7 +103,7 @@ public static partial class MonsterTunerVerifier
                 {
                     CapturePanel(window, Path.Combine(Output, "toolkit-minimum-window.png"));
                     Check("1100×720 상세 최소 폭", root.Q(className: "mt-left").layout.width >= 219 && root.Q(className: "mt-right").layout.width >= 319 && viewport.layout.height >= 200);
-                    Check("XYZ 숫자 입력 폭", root.Query<Vector3Field>().ToList().SelectMany(v => v.Query<FloatField>().ToList()).All(f => f.Q(className: "unity-base-field__input").layout.width >= 36));
+                    Check("XYZ 숫자 입력 폭", Get<ScrollView>(window, "fields").Query<Vector3Field>().ToList().SelectMany(v => v.Query<FloatField>().ToList()).All(f => f.Q(className: "unity-base-field__input").layout.width >= 36));
                 }
                 catch (Exception e) { File.WriteAllText(Path.Combine(Output, "minimum-capture-limitation.txt"), e.ToString()); }
                 session.Discard(); Call(window, "UpdateHeader"); window.CloseVerification();
@@ -132,7 +132,7 @@ public static partial class MonsterTunerVerifier
             : type == EventType.MouseUp ? PointerUpEvent.GetPooled(evt) : PointerMoveEvent.GetPooled(evt);
         using (pointer) { pointer.target = element; element.SendEvent(pointer); }
     }
-    private static void CapturePanel(MonsterTunerWindow window, string path)
+    private static void CapturePanel(EditorWindow window, string path)
     {
         var view = typeof(EditorWindow).GetField("m_Parent", Private).GetValue(window); var viewType = view.GetType();
         int width = Mathf.RoundToInt(window.position.width), height = Mathf.RoundToInt(window.position.height);
@@ -141,7 +141,8 @@ public static partial class MonsterTunerVerifier
         try
         {
             viewType.GetMethod("RepaintImmediately", Private).Invoke(view, null);
-            Call(window, "RenderNow"); viewType.GetMethod("RepaintImmediately", Private).Invoke(view, null);
+            if (window is MonsterTunerWindow) Call(window, "RenderNow");
+            viewType.GetMethod("RepaintImmediately", Private).Invoke(view, null);
             var grab = viewType.GetMethod("GrabPixels", Private, null, new[] { typeof(RenderTexture), typeof(Rect) }, null);
             if (grab == null) throw new NotSupportedException("Editor GUIView backbuffer capture unavailable");
             grab.Invoke(view, new object[] { surface, new Rect(0, 0, width, height) });

@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace Overburst.EditorTools.MonsterTuner
 {
-    internal static class MonsterTunerWriter
+    internal static partial class MonsterTunerWriter
     {
         internal static Action<string> FailureHook;
         internal static string FixtureRoot;
@@ -119,7 +119,7 @@ namespace Overburst.EditorTools.MonsterTuner
             GameObject snapshotPrefab = null, workingPrefab = null;
             string sourcePrefabPath = AssetDatabase.GetAssetPath(definition.ActorPrefab), finalPrefabPath = sourcePrefabPath;
             bool prefabSaved = false;
-            string folder = FixtureRoot != null ? FixtureRoot + "/Saved" : "Assets/ProjectOverburst/Resources/Enemies/Tuning/" + SafeName(definition.EnemyId);
+            string folder = DestinationFolder(definition);
             result.Backup = Path.Combine(MonsterTunerSession.OutputRoot, "Saves", DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff") + "_" + SafeName(definition.EnemyId));
             Directory.CreateDirectory(result.Backup);
             File.WriteAllText(Path.Combine(result.Backup, "changes.json"), JsonUtility.ToJson(session, true));

@@ -52,8 +52,9 @@ namespace Overburst.EditorTools.MonsterTuner
         public int Uses(UnityEngine.Object asset)
         {
             if (asset == null) return 0;
-            return Entries.Count(e => e.Definition.ActorPrefab == asset || e.Definition.Variant == asset
+            return Entries.Count(e => e.Definition == asset || e.Definition.ActorPrefab == asset || e.Definition.Variant == asset
                 || e.Definition.AnimationProfile == asset || e.Definition.AbilitySet == asset
+                || (asset is RuntimeAnimatorController controller && e.Definition.AnimationProfile?.RuntimeController == controller)
                 || (asset is EnemyAbilityDefinition ability && UsesAbility(e.Definition, ability)));
         }
         private static bool UsesAbility(EnemyDefinition definition, EnemyAbilityDefinition ability)

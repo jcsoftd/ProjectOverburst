@@ -16,7 +16,7 @@ public static partial class MonsterTunerVerifier
     public static string Advanced()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return "Editor busy";
-        Checks.Clear(); Directory.CreateDirectory(Output);
+        Checks.Clear(); Directory.CreateDirectory(Output); Directory.CreateDirectory(UXOutput);
         string fixtures = "Assets/Editor/Testers/Characters/MonsterTuner/Fixtures";
         if (!AssetDatabase.IsValidFolder(fixtures)) AssetDatabase.CreateFolder("Assets/Editor/Testers/Characters/MonsterTuner", "Fixtures");
         string root = fixtures + "/Extended_" + Guid.NewGuid().ToString("N");
@@ -79,6 +79,12 @@ public static partial class MonsterTunerVerifier
                 Check("초 유지 첫 타격", Mathf.Abs(session.Value("ability:" + abilityIndex, "hitNormalizedTime").number * 4f - .8f) < .0001f);
                 Check("초 유지 추가 타격", session.Value("ability:" + abilityIndex, "additionalHitNormalizedTimes").numbers.Select(t => t * 4f).SequenceEqual(new[] { 1.2f, 1.6f }));
                 var stage = Get<MonsterTunerPreviewStage>(window, "stage");
+                var replay = Get<ScrollView>(window, "fields").Query<Button>().ToList().FirstOrDefault(button => button.text == "▶ " + replacement.name);
+                Check("교체 클립 재생 버튼·길이 즉시 갱신", replay != null && Get<ScrollView>(window, "fields").Query<Label>().ToList().Any(label => label.text.StartsWith("4.00s")));
+                CapturePanel(window, Path.Combine(UXOutput, "replaced-motion-layout.png"));
+                Get<ScrollView>(window, "fields").ScrollTo(replay);
+                CapturePanel(window, Path.Combine(UXOutput, "replaced-motion.png")); Click(replay);
+                Check("교체 직후 버튼 실제 새 클립 재생", stage.Clip == replacement && stage.Playing);
                 stage.SetClip(replacement, ability);
                 Check("실전 계산 공격 속도", Mathf.Approximately(stage.AttackSpeed, stage.Enemy.Melee.AbilityAnimationSpeed));
                 session.Discard(); Call(window, "UndoRedo");
