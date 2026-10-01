@@ -19,6 +19,7 @@ public class StashInteractable : MonoBehaviour, IInteractable // 창고 상호�
     public string StableInteractionId => stableInteractionId ??= InteractionStableIdUtility.Build(this);
     public bool AllowsInteractionWhileInputBlocked => stashUI != null && stashUI.IsOpen;
     public bool WantsInteractionPrompt => stashUI != null && !stashUI.IsOpen;
+    public bool IsOpen => stashUI != null && stashUI.IsOpen;
 
     private void Awake()
     {

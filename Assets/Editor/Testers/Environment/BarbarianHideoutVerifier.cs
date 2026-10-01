@@ -87,6 +87,7 @@ public static partial class BarbarianHideoutVerifier
             if (Errors.Count > 0) throw new InvalidOperationException("Runtime error detected; see captured errors.");
             EditorApplication.QueuePlayerLoopUpdate();
             if (TickLightingRun()) return;
+            if (TickServiceInput()) return;
             if (Phase == 1)
             {
                 // Dirty development scenes can contain an inactive scene-flow object.
@@ -98,7 +99,7 @@ public static partial class BarbarianHideoutVerifier
                 var scene = SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
                 Check(scene.isLoaded && SceneManager.GetActiveScene() == scene, "Hideout loaded and active");
                 var environment = scene.GetRootGameObjects().Single(r => r.name == "Barbarian Camp Environment");
-                Check(environment.transform.Find("TD_Barbarian_Camp_Scene").GetComponentsInChildren<Renderer>(true).Length == 514, "Imported camp hierarchy loaded");
+                Check(environment.transform.Find(EditableBarbarianHideoutBuilder.LayoutName).GetComponentsInChildren<MeshFilter>(true).Length == 522, "Individual source prefabs loaded");
                 var extensions = environment.transform.Find("Camp Extensions");
                 Check(extensions == null && environment.transform.Find("Camp Perimeter") == null && environment.transform.Find("Camp Rest Area") == null, "Original camp composition loaded without expanded additions");
                 Check(RenderSettings.fog, "Camp distance fog enabled");
@@ -107,7 +108,7 @@ public static partial class BarbarianHideoutVerifier
                 var spawn = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<HubReturnPoint>(true)).Single(p => p.ReturnPointId == "Default");
                 Check(Vector2.Distance(new Vector2(Actor.transform.position.x, Actor.transform.position.z), new Vector2(spawn.transform.position.x, spawn.transform.position.z)) < .6f, "Default spawn position applied");
                 Check(Actor.transform.position.y > -.1f && Actor.transform.position.y < .6f, "Player grounded on camp floor");
-                var fireCentre=environment.transform.Find("TD_Barbarian_Camp_Scene/Boiler").GetComponent<MeshRenderer>().bounds.center;
+                var fireCentre=environment.GetComponentsInChildren<MeshRenderer>(true).Single(r => r.name == "Boiler").bounds.center;
                 var fireDistance=Actor.transform.position-fireCentre;fireDistance.y=0;
                 Check(fireDistance.magnitude<=4.5f,"Player starts near campfire ("+fireDistance.magnitude.ToString("F2")+"m)");
                 Check(Object.FindObjectsByType<MapDungeonPortal>(FindObjectsSortMode.None).Count(p => p.gameObject.scene == scene) == 1, "One map portal spawned");
@@ -156,6 +157,7 @@ public static partial class BarbarianHideoutVerifier
             {
                 int index = SessionState.GetInt(Key + "interaction", 0);
                 var target = Services()[index];
+                if (target is StashInteractable || target is GeneralGoodsMerchantInteractable) { BeginServiceInput(); return; }
                 Check(target.IsInteractionAvailable(Actor), "Service available: " + target.InteractionComponent.name);
                 Check(target.TryInteract(Actor) == InteractionExecutionResult.Succeeded, "Service opens: " + target.InteractionComponent.name);
                 if (target is MapDungeonPortal mapPortal) mapPortal.ClosePanel();
@@ -313,11 +315,13 @@ public static partial class BarbarianHideoutVerifier
     }
     static void Finish(string status, string error)
     {
-        File.WriteAllText(Path.Combine(Output, "play_result.json"), JsonConvert.SerializeObject(new { status, environment=BarbarianHideoutBuilder.EnvironmentPath, checks = Checks, errors = Errors, error }, Formatting.Indented));
+        ReleaseServiceInput();
+        File.WriteAllText(Path.Combine(Output, "play_result.json"), JsonConvert.SerializeObject(new { status, environment="Individual connected source props", checks = Checks, errors = Errors, error }, Formatting.Indented));
         SessionState.SetString(Key + "status", status); Phase = 0; SessionState.SetBool(Key + "restore", true);
     }
     static void Restore()
     {
+        if (!EditorApplication.isPlayingOrWillChangePlaymode) ReleaseServiceInput();
         if (!SessionState.GetBool(Key + "restore", false) || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
         var scene = SceneManager.GetSceneByPath(SessionState.GetString(Key + "active", ""));
         if (scene.IsValid() && scene.isLoaded) SceneManager.SetActiveScene(scene);

@@ -122,3 +122,7 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarBackground.png*
 /Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarBorders.png*
 /Assets/ProjectOverburst/05_Art/UI/HUD/TargetHud/TX_TargetHud_BarFill_*.png*
+
+# Vendor-derived demo canopy meshes and prefabs; restore from local asset manifest.
+/Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/DemoVariants/
+/Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/DemoVariants.meta

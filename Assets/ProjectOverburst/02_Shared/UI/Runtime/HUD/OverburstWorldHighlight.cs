@@ -26,6 +26,10 @@ public sealed class OverburstWorldHighlight : IDisposable
         EnsureEffect();
         effect.SetHighlighted(false);
         owner.SetActive(true);
+        // NPCs use the renderer's current skinned pose. Baking for instanced outlines
+        // can duplicate vendor skeleton scale and produce a flattened ground silhouette.
+        if (style == OverburstWorldHighlightStyle.InteractionHover)
+            effect.optimizeSkinnedMesh = !Array.Exists(renderers, renderer => renderer is SkinnedMeshRenderer);
         effect.SetTargets(next, renderers);
         target = next;
         targetRenderers = (Renderer[])renderers.Clone();
