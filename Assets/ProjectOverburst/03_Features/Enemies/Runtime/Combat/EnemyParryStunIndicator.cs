@@ -5,7 +5,6 @@ using UnityEngine;
 [DefaultExecutionOrder(200)]
 public sealed class EnemyParryStunIndicator : MonoBehaviour
 {
-    private static readonly Color StunColor = new Color(1f, .86f, .42f);
     private static EnemyParryStunIndicator instance;
     private readonly Dictionary<EnemyActor, EnemyMovementReaction> activeStuns = new Dictionary<EnemyActor, EnemyMovementReaction>();
     private readonly List<EnemyActor> completedStuns = new List<EnemyActor>();
@@ -39,7 +38,7 @@ public sealed class EnemyParryStunIndicator : MonoBehaviour
             CombatTargetVolume volume = target.CurrentVolume;
             head = volume.Center + Vector3.up * (volume.HalfHeight + .35f);
         }
-        DamageNumberSpawner.SpawnStatusText(head, "기절", StunColor, 0f);
+        DamageNumberSpawner.SpawnStun(head);
     }
 
     private void LateUpdate()

@@ -264,7 +264,8 @@ public sealed class DamageNumberPopup : MMFloatingText
         pendingFontScale = (pendingMotion != null ? pendingMotion.FontScale : 1f)
             * (request.Kind == DamageNumberKind.Discharge && request.IsCritical ? 1.2f : 1f);
 
-        bool custom = request.Kind == DamageNumberKind.PlayerHit || request.Kind == DamageNumberKind.Heal;
+        bool custom = request.Kind == DamageNumberKind.PlayerHit || request.Kind == DamageNumberKind.Heal
+            || request.Kind == DamageNumberKind.Stun;
         bool critical = request.IsCritical && request.Kind != DamageNumberKind.DamageOverTime;
         Color color = request.Kind == DamageNumberKind.DamageOverTime
             ? DamageNumberStyles.DamageOverTimeColor(request.Element)
@@ -337,7 +338,8 @@ public sealed class DamageNumberPopup : MMFloatingText
         if (targetCamera == null)
             targetCamera = Camera.main;
         DamageNumberFeelPreset preset = isDamage ? SelectedPreset : DamageNumberFeelPreset.Original;
-        SetUseUnscaledTime(isDamage && preset != DamageNumberFeelPreset.Original, false);
+        SetUseUnscaledTime((isDamage && preset != DamageNumberFeelPreset.Original)
+            || (hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun), false);
         onFinished = finishedCallback;
         _startedAt = GetTime();
         _newPosition = Vector3.zero;
@@ -375,7 +377,8 @@ public sealed class DamageNumberPopup : MMFloatingText
             text.fontSize = fontSize;
             text.fontStyle = fontStyle;
             text.fontWeight = fontStyle == FontStyles.Bold ? FontWeight.Bold : FontWeight.Regular;
-            text.characterSpacing = isReaction ? ReactionCharacterSpacing : 0f;
+            text.characterSpacing = hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun
+                ? 2.5f : isReaction ? ReactionCharacterSpacing : 0f;
             text.alignment = TextAlignmentOptions.Center;
             if (hasPendingStyle)
                 FloatingFeedbackTextStyle.ApplyStyle(text, baseFontMaterial, DamageNumberStyles.MaterialFor(pendingStyle));
@@ -560,10 +563,19 @@ public sealed class DamageNumberPopup : MMFloatingText
 
     // 2026-09-30 v2: 종류별 연출은 게임 창 제목과 같은 Noto Serif KR로 쓴다(숫자·기호·방출 이름만 구운 전용 자산).
     private static TMP_FontAsset cachedStyledFont;
+    private static TMP_FontAsset cachedStunFont;
     private static bool styledFontMissingLogged;
 
     private Material ApplyStyledFont(bool isDamage)
     {
+        if (hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun)
+        {
+            if (cachedStunFont == null)
+                cachedStunFont = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Stun SDF");
+            if (cachedStunFont == null) return ApplyFont(isDamage);
+            text.font = cachedStunFont;
+            return cachedStunFont.material != null ? cachedStunFont.material : text.fontSharedMaterial;
+        }
         if (cachedStyledFont == null)
             cachedStyledFont = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Damage SDF");
         if (cachedStyledFont == null)

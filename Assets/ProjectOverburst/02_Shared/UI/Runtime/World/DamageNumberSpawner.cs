@@ -344,6 +344,16 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             popup.InitializeCustom(displayText, color, presentationPosition, 22f, spawner.ReleasePopup);
     }
 
+    public static void SpawnStun(Vector3 headPosition)
+    {
+        if (!TryResolveInstance(out DamageNumberSpawner spawner) || !spawner.CanPresent(headPosition))
+            return;
+        DamageNumberPopup popup = spawner.GetPopup();
+        if (popup != null)
+            popup.InitializeStyled(0f, new DamageNumberStyleRequest(DamageNumberKind.Stun, WeaponElement.None, false),
+                headPosition, spawner.ReleasePopup, "기절");
+    }
+
     public static void SpawnCurrencyPickup(Vector3 worldPosition, string currencyName, int amount, Color color)
     {
         if (amount <= 0)

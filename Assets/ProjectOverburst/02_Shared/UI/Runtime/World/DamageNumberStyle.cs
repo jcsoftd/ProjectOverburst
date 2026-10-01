@@ -5,14 +5,14 @@ using UnityEngine;
 // 2026-09-30: 피해 숫자 종류별 연출. 움직임·크기·투명도 곡선은 FEEL(MMFloatingText)이 맡고,
 // 글자별 정점 연출·장식은 DamageNumberFx, 글자 재질은 FloatingFeedbackTextStyle이 맡는다.
 // DamageNumberStyleSettings.Enabled를 끄면 이전 연출 경로를 그대로 쓴다(되돌리기 스위치).
-public enum DamageNumberKind { Normal, Critical, DamageOverTime, Discharge, PlayerHit, Heal }
+public enum DamageNumberKind { Normal, Critical, DamageOverTime, Discharge, PlayerHit, Heal, Stun }
 
 public enum DamageNumberMaterialStyle
 {
     Normal, Critical, DamageOverTime, Fire, Ice, Electric, Dark, Light, PlayerHit, Heal
 }
 
-public enum DamageNumberFxKind { None, Critical, Ember, Shatter, Shock, Sink, Radiance, PlayerHit }
+public enum DamageNumberFxKind { None, Critical, Ember, Shatter, Shock, Sink, Radiance, PlayerHit, Stun }
 
 public static class DamageNumberStyleSettings
 {
@@ -119,6 +119,7 @@ public static class DamageNumberStyles
         switch (request.Kind)
         {
             case DamageNumberKind.Critical: return DamageNumberMaterialStyle.Critical;
+            case DamageNumberKind.Stun: return DamageNumberMaterialStyle.Critical;
             case DamageNumberKind.DamageOverTime: return DamageNumberMaterialStyle.DamageOverTime;
             case DamageNumberKind.PlayerHit: return DamageNumberMaterialStyle.PlayerHit;
             case DamageNumberKind.Heal: return DamageNumberMaterialStyle.Heal;
@@ -141,6 +142,7 @@ public static class DamageNumberStyles
         switch (request.Kind)
         {
             case DamageNumberKind.Critical: return DamageNumberFxKind.Critical;
+            case DamageNumberKind.Stun: return DamageNumberFxKind.Stun;
             case DamageNumberKind.PlayerHit: return DamageNumberFxKind.PlayerHit;
             case DamageNumberKind.Discharge:
                 switch (request.Element)
@@ -164,6 +166,7 @@ public static class DamageNumberStyles
         switch (request.Kind)
         {
             case DamageNumberKind.Critical: top = Hex(0xF6DC97); bottom = Hex(0xDDA24A); break;
+            case DamageNumberKind.Stun: top = Hex(0xF2E3B1); bottom = Hex(0xC69954); break;
             case DamageNumberKind.PlayerHit: top = Hex(0xEE8172); bottom = Hex(0xB52A20); break;
             case DamageNumberKind.Heal: top = Hex(0xBDEAC4); bottom = Hex(0x5DAE6E); break;
             case DamageNumberKind.Discharge:
@@ -209,6 +212,7 @@ public static class DamageNumberStyles
             case DamageNumberKind.DamageOverTime: return DamageOverTimeMotion;
             case DamageNumberKind.PlayerHit: return PlayerHitMotion;
             case DamageNumberKind.Heal: return HealMotion;
+            case DamageNumberKind.Stun: return StunMotion;
             case DamageNumberKind.Discharge:
                 switch (request.Element)
                 {
@@ -301,6 +305,15 @@ public static class DamageNumberStyles
         Vertical = Curve(0f, 0f, .16f, .7f, .44f, .9f, 1f, 1f),
         Scale = Curve(0f, .8f, .08f, 1.18f, .2f, 1f, 1f, 1f),
         Opacity = Curve(0f, 1f, .5f, 1f, 1f, 0f),
+    };
+
+    // 기절 문구는 짧게 팽창한 뒤 안정된다. 피해 숫자보다 낮게 올라가 상태 시작을 읽게 한다.
+    private static readonly DamageNumberMotion StunMotion = new DamageNumberMotion
+    {
+        Lifetime = 1.05f, Rise = 38f, LateralRange = 0f, FontScale = 1.05f,
+        Vertical = Curve(0f, 0f, .16f, .5f, .42f, .72f, 1f, 1f),
+        Scale = Curve(0f, .78f, .07f, 1.18f, .2f, 1f, 1f, 1f),
+        Opacity = Curve(0f, 1f, .68f, 1f, 1f, 0f),
     };
 
     private static readonly DamageNumberMotion HealMotion = new DamageNumberMotion

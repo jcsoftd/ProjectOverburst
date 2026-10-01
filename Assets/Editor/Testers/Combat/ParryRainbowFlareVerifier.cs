@@ -276,6 +276,13 @@ public static class ParryRainbowFlareVerifier
                 var stunPopups = UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsSortMode.None)
                     .Where(p => p.GetComponent<TMPro.TMP_Text>().text == "기절").ToArray();
                 Check(stunPopups.Length == 1, "One stun floating label for the parried enemy");
+                var stunText = stunPopups[0].GetComponent<TMPro.TMP_Text>();
+                Check(stunText.font == Resources.Load<TMPro.TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Stun SDF")
+                    && stunText.fontWeight == TMPro.FontWeight.Bold, "Stun uses the styled combat serif font");
+                Check(stunText.font.HasCharacters("기절"), "Stun Korean glyphs are baked in the static atlas");
+                Check(stunText.enableVertexGradient && stunText.colorGradient.topLeft != stunText.colorGradient.bottomLeft
+                    && stunText.characterSpacing > 0f, "Stun ivory-gold gradient and character spacing");
+                Check(stunPopups[0].GetComponent<DamageNumberFx>().Kind == DamageNumberFxKind.Stun, "Dedicated stun settle and accent effect");
                 var stunHead = leased[0].GetComponent<CombatTarget>().CurrentVolume;
                 var popupPosition = (Vector3)typeof(DamageNumberPopup).GetField("worldPosition", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(stunPopups[0]);
                 Check(popupPosition.y > stunHead.Center.y + stunHead.HalfHeight, "Stun label anchored above the enemy head");
@@ -284,6 +291,9 @@ public static class ParryRainbowFlareVerifier
                 var indicator = UnityEngine.Object.FindFirstObjectByType<EnemyParryStunIndicator>();
                 Check(indicator != null && indicator.GetComponentsInChildren<Renderer>(true).Length == 0, "No stun ring or orbiting star renderer");
                 UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-floating.png"));
+                float styledCaptureAt = Time.unscaledTime + .12f;
+                while (Time.unscaledTime < styledCaptureAt) yield return null;
+                UnityEngine.ScreenCapture.CaptureScreenshot(Path.Combine(Output, "stun-styled.png"));
                 Check(Mathf.Approximately(hp, actor.Health.CurrentHp), "No incoming damage");
                 var stats = TransientVfxPool.GetStatistics(prefab);
                 Check(stats.Requests == poolBefore.Requests + 1 && stats.Active == 1, "Exactly one pooled flare");

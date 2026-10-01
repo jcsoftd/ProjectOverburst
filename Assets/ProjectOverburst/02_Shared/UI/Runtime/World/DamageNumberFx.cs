@@ -197,6 +197,15 @@ public sealed class DamageNumberFx : MonoBehaviour
                     move.x = Mathf.Sin(e * 80f) * 1f * (1f - e / .14f);
                 break;
 
+            case DamageNumberFxKind.Stun:
+                if (e < .16f)
+                {
+                    float settle = 1f - e / .16f;
+                    move.x = Mathf.Sin(e * 62f + index * .6f) * .7f * settle;
+                    angle = (index % 2 == 0 ? -1f : 1f) * 1.8f * settle;
+                }
+                break;
+
             case DamageNumberFxKind.PlayerHit:
                 if (e < .28f)
                     move.x = Mathf.Sin(e * 60f) * 2.4f * (1f - e / .28f);
@@ -273,6 +282,10 @@ public sealed class DamageNumberFx : MonoBehaviour
         accentCount = 0;
         switch (kind)
         {
+            case DamageNumberFxKind.Stun:
+                AddAccent(DamageNumberFxSprites.Dot, new Vector2(-.5f, 0f), new Vector2(-18f, 10f), 4f, .32f, new Color(.94f, .84f, .6f, .75f));
+                AddAccent(DamageNumberFxSprites.Dot, new Vector2(.5f, 0f), new Vector2(18f, 10f), 4f, .32f, new Color(.94f, .84f, .6f, .75f));
+                break;
             case DamageNumberFxKind.Ember:
                 for (int i = 0; i < 4; i++)
                     AddAccent(DamageNumberFxSprites.Dot, new Vector2(Random.Range(-14f, 14f), Random.Range(-4f, 6f)),
@@ -372,6 +385,15 @@ public sealed class DamageNumberFx : MonoBehaviour
 
             switch (kind)
             {
+                case DamageNumberFxKind.Stun:
+                {
+                    float left = Mathf.Clamp01(1f - e / life);
+                    position = center + new Vector2(accentStart[i].x * (width + 14f), 3f) + accentVelocity[i] * e;
+                    size = new Vector2(2.5f, 7f) * left;
+                    rotation = i == 0 ? -28f : 28f;
+                    alpha = Mathf.Clamp01(e / .035f) * left * accentTint[i].a;
+                    break;
+                }
                 case DamageNumberFxKind.Ember:
                 {
                     float age = e;
