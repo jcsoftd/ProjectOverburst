@@ -3097,6 +3097,101 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &3079138432018843236
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4349115731289732458}
+  - component: {fileID: 8844326239797800270}
+  - component: {fileID: 9017307555913264793}
+  - component: {fileID: 6112517559879576476}
+  m_Layer: 0
+  m_Name: Weapon Element Icon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &4349115731289732458
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3079138432018843236}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4459373426782829324}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 52, y: 52}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &8844326239797800270
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3079138432018843236}
+  m_CullTransparentMesh: 1
+--- !u!114 &9017307555913264793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3079138432018843236}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &6112517559879576476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3079138432018843236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f40b014fffb01b84197555f9a2d2a55e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponElementIconView
+  icon: {fileID: 9017307555913264793}
+  badgeSurface: {fileID: 0}
+  fire: {fileID: 21300000, guid: 3ac53a9393da63441bc86394d1d5bfa4, type: 3}
+  ice: {fileID: 21300000, guid: 3c3d8b446d3ba3441aa989e1c090f06a, type: 3}
+  electric: {fileID: 21300000, guid: 0daed42840cbe704dbdb9a1112352b28, type: 3}
+  dark: {fileID: 21300000, guid: 9642325d35cd9334bb13ccc6583c148f, type: 3}
+  light: {fileID: 21300000, guid: 87437833c24edbd46bd515db8ab74767, type: 3}
 --- !u!1 &3212022966032511241
 GameObject:
   m_ObjectHideFlags: 0
@@ -11400,6 +11495,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2017580036864001783, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2017580037252966701, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
       propertyPath: m_AnchorMax.x
       value: 1
@@ -11772,10 +11871,16 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2017580037490649471, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5842180401565208568}
+    - targetCorrespondingSourceObject: {fileID: 2017580037981742678, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4349115731289732458}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2017580037490649408, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7448642961723201980}
+    - targetCorrespondingSourceObject: {fileID: 2017580037981742679, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5534574807745302774}
   m_SourcePrefab: {fileID: 100100000, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
 --- !u!224 &4459373426202097135 stripped
 RectTransform:
@@ -11787,6 +11892,29 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2017580037196140474, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
   m_PrefabInstance: {fileID: 2746354490036116826}
   m_PrefabAsset: {fileID: 0}
+--- !u!224 &4459373426782829324 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 2017580037981742678, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
+  m_PrefabInstance: {fileID: 2746354490036116826}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4459373426782829325 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2017580037981742679, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}
+  m_PrefabInstance: {fileID: 2746354490036116826}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5534574807745302774
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4459373426782829325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c8534073fd3fda479eee81cfd3bc9c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponElementHudIcon
+  view: {fileID: 6112517559879576476}
 --- !u!1 &4459373427272872986 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2017580037490649408, guid: 0d4983b3eb3ca69498d008854a6f93a3, type: 3}

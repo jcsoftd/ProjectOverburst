@@ -62,6 +62,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private RectTransform panel;
     private Image glow;
     private Image icon;
+    private WeaponElementIconView weaponElementIcon;
     private Image badge;
     private Image[] outerEdges;
     private Image[] innerEdges;
@@ -111,6 +112,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             : Color.Lerp(Html("#15191B"), rarity, .15f);
         icon.sprite = item.icon;
         icon.enabled = item.icon != null;
+        weaponElementIcon?.Present(item);
         grade.color = rarity;
         title.color = new Color(.92f, .84f, .68f);
 
@@ -168,6 +170,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         panel = (RectTransform)transform;
         glow = Find<Image>("Approved Top Glow");
         icon = Find<Image>("Approved Icon Frame/Icon Display");
+        weaponElementIcon = Find<WeaponElementIconView>("Approved Icon Frame/Weapon Element Badge");
         badge = Find<Image>("Approved Badge Fill");
         outerEdges = FindEdges("Approved Outer Frame");
         innerEdges = FindEdges("Approved Inner Frame");

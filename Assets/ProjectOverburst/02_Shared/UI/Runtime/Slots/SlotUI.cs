@@ -21,6 +21,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     [SerializeField] private TextMeshProUGUI infoText;
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Image slotBackgroundImage;
+    [SerializeField] private WeaponElementIconView weaponElementIcon;
 
     private SlotGradeEffect gradeEffect; // 등급 효과
     private SlotFrameAnimator slotFrameAnimator; // 프레임 효과
@@ -90,6 +91,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         DisplayItem = item; // 표시 아이템
         GetComponent<OverburstUIItemSlotView>()?.Present(item.icon,item.grade);
+        weaponElementIcon?.Present(IsLocked ? null : item);
         SetIconActive(true);
 
         if (iconImage != null)
@@ -133,6 +135,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     {
         EnsureInitialized();
         IsLocked = locked; // 잠금 상태
+        weaponElementIcon?.Present(locked ? null : DisplayItem);
 
         if (lockedOverlay != null)
             lockedOverlay.gameObject.SetActive(locked); // 잠금 표시
@@ -229,6 +232,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
     private void EnsureInitialized()
     {
+        if (weaponElementIcon == null)
+            weaponElementIcon = transform.Find("Weapon Element Badge")?.GetComponent<WeaponElementIconView>();
+
         if (iconImage == null)
             iconImage = transform.Find("Icon") != null ? transform.Find("Icon").GetComponent<Image>() : null; // 아이콘
 
@@ -304,6 +310,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
     private void Clear()
     {
+        weaponElementIcon?.Present(WeaponElement.None);
         GetComponent<OverburstUIItemSlotView>()?.Present(null,ItemGrade.Common);
         SetIconActive(false);
 
@@ -469,7 +476,8 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         string objectName = candidate.gameObject.name;
         if (objectName == "Icon" || objectName == "Info" || objectName == "GradeOverlay" || objectName == "ExperimentalGradeOutline"
             || objectName == "LockOverlay" || objectName == "DragStateOverlay" || objectName == "ContextSelectionOverlay"
-            || objectName == "ActiveWeaponBorder" || objectName == "NewItemMarker" || objectName == "StackCountText")
+            || objectName == "ActiveWeaponBorder" || objectName == "NewItemMarker" || objectName == "StackCountText"
+            || objectName == "Weapon Element Badge")
             return false;
 
         return objectName == "SlotBackground" || objectName == "Image" || candidate.sprite != null;
