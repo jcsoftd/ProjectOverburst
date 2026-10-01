@@ -131,35 +131,14 @@ public partial class TooltipManager
         SetActive(dividerPrice, true);
         SetActive(priceText, true);
 
-        SetItemHeader(item, item.itemName, "가방 / 수납");
-
+        SetItemHeader(item, item.itemName, "가방 / 수납 · 파밍");
+        if (flaskStatsFont == null) flaskStatsFont = Resources.Load<TMP_FontAsset>("UI/Tooltip/FlaskTooltipFont");
+        if (flaskStatsFont != null) basicStatsText.font = flaskStatsFont;
         basicStatsText.text = BuildBagStatsText(item, bagData);
         priceText.text = BuildPriceText(item);
     }
 
-    private string BuildBagStatsText(ItemData item, BagItemData bagData)
-    {
-        StringBuilder builder = new StringBuilder(); // 가방 표시 줄
-        builder.Append("인벤토리 슬롯 +").Append(Mathf.Max(0, bagData.additionalSlots));
-
-        if (item.bagOptions == null || item.bagOptions.Count == 0)
-            return builder.ToString();
-
-        builder.AppendLine();
-        builder.Append("추가 옵션");
-        for (int i = 0; i < item.bagOptions.Count; i++)
-        {
-            BagRandomOptionRoll option = item.bagOptions[i];
-            if (option == null)
-                continue;
-
-            builder.AppendLine();
-            builder.Append("- ");
-            builder.Append(ItemTooltipFormatter.FormatBagOptionWithRollRange(option, item.grade, DisabledOptionColor));
-        }
-
-        return builder.ToString();
-    }
+    private string BuildBagStatsText(ItemData item, BagItemData bagData) => BagTooltip.Details(item);
 
     private void SetDefaultTooltipContent(ItemData item)
     {

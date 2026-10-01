@@ -19,7 +19,7 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         sharedBagPickupPrefab = null;
     }
 
-    public static ItemData CreateRuntimeItem(BaseItemData itemData, int minLevel, int maxLevel, ItemGrade minGrade, ItemGrade maxGrade, bool useVtpGradeRoll, int stackCount)
+    public static ItemData CreateRuntimeItem(BaseItemData itemData, int minLevel, int maxLevel, ItemGrade minGrade, ItemGrade maxGrade, bool useVtpGradeRoll, int stackCount, float rareGradePercent = 0)
     {
         if (itemData == null)
             return null;
@@ -27,8 +27,8 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         if (!WeaponContentPolicy.IsAllowedItemData(itemData))
             return null;
 
-        int level = 1; // 현재는 레벨 제거 기준
-        if (!TryResolveRuntimeGrade(minGrade, maxGrade, useVtpGradeRoll, out ItemGrade grade))
+        int level = itemData is BagItemData ? OverburstGrowthRules.ClampLevel(minLevel) : 1;
+        if (!TryResolveRuntimeGrade(minGrade, maxGrade, useVtpGradeRoll, out ItemGrade grade, rareGradePercent))
             return null; // 비활성 등급 범위는 신규 드랍 제외
 
         return new ItemData(itemData, level, grade, Mathf.Max(1, stackCount));
@@ -229,8 +229,9 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         ItemGrade minGrade,
         ItemGrade maxGrade,
         bool useVtpGradeRoll,
-        out ItemGrade grade)
+        out ItemGrade grade, float rareGradePercent = 0)
     {
+        if (rareGradePercent > 0) return BagFarmingLoot.TryTableGrade(minGrade, maxGrade, useVtpGradeRoll, rareGradePercent, out grade);
         grade = default;
         ItemGrade candidate = useVtpGradeRoll
             ? ItemGradeAvailabilityPolicy.RollWeightedGrade()

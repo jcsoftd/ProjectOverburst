@@ -10,11 +10,11 @@ public static class FlaskLootPolicy
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() { catalog = null; gameplayCatalog = null; }
 
-    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
-        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade);
+    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
+        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent);
 
     // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
-    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
+    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
     {
         if (GameplayCatalog.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
@@ -22,23 +22,19 @@ public static class FlaskLootPolicy
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .30f : .04f);
         if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         float roll = Random.value;
-        ItemGrade grade = SelectGrade(Mathf.Lerp(roll, 1f,
-            MapOptionPolicy.HighGradeRollBias(mapGrade)), mapLevel, boss, elite);
+        ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         return new ItemData(GameplayCatalog[Random.Range(0, GameplayCatalog.Length)],
             itemLevel, grade);
     }
 
     // Later dungeon tiers unlock artifact/mythic; starter-zone farming cannot supply them.
-    public static ItemGrade SelectGrade(float roll, int difficulty, bool boss, bool elite)
+    public static ItemGrade SelectGrade(float roll, int difficulty, bool boss, bool elite, float rareGradePercent = 0, float mapBias = 0)
     {
         float[] weights = boss ? new[] { 0f, 0f, 45f, 35f, 17f, 2.5f, .5f }
             : elite ? new[] { 10f, 30f, 40f, 16f, 3.7f, .28f, .02f }
             : new[] { 45f, 32f, 18f, 4.5f, .49f, .009f, .001f };
         int max = difficulty >= 25 ? 6 : difficulty >= 18 ? 5 : difficulty >= 10 ? 4 : difficulty >= 5 ? 3 : 2;
-        float total = 0f; for (int i = 0; i <= max; i++) total += weights[i];
-        float pick = Mathf.Clamp01(roll) * total;
-        for (int i = 0; i <= max; i++) { pick -= weights[i]; if (pick < 0f) return (ItemGrade)i; }
-        return (ItemGrade)max;
+        return BagFarmingLoot.SelectGrade(roll, weights, max, rareGradePercent, mapBias);
     }
 }

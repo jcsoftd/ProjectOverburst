@@ -19,10 +19,10 @@ public class DropTableEntry
         return itemData != null && Random.value <= Mathf.Clamp01(dropChance); // 데이터와 확률 확인
     }
 
-    public ItemData CreateItem()
+    public ItemData CreateItem(float rareGradePercent = 0)
     {
         int stack = Random.Range(Mathf.Max(1, minStack), Mathf.Max(minStack, maxStack) + 1); // 스택 롤
-        return WorldItemDropFactory.CreateRuntimeItem(itemData, minLevel, maxLevel, minGrade, maxGrade, useVtpGradeRoll, stack); // 고유 인스턴스 생성
+        return WorldItemDropFactory.CreateRuntimeItem(itemData, minLevel, maxLevel, minGrade, maxGrade, useVtpGradeRoll, stack, BagFarmingLoot.Eligible(itemData) ? rareGradePercent : 0); // 고유 인스턴스 생성
     }
 }
 
@@ -31,7 +31,7 @@ public class DropTable : ScriptableObject
 {
     [SerializeField] private DropTableEntry[] entries;
 
-    public List<ItemData> RollDrops()
+    public List<ItemData> RollDrops(float rareGradePercent = 0)
     {
         List<ItemData> results = new List<ItemData>(); // 드랍 결과
         if (entries == null)
@@ -43,7 +43,7 @@ public class DropTable : ScriptableObject
             if (entry == null || !entry.ShouldDrop())
                 continue; // 드랍 실패 또는 빈 항목
 
-            ItemData item = entry.CreateItem();
+            ItemData item = entry.CreateItem(rareGradePercent);
             if (item != null)
                 results.Add(item); // 결과 추가
         }

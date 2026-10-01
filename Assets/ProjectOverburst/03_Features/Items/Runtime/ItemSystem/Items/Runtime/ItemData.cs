@@ -1064,7 +1064,8 @@ public class ItemData // 런타임 아이템
     public List<GearStatRoll> gearRolls; // 방어구·장신구 고정 주능력치와 보조 3종
     public int balanceVersion; // 0 is legacy; preserve saved star identity during upgrades.
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
-    public List<BagRandomOptionRoll> bagOptions; // 가방 랜덤 옵션
+    public List<BagRandomOptionRoll> bagOptions; // 구 저장 입력 전용
+    public BagInstanceState bagState;
 
 
     public bool HasValidBaseData { get { return baseData != null; } }
@@ -1155,7 +1156,7 @@ public class ItemData // 런타임 아이템
         balanceVersion = OverburstCombatBalance.ItemBalanceVersion;
         EnsureRuntimeInstanceId(); // id 보장
         baseData = data;
-        level = data is WeaponItemData || data is GearItemData || data is FlaskItemData
+        level = data is WeaponItemData || data is GearItemData || data is FlaskItemData || data is BagItemData
             ? OverburstGrowthRules.ClampLevel(lv) : lv;
         grade = itemGrade;
         stackCount = stack;
@@ -1193,6 +1194,7 @@ public class ItemData // 런타임 아이템
         copy.weaponGradeStatRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(weaponGradeStatRolls);
         copy.gearRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(gearRolls);
         copy.bagOptions = Overburst.Persistence.ItemSnapshotCodec.CopyValues(bagOptions);
+        copy.bagState = Overburst.Persistence.ItemSnapshotCodec.CopyValues(bagState);
         copy.flaskState = Overburst.Persistence.ItemSnapshotCodec.CopyValues(flaskState);
         copy.mapState = Overburst.Persistence.ItemSnapshotCodec.CopyValues(mapState);
         if (newIdentity)
@@ -1211,7 +1213,7 @@ public class ItemData // 런타임 아이템
             level = value.level, grade = value.grade, stackCount = value.count,
             originRunId = value.originRunId, instanceElement = value.element, hasInstanceElement = value.hasElement,
             meleeStarDistributionProfile = value.qualityProfile, weaponGradeStatRolls = value.weaponRolls,
-            gearRolls = value.gearRolls, bagOptions = value.bagRolls, flaskState = value.flask,
+            gearRolls = value.gearRolls, bagOptions = value.bagRolls, bagState = value.bag, flaskState = value.flask,
             mapState = value.map, balanceVersion = value.balanceVersion, restoredFromValidatedSnapshot = true
         };
         nextAcquisitionOrder = System.Math.Max(nextAcquisitionOrder, checked(value.acquisitionOrder + 1));
@@ -1237,10 +1239,11 @@ public class ItemData // 런타임 아이템
     public void EnsureRuntimeState()
     {
         Overburst.Persistence.ItemBalanceMigration.UpgradeRuntime(this);
+        Overburst.Persistence.BagAccountMigration.UpgradeRuntime(this);
         if (restoredFromValidatedSnapshot) return;
         EnsureRuntimeInstanceId(); // id 보장
 
-        if (baseData is WeaponItemData || baseData is GearItemData || baseData is FlaskItemData)
+        if (baseData is WeaponItemData || baseData is GearItemData || baseData is FlaskItemData || baseData is BagItemData)
             level = OverburstGrowthRules.ClampLevel(level);
 
         if (baseData is FlaskItemData) FlaskRuntime.State(this);
@@ -1362,28 +1365,13 @@ public class ItemData // 런타임 아이템
 
     private void EnsureBagOptions()
     {
-        if (!(baseData is BagItemData))
-            return;
-
-        int expectedCount = BagRandomOptionRoller.GetOptionCount(grade);
-        if (expectedCount <= 0)
-        {
-            if (bagOptions != null && bagOptions.Count > 0)
-                bagOptions.Clear();
-
-            return;
-        }
-
-        BagRandomOptionRoller.MigrateLegacyOptions(bagOptions, grade); // 구 스태미너 옵션 → 최대 체력
-        if (bagOptions == null || bagOptions.Count != expectedCount)
-            RollBagOptions();
+        if (!BagQuality.IsValid(bagState, grade))
+            throw new System.IO.InvalidDataException("Invalid runtime bag quality; reroll refused.");
     }
 
     private void RollBagOptions()
     {
-        if (!(baseData is BagItemData))
-            return;
-
-        bagOptions = BagRandomOptionRoller.Roll(grade); // 가방 옵션 롤
+        bagState = BagQuality.Roll(grade, BagQuality.Seed(runtimeInstanceId),
+            PlayerProgression.CurrentLevel >= OverburstGrowthRules.MaximumLevel);
     }
 }

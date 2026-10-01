@@ -18,6 +18,7 @@ public static class AccountUiLifetimeVerifier
             var bagData = ScriptableObject.CreateInstance<BagItemData>(); objects.Add(bagData);
             var consumable = ScriptableObject.CreateInstance<ConsumableItemData>(); objects.Add(consumable);
             var bag = new ItemData(bagData, 1, ItemGrade.Mythic);
+            bag.bagState = null;
             bag.bagOptions = new List<BagRandomOptionRoll>
             {
                 new BagRandomOptionRoll { optionType = BagRandomOptionType.MaxHp, value = 17 },
@@ -42,15 +43,15 @@ public static class AccountUiLifetimeVerifier
             health.SetMaxHp(100, true);
             service.RefreshBagBonuses(null, health);
             service.RefreshBagBonuses(null, health);
-            // 2026-09-30 스태미너 삭제: 구 스태미너 옵션(11)은 불러올 때 최대 체력(17)에 합쳐져 한 줄이 된다.
-            if (bag.bagOptions.Count != 2 || bag.bagOptions.Exists(o => o.optionType == BagRandomOptionType.MaxStamina))
-                throw new Exception("Legacy stamina option not migrated");
-            if (Mathf.Abs(health.MaxHp - 128) > 0.01f) throw new Exception("Bag stats compounded");
+            bag.EnsureRuntimeState();
+            if (bag.bagOptions.Count != 0 || !BagQuality.IsValid(bag.bagState, bag.grade))
+                throw new Exception("Legacy bag quality not migrated");
+            if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("Bag altered combat HP");
             UnityEngine.Object.DestroyImmediate(replacement);
-            if (Mathf.Abs(health.MaxHp - 128) > 0.01f) throw new Exception("UI destruction removed bag stats");
+            if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("UI destruction removed bag stats");
             service.RefreshBagBonuses(null, null);
             if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("Old actor bonuses not removed");
-            return "PASS quickslot and bag survive UI recreation; legacy stamina merges into max HP; bag stats apply once; UI destruction preserves bonuses; actor release removes bonuses";
+            return "PASS quickslot and bag survive UI recreation; legacy bag converts to saved stars; bag never alters combat HP; UI destruction preserves quality";
         }
         finally
         {

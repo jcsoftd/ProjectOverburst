@@ -260,7 +260,7 @@ public class WorldItemPickup : MonoBehaviour // 월드 아이템
             return;
 
         ItemGrade grade = itemDataAsset is BagItemData bagData ? bagData.defaultGrade : itemGrade;
-        runtimeItem = new ItemData(itemDataAsset, itemLevel, grade, stackCount); // 씬 배치용
+        runtimeItem = new ItemData(itemDataAsset, itemDataAsset is BagItemData ? PlayerProgression.CurrentLevel : itemLevel, grade, stackCount); // 씬 배치용
     }
 
     private void LateUpdate()

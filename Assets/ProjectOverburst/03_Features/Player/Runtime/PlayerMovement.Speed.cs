@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// PlayerMovement partial: 이동 속도 계산(전투·버프·가방·조준 배율). 필드와 Unity 수명주기는 PlayerMovement.cs에 있다.
+// PlayerMovement partial: 이동 속도 계산(전투·버프·조준 배율). 필드와 Unity 수명주기는 PlayerMovement.cs에 있다.
 public partial class PlayerMovement
 {
     private float GetTargetMoveSpeed()
@@ -9,7 +9,7 @@ public partial class PlayerMovement
             return 0f;
 
         if (IsCombatWalkLocomotionMode)
-            return GetMeleeCombatMoveSpeed() * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier()
+            return GetMeleeCombatMoveSpeed() * GetActiveBuffMoveSpeedMultiplier()
                 * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
@@ -18,7 +18,7 @@ public partial class PlayerMovement
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속
 
-        return speed * bagMoveSpeedMultiplier * GetActiveBuffMoveSpeedMultiplier()
+        return speed * GetActiveBuffMoveSpeedMultiplier()
             * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
     }
 
@@ -49,11 +49,6 @@ public partial class PlayerMovement
         return melee != null && melee.combatMoveSpeed > 0f
             ? melee.combatMoveSpeed
             : Mathf.Max(0f, meleeCombatMoveSpeed);
-    }
-
-    public void SetBagMoveSpeedBonusPercent(float percent)
-    {
-        bagMoveSpeedMultiplier = Mathf.Clamp(1f + Mathf.Max(0f, percent) * 0.01f, 0.05f, 10f);
     }
 
     private float GetActiveBuffMoveSpeedMultiplier()
@@ -120,7 +115,6 @@ public partial class PlayerMovement
     private float ResolveAuthoredMoveSpeed(float authoredSpeed)
     {
         return Mathf.Max(0f, authoredSpeed)
-            * bagMoveSpeedMultiplier
             * GetActiveBuffMoveSpeedMultiplier();
     }
 }

@@ -37,6 +37,10 @@ public static class OverburstUIQualityBreakdown
             bool flat=roll.stat==GearStat.MaxHealth||roll.stat==GearStat.Armor||roll.stat==GearStat.Attack;
             bool points=roll.stat==GearStat.CriticalChance||roll.stat==GearStat.AttackSpeed||roll.stat==GearStat.CriticalDamage;
             unit=flat?"":points?"%p":"%";deltaUnit=flat?"":"%p";
+        }else if(item.baseData is BagItemData){
+            var roll=item.bagState?.rows?.FirstOrDefault(r=>r!=null&&BagTooltip.Label(r.stat)==label);if(roll==null)return false;
+            effectPrefix=true;before=BagQuality.Value(item.level,roll,true);after=BagQuality.Value(item.level,roll);positive=after>=before;
+            unit=deltaUnit=roll.stat==BagStat.InventorySlots?"칸":"%";
         }else return false;
         float delta=after-before;
         string number(float value)=>value.ToString("0.##",CultureInfo.InvariantCulture);

@@ -97,10 +97,10 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         if (encounter.IsRun)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
-            ItemData flask = FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade);
-            if (flask != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(flask), dropOrigin + dropOffset, targetInventory, player, pickupGradeVfxSet);
-            ItemData gear = GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade);
-            if (gear != null) WorldItemDropFactory.CreateWorldPickup(StampLoot(gear), dropOrigin + dropOffset + Vector3.right * .35f, targetInventory, player, pickupGradeVfxSet);
+            float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
+            DropFarmingItem(FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset);
+            DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.right * .35f);
+            DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.left * .35f);
         }
         using (GoldMarker.Auto()) DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
@@ -114,10 +114,22 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         for (int i = 0; i < drops.Count; i++)
         {
-            StampLoot(drops[i]);
             Vector3 offset = dropOffset + GetScatterOffset(i, drops.Count); // 흩뿌림
-            WorldItemDropFactory.CreateWorldPickup(drops[i], dropOrigin + offset, targetInventory, player, pickupGradeVfxSet);
+            DropFarmingItem(drops[i], dropOrigin + offset);
         }
+    }
+
+    private void DropFarmingItem(ItemData item, Vector3 position)
+    {
+        if (item == null) return;
+        WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickup(StampLoot(item), position, targetInventory, player, pickupGradeVfxSet);
+        if (pickup == null || !encounter.IsRun || !BagFarmingLoot.Eligible(item.baseData)) return;
+        float chance = BagQuality.EquippedBonus(BagStat.ExtraItemDrop) * .01f;
+        if (chance <= 0 || Random.value >= chance) return;
+        ItemData extra = BagFarmingLoot.Extra(item, GetComponent<EnemyRank>(), encounter.MapLevel,
+            encounter.MapGrade, BagQuality.EquippedBonus(BagStat.RareGradeWeight));
+        // Direct factory call is intentional: an extra drop never rolls another extra.
+        WorldItemDropFactory.CreateWorldPickup(StampLoot(extra), position + Vector3.forward * .35f, targetInventory, player, pickupGradeVfxSet);
     }
 
     private ItemData StampLoot(ItemData item)
@@ -132,7 +144,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     {
         if (!useWeightedDropCount)
         {
-            List<ItemData> drops = dropTable.RollDrops();
+            List<ItemData> drops = dropTable.RollDrops(encounter.IsRun ? BagQuality.EquippedBonus(BagStat.RareGradeWeight) : 0);
             ApplyDropLimit(drops);
             return drops;
         }
@@ -149,7 +161,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         for (int i = 0; i < attempts && weightedDrops.Count < targetCount; i++)
         {
-            List<ItemData> rolledDrops = dropTable.RollDrops();
+            List<ItemData> rolledDrops = dropTable.RollDrops(encounter.IsRun ? BagQuality.EquippedBonus(BagStat.RareGradeWeight) : 0);
             if (rolledDrops == null || rolledDrops.Count == 0)
                 continue;
 
@@ -322,6 +334,8 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         int min = Mathf.Max(1, minGoldAmount);
         int max = Mathf.Max(min, maxGoldAmount);
         int amount = Random.Range(min, max + 1);
+        if (encounter.IsRun)
+            amount = BagFarmingLoot.CombatGoldAmount(amount, BagQuality.EquippedBonus(BagStat.CombatGold));
         Vector3 position = dropOrigin + dropOffset + GetScatterOffset(0, 2);
         WorldItemDropFactory.CreateCurrencyWorldPickupFromExistingItem(
             StampLoot(new ItemData(goldItem, encounter.MapLevel, ItemGrade.Common, amount)), position, targetInventory);

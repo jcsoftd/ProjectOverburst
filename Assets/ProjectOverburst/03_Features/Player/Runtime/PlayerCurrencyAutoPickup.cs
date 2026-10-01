@@ -7,7 +7,7 @@ public class PlayerCurrencyAutoPickup : MonoBehaviour
     [SerializeField] private LayerMask pickupLayerMask = ~0;
     [SerializeField] private float scanInterval = 0.12f;
 
-    private readonly Collider[] nearbyColliders = new Collider[24];
+    private Collider[] nearbyColliders = new Collider[64];
     private PlayerInventory inventory;
     private float nextScanTime;
 
@@ -27,13 +27,17 @@ public class PlayerCurrencyAutoPickup : MonoBehaviour
 
     private void ScanNearbyCurrency()
     {
-        int hitCount = Physics.OverlapSphereNonAlloc(
-            transform.position,
-            Mathf.Max(0.1f, pickupRadius),
-            nearbyColliders,
-            pickupLayerMask,
-            QueryTriggerInteraction.Collide
-        );
+        float baseRadius = Mathf.Max(0.1f, pickupRadius);
+        float goldRadius = baseRadius * (1f + BagQuality.EquippedBonus(BagStat.GoldMagnetRadius) * .01f);
+        int hitCount;
+        // Grow the retained buffer when saturated, so dense drop piles cannot starve pickups.
+        do
+        {
+            hitCount = Physics.OverlapSphereNonAlloc(transform.position, goldRadius, nearbyColliders,
+                pickupLayerMask, QueryTriggerInteraction.Collide);
+            if (hitCount < nearbyColliders.Length) break;
+            System.Array.Resize(ref nearbyColliders, checked(nearbyColliders.Length * 2));
+        } while (true);
 
         for (int i = 0; i < hitCount; i++)
         {
@@ -42,7 +46,8 @@ public class PlayerCurrencyAutoPickup : MonoBehaviour
                 continue;
 
             CurrencyWorldPickup pickup = hit.GetComponentInParent<CurrencyWorldPickup>();
-            if (pickup != null)
+            if (pickup != null && (pickup.CurrencyKind == CurrencyType.Gold
+                || (pickup.transform.position - transform.position).sqrMagnitude <= baseRadius * baseRadius))
                 pickup.BeginMagnet(transform, inventory);
         }
     }

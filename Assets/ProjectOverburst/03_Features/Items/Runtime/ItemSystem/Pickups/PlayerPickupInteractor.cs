@@ -562,7 +562,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
     public WorldLootInteractionMode CurrentMode => sessionMode;
     public WorldItemPickup SelectedPickup => selectedPickup;
     public WorldItemPickup PendingAutoMovePickup => pendingAutoMovePickup;
-    public float PickupRadius => Mathf.Max(0f, pickupRadius);
+    public float PickupRadius => Mathf.Max(0f, pickupRadius) * (1f + BagQuality.EquippedBonus(BagStat.ItemPickupDistance) * .01f);
     public bool SuppressPrimaryAttackUntilRelease => suppressPrimaryAttackUntilRelease;
     public WorldLootInteractionSnapshot CurrentSnapshot { get; private set; }
     public bool HasActivePickupCandidates => false; // 구 휠 선택은 제거됨

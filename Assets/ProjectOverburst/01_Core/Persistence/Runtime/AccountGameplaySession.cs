@@ -124,7 +124,7 @@ namespace Overburst.Persistence
             }
         }
 
-        public bool GrantExperience(PlayerProgression progression, int amount)
+        public bool GrantExperience(PlayerProgression progression, int amount, long bagBonusUnits = 0)
         {
             if (progression == null) throw new ArgumentNullException(nameof(progression));
             if (editing || restoring) throw new InvalidOperationException("A gameplay command is already running.");
@@ -134,7 +134,7 @@ namespace Overburst.Persistence
             try
             {
                 bool committed = transactions.GrantExperience(Guid.NewGuid().ToString("N"),
-                    transactions.Revision, amount, out int level, out int experience);
+                    transactions.Revision, amount, out int level, out int experience, bagBonusUnits);
                 if (committed) progression.ApplyCommittedExperience(level, experience);
                 return committed;
             }
@@ -151,6 +151,22 @@ namespace Overburst.Persistence
                 foreach (var notification in queued)
                     try { notification(); } catch (Exception error) { Debug.LogException(error); }
             }
+        }
+
+        public int RollCombatGoldAmount(int amount, float percent)
+        {
+            if (amount <= 0 || percent <= 0) return amount;
+            EnsureProjectionReady();
+            int rewarded = amount;
+            transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), transactions.Revision, () =>
+            {
+                var baseline = transactions.CurrentForCurrencyCapture;
+                rewarded = BagQuality.ApplyReward(amount, BagQuality.BonusUnits(amount, percent), baseline.bagGoldCarry, out int carry);
+                var candidate = baseline.WithProgression(baseline.level, baseline.experience);
+                candidate.bagGoldCarry = carry;
+                return candidate;
+            });
+            return rewarded;
         }
 
         // Run state commands edit the same authoritative account, then project only after disk commit.

@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerInventory : MonoBehaviour
 {
     [Header("Inventory")]
-    [SerializeField] private int capacity = 35;
+    [SerializeField] private int capacity = BagQuality.InventoryCapacity;
     [SerializeField] private int unlockedSlotCount = 16;
     [SerializeField] private List<ItemData> items = new List<ItemData>();
 
@@ -28,6 +28,7 @@ public class PlayerInventory : MonoBehaviour
 
     private void Awake()
     {
+        capacity = Mathf.Max(BagQuality.InventoryCapacity, capacity);
         unlockedSlotCount = Mathf.Clamp(unlockedSlotCount, 0, capacity);
         SanitizeInvalidItems();
     }

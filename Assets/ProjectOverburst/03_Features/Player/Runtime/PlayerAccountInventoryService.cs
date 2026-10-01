@@ -24,6 +24,7 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
     [SerializeField] private StashCurrencyService stashCurrencyService;
 
     public static PlayerAccountInventoryService Instance => ResolveInstance();
+    public static ItemData EquippedBag => Loadout.Bags != null && Loadout.Bags.Length > 0 ? Loadout.Bags[0] : null;
     public static PlayerInventory SharedInventory => FindSharedInventory();
     public static PlayerStash SharedStash => FindSharedStash();
     public static StashCurrencyService SharedCurrencyService => FindSharedCurrencyService();
@@ -129,116 +130,9 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
         if (stashCurrencyService == null)
             stashCurrencyService = GetComponent<StashCurrencyService>() ?? Object.FindFirstObjectByType<StashCurrencyService>(FindObjectsInactive.Include);
     }
-    private PlayerContext playerContext;
-    private PlayerMovement playerMovement;
-    private CombatHealth playerHealth;
-    private PlayerMovement appliedBagMovementTarget; // 이동속도 적용 대상
-    private CombatHealth appliedBagHealthTarget; // HP 적용 대상
-    private float appliedBagMaxHpBonus; // 기존 적용 HP
-
-    private void Start()
-    {
-        playerContext = PlayerContext.GetOrCreate();
-        if (playerContext != null)
-        {
-            playerContext.CurrentActorChanged += HandleAccountActorChanged;
-            HandleAccountActorChanged(playerContext.CurrentActor);
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (playerContext != null) playerContext.CurrentActorChanged -= HandleAccountActorChanged;
-        RefreshBagBonuses(null, null);
-        if (instance == this) instance = null;
-    }
-
-    private void HandleAccountActorChanged(PlayerActorRuntime actor)
-    {
-        RefreshBagBonuses(actor != null ? actor.Movement : null, actor != null ? actor.Health : null);
-    }
-
-    public void RefreshBagBonusesForCurrentActor()
-    {
-        HandleAccountActorChanged(PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null);
-    }
-
-    public void RefreshBagBonuses(PlayerMovement movement, CombatHealth health)
-    {
-        playerMovement = movement;
-        playerHealth = health;
-        CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxHpBonus);
-        ApplyBagMoveSpeedBonus(moveSpeedPercent);
-        ApplyBagMaxHpBonus(maxHpBonus);
-    }
-
-    private void CalculateEquippedBagStatBonuses(out float moveSpeedPercent, out float maxHpBonus)
-    {
-        moveSpeedPercent = 0f;
-        maxHpBonus = 0f;
-
-        if (Loadout.Bags == null)
-            return;
-
-        for (int i = 0; i < Loadout.Bags.Length; i++)
-        {
-            ItemData bag = Loadout.Bags[i];
-            if (bag == null || !(bag.baseData is BagItemData))
-                continue;
-
-            bag.EnsureRuntimeState();
-            if (bag.bagOptions == null)
-                continue;
-
-            for (int optionIndex = 0; optionIndex < bag.bagOptions.Count; optionIndex++)
-            {
-                BagRandomOptionRoll option = bag.bagOptions[optionIndex];
-                if (option == null)
-                    continue;
-
-                switch (option.optionType)
-                {
-                    case BagRandomOptionType.MoveSpeedPercent:
-                        moveSpeedPercent += Mathf.Max(0f, option.value);
-                        break;
-                    case BagRandomOptionType.MaxHp:
-                        maxHpBonus += Mathf.Max(0f, option.value);
-                        break;
-                }
-            }
-        }
-    }
-
-    private void ApplyBagMoveSpeedBonus(float moveSpeedPercent)
-    {
-        if (appliedBagMovementTarget != null && appliedBagMovementTarget != playerMovement)
-            appliedBagMovementTarget.SetBagMoveSpeedBonusPercent(0f);
-
-        appliedBagMovementTarget = playerMovement;
-        if (appliedBagMovementTarget != null)
-            appliedBagMovementTarget.SetBagMoveSpeedBonusPercent(moveSpeedPercent);
-    }
-
-    private void ApplyBagMaxHpBonus(float maxHpBonus)
-    {
-        maxHpBonus = Mathf.Max(0f, maxHpBonus);
-
-        if (appliedBagHealthTarget != null && appliedBagHealthTarget != playerHealth)
-        {
-            float previousBase = Mathf.Max(1f, appliedBagHealthTarget.MaxHp - appliedBagMaxHpBonus);
-            appliedBagHealthTarget.SetMaxHp(previousBase, false);
-            appliedBagMaxHpBonus = 0f;
-        }
-
-        appliedBagHealthTarget = playerHealth;
-        if (appliedBagHealthTarget == null)
-            return;
-
-        float baseMaxHp = Mathf.Max(1f, appliedBagHealthTarget.MaxHp - appliedBagMaxHpBonus);
-        appliedBagHealthTarget.SetMaxHp(baseMaxHp + maxHpBonus, false);
-        appliedBagMaxHpBonus = maxHpBonus;
-    }
-
+    // Bag effects are read at pickup/reward boundaries. They never alter actor movement or health.
+    public void RefreshBagBonusesForCurrentActor() { }
+    public void RefreshBagBonuses(PlayerMovement movement, CombatHealth health) { }
 
 }
 

@@ -11,6 +11,8 @@ public sealed class PlayerProgression : MonoBehaviour
     private CombatHealth health;
     private float appliedHealthBonus;
     private int pendingExperience;
+    private long pendingBagExperienceUnits;
+    private int localBagExperienceCarry;
     private float nextExperienceRetry;
 
     public static PlayerProgression Current => PlayerContext.Instance != null
@@ -75,10 +77,26 @@ public sealed class PlayerProgression : MonoBehaviour
         if (pendingExperience == 0) return true;
         if (!Overburst.Persistence.AccountGameplaySession.ShouldRoute) return false;
         int amount = pendingExperience;
-        bool committed = Overburst.Persistence.AccountGameplaySession.Current.GrantExperience(this, amount);
-        if (committed) { pendingExperience -= amount; nextExperienceRetry = 0f; }
+        long bagUnits = pendingBagExperienceUnits;
+        bool committed = Overburst.Persistence.AccountGameplaySession.Current.GrantExperience(this, amount, bagUnits);
+        if (committed) { pendingExperience -= amount; pendingBagExperienceUnits -= bagUnits; nextExperienceRetry = 0f; }
         else nextExperienceRetry = Time.unscaledTime + 1f;
         return committed;
+    }
+
+    public void AddKillExperience(int amount)
+    {
+        if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
+        long units = BagQuality.BonusUnits(amount, BagQuality.EquippedBonus(BagStat.KillExperience));
+        if (Overburst.Persistence.AccountGameplaySession.Current != null)
+        {
+            pendingExperience = checked(pendingExperience + amount);
+            pendingBagExperienceUnits = checked(pendingBagExperienceUnits + units);
+            return;
+        }
+        int rewarded = BagQuality.ApplyReward(amount, units, localBagExperienceCarry, out int carry);
+        localBagExperienceCarry = carry;
+        AddExperience(rewarded);
     }
 
     public void AddExperience(int amount)

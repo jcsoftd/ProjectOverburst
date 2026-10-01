@@ -79,7 +79,6 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     private bool aimBlockedUntilRelease; // 조준 재입력
     private bool jumpRequested; // 점프 예약
     private bool jumpAnimationRequested; // 점프 애니
-    private float bagMoveSpeedMultiplier = 1f; // 가방 이동속도
     private float meleeAttackMoveLockUntil; // 근접 이동 잠금
     private bool meleeAttackRotationLocked; // 근접 회전 잠금
     private Vector3 meleeAttackLockedDirection; // 근접 방향

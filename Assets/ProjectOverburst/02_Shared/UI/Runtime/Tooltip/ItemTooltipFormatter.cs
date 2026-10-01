@@ -47,48 +47,6 @@ public static class ItemTooltipFormatter // 툴팁 포맷
         return string.IsNullOrEmpty(label) ? "무속성" : label;
     }
 
-    public static string FormatBagOption(BagRandomOptionRoll option)
-    {
-        if (option == null)
-            return string.Empty;
-
-        switch (option.optionType)
-        {
-            case BagRandomOptionType.MoveSpeedPercent:
-                return "이동속도 +" + FormatNumber(option.value) + "%";
-            case BagRandomOptionType.MaxHp:
-                return "HP 최대치 +" + Mathf.RoundToInt(option.value);
-            default:
-                return "알 수 없는 옵션 +" + FormatNumber(option.value);
-        }
-    }
-
-    public static string FormatBagOptionWithRollRange(BagRandomOptionRoll option, ItemGrade grade, string rangeColorHex)
-    {
-        string optionText = FormatBagOption(option); // 기본 문구
-        if (option == null)
-            return optionText;
-
-        if (!BagRandomOptionRoller.TryGetValueRange(option.optionType, grade, out float minValue, out float maxValue))
-            return optionText;
-
-        string color = string.IsNullOrEmpty(rangeColorHex) ? "#8A8A8A" : rangeColorHex; // 범위 색
-        return optionText + " <color=" + color + ">(" + FormatBagRollRange(option.optionType, minValue, maxValue) + ")</color>";
-    }
-
-    private static string FormatBagRollRange(BagRandomOptionType optionType, float minValue, float maxValue)
-    {
-        switch (optionType)
-        {
-            case BagRandomOptionType.MoveSpeedPercent:
-                return FormatNumber(minValue) + "~" + FormatNumber(maxValue) + "%";
-            case BagRandomOptionType.MaxHp:
-                return Mathf.RoundToInt(minValue) + "~" + Mathf.RoundToInt(maxValue);
-            default:
-                return FormatNumber(minValue) + "~" + FormatNumber(maxValue);
-        }
-    }
-
     public static float ToRpm(float attackInterval)
     {
         if (attackInterval <= 0f)

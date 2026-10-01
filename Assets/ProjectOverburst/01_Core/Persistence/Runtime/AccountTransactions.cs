@@ -21,6 +21,9 @@ namespace Overburst.Persistence
                 throw new InvalidDataException("Invalid account capacity/counters.");
             if (state.inventoryCapacity < 1 || state.unlockedSlots < 0 || state.unlockedSlots > state.inventoryCapacity || state.inventory.Count != state.inventoryCapacity)
                 throw new InvalidDataException("Invalid inventory dimensions.");
+            if (state.bagExperienceCarry < 0 || state.bagExperienceCarry >= BagQuality.RewardScale
+                || state.bagGoldCarry < 0 || state.bagGoldCarry >= BagQuality.RewardScale)
+                throw new InvalidDataException("Invalid bag reward remainder.");
             var items = new Dictionary<string, ItemSnapshot>(StringComparer.Ordinal);
             foreach (var item in state.items)
             {
@@ -166,16 +169,17 @@ namespace Overburst.Persistence
         }
 
         public bool GrantExperience(string transactionId, long expectedRevision, int amount,
-            out int level, out int experience)
+            out int level, out int experience, long bagBonusUnits = 0)
         {
-            if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            if (amount <= 0 || bagBonusUnits < 0) throw new ArgumentOutOfRangeException(nameof(amount));
             // No live inventory capture or ES3 round-trip clone for a scalar change.
             // ExecuteWithCandidate retains revision, validation and notifications; autosave owns durability.
             bool committed = ExecuteWithCandidate(transactionId, expectedRevision, () =>
             {
                 int nextLevel = current.level;
+                int rewarded = BagQuality.ApplyReward(amount, bagBonusUnits, current.bagExperienceCarry, out int carry);
                 int nextExperience = nextLevel >= OverburstGrowthRules.MaximumLevel
-                    ? 0 : checked(current.experience + amount);
+                    ? 0 : checked(current.experience + rewarded);
                 while (nextLevel < OverburstGrowthRules.MaximumLevel
                     && nextExperience >= OverburstGrowthRules.ExperienceToNext(nextLevel))
                 {
@@ -183,7 +187,9 @@ namespace Overburst.Persistence
                     nextLevel++;
                 }
                 if (nextLevel >= OverburstGrowthRules.MaximumLevel) nextExperience = 0;
-                return current.WithProgression(nextLevel, nextExperience);
+                var candidate = current.WithProgression(nextLevel, nextExperience);
+                candidate.bagExperienceCarry = nextLevel >= OverburstGrowthRules.MaximumLevel ? 0 : carry;
+                return candidate;
             });
             level = current.level;
             experience = current.experience;
@@ -232,7 +238,7 @@ namespace Overburst.Persistence
                 var item = state.items.Find(x => x.instanceId == id);
                 if (item == null || !(registry.Resolve<BaseItemData>(item.contentId) is BagItemData bag))
                     throw new InvalidDataException("Invalid equipped bag.");
-                capacity = checked(capacity + UnityEngine.Mathf.Max(0, bag.additionalSlots));
+                capacity = checked(capacity + BagQuality.AdditionalSlots(item.level, item.bag));
             }
             state.unlockedSlots = UnityEngine.Mathf.Clamp(capacity, 0, state.inventoryCapacity);
         }

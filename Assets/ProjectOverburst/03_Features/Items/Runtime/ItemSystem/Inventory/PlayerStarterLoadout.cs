@@ -71,7 +71,7 @@ public class PlayerStarterLoadout : MonoBehaviour // 시작 지급
             if (bagData == null || !ItemGradeAvailabilityPolicy.IsEnabled(bagData.defaultGrade))
                 continue;
 
-            ItemData bagItem = new ItemData(bagData, Mathf.Max(1, bagData.level), bagData.defaultGrade); // 가방 아이템
+            ItemData bagItem = new ItemData(bagData, PlayerProgression.CurrentLevel, bagData.defaultGrade); // 가방 아이템
             inventory.AddItem(bagItem);
         }
     }

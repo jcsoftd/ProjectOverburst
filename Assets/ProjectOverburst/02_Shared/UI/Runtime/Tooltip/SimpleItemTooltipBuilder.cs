@@ -149,34 +149,14 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
 
     private static string BuildBagTooltip(ItemData item, BagItemData bagData)
     {
-        item.EnsureRuntimeState(); // 가방 옵션 보정
-        StringBuilder builder = new StringBuilder(); // 툴팁 본문
-        AppendTitle(builder, item, item.itemName, false);
-        AppendSubtitle(builder, "가방 / 수납");
+        item.EnsureRuntimeState();
+        StringBuilder builder = new StringBuilder();
+        AppendTitle(builder, item, item.itemName, true);
+        AppendSubtitle(builder, "가방 / 수납 · 파밍");
         AppendDivider(builder);
-        builder.Append("인벤토리 슬롯 +").Append(Mathf.Max(0, bagData.additionalSlots)).AppendLine();
-        AppendBagOptions(builder, item);
-        AppendDivider(builder);
-        builder.Append("가치 : ").Append(item.baseData.sellPrice).Append("G");
+        builder.AppendLine(BagTooltip.Details(item));
+        AppendPrice(builder, item);
         return builder.ToString();
-    }
-
-    private static void AppendBagOptions(StringBuilder builder, ItemData item)
-    {
-        if (builder == null || item == null || item.bagOptions == null || item.bagOptions.Count == 0)
-            return;
-
-        builder.Append("추가 옵션").AppendLine();
-        for (int i = 0; i < item.bagOptions.Count; i++)
-        {
-            BagRandomOptionRoll option = item.bagOptions[i];
-            if (option == null)
-                continue;
-
-            builder.Append("- ");
-            builder.Append(ItemTooltipFormatter.FormatBagOptionWithRollRange(option, item.grade, DisabledOptionColor));
-            builder.AppendLine();
-        }
     }
 
     private static string BuildDefaultTooltip(ItemData item)

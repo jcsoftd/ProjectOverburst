@@ -91,7 +91,7 @@ public sealed class TemporaryHideoutBagDropSpawner : MonoBehaviour
             if (bagData == null || !ItemGradeAvailabilityPolicy.IsEnabled(bagData.defaultGrade))
                 continue;
 
-            ItemData item = new ItemData(bagData, Mathf.Max(1, bagData.level), bagData.defaultGrade, 1);
+            ItemData item = new ItemData(bagData, PlayerProgression.CurrentLevel, bagData.defaultGrade, 1);
             item.EnsureRuntimeState();
             item.EnsureAcquisitionOrder();
 

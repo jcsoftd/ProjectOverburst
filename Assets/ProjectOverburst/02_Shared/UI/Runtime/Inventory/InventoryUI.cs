@@ -209,6 +209,13 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
         initialized = inventoryPanel != null && slotBridge != null;
         if (initialized)
         {
+            // Resolve the authored grid again after a prefab grows. Old scene arrays can still contain 42 slots.
+            var grid = inventoryPanel.GetComponentInChildren<GridLayoutGroup>(true);
+            if (grid != null)
+            {
+                var slots = grid.GetComponentsInChildren<SlotUI>(true);
+                if (slots.Length >= BagQuality.InventoryCapacity) slotBridge.SetInventorySlots(slots);
+            }
             BindSceneBagSlots(); // 가방 슬롯
             BindSortControls(); // 정렬 UI
             ResolveGoldSummaryReferences(); // Gold 표시

@@ -45,12 +45,14 @@ namespace Overburst.Persistence
                 {
                     state = RetiredGreatswordMigration.Remove(state, out int retiredRemoved);
                     state = ItemBalanceMigration.UpgradeAccount(state, registry, out bool balanceChanged);
+                    state = BagAccountMigration.Upgrade(state, registry, out bool bagChanged);
                     AccountInvariants.Validate(state, registry);
-                    if (retiredRemoved > 0 || balanceChanged)
+                    if (retiredRemoved > 0 || balanceChanged || bagChanged)
                     {
                         state.revision = checked(state.revision + 1);
                         state.lastTransactionId = retiredRemoved > 0
                             ? "retired-greatswords-" + Guid.NewGuid().ToString("N")
+                            : bagChanged ? "bag-quality-v" + BagQuality.Version + "-" + Guid.NewGuid().ToString("N")
                             : "item-balance-v" + OverburstCombatBalance.ItemBalanceVersion + "-" + Guid.NewGuid().ToString("N");
                         store.Save(state, state.lastTransactionId);
                     }

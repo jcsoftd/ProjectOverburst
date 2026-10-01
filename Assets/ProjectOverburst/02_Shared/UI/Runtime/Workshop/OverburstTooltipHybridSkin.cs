@@ -129,12 +129,18 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
 
         HideStructuredContent();
         float contentTop = ruleY + 19f;
-        if (item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData)
+        if (item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData || item.baseData is BagItemData)
         {
             List<Stat> stats = new List<Stat>(12);
             string notes = string.Empty;
             bool isFlask = item.baseData is FlaskItemData;
-            if (item.baseData is GearItemData)
+            if (item.baseData is BagItemData)
+            {
+                CollectBagStats(item, rawLines, stats);
+                if (PlayerProgression.CurrentLevel >= OverburstGrowthRules.MaximumLevel && item.bagState.rows.Any(x => x.stat == BagStat.KillExperience))
+                    notes = "최대 레벨에서는 처치 경험치 보너스가 적용되지 않습니다.";
+            }
+            else if (item.baseData is GearItemData)
             {
                 CollectGearStats(item, rawLines, stats);
                 // 바꿔 끼면 빠지는 능력치: 보조능력치 끝에 흐린 행으로 붙이고 장착 대비에 ▼를 보인다.
@@ -273,7 +279,8 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private void RenderStats(ItemData item, bool isFlask, List<Stat> stats, string notes,
         string priceOverride, float contentTop, TMP_SpriteAsset spriteAsset)
     {
-        bool isGear = item.baseData is GearItemData;
+        bool isBag = item.baseData is BagItemData;
+        bool isGear = item.baseData is GearItemData || isBag;
         bool isWeapon = item.baseData is WeaponItemData;
         // 무기·장비는 품질 각인 변화를 값 아래 줄로 내린다(물약과 같은 두 줄, 행 높이 41).
         bool twoLine = isFlask || isWeapon || isGear;
@@ -282,7 +289,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         float y = contentTop;
         primaryHeading.text = isFlask && item.baseData is FlaskItemData flask &&
             (flask.kind == FlaskKind.Life || flask.kind == FlaskKind.Regeneration)
-            ? "회복 성능" : isFlask ? "주요 효과" : isGear ? "주능력치" : "전투 성능";
+            ? "회복 성능" : isFlask ? "주요 효과" : isBag ? "수납" : isGear ? "주능력치" : "전투 성능";
         qualityHeading.text = "품질 각인";
         SetRect(primaryHeading.rectTransform, 26f, y, 180f, 24f);
         SetRect(qualityHeading.rectTransform, 286f, y, 120f, 24f);
@@ -307,7 +314,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             SetRect(secondaryRule.rectTransform, 26f, y, ContentWidth, 1f);
             secondaryRule.gameObject.SetActive(true);
             y += 18f;
-            secondaryHeading.text = isFlask ? "사용 주기" : isGear ? "보조능력치" : "보조 성능";
+            secondaryHeading.text = isFlask ? "사용 주기" : isBag ? "파밍 옵션" : isGear ? "보조능력치" : "보조 성능";
             SetRect(secondaryHeading.rectTransform, 26f, y, ContentWidth, 24f);
             secondaryHeading.gameObject.SetActive(true);
             y += 30f;
@@ -471,6 +478,16 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             notes += (notes.Length > 0 ? "\n" : string.Empty) + string.Join("\n", extra);
     }
 
+    private static void CollectBagStats(ItemData item, string[] lines, List<Stat> stats)
+    {
+        foreach (var row in item.bagState.rows)
+        {
+            string label = BagTooltip.Label(row.stat);
+            string raw = lines.FirstOrDefault(x => Tags.Replace(x, string.Empty).StartsWith(label + " ", StringComparison.Ordinal));
+            if (raw != null && TryParseStat(item, raw, out Stat stat)) stats.Add(stat);
+        }
+    }
+
     private static bool TryParseStat(ItemData item, string raw, out Stat stat)
     {
         stat = null;
@@ -484,7 +501,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         if (OverburstUIQualityBreakdown.TryGet(item, label, out _, out string exact, out _,
                 out string change, out bool isImproved))
         {
-            value = item.baseData is FlaskItemData || item.baseData is GearItemData ? exact : exact.TrimStart('+');
+            value = item.baseData is FlaskItemData || item.baseData is GearItemData || item.baseData is BagItemData ? exact : exact.TrimStart('+');
             delta = change;
             improved = isImproved;
         }
@@ -500,7 +517,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             string color = m.Groups[1].Value.ToUpperInvariant();
             int index = color == "#59FF59" || color == "#68AA84" ? 1
                 : color == "#FFD84A" || color == "#D2A85D" ? 2
-                : color == "#FF4A4A" || color == "#E29A8E" || color == "#D76A63" ? 3 : 0;
+                : color == "#FF4A4A" || color == "#E29A8E" || color == "#D76A63" || color == "#DB6868" ? 3 : 0;
             int count = m.Value.Count(c => c == '★' || c == '◆');
             return string.Concat(Enumerable.Repeat("<sprite index=" + index + " tint=0>", count));
         }));

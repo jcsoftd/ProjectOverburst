@@ -50,7 +50,7 @@ public static class OverburstPlayerMotorValidator
         "characterControllerSkinWidthRadiusRatio", "characterControllerSlopeLimit",
         "characterControllerStepOffset", "characterControllerMinMoveDistance",
         "debugForceAiming", "playerEquipment", "playerBuffController",
-        "playerStaminaController", "playerEvadeController",
+        "playerEvadeController",
         "meleeAimCamera", "meleeFacingRotationSpeed",
         "meleeCombatMoveSpeed", "meleeCombatGuardMoveSpeed", "weaponRootMotionEnemyClearance",
         "jumpHeight", "gravity", "groundStickVelocity", "groundCheck", "groundCheckRadius", "groundLayer",

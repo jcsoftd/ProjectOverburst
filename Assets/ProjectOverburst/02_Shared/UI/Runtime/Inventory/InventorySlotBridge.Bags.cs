@@ -188,7 +188,7 @@ public partial class InventorySlotBridge
             for (int i = 0; i < bags.Length; i++)
             {
                 if (bags[i] != null && bags[i].baseData is BagItemData bagData)
-                    total += Mathf.Max(0, bagData.additionalSlots); // 가방 보너스
+                    total += BagQuality.AdditionalSlots(bags[i]); // 가방 보너스
             }
         }
 

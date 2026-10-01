@@ -12,7 +12,9 @@ namespace Overburst.Persistence
         public long nextAcquisitionOrder = 1;
         public int level = 1;
         public int experience;
-        public int inventoryCapacity = 35;
+        public int inventoryCapacity = BagQuality.InventoryCapacity;
+        public int bagExperienceCarry;
+        public int bagGoldCarry;
         public int unlockedSlots = 16;
         public int baseUnlockedSlots = 16;
         public int stashCapacity = 63;
@@ -73,6 +75,7 @@ namespace Overburst.Persistence
         public List<WeaponGradeStatRoll> weaponRolls = new List<WeaponGradeStatRoll>();
         public List<GearStatRoll> gearRolls = new List<GearStatRoll>();
         public List<BagRandomOptionRoll> bagRolls = new List<BagRandomOptionRoll>();
+        public BagInstanceState bag;
         public FlaskInstanceState flask;
         public MapInstanceState map;
     }

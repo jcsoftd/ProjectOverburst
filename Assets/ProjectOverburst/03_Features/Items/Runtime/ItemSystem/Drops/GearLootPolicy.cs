@@ -26,11 +26,11 @@ public static class GearLootPolicy
         return catalogByLevel[OverburstGrowthRules.ClampLevel(level)];
     }
 
-    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
-        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade);
+    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
+        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent);
 
     // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
-    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common)
+    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
     {
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         GearItemData[] items = DefinitionsForLevel(itemLevel);
@@ -40,8 +40,7 @@ public static class GearLootPolicy
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .35f : .08f);
         if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         float roll = Random.value;
-        ItemGrade grade = FlaskLootPolicy.SelectGrade(Mathf.Lerp(roll, 1f,
-            MapOptionPolicy.HighGradeRollBias(mapGrade)), mapLevel, boss, elite);
+        ItemGrade grade = FlaskLootPolicy.SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
         return new ItemData(items[Random.Range(0, items.Length)],
             itemLevel, grade);
     }

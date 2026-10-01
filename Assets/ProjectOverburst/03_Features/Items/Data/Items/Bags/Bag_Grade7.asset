@@ -15,9 +15,11 @@ MonoBehaviour:
   itemName: "\uC2E0\uD654\uAC00\uBC29"
   icon: {fileID: 21300000, guid: acc84c30adef447cad6233b5aeb4f0bf, type: 3}
   color: {r: 1, g: 0.019607844, b: 0.019607844, a: 1}
-  description: "\uB4F1\uAE09\uBCC4 \uD14C\uC2A4\uD2B8 \uAC00\uBC29\uC785\uB2C8\uB2E4."
+  description: "\uC804\uB9AC\uD488\uC744 \uB354 \uB9CE\uC774 \uC218\uB0A9\uD558\uACE0
+    \uD0D0\uC0C9\uACFC \uD30C\uBC0D\uC744 \uB3D5\uB294 \uAC00\uBC29\uC785\uB2C8\uB2E4."
   weight: 0
   sellPrice: 420
+  worldPickupPrefab: {fileID: 0}
   possibleStats: []
   level: 7
   defaultGrade: 6

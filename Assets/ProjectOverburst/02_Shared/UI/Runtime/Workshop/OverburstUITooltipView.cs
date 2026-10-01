@@ -36,7 +36,7 @@ public sealed class OverburstUITooltipView : MonoBehaviour
             if(!string.IsNullOrEmpty(element)&&!subtitle.text.Contains(" · "+element))subtitle.text+=" · "+element;
         }
         // 2026-10-01: 아이템 레벨은 종류 줄 아래 둘째 줄로 내린다(사용자 지정).
-        if(item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData)
+        if(item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData)
             subtitle.text+="\n아이템 레벨 "+OverburstGrowthRules.ClampLevel(item.level);
         string detail=string.Join("\n",lines.Skip(hasSubtitle?2:1)).Replace("<color=#7A6A4B>--------------------------</color>","").Trim();
         var formatted=new System.Text.StringBuilder();bool gap=false;

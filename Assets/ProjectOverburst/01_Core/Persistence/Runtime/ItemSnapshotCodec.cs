@@ -16,6 +16,7 @@ namespace Overburst.Persistence
         {
             if (item == null) return null;
             ItemBalanceMigration.UpgradeRuntime(item);
+            BagAccountMigration.UpgradeRuntime(item);
             var snapshot = new ItemSnapshot
             {
                 contentId = registry.IdFor(item.baseData), instanceId = item.runtimeInstanceId, balanceVersion = item.balanceVersion,
@@ -24,16 +25,17 @@ namespace Overburst.Persistence
                 element = item.ResolvedElement, hasElement = item.HasInstanceElement,
                 qualityProfile = item.meleeStarDistributionProfile,
                 weaponRolls = item.weaponGradeStatRolls, gearRolls = item.gearRolls,
-                bagRolls = item.bagOptions, flask = item.flaskState, map = item.mapState
+                bagRolls = item.bagOptions, bag = item.bagState, flask = item.flaskState, map = item.mapState
             };
             Validate(snapshot, registry);
             return CopyValues(snapshot);
         }
 
-        public static ItemData Restore(ItemSnapshot snapshot, AccountContentRegistry registry)
+        public static ItemData Restore(ItemSnapshot snapshot, AccountContentRegistry registry, int? legacyBagLevel = null)
         {
             var copy = CopyValues(snapshot);
             ItemBalanceMigration.Upgrade(copy, registry.Resolve<BaseItemData>(copy.contentId));
+            BagAccountMigration.UpgradeItem(copy, registry.Resolve<BaseItemData>(copy.contentId), legacyBagLevel ?? PlayerProgression.CurrentLevel);
             Validate(copy, registry);
             copy.element = OverburstElementRules.MigrateLegacy(copy.element);
             return ItemData.RestoreSaved(copy, registry.Resolve<BaseItemData>(copy.contentId));
@@ -53,7 +55,9 @@ namespace Overburst.Persistence
                 && !WeaponGradeStatRoller.HasFormalMeleeGradeRolls(weapon, s.grade, s.weaponRolls, s.qualityProfile))
                 throw new InvalidDataException("Invalid saved melee quality rows.");
             if (data is GearItemData gear && !GearQuality.IsValid(gear, s.grade, s.gearRolls)) throw new InvalidDataException("Invalid saved gear rolls.");
-            if (data is BagItemData && s.bagRolls == null) throw new InvalidDataException("Missing saved bag rolls.");
+            if (data is BagItemData && (!BagQuality.IsValid(s.bag, s.grade) || s.bagRolls == null || s.bagRolls.Count != 0))
+                throw new InvalidDataException("Invalid saved bag quality or active legacy options.");
+            if (!(data is BagItemData) && s.bag != null) throw new InvalidDataException("Non-bag item contains bag state.");
             if (data is FlaskItemData && !FlaskGradeRoller.IsValid(s.flask, s.grade)) throw new InvalidDataException("Invalid saved flask rolls.");
             if (s.map != null && (s.map.level < 1 || s.map.level > 100 || s.map.options == null || !Enum.IsDefined(typeof(ItemGrade), s.map.grade))) throw new InvalidDataException("Invalid saved map.");
             if (data is MapItemData && (s.map == null || s.map.mapContentId != s.contentId || s.map.level != s.level || s.map.grade != s.grade)) throw new InvalidDataException("Map item and instance values disagree.");

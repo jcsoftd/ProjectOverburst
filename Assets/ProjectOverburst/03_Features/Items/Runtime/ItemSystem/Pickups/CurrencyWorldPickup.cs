@@ -19,6 +19,7 @@ public class CurrencyWorldPickup : MonoBehaviour
     private static readonly Unity.Profiling.ProfilerMarker CollectMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Collect");
     private static readonly Unity.Profiling.ProfilerMarker FeedbackMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Feedback");
     private static readonly Unity.Profiling.ProfilerMarker ReturnMarker = new Unity.Profiling.ProfilerMarker("Overburst.Currency.Return");
+    public CurrencyType CurrencyKind => currencyData != null ? currencyData.currencyType : currencyType;
     private bool pickedUp;
     private bool pickupQueued;
     private uint leaseVersion;
