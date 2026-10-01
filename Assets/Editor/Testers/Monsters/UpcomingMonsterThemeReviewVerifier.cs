@@ -20,6 +20,8 @@ public static class UpcomingMonsterThemeReviewVerifier
         if(!scene.IsValid() || !scene.isLoaded)throw new InvalidOperationException("Review scene is not loaded.");
         if(scene.isDirty)throw new InvalidOperationException("Review scene has unsaved changes; validation will not save or discard them.");
         if(reload){EditorSceneManager.CloseScene(scene,true);scene=EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Additive);SceneManager.SetActiveScene(scene);}
+        bool gameSizes=before["instances"].Any(m=>m["modelScale"]!=null);
+        if(gameSizes)UpcomingMonsterThemeReviewSizing.Prepare();
         var roots=scene.GetRootGameObjects();var objects=roots.SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).Select(t=>t.gameObject).ToArray();
         var failures=new JArray();int checks=0;
         Action<bool,string> check=(passed,label)=>{checks++;if(!passed)failures.Add(label);};
@@ -36,6 +38,21 @@ public static class UpcomingMonsterThemeReviewVerifier
                 var model=station.transform.GetChild(0).gameObject;
                 // Preserve the selected variant, including its material/skin overrides.
                 check(PrefabUtility.IsPartOfPrefabInstance(model) && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(model)==(string)expected["source"],"prefab connection: "+station.name);
+                if(gameSizes && expected["modelScale"] is JArray recorded)
+                {
+                    var scale=new Vector3((float)recorded[0],(float)recorded[1],(float)recorded[2]);
+                    check(Vector3.Distance(model.transform.localScale,scale)<.0001f,"saved display scale: "+station.name);
+                    var source=AssetDatabase.LoadAssetAtPath<GameObject>((string)expected["source"]);
+                    var multiplier=UpcomingMonsterThemeReviewSizing.Divide(model.transform.localScale,source.transform.localScale);
+                    var bounds=UpcomingMonsterThemeReviewSizing.GeometryBounds(model);
+                    var raw=new Bounds(Vector3.zero,bounds.size/multiplier.x);
+                    int slot=Array.IndexOf(new[]{"small","medium","elite","boss"},(string)expected["slot"]);
+                    var target=UpcomingMonsterThemeReviewSizing.Resolve(source,raw,slot,(int)expected["theme"],out string basis,out string reference);
+                    check(Vector3.Distance(model.transform.localScale,target)<.0001f,"current game size rule: "+station.name);
+                    check(basis==(string)expected["sizeBasis"] && reference==(string)expected["sizeReference"],"current game reference: "+station.name);
+                    check(Mathf.Abs(bounds.size.y-(float)expected["displayHeight"])<.001f,"saved mesh height: "+station.name);
+                    check(Mathf.Abs(bounds.min.y-.08f)<.001f,"model grounded: "+station.name);
+                }
             }
         }
         foreach(var go in objects)check(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(go)==0,"missing script: "+go.name);

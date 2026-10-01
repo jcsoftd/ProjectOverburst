@@ -165,6 +165,8 @@ public static class UpcomingMonsterThemeReviewBuilder
         var plan=JObject.Parse(File.ReadAllText(Path.Combine(output,"native-source-plan.json")));
         var roster=JObject.Parse(File.ReadAllText(live?LiveRoster:Path.Combine(output,"roster-source.json")));
         CheckSources(plan,roster);
+        UpcomingMonsterThemeReviewSizing.Prepare();
+        UpcomingMonsterThemeReviewSizing.WriteEvidence(output);
         var existing=SceneManager.GetSceneByPath(ScenePath);
         if(existing.IsValid() && existing.isLoaded && existing.isDirty)throw new InvalidOperationException("Review scene has unsaved manual changes.");
         var prior=new JArray();
@@ -243,7 +245,7 @@ public static class UpcomingMonsterThemeReviewBuilder
         ReviewCamera("ReviewCamera_Overview",lighting.transform,new Vector3(38,0,74),145,200);
         var intro=new GameObject("검토 전용 · 편성 변경 후 OVERBURST > Monsters > 추후 테마 검토 > 현재 JSON으로 다시 배치");
         Text("Scene purpose",intro.transform,"OVERBURST · 추후 업데이트 예정 몬스터 테마",new Vector3(38,6,-29),1.5f,125,Color.white);
-        Text("Scene guide",intro.transform,"주력 / 예비 / 별도 보스   |   전시 크기는 비교용 가안   |   Hierarchy에서 추가·제거 가능",new Vector3(38,3.6f,-29),.65f,125,new Color(.65f,.8f,.87f));
+        Text("Scene guide",intro.transform,"주력 / 예비 / 별도 보스   |   일반·엘리트 현행 크기 / 보스 확대 기준   |   Hierarchy에서 추가·제거 가능",new Vector3(38,3.6f,-29),.65f,125,new Color(.65f,.8f,.87f));
         foreach(var root in scene.GetRootGameObjects()){root.tag="EditorOnly";SetLayer(root);}
         RegisterPlayGuard();
         EditorSceneManager.MarkSceneDirty(scene);
@@ -264,7 +266,8 @@ public static class UpcomingMonsterThemeReviewBuilder
         string display=(string)source["name"];
         var station=new GameObject("["+(status=="core"?"주력":status=="priority"?"우선 보스":"예비")+" · "+SlotNames[slot]+"] "+display);
         station.transform.SetParent(group,false);station.transform.localPosition=position;
-        var model=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path),station.transform);
+        var sourcePrefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        var model=(GameObject)PrefabUtility.InstantiatePrefab(sourcePrefab,station.transform);
         model.name=display+" · 원본 모델";
         foreach(var behaviour in model.GetComponentsInChildren<MonoBehaviour>(true))if(behaviour!=null)behaviour.enabled=false;
         foreach(var t in model.GetComponentsInChildren<Transform>(true))GameObjectUtility.RemoveMonoBehavioursWithMissingScript(t.gameObject);
@@ -307,45 +310,30 @@ public static class UpcomingMonsterThemeReviewBuilder
             if(renderer is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=true;
         }
         Bounds bounds=PhysicalBounds(model);
-        float[] heights={1.3f,2.4f,4.2f,6.8f};float[] footprints={3.1f,5.8f,9.5f,10.5f};
-        float scale=Mathf.Min(heights[slot]/Mathf.Max(.01f,bounds.size.y),footprints[slot]/Mathf.Max(.01f,Mathf.Max(bounds.size.x,bounds.size.z)));
-        // Repeated CPU bakes can apply the display parent scale twice in older imported rigs.
-        // Apply uniform display scaling to the initial posed geometry exactly once.
-        Vector3 pivot=model.transform.position;
-        bounds=new Bounds(pivot+(bounds.center-pivot)*scale,bounds.size*scale);
-        model.transform.localScale*=scale;
+        var modelScale=UpcomingMonsterThemeReviewSizing.Resolve(sourcePrefab,bounds,slot,theme,out string sizeBasis,out string sizeReference);
+        var multiplier=UpcomingMonsterThemeReviewSizing.Divide(modelScale,model.transform.localScale);
+        UpcomingMonsterThemeReviewSizing.RequireUniform(multiplier,id);
+        float scale=multiplier.x;
+        model.transform.localScale=modelScale;
+        bounds=PhysicalBounds(model);
         model.transform.position-=new Vector3(bounds.center.x-station.transform.position.x,bounds.min.y-.08f,bounds.center.z-station.transform.position.z);
         bounds=new Bounds(new Vector3(station.transform.position.x,.08f+bounds.size.y*.5f,station.transform.position.z),bounds.size);
         foreach(var component in model.GetComponentsInChildren<Component>(true))
             if(component!=null && PrefabUtility.IsPartOfPrefabInstance(component))PrefabUtility.RecordPrefabInstancePropertyModifications(component);
-        float radius=Mathf.Max(1.1f,Mathf.Max(bounds.size.x,bounds.size.z)*.52f);
+        float radius=Mathf.Max(.7f,Mathf.Max(bounds.size.x,bounds.size.z)*.52f);
         Cube("Plinth",station.transform,new Vector3(0,-.03f,0),new Vector3(radius*2,.1f,radius*2),baseMat);
         string state=status=="core"?"주력":status=="priority"?"우선 보스":"예비";
-        Text("Role badge",station.transform,state+" · "+SlotNames[slot],new Vector3(0,.34f,-radius-.7f),.5f,Mathf.Max(4,radius*2),RoleColor(slot));
+        Text("Role badge",station.transform,state+" · "+SlotNames[slot],new Vector3(0,.34f,-radius-1.5f),.5f,Mathf.Max(4,radius*2),RoleColor(slot));
         string caption=id=="succubus-sisters-complete-edition"?"Succubus Sisters · 대표 모델":id=="the-rake-forest-beast-collection"?"The Rake":display;
-        Text("Name",station.transform,caption,new Vector3(0,1,-radius-.7f),.65f,Mathf.Max(6,radius*2),Color.white);
+        Text("Name",station.transform,caption,new Vector3(0,1,-radius-1.5f),.65f,Mathf.Max(6,radius*2),Color.white);
         instances.Add(new JObject{{"id",id},{"theme",theme},{"slot",Slots[slot]},{"status",status},{"source",path},
-            {"station",station.name},{"idle",idle==null?"source pose":idle.name},{"displayHeight",bounds.size.y},{"displayWidth",bounds.size.x},{"reviewScale",scale}});
+            {"station",station.name},{"idle",idle==null?"source pose":idle.name},{"displayHeight",bounds.size.y},{"displayWidth",bounds.size.x},{"reviewScale",scale},
+            {"modelScale",UpcomingMonsterThemeReviewSizing.Vector(modelScale)},{"displaySize",UpcomingMonsterThemeReviewSizing.Vector(bounds.size)},
+            {"sizeBasis",sizeBasis},{"sizeReference",sizeReference}});
     }
     static Bounds PhysicalBounds(GameObject model)
     {
-        Bounds result=default;bool found=false;
-        foreach(var renderer in model.GetComponentsInChildren<Renderer>())
-        {
-            if(!renderer.enabled || !renderer.gameObject.activeInHierarchy)continue;
-            Mesh mesh=null;bool baked=false;
-            if(renderer is SkinnedMeshRenderer skin){mesh=new Mesh();skin.BakeMesh(mesh,false);baked=true;}
-            else {var mf=renderer.GetComponent<MeshFilter>();if(mf!=null)mesh=mf.sharedMesh;}
-            if(mesh==null)continue;
-            foreach(var vertex in mesh.vertices)
-            {
-                Vector3 point=renderer.transform.TransformPoint(vertex);
-                if(!found){result=new Bounds(point,Vector3.zero);found=true;}else result.Encapsulate(point);
-            }
-            if(baked)Object.DestroyImmediate(mesh);
-        }
-        if(!found)throw new InvalidOperationException("No visible model: "+model.name);
-        return result;
+        return UpcomingMonsterThemeReviewSizing.GeometryBounds(model);
     }
     static Material PreviewMaterial(Material source)
     {
