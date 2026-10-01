@@ -33,6 +33,8 @@ public class ItemPickupSpawner : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerInventory inventory;
     [SerializeField] private Transform player;
+    [Tooltip("지정하면 하이드아웃 테스트 아이템을 이 위치 기준으로 배치한다. 비워 두면 기존 플레이어 위치를 사용한다.")]
+    [SerializeField] private Transform authoredSpawnOrigin;
     [SerializeField] private WeaponItemData testWeaponItem;
     [SerializeField] private WeaponItemData[] weaponItemAssets;
     [SerializeField] private BaseItemData moveSpeedPotionItem;
@@ -486,7 +488,8 @@ public class ItemPickupSpawner : MonoBehaviour
 
     private Vector3 GetSpawnPosition(Vector3 offset)
     {
-        Vector3 origin = player != null ? player.position : transform.position;
+        Vector3 origin = authoredSpawnOrigin != null ? authoredSpawnOrigin.position
+            : player != null ? player.position : transform.position;
         return origin + offset;
     }
 
