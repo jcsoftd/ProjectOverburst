@@ -76,11 +76,11 @@ public partial class MeleeRuntime
         Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
         {
-            // 화염·암흑·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
-            bool groundReplaced = hasDischarge && MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center, heavyParried);
-            // 빛·암흑(에너지 있음)은 자기 내려치기 소리 위에 지면강타 2단계를 겹친다(2026-09-30 청음 결정).
-            if (!groundReplaced || MeleeElementSfxService.LayersGreatswordGround(activeDischarge))
-                CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center, heavyParried);
+            // 기본 지면음은 모든 원소·에너지에서 100%, 패링 성공은 같은 소리를 50% 추가한다.
+            CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center, heavyParried);
+            // 불·어둠·빛의 원소 착지음은 기본음 위에 겹치며, 방출 에너지로만 볼륨을 조절한다.
+            if (hasDischarge)
+                MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center, heavyParried);
         }
         if (!hasDischarge)
         {
@@ -90,7 +90,7 @@ public partial class MeleeRuntime
                     CombatBalanceFormulas.DischargeRadius(OverburstElementTuning.Current, 0f));
             return;
         }
-        if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.ReplacesGreatswordGround(activeDischarge))
+        if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.UsesUpperSlamCue(activeDischarge))
             MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center, heavyParried, activeDischarge.Energy);
         // 60D light: the slam is the triple's 1st hit (overcharged) or the double's 2nd hit, each with its own circle.
         bool lightHeavy = activeDischarge.Element == WeaponElement.Light;

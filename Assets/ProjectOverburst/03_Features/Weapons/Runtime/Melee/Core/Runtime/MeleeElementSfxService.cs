@@ -106,18 +106,11 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         return played;
     }
 
-    // 화염·암흑(에너지 있음)·빛 강공은 내려치는 순간 자기 소리를 낸다(2026-09-30 청음 결정).
-    public static bool ReplacesGreatswordGround(OverburstElementDischarge discharge)
+    // 불·어둠·빛은 전용 착지 큐를 사용한다. 기본 지면음은 원소와 별개로 항상 재생한다.
+    public static bool UsesUpperSlamCue(OverburstElementDischarge discharge)
     {
         return discharge != null && (discharge.Element == WeaponElement.Fire
             || discharge.Element == WeaponElement.Light
-            || (discharge.Element == WeaponElement.Dark && discharge.Energy > 0f));
-    }
-
-    // 빛·암흑(에너지 있음)은 자기 내려치기 소리 위에 대검 지면강타(2단계)를 겹친다. 화염은 자기 소리만.
-    public static bool LayersGreatswordGround(OverburstElementDischarge discharge)
-    {
-        return discharge != null && (discharge.Element == WeaponElement.Light
             || (discharge.Element == WeaponElement.Dark && discharge.Energy > 0f));
     }
 
@@ -125,7 +118,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     // 뒤따르는 타는 LightTripleImpactScheduler가 2타(3연타만)·마지막 타 순서로 낸다.
     public static bool TryPlayUpperSlam(OverburstElementDischarge discharge, int lightSlamHitIndex, Vector3 position, bool successfulParry = false)
     {
-        if (!ReplacesGreatswordGround(discharge)) return false;
+        if (!UsesUpperSlamCue(discharge)) return false;
         if (discharge.Element != WeaponElement.Light)
             return TryPlayHeavyImpact(discharge.Element, position, successfulParry, discharge.Energy);
         TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position, energy: discharge.Energy);
