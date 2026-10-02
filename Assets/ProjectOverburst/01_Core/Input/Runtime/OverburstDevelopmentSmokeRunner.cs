@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
+using Overburst.DebugTools;
 
 // Explicit, local development-build verification. No behavior without the command-line flag.
 public sealed class OverburstDevelopmentSmokeRunner : MonoBehaviour
@@ -22,6 +23,7 @@ public sealed class OverburstDevelopmentSmokeRunner : MonoBehaviour
         public float blockedMovementDistance;
         public bool inventoryInput;
         public bool combatToggle;
+        public bool debugHubInput;
         public string[] errors;
     }
 
@@ -135,9 +137,25 @@ public sealed class OverburstDevelopmentSmokeRunner : MonoBehaviour
         yield return new WaitForSeconds(0.25f);
         Require(mode.IsCombatModeActive == initialMode, "X combat mode did not restore");
         report.combatToggle = true;
+
+        Require(DebugHub.Instance != null && !DebugHub.IsOpen, "Debug Hub unavailable at startup");
+        SetKeys(Key.F1);
+        yield return null;
+        SetKeys();
+        yield return new WaitForSecondsRealtime(0.4f);
+        Require(DebugHub.IsOpen, "F1 did not open the Debug Hub");
+        Capture("debug.png");
+        yield return new WaitForSecondsRealtime(0.5f);
+        SetKeys(Key.F1);
+        yield return null;
+        SetKeys();
+        yield return new WaitForSecondsRealtime(0.25f);
+        Require(!DebugHub.IsOpen, "F1 did not close the Debug Hub");
+        report.debugHubInput = true;
+
         Capture("final.png");
         yield return new WaitForSeconds(1f);
-        foreach (string name in new[] { "startup.png", "inventory.png", "final.png" })
+        foreach (string name in new[] { "startup.png", "inventory.png", "debug.png", "final.png" })
             Require(File.Exists(Path.Combine(outputDirectory, name)), "Screenshot missing: " + name);
     }
 

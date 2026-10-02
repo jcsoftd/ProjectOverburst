@@ -19,12 +19,20 @@ public sealed class AccountContentRegistryBuilder : IPreprocessBuildWithReport
         EnsureFolder("Assets/ProjectOverburst/Resources/Persistence");
         var entries = new List<AccountContentEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        // Supplemental catalogs own their assets' stable IDs; a GUID entry for the same
+        // asset would conflict when the runtime registry merges those catalogs.
+        var supplementalAssets = new HashSet<UnityEngine.Object>(
+            Resources.LoadAll<AccountContentRegistry>("Persistence/Supplemental")
+                .SelectMany(catalog => catalog.Entries)
+                .Where(entry => entry != null && entry.asset != null)
+                .Select(entry => entry.asset));
         foreach (string type in new[] { "BaseItemData", "MerchantDefinition" })
             foreach (var guid in AssetDatabase.FindAssets("t:" + type, new[] { "Assets/ProjectOverburst" }))
             {
                 if (!seen.Add(guid)) continue;
                 var asset = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(guid));
-                if (asset != null) entries.Add(new AccountContentEntry { id = guid, asset = asset });
+                if (asset != null && !supplementalAssets.Contains(asset))
+                    entries.Add(new AccountContentEntry { id = guid, asset = asset });
             }
         var registry = AssetDatabase.LoadAssetAtPath<AccountContentRegistry>(path);
         if (registry == null)
