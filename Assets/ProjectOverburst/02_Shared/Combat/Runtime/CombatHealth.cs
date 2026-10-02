@@ -103,14 +103,17 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
         OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
-        ApplyKnockback(info); // 넉백 적용
+        PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
+        bool reactionOwnsMotion = knockdown != null
+            && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
+        if (!reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
 
         if (actualDamage > 0f
             && CombatTeamUtility.IsPlayerActorHealth(this)
             && CanOpenPlayerCombatMode())
         {
             PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
-            PlayCombatDamagedHitAnimation(info);
+            if (!reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
         }
 
         OnDamageResolved?.Invoke(this, info, actualDamage, currentHp <= 0f);

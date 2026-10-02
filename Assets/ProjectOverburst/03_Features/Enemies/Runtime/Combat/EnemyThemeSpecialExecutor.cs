@@ -29,6 +29,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private bool boltElectric;
     private float boltScale = 1f;
     private Vector3 chargeDirection;
+    private int attackSequenceId;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
     public override bool IsExecuting => routine != null || boltFlying;
@@ -105,6 +106,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         if (!CanStart(ability,target)) return false;
         reaction?.PrepareForAttack();
+        attackSequenceId = EnemyAttackSequence.Next();
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile) EnsureProjectileVisual();
         routine = StartCoroutine(Execute(ability,target));
         return true;
@@ -213,7 +215,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         var target = hit.collider.GetComponentInParent<CombatTarget>();
         if (target == null || !CombatTargetFilter.CanDamage(GetComponent<CombatTarget>(),target) || target.DamageReceiver == null) return;
-        target.DamageReceiver.TakeDamage(new DamageInfo(amount,hit.point,gameObject,direction,enemyAbility:ability)); ImpactCount++;
+        target.DamageReceiver.TakeDamage(new DamageInfo(amount,hit.point,gameObject,direction,
+            sourceAttackSequenceId:attackSequenceId,sourceAttackPhaseIndex:0,enemyAbility:ability)); ImpactCount++;
     }
     private void FixedUpdate()
     {

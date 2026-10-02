@@ -13,6 +13,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
 
     private PlayerCombatModeController combatModeController;
     private IWeaponCombatAnimatorDriver activeDriver;
+    private bool knockdownSuspended;
 
     public bool HasActiveCombatDriver => activeDriver != null && activeDriver.IsAvailable;
     public bool CanApplyStationaryFootIk => activeDriver != null && activeDriver.CanApplyStationaryFootIk;
@@ -35,6 +36,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
 
     private void Update()
     {
+        if (knockdownSuspended) return;
         ResolveReferences();
         RefreshActiveDriverForCurrentWeapon();
         activeDriver?.Tick(Time.deltaTime);
@@ -42,24 +44,28 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
 
     public bool TryPlayCombatJump()
     {
+        if (knockdownSuspended) return false;
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null && activeDriver.TryPlayJump();
     }
 
     public bool TryPlayCombatHit()
     {
+        if (knockdownSuspended) return false;
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null && activeDriver.TryPlayHit();
     }
 
     public bool TryPlayCombatRoll(float actionDuration)
     {
+        if (knockdownSuspended) return false;
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null && activeDriver.TryPlayRoll(actionDuration);
     }
 
     public bool TryPlayMeleeGuardBlock()
     {
+        if (knockdownSuspended) return false;
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null && activeDriver.TryPlayGuardBlock();
     }
@@ -72,6 +78,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         bool allowCombatEntry,
         float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default)
     {
+        if (knockdownSuspended) return false;
         RefreshActiveDriverForCurrentWeapon();
         return activeDriver != null
             && activeDriver.TryPlayAttack(
@@ -114,6 +121,28 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         activeDriver = null;
     }
 
+    public void SuspendForKnockdown(bool suspend)
+    {
+        knockdownSuspended = suspend;
+        if (suspend)
+        {
+            activeDriver?.CancelAttack();
+            activeDriver?.SuppressForLegacyFullBodyAction(.01f);
+            if (targetAnimator != null)
+            {
+                int combat = targetAnimator.GetLayerIndex("Combat_MeleeWeapon");
+                int lower = targetAnimator.GetLayerIndex("Combat_MeleeWeapon_TransitionLower");
+                if (combat >= 0) targetAnimator.SetLayerWeight(combat, 0);
+                if (lower >= 0) targetAnimator.SetLayerWeight(lower, 0);
+            }
+        }
+        else
+        {
+            RefreshActiveDriverForCurrentWeapon();
+            meleeWeaponDriver?.ResumeAfterKnockdown(PlayerCombatModeController.IsSharedCombatModeActive());
+        }
+    }
+
     private void ResolveReferences()
     {
         if (targetAnimator == null)
@@ -149,6 +178,7 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
 
     private void HandleCombatModeChanged(PlayerCombatModeState state, PlayerCombatModeReason reason)
     {
+        if (knockdownSuspended) return;
         RefreshActiveDriverForCurrentWeapon();
 
         if (state == PlayerCombatModeState.Combat)

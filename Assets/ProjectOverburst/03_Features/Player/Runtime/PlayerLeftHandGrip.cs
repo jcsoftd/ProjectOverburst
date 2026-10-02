@@ -68,6 +68,13 @@ public class PlayerLeftHandGrip : MonoBehaviour
         if (animator == null)
             return;
 
+        if (playerController != null && playerController.IsKnockedDown)
+        {
+            animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0);
+            animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 0);
+            return;
+        }
+
         PrepareAnimatorIkFrame();
         float position = 0f;
         if (isActiveAndEnabled
@@ -103,6 +110,7 @@ public class PlayerLeftHandGrip : MonoBehaviour
 
     private bool IsGripActive()
     {
+        if (playerController != null && playerController.IsKnockedDown) return false;
         if (GameplayInputBlocker.IsGameplayInputBlocked
             || !useLeftHandGrip
             || playerController == null

@@ -194,6 +194,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     {
         if (!isActiveAndEnabled) return false;
         ResolveReferences();
+        if (ResolveStateCoordinator() != null
+            && ResolveStateCoordinator().CurrentCondition != PlayerConditionState.Normal) return false;
         PlayerInputFacade facade = ResolveFacade();
         if (facade == null || facade.CombatInputs == null || !facade.CombatInputs.HasEvade)
             return false;
@@ -373,6 +375,15 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
         float smoothProgress = progress * progress * (3f - 2f * progress);
         return Mathf.Lerp(progress, smoothProgress, ease);
+    }
+
+    public void CancelForKnockdown()
+    {
+        hasCompletedDodgeFollowUp = false;
+        EndEvade();
+        rollRotationRecoveryEndTime = 0;
+        OverburstTimeEffectArbiter.ClearOwner(this);
+        ResolveFacade()?.CombatInputs?.Invalidate();
     }
 
     private void EndEvade()

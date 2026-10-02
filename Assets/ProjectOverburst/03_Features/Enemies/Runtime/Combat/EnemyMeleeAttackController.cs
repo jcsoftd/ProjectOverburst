@@ -34,6 +34,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private Coroutine attackRoutine; // 진행 중인 공격
     private float nextAttackTime; // 다음 공격 가능 시각
     private int lastAttackIndex = -1; // 직전 공격 모션
+    private int attackSequenceId;
+    private int attackPhaseIndex;
     private float statusActionSpeedMultiplier = 1f; // 상태이상 행동 배율
     private float definitionDamageMultiplier = 1f; // 등급·변형 피해 배율
     private float runtimeAttackSpeedMultiplier = 1f; // 등급·변형 공격속도 배율
@@ -214,6 +216,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         }
 
         movementReaction?.PrepareForAttack();
+        attackSequenceId = EnemyAttackSequence.Next();
         attackRoutine = StartCoroutine(
             AttackRoutine(
                 triggerName,
@@ -399,6 +402,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             if (impactReached && stayedInRange && !IsAttackInterrupted() && CanResolveHit())
             {
                 abilityController?.NotifyAbilityImpact(ability, impactIndex);
+                attackPhaseIndex = impactIndex;
                 if (ability != null && ability.IsTelegraphedStrongAttack && impactIndex == 0)
                 {
                     Vector3 impactOrigin = ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
@@ -555,7 +559,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             gameObject,
             hitDirection.sqrMagnitude > 0.0001f
                 ? hitDirection.normalized
-                : transform.forward, enemyAbility: ability);
+                : transform.forward, sourceAttackSequenceId: attackSequenceId,
+            sourceAttackPhaseIndex: attackPhaseIndex, enemyAbility: ability);
         targetHealth.TakeDamage(info); // 선택한 단일 대상에게 한 번만 직접 피해
     }
 
@@ -638,7 +643,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 resolvedDamage,
                 hitCollider.ClosestPoint(impactCenter),
                 gameObject,
-                hitDirection.normalized, enemyAbility: ability);
+                hitDirection.normalized, sourceAttackSequenceId: attackSequenceId,
+                sourceAttackPhaseIndex: attackPhaseIndex, enemyAbility: ability);
             targetHealth.TakeDamage(info);
         }
     }

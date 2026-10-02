@@ -127,6 +127,17 @@ public sealed class PlayerFootLock : MonoBehaviour
 
     private void OnAnimatorIK(int layerIndex)
     {
+        if (playerMovement != null && playerMovement.IsKnockedDown)
+        {
+            targetAnimator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 0);
+            targetAnimator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 0);
+            targetAnimator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 0);
+            targetAnimator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 0);
+            leftFoot.Weight = rightFoot.Weight = 0;
+            leftFoot.WeightVelocity = rightFoot.WeightVelocity = 0;
+            leftFoot.HasTarget = rightFoot.HasTarget = false;
+            return;
+        }
         if (!CanUseAnimatorIk())
             return;
 

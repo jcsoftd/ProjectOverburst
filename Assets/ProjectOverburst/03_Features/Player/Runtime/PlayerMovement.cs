@@ -94,6 +94,10 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     private CombatTarget combatTarget; // 이동 충돌 진영
     private PlayerInputFacade inputFacade; // GOAL A2 파사드 캐시
     private PlayerStateCoordinator stateCoordinator; // GOAL A2 상태 보고
+    private PlayerKnockdownController knockdownController;
+    public bool IsKnockedDown => knockdownController != null && knockdownController.IsActive;
+    public bool IsConditionMovementBlocked => ResolveStateCoordinator() != null
+        && ResolveStateCoordinator().CurrentCondition != PlayerConditionState.Normal;
 
     public Vector2 MoveInput
     {
@@ -279,6 +283,7 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
 
     private void Awake()
     {
+        knockdownController = GetComponent<PlayerKnockdownController>();
         if (characterMotor == null)
             characterMotor = GetComponent<OverburstCharacterMotor3D>();
         if (characterMotor == null)
@@ -370,6 +375,14 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
         ProbeMotorGround();
         UpdateLandingRecovery();
         UpdateMeleeAttackMoveLock();
+
+        if (IsConditionMovementBlocked)
+        {
+            PrepareKnockdownMotion();
+            Move(Time.deltaTime); // 중력·지면·이동 발판은 계속 갱신한다.
+            UpdatePlayerStateReport();
+            return;
+        }
 
         if (controlAuthority == ActorControlAuthority.Player)
         {

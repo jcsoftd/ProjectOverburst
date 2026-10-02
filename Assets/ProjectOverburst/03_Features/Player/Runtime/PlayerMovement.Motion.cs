@@ -82,7 +82,7 @@ public partial class PlayerMovement
 
     public bool BeginLootAutoMove(Vector3 destination)
     {
-        if (controlAuthority != ActorControlAuthority.Player || !isActiveAndEnabled)
+        if (controlAuthority != ActorControlAuthority.Player || !isActiveAndEnabled || IsConditionMovementBlocked)
             return false;
 
         lootAutoMoveDestination = destination;
@@ -209,6 +209,7 @@ public partial class PlayerMovement
 
     public void ResetMotionAfterTeleport()
     {
+        GetComponent<PlayerKnockdownController>()?.ResetReaction();
         Stop();
         if (characterMotor != null)
             characterMotor.ResetMotion();
@@ -221,9 +222,22 @@ public partial class PlayerMovement
 
     public void ApplyWeaponRootMotionDisplacement(Vector3 displacement, bool inheritLocomotionVelocity = true)
     {
+        if (IsKnockedDown) return;
         if (combatMotion == null)
             return;
         Vector3 controllerVelocity = combatMotion.ApplyWeaponRootMotion(displacement);
         locomotion?.SetHorizontalVelocity(inheritLocomotionVelocity ? controllerVelocity : Vector3.zero);
+    }
+
+    public void PrepareKnockdownMotion()
+    {
+        movementInputSource?.ConsumeJumpRequest();
+        movementInputSource?.ConsumeWalkToggleRequest();
+        Stop();
+        CancelWeaponActionLocks();
+        isAiming = false;
+        isMeleeCombatStance = false;
+        aimBlockedUntilRelease = true;
+        ResetSwordGuardTiming();
     }
 }

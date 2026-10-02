@@ -268,6 +268,7 @@ GameObject:
   - component: {fileID: 4969743958401337325}
   - component: {fileID: 4180381286012201543}
   - component: {fileID: 1215682338855239813}
+  - component: {fileID: 6041494120233153841}
   m_Layer: 8
   m_Name: PF_PlayerActor
   m_TagString: Player
@@ -2698,3 +2699,16 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 7966742655617540888, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}
   m_PrefabInstance: {fileID: 986337289154300064}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6041494120233153841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778037010099676702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 414c47ac1ad013c41915b75e7f67c0b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerKnockdownController
+  animationSet: {fileID: 11400000, guid: e84dfcf3572b60445912e8583e3def0b, type: 2}

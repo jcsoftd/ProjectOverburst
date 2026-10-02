@@ -443,6 +443,16 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         }
     }
 
+    public void ResumeAfterKnockdown(bool inCombat)
+    {
+        ForceResetLayer();
+        if (!IsAvailable) return;
+        combatRequested = inCombat;
+        targetLayerWeight = inCombat ? 1f : 0f;
+        if (inCombat) PlayLocomotionByGuardState(.1f);
+        else PlayState(emptyStateName, 0f, 0f);
+    }
+
     private void CaptureBaseAnimatorController()
     {
         if (baseAnimatorController != null || targetAnimator == null)
