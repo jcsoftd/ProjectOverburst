@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 using Object=UnityEngine.Object;
 
 /// <summary>Upcoming-content review only. Does not edit combat assets or Build Settings.</summary>
-public static class UpcomingMonsterThemeReviewBuilder
+public static partial class UpcomingMonsterThemeReviewBuilder
 {
     public const string ScenePath="Assets/ProjectOverburst/00_Scenes/DEV_UpcomingMonsterThemes.unity";
     public const string MaterialRoot="Assets/ProjectOverburst/03_Features/Enemies/Showcase/UpcomingThemes/Materials";
@@ -59,6 +59,7 @@ public static class UpcomingMonsterThemeReviewBuilder
     public static void RefreshFromJson()
     {
         RequireEditMode();
+        if(File.Exists(V3SourcePath)){RefreshV3();return;}
         string root=Path.Combine(Workspace,"개인파일/코덱스산출/UpcomingMonsterThemes");
         string plan=Directory.Exists(root)?Directory.GetFiles(root,"native-source-plan.json",SearchOption.AllDirectories)
             .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault():null;
@@ -110,7 +111,7 @@ public static class UpcomingMonsterThemeReviewBuilder
         view.sceneLighting=true;
         view.sceneViewState.showImageEffects=false;
         view.orthographic=false;
-        view.LookAtDirect(root.transform.position+Vector3.up*2,Quaternion.Euler(31,0,0),34);
+        view.LookAtDirect(root.transform.position+Vector3.up*2,Quaternion.Euler(36,0,0),58);
         view.Focus();
         view.Repaint();
     }
@@ -130,7 +131,7 @@ public static class UpcomingMonsterThemeReviewBuilder
         if(pendingBuild!=null)EditorApplication.update-=pendingBuild;
         pendingBuild=()=>
         {
-            if(EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)return;
+            if(EditorApplication.isCompiling || EditorApplication.isUpdating || EditorApplication.isPlayingOrWillChangePlaymode)return;
             string outputDirectory=SessionState.GetString(PendingOutputKey,"");
             bool live=SessionState.GetBool(PendingLiveKey,false);
             EditorApplication.update-=pendingBuild;pendingBuild=null;
@@ -144,7 +145,7 @@ public static class UpcomingMonsterThemeReviewBuilder
     }
     static void RequireEditMode()
     {
-        if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
+        if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("검토 씬 작업은 Play를 종료한 에디트 모드에서 실행합니다.");
     }
     static IEnumerable<JObject> Members(JObject roster)=>((JArray)roster["themes"]).OfType<JObject>()
@@ -161,7 +162,9 @@ public static class UpcomingMonsterThemeReviewBuilder
     }
     public static string Create(string outputDirectory,bool live=false)
     {
-        RequireEditMode(); output=outputDirectory;
+        RequireEditMode();
+        if(File.Exists(Path.Combine(outputDirectory,"v3-source.json")))return CreateV3(outputDirectory);
+        output=outputDirectory;
         var plan=JObject.Parse(File.ReadAllText(Path.Combine(output,"native-source-plan.json")));
         var roster=JObject.Parse(File.ReadAllText(live?LiveRoster:Path.Combine(output,"roster-source.json")));
         CheckSources(plan,roster);
@@ -261,10 +264,11 @@ public static class UpcomingMonsterThemeReviewBuilder
     static Color RoleColor(int slot)=>slot==0?new Color(.35f,.9f,.8f):slot==1?new Color(.55f,.77f,1):slot==2?new Color(.9f,.6f,1):new Color(1,.63f,.34f);
     static void Place(JObject card,Transform group,Vector3 position,int theme,string status)
     {
-        string id=(string)card["creatureId"];var source=sources[id];string path=(string)source["assetPath"];
+        string key=(string)card["creatureId"];var source=sources[key];
+        string id=(string)source["creatureId"]??key;string path=(string)source["assetPath"];
         int slot=Array.IndexOf(Slots,(string)card["slot"]);if(slot<0)slot=1;
         string display=(string)source["name"];
-        var station=new GameObject("["+(status=="core"?"주력":status=="priority"?"우선 보스":"예비")+" · "+SlotNames[slot]+"] "+display);
+        var station=new GameObject("["+(status=="core"?"주력":status=="priority"?"우선 보스":status=="reference"?"현행 비교":"예비")+" · "+SlotNames[slot]+"] "+display);
         station.transform.SetParent(group,false);station.transform.localPosition=position;
         var sourcePrefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);
         var model=(GameObject)PrefabUtility.InstantiatePrefab(sourcePrefab,station.transform);
@@ -274,12 +278,12 @@ public static class UpcomingMonsterThemeReviewBuilder
         foreach(var rb in model.GetComponentsInChildren<Rigidbody>(true)){rb.isKinematic=true;rb.useGravity=false;}
         foreach(var c in model.GetComponentsInChildren<Collider>(true))c.enabled=false;
         foreach(var anim in model.GetComponentsInChildren<Animation>(true))anim.enabled=false;
-        AnimationClip idle=null;
+        AnimationClip idle=source["v3"] is JObject v3Card?ResolveClip(((JArray)v3Card["idle"]).OfType<JObject>().FirstOrDefault()):null;
         foreach(var animator in model.GetComponentsInChildren<Animator>(true))
         {
             animator.enabled=false;
             var clips=animator.runtimeAnimatorController!=null?animator.runtimeAnimatorController.animationClips: Array.Empty<AnimationClip>();
-            idle=clips.FirstOrDefault(c=>c!=null&&c.name.IndexOf("idle",StringComparison.OrdinalIgnoreCase)>=0);
+            if(idle==null && source["v3"]==null)idle=clips.FirstOrDefault(c=>c!=null&&c.name.IndexOf("idle",StringComparison.OrdinalIgnoreCase)>=0);
             if(idle==null)
                 foreach(string idlePath in ((JArray)source["idlePaths"]).Values<string>())
                 {
@@ -322,11 +326,12 @@ public static class UpcomingMonsterThemeReviewBuilder
             if(component!=null && PrefabUtility.IsPartOfPrefabInstance(component))PrefabUtility.RecordPrefabInstancePropertyModifications(component);
         float radius=Mathf.Max(.7f,Mathf.Max(bounds.size.x,bounds.size.z)*.52f);
         Cube("Plinth",station.transform,new Vector3(0,-.03f,0),new Vector3(radius*2,.1f,radius*2),baseMat);
-        string state=status=="core"?"주력":status=="priority"?"우선 보스":"예비";
+        string state=status=="core"?"주력":status=="priority"?"우선 보스":status=="reference"?"현행 비교":"예비";
         Text("Role badge",station.transform,state+" · "+SlotNames[slot],new Vector3(0,.34f,-radius-1.5f),.5f,Mathf.Max(4,radius*2),RoleColor(slot));
         string caption=id=="succubus-sisters-complete-edition"?"Succubus Sisters · 대표 모델":id=="the-rake-forest-beast-collection"?"The Rake":display;
+        if(source["v3"] is JObject details){BindV3Station(station,model,key,details,Slots[slot],status,bounds.size);caption=display;}
         Text("Name",station.transform,caption,new Vector3(0,1,-radius-1.5f),.65f,Mathf.Max(6,radius*2),Color.white);
-        instances.Add(new JObject{{"id",id},{"theme",theme},{"slot",Slots[slot]},{"status",status},{"source",path},
+        instances.Add(new JObject{{"key",key},{"id",id},{"theme",theme},{"slot",Slots[slot]},{"status",status},{"source",path},
             {"station",station.name},{"idle",idle==null?"source pose":idle.name},{"displayHeight",bounds.size.y},{"displayWidth",bounds.size.x},{"reviewScale",scale},
             {"modelScale",UpcomingMonsterThemeReviewSizing.Vector(modelScale)},{"displaySize",UpcomingMonsterThemeReviewSizing.Vector(bounds.size)},
             {"sizeBasis",sizeBasis},{"sizeReference",sizeReference}});
