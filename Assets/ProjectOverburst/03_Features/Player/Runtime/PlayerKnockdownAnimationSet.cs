@@ -30,7 +30,7 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
     [Min(0)] public float groundedHold = .25f;
     [Min(0)] public float recoveryProtection = .6f;
     [Range(0, 1)] public float inputDeadzone = .2f;
-    [Min(0)] public float fallDistance = .6f;
+    [Min(0)] public float fallDistance = 2.2f;
     [Min(0)] public float riseDistance = .35f;
     [Min(0)] public float entryBlend = .06f;
     [Min(0)] public float riseBlend = .08f;

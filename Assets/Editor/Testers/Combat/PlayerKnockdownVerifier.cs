@@ -46,6 +46,7 @@ public static class PlayerKnockdownVerifier
             Check(!prefab.GetComponentsInChildren<Transform>(true).Any(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) > 0), "Player prefab has no missing script");
             var set = AssetDatabase.LoadAssetAtPath<PlayerKnockdownAnimationSet>(PlayerKnockdownBuilder.SetPath);
             Check(prefab.GetComponent<PlayerKnockdownController>()?.AnimationSet == set && set != null, "Saved prefab points to the saved animation set");
+            Check(Mathf.Abs(set.fallDistance - 2.2f) < .001f, "Saved fall distance is 2.2m");
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(PlayerKnockdownBuilder.ControllerPath);
             Check(controller.layers.Last().name == PlayerKnockdownAnimationSet.LayerName, "Reaction is the highest full-body override layer");
             var layer = controller.layers.Last();
@@ -76,6 +77,11 @@ public static class PlayerKnockdownVerifier
             foreach (var fall in set.falls)
             {
                 Check(fall.IsValid, "Humanoid fall clip: " + fall.id);
+                Check(fall.travel.length == Mathf.RoundToInt(fall.clip.length * fall.clip.frameRate) + 1,
+                    "Fall travel sampled at every authored frame: " + fall.id);
+                Check(Mathf.Abs(fall.travel.Evaluate(0)) < .001f && Mathf.Abs(fall.travel.Evaluate(1) - 1) < .001f,
+                    "Fall travel consumes exactly its bounded total: " + fall.id);
+                Check(fall.travel.Evaluate(.22f / fall.clip.length) < .95f, "Fall travel remains active with the falling pose after 0.22s: " + fall.id);
                 var end = Pose(fall.clip, fall.clip.length * .9999f);
                 foreach (var rise in set.directionalRises)
                 {
@@ -139,6 +145,12 @@ public static class PlayerKnockdownVerifier
             checks.Clear(); measurements.Clear(); errors.Clear(); frame = -1; deadline = EditorApplication.timeSinceStartup + 300;
             SessionState.SetBool(Key + ".background", Application.runInBackground); SessionState.SetInt(Key + ".fps", Application.targetFrameRate);
             Application.runInBackground = true; Application.targetFrameRate = 60;
+            SessionState.SetInt(Key + ".inputEditor", (int)InputSystem.settings.editorInputBehaviorInPlayMode);
+            SessionState.SetInt(Key + ".inputBackground", (int)InputSystem.settings.backgroundBehavior);
+            SessionState.SetBool(Key + ".inputDirty", EditorUtility.IsDirty(InputSystem.settings));
+            SessionState.SetBool(Key + ".inputOverride", true);
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + ".reload", true);
             work.Clear(); work.Push(VerifyPlay()); Application.logMessageReceived += Log; EditorApplication.update += Tick;
         }
@@ -148,6 +160,13 @@ public static class PlayerKnockdownVerifier
             while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
             Application.runInBackground = SessionState.GetBool(Key + ".background", false);
             Application.targetFrameRate = SessionState.GetInt(Key + ".fps", -1);
+            if (SessionState.GetBool(Key + ".inputOverride", false))
+            {
+                InputSystem.settings.editorInputBehaviorInPlayMode = (InputSettings.EditorInputBehaviorInPlayMode)SessionState.GetInt(Key + ".inputEditor", 0);
+                InputSystem.settings.backgroundBehavior = (InputSettings.BackgroundBehavior)SessionState.GetInt(Key + ".inputBackground", 0);
+                if (!SessionState.GetBool(Key + ".inputDirty", false)) EditorUtility.ClearDirty(InputSystem.settings);
+                SessionState.EraseBool(Key + ".inputOverride");
+            }
             if (SessionState.GetBool(Key + ".reload", false)) { EditorApplication.UnlockReloadAssemblies(); SessionState.EraseBool(Key + ".reload"); }
             if (Status == "RUNNING") { SessionState.SetString(Key + ".status", "ABORTED"); Save("play-results.json", "ABORTED"); }
         }
@@ -241,7 +260,7 @@ public static class PlayerKnockdownVerifier
             ability = ScriptableObject.CreateInstance<EnemyAbilityDefinition>(); Set(ability, "telegraphedStrongAttack", true);
             health.SetMaxHp(1000000, true);
             int sequence = 20000;
-            DamageInfo Hit() => new DamageInfo(10, actor.transform.position, source, Vector3.back,
+            DamageInfo Hit(Vector3? impact = null) => new DamageInfo(10, actor.transform.position, source, impact ?? Vector3.back,
                 sourceAttackSequenceId: ++sequence, enemyAbility: ability);
             void Reset() { Stick(pad, Vector2.zero); reaction.ResetReaction(); health.ResetHealth(); Warp(actor, origin); }
             StepName("Damage exclusions");
@@ -314,6 +333,99 @@ public static class PlayerKnockdownVerifier
                 Check(delta.magnitude <= reaction.AnimationSet.riseDistance + .035f, "Rise planar movement remains bounded " + direction);
                 measurements.Add(new { direction = direction.ToString(), rise = chosen, distance = delta.magnitude });
                 Check(state.CurrentCondition == PlayerConditionState.Normal && state.CurrentAction != PlayerActionState.Attack, "Owned locks released " + direction);
+            }
+
+            StepName("Frame-synchronized 2.2m knockback across every fall");
+            Check(Mathf.Abs(reaction.AnimationSet.fallDistance - 2.2f) < .001f, "Saved product knockdown distance is 2.2m");
+            for (int variant = 0; variant < 3; variant++)
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                Reset(); yield return Wait(.1f); sequence = 60000 + variant - 1;
+                Vector3 impact = Quaternion.Euler(0, variant * 120 + 23, 0) * Vector3.forward;
+                Vector3 start = actor.transform.position; health.TakeDamage(Hit(impact));
+                Check(reaction.ActiveMotionId == reaction.AnimationSet.falls[variant].id, "Impact fixture selects fall variant " + variant);
+                var fall = reaction.AnimationSet.falls[variant]; float hitTime = Time.time;
+                foreach (float sampleTime in new[] { .067f, .133f, .233f, .4f, .733f, .967f })
+                {
+                    while (Time.time - hitTime < sampleTime) yield return null;
+                    float clipTime = (float)typeof(PlayerKnockdownController).GetField("elapsed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(reaction);
+                    Vector3 sampleDelta = actor.transform.position - start; sampleDelta.y = 0;
+                    float expected = reaction.AnimationSet.fallDistance * fall.travel.Evaluate(Mathf.Clamp01(clipTime / fall.clip.length));
+                    Check(reaction.Phase == PlayerKnockdownPhase.Falling && Mathf.Abs(sampleDelta.magnitude - expected) < .04f,
+                        "Physical displacement follows the playing fall frame " + variant + "/" + sampleTime);
+                    float fallPoseTime = animator.GetCurrentAnimatorStateInfo(reactionLayer).normalizedTime * fall.clip.length;
+                    Check(Mathf.Abs(fallPoseTime - clipTime) < .1f, "Fall pose and movement clocks stay together " + variant + "/" + sampleTime);
+                    if (sampleTime == .233f)
+                        Check(sampleDelta.magnitude < reaction.AnimationSet.fallDistance * .95f
+                            && (variant != 2 || sampleDelta.magnitude < reaction.AnimationSet.fallDistance * .375f),
+                            "Knockback continues with the falling body after the first 0.22s " + variant);
+                    var hips = animator.GetBoneTransform(HumanBodyBones.Hips); var chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+                    measurements.Add(new { fixture = "fall-frame", variant, requestedTime = sampleTime, clipTime, poseTime = fallPoseTime,
+                        distance = sampleDelta.magnitude, expected, hipHeight = actor.transform.InverseTransformPoint(hips.position).y,
+                        torsoTilt = Vector3.Angle(chest.position - hips.position, Vector3.up) });
+                    if (sampleTime == .133f || sampleTime == .4f || sampleTime == .733f)
+                        Capture("fall_" + variant + "_" + Mathf.RoundToInt(sampleTime * 1000));
+                }
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 2, "Frame-synchronized fall reaches hold " + variant);
+                Vector3 delta = actor.transform.position - start; delta.y = 0;
+                Check(Mathf.Abs(delta.magnitude - 2.2f) < .04f,
+                    "The completed fall consumes 2.2m before the grounded hold " + variant + ": " + delta.magnitude);
+                Check(Vector3.Dot(delta.normalized, impact) > .99f, "Impact displacement follows the confirmed hit direction " + variant);
+                measurements.Add(new { fixture = "completed-fall", variant, delta = delta.ToString("F4"), distance = delta.magnitude });
+            }
+
+            StepName("Impact knockback stops at a wall without deferred movement");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            Reset(); yield return Wait(.1f);
+            wall = GameObject.CreatePrimitive(PrimitiveType.Cube); wall.name = "Owned impact stop wall";
+            wall.transform.position = origin + new Vector3(0, 1, -.65f);
+            wall.transform.localScale = new Vector3(4, 3, .15f); Physics.SyncTransforms();
+            Vector3 wallImpactStart = actor.transform.position;
+            health.TakeDamage(Hit(Vector3.back));
+            yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Wall consumes the complete fall travel timeline");
+            Vector3 stoppedImpact = actor.transform.position - wallImpactStart; stoppedImpact.y = 0;
+            Check(stoppedImpact.z < -.01f && stoppedImpact.magnitude < reaction.AnimationSet.fallDistance * .8f,
+                "Impact actually moves backwards then stops at the wall: " + stoppedImpact);
+            Check(actor.transform.position.z > wall.transform.position.z, "Impact cannot pass through the blocking wall");
+            UnityEngine.Object.Destroy(wall); wall = null; yield return null; Physics.SyncTransforms();
+            Vector3 clearedWallStart = actor.transform.position; yield return Wait(.15f);
+            Check(Vector3.Distance(clearedWallStart, actor.transform.position) < .03f, "Clearing the wall cannot release previously blocked impact travel");
+            measurements.Add(new { fixture = "impact-wall", delta = stoppedImpact.ToString("F4") });
+
+            StepName("Literal WASD directions through the quarter-view camera");
+            var keyInputs = new[] { Vector2.up, Vector2.down, Vector2.left, Vector2.right,
+                new Vector2(1,1), new Vector2(-1,1), new Vector2(1,-1), new Vector2(-1,-1) };
+            foreach (float facing in new[] { 0f, 45f, 117f, 276.5f })
+            foreach (Vector2 input in keyInputs)
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                Reset(); yield return Wait(.1f);
+                Vector3 impact = -(Quaternion.Euler(0, facing, 0) * Vector3.forward);
+                health.TakeDamage(Hit(impact));
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Literal key fixture reaches hold " + facing + "/" + input);
+                var keys = new List<UnityEngine.InputSystem.Key>();
+                if (input.y > 0) keys.Add(UnityEngine.InputSystem.Key.W); if (input.y < 0) keys.Add(UnityEngine.InputSystem.Key.S);
+                if (input.x < 0) keys.Add(UnityEngine.InputSystem.Key.A); if (input.x > 0) keys.Add(UnityEngine.InputSystem.Key.D);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
+                yield return null; yield return null;
+                Vector3 requested = movement.ResolveMoveDirection(input).normalized;
+                Vector3 requestedLocal = Quaternion.Inverse(actor.transform.rotation) * requested;
+                Check(Vector2.Dot(reaction.PendingRiseInput, new Vector2(requestedLocal.x, requestedLocal.z)) > .99f,
+                    "Literal WASD reaches pending direction " + facing + "/" + input
+                    + " pending=" + reaction.PendingRiseInput + " raw=" + actor.GetComponent<PlayerMovementInputSource>().RawMoveInput
+                    + " facade=" + facade.MoveValue + " key=" + keyboard.wKey.isPressed
+                    + " phase=" + reaction.Phase + " blocked=" + GameplayInputBlocker.IsGameplayInputBlocked
+                    + " enabled=" + facade.IsGameplayEnabled + " expected=" + requestedLocal);
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Literal WASD rise starts " + facing + "/" + input);
+                Vector3 start = actor.transform.position;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return Until(() => !reaction.IsActive, 2, "Literal WASD rise completes " + facing + "/" + input);
+                Vector3 delta = actor.transform.position - start; delta.y = 0;
+                Check(delta.magnitude > reaction.AnimationSet.riseDistance * .8f && delta.magnitude <= reaction.AnimationSet.riseDistance + .04f,
+                    "Literal WASD rise consumes its bounded distance " + facing + "/" + input);
+                Check(Vector3.Dot(delta.normalized, requested) > .99f,
+                    "Literal WASD travels in the requested world direction without cardinal snapping " + facing + "/" + input);
+                measurements.Add(new { fixture = "literal-WASD", facing, input = input.ToString(), requested = requested.ToString("F4"), delta = delta.ToString("F4") });
             }
 
             StepName("Release input, wall, airborne and lifecycle"); Reset(); yield return Wait(.1f); health.TakeDamage(Hit());

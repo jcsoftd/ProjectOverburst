@@ -203,7 +203,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
             if (!exiting)
             {
                 if (travelDirection.sqrMagnitude > .001f)
-                    travelDirection = bodyFrame * new Vector3(motion.direction.x, 0, motion.direction.y).normalized;
+                    travelDirection = bodyFrame * new Vector3(PendingRiseInput.x, 0, PendingRiseInput.y).normalized;
                 MoveAlong(travelDirection, travelDirection.sqrMagnitude > .001f ? animationSet.riseDistance : 0);
                 if (elapsed >= motion.clip.length) { exiting = true; exitElapsed = 0; }
             }
@@ -244,7 +244,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         if (rise == null) { ResetReaction(); return; }
         motion = rise;
         travelDirection = PendingRiseInput.sqrMagnitude > .001f
-            ? bodyFrame * new Vector3(rise.direction.x, 0, rise.direction.y).normalized : Vector3.zero;
+            ? bodyFrame * new Vector3(PendingRiseInput.x, 0, PendingRiseInput.y).normalized : Vector3.zero;
         ApplyClip(animationSet.riseTemplate, rise.clip);
         animator.CrossFadeInFixedTime(Animator.StringToHash(PlayerKnockdownAnimationSet.RiseState), animationSet.riseBlend, layer, 0);
         Phase = PlayerKnockdownPhase.Rising;
