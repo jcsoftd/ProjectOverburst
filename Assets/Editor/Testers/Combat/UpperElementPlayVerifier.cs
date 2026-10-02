@@ -403,10 +403,26 @@ public static class UpperElementPlayVerifier
             Corrode(donorA, 1); // Later weak-hit corrosion belongs to the next slam.
             melee.CancelCurrentAttackState();
             bool commonVoiceObserved = false;
+            var unmarkedResponse = unmarked.GetComponent<EnemyHitResponseCoordinator>();
+            var markedResponse = markedOutside.GetComponent<EnemyHitResponseCoordinator>();
+            Check(unmarkedResponse != null && markedResponse != null, "Projectile recipients have hit-response owners");
+            bool unmarkedHitMotionObserved = false, markedHitMotionObserved = false;
+            bool HitMotionActive(EnemyActor enemy)
+            {
+                var bridge = enemy.GetComponent<EnemyAnimationBridge>();
+                var animator = enemy.GetComponentInChildren<Animator>(true);
+                if (bridge == null || animator == null) return false;
+                string hitState = (string)typeof(EnemyAnimationBridge).GetField("hitStateName",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(bridge);
+                return animator.GetCurrentAnimatorStateInfo(0).IsName(hitState)
+                    || (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).IsName(hitState));
+            }
             while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f)
             {
                 commonVoiceObserved |= UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
                     .Any(a => a.isPlaying && commonClips.Contains(a.clip));
+                unmarkedHitMotionObserved |= HitMotionActive(unmarked);
+                markedHitMotionObserved |= HitMotionActive(markedOutside);
                 yield return null;
             }
             Check(DarkBarrageScheduler.ActiveCount == 0, "Barrage finishes after attack cancel");
@@ -418,6 +434,12 @@ public static class UpperElementPlayVerifier
                 "Projectile hits preserve new/recipient corrosion and never recharge energy");
             Check(DarkBarrageScheduler.TotalCommonHitSfx == sfxBefore + 8 && commonVoiceObserved,
                 "Every confirmed projectile hit requests sound and common AudioSource actually plays");
+            Check(unmarkedResponse.FlinchCount > 0 && markedResponse.FlinchCount > 0,
+                "Projectile-only recipients react through the derived flinch owner");
+            Check(unmarkedHitMotionObserved && markedHitMotionObserved,
+                "Projectile-only recipients enter their authored Animator hit states");
+            results.Add(new { goal = "D2-hit-motion", unmarkedFlinches = unmarkedResponse.FlinchCount,
+                markedFlinches = markedResponse.FlinchCount, unmarkedHitMotionObserved, markedHitMotionObserved });
             var launchOrder = DarkBarrageScheduler.LastLaunchTargets.ToList();
             var launchTimes = DarkBarrageScheduler.LastLaunchTimes.ToList();
             Check(launchOrder.Count == 8 && launchOrder.Take(3).Distinct().Count() == 3,

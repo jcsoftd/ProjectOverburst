@@ -4,7 +4,7 @@ using UnityEngine;
 // 60D 4 (2026-10-02): confirmed slam hits consume corrosion immediately. Their stack sum becomes one
 // shared ammo count, fired in small volleys at shuffled enemies visible when the slam was committed.
 // Flight speed and curves are unchanged. The barrage outlives the weapon action; derived hits only add
-// the existing monster hit sound and never charge energy or apply corrosion.
+// the existing monster hit sound/flinch and never charge energy or apply corrosion.
 public sealed class DarkBarrageScheduler : MonoBehaviour
 {
     private struct Entry
@@ -532,6 +532,9 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         if (!(actualDamage > 0f) || info.source != feedbackSource || info.triggersOnHitEffects
             || info.element != WeaponElement.Dark || (info.playerAttackKind & PlayerAttackKind.Heavy) != 0) return;
         damageConfirmed = true;
+        // Borrow the existing derived-hit reaction without enabling stacks or energy. Death keeps priority.
+        if (!lethal && health.TryGetComponent<EnemyHitResponseCoordinator>(out var response))
+            response.TryApplyDerivedFlinch(info);
         var request = new CombatHitFeedbackRequest(feedbackSource, 0, null, false, WeaponElement.Dark,
             feedbackPoint, false, worldDirection: feedbackDirection, isLethal: lethal, target: health);
         if (CombatActionSfxService.TryPlayOrganicHit(request, feedbackPoint)) TotalCommonHitSfx++;
