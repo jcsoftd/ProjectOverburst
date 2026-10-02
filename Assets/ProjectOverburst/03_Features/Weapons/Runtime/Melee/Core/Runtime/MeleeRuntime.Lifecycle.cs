@@ -91,7 +91,7 @@ public partial class MeleeRuntime
             return;
         }
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.ReplacesGreatswordGround(activeDischarge))
-            MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center, heavyParried);
+            MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center, heavyParried, activeDischarge.Energy);
         // 60D light: the slam is the triple's 1st hit (overcharged) or the double's 2nd hit, each with its own circle.
         bool lightHeavy = activeDischarge.Element == WeaponElement.Light;
         int lightSlamHit = lightHeavy ? activeDischarge.LightFirstHitIndex : 0;

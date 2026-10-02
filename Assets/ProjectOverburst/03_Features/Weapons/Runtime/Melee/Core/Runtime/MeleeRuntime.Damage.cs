@@ -3,6 +3,10 @@ using UnityEngine;
 // MeleeRuntime partial: 패턴 피해, 넉백·띄우기, 치명타, 지속 피해, 흡혈. 필드와 Unity 수명주기는 MeleeRuntime.cs에 있다.
 public partial class MeleeRuntime
 {
+    // A committed heavy retains its sound strength after consumption/refund and during its remaining trails.
+    public float ElementSfxEnergy => activeAttackIsHeavy && activeDischarge != null
+        ? activeDischarge.Energy : GetComponent<OverburstElementEnergy>()?.Amount ?? 0f;
+
     private void DealPatternDamage(AttackPhaseHit hit) => DealPatternDamage(hit, 0);
 
     private void DealPatternDamage(AttackPhaseHit hit, int darkBarrageId)
@@ -28,6 +32,7 @@ public partial class MeleeRuntime
         int hitActionId = activeActionId;
         var hitDischarge = activeDischarge;
         int darkDonorId = hasDischargeTarget ? hit.TargetHealth.GetInstanceID() : 0;
+        float elementSfxEnergy = ElementSfxEnergy; // Capture before confirmed damage charges a weak hit.
         MeleeDamageResult result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
             hit.Damageable,
             runtimeData.Damage,
@@ -90,7 +95,8 @@ public partial class MeleeRuntime
                         ? CombatImpactShape.Downward : CombatImpactShape.Sweep,
                 impactDirection: runtimeData.Pattern.IsThrust || phase.vfxSwingSettings.orientation == AttackVfxSwingOrientation.Vertical
                     ? hit.Direction : Vector3.Cross(Vector3.up, hit.Direction)
-                        * (phase.vfxSwingSettings.reverseDirection ? -1f : 1f)));
+                        * (phase.vfxSwingSettings.reverseDirection ? -1f : 1f),
+                elementSfxEnergy: elementSfxEnergy));
         }
 
         if (impact.triggersOnHitEffects)

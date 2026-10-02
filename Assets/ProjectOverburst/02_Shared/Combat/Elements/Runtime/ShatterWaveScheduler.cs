@@ -14,7 +14,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         public int Life;
         public GameObject Source, Prefab;
         public Vector3 Point, Direction, VfxPoint;
-        public float Damage, Due;
+        public float Damage, Due, SfxEnergy;
         public bool VisualOnly;
     }
     private static ShatterWaveScheduler instance;
@@ -32,7 +32,8 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
     private static void ResetStatics() => instance = null;
 
     public static void Submit(CombatHealth target, float damage, GameObject source,
-        GameObject prefab, Vector3 center, Vector3 point, Vector3 direction, float radius)
+        GameObject prefab, Vector3 center, Vector3 point, Vector3 direction, float radius,
+        float sfxEnergy = MeleeElementSfxService.FullVolumeEnergy)
     {
         if (target == null) return;
         if (instance == null)
@@ -48,7 +49,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         var item = new Pending { Target = target, Status = status,
             Life = status != null ? status.LifecycleVersion : 0,
             Source = source, Prefab = prefab, Point = point, Direction = direction, VfxPoint = vfxPoint,
-            Damage = damage, Due = instance.clock + delay, VisualOnly = target.IsDead };
+            Damage = damage, Due = instance.clock + delay, VisualOnly = target.IsDead, SfxEnergy = sfxEnergy };
         if (delay <= 0) Dispatch(item);
         else instance.pending.Add(item);
     }
@@ -78,7 +79,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         }
         if (item.Prefab != null)
             TransientVfxPool.Spawn(item.Prefab, item.VfxPoint, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));
-        MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Ice, item.VfxPoint); // A21 대상별 쇄빙음
+        MeleeElementSfxService.TryPlayFollowUp(WeaponElement.Ice, item.VfxPoint, item.SfxEnergy); // A21 대상별 쇄빙음
     }
     private void OnDestroy()
     {

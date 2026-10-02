@@ -20,6 +20,7 @@ public readonly struct CombatHitFeedbackRequest
     public readonly CombatHealth Target;
     public readonly CombatImpactShape ImpactShape;
     public readonly Vector3 ImpactDirection;
+    public readonly float ElementSfxEnergy;
 
     public CombatHitFeedbackRequest(
         Object source,
@@ -38,7 +39,8 @@ public readonly struct CombatHitFeedbackRequest
         int phaseIndex = 0,
         CombatHealth target = null,
         CombatImpactShape impactShape = CombatImpactShape.Sweep,
-        Vector3 impactDirection = default)
+        Vector3 impactDirection = default,
+        float elementSfxEnergy = MeleeElementSfxService.FullVolumeEnergy)
     {
         Source = source;
         AttackSequenceId = attackSequenceId;
@@ -57,6 +59,7 @@ public readonly struct CombatHitFeedbackRequest
         Target = target;
         ImpactShape = impactShape;
         ImpactDirection = impactDirection.sqrMagnitude > .0001f ? impactDirection : worldDirection;
+        ElementSfxEnergy = elementSfxEnergy;
     }
 }
 
@@ -157,7 +160,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             index = nextGroup;
             nextGroup = (nextGroup + 1) % groups.Length;
             groups[index] = new HitGroup { Occupied = true, Request = request };
-            MeleeElementSfxService.TryPlayHit(request.Element, visualContact, request.IsCritical);
+            MeleeElementSfxService.TryPlayHit(request.Element, visualContact, request.IsCritical, request.ElementSfxEnergy);
         }
         if (!groups[index].OrganicSfxPlayed
             && CombatActionSfxService.TryPlayOrganicHit(request, visualContact))
@@ -187,7 +190,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
                 groups[i].AnyCritical, request.Element, request.HitPoint, request.AllowGlobalFeedback,
                 request.CameraRequestKind, request.WorldDirection, request.CameraPriority,
                 request.HasCameraDirectionOverride, request.CameraDirectionOverride, groups[i].AnyLethal,
-                request.PhaseIndex, request.Target, request.ImpactShape, request.ImpactDirection));
+                request.PhaseIndex, request.Target, request.ImpactShape, request.ImpactDirection, request.ElementSfxEnergy));
         }
     }
 

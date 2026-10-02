@@ -64,7 +64,7 @@ public sealed class MeleeHeavyDischargeExecutor
         batch = ElementChainScheduler.Submit(batch, impactCenter, discharge.FirstBlastDamage,
             discharge.NormalizedEnergy, sourceActor, definition.elementVfx.FireChainExplosion,
             definition.elementVfx.electricChainLink,
-            definition.elementVfx.FireChainReferenceRadius);
+            definition.elementVfx.FireChainReferenceRadius, discharge.Energy);
     }
 
     // Kept for the action loop. Nothing runs per frame here since the 60D follow-ups moved to schedulers.
@@ -83,7 +83,7 @@ public sealed class MeleeHeavyDischargeExecutor
         var resolvingDischarge = discharge;
         if (result.Element == WeaponElement.Ice && result.Shattered)
             ShatterWaveScheduler.Submit(target, directBonus, sourceActor,
-                definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius);
+                definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius, discharge.Energy);
         else
             DealDerivedDamage(target, directBonus, hitPoint, facing);
         if (discharge != resolvingDischarge) return;
@@ -116,7 +116,7 @@ public sealed class MeleeHeavyDischargeExecutor
         for (int hit = slamHit + 1; hit <= 2; hit++)
             LightTripleImpactScheduler.Submit(sourceActor, sourceTarget.Team, impactCenter,
                 discharge.LightHitRadius(hit), discharge.LightHitDamage(hit), blastVerticalTolerance,
-                LightTripleImpactScheduler.ResolveDelay(hit, slamHit), hit);
+                LightTripleImpactScheduler.ResolveDelay(hit, slamHit), hit, discharge.Energy);
     }
 
     private void PlayImpact()

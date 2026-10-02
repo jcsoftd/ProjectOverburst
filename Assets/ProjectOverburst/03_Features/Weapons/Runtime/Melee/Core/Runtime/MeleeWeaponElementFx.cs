@@ -204,7 +204,11 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         BeginAdditional();
         BeginTipTrail();
         if (OverburstElementRules.IsActive(shownElement))
-            MeleeElementSfxService.TryPlaySlash(shownElement, trailAnchor != null ? trailAnchor.position : transform.position);
+        {
+            var runtime = equipment != null ? equipment.GetComponent<MeleeRuntime>() : null;
+            float sfxEnergy = runtime != null ? runtime.ElementSfxEnergy : energy != null ? energy.Amount : 0f;
+            MeleeElementSfxService.TryPlaySlash(shownElement, trailAnchor != null ? trailAnchor.position : transform.position, sfxEnergy);
+        }
     }
     private void BeginAdditional()
     {

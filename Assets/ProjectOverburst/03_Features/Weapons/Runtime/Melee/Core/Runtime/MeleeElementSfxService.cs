@@ -6,6 +6,14 @@ public sealed class MeleeElementSfxService : MonoBehaviour
 {
     public const int InitialPoolSize = 8;
     public const int MaximumPoolSize = 32;
+    public const float SilentEnergy = 1f;
+    public const float FullVolumeEnergy = 60f;
+
+    public static float ResolveEnergyVolume(float energy)
+    {
+        if (float.IsNaN(energy)) return 0f;
+        return Mathf.Clamp01((energy - SilentEnergy) / (FullVolumeEnergy - SilentEnergy));
+    }
 
     private sealed class Voice
     {
@@ -46,13 +54,14 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         ? configuredCatalog.upperHeavy.lightSparkleDelay : 0.15f;
 
     // 60D 암흑·빛 강공 단계음 한 번.
-    public static bool TryPlayUpperHeavy(UpperHeavySfxStage stage, Vector3 position, bool successfulParry = false)
+    public static bool TryPlayUpperHeavy(UpperHeavySfxStage stage, Vector3 position, bool successfulParry = false, float energy = FullVolumeEnergy)
     {
+        if (ResolveEnergyVolume(energy) <= 0f) return false;
         EnsureInstance();
         MeleeElementSfxCueSettings settings = configuredCatalog != null && configuredCatalog.upperHeavy != null
             ? configuredCatalog.upperHeavy.Get(stage) : null;
         bool played = instance != null && settings != null && settings.TryPickClip(out AudioClip clip)
-            && instance.TryPlaySettings(settings, clip, UpperHeavyKeyBase + (int)stage, position, successfulParry);
+            && instance.TryPlaySettings(settings, clip, UpperHeavyKeyBase + (int)stage, position, successfulParry, energy);
         if (played && (int)stage < UpperHeavyStageSlots)
         {
             upperHeavyPlays[(int)stage]++;
@@ -77,23 +86,23 @@ public sealed class MeleeElementSfxService : MonoBehaviour
 
     // 빛 강공 N타(0 내려치기 · 1 2타 · 2 마지막 타). 2연타는 내려치기 뒤 곧바로 마지막 타(2)다.
     // 2타·마지막 타에는 폭발과 공용 저음을 같은 순간 겹친다(2026-09-30 청음 결정).
-    public static bool TryPlayLightHeavyHit(int hitIndex, Vector3 position, bool successfulParry = false)
+    public static bool TryPlayLightHeavyHit(int hitIndex, Vector3 position, bool successfulParry = false, float energy = FullVolumeEnergy)
     {
         UpperHeavySfxStage stage = hitIndex <= 0 ? UpperHeavySfxStage.LightHit1
             : hitIndex == 1 ? UpperHeavySfxStage.LightHit2 : UpperHeavySfxStage.LightHit3;
-        bool played = TryPlayUpperHeavy(stage, position, successfulParry && hitIndex <= 0);
+        bool played = TryPlayUpperHeavy(stage, position, successfulParry && hitIndex <= 0, energy);
         if (hitIndex <= 0) return played;
-        TryPlayUpperHeavy(hitIndex == 1 ? UpperHeavySfxStage.LightHit2Layer : UpperHeavySfxStage.LightHit3Layer, position);
-        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position);
+        TryPlayUpperHeavy(hitIndex == 1 ? UpperHeavySfxStage.LightHit2Layer : UpperHeavySfxStage.LightHit3Layer, position, energy: energy);
+        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position, energy: energy);
         return played;
     }
 
     // 암흑 강공 폭발: 폭발음 + 겹침 폭발 + 공용 저음.
-    public static bool TryPlayDarkBurst(Vector3 position)
+    public static bool TryPlayDarkBurst(Vector3 position, float energy = FullVolumeEnergy)
     {
-        bool played = TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurst, position);
-        TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurstLayer, position);
-        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position);
+        bool played = TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurst, position, energy: energy);
+        TryPlayUpperHeavy(UpperHeavySfxStage.DarkBurstLayer, position, energy: energy);
+        TryPlayUpperHeavy(UpperHeavySfxStage.HeavyLowBoom, position, energy: energy);
         return played;
     }
 
@@ -118,34 +127,34 @@ public sealed class MeleeElementSfxService : MonoBehaviour
     {
         if (!ReplacesGreatswordGround(discharge)) return false;
         if (discharge.Element != WeaponElement.Light)
-            return TryPlayHeavyImpact(discharge.Element, position, successfulParry);
-        TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position);
-        return TryPlayLightHeavyHit(0, position, successfulParry);
+            return TryPlayHeavyImpact(discharge.Element, position, successfulParry, discharge.Energy);
+        TryPlayUpperHeavy(UpperHeavySfxStage.LightBuildUp, position, energy: discharge.Energy);
+        return TryPlayLightHeavyHit(0, position, successfulParry, discharge.Energy);
     }
 
-    public static bool TryPlaySlash(WeaponElement element, Vector3 position)
+    public static bool TryPlaySlash(WeaponElement element, Vector3 position, float energy = FullVolumeEnergy)
     {
-        return TryPlay(element, MeleeElementSfxCueType.Slash, position);
+        return TryPlay(element, MeleeElementSfxCueType.Slash, position, energy: energy);
     }
 
-    public static bool TryPlayHit(WeaponElement element, Vector3 position, bool critical = false)
+    public static bool TryPlayHit(WeaponElement element, Vector3 position, bool critical = false, float energy = FullVolumeEnergy)
     {
         // 2026-09-30 17:56 결정: 무속성 무기는 무기 타격음이 없다(치명타 포함). 몬스터 공용 피격음이 모든 적에게 난다.
         if (element == WeaponElement.None) return false;
         // 치명타 큐가 비어 있거나 재생되지 않으면 일반 타격음으로 대체한다.
-        return (critical && TryPlay(element, MeleeElementSfxCueType.CriticalHit, position))
-            || TryPlay(element, MeleeElementSfxCueType.Hit, position);
+        return (critical && TryPlay(element, MeleeElementSfxCueType.CriticalHit, position, energy: energy))
+            || TryPlay(element, MeleeElementSfxCueType.Hit, position, energy: energy);
     }
 
-    public static bool TryPlayHeavyImpact(WeaponElement element, Vector3 position, bool successfulParry = false)
+    public static bool TryPlayHeavyImpact(WeaponElement element, Vector3 position, bool successfulParry = false, float energy = FullVolumeEnergy)
     {
-        return TryPlay(element, MeleeElementSfxCueType.HeavyImpact, position, successfulParry);
+        return TryPlay(element, MeleeElementSfxCueType.HeavyImpact, position, successfulParry, energy);
     }
 
     // 강공 방출 후속 한 번: 번개 홉 도착점, 화염 전파 폭발점, 얼음 쇄빙 대상 위치.
-    public static bool TryPlayFollowUp(WeaponElement element, Vector3 position)
+    public static bool TryPlayFollowUp(WeaponElement element, Vector3 position, float energy = FullVolumeEnergy)
     {
-        return TryPlay(element, MeleeElementSfxCueType.FollowUp, position);
+        return TryPlay(element, MeleeElementSfxCueType.FollowUp, position, energy: energy);
     }
 
     public static bool IsSlashCueKey(string key)
@@ -159,10 +168,12 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         WeaponElement element,
         MeleeElementSfxCueType cueType,
         Vector3 position,
-        bool successfulParry = false)
+        bool successfulParry = false,
+        float energy = FullVolumeEnergy)
     {
+        if (ResolveEnergyVolume(energy) <= 0f) return false;
         EnsureInstance();
-        return instance != null && instance.TryPlayInternal(element, cueType, position, successfulParry);
+        return instance != null && instance.TryPlayInternal(element, cueType, position, successfulParry, energy);
     }
 
     private static void EnsureInstance()
@@ -213,7 +224,8 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         WeaponElement element,
         MeleeElementSfxCueType cueType,
         Vector3 position,
-        bool successfulParry)
+        bool successfulParry,
+        float energy)
     {
         if (resolver == null
             || !resolver.TryResolve(element, cueType, out MeleeElementSfxCueSettings settings)
@@ -224,10 +236,10 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         }
 
         int cooldownKey = ((int)element * CueTypeCount) + (int)cueType;
-        return TryPlaySettings(settings, clip, cooldownKey, position, successfulParry);
+        return TryPlaySettings(settings, clip, cooldownKey, position, successfulParry, energy);
     }
 
-    private bool TryPlaySettings(MeleeElementSfxCueSettings settings, AudioClip clip, int cooldownKey, Vector3 position, bool successfulParry = false)
+    private bool TryPlaySettings(MeleeElementSfxCueSettings settings, AudioClip clip, int cooldownKey, Vector3 position, bool successfulParry, float energy)
     {
         float now = Time.unscaledTime;
         if (nextAllowedTime.TryGetValue(cooldownKey, out float allowedTime) && now < allowedTime)
@@ -240,7 +252,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
             return false;
 
         AudioSource source = voice.Source;
-        ConfigureSource(source, settings, clip, position);
+        ConfigureSource(source, settings, clip, position, energy);
         source.Play();
         float pitch = Mathf.Max(0.1f, Mathf.Abs(source.pitch));
         voice.EndDspTime = AudioSettings.dspTime + clip.length / pitch + 0.05d;
@@ -251,7 +263,7 @@ public sealed class MeleeElementSfxService : MonoBehaviour
             Voice extra = AcquireVoice();
             if (extra?.Source != null)
             {
-                ConfigureSource(extra.Source, settings, clip, position, source.pitch);
+                ConfigureSource(extra.Source, settings, clip, position, energy, source.pitch);
                 extra.Source.volume = source.volume * 0.5f;
                 extra.Source.Play();
                 extra.EndDspTime = voice.EndDspTime;
@@ -313,12 +325,13 @@ public sealed class MeleeElementSfxService : MonoBehaviour
         MeleeElementSfxCueSettings settings,
         AudioClip clip,
         Vector3 position,
+        float energy,
         float? pitchOverride = null)
     {
         ResetSource(source);
         source.transform.position = position;
         source.clip = clip;
-        source.volume = ResolveOutputVolume(settings.volume);
+        source.volume = ResolveOutputVolume(settings.volume) * ResolveEnergyVolume(energy);
         source.pitch = pitchOverride ?? settings.ResolvePitch();
         source.spatialBlend = settings.spatial ? 1f : 0f;
         source.minDistance = Mathf.Max(0.1f, settings.minDistance);

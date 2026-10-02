@@ -10,7 +10,7 @@ public sealed class LightTripleImpactScheduler : MonoBehaviour
         public GameObject Source;
         public CombatTeam Team;
         public Vector3 Center;
-        public float Radius, Damage, VerticalTolerance, Due;
+        public float Radius, Damage, VerticalTolerance, Due, SfxEnergy;
         public int HitIndex;
         public bool SparkleOnly; // 소리만: 마지막 타 뒤 반짝임
     }
@@ -38,7 +38,7 @@ public sealed class LightTripleImpactScheduler : MonoBehaviour
     }
 
     public static void Submit(GameObject source, CombatTeam team, Vector3 center, float radius, float damage,
-        float verticalTolerance, float delay, int hitIndex)
+        float verticalTolerance, float delay, int hitIndex, float sfxEnergy = MeleeElementSfxService.FullVolumeEnergy)
     {
         if (source == null || radius <= 0f || !(damage > 0f)) return;
         EnsureInstance();
@@ -46,7 +46,7 @@ public sealed class LightTripleImpactScheduler : MonoBehaviour
         {
             Source = source, Team = team, Center = center, Radius = radius, Damage = damage,
             VerticalTolerance = Mathf.Max(0f, verticalTolerance), Due = instance.clock + Mathf.Max(0f, delay),
-            HitIndex = hitIndex
+            HitIndex = hitIndex, SfxEnergy = sfxEnergy
         });
     }
 
@@ -88,13 +88,13 @@ public sealed class LightTripleImpactScheduler : MonoBehaviour
     {
         if (item.SparkleOnly)
         {
-            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.LightSparkle, item.Center);
+            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.LightSparkle, item.Center, energy: item.SfxEnergy);
             return;
         }
         // N타 소리는 VFX와 같은 프레임에 한 번. 마지막 타(2) 뒤에는 반짝임을 예약한다.
-        MeleeElementSfxService.TryPlayLightHeavyHit(item.HitIndex, item.Center);
+        MeleeElementSfxService.TryPlayLightHeavyHit(item.HitIndex, item.Center, energy: item.SfxEnergy);
         if (item.HitIndex >= 2)
-            pending.Add(new Pending { Center = item.Center, Due = clock + MeleeElementSfxService.LightSparkleDelay, SparkleOnly = true });
+            pending.Add(new Pending { Center = item.Center, Due = clock + MeleeElementSfxService.LightSparkleDelay, SparkleOnly = true, SfxEnergy = item.SfxEnergy });
         // 2타·마지막 타: 충격파 + 카메라 흔들림(마지막 타가 더 세게). 내려치기(1타)는 MeleeHeavyDischargeExecutor가 낸다.
         UpperHeavyImpactFeedback.PlayShockwave(item.Center, item.Radius);
         if (item.Source != null)

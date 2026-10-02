@@ -36,7 +36,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         public GameObject Source;
         public CombatTeam Team;
         public Vector3 Center;
-        public float SearchRadius, VerticalTolerance, ShotDamage, Interval, RiseTime, Clock;
+        public float SearchRadius, VerticalTolerance, ShotDamage, Interval, RiseTime, Clock, SfxEnergy;
         public int Remaining, StartFrame;
         public int Id, StackSum, ShotsPerVolley, DeckCursor, LastPicked = -1;
         public int CurrentVolley = -1;
@@ -51,7 +51,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         {
             Source = null; Entries.Clear(); Shots.Clear(); Deck.Clear(); Donors.Clear(); VolleyTargets.Clear(); Clock = 0f; Remaining = 0;
             StackSum = DeckCursor = 0; LastPicked = -1;
-            CurrentVolley = -1;
+            CurrentVolley = -1; SfxEnergy = 0f;
             StopLaunching = FinisherAnnounced = false; Vfx = default;
         }
     }
@@ -184,6 +184,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         cast.Team = team;
         cast.Center = center;
         cast.Vfx = vfx;
+        cast.SfxEnergy = discharge.Energy;
         cast.StartFrame = Time.frameCount;
         cast.VerticalTolerance = Mathf.Max(0f, verticalTolerance);
         float damageBonus = 1f + FlaskCombatModifiers.Bonus(source, FlaskEffect.DarkBurstDamage);
@@ -295,6 +296,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         int launchBudget = tuning.SafeDarkBarrageMaxLaunchPerFrame;
         int launchedThisFrame = 0;
         bool hitThisFrame = false, finisherHitThisFrame = false;
+        float hitEnergy = 0f, finisherHitEnergy = 0f;
         Vector3 lastHitPoint = Vector3.zero;
         for (int c = active.Count - 1; c >= 0; c--)
         {
@@ -327,6 +329,8 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
                     {
                         hitThisFrame |= !shot.Finisher;
                         finisherHitThisFrame |= shot.Finisher;
+                        if (shot.Finisher) finisherHitEnergy = Mathf.Max(finisherHitEnergy, cast.SfxEnergy);
+                        else hitEnergy = Mathf.Max(hitEnergy, cast.SfxEnergy);
                         lastHitPoint = shot.Position;
                     }
                     Finish(cast, ref shot, now);
@@ -341,12 +345,12 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         if (hitThisFrame && now - lastHitSfx >= sfxGap)
         {
             lastHitSfx = now;
-            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageHit, lastHitPoint);
+            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageHit, lastHitPoint, energy: hitEnergy);
         }
         if (finisherHitThisFrame && now - lastFinisherHitSfx >= sfxGap)
         {
             lastFinisherHitSfx = now;
-            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageFinisherHit, lastHitPoint);
+            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageFinisherHit, lastHitPoint, energy: finisherHitEnergy);
         }
         ReleaseLingering(now);
     }
@@ -400,13 +404,13 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         if (shot.Finisher && !cast.FinisherAnnounced)
         {
             cast.FinisherAnnounced = true;
-            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageFinisherLaunch, shot.Position);
+            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageFinisherLaunch, shot.Position, energy: cast.SfxEnergy);
             if (cast.Source != null) UpperHeavyImpactFeedback.RequestCamera(cast.Source.transform.position, cast.Center, 1f);
         }
         else if (now - lastLaunchSfx >= tuning.SafeDarkBarrageSfxMinInterval)
         {
             lastLaunchSfx = now;
-            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageLaunch, shot.Position);
+            MeleeElementSfxService.TryPlayUpperHeavy(UpperHeavySfxStage.DarkBarrageLaunch, shot.Position, energy: cast.SfxEnergy);
         }
         return true;
     }
