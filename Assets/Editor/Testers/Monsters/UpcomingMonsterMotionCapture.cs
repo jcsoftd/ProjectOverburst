@@ -16,7 +16,8 @@ using Object=UnityEngine.Object;
 /// <summary>Render publisher animation clips in an isolated preview scene, without entering Play.</summary>
 public static class UpcomingMonsterMotionCapture
 {
-    const int Cell=320,Cols=6,Layer=31;
+    const int Cell=320,Cols=6,Layer=31,FramesPerSecond=20,ChunkFrames=72;
+    const string CaptureVersion="20261002-smooth-boss-2";
     static JObject plan;
     static JArray results;
     static Queue<JObject> tasks;
@@ -33,16 +34,17 @@ public static class UpcomingMonsterMotionCapture
         if(File.Exists(receipt))
         {
             var previous=JObject.Parse(File.ReadAllText(receipt));
-            if((string)previous["status"]!="PASS")results=(JArray)previous["results"];
+            if((string)previous["captureVersion"]==CaptureVersion && (string)previous["status"]!="PASS")results=(JArray)previous["results"];
         }
-        var done=new HashSet<string>(results.OfType<JObject>().Select(r=>(string)r["id"]+"/"+(string)r["kind"]));
-        tasks=new Queue<JObject>(((JArray)plan["tasks"]).OfType<JObject>().Where(t=>!done.Contains((string)t["id"]+"/"+(string)t["kind"])));
+        var done=new HashSet<string>(results.OfType<JObject>().Select(r=>(string)r["taskKey"]));
+        tasks=new Queue<JObject>(((JArray)plan["tasks"]).OfType<JObject>().Where(t=>!done.Contains(TaskKey(t))));
         Write("QUEUED");EditorApplication.update+=Tick;
         return "QUEUED "+tasks.Count+" isolated animation captures";
     }
+    static string TaskKey(JObject task)=>string.Join("|",new[]{"id","kind","model","animation","clip"}.Select(k=>(string)task[k]));
     static void Write(string status,string error=null)
     {
-        var value=new JObject{{"status",status},{"remaining",tasks?.Count??0},{"results",results.DeepClone()}};
+        var value=new JObject{{"captureVersion",CaptureVersion},{"status",status},{"remaining",tasks?.Count??0},{"results",results.DeepClone()}};
         if(error!=null)value["error"]=error;
         File.WriteAllText(Path.Combine(output,"motion-capture-job.json"),value.ToString());
     }
@@ -85,9 +87,19 @@ public static class UpcomingMonsterMotionCapture
             var playable=AnimationClipPlayable.Create(graph,clip);playable.SetApplyFootIK(false);playable.SetApplyPlayableIK(false);
             var animationOutput=AnimationPlayableOutput.Create(graph,"Clip",animator);animationOutput.SetSourcePlayable(playable);graph.Play();
             Action<float> pose=t=>{playable.SetTime(Mathf.Min(t,Mathf.Max(0,clip.length-.0001f)));graph.Evaluate(0);};
-            int n=Mathf.Clamp(Mathf.CeilToInt(clip.length*18),24,48),rows=(n+Cols-1)/Cols;
+            var bindings=AnimationUtility.GetCurveBindings(clip);
+            var missing=bindings.Where(b=>b.type==typeof(Transform) && b.path!="" && animator.transform.Find(b.path)==null).Select(b=>b.path).Distinct().ToArray();
+            var weighted=new HashSet<Transform>(model.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.bones).Where(b=>b!=null));
+            var animatedBones=bindings.Where(b=>b.type==typeof(Transform) && weighted.Contains(b.path==""?animator.transform:animator.transform.Find(b.path)))
+                .Where(b=>{var c=AnimationUtility.GetEditorCurve(clip,b);return c!=null && c.keys.Length>1 && c.keys.Max(k=>k.value)-c.keys.Min(k=>k.value)>.00001f;}).Select(b=>b.path).Distinct().ToArray();
+            if(!clip.isHumanMotion && weighted.Count>2 && animatedBones.Length<2)
+                throw new InvalidOperationException("Clip does not animate the displayed rig: "+cid+" "+kind+" ("+clip.name+")");
+            // Keep playback sampling independent of the sheet size and clip duration.
+            int n=Mathf.Max(2,Mathf.CeilToInt(clip.length*FramesPerSecond)+1);
+            Func<int,float> sample=f=>Mathf.Min(f/(float)FramesPerSecond,Mathf.Max(0,clip.length-.0001f));
+            var strips=new JArray();
             Bounds bounds=default;bool hasBounds=false;
-            for(int f=0;f<n;f+=3){pose(clip.length*f/(n-1));var b=UpcomingMonsterThemeReviewSizing.GeometryBounds(model);if(!hasBounds){bounds=b;hasBounds=true;}else bounds.Encapsulate(b);}
+            for(int f=0;f<n;f+=3){pose(sample(f));var b=UpcomingMonsterThemeReviewSizing.GeometryBounds(model);if(!hasBounds){bounds=b;hasBounds=true;}else bounds.Encapsulate(b);}
             pose(clip.length);bounds.Encapsulate(UpcomingMonsterThemeReviewSizing.GeometryBounds(model));
             var cameraObject=new GameObject("Isolated motion camera");SceneManager.MoveGameObjectToScene(cameraObject,scene);
             var camera=cameraObject.AddComponent<Camera>();camera.enabled=false;camera.scene=scene;camera.cullingMask=1<<Layer;
@@ -101,16 +113,23 @@ public static class UpcomingMonsterMotionCapture
             Light(scene,"Rim",new Vector3(35,45,0),.8f,new Color(.7f,.8f,1));
             Light(scene,"Fill",new Vector3(10,-40,0),.65f,Color.white);
             rt=RenderTexture.GetTemporary(Cell,Cell,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
-            frame=new Texture2D(Cell,Cell,TextureFormat.RGB24,false);sheet=new Texture2D(Cell*Cols,Cell*rows,TextureFormat.RGB24,false);
+            frame=new Texture2D(Cell,Cell,TextureFormat.RGB24,false);
+            pose(0);
             // The GPU skinning buffer is updated once per Editor frame. CPU snapshots
             // capture every sampled pose even when all samples share one Editor tick.
             foreach(var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 if(skin.enabled && skin.gameObject.activeInHierarchy && skin.sharedMesh!=null)
                     skins.Add(new CpuSkin(skin));
             double shapeRms=0;float jointDegrees=0;
+            int chunkCount=0,rows=0,offset=0;
             for(int f=0;f<n;f++)
             {
-                pose(clip.length*f/(n-1));
+                if(f%ChunkFrames==0)
+                {
+                    offset=f;chunkCount=Math.Min(ChunkFrames,n-f);rows=(chunkCount+Cols-1)/Cols;
+                    sheet=new Texture2D(Cell*Cols,Cell*rows,TextureFormat.RGB24,false);
+                }
+                pose(sample(f));
                 foreach(var skin in skins)
                 {
                     skin.UpdatePose();
@@ -121,10 +140,17 @@ public static class UpcomingMonsterMotionCapture
                 if(RenderPipeline.SupportsRenderRequest(camera,request))RenderPipeline.SubmitRenderRequest(camera,request);
                 else {camera.targetTexture=rt;camera.Render();}
                 RenderTexture.active=rt;frame.ReadPixels(new Rect(0,0,Cell,Cell),0,0);frame.Apply();
-                sheet.SetPixels((f%Cols)*Cell,(rows-1-f/Cols)*Cell,Cell,Cell,frame.GetPixels());
+                int local=f-offset;
+                sheet.SetPixels((local%Cols)*Cell,(rows-1-local/Cols)*Cell,Cell,Cell,frame.GetPixels());
+                if(local==chunkCount-1)
+                {
+                    sheet.Apply();string path=Path.Combine(output,"motion-strips",cid+"__"+kind+"__"+(offset/ChunkFrames).ToString("D3")+".png");
+                    File.WriteAllBytes(path,sheet.EncodeToPNG());
+                    strips.Add(new JObject{{"path",path},{"frames",chunkCount},{"offset",offset},{"rows",rows}});
+                    Object.DestroyImmediate(sheet);sheet=null;
+                }
             }
-            sheet.Apply();string path=Path.Combine(output,"motion-strips",cid+"__"+kind+".png");File.WriteAllBytes(path,sheet.EncodeToPNG());
-            return new JObject{{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strip",path},{"cpuSkinned",true},{"shapeRms",shapeRms},{"jointDegrees",jointDegrees},{"skinCount",skins.Count},{"blendShapeCount",skins.Sum(s=>s.Source.sharedMesh.blendShapeCount)},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
+            return new JObject{{"taskKey",TaskKey(task)},{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strips",strips},{"fps",FramesPerSecond},{"sampleEnd",sample(n-1)},{"missingTransformPaths",new JArray(missing)},{"animatedWeightedBonePaths",new JArray(animatedBones)},{"rendererMotion",new JArray(skins.Select(s=>new JObject{{"name",s.Source.name},{"vertices",s.Source.sharedMesh.vertexCount},{"shapeRms",s.ShapeRms},{"jointDegrees",s.JointDegrees}}))},{"cpuSkinned",true},{"shapeRms",shapeRms},{"jointDegrees",jointDegrees},{"skinCount",skins.Count},{"blendShapeCount",skins.Sum(s=>s.Source.sharedMesh.blendShapeCount)},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
         }
         finally
         {
