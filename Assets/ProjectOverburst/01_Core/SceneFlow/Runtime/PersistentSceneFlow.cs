@@ -81,8 +81,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             return;
 
         ResolveLoadingScreen(); // 로딩 UI
-        if (loadingScreen != null)
-            loadingScreen.ForceHide(); // 시작 숨김
+        loadingScreen?.Show("LOADING", "게임 준비 중...");
 
         StartCoroutine(BootAccountAndWorld());
     }
@@ -104,6 +103,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         }
         if (GetComponent<Overburst.Persistence.RunLifetimeDriver>() == null)
             gameObject.AddComponent<Overburst.Persistence.RunLifetimeDriver>();
+        loadingScreen?.SetStatus("하이드아웃 준비 중...");
+        loadingScreen?.SetProgress(0.35f);
         yield return EnsureInitialSubScene();
         GameplayInputBlocker.Unblock(this);
     }
@@ -264,7 +265,11 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         isSwitching = true;
         WorldSessionState.SetPhase(WorldPhase.Loading);
         try { yield return EnsureInitialSubSceneCore(); }
-        finally { isSwitching = false; }
+        finally
+        {
+            loadingScreen?.Hide();
+            isSwitching = false;
+        }
     }
 
     private IEnumerator EnsureInitialSubSceneCore()
@@ -316,20 +321,22 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         GameplayInputBlocker.Block(this);
         ResolveLoadingScreen(); // 로딩 UI
 
+        string previousSceneName = string.IsNullOrEmpty(currentSubSceneName)
+            ? FindLoadedSubSceneName()
+            : currentSubSceneName;
         bool isReturnToHub = IsHubSceneName(newSceneName) && returnContext != null; // 허브 복귀 여부
+        bool isDungeonReturn = isReturnToHub && !string.IsNullOrEmpty(previousSceneName)
+            && !IsHubSceneName(previousSceneName);
         if (loadingScreen != null)
         {
             if (isReturnToHub)
-                loadingScreen.Show("RETURNING", "현재 지역 연결 해제 중...");
+                loadingScreen.Show("RETURNING", "현재 지역 연결 해제 중...",
+                    isDungeonReturn ? LoadingScreenArtworkContext.ReturnToHideout : LoadingScreenArtworkContext.Random);
             else
                 loadingScreen.Show("LOADING", "씬 전환 준비 중...");
 
             loadingScreen.SetProgress(0.1f); // 시작 진행
         }
-
-        string previousSceneName = string.IsNullOrEmpty(currentSubSceneName) // 이전 씬
-            ? FindLoadedSubSceneName()
-            : currentSubSceneName;
 
         if (IsHubSceneName(newSceneName))
         {

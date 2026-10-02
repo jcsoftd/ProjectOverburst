@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d08a4bf929c91824c9debb7849a49702, type: 3}
+  m_Name: LoadingScreenArtworkCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::LoadingScreenArtworkCatalog
+  randomArtworks:
+  - {fileID: 2800000, guid: 1899328bd17cd39478eb2480621d86b3, type: 3}
+  - {fileID: 2800000, guid: 6f2c3d982b30cfe48bfb9323ab75980b, type: 3}
+  - {fileID: 2800000, guid: 85b0a754735cb07468928bcf5ba52e33, type: 3}
+  - {fileID: 2800000, guid: 28a4b78dea1ef76409a075f53b5dd9cc, type: 3}
+  - {fileID: 2800000, guid: 160285e0ae81fca43afaa0c0b4fa9be8, type: 3}
+  - {fileID: 2800000, guid: f0a4eb469439b1740ade54181083b3d2, type: 3}
+  - {fileID: 2800000, guid: 3a27056c0b4b8df43ad6b68660595d61, type: 3}
+  - {fileID: 2800000, guid: be5647992c79c0742ab3eea3b0d4dc29, type: 3}
+  - {fileID: 2800000, guid: 4d22e8f2464abcd4da688fd80de9fd5e, type: 3}
+  hideoutReturnArtwork: {fileID: 2800000, guid: 28a4b78dea1ef76409a075f53b5dd9cc, type: 3}
+  artworkMaterial: {fileID: 2100000, guid: 2b20fad36f2c2e341a0c7e33426c7665, type: 2}
