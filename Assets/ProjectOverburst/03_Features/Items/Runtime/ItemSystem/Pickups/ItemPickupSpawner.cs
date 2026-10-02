@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Overburst.Persistence;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,22 +9,6 @@ public class ItemPickupSpawner : MonoBehaviour
     public const float AuthoredWeaponGridSpacing = 1.2f;
     public const float AuthoredWeaponGroupGap = 3.5f;
     public const float DefaultPickupScatterRadius = 0.16f;
-    private const int FlaskColumns = 4;
-    private const float FlaskSpacing = 1.25f;
-    private static readonly Vector3 HideoutFlaskOffset = new Vector3(0f, 0.25f, -2.5f);
-    private const float HideoutGearSpacing = 1.2f;
-    private static readonly Vector3 HideoutGearOffset = new Vector3(-9f, 0.25f, 1.8f);
-    private static readonly string[] HideoutGearAssetPaths =
-    {
-        "Items/Gear/Gear_Helmet",
-        "Items/Gear/Gear_Chest",
-        "Items/Gear/Gear_Gloves",
-        "Items/Gear/Gear_Boots",
-        "Items/Gear/Gear_EarringA",
-        "Items/Gear/Gear_EarringB",
-        "Items/Gear/Gear_Necklace"
-    };
-
     private const int WeaponBlockColumnCount = 4;
 
     private const int MinimumWeaponCopiesPerClass = 2;
@@ -33,13 +19,21 @@ public class ItemPickupSpawner : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerInventory inventory;
     [SerializeField] private Transform player;
-    [Tooltip("지정하면 하이드아웃 테스트 아이템을 이 위치 기준으로 배치한다. 비워 두면 기존 플레이어 위치를 사용한다.")]
+    [Tooltip("하이드아웃 전체 아이템 전시 격자의 중심. 비워 두면 캠프 동쪽 기본 전시 위치를 사용한다.")]
     [SerializeField] private Transform authoredSpawnOrigin;
     public Transform AuthoredSpawnOrigin => authoredSpawnOrigin;
     [SerializeField] private WeaponItemData testWeaponItem;
     [SerializeField] private WeaponItemData[] weaponItemAssets;
     [SerializeField] private BaseItemData moveSpeedPotionItem;
     [SerializeField] private BaseItemData smallHealPotionItem;
+
+    [Header("Hideout Catalog")]
+    [Tooltip("전체 아이템 전시 격자의 한 행에 놓을 개수")]
+    [SerializeField, Min(1)] private int hideoutCatalogColumns = 16;
+    [Tooltip("아이템 사이 간격(m)")]
+    [SerializeField, Min(1.5f)] private float hideoutCatalogSpacing = 1.8f;
+    private static readonly Vector3 HideoutCatalogFallbackCenter = new Vector3(42f, 0f, 20f);
+    public int HideoutCatalogSpawnCount { get; private set; }
 
     [Header("VFX")]
     [SerializeField] private PickupGradeVfxSet pickupGradeVfxSet;
@@ -77,92 +71,121 @@ public class ItemPickupSpawner : MonoBehaviour
         if (configuredSpawnCompleted || !spawnOnStart)
             return;
 
-        configuredSpawnCompleted = true;
         ResolveReferences();
-
-        if (spawnTestWeaponOnStart)
-            SpawnTestWeaponPickup();
-
-        if (spawnRandomWeaponsOnStart)
-            SpawnRandomWeaponPickups();
-
-        if (spawnMoveSpeedPotionOnStart)
-            SpawnMoveSpeedPotionPickup();
-
-        if (spawnSmallHealPotionOnStart)
-            SpawnSmallHealPotionPickup();
-
         if (gameObject.scene.name == PersistentSceneFlow.HideoutSceneName)
         {
-            SpawnHideoutFlaskPickups();
-            SpawnHideoutGearPickups();
-        }
-
-    }
-
-    public void SpawnHideoutFlaskPickups()
-    {
-        if (gameObject.scene.name != PersistentSceneFlow.HideoutSceneName)
+            configuredSpawnCompleted = SpawnHideoutCatalogPickups();
             return;
+        }
 
-        ResolveReferences();
-        FlaskItemData[] catalog = FlaskLootPolicy.Catalog;
-        foreach (FlaskKind kind in System.Enum.GetValues(typeof(FlaskKind)))
+        configuredSpawnCompleted = true;
+        if (spawnTestWeaponOnStart) SpawnTestWeaponPickup();
+        if (spawnRandomWeaponsOnStart) SpawnRandomWeaponPickups();
+        if (spawnMoveSpeedPotionOnStart) SpawnMoveSpeedPotionPickup();
+        if (spawnSmallHealPotionOnStart) SpawnSmallHealPotionPickup();
+    }
+
+    /// <summary>저장 가능한 정식 카탈로그 전체를 정의별 한 번만 전시한다.</summary>
+    public static List<BaseItemData> CollectHideoutCatalog()
+    {
+        var result = new List<BaseItemData>();
+        var seen = new HashSet<BaseItemData>();
+        AddCatalog(Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath), result, seen);
+        foreach (var catalog in Resources.LoadAll<AccountContentRegistry>("Persistence/Supplemental"))
+            AddCatalog(catalog, result, seen);
+        result.Sort(CompareCatalogItems);
+        return result;
+    }
+
+    private static void AddCatalog(AccountContentRegistry registry, List<BaseItemData> items, HashSet<BaseItemData> seen)
+    {
+        if (registry == null) return;
+        foreach (var entry in registry.Entries)
         {
-            FlaskItemData data = null;
-            for (int i = 0; i < catalog.Length; i++)
-                if (catalog[i] != null && catalog[i].kind == kind)
-                {
-                    data = catalog[i];
-                    break;
-                }
-
-            if (data == null)
-            {
-                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 물약 자산 누락: {kind}", this);
-                continue;
-            }
-
-            int index = (int)kind;
-            int column = index % FlaskColumns;
-            int row = index / FlaskColumns;
-            Vector3 offset = HideoutFlaskOffset + new Vector3(
-                (column - (FlaskColumns - 1) * 0.5f) * FlaskSpacing,
-                0f,
-                -row * FlaskSpacing);
-            Vector3 position = GetSpawnPosition(offset);
-            ItemData item = new ItemData(data, 1, RollVtpGrade());
-            WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(
-                item, position, inventory, player, pickupGradeVfxSet);
-            PlaceAuthoredPickup(pickup, position);
-            if (pickup == null)
-                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 물약 생성 실패: {kind}", this);
+            if (entry?.asset is not BaseItemData data || !WeaponContentPolicy.IsAllowedItemData(data)) continue;
+            if (data is WeaponItemData weapon && weapon.weaponRootPrefab == null) continue;
+            if (seen.Add(data)) items.Add(data);
         }
     }
 
-    private void SpawnHideoutGearPickups()
+    private static int CatalogCategory(BaseItemData data)
     {
-        ResolveReferences();
-        int itemLevel = PlayerProgression.CurrentLevel;
-        for (int i = 0; i < HideoutGearAssetPaths.Length; i++)
+        if (data is WeaponItemData) return 0;
+        if (data is GearItemData) return 1;
+        if (data is FlaskItemData) return 2;
+        if (data is BagItemData) return 3;
+        if (data is ConsumableItemData) return 4;
+        if (data is MapItemData) return 5;
+        if (data is CurrencyItemData) return 6;
+        return 7;
+    }
+
+    private static int CompareCatalogItems(BaseItemData left, BaseItemData right)
+    {
+        int category = CatalogCategory(left).CompareTo(CatalogCategory(right));
+        if (category != 0) return category;
+        return StringComparer.Ordinal.Compare(left.name, right.name);
+    }
+
+    public static Vector3 CalculateCatalogGridOffset(int index, int count, int columns, float spacing)
+    {
+        int width = Mathf.Min(Mathf.Max(1, columns), Mathf.Max(1, count));
+        int rows = Mathf.CeilToInt(Mathf.Max(1, count) / (float)width);
+        float step = Mathf.Max(1.5f, spacing);
+        return new Vector3((index % width - (width - 1) * .5f) * step, 0f,
+            ((rows - 1) * .5f - index / width) * step);
+    }
+
+    private bool SpawnHideoutCatalogPickups()
+    {
+        var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+        var catalog = CollectHideoutCatalog();
+        if (registry == null || catalog.Count == 0 || inventory == null || player == null)
         {
-            GearItemData data = Resources.Load<GearItemData>(HideoutGearAssetPaths[i]);
-            if (data == null)
+            Debug.LogError("[ItemPickupSpawner] 전체 아이템 전시에 필요한 카탈로그/플레이어/인벤토리가 없습니다.", this);
+            return false;
+        }
+
+        Vector3 center = authoredSpawnOrigin != null ? authoredSpawnOrigin.position : HideoutCatalogFallbackCenter;
+        int itemLevel = PlayerProgression.CurrentLevel;
+        for (int i = 0; i < catalog.Count; i++)
+        {
+            BaseItemData definition = catalog[i];
+            ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
+            int level = definition is WeaponItemData || definition is GearItemData || definition is FlaskItemData
+                || definition is BagItemData || definition is MapItemData ? itemLevel : 1;
+            var item = new ItemData(definition, level, grade, 1);
+            if (definition is MapItemData)
+                item.mapState = new MapInstanceState
+                {
+                    mapContentId = registry.IdFor(definition), monsterThemeId = MapThemeCatalog.RollThemeId(),
+                    level = level, grade = grade, options = MapOptionPolicy.Roll(grade)
+                };
+            Vector3 position = center + CalculateCatalogGridOffset(i, catalog.Count, hideoutCatalogColumns, hideoutCatalogSpacing);
+            position = SnapCatalogPositionToGround(position);
+            WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(item, position, inventory, player, pickupGradeVfxSet);
+            if (pickup == null)
             {
-                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 장비 자산 누락: {HideoutGearAssetPaths[i]}", this);
+                Debug.LogError("[ItemPickupSpawner] 전체 아이템 전시 생성 실패: " + definition.name, this);
                 continue;
             }
-
-            float centeredIndex = i - (HideoutGearAssetPaths.Length - 1) * 0.5f;
-            Vector3 position = GetSpawnPosition(HideoutGearOffset
-                + Vector3.right * (centeredIndex * HideoutGearSpacing));
-            ItemData item = new ItemData(data, itemLevel, RollVtpGrade());
-            WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(
-                item, position, inventory, player, pickupGradeVfxSet);
-            PlaceAuthoredPickup(pickup, position);
-            if (pickup == null)
-                Debug.LogError($"[ItemPickupSpawner] 하이드아웃 장비 생성 실패: {data.itemName}", this);
+            pickup.PlaceAuthored(position, gameObject.scene);
+            HideoutCatalogSpawnCount++;
         }
+        return true;
+    }
+
+    private Vector3 SnapCatalogPositionToGround(Vector3 position)
+    {
+        int groundLayer = LayerMask.NameToLayer("Ground");
+        int mask = groundLayer >= 0 ? 1 << groundLayer : Physics.DefaultRaycastLayers;
+        RaycastHit[] hits = Physics.RaycastAll(position + Vector3.up * 20f, Vector3.down, 40f, mask, QueryTriggerInteraction.Ignore);
+        float height = float.NegativeInfinity;
+        foreach (var hit in hits)
+            if (hit.collider.gameObject.scene == gameObject.scene && hit.normal.y > .35f)
+                height = Mathf.Max(height, hit.point.y);
+        if (!float.IsNegativeInfinity(height)) position.y = height + .15f;
+        return position;
     }
 
     public static void SpawnConfiguredPickupsInScene(Scene scene)
@@ -237,7 +260,7 @@ public class ItemPickupSpawner : MonoBehaviour
 
         for (int i = grades.Count - 1; i > 0; i--)
         {
-            int swapIndex = Random.Range(0, i + 1);
+            int swapIndex = UnityEngine.Random.Range(0, i + 1);
             (grades[i], grades[swapIndex]) = (grades[swapIndex], grades[i]);
         }
 
