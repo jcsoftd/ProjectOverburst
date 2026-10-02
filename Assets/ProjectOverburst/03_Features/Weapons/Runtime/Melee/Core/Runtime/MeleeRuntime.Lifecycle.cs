@@ -17,7 +17,7 @@ public partial class MeleeRuntime
 
         if (!shouldContinueCombo && !shouldCancelByMoveInput)
         {
-            attackMovementExecutor.Tick(normalizedTime);
+            attackMovementExecutor.Tick(Mathf.Max(normalizedTime, heavyParryMovementFloor));
             attackVisualHeight.Tick(normalizedTime);
             attackTrailExecutor.Tick(normalizedTime);
         }
@@ -56,20 +56,22 @@ public partial class MeleeRuntime
     {
         using var costScope = ElementCombatCostMarkers.Heavy_Commit.Auto();
         if (!activeAttackIsHeavy || heavyDischargeCommitted || activeAttackPhases == null
-            || activeAttackPhases.Length == 0
-            || normalizedTime < activeAttackPhases[0].SafeStart)
+            || activeAttackPhases.Length == 0)
             return;
+        int impactPhaseIndex = activeHeavyDefinition != null ? activeHeavyDefinition.SafeDischargePhaseIndex : 0;
+        AttackPhaseData impactPhase = activeAttackPhases[impactPhaseIndex];
+        if (normalizedTime < impactPhase.SafeStart) return;
 
         float normalizedEnergy = activeHeavyEnergy != null ? activeHeavyEnergy.Normalized : 0f;
         heavyDischargeCommitted = true;
         bool hasDischarge = activeHeavyEnergy != null && activeHeavyEnergy.TryCommitDischarge(
-            activeStats.damage * activeAttackPhases[0].impact.SafeDamageMultiplier, out activeDischarge);
+            activeStats.damage * impactPhase.impact.SafeDamageMultiplier, out activeDischarge);
         if (hasDischarge && heavyParried) activeDischarge.TryRefundParried();
 
         MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
             ? activeWeaponData.GetMeleeDefinition() : null;
         if (meleeDefinition == null || activeHeavyDefinition == null) return;
-        AttackPatternRuntimeData pattern = activeAttackPhases[0].ResolvePattern(
+        AttackPatternRuntimeData pattern = impactPhase.ResolvePattern(
             activeStats.range, activeStats.meleeSlashAngle, meleeDefinition.baseSettings.hitWidth);
         Vector3 center = transform.position + activeAttackDirection * pattern.ForwardOffset;
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
@@ -99,7 +101,7 @@ public partial class MeleeRuntime
         heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
             combatTarget, gameObject, center, activeAttackDirection, slamRadius, pattern.VerticalTolerance);
         MeleeAttackRuntimeData baseRuntime = MeleeAttackStatResolver.Resolve(activeStats,
-            meleeDefinition.baseSettings, activeAttackPhases[0], 1f);
+            meleeDefinition.baseSettings, impactPhase, 1f);
         var blastRuntime = new MeleeAttackRuntimeData(pattern, slamDamage,
             baseRuntime.Knockback, baseRuntime.HitStunDuration, baseRuntime.VfxScale, baseRuntime.AttackRangeScale);
         int darkBarrageId = activeDischarge.Element == WeaponElement.Dark
@@ -114,8 +116,8 @@ public partial class MeleeRuntime
                 if (target == null) continue;
                 Vector3 direction = target.WorldCenter - center; direction.y = 0f;
                 if (direction.sqrMagnitude < .0001f) direction = activeAttackDirection;
-                DealPatternDamage(new AttackPhaseHit(activeAttackPhases[0], blastRuntime, target,
-                    target.WorldCenter, direction.normalized), darkBarrageId);
+                DealPatternDamage(new AttackPhaseHit(impactPhase, blastRuntime, target,
+                    target.WorldCenter, direction.normalized, impactPhaseIndex), darkBarrageId);
             }
         }
         finally

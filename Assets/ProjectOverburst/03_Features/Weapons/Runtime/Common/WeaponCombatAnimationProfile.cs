@@ -120,8 +120,16 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     public AnimationClip heavyParryClip;
     public string heavyParryStateName = "Melee_HeavyParry";
     public string heavyParrySpeedParameterName = "Melee_ParrySpeed";
+    [InspectorName("패링 재생 속도")]
+    [Tooltip("0.5는 원본의 절반 속도입니다. 모션 시간과 접촉 피드백도 함께 환산합니다.")]
+    [Min(0.05f)] public float heavyParryPlaybackSpeed = 0.5f;
+    [InspectorName("패링 후 강공 시작 시간 (클립 초)")]
+    [Min(0f)] public float heavyParryHeavyStartSeconds = 0.138f;
+    [InspectorName("패링 진입 보간 (초)")]
     [Min(0f)] public float heavyParryEntryBlend = 0.04f;
-    [Min(0f)] public float heavyParryToAttackBlend = 0.12f;
+    [InspectorName("패링 종료 후 강공 보간 (초)")]
+    [Min(0f)] public float heavyParryToAttackBlend = 0.1f;
+    [InspectorName("패링 접촉 시간 (클립 초)")]
     [Min(0f)] public float heavyParryContactSeconds = 0.0333333f;
     [InspectorName("전환 하체 빈 상태 이름")]
     public string transitionLowerEmptyStateName = "Melee_TransitionLower_Empty";

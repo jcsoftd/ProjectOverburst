@@ -105,11 +105,13 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
 
     public void FinishCombatEvade() => activeDriver?.FinishEvade();
 
-    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay)
+    public bool IsHeavyParryClipComplete => activeDriver != null && activeDriver.IsHeavyParryClipComplete;
+
+    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds)
     {
         RefreshActiveDriverForCurrentWeapon();
-        duration = bridgeDuration = contactDelay = 0f;
-        return activeDriver != null && activeDriver.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay);
+        duration = bridgeDuration = contactDelay = heavyStartSeconds = 0f;
+        return activeDriver != null && activeDriver.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay, out heavyStartSeconds);
     }
 
     public bool TryBlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart,
@@ -255,7 +257,8 @@ public interface IWeaponCombatAnimatorDriver
         bool allowCombatEntry,
         float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default);
     void CancelAttack();
-    bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay);
+    bool IsHeavyParryClipComplete { get; }
+    bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds);
     bool TryBlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart, MeleePlaybackAcceleration acceleration);
     void CompleteHeavyParryBridge();
     void SuppressForLegacyFullBodyAction(float duration);

@@ -73,6 +73,11 @@ public sealed class MeleeHeavyAttackDefinition : ScriptableObject
     [InspectorName("강공 동작")]
     public MeleeComboStepData attack;
 
+    [InspectorName("착지·원소 방출 판정 인덱스")]
+    [Min(0)] public int dischargePhaseIndex;
+    public int SafeDischargePhaseIndex => attack.attackPhases == null || attack.attackPhases.Length == 0
+        ? 0 : Mathf.Clamp(dischargePhaseIndex, 0, attack.attackPhases.Length - 1);
+
     [InspectorName("에너지 보유 시 기본 피해 배율")]
     [Min(0.01f)] public float chargedDamageMultiplier = 1.3f;
 

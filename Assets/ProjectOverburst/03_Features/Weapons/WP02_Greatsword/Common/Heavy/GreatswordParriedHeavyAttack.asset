@@ -1,0 +1,206 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374dec6ac1f82124ab15ab786550a088, type: 3}
+  m_Name: GreatswordParriedHeavyAttack
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeHeavyAttackDefinition
+  attack:
+    attackId: Greatsword.Heavy.ParriedDoubleCircleSlam
+    attackName: "\uD328\uB9C1 \uAC15\uD654 \uAC15\uACF5: \uC6D0\uD615 \uBCA0\uAE30
+      \uB450 \uBC88 \uD6C4 \uB0B4\uB824\uCC0D\uAE30"
+    animationClip: {fileID: 7400000, guid: 86b74f391df54a54582a6fda99bcb3b2, type: 2}
+    animationSpeedMultiplier: 1
+    transitionDuration: 0.1
+    continuationStartNormalizedTime: 0.06571428
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
+    comboInputWindow:
+      startNormalizedTime: 0
+      endNormalizedTime: 0
+    actionCancelStartNormalized: 0.49999994
+    movementPhases: []
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    trailPhases:
+    - startNormalizedTime: 0.079365075
+      endNormalizedTime: 0.19841269
+    - startNormalizedTime: 0.2063492
+      endNormalizedTime: 0.36507934
+    - startNormalizedTime: 0.38095236
+      endNormalizedTime: 0.44444442
+    attackPhases:
+    - attackPattern: {fileID: 11400000, guid: c4373cd29ec46ca48aa249ba874177d1, type: 2}
+      startNormalizedTime: 0.079365075
+      endNormalizedTime: 0.19841269
+      geometry:
+        rangeMultiplier: 1
+        angleMultiplier: 1
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 0
+        forwardOffset: 0
+      progressSource: 0
+      basisFollowMode: 1
+      impact:
+        damageMultiplier: 0.575
+        knockbackMultiplier: 0.22
+        hitStunMultiplier: 0.55
+        knockbackReactionDuration: 0.18
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 1
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 160
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 1
+    - attackPattern: {fileID: 11400000, guid: bac162f89c21e0842981a99b30216c0b, type: 2}
+      startNormalizedTime: 0.2063492
+      endNormalizedTime: 0.36507934
+      geometry:
+        rangeMultiplier: 1
+        angleMultiplier: 1
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 0
+        forwardOffset: 0
+      progressSource: 0
+      basisFollowMode: 1
+      impact:
+        damageMultiplier: 0.575
+        knockbackMultiplier: 0.75
+        hitStunMultiplier: 0.9
+        knockbackReactionDuration: 0.18
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 73e99823fbe335b4cb81e3fd2ffef566, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: 4c85594166f21f84c8fd36fae68511d7, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 0.7
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 1
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 160
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 1
+    - attackPattern: {fileID: 11400000, guid: 05d907197b513f747a136417b565898b, type: 2}
+      startNormalizedTime: 0.39682537
+      endNormalizedTime: 0.44444442
+      geometry:
+        rangeMultiplier: 0.72
+        angleMultiplier: 1
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 1
+        forwardOffset: 2.3
+      progressSource: 0
+      basisFollowMode: 0
+      impact:
+        damageMultiplier: 1
+        knockbackMultiplier: 1.25
+        hitStunMultiplier: 1
+        knockbackReactionDuration: 0.36
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues:
+      - motionRole: 2
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: f35e2d47ec7cc8a4083dcff993506b37, type: 2}
+        triggerProgress: 0
+        placementMode: 0
+        scaleMultiplier: 0.6
+        shockwaveIntensityMultiplier: 0.7
+        shockwaveSpeedMultiplier: 1.2
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 0
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 140
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 0
+  dischargePhaseIndex: 2
+  chargedDamageMultiplier: 1.35
+  emptyDamageMultiplier: 0.6
+  elementVfx:
+    fireImpact: {fileID: 8047783058320162170, guid: e42acee08ce5f814192c872ee42c1ffa, type: 3}
+    fireChainExplosion: {fileID: 6581819978879567992, guid: 73086537f8dd7a649b1da0cf099d12fa, type: 3}
+    iceImpact: {fileID: 0}
+    iceShatter: {fileID: 8885185955154892134, guid: b90e296a8ac8e0944b0c2983df11cd31, type: 3}
+    electricImpact: {fileID: 2046859084139038850, guid: 421dc8b9cf9766248b01c5ff9c335761, type: 3}
+    electricChainLink: {fileID: 8588956612364939812, guid: 6a732a6fd9d7cfd409ddc5d0b20337a8, type: 3}
+    electricDirectHit: {fileID: 1036593267667279857, guid: 49dcd52f6bc06d64fb382d8aa20a5c18, type: 3}
+    darkBarrageSlam: {fileID: 5958811752815710291, guid: fc29bd896af32774e8cf64a2d07e103c, type: 3}
+    darkBarrageProjectile: {fileID: 1629372112255661342, guid: 41349ff430da2744eabcac8606110068, type: 3}
+    darkBarrageTrail: {fileID: 0}
+    darkBarrageHit: {fileID: 6516584211004326070, guid: 3fc18d1086185534db762ebf8d278916, type: 3}
+    lightTripleImpact: {fileID: 145832084182221218, guid: 2a2f81ba9ca02b8469c73f4b15f5de25, type: 3}
+    lightDoubleImpact: {fileID: 3992710165718288159, guid: 2f9d53fcbbdd8b74ca75c8b43666cbb0, type: 3}
+    fireImpactRadius: 2.9
+    electricImpactRadius: 3.2
+    iceImpactRadius: 3.6
+    fireChainRadius: 1.3
+    darkImpactRadius: 3.6
+    lightImpactRadius: 3.7

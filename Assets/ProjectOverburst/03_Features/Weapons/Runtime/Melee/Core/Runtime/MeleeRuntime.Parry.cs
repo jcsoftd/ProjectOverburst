@@ -6,6 +6,7 @@ public partial class MeleeRuntime
     private HeavyParryStage heavyParryStage;
     private float heavyParryElapsed, heavyParryDuration, heavyParryBridgeDuration;
     private float heavyParrySavedElapsed, heavyParrySavedProgress;
+    private float heavyParryMovementFloor;
     private bool heavyParrySwingPending;
     private int heavyParryStartedFrame;
     public bool IsHeavyParryMotionActive => heavyParryStage != HeavyParryStage.None;
@@ -28,10 +29,18 @@ public partial class MeleeRuntime
             || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword
             || playerAnimatorController == null) return;
         if (!playerAnimatorController.PlayHeavyParry(out heavyParryDuration,
-            out heavyParryBridgeDuration, out float contactDelay)) return;
+            out heavyParryBridgeDuration, out float contactDelay, out float heavyStartSeconds)) return;
 
-        heavyParrySavedElapsed = Mathf.Max(0f, Time.time - attackStartTime);
-        heavyParrySavedProgress = GetAttackNormalizedTime();
+        float previousProgress = GetAttackNormalizedTime();
+        if (!ConfigureParriedHeavyAttack())
+        {
+            CancelActiveAttack(WeaponActionCompletionReason.InvalidConfiguration, true);
+            return;
+        }
+        heavyParrySavedProgress = Mathf.Clamp(heavyStartSeconds / Mathf.Max(.01f, activeAttackAnimationClip.length), 0f, .95f);
+        heavyParrySavedElapsed = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(heavyParrySavedProgress);
+        // A fixed pose restart must neither undo late-parry travel nor apply skipped windup travel.
+        heavyParryMovementFloor = Mathf.Max(previousProgress, heavyParrySavedProgress);
         HeavyParryContactDelay = contactDelay;
         heavyParryElapsed = 0f;
         heavyParryStartedFrame = Time.frameCount;
@@ -40,6 +49,34 @@ public partial class MeleeRuntime
         ClearAttackTrail();
         attackPatternDebugRenderer?.Hide();
         HoldHeavyParryLocks();
+    }
+
+    private bool ConfigureParriedHeavyAttack()
+    {
+        MeleeHeavyAttackDefinition counter = activeWeaponData.GetMeleeDefinition()?.parriedHeavyAttackDefinition;
+        if (counter == null) return true;
+        if (!counter.IsConfigured) return false;
+        activeHeavyDefinition = counter;
+        activeAttackStep = counter.attack;
+        activeAttackAnimationClip = activeAttackStep.animationClip;
+        activeAttackAnimationSpeed = Mathf.Max(.01f, ResolveAttackPlaybackMultiplier()
+            * Mathf.Max(.01f, activeAttackStep.animationSpeedMultiplier));
+        activeAttackTransitionDuration = activeAttackStep.transitionDuration;
+        attackDuration = ResolveAttackDuration();
+        // A successful parry chooses the counter even when this action began as a dodge heavy.
+        activeDodgeFollowUp = PlayerDodgeFollowUpKind.None;
+        dodgeTrajectoryDefinition = null;
+        bool hasEnergy = activeHeavyEnergy != null && activeHeavyEnergy.Amount > 0f
+            && activeAttackWeaponItem != null && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
+            && activeHeavyEnergy.Element == activeAttackWeaponItem.ResolvedElement;
+        activeAttackDamageMultiplier = CombatBalanceFormulas.AttackDamageMultiplier(
+            activeWeaponData, counter, true, hasEnergy);
+        ResolveAttackTrail(activeAttackStep);
+        ResolveAttackPhases();
+        attackPhaseExecutor.Cancel();
+        attackMovementExecutor.Cancel();
+        attackVisualHeight.Begin(transform.Find("VisualRoot"), activeAttackStep.visualHeightCurve);
+        return TryBeginAttackPhases();
     }
 
     private bool TickHeavyParryMotion()
@@ -54,7 +91,8 @@ public partial class MeleeRuntime
         if (Time.frameCount <= heavyParryStartedFrame + 1) return true;
         heavyParryElapsed += Time.unscaledDeltaTime;
         if (heavyParryStage == HeavyParryStage.Parry
-            && heavyParryElapsed >= heavyParryDuration - heavyParryBridgeDuration)
+            && heavyParryElapsed >= heavyParryDuration
+            && playerAnimatorController.IsHeavyParryClipComplete)
         {
             float remaining = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(1f) - heavyParrySavedElapsed;
             if (!playerAnimatorController.BlendHeavyAfterParry(activeAttackAnimationClip,
@@ -74,6 +112,8 @@ public partial class MeleeRuntime
         playerAnimatorController.CompleteHeavyParryBridge();
         heavyParryStage = HeavyParryStage.None;
         attackStartTime = Time.time - heavyParrySavedElapsed;
+        attackMovementExecutor.Begin(activeAttackStep.movementPhases, activeAttackDirection,
+            ApplyAttackDisplacement, heavyParryMovementFloor);
         attackTrailExecutor.Begin(activeAttackStep.trailPhases, StartAttackTrail, StopAttackTrail);
         float remainingDuration = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(1f) - heavyParrySavedElapsed;
         MeleeAttackLock.Begin(playerController, remainingDuration, activeAttackDirection);
@@ -100,5 +140,6 @@ public partial class MeleeRuntime
         heavyParrySwingPending = false;
         heavyParryElapsed = heavyParryDuration = heavyParryBridgeDuration = 0f;
         heavyParrySavedElapsed = heavyParrySavedProgress = HeavyParryContactDelay = 0f;
+        heavyParryMovementFloor = 0f;
     }
 }

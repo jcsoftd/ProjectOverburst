@@ -25,6 +25,8 @@ public static class GreatswordHeavyParryVerifier
     static int failures, frame;
     static double deadline;
     static bool background;
+    static bool captureScreenshots;
+    static bool ownsReloadLock, ownsRefreshLock;
     static PlayerActorRuntime captureOwner;
     static readonly List<Coroutine> captures = new List<Coroutine>();
 
@@ -36,8 +38,26 @@ public static class GreatswordHeavyParryVerifier
         var profile = AssetDatabase.LoadAssetAtPath<WeaponCombatAnimationProfile>(GreatswordHeavyParryBuilder.ProfilePath);
         if (source == null || clip == null || profile == null) throw new InvalidOperationException("자산이 없습니다.");
         if (!clip.isHumanMotion || AnimationUtility.GetAnimationClipSettings(clip).loopTime
-            || Mathf.Abs(clip.length - .25f) > .0001f || profile.heavyParryClip != clip)
+            || Mathf.Abs(clip.length - (GreatswordHeavyParryBuilder.SourceEndSeconds - GreatswordHeavyParryBuilder.SourceStartSeconds)) > .0001f || profile.heavyParryClip != clip)
             throw new InvalidOperationException("파생 클립 연결·길이·Humanoid·반복 설정 오류");
+        var counter = AssetDatabase.LoadAssetAtPath<MeleeHeavyAttackDefinition>(GreatswordHeavyParryBuilder.CounterDefinitionPath);
+        var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(GreatswordHeavyParryBuilder.WeaponDefinitionPath);
+        var weak = weapon.comboDefinition.GetStep(2);
+        if (counter == null || !counter.IsConfigured || weapon.parriedHeavyAttackDefinition != counter
+            || counter.attack.attackPhases.Length != 3 || counter.SafeDischargePhaseIndex != 2
+            || AnimationUtility.GetAnimationClipSettings(counter.attack.animationClip).loopTime
+            || !Mathf.Approximately(profile.heavyParryPlaybackSpeed, .5f)
+            || !Mathf.Approximately(profile.heavyParryHeavyStartSeconds, .138f)
+            || !Mathf.Approximately(profile.heavyParryToAttackBlend, .1f))
+            throw new InvalidOperationException("패링 강화 강공·속도·시작 자세·보간 연결 오류");
+        for (int i = 0; i < 2; i++)
+        {
+            var phase = counter.attack.attackPhases[i]; var template = weak.attackPhases[i];
+            if (phase.attackPattern != template.attackPattern || phase.vfxCues[0].definition != template.vfxCues[0].definition
+                || !Mathf.Approximately(phase.impact.damageMultiplier, template.impact.damageMultiplier)
+                || phase.progressSource != AttackProgressSource.NormalizedTime)
+                throw new InvalidOperationException("약공3타의 두 회전 범위·VFX·타격 설정 재사용 오류");
+        }
         var scene = EditorSceneManager.NewPreviewScene();
         var graph = default(PlayableGraph);
         try
@@ -58,9 +78,9 @@ public static class GreatswordHeavyParryVerifier
             var channel = AnimationPlayableOutput.Create(graph, "Compare", animator); channel.SetSourcePlayable(mixer); graph.Play();
             var samples = new List<object>();
             float maximumAngle = 0f, maximumPosition = 0f;
-            foreach (float t in new[] { 0f, .0333333f, .0833333f, .13f, .20f, .24999f })
+            foreach (float t in new[] { 0f, .0333333f, .0833333f, .13f, .20f, .266f })
             {
-                a.SetTime(t + GreatswordHeavyParryBuilder.FirstFrame / source.frameRate);
+                a.SetTime(t + GreatswordHeavyParryBuilder.SourceStartSeconds);
                 mixer.SetInputWeight(0, 1); mixer.SetInputWeight(1, 0); graph.Evaluate(0);
                 var rotations = bones.Select(x => x.localRotation).ToArray();
                 var positions = bones.Select(x => x.localPosition).ToArray();
@@ -73,12 +93,15 @@ public static class GreatswordHeavyParryVerifier
             }
             if (maximumAngle > .15f || maximumPosition > .002f) throw new InvalidOperationException("원본과 파생 포즈 불일치 " + maximumAngle + "deg / " + maximumPosition + "m");
             File.WriteAllText(Path.Combine(directory, "AssetValidation.json"), JsonConvert.SerializeObject(new
-            { status = "PASS", clip.length, clip.frameRate, clip.isHumanMotion, maximumAngle, maximumPosition, samples }, Formatting.Indented));
+            { status = "PASS", clip.length, clip.frameRate, clip.isHumanMotion, maximumAngle, maximumPosition, samples,
+                profile.heavyParryPlaybackSpeed, profile.heavyParryHeavyStartSeconds, profile.heavyParryToAttackBlend,
+                counter = counter.name, counterClip = counter.attack.animationClip.name, phases = counter.attack.attackPhases.Length,
+                counter.dischargePhaseIndex }, Formatting.Indented));
         }
         finally { if (graph.IsValid()) graph.Destroy(); EditorSceneManager.ClosePreviewScene(scene); }
     }
 
-    public static void Begin(string directory)
+    public static void Begin(string directory, bool screenshots = true)
     {
         if (work != null || stack.Count > 0) throw new InvalidOperationException("검증이 진행 중입니다.");
         output = IsolatedSavePlayGuard.ValidateDirectory(directory);
@@ -89,10 +112,13 @@ public static class GreatswordHeavyParryVerifier
         Directory.CreateDirectory(output);
         checks.Clear(); actions.Clear(); errors.Clear(); failures = 0; frame = -1;
         captures.Clear();
+        captureScreenshots = screenshots;
         captureOwner = PlayerContext.GetOrCreate().CurrentActor;
         background = Application.runInBackground; Application.runInBackground = true;
         deadline = EditorApplication.timeSinceStartup + 240;
         work = Run();
+        EditorApplication.LockReloadAssemblies(); ownsReloadLock = true;
+        AssetDatabase.DisallowAutoRefresh(); ownsRefreshLock = true;
         Application.logMessageReceived += Log;
         EditorApplication.update += Tick;
         EditorApplication.playModeStateChanged += State;
@@ -132,6 +158,8 @@ public static class GreatswordHeavyParryVerifier
     }
     static void Finish(string status, bool exit)
     {
+        try
+        {
         EditorApplication.update -= Tick; EditorApplication.playModeStateChanged -= State;
         Application.logMessageReceived -= Log; AssemblyReloadEvents.beforeAssemblyReload -= Abort;
         while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose(); (work as IDisposable)?.Dispose(); work = null;
@@ -139,13 +167,19 @@ public static class GreatswordHeavyParryVerifier
         captures.Clear(); captureOwner = null;
         Application.runInBackground = background;
         File.WriteAllText(Path.Combine(output, "PlayResult.json"), JsonConvert.SerializeObject(new { status, failures, checks, actions, errors }, Formatting.Indented));
+        }
+        finally
+        {
+            if (ownsRefreshLock) { ownsRefreshLock = false; AssetDatabase.AllowAutoRefresh(); }
+            if (ownsReloadLock) { ownsReloadLock = false; EditorApplication.UnlockReloadAssemblies(); }
+        }
         if (exit && EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
     }
 
     static IEnumerator Wait(float seconds) { float end = Time.unscaledTime + seconds; while (Time.unscaledTime < end) yield return null; }
     static void Shot(string name)
     {
-        if (captureOwner != null) captures.Add(captureOwner.StartCoroutine(CaptureAfterFrame(name)));
+        if (captureScreenshots && captureOwner != null) captures.Add(captureOwner.StartCoroutine(CaptureAfterFrame(name)));
     }
     static IEnumerator CaptureAfterFrame(string name)
     {
@@ -165,6 +199,7 @@ public static class GreatswordHeavyParryVerifier
         if (energy == null) energy = actor.gameObject.AddComponent<OverburstElementEnergy>();
         var ui = EnemyThemeTrialHarness.Current;
         var leases = new List<EnemyActor>(); var fixtures = new List<UnityEngine.Object>();
+        var damageHooks = new List<(CombatHealth health, Action<CombatHealth, DamageInfo, float, bool> handler)>();
         EnemySpawnService spawn = null;
         var originalMode = animator.updateMode; float originalSpeed = animator.speed;
         try
@@ -240,12 +275,21 @@ public static class GreatswordHeavyParryVerifier
                 float maxFrameDelta = 0f;
                 float limit = Time.unscaledTime + 12;
                 int action = Field<int>(melee, "activeActionId");
+                float energyBefore = energy.Amount;
                 while (melee.IsAttackInProgress)
                 {
                     Check(Time.unscaledTime < limit, label + " 완료 시간 제한");
                     bool parryMotion = melee.IsHeavyParryMotionActive;
                     maxFrameDelta = Mathf.Max(maxFrameDelta, Time.unscaledDeltaTime);
                     bool committed = Field<bool>(melee, "heavyDischargeCommitted");
+                    if (expectParry)
+                    {
+                        Check(Mathf.Abs(savedProgress * Field<AnimationClip>(melee, "activeAttackAnimationClip").length - .138f) < .0001f,
+                            label + " 강화 강공 클립의 0.138초부터 시작");
+                        Check(Field<MeleeHeavyAttackDefinition>(melee, "activeHeavyDefinition").SafeDischargePhaseIndex == 2,
+                            label + " 마지막 내려찍기에서만 방출");
+                        if (!committed) Check(Mathf.Approximately(energy.Amount, energyBefore), label + " 회전 두 타 전후에는 에너지 소비 없음");
+                    }
                     var nativeState = animator.GetCurrentAnimatorStateInfo(layer);
                     // Animator.Play/CrossFade takes effect at the next native animation update.
                     if (frameCount > 0 && !parryMotion && !animator.IsInTransition(layer) && nativeState.IsName("Melee_Attack") && nativeState.normalizedTime <= 1f)
@@ -265,10 +309,16 @@ public static class GreatswordHeavyParryVerifier
                         Check(animator.updateMode == AnimatorUpdateMode.UnscaledTime, label + " 플레이어 패링 동작 시계");
                         var current = animator.GetCurrentAnimatorStateInfo(layer);
                         var next = animator.GetNextAnimatorStateInfo(layer);
+                        if (Field<object>(melee, "heavyParryStage").ToString() == "Parry")
+                        {
+                            Check(Mathf.Approximately(animator.GetFloat("Melee_ParrySpeed"), .5f), label + " native 패링 반속 재생");
+                            Check(Mathf.Abs(Field<float>(melee, "heavyParryDuration") - .532f) < .0001f,
+                                label + " 패링 0.266초 전체를 0.532초에 재생");
+                        }
                         sawParry |= current.IsName("Melee_HeavyParry") || next.IsName("Melee_HeavyParry");
                         bool transitioning = animator.IsInTransition(layer) && next.IsName("Melee_Attack");
                         nativeTransitionObserved |= transitioning;
-                        // A frame longer than 0.12s can finish the native crossfade before the next observation.
+                        // A frame longer than 0.1s can finish the native crossfade before the next observation.
                         // The runtime bridge must still hold that resulting heavy pose, with damage closed.
                         bool bridging = Field<object>(melee, "heavyParryStage").ToString() == "Bridge"
                             && (transitioning || current.IsName("Melee_Attack"));
@@ -323,10 +373,24 @@ public static class GreatswordHeavyParryVerifier
                 Check(actor.Health.CurrentHp == hp, label + " 패링 피해 방어");
                 var position = player.transform.position;
                 float progress = Field<float>(melee, "heavyParrySavedProgress");
-                if (label == "late") Check(progress > .08f, "늦은 성공은 이미 전진한 강공 기록");
+                if (label == "late") Check(Field<float>(melee, "heavyParryMovementFloor") > .08f, "늦은 성공은 이미 전진한 강공 이동 기록");
                 melee.NotifyHeavyParried(Field<int>(melee, "activeActionId"));
                 Check(Mathf.Approximately(progress, Field<float>(melee, "heavyParrySavedProgress")), label + " 중복 통지는 모션 재시작 금지");
+                var hits = new List<(int enemy, int phase)>();
+                foreach (var enemy in enemies)
+                {
+                    Action<CombatHealth, DamageInfo, float, bool> handler = (health, info, amount, lethal) =>
+                    { if (info.source == actor.gameObject && amount > 0f) hits.Add((health.GetInstanceID(), info.sourceAttackPhaseIndex)); };
+                    enemy.Health.OnDamageResolved += handler; damageHooks.Add((enemy.Health, handler));
+                }
                 yield return Complete(label, true, progress, position);
+                foreach (var enemy in enemies)
+                {
+                    int id = enemy.Health.GetInstanceID();
+                    Check(hits.Count(h => h.enemy == id && h.phase == 0) == 1, label + " 실제 적에게 첫 회전 판정 한 번");
+                    Check(hits.Count(h => h.enemy == id && h.phase == 1) == 1, label + " 실제 적에게 두 번째 회전 판정 한 번");
+                }
+                checks.Add(new { label = label + " actual phase hits", passed = true, hits });
                 Release(); yield return Wait(1.6f);
             }
 
@@ -345,7 +409,7 @@ public static class GreatswordHeavyParryVerifier
                 Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, element + " 강공 시작");
                 melee.NotifyHeavyParried(Field<int>(melee, "activeActionId"));
                 var position = player.transform.position;
-                yield return Complete(element + "_" + fraction.ToString("F1", System.Globalization.CultureInfo.InvariantCulture), true, 0, position);
+                yield return Complete(element + "_" + fraction.ToString("F1", System.Globalization.CultureInfo.InvariantCulture), true, Field<float>(melee, "heavyParrySavedProgress"), position);
                 Check(Mathf.Abs(energy.Amount - Mathf.Min(amount, energy.BaseMaximum) * .5f) < .01f, element + " 에너지 소비/패링 환급 한 번");
                 yield return Wait(.25f);
             }
@@ -382,7 +446,7 @@ public static class GreatswordHeavyParryVerifier
             melee.NotifyHeavyParried(Field<int>(melee, "activeActionId"));
             OverburstTimeEffectArbiter.SetPaused(true); yield return Wait(.15f);
             OverburstTimeEffectArbiter.SetPaused(false);
-            yield return Complete("pause-resume", true, 0, player.transform.position);
+            yield return Complete("pause-resume", true, Field<float>(melee, "heavyParrySavedProgress"), player.transform.position);
             yield return Wait(.5f);
 
             Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, "피격 중단 검증 강공");
@@ -407,6 +471,7 @@ public static class GreatswordHeavyParryVerifier
         }
         finally
         {
+            foreach (var hook in damageHooks) if (hook.health != null) hook.health.OnDamageResolved -= hook.handler;
             OverburstTimeEffectArbiter.SetPaused(false);
             melee?.CancelCurrentAttackState();
             foreach (var enemy in leases) if (spawn != null && enemy != null && enemy.IsLeased) spawn.Release(enemy);

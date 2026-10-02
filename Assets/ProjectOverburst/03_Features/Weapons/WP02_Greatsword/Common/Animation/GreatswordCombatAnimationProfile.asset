@@ -31,9 +31,11 @@ MonoBehaviour:
   heavyParryClip: {fileID: 7400000, guid: 68189887d296a3a40abb2106e8d52f70, type: 2}
   heavyParryStateName: Melee_HeavyParry
   heavyParrySpeedParameterName: Melee_ParrySpeed
+  heavyParryPlaybackSpeed: 0.5
+  heavyParryHeavyStartSeconds: 0.138
   heavyParryEntryBlend: 0.04
-  heavyParryToAttackBlend: 0.12
-  heavyParryContactSeconds: 0.033333335
+  heavyParryToAttackBlend: 0.1
+  heavyParryContactSeconds: 0.06666667
   transitionLowerEmptyStateName: Melee_TransitionLower_Empty
   transitionLowerLocomotionStateName: Melee_TransitionLower_Locomotion
   actionSpeedParameterName: Melee_ActionSpeed
