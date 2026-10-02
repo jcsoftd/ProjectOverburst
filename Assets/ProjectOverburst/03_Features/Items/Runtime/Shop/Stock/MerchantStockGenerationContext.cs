@@ -48,17 +48,29 @@ public sealed class MerchantStockGenerationContext
 
     private static List<WeaponItemData> CollectWeaponCandidates(BaseItemData[] pool)
     {
-        List<WeaponItemData> results = new List<WeaponItemData>();
-        if (pool == null)
-            return results;
+        var results = new List<WeaponItemData>();
+        var seen = new HashSet<WeaponItemData>();
+        if (pool != null)
+            for (int i = 0; i < pool.Length; i++)
+                AddWeaponCandidate(pool[i] as WeaponItemData, results, seen);
 
-        for (int i = 0; i < pool.Length; i++)
-        {
-            WeaponItemData data = pool[i] as WeaponItemData;
-            if (data != null)
-                results.Add(data);
-        }
+        // 정식 무기 카탈로그의 완성 자산을 기존 판매 경로에 함께 등록한다.
+        WeaponLevelCatalog catalog = WeaponLevelCatalog.Current;
+        if (catalog != null && catalog.entries != null)
+            for (int i = 0; i < catalog.entries.Length; i++)
+                AddWeaponCandidate(catalog.entries[i].weapon, results, seen);
 
         return results;
+    }
+
+    private static void AddWeaponCandidate(WeaponItemData data, List<WeaponItemData> results,
+        HashSet<WeaponItemData> seen)
+    {
+        if (data == null || !WeaponContentPolicy.IsActiveWeapon(data)
+            || data.icon == null || data.weaponRootPrefab == null || data.worldPickupPrefab == null
+            || !seen.Add(data))
+            return;
+
+        results.Add(data);
     }
 }

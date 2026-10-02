@@ -36,6 +36,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
     private readonly List<WorldItemNameplateLayoutCandidate> layoutCandidates = new List<WorldItemNameplateLayoutCandidate>(AuthoredCapacity);
     private readonly List<WorldItemNameplatePlacement> placements = new List<WorldItemNameplatePlacement>(AuthoredCapacity);
     private readonly HashSet<int> screenVisiblePickupIds = new HashSet<int>();
+    private readonly HashSet<int> evaluatedVisiblePickupIds = new HashSet<int>();
     private readonly WorldItemPickupHoverHighlight pickupHoverHighlight = new WorldItemPickupHoverHighlight();
     private readonly WorldItemPickupHoverResolver pickupHoverResolver = new WorldItemPickupHoverResolver();
     private readonly WorldItemNameplateVisibilityHysteresis visibilityHysteresis = new WorldItemNameplateVisibilityHysteresis();
@@ -156,9 +157,9 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
         }
 
         Rect safeRect = ResolveSafeRect(view.RowsRoot.rect, safeMargin);
-        SynchronizeStableState(safeRect);
         SynchronizeRendererCache();
         pickupHoverResolver.CollectScreenVisibleInstanceIds(camera, screenVisiblePickupIds);
+        SynchronizeStableState(safeRect); // 화면 밖 아이템은 명찰 행을 점유하지 않는다.
         BuildPickupDistances();
         WorldItemPickup worldHoveredPickup = ResolveWorldHoveredPickup(camera);
         ValidateRowHoverOverride();
@@ -206,12 +207,15 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
         BuildDisplayOptions();
         bool modeChanged = !hasEvaluatedDisplaySet || snapshot.Mode != evaluatedMode;
         bool safeAreaChanged = !hasEvaluatedDisplaySet || !Approximately(evaluatedSafeRect, safeRect);
-        if (activeSetChanged || modeChanged || safeAreaChanged || !hasEvaluatedDisplaySet)
+        bool visibleSetChanged = !evaluatedVisiblePickupIds.SetEquals(screenVisiblePickupIds);
+        if (activeSetChanged || modeChanged || safeAreaChanged || visibleSetChanged || !hasEvaluatedDisplaySet)
         {
             displaySet.Rebuild(displayOptions, AuthoredCapacity);
             evaluatedActiveSetRevision = snapshot.ActiveSetRevision;
             evaluatedMode = snapshot.Mode;
             evaluatedSafeRect = safeRect;
+            evaluatedVisiblePickupIds.Clear();
+            evaluatedVisiblePickupIds.UnionWith(screenVisiblePickupIds);
             hasEvaluatedDisplaySet = true;
         }
         else
@@ -239,6 +243,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
             int instanceId = GetInstanceId(pickup);
             if (instanceId == 0
                 || !pickupSnapshot.CanPickup
+                || !screenVisiblePickupIds.Contains(instanceId)
                 || !stableOrderRegistry.TryGetStableOrder(instanceId, out int stableOrder))
             {
                 continue;
@@ -275,9 +280,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
 
             bool hovered = instanceId == hoveredInstanceId || pickup == rowHoverOverride;
             bool stableVisible = displaySet.Contains(instanceId);
-            bool temporaryHover = hovered
-                && snapshot.Mode != WorldLootInteractionMode.LootFocus
-                && !stableVisible;
+            bool temporaryHover = hovered && !stableVisible; // 전체 표시 모드에서도 용량 밖 hover 한 개를 보장한다.
             if (!stableVisible && !temporaryHover)
                 continue;
 
@@ -475,6 +478,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
 
         hasEvaluatedDisplaySet = false;
         evaluatedActiveSetRevision = int.MinValue;
+        evaluatedVisiblePickupIds.Clear();
     }
 
     private void HandleSnapshotChanged(WorldLootInteractionSnapshot value)
