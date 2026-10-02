@@ -17,8 +17,8 @@ public static class HideoutPerlinGroundBuilder
 {
     public const string ScenePath = "Assets/ProjectOverburst/00_Scenes/HideoutScene.unity";
     public const string MeshPath = "Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/Ground/M_HideoutCamp_Perlin.asset";
-    public const float CampAmplitude = .28f;
-    public const float OuterAmplitude = .85f;
+    public const float CampAmplitude = .8f;
+    public const float OuterAmplitude = 1.8f;
     const int CellsX = 108, CellsZ = 76;
     static readonly Vector2 WorldMin = new Vector2(-36,-30);
     static readonly Vector2 WorldMax = new Vector2(72,46);
@@ -49,6 +49,14 @@ public static class HideoutPerlinGroundBuilder
         }
     }
 
+    sealed class Decoration
+    {
+        public Transform transform;
+        public Vector3 position, scale;
+        public Quaternion rotation;
+        public float previousGround;
+    }
+
     [MenuItem("OVERBURST/Environment/Preview Hideout Perlin Ground")]
     public static void PreviewMenu() => Debug.Log(Preview(DefaultOutput));
 
@@ -67,16 +75,18 @@ public static class HideoutPerlinGroundBuilder
         try
         {
             var ground = Ground(scene);
+            var decorations = Decorations(scene,ground);
             mesh = Generate(scene, ground.transform, out int pads);
             Capture(scene, output, "before");
             SetMesh(ground, mesh);
             FitBoundaries(scene);
+            ProjectDecorations(ground,decorations);
             Capture(scene, output, "after");
             var checks = Validate(scene, ground, mesh);
             SaveHeightMap(ground.transform, mesh, Path.Combine(output, "height_map.png"));
             Write(output, "preview_result.json", new {status="PASS", sceneHash, pads, checks,
                 campAmplitude=CampAmplitude, outerAmplitude=OuterAmplitude, vertices=mesh.vertexCount,
-                triangles=mesh.triangles.Length / 3, width=CellsX, depth=CellsZ});
+                triangles=mesh.triangles.Length / 3, width=CellsX, depth=CellsZ, projectedDecorations=decorations.Count});
         }
         finally
         {
@@ -107,7 +117,9 @@ public static class HideoutPerlinGroundBuilder
         try
         {
             var ground = Ground(scene);
-            string before = NonGroundSnapshot(scene, ground);
+            var decorations=Decorations(scene,ground);
+            var movable=new HashSet<Transform>(decorations.Select(d=>d.transform));
+            string before = NonGroundSnapshot(scene, ground,movable);
             generated = Generate(scene, ground.transform, out int pads);
             EnsureFolder(Path.GetDirectoryName(MeshPath).Replace('\\','/'));
             var asset = AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath);
@@ -125,13 +137,15 @@ public static class HideoutPerlinGroundBuilder
             AssetDatabase.SaveAssetIfDirty(asset);
             SetMesh(ground, asset);
             FitBoundaries(scene);
+            ProjectDecorations(ground,decorations);
             var checks = Validate(scene, ground, asset);
-            if (before != NonGroundSnapshot(scene, ground)) throw new InvalidOperationException("A non-ground component changed during baking.");
+            if (before != NonGroundSnapshot(scene, ground,movable)) throw new InvalidOperationException("An unrelated component changed during baking.");
             if (Hash(ScenePath) != expectedSceneHash) throw new InvalidOperationException("Hideout changed during baking; no scene save attempted.");
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("Native Hideout save failed.");
             Write(output, "apply_result.json", new {status="PASS", checks, pads, mesh=MeshPath,
-                beforeSceneHash=expectedSceneHash, afterSceneHash=Hash(ScenePath), nonGroundComponentsPreserved=true});
+                beforeSceneHash=expectedSceneHash, afterSceneHash=Hash(ScenePath), unrelatedComponentsPreserved=true,
+                projectedDecorations=decorations.Count, decorationHorizontalPosesPreserved=true});
         }
         finally
         {
@@ -180,15 +194,15 @@ public static class HideoutPerlinGroundBuilder
             var local = ground.InverseTransformPoint(world);
             float outside = Mathf.SmoothStep(0,1,RectDistance(world, new Vector2(-16,-10),new Vector2(16,18))/12f);
             float amplitude = Mathf.Lerp(CampAmplitude,OuterAmplitude,outside);
-            float noise = .65f*SignedNoise(world,38f,131.37f,79.91f)
-                        + .25f*SignedNoise(world,16f,33.19f,217.63f)
-                        + .10f*SignedNoise(world,7f,291.71f,18.47f);
+            float noise = .65f*SignedNoise(world,28f,131.37f,79.91f)
+                        + .25f*SignedNoise(world,12f,33.19f,217.63f)
+                        + .10f*SignedNoise(world,6f,291.71f,18.47f);
             float mask=1f;
             foreach (var pad in pads) mask=Mathf.Min(mask,pad.Weight(world));
             foreach (var route in routes) mask=Mathf.Min(mask,route.Weight(world));
             // The perimeter stays at the authored elevation beside the existing world boundaries.
             float edge=Mathf.Min(x,CellsX-x,z,CellsZ-z);
-            float height=noise*amplitude*mask*Mathf.SmoothStep(0,1,edge/6f);
+            float height=noise*amplitude*mask*Mathf.SmoothStep(0,1,edge/8f);
             world.y += height;
             vertices[i]=ground.InverseTransformPoint(world);
             // Unity's built-in Plane reverses both UV axes; retain the existing Mud orientation.
@@ -232,12 +246,49 @@ public static class HideoutPerlinGroundBuilder
             // Elevated hanging props do not create extra flat islands.
             if(bottom>.45f || bottom< -1f) continue;
             bool nature=group.name=="Nature";
+            // Small rocks and bushes follow the baked surface instead of flattening every empty patch.
+            if(nature && points.Max(p=>p.y)-bottom<2f) continue;
             var footprint=nature ? points.Where(p=>p.y<=bottom+.35f).ToArray() : points.ToArray();
             float padding=nature ? .75f : .9f;
             pads.Add(new Pad {min=new Vector2(footprint.Min(p=>p.x)-padding,footprint.Min(p=>p.z)-padding),
-                max=new Vector2(footprint.Max(p=>p.x)+padding,footprint.Max(p=>p.z)+padding),fade=nature ? 3.5f : 3f});
+                max=new Vector2(footprint.Max(p=>p.x)+padding,footprint.Max(p=>p.z)+padding),fade=nature ? 5f : 4.5f});
         }
         return pads;
+    }
+
+    static List<Decoration> Decorations(Scene scene,GameObject ground)
+    {
+        var result=new List<Decoration>();
+        var nature=All(scene).Single(t=>t.name=="Camp Layout").Find("Nature");
+        var collider=ground.GetComponent<MeshCollider>();
+        foreach(Transform t in nature)
+        {
+            var renderers=t.GetComponentsInChildren<Renderer>(true);
+            if(renderers.Length==0) continue;
+            var bounds=renderers[0].bounds;
+            foreach(var r in renderers.Skip(1)) bounds.Encapsulate(r.bounds);
+            if(bounds.size.y>=2f || !collider.Raycast(new Ray(new Vector3(t.position.x,5,t.position.z),Vector3.down),out var hit,15)) continue;
+            float offset=bounds.min.y-hit.point.y;
+            if(offset>.45f || offset< -1f) continue;
+            result.Add(new Decoration {transform=t,position=t.position,rotation=t.rotation,scale=t.localScale,previousGround=hit.point.y});
+        }
+        return result;
+    }
+
+    static void ProjectDecorations(GameObject ground,List<Decoration> decorations)
+    {
+        var collider=ground.GetComponent<MeshCollider>();
+        foreach(var d in decorations)
+        {
+            if(!collider.Raycast(new Ray(new Vector3(d.position.x,5,d.position.z),Vector3.down),out var hit,15))
+                throw new InvalidOperationException("A natural prop falls outside the new ground.");
+            d.transform.position=d.position+Vector3.up*(hit.point.y-d.previousGround);
+            if(PrefabUtility.IsPartOfPrefabInstance(d.transform)) PrefabUtility.RecordPrefabInstancePropertyModifications(d.transform);
+            if(Mathf.Abs(d.transform.position.x-d.position.x)>.0001f || Mathf.Abs(d.transform.position.z-d.position.z)>.0001f ||
+               d.transform.rotation!=d.rotation || d.transform.localScale!=d.scale)
+                throw new InvalidOperationException("Decoration horizontal pose changed unexpectedly.");
+        }
+        Physics.SyncTransforms();
     }
 
     static List<PathStrip> Routes(Scene scene,List<Pad> pads)
@@ -293,7 +344,7 @@ public static class HideoutPerlinGroundBuilder
             var normal=Vector3.Cross(vertices[triangles[i+1]]-vertices[triangles[i]],vertices[triangles[i+2]]-vertices[triangles[i]]).normalized;
             maxSlope=Mathf.Max(maxSlope,Vector3.Angle(Vector3.up,normal));
         }
-        if(maxSlope>15f) throw new InvalidOperationException("Terrain slope exceeds the gentle-ground limit: "+maxSlope);
+        if(maxSlope>22f) throw new InvalidOperationException("Terrain slope exceeds the walkable relief limit: "+maxSlope);
         int rays=0;
         for(int z=1;z<CellsZ;z+=5) for(int x=1;x<CellsX;x+=5)
         {
@@ -378,9 +429,10 @@ public static class HideoutPerlinGroundBuilder
     static GameObject Ground(Scene scene) => All(scene).Single(t=>t.name=="Camp Ground").gameObject;
     static void SetMesh(GameObject ground,Mesh mesh)
     { ground.GetComponent<MeshFilter>().sharedMesh=mesh; var collider=ground.GetComponent<MeshCollider>(); collider.sharedMesh=null; collider.sharedMesh=mesh; Physics.SyncTransforms(); }
-    static string NonGroundSnapshot(Scene scene,GameObject ground) => JsonConvert.SerializeObject(All(scene).SelectMany(t=>t.GetComponents<Component>())
+    static string NonGroundSnapshot(Scene scene,GameObject ground,HashSet<Transform> movable) => JsonConvert.SerializeObject(All(scene).SelectMany(t=>t.GetComponents<Component>())
         .Where(c=>c!=null && !(c.gameObject==ground && (c is MeshFilter || c is MeshCollider)) &&
-            !(c.name.StartsWith("Camp Boundary ",StringComparison.Ordinal) && (c is Transform || c is BoxCollider)))
+            !(c.name.StartsWith("Camp Boundary ",StringComparison.Ordinal) && (c is Transform || c is BoxCollider)) &&
+            !(c is Transform t && movable.Contains(t)))
         .Select(c=>new {id=c.GetInstanceID(),data=EditorJsonUtility.ToJson(c)}));
     public static string Hash(string path) { using(var sha=SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant(); }
     static void Write(string output,string name,object data) => File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(data,Formatting.Indented));
