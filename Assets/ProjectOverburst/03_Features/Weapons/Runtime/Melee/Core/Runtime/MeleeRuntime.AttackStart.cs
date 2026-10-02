@@ -167,6 +167,10 @@ public partial class MeleeRuntime
         activeAttackTransitionDuration = 0f;
         activeAttackStep = default;
         ResetActiveTrailState();
+        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light && requestedDodgeFollowUp == PlayerDodgeFollowUpKind.None)
+            suppressHandoffMoveCancelUntilRelease = false;
+        activeDodgeFollowUp = PlayerDodgeFollowUpKind.None;
+        dodgeTrajectoryDefinition = null;
 
         if (activeAttackIsHeavy)
         {
@@ -177,11 +181,14 @@ public partial class MeleeRuntime
                 ResolveAttackPlaybackMultiplier()
                     * Mathf.Max(0.01f, activeAttackStep.animationSpeedMultiplier));
             activeAttackTransitionDuration = Mathf.Max(0f, activeAttackStep.transitionDuration);
+            ResolveDodgeFollowUpAnimation();
             return;
         }
 
         if (!activeAttackUsesCombo)
             return;
+
+        if (ResolveDodgeFollowUpAnimation()) return;
 
         int stepIndex = ResolveNextComboStepIndex(activeComboDefinition);
         MeleeComboStepData step = activeComboDefinition.GetStep(stepIndex);
@@ -233,10 +240,12 @@ public partial class MeleeRuntime
 
         MeleeAttackStepTrajectoryBakeData bakedTrajectoryStep = null;
         string trajectoryError = "콤보 정의가 없습니다.";
+        MeleeComboDefinition trajectoryDefinition = dodgeTrajectoryDefinition != null ? dodgeTrajectoryDefinition : activeComboDefinition;
+        int trajectoryIndex = dodgeTrajectoryDefinition != null ? 0 : comboStepIndex;
         if (RequiresBakedAttackTrajectory(activeAttackPhases)
-            && (activeComboDefinition == null
-                || !activeComboDefinition.TryGetAttackTrajectoryStep(
-                    comboStepIndex,
+            && (trajectoryDefinition == null
+                || !trajectoryDefinition.TryGetAttackTrajectoryStep(
+                    trajectoryIndex,
                     out bakedTrajectoryStep,
                     out trajectoryError)))
         {

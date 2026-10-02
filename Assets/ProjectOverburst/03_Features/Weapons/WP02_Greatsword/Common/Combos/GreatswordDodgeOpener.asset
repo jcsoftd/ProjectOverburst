@@ -1,0 +1,1006 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 039e81767dd391e42a0e9cc92868ae92, type: 3}
+  m_Name: GreatswordComboSet01
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeComboDefinition
+  resetDelay: 0.55
+  baseAnimationSpeed: 1
+  entryTransitionDuration: 0.08
+  steps:
+  - attackId: Greatsword.DodgeOpener.1
+    attackName: "\uB2F7\uC9C0 \uC5B4\uD0DD"
+    animationClip: {fileID: 7400000, guid: b0d24c69c87cb39409ea7b529e5188a1, type: 2}
+    animationSpeedMultiplier: 1.1
+    transitionDuration: 0.08
+    continuationStartNormalizedTime: 0
+    playbackAcceleration:
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
+    comboInputWindow:
+      startNormalizedTime: 0.86
+      endNormalizedTime: 0.98
+    actionCancelStartNormalized: 0.87
+    movementPhases: []
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    trailPhases:
+    - startNormalizedTime: 0.5
+      endNormalizedTime: 0.86
+    attackPhases:
+    - attackPattern: {fileID: 11400000, guid: 091a04fd6e7b71a428a84bac2033bdf3, type: 2}
+      startNormalizedTime: 0.5
+      endNormalizedTime: 0.86
+      geometry:
+        rangeMultiplier: 1
+        angleMultiplier: 1.55
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 0
+        forwardOffset: 0
+      progressSource: 0
+      basisFollowMode: 1
+      impact:
+        damageMultiplier: 1
+        knockbackMultiplier: 1
+        hitStunMultiplier: 1
+        knockbackReactionDuration: 0.36
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues:
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: c2d6576cdf3745f41a4852f16fc31903, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 0
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 140
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 0
+  attackTrajectoryBakeData:
+    schemaVersion: 1
+    sourceFingerprint: dfe3961c92a5b6b8a1e177477f70b5be
+    derivedFingerprint: 0ff763e33f633bcd5a0bcce90879bf42
+    bakedUtc: 2026-10-02T10:36:28.0509491Z
+    steps:
+    - attackId: Greatsword.DodgeOpener.1
+      rawSamples:
+      - normalizedTime: 0
+        localPosition: {x: -0.064835235, y: 1.9338739, z: 2.1295207}
+        unwrappedAngle: -1.7438846
+        forwardDistance: 2.1295207
+      - normalizedTime: 0.0078125
+        localPosition: {x: -0.10517588, y: 1.8923428, z: 2.0474086}
+        unwrappedAngle: -2.940723
+        forwardDistance: 2.0474086
+      - normalizedTime: 0.015625
+        localPosition: {x: -0.27264073, y: 1.8192286, z: 1.9634039}
+        unwrappedAngle: -7.9056277
+        forwardDistance: 1.9634039
+      - normalizedTime: 0.0234375
+        localPosition: {x: -0.5816263, y: 1.6774869, z: 1.9681013}
+        unwrappedAngle: -16.463825
+        forwardDistance: 1.9681013
+      - normalizedTime: 0.03125
+        localPosition: {x: -1.059929, y: 1.3005066, z: 2.212157}
+        unwrappedAngle: -25.60088
+        forwardDistance: 2.212157
+      - normalizedTime: 0.0390625
+        localPosition: {x: -1.2141312, y: 0.84504604, z: 2.8598142}
+        unwrappedAngle: -23.003618
+        forwardDistance: 2.8598142
+      - normalizedTime: 0.046875
+        localPosition: {x: -0.82023925, y: 0.74929476, z: 3.5638146}
+        unwrappedAngle: -12.961361
+        forwardDistance: 3.5638146
+      - normalizedTime: 0.0546875
+        localPosition: {x: -0.24386217, y: 0.79354954, z: 3.8920476}
+        unwrappedAngle: -3.5852852
+        forwardDistance: 3.8920476
+      - normalizedTime: 0.0625
+        localPosition: {x: 0.30348912, y: 0.8440008, z: 3.941916}
+        unwrappedAngle: 4.402514
+        forwardDistance: 3.941916
+      - normalizedTime: 0.0703125
+        localPosition: {x: 0.5849676, y: 0.9459052, z: 3.853596}
+        unwrappedAngle: 8.631464
+        forwardDistance: 3.853596
+      - normalizedTime: 0.078125
+        localPosition: {x: 0.77772015, y: 1.0296686, z: 3.7304983}
+        unwrappedAngle: 11.776116
+        forwardDistance: 3.7304983
+      - normalizedTime: 0.0859375
+        localPosition: {x: 0.93642384, y: 1.0961485, z: 3.5792375}
+        unwrappedAngle: 14.661461
+        forwardDistance: 3.5792375
+      - normalizedTime: 0.09375
+        localPosition: {x: 1.0635253, y: 1.1585765, z: 3.4069452}
+        unwrappedAngle: 17.336464
+        forwardDistance: 3.4069452
+      - normalizedTime: 0.1015625
+        localPosition: {x: 1.1702645, y: 1.2215602, z: 3.2112868}
+        unwrappedAngle: 20.02285
+        forwardDistance: 3.2112868
+      - normalizedTime: 0.109375
+        localPosition: {x: 1.2624847, y: 1.2911334, z: 2.984278}
+        unwrappedAngle: 22.930546
+        forwardDistance: 2.984278
+      - normalizedTime: 0.1171875
+        localPosition: {x: 1.3375753, y: 1.3765724, z: 2.6905909}
+        unwrappedAngle: 26.433365
+        forwardDistance: 2.6905909
+      - normalizedTime: 0.125
+        localPosition: {x: 1.3493453, y: 1.4799833, z: 2.376507}
+        unwrappedAngle: 29.58725
+        forwardDistance: 2.376507
+      - normalizedTime: 0.1328125
+        localPosition: {x: 1.2770456, y: 1.5931299, z: 2.043295}
+        unwrappedAngle: 32.00509
+        forwardDistance: 2.043295
+      - normalizedTime: 0.140625
+        localPosition: {x: 1.1063389, y: 1.7065599, z: 1.727136}
+        unwrappedAngle: 32.642094
+        forwardDistance: 1.727136
+      - normalizedTime: 0.1484375
+        localPosition: {x: 0.85477996, y: 1.8096347, z: 1.4763393}
+        unwrappedAngle: 30.070225
+        forwardDistance: 1.4763393
+      - normalizedTime: 0.15625
+        localPosition: {x: 0.56585044, y: 1.8873942, z: 1.3135201}
+        unwrappedAngle: 23.305851
+        forwardDistance: 1.3135201
+      - normalizedTime: 0.1640625
+        localPosition: {x: 0.2874717, y: 1.9318515, z: 1.2287848}
+        unwrappedAngle: 13.167393
+        forwardDistance: 1.2287848
+      - normalizedTime: 0.171875
+        localPosition: {x: 0.06413332, y: 1.9461998, z: 1.1957221}
+        unwrappedAngle: 3.0701332
+        forwardDistance: 1.1957221
+      - normalizedTime: 0.1796875
+        localPosition: {x: -0.09375452, y: 1.936547, z: 1.1814939}
+        unwrappedAngle: -4.537075
+        forwardDistance: 1.1814939
+      - normalizedTime: 0.1875
+        localPosition: {x: -0.19337277, y: 1.9155552, z: 1.1701342}
+        unwrappedAngle: -9.383724
+        forwardDistance: 1.1701342
+      - normalizedTime: 0.1953125
+        localPosition: {x: -0.26774386, y: 1.8905498, z: 1.1615357}
+        unwrappedAngle: -12.980434
+        forwardDistance: 1.1615357
+      - normalizedTime: 0.203125
+        localPosition: {x: -0.32810417, y: 1.8660723, z: 1.1557732}
+        unwrappedAngle: -15.848324
+        forwardDistance: 1.1557732
+      - normalizedTime: 0.2109375
+        localPosition: {x: -0.38088214, y: 1.8434722, z: 1.1532048}
+        unwrappedAngle: -18.277431
+        forwardDistance: 1.1532048
+      - normalizedTime: 0.21875
+        localPosition: {x: -0.42468706, y: 1.8231108, z: 1.1522232}
+        unwrappedAngle: -20.232906
+        forwardDistance: 1.1522232
+      - normalizedTime: 0.2265625
+        localPosition: {x: -0.4599186, y: 1.8053014, z: 1.1519731}
+        unwrappedAngle: -21.764065
+        forwardDistance: 1.1519731
+      - normalizedTime: 0.234375
+        localPosition: {x: -0.48661256, y: 1.7901685, z: 1.1515712}
+        unwrappedAngle: -22.907162
+        forwardDistance: 1.1515712
+      - normalizedTime: 0.2421875
+        localPosition: {x: -0.50799733, y: 1.7782652, z: 1.1517938}
+        unwrappedAngle: -23.7998
+        forwardDistance: 1.1517938
+      - normalizedTime: 0.25
+        localPosition: {x: -0.5250587, y: 1.7695172, z: 1.1525635}
+        unwrappedAngle: -24.49197
+        forwardDistance: 1.1525635
+      - normalizedTime: 0.2578125
+        localPosition: {x: -0.53986263, y: 1.7638535, z: 1.1543704}
+        unwrappedAngle: -25.063992
+        forwardDistance: 1.1543704
+      - normalizedTime: 0.265625
+        localPosition: {x: -0.55134547, y: 1.7603648, z: 1.1562749}
+        unwrappedAngle: -25.49313
+        forwardDistance: 1.1562749
+      - normalizedTime: 0.2734375
+        localPosition: {x: -0.559073, y: 1.7587433, z: 1.1578428}
+        unwrappedAngle: -25.773891
+        forwardDistance: 1.1578428
+      - normalizedTime: 0.28125
+        localPosition: {x: -0.5629029, y: 1.7580414, z: 1.1583422}
+        unwrappedAngle: -25.91766
+        forwardDistance: 1.1583422
+      - normalizedTime: 0.2890625
+        localPosition: {x: -0.5626113, y: 1.7579904, z: 1.1572129}
+        unwrappedAngle: -25.927975
+        forwardDistance: 1.1572129
+      - normalizedTime: 0.296875
+        localPosition: {x: -0.5579391, y: 1.7582715, z: 1.1538972}
+        unwrappedAngle: -25.804947
+        forwardDistance: 1.1538972
+      - normalizedTime: 0.3046875
+        localPosition: {x: -0.54884446, y: 1.7590742, z: 1.1485695}
+        unwrappedAngle: -25.540804
+        forwardDistance: 1.1485695
+      - normalizedTime: 0.3125
+        localPosition: {x: -0.53554535, y: 1.7603352, z: 1.141421}
+        unwrappedAngle: -25.135563
+        forwardDistance: 1.141421
+      - normalizedTime: 0.3203125
+        localPosition: {x: -0.51869845, y: 1.7617385, z: 1.1327549}
+        unwrappedAngle: -24.60344
+        forwardDistance: 1.1327549
+      - normalizedTime: 0.328125
+        localPosition: {x: -0.49891976, y: 1.7634298, z: 1.1232204}
+        unwrappedAngle: -23.950144
+        forwardDistance: 1.1232204
+      - normalizedTime: 0.3359375
+        localPosition: {x: -0.4764423, y: 1.765439, z: 1.1131698}
+        unwrappedAngle: -23.171148
+        forwardDistance: 1.1131698
+      - normalizedTime: 0.34375
+        localPosition: {x: -0.45208415, y: 1.7672732, z: 1.1027097}
+        unwrappedAngle: -22.292416
+        forwardDistance: 1.1027097
+      - normalizedTime: 0.3515625
+        localPosition: {x: -0.42622268, y: 1.7688553, z: 1.0921081}
+        unwrappedAngle: -21.319447
+        forwardDistance: 1.0921081
+      - normalizedTime: 0.359375
+        localPosition: {x: -0.3992441, y: 1.7703104, z: 1.0817577}
+        unwrappedAngle: -20.25756
+        forwardDistance: 1.0817577
+      - normalizedTime: 0.3671875
+        localPosition: {x: -0.37181562, y: 1.7717137, z: 1.0720521}
+        unwrappedAngle: -19.12786
+        forwardDistance: 1.0720521
+      - normalizedTime: 0.375
+        localPosition: {x: -0.34429038, y: 1.7729372, z: 1.0630682}
+        unwrappedAngle: -17.945293
+        forwardDistance: 1.0630682
+      - normalizedTime: 0.3828125
+        localPosition: {x: -0.31745428, y: 1.7740939, z: 1.0551523}
+        unwrappedAngle: -16.744476
+        forwardDistance: 1.0551523
+      - normalizedTime: 0.390625
+        localPosition: {x: -0.29201105, y: 1.7752367, z: 1.0485182}
+        unwrappedAngle: -15.562435
+        forwardDistance: 1.0485182
+      - normalizedTime: 0.3984375
+        localPosition: {x: -0.26846072, y: 1.7764219, z: 1.0432227}
+        unwrappedAngle: -14.431233
+        forwardDistance: 1.0432227
+      - normalizedTime: 0.40625
+        localPosition: {x: -0.24752584, y: 1.7777774, z: 1.03938}
+        unwrappedAngle: -13.395316
+        forwardDistance: 1.03938
+      - normalizedTime: 0.4140625
+        localPosition: {x: -0.22863536, y: 1.7790883, z: 1.0366043}
+        unwrappedAngle: -12.4381
+        forwardDistance: 1.0366043
+      - normalizedTime: 0.421875
+        localPosition: {x: -0.21131152, y: 1.7800788, z: 1.0345917}
+        unwrappedAngle: -11.543657
+        forwardDistance: 1.0345917
+      - normalizedTime: 0.4296875
+        localPosition: {x: -0.1941979, y: 1.7802567, z: 1.0328723}
+        unwrappedAngle: -10.648266
+        forwardDistance: 1.0328723
+      - normalizedTime: 0.4375
+        localPosition: {x: -0.17729156, y: 1.779609, z: 1.0313474}
+        unwrappedAngle: -9.753954
+        forwardDistance: 1.0313474
+      - normalizedTime: 0.4453125
+        localPosition: {x: -0.1605986, y: 1.7783248, z: 1.030063}
+        unwrappedAngle: -8.861701
+        forwardDistance: 1.030063
+      - normalizedTime: 0.453125
+        localPosition: {x: -0.14411688, y: 1.7766473, z: 1.0289971}
+        unwrappedAngle: -7.9727182
+        forwardDistance: 1.0289971
+      - normalizedTime: 0.4609375
+        localPosition: {x: -0.12783742, y: 1.7746973, z: 1.0281545}
+        unwrappedAngle: -7.0875773
+        forwardDistance: 1.0281545
+      - normalizedTime: 0.46875
+        localPosition: {x: -0.11168779, y: 1.7725074, z: 1.0275139}
+        unwrappedAngle: -6.2035093
+        forwardDistance: 1.0275139
+      - normalizedTime: 0.4765625
+        localPosition: {x: -0.095690764, y: 1.7701023, z: 1.0270783}
+        unwrappedAngle: -5.3227434
+        forwardDistance: 1.0270783
+      - normalizedTime: 0.484375
+        localPosition: {x: -0.07982225, y: 1.7675275, z: 1.0268421}
+        unwrappedAngle: -4.4449654
+        forwardDistance: 1.0268421
+      - normalizedTime: 0.4921875
+        localPosition: {x: -0.06405079, y: 1.7648556, z: 1.0268241}
+        unwrappedAngle: -3.569326
+        forwardDistance: 1.0268241
+      - normalizedTime: 0.5
+        localPosition: {x: -0.04835005, y: 1.7620902, z: 1.0269862}
+        unwrappedAngle: -2.6954484
+        forwardDistance: 1.0269862
+      - normalizedTime: 0.5078125
+        localPosition: {x: -0.032756954, y: 1.7593173, z: 1.0273602}
+        unwrappedAngle: -1.8262126
+        forwardDistance: 1.0273602
+      - normalizedTime: 0.515625
+        localPosition: {x: -0.017230242, y: 1.7566042, z: 1.0279566}
+        unwrappedAngle: -0.9602605
+        forwardDistance: 1.0279566
+      - normalizedTime: 0.5234375
+        localPosition: {x: -0.0018046652, y: 1.7538549, z: 1.0286641}
+        unwrappedAngle: -0.100497365
+        forwardDistance: 1.0286641
+      - normalizedTime: 0.53125
+        localPosition: {x: 0.013619467, y: 1.7510698, z: 1.0294553}
+        unwrappedAngle: 0.7579873
+        forwardDistance: 1.0294553
+      - normalizedTime: 0.5390625
+        localPosition: {x: 0.029049039, y: 1.7482724, z: 1.0303055}
+        unwrappedAngle: 1.6150241
+        forwardDistance: 1.0303055
+      - normalizedTime: 0.546875
+        localPosition: {x: 0.04443083, y: 1.7454753, z: 1.0312487}
+        unwrappedAngle: 2.467055
+        forwardDistance: 1.0312487
+      - normalizedTime: 0.5546875
+        localPosition: {x: 0.059759982, y: 1.7427696, z: 1.0323386}
+        unwrappedAngle: 3.3130598
+        forwardDistance: 1.0323386
+      - normalizedTime: 0.5625
+        localPosition: {x: 0.075015604, y: 1.7400658, z: 1.0334805}
+        unwrappedAngle: 4.151578
+        forwardDistance: 1.0334805
+      - normalizedTime: 0.5703125
+        localPosition: {x: 0.090244465, y: 1.7374132, z: 1.0346802}
+        unwrappedAngle: 4.984725
+        forwardDistance: 1.0346802
+      - normalizedTime: 0.578125
+        localPosition: {x: 0.105448425, y: 1.7347524, z: 1.0358552}
+        unwrappedAngle: 5.812618
+        forwardDistance: 1.0358552
+      - normalizedTime: 0.5859375
+        localPosition: {x: 0.12064779, y: 1.7321196, z: 1.0370167}
+        unwrappedAngle: 6.636049
+        forwardDistance: 1.0370167
+      - normalizedTime: 0.59375
+        localPosition: {x: 0.13477758, y: 1.7295287, z: 1.0380405}
+        unwrappedAngle: 7.3978305
+        forwardDistance: 1.0380405
+      - normalizedTime: 0.6015625
+        localPosition: {x: 0.15233412, y: 1.7266957, z: 1.0390942}
+        unwrappedAngle: 8.340331
+        forwardDistance: 1.0390942
+      - normalizedTime: 0.609375
+        localPosition: {x: 0.17719531, y: 1.723507, z: 1.0407491}
+        unwrappedAngle: 9.662404
+        forwardDistance: 1.0407491
+      - normalizedTime: 0.6171875
+        localPosition: {x: 0.21415491, y: 1.7192924, z: 1.0437561}
+        unwrappedAngle: 11.594888
+        forwardDistance: 1.0437561
+      - normalizedTime: 0.625
+        localPosition: {x: 0.26247105, y: 1.7142589, z: 1.0492162}
+        unwrappedAngle: 14.0448475
+        forwardDistance: 1.0492162
+      - normalizedTime: 0.6328125
+        localPosition: {x: 0.3200041, y: 1.7082485, z: 1.0577142}
+        unwrappedAngle: 16.832848
+        forwardDistance: 1.0577142
+      - normalizedTime: 0.640625
+        localPosition: {x: 0.38427168, y: 1.7012864, z: 1.070044}
+        unwrappedAngle: 19.75413
+        forwardDistance: 1.070044
+      - normalizedTime: 0.6484375
+        localPosition: {x: 0.45344284, y: 1.6935112, z: 1.0869678}
+        unwrappedAngle: 22.644117
+        forwardDistance: 1.0869678
+      - normalizedTime: 0.65625
+        localPosition: {x: 0.52536386, y: 1.6844752, z: 1.1083583}
+        unwrappedAngle: 25.36106
+        forwardDistance: 1.1083583
+      - normalizedTime: 0.6640625
+        localPosition: {x: 0.59817624, y: 1.674432, z: 1.1342975}
+        unwrappedAngle: 27.80512
+        forwardDistance: 1.1342975
+      - normalizedTime: 0.671875
+        localPosition: {x: 0.67020303, y: 1.6636904, z: 1.1646283}
+        unwrappedAngle: 29.918951
+        forwardDistance: 1.1646283
+      - normalizedTime: 0.6796875
+        localPosition: {x: 0.7388397, y: 1.6526737, z: 1.1981578}
+        unwrappedAngle: 31.659933
+        forwardDistance: 1.1981578
+      - normalizedTime: 0.6875
+        localPosition: {x: 0.803181, y: 1.6422698, z: 1.2343867}
+        unwrappedAngle: 33.05095
+        forwardDistance: 1.2343867
+      - normalizedTime: 0.6953125
+        localPosition: {x: 0.8619033, y: 1.6327426, z: 1.2713163}
+        unwrappedAngle: 34.135773
+        forwardDistance: 1.2713163
+      - normalizedTime: 0.703125
+        localPosition: {x: 0.91352934, y: 1.6242802, z: 1.30745}
+        unwrappedAngle: 34.942432
+        forwardDistance: 1.30745
+      - normalizedTime: 0.7109375
+        localPosition: {x: 0.9577193, y: 1.6169693, z: 1.341284}
+        unwrappedAngle: 35.528057
+        forwardDistance: 1.341284
+      - normalizedTime: 0.71875
+        localPosition: {x: 0.9944265, y: 1.6103973, z: 1.3702445}
+        unwrappedAngle: 35.96951
+        forwardDistance: 1.3702445
+      - normalizedTime: 0.7265625
+        localPosition: {x: 1.0239477, y: 1.603827, z: 1.3924227}
+        unwrappedAngle: 36.329716
+        forwardDistance: 1.3924227
+      - normalizedTime: 0.734375
+        localPosition: {x: 1.0464917, y: 1.5962467, z: 1.4055877}
+        unwrappedAngle: 36.668537
+        forwardDistance: 1.4055877
+      - normalizedTime: 0.7421875
+        localPosition: {x: 1.0649774, y: 1.5872674, z: 1.4126639}
+        unwrappedAngle: 37.011887
+        forwardDistance: 1.4126639
+      - normalizedTime: 0.75
+        localPosition: {x: 1.0809283, y: 1.5765424, z: 1.4152713}
+        unwrappedAngle: 37.37118
+        forwardDistance: 1.4152713
+      - normalizedTime: 0.7578125
+        localPosition: {x: 1.0965755, y: 1.5647012, z: 1.4174951}
+        unwrappedAngle: 37.72559
+        forwardDistance: 1.4174951
+      - normalizedTime: 0.765625
+        localPosition: {x: 1.1116195, y: 1.5512903, z: 1.4185865}
+        unwrappedAngle: 38.08265
+        forwardDistance: 1.4185865
+      - normalizedTime: 0.7734375
+        localPosition: {x: 1.126279, y: 1.5360119, z: 1.4187572}
+        unwrappedAngle: 38.44429
+        forwardDistance: 1.4187572
+      - normalizedTime: 0.78125
+        localPosition: {x: 1.1406856, y: 1.5185597, z: 1.4179032}
+        unwrappedAngle: 38.81627
+        forwardDistance: 1.4179032
+      - normalizedTime: 0.7890625
+        localPosition: {x: 1.1548936, y: 1.4988313, z: 1.4162151}
+        unwrappedAngle: 39.19654
+        forwardDistance: 1.4162151
+      - normalizedTime: 0.796875
+        localPosition: {x: 1.1689476, y: 1.4765574, z: 1.4138546}
+        unwrappedAngle: 39.5833
+        forwardDistance: 1.4138546
+      - normalizedTime: 0.8046875
+        localPosition: {x: 1.1829344, y: 1.4515018, z: 1.4111739}
+        unwrappedAngle: 39.971867
+        forwardDistance: 1.4111739
+      - normalizedTime: 0.8125
+        localPosition: {x: 1.1968801, y: 1.4235125, z: 1.4086138}
+        unwrappedAngle: 40.354126
+        forwardDistance: 1.4086138
+      - normalizedTime: 0.8203125
+        localPosition: {x: 1.2107168, y: 1.392431, z: 1.4064997}
+        unwrappedAngle: 40.72193
+        forwardDistance: 1.4064997
+      - normalizedTime: 0.828125
+        localPosition: {x: 1.2243792, y: 1.3580936, z: 1.4052441}
+        unwrappedAngle: 41.065426
+        forwardDistance: 1.4052441
+      - normalizedTime: 0.8359375
+        localPosition: {x: 1.2377951, y: 1.3204818, z: 1.4052774}
+        unwrappedAngle: 41.374237
+        forwardDistance: 1.4052774
+      - normalizedTime: 0.84375
+        localPosition: {x: 1.250847, y: 1.2794894, z: 1.4068673}
+        unwrappedAngle: 41.640343
+        forwardDistance: 1.4068673
+      - normalizedTime: 0.8515625
+        localPosition: {x: 1.2635533, y: 1.2352052, z: 1.4108235}
+        unwrappedAngle: 41.84809
+        forwardDistance: 1.4108235
+      - normalizedTime: 0.859375
+        localPosition: {x: 1.2758142, y: 1.187673, z: 1.417805}
+        unwrappedAngle: 41.982536
+        forwardDistance: 1.417805
+      - normalizedTime: 0.8671875
+        localPosition: {x: 1.2879734, y: 1.1377273, z: 1.4289423}
+        unwrappedAngle: 42.029854
+        forwardDistance: 1.4289423
+      - normalizedTime: 0.875
+        localPosition: {x: 1.2987317, y: 1.085183, z: 1.4435446}
+        unwrappedAngle: 41.97718
+        forwardDistance: 1.4435446
+      - normalizedTime: 0.8828125
+        localPosition: {x: 1.3085717, y: 1.0310264, z: 1.4623667}
+        unwrappedAngle: 41.82319
+        forwardDistance: 1.4623667
+      - normalizedTime: 0.890625
+        localPosition: {x: 1.3170526, y: 0.97564745, z: 1.4851838}
+        unwrappedAngle: 41.566444
+        forwardDistance: 1.4851838
+      - normalizedTime: 0.8984375
+        localPosition: {x: 1.3237983, y: 0.9194542, z: 1.5117422}
+        unwrappedAngle: 41.207893
+        forwardDistance: 1.5117422
+      - normalizedTime: 0.90625
+        localPosition: {x: 1.3286594, y: 0.8630345, z: 1.5418446}
+        unwrappedAngle: 40.75257
+        forwardDistance: 1.5418446
+      - normalizedTime: 0.9140625
+        localPosition: {x: 1.3314664, y: 0.80675673, z: 1.5752766}
+        unwrappedAngle: 40.20539
+        forwardDistance: 1.5752766
+      - normalizedTime: 0.921875
+        localPosition: {x: 1.332051, y: 0.7510505, z: 1.6116049}
+        unwrappedAngle: 39.57499
+        forwardDistance: 1.6116049
+      - normalizedTime: 0.9296875
+        localPosition: {x: 1.3304234, y: 0.6964495, z: 1.6504431}
+        unwrappedAngle: 38.872322
+        forwardDistance: 1.6504431
+      - normalizedTime: 0.9375
+        localPosition: {x: 1.3264416, y: 0.6431489, z: 1.691176}
+        unwrappedAngle: 38.108192
+        forwardDistance: 1.691176
+      - normalizedTime: 0.9453125
+        localPosition: {x: 1.3201528, y: 0.59155536, z: 1.7334467}
+        unwrappedAngle: 37.29206
+        forwardDistance: 1.7334467
+      - normalizedTime: 0.953125
+        localPosition: {x: 1.3117075, y: 0.541996, z: 1.7767526}
+        unwrappedAngle: 36.43702
+        forwardDistance: 1.7767526
+      - normalizedTime: 0.9609375
+        localPosition: {x: 1.3011637, y: 0.49456966, z: 1.8203341}
+        unwrappedAngle: 35.556953
+        forwardDistance: 1.8203341
+      - normalizedTime: 0.96875
+        localPosition: {x: 1.2887933, y: 0.44958866, z: 1.8635614}
+        unwrappedAngle: 34.666786
+        forwardDistance: 1.8635614
+      - normalizedTime: 0.9765625
+        localPosition: {x: 1.2748233, y: 0.4070965, z: 1.9057039}
+        unwrappedAngle: 33.780617
+        forwardDistance: 1.9057039
+      - normalizedTime: 0.984375
+        localPosition: {x: 1.2595333, y: 0.3671224, z: 1.946227}
+        unwrappedAngle: 32.909615
+        forwardDistance: 1.946227
+      - normalizedTime: 0.9921875
+        localPosition: {x: 1.2433021, y: 0.32983112, z: 1.9842604}
+        unwrappedAngle: 32.070534
+        forwardDistance: 1.9842604
+      - normalizedTime: 1
+        localPosition: {x: 1.2263596, y: 0.29515123, z: 2.0192137}
+        unwrappedAngle: 31.272224
+        forwardDistance: 2.0192137
+      phases:
+      - phaseIndex: 0
+        progressSource: 0
+        canApplyHits: 1
+        hitEntryNormalizedTime: 0.5
+        progressSamples:
+        - normalizedTime: 0.5
+          rawProgress: 0
+          resolvedProgress: 0
+        - normalizedTime: 0.5028125
+          rawProgress: 0.007812513
+          resolvedProgress: 0.007812513
+        - normalizedTime: 0.505625
+          rawProgress: 0.015625026
+          resolvedProgress: 0.015625026
+        - normalizedTime: 0.5084375
+          rawProgress: 0.02343754
+          resolvedProgress: 0.02343754
+        - normalizedTime: 0.51125
+          rawProgress: 0.031250052
+          resolvedProgress: 0.031250052
+        - normalizedTime: 0.5140625
+          rawProgress: 0.039062563
+          resolvedProgress: 0.039062563
+        - normalizedTime: 0.516875
+          rawProgress: 0.04687508
+          resolvedProgress: 0.04687508
+        - normalizedTime: 0.5196875
+          rawProgress: 0.054687425
+          resolvedProgress: 0.054687425
+        - normalizedTime: 0.5225
+          rawProgress: 0.062499937
+          resolvedProgress: 0.062499937
+        - normalizedTime: 0.5253125
+          rawProgress: 0.07031245
+          resolvedProgress: 0.07031245
+        - normalizedTime: 0.528125
+          rawProgress: 0.07812496
+          resolvedProgress: 0.07812496
+        - normalizedTime: 0.5309375
+          rawProgress: 0.08593748
+          resolvedProgress: 0.08593748
+        - normalizedTime: 0.53375
+          rawProgress: 0.09374999
+          resolvedProgress: 0.09374999
+        - normalizedTime: 0.5365625
+          rawProgress: 0.1015625
+          resolvedProgress: 0.1015625
+        - normalizedTime: 0.539375
+          rawProgress: 0.109375015
+          resolvedProgress: 0.109375015
+        - normalizedTime: 0.5421875
+          rawProgress: 0.11718753
+          resolvedProgress: 0.11718753
+        - normalizedTime: 0.545
+          rawProgress: 0.12500004
+          resolvedProgress: 0.12500004
+        - normalizedTime: 0.5478125
+          rawProgress: 0.13281256
+          resolvedProgress: 0.13281256
+        - normalizedTime: 0.550625
+          rawProgress: 0.14062507
+          resolvedProgress: 0.14062507
+        - normalizedTime: 0.55343753
+          rawProgress: 0.14843757
+          resolvedProgress: 0.14843757
+        - normalizedTime: 0.55625
+          rawProgress: 0.15624993
+          resolvedProgress: 0.15624993
+        - normalizedTime: 0.5590625
+          rawProgress: 0.16406244
+          resolvedProgress: 0.16406244
+        - normalizedTime: 0.561875
+          rawProgress: 0.17187496
+          resolvedProgress: 0.17187496
+        - normalizedTime: 0.5646875
+          rawProgress: 0.17968747
+          resolvedProgress: 0.17968747
+        - normalizedTime: 0.5675
+          rawProgress: 0.18749999
+          resolvedProgress: 0.18749999
+        - normalizedTime: 0.5703125
+          rawProgress: 0.19531249
+          resolvedProgress: 0.19531249
+        - normalizedTime: 0.573125
+          rawProgress: 0.203125
+          resolvedProgress: 0.203125
+        - normalizedTime: 0.5759375
+          rawProgress: 0.21093751
+          resolvedProgress: 0.21093751
+        - normalizedTime: 0.57875
+          rawProgress: 0.21875003
+          resolvedProgress: 0.21875003
+        - normalizedTime: 0.5815625
+          rawProgress: 0.22656254
+          resolvedProgress: 0.22656254
+        - normalizedTime: 0.584375
+          rawProgress: 0.23437506
+          resolvedProgress: 0.23437506
+        - normalizedTime: 0.5871875
+          rawProgress: 0.24218757
+          resolvedProgress: 0.24218757
+        - normalizedTime: 0.59000003
+          rawProgress: 0.2500001
+          resolvedProgress: 0.2500001
+        - normalizedTime: 0.5928125
+          rawProgress: 0.25781244
+          resolvedProgress: 0.25781244
+        - normalizedTime: 0.595625
+          rawProgress: 0.26562494
+          resolvedProgress: 0.26562494
+        - normalizedTime: 0.5984375
+          rawProgress: 0.27343747
+          resolvedProgress: 0.27343747
+        - normalizedTime: 0.60125
+          rawProgress: 0.28124997
+          resolvedProgress: 0.28124997
+        - normalizedTime: 0.6040625
+          rawProgress: 0.28906247
+          resolvedProgress: 0.28906247
+        - normalizedTime: 0.606875
+          rawProgress: 0.296875
+          resolvedProgress: 0.296875
+        - normalizedTime: 0.6096875
+          rawProgress: 0.3046875
+          resolvedProgress: 0.3046875
+        - normalizedTime: 0.6125
+          rawProgress: 0.31250003
+          resolvedProgress: 0.31250003
+        - normalizedTime: 0.6153125
+          rawProgress: 0.32031253
+          resolvedProgress: 0.32031253
+        - normalizedTime: 0.618125
+          rawProgress: 0.32812506
+          resolvedProgress: 0.32812506
+        - normalizedTime: 0.6209375
+          rawProgress: 0.33593756
+          resolvedProgress: 0.33593756
+        - normalizedTime: 0.62375003
+          rawProgress: 0.34375006
+          resolvedProgress: 0.34375006
+        - normalizedTime: 0.6265625
+          rawProgress: 0.3515624
+          resolvedProgress: 0.3515624
+        - normalizedTime: 0.629375
+          rawProgress: 0.35937494
+          resolvedProgress: 0.35937494
+        - normalizedTime: 0.6321875
+          rawProgress: 0.36718744
+          resolvedProgress: 0.36718744
+        - normalizedTime: 0.635
+          rawProgress: 0.37499997
+          resolvedProgress: 0.37499997
+        - normalizedTime: 0.6378125
+          rawProgress: 0.38281247
+          resolvedProgress: 0.38281247
+        - normalizedTime: 0.640625
+          rawProgress: 0.39062497
+          resolvedProgress: 0.39062497
+        - normalizedTime: 0.6434375
+          rawProgress: 0.3984375
+          resolvedProgress: 0.3984375
+        - normalizedTime: 0.64625
+          rawProgress: 0.40625
+          resolvedProgress: 0.40625
+        - normalizedTime: 0.6490625
+          rawProgress: 0.41406253
+          resolvedProgress: 0.41406253
+        - normalizedTime: 0.651875
+          rawProgress: 0.42187503
+          resolvedProgress: 0.42187503
+        - normalizedTime: 0.6546875
+          rawProgress: 0.42968756
+          resolvedProgress: 0.42968756
+        - normalizedTime: 0.6575
+          rawProgress: 0.43750006
+          resolvedProgress: 0.43750006
+        - normalizedTime: 0.66031253
+          rawProgress: 0.4453126
+          resolvedProgress: 0.4453126
+        - normalizedTime: 0.663125
+          rawProgress: 0.4531249
+          resolvedProgress: 0.4531249
+        - normalizedTime: 0.6659375
+          rawProgress: 0.46093744
+          resolvedProgress: 0.46093744
+        - normalizedTime: 0.66875
+          rawProgress: 0.46874994
+          resolvedProgress: 0.46874994
+        - normalizedTime: 0.6715625
+          rawProgress: 0.47656247
+          resolvedProgress: 0.47656247
+        - normalizedTime: 0.674375
+          rawProgress: 0.48437497
+          resolvedProgress: 0.48437497
+        - normalizedTime: 0.6771875
+          rawProgress: 0.4921875
+          resolvedProgress: 0.4921875
+        - normalizedTime: 0.68
+          rawProgress: 0.5
+          resolvedProgress: 0.5
+        - normalizedTime: 0.6828125
+          rawProgress: 0.5078125
+          resolvedProgress: 0.5078125
+        - normalizedTime: 0.685625
+          rawProgress: 0.515625
+          resolvedProgress: 0.515625
+        - normalizedTime: 0.6884375
+          rawProgress: 0.52343756
+          resolvedProgress: 0.52343756
+        - normalizedTime: 0.69125
+          rawProgress: 0.53125006
+          resolvedProgress: 0.53125006
+        - normalizedTime: 0.69406253
+          rawProgress: 0.53906256
+          resolvedProgress: 0.53906256
+        - normalizedTime: 0.69687504
+          rawProgress: 0.54687506
+          resolvedProgress: 0.54687506
+        - normalizedTime: 0.6996875
+          rawProgress: 0.55468744
+          resolvedProgress: 0.55468744
+        - normalizedTime: 0.7025
+          rawProgress: 0.56249994
+          resolvedProgress: 0.56249994
+        - normalizedTime: 0.7053125
+          rawProgress: 0.57031244
+          resolvedProgress: 0.57031244
+        - normalizedTime: 0.708125
+          rawProgress: 0.57812494
+          resolvedProgress: 0.57812494
+        - normalizedTime: 0.7109375
+          rawProgress: 0.5859375
+          resolvedProgress: 0.5859375
+        - normalizedTime: 0.71375
+          rawProgress: 0.59375
+          resolvedProgress: 0.59375
+        - normalizedTime: 0.7165625
+          rawProgress: 0.6015625
+          resolvedProgress: 0.6015625
+        - normalizedTime: 0.719375
+          rawProgress: 0.609375
+          resolvedProgress: 0.609375
+        - normalizedTime: 0.7221875
+          rawProgress: 0.6171875
+          resolvedProgress: 0.6171875
+        - normalizedTime: 0.725
+          rawProgress: 0.62500006
+          resolvedProgress: 0.62500006
+        - normalizedTime: 0.7278125
+          rawProgress: 0.63281256
+          resolvedProgress: 0.63281256
+        - normalizedTime: 0.73062503
+          rawProgress: 0.64062506
+          resolvedProgress: 0.64062506
+        - normalizedTime: 0.73343754
+          rawProgress: 0.64843756
+          resolvedProgress: 0.64843756
+        - normalizedTime: 0.73625
+          rawProgress: 0.65624994
+          resolvedProgress: 0.65624994
+        - normalizedTime: 0.7390625
+          rawProgress: 0.66406244
+          resolvedProgress: 0.66406244
+        - normalizedTime: 0.741875
+          rawProgress: 0.67187494
+          resolvedProgress: 0.67187494
+        - normalizedTime: 0.7446875
+          rawProgress: 0.67968744
+          resolvedProgress: 0.67968744
+        - normalizedTime: 0.7475
+          rawProgress: 0.6875
+          resolvedProgress: 0.6875
+        - normalizedTime: 0.7503125
+          rawProgress: 0.6953125
+          resolvedProgress: 0.6953125
+        - normalizedTime: 0.753125
+          rawProgress: 0.703125
+          resolvedProgress: 0.703125
+        - normalizedTime: 0.7559375
+          rawProgress: 0.7109375
+          resolvedProgress: 0.7109375
+        - normalizedTime: 0.75875
+          rawProgress: 0.71875006
+          resolvedProgress: 0.71875006
+        - normalizedTime: 0.7615625
+          rawProgress: 0.72656256
+          resolvedProgress: 0.72656256
+        - normalizedTime: 0.76437503
+          rawProgress: 0.73437506
+          resolvedProgress: 0.73437506
+        - normalizedTime: 0.76718754
+          rawProgress: 0.74218756
+          resolvedProgress: 0.74218756
+        - normalizedTime: 0.77
+          rawProgress: 0.74999994
+          resolvedProgress: 0.74999994
+        - normalizedTime: 0.7728125
+          rawProgress: 0.75781244
+          resolvedProgress: 0.75781244
+        - normalizedTime: 0.775625
+          rawProgress: 0.76562494
+          resolvedProgress: 0.76562494
+        - normalizedTime: 0.7784375
+          rawProgress: 0.77343744
+          resolvedProgress: 0.77343744
+        - normalizedTime: 0.78125
+          rawProgress: 0.78124994
+          resolvedProgress: 0.78124994
+        - normalizedTime: 0.7840625
+          rawProgress: 0.7890625
+          resolvedProgress: 0.7890625
+        - normalizedTime: 0.786875
+          rawProgress: 0.796875
+          resolvedProgress: 0.796875
+        - normalizedTime: 0.7896875
+          rawProgress: 0.8046875
+          resolvedProgress: 0.8046875
+        - normalizedTime: 0.7925
+          rawProgress: 0.8125
+          resolvedProgress: 0.8125
+        - normalizedTime: 0.7953125
+          rawProgress: 0.82031256
+          resolvedProgress: 0.82031256
+        - normalizedTime: 0.798125
+          rawProgress: 0.82812506
+          resolvedProgress: 0.82812506
+        - normalizedTime: 0.80093753
+          rawProgress: 0.83593756
+          resolvedProgress: 0.83593756
+        - normalizedTime: 0.80375004
+          rawProgress: 0.84375006
+          resolvedProgress: 0.84375006
+        - normalizedTime: 0.8065625
+          rawProgress: 0.85156244
+          resolvedProgress: 0.85156244
+        - normalizedTime: 0.809375
+          rawProgress: 0.85937494
+          resolvedProgress: 0.85937494
+        - normalizedTime: 0.8121875
+          rawProgress: 0.86718744
+          resolvedProgress: 0.86718744
+        - normalizedTime: 0.815
+          rawProgress: 0.87499994
+          resolvedProgress: 0.87499994
+        - normalizedTime: 0.8178125
+          rawProgress: 0.8828125
+          resolvedProgress: 0.8828125
+        - normalizedTime: 0.820625
+          rawProgress: 0.890625
+          resolvedProgress: 0.890625
+        - normalizedTime: 0.8234375
+          rawProgress: 0.8984375
+          resolvedProgress: 0.8984375
+        - normalizedTime: 0.82625
+          rawProgress: 0.90625
+          resolvedProgress: 0.90625
+        - normalizedTime: 0.8290625
+          rawProgress: 0.9140625
+          resolvedProgress: 0.9140625
+        - normalizedTime: 0.831875
+          rawProgress: 0.92187506
+          resolvedProgress: 0.92187506
+        - normalizedTime: 0.83468753
+          rawProgress: 0.92968756
+          resolvedProgress: 0.92968756
+        - normalizedTime: 0.83750004
+          rawProgress: 0.93750006
+          resolvedProgress: 0.93750006
+        - normalizedTime: 0.84031254
+          rawProgress: 0.94531256
+          resolvedProgress: 0.94531256
+        - normalizedTime: 0.843125
+          rawProgress: 0.95312494
+          resolvedProgress: 0.95312494
+        - normalizedTime: 0.8459375
+          rawProgress: 0.96093744
+          resolvedProgress: 0.96093744
+        - normalizedTime: 0.84875
+          rawProgress: 0.96874994
+          resolvedProgress: 0.96874994
+        - normalizedTime: 0.8515625
+          rawProgress: 0.97656244
+          resolvedProgress: 0.97656244
+        - normalizedTime: 0.854375
+          rawProgress: 0.984375
+          resolvedProgress: 0.984375
+        - normalizedTime: 0.8571875
+          rawProgress: 0.9921875
+          resolvedProgress: 0.9921875
+        - normalizedTime: 0.86
+          rawProgress: 1
+          resolvedProgress: 1

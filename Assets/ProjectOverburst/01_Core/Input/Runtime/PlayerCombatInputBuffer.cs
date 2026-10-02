@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 // One pending press per action, owned by the actor's facade. Unscaled deadlines
 // prevent hitstop from turning a short tap into a long-lived queued action.
-public sealed class PlayerCombatInputBuffer : IDisposable
+public sealed partial class PlayerCombatInputBuffer : IDisposable
 {
     private readonly PlayerInputFacade input;
     private PlayerStateCoordinator state;
@@ -96,7 +96,7 @@ public sealed class PlayerCombatInputBuffer : IDisposable
             attackPending = false;
             attackNeedsRelease = true;
         }
-        if (sampledFrame == Time.frameCount) return;
+        if (sampledFrame == Time.frameCount) { RefreshDodgeFollowUp(); return; }
         sampledFrame = Time.frameCount;
         float now = Time.unscaledTime;
         if (attackFrame != Time.frameCount && now >= attackExpiresAt) attackPending = false;
@@ -112,7 +112,7 @@ public sealed class PlayerCombatInputBuffer : IDisposable
             : null;
         bool canHeavy = meleeDefinition != null && meleeDefinition.heavyAttackDefinition != null;
         bool canEvade = evade != null && evade.isActiveAndEnabled
-            && movement != null && movement.IsMeleeCombatLocomotionMode;
+            && movement != null && evade.CanEvadeInCurrentMode;
         if (!canAttack) attackPending = false;
         if (!canHeavy) heavyPending = false;
         if (!canEvade) evadePending = false;
@@ -134,6 +134,7 @@ public sealed class PlayerCombatInputBuffer : IDisposable
             evadeFrame = Time.frameCount;
             evadeExpiresAt = now + Mathf.Max(0f, input.EvadeBufferDuration);
         }
+        RefreshDodgeFollowUp();
     }
 
     public void ConsumeAttack() { Refresh(); attackPending = false; }
@@ -165,6 +166,8 @@ public sealed class PlayerCombatInputBuffer : IDisposable
 
     public void Invalidate()
     {
+        unchecked { dodgeInputRevision++; }
+        ClearDodgeFollowUp();
         attackPending = heavyPending = evadePending = false;
         attackNeedsRelease = heavyNeedsRelease = evadeNeedsRelease = true;
         sampledFrame = Time.frameCount;

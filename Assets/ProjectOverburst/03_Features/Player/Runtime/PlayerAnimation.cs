@@ -208,6 +208,7 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
 
         ResolveWeaponCombatAnimatorRouter();
         ProcessPendingMeleeFullBodyRestore();
+        UpdateExplorationEvadeLayer();
 
         if (playerController.IsKnockedDown) return;
 

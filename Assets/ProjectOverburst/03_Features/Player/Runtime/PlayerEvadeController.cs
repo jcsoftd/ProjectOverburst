@@ -7,8 +7,10 @@ using UnityEditor;
 
 public enum PlayerEvadeType // 회피 종류
 {
-    Dash,
-    Roll
+    Dash = 0,
+    Roll = 1,
+    ExplorationDodge = 2,
+    CombatDodge = 3
 }
 
 [DefaultExecutionOrder(280)]
@@ -18,6 +20,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private const string EditorDefaultRollAnimationClipPath = "Assets/ProjectOverburst/03_Features/Player/Animations/Roll/InPlace/RM_Roll_front_InPlace.anim";
 #endif
     [Header("Common")]
+    [SerializeField] private PlayerEvadeProfile evadeProfile;
     [SerializeField] private float cooldown = 0.25f;
 
     [Header("Dash")]
@@ -67,6 +70,27 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private float rollRotationRecoveryEndTime;
     private PlayerInputFacade inputFacade;
     private PlayerStateCoordinator stateCoordinator;
+    private CombatHealth health;
+    private Vector3 activeFacing;
+    private float activeMoveEase;
+    private bool activeStartedInCombat;
+    private int nextExecutionId = 1;
+    private AnimationClip activeDodgeClip;
+    private string activeDodgeState;
+    private bool hasCompletedDodgeFollowUp;
+    private PlayerDodgeFollowUpRequest completedDodgeFollowUp;
+
+    public PlayerEvadeProfile Profile => evadeProfile;
+    public int ActiveExecutionId { get; private set; }
+    public bool LastEndWasCompleted { get; private set; }
+    public float ActiveDuration => activeDuration;
+    public float ActiveNormalizedTime => Mathf.Clamp01(activeElapsed / Mathf.Max(.01f, activeDuration));
+    public Vector3 ActiveDirection => activeDirection;
+    public bool IsFollowUpInputWindowOpen => isEvading && activeType == PlayerEvadeType.CombatDodge
+        && activeElapsed < activeDuration && OverburstGameClock.UnscaledTime < evadeEndTime;
+    public bool CanEvadeInCurrentMode => playerMovement != null
+        && (PlayerCombatModeController.IsSharedCombatModeActive()
+            ? playerMovement.IsMeleeCombatLocomotionMode : evadeProfile != null);
 #if UNITY_EDITOR
     private bool triedEditorDefaultRollAnimationClip;
 #endif
@@ -118,10 +142,11 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private void OnDisable()
     {
+        hasCompletedDodgeFollowUp = false;
         ResolveFacade()?.CombatInputs?.Invalidate();
         OverburstTimeEffectArbiter.ClearOwner(this);
         if (isEvading)
-            EndEvade();
+            EndEvade(false);
         if (stateCoordinator == null)
             stateCoordinator = GetComponent<PlayerStateCoordinator>();
         if (stateCoordinator == null)
@@ -133,7 +158,14 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private void Update()
     {
         ResolveReferences();
+        if (isEvading && ((health != null && health.IsDead)
+            || (stateCoordinator != null && stateCoordinator.CurrentCondition != PlayerConditionState.Normal
+                && !(stateCoordinator.CurrentCondition == PlayerConditionState.InputBlocked && OverburstTimeEffectArbiter.IsPaused))
+            || activeStartedInCombat != PlayerCombatModeController.IsSharedCombatModeActive()))
+            EndEvade(false);
         ReadEvadeInput();
+        if (isEvading && activeType == PlayerEvadeType.CombatDodge)
+            ResolveFacade()?.CombatInputs?.SampleDodgeFollowUp();
         // 회피는 히트스톱을 무시하려고 unscaled 시간을 쓰되, ESC 메뉴 멈춤 동안에는 흐르지 않는 시계를 쓴다(2026-10-01).
         UpdateEvadeMotion(OverburstGameClock.UnscaledDeltaTime);
     }
@@ -141,6 +173,17 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     private void LateUpdate()
     {
         MaintainEvadeDirection(OverburstGameClock.UnscaledDeltaTime);
+        if (!hasCompletedDodgeFollowUp) return;
+        var request = completedDodgeFollowUp;
+        hasCompletedDodgeFollowUp = false;
+        // MoveDirect can temporarily clear grounding. PlayerMovement has now probed and stepped the motor.
+        if (isEvading || GameplayInputBlocker.IsGameplayInputBlocked
+            || !PlayerCombatModeController.IsSharedCombatModeActive()
+            || ResolveFacade() == null || !ResolveFacade().IsGameplayEnabled
+            || ResolveFacade().CombatInputs == null || !ResolveFacade().CombatInputs.IsDodgeFollowUpRequestValid(request)
+            || (health != null && health.IsDead)
+            || (stateCoordinator != null && stateCoordinator.CurrentCondition != PlayerConditionState.Normal)) return;
+        meleeRuntime?.TryStartDodgeFollowUp(request);
     }
 
     public bool TryCancelDamageByEvade(DamageInfo damageInfo)
@@ -178,6 +221,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
         if (stateCoordinator == null)
             stateCoordinator = GetComponent<PlayerStateCoordinator>();
+        if (health == null) health = GetComponent<CombatHealth>();
 
 #if UNITY_EDITOR
         if (rollAnimationClip == null)
@@ -209,27 +253,40 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (playerMovement != null && playerMovement.IsMeleeAttackMoveLocked && !CanCancelMeleeComboForEvade())
             return false; // 이동 잠금 중에는 MeleeRuntime 회피 취소 계약을 따른다.
 
-        if (!CanStartRollInCurrentMode())
+        if (!CanEvadeInCurrentMode)
             return false;
 
-        if (!TryStartEvade(PlayerEvadeType.Roll)) return false;
+        PlayerEvadeType type = PlayerCombatModeController.IsSharedCombatModeActive()
+            ? (evadeProfile != null ? SelectCombatEvade(transform.forward, ResolveEvadeDirection()) : PlayerEvadeType.Roll)
+            : PlayerEvadeType.ExplorationDodge;
+        if (!TryStartEvade(type)) return false;
         facade.CombatInputs.ConsumeEvade();
+        if (type == PlayerEvadeType.CombatDodge)
+            facade.CombatInputs.BeginDodgeFollowUpWindow(ActiveExecutionId);
+        else facade.CombatInputs.ClearDodgeFollowUp();
         return true;
     }
 
-    private bool CanStartRollInCurrentMode()
+    public static PlayerEvadeType SelectCombatEvade(Vector3 facing, Vector3 direction)
     {
-        return playerMovement != null && playerMovement.IsMeleeCombatLocomotionMode;
+        facing.y = direction.y = 0f;
+        if (facing.sqrMagnitude < .001f) facing = Vector3.forward;
+        if (direction.sqrMagnitude < .001f) direction = facing;
+        return Vector3.Dot(facing.normalized, direction.normalized) >= -.000001f
+            ? PlayerEvadeType.CombatDodge : PlayerEvadeType.Roll;
     }
 
     private bool TryStartEvade(PlayerEvadeType evadeType)
     {
+        hasCompletedDodgeFollowUp = false;
+        activeFacing = transform.forward; activeFacing.y = 0;
+        activeFacing = activeFacing.sqrMagnitude > .001f ? activeFacing.normalized : Vector3.forward;
+        activeDirection = ResolveEvadeDirection();
         meleeRuntime?.CancelActiveComboForEvade(); // 공격 취소와 콤보 연결 상태 초기화는 10번대 위임
 
         activeType = evadeType;
-        activeDirection = ResolveEvadeDirection();
         var weaponProfile = GetComponent<PlayerEquipment>()?.CurrentWeaponData?.GetCombatAnimationProfile();
-        activeRollFacingYawOffset = weaponProfile != null ? weaponProfile.rollFacingYawOffset : 0f;
+        activeRollFacingYawOffset = evadeType == PlayerEvadeType.Roll && weaponProfile != null ? weaponProfile.rollFacingYawOffset : 0f;
         activeDirection.y = 0f;
         activeDirection = activeDirection.sqrMagnitude > 0.001f ? activeDirection.normalized : transform.forward;
 
@@ -237,17 +294,43 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
             activeDirection = Vector3.forward;
 
         if (evadeType == PlayerEvadeType.Roll)
+        {
             ConfigureActiveEvade(rollDistance, ResolveRollDuration(), rollInvincibleDuration, rollPerfectWindow);
+            activeMoveEase = rollMoveEase;
+        }
+        else if (evadeType == PlayerEvadeType.ExplorationDodge || evadeType == PlayerEvadeType.CombatDodge)
+        {
+            var settings = evadeType == PlayerEvadeType.ExplorationDodge ? evadeProfile.exploration : evadeProfile.combatDodge;
+            ConfigureActiveEvade(settings.distance, settings.duration, settings.invincibleDuration, settings.perfectWindow);
+            activeMoveEase = settings.moveEase;
+            if (evadeType == PlayerEvadeType.ExplorationDodge)
+            {
+                bool moving = ReadRawMoveInput().sqrMagnitude > .001f;
+                activeDodgeClip = moving ? evadeProfile.explorationDodgeToRun : evadeProfile.explorationDodge;
+                activeDodgeState = moving ? PlayerEvadeProfile.ExplorationRunState : PlayerEvadeProfile.ExplorationStandState;
+                transform.rotation = Quaternion.LookRotation(activeDirection, Vector3.up);
+            }
+            else activeDodgeClip = evadeProfile.ResolveCombatClip(
+                Quaternion.Inverse(Quaternion.LookRotation(activeFacing, Vector3.up)) * activeDirection, out activeDodgeState);
+        }
         else
+        {
             ConfigureActiveEvade(dashDistance, dashDuration, dashInvincibleDuration, dashPerfectWindow);
+            activeMoveEase = 0f;
+        }
 
+        ActiveExecutionId = nextExecutionId++;
+        if (nextExecutionId <= 0) nextExecutionId = 1;
+        activeStartedInCombat = PlayerCombatModeController.IsSharedCombatModeActive();
         isEvading = true;
         perfectEvadeTriggered = false;
         activeElapsed = 0f;
         activeMovedDistance = 0f;
         evadeStartTime = OverburstGameClock.UnscaledTime;
         evadeEndTime = evadeStartTime + activeDuration;
-        nextEvadeTime = evadeStartTime + Mathf.Max(0f, cooldown);
+        float reuse = activeType == PlayerEvadeType.ExplorationDodge ? evadeProfile.exploration.cooldown
+            : activeType == PlayerEvadeType.CombatDodge ? evadeProfile.combatDodge.cooldown : cooldown;
+        nextEvadeTime = evadeStartTime + Mathf.Max(0f, reuse);
         rollRotationRecoveryEndTime = 0f;
         // GOAL A2: 회피 구간 Locomotion.Evading을 명시 요청한다.
         ResolveStateCoordinator()?.RequestLocomotion(this, PlayerLocomotionState.Evading);
@@ -257,7 +340,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         MaintainEvadeDirection(OverburstGameClock.UnscaledDeltaTime);
 
         playerMovement?.PrepareEvadeMotion();
-        PlayEvadeAnimation(activeType, activeDuration);
+        if (!PlayEvadeAnimation(activeType, activeDuration)) { EndEvade(false); return false; }
         OnEvadeStarted?.Invoke(activeType);
         OverburstFeelFeedbackHub.Request(OverburstFeelCue.Evade, transform.position);
         CombatActionSfxService.PlayPlayerEvade(transform.position);
@@ -285,16 +368,19 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private void MaintainEvadeDirection(float deltaTime)
     {
-        if (!isEvading || activeType != PlayerEvadeType.Roll)
-            return;
-
-        RotateToEvadeDirection(deltaTime);
+        if (!isEvading) return;
+        if (activeType == PlayerEvadeType.Roll) RotateToEvadeDirection(deltaTime);
+        else if (activeType == PlayerEvadeType.CombatDodge)
+            transform.rotation = Quaternion.LookRotation(activeFacing, Vector3.up);
     }
 
-    private void PlayEvadeAnimation(PlayerEvadeType evadeType, float duration)
+    private bool PlayEvadeAnimation(PlayerEvadeType evadeType, float duration)
     {
-        if (playerAnimation == null || evadeType != PlayerEvadeType.Roll)
-            return;
+        if (playerAnimation == null) return false;
+        if (evadeType == PlayerEvadeType.ExplorationDodge || evadeType == PlayerEvadeType.CombatDodge)
+            return playerAnimation.TryPlayConfiguredDodge(evadeType, activeDodgeClip, activeDodgeState,
+                duration, evadeProfile.entryBlend, evadeProfile.exitBlend);
+        if (evadeType != PlayerEvadeType.Roll) return false;
 
         AnimationClip clip = rollAnimationClip;
 #if UNITY_EDITOR
@@ -303,6 +389,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 #endif
 
         playerAnimation.PlayEvadeFullBody(clip, duration, evadeAnimationTransitionDuration);
+        return true;
     }
 
     private float ResolveRollDuration()
@@ -341,10 +428,11 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
     {
         if (!isEvading)
             return;
+        if (OverburstTimeEffectArbiter.IsPaused) return;
 
         if (combatMotion == null)
         {
-            EndEvade();
+            EndEvade(false);
             return;
         }
 
@@ -366,10 +454,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     private float GetDistanceProgress(float progress)
     {
-        if (activeType != PlayerEvadeType.Roll)
-            return progress;
-
-        float ease = Mathf.Clamp01(rollMoveEase);
+        float ease = Mathf.Clamp01(activeMoveEase);
         if (ease <= 0f)
             return progress;
 
@@ -379,21 +464,29 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     public void CancelForKnockdown()
     {
-        EndEvade();
+        hasCompletedDodgeFollowUp = false;
+        EndEvade(false);
         rollRotationRecoveryEndTime = 0;
         OverburstTimeEffectArbiter.ClearOwner(this);
         ResolveFacade()?.CombatInputs?.Invalidate();
     }
 
-    private void EndEvade()
+    private void EndEvade(bool completed = true)
     {
         if (!isEvading)
             return;
 
         PlayerEvadeType endedType = activeType;
+        int endedExecutionId = ActiveExecutionId;
+        var inputs = ResolveFacade()?.CombatInputs;
+        // Take once, before events can change the actor or weapon. The request carries its weapon identity.
+        PlayerDodgeFollowUpRequest request = default;
+        bool followUp = inputs != null && inputs.TakeDodgeFollowUp(endedExecutionId, completed, out request);
         isEvading = false;
+        LastEndWasCompleted = completed;
+        invincibleEndTime = perfectWindowEndTime = OverburstGameClock.UnscaledTime;
 
-        if (endedType == PlayerEvadeType.Roll)
+        if (completed && endedType == PlayerEvadeType.Roll)
             rollRotationRecoveryEndTime = OverburstGameClock.UnscaledTime + Mathf.Max(0f, rollExitRotationBlendDuration);
 
         // GOAL A2: Evading 요청을 해제한다. 이동 축은 Movement 보고로 복귀.
@@ -402,7 +495,13 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (stateCoordinator != null)
             stateCoordinator.ReleaseLocomotion(this);
 
+        playerAnimation?.FinishEvadeAnimation(endedType, completed);
+        if (completed && endedType == PlayerEvadeType.ExplorationDodge)
+            playerMovement?.CompleteExplorationEvade(ReadRawMoveInput());
         OnEvadeEnded?.Invoke(endedType);
+        if (!completed || isEvading) return;
+        if (TryExecuteBufferedEvade()) return;
+        if (followUp) { completedDodgeFollowUp = request; hasCompletedDodgeFollowUp = true; }
     }
 
     private void TriggerPerfectEvade(DamageInfo damageInfo)

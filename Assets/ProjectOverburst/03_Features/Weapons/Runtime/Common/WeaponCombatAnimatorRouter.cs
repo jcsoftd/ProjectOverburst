@@ -96,6 +96,15 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         activeDriver?.CancelAttack();
     }
 
+    public bool TryPlayCombatDodge(AnimationClip clip, string stateName, float duration, float entryBlend, float exitBlend)
+    {
+        if (knockdownSuspended) return false;
+        RefreshActiveDriverForCurrentWeapon();
+        return activeDriver != null && activeDriver.TryPlayDodge(clip, stateName, duration, entryBlend, exitBlend);
+    }
+
+    public void FinishCombatEvade() => activeDriver?.FinishEvade();
+
     public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay)
     {
         RefreshActiveDriverForCurrentWeapon();
@@ -235,6 +244,8 @@ public interface IWeaponCombatAnimatorDriver
     bool TryPlayJump();
     bool TryPlayHit();
     bool TryPlayRoll(float actionDuration);
+    bool TryPlayDodge(AnimationClip clip, string stateName, float actionDuration, float entryBlend, float exitBlend);
+    void FinishEvade();
     bool TryPlayGuardBlock();
     bool TryPlayAttack(
         int stepIndex,

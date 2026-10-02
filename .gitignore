@@ -126,3 +126,9 @@ Assets/StreamingAssets/aa/
 # Vendor-derived demo canopy meshes and prefabs; restore from local asset manifest.
 /Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/DemoVariants/
 /Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/DemoVariants.meta
+
+# Licensed Sword Animations Pack curves; restore with their original meta files.
+/Assets/ProjectOverburst/03_Features/Player/Animations/Evade/Combat_Dodge_*.anim*
+/Assets/ProjectOverburst/03_Features/Player/Animations/Evade/Exploration_Dodge*.anim*
+/Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DodgeAttack.anim*
+/Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DodgeHeavy.anim*

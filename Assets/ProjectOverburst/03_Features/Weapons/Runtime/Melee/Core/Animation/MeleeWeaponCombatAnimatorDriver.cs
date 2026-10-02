@@ -19,7 +19,8 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         Block,
         Roll,
         Attack,
-        Parry
+        Parry,
+        Dodge
     }
 
     [Header("References")]
@@ -216,6 +217,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         UpdateHeavyParryClock();
         UpdateLegacySuppression();
         UpdateAttackPlaybackSpeed();
+        UpdateEvadePlaybackClock();
         UpdateActionState();
         UpdateLocomotionState();
         UpdateTransitionLowerBodyLayer(deltaTime);
@@ -256,7 +258,10 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
 
         float duration = Mathf.Max(0.01f, actionDuration);
         SetActionSpeedForClip(rollClip, duration);
-        PlayActionState(rollStateName, DriverAction.Roll, duration, actionTransitionDuration);
+        evadeAnimationBaseSpeed = GetClipLength(rollClip) / duration;
+        evadeExitBlend = ResolveActionEndTransitionDuration(IsMovingInputActive());
+        PlayActionState(rollStateName, DriverAction.Roll, duration, actionTransitionDuration * Time.timeScale);
+        UpdateEvadePlaybackClock();
         return true;
     }
 
@@ -266,6 +271,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             || legacySuppressed
             || activeAction == DriverAction.Unequip
             || activeAction == DriverAction.Roll
+            || activeAction == DriverAction.Dodge
             || activeAction == DriverAction.Attack)
             return false;
 
@@ -590,6 +596,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
     private void UpdateActionState()
     {
         if (heavyParryClockOwned) return;
+        if (IsEvadeAction && playerMovement != null && playerMovement.IsEvading) return;
         if (activeAction == DriverAction.None)
             return;
 
@@ -629,7 +636,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         PlayLocomotionByGuardState(locomotionToGuardTransitionDuration);
     }
 
-    private void PlayLocomotionByGuardState(float transitionDuration)
+    private void PlayLocomotionByGuardState(float transitionDuration, bool realTimeTransition = false)
     {
         bool targetGuard = playerMovement != null && playerMovement.IsMeleeGuarding;
         string stateName = targetGuard
@@ -640,6 +647,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return;
 
         float resolvedTransitionDuration = ResolveGuardLocomotionTransitionDuration(targetGuard, transitionDuration);
+        if (realTimeTransition) resolvedTransitionDuration *= Time.timeScale;
         float startOffsetSeconds = targetGuard
             ? ResolvePositiveOrDefault(guardLocomotionStartOffsetSeconds, DefaultGuardLocomotionStartOffsetSeconds)
             : 0f;
@@ -696,7 +704,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
     private bool CanPlayInterruptibleCombatAction()
     {
         return CanPlayCombatAction()
-            && activeAction != DriverAction.Roll;
+            && activeAction != DriverAction.Roll && activeAction != DriverAction.Dodge;
     }
 
     private void SetActionSpeedForClip(AnimationClip clip, float targetDuration)

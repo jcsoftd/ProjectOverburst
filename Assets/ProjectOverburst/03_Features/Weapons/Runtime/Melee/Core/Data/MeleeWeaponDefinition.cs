@@ -25,6 +25,10 @@ public sealed class MeleeWeaponDefinition : WeaponCombatDefinition
     public MeleeComboDefinition comboDefinition;
     [InspectorName("강공 데이터")]
     public MeleeHeavyAttackDefinition heavyAttackDefinition;
+    [InspectorName("닷지 약공 진입 데이터")]
+    public MeleeComboDefinition dodgeAttackDefinition;
+    [InspectorName("닷지 강공 표현 (일반 강공과 같은 길이)")]
+    public AnimationClip dodgeHeavyAnimationClip;
 
     [Header("가드")]
     [InspectorName("가드 설정")]

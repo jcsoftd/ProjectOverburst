@@ -52,7 +52,8 @@ public static class MeleeAttackVfxSlopeBakeUtility
 
     private static readonly BakeProfile[] Profiles =
     {
-        new BakeProfile(GreatswordItemPath, GreatswordComboPath, "대검", 4, 0)
+        new BakeProfile(GreatswordItemPath, GreatswordComboPath, "대검", 4, 0),
+        new BakeProfile(GreatswordItemPath, "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Combos/GreatswordDodgeOpener.asset", "대검 닷지 어택", 1, 0)
     };
 
     public static void RunFromCommandLine()

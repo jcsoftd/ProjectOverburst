@@ -1,0 +1,59 @@
+using UnityEngine;
+
+public partial class PlayerAnimation
+{
+    private int explorationEvadeLayer = -1;
+    private float explorationEvadeTargetWeight;
+    private float explorationEvadeExitBlend = .08f;
+    private float explorationEvadeBaseSpeed = 1f;
+
+    public bool TryPlayConfiguredDodge(PlayerEvadeType kind, AnimationClip clip, string stateName,
+        float duration, float entryBlend, float exitBlend)
+    {
+        if (targetAnimator == null || clip == null) return false;
+        if (kind == PlayerEvadeType.CombatDodge)
+        {
+            ResolveWeaponCombatAnimatorRouter();
+            return weaponCombatAnimatorRouter != null
+                && weaponCombatAnimatorRouter.TryPlayCombatDodge(clip, stateName, duration, entryBlend, exitBlend);
+        }
+        explorationEvadeLayer = targetAnimator.GetLayerIndex(PlayerEvadeProfile.ExplorationLayer);
+        if (explorationEvadeLayer < 0 || !targetAnimator.HasState(explorationEvadeLayer, Animator.StringToHash(stateName)))
+            return false;
+        explorationEvadeBaseSpeed = clip.length / Mathf.Max(.01f, duration);
+        explorationEvadeExitBlend = Mathf.Max(.001f, exitBlend);
+        explorationEvadeTargetWeight = 1f;
+        targetAnimator.SetLayerWeight(explorationEvadeLayer, 1f);
+        targetAnimator.SetFloat(PlayerEvadeProfile.ExplorationSpeed, EvadeStateSpeed(explorationEvadeBaseSpeed));
+        targetAnimator.CrossFadeInFixedTime(stateName, Mathf.Max(0f, entryBlend) * Time.timeScale, explorationEvadeLayer, 0f);
+        return true;
+    }
+
+    internal static float EvadeStateSpeed(float baseSpeed)
+    {
+        float scaled = Time.deltaTime;
+        return scaled > .0000001f ? baseSpeed * OverburstGameClock.UnscaledDeltaTime / scaled : 0f;
+    }
+
+    private void UpdateExplorationEvadeLayer()
+    {
+        if (explorationEvadeLayer < 0 || targetAnimator == null) return;
+        if (playerController != null && playerController.IsKnockedDown) explorationEvadeTargetWeight = 0f;
+        if (explorationEvadeTargetWeight > 0f)
+            targetAnimator.SetFloat(PlayerEvadeProfile.ExplorationSpeed, EvadeStateSpeed(explorationEvadeBaseSpeed));
+        float weight = targetAnimator.GetLayerWeight(explorationEvadeLayer);
+        targetAnimator.SetLayerWeight(explorationEvadeLayer, Mathf.MoveTowards(weight, explorationEvadeTargetWeight,
+            OverburstGameClock.UnscaledDeltaTime / explorationEvadeExitBlend));
+    }
+
+    public void FinishEvadeAnimation(PlayerEvadeType kind, bool completed)
+    {
+        if (kind == PlayerEvadeType.ExplorationDodge)
+        {
+            explorationEvadeTargetWeight = 0f;
+            if (!completed && explorationEvadeLayer >= 0 && targetAnimator != null)
+                targetAnimator.SetLayerWeight(explorationEvadeLayer, 0f);
+        }
+        else weaponCombatAnimatorRouter?.FinishCombatEvade();
+    }
+}
