@@ -21,6 +21,7 @@ public static class PlayerEvadeVerifier
 {
     const string PendingKey = "Overburst.PlayerEvadeVerifier.Pending";
     const string DeadlineKey = "Overburst.PlayerEvadeVerifier.Deadline";
+    const string ReturnKey = "Overburst.PlayerEvadeVerifier.ReturnToRealAccount";
     const string WeaponPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset";
     static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     static readonly Stack<IEnumerator> stack = new Stack<IEnumerator>();
@@ -62,6 +63,11 @@ public static class PlayerEvadeVerifier
     static PlayerEvadeVerifier()
     {
         if (!string.IsNullOrEmpty(SessionState.GetString(PendingKey, ""))) EditorApplication.update += AutoBegin;
+        if (!string.IsNullOrEmpty(SessionState.GetString(ReturnKey, "")))
+        {
+            EditorApplication.playModeStateChanged += RestoreAccountOnEditorReturn;
+            if (!EditorApplication.isPlayingOrWillChangePlaymode) ScheduleEditorAccountReturn();
+        }
     }
     public static void StartIsolated(string directory, bool onlyDodgeLight = false)
     {
@@ -74,8 +80,54 @@ public static class PlayerEvadeVerifier
         EditorApplication.update -= AutoBegin; EditorApplication.update += AutoBegin;
         var scenes = Enumerable.Range(0, SceneManager.sceneCount).Select(i => { var s = SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }).ToArray();
         File.WriteAllText(Path.Combine(target, "Before.json"), JsonConvert.SerializeObject(new { scenes }, Formatting.Indented));
+        SessionState.SetString(ReturnKey, target);
+        SessionState.SetString(ReturnKey + ".Deadline", (EditorApplication.timeSinceStartup + 480).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
+        EditorApplication.playModeStateChanged += RestoreAccountOnEditorReturn;
         try { IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(target, "IsolatedAccount")); }
-        catch { ClearPending(); throw; }
+        catch { ClearPending(); ScheduleEditorAccountReturn(); throw; }
+    }
+    static void RestoreAccountOnEditorReturn(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode) ScheduleEditorAccountReturn();
+    }
+    static void ScheduleEditorAccountReturn()
+    {
+        // Run after every EnteredEditMode listener: the save guard first marks
+        // the completed isolated run as blocked, then this owner returns it.
+        EditorApplication.update -= RestoreEditorAccount;
+        EditorApplication.update += RestoreEditorAccount;
+    }
+    static void RestoreEditorAccount()
+    {
+        string target = SessionState.GetString(ReturnKey, "");
+        if (string.IsNullOrEmpty(target))
+        {
+            EditorApplication.update -= RestoreEditorAccount;
+            EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
+            return;
+        }
+        double limit = double.Parse(SessionState.GetString(ReturnKey + ".Deadline", "0"), System.Globalization.CultureInfo.InvariantCulture);
+        if (EditorApplication.timeSinceStartup > limit)
+        {
+            EditorApplication.update -= RestoreEditorAccount;
+            EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
+            File.WriteAllText(Path.Combine(target,"EditorAccountReturn.json"),"{\"status\":\"FAIL\",\"reason\":\"return timeout\"}");
+            return;
+        }
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+        string current = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable) ?? "";
+        if (!string.IsNullOrEmpty(current)
+            && !Path.GetFullPath(current).StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
+        ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
+        bool previouslyBlocked = IsolatedSavePlayGuard.RequiresAccountChoice;
+        IsolatedSavePlayGuard.UseRealAccount();
+        bool restored = !IsolatedSavePlayGuard.RequiresAccountChoice
+            && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable));
+        File.WriteAllText(Path.Combine(target,"EditorAccountReturn.json"),JsonConvert.SerializeObject(new{status=restored?"PASS":"FAIL",previouslyBlocked,restored},Formatting.Indented));
+        SessionState.EraseString(ReturnKey); SessionState.EraseString(ReturnKey + ".Deadline");
+        EditorApplication.update -= RestoreEditorAccount;
+        EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
     }
     static void ClearPending()
     {
