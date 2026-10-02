@@ -89,6 +89,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
     private float attackPreviousSampleTime;
     private AnimationClip acceleratedAttackClip;
     private bool dodgeLightPreviewPlaying;
+    private float dodgeLightRecoveryBlendUntil;
     private bool combatRequested;
     private bool legacySuppressed;
     private float legacySuppressedUntil;
@@ -340,8 +341,25 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         return true;
     }
 
+    public bool BlendDodgeLightRecoveryToLocomotion(float transitionDuration)
+    {
+        if (activeAction != DriverAction.Attack
+            || !IsCurrentOrNextState(PlayerEvadeProfile.DodgeLightState)) return false;
+        dodgeLightPreviewPlaying = false;
+        activeAction = DriverAction.None;
+        activeActionEndTime = 0f;
+        targetTransitionLowerLayerWeight = 0f;
+        if (combatRequested && !legacySuppressed)
+        {
+            PlayLocomotionByGuardState(Mathf.Max(0f, transitionDuration));
+            dodgeLightRecoveryBlendUntil = Time.time + Mathf.Max(0f, transitionDuration);
+        }
+        return true;
+    }
+
     public void CancelAttack()
     {
+        dodgeLightRecoveryBlendUntil = 0f;
         if (activeAction != DriverAction.Attack && activeAction != DriverAction.Parry)
             return;
 
@@ -367,6 +385,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
 
     public void ForceResetLayer()
     {
+        dodgeLightRecoveryBlendUntil = 0f;
         RestoreHeavyParryClock();
         dodgeLightPreviewPlaying = false;
         ResolveLayerIndex();
@@ -623,6 +642,8 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return;
 
         DriverAction endedAction = activeAction;
+        bool endedDodgeLight = endedAction == DriverAction.Attack
+            && IsCurrentOrNextState(PlayerEvadeProfile.DodgeLightState);
         bool movingAtActionEnd = IsMovingInputActive();
         activeAction = DriverAction.None;
 
@@ -644,12 +665,21 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
 
         targetTransitionLowerLayerWeight = 0f;
         if (combatRequested && !legacySuppressed)
-            PlayLocomotionByGuardState(ResolveActionEndTransitionDuration(movingAtActionEnd));
+        {
+            float transitionDuration = endedDodgeLight
+                ? Mathf.Max(MeleeRuntime.DodgeLightFinishBlendDuration, ResolveActionEndTransitionDuration(movingAtActionEnd))
+                : ResolveActionEndTransitionDuration(movingAtActionEnd);
+            PlayLocomotionByGuardState(transitionDuration);
+            if (endedDodgeLight) dodgeLightRecoveryBlendUntil = Time.time + transitionDuration;
+        }
     }
 
     private void UpdateLocomotionState()
     {
-        if (!combatRequested || legacySuppressed || activeAction != DriverAction.None)
+        // CrossFade is evaluated later by Animator. Preserve the requested dodge
+        // recovery blend instead of replacing it with the locomotion fallback this frame.
+        if (!combatRequested || legacySuppressed || activeAction != DriverAction.None
+            || Time.time < dodgeLightRecoveryBlendUntil)
             return;
 
         PlayLocomotionByGuardState(locomotionToGuardTransitionDuration);
@@ -766,6 +796,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return;
 
         activeAction = action;
+        dodgeLightRecoveryBlendUntil = 0f;
         activeActionEndTime = Time.time + Mathf.Max(0.01f, duration);
     }
 

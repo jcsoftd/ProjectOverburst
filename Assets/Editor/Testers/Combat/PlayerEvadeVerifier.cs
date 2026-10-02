@@ -244,18 +244,36 @@ public static class PlayerEvadeVerifier
     static IEnumerator Reset(bool combat = true, float angle = 0)
     {
         Send(); melee.CancelCurrentAttackState(); evade.CancelForKnockdown(); actor.GetComponent<PlayerKnockdownController>()?.ResetReaction();
+        actor.GetComponent<PlayerAnimation>()?.CancelWeaponRuntimeState();
+        if (actor.Equipment.CurrentWeaponItem != weaponItem)
+            Check(actor.Equipment.EquipWeaponItem(weaponItem), "시험 기준 무기 복원");
         input.CombatInputs.Invalidate();
         if (combat) PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
         else PlayerCombatModeController.GetOrCreate().ExitCombatMode(PlayerCombatModeReason.System);
         testFacing = Quaternion.Euler(0, -angle, 0) * forward;
         ActorTeleportUtility.TeleportSafely(actor.transform, origin, Quaternion.LookRotation(testFacing));
-        yield return Wait(.9f); starts = ends = 0;
+        yield return Wait(.9f);
+        if (combat) PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
+        else PlayerCombatModeController.GetOrCreate().ExitCombatMode(PlayerCombatModeReason.System);
+        yield return Frames(2); starts = ends = 0;
     }
     static IEnumerator StartDodge(bool move, bool left = false, bool right = false)
     {
+        heldShift = false; yield return Frames(2);
+        Check(!input.EvadeHeld && !Field<bool>(input.CombatInputs, "evadeNeedsRelease"), "가상 Shift 해제 프레임 확인");
         poseNextStart = true;
-        Send(move, true, left, right); yield return Frames(2);
-        Check(evade.IsEvading, "실제 Shift 액션 회피 수락"); Send(move, false, left, right);
+        Send(move, true, left, right);
+        float limit = Time.unscaledTime + .15f;
+        do { yield return null; } while (!evade.IsEvading && Time.unscaledTime < limit);
+        Check(evade.IsEvading, "실제 Shift 액션 회피 수락"
+            + " input=" + input.CombatInputs.HasEvade + " shift=" + keyboard.leftShiftKey.isPressed
+            + " held=" + input.EvadeHeld + " gameplay=" + input.IsGameplayEnabled
+            + " release=" + Field<bool>(input.CombatInputs, "evadeNeedsRelease") + " focused=" + Application.isFocused
+            + " blocked=" + GameplayInputBlocker.IsGameplayInputBlocked + " condition=" + actor.GetComponent<PlayerStateCoordinator>()?.CurrentCondition
+            + " mode=" + PlayerCombatModeController.IsSharedCombatModeActive() + " can=" + evade.CanEvadeInCurrentMode
+            + " clock=" + OverburstGameClock.UnscaledTime + " next=" + Field<float>(evade, "nextEvadeTime")
+            + " locked=" + movement.IsMeleeAttackMoveLocked + " attacking=" + melee.IsAttackInProgress
+            + " enabled=" + evade.isActiveAndEnabled); Send(move, false, left, right);
     }
     static IEnumerator CompleteEvade(string label, float distance, float duration, bool checkPose = true)
     {
@@ -305,7 +323,7 @@ public static class PlayerEvadeVerifier
             blocker = new GameObject("OwnedEvadeInputBlocker");
             evade.OnEvadeStarted += Started; evade.OnEvadeEnded += Ended;
             poseProbe = blocker.AddComponent<PlayerEvadePoseProbe>(); poseProbe.animator = animator;
-            if (lightOnly) { yield return VerifyDodgeLightOverlap(); yield return VerifyDodgeComboResume(); yield break; }
+            if (lightOnly) { yield return VerifyDodgeLightOverlap(); yield return VerifyDodgeComboResume(); yield return VerifyDodgeLightRecovery(); yield break; }
             yield return Reset(false); yield return StartDodge(false);
             Check(evade.ActiveType == PlayerEvadeType.ExplorationDodge && !evade.IsInvincible && !evade.IsPerfectEvadeWindowActive, "탐험 닷지와 무적 없음");
             yield return CompleteEvade("exploration idle", 5, .30f); yield return Wait(.15f);
@@ -469,6 +487,8 @@ public static class PlayerEvadeVerifier
             Vector3 previousHip = actor.transform.InverseTransformPoint(hips.position), attackOrigin = Vector3.zero;
             bool originCaptured = false, clicked = clickAt <= 0f, actualCombo1 = false;
             float requestedAt = Field<float>(input.CombatInputs, "dodgeLightRequestedAt");
+            int swingBefore = Field<int>(melee, "dodgeLightSwingSequence");
+            bool audibleVoiceInWindup = false;
             try
             {
                 Vector3 endpoint = startPosition + evade.ActiveDirection * 4f;
@@ -501,6 +521,9 @@ public static class PlayerEvadeVerifier
                     }
                     if (melee.IsDodgeLightWindupActive && previewAt < 0f)
                     { previewAt=Field<float>(melee,"dodgeLightWindupStart");if(heldBefore)Send();Check(evade.IsEvading && !melee.IsAttackInProgress,"준비 모션 중 닷지 이동 소유·피해 없음"); }
+                    if (melee.IsDodgeLightWindupActive)
+                        audibleVoiceInWindup |= UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
+                            .Any(v=>v.isPlaying && v.clip!=null && v.clip.name=="GreatswordLight01");
                     if (melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Light)
                     {
                         if(!originCaptured){attackOrigin=actor.transform.position;originCaptured=true;}
@@ -523,9 +546,9 @@ public static class PlayerEvadeVerifier
                     if(continueCombo && originCaptured && melee.IsAttackInProgress && melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.None)
                     {
                         Check(Field<int>(melee,"comboStepIndex")==0 && Field<AnimationClip>(melee,"activeAttackAnimationClip")==actor.Equipment.CurrentWeaponData.GetMeleeDefinition().comboDefinition.GetStep(0).animationClip,"닷지 어택 뒤 실제 일반1타");
-                        Check(Mathf.Abs(Field<float>(melee,"activeAttackTransitionDuration")-.12f)<.0001f,"일반1타 연결0.12초 보간");
+                        Check(Mathf.Abs(Field<float>(melee,"activeAttackTransitionDuration")-MeleeRuntime.DodgeLightComboBlendDuration)<.0001f,"일반1타 연결 전용 보간");
                         actualCombo1=true; Send();
-                        bool distinctBlend=false;float blendBodyStep=0f, blendLimit=Time.time+.15f;
+                        bool distinctBlend=false;float blendBodyStep=0f, blendLimit=Time.time+MeleeRuntime.DodgeLightComboBlendDuration+.04f;
                         Vector3 lastHip=actor.transform.InverseTransformPoint(hips.position);
                         while(Time.time<blendLimit)
                         {
@@ -548,6 +571,10 @@ public static class PlayerEvadeVerifier
                 foreach (int damageFrame in damageFrames)
                 { Check(poseProbe.frames.TryGetValue(damageFrame, out float poseTime), "같은 렌더 프레임 타격 모션 기록"); poseTimes.Add(poseTime); }
                 File.WriteAllText(Path.Combine(output,"Case_"+clickAt.ToString(System.Globalization.CultureInfo.InvariantCulture)+".json"),JsonConvert.SerializeObject(new{clickAt,started,duration,lead,requestedAt,previewAt,windowAt,maxAttackDrift,maxBodyOffset,maxBodyStep,peakCameraLag,arrivalCameraLag,order,damageTimes,poseTimes,trace},Formatting.Indented));
+                float swingAt = Field<float>(melee,"dodgeLightSwingStartedAt");
+                Check(Field<int>(melee,"dodgeLightSwingSequence")==swingBefore+1,"닷지 베기 휘두름 소리 한 번 "+clickAt);
+                Check(audibleVoiceInWindup && Mathf.Abs(swingAt-previewAt)<.09f,"실제 오디오 음원 준비 모션 동기화 "+clickAt);
+                samples.Add(new{label="dodge swing audio",clickAt,swingAt,previewAt,audibleVoiceInWindup});
                 float scheduled=Mathf.Max(started+duration-lead,requestedAt);
                 float expectedWindow=Mathf.Max(started+duration,scheduled+lead);
                 Check(previewAt>=0f && Mathf.Abs(previewAt-scheduled)<.025f,"이른/늦은/유지 입력 시작 시각 "+clickAt+" actual="+(previewAt-started)+" expected="+(scheduled-started));
@@ -571,7 +598,8 @@ public static class PlayerEvadeVerifier
         {
             yield return Reset();yield return StartDodge(false,true);
             while(evade.IsEvading && !melee.IsDodgeLightWindupActive)yield return null;
-            Check(melee.IsDodgeLightWindupActive,"취소 전 준비 모션 "+cancel);Send();
+            Check(melee.IsDodgeLightWindupActive,"취소 전 준비 모션 "+cancel
+                +" type="+evade.ActiveType+" pending="+input.CombatInputs.PendingDodgeFollowUp+" held="+input.AttackHeld);Send();
             if(cancel=="knockdown")evade.CancelForKnockdown();
             else if(cancel=="ui")GameplayInputBlocker.Block(blocker);
             else if(cancel=="weapon")actor.Equipment.EquipWeaponItem(new ItemData(weaponItem.baseData,1,ItemGrade.Common));
@@ -620,6 +648,65 @@ public static class PlayerEvadeVerifier
                 && Field<AnimationClip>(melee,"activeAttackAnimationClip")==actor.Equipment.CurrentWeaponData.GetMeleeDefinition().comboDefinition.GetStep(expected).animationClip,
                 "콤보"+(interrupted+1)+"→닷지 어택→기존 다음"+(expected+1)+"타");
             samples.Add(new{label="held combo resume",interruptedHit=interrupted+1,resumedHit=expected+1});Send();yield return Wait(.15f);
+        }
+    }
+
+    static IEnumerator VerifyDodgeLightRecovery()
+    {
+        var definition=actor.Equipment.CurrentWeaponData.GetMeleeDefinition();
+        var step=definition.dodgeAttackDefinition.GetStep(0);
+        float boundary=step.actionCancelStartNormalized;
+        Check(Mathf.Abs(boundary-(60f-7f)/(124f-7f))<.0001f,"원본1초 지점을 사본 진행률로 환산");
+        Check(Mathf.Abs(step.animationClip.length-117f/60f)<.0001f,"원본 후반124프레임까지 사본 보존");
+        int layer=animator.GetLayerIndex("Combat_MeleeWeapon");
+        foreach(string mode in new[]{"stationary","earlyMove","lateMove"})
+        {
+            yield return Reset();yield return StartDodge(false,true);Send();
+            while(evade.IsEvading)yield return null;
+            Check(melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Light,"회수 확인 닷지 공격 시작 "+mode);
+            float clockOrigin=Field<float>(melee,"attackStartTime"), duration=Field<float>(melee,"attackDuration");
+            Vector3 attackOrigin=actor.transform.position;
+            poseProbe.poseSamples.Clear();poseProbe.recordPoses=true;
+            bool requestedMove=false;float maximumProgress=0f,exitProgress=0f,maxDrift=0f;
+            float timeout=Time.unscaledTime+5f;
+            while(melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Light)
+            {
+                Check(Time.unscaledTime<timeout,"닷지 후반 회수 종료 제한 "+mode);
+                float progress=(Time.time-clockOrigin)/duration;maximumProgress=Mathf.Max(maximumProgress,progress);
+                if(mode!="stationary" && !requestedMove && progress>=(mode=="earlyMove"?.25f:.70f))
+                {Send(true);requestedMove=true;}
+                if(progress<boundary-.02f)
+                    Check(melee.IsAttackInProgress,"원본1초 이전 이동으로 공격 회수 생략 없음 "+mode);
+                var drift=actor.transform.position-attackOrigin;drift.y=0;maxDrift=Mathf.Max(maxDrift,drift.magnitude);
+                exitProgress=progress;yield return null;
+            }
+            float endedAt=Time.time;bool mixedLocomotion=false;float firstMixed=-1f,lastMixed=-1f;
+            while(Time.time<endedAt+.35f)
+            {
+                var current=animator.GetCurrentAnimatorClipInfo(layer);
+                var next=animator.GetNextAnimatorClipInfo(layer);
+                bool mixing=animator.IsInTransition(layer)
+                    && current.Any(c=>c.clip==step.animationClip) && next.Any(c=>c.clip!=step.animationClip);
+                mixedLocomotion |= mixing;
+                if(mixing){if(firstMixed<0f)firstMixed=Time.time;lastMixed=Time.time;}
+                yield return null;
+            }
+            poseProbe.recordPoses=false;
+            float mixedSpan=lastMixed-firstMixed;
+            File.WriteAllText(Path.Combine(output,"Recovery_"+mode+".json"),JsonConvert.SerializeObject(new{mode,clockOrigin,duration,boundary,maximumProgress,exitProgress,maxDrift,mixedLocomotion,mixedSpan,poses=poseProbe.poseSamples},Formatting.Indented));
+            Check(mixedLocomotion,"회수 자세에서 기본/이동 자세 실제 혼합 "+mode);
+            Check(mixedSpan>=(mode=="stationary"?MeleeRuntime.DodgeLightFinishBlendDuration:MeleeRuntime.DodgeLightMovementBlendDuration)-.05f,
+                "닷지 회수 보간 시간이 기본 이동 갱신에 단축되지 않음 "+mode+" span="+mixedSpan);
+            if(mode=="stationary")
+                Check(maximumProgress>.97f && maxDrift<.03f,"단독 닷지 공격 후반 끝까지 제자리 재생");
+            else
+            {
+                var moved=actor.transform.position-attackOrigin;moved.y=0;
+                Check(exitProgress>=boundary-.03f && exitProgress<.95f && moved.magnitude>.15f,
+                    "원본1초 이후 실제 이동과 회수 보간 "+mode+" at="+exitProgress+" distance="+moved.magnitude);
+            }
+            samples.Add(new{label="dodge recovery",mode,duration,boundary,maximumProgress,exitProgress,maxDrift,mixedLocomotion});
+            Send();Progress("dodge recovery "+mode);
         }
     }
 

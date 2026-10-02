@@ -61,6 +61,13 @@ public partial class PlayerAnimation
             OverburstGameClock.UnscaledDeltaTime / explorationEvadeExitBlend));
     }
 
+    public void BlendDodgeLightRecoveryToLocomotion(float transitionDuration)
+    {
+        if (weaponCombatAnimatorRouter != null
+            && weaponCombatAnimatorRouter.TryBlendDodgeLightRecoveryToLocomotion(transitionDuration)) return;
+        CancelWeaponRuntimeState();
+    }
+
     public void FinishEvadeAnimation(PlayerEvadeType kind, bool completed)
     {
         if (kind == PlayerEvadeType.ExplorationDodge)

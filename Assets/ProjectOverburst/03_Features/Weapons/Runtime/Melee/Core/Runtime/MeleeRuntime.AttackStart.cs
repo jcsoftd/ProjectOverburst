@@ -141,7 +141,10 @@ public partial class MeleeRuntime
         }
 
         if (!isHeavy && activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
-            CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
+        {
+            if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light) PlayDodgeLightSwing();
+            else CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
+        }
 
         return true;
     }
@@ -204,7 +207,7 @@ public partial class MeleeRuntime
             activeComboDefinition,
             step,
             isDirectComboContinuation);
-        if (fromDodgeLight) activeAttackTransitionDuration = .12f;
+        if (fromDodgeLight) activeAttackTransitionDuration = DodgeLightComboBlendDuration;
     }
 
     private float ResolveAttackPlaybackMultiplier()

@@ -90,6 +90,14 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
                 normalizedStartTime, playbackAcceleration);
     }
 
+    public bool TryBlendDodgeLightRecoveryToLocomotion(float transitionDuration)
+    {
+        if (knockdownSuspended) return false;
+        RefreshActiveDriverForCurrentWeapon();
+        return activeDriver == meleeWeaponDriver && meleeWeaponDriver != null
+            && meleeWeaponDriver.BlendDodgeLightRecoveryToLocomotion(transitionDuration);
+    }
+
     public void CancelCombatAttack()
     {
         RefreshActiveDriverForCurrentWeapon();

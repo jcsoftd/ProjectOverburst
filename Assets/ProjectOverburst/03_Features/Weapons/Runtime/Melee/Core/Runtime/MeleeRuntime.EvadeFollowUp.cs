@@ -10,6 +10,12 @@ public partial class MeleeRuntime
     private PlayerDodgeFollowUpRequest dodgeLightWindupRequest;
     private float dodgeLightWindupStart, dodgeLightWindupDuration, dodgeHandoffProgress;
     private AnimationClip dodgeLightWindupClip;
+    public const float DodgeLightComboBlendDuration = .20f;
+    public const float DodgeLightMovementBlendDuration = .24f;
+    public const float DodgeLightFinishBlendDuration = .20f;
+    private bool dodgeLightSwingPlayed;
+    private int dodgeLightSwingSequence;
+    private float dodgeLightSwingStartedAt = -1f;
     private int dodgeResumeAfterStep = -1, dodgeResumeExecutionId;
     private string dodgeResumeWeapon;
 
@@ -72,10 +78,27 @@ public partial class MeleeRuntime
             float progress = Mathf.Clamp01((OverburstGameClock.UnscaledTime - start) / duration);
             if (!playerAnimatorController.PlayMeleeCombatAttack(0, step.animationClip, step.animationClip.length / duration,
                 duration * (1f - progress), .08f * Time.timeScale, true, progress)) return;
+            dodgeLightSwingPlayed = false;
+            dodgeLightSwingStartedAt = -1f;
             dodgeLightWindup = true; dodgeLightWindupRequest = request;
             dodgeLightWindupStart = start; dodgeLightWindupDuration = duration; dodgeLightWindupClip = step.animationClip;
         }
         playerAnimatorController.UpdateDodgeLightWindupClock(dodgeLightWindupClip, dodgeLightWindupDuration);
+        PlayDodgeLightSwing();
+    }
+
+    private void PlayDodgeLightSwing()
+    {
+        if (dodgeLightSwingPlayed || playerEquipment?.CurrentWeaponData == null
+            || playerEquipment.CurrentWeaponData.weaponClass != WeaponClass.Greatsword) return;
+        dodgeLightSwingPlayed = true;
+        // The clip has about .15 s of quiet lead-in. Start with the visual windup,
+        // so its audible sweep arrives at the blade acceleration, not after impact.
+        if (CombatActionSfxService.PlayGreatswordSwing(0, false, transform.position))
+        {
+            dodgeLightSwingStartedAt = OverburstGameClock.UnscaledTime;
+            dodgeLightSwingSequence++;
+        }
     }
 
     public bool CancelDodgeLightWindup()
@@ -154,6 +177,11 @@ public partial class MeleeRuntime
         activeAttackStep = dodgeTrajectoryDefinition.GetStep(0);
         activeAttackAnimationClip = activeAttackStep.animationClip;
         activeAttackAnimationSpeed = CalculateComboAnimationSpeed(dodgeTrajectoryDefinition, activeAttackStep);
+        if (!dodgeLightWindup)
+        {
+            dodgeLightSwingPlayed = false;
+            dodgeLightSwingStartedAt = -1f;
+        }
         activeAttackTransitionDuration = dodgeLightWindup ? 0f : .08f;
         comboStepIndex = 0; // The separate opener keeps a valid combo slot; handoff resets to normal hit 1.
         return true;
