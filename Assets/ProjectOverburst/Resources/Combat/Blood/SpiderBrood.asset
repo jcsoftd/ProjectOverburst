@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: SpiderBrood
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitProfile
   suppressBlood: 0
-  mainColor: {r: 0.47058824, g: 0.5882353, b: 0.54509807, a: 1}
-  secondaryColor: {r: 0.20784314, g: 0.28235295, b: 0.2509804, a: 1}
-  specularColor: {r: 0.60294116, g: 0.6911765, b: 0.65882355, a: 1}
-  specular: 0.65
-  size: 4.2
+  mainColor: {r: 0.2509804, g: 0.34509805, b: 0.2901961, a: 1}
+  secondaryColor: {r: 0.1254902, g: 0.18431373, b: 0.15294118, a: 1}
+  specularColor: {r: 0.44313726, g: 0.52156866, b: 0.47058824, a: 1}
+  specular: 0.3
+  size: 2.94
+  bloodlessHitClips: []

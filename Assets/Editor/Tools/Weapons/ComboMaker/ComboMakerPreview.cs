@@ -464,16 +464,21 @@ namespace Overburst.EditorTools.ComboMaker
             var shape=pattern.IsThrust?CombatImpactShape.Thrust:phase.vfxSwingSettings.orientation==AttackVfxSwingOrientation.Vertical?CombatImpactShape.Downward:CombatImpactShape.Sweep;
             var direction=shape==CombatImpactShape.Sweep?Vector3.right*(phase.vfxSwingSettings.reverseDirection?-1:1):Vector3.forward;
             var asset = blood.Resolve(shape);
+            uint bloodSeed = BloodHitVfxService.CosmeticSeed(17, HitCount, 0, 1);
+            BloodHitCatalog.SweepVariation bloodVariation = null;
+            if (HitCount <= 1) previousBloodVariation = -1;
+            if (shape == CombatImpactShape.Sweep && blood.TryResolveSweep(bloodSeed, previousBloodVariation, out int bloodIndex, out bloodVariation))
+            { asset = bloodVariation.graph; previousBloodVariation = bloodIndex; }
             if (asset == null) return;
             var bloodGo = new GameObject("피격 혈흔 프리뷰");
             bloodGo.SetActive(false); bloodGo.transform.SetParent(stage.transform, false);
             bloodGo.transform.position = hitPoint;
-            bloodGo.transform.rotation=Quaternion.LookRotation(direction,Vector3.up)*(shape==CombatImpactShape.Downward?Quaternion.identity:Quaternion.Euler(0,90,0));
+            bloodGo.transform.rotation=Quaternion.LookRotation(direction,Vector3.up)*(bloodVariation!=null?Quaternion.Euler(bloodVariation.localEuler):shape==CombatImpactShape.Downward?Quaternion.identity:Quaternion.Euler(0,90,0));
             var vfx = bloodGo.AddComponent<VisualEffect>();
-            vfx.visualEffectAsset = asset; vfx.initialEventName="BloodIdle"; vfx.startSeed = 17; vfx.resetSeedOnPlay = false;
+            vfx.visualEffectAsset = asset; vfx.initialEventName="BloodIdle"; vfx.startSeed = bloodVariation!=null?bloodSeed:17; vfx.resetSeedOnPlay = false;
             var weight=WeightOverride!=null?WeightOverride:TargetDefinition?.MovementProfile?.HitWeightProfile;
             float visualSize=weight!=null&&weight.Weight==EnemyHitWeight.Heavy?1.28f:weight!=null&&weight.Weight==EnemyHitWeight.Standard?1.14f:1;
-            if (vfx.HasFloat("HitSize")) vfx.SetFloat("HitSize", bloodProfile.size*visualSize);
+            if (vfx.HasFloat("HitSize")) vfx.SetFloat("HitSize", bloodProfile.size*visualSize*(bloodVariation!=null?bloodVariation.sizeMultiplier:1f));
             if (vfx.HasVector4("BloodColorMain")) vfx.SetVector4("BloodColorMain", bloodProfile.mainColor.linear);
             if (vfx.HasVector4("BloodColorSecondary")) vfx.SetVector4("BloodColorSecondary", bloodProfile.secondaryColor.linear);
             if (vfx.HasVector4("BloodSpecularColor")) vfx.SetVector4("BloodSpecularColor", bloodProfile.specularColor.linear);

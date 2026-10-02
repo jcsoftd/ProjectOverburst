@@ -21,11 +21,15 @@ public sealed class BloodHitVfxService : MonoBehaviour
         public CombatImpactShape Shape;
         public float Size, WeightScale;
         public int Priority, Source, Sequence, Phase, Target;
-        public bool AllowSuppressed;
+        public bool AllowSuppressed, VarySweep;
     }
     private struct Slot { public VisualEffect Effect; public float Until; public int Priority, StartFrame; public bool PendingPlay; }
     private readonly Pending[] queue = new Pending[QueueCapacity];
     private readonly Slot[] slots = new Slot[Capacity];
+    private readonly int[] recentTargets = new int[Capacity], recentVariations = new int[Capacity];
+    private int recentCursor;
+    public int LastSweepVariation { get; private set; } = -1;
+    public int SweepVariationPlayedCount { get; private set; }
     private BloodHitCatalog catalog;
     private BloodGroundDecalService groundDecals;
     private int queued;
@@ -66,7 +70,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             child.SetActive(false);
             child.transform.SetParent(root.transform, false);
             var vfx = child.AddComponent<VisualEffect>();
-            vfx.visualEffectAsset = data.Resolve((CombatImpactShape)(i % 3));
+            vfx.visualEffectAsset = data.ResolvePooledGraph(i);
             vfx.initialEventName = "BloodIdle";
             instance.slots[i].Effect = vfx;
         }
@@ -91,7 +95,8 @@ public sealed class BloodHitVfxService : MonoBehaviour
             WeightScale = ResolveWeightScale(hit.Target),
             Priority = (hit.IsLethal ? 2 : 0) + (hit.IsCritical ? 1 : 0),
             Source = hit.Source != null ? hit.Source.GetInstanceID() : 0,
-            Sequence = hit.AttackSequenceId, Phase = hit.PhaseIndex, Target = hit.Target.GetInstanceID()
+            Sequence = hit.AttackSequenceId, Phase = hit.PhaseIndex, Target = hit.Target.GetInstanceID(),
+            VarySweep = hit.ImpactShape == CombatImpactShape.Sweep
         };
         instance.Enqueue(request);
     }
@@ -302,6 +307,12 @@ public sealed class BloodHitVfxService : MonoBehaviour
     private bool Play(Pending request)
     {
         var graph = catalog.Resolve(request.Shape);
+        uint seed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
+        int variantIndex = -1;
+        BloodHitCatalog.SweepVariation variant = null;
+        if (request.VarySweep)
+            catalog.TryResolveSweep(seed, PreviousVariation(request.Target), out variantIndex, out variant);
+        if (variant != null) graph = variant.graph;
         int chosen = -1;
         for (int i = 0; i < Capacity; i++)
             if (slots[i].Until == 0)
@@ -327,7 +338,8 @@ public sealed class BloodHitVfxService : MonoBehaviour
         Vector3 up = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > .95f ? Vector3.forward : Vector3.up;
         // Supplier slash/stab jets use local -X; map that axis onto the strike direction.
         var rotation = Quaternion.LookRotation(direction, up);
-        if (request.Shape != CombatImpactShape.Downward) rotation *= Quaternion.Euler(0, 90, 0);
+        if (variant != null) rotation *= Quaternion.Euler(variant.localEuler);
+        else if (request.Shape != CombatImpactShape.Downward) rotation *= Quaternion.Euler(0, 90, 0);
         vfx.transform.SetPositionAndRotation(request.Position, rotation);
         vfx.transform.localScale = Vector3.one;
         float visualSize = request.Size * request.WeightScale;
@@ -335,12 +347,15 @@ public sealed class BloodHitVfxService : MonoBehaviour
         else if (request.WeightScale > 1f) visualSize = Mathf.Max(visualSize, .8f);
         visualSize = Mathf.Clamp(visualSize, .55f, 1.95f);
         vfx.SetFloat(HitSize, request.Profile.size * visualSize
-            * (request.Priority >= 2 ? 1.2f : request.Priority == 1 ? 1.1f : 1f));
+            * (request.Priority >= 2 ? 1.2f : request.Priority == 1 ? 1.1f : 1f)
+            * (variant != null ? variant.sizeMultiplier : 1f));
         vfx.SetVector4(MainColor, request.Profile.mainColor.linear);
         vfx.SetVector4(SecondaryColor, request.Profile.secondaryColor.linear);
         vfx.SetVector4(SpecularColor, request.Profile.specularColor.linear);
         vfx.SetFloat(Specular, request.Profile.specular);
         vfx.SetInt(LoopCount, 1);
+        vfx.resetSeedOnPlay = variant == null;
+        if (variant != null) vfx.startSeed = seed;
         vfx.gameObject.SetActive(true);
         vfx.Reinit();
         slots[chosen].Until = Time.time + catalog.lifetime;
@@ -353,10 +368,44 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (request.Shape == CombatImpactShape.Thrust) ThrustPlayedCount++;
         else if (request.Shape == CombatImpactShape.Downward) DownwardPlayedCount++;
         else SweepPlayedCount++;
+        if (variant != null)
+        {
+            RememberVariation(request.Target, variantIndex);
+            LastSweepVariation = variantIndex;
+            SweepVariationPlayedCount++;
+        }
         if (groundDecals)
             groundDecals.Request(request.Profile, request.Position, request.Direction,
                 request.Shape, visualSize, request.Priority, request.AllowSuppressed);
         return true;
+    }
+
+    public static uint CosmeticSeed(int source, int sequence, int phase, int target)
+    {
+        unchecked
+        {
+            uint hash = 2166136261u;
+            hash = (hash ^ (uint)source) * 16777619u;
+            hash = (hash ^ (uint)sequence) * 16777619u;
+            hash = (hash ^ (uint)phase) * 16777619u;
+            hash = (hash ^ (uint)target) * 16777619u;
+            hash ^= hash >> 16; hash *= 0x7feb352du; hash ^= hash >> 15;
+            return hash == 0 ? 1u : hash;
+        }
+    }
+    private int PreviousVariation(int target)
+    {
+        if (target != 0)
+            for (int i = 0; i < Capacity; i++) if (recentTargets[i] == target) return recentVariations[i];
+        return -1;
+    }
+    private void RememberVariation(int target, int variation)
+    {
+        if (target == 0) return;
+        int index = -1;
+        for (int i = 0; i < Capacity; i++) if (recentTargets[i] == target) { index = i; break; }
+        if (index < 0) { index = recentCursor; recentCursor = (recentCursor + 1) % Capacity; }
+        recentTargets[index] = target; recentVariations[index] = variation;
     }
 
     private void Release(int index)
@@ -388,6 +437,9 @@ public sealed class BloodHitVfxService : MonoBehaviour
     {
         System.Array.Clear(queue, 0, queue.Length);
         queued = 0;
+        System.Array.Clear(recentTargets, 0, Capacity);
+        recentCursor = 0;
+        LastSweepVariation = -1;
         for (int i = 0; i < Capacity; i++)
             if (slots[i].Until > 0 && slots[i].Effect != null) Release(i);
         ActiveCount = 0;

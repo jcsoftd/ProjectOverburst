@@ -15,6 +15,20 @@ MonoBehaviour:
   slash: {fileID: 8926484042661614526, guid: 174cf0c7d4e390444a9f0530476eb81a, type: 3}
   stab: {fileID: 8926484042661614526, guid: bdd8fb1720dac094892235075b24b1e6, type: 3}
   burst: {fileID: 8926484042661614526, guid: 3b25bb1c08e094743990245e0038f1af, type: 3}
+  useSweepVariations: 1
+  sweepVariations:
+  - label: "\uAE38\uACE0 \uC587\uC740 \uBD84\uCD9C"
+    graph: {fileID: 8926484042661614526, guid: 891656ab7a8f8254098c5e43bb670a61, type: 3}
+    localEuler: {x: 0, y: 90, z: 0}
+    sizeMultiplier: 0.82
+  - label: "\uBD80\uCC44\uAF34 \uBD84\uCD9C"
+    graph: {fileID: 8926484042661614526, guid: 6c99f3c6680465d4d80a5075b0ba88b0, type: 3}
+    localEuler: {x: 0, y: 90, z: 0}
+    sizeMultiplier: 0.9
+  - label: "\uAD75\uACE0 \uC9E7\uC740 \uBD84\uCD9C"
+    graph: {fileID: 8926484042661614526, guid: 62f63d047444b574b90b5ca86feca447, type: 3}
+    localEuler: {x: 0, y: 90, z: 0}
+    sizeMultiplier: 1.22
   directionalDecal: {fileID: 5362654747711157031, guid: 7b058911e7309f94aa642b25aec74928, type: 3}
   spotDecal: {fileID: 7956933238142667545, guid: 8391e03ae01e0524a9fb33f2251f91d1, type: 3}
   splatterDecal: {fileID: 8759256684978916287, guid: 83b5cf1a2298ec74fbab312d1ca8d2f7, type: 3}

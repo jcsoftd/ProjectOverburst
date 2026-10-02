@@ -6,6 +6,7 @@ namespace Overburst.EditorTools.ComboMaker
     internal sealed partial class ComboMakerPreview
     {
         public bool ShowBlood {get;set;}=true;
+        private int previousBloodVariation = -1;
         public string BloodStatus
         {
             get

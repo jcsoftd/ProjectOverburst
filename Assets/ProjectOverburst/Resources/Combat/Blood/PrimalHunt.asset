@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: PrimalHunt
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitProfile
   suppressBlood: 0
-  mainColor: {r: 0.6431373, g: 0.54509807, b: 0.34509805, a: 1}
-  secondaryColor: {r: 0.3137255, g: 0.2627451, b: 0.16078432, a: 1}
-  specularColor: {r: 0.732353, g: 0.65882355, b: 0.5088235, a: 1}
-  specular: 0.65
-  size: 5.2
+  mainColor: {r: 0.4, g: 0.3137255, b: 0.2, a: 1}
+  secondaryColor: {r: 0.2, g: 0.14509805, b: 0.105882354, a: 1}
+  specularColor: {r: 0.5882353, g: 0.50980395, b: 0.40392157, a: 1}
+  specular: 0.3
+  size: 3.64
+  bloodlessHitClips: []

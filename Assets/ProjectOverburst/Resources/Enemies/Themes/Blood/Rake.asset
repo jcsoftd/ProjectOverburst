@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Rake
   m_EditorClassIdentifier: Assembly-CSharp::BloodHitProfile
   suppressBlood: 0
-  mainColor: {r: 0.43, g: 0.18, b: 0.18, a: 1}
-  secondaryColor: {r: 0.23650001, g: 0.09900001, b: 0.09900001, a: 0.55}
-  specularColor: {r: 0.5375, g: 0.22500001, b: 0.22500001, a: 1.25}
-  specular: 0.12
-  size: 5
+  mainColor: {r: 0.3254902, g: 0.13725491, b: 0.14509805, a: 1}
+  secondaryColor: {r: 0.16862746, g: 0.06666667, b: 0.078431375, a: 1}
+  specularColor: {r: 0.5647059, g: 0.38039216, b: 0.3882353, a: 1}
+  specular: 0.18
+  size: 3.5
+  bloodlessHitClips: []
