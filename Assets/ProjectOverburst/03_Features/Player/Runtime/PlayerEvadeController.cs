@@ -379,7 +379,6 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
 
     public void CancelForKnockdown()
     {
-        hasCompletedDodgeFollowUp = false;
         EndEvade();
         rollRotationRecoveryEndTime = 0;
         OverburstTimeEffectArbiter.ClearOwner(this);
