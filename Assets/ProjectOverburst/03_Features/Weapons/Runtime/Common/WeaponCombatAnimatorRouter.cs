@@ -89,6 +89,19 @@ public class WeaponCombatAnimatorRouter : MonoBehaviour
         activeDriver?.CancelAttack();
     }
 
+    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay)
+    {
+        RefreshActiveDriverForCurrentWeapon();
+        duration = bridgeDuration = contactDelay = 0f;
+        return activeDriver != null && activeDriver.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay);
+    }
+
+    public bool TryBlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart,
+        MeleePlaybackAcceleration acceleration)
+        => activeDriver != null && activeDriver.TryBlendHeavyAfterParry(clip, duration, normalizedStart, acceleration);
+
+    public void CompleteHeavyParryBridge() => activeDriver?.CompleteHeavyParryBridge();
+
     public void SuppressCombatLayerForLegacyAction(float duration)
     {
         RefreshActiveDriverForCurrentWeapon();
@@ -201,5 +214,8 @@ public interface IWeaponCombatAnimatorDriver
         bool allowCombatEntry,
         float normalizedStartTime = 0f, MeleePlaybackAcceleration playbackAcceleration = default);
     void CancelAttack();
+    bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay);
+    bool TryBlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart, MeleePlaybackAcceleration acceleration);
+    void CompleteHeavyParryBridge();
     void SuppressForLegacyFullBodyAction(float duration);
 }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 [DefaultExecutionOrder(371)]
 [DisallowMultipleComponent]
-public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnimatorDriver
+public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnimatorDriver
 {
     private const float DefaultGuardLocomotionEnterTransitionDuration = 0.16f;
     private const float DefaultGuardLocomotionExitTransitionDuration = 0.12f;
@@ -18,7 +18,8 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         Hit,
         Block,
         Roll,
-        Attack
+        Attack,
+        Parry
     }
 
     [Header("References")]
@@ -165,7 +166,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
             return;
 
         ApplyCurrentProfile();
-        bool keepStartedAttack = activeAction == DriverAction.Attack;
+        bool keepStartedAttack = activeAction == DriverAction.Attack || activeAction == DriverAction.Parry;
         combatRequested = true;
         legacySuppressed = false;
         emptyStateAppliedAfterFade = false;
@@ -212,6 +213,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
             return;
 
         ApplyCurrentProfile();
+        UpdateHeavyParryClock();
         UpdateLegacySuppression();
         UpdateAttackPlaybackSpeed();
         UpdateActionState();
@@ -317,9 +319,10 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
     public void CancelAttack()
     {
-        if (activeAction != DriverAction.Attack)
+        if (activeAction != DriverAction.Attack && activeAction != DriverAction.Parry)
             return;
 
+        RestoreHeavyParryClock();
         activeAction = DriverAction.None;
         activeActionEndTime = 0f;
         targetTransitionLowerLayerWeight = 0f;
@@ -340,6 +343,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
     public void ForceResetLayer()
     {
+        RestoreHeavyParryClock();
         ResolveLayerIndex();
         combatRequested = false;
         legacySuppressed = false;
@@ -496,6 +500,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
     private void OnDestroy()
     {
+        RestoreHeavyParryClock();
         if (runtimeOverrideController == null)
             return;
 
@@ -556,7 +561,8 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
     private void UpdateAttackPlaybackSpeed()
     {
-        if (activeAction != DriverAction.Attack || !attackAcceleration.IsEnabled
+        if (heavyParryClockOwned || heavyParryResumeFrame == Time.frameCount
+            || activeAction != DriverAction.Attack || !attackAcceleration.IsEnabled
             || acceleratedAttackClip == null || attackBaseDuration <= 0f)
             return;
 
@@ -573,6 +579,7 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
 
     private void UpdateActionState()
     {
+        if (heavyParryClockOwned) return;
         if (activeAction == DriverAction.None)
             return;
 
@@ -716,6 +723,8 @@ public class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCombatAnima
         float normalizedStartTime,
         float clipLength = 1f)
     {
+        if (action != DriverAction.Parry && action != DriverAction.Attack)
+            RestoreHeavyParryClock();
         if (!PlayState(layerIndex, layerName, stateName, Mathf.Max(0f, transitionDuration), normalizedStartTime, clipLength))
             return;
 

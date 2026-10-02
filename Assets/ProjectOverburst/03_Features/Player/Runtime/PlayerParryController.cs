@@ -26,6 +26,13 @@ public sealed class PlayerParryController : MonoBehaviour
     private float windowEndsAt;
     private float nextSlowAt;
     private bool windowOpen;
+    private bool feedbackPending;
+    private float pendingFeedbackElapsed, pendingFeedbackDelay;
+    private Vector3 pendingFeedbackCenter;
+    private int pendingFeedbackCount, pendingFeedbackChain;
+    private int pendingFeedbackStartFrame;
+    private bool pendingFeedbackStrong;
+    private readonly List<EnemyActor> pendingFeedbackEnemies = new List<EnemyActor>(12);
     public int SuccessCount { get; private set; }
     public bool IsWindowOpen => windowOpen && Time.unscaledTime <= windowEndsAt;
     public float RemainingWindow => IsWindowOpen ? Mathf.Max(0f, windowEndsAt - Time.unscaledTime) : 0f;
@@ -51,11 +58,21 @@ public sealed class PlayerParryController : MonoBehaviour
         chainIndex = 0;
         TryParryThreats();
     }
-    public void CloseWindow() => windowOpen = false;
+    public void CloseWindow()
+    {
+        windowOpen = false;
+        feedbackPending = false;
+        pendingFeedbackEnemies.Clear();
+    }
     private void Update()
     {
         if (!windowOpen) return;
         if (health == null || health.IsDead || melee == null || !melee.IsHeavyAttackInProgress) { CloseWindow(); return; }
+        if (feedbackPending && Time.frameCount > pendingFeedbackStartFrame + 1 && !MeleeRuntime.IsHeavyParryClockPaused)
+        {
+            pendingFeedbackElapsed += Time.unscaledDeltaTime;
+            if (pendingFeedbackElapsed >= pendingFeedbackDelay) FlushPendingFeedback();
+        }
         if (GameplayInputBlocker.IsGameplayInputBlocked || Time.timeScale <= 0f)
             windowEndsAt += Time.unscaledDeltaTime;
         else if (Time.unscaledTime > windowEndsAt) CloseWindow();
@@ -107,8 +124,26 @@ public sealed class PlayerParryController : MonoBehaviour
             enemies[i].GetComponent<HitFlashFeedback>()?.FlashOnce();
             CancelAndStun(enemies[i], transform.position);
         }
-        PlaySuccess(center, enemies.Count, anyStrong);
         melee?.NotifyHeavyParried(actionId); // 이 강공의 원소 에너지는 절반만 소모
+        SuccessCount++; // 방어·적 취소·성공 통지는 접촉 연출 지연과 무관하게 즉시 확정한다.
+        if (chainIndex == 0 && melee != null && melee.IsHeavyParryMotionActive && melee.HeavyParryContactDelay > 0f)
+        {
+            feedbackPending = true;
+            pendingFeedbackElapsed = 0f;
+            pendingFeedbackStartFrame = Time.frameCount;
+            pendingFeedbackDelay = melee.HeavyParryContactDelay;
+            pendingFeedbackCenter = center;
+            pendingFeedbackCount = enemies.Count;
+            pendingFeedbackStrong = anyStrong;
+            pendingFeedbackChain = chainIndex;
+            pendingFeedbackEnemies.Clear();
+            pendingFeedbackEnemies.AddRange(parriedThisAction);
+        }
+        else
+        {
+            FlushPendingFeedback();
+            PlaySuccess(center, enemies.Count, anyStrong);
+        }
         chainIndex++;
     }
     private static Vector3 ContactPoint(EnemyActor enemy, Vector3 playerCenter)
@@ -148,10 +183,24 @@ public sealed class PlayerParryController : MonoBehaviour
     }
     private void PlaySuccess(Vector3 center, int parriedCount, bool anyStrong)
     {
-        SuccessCount++;
+        PlaySuccessWithChain(center, parriedCount, anyStrong, chainIndex, parriedThisAction);
+    }
+
+    private void FlushPendingFeedback()
+    {
+        if (!feedbackPending) return;
+        feedbackPending = false;
+        PlaySuccessWithChain(pendingFeedbackCenter, pendingFeedbackCount, pendingFeedbackStrong,
+            pendingFeedbackChain, pendingFeedbackEnemies);
+        pendingFeedbackEnemies.Clear();
+    }
+
+    private void PlaySuccessWithChain(Vector3 center, int parriedCount, bool anyStrong,
+        int feedbackChain, ICollection<EnemyActor> feedbackEnemies)
+    {
         ParryFeedbackService.Tier tier = ParryFeedbackService.ResolveTier(parriedCount, anyStrong);
         CombatActionSfxService.PlayParrySuccess(center);
-        ParryFeedbackService.Play(center, transform.position, tier, parriedCount, chainIndex, parriedThisAction);
+        ParryFeedbackService.Play(center, transform.position, tier, parriedCount, feedbackChain, feedbackEnemies);
         // 히트스톱은 매번, 슬로우는 1.5초에 한 번만. 두 요청은 종류별로 따로 유지된다.
         if (Time.unscaledTime >= nextSlowAt)
         {

@@ -140,6 +140,11 @@ public partial class MeleeRuntime
         var parry = GetComponent<PlayerParryController>();
         if (parry == null) parry = gameObject.AddComponent<PlayerParryController>();
         parry.OpenForHeavy(activeActionId);
+        if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
+        {
+            heavyParrySwingPending = IsHeavyParryMotionActive;
+            if (!heavyParrySwingPending) CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, true, transform.position);
+        }
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;
     }
@@ -371,5 +376,6 @@ public partial class MeleeRuntime
         if (!activeAttackIsHeavy || heavyParried || actionId <= 0 || actionId != activeActionId) return;
         heavyParried = true;
         if (heavyDischargeCommitted) activeDischarge?.TryRefundParried();
+        else TryBeginHeavyParryMotion();
     }
 }

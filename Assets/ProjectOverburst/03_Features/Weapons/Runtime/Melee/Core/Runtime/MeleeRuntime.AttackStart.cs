@@ -139,7 +139,7 @@ public partial class MeleeRuntime
             return false;
         }
 
-        if (activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
+        if (!isHeavy && activeWeaponData != null && activeWeaponData.weaponClass == WeaponClass.Greatsword)
             CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
 
         return true;

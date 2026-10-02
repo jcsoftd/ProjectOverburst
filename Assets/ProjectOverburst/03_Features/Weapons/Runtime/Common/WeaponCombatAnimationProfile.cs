@@ -115,6 +115,14 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     public string attackStateName = "Melee_Attack";
     [InspectorName("공격 교체 기준 클립")]
     public AnimationClip attackTemplateClip;
+
+    [Header("패링 후 강공 연결")]
+    public AnimationClip heavyParryClip;
+    public string heavyParryStateName = "Melee_HeavyParry";
+    public string heavyParrySpeedParameterName = "Melee_ParrySpeed";
+    [Min(0f)] public float heavyParryEntryBlend = 0.04f;
+    [Min(0f)] public float heavyParryToAttackBlend = 0.12f;
+    [Min(0f)] public float heavyParryContactSeconds = 0.0333333f;
     [InspectorName("전환 하체 빈 상태 이름")]
     public string transitionLowerEmptyStateName = "Melee_TransitionLower_Empty";
     [InspectorName("전환 하체 이동 상태 이름")]

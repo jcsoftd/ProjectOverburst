@@ -73,11 +73,14 @@ public sealed class CombatActionSfxService : MonoBehaviour
     // 2026-09-30: 지면강타 2단계로 축소 — 에너지 절반 미만 Earth_Explosion_1_M, 이상 Earth_Explosion_2_M.
     // GreatswordGround01 칸(5)은 인덱스 유지를 위해 남겨 두고 더는 재생하지 않는다.
     public const float GroundSecondTierEnergy = 0.5f;
-    public static bool PlayGreatswordGround(float normalizedEnergy, Vector3 position)
+    public static bool PlayGreatswordGround(float normalizedEnergy, Vector3 position, bool successfulParry = false)
     {
         if (!EnsureInstance()) return false;
         int tier = normalizedEnergy >= GroundSecondTierEnergy ? 1 : 0;
-        return instance.Play(6 + tier, position, 0.85f, 1f, 5f, 42f, 75);
+        bool played = instance.Play(6 + tier, position, 0.85f, 1f, 5f, 42f, 75);
+        if (played && successfulParry)
+            instance.Play(6 + tier, position, 0.85f, 0.5f, 5f, 42f, 76);
+        return played;
     }
 
     // 2026-09-30 17:56 구조: 몬스터 피격 = 공용 피격음(모든 몬스터, Stab 01~03 랜덤) + 종류별 추가음.

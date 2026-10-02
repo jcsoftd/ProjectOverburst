@@ -8,6 +8,8 @@ public partial class MeleeRuntime
         if (!isAttacking)
             return;
 
+        if (TickHeavyParryMotion()) return;
+
         float normalizedTime = GetAttackNormalizedTime();
         bool shouldContinueCombo = ShouldContinueActiveCombo(normalizedTime);
         bool shouldCancelByMoveInput = !shouldContinueCombo
@@ -73,10 +75,10 @@ public partial class MeleeRuntime
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
         {
             // 화염·암흑·빛 강공은 대검 지면음 대신 자기 내려치기 소리만 낸다(2026-09-30 청음 결정).
-            bool groundReplaced = hasDischarge && MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center);
+            bool groundReplaced = hasDischarge && MeleeElementSfxService.TryPlayUpperSlam(activeDischarge, activeDischarge.LightFirstHitIndex, center, heavyParried);
             // 빛·암흑(에너지 있음)은 자기 내려치기 소리 위에 지면강타 2단계를 겹친다(2026-09-30 청음 결정).
             if (!groundReplaced || MeleeElementSfxService.LayersGreatswordGround(activeDischarge))
-                CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center);
+                CombatActionSfxService.PlayGreatswordGround(normalizedEnergy, center, heavyParried);
         }
         if (!hasDischarge)
         {
@@ -87,7 +89,7 @@ public partial class MeleeRuntime
             return;
         }
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword && !MeleeElementSfxService.ReplacesGreatswordGround(activeDischarge))
-            MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center);
+            MeleeElementSfxService.TryPlayHeavyImpact(activeDischarge.Element, center, heavyParried);
         // 60D light: the slam is the triple's 1st hit (overcharged) or the double's 2nd hit, each with its own circle.
         bool lightHeavy = activeDischarge.Element == WeaponElement.Light;
         int lightSlamHit = lightHeavy ? activeDischarge.LightFirstHitIndex : 0;
@@ -150,6 +152,7 @@ public partial class MeleeRuntime
 
     private void StopActiveAttackStep()
     {
+        ResetHeavyParryMotion();
         GetComponent<PlayerParryController>()?.CloseWindow();
         heavyDischargeExecutor.End();
         activeDischarge?.End();
@@ -199,6 +202,7 @@ public partial class MeleeRuntime
 
     private void FinishActiveAttackStep()
     {
+        ResetHeavyParryMotion();
         heavyDischargeExecutor.End();
         activeDischarge?.End();
         activeDischarge = null;

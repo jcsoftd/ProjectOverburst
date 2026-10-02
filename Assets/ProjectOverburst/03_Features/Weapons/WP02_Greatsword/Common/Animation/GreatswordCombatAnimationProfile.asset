@@ -28,6 +28,12 @@ MonoBehaviour:
   rollStateName: Melee_Roll
   attackStateName: Melee_Attack
   attackTemplateClip: {fileID: 7400000, guid: 181645acac6152547a230a079ade8bf2, type: 2}
+  heavyParryClip: {fileID: 7400000, guid: 68189887d296a3a40abb2106e8d52f70, type: 2}
+  heavyParryStateName: Melee_HeavyParry
+  heavyParrySpeedParameterName: Melee_ParrySpeed
+  heavyParryEntryBlend: 0.04
+  heavyParryToAttackBlend: 0.12
+  heavyParryContactSeconds: 0.033333335
   transitionLowerEmptyStateName: Melee_TransitionLower_Empty
   transitionLowerLocomotionStateName: Melee_TransitionLower_Locomotion
   actionSpeedParameterName: Melee_ActionSpeed

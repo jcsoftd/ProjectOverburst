@@ -56,6 +56,20 @@ public partial class PlayerAnimation
         return attackClip != null;
     }
 
+    public bool PlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay)
+    {
+        duration = bridgeDuration = contactDelay = 0f;
+        return IsWeaponCombatAnimatorRouterActive()
+            && weaponCombatAnimatorRouter.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay);
+    }
+
+    public bool BlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart,
+        MeleePlaybackAcceleration acceleration)
+        => IsWeaponCombatAnimatorRouterActive()
+            && weaponCombatAnimatorRouter.TryBlendHeavyAfterParry(clip, duration, normalizedStart, acceleration);
+
+    public void CompleteHeavyParryBridge() => weaponCombatAnimatorRouter?.CompleteHeavyParryBridge();
+
     public void PlayEvadeFullBody(AnimationClip evadeClip, float actionDuration, float fixedTransitionDuration)
     {
         float duration = Mathf.Max(0.01f, actionDuration);
@@ -91,6 +105,9 @@ public partial class PlayerAnimation
 
     public void NotifyCombatDamagedHit()
     {
+        var melee = GetComponent<MeleeRuntime>();
+        if (melee != null && melee.IsHeavyParryMotionActive)
+            melee.CancelCurrentAction(WeaponActionCancelReason.Recovery);
         if (IsWeaponCombatAnimatorRouterActive() && weaponCombatAnimatorRouter.TryPlayCombatHit())
             return;
 

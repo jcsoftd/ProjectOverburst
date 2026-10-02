@@ -388,7 +388,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         }
 
         MeleeRuntime meleeRuntime = playerMovement.GetComponent<MeleeRuntime>();
-        if (meleeRuntime != null && meleeRuntime.IsAttackInProgress)
+        if (meleeRuntime != null && meleeRuntime.IsAttackInProgress && !meleeRuntime.IsHeavyParryMotionActive)
             return;
 
         PlayerAnimation playerAnimation = playerMovement.GetComponent<PlayerAnimation>();

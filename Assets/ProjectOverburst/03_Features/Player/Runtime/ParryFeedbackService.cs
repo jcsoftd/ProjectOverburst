@@ -17,9 +17,9 @@ public sealed class ParryFeedbackService : MonoBehaviour
     // Zoom = 패링 순간 화면 확대 비율(7/9/11%). 확대는 Slow가 끝날 때까지 유지하고 .4초 동안 돌아온다.
     private static readonly Tier[] Tiers =
     {
-        new Tier { HitStop = .07f, Slow = .20f, KnockbackRadius = 2.0f, CameraAmplitude = .09f, Zoom = .07f },
-        new Tier { HitStop = .08f, Slow = .24f, KnockbackRadius = 2.5f, CameraAmplitude = .12f, Zoom = .09f },
-        new Tier { HitStop = .10f, Slow = .30f, KnockbackRadius = 3.0f, CameraAmplitude = .15f, Zoom = .11f },
+        new Tier { HitStop = .07f, Slow = .25f, KnockbackRadius = 2.0f, CameraAmplitude = .09f, Zoom = .07f },
+        new Tier { HitStop = .08f, Slow = .29f, KnockbackRadius = 2.5f, CameraAmplitude = .12f, Zoom = .09f },
+        new Tier { HitStop = .10f, Slow = .35f, KnockbackRadius = 3.0f, CameraAmplitude = .15f, Zoom = .11f },
     };
 
     private const int FlashPoolCapacity = 8;
