@@ -28,7 +28,15 @@ public static class UpcomingMonsterMotionCapture
         if(tasks!=null)throw new InvalidOperationException("Motion capture is already running.");
         output=directory;Directory.CreateDirectory(Path.Combine(output,"motion-strips"));
         plan=JObject.Parse(File.ReadAllText(Path.Combine(output,"motion-capture-plan.json")));
-        results=new JArray();tasks=new Queue<JObject>(((JArray)plan["tasks"]).OfType<JObject>());
+        results=new JArray();
+        var receipt=Path.Combine(output,"motion-capture-job.json");
+        if(File.Exists(receipt))
+        {
+            var previous=JObject.Parse(File.ReadAllText(receipt));
+            if((string)previous["status"]!="PASS")results=(JArray)previous["results"];
+        }
+        var done=new HashSet<string>(results.OfType<JObject>().Select(r=>(string)r["id"]+"/"+(string)r["kind"]));
+        tasks=new Queue<JObject>(((JArray)plan["tasks"]).OfType<JObject>().Where(t=>!done.Contains((string)t["id"]+"/"+(string)t["kind"])));
         Write("QUEUED");EditorApplication.update+=Tick;
         return "QUEUED "+tasks.Count+" isolated animation captures";
     }
@@ -57,7 +65,7 @@ public static class UpcomingMonsterMotionCapture
         if(prefab==null || clip==null)throw new InvalidOperationException("Source missing: "+cid+" "+kind);
         var scene=EditorSceneManager.NewPreviewScene();
         GameObject model=null;RenderTexture rt=null;Texture2D frame=null,sheet=null;
-        var materials=new List<Material>();var graph=default(PlayableGraph);var oldActive=RenderTexture.active;
+        var skins=new List<CpuSkin>();var materials=new List<Material>();var graph=default(PlayableGraph);var oldActive=RenderTexture.active;
         try
         {
             model=Object.Instantiate(prefab);SceneManager.MoveGameObjectToScene(model,scene);
@@ -76,7 +84,7 @@ public static class UpcomingMonsterMotionCapture
             graph=PlayableGraph.Create("Upcoming motion preview");graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
             var playable=AnimationClipPlayable.Create(graph,clip);playable.SetApplyFootIK(false);playable.SetApplyPlayableIK(false);
             var animationOutput=AnimationPlayableOutput.Create(graph,"Clip",animator);animationOutput.SetSourcePlayable(playable);graph.Play();
-            Action<float> pose=t=>{playable.SetTime(t);graph.Evaluate(0);};
+            Action<float> pose=t=>{playable.SetTime(Mathf.Min(t,Mathf.Max(0,clip.length-.0001f)));graph.Evaluate(0);};
             int n=Mathf.Clamp(Mathf.CeilToInt(clip.length*18),24,48),rows=(n+Cols-1)/Cols;
             Bounds bounds=default;bool hasBounds=false;
             for(int f=0;f<n;f+=3){pose(clip.length*f/(n-1));var b=UpcomingMonsterThemeReviewSizing.GeometryBounds(model);if(!hasBounds){bounds=b;hasBounds=true;}else bounds.Encapsulate(b);}
@@ -94,9 +102,21 @@ public static class UpcomingMonsterMotionCapture
             Light(scene,"Fill",new Vector3(10,-40,0),.65f,Color.white);
             rt=RenderTexture.GetTemporary(Cell,Cell,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
             frame=new Texture2D(Cell,Cell,TextureFormat.RGB24,false);sheet=new Texture2D(Cell*Cols,Cell*rows,TextureFormat.RGB24,false);
+            // The GPU skinning buffer is updated once per Editor frame. CPU snapshots
+            // capture every sampled pose even when all samples share one Editor tick.
+            foreach(var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                if(skin.enabled && skin.gameObject.activeInHierarchy && skin.sharedMesh!=null)
+                    skins.Add(new CpuSkin(skin));
+            double shapeRms=0;float jointDegrees=0;
             for(int f=0;f<n;f++)
             {
                 pose(clip.length*f/(n-1));
+                foreach(var skin in skins)
+                {
+                    skin.UpdatePose();
+                    shapeRms=Math.Max(shapeRms,skin.ShapeRms);
+                    jointDegrees=Mathf.Max(jointDegrees,skin.JointDegrees);
+                }
                 var request=new UniversalRenderPipeline.SingleCameraRequest{destination=rt};
                 if(RenderPipeline.SupportsRenderRequest(camera,request))RenderPipeline.SubmitRenderRequest(camera,request);
                 else {camera.targetTexture=rt;camera.Render();}
@@ -104,15 +124,81 @@ public static class UpcomingMonsterMotionCapture
                 sheet.SetPixels((f%Cols)*Cell,(rows-1-f/Cols)*Cell,Cell,Cell,frame.GetPixels());
             }
             sheet.Apply();string path=Path.Combine(output,"motion-strips",cid+"__"+kind+".png");File.WriteAllBytes(path,sheet.EncodeToPNG());
-            return new JObject{{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strip",path},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
+            return new JObject{{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strip",path},{"cpuSkinned",true},{"shapeRms",shapeRms},{"jointDegrees",jointDegrees},{"skinCount",skins.Count},{"blendShapeCount",skins.Sum(s=>s.Source.sharedMesh.blendShapeCount)},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
         }
         finally
         {
+            foreach(var skin in skins)skin.Dispose();
             if(graph.IsValid())graph.Destroy();RenderTexture.active=oldActive;
             if(rt!=null)RenderTexture.ReleaseTemporary(rt);if(frame!=null)Object.DestroyImmediate(frame);if(sheet!=null)Object.DestroyImmediate(sheet);
             EditorSceneManager.ClosePreviewScene(scene);foreach(var m in materials)if(m!=null)Object.DestroyImmediate(m);
         }
     }
+
+    // Linear blend skinning in renderer-local coordinates, matching bone world
+    // matrices and bind poses without multiplying legacy FBX scale twice.
+    sealed class CpuSkin : IDisposable
+    {
+        public readonly SkinnedMeshRenderer Source;
+        readonly GameObject holder;readonly Mesh mesh;readonly Transform[] bones;
+        readonly Matrix4x4[] bindposes;readonly Vector3[] vertices,normals,posed,posedNormals;
+        readonly Vector4[] tangents,posedTangents;readonly byte[] counts;readonly BoneWeight1[] weights;
+        readonly Quaternion[] initialRotations;Vector3[] initialShape;
+        public double ShapeRms {get;private set;}public float JointDegrees {get;private set;}
+        public CpuSkin(SkinnedMeshRenderer source)
+        {
+            Source=source;var shared=source.sharedMesh;bones=source.bones;bindposes=shared.bindposes;
+            if(bones.Length!=bindposes.Length)throw new InvalidOperationException("Bone/bind pose mismatch: "+source.name);
+            vertices=shared.vertices;normals=shared.normals;tangents=shared.tangents;
+            posed=new Vector3[vertices.Length];posedNormals=new Vector3[normals.Length];posedTangents=new Vector4[tangents.Length];
+            var nativeCounts=shared.GetBonesPerVertex();var nativeWeights=shared.GetAllBoneWeights();
+            try{counts=nativeCounts.ToArray();weights=nativeWeights.ToArray();}
+            finally{nativeCounts.Dispose();nativeWeights.Dispose();}
+            initialRotations=bones.Select(b=>b==null?Quaternion.identity:b.localRotation).ToArray();
+            mesh=Object.Instantiate(shared);mesh.name="CPU sampled pose";mesh.MarkDynamic();
+            holder=new GameObject("CPU pose "+source.name,typeof(MeshFilter),typeof(MeshRenderer));
+            holder.layer=Layer;holder.transform.SetParent(source.transform,false);
+            holder.GetComponent<MeshFilter>().sharedMesh=mesh;
+            holder.GetComponent<MeshRenderer>().sharedMaterials=source.sharedMaterials;
+            source.enabled=false;
+        }
+        public void UpdatePose()
+        {
+            var matrices=new Matrix4x4[bones.Length];var normalMatrices=new Matrix4x4[bones.Length];
+            for(int b=0;b<bones.Length;b++)
+            {
+                matrices[b]=bones[b]==null?Matrix4x4.identity:Source.transform.worldToLocalMatrix*bones[b].localToWorldMatrix*bindposes[b];
+                normalMatrices[b]=matrices[b].inverse.transpose;
+                if(bones[b]!=null && bones[b]!=Source.rootBone)
+                    JointDegrees=Mathf.Max(JointDegrees,Quaternion.Angle(initialRotations[b],bones[b].localRotation));
+            }
+            int cursor=0;var reference=(Source.rootBone??Source.transform).worldToLocalMatrix*Source.transform.localToWorldMatrix;
+            var shape=new Vector3[vertices.Length];double square=0;
+            for(int v=0;v<vertices.Length;v++)
+            {
+                Vector3 p=Vector3.zero,n=Vector3.zero,t=Vector3.zero;
+                for(int j=0;j<counts[v];j++)
+                {
+                    var weight=weights[cursor++];var matrix=matrices[weight.boneIndex];
+                    p+=matrix.MultiplyPoint3x4(vertices[v])*weight.weight;
+                    if(normals.Length==vertices.Length)n+=normalMatrices[weight.boneIndex].MultiplyVector(normals[v])*weight.weight;
+                    if(tangents.Length==vertices.Length)t+=matrix.MultiplyVector((Vector3)tangents[v])*weight.weight;
+                }
+                if(counts[v]==0){p=vertices[v];if(normals.Length==vertices.Length)n=normals[v];if(tangents.Length==vertices.Length)t=tangents[v];}
+                posed[v]=p;if(normals.Length==vertices.Length)posedNormals[v]=n.normalized;
+                if(tangents.Length==vertices.Length){t.Normalize();posedTangents[v]=new Vector4(t.x,t.y,t.z,tangents[v].w);}
+                shape[v]=reference.MultiplyPoint3x4(p);
+                if(initialShape!=null)square+=(shape[v]-initialShape[v]).sqrMagnitude;
+            }
+            if(initialShape==null)initialShape=shape;
+            else ShapeRms=Math.Max(ShapeRms,Math.Sqrt(square/Math.Max(1,vertices.Length)));
+            mesh.vertices=posed;if(normals.Length==vertices.Length)mesh.normals=posedNormals;else mesh.RecalculateNormals();
+            if(tangents.Length==vertices.Length)mesh.tangents=posedTangents;mesh.RecalculateBounds();
+            Source.enabled=false;holder.SetActive(Source.gameObject.activeInHierarchy);
+        }
+        public void Dispose(){Object.DestroyImmediate(holder);Object.DestroyImmediate(mesh);}
+    }
+
     static Material Convert(Material source,List<Material> owned)
     {
         if(source==null)throw new InvalidOperationException("Missing source material.");
