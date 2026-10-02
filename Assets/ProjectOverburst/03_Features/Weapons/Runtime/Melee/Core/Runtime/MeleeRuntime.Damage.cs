@@ -3,7 +3,9 @@ using UnityEngine;
 // MeleeRuntime partial: 패턴 피해, 넉백·띄우기, 치명타, 지속 피해, 흡혈. 필드와 Unity 수명주기는 MeleeRuntime.cs에 있다.
 public partial class MeleeRuntime
 {
-    private void DealPatternDamage(AttackPhaseHit hit)
+    private void DealPatternDamage(AttackPhaseHit hit) => DealPatternDamage(hit, 0);
+
+    private void DealPatternDamage(AttackPhaseHit hit, int darkBarrageId)
     {
         // The elemental first circle commits once at impact. The phase executor still drives its visual wave.
         if (activeAttackIsHeavy && activeDischarge != null && !resolvingHeavyBlast) return;
@@ -25,6 +27,7 @@ public partial class MeleeRuntime
             || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
         int hitActionId = activeActionId;
         var hitDischarge = activeDischarge;
+        int darkDonorId = hasDischargeTarget ? hit.TargetHealth.GetInstanceID() : 0;
         MeleeDamageResult result = MeleeDamageResolver.Apply(new MeleeDamageRequest(
             hit.Damageable,
             runtimeData.Damage,
@@ -44,6 +47,11 @@ public partial class MeleeRuntime
             activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
             hit.PhaseIndex,
             ResolveWeakKnockbackDistance(phase)));
+
+        // Ammo belongs to confirmed slam hits, including lethal hits, before a reward can clear the action.
+        if (darkBarrageId != 0 && hasDischargeTarget && result.ActualDamage > 0f)
+            DarkBarrageScheduler.ConfirmSlamHit(darkBarrageId, darkDonorId, dischargeTarget.Stacks,
+                dischargeTarget.Status, dischargeTarget.Life, result.TargetHealth != null && result.TargetHealth.IsDead);
 
         // Lethal-hit rewards may synchronously restore the account projection and end this action.
         // Its damage has committed, but its cleared discharge/feedback state must not be reused.

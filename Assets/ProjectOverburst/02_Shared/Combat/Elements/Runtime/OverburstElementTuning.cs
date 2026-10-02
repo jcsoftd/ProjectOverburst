@@ -92,11 +92,13 @@ public sealed class OverburstElementTuning : ScriptableObject
     [Min(0)] public int darkBarrageMinTargets = 8;
     [Min(0)] public int darkBarrageMaxTargets = 40;
     [Tooltip("일반탄 피해(H 배수). H는 강공 확정 때의 FirstBlastDamage")]
-    [Min(0f)] public float darkBarrageShotDamage = 0.15f;
+    [Min(0f)] public float darkBarrageShotDamage = 0.08f;
     [Tooltip("완충 대형탄 피해(H 배수)")]
     [Min(0f)] public float darkBarrageFinisherDamage = 0.30f;
-    [Tooltip("공중에 모인 탄을 한 발씩 쏘는 간격(초). 발 수가 많아도 압축하지 않는다(2026-10-01 사용자 결정)")]
-    [Min(0.005f)] public float darkBarrageFireInterval = 0.08f;
+    [Tooltip("공중에 모인 탄을 묶음으로 쏘는 간격(초). 비행 속도와는 별도다")]
+    [Min(0.005f)] public float darkBarrageFireInterval = 0.10f;
+    [Tooltip("한 묶음에서 함께 출발하는 탄 수. 총 탄 수는 강공이 소비한 잠식 중첩 합계다")]
+    [Range(2, 4)] public int darkBarrageShotsPerVolley = 3;
     [Min(0)] public int darkBarrageMaxLaunchPerFrame = 24;
     [Min(0)] public int darkBarrageMaxConcurrent = 3;
     [Tooltip("착지점에서 공중 대기 위치까지 솟는 시간")]
@@ -166,9 +168,10 @@ public sealed class OverburstElementTuning : ScriptableObject
     public int SafeDarkBarrageMaxTargets => Mathf.Max(SafeDarkBarrageMinTargets, darkBarrageMaxTargets > 0 ? darkBarrageMaxTargets : 40);
     public int DarkBarrageTargetLimit(float normalizedEnergy)
         => Mathf.RoundToInt(Mathf.Lerp(SafeDarkBarrageMinTargets, SafeDarkBarrageMaxTargets, Mathf.Clamp01(normalizedEnergy)));
-    public float SafeDarkBarrageShotDamage => Positive(darkBarrageShotDamage, 0.15f);
+    public float SafeDarkBarrageShotDamage => Positive(darkBarrageShotDamage, 0.08f);
     public float SafeDarkBarrageFinisherDamage => Positive(darkBarrageFinisherDamage, 0.30f);
-    public float SafeDarkBarrageFireInterval => Mathf.Max(0.005f, Positive(darkBarrageFireInterval, 0.08f));
+    public float SafeDarkBarrageFireInterval => Mathf.Max(0.005f, Positive(darkBarrageFireInterval, 0.10f));
+    public int SafeDarkBarrageShotsPerVolley => Mathf.Clamp(darkBarrageShotsPerVolley > 0 ? darkBarrageShotsPerVolley : 3, 2, 4);
     public int SafeDarkBarrageMaxLaunchPerFrame => darkBarrageMaxLaunchPerFrame > 0 ? darkBarrageMaxLaunchPerFrame : 24;
     public int SafeDarkBarrageMaxConcurrent => darkBarrageMaxConcurrent > 0 ? darkBarrageMaxConcurrent : 3;
     public float SafeDarkBarrageRiseTime => Positive(darkBarrageRiseTime, 0.25f);

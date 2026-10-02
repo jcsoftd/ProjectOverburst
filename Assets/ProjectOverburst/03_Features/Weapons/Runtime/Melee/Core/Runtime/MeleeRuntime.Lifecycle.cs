@@ -100,6 +100,9 @@ public partial class MeleeRuntime
             meleeDefinition.baseSettings, activeAttackPhases[0], 1f);
         var blastRuntime = new MeleeAttackRuntimeData(pattern, slamDamage,
             baseRuntime.Knockback, baseRuntime.HitStunDuration, baseRuntime.VfxScale, baseRuntime.AttackRangeScale);
+        int darkBarrageId = activeDischarge.Element == WeaponElement.Dark
+            ? DarkBarrageScheduler.PrepareSlam(activeDischarge, gameObject, combatTarget.Team, center,
+                slamRadius, pattern.VerticalTolerance, activeHeavyDefinition.elementVfx) : 0;
         resolvingHeavyBlast = true;
         try
         {
@@ -110,10 +113,14 @@ public partial class MeleeRuntime
                 Vector3 direction = target.WorldCenter - center; direction.y = 0f;
                 if (direction.sqrMagnitude < .0001f) direction = activeAttackDirection;
                 DealPatternDamage(new AttackPhaseHit(activeAttackPhases[0], blastRuntime, target,
-                    target.WorldCenter, direction.normalized));
+                    target.WorldCenter, direction.normalized), darkBarrageId);
             }
         }
-        finally { resolvingHeavyBlast = false; }
+        finally
+        {
+            resolvingHeavyBlast = false;
+            DarkBarrageScheduler.CompleteSlam(darkBarrageId);
+        }
     }
 
     private void ResetStateIfWeaponChanged()

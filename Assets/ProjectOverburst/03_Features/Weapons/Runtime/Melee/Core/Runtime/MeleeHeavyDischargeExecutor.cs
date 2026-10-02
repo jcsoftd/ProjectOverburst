@@ -110,13 +110,7 @@ public sealed class MeleeHeavyDischargeExecutor
     private void SubmitUpperElementFollowUps()
     {
         if (discharge == null || sourceActor == null || sourceTarget == null) return;
-        if (discharge.Element == WeaponElement.Dark)
-        {
-            // 60D 4 (2026-10-01): the barrage searches heavy radius x 2.5 and is collected before the slam damage.
-            DarkBarrageScheduler.Submit(discharge, sourceActor, sourceTarget.Team, impactCenter,
-                discharge.Radius, blastVerticalTolerance, definition.elementVfx);
-            return;
-        }
+        // Dark is submitted after the direct-hit loop has supplied its confirmed corrosion count.
         if (discharge.Element != WeaponElement.Light) return;
         int slamHit = discharge.LightFirstHitIndex;
         for (int hit = slamHit + 1; hit <= 2; hit++)

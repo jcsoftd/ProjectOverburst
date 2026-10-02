@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 60D 4 (2026-10-01): dark heavy corrosion barrage. At the slam, corroded enemies in the search circle are
-// collected and their corrosion is reserved. Every shot rises from the slam point and gathers in the air, then
-// the shots leave one at a time at a fixed interval, cycling over the targets nearest first, and burst on
-// arrival. The interval is never compressed for large counts (2026-10-01 user decision: slow is fine, one by one).
-// The first shot that lands on an enemy consumes its reserved corrosion. Owned independently of the weapon action
-// so a cancelled heavy still finishes. Shots never use physics: damage lands on the arrival frame.
+// 60D 4 (2026-10-02): confirmed slam hits consume corrosion immediately. Their stack sum becomes one
+// shared ammo count, fired in small volleys at shuffled enemies visible when the slam was committed.
+// Flight speed and curves are unchanged. The barrage outlives the weapon action; derived hits only add
+// the existing monster hit sound and never charge energy or apply corrosion.
 public sealed class DarkBarrageScheduler : MonoBehaviour
 {
     private struct Entry
@@ -15,8 +13,6 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         public CombatHealth Health;
         public ElementalStatusController Status;
         public int Life;
-        public int Stacks; // reserved at collection, consumed by the first shot that lands
-        public bool Consumed;
         public int Hits;
     }
 
@@ -25,6 +21,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
     private struct Shot
     {
         public int Entry;
+        public int Volley;
         public bool Finisher;
         public ShotState State;
         public float RiseAt, ReleaseAt; // cast clock
@@ -39,15 +36,22 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         public GameObject Source;
         public CombatTeam Team;
         public Vector3 Center;
-        public float SearchRadius, VerticalTolerance, ShotDamage, FinisherDamage, Interval, RiseTime, Clock;
+        public float SearchRadius, VerticalTolerance, ShotDamage, Interval, RiseTime, Clock;
         public int Remaining, StartFrame;
+        public int Id, StackSum, ShotsPerVolley, DeckCursor, LastPicked = -1;
+        public int CurrentVolley = -1;
         public bool StopLaunching, FinisherAnnounced;
         public MeleeHeavyElementVfxSet Vfx;
         public readonly List<Entry> Entries = new List<Entry>(40);
         public readonly List<Shot> Shots = new List<Shot>(240);
+        public readonly List<int> Deck = new List<int>(128);
+        public readonly HashSet<int> Donors = new HashSet<int>();
+        public readonly HashSet<int> VolleyTargets = new HashSet<int>();
         public void Clear()
         {
-            Source = null; Entries.Clear(); Shots.Clear(); Clock = 0f; Remaining = 0;
+            Source = null; Entries.Clear(); Shots.Clear(); Deck.Clear(); Donors.Clear(); VolleyTargets.Clear(); Clock = 0f; Remaining = 0;
+            StackSum = DeckCursor = 0; LastPicked = -1;
+            CurrentVolley = -1;
             StopLaunching = FinisherAnnounced = false; Vfx = default;
         }
     }
@@ -62,8 +66,13 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
 
     private readonly List<Cast> active = new List<Cast>(4);
     private readonly Stack<Cast> free = new Stack<Cast>(4);
+    private readonly Dictionary<int, Cast> pending = new Dictionary<int, Cast>();
+    private readonly Plane[] screenPlanes = new Plane[6];
+    private int nextCastId;
+    private GameObject feedbackSource;
+    private Vector3 feedbackPoint, feedbackDirection;
+    private bool damageConfirmed;
     private readonly List<CombatTarget> candidates = new List<CombatTarget>(96);
-    private readonly List<int> order = new List<int>(40);
     private readonly HashSet<int> visited = new HashSet<int>();
     private readonly Dictionary<GameObject, Stack<GameObject>> viewPool = new Dictionary<GameObject, Stack<GameObject>>();
     private readonly Dictionary<GameObject, ParticleSystem[]> viewParticles = new Dictionary<GameObject, ParticleSystem[]>();
@@ -88,6 +97,9 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
     public static int TotalLaunched { get; private set; }
     public static int TotalHits { get; private set; }
     public static int TotalRetargets { get; private set; }
+    public static int TotalCommonHitSfx { get; private set; }
+    public static int LastDonorCount { get; private set; }
+    public static int LastVolleySize { get; private set; }
     public static int TotalFizzles { get; private set; }
     public static int MaxLaunchedInOneFrame { get; private set; }
     public static float LastFirstLaunchTime { get; private set; } = -1f;
@@ -95,6 +107,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
     public static float LastFinalHitTime { get; private set; } = -1f;
     // Instance ids of the target of every shot of the latest barrage, in release order (validation).
     public static readonly List<int> LastLaunchTargets = new List<int>(240);
+    public static readonly List<float> LastLaunchTimes = new List<float>(240);
 #if UNITY_EDITOR
     public static bool DebugDraw = true; // Scene view lines while the projectile VFX slots are still empty.
 #endif
@@ -105,27 +118,50 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         instance = null;
         CastCount = LastTargetCount = LastShotCount = LastStackSum = 0;
         TotalLaunched = TotalHits = TotalRetargets = TotalFizzles = MaxLaunchedInOneFrame = 0;
+        TotalCommonHitSfx = LastDonorCount = LastVolleySize = 0;
         LastFinisher = false;
         LastInterval = LastSearchRadius = LastShotDamage = 0f;
         LastCenter = Vector3.zero;
         LastFirstLaunchTime = LastFinalLaunchTime = LastFinalHitTime = -1f;
         LastLaunchTargets.Clear();
+        LastLaunchTimes.Clear();
     }
 
-    // Called from the heavy commit before the slam circle deals damage, so enemies the slam kills still own shots.
-    public static void Submit(OverburstElementDischarge discharge, GameObject source, CombatTeam team,
+    // Freeze the screen targets before direct damage can kill/pool them. Ammo is supplied only by confirmed hits.
+    public static int PrepareSlam(OverburstElementDischarge discharge, GameObject source, CombatTeam team,
         Vector3 center, float slamRadius, float verticalTolerance, MeleeHeavyElementVfxSet vfx)
     {
         if (discharge == null || source == null || discharge.Element != WeaponElement.Dark
-            || !(discharge.Energy > 0f) || slamRadius <= 0f) return;
+            || !(discharge.Energy > 0f) || slamRadius <= 0f) return 0;
         EnsureInstance();
-        instance.Begin(discharge, source, team, center, slamRadius, verticalTolerance, vfx);
+        return instance.Prepare(discharge, source, team, center, verticalTolerance, vfx);
+    }
+
+    public static void ConfirmSlamHit(int id, int donorId, int stacks, ElementalStatusController status, int life, bool lethal)
+    {
+        if (instance == null || !instance.pending.TryGetValue(id, out Cast cast) || stacks <= 0
+            || !cast.Donors.Add(donorId)) return;
+        // Lethal direct hits may already have cleared the status/pool lifecycle. The pre-hit snapshot still counts.
+        if (!lethal && status != null && status.LifecycleVersion == life)
+            stacks = status.ConsumeForDischarge(WeaponElement.Dark, out _);
+        cast.StackSum += Mathf.Max(0, stacks);
+    }
+
+    public static void CompleteSlam(int id)
+    {
+        if (instance != null && instance.pending.TryGetValue(id, out Cast cast))
+        {
+            instance.pending.Remove(id);
+            instance.Begin(cast);
+        }
     }
 
     public static void ClearAll()
     {
         if (instance == null) return;
         for (int i = instance.active.Count - 1; i >= 0; i--) instance.Retire(i);
+        foreach (Cast cast in instance.pending.Values) { cast.Clear(); instance.free.Push(cast); }
+        instance.pending.Clear();
     }
 
     private static void EnsureInstance()
@@ -138,18 +174,10 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         instance.viewRoot.SetParent(root.transform, false);
     }
 
-    private void Begin(OverburstElementDischarge discharge, GameObject source, CombatTeam team,
-        Vector3 center, float slamRadius, float verticalTolerance, MeleeHeavyElementVfxSet vfx)
+    private int Prepare(OverburstElementDischarge discharge, GameObject source, CombatTeam team,
+        Vector3 center, float verticalTolerance, MeleeHeavyElementVfxSet vfx)
     {
         OverburstElementTuning tuning = OverburstElementTuning.Current;
-        int launching = 0;
-        for (int i = 0; i < active.Count; i++) if (!active[i].StopLaunching) launching++;
-        for (int i = 0; i < active.Count && launching >= tuning.SafeDarkBarrageMaxConcurrent; i++)
-        {
-            if (active[i].StopLaunching) continue;
-            active[i].StopLaunching = true; // oldest first; its shots already flying still land
-            launching--;
-        }
         Cast cast = free.Count > 0 ? free.Pop() : new Cast();
         cast.Clear();
         cast.Source = source;
@@ -158,87 +186,83 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         cast.Vfx = vfx;
         cast.StartFrame = Time.frameCount;
         cast.VerticalTolerance = Mathf.Max(0f, verticalTolerance);
-        cast.SearchRadius = slamRadius * tuning.SafeDarkGatherRadiusMultiplier
-            * (1f + FlaskCombatModifiers.Bonus(source, FlaskEffect.DarkGatherRadius));
         float damageBonus = 1f + FlaskCombatModifiers.Bonus(source, FlaskEffect.DarkBurstDamage);
         cast.ShotDamage = discharge.FirstBlastDamage * tuning.SafeDarkBarrageShotDamage * damageBonus;
-        cast.FinisherDamage = discharge.FirstBlastDamage * tuning.SafeDarkBarrageFinisherDamage * damageBonus;
-        int stackSum = Collect(cast, tuning.DarkBarrageTargetLimit(discharge.NormalizedEnergy));
-        bool finisher = discharge.NormalizedEnergy >= 0.999f;
-        BuildShots(cast, finisher);
         cast.Interval = tuning.SafeDarkBarrageFireInterval;
+        cast.ShotsPerVolley = tuning.SafeDarkBarrageShotsPerVolley;
         cast.RiseTime = tuning.SafeDarkBarrageRiseTime;
+        CollectScreenTargets(cast);
+        cast.Id = ++nextCastId;
+        pending.Add(cast.Id, cast);
+        return cast.Id;
+    }
+
+    private void Begin(Cast cast)
+    {
+        OverburstElementTuning tuning = OverburstElementTuning.Current;
+        BuildShots(cast);
         PlanShots(cast, tuning);
         cast.Remaining = cast.Shots.Count;
-        CastCount++;
         LastTargetCount = cast.Entries.Count;
         LastShotCount = cast.Shots.Count;
-        LastStackSum = stackSum;
-        LastFinisher = finisher && cast.Entries.Count > 0;
+        LastStackSum = cast.StackSum;
+        LastDonorCount = cast.Donors.Count;
+        LastVolleySize = cast.ShotsPerVolley;
+        LastFinisher = false;
         LastInterval = cast.Interval;
         LastSearchRadius = cast.SearchRadius;
         LastCenter = cast.Center;
         LastShotDamage = cast.ShotDamage;
         LastFirstLaunchTime = LastFinalLaunchTime = LastFinalHitTime = -1f;
         LastLaunchTargets.Clear();
+        LastLaunchTimes.Clear();
         if (cast.Shots.Count == 0) { cast.Clear(); free.Push(cast); return; }
+        int launching = 0;
+        for (int i = 0; i < active.Count; i++) if (!active[i].StopLaunching) launching++;
+        for (int i = 0; i < active.Count && launching >= tuning.SafeDarkBarrageMaxConcurrent; i++)
+        {
+            if (active[i].StopLaunching) continue;
+            active[i].StopLaunching = true;
+            launching--;
+        }
+        CastCount++;
         active.Add(cast);
     }
 
-    private int Collect(Cast cast, int limit)
+    private void CollectScreenTargets(Cast cast)
     {
         using var costScope = ElementCombatCostMarkers.Dark_Barrage_Collect.Auto();
-        CombatTargetRegistry.CollectPotentialTargets(cast.Center, cast.SearchRadius, candidates);
+        Camera camera = Camera.main;
+        if (camera == null) return;
+        GeometryUtility.CalculateFrustumPlanes(camera, screenPlanes);
+        CombatTargetRegistry.CollectTeamTargets(cast.Team == CombatTeam.Enemy ? CombatTeam.PlayerParty : CombatTeam.Enemy, candidates);
         visited.Clear();
         Vector3 eye = cast.Center + Vector3.up * 0.6f;
-        // Nearest first: sort candidate indices by planar distance, then reserve until the limit.
-        order.Clear();
         for (int i = 0; i < candidates.Count; i++)
         {
             CombatTarget target = candidates[i];
             if (!UpperElementCombatUtility.IsValidEnemy(target, cast.Team)
-                || !UpperElementCombatUtility.IsInRadius(target, cast.Center, cast.SearchRadius)
-                || !UpperElementCombatUtility.IsInHeight(target, cast.Center, cast.VerticalTolerance)
                 || !visited.Add(target.DamageReceiver.GetInstanceID())) continue;
+            CombatTargetVolume volume = target.CurrentHurtVolume;
+            var bounds = new Bounds(volume.Center, new Vector3(volume.Radius * 2f, volume.HalfHeight * 2f, volume.Radius * 2f));
+            if (!GeometryUtility.TestPlanesAABB(screenPlanes, bounds)) continue;
             var status = target.GetComponent<ElementalStatusController>();
-            if (status == null || status.RawStackCount(WeaponElement.Dark) - status.ReservedCorrosion <= 0) continue;
             Vector3 targetEye = target.WorldCenter;
             if (Physics.Linecast(eye, new Vector3(targetEye.x, eye.y, targetEye.z), BlockMask, QueryTriggerInteraction.Ignore)) continue;
-            order.Add(i);
-        }
-        order.Sort((a, b) => UpperElementCombatUtility.PlanarDistance(candidates[a].WorldCenter, cast.Center)
-            .CompareTo(UpperElementCombatUtility.PlanarDistance(candidates[b].WorldCenter, cast.Center)));
-        int stackSum = 0;
-        for (int k = 0; k < order.Count && cast.Entries.Count < limit; k++)
-        {
-            CombatTarget target = candidates[order[k]];
-            var status = target.GetComponent<ElementalStatusController>();
-            int stacks = status.ReserveCorrosion();
-            if (stacks <= 0) continue;
             cast.Entries.Add(new Entry { Target = target, Health = target.DamageReceiver, Status = status,
-                Life = status.LifecycleVersion, Stacks = stacks });
-            stackSum += stacks;
+                Life = status != null ? status.LifecycleVersion : 0 });
+            cast.SearchRadius = Mathf.Max(cast.SearchRadius, Vector3.Distance(cast.Center, volume.Center));
         }
-        order.Clear();
         candidates.Clear();
         visited.Clear();
-        return stackSum;
     }
 
-    // Cycle k fires one shot at every target holding at least k stacks, nearest first; the full-energy
-    // finisher is one more cycle over every target.
-    private static void BuildShots(Cast cast, bool finisher)
+    private static void BuildShots(Cast cast)
     {
-        int maxStacks = 0;
-        for (int i = 0; i < cast.Entries.Count; i++) maxStacks = Mathf.Max(maxStacks, cast.Entries[i].Stacks);
-        for (int k = 1; k <= maxStacks; k++)
-            for (int i = 0; i < cast.Entries.Count; i++)
-                if (cast.Entries[i].Stacks >= k) cast.Shots.Add(new Shot { Entry = i });
-        if (!finisher) return;
-        for (int i = 0; i < cast.Entries.Count; i++) cast.Shots.Add(new Shot { Entry = i, Finisher = true });
+        for (int i = 0; i < cast.StackSum; i++) cast.Shots.Add(new Shot { Entry = -1 });
     }
 
-    // Every shot rises into a hover disc above the slam point; they then leave one per interval.
+    // Every shot rises into the same hover disc; small volleys leave at a fixed interval.
     private static void PlanShots(Cast cast, OverburstElementTuning tuning)
     {
         float stagger = tuning.SafeDarkBarrageRiseStagger;
@@ -254,7 +278,8 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
             shot.From = shot.Position = origin;
             shot.Hover = cast.Center + new Vector3(disc.x, height, disc.y);
             shot.RiseAt = Random.Range(0f, stagger);
-            shot.ReleaseAt = firstRelease + i * cast.Interval;
+            shot.ReleaseAt = firstRelease + (i / cast.ShotsPerVolley) * cast.Interval;
+            shot.Volley = i / cast.ShotsPerVolley;
             shot.BobPhase = Random.value * Mathf.PI * 2f;
             cast.Shots[i] = shot;
         }
@@ -356,7 +381,8 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
     // Leaves the hover toward its target. False when no enemy is left to aim at.
     private bool Release(Cast cast, ref Shot shot, float now, OverburstElementTuning tuning)
     {
-        if (!IsValid(cast.Entries[shot.Entry]) && !Retarget(cast, ref shot)) return false;
+        if (cast.CurrentVolley != shot.Volley) { cast.CurrentVolley = shot.Volley; cast.VolleyTargets.Clear(); }
+        if (!PickTarget(cast, ref shot)) { TotalFizzles++; return false; }
         if (shot.Projectile == null && shot.Trail == null) ShowProjectile(cast, ref shot, tuning);
         Vector3 target = TargetPoint(cast, shot);
         Vector3 toTarget = target - shot.Position;
@@ -368,6 +394,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         TotalLaunched++;
         CombatTarget launchTarget = cast.Entries[shot.Entry].Target;
         LastLaunchTargets.Add(launchTarget != null ? launchTarget.GetInstanceID() : 0);
+        LastLaunchTimes.Add(now);
         if (LastFirstLaunchTime < 0f) LastFirstLaunchTime = now;
         LastFinalLaunchTime = now;
         if (shot.Finisher && !cast.FinisherAnnounced)
@@ -437,40 +464,42 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
             && (entry.Status == null || entry.Status.LifecycleVersion == entry.Life);
     }
 
-    // 60D 4.4: nearest living enemy of this barrage, otherwise any enemy in the search circle.
+    // Shuffle each pass so a volley spreads over different living enemies before repeating one.
+    private bool PickTarget(Cast cast, ref Shot shot, bool distributeVolley = true)
+    {
+        if (distributeVolley)
+        {
+            bool hasUnpicked = false;
+            for (int i = 0; i < cast.Entries.Count; i++)
+                if (IsValid(cast.Entries[i]) && !cast.VolleyTargets.Contains(i)) { hasUnpicked = true; break; }
+            if (!hasUnpicked) cast.VolleyTargets.Clear();
+        }
+        while (true)
+        {
+            if (cast.DeckCursor >= cast.Deck.Count)
+            {
+                cast.Deck.Clear(); cast.DeckCursor = 0;
+                for (int i = 0; i < cast.Entries.Count; i++) if (IsValid(cast.Entries[i])) cast.Deck.Add(i);
+                if (cast.Deck.Count == 0) return false;
+                for (int i = cast.Deck.Count - 1; i > 0; i--)
+                {
+                    int j = Random.Range(0, i + 1);
+                    (cast.Deck[i], cast.Deck[j]) = (cast.Deck[j], cast.Deck[i]);
+                }
+                if (cast.Deck.Count > 1 && cast.Deck[0] == cast.LastPicked)
+                    (cast.Deck[0], cast.Deck[1]) = (cast.Deck[1], cast.Deck[0]);
+            }
+            int pick = cast.Deck[cast.DeckCursor++];
+            if (!IsValid(cast.Entries[pick]) || (distributeVolley && cast.VolleyTargets.Contains(pick))) continue;
+            cast.LastPicked = shot.Entry = pick;
+            if (distributeVolley) cast.VolleyTargets.Add(pick);
+            return true;
+        }
+    }
+
     private bool Retarget(Cast cast, ref Shot shot)
     {
-        int best = -1;
-        float bestDistance = float.MaxValue;
-        for (int i = 0; i < cast.Entries.Count; i++)
-        {
-            if (!IsValid(cast.Entries[i])) continue;
-            float d = (cast.Entries[i].Target.WorldCenter - shot.Position).sqrMagnitude;
-            if (d < bestDistance) { bestDistance = d; best = i; }
-        }
-        if (best < 0)
-        {
-            CombatTargetRegistry.CollectPotentialTargets(cast.Center, cast.SearchRadius, candidates);
-            CombatTarget nearest = null;
-            for (int i = 0; i < candidates.Count; i++)
-            {
-                CombatTarget target = candidates[i];
-                if (!UpperElementCombatUtility.IsValidEnemy(target, cast.Team)
-                    || !UpperElementCombatUtility.IsInRadius(target, cast.Center, cast.SearchRadius)) continue;
-                float d = (target.WorldCenter - shot.Position).sqrMagnitude;
-                if (d < bestDistance) { bestDistance = d; nearest = target; }
-            }
-            candidates.Clear();
-            if (nearest != null)
-            {
-                var status = nearest.GetComponent<ElementalStatusController>();
-                cast.Entries.Add(new Entry { Target = nearest, Health = nearest.DamageReceiver, Status = status,
-                    Life = status != null ? status.LifecycleVersion : 0, Consumed = true });
-                best = cast.Entries.Count - 1;
-            }
-        }
-        if (best < 0) { TotalFizzles++; return false; }
-        shot.Entry = best;
+        if (!PickTarget(cast, ref shot, false)) { TotalFizzles++; return false; }
         TotalRetargets++;
         return true;
     }
@@ -482,22 +511,30 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         if (!IsValid(entry)) return false; // Fizzle already counted by Retarget.
         Vector3 point = entry.Target.WorldCenter;
         shot.Position = point;
-        if (!entry.Consumed)
-        {
-            entry.Consumed = true;
-            entry.Status?.ConsumeReservedCorrosion(entry.Stacks);
-        }
         entry.Hits++;
         cast.Entries[shot.Entry] = entry;
         Vector3 direction = point - cast.Center;
         direction.y = 0f;
         direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
-        UpperElementCombatUtility.DealDerivedDamage(entry.Health, shot.Finisher ? cast.FinisherDamage : cast.ShotDamage,
-            point, cast.Source, direction, WeaponElement.Dark);
+        feedbackSource = cast.Source; feedbackPoint = point; feedbackDirection = direction; damageConfirmed = false;
+        entry.Health.OnDamageResolved += OnBarrageDamageResolved;
+        try { UpperElementCombatUtility.DealDerivedDamage(entry.Health, cast.ShotDamage, point, cast.Source, direction, WeaponElement.Dark); }
+        finally { if (entry.Health != null) entry.Health.OnDamageResolved -= OnBarrageDamageResolved; feedbackSource = null; }
+        if (!damageConfirmed) return false;
         SpawnHitVfx(cast, point, shot.Finisher, now, tuning);
         TotalHits++;
         LastFinalHitTime = now;
         return true;
+    }
+
+    private void OnBarrageDamageResolved(CombatHealth health, DamageInfo info, float actualDamage, bool lethal)
+    {
+        if (!(actualDamage > 0f) || info.source != feedbackSource || info.triggersOnHitEffects
+            || info.element != WeaponElement.Dark || (info.playerAttackKind & PlayerAttackKind.Heavy) != 0) return;
+        damageConfirmed = true;
+        var request = new CombatHitFeedbackRequest(feedbackSource, 0, null, false, WeaponElement.Dark,
+            feedbackPoint, false, worldDirection: feedbackDirection, isLethal: lethal, target: health);
+        if (CombatActionSfxService.TryPlayOrganicHit(request, feedbackPoint)) TotalCommonHitSfx++;
     }
 
     private void Retire(int index)
@@ -509,13 +546,6 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         {
             Shot shot = cast.Shots[i];
             HideProjectile(ref shot, now);
-        }
-        // Targets this barrage never reached keep their corrosion for a later heavy.
-        for (int i = 0; i < cast.Entries.Count; i++)
-        {
-            Entry entry = cast.Entries[i];
-            if (!entry.Consumed && entry.Stacks > 0 && entry.Status != null && entry.Status.LifecycleVersion == entry.Life)
-                entry.Status.ReleaseCorrosionReservation(entry.Stacks);
         }
         cast.Clear();
         free.Push(cast);

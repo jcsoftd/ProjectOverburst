@@ -71,5 +71,25 @@ MonoBehaviour:
   darkBurstBaseFraction: 0.2
   darkBurstPerStack: 0.02
   darkBurstStackCap: 50
+  darkBarrageMinTargets: 8
+  darkBarrageMaxTargets: 40
+  darkBarrageShotDamage: 0.08
+  darkBarrageFinisherDamage: 0.3
+  darkBarrageFireInterval: 0.1
+  darkBarrageShotsPerVolley: 3
+  darkBarrageMaxLaunchPerFrame: 24
+  darkBarrageMaxConcurrent: 3
+  darkBarrageRiseTime: 0.25
+  darkBarrageRiseStagger: 0.08
+  darkBarrageRiseHeight: {x: 2.8, y: 3.6}
+  darkBarrageHoverRadius: 1.6
+  darkBarrageSpeed: 14
+  darkBarrageFlightTime: {x: 0.3, y: 0.9}
+  darkBarrageCurveAmount: 0.4
+  darkBarrageMaxLifetime: 1.2
+  darkBarrageHitVfxCap: 48
+  darkBarrageProjectileVfxCap: 160
+  darkBarrageSfxMinInterval: 0.04
+  darkBarrageFinisherScale: {x: 1.8, y: 1.5}
   fireIceElectricDarkWeights: {x: 1, y: 1, z: 1, w: 1}
   lightWeight: 1

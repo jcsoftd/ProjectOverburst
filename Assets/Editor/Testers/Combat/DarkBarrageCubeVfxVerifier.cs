@@ -20,16 +20,26 @@ public static class DarkBarrageCubeVfxVerifier
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
     static DarkBarrageCubeVfxVerifier() { EditorApplication.playModeStateChanged += State; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void BindIsolatedAccountBeforeBoot()
+    {
+        if (!SessionState.GetBool(Key, false)) return;
+        string directory = IsolatedSavePlayGuard.ValidateDirectory(Path.Combine(Output, "IsolatedAccount"));
+        Environment.SetEnvironmentVariable(IsolatedSavePlayGuard.Variable, directory);
+    }
+
     public static void Run(string output)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
             throw new InvalidOperationException("Idle Editor required");
-        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "PersistentScene")
-            throw new InvalidOperationException("PersistentScene required");
+        SessionState.SetString(Key + ".startScene", AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene));
+        UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(
+            "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
         SessionState.SetString(Key + ".status", "RUNNING");
         SessionState.SetBool(Key, true);
+        AssetDatabase.DisallowAutoRefresh(); SessionState.SetBool(Key + ".refreshOwned", true);
         IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
     }
 
@@ -41,6 +51,7 @@ public static class DarkBarrageCubeVfxVerifier
             checks.Clear(); errors.Clear(); frame = -1;
             SessionState.SetBool(Key + ".background", Application.runInBackground);
             Application.runInBackground = true;
+            EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + ".reloadOwned", true);
             deadline = EditorApplication.timeSinceStartup + 120;
             work = Verify();
             Application.logMessageReceived += Log;
@@ -52,11 +63,18 @@ public static class DarkBarrageCubeVfxVerifier
             Application.logMessageReceived -= Log;
             (work as IDisposable)?.Dispose(); work = null;
             Application.runInBackground = SessionState.GetBool(Key + ".background", false);
+            if (SessionState.GetBool(Key + ".reloadOwned", false))
+            { EditorApplication.UnlockReloadAssemblies(); SessionState.EraseBool(Key + ".reloadOwned"); }
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
             Environment.SetEnvironmentVariable(IsolatedSavePlayGuard.Variable, null);
+            string previousStart = SessionState.GetString(Key + ".startScene", "");
+            UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(previousStart)
+                ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(previousStart);
             SessionState.SetBool(Key, false);
+            if (SessionState.GetBool(Key + ".refreshOwned", false))
+            { AssetDatabase.AllowAutoRefresh(); SessionState.EraseBool(Key + ".refreshOwned"); }
         }
     }
 
@@ -149,7 +167,7 @@ public static class DarkBarrageCubeVfxVerifier
             Vector3 origin = player.transform.position;
             for (int i = 0; i < 2; i++)
             {
-                Check(spawn.TrySpawn(new EnemySpawnRequest(enemyDefinition, origin + new Vector3(i == 0 ? -2f : 2f, 0f, 6f),
+                Check(spawn.TrySpawn(new EnemySpawnRequest(enemyDefinition, origin + new Vector3(i == 0 ? -1.2f : 1.2f, 0f, 2.5f),
                     Quaternion.LookRotation(Vector3.back), player.transform), out var enemy), "Spawn target " + i);
                 leased.Add(enemy); enemy.AI.enabled = false; enemy.Movement.StopMovement(); enemy.Health.SetMaxHp(1000000, true);
             }
@@ -213,9 +231,9 @@ public static class DarkBarrageCubeVfxVerifier
                 Check(Views(transparentWave.name).SelectMany(t => t.GetComponentsInChildren<Renderer>(true))
                     .All(r => r.sharedMaterial.GetColor("_Colour") == Color.white),
                     "Round " + round + " landing stays neutral during playback");
-                Check(DarkBarrageScheduler.LastShotCount == 6 && DarkBarrageScheduler.TotalHits == hits + 6, "Round " + round + " 4 normal and 2 finisher hits");
+                Check(DarkBarrageScheduler.LastShotCount == 4 && DarkBarrageScheduler.TotalHits == hits + 4, "Round " + round + " 4 shared shots from consumed slam corrosion");
                 Check(leased.Sum(e => e.Health.CurrentHp) < hp && Mathf.Approximately(energy.Amount, 0f), "Round " + round + " damage lands without energy recharge");
-                Check(TransientVfxPool.GetStatistics(hit).Requests == requests + 6, "Round " + round + " matching hit VFX requests");
+                Check(TransientVfxPool.GetStatistics(hit).Requests == requests + 4, "Round " + round + " matching hit VFX requests");
                 float settle = Time.time + Mathf.Max(TransientVfxPool.ResolveLifetime(hit, 0f), TransientVfxPool.ResolveLifetime(landing, 0f)) + 1f;
                 while (Time.time < settle && (Views(body.name).Any(t => t.gameObject.activeInHierarchy)
                     || TransientVfxPool.GetStatistics(hit).Active > 0 || TransientVfxPool.GetStatistics(landing).Active > 0)) yield return null;

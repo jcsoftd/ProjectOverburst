@@ -18,9 +18,19 @@ public static class UpperElementPlayVerifier
     static double deadline;
     static readonly List<object> results = new List<object>();
     static readonly List<string> errors = new List<string>();
+    static readonly List<string> checks = new List<string>();
     static string Output => SessionState.GetString(Key + ".output", "");
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
     static UpperElementPlayVerifier() { EditorApplication.playModeStateChanged += State; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void BindIsolatedAccountBeforeBoot()
+    {
+        if (!SessionState.GetBool(Key, false)) return;
+        string directory = IsolatedSavePlayGuard.ValidateDirectory(Path.Combine(Output, "IsolatedAccount"));
+        SessionState.SetString(Key + ".bootEnv", Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable) ?? "");
+        Environment.SetEnvironmentVariable(IsolatedSavePlayGuard.Variable, directory);
+    }
 
     public static void Run(string output) => Run(output, false);
     // 2026-10-01: runs only the dark corrosion barrage part (light checks are owned elsewhere).
@@ -30,13 +40,16 @@ public static class UpperElementPlayVerifier
     {
         Check(!EditorApplication.isPlayingOrWillChangePlaymode, "Already playing");
         SessionState.SetBool(Key + ".darkOnly", darkOnly);
-        Check(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "PersistentScene", "Persistent scene required");
+        SessionState.SetString(Key + ".startScene", AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene));
+        UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(
+            "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
         Directory.CreateDirectory(output);
         SessionState.SetString(Key + ".output", output);
         SessionState.EraseString(Key + ".env");
         IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
         SessionState.SetBool(Key, true);
         SessionState.SetString(Key + ".status", "RUNNING");
+        AssetDatabase.DisallowAutoRefresh(); SessionState.SetBool(Key + ".refreshOwned", true);
         EditorApplication.EnterPlaymode();
     }
 
@@ -48,7 +61,8 @@ public static class UpperElementPlayVerifier
             SessionState.SetBool(Key + ".background", Application.runInBackground);
             SessionState.SetInt(Key + ".fps", Application.targetFrameRate);
             Application.runInBackground = true; Application.targetFrameRate = 60;
-            results.Clear(); errors.Clear(); frame = -1; deadline = EditorApplication.timeSinceStartup + 300;
+            EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + ".reloadOwned", true);
+            results.Clear(); errors.Clear(); checks.Clear(); frame = -1; deadline = EditorApplication.timeSinceStartup + 300;
             stack.Clear(); work = Verify(); Application.logMessageReceived += Log; EditorApplication.update += Tick;
         }
         if (state == PlayModeStateChange.ExitingPlayMode)
@@ -58,11 +72,18 @@ public static class UpperElementPlayVerifier
             (work as IDisposable)?.Dispose(); work = null;
             Application.runInBackground = SessionState.GetBool(Key + ".background", false);
             Application.targetFrameRate = SessionState.GetInt(Key + ".fps", -1);
+            if (SessionState.GetBool(Key + ".reloadOwned", false))
+            { EditorApplication.UnlockReloadAssemblies(); SessionState.EraseBool(Key + ".reloadOwned"); }
         }
         if (state == PlayModeStateChange.EnteredEditMode)
         {
             Environment.SetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY", null); SessionState.EraseString(Key + ".env");
+            string previousStart = SessionState.GetString(Key + ".startScene", "");
+            UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(previousStart)
+                ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(previousStart);
             SessionState.SetBool(Key, false);
+            if (SessionState.GetBool(Key + ".refreshOwned", false))
+            { AssetDatabase.AllowAutoRefresh(); SessionState.EraseBool(Key + ".refreshOwned"); }
         }
     }
 
@@ -98,11 +119,12 @@ public static class UpperElementPlayVerifier
     static void Finish(string status)
     {
         SessionState.SetString(Key + ".status", status);
-        File.WriteAllText(Path.Combine(Output, "play-results.json"), JsonConvert.SerializeObject(new { status, results, errors }, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Output, "play-results.json"), JsonConvert.SerializeObject(new { status, checks, results, errors }, Formatting.Indented));
         EditorApplication.update -= Tick; EditorApplication.ExitPlaymode();
     }
 
-    static void Check(bool ok, string message) { if (!ok) throw new InvalidOperationException(message); }
+    static void Check(bool ok, string message)
+    { if (!ok) throw new InvalidOperationException(message); if (!checks.Contains(message)) checks.Add(message); }
 
     static void SetPrivate(object target, string property, object value)
     {
@@ -307,7 +329,9 @@ public static class UpperElementPlayVerifier
                 while (Time.time < started + 3f) { if (dark.Amount == 0) { commit = Time.time; break; } yield return null; }
                 Check(commit >= 0, label + " commit");
                 if (cancel) melee.CancelCurrentAttackState(); // the scheduler must finish anyway
-                while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f) yield return null;
+                float barrageDeadline = commit + Mathf.Ceil(DarkBarrageScheduler.LastShotCount / (float)tuning.SafeDarkBarrageShotsPerVolley)
+                    * tuning.SafeDarkBarrageFireInterval + tuning.SafeDarkBarrageFlightMax + 2f;
+                while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < barrageDeadline) yield return null;
                 Check(DarkBarrageScheduler.ActiveCount == 0, label + " barrage finished");
                 while (melee.IsAttackInProgress) yield return null;
             }
@@ -346,94 +370,156 @@ public static class UpperElementPlayVerifier
             }
             ReleaseAll(); yield return null;
 
-            // D2: full energy. Target on the slam point 5, three smalls at 7 m with 5/3/1, one at 15 m outside the 10 m search.
-            Warp(player, origin, Vector3.forward); yield return null;
-            Vector3 impact = origin + Vector3.forward * 1.7f; // greatsword heavy forward offset; the centre enemy sits on it
-            var target = Spawn(medium, impact);
-            var far = new List<EnemyActor>();
-            for (int i = 0; i < 3; i++) far.Add(Spawn(small, impact + Quaternion.Euler(0, -60 + i * 60, 0) * Vector3.forward * 7f));
-            var outside = Spawn(small, impact + Vector3.forward * 15f); // the real slam centre sits ~1.7 m ahead of `impact`
+            // D2: only actual slam hits donate corrosion; all on-screen enemies can receive the shared ammo.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            Vector3 impact = origin + Vector3.forward * 1.7f;
+            var donorA = Spawn(medium, impact);
+            var donorB = Spawn(small, impact + Vector3.right * 1.5f);
+            var unmarked = Spawn(small, impact + Vector3.forward * 7f);
+            var markedOutside = Spawn(small, impact + new Vector3(2f, 0f, 7f));
+            var offscreen = Spawn(small, impact + Vector3.right * 100f);
             yield return null;
-            var marked = new List<EnemyActor> { target, far[0], far[1], far[2] };
-            int[] wanted = { 5, 5, 3, 1 };
-            for (int i = 0; i < marked.Count; i++) { Corrode(marked[i], wanted[i]); Track(marked[i]); }
-            Corrode(outside, 5); Track(outside);
-            FillDark(); Check(Mathf.Approximately(dark.Amount, 100f), "Dark full energy");
-            int casts = DarkBarrageScheduler.CastCount;
-            yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Dark heavy start: " + lastHeavyResult);
+            Corrode(donorA, 5); Corrode(donorB, 3); Corrode(markedOutside, 4); Corrode(offscreen, 5);
+            foreach (var e in leased) Track(e);
+            var commonClips = new[] { "MonsterHitCommon01", "MonsterHitCommon02", "MonsterHitCommon03" }
+                .Select(CombatActionSfxService.ResolveNamedClip).ToArray();
+            Check(commonClips.All(c => c != null), "Common hit sound clips loaded");
+            Check(Mathf.Approximately(tuning.SafeDarkBarrageSpeed, 14f)
+                && Mathf.Approximately(tuning.SafeDarkBarrageFlightMin, .3f)
+                && Mathf.Approximately(tuning.SafeDarkBarrageFlightMax, .9f), "Flight speed and duration unchanged");
+            Check(Mathf.Approximately(tuning.SafeDarkBarrageShotDamage, .08f), "Shot damage coefficient 8 percent");
+            FillDark(); int casts = DarkBarrageScheduler.CastCount;
+            int sfxBefore = DarkBarrageScheduler.TotalCommonHitSfx;
+            yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Dark heavy start");
             commit = -1; started = Time.time;
             while (Time.time < started + 3f) { if (dark.Amount == 0) { commit = Time.time; break; } yield return null; }
-            Check(commit >= 0, "Dark commit");
-            Check(DarkBarrageScheduler.CastCount == casts + 1, "Barrage submitted");
-            Check(Stacks(target) == 5 && Reserved(target) == 5, "Slam keeps corrosion, reserved until the first shot: " + Stacks(target) + "/" + Reserved(target));
-            melee.CancelCurrentAttackState(); // the scheduler must finish anyway
-            while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f) yield return null;
-            Check(DarkBarrageScheduler.ActiveCount == 0, "Barrage finished after cancel");
-            Check(DarkBarrageScheduler.LastTargetCount == 4 && DarkBarrageScheduler.LastStackSum == 14
-                && DarkBarrageScheduler.LastShotCount == 18 && DarkBarrageScheduler.LastFinisher,
-                "4 targets, 14 stacks, 18 shots with finisher: " + DarkBarrageScheduler.LastTargetCount + "/" + DarkBarrageScheduler.LastStackSum + "/" + DarkBarrageScheduler.LastShotCount + "/" + DarkBarrageScheduler.LastFinisher
-                + " search=" + DarkBarrageScheduler.LastSearchRadius + " centre=" + DarkBarrageScheduler.LastCenter + " expected=" + impact
-                + " dists=" + string.Join(",", marked.Append(outside).Select(e => UpperElementCombatUtility.PlanarDistance(e.transform.position, DarkBarrageScheduler.LastCenter).ToString("F2")))
-                + " stacksNow=" + string.Join(",", marked.Append(outside).Select(Stacks)));
-            float interval = tuning.SafeDarkBarrageFireInterval;
-            Check(Mathf.Abs(DarkBarrageScheduler.LastInterval - interval) < 0.0001f, "Fixed interval " + interval + ": " + DarkBarrageScheduler.LastInterval);
-            float stream = DarkBarrageScheduler.LastFinalLaunchTime - DarkBarrageScheduler.LastFirstLaunchTime;
-            float lastHit = DarkBarrageScheduler.LastFinalHitTime - commit;
-            float rise = tuning.SafeDarkBarrageRiseTime, riseEnd = rise + tuning.SafeDarkBarrageRiseStagger;
-            Check(Mathf.Abs(stream - 17 * interval) < 0.06f, "One shot per interval (17 x " + interval + "): " + stream);
-            Check(DarkBarrageScheduler.MaxLaunchedInOneFrame <= 2, "Never a burst of shots in one frame: " + DarkBarrageScheduler.MaxLaunchedInOneFrame);
-            Check(lastHit <= riseEnd + 17 * interval + tuning.SafeDarkBarrageFlightMax + 0.1f, "Last hit after rise + stream + flight: " + lastHit);
-            for (int i = 0; i < marked.Count; i++)
-                Check(barrageHits[marked[i]].Count == wanted[i] + 1, "Hits = stacks + finisher [" + i + "]: " + barrageHits[marked[i]].Count);
-            Check(barrageHits[outside].Count == 0 && Stacks(outside) == 5 && Reserved(outside) == 0, "Outside the search circle keeps corrosion");
-            Check(marked.All(e => Stacks(e) == 0 && Reserved(e) == 0), "First landing shot consumed corrosion");
-            float firstHit = barrageHits[target].Min(x => x.time) - commit;
-            Check(firstHit >= rise, "Shots gather in the air before the first leaves: " + firstHit);
-            var targetDamage = barrageHits[target].Select(x => x.damage).ToList();
-            float normal = targetDamage.Min(), big = targetDamage.Max();
-            Check(Mathf.Abs(normal - DarkBarrageScheduler.LastShotDamage) < 0.01f && Mathf.Abs(big / normal - 2f) < 0.01f,
-                "Shot = H x0.15, finisher = 2 shots: " + normal + "/" + big + "/" + DarkBarrageScheduler.LastShotDamage);
+            Check(commit >= 0 && DarkBarrageScheduler.CastCount == casts + 1, "Barrage submitted after actual slam");
+            Check(Stacks(donorA) == 0 && Stacks(donorB) == 0 && Reserved(donorA) == 0,
+                "Slam immediately consumes both donors");
+            Check(Stacks(markedOutside) == 4 && Stacks(offscreen) == 5, "Unhit enemies keep corrosion");
+            Check(DarkBarrageScheduler.LastDonorCount == 2 && DarkBarrageScheduler.LastStackSum == 8
+                && DarkBarrageScheduler.LastShotCount == 8 && !DarkBarrageScheduler.LastFinisher,
+                "5+3 stacks produce exactly 8 shared shots, no extra finisher");
+            Corrode(donorA, 1); // Later weak-hit corrosion belongs to the next slam.
+            melee.CancelCurrentAttackState();
+            bool commonVoiceObserved = false;
+            while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < commit + 6f)
+            {
+                commonVoiceObserved |= UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
+                    .Any(a => a.isPlaying && commonClips.Contains(a.clip));
+                yield return null;
+            }
+            Check(DarkBarrageScheduler.ActiveCount == 0, "Barrage finishes after attack cancel");
+            Check(barrageHits.Values.Sum(h => h.Count) == 8, "Exactly 8 confirmed projectile hits");
+            Check(barrageHits[unmarked].Count > 0 && barrageHits[markedOutside].Count > 0,
+                "Unhit enemies, with and without corrosion, receive projectiles");
+            Check(barrageHits[offscreen].Count == 0 && Stacks(offscreen) == 5, "Off-screen enemy excluded");
+            Check(Stacks(donorA) == 1 && Stacks(markedOutside) == 4 && dark.Amount == 0,
+                "Projectile hits preserve new/recipient corrosion and never recharge energy");
+            Check(DarkBarrageScheduler.TotalCommonHitSfx == sfxBefore + 8 && commonVoiceObserved,
+                "Every confirmed projectile hit requests sound and common AudioSource actually plays");
             var launchOrder = DarkBarrageScheduler.LastLaunchTargets.ToList();
-            Check(launchOrder.Count == 18 && launchOrder.Take(4).Distinct().Count() == 4 && launchOrder.Skip(14).Distinct().Count() == 4,
-                "Cycles over different enemies (first 4 and finisher 4 distinct): " + string.Join(",", launchOrder));
-            results.Add(new { goal = "D2", stream, lastHit, firstHit, interval = DarkBarrageScheduler.LastInterval, shot = normal, finisher = big,
-                searchRadius = DarkBarrageScheduler.LastSearchRadius, hits = marked.Select(e => barrageHits[e].Count).ToArray(), maxLaunchPerFrame = DarkBarrageScheduler.MaxLaunchedInOneFrame });
+            var launchTimes = DarkBarrageScheduler.LastLaunchTimes.ToList();
+            Check(launchOrder.Count == 8 && launchOrder.Take(3).Distinct().Count() == 3,
+                "First volley spreads across 3 different enemies");
+            Check(launchTimes.Take(3).Distinct().Count() == 1 && DarkBarrageScheduler.LastVolleySize == 3,
+                "Three shots leave together");
+            float stream = DarkBarrageScheduler.LastFinalLaunchTime - DarkBarrageScheduler.LastFirstLaunchTime;
+            Check(Mathf.Abs(stream - .2f) < .08f && Mathf.Approximately(DarkBarrageScheduler.LastInterval, .1f),
+                "8 shots leave in 3 volleys at 0.10-second intervals: " + stream);
+            Check(barrageHits.Values.SelectMany(h => h).All(h => Mathf.Abs(h.damage - DarkBarrageScheduler.LastShotDamage) < .01f),
+                "All projectiles use the same reduced damage");
+            results.Add(new { goal = "D2-screen-ammo", donors = DarkBarrageScheduler.LastDonorCount,
+                stacks = DarkBarrageScheduler.LastStackSum, shots = DarkBarrageScheduler.LastShotCount,
+                targets = DarkBarrageScheduler.LastTargetCount, stream, launchOrder, launchTimes,
+                soundHits = DarkBarrageScheduler.TotalCommonHitSfx - sfxBefore, commonVoiceObserved });
             Untrack(); ReleaseAll(); yield return null;
 
-            // D2-retarget: an enemy the slam kills keeps its shots; they curve onto the survivor.
-            Warp(player, origin, Vector3.forward); yield return null;
-            var victim = Spawn(small, impact + Vector3.right);
-            victim.Health.SetMaxHp(1, true);
-            bool victimDied = false;
-            Action<CombatHealth, DamageInfo> onVictimDead = (h, d) => victimDied = true;
-            victim.Health.OnDead += onVictimDead;
+            // A lethal slam still contributes its pre-hit stacks to an unmarked on-screen survivor.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            var victim = Spawn(small, impact); victim.Health.SetMaxHp(1, true);
             var survivor = Spawn(medium, impact + Vector3.forward * 6f);
             yield return null;
-            Corrode(victim, 3); Corrode(survivor, 1); Track(survivor);
-            FillDark();
-            int retargets = DarkBarrageScheduler.TotalRetargets, fizzles = DarkBarrageScheduler.TotalFizzles;
-            yield return HeavyAndFinish("Retarget", false);
-            victim.Health.OnDead -= onVictimDead;
-            Check(victimDied, "Slam killed the victim");
-            Check(DarkBarrageScheduler.LastShotCount == 6, "Victim 3+1 and survivor 1+1 shots: " + DarkBarrageScheduler.LastShotCount);
-            Check(barrageHits[survivor].Count == 6, "Victim's shots land on the survivor: " + barrageHits[survivor].Count);
-            Check(DarkBarrageScheduler.TotalRetargets >= retargets + 4 && DarkBarrageScheduler.TotalFizzles == fizzles,
-                "Retargeted, none fizzled: " + (DarkBarrageScheduler.TotalRetargets - retargets) + "/" + (DarkBarrageScheduler.TotalFizzles - fizzles));
-            results.Add(new { goal = "D2-retarget", survivorHits = barrageHits[survivor].Count, retargeted = DarkBarrageScheduler.TotalRetargets - retargets });
+            Corrode(victim, 3); Track(survivor); FillDark();
+            yield return HeavyAndFinish("Lethal donor", false);
+            Check(victim.Health.IsDead && DarkBarrageScheduler.LastShotCount == 3, "Lethal slam retains 3 donated stacks");
+            Check(barrageHits[survivor].Count == 3 && Stacks(survivor) == 0, "Unmarked survivor receives all 3 shots");
+            results.Add(new { goal = "D2-lethal-donor", shots = DarkBarrageScheduler.LastShotCount, hits = barrageHits[survivor].Count });
             Untrack(); ReleaseAll(); yield return null;
 
-            // D2-half: 50% energy has no finisher and a smaller search circle.
-            Warp(player, origin, Vector3.forward); yield return null;
-            var near = Spawn(small, impact + Vector3.forward * 5.5f);
-            var beyond = Spawn(small, impact + Vector3.forward * 10.5f);
+            // A target released while its projectile flies must be replaced inside the original screen snapshot.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            donorA = Spawn(medium, impact); donorB = Spawn(small, impact + Vector3.right * 1.5f);
+            unmarked = Spawn(medium, impact + Vector3.forward * 6f);
             yield return null;
-            Corrode(near, 2); Corrode(beyond, 2);
+            Corrode(donorA, 5); Corrode(donorB, 5); FillDark();
+            int retargets = DarkBarrageScheduler.TotalRetargets, fizzles = DarkBarrageScheduler.TotalFizzles;
+            int launchedBefore = DarkBarrageScheduler.TotalLaunched;
+            yield return StartHeavy(melee); Check(lastHeavyResult == WeaponActionResult.Accepted, "Retarget heavy start");
+            float until = Time.time + 5f;
+            while (DarkBarrageScheduler.TotalLaunched == launchedBefore && Time.time < until) yield return null;
+            Check(DarkBarrageScheduler.LastLaunchTargets.Count > 0, "Retarget fixture launched");
+            int releasedId = DarkBarrageScheduler.LastLaunchTargets[0];
+            var released = leased.First(e => e.GetComponent<CombatTarget>().GetInstanceID() == releasedId);
+            spawn.Release(released);
+            // Moving the camera after commit cannot remove the saved target set.
+            Camera gameplayCamera = Camera.main;
+            var brain = gameplayCamera.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+            bool brainEnabled = brain != null && brain.enabled;
+            Vector3 cameraPosition = gameplayCamera.transform.position;
+            if (brain != null) brain.enabled = false;
+            gameplayCamera.transform.position += Vector3.right * 200f;
+            try
+            {
+                while (DarkBarrageScheduler.ActiveCount > 0 && Time.time < until + 4f) yield return null;
+                Check(DarkBarrageScheduler.ActiveCount == 0 && DarkBarrageScheduler.TotalRetargets > retargets
+                    && DarkBarrageScheduler.TotalFizzles == fizzles, "Released target retargets within frozen screen despite camera movement");
+            }
+            finally { gameplayCamera.transform.position = cameraPosition; if (brain != null) brain.enabled = brainEnabled; }
+            while (melee.IsAttackInProgress) yield return null;
+            results.Add(new { goal = "D2-retarget-camera", retargeted = DarkBarrageScheduler.TotalRetargets - retargets });
+            ReleaseAll(); yield return null;
+
+            // Half energy affects the slam/damage, not the captured screen range or the ammo formula.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            var near = Spawn(small, impact);
+            var beyond = Spawn(small, impact + Vector3.forward * 6f);
+            yield return null; Corrode(near, 2); Corrode(beyond, 4);
             dark.Clear(); for (int i = 0; i < 5; i++) dark.RecordConfirmedHit(dark.WeaponInstanceId, dark.Element, ++seq, 1);
             yield return HeavyAndFinish("Half", true);
-            Check(!DarkBarrageScheduler.LastFinisher && DarkBarrageScheduler.LastTargetCount == 1 && DarkBarrageScheduler.LastShotCount == 2,
-                "Half energy: 1 target, 2 shots, no finisher: " + DarkBarrageScheduler.LastTargetCount + "/" + DarkBarrageScheduler.LastShotCount + "/" + DarkBarrageScheduler.LastFinisher);
-            Check(Stacks(beyond) == 2 && Stacks(near) == 0, "Search circle scales with energy: " + DarkBarrageScheduler.LastSearchRadius);
-            results.Add(new { goal = "D2-half", searchRadius = DarkBarrageScheduler.LastSearchRadius });
+            Check(DarkBarrageScheduler.LastShotCount == 2 && !DarkBarrageScheduler.LastFinisher
+                && Stacks(near) == 0 && Stacks(beyond) == 4, "Half energy consumes only hit donor and produces 2 shots");
+            results.Add(new { goal = "D2-half", shots = DarkBarrageScheduler.LastShotCount });
+            ReleaseAll(); yield return null;
+
+            // No corrosion hit means no ammo even when there are marked enemies elsewhere on-screen.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            beyond = Spawn(small, impact + Vector3.forward * 8f); yield return null; Corrode(beyond, 5);
+            FillDark(); casts = DarkBarrageScheduler.CastCount;
+            yield return HeavyAndFinish("No donor", false);
+            Check(DarkBarrageScheduler.CastCount == casts && DarkBarrageScheduler.LastShotCount == 0 && Stacks(beyond) == 5,
+                "No hit corrosion means no barrage: " + DarkBarrageScheduler.LastShotCount + "/" + Stacks(beyond));
+            results.Add(new { goal = "D2-no-donor", ok = true });
+            ReleaseAll(); yield return null;
+
+            // More than the old 40-target cap: every actual slam donor contributes all its stacks.
+            Warp(player, origin, Vector3.forward); yield return Wait(.3f);
+            var dense = new List<EnemyActor>();
+            for (int i = 0; i < 45; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 45f;
+                dense.Add(Spawn(small, impact + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.4f));
+            }
+            yield return null; foreach (var e in dense) Corrode(e, 5); FillDark();
+            int denseHits = DarkBarrageScheduler.TotalHits;
+            yield return HeavyAndFinish("45 donors", false);
+            Check(DarkBarrageScheduler.LastDonorCount == 45 && DarkBarrageScheduler.LastShotCount == 225,
+                "All 45 donors contribute 225 shots without the old 40-target limit");
+            Check(DarkBarrageScheduler.TotalHits == denseHits + 225 && dense.All(e => Stacks(e) == 0),
+                "Dense barrage confirms all 225 hits and clears only donated corrosion");
+            results.Add(new { goal = "D2-dense", donors = DarkBarrageScheduler.LastDonorCount,
+                shots = DarkBarrageScheduler.LastShotCount, hits = DarkBarrageScheduler.TotalHits - denseHits,
+                stream = DarkBarrageScheduler.LastFinalLaunchTime - DarkBarrageScheduler.LastFirstLaunchTime });
             ReleaseAll(); yield return null;
 
             // D2-empty: energy 0 submits nothing.
