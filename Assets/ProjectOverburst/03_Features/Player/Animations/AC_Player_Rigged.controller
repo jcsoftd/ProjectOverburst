@@ -2611,6 +2611,32 @@ AnimatorStateTransition:
   m_InterruptionSource: 3
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 0
+--- !u!1102 &4927774311923536504
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Melee_DodgeAttack
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 0
+  m_Mirror: 0
+  m_SpeedParameterActive: 1
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7400000, guid: b0d24c69c87cb39409ea7b529e5188a1, type: 2}
+  m_Tag: 
+  m_SpeedParameter: Melee_ActionSpeed
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
 --- !u!206 &5408112176875541901
 BlendTree:
   m_ObjectHideFlags: 0
@@ -2895,6 +2921,9 @@ AnimatorStateMachine:
   - serializedVersion: 1
     m_State: {fileID: 3534233352381869993}
     m_Position: {x: 875, y: 675, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 4927774311923536504}
+    m_Position: {x: 910, y: 740, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []

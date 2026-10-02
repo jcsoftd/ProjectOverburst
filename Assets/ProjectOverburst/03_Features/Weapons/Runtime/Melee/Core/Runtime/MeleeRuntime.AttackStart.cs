@@ -78,8 +78,9 @@ public partial class MeleeRuntime
 
 
         attackDuration = ResolveAttackDuration();
-        float entryProgress = isDirectComboContinuation && activeAttackUsesCombo
-            ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
+        float entryProgress = requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Light ? dodgeHandoffProgress
+            : isDirectComboContinuation && activeAttackUsesCombo
+                ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
         MeleePlaybackAcceleration acceleration = activeAttackStep.playbackAcceleration;
         float remainingDuration = attackDuration * (acceleration.ToElapsed(1f) - acceleration.ToElapsed(entryProgress));
         ResolveAttackTrail(activeAttackStep);
@@ -167,8 +168,12 @@ public partial class MeleeRuntime
         activeAttackTransitionDuration = 0f;
         activeAttackStep = default;
         ResetActiveTrailState();
-        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light && requestedDodgeFollowUp == PlayerDodgeFollowUpKind.None)
+        bool fromDodgeLight = activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light && requestedDodgeFollowUp == PlayerDodgeFollowUpKind.None;
+        if (fromDodgeLight)
+        {
+            RestoreDodgeComboContinuation(); // Fresh entry resumes at hit 1; an interrupted combo keeps its next hit.
             suppressHandoffMoveCancelUntilRelease = false;
+        }
         activeDodgeFollowUp = PlayerDodgeFollowUpKind.None;
         dodgeTrajectoryDefinition = null;
 
@@ -199,6 +204,7 @@ public partial class MeleeRuntime
             activeComboDefinition,
             step,
             isDirectComboContinuation);
+        if (fromDodgeLight) activeAttackTransitionDuration = .12f;
     }
 
     private float ResolveAttackPlaybackMultiplier()

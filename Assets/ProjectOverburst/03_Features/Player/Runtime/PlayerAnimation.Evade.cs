@@ -29,6 +29,21 @@ public partial class PlayerAnimation
         return true;
     }
 
+    public void UpdateDodgeLightWindupClock(AnimationClip clip, float duration)
+    {
+        var profile = playerEquipment?.CurrentWeaponData?.GetCombatAnimationProfile();
+        if (targetAnimator == null || clip == null || profile == null) return;
+        targetAnimator.SetFloat(profile.actionSpeedParameterName, EvadeStateSpeed(clip.length / Mathf.Max(.01f, duration)));
+    }
+
+    public void ResumeDodgeVisual(AnimationClip clip, string state, float duration, float progress, float entryBlend, float exitBlend)
+    {
+        if (!TryPlayConfiguredDodge(PlayerEvadeType.CombatDodge, clip, state, duration, entryBlend, exitBlend)) return;
+        var profile = playerEquipment.CurrentWeaponData.GetCombatAnimationProfile();
+        int layer = targetAnimator.GetLayerIndex(profile.animatorLayerName);
+        if (layer >= 0) targetAnimator.Play(state, layer, progress);
+    }
+
     internal static float EvadeStateSpeed(float baseSpeed)
     {
         float scaled = Time.deltaTime;

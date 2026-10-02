@@ -18,7 +18,12 @@ public static class PlayerEvadeBuilder
     public const string OpenerPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Combos/GreatswordDodgeOpener.asset";
     public const string AttackRoot = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips";
     public const string SourceRoot = "Assets/ThirdParty/03_애니메이션/Sword_Animations_Pack/Animation/Humanoid/";
-    public const int LightFirstFrame = 14, LightLastFrame = 94;
+    public const int LightFirstFrame = 7, LightLastFrame = 32;
+    public const int LightHitFirstFrame = 17, LightHitLastFrame = 24, LightComboFrame = 25;
+    public const string DodgePatternPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Combos/AP_GreatswordDodge_LeftToRight.asset";
+    public const float LightHitStart = (float)(LightHitFirstFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
+    public const float LightHitEnd = (float)(LightHitLastFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
+    public const float LightComboStart = (float)(LightComboFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
     public const int HeavyFirstFrame = 7, HeavyImpactFrame = 27, HeavyLastFrame = 83;
 
     [MenuItem("OVERBURST/Player/Build Evade and Dodge Attacks")]
@@ -45,43 +50,14 @@ public static class PlayerEvadeBuilder
         var sources = new[] { "F", "F_L_45", "R_L_45", "L", "R" };
         var combat = new AnimationClip[5];
         for (int i = 0; i < combat.Length; i++)
+        {
             combat[i] = MakeClip(SourceRoot + "06_Dodge/02_Dodge_Combat/Dodge_Combat_" + sources[i] + ".anim",
                 Root + "/Combat_Dodge_" + directions[i] + ".anim", 0, 48);
+            CenterHorizontalRoot(combat[i]);
+        }
         profile.combatClips = new DirectionalAnimationSet8
         { forward = combat[0], forwardLeft = combat[1], forwardRight = combat[2], left = combat[3], right = combat[4] };
-        var lightClip = MakeClip(SourceRoot + "02_Attack/12_Run_Attack/Run_Attack_01.anim",
-            AttackRoot + "/Greatsword_DodgeAttack.anim", LightFirstFrame, LightLastFrame);
-        var heavy = definition.heavyAttackDefinition;
-        var heavyClip = MakeClip(SourceRoot + "02_Attack/12_Run_Attack/Run_Attack_02.anim",
-            AttackRoot + "/Greatsword_DodgeHeavy.anim", HeavyFirstFrame, HeavyLastFrame,
-            heavy.attack.animationClip.length, HeavyImpactFrame, heavy.attack.attackPhases[0].SafeStart);
-
-        var opener = AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(OpenerPath);
-        if (opener == null) { opener = ScriptableObject.CreateInstance<MeleeComboDefinition>(); AssetDatabase.CreateAsset(opener, OpenerPath); }
-        var working = ScriptableObject.CreateInstance<MeleeComboDefinition>();
-        try
-        {
-            EditorJsonUtility.FromJsonOverwrite(comboBefore, working);
-            var step = working.GetStep(0);
-            step.attackId = "Greatsword.DodgeOpener.1"; step.attackName = "닷지 어택";
-            step.animationClip = lightClip; step.transitionDuration = .08f;
-            step.continuationStartNormalizedTime = 0f; step.playbackAcceleration = default;
-            step.movementPhases = Array.Empty<AttackMovementPhaseData>();
-            step.visualHeightCurve = new AnimationCurve();
-            step.comboInputWindow = new ComboNormalizedWindow { startNormalizedTime = .86f, endNormalizedTime = .98f };
-            step.actionCancelStartNormalized = .87f;
-            var phase = step.attackPhases[0]; phase.startNormalizedTime = .50f; phase.endNormalizedTime = .86f;
-            step.attackPhases = new[] { phase };
-            step.trailPhases = new[] { new AttackTrailPhaseData { startNormalizedTime = .50f, endNormalizedTime = .86f } };
-            working.steps = new[] { step };
-            working.entryTransitionDuration = .08f;
-            EditorUtility.CopySerialized(working, opener);
-            EditorUtility.SetDirty(opener); AssetDatabase.SaveAssetIfDirty(opener);
-        }
-        finally { UnityEngine.Object.DestroyImmediate(working); }
-        MeleeAttackVfxSlopeBakeUtility.BakeSelectedCombo(opener);
-        if (!MeleeAttackVfxSlopeBakeUtility.ValidateCombo(opener, out string bakeError))
-            throw new InvalidOperationException(bakeError);
+        var (lightClip, heavyClip) = BuildDodgeAttackAssets(definition, comboBefore);
 
         int layerIndex = Array.FindIndex(controller.layers, l => l.name == PlayerEvadeProfile.ExplorationLayer);
         if (layerIndex < 0) { controller.AddLayer(PlayerEvadeProfile.ExplorationLayer); layerIndex = controller.layers.Length - 1; }
@@ -100,7 +76,8 @@ public static class PlayerEvadeBuilder
         State(layer.stateMachine, PlayerEvadeProfile.ExplorationRunState, profile.explorationDodgeToRun, PlayerEvadeProfile.ExplorationSpeed);
         var meleeLayer = controller.layers.First(l => l.name == "Combat_MeleeWeapon");
         for (int i = 0; i < combat.Length; i++) State(meleeLayer.stateMachine, PlayerEvadeProfile.CombatStatePrefix + directions[i], combat[i], "Melee_ActionSpeed");
-        definition.dodgeAttackDefinition = opener; definition.dodgeHeavyAnimationClip = heavyClip;
+        State(meleeLayer.stateMachine, PlayerEvadeProfile.DodgeLightState, lightClip, "Melee_ActionSpeed");
+        definition.dodgeAttackDefinition = AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(OpenerPath); definition.dodgeHeavyAnimationClip = heavyClip;
         EditorUtility.SetDirty(profile); EditorUtility.SetDirty(definition); EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssetIfDirty(profile); AssetDatabase.SaveAssetIfDirty(definition); AssetDatabase.SaveAssetIfDirty(controller);
         GameObject contents = null;
@@ -113,7 +90,7 @@ public static class PlayerEvadeBuilder
             PrefabUtility.SaveAsPrefabAsset(contents, PlayerPath);
         }
         finally { if (contents != null) PrefabUtility.UnloadPrefabContents(contents); }
-        if (heavyBefore != EditorJsonUtility.ToJson(heavy) || comboBefore != EditorJsonUtility.ToJson(definition.comboDefinition))
+        if (heavyBefore != EditorJsonUtility.ToJson(definition.heavyAttackDefinition) || comboBefore != EditorJsonUtility.ToJson(definition.comboDefinition))
             throw new InvalidOperationException("일반 콤보 또는 강공 정의가 변경되었습니다.");
         string output = Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/Combat/20261002_PlayerEvade/Validation"));
         Directory.CreateDirectory(output);
@@ -122,7 +99,7 @@ public static class PlayerEvadeBuilder
             status = "PASS", profile = ProfilePath, opener = OpenerPath,
             lightSource = "Run_Attack_01", lightFrames = new[] { LightFirstFrame, LightLastFrame },
             heavySource = "Run_Attack_02", heavyFrames = new[] { HeavyFirstFrame, HeavyImpactFrame, HeavyLastFrame },
-            lightLength = lightClip.length, heavyLength = heavyClip.length, normalHeavyLength = heavy.attack.animationClip.length,
+            lightLength = lightClip.length, heavyLength = heavyClip.length, normalHeavyLength = definition.heavyAttackDefinition.attack.animationClip.length,
             normalComboPreserved = true, normalHeavyPreserved = true,
             explorationDistance = profile.exploration.distance, explorationDuration = profile.exploration.duration,
             combatDistance = profile.combatDodge.distance, combatDuration = profile.combatDodge.duration,
@@ -130,6 +107,156 @@ public static class PlayerEvadeBuilder
             clips = combat.Select(c => new { c.name, c.length, c.isHumanMotion }).ToArray()
         }, Formatting.Indented));
         Debug.Log("[PlayerEvade] 회피 3종과 닷지 약공/동일 강공 자산 연결 완료.");
+    }
+
+    [MenuItem("OVERBURST/Player/Rebuild Dodge Attacks Only")]
+    public static void RetuneDodgeAttacks()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("닷지 공격 제작에는 유휴 Editor가 필요합니다.");
+        var definition = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(DefinitionPath);
+        if (definition == null || definition.comboDefinition == null || definition.heavyAttackDefinition == null)
+            throw new InvalidOperationException("대검 콤보·강공 정의가 필요합니다.");
+        if (new UnityEngine.Object[] { definition, definition.comboDefinition, definition.heavyAttackDefinition,
+            AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(OpenerPath), AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(DodgePatternPath) }
+            .Any(asset => asset != null && EditorUtility.IsDirty(asset)))
+            throw new InvalidOperationException("미저장 소유 자산이 있습니다.");
+        string comboBefore = EditorJsonUtility.ToJson(definition.comboDefinition);
+        string heavyBefore = EditorJsonUtility.ToJson(definition.heavyAttackDefinition);
+        var result = BuildDodgeAttackAssets(definition, comboBefore);
+        definition.dodgeAttackDefinition = AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(OpenerPath);
+        definition.dodgeHeavyAnimationClip = result.heavyClip;
+        EditorUtility.SetDirty(definition); AssetDatabase.SaveAssetIfDirty(definition);
+        if (comboBefore != EditorJsonUtility.ToJson(definition.comboDefinition)
+            || heavyBefore != EditorJsonUtility.ToJson(definition.heavyAttackDefinition))
+            throw new InvalidOperationException("일반 콤보/강공 정의 변경");
+        var opener = definition.dodgeAttackDefinition; var phase = opener.GetStep(0).attackPhases[0];
+        string output = Path.GetFullPath(Path.Combine(Application.dataPath,
+            "../../개인파일/코덱스산출/Combat/20261003_DodgeAttackCorrection/Validation/AttackBuild.json"));
+        Directory.CreateDirectory(Path.GetDirectoryName(output));
+        File.WriteAllText(output, JsonConvert.SerializeObject(new { status = "PASS", normalComboPreserved = true,
+            normalHeavyPreserved = true, lightFrames = new[] { LightFirstFrame, LightHitFirstFrame, LightHitLastFrame, LightComboFrame, LightLastFrame },
+            lightLength = result.lightClip.length, heavyLength = result.heavyClip.length, phase.SafeStart, phase.SafeEnd,
+            comboStart = LightComboStart, phase.attackPattern.direction, phase.attackPattern.shape,
+            sweepProgress = phase.attackPattern.progressCurve.keys.Select(k => new { k.time, k.value }).ToArray()
+        }, Formatting.Indented));
+    }
+
+    static (AnimationClip lightClip, AnimationClip heavyClip) BuildDodgeAttackAssets(MeleeWeaponDefinition definition, string comboBefore, bool includeHeavy = true)
+    {
+        var pattern = AssetDatabase.LoadAssetAtPath<AttackPatternDefinition>(DodgePatternPath);
+        if (pattern == null) { pattern = ScriptableObject.CreateInstance<AttackPatternDefinition>(); AssetDatabase.CreateAsset(pattern, DodgePatternPath); }
+        var sourcePattern = AssetDatabase.LoadAssetAtPath<AttackPatternDefinition>(
+            "Assets/ProjectOverburst/03_Features/Weapons/_Shared/Melee/AttackPatterns/AP_Sector_LeftToRight.asset");
+        if (sourcePattern == null) throw new InvalidOperationException("좌→우 부채꼴 원본 패턴이 필요합니다.");
+        EditorUtility.CopySerialized(sourcePattern, pattern); pattern.name = "AP_GreatswordDodge_LeftToRight";
+        EditorUtility.SetDirty(pattern); AssetDatabase.SaveAssetIfDirty(pattern);
+        var lightClip = MakeClip(SourceRoot + "02_Attack/12_Run_Attack/Run_Attack_01.anim",
+            AttackRoot + "/Greatsword_DodgeAttack.anim", LightFirstFrame, LightLastFrame);
+        CenterHorizontalRoot(lightClip);
+        var heavy = definition.heavyAttackDefinition;
+        var heavyClip = !includeHeavy ? definition.dodgeHeavyAnimationClip : MakeClip(SourceRoot + "02_Attack/12_Run_Attack/Run_Attack_02.anim",
+            AttackRoot + "/Greatsword_DodgeHeavy.anim", HeavyFirstFrame, HeavyLastFrame,
+            heavy.attack.animationClip.length, HeavyImpactFrame, heavy.attack.attackPhases[0].SafeStart);
+
+        var opener = AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(OpenerPath);
+        if (opener == null) { opener = ScriptableObject.CreateInstance<MeleeComboDefinition>(); AssetDatabase.CreateAsset(opener, OpenerPath); }
+        var working = ScriptableObject.CreateInstance<MeleeComboDefinition>();
+        try
+        {
+            EditorJsonUtility.FromJsonOverwrite(comboBefore, working);
+            var step = working.GetStep(0);
+            step.attackId = "Greatsword.DodgeOpener.1"; step.attackName = "닷지 어택";
+            step.animationClip = lightClip; step.animationSpeedMultiplier = 1.15f; step.transitionDuration = .04f;
+            step.continuationStartNormalizedTime = 0f; step.playbackAcceleration = default;
+            step.movementPhases = Array.Empty<AttackMovementPhaseData>();
+            step.visualHeightCurve = new AnimationCurve();
+            step.comboInputWindow = new ComboNormalizedWindow { startNormalizedTime = LightComboStart, endNormalizedTime = .99f };
+            step.actionCancelStartNormalized = LightComboStart;
+            var phase = step.attackPhases[0]; phase.attackPattern = pattern; phase.progressSource = AttackProgressSource.NormalizedTime;
+            phase.startNormalizedTime = LightHitStart; phase.endNormalizedTime = LightHitEnd;
+            step.attackPhases = new[] { phase };
+            step.trailPhases = new[] { new AttackTrailPhaseData { startNormalizedTime = LightHitStart, endNormalizedTime = LightHitEnd } };
+            working.steps = new[] { step };
+            working.entryTransitionDuration = .04f;
+            EditorUtility.CopySerialized(working, opener); opener.name = "GreatswordDodgeOpener";
+            EditorUtility.SetDirty(opener); AssetDatabase.SaveAssetIfDirty(opener);
+        }
+        finally { UnityEngine.Object.DestroyImmediate(working); }
+        MeleeAttackVfxSlopeBakeUtility.BakeSelectedCombo(opener);
+        SetDodgeSweepProgress(pattern, opener.AttackTrajectoryBakeData.steps[0].rawSamples);
+        MeleeAttackVfxSlopeBakeUtility.BakeSelectedCombo(opener);
+        if (!MeleeAttackVfxSlopeBakeUtility.ValidateCombo(opener, out string bakeError))
+            throw new InvalidOperationException(bakeError);
+
+        return (lightClip, heavyClip);
+    }
+
+    [MenuItem("OVERBURST/Player/Rebuild Dodge Light Blend")]
+    public static void RetuneDodgeLightBlend()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("유휴 Editor가 필요합니다.");
+        var definition = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(DefinitionPath);
+        var profile = AssetDatabase.LoadAssetAtPath<PlayerEvadeProfile>(ProfilePath);
+        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+        if (controller == null || EditorUtility.IsDirty(controller)) throw new InvalidOperationException("미저장 controller");
+        var clips = new[] { profile.combatClips.forward, profile.combatClips.forwardLeft, profile.combatClips.forwardRight,
+            profile.combatClips.left, profile.combatClips.right };
+        if (new UnityEngine.Object[] { definition, profile, definition.comboDefinition, definition.heavyAttackDefinition,
+            definition.dodgeAttackDefinition, definition.dodgeAttackDefinition.GetStep(0).animationClip }
+            .Concat(clips).Any(a => a != null && EditorUtility.IsDirty(a))) throw new InvalidOperationException("미저장 소유 자산");
+        string comboBefore = EditorJsonUtility.ToJson(definition.comboDefinition);
+        string heavyBefore = EditorJsonUtility.ToJson(definition.heavyAttackDefinition);
+        var attack = BuildDodgeAttackAssets(definition, comboBefore, false);
+        var layer = controller.layers.First(l => l.name == "Combat_MeleeWeapon");
+        State(layer.stateMachine, PlayerEvadeProfile.DodgeLightState, attack.lightClip, "Melee_ActionSpeed");
+        EditorUtility.SetDirty(controller); AssetDatabase.SaveAssetIfDirty(controller);
+        foreach (var clip in clips) CenterHorizontalRoot(clip);
+        var settings = profile.combatDodge; settings.duration = .48f; profile.combatDodge = settings;
+        EditorUtility.SetDirty(profile); AssetDatabase.SaveAssetIfDirty(profile);
+        if (comboBefore != EditorJsonUtility.ToJson(definition.comboDefinition) || heavyBefore != EditorJsonUtility.ToJson(definition.heavyAttackDefinition))
+            throw new InvalidOperationException("일반 콤보/강공 변경");
+        string output = Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Combat/20261003_DodgeLightBlend/Validation/AssetBuild.json"));
+        Directory.CreateDirectory(Path.GetDirectoryName(output));
+        File.WriteAllText(output, JsonConvert.SerializeObject(new { status = "PASS", normalComboPreserved = true, normalHeavyPreserved = true,
+            attack.lightClip.length, duration = profile.combatDodge.duration, hit = new[] {LightHitStart, LightHitEnd}, comboStart = LightComboStart }, Formatting.Indented));
+    }
+
+    static void CenterHorizontalRoot(AnimationClip clip)
+    {
+        foreach (var binding in AnimationUtility.GetCurveBindings(clip).Where(b => b.propertyName == "RootT.x" || b.propertyName == "RootT.z"))
+            AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, clip.length, 0f));
+        EditorUtility.SetDirty(clip); AssetDatabase.SaveAssetIfDirty(clip);
+    }
+
+    static void SetDodgeSweepProgress(AttackPatternDefinition pattern, MeleeAttackTrajectoryRawSample[] samples)
+    {
+        Vector3 Point(float time)
+        {
+            for (int i = 1; i < samples.Length; i++)
+                if (samples[i].normalizedTime >= time)
+                    return Vector3.Lerp(samples[i - 1].localPosition, samples[i].localPosition,
+                        Mathf.InverseLerp(samples[i - 1].normalizedTime, samples[i].normalizedTime, time));
+            return samples[samples.Length - 1].localPosition;
+        }
+        float Angle(Vector3 p) => Mathf.Atan2(p.x, p.z) * Mathf.Rad2Deg;
+        float first = Angle(Point(LightHitStart));
+        float travel = Mathf.DeltaAngle(first, Angle(Point(LightHitEnd)));
+        if (travel <= 5f) throw new InvalidOperationException("닷지 어택의 좌→우 검끝 진행을 확인할 수 없습니다.");
+        float progress = 0f;
+        var keys = new List<Keyframe> { new Keyframe(0f, 0f) };
+        foreach (var sample in samples.Where(s => s.normalizedTime > LightHitStart && s.normalizedTime < LightHitEnd))
+        {
+            progress = Mathf.Max(progress, Mathf.Clamp01(Mathf.DeltaAngle(first, Angle(sample.localPosition)) / travel));
+            keys.Add(new Keyframe(Mathf.InverseLerp(LightHitStart, LightHitEnd, sample.normalizedTime), progress));
+        }
+        keys.Add(new Keyframe(1f, 1f));
+        var curve = new AnimationCurve(keys.ToArray());
+        for (int i = 0; i < curve.length; i++)
+        { AnimationUtility.SetKeyLeftTangentMode(curve, i, AnimationUtility.TangentMode.Linear); AnimationUtility.SetKeyRightTangentMode(curve, i, AnimationUtility.TangentMode.Linear); }
+        pattern.progressCurve = curve;
+        EditorUtility.SetDirty(pattern); AssetDatabase.SaveAssetIfDirty(pattern);
     }
 
     static AnimationClip MakeClip(string sourcePath, string destination, int first, int last,

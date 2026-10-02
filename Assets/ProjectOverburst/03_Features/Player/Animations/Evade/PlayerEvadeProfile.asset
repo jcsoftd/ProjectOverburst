@@ -23,7 +23,7 @@ MonoBehaviour:
   explorationDodgeToRun: {fileID: 7400000, guid: 69101410d7f98f34db5635f95f547a20, type: 2}
   combatDodge:
     distance: 4
-    duration: 0.32
+    duration: 0.48
     invincibleDuration: 0.1
     perfectWindow: 0
     cooldown: 0.5

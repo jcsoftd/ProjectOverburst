@@ -37,6 +37,18 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     [SerializeField] private float targetSwitchSharpness = 7.5f;
     [SerializeField] private float targetSwitchCompleteDistance = 0.03f;
 
+    [Header("Combat Dodge Follow")]
+    [SerializeField] private bool enableCombatDodgeLag = true;
+    [SerializeField, Min(.01f)] private float dodgeLagSharpness = 6f;
+    [SerializeField, Min(.01f)] private float dodgeCatchUpSharpness = 22f;
+    [SerializeField, Range(0f, .99f)] private float dodgeCatchUpStart = .60f;
+    [SerializeField, Min(.01f)] private float dodgeCatchUpDuration = .22f;
+    [SerializeField, Min(.01f)] private float dodgeMaxFollowLag = 1.6f;
+    private Transform dodgeFollowTarget;
+    private PlayerEvadeController cameraEvade;
+    private bool dodgeFollowWasActive;
+    private float dodgeFollowRecoveryEnd;
+
     [Header("Cinemachine 3 Adapter")]
     [SerializeField] private OverburstCinemachineCameraRig cinemachineRig;
 
@@ -111,6 +123,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         queuedGroundStepDuration = 0f;
         cinemachineRig?.CancelCombatImpact();
         zoomPunchStart = -1f;
+        ResetDodgeFollow();
     }
 
     private void LateUpdate()
@@ -132,6 +145,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         bool canSmoothSwitch = target != null && newTarget != null && target != newTarget && hasFocusPosition;
         target = newTarget; // 추적 대상
+        ResetDodgeFollow();
 
         if (canSmoothSwitch)
         {
@@ -147,6 +161,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     public void SetYaw(float newYaw)
     {
         yaw = newYaw; // yaw 고정
+        ResetDodgeFollow();
         hasFocusPosition = false; // 즉시 재정렬
         forceCameraCut = true;
     }
@@ -356,6 +371,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         }
 
         float sharpness = smoothingTargetSwitch ? targetSwitchSharpness : followSharpness;
+        sharpness = ResolveDodgeFollowSharpness(sharpness, out bool dodgeClock);
         if (sharpness <= 0f)
         {
             focusPosition = targetPosition;
@@ -363,14 +379,64 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
             return;
         }
 
-        float t = 1f - Mathf.Exp(-sharpness * Time.deltaTime);
+        float deltaTime = dodgeClock ? OverburstGameClock.UnscaledDeltaTime : Time.deltaTime;
+        float t = 1f - Mathf.Exp(-sharpness * Mathf.Max(0f, deltaTime));
         focusPosition = Vector3.Lerp(focusPosition, targetPosition, t); // 추적 위치
+        if (dodgeClock)
+        {
+            Vector3 lag = focusPosition - targetPosition; lag.y = 0f;
+            float maximum = Mathf.Max(.01f, dodgeMaxFollowLag);
+            if (lag.sqrMagnitude > maximum * maximum)
+            {
+                Vector3 limited = targetPosition + lag.normalized * maximum;
+                focusPosition = new Vector3(limited.x, focusPosition.y, limited.z);
+            }
+        }
 
         if (smoothingTargetSwitch && (targetPosition - focusPosition).sqrMagnitude <= targetSwitchCompleteDistance * targetSwitchCompleteDistance)
         {
             focusPosition = targetPosition;
             smoothingTargetSwitch = false;
         }
+    }
+
+    private void ResetDodgeFollow()
+    {
+        dodgeFollowTarget = null; cameraEvade = null;
+        dodgeFollowWasActive = false; dodgeFollowRecoveryEnd = 0f;
+    }
+
+    private float ResolveDodgeFollowSharpness(float normalSharpness, out bool dodgeClock)
+    {
+        dodgeClock = false;
+        if (!enableCombatDodgeLag || smoothingTargetSwitch)
+        {
+            dodgeFollowWasActive = false; dodgeFollowRecoveryEnd = 0f;
+            return normalSharpness;
+        }
+        if (dodgeFollowTarget != target)
+        {
+            dodgeFollowTarget = target;
+            cameraEvade = target != null ? target.GetComponent<PlayerEvadeController>() : null;
+        }
+        if (cameraEvade != null && cameraEvade.IsEvading && cameraEvade.ActiveType == PlayerEvadeType.CombatDodge)
+        {
+            dodgeClock = true; dodgeFollowWasActive = true;
+            float catchUp = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(dodgeCatchUpStart, 1f, cameraEvade.ActiveNormalizedTime));
+            return Mathf.Lerp(dodgeLagSharpness, dodgeCatchUpSharpness, catchUp);
+        }
+        if (dodgeFollowWasActive)
+        {
+            dodgeFollowWasActive = false;
+            dodgeFollowRecoveryEnd = OverburstGameClock.UnscaledTime + Mathf.Max(.01f, dodgeCatchUpDuration);
+        }
+        if (OverburstGameClock.UnscaledTime < dodgeFollowRecoveryEnd)
+        {
+            dodgeClock = true;
+            float recovery = 1f - (dodgeFollowRecoveryEnd - OverburstGameClock.UnscaledTime) / Mathf.Max(.01f, dodgeCatchUpDuration);
+            return Mathf.Lerp(dodgeCatchUpSharpness, normalSharpness, Mathf.SmoothStep(0f, 1f, recovery));
+        }
+        return normalSharpness;
     }
 
     private void ApplyCameraTransform()

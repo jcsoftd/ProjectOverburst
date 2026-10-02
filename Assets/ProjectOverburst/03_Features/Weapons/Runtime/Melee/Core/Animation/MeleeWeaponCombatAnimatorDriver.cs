@@ -88,6 +88,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
     private float attackBaseDuration;
     private float attackPreviousSampleTime;
     private AnimationClip acceleratedAttackClip;
+    private bool dodgeLightPreviewPlaying;
     private bool combatRequested;
     private bool legacySuppressed;
     private float legacySuppressedUntil;
@@ -299,8 +300,16 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return false;
         }
 
-        if (!HasState(attackStateName) || !ApplyAttackClip(expectedClip))
+        var dodge = playerEquipment?.CurrentWeaponData?.GetMeleeDefinition()?.dodgeAttackDefinition;
+        bool isDodgeLight = dodge != null && dodge.HasSteps && dodge.GetStep(0).animationClip == expectedClip;
+        string stateName = isDodgeLight ? PlayerEvadeProfile.DodgeLightState : attackStateName;
+        // Keep the outgoing dodge clip intact while the normal first hit blends in.
+        if (!HasState(stateName) || (!isDodgeLight && !ApplyAttackClip(expectedClip)))
             return false;
+        bool adoptWindup = isDodgeLight && dodgeLightPreviewPlaying && activeAction == DriverAction.Attack
+            && acceleratedAttackClip == expectedClip && normalizedStartTime > 0f
+            && (playerMovement == null || !playerMovement.IsEvading);
+        dodgeLightPreviewPlaying = isDodgeLight && playerMovement != null && playerMovement.IsEvading;
 
         if (!combatRequested)
             PrepareCombatLayerForAttackEntry();
@@ -314,12 +323,20 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         attackBaseDuration = fullPlaybackDuration;
         attackClockOrigin = Time.time - fullPlaybackDuration * playbackAcceleration.ToElapsed(normalizedStartTime);
         attackPreviousSampleTime = Time.time;
+        if (adoptWindup)
+        {
+            activeActionEndTime = Time.time + duration;
+            return true; // Animation is already playing; only damage and action ownership begin now.
+        }
+        // Preview uses the dodge's unscaled clock. Fixed offsets must use the corresponding scaled state duration.
+        float statePlaybackDuration = fullPlaybackDuration;
+        if (dodgeLightPreviewPlaying && OverburstGameClock.UnscaledDeltaTime > .0000001f)
+            statePlaybackDuration *= Time.deltaTime / OverburstGameClock.UnscaledDeltaTime;
         PlayActionState(
-            attackStateName,
+            stateName,
             DriverAction.Attack,
             duration,
-            // Fixed-time offsets use the state's playback duration, including its speed multiplier.
-            Mathf.Max(0f, transitionDuration), normalizedStartTime, fullPlaybackDuration);
+            Mathf.Max(0f, transitionDuration), normalizedStartTime, statePlaybackDuration);
         return true;
     }
 
@@ -329,6 +346,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return;
 
         RestoreHeavyParryClock();
+        dodgeLightPreviewPlaying = false;
         activeAction = DriverAction.None;
         activeActionEndTime = 0f;
         targetTransitionLowerLayerWeight = 0f;
@@ -350,6 +368,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
     public void ForceResetLayer()
     {
         RestoreHeavyParryClock();
+        dodgeLightPreviewPlaying = false;
         ResolveLayerIndex();
         combatRequested = false;
         legacySuppressed = false;
