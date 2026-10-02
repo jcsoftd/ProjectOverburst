@@ -27,7 +27,7 @@ MonoBehaviour:
       endNormalized: 0
       peakMultiplier: 0
     comboInputWindow:
-      startNormalizedTime: 0.45299146
+      startNormalizedTime: 0.35042736
       endNormalizedTime: 0.99
     actionCancelStartNormalized: 0.45299146
     movementPhases: []
@@ -91,7 +91,7 @@ MonoBehaviour:
     schemaVersion: 1
     sourceFingerprint: 4fb1e2f81d7a7e97b3ecc215fa6b5df6
     derivedFingerprint: 7de964f0f93a1c81cbb81d60547bba7b
-    bakedUtc: 2026-10-02T21:15:39.0167327Z
+    bakedUtc: 2026-10-02T21:50:55.4000077Z
     steps:
     - attackId: Greatsword.DodgeOpener.1
       rawSamples:

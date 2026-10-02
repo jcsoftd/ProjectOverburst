@@ -19,11 +19,12 @@ public static class PlayerEvadeBuilder
     public const string AttackRoot = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips";
     public const string SourceRoot = "Assets/ThirdParty/03_애니메이션/Sword_Animations_Pack/Animation/Humanoid/";
     public const int LightFirstFrame = 7, LightLastFrame = 124;
-    public const int LightHitFirstFrame = 17, LightHitLastFrame = 24, LightComboFrame = 60;
+    public const int LightHitFirstFrame = 17, LightHitLastFrame = 24, LightComboFrame = 48, LightCancelFrame = 60;
     public const string DodgePatternPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Combos/AP_GreatswordDodge_LeftToRight.asset";
     public const float LightHitStart = (float)(LightHitFirstFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
     public const float LightHitEnd = (float)(LightHitLastFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
     public const float LightComboStart = (float)(LightComboFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
+    public const float LightCancelStart = (float)(LightCancelFrame - LightFirstFrame) / (LightLastFrame - LightFirstFrame);
     public const int HeavyFirstFrame = 7, HeavyImpactFrame = 27, HeavyLastFrame = 83;
 
     [MenuItem("OVERBURST/Player/Build Evade and Dodge Attacks")]
@@ -172,7 +173,7 @@ public static class PlayerEvadeBuilder
             step.movementPhases = Array.Empty<AttackMovementPhaseData>();
             step.visualHeightCurve = new AnimationCurve();
             step.comboInputWindow = new ComboNormalizedWindow { startNormalizedTime = LightComboStart, endNormalizedTime = .99f };
-            step.actionCancelStartNormalized = LightComboStart;
+            step.actionCancelStartNormalized = LightCancelStart;
             var phase = step.attackPhases[0]; phase.attackPattern = pattern; phase.progressSource = AttackProgressSource.NormalizedTime;
             phase.startNormalizedTime = LightHitStart; phase.endNormalizedTime = LightHitEnd;
             step.attackPhases = new[] { phase };
@@ -217,7 +218,7 @@ public static class PlayerEvadeBuilder
         EditorUtility.SetDirty(profile); AssetDatabase.SaveAssetIfDirty(profile);
         if (comboBefore != EditorJsonUtility.ToJson(definition.comboDefinition) || heavyBefore != EditorJsonUtility.ToJson(definition.heavyAttackDefinition))
             throw new InvalidOperationException("일반 콤보/강공 변경");
-        string output = Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Combat/20261003_DodgeLightRecovery/Validation/AssetBuild.json"));
+        string output = Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Combat/20261003_DodgeComboQuick/Validation/AssetBuild.json"));
         Directory.CreateDirectory(Path.GetDirectoryName(output));
         File.WriteAllText(output, JsonConvert.SerializeObject(new { status = "PASS", normalComboPreserved = true, normalHeavyPreserved = true,
             attack.lightClip.length, duration = profile.combatDodge.duration, hit = new[] {LightHitStart, LightHitEnd}, comboStart = LightComboStart }, Formatting.Indented));

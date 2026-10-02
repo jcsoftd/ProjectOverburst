@@ -41,6 +41,8 @@ public static class PlayerEvadeVerifier
     static Animator animator;
     static PlayerEvadePoseProbe poseProbe;
     static InputDevice[] previousDevices;
+    static InputSettings previousInputSettings, verifierInputSettings;
+    static string previousInputSettingsJson;
     static GameObject blocker;
     static EnemySpawnService spawn;
     static readonly List<EnemyActor> leased = new List<EnemyActor>();
@@ -310,6 +312,13 @@ public static class PlayerEvadeVerifier
         var originalMode = animator.updateMode; float originalSpeed = animator.speed;
         try
         {
+            previousInputSettings = InputSystem.settings;
+            previousInputSettingsJson = EditorJsonUtility.ToJson(previousInputSettings);
+            verifierInputSettings = UnityEngine.Object.Instantiate(previousInputSettings);
+            verifierInputSettings.hideFlags = HideFlags.HideAndDontSave;
+            verifierInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            verifierInputSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = verifierInputSettings;
             Check(evade != null && evade.Profile != null && ui != null, "제품 회피 프로필·시험 구역");
             actor.Health.SetMaxHp(1000000, true);
             weaponItem = new ItemData(AssetDatabase.LoadAssetAtPath<WeaponItemData>(WeaponPath), 1, ItemGrade.Common, element: WeaponElement.Fire);
@@ -446,6 +455,15 @@ public static class PlayerEvadeVerifier
             if (evade != null) { evade.OnEvadeStarted -= Started; evade.OnEvadeEnded -= Ended; evade.CancelForKnockdown(); evade.enabled = true; }
             if (input != null) { input.EnableGameplay(); input.RuntimeAsset.devices = previousDevices; }
             if (keyboard != null && keyboard.added) InputSystem.RemoveDevice(keyboard); if (mouse != null && mouse.added) InputSystem.RemoveDevice(mouse);
+            if (previousInputSettings != null)
+            {
+                InputSystem.settings = previousInputSettings;
+                bool restored = InputSystem.settings == previousInputSettings && EditorJsonUtility.ToJson(previousInputSettings) == previousInputSettingsJson;
+                File.WriteAllText(Path.Combine(output,"InputSettingsRestored.json"),JsonConvert.SerializeObject(new{status=restored?"PASS":"FAIL",restored,originalAssetUnchanged=restored},Formatting.Indented));
+                if(!restored)errors.Add("격리 입력 설정 원본 복원 실패");
+            }
+            if (verifierInputSettings != null) UnityEngine.Object.DestroyImmediate(verifierInputSettings);
+            verifierInputSettings = previousInputSettings = null; previousInputSettingsJson = null;
             keyboard = null; mouse = null;
             poseProbe = null;
             if (blocker != null) { GameplayInputBlocker.Unblock(blocker); OverburstTimeEffectArbiter.ClearOwner(blocker); UnityEngine.Object.Destroy(blocker); }
@@ -640,6 +658,8 @@ public static class PlayerEvadeVerifier
             Check(input.AttackHeld,"좌클릭 해제 없는 닷지 입력 "+interrupted);
             while(evade.IsEvading)yield return null;
             Check(melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Light,"콤보 중 닷지 어택 "+interrupted);
+            float openerOrigin=Field<float>(melee,"attackStartTime"),openerDuration=Field<float>(melee,"attackDuration");
+            poseProbe.poseSamples.Clear();poseProbe.recordPoses=true;
             limit=Time.unscaledTime+3f;
             while(melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Light)
             {Check(Time.unscaledTime<limit,"기존 다음 타 복귀 제한 "+interrupted);yield return null;}
@@ -647,7 +667,31 @@ public static class PlayerEvadeVerifier
             Check(melee.IsAttackInProgress && Field<int>(melee,"comboStepIndex")==expected
                 && Field<AnimationClip>(melee,"activeAttackAnimationClip")==actor.Equipment.CurrentWeaponData.GetMeleeDefinition().comboDefinition.GetStep(expected).animationClip,
                 "콤보"+(interrupted+1)+"→닷지 어택→기존 다음"+(expected+1)+"타");
-            samples.Add(new{label="held combo resume",interruptedHit=interrupted+1,resumedHit=expected+1});Send();yield return Wait(.15f);
+            float resumedProgress=(Time.time-openerOrigin)/openerDuration;
+            Check(resumedProgress>=PlayerEvadeBuilder.LightComboStart-.01f && resumedProgress<PlayerEvadeBuilder.LightComboStart+.06f,
+                "모든 다음 타가 앞당긴48프레임에서 연결 "+(expected+1)+" progress="+resumedProgress);
+            Check(Mathf.Abs(Field<float>(melee,"activeAttackTransitionDuration")-MeleeRuntime.DodgeLightComboBlendDuration)<.0001f,
+                "모든 다음 타 전용0.16초 보간 "+(expected+1));
+            Send();float firstMixed=-1f,lastMixed=-1f,maxBlendHipsStep=0f;
+            var hips=animator.GetBoneTransform(HumanBodyBones.Hips);Vector3 previousHip=actor.transform.InverseTransformPoint(hips.position);
+            int layer=animator.GetLayerIndex("Combat_MeleeWeapon");
+            limit=Time.time+MeleeRuntime.DodgeLightComboBlendDuration+.04f;
+            while(Time.time<limit)
+            {
+                bool mixing=animator.IsInTransition(layer)
+                    && animator.GetCurrentAnimatorClipInfo(layer).Any(c=>c.clip.name=="Greatsword_DodgeAttack")
+                    && animator.GetNextAnimatorClipInfo(layer).Any(c=>c.clip==Field<AnimationClip>(melee,"activeAttackAnimationClip"));
+                Vector3 hip=actor.transform.InverseTransformPoint(hips.position);
+                if(mixing){if(firstMixed<0f)firstMixed=Time.time;lastMixed=Time.time;maxBlendHipsStep=Mathf.Max(maxBlendHipsStep,Vector3.Distance(hip,previousHip));}
+                previousHip=hip;yield return null;
+            }
+            poseProbe.recordPoses=false;
+            Check(firstMixed>=0f && lastMixed-firstMixed>=MeleeRuntime.DodgeLightComboBlendDuration-.05f,
+                "닷지와 다음 타 실제 클립 혼합 유지 "+(expected+1));
+            Check(maxBlendHipsStep<.16f,"다음 타 연결 골반 순간 변경 제한 "+(expected+1)+" step="+maxBlendHipsStep);
+            File.WriteAllText(Path.Combine(output,"ComboResume_"+(expected+1)+".json"),JsonConvert.SerializeObject(poseProbe.poseSamples,Formatting.Indented));
+            samples.Add(new{label="held combo resume",interruptedHit=interrupted+1,resumedHit=expected+1,resumedProgress,openerDuration,
+                blendDuration=MeleeRuntime.DodgeLightComboBlendDuration,mixedSpan=lastMixed-firstMixed,maxBlendHipsStep});
         }
     }
 

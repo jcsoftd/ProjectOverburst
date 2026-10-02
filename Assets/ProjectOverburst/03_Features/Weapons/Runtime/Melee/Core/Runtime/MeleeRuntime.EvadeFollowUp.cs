@@ -10,7 +10,7 @@ public partial class MeleeRuntime
     private PlayerDodgeFollowUpRequest dodgeLightWindupRequest;
     private float dodgeLightWindupStart, dodgeLightWindupDuration, dodgeHandoffProgress;
     private AnimationClip dodgeLightWindupClip;
-    public const float DodgeLightComboBlendDuration = .20f;
+    public const float DodgeLightComboBlendDuration = .16f;
     public const float DodgeLightMovementBlendDuration = .24f;
     public const float DodgeLightFinishBlendDuration = .20f;
     private bool dodgeLightSwingPlayed;
