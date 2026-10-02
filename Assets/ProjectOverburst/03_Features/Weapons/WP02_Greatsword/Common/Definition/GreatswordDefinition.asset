@@ -55,6 +55,6 @@ MonoBehaviour:
     parryWindow: 0.3
     parryDamage: 1
   grip:
-    enabled: 1
+    enabled: 0
     positionWeight: 0.9
     blendSpeed: 14
