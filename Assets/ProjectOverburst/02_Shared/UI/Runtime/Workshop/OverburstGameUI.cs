@@ -154,6 +154,6 @@ public sealed class OverburstGameUI : MonoBehaviour
         stats[6].text=weapon!=null?calculated.critChance.ToString("0.##")+"%":"—";stats[7].text=weapon!=null?(calculated.critDamageMultiplier*100).ToString("0.##")+"%":"—";
         stats[8].text=$"+{gear.NormalDamage:0.##}%";stats[9].text=$"+{gear.WeakDamage:0.##}%";
         stats[10].text=$"+{gear.HeavyDamage:0.##}%";stats[11].text=$"+{gear.EliteBossDamage:0.##}%";
-        var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;string keyLabel=key>0?QuickSlotKeyLabels.Short(key):"";if(shownFlasks[i]!=item||shownKeys[i]!=key||shownKeyLabels[i]!=keyLabel){shownFlasks[i]=item;shownKeys[i]=key;shownKeyLabels[i]=keyLabel;flasks[i].Present(item?.icon,item!=null?item.grade:ItemGrade.Common,keyLabel);}}
+        var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;string keyLabel=key>0?QuickSlotKeyLabels.Short(key):"";if(shownFlasks[i]!=item||shownKeys[i]!=key||shownKeyLabels[i]!=keyLabel){shownFlasks[i]=item;shownKeys[i]=key;shownKeyLabels[i]=keyLabel;flasks[i].Present(item,keyLabel);}}
     }
 }

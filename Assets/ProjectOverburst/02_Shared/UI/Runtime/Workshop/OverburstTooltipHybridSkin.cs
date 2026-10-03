@@ -113,6 +113,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             : Color.Lerp(Html("#15191B"), rarity, .15f);
         icon.sprite = item.icon;
         icon.enabled = item.icon != null;
+        ItemQualityIconEffect.Present(icon, item);
         weaponElementIcon?.Present(item);
         itemTypeIcon?.Present(item);
         grade.color = rarity;
@@ -300,7 +301,9 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         primaryHeading.text = isFlask && item.baseData is FlaskItemData flask &&
             (flask.kind == FlaskKind.Life || flask.kind == FlaskKind.Regeneration)
             ? "회복 성능" : isGem ? "고정 효과" : isFlask ? "주요 효과" : isBag ? "수납" : isGear ? "주능력치" : "전투 성능";
-        qualityHeading.text = "품질 각인";
+        qualityHeading.richText = true;
+        qualityHeading.text = ItemInscriptionQuality.TryEvaluate(item, out var inscription)
+            ? inscription.Heading : "품질 각인";
         SetRect(primaryHeading.rectTransform, 26f, y, 180f, 24f);
         SetRect(qualityHeading.rectTransform, 286f, y, 120f, 24f);
         primaryHeading.gameObject.SetActive(true);

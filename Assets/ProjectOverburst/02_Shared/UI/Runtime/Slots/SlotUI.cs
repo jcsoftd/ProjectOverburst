@@ -103,6 +103,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
             iconImage.sprite = item.icon;
             iconImage.color = item.icon != null ? item.iconColor : new Color(item.color.r, item.color.g, item.color.b, 0.45f);
             iconImage.preserveAspect = true; // 비율 유지
+            ItemQualityIconEffect.Present(iconImage, item, iconImage.color);
         }
 
         if (infoText != null)
@@ -149,6 +150,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
 
         if (iconImage != null && locked)
             iconImage.color = Color.clear; // 아이콘 숨김
+        if (iconImage != null)
+            ItemQualityIconEffect.Present(iconImage, locked ? null : DisplayItem,
+                locked || DisplayItem == null ? Color.clear : DisplayItem.iconColor);
 
         if (infoText != null && locked)
             infoText.text = string.Empty; // 텍스트 숨김
@@ -338,6 +342,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         {
             iconImage.sprite = null;
             iconImage.color = Color.clear;
+            ItemQualityIconEffect.Present(iconImage, null, Color.clear);
         }
 
         if (infoText != null)

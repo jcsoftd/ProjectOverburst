@@ -131,6 +131,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
         displayedFlaskInstanceId = item.baseData is FlaskItemData ? item.runtimeInstanceId : null;
         ApplyItemVisual(item.baseData, item.grade, count, active, showCount);
+        ItemQualityIconEffect.Present(itemIcon, item);
     }
 
     public void SetConsumable(ConsumableItemData consumableData, ItemData displayItem, int count)
@@ -148,6 +149,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
         ItemGrade grade = displayItem != null ? displayItem.grade : ItemGrade.Common;
         ApplyItemVisual(consumableData, grade, count, false, !consumableData.IsPermanentSingleItem);
+        ItemQualityIconEffect.Present(itemIcon, displayItem);
     }
 
     public void SetFlask(ItemData item, float remaining, float cooldownRemaining, bool matchesWeapon)
@@ -173,6 +175,8 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
         }
         if (countText != null) countText.gameObject.SetActive(false);
         if (itemIcon != null) itemIcon.color = matchesWeapon && (cooldownRemaining <= 0f || remaining > 0f) ? Color.white : new Color(.4f,.4f,.4f,1f);
+        if (itemIcon != null) ItemQualityIconEffect.Present(itemIcon, item, itemIcon.color,
+            matchesWeapon && (cooldownRemaining <= 0f || remaining > 0f));
         if (cooldownOverlay != null && remaining > 0f)
         {
             cooldownOverlay.gameObject.SetActive(true);
@@ -206,6 +210,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             itemIcon.sprite = skill.Icon;
             itemIcon.color = skill.Icon != null ? Color.white : new Color(.38f, .7f, 1f, .6f);
             itemIcon.preserveAspect = true;
+            ItemQualityIconEffect.Present(itemIcon, null, itemIcon.color);
         }
         if (countText != null) countText.gameObject.SetActive(false);
         gradeEffect?.Clear();
@@ -298,6 +303,7 @@ public class ActionSlotHudSlotUI : MonoBehaviour, IPointerEnterHandler, IPointer
             itemIcon.gameObject.SetActive(false);
             itemIcon.sprite = null;
             itemIcon.color = Color.clear;
+            ItemQualityIconEffect.Present(itemIcon, null, Color.clear);
         }
         GetComponent<OverburstUISlotGradePreview>()?.Refresh();
 
