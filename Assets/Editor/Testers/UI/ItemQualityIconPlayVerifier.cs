@@ -12,10 +12,10 @@ using Object = UnityEngine.Object;
 [InitializeOnLoad]
 public static class ItemQualityIconPlayVerifier
 {
-    public const int FixtureVersion = 2;
+    public const int FixtureVersion = 3;
     private const string Key = "Overburst.ItemQualityIconPlayVerifier.";
     private static readonly string Output = Path.GetFullPath(Path.Combine(Application.dataPath,
-        "../../개인파일/코덱스산출/UI/20261003_StarQuality/Verification/Play"));
+        "../../개인파일/코덱스산출/UI/20261003_StarQualityGradeRelative/Verification/Play"));
     private static string Account => Path.Combine(Output, "IsolatedAccount");
     private static IEnumerator work;
     private static GameObject root;
@@ -170,9 +170,15 @@ public static class ItemQualityIconPlayVerifier
             foreach (var type in new[] { typeof(WeaponItemData), typeof(GearItemData), typeof(BagItemData), typeof(FlaskItemData), typeof(ElementGemItemData) })
             {
                 var source = AssetDatabase.FindAssets("t:" + type.Name, new[] { "Assets/ProjectOverburst" }).Select(AssetDatabase.GUIDToAssetPath)
-                    .OrderBy(p => p).Select(p => AssetDatabase.LoadAssetAtPath<BaseItemData>(p)).First(a => a && a.icon && (!(a is ElementGemItemData gem) || ElementGemItemData.IsAllowed(gem.element, gem.fixedGrade)));
-                var item = ItemInscriptionQualityVerifier.Fixture(source, source is ElementGemItemData g ? g.fixedGrade : ItemGrade.Legendary, 1);
-                ItemInscriptionQualityVerifier.Assign(item, Enumerable.Repeat(WeaponGradeStarType.Yellow, 16).ToList());
+                    .OrderBy(p => p).Select(p => AssetDatabase.LoadAssetAtPath<BaseItemData>(p)).First(a => a && a.icon && (!(a is ElementGemItemData gem) || gem.fixedGrade == ItemGrade.Mythic && ElementGemItemData.IsAllowed(gem.element, gem.fixedGrade)));
+                ItemData item = null;
+                for(int seed=701;seed<10701;seed++)
+                {
+                    UnityEngine.Random.InitState(seed);
+                    var candidate=ItemInscriptionQualityVerifier.Fixture(source,ItemGrade.Mythic,seed);
+                    if(ItemInscriptionQuality.TryEvaluate(candidate,out var quality)&&quality.Tier==ItemInscriptionQualityTier.Masterpiece){item=candidate;break;}
+                }
+                Check(item!=null,"Natural within-grade masterpiece fixture: "+type.Name);
                 var mask = new GameObject("Mask " + type.Name, typeof(RectTransform), typeof(Image), typeof(Mask)); mask.transform.SetParent(root.transform, false);
                 mask.GetComponent<RectTransform>().anchoredPosition = new Vector2(-10000, -10000);
                 mask.GetComponent<Mask>().showMaskGraphic = false;
@@ -185,6 +191,7 @@ public static class ItemQualityIconPlayVerifier
         for (int n = 0; n < 4; n++) yield return null;
         for (int i = 0; i < images.Count; i++)
         {
+            Check(ItemInscriptionQuality.TryEvaluate(items[i],out var quality)&&quality.Grade==ItemGrade.Mythic&&quality.Score>=25,"Grade-relative native masterpiece");
             ItemQualityIconEffect.Present(images[i], items[i]); shaders.Add(images[i].material);
             Check(images[i].material.shader.name == "OVERBURST/UI/Item Quality Shine", "Shine starts: " + images[i].name);
             Check(Mathf.Approximately(images[i].material.GetFloat("_ShineStrength"), .28f), "Masterpiece strength");
@@ -212,6 +219,11 @@ public static class ItemQualityIconPlayVerifier
             images[i].gameObject.SetActive(true); Check(images[i].material != originals[i], "Reopened icon plays once");
             ItemQualityIconEffect.Present(images[i], items[i], Color.white, false); Check(images[i].material == originals[i], "Cooldown/disabled sheen preserves material");
             ItemQualityIconEffect.Present(images[i], null, Color.clear); Check(images[i].material == originals[i] && images[i].color == Color.clear, "Empty icon resets");
+            ItemInscriptionQualityVerifier.Assign(items[i],ItemInscriptionQualityVerifier.StarsForScore(20,0));
+            ItemQualityIconEffect.Present(images[i],items[i]);
+            Check(images[i].material==originals[i]&&Mathf.Approximately(images[i].color.r,.92f),"Same grade all-white item is lowest without shine");
+            items[i].grade=ItemGrade.Common;ItemQualityIconEffect.Present(images[i],items[i]);
+            Check(images[i].material==originals[i]&&images[i].color==Color.white,"Common grade removes tint and shine");
         }
         Object.Destroy(root); root = null; yield return null;
     }
