@@ -224,6 +224,7 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
         foreach (string id in state.weapons) if (!string.IsNullOrEmpty(id)) carried.Add(id);
         foreach (string id in state.gear) if (!string.IsNullOrEmpty(id)) carried.Add(id);
         foreach (string id in state.bags) if (!string.IsNullOrEmpty(id)) carried.Add(id);
+        if (!string.IsNullOrEmpty(state.elementalGemInstanceId)) carried.Add(state.elementalGemInstanceId);
         var result = new List<RunTransferPresentation>();
         foreach (ItemSnapshot snapshot in state.items)
         {
@@ -237,6 +238,7 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
                 IsEquipped = state.weapons.Contains(snapshot.instanceId)
                     || state.gear.Contains(snapshot.instanceId) || state.bags.Contains(snapshot.instanceId)
                     || state.flasks.Contains(snapshot.instanceId)
+                    || state.elementalGemInstanceId == snapshot.instanceId
             });
         }
         return result;
