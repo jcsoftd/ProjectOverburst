@@ -83,7 +83,7 @@ public static class OverburstGoalEFeelMigration
             AddWorldPool(root.transform, emitters, OverburstFeelCue.Death, 4, material,
                 new Color(0.92f, 0.12f, 0.05f, 1f), 18, 0.42f, 0.46f, 3.2f, 0.15f, 0.22f);
             AddWorldPool(root.transform, emitters, OverburstFeelCue.Evade, 2, material,
-                new Color(0.22f, 0.86f, 1f, 0.9f), 10, 0.26f, 0.28f, 1.5f, 0.075f, 0.35f);
+                new Color(0.53f, 0.48f, 0.39f, 0.26f), 10, 0.26f, 0.28f, 1.5f, 0.075f, 0.35f);
             AddWorldPool(root.transform, emitters, OverburstFeelCue.Interaction, 2, material,
                 new Color(1f, 0.86f, 0.25f, 0.9f), 7, 0.28f, 0.30f, 0.9f, 0.07f, 0.18f);
             emitters.Add(CreateUiEmitter(root.transform));

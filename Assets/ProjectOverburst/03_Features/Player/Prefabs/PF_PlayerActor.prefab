@@ -269,6 +269,7 @@ GameObject:
   - component: {fileID: 4180381286012201543}
   - component: {fileID: 1215682338855239813}
   - component: {fileID: 6041494120233153841}
+  - component: {fileID: 1124226117103061430}
   m_Layer: 8
   m_Name: PF_PlayerActor
   m_TagString: Player
@@ -1356,6 +1357,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerKnockdownController
   animationSet: {fileID: 11400000, guid: e84dfcf3572b60445912e8583e3def0b, type: 2}
+--- !u!114 &1124226117103061430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778037010099676702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cb27532f2acf5a449d581f1754a4ee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDashVfx
+  afterimageMaterial: {fileID: 2100000, guid: c7215696c02e5a34988b9f8818b6fb69, type: 2}
+  explorationTint: {r: 0.65, g: 0.82, b: 0.91, a: 0.14}
+  combatTint: {r: 0.64, g: 0.84, b: 1, a: 0.22}
+  sampleInterval: 0.065
+  minimumSpacing: 0.45
+  afterimageLifetime: 0.22
+  colorStyle: 0
+  fullEnergyHeavyAfterimage: 1
+  dustMaterial: {fileID: 2100000, guid: b76e23b307bfe154da3d3c4b240a15de, type: 2}
+  dustTint: {r: 0.53, g: 0.48, b: 0.39, a: 0.18}
 --- !u!1 &8279916159605575939
 GameObject:
   m_ObjectHideFlags: 0

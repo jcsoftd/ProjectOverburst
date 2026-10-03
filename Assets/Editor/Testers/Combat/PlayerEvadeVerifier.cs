@@ -31,7 +31,8 @@ public static class PlayerEvadeVerifier
     static string output;
     static int frame, failures;
     static double deadline;
-    static bool background, lightOnly;
+    static bool background, lightOnly, dashVisualOnly, paletteOnly;
+    static bool reloadLocked, refreshLocked;
     static Keyboard keyboard;
     static Mouse mouse;
     static PlayerInputFacade input;
@@ -55,6 +56,7 @@ public static class PlayerEvadeVerifier
     static Vector3 testFacing;
     static bool poseNextStart;
     static bool heldMove, heldShift, heldLeft, heldRight;
+    static bool pointerAtComparison;
     static bool requestPause, requestResume, pauseRecorded, invalidateOnCompletion;
     static float frozenProgress;
     static Vector3 frozenPosition;
@@ -69,17 +71,29 @@ public static class PlayerEvadeVerifier
             if (!EditorApplication.isPlayingOrWillChangePlaymode) ScheduleEditorAccountReturn();
         }
     }
-    public static void StartIsolated(string directory, bool onlyDodgeLight = false)
+    public static void StartIsolated(string directory, bool onlyDodgeLight = false, bool onlyDashVisual = false, bool onlyPalette = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("유휴 Editor가 필요합니다.");
         string target = IsolatedSavePlayGuard.ValidateDirectory(directory); Directory.CreateDirectory(target);
         SessionState.SetBool(PendingKey + ".LightOnly", onlyDodgeLight);
+        SessionState.SetBool(PendingKey + ".DashVisualOnly", onlyDashVisual);
+        SessionState.SetBool(PendingKey + ".PaletteOnly", onlyPalette);
         SessionState.SetString(PendingKey, target);
         SessionState.SetString(DeadlineKey, (EditorApplication.timeSinceStartup + 120).ToString(System.Globalization.CultureInfo.InvariantCulture));
         EditorApplication.update -= AutoBegin; EditorApplication.update += AutoBegin;
         var scenes = Enumerable.Range(0, SceneManager.sceneCount).Select(i => { var s = SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }).ToArray();
-        File.WriteAllText(Path.Combine(target, "Before.json"), JsonConvert.SerializeObject(new { scenes }, Formatting.Indented));
+        string activeSceneBefore = SceneManager.GetActiveScene().path;
+        string playStartSceneBefore = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene);
+        var persistent = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
+        if (persistent == null)
+        {
+            ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
+            throw new InvalidOperationException("검증에 필요한 PersistentScene 자산이 없습니다.");
+        }
+        File.WriteAllText(Path.Combine(target, "Before.json"), JsonConvert.SerializeObject(new { scenes, activeSceneBefore, playStartSceneBefore }, Formatting.Indented));
+        SessionState.SetString(ReturnKey + ".StartSceneBefore", playStartSceneBefore);
+        EditorSceneManager.playModeStartScene = persistent;
         SessionState.SetString(ReturnKey, target);
         SessionState.SetString(ReturnKey + ".Deadline", (EditorApplication.timeSinceStartup + 480).ToString(System.Globalization.CultureInfo.InvariantCulture));
         EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
@@ -120,10 +134,15 @@ public static class PlayerEvadeVerifier
         if (!string.IsNullOrEmpty(current)
             && !Path.GetFullPath(current).StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
         ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
+        SessionState.EraseBool(PendingKey + ".DashVisualOnly");
+        SessionState.EraseBool(PendingKey + ".PaletteOnly");
         bool previouslyBlocked = IsolatedSavePlayGuard.RequiresAccountChoice;
         IsolatedSavePlayGuard.UseRealAccount();
         bool restored = !IsolatedSavePlayGuard.RequiresAccountChoice
             && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable));
+        if (AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) == "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity")
+            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionState.GetString(ReturnKey + ".StartSceneBefore", ""));
+        SessionState.EraseString(ReturnKey + ".StartSceneBefore");
         File.WriteAllText(Path.Combine(target,"EditorAccountReturn.json"),JsonConvert.SerializeObject(new{status=restored?"PASS":"FAIL",previouslyBlocked,restored},Formatting.Indented));
         SessionState.EraseString(ReturnKey); SessionState.EraseString(ReturnKey + ".Deadline");
         EditorApplication.update -= RestoreEditorAccount;
@@ -229,8 +248,12 @@ public static class PlayerEvadeVerifier
             throw new InvalidOperationException("부팅이 끝난 격리 Play가 필요합니다.");
         Directory.CreateDirectory(output); checks.Clear(); samples.Clear(); errors.Clear(); failures = 0; frame = -1;
         lightOnly = SessionState.GetBool(PendingKey + ".LightOnly", false); SessionState.EraseBool(PendingKey + ".LightOnly");
+        dashVisualOnly = SessionState.GetBool(PendingKey + ".DashVisualOnly", false); SessionState.EraseBool(PendingKey + ".DashVisualOnly");
+        paletteOnly = SessionState.GetBool(PendingKey + ".PaletteOnly", false); SessionState.EraseBool(PendingKey + ".PaletteOnly");
         deadline = EditorApplication.timeSinceStartup + 240;
         background = Application.runInBackground; Application.runInBackground = true;
+        EditorApplication.LockReloadAssemblies(); reloadLocked = true;
+        AssetDatabase.DisallowAutoRefresh(); refreshLocked = true;
         work = Run(); EditorApplication.update += Tick; Application.logMessageReceived += Log;
         EditorApplication.playModeStateChanged += State; AssemblyReloadEvents.beforeAssemblyReload += Abort;
     }
@@ -261,10 +284,18 @@ public static class PlayerEvadeVerifier
     {
         EditorApplication.update -= Tick; Application.logMessageReceived -= Log;
         EditorApplication.playModeStateChanged -= State; AssemblyReloadEvents.beforeAssemblyReload -= Abort;
-        while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose(); (work as IDisposable)?.Dispose(); work = null;
-        Application.runInBackground = background;
-        File.WriteAllText(Path.Combine(output, "PlayResult.json"), JsonConvert.SerializeObject(new { status, failures, checks, samples, errors }, Formatting.Indented));
-        if (exit && EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
+        try
+        {
+            while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose(); (work as IDisposable)?.Dispose(); work = null;
+            Application.runInBackground = background;
+            File.WriteAllText(Path.Combine(output, "PlayResult.json"), JsonConvert.SerializeObject(new { status, failures, checks, samples, errors }, Formatting.Indented));
+        }
+        finally
+        {
+            if (refreshLocked) { AssetDatabase.AllowAutoRefresh(); refreshLocked = false; }
+            if (reloadLocked) { EditorApplication.UnlockReloadAssemblies(); reloadLocked = false; }
+            if (exit && EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
+        }
     }
     static IEnumerator Wait(float seconds) { float end = Time.unscaledTime + seconds; while (Time.unscaledTime < end) yield return null; }
     static IEnumerator Frames(int count) { for (int i = 0; i < count; i++) yield return null; }
@@ -280,6 +311,7 @@ public static class PlayerEvadeVerifier
         var keys = new List<Key>(); if (heldMove) keys.Add(Key.W); if (heldShift) keys.Add(Key.LeftShift);
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
         Vector2 point = Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(actor.transform.position + testFacing * 6f) : Vector2.zero;
+        if (pointerAtComparison) point = new Vector2(Mathf.Max(8f, Screen.width - 620f) + 145f, Screen.height - 164f);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = (ushort)((heldLeft ? 1 : 0) | (heldRight ? 2 : 0)) });
         if (poseNextStart) actor.transform.rotation = Quaternion.LookRotation(testFacing);
         if (requestPause)
@@ -328,6 +360,159 @@ public static class PlayerEvadeVerifier
             + " clock=" + OverburstGameClock.UnscaledTime + " next=" + Field<float>(evade, "nextEvadeTime")
             + " locked=" + movement.IsMeleeAttackMoveLocked + " attacking=" + melee.IsAttackInProgress
             + " enabled=" + evade.isActiveAndEnabled); Send(move, false, left, right);
+    }
+    static IEnumerator VerifyDashVisualComparison()
+    {
+        var effect=actor.GetComponent<PlayerDashVfx>();
+        Check(effect!=null,"정식 플레이어 대시 VFX 연결");
+        int before=effect.CapturedAfterimageCount;
+        yield return Reset(false);yield return StartDodge(false);Send();
+        yield return CompleteEvade("탐험 대시",5f,.30f);
+        Check(effect.CapturedAfterimageCount>before,"탐험 대시 실제 자세 잔상");
+        yield return Wait(.6f);
+        yield return Reset(true,180f);yield return StartDodge(true);Send();
+        before=effect.CapturedAfterimageCount;
+        yield return CompleteEvade("전투 구르기",4f,.45f);
+        Check(effect.CapturedAfterimageCount==before,"구르기 대시 잔상 제외");
+        var energy=actor.GetComponent<OverburstElementEnergy>();
+        if (energy == null) energy = actor.gameObject.AddComponent<OverburstElementEnergy>();
+        var cameraObject=new GameObject("Owned Dash Comparison Camera");fixtures.Add(cameraObject);
+        var camera=cameraObject.AddComponent<Camera>();camera.enabled=false;
+        camera.CopyFrom(Camera.main);camera.enabled=false;camera.orthographic=true;camera.orthographicSize=3.1f;
+        camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.12f,.15f,.18f);
+        int uiLayer=LayerMask.NameToLayer("UI");if(uiLayer>=0)camera.cullingMask&=~(1<<uiLayer);
+        var target=new RenderTexture(800,450,24,RenderTextureFormat.ARGB32);target.Create();
+        var pixels=new Texture2D(800,450,TextureFormat.RGB24,false);
+        var groundRenderers = new HashSet<Renderer>();
+        foreach (var hit in Physics.RaycastAll(actor.transform.position + Vector3.up * 3f, Vector3.down, 8f))
+            if (!hit.collider.transform.IsChildOf(actor.transform))
+                foreach (var renderer in hit.collider.GetComponentsInParent<Renderer>()) groundRenderers.Add(renderer);
+        var hiddenRenderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None)
+            .Where(renderer => !renderer.transform.IsChildOf(actor.transform)
+                && !groundRenderers.Contains(renderer)
+                && renderer.GetComponentInParent<OverburstFeelEmitter>() == null
+                && !renderer.GetComponentsInParent<Transform>().Any(parent => parent.name == "Player Dash VFX"))
+            .Select(renderer => (renderer, renderer.forceRenderingOff)).ToArray();
+        var report=new List<object>();
+        try
+        {
+            for(int color=0;color<PlayerDashVfx.ColorNames.Length;color++)foreach(bool heavy in new[]{false,true})
+            {
+                yield return Reset();effect.SetColorStyle(color);energy.Clear();yield return Frames(2);
+                Vector3 center=actor.transform.position+(heavy?Vector3.zero:forward*2.5f)+Vector3.up*.8f;
+                Vector3 right=Vector3.Cross(Vector3.up,forward);
+                camera.transform.position=center-forward*7f+right*4f+Vector3.up*4.5f;
+                camera.transform.LookAt(center);
+                int snapshotBefore=effect.CapturedAfterimageCount,dustBefore=effect.EmittedDustCount;
+                if(heavy){FillEnergy(energy,10000+color*100);Check(energy.Normalized>.999f,"가득 찬 에너지 강공 비교 준비");
+                    Check(melee.TryStartHeavyAttack(forward)==WeaponActionResult.Accepted,"가득 찬 에너지 강공 비교 시작");}
+                else{yield return StartDodge(false);Send();}
+                string label=(heavy?"Heavy_":"Dash_")+color;
+                string folder=Path.Combine(output,"Comparison",label);Directory.CreateDirectory(folder);
+                var captureTimes=new List<float>();float start=Time.unscaledTime,nextCapture=start,limit=start+1.7f;
+                int peakGhosts=0,frameIndex=0;
+                float maximumFrameDuration = 0f;
+                while(Time.unscaledTime<limit)
+                {
+                    peakGhosts=Mathf.Max(peakGhosts,effect.ActiveAfterimageCount);
+                    maximumFrameDuration = Mathf.Max(maximumFrameDuration, Time.unscaledDeltaTime);
+                    if(Time.unscaledTime>=nextCapture)
+                    {
+                        var request=new UnityEngine.Rendering.Universal.UniversalRenderPipeline.SingleCameraRequest{destination=target};
+                        try
+                        {
+                            foreach (var item in hiddenRenderers) if (item.renderer != null) item.renderer.forceRenderingOff = true;
+                            UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,request);
+                        }
+                        finally
+                        {
+                            foreach (var item in hiddenRenderers) if (item.renderer != null) item.renderer.forceRenderingOff = item.forceRenderingOff;
+                        }
+                        var previous=RenderTexture.active;
+                        try{RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,800,450),0,0);pixels.Apply();
+                            File.WriteAllBytes(Path.Combine(folder,frameIndex.ToString("D3")+".png"),pixels.EncodeToPNG());}
+                        finally{RenderTexture.active=previous;}
+                        captureTimes.Add(Time.unscaledTime-start);frameIndex++;nextCapture=Time.unscaledTime+.05f;
+                    }
+                    yield return null;
+                }
+                Check(peakGhosts>0,"실제 자세 잔상 렌더 실행 "+label+" ghosts="+peakGhosts);
+                if(!heavy){float actual=Vector3.Distance(new Vector3(startPosition.x,0,startPosition.z),new Vector3(endPosition.x,0,endPosition.z));
+                    Check(ends==1&&Mathf.Abs(actual-5f)<.12f,"전투 대시5m "+color+" actual="+actual);
+                    Check(Mathf.Abs(evade.Profile.combatDodge.duration-.48f)<.0001f
+                        && Mathf.Abs(endTime-startTime-.48f)<maximumFrameDuration+.02f,"전투 대시0.48초 설정·캡처 프레임 내 종료 "+color);
+                    Check(effect.EmittedDustCount>dustBefore,"접지한 대시 발밑 먼지 "+color);}
+                report.Add(new{label,color,heavy,frames=frameIndex,captureTimes,peakGhosts,maximumFrameDuration,
+                    snapshots=effect.CapturedAfterimageCount-snapshotBefore,dust=effect.EmittedDustCount-dustBefore,tint=new[]{effect.CurrentTint.r,effect.CurrentTint.g,effect.CurrentTint.b},accent=new[]{effect.CurrentAccent.r,effect.CurrentAccent.g,effect.CurrentAccent.b}});
+                Progress("대시 잔상 비교 "+label);
+            }
+            effect.SetColorStyle(0);yield return Reset();energy.Clear();
+            before=effect.CapturedAfterimageCount;
+            Check(melee.TryStartHeavyAttack(forward)==WeaponActionResult.Accepted,"빈 에너지 강공 비교");yield return Wait(.3f);
+            Check(effect.CapturedAfterimageCount==before,"에너지 가득 찬 강공에만 잔상");
+            yield return Reset();yield return StartDodge(false);yield return Frames(10);effect.enabled=false;
+            Check(effect.ActiveAfterimageCount==0,"비활성화 잔상 정리");effect.enabled=true;Send();yield return Wait(.7f);
+            Check(effect.ActiveAfterimageCount==0,"잔상 종료 뒤 풀 비활성화");
+            File.WriteAllText(Path.Combine(output,"Comparison.json"),JsonConvert.SerializeObject(new{status="PASS",report},Formatting.Indented));
+            yield return VerifyDashPalette(effect);
+        }
+        finally{effect.SetColorStyle(0);target.Release();UnityEngine.Object.Destroy(target);UnityEngine.Object.Destroy(pixels);UnityEngine.Object.Destroy(cameraObject);}
+    }
+    static IEnumerator VerifyDashPalette(PlayerDashVfx effect)
+    {
+        var panel = PlayerDashVfxComparisonPanelBootstrap.Attach(effect);
+        fixtures.Add(panel.gameObject);
+        effect.SetColorStyle(0);
+        Check(panel.SelectionCount == 7, "임시 단일 버튼7색상");
+        for (int i = 1; i <= panel.SelectionCount; i++)
+        {
+            panel.Cycle(1);
+            Check(panel.SelectionIndex == i % panel.SelectionCount, "단일 버튼 순환 " + i);
+            yield return null;
+        }
+        panel.Cycle(-1); Check(panel.SelectionIndex == 6, "Shift 이전 색상 순환");
+        panel.Cycle(1); Check(panel.SelectionIndex == 0, "기본 색상 복귀");
+        var originalWeapon = weaponItem;
+        var colors = new List<object>();
+        var elementColors = new List<object>();
+        try
+        {
+            for (int color = 0; color < PlayerDashVfx.ColorNames.Length; color++)
+            {
+                effect.SetColorStyle(color); yield return Reset(); yield return StartDodge(false); Send();
+                Color tint = effect.CurrentTint;
+                Color accent = effect.CurrentAccent;
+                Check(effect.GroundDustTint == new Color(.53f,.48f,.39f,.18f), "모든 잔상 색상에서 갈색 먼지 " + color);
+                if(color==1)Check(tint.r>.99f && tint.b>.9f && accent.r>.99f && accent.g>.9f && accent.b<.4f, "흰색 몸체와 밝은 노랑 가장자리");
+                Check(tint.a > 0f && tint.a <= .23f, "색상 변경 밝기 제한 " + color);
+                colors.Add(new { color, name = PlayerDashVfx.ColorNames[color], tint = new[] { tint.r, tint.g, tint.b, tint.a }, accent = new[]{accent.r,accent.g,accent.b,accent.a} });
+                yield return CompleteEvade("색상 " + color, 5f, .48f, false);
+            }
+            Color[] expected = {new Color(1f,.3f,.1f),new Color(.42f,.87f,1f),new Color(.59f,.53f,1f),new Color(.42f,.13f,.25f),new Color(1f,.91f,.56f)}; int index = 0;
+            foreach (var element in new[] { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light })
+            {
+                weaponItem = new ItemData(originalWeapon.baseData, 1, ItemGrade.Common, element: element);
+                effect.SetColorStyle(6); yield return Reset(); yield return StartDodge(false); Send();
+                var actual = effect.CurrentTint;
+                var fixedColor = expected[index++];
+                Check(Mathf.Abs(actual.r-fixedColor.r)<.001f && Mathf.Abs(actual.g-fixedColor.g)<.001f && Mathf.Abs(actual.b-fixedColor.b)<.001f,
+                    "실제 장착 원소 자동색 " + element);
+                elementColors.Add(new{element=element.ToString(),tint=new[]{actual.r,actual.g,actual.b,actual.a}});
+                yield return CompleteEvade("원소 자동색 " + element, 5f, .48f, false);
+            }
+            weaponItem = originalWeapon; effect.SetColorStyle(0); yield return Reset();
+            pointerAtComparison = true; Send(false, false, true); yield return Frames(3);
+            Check(GameplayInputBlocker.IsGameplayInputBlocked && !melee.IsAttackInProgress, "임시 버튼 위 클릭 공격 차단");
+            Send(); pointerAtComparison = false; yield return Frames(3);
+            Check(!GameplayInputBlocker.IsGameplayInputBlocked, "버튼 밖 게임 입력 반환");
+            ScreenCapture.CaptureScreenshot(Path.Combine(output,"ComparisonButton.png")); yield return Wait(.2f);
+            File.WriteAllText(Path.Combine(output,"Palette.json"),JsonConvert.SerializeObject(new{status="PASS",colorsCount=panel.SelectionCount,colors,elementColors},Formatting.Indented));
+        }
+        finally
+        {
+            pointerAtComparison = false; weaponItem = originalWeapon; effect.SetColorStyle(0);
+            fixtures.Remove(panel.gameObject); UnityEngine.Object.DestroyImmediate(panel.gameObject);
+        }
     }
     static IEnumerator CompleteEvade(string label, float distance, float duration, bool checkPose = true)
     {
@@ -384,6 +569,12 @@ public static class PlayerEvadeVerifier
             blocker = new GameObject("OwnedEvadeInputBlocker");
             evade.OnEvadeStarted += Started; evade.OnEvadeEnded += Ended;
             poseProbe = blocker.AddComponent<PlayerEvadePoseProbe>(); poseProbe.animator = animator;
+            if (dashVisualOnly)
+            {
+                if (paletteOnly) yield return VerifyDashPalette(actor.GetComponent<PlayerDashVfx>());
+                else yield return VerifyDashVisualComparison();
+                yield break;
+            }
             if (lightOnly) { yield return VerifyDodgeLightOverlap(); yield return VerifyDodgeComboResume(); yield return VerifyDodgeLightRecovery(); yield break; }
             yield return Reset(false); yield return StartDodge(false);
             Check(evade.ActiveType == PlayerEvadeType.ExplorationDodge && !evade.IsInvincible && !evade.IsPerfectEvadeWindowActive, "탐험 닷지와 무적 없음");
@@ -400,26 +591,26 @@ public static class PlayerEvadeVerifier
                 bool front = Mathf.Abs(angle) <= 90;
                 Check(evade.ActiveType == (front ? PlayerEvadeType.CombatDodge : PlayerEvadeType.Roll), "시작 정면 180도 분기 " + angle + " (actual=" + evade.ActiveType + ")");
                 Check(front ? !evade.IsPerfectEvadeWindowActive : evade.IsPerfectEvadeWindowActive, "퍼펙트 구르기 전용 " + angle);
-                Send(); yield return CompleteEvade("combat angle " + angle, 4, front ? .48f : .45f);
+                Send(); yield return CompleteEvade("combat angle " + angle, front ? evade.Profile.combatDodge.distance : 4f, front ? .48f : .45f);
             }
             yield return Reset(); yield return StartDodge(false); Send(false, false, true); yield return Frames(2); Send();
             Check(input.CombatInputs.PendingDodgeFollowUp == PlayerDodgeFollowUpKind.Light, "닷지 중 짧은 좌클릭 예약");
-            yield return CompleteEvade("light queued", 4, .48f);
+            yield return CompleteEvade("light queued", evade.Profile.combatDodge.distance, .48f);
             yield return Frames(1);
             Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Light && Field<int>(melee, "comboStepIndex") == 0, "예약 약공 진입 1타");
             int action = Field<int>(melee, "activeActionId"); bool continued = false; float tapEnd = Time.unscaledTime + 2f;
             while (Time.unscaledTime < tapEnd) { continued |= melee.IsAttackInProgress && Field<int>(melee, "comboStepIndex") > 0; yield return null; }
             Check(!melee.IsAttackInProgress && !continued && Field<int>(melee, "nextActionId") == action + 1, "짧은 클릭 한 타만 실행");
-            yield return Reset(); yield return StartDodge(true, true); yield return CompleteEvade("same frame held light", 4, .48f);
+            yield return Reset(); yield return StartDodge(true, true); yield return CompleteEvade("same frame held light", evade.Profile.combatDodge.distance, .48f);
             yield return Frames(1);
             Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Light, "Shift·클릭 같은 프레임 수락");
             float continuationLimit = Time.unscaledTime + 3;
             while (melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Light) { Check(Time.unscaledTime < continuationLimit, "일반 1타 연결 제한"); yield return null; }
             Check(melee.IsAttackInProgress && melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.None && Field<int>(melee, "comboStepIndex") == 0, "좌클릭 홀드 일반 1타 연결"); Send();
             yield return Reset(); melee.SetManualInputEnabled(false); Send(); yield return Frames(2); Send(false, false, true); yield return Frames(2);
-            yield return StartDodge(false, true); melee.SetManualInputEnabled(true); yield return CompleteEvade("held before", 4, .48f);
+            yield return StartDodge(false, true); melee.SetManualInputEnabled(true); yield return CompleteEvade("held before", evade.Profile.combatDodge.distance, .48f);
             Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Light, "회피 전 유지한 좌클릭 전용 공격 수락"); Send();
-            yield return Reset(); yield return StartDodge(false); yield return CompleteEvade("no click", 4, .48f);
+            yield return Reset(); yield return StartDodge(false); yield return CompleteEvade("no click", evade.Profile.combatDodge.distance, .48f);
             Send(false, false, true); yield return Frames(2);
             Check(melee.IsAttackInProgress && melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.None, "닷지 종료 후 클릭 일반 공격"); Send();
 
@@ -433,7 +624,7 @@ public static class PlayerEvadeVerifier
             string heavyStep = JsonUtility.ToJson(normalHeavyStep);
             float damageMultiplier = Field<float>(melee, "activeAttackDamageMultiplier");
             melee.CancelCurrentAttackState(); yield return Reset(); yield return StartDodge(false); Send(false, false, true, true); yield return Frames(2); Send();
-            yield return CompleteEvade("both heavy priority", 4, .48f);
+            yield return CompleteEvade("both heavy priority", evade.Profile.combatDodge.distance, .48f);
             yield return Frames(1);
             Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy && melee.IsHeavyAttackInProgress, "좌우 경합 강공 한 번");
             Check(heavyStep == JsonUtility.ToJson(Field<MeleeComboStepData>(melee, "activeAttackStep"))
@@ -473,10 +664,10 @@ public static class PlayerEvadeVerifier
             Check(!melee.IsAttackInProgress && input.CombatInputs.PendingDodgeFollowUp == PlayerDodgeFollowUpKind.None,
                 "종료 이벤트 입력 무효화가 LateUpdate 전달도 취소"); invalidateOnCompletion = false;
             yield return Reset(); OverburstTimeEffectArbiter.Request(blocker, OverburstTimeEffectKind.PerfectEvade, .15f, .8f);
-            yield return Frames(2); yield return StartDodge(false); yield return CompleteEvade("slow clock", 4, .48f);
+            yield return Frames(2); yield return StartDodge(false); yield return CompleteEvade("slow clock", evade.Profile.combatDodge.distance, .48f);
             OverburstTimeEffectArbiter.ClearOwner(blocker); yield return Wait(.2f);
             yield return Reset(); OverburstTimeEffectArbiter.Request(blocker, OverburstTimeEffectKind.HitStop, .01f, .5f);
-            yield return Frames(2); yield return StartDodge(false); yield return CompleteEvade("hitstop clock", 4, .48f);
+            yield return Frames(2); yield return StartDodge(false); yield return CompleteEvade("hitstop clock", evade.Profile.combatDodge.distance, .48f);
             OverburstTimeEffectArbiter.ClearOwner(blocker); yield return Wait(.2f);
             yield return Reset(); yield return StartDodge(false); pauseRecorded = false; requestPause = true;
             while (!pauseRecorded) yield return null;
@@ -488,7 +679,7 @@ public static class PlayerEvadeVerifier
                 + ",evading=" + evade.IsEvading + ",progress=" + (evade.ActiveNormalizedTime - frozenProgress) + ",drift=" + drift.magnitude + ")");
             requestResume = true; while (requestResume) yield return null; yield return Wait(.5f);
             Vector3 resumedTravel = endPosition - startPosition; resumedTravel.y = 0;
-            Check(evade.LastEndWasCompleted && Mathf.Abs(resumedTravel.magnitude - 4f) < .12f && !melee.IsAttackInProgress,
+            Check(evade.LastEndWasCompleted && Mathf.Abs(resumedTravel.magnitude - evade.Profile.combatDodge.distance) < .12f && !melee.IsAttackInProgress,
                 "메뉴 닫기 후 남은 회피만 완료·공격 예약 없음");
             for (int i = 0; i < 8; i++)
             {
@@ -503,6 +694,7 @@ public static class PlayerEvadeVerifier
         {
             InputSystem.onBeforeUpdate -= PoseStart; poseNextStart = false; heldMove = heldShift = heldLeft = heldRight = false;
             requestPause = requestResume = pauseRecorded = invalidateOnCompletion = false;
+            pointerAtComparison = false;
             if (OverburstGameMenu.IsOpen) OverburstGameMenu.Instance?.Close();
             if (evade != null) { evade.OnEvadeStarted -= Started; evade.OnEvadeEnded -= Ended; evade.CancelForKnockdown(); evade.enabled = true; }
             if (input != null) { input.EnableGameplay(); input.RuntimeAsset.devices = previousDevices; }
@@ -561,7 +753,7 @@ public static class PlayerEvadeVerifier
             bool audibleVoiceInWindup = false;
             try
             {
-                Vector3 endpoint = startPosition + evade.ActiveDirection * 4f;
+                Vector3 endpoint = startPosition + evade.ActiveDirection * evade.Profile.combatDodge.distance;
                 string[] names = { "left", "center", "right" }; float[] angles = { -60, 0, 60 };
                 for (int i = 0; i < names.Length; i++)
                 {
@@ -842,7 +1034,7 @@ public static class PlayerEvadeVerifier
         var damageFrames = new List<int>();poseProbe.frames.Clear();
         try
         {
-            Vector3 endpoint = startPosition + evade.ActiveDirection * 4f;
+            Vector3 endpoint = startPosition + evade.ActiveDirection * evade.Profile.combatDodge.distance;
             var names = new[] { "left", "center", "right" };
             var angles = new[] { -60f, 0f, 60f };
             for (int i = 0; i < names.Length; i++)

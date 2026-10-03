@@ -22,15 +22,15 @@ public sealed class PlayerEvadeProfile : ScriptableObject
     public const string DodgeLightState = "Melee_DodgeAttack";
     public const string CombatStatePrefix = "Melee_Dodge_";
 
-    [Header("탐험 이동")]
+    [Header("탐험 대시")]
     public PlayerEvadeMotionSettings exploration = new PlayerEvadeMotionSettings
     { distance = 5f, duration = .30f, cooldown = .80f, moveEase = .35f };
     public AnimationClip explorationDodge;
     public AnimationClip explorationDodgeToRun;
 
-    [Header("전투 접근")]
+    [Header("전투 대시")]
     public PlayerEvadeMotionSettings combatDodge = new PlayerEvadeMotionSettings
-    { distance = 4f, duration = .48f, invincibleDuration = .10f, cooldown = .50f, moveEase = .35f };
+    { distance = 5f, duration = .48f, invincibleDuration = .10f, cooldown = .50f, moveEase = .35f };
     public DirectionalAnimationSet8 combatClips;
     [Min(0f)] public float entryBlend = .04f;
     [Min(0f)] public float exitBlend = .08f;
