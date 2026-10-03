@@ -1118,6 +1118,70 @@ MonoBehaviour:
       width: 0.78125
       height: 0.6953125
     opticalScale: 1
+  - sprite: {fileID: 21300000, guid: e08a9fd44dabdd64d84b21970224db73, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.0859375
+      y: 0.1171875
+      width: 0.8203125
+      height: 0.7890625
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: d9b43d07a66eed04181dec4a0b520e7c, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.1484375
+      y: 0.09375
+      width: 0.71875
+      height: 0.8203125
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: bf8b210dcc66db045a6d20a78c839a01, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.1484375
+      y: 0.0546875
+      width: 0.671875
+      height: 0.8671875
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: 9aef6db93e3a6fb4890b517356ce5a9c, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.0859375
+      y: 0.15625
+      width: 0.8671875
+      height: 0.796875
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: 36bd84149c2ff774995313014b24ca8b, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.078125
+      y: 0.078125
+      width: 0.84375
+      height: 0.8359375
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: 741b29b25ca75cd4fa680215ad9bb0fb, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.078125
+      y: 0.09375
+      width: 0.8359375
+      height: 0.828125
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: a0afb24560e9c3646b1c4a62029a9b23, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.046875
+      y: 0.2265625
+      width: 0.90625
+      height: 0.6484375
+    opticalScale: 1
+  - sprite: {fileID: 21300000, guid: 24dd6509dcad5c04b8b4940c74ff33fd, type: 3}
+    bounds:
+      serializedVersion: 2
+      x: 0.0546875
+      y: 0.1484375
+      width: 0.890625
+      height: 0.703125
+    opticalScale: 1
   referenceSize: 23
 --- !u!1 &992984186094541677
 GameObject:

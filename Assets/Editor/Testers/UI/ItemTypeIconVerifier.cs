@@ -105,7 +105,7 @@ public static class ItemTypeIconVerifier
             var shop = AssetDatabase.LoadAssetAtPath<GameObject>(ItemTypeIconBuilder.Prefabs[1]).GetComponentsInChildren<SlotUI>(true)[0].gameObject;
             Label(canvas.transform, "84px slots / type badge 23 / existing element badge 23", new Vector2(-610, 155), 14);
             Label(canvas.transform, "84px shop slots / shared type badge 23 / element badge 23", new Vector2(-610, -20), 14);
-            string[] labels = ItemTypeIconBuilder.Names.Concat(new[] { "Fire", "Ice", "Electric", "Dark", "Light" }).ToArray();
+            string[] labels = ItemTypeIconBuilder.Names.Take(8).Concat(new[] { "Fire", "Ice", "Electric", "Dark", "Light" }).ToArray();
             for (int row = 0; row < 2; row++)
                 for (int i = 0; i < samples.Length; i++)
                 {

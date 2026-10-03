@@ -72,6 +72,13 @@ public sealed class ItemTypeIconView : MonoBehaviour
                 case GearKind.Earring: return 6;
             }
         }
-        return -1;
+        // 원소보석은 기존 원소 배지를 사용하고 지도는 별도 분류를 유지한다.
+        if (item.baseData is ElementGemItemData || item.baseData is MapItemData) return -1;
+        int display = (int)item.baseData.inventoryIconCategory;
+        if (display != 0) return display >= 9 && display <= 16 ? display - 1 : -1;
+        if (item.baseData is QuestItemData) return 9;
+        if (item.baseData is ConsumableItemData) return 10; // 영구 장착형 물약도 기존 상속으로 포함한다.
+        if (item.baseData is CurrencyItemData) return 13;
+        return 8;
     }
 }

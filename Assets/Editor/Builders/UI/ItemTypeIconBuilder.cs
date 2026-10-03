@@ -9,10 +9,12 @@ using Object = UnityEngine.Object;
 
 public static class ItemTypeIconBuilder
 {
-    public const string Output = "../개인파일/코덱스산출/UI/20261003_ItemTypeIcons";
+    public const string Output = "../개인파일/코덱스산출/UI/20261004_TypeIconsExpansion";
     public const string IconRoot = "Assets/ProjectOverburst/Resources/UI/ItemTypes/";
     public const string SharedSlot = WeaponElementIconBuilder.UiRoot + "Slots/PF_OverburstItemSlot_Rpg11.prefab";
-    public static readonly string[] Names = { "Weapon", "Helmet", "Armor", "Gloves", "Boots", "Necklace", "Earring", "Bag" };
+    public const int CatalogVersion = 2;
+    public static readonly string[] Names = { "Weapon", "Helmet", "Armor", "Gloves", "Boots", "Necklace", "Earring", "Bag",
+        "Misc", "Quest", "Consumable", "Material", "Key", "Currency", "Recipe", "Container" };
     public static readonly string[] Prefabs = { SharedSlot,
         WeaponElementIconBuilder.UiRoot + "PF_OverburstShopPanel_Rpg11.prefab",
         WeaponElementIconBuilder.UiRoot + "PF_OverburstTooltip_Rpg11.prefab" };
@@ -52,6 +54,43 @@ public static class ItemTypeIconBuilder
             slotReference = WeaponElementIconBuilder.SlotBadgeSize, shopReference = WeaponElementIconBuilder.ShopBadgeSize,
             visibleRatio = .87f, offset = new[] { WeaponElementIconBuilder.BadgeOffset.x, WeaponElementIconBuilder.BadgeOffset.y } };
         File.WriteAllText(Path.Combine(Output, "build-results.json"), JsonConvert.SerializeObject(report, Formatting.Indented));
+    }
+
+    [MenuItem("OVERBURST/UI/아이템 분류 아이콘 확장 연결")]
+    public static void ExtendArtwork()
+    {
+        RequireIdle();
+        Directory.CreateDirectory(Output);
+        var additions = Names.Skip(8).Select((name, index) => Import(index + 8, name)).ToArray();
+        int changed = 0;
+        foreach (string path in Prefabs)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (!asset) throw new InvalidOperationException("Missing prefab: " + path);
+            bool dirty = false;
+            foreach (var view in asset.GetComponentsInChildren<ItemTypeIconView>(true))
+            {
+                var serialized = new SerializedObject(view);
+                var array = serialized.FindProperty("artwork");
+                if (array.arraySize != 8 && array.arraySize != Names.Length)
+                    throw new InvalidOperationException("Unexpected artwork count: " + path + "/" + view.name);
+                array.arraySize = Names.Length;
+                for (int i = 0; i < additions.Length; i++)
+                {
+                    var value = array.GetArrayElementAtIndex(8 + i);
+                    value.FindPropertyRelative("sprite").objectReferenceValue = additions[i].sprite;
+                    value.FindPropertyRelative("bounds").rectValue = additions[i].bounds;
+                    value.FindPropertyRelative("opticalScale").floatValue = additions[i].opticalScale;
+                }
+                if (serialized.ApplyModifiedPropertiesWithoutUndo()) { dirty = true; changed++; }
+            }
+            // 기존 위치·크기·첫8종·장비창의 다른 변경은 저장 대상으로 건드리지 않는다.
+            if (dirty && !PrefabUtility.SavePrefabAsset(asset)) throw new InvalidOperationException("Save failed: " + path);
+        }
+        File.WriteAllText(Path.Combine(Output, "extension-build.json"), JsonConvert.SerializeObject(new {
+            status = "PASS", catalogVersion = CatalogVersion, changed, prefabs = Prefabs,
+            added = additions.Select(a => new { path = AssetDatabase.GetAssetPath(a.sprite), bounds = new[] { a.bounds.x, a.bounds.y, a.bounds.width, a.bounds.height }, a.opticalScale })
+        }, Formatting.Indented));
     }
 
     static ItemTypeIconView.Artwork Import(int index, string name)
