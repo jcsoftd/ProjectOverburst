@@ -205,7 +205,20 @@ public sealed class VisualPlayContext : IDisposable
         enemy.AbilityController.Configure(set, enemy.RuntimeStats.DamageMultiplier, 1);
         return ability;
     }
-    public void SingleStrong(EnemyActor enemy)
+    public void SingleAbility(EnemyActor enemy, EnemyAbilityDefinition ability)
+    {
+        Require(ability != null && ability.IsValid && enemy.Definition.AbilitySet != null
+            && Enumerable.Range(0, enemy.Definition.AbilitySet.Count).Select(enemy.Definition.AbilitySet.GetAbility).Contains(ability), "개체의 정식 행동이 아니에요");
+        var set = Own(ScriptableObject.CreateInstance<EnemyAbilitySet>());
+        var serialized = new UnityEditor.SerializedObject(set);
+        serialized.FindProperty("abilitySetId").stringValue = "VisualPlaySingleAbility";
+        serialized.FindProperty("abilities").arraySize = 1;
+        serialized.FindProperty("abilities").GetArrayElementAtIndex(0).objectReferenceValue = ability;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        enemy.AbilityController.Configure(set, enemy.RuntimeStats.DamageMultiplier, 1);
+        if (ability.IsTelegraphedStrongAttack) enemy.AbilityController.BeginStrongOnlyPass();
+    }
+    public EnemyAbilityDefinition SingleStrong(EnemyActor enemy)
     {
         var definition = enemy.Definition;
         var ability = Enumerable.Range(0, definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility).FirstOrDefault(value => value.IsMeleeStrongAttack && value.HitCount == 1);
@@ -218,6 +231,7 @@ public sealed class VisualPlayContext : IDisposable
         serialized.ApplyModifiedPropertiesWithoutUndo();
         enemy.AbilityController.Configure(set, enemy.RuntimeStats.DamageMultiplier, 1);
         enemy.AbilityController.BeginStrongOnlyPass();
+        return ability;
     }
     public static EnemyDefinition[] Definitions => EnemyThemeTrialService.Entries.SelectMany(entry => entry.Table.Entries)
         .Select(entry => entry.definition).Where(definition => definition != null).Distinct().OrderBy(definition => definition.EnemyId).ToArray();
@@ -259,9 +273,14 @@ public sealed class VisualPlayContext : IDisposable
     {
         if (disposed) return; disposed = true;
         ReleaseInput(); InputSystem.onBeforeUpdate -= Send; InputSystem.onAfterUpdate -= RestorePhysicalCurrent;
-        if (gameplay != null) gameplay.devices = previousGameplay;
-        if (ui != null) ui.devices = previousUi;
-        foreach (var pair in uiDeviceFilters) pair.Key.devices = pair.Value;
+        // Play 종료·재로딩에서 해제된 맵의 devices를 바꾸면 입력 상태가 다시 만들어질 수 있다.
+        var input = PlayerInputFacade.Current;
+        if (input != null && ReferenceEquals(input.GameplayMap, gameplay))
+        {
+            gameplay.devices = previousGameplay;
+            if (ui != null && ReferenceEquals(input.UiMap, ui)) ui.devices = previousUi;
+            foreach (var pair in uiDeviceFilters) if (pair.Key.asset != null) pair.Key.devices = pair.Value;
+        }
         RestorePhysicalCurrent();
         if (settings != null && InputSystem.settings == settings) InputSystem.settings = previousSettings;
         foreach (var device in new InputDevice[] { keyboard, mouse, pad }) if (device != null && device.added) InputSystem.RemoveDevice(device);

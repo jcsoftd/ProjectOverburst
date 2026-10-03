@@ -130,6 +130,7 @@ public static partial class VisualPlayScenarios
             : id == "VT09-10" || id == "VT18-16" ? (BaseItemData)VisualPlayContext.Items.OfType<ElementGemItemData>().Last() : Definition<WeaponItemData>(c);
         var item = c.Make(definition, ItemGrade.Legendary, id == "VT18-08" ? 8 : 1); VisualPlayContext.Require(c.Inventory.AddItem(item), "시각 확인 아이템 지급 실패");
         gameUi.inventory.SetVisible(true); gameUi.ToggleEquipment(); yield return c.Wait(2f);
+        if (id == "VT18-15") { yield return TooltipEdges(c, definition); yield break; }
         if (id == "VT18-01" || id == "VT18-04")
         {
             if (id == "VT18-04")
@@ -143,21 +144,49 @@ public static partial class VisualPlayScenarios
                 yield return c.Wait(2f);
             }
             gameUi.CloseEquipment(); gameUi.inventory.SetVisible(false); yield return c.Wait(2f);
-            gameUi.inventory.SetVisible(true); gameUi.ToggleEquipment(); yield return c.Wait(2f); yield break;
+            gameUi.inventory.SetVisible(true); gameUi.ToggleEquipment(); yield return c.Wait(2f);
+            if (id == "VT18-04")
+            {
+                gameUi.CloseEquipment(); gameUi.inventory.SetVisible(false);
+                c.Detail("실제 던전 입장·복귀 후 미리보기 다시 열기"); yield return EnterDungeon(c); yield return ReturnHideout(c);
+                gameUi = UnityEngine.Object.FindFirstObjectByType<OverburstGameUI>();
+                VisualPlayContext.Require(gameUi != null, "복귀한 게임 UI가 없어요");
+                gameUi.inventory.SetVisible(true); gameUi.ToggleEquipment(); yield return c.Wait(3f);
+                VisualPlayContext.Require(UnityEngine.Object.FindFirstObjectByType<OverburstUICharacterPreview>() != null, "복귀 후 미리보기가 없어요");
+            }
+            yield break;
         }
         if (id == "VT18-02" || id == "VT18-03" || id == "VT18-16")
         {
             if (definition is WeaponItemData weapon) c.Equip(weapon); else c.Gem(WeaponElement.Fire);
             gameUi.Refresh(); yield return c.Wait(2f);
+            if (id == "VT18-02")
+            {
+                c.Detail("다른 무기 교체");
+                var other = VisualPlayContext.Items.OfType<WeaponItemData>().FirstOrDefault(value => value != definition && WeaponContentPolicy.IsAllowedItemData(value));
+                VisualPlayContext.Require(other != null, "교체할 다른 무기가 없어요"); c.Equip(other); gameUi.Refresh(); yield return c.Wait(2f);
+                c.Detail("활성 무기 해제"); VisualPlayContext.Require(c.Actor.Equipment.ClearWeaponSlot(c.Actor.Equipment.ActiveWeaponSlotIndex), "무기 해제 실패");
+                gameUi.Refresh(); VisualPlayContext.Require(c.Actor.Equipment.CurrentWeaponItem == null, "무기 해제가 표시되지 않았어요"); yield return c.Wait(2f); yield break;
+            }
             if (definition is ElementGemItemData) { ElementGemEquipmentService.UnequipToInventory(); gameUi.Refresh(); }
         }
         if (id == "VT18-09")
         {
-            var consumable = VisualPlayContext.Items.OfType<ConsumableItemData>().First(data => !(data is FlaskItemData));
-            var potion = c.Make(consumable, ItemGrade.Common, 5); c.Inventory.AddItem(potion);
+            var consumable = VisualPlayContext.Items.OfType<ConsumableItemData>().First(data => !(data is FlaskItemData) && data.consumableType == ConsumableType.HealHp);
+            var potion = c.Make(consumable, ItemGrade.Common, 5); VisualPlayContext.Require(c.Inventory.AddItem(potion), "퀵슬롯 아이템 준비 실패");
             var quick = UnityEngine.Object.FindFirstObjectByType<InventoryQuickSlotBindingController>();
-            for (int key = 1; key <= 10; key++) { VisualPlayContext.Require(quick.Bind(key, potion), "퀵슬롯 지정 실패"); yield return c.Wait(.5f); }
-            yield return c.Wait(2f); for (int key = 1; key <= 10; key++) quick.Clear(key);
+            VisualPlayContext.Require(quick != null, "퀵슬롯 연결이 없어요");
+            var replacement = c.Make(VisualPlayContext.Items.OfType<ConsumableItemData>().First(data => !(data is FlaskItemData) && data.consumableType == ConsumableType.SpeedBoost), ItemGrade.Common, 5);
+            VisualPlayContext.Require(c.Inventory.AddItem(replacement), "퀵슬롯 교체 전 아이템 준비 실패");
+            for (int key = 1; key <= 10; key++) { VisualPlayContext.Require(quick.Bind(key, replacement), "퀵슬롯 지정 실패"); yield return c.Wait(.5f); }
+            c.Detail("1번 퀵슬롯을 회복 물약으로 교체"); VisualPlayContext.Require(quick.Bind(1, potion), "퀵슬롯 교체 실패"); yield return c.Wait(2f);
+            c.Actor.Health.TakeDamage(new DamageInfo(c.Actor.Health.MaxHp * .5f, c.Actor.transform.position));
+            int countBefore = c.Inventory.FindFirstItemByBaseData(consumable).stackCount;
+            var use = UnityEngine.Object.FindFirstObjectByType<InventoryItemActionService>();
+            VisualPlayContext.Require(use != null && use.UseQuickSlot(1), "퀵슬롯 사용 실패");
+            VisualPlayContext.Require(c.Inventory.FindFirstItemByBaseData(consumable).stackCount < countBefore, "퀵슬롯 사용이 수량에 반영되지 않았어요");
+            c.Detail("퀵슬롯 사용 후 수량·쿨다운 표시"); yield return c.Wait(3f);
+            for (int key = 1; key <= 10; key++) quick.Clear(key); yield return c.Wait(2f);
             yield break;
         }
         if (id == "VT18-11" || id == "VT18-12" || id == "VT18-13")
@@ -219,13 +248,33 @@ public static partial class VisualPlayScenarios
             VisualPlayContext.Require(flasks.TryEquip(i, item, out string reason), reason);
         }
         yield return c.Wait(2f);
+        if (id == "VT19-10" && c.Entry.variant == "사망")
+        {
+            yield return EnterDungeon(c); flasks = PlayerFlaskController.Current;
+            VisualPlayContext.Require(flasks != null, "던전의 물약 컨트롤러가 없어요");
+        }
         if (id == "VT19-01") { for (int i = 0; i < amount; i++) { flasks.TryUnequip(i, out _); yield return c.Wait(1f); } yield break; }
         c.Actor.Health.TakeDamage(new DamageInfo(c.Actor.Health.MaxHp * .5f, c.Actor.transform.position));
         for (int i = 0; i < amount; i++) VisualPlayContext.Require(flasks.TryUse(i, out string reason), reason);
         yield return c.Wait(3f);
         if (id == "VT19-04") { flasks.TryUse(0, out string reason); c.Detail(reason); yield return c.Until(() => flasks.CooldownRemaining(0) <= 0, 120, "쿨다운 종료"); }
         if (id == "VT19-09") yield return c.Until(() => flasks.Remaining(0) <= 0, 120, "버프 자연 만료");
-        if (id == "VT19-10") flasks.ClearEffects();
+        if (id == "VT19-10")
+        {
+            c.Detail("물약 사용 후 " + c.Entry.variant);
+            if (c.Entry.variant == "장비 교체")
+            {
+                c.Equip(Definition<WeaponItemData>(c)); yield return c.Wait(2f);
+                var other = VisualPlayContext.Items.OfType<WeaponItemData>().First(value => value != Definition<WeaponItemData>(c) && WeaponContentPolicy.IsAllowedItemData(value));
+                c.Equip(other); yield return c.Wait(3f);
+            }
+            else if (c.Entry.variant == "씬 왕복") { yield return EnterDungeon(c); yield return ReturnHideout(c); yield return c.Wait(3f); }
+            else
+            {
+                c.Actor.Health.TakeDamage(new DamageInfo(c.Actor.Health.MaxHp * 100f, c.Actor.transform.position));
+                yield return c.Until(() => WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, 45, "물약 사용 후 사망 귀환"); yield return c.Wait(3f);
+            }
+        }
     }
     static IEnumerator Shop(VisualPlayContext c)
     {
@@ -323,6 +372,84 @@ public static partial class VisualPlayScenarios
         }
         ClickField(shop, "confirmButton"); yield return c.Wait(3f);
     }
+    static IEnumerator ReturnHideout(VisualPlayContext c)
+    {
+        var driver = PersistentSceneFlow.Instance?.GetComponent<RunLifetimeDriver>(); VisualPlayContext.Require(driver != null, "귀환 관리자가 없어요");
+        driver.RequestAbandon(); yield return c.Until(() => WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, 45, "하이드아웃 귀환"); yield return c.Wait(2f);
+    }
+    static ItemData PrepareMap(VisualPlayContext c, int level, ItemGrade grade, string theme = null)
+    {
+        var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01"); var account = AccountGameplaySession.Current;
+        VisualPlayContext.Require(definition != null && account != null, "지도 정의와 테스트 계정이 필요해요");
+        var item = new ItemData(definition, level, grade);
+        item.mapState = new MapInstanceState { mapContentId = Field<AccountContentRegistry>(account, "registry").IdFor(definition), level = level, grade = grade,
+            monsterThemeId = theme ?? MapThemeCatalog.RollThemeId(), options = MapOptionPolicy.Roll(grade) };
+        VisualPlayContext.Require(c.Inventory.AddItem(item), "지도 아이템 준비 실패"); return item;
+    }
+    static IEnumerator PortalEntry(VisualPlayContext c, bool free, ItemData map = null, bool fail = false, bool cancelFirst = false)
+    {
+        var portal = Targets().OfType<MapDungeonPortal>().FirstOrDefault(); yield return Approach(c, portal);
+        VisualPlayContext.Require(portal.TryInteract(c.Actor) != InteractionExecutionResult.Rejected, "포탈 선택창 열기 실패"); yield return c.Wait(2f);
+        var panel = UnityEngine.Object.FindFirstObjectByType<MapDungeonPortalPanel>(); VisualPlayContext.Require(panel != null, "지도 선택창이 없어요");
+        if (cancelFirst)
+        {
+            c.Detail("입장 선택 취소"); ClickNamed(panel, "Close"); yield return c.Wait(1f);
+            VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, "취소 후 씬이 전환됐어요");
+            portal.TryInteract(c.Actor); yield return c.Wait(1f); panel = UnityEngine.Object.FindFirstObjectByType<MapDungeonPortalPanel>();
+        }
+        if (free) ClickNamed(panel, "FreeLevelOne");
+        else
+        {
+            VisualPlayContext.Require(map != null, "선택할 지도 아이템이 없어요");
+            var maps = Field<System.Collections.Generic.List<ItemData>>(panel, "maps"); int index = maps.FindIndex(value => value.runtimeInstanceId == map.runtimeInstanceId);
+            VisualPlayContext.Require(index >= 0 && index < 7, "선택할 지도 행이 첫 페이지에 없어요"); ClickNamed(panel, "MapRow_" + index);
+        }
+        c.Detail(free ? "무료 입장 선택" : "소유 지도 선택과 상세 정보"); yield return c.Wait(3f);
+        if (fail)
+        {
+            VisualPlayContext.Require(c.Inventory.RemoveItem(map), "입장 실패 조건 준비 실패");
+            ClickNamed(panel, "Enter"); yield return c.Wait(3f);
+            VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching && !string.IsNullOrWhiteSpace(Field<TMPro.TMP_Text>(panel, "status").text), "입장 실패 안내가 표시되지 않았어요");
+            ClickNamed(panel, "Close"); yield return c.Wait(1f); yield break;
+        }
+        ClickNamed(panel, "Enter"); yield return c.Until(() => !PersistentSceneFlow.Instance.IsSwitching && WorldSessionState.Phase == WorldPhase.Run, 60, "포탈 버튼 입장");
+        if (map != null)
+        {
+            var active = AccountGameplaySession.Current.ReadRun().map;
+            VisualPlayContext.Require(active.level == map.mapState.level && active.grade == map.mapState.grade && active.monsterThemeId == map.mapState.monsterThemeId, "선택 지도의 레벨·등급·테마가 런과 달라요");
+        }
+        yield return c.Wait(3f);
+    }
+    static IEnumerator TooltipEdges(VisualPlayContext c, BaseItemData original)
+    {
+        // 표시 전용 복제다. 정식 아이템·저장·인벤토리에는 등록하지 않는다.
+        var definition = c.Own(UnityEngine.Object.Instantiate(original));
+        definition.itemName = "매우 긴 이름을 가진 시각 확인용 전설 장비 — 이름 줄바꿈과 화면 가장자리 확인";
+        definition.description = string.Join("\n", Enumerable.Repeat("긴 설명과 옵션 영역의 줄바꿈을 확인합니다.", 12));
+        var item = c.Make(definition, ItemGrade.Legendary); var manager = TooltipManager.Instance;
+        var tooltip = UnityEngine.Object.FindFirstObjectByType<OverburstGameTooltip>(FindObjectsInactive.Include);
+        VisualPlayContext.Require(manager != null && tooltip != null, "실제 게임 툴팁 연결이 없어요");
+        var slot = UnityEngine.Object.FindObjectsByType<SlotUI>(FindObjectsSortMode.None).FirstOrDefault(value => value.isActiveAndEnabled && value.DisplayItem != null);
+        if (slot != null) Hover(slot); manager.ShowTooltip(item);
+        foreach (Vector2 corner in new[] { new Vector2(2, 2), new Vector2(Screen.width - 2, 2), new Vector2(2, Screen.height - 2), new Vector2(Screen.width - 2, Screen.height - 2) })
+        {
+            c.Detail("긴 툴팁 · 화면 모서리 " + corner);
+            Canvas.WillRenderCanvases place = () => tooltip.Place(corner);
+            Canvas.willRenderCanvases += place;
+            try { tooltip.Place(corner); yield return c.Wait(3f); }
+            finally { Canvas.willRenderCanvases -= place; }
+        }
+        // 현재 제품 화면의 스크롤이 있을 때 실제 슬롯 Hover를 유지한 채 끝까지 이동한다.
+        var scroll = UnityEngine.Object.FindObjectsByType<ScrollRect>(FindObjectsSortMode.None).FirstOrDefault(value => value.isActiveAndEnabled && value.GetComponentInChildren<SlotUI>() != null);
+        if (scroll != null)
+        {
+            float previous = scroll.verticalNormalizedPosition;
+            try { c.Detail("스크롤·마스크 안 슬롯의 툴팁"); scroll.verticalNormalizedPosition = 0; manager.ShowTooltip(item); yield return c.Wait(3f); }
+            finally { scroll.verticalNormalizedPosition = previous; }
+        }
+        else { c.Detail("현재 가방 화면은 스크롤 없이 고정 슬롯을 표시해요 · 모서리와 긴 내용 확인"); yield return c.Wait(2f); }
+        manager.HideTooltip();
+    }
     static IEnumerator EnterDungeon(VisualPlayContext c)
     {
         var entry = DebugHub.Host.GetComponent<DungeonDebugEntry>() ?? DebugHub.Host.AddComponent<DungeonDebugEntry>();
@@ -333,13 +460,29 @@ public static partial class VisualPlayScenarios
     static IEnumerator Dungeon(VisualPlayContext c)
     {
         string id = c.Entry.caseId;
-        if (id == "VT21-01" || id == "VT21-05" || id == "VT21-10")
+        if (id == "VT21-01")
         {
-            var portal = Targets().FirstOrDefault(target => target is MapDungeonPortal); yield return Approach(c, portal); portal.TryInteract(c.Actor); yield return c.Wait(3f);
-            var panel = UnityEngine.Object.FindFirstObjectByType<MapDungeonPortalPanel>();
-            VisualPlayContext.Require(panel != null, "지도 선택창이 없어요"); ClickNamed(panel, "Close"); yield return c.Wait(1f);
+            yield return PortalEntry(c, true, cancelFirst: true); yield return ReturnHideout(c);
+            var map = PrepareMap(c, 10, ItemGrade.Rare); yield return PortalEntry(c, false, map); yield break;
+        }
+        if (id == "VT21-05")
+        {
+            var map = PrepareMap(c, 10, ItemGrade.Rare); yield return PortalEntry(c, false, map, fail: true);
+            c.Detail("실패 뒤 무료 입장 재시도"); yield return PortalEntry(c, true); yield break;
+        }
+        if (id == "VT21-10")
+        {
+            string[] condition = c.Entry.variant.Split('|'); int level = int.Parse(condition[0]); var grade = (ItemGrade)Enum.Parse(typeof(ItemGrade), condition[1]);
+            var map = PrepareMap(c, level, grade, condition[2]); yield return PortalEntry(c, false, map); yield break;
         }
         yield return EnterDungeon(c);
+        if (id == "VT21-07")
+        {
+            string firstRun = AccountGameplaySession.Current.ReadRun().runId;
+            c.Detail("첫 입장 후 실제 귀환"); yield return ReturnHideout(c);
+            c.Detail("같은 포탈에서 재입장"); yield return PortalEntry(c, true);
+            VisualPlayContext.Require(AccountGameplaySession.Current.ReadRun().runId != firstRun, "재입장에서 새 런이 시작되지 않았어요"); yield break;
+        }
         if (id == "VT21-09")
         {
             var guard = c.Actor.GetComponent<RunFallGuard>();
@@ -384,7 +527,13 @@ public static partial class VisualPlayScenarios
         }
         if (id == "VT23-05") { c.Actor.Health.TakeDamage(new DamageInfo(10000000, c.Actor.transform.position)); yield return c.Wait(8f); yield break; }
         if (id == "VT23-06")
-        { OverburstGameMenu.Instance.Open(); yield return c.Wait(2f); OverburstGameMenu.Instance.Close(); PersistentSceneFlow.Instance.GetComponent<RunLifetimeDriver>().RequestAbandon(); yield return c.Wait(8f); }
+        {
+            var menu = OverburstGameMenu.Instance; menu.Open(); yield return c.Wait(2f);
+            c.Detail("메뉴 귀환 확인창 취소"); ClickField(menu, "returnButton"); yield return c.Wait(2f); ClickField(menu, "modalCancel"); yield return c.Wait(2f);
+            VisualPlayContext.Require(WorldSessionState.Phase == WorldPhase.Run && !PersistentSceneFlow.Instance.IsSwitching, "귀환 취소 후 런이 종료됐어요");
+            c.Detail("메뉴 귀환 확인창 승인"); ClickField(menu, "returnButton"); yield return c.Wait(2f); ClickField(menu, "modalConfirm");
+            yield return c.Until(() => WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, 45, "메뉴 버튼 귀환"); yield return c.Wait(3f);
+        }
     }
 }
 #endif

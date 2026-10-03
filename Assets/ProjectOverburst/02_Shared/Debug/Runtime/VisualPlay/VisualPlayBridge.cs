@@ -24,6 +24,7 @@ namespace Overburst.DebugTools
         DebugResult Start(VisualPlayScope scope, string categoryId, string caseId);
         DebugResult Control(VisualPlayControl control);
         DebugResult Review(VisualPlayReview review, string note);
+        DebugResult UpdateNote(string note);
     }
 
     /// <summary>Runtime의 고정 디버그 UI와 Editor 시나리오 사이의 요청·표시 연결부.</summary>
@@ -36,7 +37,13 @@ namespace Overburst.DebugTools
         public static float ObserveSeconds = 4f;
         public static bool WaitAfterScenario;
         public static bool FullContent = true;
-        public static string Note = "";
+        private static string note = "";
+        public static string Note
+        {
+            get => note;
+            set { note = value ?? ""; Backend?.UpdateNote(note); }
+        }
+        public static void RestoreNote(string value) => note = value ?? "";
         public static VisualPlayState State => Backend?.State ?? idle;
         public static bool Running => State.Running;
         public static bool CanStart => Application.isEditor && Backend != null && !Running;

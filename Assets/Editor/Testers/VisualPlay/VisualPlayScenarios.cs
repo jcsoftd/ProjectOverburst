@@ -54,7 +54,54 @@ public static partial class VisualPlayScenarios
             }
             yield break;
         }
-        if (full && new[] { "VT16-01", "VT16-02", "VT16-03", "VT16-04", "VT16-05", "VT16-07" }.Contains(id))
+        if (id == "VT16-04" || id == "VT16-05")
+        {
+            var definitions = VisualPlayContext.Definitions;
+            var candidates = definitions.SelectMany(enemy => Abilities(enemy).Where(ability => MatchesMonsterAction(id, ability))
+                .Select(ability => new { enemy, ability })).ToArray();
+            if (!full) candidates = candidates.GroupBy(value => value.ability.ExecutionMode).Select(group => group.First()).ToArray();
+            foreach (var value in candidates)
+                yield return new VisualPlayEntry { caseId = id, variant = GuidFor(value.enemy) + "|" + GuidFor(value.ability),
+                    label = value.enemy.EnemyId + " · " + value.ability.AbilityId + " · " + value.ability.ExecutionMode };
+            if (candidates.Length == 0) yield return new VisualPlayEntry { caseId = id, variant = "unavailable", label = "연결된 행동 없음" };
+            yield break;
+        }
+        if (id == "VT16-06")
+        {
+            foreach (EnemyThemeTier tier in Enum.GetValues(typeof(EnemyThemeTier)))
+            {
+                var enemy = EnemyThemeTrialService.Entries.SelectMany(value => value.Table.Entries).Where(value => value.tier == tier).Select(value => value.definition).FirstOrDefault(value => value != null);
+                yield return new VisualPlayEntry { caseId = id, variant = tier + "|" + (enemy != null ? GuidFor(enemy) : ""), label = tier == EnemyThemeTier.Small ? "소형" : tier == EnemyThemeTier.Medium ? "중형" : "정예" };
+            }
+            yield return new VisualPlayEntry { caseId = id, variant = "Boss|", label = "실제 던전 보스" };
+            yield break;
+        }
+        if (id == "VT16-12")
+        {
+            foreach (int count in new[] { 5, 12, 24 }) yield return new VisualPlayEntry { caseId = id, variant = count.ToString(), label = "혼합 " + count + "마리" };
+            yield break;
+        }
+        if (id == "VT19-10")
+        {
+            foreach (string condition in new[] { "장비 교체", "씬 왕복", "사망" }) yield return new VisualPlayEntry { caseId = id, variant = condition, label = condition };
+            yield break;
+        }
+        if (id == "VT21-10")
+        {
+            var themes = MapThemeCatalog.Tables.Where(table => MapThemeCatalog.IsEnabledForRuns(table.ThemeId)).ToArray();
+            var grades = new[] { ItemGrade.Common, ItemGrade.Rare, ItemGrade.Legendary };
+            for (int i = 0; i < 3; i++)
+                yield return new VisualPlayEntry { caseId = id, variant = (1 + i * 9) + "|" + grades[i] + "|" + (themes.Length > 0 ? themes[i % themes.Length].ThemeId : ""),
+                    label = "레벨 " + (1 + i * 9) + " · " + grades[i] + " · " + (themes.Length > 0 ? themes[i % themes.Length].DisplayName : "테마 없음") };
+            yield break;
+        }
+        if (id == "VT22-06")
+        {
+            foreach (MapBuffKind kind in Enum.GetValues(typeof(MapBuffKind)))
+                yield return new VisualPlayEntry { caseId = id, variant = kind.ToString(), label = BuffLabel(kind) };
+            yield break;
+        }
+        if (full && new[] { "VT16-01", "VT16-02", "VT16-03", "VT16-07" }.Contains(id))
         {
             foreach (var enemy in VisualPlayContext.Definitions)
                 yield return new VisualPlayEntry { caseId = id, variant = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(enemy)), label = enemy.EnemyId + " · " + enemy.Grade.GradeType };
@@ -62,12 +109,27 @@ public static partial class VisualPlayScenarios
         }
         if (id == "VT08-04" || id == "VT08-06")
         {
-            foreach (string direction in new[] { "없음", "앞", "뒤", "왼쪽", "오른쪽", "앞왼쪽", "앞오른쪽", "뒤왼쪽", "뒤오른쪽" })
-                yield return new VisualPlayEntry { caseId = id, variant = direction, label = direction };
+            foreach (string mode in id == "VT08-06" ? new[] { "탐험", "전투" } : new[] { "전투" })
+                foreach (string direction in new[] { "없음", "앞", "뒤", "왼쪽", "오른쪽", "앞왼쪽", "앞오른쪽", "뒤왼쪽", "뒤오른쪽" })
+                    yield return new VisualPlayEntry { caseId = id, variant = mode + "|" + direction, label = mode + " · " + direction };
             yield break;
         }
         yield return new VisualPlayEntry { caseId = id, variant = "representative", label = "" };
     }
+    static string BuffLabel(MapBuffKind kind)
+    {
+        for (int seed = 0; seed < 500; seed++)
+        {
+            var choice = MapRunCardPolicy.Roll(new System.Random(seed), 1, 1).Choices.FirstOrDefault(value => value.Kind == MapCardKind.Buff && value.Buff == kind);
+            if (choice != null) return choice.Title;
+        }
+        return kind.ToString();
+    }
+    static string GuidFor(UnityEngine.Object value) => AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value));
+    static EnemyAbilityDefinition[] Abilities(EnemyDefinition definition) => definition?.AbilitySet == null ? Array.Empty<EnemyAbilityDefinition>()
+        : Enumerable.Range(0, definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility).Where(value => value != null && value.IsValid).ToArray();
+    static bool MatchesMonsterAction(string id, EnemyAbilityDefinition ability) => id == "VT16-04" ? ability.IsTelegraphedStrongAttack
+        : ability.ExecutionMode != EnemyAbilityExecutionMode.MeleeArc && ability.ExecutionMode != EnemyAbilityExecutionMode.DirectTarget;
     static T Definition<T>(VisualPlayContext c) where T : BaseItemData
     {
         string guid = (c.Entry.variant ?? "").Split('|')[0];
@@ -139,7 +201,7 @@ public static partial class VisualPlayScenarios
         PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
         yield return c.Wait(.8f);
     }
-    public static IEnumerator Attack(VisualPlayContext c, bool heavy, bool combo = false)
+    public static IEnumerator Attack(VisualPlayContext c, bool heavy, bool combo = false, Action duringAttack = null)
     {
         c.Aim(c.Actor.transform.position + Vector3.forward * 3f);
         WeaponActionHandle handle;
@@ -150,6 +212,7 @@ public static partial class VisualPlayScenarios
         float elapsed = 0;
         while (c.Melee.IsAttackInProgress)
         {
+            duringAttack?.Invoke();
             if (combo && elapsed < 5f) c.Melee.TryContinue(handle, request);
             elapsed += Mathf.Min(Time.unscaledDeltaTime, .1f);
             if (elapsed > 15) throw new TimeoutException("공격이 끝나지 않았어요");
@@ -192,6 +255,8 @@ public static partial class VisualPlayScenarios
         {
             c.Actor.Health.TakeDamage(new DamageInfo(10, c.Actor.transform.position, direction: Vector3.back)); yield break;
         }
+        if (id == "VT08-06" && c.Entry.variant.StartsWith("탐험|"))
+            PlayerCombatModeController.GetOrCreate().ExitCombatMode(PlayerCombatModeReason.System);
         var definition = VisualPlayContext.Definitions.FirstOrDefault(d => d.EnemyId == "CavernMutants_Ursacetus" && d.Grade.GradeType == EnemyGradeType.Elite);
         VisualPlayContext.Require(definition != null, "실제 넉다운 정예가 없어요");
         var ability = Enumerable.Range(0, definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility).First(a => a.IsMeleeStrongAttack && a.HitCount == 1);
@@ -220,7 +285,15 @@ public static partial class VisualPlayScenarios
         while (reaction.IsActive)
         {
             if (reaction.Phase == PlayerKnockdownPhase.Grounded && (id == "VT08-04" || id == "VT08-06"))
+            {
+                if (id == "VT08-06")
+                {
+                    var mode = PlayerCombatModeController.GetOrCreate(); bool combat = c.Entry.variant.StartsWith("전투|");
+                    if (combat) mode.EnterCombatMode(PlayerCombatModeReason.ManualToggle); else mode.ExitCombatMode(PlayerCombatModeReason.ManualToggle);
+                    VisualPlayContext.Require(mode.IsCombatModeActive == combat, "Shift 기상 모드 준비가 달라요");
+                }
                 c.Input(Direction(c.Entry.variant), id == "VT08-06" ? new[] { Key.LeftShift } : Array.Empty<Key>());
+            }
             if (reaction.Phase == PlayerKnockdownPhase.Rising) c.ReleaseInput();
             yield return null;
         }
@@ -248,7 +321,7 @@ public static partial class VisualPlayScenarios
             yield break;
         }
         if (id == "VT09-04" || id == "VT09-11") { yield return Attack(c, false); yield break; }
-        int count = id.EndsWith("05") || id == "VT12-04" || id == "VT13-08" ? 5 : id == "VT13-06" || id == "VT10-04" ? 3 : 1;
+        int count = id.EndsWith("05") || id == "VT12-04" || id == "VT13-08" ? 5 : id == "VT13-06" || id == "VT10-04" || id == "VT12-03" || id == "VT13-07" ? 3 : 1;
         var targets = new List<EnemyActor>();
         for (int i = 0; i < count; i++)
         {
@@ -282,7 +355,42 @@ public static partial class VisualPlayScenarios
             c.Detail("관찰 조건 준비 · 빛 최대 과충전과 광휘"); PrepareEnergy(energy, energy.Capacity); yield return c.Wait(1f);
             if (id == "VT14-02") { yield return c.Wait(8f); yield break; }
         }
-        c.Detail("강공 방출"); yield return Attack(c, true);
+        if (id == "VT13-07")
+        {
+            var camera = Camera.main; VisualPlayContext.Require(camera != null, "암흑 연타를 관찰할 카메라가 없어요");
+            var outside = targets.Last();
+            ActorTeleportUtility.TeleportSafely(outside.transform, c.Origin + Vector3.right * 25f, outside.transform.rotation);
+            Physics.SyncTransforms();
+            Vector3 viewport = camera.WorldToViewportPoint(outside.transform.position);
+            VisualPlayContext.Require(viewport.z <= 0 || viewport.x < 0 || viewport.x > 1 || viewport.y < 0 || viewport.y > 1, "화면 밖 표적을 준비하지 못했어요");
+            c.Detail("화면 안·밖 표적과 카메라 이동 중 연타");
+        }
+        bool chainObserved = false, barrageObserved = false;
+        c.Detail("강공 방출");
+        yield return Attack(c, true, duringAttack: () =>
+        {
+            if (id == "VT12-03" && !chainObserved && ElementChainScheduler.ActiveCastCount > 0)
+            {
+                chainObserved = true; c.Detail("전기 연쇄가 진행 중일 때 표적 사망");
+                targets[0].Health.TakeDamage(new DamageInfo(1000000, targets[0].transform.position, c.Actor.gameObject));
+                VisualPlayContext.Require(targets[0].Health.IsDead, "전기 연쇄 중 표적 사망이 적용되지 않았어요");
+            }
+            if (id == "VT13-07" && DarkBarrageScheduler.ActiveCount > 0)
+            {
+                barrageObserved = true; c.Input(Vector2.right); c.Scroll(-120);
+                c.Detail("화면 안·밖 표적과 카메라 이동 중 암흑 연타");
+            }
+        });
+        if (id == "VT12-03")
+        {
+            VisualPlayContext.Require(chainObserved, "표적 사망 전에 실제 전기 연쇄가 시작되지 않았어요");
+            yield return c.Until(() => ElementChainScheduler.ActiveCastCount == 0, 10, "전기 연쇄 종료");
+        }
+        if (id == "VT13-07")
+        {
+            VisualPlayContext.Require(barrageObserved, "카메라 이동 중 실제 암흑 연타가 시작되지 않았어요");
+            c.Scroll(0); c.Input(Vector2.left); yield return c.Wait(1.5f); c.ReleaseInput(); QuarterViewCamera.ActiveInstance?.ResetZoom();
+        }
         if (id == "VT13-06" || id == "VT14-06")
         {
             targets[0].Health.TakeDamage(new DamageInfo(1000000, targets[0].transform.position, c.Actor.gameObject));
@@ -318,12 +426,35 @@ public static partial class VisualPlayScenarios
         string id = c.Entry.caseId;
         if (id == "VT16-09" || id == "VT16-10")
         { var result = EnemyThemeTrialService.Begin(EnemyThemeTrialService.Entries[0], id == "VT16-10"); VisualPlayContext.Require(result.Success, result.Message); yield return c.Wait(20f); yield break; }
-        var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(c.Entry.variant))
+        string[] variant = (c.Entry.variant ?? "").Split('|');
+        if (id == "VT16-06" && variant[0] == EnemyGradeType.Boss.ToString() && (variant.Length < 2 || string.IsNullOrEmpty(variant[1])))
+        {
+            EnemyThemeTrialService.ToggleArena(); yield return EnterDungeon(c);
+            var world = UnityEngine.Object.FindFirstObjectByType<DiamondDungeonWorld>();
+            var boss = Field<GameObject>(world, "boss"); var health = Field<CombatHealth>(world, "bossHealth");
+            VisualPlayContext.Require(boss != null && health != null, "실제 던전 보스가 없어요");
+            ActorTeleportUtility.TeleportSafely(c.Actor.transform, boss.transform.position + Vector3.back * 4f, Quaternion.identity);
+            health.TakeDamage(new DamageInfo(10, health.transform.position, c.Actor.gameObject, direction: Vector3.forward)); yield return c.Wait(7f); yield break;
+        }
+        string enemyGuid = id == "VT16-06" ? variant.ElementAtOrDefault(1) : variant[0];
+        var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(enemyGuid ?? ""))
             ?? VisualPlayContext.Definitions.First(d => d.Grade.GradeType == EnemyGradeType.Normal);
-        int count = id == "VT16-12" ? 20 : id == "VT16-13" ? 12 : 1;
+        if (id == "VT16-06") VisualPlayContext.Require(EnemyThemeTrialService.Entries.SelectMany(value => value.Table.Entries).Any(value => value.definition == definition && value.tier.ToString() == variant[0]), "해당 체급의 실제 몬스터가 없어요");
+        int count = id == "VT16-12" ? int.Parse(variant[0]) : id == "VT16-13" ? 12 : 1;
+        var mixed = EnemyThemeTrialService.Entries.SelectMany(value => value.Table.Entries).Where(value => value.definition != null)
+            .GroupBy(value => value.tier).Select(group => group.First().definition).ToArray();
+        if (id == "VT16-08")
+        {
+            var wall = c.Own(GameObject.CreatePrimitive(PrimitiveType.Cube)); wall.name = "VisualPlay Pursuit Obstacle";
+            wall.transform.position = c.Origin + Vector3.forward * 2.5f + Vector3.up;
+            wall.transform.localScale = new Vector3(3f, 2f, .6f);
+            var obstacle = wall.AddComponent<UnityEngine.AI.NavMeshObstacle>(); obstacle.carving = true; Physics.SyncTransforms();
+            VisualPlayContext.Require(wall.GetComponent<Collider>() != null, "추적 장애물의 충돌체가 없어요");
+        }
         for (int i = 0; i < count; i++)
         {
-            var enemy = c.Spawn(definition, count == 1 ? new Vector3(0, 0, 1.6f) : new Vector3((i % 5 - 2) * 1.1f, 0, 3f + i / 5f), id == "VT16-02" || id == "VT16-08" || id == "VT16-12");
+            var selected = id == "VT16-12" ? mixed[i % mixed.Length] : definition;
+            var enemy = c.Spawn(selected, id == "VT16-08" ? Vector3.forward * 5f : count == 1 ? new Vector3(0, 0, 1.6f) : new Vector3((i % 5 - 2) * 1.1f, 0, 3f + i / 5f), id == "VT16-02" || id == "VT16-08" || id == "VT16-12");
             if (id == "VT16-03")
             {
                 var ability = c.SingleWeak(enemy);
@@ -334,11 +465,23 @@ public static partial class VisualPlayScenarios
             }
             if (id == "VT16-04" || id == "VT16-05")
             {
-                if (id == "VT16-04") c.SingleStrong(enemy);
-                if (!enemy.AbilityController.TryStart(c.Actor.transform)) throw new VisualPlayUnavailable("이 개체는 해당 거리에서 시작할 강공·특수 행동이 없어요");
+                var ability = AssetDatabase.LoadAssetAtPath<EnemyAbilityDefinition>(AssetDatabase.GUIDToAssetPath(variant.ElementAtOrDefault(1) ?? ""));
+                if (ability == null || !MatchesMonsterAction(id, ability)) throw new VisualPlayUnavailable("이 개체는 지정한 강공·특수 행동을 제공하지 않아요");
+                c.SingleAbility(enemy, ability);
+                float distance = Mathf.Lerp(ability.MinimumRange, ability.Range, .5f);
+                ActorTeleportUtility.TeleportSafely(enemy.transform, c.Actor.transform.position + Vector3.forward * distance, Quaternion.LookRotation(Vector3.back));
+                float ratio = Mathf.Lerp(ability.MinimumSelfHealthNormalized, ability.MaximumSelfHealthNormalized, .5f);
+                enemy.Health.TakeDamage(new DamageInfo(enemy.Health.MaxHp * (1f - ratio), enemy.transform.position));
+                Physics.SyncTransforms(); yield return c.Wait(.5f);
+                yield return c.Until(() => enemy != null && enemy.AbilityController.TryStart(c.Actor.transform), 8f, ability.AbilityId + " 시작");
             }
             if (id == "VT16-06") enemy.Health.TakeDamage(new DamageInfo(10, enemy.transform.position, c.Actor.gameObject, direction: Vector3.forward));
             if (id == "VT16-07" || id == "VT16-13") { yield return c.Wait(.6f); enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, c.Actor.gameObject)); }
+        }
+        if (id == "VT16-08")
+        {
+            c.Detail("장애물 건너편에서 추적·경로 복구"); c.Input(Vector2.right); yield return c.Wait(2f);
+            c.Input(Vector2.left); yield return c.Wait(2f); c.ReleaseInput();
         }
         yield return c.Wait(id == "VT16-12" ? 15 : 7);
     }
@@ -355,6 +498,11 @@ public static partial class VisualPlayScenarios
             { c.Detail(ItemTooltipFormatter.GetGradeName(grade)); c.Drop(definition, Vector3.forward * 2f + Vector3.up, grade); yield return c.Wait(2f); }
             yield break;
         }
+        if (id == "VT17-07")
+        {
+            PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
+            VisualPlayContext.Require(!WorldItemNameplatePresenter.ShouldDisplay(WorldLootInteractionMode.CombatAutoLegendary, false, false), "일반 아이템 이름표 숨김 조건이 달라요");
+        }
         WorldItemPickup pickup = null;
         for (int i = 0; i < count; i++) pickup = c.Drop(definition, new Vector3((i % 5 - 2) * .35f, 1, 2f + i / 5f));
         yield return c.Wait(3f);
@@ -363,6 +511,14 @@ public static partial class VisualPlayScenarios
         {
             var bridge = UnityEngine.Object.FindFirstObjectByType<WorldItemNameplateBridge>();
             VisualPlayContext.Require(bridge != null, "월드 아이템 이름표 입력 연결이 없어요");
+            if (id == "VT17-07")
+            {
+                var presenter = WorldItemNameplatePresenter.Active; var camera = Camera.main;
+                VisualPlayContext.Require(presenter != null && camera != null, "아이템 모델 포인터 검사를 준비하지 못했어요");
+                Vector3 screen = camera.WorldToScreenPoint(pickup.transform.position + Vector3.up * .1f);
+                VisualPlayContext.Require(presenter.ResolveModelPointerTarget(new Vector2(screen.x, screen.y)) == pickup, "이름표 없는 아이템 모델을 포인터로 찾지 못했어요");
+                c.Detail("이름표가 숨겨진 모델에 마우스 올림");
+            }
             bridge.HandlePointerEnter(pickup);
             try { yield return c.Wait(3f); }
             finally { bridge.HandlePointerExit(pickup); }

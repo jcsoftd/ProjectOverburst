@@ -50,9 +50,10 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
             VisualPlayBridge.WaitAfterScenario = instance.plan.waitAfter;
             VisualPlayBridge.FullContent = instance.plan.fullContent;
             instance.State.Planned = instance.plan.entries.Count;
-            instance.State.Phase = "테스트 계정 준비";
+            if (instance.plan.phase == "awaitingEdit" || instance.plan.phase == "booting") instance.State.Phase = "테스트 계정 준비";
         }
         VisualPlayBridge.Backend = instance;
+        VisualPlayBridge.RestoreNote(instance.results.LastOrDefault()?.note);
         EditorApplication.update += instance.Tick;
         EditorApplication.projectChanged += instance.previewCounts.Clear;
         EditorApplication.playModeStateChanged += instance.StateChanged;
@@ -106,7 +107,7 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         if (scope == VisualPlayScope.Problems)
             entries = results.GroupBy(record => record.caseId + "|" + record.variant).Select(group => group.Last())
                 .Where(record => record.review == VisualPlayReview.Problem)
-                .Select(record => new VisualPlayEntry { caseId = record.caseId, variant = record.variant, label = record.label }).ToList();
+                .Select(record => new VisualPlayEntry { caseId = record.caseId, variant = record.variant, label = record.label, review = record.review, note = record.note }).ToList();
         else
         {
             if (scope == VisualPlayScope.Category) definitions = definitions.Where(definition => VisualPlayCatalog.CategoryOf(definition.Id)?.Id == categoryId);
@@ -139,7 +140,7 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
 
     // 도구 자체 검증은 같은 준비·재생·반환 경로에서 대표 장면만 골라 실행한다.
     // 디버그 창의 전체/카테고리/개별 범위와 사용자 확인 목록에는 별도 테스트를 추가하지 않는다.
-    internal DebugResult StartVerification(IReadOnlyList<string> ids)
+    internal DebugResult StartVerification(IReadOnlyList<string> ids, bool allVariants = false)
     {
         if (ids == null || ids.Count == 0 || ids.Any(id => VisualPlayCatalog.Find(id) == null))
             return DebugResult.Fail("등록된 검증 항목을 선택하세요");
@@ -149,7 +150,7 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         var result = Start(VisualPlayScope.All, "C01", ids[0]);
         if (!result.Success) return result;
         var all = plan.entries;
-        plan.entries = ids.Select(id => all.First(entry => entry.caseId == id)).ToList();
+        plan.entries = allVariants ? all.Where(entry => ids.Contains(entry.caseId)).ToList() : ids.Select(id => all.First(entry => entry.caseId == id)).ToList();
         plan.toolVerification = true;
         State.Planned = plan.entries.Count;
         SessionState.SetString(Key + "lastState", JsonConvert.SerializeObject(State));
@@ -160,7 +161,11 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
 
     public DebugResult Review(VisualPlayReview review, string note)
     {
-        if (runner != null) return runner.Review(review, note);
+        if (runner != null)
+        {
+            var result = runner.Review(review, note);
+            results = runner.Records.ToList(); SaveResults(); return result;
+        }
         VisualPlayRecord last = results.LastOrDefault();
         if (last == null) return DebugResult.Fail("확인할 재생 기록이 없어요");
         last.review = review; last.note = note;
@@ -171,6 +176,18 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         SaveResults(); return DebugResult.Ok("개발자 확인을 기록했어요");
     }
 
+    public DebugResult UpdateNote(string note)
+    {
+        if (runner != null)
+        {
+            var result = runner.UpdateNote(note);
+            results = runner.Records.ToList(); SaveResults(); return result;
+        }
+        var last = results.LastOrDefault();
+        if (last == null) return DebugResult.Fail("메모를 남길 재생 기록이 없어요");
+        last.note = note ?? ""; SaveResults(); return DebugResult.Ok("메모를 저장했어요");
+    }
+
     void Tick()
     {
         VisualPlayBridge.Backend = this;
@@ -178,7 +195,9 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         {
             var deferred = Read<Plan>("deferredPlan");
             if (deferred == null || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
-                || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)) return;
+                || ForeignAccount(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), deferred)
+                || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+                || ForeignAccount(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""), deferred)) return;
             plan = deferred; plan.phase = "returning"; plan.deadline = EditorApplication.timeSinceStartup + 120;
             State.Running = true; SavePlan();
         }
@@ -241,22 +260,26 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         if (plan == null) return;
         if (runner != null)
         {
-            results = runner.Records.ToList();
             try { runner.Dispose(); } catch (Exception error) { Debug.LogWarning("[시각 확인] 정리 오류: " + error.Message); }
-            finally { runner = null; }
+            finally { results = runner.Records.ToList(); runner = null; }
         }
+        State.Waiting = State.Paused = false;
         State.Phase = reason; State.Detail = "일반 Play 상태로 반환하고 있어요";
         plan.phase = "returning"; plan.deadline = EditorApplication.timeSinceStartup + 120;
         SaveResults(); SavePlan();
         if (OwnsCurrentPlay() || (EditorApplication.isPlaying && SameDirectory(IsolatedSavePlayGuard.ActiveDirectory, Path.Combine(plan.directory, "Account")))) EditorApplication.ExitPlaymode();
     }
 
+    static bool ForeignAccount(string directory, Plan owner) => !string.IsNullOrEmpty(directory)
+        && !SameDirectory(directory, Path.Combine(owner.directory, "Account"));
+
     void ReturnToNormal()
     {
+        // Guard가 EnteredEditMode에서 active를 비운 뒤 반환해야 계정 선택이 다시 잠기지 않는다.
         string current = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable);
-        string ours = Path.Combine(plan.directory, "Account");
         bool occupied = EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
-            || (!string.IsNullOrEmpty(current) && !SameDirectory(current, ours)) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory);
+            || ForeignAccount(current, plan) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            || ForeignAccount(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""), plan);
         if (occupied)
         {
             State.Detail = "다른 테스트 준비가 끝난 뒤 반환해요";

@@ -19,10 +19,10 @@ public sealed class OverburstGameTooltip : MonoBehaviour
 
     public void Show(ItemData item,string price=null){shownItem=item;equippedShown=null;view.Present(item,price);primaryHeight=view.Rect.sizeDelta.y;transform.SetAsLastSibling();Place();}
     public void Hide(){shownItem=null;equippedShown=null;if(view)view.gameObject.SetActive(false);HideEquipped();}
-    public void Place(){
+    public void Place()=>Place(PlayerInputFacade.Current!=null?PlayerInputFacade.Current.PointerPosition:Vector2.zero);
+    public void Place(Vector2 screen){
         if(!view||!view.gameObject.activeSelf){HideEquipped();return;}
         var root=(RectTransform)transform;var canvas=GetComponentInParent<Canvas>();
-        var screen=PlayerInputFacade.Current!=null?PlayerInputFacade.Current.PointerPosition:Vector2.zero;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(root,screen,canvas.renderMode==RenderMode.ScreenSpaceOverlay?null:canvas.worldCamera,out var p);
         var area=root.rect;
         if(PlacePair(p,area))return;

@@ -10,6 +10,8 @@ using UnityEngine;
 public sealed class VisualPlayEntry
 {
     public string caseId, variant, label;
+    public VisualPlayReview review;
+    public string note;
 }
 
 public sealed class VisualPlayRecord
@@ -42,7 +44,7 @@ public sealed class VisualPlayRunner : IDisposable
     {
         this.entries = entries; this.state = state; this.finished = finished;
         state.Planned = entries.Count; state.Completed = state.Failed = state.Skipped = 0;
-        state.Running = true; state.Checked = state.Problems = 0;
+        state.Running = true; state.Checked = entries.Count(entry => entry.review == VisualPlayReview.Checked); state.Problems = entries.Count(entry => entry.review == VisualPlayReview.Problem);
         state.Summary = $"재생 0/{entries.Count} · 실패 0 · 미실행 0\n화면 확인 0 · 문제 표시 0 · 미확인 {entries.Count}";
     }
 
@@ -68,8 +70,17 @@ public sealed class VisualPlayRunner : IDisposable
         VisualPlayRecord target = current ?? records.LastOrDefault();
         if (target == null) return DebugResult.Fail("확인할 재생 장면이 없어요");
         target.review = review; target.note = note;
+        VisualPlayBridge.RestoreNote(note);
         UpdateSummary();
         return DebugResult.Ok(review == VisualPlayReview.Problem ? "문제 표시했어요" : "화면 확인을 기록했어요");
+    }
+
+    public DebugResult UpdateNote(string note)
+    {
+        var target = current ?? records.LastOrDefault();
+        if (target == null) return DebugResult.Fail("메모를 남길 재생 기록이 없어요");
+        target.note = note ?? "";
+        return DebugResult.Ok("메모를 저장했어요");
     }
 
     public void Tick()
@@ -109,8 +120,10 @@ public sealed class VisualPlayRunner : IDisposable
                 if (index >= entries.Count) { Finish(); return; }
                 VisualPlayEntry entry = entries[index++];
                 VisualPlayCase definition = VisualPlayCatalog.Find(entry.caseId);
-                current = new VisualPlayRecord { planIndex = index - 1, caseId = entry.caseId, variant = entry.variant, label = entry.label, playback = "재생 중" };
-                records.Add(current); VisualPlayBridge.Note = "";
+                var previous = records.LastOrDefault(record => record.planIndex == index - 1);
+                current = new VisualPlayRecord { planIndex = index - 1, caseId = entry.caseId, variant = entry.variant, label = entry.label,
+                    playback = "재생 중", review = previous?.review ?? entry.review, note = previous?.note ?? entry.note ?? "" };
+                records.Add(current); VisualPlayBridge.RestoreNote(current.note); UpdateSummary();
                 state.Current = definition.Title + (string.IsNullOrEmpty(entry.label) ? "" : " · " + entry.label);
                 state.Observe = definition.Observe; state.Phase = "준비"; state.Detail = "";
                 if (!VisualPlayScenarios.IsSupported(entry.caseId))
@@ -195,7 +208,7 @@ public sealed class VisualPlayRunner : IDisposable
         if (current != null)
         {
             current.playback = playback;
-            if (!string.IsNullOrEmpty(detail)) current.note = string.IsNullOrEmpty(current.note) ? detail : current.note + "\n" + detail;
+            if (!string.IsNullOrEmpty(detail)) current.diagnostics = string.IsNullOrEmpty(current.diagnostics) ? detail : current.diagnostics + "\n" + detail;
         }
         state.Phase = "정리"; state.Detail = detail;
         current = null; UpdateSummary();
@@ -207,9 +220,10 @@ public sealed class VisualPlayRunner : IDisposable
         state.Completed = latest.Count(record => record.playback != "재생 중" && record.playback != "다시 보기");
         state.Failed = latest.Count(record => record.playback == "실패");
         state.Skipped = latest.Count(record => record.playback != "완료" && record.playback != "실패" && record.playback != "재생 중" && record.playback != "다시 보기");
-        state.Checked = latest.Count(record => record.review == VisualPlayReview.Checked);
-        state.Problems = latest.Count(record => record.review == VisualPlayReview.Problem);
-        state.Summary = $"재생 {state.Completed}/{state.Planned} · 실패 {state.Failed} · 미실행 {state.Skipped}\n화면 확인 {state.Checked} · 문제 표시 {state.Problems} · 미확인 {latest.Count(record => record.review == VisualPlayReview.Unreviewed)}";
+        var unvisited = entries.Where((entry, planIndex) => !latest.Any(record => record.planIndex == planIndex)).ToArray();
+        state.Checked = latest.Count(record => record.review == VisualPlayReview.Checked) + unvisited.Count(entry => entry.review == VisualPlayReview.Checked);
+        state.Problems = latest.Count(record => record.review == VisualPlayReview.Problem) + unvisited.Count(entry => entry.review == VisualPlayReview.Problem);
+        state.Summary = $"재생 {state.Completed}/{state.Planned} · 실패 {state.Failed} · 미실행 {state.Skipped}\n화면 확인 {state.Checked} · 문제 표시 {state.Problems} · 미확인 {state.Planned - state.Checked - state.Problems}";
     }
 
     void Finish()
@@ -224,6 +238,7 @@ public sealed class VisualPlayRunner : IDisposable
     public void Dispose()
     {
         if (disposed) return;
+        if (current != null) EndCurrent("중단", "재생 세션이 종료됐어요");
         disposed = true;
         try
         {
