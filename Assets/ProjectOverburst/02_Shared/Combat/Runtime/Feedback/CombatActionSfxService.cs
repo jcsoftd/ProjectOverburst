@@ -87,10 +87,10 @@ public sealed class CombatActionSfxService : MonoBehaviour
     // 22:57 묶음 적용: 추가음은 몬스터 프리팹의 MonsterHitSfxTarget 묶음에서 세트 하나(타격마다 번갈아)를 겹쳐 낸다.
     // OrganicHit 살점음·BloodHitProfile 재질음은 더 쓰지 않는다(묶음이 대신한다). 묶음이 없으면 공용 피격음만.
     // 볼륨은 청음 체크리스트 비율 — 23:12부터 줄이지 않고 올리는 방식: 공용·원소·휘두름은 원래 크기, 묶음 층은
-    // 50% -> 1.0, 70% -> 1.2, 100% -> 1.6 (공용 피격음도 x1.6). 1을 넘는 몫은 같은 클립을 한 번 더 겹쳐 증폭한다.
+    // 50% -> 1.0, 70% -> 1.2, 100% -> 1.6. 공용 피격음은 x1.8이며, 1을 넘는 몫은 같은 클립을 한 번 더 겹쳐 증폭한다.
     private static readonly string[] MonsterHitCommonNames = { "MonsterHitCommon01", "MonsterHitCommon02", "MonsterHitCommon03" };
     private const float MonsterHitCommonVolume = 1f;
-    private const float MonsterHitCommonBoost = 1.6f; // 공용 피격음 = 체크리스트 100% (23:38 사용자: 2배 -> 1.6배)
+    private const float MonsterHitCommonBoost = 1.8f; // 2026-10-02 사용자: 공용 피격음 180% (100% + 80% 겹침)
     private readonly AudioClip[] monsterHitCommonClips = new AudioClip[MonsterHitCommonNames.Length];
     private bool monsterHitCommonMissingReported;
     private int lastMonsterHitCommon = -1;
