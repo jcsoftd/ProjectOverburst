@@ -202,6 +202,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
   bladeRenderer: {fileID: 3657248547200932387}
+  bladeEffectFrame: {fileID: 4397256206017644142}
   bladeEffectBounds:
     m_Center: {x: 0, y: 0, z: 0.52}
     m_Extent: {x: 0.06, y: 0.03, z: 0.52}
@@ -284,6 +285,37 @@ MonoBehaviour:
     trailParticleSize: 5
     trailParticleLifetime: 1
     trailSpread: 0.7
+--- !u!1 &3363058676974930009
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4397256206017644142}
+  m_Layer: 0
+  m_Name: BladeEffectFrame
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4397256206017644142
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3363058676974930009}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8784236861824482507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4008567152219788114
 GameObject:
   m_ObjectHideFlags: 0
@@ -471,6 +503,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7564365719918541243}
+  - {fileID: 4397256206017644142}
   m_Father: {fileID: 7008372428120796861}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8339364547281729107

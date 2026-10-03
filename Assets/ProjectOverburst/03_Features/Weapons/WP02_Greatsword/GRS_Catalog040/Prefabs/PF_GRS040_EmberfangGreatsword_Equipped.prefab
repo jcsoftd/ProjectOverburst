@@ -189,6 +189,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3129346587154446659}
+  - {fileID: 1496996295891426525}
   m_Father: {fileID: 2609680968486227381}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6104624282459895298
@@ -391,6 +392,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeWeaponElementFx
   bladeRenderer: {fileID: 6873042720574735240}
+  bladeEffectFrame: {fileID: 1496996295891426525}
   bladeEffectBounds:
     m_Center: {x: 0, y: 0, z: 0.52}
     m_Extent: {x: 0.06, y: 0.03, z: 0.52}
@@ -421,37 +423,37 @@ MonoBehaviour:
     trailScale: 0.72
     trailCenter: 0.5
     trailLength: 1
-    trailDensity: 0.25
+    trailDensity: 0.5
     trailParticleSize: 3
-    trailParticleLifetime: 1
-    trailSpread: 0
+    trailParticleLifetime: 0.3
+    trailSpread: 0.1
   iceSettings:
     idleStrength: 0.2
-    bladeThickness: 0.85
-    bladeCenter: 0.5735742
-    bladeLength: 1.147148
+    bladeThickness: 0.93682325
+    bladeCenter: 0.4327029
+    bladeLength: 1.3578037
     trailScale: 0.9
     trailCenter: 0.5
     trailLength: 1
-    trailDensity: 1
-    trailParticleSize: 1
-    trailParticleLifetime: 1
-    trailSpread: 1
+    trailDensity: 2.03
+    trailParticleSize: 5
+    trailParticleLifetime: 0.34
+    trailSpread: 0.1
   electricSettings:
     idleStrength: 0.2
-    bladeThickness: 1.4999534
-    bladeCenter: 0.49451685
-    bladeLength: 1.0109663
+    bladeThickness: 3
+    bladeCenter: 0.54836345
+    bladeLength: 1.0820272
     trailScale: 0.72
     trailCenter: 0.5
     trailLength: 1
     trailDensity: 1
-    trailParticleSize: 1.5
-    trailParticleLifetime: 1
-    trailSpread: 0.1
+    trailParticleSize: 4
+    trailParticleLifetime: 0.34
+    trailSpread: 0.497
   darkSettings:
     idleStrength: 0.2
-    bladeThickness: 0.65
+    bladeThickness: 2.1847808
     bladeCenter: 0.5
     bladeLength: 1
     trailScale: 0.72
@@ -463,16 +465,47 @@ MonoBehaviour:
     trailSpread: 0
   lightSettings:
     idleStrength: 0.08
-    bladeThickness: 0.8
+    bladeThickness: 1.8416866
     bladeCenter: 0.5301148
     bladeLength: 1
     trailScale: 0.72
     trailCenter: 0.5
     trailLength: 1
-    trailDensity: 2
-    trailParticleSize: 1
+    trailDensity: 0.25
+    trailParticleSize: 5
     trailParticleLifetime: 1
-    trailSpread: 0
+    trailSpread: 0.7
+--- !u!1 &7228307226950606771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1496996295891426525}
+  m_Layer: 0
+  m_Name: BladeEffectFrame
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1496996295891426525
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7228307226950606771}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4501608391701696365}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7544689902928316329
 GameObject:
   m_ObjectHideFlags: 0

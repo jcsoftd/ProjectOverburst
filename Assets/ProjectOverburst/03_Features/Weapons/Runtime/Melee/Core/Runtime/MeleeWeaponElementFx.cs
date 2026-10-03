@@ -7,7 +7,9 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
 {
     [Header("Blade bindings")]
     [SerializeField] private Renderer bladeRenderer;
-    [Tooltip("Blade-only bounds in renderer axes, with its world scale baked in; excludes grip and guard.")]
+    [Tooltip("Optional model-independent frame for the blade bounds; unset keeps the original renderer placement.")]
+    [SerializeField] private Transform bladeEffectFrame;
+    [Tooltip("Blade-only bounds in effect-frame axes (renderer axes when unset), with world scale baked in; excludes grip and guard.")]
     [SerializeField] private Bounds bladeEffectBounds = new Bounds(new Vector3(0f, 0f, .52f), new Vector3(.12f, .06f, 1.04f));
     [SerializeField] private Transform auraAnchor;
     [SerializeField] private Transform trailAnchor;
@@ -181,8 +183,9 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         if (source == null || bladeRenderer == null) return null;
         var parent = new GameObject(name);
         parent.SetActive(false);
-        parent.transform.SetParent(bladeRenderer.transform, false);
-        Vector3 scale = bladeRenderer.transform.lossyScale;
+        Transform frame = bladeEffectFrame != null ? bladeEffectFrame : bladeRenderer.transform;
+        parent.transform.SetParent(frame, false);
+        Vector3 scale = frame.lossyScale;
         parent.transform.localScale = new Vector3(1f / Mathf.Max(.0001f, Mathf.Abs(scale.x)),
             1f / Mathf.Max(.0001f, Mathf.Abs(scale.y)), 1f / Mathf.Max(.0001f, Mathf.Abs(scale.z)));
         float span = bladeEffectBounds.size.z * length;
@@ -417,7 +420,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         if (bladeAfterimage != null && bladeRenderer != null && trailAnchor != null)
         {
             Vector3 tip = trailAnchor.position;
-            Vector3 direction = tip - bladeRenderer.bounds.center;
+            Vector3 direction = bladeEffectFrame != null ? -bladeEffectFrame.forward : tip - bladeRenderer.bounds.center;
             if (direction.sqrMagnitude < .0001f) direction = bladeRenderer.transform.forward;
             Vector3 bladeBase = tip - direction.normalized * bladeEffectBounds.size.z;
             bladeAfterimage?.Sample(seconds, bladeBase, tip);
