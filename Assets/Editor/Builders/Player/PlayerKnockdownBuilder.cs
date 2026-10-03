@@ -92,11 +92,14 @@ public static class PlayerKnockdownBuilder
     {
         set.defaultRise = Motion("rise_02", Vector2.zero);
         set.defaultEvadeRise = Motion("rise_01", Vector2.down);
+        set.defaultEvadeRise.riseDistance = 1.2f;
         var forward = Motion("rise_02", Vector2.up);
         forward.id = "rise_forward_fast";
         forward.playbackSpeed = 1.25f;
         set.directionalRises = new[] { forward, Motion("rise_01", Vector2.down),
             Motion("rise_left_up", Vector2.left), Motion("rise_right_up", Vector2.right) };
+        foreach (var rise in set.directionalRises)
+            rise.riseDistance = rise.id == "rise_forward_fast" ? set.riseDistance : 1.2f;
     }
 
     // Saves the owned SO and Rise state's speed binding; the player prefab is not reopened.
@@ -129,6 +132,17 @@ public static class PlayerKnockdownBuilder
         foreach (var fall in set.falls)
             fall.travel = FallTravel(fall.clip, Clip(fall.id, false));
         set.fallDistance = 2.2f;
+        EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
+    }
+
+    // Does not touch the Animator, player prefab or the accepted falling curves.
+    public static void RefreshRiseTravel()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required");
+        var set = AssetDatabase.LoadAssetAtPath<PlayerKnockdownAnimationSet>(SetPath);
+        if (set == null || EditorUtility.IsDirty(set)) throw new InvalidOperationException("Saved knockdown set required");
+        ConfigureRiseModes(set);
         EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
     }
 
@@ -216,18 +230,23 @@ public static class PlayerKnockdownBuilder
         var clip = Clip(name, true); var source = Clip(name, false);
         if (name.StartsWith("knockdown"))
             return new PlayerKnockdownAnimationSet.Motion { id = name, poseId = Pose, clip = clip, direction = direction, travel = FallTravel(clip, source) };
-        string axis = Mathf.Abs(direction.x) > .5f ? "RootT.x" : "RootT.z";
-        var raw = Curve(source, axis);
-        float sign = Mathf.Abs(direction.x) > .5f ? direction.x : direction.y;
-        var samples = new float[33]; float peak = 0;
-        for (int i = 0; i < samples.Length; i++)
+        int count = Mathf.RoundToInt(clip.length * clip.frameRate) + 1;
+        var times = Enumerable.Range(0, count).Select(i => Mathf.Min(i / clip.frameRate, clip.length)).ToArray();
+        times[count - 1] = clip.length;
+        var rawX = Curve(source, "RootT.x"); var rawZ = Curve(source, "RootT.z");
+        var inX = Curve(clip, "RootT.x"); var inZ = Curve(clip, "RootT.z");
+        float Removed(AnimationCurve raw, AnimationCurve inplace, float t)
+            => (raw == null ? 0 : raw.Evaluate(t) - raw.Evaluate(0))
+                - (inplace == null ? 0 : inplace.Evaluate(t) - inplace.Evaluate(0));
+        var samples = new float[count]; float peak = 0;
+        for (int i = 0; i < count; i++)
         {
-            float t = source.length * i / (samples.Length - 1f);
-            float value = raw != null ? raw.Evaluate(t) - raw.Evaluate(0) : 0;
-            samples[i] = Mathf.Max(peak, value * sign); peak = samples[i];
+            float value = Removed(rawX, inX, times[i]) * direction.x + Removed(rawZ, inZ, times[i]) * direction.y;
+            samples[i] = peak = Mathf.Max(peak, value);
         }
+        // RootT contains pose recoil too. Consume the removed forward trajectory once, never rewind it.
         var travel = peak > .05f
-            ? new AnimationCurve(samples.Select((v, i) => new Keyframe(i / 32f, v / peak)).ToArray())
+            ? MonotonicCurve(times, samples, clip.length)
             : AnimationCurve.EaseInOut(0, 0, 1, 1);
         return new PlayerKnockdownAnimationSet.Motion { id = name, poseId = Pose, clip = clip, direction = direction, travel = travel };
     }

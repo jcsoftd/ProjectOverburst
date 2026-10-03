@@ -19,6 +19,8 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
         public AnimationClip clip;
         public Vector2 direction;
         [Min(.01f)] public float playbackSpeed = 1f;
+        [Tooltip("Planar distance for this get-up while Evade is held. Falling uses the set's fallDistance.")]
+        [Min(0)] public float riseDistance = .35f;
         // Authored planar travel sampled by the builder; monotonically consumed by the motor.
         public AnimationCurve travel = AnimationCurve.EaseInOut(0, 0, 1, 1);
         public bool IsValid => clip != null && clip.isHumanMotion && clip.length > .01f;
@@ -69,4 +71,7 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
         }
         return selected;
     }
+
+    public float ResolveRiseDistance(Motion rise, bool evadeHeld)
+        => Mathf.Max(0, evadeHeld && rise != null ? rise.riseDistance : riseDistance);
 }

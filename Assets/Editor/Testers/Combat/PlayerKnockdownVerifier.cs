@@ -58,6 +58,18 @@ public static class PlayerKnockdownVerifier
             var set = AssetDatabase.LoadAssetAtPath<PlayerKnockdownAnimationSet>(PlayerKnockdownBuilder.SetPath);
             Check(prefab.GetComponent<PlayerKnockdownController>()?.AnimationSet == set && set != null, "Saved prefab points to the saved animation set");
             Check(Mathf.Abs(set.fallDistance - 2.2f) < .001f, "Saved fall distance is 2.2m");
+            Check(Mathf.Abs(set.riseDistance - .35f) < .001f, "Ordinary rise retains 0.35m bounded travel");
+            foreach (var rise in set.directionalRises.Where(r => r.id != "rise_forward_fast"))
+            {
+                Check(Mathf.Abs(set.ResolveRiseDistance(rise, true) - 1.2f) < .001f, "Roll get-up has its own 1.2m distance " + rise.id);
+                Check(rise.travel.length == Mathf.RoundToInt(rise.clip.length * rise.clip.frameRate) + 1,
+                    "Roll travel sampled at every authored frame " + rise.id);
+                Check(Mathf.Abs(rise.travel.Evaluate(0)) < .001f && Mathf.Abs(rise.travel.Evaluate(1) - 1) < .001f,
+                    "Roll travel consumes exactly its total " + rise.id);
+                Check(rise.travel.Evaluate(.5f) > .55f, "Roll motion travel differs from constant-speed interpolation " + rise.id);
+            }
+            Check(Mathf.Abs(set.ResolveRiseDistance(set.defaultEvadeRise, true) - 1.2f) < .001f,
+                "Shift alone uses the same backward roll distance");
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(PlayerKnockdownBuilder.ControllerPath);
             Check(controller.layers.Last().name == PlayerKnockdownAnimationSet.LayerName, "Reaction is the highest full-body override layer");
             var layer = controller.layers.Last();
@@ -195,13 +207,11 @@ public static class PlayerKnockdownVerifier
             EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + ".reload", true);
             work.Clear(); work.Push(presentation ? PlayerKnockdownPresentationRecorder.Record(Output) : VerifyPlay());
             Application.logMessageReceived += Log;
-            if (presentation)
-            {
-                var gameView = typeof(Editor).Assembly.GetType("UnityEditor.GameView");
-                if (gameView != null) EditorWindow.GetWindow(gameView).Focus();
-                EditorApplication.update += QueuePresentationLoop;
-            }
-            else EditorApplication.update += Tick;
+            // Verify and capture after the same completed PlayerLoop frame. Editor update
+            // callbacks can observe a new frameCount before input, motor and animation finish.
+            var gameView = typeof(Editor).Assembly.GetType("UnityEditor.GameView");
+            if (gameView != null) EditorWindow.GetWindow(gameView).Focus();
+            EditorApplication.update += QueuePresentationLoop;
         }
         if (change == PlayModeStateChange.ExitingPlayMode)
         {
@@ -505,7 +515,7 @@ public static class PlayerKnockdownVerifier
                 if (mode != "held-through-completion") InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 yield return Until(() => !reaction.IsActive, 2, "Shift fixture completes " + mode);
                 Vector3 shiftDelta = actor.transform.position - shiftStart; shiftDelta.y = 0;
-                Check(expectedEvade ? Vector3.Dot(shiftDelta, -actor.transform.forward) > .25f : shiftDelta.magnitude < .02f,
+                Check(expectedEvade ? Mathf.Abs(Vector3.Dot(shiftDelta, -actor.transform.forward) - 1.2f) < .06f : shiftDelta.magnitude < .02f,
                     "Shift-only uses backward travel and ordinary no-input remains stationary " + mode);
                 Check(!reaction.IsEvadeRise && !reaction.PendingEvadeRise, "Shift selection clears on completion " + mode);
                 measurements.Add(new {fixture="shift-value",mode,expectedEvade,chosen,delta=shiftDelta.ToString("F4")});
@@ -537,7 +547,8 @@ public static class PlayerKnockdownVerifier
                     Vector3 sampleDelta = actor.transform.position - start; sampleDelta.y = 0;
                     float expected = reaction.AnimationSet.fallDistance * fall.travel.Evaluate(Mathf.Clamp01(clipTime / fall.clip.length));
                     Check(reaction.Phase == PlayerKnockdownPhase.Falling && Mathf.Abs(sampleDelta.magnitude - expected) < .04f,
-                        "Physical displacement follows the playing fall frame " + variant + "/" + sampleTime);
+                        "Physical displacement follows the playing fall frame " + variant + "/" + sampleTime
+                            + " phase=" + reaction.Phase + " actual=" + sampleDelta.magnitude + " expected=" + expected + " clipTime=" + clipTime);
                     float fallPoseTime = animator.GetCurrentAnimatorStateInfo(reactionLayer).normalizedTime * fall.clip.length;
                     Check(Mathf.Abs(fallPoseTime - clipTime) < .1f, "Fall pose and movement clocks stay together " + variant + "/" + sampleTime);
                     if (sampleTime == .233f)
@@ -587,12 +598,14 @@ public static class PlayerKnockdownVerifier
                 Reset(); yield return Wait(.1f);
                 Vector3 impact = -(Quaternion.Euler(0, facing, 0) * Vector3.forward);
                 health.TakeDamage(Hit(impact));
-                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Literal key fixture reaches hold " + facing + "/" + input);
                 var keys = new List<UnityEngine.InputSystem.Key>();
                 keys.Add(UnityEngine.InputSystem.Key.LeftShift);
                 if (input.y > 0) keys.Add(UnityEngine.InputSystem.Key.W); if (input.y < 0) keys.Add(UnityEngine.InputSystem.Key.S);
                 if (input.x < 0) keys.Add(UnityEngine.InputSystem.Key.A); if (input.x > 0) keys.Add(UnityEngine.InputSystem.Key.D);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
+                // Let the real PlayerLoop read held keys while falling. The 0.25s grounded hold
+                // is too short to assume two Editor ticks always include two InputSystem updates.
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Literal key fixture reaches hold " + facing + "/" + input);
                 yield return null; yield return null;
                 Vector3 requested = movement.ResolveMoveDirection(input).normalized;
                 Vector3 requestedLocal = Quaternion.Inverse(actor.transform.rotation) * requested;
@@ -608,6 +621,7 @@ public static class PlayerKnockdownVerifier
                 Check(reaction.IsEvadeRise && reaction.ActiveMotionId == expectedRise.id,
                     "Held Shift selects direction-specific get-up " + facing + "/" + input);
                 Vector3 start = actor.transform.position;
+                float initialRiseTime = (float)typeof(PlayerKnockdownController).GetField("elapsed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(reaction);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 yield return Wait(.12f);
                 var playingRise = animator.GetCurrentAnimatorStateInfo(reactionLayer);
@@ -621,9 +635,27 @@ public static class PlayerKnockdownVerifier
                     "Animator and physical rise travel share the same playback clock " + facing + "/" + input);
                 measurements.Add(new {fixture="rise-clock",facing,input=input.ToString(),rise=expectedRise.id,
                     speed=playingRise.speedMultiplier,animatorClipTime=playingRise.normalizedTime*expectedRise.clip.length,ownedRiseTime});
+                foreach (float progress in new[] { .35f, .6f, .85f })
+                {
+                    float sampledTime = ownedRiseTime;
+                    while (reaction.Phase == PlayerKnockdownPhase.Rising && sampledTime < expectedRise.clip.length * progress)
+                    {
+                        yield return null;
+                        sampledTime = (float)typeof(PlayerKnockdownController).GetField("elapsed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(reaction);
+                    }
+                    Vector3 curveDelta = actor.transform.position - start; curveDelta.y = 0;
+                    float expectedTravel = reaction.AnimationSet.ResolveRiseDistance(expectedRise, true)
+                        * (expectedRise.travel.Evaluate(Mathf.Clamp01(sampledTime / expectedRise.clip.length))
+                            - expectedRise.travel.Evaluate(Mathf.Clamp01(initialRiseTime / expectedRise.clip.length)));
+                    Check(reaction.Phase == PlayerKnockdownPhase.Rising && Mathf.Abs(curveDelta.magnitude - expectedTravel) < .05f,
+                        "Physical rise displacement follows the selected animation frame curve " + facing + "/" + input + "/" + progress);
+                    measurements.Add(new {fixture="rise-travel-frame",facing,input=input.ToString(),rise=expectedRise.id,
+                        progress=sampledTime/expectedRise.clip.length,actualDistance=curveDelta.magnitude,expectedDistance=expectedTravel});
+                }
                 yield return Until(() => !reaction.IsActive, 2, "Literal WASD rise completes " + facing + "/" + input);
                 Vector3 delta = actor.transform.position - start; delta.y = 0;
-                Check(delta.magnitude > reaction.AnimationSet.riseDistance * .8f && delta.magnitude <= reaction.AnimationSet.riseDistance + .04f,
+                float selectedDistance = reaction.AnimationSet.ResolveRiseDistance(expectedRise, true);
+                Check(delta.magnitude > selectedDistance * .8f && delta.magnitude <= selectedDistance + .04f,
                     "Literal WASD rise consumes its bounded distance " + facing + "/" + input);
                 Check(Vector3.Dot(delta.normalized, requested) > .99f,
                     "Literal WASD travels in the requested world direction without cardinal snapping " + facing + "/" + input);
@@ -744,8 +776,15 @@ public static class PlayerKnockdownVerifier
                     yield return Until(() => !reaction.IsActive, 4, "Actual elite recovery completes: " + execution);
                     if (execution == EnemyAbilityExecutionMode.MeleeArc && actualAbility.IsParryable)
                     {
-                        enemy.AbilityController.Cancel(); enemy.AbilityController.Configure(singleAbilitySet, enemy.RuntimeStats.DamageMultiplier, 1);
-                        enemy.AbilityController.BeginStrongOnlyPass(); Reset(); yield return Wait(1.2f);
+                        // The previous real attack may have moved the enemy away from its valid
+                        // start range. A new product spawn gives the parry fixture the same setup.
+                        enemy.AbilityController.Cancel(); spawn.Release(enemy); enemy = null;
+                        Reset(); yield return Wait(1.2f);
+                        Check(spawn.TrySpawn(new EnemySpawnRequest(definition, origin + Vector3.forward * distance,
+                            Quaternion.LookRotation(Vector3.back), actor.transform), out enemy), "Fresh deployed elite for parry regression");
+                        enemy.AI.enabled = false; enemy.Movement.StopMovement(); enemy.Health.SetMaxHp(1000000, true);
+                        enemy.AbilityController.Configure(singleAbilitySet, enemy.RuntimeStats.DamageMultiplier, 1);
+                        enemy.AbilityController.BeginStrongOnlyPass(); yield return Wait(.3f);
                         Check(enemy.AbilityController.TryStart(actor.transform), "Real elite begins a parryable attack");
                         yield return Until(() => enemy.AbilityController.IsParryThreatTo(actor.GetComponent<CombatTarget>()), 5, "Actual enemy enters parry threat window");
                         var parry = actor.GetComponent<PlayerParryController>(); int successes = parry.SuccessCount; float hp = health.CurrentHp; melee.SetManualInputEnabled(true);

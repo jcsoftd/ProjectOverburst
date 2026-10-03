@@ -224,7 +224,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
             {
                 if (travelDirection.sqrMagnitude > .001f)
                     travelDirection = bodyFrame * new Vector3(riseTravelInput.x, 0, riseTravelInput.y).normalized;
-                MoveAlong(travelDirection, travelDirection.sqrMagnitude > .001f ? animationSet.riseDistance : 0);
+                MoveAlong(travelDirection, travelDirection.sqrMagnitude > .001f
+                    ? animationSet.ResolveRiseDistance(motion, IsEvadeRise) : 0);
                 if (elapsed >= motion.clip.length) { exiting = true; exitElapsed = 0; }
             }
             if (exiting)

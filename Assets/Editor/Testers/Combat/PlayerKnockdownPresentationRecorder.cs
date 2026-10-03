@@ -194,7 +194,12 @@ public static class PlayerKnockdownPresentationRecorder
                 { if (info.source != null && info.source.GetComponentInParent<EnemyActor>() == enemy) { confirmed = info; actualDamage += actual; hits++; } }
                 actor.Health.OnDamageResolved += Resolved;
                 Vector3 beforeHit = actor.transform.position; int firstHitFrame = -1, riseFrame = -1, readyFrame = -1;
-                string riseId = ""; float maxFallDistance = 0; bool capturedDown = false;
+                string riseId = ""; float maxFallDistance = 0, riseDistance = 0; bool capturedDown = false;
+                Vector3 riseStart = default;
+                var travelFrames = new List<object>();
+                var motionField = typeof(PlayerKnockdownController).GetField("motion", Private);
+                var elapsedField = typeof(PlayerKnockdownController).GetField("elapsed", Private);
+                var directionField = typeof(PlayerKnockdownController).GetField("travelDirection", Private);
                 try
                 {
                     Require(enemy.AbilityController.TryStart(actor.transform), "Actual elite ability did not start");
@@ -214,6 +219,7 @@ public static class PlayerKnockdownPresentationRecorder
                         if (reaction.Phase == PlayerKnockdownPhase.Rising && riseFrame < 0)
                         {
                             riseFrame = frames.Count; riseId = reaction.ActiveMotionId;
+                            riseStart = actor.transform.position;
                             var expected = reaction.AnimationSet.SelectRise(reaction.AnimationSet.defaultRise.poseId, scenario.rise, scenario.shift);
                             Require(riseId == expected.id && reaction.IsEvadeRise == scenario.shift, "Recorded get-up differs from requested direction");
                             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.QueueStateEvent(pad, new GamepadState());
@@ -223,6 +229,24 @@ public static class PlayerKnockdownPresentationRecorder
                             if (readyFrame < 0) readyFrame = frames.Count;
                             postRecovery++;
                         }
+                        var motion = (PlayerKnockdownAnimationSet.Motion)motionField.GetValue(reaction);
+                        float clipTime = (float)elapsedField.GetValue(reaction);
+                        float progress = motion != null ? Mathf.Clamp01(clipTime / motion.clip.length) : 1;
+                        if (riseFrame >= 0)
+                        {
+                            Vector3 riseDelta = actor.transform.position - riseStart; riseDelta.y = 0;
+                            riseDistance = Mathf.Max(riseDistance, riseDelta.magnitude);
+                        }
+                        float physicalDistance = reaction.Phase == PlayerKnockdownPhase.Falling || reaction.Phase == PlayerKnockdownPhase.Grounded
+                            ? maxFallDistance : riseDistance;
+                        float plannedDistance = motion == null ? 0
+                            : reaction.Phase == PlayerKnockdownPhase.Rising
+                                ? ((Vector3)directionField.GetValue(reaction)).sqrMagnitude > .001f
+                                    ? reaction.AnimationSet.ResolveRiseDistance(motion, reaction.IsEvadeRise) : 0
+                                : reaction.AnimationSet.fallDistance;
+                        travelFrames.Add(new {frame=frames.Count,phase=reaction.Phase.ToString(),motionId=motion?.id??riseId,
+                            clipTime,progress,physicalDistance,plannedDistance,
+                            curveValue=motion!=null?Mathf.Clamp01(motion.travel.Evaluate(progress)):1});
                         frames.Add();
                         if (reaction.Phase == PlayerKnockdownPhase.Grounded && firstHitFrame >= 0 && !capturedDown)
                         { frames.Screenshot(Path.Combine(raw, scenario.id + "_down.png")); capturedDown = true; }
@@ -232,9 +256,12 @@ public static class PlayerKnockdownPresentationRecorder
                     Require(firstHitFrame >= 0 && riseFrame >= 0 && readyFrame >= 0 && actualDamage > 0 && hits == 1
                         && confirmed.enemyAbility == ability && confirmed.sourceAttackSequenceId > 0, "No actual collider-resolved elite knockdown/recovery");
                     Require(scenario.wall ? maxFallDistance < 1.2f : maxFallDistance > 2.0f, "Recorded physical knockback distance is invalid");
+                    if (scenario.shift && scenario.rise.y <= 0)
+                        Require(riseDistance > 1.14f && riseDistance <= 1.24f, "Recorded roll get-up must actually move 1.2m");
                     records.Add(new {scenario.id,scenario.title,scenario.detail,scenario.enemyYaw,scenario.shift,scenario.wall,
                         riseInput=scenario.rise.ToString(),enemy=definition.EnemyId,ability=ability.name,hits,actualDamage,
                         configuredHits=ability.HitCount,confirmed.sourceAttackSequenceId,impact=confirmed.direction.ToString("F4"),maxFallDistance,riseId,
+                        riseDistance,travelFrames,
                         frames=frames.Count,firstHitFrame,riseFrame,readyFrame,sampleRate=AudioSettings.outputSampleRate,
                         audioSamples=frames.AudioSamples,audioPeak=frames.AudioPeak,file=Path.GetFileName(path)});
                 }
@@ -244,7 +271,12 @@ public static class PlayerKnockdownPresentationRecorder
                 if (wall != null) { UnityEngine.Object.Destroy(wall); wall = null; }
                 if (wallMaterial != null) { UnityEngine.Object.Destroy(wallMaterial); wallMaterial = null; }
             }
-            File.WriteAllText(Path.Combine(output, "capture-scenes.json"), JsonConvert.SerializeObject(new {status="PASS",width=Width,height=Height,fps=Fps,records},Formatting.Indented));
+            var profiles = reaction.AnimationSet.falls.Concat(reaction.AnimationSet.directionalRises)
+                .Concat(new[] { reaction.AnimationSet.defaultRise }).Select(m => new {
+                    m.id,length=m.clip.length,m.playbackSpeed,m.riseDistance,
+                    samples=Enumerable.Range(0,121).Select(i=>new {progress=i/120f,value=Mathf.Clamp01(m.travel.Evaluate(i/120f))}).ToArray()
+                }).ToArray();
+            File.WriteAllText(Path.Combine(output, "capture-scenes.json"), JsonConvert.SerializeObject(new {status="PASS",width=Width,height=Height,fps=Fps,records,profiles},Formatting.Indented));
         }
         finally
         {
