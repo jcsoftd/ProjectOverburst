@@ -15,9 +15,32 @@ public static class WeaponElementIconBuilder
     public const float ShopBadgeSize = 21f;
     public const float HudIconSize = 46f;
     public static readonly Vector2 BadgeAnchor = new Vector2(1f, 0f);
-    public static readonly Vector2 BadgeOffset = new Vector2(-5f, 5f);
+    public static readonly Vector2 BadgeOffset = new Vector2(-7f, 7f);
     const string Circle = "Assets/ThirdParty/RPG and MMO UI 11/Textures/HUD/Unit Frames/Unit Frame/UnitFrame_Level_Frame.png";
     static readonly string[] Elements = { "Fire", "Ice", "Electric", "Dark", "Light" };
+
+    [MenuItem("OVERBURST/UI/아이템 원소와 분류 배지 여백 갱신")]
+    public static void UpdateItemBadgeInsets()
+    {
+        ItemTypeIconBuilder.RequireIdle();
+        foreach (string path in ItemTypeIconBuilder.Prefabs.Concat(new[] { UiRoot + "PF_OverburstEquipment_Rpg11.prefab", UiRoot + "PF_OverburstInventory_Rpg11.prefab" }))
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            bool changed = false;
+            foreach (RectTransform rect in asset.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (rect.name != "Weapon Element Badge" && rect.name != "Item Type Badge") continue;
+                if (rect.anchoredPosition == BadgeOffset) continue;
+                // 프리팹 원본의 위치만 기록해 미리보기 콜백의 다른 시각 변경을 저장하지 않는다.
+                var serialized = new SerializedObject(rect);
+                serialized.FindProperty("m_AnchoredPosition").vector2Value = BadgeOffset;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+            if (changed && !PrefabUtility.SavePrefabAsset(asset))
+                throw new InvalidOperationException("Badge inset save failed: " + path);
+        }
+    }
 
     [MenuItem("OVERBURST/UI/무기 속성 아이콘 연결")]
     public static void Build()

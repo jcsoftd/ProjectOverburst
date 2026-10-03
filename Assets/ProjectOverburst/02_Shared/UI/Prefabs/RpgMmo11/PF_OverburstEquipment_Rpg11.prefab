@@ -4946,7 +4946,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5572467372186660565, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -5
+      value: -7
       objectReference: {fileID: 0}
     - target: {fileID: 5761183263846955328, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_IsActive
@@ -5128,6 +5128,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4584640138459487701}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &7925948989629148349 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -6866,6 +6867,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 5861076292355790340}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &5861076292355790340 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}

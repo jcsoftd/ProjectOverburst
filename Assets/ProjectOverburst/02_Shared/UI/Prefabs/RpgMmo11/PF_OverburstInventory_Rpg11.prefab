@@ -36,7 +36,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &6695771389867751629
@@ -1756,6 +1756,7 @@ MonoBehaviour:
   keyLabel: {fileID: 2577960216044542474}
   grade: {fileID: 982561915368979699}
   weaponElementIcon: {fileID: 8516392783873423612}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &7049175903768120911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1773,6 +1774,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1160398151123682014}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &3226152240629561743
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3062,6 +3064,7 @@ MonoBehaviour:
   keyLabel: {fileID: 598232270373865848}
   grade: {fileID: 8717628765053655532}
   weaponElementIcon: {fileID: 4167200591052160458}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &4311055134237687842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3079,6 +3082,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2950499596658415243}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &3852592124854246611
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4904,6 +4908,7 @@ MonoBehaviour:
   keyLabel: {fileID: 4560643273637974227}
   grade: {fileID: 1844609140226315653}
   weaponElementIcon: {fileID: 3358441584101392959}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &1523373894927839136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4921,6 +4926,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 6352103527982489231}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &7018750799732876376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5460,7 +5466,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &5822996008202551012
@@ -7389,7 +7395,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &8806201373603585565
@@ -8142,7 +8148,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &8794194975457939193
@@ -8771,7 +8777,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &977322938819509514
@@ -9362,6 +9368,7 @@ MonoBehaviour:
   keyLabel: {fileID: 5808068716954985955}
   grade: {fileID: 6914454855573485716}
   weaponElementIcon: {fileID: 2037795449563368940}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &7922889107798621848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9379,6 +9386,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 6951606905181723473}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &2577241643524348383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9589,6 +9597,7 @@ MonoBehaviour:
   keyLabel: {fileID: 695071248828347194}
   grade: {fileID: 5934784516512147834}
   weaponElementIcon: {fileID: 5294760069287854536}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &7910899380152006632
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9606,6 +9615,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 9046533828618102435}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &3903644457777066019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11054,6 +11064,7 @@ MonoBehaviour:
   keyLabel: {fileID: 4791707064539053381}
   grade: {fileID: 7589597661756187389}
   weaponElementIcon: {fileID: 3882414750622845667}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &3052011637039954133
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11071,6 +11082,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 7657525443383244218}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &1845041897672009269
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11194,7 +11206,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -7, y: 7}
   m_SizeDelta: {x: 23, y: 23}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &3304102514337843446
@@ -12885,6 +12897,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 3850092383567940513}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &7426171805072046793 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -13095,6 +13108,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 3487534111976989709}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &732661802728450144
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13295,6 +13309,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4433549866835220033}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &8063250292908992297 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -13484,6 +13499,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4327963808201915798}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &7958227029609483518 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -13722,6 +13738,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4139229705674334120}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &1098360243420666641
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13927,6 +13944,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4076877825776411952}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &1334337139339863838
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14690,6 +14708,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2564945664081069793}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &1522209957769336840
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14915,6 +14934,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2500109113216116265}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &1592754133765151559
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15120,6 +15140,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2429493434357818726}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &1746299701674470806
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15332,6 +15353,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 3427741010405135287}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &9074895357580321503 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -15570,6 +15592,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2953059680267722832}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &2303176947653575202
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15799,6 +15822,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2908011585112079363}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &2411044608380255842
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15999,6 +16023,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1646085825365131331}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &4952089461285974315 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -16204,6 +16229,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1548487747979989782}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &5124001337598698110 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -16414,6 +16440,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1329394018564098787}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &3090727377580839520
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16614,6 +16641,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 2110405051868916801}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &5704058792375754025 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -16824,6 +16852,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1865459322992941205}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &3456575983189381764
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17029,6 +17058,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1753566638868245669}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &3477488061085832015
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17213,6 +17243,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 571771256714505582}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &6164899691309374470 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -17418,6 +17449,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 375212695967972261}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &6292738705055877837 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -17635,6 +17667,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 297996463843837741}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &6216088175663265349 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -17845,6 +17878,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 20095518025005519}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &4091110416795689138
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18073,6 +18107,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 1111079751420747411}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &6704188944596479995 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -18226,6 +18261,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 911933758670962938}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &6829321371027452306 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -18464,6 +18500,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 859318566324779729}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &4465305420366085929
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18653,6 +18690,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 745945543734853896}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!1001 &4652599112043328759
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18831,6 +18869,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8591891893912210134}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &2692520707289791422 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -19060,6 +19099,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8478767763801419073}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &2867644167855316009 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -19229,6 +19269,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8408370388251947074}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &2797229217274495274 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -19459,6 +19500,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8271548121005297743}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &5973427088700728766 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1693990501523393488, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -19664,6 +19706,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8723947171113854478}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &6430646329116070911 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1693990501523393488, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -19869,6 +19912,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 8716667709688096577}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &6401939857835446960 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1693990501523393488, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -20081,6 +20125,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 7441853492141678554}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &3830187392964030130 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -20310,6 +20355,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 7395050348971527320}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &3801379389703568880 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -20487,6 +20533,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 7332518376355191693}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &4009083190202002149 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -20692,6 +20739,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 7855499847884942753}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &4568090430822358217 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -20897,6 +20945,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 6115870521121434803}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!224 &486009030539468251 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -21055,6 +21104,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 6028879002381195963}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &6028879002381195963 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -21256,6 +21306,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 5901737925901522747}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &5901737925901522747 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -21409,6 +21460,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4673261923779213766}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &4673261923779213766 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -21614,6 +21666,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 4634647144816538465}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &4634647144816538465 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
@@ -21775,6 +21828,7 @@ MonoBehaviour:
   backgroundImage: {fileID: 5442617745055447812}
   slotBackgroundImage: {fileID: 0}
   weaponElementIcon: {fileID: 0}
+  itemTypeIcon: {fileID: 0}
 --- !u!114 &5442617745055447812 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4012093853083500065, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
