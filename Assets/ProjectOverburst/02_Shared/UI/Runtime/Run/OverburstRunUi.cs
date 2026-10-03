@@ -76,12 +76,17 @@ public sealed class OverburstRunUi : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-        var hint = RunUiLayout.Rect(transform, "EventHint", 0, -110, 580, 82);
-        hint.anchorMin = hint.anchorMax = new Vector2(.5f, 1);
-        RunUiLayout.Image(hint, "HintSurface", null, new Color(.04f,.035f,.03f,.86f), 0,0,580,82);
-        RunUiLayout.Image(hint, "HintBorder", windowFrame, new Color(.64f,.54f,.42f,.8f),0,0,580,82,true);
-        hintTitle = Label(hint, "Objective", "", 0, 18, 538, 30, 22, RunUiLayout.Gold);
-        hintBody = Label(hint, "Progress", "", 0, -18, 538, 30, 18, RunUiLayout.Ivory);
+        // Keep event progress away from the centered target/boss health panels.
+        var hint = RunUiLayout.Rect(transform, "EventHint", 24, -120, 340, 64);
+        hint.anchorMin = hint.anchorMax = hint.pivot = new Vector2(0, 1);
+        RunUiLayout.Image(hint, "HintSurface", null, new Color(.04f,.045f,.045f,.72f), 0,0,340,64);
+        hintTitle = Label(hint, "Objective", "", 0, 17, 312, 26, 18,
+            RunUiLayout.Gold, TextAlignmentOptions.Left);
+        hintBody = Label(hint, "Progress", "", 0, -12, 312, 32, 16,
+            RunUiLayout.Ivory, TextAlignmentOptions.Left);
+        hintBody.enableAutoSizing = true;
+        hintBody.fontSizeMin = 14;
+        hintBody.fontSizeMax = 16;
         hint.gameObject.SetActive(false);
         dim = RunUiLayout.Image(transform, "Modal", null, new Color(0,0,0,.48f),0,0,0,0);
         dim.rectTransform.anchorMin = Vector2.zero; dim.rectTransform.anchorMax = Vector2.one;
