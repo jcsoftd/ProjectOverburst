@@ -27,10 +27,13 @@ public sealed class OverburstEdgeBlurRendererFeature : ScriptableRendererFeature
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         var cameraData = renderingData.cameraData;
-        if (!Application.isPlaying || !OverburstEdgeBlurPreview.IsEnabled || material == null ||
+        if (!Application.isPlaying || material == null ||
             cameraData.cameraType != CameraType.Game || cameraData.renderType != CameraRenderType.Base ||
             !cameraData.camera.CompareTag("MainCamera")) return;
-        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlurPreview.CurrentStrength);
+        bool momentActive = CombatMomentPresentation.TryGetScreen(cameraData.camera, out float gain, out Vector2 center);
+        if (!OverburstEdgeBlurPreview.IsEnabled && !momentActive) return;
+        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlurPreview.IsEnabled ? OverburstEdgeBlurPreview.CurrentStrength : 0f);
+        material.SetVector("_MomentPulse", new Vector4(center.x, center.y, gain, 0f));
         renderer.EnqueuePass(pass);
     }
 

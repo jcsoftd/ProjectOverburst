@@ -8,10 +8,15 @@ public partial class MeleeRuntime
         if (!isAttacking)
             return;
 
-        if (TickHeavyParryMotion()) return;
+        if (TickHeavyParryMotion())
+        {
+            CombatMomentPresentation.CancelPreparation(playerEquipment, activeActionId);
+            return;
+        }
 
         float normalizedTime = GetAttackNormalizedTime();
         TickDashHeavyTravelAndFocus(normalizedTime);
+        TickHeavyMomentPreparation();
         bool shouldContinueCombo = ShouldContinueActiveCombo(normalizedTime);
         bool shouldCancelByMoveInput = !shouldContinueCombo
             && ShouldCancelActiveComboByMoveInput(normalizedTime);
@@ -104,6 +109,8 @@ public partial class MeleeRuntime
         int lightSlamHit = lightHeavy ? activeDischarge.LightFirstHitIndex : 0;
         float slamRadius = lightHeavy ? activeDischarge.LightHitRadius(lightSlamHit) : activeDischarge.Radius;
         float slamDamage = lightHeavy ? activeDischarge.LightHitDamage(lightSlamHit) : activeDischarge.FirstBlastDamage;
+        CombatMomentPresentation.Heavy(playerEquipment, activeActionId, impactPhaseIndex, activeDischarge,
+            center, activeAttackDirection, slamRadius, false);
         attackPhaseExecutor.OverrideUnstartedCircleRadius(slamRadius);
         heavyDischargeExecutor.Begin(activeDischarge, activeHeavyDefinition,
             combatTarget, gameObject, center, activeAttackDirection, slamRadius, pattern.VerticalTolerance);
@@ -161,6 +168,7 @@ public partial class MeleeRuntime
 
     private void StopActiveAttackStep()
     {
+        CombatMomentPresentation.CancelPreparation(playerEquipment, activeActionId);
         EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         GetComponent<PlayerParryController>()?.CloseWindow();
@@ -213,6 +221,7 @@ public partial class MeleeRuntime
 
     private void FinishActiveAttackStep()
     {
+        CombatMomentPresentation.CancelPreparation(playerEquipment, activeActionId);
         EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         heavyDischargeExecutor.End();
