@@ -14,6 +14,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
@@ -38,6 +39,8 @@ public static class OverburstMotionBlurPreviewVerifier
         Require(prefab != null, "Native toggle prefab loads");
         var preview = prefab.GetComponent<OverburstMotionBlurPreview>();
         Require(preview != null && preview.ToggleButton != null && preview.Caption?.font != null, "Button/caption/font references load");
+        Require(preview.DecreaseButton != null && preview.IncreaseButton != null && preview.IntensityCaption?.font != null,
+            "Intensity controls and numeric font references load");
         Require(prefab.GetComponent<Canvas>().renderMode == RenderMode.ScreenSpaceOverlay, "UI renders after world post processing");
         Require(((RectTransform)preview.ToggleButton.transform).anchoredPosition == new Vector2(16, -168), "Button avoids existing location/blur controls");
         Require(prefab.GetComponentsInChildren<Transform>(true).All(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) == 0), "Missing Script 0");
@@ -226,30 +229,32 @@ public sealed class OverburstMotionBlurVerificationRunner : MonoBehaviour
         var mouse = Mouse.current;
         Check(mouse != null && EventSystem.current != null, "Mouse and UI EventSystem available");
         Vector2 previousPosition = mouse.position.ReadValue();
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(null,
-            ((RectTransform)preview.ToggleButton.transform).TransformPoint(((RectTransform)preview.ToggleButton.transform).rect.center));
+        bool previousCombatMode = PlayerCombatModeController.IsSharedCombatModeActive();
         try
         {
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-            yield return null;
-            yield return null;
-            var hits = new List<RaycastResult>();
-            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = position }, hits);
-            Check(hits.Count > 0 && hits[0].gameObject.transform.IsChildOf(preview.ToggleButton.transform), "Actual UI raycast reaches temporary button");
-            Check(GameplayInputBlocker.IsGameplayInputBlocked, "Button hover blocks gameplay input before click");
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
-            yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-            yield return null;
-            yield return new WaitForEndOfFrame();
+            yield return Click(preview.IncreaseButton);
+            CheckButtonHit(preview.IncreaseButton);
+            Check(Mathf.Approximately(preview.SelectedIntensity, .02f) && preview.IntensityCaption.text == "강도 0.02",
+                "Actual plus click increases motion blur by 0.01 and displays 0.02");
+            CheckStack(true);
+            yield return Click(preview.DecreaseButton);
+            CheckButtonHit(preview.DecreaseButton);
+            Check(Mathf.Approximately(preview.SelectedIntensity, .01f), "Actual minus click decreases motion blur by 0.01");
+            yield return Click(preview.DecreaseButton);
+            yield return Click(preview.DecreaseButton);
+            Check(preview.SelectedIntensity == 0f && preview.IntensityCaption.text == "강도 0.00", "Motion blur lower bound is zero");
+            CheckStack(true);
+            yield return Click(preview.IncreaseButton);
+            yield return Click(preview.ToggleButton);
+            CheckButtonHit(preview.ToggleButton);
             Check(!preview.IsEnabled && preview.Caption.text.EndsWith("꺼짐"), "Queued mouse click switches off and updates visible label");
             CheckStack(false);
             Capture("Off");
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
-            yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
-            yield return null;
-            yield return new WaitForEndOfFrame();
+            yield return Click(preview.IncreaseButton);
+            Check(!preview.IsEnabled && Mathf.Approximately(preview.SelectedIntensity, .02f) && preview.IntensityCaption.text == "강도 0.02",
+                "Changing strength while off preserves off state and chosen value");
+            CheckStack(false);
+            yield return Click(preview.ToggleButton);
             Check(preview.IsEnabled && preview.Caption.text.EndsWith("켜짐"), "Second queued mouse click restores effect");
             CheckStack(true);
             preview.enabled = false;
@@ -257,17 +262,86 @@ public sealed class OverburstMotionBlurVerificationRunner : MonoBehaviour
             preview.enabled = true;
             yield return new WaitForEndOfFrame();
             CheckStack(true);
+
+            var edge = Object.FindFirstObjectByType<OverburstEdgeBlurPreview>();
+            Check(edge != null && OverburstEdgeBlurPreview.IsEnabled, "Edge blur controls coexist with motion blur");
+            PlayerCombatModeController.ExitSharedCombatMode(PlayerCombatModeReason.System);
+            yield return null;
+            Check(edge.IntensityCaption.text == "탐험 0.72", "Exploration strength starts at existing 0.72");
+            yield return Click(edge.IncreaseButton);
+            CheckButtonHit(edge.IncreaseButton);
+            Check(Mathf.Approximately(OverburstEdgeBlurPreview.CurrentStrength, .73f) && edge.IntensityCaption.text == "탐험 0.73",
+                "Actual edge plus click changes exploration strength by 0.01");
+            yield return Click(edge.DecreaseButton);
+            CheckButtonHit(edge.DecreaseButton);
+            Check(Mathf.Approximately(OverburstEdgeBlurPreview.CurrentStrength, .72f), "Actual edge minus click changes strength by 0.01");
+            PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.System);
+            yield return null;
+            Check(edge.IntensityCaption.text == "전투 0.42", "Combat mode displays its independent existing 0.42 strength");
+            yield return Click(edge.IncreaseButton);
+            Check(Mathf.Approximately(OverburstEdgeBlurPreview.CurrentStrength, .43f) && edge.IntensityCaption.text == "전투 0.43",
+                "Actual plus click adjusts combat strength independently");
+            PlayerCombatModeController.ExitSharedCombatMode(PlayerCombatModeReason.System);
+            yield return null;
+            Check(edge.IntensityCaption.text == "탐험 0.72", "Exploration strength survives combat adjustment");
+            yield return Click(edge.ToggleButton);
+            CheckButtonHit(edge.ToggleButton);
+            yield return Click(edge.IncreaseButton);
+            Check(!OverburstEdgeBlurPreview.IsEnabled && edge.IntensityCaption.text == "탐험 0.73", "Edge strength adjustment preserves off state");
+            yield return Click(edge.ToggleButton);
+            Check(OverburstEdgeBlurPreview.IsEnabled && Mathf.Approximately(OverburstEdgeBlurPreview.CurrentStrength, .73f),
+                "Edge toggle restores selected exploration strength");
+            int passCount = OverburstEdgeBlurRendererFeature.RecordedPassCount;
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+            Check(OverburstEdgeBlurRendererFeature.RecordedPassCount > passCount, "Adjusted edge blur records actual render passes");
+            Capture("AdjustedControls");
         }
-        finally { InputSystem.QueueStateEvent(mouse, new MouseState { position = previousPosition }); }
+        finally
+        {
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = previousPosition });
+            if (previousCombatMode) PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.System);
+            else PlayerCombatModeController.ExitSharedCombatMode(PlayerCombatModeReason.System);
+        }
         OverburstMotionBlurPreviewVerifier.CompleteCycle();
     }
 
     private static void CheckStack(bool enabled)
     {
         var value = VolumeManager.instance.stack.GetComponent<MotionBlur>();
+        var preview = Object.FindFirstObjectByType<OverburstMotionBlurPreview>();
+        float expected = enabled ? preview.SelectedIntensity : 0f;
         Check(value != null && value.mode.value == MotionBlurMode.CameraAndObjects && value.quality.value == MotionBlurQuality.Low &&
-            Mathf.Approximately(value.intensity.value, enabled ? OverburstMotionBlurPreview.PreviewIntensity : 0f) && value.IsActive() == enabled,
-            enabled ? "Rendered camera volume stack applies weak native blur" : "Rendered camera volume stack disables native blur at zero intensity");
+            Mathf.Approximately(value.intensity.value, expected) && value.IsActive() == (expected > 0f),
+            "Rendered camera volume stack matches selected strength and toggle state");
+    }
+
+    private static Vector2 ButtonPosition(Button button)
+    {
+        var rect = (RectTransform)button.transform;
+        return RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
+    }
+
+    private static IEnumerator Click(Button button)
+    {
+        var mouse = Mouse.current;
+        var position = ButtonPosition(button);
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+        yield return null;
+        yield return null;
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = position, buttons = 1 });
+        yield return null;
+        InputSystem.QueueStateEvent(mouse, new MouseState { position = position });
+        yield return null;
+        yield return new WaitForEndOfFrame();
+    }
+
+    private static void CheckButtonHit(Button button)
+    {
+        var hits = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = ButtonPosition(button) }, hits);
+        Check(hits.Count > 0 && hits[0].gameObject.transform.IsChildOf(button.transform), "Actual UI raycast reaches " + button.name);
+        Check(GameplayInputBlocker.IsGameplayInputBlocked, "Control hover blocks gameplay input: " + button.name);
     }
 
     private static void Check(bool value, string label) => OverburstMotionBlurPreviewVerifier.Check(value, label);

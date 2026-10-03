@@ -39,6 +39,8 @@ public static class OverburstEdgeBlurPreviewVerifier
         Require(prefab != null && prefab.GetComponent<OverburstEdgeBlurPreview>() != null, "Toggle prefab loads");
         var preview = prefab.GetComponent<OverburstEdgeBlurPreview>();
         Require(preview.ToggleButton != null && preview.Caption != null && preview.Caption.font != null, "Button, caption and font references load");
+        Require(preview.DecreaseButton != null && preview.IncreaseButton != null && preview.IntensityCaption?.font != null,
+            "Intensity controls and numeric font references load");
         Require(prefab.GetComponent<Canvas>().renderMode == RenderMode.ScreenSpaceOverlay, "Toggle renders after world blur");
         Require(((RectTransform)preview.ToggleButton.transform).anchoredPosition == new Vector2(16, -120), "Toggle stays below location heading");
         Require(prefab.GetComponentsInChildren<Transform>(true).All(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) == 0), "Prefab Missing Script 0");

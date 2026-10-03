@@ -1,3 +1,4 @@
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,18 +14,26 @@ public sealed class OverburstMotionBlurPreview : MonoBehaviour
     public const float PreviewIntensity = .01f;
     public const float PreviewClamp = .003f;
     [SerializeField] private Button toggleButton;
+    [SerializeField] private Button decreaseButton;
+    [SerializeField] private Button increaseButton;
     [SerializeField] private TMP_Text caption;
+    [SerializeField] private TMP_Text intensityCaption;
     private static OverburstMotionBlurPreview instance;
     private Volume previewVolume;
     private VolumeProfile ownedProfile;
     private MotionBlur motionBlur;
     private Camera targetCamera;
     private bool desiredEnabled = true;
+    private int intensityHundredths = 1;
     private float nextCameraSearch;
 
     public bool IsEnabled => desiredEnabled && isActiveAndEnabled;
     public Button ToggleButton => toggleButton;
+    public Button DecreaseButton => decreaseButton;
+    public Button IncreaseButton => increaseButton;
     public TMP_Text Caption => caption;
+    public TMP_Text IntensityCaption => intensityCaption;
+    public float SelectedIntensity => intensityHundredths / 100f;
     public Camera TargetCamera => targetCamera;
     public Volume PreviewVolume => previewVolume;
     public MotionBlur Settings => motionBlur;
@@ -66,6 +75,8 @@ public sealed class OverburstMotionBlurPreview : MonoBehaviour
         previewVolume.sharedProfile = ownedProfile;
         BindCamera();
         if (toggleButton != null) toggleButton.onClick.AddListener(Toggle);
+        if (decreaseButton != null) decreaseButton.onClick.AddListener(DecreaseIntensity);
+        if (increaseButton != null) increaseButton.onClick.AddListener(IncreaseIntensity);
         ApplyState();
     }
 
@@ -91,13 +102,24 @@ public sealed class OverburstMotionBlurPreview : MonoBehaviour
             nextCameraSearch = Time.unscaledTime + 1f;
             BindCamera();
         }
-        bool overButton = toggleButton != null && toggleButton.gameObject.activeInHierarchy &&
-            Mouse.current != null && RectTransformUtility.RectangleContainsScreenPoint(
-                (RectTransform)toggleButton.transform, Mouse.current.position.ReadValue(), null);
+        bool overButton = IsPointerOver(toggleButton) || IsPointerOver(decreaseButton) || IsPointerOver(increaseButton);
         GameplayInputBlocker.SetBlocked(this, overButton);
     }
 
+    private static bool IsPointerOver(Button button) => button != null && button.gameObject.activeInHierarchy &&
+        Mouse.current != null && RectTransformUtility.RectangleContainsScreenPoint(
+            (RectTransform)button.transform, Mouse.current.position.ReadValue(), null);
+
     public void Toggle() => SetEnabled(!desiredEnabled);
+    public void DecreaseIntensity() => AdjustIntensity(-1);
+    public void IncreaseIntensity() => AdjustIntensity(1);
+
+    private void AdjustIntensity(int steps)
+    {
+        // 정수 단위로 보관해 반복 클릭에도 0.01 간격과 표시 값이 일치한다.
+        intensityHundredths = Mathf.Clamp(intensityHundredths + steps, 0, 100);
+        ApplyState();
+    }
 
     public void SetEnabled(bool value)
     {
@@ -108,9 +130,10 @@ public sealed class OverburstMotionBlurPreview : MonoBehaviour
     private void ApplyState()
     {
         // 꺼짐도 intensity=0으로 명시해 맵 프로필의 다른 블러 값이 되살아나지 않게 한다.
-        if (motionBlur != null) motionBlur.intensity.Override(IsEnabled ? PreviewIntensity : 0f);
+        if (motionBlur != null) motionBlur.intensity.Override(IsEnabled ? SelectedIntensity : 0f);
         if (previewVolume != null) previewVolume.enabled = isActiveAndEnabled;
         if (caption != null) caption.text = IsEnabled ? "모션블러: 켜짐" : "모션블러: 꺼짐";
+        if (intensityCaption != null) intensityCaption.text = "강도 " + SelectedIntensity.ToString("F2", CultureInfo.InvariantCulture);
         if (toggleButton != null && toggleButton.targetGraphic != null)
             toggleButton.targetGraphic.color = IsEnabled
                 ? new Color(.20f, .31f, .27f, .94f) : new Color(.16f, .17f, .19f, .94f);
@@ -128,6 +151,8 @@ public sealed class OverburstMotionBlurPreview : MonoBehaviour
     {
         GameplayInputBlocker.Unblock(this);
         if (toggleButton != null) toggleButton.onClick.RemoveListener(Toggle);
+        if (decreaseButton != null) decreaseButton.onClick.RemoveListener(DecreaseIntensity);
+        if (increaseButton != null) increaseButton.onClick.RemoveListener(IncreaseIntensity);
         if (previewVolume != null) { previewVolume.enabled = false; previewVolume.sharedProfile = null; }
         if (ownedProfile != null)
         {
