@@ -75,6 +75,7 @@ public static class MonsterWeakAttackImpactVerifier
 
     private static void VerifyNative(Action<string, bool> check)
     {
+        int registryBefore = CombatTargetRegistry.RegisteredCount;
         var scene = EditorSceneManager.NewPreviewScene(); var owned = new List<UnityEngine.Object>();
         string folder = "Assets/Editor/Testers/Characters/V3ImpactFixture_" + Guid.NewGuid().ToString("N");
         EnemyMeleeAttackController melee = null;
@@ -197,11 +198,18 @@ public static class MonsterWeakAttackImpactVerifier
         finally
         {
             melee?.CancelAttack();
+            // Preview scenes do not run ordinary MonoBehaviour lifecycle
+            // callbacks. Explicitly return this fixture's registry ownership.
+            foreach (var item in owned)
+                if (item is GameObject go && go != null)
+                    foreach (var target in go.GetComponentsInChildren<CombatTarget>(true))
+                        CombatTargetRegistry.Unregister(target);
             for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) UnityEngine.Object.DestroyImmediate(owned[i]);
             if (AssetDatabase.IsValidFolder(folder)) AssetDatabase.DeleteAsset(folder);
             EditorSceneManager.ClosePreviewScene(scene);
         }
         check("native fixture folder removed", !AssetDatabase.IsValidFolder(folder));
+        check("fixture registry count restored", CombatTargetRegistry.RegisteredCount == registryBefore);
     }
 
     private static void Set(object target, string field, object value) => target.GetType().GetField(field, Fields).SetValue(target, value);
