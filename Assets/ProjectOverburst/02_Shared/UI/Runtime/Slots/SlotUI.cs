@@ -22,6 +22,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Image slotBackgroundImage;
     [SerializeField] private WeaponElementIconView weaponElementIcon;
+    [SerializeField] private ItemTypeIconView itemTypeIcon;
 
     private SlotGradeEffect gradeEffect; // 등급 효과
     private SlotFrameAnimator slotFrameAnimator; // 프레임 효과
@@ -59,6 +60,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         EquippedWeaponComparison.EquippedChanged += RefreshCompareMarker;
         RefreshCompareMarker();
         RefreshWeaponElementIcon();
+        RefreshItemTypeIcon();
     }
 
     private void OnDisable()
@@ -91,8 +93,9 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         }
 
         DisplayItem = item; // 표시 아이템
-        GetComponent<OverburstUIItemSlotView>()?.Present(item.icon,item.grade);
+        GetComponent<OverburstUIItemSlotView>()?.Present(item);
         RefreshWeaponElementIcon();
+        RefreshItemTypeIcon();
         SetIconActive(true);
 
         if (iconImage != null)
@@ -137,6 +140,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         EnsureInitialized();
         IsLocked = locked; // 잠금 상태
         RefreshWeaponElementIcon();
+        RefreshItemTypeIcon();
 
         if (lockedOverlay != null)
             lockedOverlay.gameObject.SetActive(locked); // 잠금 표시
@@ -292,6 +296,13 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         weaponElementIcon?.Present(!IsLocked && DisplayItem != null && DisplayItem.HasValidBaseData ? DisplayItem : null);
     }
 
+    private void RefreshItemTypeIcon()
+    {
+        if (itemTypeIcon == null)
+            itemTypeIcon = transform.Find("Item Type Badge")?.GetComponent<ItemTypeIconView>();
+        itemTypeIcon?.Present(!IsLocked ? DisplayItem : null);
+    }
+
     private TextMeshProUGUI FindInfoText()
     {
         TextMeshProUGUI[] textComponents = GetComponentsInChildren<TextMeshProUGUI>(true);
@@ -319,6 +330,7 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
     private void Clear()
     {
         weaponElementIcon?.Present(WeaponElement.None);
+        itemTypeIcon?.Present(null);
         GetComponent<OverburstUIItemSlotView>()?.Present(null,ItemGrade.Common);
         SetIconActive(false);
 
@@ -695,10 +707,10 @@ public class SlotUI : MonoBehaviour, IPointerClickHandler // 공통 슬롯
         newItemMarker.raycastTarget = false;
 
         RectTransform rect = markerObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 0f);
-        rect.anchorMax = new Vector2(1f, 0f);
-        rect.pivot = new Vector2(1f, 0f);
-        rect.anchoredPosition = new Vector2(-4f, 3f);
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(1f, 1f);
+        rect.anchoredPosition = new Vector2(-4f, -3f);
         rect.sizeDelta = new Vector2(18f, 18f);
 
         markerObject.SetActive(false);

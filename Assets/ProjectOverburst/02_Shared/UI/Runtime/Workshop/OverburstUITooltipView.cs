@@ -73,7 +73,7 @@ public sealed class OverburstUITooltipView : MonoBehaviour
         body.text="<line-height=26>"+formatted.ToString().Trim()+"</line-height>";
         if(approvedSkin&&approvedSkin.TryPresent(item,priceOverride,lines,body))return;
         body.enabled=true;
-        itemSlot.Present(item.icon,item.grade);
+        itemSlot.Present(item);
         title.ForceMeshUpdate();float header=Mathf.Max(128,title.GetPreferredValues(title.text,248,0).y+98);
         subtitle.rectTransform.anchoredPosition=new Vector2(144,-(40+title.GetPreferredValues(title.text,248,0).y+8));
         gradeLabel.rectTransform.anchoredPosition=new Vector2(144,-(header-22));

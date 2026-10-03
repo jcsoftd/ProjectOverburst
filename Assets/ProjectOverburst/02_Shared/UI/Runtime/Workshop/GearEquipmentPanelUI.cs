@@ -39,14 +39,14 @@ public sealed class GearEquipmentPanelUI : MonoBehaviour
     public void Refresh(PlayerEquipment equipment)
     {
         var gem = equipment != null ? equipment.EquippedElementGem : null;
-        if (gemView != null && gem != shownGem) { shownGem = gem; gemView.Present(gem != null ? gem.icon : null, gem != null ? gem.grade : ItemGrade.Common); }
+        if (gemView != null && gem != shownGem) { shownGem = gem; gemView.Present(gem); }
         for (int i = 0; i < views.Length; i++)
         {
             if (views[i] == null) continue;
             ItemData item = equipment != null ? equipment.GetGearSlotItem(i) : null;
             if (shown[i] == item) continue;
             shown[i] = item;
-            views[i].Present(item != null ? item.icon : null, item != null ? item.grade : ItemGrade.Common);
+            views[i].Present(item);
         }
     }
 }
