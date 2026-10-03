@@ -1082,6 +1082,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &15109132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1202,6 +1203,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &19158988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1322,6 +1324,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &20430991
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1911,6 +1914,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &38275447
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6843,6 +6847,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &69101727
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8166,6 +8171,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &93447043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9040,6 +9046,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &105511550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9985,6 +9992,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &114721332
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10433,6 +10441,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &128126828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12799,6 +12808,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &182023403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13067,6 +13077,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &193082399
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15089,6 +15100,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &250483729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17651,6 +17663,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &301910246
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19307,6 +19320,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &329062668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19408,7 +19422,7 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 38
-  orthographic: 1
+  orthographic: 0
   orthographic size: 6.886552
   m_Depth: -1
   m_CullingMask:
@@ -19536,7 +19550,7 @@ MonoBehaviour:
   BlendUpdateMethod: 1
   LensModeOverride:
     Enabled: 1
-    DefaultMode: 1
+    DefaultMode: 2
   DefaultBlend:
     Style: 1
     Time: 0.35
@@ -23968,6 +23982,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &401163386
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -25833,6 +25848,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &430648052
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27181,6 +27197,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &461107776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30430,6 +30447,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &515120047
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30799,6 +30817,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &525364434
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31712,6 +31731,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &542469490
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34364,6 +34384,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &586125343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37274,6 +37295,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &653660916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37830,6 +37852,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &677206673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38522,6 +38545,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &689434352
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -44072,6 +44096,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &779709567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -44704,6 +44729,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &793671818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -45953,6 +45979,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &832256931
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51960,6 +51987,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &940569700
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -52223,6 +52251,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &945542627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -53083,6 +53112,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &962935847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -57203,6 +57233,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1050822949
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59896,6 +59927,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1094079088
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -61722,6 +61754,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1157302611
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -62230,6 +62263,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1166295079
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65828,6 +65862,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1208103726
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66720,6 +66755,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1223836759
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -67974,6 +68010,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1249005403
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68710,6 +68747,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1264807679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69025,6 +69063,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1280894240
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71269,6 +71308,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1318872655
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72749,6 +72789,22 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 1007562462650622890, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3648109053710206405, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3787970441798903917, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4292142829
+      objectReference: {fileID: 0}
+    - target: {fileID: 3787970441798903917, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 4026666232566184496, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4293318353
@@ -72761,9 +72817,29 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemyBossHud
       objectReference: {fileID: 0}
+    - target: {fileID: 6096421202026250581, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4292142829
+      objectReference: {fileID: 0}
+    - target: {fileID: 6096421202026250581, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 6343790094546466899, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 6644197869926949131, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7354329164675580315, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 3955808994
+      objectReference: {fileID: 0}
+    - target: {fileID: 7354329164675580315, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 7582800224583408879, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
       propertyPath: m_Pivot.x
@@ -72844,6 +72920,14 @@ PrefabInstance:
     - target: {fileID: 7582800224583408879, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8835199553543925457, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4288075510
+      objectReference: {fileID: 0}
+    - target: {fileID: 8835199553543925457, guid: eb3da3e34877b2146af92f5b7febe08d, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -75400,6 +75484,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1394011965
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76569,6 +76654,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1418996268
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79632,6 +79718,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1459743750
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -82499,6 +82586,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1518074963
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -83684,6 +83772,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1536612423
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85150,6 +85239,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.75
       objectReference: {fileID: 0}
+    - target: {fileID: 219798012210260512, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 334629873848206324, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
       value: 0.75
@@ -85438,6 +85531,10 @@ PrefabInstance:
       propertyPath: grade
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2103184197803155245, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 2118259750712664868, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
       value: 0.75
@@ -85453,6 +85550,10 @@ PrefabInstance:
     - target: {fileID: 2118819354706131202, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2169743907422542637, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 2308717445976382923, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_AnchorMax.x
@@ -85594,6 +85695,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3085298409605643429, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 3148942747722803572, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: grade
       value: 0
@@ -85601,6 +85706,10 @@ PrefabInstance:
     - target: {fileID: 3774708043481711209, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: grade
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3915058282269354062, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 3938805288828888498, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
@@ -85770,6 +85879,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.75
       objectReference: {fileID: 0}
+    - target: {fileID: 5368472722337291027, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 5504417716147268087, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
       value: 0.75
@@ -85813,6 +85926,10 @@ PrefabInstance:
     - target: {fileID: 5520160196054641334, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5656538498032429942, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 5804313615442384050, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_AnchorMax.x
@@ -85877,6 +85994,10 @@ PrefabInstance:
     - target: {fileID: 5964123043053407525, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5970547542194315478, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 6170728231912311079, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
@@ -85946,9 +86067,21 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6569639926983659534, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 6571997109947211789, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: grade
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6632380660819660578, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 6634979962805100080, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 6932309039899543737, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
@@ -85970,6 +86103,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.75
       objectReference: {fileID: 0}
+    - target: {fileID: 7036528449741479158, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 7181748771433286790, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_SizeDelta.x
       value: 68
@@ -85986,9 +86123,17 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7184675214461502046, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 7279473083231754025, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Sprite
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7292147587873516384, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 7304994910503920586, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_AnchorMax.x
@@ -86045,6 +86190,10 @@ PrefabInstance:
     - target: {fileID: 7654922885863623570, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.r
       value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 7666175274988933871, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 7899388140138654794, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_Color.b
@@ -86126,6 +86275,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0.75
       objectReference: {fileID: 0}
+    - target: {fileID: 8997759185737347726, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9010363872933236102, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -86173,6 +86326,10 @@ PrefabInstance:
     - target: {fileID: 9010363874567283005, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9071409516331381102, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 9204282855178334850, guid: 7644223b905f1c748b2e720b3b44946e, type: 3}
       propertyPath: m_SizeDelta.x
@@ -89198,6 +89355,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1616506794
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -90299,6 +90457,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1641841469
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92010,6 +92169,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1668571984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93481,6 +93641,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1701391028
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -94306,6 +94467,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1713828808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -96166,6 +96328,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1742924806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -99443,6 +99606,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1802223848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100181,6 +100345,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1818494457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -102020,7 +102185,7 @@ MonoBehaviour:
     NearClipPlane: 0.3
     FarClipPlane: 1000
     Dutch: 0
-    ModeOverride: 1
+    ModeOverride: 2
     PhysicalProperties:
       GateFit: 2
       SensorSize: {x: 21.946, y: 16.002}
@@ -102307,6 +102472,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1852305128
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103910,6 +104076,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1889633203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107381,6 +107548,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1929232940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -110621,6 +110789,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &1984572147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113543,6 +113712,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2034896724
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -115207,6 +115377,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2066857364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -115689,6 +115860,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2071664235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116086,6 +116258,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2078535814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116928,6 +117101,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2103058929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118051,6 +118225,7 @@ MonoBehaviour:
   infoText: {fileID: 0}
   backgroundImage: {fileID: 0}
   slotBackgroundImage: {fileID: 0}
+  weaponElementIcon: {fileID: 0}
 --- !u!114 &2137517803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118782,6 +118957,10 @@ PrefabInstance:
     - target: {fileID: 6643255541509228946, guid: 55d0f07c8a5a12448a8214565cb002fa, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7615370151350189092, guid: 55d0f07c8a5a12448a8214565cb002fa, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 7830381702086731345, guid: 55d0f07c8a5a12448a8214565cb002fa, type: 3}
       propertyPath: m_Name
