@@ -2,6 +2,7 @@ using UnityEngine;
 
 public partial class MeleeRuntime
 {
+    private static readonly float DashHeavySwingCue = HeavyFocusWindow.Dash.SourceAtAudioLead(.5f, .375f, true);
     private bool dashHeavyWindup, dashHeavyGatherPlayed, dashHeavyReleasePlayed, dashHeavySwingPlayed;
     private PlayerDodgeFollowUpRequest dashHeavyRequest;
     private ElementGemAttackSnapshot dashHeavyPreviewGem;
@@ -10,7 +11,7 @@ public partial class MeleeRuntime
     private DashHeavyFocusPresentation dashHeavyPresentation;
     private int dashHeavyDarkBarrageId;
     public bool IsDashHeavyWindupActive => dashHeavyWindup;
-    public float DashHeavyTravelDistance(float dashElapsed) => dashHeavyTravel?.Position(dashElapsed) ?? 0f;
+    public float DashHeavyTravelDistance(float dashElapsed) => dashHeavyTravel?.Position(dashHeavyTravel.Start + Mathf.Max(0f, Time.time - dashHeavyPreviewStart)) ?? 0f;
 
     public void PreviewDashHeavy(in PlayerDodgeFollowUpRequest request, float dashElapsed,
         float distance, float duration, float moveEase)
@@ -38,23 +39,23 @@ public partial class MeleeRuntime
             float remaining = fullDuration*heavy.attack.playbackAcceleration.ToElapsed(1f);
             if (!playerAnimatorController.PlayMeleeCombatAttack(0,heavy.attack.animationClip,dashHeavyPlaybackSpeed,
                 remaining,.08f*Time.timeScale,true,0f,heavy.attack.playbackAcceleration)) return;
-            dashHeavyPreviewStart = OverburstGameClock.UnscaledTime;
+            dashHeavyPreviewStart = Time.time;
             dashHeavyRequest = request;
             dashHeavyPreviewGem = new ElementGemAttackSnapshot(playerEquipment);
             dashHeavyTravel = new DashHeavyTravelPlan(dashElapsed,distance,duration,moveEase,dashHeavyPlaybackSpeed);
             dashHeavyWindup = true;
             dashHeavyGatherPlayed = dashHeavyReleasePlayed = dashHeavySwingPlayed = false;
             dashHeavyPresentation = DashHeavyFocusPresentation.Create(playerEquipment,
-                (playerEquipment.GetComponent<OverburstElementEnergy>()?.Amount ?? 0f)>0f ? playerEquipment.ActiveElement : WeaponElement.None);
+                dashHeavyPreviewGem.Element);
         }
-        float elapsed = (OverburstGameClock.UnscaledTime-dashHeavyPreviewStart)*dashHeavyPlaybackSpeed;
+        float elapsed = (Time.time-dashHeavyPreviewStart)*dashHeavyPlaybackSpeed;
         TickDashHeavyFocus(DashHeavyFocusClock.Sample(elapsed));
     }
     private float DashHeavyHandoffProgress(in PlayerDodgeFollowUpRequest request)
     {
         if (!dashHeavyWindup || request.EvadeExecutionId != dashHeavyRequest.EvadeExecutionId
             || request.InputRevision != dashHeavyRequest.InputRevision) return 0f;
-        dashHeavyHandoffElapsed = Mathf.Max(0f,OverburstGameClock.UnscaledTime-dashHeavyPreviewStart);
+        dashHeavyHandoffElapsed = Mathf.Max(0f,Time.time-dashHeavyPreviewStart);
         return Mathf.Clamp(DashHeavyFocusClock.Sample(dashHeavyHandoffElapsed
             *dashHeavyPlaybackSpeed)/DashHeavyFocusClock.ClipLength,0f,.95f);
     }
@@ -74,7 +75,7 @@ public partial class MeleeRuntime
     }
     private void TickDashHeavyTravelAndFocus(float progress)
     {
-        if (activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy) return;
+        if (activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy) { TickGroundHeavyFocus(progress); return; }
         if (dashHeavyTravel != null)
         {
             float t=dashHeavyTravel.Start+Mathf.Max(0f,Time.time-attackStartTime);
@@ -88,16 +89,15 @@ public partial class MeleeRuntime
     private void TickDashHeavyFocus(float sourceSeconds)
     {
         dashHeavyPresentation?.Tick(sourceSeconds);
-        if (!dashHeavyGatherPlayed && sourceSeconds >= .32f)
+        if (!dashHeavyGatherPlayed && sourceSeconds >= HeavyFocusWindow.Dash.Start)
         {
             dashHeavyGatherPlayed=true;
-            dashHeavyPresentation?.PlayGather((DashHeavyFocusClock.HoldEnd-DashHeavyFocusClock.RealAt(.32f))/Mathf.Max(.01f,dashHeavyPlaybackSpeed));
+            dashHeavyPresentation?.PlayGather(HeavyFocusWindow.Dash.UnscaledDuration(sourceSeconds, HeavyFocusWindow.Dash.End, true)/Mathf.Max(.01f,dashHeavyPlaybackSpeed));
         }
-        if (!dashHeavyReleasePlayed && sourceSeconds > DashHeavyFocusClock.HoldClip+.00001f)
+        if (!dashHeavyReleasePlayed && sourceSeconds >= HeavyFocusWindow.Dash.End)
         { dashHeavyReleasePlayed=true; dashHeavyPresentation?.PlayRelease(); }
         // PCM RMS peak of the selected sweep is .375s. Align that peak with source frame30.
-        float sweepStart = Mathf.Max(0f,DashHeavyFocusClock.RealAt(.5f)-.375f);
-        if (!dashHeavySwingPlayed && sourceSeconds >= DashHeavyFocusClock.Sample(sweepStart))
+        if (!dashHeavySwingPlayed && sourceSeconds >= DashHeavySwingCue)
         {
             dashHeavySwingPlayed=true;
             CombatActionSfxService.PlayDashHeavySwing(dashHeavyPlaybackSpeed,transform.position);
@@ -135,6 +135,7 @@ public partial class MeleeRuntime
     private void EndDashHeavyPresentation()
     {
         CompleteDashHeavyDarkBarrage();
+        EndGroundHeavyFocus();
         dashHeavyPresentation?.Dispose(); dashHeavyPresentation=null;
         dashHeavyTravel=null; dashHeavyMovedDistance=0f;
     }

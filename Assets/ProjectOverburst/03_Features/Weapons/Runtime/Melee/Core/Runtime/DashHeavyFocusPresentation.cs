@@ -1,137 +1,201 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-// A small blade highlight and six inward-moving wisps. No lights, material copies or global time effects.
+// One retained gathering effect per equipped weapon. Native elemental blade FX stay untouched.
 public sealed class DashHeavyFocusPresentation : MonoBehaviour
 {
     public const string MaterialResource = "Combat/VFX/DashHeavyFocus";
-    private static Material focusMaterial;
+    public const string HeadMaterialResource = "Combat/VFX/DashHeavyFocusHead";
+    public const string HeadMeshResource = "Combat/VFX/DashHeavyFocusHeadMesh";
+    private const int LightCount = 9, PointCount = 14;
+    private static Material focusMaterial, headMaterial;
+    private static Mesh headMesh;
     private static AudioClip gatherClip, releaseClip;
+    private static readonly int TintId = Shader.PropertyToID("_Tint"), GlintId = Shader.PropertyToID("_Glint");
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetPrepared() { focusMaterial=null;gatherClip=null;releaseClip=null; }
+    private static void ResetPrepared() { focusMaterial = headMaterial = null; headMesh = null; gatherClip = releaseClip = null; }
     public static void Prepare()
     {
-        if(focusMaterial==null)focusMaterial=Resources.Load<Material>(MaterialResource);
-        if(gatherClip==null)gatherClip=CombatActionSfxService.ResolveNamedClip("DashHeavyGather");
-        if(releaseClip==null)releaseClip=CombatActionSfxService.ResolveNamedClip("DashHeavyRelease");
-        if(gatherClip!=null&&gatherClip.loadState==AudioDataLoadState.Unloaded)gatherClip.LoadAudioData();
-        if(releaseClip!=null&&releaseClip.loadState==AudioDataLoadState.Unloaded)releaseClip.LoadAudioData();
+        if (focusMaterial == null) focusMaterial = Resources.Load<Material>(MaterialResource);
+        if (headMaterial == null) headMaterial = Resources.Load<Material>(HeadMaterialResource);
+        if (headMesh == null) headMesh = Resources.Load<Mesh>(HeadMeshResource);
+        if (gatherClip == null) gatherClip = CombatActionSfxService.ResolveNamedClip("DashHeavyGather");
+        if (releaseClip == null) releaseClip = CombatActionSfxService.ResolveNamedClip("DashHeavyRelease");
+        if (gatherClip != null && gatherClip.loadState == AudioDataLoadState.Unloaded) gatherClip.LoadAudioData();
+        if (releaseClip != null && releaseClip.loadState == AudioDataLoadState.Unloaded) releaseClip.LoadAudioData();
     }
+    public static void Prepare(PlayerEquipment owner) { Ensure(owner); }
     private PlayerEquipment equipment;
+    private CombatHealth health;
+    private Transform weaponRoot;
     private MeleeWeaponElementFx blade;
-    private LineRenderer glow;
-    private readonly LineRenderer[] wisps = new LineRenderer[6];
+    private readonly LineRenderer[] wisps = new LineRenderer[LightCount];
+    private readonly MeshRenderer[] heads = new MeshRenderer[LightCount];
+    private readonly MaterialPropertyBlock[] blocks = new MaterialPropertyBlock[LightCount];
+    private readonly Vector3[] origins = new Vector3[LightCount], bends = new Vector3[LightCount];
+    private readonly bool[] spawned = new bool[LightCount];
     private AudioSource gather, release;
+    private Camera view;
+    private QuarterViewCamera focusCamera;
+    private HeavyFocusWindow window;
     private Color elementColor;
-    private float sourceSeconds = -1f, gatherEndsAt, gatherStartedAt;
+    private float sourceSeconds = -1f, gatherEndsAt;
     private string weaponId;
+    private bool initialized;
+    private bool ownsSlow;
 
-    public static DashHeavyFocusPresentation Create(PlayerEquipment owner, WeaponElement element)
+    private static DashHeavyFocusPresentation Ensure(PlayerEquipment owner)
     {
-        if(owner==null || owner.CurrentWeaponRoot==null)return null;
+        if (owner == null || owner.CurrentWeaponRoot == null) return null;
+        var effect = owner.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true);
+        if (effect != null) return effect;
         Prepare();
-        Material material=focusMaterial;
-        if(material==null)return null;
-        var root=new GameObject("DashHeavyBladeFocus");
-        root.transform.SetParent(owner.CurrentWeaponRoot,false);
-        var effect=root.AddComponent<DashHeavyFocusPresentation>();
-        effect.equipment=owner; effect.weaponId=owner.CurrentWeaponItem?.runtimeInstanceId;
-        effect.blade=owner.CurrentWeaponRoot.GetComponentInChildren<MeleeWeaponElementFx>(true);
-        effect.elementColor=ColorFor(element);
-        effect.glow=effect.MakeLine("BladeHighlight",material,.026f);
-        for(int i=0;i<effect.wisps.Length;i++)effect.wisps[i]=effect.MakeLine("GatherWisp"+i,material,.014f);
-        effect.gather=effect.MakeVoice("Gather",.28f);
-        effect.release=effect.MakeVoice("Release",.32f);
+        if (focusMaterial == null || headMaterial == null || headMesh == null) return null;
+        var root = new GameObject("HeavyBladeGathering"); root.transform.SetParent(owner.CurrentWeaponRoot, false);
+        effect = root.AddComponent<DashHeavyFocusPresentation>();
+        effect.equipment = owner; effect.health = owner.GetComponent<CombatHealth>();
+        effect.weaponRoot = owner.CurrentWeaponRoot;
+        effect.blade = effect.weaponRoot.GetComponentInChildren<MeleeWeaponElementFx>(true);
+        for (int i = 0; i < LightCount; i++)
+        {
+            var line = new GameObject("GatherTail" + i).AddComponent<LineRenderer>(); line.transform.SetParent(root.transform, false);
+            line.useWorldSpace = true; line.positionCount = PointCount; line.sharedMaterial = focusMaterial;
+            line.widthMultiplier = .018f + .004f * (i % 3);
+            line.widthCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(.16f, .28f), new Keyframe(.70f, .65f), new Keyframe(.91f, .78f), new Keyframe(1, .35f));
+            line.textureMode = LineTextureMode.Stretch; line.numCapVertices = 0; SetupRenderer(line); line.enabled = false;
+            effect.wisps[i] = line;
+            var head = new GameObject("GatherLight" + i, typeof(MeshFilter), typeof(MeshRenderer)); head.transform.SetParent(root.transform, false);
+            head.GetComponent<MeshFilter>().sharedMesh = headMesh;
+            var renderer = head.GetComponent<MeshRenderer>(); renderer.sharedMaterial = headMaterial; SetupRenderer(renderer); renderer.enabled = false;
+            effect.heads[i] = renderer; effect.blocks[i] = new MaterialPropertyBlock();
+        }
+        effect.gather = effect.MakeVoice("Gather", .28f); effect.release = effect.MakeVoice("Release", .32f);
+        effect.initialized = true; effect.enabled = false;
+        return effect;
+    }
+    public static DashHeavyFocusPresentation Create(PlayerEquipment owner, WeaponElement element)
+        => Create(owner, element, HeavyFocusWindow.Dash);
+    public static DashHeavyFocusPresentation Create(PlayerEquipment owner, WeaponElement element, HeavyFocusWindow timing)
+    {
+        var effect = Ensure(owner); if (effect == null) return null;
+        effect.Dispose(); effect.weaponId = owner.CurrentWeaponItem?.runtimeInstanceId;
+        effect.elementColor = ColorFor(element); effect.window = timing; effect.sourceSeconds = -1f;
+        effect.view = Camera.main; effect.focusCamera = QuarterViewCamera.ActiveInstance;
+        System.Array.Clear(effect.spawned, 0, effect.spawned.Length); effect.enabled = true;
         return effect;
     }
     public static Color ColorFor(WeaponElement element)
     {
-        switch(element)
+        switch (element)
         {
-            case WeaponElement.Fire:return new Color(1f,.35f,.09f);
-            case WeaponElement.Ice:return new Color(.4f,.85f,1f);
-            case WeaponElement.Electric:return new Color(.68f,.55f,1f);
-            case WeaponElement.Dark:return new Color(.72f,.15f,.30f);
-            case WeaponElement.Light:return new Color(1f,.89f,.5f);
-            default:return new Color(.91f,.95f,1f);
+            case WeaponElement.Fire: return new Color(1f, .35f, .09f);
+            case WeaponElement.Ice: return new Color(.4f, .85f, 1f);
+            case WeaponElement.Electric: return new Color(.68f, .55f, 1f);
+            case WeaponElement.Dark: return new Color(.72f, .15f, .30f);
+            case WeaponElement.Light: return new Color(1f, .89f, .5f);
+            default: return new Color(1f, .985f, .955f);
         }
     }
-    private LineRenderer MakeLine(string lineName,Material material,float width)
+    private static void SetupRenderer(Renderer renderer)
     {
-        var line=new GameObject(lineName).AddComponent<LineRenderer>();
-        line.transform.SetParent(transform,false);line.useWorldSpace=true;line.positionCount=2;
-        line.sharedMaterial=material;line.startWidth=width;line.endWidth=width*.3f;
-        line.shadowCastingMode=ShadowCastingMode.Off;line.receiveShadows=false;
-        line.motionVectorGenerationMode=MotionVectorGenerationMode.ForceNoMotion;
-        line.numCapVertices=2;line.enabled=false;
-        return line;
+        renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+        renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
     }
-    private AudioSource MakeVoice(string voiceName,float volume)
+    private AudioSource MakeVoice(string voiceName, float volume)
     {
-        var voice=new GameObject(voiceName).AddComponent<AudioSource>();
-        voice.transform.SetParent(transform,false);voice.playOnAwake=false;
-        voice.volume=volume;voice.spatialBlend=.6f;voice.minDistance=3f;voice.maxDistance=24f;
-        voice.dopplerLevel=0f;voice.priority=90;return voice;
+        var voice = new GameObject(voiceName).AddComponent<AudioSource>(); voice.transform.SetParent(transform, false);
+        voice.playOnAwake = false; voice.volume = volume; voice.spatialBlend = .6f; voice.minDistance = 3f; voice.maxDistance = 24f;
+        voice.dopplerLevel = 0f; voice.priority = 90; return voice;
     }
-    public void Tick(float clipSeconds) {sourceSeconds=clipSeconds;}
+    public void Tick(float clipSeconds)
+    {
+        sourceSeconds = clipSeconds;
+        if (!Application.isPlaying || !enabled) return;
+        float scale = window.TimeScale(clipSeconds);
+        if (scale < .99999f) ownsSlow |= OverburstTimeEffectArbiter.SetContinuous(this, OverburstTimeEffectKind.HeavyFocus, scale, .15f);
+        else if (ownsSlow) { OverburstTimeEffectArbiter.ClearOwner(this); ownsSlow = false; }
+        focusCamera?.SetHeavyFocusZoom(this, window.Zoom(clipSeconds));
+    }
     public void PlayGather(float duration)
     {
-        gather.clip=gatherClip;
-        if(gather.clip==null)return;
-        gatherStartedAt=OverburstGameClock.UnscaledTime;
-        gatherEndsAt=gatherStartedAt+Mathf.Max(.03f,duration);
-        gather.pitch=Mathf.Clamp(gather.clip.length/Mathf.Max(.03f,duration),.3f,3f);
-        gather.Play();
+        gather.clip = gatherClip; if (gather.clip == null) return;
+        gatherEndsAt = OverburstGameClock.UnscaledTime + Mathf.Max(.03f, duration); gather.volume = .28f;
+        gather.pitch = Mathf.Clamp(gather.clip.length / Mathf.Max(.03f, duration), .3f, 3f); gather.Play();
     }
     public void PlayRelease()
     {
-        gather.Stop();release.clip=releaseClip;
-        if(release.clip!=null)release.Play();
+        gather.Stop(); release.clip = releaseClip; if (release.clip != null) release.Play();
     }
     private void LateUpdate()
     {
-        if(equipment==null || equipment.CurrentWeaponItem?.runtimeInstanceId!=weaponId
-            || (equipment.GetComponent<CombatHealth>()?.IsDead ?? false)) {Dispose();return;}
-        bool shown=sourceSeconds>=.32f && sourceSeconds<.70f;
-        glow.enabled=shown;
-        if(!shown){foreach(var w in wisps)w.enabled=false;return;}
-        Vector3 tip=equipment.CurrentWeaponTraceBinding?.WeaponTip?.position ?? transform.position;
-        Vector3 bottom=tip-transform.forward;
-        if(blade!=null)blade.TryGetBladeEndpoints(out bottom,out tip);
-        Vector3 axis=(tip-bottom).normalized;
-        Vector3 right=Vector3.Cross(axis,Vector3.up).normalized;
-        if(right.sqrMagnitude<.01f)right=Vector3.right;
-        Vector3 up=Vector3.Cross(axis,right).normalized;
-        float rise=Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(.32f,DashHeavyFocusClock.HoldClip,sourceSeconds));
-        float fade=1f-Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(.51f,.70f,sourceSeconds));
-        float flash=sourceSeconds>DashHeavyFocusClock.HoldClip
-            ? 1f-Mathf.Clamp01((sourceSeconds-DashHeavyFocusClock.HoldClip)/.08f):0f;
-        Color color=Color.Lerp(elementColor,Color.white,flash*.60f);
-        color.a=(.15f+.55f*rise+.20f*flash)*fade;
-        glow.startColor=glow.endColor=color;glow.SetPosition(0,bottom);glow.SetPosition(1,tip);
-        glow.widthMultiplier=1f+flash*.8f;
-        for(int i=0;i<wisps.Length;i++)
+        if (equipment == null || !equipment.isActiveAndEnabled || equipment.CurrentWeaponRoot != weaponRoot
+            || equipment.CurrentWeaponItem?.runtimeInstanceId != weaponId || (health != null && health.IsDead)) { Dispose(); return; }
+        SampleVisual(view);
+        if (gather.isPlaying)
         {
-            var w=wisps[i];w.enabled=sourceSeconds<=DashHeavyFocusClock.HoldClip+.001f;
-            float angle=i*Mathf.PI/3f+rise*1.1f;
-            Vector3 target=Vector3.Lerp(bottom,tip,.22f+.13f*i);
-            Vector3 radial=right*Mathf.Cos(angle)+up*Mathf.Sin(angle);
-            float radius=Mathf.Lerp(.30f,.015f,rise);
-            Vector3 point=target+radial*radius;
-            w.SetPosition(0,point-radial*Mathf.Lerp(.10f,.018f,rise));w.SetPosition(1,point);
-            Color c=elementColor;c.a=.38f*Mathf.Sin(Mathf.PI*Mathf.Clamp01(rise))+.20f*rise;
-            w.startColor=new Color(c.r,c.g,c.b,0f);w.endColor=c;
-        }
-        if(gather.isPlaying)
-        {
-            float remaining=gatherEndsAt-OverburstGameClock.UnscaledTime;
-            gather.volume=.28f*Mathf.Clamp01(remaining/.025f);
-            if(remaining<=0f)gather.Stop();
+            float remaining = gatherEndsAt - OverburstGameClock.UnscaledTime;
+            gather.volume = .28f * Mathf.Clamp01(remaining / .025f); if (remaining <= 0f) gather.Stop();
         }
     }
-    public void Dispose()
+    // Also used by native preview rendering: the production geometry is sampled after the animated pose.
+    public void SampleVisual(Camera camera)
     {
-        if(gather!=null)gather.Stop();if(release!=null)release.Stop();
-        if(Application.isPlaying)Destroy(gameObject);else DestroyImmediate(gameObject);
+        if (!initialized) return;
+        bool shown = sourceSeconds >= window.Start && sourceSeconds < window.End;
+        if (!shown || camera == null) { HideVisuals(); return; }
+        Vector3 tip = equipment.CurrentWeaponTraceBinding?.WeaponTip?.position ?? transform.position, bottom = tip - transform.forward;
+        if (blade != null) blade.TryGetBladeEndpoints(out bottom, out tip);
+        Vector3 axis = (tip - bottom).normalized, right = Vector3.Cross(axis, Vector3.up).normalized;
+        if (right.sqrMagnitude < .01f) right = Vector3.right;
+        Vector3 up = Vector3.Cross(axis, right).normalized;
+        float progress = window.Gather(sourceSeconds);
+        for (int i = 0; i < LightCount; i++)
+        {
+            float seed = Mathf.Repeat(Mathf.Sin(i * 12.9898f + 2.7f) * 43758.5453f, 1f);
+            float delay = .015f + .11f * seed, arrival = .87f + .125f * Mathf.Repeat(seed * 2.37f, .999f);
+            float local = (progress - delay) / (arrival - delay); bool visible = local >= 0f && local < 1f;
+            wisps[i].enabled = heads[i].enabled = visible; if (!visible) continue;
+            float angle = i * 2.39996323f + seed * .32f;
+            Vector3 target = Vector3.Lerp(bottom, tip, .22f + .078f * i);
+            if (!spawned[i])
+            {
+                origins[i] = target + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * (.78f + .36f * seed) + axis * (seed - .5f) * .18f;
+                origins[i].y = Mathf.Max(equipment.transform.position.y + .45f, origins[i].y);
+                bends[i] = (right * Mathf.Sin(angle) + up * Mathf.Cos(angle)) * (.08f + .10f * seed); spawned[i] = true;
+            }
+            float tail = .060f + .014f * seed;
+            for (int j = 0; j < PointCount; j++) wisps[i].SetPosition(j, Point(origins[i], target, bends[i], local - tail * (PointCount - 1 - j) / (PointCount - 1f)));
+            float alpha = Smooth(local / .13f) * (1f - Smooth((local - .94f) / .06f));
+            Color color = elementColor; color.a = alpha * .58f;
+            wisps[i].startColor = new Color(color.r, color.g, color.b, 0f); wisps[i].endColor = color;
+            float size = (.058f + .051f * seed) * (1f + .14f * Smooth((local - .85f) / .12f));
+            // World size is independent of the supplier weapon's transform scale.
+            var head = heads[i].transform; head.SetPositionAndRotation(Point(origins[i], target, bends[i], local), camera.transform.rotation);
+            Vector3 parentScale = head.parent.lossyScale;
+            head.localScale = new Vector3(size / Mathf.Max(.0001f, Mathf.Abs(parentScale.x)), size / Mathf.Max(.0001f, Mathf.Abs(parentScale.y)), size / Mathf.Max(.0001f, Mathf.Abs(parentScale.z)));
+            color.a = alpha * (.60f + .24f * seed); blocks[i].SetColor(TintId, color);
+            blocks[i].SetFloat(GlintId, (i % 3 == 0 ? .24f : 0f) * Smooth((local - .62f) / .25f)); heads[i].SetPropertyBlock(blocks[i]);
+        }
     }
+    private static float Smooth(float value) { value = Mathf.Clamp01(value); return value * value * (3f - 2f * value); }
+    private static Vector3 Point(Vector3 origin, Vector3 target, Vector3 bend, float progress)
+    {
+        progress = Mathf.Clamp01(progress); return Vector3.Lerp(origin, target, progress * progress * progress) + bend * Mathf.Sin(Mathf.PI * progress) * .65f;
+    }
+    private void HideVisuals() { for (int i = 0; i < LightCount; i++) { if (wisps[i] != null) wisps[i].enabled = false; if (heads[i] != null) heads[i].enabled = false; } }
+    private void ClearPresentation()
+    {
+        if (gather != null) gather.Stop(); if (release != null) release.Stop(); HideVisuals();
+        if (Application.isPlaying) { if (ownsSlow) OverburstTimeEffectArbiter.ClearOwner(this); focusCamera?.ReleaseHeavyFocusZoom(this); }
+        ownsSlow = false;
+    }
+    public void Dispose() { ClearPresentation(); enabled = false; }
+    private void PauseAudio(bool paused)
+    {
+        if (!initialized) return;
+        if (paused) { gather.Pause(); release.Pause(); } else { gather.UnPause(); release.UnPause(); }
+    }
+    private void OnEnable() { if (Application.isPlaying) OverburstTimeEffectArbiter.PauseChanged += PauseAudio; }
+    private void OnDisable() { OverburstTimeEffectArbiter.PauseChanged -= PauseAudio; ClearPresentation(); }
+    private void OnDestroy() { OverburstTimeEffectArbiter.PauseChanged -= PauseAudio; ClearPresentation(); }
 }

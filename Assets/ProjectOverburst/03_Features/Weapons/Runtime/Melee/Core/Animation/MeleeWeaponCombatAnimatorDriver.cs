@@ -319,10 +319,8 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         float duration = Mathf.Max(0.01f, actionDuration);
         if (adoptWindup && isDashHeavy)
         {
-            // A held source pose has several elapsed times. Preserve the exact preview
-            // clock instead of deriving it from that pose's non-unique inverse.
-            float previewElapsed = OverburstGameClock.UnscaledTime - attackClockOrigin;
-            attackClockOrigin = Time.time - previewElapsed;
+            // Dash-heavy preview and the accepted attack share the scaled focus clock.
+            // Preserve its exact origin across the handoff; only ownership changes.
             attackPreviousSampleTime = Time.time;
             activeActionEndTime = Time.time + duration;
             return true;
@@ -333,7 +331,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         attackAcceleration = playbackAcceleration;
         acceleratedAttackClip = expectedClip;
         attackBaseDuration = fullPlaybackDuration;
-        float now = dodgeLightPreviewPlaying ? OverburstGameClock.UnscaledTime : Time.time;
+        float now = dodgeLightPreviewPlaying && !playbackAcceleration.dashHeavyFocus ? OverburstGameClock.UnscaledTime : Time.time;
         attackClockOrigin = now - fullPlaybackDuration * playbackAcceleration.ToElapsed(normalizedStartTime);
         attackPreviousSampleTime = now;
         if (adoptWindup)
@@ -343,7 +341,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         }
         // Preview uses the dodge's unscaled clock. Fixed offsets must use the corresponding scaled state duration.
         float statePlaybackDuration = fullPlaybackDuration;
-        if (dodgeLightPreviewPlaying && OverburstGameClock.UnscaledDeltaTime > .0000001f)
+        if (dodgeLightPreviewPlaying && !playbackAcceleration.dashHeavyFocus && OverburstGameClock.UnscaledDeltaTime > .0000001f)
             statePlaybackDuration *= Time.deltaTime / OverburstGameClock.UnscaledDeltaTime;
         PlayActionState(
             stateName,
@@ -632,14 +630,14 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             || acceleratedAttackClip == null || attackBaseDuration <= 0f)
             return;
 
-        float now = dodgeLightPreviewPlaying ? OverburstGameClock.UnscaledTime : Time.time;
+        float now = dodgeLightPreviewPlaying && !attackAcceleration.dashHeavyFocus ? OverburstGameClock.UnscaledTime : Time.time;
         float delta = now - attackPreviousSampleTime;
         if (delta <= 0f) return;
         // Integrate the same clock as hit/movement/VFX timing, including frames crossing a boundary.
         float previous = attackAcceleration.ToClipProgress((attackPreviousSampleTime - attackClockOrigin) / attackBaseDuration);
         float current = attackAcceleration.ToClipProgress((now - attackClockOrigin) / attackBaseDuration);
         float rate = Mathf.Max(0f, (current - previous) / delta);
-        if (dodgeLightPreviewPlaying) rate = PlayerAnimation.EvadeStateSpeed(rate);
+        if (dodgeLightPreviewPlaying && !attackAcceleration.dashHeavyFocus) rate = PlayerAnimation.EvadeStateSpeed(rate);
         if (attackAcceleration.dashHeavyFocus && rate <= .000001f) targetAnimator.SetFloat(actionSpeedParameterName, 0f);
         else SetActionSpeedForClip(acceleratedAttackClip, 1f / Mathf.Max(.000001f, rate));
         attackPreviousSampleTime = now;

@@ -44,7 +44,7 @@ public static partial class PlayerEvadeVerifier
             }
             Require(Mathf.Abs(plan.Position(plan.Stop)-5f)<.00001f&&plan.Velocity(plan.Stop)==0f,"총거리·최종 정지 "+start+"/"+speed);
         }
-        for(int i=0;i<4;i++)Require(Mathf.Abs(DashHeavyFocusClock.Sample(DashHeavyFocusClock.HoldStart+(i+.5f)/60f)-26f/60f)<.00001f,"4프레임 준비 자세 "+i);
+        for(int i=0;i<40;i++)Require(DashHeavyFocusClock.Sample(.25f+(i+1)/240f)>DashHeavyFocusClock.Sample(.25f+i/240f),"집중 자세 연속 진행 "+i);
         File.WriteAllText(Path.Combine(directory,"DashHeavyAssetResult.json"),JsonConvert.SerializeObject(new{status="PASS",count=results.Count,checks=results},Formatting.Indented));
     }
     static void EquipDashHeavyGem(WeaponElement element)
@@ -59,9 +59,12 @@ public static partial class PlayerEvadeVerifier
     {
         var previousGem=actor.Equipment.EquippedElementGem;
         int previousCaptureRate=Time.captureFramerate;
-        Time.captureFramerate=60;
+        // Fixed capture delta does not model the unscaled evade clock together
+        // with scaled focus playback. Exercise the production clocks instead.
+        Time.captureFramerate=0;
         try
         {
+            yield return VerifyHeavyFocusMotions();
             var energy=actor.GetComponent<OverburstElementEnergy>();
             if(energy==null)energy=actor.gameObject.AddComponent<OverburstElementEnergy>();
             foreach(var element in new[]{WeaponElement.Fire,WeaponElement.Ice,WeaponElement.Electric,WeaponElement.Dark,WeaponElement.Light})
@@ -73,15 +76,14 @@ public static partial class PlayerEvadeVerifier
                 float dashStart=Field<float>(evade,"evadeStartTime");
                 if(clickAt>0f){while(OverburstGameClock.UnscaledTime-dashStart<clickAt)yield return null;Send(false,false,false,true);yield return Frames(1);}
                 Send();
+                // Radiance can increase attack speed: preview intentionally waits
+                // so contact does not precede the evade's damage handoff.
+                float previewLimit=Time.unscaledTime+1f;
+                while(!melee.IsDashHeavyWindupActive&&evade.IsEvading)
+                {Check(Time.unscaledTime<previewLimit,"공속 보정 후 준비 시점 도달");yield return null;}
                 Check(melee.IsDashHeavyWindupActive,"대시 중 E 준비 시작 "+element+"/"+clickAt);
-                while(evade.IsEvading)yield return null;
-                yield return Frames(1);
-                Check(melee.IsHeavyAttackInProgress&&melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Heavy,
-                    "준비 재시작 없는 E 인계 "+element+"/"+clickAt+" grounded="+movement.IsGrounded
-                    +" windup="+melee.IsDashHeavyWindupActive+" condition="+actor.GetComponent<PlayerStateCoordinator>().CurrentCondition
-                    +" completed="+evade.LastEndWasCompleted+" pending="+input.CombatInputs.PendingDodgeFollowUp);
-                var active=Field<MeleeComboStepData>(melee,"activeAttackStep");
-                Check(active.animationClip==actor.Equipment.CurrentWeaponData.GetMeleeDefinition().dashHeavyAttackDefinition.attack.animationClip,"실제 E 클립");
+                var definition=actor.Equipment.CurrentWeaponData.GetMeleeDefinition();
+                var active=definition.dashHeavyAttackDefinition.attack;
                 bool capture=element==WeaponElement.Fire&&Mathf.Abs(clickAt-.24f)<.001f;
                 if(capture)
                 {
@@ -90,12 +92,12 @@ public static partial class PlayerEvadeVerifier
                         .Select(animator.GetBoneTransform).ToArray();
                     poseProbe.poseSamples.Clear();poseProbe.recordPoses=true;
                 }
-                var targets=new List<GameObject>();var hits=new List<int>();var hitTimes=new List<float>();
+                var targets=new List<GameObject>();var hits=new List<int>();var hitTimes=new List<float>();var packets=new List<object>();
                 try
                 {
-                    float speed=Field<float>(melee,"activeAttackAnimationSpeed");
+                    float speed=Field<float>(melee,"dashHeavyPlaybackSpeed");
                     var plan=Field<DashHeavyTravelPlan>(melee,"dashHeavyTravel");
-                    var phase=active.attackPhases[0];var stats=Field<WeaponFinalStats>(melee,"activeStats");
+                    var phase=active.attackPhases[0];var stats=actor.Equipment.CurrentWeaponStats;
                     var pattern=phase.ResolvePattern(stats.range,stats.meleeSlashAngle,actor.Equipment.CurrentWeaponData.GetMeleeDefinition().baseSettings.hitWidth);
                     Vector3 basis=entry+forward*plan.Position(plan.Start+DashHeavyFocusClock.RealAt(.5f)/speed);
                     for(int index=0;index<3;index++)
@@ -105,8 +107,18 @@ public static partial class PlayerEvadeVerifier
                         target.transform.position=basis+forward*pattern.Range*(.15f+.30f*index);
                         var combat=target.AddComponent<CombatTarget>();target.GetComponent<CombatAffiliation>().Configure(CombatTeam.Enemy);
                         var health=target.GetComponent<CombatHealth>();health.SetMaxHp(1000000,true);
-                        health.OnDamaged+=(h,d)=>{if(d.triggersOnHitEffects&&(d.playerAttackKind&PlayerAttackKind.Heavy)!=0){hits.Add(captured);hitTimes.Add(Time.time);}};
+                        health.OnDamaged+=(h,d)=>{packets.Add(new{target=captured,kind=d.playerAttackKind,d.triggersOnHitEffects,h.CurrentHp});if(d.triggersOnHitEffects&&(d.playerAttackKind&PlayerAttackKind.Heavy)!=0){hits.Add(captured);hitTimes.Add(Time.time);}};
                     }
+                    // Capture targets before the handoff can start the phase.
+                    while(evade.IsEvading)yield return null;
+                    yield return Frames(1);
+                    Check(melee.IsHeavyAttackInProgress&&melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.Heavy,
+                        "준비 재시작 없는 E 인계 "+element+"/"+clickAt+" grounded="+movement.IsGrounded
+                        +" windup="+melee.IsDashHeavyWindupActive+" condition="+actor.GetComponent<PlayerStateCoordinator>().CurrentCondition
+                        +" completed="+evade.LastEndWasCompleted+" pending="+input.CombatInputs.PendingDodgeFollowUp);
+                    active=Field<MeleeComboStepData>(melee,"activeAttackStep");
+                    Check(active.animationClip==definition.dashHeavyAttackDefinition.attack.animationClip,"실제 E 클립");
+                    Check(Vector3.Dot(Field<Vector3>(melee,"activeAttackDirection"),forward)>.999f,"대시 방향으로 판정 인계");
                     int action=Field<int>(melee,"activeActionId");bool commit=false;int commits=0;float limit=Time.unscaledTime+8f;
                     var trace=new List<object>();
                     float previous=Vector3.Dot(actor.transform.position-entry,forward);bool gatherSeen=false,releaseSeen=false;
@@ -115,7 +127,8 @@ public static partial class PlayerEvadeVerifier
                     {
                         trace.Add(new{frame=Time.frameCount,scaled=Time.time,unscaled=Time.unscaledTime,delta=Time.deltaTime,
                             unscaledDelta=Time.unscaledDeltaTime,id=Field<int>(melee,"activeActionId"),kind=melee.ActiveDodgeFollowUp,
-                            context=actor.Equipment.WeaponContextRevision,gem=actor.Equipment.GemRevision});
+                            context=actor.Equipment.WeaponContextRevision,gem=actor.Equipment.GemRevision,
+                            position=DashHeavyDiagnosticVector(actor.transform.position),direction=DashHeavyDiagnosticVector(Field<Vector3>(melee,"activeAttackDirection")),progress=active.playbackAcceleration.ToClipProgress((Time.time-Field<float>(melee,"attackStartTime"))/Field<float>(melee,"attackDuration"))});
                         if(Field<int>(melee,"activeActionId")!=action)
                             File.WriteAllText(Path.Combine(output,"InterruptedCase.json"),JsonConvert.SerializeObject(new{element,clickAt,action,
                                 terminal=Field<WeaponActionState>(melee,"terminalActionState"),trace},Formatting.Indented));
@@ -139,11 +152,13 @@ public static partial class PlayerEvadeVerifier
                         yield return null;
                     }
                     Check(commits==1&&energy.Amount<.001f,"원소 에너지 전량 1회 소비");
+                    File.WriteAllText(Path.Combine(output,"Case_"+element+"_"+clickAt.ToString("F2",System.Globalization.CultureInfo.InvariantCulture)+".json"),JsonConvert.SerializeObject(new{
+                        element,clickAt,entry=DashHeavyDiagnosticVector(entry),forward=DashHeavyDiagnosticVector(forward),basis=DashHeavyDiagnosticVector(basis),speed,pattern.Range,pattern.Width,hits,packets,targets=targets.Select(t=>new{position=DashHeavyDiagnosticVector(t.transform.position),hp=t.GetComponent<CombatHealth>().CurrentHp,team=t.GetComponent<CombatTarget>().Team}).ToArray(),trace},Formatting.Indented));
                     Check(hits.Count==3&&hits.SequenceEqual(new[]{0,1,2})&&hitTimes[2]>hitTimes[0],"가까운 적부터 대상당 1회 순차 피해 "+string.Join(",",hits));
                     Check(gatherSeen&&releaseSeen,"준비/해방 소리 이벤트 1회 진행");
                     Check(Mathf.Abs(Vector3.Dot(actor.transform.position-entry,forward)-5f)<.15f,"실제 총5m 착지·슬라이드 완료");
                     yield return Frames(2);
-                    Check(actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>()==null,"공격 후 집중 자원 반환");
+                    Check(actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true)?.enabled==false,"공격 후 집중 자원 반환");
                     samples.Add(new{element,clickAt,hits,hitTimes,travel=Vector3.Dot(actor.transform.position-entry,forward)});
                     if(capture)
                     {
@@ -154,16 +169,24 @@ public static partial class PlayerEvadeVerifier
                 finally{foreach(var t in targets){fixtures.Remove(t);UnityEngine.Object.DestroyImmediate(t);}}
                 Progress("E "+element+"/"+clickAt);
             }
-            foreach(string cancel in new[]{"ui","weapon","knockdown","disable"})
+            foreach(string cancel in new[]{"ui","weapon","gem","knockdown","disable"})
             {
                 yield return Reset();EquipDashHeavyGem(WeaponElement.Fire);
                 yield return StartDodge(false,false,true);Send();yield return Frames(2);
+                float focusLimit=Time.unscaledTime+4f;
+                while(Time.timeScale>.8f){Check(Time.unscaledTime<focusLimit&&melee.IsDashHeavyWindupActive,"활성 집중 취소 구간 도달");yield return null;}
                 Check(melee.IsDashHeavyWindupActive,"취소 전 강공 준비 "+cancel);
                 if(cancel=="ui")GameplayInputBlocker.Block(blocker);
                 else if(cancel=="weapon")actor.Equipment.EquipWeaponItem(new ItemData(weaponItem.baseData,1,ItemGrade.Common));
+                else if(cancel=="gem")EquipDashHeavyGem(WeaponElement.Ice);
                 else if(cancel=="knockdown")evade.CancelForKnockdown();else evade.enabled=false;
                 yield return Wait(.7f);
                 Check(!melee.IsDashHeavyWindupActive&&!melee.IsAttackInProgress,"준비 취소·공격 누출 없음 "+cancel);
+                Check(!OverburstTimeEffectArbiter.IsActive&&Mathf.Approximately(Time.timeScale,1f),"준비 취소 후 시간 반환 "+cancel);
+                var focus=actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true);
+                Check(focus!=null&&!focus.enabled&&!focus.GetComponentsInChildren<Renderer>().Any(r=>r.enabled),"준비 취소 후 소유 효과 숨김 "+cancel);
+                var camera=QuarterViewCamera.ActiveInstance;
+                if(camera!=null)Check((float)typeof(QuarterViewCamera).GetMethod("CurrentHeavyFocusZoom",Private).Invoke(camera,null)<.0001f,"준비 취소 후 확대 반환 "+cancel);
                 GameplayInputBlocker.Unblock(blocker);evade.enabled=true;
             }
             yield return Reset();EquipDashHeavyGem(WeaponElement.Fire);FillEnergy(energy,50000);
@@ -173,7 +196,7 @@ public static partial class PlayerEvadeVerifier
             melee.NotifyHeavyParried(Field<int>(melee,"activeActionId"));
             Check(melee.IsHeavyParryMotionActive&&melee.ActiveDodgeFollowUp==PlayerDodgeFollowUpKind.None,"패링 성공 강화 강공으로 인계");
             yield return Frames(1);
-            Check(actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>()==null,"패링 E 집중 자원 반환");
+            Check(actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true)?.enabled==false,"패링 E 집중 자원 반환");
             float parryLimit=Time.unscaledTime+10;while(melee.IsAttackInProgress){Check(Time.unscaledTime<parryLimit,"패링 동작 완주");yield return null;}
             Check(Mathf.Abs(energy.Amount-Mathf.Min(parryEnergy,energy.BaseMaximum)*.5f)<.01f,"패링 기존 50% 환급");
         }
@@ -184,4 +207,5 @@ public static partial class PlayerEvadeVerifier
             typeof(PlayerEquipment).GetMethod("SetElementGem",Private).Invoke(actor.Equipment,new object[]{previousGem});
         }
     }
+    static float[] DashHeavyDiagnosticVector(Vector3 value) => new[]{value.x,value.y,value.z};
 }

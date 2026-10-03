@@ -8,7 +8,8 @@ public enum OverburstTimeEffectKind
     HitStop,
     PerfectEvade,
     ParryHitStop,
-    ParrySlow
+    ParrySlow,
+    HeavyFocus
 }
 
 [DefaultExecutionOrder(-950)]
@@ -87,6 +88,26 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
         if (instance == null)
             Bootstrap();
         return instance != null && instance.RequestInternal(owner, kind, scale, duration, recoverSeconds);
+    }
+
+    // Sampled presentation envelopes may rise as well as fall. Other request kinds retain their latch semantics.
+    public static bool SetContinuous(UnityEngine.Object owner, OverburstTimeEffectKind kind, float scale, float leaseSeconds)
+    {
+        if (owner == null || kind != OverburstTimeEffectKind.HeavyFocus || leaseSeconds <= 0f) return false;
+        if (instance == null) Bootstrap();
+        if (instance == null || instance.paused) return false;
+        if (!instance.ownsTimeScale && !instance.RequestInternal(owner, kind, scale, leaseSeconds, 0f)) return false;
+        RequestState request = null;
+        for (int i = 0; i < instance.requests.Count; i++)
+            if (instance.requests[i].Owner == owner && instance.requests[i].Kind == kind) { request = instance.requests[i]; break; }
+        if (request == null)
+        {
+            request = new RequestState { Owner = owner, OwnerId = owner.GetInstanceID(), Kind = kind };
+            instance.requests.Add(request);
+        }
+        request.Scale = Mathf.Clamp(scale, .01f, 1f); request.RecoverSeconds = 0f;
+        request.EndUnscaledTime = Time.unscaledTime + leaseSeconds;
+        instance.ApplyWinnerOrRestore(); return true;
     }
 
     public static void ClearOwner(UnityEngine.Object owner)
@@ -284,6 +305,7 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
 
     private static int ResolvePriority(OverburstTimeEffectKind kind)
     {
+        if (kind == OverburstTimeEffectKind.HeavyFocus) return 25;
         if (kind == OverburstTimeEffectKind.ParryHitStop) return 300;
         if (kind == OverburstTimeEffectKind.PerfectEvade) return 200;
         return kind == OverburstTimeEffectKind.ParrySlow ? 50 : 100;

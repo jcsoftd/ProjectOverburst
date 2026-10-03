@@ -112,6 +112,7 @@ public partial class MeleeRuntime
 
         playerAnimatorController.CompleteHeavyParryBridge();
         heavyParryStage = HeavyParryStage.None;
+        BeginHeavyFocusPresentation();
         attackStartTime = Time.time - heavyParrySavedElapsed;
         attackMovementExecutor.Begin(activeAttackStep.movementPhases, activeAttackDirection,
             ApplyAttackDisplacement, heavyParryMovementFloor);

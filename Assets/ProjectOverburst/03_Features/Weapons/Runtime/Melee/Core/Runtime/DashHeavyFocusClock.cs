@@ -1,32 +1,23 @@
 using UnityEngine;
 
-// Source-pose time, in seconds at 1x. Gameplay, movement and Animator share this clock.
+// The preparation pose keeps advancing. The shared time arbiter supplies the gentle focus slow.
 public static class DashHeavyFocusClock
 {
     public const float ClipLength = 112f / 60f;
-    public const float SlowClip = .4f, SlowDuration = 4f / 60f, HoldDuration = 4f / 60f;
-    public const float RampDuration = 2f / 60f, SwingSpeed = 1.25f;
-    public const float HoldClip = SlowClip + SlowDuration * .5f, CutEndClip = 35f / 60f;
-    public static float HoldStart => SlowClip + SlowDuration;
-    public static float HoldEnd => HoldStart + HoldDuration;
-    public static float RampEnd => HoldEnd + RampDuration;
-    public static float RampEndClip => HoldClip + SwingSpeed * RampDuration * .5f;
+    public const float SwingStart = .45f, RampDuration = 2f / 60f, SwingSpeed = 1.25f;
+    public const float CutEndClip = 35f / 60f;
+    public static float RampEnd => SwingStart + RampDuration;
+    public static float RampEndClip => SwingStart + RampDuration * (1f + SwingSpeed) * .5f;
     public static float CutEnd => RampEnd + (CutEndClip - RampEndClip) / SwingSpeed;
     public static float RecoveryStart => CutEnd + RampDuration;
     public static float RecoveryClip => CutEndClip + RampDuration * (SwingSpeed + 1f) * .5f;
     public static float Sample(float elapsed)
     {
-        if (elapsed <= SlowClip) return Mathf.Max(0f, elapsed);
-        if (elapsed < HoldStart)
-        {
-            float q = (elapsed - SlowClip) / SlowDuration;
-            return SlowClip + SlowDuration * (q - q*q*q + .5f*q*q*q*q);
-        }
-        if (elapsed < HoldEnd) return HoldClip;
+        if (elapsed <= SwingStart) return Mathf.Max(0f, elapsed);
         if (elapsed < RampEnd)
         {
-            float q = (elapsed - HoldEnd) / RampDuration;
-            return HoldClip + SwingSpeed * RampDuration * (q*q*q - .5f*q*q*q*q);
+            float q = (elapsed - SwingStart) / RampDuration;
+            return SwingStart + RampDuration * (q + (SwingSpeed - 1f) * (q*q*q - .5f*q*q*q*q));
         }
         if (elapsed < CutEnd) return RampEndClip + (elapsed - RampEnd) * SwingSpeed;
         if (elapsed < RecoveryStart)
@@ -38,7 +29,7 @@ public static class DashHeavyFocusClock
     }
     public static float RealAt(float sourceSeconds)
     {
-        if (sourceSeconds <= SlowClip) return Mathf.Max(0f, sourceSeconds);
+        if (sourceSeconds <= SwingStart) return Mathf.Max(0f, sourceSeconds);
         float low = 0f, high = sourceSeconds + 1f;
         for (int i = 0; i < 28; i++)
         {
@@ -71,10 +62,10 @@ public sealed class DashHeavyTravelPlan
         EntryDuration = Mathf.Max(.000001f, EntryDuration);
         Landing = Start + DashHeavyFocusClock.RealAt(.55f)/speed;
         Stop = Landing + .24f/speed;
-        times = new[] { Start, Start+EntryDuration, Start+.4f/speed,
-            Start+DashHeavyFocusClock.HoldStart/speed, Start+DashHeavyFocusClock.HoldEnd/speed,
-            Start+DashHeavyFocusClock.RampEnd/speed, Landing, Stop };
-        coefficients = new[] { 0f,1f,1f,.35f,.35f,1.4f,1.4f,0f };
+        times = new[] { Start, Start+EntryDuration, Start+.28f/speed,
+            Start+.4f/speed, Start+DashHeavyFocusClock.RealAt(.45f)/speed,
+            Start+DashHeavyFocusClock.RealAt(.5f)/speed, Landing, Stop };
+        coefficients = new[] { 0f,1f,1f,.65f,.65f,1.4f,1.4f,0f };
         float fixedArea = .5f*startVelocity*EntryDuration + startAcceleration*EntryDuration*EntryDuration/12f;
         float weightedArea = .5f*EntryDuration;
         for (int i=1;i<times.Length-1;i++)

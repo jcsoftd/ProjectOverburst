@@ -152,6 +152,7 @@ public partial class MeleeRuntime
             else CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, isHeavy, transform.position);
         }
 
+        BeginHeavyFocusPresentation();
         return true;
     }
 

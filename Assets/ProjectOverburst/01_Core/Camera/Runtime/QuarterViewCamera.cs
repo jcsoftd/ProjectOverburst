@@ -123,6 +123,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         queuedGroundStepDuration = 0f;
         cinemachineRig?.CancelCombatImpact();
         zoomPunchStart = -1f;
+        heavyFocusOwner = null; heavyFocusZoom = 0f;
         ResetDodgeFollow();
     }
 
@@ -180,6 +181,30 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         zoomPunchIn = Mathf.Max(.001f, inSeconds);
         zoomPunchHold = Mathf.Max(0f, holdSeconds);
         zoomPunchOut = Mathf.Max(.001f, outSeconds);
+    }
+
+    private UnityEngine.Object heavyFocusOwner;
+    private float heavyFocusZoom, heavyFocusExpiry, heavyFocusReleaseAt = -1f, heavyFocusReleaseFrom;
+    public void SetHeavyFocusZoom(UnityEngine.Object owner, float amount)
+    {
+        if (owner == null) return;
+        heavyFocusOwner = owner; heavyFocusZoom = Mathf.Clamp(amount, 0f, .045f);
+        heavyFocusExpiry = OverburstGameClock.UnscaledTime + .15f; heavyFocusReleaseAt = -1f;
+    }
+    public void ReleaseHeavyFocusZoom(UnityEngine.Object owner)
+    {
+        if (heavyFocusOwner != owner) return;
+        heavyFocusOwner = null; heavyFocusReleaseFrom = heavyFocusZoom;
+        heavyFocusReleaseAt = OverburstGameClock.UnscaledTime;
+    }
+    private float CurrentHeavyFocusZoom()
+    {
+        float now = OverburstGameClock.UnscaledTime;
+        if (heavyFocusReleaseAt < 0f && (heavyFocusOwner == null || now >= heavyFocusExpiry))
+        { heavyFocusOwner = null; heavyFocusReleaseFrom = heavyFocusZoom; heavyFocusReleaseAt = now; }
+        if (heavyFocusReleaseAt >= 0f)
+            heavyFocusZoom = heavyFocusReleaseFrom * (1f - Mathf.SmoothStep(0f, 1f, (now - heavyFocusReleaseAt) / .12f));
+        return heavyFocusZoom;
     }
 
     private float CurrentZoomPunch()
@@ -446,7 +471,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float blend = CloseUpBlend;
         float viewPitch = Mathf.Lerp(pitch, closeUpPitch, blend);
         Vector3 viewFocus = focusPosition + Vector3.up * (closeUpFocusHeight * blend);
-        float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend) * (1f - CurrentZoomPunch()); // 패링 등 짧은 확대
+        float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend) * (1f - Mathf.Max(CurrentZoomPunch(), CurrentHeavyFocusZoom())); // 패링과 강공 집중 확대를 합성
         if (UsesCinemachine)
         {
             cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, distance, forceCameraCut, frameScale);

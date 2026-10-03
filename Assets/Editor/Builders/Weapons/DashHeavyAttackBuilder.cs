@@ -69,10 +69,7 @@ public static class DashHeavyAttackBuilder
         phase.vfxSwingSettings.orientation=AttackVfxSwingOrientation.Horizontal;
         step.attackPhases=new[]{phase};heavy.attack=step;heavy.dischargePhaseIndex=0;
         EditorUtility.SetDirty(heavy);AssetDatabase.SaveAssetIfDirty(heavy);
-        var material=AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
-        if(material==null){material=new Material(shader);AssetDatabase.CreateAsset(material,MaterialPath);}
-        material.shader=shader;material.SetFloat("_Intensity",1.25f);
-        EditorUtility.SetDirty(material);AssetDatabase.SaveAssetIfDirty(material);
+        HeavyFocusPresentationBuilder.BuildAssets();
         definition.dashHeavyAttackDefinition=heavy;EditorUtility.SetDirty(definition);AssetDatabase.SaveAssetIfDirty(definition);
         var entries=catalog.entries.Where(e=>e!=null&&e.name!="DashHeavyGather"&&e.name!="DashHeavyRelease").ToList();
         entries.Add(new CombatActionSfxCatalog.Entry{name="DashHeavyGather",clip=gather});
