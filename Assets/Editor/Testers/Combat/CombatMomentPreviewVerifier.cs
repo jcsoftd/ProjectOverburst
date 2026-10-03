@@ -42,14 +42,17 @@ public static class CombatMomentPreviewVerifier
         Require(material.shader.isSupported && !ShaderUtil.ShaderHasError(material.shader),"HDR glow shader supported and error-free");
         var hub=AssetDatabase.LoadAssetAtPath<GameObject>(DebugHubPrefabBuilder.PrefabPath);
         var view=hub!=null?hub.GetComponent<Overburst.DebugTools.DebugHubView>():null;
-        string[] ids={"presentation.moment.parry","presentation.moment.heavy","presentation.moment.screen","presentation.moment.blade","presentation.moment.local"};
-        Require(view!=null && ids.All(id=>view.ItemIds.Contains(id)),"All five moment rows authored in native F1 prefab");
-        Require(hub.GetComponentsInChildren<Transform>(true).All(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)==0),"F1 prefab Missing Script 0");
+        Require(view!=null && view.ItemIds.All(id=>!id.StartsWith("presentation.moment.",StringComparison.Ordinal)),"Moment items removed from native debug panel");
+        Require(hub.GetComponentsInChildren<Transform>(true).All(t=>!t.name.StartsWith("Row presentation.moment.",StringComparison.Ordinal)),"No baked moment rows remain");
+        var ui=prefab.GetComponentInChildren<CombatMomentPreviewToggle>(true);
+        Require(ui!=null && ui.ParryButton!=null && ui.HeavyButton!=null && ui.ParryCaption.font!=null && ui.HeavyCaption.font!=null,"Two standalone toggle references load");
+        Require(ui.GetComponent<Canvas>().renderMode==RenderMode.ScreenSpaceOverlay,"Temporary buttons render outside the debug panel");
+        Require(((RectTransform)ui.ParryButton.transform).anchoredPosition==new Vector2(16,-216) && ((RectTransform)ui.HeavyButton.transform).anchoredPosition==new Vector2(16,-264),"Temporary buttons follow existing preview controls");
         var renderer=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.Universal.UniversalRendererData>(OverburstEdgeBlurPreviewBuilder.RendererPath);
         Require(renderer.rendererFeatures.OfType<OverburstEdgeBlurRendererFeature>().Count()==1,"Existing combined feature only once");
         OverburstEdgeBlurPreviewVerifier.VerifyAssets();
         VerifyMomentPixels(renderer.rendererFeatures.OfType<OverburstEdgeBlurRendererFeature>().Single().BlurShader);
-        return "PASS: native moment/F1 references / Missing Script / HDR material / center-alpha-gain GPU checks / existing edge blur GPU regression";
+        return "PASS: native moment/standalone toggle references / Missing Script / HDR material / center-alpha-gain GPU checks / existing edge blur GPU regression";
     }
 
     private static void VerifyMomentPixels(Shader shader)
@@ -85,6 +88,7 @@ public static class CombatMomentPreviewVerifier
             if(pattern!=null)Object.DestroyImmediate(pattern);if(readback!=null)Object.DestroyImmediate(readback);
         }
     }
+    public static bool UiOnly => SessionState.GetBool(Key+"uiOnly",false);
     public static string Begin(string output)
     {
         if (Phase != 0 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -111,12 +115,12 @@ public static class CombatMomentPreviewVerifier
     }
 
     private static double idleStarted=-1;
-    public static string BeginWhenIdle(string output)
+    public static string BeginWhenIdle(string output,bool uiOnly=false)
     {
         if(Phase!=0)throw new InvalidOperationException("This verifier already running");
         SessionState.SetString(Key+"pendingOutput",IsolatedSavePlayGuard.ValidateDirectory(output));
         SessionState.SetString(Key+"pendingDeadline",(EditorApplication.timeSinceStartup+600).ToString("R",System.Globalization.CultureInfo.InvariantCulture));
-        SessionState.SetString(Key+"status","WAITING");idleStarted=-1;
+        SessionState.SetBool(Key+"uiOnly",uiOnly);SessionState.SetString(Key+"status","WAITING");idleStarted=-1;
         return "Waiting for stable idle Editor; does not stop another Play";
     }
     private static void TryBeginQueued()
@@ -132,6 +136,7 @@ public static class CombatMomentPreviewVerifier
         SessionState.EraseString(Key+"pendingOutput");SessionState.EraseString(Key+"pendingDeadline");
         try
         {
+            if(UiOnly){CombatMomentPreviewBuilder.BuildToggle();CombatMomentPreviewBuilder.RemoveDebugPanelItems();}
             Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output,"assets-result.json"),JsonConvert.SerializeObject(new{status="PASS",result=VerifyAssets()},Formatting.Indented));
             Begin(output);
@@ -174,6 +179,7 @@ public static class CombatMomentPreviewVerifier
                 WriteResult();
                 SessionState.EraseString(Key + "deadline");
                 SessionState.EraseString(Key + "activeScene");
+                SessionState.EraseBool(Key + "uiOnly");
                 return;
             }
             if (!EditorApplication.isPlaying) return;
@@ -282,6 +288,7 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
     private static T Field<T>(object owner,string name)=>(T)owner.GetType().GetField(name,Fields).GetValue(owner);
     private static IEnumerator Run()
     {
+        if(CombatMomentPreviewVerifier.UiOnly){yield return VerifyToggleUi();CombatMomentPreviewVerifier.CompleteCycle();yield break;}
         var actor=PlayerContext.Instance.CurrentActor;var equipment=actor.Equipment;var melee=actor.GetComponent<MeleeRuntime>();
         // Product energy is created on the first confirmed elemental hit; the isolated fixture fills it before any hit.
         var energy=equipment.GetComponent<OverburstElementEnergy>() ?? equipment.gameObject.AddComponent<OverburstElementEnergy>();
@@ -297,19 +304,7 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
             Check(Object.FindObjectsByType<CombatMomentPresentation>(FindObjectsSortMode.None).Length==1,"One persistent presentation service");
             Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Two preview toggles default on each Play");
             Check(CombatMomentPresentation.ActiveVisualCount==0,"Prepared visuals start inactive");
-            var parryToggle=Overburst.DebugTools.DebugRegistry.Find("presentation.moment.parry") as Overburst.DebugTools.DebugToggle;
-            var heavyToggle=Overburst.DebugTools.DebugRegistry.Find("presentation.moment.heavy") as Overburst.DebugTools.DebugToggle;
-            Check(parryToggle!=null && heavyToggle!=null,"F1 native registry contains both toggle rows");
-            Check(parryToggle.ApplyValue("0") && !CombatMomentPresentation.ParryEnabled,"F1 parry row switches off");
-            Check(CombatMomentPresentation.HeavyEnabled,"Parry toggle leaves heavy enabled");
-            Check(parryToggle.ApplyValue("1") && heavyToggle.ApplyValue("0") && !CombatMomentPresentation.HeavyEnabled,"F1 heavy row switches independently");
-            Check(heavyToggle.ApplyValue("1"),"F1 rows restore on");
-            Overburst.DebugTools.DebugHub.OpenTab(Overburst.DebugTools.DebugTabs.Presentation);
-            yield return null;
-            ClickToggle("presentation.moment.parry");Check(!CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"F1 parry switch pointer click applies independently");
-            ClickToggle("presentation.moment.parry");ClickToggle("presentation.moment.heavy");Check(!CombatMomentPresentation.HeavyEnabled && CombatMomentPresentation.ParryEnabled,"F1 heavy switch pointer click applies independently");
-            ClickToggle("presentation.moment.heavy");
-            yield return new WaitForEndOfFrame();Capture("Toggles");Overburst.DebugTools.DebugHub.Close();yield return null;
+            yield return VerifyToggleUi();
             var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
             Check(weapon!=null && equipment.EquipWeaponItem(new ItemData(weapon,1,ItemGrade.Common)),"Product greatsword equipped in isolated account");
             var gems=AssetDatabase.FindAssets("t:ElementGemItemData").Select(x=>AssetDatabase.LoadAssetAtPath<ElementGemItemData>(AssetDatabase.GUIDToAssetPath(x))).Where(x=>x!=null).ToArray();
@@ -345,10 +340,10 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
             Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,"E definition accepted via pending-followup fixture");
             float dashDeadline=Time.unscaledTime+8f;while(melee.IsHeavyAttackInProgress && Time.unscaledTime<dashDeadline)yield return null;
             Check(!melee.IsHeavyAttackInProgress && CombatMomentPresentation.HeavyPulses==dashBefore+1,"E separate commit produces one full pulse");yield return Wait(.4f);
-            Amount(energy,100f);int disabled=CombatMomentPresentation.HeavyPulses;heavyToggle.ApplyValue("0");
+            Amount(energy,100f);int disabled=CombatMomentPresentation.HeavyPulses;CombatMomentPresentation.SetHeavyEnabled(false);
             Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,"Disabled presentation keeps heavy action");
             while(melee.IsHeavyAttackInProgress)yield return null;
-            Check(CombatMomentPresentation.HeavyPulses==disabled && energy.Amount==0f,"Heavy OFF suppresses new presentation and preserves consumption");heavyToggle.ApplyValue("1");
+            Check(CombatMomentPresentation.HeavyPulses==disabled && energy.Amount==0f,"Heavy OFF suppresses new presentation and preserves consumption");CombatMomentPresentation.SetHeavyEnabled(true);
             Amount(energy,100f);int parryBefore=CombatMomentPresentation.ParryPulses,heavyBefore=CombatMomentPresentation.HeavyPulses;
             Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,"Parried action accepted");
             int action=Field<int>(melee,"activeActionId");melee.NotifyHeavyParried(action);
@@ -394,19 +389,32 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
     {
         Texture2D texture=null;try{texture=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(CombatMomentPreviewVerifier.CapturePath(label),texture.EncodeToPNG());}finally{if(texture!=null)Object.Destroy(texture);}
     }
-    private static void ClickToggle(string id)
+    private static IEnumerator VerifyToggleUi()
     {
-        var view=Object.FindFirstObjectByType<Overburst.DebugTools.DebugHubView>();
-        var row=view.GetComponentsInChildren<Transform>(false).Single(t=>t.name=="Row "+id);
-        var button=row.Find("Line/Content/Switch").GetComponent<UnityEngine.UI.Button>();
-        var scroll=button.GetComponentInParent<UnityEngine.UI.ScrollRect>();Canvas.ForceUpdateCanvases();
-        var local=scroll.viewport.InverseTransformPoint(button.transform.position);
-        scroll.content.localPosition+=new Vector3(0,scroll.viewport.rect.center.y-local.y,0);scroll.velocity=Vector2.zero;
+        var ui=Object.FindFirstObjectByType<CombatMomentPreviewToggle>();
+        Check(ui!=null && Object.FindObjectsByType<CombatMomentPreviewToggle>(FindObjectsSortMode.None).Length==1,"One standalone temporary toggle overlay");
+        Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Both standalone toggles default on each Play");
+        Check(!Overburst.DebugTools.DebugRegistry.AllItems.Any(x=>x.Id.StartsWith("presentation.moment.",StringComparison.Ordinal)),"No moment items registered in debug panel");
+        Overburst.DebugTools.DebugHub.OpenTab(Overburst.DebugTools.DebugTabs.Presentation);yield return null;
+        Check(!Object.FindFirstObjectByType<Overburst.DebugTools.DebugHubView>().GetComponentsInChildren<Transform>(true).Any(t=>t.name.StartsWith("Row presentation.moment.",StringComparison.Ordinal)),"Opened debug panel has no moment rows");
+        Overburst.DebugTools.DebugHub.Close();yield return null;
+        ClickToggle(ui.ParryButton);
+        Check(!CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled && ui.ParryCaption.text=="패링 연출: 꺼짐","Outside parry button applies independently and updates caption");
+        ClickToggle(ui.ParryButton);ClickToggle(ui.HeavyButton);
+        Check(CombatMomentPresentation.ParryEnabled && !CombatMomentPresentation.HeavyEnabled && ui.HeavyCaption.text=="완충 강공: 꺼짐","Outside heavy button applies independently and updates caption");
+        ClickToggle(ui.HeavyButton);
+        yield return new WaitForEndOfFrame();Capture("OutsideToggles");
+        Check(ui.ParryCaption.text=="패링 연출: 켜짐" && ui.HeavyCaption.text=="완충 강공: 켜짐","Both outside captions restore on");
+        ui.gameObject.SetActive(false);yield return null;ui.gameObject.SetActive(true);
+        Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Temporary UI enable cycle preserves selected effects");
+    }
+    private static void ClickToggle(UnityEngine.UI.Button button)
+    {
         Canvas.ForceUpdateCanvases();
         var pointer=new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
         {button=UnityEngine.EventSystems.PointerEventData.InputButton.Left,position=RectTransformUtility.WorldToScreenPoint(null,button.transform.position)};
         var hits=new List<UnityEngine.EventSystems.RaycastResult>();UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointer,hits);
-        Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Button>()==button,"F1 "+id+" switch receives visible UI raycast");
+        Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Button>()==button,"Outside "+button.name+" receives visible UI raycast");
         UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject,pointer,UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
     }
 }
