@@ -45,6 +45,7 @@ namespace Overburst.DebugTools
 
         private readonly RectTransform canvasRect;
         private readonly List<DebugRowView> rows = new List<DebugRowView>();
+        private readonly Dictionary<RectTransform, DebugSection> sectionHeaders = new Dictionary<RectTransform, DebugSection>();
         private readonly List<TabView> tabViews = new List<TabView>();
         private readonly List<string> tabScratch = new List<string>();
         private readonly StringBuilder builder = new StringBuilder(512);
@@ -159,6 +160,12 @@ namespace Overburst.DebugTools
 
         public void RefreshRows()
         {
+            foreach (var header in sectionHeaders)
+            {
+                bool visible = false;
+                foreach (var item in header.Value.Items) if (item.IsVisible) { visible = true; break; }
+                if (header.Key != null && header.Key.gameObject.activeSelf != visible) header.Key.gameObject.SetActive(visible);
+            }
             for (int i = 0; i < rows.Count; i++)
                 rows[i].Refresh();
         }
@@ -550,6 +557,7 @@ namespace Overburst.DebugTools
 
         private void RebuildContent()
         {
+            sectionHeaders.Clear();
             foreach (DebugRowView row in rows)
                 row.ResetTransientState();
             rows.Clear();
@@ -694,12 +702,13 @@ namespace Overburst.DebugTools
         private void AddSection(DebugSection section)
         {
             bool collapsed = Application.isPlaying && DebugPrefs.IsCollapsed(section.Key);
-            DebugSectionHeader.Build(content, section.Title, section.Note, true, collapsed, () =>
+            var header = DebugSectionHeader.Build(content, section.Title, section.Note, true, collapsed, () =>
             {
                 DebugPrefs.SetCollapsed(section.Key, !collapsed);
                 dirty = true;
                 Refresh();
             });
+            sectionHeaders[header] = section;
             if (collapsed)
                 return;
             for (int i = 0; i < section.Items.Count; i++)

@@ -40,7 +40,7 @@ public static class DebugHubPrefabBuilder
         typeof(DebugRegistry).GetMethod("ResetState", flags).Invoke(null, null);
         typeof(DebugPresets).GetMethod("ResetState", flags).Invoke(null, null);
         typeof(DebugPresets).GetMethod("RegisterSection", flags).Invoke(null, null);
-        foreach (Type type in runtime.GetTypes().Where(t => t.Name.EndsWith("DebugModule", StringComparison.Ordinal)).OrderBy(t => t.FullName))
+        foreach (Type type in runtime.GetTypes().Where(t => t.Name.EndsWith("DebugModule", StringComparison.Ordinal) || t.Name == "CombatStutterDiagnosticModule").OrderBy(t => t.FullName))
         {
             MethodInfo register = type.GetMethod("Register", flags);
             if (register != null && register.GetParameters().Length == 0)
@@ -91,6 +91,7 @@ public static class DebugHubPrefabBuilder
             Type overlayType = runtime.GetType("Overburst.DebugTools.DebugOverlay", true);
             object overlay = Activator.CreateInstance(overlayType, new object[] { null, rect });
             overlayType.GetMethod("BakeLines").Invoke(overlay, null);
+            VisualPlayOverlayBuilder.Build(rect, style);
 
             DebugHubView view = root.AddComponent<DebugHubView>();
             var serialized = new SerializedObject(view);
@@ -113,7 +114,7 @@ public static class DebugHubPrefabBuilder
                 itemIds.GetArrayElementAtIndex(i).stringValue = ids[i];
             serialized.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<DebugHub>();
-            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            DebugHubPrefabAuthoring.Save(root, PrefabPath);
             // 제작용 관리 객체가 정적 툴팁 이벤트에 남지 않도록 정리한다.
             // Dispose는 창 설정을 저장하므로 이벤트 구독만 해제한다.
             Type tips = typeof(DebugHoverTip);

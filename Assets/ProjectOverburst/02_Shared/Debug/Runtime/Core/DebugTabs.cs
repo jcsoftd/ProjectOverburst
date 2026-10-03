@@ -7,6 +7,7 @@ namespace Overburst.DebugTools
     public static class DebugTabs
     {
         public const string Favorites = "★ 즐겨찾기";
+        public const string VisualPlay = "시각 확인";
         public const string Player = "플레이어";
         public const string Combat = "전투";
         public const string Enemies = "적·AI";
@@ -18,7 +19,7 @@ namespace Overburst.DebugTools
 
         public static readonly string[] Order =
         {
-            Favorites, Player, Combat, Enemies, Spawn, Items, World, Presentation, SystemTab
+            Favorites, VisualPlay, Player, Combat, Enemies, Spawn, Items, World, Presentation, SystemTab
         };
 
         /// <summary>목록에 없는 탭 이름은 맨 뒤로 보낸다.</summary>

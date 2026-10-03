@@ -80,7 +80,7 @@ public static partial class DebugHubPrefabVerifier
         };
         Action<string, Action> add = (name, action) => { names.Add(name); steps.Add(action); };
         add("F1 down", () => keyboard(new[] { UnityEngine.InputSystem.Key.F1 }));
-        add("F1 opens", () => { keyboard(new UnityEngine.InputSystem.Key[0]); require(Overburst.DebugTools.DebugHub.IsOpen, "F1 opens window"); foreach (Transform child in root.Find("Body/Tabs")) if (child.gameObject.activeInHierarchy && child.TryGetComponent<UnityEngine.UI.Button>(out var button)) tabIds[child.name.Substring(4)] = button.GetInstanceID(); require(tabIds.Count == 9, "Nine product tabs"); });
+        add("F1 opens", () => { keyboard(new UnityEngine.InputSystem.Key[0]); require(Overburst.DebugTools.DebugHub.IsOpen, "F1 opens window"); foreach (Transform child in root.Find("Body/Tabs")) if (child.gameObject.activeInHierarchy && child.TryGetComponent<UnityEngine.UI.Button>(out var button)) tabIds[child.name.Substring(4)] = button.GetInstanceID(); require(tabIds.Count == Overburst.DebugTools.DebugTabs.Order.Length, "All product tabs"); });
         foreach (string target in new[] { "스폰·시험장", "적·AI", "전투", "플레이어", "★ 즐겨찾기", "전투", "아이템·경제", "UI·연출", "시스템", "던전·씬", "아이템·경제" }) {
             string selectedTab = target;
             add("Click tab " + target, () => { click(tab(selectedTab)); stableTabs(); require(tab(selectedTab).targetGraphic.color != Color.white, "Selected tab has its base color: " + selectedTab); });

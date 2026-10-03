@@ -26,8 +26,8 @@ public static partial class DebugHubPrefabVerifier
             if (root.activeSelf || root.GetComponent<DebugHub>() == null
                 || root.GetComponent<Canvas>() == null || root.GetComponent<GraphicRaycaster>() == null)
                 throw new InvalidOperationException("디버그 프리팹의 루트 설정 오류");
-            if (view.Pages.Length != 10 || view.Pages.Any(p => p == null || p.parent != view.Content))
-                throw new InvalidOperationException("일반 탭 9개와 검색 페이지 연결 오류");
+            if (view.Pages.Length != DebugTabs.Order.Length + 1 || view.Pages.Any(p => p == null || p.parent != view.Content))
+                throw new InvalidOperationException("현재 등록된 탭과 검색 페이지 연결 오류");
             foreach (Transform node in root.GetComponentsInChildren<Transform>(true))
                 if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject) > 0)
                     throw new InvalidOperationException("Missing Script: " + node.name);
