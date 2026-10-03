@@ -80,7 +80,8 @@ MonoBehaviour:
   - {fileID: -3470075883443381594}
   - {fileID: -5039108900510824522}
   - {fileID: -2215636194960393682}
-  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba2e3ae39f9e7a40e1
+  - {fileID: 4147507874882695700}
+  m_RendererFeatureMap: a61ab5875ed0d7cfb6078b40277d11ba2e3ae39f9e7a40e114b2841170e88e39
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -109,3 +110,17 @@ MonoBehaviour:
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
+--- !u!114 &4147507874882695700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abc0f261e60be094ea64653a48bf9f3c, type: 3}
+  m_Name: OVERBURST Temporary Edge Blur
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstEdgeBlurRendererFeature
+  m_Active: 1
+  blurShader: {fileID: 4800000, guid: 76ee3487d4640064db8a78847a155312, type: 3}
