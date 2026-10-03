@@ -114,7 +114,15 @@ public static class IceLowEnergyTrailPlayVerifier
         string own = Path.GetFullPath(Path.Combine(output, "IsolatedAccount_" + Round));
         if (string.IsNullOrEmpty(AccountBootstrap.SaveDirectory) || !string.Equals(Path.GetFullPath(AccountBootstrap.SaveDirectory), own, StringComparison.OrdinalIgnoreCase))
         {
-            if (timeout) RequestReturn();
+            if (timeout)
+            {
+                // A reload during boot can clear AccountBootstrap while the Guard still owns this Play.
+                // Stop only when both independent ownership paths still identify our account.
+                bool Owned(string path) => !string.IsNullOrEmpty(path) && string.Equals(Path.GetFullPath(path), own, StringComparison.OrdinalIgnoreCase);
+                if (Owned(IsolatedSavePlayGuard.ActiveDirectory) && Owned(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)))
+                    Finish("제품 부팅 상태가 초기화되거나 준비되지 않아 본인 Play를 종료했습니다.");
+                else RequestReturn();
+            }
             return;
         }
         if (work == null)
