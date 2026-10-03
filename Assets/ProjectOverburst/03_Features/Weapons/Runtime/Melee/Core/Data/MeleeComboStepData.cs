@@ -37,17 +37,20 @@ public struct MeleeComboStepData
 [Serializable]
 public struct MeleePlaybackAcceleration
 {
+    [Tooltip("대시 회전 강공의 짧은 집중과 해방 시계를 사용합니다.")]
+    public bool dashHeavyFocus;
     [Range(0f, 1f)] public float startNormalized;
     [Range(0f, 1f)] public float endNormalized;
     [Range(1f, 3f)] public float peakMultiplier;
 
-    public bool IsEnabled => peakMultiplier > 1f && endNormalized > startNormalized
-        && startNormalized >= 0f && endNormalized <= 1f;
+    public bool IsEnabled => dashHeavyFocus || (peakMultiplier > 1f && endNormalized > startNormalized
+        && startNormalized >= 0f && endNormalized <= 1f);
     private float MeanSpeed => (Mathf.Clamp(peakMultiplier, 1f, 3f) + 1f) * .5f;
 
     // Elapsed time is expressed in units of the unaccelerated clip duration.
     public float ToClipProgress(float elapsed)
     {
+        if (dashHeavyFocus) return DashHeavyFocusClock.Sample(elapsed * DashHeavyFocusClock.ClipLength) / DashHeavyFocusClock.ClipLength;
         if (!IsEnabled || elapsed <= startNormalized) return elapsed;
         float span = endNormalized - startNormalized;
         float duration = span / MeanSpeed;
@@ -60,6 +63,7 @@ public struct MeleePlaybackAcceleration
 
     public float ToElapsed(float clipProgress)
     {
+        if (dashHeavyFocus) return DashHeavyFocusClock.RealAt(clipProgress * DashHeavyFocusClock.ClipLength) / DashHeavyFocusClock.ClipLength;
         if (!IsEnabled || clipProgress <= startNormalized) return clipProgress;
         float span = endNormalized - startNormalized;
         float duration = span / MeanSpeed;

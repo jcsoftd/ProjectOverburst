@@ -101,6 +101,8 @@ public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 �
 
     private void OnDisable()
     {
+        CancelDashHeavyWindup();
+        EndDashHeavyPresentation();
         ReleaseAttackStates();
         if (Application.isPlaying)
             CancelActiveAttack(WeaponActionCompletionReason.RuntimeDisabled, true);

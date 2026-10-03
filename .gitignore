@@ -132,3 +132,7 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/03_Features/Player/Animations/Evade/Exploration_Dodge*.anim*
 /Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DodgeAttack.anim*
 /Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DodgeHeavy.anim*
+
+# Licensed supplier-derived dash-heavy spin and gather audio; restore locally with original meta.
+/Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DashHeavySpin.anim*
+/Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/DashHeavyGather.wav*

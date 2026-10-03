@@ -52,6 +52,7 @@ MonoBehaviour:
   parriedHeavyAttackDefinition: {fileID: 11400000, guid: 80f48d0f09a012740b424f87a00cd140, type: 2}
   dodgeAttackDefinition: {fileID: 11400000, guid: 9458135c0c8f00244830c7db5221faf2, type: 2}
   dodgeHeavyAnimationClip: {fileID: 7400000, guid: 421f993b08809b849bd6502c0ec695a1, type: 2}
+  dashHeavyAttackDefinition: {fileID: 11400000, guid: d52b38bab6479fe4b82729c4d26c9dec, type: 2}
   guard:
     lockMovementWhileGuarding: 0
     incomingDamageMultiplier: 0.3

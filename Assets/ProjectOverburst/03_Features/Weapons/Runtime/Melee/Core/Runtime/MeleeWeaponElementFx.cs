@@ -428,6 +428,16 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         }
     }
 
+    public bool TryGetBladeEndpoints(out Vector3 bladeBase, out Vector3 bladeTip)
+    {
+        bladeTip = trailAnchor != null ? trailAnchor.position : transform.position;
+        Vector3 direction = bladeEffectFrame != null ? -bladeEffectFrame.forward
+            : bladeRenderer != null ? bladeTip - bladeRenderer.bounds.center : transform.forward;
+        if (direction.sqrMagnitude < .0001f) direction = transform.forward;
+        bladeBase = bladeTip - direction.normalized * bladeEffectBounds.size.z;
+        return bladeRenderer != null && trailAnchor != null;
+    }
+
     private void BindOwner()
     {
         PlayerEquipment nextEquipment = GetComponentInParent<PlayerEquipment>();

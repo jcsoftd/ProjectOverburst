@@ -19,6 +19,7 @@ public static class MeleeHeavyVfxPreparation
         var melee = equipment.CurrentWeaponData.GetMeleeDefinition();
         var definition = melee != null ? melee.heavyAttackDefinition : null;
         if (definition == null) return;
+        if (melee.dashHeavyAttackDefinition != null) DashHeavyFocusPresentation.Prepare();
         using var scope = RequestMarker.Auto();
         Request(definition.elementVfx.GetImpact(element), 1);
         if (element == WeaponElement.Light) Request(definition.elementVfx.GetLightImpact(false), 1);

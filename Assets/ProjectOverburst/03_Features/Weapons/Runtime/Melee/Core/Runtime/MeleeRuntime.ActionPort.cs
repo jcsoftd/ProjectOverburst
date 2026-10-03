@@ -121,7 +121,8 @@ public partial class MeleeRuntime
             return WeaponActionResult.RejectedNotReady;
 
         MeleeHeavyAttackDefinition heavy = playerEquipment.CurrentWeaponData
-            .GetMeleeDefinition().heavyAttackDefinition;
+            .GetMeleeDefinition() is MeleeWeaponDefinition definition
+                ? (requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy ? definition.dashHeavyAttackDefinition : definition.heavyAttackDefinition) : null;
         if (heavy == null || !heavy.IsConfigured)
             return WeaponActionResult.RejectedUnsupported;
 
@@ -143,7 +144,8 @@ public partial class MeleeRuntime
         if (activeWeaponData.weaponClass == WeaponClass.Greatsword)
         {
             heavyParrySwingPending = IsHeavyParryMotionActive;
-            if (!heavyParrySwingPending) CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, true, transform.position);
+            if (!heavyParrySwingPending && activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy)
+                CombatActionSfxService.PlayGreatswordSwing(comboStepIndex, true, transform.position);
         }
         NotifyAcceptedMeleeAction();
         return WeaponActionResult.Accepted;

@@ -103,7 +103,8 @@ public partial class MeleeRuntime
 
     public bool CancelDodgeLightWindup()
     {
-        if (!dodgeLightWindup) return false;
+        bool heavyCancelled = CancelDashHeavyWindup();
+        if (!dodgeLightWindup) return heavyCancelled;
         dodgeLightWindup = false; dodgeLightWindupClip = null;
         playerAnimatorController?.CancelWeaponRuntimeState();
         return true;
@@ -122,9 +123,7 @@ public partial class MeleeRuntime
         if (request.Kind == PlayerDodgeFollowUpKind.Light
             && (definition.dodgeAttackDefinition == null || !definition.dodgeAttackDefinition.HasSteps)) return false;
         if (request.Kind == PlayerDodgeFollowUpKind.Heavy
-            && (definition.dodgeHeavyAnimationClip == null || definition.heavyAttackDefinition == null
-                || definition.heavyAttackDefinition.attack.animationClip == null
-                || Mathf.Abs(definition.dodgeHeavyAnimationClip.length - definition.heavyAttackDefinition.attack.animationClip.length) > .0001f))
+            && (definition.dashHeavyAttackDefinition == null || !definition.dashHeavyAttackDefinition.IsConfigured))
             return false;
         Vector3 direction = request.Direction; direction.y = 0f;
         if (direction.sqrMagnitude <= .0001f) return false;
@@ -132,7 +131,8 @@ public partial class MeleeRuntime
         dodgeHandoffProgress = dodgeLightWindup && request.Kind == PlayerDodgeFollowUpKind.Light
             && request.EvadeExecutionId == dodgeLightWindupRequest.EvadeExecutionId
             && request.InputRevision == dodgeLightWindupRequest.InputRevision
-            ? Mathf.Clamp((OverburstGameClock.UnscaledTime - dodgeLightWindupStart) / Mathf.Max(.01f, dodgeLightWindupDuration), 0f, .95f) : 0f;
+            ? Mathf.Clamp((OverburstGameClock.UnscaledTime - dodgeLightWindupStart) / Mathf.Max(.01f, dodgeLightWindupDuration), 0f, .95f)
+            : request.Kind == PlayerDodgeFollowUpKind.Heavy ? DashHeavyHandoffProgress(request) : 0f;
         if (request.Kind != PlayerDodgeFollowUpKind.Light || request.EvadeExecutionId != dodgeResumeExecutionId
             || request.WeaponInstanceId != dodgeResumeWeapon) DiscardDodgeComboContinuation();
         requestedDodgeFollowUp = request.Kind;
@@ -155,6 +155,7 @@ public partial class MeleeRuntime
         {
             requestedDodgeFollowUp = PlayerDodgeFollowUpKind.None; dodgeHandoffProgress = 0f;
             dodgeLightWindup = false; dodgeLightWindupClip = null;
+            dashHeavyWindup = false;
         }
     }
 
@@ -166,10 +167,9 @@ public partial class MeleeRuntime
         if (definition == null) return false;
         if (activeAttackIsHeavy && activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy)
         {
-            activeAttackAnimationClip = definition.dodgeHeavyAnimationClip;
-            // The dodge already supplied the travel; retain heavy judgement and remove only authored motion.
-            activeAttackStep.movementPhases = Array.Empty<AttackMovementPhaseData>();
-            activeAttackStep.visualHeightCurve = null;
+            activeAttackAnimationClip = activeHeavyDefinition.attack.animationClip;
+            if (dashHeavyWindup) activeAttackAnimationSpeed = dashHeavyPlaybackSpeed;
+            activeAttackTransitionDuration = dashHeavyWindup ? 0f : .08f;
             return false;
         }
         if (activeDodgeFollowUp != PlayerDodgeFollowUpKind.Light || !activeAttackUsesCombo) return false;

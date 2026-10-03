@@ -171,8 +171,13 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (isEvading && activeType == PlayerEvadeType.CombatDodge)
         {
             var inputs = ResolveFacade()?.CombatInputs;
-            if (inputs != null && inputs.PeekDodgeLight(ActiveExecutionId, out var light) && meleeRuntime != null)
-                meleeRuntime.PreviewDodgeLight(light, evadeEndTime - meleeRuntime.DodgeLightWindupLead);
+            if (inputs != null && inputs.PeekDodgeFollowUp(ActiveExecutionId, out var request) && meleeRuntime != null)
+            {
+                if (request.Kind == PlayerDodgeFollowUpKind.Heavy)
+                    meleeRuntime.PreviewDashHeavy(request, Mathf.Max(0f, OverburstGameClock.UnscaledTime - evadeStartTime),
+                        activeDistance, activeDuration, activeMoveEase);
+                else meleeRuntime.PreviewDodgeLight(request, evadeEndTime - meleeRuntime.DodgeLightWindupLead);
+            }
             else if (meleeRuntime != null && meleeRuntime.CancelDodgeLightWindup())
                 playerAnimation?.ResumeDodgeVisual(activeDodgeClip, activeDodgeState, activeDuration, ActiveNormalizedTime,
                     evadeProfile.entryBlend, evadeProfile.exitBlend);
@@ -385,8 +390,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (activeType == PlayerEvadeType.Roll) RotateToEvadeDirection(deltaTime);
         else if (activeType == PlayerEvadeType.CombatDodge)
         {
-            var target = Quaternion.LookRotation(meleeRuntime != null && meleeRuntime.IsDodgeLightWindupActive ? activeDirection : activeFacing, Vector3.up);
-            transform.rotation = meleeRuntime != null && meleeRuntime.IsDodgeLightWindupActive
+            var target = Quaternion.LookRotation(meleeRuntime != null && (meleeRuntime.IsDodgeLightWindupActive || meleeRuntime.IsDashHeavyWindupActive) ? activeDirection : activeFacing, Vector3.up);
+            transform.rotation = meleeRuntime != null && (meleeRuntime.IsDodgeLightWindupActive || meleeRuntime.IsDashHeavyWindupActive)
                 ? Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-24f * Mathf.Max(0f, deltaTime))) : target;
         }
     }
@@ -458,7 +463,8 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
             ? Mathf.Max(0f, OverburstGameClock.UnscaledTime - evadeStartTime)
             : activeElapsed + Mathf.Max(0f, deltaTime);
         float progress = Mathf.Clamp01(activeElapsed / activeDuration);
-        float targetDistance = activeDistance * GetDistanceProgress(progress);
+        float targetDistance = meleeRuntime != null && meleeRuntime.IsDashHeavyWindupActive
+            ? meleeRuntime.DashHeavyTravelDistance(activeElapsed) : activeDistance * GetDistanceProgress(progress);
         float moveDistance = Mathf.Max(0f, targetDistance - activeMovedDistance);
         activeMovedDistance = targetDistance;
 

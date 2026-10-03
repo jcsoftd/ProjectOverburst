@@ -11,6 +11,7 @@ public partial class MeleeRuntime
         if (TickHeavyParryMotion()) return;
 
         float normalizedTime = GetAttackNormalizedTime();
+        TickDashHeavyTravelAndFocus(normalizedTime);
         bool shouldContinueCombo = ShouldContinueActiveCombo(normalizedTime);
         bool shouldCancelByMoveInput = !shouldContinueCombo
             && ShouldCancelActiveComboByMoveInput(normalizedTime);
@@ -26,7 +27,10 @@ public partial class MeleeRuntime
         if (!isAttacking) return;
         attackPhaseExecutor.Tick(normalizedTime); // 전환·취소 프레임의 마지막 검끝 표본까지 먼저 판정
         if (!isAttacking) return;
-        heavyDischargeExecutor.ResolvePendingArea();
+        if (activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy
+            || normalizedTime >= activeAttackPhases[0].SafeEnd)
+            heavyDischargeExecutor.ResolvePendingArea();
+        CompleteDashHeavyWave(normalizedTime);
         heavyDischargeExecutor.Tick(Time.deltaTime);
 
         if (shouldContinueCombo)
@@ -61,6 +65,9 @@ public partial class MeleeRuntime
         int impactPhaseIndex = activeHeavyDefinition != null ? activeHeavyDefinition.SafeDischargePhaseIndex : 0;
         AttackPhaseData impactPhase = activeAttackPhases[impactPhaseIndex];
         if (normalizedTime < impactPhase.SafeStart) return;
+
+        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy)
+        { CommitDashHeavyDischarge(impactPhase); return; }
 
         float normalizedEnergy = activeHeavyEnergy != null ? activeHeavyEnergy.Normalized : 0f;
         heavyDischargeCommitted = true;
@@ -154,6 +161,7 @@ public partial class MeleeRuntime
 
     private void StopActiveAttackStep()
     {
+        EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         GetComponent<PlayerParryController>()?.CloseWindow();
         heavyDischargeExecutor.End();
@@ -205,6 +213,7 @@ public partial class MeleeRuntime
 
     private void FinishActiveAttackStep()
     {
+        EndDashHeavyPresentation();
         ResetHeavyParryMotion();
         heavyDischargeExecutor.End();
         activeDischarge?.End();

@@ -56,6 +56,7 @@ public partial class MeleeRuntime
         MeleeHeavyAttackDefinition counter = activeWeaponData.GetMeleeDefinition()?.parriedHeavyAttackDefinition;
         if (counter == null) return true;
         if (!counter.IsConfigured) return false;
+        EndDashHeavyPresentation();
         activeHeavyDefinition = counter;
         activeAttackStep = counter.attack;
         activeAttackAnimationClip = activeAttackStep.animationClip;

@@ -33,7 +33,7 @@ public sealed class MeleeHeavyDischargeExecutor
         Vector3 center,
         Vector3 direction,
         float firstBlastRadius,
-        float firstBlastVerticalTolerance)
+        float firstBlastVerticalTolerance, bool sequentialDirectHits = false)
     {
         using var costScope = ElementCombatCostMarkers.Heavy_Begin.Auto();
         End();
@@ -47,13 +47,13 @@ public sealed class MeleeHeavyDischargeExecutor
         facing = direction;
         facing.y = 0f;
         if (facing.sqrMagnitude > 0.0001f) facing.Normalize();
-        PlayImpact();
+        if (!sequentialDirectHits) PlayImpact();
         batch.Capture(sourceTarget, discharge.Element, blastVerticalTolerance, discharge.GemAttack);
         if (fireVfx == null) fireVfx = PlayFireOrigin;
         if (chainVfx == null) chainVfx = PlayChainLink;
         pendingFireExplosion = discharge.Element == WeaponElement.Fire;
         pendingElectricChain = discharge.Element == WeaponElement.Electric;
-        SubmitUpperElementFollowUps();
+        if (!sequentialDirectHits) SubmitUpperElementFollowUps();
     }
 
     public void ResolvePendingArea()

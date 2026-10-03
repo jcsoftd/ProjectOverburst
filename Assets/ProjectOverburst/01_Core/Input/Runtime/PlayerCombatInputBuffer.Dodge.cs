@@ -59,13 +59,25 @@ public sealed partial class PlayerCombatInputBuffer
         bool heavy = !heavyNeedsRelease && input.AimPressedThisFrame;
         bool light = !attackNeedsRelease && !PlayerPickupInteractor.IsPrimaryAttackSuppressed
             && (input.AttackPressedThisFrame || input.AttackHeld);
-        if (heavy) { dodgeFollowUp = PlayerDodgeFollowUpKind.Heavy; heavyPending = false; }
+        if (heavy)
+        {
+            if (dodgeFollowUp != PlayerDodgeFollowUpKind.Heavy) dodgeLightRequestedAt = OverburstGameClock.UnscaledTime;
+            dodgeFollowUp = PlayerDodgeFollowUpKind.Heavy; heavyPending = false;
+        }
         if (light)
         {
             if (dodgeFollowUp == PlayerDodgeFollowUpKind.None)
             { dodgeFollowUp = PlayerDodgeFollowUpKind.Light; dodgeLightRequestedAt = OverburstGameClock.UnscaledTime; }
             attackPending = false;
         }
+    }
+
+    public bool PeekDodgeFollowUp(int executionId, out PlayerDodgeFollowUpRequest request)
+    {
+        bool valid = executionId == dodgeExecutionId && dodgeFollowUp != PlayerDodgeFollowUpKind.None && IsDodgeOwnerValid();
+        request = valid ? new PlayerDodgeFollowUpRequest(dodgeFollowUp, dodgeExecutionId, dodgeWeaponInstanceId,
+            dodgeInputRevision, dodgeDirection, dodgeLightRequestedAt) : default;
+        return valid;
     }
 
     public bool PeekDodgeLight(int executionId, out PlayerDodgeFollowUpRequest request)

@@ -69,6 +69,9 @@ public sealed class CombatActionSfxService : MonoBehaviour
         return instance.Play(clipIndex, position, 0.6f, 0.9f, 4f, 28f, 100);
     }
 
+    public static bool PlayDashHeavySwing(float playbackSpeed, Vector3 position) => EnsureInstance()
+        && instance.Play(4, position, .6f, .9f, 4f, 28f, 100, Mathf.Clamp(playbackSpeed,.3f,3f));
+
     // Energy is captured before the heavy discharge consumes it.
     // 2026-09-30: 지면강타 2단계로 축소 — 에너지 절반 미만 Earth_Explosion_1_M, 이상 Earth_Explosion_2_M.
     // GreatswordGround01 칸(5)은 인덱스 유지를 위해 남겨 두고 더는 재생하지 않는다.
@@ -202,7 +205,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
     }
 
     private bool Play(int index, Vector3 position, float spatialBlend, float volume,
-        float minDistance, float maxDistance, int priority)
+        float minDistance, float maxDistance, int priority, float pitch = 1f)
     {
         AudioClip clip = clips[index];
         if (clip == null)
@@ -220,11 +223,11 @@ public sealed class CombatActionSfxService : MonoBehaviour
             clips[index] = clip;
         }
 
-        return Play(clip, position, spatialBlend, volume, minDistance, maxDistance, priority);
+        return Play(clip, position, spatialBlend, volume, minDistance, maxDistance, priority, pitch);
     }
 
     private bool Play(AudioClip clip, Vector3 position, float spatialBlend, float volume,
-        float minDistance, float maxDistance, int priority)
+        float minDistance, float maxDistance, int priority, float pitch = 1f)
     {
         AudioSource source = null;
         for (int i = 0; i < voiceCount; i++)
@@ -260,7 +263,7 @@ public sealed class CombatActionSfxService : MonoBehaviour
         source.playOnAwake = false;
         source.loop = false;
         source.clip = clip;
-        source.pitch = 1f;
+        source.pitch = pitch;
         source.volume = volume;
         source.priority = priority;
         source.spatialBlend = spatialBlend;

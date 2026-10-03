@@ -57,7 +57,9 @@ public partial class MeleeRuntime
             ? activeWeaponData.GetMeleeComboDefinition()
             : null;
         activeHeavyDefinition = isHeavy && activeWeaponData != null
-            ? activeWeaponData.GetMeleeDefinition()?.heavyAttackDefinition
+            ? (requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy
+                ? activeWeaponData.GetMeleeDefinition()?.dashHeavyAttackDefinition
+                : activeWeaponData.GetMeleeDefinition()?.heavyAttackDefinition)
             : null;
         activeAttackIsHeavy = isHeavy;
         heavyDischargeCommitted = false;
@@ -79,11 +81,13 @@ public partial class MeleeRuntime
 
 
         attackDuration = ResolveAttackDuration();
-        float entryProgress = requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Light ? dodgeHandoffProgress
+        float entryProgress = requestedDodgeFollowUp != PlayerDodgeFollowUpKind.None ? dodgeHandoffProgress
             : isDirectComboContinuation && activeAttackUsesCombo
                 ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
         MeleePlaybackAcceleration acceleration = activeAttackStep.playbackAcceleration;
-        float remainingDuration = attackDuration * (acceleration.ToElapsed(1f) - acceleration.ToElapsed(entryProgress));
+        float entryElapsed = requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy && dashHeavyWindup
+            ? dashHeavyHandoffElapsed : attackDuration * acceleration.ToElapsed(entryProgress);
+        float remainingDuration = attackDuration * acceleration.ToElapsed(1f) - entryElapsed;
         ResolveAttackTrail(activeAttackStep);
         ResolveAttackPhases();
 
@@ -113,7 +117,8 @@ public partial class MeleeRuntime
         attackVisualHeight.Tick(entryProgress);
         RotateOwnerToAttackDirection();
         isAttacking = true;
-        attackStartTime = Time.time - attackDuration * acceleration.ToElapsed(entryProgress);
+        attackStartTime = Time.time - entryElapsed;
+        AdoptDashHeavyTravel(entryProgress);
 
         playerEquipment.CurrentWeaponPose?.BeginActivePose(remainingDuration);
 

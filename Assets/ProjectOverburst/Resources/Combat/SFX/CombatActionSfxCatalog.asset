@@ -33,3 +33,7 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 66351c797309d496881fe3dd706308b6, type: 3}
   - name: MonsterHitCommon03
     clip: {fileID: 8300000, guid: 3d527f66259f542fd8234b14f1478c9e, type: 3}
+  - name: DashHeavyGather
+    clip: {fileID: 8300000, guid: 0faa9dd95258d774d933745b9b72a83e, type: 3}
+  - name: DashHeavyRelease
+    clip: {fileID: 8300000, guid: de9a5828146bb4e62a18cfcf67aba356, type: 3}

@@ -307,23 +307,35 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         // Keep the outgoing dodge clip intact while the normal first hit blends in.
         if (!HasState(stateName) || (!isDodgeLight && !ApplyAttackClip(expectedClip)))
             return false;
-        bool adoptWindup = isDodgeLight && dodgeLightPreviewPlaying && activeAction == DriverAction.Attack
+        bool isDashHeavy = playerEquipment?.CurrentWeaponData?.GetMeleeDefinition()?.dashHeavyAttackDefinition?.attack.animationClip == expectedClip;
+        bool adoptWindup = (isDodgeLight || isDashHeavy) && dodgeLightPreviewPlaying && activeAction == DriverAction.Attack
             && acceleratedAttackClip == expectedClip && normalizedStartTime > 0f
             && (playerMovement == null || !playerMovement.IsEvading);
-        dodgeLightPreviewPlaying = isDodgeLight && playerMovement != null && playerMovement.IsEvading;
+        dodgeLightPreviewPlaying = (isDodgeLight || isDashHeavy) && playerMovement != null && playerMovement.IsEvading;
 
         if (!combatRequested)
             PrepareCombatLayerForAttackEntry();
 
         float duration = Mathf.Max(0.01f, actionDuration);
+        if (adoptWindup && isDashHeavy)
+        {
+            // A held source pose has several elapsed times. Preserve the exact preview
+            // clock instead of deriving it from that pose's non-unique inverse.
+            float previewElapsed = OverburstGameClock.UnscaledTime - attackClockOrigin;
+            attackClockOrigin = Time.time - previewElapsed;
+            attackPreviousSampleTime = Time.time;
+            activeActionEndTime = Time.time + duration;
+            return true;
+        }
         normalizedStartTime = Mathf.Clamp(normalizedStartTime, 0f, .95f);
         float fullPlaybackDuration = duration / (playbackAcceleration.ToElapsed(1f) - playbackAcceleration.ToElapsed(normalizedStartTime));
         SetActionSpeedForClip(expectedClip, fullPlaybackDuration);
         attackAcceleration = playbackAcceleration;
         acceleratedAttackClip = expectedClip;
         attackBaseDuration = fullPlaybackDuration;
-        attackClockOrigin = Time.time - fullPlaybackDuration * playbackAcceleration.ToElapsed(normalizedStartTime);
-        attackPreviousSampleTime = Time.time;
+        float now = dodgeLightPreviewPlaying ? OverburstGameClock.UnscaledTime : Time.time;
+        attackClockOrigin = now - fullPlaybackDuration * playbackAcceleration.ToElapsed(normalizedStartTime);
+        attackPreviousSampleTime = now;
         if (adoptWindup)
         {
             activeActionEndTime = Time.time + duration;
@@ -620,14 +632,16 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             || acceleratedAttackClip == null || attackBaseDuration <= 0f)
             return;
 
-        float now = Time.time;
+        float now = dodgeLightPreviewPlaying ? OverburstGameClock.UnscaledTime : Time.time;
         float delta = now - attackPreviousSampleTime;
         if (delta <= 0f) return;
         // Integrate the same clock as hit/movement/VFX timing, including frames crossing a boundary.
         float previous = attackAcceleration.ToClipProgress((attackPreviousSampleTime - attackClockOrigin) / attackBaseDuration);
         float current = attackAcceleration.ToClipProgress((now - attackClockOrigin) / attackBaseDuration);
-        float rate = Mathf.Max(.01f, (current - previous) / delta);
-        SetActionSpeedForClip(acceleratedAttackClip, 1f / rate);
+        float rate = Mathf.Max(0f, (current - previous) / delta);
+        if (dodgeLightPreviewPlaying) rate = PlayerAnimation.EvadeStateSpeed(rate);
+        if (attackAcceleration.dashHeavyFocus && rate <= .000001f) targetAnimator.SetFloat(actionSpeedParameterName, 0f);
+        else SetActionSpeedForClip(acceleratedAttackClip, 1f / Mathf.Max(.000001f, rate));
         attackPreviousSampleTime = now;
     }
 

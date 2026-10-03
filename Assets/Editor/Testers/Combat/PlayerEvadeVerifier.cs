@@ -17,7 +17,7 @@ using UnityEngine.SceneManagement;
 
 /// <summary>제품 입력 액션과 가상 키보드/마우스로 회피와 닷지 공격의 수명주기를 검증한다.</summary>
 [InitializeOnLoad]
-public static class PlayerEvadeVerifier
+public static partial class PlayerEvadeVerifier
 {
     const string PendingKey = "Overburst.PlayerEvadeVerifier.Pending";
     const string DeadlineKey = "Overburst.PlayerEvadeVerifier.Deadline";
@@ -31,7 +31,7 @@ public static class PlayerEvadeVerifier
     static string output;
     static int frame, failures;
     static double deadline;
-    static bool background, lightOnly, dashVisualOnly, paletteOnly;
+    static bool background, lightOnly, dashVisualOnly, paletteOnly, dashHeavyOnly;
     static bool reloadLocked, refreshLocked;
     static Keyboard keyboard;
     static Mouse mouse;
@@ -71,12 +71,13 @@ public static class PlayerEvadeVerifier
             if (!EditorApplication.isPlayingOrWillChangePlaymode) ScheduleEditorAccountReturn();
         }
     }
-    public static void StartIsolated(string directory, bool onlyDodgeLight = false, bool onlyDashVisual = false, bool onlyPalette = false)
+    public static void StartIsolated(string directory, bool onlyDodgeLight = false, bool onlyDashVisual = false, bool onlyPalette = false, bool onlyDashHeavy = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("유휴 Editor가 필요합니다.");
         string target = IsolatedSavePlayGuard.ValidateDirectory(directory); Directory.CreateDirectory(target);
         SessionState.SetBool(PendingKey + ".LightOnly", onlyDodgeLight);
+        SessionState.SetBool(PendingKey + ".DashHeavyOnly", onlyDashHeavy);
         SessionState.SetBool(PendingKey + ".DashVisualOnly", onlyDashVisual);
         SessionState.SetBool(PendingKey + ".PaletteOnly", onlyPalette);
         SessionState.SetString(PendingKey, target);
@@ -95,6 +96,8 @@ public static class PlayerEvadeVerifier
         SessionState.SetString(ReturnKey + ".StartSceneBefore", playStartSceneBefore);
         EditorSceneManager.playModeStartScene = persistent;
         SessionState.SetString(ReturnKey, target);
+        SessionState.SetBool(ReturnKey + ".BackgroundBefore", Application.runInBackground);
+        Application.runInBackground = true;
         SessionState.SetString(ReturnKey + ".Deadline", (EditorApplication.timeSinceStartup + 480).ToString(System.Globalization.CultureInfo.InvariantCulture));
         EditorApplication.playModeStateChanged -= RestoreAccountOnEditorReturn;
         EditorApplication.playModeStateChanged += RestoreAccountOnEditorReturn;
@@ -136,6 +139,9 @@ public static class PlayerEvadeVerifier
         ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
         SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
+        SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
+        Application.runInBackground = SessionState.GetBool(ReturnKey + ".BackgroundBefore", Application.runInBackground);
+        SessionState.EraseBool(ReturnKey + ".BackgroundBefore");
         bool previouslyBlocked = IsolatedSavePlayGuard.RequiresAccountChoice;
         IsolatedSavePlayGuard.UseRealAccount();
         bool restored = !IsolatedSavePlayGuard.RequiresAccountChoice
@@ -163,6 +169,8 @@ public static class PlayerEvadeVerifier
             if (EditorApplication.isPlaying && IsolatedSavePlayGuard.ActiveDirectory.StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) EditorApplication.ExitPlaymode();
             return;
         }
+        if (EditorApplication.isPlaying && IsolatedSavePlayGuard.ActiveDirectory.StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            EditorApplication.QueuePlayerLoopUpdate();
         if (!EditorApplication.isPlaying || !Overburst.Persistence.AccountBootstrap.Ready || PlayerContext.GetOrCreate()?.CurrentActor == null) return;
         ClearPending();
         try { Begin(target); }
@@ -250,8 +258,9 @@ public static class PlayerEvadeVerifier
         lightOnly = SessionState.GetBool(PendingKey + ".LightOnly", false); SessionState.EraseBool(PendingKey + ".LightOnly");
         dashVisualOnly = SessionState.GetBool(PendingKey + ".DashVisualOnly", false); SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         paletteOnly = SessionState.GetBool(PendingKey + ".PaletteOnly", false); SessionState.EraseBool(PendingKey + ".PaletteOnly");
+        dashHeavyOnly = SessionState.GetBool(PendingKey + ".DashHeavyOnly", false); SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
         deadline = EditorApplication.timeSinceStartup + 240;
-        background = Application.runInBackground; Application.runInBackground = true;
+        background = SessionState.GetBool(ReturnKey + ".BackgroundBefore", Application.runInBackground); Application.runInBackground = true;
         EditorApplication.LockReloadAssemblies(); reloadLocked = true;
         AssetDatabase.DisallowAutoRefresh(); refreshLocked = true;
         work = Run(); EditorApplication.update += Tick; Application.logMessageReceived += Log;
@@ -575,6 +584,7 @@ public static class PlayerEvadeVerifier
                 else yield return VerifyDashVisualComparison();
                 yield break;
             }
+            if (dashHeavyOnly) { yield return VerifyDashHeavy(); yield break; }
             if (lightOnly) { yield return VerifyDodgeLightOverlap(); yield return VerifyDodgeComboResume(); yield return VerifyDodgeLightRecovery(); yield break; }
             yield return Reset(false); yield return StartDodge(false);
             Check(evade.ActiveType == PlayerEvadeType.ExplorationDodge && !evade.IsInvincible && !evade.IsPerfectEvadeWindowActive, "탐험 닷지와 무적 없음");
@@ -614,33 +624,7 @@ public static class PlayerEvadeVerifier
             Send(false, false, true); yield return Frames(2);
             Check(melee.IsAttackInProgress && melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.None, "닷지 종료 후 클릭 일반 공격"); Send();
 
-            yield return Reset();
-            var energy = actor.GetComponent<OverburstElementEnergy>();
-            if (energy == null) energy = actor.gameObject.AddComponent<OverburstElementEnergy>();
-            FillEnergy(energy, 6000);
-            Check(melee.TryStartHeavyAttack(forward) == WeaponActionResult.Accepted, "비교 일반 강공 시작");
-            float heavyDuration = Field<float>(melee, "attackDuration"); var normalHeavyStep = Field<MeleeComboStepData>(melee, "activeAttackStep");
-            normalHeavyStep.movementPhases = Array.Empty<AttackMovementPhaseData>(); normalHeavyStep.visualHeightCurve = null;
-            string heavyStep = JsonUtility.ToJson(normalHeavyStep);
-            float damageMultiplier = Field<float>(melee, "activeAttackDamageMultiplier");
-            melee.CancelCurrentAttackState(); yield return Reset(); yield return StartDodge(false); Send(false, false, true, true); yield return Frames(2); Send();
-            yield return CompleteEvade("both heavy priority", evade.Profile.combatDodge.distance, .48f);
-            yield return Frames(1);
-            Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy && melee.IsHeavyAttackInProgress, "좌우 경합 강공 한 번");
-            Check(heavyStep == JsonUtility.ToJson(Field<MeleeComboStepData>(melee, "activeAttackStep"))
-                && Mathf.Abs(heavyDuration - Field<float>(melee, "attackDuration")) < .0001f
-                && Mathf.Approximately(damageMultiplier, Field<float>(melee, "activeAttackDamageMultiplier")), "이동/시각 점프만 제외한 동일 강공 판정·피드백·시간");
-            Check(Field<AnimationClip>(melee, "activeAttackAnimationClip") == actor.Equipment.CurrentWeaponData.GetMeleeDefinition().dodgeHeavyAnimationClip, "강공 모션만 대체");
-            Check(actor.GetComponent<PlayerParryController>().IsWindowOpen, "닷지 강공 기존 패링 창");
-            action = Field<int>(melee, "activeActionId"); bool sawCommit = false; int commits = 0; float heavyLimit = Time.unscaledTime + 6;
-            while (melee.IsAttackInProgress)
-            {
-                Check(Time.unscaledTime < heavyLimit, "닷지 강공 완료 제한");
-                bool committed = Field<bool>(melee, "heavyDischargeCommitted"); if (committed && !sawCommit) commits++; sawCommit |= committed;
-                Check(Field<int>(melee, "activeActionId") == action, "닷지 강공 행동 ID 유지"); yield return null;
-            }
-            Check(commits == 1 && input.CombatInputs.PendingDodgeFollowUp == PlayerDodgeFollowUpKind.None, "강공 착지·예약 소모 각각 한 번");
-            Check(energy.Amount < .001f, "닷지 강공 기존 에너지 전량 소모");
+            yield return VerifyDashHeavy();
             yield return VerifyDodgeAttackCorrection();
             yield return ParryFollowUp();
 
@@ -1001,8 +985,9 @@ public static class PlayerEvadeVerifier
     static IEnumerator VerifyDodgeAttackCorrection()
     {
         foreach (float angle in new[] { -90f, 45f, 90f })
-        foreach (bool heavy in new[] { false, true })
+        foreach (bool heavy in new[] { false })
         {
+            // E heavy owns its remaining 5m carry and is covered by VerifyDashHeavy.
             yield return Reset(true, angle);
             yield return StartDodge(true, !heavy, heavy);
             Vector3 direction = evade.ActiveDirection;
@@ -1111,7 +1096,7 @@ public static class PlayerEvadeVerifier
         var parry = actor.GetComponent<PlayerParryController>(); int before = parry.SuccessCount;
         while (evade.IsEvading) yield return null;
         yield return Frames(1);
-        Check(melee.ActiveDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy, "예약 닷지 강공 시작");
+        Check(melee.IsHeavyAttackInProgress, "예약 대시 강공 또는 즉시 패링 강공 시작");
         float limit = Time.unscaledTime + 2;
         while (!melee.IsHeavyParryMotionActive && melee.IsAttackInProgress && Time.unscaledTime < limit) yield return null;
         Check(parry.SuccessCount == before + 1 && melee.IsHeavyParryMotionActive, "닷지 강공 실제 적 패링·모션 삽입");
@@ -1120,18 +1105,18 @@ public static class PlayerEvadeVerifier
         while (melee.IsAttackInProgress)
         {
             Check(Time.unscaledTime < limit && Field<int>(melee, "activeActionId") == id, "패링 후 같은 강공 ID");
-            if (!melee.IsHeavyParryMotionActive) { resumed = true; variantResumed |= Field<AnimationClip>(melee, "activeAttackAnimationClip") == actor.Equipment.CurrentWeaponData.GetMeleeDefinition().dodgeHeavyAnimationClip; }
+            if (!melee.IsHeavyParryMotionActive) { resumed = true; variantResumed |= Field<AnimationClip>(melee, "activeAttackAnimationClip") == actor.Equipment.CurrentWeaponData.GetMeleeDefinition().parriedHeavyAttackDefinition.attack.animationClip; }
             committed |= Field<bool>(melee, "heavyDischargeCommitted"); yield return null;
         }
         Check(resumed && committed && variantResumed,
-            "패링 후 닷지 강공 모션으로 재개·착지");
+            "패링 후 기존 강화 강공 모션으로 재개·착지");
         Check(Mathf.Abs(energy.Amount - energyBefore * .5f) < .01f, "닷지 강공 패링 기존 에너지 절반 환급");
         spawn.Release(enemy); leased.Remove(enemy); yield return Wait(1f);
     }
     static void FillEnergy(OverburstElementEnergy energy, int sequence)
     {
         energy.Clear(); var item = actor.Equipment.CurrentWeaponItem;
-        for (int i = 0; i < 20; i++) energy.RecordConfirmedHit(item.runtimeInstanceId, item.ResolvedElement, sequence + i, 1);
+        for (int i = 0; i < 20; i++) energy.RecordConfirmedHit(item.runtimeInstanceId, actor.Equipment.ActiveElement, sequence + i, 1);
         Check(energy.Amount > 0, "실제 원소 에너지 충전");
     }
 }
