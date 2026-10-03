@@ -251,7 +251,8 @@ namespace Overburst.EditorTools.Vfx
             Object telegraph = FindFirst("EnemyTelegraphVisualLibrary");
             if (telegraph != null)
             {
-                add(AssetField(telegraph, "cone", "원뿔 공격 예고", "", Monsters, "공격 예고"));
+                add(AssetField(telegraph, "proceduralIndicator", "공통 판정창 · 부채꼴/원형/도넛/사각형", "", Monsters, "공격 예고"));
+                add(AssetField(telegraph, "cone", "부채꼴 원본 불꽃", "", Monsters, "공격 예고"));
                 add(AssetField(telegraph, "nova", "원형 공격 예고", "", Monsters, "공격 예고"));
                 add(AssetField(telegraph, "rectangle", "직사각형 공격 예고", "", Monsters, "공격 예고"));
                 add(AssetField(telegraph, "groundImpact", "강공격 착지 먼지", "", Monsters, "강공격"));

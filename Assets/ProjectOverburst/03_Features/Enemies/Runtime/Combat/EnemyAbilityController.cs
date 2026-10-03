@@ -139,9 +139,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             EnemyAbilityDefinition ability = lastCommittedAbility;
             Vector3 center = ability != null && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
                     || ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile)
-                ? transform.position : ability != null && ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
-                    ? transform.position : meleeExecutor != null && meleeExecutor.AttackPoint != null
-                        ? meleeExecutor.AttackPoint.position : transform.position;
+                ? transform.position : EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability,
+                    meleeExecutor != null && meleeExecutor.AttackPoint != null ? meleeExecutor.AttackPoint.position : transform.position);
             strongWarning.SetCenter(center);
             if (ability != null && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge
                 || ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile))
@@ -331,7 +330,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
                 selected.Ability.IsParryable,
                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, selected.Ability),
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
-                true, first, .4f);
+                true, first, EnemyAttackThreatGeometry.ChargeHalfWidth,
+                EnemyAttackThreatGeometry.ResolveSectorInnerRadius(actor, selected.Ability));
         }
         return true;
     }

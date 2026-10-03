@@ -9,7 +9,7 @@ public sealed class GroundIndicatorWindow : EditorWindow
     private GameObject instance;
     private ProceduralGroundIndicator indicator;
     private GroundIndicatorShape shape;
-    private float outer=4,inner=1,angle=80,width=1,length=4,flame=.12f,progress=.72f;
+    private float outer=4,inner=.72f,angle=80,width=1,length=4,flame=.12f,progress=.72f;
     private bool top;
     [MenuItem("JC Tool/VFX/인디케이터/숫자 조절 미리보기")]
     public static void Open()=>GetWindow<GroundIndicatorWindow>("인디케이터");
@@ -63,21 +63,16 @@ public sealed class GroundIndicatorWindow : EditorWindow
     public static void SavePreviewPrefab(GameObject root,string path)
     {
         GroundIndicatorBuilder.RequireIdle();
-        var source=AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(GroundIndicatorBuilder.SourceGuid));
-        var originalMesh=source.GetComponentsInChildren<ParticleSystemRenderer>(true).First(r=>r.name.Contains("fill_add_soft")).mesh;
-        var renderers=root.GetComponentsInChildren<ParticleSystemRenderer>(true);
-        var meshes=new Mesh[renderers.Length];
+        var indicator = root.GetComponent<ProceduralGroundIndicator>();
+        if (indicator == null || !indicator.UsesApprovedDesign) throw new System.InvalidOperationException("Approved source references missing.");
+        float progress = indicator.Progress;
         try
         {
-            for(int i=0;i<renderers.Length;i++)
-            {
-                meshes[i]=renderers[i].mesh;
-                if(renderers[i].renderMode==ParticleSystemRenderMode.Mesh)renderers[i].mesh=originalMesh;
-            }
-            var saved=PrefabUtility.SaveAsPrefabAsset(root,path,out bool ok);
-            if(!ok||saved==null)throw new System.InvalidOperationException("Indicator prefab save failed: "+path);
+            indicator.ReleaseRuntime();
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path, out bool ok);
+            if (!ok || saved == null) throw new System.InvalidOperationException("Indicator save failed: " + path);
         }
-        finally{for(int i=0;i<renderers.Length;i++)renderers[i].mesh=meshes[i];}
+        finally { indicator.Refresh(); indicator.SetProgress(progress); }
     }
     private bool EnsurePreview()
     {
@@ -85,7 +80,7 @@ public sealed class GroundIndicatorWindow : EditorWindow
         var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(GroundIndicatorBuilder.PrefabPath);
         if(prefab==null)return false;
         preview=new PreviewRenderUtility();instance=Instantiate(prefab);instance.hideFlags=HideFlags.HideAndDontSave;
-        preview.AddSingleGO(instance);indicator=instance.GetComponent<ProceduralGroundIndicator>();return indicator!=null;
+        preview.AddSingleGO(instance);indicator=instance.GetComponent<ProceduralGroundIndicator>();if(indicator!=null)indicator.SetVisible(true);return indicator!=null;
     }
     private void OnDisable()
     {

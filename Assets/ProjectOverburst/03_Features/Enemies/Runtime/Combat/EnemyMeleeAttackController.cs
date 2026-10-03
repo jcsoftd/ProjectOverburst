@@ -47,8 +47,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         if (ability == null || target == null || attackPoint == null
             || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
-        Vector3 center = ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
-            ? transform.position : attackPoint.position;
+        Vector3 center = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
         int count = Physics.OverlapSphereNonAlloc(center,
             EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
             hitBuffer, targetLayer, QueryTriggerInteraction.Ignore);
@@ -57,7 +56,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             Collider collider = hitBuffer[i];
             if (collider == null || CombatTarget.Resolve(collider) != target
                 || !IsInFront(collider.transform.position,
-                    EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability))) continue;
+                    EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability),
+                    EnemyAttackThreatGeometry.ResolveFacingOrigin(actor, ability, center))
+                || EnemyAttackThreatGeometry.IsInsideSectorInset(actor, ability, center, collider.transform.position)) continue;
             CombatTargetVolume volume = target.CurrentVolume;
             if (Mathf.Abs(center.y - volume.Center.y) > volume.HalfHeight + ability.VerticalTolerance)
                 continue;
@@ -573,9 +574,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         damagedTargets.Clear();
         bool isAreaSlam = ability != null
             && ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam;
-        Vector3 impactCenter = isAreaSlam
-            ? transform.position
-            : attackPoint.position;
+        Vector3 impactCenter = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
         int hitCount = Physics.OverlapSphereNonAlloc(
             impactCenter,
             resolvedRadius,
@@ -586,7 +585,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         {
             if (IsAttackInterrupted()) break; // A parried hit cancels remaining targets in this impact too.
             Collider hitCollider = hitBuffer[i];
-            if (hitCollider == null || !IsInFront(hitCollider.transform.position, resolvedAngle))
+            if (hitCollider == null || !IsInFront(hitCollider.transform.position, resolvedAngle,
+                    ability != null ? EnemyAttackThreatGeometry.ResolveFacingOrigin(actor, ability, impactCenter) : transform.position)
+                || EnemyAttackThreatGeometry.IsInsideSectorInset(actor, ability, impactCenter, hitCollider.transform.position))
                 continue;
 
             CombatTarget hitTarget = CombatTarget.Resolve(hitCollider);
@@ -649,9 +650,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         }
     }
 
-    private bool IsInFront(Vector3 targetPosition, float resolvedAngle)
+    private bool IsInFront(Vector3 targetPosition, float resolvedAngle, Vector3? origin = null)
     {
-        Vector3 toTarget = targetPosition - transform.position;
+        Vector3 toTarget = targetPosition - (origin ?? transform.position);
         toTarget.y = 0f;
         if (toTarget.sqrMagnitude <= 0.0001f)
             return true;

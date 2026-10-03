@@ -195,7 +195,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)
     {
         float reach = EnemyAttackThreatGeometry.ResolveRadius(actor, ability);
-        int count = Physics.SphereCastNonAlloc(Origin,.4f,direction,hits,Mathf.Max(.8f,reach),Mask,QueryTriggerInteraction.Ignore);
+        int count = Physics.SphereCastNonAlloc(Origin,EnemyAttackThreatGeometry.ChargeHalfWidth,direction,hits,Mathf.Max(.8f,reach),Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
         if (nearest >= 0) Damage(hits[nearest],ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1)*actor.RuntimeStats.DamageMultiplier,direction,ability);
     }
@@ -203,7 +203,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         if (ability == null || target == null || chargeDirection.sqrMagnitude < .0001f)
             return false;
-        int count = Physics.SphereCastNonAlloc(Origin, .4f, chargeDirection, hits,
+        int count = Physics.SphereCastNonAlloc(Origin, EnemyAttackThreatGeometry.ChargeHalfWidth, chargeDirection, hits,
             Mathf.Max(.8f, EnemyAttackThreatGeometry.ResolveRadius(actor, ability)),
             Mask, QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);

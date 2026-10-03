@@ -370,7 +370,7 @@ public sealed class EnemyBossCombatDirector : MonoBehaviour
         dangerCue.Show(DangerCueRadius, false, EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability), false, true, lead);
         dangerCue.SetCenter(transform.position);
         dangerSystems = dangerCue.GetComponentsInChildren<ParticleSystem>(true);
-        foreach (var system in dangerSystems)
+        if (!dangerCue.UsesStandardIndicator) foreach (var system in dangerSystems)
         {
             var main = system.main;
             var color = main.startColor;

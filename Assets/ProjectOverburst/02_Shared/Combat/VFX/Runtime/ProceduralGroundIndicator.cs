@@ -3,265 +3,391 @@ using UnityEngine;
 
 public enum GroundIndicatorShape { Sector, Circle, Donut, Rectangle }
 
-/// <summary>원본 Telegraph 재질과 파티클 시계를 재사용한다. 미터 단위 범위 표시는 피해 판정과 독립이다.</summary>
+/// <summary>원본 Telegraph의 불꽃과 시계를 유지하는 미터 단위 판정창.</summary>
 [ExecuteAlways, DisallowMultipleComponent]
 public sealed class ProceduralGroundIndicator : MonoBehaviour
 {
-    [SerializeField] private ParticleSystem effect, fill, border;
+    [SerializeField] private GameObject coneSource, novaSource, rectangleSource;
+    [SerializeField] private int designVersion;
     [SerializeField] private GroundIndicatorShape shape = GroundIndicatorShape.Sector;
     [SerializeField, Min(.05f)] private float outerRadius = 4f;
-    [SerializeField, Min(0f)] private float innerRadius = 1f;
-    [SerializeField, Range(1f,360f)] private float angle = 80f;
+    [SerializeField, Min(0f)] private float innerRadius = .72f;
+    [SerializeField, Range(1f, 360f)] private float angle = 80f;
     [SerializeField, Min(.05f)] private float width = 1f, length = 4f;
+    [SerializeField, Min(0f)] private float corridorCapRadius;
     [SerializeField, Min(.01f)] private float flameWidth = .12f;
-    [SerializeField, Range(0f,1f)] private float progress = .72f;
+    [SerializeField, Range(0f, 1f)] private float progress = .72f;
     [SerializeField] private bool visible = true;
-    [SerializeField] private AnimationCurve authoredEdgeFade = new AnimationCurve();
-    private Mesh fillMesh, borderMesh, ambientMesh;
-    private Vector4 lastGeometry;
-    private Vector4 lastExtra;
+    private readonly List<Mesh> ownedMeshes = new List<Mesh>();
+    private readonly GameObject[] instances = new GameObject[3];
+    private readonly ParticleSystem[][] clocks = new ParticleSystem[3][];
+    private ParticleSystem fill, border;
+    private GameObject activeRoot;
+    private int activeKind = -1;
+    private Vector4 lastGeometry, lastExtra;
     private GroundIndicatorShape lastShape;
     private float simulatedTime = -1f;
-    private MaterialPropertyBlock ambientProperties;
-    // 공급사 UV_Distorted_PolarCords의 반경 프로파일.
-    private static readonly float[] RadialProfile = {0,.2350353f,.317614f,.431733f,.543918f,.669812f,.807134f,.890378f,.941745f,.975608f,1};
+    private bool refreshing;
+
     public GroundIndicatorShape Shape => shape;
     public float OuterRadius => outerRadius;
-    public float InnerRadius => shape == GroundIndicatorShape.Circle ? 0f : innerRadius;
+    public float InnerRadius => shape == GroundIndicatorShape.Circle || shape == GroundIndicatorShape.Rectangle ? 0f : innerRadius;
     public float Angle => angle;
+    public float Width => width;
+    public float Length => length;
+    public float CorridorCapRadius => corridorCapRadius;
     public float FlameWidth => flameWidth;
     public float Progress => progress;
-    public ParticleSystemRenderer Surface => fill == null ? null : fill.GetComponent<ParticleSystemRenderer>();
-    public ParticleSystemRenderer Border => border == null ? null : border.GetComponent<ParticleSystemRenderer>();
     public bool IsVisible => isActiveAndEnabled && visible;
-    public bool UsesAuthoredEdgeFade => authoredEdgeFade != null && authoredEdgeFade.length > 0;
-    public void SetAuthoredEdgeFade(AnimationCurve curve) { authoredEdgeFade=curve;lastGeometry=Vector4.one*float.NegativeInfinity;Refresh(); }
+    public bool UsesApprovedDesign => designVersion == 2 && coneSource != null && novaSource != null && rectangleSource != null;
+    public bool UsesAuthoredEdgeFade => UsesApprovedDesign;
+    public ParticleSystemRenderer Surface => fill != null ? fill.GetComponent<ParticleSystemRenderer>() : null;
+    public ParticleSystemRenderer Border => border != null ? border.GetComponent<ParticleSystemRenderer>() : null;
 
-    public void Initialize(ParticleSystem root, ParticleSystem fillLayer, ParticleSystem borderLayer)
+    public void InitializeSources(GameObject cone, GameObject nova, GameObject rectangle)
     {
-        effect=root; fill=fillLayer; border=borderLayer;
-        foreach(var p in effect.GetComponentsInChildren<ParticleSystem>(true))
-        {
-            p.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main=p.main; main.playOnAwake=false; main.simulationSpeed=1f;
-        }
-        Refresh();
+        ReleaseRuntime(); coneSource = cone; novaSource = nova; rectangleSource = rectangle; designVersion = 2; Refresh();
     }
-    public void Configure(GroundIndicatorShape kind,float outer,float inner=0f,float degrees=360f,float rectangleWidth=1f,float rectangleLength=4f)
+    public void Configure(GroundIndicatorShape kind, float outer, float inner = 0f, float degrees = 360f,
+        float rectangleWidth = 1f, float rectangleLength = 4f, float endCapRadius = 0f)
     {
-        shape=kind;outerRadius=outer;innerRadius=inner;angle=degrees;width=rectangleWidth;length=rectangleLength;Refresh();
+        shape = kind; outerRadius = outer; innerRadius = inner; angle = degrees;
+        width = rectangleWidth; length = rectangleLength; corridorCapRadius = endCapRadius; Refresh();
     }
-    public void SetFlameWidth(float meters) { flameWidth=meters;Refresh(); }
+    public void SetCorridorCapRadius(float meters)
+    { corridorCapRadius = Mathf.Max(0f, Finite(meters, 0f)); Refresh(); }
+    public void SetFlameWidth(float meters) { flameWidth = meters; Refresh(); }
+    // Kept for old saved previews. Native texture masks now supply the fade.
+    public void SetAuthoredEdgeFade(AnimationCurve curve) { }
     public void SetProgress(float value)
     {
-        progress=Mathf.Clamp01(Finite(value,0));
-        if(effect==null||!IsVisible)return;
-        float target=progress*4.2f;
-        if(Mathf.Abs(target-simulatedTime)<.0001f)return;
-        bool restart=simulatedTime<0 || target<simulatedTime;
-        effect.Simulate(restart?target:target-simulatedTime,true,restart,false);
-        effect.Pause(true); simulatedTime=target;
+        progress = Mathf.Clamp01(Finite(value, 0f));
+        if (!IsVisible || activeKind < 0 || clocks[activeKind] == null) return;
+        float target = progress * 4.2f;
+        if (Mathf.Abs(target - simulatedTime) < .0001f) return;
+        bool restart = simulatedTime < 0f || target < simulatedTime;
+        foreach (var p in clocks[activeKind])
+        {
+            if (p == null || !p.gameObject.activeInHierarchy) continue;
+            p.Simulate(restart ? target : target - simulatedTime, false, restart, false);
+            p.Pause(false);
+        }
+        simulatedTime = target;
     }
     public void SetVisible(bool value)
     {
-        if(visible==value)return;
-        visible=value;
-        if(!value&&effect!=null){effect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);simulatedTime=-1;}
-        else {Refresh();SetProgress(progress);}
+        visible = value;
+        if (activeRoot == null && value) Refresh();
+        if (activeRoot == null) return;
+        if (!value) StopCurrent();
+        activeRoot.SetActive(value);
+        if (value) SetProgress(progress);
     }
     public void Refresh()
     {
-        if(!gameObject.scene.IsValid())return;
-        outerRadius=Mathf.Clamp(Finite(outerRadius,4),.05f,1000);
-        innerRadius=Mathf.Clamp(Finite(innerRadius,0),0,outerRadius-.01f);
-        angle=Mathf.Clamp(Finite(angle,80),1,360);
-        width=Mathf.Clamp(Finite(width,1),.05f,1000);length=Mathf.Clamp(Finite(length,4),.05f,1000);
-        flameWidth=Mathf.Clamp(Finite(flameWidth,.12f),.01f,Mathf.Min(outerRadius,10));
-        if(fill==null||border==null)return;
-        var geometry=new Vector4(outerRadius,InnerRadius,angle,width);
-        var scale=transform.lossyScale;
-        var extra=new Vector4(length,flameWidth,scale.x,scale.z);
-        if(fillMesh!=null&&lastGeometry==geometry&&lastExtra==extra&&lastShape==shape)
+        if (refreshing || !gameObject.scene.IsValid() || !UsesApprovedDesign) return;
+        refreshing = true;
+        try
         {
-            // 프리팹 생성 중 OnEnable 이후 원본 Renderer/Transform 값이 복사될 수 있다.
-            Surface.mesh=fillMesh;Border.mesh=borderMesh;ConfigureAmbient();return;
-        }
-        if(fillMesh==null)fillMesh=NewMesh("Indicator fill");
-        if(borderMesh==null)borderMesh=NewMesh("Indicator original fire border");
-        BuildMeshes(); ApplyAuthoredEdgeFade(); Surface.mesh=fillMesh;Border.mesh=borderMesh;
-        BuildAmbientMesh();
-        lastGeometry=geometry;lastExtra=extra;lastShape=shape;
-        ConfigureAmbient();simulatedTime=-1;SetProgress(progress);
-    }
-    private static Mesh NewMesh(string label)=>new Mesh{name=label,hideFlags=HideFlags.HideAndDontSave,indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};
-    private void BuildMeshes()
-    {
-        var points=new List<Vector2>();
-        var vertices=new List<Vector3>();var uvs=new List<Vector2>();var triangles=new List<int>();
-        float inner=InnerRadius;
-        bool closed=shape!=GroundIndicatorShape.Sector||angle>=359.9f;
-        if(shape==GroundIndicatorShape.Rectangle)
-        {
-            points.Add(new Vector2(-width/2,0));points.Add(new Vector2(-width/2,length));
-            points.Add(new Vector2(width/2,length));points.Add(new Vector2(width/2,0));
-            const int divisions=32;
-            for(int y=0;y<=divisions;y++)for(int x=0;x<=divisions;x++)
+            outerRadius = Mathf.Clamp(Finite(outerRadius, 4f), .05f, 1000f);
+            innerRadius = Mathf.Clamp(Finite(innerRadius, 0f), 0f, outerRadius - .01f);
+            if (shape == GroundIndicatorShape.Sector)
+                innerRadius = Mathf.Max(innerRadius, Mathf.Min(outerRadius * .05f, outerRadius - .01f));
+            angle = Mathf.Clamp(Finite(angle, 80f), 1f, 360f);
+            width = Mathf.Clamp(Finite(width, 1f), .05f, 1000f);
+            length = Mathf.Clamp(Finite(length, 4f), .05f, 1000f);
+            flameWidth = Mathf.Clamp(Finite(flameWidth, .12f), .01f, 10f);
+            corridorCapRadius = Mathf.Clamp(Finite(corridorCapRadius, 0f), 0f, width * .5f);
+            var geometry = new Vector4(outerRadius, InnerRadius, angle, width);
+            var extra = new Vector4(length, corridorCapRadius, flameWidth, 0f);
+            int kind = shape == GroundIndicatorShape.Sector ? 0 : shape == GroundIndicatorShape.Rectangle ? 2 : 1;
+            bool switched = kind != activeKind || activeRoot == null;
+            if (switched)
             {
-                vertices.Add(ToMesh(new Vector2(((float)x/divisions-.5f)*width,(float)y/divisions*length)));
-                uvs.Add(new Vector2((float)x/divisions,(float)y/divisions));
-                if(x>0&&y>0){int end=y*(divisions+1)+x;triangles.AddRange(new[]{end-divisions-2,end-divisions-1,end,end-divisions-2,end,end-1});}
-            }
-        }
-        else
-        {
-            float degrees=closed?360:angle;
-            // 곡선 오차 약 1mm, 최대 2048분할. 텍스처 해상도와 무관하게 반경을 계산한다.
-            float step=Mathf.Min(1f,Mathf.Acos(Mathf.Clamp(1f-.001f/outerRadius,-1,1))*Mathf.Rad2Deg*2f);
-            int segments=Mathf.Clamp(Mathf.CeilToInt(degrees/Mathf.Max(step,.05f)),2,2048);
-            for(int s=0;s<=segments;s++)
-            {
-                float t=(float)s/segments, theta=(t-.5f)*degrees*Mathf.Deg2Rad;
-                Vector2 direction=new Vector2(Mathf.Sin(theta),Mathf.Cos(theta));
-                for(int ring=0;ring<11;ring++)
+                StopCurrent();
+                if (activeRoot != null) activeRoot.SetActive(false);
+                activeKind = kind;
+                if (instances[kind] == null)
                 {
-                    vertices.Add(ToMesh(direction*Mathf.Lerp(inner,outerRadius,RadialProfile[ring])));uvs.Add(new Vector2(t,ring/10f));
-                    if(s>0&&ring>0){int end=s*11+ring;triangles.AddRange(new[]{end-12,end-11,end,end-12,end,end-1});}
+                    var source = kind == 0 ? coneSource : kind == 1 ? novaSource : rectangleSource;
+                    instances[kind] = Instantiate(source, transform, false);
+                    instances[kind].name = "Authored " + source.name;
+                    instances[kind].hideFlags = HideFlags.DontSave;
+                    foreach (var p in instances[kind].GetComponentsInChildren<ParticleSystem>(true)) Tune(p);
                 }
-                points.Add(direction*outerRadius);
+                activeRoot = instances[kind];
+                var systems = activeRoot.GetComponentsInChildren<ParticleSystem>(true);
+                fill = Find(systems, "fill_add_soft"); border = Find(systems, "border_add_soft");
+                if (fill == null || border == null) return;
             }
-            if(inner>0)
+            activeRoot.transform.localPosition = Vector3.zero;
+            activeRoot.transform.localRotation = Quaternion.identity;
+            // Configuration is in world meters even under a scaled authoring parent.
+            var scale = transform.lossyScale;
+            activeRoot.transform.localScale = new Vector3(1f / Mathf.Max(.0001f, Mathf.Abs(scale.x)),
+                1f / Mathf.Max(.0001f, Mathf.Abs(scale.y)), 1f / Mathf.Max(.0001f, Mathf.Abs(scale.z)));
+            if (switched || ownedMeshes.Count == 0 || geometry != lastGeometry || extra != lastExtra || shape != lastShape)
             {
-                if(closed)
+                StopCurrent();
+                ClearMeshes();
+                BuildGeometry();
+                clocks[kind] = activeRoot.GetComponentsInChildren<ParticleSystem>(true);
+                lastGeometry = geometry; lastExtra = extra; lastShape = shape;
+                simulatedTime = -1f;
+            }
+            activeRoot.SetActive(visible);
+            if (visible) SetProgress(progress);
+        }
+        finally { refreshing = false; }
+    }
+    private void BuildGeometry()
+    {
+        Mesh surface = shape == GroundIndicatorShape.Sector ? SectorMesh()
+            : shape == GroundIndicatorShape.Rectangle ? RectangleMesh() : RadialMesh(SurfaceSourceMesh(), InnerRadius, false);
+        Mesh rim = shape == GroundIndicatorShape.Sector || shape == GroundIndicatorShape.Rectangle
+            ? surface : RadialMesh(BorderSourceMesh(), InnerRadius, false);
+        Bind(fill, surface); Bind(border, rim);
+        if (shape == GroundIndicatorShape.Rectangle)
+        {
+            RectangleProperties(Surface); RectangleProperties(Border);
+        }
+        var systems = activeRoot.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var p in systems)
+        {
+            if (p.name.StartsWith("Inner native")) p.gameObject.SetActive(false);
+            if (p.name.StartsWith("Fuzz"))
+            {
+                var mesh = CopyAmbient(surface);
+                Bind(p, mesh);
+                var r = p.GetComponent<ParticleSystemRenderer>();
+                var block = new MaterialPropertyBlock(); r.GetPropertyBlock(block);
+                block.SetVector("_DetailVertexOffsetChannel", Vector4.zero); r.SetPropertyBlock(block);
+            }
+            else if (p.name.StartsWith("Flecks"))
+            {
+                float densityScale = Mathf.Max(.05f, (shape == GroundIndicatorShape.Rectangle ? Mathf.Min(width, length) : outerRadius) / 3f * .75f);
+                p.transform.localPosition = Vector3.zero; p.transform.localScale = Vector3.one * densityScale;
+                p.transform.localRotation = Quaternion.Euler(270f, 0f, 0f);
+                var emitter = p.shape;
+                if (shape == GroundIndicatorShape.Rectangle)
                 {
-                    Write(fillMesh,vertices,uvs,triangles);
-                    var bv=new List<Vector3>();var bu=new List<Vector2>();var bt=new List<int>();
-                    AddBorderStrip(points,true,bv,bu,bt);
-                    var hole=new List<Vector2>();
-                    for(int s=segments;s>=0;s--){float theta=((float)s/segments-.5f)*degrees*Mathf.Deg2Rad;hole.Add(new Vector2(Mathf.Sin(theta),Mathf.Cos(theta))*inner);}
-                    AddBorderStrip(hole,true,bv,bu,bt);Write(borderMesh,bv,bu,bt);return;
+                    emitter.shapeType = ParticleSystemShapeType.Box;
+                    emitter.scale = new Vector3(width / densityScale, length / densityScale, .01f);
+                    emitter.position = new Vector3(0f, -length * .5f / densityScale, 0f);
                 }
-                // 끝점 중복을 제거하고 양쪽 직선과 안쪽 호를 닫는다.
-                for(int s=segments;s>=0;s--){float theta=((float)s/segments-.5f)*degrees*Mathf.Deg2Rad;points.Add(new Vector2(Mathf.Sin(theta),Mathf.Cos(theta))*inner);}
-            }
-            else if(!closed)points.Add(Vector2.zero);
-        }
-        Write(fillMesh,vertices,uvs,triangles);
-        var borderVertices=new List<Vector3>();var borderUvs=new List<Vector2>();var borderTriangles=new List<int>();
-        AddBorderStrip(points,closed&&shape!=GroundIndicatorShape.Rectangle&&inner<=0,borderVertices,borderUvs,borderTriangles);
-        Write(borderMesh,borderVertices,borderUvs,borderTriangles);
-    }
-    private void AddBorderStrip(List<Vector2> points,bool repeatedEnd,List<Vector3> vertices,List<Vector2> uvs,List<int> triangles)
-    {
-        int count=repeatedEnd?points.Count-1:points.Count,offset=vertices.Count;
-        float perimeter=0;for(int i=0;i<count;i++)perimeter+=Vector2.Distance(points[i],points[(i+1)%count]);
-        float travel=0;
-        for(int i=0;i<=count;i++)
-        {
-            int at=i%count;Vector2 p=points[at];
-            Vector2 previous=(p-points[(at+count-1)%count]).normalized,next=(points[(at+1)%count]-p).normalized;
-            Vector2 a=new Vector2(-previous.y,previous.x),b=new Vector2(-next.y,next.x);
-            Vector2 outward=(a+b).normalized;
-            float correction=1f/Mathf.Max(.35f,Vector2.Dot(outward,b));
-            if(i>0)travel+=Vector2.Distance(points[(i-1)%count],p);
-            for(int ring=0;ring<11;ring++)
-            {
-                float distance=(RadialProfile[ring]-.941745f)*flameWidth/.1f;
-                vertices.Add(ToMesh(p+outward*distance*correction));
-                // 세계 길이가 커져도 원본 불꽃의 입자 밀도를 유지한다.
-                uvs.Add(new Vector2(travel/Mathf.Max(.001f,perimeter)*Mathf.Max(1f,perimeter/(2f*Mathf.PI*3f)),ring/10f));
-                if(i>0&&ring>0){int end=offset+i*11+ring;triangles.AddRange(new[]{end-12,end-11,end,end-12,end,end-1});}
-            }
-        }
-    }
-    private Vector3 ToMesh(Vector2 point)
-    {
-        var scale=transform.lossyScale;
-        return new Vector3(point.x/Mathf.Max(.001f,Mathf.Abs(scale.x)),-point.y/Mathf.Max(.001f,Mathf.Abs(scale.z)),0);
-    }
-    private static void Write(Mesh mesh,List<Vector3> v,List<Vector2> uv,List<int> tri)
-    {
-        mesh.Clear();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
-    }
-    private void ApplyAuthoredEdgeFade()
-    {
-        if(!UsesAuthoredEdgeFade)return;
-        var vertices=fillMesh.vertices;var colors=new Color[vertices.Length];var scale=transform.lossyScale;
-        for(int i=0;i<vertices.Length;i++)
-        {
-            Vector2 point=new Vector2(vertices[i].x*Mathf.Abs(scale.x),-vertices[i].y*Mathf.Abs(scale.z));
-            float distance;
-            if(shape==GroundIndicatorShape.Rectangle)
-                distance=Mathf.Min(width*.5f-Mathf.Abs(point.x),point.y,length-point.y);
-            else
-            {
-                float radius=point.magnitude;distance=outerRadius-radius;
-                if(InnerRadius>0)distance=Mathf.Min(distance,radius-InnerRadius);
-                if(shape==GroundIndicatorShape.Sector&&angle<359.9f)
+                else
                 {
-                    float theta=angle*.5f*Mathf.Deg2Rad;
-                    for(int side=-1;side<=1;side+=2)
-                    {
-                        var direction=new Vector2(Mathf.Sin(theta)*side,Mathf.Cos(theta));
-                        float projection=Mathf.Clamp(Vector2.Dot(point,direction),InnerRadius,outerRadius);
-                        distance=Mathf.Min(distance,Vector2.Distance(point,direction*projection));
-                    }
+                    emitter.shapeType = ParticleSystemShapeType.Donut;
+                    emitter.radius = (outerRadius + InnerRadius) * .5f / densityScale;
+                    emitter.donutRadius = (outerRadius - InnerRadius) * .5f / densityScale;
+                    emitter.arc = shape == GroundIndicatorShape.Sector ? angle : 360f;
+                    emitter.rotation = new Vector3(0f, 0f, shape == GroundIndicatorShape.Sector ? -90f - angle * .5f : 0f);
                 }
             }
-            float reference=shape==GroundIndicatorShape.Rectangle?Mathf.Min(width,length):outerRadius;
-            float value=Mathf.Clamp01(authoredEdgeFade.Evaluate(Mathf.Max(0,distance)/reference));
-            // Additive 원본은 RGB도 곱해야 중앙이 실제로 비워진다.
-            colors[i]=new Color(value,value,value,value);
         }
-        fillMesh.colors=colors;
-    }
-    private void ConfigureAmbient()
-    {
-        foreach(var p in effect.GetComponentsInChildren<ParticleSystem>(true))
+        if (shape == GroundIndicatorShape.Donut && InnerRadius > 0f)
         {
-            if(p==effect||p==fill||p==border)continue;
-            float scale=outerRadius/3f;
-            if(p.name.Contains("Fuzz"))
-            {
-                var main=p.main;main.startSize=1;
-                p.transform.localScale=Vector3.one;p.transform.localRotation=Quaternion.Euler(270,0,0);
-                var renderer=p.GetComponent<ParticleSystemRenderer>();renderer.renderMode=ParticleSystemRenderMode.Mesh;
-                renderer.alignment=ParticleSystemRenderSpace.Local;renderer.mesh=ambientMesh;
-                // 원본의 공중 번짐용 정점 이동은 바닥 범위 메시의 경계를 벗어나게 한다.
-                if(ambientProperties==null)ambientProperties=new MaterialPropertyBlock();
-                renderer.GetPropertyBlock(ambientProperties);
-                ambientProperties.SetVector("_DetailVertexOffsetChannel",Vector4.zero);
-                renderer.SetPropertyBlock(ambientProperties);
-                continue;
-            }
-            scale*=.75f;p.transform.localScale=Vector3.one*scale;
-            if(!p.name.Contains("Flecks"))continue;
-            var emissionShape=p.shape;emissionShape.shapeType=ParticleSystemShapeType.Donut;
-            emissionShape.radius=(outerRadius+InnerRadius)*.5f/scale;
-            emissionShape.donutRadius=Mathf.Max(.01f,(outerRadius-InnerRadius)*.5f/scale);
-            emissionShape.arc=shape==GroundIndicatorShape.Sector?angle:360;
-            emissionShape.rotation=new Vector3(0,shape==GroundIndicatorShape.Sector?90-angle*.5f:0,0);
+            var innerFill = InnerLayer(fill, "Inner native fill outside hole");
+            var innerBorder = InnerLayer(border, "Inner native border outside hole");
+            Bind(innerFill, RadialMesh(SurfaceSourceMesh(), InnerRadius, true));
+            Bind(innerBorder, RadialMesh(BorderSourceMesh(), InnerRadius, true));
+            InnerProperties(innerFill.GetComponent<ParticleSystemRenderer>());
+            InnerProperties(innerBorder.GetComponent<ParticleSystemRenderer>());
         }
     }
-    private void BuildAmbientMesh()
+    private Mesh SurfaceSourceMesh() => Find(novaSource.GetComponentsInChildren<ParticleSystem>(true), "fill_add_soft").GetComponent<ParticleSystemRenderer>().mesh;
+    private Mesh BorderSourceMesh() => Find(novaSource.GetComponentsInChildren<ParticleSystem>(true), "border_add_soft").GetComponent<ParticleSystemRenderer>().mesh;
+    private ParticleSystem InnerLayer(ParticleSystem original, string label)
     {
-        if(ambientMesh==null)ambientMesh=NewMesh("Indicator original ambient clipped to range");
-        var vertices=fillMesh.vertices;var uv=new Vector2[vertices.Length];
-        // 기존 게임의 크기 24m, 반경3m, ambient Transform 0.55를 UV에 옮긴다.
-        for(int i=0;i<vertices.Length;i++)uv[i]=new Vector2(.5f+vertices[i].x/(outerRadius*4.4f),.5f+vertices[i].y/(outerRadius*4.4f));
-        ambientMesh.Clear();ambientMesh.vertices=vertices;ambientMesh.uv=uv;ambientMesh.triangles=fillMesh.triangles;
-        ambientMesh.colors=fillMesh.colors;
-        ambientMesh.RecalculateNormals();ambientMesh.RecalculateBounds();
+        var child = activeRoot.transform.Find(label);
+        if (child != null) { child.gameObject.SetActive(true); return child.GetComponent<ParticleSystem>(); }
+        var clone = Instantiate(original.gameObject, activeRoot.transform).GetComponent<ParticleSystem>();
+        clone.name = label; return clone;
     }
-    private static float Finite(float n,float fallback)=>float.IsNaN(n)||float.IsInfinity(n)?fallback:n;
-    private void OnEnable(){simulatedTime=-1;Refresh();SetProgress(progress);}
-    private void OnValidate()=>Refresh();
-    private void OnDisable(){if(effect!=null)effect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);simulatedTime=-1;}
-    private void OnDestroy()
+    private void Bind(ParticleSystem p, Mesh mesh)
     {
-        if(Surface!=null&&Surface.mesh==fillMesh)Surface.mesh=null;
-        if(Border!=null&&Border.mesh==borderMesh)Border.mesh=null;
-        if(effect!=null)foreach(var p in effect.GetComponentsInChildren<ParticleSystemRenderer>(true))if(p.mesh==ambientMesh)p.mesh=null;
-        Release(fillMesh);Release(borderMesh);Release(ambientMesh);fillMesh=null;borderMesh=null;ambientMesh=null;
+        p.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var main = p.main; main.startSize = 1f; main.simulationSpeed = 1f;
+        var sizing = p.sizeOverLifetime; sizing.enabled = false;
+        p.transform.localScale = Vector3.one; p.transform.localPosition = Vector3.zero;
+        p.transform.localRotation = Quaternion.Euler(270f, 0f, 0f);
+        var r = p.GetComponent<ParticleSystemRenderer>(); r.renderMode = ParticleSystemRenderMode.Mesh;
+        r.alignment = ParticleSystemRenderSpace.Local; r.mesh = mesh;
     }
-    private static void Release(Object value){if(value==null)return;if(Application.isPlaying)Destroy(value);else DestroyImmediate(value);}
+    private Mesh SectorMesh()
+    {
+        int segments = Mathf.Clamp(Mathf.CeilToInt(angle), 8, 720);
+        const int rings = 32;
+        var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var triangles = new List<int>();
+        for (int s = 0; s <= segments; s++) for (int r = 0; r <= rings; r++)
+        {
+            float t = (float)s / segments, distance = Mathf.Lerp(InnerRadius, outerRadius, (float)r / rings);
+            float theta = (t - .5f) * angle * Mathf.Deg2Rad;
+            vertices.Add(new Vector3(Mathf.Sin(theta) * distance, -Mathf.Cos(theta) * distance, 0f));
+            float originalAngle = (t - .5f) * 53.270964f * Mathf.Deg2Rad, nativeRadius = distance / outerRadius;
+            uv.Add(new Vector2(.5f + Mathf.Sin(originalAngle) * .8876953f * nativeRadius,
+                .05737305f + Mathf.Cos(originalAngle) * .8876953f * nativeRadius));
+            if (s > 0 && r > 0) AddQuad(triangles, s * (rings + 1) + r, rings + 1);
+        }
+        return MeshFrom("Authored cone UV with curved near edge", vertices, uv, triangles);
+    }
+    private Mesh RadialMesh(Mesh original, float holeMeters, bool reflect)
+    {
+        var originalVertices = original.vertices; var originalUv = original.uv;
+        var profile = new float[11];
+        for (int ring = 0; ring <= 10; ring++)
+        {
+            int found = -1;
+            for (int i = 0; i < originalUv.Length; i++) if (Mathf.Abs(originalUv[i].y - ring * .1f) < .0001f) { found = i; break; }
+            profile[ring] = found >= 0 ? new Vector2(originalVertices[found].x, originalVertices[found].y).magnitude : ring * .1f;
+        }
+        float hole = holeMeters / outerRadius;
+        var distances = new List<float> { hole, 1f };
+        foreach (float value in profile)
+        {
+            float d = reflect ? hole + 1f - value : value;
+            if (d > hole + .00001f && d < .99999f) distances.Add(d);
+        }
+        distances.Sort();
+        var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var triangles = new List<int>();
+        const int segments = 512;
+        for (int s = 0; s <= segments; s++) for (int r = 0; r < distances.Count; r++)
+        {
+            float t = (float)s / segments, d = distances[r], theta = -t * Mathf.PI * 2f;
+            vertices.Add(new Vector3(Mathf.Sin(theta), Mathf.Cos(theta), 0f) * d * outerRadius);
+            float sourceD = reflect ? 1f - (d - hole) : d, sourceV = 1f;
+            for (int i = 1; i <= 10; i++) if (sourceD <= profile[i])
+            { sourceV = (i - 1 + Mathf.InverseLerp(profile[i - 1], profile[i], sourceD)) * .1f; break; }
+            uv.Add(new Vector2(t, sourceV));
+            if (s > 0 && r > 0) AddQuad(triangles, s * distances.Count + r, distances.Count);
+        }
+        return MeshFrom(reflect ? "Native flames outside inner circle" : "Native radial UV without compression", vertices, uv, triangles);
+    }
+    private Mesh RectangleMesh()
+    {
+        var vertices = new List<Vector3>(); var uv = new List<Vector2>(); var triangles = new List<int>();
+        var zRows = new List<float>(); float cap = corridorCapRadius;
+        if (cap > 0f)
+        {
+            for (int i = 0; i <= 16; i++) zRows.Add(-cap * Mathf.Cos(i * Mathf.PI * .5f / 16f));
+            zRows.Add(length);
+            for (int i = 1; i <= 16; i++) zRows.Add(length + cap * Mathf.Sin(i * Mathf.PI * .5f / 16f));
+        }
+        else for (int i = 0; i <= 32; i++) zRows.Add(length * i / 32f);
+        const int columns = 16;
+        for (int y = 0; y < zRows.Count; y++) for (int x = 0; x <= columns; x++)
+        {
+            float z = zRows[y], half = width * .5f;
+            if (cap > 0f && (z < 0f || z > length))
+            {
+                float offset = z < 0f ? z : z - length;
+                half = Mathf.Sqrt(Mathf.Max(0f, cap * cap - offset * offset));
+            }
+            float u = (float)x / columns, v = (z + cap) / (length + cap * 2f);
+            vertices.Add(new Vector3((u - .5f) * half * 2f, -z, 0f));
+            // Native Square layers are rotated 90 degrees around their plane.
+            uv.Add(new Vector2(v, 1f - u));
+            if (x > 0 && y > 0) AddQuad(triangles, y * (columns + 1) + x, columns + 1);
+        }
+        return MeshFrom(cap > 0f ? "Charge corridor including sphere-cast ends" : "Numeric native rectangle", vertices, uv, triangles);
+    }
+    private Mesh CopyAmbient(Mesh surface)
+    {
+        var vertices = surface.vertices; var uv = new List<Vector2>(vertices.Length); var nativeUv = surface.uv;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            var v = vertices[i];
+            if (shape == GroundIndicatorShape.Sector)
+                uv.Add(new Vector2(.5f + (nativeUv[i].x - .5f) / 1.43f, .5f + (nativeUv[i].y - .5f) / 1.43f));
+            else if (shape == GroundIndicatorShape.Rectangle)
+                uv.Add(new Vector2(.5f + v.x / 11.792f, .5f + (v.y + length * .5f) / 11.792f));
+            else uv.Add(new Vector2(.5f + v.x / (outerRadius * 4.4f), .5f + v.y * .7682213f / (outerRadius * 4.4f)));
+        }
+        return MeshFrom("Authored haze clipped to exact ground shape", new List<Vector3>(vertices), uv, new List<int>(surface.triangles));
+    }
+    private Mesh MeshFrom(string label, List<Vector3> vertices, List<Vector2> uv, List<int> triangles)
+    {
+        var mesh = new Mesh { name = label, hideFlags = HideFlags.DontSave, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+        mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals(); mesh.RecalculateBounds(); ownedMeshes.Add(mesh); return mesh;
+    }
+    private static void AddQuad(List<int> triangles, int n, int stride)
+    { triangles.Add(n - stride - 1); triangles.Add(n - stride); triangles.Add(n); triangles.Add(n - stride - 1); triangles.Add(n); triangles.Add(n - 1); }
+    private void RectangleProperties(ParticleSystemRenderer r)
+    {
+        var block = new MaterialPropertyBlock(); r.GetPropertyBlock(block);
+        TextureScale(r.sharedMaterial, block, (length + corridorCapRadius * 2f) / 4.6f, width / 4.6f);
+        r.SetPropertyBlock(block);
+    }
+    private void InnerProperties(ParticleSystemRenderer r)
+    {
+        var block = new MaterialPropertyBlock(); r.GetPropertyBlock(block);
+        TextureScale(r.sharedMaterial, block, InnerRadius / outerRadius, 1f); r.SetPropertyBlock(block);
+    }
+    private static void TextureScale(Material material, MaterialPropertyBlock block, float u, float v)
+    {
+        if (material == null) return;
+        foreach (string key in new[] { "_MainTex", "_DetailNoise" })
+        {
+            if (!material.HasProperty(key)) continue;
+            var scale = material.GetTextureScale(key); var offset = material.GetTextureOffset(key);
+            block.SetVector(key + "_ST", new Vector4(scale.x * u, scale.y * v, offset.x, offset.y));
+        }
+    }
+    private static void Tune(ParticleSystem p)
+    {
+        p.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var main = p.main; main.playOnAwake = false; main.simulationSpeed = 1f;
+        main.startColor = Tint(main.startColor, p.name.StartsWith("Fuzz") ? .2f : 1f);
+        var r = p.GetComponent<ParticleSystemRenderer>(); var material = r.sharedMaterial;
+        if (material == null) return;
+        var block = new MaterialPropertyBlock(); r.GetPropertyBlock(block);
+        if (material.HasProperty("_LastColor")) { var c = material.GetColor("_LastColor"); c.r *= .08f; c.g *= .08f; c.b *= .08f; block.SetColor("_LastColor", c); }
+        if (material.HasProperty("_WhiteColor")) { var c = material.GetColor("_WhiteColor"); c.g *= .04f; c.b = 0f; block.SetColor("_WhiteColor", c); }
+        if (material.HasProperty("_MidColor")) { var c = material.GetColor("_MidColor"); c.g *= .45f; c.b = 0f; block.SetColor("_MidColor", c); }
+        r.SetPropertyBlock(block);
+    }
+    private static ParticleSystem.MinMaxGradient Tint(ParticleSystem.MinMaxGradient source, float alpha)
+    {
+        Color Adjust(Color c) { c.g *= .04f; c.b = 0f; c.a *= alpha; return c; }
+        Gradient AdjustGradient(Gradient original)
+        {
+            var gradient = new Gradient(); var colors = original.colorKeys; var alphas = original.alphaKeys;
+            for (int i = 0; i < colors.Length; i++) colors[i].color = Adjust(colors[i].color);
+            for (int i = 0; i < alphas.Length; i++) alphas[i].alpha *= alpha;
+            gradient.SetKeys(colors, alphas); gradient.mode = original.mode; return gradient;
+        }
+        switch (source.mode)
+        {
+            case ParticleSystemGradientMode.Color: return new ParticleSystem.MinMaxGradient(Adjust(source.color));
+            case ParticleSystemGradientMode.TwoColors: return new ParticleSystem.MinMaxGradient(Adjust(source.colorMin), Adjust(source.colorMax));
+            case ParticleSystemGradientMode.TwoGradients: return new ParticleSystem.MinMaxGradient(AdjustGradient(source.gradientMin), AdjustGradient(source.gradientMax));
+            default: return new ParticleSystem.MinMaxGradient(AdjustGradient(source.gradient));
+        }
+    }
+    private static ParticleSystem Find(ParticleSystem[] systems, string part)
+    { foreach (var p in systems) if (p.name.Contains(part)) return p; return null; }
+    private void StopCurrent()
+    {
+        if (activeKind >= 0 && clocks[activeKind] != null) foreach (var p in clocks[activeKind])
+            if (p != null) p.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        simulatedTime = -1f;
+    }
+    private void ClearMeshes()
+    {
+        foreach (var mesh in ownedMeshes) DestroyOwned(mesh); ownedMeshes.Clear();
+    }
+    public void ReleaseRuntime()
+    {
+        StopCurrent();
+        for (int i = 0; i < instances.Length; i++) { DestroyOwned(instances[i]); instances[i] = null; clocks[i] = null; }
+        ClearMeshes(); activeRoot = null; fill = null; border = null; activeKind = -1;
+    }
+    private static void DestroyOwned(Object value)
+    { if (value == null) return; if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
+    private static float Finite(float value, float fallback) => float.IsNaN(value) || float.IsInfinity(value) ? fallback : value;
+    private void OnEnable() { simulatedTime = -1f; if (visible) Refresh(); }
+    private void OnDisable() { StopCurrent(); }
+    private void OnDestroy() { ReleaseRuntime(); }
+    private void OnValidate() { if (!refreshing) Refresh(); }
 }

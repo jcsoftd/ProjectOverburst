@@ -13,7 +13,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private ParticleSystem signalParticles;
     private CombatTarget body;
     private bool parryable;
-    private float radius;
+    private float radius, sectorInnerRadius;
     private float corridorHalfWidth = .4f;
     private int signalSequence;
     private int signalSocketIndex;
@@ -33,11 +33,12 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() { ThreatSignals.Clear(); PlayerTarget = null; }
     public bool IsVisible => visual != null && visual.activeSelf;
+    public bool UsesStandardIndicator => procedural != null && procedural.gameObject.activeSelf;
     public bool FinalSignal { get; private set; }
 
     public void Show(float size, bool canParry, float angle = 360f,
         bool charge = false, bool useTelegraph = true, float leadSeconds = 1f,
-        float halfWidth = .4f)
+        float halfWidth = .4f, float innerRadius = 0f)
     {
         if (visual == null)
         {
@@ -46,6 +47,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             visual.transform.localPosition = Vector3.up * .045f;
         }
         radius = size;
+        sectorInnerRadius = Mathf.Clamp(innerRadius, 0f, Mathf.Max(0f, size - .01f));
         corridorHalfWidth = Mathf.Max(.01f, halfWidth);
         visual.transform.localRotation = Quaternion.identity;
         parryable = canParry; FinalSignal = false; signalPlayed = false;
@@ -74,7 +76,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
                 "Enemies/Balance/EnemyTelegraphVisualLibrary");
         if (telegraphLibrary == null) return;
 
-        if (telegraphLibrary.UseProceduralIndicator && !charge)
+        if (telegraphLibrary.UseProceduralIndicator)
         {
             if (procedural == null)
             {
@@ -87,14 +89,12 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             {
                 visual.transform.localScale = Vector3.one;
                 procedural.gameObject.SetActive(true);
-                // Live damage covers the center. The reusable prefab's inner radius
-                // remains available for authored annular sectors and donut previews.
                 procedural.Configure(charge ? GroundIndicatorShape.Rectangle
                     : angle >= 359.9f ? GroundIndicatorShape.Circle : GroundIndicatorShape.Sector,
-                    size, 0f, angle, corridorHalfWidth * 2f, size);
+                    size, sectorInnerRadius, angle, corridorHalfWidth * 2f, size, charge ? corridorHalfWidth : 0f);
                 warningLeadSeconds = Mathf.Max(.01f, leadSeconds);
-                procedural.SetVisible(true);
                 procedural.SetProgress(0f);
+                procedural.SetVisible(true);
                 return;
             }
         }

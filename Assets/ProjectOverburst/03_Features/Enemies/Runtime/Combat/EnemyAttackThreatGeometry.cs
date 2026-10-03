@@ -9,6 +9,53 @@ public static class EnemyAttackThreatGeometry
     private const float EliteStrongExtra = 2.50f, StandardStrongExtra = 1.90f;
     private const float StrongArcAngle = 150f;
 
+    public const float ChargeHalfWidth = .4f;
+    private static EnemyTelegraphVisualLibrary standardLibrary;
+    public static bool UsesStandardAttackAreas
+    {
+        get
+        {
+            if (standardLibrary == null) standardLibrary = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
+            return standardLibrary != null && standardLibrary.UseProceduralIndicator;
+        }
+    }
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStandardLibrary() => standardLibrary = null;
+
+    // A short curved near edge replaces the acute apex. The real hit and preview
+    // use the same inset; the legacy toggle restores the former filled sector.
+    public static float ResolveSectorInnerRadius(EnemyActor actor, EnemyAbilityDefinition ability)
+    {
+        if (!UsesStandardAttackAreas || ability == null || !ability.IsMeleeStrongAttack
+            || ability.ExecutionMode != EnemyAbilityExecutionMode.MeleeArc || ResolveHitAngle(actor, ability) >= 359.9f) return 0f;
+        float radius = ResolveRadius(actor, ability);
+        var body = actor != null ? actor.GetComponent<CombatTarget>() : null;
+        float clearance = radius * .18f;
+        if (body != null)
+        {
+            Vector3 offset = body.CurrentVolume.Center - actor.transform.position; offset.y = 0f;
+            clearance = Mathf.Max(clearance, body.CurrentVolume.Radius + offset.magnitude + .08f);
+        }
+        return Mathf.Min(clearance, Mathf.Max(0f, radius - .15f));
+    }
+    public static bool IsInsideSectorInset(EnemyActor actor, EnemyAbilityDefinition ability, Vector3 center, Vector3 point)
+    {
+        float inner = ResolveSectorInnerRadius(actor, ability);
+        Vector3 delta = point - center; delta.y = 0f;
+        return inner > 0f && delta.sqrMagnitude < inner * inner;
+    }
+    public static Vector3 ResolveFacingOrigin(EnemyActor actor, EnemyAbilityDefinition ability, Vector3 impactCenter)
+        => UsesStandardAttackAreas && ability != null && ability.IsMeleeStrongAttack ? impactCenter : actor.transform.position;
+
+    public static Vector3 ResolveImpactCenter(EnemyActor actor, EnemyAbilityDefinition ability, Vector3 attackPoint)
+    {
+        if (actor == null || ability == null) return attackPoint;
+        if (ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
+            || UsesStandardAttackAreas && ability.IsMeleeStrongAttack && ResolveHitAngle(actor, ability) < 359.9f)
+            return actor.transform.position;
+        return attackPoint;
+    }
+
     private enum ThreatTier { None, Standard, Elite }
 
     private static ThreatTier ResolveTier(EnemyActor actor)

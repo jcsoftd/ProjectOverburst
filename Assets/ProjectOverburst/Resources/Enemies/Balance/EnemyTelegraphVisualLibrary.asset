@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9018f244b1e89114ea933472f01a0a38, type: 3}
   m_Name: EnemyTelegraphVisualLibrary
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTelegraphVisualLibrary
+  useProceduralIndicator: 1
+  proceduralIndicator: {fileID: 54060271721723951, guid: 6a29dea9d0879ff4a9bbce4b428119f0, type: 3}
   cone: {fileID: 8839379843591537560, guid: 55a51c403edec12489b9aaf003b60ce5, type: 3}
   nova: {fileID: 7176700610846920861, guid: a078c1a32abbe584393e91050e2dd214, type: 3}
   rectangle: {fileID: 9198170465328186566, guid: bdf9b89da77863a4785bc0693ffbbe64, type: 3}

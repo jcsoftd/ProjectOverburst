@@ -21,7 +21,7 @@ public static class GroundIndicatorIntegration
         if(enabled)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GroundIndicatorBuilder.PrefabPath);
-            if(prefab==null || prefab.GetComponent<ProceduralGroundIndicator>()==null) throw new InvalidOperationException("Build indicator prefabs first.");
+            if(prefab==null || prefab.GetComponent<ProceduralGroundIndicator>()?.UsesApprovedDesign!=true) throw new InvalidOperationException("Build indicator prefabs first.");
             serialized.FindProperty("proceduralIndicator").objectReferenceValue=prefab;
         }
         Undo.RecordObject(library,enabled?"새 인디케이터 적용":"기존 인디케이터 복원");

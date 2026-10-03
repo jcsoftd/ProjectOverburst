@@ -4,64 +4,89 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using Object=UnityEngine.Object;
+using Object = UnityEngine.Object;
 
 public static class GroundIndicatorVerifier
 {
     public static object Verify()
     {
-        GroundIndicatorBuilder.RequireIdle();var checks=new List<object>();
-        var scene=EditorSceneManager.NewPreviewScene();
-        var original=AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(GroundIndicatorBuilder.SourceGuid));
-        var sourceMaterials=original.GetComponentsInChildren<ParticleSystemRenderer>(true).Select(r=>r.sharedMaterial).Where(m=>m!=null).ToArray();
+        GroundIndicatorBuilder.RequireIdle();
+        var checks = new List<object>(); var scene = EditorSceneManager.NewPreviewScene();
+        var native = new HashSet<Material>();
+        foreach (string guid in new[] { GroundIndicatorBuilder.ConeGuid, GroundIndicatorBuilder.SourceGuid, GroundIndicatorBuilder.RectangleGuid })
+            foreach (var r in AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid)).GetComponentsInChildren<ParticleSystemRenderer>(true))
+                if (r.sharedMaterial != null) native.Add(r.sharedMaterial);
         try
         {
-            foreach(GroundIndicatorShape kind in Enum.GetValues(typeof(GroundIndicatorShape)))
+            foreach (GroundIndicatorShape kind in Enum.GetValues(typeof(GroundIndicatorShape)))
             {
-                string path=GroundIndicatorBuilder.Root+"/PF_Indicator_"+kind+".prefab";
-                var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if(prefab==null)throw new InvalidOperationException("Missing prefab: "+path);
-                var root=(GameObject)PrefabUtility.InstantiatePrefab(prefab,scene);
+                string path = GroundIndicatorBuilder.Root + "/PF_Indicator_" + kind + ".prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Require(prefab != null, "Missing prefab " + path);
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 try
                 {
-                    var indicator=root.GetComponent<ProceduralGroundIndicator>();
-                    if(indicator==null||indicator.Surface==null||indicator.Border==null)throw new InvalidOperationException("Missing original layers.");
-                    if(!indicator.UsesAuthoredEdgeFade)throw new InvalidOperationException("Original cone edge fade is missing.");
-                    if(root.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))!=0)throw new InvalidOperationException("Missing script.");
-                    foreach(var r in root.GetComponentsInChildren<ParticleSystemRenderer>(true))
+                    var p = root.GetComponent<ProceduralGroundIndicator>();
+                    Require(p != null && p.UsesApprovedDesign, "Approved source references missing");
+                    p.Configure(kind, 4f, 1f, 150f, 2f, 4f); p.SetVisible(true);
+                    Require(p.Surface != null && p.Border != null, "Missing native layers");
+                    Require(root.GetComponentsInChildren<Transform>(true).Sum(t => GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)) == 0, "Missing script");
+                    var originalMaterial = p.Surface.sharedMaterial;
+                    foreach (float radius in new[] { .25f, 1f, 4f, 12f, 50f })
                     {
-                        if(r.sharedMaterial==null)continue;
-                        if(!sourceMaterials.Contains(r.sharedMaterial))throw new InvalidOperationException("Original material changed.");
-                        if(ShaderUtil.ShaderHasError(r.sharedMaterial.shader))throw new InvalidOperationException("Original shader error.");
+                        p.Configure(kind, radius, radius * .18f, 150f, radius * .5f, radius);
+                        CheckFootprint(p); Require(p.Surface.sharedMaterial == originalMaterial, "Material changed during resize");
                     }
-                    indicator.Configure(kind,4,1,80,2,4);Mesh mesh=indicator.Surface.mesh;
-                    Material material=indicator.Surface.sharedMaterial;
-                    foreach(float radius in new[]{.25f,1f,4f,12f,50f})
+                    p.Configure(kind, 4f, 1f, 30f, 2f, 12f); CheckFootprint(p);
+                    p.Configure(kind, 4f, 3.5f, 140f, 8f, 2f); CheckFootprint(p);
+                    foreach (float progress in new[] { .25f, .5f, .95f })
                     {
-                        indicator.Configure(kind,radius,radius*.25f,80,radius*.5f,radius);
-                        if(indicator.OuterRadius!=radius||mesh!=indicator.Surface.mesh||material!=indicator.Surface.sharedMaterial)throw new InvalidOperationException("Resize replaced material or owned mesh.");
-                        if(mesh.vertices.Any(v=>float.IsNaN(v.x)||float.IsInfinity(v.y)))throw new InvalidOperationException("Non-finite vertex.");
+                        p.SetProgress(progress); CheckFootprint(p);
+                        foreach (var system in root.GetComponentsInChildren<ParticleSystem>())
+                            if (system.GetComponent<ParticleSystemRenderer>().renderMode == ParticleSystemRenderMode.Mesh)
+                                Require(!system.sizeOverLifetime.enabled && Math.Abs(system.main.startSize.constant - 1f) < .00001f, "Particle size changed the numeric boundary");
                     }
-                    indicator.Configure(kind,4,999,-20);
-                    if(indicator.InnerRadius>=indicator.OuterRadius||indicator.Angle!=1)throw new InvalidOperationException("Invalid geometry accepted.");
-                    indicator.Configure(kind,float.NaN,float.PositiveInfinity,float.NaN);
-                    if(float.IsNaN(indicator.OuterRadius)||float.IsInfinity(indicator.InnerRadius))throw new InvalidOperationException("Non-finite geometry.");
-                    indicator.Configure(kind,4,1,80,2,4);
-                    var colors=mesh.colors;
-                    if(colors.Length!=mesh.vertexCount||!colors.Any(c=>c.r<.01f)||!colors.Any(c=>c.r>.9f))throw new InvalidOperationException("Fill lost its transparent interior or bright contour.");
-                    for(int n=0;n<3;n++)
+                    foreach (var r in root.GetComponentsInChildren<ParticleSystemRenderer>(true))
+                        if (r.sharedMaterial != null)
+                        {
+                            Require(native.Contains(r.sharedMaterial), "Non-native material");
+                            Require(!ShaderUtil.ShaderHasError(r.sharedMaterial.shader), "Shader error");
+                        }
+                    for (int i = 0; i < 3; i++)
                     {
-                        indicator.SetVisible(false);if(indicator.IsVisible)throw new InvalidOperationException("Hide failed.");
-                        indicator.SetVisible(true);indicator.SetProgress(.72f);
-                        if(!indicator.IsVisible||root.GetComponentsInChildren<ParticleSystem>().Sum(p=>p.particleCount)==0)throw new InvalidOperationException("Show simulation failed.");
-                        root.SetActive(false);root.SetActive(true);indicator.SetProgress(.72f);
+                        p.SetVisible(false); Require(!p.IsVisible, "Hide failed");
+                        p.SetVisible(true); p.SetProgress(.95f); Require(p.IsVisible, "Reentry failed");
+                        root.SetActive(false); root.SetActive(true); p.SetProgress(.5f);
                     }
-                    checks.Add(new{shape=kind.ToString(),prefab=path,guid=AssetDatabase.AssetPathToGUID(path),missingScripts=0,radii=5,reentry=3,vertices=mesh.vertexCount,originalMaterials="PASS"});
+                    if (kind == GroundIndicatorShape.Rectangle)
+                    {
+                        p.Configure(kind, 4f, 0f, 360f, .8f, 3.42f, .4f); CheckFootprint(p);
+                        var v = p.Surface.mesh.vertices;
+                        Require(Math.Abs(v.Min(x => -x.y) + .4f) < .0001f && Math.Abs(v.Max(x => -x.y) - 3.82f) < .0001f, "Sphere-cast ends missing");
+                    }
+                    p.Configure(kind, float.NaN, float.PositiveInfinity, float.NaN);
+                    Require(!float.IsNaN(p.OuterRadius) && p.InnerRadius < p.OuterRadius, "Invalid numbers");
+                    checks.Add(new { shape = kind.ToString(), prefab = path, guid = AssetDatabase.AssetPathToGUID(path), resizing = 7, progressChecks = 3, reentry = 3, nativeMaterials = true });
                 }
-                finally{Object.DestroyImmediate(root);}
+                finally { Object.DestroyImmediate(root); }
             }
-            return new{status="PASS",checks};
+            return new { status = "PASS", checks };
         }
-        finally{EditorSceneManager.ClosePreviewScene(scene);}
+        finally { EditorSceneManager.ClosePreviewScene(scene); }
     }
+    private static void CheckFootprint(ProceduralGroundIndicator p)
+    {
+        var vertices = p.Surface.mesh.vertices;
+        Require(vertices.All(v => !float.IsNaN(v.x) && !float.IsInfinity(v.y)), "Non-finite vertex");
+        foreach (var v in vertices)
+        {
+            float distance = new Vector2(v.x, v.y).magnitude;
+            if (p.Shape == GroundIndicatorShape.Rectangle)
+                Require(Math.Abs(v.x) <= p.Width * .5f + .0001f && -v.y >= -p.CorridorCapRadius - .0001f && -v.y <= p.Length + p.CorridorCapRadius + .0001f, "Rectangle footprint drift");
+            else Require(distance >= p.InnerRadius - .0001f && distance <= p.OuterRadius + .0001f, "Radial footprint drift");
+        }
+        if (p.Shape == GroundIndicatorShape.Sector && p.InnerRadius > 0f)
+            Require(vertices.All(v => new Vector2(v.x, v.y).magnitude > 0f), "Acute apex returned");
+    }
+    private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
 }
