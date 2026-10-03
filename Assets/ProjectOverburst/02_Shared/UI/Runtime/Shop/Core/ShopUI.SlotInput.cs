@@ -166,8 +166,8 @@ public partial class ShopUI
             return true;
         }
 
-        tradeService.TogglePlayerOffer(sourceSlotIndex, out message);
-        SetStatus(message);
+        bool changed = tradeService.TogglePlayerOffer(sourceSlotIndex, out message);
+        SetStatus(changed ? WithInventorySortNotice(message) : message);
         Refresh();
         return true;
     }

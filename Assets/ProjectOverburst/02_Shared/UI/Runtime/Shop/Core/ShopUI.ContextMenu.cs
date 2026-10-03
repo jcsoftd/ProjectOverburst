@@ -163,7 +163,8 @@ public partial class ShopUI
         }
 
         if (!string.IsNullOrWhiteSpace(message))
-            SetStatus(message);
+            SetStatus(changed && target == ShopContextMenuTarget.PlayerInventory
+                ? WithInventorySortNotice(message) : message);
 
         Refresh();
         return changed;

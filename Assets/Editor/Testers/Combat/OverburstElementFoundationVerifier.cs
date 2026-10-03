@@ -21,15 +21,15 @@ public static class OverburstElementFoundationVerifier
         {
             var fire = new ItemData(transient, 1, ItemGrade.Common, 1, WeaponElement.Fire);
             var ice = new ItemData(transient, 1, ItemGrade.Common, 1, WeaponElement.Ice);
-            Check(fire.itemName == "시험검 (불)" && ice.itemName == "시험검 (얼음)", "instance-specific suffix");
+            Check(fire.itemName == "시험검" && ice.itemName == "시험검", "legacy element arguments do not add weapon suffixes");
             for (int i = 0; i < 20; i++) fire.EnsureRuntimeState();
-            Check(fire.ResolvedElement == WeaponElement.Fire && transient.defaultElement == WeaponElement.None, "ensure does not reroll or mutate SO");
+            Check(fire.ResolvedElement == WeaponElement.None && !fire.HasInstanceElement && transient.defaultElement == WeaponElement.None, "ensure keeps weapons neutral without mutating SO");
             string json = JsonUtility.ToJson(fire);
             ItemData restored = JsonUtility.FromJson<ItemData>(json);
-            Check(restored.ResolvedElement == WeaponElement.Fire && restored.runtimeInstanceId == fire.runtimeInstanceId, "Unity serialization retains element and identity");
+            Check(restored.ResolvedElement == WeaponElement.None && restored.runtimeInstanceId == fire.runtimeInstanceId, "Unity serialization retains neutral weapon and identity");
             Check(!OverburstElementRules.IsActive(WeaponElement.Earth) && !OverburstElementRules.IsActive(WeaponElement.Wind), "retired elements rejected");
-            for (int i = 0; i < 100; i++) CheckActiveRoll(transient);
-            passed.Add("100 new weapon rolls active-only");
+            for (int i = 0; i < 100; i++) CheckNeutralWeapon(transient);
+            passed.Add("100 new weapons remain neutral");
 
             GameObject source = Actor(root.transform, "Source", CombatTeam.PlayerParty);
             OverburstElementEnergy energy = source.AddComponent<OverburstElementEnergy>();
@@ -54,13 +54,13 @@ public static class OverburstElementFoundationVerifier
             Check(energy.TryCommitDischarge(20f, out OverburstElementDischarge burst) && energy.Amount == 0f, "commit consumes energy once");
             Check(!energy.TryCommitDischarge(20f, out _), "empty energy cannot commit twice");
             Check(burst.TryResolveConfirmedHit(health, 5f, out OverburstDischargeResult prepared)
-                && prepared.ConsumedStacks == 1 && prepared.BonusDamage > 0f, "prepared target gives consumed bonus");
+                && prepared.ConsumedStacks == 1 && Mathf.Approximately(prepared.BonusDamage, 0f) && burst.FirstBlastDamage > 0f, "prepared Fire consumes burning without duplicate bonus");
             Check(statuses.HasStatus(WeaponElement.Dark) && !statuses.HasStatus(WeaponElement.Fire), "only matching state consumed");
             Check(!burst.TryResolveConfirmedHit(health, 5f, out _), "same target cannot consume twice");
             GameObject fresh = Actor(root.transform, "Unprepared", CombatTeam.Enemy);
             Check(burst.TryResolveConfirmedHit(fresh.GetComponent<CombatHealth>(), 5f, out OverburstDischargeResult unprepared)
-                && unprepared.ConsumedStacks == 0 && unprepared.BonusDamage > 0f
-                && prepared.BonusDamage > unprepared.BonusDamage, "unprepared target receives base discharge and prepared bonus is additive");
+                && unprepared.ConsumedStacks == 0 && Mathf.Approximately(unprepared.BonusDamage, 0f) && burst.FirstBlastDamage > 0f
+                && Mathf.Approximately(prepared.BonusDamage, unprepared.BonusDamage), "unprepared Fire retains first blast without duplicate bonus");
             GameObject friendly = Actor(root.transform, "Friendly", CombatTeam.PlayerParty);
             Check(!burst.TryResolveConfirmedHit(friendly.GetComponent<CombatHealth>(), 5f, out _), "friendly consumption rejected");
             GameObject lethal = Actor(root.transform, "Lethal", CombatTeam.Enemy);
@@ -86,12 +86,17 @@ public static class OverburstElementFoundationVerifier
             int max = OverburstElementTuning.Current.maximumStacks;
             for (int i = 1; i <= max; i++) { hit.sourceAttackSequenceId = 100 + i; statuses.ApplyConfirmedHit(hit, 5f); }
             Check(statuses.IsFrozen && statuses.GetStackCount(WeaponElement.Ice) == max, "cold threshold freezes");
-            statuses.TryGetReactionState(ElementalReactionType.Freeze, out ElementalReactionStateSnapshot frozen);
-            hit.sourceAttackSequenceId = 200; statuses.ApplyConfirmedHit(hit, 5f);
-            statuses.TryGetReactionState(ElementalReactionType.Freeze, out ElementalReactionStateSnapshot afterLight);
-            Check(statuses.IsFrozen && afterLight.RemainingDuration <= frozen.RemainingDuration, "light hit neither shatters nor extends freeze");
+            Check(statuses.TryGetReactionState(ElementalReactionType.Freeze, out ElementalReactionStateSnapshot frozen), "freeze snapshot exists");
+            int coldStacks = statuses.GetStackCount(WeaponElement.Ice);
+            hit.element = WeaponElement.Light; hit.sourceAttackSequenceId = 200;
+            bool lightApplied = statuses.ApplyConfirmedHit(hit, 5f);
+            Check(!lightApplied && !statuses.HasStatus(WeaponElement.Light), "Light input 200 rejected without enemy status");
+            Check(statuses.TryGetReactionState(ElementalReactionType.Freeze, out ElementalReactionStateSnapshot afterLight)
+                && statuses.IsFrozen && statuses.GetStackCount(WeaponElement.Ice) == coldStacks
+                && afterLight.RemainingDuration <= frozen.RemainingDuration, "Light preserves cold stacks and neither shatters nor extends freeze");
             Check(statuses.ConsumeForDischarge(WeaponElement.Ice, out bool shattered) == max && shattered && !statuses.IsFrozen, "explicit discharge shatters and clears");
-            hit.sourceAttackSequenceId = 201; statuses.ApplyConfirmedHit(hit, 5f);
+            hit.element = WeaponElement.Ice; hit.sourceAttackSequenceId = 201;
+            Check(statuses.ApplyConfirmedHit(hit, 5f), "Ice input 201 rebuilds cold after shatter");
             Check(statuses.ConsumeForDischarge(WeaponElement.Ice, out _) == 0 && statuses.GetStackCount(WeaponElement.Ice) == 1, "unfrozen cold is not shatter-consumed");
             statuses.AdvanceReactionStatesForValidation(Time.time + OverburstElementTuning.Current.statusDuration + 1f);
             Check(!statuses.HasStatus(WeaponElement.Ice), "status expires");
@@ -129,8 +134,8 @@ public static class OverburstElementFoundationVerifier
             UnityEngine.Object.DestroyImmediate(transient);
         }
     }
-    private static void CheckActiveRoll(WeaponItemData weapon)
-    { if (!OverburstElementRules.IsActive(new ItemData(weapon, 1, ItemGrade.Common).ResolvedElement)) throw new InvalidOperationException("retired/new roll"); }
+    private static void CheckNeutralWeapon(WeaponItemData weapon)
+    { if (new ItemData(weapon, 1, ItemGrade.Common).ResolvedElement != WeaponElement.None) throw new InvalidOperationException("new weapon must remain neutral"); }
     private static GameObject Actor(Transform parent, string name, CombatTeam team)
     {
         var go = new GameObject(name);

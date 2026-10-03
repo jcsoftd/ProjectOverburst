@@ -182,7 +182,9 @@ public static class OverburstShopUIPlayVerifier
     static readonly List<string> checks = new List<string>(), errors = new List<string>();
     static double deadline;
     static int lastFrame;
-    static string Account => Path.GetFullPath(Path.Combine(OverburstShopUIVerifier.Output,"IsolatedAccount06"));
+    static string VerificationOutput => SessionState.GetString(Key+"output",OverburstShopUIVerifier.Output);
+    static void Write(string name,object value) { Directory.CreateDirectory(VerificationOutput); File.WriteAllText(Path.Combine(VerificationOutput,name),JsonConvert.SerializeObject(value,Formatting.Indented)); }
+    static string Account => Path.GetFullPath(Path.Combine(VerificationOutput,"IsolatedAccount06"));
     static string Report => SessionState.GetBool(Key+"restore",false) ? "play02-results.json" : "play01-results.json";
     public static string Status => SessionState.GetString(Key+"status","NOT_RUN");
     static OverburstShopUIPlayVerifier()
@@ -191,9 +193,17 @@ public static class OverburstShopUIPlayVerifier
         if(SessionState.GetBool(Key+"return",false)) EditorApplication.update += ReturnAccount;
         if(SessionState.GetBool(Key+"pending",false)) EditorApplication.update += BootWatch;
     }
-    public static void Run(bool restore)
+    public static void Run(bool restore) => Run(restore,OverburstShopUIVerifier.Output);
+
+    public static void Run(bool restore,string outputDirectory)
     {
         ItemTypeIconBuilder.RequireIdle();
+        if(SessionState.GetBool(Key+"pending",false) || SessionState.GetBool(Key+"return",false))
+            throw new InvalidOperationException("Previous shop verification has not returned");
+        string output=Path.GetFullPath(outputDirectory);
+        string allowed=Path.GetFullPath("../개인파일/코덱스산출").TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+        if(!output.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Verification output must stay under Codex artifacts");
+        SessionState.SetString(Key+"output",output);
         if(SceneManager.GetActiveScene().name!="PersistentScene") throw new InvalidOperationException("PersistentScene required");
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
             || !string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))) throw new InvalidOperationException("Another account is selected");
@@ -219,7 +229,7 @@ public static class OverburstShopUIPlayVerifier
         {
             EditorApplication.update -= Tick; Application.logMessageReceived -= Log; (work as IDisposable)?.Dispose(); work=null;
             Application.runInBackground=SessionState.GetBool(Key+"background",false);
-            if(Status=="RUNNING") { SessionState.SetString(Key+"status","INTERRUPTED"); OverburstShopUIVerifier.Write(Report,new{status="INTERRUPTED",checks,errors}); }
+            if(Status=="RUNNING") { SessionState.SetString(Key+"status","INTERRUPTED"); Write(Report,new{status="INTERRUPTED",checks,errors}); }
         }
         if(state==PlayModeStateChange.EnteredEditMode) ScheduleReturn();
     }
@@ -258,7 +268,7 @@ public static class OverburstShopUIPlayVerifier
         SessionState.SetBool(Key+"pending",false); SessionState.SetBool(Key+"return",false);
         EditorApplication.update-=ReturnAccount; EditorApplication.update-=BootWatch;
         foreach(string key in new[]{"startScene","scenes","deadline","returnDeadline"})SessionState.EraseString(Key+key); SessionState.EraseInt(Key+"pid");
-        OverburstShopUIVerifier.Write(Report.Replace("results","return"),new{status=ready?"PASS":"FAIL",ready,guard=IsolatedSavePlayGuard.RequiresAccountChoice,environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),pending=false,callback=false,playing=EditorApplication.isPlayingOrWillChangePlaymode});
+        Write(Report.Replace("results","return"),new{status=ready?"PASS":"FAIL",ready,guard=IsolatedSavePlayGuard.RequiresAccountChoice,environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),pending=false,callback=false,playing=EditorApplication.isPlayingOrWillChangePlaymode});
         if(!ready)SessionState.SetString(Key+"status","RETURN_FAILED");
     }
     static void Tick()
@@ -270,7 +280,7 @@ public static class OverburstShopUIPlayVerifier
     static void Finish()
     {
         string status=errors.Count==0 && checks.All(c=>c.StartsWith("PASS "))?"PASS":"FAIL";
-        SessionState.SetString(Key+"status",status); OverburstShopUIVerifier.Write(Report,new{status,checks,errors}); EditorApplication.update-=Tick;
+        SessionState.SetString(Key+"status",status); Write(Report,new{status,checks,errors}); EditorApplication.update-=Tick;
         if(OwnPlay)EditorApplication.ExitPlaymode(); else ScheduleReturn();
     }
     static IEnumerator Verify()
@@ -321,6 +331,9 @@ public static class OverburstShopUIPlayVerifier
         Check(hover.canvasRenderer.GetColor().a<.1f && press.canvasRenderer.GetColor().a<.1f && service.Session.MerchantOffers.Count==0,"Native pointer feedback resets without creating a trade");
         var buy=stock.First(s=>s.DisplayItem!=null && shop.CanShopContextTrade(ShopContextMenuTarget.MerchantInventory,s));
         Check(shop.HandleShopSlotClicked(buy) && service.Session.MerchantOffers.Count==1,"Double-click stock adds offer");
+        Check(Field<InventorySlotBridge>(game.inventory,"slotBridge").CanSortInventory(out _)
+            && Field<TMP_Dropdown>(game.inventory,"sortDropdown").interactable
+            && Field<Button>(game.inventory,"sortRefreshButton").interactable,"Merchant-only offer permits inventory sort");
         Check(mOffers[0].DisplayItem!=null && mOffers[0].GetComponentInChildren<ItemTypeIconView>(true).IsVisible,"Offer uses shared type icon");
         Check(shop.HandleShopSlotDrop(mOffers[0],buy) && service.Session.MerchantOffers.Count==0,"Drag offer back removes it");
         var inventorySlots=game.inventoryWindow.GetComponentsInChildren<SlotUI>(true);
@@ -340,9 +353,12 @@ public static class OverburstShopUIPlayVerifier
         Field<Button>(menu,"splitOkButton").onClick.Invoke();
         Check(service.Session.PlayerOffers.Count==1 && service.Session.PlayerOffers[0].StackCount==3 && stackSlot.DisplayItem.stackCount==stackBefore,"Split reserves 3 without changing source stack");
         Check(pOffers[0].DisplayItem!=null,"Player offer shown in shared slot");
+        VerifyPendingOfferSortRestriction(game, shop, service);
         for(int i=0;i<3;i++)yield return null;
         Field<Button>(shop,"confirmButton").onClick.Invoke();
         Check(service.Session.PlayerOffers.Count==0 && inventory.Items.Where(i=>i?.baseData==stackData).Sum(i=>i.stackCount)==stackBefore-3,"Confirm sells split and updates inventory");
+        Check(Field<TMP_Dropdown>(game.inventory,"sortDropdown").interactable
+            && Field<Button>(game.inventory,"sortRefreshButton").interactable,"Completing sell restores sort controls");
         int totalBefore=service.GetTotalGoldAmount(); int boughtBefore=inventory.Items.Count(i=>i?.baseData==buy.DisplayItem.baseData); var boughtData=buy.DisplayItem.baseData;
         Check(shop.HandleShopSlotDrop(buy,mOffers[0]),"Drag stock to merchant offer"); int cost=service.GetAutoGoldCost();
         Check(cost>0 && service.ValidateTrade().success,"Valid purchase against isolated funds");
@@ -374,14 +390,70 @@ public static class OverburstShopUIPlayVerifier
             Check(shop.IsOpen && shop.IsTradeTabActive,"Repeated shop open "+run);
             Field<Button>(shop,"clearButton").onClick.Invoke(); close.onClick.Invoke();
             Check(!shop.IsOpen && service.Session.MerchantOffers.Count==0 && service.Session.PlayerOffers.Count==0,"Repeated close clears session "+run);
+            Check(Field<InventorySlotBridge>(game.inventory,"slotBridge").CanSortInventory(out _)
+                && Field<TMP_Dropdown>(game.inventory,"sortDropdown").interactable
+                && Field<Button>(game.inventory,"sortRefreshButton").interactable,"Shop close leaves sort unlocked "+run);
         }
         // Persisted account restores the same surviving stack on the second Play.
         SessionState.SetInt(Key+"expectedStack",inventory.Items.Where(i=>i?.baseData==stackData).Sum(i=>i.stackCount));
         for(int i=0;i<15;i++)yield return null;
     }
+    static void VerifyPendingOfferSortRestriction(OverburstGameUI game, ShopUI shop, MerchantTradeService service)
+    {
+        var ui=game.inventory;
+        var bridge=Field<InventorySlotBridge>(ui,"slotBridge");
+        var dropdown=Field<TMP_Dropdown>(ui,"sortDropdown");
+        var direction=Field<Button>(ui,"sortRefreshButton");
+        var inventory=service.PlayerInventory;
+        var account=Overburst.Persistence.AccountGameplaySession.Current;
+        Check(bridge && dropdown && direction && account!=null,"Sort regression uses product controls and account");
+        var items=inventory.Items.ToArray();
+        var stacks=items.Select(i=>i!=null?i.stackCount:0).ToArray();
+        long revision=account.Revision;
+        int mode=dropdown.value;
+        var directionField=typeof(InventoryUI).GetField("sortDirection",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+        object sortDirection=directionField.GetValue(ui);
+        int changed=0;
+        Action changedHandler=()=>changed++;
+        inventory.Changed+=changedHandler;
+        try
+        {
+            Check(ShopUI.HasPendingPlayerOffers(inventory) && !bridge.CanSortInventory(out string reason)
+                && reason==ShopUI.PendingPlayerOffersSortMessage,"Partial sell blocks this inventory sort");
+            Check(!dropdown.interactable && !direction.interactable,"Both sort controls disabled during sell");
+            dropdown.value=(mode+1)%dropdown.options.Count;
+            direction.onClick.Invoke();
+            Check(dropdown.value==mode && sortDirection.Equals(directionField.GetValue(ui)),"Queued sort callbacks retain mode and direction");
+            Check(!bridge.SortInventory(ItemSortMode.Grade,ItemSortDirection.Ascending),"Bridge direct sort rejected");
+            ui.SetVisible(false); ui.SetVisible(true);
+            shop.ShowQuestTab();
+            Check(ShopUI.HasPendingPlayerOffers(inventory) && !bridge.CanSortInventory(out _),"Clearing quest-tab selection retains offer sort lock");
+            shop.ShowTradeTab();
+            Check(!dropdown.interactable && !direction.interactable,"Trade-tab reopen retains sort lock");
+            Check(Field<TextMeshProUGUI>(shop,"statusText").text.Contains(ShopUI.PendingPlayerOffersSortMessage),"Visible trade status explains sort lock");
+            shop.ShowShopContextStatus("SORT_REGRESSION_ERROR");
+            ui.RefreshSortAvailability();
+            Check(Field<TextMeshProUGUI>(shop,"statusText").text=="SORT_REGRESSION_ERROR","Availability refresh preserves trade error status");
+            Check(account.Revision==revision && changed==0,"Rejected sorts emit no account revision or inventory change");
+            Check(inventory.Items.Count==items.Length && Enumerable.Range(0,items.Length).All(i=>
+                ReferenceEquals(items[i],inventory.Items[i]) && (inventory.Items[i]!=null?inventory.Items[i].stackCount:0)==stacks[i]),"Rejected sorts preserve source slots and stack amounts");
+            var offer=service.Session.PlayerOffers[0];
+            var sourceSlot=FieldArray<SlotUI>(bridge,"inventorySlots")[offer.SourceSlotIndex];
+            Check(shop.HandleShopContextRemoveOffer(ShopContextMenuTarget.PlayerOffer,FieldArray<SlotUI>(shop,"playerOfferSlots")[0])
+                && bridge.CanSortInventory(out _) && dropdown.interactable && direction.interactable,"Removing last sell offer restores sort controls");
+            Check(shop.HandleShopContextSplitTrade(ShopContextMenuTarget.PlayerInventory,sourceSlot,offer.StackCount),"Re-add partial sell for clear test");
+            Field<Button>(shop,"clearButton").onClick.Invoke();
+            Check(bridge.CanSortInventory(out _) && dropdown.interactable && direction.interactable,"Clearing trade restores sort controls");
+            Check(shop.HandleShopContextSplitTrade(ShopContextMenuTarget.PlayerInventory,sourceSlot,offer.StackCount)
+                && !bridge.CanSortInventory(out _),"Re-add original partial sell for normal confirmation");
+            shop.ShowTradeTab();
+        }
+        finally { inventory.Changed-=changedHandler; }
+    }
+
     static T Field<T>(Object source,string name) where T:Object => (T)new SerializedObject(source).FindProperty(name).objectReferenceValue;
     static T[] FieldArray<T>(Object source,string name) where T:Object { var array=new SerializedObject(source).FindProperty(name); return Enumerable.Range(0,array.arraySize).Select(i=>(T)array.GetArrayElementAtIndex(i).objectReferenceValue).ToArray(); }
-    static void Capture(string file) => ScreenCapture.CaptureScreenshot(Path.Combine(OverburstShopUIVerifier.Output,file));
+    static void Capture(string file) => ScreenCapture.CaptureScreenshot(Path.Combine(VerificationOutput,file));
     static void Check(bool pass,string message) { checks.Add((pass?"PASS ":"FAIL ")+message); if(!pass)throw new InvalidOperationException(message); }
     static void Log(string message,string trace,LogType type) { if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert)errors.Add(message); }
 }

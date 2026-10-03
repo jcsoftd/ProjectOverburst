@@ -89,7 +89,8 @@ public partial class ShopUI
 
         bool removed = tradeService.RemoveOffer(side, index);
         if (removed)
-            SetStatus(side == MerchantTradeOfferSide.Merchant ? "상인 제안에서 제거했습니다." : "플레이어 제안에서 제거했습니다.");
+            SetStatus(side == MerchantTradeOfferSide.Merchant ? "상인 제안에서 제거했습니다."
+                : WithInventorySortNotice("플레이어 제안에서 제거했습니다."));
 
         Refresh();
         return removed;

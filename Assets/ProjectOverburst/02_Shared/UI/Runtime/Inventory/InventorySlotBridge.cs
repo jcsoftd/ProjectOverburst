@@ -180,9 +180,27 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
         RefreshSlots(); // UI 반영
     }
 
-    public bool SortInventory(ItemSortMode sortMode, ItemSortDirection sortDirection)
+    public bool CanSortInventory(out string reason)
     {
         if (inventory == null)
+        {
+            reason = "인벤토리가 준비되지 않았습니다.";
+            return false;
+        }
+
+        if (ShopUI.HasPendingPlayerOffers(inventory))
+        {
+            reason = ShopUI.PendingPlayerOffersSortMessage;
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    public bool SortInventory(ItemSortMode sortMode, ItemSortDirection sortDirection)
+    {
+        if (!CanSortInventory(out _))
             return false;
 
         bool sorted = RunSlotDataMutation(() => inventory.SortUnlockedSlots(sortMode, sortDirection));

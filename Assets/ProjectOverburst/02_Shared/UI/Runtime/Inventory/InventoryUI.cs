@@ -403,6 +403,12 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
     private void HandleSortDropdownChanged(int optionIndex)
     {
+        if (slotBridge == null || !slotBridge.CanSortInventory(out _))
+        {
+            UpdateSortControls();
+            return;
+        }
+
         sortMode = ItemSortComparer.GetInventoryModeByIndex(optionIndex); // 기준 변경
         ApplyCurrentSort(); // 선택 즉시 정렬
         UpdateSortControls();
@@ -410,6 +416,12 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
     private void HandleSortRefreshButtonClicked()
     {
+        if (slotBridge == null || !slotBridge.CanSortInventory(out _))
+        {
+            UpdateSortControls();
+            return;
+        }
+
         sortDirection = ItemSortComparer.ToggleDirection(sortDirection); // 다음 방향
         ApplyCurrentSort(); // 방향 변경 즉시 재정렬
         UpdateSortControls();
@@ -417,7 +429,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
     private void ApplyCurrentSort()
     {
-        if (slotBridge == null)
+        if (slotBridge == null || !slotBridge.CanSortInventory(out _))
             return;
 
         if (sortMode == ItemSortMode.None)
@@ -429,10 +441,20 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
         slotBridge.SortInventory(sortMode, sortDirection); // 현재 기준/방향 적용
     }
 
+    public void RefreshSortAvailability()
+    {
+        UpdateSortControls();
+    }
+
     private void UpdateSortControls()
     {
+        bool canSort = slotBridge != null && slotBridge.CanSortInventory(out _);
+        if (sortRefreshButton != null)
+            sortRefreshButton.interactable = canSort;
+
         if (sortDropdown != null)
         {
+            sortDropdown.interactable = canSort;
             int modeIndex = ItemSortComparer.GetInventoryModeIndex(sortMode);
             if (sortDropdown.value != modeIndex)
                 sortDropdown.SetValueWithoutNotify(modeIndex); // 이벤트 방지

@@ -87,6 +87,24 @@ public partial class ShopUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI failurePopupMessageText;
     [SerializeField] private Button failurePopupConfirmButton;
 
+    public const string PendingPlayerOffersSortMessage = "판매 제안 중에는 정렬할 수 없습니다.";
+
+    public static bool HasPendingPlayerOffers(PlayerInventory target)
+    {
+        return target != null && openShop != null && openShop.IsOpen
+            && openShop.tradeService != null
+            && openShop.tradeService.PlayerInventory == target
+            && openShop.tradeService.Session.PlayerOffers.Count > 0;
+    }
+
+    private string WithInventorySortNotice(string message)
+    {
+        return !failurePopupOpen && tradeService != null
+            && HasPendingPlayerOffers(tradeService.PlayerInventory)
+            ? message + "\n" + PendingPlayerOffersSortMessage
+            : message;
+    }
+
     private static ShopUI openShop;
     private MerchantDefinition currentMerchant;
     private bool isOpen;

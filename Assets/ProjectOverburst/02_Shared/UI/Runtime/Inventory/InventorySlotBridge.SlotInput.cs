@@ -192,6 +192,7 @@ public partial class InventorySlotBridge
 
     public void SetShopTradeSelectedSlots(System.Collections.Generic.IList<int> selectedIndices)
     {
+        inventoryUI?.RefreshSortAvailability();
         if (inventorySlots == null)
             return;
 

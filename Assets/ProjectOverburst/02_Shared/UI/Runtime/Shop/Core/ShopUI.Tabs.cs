@@ -86,7 +86,7 @@ public partial class ShopUI
         }
         else if (isOpen)
         {
-            SetStatus("더블클릭, 드래그, 우클릭 거래 메뉴로 중앙 거래창에 올립니다.");
+            SetStatus(WithInventorySortNotice("더블클릭, 드래그, 우클릭 거래 메뉴로 중앙 거래창에 올립니다."));
         }
 
         RefreshHeader();
