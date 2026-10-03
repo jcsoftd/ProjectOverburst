@@ -20,6 +20,9 @@ public sealed class HealConsumableUseHandler : IItemUseHandler
         if (context.PlayerHealth == null)
             return ItemUseResult.Fail("Player health component was not found.");
 
+        if (context.PlayerHealth.IsDead || context.PlayerHealth.CurrentHp <= 0f)
+            return ItemUseResult.Fail("아이템 사용 불가", true);
+
         if (context.PlayerHealth.CurrentHp >= context.PlayerHealth.MaxHp - 0.001f)
             return ItemUseResult.Fail("아이템 사용 불가", true);
 
