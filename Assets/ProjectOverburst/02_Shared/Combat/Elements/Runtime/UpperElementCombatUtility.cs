@@ -79,6 +79,6 @@ public static class UpperElementCombatUtility
         if (target == null || target.IsDead || !(damage > 0f)) return;
         target.TakeDamage(new DamageInfo(damage, point, source, direction,
             triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-            element: element, playerAttackKind: gemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: gemAttack));
+            element: element, playerAttackKind: PlayerAttackKind.Elemental, gemAttack: gemAttack));
     }
 }

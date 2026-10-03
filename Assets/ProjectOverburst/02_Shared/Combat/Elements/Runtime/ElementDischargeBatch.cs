@@ -120,7 +120,7 @@ public sealed partial class ElementDischargeBatch
         float before = nodes[i].Health.CurrentHp;
         nodes[i].Health.TakeDamage(new DamageInfo(damage, nodes[i].Point, source,
             triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-            element: element, playerAttackKind: gemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: gemAttack));
+            element: element, playerAttackKind: PlayerAttackKind.Elemental, gemAttack: gemAttack));
         if (!SameLife(i) || nodes[i].Health.CurrentHp >= before) return false;
         nodes[i].Hits++; SecondaryHits++;
         if (nodes[i].Hits >= 2 || !Valid(i)) RetireCandidate(i);

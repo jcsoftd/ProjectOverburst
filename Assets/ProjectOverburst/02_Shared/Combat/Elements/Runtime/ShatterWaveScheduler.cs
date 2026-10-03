@@ -78,7 +78,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
             if (item.Damage > 0)
                 item.Target.TakeDamage(new DamageInfo(item.Damage, item.Point, item.Source, item.Direction,
                     triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-                    element: WeaponElement.Ice, playerAttackKind: item.GemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: item.GemAttack));
+                    element: WeaponElement.Ice, playerAttackKind: PlayerAttackKind.Elemental, gemAttack: item.GemAttack));
         }
         if (item.Prefab != null)
             TransientVfxPool.Spawn(item.Prefab, item.VfxPoint, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));

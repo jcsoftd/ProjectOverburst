@@ -214,6 +214,7 @@ public static partial class ElementGemPlayVerifier
                 float oldhp = hp.CurrentHp;
                 hp.TakeDamage(new DamageInfo(100,root.transform.position,equipment.gameObject, gemAttack:older));
                 Check(hp.CurrentHp == oldhp, "stale hit rejected " + element);
+                FeedbackPackets(hp, statuses, energy, equipment, fresh, element);
             }
             var ice = EquipGem(WeaponElement.Ice,ElementGemArchetype.Weak,"gem.ice.freeze_threshold_reduction");
             var cold = new OverburstElementState(); var icemod = equipment.GemModifiers;

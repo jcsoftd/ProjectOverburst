@@ -147,8 +147,14 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             if (equipment == null) return;
             GearStatTotals stats = info.gemAttack.HasValue ? info.gemAttack.Stats : GearStatTotals.From(equipment);
             EnemyRank targetRank = GetComponentInParent<EnemyRank>();
+            // Committed elemental follow-ups scale with heavy bonuses, while their public
+            // damage kind stays Elemental for hit feedback, labels and protected attacks.
+            PlayerAttackKind scalingKind = info.playerAttackKind;
+            if (info.gemAttack.HasValue && !info.triggersOnHitEffects && !info.isDamageOverTime
+                && scalingKind == PlayerAttackKind.Elemental)
+                scalingKind |= PlayerAttackKind.Heavy;
             damage = CombatBalanceFormulas.ApplyPlayerOutgoing(damage, stats, targetRank != null,
-                targetRank != null ? targetRank.GradeType : EnemyGradeType.Normal, info.playerAttackKind,
+                targetRank != null ? targetRank.GradeType : EnemyGradeType.Normal, scalingKind,
                 info.gemAttack.HasValue ? info.gemAttack.RunAttack : MapRunBuffs.Bonus(MapBuffKind.Attack),
                 info.gemAttack.HasValue ? info.gemAttack.RunElemental : MapRunBuffs.Bonus(MapBuffKind.ElementalDamage));
         }
