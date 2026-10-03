@@ -14,7 +14,7 @@ public sealed class EnemyPoolService : MonoBehaviour
     private readonly HashSet<EnemyActor> availableActors = new HashSet<EnemyActor>();
     private readonly HashSet<EnemyActor> returningActors = new HashSet<EnemyActor>();
     private readonly HashSet<EnemyActor> explicitReturnActors = new HashSet<EnemyActor>();
-    internal bool IsExplicitReturnPending(EnemyActor actor) => explicitReturnActors.Contains(actor);
+
     private readonly Dictionary<EnemyActor, EnemyActor> pendingPrefabByActor
         = new Dictionary<EnemyActor, EnemyActor>();
 

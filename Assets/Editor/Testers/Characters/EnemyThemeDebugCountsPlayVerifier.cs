@@ -272,7 +272,7 @@ public static class EnemyThemeDebugCountsPlayVerifier
             {
                 // Force child OnDisable before explicit Release, then verify the reverse order.
                 actors[0].gameObject.SetActive(false);
-                Require(pool.PendingReturnCount > 0 && actors[0].RequestPoolRelease(), "Release accepts pending lease");
+                Require(pool.PendingReturnCount > 0 && !actors[0].RequestPoolRelease() && actors[0].IsLeased, "Pending return preserves false until completed");
                 Require(actors[1].RequestPoolRelease(), "Explicit return before OnDisable succeeds");
                 arena.gameObject.SetActive(false);
                 if (!sameFrame) { yield return null; yield return null; }

@@ -283,7 +283,7 @@ public sealed class EnemyActor : MonoBehaviour
             return false;
 
         poolOwner.Release(this);
-        return !leased || poolOwner.IsExplicitReturnPending(this);
+        return !leased;
     }
 
     internal EnemyActor PoolPrefabKey => poolPrefabKey;
