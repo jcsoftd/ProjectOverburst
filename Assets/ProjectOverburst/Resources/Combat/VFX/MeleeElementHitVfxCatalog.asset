@@ -35,9 +35,9 @@ MonoBehaviour:
   lightLifetime: 2
   fireHitScale: 1.1
   iceHitScale: 1
-  electricHitScale: 1
-  darkHitScale: 1
-  lightHitScale: 0.8
+  electricHitScale: 0.85
+  darkHitScale: 0.85
+  lightHitScale: 0.68
   firePlaybackSpeed: 1.5
   icePlaybackSpeed: 1
   electricPlaybackSpeed: 1
