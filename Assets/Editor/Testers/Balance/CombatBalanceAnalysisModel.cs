@@ -25,7 +25,7 @@ namespace Overburst.EditorBalance.Analysis
         const int CandidateRolls = 32;       // 공격·생존 치중 구성에서 비교하는 실제 추첨 표본 수
 
         public static readonly GearSlot[] Slots =
-            { GearSlot.Helmet, GearSlot.Chest, GearSlot.Gloves, GearSlot.Boots, GearSlot.EarringOne, GearSlot.EarringTwo, GearSlot.Necklace };
+            { GearSlot.Helmet, GearSlot.Chest, GearSlot.Gloves, GearSlot.Boots, GearSlot.Earring, GearSlot.Necklace };
 
         public sealed class Catalog
         {

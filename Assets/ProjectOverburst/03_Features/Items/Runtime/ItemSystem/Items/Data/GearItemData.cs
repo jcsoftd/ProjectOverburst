@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public enum GearKind { Helmet, Chest, Gloves, Boots, Earring, Necklace }
-public enum GearSlot { Helmet, Chest, Gloves, Boots, EarringOne, EarringTwo, Necklace }
+public enum GearSlot { Helmet, Chest, Gloves, Boots, Earring, Necklace }
 public enum GearStat
 {
     MaxHealth, Armor, Attack, CriticalChance, AttackSpeed, NormalDamage,
@@ -24,7 +24,7 @@ public sealed class GearItemData : BaseItemData
     public static bool Fits(GearKind kind, GearSlot slot)
     {
         if (kind == GearKind.Earring)
-            return slot == GearSlot.EarringOne || slot == GearSlot.EarringTwo;
+            return slot == GearSlot.Earring;
         if (kind == GearKind.Necklace)
             return slot == GearSlot.Necklace;
         return (int)kind == (int)slot;

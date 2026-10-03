@@ -38,20 +38,23 @@ public sealed class OverburstElementState
         int index = OverburstElementRules.Index(element);
         return index >= 0 ? Mathf.Max(0f, expires[index] - now) : 0f;
     }
-    public bool Add(WeaponElement element, float now, OverburstElementTuning tuning, float freezeDurationMultiplier = 1f)
+    public bool Add(WeaponElement element, float now, OverburstElementTuning tuning, float freezeDurationMultiplier = 1f, int freezeReduction = 0, int corrosionExtra = 0, bool freezeImmune = false)
     {
         Expire(now);
         int index = OverburstElementRules.Index(element);
         if (index < 0 || tuning == null || float.IsNaN(now) || float.IsInfinity(now)) return false;
-        if (index == 1 && IsFrozen(now)) return false; // light attacks neither shatter nor prolong freeze
+        bool alreadyFrozen = index == 1 && IsFrozen(now);
+        if (alreadyFrozen && !freezeImmune) return false; // light attacks neither shatter nor prolong freeze
         if (stacks[index] == 0)
         {
             intervals[index] = tuning.TickInterval(element);
             nextTicks[index] = now + intervals[index];
         }
-        stacks[index] = Mathf.Min(Mathf.Max(1, tuning.maximumStacks), stacks[index] + 1);
+        int cap = Mathf.Max(1, tuning.maximumStacks) + (element == WeaponElement.Dark ? Mathf.Clamp(corrosionExtra, 0, 2) : 0);
+        stacks[index] = Mathf.Min(cap, stacks[index] + 1);
         expires[index] = now + tuning.StatusDuration(element);
-        if (index == 1 && stacks[index] >= Mathf.Max(1, tuning.maximumStacks))
+        if (alreadyFrozen) { expires[index] = frozenUntil; return true; }
+        if (index == 1 && stacks[index] >= Mathf.Clamp(tuning.maximumStacks - freezeReduction, 1, Mathf.Max(1, tuning.maximumStacks)))
         {
             frozenUntil = now + Mathf.Max(0.1f, tuning.freezeDuration) * Mathf.Clamp(freezeDurationMultiplier, 1f, 2f);
             expires[index] = frozenUntil;
@@ -102,6 +105,11 @@ public sealed class OverburstElementState
             expiredMask |= 1 << i;
         }
         return expiredMask != 0;
+    }
+    public void ClearElement(WeaponElement element)
+    {
+        int i = OverburstElementRules.Index(element); if (i < 0) return;
+        stacks[i] = 0; expires[i] = intervals[i] = nextTicks[i] = 0; if (i == 1) frozenUntil = 0;
     }
     public void Clear()
     {

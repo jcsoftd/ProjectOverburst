@@ -68,7 +68,7 @@ public partial class MeleeRuntime
         dodgeTrajectoryDefinition = null;
         bool hasEnergy = activeHeavyEnergy != null && activeHeavyEnergy.Amount > 0f
             && activeAttackWeaponItem != null && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
-            && activeHeavyEnergy.Element == activeAttackWeaponItem.ResolvedElement;
+            && activeHeavyEnergy.Element == activeGemAttack.Element;
         activeAttackDamageMultiplier = CombatBalanceFormulas.AttackDamageMultiplier(
             activeWeaponData, counter, true, hasEnergy);
         ResolveAttackTrail(activeAttackStep);

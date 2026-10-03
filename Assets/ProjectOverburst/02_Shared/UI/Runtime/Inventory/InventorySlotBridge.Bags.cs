@@ -181,7 +181,7 @@ public partial class InventorySlotBridge
 
     private int CalculateUnlockedInventorySlotCount(ItemData[] bags)
     {
-        int total = Mathf.Max(0, baseInventorySlotCount); // 기본 칸
+        int total = Mathf.Max(0, Overburst.Persistence.AccountGameplaySession.Current?.BaseUnlockedSlots ?? baseInventorySlotCount); // 계정 기본 칸
 
         if (bags != null)
         {

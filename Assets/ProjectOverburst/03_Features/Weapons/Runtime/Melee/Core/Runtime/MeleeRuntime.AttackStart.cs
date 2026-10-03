@@ -64,6 +64,7 @@ public partial class MeleeRuntime
         heavyParried = false;
         activeDischarge = null;
         activeAttackWeaponItem = playerEquipment.CurrentWeaponItem;
+        activeGemAttack = new ElementGemAttackSnapshot(playerEquipment);
         activeAttackUsedMeleeCombatStance = playerController != null && playerController.IsMeleeCombatStance;
         activeAttackUsesCombo = !isHeavy && ShouldUseCombo(activeWeaponData);
         ResolveAttackAnimation(isDirectComboContinuation);
@@ -72,7 +73,7 @@ public partial class MeleeRuntime
         bool hasEnergy = activeHeavyEnergy != null && activeHeavyEnergy.Amount > 0f
             && activeAttackWeaponItem != null
             && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
-            && activeHeavyEnergy.Element == activeAttackWeaponItem.ResolvedElement;
+            && activeHeavyEnergy.Element == activeGemAttack.Element;
         activeAttackDamageMultiplier = CombatBalanceFormulas.AttackDamageMultiplier(
             activeWeaponData, activeHeavyDefinition, isHeavy, hasEnergy);
 
@@ -227,7 +228,7 @@ public partial class MeleeRuntime
 
     private WeaponElement ResolveActiveAttackElement()
     {
-        return activeAttackWeaponItem != null ? activeAttackWeaponItem.ResolvedElement : WeaponElement.None;
+        return activeGemAttack.Element;
     }
 
     private bool TryBeginAttackPhases()

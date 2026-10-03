@@ -230,14 +230,14 @@ public sealed class OverburstRunUi : MonoBehaviour
     }
     private void AttachEquipmentSources(OverburstGameUI game)
     {
-        string[] names={"Slot • 투구","Slot • 갑옷","Slot • 장갑","Slot • 신발","Slot • 귀걸이 1","Slot • 귀걸이 2","Slot • 목걸이"};
+        string[] names={"Slot • 투구","Slot • 갑옷","Slot • 장갑","Slot • 신발","Slot • 귀걸이","Slot • 목걸이","Slot • 원소보석"};
         for(int i=0;i<names.Length;i++)
         {
             int slotIndex=i;var target=game.equipmentWindow.transform.Find("Layout/"+names[i]);if(target==null)continue;
             var overlay=RunUiLayout.Image(target,"RunTransferSelection",null,Color.clear,0,0,0,0);
             overlay.rectTransform.anchorMin=Vector2.zero;overlay.rectTransform.anchorMax=Vector2.one;
             overlay.raycastTarget=true;
-            overlay.gameObject.AddComponent<RunTransferEquipmentSource>().Bind(this,()=>PlayerContext.Instance?.CurrentActorEquipment?.GetGearSlotItem(slotIndex));
+            overlay.gameObject.AddComponent<RunTransferEquipmentSource>().Bind(this,()=>slotIndex == 6 ? PlayerContext.Instance?.CurrentActorEquipment?.EquippedElementGem : PlayerContext.Instance?.CurrentActorEquipment?.GetGearSlotItem(slotIndex));
             equipmentSources.Add(overlay.gameObject);
         }
     }

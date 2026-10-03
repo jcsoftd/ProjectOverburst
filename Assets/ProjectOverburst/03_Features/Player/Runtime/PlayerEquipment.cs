@@ -25,12 +25,6 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     [SerializeField] private WeaponAimSource currentWeaponAimSource;
     [SerializeField] private WeaponPose currentWeaponPose;
     [SerializeField] private WeaponTraceBinding currentWeaponTraceBinding;
-    [UnityEngine.Serialization.FormerlySerializedAs("activeWeaponSlotIndex")]
-    [SerializeField] private int initialActiveWeaponSlot;
-    [UnityEngine.Serialization.FormerlySerializedAs("weaponSlotItems")]
-    [SerializeField] private ItemData[] initialWeaponSlotItems = new ItemData[WeaponSlotCount];
-    [UnityEngine.Serialization.FormerlySerializedAs("gearSlotItems")]
-    [SerializeField] private ItemData[] initialGearSlotItems = new ItemData[7];
     private int activeWeaponSlotIndex
     {
         get => PlayerAccountInventoryService.Loadout.ActiveWeaponSlot;
@@ -60,6 +54,30 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     public WeaponItemData CurrentWeaponData => CurrentWeaponItem != null ? CurrentWeaponItem.baseData as WeaponItemData : null;
     public WeaponFinalStats CurrentWeaponStats { get; private set; }
     public ResolvedWeaponContext CurrentWeaponContext { get; private set; }
+    public ItemData EquippedElementGem => PlayerAccountInventoryService.Loadout.ElementalGem;
+    public ElementGemModifiers GemModifiers => ElementGemQuality.Calculate(EquippedElementGem);
+    public WeaponElement ActiveElement => HasCurrentWeapon && EquippedElementGem?.baseData is ElementGemItemData gem ? gem.element : WeaponElement.None;
+    public int GemRevision { get; private set; }
+    public int WeaponContextRevision { get; private set; }
+    private string seenGemId;
+    public event System.Action GemSlotsChanged;
+    internal void SetElementGem(ItemData item)
+    {
+        if (item != null) item.EnsureRuntimeState();
+        PlayerAccountInventoryService.Loadout.ElementalGem = item;
+        Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
+    }
+    private bool SyncGemContext()
+    {
+        string id = EquippedElementGem?.runtimeInstanceId ?? string.Empty;
+        if ((seenGemId ?? string.Empty) == id) return false;
+        seenGemId = id;
+        GemRevision++;
+        ResetWeaponRuntimeStateForSwitch();
+        GemSlotsChanged?.Invoke();
+        RaiseGearSlotsChanged();
+        return true;
+    }
     public int ActiveWeaponSlotIndex => activeWeaponSlotIndex;
     public int WeaponSlotCountValue => WeaponSlotCount;
     public bool HasCurrentWeapon => CurrentWeaponItem != null && CurrentWeaponData != null && currentWeaponRoot != null;
@@ -95,17 +113,32 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     public WeaponRuntimeStatus CurrentWeaponRuntimeStatus => GetCurrentWeaponRuntimeStatus();
 
     private Transform spawnedWeaponRoot; // 생성 무기
+    private CombatHealth contextHealth;
     public event System.Action WeaponSlotsChanged; // 슬롯 변경
     public event System.Action GearSlotsChanged;
+
+    private void OnEnable()
+    {
+        WeaponContextRevision++;
+        contextHealth = GetComponent<CombatHealth>();
+        if (contextHealth != null) { contextHealth.OnDead += InvalidateDeadContext; contextHealth.OnReset += InvalidateResetContext; }
+    }
+    private void OnDisable()
+    {
+        WeaponContextRevision++;
+        if (contextHealth != null) { contextHealth.OnDead -= InvalidateDeadContext; contextHealth.OnReset -= InvalidateResetContext; }
+    }
+    private void InvalidateDeadContext(CombatHealth _, DamageInfo info) => WeaponContextRevision++;
+    private void InvalidateResetContext(CombatHealth _) => WeaponContextRevision++;
 
     private void Awake()
     {
         var loadout = PlayerAccountInventoryService.Loadout;
         if (!loadout.EquipmentInitialized)
         {
-            loadout.Weapons = initialWeaponSlotItems != null ? (ItemData[])initialWeaponSlotItems.Clone() : new ItemData[WeaponSlotCount];
-            loadout.Gear = initialGearSlotItems != null ? (ItemData[])initialGearSlotItems.Clone() : new ItemData[7];
-            loadout.ActiveWeaponSlot = Mathf.Clamp(initialActiveWeaponSlot, 0, WeaponSlotCount - 1);
+            loadout.Weapons = new ItemData[WeaponSlotCount];
+            loadout.Gear = new ItemData[6];
+            loadout.ActiveWeaponSlot = 0;
             loadout.EquipmentInitialized = true;
         }
         EnsureWeaponSlots(); // 슬롯 보장
@@ -213,7 +246,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
                 MapRunBuffs.Bonus(MapBuffKind.AttackSpeed));
         }
         CurrentWeaponStats = stats;
-        CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, CurrentWeaponItem != null ? CurrentWeaponItem.ResolvedElement : WeaponElement.None);
+        CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, ActiveElement);
     }
 
     public void SynchronizeAccountLoadoutVisual()
@@ -221,7 +254,13 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         EnsureWeaponSlots();
         EnsureGearSlots();
         var item = weaponSlotItems[activeWeaponSlotIndex];
-        if (CurrentWeaponItem == item && (item == null || currentWeaponRoot != null)) return;
+        bool gemChanged = SyncGemContext();
+        if (CurrentWeaponItem == item && (item == null || currentWeaponRoot != null))
+        {
+            RefreshCurrentWeaponStats();
+            if (gemChanged) NotifyWeaponSlotsChanged();
+            return;
+        }
         ResetWeaponRuntimeStateForSwitch();
         EquipCurrentWeaponVisual(item);
         RefreshCurrentWeaponStats();
@@ -279,10 +318,10 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private void EnsureGearSlots()
     {
-        if (gearSlotItems == null || gearSlotItems.Length != 7)
+        if (gearSlotItems == null || gearSlotItems.Length != 6)
         {
             ItemData[] original = gearSlotItems;
-            gearSlotItems = new ItemData[7];
+            gearSlotItems = new ItemData[6];
             if (original != null)
                 for (int i = 0; i < Mathf.Min(original.Length, gearSlotItems.Length); i++)
                     gearSlotItems[i] = original[i];
@@ -546,6 +585,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     private void ResetWeaponRuntimeStateForSwitch()
     {
+        WeaponContextRevision++;
         ResolveWeaponStateControllers(); // 참조 보장
         weaponRuntimeHub?.CancelAllActions(); // 무기 액션
         playerMovementController?.CancelWeaponActionLocks(); // 이동 잠금

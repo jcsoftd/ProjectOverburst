@@ -105,7 +105,7 @@ public static class CombatBalanceFormulas
 
     public static float LightTripleHitScale(OverburstElementTuning tuning, int hit, int radianceStacks, float overcharge)
         => hit == 0
-            ? tuning.SafeLightTripleHit1Base + tuning.SafeLightTripleHit1PerStack * radianceStacks / (float)tuning.SafeLightRadianceMaxStacks
+            ? tuning.SafeLightTripleHit1Base + tuning.SafeLightTripleHit1PerStack * radianceStacks / 100f
             : hit == 1 ? tuning.SafeLightTripleHit2Base + tuning.SafeLightTripleHit2PerOvercharge * overcharge
             : tuning.SafeLightTripleHit3Scale;
 

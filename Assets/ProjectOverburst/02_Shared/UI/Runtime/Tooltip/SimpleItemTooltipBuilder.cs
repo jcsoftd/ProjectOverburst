@@ -12,6 +12,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         if (item == null || item.baseData == null)
             return string.Empty;
 
+        if (item.baseData is ElementGemItemData) return ElementGemTooltip.Build(item);
         if (item.baseData is WeaponItemData weaponData)
             return BuildWeaponTooltip(item, weaponData);
 

@@ -200,6 +200,13 @@ public class InventoryContextMenuController : MonoBehaviour
         }
         switch (item.itemType)
         {
+            case "ElementGem":
+                string gemId = item.runtimeInstanceId;
+                AddButton("장착", true, () => { if (selectedSlot != null && ElementGemEquipmentService.EquipFromInventorySlot(selectedSlot.SlotIndex, gemId)) Close(); });
+                AddButton("정보", true, ShowSelectedItemInfo);
+                AddButton("버리기", true, DropSelectedItem);
+                AddButton("닫기", true, Close);
+                break;
             case "Gear":
                 AddButton("장착", true, () =>
                 {

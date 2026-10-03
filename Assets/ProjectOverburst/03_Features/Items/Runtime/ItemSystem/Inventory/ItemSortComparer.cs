@@ -261,6 +261,9 @@ public static class ItemSortComparer // 아이템 정렬
             case "Weapon":
                 return 0;
 
+            case "Gear":
+            case "ElementGem":
+                return 1;
             case "Bag":
                 return 2;
             case "Consumable":
@@ -293,7 +296,7 @@ public static class ItemSortComparer // 아이템 정렬
 
     private static int GetSellPrice(ItemData item)
     {
-        return item != null && item.baseData != null ? item.baseData.sellPrice : 0;
+        return ElementGemLootPolicy.Value(item);
     }
 
     private static string GetItemName(ItemData item)

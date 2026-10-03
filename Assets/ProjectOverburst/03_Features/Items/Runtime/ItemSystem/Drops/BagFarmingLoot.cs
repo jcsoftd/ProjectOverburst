@@ -24,7 +24,7 @@ public static class BagFarmingLoot
         return value;
     }
     public static bool Eligible(BaseItemData data)
-        => data is WeaponItemData || data is GearItemData || data is BagItemData || data is FlaskItemData;
+        => data is ElementGemItemData || data is WeaponItemData || data is GearItemData || data is BagItemData || data is FlaskItemData;
 
     // The map's existing bias is converted to weights first; the bag then multiplies Rare+ weights.
     public static ItemGrade SelectGrade(float roll, float[] weights, int maximum, float rarePercent, float mapBias = 0)
@@ -86,6 +86,7 @@ public static class BagFarmingLoot
     public static ItemData Extra(ItemData source, EnemyRank rank, int level, ItemGrade mapGrade, float rarePercent)
     {
         if (!Eligible(source?.baseData)) return null;
+        if (source.baseData is ElementGemItemData) return ElementGemLootPolicy.CreateRoll(level,rank!=null?rank.GradeType:EnemyGradeType.Normal,mapGrade,rarePercent);
         ItemGrade grade;
         if (source.baseData is WeaponItemData)
             TryTableGrade(ItemGrade.Common, ItemGrade.Mythic, true, rarePercent, out grade);

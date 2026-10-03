@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -29,7 +30,7 @@ public static class EquippedWeaponComparison
     // 툴팁 글꼴(Pretendard)에는 ▲▼가 있지만 슬롯 글꼴(Noto Serif 정적, Liberation)에는 없어 슬롯 ▲는 이 글꼴로 그린다.
     private const string CompareFontResource = "UI/Fonts/DamageFloating/Pretendard_Medium SDF";
     private const int CacheLimit = 256;
-    private const int GearSlotCount = 7;
+    private const int GearSlotCount = 6;
 
     public sealed class StatDelta
     {
@@ -117,6 +118,12 @@ public static class EquippedWeaponComparison
     {
         equipped = null;
         if (!Enabled || candidate == null) return false;
+        if (candidate.baseData is ElementGemItemData)
+        {
+            var eq = PlayerContext.Instance?.CurrentActorEquipment; TrackEquipment(eq);
+            equipped = eq?.EquippedElementGem;
+            return equipped != null && !IsSame(candidate, equipped) && ((ElementGemItemData)equipped.baseData).element == ((ElementGemItemData)candidate.baseData).element;
+        }
         if (candidate.baseData is GearItemData gear)
         {
             if (!GearEnabled || !HasRolls(candidate) || IsGearEquipped(candidate)) return false;
@@ -147,6 +154,7 @@ public static class EquippedWeaponComparison
     public static Result Compare(ItemData candidate, TooltipCompareMode mode)
     {
         if (!Enabled || candidate == null) return null;
+        if (candidate.baseData is ElementGemItemData) return CompareGem(candidate, mode);
         if (candidate.baseData is GearItemData gear) return CompareGear(candidate, gear, mode);
         if (!(candidate.baseData is WeaponItemData)) return null;
         // 툴팁은 한 번에 하나라 캐시 대신 매번 새로 계산한다(품질 재굴림 직후에도 정확하게).
@@ -203,6 +211,27 @@ public static class EquippedWeaponComparison
 
     // 방어구·장신구: 행마다 같은 능력치끼리 비교한다. 장착 장비에 없는 능력치는 0에서 오른 것으로,
     // 장착 장비에만 있는 능력치는 Lost(빠지는 능력치)로 둔다. 값은 툴팁에 보이는 것과 같은 GearQuality.Value다.
+    private static Result CompareGem(ItemData candidate, TooltipCompareMode mode)
+    {
+        var equipment = PlayerContext.Instance?.CurrentActorEquipment; TrackEquipment(equipment);
+        var equipped = equipment?.EquippedElementGem;
+        var result = new Result { Candidate = candidate, Equipped = equipped };
+        if (mode == TooltipCompareMode.EquippedReference || equipped != null && IsSame(candidate,equipped)) { result.IsEquippedItem = true; return result; }
+        if (!(equipped?.baseData is ElementGemItemData other) || other.element != ((ElementGemItemData)candidate.baseData).element) return null;
+        result.IsComparable = true;
+        var previous = ElementGemTooltip.Rows(equipped).ToDictionary(x=>x.Label);
+        var current = ElementGemTooltip.Rows(candidate);
+        foreach (var row in current)
+        {
+            previous.TryGetValue(row.Label,out var old);
+            bool ratio=row.Unit == ElementGemUnit.RatioBps;
+            result.Stats[row.Label]=Delta(row.Label,ratio?row.Value/100f:row.Value,old!=null?(ratio?old.Value/100f:old.Value):0,ratio||row.Unit==ElementGemUnit.PercentagePoints?2:0,ratio||row.Unit==ElementGemUnit.PercentagePoints?"%p":"");
+        }
+        foreach (var row in previous.Values) if(!current.Exists(x=>x.Label==row.Label))
+            result.Lost.Add(Delta(row.Label,0,row.Unit==ElementGemUnit.RatioBps?row.Value/100f:row.Value,2,row.Unit==ElementGemUnit.RatioBps?"%p":""));
+        return result;
+    }
+
     private static Result CompareGear(ItemData candidate, GearItemData gear, TooltipCompareMode mode)
     {
         if (!GearEnabled || !HasRolls(candidate)) return null;
@@ -314,6 +343,7 @@ public static class EquippedWeaponComparison
             var builder = new StringBuilder();
             AppendId(builder, subscribedEquipment.CurrentWeaponItem);
             for (int i = 0; i < GearSlotCount; i++) AppendId(builder.Append('|'), subscribedEquipment.GetGearSlotItem(i));
+            AppendId(builder.Append('|'), subscribedEquipment.EquippedElementGem);
             id = builder.ToString();
         }
         if (id == cachedEquippedId) return;

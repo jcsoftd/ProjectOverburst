@@ -77,8 +77,8 @@ public sealed class PlayerDashVfx : MonoBehaviour
         Color color;
         if (colorStyle == 6)
         {
-            var item = GetComponent<PlayerEquipment>()?.CurrentWeaponItem;
-            switch (item != null ? item.ResolvedElement : WeaponElement.None)
+            var equipment = GetComponent<PlayerEquipment>();
+            switch (equipment != null ? equipment.ActiveElement : WeaponElement.None)
             {
                 case WeaponElement.Fire: color = new Color(1f, .3f, .1f); break;
                 case WeaponElement.Ice: color = new Color(.42f, .87f, 1f); break;

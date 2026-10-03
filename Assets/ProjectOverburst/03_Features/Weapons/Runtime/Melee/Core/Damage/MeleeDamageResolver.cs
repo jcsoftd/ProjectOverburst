@@ -19,6 +19,7 @@ public readonly struct MeleeDamageRequest
     public readonly int SourceAttackPhaseIndex;
     public readonly PlayerAttackKind AttackKind;
     public readonly float WeakKnockbackDistance;
+    public readonly ElementGemAttackSnapshot GemAttack;
 
     public MeleeDamageRequest(
         IDamageable target,
@@ -37,8 +38,10 @@ public readonly struct MeleeDamageRequest
         int sourceAttackSequenceId = 0,
         PlayerAttackKind attackKind = PlayerAttackKind.Weak,
         int sourceAttackPhaseIndex = 0,
-        float weakKnockbackDistance = -1f)
+        float weakKnockbackDistance = -1f,
+        ElementGemAttackSnapshot gemAttack = default)
     {
+        GemAttack = gemAttack;
         Target = target;
         Damage = damage;
         Impact = impact;
@@ -85,7 +88,8 @@ public static class MeleeDamageResolver
         float criticalChance = Mathf.Clamp(request.CriticalChance, 0f, 100f);
         bool isCritical = criticalChance > 0f && Random.value * 100f < criticalChance;
         AttackImpactData impact = request.Impact;
-        int damageAmount = CombatBalanceFormulas.RoundedHitDamage(request.Damage, isCritical, request.CriticalDamageMultiplier);
+        float weakBonus = (request.AttackKind & PlayerAttackKind.Weak) != 0 ? request.GemAttack.WeakBonus(request.Target as CombatHealth) : 0;
+        int damageAmount = CombatBalanceFormulas.RoundedHitDamage(request.Damage * (1f + weakBonus / 100f), isCritical, request.CriticalDamageMultiplier);
         CombatHealth targetHealth = request.Target as CombatHealth;
         float hpBeforeHit = targetHealth != null ? targetHealth.CurrentHp : -1f;
 
@@ -114,7 +118,7 @@ public static class MeleeDamageResolver
             request.Element == WeaponElement.None ? request.AttackKind
                 : request.AttackKind | PlayerAttackKind.Elemental,
             request.SourceAttackPhaseIndex,
-            weakKnockbackDistance: request.WeakKnockbackDistance);
+            weakKnockbackDistance: request.WeakKnockbackDistance, gemAttack: request.GemAttack);
 
         request.Target.TakeDamage(info);
         float actualDamage = targetHealth != null && hpBeforeHit >= 0f

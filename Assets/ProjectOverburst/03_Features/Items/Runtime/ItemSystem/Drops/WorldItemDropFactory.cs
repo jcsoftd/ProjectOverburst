@@ -27,6 +27,12 @@ public static class WorldItemDropFactory // 월드 아이템 생성
         if (!WeaponContentPolicy.IsAllowedItemData(itemData))
             return null;
 
+        if (itemData is ElementGemItemData gem)
+        {
+            if (!ElementGemItemData.IsAllowed(gem.element,gem.fixedGrade) || gem.fixedGrade < minGrade || gem.fixedGrade > maxGrade) return null;
+            int low=OverburstGrowthRules.ClampLevel(Mathf.Min(minLevel,maxLevel)), high=OverburstGrowthRules.ClampLevel(Mathf.Max(minLevel,maxLevel));
+            return new ItemData(gem,low==high?low:Random.Range(low,high+1),gem.fixedGrade,1);
+        }
         int level = itemData is BagItemData ? OverburstGrowthRules.ClampLevel(minLevel) : 1;
         if (!TryResolveRuntimeGrade(minGrade, maxGrade, useVtpGradeRoll, out ItemGrade grade, rareGradePercent))
             return null; // 비활성 등급 범위는 신규 드랍 제외

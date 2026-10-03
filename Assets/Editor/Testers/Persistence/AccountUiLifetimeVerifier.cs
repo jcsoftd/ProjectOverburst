@@ -12,19 +12,14 @@ public static class AccountUiLifetimeVerifier
         object original = property.GetValue(null);
         object isolated = Activator.CreateInstance(property.PropertyType, true);
         var objects = new List<UnityEngine.Object>();
+        var originalSession = Overburst.Persistence.AccountGameplaySession.Current;
+        originalSession?.Detach();
         property.SetValue(null, isolated);
         try
         {
             var bagData = ScriptableObject.CreateInstance<BagItemData>(); objects.Add(bagData);
             var consumable = ScriptableObject.CreateInstance<ConsumableItemData>(); objects.Add(consumable);
             var bag = new ItemData(bagData, 1, ItemGrade.Mythic);
-            bag.bagState = null;
-            bag.bagOptions = new List<BagRandomOptionRoll>
-            {
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MaxHp, value = 17 },
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MaxStamina, value = 11 },
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MoveSpeedPercent, value = 5 }
-            };
             property.PropertyType.GetField("Bags", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(isolated, new[] { bag });
             var ui = NewInactive("UI lifetime fixture", objects);
             var bindings = ui.AddComponent<InventoryQuickSlotBindingController>();
@@ -45,18 +40,19 @@ public static class AccountUiLifetimeVerifier
             service.RefreshBagBonuses(null, health);
             bag.EnsureRuntimeState();
             if (bag.bagOptions.Count != 0 || !BagQuality.IsValid(bag.bagState, bag.grade))
-                throw new Exception("Legacy bag quality not migrated");
+                throw new Exception("Fresh bag quality changed on UI recreation");
             if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("Bag altered combat HP");
             UnityEngine.Object.DestroyImmediate(replacement);
             if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("UI destruction removed bag stats");
             service.RefreshBagBonuses(null, null);
             if (Mathf.Abs(health.MaxHp - 100) > 0.01f) throw new Exception("Old actor bonuses not removed");
-            return "PASS quickslot and bag survive UI recreation; legacy bag converts to saved stars; bag never alters combat HP; UI destruction preserves quality";
+            return "PASS quickslot and fresh bag survive UI recreation; bag never alters combat HP; UI destruction preserves quality";
         }
         finally
         {
             for (int i = objects.Count - 1; i >= 0; i--) if (objects[i] != null) UnityEngine.Object.DestroyImmediate(objects[i]);
             property.SetValue(null, original);
+            originalSession?.Attach();
         }
     }
 

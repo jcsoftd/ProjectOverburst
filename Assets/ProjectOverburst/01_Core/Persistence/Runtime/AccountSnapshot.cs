@@ -6,7 +6,7 @@ namespace Overburst.Persistence
     [Serializable]
     public sealed class AccountSnapshot
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string profileId = "default";
         public long revision;
         public long nextAcquisitionOrder = 1;
@@ -32,7 +32,7 @@ namespace Overburst.Persistence
         public RunSnapshot run;
         public string lastTransactionId;
         public long bossClearCount;
-        public bool legacyProgressionImported;
+        public string elementalGemInstanceId;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)
         {
@@ -69,12 +69,10 @@ namespace Overburst.Persistence
         public ItemGrade grade;
         public int count;
         public string originRunId;
-        public WeaponElement element;
-        public bool hasElement;
         public MeleeStarDistributionProfile qualityProfile;
         public List<WeaponGradeStatRoll> weaponRolls = new List<WeaponGradeStatRoll>();
         public List<GearStatRoll> gearRolls = new List<GearStatRoll>();
-        public List<BagRandomOptionRoll> bagRolls = new List<BagRandomOptionRoll>();
+        public ElementGemState gemState;
         public BagInstanceState bag;
         public FlaskInstanceState flask;
         public MapInstanceState map;

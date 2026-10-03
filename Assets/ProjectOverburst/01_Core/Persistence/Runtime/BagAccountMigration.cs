@@ -9,7 +9,7 @@ namespace Overburst.Persistence
         public static AccountSnapshot Upgrade(AccountSnapshot source, AccountContentRegistry registry, out bool changed)
         {
             changed = false;
-            if (source == null || source.schemaVersion != 1) throw new InvalidDataException("Unsupported bag account schema.");
+            if (source == null || source.schemaVersion != 2) throw new InvalidDataException("Unsupported bag account schema.");
             var copy = ItemSnapshotCodec.CopyValues(source);
             if (copy.inventory == null || copy.inventory.Count != copy.inventoryCapacity || copy.items == null)
                 throw new InvalidDataException("Invalid legacy inventory dimensions.");
@@ -36,11 +36,7 @@ namespace Overburst.Persistence
                 if (!BagQuality.IsValid(item.bag, item.grade)) throw new InvalidDataException("Invalid saved bag quality.");
                 return false;
             }
-            ValidateLegacy(item.bagRolls);
-            item.level = OverburstGrowthRules.ClampLevel(acquisitionLevel);
-            item.bag = BagQuality.Roll(item.grade, BagQuality.Seed(item.instanceId), item.level >= OverburstGrowthRules.MaximumLevel);
-            item.bagRolls = new List<BagRandomOptionRoll>();
-            return true;
+            throw new InvalidDataException("Legacy bag conversion is retired; saved bag state is required.");
         }
 
         public static void UpgradeRuntime(ItemData item)

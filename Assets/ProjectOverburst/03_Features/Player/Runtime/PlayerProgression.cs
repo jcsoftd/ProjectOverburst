@@ -4,8 +4,6 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PlayerProgression : MonoBehaviour
 {
-    private const string LevelKey = "Overburst.PlayerLevel.v1";
-    private const string ExperienceKey = "Overburst.PlayerExperience.v1";
     private PlayerContext context;
     private PlayerEquipment equipment;
     private CombatHealth health;
@@ -39,16 +37,15 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void Awake()
     {
-        Level = OverburstGrowthRules.ClampLevel(PlayerPrefs.GetInt(LevelKey, 1));
-        Experience = Level >= OverburstGrowthRules.MaximumLevel ? 0
-            : Mathf.Clamp(PlayerPrefs.GetInt(ExperienceKey, 0), 0, Mathf.Max(0, ExperienceToNext - 1));
+        Level = 1;
+        Experience = 0;
     }
 
     private void OnDisable()
     {
         Save();
         if (context != null) context.CurrentActorChanged -= BindActor;
-        if (equipment != null) equipment.GearSlotsChanged -= RefreshStats;
+        if (equipment != null) { equipment.GearSlotsChanged -= RefreshStats; equipment.GemSlotsChanged -= RefreshGemStats; }
     }
 
     private void OnApplicationPause(bool paused)
@@ -115,11 +112,6 @@ public sealed class PlayerProgression : MonoBehaviour
             Level++;
         }
         if (Level >= OverburstGrowthRules.MaximumLevel) Experience = 0;
-        if (Overburst.Persistence.AccountGameplaySession.Current == null && !Overburst.Persistence.AccountBootstrap.Attempted)
-        {
-            PlayerPrefs.SetInt(LevelKey, Level);
-            PlayerPrefs.SetInt(ExperienceKey, Experience);
-        }
         NotifyExperienceCommitted(previousLevel);
     }
 
@@ -141,7 +133,9 @@ public sealed class PlayerProgression : MonoBehaviour
         });
     }
 
-    public void RefreshStats()
+    private void RefreshGemStats() => RefreshStatsCore(false);
+    public void RefreshStats() => RefreshStatsCore(true);
+    private void RefreshStatsCore(bool healIncrease)
     {
         if (equipment != null) equipment.RefreshCurrentWeaponStats();
         if (health == null) return;
@@ -153,28 +147,24 @@ public sealed class PlayerProgression : MonoBehaviour
         float nextMaximum = Mathf.Max(1f, baseMaximum + bonus);
         appliedHealthBonus = bonus;
         health.SetMaxHp(nextMaximum, false);
-        if (!health.IsDead && nextMaximum > previousMaximum)
+        if (healIncrease && !health.IsDead && nextMaximum > previousMaximum)
             health.Heal(nextMaximum - previousMaximum);
         Changed?.Invoke();
     }
 
     private void BindActor(PlayerActorRuntime actor)
     {
-        if (equipment != null) equipment.GearSlotsChanged -= RefreshStats;
+        if (equipment != null) { equipment.GearSlotsChanged -= RefreshStats; equipment.GemSlotsChanged -= RefreshGemStats; }
         CombatHealth nextHealth = actor != null ? actor.Health : null;
         if (nextHealth != health) appliedHealthBonus = 0f;
         equipment = actor != null ? actor.Equipment : null;
         health = nextHealth;
-        if (equipment != null) equipment.GearSlotsChanged += RefreshStats;
+        if (equipment != null) { equipment.GemSlotsChanged += RefreshGemStats; equipment.GearSlotsChanged += RefreshStats; }
         RefreshStats();
     }
 
     private void Save()
     {
         FlushPendingExperience();
-        if (Overburst.Persistence.AccountGameplaySession.Current != null || Overburst.Persistence.AccountBootstrap.Attempted) return;
-        PlayerPrefs.SetInt(LevelKey, Level);
-        PlayerPrefs.SetInt(ExperienceKey, Experience);
-        PlayerPrefs.Save();
     }
 }

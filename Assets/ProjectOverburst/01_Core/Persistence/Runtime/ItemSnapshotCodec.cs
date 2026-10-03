@@ -15,17 +15,14 @@ namespace Overburst.Persistence
         public static ItemSnapshot Capture(ItemData item, AccountContentRegistry registry)
         {
             if (item == null) return null;
-            ItemBalanceMigration.UpgradeRuntime(item);
-            BagAccountMigration.UpgradeRuntime(item);
             var snapshot = new ItemSnapshot
             {
                 contentId = registry.IdFor(item.baseData), instanceId = item.runtimeInstanceId, balanceVersion = item.balanceVersion,
                 acquisitionOrder = item.acquisitionOrder, level = item.level, grade = item.grade,
                 count = item.stackCount, originRunId = item.originRunId,
-                element = item.ResolvedElement, hasElement = item.HasInstanceElement,
                 qualityProfile = item.meleeStarDistributionProfile,
                 weaponRolls = item.weaponGradeStatRolls, gearRolls = item.gearRolls,
-                bagRolls = item.bagOptions, bag = item.bagState, flask = item.flaskState, map = item.mapState
+                gemState = item.gemState, bag = item.bagState, flask = item.flaskState, map = item.mapState
             };
             Validate(snapshot, registry);
             return CopyValues(snapshot);
@@ -34,10 +31,7 @@ namespace Overburst.Persistence
         public static ItemData Restore(ItemSnapshot snapshot, AccountContentRegistry registry, int? legacyBagLevel = null)
         {
             var copy = CopyValues(snapshot);
-            ItemBalanceMigration.Upgrade(copy, registry.Resolve<BaseItemData>(copy.contentId));
-            BagAccountMigration.UpgradeItem(copy, registry.Resolve<BaseItemData>(copy.contentId), legacyBagLevel ?? PlayerProgression.CurrentLevel);
             Validate(copy, registry);
-            copy.element = OverburstElementRules.MigrateLegacy(copy.element);
             return ItemData.RestoreSaved(copy, registry.Resolve<BaseItemData>(copy.contentId));
         }
 
@@ -49,14 +43,15 @@ namespace Overburst.Persistence
             if (s.balanceVersion != OverburstCombatBalance.ItemBalanceVersion)
                 throw new InvalidDataException("Saved item requires balance migration.");
             if (s.level < 1 || s.level > 100) throw new InvalidDataException("Saved item level outside 1..100.");
-            if (!Enum.IsDefined(typeof(WeaponElement), s.element)) throw new InvalidDataException("Invalid saved element.");
-            if (data is WeaponItemData && (s.weaponRolls == null || !s.hasElement)) throw new InvalidDataException("Missing saved weapon rolls/element.");
+            if (data is WeaponItemData && s.weaponRolls == null) throw new InvalidDataException("Missing saved weapon rolls/element.");
             if (data is WeaponItemData weapon && WeaponGradeStatRoller.IsMeleeWeapon(weapon)
                 && !WeaponGradeStatRoller.HasFormalMeleeGradeRolls(weapon, s.grade, s.weaponRolls, s.qualityProfile))
                 throw new InvalidDataException("Invalid saved melee quality rows.");
             if (data is GearItemData gear && !GearQuality.IsValid(gear, s.grade, s.gearRolls)) throw new InvalidDataException("Invalid saved gear rolls.");
-            if (data is BagItemData && (!BagQuality.IsValid(s.bag, s.grade) || s.bagRolls == null || s.bagRolls.Count != 0))
+            if (data is BagItemData && !BagQuality.IsValid(s.bag, s.grade))
                 throw new InvalidDataException("Invalid saved bag quality or active legacy options.");
+            if (data is ElementGemItemData gem && !ElementGemQuality.IsValid(gem, s.level, s.grade, s.count, s.gemState)) throw new InvalidDataException("Invalid saved gem quality.");
+            if (!(data is ElementGemItemData) && s.gemState != null) throw new InvalidDataException("Non-gem contains gem state.");
             if (!(data is BagItemData) && s.bag != null) throw new InvalidDataException("Non-bag item contains bag state.");
             if (data is FlaskItemData && !FlaskGradeRoller.IsValid(s.flask, s.grade)) throw new InvalidDataException("Invalid saved flask rolls.");
             if (s.map != null && (s.map.level < 1 || s.map.level > 100 || s.map.options == null || !Enum.IsDefined(typeof(ItemGrade), s.map.grade))) throw new InvalidDataException("Invalid saved map.");

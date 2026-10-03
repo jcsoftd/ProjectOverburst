@@ -10,7 +10,7 @@ public readonly struct ResolvedWeaponContext
         Source = source;
         CombatDefinition = source != null ? source.combatDefinition : null;
         Stats = stats;
-        WeaponElement candidate = instanceElement ?? (source != null ? source.defaultElement : WeaponElement.None);
+        WeaponElement candidate = instanceElement ?? WeaponElement.None;
         element = OverburstElementRules.IsActive(candidate) ? candidate : WeaponElement.None;
     }
 

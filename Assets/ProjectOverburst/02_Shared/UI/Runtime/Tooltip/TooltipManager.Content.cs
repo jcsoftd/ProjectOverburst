@@ -15,6 +15,13 @@ public partial class TooltipManager
         SetActive(weaponHeaderRoot, true);
         SetActive(meleeStatListView, false);
 
+        if (item.baseData is ElementGemItemData)
+        {
+            SetDefaultTooltipContent(item);
+            SetItemHeader(item, item.itemName, ElementGemTooltip.Subtitle(item));
+            basicStatsText.text = ElementGemTooltip.Details(item);
+            return;
+        }
         if (item.baseData is WeaponItemData weaponData)
         {
             SetWeaponTooltipContent(item, weaponData); // 무기 툴팁
@@ -90,7 +97,7 @@ public partial class TooltipManager
             ? ItemTooltipFormatter.GetWeaponClassName(weaponData.weaponClass)
             : string.Empty;
         string elementName = item != null ? GetWeaponElementName(item.ResolvedElement) : "무속성";
-        SetItemHeader(item, displayName, categoryName + " / " + weaponClassName + " · " + elementName);
+        SetItemHeader(item, displayName, categoryName + " / " + weaponClassName);
     }
 
     private void SetItemHeader(ItemData item, string displayName, string subtitle)
@@ -295,7 +302,7 @@ public partial class TooltipManager
 
         int unitValue = item.baseData is CurrencyItemData currencyData && currencyData.currencyType == CurrencyType.Gold
             ? 1
-            : Mathf.Max(0, item.baseData.sellPrice);
+            : Mathf.Max(0, ElementGemLootPolicy.Value(item));
         return unitValue * Mathf.Max(1, item.stackCount);
     }
 

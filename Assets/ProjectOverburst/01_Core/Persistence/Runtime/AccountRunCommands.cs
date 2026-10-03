@@ -150,6 +150,7 @@ namespace Overburst.Persistence
         {
             var removed = new HashSet<string> { item.instanceId };
             foreach (var container in PlayerContainers(state)) ClearReferences(container, removed);
+            if (removed.Contains(state.elementalGemInstanceId ?? "")) state.elementalGemInstanceId = null;
             ClearReferences(state.flasks, removed);
             foreach (var quick in state.quickSlots)
             {
@@ -212,6 +213,7 @@ namespace Overburst.Persistence
         private static IEnumerable<List<string>> PlayerContainers(AccountSnapshot state)
         {
             yield return state.inventory; yield return state.weapons; yield return state.gear; yield return state.bags;
+            yield return new List<string> { state.elementalGemInstanceId };
         }
         private static void ClearReferences(List<string> slots, HashSet<string> removed)
         {
@@ -220,6 +222,7 @@ namespace Overburst.Persistence
         private static void Remove(AccountSnapshot state, HashSet<string> removed)
         {
             foreach (var slots in PlayerContainers(state)) ClearReferences(slots, removed);
+            if (removed.Contains(state.elementalGemInstanceId ?? "")) state.elementalGemInstanceId = null;
             foreach (var tab in state.stashTabs) ClearReferences(tab.slots, removed);
             ClearReferences(state.flasks, removed);
             foreach (var quick in state.quickSlots) if (removed.Contains(quick.flaskInstanceId ?? "")) quick.flaskInstanceId = null;

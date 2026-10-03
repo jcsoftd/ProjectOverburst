@@ -447,7 +447,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             return WeaponElement.None;
         }
 
-        WeaponElement element = equipment.CurrentWeaponItem.ResolvedElement;
+        WeaponElement element = equipment.ActiveElement;
         return OverburstElementRules.IsActive(element) ? element : WeaponElement.None;
     }
 

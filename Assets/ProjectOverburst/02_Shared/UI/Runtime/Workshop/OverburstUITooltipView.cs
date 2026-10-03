@@ -28,7 +28,7 @@ public sealed class OverburstUITooltipView : MonoBehaviour
         if(!approvedSkin)approvedSkin=GetComponent<OverburstTooltipHybridSkin>();
         if(!body.spriteAsset)body.spriteAsset=Resources.Load<TMP_SpriteAsset>("OverburstUI/QualityDiamonds");
         string[] lines=SimpleItemTooltipBuilder.Build(item).Replace("\r","").Split('\n');
-        bool hasSubtitle=item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ConsumableItemData||item.baseData is MapItemData;
+        bool hasSubtitle=item.baseData is ElementGemItemData||item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ConsumableItemData||item.baseData is MapItemData;
         subtitle.text=hasSubtitle&&lines.Length>1?System.Text.RegularExpressions.Regex.Replace(lines[1],"<[^>]+>",""):item.baseData is ConsumableItemData?"소비 아이템":"아이템";
         if(item.baseData is MapItemData)subtitle.text+=" · 레벨 "+Mathf.Clamp(item.mapState!=null?item.mapState.level:item.level,1,100);
         if(item.baseData is WeaponItemData){
@@ -36,7 +36,7 @@ public sealed class OverburstUITooltipView : MonoBehaviour
             if(!string.IsNullOrEmpty(element)&&!subtitle.text.Contains(" · "+element))subtitle.text+=" · "+element;
         }
         // 2026-10-01: 아이템 레벨은 종류 줄 아래 둘째 줄로 내린다(사용자 지정).
-        if(item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData)
+        if(item.baseData is ElementGemItemData||item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData)
             subtitle.text+="\n아이템 레벨 "+OverburstGrowthRules.ClampLevel(item.level);
         string detail=string.Join("\n",lines.Skip(hasSubtitle?2:1)).Replace("<color=#7A6A4B>--------------------------</color>","").Trim();
         var formatted=new System.Text.StringBuilder();bool gap=false;

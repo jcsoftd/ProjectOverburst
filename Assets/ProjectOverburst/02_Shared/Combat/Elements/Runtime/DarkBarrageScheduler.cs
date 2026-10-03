@@ -33,6 +33,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
 
     private sealed class Cast
     {
+        public ElementGemAttackSnapshot GemAttack;
         public GameObject Source;
         public CombatTeam Team;
         public Vector3 Center;
@@ -49,7 +50,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         public readonly HashSet<int> VolleyTargets = new HashSet<int>();
         public void Clear()
         {
-            Source = null; Entries.Clear(); Shots.Clear(); Deck.Clear(); Donors.Clear(); VolleyTargets.Clear(); Clock = 0f; Remaining = 0;
+            GemAttack = default; Source = null; Entries.Clear(); Shots.Clear(); Deck.Clear(); Donors.Clear(); VolleyTargets.Clear(); Clock = 0f; Remaining = 0;
             StackSum = DeckCursor = 0; LastPicked = -1;
             CurrentVolley = -1; SfxEnergy = 0f;
             StopLaunching = FinisherAnnounced = false; Vfx = default;
@@ -184,10 +185,11 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         cast.Team = team;
         cast.Center = center;
         cast.Vfx = vfx;
+        cast.GemAttack = discharge.GemAttack;
         cast.SfxEnergy = discharge.Energy;
         cast.StartFrame = Time.frameCount;
         cast.VerticalTolerance = Mathf.Max(0f, verticalTolerance);
-        float damageBonus = 1f + FlaskCombatModifiers.Bonus(source, FlaskEffect.DarkBurstDamage);
+        float damageBonus = 1f + FlaskCombatModifiers.Bonus(source, FlaskEffect.DarkBurstDamage) + discharge.GemAttack.Modifiers.ProjectileDamage / 100f;
         cast.ShotDamage = discharge.FirstBlastDamage * tuning.SafeDarkBarrageShotDamage * damageBonus;
         cast.Interval = tuning.SafeDarkBarrageFireInterval;
         cast.ShotsPerVolley = tuning.SafeDarkBarrageShotsPerVolley;
@@ -301,7 +303,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         for (int c = active.Count - 1; c >= 0; c--)
         {
             Cast cast = active[c];
-            if (cast.Source == null) { Retire(c); continue; }
+            if (cast.Source == null || !cast.GemAttack.IsCurrent) { Retire(c); continue; }
             // The submit frame's delta belongs to the wind-up, not to the barrage.
             if (Time.frameCount != cast.StartFrame) cast.Clock += dt;
             for (int i = 0; i < cast.Shots.Count; i++)
@@ -522,7 +524,7 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
         feedbackSource = cast.Source; feedbackPoint = point; feedbackDirection = direction; damageConfirmed = false;
         entry.Health.OnDamageResolved += OnBarrageDamageResolved;
-        try { UpperElementCombatUtility.DealDerivedDamage(entry.Health, cast.ShotDamage, point, cast.Source, direction, WeaponElement.Dark); }
+        try { UpperElementCombatUtility.DealDerivedDamage(entry.Health, cast.ShotDamage, point, cast.Source, direction, WeaponElement.Dark, cast.GemAttack); }
         finally { if (entry.Health != null) entry.Health.OnDamageResolved -= OnBarrageDamageResolved; feedbackSource = null; }
         if (!damageConfirmed) return false;
         SpawnHitVfx(cast, point, shot.Finisher, now, tuning);

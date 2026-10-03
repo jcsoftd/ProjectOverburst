@@ -119,7 +119,7 @@ public static class ElementEnergyDebug
         get
         {
             ItemData weapon = Equipment != null ? Equipment.CurrentWeaponItem : null;
-            return weapon != null ? weapon.ResolvedElement : WeaponElement.None;
+            return Equipment != null ? Equipment.ActiveElement : WeaponElement.None;
         }
     }
 

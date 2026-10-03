@@ -15,7 +15,7 @@ public static class AccountPersistenceVerifier
         var state = new AccountSnapshot();
         state.inventory.AddRange(Enumerable.Repeat<string>(null, state.inventoryCapacity));
         for (int i = 0; i < 3; i++) state.stashTabs.Add(new ItemContainerSnapshot { slots = Enumerable.Repeat<string>(null, state.stashCapacity).ToList() });
-        state.weapons.Add(null); state.gear.AddRange(Enumerable.Repeat<string>(null, 7)); state.bags.Add(null);
+        state.weapons.Add(null); state.gear.AddRange(Enumerable.Repeat<string>(null, 6)); state.bags.Add(null);
         state.flasks.AddRange(Enumerable.Repeat<string>(null, 3));
         for (int i = 0; i < 10; i++) state.quickSlots.Add(new QuickSlotSnapshot());
         var store = new EasySaveAccountStore(directory);

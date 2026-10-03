@@ -96,7 +96,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
         if (item == null || !item.baseData || !Resolve())
             return false;
 
-        comparison = compareReady && (item.baseData is WeaponItemData || item.baseData is GearItemData)
+        comparison = compareReady && (item.baseData is ElementGemItemData || item.baseData is WeaponItemData || item.baseData is GearItemData)
             ? EquippedWeaponComparison.Compare(item, CompareMode) : null;
         compareColumns = comparison != null && comparison.IsComparable;
         if (equippedTag) equippedTag.SetActive(comparison != null && comparison.IsEquippedItem);
@@ -129,12 +129,18 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
 
         HideStructuredContent();
         float contentTop = ruleY + 19f;
-        if (item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData || item.baseData is BagItemData)
+        if (item.baseData is ElementGemItemData || item.baseData is WeaponItemData || item.baseData is FlaskItemData || item.baseData is GearItemData || item.baseData is BagItemData)
         {
             List<Stat> stats = new List<Stat>(12);
             string notes = string.Empty;
             bool isFlask = item.baseData is FlaskItemData;
-            if (item.baseData is BagItemData)
+            if (item.baseData is ElementGemItemData)
+            {
+                foreach(var row in ElementGemTooltip.Rows(item)) stats.Add(new Stat { label=row.Label,value=row.Formatted,marks=row.Fixed?string.Empty:ConvertMarks(row.Marks) });
+                notes=ElementGemTooltip.Notes(item);
+                if(compareColumns) foreach(var lost in comparison.Lost) stats.Add(new Stat {label=lost.Label,value="없음",marks=string.Empty,compare=lost.Text});
+            }
+            else if (item.baseData is BagItemData)
             {
                 CollectBagStats(item, rawLines, stats);
                 if (PlayerProgression.CurrentLevel >= OverburstGrowthRules.MaximumLevel && item.bagState.rows.Any(x => x.stat == BagStat.KillExperience))
@@ -279,17 +285,18 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
     private void RenderStats(ItemData item, bool isFlask, List<Stat> stats, string notes,
         string priceOverride, float contentTop, TMP_SpriteAsset spriteAsset)
     {
+        bool isGem = item.baseData is ElementGemItemData;
         bool isBag = item.baseData is BagItemData;
-        bool isGear = item.baseData is GearItemData || isBag;
+        bool isGear = item.baseData is GearItemData || isBag || isGem;
         bool isWeapon = item.baseData is WeaponItemData;
         // 무기·장비는 품질 각인 변화를 값 아래 줄로 내린다(물약과 같은 두 줄, 행 높이 41).
         bool twoLine = isFlask || isWeapon || isGear;
-        int primaryCount = Mathf.Min(isGear ? 1 : isFlask ? 2 : 5, stats.Count);
+        int primaryCount = Mathf.Min(isGem ? ElementGemTooltip.Rows(item).Count(x=>x.Fixed) : isGear ? 1 : isFlask ? 2 : 5, stats.Count);
         float rowHeight = twoLine ? 41f : 34f;
         float y = contentTop;
         primaryHeading.text = isFlask && item.baseData is FlaskItemData flask &&
             (flask.kind == FlaskKind.Life || flask.kind == FlaskKind.Regeneration)
-            ? "회복 성능" : isFlask ? "주요 효과" : isBag ? "수납" : isGear ? "주능력치" : "전투 성능";
+            ? "회복 성능" : isGem ? "고정 효과" : isFlask ? "주요 효과" : isBag ? "수납" : isGear ? "주능력치" : "전투 성능";
         qualityHeading.text = "품질 각인";
         SetRect(primaryHeading.rectTransform, 26f, y, 180f, 24f);
         SetRect(qualityHeading.rectTransform, 286f, y, 120f, 24f);
@@ -314,7 +321,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             SetRect(secondaryRule.rectTransform, 26f, y, ContentWidth, 1f);
             secondaryRule.gameObject.SetActive(true);
             y += 18f;
-            secondaryHeading.text = isFlask ? "사용 주기" : isBag ? "파밍 옵션" : isGear ? "보조능력치" : "보조 성능";
+            secondaryHeading.text = isGem ? "랜덤 능력치" : isFlask ? "사용 주기" : isBag ? "파밍 옵션" : isGear ? "보조능력치" : "보조 성능";
             SetRect(secondaryHeading.rectTransform, 26f, y, ContentWidth, 24f);
             secondaryHeading.gameObject.SetActive(true);
             y += 30f;
@@ -332,7 +339,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             priceRule.gameObject.SetActive(true);
             y += 14f;
             priceLabel.text = priceOverride == null ? "가치" : "거래 가격";
-            priceValue.text = priceOverride ?? item.baseData.sellPrice.ToString("N0", CultureInfo.InvariantCulture) + "G";
+            priceValue.text = priceOverride ?? ElementGemLootPolicy.Value(item).ToString("N0", CultureInfo.InvariantCulture) + "G";
             SetRect(priceLabel.rectTransform, 26f, y, 180f, 27f);
             SetRect(priceValue.rectTransform, 266f, y, 140f, 27f);
             priceLabel.gameObject.SetActive(true);
@@ -340,7 +347,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             y += 27f;
         }
 
-        string footerValue = isFlask ? notes : item.baseData.description;
+        string footerValue = isFlask || isGem ? notes : item.baseData.description;
         if (!string.IsNullOrWhiteSpace(footerValue))
         {
             y += 13f;

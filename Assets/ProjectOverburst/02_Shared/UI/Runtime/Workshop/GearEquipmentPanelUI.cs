@@ -6,11 +6,13 @@ public sealed class GearEquipmentPanelUI : MonoBehaviour
     private static readonly string[] SlotNames =
     {
         "Slot • 투구", "Slot • 갑옷", "Slot • 장갑", "Slot • 신발",
-        "Slot • 귀걸이 1", "Slot • 귀걸이 2", "Slot • 목걸이"
+        "Slot • 귀걸이", "Slot • 목걸이"
     };
-    private readonly OverburstUIItemSlotView[] views = new OverburstUIItemSlotView[7];
-    private readonly ItemData[] shown = new ItemData[7];
+    private readonly OverburstUIItemSlotView[] views = new OverburstUIItemSlotView[6];
+    private readonly ItemData[] shown = new ItemData[6];
 
+    private OverburstUIItemSlotView gemView;
+    private ItemData shownGem;
     public void Bind()
     {
         Transform layout = transform.Find("Layout");
@@ -25,10 +27,19 @@ public sealed class GearEquipmentPanelUI : MonoBehaviour
             if (pointer == null) pointer = slot.gameObject.AddComponent<GearEquipmentSlotUI>();
             pointer.Bind(i);
         }
+        Transform gemSlot = layout.Find("Slot • 원소보석");
+        if (gemSlot != null)
+        {
+            gemView = gemSlot.GetComponent<OverburstUIItemSlotView>();
+            var pointer = gemSlot.GetComponent<ElementGemEquipmentSlotUI>() ?? gemSlot.gameObject.AddComponent<ElementGemEquipmentSlotUI>();
+            pointer.Configure(layout.Find("Label • 원소보석")?.GetComponent<UnityEngine.UI.Text>());
+        }
     }
 
     public void Refresh(PlayerEquipment equipment)
     {
+        var gem = equipment != null ? equipment.EquippedElementGem : null;
+        if (gemView != null && gem != shownGem) { shownGem = gem; gemView.Present(gem != null ? gem.icon : null, gem != null ? gem.grade : ItemGrade.Common); }
         for (int i = 0; i < views.Length; i++)
         {
             if (views[i] == null) continue;

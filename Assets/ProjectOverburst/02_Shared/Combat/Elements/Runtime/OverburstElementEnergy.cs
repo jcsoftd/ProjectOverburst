@@ -12,6 +12,9 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     private int generation;
     public WeaponElement Element { get; private set; }
     public string WeaponInstanceId { get; private set; } = string.Empty;
+    public string GemInstanceId { get; private set; } = string.Empty;
+    public int GemRevision { get; private set; }
+    public int RadianceMaximum => OverburstElementTuning.Current.SafeLightRadianceMaxStacks + (equipment != null ? equipment.GemModifiers.RadianceExtra : 0);
     public float Amount { get; private set; }
     public float BaseMaximum => Mathf.Max(1f, OverburstElementTuning.Current.maximumEnergy);
     // Light alone stores past the shared 100 base. Every existing consumer keeps reading the 0..1 base ratio.
@@ -22,7 +25,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         : Mathf.Clamp01((Amount - BaseMaximum) / Mathf.Max(0.0001f, Capacity - BaseMaximum));
     // Radiance exists only inside the 101..200 light band and is consumed by the heavy.
     public int RadianceStacks { get; private set; }
-    public float RadianceNormalized => RadianceStacks / (float)Mathf.Max(1, OverburstElementTuning.Current.SafeLightRadianceMaxStacks);
+    public float RadianceNormalized => RadianceStacks / (float)Mathf.Max(1, RadianceMaximum);
     public float FullHoldRemaining => Mathf.Max(0f, holdUntil - Time.time);
     private float holdUntil;
     private float changedThrottle;
@@ -50,17 +53,20 @@ public sealed class OverburstElementEnergy : MonoBehaviour
     {
         ItemData item = equipment != null ? equipment.CurrentWeaponItem : null;
         bool changed = WeaponInstanceId != (item != null ? item.runtimeInstanceId : string.Empty)
-            || Element != (item != null ? item.ResolvedElement : WeaponElement.None);
-        BindWeapon(item != null ? item.runtimeInstanceId : string.Empty, item != null ? item.ResolvedElement : WeaponElement.None);
+            || Element != (equipment != null ? equipment.ActiveElement : WeaponElement.None)
+            || GemInstanceId != (equipment?.EquippedElementGem?.runtimeInstanceId ?? string.Empty) || GemRevision != (equipment != null ? equipment.GemRevision : 0);
+        BindWeapon(item != null ? item.runtimeInstanceId : string.Empty, equipment != null ? equipment.ActiveElement : WeaponElement.None,
+            equipment?.EquippedElementGem?.runtimeInstanceId ?? string.Empty, equipment != null ? equipment.GemRevision : 0);
         if (changed) MeleeHeavyVfxPreparation.RequestForEquippedWeapon(equipment, Element);
     }
-    public void BindWeapon(string weaponId, WeaponElement element)
+    public void BindWeapon(string weaponId, WeaponElement element, string gemId = "", int gemRevision = 0)
     {
         weaponId = weaponId ?? string.Empty;
         if (!OverburstElementRules.IsActive(element)) element = WeaponElement.None;
-        if (WeaponInstanceId == weaponId && Element == element) return;
+        if (WeaponInstanceId == weaponId && Element == element && GemInstanceId == gemId && GemRevision == gemRevision) return;
         Clear();
         WeaponInstanceId = weaponId;
+        GemInstanceId = gemId; GemRevision = gemRevision;
         Element = element;
         Changed?.Invoke();
     }
@@ -96,7 +102,7 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         if (!newPhase || !IsOvercharged) return;
         int gain = Mathf.RoundToInt(tuning.SafeLightRadianceStacksPerPhase
             * (1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.LightRadianceGain)));
-        RadianceStacks = Mathf.Min(tuning.SafeLightRadianceMaxStacks, RadianceStacks + Mathf.Max(0, gain));
+        RadianceStacks = Mathf.Min(RadianceMaximum, RadianceStacks + Mathf.Max(0, gain));
     }
     private void Update()
     {
@@ -127,15 +133,17 @@ public sealed class OverburstElementEnergy : MonoBehaviour
         Changed?.Invoke();
     }
     // Heavy attacks commit once at their impact window.
-    public bool TryCommitDischarge(float attackDamage, out OverburstElementDischarge discharge)
+    public bool TryCommitDischarge(float attackDamage, out OverburstElementDischarge discharge, ElementGemAttackSnapshot snapshot = default)
     {
         discharge = null;
         if (equipment != null) SyncWeapon();
+        if (snapshot.HasValue && (!snapshot.IsCurrent || snapshot.WeaponId != WeaponInstanceId
+            || snapshot.GemId != GemInstanceId || snapshot.Element != Element)) return false;
         // 2026-10-01: 에너지 0 강공은 원소 방출이 없다(원소 추가 효과·착지 VFX·원소 소리 없이 일반 강공으로 친다).
         if (!isActiveAndEnabled || (health != null && health.IsDead) || !(Amount > 0f)
             || !OverburstElementRules.IsActive(Element) || !OverburstElementTuning.IsFinitePositive(attackDamage)) return false;
         discharge = new OverburstElementDischarge(this, ++generation, Element, WeaponInstanceId, Amount, Normalized, attackDamage,
-            RadianceStacks, OverchargeNormalized, IsOvercharged);
+            RadianceStacks, OverchargeNormalized, IsOvercharged, snapshot.HasValue ? snapshot : new ElementGemAttackSnapshot(equipment));
         Amount = 0f;
         RadianceStacks = 0;
         holdUntil = 0f;
@@ -201,6 +209,7 @@ public sealed class OverburstElementDischarge
     private readonly int energyChainBonus;
     private bool ended;
     private bool refunded;
+    public ElementGemAttackSnapshot GemAttack { get; }
     public WeaponElement Element { get; }
     public string WeaponInstanceId { get; }
     public float Energy { get; }
@@ -213,8 +222,9 @@ public sealed class OverburstElementDischarge
     public float BaseDamage => attackDamage * energyCoefficient + baseDischargePower * NormalizedEnergy;
     public float FirstBlastDamage => CombatBalanceFormulas.HeavyFirstBlastDamage(attackDamage, NormalizedEnergy, energyCoefficient, baseDischargePower);
     internal OverburstElementDischarge(OverburstElementEnergy owner, int token, WeaponElement element, string weaponId,
-        float energy, float normalized, float attackDamage, int radianceStacks = 0, float overcharge = 0f, bool lightTriple = false)
+        float energy, float normalized, float attackDamage, int radianceStacks = 0, float overcharge = 0f, bool lightTriple = false, ElementGemAttackSnapshot snapshot = default)
     {
+        GemAttack = snapshot;
         this.owner = owner; this.token = token; this.attackDamage = attackDamage;
         RadianceStacks = Mathf.Max(0, radianceStacks);
         Overcharge = Mathf.Clamp01(overcharge);
@@ -230,7 +240,7 @@ public sealed class OverburstElementDischarge
         energyCoefficient = CombatBalanceFormulas.DischargeEnergyCoefficient(tuning, normalized, elementBonus,
             FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.EnergyDischargeDamage));
         stackCoefficient = Mathf.Max(0f, tuning.statusDamagePerStack) * (1f + elementBonus);
-        shatterCoefficient = Mathf.Max(0f, tuning.shatterBlastFraction) * (1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ShatterDamage));
+        shatterCoefficient = Mathf.Max(0f, tuning.shatterBlastFraction) * (1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ShatterDamage) + snapshot.Modifiers.ShatterDamage / 100f);
         radius = CombatBalanceFormulas.DischargeRadius(tuning, normalized);
         if (element == WeaponElement.Fire) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.FireRadius);
         if (element == WeaponElement.Electric) radius *= 1f + FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.ChainRange);
@@ -253,7 +263,7 @@ public sealed class OverburstElementDischarge
         float h = FirstBlastDamage;
         float scale = CombatBalanceFormulas.LightTripleHitScale(tuning, hit, RadianceStacks, Overcharge);
         float flask = owner != null ? FlaskCombatModifiers.Bonus(owner.gameObject, FlaskEffect.LightTripleImpactDamage) : 0f;
-        return Mathf.Max(0f, h * scale * (1f + flask));
+        return Mathf.Max(0f, h * scale * (1f + flask + GemAttack.Modifiers.LightHitDamage / 100f));
     }
     public int LightFirstHitIndex => LightTriple ? 0 : 1;
     // Capture immediately before the direct damage dispatch, so lethal hits retain their prepared bonus.
@@ -292,7 +302,7 @@ public sealed class OverburstElementDischarge
                 || Element == WeaponElement.Dark || Element == WeaponElement.Light ? 0f
             : attackDamage * consumed * stackCoefficient;
         int resolvedChainTargets = Element == WeaponElement.Electric && consumed > 0
-            ? Mathf.Min(7, consumed + energyChainBonus)
+            ? Mathf.Min(7, consumed + energyChainBonus + GemAttack.Modifiers.ChainHops)
             : 0;
         result = new OverburstDischargeResult(Element, bonus, radius, resolvedChainTargets, consumed, shattered);
         return true;

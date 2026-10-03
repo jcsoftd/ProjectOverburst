@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -87,7 +87,7 @@ public static partial class OverburstUIWorkshopBuilder
         var portrait=Panel(content,"Player 3D Preview",124,216,252,378);
         var image=portrait.gameObject.AddComponent<RawImage>();image.raycastTarget=false;
         portrait.gameObject.AddComponent<OverburstUICharacterPreview>().Configure(characterPreview,AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectOverburst/03_Features/Player/Animations/Fixed/Idle_JawFixed.anim"),image);
-        string[] names={"투구","갑옷","장갑","신발","목걸이","귀걸이 1","귀걸이 2","가방"};
+        string[] names={"투구","갑옷","장갑","신발","목걸이","귀걸이","원소보석","가방"};
         string[] types={"Helmet","Chest","Gloves","Boots","Necklace","Earring","Earring","Belt"};
         for(int i=0;i<8;i++){
             var source=i==7?null:equipmentTemplates.First(t=>t.name=="Equip Slot ("+types[i]+")");

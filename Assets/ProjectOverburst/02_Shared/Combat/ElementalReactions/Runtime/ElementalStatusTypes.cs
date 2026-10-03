@@ -9,6 +9,7 @@ public readonly struct ElementalStatusApplication
 {
     public readonly WeaponElement Element;
     public readonly float ActualDirectDamage;
+    public readonly ElementGemAttackSnapshot GemAttack;
     public readonly GameObject SourceActor;
     public readonly string SourceWeaponRuntimeInstanceId;
     public readonly bool TriggersOnHitEffects;
@@ -24,8 +25,9 @@ public readonly struct ElementalStatusApplication
         bool triggersOnHitEffects,
         bool isDamageOverTime,
         Vector3 hitPoint,
-        Vector3 direction)
+        Vector3 direction, ElementGemAttackSnapshot gemAttack = default)
     {
+        GemAttack = gemAttack;
         Element = element;
         ActualDirectDamage = actualDirectDamage;
         SourceActor = sourceActor;
@@ -39,6 +41,7 @@ public readonly struct ElementalStatusApplication
 
 public readonly struct ElementalStatusOwnerSnapshot
 {
+    public readonly ElementGemAttackSnapshot GemAttack;
     public readonly GameObject SourceActor;
     public readonly string SourceWeaponRuntimeInstanceId;
     public readonly WeaponElement Element;
@@ -48,6 +51,7 @@ public readonly struct ElementalStatusOwnerSnapshot
 
     public ElementalStatusOwnerSnapshot(ElementalStatusApplication application)
     {
+        GemAttack = application.GemAttack;
         SourceActor = application.SourceActor;
         SourceWeaponRuntimeInstanceId = application.SourceWeaponRuntimeInstanceId ?? string.Empty;
         Element = application.Element;

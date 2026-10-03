@@ -22,7 +22,7 @@ public class MerchantTradeValueCalculator : MonoBehaviour
         if (item == null || !item.HasValidBaseData || item.stackCount <= 0)
             return 0;
 
-        return Mathf.Max(0, GetUnitValue(item.baseData)) * Mathf.Max(1, item.stackCount);
+        return Mathf.Max(0, item.baseData is ElementGemItemData ? ElementGemLootPolicy.Value(item) : GetUnitValue(item.baseData)) * Mathf.Max(1, item.stackCount);
     }
 
     public int GetBuyValue(ItemData item, MerchantDefinition merchant)
@@ -46,7 +46,7 @@ public class MerchantTradeValueCalculator : MonoBehaviour
         if (item == null || !item.HasValidBaseData || item.stackCount <= 0)
             return 0;
 
-        int unitValue = GetUnitValue(item.baseData);
+        int unitValue = item.baseData is ElementGemItemData ? ElementGemLootPolicy.Value(item) : GetUnitValue(item.baseData);
         if (item.baseData is CurrencyItemData)
             return Mathf.Max(0, unitValue) * Mathf.Max(1, item.stackCount);
 

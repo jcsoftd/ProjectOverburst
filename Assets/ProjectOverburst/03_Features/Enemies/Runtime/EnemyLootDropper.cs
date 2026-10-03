@@ -99,6 +99,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             EnemyRank rank = GetComponent<EnemyRank>();
             float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
             DropFarmingItem(FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset);
+            DropFarmingItem(ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.forward * .35f);
             DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.right * .35f);
             DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.left * .35f);
         }

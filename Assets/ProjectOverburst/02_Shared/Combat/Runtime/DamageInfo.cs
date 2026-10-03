@@ -25,6 +25,7 @@ public struct DamageInfo
     public PlayerAttackKind playerAttackKind;
     public EnemyAbilityDefinition enemyAbility;
     public float weakKnockbackDistance;
+    public ElementGemAttackSnapshot gemAttack;
 
     public DamageInfo(
         float damage,
@@ -45,8 +46,10 @@ public struct DamageInfo
         int sourceAttackPhaseIndex = 0,
         bool usesResolvedTickDamage = false,
         EnemyAbilityDefinition enemyAbility = null,
-        float weakKnockbackDistance = -1f)
+        float weakKnockbackDistance = -1f,
+        ElementGemAttackSnapshot gemAttack = default)
     {
+        this.gemAttack = gemAttack;
         this.damage = damage;
         this.hitPoint = hitPoint;
         this.source = source;

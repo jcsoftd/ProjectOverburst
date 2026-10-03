@@ -173,7 +173,7 @@ public sealed class PlayerFlaskController : MonoBehaviour
     {
         WeaponElement required = FlaskRuntime.RequiredElement(data.kind);
         return required == WeaponElement.None || (equipment != null && equipment.CurrentWeaponItem != null
-            && equipment.CurrentWeaponItem.ResolvedElement == required);
+            && equipment.ActiveElement == required);
     }
 
     public void ResetCooldowns()

@@ -74,11 +74,11 @@ public static class UpperElementCombatUtility
     }
 
     public static void DealDerivedDamage(CombatHealth target, float damage, Vector3 point, GameObject source,
-        Vector3 direction, WeaponElement element)
+        Vector3 direction, WeaponElement element, ElementGemAttackSnapshot gemAttack = default)
     {
         if (target == null || target.IsDead || !(damage > 0f)) return;
         target.TakeDamage(new DamageInfo(damage, point, source, direction,
             triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-            element: element, playerAttackKind: PlayerAttackKind.Elemental));
+            element: element, playerAttackKind: gemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: gemAttack));
     }
 }

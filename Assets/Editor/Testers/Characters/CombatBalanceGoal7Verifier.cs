@@ -22,7 +22,7 @@ public static partial class CombatBalanceGoal3Verifier
             var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
             Check(actor.Equipment.EquipWeaponItem(new ItemData(weapon,1,ItemGrade.Common,element:WeaponElement.Fire)),"Equip common greatsword");
             var gear=AssetDatabase.FindAssets("t:GearItemData",new[]{"Assets/ProjectOverburst/Resources/Items/Gear"}).Select(g=>AssetDatabase.LoadAssetAtPath<GearItemData>(AssetDatabase.GUIDToAssetPath(g))).ToArray();
-            for(int slot=0;slot<7;slot++) {
+            for(int slot=0;slot<6;slot++) {
                 var g=gear.First(x=>GearItemData.Fits(x.kind,(GearSlot)slot)&&x.AppearsAtLevel(1));
                 Check(actor.Equipment.EquipGearItemToSlot(new ItemData(g,1,ItemGrade.Common),slot,out _),"Equip gear "+slot);
             }
@@ -87,7 +87,7 @@ public static partial class CombatBalanceGoal3Verifier
             Check(map!=null&&map.mapState.level>=2,"Next map reward");
             results.Add(new{scope="assisted travel, production input/collision, one band0 field then temporary boss",theme=themeId,baseHp,hits,damageTaken,weakHits,heavyHits,potions,pickups,elapsed=Time.unscaledTime-begin,level=saved.level,xp=saved.experience,nextMapLevel=map.mapState.level,saveReadback=true});
             var upgraded=PlayerAccountInventoryService.SharedInventory.Items.FirstOrDefault(i=>i!=null&&i.baseData is GearItemData);
-            if(upgraded!=null){var g=(GearItemData)upgraded.baseData;int slot=Enumerable.Range(0,7).First(s=>GearItemData.Fits(g.kind,(GearSlot)s));var inventory=PlayerAccountInventoryService.SharedInventory;var old=actor.Equipment.GetGearSlotItem(slot);Check(GearEquipmentService.EquipFromInventorySlot(inventory.FindFirstMatchingItemIndex(upgraded),slot),"Loot gear equip");Check(GearEquipmentService.UnequipToInventory(slot),"Gear unequip");Check(GearEquipmentService.EquipFromInventorySlot(inventory.FindFirstMatchingItemIndex(old),slot),"Gear restore");results.Add(new{gearSwap=true});}
+            if(upgraded!=null){var g=(GearItemData)upgraded.baseData;int slot=Enumerable.Range(0,6).First(s=>GearItemData.Fits(g.kind,(GearSlot)s));var inventory=PlayerAccountInventoryService.SharedInventory;var old=actor.Equipment.GetGearSlotItem(slot);Check(GearEquipmentService.EquipFromInventorySlot(inventory.FindFirstMatchingItemIndex(upgraded),slot),"Loot gear equip");Check(GearEquipmentService.UnequipToInventory(slot),"Gear unequip");Check(GearEquipmentService.EquipFromInventorySlot(inventory.FindFirstMatchingItemIndex(old),slot),"Gear restore");results.Add(new{gearSwap=true});}
             Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterSelectedMap(map.runtimeInstanceId),"Next map entry");
             while(PersistentSceneFlow.Instance.IsSwitching||WorldSessionState.Phase!=WorldPhase.Run)yield return null;
             Check(account.ReadRun().map.level>=2,"Next map context");

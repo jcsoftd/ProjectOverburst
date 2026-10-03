@@ -24,6 +24,8 @@ public partial class InventorySlotBridge
             handled = UnequipBagToFirstAvailableSlot(context.Slot.SlotIndex);
         else if (context.Item.itemType == "Bag")
             handled = EquipBagFromInventorySlot(context.Slot);
+        else if (context.Item.baseData is ElementGemItemData && !context.Slot.IsWeaponSlot)
+            handled = ElementGemEquipmentService.EquipFromInventorySlot(context.Slot.SlotIndex, context.Item.runtimeInstanceId);
         else if (context.Item.itemType == "Gear" && !context.Slot.IsWeaponSlot)
             handled = GearEquipmentService.EquipFromInventorySlot(context.Slot.SlotIndex);
         else if (context.Item.itemType != "Weapon")

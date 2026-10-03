@@ -56,6 +56,7 @@ public partial class MeleeRuntime : MonoBehaviour, IWeaponActionPort // 근접 �
     private IWeaponTrailController activeAttackTrail;
     private MeleeComboStepData activeAttackStep;
     private bool activeAttackUsedMeleeCombatStance; // 전투 자세
+    private ElementGemAttackSnapshot activeGemAttack;
     private ItemData activeAttackWeaponItem; // 공격 아이템
     private bool manualInputEnabled = true; // 파티 전환 중 기존 공격은 유지하고 신규 입력만 막는다.
     private bool suppressHandoffMoveCancelUntilRelease; // 인계 전 이동키 무시

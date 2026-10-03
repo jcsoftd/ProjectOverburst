@@ -23,7 +23,7 @@ public sealed class WeaponElementHudIcon : MonoBehaviour
         RefreshIcon();
     }
 
-    private void RefreshIcon() => view?.Present(equipment != null ? equipment.CurrentWeaponItem : null);
+    private void RefreshIcon() => view?.Present(equipment != null ? equipment.ActiveElement : WeaponElement.None);
 
     private void OnDisable()
     {

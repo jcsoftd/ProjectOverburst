@@ -41,6 +41,7 @@ public sealed partial class ElementDischargeBatch
         Action<Vector3,float> fireVfx,Action<Vector3,Vector3> linkVfx)
     {
         using var costScope = ElementCombatCostMarkers.Chain_Advance.Auto();
+        if (!gemAttack.IsCurrent) return false;
         chainClock+=Mathf.Clamp(now-lastChainTime,0,OriginGroupDelay);lastChainTime=now;
         for(int i=0;i<count;i++)if(Valid(i))
         {
@@ -64,7 +65,7 @@ public sealed partial class ElementDischargeBatch
                     if(!Valid(i)){RetireCandidate(i);continue;}
                     if(i==origin||nodes[i].Hits>=2||!InRange(i,point,radius))continue;
                     int burning=!nodes[i].Queued && nodes[i].Status!=null?nodes[i].Status.GetStackCount(WeaponElement.Fire):0;
-                    if(!Damage(i,CombatBalanceFormulas.FireChainDamage(blastDamage,stack),source)||burning<=0||nodes[i].Queued)continue;
+                    if(!Damage(i,CombatBalanceFormulas.FireChainDamage(blastDamage,stack) * (1f + gemAttack.Modifiers.ExplosionDamage / 100f),source)||burning<=0||nodes[i].Queued)continue;
                     // Capture and consume at ignition; later weak hits belong to a new burn.
                     nodes[i].Stacks=burning;int index=rootCount;Queue(i);
                     if(rootCount>index)
@@ -77,7 +78,7 @@ public sealed partial class ElementDischargeBatch
             else
             {
                 int length=pathLengths[r],hop=length-1;
-                int maxHops=CombatBalanceFormulas.LightningMaxHops(nodes[origin].Stacks,energy);
+                int maxHops=Mathf.Min(7, CombatBalanceFormulas.LightningMaxHops(nodes[origin].Stacks,energy) + gemAttack.Modifiers.ChainHops);
                 if(length<=0||hop>=maxHops)continue;
                 int previous=paths[r*8+length-1];
                 if(!SameLife(previous))continue;
@@ -92,7 +93,7 @@ public sealed partial class ElementDischargeBatch
                     float distance=(nodes[i].Point-point).sqrMagnitude;
                     if(distance<best){nearest=i;best=distance;}
                 }
-                if(nearest<0||!Damage(nearest,CombatBalanceFormulas.LightningHopDamage(OverburstElementTuning.Current,blastDamage,nodes[origin].Stacks,hop),source))continue;
+                if(nearest<0||!Damage(nearest,CombatBalanceFormulas.LightningHopDamage(OverburstElementTuning.Current,blastDamage,nodes[origin].Stacks,hop) * (1f + gemAttack.Modifiers.ChainDamage / 100f),source))continue;
                 paths[r*8+length]=nearest;pathLengths[r]++;
                 linkVfx?.Invoke(point,nodes[nearest].Point);
                 PlayLightningHopFeedback(nearest,point);

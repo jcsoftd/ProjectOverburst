@@ -39,6 +39,7 @@ namespace Overburst.Persistence
             target.weapons = capture(loadout.Weapons, loadout.Weapons.Length);
             target.gear = capture(loadout.Gear, loadout.Gear.Length);
             target.bags = capture(loadout.Bags, loadout.Bags.Length);
+            target.elementalGemInstanceId = capture(new[] { loadout.ElementalGem }, 1)[0];
             target.activeWeaponSlot = loadout.ActiveWeaponSlot;
             target.flasks = new List<string>(loadout.FlaskIds);
             target.quickSlots.Clear();
@@ -94,6 +95,7 @@ namespace Overburst.Persistence
             var next = new PlayerAccountLoadout
             {
                 Weapons = resolve(source.weapons).ToArray(), Gear = resolve(source.gear).ToArray(), Bags = resolve(source.bags).ToArray(),
+                ElementalGem = string.IsNullOrEmpty(source.elementalGemInstanceId) ? null : table[source.elementalGemInstanceId],
                 ActiveWeaponSlot = source.activeWeaponSlot, EquipmentInitialized = true,
                 FlaskIds = source.flasks.ToArray(), FlasksInitialized = true, LegacyFlasksImported = true
             };

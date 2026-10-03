@@ -48,7 +48,7 @@ public sealed class MeleeHeavyDischargeExecutor
         facing.y = 0f;
         if (facing.sqrMagnitude > 0.0001f) facing.Normalize();
         PlayImpact();
-        batch.Capture(sourceTarget, discharge.Element, blastVerticalTolerance);
+        batch.Capture(sourceTarget, discharge.Element, blastVerticalTolerance, discharge.GemAttack);
         if (fireVfx == null) fireVfx = PlayFireOrigin;
         if (chainVfx == null) chainVfx = PlayChainLink;
         pendingFireExplosion = discharge.Element == WeaponElement.Fire;
@@ -83,7 +83,7 @@ public sealed class MeleeHeavyDischargeExecutor
         var resolvingDischarge = discharge;
         if (result.Element == WeaponElement.Ice && result.Shattered)
             ShatterWaveScheduler.Submit(target, directBonus, sourceActor,
-                definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius, discharge.Energy);
+                definition.elementVfx.iceShatter, impactCenter, hitPoint, facing, blastRadius, discharge.Energy, discharge.GemAttack);
         else
             DealDerivedDamage(target, directBonus, hitPoint, facing);
         if (discharge != resolvingDischarge) return;
@@ -116,7 +116,7 @@ public sealed class MeleeHeavyDischargeExecutor
         for (int hit = slamHit + 1; hit <= 2; hit++)
             LightTripleImpactScheduler.Submit(sourceActor, sourceTarget.Team, impactCenter,
                 discharge.LightHitRadius(hit), discharge.LightHitDamage(hit), blastVerticalTolerance,
-                LightTripleImpactScheduler.ResolveDelay(hit, slamHit), hit, discharge.Energy);
+                LightTripleImpactScheduler.ResolveDelay(hit, slamHit), hit, discharge.Energy, discharge.GemAttack);
     }
 
     private void PlayImpact()
@@ -195,6 +195,6 @@ public sealed class MeleeHeavyDischargeExecutor
         if (target == null || target.IsDead || damage <= 0f) return;
         target.TakeDamage(new DamageInfo(damage, point, sourceActor, direction,
             triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-            element: discharge.Element, playerAttackKind: PlayerAttackKind.Elemental));
+            element: discharge.Element, playerAttackKind: PlayerAttackKind.Heavy | PlayerAttackKind.Elemental, gemAttack: discharge.GemAttack));
     }
 }

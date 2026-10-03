@@ -112,7 +112,8 @@ public class ItemPickupSpawner : MonoBehaviour
     {
         if (data is WeaponItemData) return 0;
         if (data is GearItemData) return 1;
-        if (data is FlaskItemData) return 2;
+        if (data is ElementGemItemData) return 2;
+        if (data is FlaskItemData) return 3;
         if (data is BagItemData) return 3;
         if (data is ConsumableItemData) return 4;
         if (data is MapItemData) return 5;
@@ -151,8 +152,8 @@ public class ItemPickupSpawner : MonoBehaviour
         for (int i = 0; i < catalog.Count; i++)
         {
             BaseItemData definition = catalog[i];
-            ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
-            int level = definition is WeaponItemData || definition is GearItemData || definition is FlaskItemData
+            ItemGrade grade = definition is ElementGemItemData gem ? gem.fixedGrade : ItemGradeAvailabilityPolicy.RollWeightedGrade();
+            int level = definition is ElementGemItemData || definition is WeaponItemData || definition is GearItemData || definition is FlaskItemData
                 || definition is BagItemData || definition is MapItemData ? itemLevel : 1;
             var item = new ItemData(definition, level, grade, 1);
             if (definition is MapItemData)

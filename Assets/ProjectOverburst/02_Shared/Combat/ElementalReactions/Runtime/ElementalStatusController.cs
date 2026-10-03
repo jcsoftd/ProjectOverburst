@@ -72,7 +72,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         hitOrder.Enqueue(key);
         while (hitOrder.Count > 128) hits.Remove(hitOrder.Dequeue());
         return TryApplyDirectHit(new ElementalStatusApplication(info.element, actualDamage, info.source,
-            info.sourceWeaponRuntimeInstanceId, true, false, info.hitPoint, info.direction));
+            info.sourceWeaponRuntimeInstanceId, true, false, info.hitPoint, info.direction, info.gemAttack));
     }
     public bool TryApplyDirectHit(ElementalStatusApplication application)
     {
@@ -86,7 +86,10 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         if (combatHealth.IsDead || !isActiveAndEnabled) return false;
         float freezeMultiplier = enemyRank != null && enemyRank.GradeType != EnemyGradeType.Normal ? 1f
             : 1f + FlaskCombatModifiers.Bonus(application.SourceActor, FlaskEffect.FreezeDuration);
-        if (!state.Add(application.Element, Time.time, OverburstElementTuning.Current, freezeMultiplier)) return false;
+        var gem = application.GemAttack.Modifiers;
+        freezeMultiplier += gem.FreezeDuration / 100f;
+        bool immune = freezeControlImmune || (enemyRank != null && enemyRank.GradeType != EnemyGradeType.Normal);
+        if (!application.GemAttack.IsCurrent || !state.Add(application.Element, Time.time, OverburstElementTuning.Current, freezeMultiplier, gem.FreezeReduction, gem.CorrosionExtra, immune)) return false;
         if (application.Element == WeaponElement.Dark && state.RawCount(WeaponElement.Dark) == 1) reservedCorrosion = 0;
         owners[OverburstElementRules.Index(application.Element)] = new ElementalStatusOwnerSnapshot(application);
         if (Application.isPlaying && (application.Element == WeaponElement.Fire || application.Element == WeaponElement.Electric
@@ -187,17 +190,24 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         advancing = true;
         try
         {
+            for (int i = 0; i < owners.Length; i++)
+                if (state.RawCount(OverburstElementRules.At(i)) > 0 && owners[i].GemAttack.HasValue && !owners[i].GemAttack.IsCurrent)
+                {
+                    var element = OverburstElementRules.At(i); state.ClearElement(element); owners[i] = default;
+                    if (element == WeaponElement.Dark) reservedCorrosion = 0;
+                    StatusRemoved?.Invoke(element, ElementalStatusRemoveReason.Cleared);
+                }
             while (remainingTickBudget > 0 && state.TryTakeTick(now, out WeaponElement element, out int count))
             {
                 remainingTickBudget--;
                 var owner = owners[OverburstElementRules.Index(element)];
-                float damage = CombatBalanceFormulas.StatusTickDamage(OverburstElementTuning.Current, element, owner.ActualDirectDamage, count);
+                float damage = CombatBalanceFormulas.StatusTickDamage(OverburstElementTuning.Current, element, owner.ActualDirectDamage, count) * (1f + (element == WeaponElement.Fire ? owner.GemAttack.Modifiers.BurnDamage : owner.GemAttack.Modifiers.ShockDamage) / 100f);
                 float before = combatHealth.CurrentHp;
                 int life = LifecycleVersion;
                 combatHealth.TakeDamage(new DamageInfo(damage, transform.position, owner.SourceActor,
                     triggersOnHitEffects: false, isDamageOverTime: true, suppressDefaultHitVfx: true,
                     element: element, sourceWeaponRuntimeInstanceId: owner.SourceWeaponRuntimeInstanceId,
-                    playerAttackKind: PlayerAttackKind.Elemental, usesResolvedTickDamage: true));
+                    playerAttackKind: PlayerAttackKind.Elemental, usesResolvedTickDamage: true, gemAttack: owner.GemAttack));
                 DeliveredTickCount++;
                 if (life != LifecycleVersion || combatHealth.IsDead || !isActiveAndEnabled) break;
                 if (element == WeaponElement.Electric && combatHealth.CurrentHp < before)
@@ -240,6 +250,7 @@ public sealed class ElementalStatusController : MonoBehaviour, IElementalStatusR
         bool immune = freezeControlImmune || grade != EnemyGradeType.Normal;
         int cold = state.RawCount(WeaponElement.Ice);
         float slow = cold * (grade == EnemyGradeType.Normal ? .04f : grade == EnemyGradeType.Boss ? .01f : .02f);
+        slow = Mathf.Clamp(slow * (1f + owners[OverburstElementRules.Index(WeaponElement.Ice)].GemAttack.Modifiers.ChillSlow / 100f), 0f, .8f);
         float speed = (frozen && !immune) || staggerUntil > now ? 0f : 1f - slow;
         if (!Mathf.Approximately(MoveSpeedMultiplier, speed))
         {

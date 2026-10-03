@@ -51,7 +51,7 @@ public partial class MeleeRuntime
             activeHitFeedbackSequenceId,
             activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
             hit.PhaseIndex,
-            ResolveWeakKnockbackDistance(phase)));
+            ResolveWeakKnockbackDistance(phase), activeGemAttack));
 
         // Ammo belongs to confirmed slam hits, including lethal hits, before a reward can clear the action.
         if (darkBarrageId != 0 && hasDischargeTarget && result.ActualDamage > 0f)

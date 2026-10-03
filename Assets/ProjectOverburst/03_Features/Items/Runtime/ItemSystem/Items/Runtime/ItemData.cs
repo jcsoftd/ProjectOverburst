@@ -1040,27 +1040,12 @@ public class ItemData // 런타임 아이템
     public string originRunId;
     public Overburst.Persistence.MapInstanceState mapState;
     [System.NonSerialized] private bool restoredFromValidatedSnapshot;
-    public bool HasInstanceElement => hasInstanceElement;
-
-    [UnityEngine.SerializeField] private WeaponElement instanceElement;
-    [UnityEngine.SerializeField] private bool hasInstanceElement;
-    public WeaponElement ResolvedElement
-    {
-        get
-        {
-            if (!(baseData is WeaponItemData weapon)) return WeaponElement.None;
-            WeaponElement element = OverburstElementRules.MigrateLegacy(
-                hasInstanceElement ? instanceElement : weapon.defaultElement);
-            return OverburstElementRules.IsActive(element) ? element : WeaponElement.None;
-        }
-    }
-    // Explicit authoring/test assignment; never called by read/ensure/pickup paths.
-    public bool TryAssignElementOnce(WeaponElement element)
-    {
-        if (hasInstanceElement || !(baseData is WeaponItemData) || !OverburstElementRules.IsActive(element)) return false;
-        instanceElement = element; hasInstanceElement = true; return true;
-    }
+    public bool HasInstanceElement => false;
+    public WeaponElement ResolvedElement => baseData is ElementGemItemData gem ? gem.element : WeaponElement.None;
+    // Retained for historical authoring tools; weapons are neutral.
+    public bool TryAssignElementOnce(WeaponElement element) => false;
     public List<WeaponGradeStatRoll> weaponGradeStatRolls; // 무기 별
+    public ElementGemState gemState;
     public List<GearStatRoll> gearRolls; // 방어구·장신구 고정 주능력치와 보조 3종
     public int balanceVersion; // 0 is legacy; preserve saved star identity during upgrades.
     public MeleeStarDistributionProfile meleeStarDistributionProfile; // 밀리 별 배분 성향
@@ -1076,8 +1061,7 @@ public class ItemData // 런타임 아이템
         get
         {
             string name = baseData != null ? baseData.itemName : string.Empty;
-            string element = OverburstElementRules.Label(ResolvedElement);
-            return element.Length > 0 ? name + " (" + element + ")" : name;
+            return name;
         }
     }
     public Sprite icon
@@ -1114,6 +1098,7 @@ public class ItemData // 런타임 아이템
         {
             if (baseData == null) return "Unknown";
             if (baseData is WeaponItemData) return "Weapon";
+            if (baseData is ElementGemItemData) return "ElementGem";
             if (baseData is GearItemData) return "Gear";
             if (baseData is EquipmentItemData) return "Equipment";
             if (baseData is ConsumableItemData) return "Consumable";
@@ -1156,7 +1141,7 @@ public class ItemData // 런타임 아이템
         balanceVersion = OverburstCombatBalance.ItemBalanceVersion;
         EnsureRuntimeInstanceId(); // id 보장
         baseData = data;
-        level = data is WeaponItemData || data is GearItemData || data is FlaskItemData || data is BagItemData
+        level = data is ElementGemItemData || data is WeaponItemData || data is GearItemData || data is FlaskItemData || data is BagItemData
             ? OverburstGrowthRules.ClampLevel(lv) : lv;
         grade = itemGrade;
         stackCount = stack;
@@ -1167,20 +1152,18 @@ public class ItemData // 런타임 아이템
         if (baseData == null)
             return;
 
-        if (baseData is WeaponItemData)
+        if (baseData is ElementGemItemData gem)
+        {
+            if (grade != gem.fixedGrade || stack != 1) throw new System.ArgumentException("Gem grade/count mismatch.");
+            gemState = ElementGemQuality.Roll(gem, GearSeed(runtimeInstanceId));
+        }
+        else if (baseData is WeaponItemData)
             RollWeaponGradeStats(); // 무기 별
         else if (baseData is GearItemData gear)
             gearRolls = GearQuality.Roll(gear, grade, GearSeed(runtimeInstanceId));
         else if (baseData is BagItemData)
             RollBagOptions(); // 가방 옵션
 
-        if (baseData is WeaponItemData weapon)
-        {
-            instanceElement = OverburstElementRules.MigrateLegacy(
-                element.HasValue ? element.Value : OverburstElementRules.RollNewWeapon(weapon));
-            if (!OverburstElementRules.IsActive(instanceElement)) instanceElement = WeaponElement.None;
-            hasInstanceElement = true;
-        }
         if (baseData is FlaskItemData) FlaskRuntime.State(this);
     }
 
@@ -1190,7 +1173,9 @@ public class ItemData // 런타임 아이템
     {
         if (count <= 0) throw new System.ArgumentOutOfRangeException(nameof(count));
         var copy = (ItemData)MemberwiseClone();
+        if (baseData is ElementGemItemData && count != 1) throw new System.ArgumentException("Gems cannot stack.");
         copy.stackCount = count;
+        copy.gemState = gemState?.Copy();
         copy.weaponGradeStatRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(weaponGradeStatRolls);
         copy.gearRolls = Overburst.Persistence.ItemSnapshotCodec.CopyValues(gearRolls);
         copy.bagOptions = Overburst.Persistence.ItemSnapshotCodec.CopyValues(bagOptions);
@@ -1211,9 +1196,9 @@ public class ItemData // 런타임 아이템
         {
             baseData = data, runtimeInstanceId = value.instanceId, acquisitionOrder = value.acquisitionOrder,
             level = value.level, grade = value.grade, stackCount = value.count,
-            originRunId = value.originRunId, instanceElement = value.element, hasInstanceElement = value.hasElement,
+            originRunId = value.originRunId, gemState = value.gemState,
             meleeStarDistributionProfile = value.qualityProfile, weaponGradeStatRolls = value.weaponRolls,
-            gearRolls = value.gearRolls, bagOptions = value.bagRolls, bagState = value.bag, flaskState = value.flask,
+            gearRolls = value.gearRolls, bagOptions = new List<BagRandomOptionRoll>(), bagState = value.bag, flaskState = value.flask,
             mapState = value.map, balanceVersion = value.balanceVersion, restoredFromValidatedSnapshot = true
         };
         nextAcquisitionOrder = System.Math.Max(nextAcquisitionOrder, checked(value.acquisitionOrder + 1));
@@ -1238,8 +1223,14 @@ public class ItemData // 런타임 아이템
 
     public void EnsureRuntimeState()
     {
-        Overburst.Persistence.ItemBalanceMigration.UpgradeRuntime(this);
-        Overburst.Persistence.BagAccountMigration.UpgradeRuntime(this);
+        if (baseData is ElementGemItemData gem)
+        {
+            if (balanceVersion != OverburstCombatBalance.ItemBalanceVersion || !ElementGemQuality.IsValid(gem, level, grade, stackCount, gemState))
+                throw new System.InvalidOperationException("Invalid gem; ensure never rerolls quality.");
+            return;
+        }
+        if (balanceVersion != OverburstCombatBalance.ItemBalanceVersion)
+            throw new System.InvalidOperationException("Unsupported item balance version; original quality preserved.");
         if (restoredFromValidatedSnapshot) return;
         EnsureRuntimeInstanceId(); // id 보장
 

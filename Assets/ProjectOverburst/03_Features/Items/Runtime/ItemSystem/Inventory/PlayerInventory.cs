@@ -264,6 +264,7 @@ public class PlayerInventory : MonoBehaviour
         foreach (var equipped in loadout.Weapons) if (ReferenceEquals(equipped, item)) return true;
         foreach (var equipped in loadout.Gear) if (ReferenceEquals(equipped, item)) return true;
         foreach (var equipped in loadout.Bags) if (ReferenceEquals(equipped, item)) return true;
+        if (ReferenceEquals(loadout.ElementalGem, item)) return true;
         return false;
     }
 

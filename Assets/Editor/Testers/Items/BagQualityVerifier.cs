@@ -36,35 +36,22 @@ public static class BagQualityVerifier
         Require(BagQuality.BaseSlots(100) + 12 + 16 == 47, "max capacity fits 48 physical slots");
         passed.Add("ten level brackets, green-star flooring and 47/48 maximum capacity");
 
-        var old = EmptyAccount(); old.level = 73; old.inventoryCapacity = 35; old.inventory = Enumerable.Repeat<string>(null, 35).ToList();
+        var upgraded = EmptyAccount(); upgraded.level = 73;
         var merchantData = registry.Entries.Select(x => x.asset).OfType<MerchantDefinition>().First();
-        old.merchants.Add(new MerchantSnapshot { contentId = registry.IdFor(merchantData), capacity = 1, stockInitialized = true, stock = new List<string> { null } });
+        upgraded.merchants.Add(new MerchantSnapshot { contentId = registry.IdFor(merchantData), capacity = 1, stockInitialized = true, stock = new List<string> { null } });
         for (int i = 0; i < 4; i++)
         {
-            var item = ItemSnapshotCodec.Capture(new ItemData(bagData, 3, ItemGrade.Mythic), registry);
-            item.bag = null;
-            item.bagRolls = new List<BagRandomOptionRoll> {
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MaxStamina, value = 11 },
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MoveSpeedPercent, value = 5 },
-                new BagRandomOptionRoll { optionType = BagRandomOptionType.MaxHp, value = 17 } };
-            old.items.Add(item);
-            if (i == 0) old.inventory[34] = item.instanceId;
-            if (i == 1) old.stashTabs[1].slots[62] = item.instanceId;
-            if (i == 2) old.bags[0] = item.instanceId;
-            if (i == 3) old.merchants[0].stock[0] = item.instanceId;
+            var item = ItemSnapshotCodec.Capture(new ItemData(bagData, 73, ItemGrade.Mythic), registry);
+            upgraded.items.Add(item);
+            if (i == 0) upgraded.inventory[34] = item.instanceId;
+            if (i == 1) upgraded.stashTabs[1].slots[62] = item.instanceId;
+            if (i == 2) upgraded.bags[0] = item.instanceId;
+            if (i == 3) upgraded.merchants[0].stock[0] = item.instanceId;
         }
-        string original = JsonUtility.ToJson(old);
-        // Real ES3 payload with the newly added properties absent, as on a pre-upgrade disk.
-        var wire = JToken.Parse(Encoding.UTF8.GetString(ES3.Serialize(old)));
-        foreach (var property in ((JContainer)wire).Descendants().OfType<JProperty>().Where(x => x.Name == "bag" || x.Name == "bagGoldCarry" || x.Name == "bagExperienceCarry").ToArray()) property.Remove();
-        var legacy = ES3.Deserialize<AccountSnapshot>(Encoding.UTF8.GetBytes(wire.ToString(Newtonsoft.Json.Formatting.None)));
-        var upgraded = BagAccountMigration.Upgrade(legacy, registry, out bool changed);
-        Require(changed && upgraded.inventoryCapacity == 48 && upgraded.inventory.Count == 48, "legacy expansion");
-        Require(upgraded.items.All(x => x.level == 73 && x.bagRolls.Count == 0 && BagQuality.IsValid(x.bag, x.grade)), "all owned bags migrate before validation");
-        Require(upgraded.inventory[34] == old.inventory[34] && upgraded.items.Select(x => x.instanceId).SequenceEqual(old.items.Select(x => x.instanceId)), "identities and overflow order preserved");
-        Require(original == JsonUtility.ToJson(old), "legacy source is not mutated");
+        AccountEquipmentPolicy.RecalculateCapacity(upgraded, registry);
         AccountInvariants.Validate(upgraded, registry);
-        Require(ReferenceEquals(upgraded, BagAccountMigration.Upgrade(upgraded, registry, out changed)) && !changed, "second migration is no-op");
+        var missing = ItemSnapshotCodec.CopyValues(upgraded.items[0]); missing.bag = null;
+        try { ItemSnapshotCodec.Restore(missing, registry); throw new Exception("Missing bag accepted"); } catch (InvalidDataException) { }
         foreach (var saved in upgraded.items)
         {
             var runtime = ItemSnapshotCodec.Restore(saved, registry);
@@ -75,7 +62,7 @@ public static class BagQualityVerifier
         Require(rng == JsonUtility.ToJson(UnityEngine.Random.state), "migration/restore RNG stable");
         var corrupt = ItemSnapshotCodec.CopyValues(upgraded.items[0]); corrupt.bag.version++;
         try { ItemSnapshotCodec.Restore(corrupt, registry); throw new Exception("Future bag version accepted"); } catch (InvalidDataException) { }
-        passed.Add("old ES3 missing fields, four ownership containers, source/identity/order preservation, once-only migration, strict RestoreSaved, independent deep copy, future-version rejection");
+        passed.Add("fresh schema2, four ownership containers, missing state rejected, strict RestoreSaved, independent deep copy, future-version rejection");
 
         var store = new EasySaveAccountStore(Path.Combine(directory, "Account")); store.Save(upgraded, "migration-fixture");
         var loaded = new EasySaveAccountStore(Path.Combine(directory, "Account")).Load();
@@ -118,7 +105,7 @@ public static class BagQualityVerifier
         var state = new AccountSnapshot();
         state.inventory = Enumerable.Repeat<string>(null, 48).ToList();
         for (int i = 0; i < 3; i++) state.stashTabs.Add(new ItemContainerSnapshot { slots = Enumerable.Repeat<string>(null, 63).ToList() });
-        state.weapons.Add(null); state.gear.AddRange(Enumerable.Repeat<string>(null, 7)); state.bags.Add(null);
+        state.weapons.Add(null); state.gear.AddRange(Enumerable.Repeat<string>(null, 6)); state.bags.Add(null);
         state.flasks.AddRange(Enumerable.Repeat<string>(null, 3));
         for (int i = 0; i < 10; i++) state.quickSlots.Add(new QuickSlotSnapshot());
         return state;

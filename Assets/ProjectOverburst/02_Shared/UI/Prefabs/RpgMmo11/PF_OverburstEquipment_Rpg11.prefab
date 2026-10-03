@@ -3135,7 +3135,7 @@ GameObject:
   - component: {fileID: 681155363878595287}
   - component: {fileID: 7049467754177535243}
   m_Layer: 5
-  m_Name: "Label \u2022 \uADC0\uAC78\uC774 2"
+  m_Name: "Label \u2022 \uC6D0\uC18C\uBCF4\uC11D"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3201,7 +3201,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\uADC0\uAC78\uC774 2"
+  m_Text: "\uC6D0\uC18C\uBCF4\uC11D"
 --- !u!1 &7332938333762114291
 GameObject:
   m_ObjectHideFlags: 0
@@ -3688,7 +3688,7 @@ GameObject:
   - component: {fileID: 6220847097733217096}
   - component: {fileID: 8740365965157342037}
   m_Layer: 5
-  m_Name: "Label \u2022 \uADC0\uAC78\uC774 1"
+  m_Name: "Label \u2022 \uADC0\uAC78\uC774"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3754,7 +3754,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\uADC0\uAC78\uC774 1"
+  m_Text: "\uADC0\uAC78\uC774"
 --- !u!1 &8130412707639176589
 GameObject:
   m_ObjectHideFlags: 0
@@ -4666,7 +4666,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6263162802841507709, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.20186615
+      value: -0.20186444
       objectReference: {fileID: 0}
     - target: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Name
@@ -5325,11 +5325,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6263162802841507709, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -0.028430939
+      value: -0.028430304
       objectReference: {fileID: 0}
     - target: {fileID: 6263162802841507709, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -0.17057037
+      value: -0.17056908
       objectReference: {fileID: 0}
     - target: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Name
@@ -6440,10 +6440,26 @@ PrefabInstance:
     - target: {fileID: 6641789262172472769, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 30abeaa615198ba4f9c349daf8673c76, type: 3}
+      objectReference: {fileID: 21300000, guid: 319e2f271edf1fc42bd4b22b63b1b839, type: 3}
+    - target: {fileID: 6641789262172472769, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+      propertyPath: m_Color.a
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6641789262172472769, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+      propertyPath: m_Color.b
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 6641789262172472769, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+      propertyPath: m_Color.g
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 6641789262172472769, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+      propertyPath: m_Color.r
+      value: 0.75
+      objectReference: {fileID: 0}
     - target: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Name
-      value: "Slot \u2022 \uADC0\uAC78\uC774 2"
+      value: "Slot \u2022 \uC6D0\uC18C\uBCF4\uC11D"
       objectReference: {fileID: 0}
     - target: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Pivot.x
@@ -6541,16 +6557,38 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2890791407296349987, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4397275179083260804}
   m_SourcePrefab: {fileID: 100100000, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
 --- !u!224 &4189420387171837226 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
   m_PrefabInstance: {fileID: 6912837179461855843}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4497374932109163521 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
+  m_PrefabInstance: {fileID: 6912837179461855843}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4397275179083260804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4497374932109163521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 680cea786a1bc174d867640a3988538f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementGemEquipmentSlotUI
+  feedback: {fileID: 7049467754177535243}
 --- !u!1001 &6983158876871959785
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6569,7 +6607,7 @@ PrefabInstance:
       objectReference: {fileID: 21300000, guid: 30abeaa615198ba4f9c349daf8673c76, type: 3}
     - target: {fileID: 7027504816787232354, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Name
-      value: "Slot \u2022 \uADC0\uAC78\uC774 1"
+      value: "Slot \u2022 \uADC0\uAC78\uC774"
       objectReference: {fileID: 0}
     - target: {fileID: 7335408784456011593, guid: 4c211978575b8ae4dba13d2220395425, type: 3}
       propertyPath: m_Pivot.x

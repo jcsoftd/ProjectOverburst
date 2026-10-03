@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using DuloGames.UI;
@@ -177,7 +177,7 @@ public static partial class OverburstUIWorkshopBuilder
         var left=go.transform.Find("Content/Character Content/Equip Slots/Left"); var right=go.transform.Find("Content/Character Content/Equip Slots/Right");
         var slots=go.GetComponentsInChildren<RectTransform>(true).Where(t=>t.name.StartsWith("Equip Slot (")).ToDictionary(t=>t.name,t=>t.Find("Slot Icon")?.GetComponent<Image>()?.sprite);
         string[] ln={"투구","갑옷","장갑","신발"}; string[] li={"Helmet","Chest","Gloves","Boots"};
-        string[] rn={"목걸이","귀걸이 1","귀걸이 2","가방"}; string[] ri={"Necklace","Earring","Earring","Belt"};
+        string[] rn={"목걸이","귀걸이","원소보석","가방"}; string[] ri={"Necklace","Earring","Earring","Belt"};
         EquipColumn(left,ln,li,slots); EquipColumn(right,rn,ri,slots);
         var middle=go.transform.Find("Content/Character Content/Equip Slots/Middle") as RectTransform;
         middle.sizeDelta=new Vector2(588,126); var mg=middle.GetComponent<GridLayoutGroup>(); mg.cellSize=new Vector2(126,126); mg.spacing=new Vector2(26,0); mg.constraint=GridLayoutGroup.Constraint.FixedRowCount; mg.constraintCount=1;

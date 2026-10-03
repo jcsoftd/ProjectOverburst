@@ -23,6 +23,7 @@ namespace Overburst.Persistence
         internal AccountContentRegistry ContentRegistry => registry;
         internal PlayerAccountInventoryService Owner => account;
         public long Revision => transactions.Revision;
+        public int BaseUnlockedSlots => transactions.BaseUnlockedSlots;
         public long PersistedRevision => transactions.PersistedRevision;
         public bool HasPendingSave => transactions.HasPendingSave;
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
@@ -48,12 +49,14 @@ namespace Overburst.Persistence
         public static bool RequiresPickupCheckpoint(ItemGrade grade) =>
             grade >= ItemGrade.Legendary && ItemGradeAvailabilityPolicy.IsEnabled(grade);
 
+        public static bool RequiresPickupCheckpoint(ItemData item) => item?.baseData is ElementGemItemData ? item.grade >= ItemGrade.Legendary : item != null && RequiresPickupCheckpoint(item.grade);
+
         public static bool AcquireWorldItem(PlayerInventory inventory, ItemData item)
         {
             if (inventory == null || item == null) return false;
             if (Current == null) return inventory.AddItem(item);
             if (Current.editing || Current.restoring) return false; // A pickup owns its completion boundary.
-            bool checkpoint = RequiresPickupCheckpoint(item.grade);
+            bool checkpoint = RequiresPickupCheckpoint(item);
             if (checkpoint)
             {
                 CurrencyPickupBatch.DrainPending();

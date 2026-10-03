@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ada61f487c70f8145a8f46a601dde8cc, type: 3}
+  m_Name: EG_Electric_Cursed
+  m_EditorClassIdentifier: Assembly-CSharp::ElementGemItemData
+  itemName: "\uBC88\uAC1C \uC6D0\uC18C \uBCF4\uC11D"
+  icon: {fileID: 21300000, guid: 026609d5e0d574447a46d938b5efed40, type: 3}
+  color: {r: 1, g: 1, b: 1, a: 1}
+  description: "\uC7A5\uCC29\uD558\uBA74 \uBB34\uAE30\uC5D0 \uBC88\uAC1C \uC6D0\uC18C\uB97C
+    \uBD80\uC5EC\uD569\uB2C8\uB2E4."
+  weight: 0
+  sellPrice: 10
+  worldPickupPrefab: {fileID: 3047886815774163051, guid: b3b85e6cf92f0594685f60758897acd0, type: 3}
+  possibleStats: []
+  element: 4
+  fixedGrade: 7

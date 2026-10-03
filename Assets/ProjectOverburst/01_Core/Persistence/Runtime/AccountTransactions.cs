@@ -8,12 +8,12 @@ namespace Overburst.Persistence
     {
         public static void Validate(AccountSnapshot state, AccountContentRegistry registry)
         {
-            if (state == null || state.schemaVersion != 1 || state.revision < 0 || state.level < 1 || state.level > 100 || state.experience < 0)
+            if (state == null || state.schemaVersion != 2 || state.revision < 0 || state.level < 1 || state.level > 100 || state.experience < 0)
                 throw new InvalidDataException("Invalid account header/progression.");
             if (state.items == null || state.inventory == null || state.stashTabs == null || state.merchants == null
                 || state.weapons == null || state.gear == null || state.bags == null || state.flasks == null || state.quickSlots == null)
                 throw new InvalidDataException("Missing account collections.");
-            if (state.weapons.Count != 1 || state.gear.Count != 7 || state.bags.Count != 1 || state.flasks.Count != 3
+            if (state.weapons.Count != 1 || state.gear.Count != 6 || state.bags.Count != 1 || state.flasks.Count != 3
                 || state.quickSlots.Count != 10 || state.stashTabs.Count != 3 || state.activeWeaponSlot != 0)
                 throw new InvalidDataException("Unsupported account loadout dimensions.");
             if (state.stashCapacity < 1 || state.currentStashTab < 0 || state.currentStashTab >= state.stashTabs.Count
@@ -41,6 +41,9 @@ namespace Overburst.Persistence
                 }
             };
             container(state.inventory); container(state.weapons); container(state.gear); container(state.bags);
+            container(new[] { state.elementalGemInstanceId });
+            if (!string.IsNullOrEmpty(state.elementalGemInstanceId) && !(registry.Resolve<BaseItemData>(items[state.elementalGemInstanceId].contentId) is ElementGemItemData))
+                throw new InvalidDataException("Non-gem in elemental gem slot.");
             foreach (var tab in state.stashTabs)
             {
                 if (tab == null || tab.slots == null || tab.slots.Count != state.stashCapacity) throw new InvalidDataException("Invalid stash dimensions.");
@@ -143,6 +146,7 @@ namespace Overburst.Persistence
         }
         public event Action<AccountSnapshot> Committed;
         public long Revision => current.revision;
+        public int BaseUnlockedSlots => current.baseUnlockedSlots;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
         internal bool CanAcquireFromRun(string runId) => current.run != null && current.run.runId == runId && AccountInvariants.IsRunning(current.run.phase);
         public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);

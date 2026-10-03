@@ -193,8 +193,7 @@ public static class WeaponCompareCapture
             {
                 var one = new ItemData(earringData, 1, ItemGrade.Rare);
                 var two = new ItemData(earringData, 1, ItemGrade.Uncommon);
-                if (!actor.Equipment.EquipGearItemToSlot(one, (int)GearSlot.EarringOne, out _)) notes.Add("earring 1 equip failed");
-                if (!actor.Equipment.EquipGearItemToSlot(two, (int)GearSlot.EarringTwo, out _)) notes.Add("earring 2 equip failed");
+                if (!actor.Equipment.EquipGearItemToSlot(one, (int)GearSlot.Earring, out _)) notes.Add("earring 1 equip failed");
                 accessory = new ItemData(earringData, 1, ItemGrade.Legendary);
                 notes.Add("earring target slot=" + GearEquipmentService.DefaultSlot(GearKind.Earring, actor.Equipment)
                     + " resolved=" + (EquippedWeaponComparison.ResolveEquippedGear(earringData) == one));

@@ -65,7 +65,7 @@ public partial class MeleeRuntime
         float normalizedEnergy = activeHeavyEnergy != null ? activeHeavyEnergy.Normalized : 0f;
         heavyDischargeCommitted = true;
         bool hasDischarge = activeHeavyEnergy != null && activeHeavyEnergy.TryCommitDischarge(
-            activeStats.damage * impactPhase.impact.SafeDamageMultiplier, out activeDischarge);
+            activeStats.damage * impactPhase.impact.SafeDamageMultiplier, out activeDischarge, activeGemAttack);
         if (hasDischarge && heavyParried) activeDischarge.TryRefundParried();
 
         MeleeWeaponDefinition meleeDefinition = activeWeaponData != null
@@ -134,7 +134,7 @@ public partial class MeleeRuntime
         if (!isAttacking)
             return;
 
-        if (playerEquipment == null || !playerEquipment.CanCurrentWeaponUseMeleeSlash || !IsSameRuntimeItem(activeAttackWeaponItem, currentWeaponItem))
+        if (playerEquipment == null || !playerEquipment.CanCurrentWeaponUseMeleeSlash || !IsSameRuntimeItem(activeAttackWeaponItem, currentWeaponItem) || !activeGemAttack.IsCurrent)
             CancelActiveAttack(WeaponActionCompletionReason.CancelledByWeaponSwitch, true);
     }
 
@@ -167,6 +167,7 @@ public partial class MeleeRuntime
         isAttacking = false;
         ReleaseAttackStates();
         activeAttackWeaponItem = null;
+        activeGemAttack = default;
         activeAttackUsesCombo = false;
         activeAttackAnimationClip = null;
         activeAttackAnimationSpeed = 1f;

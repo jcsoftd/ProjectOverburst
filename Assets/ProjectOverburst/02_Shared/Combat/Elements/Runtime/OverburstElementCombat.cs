@@ -12,7 +12,7 @@ public static class OverburstElementCombat
         PlayerEquipment equipment = info.source.GetComponentInParent<PlayerEquipment>();
         if (equipment == null || equipment.CurrentWeaponItem == null
             || equipment.CurrentWeaponItem.runtimeInstanceId != info.sourceWeaponRuntimeInstanceId
-            || equipment.CurrentWeaponItem.ResolvedElement != info.element) return;
+            || equipment.ActiveElement != info.element || (info.gemAttack.HasValue && !info.gemAttack.IsCurrent)) return;
         CombatTarget sourceTarget = equipment.GetComponent<CombatTarget>();
         CombatTarget targetActor = target.GetComponent<CombatTarget>();
         if (sourceTarget == null || targetActor == null || sourceTarget.Team == targetActor.Team) return;

@@ -35,6 +35,7 @@ public sealed partial class ElementDischargeBatch
     private int count, rootCount;
     private float largestRadius, heightTolerance;
     private WeaponElement element;
+    private ElementGemAttackSnapshot gemAttack;
     public int CandidateChecks { get; private set; }
     public int SecondaryHits { get; private set; }
     public int OriginCount => rootCount;
@@ -43,12 +44,12 @@ public sealed partial class ElementDischargeBatch
     {
         Array.Clear(nodes, 0, count);
         count = rootCount = CandidateChecks = SecondaryHits = 0;
-        indices.Clear(); targets.Clear();
+        indices.Clear(); targets.Clear(); gemAttack = default;
     }
-    public void Capture(CombatTarget source, WeaponElement sourceElement, float verticalTolerance)
+    public void Capture(CombatTarget source, WeaponElement sourceElement, float verticalTolerance, ElementGemAttackSnapshot snapshot = default)
     {
         using var costScope = ElementCombatCostMarkers.Heavy_TargetSnapshot.Auto();
-        Clear(); element = sourceElement; heightTolerance = verticalTolerance; largestRadius = 0f;
+        Clear(); gemAttack = snapshot; element = sourceElement; heightTolerance = verticalTolerance; largestRadius = 0f;
         if (source == null) return;
         CombatTargetRegistry.CollectTeamTargets(source.Team == CombatTeam.Enemy ? CombatTeam.PlayerParty : CombatTeam.Enemy, targets);
         if (targets.Count > nodes.Length)
@@ -115,11 +116,11 @@ public sealed partial class ElementDischargeBatch
     private bool Damage(int i, float damage, GameObject source)
     {
         using var costScope = ElementCombatCostMarkers.Chain_Damage.Auto();
-        if (!Valid(i) || nodes[i].Hits >= 2 || damage <= 0f) return false;
+        if (!gemAttack.IsCurrent || !Valid(i) || nodes[i].Hits >= 2 || damage <= 0f) return false;
         float before = nodes[i].Health.CurrentHp;
         nodes[i].Health.TakeDamage(new DamageInfo(damage, nodes[i].Point, source,
             triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-            element: element, playerAttackKind: PlayerAttackKind.Elemental));
+            element: element, playerAttackKind: gemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: gemAttack));
         if (!SameLife(i) || nodes[i].Health.CurrentHp >= before) return false;
         nodes[i].Hits++; SecondaryHits++;
         if (nodes[i].Hits >= 2 || !Valid(i)) RetireCandidate(i);
@@ -142,13 +143,13 @@ public sealed partial class ElementDischargeBatch
                 CandidateChecks++;
                 if (!Valid(i)) { RetireCandidate(i); continue; }
                 if (i == origin || nodes[i].Hits >= 2 || !InRange(i, point, radius)) continue;
-                if (Damage(i, blastDamage * (.1f + .1f * stack), source)) Queue(i);
+                if (Damage(i, blastDamage * (.1f + .1f * stack) * (1f + gemAttack.Modifiers.ExplosionDamage / 100f), source)) Queue(i);
             }
         }
     }
     public void ExecuteLightning(float blastDamage, float energy, GameObject source, Action<Vector3, Vector3> linkVfx)
     {
-        int extra = energy >= .99999f ? 2 : energy >= .5f ? 1 : 0;
+        int extra = gemAttack.Modifiers.ChainHops + (energy >= .99999f ? 2 : energy >= .5f ? 1 : 0);
         float radius = Mathf.Lerp(2.5f, 4f, energy);
         for (int r = 0; r < rootCount; r++) { pathLengths[r] = 1; paths[r * 8] = roots[r]; }
         float damage = blastDamage;
@@ -175,7 +176,7 @@ public sealed partial class ElementDischargeBatch
                 if (nearest < 0) { pathLengths[r] = 0; continue; }
                 paths[r * 8 + length] = nearest; pathLengths[r]++;
                 float fraction = OverburstElementTuning.Current.LightningChainFraction(nodes[origin].Stacks);
-                if (Damage(nearest, damage * fraction, source))
+                if (Damage(nearest, damage * fraction * (1f + gemAttack.Modifiers.ChainDamage / 100f), source))
                 {
                     linkVfx?.Invoke(point, nodes[nearest].Point);
                     PlayLightningHopFeedback(nearest, point);

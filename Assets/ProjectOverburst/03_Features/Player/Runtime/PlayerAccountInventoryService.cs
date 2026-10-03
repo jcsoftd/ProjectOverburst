@@ -139,7 +139,8 @@ public sealed class PlayerAccountInventoryService : MonoBehaviour
 internal sealed class PlayerAccountLoadout
 {
     internal ItemData[] Weapons = new ItemData[1];
-    internal ItemData[] Gear = new ItemData[7];
+    internal ItemData[] Gear = new ItemData[6];
+    internal ItemData ElementalGem;
     internal int ActiveWeaponSlot;
     internal bool EquipmentInitialized;
     internal string[] FlaskIds = new string[3];

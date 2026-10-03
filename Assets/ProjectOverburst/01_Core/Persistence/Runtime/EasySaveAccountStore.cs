@@ -8,7 +8,7 @@ namespace Overburst.Persistence
     [Serializable] public sealed class AccountSaveEnvelope
     {
         public string magic = "OVERBURST_ACCOUNT";
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string profileId;
         public long generation;
         public string transactionId;
@@ -20,7 +20,7 @@ namespace Overburst.Persistence
 
     public sealed class EasySaveAccountStore
     {
-        public const int SchemaVersion = 1;
+        public const int SchemaVersion = 2;
         private readonly string directory;
         private readonly string profileId;
         private AccountSaveEnvelope latest;

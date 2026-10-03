@@ -13,7 +13,7 @@ public static partial class CombatBalanceGoal3Verifier
         Check(AccountBootstrap.SaveDirectory.StartsWith(Output,StringComparison.OrdinalIgnoreCase),"Isolated reentry");
         var account=AccountGameplaySession.Current;var actor=PlayerContext.GetOrCreate().CurrentActor;var p=PlayerInputFacade.Current;
         Check(account.Read().level==3&&PlayerProgression.CurrentLevel==3,"Saved level projected");
-        Check(actor.Equipment.CurrentWeaponData!=null&&Enumerable.Range(0,7).All(i=>actor.Equipment.GetGearSlotItem(i)!=null),"Weapon and gear restored");
+        Check(actor.Equipment.CurrentWeaponData!=null&&Enumerable.Range(0,6).All(i=>actor.Equipment.GetGearSlotItem(i)!=null),"Weapon and gear restored");
         var flask=p.GetComponent<PlayerFlaskController>();Check(flask.GetItem(0)!=null,"Flask restored");
         actor.Health.TakeDamage(new DamageInfo(actor.Health.MaxHp*.5f,p.transform.position));
         float hp=actor.Health.CurrentHp;Check(flask.TryUse(0,out string reason),"Use life flask "+reason);

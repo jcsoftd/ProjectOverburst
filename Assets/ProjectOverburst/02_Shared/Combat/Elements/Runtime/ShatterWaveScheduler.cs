@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Profiling;
 
-// The first blast claims/consumes frozen stacks. Its committed bonus survives weapon changes.
+// The first blast claims/consumes frozen stacks. Its committed bonus survives ordinary action cancellation while its gem context remains current.
 public sealed class ShatterWaveScheduler : MonoBehaviour
 {
     public const int RingCount = 5;
@@ -12,6 +12,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         public CombatHealth Target;
         public ElementalStatusController Status;
         public int Life;
+        public ElementGemAttackSnapshot GemAttack;
         public GameObject Source, Prefab;
         public Vector3 Point, Direction, VfxPoint;
         public float Damage, Due, SfxEnergy;
@@ -33,7 +34,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
 
     public static void Submit(CombatHealth target, float damage, GameObject source,
         GameObject prefab, Vector3 center, Vector3 point, Vector3 direction, float radius,
-        float sfxEnergy = MeleeElementSfxService.FullVolumeEnergy)
+        float sfxEnergy = MeleeElementSfxService.FullVolumeEnergy, ElementGemAttackSnapshot gemAttack = default)
     {
         if (target == null) return;
         if (instance == null)
@@ -48,7 +49,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         Vector3 vfxPoint = combatTarget != null ? CombatTargetVfxPlacement.ResolveVolume(combatTarget).Center : point;
         var item = new Pending { Target = target, Status = status,
             Life = status != null ? status.LifecycleVersion : 0,
-            Source = source, Prefab = prefab, Point = point, Direction = direction, VfxPoint = vfxPoint,
+            GemAttack = gemAttack, Source = source, Prefab = prefab, Point = point, Direction = direction, VfxPoint = vfxPoint,
             Damage = damage, Due = instance.clock + delay, VisualOnly = target.IsDead, SfxEnergy = sfxEnergy };
         if (delay <= 0) Dispatch(item);
         else instance.pending.Add(item);
@@ -60,6 +61,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
         for (int i = pending.Count - 1; i >= 0; i--)
         {
             var item = pending[i];
+            if (!item.GemAttack.IsCurrent) { pending.RemoveAt(i); continue; }
             if (item.Due > clock + .000001f) continue;
             pending.RemoveAt(i);
             Dispatch(item);
@@ -68,6 +70,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
     private static void Dispatch(Pending item)
     {
         using var scope = DispatchMarker.Auto();
+        if (!item.GemAttack.IsCurrent) return;
         if (!item.VisualOnly)
         {
             if (item.Target == null || !item.Target.isActiveAndEnabled || item.Target.IsDead
@@ -75,7 +78,7 @@ public sealed class ShatterWaveScheduler : MonoBehaviour
             if (item.Damage > 0)
                 item.Target.TakeDamage(new DamageInfo(item.Damage, item.Point, item.Source, item.Direction,
                     triggersOnHitEffects: false, suppressDefaultHitVfx: true,
-                    element: WeaponElement.Ice, playerAttackKind: PlayerAttackKind.Elemental));
+                    element: WeaponElement.Ice, playerAttackKind: item.GemAttack.HasValue ? PlayerAttackKind.Heavy | PlayerAttackKind.Elemental : PlayerAttackKind.Elemental, gemAttack: item.GemAttack));
         }
         if (item.Prefab != null)
             TransientVfxPool.Spawn(item.Prefab, item.VfxPoint, Quaternion.identity, 0, MeleeHeavyVfxPreparation.RetainedCapacity(item.Prefab));

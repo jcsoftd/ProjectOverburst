@@ -77,6 +77,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (CombatTeamUtility.IsFriendlyPlayerActorDamage(this, info))
             return; // 파티원 friendly fire 차단
 
+        if (info.gemAttack.HasValue && !info.gemAttack.IsCurrent) return;
         if (TryCancelDamageByEvade(info))
             return; // 회피 무적
 
@@ -144,11 +145,12 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         {
             PlayerEquipment equipment = info.source.GetComponentInParent<PlayerEquipment>();
             if (equipment == null) return;
-            GearStatTotals stats = GearStatTotals.From(equipment);
+            GearStatTotals stats = info.gemAttack.HasValue ? info.gemAttack.Stats : GearStatTotals.From(equipment);
             EnemyRank targetRank = GetComponentInParent<EnemyRank>();
             damage = CombatBalanceFormulas.ApplyPlayerOutgoing(damage, stats, targetRank != null,
                 targetRank != null ? targetRank.GradeType : EnemyGradeType.Normal, info.playerAttackKind,
-                MapRunBuffs.Bonus(MapBuffKind.Attack), MapRunBuffs.Bonus(MapBuffKind.ElementalDamage));
+                info.gemAttack.HasValue ? info.gemAttack.RunAttack : MapRunBuffs.Bonus(MapBuffKind.Attack),
+                info.gemAttack.HasValue ? info.gemAttack.RunElemental : MapRunBuffs.Bonus(MapBuffKind.ElementalDamage));
         }
         info.damage = damage;
     }
