@@ -55,6 +55,9 @@ public sealed class BloodHitVfxService : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray) && !Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.GroundDecals)) return;
+#endif
         if (instance != null) return;
         var data = Resources.Load<BloodHitCatalog>(BloodHitCatalog.ResourcePath);
         if (data == null || data.slash == null || data.stab == null || data.burst == null) return;
@@ -64,6 +67,9 @@ public sealed class BloodHitVfxService : MonoBehaviour
         instance.catalog = data;
         instance.groundDecals = root.AddComponent<BloodGroundDecalService>();
         instance.groundDecals.Configure(data);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray)) return;
+#endif
         for (int i = 0; i < Capacity; i++)
         {
             var child = new GameObject("Blood " + i);
@@ -306,6 +312,19 @@ public sealed class BloodHitVfxService : MonoBehaviour
 
     private bool Play(Pending request)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray))
+        {
+            float diagnosticSize = request.Size * request.WeightScale;
+            if (request.WeightScale > 1.2f) diagnosticSize = Mathf.Max(diagnosticSize, 1.25f);
+            else if (request.WeightScale > 1f) diagnosticSize = Mathf.Max(diagnosticSize, .8f);
+            diagnosticSize = Mathf.Clamp(diagnosticSize, .55f, 1.95f);
+            if (groundDecals)
+                groundDecals.Request(request.Profile, request.Position, request.Direction,
+                    request.Shape, diagnosticSize, request.Priority, request.AllowSuppressed);
+            return true;
+        }
+#endif
         var graph = catalog.Resolve(request.Shape);
         uint seed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
         int variantIndex = -1;

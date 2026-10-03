@@ -97,6 +97,9 @@ public sealed class CombatActionSfxService : MonoBehaviour
 
     public static bool TryPlayOrganicHit(CombatHitFeedbackRequest request, Vector3 position)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.HitAudio)) return false;
+#endif
         if (request.Target == null
             || !request.Target.TryGetComponent<BloodHitTarget>(out var bloodTarget)
             || bloodTarget.Profile == null

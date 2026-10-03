@@ -19,12 +19,18 @@ public static class MeleeElementHitVfxService
     // Explicit loading requests expire; equipment owns persistent demand until disabled.
     public static void PrepareForElement(WeaponElement element)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ElementHit)) return;
+#endif
         if (Application.isPlaying && TryResolve(element, out var prefab))
             MeleeElementPoolMaintenance.Request(prefab, catalog.ResolvePrewarmCount(element));
     }
 
     public static void SetElementDemand(Object owner, WeaponElement element)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ElementHit)) return;
+#endif
         if (!Application.isPlaying || owner == null) return;
         if (TryResolve(element, out var prefab))
             MeleeElementPoolMaintenance.SetOwner(owner, prefab, catalog.ResolvePrewarmCount(element));
@@ -33,8 +39,13 @@ public static class MeleeElementHitVfxService
 
     public static void ReleaseElementDemand(Object owner) => MeleeElementPoolMaintenance.ReleaseOwner(owner);
 
-    public static bool IsPrepared(WeaponElement element) => TryResolve(element, out var prefab)
-        && MeleeElementPoolMaintenance.IsPrepared(prefab);
+    public static bool IsPrepared(WeaponElement element)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ElementHit)) return true;
+#endif
+        return TryResolve(element, out var prefab) && MeleeElementPoolMaintenance.IsPrepared(prefab);
+    }
 
     public static bool CanPlay(WeaponElement element)
     {
@@ -59,6 +70,9 @@ public static class MeleeElementHitVfxService
 
     private static bool Play(WeaponElement element, Vector3 hitPoint, float bodySizeMultiplier)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ElementHit)) return false;
+#endif
         if (!TryResolve(element, out GameObject prefab))
             return false;
 

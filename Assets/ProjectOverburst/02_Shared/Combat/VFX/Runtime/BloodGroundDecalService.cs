@@ -62,6 +62,9 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     public void Configure(BloodHitCatalog source)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.GroundDecals)) return;
+#endif
         if (catalog != null) return;
         catalog = source;
         groundMask = LayerMask.GetMask("Ground", "Default");
@@ -100,6 +103,9 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         CombatImpactShape shape, float size, int priority, bool allowSuppressed = false,
         float landingDelay = LandingDelay)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.GroundDecals)) return;
+#endif
         if (catalog == null || !profile || (profile.suppressBlood && !allowSuppressed)) return;
         RequestedCount++;
         if (!TryGround(hitPoint, direction, size, out Vector3 point, out Vector3 normal))

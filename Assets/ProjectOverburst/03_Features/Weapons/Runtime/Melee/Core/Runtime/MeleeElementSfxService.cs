@@ -132,6 +132,9 @@ public sealed class MeleeElementSfxService : MonoBehaviour
 
     public static bool TryPlayHit(WeaponElement element, Vector3 position, bool critical = false, float energy = FullVolumeEnergy)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.HitAudio)) return false;
+#endif
         // 2026-09-30 17:56 결정: 무속성 무기는 무기 타격음이 없다(치명타 포함). 몬스터 공용 피격음이 모든 적에게 난다.
         if (element == WeaponElement.None) return false;
         // 치명타 큐가 비어 있거나 재생되지 않으면 일반 타격음으로 대체한다.

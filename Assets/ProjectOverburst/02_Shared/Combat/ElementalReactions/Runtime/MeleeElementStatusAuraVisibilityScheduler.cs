@@ -110,6 +110,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void PrewarmAtBoot()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.StatusAura)) return;
+#endif
         EnsureRuntimeService();
         if (instance == null)
             return;
@@ -238,6 +241,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     private void Update()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.StatusAura)) return;
+#endif
         Camera camera = ResolveCamera();
         Advance(camera, checksPerFrame);
         UpdateWarmPlay();
@@ -316,6 +322,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     internal static bool Register(MeleeElementStatusAuraController controller)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.StatusAura)) return false;
+#endif
         if (controller == null || !controller.HasLogicalAura)
             return false;
         if (instance == null)
@@ -338,6 +347,9 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
     internal static MeleeElementStatusAuraPresentation TryLeasePresentation(
         MeleeElementStatusAuraController owner)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.StatusAura)) return null;
+#endif
         return instance != null ? instance.LeasePresentation(owner) : null;
     }
 

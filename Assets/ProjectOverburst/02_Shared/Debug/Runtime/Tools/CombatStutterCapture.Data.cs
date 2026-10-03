@@ -176,6 +176,7 @@ namespace Overburst.DebugTools
                 hitOrigin = "OnDamageResolved subscribers; no damage/input/status injection. Targets appearing between binding scans may be missed. Events share actual Time.frameCount. Events before our first frame callback remain in hits.csv and are counted separately from frame-context hits.",
                 bloodOrigin = "Existing service counters and last sweep variation only; multiple blood plays in a frame cannot be mapped individually. -1 is unavailable variation." };
             File.WriteAllText(Path.Combine(folder, "summary.json"), JsonUtility.ToJson(summary, true), new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(folder, "effect-ab.json"), JsonUtility.ToJson(CombatEffectDiagnosticControls.Snapshot(), true), new UTF8Encoding(false));
             bool[] windows = HitchWindows(frames, frameCount, threshold, 8);
             WriteFrames(Path.Combine(folder, "frames.csv"), null);
             WriteFrames(Path.Combine(folder, "hitch-windows.csv"), windows);

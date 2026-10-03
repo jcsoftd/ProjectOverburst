@@ -32,6 +32,9 @@ public sealed class CombatImpactFeel : MonoBehaviour
     public static bool Play(CombatImpactSurface surface, CombatImpactShape shape, Vector3 point,
         Vector3 direction, bool critical = false, float intensity = 1f, bool lethal = false)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ImpactFeel)) return false;
+#endif
         if (!Application.isPlaying) return false;
         if (instance == null)
         {
