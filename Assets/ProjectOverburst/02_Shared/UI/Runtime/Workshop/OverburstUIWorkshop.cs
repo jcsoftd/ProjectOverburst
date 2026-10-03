@@ -41,7 +41,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
     public void ShowEquipment() { HideWindows(); minimapPreview?.Show(true); equipment.ResetPosition(); equipment.Show(); Label("장비 · 능력치 통합창"); }
     public void ShowComparison() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); equipment.ResetPosition(); equipment.Show(); inventory.Show(); Label("장비 + 인벤토리 · 창 위치와 겹침 확인"); }
     public void ShowStash() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); stash.ResetPosition(); stash.Show(); inventory.Show(); Label("창고 + 인벤토리 · 3개 보관함 배치"); }
-    public void ShowShop() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); shopPreview?.Show(); inventory.Show(); inventory.WindowRect.anchoredPosition = new Vector2(622, 64); Label("상점 + 인벤토리 · 공용 상점 뷰"); }
+    public void ShowShop() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); shopPreview?.Show(); inventory.Show(); inventory.WindowRect.anchoredPosition = new Vector2(OverburstUIShopSkin.InventoryX, OverburstUIShopSkin.WindowY); Label("상점 + 인벤토리 · 공용 상점 뷰"); }
     public void ShowRunCards() { HideWindows(); runPreview?.ShowCards(); Label("지도 카드 · 전시 표본 / 실제 런 보상 없음"); }
     public void ShowRunTransfer() { HideWindows(); runPreview?.ShowTransfer(inventory, equipment); Label("지도 전송 · 전시 표본 / 실제 아이템 전송 없음"); }
     public void ShowEnemies() { HideWindows(); enemySamples.SetActive(true); Label("몬스터 체력바 · 100% / 45% / 10% 표시"); }

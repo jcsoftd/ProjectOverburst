@@ -47,6 +47,12 @@ public static class OverburstShopUIVerifier
             Check(scrolls.Length == 3 && scrolls.All(s => s.vertical && !s.horizontal && s.content && s.viewport && s.viewport.GetComponent<RectMask2D>()), "Three clipped vertical scrolls");
             foreach (var scroll in scrolls)
                 Check(scroll.content.rect.height > scroll.viewport.rect.height && scroll.content.GetComponent<GridLayoutGroup>().cellSize == Vector2.one * 84, "Scrollable preserved capacity " + scroll.name);
+            Check(scrolls.Single(s=>s.name=="Stock Viewport").content.GetComponent<GridLayoutGroup>().constraintCount==6,"Merchant stock aligned to inventory six columns");
+            foreach(var scroll in scrolls.Where(s=>s.name!="Stock Viewport"))
+            {
+                Check(scroll.content.GetComponent<GridLayoutGroup>().constraintCount==2,"Each trade offer uses two columns "+scroll.name);
+                Check(Mathf.Approximately(scroll.content.rect.height,1004) && Mathf.Approximately(scroll.viewport.rect.height,360),"All 21 offer slots retained across eleven scroll rows "+scroll.name);
+            }
             Check(asset.GetComponent<OverburstUIShopSkin>(), "Presentation bridge persisted");
             Check(asset.transform.Find("Approved Tabs").childCount==4 && asset.transform.Find("ShopContextBlocker/ShopContextMenu/TradeButton"),"Four tabs distinct from context trade button");
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(WeaponElementIconBuilder.UiRoot + "PF_OverburstInventory_Rpg11.prefab");
@@ -55,6 +61,23 @@ public static class OverburstShopUIVerifier
                 var chrome = window.Find("Window Chrome");
                 Check(chrome && chrome.GetComponent<Image>().sprite == source.GetComponent<Image>().sprite, "Approved frame " + window.name);
                 Check(((RectTransform)window).sizeDelta.y == 776, "Consistent window height " + window.name);
+            }
+            Check(((RectTransform)asset.transform.Find("MerchantInventoryWindow")).sizeDelta.x==608 && ((RectTransform)source.transform).rect.width*source.transform.localScale.x==608,"Shop and inventory share 608 displayed width");
+            Check(((RectTransform)asset.transform.Find("TradeWindow")).sizeDelta.x==448,"Compact 448 trade width");
+            Check(OverburstUIShopSkin.TradeX-224-(OverburstUIShopSkin.MerchantX+304)==16 && OverburstUIShopSkin.InventoryX-304-(OverburstUIShopSkin.TradeX+224)==16,"Three windows have even 16 gaps");
+            var trade=asset.transform.Find("TradeWindow");
+            foreach(string name in new[]{"ConfirmButton","ClearButton","CloseButton"})
+            {
+                var button=trade.Find(name).GetComponent<Button>();var art=button.transform.Find("Approved Button Artwork");
+                Check(art && button.GetComponents<DuloGames.UI.UIHighlightTransition>().Length>=1 && button.GetComponent<DuloGames.UI.UIPressTransition>(),"Native asset hover and press reused "+name);
+                Check(!art.GetComponent<Button>() && button.targetGraphic.transform.IsChildOf(art),"Existing click owner with native artwork "+name);
+                Check(((RectTransform)button.transform).rect.height>=(name=="ConfirmButton"?60:48) && art.Find("Text").GetComponent<Text>().fontSize>=(name=="ConfirmButton"?19:17),"Readable button and hit area "+name);
+            }
+            Check(((RectTransform)trade.Find("ConfirmButton")).sizeDelta.x==384 && ((RectTransform)trade.Find("ClearButton")).sizeDelta.x==186,"Full width primary and equal secondary buttons");
+            foreach(var entry in new[]{new{button="OkButton",text="확인"},new{button="CancelButton",text="취소"}})
+            {
+                var button=asset.transform.Find("ShopContextBlocker/ShopSplitTradePopup/ButtonRow/"+entry.button);
+                Check(button.GetComponentInChildren<TMP_Text>(true).text==entry.text && button.Find("Approved Button Artwork/Text").GetComponent<Text>().text==entry.text,"Korean split action source and presentation "+entry.button);
             }
             // Check the actual persistent controller after native save, including scene overrides.
             foreach (var shop in Resources.FindObjectsOfTypeAll<ShopUI>().Where(s => !EditorUtility.IsPersistent(s) && s.gameObject.scene.IsValid()))
@@ -70,6 +93,7 @@ public static class OverburstShopUIVerifier
             }
             Render("native-trade.png", false);
             Render("native-quest.png", true);
+            Render("native-split.png",false,true);
             Check(errors.Count==0,"Preview renders without errors or assertions");
             Check(scenes == Scenes(), "Open scenes and dirty state unchanged by previews");
             Write("edit-results.json", new { status = "PASS", checks, errors });
@@ -78,7 +102,7 @@ public static class OverburstShopUIVerifier
         finally { UnityEngine.Random.state = random; Application.logMessageReceived -= Log; }
     }
 
-    static void Render(string file, bool quest)
+    static void Render(string file, bool quest, bool split=false)
     {
         const int width = 1920, height = 1080, layer = 30;
         var preview = EditorSceneManager.NewPreviewScene();
@@ -101,7 +125,7 @@ public static class OverburstShopUIVerifier
             foreach (string name in new[] { "QuestListWindow", "QuestDetailWindow" }) root.transform.Find(name).gameObject.SetActive(quest);
             foreach (string name in new[] { "SpecialtyListWindow", "SpecialtyDetailWindow", "TradeFailurePopup", "ShopContextBlocker" }) root.transform.Find(name).gameObject.SetActive(false);
             var inventory = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(WeaponElementIconBuilder.UiRoot + "PF_OverburstInventory_Rpg11.prefab"), canvas.transform);
-            inventory.SetActive(!quest); ((RectTransform)inventory.transform).anchoredPosition = new Vector2(622,64);
+            inventory.SetActive(!quest); ((RectTransform)inventory.transform).anchoredPosition = new Vector2(OverburstUIShopSkin.InventoryX,OverburstUIShopSkin.WindowY);
             var samples = ItemTypeIconVerifier.Samples();
             foreach (var slot in root.GetComponentsInChildren<SlotUI>(true)) slot.SetDisplayItem(samples[slot.transform.GetSiblingIndex() % samples.Length]);
             var inventorySlots = inventory.GetComponentsInChildren<OverburstUIItemSlotView>(true);
@@ -114,6 +138,14 @@ public static class OverburstShopUIVerifier
             SetText(root,"AutoGoldText","내가 지불: 2,250G"); SetText(root,"GoldSummaryText","인벤토리 5,000G · 창고 12,000G");
             SetText(root,"StatusText","더블클릭, 드래그, 우클릭 메뉴로 거래창에 올립니다.");
             root.GetComponent<OverburstUIShopSkin>().RefreshPresentation();
+            if(split)
+            {
+                root.transform.SetAsLastSibling();
+                root.transform.Find("ShopContextBlocker").gameObject.SetActive(true);
+                root.transform.Find("ShopContextBlocker/ShopContextMenu").gameObject.SetActive(false);
+                root.transform.Find("ShopContextBlocker/ShopSplitTradePopup").gameObject.SetActive(true);
+                ((RectTransform)root.transform.Find("ShopContextBlocker/ShopSplitTradePopup")).anchoredPosition=Vector2.zero;
+            }
             var skin = new SerializedObject(root.GetComponent<OverburstUIShopSkin>()); var tabs = skin.FindProperty("tabs");
             for (int i=0;i<tabs.arraySize;i++) ((GameObject)tabs.GetArrayElementAtIndex(i).FindPropertyRelative("selected").objectReferenceValue).SetActive(quest ? i==1 : i==0);
             foreach (Transform t in canvasObject.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
@@ -150,7 +182,7 @@ public static class OverburstShopUIPlayVerifier
     static readonly List<string> checks = new List<string>(), errors = new List<string>();
     static double deadline;
     static int lastFrame;
-    static string Account => Path.GetFullPath(Path.Combine(OverburstShopUIVerifier.Output,"IsolatedAccount04"));
+    static string Account => Path.GetFullPath(Path.Combine(OverburstShopUIVerifier.Output,"IsolatedAccount06"));
     static string Report => SessionState.GetBool(Key+"restore",false) ? "play02-results.json" : "play01-results.json";
     public static string Status => SessionState.GetString(Key+"status","NOT_RUN");
     static OverburstShopUIPlayVerifier()
@@ -266,10 +298,27 @@ public static class OverburstShopUIPlayVerifier
         var originalPosition=((RectTransform)game.inventoryWindow.transform).anchoredPosition;
         Check(npc.TryInteract(actor)==InteractionExecutionResult.Succeeded,"Actual merchant interaction opens shop within range"); for(int i=0;i<12;i++)yield return null;
         Check(shop.IsOpen && shop.IsTradeTabActive && game.inventory.IsVisible && game.inventory.InputToggleLocked,"Shop opens existing inventory and locks toggle");
-        Check(((RectTransform)game.inventoryWindow.transform).anchoredPosition==new Vector2(622,64),"Existing inventory at third column");
+        Check(((RectTransform)game.inventoryWindow.transform).anchoredPosition==new Vector2(OverburstUIShopSkin.InventoryX,OverburstUIShopSkin.WindowY),"Existing inventory at balanced third column");
         var panel=Field<GameObject>(shop,"shopPanel"); var stock=FieldArray<SlotUI>(shop,"merchantInventorySlots"); var mOffers=FieldArray<SlotUI>(shop,"merchantOfferSlots"); var pOffers=FieldArray<SlotUI>(shop,"playerOfferSlots");
         var service=Field<MerchantTradeService>(shop,"tradeService"); var menu=Field<ShopContextMenuController>(shop,"contextMenu");
         Check(stock.Length==35 && mOffers.Length==21 && pOffers.Length==21 && stock.Concat(mOffers).Concat(pOffers).All(s=>s&&s.GetComponent<OverburstUIItemSlotView>()),"All 77 native runtime slots bound");
+        Check(stock[0].transform.parent.GetComponent<GridLayoutGroup>().constraintCount==6 && mOffers[0].transform.parent.GetComponent<GridLayoutGroup>().constraintCount==2 && pOffers[0].transform.parent.GetComponent<GridLayoutGroup>().constraintCount==2,"Runtime stock six columns and trade two columns");
+        var main=Field<Button>(shop,"confirmButton");
+        foreach(string buttonName in new[]{"ConfirmButton","ClearButton","CloseButton"})
+        {
+            var button=panel.transform.Find("TradeWindow/"+buttonName).GetComponent<Button>(); var hits=new List<RaycastResult>();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=RectTransformUtility.WorldToScreenPoint(null,button.transform.position)},hits);
+            Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<Button>()==button,"Action button receives top raycast "+buttonName);
+        }
+        var mainPointer=new PointerEventData(EventSystem.current){position=RectTransformUtility.WorldToScreenPoint(null,main.transform.position),button=PointerEventData.InputButton.Left};
+        var hover=main.transform.Find("Approved Button Artwork/Hover Overlay").GetComponent<Image>();
+        var press=main.transform.Find("Approved Button Artwork/Press Overlay").GetComponent<Image>();
+        ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerEnterHandler); float feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
+        Check(hover.canvasRenderer.GetColor().a>.5f,"Native hover feedback becomes visible"); Capture("product-button-hover.png");yield return null;
+        ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerDownHandler);feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
+        Check(press.canvasRenderer.GetColor().a>.5f,"Native press feedback becomes visible"); Capture("product-button-press.png");yield return null;
+        ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerUpHandler);EventSystem.current.SetSelectedGameObject(null);ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerExitHandler);feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
+        Check(hover.canvasRenderer.GetColor().a<.1f && press.canvasRenderer.GetColor().a<.1f && service.Session.MerchantOffers.Count==0,"Native pointer feedback resets without creating a trade");
         var buy=stock.First(s=>s.DisplayItem!=null && shop.CanShopContextTrade(ShopContextMenuTarget.MerchantInventory,s));
         Check(shop.HandleShopSlotClicked(buy) && service.Session.MerchantOffers.Count==1,"Double-click stock adds offer");
         Check(mOffers[0].DisplayItem!=null && mOffers[0].GetComponentInChildren<ItemTypeIconView>(true).IsVisible,"Offer uses shared type icon");

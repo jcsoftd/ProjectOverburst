@@ -6,6 +6,8 @@ using UnityEngine.UI;
 /// <summary>Reuses the approved window typography and tabs while ShopUI owns trade state.</summary>
 public sealed class OverburstUIShopSkin : MonoBehaviour
 {
+    public const float MerchantWidth = 608, TradeWidth = 448, WindowHeight = 776;
+    public const float MerchantX = -544, TradeX = 0, InventoryX = 544, WindowY = 64;
     [Serializable] public struct Label
     {
         public TMP_Text source;

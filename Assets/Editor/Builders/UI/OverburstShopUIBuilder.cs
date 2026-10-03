@@ -12,9 +12,10 @@ using Object = UnityEngine.Object;
 public static class OverburstShopUIBuilder
 {
     public const string PrefabPath = WeaponElementIconBuilder.UiRoot + "PF_OverburstShopPanel_Rpg11.prefab";
-    public const string Output = "../개인파일/코덱스산출/UI/20261003_ShopTradeUnified";
-    public const float MerchantWidth = 544, TradeWidth = 668, Height = 776;
-    public const float MerchantX = -654, TradeX = -32, WindowY = 64;
+    public const string Output = "../개인파일/코덱스산출/UI/20261003_ShopTradeUnified/Compact02";
+    public const float MerchantWidth = OverburstUIShopSkin.MerchantWidth, TradeWidth = OverburstUIShopSkin.TradeWidth, Height = OverburstUIShopSkin.WindowHeight;
+    public const float MerchantX = OverburstUIShopSkin.MerchantX, TradeX = OverburstUIShopSkin.TradeX, WindowY = OverburstUIShopSkin.WindowY;
+    public const string ButtonRoot = "Assets/ThirdParty/RPG and MMO UI 11/Prefabs/Controls/Buttons/Rectangular/";
     public const float Cell = OverburstUIWorkshopBuilder.UnifiedSlotSize, Gap = 8;
     static readonly Color Gold = new Color(.88f, .74f, .48f, 1);
     static readonly Color Ivory = new Color(.93f, .90f, .83f, 1);
@@ -25,6 +26,7 @@ public static class OverburstShopUIBuilder
     static GameObject inventory, equipment, stash, shared, context;
     static TMP_FontAsset body;
     static Font approvedBody;
+    static GameObject primaryButton, secondaryButton;
 
     [MenuItem("OVERBURST/UI/상점 거래창 공용 디자인 적용")]
     public static void Build()
@@ -38,7 +40,9 @@ public static class OverburstShopUIBuilder
         context = AssetDatabase.LoadAssetAtPath<GameObject>(WeaponElementIconBuilder.UiRoot + "PF_OverburstInventoryContext_Rpg11.prefab");
         body = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ProjectOverburst/Resources/UI/Fonts/ProjectMT/FontAssets/TMP_SpoqaHanSansNeo_Body.asset");
         approvedBody = AssetDatabase.LoadAssetAtPath<Font>("Assets/ProjectOverburst/Resources/UI/Fonts/DamageFloating/Pretendard_Medium.ttf");
-        if (!inventory || !equipment || !stash || !shared || !context || !body || !approvedBody) throw new InvalidOperationException("Approved UI sources missing");
+        primaryButton = AssetDatabase.LoadAssetAtPath<GameObject>(ButtonRoot + "Button (Normal M).prefab");
+        secondaryButton = AssetDatabase.LoadAssetAtPath<GameObject>(ButtonRoot + "Button (Window).prefab");
+        if (!inventory || !equipment || !stash || !shared || !context || !body || !approvedBody || !primaryButton || !secondaryButton) throw new InvalidOperationException("Approved UI sources missing");
         var prior = SlotIdentities(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
         GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
         try
@@ -59,7 +63,7 @@ public static class OverburstShopUIBuilder
         finally
         {
             PrefabUtility.UnloadPrefabContents(root); labels.Clear(); headerClose.Clear();
-            inventory=equipment=stash=shared=context=null; body=null; approvedBody=null;
+            inventory=equipment=stash=shared=context=primaryButton=secondaryButton=null; body=null; approvedBody=null;
         }
         var after = SlotIdentities(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
         if (!prior.OrderBy(x => x.Key).SequenceEqual(after.OrderBy(x => x.Key))) throw new InvalidOperationException("Shop slot identities changed");
@@ -82,49 +86,49 @@ public static class OverburstShopUIBuilder
     {
         Window(window, MerchantWidth, MerchantX, window.Find("TopPanel/TitleText").GetComponent<TMP_Text>());
         var top = window.Find("TopPanel"); Px(top, 0, 0, MerchantWidth, 376); NoBackground(top);
-        var name = top.Find("MerchantNameText"); Px(name, 32, 140, 304, 28); TextStyle(name, 20, Gold);
-        var description = top.Find("DescriptionText"); Px(description, 32, 174, 480, 38); TextStyle(description, 14, Muted);
-        var box = top.Find("MerchantInfoBox"); Px(box, 32, 222, 480, 112); NoBackground(box);
+        var name = top.Find("MerchantNameText"); Px(name, 32, 152, 368, 28); TextStyle(name, 20, Gold);
+        var description = top.Find("DescriptionText"); Px(description, 32, 186, 544, 28); TextStyle(description, 15, Muted);
+        var box = top.Find("MerchantInfoBox"); Px(box, 32, 230, 544, 108); NoBackground(box);
         var portrait = box.Find("PortraitPanel");
-        var category = portrait.Find("PortraitCategoryText") ?? top.Find("PortraitCategoryText"); category.SetParent(top, false); Px(category, 344, 144, 168, 24); TextStyle(category, 14, Muted, TextAlignmentOptions.MidlineRight);
+        var category = portrait.Find("PortraitCategoryText") ?? top.Find("PortraitCategoryText"); category.SetParent(top, false); Px(category, 408, 156, 168, 24); TextStyle(category, 14, Muted, TextAlignmentOptions.MidlineRight);
         portrait.gameObject.SetActive(false);
-        var info = box.Find("ReputationInfoPanel"); Px(info, 0, 0, 480, 112); NoBackground(info);
+        var info = box.Find("ReputationInfoPanel"); Px(info, 0, 0, 544, 108); NoBackground(info);
         PlaceText(info, "ReputationLevelText", 0, 0, 142, 24, 16, Gold);
-        PlaceText(info, "ReputationGradeText", 154, 0, 326, 24, 14, Muted);
-        var bar = info.Find("ReputationExpBar"); Px(bar, 0, 31, 480, 6);
+        PlaceText(info, "ReputationGradeText", 154, 0, 390, 24, 14, Muted);
+        var bar = info.Find("ReputationExpBar"); Px(bar, 0, 31, 544, 6);
         var bg = bar.GetComponent<Image>(); if (bg) { bg.color = new Color(.12f,.105f,.08f,1); bg.raycastTarget = false; }
         var fill = bar.Find("Fill").GetComponent<Image>(); fill.color = Gold; fill.raycastTarget = false;
-        var exp = bar.Find("ExpPercentText") ?? info.Find("ExpPercentText"); exp.SetParent(info, false); Px(exp, 0, 43, 480, 20); TextStyle(exp, 12, Muted);
+        var exp = bar.Find("ExpPercentText") ?? info.Find("ExpPercentText"); exp.SetParent(info, false); Px(exp, 0, 43, 544, 20); TextStyle(exp, 12, Muted);
         info.Find("ReputationEffectsTitleText").gameObject.SetActive(false);
         PlaceText(info, "ReputationDiscountText", 0, 68, 160, 20, 14, Ivory);
-        PlaceText(info, "MerchantGoldInfoText", 166, 68, 314, 20, 14, Ivory);
-        PlaceText(info, "ReputationStockGradeText", 0, 94, 480, 22, 13, Muted);
+        PlaceText(info, "MerchantGoldInfoText", 166, 68, 378, 20, 14, Ivory);
+        PlaceText(info, "ReputationStockGradeText", 0, 94, 544, 22, 13, Muted);
         NoBackground(info.Find("Divider"));
         var bottom = window.Find("BottomPanel"); Px(bottom, 0, 0, MerchantWidth, Height); NoBackground(bottom);
-        StaticLabel(window, "Stock Heading", "판매품", 32, 346, 452, 28, 17, Gold);
-        Rule(window, "Stock Rule", 32, 376, 480);
-        Grid(bottom.Find("MerchantInventorySlots") ?? window.Find("Stock Viewport/MerchantInventorySlots"), window, 5, 35, 32, 388, 360, "Stock Viewport");
+        StaticLabel(window, "Stock Heading", "판매품", 32, 346, 544, 28, 17, Gold);
+        Rule(window, "Stock Rule", 32, 376, 544);
+        Grid(bottom.Find("MerchantInventorySlots") ?? window.Find("Stock Viewport/MerchantInventorySlots"), window, 6, 35, 32, 388, 360, "Stock Viewport");
     }
 
     static void Trade(Transform window)
     {
         Window(window, TradeWidth, TradeX, window.Find("TitleText").GetComponent<TMP_Text>());
-        PlaceText(window, "MerchantOfferLabel", 32, 96, 268, 26, 17, Gold);
-        PlaceText(window, "PlayerOfferLabel", 368, 96, 268, 26, 17, Gold);
-        Grid(window.Find("MerchantOfferSlots") ?? window.Find("Merchant Offer Viewport/MerchantOfferSlots"), window, 3, 21, 32, 132, 452, "Merchant Offer Viewport");
-        Grid(window.Find("PlayerOfferSlots") ?? window.Find("Player Offer Viewport/PlayerOfferSlots"), window, 3, 21, 368, 132, 452, "Player Offer Viewport");
+        PlaceText(window, "MerchantOfferLabel", 32, 96, 176, 26, 17, Gold);
+        PlaceText(window, "PlayerOfferLabel", 240, 96, 176, 26, 17, Gold);
+        Grid(window.Find("MerchantOfferSlots") ?? window.Find("Merchant Offer Viewport/MerchantOfferSlots"), window, 2, 21, 32, 132, 360, "Merchant Offer Viewport");
+        Grid(window.Find("PlayerOfferSlots") ?? window.Find("Player Offer Viewport/PlayerOfferSlots"), window, 2, 21, 240, 132, 360, "Player Offer Viewport");
         window.Find("OfferDivider").gameObject.SetActive(false);
-        Rule(window, "Summary Rule", 32, 602, 604);
-        var summary = window.Find("SummaryPanel"); Px(summary, 32, 614, 604, 24); NoBackground(summary);
-        PlaceText(summary, "MerchantValueText", 0, 0, 288, 24, 14, Muted);
-        PlaceText(summary, "PlayerValueText", 312, 0, 292, 24, 14, Muted);
-        var gold = window.Find("SummaryPanel2"); Px(gold, 32, 644, 604, 36); NoBackground(gold);
-        PlaceText(gold, "AutoGoldText", 0, 0, 288, 30, 17, Gold);
-        PlaceText(gold, "GoldSummaryText", 312, 0, 292, 36, 13, Ivory);
-        PlaceButton(window.Find("ConfirmButton"), 32, 688, 336, 44);
-        PlaceButton(window.Find("ClearButton"), 380, 688, 120, 44);
-        PlaceButton(window.Find("CloseButton"), 512, 688, 124, 44);
-        PlaceText(window, "StatusText", 32, 738, 604, 28, 13, Muted);
+        Rule(window, "Summary Rule", 32, 512, 384);
+        var summary = window.Find("SummaryPanel"); Px(summary, 32, 524, 384, 38); NoBackground(summary);
+        PlaceText(summary, "MerchantValueText", 0, 0, 176, 38, 15, Muted);
+        PlaceText(summary, "PlayerValueText", 208, 0, 176, 38, 15, Muted);
+        var gold = window.Find("SummaryPanel2"); Px(gold, 32, 574, 384, 48); NoBackground(gold);
+        PlaceText(gold, "AutoGoldText", 0, 0, 384, 28, 20, Gold);
+        PlaceText(gold, "GoldSummaryText", 0, 30, 384, 22, 14, Muted);
+        PlaceButton(window.Find("ConfirmButton"), 32, 632, 384, 60, true);
+        PlaceButton(window.Find("ClearButton"), 32, 704, 186, 48);
+        PlaceButton(window.Find("CloseButton"), 230, 704, 186, 48);
+        PlaceText(window, "StatusText", 32, 756, 384, 18, 12, Muted);
     }
 
     static void Auxiliary(Transform window, bool detail, bool specialty)
@@ -135,7 +139,7 @@ public static class OverburstShopUIBuilder
         foreach (Transform child in window.CastChildren())
         {
             if (child.name == "Window Chrome" || child.name == "TitleText") continue;
-            if (child.GetComponent<Button>()) { PlaceButton(child, width - 232, 688, 200, 44); continue; }
+            if (child.GetComponent<Button>()) { PlaceButton(child, width - 264, 692, 232, 56, true); continue; }
             if (child.name.Contains("Status")) { Px(child, 32, 738, width - 64, 28); TextStyle(child, 13, Muted); continue; }
             float height = child.name.Contains("Description") ? 84 : child.childCount > 0 ? 86 : child.name == "BodyText" ? 360 : 34;
             Px(child, 32, y, width - 64, height); NoBackground(child);
@@ -176,7 +180,7 @@ public static class OverburstShopUIBuilder
         var host = root.Find("Approved Tabs") as RectTransform ?? Rect("Approved Tabs", root);
         host.anchorMin = host.anchorMax = Vector2.one * .5f; host.pivot = new Vector2(0,1);
         host.anchoredPosition = new Vector2(MerchantX - MerchantWidth/2 + 32, WindowY + Height/2 - 86);
-        host.sizeDelta = new Vector2(480,40);
+        host.sizeDelta = new Vector2(MerchantWidth - 64,52);
         var layout = host.GetComponent<HorizontalLayoutGroup>() ?? host.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.spacing = 8; layout.childControlWidth = true; layout.childControlHeight = true; layout.childForceExpandWidth = true; layout.childForceExpandHeight = true;
         var source = stash.transform.Find("Tab Menu/Buttons Group/Tab Button (1)");
@@ -195,7 +199,7 @@ public static class OverburstShopUIBuilder
             var overlay=(RectTransform)art.transform.Find("Active/Overlay"); overlay.offsetMin=new Vector2(-4,-4); overlay.offsetMax=new Vector2(4,4);
             var arrow=(RectTransform)art.transform.Find("Active/Arrow"); arrow.sizeDelta=new Vector2(16,11); arrow.anchoredPosition=new Vector2(0,-5);
             var sourceText = button.GetComponentsInChildren<TMP_Text>(true).First();
-            var target = art.transform.Find("Text").GetComponent<Text>(); target.fontSize = 16; target.color = Gold; target.text=sourceText.text;
+            var target = art.transform.Find("Text").GetComponent<Text>(); target.fontSize = 18; target.color = Gold; target.text=sourceText.text;
             Stretch(target.rectTransform); target.alignment=TextAnchor.MiddleCenter;
             labels.Add(new OverburstUIShopSkin.Label { source = sourceText, target = target }); sourceText.enabled = false;
             foreach (var image in art.GetComponentsInChildren<Image>(true)) image.raycastTarget = false;
@@ -281,41 +285,72 @@ public static class OverburstShopUIBuilder
             foreach (var button in panel.GetComponentsInChildren<Button>(true)) StyleButton(button);
         }
         var split = root.Find("ShopContextBlocker/ShopSplitTradePopup");
+        split.Find("ButtonRow/OkButton").GetComponentInChildren<TMP_Text>(true).text="확인";
+        split.Find("ButtonRow/CancelButton").GetComponentInChildren<TMP_Text>(true).text="취소";
         var menuLayout=root.Find("ShopContextBlocker/ShopContextMenu").GetComponent<VerticalLayoutGroup>();
         if(menuLayout){menuLayout.padding=new RectOffset(24,24,24,24);menuLayout.spacing=4;}
-        ((RectTransform)split).sizeDelta = new Vector2(360,230);
+        foreach(var button in root.Find("ShopContextBlocker/ShopContextMenu").GetComponentsInChildren<Button>(true))
+        { var element=button.GetComponent<LayoutElement>()??button.gameObject.AddComponent<LayoutElement>(); element.minHeight=element.preferredHeight=56; element.preferredWidth=228; }
+        ((RectTransform)split).sizeDelta = new Vector2(400,280);
         foreach(string row in new[]{"InputRow","ButtonRow"})foreach(var group in split.Find(row).GetComponents<LayoutGroup>())Object.DestroyImmediate(group);
-        PlaceText(split,"Title",32,32,296,28,18,Gold); PlaceText(split,"HintText",32,68,296,24,14,Muted);
-        Px(split.Find("InputRow"),32,100,296,42);
-        Px(split.Find("InputRow/DecreaseButton"),0,0,44,42); Px(split.Find("InputRow/SplitTradeAmountInput"),52,0,192,42); Px(split.Find("InputRow/IncreaseButton"),252,0,44,42);
-        Px(split.Find("ButtonRow"),32,164,296,40); Px(split.Find("ButtonRow/OkButton"),0,0,144,40); Px(split.Find("ButtonRow/CancelButton"),152,0,144,40);
-        var failure = root.Find("TradeFailurePopup/PopupPanel"); ((RectTransform)failure).sizeDelta = new Vector2(460,240);
-        PlaceText(failure,"TitleText",32,32,396,30,20,Gold); PlaceText(failure,"MessageText",32,76,396,90,16,Ivory);
-        PlaceButton(failure.Find("ConfirmButton"),154,178,152,42);
+        PlaceText(split,"Title",32,32,336,28,20,Gold); PlaceText(split,"HintText",32,70,336,24,15,Muted);
+        Px(split.Find("InputRow"),32,112,336,52);
+        Px(split.Find("InputRow/DecreaseButton"),0,0,56,52); Px(split.Find("InputRow/SplitTradeAmountInput"),68,0,200,52); Px(split.Find("InputRow/IncreaseButton"),280,0,56,52);
+        var input=split.Find("InputRow/SplitTradeAmountInput").GetComponent<TMP_InputField>(); input.textComponent.fontSize=20;
+        var inputImage=input.GetComponent<Image>(); if(inputImage){CopyImage(secondaryButton.GetComponent<Image>(),inputImage);inputImage.type=Image.Type.Sliced;inputImage.pixelsPerUnitMultiplier=3;inputImage.color=new Color(.26f,.24f,.20f,1);}
+        Px(split.Find("ButtonRow"),32,188,336,60); PlaceButton(split.Find("ButtonRow/OkButton"),0,0,162,60,true); PlaceButton(split.Find("ButtonRow/CancelButton"),174,0,162,60);
+        var failure = root.Find("TradeFailurePopup/PopupPanel"); ((RectTransform)failure).sizeDelta = new Vector2(480,272);
+        PlaceText(failure,"TitleText",32,32,416,30,20,Gold); PlaceText(failure,"MessageText",32,76,416,90,16,Ivory);
+        PlaceButton(failure.Find("ConfirmButton"),132,182,216,60,true);
         root.Find("ShopContextBlocker").SetAsLastSibling(); root.Find("TradeFailurePopup").SetAsLastSibling();
     }
 
-    static void PlaceButton(Transform transform, float x, float y, float width, float height)
-    { Px(transform,x,y,width,height); StyleButton(transform.GetComponent<Button>()); }
+    static void PlaceButton(Transform transform, float x, float y, float width, float height, bool primary=false)
+    { Px(transform,x,y,width,height); StyleButton(transform.GetComponent<Button>(),primary); }
 
-    static void StyleButton(Button button)
+    static void StyleButton(Button button, bool primary=false)
     {
-        var template = equipment.transform.Find("Layout/Inventory Button");
-        var image = button.GetComponent<Image>() ?? button.gameObject.AddComponent<Image>(); CopyImage(template.GetComponent<Image>(), image); button.targetGraphic = image;
-        image.pixelsPerUnitMultiplier *= 2;
-        var previousBorder=button.transform.Find("Approved Border"); if(previousBorder)Object.DestroyImmediate(previousBorder.gameObject);
-        var border=Object.Instantiate(template.Find("Border").gameObject,button.transform,false); border.name="Approved Border";
-        var borderRect=(RectTransform)border.transform; borderRect.offsetMin*=.5f; borderRect.offsetMax*=.5f;
-        border.GetComponent<Image>().pixelsPerUnitMultiplier*=2; border.GetComponent<Image>().raycastTarget=false; border.transform.SetAsFirstSibling();
         var source = button.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
-        if (!source) return;
-        var targetTransform = button.transform.Find("Approved Label");
-        var target = targetTransform ? targetTransform.GetComponent<Text>() : Rect("Approved Label",button.transform).gameObject.AddComponent<Text>();
-        var sample = template.GetComponentInChildren<Text>(true); target.font = sample.font; target.fontSize = 14; target.color = Gold;
-        target.alignment = TextAnchor.MiddleCenter; target.raycastTarget = false; target.text = source.text; Stretch(target.rectTransform);
+        foreach(string old in new[]{"Approved Border","Approved Label","Approved Button Artwork"})
+        { var previous=button.transform.Find(old); if(previous)Object.DestroyImmediate(previous.gameObject); }
+        foreach(var transition in button.GetComponents<MonoBehaviour>().Where(c=>c is DuloGames.UI.UIHighlightTransition || c is DuloGames.UI.UIPressTransition).ToArray()) Object.DestroyImmediate(transition);
+        var hit=button.GetComponent<Image>()??button.gameObject.AddComponent<Image>(); hit.sprite=null; hit.color=Color.clear; hit.enabled=true; hit.raycastTarget=true;
+        var art=Object.Instantiate(primary?primaryButton:secondaryButton,button.transform,false); art.name="Approved Button Artwork"; Stretch((RectTransform)art.transform); art.transform.localScale=Vector3.one; art.transform.SetAsFirstSibling();
+        // Preserve the native asset's hover and press handlers, while the existing Button owns clicks.
+        var donor=art.GetComponent<Button>(); button.transition=donor.transition; button.colors=donor.colors; button.targetGraphic=donor.targetGraphic;
+        foreach(var transition in art.GetComponents<MonoBehaviour>().Where(c=>c is DuloGames.UI.UIHighlightTransition || c is DuloGames.UI.UIPressTransition).ToArray())
+        {
+            var copy=button.gameObject.AddComponent(transition.GetType()); EditorUtility.CopySerialized(transition,copy);
+            var so=new SerializedObject(copy); var textTransition=so.FindProperty("m_Transition");
+            if(textTransition!=null && textTransition.intValue==4)
+            { so.FindProperty("m_NormalColor").colorValue=primary?Ivory:Gold; so.FindProperty("m_HighlightedColor").colorValue=Color.white; so.FindProperty("m_SelectedColor").colorValue=Color.white; so.ApplyModifiedPropertiesWithoutUndo(); }
+            Object.DestroyImmediate(transition);
+        }
+        Object.DestroyImmediate(donor);
+        foreach(var scheme in art.GetComponentsInChildren<DuloGames.UI.ColorSchemeElement>(true))Object.DestroyImmediate(scheme);
+        foreach(var image in art.GetComponentsInChildren<Image>(true)){image.raycastTarget=false; image.pixelsPerUnitMultiplier=3; if(image.sprite)image.type=Image.Type.Sliced;}
+        foreach(string ornament in new[]{"Ornament Left","Ornament Right"}) { var t=art.transform.Find(ornament); if(t)t.gameObject.SetActive(false); }
+        if(primary)
+        {
+            Inset(art.transform.Find("Foreground"),8); art.transform.Find("Foreground").GetComponent<Image>().color=new Color(.32f,.255f,.16f,1);
+            Inset(art.transform.Find("Hover Overlay"),9); Inset(art.transform.Find("Press Overlay"),8);
+            var top=(RectTransform)art.transform.Find("Foreground/Overlay 1"); top.anchorMin=new Vector2(0,1);top.anchorMax=Vector2.one;top.pivot=new Vector2(.5f,1);top.anchoredPosition=Vector2.zero;top.sizeDelta=new Vector2(0,18);
+            Inset(art.transform.Find("Foreground/Overlay 2"),0);
+        }
+        else
+        {
+            var background=art.GetComponent<Image>(); background.color=new Color(.55f,.50f,.43f,1);
+            Inset(art.transform.Find("Border"),5); var border=art.transform.Find("Border").GetComponent<Image>(); border.color=Color.white; border.pixelsPerUnitMultiplier=1;
+            Inset(art.transform.Find("Hover Overlay"),6); Inset(art.transform.Find("Press Overlay"),6);
+        }
+        var target=art.transform.Find("Text").GetComponent<Text>(); target.font=approvedBody; target.fontSize=primary?19:17; target.color=primary?Ivory:Gold;
+        target.alignment=TextAnchor.MiddleCenter; target.raycastTarget=false; target.text=source?source.text:""; Stretch(target.rectTransform); target.rectTransform.offsetMin=new Vector2(12,0);target.rectTransform.offsetMax=new Vector2(-12,0);
         target.horizontalOverflow = HorizontalWrapMode.Wrap; target.verticalOverflow = VerticalWrapMode.Truncate;
-        source.enabled = false; labels.RemoveAll(l => l.source == source); labels.Add(new OverburstUIShopSkin.Label { source = source, target = target });
+        if(source){source.enabled=false; labels.RemoveAll(l=>l.source==source); labels.Add(new OverburstUIShopSkin.Label{source=source,target=target});}
     }
+
+    static void Inset(Transform transform,float inset)
+    { var rect=(RectTransform)transform; Stretch(rect);rect.offsetMin=Vector2.one*inset;rect.offsetMax=Vector2.one*-inset; }
 
     static void StaticLabel(Transform parent,string name,string text,float x,float y,float width,float height,int size,Color color)
     {

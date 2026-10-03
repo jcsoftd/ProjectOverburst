@@ -82,7 +82,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         bool trading=shop&&shop.IsOpen;
         if(trading!=shopLayout){
             shopLayout=trading;
-            if(trading){inventoryBeforeShop=inventoryWindow.WindowRect.anchoredPosition;inventoryWindow.WindowRect.anchoredPosition=new Vector2(622,64);CloseEquipment();}
+            if(trading){inventoryBeforeShop=inventoryWindow.WindowRect.anchoredPosition;inventoryWindow.WindowRect.anchoredPosition=new Vector2(OverburstUIShopSkin.InventoryX,OverburstUIShopSkin.WindowY);CloseEquipment();}
             else inventoryWindow.WindowRect.anchoredPosition=inventoryBeforeShop;
         }
         var input=PlayerInputFacade.Current;
