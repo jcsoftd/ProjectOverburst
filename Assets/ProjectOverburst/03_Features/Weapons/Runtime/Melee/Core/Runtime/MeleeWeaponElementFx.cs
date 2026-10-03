@@ -70,6 +70,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     private float[] tipParticleTimeRates, tipParticleDistanceRates;
     private float[] tipPreviewEmissionCarry;
     private WeaponElectricLineAfterimage bladeAfterimage;
+    private WeaponIceShardTrail iceShardWake;
     private bool tipTrailEmitting;
     private float currentStrength = 1f;
     private float currentNormalizedEnergy = 1f;
@@ -110,7 +111,11 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         BindOwner();
         if (awaitingOwner || (shownElement != WeaponElement.None &&
             (equipment == null || equipment.CurrentWeaponRoot != transform))) Refresh();
-        if (!IsEditorPreview) SampleElectricAfterimages(Time.deltaTime);
+        if (!IsEditorPreview)
+        {
+            SampleElectricAfterimages(Time.deltaTime);
+            SampleIceShards(Time.deltaTime);
+        }
     }
     private void OnDisable()
     {
@@ -171,6 +176,15 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
         }
         EnsureTipTrail(SelectTipTrail(element));
         SetTipTrailEnergy(element == WeaponElement.Electric ? currentNormalizedEnergy : 1f);
+        if (element == WeaponElement.Ice)
+        {
+            EnsureIceShardWake();
+            if (iceShardWake != null)
+            {
+                iceShardWake.Configure(tuning, IsEditorPreview);
+                iceShardWake.SetEnergy(currentNormalizedEnergy);
+            }
+        }
         bladePlayback?.SetBladeWidthMultiplier(currentNormalizedEnergy);
         bladePlayback?.SetTrailWidthMultiplier(currentNormalizedEnergy);
         bladePlayback?.SetEnergy(strength);
@@ -200,7 +214,8 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             new Vector3(bladeEffectBounds.center.x, bladeEffectBounds.center.y, trailZ),
             new Vector3(tuning.trailScale, tuning.trailScale, trailSpan / WeaponEffects2Playback.AuthoredBladeLength),
             shownElement == WeaponElement.Fire || shownElement == WeaponElement.Ice ||
-            shownElement == WeaponElement.Dark || shownElement == WeaponElement.Light);
+            shownElement == WeaponElement.Dark || shownElement == WeaponElement.Light,
+            shownElement == WeaponElement.Ice && SelectIceShardSource() != null);
     }
     public void BeginTrail()
     {
@@ -234,10 +249,18 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     public void EndTrail()
     { SetTipTrailEmitting(false, false); }
     public void ClearTrail()
-    { SetTipTrailEmitting(false, true); }
+    { SetTipTrailEmitting(false, true); iceShardWake?.Clear(); }
     private void DisposeEffects()
     {
         DisposeTipTrail();
+        if (iceShardWake != null)
+        {
+            iceShardWake.Clear();
+            iceShardWake.gameObject.SetActive(false);
+            if (Application.isPlaying) Destroy(iceShardWake.gameObject);
+            else DestroyImmediate(iceShardWake.gameObject);
+            iceShardWake = null;
+        }
         bladeAfterimage?.Clear();
         additionalPlayback?.Dispose(); additionalPlayback = null;
         bladePlayback?.Dispose(); bladePlayback = null;
@@ -371,7 +394,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
     public void EditorSampleEnergy(float seconds)
     { if (IsEditorPreview) bladePlayback?.Sample(seconds); }
     public void EditorAdvanceEnergyPreview(float seconds)
-    { if (IsEditorPreview) bladePlayback?.Advance(seconds); }
+    { if (IsEditorPreview) { bladePlayback?.Advance(seconds); SampleIceShards(seconds); } }
     public void EditorClearEnergyPreview()
     { if (IsEditorPreview) { DisposeEffects(); shownElement = WeaponElement.None; } }
     public void EditorBeginTrailPreview()
@@ -414,7 +437,7 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             }
         SampleElectricAfterimages(seconds);
     }
-    public int EditorTrailParticleCount => (bladePlayback?.Count ?? 0) + (additionalPlayback?.Count ?? 0);
+    public int EditorTrailParticleCount => (bladePlayback?.Count ?? 0) + (additionalPlayback?.Count ?? 0) + (iceShardWake != null ? iceShardWake.ParticleCount : 0);
 #endif
     private void SampleElectricAfterimages(float seconds)
     {
@@ -426,6 +449,36 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             Vector3 bladeBase = tip - direction.normalized * bladeEffectBounds.size.z;
             bladeAfterimage?.Sample(seconds, bladeBase, tip);
         }
+    }
+
+    private GameObject SelectIceShardSource()
+    {
+        var profile = SharedGreatswordProfile;
+#if UNITY_EDITOR
+        if (profile == null && editorUseLocalFxSettings)
+            profile = Resources.Load<GreatswordElementFxProfile>(GreatswordElementFxProfile.ResourcePath);
+#endif
+        return profile != null ? profile.IceShardTrail : null;
+    }
+
+    private void EnsureIceShardWake()
+    {
+        if (iceShardWake != null) return;
+        var source = SelectIceShardSource();
+        if (source == null) return;
+        var instance = Instantiate(source, transform, false);
+        instance.name = "WeaponIceShardWake";
+        iceShardWake = instance.GetComponent<WeaponIceShardTrail>();
+    }
+
+    private void SampleIceShards(float seconds)
+    {
+        if (iceShardWake == null || !TryGetBladeEndpoints(out var bladeBase, out var bladeTip)) return;
+        var tuning = SelectTuning(WeaponElement.Ice);
+        Vector3 direction = (bladeTip - bladeBase).normalized;
+        Vector3 center = Vector3.Lerp(bladeBase, bladeTip, 1f - tuning.trailCenter);
+        float halfLength = Vector3.Distance(bladeBase, bladeTip) * tuning.trailLength * .5f;
+        iceShardWake.Sample(seconds, center - direction * halfLength, center + direction * halfLength);
     }
 
     public bool TryGetBladeEndpoints(out Vector3 bladeBase, out Vector3 bladeTip)

@@ -202,13 +202,53 @@ public static class IceLowEnergyTrailPlayVerifier
                 Check(hits == 0 ? charge == 0 : charge > 0, weapon.itemName + " 충전 " + hits);
                 world = IceLowEnergyTrailVerifier.WorldParticles(fx);
                 Check(world[0].GetInstanceID() == instance, weapon.itemName + " 효과 인스턴스 유지 " + hits);
+                var shards = fx.GetComponentInChildren<WeaponIceShardTrail>(true);
                 for (int i = 0; i < world.Length; i++)
                 {
                     var p = world[i];
+                    if (shards != null)
+                    {
+                        Check(!p.emission.enabled && p.particleCount == 0 && !p.GetComponent<Renderer>().enabled,
+                            weapon.itemName + " 기존 월드 잔상 교체 " + charge);
+                        continue;
+                    }
                     float expected = baseline[i] * charge * Mathf.Abs(baselineScale[i]) / Mathf.Max(.0001f, Mathf.Abs(p.transform.lossyScale.x));
                     Check(Mathf.Abs(p.main.startSize.constantMax - expected) < .00001f, weapon.itemName + " 실제 입자 크기 " + charge);
                     Check(charge == 0 ? !p.GetComponent<Renderer>().enabled && p.particleCount == 0 : p.GetComponent<Renderer>().enabled,
                         weapon.itemName + " 방출/복귀 " + charge);
+                }
+                if (shards != null)
+                {
+                    var particle = shards.GetComponentInChildren<ParticleSystem>();
+                    Check(particle.main.simulationSpace == ParticleSystemSimulationSpace.World && particle.main.scalingMode == ParticleSystemScalingMode.Shape,
+                        weapon.itemName + " 월드 크기 독립 " + charge);
+                    Check(particle.GetComponent<Renderer>().enabled == (charge > 0f), weapon.itemName + " 쇄빙 가시성 " + charge);
+                    Quaternion previousRotation = fx.transform.localRotation;
+                    Vector3 previousPosition = fx.transform.position;
+                    try
+                    {
+                        fx.ClearTrail();
+                        fx.TryGetBladeEndpoints(out _, out var previousTip);
+                        float tipDistance = 0f;
+                        int observedCount = 0;
+                        for (int frame = 0; frame < 8; frame++)
+                        {
+                            fx.transform.localRotation = previousRotation * Quaternion.Euler(0, frame * 10f, 0);
+                            fx.transform.position = previousPosition + Vector3.right * (frame * .04f);
+                            yield return null;
+                            fx.TryGetBladeEndpoints(out _, out var currentTip);
+                            tipDistance += Vector3.Distance(previousTip, currentTip);
+                            previousTip = currentTip;
+                            observedCount = Mathf.Max(observedCount, particle.particleCount);
+                        }
+                        Check(tipDistance > .01f, weapon.itemName + " 실제 칼날 위치 이동 " + charge);
+                        var buffer = new ParticleSystem.Particle[particle.particleCount]; particle.GetParticles(buffer);
+                        Check(charge == 0 ? observedCount == 0 : observedCount > 0, weapon.itemName + " 실제 검 이동 생성/0% " + charge);
+                        Check(buffer.All(p => p.startSize > 0 && p.GetCurrentSize3D(particle).x <= .135f * Mathf.Pow(charge, .35f) + .0001f),
+                            weapon.itemName + " 쇄빙 저에너지 크기 " + charge);
+                        fx.ClearTrail(); Check(shards.ParticleCount == 0, weapon.itemName + " 취소 즉시 제거 " + charge);
+                    }
+                    finally { fx.transform.localRotation = previousRotation; fx.transform.position = previousPosition; }
                 }
                 fx.BeginTrail(); yield return null; fx.EndTrail();
                 Check(fx.GetComponentsInChildren<TrailRenderer>(true).All(t => !t.emitting), weapon.itemName + " 검끝 공격 트레일 종료 " + charge);

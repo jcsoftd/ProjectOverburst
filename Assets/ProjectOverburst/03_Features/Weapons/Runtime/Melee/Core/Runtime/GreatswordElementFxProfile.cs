@@ -20,6 +20,10 @@ public sealed class GreatswordElementFxProfile : ScriptableObject
     [SerializeField] private GameObject darkTrail;
     [SerializeField] private GameObject lightTrail;
 
+    [Header("Ice shatter-fragment wake")]
+    [SerializeField] private GameObject iceShardTrail;
+    public GameObject IceShardTrail => iceShardTrail;
+
     [Header("Sword-tip trail")]
     [SerializeField] private GameObject fireTipTrail;
     [SerializeField] private GameObject iceTipTrail;

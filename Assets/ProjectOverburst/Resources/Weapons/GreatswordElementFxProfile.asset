@@ -22,6 +22,7 @@ MonoBehaviour:
   electricTrail: {fileID: 6756656558803171133, guid: 2407d79d80f400240a4a15a2766a481d, type: 3}
   darkTrail: {fileID: 1051310549566118079, guid: 01a2a2f8d77ab3f44a12c8470c742f09, type: 3}
   lightTrail: {fileID: 3114542950414459293, guid: a1543f3bb8c203043a47436ff49a8eeb, type: 3}
+  iceShardTrail: {fileID: 669135163807692074, guid: a60cb334516ee08439899647cb395d5c, type: 3}
   fireTipTrail: {fileID: 2613462060424995206, guid: 101a8868c1adc5b40bdaf7526f47b7b5, type: 3}
   iceTipTrail: {fileID: 1864572845640764174, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
   electricTipTrail: {fileID: 5818205763518135594, guid: 395d5ec7f996d364f94e11cfb40736d3, type: 3}

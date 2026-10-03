@@ -12,6 +12,11 @@ public static class IceLowEnergyTrailVerifier
 {
     public static void Verify(string directory)
     {
+        if (Resources.Load<GreatswordElementFxProfile>(GreatswordElementFxProfile.ResourcePath)?.IceShardTrail != null)
+        {
+            IceShardTrailVerifier.Run(directory);
+            return;
+        }
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("유휴 편집 모드가 필요합니다.");
         directory = IsolatedSavePlayGuard.ValidateDirectory(directory);

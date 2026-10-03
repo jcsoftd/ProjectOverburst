@@ -47,7 +47,8 @@ internal sealed class WeaponEffects2Playback : IDisposable
 
     internal WeaponEffects2Playback(GameObject source, Transform parent, Vector3 position, Vector3 scale, bool editorPreview,
         float trailDensity = 1f, float trailSpread = 1f, float trailParticleSize = 1f, float trailParticleLifetime = 1f,
-        Vector3? trailPosition = null, Vector3? trailScale = null, bool scaleWorldTrailParticlesWithEnergy = false)
+        Vector3? trailPosition = null, Vector3? trailScale = null, bool scaleWorldTrailParticlesWithEnergy = false,
+        bool suppressWorldTrail = false)
     {
         preview = editorPreview;
         this.scaleWorldTrailParticlesWithEnergy = scaleWorldTrailParticlesWithEnergy;
@@ -103,7 +104,8 @@ internal sealed class WeaponEffects2Playback : IDisposable
         {
             var p = Particles[i];
             p.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
-            authoredEmissionEnabled[i] = p.emission.enabled;
+            authoredEmissionEnabled[i] = p.emission.enabled &&
+                !(suppressWorldTrail && p.main.simulationSpace == ParticleSystemSimulationSpace.World);
             timeRates[i] = p.emission.rateOverTimeMultiplier;
             distanceRates[i] = p.emission.rateOverDistanceMultiplier;
             // World particles form the lingering wake; local particles remain the blade aura.
@@ -153,12 +155,20 @@ internal sealed class WeaponEffects2Playback : IDisposable
         }
         foreach (var renderer in Root.GetComponentsInChildren<Renderer>(true))
         {
-            if (IsWorldTrailPart(renderer.transform)) worldTrailRenderers.Add(renderer, renderer.enabled);
+            if (IsWorldTrailPart(renderer.transform))
+            {
+                worldTrailRenderers.Add(renderer, !suppressWorldTrail && renderer.enabled);
+                if (suppressWorldTrail) renderer.enabled = false;
+            }
             else bladeRenderers.Add(renderer, renderer.enabled);
         }
         foreach (var light in Root.GetComponentsInChildren<Light>(true))
         {
-            if (IsWorldTrailPart(light.transform)) worldTrailLights.Add(light, light.enabled);
+            if (IsWorldTrailPart(light.transform))
+            {
+                worldTrailLights.Add(light, !suppressWorldTrail && light.enabled);
+                if (suppressWorldTrail) light.enabled = false;
+            }
             else bladeLights.Add(light, light.enabled);
         }
         electricArcs = Root.GetComponentsInChildren<WeaponElectricBladeArc>(true);
