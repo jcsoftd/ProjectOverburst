@@ -108,7 +108,8 @@ public static class TransientVfxPool
         Transform parent = null,
         Action<GameObject> prepareBeforeActivation = null,
         TransientVfxReturnMode returnMode = TransientVfxReturnMode.FixedLifetime,
-        bool useUnscaledTime = false)
+        bool useUnscaledTime = false,
+        int contentSceneHandle = 0)
     {
         using var costScope = ElementCombatCostMarkers.Pool_Spawn.Auto();
         if (prefab == null || shuttingDown)
@@ -150,7 +151,8 @@ public static class TransientVfxPool
             lifetime,
             Mathf.Max(1, poolCapacity),
             returnMode,
-            useUnscaledTime);
+            useUnscaledTime,
+            contentSceneHandle);
         return instance;
     }
 
@@ -412,7 +414,8 @@ public static class TransientVfxPool
             float lifetime,
             int poolCapacity,
             TransientVfxReturnMode returnMode,
-            bool useUnscaledTime)
+            bool useUnscaledTime,
+            int contentSceneHandle)
         {
             Counters counters = GetCounters(prefab);
             counters.Active++;
@@ -428,7 +431,8 @@ public static class TransientVfxPool
                 now + safetyLifetime,
                 poolCapacity,
                 returnMode,
-                useUnscaledTime));
+                useUnscaledTime,
+                contentSceneHandle));
         }
 
         private void Update()
@@ -451,10 +455,24 @@ public static class TransientVfxPool
                     continue;
                 }
 
-                activeLeases.RemoveAt(i);
-                GetCounters(lease.Prefab).Active--;
-                Release(lease.Instance, lease.Prefab, lease.PoolCapacity);
+                ReturnLeaseAt(i);
             }
+        }
+
+        private void OnEnable() => UnityEngine.SceneManagement.SceneManager.sceneUnloaded += ReleaseScene;
+        private void OnDisable() => UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= ReleaseScene;
+        private void ReleaseScene(UnityEngine.SceneManagement.Scene scene)
+        {
+            for (int i = activeLeases.Count - 1; i >= 0; i--)
+                if (activeLeases[i].ContentSceneHandle != 0 && activeLeases[i].ContentSceneHandle == scene.handle)
+                    ReturnLeaseAt(i);
+        }
+        private void ReturnLeaseAt(int index)
+        {
+            var lease = activeLeases[index];
+            activeLeases.RemoveAt(index);
+            GetCounters(lease.Prefab).Active--;
+            Release(lease.Instance, lease.Prefab, lease.PoolCapacity);
         }
 
         private void OnApplicationQuit()
@@ -478,6 +496,7 @@ public static class TransientVfxPool
         public readonly int PoolCapacity;
         public readonly TransientVfxReturnMode ReturnMode;
         public readonly bool UseUnscaledTime;
+        public readonly int ContentSceneHandle;
 
         public ActiveLease(
             GameObject instance,
@@ -486,7 +505,8 @@ public static class TransientVfxPool
             float safetyReturnTime,
             int poolCapacity,
             TransientVfxReturnMode returnMode,
-            bool useUnscaledTime)
+            bool useUnscaledTime,
+            int contentSceneHandle)
         {
             Instance = instance;
             Prefab = prefab;
@@ -495,6 +515,7 @@ public static class TransientVfxPool
             PoolCapacity = poolCapacity;
             ReturnMode = returnMode;
             UseUnscaledTime = useUnscaledTime;
+            ContentSceneHandle = contentSceneHandle;
         }
     }
 }

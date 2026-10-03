@@ -188,16 +188,46 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 RunEntryError = gate != null && gate.Error != null ? gate.Error : "월드 준비 시간이 초과됐습니다.";
             else if (FindPlayer() == null) RunEntryError = "플레이어가 준비되지 않았습니다.";
         }
+        Transform entryPlayer = null;
+        Vector3 entryPosition = Vector3.zero;
+        Quaternion entryRotation = Quaternion.identity;
+        RunFallGuard entryGuard = null;
+        bool addedEntryGuard = false;
         if (RunEntryError == null)
         {
             try
             {
+                entryPlayer = FindPlayer();
+                entryPosition = gate.EntryPoint.position;
+                entryRotation = gate.EntryPoint.rotation;
+                if (sceneName == DiamondDungeonWorld.SceneName)
+                {
+                    if (entryPlayer == null || RunWalkableContext.Current == null
+                        || !RunWalkableContext.Current.IsWalkable(entryPosition))
+                        throw new System.InvalidOperationException("플레이어 낙하 복귀 지점을 준비하지 못했습니다.");
+                    entryGuard = entryPlayer.GetComponent<RunFallGuard>();
+                    if (entryGuard == null)
+                    {
+                        entryGuard = entryPlayer.gameObject.AddComponent<RunFallGuard>();
+                        addedEntryGuard = true;
+                    }
+                    bool configured = RunWalkableContext.TryConfigureExistingFallGuard(
+                        entryGuard, RunFallGuardMode.TeleportToRespawn, entryPosition);
+                    entryGuard.enabled = false;
+                    if (!configured)
+                        throw new System.InvalidOperationException("플레이어 낙하 복귀 영역을 준비하지 못했습니다.");
+                }
                 if (!run.Activate(runId)) RunEntryError = "지도 입장을 확정하지 못했습니다.";
             }
             catch (System.Exception error) { RunEntryError = error.Message; }
         }
         if (RunEntryError != null)
         {
+            if (entryGuard != null)
+            {
+                entryGuard.Configure(null, RunFallGuardMode.TeleportToRespawn, Vector3.zero);
+                if (addedEntryGuard) Destroy(entryGuard);
+            }
             // Do not return control while the pending entry cannot be durably cancelled.
             bool cancelled = false;
             while (!cancelled)
@@ -220,7 +250,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             1f - MapOptionPolicy.Value(gate.Map, MapOptionPolicy.PlayerHealth),
             1f - MapOptionPolicy.Value(gate.Map, MapOptionPolicy.PlayerHealing));
         PlayerContext.Instance?.CurrentActorKit?.CancelCurrentActions(WeaponActionCancelReason.Recovery);
-        ActorTeleportUtility.TeleportSafely(FindPlayer(), gate.EntryPoint.position, gate.EntryPoint.rotation);
+        ActorTeleportUtility.TeleportSafely(entryPlayer, entryPosition, entryRotation);
+        if (entryGuard != null) entryGuard.enabled = true;
         if (!string.IsNullOrEmpty(previous) && previous != sceneName && IsSceneLoaded(previous))
             yield return SceneManager.UnloadSceneAsync(previous);
         loadingScreen?.Hide();
@@ -315,6 +346,11 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string newSceneName,
         RunSceneReturnContext returnContext)
     {
+        if (IsHubSceneName(newSceneName))
+        {
+            var playerGuard = FindPlayer()?.GetComponent<RunFallGuard>();
+            if (playerGuard != null) playerGuard.enabled = false;
+        }
         WorldSessionState.SetPhase(WorldPhase.Loading);
         isSwitching = true; // 전환 잠금
         ClosePersistentUiForSceneSwitch(); // UI 정리

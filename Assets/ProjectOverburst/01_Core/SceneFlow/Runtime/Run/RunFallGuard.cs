@@ -197,6 +197,7 @@ public sealed class RunFallGuard : MonoBehaviour // 런 낙하 방어선
     {
         PlayerActorRuntime actor = GetComponent<PlayerActorRuntime>()
             ?? GetComponentInParent<PlayerActorRuntime>();
+        actor?.GetComponent<PlayerEvadeController>()?.CancelForKnockdown();
         actor?.PlayerKit?.CancelCurrentActions(WeaponActionCancelReason.Recovery);
         ActorTeleportUtility.TeleportSafely(transform, targetPosition, transform.rotation); // 공용 복구
         TargetTeleported?.Invoke(transform); // 추적 시스템 즉시 갱신

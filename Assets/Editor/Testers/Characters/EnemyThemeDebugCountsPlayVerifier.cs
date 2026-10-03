@@ -174,6 +174,8 @@ public static class EnemyThemeDebugCountsPlayVerifier
                 Require(label != null && label.text.Contains(expected.Total + "마리"), "Pad label " + zone.Table.ThemeId);
             }
             passed.Add("Arena pads and labels follow selected mode");
+            yield return VerifyArenaReactivation(arena, player.transform);
+            passed.Add("Arena reactivation and both pool return callback orders");
 
             for (int index = 0; index < ui.tables.Length; index++)
             {
@@ -245,6 +247,50 @@ public static class EnemyThemeDebugCountsPlayVerifier
             {
                 ui.Clear();
                 if (ui.InArena) ui.ToggleArena();
+            }
+        }
+    }
+
+    // Can also run inside an already-owned isolated Play without starting another session.
+    public static IEnumerator VerifyArenaReactivation(EnemyThemeDebugArena arena, Transform player)
+    {
+        Require(arena != null && player != null, "Arena and player required");
+        Require(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player, out var spawn), "Arena spawn service");
+        var pool = spawn.Pool;
+        var encounter = arena.GetComponentsInChildren<EnemyThemeEncounter>().First();
+        foreach (bool sameFrame in new[] { false, true })
+        {
+            encounter.ConfigureTrialRoster(new EnemyThemeTrialRoster(2, 1, 0));
+            Require(encounter.Begin(player, false, 731), encounter.LastMessage);
+            float limit = Time.realtimeSinceStartup + 20f;
+            while (encounter.SpawnedCount < 3 && encounter.State != EnemyThemeEncounterState.Failed)
+            { Require(Time.realtimeSinceStartup < limit, "Reactivation spawn timeout"); yield return null; }
+            Require(encounter.SpawnedCount == 3, encounter.LastMessage);
+            var actors = encounter.SnapshotActors().ToArray();
+            int leased = pool.LeasedCount, available = pool.AvailableCount;
+            try
+            {
+                // Force child OnDisable before explicit Release, then verify the reverse order.
+                actors[0].gameObject.SetActive(false);
+                Require(pool.PendingReturnCount > 0 && actors[0].RequestPoolRelease(), "Release accepts pending lease");
+                Require(actors[1].RequestPoolRelease(), "Explicit return before OnDisable succeeds");
+                arena.gameObject.SetActive(false);
+                if (!sameFrame) { yield return null; yield return null; }
+                arena.gameObject.SetActive(true);
+                arena.ProtectPlayer(PlayerContext.Instance.CurrentActorHealth);
+                yield return null; yield return null;
+                Require(actors.All(a => !a.IsLeased && !a.gameObject.activeSelf && !a.gameObject.activeInHierarchy
+                    && a.transform.parent == pool.InactivePoolRoot), "Arena reactivation has no old active actors");
+                Require(pool.PendingReturnCount == 0 && pool.LeasedCount == leased - 3
+                    && pool.AvailableCount == available + 3 && !encounter.HasOutstandingLeases, "Exactly three returns with no pending leases");
+                foreach (var actor in actors) Require(!actor.RequestPoolRelease(), "Duplicate actor return reports no lease");
+                Require(pool.AvailableCount == available + 3, "Duplicate returns do not enqueue twice");
+            }
+            finally
+            {
+                if (arena != null) arena.gameObject.SetActive(true);
+                foreach (var actor in actors) if (actor != null && actor.IsLeased) pool.Release(actor);
+                encounter.StopEncounter(true);
             }
         }
     }

@@ -13,6 +13,8 @@ public sealed class EnemyPoolService : MonoBehaviour
         = new Dictionary<EnemyActor, EnemyActor>();
     private readonly HashSet<EnemyActor> availableActors = new HashSet<EnemyActor>();
     private readonly HashSet<EnemyActor> returningActors = new HashSet<EnemyActor>();
+    private readonly HashSet<EnemyActor> explicitReturnActors = new HashSet<EnemyActor>();
+    internal bool IsExplicitReturnPending(EnemyActor actor) => explicitReturnActors.Contains(actor);
     private readonly Dictionary<EnemyActor, EnemyActor> pendingPrefabByActor
         = new Dictionary<EnemyActor, EnemyActor>();
 
@@ -104,7 +106,8 @@ public sealed class EnemyPoolService : MonoBehaviour
         if (actor == null)
             return;
 
-        if (!leasedPrefabByActor.TryGetValue(actor, out EnemyActor prefab))
+        if (!leasedPrefabByActor.TryGetValue(actor, out EnemyActor prefab)
+            && !pendingPrefabByActor.TryGetValue(actor, out prefab))
         {
             if (availableActors.Contains(actor))
                 return; // 사망 비활성으로 이미 반환된 경우
@@ -113,7 +116,17 @@ public sealed class EnemyPoolService : MonoBehaviour
             return;
         }
 
+        // Reparenting from an ancestor's OnDisable is forbidden by Unity. Finish that return in LateUpdate.
+        if (!actor.gameObject.activeInHierarchy)
+        {
+            leasedPrefabByActor.Remove(actor);
+            pendingPrefabByActor[actor] = prefab;
+            explicitReturnActors.Add(actor);
+            return;
+        }
         leasedPrefabByActor.Remove(actor);
+        pendingPrefabByActor.Remove(actor);
+        explicitReturnActors.Remove(actor);
         if (!returningActors.Add(actor))
             return;
 
@@ -162,17 +175,18 @@ public sealed class EnemyPoolService : MonoBehaviour
         {
             EnemyActor actor = snapshot[i].Key;
             EnemyActor prefab = snapshot[i].Value;
+            bool explicitReturn = explicitReturnActors.Remove(actor);
             if (actor == null || prefab == null || !returningActors.Add(actor))
                 continue;
 
             try
             {
-                if (actor.gameObject.activeSelf)
+                if (actor.gameObject.activeSelf && !explicitReturn)
                 {
                     leasedPrefabByActor[actor] = prefab;
                     continue;
                 }
-
+                if (actor.gameObject.activeSelf) actor.gameObject.SetActive(false);
                 ReturnToInactiveRoot(prefab, actor);
             }
             finally

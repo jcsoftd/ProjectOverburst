@@ -39,7 +39,8 @@ public static class UpperHeavyImpactFeedback
         float scale = radius * ShockwaveDiameterPerRadius;
         TransientVfxPool.Spawn(shockwave, center + Vector3.up * ShockwaveHeight, Quaternion.identity, 0f, PoolCapacity,
             prepareBeforeActivation: instance => instance.transform.localScale = shockwave.transform.localScale * scale,
-            returnMode: TransientVfxReturnMode.NaturalParticleCompletion);
+            returnMode: TransientVfxReturnMode.NaturalParticleCompletion,
+            contentSceneHandle: WorldSessionState.ContentScene.IsValid() ? WorldSessionState.ContentScene.handle : 0);
         ShockwaveCount++;
     }
 
