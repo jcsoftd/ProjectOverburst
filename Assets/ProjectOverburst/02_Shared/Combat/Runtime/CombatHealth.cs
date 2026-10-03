@@ -103,29 +103,37 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
-        OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
-        PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
-        bool reactionOwnsMotion = knockdown != null
-            && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
-        if (!reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
-
-        if (actualDamage > 0f
-            && CombatTeamUtility.IsPlayerActorHealth(this)
-            && CanOpenPlayerCombatMode())
+        try
         {
-            PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
-            if (!reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+            OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
+            PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
+            bool reactionOwnsMotion = knockdown != null
+                && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
+            if (!reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
+
+            if (actualDamage > 0f
+                && CombatTeamUtility.IsPlayerActorHealth(this)
+                && CanOpenPlayerCombatMode())
+            {
+                PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
+                if (!reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+            }
+
+            RaiseDamageResolved(info, actualDamage, currentHp <= 0f);
+            RaiseDamageEvent(OnDamaged, info); // 기존 UI·어그로·사망 표현 구독자 유지
+            RaiseHealthChanged(); // HP바 갱신
+
+            if (showDamageNumbers)
+            {
+                try { SpawnDamageNumber(info, damage, actualDamage); }
+                catch (Exception error) { Debug.LogException(error, this); }
+            }
         }
-
-        OnDamageResolved?.Invoke(this, info, actualDamage, currentHp <= 0f);
-        OnDamaged?.Invoke(this, info); // 기존 UI·어그로·사망 표현 구독자 유지
-        RaiseHealthChanged(); // HP바 갱신
-
-        if (showDamageNumbers)
-            SpawnDamageNumber(info, damage, actualDamage); // 데미지 숫자 표시
-
-        if (currentHp <= 0f)
-            Die(info); // HP 0 사망 처리
+        finally
+        {
+            // HP was committed already. A reaction/presentation failure must not leave a live 0-HP actor.
+            if (currentHp <= 0f) Die(info);
+        }
     }
 
     private void ApplyProgressionDamageModifiers(ref DamageInfo info, ref float damage, out float incomingBeforeMitigation)
@@ -218,7 +226,12 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         currentHp = maxHp; // HP 완전 회복
         IsDead = false; // 사망 상태 해제
         RaiseHealthChanged(); // HP UI 갱신
-        OnReset?.Invoke(this); // 상태·풀 재사용 정리
+        if (OnReset != null)
+            foreach (Action<CombatHealth> observer in OnReset.GetInvocationList())
+            {
+                try { observer(this); }
+                catch (Exception error) { Debug.LogException(error, this); }
+            }
     }
 
     public void SetMaxHp(float value, bool refill)
@@ -248,10 +261,11 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         }
 
         IsDead = true; // 사망 상태 고정
-        OnDead?.Invoke(this, info); // 사망 이벤트
-
-        if (destroyOnDeath)
-            Destroy(gameObject); // 옵션형 즉시 제거
+        try { RaiseDamageEvent(OnDead, info); }
+        finally
+        {
+            if (destroyOnDeath) Destroy(gameObject); // 옵션형 즉시 제거
+        }
     }
 
     private void ApplyKnockback(DamageInfo info)
@@ -408,7 +422,33 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     private void RaiseHealthChanged()
     {
-        OnHealthChanged?.Invoke(this, currentHp, maxHp);
+        float hp = currentHp, maximum = maxHp;
+        if (OnHealthChanged == null) return;
+        foreach (Action<CombatHealth, float, float> observer in OnHealthChanged.GetInvocationList())
+        {
+            try { observer(this, hp, maximum); }
+            catch (Exception error) { Debug.LogException(error, this); }
+        }
+    }
+
+    private void RaiseDamageResolved(DamageInfo info, float actualDamage, bool lethal)
+    {
+        if (OnDamageResolved == null) return;
+        foreach (Action<CombatHealth, DamageInfo, float, bool> observer in OnDamageResolved.GetInvocationList())
+        {
+            try { observer(this, info, actualDamage, lethal); }
+            catch (Exception error) { Debug.LogException(error, this); }
+        }
+    }
+
+    private void RaiseDamageEvent(Action<CombatHealth, DamageInfo> observers, DamageInfo info)
+    {
+        if (observers == null) return;
+        foreach (Action<CombatHealth, DamageInfo> observer in observers.GetInvocationList())
+        {
+            try { observer(this, info); }
+            catch (Exception error) { Debug.LogException(error, this); }
+        }
     }
 
     private IEnumerator DamageOverTimeRoutine(float damagePerTick, int tickCount, float tickInterval, GameObject damageSource, Vector3 damageDirection)

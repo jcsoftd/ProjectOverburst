@@ -313,13 +313,13 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
                 Vector3 previous = shot.Position;
                 if (shot.State != ShotState.Homing)
                 {
-                    if (cast.StopLaunching) { Finish(cast, ref shot, now); cast.Shots[i] = shot; continue; }
+                    if (cast.StopLaunching) { Finish(cast, i, ref shot, now); continue; }
                     AdvanceInAir(cast, ref shot, tuning);
                     if (shot.State != ShotState.Waiting && cast.Clock >= shot.ReleaseAt && launchBudget > 0)
                     {
                         launchBudget--;
                         launchedThisFrame++;
-                        if (!Release(cast, ref shot, now, tuning)) { Finish(cast, ref shot, now); cast.Shots[i] = shot; continue; }
+                        if (!Release(cast, ref shot, now, tuning)) { Finish(cast, i, ref shot, now); continue; }
                     }
                     MoveView(ref shot, previous);
                     cast.Shots[i] = shot;
@@ -327,15 +327,21 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
                 }
                 if (Home(cast, ref shot, now, tuning))
                 {
-                    if (Arrive(cast, ref shot, now, tuning))
+                    // Commit consumption before damage or feedback can invoke external code.
+                    // Even a failed arrival must never apply this projectile's damage twice.
+                    CompleteShot(cast, i, ref shot);
+                    try
                     {
-                        hitThisFrame |= !shot.Finisher;
-                        finisherHitThisFrame |= shot.Finisher;
-                        if (shot.Finisher) finisherHitEnergy = Mathf.Max(finisherHitEnergy, cast.SfxEnergy);
-                        else hitEnergy = Mathf.Max(hitEnergy, cast.SfxEnergy);
-                        lastHitPoint = shot.Position;
+                        if (Arrive(cast, ref shot, now, tuning))
+                        {
+                            hitThisFrame |= !shot.Finisher;
+                            finisherHitThisFrame |= shot.Finisher;
+                            if (shot.Finisher) finisherHitEnergy = Mathf.Max(finisherHitEnergy, cast.SfxEnergy);
+                            else hitEnergy = Mathf.Max(hitEnergy, cast.SfxEnergy);
+                            lastHitPoint = shot.Position;
+                        }
                     }
-                    Finish(cast, ref shot, now);
+                    finally { Finish(cast, i, ref shot, now); }
                 }
                 else MoveView(ref shot, previous);
                 cast.Shots[i] = shot;
@@ -357,11 +363,21 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         ReleaseLingering(now);
     }
 
-    private void Finish(Cast cast, ref Shot shot, float now)
+    private static void CompleteShot(Cast cast, int index, ref Shot shot)
     {
-        HideProjectile(ref shot, now);
-        shot.State = ShotState.Done;
-        cast.Remaining--;
+        if (shot.State != ShotState.Done)
+        {
+            shot.State = ShotState.Done;
+            cast.Remaining--;
+        }
+        cast.Shots[index] = shot;
+    }
+
+    private void Finish(Cast cast, int index, ref Shot shot, float now)
+    {
+        CompleteShot(cast, index, ref shot);
+        try { HideProjectile(ref shot, now); }
+        finally { cast.Shots[index] = shot; }
     }
 
     // Waiting -> rising to the hover disc -> hovering with a slight bob until its release time.
@@ -527,9 +543,10 @@ public sealed class DarkBarrageScheduler : MonoBehaviour
         try { UpperElementCombatUtility.DealDerivedDamage(entry.Health, cast.ShotDamage, point, cast.Source, direction, WeaponElement.Dark, cast.GemAttack); }
         finally { if (entry.Health != null) entry.Health.OnDamageResolved -= OnBarrageDamageResolved; feedbackSource = null; }
         if (!damageConfirmed) return false;
-        SpawnHitVfx(cast, point, shot.Finisher, now, tuning);
         TotalHits++;
         LastFinalHitTime = now;
+        try { SpawnHitVfx(cast, point, shot.Finisher, now, tuning); }
+        catch (System.Exception error) { Debug.LogException(error, this); }
         return true;
     }
 
