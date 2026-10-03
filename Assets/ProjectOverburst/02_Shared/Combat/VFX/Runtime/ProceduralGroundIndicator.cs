@@ -16,6 +16,7 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     [SerializeField, Min(.01f)] private float flameWidth = .12f;
     [SerializeField, Range(0f,1f)] private float progress = .72f;
     [SerializeField] private bool visible = true;
+    [SerializeField] private AnimationCurve authoredEdgeFade = new AnimationCurve();
     private Mesh fillMesh, borderMesh, ambientMesh;
     private Vector4 lastGeometry;
     private Vector4 lastExtra;
@@ -33,6 +34,8 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     public ParticleSystemRenderer Surface => fill == null ? null : fill.GetComponent<ParticleSystemRenderer>();
     public ParticleSystemRenderer Border => border == null ? null : border.GetComponent<ParticleSystemRenderer>();
     public bool IsVisible => isActiveAndEnabled && visible;
+    public bool UsesAuthoredEdgeFade => authoredEdgeFade != null && authoredEdgeFade.length > 0;
+    public void SetAuthoredEdgeFade(AnimationCurve curve) { authoredEdgeFade=curve;lastGeometry=Vector4.one*float.NegativeInfinity;Refresh(); }
 
     public void Initialize(ParticleSystem root, ParticleSystem fillLayer, ParticleSystem borderLayer)
     {
@@ -85,7 +88,7 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
         }
         if(fillMesh==null)fillMesh=NewMesh("Indicator fill");
         if(borderMesh==null)borderMesh=NewMesh("Indicator original fire border");
-        BuildMeshes(); Surface.mesh=fillMesh;Border.mesh=borderMesh;
+        BuildMeshes(); ApplyAuthoredEdgeFade(); Surface.mesh=fillMesh;Border.mesh=borderMesh;
         BuildAmbientMesh();
         lastGeometry=geometry;lastExtra=extra;lastShape=shape;
         ConfigureAmbient();simulatedTime=-1;SetProgress(progress);
@@ -101,8 +104,13 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
         {
             points.Add(new Vector2(-width/2,0));points.Add(new Vector2(-width/2,length));
             points.Add(new Vector2(width/2,length));points.Add(new Vector2(width/2,0));
-            vertices.AddRange(new[]{ToMesh(points[0]),ToMesh(points[1]),ToMesh(points[3]),ToMesh(points[2])});
-            uvs.AddRange(new[]{Vector2.zero,Vector2.up,Vector2.right,Vector2.one});triangles.AddRange(new[]{0,1,2,2,1,3});
+            const int divisions=32;
+            for(int y=0;y<=divisions;y++)for(int x=0;x<=divisions;x++)
+            {
+                vertices.Add(ToMesh(new Vector2(((float)x/divisions-.5f)*width,(float)y/divisions*length)));
+                uvs.Add(new Vector2((float)x/divisions,(float)y/divisions));
+                if(x>0&&y>0){int end=y*(divisions+1)+x;triangles.AddRange(new[]{end-divisions-2,end-divisions-1,end,end-divisions-2,end,end-1});}
+            }
         }
         else
         {
@@ -174,6 +182,38 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     {
         mesh.Clear();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
     }
+    private void ApplyAuthoredEdgeFade()
+    {
+        if(!UsesAuthoredEdgeFade)return;
+        var vertices=fillMesh.vertices;var colors=new Color[vertices.Length];var scale=transform.lossyScale;
+        for(int i=0;i<vertices.Length;i++)
+        {
+            Vector2 point=new Vector2(vertices[i].x*Mathf.Abs(scale.x),-vertices[i].y*Mathf.Abs(scale.z));
+            float distance;
+            if(shape==GroundIndicatorShape.Rectangle)
+                distance=Mathf.Min(width*.5f-Mathf.Abs(point.x),point.y,length-point.y);
+            else
+            {
+                float radius=point.magnitude;distance=outerRadius-radius;
+                if(InnerRadius>0)distance=Mathf.Min(distance,radius-InnerRadius);
+                if(shape==GroundIndicatorShape.Sector&&angle<359.9f)
+                {
+                    float theta=angle*.5f*Mathf.Deg2Rad;
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var direction=new Vector2(Mathf.Sin(theta)*side,Mathf.Cos(theta));
+                        float projection=Mathf.Clamp(Vector2.Dot(point,direction),InnerRadius,outerRadius);
+                        distance=Mathf.Min(distance,Vector2.Distance(point,direction*projection));
+                    }
+                }
+            }
+            float reference=shape==GroundIndicatorShape.Rectangle?Mathf.Min(width,length):outerRadius;
+            float value=Mathf.Clamp01(authoredEdgeFade.Evaluate(Mathf.Max(0,distance)/reference));
+            // Additive 원본은 RGB도 곱해야 중앙이 실제로 비워진다.
+            colors[i]=new Color(value,value,value,value);
+        }
+        fillMesh.colors=colors;
+    }
     private void ConfigureAmbient()
     {
         foreach(var p in effect.GetComponentsInChildren<ParticleSystem>(true))
@@ -193,7 +233,7 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
                 renderer.SetPropertyBlock(ambientProperties);
                 continue;
             }
-            p.transform.localScale=Vector3.one*scale;
+            scale*=.75f;p.transform.localScale=Vector3.one*scale;
             if(!p.name.Contains("Flecks"))continue;
             var emissionShape=p.shape;emissionShape.shapeType=ParticleSystemShapeType.Donut;
             emissionShape.radius=(outerRadius+InnerRadius)*.5f/scale;
@@ -206,9 +246,10 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     {
         if(ambientMesh==null)ambientMesh=NewMesh("Indicator original ambient clipped to range");
         var vertices=fillMesh.vertices;var uv=new Vector2[vertices.Length];
-        // 원래 크기 24m/반경3m인 FuzzAdd의 중심 UV를 보존하고 메시로 빈 공간을 비운다.
-        for(int i=0;i<vertices.Length;i++)uv[i]=new Vector2(.5f+vertices[i].x/(outerRadius*8f),.5f+vertices[i].y/(outerRadius*8f));
+        // 기존 게임의 크기 24m, 반경3m, ambient Transform 0.55를 UV에 옮긴다.
+        for(int i=0;i<vertices.Length;i++)uv[i]=new Vector2(.5f+vertices[i].x/(outerRadius*4.4f),.5f+vertices[i].y/(outerRadius*4.4f));
         ambientMesh.Clear();ambientMesh.vertices=vertices;ambientMesh.uv=uv;ambientMesh.triangles=fillMesh.triangles;
+        ambientMesh.colors=fillMesh.colors;
         ambientMesh.RecalculateNormals();ambientMesh.RecalculateBounds();
     }
     private static float Finite(float n,float fallback)=>float.IsNaN(n)||float.IsInfinity(n)?fallback:n;

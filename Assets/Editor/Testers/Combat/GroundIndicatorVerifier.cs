@@ -26,6 +26,7 @@ public static class GroundIndicatorVerifier
                 {
                     var indicator=root.GetComponent<ProceduralGroundIndicator>();
                     if(indicator==null||indicator.Surface==null||indicator.Border==null)throw new InvalidOperationException("Missing original layers.");
+                    if(!indicator.UsesAuthoredEdgeFade)throw new InvalidOperationException("Original cone edge fade is missing.");
                     if(root.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))!=0)throw new InvalidOperationException("Missing script.");
                     foreach(var r in root.GetComponentsInChildren<ParticleSystemRenderer>(true))
                     {
@@ -46,6 +47,8 @@ public static class GroundIndicatorVerifier
                     indicator.Configure(kind,float.NaN,float.PositiveInfinity,float.NaN);
                     if(float.IsNaN(indicator.OuterRadius)||float.IsInfinity(indicator.InnerRadius))throw new InvalidOperationException("Non-finite geometry.");
                     indicator.Configure(kind,4,1,80,2,4);
+                    var colors=mesh.colors;
+                    if(colors.Length!=mesh.vertexCount||!colors.Any(c=>c.r<.01f)||!colors.Any(c=>c.r>.9f))throw new InvalidOperationException("Fill lost its transparent interior or bright contour.");
                     for(int n=0;n<3;n++)
                     {
                         indicator.SetVisible(false);if(indicator.IsVisible)throw new InvalidOperationException("Hide failed.");
