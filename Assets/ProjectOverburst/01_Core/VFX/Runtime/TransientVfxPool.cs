@@ -57,6 +57,7 @@ public static class TransientVfxPool
     {
         public long Created, Destroyed, Requests, Misses, Returns;
         public int Active, PeakActive;
+        public int IdleValidatedFrame = -1;
     }
 
     public readonly struct PoolStatistics
@@ -72,6 +73,24 @@ public static class TransientVfxPool
         if (prefab == null || !Diagnostics.TryGetValue(prefab, out Counters c)) return default;
         return new PoolStatistics(c.Created, c.Destroyed, c.Requests, c.Misses, c.Returns,
             c.Active, c.PeakActive, Pools.TryGetValue(prefab, out Queue<GameObject> pool) ? pool.Count : 0);
+    }
+
+    // Called by loading/maintenance, never a new search through the scene or active leases.
+    public static int GetValidIdleCount(GameObject prefab)
+    {
+        PruneDestroyedIdle(prefab, true);
+        return prefab != null && Pools.TryGetValue(prefab, out var queue) ? queue.Count : 0;
+    }
+
+    public static void PruneDestroyedIdle(GameObject prefab, bool force = false)
+    {
+        if (prefab == null || !Pools.TryGetValue(prefab, out var queue)) return;
+        var counters = GetCounters(prefab);
+        if (!force && counters.IdleValidatedFrame == Time.frameCount) return;
+        counters.IdleValidatedFrame = Time.frameCount;
+        int count = queue.Count;
+        for (int i = 0; i < count; i++)
+        { var item = queue.Dequeue(); if (item != null) queue.Enqueue(item); }
     }
 
     private static Counters GetCounters(GameObject prefab)
@@ -190,14 +209,30 @@ public static class TransientVfxPool
     public static bool PrepareOne(GameObject prefab, int targetTotal)
     {
         if (prefab == null || shuttingDown || targetTotal <= 0) return false;
+        PruneDestroyedIdle(prefab);
         var stats = GetStatistics(prefab);
         if (stats.Active + stats.Idle >= targetTotal) return false;
         EnsureHost();
         if (!Pools.TryGetValue(prefab, out var pool))
             Pools.Add(prefab, pool = new Queue<GameObject>());
-        var instance = CreateInstance(prefab, host.transform);
-        StopAndClearPlayback(instance);
-        instance.SetActive(false);
+        GameObject instance;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        long unitBegan = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+        var random = UnityEngine.Random.state;
+        try
+        {
+            instance = CreateInstance(prefab, host.transform);
+            StopAndClearPlayback(instance);
+            instance.SetActive(false);
+        }
+        finally
+        {
+            UnityEngine.Random.state = random;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Overburst.DebugTools.CombatPreparationDiagnostics.Work(2, unitBegan);
+#endif
+        }
         pool.Enqueue(instance);
         return true;
     }

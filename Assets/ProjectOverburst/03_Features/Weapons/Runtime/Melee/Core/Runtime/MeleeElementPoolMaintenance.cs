@@ -91,6 +91,30 @@ public static class MeleeElementPoolMaintenance
         return target > 0 && stats.Active + stats.Idle >= target;
     }
 
+    [System.Serializable]
+    public sealed class StateData
+    {
+        public string prefab;
+        public int desired, target, owners, active, peakActive, idle;
+        public long created, destroyed, requests, misses, returns;
+        public float requestRemaining, retirementRemaining;
+    }
+
+    public static StateData[] Snapshot()
+    {
+        var result = new StateData[States.Count];
+        for (int i = 0; i < States.Count; i++)
+        {
+            var s = States[i]; var p = TransientVfxPool.GetStatistics(s.Prefab);
+            result[i] = new StateData { prefab = s.Prefab != null ? s.Prefab.name : "Destroyed", desired = s.Desired,
+                target = s.Target, owners = s.Owners, active = p.Active, peakActive = p.PeakActive, idle = p.Idle,
+                created = p.Created, destroyed = p.Destroyed, requests = p.Requests, misses = p.Misses, returns = p.Returns,
+                requestRemaining = Mathf.Max(0f, s.RequestUntil - Time.unscaledTime),
+                retirementRemaining = Mathf.Max(0f, Mathf.Max(s.LastUse, s.RequestUntil) + RetireDelay - Time.unscaledTime) };
+        }
+        return result;
+    }
+
     private static bool Required(State state) => state.Owners > 0 || Time.unscaledTime < state.RequestUntil;
     private static void RecomputeTargets()
     {
@@ -107,6 +131,7 @@ public static class MeleeElementPoolMaintenance
         {
             using (Marker.Auto())
             {
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 DeadOwners.Clear();
                 foreach (var pair in Owners)
                     if (pair.Key == null || pair.Key is Behaviour behaviour && !behaviour.isActiveAndEnabled)
@@ -115,10 +140,10 @@ public static class MeleeElementPoolMaintenance
                 RecomputeTargets();
                 LastOperations = 0;
                 if (States.Count == 0) return;
-                long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 int total = 0;
                 foreach (var state in States)
                 {
+                    TransientVfxPool.PruneDestroyedIdle(state.Prefab);
                     var stats = TransientVfxPool.GetStatistics(state.Prefab);
                     total += stats.Active + stats.Idle;
                 }

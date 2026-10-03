@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -45,6 +46,8 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     private readonly Slot[] slots = new Slot[Capacity];
     private readonly int[] nextVariant = new int[4];
     private readonly Dictionary<long, Material> materials = new Dictionary<long, Material>();
+    private static readonly ProfilerMarker MaterialCreateMarker = new ProfilerMarker("Overburst.BloodDecal.CreateMaterial");
+    private static readonly ProfilerMarker ShowMarker = new ProfilerMarker("Overburst.BloodDecal.Show");
     private int pendingCount;
     private int groundMask;
     private BloodHitCatalog catalog;
@@ -220,6 +223,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     private bool Show(Pending request, float now)
     {
+        using var cost = ShowMarker.Auto();
         int index = -1;
         for (int i = 0; i < Capacity; i++)
             if (!slots[i].Active) { index = i; break; }
@@ -260,6 +264,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         long key = ((long)source.GetInstanceID() << 32) ^ (uint)profile.GetInstanceID();
         if (!materials.TryGetValue(key, out Material material) || !material)
         {
+            using var createCost = MaterialCreateMarker.Auto();
             material = new Material(source)
             {
                 name = source.name + " • " + profile.name + " pooled",

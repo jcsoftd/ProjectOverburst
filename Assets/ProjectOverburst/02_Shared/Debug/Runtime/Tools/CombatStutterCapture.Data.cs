@@ -63,6 +63,7 @@ namespace Overburst.DebugTools
             public string schema = "overburst-combat-stutter-v1";
             public string stopReason, unityVersion, platform, graphicsApi, activeScene, recordedUtc, sampleOrigin;
             public string frameTimingOrigin, audioOrigin, hitOrigin, bloodOrigin;
+            public bool objectRebinding;
             public string[] unavailableEngineMetrics;
             public MetricInfo[] metrics;
             public int frames, hits, audioObservations, hitches, droppedHits, droppedSounds, bindingLimitHits;
@@ -172,7 +173,8 @@ namespace Overburst.DebugTools
                 profilerOwnershipLost = profilerOwnershipLost, includesIncompleteLastFrame = false,
                 sampleOrigin = "Wall=first early FixedUpdate/Update callback to the next frame's first callback; context/events=completed game frame. Profiler columns=latest completed recorder sample, not a guaranteed frame ID. Nested/all-thread marker totals overlap; never sum them into wall time.",
                 frameTimingOrigin = "FrameTimingManager is delayed; only a new nonzero timestamp is reported. -1 means unavailable. GPU timing is not attributed to the context frame.",
-                audioOrigin = "AudioSource state observation at late frame; binding scan each second. newlyBound is not proof of first-ever playback. Very short or same-frame retriggers and newly-created voices may be missed; use profiler.raw for CPU call hierarchy.",
+                objectRebinding = rebindObjects,
+                audioOrigin = (rebindObjects ? "Binding scan each second. " : "Fixed bindings taken before measurement; newly spawned sources/targets are not scanned. ") + "AudioSource state observation at late frame; newlyBound is not proof of first-ever playback. Very short or same-frame retriggers and newly-created voices may be missed; use profiler.raw for CPU call hierarchy.",
                 hitOrigin = "OnDamageResolved subscribers; no damage/input/status injection. Targets appearing between binding scans may be missed. Events share actual Time.frameCount. Events before our first frame callback remain in hits.csv and are counted separately from frame-context hits.",
                 bloodOrigin = "Existing service counters and last sweep variation only; multiple blood plays in a frame cannot be mapped individually. -1 is unavailable variation." };
             File.WriteAllText(Path.Combine(folder, "summary.json"), JsonUtility.ToJson(summary, true), new UTF8Encoding(false));

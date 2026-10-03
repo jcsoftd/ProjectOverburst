@@ -18,6 +18,21 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private bool isSwitching; // 전환 중
     private Coroutine switchRoutine; // 전환 루틴
     private LoadingScreenUI loadingScreen; // 로딩 UI
+    private double presentationWaitSeconds;
+    private const float PresentationWaitBudget = 10f;
+
+    // Count only time spent in presentation preparation, not account/world/scene loading.
+    private IEnumerator PrepareCommonPresentation(System.Func<bool> cancelled = null)
+    {
+        double began = Time.realtimeSinceStartupAsDouble;
+        try
+        {
+            float remaining = Mathf.Max(0f, PresentationWaitBudget - (float)presentationWaitSeconds);
+            yield return CombatImpactFeel.PrepareForGameplay(remaining, cancelled);
+
+        }
+        finally { presentationWaitSeconds += Time.realtimeSinceStartupAsDouble - began; }
+    }
 
     public static PersistentSceneFlow Instance
     {
@@ -88,6 +103,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
     private IEnumerator BootAccountAndWorld()
     {
+        presentationWaitSeconds = 0;
         isSwitching = true;
         GameplayInputBlocker.Block(this);
         yield return null; // Persistent account/actor Start callbacks finish first.
@@ -103,6 +119,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         }
         if (GetComponent<Overburst.Persistence.RunLifetimeDriver>() == null)
             gameObject.AddComponent<Overburst.Persistence.RunLifetimeDriver>();
+        loadingScreen?.SetStatus("전투 효과 준비 중...");
+        yield return PrepareCommonPresentation();
         loadingScreen?.SetStatus("하이드아웃 준비 중...");
         loadingScreen?.SetProgress(0.35f);
         yield return EnsureInitialSubScene();
@@ -152,6 +170,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
     private IEnumerator EnterPreparedRun(string sceneName, string runId)
     {
+        presentationWaitSeconds = 0;
         var account = Overburst.Persistence.AccountGameplaySession.Current;
         var run = new Overburst.Persistence.AccountRunSession(account);
         string previous = currentSubSceneName;
@@ -193,6 +212,11 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         Quaternion entryRotation = Quaternion.identity;
         RunFallGuard entryGuard = null;
         bool addedEntryGuard = false;
+        if (RunEntryError == null)
+        {
+            yield return PrepareCommonPresentation(() => cancelRunEntry);
+            if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
+        }
         if (RunEntryError == null)
         {
             try
@@ -313,6 +337,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             {
                 yield return PlacePlayerAtHubSpawn("Default"); // 플레이어 초기 배치
                 SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
+                yield return PrepareCommonPresentation();
                 WorldSessionState.SetPhase(WorldPhase.Hideout);
                 WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
             }
@@ -325,6 +350,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         ActivateSubScene(currentSubSceneName); // 활성 씬
         yield return PlacePlayerAtHubSpawn("Default"); // 플레이어 초기 배치
         SpawnConfiguredSceneItems(); // 최종 위치 기준 아이템 배치
+        yield return PrepareCommonPresentation();
         WorldSessionState.SetPhase(WorldPhase.Hideout);
         WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
     }
@@ -346,6 +372,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string newSceneName,
         RunSceneReturnContext returnContext)
     {
+        presentationWaitSeconds = 0;
         if (IsHubSceneName(newSceneName))
         {
             var playerGuard = FindPlayer()?.GetComponent<RunFallGuard>();
@@ -439,6 +466,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             WorldMinimapController.ShowHubMinimap(FindPlayer()); // 허브 미니맵
         }
 
+        yield return PrepareCommonPresentation();
         if (loadingScreen != null)
             loadingScreen.Hide(); // 로딩 종료
 

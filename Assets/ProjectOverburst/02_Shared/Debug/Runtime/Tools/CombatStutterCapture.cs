@@ -41,6 +41,7 @@ namespace Overburst.DebugTools
         int trackedFrame = -1;
         long frameStarted, captureStarted;
         double duration, nextBind;
+        bool rebindObjects = true;
         float threshold;
         string folder, stopReason, previousProfilerPath, ownedProfilerPath;
         bool active, binaryOwned, binaryRequested, previousProfilerEnabled, previousBinaryEnabled, profilerOwnershipLost;
@@ -92,7 +93,7 @@ namespace Overburst.DebugTools
         }
 
         public static DebugResult Start(float seconds = 120f, float hitchMs = 50f,
-            bool binaryProfiler = false, string outputRoot = null)
+            bool binaryProfiler = false, string outputRoot = null, bool rebindObjects = true)
         {
             if (!Application.isPlaying) return DebugResult.Fail("Play 중에 시작하세요");
             if (Running) return DebugResult.Fail("이미 전투를 기록 중이에요");
@@ -110,6 +111,7 @@ namespace Overburst.DebugTools
                 capture.duration = Mathf.Clamp(seconds, 10f, 300f);
                 capture.threshold = Mathf.Clamp(hitchMs, 16f, 2000f);
                 capture.binaryRequested = binaryProfiler;
+                capture.rebindObjects = rebindObjects;
                 capture.frames = new Frame[MaximumFrames];
                 capture.hits = new Hit[MaximumEvents];
                 capture.sounds = new Sound[MaximumEvents];
@@ -209,7 +211,7 @@ namespace Overburst.DebugTools
                 using (ObserveMarker.Auto())
                 {
                     double elapsed = Milliseconds(captureStarted, begin) / 1000d;
-                    if (elapsed >= nextBind)
+                    if (rebindObjects && elapsed >= nextBind)
                     {
                         current.registryScan = true;
                         using (BindMarker.Auto()) BindObjects();
