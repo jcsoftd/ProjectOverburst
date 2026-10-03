@@ -22,7 +22,7 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public void ConfigureWeakAttackExecution(EnemyWeakAttackExecutionProfile profile)
     {
         if (profile != null && (!profile.ValidateAuthoring(out _) || IsTelegraphedStrongAttack
-            || IsMeleeExecution(ExecutionMode) && HitCount > 3))
+            || IsWeakMeleeExecution(ExecutionMode) && HitCount > 3))
             throw new System.ArgumentException("V3 약공 프로필 또는 최대 3타 조건이 유효하지 않습니다.");
         weakAttackExecution = profile;
     }
@@ -53,6 +53,7 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     // 바닥 장판과 머리 위 패링 빛도 근접 강공만 띄운다(EnemyAbilityController).
     public static bool IsMeleeExecution(EnemyAbilityExecutionMode mode) => mode == EnemyAbilityExecutionMode.MeleeArc
         || mode == EnemyAbilityExecutionMode.Charge || mode == EnemyAbilityExecutionMode.AreaSlam;
+    public static bool IsWeakMeleeExecution(EnemyAbilityExecutionMode mode) => IsMeleeExecution(mode) || mode == EnemyAbilityExecutionMode.DirectTarget;
     public bool IsMeleeStrongAttack => telegraphedStrongAttack && IsMeleeExecution(executionMode);
     public bool IsParryable => IsMeleeStrongAttack && parryable;
     private float PreparationSeconds(float speed) => Mathf.Max(.42f,
@@ -159,7 +160,7 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
         && MinimumRange <= Range
         && Weight > 0f
         && (weakAttackExecution == null || weakAttackExecution.IsValid
-            && !IsTelegraphedStrongAttack && (!IsMeleeExecution(ExecutionMode) || HitCount <= 3));
+            && !IsTelegraphedStrongAttack && (!IsWeakMeleeExecution(ExecutionMode) || HitCount <= 3));
 
     public bool MatchesUseConditions(float distance, float selfHealthNormalized)
     {

@@ -128,7 +128,7 @@ public static class MonsterWeakAttackExecutionWriter
                 throw new ArgumentException("실제 타격 시점과 능력 사건이 맞지 않습니다.");
             previous=time;
         }
-        bool melee = EnemyAbilityDefinition.IsMeleeExecution(ability.ExecutionMode);
+        bool melee = EnemyAbilityDefinition.IsWeakMeleeExecution(ability.ExecutionMode);
         if (melee && (ability.HitCount > 3 || ability.HitCount != (int?)selected["selectedCount"]))
             throw new ArgumentException("선택 근접 약공 타수/최대3타가 맞지 않습니다.");
         string policy = RequiredString(authored,"motionPolicy");

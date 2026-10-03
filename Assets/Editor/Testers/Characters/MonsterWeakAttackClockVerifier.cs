@@ -195,6 +195,7 @@ public static class MonsterWeakAttackClockVerifier
             var ability=ScriptableObject.CreateInstance<EnemyAbilityDefinition>();owned.Add(ability);
             ability.Configure("last-frame-fixture","Attack1",10,1.6f,1f,.4f,1f);
             ability.ConfigureAdditionalHits(.6f,.8f);ability.ConfigureWeakAttackExecution(profile);
+            typeof(EnemyMeleeAttackController).GetField("attackSequenceId",flags).SetValue(melee,EnemyAttackSequence.Next());
             var routine=(System.Collections.IEnumerator)typeof(EnemyMeleeAttackController).GetMethod("WeakAttackRoutine",flags)
                 .Invoke(melee,new object[]{"Attack1",ability,null,true});
             bool requested=routine.MoveNext();
