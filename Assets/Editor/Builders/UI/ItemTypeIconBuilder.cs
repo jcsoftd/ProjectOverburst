@@ -101,7 +101,7 @@ public static class ItemTypeIconBuilder
         child.gameObject.layer = parent.gameObject.layer;
         var rect = (RectTransform)child;
         rect.anchorMin = rect.anchorMax = rect.pivot = WeaponElementIconBuilder.BadgeAnchor;
-        rect.anchoredPosition = WeaponElementIconBuilder.BadgeOffset;
+        rect.anchoredPosition = WeaponElementIconBuilder.GetBadgeOffset(size);
         rect.sizeDelta = Vector2.one * size;
         child.SetAsLastSibling();
         Transform imageChild = child.Find("Icon");

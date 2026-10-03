@@ -40,7 +40,7 @@ public static class ItemTypeIconVerifier
                     var rect = (RectTransform)badge.transform;
                     var element = badge.transform.parent.Find("Weapon Element Badge") as RectTransform;
                     Check(rect.anchorMin == WeaponElementIconBuilder.BadgeAnchor && rect.anchorMax == rect.anchorMin
-                        && rect.pivot == rect.anchorMin && rect.anchoredPosition == WeaponElementIconBuilder.BadgeOffset,
+                        && rect.pivot == rect.anchorMin && rect.anchoredPosition == WeaponElementIconBuilder.GetBadgeOffset(rect.sizeDelta.x),
                         "Bottom right position: " + badge.transform.parent.name);
                     if (element) Check(rect.sizeDelta == element.sizeDelta, "Same reference size as element: " + badge.transform.parent.name);
                     Check(badge.GetComponentsInChildren<Graphic>(true).All(g => !g.raycastTarget), "Badge does not intercept input");

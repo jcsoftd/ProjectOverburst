@@ -16,6 +16,8 @@ public static class WeaponElementIconBuilder
     public const float HudIconSize = 46f;
     public static readonly Vector2 BadgeAnchor = new Vector2(1f, 0f);
     public static readonly Vector2 BadgeOffset = new Vector2(-7f, 7f);
+    public static readonly Vector2 ShopBadgeOffset = new Vector2(-6f, 6f);
+    public static Vector2 GetBadgeOffset(float size) => size == ShopBadgeSize ? ShopBadgeOffset : BadgeOffset;
     const string Circle = "Assets/ThirdParty/RPG and MMO UI 11/Textures/HUD/Unit Frames/Unit Frame/UnitFrame_Level_Frame.png";
     static readonly string[] Elements = { "Fire", "Ice", "Electric", "Dark", "Light" };
 
@@ -30,10 +32,11 @@ public static class WeaponElementIconBuilder
             foreach (RectTransform rect in asset.GetComponentsInChildren<RectTransform>(true))
             {
                 if (rect.name != "Weapon Element Badge" && rect.name != "Item Type Badge") continue;
-                if (rect.anchoredPosition == BadgeOffset) continue;
+                var offset = GetBadgeOffset(rect.sizeDelta.x);
+                if (rect.anchoredPosition == offset) continue;
                 // 프리팹 원본의 위치만 기록해 미리보기 콜백의 다른 시각 변경을 저장하지 않는다.
                 var serialized = new SerializedObject(rect);
-                serialized.FindProperty("m_AnchoredPosition").vector2Value = BadgeOffset;
+                serialized.FindProperty("m_AnchoredPosition").vector2Value = offset;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 changed = true;
             }
@@ -159,7 +162,7 @@ public static class WeaponElementIconBuilder
         frame.color = Color.white;
         var rect = frame.rectTransform;
         rect.anchorMin = rect.anchorMax = rect.pivot = BadgeAnchor;
-        rect.anchoredPosition = BadgeOffset;
+        rect.anchoredPosition = GetBadgeOffset(size);
         rect.sizeDelta = Vector2.one * size;
         frame.transform.SetAsLastSibling();
         Image icon = ImageChild(frame.transform, "Icon");
