@@ -6,6 +6,13 @@ Shader "OVERBURST/UI/Item Quality Shine"
         _Color ("Tint", Color) = (1,1,1,1)
         _ShineProgress ("Shine Progress", Range(0,1)) = 0
         _ShineStrength ("Shine Strength", Range(0,1)) = 0
+        _GlowStrength ("Glow Strength", Range(0,1)) = 0
+        _GlowPeriod ("Glow Period", Float) = 4.8
+        _PulseOffset ("Pulse Offset", Float) = 0
+        _AnimateEffects ("Animate Effects", Float) = 0
+        _AnimationStartTime ("Animation Start Time", Float) = 0
+        _ShineInterval ("Shine Interval", Float) = 0
+        _ShineDuration ("Shine Duration", Float) = 1.15
         _IconRect ("Icon Local Rect", Vector) = (0,0,64,64)
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
@@ -41,6 +48,8 @@ Shader "OVERBURST/UI/Item Quality Shine"
             fixed4 _Color, _TextureSampleAdd;
             float4 _ClipRect, _IconRect;
             float _ShineProgress, _ShineStrength;
+            float _GlowStrength, _GlowPeriod, _PulseOffset, _AnimateEffects, _AnimationStartTime;
+            float _ShineInterval, _ShineDuration, _OverburstItemQualityTime;
             v2f vert(appdata_t v)
             {
                 v2f o;
@@ -56,10 +65,21 @@ Shader "OVERBURST/UI/Item Quality Shine"
             fixed4 frag(v2f i):SV_Target
             {
                 fixed4 color=(tex2D(_MainTex,i.uv)+_TextureSampleAdd)*i.color;
-                float center=lerp(-.3,1.6,_ShineProgress);
+                float elapsed=max(0,_OverburstItemQualityTime-_AnimationStartTime);
+                float pulse=.5-.5*cos((elapsed+_PulseOffset)/max(.1,_GlowPeriod)*6.2831853);
+                float glow=_GlowStrength*(.25+.75*pulse);
+                float luminance=dot(color.rgb,float3(.2126,.7152,.0722));
+                color.rgb+=float3(1,.97,.9)*glow*smoothstep(.05,.75,luminance);
+                float progress=_ShineProgress;
+                if (_AnimateEffects>.5)
+                {
+                    float sweepTime=_ShineInterval>0 ? elapsed-floor(elapsed/_ShineInterval)*_ShineInterval : elapsed;
+                    progress=saturate(sweepTime/max(.1,_ShineDuration));
+                }
+                float center=lerp(-.3,1.6,progress);
                 float diagonal=i.iconUV.x+i.iconUV.y*.3;
                 float band=1-smoothstep(.02,.14,abs(diagonal-center));
-                float envelope=smoothstep(0,.12,_ShineProgress)*(1-smoothstep(.85,1,_ShineProgress));
+                float envelope=smoothstep(0,.12,progress)*(1-smoothstep(.85,1,progress));
                 color.rgb=lerp(color.rgb,float3(1,.96,.88),band*envelope*_ShineStrength);
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a*=UnityGet2DClipping(i.worldPosition.xy,_ClipRect);

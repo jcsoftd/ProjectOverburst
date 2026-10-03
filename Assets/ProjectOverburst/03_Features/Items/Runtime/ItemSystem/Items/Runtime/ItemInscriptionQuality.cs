@@ -16,6 +16,8 @@ public readonly struct ItemInscriptionQualityResult
     public string Label => ItemInscriptionQuality.Label(Tier);
     public float IconBrightness => Tier == ItemInscriptionQualityTier.Lowest ? .92f : Tier == ItemInscriptionQualityTier.Low ? .96f : 1f;
     public float ShineStrength => Tier == ItemInscriptionQualityTier.Masterpiece ? .28f : Tier == ItemInscriptionQualityTier.Finest ? .18f : Tier == ItemInscriptionQualityTier.High ? .10f : 0f;
+    public float GlowStrength => Tier == ItemInscriptionQualityTier.Masterpiece ? .085f : Tier == ItemInscriptionQualityTier.Finest ? .06f : Tier == ItemInscriptionQualityTier.High ? .035f : 0f;
+    public float ShineInterval => Tier == ItemInscriptionQualityTier.Masterpiece ? 6.5f : 0f;
     public string TextColor => Tier == ItemInscriptionQualityTier.Masterpiece ? "#EAD09A"
         : Tier == ItemInscriptionQualityTier.Finest ? "#E3CA95" : Tier == ItemInscriptionQualityTier.High ? "#D9CAA7"
         : Tier == ItemInscriptionQualityTier.Medium ? "#C7C1B4" : Tier == ItemInscriptionQualityTier.Low ? "#A4A49E" : "#858782";

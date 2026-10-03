@@ -125,7 +125,14 @@ public static class ItemInscriptionQualityVerifier
             for(int tier=0;tier<6;tier++){var text="각인 품질 "+ItemInscriptionQuality.Label((ItemInscriptionQualityTier)tier);Check(heading.GetPreferredValues(text).x<=120,"Full quality label fits native header: "+text);}
             var shader=Resources.Load<Shader>("Shaders/ItemQualityShineUI");Check(shader&&shader.isSupported,"Native UI shader support");
             Check(!ShaderUtil.GetShaderMessages(shader).Any(m=>m.severity.ToString()=="Error"),"No shader compiler errors");
-            string dir=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/UI/20261003_StarQualityGradeRelative/Verification"));Directory.CreateDirectory(dir);
+            int[] glowScores={0,13,16,20,22,25};float[] glowStrengths={0,0,0,.035f,.06f,.085f};
+            for(int tier=0;tier<6;tier++)
+            {
+                var quality=new ItemInscriptionQualityResult(ItemGrade.Mythic,glowScores[tier]);
+                Check(quality.GlowStrength==glowStrengths[tier],"Six quality glow strengths");
+                Check(quality.ShineInterval==(tier==5?6.5f:0f),"Only masterpiece periodically sweeps");
+            }
+            string dir=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/UI/20261003_StarQualityContinuous/Verification"));Directory.CreateDirectory(dir);
             int distributionFixtures=VerifyDistribution(samples,dir);
             string report="PASS: "+checks+" checks; "+fixtures+" real roll fixtures; five star systems; grade-relative six tiers; Common, curse, RNG/save invariance, native tooltip and icon reset";
             report+="; "+distributionFixtures+" natural distribution samples";
