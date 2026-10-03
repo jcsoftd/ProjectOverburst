@@ -110,12 +110,27 @@ namespace Overburst.DebugTools
 
         private void Awake()
         {
+            InitializeRuntime();
+        }
+
+        private void OnEnable()
+        {
+            // Play 중 스크립트 재로딩은 Awake를 다시 호출하지 않는다.
+            // 직렬화되지 않는 창·오버레이와 정적 Instance를 기존 프리팹에 다시 연결한다.
+            if (Application.isPlaying)
+                InitializeRuntime();
+        }
+
+        private void InitializeRuntime()
+        {
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
             Instance = this;
+            if (window != null && overlay != null)
+                return;
             gameObject.layer = 5;
             BuildCanvas();
             DebugHubView view = GetComponent<DebugHubView>();
@@ -123,10 +138,12 @@ namespace Overburst.DebugTools
                 throw new InvalidOperationException("디버그 프리팹의 View/Style 연결을 확인하세요.");
             DebugUi.Initialize(view.Style);
             fallbackEventSystem = view.FallbackEventSystem;
+            bool windowVisible = view.Window != null && view.Window.gameObject.activeSelf;
             overlay = new DebugOverlay(this, canvasRect);
             window = new DebugHubWindow(canvasRect);
-            window.SetVisible(false);
+            window.SetVisible(windowVisible);
             DebugRuntime.ConfirmHandler = HandleConfirm;
+            DebugRuntime.Executed -= HandleExecuted;
             DebugRuntime.Executed += HandleExecuted;
             DebugLogCapture.Install();
         }

@@ -42,7 +42,7 @@ namespace Overburst.DebugTools
         long frameStarted, captureStarted;
         double duration, nextBind;
         float threshold;
-        string folder, stopReason, previousProfilerPath;
+        string folder, stopReason, previousProfilerPath, ownedProfilerPath;
         bool active, binaryOwned, binaryRequested, previousProfilerEnabled, previousBinaryEnabled, profilerOwnershipLost;
         BloodHitVfxService blood;
         BloodHitCatalog bloodCatalog;
@@ -373,6 +373,8 @@ namespace Overburst.DebugTools
             Profiler.logFile = Path.Combine(folder, "profiler.raw");
             Profiler.enableBinaryLog = true;
             Profiler.enabled = true;
+            // Unity normalizes logFile paths; retain its actual value for the ownership check.
+            ownedProfilerPath = Profiler.logFile;
         }
 
         void Finish(string reason)
@@ -394,7 +396,7 @@ namespace Overburst.DebugTools
             foreach (Metric metric in metrics) if (metric.recorder.Valid) metric.recorder.Dispose();
             if (binaryOwned)
             {
-                if (Profiler.logFile == Path.Combine(folder, "profiler.raw"))
+                if (Profiler.logFile == ownedProfilerPath)
                 {
                     Profiler.enabled = false;
                     Profiler.enableBinaryLog = previousBinaryEnabled;
