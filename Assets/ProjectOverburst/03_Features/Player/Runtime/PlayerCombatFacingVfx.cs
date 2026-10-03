@@ -23,19 +23,6 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
     Vector3 surfaceNormal = Vector3.up;
     bool hadGround;
 
-    public static bool DebugVisible { get; private set; }
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetDebugVisibility() => DebugVisible = false;
-
-    public static void SetDebugVisible(bool show)
-    {
-        DebugVisible = show;
-        if (show) return;
-        foreach (var effect in Object.FindObjectsByType<PlayerCombatFacingVfx>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            effect.HideImmediately();
-    }
-
     public Transform VisualRoot => visualRoot;
     public float Visibility => visibility;
     public float FlowTime => phase;
@@ -49,12 +36,13 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         renderers = visualRoot != null ? visualRoot.GetComponentsInChildren<Renderer>(true) : null;
         visibility = 0f; hadGround = false; surfaceNormal = Vector3.up;
         if (visualRoot != null) visualRoot.gameObject.SetActive(false);
+        OverburstGameSettings.Changed += OnSettingsChanged;
     }
 
     void LateUpdate()
     {
         if (visualRoot == null || renderers == null) return;
-        if (!DebugVisible)
+        if (!OverburstGameSettings.CombatFacingIndicator)
         {
             if (visibility > 0f || visualRoot.gameObject.activeSelf) HideImmediately();
             return;
@@ -121,5 +109,14 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         if (visualRoot != null) visualRoot.gameObject.SetActive(false);
     }
 
-    void OnDisable() => HideImmediately();
+    void OnSettingsChanged()
+    {
+        if (!OverburstGameSettings.CombatFacingIndicator) HideImmediately();
+    }
+
+    void OnDisable()
+    {
+        OverburstGameSettings.Changed -= OnSettingsChanged;
+        HideImmediately();
+    }
 }

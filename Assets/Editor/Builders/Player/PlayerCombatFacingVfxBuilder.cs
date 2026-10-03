@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 public static class PlayerCombatFacingVfxBuilder
 {
     public const string Root = "Assets/ProjectOverburst/03_Features/Player/VFX/CombatFacing";
-    public const string EffectPath = Root + "/Prefabs/PF_VFX_CombatFacing_01_SilverComet_Refined.prefab";
+    public const string EffectPath = Root + "/QuietFill/Prefabs/PF_VFX_CombatFacing_QuietFill.prefab";
     public const string PlayerPath = "Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab";
 
     public static void Install(string output)
@@ -58,9 +58,9 @@ public static class PlayerCombatFacingVfxBuilder
             var visual = controller != null ? controller.VisualRoot : null;
             var renderers = visual != null ? visual.GetComponentsInChildren<Renderer>(true) : Array.Empty<Renderer>();
             int invalid = renderers.SelectMany(r => r.sharedMaterials).Count(m => m == null || m.shader == null || !m.shader.isSupported);
-            var shader = Shader.Find("OVERBURST/VFX/Combat Facing Silver Flow");
+            var shader = Shader.Find("OVERBURST/VFX/Combat Facing Quiet Flow");
             var shaderErrors = shader != null ? ShaderUtil.GetShaderMessages(shader).Where(m => m.severity.ToString() == "Error").Select(m => m.message).ToArray() : new[] { "shader missing" };
-            if (controller == null || visual == null || missing != 0 || invalid != 0 || renderers.Length != 7 || shaderErrors.Length != 0)
+            if (controller == null || visual == null || missing != 0 || invalid != 0 || renderers.Length != 9 || shaderErrors.Length != 0)
                 throw new InvalidOperationException("전투 방향 프리팹 로드 검증 실패");
             var materials = renderers.SelectMany(r => r.sharedMaterials).Distinct().Select(m => new { path = AssetDatabase.GetAssetPath(m), tint = Rgba(m.GetColor("_Tint")), emission = m.GetFloat("_Emission"), opacity = m.GetFloat("_Opacity") }).ToArray();
             Directory.CreateDirectory(output);

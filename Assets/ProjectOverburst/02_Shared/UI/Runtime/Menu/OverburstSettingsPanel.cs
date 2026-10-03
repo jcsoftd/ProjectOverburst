@@ -33,6 +33,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     [Header("Combat display")]
     public Slider cameraShake;
     public Slider hitEffect;
+    public Toggle combatFacingIndicator;
 
     [Header("Controls")]
     public OverburstKeyBindingRow[] keyRows;
@@ -75,6 +76,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         muteInBackground.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.MuteInBackground = v; menu.PlayClick(); } });
         cameraShake.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CameraShakeScale = v; });
         hitEffect.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.HitEffectScale = v; });
+        if (combatFacingIndicator != null) combatFacingIndicator.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.CombatFacingIndicator = v; menu.PlayClick(); } });
         vSync.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.SetFrameOptions(v, OverburstGameSettings.FrameLimit); RefreshFrameRow(); menu.PlayClick(); } });
         frameLimit.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.SetFrameOptions(OverburstGameSettings.VSync, OverburstGameSettings.FrameLimits[i]); });
         screenMode.onChange.AddListener((i, _) => { if (!refreshing) ChangeDisplay(Modes[i], OverburstGameSettings.Resolution); });
@@ -145,6 +147,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             muteInBackground.SetIsOnWithoutNotify(OverburstGameSettings.MuteInBackground);
             cameraShake.SetValueWithoutNotify(OverburstGameSettings.CameraShakeScale);
             hitEffect.SetValueWithoutNotify(OverburstGameSettings.HitEffectScale);
+            if (combatFacingIndicator != null) combatFacingIndicator.SetIsOnWithoutNotify(OverburstGameSettings.CombatFacingIndicator);
             vSync.SetIsOnWithoutNotify(OverburstGameSettings.VSync);
             // 슬라이더·스위치 모양(값 글자·손잡이 위치)도 값에 맞춘다.
             foreach (var display in GetComponentsInChildren<UISliderDisplayValue>(true)) display.SetValue(display.GetComponent<Slider>().value);

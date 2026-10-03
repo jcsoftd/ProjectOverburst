@@ -250,7 +250,8 @@ public static class OverburstGameMenuBuilder
 
         var combat = (RectTransform)panel.pages[2].transform;
         panel.cameraShake = SliderRow(combat, 0, "카메라 흔들림", "타격·피격·큰 몬스터 발소리에 화면이 흔들리는 세기", 1f);
-        panel.hitEffect = SliderRow(combat, 1, "피격 화면 효과", "맞았을 때 화면 가장자리가 붉어지는 세기", 1f, true);
+        panel.hitEffect = SliderRow(combat, 1, "피격 화면 효과", "맞았을 때 화면 가장자리가 붉어지는 세기", 1f);
+        panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, true);
 
         BuildControls(panel, (RectTransform)panel.pages[3].transform);
 
@@ -321,6 +322,37 @@ public static class OverburstGameMenuBuilder
         slider.SetValueWithoutNotify(value);
         Restyle(sliderTransform.Find("Text").GetComponent<Text>(), Mathf.RoundToInt(value * 100f) + "%", sans, 34, Bright);
         return slider;
+    }
+
+    // 기존 메뉴의 배치와 다른 설정을 보존하고 전투 표시 행 하나만 추가한다.
+    public static void AddCombatFacingSetting()
+    {
+        PlayerCombatFacingVfxBuilder.RequireIdle();
+        LoadFonts();
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        if (asset == null || EditorUtility.IsDirty(asset)) throw new System.InvalidOperationException("Menu prefab missing or dirty.");
+        var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        try
+        {
+            var panel = root.GetComponentInChildren<OverburstSettingsPanel>(true);
+            if (panel == null || panel.pages.Length != 4) throw new System.InvalidOperationException("Settings panel contract changed.");
+            if (panel.combatFacingIndicator == null)
+            {
+                var combat = (RectTransform)panel.pages[2].transform;
+                panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, true);
+                var previousRow = panel.hitEffect.transform.parent.parent;
+                if (previousRow.Find("Rule") == null)
+                {
+                    var rule = NewImage(previousRow, "Rule", Rule);
+                    Place(rule.rectTransform, new Vector2(0f, 1f), new Vector2(RowInset, RowTop - 2f * RowHeight + 14f), new Vector2(RowWidth, 2f), new Vector2(0f, 1f));
+                }
+                foreach (var selectable in panel.combatFacingIndicator.transform.parent.parent.GetComponentsInChildren<Selectable>(true))
+                    if (!selectable.GetComponent<OverburstMenuSoundHook>()) selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
+            if (!saved) throw new System.InvalidOperationException("Menu prefab save failed.");
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
     }
 
     private static Toggle SwitchRow(RectTransform page, int index, string title, string description, bool on, bool last)

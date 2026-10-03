@@ -28,6 +28,7 @@ public static class OverburstGameSettings
         public int frameLimit = -1;
         public float cameraShake = 1f;
         public float hitEffect = 1f;
+        public bool combatFacingIndicator = true;
         public string bindingOverrides = string.Empty;
     }
 
@@ -42,6 +43,7 @@ public static class OverburstGameSettings
     public static bool MuteInBackground { get { Ensure(); return data.muteInBackground; } set { Ensure(); data.muteInBackground = value; ApplyAudio(); Notify(); } }
     public static float CameraShakeScale { get { Ensure(); return data.cameraShake; } set { Ensure(); data.cameraShake = Mathf.Clamp01(value); Notify(); } }
     public static float HitEffectScale { get { Ensure(); return data.hitEffect; } set { Ensure(); data.hitEffect = Mathf.Clamp01(value); Notify(); } }
+    public static bool CombatFacingIndicator { get { Ensure(); return data.combatFacingIndicator; } set { Ensure(); if (data.combatFacingIndicator == value) return; data.combatFacingIndicator = value; Notify(); } }
 
     public static FullScreenMode ScreenMode { get { Ensure(); return (FullScreenMode)data.screenMode; } }
     public static Vector2Int Resolution { get { Ensure(); return new Vector2Int(data.width, data.height); } }
@@ -90,8 +92,10 @@ public static class OverburstGameSettings
         {
             string path = FilePath;
             if (!File.Exists(path)) return;
-            var read = JsonUtility.FromJson<Data>(File.ReadAllText(path));
-            if (read != null) data = read;
+            // 새 항목은 초기값을 유지한다. 이전 파일에 방향 표시가 없으면 켜짐으로 시작한다.
+            var read = new Data { vSync = data.vSync, frameLimit = data.frameLimit, screenMode = data.screenMode, width = data.width, height = data.height };
+            JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
+            data = read;
         }
         catch (Exception error)
         {
@@ -148,7 +152,7 @@ public static class OverburstGameSettings
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
-            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; break;
+            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; break;
         }
         Notify();
     }
