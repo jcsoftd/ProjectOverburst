@@ -21,7 +21,7 @@ namespace Overburst.EditorBalance.Analysis
             Check(Mathf.Approximately(hp, 2985f) && Mathf.Approximately(armor, 204f) && Mathf.Abs(q - 259.825f) < .01f,
                 "S0 Lv100 기준(문서 50B·최종 결과)", $"HP {F(hp)} 방어 {F(armor)} Q {F(q, "0.###")} (문서 2985/204/259.825)");
             var tuning = OverburstElementTuning.Current;
-            float[] expected = { .30f, 1.15f, 2.425f, 4.125f, 6.25f };
+            float[] expected = { .30f, 1.0375f, 2.125f, 3.5625f, 5.35f };
             var got = new List<string>(); bool heavyOk = true;
             for (int i = 0; i < 5; i++)
             {
@@ -29,7 +29,7 @@ namespace Overburst.EditorBalance.Analysis
                 float h = CombatBalanceFormulas.HeavyFirstBlastDamage(1f, e, CombatBalanceFormulas.DischargeEnergyCoefficient(tuning, e, 0f, 0f), .25f);
                 got.Add(F(h, "0.###")); heavyOk &= Mathf.Abs(h - expected[i]) < .001f;
             }
-            Check(heavyOk, "강공 H/D 표(문서 60A·v2 4절)", "e=0/.25/.5/.75/1 → " + string.Join(" / ", got) + " (문서 0.30/1.15/2.425/4.125/6.25)");
+            Check(heavyOk, "강공 H/D 표(문서 60A·2026-10-04 조정)", "e=0/.25/.5/.75/1 → " + string.Join(" / ", got) + " (문서 0.30/1.0375/2.125/3.5625/5.35)");
             Check(Mathf.Approximately(CombatBalanceFormulas.PhaseEnergyGain(tuning, false, 0f), 10f) && Mathf.Approximately(CombatBalanceFormulas.PhaseEnergyGain(tuning, true, 0f), 20f),
                 "에너지 Phase당 10/치명 20(문서 60A)", $"{F(CombatBalanceFormulas.PhaseEnergyGain(tuning, false, 0f))}/{F(CombatBalanceFormulas.PhaseEnergyGain(tuning, true, 0f))}");
             Check(Mathf.Abs(tuning.shatterBlastFraction - .6f) < .0001f, "얼음 쇄빙 H×0.60(문서 v2 5절)", "튜닝 SO " + F(tuning.shatterBlastFraction));
@@ -123,7 +123,7 @@ namespace Overburst.EditorBalance.Analysis
             list.Add(new Finding("D01", "문서·구현 차이", match ? "정보" : "높음",
                 match ? "무기 툴팁 DPS가 실제 약공 경로와 일치한다(10-01 수정)" : "무기 툴팁 DPS가 실제 약공 경로와 다르다",
                 $"무기 {catalog.weapons.Count}종 × Lv1·Lv55 일반, 무기 툴팁·장착 비교의 단일 대상 DPS. 가장 큰 차이: {worstLabel}",
-                "`MeleeSingleTargetDpsCalculator.Estimate`는 `CombatBalanceFormulas.AttackDamageMultiplier`(대검 약공 0.35)·`EffectiveCriticalChance`·`RoundedHitDamage`와 `MeleePlaybackAcceleration`·이어 치기 진입 진행률을 쓴다. 비교 기준은 Play 콤보 시간표·약공 피해로 대조한 모델 경로.",
+                $"`MeleeSingleTargetDpsCalculator.Estimate`는 `CombatBalanceFormulas.AttackDamageMultiplier`(대검 약공 {F(OverburstCombatBalance.GreatswordWeakDamage)})·`EffectiveCriticalChance`·`RoundedHitDamage`와 `MeleePlaybackAcceleration`·이어 치기 진입 진행률을 쓴다. 비교 기준은 Play 콤보 시간표·약공 피해로 대조한 모델 경로.",
                 $"{worstDetail} → {F(worst, "0.###")}배. " + (match ? "무기 비교 수치가 실제 약공과 맞는다(10-01 수정 전 2.33배 과대)." : "플레이어가 무기를 비교할 때 수치가 실제 약공과 맞지 않는다."),
                 match ? "없음. 장비 옵션·원소 에너지·강공은 무기 단독 비교값이라 넣지 않는다." : "툴팁 계산기가 실제 약공 경로와 같은 입력을 쓰게 한다.",
                 $"대조 {count}건, 허용 ±1%"));
@@ -313,12 +313,12 @@ namespace Overburst.EditorBalance.Analysis
             switch (code)
             {
                 case "PREP_DEATH":
-                    cause = "약공 준비 피해(D×0.35×Phase 계수 합)가 중형 체력(종 계수×Qref)보다 먼저 체력을 다 깎는다. 소유: `OverburstCombatBalance.GreatswordWeakDamage`, `EnemyDefinition.referenceHealthCoefficient`.";
+                    cause = $"약공 준비 피해(D×{F(OverburstCombatBalance.GreatswordWeakDamage)}×Phase 계수 합)가 중형 체력(종 계수×Qref)보다 먼저 체력을 다 깎는다. 소유: `OverburstCombatBalance.GreatswordWeakDamage`, `EnemyDefinition.referenceHealthCoefficient`.";
                     impact = "강공 마무리가 필요 없어져 원소 방출 규칙을 체감하지 못한다.";
                     proposal = "해당 구간 중형 계수 상향 또는 약공 배율 하향 검토(수치 제안).";
                     break;
                 case "CYCLE_FAIL":
-                    cause = "완충 강공 H(최대 6.25D)와 준비 피해 합이 중형 체력에 못 미친다. 소유: `CombatBalanceFormulas.HeavyFirstBlastDamage`, 중형 계수.";
+                    cause = $"완충 강공 H(기본 방출 기준 {F(CombatBalanceFormulas.HeavyFirstBlastDamage(1, 1, OverburstElementTuning.Current.dischargeDamageAtFullEnergy, .25f))}D)와 준비 피해 합이 중형 체력에 못 미친다. 소유: `CombatBalanceFormulas.HeavyFirstBlastDamage`, 중형 계수.";
                     impact = "한 번 준비·방출로 끝나지 않아 전투가 늘어진다.";
                     proposal = "강공 계수 또는 중형 계수 조정(수치 제안).";
                     break;

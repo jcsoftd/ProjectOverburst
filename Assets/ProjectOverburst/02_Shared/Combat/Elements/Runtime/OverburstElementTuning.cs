@@ -62,10 +62,10 @@ public sealed class OverburstElementTuning : ScriptableObject
     [Header("Light triple impact (60D)")]
     public Vector3 lightTripleRadiusScale = new Vector3(0.43f, 0.57f, 1f);
     [Min(0f)] public float lightTripleHit1Base = 0.2f;
-    [Min(0f)] public float lightTripleHit1PerStack = 2.6f;
-    [Min(0f)] public float lightTripleHit2Base = 0.5f;
-    [Min(0f)] public float lightTripleHit2PerOvercharge = 1f;
-    [Min(0f)] public float lightTripleHit3Scale = 1f;
+    [Min(0f)] public float lightTripleHit1PerStack = 1.6f;
+    [Min(0f)] public float lightTripleHit2Base = 0.65f;
+    [Min(0f)] public float lightTripleHit2PerOvercharge = 0.05f;
+    [Min(0f)] public float lightTripleHit3Scale = 0.8f;
     [Min(0f)] public float lightTripleVfxPlaybackSpeed = 1.25f;
     [Tooltip("Rune_Multi_Impact original times of the 1st/2nd/3rd explosion bursts (seconds at 1x).")]
     public Vector3 lightTripleSourceHitTimes = new Vector3(1f, 2f, 3f);
@@ -133,10 +133,10 @@ public sealed class OverburstElementTuning : ScriptableObject
         return Positive(value, hit == 0 ? 0.43f : hit == 1 ? 0.57f : 1f);
     }
     public float SafeLightTripleHit1Base => lightTripleHit1Base > 0f ? lightTripleHit1Base : 0.2f;
-    public float SafeLightTripleHit1PerStack => Positive(lightTripleHit1PerStack, 2.6f);
-    public float SafeLightTripleHit2Base => Positive(lightTripleHit2Base, 0.5f);
-    public float SafeLightTripleHit2PerOvercharge => Positive(lightTripleHit2PerOvercharge, 1f);
-    public float SafeLightTripleHit3Scale => Positive(lightTripleHit3Scale, 1f);
+    public float SafeLightTripleHit1PerStack => Positive(lightTripleHit1PerStack, 1.6f);
+    public float SafeLightTripleHit2Base => Positive(lightTripleHit2Base, 0.65f);
+    public float SafeLightTripleHit2PerOvercharge => Positive(lightTripleHit2PerOvercharge, 0.05f);
+    public float SafeLightTripleHit3Scale => Positive(lightTripleHit3Scale, 0.8f);
     public float SafeLightTripleVfxPlaybackSpeed => Positive(lightTripleVfxPlaybackSpeed, 1.25f);
     public float LightTripleSourceHitTime(int hit)
     {

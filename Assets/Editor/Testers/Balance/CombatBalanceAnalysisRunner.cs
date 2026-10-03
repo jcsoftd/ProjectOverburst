@@ -251,13 +251,13 @@ namespace Overburst.EditorBalance.Analysis
             t.Add(new TraceLine("공격 속도", "×" + F(p.attackSpeed, "0.###"), "min(1.5, 무기+장비 공속/100)", "ComposePlayerWeaponStats"));
             t.Add(new TraceLine("장비 피해 보조", $"일반 {F(p.normalBonus)}% 정예 {F(p.eliteBonus)}% 약공 {F(p.weakBonus)}% 강공 {F(p.heavyBonus)}% 원소 {F(p.elementalBonus)}%",
                 "×max(0.1, 1+합/100)", "CombatBalanceFormulas.ApplyPlayerOutgoing ← CombatHealth"));
-            t.Add(new TraceLine("약공 1판정(1타)", $"{F(o.weakNormal)} / 치명 {F(o.weakCrit)} / 기대 {F(o.weakExpected)}", "round(D×Phase×0.35[×치피]) → 보조 적용", "MeleeAttackStatResolver·RoundedHitDamage·ApplyPlayerOutgoing"));
+            t.Add(new TraceLine("약공 1판정(1타)", $"{F(o.weakNormal)} / 치명 {F(o.weakCrit)} / 기대 {F(o.weakExpected)}", $"round(D×Phase×{F(OverburstCombatBalance.GreatswordWeakDamage)}[×치피]) → 보조 적용", "MeleeAttackStatResolver·RoundedHitDamage·ApplyPlayerOutgoing"));
             t.Add(new TraceLine("4타 1순환", $"{F(o.cycleDuration)}초, DPS {F(o.weakDps)}", "클립 길이/(콤보 기본×재생 배율×타 배율), 가속 구간 ToElapsed, 다음 입력 구간 시작", "MeleeComboStepData·MeleePlaybackAcceleration"));
             t.Add(new TraceLine("에너지", $"Phase당 {F(CombatBalanceFormulas.PhaseEnergyGain(tu, false, 0))}/치명 {F(CombatBalanceFormulas.PhaseEnergyGain(tu, true, 0))}", "적중 Phase당 1회, 여러 대상 중 하나라도 치명이면 치명값", "CombatBalanceFormulas.PhaseEnergyGain ← OverburstElementEnergy"));
             if (r.mode == CombatMode.Single) t.Add(new TraceLine("완충 시간", $"{F(r.chargeTime)}초 / {F(r.chargePhases, "0.#")} Phase", "적이 죽지 않는다고 본 순수 충전", "모델 시간 진행"));
             float heavyAttack = p.heavyAttackDamage;
             t.Add(new TraceLine("강공 첫 폭발 H(완충)", F(CombatBalanceFormulas.HeavyFirstBlastDamage(heavyAttack, 1f, CombatBalanceFormulas.DischargeEnergyCoefficient(tu, 1f, 0, 0), p.dischargePower)),
-                $"D·p0×lerp(0.3,2,e)×(1+{F(tu.dischargeDamageAtFullEnergy)}e)+B×e, B={F(p.dischargePower)}", "CombatBalanceFormulas.HeavyFirstBlastDamage ← OverburstElementDischarge"));
+                $"D·p0×lerp({F(OverburstCombatBalance.EmptyHeavyDamage)},{F(OverburstCombatBalance.FullHeavyDamage)},e)×(1+{F(tu.dischargeDamageAtFullEnergy)}e)+B×e, B={F(p.dischargePower)}", "CombatBalanceFormulas.HeavyFirstBlastDamage ← OverburstElementDischarge"));
             t.Add(new TraceLine("강공 적중 기대(보조·치명 포함)", F(r.heavyDirect), "lerp(round(H), round(H×치피), 치확) → 강공+원소 보조", "MeleeRuntime.CommitHeavyDischargeAtImpact → DealPatternDamage"));
             t.Add(new TraceLine("몬스터 체력", F(e.maxHealth), e.legacyHealth ? "옛 성장식(기준 계수 없음)" : $"round({F(e.coefficient)}×Qref({e.level}))", "CombatBalanceFormulas.EnemyReferenceHealth ← EnemyRank"));
             if (e.worstNormal != null) t.Add(new TraceLine("가장 아픈 일반 공격", $"{e.worstNormal.abilityId} 타당 {F(e.worstNormal.perHit)} ×{e.worstNormal.hitCount}타 = {F(e.worstNormal.patternTotal)} (최대 HP의 {F(e.worstNormal.percentOfHealth, "0.#")}%) → 패턴 {e.worstNormal.survivablePatterns}회·타 {e.worstNormal.survivableHits}회 버팀",

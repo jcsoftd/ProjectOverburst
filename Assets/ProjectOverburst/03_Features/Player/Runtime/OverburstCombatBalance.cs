@@ -6,9 +6,9 @@ public static class OverburstCombatBalance
     public const int ItemBalanceVersion = 1;
     public const float FinalCriticalChance = 65f;
     public const float FinalCriticalDamage = 3f;
-    public const float GreatswordWeakDamage = .35f;
+    public const float GreatswordWeakDamage = .65f;
     public const float EmptyHeavyDamage = .30f;
-    public const float FullHeavyDamage = 2f;
+    public const float FullHeavyDamage = 1.70f;
 
     public static float RoundStat(float value) => (float)System.Math.Round(value, System.MidpointRounding.AwayFromZero);
 
