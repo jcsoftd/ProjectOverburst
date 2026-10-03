@@ -21,6 +21,8 @@ public sealed class OverburstWorldHighlight : IDisposable
 
     public void SetTarget(Transform next, Renderer[] renderers)
     {
+        if (style == OverburstWorldHighlightStyle.PlayerOcclusion && next != null && renderers != null)
+            renderers = FilterPlayerModelRenderers(next, renderers);
         if (next == null || renderers == null || renderers.Length == 0) { Clear(); return; }
         if (next == target && effect != null && owner.activeSelf && SameRenderers(renderers)) return;
         EnsureEffect();
@@ -105,6 +107,42 @@ public sealed class OverburstWorldHighlight : IDisposable
             result.Add(renderer);
         }
         return result.ToArray();
+    }
+
+    /// <summary>캐릭터 가림 표시는 모델 표면만 포함하고 투명 이펙트의 평면은 제외한다.</summary>
+    public static Renderer[] CollectPlayerModelRenderers(Transform root) =>
+        root != null ? FilterPlayerModelRenderers(root, CollectModelRenderers(root)) : Array.Empty<Renderer>();
+
+    private static Renderer[] FilterPlayerModelRenderers(Transform root, Renderer[] candidates)
+    {
+        var facingEffects = root.GetComponentsInChildren<PlayerCombatFacingVfx>(true);
+        var result = new List<Renderer>(candidates.Length);
+        foreach (Renderer renderer in candidates)
+        {
+            if (renderer == null) continue;
+            bool isFacingEffect = false;
+            foreach (PlayerCombatFacingVfx facing in facingEffects)
+                if (facing.VisualRoot != null && renderer.transform.IsChildOf(facing.VisualRoot))
+                { isFacingEffect = true; break; }
+            if (isFacingEffect) continue;
+            // Skinned character surfaces can use transparent hair/cloth materials.
+            // Static effect planes only have transparent or additive materials.
+            if (renderer is SkinnedMeshRenderer || HasModelSurface(renderer)) result.Add(renderer);
+        }
+        return result.ToArray();
+    }
+
+    private static bool HasModelSurface(Renderer renderer)
+    {
+        foreach (Material material in renderer.sharedMaterials)
+        {
+            if (material == null || material.shader == null) continue;
+            string renderType = material.GetTag("RenderType", true, "");
+            bool transparent = renderType.StartsWith("Transparent", StringComparison.OrdinalIgnoreCase)
+                && !renderType.Equals("TransparentCutout", StringComparison.OrdinalIgnoreCase);
+            if (material.renderQueue < (int)UnityEngine.Rendering.RenderQueue.Transparent && !transparent) return true;
+        }
+        return false;
     }
 
     public void Clear()

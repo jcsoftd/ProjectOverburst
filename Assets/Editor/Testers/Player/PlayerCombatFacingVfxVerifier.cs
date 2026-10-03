@@ -127,6 +127,7 @@ public static class PlayerCombatFacingVfxVerifier
         mode.EnterCombatMode(PlayerCombatModeReason.System);
         var defaultWait = Wait(.35); while (defaultWait.MoveNext()) yield return null;
         Check(effect.IsVisible == expectedInitial, "전투 기본 표시/저장된 OFF 적용");
+        PlayerOcclusionVfxRendererVerifier.VerifyLive(actor.transform, output);
         menu.Open(); menu.OpenSettings(); panel.tabs[2].isOn = true;
         Check(toggle.isOn == expectedInitial && panel.pages[2].activeSelf, "전투 표시 탭에서 저장 상태 동기화");
         toggle.isOn = true;
