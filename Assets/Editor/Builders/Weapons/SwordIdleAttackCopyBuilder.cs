@@ -20,7 +20,7 @@ public static class SwordIdleAttackCopyBuilder
     public const string Folder = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/SwordIdleAdapted";
     public const string Definition = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Definition/GreatswordDefinition.asset";
     public const string IdlePath = "Assets/ThirdParty/03_애니메이션/Sword_Animations_Pack/Animation/Humanoid/01_Idle/Idle_Combat.anim";
-    public sealed class Target { public string role; public MeleeComboStepData step; public bool adaptEntry; }
+    public sealed class Target { public string role; public MeleeComboStepData step; public bool adaptEntry=true; }
     public static List<Target> Targets()
     {
         var d=AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(Definition);
@@ -32,99 +32,65 @@ public static class SwordIdleAttackCopyBuilder
         if(d.dashHeavyAttackDefinition!=null)result.Add(new Target{role="DashHeavy",step=d.dashHeavyAttackDefinition.attack});
         return result;
     }
-    static float Smooth(float p){p=Mathf.Clamp01(p);return p*p*p*(10+p*(-15+6*p));}
-    static bool Editable(EditorCurveBinding b) => b.type==typeof(Animator)&&b.path==""&&b.propertyName!="RootT.x"&&b.propertyName!="RootT.z";
-    static void EnsureFolder(string path) { if(AssetDatabase.IsValidFolder(path))return;EnsureFolder(Path.GetDirectoryName(path).Replace('\\','/'));AssetDatabase.CreateFolder(Path.GetDirectoryName(path).Replace('\\','/'),Path.GetFileName(path)); }
-    public static string Hash(string path){using(var h=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(h.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();}
+
+    static bool Busy()=>EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating;
+    static void EnsureFolder(string path)
+    {
+        if(AssetDatabase.IsValidFolder(path))return;
+        string parent=Path.GetDirectoryName(path).Replace(Path.DirectorySeparatorChar,'/');EnsureFolder(parent);AssetDatabase.CreateFolder(parent,Path.GetFileName(path));
+    }
+    public static string Hash(string path)
+    {
+        using(var h=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(h.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();
+    }
     public static string Main(string output)=>Build(output,true);
     public static string Analyze(string output)=>Build(output,false);
     static string Build(string output,bool save)
     {
-        if(save&&(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating))throw new InvalidOperationException("Save candidates only in idle EditMode.");
+        if(Busy())throw new InvalidOperationException("Build candidates only in idle EditMode.");
         Directory.CreateDirectory(output);
-        var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>(IdlePath);
-        var idleCurves=AnimationUtility.GetCurveBindings(idle).Where(b=>b.type==typeof(Animator)&&b.path=="").ToDictionary(b=>b.propertyName,b=>AnimationUtility.GetEditorCurve(idle,b));
+        var targets=Targets();if(targets.Count!=8||targets.Select(t=>t.role).Distinct().Count()!=8)throw new Exception("Expected the owned eight greatsword attacks.");
+        var sourceHashes=targets.Select(t=>Hash(AssetDatabase.GetAssetPath(t.step.animationClip))).ToArray();string definitionHash=Hash(Definition),idleHash=Hash(IdlePath);
+        string cache=SwordIdleNativeAttackAuthoring.Build(output);
+        var objects=UnityEditorInternal.InternalEditorUtility.LoadSerializedFileAndForget(cache);var clips=objects.OfType<AnimationClip>().ToArray();
         var records=new List<object>();
-        if(save)EnsureFolder(Folder);
-        foreach(var target in Targets())
+        try
         {
-            var src=target.step.animationClip;string srcPath=AssetDatabase.GetAssetPath(src),path=Folder+"/GS_"+target.role+"_SwordIdle.anim";
-            string sourceHash=Hash(srcPath);var originalBindings=AnimationUtility.GetCurveBindings(src);
-            var sourceCurves=originalBindings.Where(b=>b.type==typeof(Animator)&&b.path=="").ToDictionary(b=>b.propertyName,b=>AnimationUtility.GetEditorCurve(src,b));
-            var phases=(target.step.attackPhases??new AttackPhaseData[0]).Select(p=>new Vector2(p.SafeStart,p.SafeEnd)).Concat((target.step.trailPhases??new AttackTrailPhaseData[0]).Select(p=>new Vector2(p.SafeStart,p.SafeEnd))).ToArray();
-            float first=phases.Min(p=>p.x)*src.length,last=phases.Max(p=>p.y)*src.length;
-            float entryEnd=target.adaptEntry?Mathf.Min(first-.035f,Mathf.Min(.28f,src.length*.16f)):0;
-            // Begin during the original recovery, before the feet complete their narrow-stance return.
-            float recoveryStart=Mathf.Max(last+.045f,src.length*.56f);
-            if(target.role=="DashHeavy")recoveryStart=Mathf.Max(recoveryStart,src.length*.70f);
-            var copy=UnityEngine.Object.Instantiate(src);copy.name="GS_"+target.role+"_SwordIdle";
-            int changed=0;float maxProtectedError=0;
-            var editedBindings=new List<EditorCurveBinding>();var editedCurves=new List<AnimationCurve>();
-            try
+            if(clips.Length!=17)throw new Exception("Native candidate count mismatch.");
+            if(save)EnsureFolder(Folder);
+            // Validate every destination before writing any candidate.
+            foreach(var t in targets)
             {
-                using(var quality=new SerializedObject(copy))
-                {
-                    var high=quality.FindProperty("m_UseHighQualityCurve");
-                    if(high==null)throw new Exception("Editable Humanoid curve quality property missing.");
-                    high.boolValue=true;quality.ApplyModifiedPropertiesWithoutUndo();
-                }
-                foreach(var binding in originalBindings)
-                {
-                    string n=binding.propertyName;AnimationCurve reference;
-                    if(!Editable(binding)||!idleCurves.TryGetValue(n,out reference))continue;
-                    var old=sourceCurves[n];
-                    var oldKeys=old.keys;
-                    float begin=oldKeys.Where(k=>k.time>=recoveryStart).Select(k=>k.time).DefaultIfEmpty(src.length).Min();
-                    float entry=entryEnd>0?oldKeys.Where(k=>k.time<=entryEnd).Select(k=>k.time).DefaultIfEmpty(0).Max():0;
-                    if(begin>=src.length)begin=recoveryStart;
-                    Func<float,float> value=t=>
-                    {
-                        float ew=entry>0?1-Smooth(t/entry):0;
-                        float rw=Smooth((t-begin)/(src.length-begin));
-                        if(ew==0&&rw==0)return old.Evaluate(t);
-                        if(n.StartsWith("RootQ.")||n.StartsWith("LeftFootQ.")||n.StartsWith("RightFootQ."))
-                        {
-                            string prefix=n.Substring(0,n.LastIndexOf('.')+1);
-                            Func<Dictionary<string,AnimationCurve>,float,Quaternion> q=(c,time)=>new Quaternion(c[prefix+"x"].Evaluate(time),c[prefix+"y"].Evaluate(time),c[prefix+"z"].Evaluate(time),c[prefix+"w"].Evaluate(time)).normalized;
-                            var current=q(sourceCurves,t);var goal=q(idleCurves,0);
-                            var a=goal*Quaternion.Inverse(q(sourceCurves,0));var z=goal*Quaternion.Inverse(q(sourceCurves,src.length));
-                            var v=(Quaternion.Slerp(Quaternion.identity,z,rw)*Quaternion.Slerp(Quaternion.identity,a,ew)*current).normalized;
-                            var raw=new Quaternion(sourceCurves[prefix+"x"].Evaluate(t),sourceCurves[prefix+"y"].Evaluate(t),sourceCurves[prefix+"z"].Evaluate(t),sourceCurves[prefix+"w"].Evaluate(t));
-                            if(Quaternion.Dot(v,raw)<0)v=new Quaternion(-v.x,-v.y,-v.z,-v.w);
-                            return n.EndsWith("x")?v.x:n.EndsWith("y")?v.y:n.EndsWith("z")?v.z:v.w;
-                        }
-                        return old.Evaluate(t)+(reference.Evaluate(0)-old.Evaluate(0))*ew+(reference.Evaluate(0)-old.Evaluate(src.length))*rw;
-                    };
-                    Func<float,float> slope=t=>{float a=Mathf.Max(0,t-.0001f),z=Mathf.Min(src.length,t+.0001f);return (value(z)-value(a))/(z-a);};
-                    var times=new SortedSet<float>(oldKeys.Select(k=>k.time));times.Add(0);times.Add(src.length);times.Add(begin);
-                    if(entry>0)times.Add(entry);
-                    for(int i=1;i<Mathf.CeilToInt(src.length*120);i++){float t=i/120f;if(t<entry||t>begin)times.Add(t);}
-                    var keys=new List<Keyframe>();
-                    foreach(float t in times)
-                    {
-                        var keyIndex=Array.FindIndex(oldKeys,k=>Mathf.Abs(k.time-t)<.000001f);
-                        bool untouched=(entry==0||t>=entry)&&t<=begin;
-                        if(untouched&&keyIndex>=0){keys.Add(oldKeys[keyIndex]);continue;}
-                        float tangent=slope(t);keys.Add(new Keyframe(t,value(t),tangent,tangent));
-                    }
-                    var curve=new AnimationCurve(keys.ToArray()){preWrapMode=old.preWrapMode,postWrapMode=old.postWrapMode};
-                    editedBindings.Add(binding);editedCurves.Add(curve);changed++;
-                    for(int i=0;i<=240;i++){float t=Mathf.Lerp(first,last,i/240f);maxProtectedError=Mathf.Max(maxProtectedError,Mathf.Abs(curve.Evaluate(t)-old.Evaluate(t)));}
-                }
-                // Rebuild Humanoid motion once, avoiding repeated per-curve native conversion.
-                AnimationUtility.SetEditorCurves(copy,editedBindings.ToArray(),editedCurves.ToArray());
-                if(maxProtectedError>.0001f)throw new Exception(target.role+" protected curve changed: "+maxProtectedError);
-                if(save){var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
-                    if(existing==null){AssetDatabase.CreateAsset(copy,path);copy=null;}
-                    else {if(!existing.name.StartsWith("GS_"+target.role+"_SwordIdle"))throw new Exception("Destination not owned: "+path);EditorUtility.CopySerialized(copy,existing);EditorUtility.SetDirty(existing);AssetDatabase.SaveAssetIfDirty(existing);}}
-                var saved=save?AssetDatabase.LoadAssetAtPath<AnimationClip>(path):copy;
-                if(Mathf.Abs(saved.length-src.length)>.000001f||Hash(srcPath)!=sourceHash)throw new Exception("Duration or original altered: "+target.role);
-                records.Add(new {target.role,sourcePath=srcPath,sourceGuid=AssetDatabase.AssetPathToGUID(srcPath),sourceHash,path,guid=AssetDatabase.AssetPathToGUID(path),length=saved.length,entryEnd,recoveryStart,protectedStart=first,protectedEnd=last,changedCurves=changed,maxProtectedCurveError=maxProtectedError,sourcePreserved=true,entryPreserved=!target.adaptEntry});
+                string p=Folder+"/GS_"+t.role+"_SwordIdle.anim";var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(p);
+                if(existing!=null&&existing.name!="GS_"+t.role+"_SwordIdle")throw new Exception("Destination is not owned: "+p);
             }
-            finally{if(copy!=null)UnityEngine.Object.DestroyImmediate(copy);}
+            for(int i=0;i<targets.Count;i++)
+            {
+                var t=targets[i];var source=t.step.animationClip;var candidate=clips[2+i*2];string path=Folder+"/GS_"+t.role+"_SwordIdle.anim";
+                candidate.name="GS_"+t.role+"_SwordIdle";
+                bool events=Newtonsoft.Json.JsonConvert.SerializeObject(AnimationUtility.GetAnimationEvents(source))==Newtonsoft.Json.JsonConvert.SerializeObject(AnimationUtility.GetAnimationEvents(candidate));
+                if(!events||Mathf.Abs(candidate.length-source.length)>.000001f||candidate.frameRate!=source.frameRate)throw new Exception("Attack timing/event mismatch: "+t.role);
+                string beforeGuid=AssetDatabase.AssetPathToGUID(path);var saved=candidate;
+                if(save)
+                {
+                    var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                    if(existing==null){saved=UnityEngine.Object.Instantiate(candidate);AssetDatabase.CreateAsset(saved,path);}
+                    else{saved=existing;EditorUtility.CopySerialized(candidate,saved);EditorUtility.SetDirty(saved);AssetDatabase.SaveAssetIfDirty(saved);}
+                    if(beforeGuid!=""&&beforeGuid!=AssetDatabase.AssetPathToGUID(path))throw new Exception("Candidate GUID changed: "+t.role);
+                }
+                using(var a=new SerializedObject(source))using(var b=new SerializedObject(saved))
+                {
+                    if(a.FindProperty("m_UseHighQualityCurve").boolValue!=b.FindProperty("m_UseHighQualityCurve").boolValue)throw new Exception("Source curve quality mode changed: "+t.role);
+                }
+                if(Hash(AssetDatabase.GetAssetPath(source))!=sourceHashes[i])throw new Exception("Source changed during authoring: "+t.role);
+                records.Add(new{t.role,path,guid=AssetDatabase.AssetPathToGUID(path),beforeGuid,length=saved.length,sourceHash=sourceHashes[i],sourcePreserved=true,eventsPreserved=events,frameRatePreserved=true,runtimeIk=0,algorithm="native forward Humanoid capture, coherent rotation path, authored Idle boundaries and body clearance"});
+            }
+            if(Hash(Definition)!=definitionHash||Hash(IdlePath)!=idleHash)throw new Exception("Definition/Idle changed during authoring.");
+            File.WriteAllText(Path.Combine(output,"copy-manifest.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{status="BUILT: stored native verification required",saved=save,records,definitionsChanged=false,guardExcluded=true,runtimeIkAdded=false,airborneMotionPreserved=true,bodyRootY="clearance authored for P09 and serialized visualHeightCurve; terrain requires separate live verification"},Newtonsoft.Json.Formatting.Indented));
+            File.WriteAllText(Path.Combine(output,"recommended-transitions.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{appliedToGameplay=false,blendSeconds=.12f,settledIdleStartNormalized=0f,rules=new[]{new{outgoing="Combo1",settledThreshold=.90f},new{outgoing="Combo2",settledThreshold=.825f},new{outgoing="Combo3",settledThreshold=.90f}},otherwise="preserve serialized continuation offsets",runtimeFootIk=0},Newtonsoft.Json.Formatting.Indented));
+            if(save)AssetDatabase.ExportPackage(new[]{Folder},Path.Combine(output,"SwordIdleAdapted_Attacks.unitypackage"),ExportPackageOptions.Recurse);
+            return "BUILT: eight independent candidates; originals, events and product bindings preserved. Stored native verification required.";
         }
-        File.WriteAllText(Path.Combine(output,save?"copy-manifest.json":"curve-analysis.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",saved=save,idlePath=IdlePath,records,definitionsChanged=false,guardExcluded=true,runtimeIkAdded=false,policy="120Hz recovery offsets; unchanged central strike curves, duration, events, root XZ and settings"},Newtonsoft.Json.Formatting.Indented));
-        if(save)AssetDatabase.ExportPackage(new[]{Folder},Path.Combine(output,"SwordIdleAdapted_Attacks.unitypackage"),ExportPackageOptions.Recurse);
-        return "PASS: "+records.Count+(save?" saved copies":" temporary curve candidates")+"; originals and gameplay definitions preserved.";
+        finally{foreach(var o in objects)if(o!=null)UnityEngine.Object.DestroyImmediate(o);}
     }
 }

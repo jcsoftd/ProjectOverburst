@@ -119,12 +119,15 @@ public static class SwordIdleAttackFrameVerifier
                         {
                             float time=-.15f+f/(float)Fps;
                             float pA=Mathf.Clamp01(previous.playbackAcceleration.ToClipProgress(previous.playbackAcceleration.ToElapsed(cuts[cut])+time*baseSpeed*previous.animationSpeedMultiplier/previous.animationClip.length));
-                            float pB=Mathf.Clamp01(next.playbackAcceleration.ToClipProgress(next.playbackAcceleration.ToElapsed(next.continuationStartNormalizedTime)+Mathf.Max(0,time)*baseSpeed*next.animationSpeedMultiplier/next.animationClip.length));
-                            float weight=time<0?1:next.transitionDuration<=0?0:1-Mathf.Clamp01(time/next.transitionDuration);
+                            // Reviewed candidate profile: restart from Idle only after the previous copy has settled.
+                            float start=side==1&&cuts[cut]>=(r==1?.825f:.90f)?0:next.continuationStartNormalizedTime;
+                            float pB=Mathf.Clamp01(next.playbackAcceleration.ToClipProgress(next.playbackAcceleration.ToElapsed(start)+Mathf.Max(0,time)*baseSpeed*next.animationSpeedMultiplier/next.animationClip.length));
+                            float blendSeconds=side==0?next.transitionDuration:.12f;
+                            float weight=time<0?1:blendSeconds<=0?0:1-Mathf.Clamp01(time/blendSeconds);
                             frames.Add(new Frame{scenario="combo-"+new[]{"early","mid","late"}[cut],role=targets[r].role+"->"+targets[r+1].role,frame=f,time=time,side=side,clipA=1+r*2+side,clipB=1+(r+1)*2+side,pA=pA,pB=pB,weight=weight});
                         }
                     }
-                    File.WriteAllText(Path.Combine(output,"metadata.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{fps=Fps,boneNames,totalSamples=frames.Count,records,baseSpeed,footIk=0,guardExcluded=true,comboBlend="linear mixer proxy using serialized transition durations, not live Animator",rootMotion="actor fixed; relative pose trajectories only",blend="same illustrative .12 entry / .18 exit as existing video"},Newtonsoft.Json.Formatting.Indented));
+                    File.WriteAllText(Path.Combine(output,"metadata.json"),Newtonsoft.Json.JsonConvert.SerializeObject(new{fps=Fps,boneNames,totalSamples=frames.Count,records,baseSpeed,footIk=0,guardExcluded=true,comboBlend="preview profile: original serialized transitions; candidate .12s and settled Idle restart at 0; gameplay definition unchanged",rootMotion="actor fixed; relative pose trajectories only",blend="same illustrative .12 entry / .18 exit as existing video"},Newtonsoft.Json.Formatting.Indented));
                 }
                 samples=new StreamWriter(Path.Combine(output,"samples.jsonl"),false,new System.Text.UTF8Encoding(false));
                 if(capture)
