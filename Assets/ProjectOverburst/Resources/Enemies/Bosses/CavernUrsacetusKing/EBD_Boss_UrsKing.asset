@@ -17,3 +17,4 @@ MonoBehaviour:
   phases:
   - {fileID: 11400000, guid: cc9a7b07be44206429344c66fc3df7b7, type: 2}
   - {fileID: 11400000, guid: 198ecb93cd70f0c409e82aa524cf743e, type: 2}
+  emblemFx: 1
