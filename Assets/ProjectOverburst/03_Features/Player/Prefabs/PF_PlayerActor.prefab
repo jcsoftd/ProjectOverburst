@@ -270,6 +270,7 @@ GameObject:
   - component: {fileID: 1215682338855239813}
   - component: {fileID: 6041494120233153841}
   - component: {fileID: 1124226117103061430}
+  - component: {fileID: 6814991875847321898}
   m_Layer: 8
   m_Name: PF_PlayerActor
   m_TagString: Player
@@ -295,6 +296,7 @@ Transform:
   - {fileID: 210792312344520868}
   - {fileID: 2309143130160584471}
   - {fileID: 6029368092477039458}
+  - {fileID: 4540100655716697177}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &4240022955357989627
@@ -558,257 +560,6 @@ MonoBehaviour:
   currentWeaponAimSource: {fileID: 0}
   currentWeaponPose: {fileID: 0}
   currentWeaponTraceBinding: {fileID: 0}
-  initialActiveWeaponSlot: 0
-  initialWeaponSlotItems:
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  initialGearSlotItems:
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
-  - baseData: {fileID: 0}
-    flaskState:
-      seed: 0
-      rolledGrade: 0
-      profile: 0
-      rolls: []
-      cooldownRemaining: 0
-      equippedSlot: -1
-    runtimeInstanceId: 
-    acquisitionOrder: 0
-    level: 0
-    grade: 0
-    stackCount: 0
-    originRunId: 
-    mapState:
-      mapContentId: 
-      monsterThemeId: 
-      level: 1
-      grade: 0
-      options: []
-    instanceElement: 0
-    hasInstanceElement: 0
-    weaponGradeStatRolls: []
-    gearRolls: []
-    balanceVersion: 0
-    meleeStarDistributionProfile: 0
-    bagOptions: []
-    bagState:
-      version: 0
-      seed: 0
-      rows: []
   testWeaponItemData: {fileID: 0}
   testWeaponGrade: 0
 --- !u!114 &1058986554465660183
@@ -1379,6 +1130,26 @@ MonoBehaviour:
   fullEnergyHeavyAfterimage: 1
   dustMaterial: {fileID: 2100000, guid: b76e23b307bfe154da3d3c4b240a15de, type: 2}
   dustTint: {r: 0.53, g: 0.48, b: 0.39, a: 0.18}
+--- !u!114 &6814991875847321898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5778037010099676702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce0c04d2c8f8f164287f2e6ce17d0dcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatFacingVfx
+  visualRoot: {fileID: 4540100655716697177}
+  worldScale: 0.45
+  groundOffset: 0.015
+  groundProbeDistance: 2
+  fadeDuration: 0.16
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294967291
 --- !u!1 &8279916159605575939
 GameObject:
   m_ObjectHideFlags: 0
@@ -2735,4 +2506,102 @@ Transform:
 Animator:
   m_CorrespondingSourceObject: {fileID: 7966742655617540888, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}
   m_PrefabInstance: {fileID: 986337289154300064}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8639696562011577194
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1266787418806541647}
+    m_Modifications:
+    - target: {fileID: 175804212539568191, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Name
+      value: CombatFacingIndicator
+      objectReference: {fileID: 0}
+    - target: {fileID: 175804212539568191, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 175804212539568191, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2382192242553884838, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075383319942460362, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6429716173190084085, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6640459173482670155, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7290944684984883233, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7457182185604240435, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750599348908039565, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+--- !u!4 &4540100655716697177 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5253434956979248947, guid: 61d6226141c68ba449cbe2330938882f, type: 3}
+  m_PrefabInstance: {fileID: 8639696562011577194}
   m_PrefabAsset: {fileID: 0}
