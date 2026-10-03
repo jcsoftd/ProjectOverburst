@@ -42,17 +42,32 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     private float earthZoneMoveSpeedMultiplier = 1f; // 진흙 장판 전용 이동 배율
     private Vector3 pendingAreaDisplacement; // 자기장 pulse의 다음 FixedUpdate 이동 요청
     private Vector3 pendingAttackDisplacement;
+    private bool pendingAttackIsBounded;
+    private Quaternion pendingAttackFacing;
 
     public bool RequestAttackDisplacement(Vector3 displacement)
     {
         if (!isActiveAndEnabled || !IsActionLocked || IsStatusMovementLocked || health == null || health.IsDead
             || (reaction != null && (reaction.IsHitStunActive || reaction.IsKnockbackActive))) return false;
         displacement.y = 0;
+        pendingAttackIsBounded = false;
         pendingAttackDisplacement = Vector3.ClampMagnitude(displacement, .35f);
         return true;
     }
 
-    public void ClearAttackDisplacement() { pendingAttackDisplacement = Vector3.zero; }
+    public bool RequestBoundedAttackDisplacement(Vector3 displacement, Quaternion facing)
+    {
+        if (!Finite(displacement.x) || !Finite(displacement.y) || !Finite(displacement.z)
+            || !Finite(facing.x) || !Finite(facing.y) || !Finite(facing.z) || !Finite(facing.w)
+            || Mathf.Abs(Quaternion.Dot(facing, facing) - 1f) > .01f
+            || !RequestAttackDisplacement(Vector3.ClampMagnitude(displacement, .3f))) return false;
+        pendingAttackIsBounded = true; pendingAttackFacing = facing;
+        return true;
+    }
+
+    public void ClearAttackDisplacement()
+    { pendingAttackDisplacement = Vector3.zero; pendingAttackIsBounded = false; }
+    private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     private EnemyLocomotionMode locomotionMode = EnemyLocomotionMode.Idle; // 현재 이동 모드
     private readonly List<EnemyCrowdAgent> crowdNeighbors = new List<EnemyCrowdAgent>(16);
 
@@ -104,7 +119,9 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
     private void FixedUpdate()
     {
         Vector3 attackDisplacement = pendingAttackDisplacement;
-        pendingAttackDisplacement = Vector3.zero;
+        bool boundedAttack = pendingAttackIsBounded;
+        Quaternion attackFacing = pendingAttackFacing;
+        ClearAttackDisplacement();
         if (health != null && health.IsDead)
         {
             ClearMotorAndAnimation();
@@ -137,10 +154,19 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         {
             locomotionAnimator?.CancelFacingTurn();
             PauseMotorAndAnimation(); // 일시 정지 후 기존 이동 재개
-            if (IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
-                && attackDisplacement.sqrMagnitude > .000001f && motor != null
-                && TryResolveCrowdPosition(transform.position + attackDisplacement, false, out Vector3 attackPosition))
-                motor.MoveToPosition(ConstrainPlayerApproach(attackPosition));
+            if (IsActionLocked && (reaction == null || !reaction.IsHitStunActive) && motor != null)
+            {
+                if (boundedAttack)
+                {
+                    motor.ApplyFacingRotation(attackFacing);
+                    if (attackDisplacement.sqrMagnitude > .000001f
+                        && TryResolveBoundedAttackPosition(attackDisplacement, out Vector3 boundedPosition))
+                        motor.MoveToPosition(boundedPosition);
+                }
+                else if (attackDisplacement.sqrMagnitude > .000001f
+                    && TryResolveCrowdPosition(transform.position + attackDisplacement, false, out Vector3 attackPosition))
+                    motor.MoveToPosition(ConstrainPlayerApproach(attackPosition));
+            }
             ApplyPendingAreaDisplacement(); // 경직 중에도 수압 흡인은 이동 모터·지형 검사를 거친다.
             return;
         }
@@ -483,6 +509,42 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         }
 
         resolvedPosition = candidate; // 이미 겹친 상태라면 더 적게 겹치는 전진은 허용
+        return true;
+    }
+
+    private bool TryResolveBoundedAttackPosition(Vector3 request, out Vector3 result)
+    {
+        Vector3 current = motor.Position;
+        result = current;
+        request.y = 0f;
+        if (!TryResolveCrowdPosition(current + request, false, out Vector3 candidate)) return false;
+        Vector3 corrected = candidate - current; corrected.y = 0f;
+        candidate = current + Vector3.ClampMagnitude(corrected, request.magnitude);
+        candidate = ConstrainPlayerApproach(candidate);
+        Vector3 delta = candidate - current; delta.y = 0f;
+        // Nav bounds also use a path prefix. A short request cannot cross a
+        // narrow forbidden cell simply because its end point is walkable.
+        int steps = Mathf.Max(1, Mathf.CeilToInt(delta.magnitude / .05f));
+        float prefix = 1f;
+        for (int i = 1; i <= steps; i++)
+        {
+            if (IsWalkablePosition(current + delta * ((float)i / steps))) continue;
+            float lo = (float)(i - 1) / steps, hi = (float)i / steps;
+            for (int n = 0; n < 8; n++)
+            {
+                float mid = (lo + hi) * .5f;
+                if (IsWalkablePosition(current + delta * mid)) lo = mid; else hi = mid;
+            }
+            prefix = lo; break;
+        }
+        delta *= prefix;
+        if (approachBody == null) approachBody = GetComponent<CombatTarget>();
+        if (approachBody == null) return false;
+        var volume = approachBody.CurrentVolume;
+        Vector3 center = volume.Center + current - transform.position;
+        Vector3 allowed = EnemyAttackMovementClearance.Clip(gameObject, center, volume.Radius, volume.HalfHeight, delta, out _);
+        if (allowed.sqrMagnitude < .000001f) return false;
+        result = current + allowed;
         return true;
     }
 

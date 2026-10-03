@@ -42,6 +42,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private readonly EnemyAttackClock weakAttackClock = new EnemyAttackClock();
     private EnemyWeakAttackExecutionProfile activeWeakExecution;
     private string weakClockTrigger;
+    private EnemyWeakAttackMotionDriver weakMotionDriver;
     public EnemyWeakAttackExecutionProfile ActiveWeakExecution => activeWeakExecution;
     public float WeakAttackNormalizedTime => weakAttackClock.NormalizedTime;
     public bool HasEnteredWeakAttack => activeWeakExecution != null && weakAttackClock.HasEntered;
@@ -128,6 +129,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             StopCoroutine(attackRoutine);
             attackRoutine = null;
         }
+        weakMotionDriver?.End();
         activeWeakExecution = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();
@@ -167,6 +169,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         }
 
+        if (ability.HasWeakAttackExecution && (weakMotionDriver == null || !weakMotionDriver.CanUse(ability.WeakAttackExecution))) return false;
         if (ability.HasWeakAttackExecution && (animationBridge == null
             || !animationBridge.CanPlayAttackMotion(ability.AnimatorTrigger, ability.WeakAttackExecution.RuntimeClip))) return false;
         Vector3 aimPosition = ResolveAimPosition(attackTarget);
@@ -481,6 +484,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         activeWeakExecution = ability.WeakAttackExecution;
         weakClockTrigger = triggerName;
+        Vector3 initialDelta = target != null ? ResolveAimPosition(target) - transform.position : Vector3.zero; initialDelta.y = 0f;
+        weakMotionDriver?.Begin(activeWeakExecution, initialDelta.magnitude, transform.rotation);
         bool previous = animationBridge.TryGetAttackMotionTime(triggerName, activeWeakExecution.RuntimeClip, out float previousTime);
         weakAttackClock.Begin(Time.frameCount, previous, previousTime);
         float speed = ResolveAttackSpeedMultiplier();
@@ -527,6 +532,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             while (Time.time < recoveryEnd && !IsAttackInterrupted())
             { movement?.ApplyActionLock(.2f); yield return null; }
         }
+        weakMotionDriver?.End();
         activeWeakExecution = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();
@@ -899,6 +905,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
     private void ResolveReferences()
     {
+        if (weakMotionDriver == null) weakMotionDriver = GetComponent<EnemyWeakAttackMotionDriver>();
         if (actor == null)
             actor = GetComponent<EnemyActor>();
         if (health == null)
@@ -1010,6 +1017,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             StopCoroutine(attackRoutine);
 
         attackRoutine = null;
+        weakMotionDriver?.End();
         activeWeakExecution = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();

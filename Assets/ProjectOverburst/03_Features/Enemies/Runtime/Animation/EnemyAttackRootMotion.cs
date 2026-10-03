@@ -21,6 +21,7 @@ public sealed class EnemyAttackRootMotion : MonoBehaviour
     private readonly HashSet<AnimationClip> travelSet = new HashSet<AnimationClip>();
     private readonly List<AnimatorClipInfo> clipBuffer = new List<AnimatorClipInfo>(4);
     private Transform pelvis;
+    private EnemyMeleeAttackController melee;
     private Vector3 restLocalPosition;
     private bool restCaptured;
     private bool engaged;
@@ -46,6 +47,7 @@ public sealed class EnemyAttackRootMotion : MonoBehaviour
         if (animator == null) animator = GetComponentInChildren<Animator>(true);
         if (movement == null) movement = GetComponent<EnemyMovement>();
         if (offsetRoot == null && animator != null) offsetRoot = animator.transform.parent;
+        melee = GetComponent<EnemyMeleeAttackController>();
         RebuildSet();
     }
 
@@ -77,6 +79,11 @@ public sealed class EnemyAttackRootMotion : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (IsV3WeakExecution())
+        {
+            if (engaged || owed != Vector3.zero || counter != Vector3.zero) ResetState(true);
+            return;
+        }
         // Animator가 잠시 꺼져도 포즈는 멈춘 자리에 남으므로 오프셋을 유지한다. 초기화는 비활성화(풀 반납) 때만 한다.
         if (!Resolve()) return;
 
@@ -116,6 +123,7 @@ public sealed class EnemyAttackRootMotion : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (IsV3WeakExecution()) return;
         if (owed.sqrMagnitude < .000001f || movement == null) return;
         Vector3 step = Vector3.ClampMagnitude(owed, MaxStepPerFixedUpdate);
         if (movement.RequestAttackDisplacement(step)) { owed -= step; AppliedTravel += step.magnitude; }
@@ -145,9 +153,20 @@ public sealed class EnemyAttackRootMotion : MonoBehaviour
         offsetRoot.localPosition = restLocalPosition + (parent != null ? parent.InverseTransformVector(world) : world);
     }
 
-    private void ResetState()
+    private bool IsV3WeakExecution()
+    {
+        if (melee == null) melee = GetComponent<EnemyMeleeAttackController>();
+        return melee != null && melee.ActiveWeakExecution != null;
+    }
+
+    private void ResetState(bool preserveHeight = false)
     {
         engaged = false; owed = Vector3.zero; lastTravel = Vector3.zero; counter = Vector3.zero;
-        if (offsetRoot != null && restCaptured) offsetRoot.localPosition = restLocalPosition;
+        if (offsetRoot != null && restCaptured)
+        {
+            Vector3 rest = restLocalPosition;
+            if (preserveHeight) rest.y = offsetRoot.localPosition.y;
+            offsetRoot.localPosition = rest;
+        }
     }
 }
