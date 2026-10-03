@@ -120,6 +120,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         RestoreFrozenAnimatorSpeed();
         animator = targetAnimator;
+        attackMotionController = null; availableAttackMotions.Clear();
         ClearBlockingAction();
 
         if (animator != null && disableRootMotionOnAwake)
@@ -422,6 +423,50 @@ public class EnemyAnimationBridge : MonoBehaviour
 
         normalizedTime = nextState.normalizedTime;
         return true;
+    }
+
+    private readonly List<AnimatorClipInfo> attackMotionClipBuffer = new List<AnimatorClipInfo>(4);
+    private RuntimeAnimatorController attackMotionController;
+    private readonly HashSet<AnimationClip> availableAttackMotions = new HashSet<AnimationClip>();
+
+    public bool CanPlayAttackMotion(string triggerName, AnimationClip expectedClip)
+    {
+        if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null
+            || expectedClip == null || string.IsNullOrWhiteSpace(triggerName)
+            || !HasParameter(triggerName, AnimatorControllerParameterType.Trigger)
+            || !HasState(ResolveAttackStateName(triggerName))) return false;
+        if (attackMotionController != animator.runtimeAnimatorController)
+        {
+            attackMotionController = animator.runtimeAnimatorController;
+            availableAttackMotions.Clear();
+            foreach (var clip in attackMotionController.animationClips) if (clip != null) availableAttackMotions.Add(clip);
+        }
+        return availableAttackMotions.Contains(expectedClip);
+    }
+
+    // V3 reads the selected native clip, not just a same-named Animator state.
+    // Prefer the incoming state when the same attack is restarted during a blend.
+    public bool TryGetAttackMotionTime(string triggerName, AnimationClip expectedClip, out float normalizedTime)
+    {
+        normalizedTime = 0f;
+        if (animator == null || !animator.isActiveAndEnabled || expectedClip == null
+            || string.IsNullOrWhiteSpace(triggerName)) return false;
+        string stateName = ResolveAttackStateName(triggerName);
+        if (animator.IsInTransition(0) && IsMatchingState(animator.GetNextAnimatorStateInfo(0), stateName)
+            && HasAttackMotion(expectedClip, true))
+        { normalizedTime = animator.GetNextAnimatorStateInfo(0).normalizedTime; return true; }
+        if (!IsMatchingState(animator.GetCurrentAnimatorStateInfo(0), stateName) || !HasAttackMotion(expectedClip, false)) return false;
+        normalizedTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+        return true;
+    }
+
+    private bool HasAttackMotion(AnimationClip expected, bool next)
+    {
+        if (next) animator.GetNextAnimatorClipInfo(0, attackMotionClipBuffer);
+        else animator.GetCurrentAnimatorClipInfo(0, attackMotionClipBuffer);
+        for (int i = 0; i < attackMotionClipBuffer.Count; i++)
+            if (attackMotionClipBuffer[i].clip == expected && attackMotionClipBuffer[i].weight > .001f) return true;
+        return false;
     }
 
     public bool AllowsMovement(EnemyLocomotionMode locomotionMode)

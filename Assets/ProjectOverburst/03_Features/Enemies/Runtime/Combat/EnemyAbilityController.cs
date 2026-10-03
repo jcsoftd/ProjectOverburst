@@ -222,6 +222,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
             if (ability == null || !ability.IsValid
                 || hp < ability.MinimumSelfHealthNormalized || hp > ability.MaximumSelfHealthNormalized)
                 continue;
+            if (ability.HasWeakAttackExecution && (animationBridge == null
+                || !animationBridge.CanPlayAttackMotion(ability.AnimatorTrigger, ability.WeakAttackExecution.RuntimeClip))) continue;
             float startRange = EnemyAttackThreatGeometry.ResolveStartRange(actor, ability);
             fallbackRange = Mathf.Min(fallbackRange, startRange);
             // A long-range cooldown or a projectile's minimum-range dead zone
@@ -350,11 +352,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         for (int i = 0; i < abilitySet.Count; i++)
         {
             var ability = abilitySet.GetAbility(i);
-            if (ability == null || !ability.IsValid || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, hp) || !IsSelectable(ability)
-                || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
-                continue;
-            var executor = FindExecutor(ability);
-            if (executor != null && executor.CanStart(ability, target)) return true;
+            if (TryResolveAvailableCandidate(ability, target, distance, hp, out _)) return true;
         }
         // If the completed aim cannot be used (wall, cooldown, range), release it
         // before the next decision. Do not invalidate a turn still in progress.
@@ -429,32 +427,27 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
         delta.y = 0f;
         float distance = delta.magnitude;
         float selfHealth = health != null ? health.NormalizedHp : 1f;
-        int highestPriority = int.MinValue;
-
+        bool hasStationaryWeak = false;
         for (int i = 0; i < abilitySet.Count; i++)
         {
-            EnemyAbilityDefinition ability = abilitySet.GetAbility(i);
-            if (ability == null
-                || !ability.IsValid
-                || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
-                || !IsSelectable(ability)
-                || strongOnlyPass && !ability.IsTelegraphedStrongAttack)
-            {
-                continue;
-            }
-
-            EnemyAbilityExecutor executor = FindExecutor(ability);
-            if (executor == null || !executor.CanStart(ability, target))
-                continue;
-
-            if (ability.Priority > highestPriority)
-            {
-                highestPriority = ability.Priority;
-                candidates.Clear();
-            }
-            if (ability.Priority == highestPriority)
-                candidates.Add(new AbilityCandidate(ability, executor, i));
+            var ability = abilitySet.GetAbility(i);
+            if (!TryResolveAvailableCandidate(ability, target, distance, selfHealth, out var executor)) continue;
+            candidates.Add(new AbilityCandidate(ability, executor, i));
+            hasStationaryWeak |= IsStationaryWeakMelee(ability);
         }
+        // Choose the eligible motion family before Priority/Weight. Otherwise a
+        // high-priority advance can erase a ready stationary attack while close.
+        int highestPriority = int.MinValue;
+        for (int i = candidates.Count - 1; i >= 0; i--)
+        {
+            var ability = candidates[i].Ability;
+            if (hasStationaryWeak && ability.HasWeakAttackExecution && !ability.IsTelegraphedStrongAttack
+                && ability.WeakAttackExecution.UsesAdvance)
+            { candidates.RemoveAt(i); continue; }
+            highestPriority = Mathf.Max(highestPriority, ability.Priority);
+        }
+        for (int i = candidates.Count - 1; i >= 0; i--)
+            if (candidates[i].Ability.Priority != highestPriority) candidates.RemoveAt(i);
 
         if (candidates.Count == 0)
             return false;
@@ -497,6 +490,24 @@ public sealed class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜嫟鞖绰
 
         return false;
     }
+
+    private bool TryResolveAvailableCandidate(EnemyAbilityDefinition ability, Transform target,
+        float distance, float selfHealth, out EnemyAbilityExecutor executor)
+    {
+        executor = null;
+        if (ability == null || !ability.IsValid
+            || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
+            || !IsSelectable(ability) || strongOnlyPass && !ability.IsTelegraphedStrongAttack) return false;
+        executor = FindExecutor(ability);
+        return executor != null && executor.CanStart(ability, target);
+    }
+
+    private static bool IsStationaryWeakMelee(EnemyAbilityDefinition ability)
+        => ability.HasWeakAttackExecution && !ability.IsTelegraphedStrongAttack
+            && ability.WeakAttackExecution.IsStationaryMotion
+            && (ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc
+                || ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget
+                || ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam);
 
     private float CalculateWeight(bool excludeLast)
     {

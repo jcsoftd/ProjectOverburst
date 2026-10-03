@@ -39,6 +39,19 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private float statusActionSpeedMultiplier = 1f; // 상태이상 행동 배율
     private float definitionDamageMultiplier = 1f; // 등급·변형 피해 배율
     private float runtimeAttackSpeedMultiplier = 1f; // 등급·변형 공격속도 배율
+    private readonly EnemyAttackClock weakAttackClock = new EnemyAttackClock();
+    private EnemyWeakAttackExecutionProfile activeWeakExecution;
+    private string weakClockTrigger;
+    public EnemyWeakAttackExecutionProfile ActiveWeakExecution => activeWeakExecution;
+    public float WeakAttackNormalizedTime => weakAttackClock.NormalizedTime;
+    public bool HasEnteredWeakAttack => activeWeakExecution != null && weakAttackClock.HasEntered;
+
+    private void LateUpdate()
+    {
+        if (activeWeakExecution == null || weakAttackClock.IsTerminal || animationBridge == null) return;
+        bool present = animationBridge.TryGetAttackMotionTime(weakClockTrigger, activeWeakExecution.RuntimeClip, out float progress);
+        weakAttackClock.Observe(Time.frameCount, Time.deltaTime, present, progress);
+    }
 
     public float AttackRange { get { return ResolveMaximumAttackRange(); } }
     public Transform AttackPoint => attackPoint != null ? attackPoint : transform;
@@ -115,6 +128,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             StopCoroutine(attackRoutine);
             attackRoutine = null;
         }
+        activeWeakExecution = null;
+        weakAttackClock.Cancel();
+        movement?.ClearAttackDisplacement();
     }
 
     public bool TryStartAttack(Transform attackTarget)
@@ -151,11 +167,15 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             return false;
         }
 
+        if (ability.HasWeakAttackExecution && (animationBridge == null
+            || !animationBridge.CanPlayAttackMotion(ability.AnimatorTrigger, ability.WeakAttackExecution.RuntimeClip))) return false;
         Vector3 aimPosition = ResolveAimPosition(attackTarget);
         Vector3 delta = aimPosition - transform.position;
         delta.y = 0f;
         float startRange = EnemyAttackThreatGeometry.ResolveStartRange(actor, ability);
         return delta.sqrMagnitude <= startRange * startRange
+            && (!ability.HasWeakAttackExecution || EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability,
+                delta.magnitude, health != null ? health.NormalizedHp : 1f))
             && (movement == null || movement.IsFacingForAttack(aimPosition));
     }
 
@@ -182,7 +202,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         int selectedIndex,
         bool cooldownOwnedExternally)
     {
-        if (ability != null && !ability.IsValid)
+        if (ability != null && (!ability.IsValid || ability.HasWeakAttackExecution && !CanStartAbility(ability, target)))
             return false;
         float resolvedRange = ability != null ? EnemyAttackThreatGeometry.ResolveStartRange(actor, ability) : Mathf.Max(0f, attackRange);
         if (!CanStartAttack(resolvedRange))
@@ -268,6 +288,11 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         CombatTarget committedTarget,
         bool cooldownOwnedExternally)
     {
+        if (ability != null && ability.HasWeakAttackExecution)
+        {
+            yield return WeakAttackRoutine(triggerName, ability, committedTarget, cooldownOwnedExternally);
+            yield break;
+        }
         float resolvedCooldown = ability != null ? ability.Cooldown : attackCooldown;
         float resolvedHitDelayBase = ability != null ? ability.HitDelay : hitDelay;
         float resolvedHitNormalizedTime = ability != null ? ability.HitNormalizedTime : hitNormalizedTime;
@@ -448,6 +473,64 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress, resolvedAttackSpeed));
             yield return null;
         }
+        attackRoutine = null;
+    }
+
+    private IEnumerator WeakAttackRoutine(string triggerName, EnemyAbilityDefinition ability,
+        CombatTarget committedTarget, bool cooldownOwnedExternally)
+    {
+        activeWeakExecution = ability.WeakAttackExecution;
+        weakClockTrigger = triggerName;
+        bool previous = animationBridge.TryGetAttackMotionTime(triggerName, activeWeakExecution.RuntimeClip, out float previousTime);
+        weakAttackClock.Begin(Time.frameCount, previous, previousTime);
+        float speed = ResolveAttackSpeedMultiplier();
+        if (!cooldownOwnedExternally) nextAttackTime = Time.time + Mathf.Max(ability.Cooldown, ability.ResolveExecutionDuration(speed));
+        movement?.ApplyActionLock(.2f);
+        animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(0f, speed));
+        animationBridge.PlayAttack(triggerName);
+        int nextImpact = 0;
+        float lastStrikeAt = Time.time;
+        // Always yield once: the previous state's same-frame sample cannot be
+        // mistaken for this execution, and the coroutine handle is established.
+        yield return null;
+        while (!IsAttackInterrupted())
+        {
+            if (weakAttackClock.State == EnemyAttackClock.Phase.Failed || weakAttackClock.State == EnemyAttackClock.Phase.Cancelled) break;
+            movement?.ApplyActionLock(.2f);
+            if (weakAttackClock.HasEntered)
+            {
+                animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(weakAttackClock.NormalizedTime, ResolveAttackSpeedMultiplier()));
+                while (nextImpact < ability.HitCount && weakAttackClock.NormalizedTime >= ability.GetHitNormalizedTime(nextImpact))
+                {
+                    if (IsAttackInterrupted()) break;
+                    abilityController?.NotifyAbilityImpact(ability, nextImpact);
+                    attackPhaseIndex = nextImpact++;
+                    lastStrikeAt = Time.time;
+                    if (!CanResolveHit()) continue;
+                    int level = GetComponent<EnemyRank>()?.Level ?? 1;
+                    float resolvedDamage = ability.ResolveDamage(level) * definitionDamageMultiplier;
+                    if (ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)
+                        ResolveDirectTargetHit(committedTarget, ability, resolvedDamage, true);
+                    else ResolveArcHit(resolvedDamage, EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
+                        EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability), ability);
+                    // A missed strike does not cancel later strikes. GOAL C will
+                    // consume these clock crossings in the physics event queue.
+                }
+            }
+            if (weakAttackClock.IsTerminal) break;
+            yield return null;
+        }
+        bool completed = weakAttackClock.State == EnemyAttackClock.Phase.Completed && !IsAttackInterrupted();
+        if (completed)
+        {
+            float recoveryEnd = Mathf.Max(Time.time, lastStrikeAt + ability.MinimumRecoveryTime);
+            while (Time.time < recoveryEnd && !IsAttackInterrupted())
+            { movement?.ApplyActionLock(.2f); yield return null; }
+        }
+        activeWeakExecution = null;
+        weakAttackClock.Cancel();
+        movement?.ClearAttackDisplacement();
+        movement?.CancelActionLock();
         attackRoutine = null;
     }
 
@@ -927,6 +1010,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             StopCoroutine(attackRoutine);
 
         attackRoutine = null;
+        activeWeakExecution = null;
+        weakAttackClock.Cancel();
+        movement?.ClearAttackDisplacement();
         damagedTargets.Clear(); // 타격 대상 정리
         if (movement != null)
             movement.CancelActionLock(); // 피격 반응 우선
