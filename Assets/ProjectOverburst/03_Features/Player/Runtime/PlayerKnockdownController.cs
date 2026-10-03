@@ -18,6 +18,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
     private WeaponCombatAnimatorRouter router;
     private PlayerKnockdownAnimationSet.Motion motion;
     private AnimatorOverrideController ownedOverride;
+    private RuntimeAnimatorController speedCheckedController;
+    private bool hasRiseSpeed;
     private float elapsed, holdElapsed, traveled, protectionUntil, exitElapsed;
     private bool exiting;
     private float playbackWatchdog;
@@ -25,6 +27,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
     private Quaternion bodyFrame;
     private Vector3 fallDirection, travelDirection;
     private PlayerEquipment equipment;
+    private PlayerInputFacade inputFacade;
+    private Vector2 riseTravelInput;
     private Transform weaponAtStart;
     private Transform visualRoot;
     private Quaternion visualRotation;
@@ -33,6 +37,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
     public bool IsActive => Phase != PlayerKnockdownPhase.Ready;
     public string ActiveMotionId => motion != null ? motion.id : "";
     public Vector2 PendingRiseInput { get; private set; }
+    public bool PendingEvadeRise { get; private set; }
+    public bool IsEvadeRise { get; private set; }
     public PlayerKnockdownAnimationSet AnimationSet => animationSet;
 
     private void Awake() => Resolve();
@@ -44,6 +50,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         if (animator == null) animator = GetComponentInChildren<Animator>(true);
         if (router == null) router = GetComponent<WeaponCombatAnimatorRouter>();
         if (equipment == null) equipment = GetComponent<PlayerEquipment>();
+        if (inputFacade == null) inputFacade = GetComponent<PlayerInputFacade>();
     }
     private void OnEnable()
     {
@@ -112,6 +119,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         visualRoot = animator.transform != transform && animator.transform.IsChildOf(transform) ? animator.transform : null;
         if (visualRoot != null) visualRotation = visualRoot.localRotation;
         PendingRiseInput = Vector2.zero;
+        PendingEvadeRise = IsEvadeRise = false;
+        riseTravelInput = Vector2.zero;
         elapsed = holdElapsed = traveled = exitElapsed = 0;
         playbackWatchdog = 0;
         exiting = false;
@@ -136,9 +145,16 @@ public sealed class PlayerKnockdownController : MonoBehaviour
             || !animator.HasState(layer, Animator.StringToHash(PlayerKnockdownAnimationSet.RiseState))) return false;
         bool hasFall = false, hasRise = false;
         var current = animator.runtimeAnimatorController;
+        if (speedCheckedController != current)
+        {
+            hasRiseSpeed = false;
+            foreach (var parameter in animator.parameters)
+                hasRiseSpeed |= parameter.name == PlayerKnockdownAnimationSet.RiseSpeedParameter && parameter.type == AnimatorControllerParameterType.Float;
+            speedCheckedController = current;
+        }
         var original = current is AnimatorOverrideController existing ? existing.runtimeAnimatorController : current;
         foreach (var template in original.animationClips) { hasFall |= template == animationSet.fallTemplate; hasRise |= template == animationSet.riseTemplate; }
-        return clip != null && hasFall && hasRise;
+        return clip != null && hasFall && hasRise && hasRiseSpeed;
     }
 
     private void ApplyClip(AnimationClip template, AnimationClip clip)
@@ -162,7 +178,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         float dt = Mathf.Max(0, Time.deltaTime);
         if (dt <= 0) return;
         playbackWatchdog += dt;
-        elapsed += dt * Mathf.Max(0, animator.speed);
+        elapsed += dt * Mathf.Max(0, animator.speed) * (Phase == PlayerKnockdownPhase.Rising ? Mathf.Max(.01f, motion.playbackSpeed) : 1f);
         if (Phase != PlayerKnockdownPhase.Grounded && playbackWatchdog > motion.clip.length + 2f)
         {
             Debug.LogWarning("[PlayerKnockdown] Reaction playback timed out; released owned locks.", this);
@@ -178,7 +194,11 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         }
         // Platform rotation is applied by the motor before this Update. Input is resolved in that current frame.
         bodyFrame = transform.rotation;
-        if (Phase != PlayerKnockdownPhase.Rising) PendingRiseInput = ReadRiseDirection();
+        if (Phase != PlayerKnockdownPhase.Rising)
+        {
+            PendingRiseInput = ReadRiseDirection();
+            PendingEvadeRise = CanReadRiseInput() && inputFacade != null && inputFacade.EvadeHeld;
+        }
         if (Phase == PlayerKnockdownPhase.Falling)
         {
             animator.SetLayerWeight(layer, Mathf.Clamp01(elapsed / Mathf.Max(.001f, animationSet.entryBlend)));
@@ -203,7 +223,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
             if (!exiting)
             {
                 if (travelDirection.sqrMagnitude > .001f)
-                    travelDirection = bodyFrame * new Vector3(PendingRiseInput.x, 0, PendingRiseInput.y).normalized;
+                    travelDirection = bodyFrame * new Vector3(riseTravelInput.x, 0, riseTravelInput.y).normalized;
                 MoveAlong(travelDirection, travelDirection.sqrMagnitude > .001f ? animationSet.riseDistance : 0);
                 if (elapsed >= motion.clip.length) { exiting = true; exitElapsed = 0; }
             }
@@ -229,7 +249,7 @@ public sealed class PlayerKnockdownController : MonoBehaviour
 
     private Vector2 ReadRiseDirection()
     {
-        if (GameplayInputBlocker.IsGameplayInputBlocked || movement.ControlAuthority != ActorControlAuthority.Player) return Vector2.zero;
+        if (!CanReadRiseInput()) return Vector2.zero;
         var input = GetComponent<PlayerMovementInputSource>();
         Vector2 raw = input != null ? input.RawMoveInput : Vector2.zero;
         if (raw.sqrMagnitude < animationSet.inputDeadzone * animationSet.inputDeadzone) return Vector2.zero;
@@ -238,14 +258,23 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         return new Vector2(local.x, local.z).normalized;
     }
 
+    private bool CanReadRiseInput()
+        => !GameplayInputBlocker.IsGameplayInputBlocked && movement.ControlAuthority == ActorControlAuthority.Player
+            && (inputFacade == null || inputFacade.IsGameplayEnabled);
+
     private void BeginRise()
     {
-        var rise = animationSet.SelectRise(motion.poseId, PendingRiseInput);
+        var rise = animationSet.SelectRise(motion.poseId, PendingRiseInput, PendingEvadeRise);
         if (rise == null) { ResetReaction(); return; }
+        IsEvadeRise = PendingEvadeRise;
         motion = rise;
-        travelDirection = PendingRiseInput.sqrMagnitude > .001f
-            ? bodyFrame * new Vector3(PendingRiseInput.x, 0, PendingRiseInput.y).normalized : Vector3.zero;
+        // A held Evade without Move uses the registered backward get-up. Keep the actual input separately.
+        riseTravelInput = PendingRiseInput.sqrMagnitude > .001f ? PendingRiseInput
+            : IsEvadeRise ? rise.direction.normalized : Vector2.zero;
+        travelDirection = riseTravelInput.sqrMagnitude > .001f
+            ? bodyFrame * new Vector3(riseTravelInput.x, 0, riseTravelInput.y).normalized : Vector3.zero;
         ApplyClip(animationSet.riseTemplate, rise.clip);
+        animator.SetFloat(PlayerKnockdownAnimationSet.RiseSpeedParameter, Mathf.Max(.01f, rise.playbackSpeed));
         animator.CrossFadeInFixedTime(Animator.StringToHash(PlayerKnockdownAnimationSet.RiseState), animationSet.riseBlend, layer, 0);
         Phase = PlayerKnockdownPhase.Rising;
         elapsed = traveled = playbackWatchdog = 0;
@@ -277,10 +306,13 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         Phase = PlayerKnockdownPhase.Ready;
         if (wasActive && visualRoot != null) visualRoot.localRotation = visualRotation;
         if (animator != null && layer >= 0 && layer < animator.layerCount) animator.SetLayerWeight(layer, 0);
+        if (wasActive && animator != null) animator.SetFloat(PlayerKnockdownAnimationSet.RiseSpeedParameter, 1f);
         if (state != null) { state.ReleaseStun(this); state.ReleaseLocomotion(this); }
         if (wasActive) router?.SuspendForKnockdown(false);
         motion = null;
         PendingRiseInput = Vector2.zero;
+        PendingEvadeRise = IsEvadeRise = false;
+        riseTravelInput = Vector2.zero;
         exiting = false;
     }
 }

@@ -28,15 +28,15 @@ public static class PlayerKnockdownBuilder
         set.falls = new[] { "knockdown_up01", "knockdown_up02", "knockdown_up03" }
             .Select(n => Motion(n, Vector2.down)).ToArray();
         set.fallDistance = 2.2f;
-        set.defaultRise = Motion("rise_02", Vector2.zero);
-        set.directionalRises = new[] { Motion("rise_02", Vector2.up), Motion("rise_01", Vector2.down),
-            Motion("rise_left_up", Vector2.left), Motion("rise_right_up", Vector2.right) };
+        ConfigureRiseModes(set);
         set.fallTemplate = Template("PlayerFallSlot", set.falls[0].clip);
         set.riseTemplate = Template("PlayerRiseSlot", set.defaultRise.clip);
         EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
 
         if (!controller.parameters.Any(p => p.name == PlayerKnockdownAnimationSet.HoldTimeParameter))
             controller.AddParameter(PlayerKnockdownAnimationSet.HoldTimeParameter, AnimatorControllerParameterType.Float);
+        if (!controller.parameters.Any(p => p.name == PlayerKnockdownAnimationSet.RiseSpeedParameter))
+            controller.AddParameter(PlayerKnockdownAnimationSet.RiseSpeedParameter, AnimatorControllerParameterType.Float);
         var existing = controller.layers.FirstOrDefault(l => l.name == PlayerKnockdownAnimationSet.LayerName);
         if (existing == null)
         {
@@ -52,7 +52,8 @@ public static class PlayerKnockdownBuilder
         var hold = State(machine, PlayerKnockdownAnimationSet.HoldState, set.fallTemplate);
         hold.timeParameterActive = true; hold.timeParameter = PlayerKnockdownAnimationSet.HoldTimeParameter;
         hold.speed = 0;
-        State(machine, PlayerKnockdownAnimationSet.RiseState, set.riseTemplate);
+        var riseState = State(machine, PlayerKnockdownAnimationSet.RiseState, set.riseTemplate);
+        riseState.speedParameterActive = true; riseState.speedParameter = PlayerKnockdownAnimationSet.RiseSpeedParameter;
         machine.defaultState = machine.states.First(s => s.state.name == "Player_ReactionEmpty").state;
         EditorUtility.SetDirty(controller); AssetDatabase.SaveAssetIfDirty(controller);
         var root = PrefabUtility.LoadPrefabContents(PrefabPath);
@@ -86,6 +87,37 @@ public static class PlayerKnockdownBuilder
     }
     static AnimationCurve Curve(AnimationClip clip, string property)
         => AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve("", typeof(Animator), property));
+
+    static void ConfigureRiseModes(PlayerKnockdownAnimationSet set)
+    {
+        set.defaultRise = Motion("rise_02", Vector2.zero);
+        set.defaultEvadeRise = Motion("rise_01", Vector2.down);
+        var forward = Motion("rise_02", Vector2.up);
+        forward.id = "rise_forward_fast";
+        forward.playbackSpeed = 1.25f;
+        set.directionalRises = new[] { forward, Motion("rise_01", Vector2.down),
+            Motion("rise_left_up", Vector2.left), Motion("rise_right_up", Vector2.right) };
+    }
+
+    // Saves the owned SO and Rise state's speed binding; the player prefab is not reopened.
+    public static void RefreshRiseModes()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required");
+        var set = AssetDatabase.LoadAssetAtPath<PlayerKnockdownAnimationSet>(SetPath);
+        if (set == null || EditorUtility.IsDirty(set)) throw new InvalidOperationException("Saved knockdown set required");
+        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+        if (controller == null || EditorUtility.IsDirty(controller)) throw new InvalidOperationException("Saved player controller required");
+        var rise = controller.layers.First(l => l.name == PlayerKnockdownAnimationSet.LayerName)
+            .stateMachine.states.First(s => s.state.name == PlayerKnockdownAnimationSet.RiseState).state;
+        if (EditorUtility.IsDirty(rise)) throw new InvalidOperationException("Saved reaction state required");
+        if (!controller.parameters.Any(p => p.name == PlayerKnockdownAnimationSet.RiseSpeedParameter))
+            controller.AddParameter(PlayerKnockdownAnimationSet.RiseSpeedParameter, AnimatorControllerParameterType.Float);
+        rise.speedParameterActive = true; rise.speedParameter = PlayerKnockdownAnimationSet.RiseSpeedParameter;
+        EditorUtility.SetDirty(rise); EditorUtility.SetDirty(controller); AssetDatabase.SaveAssetIfDirty(controller);
+        ConfigureRiseModes(set);
+        EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
+    }
 
     // Refresh only the owned set; other combat builders can own the controller and prefab.
     public static void RefreshFallTravelCurves()

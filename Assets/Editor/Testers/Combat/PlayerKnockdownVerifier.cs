@@ -18,16 +18,25 @@ using UnityEngine.Playables;
 public static class PlayerKnockdownVerifier
 {
     const string Key = "PlayerKnockdownVerifier";
+    const string ReturnKey = Key + ".returnToAccount";
+    const string GuardKey = "Overburst.IsolatedSavePlayGuard.";
     static readonly List<string> checks = new List<string>();
     static readonly List<string> errors = new List<string>();
     static readonly List<object> measurements = new List<object>();
     static readonly Stack<IEnumerator> work = new Stack<IEnumerator>();
     static int frame;
     static double deadline;
+    static MonoBehaviour presentationHost;
+    static Coroutine presentationPump;
     static string Output => SessionState.GetString(Key + ".output", "");
     public static string Status => SessionState.GetString(Key + ".status", "NOT_RUN");
     public static string Progress => SessionState.GetString(Key + ".progress", "");
-    static PlayerKnockdownVerifier() { EditorApplication.playModeStateChanged += Changed; }
+    static PlayerKnockdownVerifier()
+    {
+        EditorApplication.playModeStateChanged += Changed;
+        if (SessionState.GetBool(ReturnKey, false) && !EditorApplication.isPlayingOrWillChangePlaymode)
+            ScheduleAccountReturn();
+    }
 
     static void Check(bool ok, string name)
     { if (!ok) throw new InvalidOperationException(name); checks.Add(name); }
@@ -37,6 +46,8 @@ public static class PlayerKnockdownVerifier
 
     public static void VerifyAssets(string output)
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required for owned avatar sampling");
         Directory.CreateDirectory(output); SessionState.SetString(Key + ".output", output);
         checks.Clear(); measurements.Clear(); errors.Clear();
         var prefab = PrefabUtility.LoadPrefabContents(PlayerKnockdownBuilder.PrefabPath);
@@ -54,6 +65,10 @@ public static class PlayerKnockdownVerifier
             Check(layer.stateMachine.states.All(s => s.state.transitions.Length == 0), "Reaction states have no automatic transitions");
             var hold = layer.stateMachine.states.First(s => s.state.name == PlayerKnockdownAnimationSet.HoldState).state;
             Check(hold.timeParameterActive && hold.timeParameter == PlayerKnockdownAnimationSet.HoldTimeParameter && hold.speed == 0, "Only the hold state freezes its clip time");
+            var riseState = layer.stateMachine.states.First(s => s.state.name == PlayerKnockdownAnimationSet.RiseState).state;
+            Check(riseState.speedParameterActive && riseState.speedParameter == PlayerKnockdownAnimationSet.RiseSpeedParameter
+                && controller.parameters.Any(p => p.name == PlayerKnockdownAnimationSet.RiseSpeedParameter && p.type == AnimatorControllerParameterType.Float),
+                "Only the rise state uses the owned playback speed parameter");
             var animator = prefab.GetComponentInChildren<Animator>(true);
             Check(animator != null && animator.isHuman, "Current player has a valid humanoid avatar");
             prefab.SetActive(true); animator.enabled = true; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -103,33 +118,57 @@ public static class PlayerKnockdownVerifier
             }
             string pose = set.defaultRise.poseId;
             Check(set.SelectRise(pose, Vector2.zero) == set.defaultRise, "Released input selects default rise");
+            Check(set.defaultEvadeRise != null && set.defaultEvadeRise.IsValid && set.defaultEvadeRise.poseId == pose
+                && set.defaultEvadeRise.id == "rise_01", "Held Evade default uses the compatible backward get-up");
+            Check(set.SelectRise(pose, Vector2.zero, true) == set.defaultEvadeRise, "Held Evade without Move selects backward get-up");
+            var fastRise = set.SelectRise(pose, Vector2.up, true);
+            Check(fastRise.id == "rise_forward_fast" && fastRise.clip == set.defaultRise.clip && Mathf.Abs(fastRise.playbackSpeed - 1.25f) < .001f,
+                "Shift forward preserves the original clip and uses 1.25x state playback");
             foreach (var direction in new[] { Vector2.up, Vector2.down, Vector2.left, Vector2.right })
-                Check(Vector2.Dot(set.SelectRise(pose, direction).direction, direction) > .99f, "Cardinal selection " + direction);
+            {
+                Check(set.SelectRise(pose, direction) == set.defaultRise, "Ordinary get-up does not roll from Move alone " + direction);
+                Check(Vector2.Dot(set.SelectRise(pose, direction, true).direction, direction) > .99f, "Held Evade cardinal selection " + direction);
+            }
             foreach (var direction in new[] { new Vector2(1,1), new Vector2(-1,1), new Vector2(1,-1), new Vector2(-1,-1) })
             {
-                var expected = set.SelectRise(pose, direction);
+                var expected = set.SelectRise(pose, direction, true);
                 Check(expected.direction == (direction.y > 0 ? Vector2.up : Vector2.down), "Diagonal uses stable registered tie order " + direction);
-                Check(set.SelectRise(pose, direction + new Vector2(.000001f, 0)) == expected,
+                Check(set.SelectRise(pose, direction + new Vector2(.000001f, 0), true) == expected,
                     "Coordinate rounding cannot change the diagonal tie " + direction);
             }
             Check(set.SelectRise("unsupported-pose", Vector2.left) == null, "Incompatible pose cannot select a rise");
+            Check(set.SelectRise("unsupported-pose", Vector2.left, true) == null, "Held Evade cannot bypass pose compatibility");
             Save("asset-results.json", "PASS");
         }
         catch (Exception e) { errors.Add(e.ToString()); Save("asset-results.json", "FAIL"); throw; }
         finally { if (graph.IsValid()) graph.Destroy(); PrefabUtility.UnloadPrefabContents(prefab); }
     }
 
-    public static void Run(string output)
+    public static void Run(string output, bool presentation = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("Idle Editor required");
+        if (SessionState.GetBool(Key, false) || SessionState.GetBool(ReturnKey, false)
+            || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            || !string.IsNullOrEmpty(SessionState.GetString(GuardKey + "prepared", "")))
+            throw new InvalidOperationException("Previous account/verification owner must return first");
         Directory.CreateDirectory(output); SessionState.SetString(Key + ".output", output);
+        SessionState.SetBool(Key + ".presentation", presentation);
+        SessionState.SetBool(ReturnKey, true);
+        SessionState.SetInt(ReturnKey + ".pid", System.Diagnostics.Process.GetCurrentProcess().Id);
+        SessionState.SetString(ReturnKey + ".project", Directory.GetParent(Application.dataPath).FullName);
+        SessionState.SetString(ReturnKey + ".deadline", (EditorApplication.timeSinceStartup + (presentation ? 2400 : 480)).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         SessionState.SetString(Key + ".startScene", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
-        IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
-        SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
-        StepName("Product boot"); AssetDatabase.DisallowAutoRefresh(); SessionState.SetBool(Key + ".refresh", true);
-        EditorApplication.EnterPlaymode();
+        try
+        {
+            IsolatedSavePlayGuard.PrepareIsolatedPlay(Path.Combine(output, "IsolatedAccount"));
+            SessionState.SetBool(Key, true); SessionState.SetString(Key + ".status", "RUNNING");
+            StepName("Product boot"); AssetDatabase.DisallowAutoRefresh(); SessionState.SetBool(Key + ".refresh", true);
+            EditorApplication.EnterPlaymode();
+        }
+        catch { SessionState.SetBool(Key, false); ScheduleAccountReturn(); throw; }
     }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void BeforeBoot()
@@ -139,10 +178,12 @@ public static class PlayerKnockdownVerifier
     }
     static void Changed(PlayModeStateChange change)
     {
+        if (change == PlayModeStateChange.EnteredEditMode && SessionState.GetBool(ReturnKey, false)) ScheduleAccountReturn();
         if (!SessionState.GetBool(Key, false)) return;
         if (change == PlayModeStateChange.EnteredPlayMode)
         {
-            checks.Clear(); measurements.Clear(); errors.Clear(); frame = -1; deadline = EditorApplication.timeSinceStartup + 300;
+            bool presentation = SessionState.GetBool(Key + ".presentation", false);
+            checks.Clear(); measurements.Clear(); errors.Clear(); frame = -1; deadline = EditorApplication.timeSinceStartup + (presentation ? 1800 : 300);
             SessionState.SetBool(Key + ".background", Application.runInBackground); SessionState.SetInt(Key + ".fps", Application.targetFrameRate);
             Application.runInBackground = true; Application.targetFrameRate = 60;
             SessionState.SetInt(Key + ".inputEditor", (int)InputSystem.settings.editorInputBehaviorInPlayMode);
@@ -152,11 +193,22 @@ public static class PlayerKnockdownVerifier
             InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             EditorApplication.LockReloadAssemblies(); SessionState.SetBool(Key + ".reload", true);
-            work.Clear(); work.Push(VerifyPlay()); Application.logMessageReceived += Log; EditorApplication.update += Tick;
+            work.Clear(); work.Push(presentation ? PlayerKnockdownPresentationRecorder.Record(Output) : VerifyPlay());
+            Application.logMessageReceived += Log;
+            if (presentation)
+            {
+                var gameView = typeof(Editor).Assembly.GetType("UnityEditor.GameView");
+                if (gameView != null) EditorWindow.GetWindow(gameView).Focus();
+                EditorApplication.update += QueuePresentationLoop;
+            }
+            else EditorApplication.update += Tick;
         }
         if (change == PlayModeStateChange.ExitingPlayMode)
         {
-            EditorApplication.update -= Tick; Application.logMessageReceived -= Log;
+            EditorApplication.update -= Tick; EditorApplication.update -= QueuePresentationLoop; Application.logMessageReceived -= Log;
+            if (presentationHost != null && presentationPump != null) presentationHost.StopCoroutine(presentationPump);
+            presentationHost = null; presentationPump = null;
+            if (Status == "RUNNING") { SessionState.SetString(Key + ".status", "ABORTED"); Save("play-results.json", "ABORTED"); }
             while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
             Application.runInBackground = SessionState.GetBool(Key + ".background", false);
             Application.targetFrameRate = SessionState.GetInt(Key + ".fps", -1);
@@ -172,15 +224,77 @@ public static class PlayerKnockdownVerifier
         }
         if (change == PlayModeStateChange.EnteredEditMode)
         {
-            Environment.SetEnvironmentVariable(IsolatedSavePlayGuard.Variable, null);
-            string start = SessionState.GetString(Key + ".startScene", "");
-            EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(start) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(start);
             SessionState.SetBool(Key, false);
             if (SessionState.GetBool(Key + ".refresh", false)) { AssetDatabase.AllowAutoRefresh(); SessionState.EraseBool(Key + ".refresh"); }
         }
     }
+    static void ScheduleAccountReturn()
+    { EditorApplication.update -= ReturnToRealAccount; EditorApplication.update += ReturnToRealAccount; }
+    public static void RetryAccountReturn()
+    {
+        if (!SessionState.GetBool(ReturnKey, false)) return;
+        SessionState.SetString(ReturnKey + ".deadline", (EditorApplication.timeSinceStartup + 120).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        ScheduleAccountReturn();
+    }
+    static void ReturnToRealAccount()
+    {
+        if (!SessionState.GetBool(ReturnKey, false)) { EditorApplication.update -= ReturnToRealAccount; return; }
+        string output = Output;
+        double.TryParse(SessionState.GetString(ReturnKey + ".deadline", "0"), System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double limit);
+        if (EditorApplication.timeSinceStartup > limit)
+        {
+            EditorApplication.update -= ReturnToRealAccount;
+            File.WriteAllText(Path.Combine(output, "account-return.json"), "{\"status\":\"FAIL\",\"reason\":\"bounded return timeout\"}");
+            return; // Preserve the pending result for an explicit retry; do not touch another owner's account.
+        }
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+        if (SessionState.GetInt(ReturnKey + ".pid", 0) != System.Diagnostics.Process.GetCurrentProcess().Id
+            || SessionState.GetString(ReturnKey + ".project", "") != Directory.GetParent(Application.dataPath).FullName) return;
+        string own = Path.GetFullPath(Path.Combine(output, "IsolatedAccount"));
+        foreach (string path in new[] {Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
+            IsolatedSavePlayGuard.ActiveDirectory, SessionState.GetString(GuardKey + "prepared", "")})
+            if (!string.IsNullOrEmpty(path) && !string.Equals(Path.GetFullPath(path), own, StringComparison.OrdinalIgnoreCase)) return;
+        IsolatedSavePlayGuard.UseRealAccount(); // Runs after every EnteredEditMode listener, including the guard.
+        if (Status == "RUNNING") { SessionState.SetString(Key + ".status", "ABORTED"); Save("play-results.json", "ABORTED"); }
+        string start = SessionState.GetString(Key + ".startScene", "");
+        if (AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) == "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity")
+            EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(start) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(start);
+        if (SessionState.GetBool(Key + ".refresh", false)) { AssetDatabase.AllowAutoRefresh(); SessionState.EraseBool(Key + ".refresh"); }
+        SessionState.EraseBool(Key); SessionState.EraseString(Key + ".startScene");
+        SessionState.EraseBool(Key + ".presentation");
+        SessionState.EraseBool(ReturnKey); SessionState.EraseInt(ReturnKey + ".pid");
+        SessionState.EraseString(ReturnKey + ".project"); SessionState.EraseString(ReturnKey + ".deadline");
+        bool allowed = IsolatedSavePlayGuard.CanEnter(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
+            SessionState.GetString(GuardKey + "prepared", ""), 0, EditorApplication.timeSinceStartup, IsolatedSavePlayGuard.RequiresAccountChoice);
+        File.WriteAllText(Path.Combine(output, "account-return.json"), JsonConvert.SerializeObject(new {
+            status=allowed && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory) ? "PASS" : "FAIL",
+            ordinaryPlayAllowed=allowed, accountChoiceRequired=IsolatedSavePlayGuard.RequiresAccountChoice,
+            environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable) ?? "",
+            active=IsolatedSavePlayGuard.ActiveDirectory, prepared=SessionState.GetString(GuardKey + "prepared", ""),
+            expires=SessionState.GetString(GuardKey + "expires", ""),pending=SessionState.GetBool(Key,false),
+            returnedStartScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),expectedStartScene=start,
+            inputOverride=SessionState.GetBool(Key + ".inputOverride", false)}, Formatting.Indented));
+        EditorApplication.update -= ReturnToRealAccount;
+    }
     static void Log(string message, string trace, LogType type)
     { if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(message); }
+    static void QueuePresentationLoop()
+    {
+        EditorApplication.QueuePlayerLoopUpdate();
+        if (EditorApplication.isPlaying && presentationHost == null)
+        {
+            presentationHost = UnityEngine.Object.FindFirstObjectByType<PersistentSceneFlow>();
+            if (presentationHost != null) presentationPump = presentationHost.StartCoroutine(PresentationFrames());
+        }
+        if (EditorApplication.isPlaying && EditorApplication.timeSinceStartup >= deadline)
+        { errors.Add("Presentation frame driver deadline"); Finish("FAIL"); }
+    }
+    static IEnumerator PresentationFrames()
+    {
+        var boundary = new WaitForEndOfFrame();
+        while (Application.isPlaying && Status == "RUNNING") { yield return boundary; Tick(); }
+    }
     static void Tick()
     {
         EditorApplication.QueuePlayerLoopUpdate();
@@ -195,6 +309,12 @@ public static class PlayerKnockdownVerifier
                 if (!iterator.MoveNext()) { work.Pop(); continue; }
                 if (iterator.Current is IEnumerator nested) { work.Push(nested); continue; }
                 return;
+            }
+            if (Status != "RUNNING") return;
+            if (SessionState.GetBool(Key + ".presentation", false))
+            {
+                var result = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(Output, "capture-scenes.json")));
+                Check((string)result["status"] == "PASS" && result["records"].Count() == 10, "All presentation scenes completed");
             }
             Check(errors.Count == 0, "No runtime errors: " + string.Join(" | ", errors)); Finish("PASS");
         }
@@ -262,7 +382,12 @@ public static class PlayerKnockdownVerifier
             int sequence = 20000;
             DamageInfo Hit(Vector3? impact = null) => new DamageInfo(10, actor.transform.position, source, impact ?? Vector3.back,
                 sourceAttackSequenceId: ++sequence, enemyAbility: ability);
-            void Reset() { Stick(pad, Vector2.zero); reaction.ResetReaction(); health.ResetHealth(); Warp(actor, origin); }
+            void Reset()
+            {
+                Stick(pad, Vector2.zero);
+                if (keyboard != null) InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                reaction.ResetReaction(); health.ResetHealth(); Warp(actor, origin);
+            }
             StepName("Damage exclusions");
             foreach (var grade in new[] { EnemyGradeType.Normal, EnemyGradeType.Boss })
             { Grade(rank, grade); health.TakeDamage(Hit()); Check(!reaction.IsActive, grade + " cannot knock down the player"); }
@@ -280,6 +405,9 @@ public static class PlayerKnockdownVerifier
             finally { Set(reaction, "animationSet", originalSet); }
 
             StepName("Evade cancels before resolved damage"); Reset(); keyboard = InputSystem.AddDevice<Keyboard>();
+            // Current exploration dodge has no immunity; use the actual combat dodge's damage gate.
+            PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
+            yield return Wait(1.2f);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
             var evade = actor.GetComponent<PlayerEvadeController>();
@@ -323,7 +451,7 @@ public static class PlayerKnockdownVerifier
                 Check(Vector2.Dot(reaction.PendingRiseInput, direction.normalized) > .95f, "Camera-relative Move action resolves in lying frame " + direction);
                 var expected = reaction.AnimationSet.SelectRise(reaction.AnimationSet.defaultRise.poseId, direction);
                 yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Directional rise starts " + direction);
-                Check(reaction.ActiveMotionId == expected.id, "Nearest compatible rise selected " + direction);
+                Check(reaction.ActiveMotionId == expected.id && !reaction.IsEvadeRise, "Move alone selects ordinary get-up " + direction);
                 var start = actor.transform.position; var chosen = reaction.ActiveMotionId; Stick(pad, CameraInput(movement, -direction.normalized));
                 yield return Wait(.15f); Check(reaction.ActiveMotionId == chosen, "Rise cannot switch mid-animation " + direction);
                 if (direction == Vector2.left) Capture("rise_left"); if (direction == Vector2.right) Capture("rise_right");
@@ -333,6 +461,63 @@ public static class PlayerKnockdownVerifier
                 Check(delta.magnitude <= reaction.AnimationSet.riseDistance + .035f, "Rise planar movement remains bounded " + direction);
                 measurements.Add(new { direction = direction.ToString(), rise = chosen, distance = delta.magnitude });
                 Check(state.CurrentCondition == PlayerConditionState.Normal && state.CurrentAction != PlayerActionState.Attack, "Owned locks released " + direction);
+            }
+
+            StepName("Held Shift selection, release and input ownership");
+            foreach (string mode in new[] { "held-before-hit", "held-during-fall", "pressed-while-down", "held-through-completion",
+                "released-before-rise", "UI-blocked", "map-disabled", "pressed-mid-rise" })
+            {
+                Reset(); yield return Wait(.1f);
+                if (mode == "held-before-hit")
+                {
+                    // Prevent the standing dodge while preparing a pre-held value; the heavy still uses Health.
+                    evade.enabled = false;
+                    try
+                    {
+                        InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
+                        yield return null; yield return null; health.TakeDamage(Hit());
+                    }
+                    finally { evade.enabled = true; }
+                }
+                else health.TakeDamage(Hit());
+                if (mode == "held-during-fall") InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Shift fixture reaches hold " + mode);
+                if (mode != "held-before-hit" && mode != "held-during-fall" && mode != "pressed-mid-rise")
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
+                yield return null; yield return null;
+                if (mode == "released-before-rise") InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                if (mode == "UI-blocked") GameplayInputBlocker.Block(source);
+                if (mode == "map-disabled") facade.DisableGameplay();
+                yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Shift fixture starts rise " + mode);
+                bool expectedEvade = mode == "held-before-hit" || mode == "held-during-fall" || mode == "pressed-while-down" || mode == "held-through-completion";
+                Check(reaction.IsEvadeRise == expectedEvade && reaction.ActiveMotionId == (expectedEvade ? "rise_01" : "rise_02"),
+                    "Rise snapshots the currently allowed Shift value " + mode);
+                var shiftStart = actor.transform.position;
+                Check(!evade.IsEvading && !evade.IsInvincible && !evade.IsPerfectEvadeWindowActive,
+                    "Get-up selection does not start a standing evade or grant its immunity " + mode);
+                string chosen = reaction.ActiveMotionId;
+                if (mode == "UI-blocked") GameplayInputBlocker.Unblock(source);
+                if (mode == "map-disabled") facade.EnableGameplay();
+                InputSystem.QueueStateEvent(keyboard, mode == "pressed-mid-rise" || mode == "held-through-completion"
+                    ? new KeyboardState(UnityEngine.InputSystem.Key.LeftShift) : new KeyboardState());
+                yield return Wait(.15f);
+                Check(reaction.IsEvadeRise == expectedEvade && reaction.ActiveMotionId == chosen, "Shift changes cannot replace an active rise " + mode);
+                if (mode != "held-through-completion") InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return Until(() => !reaction.IsActive, 2, "Shift fixture completes " + mode);
+                Vector3 shiftDelta = actor.transform.position - shiftStart; shiftDelta.y = 0;
+                Check(expectedEvade ? Vector3.Dot(shiftDelta, -actor.transform.forward) > .25f : shiftDelta.magnitude < .02f,
+                    "Shift-only uses backward travel and ordinary no-input remains stationary " + mode);
+                Check(!reaction.IsEvadeRise && !reaction.PendingEvadeRise, "Shift selection clears on completion " + mode);
+                measurements.Add(new {fixture="shift-value",mode,expectedEvade,chosen,delta=shiftDelta.ToString("F4")});
+                if (mode == "held-through-completion")
+                {
+                    yield return Wait(.2f);
+                    Check(!evade.IsEvading && !facade.CombatInputs.HasEvade, "Holding Shift through recovery cannot chain a standing evade");
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
+                    yield return Until(() => evade.IsEvading, 1, "Fresh Shift after recovery can evade normally");
+                    evade.CancelForKnockdown(); InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return Wait(.2f);
+                }
             }
 
             StepName("Frame-synchronized 2.2m knockback across every fall");
@@ -404,6 +589,7 @@ public static class PlayerKnockdownVerifier
                 health.TakeDamage(Hit(impact));
                 yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Literal key fixture reaches hold " + facing + "/" + input);
                 var keys = new List<UnityEngine.InputSystem.Key>();
+                keys.Add(UnityEngine.InputSystem.Key.LeftShift);
                 if (input.y > 0) keys.Add(UnityEngine.InputSystem.Key.W); if (input.y < 0) keys.Add(UnityEngine.InputSystem.Key.S);
                 if (input.x < 0) keys.Add(UnityEngine.InputSystem.Key.A); if (input.x > 0) keys.Add(UnityEngine.InputSystem.Key.D);
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
@@ -417,8 +603,24 @@ public static class PlayerKnockdownVerifier
                     + " phase=" + reaction.Phase + " blocked=" + GameplayInputBlocker.IsGameplayInputBlocked
                     + " enabled=" + facade.IsGameplayEnabled + " expected=" + requestedLocal);
                 yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Literal WASD rise starts " + facing + "/" + input);
+                var expectedRise = reaction.AnimationSet.SelectRise(reaction.AnimationSet.defaultRise.poseId,
+                    new Vector2(requestedLocal.x, requestedLocal.z), true);
+                Check(reaction.IsEvadeRise && reaction.ActiveMotionId == expectedRise.id,
+                    "Held Shift selects direction-specific get-up " + facing + "/" + input);
                 Vector3 start = actor.transform.position;
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return Wait(.12f);
+                var playingRise = animator.GetCurrentAnimatorStateInfo(reactionLayer);
+                if (!playingRise.IsName(PlayerKnockdownAnimationSet.RiseState) && animator.IsInTransition(reactionLayer))
+                    playingRise = animator.GetNextAnimatorStateInfo(reactionLayer);
+                float ownedRiseTime = (float)typeof(PlayerKnockdownController).GetField("elapsed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(reaction);
+                Check(playingRise.IsName(PlayerKnockdownAnimationSet.RiseState)
+                    && Mathf.Abs(playingRise.speedMultiplier - expectedRise.playbackSpeed) < .001f,
+                    "Animator applies the selected rise speed " + facing + "/" + input);
+                Check(Mathf.Abs(playingRise.normalizedTime * expectedRise.clip.length - ownedRiseTime) < .075f,
+                    "Animator and physical rise travel share the same playback clock " + facing + "/" + input);
+                measurements.Add(new {fixture="rise-clock",facing,input=input.ToString(),rise=expectedRise.id,
+                    speed=playingRise.speedMultiplier,animatorClipTime=playingRise.normalizedTime*expectedRise.clip.length,ownedRiseTime});
                 yield return Until(() => !reaction.IsActive, 2, "Literal WASD rise completes " + facing + "/" + input);
                 Vector3 delta = actor.transform.position - start; delta.y = 0;
                 Check(delta.magnitude > reaction.AnimationSet.riseDistance * .8f && delta.magnitude <= reaction.AnimationSet.riseDistance + .04f,
@@ -437,8 +639,11 @@ public static class PlayerKnockdownVerifier
             Reset(); wall = GameObject.CreatePrimitive(PrimitiveType.Cube); wall.name = "Owned reaction wall";
             wall.transform.position = origin + new Vector3(-.55f, 1, -.5f); wall.transform.localScale = new Vector3(.15f, 3, 4); Physics.SyncTransforms();
             health.TakeDamage(Hit()); yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Grounded, 3, "Wall fixture reaches hold");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
             Stick(pad, CameraInput(movement, Vector2.left)); yield return null; yield return null;
-            yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Wall-blocked rise starts"); var wallStart = actor.transform.position; Stick(pad, Vector2.zero);
+            yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Wall-blocked rise starts");
+            Check(reaction.IsEvadeRise && reaction.ActiveMotionId == "rise_left_up", "Wall case exercises Shift roll get-up");
+            var wallStart = actor.transform.position; Stick(pad, Vector2.zero); InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             yield return Until(() => !reaction.IsActive, 2, "Wall-blocked rise still completes");
             Check(wallStart.x - actor.transform.position.x < .30f && actor.CharacterController.enabled, "Wall truncates rise travel without disabling the collider");
             UnityEngine.Object.Destroy(wall); wall = null;
@@ -461,8 +666,11 @@ public static class PlayerKnockdownVerifier
                 platform.transform.Rotate(0, 20 * Time.deltaTime, 0); Physics.SyncTransforms(); yield return null;
             }
             Check(reaction.Phase == PlayerKnockdownPhase.Grounded && movement.IsGrounded, "Falling preserves moving-platform grounding");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.LeftShift));
             Stick(pad, CameraInput(movement, Vector2.left)); yield return null; yield return null;
             yield return Until(() => reaction.Phase == PlayerKnockdownPhase.Rising, 1, "Platform-relative rise starts");
+            Check(reaction.IsEvadeRise, "Rotating platform exercises Shift get-up");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             Vector3 PlatformPosition() => Quaternion.Inverse(platform.transform.rotation) * (actor.transform.position - platform.transform.position);
             var platformStart = PlatformPosition(); var platformRise = reaction.ActiveMotionId; Stick(pad, Vector2.zero);
             while (reaction.IsActive)
@@ -567,6 +775,8 @@ public static class PlayerKnockdownVerifier
         {
             Time.timeScale = originalScale;
             OverburstTimeEffectArbiter.SetPaused(false);
+            if (source != null) GameplayInputBlocker.Unblock(source);
+            if (actor != null) actor.GetComponent<PlayerInputFacade>()?.EnableGameplay();
             foreach (var protectedArena in protectedArenas) if (protectedArena != null && actor != null) protectedArena.ProtectPlayer(actor.Health);
             if (actor != null) actor.GetComponent<PlayerKnockdownController>()?.ResetReaction();
             if (enemy != null && spawn != null) spawn.Release(enemy);

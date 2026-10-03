@@ -9,6 +9,7 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
     public const string HoldState = "Player_DownHold";
     public const string RiseState = "Player_Rise";
     public const string HoldTimeParameter = "PlayerDownPoseTime";
+    public const string RiseSpeedParameter = "PlayerRiseSpeed";
 
     [Serializable]
     public sealed class Motion
@@ -17,6 +18,7 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
         public string poseId;
         public AnimationClip clip;
         public Vector2 direction;
+        [Min(.01f)] public float playbackSpeed = 1f;
         // Authored planar travel sampled by the builder; monotonically consumed by the motor.
         public AnimationCurve travel = AnimationCurve.EaseInOut(0, 0, 1, 1);
         public bool IsValid => clip != null && clip.isHumanMotion && clip.length > .01f;
@@ -26,6 +28,8 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
     public AnimationClip riseTemplate;
     public Motion[] falls = Array.Empty<Motion>();
     public Motion defaultRise;
+    public Motion defaultEvadeRise;
+    [Tooltip("Directional get-ups used while the Evade action is held. Ordinary get-up uses defaultRise.")]
     public Motion[] directionalRises = Array.Empty<Motion>();
     [Min(0)] public float groundedHold = .25f;
     [Min(0)] public float recoveryProtection = .6f;
@@ -48,9 +52,11 @@ public sealed class PlayerKnockdownAnimationSet : ScriptableObject
         return null;
     }
 
-    public Motion SelectRise(string pose, Vector2 inputDirection)
+    public Motion SelectRise(string pose, Vector2 inputDirection, bool evadeHeld = false)
     {
         Motion selected = defaultRise != null && defaultRise.IsValid && defaultRise.poseId == pose ? defaultRise : null;
+        if (!evadeHeld) return selected;
+        if (defaultEvadeRise != null && defaultEvadeRise.IsValid && defaultEvadeRise.poseId == pose) selected = defaultEvadeRise;
         if (inputDirection.sqrMagnitude < .0001f || directionalRises == null) return selected;
         float best = -1f;
         foreach (Motion motion in directionalRises)
