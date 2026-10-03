@@ -15,6 +15,18 @@ public enum EnemyAbilityExecutionMode
 public sealed class EnemyAbilityDefinition : ScriptableObject
 {
     [SerializeField] private string abilityId;
+    [SerializeField] private EnemyWeakAttackExecutionProfile weakAttackExecution;
+    public EnemyWeakAttackExecutionProfile WeakAttackExecution => weakAttackExecution;
+    public bool HasWeakAttackExecution => weakAttackExecution != null;
+
+    public void ConfigureWeakAttackExecution(EnemyWeakAttackExecutionProfile profile)
+    {
+        if (profile != null && (!profile.ValidateAuthoring(out _) || IsTelegraphedStrongAttack
+            || IsMeleeExecution(ExecutionMode) && HitCount > 3))
+            throw new System.ArgumentException("V3 약공 프로필 또는 최대 3타 조건이 유효하지 않습니다.");
+        weakAttackExecution = profile;
+    }
+
     [SerializeField] private string animatorTrigger = "Attack1";
     [SerializeField] private EnemyAbilityExecutionMode executionMode =
         EnemyAbilityExecutionMode.MeleeArc;
@@ -145,14 +157,16 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
         && !string.IsNullOrWhiteSpace(animatorTrigger)
         && Range > 0f
         && MinimumRange <= Range
-        && Weight > 0f;
+        && Weight > 0f
+        && (weakAttackExecution == null || weakAttackExecution.IsValid
+            && !IsTelegraphedStrongAttack && (!IsMeleeExecution(ExecutionMode) || HitCount <= 3));
 
     public bool MatchesUseConditions(float distance, float selfHealthNormalized)
     {
         float resolvedDistance = Mathf.Max(0f, distance);
         float resolvedHealth = Mathf.Clamp01(selfHealthNormalized);
         return resolvedDistance >= MinimumRange
-            && resolvedDistance <= Range
+            && resolvedDistance <= (HasWeakAttackExecution ? weakAttackExecution.ApproachStartRange : Range)
             && resolvedHealth >= MinimumSelfHealthNormalized
             && resolvedHealth <= MaximumSelfHealthNormalized;
     }
