@@ -251,7 +251,9 @@ public static class OverburstGameMenuBuilder
         var combat = (RectTransform)panel.pages[2].transform;
         panel.cameraShake = SliderRow(combat, 0, "카메라 흔들림", "타격·피격·큰 몬스터 발소리에 화면이 흔들리는 세기", 1f);
         panel.hitEffect = SliderRow(combat, 1, "피격 화면 효과", "맞았을 때 화면 가장자리가 붉어지는 세기", 1f);
-        panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, true);
+        panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, false);
+
+        AddCombatFacingOptions(panel, combat);
 
         BuildControls(panel, (RectTransform)panel.pages[3].transform);
 
@@ -288,7 +290,8 @@ public static class OverburstGameMenuBuilder
         var row = new GameObject("Row • " + title, typeof(RectTransform)).GetComponent<RectTransform>();
         row.SetParent(page, false);
         Stretch(row);
-        float y = RowTop - index * RowHeight;
+        float height = page.name == "Page • 전투 표시" ? 170f : RowHeight;
+        float y = RowTop - index * height;
         NewText(row, "Label", title, sans, 42, Bright, TextAnchor.MiddleLeft, new Vector2(0f, 1f), new Vector2(RowInset, y - 40f), new Vector2(1000f, 64f), new Vector2(0f, 1f));
         NewText(row, "Description", description, sans, 30, Muted, TextAnchor.MiddleLeft, new Vector2(0f, 1f), new Vector2(RowInset, y - 108f), new Vector2(1150f, 50f), new Vector2(0f, 1f));
         slot = new GameObject("Control", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -297,7 +300,7 @@ public static class OverburstGameMenuBuilder
         if (!last)
         {
             var line = NewImage(row, "Rule", Rule);
-            Place(line.rectTransform, new Vector2(0f, 1f), new Vector2(RowInset, y - RowHeight + 14f), new Vector2(RowWidth, 2f), new Vector2(0f, 1f));
+            Place(line.rectTransform, new Vector2(0f, 1f), new Vector2(RowInset, y - height + 14f), new Vector2(RowWidth, 2f), new Vector2(0f, 1f));
         }
         return row;
     }
@@ -339,7 +342,7 @@ public static class OverburstGameMenuBuilder
             if (panel.combatFacingIndicator == null)
             {
                 var combat = (RectTransform)panel.pages[2].transform;
-                panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, true);
+                panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, false);
                 var previousRow = panel.hitEffect.transform.parent.parent;
                 if (previousRow.Find("Rule") == null)
                 {
@@ -349,10 +352,45 @@ public static class OverburstGameMenuBuilder
                 foreach (var selectable in panel.combatFacingIndicator.transform.parent.parent.GetComponentsInChildren<Selectable>(true))
                     if (!selectable.GetComponent<OverburstMenuSoundHook>()) selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
             }
+            AddCombatFacingOptions(panel, (RectTransform)panel.pages[2].transform);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
             if (!saved) throw new System.InvalidOperationException("Menu prefab save failed.");
         }
         finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void AddCombatFacingOptions(OverburstSettingsPanel panel, RectTransform combat)
+    {
+        if (panel.combatFacingStyle == null)
+            panel.combatFacingStyle = SelectRow(combat, 3, "방향 표시 모양", "기존 곡선형과 끝을 연장한 형태를 선택합니다", out _);
+        panel.combatFacingStyle.options.Clear();
+        panel.combatFacingStyle.options.Add("기존 절제형");
+        panel.combatFacingStyle.options.Add("끝 연장형");
+        panel.combatFacingStyle.SelectOptionByIndex(1);
+        panel.combatFacingStyle.transform.Find("Text").GetComponent<Text>().text = "끝 연장형";
+        if (panel.combatFacingBrightness == null)
+            panel.combatFacingBrightness = SliderRow(combat, 4, "방향 표시 밝기", "100%는 현재 밝기이며 0~200%까지 조절할 수 있습니다", 1f, true);
+        panel.combatFacingBrightness.minValue = 0f; panel.combatFacingBrightness.maxValue = 2f;
+        panel.combatFacingBrightness.SetValueWithoutNotify(1f);
+        var rows = new[] { panel.cameraShake.transform.parent.parent, panel.hitEffect.transform.parent.parent,
+            panel.combatFacingIndicator.transform.parent.parent, panel.combatFacingStyle.transform.parent.parent,
+            panel.combatFacingBrightness.transform.parent.parent };
+        for (int i = 0; i < rows.Length; i++)
+        {
+            float y = RowTop - i * 170f;
+            ((RectTransform)rows[i].Find("Label")).anchoredPosition = new Vector2(RowInset, y - 40f);
+            ((RectTransform)rows[i].Find("Description")).anchoredPosition = new Vector2(RowInset, y - 108f);
+            ((RectTransform)rows[i].Find("Control")).anchoredPosition = new Vector2(-RowInset, y - 96f);
+            var rule = rows[i].Find("Rule");
+            if (i < rows.Length - 1)
+            {
+                if (rule == null) rule = NewImage(rows[i], "Rule", Rule).transform;
+                Place((RectTransform)rule, new Vector2(0f, 1f), new Vector2(RowInset, y - 170f + 14f), new Vector2(RowWidth, 2f), new Vector2(0f, 1f));
+            }
+            else if (rule != null) Object.DestroyImmediate(rule.gameObject);
+            foreach (var selectable in rows[i].GetComponentsInChildren<Selectable>(true))
+                if (!selectable.GetComponent<OverburstMenuSoundHook>()) selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
+        }
     }
 
     private static Toggle SwitchRow(RectTransform page, int index, string title, string description, bool on, bool last)

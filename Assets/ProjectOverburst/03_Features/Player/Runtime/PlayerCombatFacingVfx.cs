@@ -5,11 +5,18 @@ using UnityEngine;
 public sealed class PlayerCombatFacingVfx : MonoBehaviour
 {
     [SerializeField] Transform visualRoot;
+    [SerializeField] Mesh[] quietMeshes;
+    [SerializeField] Mesh[] extendedMeshes;
     [SerializeField, Min(.1f)] float worldScale = .45f;
     [SerializeField, Min(0f)] float groundOffset = .015f;
     [SerializeField, Min(.1f)] float groundProbeDistance = 2f;
     [SerializeField, Min(.01f)] float fadeDuration = .16f;
     [SerializeField] LayerMask groundLayers = Physics.DefaultRaycastLayers;
+
+    static readonly string[] VariantNodes = { "RingToTip_-1", "RingToTip_1", "InnerFeather_-1", "InnerFeather_1", "FilledForwardCap", "QuietNoseCore" };
+    static readonly int BrightnessId = Shader.PropertyToID("_SilverBrightness");
+    MeshFilter[] variantFilters;
+    int appliedStyle = -1;
 
     static readonly int ClockId = Shader.PropertyToID("_SilverRuntimeClock");
     static readonly int TimeId = Shader.PropertyToID("_SilverRuntimeTime");
@@ -24,6 +31,7 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
     bool hadGround;
 
     public Transform VisualRoot => visualRoot;
+    public CombatFacingIndicatorStyle AppliedStyle => (CombatFacingIndicatorStyle)appliedStyle;
     public float Visibility => visibility;
     public float FlowTime => phase;
     public bool IsVisible => visualRoot != null && visualRoot.gameObject.activeSelf && visibility > .001f;
@@ -35,6 +43,12 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         if (properties == null) properties = new MaterialPropertyBlock();
         renderers = visualRoot != null ? visualRoot.GetComponentsInChildren<Renderer>(true) : null;
         visibility = 0f; hadGround = false; surfaceNormal = Vector3.up;
+        variantFilters = new MeshFilter[VariantNodes.Length];
+        for (int i = 0; visualRoot != null && i < VariantNodes.Length; i++)
+            variantFilters[i] = visualRoot.Find(VariantNodes[i])?.GetComponent<MeshFilter>();
+        appliedStyle = -1;
+        ApplyAppearance();
+        ApplyRendererProperties();
         if (visualRoot != null) visualRoot.gameObject.SetActive(false);
         OverburstGameSettings.Changed += OnSettingsChanged;
     }
@@ -76,6 +90,25 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
             hadGround = true;
         }
         visualRoot.gameObject.SetActive(true);
+        ApplyAppearance();
+        ApplyRendererProperties();
+    }
+
+    void ApplyAppearance()
+    {
+        int style = (int)OverburstGameSettings.CombatFacingStyle;
+        if (appliedStyle == style || variantFilters == null) return;
+        Mesh[] meshes = style == (int)CombatFacingIndicatorStyle.Quiet ? quietMeshes : extendedMeshes;
+        if (meshes == null || meshes.Length != VariantNodes.Length) return;
+        for (int i = 0; i < meshes.Length; i++) if (meshes[i] == null || variantFilters[i] == null) return;
+        for (int i = 0; i < meshes.Length; i++) variantFilters[i].sharedMesh = meshes[i];
+        appliedStyle = style;
+    }
+
+    void ApplyRendererProperties()
+    {
+        if (renderers == null || properties == null) return;
+        float brightness = OverburstGameSettings.CombatFacingBrightness;
         foreach (var renderer in renderers)
         {
             if (renderer == null) continue;
@@ -83,6 +116,7 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
             properties.SetFloat(ClockId, 1f);
             properties.SetFloat(TimeId, phase);
             properties.SetFloat(VisibilityId, visibility);
+            properties.SetFloat(BrightnessId, brightness);
             renderer.SetPropertyBlock(properties);
         }
     }
@@ -112,6 +146,8 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
     void OnSettingsChanged()
     {
         if (!OverburstGameSettings.CombatFacingIndicator) HideImmediately();
+        ApplyAppearance();
+        ApplyRendererProperties();
     }
 
     void OnDisable()

@@ -11,6 +11,7 @@ Shader "OVERBURST/VFX/Combat Facing Quiet Flow"
         _SilverRuntimeClock("Runtime clock override", Float) = 0
         _SilverRuntimeTime("Runtime flow time", Float) = 0
         _SilverVisibility("Visibility", Range(0,1)) = 1
+        _SilverBrightness("Brightness", Range(0,2)) = 1
         _Phase("Phase offset", Float) = 0
         _Detail("Filament detail", Range(0,1)) = 0.25
         _LineWidth("Ring width", Range(0.1,1)) = 1
@@ -34,7 +35,7 @@ Shader "OVERBURST/VFX/Combat Facing Quiet Flow"
                 float4 _MainTex_ST;
                 half4 _Tint;
                 float _Emission, _Opacity, _SurfaceKind, _Period, _Phase, _Detail, _LineWidth;
-                float _SilverRuntimeClock, _SilverRuntimeTime, _SilverVisibility;
+                float _SilverRuntimeClock, _SilverRuntimeTime, _SilverVisibility, _SilverBrightness;
             CBUFFER_END
             float _SilverPreviewClock, _SilverPreviewTime;
             struct A { float4 positionOS:POSITION; float2 uv:TEXCOORD0; float2 data:TEXCOORD1; half4 color:COLOR; };
@@ -117,7 +118,7 @@ Shader "OVERBURST/VFX/Combat Facing Quiet Flow"
                     light=1+0.12*cos(i.uv.x*7-phase);
                 }
                 alpha=saturate(alpha*i.color.a*_Tint.a*_SilverVisibility);
-                return half4(_Tint.rgb*_Emission*i.color.rgb*light,alpha);
+                return half4(_Tint.rgb*_Emission*i.color.rgb*light*_SilverBrightness,alpha);
             }
             ENDHLSL
         }

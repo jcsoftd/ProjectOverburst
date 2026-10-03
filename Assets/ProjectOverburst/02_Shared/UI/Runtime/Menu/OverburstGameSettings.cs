@@ -8,6 +8,8 @@ using UnityEngine.InputSystem;
 /// 경로: OVERBURST_SETTINGS_DIRECTORY → OVERBURST_SAVE_DIRECTORY(격리 검증 계정) → persistentDataPath.
 /// 화면 설정은 사용자가 한 번이라도 바꾼 뒤에만 적용해, 설정 파일이 없을 때는 프로젝트 기본값을 건드리지 않는다.
 /// </summary>
+public enum CombatFacingIndicatorStyle { Quiet = 0, Extended = 1 }
+
 public static class OverburstGameSettings
 {
     public const string FileName = "overburst_settings.json";
@@ -29,6 +31,8 @@ public static class OverburstGameSettings
         public float cameraShake = 1f;
         public float hitEffect = 1f;
         public bool combatFacingIndicator = true;
+        public int combatFacingStyle = (int)CombatFacingIndicatorStyle.Extended;
+        public float combatFacingBrightness = 1f;
         public string bindingOverrides = string.Empty;
     }
 
@@ -44,6 +48,19 @@ public static class OverburstGameSettings
     public static float CameraShakeScale { get { Ensure(); return data.cameraShake; } set { Ensure(); data.cameraShake = Mathf.Clamp01(value); Notify(); } }
     public static float HitEffectScale { get { Ensure(); return data.hitEffect; } set { Ensure(); data.hitEffect = Mathf.Clamp01(value); Notify(); } }
     public static bool CombatFacingIndicator { get { Ensure(); return data.combatFacingIndicator; } set { Ensure(); if (data.combatFacingIndicator == value) return; data.combatFacingIndicator = value; Notify(); } }
+
+    public static CombatFacingIndicatorStyle CombatFacingStyle
+    {
+        get { Ensure(); return (CombatFacingIndicatorStyle)data.combatFacingStyle; }
+        set { Ensure(); int style = Mathf.Clamp((int)value, 0, 1); if (data.combatFacingStyle == style) return; data.combatFacingStyle = style; Notify(); }
+    }
+    public static float CombatFacingBrightness
+    {
+        get { Ensure(); return data.combatFacingBrightness; }
+        set { Ensure(); float brightness = NormalizeFacingBrightness(value); if (Mathf.Approximately(data.combatFacingBrightness, brightness)) return; data.combatFacingBrightness = brightness; Notify(); }
+    }
+    private static float NormalizeFacingBrightness(float value) =>
+        float.IsNaN(value) || float.IsInfinity(value) ? 1f : Mathf.Clamp(value, 0f, 2f);
 
     public static FullScreenMode ScreenMode { get { Ensure(); return (FullScreenMode)data.screenMode; } }
     public static Vector2Int Resolution { get { Ensure(); return new Vector2Int(data.width, data.height); } }
@@ -95,6 +112,8 @@ public static class OverburstGameSettings
             // 새 항목은 초기값을 유지한다. 이전 파일에 방향 표시가 없으면 켜짐으로 시작한다.
             var read = new Data { vSync = data.vSync, frameLimit = data.frameLimit, screenMode = data.screenMode, width = data.width, height = data.height };
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
+            read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
+            read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
             data = read;
         }
         catch (Exception error)
@@ -152,7 +171,7 @@ public static class OverburstGameSettings
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
-            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; break;
+            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; break;
         }
         Notify();
     }

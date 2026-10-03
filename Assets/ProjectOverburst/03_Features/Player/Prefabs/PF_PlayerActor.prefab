@@ -1143,6 +1143,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatFacingVfx
   visualRoot: {fileID: 1493800432369782210}
+  quietMeshes:
+  - {fileID: 4300000, guid: 965bb7350170b834699d7b419f4f8ecb, type: 2}
+  - {fileID: 4300000, guid: ca14206ad5406604e90d1b9c6b485b23, type: 2}
+  - {fileID: 4300000, guid: ad43d5bcf2b950844bb278510f9e5e6a, type: 2}
+  - {fileID: 4300000, guid: f853514cf3861e94ca40d87d29b0625f, type: 2}
+  - {fileID: 4300000, guid: fe2c61ed19734764e940eef64735192c, type: 2}
+  - {fileID: 4300000, guid: e7fd207404439a64c95860c17dfc06de, type: 2}
+  extendedMeshes:
+  - {fileID: 4300000, guid: 7532d499f1de4ee4795eda4bccd11825, type: 2}
+  - {fileID: 4300000, guid: 4d0b35dbc582fde42a503f690963f3d3, type: 2}
+  - {fileID: 4300000, guid: 487d0420fcedac34ca945e10fd880e9c, type: 2}
+  - {fileID: 4300000, guid: de9e2de639499c1459defcb364e72660, type: 2}
+  - {fileID: 4300000, guid: bfc1e1b8e495bf2408bb801b1a02fd3c, type: 2}
+  - {fileID: 4300000, guid: e0df6d3d66c00564893f8cefba6bad2b, type: 2}
   worldScale: 0.45
   groundOffset: 0.015
   groundProbeDistance: 2

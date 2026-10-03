@@ -118,6 +118,9 @@ public static class PlayerCombatFacingVfxVerifier
         Check(!string.IsNullOrEmpty(ownedSettings) && Path.GetDirectoryName(settingsPath) == ownedSettings, "실제 계정과 분리한 설정 경로");
         if (string.IsNullOrEmpty(ownedSettings) || Path.GetDirectoryName(settingsPath) != ownedSettings)
             throw new InvalidOperationException("설정 검증은 소유 격리 경로에서만 합니다.");
+        Check(effect.AppliedStyle == OverburstGameSettings.CombatFacingStyle, "새 Play 저장된 모양 초기 적용");
+        var initialBlock = new MaterialPropertyBlock();
+        Check(effect.VisualRoot.GetComponentsInChildren<Renderer>(true).All(r => { r.GetPropertyBlock(initialBlock); return Mathf.Approximately(initialBlock.GetFloat("_SilverBrightness"), OverburstGameSettings.CombatFacingBrightness); }), "새 Play 저장된 밝기 초기 적용");
         var menu = OverburstGameMenu.Instance;
         while (menu == null) { yield return null; menu = OverburstGameMenu.Instance; }
         var panel = menu.settings;
@@ -131,6 +134,7 @@ public static class PlayerCombatFacingVfxVerifier
         menu.Open(); menu.OpenSettings(); panel.tabs[2].isOn = true;
         Check(toggle.isOn == expectedInitial && panel.pages[2].activeSelf, "전투 표시 탭에서 저장 상태 동기화");
         toggle.isOn = true;
+        PlayerCombatFacingOptionsVerifier.VerifyLive(effect, panel, menu, output);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "Settings.png"));
         var uiWait = Wait(.4); while (uiWait.MoveNext()) yield return null;
         toggle.isOn = false;
@@ -207,8 +211,13 @@ public static class PlayerCombatFacingVfxVerifier
         File.WriteAllText(settingsPath, "{\"version\":1,\"cameraShake\":0.37,\"hitEffect\":0.62}");
         ReloadSettings();
         Check(OverburstGameSettings.CombatFacingIndicator && Mathf.Approximately(OverburstGameSettings.CameraShakeScale, .37f) && Mathf.Approximately(OverburstGameSettings.HitEffectScale, .62f), "이전 파일의 다른 값 보존과 새 항목 ON");
-        OverburstGameSettings.CombatFacingIndicator = false; OverburstGameSettings.SaveIfDirty();
+        Check(OverburstGameSettings.CombatFacingStyle == CombatFacingIndicatorStyle.Extended && Mathf.Approximately(OverburstGameSettings.CombatFacingBrightness, 1f), "이전 파일 새 모양/밝기 기본값 보완");
+        OverburstGameSettings.CombatFacingIndicator = false;
+        OverburstGameSettings.CombatFacingStyle = CombatFacingIndicatorStyle.Quiet;
+        OverburstGameSettings.CombatFacingBrightness = .6f;
+        OverburstGameSettings.SaveIfDirty();
         ReloadSettings(); Check(!OverburstGameSettings.CombatFacingIndicator, "다음 Play를 위한 OFF 저장/재로드");
+        Check(OverburstGameSettings.CombatFacingStyle == CombatFacingIndicatorStyle.Quiet && Mathf.Approximately(OverburstGameSettings.CombatFacingBrightness, .6f), "다음 Play를 위한 기존 절제형·60% 저장");
     }
 
     static void Capture(string file)
