@@ -344,7 +344,7 @@ internal sealed class WeaponEffects2Playback : IDisposable
         foreach (var placement in trailPlacements)
             placement.localScale = new Vector3(authoredTrailScale.x * geometryWidth,
                 authoredTrailScale.y * geometryWidth, authoredTrailScale.z);
-        // Fire, dark and light trail particles grow in world space with energy, regardless
+        // Fire, ice, dark and light trail particles grow in world space with energy, regardless
         // of whether their supplier prefab inherits the placement transform's scale.
         foreach (var state in worldTrailSizes)
         {

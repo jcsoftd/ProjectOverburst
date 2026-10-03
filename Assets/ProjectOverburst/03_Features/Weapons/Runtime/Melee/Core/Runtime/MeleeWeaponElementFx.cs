@@ -199,7 +199,8 @@ public sealed class MeleeWeaponElementFx : MonoBehaviour, IWeaponTrailController
             tuning.trailDensity, tuning.trailSpread, tuning.trailParticleSize, tuning.trailParticleLifetime,
             new Vector3(bladeEffectBounds.center.x, bladeEffectBounds.center.y, trailZ),
             new Vector3(tuning.trailScale, tuning.trailScale, trailSpan / WeaponEffects2Playback.AuthoredBladeLength),
-            shownElement == WeaponElement.Fire || shownElement == WeaponElement.Dark || shownElement == WeaponElement.Light);
+            shownElement == WeaponElement.Fire || shownElement == WeaponElement.Ice ||
+            shownElement == WeaponElement.Dark || shownElement == WeaponElement.Light);
     }
     public void BeginTrail()
     {
