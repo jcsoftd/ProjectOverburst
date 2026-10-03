@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MoreMountains.Feedbacks;
 using UnityEngine;
 
-// Reuses supplier Telegraph art and the separate body cue; no extra ground outline.
+// Analytic ground geometry with a reversible supplier Telegraph fallback; body cue stays separate.
 public sealed class EnemyStrongAttackWarning : MonoBehaviour
 {
     [SerializeField] private Transform cueSocket;
@@ -20,6 +20,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private readonly GameObject[] telegraphInstances = new GameObject[3];
     private readonly ParticleSystem[][] telegraphSystems = new ParticleSystem[3][];
     private int activeTelegraph = -1;
+    private ProceduralGroundIndicator procedural;
+    private float warningLeadSeconds = 1f;
     private static EnemyTelegraphVisualLibrary telegraphLibrary;
     private static Camera signalCamera;
     private static readonly HashSet<EnemyStrongAttackWarning> ThreatSignals = new HashSet<EnemyStrongAttackWarning>();
@@ -71,6 +73,31 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             telegraphLibrary = Resources.Load<EnemyTelegraphVisualLibrary>(
                 "Enemies/Balance/EnemyTelegraphVisualLibrary");
         if (telegraphLibrary == null) return;
+
+        if (telegraphLibrary.UseProceduralIndicator && !charge)
+        {
+            if (procedural == null)
+            {
+                var instance = Instantiate(telegraphLibrary.ProceduralIndicator, visual.transform, false);
+                instance.name = "Procedural attack indicator";
+                procedural = instance.GetComponent<ProceduralGroundIndicator>();
+                if (procedural == null) Destroy(instance);
+            }
+            if (procedural != null)
+            {
+                visual.transform.localScale = Vector3.one;
+                procedural.gameObject.SetActive(true);
+                // Live damage covers the center. The reusable prefab's inner radius
+                // remains available for authored annular sectors and donut previews.
+                procedural.Configure(charge ? GroundIndicatorShape.Rectangle
+                    : angle >= 359.9f ? GroundIndicatorShape.Circle : GroundIndicatorShape.Sector,
+                    size, 0f, angle, corridorHalfWidth * 2f, size);
+                warningLeadSeconds = Mathf.Max(.01f, leadSeconds);
+                procedural.SetVisible(true);
+                procedural.SetProgress(0f);
+                return;
+            }
+        }
 
         int kind = charge ? 2 : angle >= 359.9f ? 1 : 0;
         if (telegraphInstances[kind] == null)
@@ -139,6 +166,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     }
     private void StopTelegraph()
     {
+        if (procedural != null) { procedural.SetVisible(false); procedural.gameObject.SetActive(false); }
         if (activeTelegraph < 0) return;
         int kind = activeTelegraph;
         activeTelegraph = -1;
@@ -177,7 +205,9 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             CombatActionSfxService.PlayStrongWarning(transform.position);
         }
         if (signalPlayed) PositionSignal();
-        visual.transform.localScale = new Vector3(radius, 1f, radius);
+        bool proceduralActive = procedural != null && procedural.gameObject.activeSelf;
+        visual.transform.localScale = proceduralActive ? Vector3.one : new Vector3(radius, 1f, radius);
+        if (proceduralActive) procedural.SetProgress(1f - Mathf.Max(0f, seconds) / warningLeadSeconds);
     }
     private void EnsureSignal()
     {

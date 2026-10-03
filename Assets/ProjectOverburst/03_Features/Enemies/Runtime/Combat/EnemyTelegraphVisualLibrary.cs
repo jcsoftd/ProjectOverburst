@@ -4,6 +4,9 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "OVERBURST/Enemies/Telegraph Visual Library")]
 public sealed class EnemyTelegraphVisualLibrary : ScriptableObject
 {
+    [Header("숫자 조절 인디케이터 · 끄면 기존 Telegraph로 복원")]
+    [SerializeField] private bool useProceduralIndicator;
+    [SerializeField] private GameObject proceduralIndicator;
     [SerializeField] private GameObject cone;
     [SerializeField] private GameObject nova;
     [SerializeField] private GameObject rectangle;
@@ -16,6 +19,8 @@ public sealed class EnemyTelegraphVisualLibrary : ScriptableObject
     [SerializeField] private GameObject parrySuccess;
 
     public GameObject Cone => cone;
+    public bool UseProceduralIndicator => useProceduralIndicator && proceduralIndicator != null;
+    public GameObject ProceduralIndicator => proceduralIndicator;
     public GameObject Nova => nova;
     public GameObject Rectangle => rectangle;
     public Material ParryGlint => parryGlint;
