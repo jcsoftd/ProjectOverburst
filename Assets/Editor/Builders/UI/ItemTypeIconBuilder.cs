@@ -33,7 +33,9 @@ public static class ItemTypeIconBuilder
                 else if (path.Contains("ShopPanel"))
                     foreach (SlotUI slot in root.GetComponentsInChildren<SlotUI>(true))
                     {
-                        var badge = Badge(slot.transform, artwork, WeaponElementIconBuilder.ShopBadgeSize);
+                        var host = slot.transform.Find("Shared Visual") ?? slot.transform;
+                        var badge = Badge(host, artwork, WeaponElementIconBuilder.ShopBadgeSize);
+                        slot.GetComponent<OverburstUIItemSlotView>()?.ConfigureTypeIcon(badge);
                         var serialized = new SerializedObject(slot);
                         serialized.FindProperty("itemTypeIcon").objectReferenceValue = badge;
                         serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -48,7 +50,7 @@ public static class ItemTypeIconBuilder
             path = AssetDatabase.GetAssetPath(a.sprite), guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(a.sprite)),
             bounds = new[] { a.bounds.x, a.bounds.y, a.bounds.width, a.bounds.height }, a.opticalScale }),
             slotReference = WeaponElementIconBuilder.SlotBadgeSize, shopReference = WeaponElementIconBuilder.ShopBadgeSize,
-            visibleRatio = .87f, offset = new[] { -5f, 5f } };
+            visibleRatio = .87f, offset = new[] { WeaponElementIconBuilder.BadgeOffset.x, WeaponElementIconBuilder.BadgeOffset.y } };
         File.WriteAllText(Path.Combine(Output, "build-results.json"), JsonConvert.SerializeObject(report, Formatting.Indented));
     }
 
@@ -101,7 +103,7 @@ public static class ItemTypeIconBuilder
         child.gameObject.layer = parent.gameObject.layer;
         var rect = (RectTransform)child;
         rect.anchorMin = rect.anchorMax = rect.pivot = WeaponElementIconBuilder.BadgeAnchor;
-        rect.anchoredPosition = WeaponElementIconBuilder.GetBadgeOffset(size);
+        rect.anchoredPosition = WeaponElementIconBuilder.BadgeOffset;
         rect.sizeDelta = Vector2.one * size;
         child.SetAsLastSibling();
         Transform imageChild = child.Find("Icon");

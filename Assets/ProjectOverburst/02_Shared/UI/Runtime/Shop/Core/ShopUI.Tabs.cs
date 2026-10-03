@@ -6,6 +6,16 @@ using UnityEngine.UI;
 // ShopUI partial: 거래·퀘스트·특산 탭. 필드와 Unity 수명주기는 ShopUI.cs에 있다.
 public partial class ShopUI
 {
+    public bool IsSelectedTab(Button button)
+    {
+        if (button == null) return false;
+        if (button == tradeTabButton) return activeTab == ShopTab.Trade;
+        if (button == questTabButton) return activeTab == ShopTab.Quest;
+        if (button == firstSpecialtyTabButton) return activeTab == specialtyButtonTabs[0];
+        if (button == secondSpecialtyTabButton) return activeTab == specialtyButtonTabs[1];
+        return false;
+    }
+
     public void ShowTradeTab()
     {
         SetActiveTab(ShopTab.Trade, true);

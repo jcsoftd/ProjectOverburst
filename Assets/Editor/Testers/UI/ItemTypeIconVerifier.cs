@@ -40,7 +40,7 @@ public static class ItemTypeIconVerifier
                     var rect = (RectTransform)badge.transform;
                     var element = badge.transform.parent.Find("Weapon Element Badge") as RectTransform;
                     Check(rect.anchorMin == WeaponElementIconBuilder.BadgeAnchor && rect.anchorMax == rect.anchorMin
-                        && rect.pivot == rect.anchorMin && rect.anchoredPosition == WeaponElementIconBuilder.GetBadgeOffset(rect.sizeDelta.x),
+                        && rect.pivot == rect.anchorMin && rect.anchoredPosition == WeaponElementIconBuilder.BadgeOffset,
                         "Bottom right position: " + badge.transform.parent.name);
                     if (element) Check(rect.sizeDelta == element.sizeDelta, "Same reference size as element: " + badge.transform.parent.name);
                     Check(badge.GetComponentsInChildren<Graphic>(true).All(g => !g.raycastTarget), "Badge does not intercept input");
@@ -104,7 +104,7 @@ public static class ItemTypeIconVerifier
             var shared = AssetDatabase.LoadAssetAtPath<GameObject>(ItemTypeIconBuilder.SharedSlot);
             var shop = AssetDatabase.LoadAssetAtPath<GameObject>(ItemTypeIconBuilder.Prefabs[1]).GetComponentsInChildren<SlotUI>(true)[0].gameObject;
             Label(canvas.transform, "84px slots / type badge 23 / existing element badge 23", new Vector2(-610, 155), 14);
-            Label(canvas.transform, "65px shop slots / type badge 21 / existing element badge 21", new Vector2(-610, -20), 14);
+            Label(canvas.transform, "84px shop slots / shared type badge 23 / element badge 23", new Vector2(-610, -20), 14);
             string[] labels = ItemTypeIconBuilder.Names.Concat(new[] { "Fire", "Ice", "Electric", "Dark", "Light" }).ToArray();
             for (int row = 0; row < 2; row++)
                 for (int i = 0; i < samples.Length; i++)
@@ -113,7 +113,7 @@ public static class ItemTypeIconVerifier
                     var rect = (RectTransform)slot.transform;
                     rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * .5f;
                     rect.anchoredPosition = new Vector2(-564 + i * 94, row == 0 ? 77 : -99);
-                    rect.localScale = Vector3.one; rect.sizeDelta = Vector2.one * (row == 0 ? 84 : 65);
+                    rect.localScale = Vector3.one; rect.sizeDelta = Vector2.one * 84;
                     SlotUI runtime = slot.GetComponent<SlotUI>();
                     if (!runtime && row == 0) runtime = slot.AddComponent<SlotUI>();
                     runtime.SetDisplayItem(samples[i]);

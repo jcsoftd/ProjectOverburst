@@ -12,12 +12,10 @@ public static class WeaponElementIconBuilder
     public const string IconRoot = "Assets/ProjectOverburst/Resources/UI/WeaponElements/";
     public const string Output = "../개인파일/코덱스산출/UI/20261001_WeaponElementIcons";
     public const float SlotBadgeSize = 23f;
-    public const float ShopBadgeSize = 21f;
+    public const float ShopBadgeSize = SlotBadgeSize;
     public const float HudIconSize = 46f;
     public static readonly Vector2 BadgeAnchor = new Vector2(1f, 0f);
     public static readonly Vector2 BadgeOffset = new Vector2(-7f, 7f);
-    public static readonly Vector2 ShopBadgeOffset = new Vector2(-6f, 6f);
-    public static Vector2 GetBadgeOffset(float size) => size == ShopBadgeSize ? ShopBadgeOffset : BadgeOffset;
     const string Circle = "Assets/ThirdParty/RPG and MMO UI 11/Textures/HUD/Unit Frames/Unit Frame/UnitFrame_Level_Frame.png";
     static readonly string[] Elements = { "Fire", "Ice", "Electric", "Dark", "Light" };
 
@@ -32,7 +30,7 @@ public static class WeaponElementIconBuilder
             foreach (RectTransform rect in asset.GetComponentsInChildren<RectTransform>(true))
             {
                 if (rect.name != "Weapon Element Badge" && rect.name != "Item Type Badge") continue;
-                var offset = GetBadgeOffset(rect.sizeDelta.x);
+                var offset = BadgeOffset;
                 if (rect.anchoredPosition == offset) continue;
                 // 프리팹 원본의 위치만 기록해 미리보기 콜백의 다른 시각 변경을 저장하지 않는다.
                 var serialized = new SerializedObject(rect);
@@ -77,7 +75,9 @@ public static class WeaponElementIconBuilder
                 {
                     foreach (SlotUI slot in root.GetComponentsInChildren<SlotUI>(true))
                     {
-                        var badge = Badge(slot.transform, sprites, circle, ShopBadgeSize);
+                        var host = slot.transform.Find("Shared Visual") ?? slot.transform;
+                        var badge = Badge(host, sprites, circle, ShopBadgeSize);
+                        slot.GetComponent<OverburstUIItemSlotView>()?.ConfigureElementIcon(badge);
                         var serialized = new SerializedObject(slot);
                         serialized.FindProperty("weaponElementIcon").objectReferenceValue = badge;
                         serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -162,7 +162,7 @@ public static class WeaponElementIconBuilder
         frame.color = Color.white;
         var rect = frame.rectTransform;
         rect.anchorMin = rect.anchorMax = rect.pivot = BadgeAnchor;
-        rect.anchoredPosition = GetBadgeOffset(size);
+        rect.anchoredPosition = BadgeOffset;
         rect.sizeDelta = Vector2.one * size;
         frame.transform.SetAsLastSibling();
         Image icon = ImageChild(frame.transform, "Icon");
