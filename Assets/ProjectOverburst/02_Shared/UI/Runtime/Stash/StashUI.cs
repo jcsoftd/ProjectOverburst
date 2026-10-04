@@ -125,9 +125,7 @@ public class StashUI : MonoBehaviour // 창고 UI
             return;
 
         SlotUI dragOrigin = DragSlot.OriginSlot;
-        if (dragOrigin != null &&
-            (slotBridge != null && ReferenceEquals(dragOrigin.OwnerBridge, slotBridge) ||
-             inventoryUI != null && dragOrigin.transform.IsChildOf(inventoryUI.transform)))
+        if (OwnsDragOrigin(dragOrigin))
         {
             DragSlot.ClearDragState(); // 패널을 숨기기 전에 창고 세션 드래그 취소
         }
@@ -146,6 +144,28 @@ public class StashUI : MonoBehaviour // 창고 UI
             if (!inventoryWasOpenBeforeStash)
                 inventoryUI.SetVisible(false); // 원래 숨김
         }
+    }
+
+    // EventSystem의 드래그 완료가 Update보다 먼저 실행되어도 닫기 입력을 먼저 반영한다.
+    public static bool ShouldCancelDragForPendingClose(SlotUI dragOrigin)
+    {
+        PlayerInputFacade facade = PlayerInputFacade.Current;
+        if (dragOrigin == null || facade == null ||
+            !(facade.InventoryPressedThisFrame || facade.UiCancelPressedThisFrame))
+            return false;
+
+        // 드래그 완료 시에만 조회한다. 열린 창고와 연결된 출발 슬롯에 한정한다.
+        foreach (StashUI stash in FindObjectsByType<StashUI>(FindObjectsSortMode.None))
+            if (stash.IsOpen && stash.OwnsDragOrigin(dragOrigin))
+                return true;
+        return false;
+    }
+
+    private bool OwnsDragOrigin(SlotUI dragOrigin)
+    {
+        return dragOrigin != null &&
+            (slotBridge != null && ReferenceEquals(dragOrigin.OwnerBridge, slotBridge) ||
+             inventoryUI != null && dragOrigin.transform.IsChildOf(inventoryUI.transform));
     }
 
     public void HideTooltip()

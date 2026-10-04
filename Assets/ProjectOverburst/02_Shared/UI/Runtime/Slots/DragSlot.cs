@@ -125,6 +125,12 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
 
+        if (StashUI.ShouldCancelDragForPendingClose(OriginSlot))
+        {
+            ClearDragState(); // 닫기와 클릭 해제가 같은 프레임이면 소유권을 변경하지 않는다.
+            return;
+        }
+
         bool handled = dropHandled || TryHandleUiDrop(eventData); // UI 우선
         if (!handled && !IsPointerOverAnyUi(eventData))
             TryHandleExternalDropFromOrigin(eventData); // UI 밖
