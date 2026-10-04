@@ -135,6 +135,7 @@ public static partial class OverburstUIWorkshopBuilder
         action.anchoredPosition=new Vector2(0,14);
         var region=go.transform.Find("Current Region");var title=region.Find("Region Name").GetComponent<Text>();TextStyle(title,26,Gold,true);
         var detail=region.Find("Region Details").GetComponent<Text>();TextStyle(detail,16,Muted);detail.lineSpacing=1.35f;
+        RegionHudReadabilityBuilder.ApplyToHud(go);
         var unit=go.transform.Find("Action Bar Unit Frame");
         ((RectTransform)unit).anchoredPosition+=new Vector2(0,14);
         foreach(var barName in new[]{"Bar (Health)","Bar (Power)"}){
