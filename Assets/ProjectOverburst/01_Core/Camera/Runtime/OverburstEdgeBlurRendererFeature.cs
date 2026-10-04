@@ -4,7 +4,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
-// 임시 비교 토글이 켜진 주 카메라에만 가장자리 흐림을 합성한다.
+// 저장된 가장자리 흐림 설정을 주 카메라에 합성한다.
 public sealed class OverburstEdgeBlurRendererFeature : ScriptableRendererFeature
 {
     public const string ShaderName = "Hidden/OVERBURST/EdgeBlur";
@@ -30,10 +30,8 @@ public sealed class OverburstEdgeBlurRendererFeature : ScriptableRendererFeature
         if (!Application.isPlaying || material == null ||
             cameraData.cameraType != CameraType.Game || cameraData.renderType != CameraRenderType.Base ||
             !cameraData.camera.CompareTag("MainCamera")) return;
-        bool momentActive = CombatMomentPresentation.TryGetScreen(cameraData.camera, out float gain, out Vector2 center);
-        if (!OverburstEdgeBlur.IsEnabled && !momentActive) return;
-        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlur.IsEnabled ? OverburstEdgeBlur.CurrentStrength : 0f);
-        material.SetVector("_MomentPulse", new Vector4(center.x, center.y, gain, 0f));
+        if (!OverburstEdgeBlur.IsEnabled) return;
+        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlur.CurrentStrength);
         renderer.EnqueuePass(pass);
     }
 

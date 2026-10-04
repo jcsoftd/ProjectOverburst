@@ -155,7 +155,6 @@ public partial class MeleeRuntime
         var melee=activeWeaponData.GetMeleeDefinition();
         var pattern=phase.ResolvePattern(activeStats.range,activeStats.meleeSlashAngle,melee.baseSettings.hitWidth);
         Vector3 center=transform.position+activeAttackDirection*pattern.ForwardOffset;
-        CombatMomentPresentation.Heavy(playerEquipment,activeActionId,0,activeDischarge,center,activeAttackDirection,pattern.Width*.5f,true);
         heavyDischargeExecutor.Begin(activeDischarge,activeHeavyDefinition,combatTarget,gameObject,
             center,activeAttackDirection,pattern.Width*.5f,pattern.VerticalTolerance,true);
         if(activeDischarge.Element==WeaponElement.Dark)

@@ -33,10 +33,6 @@ public static class OverburstGameSettings
         public bool combatFacingIndicator = true;
         public int combatFacingStyle = (int)CombatFacingIndicatorStyle.Extended;
         public float combatFacingBrightness = 1f;
-        public bool parryPresentation = true;
-        public float parryPresentationIntensity = 1f;
-        public bool heavyPresentation = true;
-        public float heavyPresentationIntensity = 1f;
         public bool edgeBlur=true;
         public float explorationEdgeBlurIntensity=.72f,combatEdgeBlurIntensity=.42f;
         public bool motionBlur;
@@ -70,10 +66,6 @@ public static class OverburstGameSettings
     private static float NormalizeFacingBrightness(float value) =>
         float.IsNaN(value) || float.IsInfinity(value) ? 1f : Mathf.Clamp(value, 0f, 2f);
 
-    public static bool ParryPresentationEnabled { get { Ensure(); return data.parryPresentation; } set { Ensure(); if(data.parryPresentation==value)return; data.parryPresentation=value; Notify(); } }
-    public static float ParryPresentationIntensity { get { Ensure(); return data.parryPresentationIntensity; } set { Ensure(); float v=NormalizeEffect(value,1f,2f); if(Mathf.Approximately(data.parryPresentationIntensity,v))return; data.parryPresentationIntensity=v; Notify(); } }
-    public static bool HeavyPresentationEnabled { get { Ensure(); return data.heavyPresentation; } set { Ensure(); if(data.heavyPresentation==value)return; data.heavyPresentation=value; Notify(); } }
-    public static float HeavyPresentationIntensity { get { Ensure(); return data.heavyPresentationIntensity; } set { Ensure(); float v=NormalizeEffect(value,1f,2f); if(Mathf.Approximately(data.heavyPresentationIntensity,v))return; data.heavyPresentationIntensity=v; Notify(); } }
     public static bool EdgeBlurEnabled { get { Ensure(); return data.edgeBlur; } set { Ensure(); if(data.edgeBlur==value)return; data.edgeBlur=value; Notify(); } }
     public static float ExplorationEdgeBlurIntensity { get { Ensure(); return data.explorationEdgeBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.72f,1f); if(Mathf.Approximately(data.explorationEdgeBlurIntensity,v))return; data.explorationEdgeBlurIntensity=v; Notify(); } }
     public static float CombatEdgeBlurIntensity { get { Ensure(); return data.combatEdgeBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.42f,1f); if(Mathf.Approximately(data.combatEdgeBlurIntensity,v))return; data.combatEdgeBlurIntensity=v; Notify(); } }
@@ -133,8 +125,6 @@ public static class OverburstGameSettings
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
             read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
-            read.parryPresentationIntensity = NormalizeEffect(read.parryPresentationIntensity,1f,2f);
-            read.heavyPresentationIntensity = NormalizeEffect(read.heavyPresentationIntensity,1f,2f);
             read.motionBlurIntensity = NormalizeEffect(read.motionBlurIntensity,.01f,1f);
             read.explorationEdgeBlurIntensity=NormalizeEffect(read.explorationEdgeBlurIntensity,.72f,1f);read.combatEdgeBlurIntensity=NormalizeEffect(read.combatEdgeBlurIntensity,.42f,1f);
             data = read;
@@ -194,7 +184,7 @@ public static class OverburstGameSettings
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
-            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.parryPresentation=defaults.parryPresentation; data.parryPresentationIntensity=defaults.parryPresentationIntensity; data.heavyPresentation=defaults.heavyPresentation; data.heavyPresentationIntensity=defaults.heavyPresentationIntensity; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
+            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
         }
         Notify();
     }

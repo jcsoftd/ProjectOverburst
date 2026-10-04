@@ -254,7 +254,7 @@ public static class OverburstGameMenuBuilder
         panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, false);
 
         AddCombatFacingOptions(panel, combat);
-        AddPresentationOptions(panel);
+        AddScreenEffectOptions(panel);
 
         BuildControls(panel, (RectTransform)panel.pages[3].transform);
 
@@ -281,7 +281,7 @@ public static class OverburstGameMenuBuilder
 
     // 설정 한 줄: 왼쪽에 이름·설명, 오른쪽에 조작 칸. 줄 사이는 장비 창과 같은 구분선.
     // 모든 탭·아래 줄이 같은 두 세로선(왼쪽 RowInset, 오른쪽 창폭-RowInset)에 맞춘다.
-    public static void AddPresentationSettings()
+    public static void AddScreenEffectSettings()
     {
         PlayerCombatFacingVfxBuilder.RequireIdle();
         LoadFonts();
@@ -290,13 +290,13 @@ public static class OverburstGameMenuBuilder
         var root=PrefabUtility.LoadPrefabContents(PrefabPath);
         try
         {
-            AddPresentationOptions(root.GetComponentInChildren<OverburstSettingsPanel>(true));
+            AddScreenEffectOptions(root.GetComponentInChildren<OverburstSettingsPanel>(true));
             PrefabUtility.SaveAsPrefabAsset(root,PrefabPath,out bool saved);
             if(!saved)throw new System.InvalidOperationException("Settings prefab save failed.");
         }
         finally{PrefabUtility.UnloadPrefabContents(root);}
     }
-    private static void AddPresentationOptions(OverburstSettingsPanel panel)
+    private static void AddScreenEffectOptions(OverburstSettingsPanel panel)
     {
         var page=(RectTransform)panel.pages[2].transform;
         if(panel.combatScroll==null)
@@ -319,20 +319,16 @@ public static class OverburstGameMenuBuilder
             scrollbar.navigation=new Navigation{mode=Navigation.Mode.None};scroll.verticalScrollbar=scrollbar;
             panel.combatScroll=scroll;
         }
-        var content=panel.combatScroll.content;content.sizeDelta=new Vector2(0,1770);
-        if(panel.parryPresentation==null)
-            EffectRow(content,5,"패링 연출","패링 성공 순간의 금속 불꽃과 검날 빛",true,1,2,out panel.parryPresentation,out panel.parryPresentationIntensity);
-        if(panel.heavyPresentation==null)
-            EffectRow(content,6,"완충 강공 연출","에너지가 가득 찬 강공의 원소 발광과 화면 반응",true,1,2,out panel.heavyPresentation,out panel.heavyPresentationIntensity);
+        var content=panel.combatScroll.content;content.sizeDelta=new Vector2(0,1430);
         if(panel.motionBlur==null)
-            EffectRow(content,7,"모션블러","움직이는 카메라와 캐릭터의 잔상 · 기본 꺼짐",false,.01f,1,out panel.motionBlur,out panel.motionBlurIntensity);
+            EffectRow(content,5,"모션블러","움직이는 카메라와 캐릭터의 잔상 · 기본 꺼짐",false,.01f,1,out panel.motionBlur,out panel.motionBlurIntensity);
         if(panel.edgeBlur==null)
-            EffectRow(content,8,"가장자리 흐림","탐험 중 화면 가장자리를 부드럽게 흐립니다",true,.72f,1,out panel.edgeBlur,out panel.explorationEdgeBlurIntensity);
+            EffectRow(content,6,"가장자리 흐림","탐험 중 화면 가장자리를 부드럽게 흐립니다",true,.72f,1,out panel.edgeBlur,out panel.explorationEdgeBlurIntensity);
         if(panel.combatEdgeBlurIntensity==null)
-            panel.combatEdgeBlurIntensity=SliderRow(content,9,"전투 중 흐림 강도","전투 중에는 이 강도로 가장자리 흐림을 적용합니다",.42f,true);
+            panel.combatEdgeBlurIntensity=SliderRow(content,7,"전투 중 흐림 강도","전투 중에는 이 강도로 가장자리 흐림을 적용합니다",.42f,true);
         var rows=new[]{panel.cameraShake.transform.parent.parent,panel.hitEffect.transform.parent.parent,panel.combatFacingIndicator.transform.parent.parent,
             panel.combatFacingStyle.transform.parent.parent,panel.combatFacingBrightness.transform.parent.parent,
-            panel.parryPresentation.transform.parent.parent,panel.heavyPresentation.transform.parent.parent,panel.motionBlur.transform.parent.parent,panel.edgeBlur.transform.parent.parent,panel.combatEdgeBlurIntensity.transform.parent.parent};
+            panel.motionBlur.transform.parent.parent,panel.edgeBlur.transform.parent.parent,panel.combatEdgeBlurIntensity.transform.parent.parent};
         for(int i=0;i<rows.Length;i++)
         {
             float y=RowTop-i*170;

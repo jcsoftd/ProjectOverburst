@@ -18,8 +18,6 @@ public sealed class PlayerParryController : MonoBehaviour
     private CombatHealth health;
     private CombatTarget playerTarget;
     private ParrySuccessVfx successVfx;
-    private PlayerEquipment momentEquipment;
-    private ElementGemAttackSnapshot pendingMomentSnapshot;
     private readonly List<EnemyRank> activeEnemies = new List<EnemyRank>(160);
     private readonly List<EnemyActor> eligibleEnemies = new List<EnemyActor>(12);
     private readonly HashSet<EnemyActor> parriedThisAction = new HashSet<EnemyActor>();
@@ -44,7 +42,6 @@ public sealed class PlayerParryController : MonoBehaviour
         melee = GetComponent<MeleeRuntime>();
         health = GetComponent<CombatHealth>();
         playerTarget = GetComponent<CombatTarget>();
-        momentEquipment = GetComponent<PlayerEquipment>();
         successVfx = GetComponent<ParrySuccessVfx>();
         if (successVfx == null) successVfx = gameObject.AddComponent<ParrySuccessVfx>();
     }
@@ -108,7 +105,6 @@ public sealed class PlayerParryController : MonoBehaviour
     // Snapshot the threat list first, then cancel every target in it, then play one shared event.
     private void ResolveParry(List<EnemyActor> enemies)
     {
-        var momentSnapshot = new ElementGemAttackSnapshot(momentEquipment);
         bool anyStrong = false;
         Vector3 center = Vector3.zero;
         Vector3 playerCenter = playerTarget != null ? playerTarget.CurrentVolume.Center
@@ -140,14 +136,13 @@ public sealed class PlayerParryController : MonoBehaviour
             pendingFeedbackCount = enemies.Count;
             pendingFeedbackStrong = anyStrong;
             pendingFeedbackChain = chainIndex;
-            pendingMomentSnapshot = momentSnapshot;
             pendingFeedbackEnemies.Clear();
             pendingFeedbackEnemies.AddRange(parriedThisAction);
         }
         else
         {
             FlushPendingFeedback();
-            PlaySuccessWithChain(center, enemies.Count, anyStrong, chainIndex, parriedThisAction, momentSnapshot);
+            PlaySuccessWithChain(center, enemies.Count, anyStrong, chainIndex, parriedThisAction);
         }
         chainIndex++;
     }
@@ -191,22 +186,19 @@ public sealed class PlayerParryController : MonoBehaviour
         if (!feedbackPending) return;
         feedbackPending = false;
         PlaySuccessWithChain(pendingFeedbackCenter, pendingFeedbackCount, pendingFeedbackStrong,
-            pendingFeedbackChain, pendingFeedbackEnemies, pendingMomentSnapshot);
+            pendingFeedbackChain, pendingFeedbackEnemies);
         pendingFeedbackEnemies.Clear();
     }
 
     private void PlaySuccess(Vector3 center, int parriedCount, bool anyStrong)
     {
-        PlaySuccessWithChain(center, parriedCount, anyStrong, chainIndex, parriedThisAction, new ElementGemAttackSnapshot(momentEquipment));
+        PlaySuccessWithChain(center, parriedCount, anyStrong, chainIndex, parriedThisAction);
     }
 
     private void PlaySuccessWithChain(Vector3 center, int parriedCount, bool anyStrong,
-        int feedbackChain, ICollection<EnemyActor> feedbackEnemies, ElementGemAttackSnapshot momentSnapshot)
+        int feedbackChain, ICollection<EnemyActor> feedbackEnemies)
     {
         ParryFeedbackService.Tier tier = ParryFeedbackService.ResolveTier(parriedCount, anyStrong);
-        int momentTier = parriedCount >= 4 ? 2 : parriedCount >= 2 ? 1 : 0;
-        if (anyStrong) momentTier = Mathf.Min(2, momentTier + 1);
-        CombatMomentPresentation.Parry(momentEquipment, actionId, feedbackChain, momentTier, momentSnapshot, center, center - transform.position);
         CombatActionSfxService.PlayParrySuccess(center);
         ParryFeedbackService.Play(center, transform.position, tier, parriedCount, feedbackChain, feedbackEnemies);
         // 히트스톱은 매번, 슬로우는 1.5초에 한 번만. 두 요청은 종류별로 따로 유지된다.
