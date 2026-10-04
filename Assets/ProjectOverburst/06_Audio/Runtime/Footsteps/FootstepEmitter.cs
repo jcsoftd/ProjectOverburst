@@ -10,6 +10,7 @@ public struct PlayerFootstepContact
     public int StateHash;
     public int Foot;
     public int Frame;
+    public int OccurrenceLoop;
     public float NormalizedTime;
     public float EventSeconds;
     public float EventWeight;
@@ -225,7 +226,7 @@ public sealed class FootstepEmitter : MonoBehaviour
             if (candidate.Clip != selectedClip || candidate.StateHash != selectedStateHash)
             { RejectedEventCount++; continue; }
             float clipPhase = ContactClipPhase(candidate);
-            int foot = candidate.Foot, loop = Mathf.FloorToInt(clipPhase);
+            int foot = candidate.Foot, loop = ContactOccurrenceLoop(candidate);
             if (lastFootClips[foot] == candidate.Clip && lastFootStates[foot] == candidate.StateHash
                 && lastFootLoops[foot] == loop && Mathf.Abs(lastFootEventSeconds[foot] - candidate.EventSeconds) < .0001f)
             { RejectedEventCount++; continue; }
@@ -236,13 +237,14 @@ public sealed class FootstepEmitter : MonoBehaviour
         if (newest < 0) return;
         CatchUpDiscardCount += Mathf.Max(0, valid - 1);
         var contact = candidates[newest];
+        contact.OccurrenceLoop = ContactOccurrenceLoop(contact);
         if (IsFootAboveCachedGround(contact.Foot))
         { ElevatedContactDiscardCount++; return; }
         if (Time.time - lastFootTimes[contact.Foot] < minimumSameFootInterval)
         { RejectedEventCount++; return; }
         if (!Emit(contact.Kind, FootSample(contact.Foot))) return;
         lastFootTimes[contact.Foot] = Time.time;
-        lastFootLoops[contact.Foot] = Mathf.FloorToInt(ContactClipPhase(contact));
+        lastFootLoops[contact.Foot] = contact.OccurrenceLoop;
         lastFootStates[contact.Foot] = contact.StateHash;
         lastFootClips[contact.Foot] = contact.Clip;
         lastFootEventSeconds[contact.Foot] = contact.EventSeconds;
@@ -312,6 +314,12 @@ public sealed class FootstepEmitter : MonoBehaviour
         float heelHeight = Vector3.Dot(normal, heel.position - groundOrigin) / normal.y;
         float toeHeight = Vector3.Dot(normal, toe.position - groundOrigin) / normal.y;
         return Mathf.Min(heelHeight, toeHeight) > maximumContactHeight;
+    }
+    private int ContactOccurrenceLoop(PlayerFootstepContact contact)
+    {
+        // A contact near the clip end can arrive after the wrap. Identify the
+        // event's occurrence so the next real contact does not share its key.
+        return Mathf.FloorToInt(ContactClipPhase(contact) - contact.EventSeconds / contact.Clip.length);
     }
     private float ContactClipPhase(PlayerFootstepContact contact)
     {

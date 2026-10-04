@@ -260,7 +260,13 @@ public static partial class PlayerFootstepProductVerifier
         Check(animator.GetCurrentAnimatorStateInfo(layer).shortNameHash == expected, "이동 루프 상태 진입 " + stateName);
         float start = animator.GetCurrentAnimatorStateInfo(layer).normalizedTime;
         while (Time.unscaledTime < limit && animator.GetCurrentAnimatorStateInfo(layer).normalizedTime - start < loops) yield return null;
-        Check(animator.GetCurrentAnimatorStateInfo(layer).normalizedTime - start >= loops, "실제 Animator 루프 진행 " + loops);
+        var finalState = animator.GetCurrentAnimatorStateInfo(layer);
+        Check(finalState.normalizedTime - start >= loops, "실제 Animator 루프 진행 " + loops
+            + " progressed=" + (finalState.normalizedTime - start) + " state=" + finalState.shortNameHash
+            + " expected=" + expected + " timeScale=" + Time.timeScale + " paused=" + OverburstTimeEffectArbiter.IsPaused
+            + " menu=" + OverburstGameMenu.IsOpen + " gameplay=" + input.IsGameplayEnabled
+            + " blocked=" + GameplayInputBlocker.IsGameplayInputBlocked + " animatorSpeed=" + animator.speed
+            + " position=" + actor.transform.position + " grounded=" + actor.GetComponent<OverburstCharacterMotor3D>().IsGrounded);
     }
     static void Send(bool move = false, bool shift = false, bool left = false, bool right = false)
     {
@@ -397,6 +403,31 @@ public static partial class PlayerFootstepProductVerifier
 }
 public static partial class PlayerFootstepProductVerifier
 {
+    static void CheckStableContactLoops(string phase, IEnumerable<PlayerFootstepContact> source, int requestedLoops,
+        FootstepEmitter emitter, int[] discardBefore, List<object> statistics)
+    {
+        var contacts = source.ToArray();
+        var left = contacts.Where(c => c.Foot == 0).ToArray();
+        var right = contacts.Where(c => c.Foot == 1).ToArray();
+        Check(left.Length > 0 && right.Length > 0, phase + " 좌우 접지 수신");
+        // Trim the entry/exit boundaries. Every remaining completed cycle must
+        // contain exactly one contact for each foot; a total-count tolerance
+        // must not hide a missing or duplicate occurrence.
+        int first = Math.Max(left.Min(c => c.OccurrenceLoop), right.Min(c => c.OccurrenceLoop)) + 1;
+        int last = Math.Min(left.Max(c => c.OccurrenceLoop), right.Max(c => c.OccurrenceLoop)) - 1;
+        int complete = Math.Max(0, last - first + 1);
+        var invalid = Enumerable.Range(first, complete).SelectMany(loop => new[] { 0, 1 }.Select(foot => new {
+            loop, foot, count = contacts.Count(c => c.OccurrenceLoop == loop && c.Foot == foot)
+        }).Where(x => x.count != 1)).ToArray();
+        int catchUpDiscards = emitter.CatchUpDiscardCount - discardBefore[0];
+        int elevatedDiscards = emitter.ElevatedContactDiscardCount - discardBefore[1];
+        statistics.Add(new { phase, requestedLoops, first, last, complete, leftContacts = left.Length, rightContacts = right.Length,
+            invalid, catchUpDiscards, elevatedDiscards });
+        Check(complete >= Math.Max(1, requestedLoops - 3), phase + " 완료 루프 검사 범위 " + complete);
+        Check(invalid.Length == 0, phase + " 완료 루프별 좌우 누락·중복0"
+            + " invalid=" + invalid.Length + " catchUpDiscards=" + catchUpDiscards + " elevatedDiscards=" + elevatedDiscards);
+    }
+
     public static void StartFootstepIsolated(string directory)
     {
         PlayerFootstepNativeContactBuilder.RequireIdle();
@@ -410,7 +441,7 @@ public static partial class PlayerFootstepProductVerifier
         var motor = actor.GetComponent<OverburstCharacterMotor3D>(); var rig = animator.GetComponent<HumanoidFootContactRig>();
         var voice = Field<AudioSource>(emitter, "audioSource");
         var contacts = new List<object>(); var accepted = new List<PlayerFootstepContact>();
-        var emitFrames = new HashSet<int>(); var phases = new List<object>();
+        var emitFrames = new HashSet<int>(); var phases = new List<object>(); var continuity = new List<object>();
         int duplicateFrames = 0, unsafeContacts = 0; string phase = "setup";
         float oldSpeed = animator.speed; int oldRate = Application.targetFrameRate, oldVsync = QualitySettings.vSyncCount;
         bool oldWalk = Field<bool>(movement, "isWalkMode");
@@ -423,7 +454,7 @@ public static partial class PlayerFootstepProductVerifier
                 || melee.IsAttackInProgress || GameplayInputBlocker.IsGameplayInputBlocked || Time.timeScale <= 0) unsafeContacts++;
             Transform heel = c.Foot == 0 ? rig.LeftHeel : rig.RightHeel, toe = c.Foot == 0 ? rig.LeftToe : rig.RightToe;
             contacts.Add(new { phase, frame = Time.frameCount, scaledTime = Time.time, dt = Time.deltaTime, c.Foot,
-                clip = c.Clip.name, c.StateHash, c.EventSeconds, c.NormalizedTime, c.EventWeight, c.SelectedWeight,
+                clip = c.Clip.name, c.StateHash, c.EventSeconds, c.NormalizedTime, c.OccurrenceLoop, c.EventWeight, c.SelectedWeight,
                 soleHeight = Mathf.Min(heel.position.y, toe.position.y) - motor.GroundSurfaceHeight,
                 probePosition = new[] { emitter.LastSamplePosition.x, emitter.LastSamplePosition.y, emitter.LastSamplePosition.z },
                 profile = emitter.LastProfile.name, voicePlaying = voice != null && voice.isPlaying });
@@ -444,34 +475,42 @@ public static partial class PlayerFootstepProductVerifier
             {
                 phase = walking ? "ExplorationWalk20" : "ExplorationRun20"; yield return Reset(false);
                 movement.GetType().GetField("isWalkMode", Private).SetValue(movement, walking);
-                int start = accepted.Count; Send(true); yield return WaitLocomotionLoops(0, "NormalMove", 20); Send(); yield return Frames(2);
+                int start = accepted.Count; var discardBefore = new[] { emitter.CatchUpDiscardCount, emitter.ElevatedContactDiscardCount };
+                Send(true); yield return WaitLocomotionLoops(0, "NormalMove", 20); Send(); yield return Frames(2);
                 var segment = accepted.Skip(start).ToArray();
-                Check(segment.Length >= 36 && segment.Skip(3).All(c => c.Clip.name == (walking ? "Walk_Lfoot_JawFixed" : "Jog_Lfoot_JawFixed")), phase + " 20루프 접지 이벤트");
-                Check(segment.Select(c => c.Foot).Distinct().Count() == 2, phase + " 좌우 접지 수신");
+                string expectedClip = walking ? "Walk_Lfoot_JawFixed" : "Jog_Lfoot_JawFixed";
+                Check(segment.Length > 0 && segment.Skip(3).All(c => c.Clip.name == expectedClip), phase + " 접지 원본 클립");
+                CheckStableContactLoops(phase, segment.Where(c => c.Clip.name == expectedClip), 20, emitter, discardBefore, continuity);
                 phases.Add(new { phase, contacts = segment.Length, legacySteps = emitter.LegacyStepCount }); Progress(phase);
             }
             movement.GetType().GetField("isWalkMode", Private).SetValue(movement, false);
             foreach (float angle in new[] { 0f, 180f, -90f, 90f, -45f, 45f, -135f, 135f })
             {
                 phase = "CombatDirection" + angle; yield return Reset(true, angle); int start = accepted.Count;
+                var discardBefore = new[] { emitter.CatchUpDiscardCount, emitter.ElevatedContactDiscardCount };
                 Send(true); yield return WaitLocomotionLoops(animator.GetLayerIndex("Combat_MeleeWeapon"), "Melee_Locomotion", 10); Send(); yield return Frames(2);
                 var segment = accepted.Skip(start).ToArray();
                 phases.Add(new { phase, contacts = segment.Length, clips = segment.Select(c => c.Clip.name).Distinct().ToArray() }); Progress(phase);
-                Check(segment.Length >= 16 && segment.All(c => c.Clip.name.StartsWith("Sword_Loop_") || c.Clip.name.StartsWith("Sword_Start_")), phase + " 10루프 이동 접지 count=" + segment.Length
+                Check(segment.Length > 0 && segment.All(c => c.Clip.name.StartsWith("Sword_Loop_") || c.Clip.name.StartsWith("Sword_Start_")), phase + " 이동 접지 원본 count=" + segment.Length
                     + " clips=" + string.Join(",",segment.Select(c=>c.Clip.name).Distinct()));
+                CheckStableContactLoops(phase, segment.Where(c => c.Clip.name.StartsWith("Sword_Loop_")), 10, emitter, discardBefore, continuity);
             }
             foreach (float speed in new[] { .5f, 1f, 1.1f, 1.5f, 2f })
             {
                 phase = "AnimatorSpeed" + speed; yield return Reset(true); animator.speed = speed; int start = accepted.Count;
+                var discardBefore = new[] { emitter.CatchUpDiscardCount, emitter.ElevatedContactDiscardCount };
                 Send(true); yield return WaitLocomotionLoops(animator.GetLayerIndex("Combat_MeleeWeapon"), "Melee_Locomotion", 6); Send(); yield return Frames(2);
-                Check(accepted.Count - start >= 10, phase + " 배속에 연동된 접지"); phases.Add(new { phase, contacts = accepted.Count - start });
+                CheckStableContactLoops(phase, accepted.Skip(start).Where(c => c.Clip.name.StartsWith("Sword_Loop_")), 6, emitter, discardBefore, continuity);
+                phases.Add(new { phase, contacts = accepted.Count - start });
             }
             animator.speed = oldSpeed;
             foreach (int rate in new[] { 30, 60, 120 })
             {
                 phase = "TargetFPS" + rate; Application.targetFrameRate = rate; yield return Reset(true, 22.5f);
-                int start = accepted.Count; Send(true); yield return Wait(3); Send(); yield return Frames(2);
-                Check(accepted.Count - start >= 7, phase + " 혼합 방향 접지 수신"); phases.Add(new { phase, contacts = accepted.Count - start });
+                int start = accepted.Count; var discardBefore = new[] { emitter.CatchUpDiscardCount, emitter.ElevatedContactDiscardCount };
+                Send(true); yield return WaitLocomotionLoops(animator.GetLayerIndex("Combat_MeleeWeapon"), "Melee_Locomotion", 6); Send(); yield return Frames(2);
+                CheckStableContactLoops(phase, accepted.Skip(start).Where(c => c.Clip.name.StartsWith("Sword_Loop_")), 6, emitter, discardBefore, continuity);
+                phases.Add(new { phase, contacts = accepted.Count - start });
             }
             Application.targetFrameRate = 60;
             phase = "GuardMove";
@@ -533,7 +572,7 @@ public static partial class PlayerFootstepProductVerifier
             Check(emitter.LegacyStepCount == 0, "지원 이동 클립의 거리 폴백 없음");
             Check(emitter.QueueOverflowCount == 0, "32개 이벤트 큐 용량 초과 없음");
             Check(resolver.SurfaceProbeCount - initialProbes == emitter.StepEmissionCount - initialSteps + emitter.LandingEmissionCount - initialLandings, "실제 발소리 한 번당 표면 Raycast 한 번");
-            samples.Add(new { phases, accepted = accepted.Count, duplicateFrames, unsafeContacts, emitter.MaximumFrameCandidates,
+            samples.Add(new { phases, continuity, accepted = accepted.Count, duplicateFrames, unsafeContacts, emitter.MaximumFrameCandidates,
                 emitter.AnimationEventCount, emitter.RejectedEventCount, emitter.CatchUpDiscardCount, emitter.ElevatedContactDiscardCount, emitter.LegacyStepCount });
         }
         finally
@@ -543,7 +582,7 @@ public static partial class PlayerFootstepProductVerifier
             movement.GetType().GetField("isWalkMode", Private).SetValue(movement, oldWalk);
             actor.GetComponent<PlayerStateCoordinator>().ReleaseStun(blocker); GameplayInputBlocker.Unblock(blocker); OverburstTimeEffectArbiter.SetPaused(false); Send();
             origin = oldOrigin;
-            File.WriteAllText(Path.Combine(output, "FootstepContacts.json"), JsonConvert.SerializeObject(new { contacts, phases, duplicateFrames, unsafeContacts }, Formatting.Indented));
+            File.WriteAllText(Path.Combine(output, "FootstepContacts.json"), JsonConvert.SerializeObject(new { contacts, phases, continuity, duplicateFrames, unsafeContacts }, Formatting.Indented));
         }
     }
 }
