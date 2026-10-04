@@ -26,6 +26,38 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
     [SerializeField] private Vector2 advanceWindow;
     [SerializeField] private AnimationCurve advanceProgress;
     [SerializeField] private string poseRootBonePath;
+    [SerializeField] private Vector2[] contactWindows;
+
+    public int ContactWindowCount => contactWindows != null ? contactWindows.Length : 0;
+    public bool HasContactWindows => ContactWindowCount != 0;
+    public bool TryGetContactWindow(int phase, out Vector2 window)
+    {
+        window = Vector2.zero;
+        if ((uint)phase >= (uint)ContactWindowCount) return false;
+        window = contactWindows[phase]; return true;
+    }
+
+    public bool MatchesContactWindows(int hitCount, float first, float second, float third)
+    {
+        if (!HasContactWindows) return true;
+        if (hitCount != ContactWindowCount || !ContactWindowsValid()) return false;
+        for (int i = 0; i < hitCount; i++)
+        {
+            float time = i == 0 ? first : i == 1 ? second : third;
+            if (!Finite(time) || time < contactWindows[i].x || time > contactWindows[i].y) return false;
+        }
+        return true;
+    }
+
+    private bool ContactWindowsValid()
+    {
+        if (!HasContactWindows) return true;
+        if (ContactWindowCount > 3) return false;
+        for (int i = 0; i < ContactWindowCount; i++)
+            if (!ValidWindow(contactWindows[i]) || i > 0 && (contactWindows[i].x < contactWindows[i-1].x
+                || contactWindows[i].y < contactWindows[i-1].y)) return false;
+        return true;
+    }
 
     public string SelectionKey => selectionKey;
     public AnimationClip OriginalClip => originalClip;
@@ -47,7 +79,7 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
         && FinitePositive(stationaryStartRange) && FiniteNonNegative(maxAdvanceDistance)
         && (uint)motionPolicy <= (uint)EnemyWeakAttackMotionPolicy.Channel
         && (!UsesAdvance || maxAdvanceDistance > 0f && ValidWindow(advanceWindow) && advanceProgress != null)
-        && (UsesAdvance || maxAdvanceDistance == 0f);
+        && (UsesAdvance || maxAdvanceDistance == 0f) && ContactWindowsValid();
 
     public float ResolveAdvanceBudget(float startingDistance)
     {
@@ -110,7 +142,7 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
 
     public void Configure(string key, AnimationClip source, AnimationClip motion, Vector2 trimSeconds,
         EnemyWeakAttackMotionPolicy policy, float stationaryReach, float advanceMeters,
-        Vector2 motionWindow, AnimationCurve progress, string rootBonePath)
+        Vector2 motionWindow, AnimationCurve progress, string rootBonePath, Vector2[] authoredContactWindows = null)
     {
         // Validate on a temporary profile before replacing authored data on an existing asset.
         var candidate = CreateInstance<EnemyWeakAttackExecutionProfile>();
@@ -123,11 +155,13 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
             candidate.advanceWindow = motionWindow;
             candidate.advanceProgress = progress != null ? new AnimationCurve(progress.keys) : null;
             candidate.poseRootBonePath = rootBonePath ?? string.Empty;
+            candidate.contactWindows = authoredContactWindows != null ? (Vector2[])authoredContactWindows.Clone() : null;
             if (!candidate.ValidateAuthoring(out string reason)) throw new ArgumentException(reason);
             selectionKey = candidate.selectionKey; originalClip = source; runtimeClip = motion;
             sourceTrimSeconds = trimSeconds; motionPolicy = policy; stationaryStartRange = stationaryReach;
             maxAdvanceDistance = advanceMeters; advanceWindow = motionWindow;
             advanceProgress = candidate.advanceProgress; poseRootBonePath = candidate.poseRootBonePath;
+            contactWindows = candidate.contactWindows;
         }
         finally
         {

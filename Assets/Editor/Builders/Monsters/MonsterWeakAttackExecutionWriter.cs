@@ -129,6 +129,21 @@ public static class MonsterWeakAttackExecutionWriter
             previous=time;
         }
         bool melee = EnemyAbilityDefinition.IsWeakMeleeExecution(ability.ExecutionMode);
+        if (melee)
+        {
+            var windows = ReadContactWindows(authored);
+            if (windows == null || windows.Length != times.Count) throw new ArgumentException("타격별 원본 접촉 구간이 없습니다.");
+            var trim = RequiredPair(authored, "sourceTrimSeconds");
+            for (int i = 0; i < windows.Length; i++)
+            {
+                float startFrame = (trim.x + windows[i].x * motion.length) * original.frameRate;
+                float endFrame = (trim.x + windows[i].y * motion.length) * original.frameRate;
+                if ((float)times[i] < windows[i].x || (float)times[i] > windows[i].y
+                    || Mathf.Abs(startFrame - Mathf.Round(startFrame)) > .001f
+                    || Mathf.Abs(endFrame - Mathf.Round(endFrame)) > .001f)
+                    throw new ArgumentException("타격 시점 또는 원본 프레임과 접촉 구간이 맞지 않습니다.");
+            }
+        }
         if (melee && (ability.HitCount > 3 || ability.HitCount != (int?)selected["selectedCount"]))
             throw new ArgumentException("선택 근접 약공 타수/최대3타가 맞지 않습니다.");
         string policy = RequiredString(authored,"motionPolicy");
@@ -156,7 +171,20 @@ public static class MonsterWeakAttackExecutionWriter
                 curve = new AnimationCurve(keys);
             }
             candidate.Configure(selectionKey, original, motion, trim, policy, reach, advance, window, curve,
-                (string)authored["poseRootBonePath"]);
+                (string)authored["poseRootBonePath"], ReadContactWindows(authored));
+    }
+
+    private static Vector2[] ReadContactWindows(JObject authored)
+    {
+        var data = authored["contactWindowsNormalized"];
+        if (data == null || data.Type == JTokenType.Null) return null;
+        if (!(data is JArray windows)) throw new ArgumentException("접촉 구간은 타격별 배열이어야 합니다.");
+        return windows.Select(w =>
+        {
+            if (!(w is JArray pair) || pair.Count != 2 || pair.Any(t => t.Type == JTokenType.Null))
+                throw new ArgumentException("접촉 구간 시작·종료가 없습니다.");
+            return new Vector2((float)pair[0], (float)pair[1]);
+        }).ToArray();
     }
 
     private static string ProjectFile(string assetPath)

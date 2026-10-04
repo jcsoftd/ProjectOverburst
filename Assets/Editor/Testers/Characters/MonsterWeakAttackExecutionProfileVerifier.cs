@@ -56,6 +56,23 @@ public static class MonsterWeakAttackExecutionProfileVerifier
             Check("new profile range gate",ability.MatchesUseConditions(1.6f,1f) && !ability.MatchesUseConditions(1.61f,1f));
             ability.ConfigureAdditionalHits(.65f,.8f);
             Check("three hit weak accepted",ability.IsValid);
+            var windows = new [] { new Vector2(.4f,.55f), new Vector2(.6f,.7f), new Vector2(.75f,.85f) };
+            profile.Configure("contract-fixture",clip,clip,new Vector2(0,1),EnemyWeakAttackMotionPolicy.VisualJump,
+                1.6f,0,Vector2.zero,null,"",windows);
+            windows[0] = Vector2.zero;
+            Check("contact windows own a copy of authoring input",profile.TryGetContactWindow(0,out Vector2 copied) && copied==new Vector2(.4f,.55f));
+            Check("valid contact times match profile",ability.IsValid && profile.ContactWindowCount==3);
+            Check("contact window lookup rejects invalid phase",!profile.TryGetContactWindow(-1,out _) && !profile.TryGetContactWindow(3,out _));
+            ability.ConfigureAdditionalHits(.72f,.8f);
+            Check("editing impact outside contact window invalidates ability",!ability.IsValid);
+            Reject("reject attaching timing mismatch",()=>ability.ConfigureWeakAttackExecution(profile));
+            ability.ConfigureAdditionalHits(.65f,.8f);
+            Reject("reject reversed contact window",()=>profile.Configure("bad-window",clip,clip,new Vector2(0,1),
+                EnemyWeakAttackMotionPolicy.Stationary,1.6f,0,Vector2.zero,null,"",new []{new Vector2(.6f,.4f)}));
+            Reject("reject nonfinite contact window",()=>profile.Configure("bad-window",clip,clip,new Vector2(0,1),
+                EnemyWeakAttackMotionPolicy.Stationary,1.6f,0,Vector2.zero,null,"",new []{new Vector2(float.NaN,.6f)}));
+            Check("failed contact configuration preserves prior windows",profile.ContactWindowCount==3 && ability.IsValid);
+            Configure(EnemyWeakAttackMotionPolicy.VisualJump,1.6f,0f,Vector2.zero,null);
             ability.ConfigureAdditionalHits(.6f,.7f,.8f);
             Check("four hit updated weak invalid",!ability.IsValid);
             Reject("reject attaching four hit weak",()=>ability.ConfigureWeakAttackExecution(profile));
@@ -80,13 +97,16 @@ public static class MonsterWeakAttackExecutionProfileVerifier
                 {"runtimeClipPath",AssetDatabase.GetAssetPath(source)},
                 {"stationaryStartRange",current.Range},{"maxAdvanceDistance",0f},{"advanceWindow",new JArray(0f,0f)},
                 {"sourceTrimSeconds",new JArray(0f,source.length)},{"poseRootBonePath",""},
-                {"hitNormalizedTimes",new JArray(Enumerable.Range(0,current.HitCount).Select(current.GetHitNormalizedTime))}
+                {"hitNormalizedTimes",new JArray(Enumerable.Range(0,current.HitCount).Select(current.GetHitNormalizedTime))},
+                {"contactWindowsNormalized",new JArray(Enumerable.Range(0,current.HitCount).Select(i =>
+                    new JArray(Mathf.Max(0,Mathf.Floor(current.GetHitNormalizedTime(i)*source.length*source.frameRate)-1)/(source.length*source.frameRate),
+                        Mathf.Min(Mathf.Round(source.length*source.frameRate),Mathf.Ceil(current.GetHitNormalizedTime(i)*source.length*source.frameRate)+1)/(source.length*source.frameRate))))}
             };
             string before=EditorJsonUtility.ToJson(current);
             MonsterWeakAttackExecutionWriter.Validate(v3Path,v3Hash,cardKey,selectionKey,authored,current,source,source);
             Check("native current contact fixture validates",true);
             Reject("reject stale V3 hash",()=>MonsterWeakAttackExecutionWriter.Validate(v3Path,new string('0',64),cardKey,selectionKey,authored,current,source,source));
-            foreach(string field in new [] {"sourceGuid","sourceLocalId","sourceSha256","nativeFps","motionPolicy","hitNormalizedTimes","nativeAuthoringComplete","runtimeClipPath","stationaryStartRange"})
+            foreach(string field in new [] {"sourceGuid","sourceLocalId","sourceSha256","nativeFps","motionPolicy","hitNormalizedTimes","nativeAuthoringComplete","runtimeClipPath","stationaryStartRange","contactWindowsNormalized"})
             {
                 var changed=(JObject)authored.DeepClone();
                 if(field=="sourceGuid"||field=="sourceSha256")changed[field]="incorrect";
@@ -95,7 +115,7 @@ public static class MonsterWeakAttackExecutionProfileVerifier
                 else if(field=="motionPolicy")changed[field]="VisualJump";
                 else if(field=="hitNormalizedTimes")changed[field]=new JArray(.1f);
                 else if(field=="runtimeClipPath")changed[field]="Assets/incorrect.anim";
-                else if(field=="stationaryStartRange")changed[field]=null;
+                else if(field=="stationaryStartRange" || field=="contactWindowsNormalized")changed[field]=null;
                 else changed[field]=false;
                 Reject("reject altered "+field,()=>MonsterWeakAttackExecutionWriter.Validate(v3Path,v3Hash,cardKey,selectionKey,changed,current,source,source));
             }

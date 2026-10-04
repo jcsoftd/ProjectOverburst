@@ -63,6 +63,20 @@ public static class MonsterWeakAttackImpactVerifier
         queue.Begin(12, 8, 1, 1, 0, 0, .01f); queue.Advance(1);
         Check("authored terminal-frame impact is retained", queue.TryTake(12, 8, out phase) && phase == 0);
 
+        queue.Begin(20, 4, 2, .4f, .6f, 0, .41f, .72f, 0);
+        queue.Advance(.42f);
+        Check("short authored first window expires without generic grace",!queue.HasPending && queue.MissedCount==1);
+        queue.Advance(.68f);
+        Check("longer second window survives its authored duration",queue.TryTake(20,4,out phase) && phase==1);
+        queue.Begin(20,4,1,.4f,0,0,.41f,0,0);queue.Advance(.41f);
+        Check("authored contact end is inclusive",queue.TryTake(20,4,out phase) && phase==0);
+        queue.Begin(20,4,1,.4f,0,0,.41f,0,0);queue.Advance(.4f);
+        invalid=false;
+        try {queue.Begin(21,4,1,.4f,0,0,.39f,0,0);}catch(ArgumentException){invalid=true;}
+        Check("invalid authored deadline preserves active pending strike",invalid && queue.TryTake(20,4,out phase) && phase==0);
+        queue.Begin(20,4,1,.4f,0,0,.7f,0,0);queue.Advance(.6f);queue.Cancel();
+        Check("cancel removes long authored contact window",!queue.TryTake(20,4,out _));
+
         VerifyNative(Check);
         Directory.CreateDirectory(outputDirectory);
         string path = Path.Combine(outputDirectory, "impact-results.json");
@@ -90,7 +104,8 @@ public static class MonsterWeakAttackImpactVerifier
             controller.layers[0].stateMachine.defaultState = state;
             controller.AddParameter("Attack1", AnimatorControllerParameterType.Trigger); AssetDatabase.SaveAssetIfDirty(controller);
             var profile = ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>(); owned.Add(profile);
-            profile.Configure("impact-fixture", clip, clip, new Vector2(0, 1), EnemyWeakAttackMotionPolicy.Stationary, 1.6f, 0, Vector2.zero, null, "");
+            profile.Configure("impact-fixture", clip, clip, new Vector2(0, 1), EnemyWeakAttackMotionPolicy.Stationary, 1.6f, 0,
+                Vector2.zero, null, "", new [] { new Vector2(.38f,.405f), new Vector2(.58f,.72f) });
             var ability = ScriptableObject.CreateInstance<EnemyAbilityDefinition>(); owned.Add(ability);
             ability.Configure("impact-fixture", "Attack1", 10, 2, 1.6f, 120, 1, 0, .4f, 1, 1, false);
             ability.ConfigureAdditionalHits(.6f); ability.ConfigureWeakAttackExecution(profile);
@@ -178,6 +193,17 @@ public static class MonsterWeakAttackImpactVerifier
                 && !damage[0].suppressRepeatedAttackReaction && damage[1].suppressRepeatedAttackReaction
                 && damage.TrueForAll(info => info.triggersOnHitEffects && !info.isDamageOverTime));
             Set(ability, "damage", 10f); melee.CancelAttack(); ((IDisposable)routine).Dispose();
+
+            hp.ResetHealth(); damage.Clear();
+            sequence = EnemyAttackSequence.Next(); Set(melee, "attackSequenceId", sequence);
+            routine = (System.Collections.IEnumerator)typeof(EnemyMeleeAttackController).GetMethod("WeakAttackRoutine", Fields)
+                .Invoke(melee, new object[] { "Attack1", ability, null, true });
+            routine.MoveNext(); clock.Begin(270, false, 0); clock.Observe(271, .1f, true, .42f); routine.MoveNext();
+            check("real coroutine expires at first authored contact end",damage.Count==0);
+            clock.Observe(272, .1f, true, .69f); routine.MoveNext();
+            check("real coroutine preserves longer second authored contact",damage.Count==1
+                && damage[0].sourceAttackPhaseIndex==1 && Mathf.Abs(hp.CurrentHp-95)<.001f);
+            melee.CancelAttack(); ((IDisposable)routine).Dispose();
 
             var secondVictim = Root("V3_SecondVictim", origin + new Vector3(.2f, 0, 1.5f));
             var secondCollider = secondVictim.AddComponent<CapsuleCollider>(); secondCollider.center = Vector3.up; secondCollider.radius = .25f; secondCollider.height = 2;

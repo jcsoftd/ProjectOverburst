@@ -521,10 +521,23 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             if (!ability.TryResolveWeakDamageBudget(level, definitionDamageMultiplier, out weakDamageBudget)) yield break;
             reactionScope = ability.HitCount > 1 ? new EnemyWeakAttackReactionScope(gameObject, executionSequence, actor) : null;
             weakReactionScope = reactionScope;
-            float grace = 2f / (activeWeakExecution.RuntimeClip.frameRate * activeWeakExecution.RuntimeClip.length);
-            weakImpacts.Begin(attackSequenceId, WeakOwnerLease, ability.HitCount,
-                ability.GetHitNormalizedTime(0), ability.HitCount > 1 ? ability.GetHitNormalizedTime(1) : 0,
-                ability.HitCount > 2 ? ability.GetHitNormalizedTime(2) : 0, Mathf.Clamp01(grace));
+            float first = ability.GetHitNormalizedTime(0);
+            float second = ability.HitCount > 1 ? ability.GetHitNormalizedTime(1) : 0f;
+            float third = ability.HitCount > 2 ? ability.GetHitNormalizedTime(2) : 0f;
+            if (activeWeakExecution.HasContactWindows)
+            {
+                activeWeakExecution.TryGetContactWindow(0, out Vector2 firstWindow);
+                activeWeakExecution.TryGetContactWindow(1, out Vector2 secondWindow);
+                activeWeakExecution.TryGetContactWindow(2, out Vector2 thirdWindow);
+                weakImpacts.Begin(attackSequenceId, WeakOwnerLease, ability.HitCount, first, second, third,
+                    firstWindow.y, secondWindow.y, thirdWindow.y);
+            }
+            else
+            {
+                // Compatibility for pre-authoring fixtures; the V3 writer requires exact contact windows.
+                float grace = 2f / (activeWeakExecution.RuntimeClip.frameRate * activeWeakExecution.RuntimeClip.length);
+                weakImpacts.Begin(attackSequenceId, WeakOwnerLease, ability.HitCount, first, second, third, Mathf.Clamp01(grace));
+            }
             Vector3 initialDelta = target != null ? ResolveAimPosition(target) - transform.position : Vector3.zero;
             initialDelta.y = 0f;
             weakMotionDriver?.Begin(activeWeakExecution, initialDelta.magnitude, transform.rotation);

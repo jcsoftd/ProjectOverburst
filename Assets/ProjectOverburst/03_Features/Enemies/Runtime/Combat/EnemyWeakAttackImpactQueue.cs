@@ -6,9 +6,10 @@ using System;
 public sealed class EnemyWeakAttackImpactQueue
 {
     private readonly float[] times = new float[3];
+    private readonly float[] ends = new float[3];
     private int sequence, count, next;
     private uint lease;
-    private float grace, progress;
+    private float progress;
     private int pending = -1;
     public bool IsActive { get; private set; }
     public int ConsumedCount => next;
@@ -19,18 +20,32 @@ public sealed class EnemyWeakAttackImpactQueue
     public void Begin(int attackSequence, uint actorLease, int hitCount,
         float first, float second, float third, float normalizedContactGrace)
     {
-        if (attackSequence <= 0 || hitCount < 1 || hitCount > 3
-            || !Finite(normalizedContactGrace) || normalizedContactGrace < 0f || normalizedContactGrace > 1f)
+        if (!Finite(normalizedContactGrace) || normalizedContactGrace < 0f || normalizedContactGrace > 1f)
+            throw new ArgumentException("약공 사건 접촉 여유가 유효하지 않습니다.");
+        Begin(attackSequence, actorLease, hitCount, first, second, third,
+            Math.Min(1f, first + normalizedContactGrace), Math.Min(1f, second + normalizedContactGrace),
+            Math.Min(1f, third + normalizedContactGrace));
+    }
+
+    public void Begin(int attackSequence, uint actorLease, int hitCount,
+        float first, float second, float third, float firstEnd, float secondEnd, float thirdEnd)
+    {
+        if (attackSequence <= 0 || hitCount < 1 || hitCount > 3)
             throw new ArgumentException("약공 사건 스냅샷이 유효하지 않습니다.");
         float a = first, b = second, c = third;
         if (!TimeValid(a) || hitCount > 1 && (!TimeValid(b) || b <= a)
             || hitCount > 2 && (!TimeValid(c) || c <= b))
             throw new ArgumentException("약공 사건은 서로 다른 오름차순 시점이어야 합니다.");
+        if (!TimeValid(firstEnd) || firstEnd < a
+            || hitCount > 1 && (!TimeValid(secondEnd) || secondEnd < b)
+            || hitCount > 2 && (!TimeValid(thirdEnd) || thirdEnd < c))
+            throw new ArgumentException("약공 사건의 접촉 종료는 타격 시점 이상이어야 합니다.");
         // Assign only after validation, so a rejected replacement cannot erase
         // the active execution's identity or pending event.
         times[0] = a; times[1] = b; times[2] = c;
         sequence = attackSequence; lease = actorLease; count = hitCount;
-        grace = normalizedContactGrace; progress = 0f; next = 0; pending = -1;
+        ends[0] = firstEnd; ends[1] = secondEnd; ends[2] = thirdEnd;
+        progress = 0f; next = 0; pending = -1;
         MissedCount = 0; IsActive = true;
     }
 
@@ -40,13 +55,13 @@ public sealed class EnemyWeakAttackImpactQueue
         if (!TimeValid(nativeNormalizedTime) || nativeNormalizedTime < progress)
         { Cancel(); return; }
         progress = nativeNormalizedTime;
-        if (pending >= 0 && progress - times[pending] > grace)
+        if (pending >= 0 && progress > ends[pending])
         { pending = -1; MissedCount++; }
         while (next < count && progress >= times[next])
         {
             int index = next++;
             if (pending >= 0) { pending = -1; MissedCount++; }
-            if (progress - times[index] > grace) { MissedCount++; continue; }
+            if (progress > ends[index]) { MissedCount++; continue; }
             pending = index;
         }
     }

@@ -22,7 +22,7 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public void ConfigureWeakAttackExecution(EnemyWeakAttackExecutionProfile profile)
     {
         if (profile != null && (!profile.ValidateAuthoring(out _) || IsTelegraphedStrongAttack
-            || IsWeakMeleeExecution(ExecutionMode) && HitCount > 3))
+            || IsWeakMeleeExecution(ExecutionMode) && (HitCount > 3 || !MatchesWeakContactWindows(profile))))
             throw new System.ArgumentException("V3 약공 프로필 또는 최대 3타 조건이 유효하지 않습니다.");
         weakAttackExecution = profile;
     }
@@ -170,7 +170,12 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
         && MinimumRange <= Range
         && Weight > 0f
         && (weakAttackExecution == null || weakAttackExecution.IsValid
-            && !IsTelegraphedStrongAttack && (!IsWeakMeleeExecution(ExecutionMode) || HitCount <= 3));
+            && !IsTelegraphedStrongAttack && (!IsWeakMeleeExecution(ExecutionMode)
+                || HitCount <= 3 && MatchesWeakContactWindows(weakAttackExecution)));
+
+    private bool MatchesWeakContactWindows(EnemyWeakAttackExecutionProfile profile)
+        => profile.MatchesContactWindows(HitCount, GetHitNormalizedTime(0),
+            HitCount > 1 ? GetHitNormalizedTime(1) : 0f, HitCount > 2 ? GetHitNormalizedTime(2) : 0f);
 
     public bool MatchesUseConditions(float distance, float selfHealthNormalized)
     {
