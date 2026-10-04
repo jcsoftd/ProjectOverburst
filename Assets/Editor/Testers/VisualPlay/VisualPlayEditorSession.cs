@@ -27,6 +27,7 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
     static readonly VisualPlayEditorSession instance;
     Plan plan;
     VisualPlayRunner runner;
+    bool warnedResultWriteFailure;
     List<VisualPlayRecord> results = new List<VisualPlayRecord>();
     readonly Dictionary<string, int> previewCounts = new Dictionary<string, int>();
     public VisualPlayState State { get; private set; } = new VisualPlayState();
@@ -72,8 +73,17 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         SessionState.SetString(Key + "lastState", JsonConvert.SerializeObject(State));
         SessionState.SetString(Key + "lastResults", JsonConvert.SerializeObject(results));
         string output = plan?.directory ?? SessionState.GetString(Key + "lastDirectory", "");
-        if (!string.IsNullOrEmpty(output))
+        if (string.IsNullOrEmpty(output)) return;
+        try
+        {
             File.WriteAllText(Path.Combine(output, "Result.json"), JsonConvert.SerializeObject(new { state = State, records = results, automaticRegression = "NOT_RUN", developerAcceptance = plan?.toolVerification == true ? "NOT_RUN_TOOL_PROBE" : "USER_MARKS_ONLY" }, Formatting.Indented));
+            warnedResultWriteFailure = false;
+        }
+        catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+        {
+            if (!warnedResultWriteFailure) Debug.LogWarning("[시각 확인] 결과 파일 저장 실패. 현재 Editor의 기록을 유지하고 Play 반환을 계속해요: " + error.Message);
+            warnedResultWriteFailure = true;
+        }
     }
 
     public string Availability(string caseId) => !Application.isEditor ? "Unity Editor 전용이에요"
@@ -266,8 +276,11 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
         State.Waiting = State.Paused = false;
         State.Phase = reason; State.Detail = "일반 Play 상태로 반환하고 있어요";
         plan.phase = "returning"; plan.deadline = EditorApplication.timeSinceStartup + 120;
-        SaveResults(); SavePlan();
-        if (OwnsCurrentPlay() || (EditorApplication.isPlaying && SameDirectory(IsolatedSavePlayGuard.ActiveDirectory, Path.Combine(plan.directory, "Account")))) EditorApplication.ExitPlaymode();
+        try { SavePlan(); SaveResults(); }
+        finally
+        {
+            if (OwnsCurrentPlay() || (EditorApplication.isPlaying && SameDirectory(IsolatedSavePlayGuard.ActiveDirectory, Path.Combine(plan.directory, "Account")))) EditorApplication.ExitPlaymode();
+        }
     }
 
     static bool ForeignAccount(string directory, Plan owner) => !string.IsNullOrEmpty(directory)
@@ -296,7 +309,8 @@ public sealed class VisualPlayEditorSession : IVisualPlayBackend
             EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(plan.previousStartScene) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.previousStartScene);
         Application.runInBackground = plan.background;
         State.Running = false; State.Waiting = State.Paused = false; State.Detail = "일반 Play로 돌아갈 준비가 됐어요";
-        SaveResults(); SessionState.EraseString(Key + "plan"); SessionState.EraseString(Key + "deferredPlan"); plan = null;
+        try { SaveResults(); }
+        finally { SessionState.EraseString(Key + "plan"); SessionState.EraseString(Key + "deferredPlan"); plan = null; }
     }
 
     void StateChanged(PlayModeStateChange state)
