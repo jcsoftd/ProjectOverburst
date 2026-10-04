@@ -32,10 +32,60 @@ public sealed class BloodHitVfxService : MonoBehaviour
     public int SweepVariationPlayedCount { get; private set; }
     private BloodHitCatalog catalog;
     private BloodGroundDecalService groundDecals;
+    private BloodEffectsPackPool packPool;
+    private int legacyActiveCount;
+    private static bool packEnabled;
+    private static bool uniformRed;
+    private readonly System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile> redProfiles = new System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile>();
+    private readonly System.Collections.Generic.HashSet<BloodHitProfile> redProfileInstances = new System.Collections.Generic.HashSet<BloodHitProfile>();
+    public static bool PackEnabled => packEnabled;
+    public static bool UniformRed => uniformRed;
+    public static void SetUniformRed(bool enabled)
+    {
+        if (uniformRed == enabled) return;
+        instance?.Clear();
+        if (instance != null && instance.groundDecals != null) instance.groundDecals.ClearForComparison();
+        uniformRed = enabled;
+    }
+    public static BloodHitProfile ResolveColorProfile(BloodHitProfile source)
+    {
+        if (!uniformRed || source == null || instance == null) return source;
+        if (instance.redProfileInstances.Contains(source)) return source;
+        if (!instance.redProfiles.TryGetValue(source, out var profile) || profile == null)
+        {
+            profile = Instantiate(source);
+            profile.name = source.name + " Red Comparison";
+            profile.hideFlags = HideFlags.HideAndDontSave;
+            profile.mainColor = new Color(.50f, .137f, .153f);
+            profile.secondaryColor = new Color(.22f, .059f, .071f);
+            profile.specularColor = new Color(.69f, .39f, .39f);
+            instance.redProfiles[source] = profile;
+            instance.redProfileInstances.Add(profile);
+        }
+        return profile;
+    }
+    public int PackPlayedCount => packPool != null ? packPool.PlayedCount : 0;
+    public int LastPackVariation => packPool != null ? packPool.LastVariant : -1;
+    public uint PackPlayedVariants => packPool != null ? packPool.PlayedVariants : 0;
+    public static bool SetPackEnabled(bool enabled)
+    {
+        if (instance == null) Bootstrap();
+        if (instance == null) return false;
+        if (enabled && instance.packPool == null)
+        {
+            var data = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
+            instance.packPool = new BloodEffectsPackPool(instance.transform, data);
+        }
+        if (enabled && !instance.packPool.Ready) return false;
+        instance.Clear();
+        if (instance.groundDecals != null) instance.groundDecals.ClearForComparison();
+        packEnabled = enabled;
+        return true;
+    }
     private int queued;
     public int PlayedCount { get; private set; }
     public int DroppedCount { get; private set; }
-    public int ActiveCount { get; private set; }
+    public int ActiveCount => legacyActiveCount + (packPool != null ? packPool.ActiveCount : 0);
     public int PeakActiveCount { get; private set; }
     public int RequestedCount { get; private set; }
     public int OffscreenCount { get; private set; }
@@ -50,7 +100,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
     public int PeakQueuedCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() => instance = null;
+    private static void ResetStatics() { instance = null; packEnabled = false; uniformRed = false; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -67,6 +117,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         instance.catalog = data;
         instance.groundDecals = root.AddComponent<BloodGroundDecalService>();
         instance.groundDecals.Configure(data);
+        root.AddComponent<LowHealthBloodTrailService>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray)) return;
 #endif
@@ -134,6 +185,18 @@ public sealed class BloodHitVfxService : MonoBehaviour
             Size = Mathf.Clamp(size, .55f, 1.5f), WeightScale = Mathf.Max(.5f, weightScale),
             Priority = Mathf.Clamp(priority, 0, 3), Target = targetId, AllowSuppressed = allowSuppressed
         });
+        return true;
+    }
+
+    public static bool RequestBleed(CombatHealth health, BloodHitProfile profile, Vector3 feet, Vector3 travel)
+    {
+        if (profile == null || profile.suppressBlood || instance == null || instance.groundDecals == null || IsOffscreen(feet + Vector3.up * .5f)) return false;
+        profile = ResolveColorProfile(profile);
+        // Small falling drops have no attack priority; they cannot evict a combat splash.
+        if (packEnabled && instance.packPool != null)
+            instance.packPool.Play(profile, feet + Vector3.up * .6f, Vector3.down, CombatImpactShape.Downward,
+                .12f, 0, CosmeticSeed(0, Time.frameCount, 0, health.GetInstanceID()), health.GetInstanceID(), true);
+        instance.groundDecals.Request(profile, feet + Vector3.up * .5f, travel, CombatImpactShape.Thrust, .38f, 0, false, .08f, true);
         return true;
     }
 
@@ -279,6 +342,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
 
     private void LateUpdate()
     {
+        packPool?.Tick(Time.time);
         for (int i = 0; i < Capacity; i++)
         {
             if (slots[i].Until > 0 && Time.time >= slots[i].Until) Release(i);
@@ -312,6 +376,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
 
     private bool Play(Pending request)
     {
+        request.Profile = ResolveColorProfile(request.Profile);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray))
         {
@@ -325,6 +390,23 @@ public sealed class BloodHitVfxService : MonoBehaviour
             return true;
         }
 #endif
+        if (packEnabled)
+        {
+            float size = Mathf.Clamp(request.Size * request.WeightScale, .55f, 1.95f);
+            if (request.WeightScale > 1.2f) size = Mathf.Max(size, 1.25f);
+            else if (request.WeightScale > 1f) size = Mathf.Max(size, .8f);
+            uint packSeed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
+            if (!packPool.Play(request.Profile, request.Position, request.Direction, request.Shape, size,
+                request.Priority, packSeed, request.Target)) return false;
+            PlayedCount++;
+            PeakActiveCount = Mathf.Max(PeakActiveCount, ActiveCount);
+            if (request.Shape == CombatImpactShape.Thrust) ThrustPlayedCount++;
+            else if (request.Shape == CombatImpactShape.Downward) DownwardPlayedCount++;
+            else SweepPlayedCount++;
+            if (groundDecals != null) groundDecals.Request(request.Profile, request.Position, request.Direction,
+                request.Shape, size, request.Priority, request.AllowSuppressed);
+            return true;
+        }
         var graph = catalog.Resolve(request.Shape);
         uint seed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
         int variantIndex = -1;
@@ -381,7 +463,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         slots[chosen].Priority = request.Priority;
         slots[chosen].StartFrame = Time.frameCount;
         slots[chosen].PendingPlay = true;
-        ActiveCount++;
+        legacyActiveCount++;
         PeakActiveCount = Mathf.Max(PeakActiveCount, ActiveCount);
         PlayedCount++;
         if (request.Shape == CombatImpactShape.Thrust) ThrustPlayedCount++;
@@ -435,7 +517,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         vfx.gameObject.SetActive(false);
         slots[index].Until = 0;
         slots[index].PendingPlay = false;
-        ActiveCount--;
+        legacyActiveCount--;
     }
 
     private void OnEnable()
@@ -449,11 +531,19 @@ public sealed class BloodHitVfxService : MonoBehaviour
         SceneManager.sceneUnloaded -= SceneUnloaded;
         Clear();
     }
-    private void OnDestroy() { if (instance == this) instance = null; }
+    private void OnDestroy()
+    {
+        packPool?.Dispose();
+        foreach (var profile in redProfiles.Values) if (profile != null) Destroy(profile);
+        redProfiles.Clear();
+        redProfileInstances.Clear();
+        if (instance == this) instance = null;
+    }
     private void SceneChanged(Scene previous, Scene current) => Clear();
     private void SceneUnloaded(Scene scene) => Clear();
     private void Clear()
     {
+        packPool?.Clear();
         System.Array.Clear(queue, 0, queue.Length);
         queued = 0;
         System.Array.Clear(recentTargets, 0, Capacity);
@@ -461,6 +551,6 @@ public sealed class BloodHitVfxService : MonoBehaviour
         LastSweepVariation = -1;
         for (int i = 0; i < Capacity; i++)
             if (slots[i].Until > 0 && slots[i].Effect != null) Release(i);
-        ActiveCount = 0;
+        legacyActiveCount = 0;
     }
 }

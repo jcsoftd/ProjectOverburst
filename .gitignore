@@ -140,3 +140,7 @@ Assets/StreamingAssets/aa/
 # Licensed supplier-derived V3 attack curves; restore with original meta from private manifest.
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/RuntimeV3/
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/RuntimeV3.meta
+
+# Licensed Blood Effects Pack particle settings; restore with the private package and native builder.
+/Assets/ProjectOverburst/Resources/Combat/BloodEffectsPack/
+/Assets/ProjectOverburst/Resources/Combat/BloodEffectsPack.meta

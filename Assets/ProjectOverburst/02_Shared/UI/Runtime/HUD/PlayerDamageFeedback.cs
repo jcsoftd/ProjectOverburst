@@ -29,6 +29,11 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
     private bool missingReferenceWarned; // 경고 중복 방지
     private PlayerContext subscribedPlayerContext;
     private CombatHealth subscribedHealth;
+    private BloodEffectsPackCatalog bloodPack;
+    private bool packVignette;
+    private int packVariant = -1;
+    public bool UsingPackVignette => packVignette;
+    public int PackVignetteVariation => packVariant;
 
     private void Awake()
     {
@@ -60,6 +65,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
             SubscribeHealth();
         }
 
+        if (packVignette != BloodHitVfxService.PackEnabled) ApplyVignetteStyle(false);
         UpdateVignette();
     }
 
@@ -98,6 +104,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
 
     private void StartFeedback(float now, Vector3 damageDirection)
     {
+        ApplyVignetteStyle(true);
         feedbackStartTime = now;
         activeVignetteDuration = Mathf.Max(0.01f, vignetteFadeDuration);
         vignetteEndTime = now + activeVignetteDuration;
@@ -150,14 +157,37 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
 
         if (vignetteImage != null)
         {
-            vignetteImage.sprite = GetVignetteSprite();
-            vignetteImage.color = vignetteColor;
+            ApplyVignetteStyle(false);
             vignetteImage.raycastTarget = false;
             vignetteImage.type = Image.Type.Simple;
         }
 
         if (vignetteImage == null || vignetteGroup == null || rect == null)
             WarnMissingConfiguration();
+    }
+
+    private void ApplyVignetteStyle(bool newHit)
+    {
+        if (vignetteImage == null) return;
+        if (bloodPack == null) bloodPack = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
+        bool pack = BloodHitVfxService.PackEnabled && bloodPack != null && bloodPack.screenSprite != null
+            && bloodPack.screenMaterials != null && bloodPack.screenMaterials.Length > 0;
+        if (pack)
+        {
+            // The pack has four screen treatments. Consecutive wounds cycle through them.
+            if (newHit || packVariant < 0) packVariant = (packVariant + 1) % bloodPack.screenMaterials.Length;
+            vignetteImage.sprite = bloodPack.screenSprite;
+            vignetteImage.material = bloodPack.screenMaterials[packVariant];
+            vignetteImage.color = Color.white;
+        }
+        else
+        {
+            vignetteImage.material = null;
+            vignetteImage.sprite = GetVignetteSprite();
+            vignetteImage.color = vignetteColor;
+        }
+        if (packVignette != pack) { vignetteEndTime = 0f; SetVignetteAlpha(0f); }
+        packVignette = pack;
     }
 
     private void ResolveReferences()

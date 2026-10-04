@@ -1,0 +1,109 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8f6104d9a99690479e0bd17ce78f9cf, type: 3}
+  m_Name: BloodEffectsPackCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::BloodEffectsPackCatalog
+  sprays:
+  - label: "\uC9E7\uC740 \uBCA0\uAE30 \uBE44\uC0B0"
+    prefab: {fileID: 8733604560823165544, guid: 98e0a3f9f96733348b0b6f14335a6ebf, type: 3}
+    shapeMask: 5
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.9
+    lifetime: 2
+  - label: "\uBD80\uCC44\uAF34 \uBCA0\uAE30 \uBE44\uC0B0"
+    prefab: {fileID: 886702707084266181, guid: 82430cc56e046d74b8175dc8e26b21f1, type: 3}
+    shapeMask: 3
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.9
+    lifetime: 2
+  - label: "\uAD75\uC740 \uBCA0\uAE30 \uBE44\uC0B0"
+    prefab: {fileID: 8655379891457325037, guid: 62635e6b0ce6f054f9423df46d743871, type: 3}
+    shapeMask: 3
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.9
+    lifetime: 2
+  - label: "\uAD00\uD1B5 \uBD84\uCD9C"
+    prefab: {fileID: 2126611970032495246, guid: c664e0c8117501b4e8d2dc73b3887f18, type: 3}
+    shapeMask: 5
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.85
+    lifetime: 2
+  - label: "\uAC15\uD0C0 \uBD84\uCD9C"
+    prefab: {fileID: 8128751625884236965, guid: 91a135a324afafd4391ced85c19f8c1d, type: 3}
+    shapeMask: 3
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1
+    lifetime: 2
+  - label: "\uC9E7\uAC8C \uD750\uB974\uB294 \uBD84\uCD9C"
+    prefab: {fileID: 8269778347858417014, guid: 962e6c8605f747d4a8af4131939be516, type: 3}
+    shapeMask: 7
+    minimumPriority: 1
+    flowing: 1
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.9
+    lifetime: 2
+  - label: "\uAC00\uB294 \uC5F0\uC18D \uBD84\uCD9C"
+    prefab: {fileID: 8250078325174670425, guid: 3b06edaf23e2c6d47879f193266a260c, type: 3}
+    shapeMask: 6
+    minimumPriority: 1
+    flowing: 1
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.9
+    lifetime: 2
+  sweepDecals:
+  - {fileID: 8754631306464703837, guid: 83c0dbf91498da54e9cf687c316d54cc, type: 3}
+  - {fileID: 8307897463785000821, guid: 665898c70c2b8f447bd03a382822f2ac, type: 3}
+  - {fileID: 7040989266587904669, guid: affac65118f798e4e87f1b22e7ec8371, type: 3}
+  - {fileID: 4675442314742118715, guid: e60f66f0d62143548bedb2d88575e291, type: 3}
+  - {fileID: 6941051410462705341, guid: 17e7058905e842b4ea45b069d456e7a8, type: 3}
+  - {fileID: 4389679175604454054, guid: ecfb75c7784442640a57fdacc3377752, type: 3}
+  thrustDecals:
+  - {fileID: 8754631306464703837, guid: 83c0dbf91498da54e9cf687c316d54cc, type: 3}
+  - {fileID: 8307897463785000821, guid: 665898c70c2b8f447bd03a382822f2ac, type: 3}
+  - {fileID: 3349370149547994002, guid: 953dfe4ce48f2734693568a2a8407677, type: 3}
+  - {fileID: 4389679175604454054, guid: ecfb75c7784442640a57fdacc3377752, type: 3}
+  - {fileID: 3937411567558097179, guid: 7e67ca7dd1f5cda4796dbffb8a698f39, type: 3}
+  downwardDecals:
+  - {fileID: 2130556118353771703, guid: 8de70eda803f75447946bcb93ce1057b, type: 3}
+  - {fileID: 7040989266587904669, guid: affac65118f798e4e87f1b22e7ec8371, type: 3}
+  - {fileID: 6941051410462705341, guid: 17e7058905e842b4ea45b069d456e7a8, type: 3}
+  - {fileID: 5413036281863098576, guid: 95c828a9c24e1f2499cfa741e3235339, type: 3}
+  lethalDecals:
+  - {fileID: 8754631306464703837, guid: 83c0dbf91498da54e9cf687c316d54cc, type: 3}
+  - {fileID: 8307897463785000821, guid: 665898c70c2b8f447bd03a382822f2ac, type: 3}
+  - {fileID: 2130556118353771703, guid: 8de70eda803f75447946bcb93ce1057b, type: 3}
+  - {fileID: 7040989266587904669, guid: affac65118f798e4e87f1b22e7ec8371, type: 3}
+  - {fileID: 4675442314742118715, guid: e60f66f0d62143548bedb2d88575e291, type: 3}
+  - {fileID: 3349370149547994002, guid: 953dfe4ce48f2734693568a2a8407677, type: 3}
+  - {fileID: 6941051410462705341, guid: 17e7058905e842b4ea45b069d456e7a8, type: 3}
+  - {fileID: 5413036281863098576, guid: 95c828a9c24e1f2499cfa741e3235339, type: 3}
+  - {fileID: 4389679175604454054, guid: ecfb75c7784442640a57fdacc3377752, type: 3}
+  - {fileID: 3937411567558097179, guid: 7e67ca7dd1f5cda4796dbffb8a698f39, type: 3}
+  trailDecals:
+  - {fileID: 4389679175604454054, guid: ecfb75c7784442640a57fdacc3377752, type: 3}
+  - {fileID: 3937411567558097179, guid: 7e67ca7dd1f5cda4796dbffb8a698f39, type: 3}
+  screenSprite: {fileID: 21300000, guid: c25d3429d53ec10469038f9080d8187e, type: 3}
+  screenMaterials:
+  - {fileID: 2100000, guid: bdffe47054c72444f8c4b903e757f253, type: 2}
+  - {fileID: 2100000, guid: f6effe6368b480142860529c455629a4, type: 2}
+  - {fileID: 2100000, guid: 77de7ad79a39bb446a04b2f4defce836, type: 2}
+  - {fileID: 2100000, guid: a2bb80f7c2c107d45990734de53f9927, type: 2}
