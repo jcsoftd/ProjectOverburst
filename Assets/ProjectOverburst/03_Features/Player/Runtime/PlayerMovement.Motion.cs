@@ -5,6 +5,7 @@ public partial class PlayerMovement
 {
     private bool combatStopWasMoving;
     private float combatStopDeceleration;
+    private float combatMoveSeconds;
     private void ProbeMotorGround()
     {
         characterMotor.ProbeGround(Time.deltaTime);
@@ -52,7 +53,10 @@ public partial class PlayerMovement
             && set.stopBrakeSeconds > 0f && set.stopBrakeMaxDistance > 0f;
         if (!eligible || activeMovementIntent.ShouldMove)
         {
-            CancelCombatStopCurve(!activeMovementIntent.ShouldMove);
+            // A fresh input must not inherit the old Stop's velocity, including reversals.
+            CancelCombatStopCurve(true);
+            combatMoveSeconds = eligible && activeMovementIntent.ShouldMove
+                ? combatMoveSeconds + deltaTime : 0f;
             combatStopWasMoving = eligible && activeMovementIntent.ShouldMove;
             combatStopDeceleration = 0f;
             return deceleration;
@@ -66,6 +70,7 @@ public partial class PlayerMovement
             combatStopDeceleration = Mathf.Max(speed / set.stopBrakeSeconds,
                 speed * speed / (2f * set.stopBrakeMaxDistance));
             combatStopWasMoving = false;
+            combatMoveSeconds = 0f;
         }
         if (speed <= .001f) combatStopDeceleration = 0f;
         return combatStopDeceleration > 0f ? combatStopDeceleration : deceleration;
@@ -101,6 +106,7 @@ public partial class PlayerMovement
         CancelCombatStopCurve(false);
         combatStopWasMoving = false;
         combatStopDeceleration = 0f;
+        combatMoveSeconds = 0f;
         lootAutoMoveActive = false;
         submittedAIIntent = ActorMovementIntent.Hold(
             transform.position,

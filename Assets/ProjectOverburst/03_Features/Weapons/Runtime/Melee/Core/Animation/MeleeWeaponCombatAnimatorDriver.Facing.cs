@@ -8,6 +8,8 @@ public partial class MeleeWeaponCombatAnimatorDriver
     private CombatTurnMotion activeFacingTurn;
     private float facingMotionEnd, facingTurnStart;
     private float facingStartDuration;
+    public float ActiveFacingStopRate { get; private set; }
+    public float ActiveFacingStopStartTime { get; private set; }
     private PlayerCombatFacingController facingController;
 
     public CombatLocomotionSet FacingSet => activeProfile != null ? activeProfile.combatLocomotionSet : null;
@@ -62,20 +64,30 @@ public partial class MeleeWeaponCombatAnimatorDriver
         return clip.length / Mathf.Max(.01f, speed / motion.authoredSpeed);
     }
     // Called by movement before its motor step on release, so pose and displacement start together.
-    public bool TryBeginFacingStop(out CombatMoveMotion motion, out float duration, out float humanScale)
+    public bool TryGetFacingStop(out CombatMoveMotion motion, out float duration, out float humanScale)
     {
         motion = null; duration = 0f; humanScale = 1f;
         if (!CanUseCombatFacing || activeMoveMotion == null || activeMoveMotion.stop == null
             || (facingMotion != FacingMotion.Start && facingMotion != FacingMotion.Loop)) return false;
-        float fullDuration = FacingMoveDuration(activeMoveMotion, activeMoveMotion.stop);
-        float firstStep = Mathf.Min(Time.deltaTime, fullDuration);
+        motion = activeMoveMotion;
+        duration = FacingMoveDuration(motion, motion.stop);
+        humanScale = targetAnimator != null && targetAnimator.isHuman ? targetAnimator.humanScale : 1f;
+        return true;
+    }
+    public bool TryBeginFacingStop(out CombatMoveMotion motion, out float duration, out float humanScale, float sourceStartTime = 0f)
+    {
+        if (!TryGetFacingStop(out motion, out float fullDuration, out humanScale)) { duration = 0f; return false; }
+        float rate = motion.stop.length / Mathf.Max(.001f, fullDuration);
+        sourceStartTime = Mathf.Clamp(sourceStartTime, 0f, motion.stop.length);
+        duration = (motion.stop.length - sourceStartTime) / rate;
+        float firstStep = Mathf.Min(Time.deltaTime, duration);
         // CrossFade enters at its offset on this frame. The motor has already consumed
         // this frame's interval, so start the pose at that same point in the Stop curve.
-        if (!PlayState(layerIndex, layerName, activeMoveMotion.stopState, FacingSet.moveBlendSeconds,
-            firstStep / fullDuration, activeMoveMotion.stop.length)) return false;
-        motion = activeMoveMotion;
-        duration = fullDuration;
-        humanScale = targetAnimator != null && targetAnimator.isHuman ? targetAnimator.humanScale : 1f;
+        // Fixed-time offsets use the playback clock; fullDuration removes the state speed here.
+        if (!PlayState(layerIndex, layerName, motion.stopState, Mathf.Min(FacingSet.moveBlendSeconds, duration),
+            (sourceStartTime + firstStep * rate) / motion.stop.length, fullDuration)) return false;
+        ActiveFacingStopRate = rate;
+        ActiveFacingStopStartTime = sourceStartTime;
         facingMotion = FacingMotion.Stop;
         facingMotionEnd = Time.time + duration - firstStep;
         return true;

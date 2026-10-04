@@ -56,6 +56,7 @@ public static partial class PlayerEvadeVerifier
     static Vector3 testFacing;
     static bool poseNextStart;
     static bool heldMove, heldShift, heldLeft, heldRight;
+    static Key heldMoveKey = Key.W;
     static bool pointerAtComparison;
     static bool requestPause, requestResume, pauseRecorded, invalidateOnCompletion;
     static float frozenProgress;
@@ -318,13 +319,14 @@ public static partial class PlayerEvadeVerifier
     static void Send(bool move = false, bool shift = false, bool left = false, bool right = false)
     {
         heldMove = move; heldShift = shift; heldLeft = left; heldRight = right;
+        heldMoveKey = Key.W;
     }
     static void PoseStart()
     {
         if (InputState.currentUpdateType != InputUpdateType.Dynamic || actor == null || keyboard == null || mouse == null) return;
         if (!keyboard.enabled) InputSystem.EnableDevice(keyboard);
         if (!mouse.enabled) InputSystem.EnableDevice(mouse);
-        var keys = new List<Key>(); if (heldMove) keys.Add(Key.W); if (heldShift) keys.Add(Key.LeftShift);
+        var keys = new List<Key>(); if (heldMove) keys.Add(heldMoveKey); if (heldShift) keys.Add(Key.LeftShift);
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
         Vector2 point = Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(actor.transform.position + (dashAttackPointerDirection.sqrMagnitude > .001f ? dashAttackPointerDirection : testFacing) * 6f) : Vector2.zero;
         if (pointerAtComparison) point = new Vector2(Mathf.Max(8f, Screen.width - 620f) + 145f, Screen.height - 164f);
@@ -706,6 +708,7 @@ public static partial class PlayerEvadeVerifier
         finally
         {
             InputSystem.onBeforeUpdate -= PoseStart; poseNextStart = false; heldMove = heldShift = heldLeft = heldRight = false;
+            heldMoveKey = Key.W;
             requestPause = requestResume = pauseRecorded = invalidateOnCompletion = false;
             pointerAtComparison = false;
             if (OverburstGameMenu.IsOpen) OverburstGameMenu.Instance?.Close();

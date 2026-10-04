@@ -58,14 +58,17 @@ public static partial class PlayerEvadeVerifier
                     Check(rows.Any(f => f.stopActive && f.stopSector == i), "방향 " + i + " 제품 곡선 실제 소비");
                     Check(Mathf.Abs(coast-end.stopDistance)<.003f, "방향 " + i + " 제품 곡선과 실제 이동 3mm 이내 " + coast);
                     if (!set.directions[i].stopMatchEntrySpeed)
-                        Check(Mathf.Abs(coast-set.directions[i].stopDistance.Evaluate(set.directions[i].stop.length)
+                        Check(Mathf.Abs(coast-(set.directions[i].stopDistance.Evaluate(set.directions[i].stop.length)
+                            - set.directions[i].stopDistance.Evaluate(end.stopStartTime))
                             * animator.humanScale / set.directions[i].stopSourceHumanScale)<.003f,
-                            "방향 " + i + " B 원본 최종 이동량 소비");
+                            "방향 " + i + " B 동일 모션 구간 이동량 소비");
                     else Check(rows.Zip(rows.Skip(1),(a,b)=>b.stopDistance>=a.stopDistance-.00001f).All(x=>x),
                         "방향 " + i + " C 끝 디딤 역밀림 방지");
                     var timed=rows.Where(f=>f.stopActive && f.stopSector==i && f.clips.Contains(set.directions[i].stop.name)).ToArray();
-                    Check(timed.All(f=>Mathf.Abs(f.stopNormalized-f.stopElapsed*f.stopRate/set.directions[i].stop.length)<.06f),
+                    Check(timed.All(f=>Mathf.Abs(f.stopNormalized-(f.stopStartTime+f.stopElapsed*f.stopRate)/set.directions[i].stop.length)<.06f),
                         "방향 " + i + " 모션/곡선 시계 오차 0.06 이내");
+                    Check(Mathf.Abs(coast-end.stopTargetDistance)<.004f, "방향 " + i + " 축소 목표 거리 4mm 이내");
+                    Check(Mathf.Abs(end.stopMomentum-1f)<.001f,"방향 "+i+" 긴 이동 최대 관성");
                 } else {
                     Check(coast<.27f,"방향 "+i+" 작은 감속 이동 상한 "+coast);
                     Check(rows.Zip(rows.Skip(1),(a,b)=>b.speed<=a.speed+.02f).All(x=>x),"방향 "+i+" 정지 속도 단조 감소");
@@ -76,11 +79,48 @@ public static partial class PlayerEvadeVerifier
                     Check(lateOffset<.025f,"방향 "+i+" Stop -> Idle 골반 이탈 25mm 미만 "+lateOffset);
                 }
             }
+            if (set.scaleStopWithMoveDuration) {
+                for (int i=0;i<8;i++) {
+                    yield return FacingReset(); FacingAim(-i*45); yield return FacingWait(1.7f);
+                    Send(true); yield return FacingSample(.12f,"short_move_"+i);
+                    var release=facingProbe.frames.Last();
+                    Send(); yield return FacingSample(set.directions[i].stop.length+.35f,"short_stop_"+i);
+                    var rows=facingProbe.frames.Where(f=>f.phase=="short_stop_"+i).ToArray(); var end=rows.Last();
+                    float coast=PlanarDistance(release.actor,end.actor);
+                    var longEnd=facingProbe.frames.Last(f=>f.phase=="stop_"+i);
+                    Check(rows.Any(f=>f.stopActive),"짧은 이동 "+i+" 실제 Stop 진입");
+                    Check(coast<longEnd.stopDistance*.55f,"짧은 이동 "+i+" 긴 이동보다 짧은 관성 "+coast);
+                    Check(Mathf.Abs(coast-end.stopTargetDistance)<.004f,"짧은 이동 "+i+" 목표와 실제 이동 일치");
+                    Check(Mathf.Abs(end.stopMomentum-set.shortStopTravelMultiplier)<.01f,"짧은 이동 "+i+" 최소 관성 배율");
+                    Check(end.speed<.001f && !end.stopActive,"짧은 이동 "+i+" 잔류 속도 없음");
+                    var timed=rows.Where(f=>f.stopActive && f.clips.Contains(set.directions[i].stop.name)).ToArray();
+                    Check(timed.All(f=>Mathf.Abs(f.stopNormalized-(f.stopStartTime+f.stopElapsed*f.stopRate)/set.directions[i].stop.length)<.06f),
+                        "짧은 이동 "+i+" 모션과 곡선 구간 일치");
+                    samples.Add(new{kind="short",direction=i,coast,end.stopStartTime,end.stopMomentum,end.stopTargetDistance});
+                }
+                foreach(int i in new[]{2,4,6}) {
+                    yield return FacingReset(); FacingAim(-i*45); yield return FacingWait(1.7f);
+                    Send(true); yield return FacingSample(.45f,"medium_move_"+i); var release=facingProbe.frames.Last();
+                    Send(); yield return FacingSample(set.directions[i].stop.length+.35f,"medium_stop_"+i);
+                    var end=facingProbe.frames.Last(); float coast=PlanarDistance(release.actor,end.actor);
+                    Check(end.stopMomentum>set.shortStopTravelMultiplier && end.stopMomentum<1f,"중간 이동 "+i+" 부드러운 관성 보간");
+                    Check(Mathf.Abs(coast-end.stopTargetDistance)<.004f && end.speed<.001f,"중간 이동 "+i+" 거리와 잔류 속도");
+                    samples.Add(new{kind="medium",direction=i,coast,end.stopStartTime,end.stopMomentum,end.stopTargetDistance});
+                }
+            }
             if(expectInPlace) {
                 yield return FacingReset(); facingProbe.phase="move_restart_entry"; Send(true); yield return FacingWait(.9f);
                 facingProbe.phase="stop_restart_entry"; Send();yield return FacingWait(.04f);
                 Send(true);yield return FacingSample(.35f,"move_restart");
                 Check(movement.MoveInput.sqrMagnitude>.5f && movement.Locomotion.HorizontalVelocity.magnitude>1 && !movement.IsCombatStopCurveActive,"Stop 중 재이동 즉시 수락·곡선 취소");
+                yield return FacingReset(); Send(true);yield return FacingWait(.9f);
+                Vector3 priorDirection=movement.Locomotion.HorizontalVelocity.normalized;
+                Send(); yield return FacingWait(.04f);
+                Send(true); heldMoveKey=UnityEngine.InputSystem.Key.S;
+                facingProbe.phase="reverse_restart"; yield return Frames(2);
+                Check(!movement.IsCombatStopCurveActive && Vector3.Dot(movement.Locomotion.HorizontalVelocity,priorDirection)<0f,
+                    "Stop 중 반대 입력 첫 두 프레임에서 이전 관성 속도 폐기");
+                yield return FacingSample(.35f,"reverse_move");
                 Send();yield return FacingWait(1.3f);
                 facingProbe.phase="move_attack_entry"; Send(true);yield return FacingWait(.9f);
                 facingProbe.phase="stop_attack_entry"; Send();yield return FacingWait(.04f);

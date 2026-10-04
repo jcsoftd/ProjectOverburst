@@ -22,6 +22,7 @@ public sealed class CombatMoveMotion
     public AnimationCurve stopDistance;
     [Min(.001f)] public float stopSourceHumanScale = 1f;
     public bool stopMatchEntrySpeed;
+    [Range(0.05f, 1f)] public float stopTravelMultiplier = 1f;
 }
 
 [CreateAssetMenu(menuName = "OVERBURST/Weapons/Combat Locomotion Set")]
@@ -41,6 +42,10 @@ public sealed class CombatLocomotionSet : ScriptableObject
     [Min(0f)] public float moveBlendSeconds = .12f;
     [Min(0f)] public float recoverySeconds = .12f;
     [Min(0f)] public float stopEntrySeconds = .08f;
+    public bool scaleStopWithMoveDuration;
+    [Range(.05f, 1f)] public float shortStopTravelMultiplier = .2f;
+    [Min(0f)] public float shortMoveSeconds = .18f;
+    [Min(.01f)] public float fullMomentumSeconds = .8f;
     [Min(0f)] public float stopBrakeSeconds = .12f;
     [Min(0f)] public float stopBrakeMaxDistance = .18f;
     public float idleChestYaw;

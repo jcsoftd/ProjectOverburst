@@ -12,10 +12,54 @@ using UnityEngine.Playables;
 /// <summary>승인된 F/R/L=C, 나머지=B 정지 이동 곡선을 native 원본에서 추출한다.</summary>
 public static class SwordStopMovementBuilder
 {
+    public const int RetuneRevision = 1;
     const string ProfilePath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/GreatswordCombatAnimationProfile.asset";
     const string Source = "Assets/ThirdParty/03_애니메이션/Sword_Animations_Pack/Animation/Humanoid/";
     static readonly string[] Suffix = { "F_0", "F_R_45", "F_R_90", "B_R_45", "B_180", "B_L_45", "F_L_90", "F_L_45" };
     static readonly int[] Folders = { 1, 3, 5, 8, 6, 7, 4, 2 };
+
+    public static string ApplyRetune(string directory)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)))
+            throw new InvalidOperationException("Idle real-account Editor required.");
+        directory = Path.GetFullPath(directory);
+        if (!directory.StartsWith(Path.GetFullPath("../개인파일/코덱스산출") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Private output required.");
+        Directory.CreateDirectory(directory);
+        var profile = AssetDatabase.LoadAssetAtPath<WeaponCombatAnimationProfile>(ProfilePath);
+        var set = profile != null ? profile.combatLocomotionSet : null;
+        if (set == null || set.directions.Length != 8 || EditorUtility.IsDirty(set))
+            throw new InvalidOperationException("A clean eight-direction set is required.");
+        string setPath = AssetDatabase.GetAssetPath(set), guid = AssetDatabase.AssetPathToGUID(setPath);
+        File.Copy(setPath, Path.Combine(directory, "SetBefore.asset"), true);
+        var snapshot = UnityEngine.Object.Instantiate(set);
+        var clipHashes = set.directions.Select(m => SwordIdleAttackCopyBuilder.Hash(AssetDatabase.GetAssetPath(m.stop))).ToArray();
+        var curves = set.directions.Select(m => JsonConvert.SerializeObject(m.stopDistance.keys)).ToArray();
+        float[] factors = { 1f, 1f, .92f, .6f, .6f, .6f, .92f, 1f };
+        try
+        {
+            for (int i = 0; i < 8; i++) set.directions[i].stopTravelMultiplier = factors[i];
+            set.scaleStopWithMoveDuration = true;
+            set.shortStopTravelMultiplier = .2f; set.shortMoveSeconds = .18f; set.fullMomentumSeconds = .8f;
+            EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
+            if (guid != AssetDatabase.AssetPathToGUID(setPath)
+                || !clipHashes.SequenceEqual(set.directions.Select(m => SwordIdleAttackCopyBuilder.Hash(AssetDatabase.GetAssetPath(m.stop))))
+                || !curves.SequenceEqual(set.directions.Select(m => JsonConvert.SerializeObject(m.stopDistance.keys))))
+                throw new InvalidOperationException("Stop pose, curve or GUID changed.");
+            File.WriteAllText(Path.Combine(directory, "ApplyResult.json"), JsonConvert.SerializeObject(new {
+                status = "PASS", RetuneRevision, setPath, guid, factors, set.scaleStopWithMoveDuration,
+                set.shortStopTravelMultiplier, set.shortMoveSeconds, set.fullMomentumSeconds,
+                clipHashes, curvesPreserved = true, clipsPreserved = true }, Formatting.Indented));
+            AssetDatabase.ExportPackage(setPath, Path.Combine(directory, "RetunedStopSet.unitypackage"), ExportPackageOptions.Default);
+            return "PASS: lateral 0.92, rear 0.60; short-move momentum enabled.";
+        }
+        catch
+        {
+            EditorUtility.CopySerialized(snapshot, set); EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set); throw;
+        }
+        finally { UnityEngine.Object.DestroyImmediate(snapshot); }
+    }
 
     public static string Apply(string directory)
     {

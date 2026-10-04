@@ -274,6 +274,7 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         public bool stopActive;
         public int stopSector;
         public float stopElapsed, stopDistance, stopRate, stopNormalized;
+        public float stopStartTime, stopTargetDistance, stopMomentum;
         public bool grounded, controllerEnabled;
         public float groundGap, verticalVelocity;
         public float chestYaw;
@@ -462,6 +463,8 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
             stopSector = facing.Set != null ? Array.IndexOf(facing.Set.directions, movement.CombatStopMotion) : -1,
             stopElapsed = movement.CombatStopCurveElapsed, stopDistance = movement.CombatStopCurveDistance,
             stopRate = movement.CombatStopCurveRate,
+            stopStartTime = movement.CombatStopCurveStartTime, stopTargetDistance = movement.CombatStopCurveTargetDistance,
+            stopMomentum = movement.CombatStopMomentum,
             stopNormalized = Mathf.Clamp01(animator.IsInTransition(layer) && movement.CombatStopMotion != null
                 && animator.GetNextAnimatorStateInfo(layer).shortNameHash == Animator.StringToHash(movement.CombatStopMotion.stopState)
                 ? animator.GetNextAnimatorStateInfo(layer).normalizedTime : animator.GetCurrentAnimatorStateInfo(layer).normalizedTime),
