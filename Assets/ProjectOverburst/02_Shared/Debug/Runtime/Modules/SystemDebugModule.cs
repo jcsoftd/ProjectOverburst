@@ -48,7 +48,7 @@ namespace Overburst.DebugTools
                 .Add("10초", () => DebugPerfRecorder.Start(10f))
                 .Add("30초", () => DebugPerfRecorder.Start(30f))
                 .WithId("system.perf.record")
-                .EnabledWhen(() => !DebugPerfRecorder.Running, "측정 중이에요")
+                .EnabledWhen(() => !DebugPerfRecorder.Running && !Performance.CombatPerformancePanel.Running, "성능 측정 중이에요")
                 .Tip("평균·1% 느린 프레임·최악·GC 횟수·몬스터 수. 에디터에서는 CSV를 개인파일/코덱스산출/Perf에 쓴다.");
             perf.Readout("측정 결과", () => DebugPerfRecorder.Progress)
                 .Lines(2)

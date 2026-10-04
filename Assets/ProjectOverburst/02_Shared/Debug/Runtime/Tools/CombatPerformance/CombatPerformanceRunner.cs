@@ -21,6 +21,7 @@ namespace Overburst.DebugTools.Performance
         public CombatPerformanceRun Run { get; private set; }
         public string Progress { get; private set; } = "준비";
         public bool Finished { get; private set; }
+        public double ElapsedSeconds => Math.Max(0, Time.realtimeSinceStartupAsDouble - began);
         public event Action<CombatPerformanceRun> Completed;
         readonly Stack<IEnumerator> routines = new Stack<IEnumerator>();
         readonly List<EnemyActor> enemies = new List<EnemyActor>(500);
@@ -86,8 +87,16 @@ namespace Overburst.DebugTools.Performance
             Application.runInBackground = true;
             Application.logMessageReceived += runner.OnLog;
             runner.routines.Push(runner.Execute());
-            CombatPerformancePaths.SaveJson(Path.Combine(output, "profile.json"), profile);
-            CombatPerformancePaths.SaveJson(Path.Combine(output, "run.json"), runner.Run);
+            try
+            {
+                CombatPerformancePaths.SaveJson(Path.Combine(output, "profile.json"), profile);
+                CombatPerformancePaths.SaveJson(Path.Combine(output, "run.json"), runner.Run);
+            }
+            catch (Exception error)
+            {
+                runner.Finish("FAILED", "시작 파일 저장 실패: " + error);
+                throw;
+            }
             return runner;
         }
         double EstimatedSeconds()
@@ -127,12 +136,12 @@ namespace Overburst.DebugTools.Performance
         {
             if (Run.profile.mode == CombatPerformanceMode.Observation)
             {
-                player = PlayerContext.GetOrCreate().CurrentActor;
-                input = player != null ? player.GetComponent<PlayerInputFacade>() : null;
-                observationPlayerHealth = player != null ? player.GetComponent<CombatHealth>() : null;
+                BindObservationPlayer();
                 CaptureEnvironment();
                 while (Time.realtimeSinceStartupAsDouble - began < Run.profile.observationSeconds)
                 {
+                    BindObservationPlayer();
+                    blood = UnityEngine.Object.FindFirstObjectByType<BloodHitVfxService>();
                     // Bind once per chunk, outside sampling. New targets in this chunk may have incomplete event coverage.
                     foreach (var h in UnityEngine.Object.FindObjectsByType<CombatHealth>(FindObjectsSortMode.None))
                     { h.OnDamageResolved += ObservationHit; observationBindings.Add(h); }
@@ -387,7 +396,21 @@ namespace Overburst.DebugTools.Performance
         }
         static IEnumerator Wait(float seconds)
         { double end = Time.realtimeSinceStartupAsDouble + seconds; while (Time.realtimeSinceStartupAsDouble < end) yield return null; }
-        int Alive() { int count = 0; foreach (var e in enemies) if (e != null && e.gameObject.activeInHierarchy && !e.Health.IsDead) count++; return count; }
+        int Alive()
+        {
+            if (Run.profile.mode == CombatPerformanceMode.Observation) return EnemyAIController.AliveEnemyCount;
+            int count = 0; foreach (var e in enemies) if (e != null && e.gameObject.activeInHierarchy && !e.Health.IsDead) count++; return count;
+        }
+        void BindObservationPlayer()
+        {
+            if (evade != null) { evade.OnEvadeStarted -= EvadeStarted; evade.OnEvadeEnded -= EvadeEnded; }
+            player = PlayerContext.GetOrCreate().CurrentActor;
+            input = player != null ? player.GetComponent<PlayerInputFacade>() : null;
+            melee = player != null ? player.GetComponent<MeleeRuntime>() : null;
+            observationPlayerHealth = player != null ? player.GetComponent<CombatHealth>() : null;
+            evade = player != null ? player.GetComponent<PlayerEvadeController>() : null;
+            if (evade != null) { evade.OnEvadeStarted += EvadeStarted; evade.OnEvadeEnded += EvadeEnded; }
+        }
         void EnemyHit(CombatHealth health, DamageInfo info, float amount, bool fatal)
         { if (segment == null || amount <= 0) return; segment.enemyHits++; if (fatal) segment.kills++; if (info.isCritical) segment.criticalHits++; if (info.isDamageOverTime) segment.dotHits++;
             if ((info.playerAttackKind & PlayerAttackKind.Elemental) != 0) segment.derivedHits++; recorder?.Event(4, health.GetInstanceID(), amount, (int)info.playerAttackKind, (int)info.element, fatal); }
@@ -402,6 +425,11 @@ namespace Overburst.DebugTools.Performance
         { foreach (var e in enemies) if (e != null) { e.Health.OnDamageResolved -= EnemyHit; if (e.IsLeased && spawner != null) spawner.Release(e); } enemies.Clear(); }
         void OnLog(string message, string stack, LogType type) { if (Run != null && (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)) Run.logErrors++; }
         public void Stop() => Finish("CANCELLED", "사용자가 중단했습니다.");
+        public void CompleteObservation()
+        {
+            if (Run.profile.mode != CombatPerformanceMode.Observation) throw new InvalidOperationException("수동 관찰에서만 완료할 수 있습니다.");
+            Finish("COMPLETE", "사용자가 관찰을 종료했습니다.");
+        }
         void OnDisable() { if (Run != null && !Finished) Finish("INTERRUPTED", "Play 종료/재로딩 또는 러너 비활성화"); }
         void CleanupStep(Action action)
         { try { action(); } catch (Exception error) { Run.status = "FAILED"; Run.reason += "\nCleanup: " + error; } }

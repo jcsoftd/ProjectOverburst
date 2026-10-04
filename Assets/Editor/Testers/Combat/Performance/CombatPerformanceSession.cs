@@ -36,9 +36,31 @@ public static class CombatPerformanceSession
     }
     static CombatPerformanceSession()
     {
+        CombatPerformancePanel.Backend = new PanelBackend();
         EditorApplication.playModeStateChanged += StateChanged;
         AssemblyReloadEvents.beforeAssemblyReload += BeforeReload;
         EditorApplication.update += Tick;
+    }
+    sealed class PanelBackend : ICombatPerformancePanelBackend
+    {
+        string cachedFolder;
+        CombatPerformanceRun cachedRun;
+        public bool Busy => CombatPerformanceSession.Busy || EditorApplication.isCompiling || EditorApplication.isUpdating || BuildPipeline.isBuildingPlayer;
+        public string LastFolder => CombatPerformanceSession.LastFolder;
+        public string StartObservation(CombatPerformanceProfile profile) => Start(profile);
+        public CombatPerformanceRun ReadLastRun()
+        {
+            string folder = LastFolder;
+            if (Busy || CombatPerformanceRunner.Current != null || string.Equals(folder, cachedFolder, StringComparison.Ordinal)) return cachedRun;
+            cachedFolder = folder; cachedRun = null;
+            try { if (!string.IsNullOrEmpty(folder)) cachedRun = CombatPerformanceReport.Read(CombatPerformancePaths.RequireOutput(folder)); }
+            catch { /* A moved or unfinished result must not break the debug panel. */ }
+            return cachedRun;
+        }
+        public Overburst.DebugTools.DebugResult OpenWindow()
+        { CombatPerformanceWindow.Open(); return Overburst.DebugTools.DebugResult.Ok("전투 성능 검사 창 열림"); }
+        public Overburst.DebugTools.DebugResult Reveal(string folder)
+        { EditorUtility.RevealInFinder(folder); return Overburst.DebugTools.DebugResult.Ok("결과 폴더 열림"); }
     }
     static SceneState[] Scenes()
     {
@@ -90,7 +112,8 @@ public static class CombatPerformanceSession
     }
     static string StartObservation(CombatPerformanceProfile profile)
     {
-        if (Busy || !EditorApplication.isPlaying || CombatPerformanceRunner.Current != null) throw new InvalidOperationException("기존 Play에서 실행 중인 성능 검사가 없어야 합니다.");
+        if (Busy || !EditorApplication.isPlaying || CombatPerformanceRunner.Current != null || Overburst.DebugTools.DebugPerfRecorder.Running)
+            throw new InvalidOperationException("기존 Play에서 실행 중인 성능 검사가 없어야 합니다.");
         string folder = NewFolder();
         CombatPerformanceRunner.StartRun(profile, folder, revision: Revision(), fingerprint: ContentFingerprint(profile));
         EditorPrefs.SetString(Key + "last", folder); return folder;

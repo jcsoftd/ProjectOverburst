@@ -40,7 +40,7 @@ namespace Overburst.DebugTools
 
         public static DebugResult Start(float seconds)
         {
-            if (Running)
+            if (Running || Performance.CombatPerformancePanel.Running)
                 return DebugResult.Fail("이미 측정 중이에요");
             frames.Clear();
             monsters.Clear();
