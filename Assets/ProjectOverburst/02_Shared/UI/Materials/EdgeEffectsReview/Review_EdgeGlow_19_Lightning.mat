@@ -106,9 +106,9 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DistortionIntensity: 7.7760005
+    - _DistortionIntensity: 9.72
     - _DstBlend: 0
-    - _EdgeBlur: 0.08
+    - _EdgeBlur: 0.0155
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -145,7 +145,7 @@ Material:
     - _StencilReadMask: 255
     - _StencilWriteMask: 255
     - _Surface: 0
-    - _Thickness: 0.20714286
+    - _Thickness: 0.0254
     - _UseMask: 0
     - _Use_Mask: 1
     - _Use_Mask2: 0

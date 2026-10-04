@@ -65,7 +65,7 @@ public static class EdgeEffectsIconReviewBuilder
         public readonly List<Material> timed=new List<Material>();
         readonly List<Image> timedImages=new List<Image>();
         public Font captionFont;
-        readonly Dictionary<string,Sprite> rings=new Dictionary<string,Sprite>();
+        Sprite ring;
         readonly Dictionary<Shader,Shader> clocks=new Dictionary<Shader,Shader>();
         readonly Dictionary<Texture,Texture> neutralTextures=new Dictionary<Texture,Texture>();
         readonly FieldInfo radial=typeof(SlotGradeEffect).GetField("radialGradientSprite",BindingFlags.NonPublic|BindingFlags.Static);
@@ -170,79 +170,55 @@ public static class EdgeEffectsIconReviewBuilder
             var view=go.GetComponent<OverburstUIItemSlotView>();view.PresentType(data);view.PresentElement(data);
             return go;
         }
-        Sprite RingSprite(float thickness,float softness=0){
-            string key=thickness.ToString("F3")+"|"+softness.ToString("F3");
-            if(rings.TryGetValue(key,out var cached))return cached;
-            const int resolution=336;
-            var tex=new Texture2D(resolution,resolution,TextureFormat.RGBA32,false){name="Preview frame band "+key,filterMode=FilterMode.Bilinear};
-            var pixels=new Color32[resolution*resolution];
-            for(int y=0;y<resolution;y++)for(int x=0;x<resolution;x++){
-                float distance=Mathf.Abs(Mathf.Max(Mathf.Abs((x+.5f)/4-42),Mathf.Abs((y+.5f)/4-42))-39);
-                float alpha=softness>0?1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(thickness*.5f,thickness*.5f+softness,distance)):distance<thickness*.5f?1:0;
-                pixels[y*resolution+x]=new Color32(255,255,255,(byte)Mathf.RoundToInt(alpha*255));
+        Sprite RingSprite(){
+            if(ring)return ring;
+            var tex=new Texture2D(168,168,TextureFormat.RGBA32,false){name="Preview border stencil",filterMode=FilterMode.Bilinear};
+            var pixels=new Color32[168*168];
+            for(int y=0;y<168;y++)for(int x=0;x<168;x++){
+                float dx=Mathf.Abs(x-83.5f),dy=Mathf.Abs(y-83.5f);
+                bool inside=dx<83.5f&&dy<83.5f;
+                bool middle=dx<66&&dy<66;
+                pixels[y*168+x]=new Color32(255,255,255,(byte)(inside&&!middle?255:0));
             }
-            tex.SetPixels32(pixels);tex.Apply();
-            if(persist){
-                EnsureFolder(MaterialsRoot);string path=MaterialsRoot+"/FrameBand_"+key.Replace("|","_").Replace(".","p")+".png";
-                File.WriteAllBytes(path,tex.EncodeToPNG());Object.DestroyImmediate(tex);AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
-                var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.textureType=TextureImporterType.Sprite;importer.spriteImportMode=SpriteImportMode.Single;importer.spritePixelsPerUnit=100;importer.mipmapEnabled=false;importer.alphaIsTransparency=true;importer.textureCompression=TextureImporterCompression.Uncompressed;importer.SaveAndReimport();
-                cached=AssetDatabase.LoadAssetAtPath<Sprite>(path);rings[key]=cached;return cached;
-            }
-            var sprite=Sprite.Create(tex,new Rect(0,0,resolution,resolution),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect);
-            owned.Add(sprite);owned.Add(tex);rings[key]=sprite;return sprite;
+            tex.SetPixels32(pixels);tex.Apply();ring=Sprite.Create(tex,new Rect(0,0,168,168),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect);
+            owned.Add(ring);owned.Add(tex);return ring;
         }
         public void FittedEffect(GameObject prefab,GameObject slot,ItemGrade grade){
             if(grade==ItemGrade.Common)return;
-            int rank=Array.IndexOf(MatrixGrades,grade);
-            float thickness=MatrixThickness[rank];
-            float strength=MatrixStrength[rank];
             var view=slot.GetComponent<OverburstUIItemSlotView>();
             var icon=(Image)new SerializedObject(view).FindProperty("icon").objectReferenceValue;
-            var root=new GameObject("Fitted border "+prefab.name,typeof(RectTransform));
+            var root=new GameObject("Fitted border "+prefab.name,typeof(RectTransform),typeof(Image),typeof(Mask));
             root.transform.SetParent(slot.transform,false);root.transform.SetSiblingIndex(icon.transform.GetSiblingIndex()+1);
             Top(root.GetComponent<RectTransform>(),0,0,84,84);
-            // The visible vendor frame is 84px. Its bevel center is 3px inside all four sides.
-            var gradeColor=GradeConfig.GetGradeColor(grade);
-            Action<string,float,float,float> band=(name,width,softness,alpha)=>{
-                var layer=new GameObject(name,typeof(RectTransform),typeof(Image));layer.transform.SetParent(root.transform,false);
-                var image=layer.GetComponent<Image>();image.sprite=RingSprite(width,softness);image.raycastTarget=false;
-                var color=gradeColor;color.a=alpha;image.color=color;Top(image.rectTransform,0,0,84,84);
-            };
-            band("Grade frame glow",thickness,.65f,.20f+rank*.045f);
-            band("Grade frame core",thickness,.18f,.22f+rank*.055f);
-            var mask=new GameObject("Animated frame band",typeof(RectTransform),typeof(Image),typeof(Mask));mask.transform.SetParent(root.transform,false);
-            Top(mask.GetComponent<RectTransform>(),0,0,84,84);
-            var stencil=mask.GetComponent<Image>();stencil.sprite=RingSprite(thickness+1.1f);stencil.raycastTarget=false;mask.GetComponent<Mask>().showMaskGraphic=false;
+            var stencil=root.GetComponent<Image>();stencil.sprite=RingSprite();stencil.raycastTarget=false;root.GetComponent<Mask>().showMaskGraphic=false;
+            float strength=grade==ItemGrade.Uncommon?.30f:grade==ItemGrade.Rare?.34f:grade==ItemGrade.Epic?.38f:grade==ItemGrade.Legendary?.42f:grade==ItemGrade.Artifact?.44f:grade==ItemGrade.Mythic?.46f:.48f;
             bool linear=prefab.name=="EdgeGlow_10"||prefab.name=="EdgeGlow_11"||prefab.name=="EdgeGlow_19";
-            var go=Effect(prefab,0,0,84,grade,1,true,mask.transform);
+            var go=Effect(prefab,0,0,84,grade,strength,true,root.transform);
             var images=go.GetComponentsInChildren<Image>(true);
             foreach(var image in images){
                 var m=image.material;
                 if(m.HasProperty("_XThicknessScaleFactor"))m.SetFloat("_XThicknessScaleFactor",1);
-                if(m.HasProperty("_DistortionIntensity"))m.SetFloat("_DistortionIntensity",Mathf.Min(12,m.GetFloat("_DistortionIntensity")*.8f));
-                if(m.HasProperty("_Thickness")){
-                    if(linear){m.SetFloat("_Thickness",thickness/14);m.SetFloat("_EdgeBlur",.08f);}
-                    else{m.SetFloat("_RadialUV_Power",Mathf.Log(.5f)/Mathf.Log(39f/42));m.SetFloat("_Thickness",thickness*.115f);m.SetFloat("_EdgeBlur",.10f);}
-                    if(m.HasProperty("_ColorIntensity"))m.SetFloat("_ColorIntensity",strength*1.3f/Mathf.Pow(21,m.GetFloat("_ColorPower")));
-                }else{
-                    if(m.HasProperty("_ColorIntensity"))m.SetFloat("_ColorIntensity",Mathf.Min(5,m.GetFloat("_ColorIntensity"))*strength);
-                    if(m.HasProperty("_RadialUV_Power"))m.SetFloat("_RadialUV_Power",Mathf.Max(1,m.GetFloat("_RadialUV_Power")*2.8f/thickness));
-                }
+                if(m.HasProperty("_DistortionIntensity"))m.SetFloat("_DistortionIntensity",Mathf.Min(4.2f,m.GetFloat("_DistortionIntensity")*.28f));
+                if(m.HasProperty("_Thickness"))m.SetFloat("_Thickness",linear?.045f:Mathf.Clamp(m.GetFloat("_Thickness")*.65f,.004f,.009f));
+                if(m.HasProperty("_EdgeBlur"))m.SetFloat("_EdgeBlur",linear?.08f:Mathf.Min(.32f,m.GetFloat("_EdgeBlur")*.40f));
                 if(m.HasProperty("_Color"))m.SetColor("_Color",Color.white);
                 if(m.HasProperty("_MainTexScaleOffset")&&m.GetTexture("_MainTex")&&m.GetTexture("_MainTex").name.StartsWith("Projectile_",StringComparison.Ordinal)){
-                    var uv=m.GetVector("_MainTexScaleOffset");uv.x=12f/thickness;uv.z=.5f-(39f/42)*uv.x;m.SetVector("_MainTexScaleOffset",uv);
+                    // A projectile's bright axis is at U=.5; place it on the square rim.
+                    var uv=m.GetVector("_MainTexScaleOffset");uv.x=3;uv.z=-2.5f;m.SetVector("_MainTexScaleOffset",uv);
                     m.SetFloat("_RadialUV_Power",1);m.SetFloat("_ScrollSpeed_X",0);
                 }
-                if(!m.HasProperty("_ColorIntensity")){var color=image.color;color.a=Mathf.Min(1,.52f+rank*.065f);image.color=color;}
+                if(!m.HasProperty("_ColorIntensity")){var color=image.color;color.a=strength;image.color=color;}
                 if(image.transform!=go.transform){var r=image.rectTransform;r.anchorMin=Vector2.zero;r.anchorMax=Vector2.one;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;r.localScale=Vector3.one;r.localRotation=Quaternion.identity;}
             }
             if(linear){
-                var templates=images.Select(i=>new{material=i.material,color=i.color}).ToArray();Object.DestroyImmediate(go);
+                // Linear lightning presets become four connected rim strips at the real slot size.
+                var templates=images.Select(i=>new{material=i.material,color=i.color}).ToArray();
+                Object.DestroyImmediate(go);
                 for(int edge=0;edge<4;edge++)foreach(var template in templates){
-                    var bolt=new GameObject("Rim lightning "+edge,typeof(RectTransform),typeof(Image));bolt.transform.SetParent(mask.transform,false);
+                    var bolt=new GameObject("Rim lightning "+edge,typeof(RectTransform),typeof(Image));bolt.transform.SetParent(root.transform,false);
                     var image=bolt.GetComponent<Image>();image.material=template.material;image.color=template.color;image.raycastTarget=false;
-                    var r=image.rectTransform;r.anchorMin=r.anchorMax=r.pivot=new Vector2(.5f,.5f);r.sizeDelta=new Vector2(14,84);
-                    r.anchoredPosition=edge==0?new Vector2(-39,0):edge==1?new Vector2(39,0):edge==2?new Vector2(0,39):new Vector2(0,-39);
+                    var r=image.rectTransform;r.anchorMin=r.anchorMax=r.pivot=new Vector2(.5f,.5f);r.sizeDelta=new Vector2(10,76);
+                    r.anchoredPosition=edge==0?new Vector2(-37,0):edge==1?new Vector2(37,0):edge==2?new Vector2(0,37):new Vector2(0,-37);
                     r.localRotation=Quaternion.Euler(0,0,edge<2?0:90);
                 }
             }
@@ -289,7 +265,7 @@ public static class EdgeEffectsIconReviewBuilder
 
     static void Catalog(Board board,GameObject[] effects,BaseItemData[] items){
         board.Caption("EDGE EFFECTS  /  20 ORIGINAL PRESETS",28,20,1400,27);
-        board.Caption("LEFT: SUPPLIER ORIGINAL     RIGHT: OVERBURST 84px SLOT / EPIC COLOR / FITTED 2.9px BORDER",28,62,1450,15);
+        board.Caption("LEFT: SUPPLIER ORIGINAL     RIGHT: OVERBURST 84px SLOT / EPIC COLOR / 45% INTENSITY",28,62,1450,15);
         for(int i=0;i<effects.Length;i++){
             float x=24+(i%5)*294,y=108+(i/5)*210;board.Panel(x,y,278,194);
             board.Caption(effects[i].name,x+14,y+12,250,18);
@@ -297,14 +273,14 @@ public static class EdgeEffectsIconReviewBuilder
             board.Effect(effects[i],6,7,116,parent:clip);
             var slot=board.Slot(items[i%items.Length].icon,ItemGrade.Epic,166,25,1,false);
             slot.transform.SetParent(clip,false);
-            // Fitted effect follows the visible frame bevel at the real 84px footprint.
-            board.FittedEffect(effects[i],slot,ItemGrade.Epic);
+            // 96px effect covers the 84px slot with a 6px outer allowance.
+            board.Effect(effects[i],-6,-6,96,ItemGrade.Epic,.45f,true,slot.transform);
             board.Caption("ORIGINAL",x+22,y+168,115,12);board.Caption("GAME ICON",x+156,y+168,115,12);
         }
     }
     static void Comparison(Board board,GameObject[] effects,BaseItemData[] items){
         board.Caption("OVERBURST  /  BORDER REPLACEMENT STUDY",28,20,1500,27);
-        board.Caption("Same 84px slot and artwork. Candidate: aligned 84px frame, grade-dependent thickness and brighter animated pattern.",28,62,1500,15);
+        board.Caption("Same 84px slot and artwork. Candidate: grade color, neutral pattern RGB, intensity 45%.",28,62,1500,15);
         var labels=new[]{"CURRENT"}.Concat(Candidates).ToArray();
         for(int c=0;c<labels.Length;c++)board.Caption(labels[c],224+c*194,111,190,17);
         var rowNames=new[]{"GREATSWORD","HELMET","FIRE GEM","BAG","FLASK"};
@@ -315,7 +291,7 @@ public static class EdgeEffectsIconReviewBuilder
             for(int c=0;c<labels.Length;c++){
                 float x=220+c*194;board.Panel(x-12,y-8,170,124);
                 var slot=board.Slot(items[r].icon,grade,x+25,y+10,1,c==0,true);
-                if(c>0)board.FittedEffect(effects.First(p=>p.name==labels[c]),slot,grade);
+                if(c>0)board.Effect(effects.First(p=>p.name==labels[c]),-6,-6,96,grade,.45f,true,slot.transform);
             }
         }
     }
@@ -329,30 +305,28 @@ public static class EdgeEffectsIconReviewBuilder
             for(int c=0;c<Grades.Length;c++){
                 float x=204+c*166;board.Panel(x-8,y-10,150,142);
                 var slot=board.Slot(items[c%items.Length].icon,Grades[c],x+25,y+18,1,r==0,true);
-                if(r>0)board.FittedEffect(effects.First(p=>p.name==rows[r]),slot,Grades[c]);
+                if(r>0)board.Effect(effects.First(p=>p.name==rows[r]),-6,-6,96,Grades[c],.45f,true,slot.transform);
             }
         }
     }
     static string Capture(string kind,int frames){
         if(Busy())return "DEFERRED: Editor busy; nothing created";
-        Directory.CreateDirectory(MatrixOutput+"/media/"+kind+"-frames");
+        Directory.CreateDirectory(Output+"/media/"+kind+"-frames");
         var before=SharedScenes();var active=SceneManager.GetActiveScene();
         var effects=Effects();var items=Items();if(effects.Length!=20)throw new InvalidOperationException("Expected 20 supplier presets");
         int width=kind=="catalog"?1500:1400,height=kind=="catalog"?970:890;
         using(var board=new Board(width,height)){
             if(kind=="catalog")Catalog(board,effects,items);else if(kind=="comparison")Comparison(board,effects,items);else GradeBoard(board,effects,items);
             board.ClockMaterials();
-            for(int i=0;i<frames;i++)board.SaveFrame(MatrixOutput+"/media/"+kind+"-frames/"+i.ToString("D4")+".png",2f+i/20f);
+            for(int i=0;i<frames;i++)board.SaveFrame(Output+"/media/"+kind+"-frames/"+i.ToString("D4")+".png",2f+i/20f);
         }
         if(SceneManager.GetActiveScene()!=active)SceneManager.SetActiveScene(active);
         if(!before.SequenceEqual(SharedScenes()))throw new InvalidOperationException("Shared scenes changed");
-        File.WriteAllText(MatrixOutput+"/data/"+kind+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",kind,frames,fps=20,width,height,source="Native Unity preview scene with supplier shaders and material clock substitution only",items=items.Select(i=>new{name=i.itemName,path=AssetDatabase.GetAssetPath(i),icon=AssetDatabase.GetAssetPath(i.icon)}),currentMode=ExperimentalSlotOutlineModeState.CurrentMode.ToString(),sharedScenePreserved=true,cleanup=true},Newtonsoft.Json.Formatting.Indented));
+        File.WriteAllText(Output+"/data/"+kind+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",kind,frames,fps=20,width,height,source="Native Unity preview scene with supplier shaders and material clock substitution only",items=items.Select(i=>new{name=i.itemName,path=AssetDatabase.GetAssetPath(i),icon=AssetDatabase.GetAssetPath(i.icon)}),currentMode=ExperimentalSlotOutlineModeState.CurrentMode.ToString(),sharedScenePreserved=true,cleanup=true},Newtonsoft.Json.Formatting.Indented));
         return "PASS: "+kind+" "+frames+" native frames; preview scene and temporary materials removed";
     }
 
-    const string MatrixOutput=Output+"/GradeMatrixV3";
-    static readonly float[] MatrixThickness={0,1.4f,2.1f,2.9f,3.7f,4.5f,5.3f,6.0f};
-    static readonly float[] MatrixStrength={0,.75f,.95f,1.15f,1.4f,1.65f,1.9f,2.1f};
+    const string MatrixOutput=Output+"/GradeMatrixV2";
     static readonly ItemGrade[] MatrixGrades={ItemGrade.Common,ItemGrade.Uncommon,ItemGrade.Rare,ItemGrade.Epic,ItemGrade.Legendary,ItemGrade.Artifact,ItemGrade.Mythic,ItemGrade.Cursed};
     static readonly string[] MatrixLabels={"일반","비범","희귀","영웅","전설","유물","신화","저주"};
     public static string PreviewGradeMatrix(){return CaptureGradeMatrix(1,0);}
@@ -379,7 +353,7 @@ public static class EdgeEffectsIconReviewBuilder
         if(Busy())return;
         EditorApplication.update-=RunPendingMatrix;
         try{
-            string result=CaptureGradeMatrix()+"\n"+CaptureComparison()+"\n"+CaptureGrades()+"\n"+CaptureCatalog()+"\n"+BuildReview();
+            string result=CaptureGradeMatrix();
             File.WriteAllText(MatrixOutput+"/data/queue.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status=result.StartsWith("PASS")?"PASS":"FAIL",result},Newtonsoft.Json.Formatting.Indented));
         }catch(Exception exception){
             File.WriteAllText(MatrixOutput+"/data/queue.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="FAIL",error=exception.ToString()},Newtonsoft.Json.Formatting.Indented));Debug.LogException(exception);
@@ -400,7 +374,7 @@ public static class EdgeEffectsIconReviewBuilder
                 using(var board=new Board(1280,1050)){
                     board.captionFont=Font.CreateDynamicFontFromOSFont("Malgun Gothic",20);board.owned.Add(board.captionFont);
                     board.Caption("OVERBURST   /   "+items[itemIndex].itemName,28,20,1200,26);
-                    board.Caption("같은 아이콘 · 실제 등급색 · 프레임 정렬 / 등급별 두께 1.4 → 6.0px · 일반은 효과 없음",28,61,1200,16);
+                    board.Caption("같은 아이콘 · 실제 등급색 · 84px 슬롯 기준 / 일반은 게임 기준대로 효과 없음",28,61,1200,16);
                     for(int col=0;col<MatrixGrades.Length;col++){
                         board.Caption(MatrixLabels[col],130+col*143,107,120,18,GradeConfig.GetGradeColor(MatrixGrades[col]));
                         board.canvas.transform.GetChild(board.canvas.transform.childCount-1).GetComponent<Text>().alignment=TextAnchor.UpperCenter;
@@ -421,7 +395,7 @@ public static class EdgeEffectsIconReviewBuilder
         if(SceneManager.GetActiveScene()!=active)SceneManager.SetActiveScene(active);
         if(!before.SequenceEqual(SharedScenes()))throw new InvalidOperationException("Shared scenes changed during matrix capture");
         Directory.CreateDirectory(MatrixOutput+"/data");
-        File.WriteAllText(MatrixOutput+"/data/"+(frames==1?"preview":onlyItem>=0?"weapons":"matrix")+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",frames,fps=15,slots=count,records,grades=MatrixLabels,gradeValues=MatrixGrades.Select(g=>g.ToString()).ToArray(),thicknessPixels=MatrixThickness,strengthMultiplier=MatrixStrength,frameOuterSize=84,frameCenterInset=3,sameArtworkAcrossGrades=true,source="Native Unity supplier shaders on the real slot prefab; rim stencil and per-family fitting; deterministic material clock",commonHasEffect=false,typeAndElementBadges=true,sharedScenePreserved=true,temporaryResourcesDisposed=true},Newtonsoft.Json.Formatting.Indented));
+        File.WriteAllText(MatrixOutput+"/data/"+(frames==1?"preview":onlyItem>=0?"weapons":"matrix")+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",frames,fps=15,slots=count,records,grades=MatrixLabels,gradeValues=MatrixGrades.Select(g=>g.ToString()).ToArray(),sameArtworkAcrossGrades=true,source="Native Unity supplier shaders on the real slot prefab; rim stencil and per-family fitting; deterministic material clock",commonHasEffect=false,typeAndElementBadges=true,sharedScenePreserved=true,temporaryResourcesDisposed=true},Newtonsoft.Json.Formatting.Indented));
         return "PASS: grade matrix "+records.Count+" boards; "+count+" same-artwork grade slots; preview resources removed";
     }
 

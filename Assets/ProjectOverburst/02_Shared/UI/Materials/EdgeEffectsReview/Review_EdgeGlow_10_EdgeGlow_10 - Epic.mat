@@ -106,9 +106,9 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DistortionIntensity: 8.400001
+    - _DistortionIntensity: 10.5
     - _DstBlend: 0
-    - _EdgeBlur: 0.08
+    - _EdgeBlur: 4.76
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -145,7 +145,7 @@ Material:
     - _StencilReadMask: 255
     - _StencilWriteMask: 255
     - _Surface: 0
-    - _Thickness: 0.20714286
+    - _Thickness: 0
     - _UseMask: 0
     - _Use_Mask: 1
     - _Use_Mask2: 0
@@ -153,7 +153,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.2735849, g: 0.2735849, b: 0.2735849, a: 1}
     - _ColorTint: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _MainTexScaleOffset: {r: 1, g: 3, b: -0.23, a: 0}
