@@ -58,11 +58,11 @@ public partial class PlayerAnimation
 
     public bool IsHeavyParryClipComplete => weaponCombatAnimatorRouter != null && weaponCombatAnimatorRouter.IsHeavyParryClipComplete;
 
-    public bool PlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds)
+    public bool PlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds, bool parryOnly = false)
     {
         duration = bridgeDuration = contactDelay = heavyStartSeconds = 0f;
         return IsWeaponCombatAnimatorRouterActive()
-            && weaponCombatAnimatorRouter.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay, out heavyStartSeconds);
+            && weaponCombatAnimatorRouter.TryPlayHeavyParry(out duration, out bridgeDuration, out contactDelay, out heavyStartSeconds, parryOnly);
     }
 
     public bool BlendHeavyAfterParry(AnimationClip clip, float duration, float normalizedStart,

@@ -29,6 +29,8 @@ public struct DamageInfo
     public EnemyWeakAttackReactionScope weakAttackReactionScope;
     // Resolved by Health after actual HP loss; on-hit, sound and damage events still run.
     public bool suppressRepeatedAttackReaction;
+    // Incomplete parry still loses HP, but its nonfatal contact owns the player's motion.
+    public bool isParryResidualDamage;
 
     public DamageInfo(
         float damage,
@@ -56,6 +58,7 @@ public struct DamageInfo
         this.gemAttack = gemAttack;
         this.weakAttackReactionScope = weakAttackReactionScope;
         suppressRepeatedAttackReaction = false;
+        isParryResidualDamage = false;
         this.damage = damage;
         this.hitPoint = hitPoint;
         this.source = source;

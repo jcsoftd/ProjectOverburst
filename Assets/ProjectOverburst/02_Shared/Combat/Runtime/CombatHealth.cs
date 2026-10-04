@@ -65,8 +65,16 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             RaiseHealthChanged(); // 현재 HP UI 갱신
     }
 
-    public void TakeDamage(DamageInfo info)
+    public void TakeDamage(DamageInfo info) => TakeDamageCore(info, 1f, false);
+
+    // Called only after the parry has captured and cancelled the source execution.
+    // Scale the final normally mitigated damage; never scale before the incoming floor.
+    public void TakeParryResidualDamage(DamageInfo info, float residualFraction)
+        => TakeDamageCore(info, Mathf.Clamp01(residualFraction), true);
+
+    private void TakeDamageCore(DamageInfo info, float residualFraction, bool parryResidual)
     {
+        info.isParryResidualDamage = parryResidual;
         if (IsDead)
             return; // 사망 후 중복 피해 차단
 
@@ -82,7 +90,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             return; // 회피 무적
 
         var parry = GetComponentInParent<PlayerParryController>();
-        if (parry != null && parry.TryCancelDamage(info)) return;
+        if (!parryResidual && parry != null && parry.TryCancelDamage(info)) return;
 
         // Element status ticks are a fraction of a previously resolved HP loss.
         // Keep health/death/evade gates, but never apply that hit's stat scaling twice.
@@ -100,27 +108,30 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
                 info.damage = damage;
             }
         }
+        damage *= residualFraction;
+        info.damage = damage;
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
         // Zero loss, evade and parry cannot spend the pattern's first reaction.
         info.suppressRepeatedAttackReaction = info.weakAttackReactionScope != null
             && !info.weakAttackReactionScope.TryConsume(info.source, info.sourceAttackSequenceId, this, actualDamage);
+        bool suppressMotion = parryResidual || info.suppressRepeatedAttackReaction;
         try
         {
             OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
             PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
             bool reactionOwnsMotion = knockdown != null
-                && (!info.suppressRepeatedAttackReaction || currentHp <= 0f)
+                && (!suppressMotion || currentHp <= 0f)
                 && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
-            if (!info.suppressRepeatedAttackReaction && !reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
+            if (!suppressMotion && !reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
 
             if (actualDamage > 0f
                 && CombatTeamUtility.IsPlayerActorHealth(this)
                 && CanOpenPlayerCombatMode())
             {
                 PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
-                if (!info.suppressRepeatedAttackReaction && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+                if (!suppressMotion && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
             }
 
             RaiseDamageResolved(info, actualDamage, currentHp <= 0f);

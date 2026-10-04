@@ -258,14 +258,17 @@ public sealed class EnemyBossCombatDirector : MonoBehaviour
 
     // ---------- 패링·그로기 ----------
     // PlayerParryController.CancelAndStun이 공격 취소 직후 부른다. 기존 패링 성공 연출·에너지 환급은 그대로다.
-    public void NotifyParried()
+    public void NotifyParried() => NotifyParried(ParryGrade.Perfect);
+
+    public void NotifyParried(ParryGrade grade)
     {
         if (profile == null || reaction == null || health == null || health.IsDead) return;
         ParryCount++;
         pendingFollowUp = null;
         HideDangerCue();
-        reaction.ApplyBossStun(profile.parryRecoil);
-        AddGroggy(profile.parryGain);
+        if (grade == ParryGrade.Perfect) reaction.ApplyBossStun(profile.parryRecoil);
+        float fraction = grade == ParryGrade.Perfect ? 1f : grade == ParryGrade.Normal ? 20f / 35f : 5f / 35f;
+        AddGroggy(profile.parryGain * fraction);
     }
 
     private void HandleDamage(CombatHealth source, DamageInfo info, float actualDamage, bool fatal)

@@ -30,6 +30,9 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private float boltScale = 1f;
     private Vector3 chargeDirection;
     private int attackSequenceId;
+    private int executionGeneration;
+    private EnemyAbilityDefinition activeParryAbility;
+    public int ActiveAttackSequenceId => attackSequenceId;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
     public override bool IsExecuting => routine != null || HasProjectile;
@@ -107,6 +110,7 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (!CanStart(ability,target)) return false;
         reaction?.PrepareForAttack();
         attackSequenceId = EnemyAttackSequence.Next();
+        executionGeneration++; activeParryAbility = ability;
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile && ability.HasWeakAttackExecution)
             routine = StartCoroutine(ExecuteWeakProjectile(ability, target));
         else
@@ -119,6 +123,7 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override float ResolveCooldown(float duration) { Resolve(); return actor != null ? actor.Melee.ResolveAbilityCooldown(duration) : duration; }
     private IEnumerator Execute(EnemyAbilityDefinition ability, Transform target)
     {
+        int token = executionGeneration;
         Vector3 destination = actor.AbilityController.ResolveAimPosition(target);
         Vector3 direction = destination - transform.position; direction.y = 0; direction.Normalize();
         chargeDirection = direction;
@@ -177,12 +182,13 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
                     boltPosition = ResolveMuzzle(ability);
                     bolt.transform.position = boltPosition;
                     boltDirection = (destination + Vector3.up*.8f - boltPosition).normalized;
-                    boltRemaining = ability.Range + 2; boltDamage = ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1) * actor.RuntimeStats.DamageMultiplier;
+                    boltRemaining = ability.Range + 2; boltDamage = ResolveIncomingDamage(ability);
                     boltAbility = ability;
                     boltFlying = true; bolt.SetActive(true); LaunchCount++;
                     LaunchVisual(ability);
                 }
                 else ResolveChargeHit(ability,direction);
+                if (token != executionGeneration) yield break;
             }
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
@@ -202,7 +208,7 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         float reach = EnemyAttackThreatGeometry.ResolveRadius(actor, ability);
         int count = Physics.SphereCastNonAlloc(Origin,EnemyAttackThreatGeometry.ChargeHalfWidth,direction,hits,Mathf.Max(.8f,reach),Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
-        if (nearest >= 0) Damage(hits[nearest],ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1)*actor.RuntimeStats.DamageMultiplier,direction,ability);
+        if (nearest >= 0) Damage(hits[nearest],ResolveIncomingDamage(ability),direction,ability);
     }
     public bool WouldChargeHit(EnemyAbilityDefinition ability, CombatTarget target)
     {
@@ -321,8 +327,22 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (boltVisual != null) boltVisual.Stop(); // drips already in the air keep falling
         else if (bolt != null) bolt.SetActive(false);
     }
+    private float ResolveIncomingDamage(EnemyAbilityDefinition ability)
+        => ability.ResolveDamage(GetComponent<EnemyRank>()?.Level ?? 1) * actor.RuntimeStats.DamageMultiplier;
+
+    public bool TryGetParryDamageSnapshot(EnemyAbilityDefinition ability, CombatTarget victim, out DamageInfo info)
+    {
+        info = default;
+        if (!IsExecuting || ability == null || ability != activeParryAbility || !ability.IsParryable
+            || ability.ExecutionMode != EnemyAbilityExecutionMode.Charge || victim == null) return false;
+        info = new DamageInfo(ResolveIncomingDamage(ability), victim.CurrentVolume.Center, gameObject, chargeDirection,
+            sourceAttackSequenceId: attackSequenceId, sourceAttackPhaseIndex: 0, enemyAbility: ability);
+        return true;
+    }
+
     public override void Cancel()
     {
+        executionGeneration++; activeParryAbility = null;
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }
         if(actor!=null && actor.Movement!=null)actor.Movement.ClearAttackDisplacement();
         chargeDirection = Vector3.zero;

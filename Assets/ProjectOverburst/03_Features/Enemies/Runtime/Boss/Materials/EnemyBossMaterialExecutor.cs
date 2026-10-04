@@ -43,6 +43,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     public int CompletedCount { get; private set; }
     public int DamageCount { get; private set; }
     public int ActiveProjectileCount => flights.Count;
+    public int ActiveAttackSequenceId => sequence;
     public bool IsRockHeld => heldBoulder!=null && heldBoulder.activeSelf;
     public string LastFailure { get; private set; }
     public event Action<EnemyBossAttackMaterial,int> StrikeReleased;
@@ -260,6 +261,26 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         }
         return false;
     }
+    private float ResolveIncomingDamage(EnemyAbilityDefinition ability)
+        => ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier;
+
+    public bool TryGetParryDamageSnapshot(CombatTarget victim, out DamageInfo info)
+    {
+        info=default;var material=CurrentMaterial;
+        if(material==null||victim==null||!IsExecuting||!material.ability.IsParryable
+            ||material.delivery!=EnemyBossMaterialDelivery.Melee||!Usable)return false;
+        for(int phase=0;phase<material.strikes.Length;phase++)
+        {
+            if(released[phase])continue;
+            Vector3 direction=victim.CurrentVolume.Center-transform.position;direction.y=0f;
+            info=new DamageInfo(ResolveIncomingDamage(material.ability),victim.CurrentVolume.Center,gameObject,
+                direction.sqrMagnitude>.0001f?direction.normalized:transform.forward,
+                sourceAttackSequenceId:sequence,sourceAttackPhaseIndex:phase,enemyAbility:material.ability);
+            return true;
+        }
+        return false;
+    }
+
     private bool HasSight(CombatTarget target,Vector3 point,EnemyAbilityDefinition ability)
     {
         if(!ability.RequireLineOfSight)return true;
@@ -282,7 +303,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
             var receiver=target.DamageReceiver;
             if(receiver==null||receiver.IsDead||hitTargets[phase].Contains(receiver)||!HasSight(target,collider.ClosestPoint(origin+Vector3.up*.8f),material.ability))continue;
             hitTargets[phase].Add(receiver);Vector3 direction=receiver.transform.position-transform.position;direction.y=0;
-            float damage=material.ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier;
+            float damage=ResolveIncomingDamage(material.ability);
             receiver.TakeDamage(new DamageInfo(damage,collider.ClosestPoint(origin+Vector3.up*.8f),gameObject,
                 direction.sqrMagnitude>.0001f?direction.normalized:transform.forward,sourceAttackSequenceId:attackSequence,
                 sourceAttackPhaseIndex:phase,enemyAbility:material.ability));DamageCount++;

@@ -9,25 +9,25 @@ public sealed class ParryFeedbackService : MonoBehaviour
     public struct Tier
     {
         public float HitStop, Slow, KnockbackRadius, CameraAmplitude, Zoom;
+        public float SlowScale, SlowRecover, ZoomIn, ZoomOut, CameraDuration, FlashScale;
+        public ParryGrade Grade;
     }
 
-    // 0: 1마리, 1: 2~3마리, 2: 4마리 이상. 강공 패링이 섞이면 한 단계 올린다.
-    // 2026-10-01 사용자 조정: 카메라 흔들림 2배(.045/.06/.075 -> .09/.12/.15).
-    // 2차 조정: Slow = 히트스톱 뒤 .15배로 버티는 실제 시간(그 뒤 .35초 복귀는 PlayerParryController),
-    // Zoom = 패링 순간 화면 확대 비율(7/9/11%). 확대는 Slow가 끝날 때까지 유지하고 .4초 동안 돌아온다.
-    private static readonly Tier[] Tiers =
+    private static readonly Tier[] Grades =
     {
-        new Tier { HitStop = .07f, Slow = .25f, KnockbackRadius = 2.0f, CameraAmplitude = .09f, Zoom = .07f },
-        new Tier { HitStop = .08f, Slow = .29f, KnockbackRadius = 2.5f, CameraAmplitude = .12f, Zoom = .09f },
-        new Tier { HitStop = .10f, Slow = .35f, KnockbackRadius = 3.0f, CameraAmplitude = .15f, Zoom = .11f },
+        new Tier { Grade = ParryGrade.Incomplete, HitStop = .025f, Slow = .08f, SlowScale = .8f, SlowRecover = .10f,
+            CameraAmplitude = .025f, CameraDuration = .08f, Zoom = .01f, ZoomIn = .035f, ZoomOut = .12f, FlashScale = .35f },
+        new Tier { Grade = ParryGrade.Normal, HitStop = .05f, Slow = .15f, SlowScale = .5f, SlowRecover = .20f,
+            CameraAmplitude = .06f, CameraDuration = .12f, Zoom = .04f, ZoomIn = .045f, ZoomOut = .25f, FlashScale = .65f },
+        new Tier { Grade = ParryGrade.Perfect, HitStop = .09f, Slow = .30f, SlowScale = .15f, SlowRecover = .35f,
+            KnockbackRadius = 2.5f, CameraAmplitude = .12f, CameraDuration = .20f, Zoom = .09f, ZoomIn = .06f, ZoomOut = .40f, FlashScale = 1f },
     };
 
     private const int FlashPoolCapacity = 8;
     private const int KnockbackCap = 24;
     private const float KnockbackNear = 2.2f, KnockbackFar = 1.2f, KnockbackStagger = .45f;
     private const string SfxRoot = "Combat/SFX/CombatAction/";
-    private const int VoiceCount = 4;
-    private const float ZoomIn = .06f, ZoomOut = .4f;
+    private const int VoiceCount = 8;
 
     private static ParryFeedbackService instance;
     private static EnemyTelegraphVisualLibrary library;
@@ -36,27 +36,39 @@ public sealed class ParryFeedbackService : MonoBehaviour
     private readonly AudioSource[] voices = new AudioSource[VoiceCount];
     private int nextVoice;
     private AudioClip tingClip, thumpClip;
+    public static int LastAdditionalTingCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { instance = null; library = null; }
+    private static void ResetStatics() { instance = null; library = null; LastAdditionalTingCount = 0; }
 
+    public static Tier ResolveTier(ParryGrade grade) => Grades[Mathf.Clamp((int)grade, 0, Grades.Length - 1)];
+
+    // Older presentation tools retain their historical count-based preview; gameplay uses the grade overload.
     public static Tier ResolveTier(int parriedCount, bool anyStrong)
     {
         int index = parriedCount >= 4 ? 2 : parriedCount >= 2 ? 1 : 0;
-        if (anyStrong) index = Mathf.Min(index + 1, Tiers.Length - 1);
-        return Tiers[index];
+        if (anyStrong) index = Mathf.Min(index + 1, 2);
+        Tier tier = ResolveTier(ParryGrade.Perfect);
+        tier.HitStop = index == 0 ? .07f : index == 1 ? .08f : .10f;
+        tier.Slow = index == 0 ? .25f : index == 1 ? .29f : .35f;
+        return tier;
     }
 
-    // chainIndex: 같은 패링 창에서 몇 번째 패링인지(0부터). 음높이를 한 단계씩 올린다.
     public static void Play(Vector3 center, Vector3 playerPosition, Tier tier, int parriedCount,
         int chainIndex, ICollection<EnemyActor> parried)
     {
         if (!Application.isPlaying || !EnsureInstance()) return;
-        instance.SpawnFlash(center);
-        KnockbackSmall(center, tier.KnockbackRadius, parried);
-        instance.PlayLayers(center, parriedCount, chainIndex);
-        RequestCamera(center - playerPosition, tier.CameraAmplitude);
-        QuarterViewCamera.ActiveInstance?.RequestZoomPunch(tier.Zoom, ZoomIn, tier.HitStop + tier.Slow, ZoomOut);
+        instance.SpawnFlash(center, tier.FlashScale);
+        if (tier.KnockbackRadius > 0f) KnockbackSmall(center, tier.KnockbackRadius, parried);
+        instance.PlayLayers(center, tier.Grade, parriedCount);
+        RequestCamera(center - playerPosition, tier.CameraAmplitude, tier.CameraDuration);
+        QuarterViewCamera.ActiveInstance?.RequestZoomPunch(tier.Zoom, tier.ZoomIn, tier.HitStop + tier.Slow, tier.ZoomOut);
+    }
+
+    // Additional attacks in the same action get a local contact without replaying world/camera/audio feedback.
+    public static void PlayContact(Vector3 center, ParryGrade grade)
+    {
+        if (Application.isPlaying && EnsureInstance()) instance.SpawnFlash(center, ResolveTier(grade).FlashScale * .5f);
     }
 
     private static bool EnsureInstance()
@@ -84,13 +96,14 @@ public sealed class ParryFeedbackService : MonoBehaviour
         thumpClip = Resources.Load<AudioClip>(SfxRoot + "GreatswordGround01"); // 임시 저음 레이어. 음원 확정 전
     }
 
-    private void SpawnFlash(Vector3 center)
+    private void SpawnFlash(Vector3 center, float scale)
     {
         if (library == null)
             library = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
         GameObject prefab = library != null ? library.ParrySuccess : null;
         if (prefab == null) return;
         TransientVfxPool.Spawn(prefab, center, Quaternion.identity, 0f, FlashPoolCapacity,
+            prepareBeforeActivation: value => value.transform.localScale = prefab.transform.localScale * scale,
             returnMode: TransientVfxReturnMode.NaturalParticleCompletion, useUnscaledTime: true);
     }
 
@@ -136,13 +149,22 @@ public sealed class ParryFeedbackService : MonoBehaviour
         Candidates.Clear();
     }
 
-    private void PlayLayers(Vector3 position, int parriedCount, int chainIndex)
+    private void PlayLayers(Vector3 position, ParryGrade grade, int parriedCount)
     {
-        // 2026-10-01: 단일 패링도 기존 성공음 위에 한 겹 더 재생한다.
-        if (tingClip != null)
-            PlayVoice(tingClip, position, .6f, Mathf.Min(1.18f, 1f + .06f * (chainIndex + (parriedCount >= 2 ? 1 : 0))));
-        if (thumpClip != null)
-            PlayVoice(thumpClip, position, parriedCount >= 4 ? .7f : .45f, .85f);
+        LastAdditionalTingCount = 0;
+        // The main .9 ting is played by CombatActionSfxService once per player action.
+        if (grade != ParryGrade.Incomplete && tingClip != null)
+        {
+            PlayVoice(tingClip, position, .6f, parriedCount >= 2 ? 1.06f : 1f);
+            LastAdditionalTingCount++;
+            if (grade == ParryGrade.Perfect)
+            {
+                PlayVoice(tingClip, position, .5f, 1f);
+                LastAdditionalTingCount++;
+            }
+        }
+        if (grade != ParryGrade.Incomplete && thumpClip != null)
+            PlayVoice(thumpClip, position, grade == ParryGrade.Perfect ? .6f : .45f, .85f);
     }
 
     private void PlayVoice(AudioClip clip, Vector3 position, float volume, float pitch)
@@ -157,13 +179,13 @@ public sealed class ParryFeedbackService : MonoBehaviour
         source.Play();
     }
 
-    private static void RequestCamera(Vector3 direction, float amplitude)
+    private static void RequestCamera(Vector3 direction, float amplitude, float duration)
     {
         direction.y = 0f;
         if (direction.sqrMagnitude < .0001f) direction = Vector3.forward;
         QuarterViewCamera.ActiveInstance?.RequestCombatImpact(
             CombatCameraRequestKind.AttackHit, direction.normalized, Vector3.zero, false,
-            .2f, amplitude, amplitude * 4f, .75f, .06f, .2f, // 2026-10-01: 길이 .12->.2초, 기울기 1.5->4배로 더 티 나게
+            duration, amplitude, amplitude * 4f, .75f, .06f, .2f,
             2.5f, amplitude * 1.8f, 4f);
     }
 }

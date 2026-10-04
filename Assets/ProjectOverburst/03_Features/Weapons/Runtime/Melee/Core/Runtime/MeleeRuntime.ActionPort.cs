@@ -372,10 +372,24 @@ public partial class MeleeRuntime
         }
     }
 
-    // 패링한 강공은 위력은 그대로, 게이지는 절반만 쓴다(행동당 1회). 확정 전 패링이면 확정할 때, 확정 후면 바로 돌려준다.
-    public void NotifyHeavyParried(int actionId)
+    public float HeavyParryEnergyNormalized => activeAttackIsHeavy && activeHeavyEnergy != null
+        && activeAttackWeaponItem != null && activeHeavyEnergy.WeaponInstanceId == activeAttackWeaponItem.runtimeInstanceId
+        && activeHeavyEnergy.Element == activeGemAttack.Element ? activeHeavyEnergy.Normalized : 0f;
+
+    // Compatibility for direct counter-motion tools; product defense supplies the locked grade.
+    public void NotifyHeavyParried(int actionId) => NotifyHeavyParried(actionId, ParryGrade.Perfect);
+
+    public void NotifyHeavyParried(int actionId, ParryGrade grade)
     {
-        if (!activeAttackIsHeavy || heavyParried || actionId <= 0 || actionId != activeActionId) return;
+        if (!activeAttackIsHeavy || heavyParried || heavyParryOnly || actionId <= 0 || actionId != activeActionId) return;
+        if (grade == ParryGrade.Incomplete)
+        {
+            // A released slam keeps its committed effects and recovery; never refund or restart it.
+            if (heavyDischargeCommitted) return;
+            heavyParryOnly = true;
+            if (!TryBeginHeavyParryMotion(true)) FinishIncompleteParry();
+            return;
+        }
         heavyParried = true;
         if (heavyDischargeCommitted) activeDischarge?.TryRefundParried();
         else TryBeginHeavyParryMotion();

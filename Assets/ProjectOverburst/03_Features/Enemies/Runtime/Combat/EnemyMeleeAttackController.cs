@@ -38,6 +38,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private float nextAttackTime; // 다음 공격 가능 시각
     private int lastAttackIndex = -1; // 직전 공격 모션
     private int attackSequenceId;
+    private int executionGeneration, pendingImpactIndex;
+    private EnemyAbilityDefinition activeParryAbility;
+    public int ActiveAttackSequenceId => attackSequenceId;
     private int attackPhaseIndex;
     private float statusActionSpeedMultiplier = 1f; // 상태이상 행동 배율
     private float definitionDamageMultiplier = 1f; // 등급·변형 피해 배율
@@ -270,6 +273,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
         movementReaction?.PrepareForAttack();
         attackSequenceId = EnemyAttackSequence.Next();
+        executionGeneration++; pendingImpactIndex = 0; activeParryAbility = ability;
         attackRoutine = StartCoroutine(
             AttackRoutine(
                 triggerName,
@@ -320,6 +324,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         CombatTarget committedTarget,
         bool cooldownOwnedExternally)
     {
+        int token = executionGeneration;
         if (ability != null && ability.HasWeakAttackExecution)
         {
             yield return WeakAttackRoutine(triggerName, ability, committedTarget, cooldownOwnedExternally);
@@ -378,6 +383,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         bool strongReleasePlayed = false;
         for (int impactIndex = 0; impactIndex < hitCount; impactIndex++)
         {
+            if (token != executionGeneration) yield break;
+            pendingImpactIndex = impactIndex;
             float impactTime = ability != null ? ability.GetHitNormalizedTime(impactIndex) : resolvedHitNormalizedTime;
             bool stayedInRange = true;
             bool impactReached = false;
@@ -469,7 +476,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                     EnemyStrongAttackImpactVfx.Play(impactOrigin);
                 }
                 int level = GetComponent<EnemyRank>()?.Level ?? 1;
-                float resolvedDamage = (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
+                float resolvedDamage = ResolveIncomingDamage(ability, level);
                 if (directTargetExecution)
                 {
                     ResolveDirectTargetHit(
@@ -493,19 +500,21 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 }
             }
 
+            if (token != executionGeneration) yield break;
+            pendingImpactIndex = impactIndex + 1;
             if (!stayedInRange) break;
         }
 
         float recoveryEnd = Mathf.Max(startedAt + executionDuration,
             Time.time + (ability != null ? ability.MinimumRecoveryTime : 0f));
-        while (Time.time < recoveryEnd && !IsAttackInterrupted())
+        while (Time.time < recoveryEnd && token == executionGeneration && !IsAttackInterrupted())
         {
             if (ability != null && animationBridge != null
                 && animationBridge.TryGetAttackNormalizedTime(triggerName, out float progress))
                 animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress, resolvedAttackSpeed));
             yield return null;
         }
-        attackRoutine = null;
+        if (token == executionGeneration) attackRoutine = null;
     }
 
     private void QueueWeakClockCrossings()
@@ -828,6 +837,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         damagedTargets.Clear();
         bool weakExecution = activeWeakExecution != null;
         int executionSequence = attackSequenceId, executionPhase = attackPhaseIndex;
+        int token = executionGeneration;
         uint executionLease = WeakOwnerLease;
         var reactionScope = weakExecution ? weakReactionScope : null;
         bool isAreaSlam = ability != null
@@ -843,8 +853,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             QueryTriggerInteraction.Ignore);
         for (int i = 0; i < hitCount; i++)
         {
-            if (IsAttackInterrupted() || weakExecution && (activeWeakExecution == null
-                || attackSequenceId != executionSequence || WeakOwnerLease != executionLease)) break;
+            if (IsAttackInterrupted() || token != executionGeneration
+                || attackSequenceId != executionSequence || WeakOwnerLease != executionLease
+                || weakExecution && activeWeakExecution == null) break;
             Collider hitCollider = hitBuffer[i];
             if (hitCollider == null || !IsInFront(hitCollider.transform.position, resolvedAngle,
                     ability != null && actor != null ? EnemyAttackThreatGeometry.ResolveFacingOrigin(actor, ability, impactCenter - WeakPhysicsOffset) + WeakPhysicsOffset : transform.position + WeakPhysicsOffset)
@@ -908,6 +919,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 hitDirection.normalized, sourceAttackSequenceId: executionSequence,
                 sourceAttackPhaseIndex: executionPhase, enemyAbility: ability, weakAttackReactionScope: reactionScope);
             targetHealth.TakeDamage(info);
+            if (token != executionGeneration || attackSequenceId != executionSequence || WeakOwnerLease != executionLease) break;
         }
     }
 
@@ -1186,8 +1198,26 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         CancelAttack();
     }
 
+    private float ResolveIncomingDamage(EnemyAbilityDefinition ability, int level)
+        => (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
+
+    public bool TryGetParryDamageSnapshot(EnemyAbilityDefinition ability, CombatTarget victim, out DamageInfo info)
+    {
+        info = default;
+        if (!IsAttacking || ability == null || ability != activeParryAbility || !ability.IsParryable
+            || pendingImpactIndex >= ability.HitCount || victim == null) return false;
+        Vector3 point = victim.CurrentVolume.Center;
+        Vector3 direction = point - transform.position; direction.y = 0f;
+        info = new DamageInfo(ResolveIncomingDamage(ability, GetComponent<EnemyRank>()?.Level ?? 1), point, gameObject,
+            direction.sqrMagnitude > .0001f ? direction.normalized : transform.forward,
+            sourceAttackSequenceId: attackSequenceId, sourceAttackPhaseIndex: pendingImpactIndex, enemyAbility: ability);
+        return true;
+    }
+
     public void CancelAttack()
     {
+        // StopCoroutine does not abort a TakeDamage callback already running on this stack.
+        executionGeneration++; activeParryAbility = null;
         if (attackRoutine != null)
             StopCoroutine(attackRoutine);
 

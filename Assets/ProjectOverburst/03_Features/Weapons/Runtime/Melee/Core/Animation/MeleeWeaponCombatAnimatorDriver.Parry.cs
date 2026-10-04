@@ -14,7 +14,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
         && targetAnimator.GetCurrentAnimatorStateInfo(layerIndex).IsName(activeProfile.heavyParryStateName)
         && targetAnimator.GetCurrentAnimatorStateInfo(layerIndex).normalizedTime >= 1f;
 
-    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds)
+    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds, bool parryOnly = false)
     {
         duration = bridgeDuration = contactDelay = heavyStartSeconds = 0f;
         ApplyCurrentProfile();
@@ -22,7 +22,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
             || activeProfile.heavyParryClip == null || !HasState(activeProfile.heavyParryStateName))
             return false;
 
-        float playbackSpeed = Mathf.Max(.05f, activeProfile.heavyParryPlaybackSpeed);
+        float playbackSpeed = parryOnly ? 1f : Mathf.Max(.05f, activeProfile.heavyParryPlaybackSpeed);
         duration = Mathf.Max(.01f, activeProfile.heavyParryClip.length) / playbackSpeed;
         bridgeDuration = Mathf.Max(0f, activeProfile.heavyParryToAttackBlend);
         heavyParryBlendSeconds = bridgeDuration;

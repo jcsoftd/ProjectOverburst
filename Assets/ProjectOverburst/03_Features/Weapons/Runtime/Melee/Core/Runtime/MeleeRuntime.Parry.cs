@@ -8,6 +8,7 @@ public partial class MeleeRuntime
     private float heavyParrySavedElapsed, heavyParrySavedProgress;
     private float heavyParryMovementFloor;
     private bool heavyParrySwingPending;
+    private bool heavyParryOnly;
     private int heavyParryStartedFrame;
     public bool IsHeavyParryMotionActive => heavyParryStage != HeavyParryStage.None;
     public float HeavyParryContactDelay { get; private set; }
@@ -23,21 +24,27 @@ public partial class MeleeRuntime
         }
     }
 
-    private void TryBeginHeavyParryMotion()
+    private bool TryBeginHeavyParryMotion(bool parryOnly = false)
     {
         if (!isAttacking || !activeAttackIsHeavy || heavyDischargeCommitted || IsHeavyParryMotionActive
             || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword
-            || playerAnimatorController == null) return;
+            || playerAnimatorController == null) return false;
         if (!playerAnimatorController.PlayHeavyParry(out heavyParryDuration,
-            out heavyParryBridgeDuration, out float contactDelay, out float heavyStartSeconds)) return;
+            out heavyParryBridgeDuration, out float contactDelay, out float heavyStartSeconds, parryOnly)) return false;
 
         float previousProgress = GetAttackNormalizedTime();
-        if (!ConfigureParriedHeavyAttack())
+        if (!parryOnly && !ConfigureParriedHeavyAttack())
         {
             CancelActiveAttack(WeaponActionCompletionReason.InvalidConfiguration, true);
-            return;
+            return false;
         }
-        heavyParrySavedProgress = Mathf.Clamp(heavyStartSeconds / Mathf.Max(.01f, activeAttackAnimationClip.length), 0f, .95f);
+        if (parryOnly)
+        {
+            EndDashHeavyPresentation();
+            attackPhaseExecutor.Cancel();
+            attackMovementExecutor.Cancel();
+        }
+        heavyParrySavedProgress = parryOnly ? previousProgress : Mathf.Clamp(heavyStartSeconds / Mathf.Max(.01f, activeAttackAnimationClip.length), 0f, .95f);
         heavyParrySavedElapsed = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(heavyParrySavedProgress);
         // A fixed pose restart must neither undo late-parry travel nor apply skipped windup travel.
         heavyParryMovementFloor = Mathf.Max(previousProgress, heavyParrySavedProgress);
@@ -49,6 +56,7 @@ public partial class MeleeRuntime
         ClearAttackTrail();
         attackPatternDebugRenderer?.Hide();
         HoldHeavyParryLocks();
+        return true;
     }
 
     private bool ConfigureParriedHeavyAttack()
@@ -95,6 +103,11 @@ public partial class MeleeRuntime
             && heavyParryElapsed >= heavyParryDuration
             && playerAnimatorController.IsHeavyParryClipComplete)
         {
+            if (heavyParryOnly)
+            {
+                FinishIncompleteParry();
+                return true;
+            }
             float remaining = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(1f) - heavyParrySavedElapsed;
             if (!playerAnimatorController.BlendHeavyAfterParry(activeAttackAnimationClip,
                 remaining, heavyParrySavedProgress, activeAttackStep.playbackAcceleration))
@@ -135,11 +148,22 @@ public partial class MeleeRuntime
         playerEquipment?.CurrentWeaponPose?.BeginActivePose(Mathf.Max(.1f, attackDuration));
     }
 
+    private void FinishIncompleteParry()
+    {
+        ResolveFacade()?.CombatInputs?.ClearAttack();
+        ResolveFacade()?.CombatInputs?.ClearHeavy();
+        Vector3 direction = activeAttackDirection;
+        StopActiveAttackStep();
+        ResetComboState();
+        CompleteActiveAction(true, WeaponActionCompletionReason.Completed, direction);
+    }
+
     private void ResetHeavyParryMotion()
     {
         if (IsHeavyParryMotionActive) playerAnimatorController?.CancelWeaponRuntimeState();
         heavyParryStage = HeavyParryStage.None;
         heavyParrySwingPending = false;
+        heavyParryOnly = false;
         heavyParryElapsed = heavyParryDuration = heavyParryBridgeDuration = 0f;
         heavyParrySavedElapsed = heavyParrySavedProgress = HeavyParryContactDelay = 0f;
         heavyParryMovementFloor = 0f;
