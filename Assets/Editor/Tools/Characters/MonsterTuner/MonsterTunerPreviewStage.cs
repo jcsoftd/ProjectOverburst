@@ -50,6 +50,7 @@ namespace Overburst.EditorTools.MonsterTuner
         public bool Playing { get; set; }
         public float Speed { get; set; } = 1f;
         public float Time { get; private set; }
+        public float NormalizedTime { get; private set; }
         public float Duration => ability != null ? ability.ResolveExecutionDuration(AttackSpeed) : clip != null ? clip.length : 1f;
         public float AttackSpeed => Enemy?.Melee != null ? Enemy.Melee.AbilityAnimationSpeed : 1f;
         public RenderTexture Surface => surface;
@@ -192,18 +193,19 @@ namespace Overburst.EditorTools.MonsterTuner
         public void Sample(float time, bool reconstructEffects = true)
         {
             Time = Mathf.Clamp(time, 0f, Mathf.Max(.001f, Duration));
+            float normalized = clip != null ? Time / Mathf.Max(.001f, clip.length) : 0f;
+            if (ability != null)
+            {
+                float t = Mathf.Max(0f, Time - ability.ResolveWindupDelay(AttackSpeed));
+                float low = 0f, high = 1f;
+                for (int i = 0; i < 20; i++) { float mid = (low + high) * .5f; if (ability.ResolvePacedTime(mid, AttackSpeed) < t) low = mid; else high = mid; }
+                normalized = (low + high) * .5f;
+            }
+            NormalizedTime = Mathf.Clamp01(normalized);
             if (graph.IsValid())
             {
-                float normalized = clip != null ? Time / Mathf.Max(.001f, clip.length) : 0f;
-                if (ability != null)
-                {
-                    float t = Mathf.Max(0f, Time - ability.ResolveWindupDelay(AttackSpeed));
-                    float low = 0f, high = 1f;
-                    for (int i = 0; i < 20; i++) { float mid = (low + high) * .5f; if (ability.ResolvePacedTime(mid, AttackSpeed) < t) low = mid; else high = mid; }
-                    normalized = (low + high) * .5f;
-                }
                 var position = Actor.transform.localPosition; var rotation = Actor.transform.localRotation;
-                clipPlayable.SetTime(normalized * clip.length); graph.Evaluate(0f);
+                clipPlayable.SetTime(NormalizedTime * clip.length); graph.Evaluate(0f);
                 Actor.transform.localPosition = position; Actor.transform.localRotation = rotation;
             }
             auraPresentation?.ConfigureTarget(Actor != null ? Actor.GetComponent<CombatTarget>() : null);

@@ -24,7 +24,7 @@ namespace Overburst.EditorTools.MonsterTuner
             try
             {
                 session.Set(target, property, value, label, !draggingPoint);
-                stage.RefreshValues(); RefreshWorkingAbility(); UpdateHeader(); RenderNow();
+                stage.RefreshValues(); RefreshWorkingAbility(); RefreshAttackGeometrySummary(); UpdateHeader(); RenderNow();
             }
             catch (Exception e) { SetStatus(label + ": " + e.Message, true); }
         }
@@ -249,32 +249,17 @@ namespace Overburst.EditorTools.MonsterTuner
                     } : (Action<Vector3>)null
                 });
             }
-            if (workingAbility != null && EnemyAbilityDefinition.IsMeleeExecution(workingAbility.ExecutionMode))
+            if (workingAbility != null && !UsesBossMaterial(stage.Enemy, workingAbility)
+                && (EnemyAbilityDefinition.IsMeleeExecution(workingAbility.ExecutionMode) || UsesContactGeometry(workingAbility)))
                 viewport.Points.Add(new MonsterTunerPoint
                 {
-                    Key = "attack-volume", Label = "공격·패링 가능 범위", Color = new Color(1f, .38f, .3f),
-                    World = () => workingAbility.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam ? stage.Actor.transform.position : stage.Enemy.Melee.AttackPoint.position,
-                    Segments = () => AttackSegments(stage.Enemy, workingAbility)
+                    Key = "attack-volume", Label = UsesContactGeometry(workingAbility) ? "약공 접촉 판정" : "공격·패링 가능 범위", Color = new Color(1f, .38f, .3f),
+                    World = () => AttackCenter(stage.Enemy, workingAbility),
+                    Segments = () => AttackSegments(stage.Enemy, workingAbility, stage.Ability == workingAbility ? stage.NormalizedTime : (float?)null)
                 });
             if (selectedPointKey != null) viewport.Select(viewport.Points.Find(p => p.Key == selectedPointKey), false);
             RefreshLegend();
             viewport.Refresh(); RefreshPointCard();
-        }
-        private static IEnumerable<(Vector3, Vector3)> AttackSegments(EnemyActor actor, EnemyAbilityDefinition ability)
-        {
-            Vector3 center = ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam ? actor.transform.position : actor.Melee.AttackPoint.position;
-            float radius = EnemyAttackThreatGeometry.ResolveRadius(actor, ability), angle = EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability);
-            if (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge)
-            {
-                center = actor.transform.position + Vector3.up * .8f;
-                Vector3 forward = actor.transform.forward * Mathf.Max(.8f, radius), side = actor.transform.right * .4f;
-                yield return (center - side, center + forward - side); yield return (center + side, center + forward + side);
-                foreach (var segment in CapsuleSegments(center + forward * .5f, actor.transform.rotation * Quaternion.FromToRotation(Vector3.up, Vector3.forward), .4f, forward.magnitude * .5f)) yield return segment;
-                yield break;
-            }
-            Vector3 First(float degrees) => center + Quaternion.AngleAxis(degrees, Vector3.up) * actor.transform.forward * radius;
-            for (int i = 0; i < 48; i++) yield return (First(-angle * .5f + angle * i / 48f), First(-angle * .5f + angle * (i + 1) / 48f));
-            if (angle < 359.9f) { yield return (center, First(-angle * .5f)); yield return (center, First(angle * .5f)); }
         }
         private static IEnumerable<(Vector3, Vector3)> VolumeSegments(CombatTargetVolume volume)
         {
@@ -383,8 +368,7 @@ namespace Overburst.EditorTools.MonsterTuner
             if (workingAbility.UsesPacedTimeline) { Field(address, "preparationDuration", "준비 초"); Field(address, "releaseDuration", "발동 초"); Field(address, "recoveryDuration", "회수 초"); }
             Field(address, "minimumWarningTime", "최소 예고 초"); Field(address, "minimumRecoveryTime", "최소 회수 초");
             FoldDetails(timingDetails, "attack-timing-details", "타격 시점·준비·회복 시간 조절");
-            Heading("공격 판정"); Field(address, "hitRadius", "원본 반경"); Field(address, "hitAngle", "원본 각도"); Field(address, "verticalTolerance", "높이 허용"); Field(address, "range", "발동 거리");
-            Note("실효 반경 " + EnemyAttackThreatGeometry.ResolveRadius(stage.Enemy, workingAbility).ToString("F2") + "m · 각도 " + EnemyAttackThreatGeometry.ResolveHitAngle(stage.Enemy, workingAbility).ToString("F0") + "°");
+            BuildAttackGeometryFields(address);
             Note("시간축은 1레벨·상태이상 없는 실전 공격 속도 기준입니다. 재생 배속은 프리뷰에만 적용합니다.");
             for (int i = 0; i < workingAbility.HitCount; i++) Note("타격 " + (i + 1) + " · " + (workingAbility.ResolveWindupDelay(stage.AttackSpeed) + workingAbility.ResolvePacedTime(workingAbility.GetHitNormalizedTime(i), stage.AttackSpeed)).ToString("F3") + "s");
             BuildAttackPlacementFields();

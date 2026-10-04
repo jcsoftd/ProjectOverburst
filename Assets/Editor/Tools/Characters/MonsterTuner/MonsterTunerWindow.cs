@@ -183,7 +183,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 selectedPointKey = point?.Key;
                 if (point != null)
                 {
-                    tab = point.Label.Contains("오라") ? 2 : point.Label.Contains("패링") || point.Label.Contains("머즐") ? 3 : 1;
+                    tab = point.Key == "attack-volume" ? 3 : point.Label.Contains("오라") ? 2 : point.Label.Contains("패링") || point.Label.Contains("머즐") ? 3 : 1;
                     BuildFields();
                 }
                 RefreshLegend(); RefreshPointCard();
