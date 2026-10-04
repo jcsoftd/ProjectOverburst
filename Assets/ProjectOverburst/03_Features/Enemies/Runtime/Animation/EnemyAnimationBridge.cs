@@ -52,6 +52,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool parryStunActive; // 패링 무너짐·기절 루프·회복 재생 중
 
     public bool HasAnimator { get { return animator != null; } }
+    public Animator MotionAnimator => animator;
     public bool IsFrozen { get { return isFrozen; } }
     public bool BlocksAttackStart => IsBlockingActionActive
         && !(blockingActionStateName == hitStateName && movementReaction != null

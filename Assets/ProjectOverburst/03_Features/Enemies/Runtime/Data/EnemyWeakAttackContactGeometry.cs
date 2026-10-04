@@ -34,6 +34,9 @@ public struct EnemyWeakAttackContactFrame
 [Serializable]
 public sealed class EnemyWeakAttackContactGeometry
 {
+    // Native frame/duration division and Animator accumulation can differ by a
+    // few float ULPs. This is numerical tolerance, not an extra contact frame.
+    public const float NormalizedTimeTolerance = .000001f;
     [SerializeField] private EnemyWeakAttackContactFrame[] frames;
     [SerializeField] private float maximumPlanarReach;
     public int CapsuleCount => frames != null && frames.Length > 0 ? frames[0].CapsuleCount : 0;
@@ -83,7 +86,8 @@ public sealed class EnemyWeakAttackContactGeometry
     {
         capsule = default;
         if (!HasData || (uint)capsuleIndex >= (uint)CapsuleCount || !EnemyWeakAttackContactCapsule.Finite(time)
-            || time < frames[0].NormalizedTime || time > frames[frames.Length - 1].NormalizedTime) return false;
+            || time < frames[0].NormalizedTime - NormalizedTimeTolerance
+            || time > frames[frames.Length - 1].NormalizedTime + NormalizedTimeTolerance) return false;
         int right = 1;
         while (right < frames.Length - 1 && time > frames[right].NormalizedTime) right++;
         var first = frames[right - 1]; var second = frames[right];

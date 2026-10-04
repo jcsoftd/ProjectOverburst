@@ -70,6 +70,10 @@ public static class MonsterWeakAttackImpactVerifier
         Check("longer second window survives its authored duration",queue.TryTake(20,4,out phase) && phase==1);
         queue.Begin(20,4,1,.4f,0,0,.41f,0,0);queue.Advance(.41f);
         Check("authored contact end is inclusive",queue.TryTake(20,4,out phase) && phase==0);
+        queue.Begin(20,4,1,.54f,0,0,.571428537f,0,0);queue.Advance(.5714286f);
+        Check("native end-frame float roundoff does not consume a miss",queue.TryTake(20,4,out phase) && phase==0 && queue.MissedCount==0);
+        queue.Begin(20,4,1,.54f,0,0,.571428537f,0,0);queue.Advance(.57144f);
+        Check("expired pose beyond roundoff still misses",!queue.HasPending && queue.MissedCount==1);
         queue.Begin(20,4,1,.4f,0,0,.41f,0,0);queue.Advance(.4f);
         invalid=false;
         try {queue.Begin(21,4,1,.4f,0,0,.39f,0,0);}catch(ArgumentException){invalid=true;}

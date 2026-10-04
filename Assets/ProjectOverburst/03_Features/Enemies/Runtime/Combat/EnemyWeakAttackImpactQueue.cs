@@ -55,13 +55,13 @@ public sealed class EnemyWeakAttackImpactQueue
         if (!TimeValid(nativeNormalizedTime) || nativeNormalizedTime < progress)
         { Cancel(); return; }
         progress = nativeNormalizedTime;
-        if (pending >= 0 && progress > ends[pending])
+        if (pending >= 0 && progress > ends[pending] + EnemyWeakAttackContactGeometry.NormalizedTimeTolerance)
         { pending = -1; MissedCount++; }
         while (next < count && progress >= times[next])
         {
             int index = next++;
             if (pending >= 0) { pending = -1; MissedCount++; }
-            if (progress > ends[index]) { MissedCount++; continue; }
+            if (progress > ends[index] + EnemyWeakAttackContactGeometry.NormalizedTimeTolerance) { MissedCount++; continue; }
             pending = index;
         }
     }

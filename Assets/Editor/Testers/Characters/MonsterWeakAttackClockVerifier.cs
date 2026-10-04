@@ -187,9 +187,9 @@ public static class MonsterWeakAttackClockVerifier
             typeof(EnemyMeleeAttackController).GetField("activeWeakExecution",flags).SetValue(melee,profile);
             typeof(EnemyMeleeAttackController).GetField("weakClockTrigger",flags).SetValue(melee,"Attack1");
             var executionClock=(EnemyAttackClock)typeof(EnemyMeleeAttackController).GetField("weakAttackClock",flags).GetValue(melee);
-            executionClock.Begin(Time.frameCount-1,false,0);
-            typeof(EnemyMeleeAttackController).GetMethod("LateUpdate",flags).Invoke(melee,null);
-            check("actual melee late sample shares native clock",melee.HasEnteredWeakAttack && Mathf.Abs(melee.WeakAttackNormalizedTime-.3f)<.001f);
+            executionClock.Begin(0,false,0);
+            typeof(EnemyMeleeAttackController).GetMethod("ObserveWeakClock",flags).Invoke(melee,null);
+            check("actual melee fixed sample shares native clock",melee.HasEnteredWeakAttack && Mathf.Abs(melee.WeakAttackNormalizedTime-.3f)<.001f);
             melee.CancelAttack();
             check("actual melee cancel clears selected clock",!melee.HasEnteredWeakAttack && melee.ActiveWeakExecution==null && melee.WeakAttackNormalizedTime==0);
             var ability=ScriptableObject.CreateInstance<EnemyAbilityDefinition>();owned.Add(ability);

@@ -31,6 +31,9 @@ public static class MonsterWeakAttackContactGeometryVerifier
         Check("geometry includes actual capsule radius in planar bound",Mathf.Abs(geometry.MaximumPlanarReach-1.8f)<.0001f);
         Check("no geometry before contact window",!geometry.TryEvaluateCapsule(0,.39f,out _));
         Check("no geometry after contact window",!geometry.TryEvaluateCapsule(0,.61f,out _));
+        Check("Animator end-frame roundoff retains endpoint shape",geometry.TryEvaluateCapsule(0,.6000001f,out var endpoint)
+            && endpoint.A==capsule.A && endpoint.B==capsule.B);
+        Check("numeric tolerance cannot grant an extra contact frame",!geometry.TryEvaluateCapsule(0,.60001f,out _));
         Check("invalid capsule index rejected",!geometry.TryEvaluateCapsule(-1,.5f,out _)&&!geometry.TryEvaluateCapsule(2,.5f,out _));
         Check("nonfinite motion progress rejected",!geometry.TryEvaluateCapsule(0,float.NaN,out _));
         Reject("missing window coverage rejected",()=>EnemyWeakAttackContactGeometry.Create(new[]{new EnemyWeakAttackContactFrame(.45f,capsule),new EnemyWeakAttackContactFrame(.6f,capsule)},new Vector2(.4f,.6f)));
