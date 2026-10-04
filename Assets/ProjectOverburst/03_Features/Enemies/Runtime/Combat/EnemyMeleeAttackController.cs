@@ -46,7 +46,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private EnemyMotor weakAttackMotor;
     private readonly EnemyWeakAttackImpactQueue weakImpacts = new EnemyWeakAttackImpactQueue();
     private static readonly WaitForFixedUpdate afterPhysics = new WaitForFixedUpdate();
-    private float weakSnapshotDamage;
+    private EnemyWeakAttackDamageBudget weakDamageBudget;
+    private EnemyWeakAttackReactionScope weakReactionScope;
     private Vector3 weakCommittedForward;
     public EnemyWeakAttackExecutionProfile ActiveWeakExecution => activeWeakExecution;
     public float WeakAttackNormalizedTime => weakAttackClock.NormalizedTime;
@@ -137,6 +138,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         }
         weakMotionDriver?.End();
         weakImpacts.Cancel(); activeWeakAbility = null;
+        weakReactionScope?.Cancel(); weakReactionScope = null;
         activeWeakExecution = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();
@@ -177,6 +179,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         }
 
         if (ability.HasWeakAttackExecution && (weakMotionDriver == null || !weakMotionDriver.CanUse(ability.WeakAttackExecution))) return false;
+        if (ability.HasWeakAttackExecution && !ability.TryResolveWeakDamageBudget(GetComponent<EnemyRank>()?.Level ?? 1,
+            definitionDamageMultiplier, out _)) return false;
         if (ability.HasWeakAttackExecution && (animationBridge == null
             || !animationBridge.CanPlayAttackMotion(ability.AnimatorTrigger, ability.WeakAttackExecution.RuntimeClip))) return false;
         Vector3 aimPosition = ResolveAimPosition(attackTarget);
@@ -506,6 +510,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         int executionSequence = attackSequenceId;
         float lastStrikeAt = Time.time;
+        EnemyWeakAttackReactionScope reactionScope = null;
         try
         {
             activeWeakExecution = ability.WeakAttackExecution;
@@ -513,7 +518,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             weakClockTrigger = triggerName;
             weakCommittedForward = transform.forward;
             int level = GetComponent<EnemyRank>()?.Level ?? 1;
-            weakSnapshotDamage = ability.ResolveDamage(level) * definitionDamageMultiplier;
+            if (!ability.TryResolveWeakDamageBudget(level, definitionDamageMultiplier, out weakDamageBudget)) yield break;
+            reactionScope = ability.HitCount > 1 ? new EnemyWeakAttackReactionScope(gameObject, executionSequence, actor) : null;
+            weakReactionScope = reactionScope;
             float grace = 2f / (activeWeakExecution.RuntimeClip.frameRate * activeWeakExecution.RuntimeClip.length);
             weakImpacts.Begin(attackSequenceId, WeakOwnerLease, ability.HitCount,
                 ability.GetHitNormalizedTime(0), ability.HitCount > 1 ? ability.GetHitNormalizedTime(1) : 0,
@@ -546,8 +553,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                         if (CanResolveHit())
                         {
                             if (ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)
-                                ResolveDirectTargetHit(committedTarget, ability, weakSnapshotDamage, true);
-                            else ResolveArcHit(weakSnapshotDamage, EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
+                                ResolveDirectTargetHit(committedTarget, ability, weakDamageBudget.ForPhase(phase), true);
+                            else ResolveArcHit(weakDamageBudget.ForPhase(phase), EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
                                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability), ability);
                         }
                     }
@@ -565,6 +572,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         }
         finally
         {
+            reactionScope?.Cancel();
+            if (ReferenceEquals(weakReactionScope, reactionScope)) weakReactionScope = null;
             // A synchronous hit callback may cancel this attack and start its
             // successor. The predecessor cannot clear the successor's state.
             if (attackSequenceId == executionSequence)
@@ -693,7 +702,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             hitDirection.sqrMagnitude > 0.0001f
                 ? hitDirection.normalized
                 : transform.forward, sourceAttackSequenceId: attackSequenceId,
-            sourceAttackPhaseIndex: attackPhaseIndex, enemyAbility: ability);
+            sourceAttackPhaseIndex: attackPhaseIndex, enemyAbility: ability,
+            weakAttackReactionScope: activeWeakExecution != null ? weakReactionScope : null);
         targetHealth.TakeDamage(info); // 선택한 단일 대상에게 한 번만 직접 피해
     }
 
@@ -707,6 +717,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         bool weakExecution = activeWeakExecution != null;
         int executionSequence = attackSequenceId, executionPhase = attackPhaseIndex;
         uint executionLease = WeakOwnerLease;
+        var reactionScope = weakExecution ? weakReactionScope : null;
         bool isAreaSlam = ability != null
             && ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam;
         Vector3 impactCenter = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position) + WeakPhysicsOffset;
@@ -783,7 +794,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 hitCollider.ClosestPoint(impactCenter),
                 gameObject,
                 hitDirection.normalized, sourceAttackSequenceId: executionSequence,
-                sourceAttackPhaseIndex: executionPhase, enemyAbility: ability);
+                sourceAttackPhaseIndex: executionPhase, enemyAbility: ability, weakAttackReactionScope: reactionScope);
             targetHealth.TakeDamage(info);
         }
     }
@@ -1055,7 +1066,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
 
     private void HandleDamaged(CombatHealth source, DamageInfo info)
     {
-        if (info.isDamageOverTime || !info.triggersOnHitEffects)
+        if (info.isDamageOverTime || !info.triggersOnHitEffects || info.suppressRepeatedAttackReaction)
             return; // 직접 피격만 공격 취소
         if (source == null || source.IsDead)
             return;
@@ -1071,6 +1082,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         attackRoutine = null;
         weakMotionDriver?.End();
         weakImpacts.Cancel(); activeWeakAbility = null;
+        weakReactionScope?.Cancel(); weakReactionScope = null;
         activeWeakExecution = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();

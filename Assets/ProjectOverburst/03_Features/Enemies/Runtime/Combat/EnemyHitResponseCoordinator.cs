@@ -88,7 +88,7 @@ public sealed class EnemyHitResponseCoordinator : MonoBehaviour
             return; // OnDead owns the death animation and cancellation.
         }
 
-        if (actualDamage <= 0f || shieldBlocked || info.isDamageOverTime
+        if (actualDamage <= 0f || info.suppressRepeatedAttackReaction || shieldBlocked || info.isDamageOverTime
             || !info.triggersOnHitEffects || (animationBridge != null && animationBridge.IsFrozen))
         {
             RecordFeedbackOnly();

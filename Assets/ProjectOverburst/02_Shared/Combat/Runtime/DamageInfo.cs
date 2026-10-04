@@ -26,6 +26,9 @@ public struct DamageInfo
     public EnemyAbilityDefinition enemyAbility;
     public float weakKnockbackDistance;
     public ElementGemAttackSnapshot gemAttack;
+    public EnemyWeakAttackReactionScope weakAttackReactionScope;
+    // Resolved by Health after actual HP loss; on-hit, sound and damage events still run.
+    public bool suppressRepeatedAttackReaction;
 
     public DamageInfo(
         float damage,
@@ -47,9 +50,12 @@ public struct DamageInfo
         bool usesResolvedTickDamage = false,
         EnemyAbilityDefinition enemyAbility = null,
         float weakKnockbackDistance = -1f,
-        ElementGemAttackSnapshot gemAttack = default)
+        ElementGemAttackSnapshot gemAttack = default,
+        EnemyWeakAttackReactionScope weakAttackReactionScope = null)
     {
         this.gemAttack = gemAttack;
+        this.weakAttackReactionScope = weakAttackReactionScope;
+        suppressRepeatedAttackReaction = false;
         this.damage = damage;
         this.hitPoint = hitPoint;
         this.source = source;

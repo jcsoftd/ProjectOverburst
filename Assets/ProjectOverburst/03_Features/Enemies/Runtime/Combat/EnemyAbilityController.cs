@@ -199,7 +199,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     }
     private void ClearAimOnDamage(CombatHealth source, DamageInfo info)
     {
-        if (source.IsDead || !info.isDamageOverTime && info.triggersOnHitEffects) ClearPreparedAim();
+        if (source.IsDead || !info.isDamageOverTime && info.triggersOnHitEffects && !info.suppressRepeatedAttackReaction) ClearPreparedAim();
     }
 
     public EnemyAbilitySet AbilitySet => abilitySet;

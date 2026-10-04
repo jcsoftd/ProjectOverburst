@@ -68,7 +68,7 @@ public static class MonsterWeakAttackImpactVerifier
         string path = Path.Combine(outputDirectory, "impact-results.json");
         File.WriteAllText(path, JsonConvert.SerializeObject(new { status = failed == 0 ? "PASS_SCOPED" : "FAIL", checks, failed,
             ownPlay = false, nativePhysics = "INDEPENDENT_PREVIEW_SCENE", actualPlayerLoopReplay = "NOT_RUN",
-            exactGameEventAuthoring = "NOT_COMPLETE", totalDamageBudget = "NOT_IMPLEMENTED", reactionRights = "NOT_IMPLEMENTED", audioApplied = false }, Formatting.Indented));
+            exactGameEventAuthoring = "NOT_COMPLETE", totalDamageBudget = "SEPARATE_NATIVE_VERIFIER", reactionRights = "SEPARATE_NATIVE_VERIFIER", audioApplied = false }, Formatting.Indented));
         if (failed > 0) throw new InvalidOperationException("약공 사건 검사 실패: " + failed);
         return path;
     }
@@ -138,7 +138,7 @@ public static class MonsterWeakAttackImpactVerifier
             motor.MoveToPosition(origin + Vector3.forward * .2f);
             Physics.SyncTransforms(); scene.GetPhysicsScene().Simulate(.02f);
             routine.MoveNext();
-            check("contact resolves at completed body position", body.position.z > origin.z + .19f && damage.Count == 1 && Mathf.Abs(hp.CurrentHp - 90) < .001f);
+            check("contact resolves at completed body position", body.position.z > origin.z + .19f && damage.Count == 1 && Mathf.Abs(hp.CurrentHp - 95) < .001f);
             check("actual damage carries frozen sequence and phase", damage.Count == 1 && damage[0].sourceAttackSequenceId == sequence && damage[0].sourceAttackPhaseIndex == 0);
             routine.MoveNext();
             check("another physics step cannot replay same crossing", damage.Count == 1);
@@ -163,6 +163,21 @@ public static class MonsterWeakAttackImpactVerifier
             clock.Observe(202, .1f, true, .6f); routine.MoveNext();
             check("second native contact succeeds after first miss", damage.Count == 1 && damage[0].sourceAttackPhaseIndex == 1);
             melee.CancelAttack(); ((IDisposable)routine).Dispose();
+
+            // The accepted execution owns its budget even if the ability is edited between phases.
+            hp.ResetHealth(); damage.Clear(); victim.transform.position = origin + Vector3.forward * 1.5f; Physics.SyncTransforms();
+            sequence = EnemyAttackSequence.Next(); Set(melee, "attackSequenceId", sequence);
+            routine = (System.Collections.IEnumerator)typeof(EnemyMeleeAttackController).GetMethod("WeakAttackRoutine", Fields)
+                .Invoke(melee, new object[] { "Attack1", ability, null, true });
+            routine.MoveNext(); clock.Begin(250, false, 0); clock.Observe(251, .1f, true, .4f); routine.MoveNext();
+            Set(ability, "damage", 20f);
+            clock.Observe(252, .1f, true, .6f); routine.MoveNext();
+            check("two native contacts spend the frozen total budget", damage.Count == 2 && Mathf.Abs(hp.CurrentHp - 90) < .001f
+                && damage.TrueForAll(info => Mathf.Abs(info.damage - 5) < .001f));
+            check("native second contact keeps damage while suppressing repeated reaction", damage.Count == 2
+                && !damage[0].suppressRepeatedAttackReaction && damage[1].suppressRepeatedAttackReaction
+                && damage.TrueForAll(info => info.triggersOnHitEffects && !info.isDamageOverTime));
+            Set(ability, "damage", 10f); melee.CancelAttack(); ((IDisposable)routine).Dispose();
 
             var secondVictim = Root("V3_SecondVictim", origin + new Vector3(.2f, 0, 1.5f));
             var secondCollider = secondVictim.AddComponent<CapsuleCollider>(); secondCollider.center = Vector3.up; secondCollider.radius = .25f; secondCollider.height = 2;

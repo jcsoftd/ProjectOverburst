@@ -485,7 +485,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         if (isFrozen)
             return; // 빙결 Idle을 피격 모션이 덮지 않음
-        if (info.isDamageOverTime || !info.triggersOnHitEffects)
+        if (info.isDamageOverTime || !info.triggersOnHitEffects || info.suppressRepeatedAttackReaction)
             return; // 직접 피격 반응만 처리
         if (source != null && source.CurrentHp <= 0f)
             return; // 사망 우선

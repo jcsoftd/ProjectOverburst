@@ -103,20 +103,24 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         float hpBeforeDamage = currentHp; // 실제 감소량 계산
         currentHp = Mathf.Max(IsDeathFromDamagePrevented ? Mathf.Min(1f, currentHp) : 0f, currentHp - damage); // 시험 보호 중 최소 생존 HP
         float actualDamage = Mathf.Max(0f, hpBeforeDamage - currentHp);
+        // Zero loss, evade and parry cannot spend the pattern's first reaction.
+        info.suppressRepeatedAttackReaction = info.weakAttackReactionScope != null
+            && !info.weakAttackReactionScope.TryConsume(info.source, info.sourceAttackSequenceId, this, actualDamage);
         try
         {
             OverburstElementCombat.ReportConfirmedHit(this, info, actualDamage); // 적중 에너지·독립 상태 축적
             PlayerKnockdownController knockdown = GetComponentInParent<PlayerKnockdownController>();
             bool reactionOwnsMotion = knockdown != null
+                && (!info.suppressRepeatedAttackReaction || currentHp <= 0f)
                 && knockdown.ResolveDamageReaction(info, actualDamage, currentHp <= 0f);
-            if (!reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
+            if (!info.suppressRepeatedAttackReaction && !reactionOwnsMotion) ApplyKnockback(info); // 전용 반응과 일반 넉백을 중복 적용하지 않는다.
 
             if (actualDamage > 0f
                 && CombatTeamUtility.IsPlayerActorHealth(this)
                 && CanOpenPlayerCombatMode())
             {
                 PlayerCombatModeController.EnterSharedCombatMode(PlayerCombatModeReason.Damaged);
-                if (!reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
+                if (!info.suppressRepeatedAttackReaction && !reactionOwnsMotion && currentHp > 0f) PlayCombatDamagedHitAnimation(info);
             }
 
             RaiseDamageResolved(info, actualDamage, currentHp <= 0f);

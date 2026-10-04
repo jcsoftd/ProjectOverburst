@@ -101,6 +101,16 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     public float ResolveDamage(int level) => UsesLevelDamageBudget
         ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
             * referencePatternDamagePercent / (100f * HitCount))) : Damage;
+    // V3 weak attacks spend one pattern budget, regardless of contact count.
+    // Legacy per-hit ResolveDamage remains unchanged for profiles without V3 execution.
+    public bool TryResolveWeakDamageBudget(int level, float definitionMultiplier, out EnemyWeakAttackDamageBudget budget)
+    {
+        float total = UsesLevelDamageBudget
+            ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
+                * referencePatternDamagePercent / 100f)) : Damage;
+        return EnemyWeakAttackDamageBudget.TryCreate(total * definitionMultiplier, HitCount, out budget);
+    }
+
     [SerializeField, Min(0f)] private float minimumRange;
     [SerializeField, Min(0f)] private float range = 1.7f;
     [SerializeField, Min(0.01f)] private float hitRadius = 0.8f;

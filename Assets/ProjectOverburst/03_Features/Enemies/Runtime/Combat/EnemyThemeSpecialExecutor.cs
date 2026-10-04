@@ -57,7 +57,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (reaction != null) reaction.ReactionStarted -= HandleReactionStarted;
         Cancel();
     }
-    private void Damaged(CombatHealth source, DamageInfo info) { if (!info.isDamageOverTime && info.triggersOnHitEffects || source.IsDead) Cancel(); }
+    private void Damaged(CombatHealth source, DamageInfo info) { if (!info.isDamageOverTime && info.triggersOnHitEffects && !info.suppressRepeatedAttackReaction || source.IsDead) Cancel(); }
     public void Configure(Material material, Color color) { signalMaterial = material; signalColor = color; }
     public override bool Supports(EnemyAbilityDefinition ability) => ability != null
         && (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge || ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile);
