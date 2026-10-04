@@ -20,7 +20,7 @@ public static class EdgeEffectsIconReviewBuilder
     const string SlotPrefab = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/Slots/PF_OverburstItemSlot_Rpg11.prefab";
     const string MaterialsRoot = "Assets/ProjectOverburst/02_Shared/UI/Materials/EdgeEffectsReview";
     const string DerivedTextureRoot = VendorRoot+"/ReviewDerived/Textures";
-    static readonly string[] Candidates = {"EdgeGlow_01","EdgeGlow_05","EdgeGlow_13","EdgeGlow_15","EdgeGlow_16"};
+    static readonly string[] Candidates = {"EdgeGlow_01","EdgeGlow_05","EdgeGlow_13","EdgeGlow_04","EdgeGlow_06"};
     static readonly ItemGrade[] Grades = {ItemGrade.Uncommon,ItemGrade.Rare,ItemGrade.Epic,ItemGrade.Legendary,ItemGrade.Artifact,ItemGrade.Mythic,ItemGrade.Cursed};
     static readonly string[] GradeLabels = {"UNCOMMON","RARE","EPIC","LEGENDARY","ARTIFACT","MYTHIC","CURSED"};
 
