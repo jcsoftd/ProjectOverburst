@@ -108,7 +108,9 @@ public static class SwordCombatLocomotionBuilder
                 string dir = "04_Run/02_Run_Combat_RM/" + Folders[i].ToString("00") + "_Run_Combat_" + Suffix[i] + "_RM/";
                 var start = Copy(Source + dir + "Run_Combat_Start_" + Suffix[i] + "_RM.anim", Root + "/Sword_Start_" + Suffix[i] + ".anim", false, false, true, 0, false, sourceRecords, created);
                 var loop = Copy(Source + dir + "Run_Combat_Loop_" + Suffix[i] + "_RM.anim", Root + "/Sword_Loop_" + Suffix[i] + ".anim", true, false, true, 0, false, sourceRecords, created);
-                var stop = Copy(Source + dir + "Run_Combat_Stop_" + Suffix[i] + "_RM.anim", Root + "/Sword_Stop_" + Suffix[i] + ".anim", false, false, true, 0, false, sourceRecords, created);
+                var stop = Copy(Source + dir + "Run_Combat_Stop_" + Suffix[i] + "_RM.anim", Root + "/Sword_Stop_" + Suffix[i] + ".anim", false, true, true, 0, false, sourceRecords, created);
+                SetStopInPlace(stop, profile.combatIdleClip);
+                EditorUtility.SetDirty(stop); AssetDatabase.SaveAssetIfDirty(stop);
                 set.directions[i] = new CombatMoveMotion { start = start, loop = loop, stop = stop,
                     startState = "Melee_SwordStart_" + i, stopState = "Melee_SwordStop_" + i,
                     loopCycleOffset = i >= 3 && i <= 5 ? .325f : 0f, authoredSpeed = Speeds[i] };
@@ -237,6 +239,105 @@ public static class SwordCombatLocomotionBuilder
         records.Add(new { sourcePath, hash, copy = path, guid = AssetDatabase.AssetPathToGUID(path), loop, bakeXZ, bakeYaw });
         return copy;
     }
+    public static string ApplyStopsInPlace(string output)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required.");
+        output = Path.GetFullPath(output);
+        if (!output.StartsWith(Path.GetFullPath("../개인파일/코덱스산출") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Private output required.");
+        Directory.CreateDirectory(output);
+        var profile = AssetDatabase.LoadAssetAtPath<WeaponCombatAnimationProfile>(ProfilePath);
+        var set = profile.combatLocomotionSet;
+        if (set == null || set.directions.Length != 8) throw new Exception("Existing Sword set required.");
+        var owned = set.directions.Select(m => (UnityEngine.Object)m.stop).Append(set).ToArray();
+        if (owned.Any(o => o == null || EditorUtility.IsDirty(o))) throw new Exception("Preserve unsaved Stop edits.");
+        if (owned.Any(o => !AssetDatabase.GetAssetPath(o).StartsWith(Root + "/", StringComparison.Ordinal)))
+            throw new Exception("Only project-owned Sword copies may be edited.");
+        string sceneBefore = SceneState();
+        var sources = Enumerable.Range(0,8).Select(i => Source + "04_Run/02_Run_Combat_RM/" + Folders[i].ToString("00")
+            + "_Run_Combat_" + Suffix[i] + "_RM/Run_Combat_Stop_" + Suffix[i] + "_RM.anim").ToArray();
+        var sourceHashes = sources.Select(SwordIdleAttackCopyBuilder.Hash).ToArray();
+        var records = new List<object>();
+        Directory.CreateDirectory(Path.Combine(output,"Backup"));
+        var snapshots = owned.Select(UnityEngine.Object.Instantiate).ToArray();
+        for (int i = 0; i < snapshots.Length; i++) snapshots[i].name = owned[i].name;
+        try
+        {
+            foreach (var o in owned)
+            {
+                string path = AssetDatabase.GetAssetPath(o), backup = Path.Combine(output,"Backup",Path.GetFileName(path));
+                if (File.Exists(backup)) throw new Exception("Use a fresh backup output for each application.");
+                File.Copy(path,backup); File.Copy(path + ".meta",backup + ".meta");
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                var clip = set.directions[i].stop;
+                string path = AssetDatabase.GetAssetPath(clip), guid = AssetDatabase.AssetPathToGUID(path);
+                string poseBefore = StopPoseFingerprint(clip);
+                string eventsBefore = JsonConvert.SerializeObject(AnimationUtility.GetAnimationEvents(clip));
+                float duration = clip.length;
+                SetStopInPlace(clip,profile.combatIdleClip);
+                EditorUtility.SetDirty(clip); AssetDatabase.SaveAssetIfDirty(clip);
+                if (StopPoseFingerprint(clip) != poseBefore || JsonConvert.SerializeObject(AnimationUtility.GetAnimationEvents(clip)) != eventsBefore
+                    || clip.length != duration || AssetDatabase.AssetPathToGUID(path) != guid)
+                    throw new Exception("Stop pose/event/duration/GUID changed: " + clip.name);
+                if (SwordIdleAttackCopyBuilder.Hash(sources[i]) != sourceHashes[i]) throw new Exception("Supplier changed.");
+                records.Add(new { path, guid, source = sources[i], sourceHash = sourceHashes[i], posePreserved = true, eventsPreserved = true, duration });
+            }
+            set.stopBrakeSeconds = .12f; set.stopBrakeMaxDistance = .18f;
+            EditorUtility.SetDirty(set); AssetDatabase.SaveAssetIfDirty(set);
+            var errors = new List<object>();
+            using (var sampler = new Sampler())
+            {
+                var idle = sampler.Positions(profile.combatIdleClip,0);
+                foreach (var m in set.directions)
+                {
+                    var end = sampler.Positions(m.stop,m.stop.length);
+                    float max = idle.Zip(end,Vector3.Distance).Max();
+                    if (max > .0001f) throw new Exception("Native Stop -> Idle endpoint: " + m.stop.name + " " + max);
+                    errors.Add(new { clip = m.stop.name, endpointPositionError = max });
+                }
+            }
+            if (SceneState() != sceneBefore) throw new Exception("Shared scene changed.");
+            AssetDatabase.ExportPackage(AssetDatabase.FindAssets("",new[]{Root}).Select(AssetDatabase.GUIDToAssetPath).ToArray(),
+                Path.Combine(output,"SwordCombatLocomotion.unitypackage"),ExportPackageOptions.Default);
+            File.WriteAllText(Path.Combine(output,"ApplyResult.json"),JsonConvert.SerializeObject(new {
+                status = "PASS", sceneBefore, records, errors, stopBrakeSeconds = set.stopBrakeSeconds,
+                stopBrakeMaxDistance = set.stopBrakeMaxDistance },Formatting.Indented));
+            return "PASS: eight in-place Stops, preserved poses/events/GUIDs, native Idle endpoints.";
+        }
+        catch
+        {
+            for (int i = 0; i < owned.Length; i++) { EditorUtility.CopySerialized(snapshots[i],owned[i]); EditorUtility.SetDirty(owned[i]); AssetDatabase.SaveAssetIfDirty(owned[i]); }
+            throw;
+        }
+        finally { foreach (var copy in snapshots) UnityEngine.Object.DestroyImmediate(copy); }
+    }
+
+    static string StopPoseFingerprint(AnimationClip clip) => JsonConvert.SerializeObject(AnimationUtility.GetCurveBindings(clip)
+        .Where(b => b.propertyName != "RootT.x" && b.propertyName != "RootT.z")
+        .Select(b => new { b.path, b.propertyName, type = b.type.FullName, curve = AnimationUtility.GetEditorCurve(clip,b) }));
+
+    public static void SetStopInPlace(AnimationClip clip, AnimationClip idle)
+    {
+        if (clip == null || idle == null || !clip.isHumanMotion || !idle.isHumanMotion)
+            throw new ArgumentException("Humanoid Stop and Idle required.");
+        var bindings = AnimationUtility.GetCurveBindings(clip);
+        var idleBindings = AnimationUtility.GetCurveBindings(idle);
+        foreach (string property in new[] { "RootT.x", "RootT.z" })
+        {
+            var binding = bindings.First(b => b.propertyName == property);
+            var reference = idleBindings.First(b => b.propertyName == property);
+            float center = AnimationUtility.GetEditorCurve(idle, reference).Evaluate(0);
+            AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0, clip.length, center));
+        }
+        // Center first: baking the original RM travel would move the body away from Idle.
+        var settings = AnimationUtility.GetAnimationClipSettings(clip);
+        settings.loopBlendPositionXZ = true;
+        AnimationUtility.SetAnimationClipSettings(clip, settings);
+    }
+
     static float Warp(float p)
     {
         // Smooth monotonic preparation compression; footsteps and root yaw use the same baked time.
@@ -327,6 +428,11 @@ public static class SwordCombatLocomotionBuilder
         {
             Sample(clip, time);
             return bones.Select(b => Animator.GetBoneTransform(b).localRotation).ToArray();
+        }
+        public Vector3[] Positions(AnimationClip clip, float time)
+        {
+            Sample(clip,time);
+            return bones.Select(b => Animator.transform.InverseTransformPoint(Animator.GetBoneTransform(b).position)).ToArray();
         }
         public void Dispose()
         {

@@ -84,6 +84,12 @@ public static partial class PlayerEvadeVerifier
     }
     static IEnumerator VerifySwordFacingGameplay()
     {
+        if (SessionState.GetBool(SwordStopVerificationKey, false))
+        {
+            SessionState.EraseBool(SwordStopVerificationKey);
+            yield return VerifySwordStopGameplay();
+            yield break;
+        }
         Check(EnemyThemeTrialService.InArena, "턴 검증 실제 시험장 진입");
         var driver = actor.GetComponent<MeleeWeaponCombatAnimatorDriver>();
         var facing = actor.GetComponent<PlayerCombatFacingController>();
@@ -228,7 +234,8 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         public string phase;
         public string[] clips;
         public float[][] feet;
-        public float[] actor, model;
+        public float[] actor, model, hipsLocal;
+        public float speed;
         public bool grounded, controllerEnabled;
         public float groundGap, verticalVelocity;
         public float chestYaw;
@@ -327,6 +334,8 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
             clips = current.Concat(next).Where(c=>c.weight>.001).Select(c=>c.clip.name).Distinct().ToArray(),
             feet = feet.Select(b=>new[]{b.position.x,b.position.y,b.position.z}).ToArray(),
             actor = new[]{actorPosition.x,actorPosition.y,actorPosition.z}, model = new[]{modelPosition.x,modelPosition.y,modelPosition.z},
+            hipsLocal = new[]{animator.transform.InverseTransformPoint(hips.position).x, animator.transform.InverseTransformPoint(hips.position).y, animator.transform.InverseTransformPoint(hips.position).z},
+            speed = movement.Locomotion.HorizontalVelocity.magnitude,
             grounded=movement.IsGrounded, controllerEnabled=facing.GetComponent<CharacterController>().enabled,
             groundGap=motor.GroundGap, verticalVelocity=movement.VerticalVelocity });
         frames[frames.Count-1].chestYaw = Yaw(chest.rotation);

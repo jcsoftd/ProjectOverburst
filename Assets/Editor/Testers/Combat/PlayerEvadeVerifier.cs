@@ -140,6 +140,8 @@ public static partial class PlayerEvadeVerifier
         ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
         SessionState.EraseBool(SwordIdleVerificationKey);
         SessionState.EraseBool(SwordFacingVerificationKey);
+        SessionState.EraseBool(SwordStopVerificationKey);
+        SessionState.EraseBool(SwordStopVerificationKey + ".ExpectInPlace");
         SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
         SessionState.EraseBool(PendingKey + ".DashHeavyOnly");

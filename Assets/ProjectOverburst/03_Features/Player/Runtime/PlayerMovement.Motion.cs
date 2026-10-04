@@ -3,6 +3,8 @@ using UnityEngine;
 // PlayerMovement partial: 이동 실행·정지·점프·회피 준비·순간이동 초기화·줍기 자동 이동·지면 확인. 필드와 Unity 수명주기는 PlayerMovement.cs에 있다.
 public partial class PlayerMovement
 {
+    private bool combatStopWasMoving;
+    private float combatStopDeceleration;
     private void ProbeMotorGround()
     {
         characterMotor.ProbeGround(Time.deltaTime);
@@ -32,12 +34,39 @@ public partial class PlayerMovement
             activeMovementIntent,
             BaseMoveSpeed,
             acceleration,
-            deceleration,
+            ResolveCombatStopDeceleration(jumpVelocity),
             airControl,
             jumpVelocity,
             Mathf.Max(0f, deltaTime));
         if (result.didLand && result.landingFallSpeed < -landingMinFallSpeed)
             landingSlowTimer = landingSlowDuration; // 같은 Move에서 발생한 착지를 즉시 소비
+    }
+
+    private float ResolveCombatStopDeceleration(float jumpVelocity)
+    {
+        var set = combatFacingController != null ? combatFacingController.Set : null;
+        bool eligible = set != null && combatFacingController.IsPoseActive
+            && IsMeleeCombatLocomotionMode && !IsLootAutoMoveActive
+            && !IsEvading && !IsMeleeAttackMoveLocked && jumpVelocity <= 0f
+            && !GameplayInputBlocker.IsGameplayInputBlocked
+            && set.stopBrakeSeconds > 0f && set.stopBrakeMaxDistance > 0f;
+        if (!eligible || activeMovementIntent.ShouldMove)
+        {
+            combatStopWasMoving = eligible && activeMovementIntent.ShouldMove;
+            combatStopDeceleration = 0f;
+            return deceleration;
+        }
+        float speed = locomotion.HorizontalVelocity.magnitude;
+        if (combatStopWasMoving)
+        {
+            // Capture once on release; recomputing every frame creates a long tail.
+            // The existing collision motor owns all displacement.
+            combatStopDeceleration = Mathf.Max(speed / set.stopBrakeSeconds,
+                speed * speed / (2f * set.stopBrakeMaxDistance));
+            combatStopWasMoving = false;
+        }
+        if (speed <= .001f) combatStopDeceleration = 0f;
+        return combatStopDeceleration > 0f ? combatStopDeceleration : deceleration;
     }
 
     public void SetControlAuthority(ActorControlAuthority authority)
@@ -67,6 +96,8 @@ public partial class PlayerMovement
 
     public void Stop()
     {
+        combatStopWasMoving = false;
+        combatStopDeceleration = 0f;
         lootAutoMoveActive = false;
         submittedAIIntent = ActorMovementIntent.Hold(
             transform.position,

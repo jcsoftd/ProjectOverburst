@@ -34,6 +34,8 @@ public sealed class CombatLocomotionSet : ScriptableObject
     [Min(0f)] public float turnBlendSeconds = .08f;
     [Min(0f)] public float moveBlendSeconds = .12f;
     [Min(0f)] public float recoverySeconds = .12f;
+    [Min(0f)] public float stopBrakeSeconds = .12f;
+    [Min(0f)] public float stopBrakeMaxDistance = .18f;
     public float idleChestYaw;
 
     public CombatTurnMotion SelectTurn(float delta, int previousSign)
