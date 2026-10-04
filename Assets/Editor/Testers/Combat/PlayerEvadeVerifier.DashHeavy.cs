@@ -64,7 +64,10 @@ public static partial class PlayerEvadeVerifier
         Time.captureFramerate=0;
         try
         {
+            bool focusOnly = SessionState.GetBool(HeavyFocusOnlyKey, false);
+            SessionState.EraseBool(HeavyFocusOnlyKey);
             yield return VerifyHeavyFocusMotions();
+            if (focusOnly) yield break;
             var energy=actor.GetComponent<OverburstElementEnergy>();
             if(energy==null)energy=actor.gameObject.AddComponent<OverburstElementEnergy>();
             foreach(var element in new[]{WeaponElement.Fire,WeaponElement.Ice,WeaponElement.Electric,WeaponElement.Dark,WeaponElement.Light})
@@ -171,7 +174,7 @@ public static partial class PlayerEvadeVerifier
             }
             foreach(string cancel in new[]{"ui","weapon","gem","knockdown","disable"})
             {
-                yield return Reset();EquipDashHeavyGem(WeaponElement.Fire);
+                yield return Reset();EquipDashHeavyGem(WeaponElement.Fire);FillEnergy(energy,45000);
                 yield return StartDodge(false,false,true);Send();yield return Frames(2);
                 float focusLimit=Time.unscaledTime+4f;
                 while(Time.timeScale>.8f){Check(Time.unscaledTime<focusLimit&&melee.IsDashHeavyWindupActive,"활성 집중 취소 구간 도달");yield return null;}

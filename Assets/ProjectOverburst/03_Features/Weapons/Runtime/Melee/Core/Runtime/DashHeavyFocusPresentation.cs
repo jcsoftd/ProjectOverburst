@@ -7,7 +7,7 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     public const string MaterialResource = "Combat/VFX/DashHeavyFocus";
     public const string HeadMaterialResource = "Combat/VFX/DashHeavyFocusHead";
     public const string HeadMeshResource = "Combat/VFX/DashHeavyFocusHeadMesh";
-    private const int LightCount = 9, PointCount = 14;
+    private const int LightCount = 24, PointCount = 14;
     private static Material focusMaterial, headMaterial;
     private static Mesh headMesh;
     private static AudioClip gatherClip, releaseClip;
@@ -39,7 +39,7 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     private QuarterViewCamera focusCamera;
     private HeavyFocusWindow window;
     private Color elementColor;
-    private float sourceSeconds = -1f, gatherEndsAt;
+    private float sourceSeconds = -1f, focusStartedAt = -1f, gatherEndsAt;
     private string weaponId;
     private bool initialized;
     private bool ownsSlow;
@@ -79,10 +79,19 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     {
         var effect = Ensure(owner); if (effect == null) return null;
         effect.Dispose(); effect.weaponId = owner.CurrentWeaponItem?.runtimeInstanceId;
-        effect.elementColor = ColorFor(element); effect.window = timing; effect.sourceSeconds = -1f;
+        effect.elementColor = ColorFor(element); effect.window = timing; effect.sourceSeconds = effect.focusStartedAt = -1f;
         effect.view = Camera.main; effect.focusCamera = QuarterViewCamera.ActiveInstance;
         System.Array.Clear(effect.spawned, 0, effect.spawned.Length); effect.enabled = true;
         return effect;
+    }
+    public const float MinimumEnergyFraction = .8f;
+    public static bool CanBegin(PlayerEquipment owner, ElementGemAttackSnapshot attack)
+    {
+        var energy = owner != null ? owner.GetComponent<OverburstElementEnergy>() : null;
+        return attack.HasValue && attack.IsCurrent && energy != null && energy.isActiveAndEnabled
+            && energy.WeaponInstanceId == attack.WeaponId && energy.GemInstanceId == attack.GemId
+            && energy.GemRevision == attack.GemRevision && energy.Element == attack.Element
+            && OverburstElementRules.IsActive(attack.Element) && energy.Normalized >= MinimumEnergyFraction;
     }
     public static Color ColorFor(WeaponElement element)
     {
@@ -111,7 +120,9 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     {
         sourceSeconds = clipSeconds;
         if (!Application.isPlaying || !enabled) return;
-        float scale = window.TimeScale(clipSeconds);
+        if (focusStartedAt == -1f && clipSeconds >= window.Start)
+            focusStartedAt = clipSeconds < window.End ? OverburstGameClock.UnscaledTime : -2f;
+        float scale = window.PulseScale(focusStartedAt >= 0f ? OverburstGameClock.UnscaledTime - focusStartedAt : -1f);
         if (scale < .99999f) ownsSlow |= OverburstTimeEffectArbiter.SetContinuous(this, OverburstTimeEffectKind.HeavyFocus, scale, .15f);
         else if (ownsSlow) { OverburstTimeEffectArbiter.ClearOwner(this); ownsSlow = false; }
         focusCamera?.SetHeavyFocusZoom(this, window.Zoom(clipSeconds));
@@ -156,10 +167,10 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
             float local = (progress - delay) / (arrival - delay); bool visible = local >= 0f && local < 1f;
             wisps[i].enabled = heads[i].enabled = visible; if (!visible) continue;
             float angle = i * 2.39996323f + seed * .32f;
-            Vector3 target = Vector3.Lerp(bottom, tip, .22f + .078f * i);
+            Vector3 target = Vector3.Lerp(bottom, tip, .22f + .624f * i / (LightCount - 1f));
             if (!spawned[i])
             {
-                origins[i] = target + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * (.78f + .36f * seed) + axis * (seed - .5f) * .18f;
+                origins[i] = target + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * (1f + .5f * seed) + axis * (seed - .5f) * .18f;
                 origins[i].y = Mathf.Max(equipment.transform.position.y + .45f, origins[i].y);
                 bends[i] = (right * Mathf.Sin(angle) + up * Mathf.Cos(angle)) * (.08f + .10f * seed); spawned[i] = true;
             }
@@ -168,7 +179,7 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
             float alpha = Smooth(local / .13f) * (1f - Smooth((local - .94f) / .06f));
             Color color = elementColor; color.a = alpha * .58f;
             wisps[i].startColor = new Color(color.r, color.g, color.b, 0f); wisps[i].endColor = color;
-            float size = (.058f + .051f * seed) * (1f + .14f * Smooth((local - .85f) / .12f));
+            float size = (.081f + .071f * seed) * (1f + .14f * Smooth((local - .85f) / .12f));
             // World size is independent of the supplier weapon's transform scale.
             var head = heads[i].transform; head.SetPositionAndRotation(Point(origins[i], target, bends[i], local), camera.transform.rotation);
             Vector3 parentScale = head.parent.lossyScale;

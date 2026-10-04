@@ -11,15 +11,18 @@ public partial class MeleeRuntime
         if (!activeAttackIsHeavy || activeAttackAnimationClip == null || activeWeaponData?.weaponClass != WeaponClass.Greatsword) return;
         if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy)
         {
-            if (dashHeavyPresentation == null)
+            if (dashHeavyPresentation == null && !dashHeavyWindup)
             {
                 dashHeavyPlaybackSpeed = activeAttackAnimationSpeed;
                 dashHeavyGatherPlayed = dashHeavyReleasePlayed = dashHeavySwingPlayed = false;
-                dashHeavyPresentation = DashHeavyFocusPresentation.Create(playerEquipment, activeGemAttack.Element);
+                dashHeavyPresentation = DashHeavyFocusPresentation.CanBegin(playerEquipment, activeGemAttack)
+                    ? DashHeavyFocusPresentation.Create(playerEquipment, activeGemAttack.Element) : null;
+                ResolveDashHeavySwingCue();
             }
             return;
         }
         EndGroundHeavyFocus();
+        if (!DashHeavyFocusPresentation.CanBegin(playerEquipment, activeGemAttack)) return;
         bool parried = activeHeavyDefinition == activeWeaponData.GetMeleeDefinition()?.parriedHeavyAttackDefinition;
         groundFocusWindow = parried ? HeavyFocusWindow.Parried(activeAttackAnimationClip.length)
             : HeavyFocusWindow.Ground(activeAttackAnimationClip.length);
@@ -35,7 +38,7 @@ public partial class MeleeRuntime
         {
             groundGatherPlayed = true;
             if (source < groundFocusWindow.End)
-                groundHeavyFocus.PlayGather(groundFocusWindow.UnscaledDuration(source, groundFocusWindow.End, false) / Mathf.Max(.01f, activeAttackAnimationSpeed));
+                groundHeavyFocus.PlayGather(groundFocusWindow.UnscaledDuration(source, groundFocusWindow.End, false, activeAttackAnimationSpeed));
         }
         if (!groundReleasePlayed && source >= groundFocusWindow.End)
         { groundReleasePlayed = true; groundHeavyFocus.PlayRelease(); }
