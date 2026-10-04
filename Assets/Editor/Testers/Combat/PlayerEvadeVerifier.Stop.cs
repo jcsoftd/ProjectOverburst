@@ -9,12 +9,13 @@ using UnityEngine;
 public static partial class PlayerEvadeVerifier
 {
     const string SwordStopVerificationKey = "Overburst.PlayerEvadeVerifier.SwordStop";
-    public static void StartSwordStopIsolated(string directory, bool expectInPlace = true)
+    public static void StartSwordStopIsolated(string directory, bool expectInPlace = true, bool capture = false)
     {
         SessionState.SetBool(SwordStopVerificationKey, true);
         SessionState.SetBool(SwordStopVerificationKey + ".ExpectInPlace", expectInPlace);
+        SessionState.SetBool(SwordStopVerificationKey + ".Capture", capture);
         try { StartSwordFacingIsolated(directory); }
-        catch { SessionState.EraseBool(SwordStopVerificationKey); SessionState.EraseBool(SwordStopVerificationKey + ".ExpectInPlace"); throw; }
+        catch { SessionState.EraseBool(SwordStopVerificationKey); SessionState.EraseBool(SwordStopVerificationKey + ".ExpectInPlace"); SessionState.EraseBool(SwordStopVerificationKey + ".Capture"); throw; }
     }
     static float PlanarDistance(float[] a, float[] b) => new Vector2(a[0]-b[0],a[2]-b[2]).magnitude;
     static IEnumerator VerifySwordStopGameplay()
@@ -27,6 +28,9 @@ public static partial class PlayerEvadeVerifier
         Check(set != null && set.directions.Length == 8,"Stop 실제 8방향 프로필");
         facingProbe=blocker.AddComponent<SwordFacingPoseProbe>(); facingProbe.Bind(animator,facing);
         try {
+            if (SessionState.GetBool(SwordStopVerificationKey + ".Capture", false))
+                facingProbe.StartCapture(Path.Combine(output,"Capture"));
+            SessionState.EraseBool(SwordStopVerificationKey + ".Capture");
             for(int i=0;i<8;i++) {
                 yield return FacingReset(); FacingAim(-i*45); yield return FacingWait(1.7f);
                 Send(true); yield return FacingSample(1.05f,"move_"+i);
@@ -51,14 +55,18 @@ public static partial class PlayerEvadeVerifier
                 }
             }
             if(expectInPlace) {
-                yield return FacingReset(); Send(true); yield return FacingWait(.9f); Send();yield return FacingWait(.04f);
+                yield return FacingReset(); facingProbe.phase="move_restart_entry"; Send(true); yield return FacingWait(.9f);
+                facingProbe.phase="stop_restart_entry"; Send();yield return FacingWait(.04f);
                 Send(true);yield return FacingSample(.35f,"move_restart");
                 Check(movement.MoveInput.sqrMagnitude>.5f && movement.Locomotion.HorizontalVelocity.magnitude>1,"Stop 중 재이동 즉시 수락");
                 Send();yield return FacingWait(1.3f);
-                Send(true);yield return FacingWait(.9f);Send();yield return FacingWait(.04f);
+                facingProbe.phase="move_attack_entry"; Send(true);yield return FacingWait(.9f);
+                facingProbe.phase="stop_attack_entry"; Send();yield return FacingWait(.04f);
                 Send(false,false,true);yield return FacingSample(.18f,"stop_attack");Send();
-                Check(melee.IsAttackInProgress,"Stop 중 공격 수락");yield return FacingWait(3.3f);
-                yield return FacingReset();Send(true);yield return FacingWait(.9f);Send();yield return FacingWait(.04f);
+                Check(melee.IsAttackInProgress,"Stop 중 공격 수락"); facingProbe.phase="attack_stop_recovery"; yield return FacingWait(3.3f);
+                yield return FacingReset(); facingProbe.phase="move_evade_entry"; Send(true);yield return FacingWait(.9f);
+                facingProbe.phase="stop_evade_entry"; Send();yield return FacingWait(.04f);
+                facingProbe.phase="stop_evade";
                 yield return StartDodge(false);Check(evade.IsEvading,"Stop 중 회피 수락");yield return FacingWait(1.2f);
                 yield return FacingReset();FacingAim(75);yield return FacingSample(1.2f,"turn_stop_regression");
                 Check(facingProbe.frames.Any(f=>f.phase=="turn_stop_regression" && f.clips.Contains(set.right90.clip.name)),"Stop 수정 후 기존 90도 턴 유지");
