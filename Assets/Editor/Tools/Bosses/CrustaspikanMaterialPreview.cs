@@ -23,6 +23,18 @@ public sealed class CrustaspikanMaterialPreview : IDisposable
     bool firstRender = true;
     public static int LiveStages { get; private set; }
     public Camera Camera => renderer?.camera;
+    public Transform AnimationRoot => rig != null ? rig.transform : null;
+    public void SetHeldRockPreview(bool visible) { if (boulder != null) boulder.SetActive(visible); }
+    public void OffsetActor(Vector3 offset)
+    {
+        if (visual != null) visual.transform.position += offset;
+        if (boulder != null) boulder.transform.position += offset;
+        var body = BodyBounds; body.center += offset; BodyBounds = body;
+        var frame = body;
+        if (comparison != null) frame.Encapsulate(comparison.GetComponent<Renderer>().bounds);
+        if (boulder != null && boulder.activeSelf) frame.Encapsulate(boulder.GetComponent<Renderer>().bounds);
+        FrameBounds = frame;
+    }
     public Bounds BodyBounds { get; private set; }
     public Bounds FrameBounds { get; private set; }
     public float Yaw { get; set; } = 25f;

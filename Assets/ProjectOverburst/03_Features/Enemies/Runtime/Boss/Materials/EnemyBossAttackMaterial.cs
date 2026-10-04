@@ -93,6 +93,14 @@ public sealed class EnemyBossAttackMaterial : ScriptableObject
     public AnimationClip originalClip;
     public AnimationClip runtimeClip;
     public EnemyBossMaterialDelivery delivery;
+    public EnemyBossAttackTuning tuning = new EnemyBossAttackTuning();
+    public float DamageMultiplier => tuning != null ? Mathf.Max(0f, tuning.damageMultiplier) : 1f;
+    public float AnimationSpeedMultiplier => tuning != null ? Mathf.Max(.01f, tuning.animationSpeedMultiplier) : 1f;
+    public bool IsStrikeParryable(int phase) => ability != null && ability.IsParryable
+        && delivery == EnemyBossMaterialDelivery.Melee && (tuning == null || tuning.AllowsParry(phase));
+    public bool IsParryWindowOpen(int phase, float progress, float remaining) => IsStrikeParryable(phase)
+        && (tuning != null ? tuning.WindowOpen(phase, progress, remaining, EnemyAbilityController.ParryLeadSeconds)
+            : remaining >= -.03f && remaining <= EnemyAbilityController.ParryLeadSeconds);
     public EnemyBossMaterialStrike[] strikes = Array.Empty<EnemyBossMaterialStrike>();
     public bool showTelegraph = true;
     public bool tracksTargetDuringWindup;
@@ -116,7 +124,7 @@ public sealed class EnemyBossAttackMaterial : ScriptableObject
             for(int i=0;i<strikes.Length;i++)
                 if(strikes[i]==null||!strikes[i].IsValid||Mathf.Abs(strikes[i].impact-ability.GetHitNormalizedTime(i))>.00001f
                     ||i>0 && strikes[i].impact <= strikes[i-1].impact) return false;
-            return advanceDistance==0f || advanceWindow.x>=0f && advanceWindow.y>advanceWindow.x && advanceWindow.y<=1f;
+            return (tuning == null || tuning.Validate(strikes)) && (advanceDistance==0f || advanceWindow.x>=0f && advanceWindow.y>advanceWindow.x && advanceWindow.y<=1f);
         }
     }
 }

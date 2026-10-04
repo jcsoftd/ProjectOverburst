@@ -110,7 +110,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         sequence=EnemyAttackSequence.Next();lease=actor.LeaseVersion;generation++;
         for(int i=0;i<3;i++){hitTargets[i].Clear();released[i]=false;warningShown[i]=false;}
         committedAim=actor.AbilityController.ResolveAimPosition(target);committedAim.y=transform.position.y;
-        castSpeed=actor.Melee.AbilityAnimationSpeed;
+        castSpeed=actor.Melee.AbilityAnimationSpeed*CurrentMaterial.AnimationSpeedMultiplier;
         if(CurrentMaterial.delivery==EnemyBossMaterialDelivery.Boulder)SetRockHeld(true);
         samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
         cast=StartCoroutine(Execute(CurrentMaterial,target,generation));return true;
@@ -140,7 +140,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
                 }
                 entered=true;progress=Mathf.Clamp01(normalized);
                 if(progress+.0001f<lastProgress){LastFailure="Attack timeline regressed; cancelled.";yield break;}
-                castSpeed=actor.Melee.AbilityAnimationSpeed;
+                castSpeed=actor.Melee.AbilityAnimationSpeed*material.AnimationSpeedMultiplier;
                 float firstRemaining=ability.ResolvePacedTime(material.strikes[0].impact,castSpeed)-ability.ResolvePacedTime(progress,castSpeed);
                 if(material.tracksTargetDuringWindup && target!=null && firstRemaining>material.aimLockLeadSeconds)
                 {
@@ -148,7 +148,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
                     Vector3 facing=committedAim-transform.position;facing.y=0f;
                     if(facing.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(facing),60f*Time.fixedDeltaTime);
                 }
-                actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress,actor.Melee.AbilityAnimationSpeed));
+                actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress,castSpeed));
                 actor.Movement.ApplyActionLock(.25f);
                 if(material.advanceDistance>0f)
                 {
@@ -216,7 +216,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         }
         var warning=EnsureWarning(material,phase,Mathf.Max(.01f,remaining));
         warning.SetCenter(origin);warning.SetFacing(rotation*Vector3.forward);
-        bool threatens=material.ability.IsParryable && remaining<=EnemyAbilityController.ParryLeadSeconds
+        bool threatens=material.IsParryWindowOpen(phase,normalized,remaining)
             && EnemyStrongAttackWarning.PlayerTarget!=null && WouldHit(material.ability,EnemyStrongAttackWarning.PlayerTarget,phase);
         warning.SetRemaining(remaining,threatens);
     }
@@ -228,7 +228,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         if(!warningShown[phase])
         {
             float size=strike.shape==GroundIndicatorShape.Rectangle?strike.length:strike.radius;
-            warnings[phase].Show(size,material.ability.IsParryable,strike.shape==GroundIndicatorShape.Circle?360f:strike.angle,
+            warnings[phase].Show(size,material.IsStrikeParryable(phase),strike.shape==GroundIndicatorShape.Circle?360f:strike.angle,
                 strike.shape==GroundIndicatorShape.Rectangle,true,lead,strike.width*.5f,strike.innerRadius,strike.shape);
             // This rectangle has square ends. The authored strike and approved indicator share that boundary.
             if(strike.shape==GroundIndicatorShape.Rectangle)
@@ -257,12 +257,13 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         {
             if(released[phase])continue;
             float remaining=material.ability.ResolvePacedTime(material.strikes[phase].impact,castSpeed)-material.ability.ResolvePacedTime(progress,castSpeed);
-            return remaining>=-.03f && remaining<=EnemyAbilityController.ParryLeadSeconds && WouldHit(material.ability,target,phase);
+            return material.IsParryWindowOpen(phase,progress,remaining) && WouldHit(material.ability,target,phase);
         }
         return false;
     }
     private float ResolveIncomingDamage(EnemyAbilityDefinition ability)
-        => ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier;
+        => ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier
+            *(collection?.Find(ability)?.DamageMultiplier??1f);
 
     public bool TryGetParryDamageSnapshot(CombatTarget victim, out DamageInfo info)
     {
@@ -326,7 +327,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         var visual=AcquireVisual(material.delivery==EnemyBossMaterialDelivery.Boulder);
         var flight=new Flight{material=material,phase=phase,sequence=sequence,lease=lease,start=start,position=start,
             direction=(aim-start).normalized,landing=committedAim,distance=material.ability.Range,visual=visual,
-            damage=material.ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier};
+            damage=ResolveIncomingDamage(material.ability)};
         visual.root.transform.position=start;visual.root.SetActive(true);
         if(visual.bio!=null)visual.bio.Launch(GetComponent<BloodHitTarget>()?.Profile,1f);
         if(material.delivery==EnemyBossMaterialDelivery.Boulder)SetRockHeld(false);
