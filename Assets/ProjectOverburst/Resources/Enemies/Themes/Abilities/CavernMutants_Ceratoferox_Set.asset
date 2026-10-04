@@ -14,6 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
   abilitySetId: CavernMutants_Ceratoferox
   abilities:
-  - {fileID: 11400000, guid: 19441d3651eb53c499a0b5f18f44f787, type: 2}
   - {fileID: 11400000, guid: 61173a3b2d2711d4da6cd3210a4f0f93, type: 2}
   - {fileID: 11400000, guid: 81e234fb6bacbd247803292b735acdb3, type: 2}

@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: CavernMutants_Cephalonops_BiteAttackForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 483e6535b8ed924f
+  originalClip: {fileID: 1827226128182048838, guid: e20997dbe4e66f5499e7abe0b283ee52, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: e20997dbe4e66f5499e7abe0b283ee52, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 1
+  stationaryStartRange: 0.807
+  maxAdvanceDistance: 0.35
+  advanceWindow: {x: 0.22857143, y: 0.45714286}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 1
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.48571426}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.036284707, y: 0.43423018, z: 0.28615}
+        b: {x: 0.20441046, y: 0.42367873, z: 0.26946068}
+        radius: 0.17920884
+    - normalizedTime: 0.4285714
+      capsules:
+      - a: {x: -0.02713801, y: 0.37341246, z: 0.25257808}
+        b: {x: 0.21229497, y: 0.34877613, z: 0.23675142}
+        radius: 0.17640676
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: -0.024255797, y: 0.32688114, z: 0.22626519}
+        b: {x: 0.21346897, y: 0.29114872, z: 0.2107023}
+        radius: 0.18142991
+    - normalizedTime: 0.48571426
+      capsules:
+      - a: {x: -0.021654233, y: 0.31183007, z: 0.23317932}
+        b: {x: 0.21514195, y: 0.2723113, z: 0.21785483}
+        radius: 0.19378592
+    maximumPlanarReach: 0.51742876

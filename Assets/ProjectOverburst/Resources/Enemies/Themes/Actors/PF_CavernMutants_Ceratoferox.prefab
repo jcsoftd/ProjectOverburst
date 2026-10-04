@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 7991182917141109182}
   - component: {fileID: 8943919043934169713}
   - component: {fileID: 7962569615880501944}
+  - component: {fileID: 2912225694704421578}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ceratoferox
   m_TagString: Untagged
@@ -458,7 +459,6 @@ MonoBehaviour:
   attackPoint: {fileID: 4001139755406289863}
   abilitySet: {fileID: 11400000, guid: 1e216451188554d44bd056c84e33a9a2, type: 2}
   attackTriggers:
-  - Attack1
   - Attack2
   - Attack3
   targetLayer:
@@ -654,6 +654,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides: []
 --- !u!114 &6269283798134430772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -749,6 +750,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &8943919043934169713
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -775,6 +780,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
+--- !u!114 &2912225694704421578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2989860340918798508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7172835938908259008}
+  movement: {fileID: 6971863865337127673}
 --- !u!1 &3554911881725910702
 GameObject:
   m_ObjectHideFlags: 0

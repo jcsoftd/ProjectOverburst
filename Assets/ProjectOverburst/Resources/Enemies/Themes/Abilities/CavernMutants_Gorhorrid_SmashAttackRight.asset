@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Gorhorrid_SmashAttackRight
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: CavernMutants_Gorhorrid_SmashAttackRight
+  weakAttackExecution: {fileID: 11400000, guid: 1e6f16e983d11674dbf316ce915d2cb8, type: 2}
   animatorTrigger: Attack2
   executionMode: 0
   damage: 10
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.62666667
-  hitNormalizedTime: 0.47
+  hitDelay: 0.6
+  hitNormalizedTime: 0.45
   attackAnimationDuration: 1.3333334
   attackLockDuration: 1.2666667
   weight: 1

@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: CavernMutants_Gasterobrach_AttackRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: f1e90f231b2784c1
+  originalClip: {fileID: 1827226128182048838, guid: d720c82f437298a40ba33afefb04c76a, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: d720c82f437298a40ba33afefb04c76a, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.6666667}
+  motionPolicy: 0
+  stationaryStartRange: 3.046
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.35999998, y: 0.42}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.35999998
+      capsules:
+      - a: {x: 0.18382983, y: 0.5484329, z: 2.4560366}
+        b: {x: 0.101720385, y: 0.65983146, z: 2.5073705}
+        radius: 0.15552525
+      - a: {x: 0.24024616, y: 0.6426327, z: 2.5864263}
+        b: {x: 0.31186152, y: 0.7485016, z: 2.6473157}
+        radius: 0.13799141
+      - a: {x: 0.45260042, y: 0.6131545, z: 2.5456643}
+        b: {x: 0.45468614, y: 0.66238654, z: 2.6670105}
+        radius: 0.14982441
+    - normalizedTime: 0.38
+      capsules:
+      - a: {x: 0.030304514, y: 0.13581651, z: 2.3666759}
+        b: {x: -0.0767512, y: 0.20755525, z: 2.4408982}
+        radius: 0.15483809
+      - a: {x: 0.06645842, y: 0.17423017, z: 2.517618}
+        b: {x: 0.107911214, y: 0.26577625, z: 2.6156385}
+        radius: 0.13423674
+      - a: {x: 0.27630067, y: 0.17820437, z: 2.4926808}
+        b: {x: 0.25979432, y: 0.18330802, z: 2.6221678}
+        radius: 0.15036722
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.046221312, y: -0.0409903, z: 2.2621517}
+        b: {x: -0.16428834, y: 0.0012313343, z: 2.3409967}
+        radius: 0.15454228
+      - a: {x: -0.019286647, y: -0.04178904, z: 2.4138863}
+        b: {x: -0.004206294, y: 0.027470008, z: 2.5344415}
+        radius: 0.13247898
+      - a: {x: 0.18466586, y: -0.01436823, z: 2.4102733}
+        b: {x: 0.15771571, y: -0.045432083, z: 2.5338564}
+        radius: 0.15071
+    - normalizedTime: 0.42
+      capsules:
+      - a: {x: -0.047859076, y: -0.03314446, z: 2.2410326}
+        b: {x: -0.17016393, y: 0.00200133, z: 2.3165555}
+        radius: 0.15415123
+      - a: {x: -0.02097992, y: -0.04000743, z: 2.3924847}
+        b: {x: -0.015643843, y: 0.029479675, z: 2.5123243}
+        radius: 0.13087827
+      - a: {x: 0.17900728, y: -0.0097397575, z: 2.390714}
+        b: {x: 0.15150157, y: -0.04380753, z: 2.5133011}
+        radius: 0.15071651
+    maximumPlanarReach: 2.855316

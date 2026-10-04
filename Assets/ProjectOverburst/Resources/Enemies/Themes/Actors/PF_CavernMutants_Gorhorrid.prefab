@@ -766,6 +766,7 @@ GameObject:
   - component: {fileID: 7224294479047094825}
   - component: {fileID: 3861463203614218336}
   - component: {fileID: 3711299756033879652}
+  - component: {fileID: 7931036176971269220}
   m_Layer: 7
   m_Name: PF_CavernMutants_Gorhorrid
   m_TagString: Untagged
@@ -1290,6 +1291,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides: []
 --- !u!114 &7335113330730459998
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1385,6 +1387,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &3861463203614218336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1411,6 +1417,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: f8b6720ab1ec0be4cbcd039d50ba3442, type: 2}
+--- !u!114 &7931036176971269220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6481229745826855543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 3161941625596746214}
+  movement: {fileID: 2180118993022259411}
 --- !u!1001 &6732071428621281937
 PrefabInstance:
   m_ObjectHideFlags: 0

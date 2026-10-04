@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Ceratoferox_ClawsAttackRight
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: CavernMutants_Ceratoferox_ClawsAttackRight
+  weakAttackExecution: {fileID: 11400000, guid: 8f6d0f51f8f4e0345b4491f72dfba4cc, type: 2}
   animatorTrigger: Attack3
   executionMode: 0
   damage: 5
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.93166673
-  hitNormalizedTime: 0.43
+  hitDelay: 0.96666664
+  hitNormalizedTime: 0.44615382
   attackAnimationDuration: 2.1666667
   attackLockDuration: 2.0583334
   weight: 1

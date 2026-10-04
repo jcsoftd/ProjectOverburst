@@ -13,7 +13,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 // Runs real coroutines, Animator and physics in an owned empty Play scene.
-// Profiles/overrides exist only in memory; no live roster or SFX asset is saved.
+// Saved mode reads persisted actors/profiles; fixture mode keeps overrides in memory. SFX assets are never saved.
 [InitializeOnLoad]
 public static class MonsterWeakAttackPlayerLoopVerifier
 {
@@ -22,7 +22,7 @@ public static class MonsterWeakAttackPlayerLoopVerifier
     sealed class Plan
     {
         public string directory, fixture, previousStart, phase, token;
-        public bool background, fixedAnimator, stress;
+        public bool background, fixedAnimator, stress, savedProfiles;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
         public JArray scenes;
@@ -53,7 +53,7 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         { var s=SceneManager.GetSceneAt(i); list.Add(new JObject { ["path"]=s.path,["dirty"]=s.isDirty,["roots"]=s.rootCount }); }
         return list;
     }
-    public static string Start(string outputDirectory, bool fixedAnimator = false, float attackSpeed = 1f, bool stress = false)
+    public static string Start(string outputDirectory, bool fixedAnimator = false, float attackSpeed = 1f, bool stress = false, bool savedProfiles = false)
     {
         if(float.IsNaN(attackSpeed) || float.IsInfinity(attackSpeed) || attackSpeed<=0f)throw new ArgumentException("Invalid attack speed.");
         if(plan!=null || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
@@ -69,7 +69,7 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+180,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,scenes=SceneEvidence() };
         plan.fixture="Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -154,9 +154,9 @@ public static class MonsterWeakAttackPlayerLoopVerifier
             foreach(var component in go.GetComponentsInChildren<MonoBehaviour>(true))
                 if(component!=null && new[]{"EnemyAIController","EnemyAbilityController","EnemyCrowdAgent","EnemySensor","RunFallGuard"}.Contains(component.GetType().Name))component.enabled=false;
             var melee=go.GetComponent<EnemyMeleeAttackController>();var movement=go.GetComponent<EnemyMovement>();
-            var driver=go.AddComponent<EnemyWeakAttackMotionDriver>();driver.Configure(melee,movement);
+            var driver=go.GetComponent<EnemyWeakAttackMotionDriver>()??go.AddComponent<EnemyWeakAttackMotionDriver>();driver.Configure(melee,movement);
             typeof(EnemyMeleeAttackController).GetMethod("ResolveReferences",Private).Invoke(melee,null);
-            typeof(EnemyMeleeAttackController).GetField("targetLayer",Private).SetValue(melee,(LayerMask)(~0));
+            if(!plan.savedProfiles)typeof(EnemyMeleeAttackController).GetField("targetLayer",Private).SetValue(melee,(LayerMask)(~0));
             var actorBody=go.GetComponent<Rigidbody>();actorBody.useGravity=false;
             var animator=go.GetComponentsInChildren<Animator>(true).Single();animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
             if(plan.fixedAnimator)animator.updateMode=AnimatorUpdateMode.Fixed;
@@ -164,30 +164,51 @@ public static class MonsterWeakAttackPlayerLoopVerifier
             var clip=(string)row["runtimeClipPath"]==(string)row["sourcePath"]?source:AssetDatabase.LoadAssetAtPath<AnimationClip>((string)row["runtimeClipPath"]);
             var controller=animator.runtimeAnimatorController as AnimatorController;
             if(controller==null)throw new InvalidOperationException("Native controller expected.");
-            var slot=controller.layers[0].stateMachine.states.Single(s=>s.state.name=="Attack_1").state.motion as AnimationClip;
-            var over=new AnimatorOverrideController(controller);owned.Add(over);over[slot]=clip;animator.runtimeAnimatorController=over;
+            if(!plan.savedProfiles)
+            {
+                var slot=controller.layers[0].stateMachine.states.Single(s=>s.state.name=="Attack_1").state.motion as AnimationClip;
+                var over=new AnimatorOverrideController(controller);owned.Add(over);over[slot]=clip;animator.runtimeAnimatorController=over;
+            }
             var windows=row["contactWindowsNormalized"].Select(w=>new Vector2((float)w[0],(float)w[1])).ToArray();
             var frames=row["contactGeometry"]["phases"].Select(p=>p["frames"].Select(f=>new EnemyWeakAttackContactFrame((float)f["normalizedTime"],
                 f["capsules"].Select(c=>new EnemyWeakAttackContactCapsule(Vector(c["a"]),Vector(c["b"]),(float)c["radius"])).ToArray())).ToArray()).ToArray();
-            var profile=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();owned.Add(profile);
             var policy=(EnemyWeakAttackMotionPolicy)Enum.Parse(typeof(EnemyWeakAttackMotionPolicy),(string)row["motionPolicy"]);
-            profile.Configure((string)row["selectionKey"],source,clip,new Vector2(0,source.length),policy,10,
-                policy==EnemyWeakAttackMotionPolicy.ShortAdvance?.35f:0,new Vector2(.1f,.4f),AnimationCurve.Linear(0,0,1,1),"",windows,frames);
-            var ability=ScriptableObject.CreateInstance<EnemyAbilityDefinition>();owned.Add(ability);
             float[] times=row["hitNormalizedTimes"].Select(v=>(float)v).ToArray();
-            ability.Configure("PlayerLoop_"+row["selectionKey"],"Attack1",10,10,1,360,0,0,times[0],clip.length,1,false,
-                EnemyAbilityExecutionMode.MeleeArc,10,false,clip.length);
-            ability.ConfigureAdditionalHits(times.Skip(1).ToArray());ability.ConfigureWeakAttackExecution(profile);
-            var victim=new GameObject("PlayerLoopControlledTarget");owned.Add(victim);victim.transform.position=go.transform.position+Vector3.forward;
-            var collider=victim.AddComponent<CapsuleCollider>();collider.center=Vector3.up;collider.radius=5;collider.height=10;
+            EnemyWeakAttackExecutionProfile profile;EnemyAbilityDefinition ability;
+            if(plan.savedProfiles)
+            {
+                var actor=go.GetComponent<EnemyActor>();
+                ability=Enumerable.Range(0,actor.Definition.AbilitySet.Count).Select(i=>actor.Definition.AbilitySet.GetAbility(i))
+                    .Single(a=>a.WeakAttackExecution!=null && a.WeakAttackExecution.SelectionKey==(string)row["selectionKey"]);
+                profile=ability.WeakAttackExecution;
+                if(profile.RuntimeClip!=clip || !profile.ValidateAuthoring(out _))throw new InvalidOperationException("Saved profile does not match native row.");
+            }
+            else
+            {
+                profile=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();owned.Add(profile);
+                profile.Configure((string)row["selectionKey"],source,clip,new Vector2(0,source.length),policy,10,
+                    policy==EnemyWeakAttackMotionPolicy.ShortAdvance?.35f:0,new Vector2(.1f,.4f),AnimationCurve.Linear(0,0,1,1),"",windows,frames);
+                ability=ScriptableObject.CreateInstance<EnemyAbilityDefinition>();owned.Add(ability);
+                ability.Configure("PlayerLoop_"+row["selectionKey"],"Attack1",10,10,1,360,0,0,times[0],clip.length,1,false,
+                    EnemyAbilityExecutionMode.MeleeArc,10,false,clip.length);
+                ability.ConfigureAdditionalHits(times.Skip(1).ToArray());ability.ConfigureWeakAttackExecution(profile);
+            }
+            var victim=new GameObject("PlayerLoopControlledTarget");owned.Add(victim);
+            var playerPrefab=plan.savedProfiles?AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab"):null;
+            var playerVolume=playerPrefab!=null?playerPrefab.GetComponent<CombatTarget>().CurrentVolume:new CombatTargetVolume(Vector3.up,5,5);
+            if(playerPrefab!=null)victim.layer=playerPrefab.layer;
+            float startingDistance=plan.savedProfiles?profile.ApproachStartRange-.10f:1f;
+            victim.transform.position=go.transform.position+Vector3.forward*startingDistance;
+            var collider=victim.AddComponent<CapsuleCollider>();collider.center=playerVolume.Center;collider.radius=playerVolume.Radius;collider.height=playerVolume.HalfHeight*2;
             foreach(var shape in go.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(shape,collider);
-            var target=victim.AddComponent<CombatTarget>();target.Configure(CombatTeam.Neutral,false);target.ConfigureVolume(Vector3.up,5,10);
+            var target=victim.AddComponent<CombatTarget>();target.Configure(plan.savedProfiles?CombatTeam.PlayerParty:CombatTeam.Neutral,false);
+            target.ConfigureVolume(playerVolume.Center,playerVolume.Radius,playerVolume.HalfHeight*2);
             var health=victim.GetComponent<CombatHealth>();
             var settings=new SerializedObject(health);settings.FindProperty("showDamageNumbers").boolValue=false;settings.ApplyModifiedPropertiesWithoutUndo();
             var hits=new JArray();var samples=new JArray();
             var bridge=go.GetComponent<EnemyAnimationBridge>();
             AnimatorUpdateMode beforeMode=animator.updateMode;
-            health.OnDamaged+=(_,info)=>{bridge.TryGetAttackMotionTime("Attack1",clip,out float actual);
+            health.OnDamaged+=(_,info)=>{bridge.TryGetAttackMotionTime(ability.AnimatorTrigger,clip,out float actual);
                 hits.Add(new JObject{["frame"]=Time.frameCount,["fixedTime"]=Time.fixedTime,["phase"]=info.sourceAttackPhaseIndex,
                     ["damage"]=info.damage,["sequence"]=info.sourceAttackSequenceId,["clock"]=melee.WeakAttackNormalizedTime,["animator"]=actual,
                     ["animatorMode"]=animator.updateMode.ToString(),["repeatReactionSuppressed"]=info.suppressRepeatedAttackReaction});
@@ -200,7 +221,7 @@ public static class MonsterWeakAttackPlayerLoopVerifier
             bool acted=false,returnedTarget=false,pauseVerified=true;
             while(started && melee.IsAttacking && Time.time<deadline)
             {
-                bridge.TryGetAttackMotionTime("Attack1",clip,out float actual);
+                bridge.TryGetAttackMotionTime(ability.AnimatorTrigger,clip,out float actual);
                 samples.Add(new JObject{["frame"]=Time.frameCount,["time"]=Time.time,["delta"]=Time.deltaTime,["fixedTime"]=Time.fixedTime,
                     ["clock"]=melee.WeakAttackNormalizedTime,["animator"]=actual,["entered"]=melee.HasEnteredWeakAttack});
                 if(!acted && melee.WeakAttackNormalizedTime>=.16f && scenario!="normal" && scenario!="cancel-on-hit")
@@ -226,7 +247,9 @@ public static class MonsterWeakAttackPlayerLoopVerifier
                 for(int observe=0;observe<6;observe++)yield return null;
             int[] expected=scenario=="cancel" || scenario=="freeze"?Array.Empty<int>():scenario=="first-miss"?new[]{1}:
                 scenario=="cancel-on-hit"?new[]{0}:Enumerable.Range(0,times.Length).ToArray();
-            float expectedDamage=expected.Sum(phase=>phase==0 && times.Length==1?10f:5f);
+            float damageMultiplier=(float)typeof(EnemyMeleeAttackController).GetField("definitionDamageMultiplier",Private).GetValue(melee);
+            if(!ability.TryResolveWeakDamageBudget(go.GetComponent<EnemyRank>()?.Level??1,damageMultiplier,out var budget))throw new InvalidOperationException("Saved damage budget invalid.");
+            float expectedDamage=expected.Sum(phase=>budget.ForPhase(phase));
             bool pass=started && hits.Count==expected.Length && hits.Select(h=>(int)h["phase"]).SequenceEqual(expected)
                 && hits.All(h=>(float)h["clock"]>=windows[(int)h["phase"]].x && (float)h["clock"]<=windows[(int)h["phase"]].y+.0001f)
                 && Mathf.Abs(hits.Sum(h=>(float)h["damage"])-expectedDamage)<.001f && animator.updateMode==beforeMode && pauseVerified
@@ -236,6 +259,8 @@ public static class MonsterWeakAttackPlayerLoopVerifier
                 ["animatorMode"]=animator.updateMode.ToString(),["initialAnimatorMode"]=beforeMode.ToString(),["attackSpeed"]=melee.AbilityAnimationSpeed,
                 ["fixedDelta"]=Time.fixedDeltaTime,["started"]=started,["startFrame"]=startFrame,
                 ["scenario"]=scenario,["pauseVerified"]=pauseVerified,["expectedHits"]=expected.Length,["pass"]=pass,["hits"]=hits,["samples"]=samples});
+            var last=(JObject)cases[cases.Count-1];last["savedProfile"]=plan.savedProfiles;last["startingDistance"]=startingDistance;
+            last["targetRadius"]=playerVolume.Radius;last["expectedDamage"]=expectedDamage;
             WriteResult("RUNNING");
             melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);
             yield return null;
@@ -246,8 +271,8 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
             ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
-            ["geometryFixture"]= "Controlled oversized target; native authored shapes, reach10 only in memory",
-            ["gameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
+            ["geometryFixture"]=plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
+            ["savedProfiles"]=plan.savedProfiles,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
     static void Return(string error)
     {

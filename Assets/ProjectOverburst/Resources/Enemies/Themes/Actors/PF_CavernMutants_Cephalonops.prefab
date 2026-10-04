@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 6268871973511377764}
   - component: {fileID: 4016094958571042827}
   - component: {fileID: 7044593474288920001}
+  - component: {fileID: 8230317484919832076}
   m_Layer: 7
   m_Name: PF_CavernMutants_Cephalonops
   m_TagString: Untagged
@@ -374,7 +375,6 @@ MonoBehaviour:
   attackTriggers:
   - Attack1
   - Attack2
-  - Attack3
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -568,6 +568,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides: []
 --- !u!114 &6206500799883107347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -663,6 +664,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &4016094958571042827
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -689,6 +694,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &8230317484919832076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272275322220572443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7655421762511108458}
+  movement: {fileID: 7012950965428471214}
 --- !u!1 &2743427199486079686
 GameObject:
   m_ObjectHideFlags: 0

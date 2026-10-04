@@ -19,7 +19,7 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: caefdb5ba660e2949b623838361cd2a0, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: c956a49f4bb655f44b51465186896097, type: 3}
-  - {fileID: 1827226128182048838, guid: 4d19cf6f6a6611646923012e6c131d46, type: 3}
+  - {fileID: 7400000, guid: 7b7d7444a44da8c40993f946f5ae44fd, type: 2}
   - {fileID: 1827226128182048838, guid: 94ed68203595a7f479abf5bae3b12a6d, type: 3}
   hit: {fileID: 1827226128182048838, guid: 1d5dfc3d1a2d37f46863f597dee80b97, type: 3}
   death: {fileID: 1827226128182048838, guid: 924b40755a6579d47aea1549a3492048, type: 3}
@@ -36,6 +36,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 2f98c5b1112978a49a1a9cd0453dea2c, type: 3}
   - {fileID: 1827226128182048838, guid: 78ee7e758d43b2e4a911a119ba93c5a0, type: 3}
   - {fileID: 1827226128182048838, guid: 12ed393cf5bacf243adcbe278f7440b5, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 7/Gorhorrid/FBX Files/Gorhorrid@2HitComboSmashAttack_RM.fbx"

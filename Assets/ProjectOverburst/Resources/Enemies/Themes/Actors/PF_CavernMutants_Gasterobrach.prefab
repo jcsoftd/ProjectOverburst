@@ -111,6 +111,7 @@ GameObject:
   - component: {fileID: 1140505615929004682}
   - component: {fileID: 12156102325761151}
   - component: {fileID: 3717870637182843877}
+  - component: {fileID: 2255199836604071744}
   m_Layer: 7
   m_Name: PF_CavernMutants_Gasterobrach
   m_TagString: Untagged
@@ -635,6 +636,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides: []
 --- !u!114 &3774243277936119859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -730,6 +732,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &12156102325761151
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -756,6 +762,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
+--- !u!114 &2255199836604071744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2525296777039982481}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7928024578883557631}
+  movement: {fileID: 7148727082757426091}
 --- !u!1 &2579913819305042570
 GameObject:
   m_ObjectHideFlags: 0

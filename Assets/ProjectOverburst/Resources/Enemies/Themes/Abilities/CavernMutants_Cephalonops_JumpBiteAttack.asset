@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: CavernMutants_Cephalonops_BiteAttackForward
+  m_Name: CavernMutants_Cephalonops_JumpBiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
-  abilityId: CavernMutants_Cephalonops_BiteAttackForward
-  weakAttackExecution: {fileID: 11400000, guid: 2686f810b251fb547ba85f49d3c7a9b7, type: 2}
-  animatorTrigger: Attack1
+  abilityId: CavernMutants_Cephalonops_JumpBiteAttack
+  weakAttackExecution: {fileID: 11400000, guid: 637641c9d13e5604f893e6b7f1cd818c, type: 2}
+  animatorTrigger: Attack2
   executionMode: 0
   damage: 5
   referencePatternDamagePercent: 4
@@ -33,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.53333336
-  hitNormalizedTime: 0.45714283
+  hitDelay: 0.6333333
+  hitNormalizedTime: 0.5428571
   attackAnimationDuration: 1.1666667
   attackLockDuration: 1.1083333
   weight: 1

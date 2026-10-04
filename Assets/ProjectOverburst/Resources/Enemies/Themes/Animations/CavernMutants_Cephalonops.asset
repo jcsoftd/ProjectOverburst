@@ -19,6 +19,7 @@ MonoBehaviour:
   run: {fileID: 7400000, guid: 08360d2e71622074e8070fe23f532edb, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: e20997dbe4e66f5499e7abe0b283ee52, type: 3}
+  - {fileID: 1827226128182048838, guid: 2b3ffaa359df58948bcbe75dd108ddb3, type: 3}
   hit: {fileID: 1827226128182048838, guid: 353249912ca85e24ca48ad94fee90501, type: 3}
   death: {fileID: 1827226128182048838, guid: 3e6f235c11856d1479630468a449c6e1, type: 3}
   optional:
@@ -33,6 +34,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 7616d6ee6fd74a946965bbb56f9e412c, type: 3}
   - {fileID: 1827226128182048838, guid: 8b8298f0f63ee9a4d89084b5a8e6e425, type: 3}
   - {fileID: 1827226128182048838, guid: fef2a093aa2f64d4ba7fcdb4d1ee647a, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 8/Cephalonops/FBX Files/Cephalonops@BiteAttackForward_RM.fbx"

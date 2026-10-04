@@ -18,7 +18,6 @@ MonoBehaviour:
   walk: {fileID: 1827226128182048838, guid: 41de0aeb3ed3d894390ff9ccc08f672e, type: 3}
   run: {fileID: 1827226128182048838, guid: 848e1decc3f2ce644b46c7708c7e203d, type: 3}
   attackClips:
-  - {fileID: 1827226128182048838, guid: d4dc4bfb3394f574ca0a0f6c81273ee5, type: 3}
   - {fileID: 1827226128182048838, guid: 86b55c9428155da4f86988dcaf612a94, type: 3}
   - {fileID: 1827226128182048838, guid: ea4e42b70b1221c4eb6990797353fcde, type: 3}
   hit: {fileID: 1827226128182048838, guid: d02c367f669cbbb4482334e575012a5e, type: 3}
@@ -45,6 +44,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: c0f720856dc5c804db96d6605b506f7c, type: 3}
   - {fileID: 1827226128182048838, guid: 75a227f88ad747c489e0f834fc45a702, type: 3}
   - {fileID: 1827226128182048838, guid: c6263e24721ddb34c91a8904b38475ce, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ceratoferox/FBX Files/Ceratoferox@2HitClawsAttackForward_RM.fbx"

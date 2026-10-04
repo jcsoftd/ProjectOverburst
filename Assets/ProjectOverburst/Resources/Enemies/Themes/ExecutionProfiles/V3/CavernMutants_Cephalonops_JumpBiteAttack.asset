@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: CavernMutants_Cephalonops_JumpBiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: a794d6cb95500d88
+  originalClip: {fileID: 1827226128182048838, guid: 2b3ffaa359df58948bcbe75dd108ddb3, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 2b3ffaa359df58948bcbe75dd108ddb3, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 2
+  stationaryStartRange: 0.971
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.48571426, y: 0.57142854}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.48571426
+      capsules:
+      - a: {x: -0.13942017, y: 0.49037778, z: 0.33528492}
+        b: {x: 0.09706438, y: 0.46897906, z: 0.34520516}
+        radius: 0.22909199
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: -0.13956268, y: 0.43663028, z: 0.3980065}
+        b: {x: 0.09613358, y: 0.39939559, z: 0.41097552}
+        radius: 0.25147656
+    - normalizedTime: 0.5428571
+      capsules:
+      - a: {x: -0.13823257, y: 0.38317132, z: 0.44231337}
+        b: {x: 0.095871, y: 0.3316768, z: 0.4563542}
+        radius: 0.25972402
+    - normalizedTime: 0.57142854
+      capsules:
+      - a: {x: -0.14015616, y: 0.33375558, z: 0.4452409}
+        b: {x: 0.09347897, y: 0.2762408, z: 0.45913476}
+        radius: 0.2546547
+    maximumPlanarReach: 0.72603977
