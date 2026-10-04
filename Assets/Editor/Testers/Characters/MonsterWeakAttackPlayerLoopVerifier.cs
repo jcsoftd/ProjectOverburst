@@ -23,6 +23,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     {
         public string directory, fixture, previousStart, phase, token, testDefinition, attackBatch;
         public int expectedWeakCases;
+        public int[] validationFrameRates;
         public string[] leaseDefinitionPaths;
         public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
@@ -94,11 +95,18 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         string allowed=Path.GetFullPath(Path.Combine(Workspace,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
         if(!outputDirectory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase) || File.Exists(Path.Combine(outputDirectory,"plan.json")))
             throw new ArgumentException("Use a fresh output directory.");
+        var selectedBatch = string.IsNullOrEmpty(attackBatch) ? null : JObject.Parse(File.ReadAllText(attackBatch));
+        var frameRates = selectedBatch?["validationFrameRates"] is JArray configuredRates
+            ? configuredRates.Values<int>().ToArray() : new[]{15,30,60};
+        if(frameRates.Length==0 || frameRates.Distinct().Count()!=frameRates.Length
+            || frameRates.Any(rate=>rate!=15 && rate!=30 && rate!=60))
+            throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
+        int weakCases=selectedBatch==null?0:selectedBatch["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*frameRates.Length;
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
-            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,(leaseDefinitionPaths?.Length??1)*(realPlayerParry?90:leaseVerification?70:25)+90),
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=string.IsNullOrEmpty(attackBatch)?0:JObject.Parse(File.ReadAllText(attackBatch))["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*3,scenes=SceneEvidence() };
+            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,Math.Max((leaseDefinitionPaths?.Length??1)*(realPlayerParry?90:leaseVerification?70:25)+90,weakCases*12+90)),
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=weakCases,validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -191,7 +199,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var rows=author["entries"].OfType<JObject>().Where(r=>(bool?)r["nativeContactGeometryAuthored"]==true
             &&(!string.IsNullOrEmpty(plan.attackBatch)||originalIds.Contains((string)r["cardKey"]))).ToArray();
         if(rows.Length==0||string.IsNullOrEmpty(plan.attackBatch)&&rows.Length!=8)throw new InvalidOperationException("Native authored attack batch is empty or unexpected.");
-        var runs=from fps in new[]{15,30,60}
+        var runs=from fps in plan.validationFrameRates??new[]{15,30,60}
             from row in rows where !plan.stress || (string)row["selectionKey"]=="06b6021ea737706a"
             from scenario in plan.stress?new[]{"cancel","freeze","hitstop","first-miss","cancel-on-hit"}:new[]{"normal"}
             select new {fps,row,scenario};

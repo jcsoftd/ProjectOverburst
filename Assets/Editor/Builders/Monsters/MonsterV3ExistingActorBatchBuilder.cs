@@ -12,7 +12,7 @@ using UnityEngine;
 // Inputs and recovery artifacts are supplied by the caller outside Assets.
 public static class MonsterV3ExistingActorBatchBuilder
 {
-    public const int Revision = 3;
+    public const int Revision = 4;
     const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes/";
     static string Project => Directory.GetParent(Application.dataPath).FullName;
     static string Workspace => Directory.GetParent(Project).FullName;
@@ -41,6 +41,17 @@ public static class MonsterV3ExistingActorBatchBuilder
         => (string)row["runtimeClipPath"]==(string)row["sourcePath"]?Original(row):AssetDatabase.LoadAssetAtPath<AnimationClip>((string)row["runtimeClipPath"]);
     static AnimatorState State(AnimatorController controller,string trigger)
     {return controller.layers[0].stateMachine.states.SingleOrDefault(s=>s.state.name=="Attack_"+trigger.Substring("Attack".Length)).state;}
+    static EnemyAbilityDefinition BoundAbility(EnemyDefinition definition,AnimatorController controller,JObject row)
+    {
+        var clip=Runtime(row);
+        for(int i=0;i<definition.AbilitySet.Count;i++)
+        {
+            var ability=definition.AbilitySet.GetAbility(i);
+            if(ability!=null && State(controller,ability.AnimatorTrigger)?.motion==clip)return ability;
+        }
+        string path=Root+"Abilities/"+definition.EnemyId+"_"+(string)row["actualClip"]+".asset";
+        return AssetDatabase.LoadAssetAtPath<EnemyAbilityDefinition>(path);
+    }
     static void Set(UnityEngine.Object asset,string field,Action<SerializedProperty> write)
     {
         var so=new SerializedObject(asset);var p=so.FindProperty(field)??throw new InvalidOperationException("Missing property "+field);
@@ -89,9 +100,11 @@ public static class MonsterV3ExistingActorBatchBuilder
         foreach(var input in approved["inputs"])
             if(Hash((string)input["path"])!=(string)input["sha256"])throw new InvalidOperationException("Selection input changed.");
         var rows=batch["entries"].OfType<JObject>().ToArray();
-        var ids=batch["models"].Values<string>().Select(n=>"CavernMutants_"+n).ToArray();
+        var ids=batch["definitionIds"] is JArray definitionIds ? definitionIds.Values<string>().ToArray()
+            : batch["models"].Values<string>().Select(n=>"CavernMutants_"+n).ToArray();
         var defs=ids.ToDictionary(id=>id,id=>AssetDatabase.LoadAssetAtPath<EnemyDefinition>(Root+"Definitions/"+id+".asset"));
         var originalFiles=new Dictionary<string,string>();var newAssets=new HashSet<string>();
+        var abilityTargets=new Dictionary<string,string>();
         var assetPaths=new HashSet<string>();
         foreach(var property in ((JObject)batch["expectedAssets"]).Properties())
         {
@@ -122,8 +135,11 @@ public static class MonsterV3ExistingActorBatchBuilder
             if((bool?)row["nativeAuthoringComplete"]!=true || Hash(Path.Combine(Project,(string)row["sourcePath"]))!=(string)row["sourceSha256"]
                 || Original(row)==null || Runtime(row)==null)throw new InvalidOperationException("Completed native row required.");
             string id=((string)row["cardKey"]).Substring("runtime:".Length);
-            string abilityPath=Root+"Abilities/"+id+"_"+(string)row["actualClip"]+".asset";
-            string profilePath=MonsterWeakAttackExecutionWriter.Root+"/"+id+"_"+(string)row["actualClip"]+".asset";
+            var controller=defs[id].ActorPrefab.GetComponentInChildren<Animator>(true).runtimeAnimatorController as AnimatorController;
+            var bound=BoundAbility(defs[id],controller,row);
+            string abilityPath=bound!=null?AssetDatabase.GetAssetPath(bound):Root+"Abilities/"+id+"_"+(string)row["actualClip"]+".asset";
+            string profilePath=MonsterWeakAttackExecutionWriter.Root+"/"+(bound!=null?bound.AbilityId:id+"_"+(string)row["actualClip"])+".asset";
+            abilityTargets[(string)row["selectionKey"]]=abilityPath;
             foreach(string path in new[]{abilityPath,profilePath})
                 if(AssetDatabase.LoadMainAssetAtPath(path)==null)newAssets.Add(path);
                 else if(!assetPaths.Contains(path))throw new InvalidOperationException("Existing target absent from ownership manifest: "+path);
@@ -145,13 +161,13 @@ public static class MonsterV3ExistingActorBatchBuilder
                 for(int i=0;i<def.AbilitySet.Count;i++)
                 {
                     var ability=def.AbilitySet.GetAbility(i);var state=State(ac,ability.AnimatorTrigger);
-                    bool weak=selectedRows.Any(r=>ability.AbilityId==id+"_"+(string)r["actualClip"]);
+                    bool weak=selectedRows.Any(r=>state.motion==Runtime(r));
                     bool strong=approved["cards"]["runtime:"+id]["strong"].Any(r=>(string)r["clip"]==state.motion.name);
                     if(weak || strong)picked.Add(ability);
                 }
                 foreach(var row in selectedRows)
                 {
-                    string path=Root+"Abilities/"+id+"_"+(string)row["actualClip"]+".asset";
+                    string path=abilityTargets[(string)row["selectionKey"]];
                     var ability=AssetDatabase.LoadAssetAtPath<EnemyAbilityDefinition>(path);
                     string trigger;
                     if(ability==null)
@@ -167,7 +183,7 @@ public static class MonsterV3ExistingActorBatchBuilder
                         AssetDatabase.CreateAsset(ability,path);picked.Add(ability);
                         if(pending==null)AddAttack(ac,trigger,Runtime(row));
                     }
-                    else trigger=ability.AnimatorTrigger;
+                    else{trigger=ability.AnimatorTrigger;if(!picked.Contains(ability))picked.Add(ability);}
                     ModifyAbility(ability,row,trigger);
                     MonsterWeakAttackExecutionWriter.Apply(approvedPath,approvedSha,(string)row["cardKey"],(string)row["selectionKey"],row,ability,Original(row),Runtime(row));
                     var state=State(ac,trigger);
