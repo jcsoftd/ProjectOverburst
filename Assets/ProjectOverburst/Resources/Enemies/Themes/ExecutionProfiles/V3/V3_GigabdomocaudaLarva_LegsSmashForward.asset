@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 1827226128182048838, guid: e83045d3e231dce4d9fab70a5e294de0, type: 3}
   sourceTrimSeconds: {x: 0, y: 1.1666667}
   motionPolicy: 1
-  stationaryStartRange: 0.8553718
+  stationaryStartRange: 0.39
   maxAdvanceDistance: 0.15
   advanceWindow: {x: 0.2, y: 0.4}
   advanceProgress:

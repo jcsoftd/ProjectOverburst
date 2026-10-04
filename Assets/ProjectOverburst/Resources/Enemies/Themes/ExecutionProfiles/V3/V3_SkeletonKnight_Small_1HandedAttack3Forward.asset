@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 7400000, guid: 8a1b734068526d74385b84b67fefda99, type: 3}
   sourceTrimSeconds: {x: 0, y: 1}
   motionPolicy: 1
-  stationaryStartRange: 1.3664062
+  stationaryStartRange: 1.3
   maxAdvanceDistance: 0.15
   advanceWindow: {x: 0.2, y: 0.4}
   advanceProgress:
@@ -46,22 +46,22 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.33333334, y: 0.46666667}
+  - {x: 0.43333334, y: 0.5}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.33333334
+    - normalizedTime: 0.43333334
       capsules:
-      - a: {x: 0.075541645, y: 1.2292774, z: 0.09743144}
-        b: {x: 0.0013518784, y: 1.4268727, z: -0.26089954}
-        radius: 0.08
-    - normalizedTime: 0.4
-      capsules:
-      - a: {x: 0.12330192, y: 1.0198892, z: 0.5310846}
-        b: {x: 0.14952545, y: 1.4335611, z: 0.5648014}
+      - a: {x: 0.08149895, y: 0.80257183, z: 0.6866533}
+        b: {x: 0.10671054, y: 1.115084, z: 0.9598743}
         radius: 0.08
     - normalizedTime: 0.46666667
       capsules:
       - a: {x: 0.024626408, y: 0.579096, z: 0.7370209}
         b: {x: 0.02261727, y: 0.69501096, z: 1.1364062}
+        radius: 0.08
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: -0.015225765, y: 0.4133698, z: 0.71006024}
+        b: {x: -0.039277423, y: 0.35168728, z: 1.1206279}
         radius: 0.08
     maximumPlanarReach: 1.2166313

@@ -471,7 +471,7 @@ public sealed partial class EnemyAIController
         if (direction.sqrMagnitude <= 0.0001f)
             direction = approachDirection;
 
-        return target.position + direction.normalized * Mathf.Max(0.5f, radius);
+        return target.position + direction.normalized * Mathf.Max(0.2f, radius);
     }
 
     private Vector3 ResolveSquadPursuitSteeredDestination(Vector3 destination)

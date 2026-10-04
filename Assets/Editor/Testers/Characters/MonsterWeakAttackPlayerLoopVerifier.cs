@@ -97,7 +97,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
-            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,(leaseDefinitionPaths?.Length??1)*(realPlayerParry?90:25)+90),
+            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,(leaseDefinitionPaths?.Length??1)*(realPlayerParry?90:leaseVerification?70:25)+90),
             fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=string.IsNullOrEmpty(attackBatch)?0:JObject.Parse(File.ReadAllText(attackBatch))["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*3,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();

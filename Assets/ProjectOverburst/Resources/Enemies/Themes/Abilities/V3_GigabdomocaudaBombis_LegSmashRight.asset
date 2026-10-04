@@ -33,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.8666667
-  hitNormalizedTime: 0.37142855
+  hitDelay: 1.0666667
+  hitNormalizedTime: 0.45714283
   attackAnimationDuration: 2.3333335
   attackLockDuration: 2.3333335
   weight: 1
