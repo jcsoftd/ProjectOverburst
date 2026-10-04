@@ -42,6 +42,9 @@ public sealed class PlayerFootLock : MonoBehaviour
     [SerializeField] private float lockBlendOutDuration = 0.08f;
     [SerializeField, Range(0f, 1f)] private float positionWeight = 1f;
     [SerializeField, Range(0f, 1f)] private float rotationWeight = 1f;
+    [Header("Combat Idle Only")]
+    [SerializeField, Range(0f, .25f)] private float combatIdlePositionWeight = .2f;
+    [SerializeField, Min(0f)] private float combatIdleMaxPositionCorrection = .005f;
 
     private readonly FootState leftFoot = new FootState(AvatarIKGoal.LeftFoot);
     private readonly FootState rightFoot = new FootState(AvatarIKGoal.RightFoot);
@@ -143,6 +146,13 @@ public sealed class PlayerFootLock : MonoBehaviour
 
         bool releaseForRotation = isRotationActive;
         bool shouldLock = !releaseForRotation && ShouldLockFeet();
+        if (playerMovement != null && (playerMovement.IsEvading || playerMovement.IsMeleeAttackMoveLocked
+            || (playerMovement.IsMeleeCombatLocomotionMode && !shouldLock)))
+        {
+            ReleaseFootImmediately(leftFoot);
+            ReleaseFootImmediately(rightFoot);
+            return;
+        }
         UpdateFoot(leftFoot, shouldLock, releaseForRotation);
         UpdateFoot(rightFoot, shouldLock, releaseForRotation);
     }
@@ -275,8 +285,10 @@ public sealed class PlayerFootLock : MonoBehaviour
         }
 
         float appliedWeight = Mathf.SmoothStep(0f, 1f, foot.Weight);
-        targetAnimator.SetIKPositionWeight(foot.Goal, appliedWeight * positionWeight);
-        targetAnimator.SetIKRotationWeight(foot.Goal, appliedWeight * rotationWeight);
+        bool combatIdle = playerMovement != null && playerMovement.IsMeleeCombatLocomotionMode;
+        float positionStrength = combatIdle ? Mathf.Min(positionWeight, Mathf.Clamp(combatIdlePositionWeight, 0f, .25f)) : positionWeight;
+        targetAnimator.SetIKPositionWeight(foot.Goal, appliedWeight * positionStrength);
+        targetAnimator.SetIKRotationWeight(foot.Goal, combatIdle ? 0f : appliedWeight * rotationWeight);
 
         if (foot.Weight <= 0f || !foot.HasTarget)
             return;
@@ -284,9 +296,12 @@ public sealed class PlayerFootLock : MonoBehaviour
         Vector3 currentAnimatedPosition = targetAnimator.GetIKPosition(foot.Goal);
         Vector3 targetPosition = foot.TargetPosition;
         targetPosition.y = currentAnimatedPosition.y;
+        if (combatIdle)
+            targetPosition = currentAnimatedPosition + Vector3.ClampMagnitude(targetPosition - currentAnimatedPosition,
+                Mathf.Max(0f, combatIdleMaxPositionCorrection));
 
         targetAnimator.SetIKPosition(foot.Goal, targetPosition);
-        targetAnimator.SetIKRotation(foot.Goal, foot.TargetRotation);
+        if (!combatIdle) targetAnimator.SetIKRotation(foot.Goal, foot.TargetRotation);
     }
 
     private void ReleaseFootImmediately(FootState foot)

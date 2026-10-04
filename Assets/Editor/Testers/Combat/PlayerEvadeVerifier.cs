@@ -137,6 +137,7 @@ public static partial class PlayerEvadeVerifier
         if (!string.IsNullOrEmpty(current)
             && !Path.GetFullPath(current).StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
         ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
+        SessionState.EraseBool(SwordIdleVerificationKey);
         SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
         SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
@@ -578,6 +579,12 @@ public static partial class PlayerEvadeVerifier
             blocker = new GameObject("OwnedEvadeInputBlocker");
             evade.OnEvadeStarted += Started; evade.OnEvadeEnded += Ended;
             poseProbe = blocker.AddComponent<PlayerEvadePoseProbe>(); poseProbe.animator = animator;
+            if (SessionState.GetBool(SwordIdleVerificationKey, false))
+            {
+                SessionState.EraseBool(SwordIdleVerificationKey);
+                yield return VerifySwordIdleGameplay();
+                yield break;
+            }
             if (dashVisualOnly)
             {
                 if (paletteOnly) yield return VerifyDashPalette(actor.GetComponent<PlayerDashVfx>());

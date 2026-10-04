@@ -50,6 +50,8 @@ public static class SwordIdleAttackCopyBuilder
         if(Busy())throw new InvalidOperationException("Build candidates only in idle EditMode.");
         Directory.CreateDirectory(output);
         var targets=Targets();if(targets.Count!=8||targets.Select(t=>t.role).Distinct().Count()!=8)throw new Exception("Expected the owned eight greatsword attacks.");
+        if(targets.Any(t=>AssetDatabase.GetAssetPath(t.step.animationClip).StartsWith(Folder+"/",StringComparison.Ordinal)))
+            throw new InvalidOperationException("Gameplay already uses the adapted copies. Restore source bindings before regenerating candidates; do not author an adapted copy twice.");
         var sourceHashes=targets.Select(t=>Hash(AssetDatabase.GetAssetPath(t.step.animationClip))).ToArray();string definitionHash=Hash(Definition),idleHash=Hash(IdlePath);
         string cache=SwordIdleNativeAttackAuthoring.Build(output);
         var objects=UnityEditorInternal.InternalEditorUtility.LoadSerializedFileAndForget(cache);var clips=objects.OfType<AnimationClip>().ToArray();

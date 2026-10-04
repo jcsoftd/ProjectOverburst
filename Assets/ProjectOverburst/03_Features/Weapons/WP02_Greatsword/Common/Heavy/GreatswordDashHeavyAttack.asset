@@ -15,10 +15,11 @@ MonoBehaviour:
   attack:
     attackId: Greatsword.DashHeavy.Spin
     attackName: "\uB300\uC2DC \uD68C\uC804 \uAC15\uACF5"
-    animationClip: {fileID: 7400000, guid: dafd22c56aed9c348baaad4c064d3e1e, type: 2}
+    animationClip: {fileID: 7400000, guid: 11c04dc95d2001643a43b9c5ae406be8, type: 2}
     animationSpeedMultiplier: 1
     transitionDuration: 0.08
     continuationStartNormalizedTime: 0
+    settledIdleStartNormalizedTime: 0
     playbackAcceleration:
       dashHeavyFocus: 1
       startNormalized: 0

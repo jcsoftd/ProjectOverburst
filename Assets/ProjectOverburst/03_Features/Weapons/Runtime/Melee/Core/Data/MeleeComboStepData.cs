@@ -16,6 +16,9 @@ public struct MeleeComboStepData
     [Min(0f)] public float transitionDuration;
     [InspectorName("직접 연계 시 클립 시작 진행률")]
     [Range(0f, 0.95f)] public float continuationStartNormalizedTime;
+    [InspectorName("Idle 복귀 후 직접 연계 시작 기준")]
+    [Tooltip("이 타수의 진행률이 기준 이상이면 다음 타수는 준비 동작부터 시작합니다. 0은 사용하지 않습니다.")]
+    [Range(0f, 1f)] public float settledIdleStartNormalizedTime;
     [InspectorName("동작 구간 가속")]
     public MeleePlaybackAcceleration playbackAcceleration;
     [InspectorName("다음 콤보 입력 구간")]

@@ -41,7 +41,7 @@ MonoBehaviour:
   actionSpeedParameterName: Melee_ActionSpeed
   equipClip: {fileID: 7400000, guid: 1125283392558d7438d5d3613fa455cc, type: 3}
   unequipClip: {fileID: 7400000, guid: 9bf9b79b33baa79488644161cfa12aa8, type: 3}
-  combatIdleClip: {fileID: 7400000, guid: cea73395c0ac245448674ac929cc5fe7, type: 3}
+  combatIdleClip: {fileID: 7400000, guid: cc4d61713745c3143a25f9b7d3053f40, type: 2}
   locomotion:
     forward: {fileID: 7400000, guid: 44414a149a628da4487ab5c9d6687dce, type: 3}
     backward: {fileID: 7400000, guid: 4891fbabfe9055e42a6fe2c8544c1278, type: 3}

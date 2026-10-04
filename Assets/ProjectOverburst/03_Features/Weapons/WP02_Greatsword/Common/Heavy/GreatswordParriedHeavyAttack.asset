@@ -16,11 +16,13 @@ MonoBehaviour:
     attackId: Greatsword.Heavy.ParriedDoubleCircleSlam
     attackName: "\uD328\uB9C1 \uAC15\uD654 \uAC15\uACF5: \uC6D0\uD615 \uBCA0\uAE30
       \uB450 \uBC88 \uD6C4 \uB0B4\uB824\uCC0D\uAE30"
-    animationClip: {fileID: 7400000, guid: 86b74f391df54a54582a6fda99bcb3b2, type: 2}
+    animationClip: {fileID: 7400000, guid: 74947c3f492477f4f9e772c2ae8e90ee, type: 2}
     animationSpeedMultiplier: 1
     transitionDuration: 0.1
     continuationStartNormalizedTime: 0.06571428
+    settledIdleStartNormalizedTime: 0
     playbackAcceleration:
+      dashHeavyFocus: 0
       startNormalized: 0
       endNormalized: 0
       peakMultiplier: 0

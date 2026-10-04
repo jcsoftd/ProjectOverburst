@@ -45,6 +45,10 @@ public partial class MeleeRuntime
 
     private bool TryStartAttackStep(bool isDirectComboContinuation, Vector3 requestedDirection, bool isHeavy = false)
     {
+        // Capture the outgoing pose before StopActiveAttackStep clears its clock and data.
+        bool continueFromIdle = isDirectComboContinuation && isAttacking && activeAttackUsesCombo
+            && activeAttackStep.settledIdleStartNormalizedTime > 0f
+            && GetAttackNormalizedTime() >= activeAttackStep.settledIdleStartNormalizedTime;
         if (isAttacking)
             StopActiveAttackStep();
 
@@ -83,7 +87,7 @@ public partial class MeleeRuntime
         attackDuration = ResolveAttackDuration();
         float entryProgress = requestedDodgeFollowUp != PlayerDodgeFollowUpKind.None ? dodgeHandoffProgress
             : isDirectComboContinuation && activeAttackUsesCombo
-                ? Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f) : 0f;
+                ? (continueFromIdle ? 0f : Mathf.Clamp(activeAttackStep.continuationStartNormalizedTime, 0f, .95f)) : 0f;
         MeleePlaybackAcceleration acceleration = activeAttackStep.playbackAcceleration;
         float entryElapsed = requestedDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy && dashHeavyWindup
             ? dashHeavyHandoffElapsed : attackDuration * acceleration.ToElapsed(entryProgress);

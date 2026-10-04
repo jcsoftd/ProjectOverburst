@@ -15,11 +15,13 @@ MonoBehaviour:
   attack:
     attackId: Greatsword.Heavy.FrontCircle
     attackName: "\uB300\uAC80 \uC804\uBC29 \uC6D0\uD615 \uAC15\uACF5"
-    animationClip: {fileID: 7400000, guid: 469e00b226cf5904f8f20fd7061f25bc, type: 3}
+    animationClip: {fileID: 7400000, guid: 242d67e84f30ad0429cb3dfa16923c7d, type: 2}
     animationSpeedMultiplier: 1
     transitionDuration: 0.08
     continuationStartNormalizedTime: 0
+    settledIdleStartNormalizedTime: 0
     playbackAcceleration:
+      dashHeavyFocus: 0
       startNormalized: 0
       endNormalized: 0
       peakMultiplier: 0
@@ -209,6 +211,7 @@ MonoBehaviour:
         verticalPivotHeight: 1
         verticalHalfWidth: 1.25
         reverseDirection: 0
+  dischargePhaseIndex: 0
   chargedDamageMultiplier: 1.35
   emptyDamageMultiplier: 0.6
   elementVfx:

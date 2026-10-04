@@ -18,11 +18,13 @@ MonoBehaviour:
   steps:
   - attackId: Greatsword.DodgeOpener.1
     attackName: "\uB2F7\uC9C0 \uC5B4\uD0DD"
-    animationClip: {fileID: 7400000, guid: b0d24c69c87cb39409ea7b529e5188a1, type: 2}
+    animationClip: {fileID: 7400000, guid: c21b6d55a1579a5478aa6c58e7f204b8, type: 2}
     animationSpeedMultiplier: 1.15
     transitionDuration: 0.04
     continuationStartNormalizedTime: 0
+    settledIdleStartNormalizedTime: 0
     playbackAcceleration:
+      dashHeavyFocus: 0
       startNormalized: 0
       endNormalized: 0
       peakMultiplier: 0
@@ -89,528 +91,528 @@ MonoBehaviour:
         reverseDirection: 0
   attackTrajectoryBakeData:
     schemaVersion: 1
-    sourceFingerprint: 4fb1e2f81d7a7e97b3ecc215fa6b5df6
-    derivedFingerprint: 7de964f0f93a1c81cbb81d60547bba7b
-    bakedUtc: 2026-10-02T21:50:55.4000077Z
+    sourceFingerprint: b8cff0e1b838612b868b5682847fe50d
+    derivedFingerprint: 835ef6611822f463ec657281ae142277
+    bakedUtc: 2026-10-04T03:03:17.7455730Z
     steps:
     - attackId: Greatsword.DodgeOpener.1
       rawSamples:
       - normalizedTime: 0
-        localPosition: {x: -0.88545233, y: 1.408597, z: 0.8910798}
-        unwrappedAngle: -44.81851
-        forwardDistance: 0.8910798
+        localPosition: {x: 0.99870133, y: 0.027329803, z: -0.23997724}
+        unwrappedAngle: 103.511406
+        forwardDistance: -0.23997724
       - normalizedTime: 0.0078125
-        localPosition: {x: -0.95060563, y: 1.6537819, z: 0.37526107}
-        unwrappedAngle: -68.457886
-        forwardDistance: 0.37526107
+        localPosition: {x: 1.0261186, y: 0.059148252, z: -0.21415028}
+        unwrappedAngle: 101.78838
+        forwardDistance: -0.21415028
       - normalizedTime: 0.015625
-        localPosition: {x: -0.7858462, y: 1.8169645, z: -0.007949948}
-        unwrappedAngle: -90.57962
-        forwardDistance: -0.007949948
+        localPosition: {x: 1.1457165, y: 0.21898973, z: 0.01814638}
+        unwrappedAngle: 89.09258
+        forwardDistance: 0.01814638
       - normalizedTime: 0.0234375
-        localPosition: {x: -0.5658361, y: 1.9031087, z: -0.20801914}
-        unwrappedAngle: -110.18503
-        forwardDistance: -0.20801914
+        localPosition: {x: 1.0686833, y: 0.45239228, z: 0.67535913}
+        unwrappedAngle: 57.708977
+        forwardDistance: 0.67535913
       - normalizedTime: 0.03125
-        localPosition: {x: -0.38437885, y: 1.9423542, z: -0.252393}
-        unwrappedAngle: -123.28995
-        forwardDistance: -0.252393
+        localPosition: {x: 0.26308116, y: 0.75111043, z: 1.3365923}
+        unwrappedAngle: 11.135185
+        forwardDistance: 1.3365923
       - normalizedTime: 0.0390625
-        localPosition: {x: -0.24180721, y: 1.9622592, z: -0.21964681}
-        unwrappedAngle: -132.25064
-        forwardDistance: -0.21964681
+        localPosition: {x: -0.77196103, y: 1.3126458, z: 1.0432408}
+        unwrappedAngle: -36.5001
+        forwardDistance: 1.0432408
       - normalizedTime: 0.046875
-        localPosition: {x: -0.12831023, y: 1.9684119, z: -0.16554022}
-        unwrappedAngle: -142.2208
-        forwardDistance: -0.16554022
+        localPosition: {x: -0.790308, y: 1.8448021, z: 0.2661234}
+        unwrappedAngle: -71.38987
+        forwardDistance: 0.2661234
       - normalizedTime: 0.0546875
-        localPosition: {x: -0.044943396, y: 1.9542797, z: -0.12130046}
-        unwrappedAngle: -159.66971
-        forwardDistance: -0.12130046
+        localPosition: {x: -0.28575343, y: 2.005486, z: -0.06320429}
+        unwrappedAngle: -102.472145
+        forwardDistance: -0.06320429
       - normalizedTime: 0.0625
-        localPosition: {x: -0.032767706, y: 1.916192, z: -0.15812802}
-        unwrappedAngle: -168.29276
-        forwardDistance: -0.15812802
+        localPosition: {x: -0.050827205, y: 1.9420298, z: -0.1552931}
+        unwrappedAngle: -161.8768
+        forwardDistance: -0.1552931
       - normalizedTime: 0.0703125
-        localPosition: {x: -0.22087276, y: 1.8228121, z: -0.2890911}
-        unwrappedAngle: -142.61931
-        forwardDistance: -0.2890911
+        localPosition: {x: -0.22091213, y: 1.826252, z: -0.28909898}
+        unwrappedAngle: -142.61508
+        forwardDistance: -0.28909898
       - normalizedTime: 0.078125
-        localPosition: {x: -0.7324216, y: 1.5627197, z: -0.22802985}
-        unwrappedAngle: -107.29332
-        forwardDistance: -0.22802985
+        localPosition: {x: -0.73258024, y: 1.5624758, z: -0.22814834}
+        unwrappedAngle: -107.2982
+        forwardDistance: -0.22814834
       - normalizedTime: 0.0859375
-        localPosition: {x: -1.1830384, y: 0.87867355, z: 0.5212715}
-        unwrappedAngle: -66.22073
-        forwardDistance: 0.5212715
+        localPosition: {x: -1.1827397, y: 0.8803997, z: 0.5230077}
+        unwrappedAngle: -66.144966
+        forwardDistance: 0.5230077
       - normalizedTime: 0.09375
-        localPosition: {x: -0.5786979, y: 0.7713125, z: 1.4636834}
-        unwrappedAngle: -21.572433
-        forwardDistance: 1.4636834
+        localPosition: {x: -0.5791243, y: 0.77105284, z: 1.4633284}
+        unwrappedAngle: -21.591576
+        forwardDistance: 1.4633284
       - normalizedTime: 0.1015625
-        localPosition: {x: 0.26108798, y: 0.8269166, z: 1.6954753}
-        unwrappedAngle: 8.754242
-        forwardDistance: 1.6954753
+        localPosition: {x: 0.26018536, y: 0.82719326, z: 1.6953801}
+        unwrappedAngle: 8.72497
+        forwardDistance: 1.6953801
       - normalizedTime: 0.109375
-        localPosition: {x: 0.6802098, y: 0.97063184, z: 1.5694537}
-        unwrappedAngle: 23.432144
-        forwardDistance: 1.5694537
+        localPosition: {x: 0.6801177, y: 0.9706254, z: 1.5694737}
+        unwrappedAngle: 23.42909
+        forwardDistance: 1.5694737
       - normalizedTime: 0.1171875
-        localPosition: {x: 0.9412256, y: 1.0788963, z: 1.3667926}
-        unwrappedAngle: 34.552757
-        forwardDistance: 1.3667926
+        localPosition: {x: 0.94123936, y: 1.0789073, z: 1.3667878}
+        unwrappedAngle: 34.553284
+        forwardDistance: 1.3667878
       - normalizedTime: 0.125
-        localPosition: {x: 1.1285734, y: 1.1700065, z: 1.1159843}
-        unwrappedAngle: 45.321323
-        forwardDistance: 1.1159843
+        localPosition: {x: 1.1285592, y: 1.1699915, z: 1.1159934}
+        unwrappedAngle: 45.320778
+        forwardDistance: 1.1159934
       - normalizedTime: 0.1328125
-        localPosition: {x: 1.2759969, y: 1.2669766, z: 0.81164634}
-        unwrappedAngle: 57.54002
-        forwardDistance: 0.81164634
+        localPosition: {x: 1.2760084, y: 1.2669853, z: 0.81163}
+        unwrappedAngle: 57.54082
+        forwardDistance: 0.81163
       - normalizedTime: 0.140625
-        localPosition: {x: 1.3870528, y: 1.3885199, z: 0.3942973}
-        unwrappedAngle: 74.13112
-        forwardDistance: 0.3942973
+        localPosition: {x: 1.3870523, y: 1.3891093, z: 0.3943078}
+        unwrappedAngle: 74.13076
+        forwardDistance: 0.3943078
       - normalizedTime: 0.1484375
-        localPosition: {x: 1.3621962, y: 1.5461152, z: -0.06735659}
-        unwrappedAngle: 92.83078
-        forwardDistance: -0.06735659
+        localPosition: {x: 1.3621992, y: 1.5521429, z: -0.06731415}
+        unwrappedAngle: 92.829025
+        forwardDistance: -0.06731415
       - normalizedTime: 0.15625
-        localPosition: {x: 1.1386671, y: 1.7121457, z: -0.54158914}
-        unwrappedAngle: 115.43735
-        forwardDistance: -0.54158914
+        localPosition: {x: 1.1386591, y: 1.7253172, z: -0.5416026}
+        unwrappedAngle: 115.438095
+        forwardDistance: -0.5416026
       - normalizedTime: 0.1640625
-        localPosition: {x: 0.7532515, y: 1.8525817, z: -0.8717053}
-        unwrappedAngle: 139.16928
-        forwardDistance: -0.8717053
+        localPosition: {x: 0.7532661, y: 1.867588, z: -0.871701}
+        unwrappedAngle: 139.16862
+        forwardDistance: -0.871701
       - normalizedTime: 0.171875
-        localPosition: {x: 0.33701253, y: 1.9311638, z: -1.0243019}
-        unwrappedAngle: 161.7879
-        forwardDistance: -1.0243019
+        localPosition: {x: 0.33698162, y: 1.946268, z: -1.0242953}
+        unwrappedAngle: 161.7894
+        forwardDistance: -1.0242953
       - normalizedTime: 0.1796875
-        localPosition: {x: 0.028466277, y: 1.944368, z: -1.0656402}
-        unwrappedAngle: 178.46982
-        forwardDistance: -1.0656402
+        localPosition: {x: 0.028835472, y: 1.9597293, z: -1.0656793}
+        unwrappedAngle: 178.45007
+        forwardDistance: -1.0656793
       - normalizedTime: 0.1875
-        localPosition: {x: -0.14092666, y: 1.917887, z: -1.0834156}
-        unwrappedAngle: 187.4112
-        forwardDistance: -1.0834156
+        localPosition: {x: -0.14107676, y: 1.933765, z: -1.0833831}
+        unwrappedAngle: 187.41925
+        forwardDistance: -1.0833831
       - normalizedTime: 0.1953125
-        localPosition: {x: -0.2465953, y: 1.8814563, z: -1.0955863}
-        unwrappedAngle: 192.68475
-        forwardDistance: -1.0955863
+        localPosition: {x: -0.2466089, y: 1.8975279, z: -1.0955836}
+        unwrappedAngle: 192.6855
+        forwardDistance: -1.0955836
       - normalizedTime: 0.203125
-        localPosition: {x: -0.32907337, y: 1.8472761, z: -1.1009114}
-        unwrappedAngle: 196.6419
-        forwardDistance: -1.1009114
+        localPosition: {x: -0.32907254, y: 1.863743, z: -1.1009104}
+        unwrappedAngle: 196.64192
+        forwardDistance: -1.1009104
       - normalizedTime: 0.2109375
-        localPosition: {x: -0.3924302, y: 1.8177264, z: -1.1023124}
-        unwrappedAngle: 199.59604
-        forwardDistance: -1.1023124
+        localPosition: {x: -0.3924314, y: 1.83537, z: -1.1023116}
+        unwrappedAngle: 199.59613
+        forwardDistance: -1.1023116
       - normalizedTime: 0.21875
-        localPosition: {x: -0.43733117, y: 1.7936693, z: -1.1027708}
-        unwrappedAngle: 201.63202
-        forwardDistance: -1.1027708
+        localPosition: {x: -0.4373298, y: 1.8128084, z: -1.1027715}
+        unwrappedAngle: 201.63197
+        forwardDistance: -1.1027715
       - normalizedTime: 0.2265625
-        localPosition: {x: -0.4686452, y: 1.77616, z: -1.1025275}
-        unwrappedAngle: 203.02861
-        forwardDistance: -1.1025275
+        localPosition: {x: -0.4686451, y: 1.7964188, z: -1.1025276}
+        unwrappedAngle: 203.02863
+        forwardDistance: -1.1025276
       - normalizedTime: 0.234375
-        localPosition: {x: -0.49211776, y: 1.7653782, z: -1.1007184}
-        unwrappedAngle: 204.08882
-        forwardDistance: -1.1007184
+        localPosition: {x: -0.4921174, y: 1.7863176, z: -1.1007174}
+        unwrappedAngle: 204.08885
+        forwardDistance: -1.1007174
       - normalizedTime: 0.2421875
-        localPosition: {x: -0.5093975, y: 1.7600529, z: -1.0978941}
-        unwrappedAngle: 204.8902
-        forwardDistance: -1.0978941
+        localPosition: {x: -0.5093968, y: 1.7814108, z: -1.0978947}
+        unwrappedAngle: 204.89018
+        forwardDistance: -1.0978947
       - normalizedTime: 0.25
-        localPosition: {x: -0.51859117, y: 1.7581832, z: -1.0961798}
+        localPosition: {x: -0.51859087, y: 1.7797989, z: -1.0961802}
         unwrappedAngle: 205.31833
-        forwardDistance: -1.0961798
+        forwardDistance: -1.0961802
       - normalizedTime: 0.2578125
-        localPosition: {x: -0.5192103, y: 1.7579929, z: -1.0973601}
-        unwrappedAngle: 205.3209
-        forwardDistance: -1.0973601
+        localPosition: {x: -0.51920986, y: 1.779742, z: -1.0973595}
+        unwrappedAngle: 205.32094
+        forwardDistance: -1.0973595
       - normalizedTime: 0.265625
-        localPosition: {x: -0.5105192, y: 1.7586223, z: -1.1030602}
-        unwrappedAngle: 204.83568
-        forwardDistance: -1.1030602
+        localPosition: {x: -0.5104941, y: 1.780422, z: -1.103072}
+        unwrappedAngle: 204.83437
+        forwardDistance: -1.103072
       - normalizedTime: 0.2734375
-        localPosition: {x: -0.49249536, y: 1.7603179, z: -1.1129041}
-        unwrappedAngle: 203.8709
-        forwardDistance: -1.1129041
+        localPosition: {x: -0.49249652, y: 1.7821207, z: -1.1129037}
+        unwrappedAngle: 203.87099
+        forwardDistance: -1.1129037
       - normalizedTime: 0.28125
-        localPosition: {x: -0.46687475, y: 1.7624408, z: -1.1259074}
-        unwrappedAngle: 202.52208
-        forwardDistance: -1.1259074
+        localPosition: {x: -0.46687865, y: 1.7842432, z: -1.125907}
+        unwrappedAngle: 202.5223
+        forwardDistance: -1.125907
       - normalizedTime: 0.2890625
-        localPosition: {x: -0.43525025, y: 1.7652627, z: -1.1403608}
-        unwrappedAngle: 200.89073
+        localPosition: {x: -0.43525055, y: 1.7870666, z: -1.1403608}
+        unwrappedAngle: 200.8908
         forwardDistance: -1.1403608
       - normalizedTime: 0.296875
-        localPosition: {x: -0.39926142, y: 1.7678853, z: -1.1557178}
-        unwrappedAngle: 199.05827
-        forwardDistance: -1.1557178
+        localPosition: {x: -0.39926204, y: 1.7897044, z: -1.1557174}
+        unwrappedAngle: 199.05836
+        forwardDistance: -1.1557174
       - normalizedTime: 0.3046875
-        localPosition: {x: -0.36044082, y: 1.7700788, z: -1.1710196}
-        unwrappedAngle: 197.10838
-        forwardDistance: -1.1710196
+        localPosition: {x: -0.3604407, y: 1.7920285, z: -1.17102}
+        unwrappedAngle: 197.10841
+        forwardDistance: -1.17102
       - normalizedTime: 0.3125
-        localPosition: {x: -0.3202646, y: 1.772095, z: -1.1851696}
-        unwrappedAngle: 195.12166
-        forwardDistance: -1.1851696
+        localPosition: {x: -0.32026443, y: 1.7943544, z: -1.1851693}
+        unwrappedAngle: 195.12169
+        forwardDistance: -1.1851693
       - normalizedTime: 0.3203125
-        localPosition: {x: -0.28051865, y: 1.7738217, z: -1.1974909}
+        localPosition: {x: -0.2805182, y: 1.7964914, z: -1.1974915}
         unwrappedAngle: 193.1841
-        forwardDistance: -1.1974909
+        forwardDistance: -1.1974915
       - normalizedTime: 0.328125
-        localPosition: {x: -0.24329507, y: 1.775501, z: -1.2072133}
-        unwrappedAngle: 191.39442
-        forwardDistance: -1.2072133
+        localPosition: {x: -0.24329571, y: 1.798643, z: -1.2072127}
+        unwrappedAngle: 191.39449
+        forwardDistance: -1.2072127
       - normalizedTime: 0.3359375
-        localPosition: {x: -0.21052966, y: 1.7773178, z: -1.214002}
-        unwrappedAngle: 189.83827
-        forwardDistance: -1.214002
+        localPosition: {x: -0.21053028, y: 1.8009742, z: -1.2140009}
+        unwrappedAngle: 189.8383
+        forwardDistance: -1.2140009
       - normalizedTime: 0.34375
-        localPosition: {x: -0.1827101, y: 1.7792596, z: -1.2181675}
-        unwrappedAngle: 188.53004
-        forwardDistance: -1.2181675
+        localPosition: {x: -0.1827089, y: 1.8034798, z: -1.2181678}
+        unwrappedAngle: 188.53001
+        forwardDistance: -1.2181678
       - normalizedTime: 0.3515625
-        localPosition: {x: -0.15758075, y: 1.7803178, z: -1.2208954}
-        unwrappedAngle: 187.35448
-        forwardDistance: -1.2208954
+        localPosition: {x: -0.15758166, y: 1.8051627, z: -1.2208956}
+        unwrappedAngle: 187.35454
+        forwardDistance: -1.2208956
       - normalizedTime: 0.359375
-        localPosition: {x: -0.13279259, y: 1.7795435, z: -1.2231765}
-        unwrappedAngle: 186.19597
-        forwardDistance: -1.2231765
+        localPosition: {x: -0.13279581, y: 1.805066, z: -1.2231762}
+        unwrappedAngle: 186.19612
+        forwardDistance: -1.2231762
       - normalizedTime: 0.3671875
-        localPosition: {x: -0.108480506, y: 1.7774413, z: -1.2249664}
+        localPosition: {x: -0.1084802, y: 1.8036938, z: -1.2249657}
         unwrappedAngle: 185.06078
-        forwardDistance: -1.2249664
+        forwardDistance: -1.2249657
       - normalizedTime: 0.375
-        localPosition: {x: -0.08460202, y: 1.7746972, z: -1.2262695}
+        localPosition: {x: -0.084601566, y: 1.8017097, z: -1.2262694}
         unwrappedAngle: 183.94664
-        forwardDistance: -1.2262695
+        forwardDistance: -1.2262694
       - normalizedTime: 0.3828125
-        localPosition: {x: -0.061049167, y: 1.771418, z: -1.2271326}
-        unwrappedAngle: 182.84807
-        forwardDistance: -1.2271326
+        localPosition: {x: -0.06104975, y: 1.7992468, z: -1.2271329}
+        unwrappedAngle: 182.84813
+        forwardDistance: -1.2271329
       - normalizedTime: 0.390625
-        localPosition: {x: -0.03777211, y: 1.7677246, z: -1.2275715}
-        unwrappedAngle: 181.7624
-        forwardDistance: -1.2275715
+        localPosition: {x: -0.03777242, y: 1.7964306, z: -1.2275716}
+        unwrappedAngle: 181.76244
+        forwardDistance: -1.2275716
       - normalizedTime: 0.3984375
-        localPosition: {x: -0.014722996, y: 1.7637874, z: -1.2275615}
+        localPosition: {x: -0.01472281, y: 1.793393, z: -1.2275617}
         unwrappedAngle: 180.68715
-        forwardDistance: -1.2275615
+        forwardDistance: -1.2275617
       - normalizedTime: 0.40625
-        localPosition: {x: 0.008146505, y: 1.7597332, z: -1.227132}
+        localPosition: {x: 0.008146233, y: 1.7902329, z: -1.2271327}
         unwrappedAngle: 179.61964
-        forwardDistance: -1.227132
+        forwardDistance: -1.2271327
       - normalizedTime: 0.4140625
-        localPosition: {x: 0.030833375, y: 1.7557534, z: -1.2262537}
+        localPosition: {x: 0.030832965, y: 1.7871627, z: -1.2262528}
         unwrappedAngle: 178.55965
-        forwardDistance: -1.2262537
+        forwardDistance: -1.2262528
       - normalizedTime: 0.421875
-        localPosition: {x: 0.053388402, y: 1.7516965, z: -1.2251523}
-        unwrappedAngle: 177.5048
-        forwardDistance: -1.2251523
+        localPosition: {x: 0.053388793, y: 1.7840116, z: -1.2251529}
+        unwrappedAngle: 177.50478
+        forwardDistance: -1.2251529
       - normalizedTime: 0.4296875
-        localPosition: {x: 0.075945064, y: 1.7476041, z: -1.2239059}
-        unwrappedAngle: 176.44926
-        forwardDistance: -1.2239059
+        localPosition: {x: 0.07594428, y: 1.7808036, z: -1.2239058}
+        unwrappedAngle: 176.4493
+        forwardDistance: -1.2239058
       - normalizedTime: 0.4375
-        localPosition: {x: 0.098409444, y: 1.7435758, z: -1.2224244}
-        unwrappedAngle: 175.39738
-        forwardDistance: -1.2224244
+        localPosition: {x: 0.09840797, y: 1.7776057, z: -1.222424}
+        unwrappedAngle: 175.39748
+        forwardDistance: -1.222424
       - normalizedTime: 0.4453125
-        localPosition: {x: 0.12073065, y: 1.7396257, z: -1.2207564}
+        localPosition: {x: 0.12073088, y: 1.7743636, z: -1.2207565}
         unwrappedAngle: 174.35188
-        forwardDistance: -1.2207564
+        forwardDistance: -1.2207565
       - normalizedTime: 0.453125
-        localPosition: {x: 0.14298327, y: 1.7357556, z: -1.2190003}
+        localPosition: {x: 0.14298332, y: 1.7709548, z: -1.2190002}
         unwrappedAngle: 173.31001
-        forwardDistance: -1.2190003
+        forwardDistance: -1.2190002
       - normalizedTime: 0.4609375
-        localPosition: {x: 0.16521487, y: 1.7318889, z: -1.2173076}
-        unwrappedAngle: 172.27095
-        forwardDistance: -1.2173076
+        localPosition: {x: 0.16521856, y: 1.7672603, z: -1.2173084}
+        unwrappedAngle: 172.27077
+        forwardDistance: -1.2173084
       - normalizedTime: 0.46875
-        localPosition: {x: 0.18653123, y: 1.7280405, z: -1.215855}
-        unwrappedAngle: 171.27794
-        forwardDistance: -1.215855
+        localPosition: {x: 0.18653493, y: 1.7634331, z: -1.2158551}
+        unwrappedAngle: 171.27773
+        forwardDistance: -1.2158551
       - normalizedTime: 0.4765625
-        localPosition: {x: 0.22080612, y: 1.7234607, z: -1.2136484}
-        unwrappedAngle: 169.68864
+        localPosition: {x: 0.22080383, y: 1.7588539, z: -1.2136484}
+        unwrappedAngle: 169.6887
         forwardDistance: -1.2136484
       - normalizedTime: 0.484375
-        localPosition: {x: 0.27919495, y: 1.7170575, z: -1.2083472}
-        unwrappedAngle: 166.98985
+        localPosition: {x: 0.27919492, y: 1.7524502, z: -1.2083472}
+        unwrappedAngle: 166.98979
         forwardDistance: -1.2083472
       - normalizedTime: 0.4921875
-        localPosition: {x: 0.3594011, y: 1.7086443, z: -1.1973579}
-        unwrappedAngle: 163.29228
-        forwardDistance: -1.1973579
+        localPosition: {x: 0.35940245, y: 1.744037, z: -1.1973569}
+        unwrappedAngle: 163.29213
+        forwardDistance: -1.1973569
       - normalizedTime: 0.5
-        localPosition: {x: 0.45472026, y: 1.6982926, z: -1.1781652}
-        unwrappedAngle: 158.89561
-        forwardDistance: -1.1781652
+        localPosition: {x: 0.45472062, y: 1.7336855, z: -1.1781646}
+        unwrappedAngle: 158.89552
+        forwardDistance: -1.1781646
       - normalizedTime: 0.5078125
-        localPosition: {x: 0.5585786, y: 1.685779, z: -1.1492989}
-        unwrappedAngle: 154.07948
+        localPosition: {x: 0.5585786, y: 1.721157, z: -1.1492989}
+        unwrappedAngle: 154.07942
         forwardDistance: -1.1492989
       - normalizedTime: 0.515625
-        localPosition: {x: 0.66501, y: 1.6709992, z: -1.1107221}
-        unwrappedAngle: 149.09029
-        forwardDistance: -1.1107221
+        localPosition: {x: 0.66501075, y: 1.7062243, z: -1.1107223}
+        unwrappedAngle: 149.09016
+        forwardDistance: -1.1107223
       - normalizedTime: 0.5234375
-        localPosition: {x: 0.7677293, y: 1.6549559, z: -1.063735}
-        unwrappedAngle: 144.18092
-        forwardDistance: -1.063735
+        localPosition: {x: 0.76772964, y: 1.6896966, z: -1.0637343}
+        unwrappedAngle: 144.1808
+        forwardDistance: -1.0637343
       - normalizedTime: 0.53125
-        localPosition: {x: 0.861594, y: 1.6398064, z: -1.0108608}
-        unwrappedAngle: 139.55785
-        forwardDistance: -1.0108608
+        localPosition: {x: 0.8615957, y: 1.6734315, z: -1.0108618}
+        unwrappedAngle: 139.55772
+        forwardDistance: -1.0108618
       - normalizedTime: 0.5390625
-        localPosition: {x: 0.94270253, y: 1.62659, z: -0.9572108}
-        unwrappedAngle: 135.43755
-        forwardDistance: -0.9572108
+        localPosition: {x: 0.9426937, y: 1.6580151, z: -0.9572307}
+        unwrappedAngle: 135.43831
+        forwardDistance: -0.9572307
       - normalizedTime: 0.546875
-        localPosition: {x: 1.0078746, y: 1.6157764, z: -0.9077147}
-        unwrappedAngle: 132.00694
-        forwardDistance: -0.9077147
+        localPosition: {x: 1.007872, y: 1.643799, z: -0.90771806}
+        unwrappedAngle: 132.00703
+        forwardDistance: -0.90771806
       - normalizedTime: 0.5546875
-        localPosition: {x: 1.0573763, y: 1.6062936, z: -0.86899054}
+        localPosition: {x: 1.0573752, y: 1.6300508, z: -0.8689927}
         unwrappedAngle: 129.41466
-        forwardDistance: -0.86899054
+        forwardDistance: -0.8689927
       - normalizedTime: 0.5625
-        localPosition: {x: 1.0917308, y: 1.5954202, z: -0.84788}
-        unwrappedAngle: 127.834335
-        forwardDistance: -0.84788
+        localPosition: {x: 1.091731, y: 1.61454, z: -0.8478843}
+        unwrappedAngle: 127.834366
+        forwardDistance: -0.8478843
       - normalizedTime: 0.5703125
-        localPosition: {x: 1.1172534, y: 1.5813943, z: -0.84017456}
-        unwrappedAngle: 126.94322
-        forwardDistance: -0.84017456
+        localPosition: {x: 1.1172935, y: 1.5956026, z: -0.84034145}
+        unwrappedAngle: 126.947586
+        forwardDistance: -0.84034145
       - normalizedTime: 0.578125
-        localPosition: {x: 1.1401949, y: 1.5643877, z: -0.836887}
-        unwrappedAngle: 126.27821
-        forwardDistance: -0.836887
+        localPosition: {x: 1.1404225, y: 1.5733019, z: -0.8376831}
+        unwrappedAngle: 126.29863
+        forwardDistance: -0.8376831
       - normalizedTime: 0.5859375
-        localPosition: {x: 1.1620401, y: 1.544104, z: -0.83561957}
-        unwrappedAngle: 125.719864
-        forwardDistance: -0.83561957
+        localPosition: {x: 1.1627288, y: 1.5472069, z: -0.8376088}
+        unwrappedAngle: 125.768234
+        forwardDistance: -0.8376088
       - normalizedTime: 0.59375
-        localPosition: {x: 1.1832064, y: 1.5194819, z: -0.8364599}
-        unwrappedAngle: 125.258194
-        forwardDistance: -0.8364599
+        localPosition: {x: 1.1847337, y: 1.5159757, z: -0.8400781}
+        unwrappedAngle: 125.33983
+        forwardDistance: -0.8400781
       - normalizedTime: 0.6015625
-        localPosition: {x: 1.203941, y: 1.4899604, z: -0.8391253}
-        unwrappedAngle: 124.87587
-        forwardDistance: -0.8391253
+        localPosition: {x: 1.2067361, y: 1.4791598, z: -0.8444892}
+        unwrappedAngle: 124.984726
+        forwardDistance: -0.8444892
       - normalizedTime: 0.609375
-        localPosition: {x: 1.22442, y: 1.4547926, z: -0.84291625}
-        unwrappedAngle: 124.54439
-        forwardDistance: -0.84291625
+        localPosition: {x: 1.2288866, y: 1.4364636, z: -0.84966576}
+        unwrappedAngle: 124.660324
+        forwardDistance: -0.84966576
       - normalizedTime: 0.6171875
-        localPosition: {x: 1.2447929, y: 1.4133792, z: -0.84659994}
-        unwrappedAngle: 124.22017
-        forwardDistance: -0.84659994
+        localPosition: {x: 1.2512124, y: 1.3862514, z: -0.8538126}
+        unwrappedAngle: 124.3091
+        forwardDistance: -0.8538126
       - normalizedTime: 0.625
-        localPosition: {x: 1.2649016, y: 1.3652203, z: -0.84901726}
-        unwrappedAngle: 123.87001
-        forwardDistance: -0.84901726
+        localPosition: {x: 1.2733229, y: 1.3270745, z: -0.8552102}
+        unwrappedAngle: 123.88667
+        forwardDistance: -0.8552102
       - normalizedTime: 0.6328125
-        localPosition: {x: 1.2845035, y: 1.3100541, z: -0.84887135}
-        unwrappedAngle: 123.45897
-        forwardDistance: -0.84887135
+        localPosition: {x: 1.2946368, y: 1.2591453, z: -0.8521408}
+        unwrappedAngle: 123.353165
+        forwardDistance: -0.8521408
       - normalizedTime: 0.640625
-        localPosition: {x: 1.3033241, y: 1.2477095, z: -0.84499276}
-        unwrappedAngle: 122.95683
-        forwardDistance: -0.84499276
+        localPosition: {x: 1.314486, y: 1.1833594, z: -0.84303343}
+        unwrappedAngle: 122.67363
+        forwardDistance: -0.84303343
       - normalizedTime: 0.6484375
-        localPosition: {x: 1.3213342, y: 1.1784787, z: -0.83487}
-        unwrappedAngle: 122.2863
-        forwardDistance: -0.83487
+        localPosition: {x: 1.331862, y: 1.1004208, z: -0.8258259}
+        unwrappedAngle: 121.80107
+        forwardDistance: -0.8258259
       - normalizedTime: 0.65625
-        localPosition: {x: 1.3382964, y: 1.1037621, z: -0.8164638}
-        unwrappedAngle: 121.38643
-        forwardDistance: -0.8164638
+        localPosition: {x: 1.3461096, y: 1.0122901, z: -0.7987783}
+        unwrappedAngle: 120.68474
+        forwardDistance: -0.7987783
       - normalizedTime: 0.6640625
-        localPosition: {x: 1.3528407, y: 1.0248455, z: -0.7896795}
-        unwrappedAngle: 120.272964
-        forwardDistance: -0.7896795
+        localPosition: {x: 1.356701, y: 0.92142344, z: -0.7614714}
+        unwrappedAngle: 119.304
+        forwardDistance: -0.7614714
       - normalizedTime: 0.671875
-        localPosition: {x: 1.3643893, y: 0.94338644, z: -0.75441146}
-        unwrappedAngle: 118.93953
-        forwardDistance: -0.75441146
+        localPosition: {x: 1.3622437, y: 0.82984596, z: -0.71527517}
+        unwrappedAngle: 117.70262
+        forwardDistance: -0.71527517
       - normalizedTime: 0.6796875
-        localPosition: {x: 1.3720387, y: 0.86091626, z: -0.7113834}
-        unwrappedAngle: 117.40614
-        forwardDistance: -0.7113834
+        localPosition: {x: 1.3619243, y: 0.73961246, z: -0.6619718}
+        unwrappedAngle: 115.92229
+        forwardDistance: -0.6619718
       - normalizedTime: 0.6875
-        localPosition: {x: 1.3752754, y: 0.77880394, z: -0.6613236}
-        unwrappedAngle: 115.68135
-        forwardDistance: -0.6613236
+        localPosition: {x: 1.3554952, y: 0.652363, z: -0.6034319}
+        unwrappedAngle: 113.99733
+        forwardDistance: -0.6034319
       - normalizedTime: 0.6953125
-        localPosition: {x: 1.3737624, y: 0.69847786, z: -0.60547614}
-        unwrappedAngle: 113.78517
-        forwardDistance: -0.60547614
+        localPosition: {x: 1.3432282, y: 0.56963503, z: -0.5416944}
+        unwrappedAngle: 111.96306
+        forwardDistance: -0.5416944
       - normalizedTime: 0.703125
-        localPosition: {x: 1.3672724, y: 0.62101763, z: -0.54547757}
-        unwrappedAngle: 111.74971
-        forwardDistance: -0.54547757
+        localPosition: {x: 1.3254968, y: 0.49246716, z: -0.47931808}
+        unwrappedAngle: 109.8806
+        forwardDistance: -0.47931808
       - normalizedTime: 0.7109375
-        localPosition: {x: 1.3560021, y: 0.54746807, z: -0.4825697}
-        unwrappedAngle: 109.58949
-        forwardDistance: -0.4825697
+        localPosition: {x: 1.30286, y: 0.42152438, z: -0.4189388}
+        unwrappedAngle: 107.82527
+        forwardDistance: -0.4189388
       - normalizedTime: 0.71875
-        localPosition: {x: 1.340286, y: 0.47856984, z: -0.4188855}
-        unwrappedAngle: 107.35585
-        forwardDistance: -0.4188855
+        localPosition: {x: 1.2766011, y: 0.35716558, z: -0.36238766}
+        unwrappedAngle: 105.84752
+        forwardDistance: -0.36238766
       - normalizedTime: 0.7265625
-        localPosition: {x: 1.320779, y: 0.4148618, z: -0.3565102}
-        unwrappedAngle: 105.105545
-        forwardDistance: -0.3565102
+        localPosition: {x: 1.2480041, y: 0.2994352, z: -0.31147617}
+        unwrappedAngle: 104.01347
+        forwardDistance: -0.31147617
       - normalizedTime: 0.734375
-        localPosition: {x: 1.2983867, y: 0.35659924, z: -0.29745445}
-        unwrappedAngle: 102.90355
-        forwardDistance: -0.29745445
+        localPosition: {x: 1.2184588, y: 0.24819237, z: -0.26752847}
+        unwrappedAngle: 102.38344
+        forwardDistance: -0.26752847
       - normalizedTime: 0.7421875
-        localPosition: {x: 1.2740778, y: 0.30398923, z: -0.24404943}
-        unwrappedAngle: 100.84367
-        forwardDistance: -0.24404943
+        localPosition: {x: 1.1892536, y: 0.2033084, z: -0.23169328}
+        unwrappedAngle: 101.02431
+        forwardDistance: -0.23169328
       - normalizedTime: 0.75
-        localPosition: {x: 1.2489027, y: 0.25698805, z: -0.19821596}
-        unwrappedAngle: 99.018326
-        forwardDistance: -0.19821596
+        localPosition: {x: 1.1614513, y: 0.16462001, z: -0.20443484}
+        unwrappedAngle: 99.98268
+        forwardDistance: -0.20443484
       - normalizedTime: 0.7578125
-        localPosition: {x: 1.2241806, y: 0.21542826, z: -0.16127598}
-        unwrappedAngle: 97.50505
-        forwardDistance: -0.16127598
+        localPosition: {x: 1.1360952, y: 0.13231678, z: -0.18557438}
+        unwrappedAngle: 99.27693
+        forwardDistance: -0.18557438
       - normalizedTime: 0.765625
-        localPosition: {x: 1.2000067, y: 0.17803262, z: -0.13171503}
-        unwrappedAngle: 96.26384
-        forwardDistance: -0.13171503
+        localPosition: {x: 1.1132098, y: 0.10543801, z: -0.17317992}
+        unwrappedAngle: 98.84245
+        forwardDistance: -0.17317992
       - normalizedTime: 0.7734375
-        localPosition: {x: 1.1756778, y: 0.14338343, z: -0.10650557}
-        unwrappedAngle: 95.17638
-        forwardDistance: -0.10650557
+        localPosition: {x: 1.0923023, y: 0.08248503, z: -0.16480368}
+        unwrappedAngle: 98.57988
+        forwardDistance: -0.16480368
       - normalizedTime: 0.78125
-        localPosition: {x: 1.1511766, y: 0.11122983, z: -0.08431798}
-        unwrappedAngle: 94.18919
-        forwardDistance: -0.08431798
+        localPosition: {x: 1.0733463, y: 0.06299531, z: -0.15929595}
+        unwrappedAngle: 98.441635
+        forwardDistance: -0.15929595
       - normalizedTime: 0.7890625
-        localPosition: {x: 1.1271949, y: 0.08192751, z: -0.06534248}
-        unwrappedAngle: 93.31773
-        forwardDistance: -0.06534248
+        localPosition: {x: 1.0566635, y: 0.046918325, z: -0.1564214}
+        unwrappedAngle: 98.42049
+        forwardDistance: -0.1564214
       - normalizedTime: 0.796875
-        localPosition: {x: 1.1043364, y: 0.055685967, z: -0.049604036}
-        unwrappedAngle: 92.571915
-        forwardDistance: -0.049604036
+        localPosition: {x: 1.0424047, y: 0.034081146, z: -0.15586746}
+        unwrappedAngle: 98.5042
+        forwardDistance: -0.15586746
       - normalizedTime: 0.8046875
-        localPosition: {x: 1.083193, y: 0.032746032, z: -0.037018415}
-        unwrappedAngle: 91.95741
-        forwardDistance: -0.037018415
+        localPosition: {x: 1.0306137, y: 0.024284944, z: -0.15730058}
+        unwrappedAngle: 98.677925
+        forwardDistance: -0.15730058
       - normalizedTime: 0.8125
-        localPosition: {x: 1.0643237, y: 0.01330925, z: -0.027583279}
-        unwrappedAngle: 91.484634
-        forwardDistance: -0.027583279
+        localPosition: {x: 1.0212299, y: 0.017279848, z: -0.16043794}
+        unwrappedAngle: 98.9283
+        forwardDistance: -0.16043794
       - normalizedTime: 0.8203125
-        localPosition: {x: 1.0482908, y: -0.002376074, z: -0.021191828}
-        unwrappedAngle: 91.15819
-        forwardDistance: -0.021191828
+        localPosition: {x: 1.0141209, y: 0.012794659, z: -0.16496852}
+        unwrappedAngle: 99.23942
+        forwardDistance: -0.16496852
       - normalizedTime: 0.828125
-        localPosition: {x: 1.0357193, y: -0.01408571, z: -0.017461218}
-        unwrappedAngle: 90.96593
-        forwardDistance: -0.017461218
+        localPosition: {x: 1.0091207, y: 0.010518476, z: -0.17051752}
+        unwrappedAngle: 99.59099
+        forwardDistance: -0.17051752
       - normalizedTime: 0.8359375
-        localPosition: {x: 1.02613, y: -0.022690058, z: -0.016815677}
-        unwrappedAngle: 90.93892
-        forwardDistance: -0.016815677
+        localPosition: {x: 1.005701, y: 0.009831831, z: -0.17697571}
+        unwrappedAngle: 99.980255
+        forwardDistance: -0.17697571
       - normalizedTime: 0.84375
-        localPosition: {x: 1.0189533, y: -0.02904135, z: -0.020263685}
-        unwrappedAngle: 91.13935
-        forwardDistance: -0.020263685
+        localPosition: {x: 1.0033886, y: 0.010217115, z: -0.18431619}
+        unwrappedAngle: 100.40879
+        forwardDistance: -0.18431619
       - normalizedTime: 0.8515625
-        localPosition: {x: 1.0138865, y: -0.033249676, z: -0.026910085}
-        unwrappedAngle: 91.52043
-        forwardDistance: -0.026910085
+        localPosition: {x: 1.0018878, y: 0.011382684, z: -0.19196002}
+        unwrappedAngle: 100.84628
+        forwardDistance: -0.19196002
       - normalizedTime: 0.859375
-        localPosition: {x: 1.0103793, y: -0.035554767, z: -0.035201594}
-        unwrappedAngle: 91.995445
-        forwardDistance: -0.035201594
+        localPosition: {x: 1.000926, y: 0.013036951, z: -0.19931765}
+        unwrappedAngle: 101.26213
+        forwardDistance: -0.19931765
       - normalizedTime: 0.8671875
-        localPosition: {x: 1.0081016, y: -0.036306262, z: -0.04455781}
-        unwrappedAngle: 92.53088
-        forwardDistance: -0.04455781
+        localPosition: {x: 1.0003246, y: 0.014932141, z: -0.20615128}
+        unwrappedAngle: 101.64469
+        forwardDistance: -0.20615128
       - normalizedTime: 0.875
-        localPosition: {x: 1.0068655, y: -0.035747886, z: -0.05482075}
-        unwrappedAngle: 93.11657
-        forwardDistance: -0.05482075
+        localPosition: {x: 0.999964, y: 0.01689671, z: -0.21236242}
+        unwrappedAngle: 101.98973
+        forwardDistance: -0.21236242
       - normalizedTime: 0.8828125
-        localPosition: {x: 1.0065247, y: -0.03398537, z: -0.06580292}
-        unwrappedAngle: 93.74054
-        forwardDistance: -0.06580292
+        localPosition: {x: 0.9997566, y: 0.018816754, z: -0.21788633}
+        unwrappedAngle: 102.29471
+        forwardDistance: -0.21788633
       - normalizedTime: 0.890625
-        localPosition: {x: 1.0069139, y: -0.03123568, z: -0.07733912}
-        unwrappedAngle: 94.39223
-        forwardDistance: -0.07733912
+        localPosition: {x: 0.999635, y: 0.020594582, z: -0.22269174}
+        unwrappedAngle: 102.55884
+        forwardDistance: -0.22269174
       - normalizedTime: 0.8984375
-        localPosition: {x: 1.0078958, y: -0.027607128, z: -0.08922657}
-        unwrappedAngle: 95.059135
-        forwardDistance: -0.08922657
+        localPosition: {x: 0.9995561, y: 0.02217625, z: -0.22677106}
+        unwrappedAngle: 102.78238
+        forwardDistance: -0.22677106
       - normalizedTime: 0.90625
-        localPosition: {x: 1.0093302, y: -0.023276187, z: -0.10127943}
-        unwrappedAngle: 95.73013
-        forwardDistance: -0.10127943
+        localPosition: {x: 0.9994888, y: 0.0235271, z: -0.23015054}
+        unwrappedAngle: 102.967316
+        forwardDistance: -0.23015054
       - normalizedTime: 0.9140625
-        localPosition: {x: 1.0110922, y: -0.018400177, z: -0.1133285}
-        unwrappedAngle: 96.39539
-        forwardDistance: -0.1133285
+        localPosition: {x: 0.9994173, y: 0.024633765, z: -0.23287755}
+        unwrappedAngle: 103.116585
+        forwardDistance: -0.23287755
       - normalizedTime: 0.921875
-        localPosition: {x: 1.0130764, y: -0.013121396, z: -0.12520853}
-        unwrappedAngle: 97.04566
-        forwardDistance: -0.12520853
+        localPosition: {x: 0.9993345, y: 0.025504887, z: -0.23501536}
+        unwrappedAngle: 103.23384
+        forwardDistance: -0.23501536
       - normalizedTime: 0.9296875
-        localPosition: {x: 1.0151787, y: -0.00761202, z: -0.13673602}
-        unwrappedAngle: 97.67116
-        forwardDistance: -0.13673602
+        localPosition: {x: 0.9992389, y: 0.026158988, z: -0.23663965}
+        unwrappedAngle: 103.32328
+        forwardDistance: -0.23663965
       - normalizedTime: 0.9375
-        localPosition: {x: 1.0173213, y: -0.0020092875, z: -0.1477571}
-        unwrappedAngle: 98.264
-        forwardDistance: -0.1477571
+        localPosition: {x: 0.99913543, y: 0.026625454, z: -0.23783013}
+        unwrappedAngle: 103.38924
+        forwardDistance: -0.23783013
       - normalizedTime: 0.9453125
-        localPosition: {x: 1.019451, y: 0.0035551041, z: -0.15811415}
-        unwrappedAngle: 98.816246
-        forwardDistance: -0.15811415
+        localPosition: {x: 0.9990329, y: 0.026939705, z: -0.23866807}
+        unwrappedAngle: 103.436035
+        forwardDistance: -0.23866807
       - normalizedTime: 0.953125
-        localPosition: {x: 1.021469, y: 0.008862063, z: -0.16762508}
-        unwrappedAngle: 99.31936
-        forwardDistance: -0.16762508
+        localPosition: {x: 0.9989357, y: 0.027135685, z: -0.2392294}
+        unwrappedAngle: 103.46774
+        forwardDistance: -0.2392294
       - normalizedTime: 0.9609375
-        localPosition: {x: 1.0233281, y: 0.01381211, z: -0.17611158}
-        unwrappedAngle: 99.76485
-        forwardDistance: -0.17611158
+        localPosition: {x: 0.9988513, y: 0.027245298, z: -0.23958533}
+        unwrappedAngle: 103.488144
+        forwardDistance: -0.23958533
       - normalizedTime: 0.96875
-        localPosition: {x: 1.0250036, y: 0.018245444, z: -0.18346618}
-        unwrappedAngle: 100.148026
-        forwardDistance: -0.18346618
+        localPosition: {x: 0.9987852, y: 0.02729936, z: -0.23979427}
+        unwrappedAngle: 103.50034
+        forwardDistance: -0.23979427
       - normalizedTime: 0.9765625
-        localPosition: {x: 1.0264097, y: 0.021970555, z: -0.18943992}
-        unwrappedAngle: 100.45722
-        forwardDistance: -0.18943992
+        localPosition: {x: 0.99873954, y: 0.027321279, z: -0.23990655}
+        unwrappedAngle: 103.50703
+        forwardDistance: -0.23990655
       - normalizedTime: 0.984375
-        localPosition: {x: 1.0274874, y: 0.024820909, z: -0.19395138}
-        unwrappedAngle: 100.689606
-        forwardDistance: -0.19395138
+        localPosition: {x: 0.9987129, y: 0.027327895, z: -0.23995724}
+        unwrappedAngle: 103.510124
+        forwardDistance: -0.23995724
       - normalizedTime: 0.9921875
-        localPosition: {x: 1.0282063, y: 0.026677296, z: -0.19676568}
-        unwrappedAngle: 100.833664
-        forwardDistance: -0.19676568
+        localPosition: {x: 0.9987027, y: 0.027329937, z: -0.23997499}
+        unwrappedAngle: 103.51122
+        forwardDistance: -0.23997499
       - normalizedTime: 1
-        localPosition: {x: 1.0284606, y: 0.027329132, z: -0.19775099}
-        unwrappedAngle: 100.883995
-        forwardDistance: -0.19775099
+        localPosition: {x: 0.99870086, y: 0.027329803, z: -0.23997697}
+        unwrappedAngle: 103.51135
+        forwardDistance: -0.23997697
       phases:
       - phaseIndex: 0
         progressSource: 0
