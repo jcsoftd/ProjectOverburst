@@ -11,8 +11,9 @@ public sealed class EnemyBlockedApproachProjectileExecutor : EnemyAbilityExecuto
     private Vector3 samplePosition;
     private Transform sampledTarget;
     private float nextSample, blockedSeconds, permittedUntil;
+    private bool facingHandoffPending;
     public float BlockedApproachSeconds => blockedSeconds;
-    public override bool IsExecuting => projectileExecutor != null && projectileExecutor.IsWeakProjectileActionExecuting;
+    public override bool IsExecuting => projectileExecutor != null && projectileExecutor.IsExecuting;
     public void Configure(EnemyThemeSpecialExecutor executor) => projectileExecutor = executor;
     private void Awake()
     {
@@ -22,7 +23,7 @@ public sealed class EnemyBlockedApproachProjectileExecutor : EnemyAbilityExecuto
     private void OnEnable() => ResetTracking();
     private void OnDisable() => ResetTracking();
     private void ResetTracking()
-    { sampledTarget = null; nextSample = 0f; blockedSeconds = 0f; permittedUntil = 0f; samplePosition = transform.position; }
+    { sampledTarget = null; nextSample = 0f; blockedSeconds = 0f; permittedUntil = 0f; facingHandoffPending = false; samplePosition = transform.position; }
     private bool CanObserve => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead
         && actor.Movement != null && !actor.Movement.IsStatusMovementLocked && !actor.Movement.IsActionLocked
         && (reaction == null || !reaction.BlocksAttack)
@@ -32,8 +33,9 @@ public sealed class EnemyBlockedApproachProjectileExecutor : EnemyAbilityExecuto
         Transform target = actor != null && actor.AI != null ? actor.AI.Target : null;
         if (!CanObserve || target == null) { ResetTracking(); return; }
         if (sampledTarget != target) { ResetTracking(); sampledTarget = target; nextSample = Time.time + .4f; }
-        bool approach = actor.AI.CurrentStateName == "Chase" && actor.Movement.HasDestination
-            && actor.Movement.IsFacingForAttack(actor.AbilityController.ResolveAimPosition(target));
+        // Crowd steering can point sideways while the body cannot advance or turn.
+        // Observe the chase intent here; the existing attack executor still requires a completed facing action.
+        bool approach = actor.AI.CurrentStateName == "Chase" && actor.Movement.HasDestination;
         if (!approach)
         {
             blockedSeconds = 0f; samplePosition = transform.position; nextSample = Time.time + .4f;
@@ -74,6 +76,21 @@ public sealed class EnemyBlockedApproachProjectileExecutor : EnemyAbilityExecuto
         permittedUntil = 0f; blockedSeconds = 0f; return true;
     }
     public override float ResolveCooldown(float duration) => projectileExecutor.ResolveCooldown(duration);
-    public override void Cancel() { projectileExecutor?.Cancel(); ResetTracking(); }
+    public override void Cancel()
+    {
+        // CombatWait cancels an empty attack slot before completing the facing animation.
+        // Keep only that bounded handoff; cancelling a started attack, reaction or lease still clears eligibility.
+        bool facingHandoff = projectileExecutor != null && !projectileExecutor.IsExecuting && CanObserve
+            && actor.AI?.CurrentStateName == "CombatWait" && sampledTarget == actor.AI.Target && Time.time < permittedUntil;
+        projectileExecutor?.Cancel();
+        if (!facingHandoff) { ResetTracking(); return; }
+        var profile = actor.Movement.Profile;
+        float turnTime = profile != null && profile.HasTurnAnimation
+            ? 180f / Mathf.Max(.01f, Mathf.Min(profile.TurnAnimationReferenceSpeed(-1f), profile.TurnAnimationReferenceSpeed(1f)))
+            : 0f;
+        if (!facingHandoffPending) permittedUntil = Mathf.Max(permittedUntil, Time.time + turnTime + .6f);
+        facingHandoffPending = true;
+        blockedSeconds = 0f;
+    }
     public override void ResetForReuse() { projectileExecutor?.ResetForReuse(); ResetTracking(); }
 }
