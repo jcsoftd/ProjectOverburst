@@ -123,8 +123,6 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
             case GearStat.HeavyDamage: return "강공 피해";
             case GearStat.EliteBossDamage: return "정예·보스 피해";
             case GearStat.ElementalDamage: return "원소 피해";
-            case GearStat.ExplorationMoveSpeed: return "탐험 이동속도";
-            case GearStat.CombatMoveSpeed: return "전투 이동속도";
             default: return "치명타 피해";
         }
     }

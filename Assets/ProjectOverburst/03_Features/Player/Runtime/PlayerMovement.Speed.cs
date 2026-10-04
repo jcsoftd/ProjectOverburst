@@ -9,7 +9,7 @@ public partial class PlayerMovement
             return 0f;
 
         if (IsCombatWalkLocomotionMode)
-            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed(), true)
+            return GetMeleeCombatMoveSpeed() * GetActiveBuffMoveSpeedMultiplier()
                 * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
@@ -18,7 +18,7 @@ public partial class PlayerMovement
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속
 
-        return ResolveAuthoredMoveSpeed(speed, IsCombatMoveMode)
+        return speed * GetActiveBuffMoveSpeedMultiplier()
             * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
     }
 
@@ -95,7 +95,7 @@ public partial class PlayerMovement
     private float ResolveBaseMoveSpeed(ActorMovementGait gait, bool useCombatSpeed)
     {
         if (useCombatSpeed)
-            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed(), true); // 전투 전용 Walk 속도
+            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed()); // 전투 전용 Walk 속도
 
         return gait == ActorMovementGait.Walk ? WalkMoveSpeed : RunMoveSpeed;
     }
@@ -112,10 +112,9 @@ public partial class PlayerMovement
         return activeMovementIntent.Gait;
     }
 
-    private float ResolveAuthoredMoveSpeed(float authoredSpeed, bool useCombatSpeed = false)
+    private float ResolveAuthoredMoveSpeed(float authoredSpeed)
     {
         return Mathf.Max(0f, authoredSpeed)
-            * GetActiveBuffMoveSpeedMultiplier()
-            * GearStatTotals.From(playerEquipment).MovementSpeedMultiplier(useCombatSpeed);
+            * GetActiveBuffMoveSpeedMultiplier();
     }
 }
