@@ -34,6 +34,8 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     private readonly MaterialPropertyBlock[] blocks = new MaterialPropertyBlock[LightCount];
     private readonly Vector3[] origins = new Vector3[LightCount], bends = new Vector3[LightCount];
     private readonly bool[] spawned = new bool[LightCount];
+    private readonly float[] arrivedAt = new float[LightCount];
+    private const float ArrivalFadeDuration = .065f;
     private AudioSource gather, release;
     private Camera view;
     private QuarterViewCamera focusCamera;
@@ -81,7 +83,9 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
         effect.Dispose(); effect.weaponId = owner.CurrentWeaponItem?.runtimeInstanceId;
         effect.elementColor = ColorFor(element); effect.window = timing; effect.sourceSeconds = effect.focusStartedAt = -1f;
         effect.view = Camera.main; effect.focusCamera = QuarterViewCamera.ActiveInstance;
-        System.Array.Clear(effect.spawned, 0, effect.spawned.Length); effect.enabled = true;
+        System.Array.Clear(effect.spawned, 0, effect.spawned.Length);
+        for (int i = 0; i < LightCount; i++) effect.arrivedAt[i] = -1f;
+        effect.enabled = true;
         return effect;
     }
     public const float MinimumEnergyFraction = .8f;
@@ -152,7 +156,7 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
     public void SampleVisual(Camera camera)
     {
         if (!initialized) return;
-        bool shown = sourceSeconds >= window.Start && sourceSeconds < window.End;
+        bool shown = sourceSeconds >= window.Start;
         if (!shown || camera == null) { HideVisuals(); return; }
         Vector3 tip = equipment.CurrentWeaponTraceBinding?.WeaponTip?.position ?? transform.position, bottom = tip - transform.forward;
         if (blade != null) blade.TryGetBladeEndpoints(out bottom, out tip);
@@ -160,11 +164,15 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
         if (right.sqrMagnitude < .01f) right = Vector3.right;
         Vector3 up = Vector3.Cross(axis, right).normalized;
         float progress = window.Gather(sourceSeconds);
+        float now = Application.isPlaying ? OverburstGameClock.UnscaledTime : sourceSeconds;
         for (int i = 0; i < LightCount; i++)
         {
             float seed = Mathf.Repeat(Mathf.Sin(i * 12.9898f + 2.7f) * 43758.5453f, 1f);
             float delay = .015f + .11f * seed, arrival = .87f + .125f * Mathf.Repeat(seed * 2.37f, .999f);
-            float local = (progress - delay) / (arrival - delay); bool visible = local >= 0f && local < 1f;
+            float local = (progress - delay) / (arrival - delay);
+            if (local >= 1f && arrivedAt[i] < 0f) arrivedAt[i] = now;
+            float arrivalAge = arrivedAt[i] >= 0f ? Mathf.Clamp01((now - arrivedAt[i]) / ArrivalFadeDuration) : 0f;
+            bool visible = local >= 0f && arrivalAge < 1f;
             wisps[i].enabled = heads[i].enabled = visible; if (!visible) continue;
             float angle = i * 2.39996323f + seed * .32f;
             Vector3 target = Vector3.Lerp(bottom, tip, .22f + .624f * i / (LightCount - 1f));
@@ -175,8 +183,10 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
                 bends[i] = (right * Mathf.Sin(angle) + up * Mathf.Cos(angle)) * (.08f + .10f * seed); spawned[i] = true;
             }
             float tail = .060f + .014f * seed;
+            // Reach the moving blade first, then collapse the remaining tail and fade at the blade.
+            local = Mathf.Min(local, 1f + tail * Smooth(arrivalAge));
             for (int j = 0; j < PointCount; j++) wisps[i].SetPosition(j, Point(origins[i], target, bends[i], local - tail * (PointCount - 1 - j) / (PointCount - 1f)));
-            float alpha = Smooth(local / .13f) * (1f - Smooth((local - .94f) / .06f));
+            float alpha = Smooth(local / .13f) * (1f - Smooth(arrivalAge));
             Color color = elementColor; color.a = alpha * .58f;
             wisps[i].startColor = new Color(color.r, color.g, color.b, 0f); wisps[i].endColor = color;
             float size = (.081f + .071f * seed) * (1f + .14f * Smooth((local - .85f) / .12f));

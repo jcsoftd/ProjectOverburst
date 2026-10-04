@@ -2,6 +2,16 @@ using UnityEngine;
 
 public partial class MeleeRuntime
 {
+    public bool IsHeavyMovementAfterimageWindow
+    {
+        get
+        {
+            if (!IsHeavyAttackInProgress || heavyDischargeCommitted || activeAttackPhases == null || activeAttackPhases.Length == 0) return false;
+            int impact = activeHeavyDefinition != null ? activeHeavyDefinition.SafeDischargePhaseIndex : 0;
+            return GetAttackNormalizedTime() < activeAttackPhases[impact].SafeStart;
+        }
+    }
+
     private DashHeavyFocusPresentation groundHeavyFocus;
     private HeavyFocusWindow groundFocusWindow;
     private bool groundGatherPlayed, groundReleasePlayed;

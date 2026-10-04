@@ -559,7 +559,7 @@ public static partial class PlayerEvadeVerifier
 
     static IEnumerator Run()
     {
-        if (SessionState.GetBool(SwordFacingVerificationKey, false))
+        if (SessionState.GetBool(SwordFacingVerificationKey, false) || SessionState.GetBool(HeavyFocusOnlyKey, false))
         {
             float bootLimit = Time.unscaledTime + 25f;
             while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
@@ -567,7 +567,7 @@ public static partial class PlayerEvadeVerifier
                 && Time.unscaledTime < bootLimit) yield return null;
             Check(PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching
                 && PersistentSceneFlow.Instance.CurrentSubSceneName == PersistentSceneFlow.HideoutSceneName,
-                "턴 검증 실제 Hideout 로딩 완료");
+                "제품 검증 실제 Hideout 로딩 완료");
         }
         actor = PlayerContext.GetOrCreate().CurrentActor; input = PlayerInputFacade.Current;
         evade = actor.GetComponent<PlayerEvadeController>(); melee = actor.GetComponent<MeleeRuntime>(); movement = actor.GetComponent<PlayerMovement>();

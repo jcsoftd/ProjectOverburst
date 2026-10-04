@@ -47,6 +47,10 @@ public static partial class PlayerEvadeVerifier
     }
     static IEnumerator VerifyHeavyFocusMotions()
     {
+        float settleLimit = Time.unscaledTime + 5f;
+        while (!movement.IsGrounded && Time.unscaledTime < settleLimit) yield return null;
+        Check(movement.IsGrounded, "집중 검증 시험 구역 접지 준비");
+        origin = actor.transform.position;
         yield return Reset(); EquipDashHeavyGem(WeaponElement.Fire);
         yield return StartFocusHeavy("집중 측정 전 렌더 준비");
         float warmLimit = Time.unscaledTime + 8f;
@@ -54,10 +58,13 @@ public static partial class PlayerEvadeVerifier
         var energy = actor.GetComponent<OverburstElementEnergy>();
         if (energy == null) energy = actor.gameObject.AddComponent<OverburstElementEnergy>();
         var report = new List<object>();
+        var completionProbe = actor.gameObject.AddComponent<HeavyFocusCompletionProbe>(); fixtures.Add(completionProbe);
+        completionProbe.Bind(actor.Equipment, melee, actor.GetComponent<PlayerDashVfx>());
         foreach (string motion in new[] { "normal", "parried", "dash" })
         foreach (float fraction in new[] { 0f, .799f, .8f, 1f })
         {
             yield return Reset(); EquipDashHeavyGem(motion == "parried" ? WeaponElement.Ice : WeaponElement.Fire);
+            completionProbe.ResetSamples();
             FillEnergy(energy, 90000);
             // Probe the exact presentation boundary independently of per-hit energy gain.
             typeof(OverburstElementEnergy).GetProperty(nameof(OverburstElementEnergy.Amount)).SetValue(energy, energy.BaseMaximum * fraction);
@@ -71,7 +78,10 @@ public static partial class PlayerEvadeVerifier
                 if (motion == "parried") { yield return Frames(2); melee.NotifyHeavyParried(Field<int>(melee, "activeActionId")); }
             }
             float limit = Time.unscaledTime + 8f, minimumScale = 1f, zoomMaximum = 0f, pulseFinished = -1f;
-            int visible = 0, slowFrames = 0, maximumHeads = 0;
+            int visible = 0, slowFrames = 0, maximumHeads = 0, maximumArrivals = 0, arrivalVisibleFrames = 0, maximumGhosts = 0;
+            float maximumArrivalDistance = 0f;
+            var dashVfx = actor.GetComponent<PlayerDashVfx>();
+            int initialCaptures = dashVfx.CapturedAfterimageCount;
             var rows = new List<object>();
             do
             {
@@ -87,6 +97,10 @@ public static partial class PlayerEvadeVerifier
                 var focus = actor.Equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true);
                 int heads = focus != null ? focus.GetComponentsInChildren<MeshRenderer>().Count(r => r.enabled) : 0;
                 if (focus != null) Check(focus.GetComponentsInChildren<MeshRenderer>(true).Length == 24, "빛 알갱이24개 준비");
+                int arrivals = focus != null ? Field<float[]>(focus, "arrivedAt").Count(t => t >= 0f) : 0;
+                maximumArrivals = Mathf.Max(maximumArrivals, arrivals);
+                int ghosts = dashVfx.ActiveAfterimageCount;
+                maximumGhosts = Mathf.Max(maximumGhosts, ghosts);
                 if (heads > 0) visible++;
                 maximumHeads = Mathf.Max(maximumHeads, heads);
                 bool slow = OverburstTimeEffectArbiter.ActiveKind == OverburstTimeEffectKind.HeavyFocus;
@@ -98,7 +112,7 @@ public static partial class PlayerEvadeVerifier
                 zoomMaximum = Mathf.Max(zoomMaximum, zoom);
                 if (age >= .2f && !slow && pulseFinished < 0f) pulseFinished = age;
                 if (age > .2f + Time.unscaledDeltaTime * 2f) Check(!slow, "실제0.2초 뒤 집중 반환");
-                rows.Add(new { frame = Time.frameCount, real = OverburstGameClock.UnscaledTime, scale = Time.timeScale, heads, age, slow, zoom });
+                rows.Add(new { frame = Time.frameCount, real = OverburstGameClock.UnscaledTime, scale = Time.timeScale, heads, age, slow, zoom, arrivals, ghosts });
                 yield return null;
             } while (evade.IsEvading || melee.IsDashHeavyWindupActive || melee.IsAttackInProgress);
             yield return Frames(2);
@@ -106,6 +120,10 @@ public static partial class PlayerEvadeVerifier
                 JsonConvert.SerializeObject(new { motion, fraction, minimumScale, visible, slowFrames, maximumHeads, pulseFinished, zoomMaximum, rows }, Formatting.Indented));
             if (eligible)
             {
+                maximumArrivalDistance = completionProbe.MaximumArrivalDistance;
+                arrivalVisibleFrames = completionProbe.ArrivalVisibleSamples;
+                Check(maximumArrivals == 24 && arrivalVisibleFrames > 0 && maximumArrivalDistance < .01f,
+                    "24빛 검날 도착 후 사라짐 " + motion + " arrived=" + maximumArrivals + " distance=" + maximumArrivalDistance);
                 Check(visible > 0 && maximumHeads > 9 && slowFrames > 0 && minimumScale >= .299f && minimumScale <= .32f,
                     "80% 이상24빛·30% 실제 감속 " + motion + "/" + fraction + " min=" + minimumScale);
                 Check(pulseFinished >= .2f && pulseFinished < .28f, "실시간0.2초 보간 반환 " + motion + "/" + fraction + " elapsed=" + pulseFinished);
@@ -116,7 +134,16 @@ public static partial class PlayerEvadeVerifier
             yield return Wait(.15f);
             var returnedCamera = QuarterViewCamera.ActiveInstance;
             if (returnedCamera != null) Check((float)typeof(QuarterViewCamera).GetMethod("CurrentHeavyFocusZoom", Private).Invoke(returnedCamera, null) < .0001f, "집중 완료 후 확대 반환");
-            report.Add(new { motion, fraction, minimumScale, visible, slowFrames, maximumHeads, pulseFinished, zoomMaximum, rows });
+            Check(completionProbe.GhostsAfterImpact == 0, "내려찍기·베기 이후 강공 잔상 없음 " + motion);
+            Check(completionProbe.LowMovementCaptures == 0, "작은 이동에서 강공 잔상 추가 생성 없음 " + motion);
+            if (fraction == 1f && motion == "parried")
+                Check(completionProbe.MaximumMovementSpeed < .1f && dashVfx.CapturedAfterimageCount == initialCaptures,
+                    "제자리 패링 강공 잔상 제외");
+            if (fraction == 1f && motion != "parried") Check(completionProbe.MaximumGhosts > 0 && dashVfx.CapturedAfterimageCount > initialCaptures,
+                "완충 강공 큰 이동 잔상 유지 " + motion);
+            report.Add(new { motion, fraction, minimumScale, visible, slowFrames, maximumHeads, pulseFinished, zoomMaximum,
+                maximumArrivals, arrivalVisibleFrames, maximumArrivalDistance, maximumGhosts,
+                completionProbe.MaximumMovementSpeed, completionProbe.LowMovementCaptures, rows });
             Progress("focus80 " + motion + "/" + fraction);
         }
         foreach (bool pause in new[] { false, true })
@@ -140,5 +167,57 @@ public static partial class PlayerEvadeVerifier
             if (camera != null) Check((float)typeof(QuarterViewCamera).GetMethod("CurrentHeavyFocusZoom", Private).Invoke(camera, null) < .0001f, "취소·메뉴 후 확대 반환");
         }
         File.WriteAllText(Path.Combine(output, "HeavyFocusRuntime.json"), JsonConvert.SerializeObject(new { status = "PASS", report }, Formatting.Indented));
+    }
+}
+
+// Observe after production VFX, with blade and gathered lights from the same rendered frame.
+[DefaultExecutionOrder(500)]
+public sealed class HeavyFocusCompletionProbe : MonoBehaviour
+{
+    static readonly System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+    static readonly System.Reflection.FieldInfo Arrivals = typeof(DashHeavyFocusPresentation).GetField("arrivedAt", Flags);
+    static readonly System.Reflection.FieldInfo Heads = typeof(DashHeavyFocusPresentation).GetField("heads", Flags);
+    static readonly System.Reflection.FieldInfo Blade = typeof(DashHeavyFocusPresentation).GetField("blade", Flags);
+    PlayerEquipment equipment;
+    MeleeRuntime melee;
+    PlayerDashVfx dash;
+    public int ArrivalVisibleSamples, MaximumGhosts, GhostsAfterImpact;
+    public float MaximumArrivalDistance, MaximumMovementSpeed;
+    public int LowMovementCaptures;
+    Vector3 previousPosition;
+    int previousCaptures;
+    public void Bind(PlayerEquipment owner, MeleeRuntime runtime, PlayerDashVfx effect) { equipment = owner; melee = runtime; dash = effect; }
+    public void ResetSamples()
+    {
+        ArrivalVisibleSamples = MaximumGhosts = GhostsAfterImpact = LowMovementCaptures = 0;
+        MaximumArrivalDistance = MaximumMovementSpeed = 0f;
+        previousPosition = equipment.transform.position; previousCaptures = dash.CapturedAfterimageCount;
+    }
+    void LateUpdate()
+    {
+        float delta = OverburstGameClock.UnscaledDeltaTime;
+        float speed = delta > 0f ? Vector3.Distance(equipment.transform.position, previousPosition) / delta : 0f;
+        if (melee.IsHeavyAttackInProgress && delta > 0f)
+        {
+            MaximumMovementSpeed = Mathf.Max(MaximumMovementSpeed, speed);
+            if (speed < 3.5f - .001f) LowMovementCaptures += Mathf.Max(0, dash.CapturedAfterimageCount - previousCaptures);
+        }
+        previousPosition = equipment.transform.position; previousCaptures = dash.CapturedAfterimageCount;
+        MaximumGhosts = Mathf.Max(MaximumGhosts, dash.ActiveAfterimageCount);
+        if (melee.IsHeavyAttackInProgress && !melee.IsHeavyMovementAfterimageWindow)
+            GhostsAfterImpact = Mathf.Max(GhostsAfterImpact, dash.ActiveAfterimageCount);
+        var focus = equipment.CurrentWeaponRoot != null ? equipment.CurrentWeaponRoot.GetComponentInChildren<DashHeavyFocusPresentation>(true) : null;
+        if (focus == null || !focus.enabled) return;
+        var blade = (MeleeWeaponElementFx)Blade.GetValue(focus);
+        if (blade == null || !blade.TryGetBladeEndpoints(out var bottom, out var tip)) return;
+        var arrivals = (float[])Arrivals.GetValue(focus);
+        var heads = (MeshRenderer[])Heads.GetValue(focus);
+        for (int i = 0; i < heads.Length; i++)
+        {
+            if (arrivals[i] < 0f || !heads[i].enabled) continue;
+            Vector3 target = Vector3.Lerp(bottom, tip, .22f + .624f * i / (heads.Length - 1f));
+            MaximumArrivalDistance = Mathf.Max(MaximumArrivalDistance, Vector3.Distance(heads[i].transform.position, target));
+            ArrivalVisibleSamples++;
+        }
     }
 }

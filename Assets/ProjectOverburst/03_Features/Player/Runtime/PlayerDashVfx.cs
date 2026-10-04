@@ -22,6 +22,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
     [SerializeField] Color dustTint = new Color(.53f, .48f, .39f, .18f);
 
     const int FrameCapacity = 4, PieceLimit = 24;
+    const float HeavyMinimumSpeed = 3.5f, HeavyStopFadeDuration = .06f;
     static readonly int TintId = Shader.PropertyToID("_Tint");
     static readonly int AccentTintId = Shader.PropertyToID("_AccentTint");
     readonly Frame[] frames = new Frame[FrameCapacity];
@@ -37,7 +38,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
     bool emitting, dustPaused;
     int nextFrame;
     float nextSample;
-    Vector3 lastSamplePosition;
+    Vector3 lastSamplePosition, previousMotionPosition;
     Color activeTint, activeAccent;
     bool previousHeavy, emittingHeavy;
 
@@ -54,7 +55,8 @@ public sealed class PlayerDashVfx : MonoBehaviour
         public readonly List<Piece> pieces = new List<Piece>();
         public float born;
         public Color tint, accent;
-        public bool active;
+        public bool active, heavy;
+        public float stopFadeStarted = -1f;
     }
 
     public int CapturedAfterimageCount { get; private set; }
@@ -111,6 +113,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
     void OnEnable()
     {
         if(properties==null)properties=new MaterialPropertyBlock();
+        previousMotionPosition = transform.position;
         evade = GetComponent<PlayerEvadeController>();
         melee = GetComponent<MeleeRuntime>(); energy = GetComponent<OverburstElementEnergy>();
         evade.OnEvadeStarted += Started;
@@ -159,12 +162,17 @@ public sealed class PlayerDashVfx : MonoBehaviour
     void LateUpdate()
     {
         float now = OverburstGameClock.UnscaledTime;
+        float motionDelta = OverburstGameClock.UnscaledDeltaTime;
+        bool movingFast = motionDelta > 0f && (transform.position - previousMotionPosition).sqrMagnitude
+            >= HeavyMinimumSpeed * HeavyMinimumSpeed * motionDelta * motionDelta;
+        previousMotionPosition = transform.position;
         bool heavy = melee != null && melee.IsHeavyAttackInProgress;
         if (heavy && energy == null) energy = GetComponent<OverburstElementEnergy>();
         if (heavy && !previousHeavy && fullEnergyHeavyAfterimage && energy != null && energy.Amount >= energy.Capacity - .001f)
         { emittingHeavy=true; Begin(combatTint); }
         if (!heavy && emittingHeavy) { emittingHeavy=false; emitting=false; }
         previousHeavy = heavy;
+        bool heavyMovementWindow = heavy && melee.IsHeavyMovementAfterimageWindow;
         bool paused = OverburstGameClock.UnscaledDeltaTime <= 0f || (emittingHeavy && MeleeRuntime.IsHeavyParryClockPaused);
         if (dust != null)
         {
@@ -173,16 +181,23 @@ public sealed class PlayerDashVfx : MonoBehaviour
         foreach (var frame in frames)
         {
             if (frame == null || !frame.active) continue;
+            if (heavy && !heavyMovementWindow) { Hide(frame); continue; }
+            if ((frame.heavy || heavy) && !paused && (!heavy || !movingFast) && frame.stopFadeStarted < 0f)
+                frame.stopFadeStarted = now;
+            float stopFade = frame.stopFadeStarted >= 0f
+                ? Mathf.Clamp01((now - frame.stopFadeStarted) / HeavyStopFadeDuration) : 0f;
+            if (stopFade >= 1f) { Hide(frame); continue; }
             float age = Mathf.Clamp01((now - frame.born) / Mathf.Max(.01f, afterimageLifetime));
             if (age >= 1f) { Hide(frame); continue; }
             Color tint = frame.tint;
-            tint.a *= (1f - age) * (1f - age);
+            tint.a *= (1f - age) * (1f - age) * (1f - stopFade) * (1f - stopFade);
             properties.SetColor(TintId, tint);
             properties.SetColor(AccentTintId, frame.accent);
             foreach (var piece in frame.pieces) if (piece.renderer.enabled) piece.renderer.SetPropertyBlock(properties);
         }
         if (!emitting || (!emittingHeavy && !evade.IsEvading) || now < nextSample || paused) return;
-        if (!emittingHeavy && (transform.position - lastSamplePosition).sqrMagnitude < minimumSpacing * minimumSpacing) return;
+        if (emittingHeavy && (!heavyMovementWindow || !movingFast)) return;
+        if ((transform.position - lastSamplePosition).sqrMagnitude < minimumSpacing * minimumSpacing) return;
         Capture(now);
         if(!emittingHeavy)EmitDust(2);
         lastSamplePosition = transform.position;
@@ -257,6 +272,7 @@ public sealed class PlayerDashVfx : MonoBehaviour
             target.renderer.SetPropertyBlock(properties);
         }
         frame.active = index > 0; frame.born = now; frame.tint = activeTint; frame.accent = activeAccent;
+        frame.heavy = emittingHeavy; frame.stopFadeStarted = -1f;
         if (frame.active) CapturedAfterimageCount++;
     }
     void EmitDust(int count)
