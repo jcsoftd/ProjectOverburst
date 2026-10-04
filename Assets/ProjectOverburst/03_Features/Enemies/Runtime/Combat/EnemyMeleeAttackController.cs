@@ -778,7 +778,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 if (count == weakContactPreviewBuffer.Length) continue;
                 for (int i = 0; i < count; i++)
                     if (weakContactPreviewBuffer[i] != null && CombatTarget.Resolve(weakContactPreviewBuffer[i]) == wanted
-                        && (!ability.RequireLineOfSight || HasDirectLineOfSight(wanted,wanted.CurrentVolume.Center,ContactSightOrigin,true))) return true;
+                        && (!ability.RequireLineOfSight || HasDirectLineOfSight(wanted,weakContactPreviewBuffer[i].ClosestPoint(ContactSightOrigin),ContactSightOrigin,true))) return true;
             }
         }
         return false;
@@ -809,7 +809,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                 var receiver = hitTarget != null ? hitTarget.DamageReceiver : collider.GetComponentInParent<CombatHealth>();
                 if (receiver == null || receiver == health || receiver.IsDead || damagedTargets.Contains(receiver)) continue;
                 if (ability.RequireLineOfSight && hitTarget != null
-                    && !HasDirectLineOfSight(hitTarget,hitTarget.CurrentVolume.Center,ContactSightOrigin,true)) continue;
+                    && !HasDirectLineOfSight(hitTarget,collider.ClosestPoint(ContactSightOrigin),ContactSightOrigin,true)) continue;
                 if (!damagedTargets.Add(receiver)) continue;
                 Vector3 direction = receiver.transform.position - position; direction.y = 0f;
                 receiver.TakeDamage(new DamageInfo(damage,collider.ClosestPoint(center),gameObject,

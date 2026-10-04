@@ -65,8 +65,14 @@ public static class MonsterV3NewActorVerifier
                 bool originalDescendant=rigPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool weightedDescendant=weightedPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool unusedHelper=helperName&&exportModel!=null&&exportModel.transform.Find(p)!=null&&!originalDescendant&&!weightedDescendant;
-                if(unusedHelper)unusedExporterHelpers.Add(new JObject{["clip"]=clip.name,["path"]=p,["sourceExportTransformExists"]=true,
-                    ["originalRigDescendant"]=false,["weightedBoneDescendant"]=false,["duplicateTerminalLeaf"]=duplicateTerminal});
+                // An animation-only FBX may include an entire unused export skeleton branch.
+                // Every skin bone must still exist at its exact original path in the export.
+                // Missing ancestors or descendants of a real model/skin bone remain failures.
+                bool completeWeightedRig=exportModel!=null&&weightedPaths.All(x=>x==""||exportModel.transform.Find(x)!=null);
+                bool unusedExportBranch=exportNode!=null&&completeWeightedRig&&!originalDescendant&&!weightedDescendant;
+                if(unusedHelper||unusedExportBranch)unusedExporterHelpers.Add(new JObject{["clip"]=clip.name,["path"]=p,["sourceExportTransformExists"]=true,
+                    ["originalRigDescendant"]=false,["weightedBoneDescendant"]=false,["duplicateTerminalLeaf"]=duplicateTerminal,
+                    ["completeOriginalWeightedRigInExport"]=completeWeightedRig,["unusedExportBranch"]=unusedExportBranch});
                 else bindingIssues.Add(clip.name+"/"+p);
             }
         }

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Skorpmare
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Skorpmare
+  runtimeController: {fileID: 9100000, guid: 7334fb262a73b234ca0e95e5e8669184, type: 2}
+  idle: {fileID: 7400000, guid: b54ddfb46cccca34db3e023b883f76c6, type: 3}
+  walk: {fileID: 7400000, guid: f4983f6330a868e4ab745e7acd06c9bb, type: 3}
+  run: {fileID: 7400000, guid: c4eff70f74d86ab42a6e16c90bb3a23a, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 0425ad25e71c15041a790c337ea9f6e0, type: 3}
+  - {fileID: 7400000, guid: 8c00165acf52eef45bfc802a0d19814c, type: 3}
+  - {fileID: 7400000, guid: e8dd92a43dbcf434e8afe3f619c9cb0b, type: 3}
+  hit: {fileID: 7400000, guid: 092589c6b5f5023488ffef8d4dedbc11, type: 3}
+  death: {fileID: 7400000, guid: 0b5571055ba0e3d459021091707769b5, type: 3}
+  optional:
+  - {fileID: 7400000, guid: f4983f6330a868e4ab745e7acd06c9bb, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 606b972a43d481f4da4c35eda40434a5, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 5ab2d6a6af894fd47973d3e38aec0a92, type: 2}
+  stunRecover: {fileID: 7400000, guid: a23a840b521f7ba4ba2ccef4748d1fa9, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/8dfd0b66/Skorpmare@Walk_RM.FBX"
