@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_SkeletonKnight_Medium_2HandedAttack2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: b4d3fc00e3bfce8a
+  originalClip: {fileID: 7400000, guid: a56f932cdffb1ba4687898ae748b7a58, type: 3}
+  runtimeClip: {fileID: 7400000, guid: a56f932cdffb1ba4687898ae748b7a58, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 2.0482183
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.26666668, y: 0.53333336}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.26666668
+      capsules:
+      - a: {x: -0.5395072, y: 0.94795424, z: 0.2679674}
+        b: {x: -0.9776309, y: 1.1869484, z: -0.37149104}
+        radius: 0.13
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: -0.33759642, y: 0.90365714, z: 0.8050059}
+        b: {x: -1.1405715, y: 0.86611146, z: 0.9136302}
+        radius: 0.13
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: 0.31056473, y: 1.0210025, z: 0.9244049}
+        b: {x: -0.07378278, y: 1.0479419, z: 1.6382182}
+        radius: 0.13
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: 0.633895, y: 1.0449203, z: 0.5662832}
+        b: {x: 0.56329453, y: 1.0799646, z: 1.3736036}
+        radius: 0.13
+    - normalizedTime: 0.53333336
+      capsules:
+      - a: {x: 0.8521107, y: 1.0205098, z: 0.18660021}
+        b: {x: 1.3200817, y: 0.942891, z: 0.8445944}
+        radius: 0.13
+    maximumPlanarReach: 1.7698789

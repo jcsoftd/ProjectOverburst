@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_SkeletonKnight_Medium
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_SkeletonKnight_Medium
+  runtimeController: {fileID: 9100000, guid: 9bfc5820f8492e941aaafd312419aee5, type: 2}
+  idle: {fileID: 7400000, guid: 0caf1fd43a75f0e42aecafd78b44c745, type: 3}
+  walk: {fileID: 7400000, guid: fe52d0bcd6d90bf4db9981cdfc23855d, type: 3}
+  run: {fileID: 7400000, guid: e4b0cf1ee3f092f49b7ef9b3073fa01c, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 1a1577e9c72a02749a384c6be9d8c0a9, type: 3}
+  - {fileID: 7400000, guid: 296ae54b2730a0c48a789662e411c44f, type: 3}
+  - {fileID: 7400000, guid: a56f932cdffb1ba4687898ae748b7a58, type: 3}
+  - {fileID: 7400000, guid: b7dd2c1f66293b843b880dc0bc3c45c5, type: 3}
+  - {fileID: 7400000, guid: e91c0773e73cd224f805cbee9b873e1f, type: 3}
+  - {fileID: 7400000, guid: 33b22011e4c091647b5d92266b391355, type: 3}
+  hit: {fileID: 7400000, guid: 9477dc30202bf85478b43ad88db10cf5, type: 3}
+  death: {fileID: 7400000, guid: 4273e163acc2e1c489e8a506cae7e5c3, type: 3}
+  optional:
+  - {fileID: 7400000, guid: fe52d0bcd6d90bf4db9981cdfc23855d, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 985368fe7791c854f9a717af54df9971, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 6eda2f4191cd3b74b8f81d690de7282b, type: 2}
+  stunRecover: {fileID: 7400000, guid: 1aed352b2938ecb468e5bb5702b8c38c, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P04/c7dcd906/SkeletonKnight@2HandedWalk_RM.FBX"

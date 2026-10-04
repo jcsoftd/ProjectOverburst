@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_SkeletonKnight_Medium_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_SkeletonKnight_Medium
+  abilities:
+  - {fileID: 11400000, guid: 26f8c039fee795a4d9bc05bce112ac23, type: 2}
+  - {fileID: 11400000, guid: 7e2a46debd169ed4f89e9782d563a4e1, type: 2}
+  - {fileID: 11400000, guid: 976c1d61b919e0d4aad979359cf15032, type: 2}
+  - {fileID: 11400000, guid: 9502a61f3f314f34abea5f4bede82f4d, type: 2}
+  - {fileID: 11400000, guid: e04b47ec31b97f64f9117d277d23a806, type: 2}
+  - {fileID: 11400000, guid: 57dd5e669bea15449bce9004371b95c0, type: 2}

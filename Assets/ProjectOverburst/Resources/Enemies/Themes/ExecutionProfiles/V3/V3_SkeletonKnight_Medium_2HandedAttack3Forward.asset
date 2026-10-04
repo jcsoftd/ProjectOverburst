@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_SkeletonKnight_Medium_2HandedAttack3Forward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 356b5f39a0b3817a
+  originalClip: {fileID: 7400000, guid: b7dd2c1f66293b843b880dc0bc3c45c5, type: 3}
+  runtimeClip: {fileID: 7400000, guid: b7dd2c1f66293b843b880dc0bc3c45c5, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 1
+  stationaryStartRange: 2.1973717
+  maxAdvanceDistance: 0.2
+  advanceWindow: {x: 0.25, y: 0.45}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.33333334, y: 0.6}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: 0.005528279, y: 1.7509756, z: 0.2502708}
+        b: {x: -0.057839785, y: 2.1812322, z: -0.4344497}
+        radius: 0.13
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: 0.056837775, y: 1.467699, z: 0.7706348}
+        b: {x: 0.044563845, y: 2.2749064, z: 0.84966004}
+        radius: 0.13
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: -0.025381587, y: 0.8702701, z: 1.0280426}
+        b: {x: -0.13242961, y: 1.1347288, z: 1.7873716}
+        radius: 0.13
+    - normalizedTime: 0.53333336
+      capsules:
+      - a: {x: -0.09919552, y: 0.5262733, z: 0.9412467}
+        b: {x: -0.34187138, y: 0.32074356, z: 1.6874669}
+        radius: 0.13
+    - normalizedTime: 0.6
+      capsules:
+      - a: {x: -0.07967347, y: 0.4963836, z: 0.88427263}
+        b: {x: -0.34485632, y: 0.28061536, z: 1.619868}
+        radius: 0.13
+    maximumPlanarReach: 1.9222709

@@ -339,10 +339,17 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(floor);floor.name="V3 lease fixture ground";
         floor.transform.position=new Vector3(0,-.5f,0);floor.transform.localScale=new Vector3(100,1,100);
         var playerPrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab");
-        var volume=playerPrefab.GetComponent<CombatTarget>().CurrentVolume;
-        var targetRoot=new GameObject("Native player-sized AI target");owned.Add(targetRoot);targetRoot.layer=playerPrefab.layer;
-        targetRoot.transform.position=new Vector3(0,plan.leaseDefinitionPaths?.Length>0?0:1,4.5f);
-        var capsule=targetRoot.AddComponent<CapsuleCollider>();capsule.center=volume.Center;capsule.radius=volume.Radius;capsule.height=volume.HalfHeight*2;
+        var volume=playerPrefab.GetComponent<CombatTarget>().ResolveVolumeAtRootPosition(Vector3.zero);
+        var playerBody=playerPrefab.GetComponentsInChildren<CapsuleCollider>(true).Single(c=>c.enabled&&!c.isTrigger);
+        Vector3 bodyCenter=playerPrefab.transform.InverseTransformPoint(playerBody.transform.TransformPoint(playerBody.center));
+        Vector3 bodyScale=playerBody.transform.lossyScale;
+        if(playerBody.direction!=1||playerPrefab.transform.lossyScale!=Vector3.one)
+            throw new InvalidOperationException("The saved player capsule basis changed; preserve and inspect it.");
+        var targetRoot=new GameObject("Saved player collider and combat-volume AI target");owned.Add(targetRoot);targetRoot.layer=playerPrefab.layer;
+        targetRoot.transform.position=new Vector3(0,0,4.5f);
+        var capsule=targetRoot.AddComponent<CapsuleCollider>();capsule.center=bodyCenter;
+        capsule.radius=playerBody.radius*Mathf.Max(Mathf.Abs(bodyScale.x),Mathf.Abs(bodyScale.z));
+        capsule.height=playerBody.height*Mathf.Abs(bodyScale.y);
         var target=targetRoot.AddComponent<CombatTarget>();target.Configure(CombatTeam.PlayerParty,false);
         target.ConfigureVolume(volume.Center,volume.Radius,volume.HalfHeight*2);var health=targetRoot.GetComponent<CombatHealth>();health.SetMaxHp(100000,true);
         var so=new SerializedObject(health);so.FindProperty("showDamageNumbers").boolValue=false;so.ApplyModifiedPropertiesWithoutUndo();
@@ -360,7 +367,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             EnemyActor previous=null;uint lastVersion=0;
             for(int lease=0;lease<2;lease++)
             {
-                targetRoot.transform.position=new Vector3(0,plan.leaseDefinitionPaths?.Length>0?0:1,4.5f);health.SetMaxHp(100000,true);damageEvents.Clear();
+                targetRoot.transform.position=new Vector3(0,0,4.5f);health.SetMaxHp(100000,true);damageEvents.Clear();
                 var request=new EnemySpawnRequest(definition,Vector3.zero,Quaternion.identity,targetRoot.transform,null,targetRoot.transform,null,1,1,71+lease);
                 if(!service.TrySpawn(request,out var actor))throw new Exception("Production spawn failed: "+id);
                 actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
@@ -371,6 +378,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 var expected=Enumerable.Range(0,definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility)
                     .Where(a=>a.WeakAttackExecution!=null).Select(a=>a.WeakAttackExecution.SelectionKey).ToHashSet();
                 var actual=new HashSet<string>();var states=new HashSet<string>();float moved=0;Vector3 previousPosition=actor.transform.position;
+                float initialAttackRange=actor.AbilityController.AttackRange;
+                float initialDistance=Mathf.Max(4.5f,initialAttackRange+1.25f);
+                targetRoot.transform.position=new Vector3(0,0,initialDistance);
                 actor.AI.RequestAggro(targetRoot.transform);float begin=Time.time,limit=Time.time+10;bool driverObserved=false;
                 while(Time.time<limit)
                 {
@@ -382,15 +392,21 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                     if(Time.time-begin>4&&actual.Count>0&&damageEvents.Count>0&&!actor.Melee.IsAttacking)break;
                     yield return null;
                 }
-                bool aiAttack=actual.Count>0&&actual.All(expected.Contains)&&damageEvents.Count>0&&moved>.1f;
+                bool aiAttack=actual.Count>0&&actual.All(expected.Contains)&&damageEvents.Count>0;
+                bool approached=initialDistance<=initialAttackRange+.01f||moved>.1f;
+                float finalDistance=Vector2.Distance(new Vector2(actor.transform.position.x,actor.transform.position.z),
+                    new Vector2(targetRoot.transform.position.x,targetRoot.transform.position.z));
                 uint version=actor.LeaseVersion;previous=actor;lastVersion=version;
                 service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
                 bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!actor.Melee.IsAttacking
                     &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive
                     &&actor.Animator.updateMode==definition.ActorPrefab.Animator.updateMode&&pool.LeasedCount==0&&pool.PendingReturnCount==0;
-                bool pass=fresh&&reused&&aiAttack&&driverObserved&&reset;
+                bool pass=fresh&&reused&&aiAttack&&approached&&driverObserved&&reset;
                 cases.Add(new JObject{["id"]=id,["lease"]=lease,["leaseVersion"]=version,["freshState"]=fresh,["samePooledActor"]=reused,
-                    ["actualAiAttack"]=aiAttack,["driverObserved"]=driverObserved,["reset"]=reset,["pass"]=pass,["movedMeters"]=moved,
+                    ["actualAiAttack"]=aiAttack,["approached"]=approached,["driverObserved"]=driverObserved,["reset"]=reset,["pass"]=pass,["movedMeters"]=moved,
+                    ["initialDistance"]=initialDistance,["initialAttackRange"]=initialAttackRange,["finalDistance"]=finalDistance,
+                    ["playerCapsuleCenter"]=new JArray(capsule.center.x,capsule.center.y,capsule.center.z),
+                    ["playerCapsuleRadius"]=capsule.radius,["playerCapsuleHeight"]=capsule.height,
                     ["states"]=JArray.FromObject(states),["weakSelections"]=JArray.FromObject(actual),["damageEvents"]=damageEvents.DeepClone(),
                     ["available"]=pool.AvailableCount,["created"]=pool.CreatedCount});
                 WriteResult("RUNNING");
@@ -405,7 +421,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
             ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
-            ["geometryFixture"]=plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; native player-sized capsule target":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
+            ["geometryFixture"]=plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; actual saved player physical capsule and separate combat volume":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
             ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["leaseDefinitionPaths"]=plan.leaseDefinitionPaths==null?null:JArray.FromObject(plan.leaseDefinitionPaths),["realPlayerParry"]=plan.realPlayerParry,["nativeAttackBatch"]=plan.attackBatch,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
     static void Return(string error)

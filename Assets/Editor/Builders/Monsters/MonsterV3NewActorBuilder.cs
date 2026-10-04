@@ -257,6 +257,14 @@ public static class MonsterV3NewActorBuilder
             var scaled=new GameObject("Authored model scale").transform;scaled.SetParent(visual,false);scaled.localScale=Vector(batch["modelScale"]);
             var model=(GameObject)PrefabUtility.InstantiatePrefab(prefab,scene);model.transform.SetParent(scaled,false);
             model.transform.localPosition=new Vector3(0,(float)batch["modelYOffset"]/scaled.localScale.x,0);model.transform.localRotation=Quaternion.identity;model.transform.localScale=Vector3.one;
+            if((string)batch["weaponMode"]=="TwoHanded")
+            {
+                foreach(var t in model.GetComponentsInChildren<Transform>(true))
+                {
+                    if(t.name=="SM_2HandedSword")t.gameObject.SetActive(true);
+                    if(t.name=="SM_Sword"||t.name=="SM_Shield")t.gameObject.SetActive(false);
+                }
+            }
             foreach(var renderer in model.GetComponentsInChildren<Renderer>(true))
                 renderer.sharedMaterials=renderer.sharedMaterials.Select(m=>RenderMaterial(m,batch,created,folders)).ToArray();
             var animator=model.GetComponentInChildren<Animator>(true);if(animator==null)throw new InvalidOperationException("Native Animator missing.");
