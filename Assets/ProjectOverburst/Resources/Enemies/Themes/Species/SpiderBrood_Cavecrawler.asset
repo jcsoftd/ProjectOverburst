@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: SpiderBrood_Cavecrawler
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: SpiderBrood_Cavecrawler
+  displayName: Cavecrawler
+  vendorPrefab: {fileID: 6735205811123252913, guid: 25d46811d0cd06b4f876253c47563313, type: 3}
+  animationProfile: {fileID: 11400000, guid: 375e12bbb3585c24ea993ea8cdc85654, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: ac7759dde11cc5741aae1636bc7071a9, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 2eb7f32236a7d9544ba16e4b5a080ed1, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: ad75e9fee1e43814cadcf870b39660f6, type: 2}
+  threatCost: 3

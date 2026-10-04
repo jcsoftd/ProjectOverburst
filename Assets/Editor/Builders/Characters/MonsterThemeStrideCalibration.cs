@@ -26,6 +26,16 @@ public static class MonsterThemeStrideCalibration
     {
         return FindSoles(actor).Select(s=>new ContactProbe{name=s.name,sample=s.WorldPosition}).ToArray();
     }
+    // Explicit supporting bones let new vendor rigs reuse the same skin-sole measurement.
+    public static ContactProbe[] CreateRuntimeProbes(EnemyActor actor, string[] supportingBoneNames)
+    {
+        if(supportingBoneNames==null || supportingBoneNames.Length<2 || supportingBoneNames.Distinct().Count()!=supportingBoneNames.Length)
+            throw new ArgumentException("At least two unique supporting bones required.");
+        var names=new HashSet<string>(supportingBoneNames,StringComparer.Ordinal);
+        var probes=FindSoles(actor,names).Select(s=>new ContactProbe{name=s.name,sample=s.WorldPosition}).ToArray();
+        if(!names.SetEquals(probes.Select(x=>x.name)))throw new InvalidOperationException("Some supporting bones have no weighted sole vertices.");
+        return probes;
+    }
     private sealed class Sole
     {
         public string name;
@@ -112,10 +122,10 @@ public static class MonsterThemeStrideCalibration
         return new Gait {clip=clip.name,naturalSpeed=Median(speeds),feet=names.ToArray(),footSpeeds=speeds.ToArray()};
     }
 
-    private static List<Sole> FindSoles(EnemyActor actor)
+    private static List<Sole> FindSoles(EnemyActor actor, HashSet<string> supportingBones=null)
     {
         var meshes=actor.VisualRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-        var feet=meshes.SelectMany(m=>m.bones).Where(b=>b!=null).Distinct().Where(b=>IsFoot(actor.Definition.EnemyId,b)).ToArray();
+        var feet=meshes.SelectMany(m=>m.bones).Where(b=>b!=null).Distinct().Where(b=>supportingBones!=null?supportingBones.Contains(b.name):IsFoot(actor.Definition.EnemyId,b)).ToArray();
         var result=new List<Sole>();
         foreach(var renderer in meshes)
         {
@@ -143,7 +153,7 @@ public static class MonsterThemeStrideCalibration
             }
             finally {Object.DestroyImmediate(baked);}
         }
-        if(result.Count>0)
+        if(result.Count>0 && supportingBones==null)
         {
             float ground=result.Min(s=>s.initialHeight);
             result.RemoveAll(s=>s.initialHeight>ground+.2f); // Raised hands on bipeds are not supporting feet.

@@ -15,14 +15,15 @@ using UnityEngine.SceneManagement;
 // Runs real coroutines, Animator and physics in an owned empty Play scene.
 // Saved mode reads persisted actors/profiles; fixture mode keeps overrides in memory. SFX assets are never saved.
 [InitializeOnLoad]
-public static class MonsterWeakAttackPlayerLoopVerifier
+public static partial class MonsterWeakAttackPlayerLoopVerifier
 {
     const string Key = "Overburst.WeakAttackPlayerLoop.";
     const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     sealed class Plan
     {
-        public string directory, fixture, previousStart, phase, token;
-        public bool background, fixedAnimator, stress, savedProfiles;
+        public string directory, fixture, previousStart, phase, token, testDefinition, attackBatch;
+        public int expectedWeakCases;
+        public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
         public JArray scenes;
@@ -54,6 +55,25 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         return list;
     }
     public static string Start(string outputDirectory, bool fixedAnimator = false, float attackSpeed = 1f, bool stress = false, bool savedProfiles = false)
+        => StartInternal(outputDirectory,fixedAnimator,attackSpeed,stress,savedProfiles,false);
+    public static string StartActorLease(string outputDirectory)
+        => StartInternal(outputDirectory,false,1f,false,true,true);
+    public static string StartNewActorLease(string outputDirectory,string definitionPath)
+    {
+        if(!definitionPath.StartsWith("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/",StringComparison.Ordinal)
+            ||AssetDatabase.LoadAssetAtPath<EnemyDefinition>(definitionPath)?.IsValid!=true)
+            throw new ArgumentException("Valid saved project-owned review definition required.");
+        return StartInternal(outputDirectory,false,1f,false,true,true,definitionPath);
+    }
+    public static string StartSavedAttackBatch(string outputDirectory,string authoringPath)
+    {
+        authoringPath=Path.GetFullPath(authoringPath);
+        string allowed=Path.GetFullPath(Path.Combine(Workspace,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        if(!authoringPath.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||!File.Exists(authoringPath))
+            throw new ArgumentException("Private native authoring batch required.");
+        return StartInternal(outputDirectory,false,1,false,true,false,null,false,authoringPath);
+    }
+    static string StartInternal(string outputDirectory,bool fixedAnimator,float attackSpeed,bool stress,bool savedProfiles,bool leaseVerification,string testDefinition=null,bool realPlayerParry=false,string attackBatch=null)
     {
         if(float.IsNaN(attackSpeed) || float.IsInfinity(attackSpeed) || attackSpeed<=0f)throw new ArgumentException("Invalid attack speed.");
         if(plan!=null || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
@@ -69,16 +89,19 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+180,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,scenes=SceneEvidence() };
-        plan.fixture="Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=string.IsNullOrEmpty(attackBatch)?0:JObject.Parse(File.ReadAllText(attackBatch))["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*3,scenes=SceneEvidence() };
+        plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
         Scene active=SceneManager.GetActiveScene(); Scene fixture=default;
         try
         {
-            fixture=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Additive);
-            if(!EditorSceneManager.SaveScene(fixture,plan.fixture))throw new InvalidOperationException("Fixture save failed.");
-            EditorSceneManager.CloseScene(fixture,true); fixture=default;
+            if(!realPlayerParry)
+            {
+                fixture=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Additive);
+                if(!EditorSceneManager.SaveScene(fixture,plan.fixture))throw new InvalidOperationException("Fixture save failed.");
+                EditorSceneManager.CloseScene(fixture,true);fixture=default;
+            }
             SceneManager.SetActiveScene(active);
             EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture);
             Application.runInBackground=true;
@@ -122,15 +145,29 @@ public static class MonsterWeakAttackPlayerLoopVerifier
     // is scheduled by Unity on the runtime host, never by Editor.update.
     static IEnumerator Drive(IEnumerator body)
     {
-        while(true)
+        // Nested routines are driven on the same runtime Coroutine host. Unity still
+        // schedules every non-enumerator yield, including physics and frame waits.
+        var stack=new Stack<IEnumerator>();stack.Push(body);
+        while(stack.Count>0)
         {
-            bool more; object current;
-            try { more=body.MoveNext(); current=more?body.Current:null; }
-            catch(Exception error){ (body as IDisposable)?.Dispose(); Return(error.ToString()); yield break; }
-            if(!more)break;
+            var currentRoutine=stack.Peek();bool more;object current;
+            try{more=currentRoutine.MoveNext();current=more?currentRoutine.Current:null;}
+            catch(Exception error)
+            {
+                string cleanup="";
+                while(stack.Count>0)try{(stack.Pop() as IDisposable)?.Dispose();}catch(Exception e){cleanup+="\nCleanup: "+e.Message;}
+                Return(error+cleanup);yield break;
+            }
+            if(!more)
+            {
+                stack.Pop();
+                try{(currentRoutine as IDisposable)?.Dispose();}catch(Exception error){Return(error.ToString());yield break;}
+                continue;
+            }
+            if(current is IEnumerator nested){stack.Push(nested);continue;}
             yield return current;
         }
-        (body as IDisposable)?.Dispose(); Return(null);
+        Return(null);
     }
     static AnimationClip Source(JObject row) => AssetDatabase.LoadAllAssetsAtPath((string)row["sourcePath"]).OfType<AnimationClip>()
         .Single(c=>AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c,out string guid,out long id)
@@ -138,9 +175,13 @@ public static class MonsterWeakAttackPlayerLoopVerifier
     static Vector3 Vector(JToken value)=>new Vector3((float)value[0],(float)value[1],(float)value[2]);
     static IEnumerator RunCases()
     {
-        var author=JObject.Parse(File.ReadAllText(Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json")));
-        var rows=author["entries"].OfType<JObject>().Where(r=>(bool?)r["nativeContactGeometryAuthored"]==true).ToArray();
-        if(rows.Length!=8)throw new InvalidOperationException("Expected eight measured native attacks.");
+        if(plan.realPlayerParry){yield return RunRealPlayerParryCases();yield break;}
+        if(plan.leaseVerification){yield return RunLeaseCases();yield break;}
+        var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
+        var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
+        var rows=author["entries"].OfType<JObject>().Where(r=>(bool?)r["nativeContactGeometryAuthored"]==true
+            &&(!string.IsNullOrEmpty(plan.attackBatch)||originalIds.Contains((string)r["cardKey"]))).ToArray();
+        if(rows.Length==0||string.IsNullOrEmpty(plan.attackBatch)&&rows.Length!=8)throw new InvalidOperationException("Native authored attack batch is empty or unexpected.");
         var runs=from fps in new[]{15,30,60}
             from row in rows where !plan.stress || (string)row["selectionKey"]=="06b6021ea737706a"
             from scenario in plan.stress?new[]{"cancel","freeze","hitstop","first-miss","cancel-on-hit"}:new[]{"normal"}
@@ -198,7 +239,10 @@ public static class MonsterWeakAttackPlayerLoopVerifier
             var playerVolume=playerPrefab!=null?playerPrefab.GetComponent<CombatTarget>().CurrentVolume:new CombatTargetVolume(Vector3.up,5,5);
             if(playerPrefab!=null)victim.layer=playerPrefab.layer;
             float startingDistance=plan.savedProfiles?profile.ApproachStartRange-.10f:1f;
-            victim.transform.position=go.transform.position+Vector3.forward*startingDistance;
+            // The saved player pivot is at the capsule center. Ground its lowest point
+            // at the actor's floor height, as in the production Actor lease test.
+            float groundOffset=plan.savedProfiles?playerVolume.HalfHeight-playerVolume.Center.y:0f;
+            victim.transform.position=go.transform.position+Vector3.forward*startingDistance+Vector3.up*groundOffset;
             var collider=victim.AddComponent<CapsuleCollider>();collider.center=playerVolume.Center;collider.radius=playerVolume.Radius;collider.height=playerVolume.HalfHeight*2;
             foreach(var shape in go.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(shape,collider);
             var target=victim.AddComponent<CombatTarget>();target.Configure(plan.savedProfiles?CombatTeam.PlayerParty:CombatTeam.Neutral,false);
@@ -260,25 +304,106 @@ public static class MonsterWeakAttackPlayerLoopVerifier
                 ["fixedDelta"]=Time.fixedDeltaTime,["started"]=started,["startFrame"]=startFrame,
                 ["scenario"]=scenario,["pauseVerified"]=pauseVerified,["expectedHits"]=expected.Length,["pass"]=pass,["hits"]=hits,["samples"]=samples});
             var last=(JObject)cases[cases.Count-1];last["savedProfile"]=plan.savedProfiles;last["startingDistance"]=startingDistance;
-            last["targetRadius"]=playerVolume.Radius;last["expectedDamage"]=expectedDamage;
+            last["targetRadius"]=playerVolume.Radius;last["targetGroundOffsetY"]=groundOffset;last["expectedDamage"]=expectedDamage;
             WriteResult("RUNNING");
             melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);
             yield return null;
         }
     }
+
+    // Production spawn/AI/ability/pool path. The target uses the saved player's body volume;
+    // no attack timings, ranges, damage, controllers or profiles are overridden.
+    static IEnumerator RunLeaseCases()
+    {
+        Time.captureDeltaTime=1f/60;
+        var serviceRoot=new GameObject("V3 Actor lease services");owned.Add(serviceRoot);
+        var poolRoot=new GameObject("V3 Inactive pool");poolRoot.transform.SetParent(serviceRoot.transform,false);poolRoot.SetActive(false);
+        var pool=serviceRoot.AddComponent<EnemyPoolService>();pool.Configure(poolRoot.transform,0);
+        var service=serviceRoot.AddComponent<EnemySpawnService>();
+        var catalog=AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
+        if(!string.IsNullOrEmpty(plan.testDefinition))
+        {
+            catalog=ScriptableObject.CreateInstance<EnemyCatalog>();owned.Add(catalog);
+            catalog.Configure(new[]{AssetDatabase.LoadAssetAtPath<EnemyDefinition>(plan.testDefinition)});
+        }
+        service.Configure(catalog,pool);
+        var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(floor);floor.name="V3 lease fixture ground";
+        floor.transform.position=new Vector3(0,-.5f,0);floor.transform.localScale=new Vector3(100,1,100);
+        var playerPrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab");
+        var volume=playerPrefab.GetComponent<CombatTarget>().CurrentVolume;
+        var targetRoot=new GameObject("Native player-sized AI target");owned.Add(targetRoot);targetRoot.layer=playerPrefab.layer;
+        targetRoot.transform.position=new Vector3(0,1,4.5f);
+        var capsule=targetRoot.AddComponent<CapsuleCollider>();capsule.center=volume.Center;capsule.radius=volume.Radius;capsule.height=volume.HalfHeight*2;
+        var target=targetRoot.AddComponent<CombatTarget>();target.Configure(CombatTeam.PlayerParty,false);
+        target.ConfigureVolume(volume.Center,volume.Radius,volume.HalfHeight*2);var health=targetRoot.GetComponent<CombatHealth>();health.SetMaxHp(100000,true);
+        var so=new SerializedObject(health);so.FindProperty("showDamageNumbers").boolValue=false;so.ApplyModifiedPropertiesWithoutUndo();
+        var damageEvents=new JArray();
+        health.OnDamaged+=(_,info)=>damageEvents.Add(new JObject{["frame"]=Time.frameCount,["damage"]=info.damage,
+            ["phase"]=info.sourceAttackPhaseIndex,["sequence"]=info.sourceAttackSequenceId});
+        yield return null;yield return new WaitForFixedUpdate();
+        var definitions=string.IsNullOrEmpty(plan.testDefinition)
+            ?new[]{"Cephalonops","Ceratoferox","Gasterobrach","Gorhorrid"}.Select(name=>AssetDatabase.LoadAssetAtPath<EnemyDefinition>(
+                "Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/CavernMutants_"+name+".asset")).ToArray()
+            :new[]{AssetDatabase.LoadAssetAtPath<EnemyDefinition>(plan.testDefinition)};
+        foreach(var definition in definitions)
+        {
+            string id=definition.EnemyId;
+            EnemyActor previous=null;uint lastVersion=0;
+            for(int lease=0;lease<2;lease++)
+            {
+                targetRoot.transform.position=new Vector3(0,1,4.5f);health.SetMaxHp(100000,true);damageEvents.Clear();
+                var request=new EnemySpawnRequest(definition,Vector3.zero,Quaternion.identity,targetRoot.transform,null,targetRoot.transform,null,1,1,71+lease);
+                if(!service.TrySpawn(request,out var actor))throw new Exception("Production spawn failed: "+id);
+                actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
+                bool reused=lease==0||actor==previous;
+                bool fresh=actor.IsLeased&&actor.LeaseVersion>lastVersion&&!actor.Melee.IsAttacking
+                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive
+                    &&!actor.AnimationBridge.IsBlockingActionActive&&actor.transform.localScale==Vector3.one;
+                var expected=Enumerable.Range(0,definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility)
+                    .Where(a=>a.WeakAttackExecution!=null).Select(a=>a.WeakAttackExecution.SelectionKey).ToHashSet();
+                var actual=new HashSet<string>();var states=new HashSet<string>();float moved=0;Vector3 previousPosition=actor.transform.position;
+                actor.AI.RequestAggro(targetRoot.transform);float begin=Time.time,limit=Time.time+10;bool driverObserved=false;
+                while(Time.time<limit)
+                {
+                    moved+=Vector3.Distance(previousPosition,actor.transform.position);previousPosition=actor.transform.position;
+                    states.Add(actor.AI.CurrentStateName);
+                    var ability=actor.AbilityController.LastCommittedAbility;
+                    if(ability!=null&&ability.WeakAttackExecution!=null)actual.Add(ability.WeakAttackExecution.SelectionKey);
+                    driverObserved|=actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive;
+                    if(Time.time-begin>4&&actual.Count>0&&damageEvents.Count>0&&!actor.Melee.IsAttacking)break;
+                    yield return null;
+                }
+                bool aiAttack=actual.Count>0&&actual.All(expected.Contains)&&damageEvents.Count>0&&moved>.1f;
+                uint version=actor.LeaseVersion;previous=actor;lastVersion=version;
+                service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
+                bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!actor.Melee.IsAttacking
+                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive
+                    &&actor.Animator.updateMode==definition.ActorPrefab.Animator.updateMode&&pool.LeasedCount==0&&pool.PendingReturnCount==0;
+                bool pass=fresh&&reused&&aiAttack&&driverObserved&&reset;
+                cases.Add(new JObject{["id"]=id,["lease"]=lease,["leaseVersion"]=version,["freshState"]=fresh,["samePooledActor"]=reused,
+                    ["actualAiAttack"]=aiAttack,["driverObserved"]=driverObserved,["reset"]=reset,["pass"]=pass,["movedMeters"]=moved,
+                    ["states"]=JArray.FromObject(states),["weakSelections"]=JArray.FromObject(actual),["damageEvents"]=damageEvents.DeepClone(),
+                    ["available"]=pool.AvailableCount,["created"]=pool.CreatedCount});
+                WriteResult("RUNNING");
+            }
+        }
+        UnityEngine.Object.Destroy(serviceRoot);UnityEngine.Object.Destroy(targetRoot);UnityEngine.Object.Destroy(floor);
+        yield return null;
+    }
+
     static void WriteResult(string state)
     {
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
             ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
-            ["geometryFixture"]=plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
-            ["savedProfiles"]=plan.savedProfiles,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
+            ["geometryFixture"]=plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; native player-sized capsule target":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
+            ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["realPlayerParry"]=plan.realPlayerParry,["nativeAttackBatch"]=plan.attackBatch,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
     static void Return(string error)
     {
         if(plan==null)return;
         if(error!=null)failure=error;
-        WriteResult(error==null && cases.Count==(plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
+        WriteResult(error==null && cases.Count==(!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?1:plan.leaseVerification?(string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
         plan.phase="returning";plan.deadline=EditorApplication.timeSinceStartup+120;Save();
         if(OwnPlay)EditorApplication.ExitPlaymode();
     }
@@ -317,14 +442,15 @@ public static class MonsterWeakAttackPlayerLoopVerifier
         if(AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)==plan.fixture)
             EditorSceneManager.playModeStartScene=string.IsNullOrEmpty(plan.previousStart)?null:AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.previousStart);
         IsolatedSavePlayGuard.UseRealAccount();
-        if(AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)!=null)AssetDatabase.DeleteAsset(plan.fixture);
+        if(!plan.realPlayerParry && plan.fixture=="Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity"
+            &&AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)!=null)AssetDatabase.DeleteAsset(plan.fixture);
         var now=SceneEvidence();
         File.WriteAllText(Path.Combine(plan.directory,"return.json"),new JObject{["status"]=!IsolatedSavePlayGuard.RequiresAccountChoice&&JToken.DeepEquals(plan.scenes,now)?"PASS":"FAIL",
             ["scenesBefore"]=plan.scenes,["scenesAfter"]=now,["guardChoice"]=IsolatedSavePlayGuard.RequiresAccountChoice,
             ["guardActive"]=IsolatedSavePlayGuard.ActiveDirectory,["guardPrepared"]=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),
             ["guardExpires"]=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),["environment"]=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
             ["startScene"]=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),["captureDelta"]=Time.captureDeltaTime,["fixedDelta"]=Time.fixedDeltaTime,
-            ["registryCount"]=CombatTargetRegistry.RegisteredCount,["temporarySceneRemoved"]=AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)==null}.ToString());
+            ["registryCount"]=CombatTargetRegistry.RegisteredCount,["temporarySceneRemoved"]=plan.realPlayerParry||AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)==null}.ToString());
         SessionState.EraseString(Key+"plan");plan=null;
     }
 }

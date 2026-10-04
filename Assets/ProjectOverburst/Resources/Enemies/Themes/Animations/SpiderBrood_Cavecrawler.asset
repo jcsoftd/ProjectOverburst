@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_Cavecrawler
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_Cavecrawler
+  runtimeController: {fileID: 9100000, guid: 856c3b2e3ca509842ac0812b2a73ef79, type: 2}
+  idle: {fileID: 7400000, guid: 222d23566926ac94f9cfdd96793b08e1, type: 3}
+  walk: {fileID: 7400000, guid: c6929f6b3f720f448855c339021187bb, type: 3}
+  run: {fileID: 7400000, guid: c6929f6b3f720f448855c339021187bb, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: c6c710d7259c8714f981f4db1f7c1483, type: 3}
+  - {fileID: 7400000, guid: 88b7a50b61c83ac479575ba5b0cfd6c8, type: 3}
+  - {fileID: 7400000, guid: 6b1707ffa38c7334680f183d4bd15f2b, type: 3}
+  hit: {fileID: 7400000, guid: 86864c298ecd6fa49aa2dfc101406397, type: 3}
+  death: {fileID: 7400000, guid: f0970c698e2ed184c8eb7124cd07174b, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 2ee15d98a8ee2b24fbe31967c92dbd75, type: 3}
+  parryCollapse: {fileID: 7400000, guid: f59507f33a615a647a41d2a871b2d2aa, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 546d1c8dc6cd3274eaea51d5bf3977e8, type: 2}
+  stunRecover: {fileID: 7400000, guid: 8dcb9e7f535c2d047b81f888d8de96bf, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/9b47bb06/Cavecrawler@CrawlForward_RM.FBX"
