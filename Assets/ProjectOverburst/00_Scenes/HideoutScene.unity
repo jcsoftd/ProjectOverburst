@@ -52382,7 +52382,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1822075604
 Transform:
   m_ObjectHideFlags: 0
@@ -57831,6 +57831,68 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8982518489656977422, guid: d9b8aba8d4b62234ca6e7640e6f673f0, type: 3}
   m_PrefabInstance: {fileID: 1852606882}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1858523479
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1886501868}
+    m_Modifications:
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.9999994
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 6.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5459834043710037616, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+      propertyPath: m_Name
+      value: Hideout Ground Haze
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+--- !u!4 &1858523480 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 198819016815687575, guid: 9b458b2987e1fd3499dcad56646fe683, type: 3}
+  m_PrefabInstance: {fileID: 1858523479}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1861413605
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -58642,6 +58704,7 @@ Transform:
   - {fileID: 865529865}
   - {fileID: 1822075604}
   - {fileID: 1967397886}
+  - {fileID: 1858523480}
   m_Father: {fileID: 1019409664}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1902863146
