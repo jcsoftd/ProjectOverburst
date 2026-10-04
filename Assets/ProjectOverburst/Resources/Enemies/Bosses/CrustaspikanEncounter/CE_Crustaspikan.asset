@@ -1,0 +1,392 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1862b79bcce2da419d1b3051b0f6f6a, type: 3}
+  m_Name: CE_Crustaspikan
+  m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanEncounterSettings
+  materials: {fileID: 11400000, guid: 289d5cd3d99aa9f438800248751db1a3, type: 2}
+  composites: {fileID: 11400000, guid: 674d19d22301b854f9fbf42019b47da5, type: 2}
+  adds: {fileID: 11400000, guid: ff11a09ef3d7dbc42a684b68e8c22071, type: 2}
+  materialRules:
+  - clip: 2HandsSmashAttack
+    speed: 0.85
+    damage: 1.4
+    finalHitParry: 0
+  - clip: 2HitComboAttack
+    speed: 1.1
+    damage: 0.9
+    finalHitParry: 1
+  - clip: 2HitComboAttackForward
+    speed: 1.1
+    damage: 0.9
+    finalHitParry: 1
+  - clip: LeftHandAttack
+    speed: 1.2
+    damage: 0.45
+    finalHitParry: 1
+  - clip: RightHandAttack
+    speed: 1.2
+    damage: 0.45
+    finalHitParry: 1
+  - clip: LeftHandSmashAttack
+    speed: 0.95
+    damage: 1.3
+    finalHitParry: 1
+  - clip: RightHandSmashAttack
+    speed: 0.95
+    damage: 1.3
+    finalHitParry: 1
+  - clip: LeftFootStompAttack
+    speed: 1.05
+    damage: 0.8
+    finalHitParry: 0
+  - clip: RightFootStompAttack
+    speed: 1.05
+    damage: 0.8
+    finalHitParry: 0
+  - clip: Turn90LeftFootStompAttack
+    speed: 1.05
+    damage: 0.8
+    finalHitParry: 0
+  - clip: Turn90RightFootStompAttack
+    speed: 1.05
+    damage: 0.8
+    finalHitParry: 0
+  - clip: Turn90LeftHandAttack
+    speed: 1.1
+    damage: 0.9
+    finalHitParry: 1
+  - clip: Turn90RightHandAttack
+    speed: 1.1
+    damage: 0.9
+    finalHitParry: 1
+  - clip: SpitterShot1
+    speed: 1
+    damage: 0.75
+    finalHitParry: 0
+  - clip: SpitterShot2
+    speed: 1
+    damage: 0.5
+    finalHitParry: 0
+  - clip: ThrowRock
+    speed: 1
+    damage: 0.75
+    finalHitParry: 0
+  patterns:
+  - id: left_light
+    label: "\uC67C\uC190 \uC57D\uACF5"
+    family: light
+    phaseMask: 3
+    weight: 10
+    cooldown: 5
+    minimumDistance: 0
+    maximumDistance: 10.5
+    rearOnly: 0
+    counters: 10
+    steps:
+    - kind: 0
+      materialOrMotion: LeftHandAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: right_light
+    label: "\uC624\uB978\uC190 \uC57D\uACF5"
+    family: light
+    phaseMask: 3
+    weight: 10
+    cooldown: 5
+    minimumDistance: 0
+    maximumDistance: 11
+    rearOnly: 0
+    counters: 9
+    steps:
+    - kind: 0
+      materialOrMotion: RightHandAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: combo
+    label: "2\uC5F0\uD0C0 \xB7 \uB9C8\uC9C0\uB9C9 \uD328\uB9C1"
+    family: combo
+    phaseMask: 3
+    weight: 12
+    cooldown: 8
+    minimumDistance: 2
+    maximumDistance: 11.5
+    rearOnly: 0
+    counters: 3
+    steps:
+    - kind: 0
+      materialOrMotion: 2HitComboAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: advance_combo
+    label: "\uC811\uADFC \uD6C4 2\uC5F0\uD0C0"
+    family: pressure
+    phaseMask: 3
+    weight: 8
+    cooldown: 12
+    minimumDistance: 7
+    maximumDistance: 17
+    rearOnly: 0
+    counters: 2
+    steps:
+    - kind: 2
+      materialOrMotion: 
+      seconds: 1.1
+      localDisplacement: {x: 0, y: 0, z: 2.5}
+    - kind: 0
+      materialOrMotion: 2HitComboAttackForward
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: left_smash
+    label: "\uC67C\uC190 \uAC15\uD0C0"
+    family: heavy
+    phaseMask: 3
+    weight: 8
+    cooldown: 12
+    minimumDistance: 6
+    maximumDistance: 14.5
+    rearOnly: 0
+    counters: 1
+    steps:
+    - kind: 0
+      materialOrMotion: LeftHandSmashAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: right_smash
+    label: "\uC624\uB978\uC190 \uAC15\uD0C0"
+    family: heavy
+    phaseMask: 3
+    weight: 8
+    cooldown: 12
+    minimumDistance: 4
+    maximumDistance: 12.5
+    rearOnly: 0
+    counters: 4
+    steps:
+    - kind: 0
+      materialOrMotion: RightHandSmashAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: left_stomp
+    label: "\uC67C\uBC1C \xB7 \uD68C\uD53C"
+    family: stomp
+    phaseMask: 3
+    weight: 6
+    cooldown: 10
+    minimumDistance: 0
+    maximumDistance: 6.5
+    rearOnly: 0
+    counters: 6
+    steps:
+    - kind: 0
+      materialOrMotion: LeftFootStompAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: right_stomp
+    label: "\uC624\uB978\uBC1C \xB7 \uD68C\uD53C"
+    family: stomp
+    phaseMask: 3
+    weight: 6
+    cooldown: 10
+    minimumDistance: 0
+    maximumDistance: 7
+    rearOnly: 0
+    counters: 6
+    steps:
+    - kind: 0
+      materialOrMotion: RightFootStompAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: rear_left
+    label: "\uD68C\uC804 \uC67C\uBC1C \xB7 \uD6C4\uBC29 \uACAC\uC81C"
+    family: rear
+    phaseMask: 3
+    weight: 7
+    cooldown: 14
+    minimumDistance: 0
+    maximumDistance: 7
+    rearOnly: 1
+    counters: 7
+    steps:
+    - kind: 0
+      materialOrMotion: Turn90LeftFootStompAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: rear_right
+    label: "\uD68C\uC804 \uC624\uB978\uBC1C \xB7 \uD6C4\uBC29 \uACAC\uC81C"
+    family: rear
+    phaseMask: 3
+    weight: 7
+    cooldown: 14
+    minimumDistance: 0
+    maximumDistance: 7
+    rearOnly: 1
+    counters: 7
+    steps:
+    - kind: 0
+      materialOrMotion: Turn90RightFootStompAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: turn_hand_left
+    label: "\uD68C\uC804 \uC67C\uC190 \uACAC\uC81C"
+    family: turn
+    phaseMask: 3
+    weight: 5
+    cooldown: 12
+    minimumDistance: 2
+    maximumDistance: 11.5
+    rearOnly: 0
+    counters: 10
+    steps:
+    - kind: 0
+      materialOrMotion: Turn90LeftHandAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: turn_hand_right
+    label: "\uD68C\uC804 \uC624\uB978\uC190 \uACAC\uC81C"
+    family: turn
+    phaseMask: 3
+    weight: 5
+    cooldown: 12
+    minimumDistance: 2
+    maximumDistance: 11.5
+    rearOnly: 0
+    counters: 9
+    steps:
+    - kind: 0
+      materialOrMotion: Turn90RightHandAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: donut
+    label: "\uC591\uC190 \uAC15\uD0C0 \xB7 \uB0B4\uCE21/\uC678\uCE21 \uD68C\uD53C"
+    family: area
+    phaseMask: 3
+    weight: 5
+    cooldown: 18
+    minimumDistance: 3.5
+    maximumDistance: 14
+    rearOnly: 0
+    counters: 6
+    steps:
+    - kind: 0
+      materialOrMotion: 2HandsSmashAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: weak_spit
+    label: "\uC57D\uD55C \uBD84\uC0AC \xB7 \uC18C\uD615 \uBC29\uCD9C"
+    family: summon
+    phaseMask: 3
+    weight: 6
+    cooldown: 20
+    minimumDistance: 6
+    maximumDistance: 24
+    rearOnly: 0
+    counters: 8
+    steps:
+    - kind: 0
+      materialOrMotion: SpitterShot2
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: strong_spit
+    label: "\uAC15\uD55C \uBD84\uC0AC \xB7 \uC18C\uD615/\uC911\uD615 \uBC29\uCD9C"
+    family: summon
+    phaseMask: 2
+    weight: 4
+    cooldown: 28
+    minimumDistance: 6
+    maximumDistance: 24
+    rearOnly: 0
+    counters: 8
+    steps:
+    - kind: 0
+      materialOrMotion: SpitterShot1
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: rock_throw
+    label: "\uBC14\uC704 \uBC1C\uAD74 \u2192 \uD22C\uCC99"
+    family: ranged
+    phaseMask: 3
+    weight: 7
+    cooldown: 14
+    minimumDistance: 8
+    maximumDistance: 24
+    rearOnly: 0
+    counters: 8
+    steps:
+    - kind: 1
+      materialOrMotion: UnearthRock
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+    - kind: 0
+      materialOrMotion: ThrowRock
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: elite_throw
+    label: "\uC815\uC608 \uBC1C\uAD74 \u2192 \uD22C\uCC99 \u2192 \uAD50\uC804"
+    family: summon
+    phaseMask: 2
+    weight: 4
+    cooldown: 32
+    minimumDistance: 6
+    maximumDistance: 24
+    rearOnly: 0
+    counters: 8
+    steps:
+    - kind: 4
+      materialOrMotion: 
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+    - kind: 5
+      materialOrMotion: 
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  - id: retreat_counter
+    label: "\uD6C4\uD1F4 \uC720\uB3C4 \u2192 \uC9C0\uC5F0 \uBC18\uACA9"
+    family: counter
+    phaseMask: 2
+    weight: 6
+    cooldown: 16
+    minimumDistance: 2
+    maximumDistance: 8
+    rearOnly: 0
+    counters: 5
+    steps:
+    - kind: 2
+      materialOrMotion: 
+      seconds: 0.8
+      localDisplacement: {x: 0, y: 0, z: -2}
+    - kind: 3
+      materialOrMotion: 
+      seconds: 0.45
+      localDisplacement: {x: 0, y: 0, z: 0}
+    - kind: 0
+      materialOrMotion: RightHandAttack
+      seconds: 0
+      localDisplacement: {x: 0, y: 0, z: 0}
+  arenaRadius: 20
+  bossHp: 3000
+  phaseTwoHp: 0.5
+  betweenPatterns: 0.7
+  phaseTwoBetweenPatterns: 0.45
+  groggyMax: 300
+  weakPoise: 2
+  heavyPoise: 10
+  perfectParryPoise: 35
+  backPoiseMultiplier: 1.25
+  groggySeconds: 4.5
+  groggyProtection: 8
+  poiseDecayDelay: 10
+  poiseDecayPerSecond: 5
+  maximumAdds: 6
+  tacticWeightMultiplier: 1.35
+  protectPlayerFromDeath: 1
+  enableAdaptiveTactics: 1
+  enableBossEvasion: 1
