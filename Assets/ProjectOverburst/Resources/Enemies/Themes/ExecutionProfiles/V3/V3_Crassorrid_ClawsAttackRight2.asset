@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Crassorrid_ClawsAttackRight2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: d4c311e6ed9d553b
+  originalClip: {fileID: 1827226128182048838, guid: 411024e308725994aab323c9af8bcc31, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 411024e308725994aab323c9af8bcc31, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.6666667}
+  motionPolicy: 0
+  stationaryStartRange: 3.2540271
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.29999998, y: 0.42}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: 1.4014155, y: 1.8632737, z: 0.9959088}
+        b: {x: 1.8332142, y: 1.5551348, z: 1.5927588}
+        radius: 0.23
+    - normalizedTime: 0.35999998
+      capsules:
+      - a: {x: 0.49878195, y: 1.7260972, z: 1.9328911}
+        b: {x: 0.36876056, y: 1.5320059, z: 2.6964703}
+        radius: 0.23
+    - normalizedTime: 0.42
+      capsules:
+      - a: {x: -0.106443465, y: 1.5915662, z: 2.141564}
+        b: {x: -0.62853587, y: 1.5458685, z: 2.7440271}
+        radius: 0.23
+    maximumPlanarReach: 3.0450919

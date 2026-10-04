@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Gasterodonte
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Gasterodonte
+  runtimeController: {fileID: 9100000, guid: f7cf1e55b03294d4cb5a376581013f4f, type: 2}
+  idle: {fileID: 7400000, guid: b4e6d0c590dbb7f4e842178aa96e41c0, type: 2}
+  walk: {fileID: 1827226128182048838, guid: b9272c50cdb0b054ca7935fea9bed0f3, type: 3}
+  run: {fileID: 1827226128182048838, guid: b9272c50cdb0b054ca7935fea9bed0f3, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 186f18f9970b1564386ca478968b1b53, type: 3}
+  - {fileID: 1827226128182048838, guid: 19953063eaa798f42ac1c50cfb82d254, type: 3}
+  - {fileID: 1827226128182048838, guid: c412f20dcf1dbb647ab832f012728da9, type: 3}
+  - {fileID: 1827226128182048838, guid: 626f4fb205579c747baa5e790adf1b5c, type: 3}
+  hit: {fileID: 1827226128182048838, guid: a26e16a38e1f7ed4d8cc8191597b30d8, type: 3}
+  death: {fileID: 1827226128182048838, guid: cb38808f610c55044828eb02d74d264d, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: b9272c50cdb0b054ca7935fea9bed0f3, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 37cf9be0898066141b72e05720b0a663, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 42267aa20f22fd6469d1e01df2400607, type: 2}
+  stunRecover: {fileID: 7400000, guid: fc8849e721f9aa742ba36ce1130ee21c, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/784a642e/Gasterodonte@Crawl_RM.fbx"

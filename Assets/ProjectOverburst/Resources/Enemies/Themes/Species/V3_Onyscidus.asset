@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Onyscidus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Onyscidus
+  displayName: Onyscidus
+  vendorPrefab: {fileID: 7564638783374153818, guid: e9be7be0a27ec154dbd5df87ce6c500c, type: 3}
+  animationProfile: {fileID: 11400000, guid: 05b3c8c00090a714cb4ed9852a732d83, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 0b3011ef2473e204992cf1c0a3a3be7d, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: 3a40822ce42e1bc4f8080d0ea186a4b9, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 5272c1e28f552cf4daa7080f6428fa86, type: 2}
+  threatCost: 12

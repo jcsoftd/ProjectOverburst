@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_Lacodon_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_Lacodon
+  abilities:
+  - {fileID: 11400000, guid: 3ff4c979542967b439feaeb682f149bd, type: 2}
+  - {fileID: 11400000, guid: 2a657e5823d9bc94bb45de02e0261d44, type: 2}
+  - {fileID: 11400000, guid: 9f698f15518c1bc4ab118348b5746b8f, type: 2}

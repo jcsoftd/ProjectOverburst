@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Gasterodonte_RightTentaclesAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: fa79553b7a449929
+  originalClip: {fileID: 1827226128182048838, guid: 186f18f9970b1564386ca478968b1b53, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 186f18f9970b1564386ca478968b1b53, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 0
+  stationaryStartRange: 2.450076
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.5}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 0.70634645, y: 1.8660712, z: 1.2117004}
+        b: {x: 1.1884228, y: 1.8456557, z: 0.9464957}
+        radius: 0.23
+      - a: {x: 0.91066384, y: 1.7090195, z: 0.55296636}
+        b: {x: 1.2329823, y: 1.7700773, z: 0.11097748}
+        radius: 0.23
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.57759744, y: 1.715828, z: 1.5338912}
+        b: {x: 1.0543715, y: 1.7053763, z: 1.1983302}
+        radius: 0.23
+      - a: {x: 0.847898, y: 1.6220028, z: 0.80002236}
+        b: {x: 1.1757048, y: 1.6099999, z: 0.34209338}
+        radius: 0.23
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.47467256, y: 1.449524, z: 1.9400761}
+        b: {x: 1.0346066, y: 1.403453, z: 1.7482246}
+        radius: 0.23
+      - a: {x: 0.91175544, y: 1.3115455, z: 1.1073493}
+        b: {x: 1.356173, y: 1.1461545, z: 0.7861434}
+        radius: 0.23
+    maximumPlanarReach: 2.261428

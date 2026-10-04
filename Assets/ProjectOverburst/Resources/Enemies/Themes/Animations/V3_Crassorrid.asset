@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Crassorrid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Crassorrid
+  runtimeController: {fileID: 9100000, guid: ce342bece1f41444892f5b07114cda8f, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 551091d3052b9414d840277629166719, type: 3}
+  walk: {fileID: 1827226128182048838, guid: bd274a976f1322c44bc062aa5eb25f2d, type: 3}
+  run: {fileID: 1827226128182048838, guid: 57c5c3094e5fcb440966e077aba4b648, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 5465bb793e1005549adc727a7b324b5e, type: 3}
+  - {fileID: 1827226128182048838, guid: e341ecb7483eb9c43af56108b777fa4d, type: 3}
+  - {fileID: 1827226128182048838, guid: 6da2eafb382a04e47a1321775a9392ca, type: 3}
+  - {fileID: 1827226128182048838, guid: 411024e308725994aab323c9af8bcc31, type: 3}
+  - {fileID: 1827226128182048838, guid: 5f8be24e71c7caa4986918ede480303d, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 27ee749ff9557134d96aac468bb2ce26, type: 3}
+  death: {fileID: 1827226128182048838, guid: a5c5dfe3a7de28649b58a617d335db3f, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 37da31a4ceaedd14ca17608a6e231968, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 7985729651032f44ea9c2e70cf722eea, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: d89533045dc5e3d469978f70dac624ce, type: 2}
+  stunRecover: {fileID: 7400000, guid: 1288abbe508b5034c985a2b5807e1c9a, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack vol 9/Crassorrid/FBX Files/Crassorrid@WalkForward_RM.fbx"

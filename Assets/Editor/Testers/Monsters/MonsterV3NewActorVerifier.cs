@@ -27,7 +27,7 @@ public static class MonsterV3NewActorVerifier
         {
             var ability=definition.AbilitySet.GetAbility(i);var row=rows.Single(r=>ability.AbilityId==definition.EnemyId+"_"+r["actualClip"]);
             var clip=definition.AnimationProfile.GetAttackClip(i);
-            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==1&&ability.IsTelegraphedStrongAttack==strong
+            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==(strong?1:(int)row["selectedHitCount"])&&ability.IsTelegraphedStrongAttack==strong
                 &&clip!=null&&clip.name==(string)row["actualClip"]&&AssetDatabase.GetAssetPath(clip)==(string)row["sourcePath"];
             if(strong)pass&=ability.IsParryable&&ability.WeakAttackExecution==null;
             else pass&=ability.WeakAttackExecution!=null&&ability.WeakAttackExecution.SelectionKey==(string)row["selectionKey"]&&ability.WeakAttackExecution.ValidateAuthoring(out _);
@@ -50,16 +50,23 @@ public static class MonsterV3NewActorVerifier
             AssetDatabase.LoadAllAssetsAtPath((string)r["sourcePath"]).OfType<AnimationClip>().Single(c=>!c.name.StartsWith("__preview__")))).Distinct())
         {
             if(clip==null){bindingIssues.Add("Missing required clip");continue;}
-            var exportModel=AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GetAssetPath(clip));
+            string clipSource=AssetDatabase.GetAssetPath(clip);
+            if(clip==animation.Idle)clipSource=(string)batch["idlePath"];
+            else if(clip==animation.Walk)clipSource=(string)batch["movePath"];
+            else if(clip==animation.Run)clipSource=(string)batch["runPath"]??(string)batch["movePath"];
+            var exportModel=AssetDatabase.LoadAssetAtPath<GameObject>(clipSource);
             foreach(var p in AnimationUtility.GetCurveBindings(clip).Where(b=>b.type==typeof(Transform)&&b.path!=""&&actor.Animator.transform.Find(b.path)==null).Select(b=>b.path).Distinct())
             {
                 string node=p.Substring(p.LastIndexOf('/')+1);
-                bool helperName=Regex.IsMatch(node,@"^(nub( \d+)?|.*_nub|Dummy\d+|IK Chain\d+)$");
+                var exportNode=exportModel!=null?exportModel.transform.Find(p):null;
+                bool duplicateTerminal=Regex.IsMatch(node,@"_\d+ \d+$")&&exportNode!=null&&exportNode.childCount==0
+                    &&rigPaths.Contains(p.Substring(0,p.LastIndexOf('/')+1)+Regex.Replace(node,@" \d+$",""));
+                bool helperName=Regex.IsMatch(node,@"^(nub( \d+)?|.*_nub|Dummy\d+|IK Chain\d+)$")||duplicateTerminal;
                 bool originalDescendant=rigPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool weightedDescendant=weightedPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool unusedHelper=helperName&&exportModel!=null&&exportModel.transform.Find(p)!=null&&!originalDescendant&&!weightedDescendant;
                 if(unusedHelper)unusedExporterHelpers.Add(new JObject{["clip"]=clip.name,["path"]=p,["sourceExportTransformExists"]=true,
-                    ["originalRigDescendant"]=false,["weightedBoneDescendant"]=false});
+                    ["originalRigDescendant"]=false,["weightedBoneDescendant"]=false,["duplicateTerminalLeaf"]=duplicateTerminal});
                 else bindingIssues.Add(clip.name+"/"+p);
             }
         }
@@ -68,10 +75,11 @@ public static class MonsterV3NewActorVerifier
             &&actor.VisualRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials).SequenceEqual(source.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials).Select(m=>
                 batch["materialOverrides"]?[AssetDatabase.GetAssetPath(m)] is JObject mapping?AssetDatabase.LoadAssetAtPath<Material>((string)mapping["targetPath"]):m));
         bool common=actor.GetComponent<BloodHitTarget>()?.Profile!=null&&actor.GetComponent<MonsterHitSfxTarget>()?.Bundle==null;
-        bool passAll=valid&&missing.Count==0&&attacks.Count==3&&attacks.All(a=>(bool)a["pass"])&&bindingIssues.Count==0&&rig&&common&&allOriginalTransformsPresent&&allWeightedBonesPresent
+        bool locomotionLoops=animation.Idle.isLooping&&animation.Walk.isLooping&&animation.Run.isLooping;
+        bool passAll=valid&&locomotionLoops&&missing.Count==0&&attacks.Count==rows.Length&&attacks.All(a=>(bool)a["pass"])&&bindingIssues.Count==0&&rig&&common&&allOriginalTransformsPresent&&allWeightedBonesPresent
             &&parry.All(c=>c!=null)&&parry[1].isLooping&&!parry[0].isLooping&&!parry[2].isLooping;
         var result=new JObject{["status"]=passAll?"PASS_SAVED_NEW_ACTOR_BINDINGS":"FAIL",["validCoreReferences"]=valid,["missingScripts"]=missing,
-            ["attacks"]=attacks,["missingAnimationBindings"]=bindingIssues,["unusedExporterHelpers"]=unusedExporterHelpers,
+            ["locomotionLoops"]=locomotionLoops,["attacks"]=attacks,["missingAnimationBindings"]=bindingIssues,["unusedExporterHelpers"]=unusedExporterHelpers,
             ["allOriginalTransformsPresent"]=allOriginalTransformsPresent,["allWeightedBonesPresent"]=allWeightedBonesPresent,
             ["originalAvatarMeshesPreserved"]=rig,["commonHitConnectedNewBundleEmpty"]=common,
             ["actorRootScale"]=new JArray(actor.transform.localScale.x,actor.transform.localScale.y,actor.transform.localScale.z),

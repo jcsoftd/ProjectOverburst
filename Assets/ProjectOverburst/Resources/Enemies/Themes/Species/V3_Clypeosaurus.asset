@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Clypeosaurus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Clypeosaurus
+  displayName: Clypeosaurus
+  vendorPrefab: {fileID: 5523472075301917310, guid: 941961b13b8a8764cb54bb489fb004bb, type: 3}
+  animationProfile: {fileID: 11400000, guid: 186bf838695ca084ea22377af12415b5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 5afd883f906625c449191a5312eb488f, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: b1af76681a5919340a6c88a0c982c0a5, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 54c19fe32315da149a7fdbffdeef3035, type: 2}
+  threatCost: 12

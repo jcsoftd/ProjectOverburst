@@ -71,6 +71,15 @@ public static class MonsterV3NewActorBuilder
         var material=Object.Instantiate(template);material.name=Path.GetFileNameWithoutExtension(path);
         AssetDatabase.CreateAsset(material,path);created.Add(path);return material;
     }
+    static AnimationClip LoopClip(AnimationClip source,string path,List<string> created,List<string> folders)
+    {
+        if(source.isLooping)return source;
+        Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
+        var loop=Object.Instantiate(source);loop.name=Path.GetFileNameWithoutExtension(path);
+        var settings=AnimationUtility.GetAnimationClipSettings(loop);settings.loopTime=true;
+        AnimationUtility.SetAnimationClipSettings(loop,settings);
+        AssetDatabase.CreateAsset(loop,path);created.Add(path);return loop;
+    }
     static AnimatorState Action(AnimatorController controller,AnimatorStateMachine sm,AnimatorState idle,string trigger,string name,AnimationClip clip,bool attack,bool terminal=false)
     {
         controller.AddParameter(trigger,AnimatorControllerParameterType.Trigger);
@@ -80,7 +89,7 @@ public static class MonsterV3NewActorBuilder
         if(!terminal){var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.08f;}
         return state;
     }
-    static AnimatorController Controller(string path,AnimationClip idle,AnimationClip walk,AnimationClip back,AnimationClip hit,AnimationClip death,AnimationClip[] attacks,
+    static AnimatorController Controller(string path,AnimationClip idle,AnimationClip walk,AnimationClip run,AnimationClip back,bool reverseBack,AnimationClip hit,AnimationClip death,AnimationClip[] attacks,
         AnimationClip[] parry,List<string> created,List<string> folders)
     {
         Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
@@ -88,7 +97,8 @@ public static class MonsterV3NewActorBuilder
         foreach(string name in new[]{"Locomotion","MoveAnimSpeed","AttackAnimSpeed"})controller.AddParameter(new AnimatorControllerParameter{
             name=name,type=AnimatorControllerParameterType.Float,defaultFloat=name=="Locomotion"?0:1});
         var tree=new BlendTree{name="Locomotion",blendParameter="Locomotion",blendType=BlendTreeType.Simple1D,useAutomaticThresholds=false};AssetDatabase.AddObjectToAsset(tree,controller);
-        tree.AddChild(back,-1);tree.AddChild(idle,0);tree.AddChild(walk,1);tree.AddChild(walk,2);
+        tree.AddChild(back,-1);tree.AddChild(idle,0);tree.AddChild(walk,1);tree.AddChild(run,2);
+        if(reverseBack){var children=tree.children;var child=children[0];child.timeScale=-1;children[0]=child;tree.children=children;}
         var loco=sm.AddState("Locomotion");loco.motion=tree;loco.speedParameter="MoveAnimSpeed";loco.speedParameterActive=true;sm.defaultState=loco;
         for(int i=0;i<attacks.Length;i++)Action(controller,sm,loco,"Attack"+(i+1),"Attack_"+(i+1),attacks[i],true);
         controller.AddParameter("HitX",AnimatorControllerParameterType.Float);controller.AddParameter("HitZ",AnimatorControllerParameterType.Float);
@@ -153,6 +163,10 @@ public static class MonsterV3NewActorBuilder
             if((string)row["role"]=="weak")paths.Add(MonsterWeakAttackExecutionWriter.Root+"/"+id+"_"+row["actualClip"]+".asset");
         }
         if(batch["materialOverrides"] is JObject materialMappings)foreach(var mapping in materialMappings.Properties())paths.Add((string)mapping.Value["targetPath"]);
+        var locomotionSources=new[]{Clip((string)batch["idlePath"]),Clip((string)batch["movePath"]),
+            Clip((string)batch["runPath"]??(string)batch["movePath"]),Clip((string)batch["extras"]["CrawlBackwards"])};
+        var locomotionRoles=new[]{"Idle","Walk","Run","Back"};
+        for(int i=0;i<locomotionSources.Length;i++)if(!locomotionSources[i].isLooping)paths.Add(Root+"Animations/"+id+"_"+locomotionRoles[i]+"_Loop.anim");
         foreach(string path in paths)if(File.Exists(Path.Combine(Project,path))||File.Exists(Path.Combine(Project,path+".meta"))||AssetDatabase.LoadMainAssetAtPath(path)!=null)
             throw new InvalidOperationException("Creation target already exists; preserved: "+path);
         var parry=new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
@@ -166,11 +180,12 @@ public static class MonsterV3NewActorBuilder
         AssetDatabase.DisallowAutoRefresh();
         try
         {
-            var idle=Clip((string)batch["idlePath"]);var walk=Clip((string)batch["movePath"]);var back=Clip((string)batch["extras"]["CrawlBackwards"]);
+            var looping=locomotionSources.Select((source,i)=>LoopClip(source,Root+"Animations/"+id+"_"+locomotionRoles[i]+"_Loop.anim",created,folders)).ToArray();
+            var idle=looping[0];var walk=looping[1];var run=looping[2];var back=looping[3];
             var hit=Clip((string)batch["extras"]["GetHit1"]);var death=Clip((string)batch["extras"]["Death"]);var attacks=rows.Select(Original).ToArray();
-            var controller=Controller(Root+"Animations/AC_"+id+".controller",idle,walk,back,hit,death,attacks,parry,created,folders);
+            var controller=Controller(Root+"Animations/AC_"+id+".controller",idle,walk,run,back,(bool?)batch["reverseBackwardAnimation"]==true,hit,death,attacks,parry,created,folders);
             var animation=Create<EnemyAnimationProfile>(Root+"Animations/"+id+".asset",created,folders);
-            animation.Configure(id,controller,idle,walk,walk,attacks,hit,death,new[]{back},new[]{(string)batch["extras"]["CrawlForward_RM"]});
+            animation.Configure(id,controller,idle,walk,run,attacks,hit,death,new[]{back},new[]{(string)batch["extras"]["CrawlForward_RM"]});
             Ref(animation,"parryCollapse",parry[0]);Ref(animation,"stunnedLoop",parry[1]);Ref(animation,"stunRecover",parry[2]);Save(animation);
             var abilities=new List<EnemyAbilityDefinition>();
             foreach(var row in rows)
@@ -192,7 +207,8 @@ public static class MonsterV3NewActorBuilder
             var set=Create<EnemyAbilitySet>(Root+"Abilities/"+id+"_Set.asset",created,folders);set.Configure(id,abilities.ToArray());Save(set);
             var movement=Create(Root+"Movement/"+id+".asset",created,folders,seed.MovementProfile);Text(movement,"profileId",id);
             float rmSpeed=RootSpeed(Clip((string)batch["extras"]["CrawlForward_RM"]),Vector(batch["modelScale"]).x);
-            movement.ConfigureAnimationReferenceSpeeds(rmSpeed,rmSpeed);
+            float runSpeed=batch["extras"]["Run_RM"]!=null?RootSpeed(Clip((string)batch["extras"]["Run_RM"]),Vector(batch["modelScale"]).x):rmSpeed;
+            movement.ConfigureAnimationReferenceSpeeds(rmSpeed,runSpeed);
             Number(movement,"backpedalAnimationReferenceSpeed",RootSpeed(Clip((string)batch["extras"]["CrawlBackwards_RM"]),Vector(batch["modelScale"]).x));Save(movement);
             var behavior=Create(Root+"Behavior/"+id+".asset",created,folders,seed.BehaviorProfile);Text(behavior,"profileId",id);
             Set(behavior,"playTauntOnAlert",p=>p.boolValue=false);Number(behavior,"preferredMinDistance",(float)batch["bodyRadius"]+.45f);
@@ -242,7 +258,8 @@ public static class MonsterV3NewActorBuilder
             if(actorRoot.GetComponent<BloodHitTarget>()?.Profile==null)throw new InvalidOperationException("Common blood/hit sound target profile missing.");
             actorRoot.GetComponent<EnemyMovementReaction>().ConfigureVisualReactionRoot(scaled);
             actorRoot.GetComponent<EnemyVisualRootGuard>().Configure(animator.transform);
-            actorRoot.GetComponent<EnemyWeakAttackMotionDriver>().Configure(actor.Melee,actor.Movement);
+            var weakDriver=actorRoot.GetComponent<EnemyWeakAttackMotionDriver>()??actorRoot.AddComponent<EnemyWeakAttackMotionDriver>();
+            weakDriver.Configure(actor.Melee,actor.Movement);
             Ref(actorRoot.GetComponent<EnemyDeathPresentation>(),"visualRoot",null);
             CombatImpactFeelBuilder.ConfigureActor(actor,definition);actorRoot.SetActive(true);
             string actorPath=Root+"Actors/PF_"+id+".prefab";Folder(Root+"Actors",folders);

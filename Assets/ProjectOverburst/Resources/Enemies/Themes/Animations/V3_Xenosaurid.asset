@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Xenosaurid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Xenosaurid
+  runtimeController: {fileID: 9100000, guid: 826ddd2b0ec82aa489fd2933b8dd2e98, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 92bc6e35110933a46b934f6865c168b3, type: 3}
+  walk: {fileID: 7400000, guid: 80ef0b58e419d2a4691743aea628a368, type: 2}
+  run: {fileID: 7400000, guid: ebc25c1965d6b224788346e177301841, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 061118b79e2711a4faf998f9c97b8060, type: 3}
+  - {fileID: 1827226128182048838, guid: 347f59767f89a65409fcd327443dddc4, type: 3}
+  - {fileID: 1827226128182048838, guid: 7fdf1b3a7d144904da8f457b8f959347, type: 3}
+  - {fileID: 1827226128182048838, guid: ce5b7197dfe9d4848b0607098c183e53, type: 3}
+  - {fileID: 1827226128182048838, guid: 63071d7af10f57c45a4ea40e724819ae, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 8cc1e91b5cda0714c9a614c6ee25d95e, type: 3}
+  death: {fileID: 1827226128182048838, guid: 7c71a988fd710db4bbaa384f9249dff1, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 7f0ce4f9e61eb094f9c60d188809c692, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 895684d532731aa448569fe1b9ee4edc, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: af2a725dc8ae6884c92f86f2d05af684, type: 2}
+  stunRecover: {fileID: 7400000, guid: ec265b9244a54024a9e7f0deb0558cc0, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/562c14d3/Xenosaurid@WalkForward_RM.fbx"

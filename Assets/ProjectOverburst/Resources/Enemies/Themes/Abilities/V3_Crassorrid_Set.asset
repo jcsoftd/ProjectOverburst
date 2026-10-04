@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_Crassorrid_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_Crassorrid
+  abilities:
+  - {fileID: 11400000, guid: 3803797065c94464286aaa3fb2994c39, type: 2}
+  - {fileID: 11400000, guid: b4f296aec310b6f4a98da885d5b7c847, type: 2}
+  - {fileID: 11400000, guid: bc205894d15e1794289983821ca363bf, type: 2}
+  - {fileID: 11400000, guid: 050180c9277bf1b4cab0af06cb13069d, type: 2}
+  - {fileID: 11400000, guid: 560eefe555429ed43aa11e4f1109f637, type: 2}

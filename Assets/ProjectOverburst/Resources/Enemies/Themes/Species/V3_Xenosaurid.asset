@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Xenosaurid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Xenosaurid
+  displayName: Xenosaurid
+  vendorPrefab: {fileID: 1007151615169100110, guid: a4d8b451869f397408c1588b26f6d0bc, type: 3}
+  animationProfile: {fileID: 11400000, guid: 4ece44977732a2c41a2cd7797426bb81, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 19eee64bf5c320d4bbba76030aa5153a, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 29f975fa3f185274d81cb7175054a649, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 4cd7f9b5c2b75964392b1b50f3df48f0, type: 2}
+  threatCost: 3

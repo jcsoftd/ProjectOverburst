@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Clypeosaurus_SmashAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: f85c5e24670d70ba
+  originalClip: {fileID: 7400000, guid: 87edce59eb2e1314f8fb0cafc681410f, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 87edce59eb2e1314f8fb0cafc681410f, type: 3}
+  sourceTrimSeconds: {x: 0, y: 3.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 3.2563999
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.44210526, y: 0.56842107}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.44210526
+      capsules:
+      - a: {x: -0.81551385, y: 2.3518038, z: 1.4273001}
+        b: {x: -1.0064807, y: 1.7851123, z: 1.9999673}
+        radius: 0.23
+    - normalizedTime: 0.50526315
+      capsules:
+      - a: {x: -0.8284674, y: 1.2094938, z: 2.1513233}
+        b: {x: -0.70297164, y: 0.5671872, z: 2.6585202}
+        radius: 0.23
+    - normalizedTime: 0.56842107
+      capsules:
+      - a: {x: -0.67219585, y: 0.9785506, z: 2.1753323}
+        b: {x: -0.6599814, y: 0.3791439, z: 2.7463999}
+        radius: 0.23
+    maximumPlanarReach: 3.0545864

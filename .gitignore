@@ -144,3 +144,6 @@ Assets/StreamingAssets/aa/
 # Licensed Blood Effects Pack particle settings; restore with the private package and native builder.
 /Assets/ProjectOverburst/Resources/Combat/BloodEffectsPack/
 /Assets/ProjectOverburst/Resources/Combat/BloodEffectsPack.meta
+
+# Licensed supplier-derived V3 locomotion curves; restore payload and meta from private Recovery.
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/V3_*_Loop.anim*

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Crassorrid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Crassorrid
+  displayName: Crassorrid
+  vendorPrefab: {fileID: 1773622563929569183, guid: 0c4c6ad11483d4e42b4a1ef7666789d0, type: 3}
+  animationProfile: {fileID: 11400000, guid: a71e0e9cc7b457a489afd1a8cff1be92, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 5f5052f6ee161ad4a832abb01e5d1fd6, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: 30bb5de3f123dd04cb1183f9dcd47344, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: fcd738e53d92b3d43aba83ae1a47718f, type: 2}
+  threatCost: 12

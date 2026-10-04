@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Onyscidus_RightClawAttackForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 02832a66a244b85e
+  originalClip: {fileID: 7400000, guid: 1dbf5a1a557a8b94eb1558e848480b28, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 1dbf5a1a557a8b94eb1558e848480b28, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 1
+  stationaryStartRange: 4.361241
+  maxAdvanceDistance: 0.2
+  advanceWindow: {x: 0.25, y: 0.45}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.45, y: 0.55}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.841825, y: 1.2468315, z: 2.2426147}
+        b: {x: 0.45511252, y: 1.9946088, z: 3.4049706}
+        radius: 0.23
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.77555853, y: 1.2114867, z: 2.499426}
+        b: {x: 0.34193626, y: 1.4220955, z: 3.8512409}
+        radius: 0.23
+    - normalizedTime: 0.55
+      capsules:
+      - a: {x: 0.7931086, y: 1.1782464, z: 2.4695463}
+        b: {x: 0.3461841, y: 1.3899983, z: 3.8168435}
+        radius: 0.23
+    maximumPlanarReach: 4.0963907

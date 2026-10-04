@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Telluropod
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Telluropod
+  displayName: Telluropod
+  vendorPrefab: {fileID: 144432, guid: fb33bd06f47c4ab4a8cd4e68704ba097, type: 3}
+  animationProfile: {fileID: 11400000, guid: 6719fa7460a3a214b907cef871431cd7, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 652e6513cbe54ec438dddf53e872ea7e, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 80cb6f489af7c834e84fd2c3ba82e81c, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 3b03cd0e8c6dc754aaf5100e1446358e, type: 2}
+  threatCost: 3

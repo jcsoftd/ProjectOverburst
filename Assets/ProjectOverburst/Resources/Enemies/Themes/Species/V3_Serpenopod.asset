@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Serpenopod
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Serpenopod
+  displayName: Serpenopod
+  vendorPrefab: {fileID: 7282962917103849540, guid: 5d226bc64f924b84f8dfe8e24ab7464b, type: 3}
+  animationProfile: {fileID: 11400000, guid: b57a1eeff8d21474089a4f7bbcbc7162, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 54d1117ecd150b5418392b5602040c75, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: cbb67253831571f42a88b0abfdacda0d, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 8acf495cb04e23f49b129e8c7fb7cd1f, type: 2}
+  threatCost: 3

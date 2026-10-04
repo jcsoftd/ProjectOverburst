@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Gasterodonte
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Gasterodonte
+  displayName: Gasterodonte
+  vendorPrefab: {fileID: 9161148632783801881, guid: 20089a28c0d5fa943b266315c0024719, type: 3}
+  animationProfile: {fileID: 11400000, guid: ef2fd7f7429c10a4896813d4137137a5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 4b7eb0c58fca02e4499c9f7bdac70045, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: f39bc67ae263c4840ac1a28f65a16a59, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 2bba6718dfd3f5f439e0e453f6a4a589, type: 2}
+  threatCost: 12

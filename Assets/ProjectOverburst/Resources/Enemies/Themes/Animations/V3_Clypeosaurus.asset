@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Clypeosaurus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Clypeosaurus
+  runtimeController: {fileID: 9100000, guid: 54d2ef0c84f064248881fd7c4a494545, type: 2}
+  idle: {fileID: 7400000, guid: 4ac6ed3b0f052ab4088a44ed35bce63d, type: 3}
+  walk: {fileID: 7400000, guid: 50865bb1825561d4cab754682ea772f7, type: 3}
+  run: {fileID: 7400000, guid: 50865bb1825561d4cab754682ea772f7, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 0aa54ec77a108c9459e57727f740d838, type: 3}
+  - {fileID: 7400000, guid: 87edce59eb2e1314f8fb0cafc681410f, type: 3}
+  - {fileID: 7400000, guid: c6ca11322dbfbbe46b35892ebe8774a2, type: 3}
+  hit: {fileID: 7400000, guid: 2066038403a7f5542b7474f5c4430706, type: 3}
+  death: {fileID: 7400000, guid: 37c8eb8c3d210a84abe46951ec5dbcb1, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 50865bb1825561d4cab754682ea772f7, type: 3}
+  parryCollapse: {fileID: 7400000, guid: ce8afd1aeb202a34f98d3e8640346b51, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: e7c376ea1339d3b4297318cb1f9a201d, type: 2}
+  stunRecover: {fileID: 7400000, guid: 2268271ceb3152c4aa7c0e0faf96c451, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/e59fe63e/Clypeosaurus@Walk_RM.FBX"

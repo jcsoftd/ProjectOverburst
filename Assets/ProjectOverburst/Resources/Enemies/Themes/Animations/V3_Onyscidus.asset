@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Onyscidus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Onyscidus
+  runtimeController: {fileID: 9100000, guid: d928033ff3c2c6e408a08fab3ebb4e45, type: 2}
+  idle: {fileID: 7400000, guid: 356a5684596c0b64e9d9e16d3ce4b7e6, type: 3}
+  walk: {fileID: 7400000, guid: c18162e1fd31a6244a4bd9b54aef11bc, type: 3}
+  run: {fileID: 7400000, guid: c18162e1fd31a6244a4bd9b54aef11bc, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: a101dc3aeb7140443a5fa6f1c6b4adde, type: 3}
+  - {fileID: 7400000, guid: e51d9b586d17ea9489113dcf03eb07dc, type: 3}
+  - {fileID: 7400000, guid: 1269f5bf1b5502846be329ab81be9307, type: 3}
+  - {fileID: 7400000, guid: 1dbf5a1a557a8b94eb1558e848480b28, type: 3}
+  - {fileID: 7400000, guid: 3c26f0acdd973cb47a597c146d343ccb, type: 3}
+  hit: {fileID: 7400000, guid: 9a3158e345c3d3940a50907497e30c13, type: 3}
+  death: {fileID: 7400000, guid: 625471fa513c30f448467e840e9cfa5d, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 4c0a98e62b355324bac860303c1d033e, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 89068a46abeb3704f8f296e29b3f15fd, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 0dcc177cd0f87984bafb58f4cd568ba5, type: 2}
+  stunRecover: {fileID: 7400000, guid: f2a03a1e6be0a8f49a9cdce014681725, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
+    Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Onyscidus/FBX Files/Onyscidus@CrawlForward_RM.fbx"

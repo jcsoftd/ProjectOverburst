@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_Onyscidus_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_Onyscidus
+  abilities:
+  - {fileID: 11400000, guid: 6fc197c7d3499bc42810366650707006, type: 2}
+  - {fileID: 11400000, guid: c802ecc9164860c4caa544a461eb82d9, type: 2}
+  - {fileID: 11400000, guid: 6d575e7824a52284b85e68be2b6247a9, type: 2}
+  - {fileID: 11400000, guid: 54e6bd6e425213a4ba328ca9ecf66ef9, type: 2}
+  - {fileID: 11400000, guid: 5354c2e2e9c23ea40b26fc9615f0572f, type: 2}
