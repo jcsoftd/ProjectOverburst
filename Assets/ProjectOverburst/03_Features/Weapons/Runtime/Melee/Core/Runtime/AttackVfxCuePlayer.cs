@@ -165,7 +165,9 @@ public sealed class AttackVfxCuePlayer
             definition.SafePoolCapacity,
             null,
             prepare,
-            TransientVfxReturnMode.FixedLifetime);
+            TransientVfxReturnMode.FixedLifetime,
+            contentSceneHandle: WorldSessionState.ContentScene.IsValid() && WorldSessionState.ContentScene.isLoaded
+                ? WorldSessionState.ContentScene.handle : 0);
     }
 
     private static bool ScalesWithAttackRange(AttackVfxMotionRole motionRole)

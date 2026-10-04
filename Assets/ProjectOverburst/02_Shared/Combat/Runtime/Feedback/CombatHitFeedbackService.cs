@@ -133,7 +133,9 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
             && visualTarget.TryGetComponent<CombatTargetVfxPlacement>(out _))
             visualContact = CombatTargetVfxPlacement.ResolveContact(
                 visualTarget, request.HitPoint, request.WorldDirection, out hitSize);
-        MeleeElementHitVfxService.TryPlay(request.Element, visualContact, hitSize);
+        var targetScene = request.Target != null ? request.Target.gameObject.scene : default;
+        int contentSceneHandle = targetScene.IsValid() && targetScene.isLoaded ? targetScene.handle : 0;
+        MeleeElementHitVfxService.TryPlay(request.Element, visualContact, hitSize, contentSceneHandle);
         BloodHitVfxService.Request(request, visualContact, hitSize);
         if (request.Target != null && request.Target.TryGetComponent<EnemyDeathPresentation>(out var presentation))
         {

@@ -58,17 +58,17 @@ public static class MeleeElementHitVfxService
     public static bool TryPlay(WeaponElement element, Vector3 hitPoint)
     {
         using (PlayMarker.Auto())
-            return Play(element, hitPoint, -1f);
+            return Play(element, hitPoint, -1f, 0);
     }
 
     // sizeMultiplier = CombatTargetVfxPlacement.ResolveContact의 몸 크기 배율(0.55~1.5).
-    public static bool TryPlay(WeaponElement element, Vector3 hitPoint, float sizeMultiplier)
+    public static bool TryPlay(WeaponElement element, Vector3 hitPoint, float sizeMultiplier, int contentSceneHandle = 0)
     {
         using (PlayMarker.Auto())
-            return Play(element, hitPoint, Mathf.Max(.01f, sizeMultiplier));
+            return Play(element, hitPoint, Mathf.Max(.01f, sizeMultiplier), contentSceneHandle);
     }
 
-    private static bool Play(WeaponElement element, Vector3 hitPoint, float bodySizeMultiplier)
+    private static bool Play(WeaponElement element, Vector3 hitPoint, float bodySizeMultiplier, int contentSceneHandle)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.ElementHit)) return false;
@@ -106,7 +106,8 @@ public static class MeleeElementHitVfxService
                 // 원소끼리 크기를 맞추려 카탈로그의 원소별 배율(불 1.1·빛 0.8)을 곱한다.
                 spawned.transform.localScale = prefab.transform.localScale * hitScale;
             },
-            useUnscaledTime: true);
+            useUnscaledTime: true,
+            contentSceneHandle: contentSceneHandle);
         return instance != null;
     }
 
