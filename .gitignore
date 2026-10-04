@@ -136,3 +136,7 @@ Assets/StreamingAssets/aa/
 # Licensed supplier-derived dash-heavy spin and gather audio; restore locally with original meta.
 /Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_DashHeavySpin.anim*
 /Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/DashHeavyGather.wav*
+
+# Licensed supplier-derived V3 attack curves; restore with original meta from private manifest.
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/RuntimeV3/
+/Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/RuntimeV3.meta
