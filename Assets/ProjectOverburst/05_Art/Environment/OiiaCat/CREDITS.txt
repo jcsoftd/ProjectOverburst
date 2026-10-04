@@ -1,0 +1,8 @@
+Oiiaioooooiai Cat by Zhuier
+Source: https://sketchfab.com/3d-models/oiiaioooooiai-cat-30d27bf7fb224849b76e208a6eccdb36
+License: Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+Source GLB is byte-preserved. Prepared FBX versions use a uniform scale and a ground-centered root. The animated FBX retains the original rotation and morph animation. The static FBX is an additional display reference. The PNG is a local Blender render.
+
+This attribution covers the cat model. W&W audio was not downloaded or included.
