@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_GigabdomocaudaBombis_LegSmashLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 441ef1167a59da07
+  originalClip: {fileID: 1827226128182048838, guid: 6de2b0a01f3fb2940aaf6abad63f4b5e, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 6de2b0a01f3fb2940aaf6abad63f4b5e, type: 3}
+  sourceTrimSeconds: {x: 0, y: 2.3333335}
+  motionPolicy: 0
+  stationaryStartRange: 2.5247521
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.3142857, y: 0.4285714}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.3142857
+      capsules:
+      - a: {x: -0.82399344, y: 1.9154541, z: 0.4193301}
+        b: {x: -1.0329071, y: 2.4370506, z: 0.890721}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: -0.81583697, y: 1.6897967, z: 0.6262896}
+        b: {x: -0.9745176, y: 2.1895504, z: 1.1391095}
+        radius: 0.23
+    - normalizedTime: 0.37142855
+      capsules:
+      - a: {x: -0.7928971, y: 1.4586086, z: 0.81967026}
+        b: {x: -0.9011393, y: 1.9096236, z: 1.3878129}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.7355514, y: 1.268167, z: 1.0018615}
+        b: {x: -0.7931656, y: 1.6366651, z: 1.6333739}
+        radius: 0.23
+    - normalizedTime: 0.4285714
+      capsules:
+      - a: {x: -0.63002443, y: 1.0511692, z: 1.2895819}
+        b: {x: -0.6202198, y: 1.1604806, z: 2.0147521}
+        radius: 0.23
+    maximumPlanarReach: 2.3380556

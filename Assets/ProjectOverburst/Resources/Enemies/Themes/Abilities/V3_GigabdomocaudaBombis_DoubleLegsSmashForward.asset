@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: V3_GigabdomocaudaBombis_DoubleLegsSmashForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: V3_GigabdomocaudaBombis_DoubleLegsSmashForward
+  weakAttackExecution: {fileID: 0}
+  animatorTrigger: Attack5
+  executionMode: 0
+  damage: 18
+  referencePatternDamagePercent: 20
+  telegraphedStrongAttack: 1
+  telegraphedAttack: 1
+  preparationDuration: 0.7
+  releaseDuration: 0.16
+  recoveryDuration: 0.34
+  minimumWarningTime: 0.86
+  minimumRecoveryTime: 0.34
+  parryable: 1
+  minimumRange: 0
+  range: 2.8
+  hitRadius: 2.8
+  hitAngle: 125
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 2.4
+  hitDelay: 0.8666667
+  hitNormalizedTime: 0.37142855
+  attackAnimationDuration: 2.3333335
+  attackLockDuration: 2.3333335
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []

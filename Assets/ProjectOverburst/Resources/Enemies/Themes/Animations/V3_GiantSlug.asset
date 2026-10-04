@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_GiantSlug
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_GiantSlug
+  runtimeController: {fileID: 9100000, guid: 9346aa1d4c640e840be3f7206b7c3043, type: 2}
+  idle: {fileID: 7400000, guid: b26ddc79aa206e94a86d065f8d7e2eb1, type: 3}
+  walk: {fileID: 7400000, guid: 293ec6dd2b8ddae4d8ec45bd8250b3d7, type: 3}
+  run: {fileID: 7400000, guid: 293ec6dd2b8ddae4d8ec45bd8250b3d7, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 05557f44ced7fec4eb0dcb572dffc41b, type: 3}
+  - {fileID: 7400000, guid: 4567ca3eb0a79cc4a9c2c0673d666fda, type: 3}
+  hit: {fileID: 7400000, guid: ef9b48ed4a8428f40b93b59a00b4d0cf, type: 3}
+  death: {fileID: 7400000, guid: 56d1c42bf6e4503498b66b1afce8999a, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 293ec6dd2b8ddae4d8ec45bd8250b3d7, type: 3}
+  parryCollapse: {fileID: 7400000, guid: f5d8c3e1960a3bd45890aa514aef1f14, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 1b7d39f34b57522459b6bf25e08b7a80, type: 2}
+  stunRecover: {fileID: 7400000, guid: 34b9006722a3f8a4eb4c0e43e1ee1ce8, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/9b938aba/GiantSlug@CrawlForward_RM.FBX"

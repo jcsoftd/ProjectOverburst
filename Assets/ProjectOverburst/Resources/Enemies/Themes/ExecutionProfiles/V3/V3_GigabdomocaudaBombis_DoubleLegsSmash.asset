@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_GigabdomocaudaBombis_DoubleLegsSmash
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 6d61a9c2130fe78b
+  originalClip: {fileID: 1827226128182048838, guid: 0b023dcc18b9fad409dc18910cc3f418, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 0b023dcc18b9fad409dc18910cc3f418, type: 3}
+  sourceTrimSeconds: {x: 0, y: 2.3333335}
+  motionPolicy: 0
+  stationaryStartRange: 2.0827703
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.28571427, y: 0.39999998}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.28571427
+      capsules:
+      - a: {x: -1.0234456, y: 2.0958018, z: -0.058934256}
+        b: {x: -1.327747, y: 2.6027474, z: 0.3750292}
+        radius: 0.23
+      - a: {x: 1.0507541, y: 2.0785463, z: 0.18844162}
+        b: {x: 1.3012397, y: 2.5763106, z: 0.66531116}
+        radius: 0.23
+    - normalizedTime: 0.3142857
+      capsules:
+      - a: {x: -0.93736655, y: 2.0071917, z: 0.22181463}
+        b: {x: -1.1749367, y: 2.5456998, z: 0.65940744}
+        radius: 0.23
+      - a: {x: 0.9830498, y: 1.8997425, z: 0.42876077}
+        b: {x: 1.1985798, y: 2.4044907, z: 0.91527253}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: -0.8550924, y: 1.8466994, z: 0.44628084}
+        b: {x: -1.049118, y: 2.388729, z: 0.90067583}
+        radius: 0.23
+      - a: {x: 0.90904546, y: 1.6951245, z: 0.63540983}
+        b: {x: 1.0994359, y: 2.183553, z: 1.1483493}
+        radius: 0.23
+    - normalizedTime: 0.37142855
+      capsules:
+      - a: {x: -0.79868686, y: 1.650501, z: 0.6312296}
+        b: {x: -0.9555257, y: 2.170331, z: 1.1242771}
+        radius: 0.23
+      - a: {x: 0.8633537, y: 1.4697661, z: 0.80282927}
+        b: {x: 1.0322527, y: 1.9157407, z: 1.360052}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.7560175, y: 1.4738265, z: 0.78205836}
+        b: {x: -0.8775571, y: 1.9387054, z: 1.3361641}
+        radius: 0.23
+      - a: {x: 0.81147194, y: 1.2797741, z: 0.9475064}
+        b: {x: 0.95579976, y: 1.6349248, z: 1.5727702}
+        radius: 0.23
+    maximumPlanarReach: 2.0704236

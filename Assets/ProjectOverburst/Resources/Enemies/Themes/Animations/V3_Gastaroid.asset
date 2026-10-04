@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Gastaroid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Gastaroid
+  runtimeController: {fileID: 9100000, guid: 2496a1d970d2cf640840bcbb94911bfe, type: 2}
+  idle: {fileID: 7400000, guid: 3b011fba6836cfd418eb202085715527, type: 3}
+  walk: {fileID: 7400000, guid: 2329c8ebe3b38534591a7c2689678685, type: 3}
+  run: {fileID: 7400000, guid: 43c7ab0bd758467449b1d31deed52904, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 847f599ce26b7e240a267006b6265555, type: 3}
+  - {fileID: 7400000, guid: 74a9a43cb413ea34cb840d87346020af, type: 3}
+  - {fileID: 7400000, guid: 8ffaeb2fbfcef2a4c9d5813b1e966989, type: 3}
+  - {fileID: 7400000, guid: d876b2e347fb3fb4ab105e4d14eb9730, type: 3}
+  - {fileID: 7400000, guid: 2f540895bd5f096419231e1784627760, type: 3}
+  hit: {fileID: 7400000, guid: b1a2101775a66224dae963ff6726ab38, type: 3}
+  death: {fileID: 7400000, guid: 095fbdc6ba623d547a073cab2c7428f9, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 2329c8ebe3b38534591a7c2689678685, type: 3}
+  parryCollapse: {fileID: 7400000, guid: b8f65efc27310614787ae483b5cadeb8, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 1c76f16bf60409c4aa44ee7701fce905, type: 2}
+  stunRecover: {fileID: 7400000, guid: ef07c3fe912d6674db9701bc3a64bf06, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P13/1972554d/Gastaroid@Walk_RM.FBX"

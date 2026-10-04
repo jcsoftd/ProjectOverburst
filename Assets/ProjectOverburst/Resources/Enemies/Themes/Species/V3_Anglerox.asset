@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Anglerox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Anglerox
+  displayName: Anglerox
+  vendorPrefab: {fileID: 8694943018831287373, guid: 523607d74500f59438ef678ce1d0b29d, type: 3}
+  animationProfile: {fileID: 11400000, guid: b2adfeb0f062cab468f0edde59d6ea8e, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: bdea0b519d0cf8d4a996e241f687848e, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: 5bf1458911d3f064b871a3221377b72f, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 0a137b25ba1edb34b9f8df526c7dc167, type: 2}
+  threatCost: 12

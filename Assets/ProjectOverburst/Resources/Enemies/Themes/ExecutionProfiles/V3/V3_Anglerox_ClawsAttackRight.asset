@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Anglerox_ClawsAttackRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 6742db4078ad41f9
+  originalClip: {fileID: 7400000, guid: 4310aa66c745d014dade595f0c22d529, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 4310aa66c745d014dade595f0c22d529, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 3.2525055
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.28571427, y: 0.5142857}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.28571427
+      capsules:
+      - a: {x: -0.070849255, y: 2.145509, z: 1.9762275}
+        b: {x: -0.39051726, y: 2.0550086, z: 2.7425056}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: -0.44016156, y: 1.7030178, z: 1.8392198}
+        b: {x: -0.9718898, y: 1.4285269, z: 2.4218683}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.40584618, y: 1.5580873, z: 1.724913}
+        b: {x: -1.1315429, y: 1.340488, z: 2.0764458}
+        radius: 0.23
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: -0.22511666, y: 1.5191132, z: 1.6581464}
+        b: {x: -1.0239599, y: 1.3644842, z: 1.8465581}
+        radius: 0.23
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: -0.03986875, y: 1.5260389, z: 1.5918391}
+        b: {x: -0.8201539, y: 1.3088585, z: 1.7956711}
+        radius: 0.23
+    maximumPlanarReach: 3.0001698

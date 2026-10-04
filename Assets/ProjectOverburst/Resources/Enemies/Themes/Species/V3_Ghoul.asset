@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Ghoul
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Ghoul
+  displayName: Ghoul
+  vendorPrefab: {fileID: 2161097644017189955, guid: 09efc08a66079d1489a0aee5d107d882, type: 3}
+  animationProfile: {fileID: 11400000, guid: bd92b737d3cffac499525c3f2a2ecd56, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 288f88f6e07f66045b1af9e28a059979, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 07805f24c1a08564687e2b92d2fb01d3, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 19e30c1fdeb360f43a8be94400adb2f8, type: 2}
+  threatCost: 3

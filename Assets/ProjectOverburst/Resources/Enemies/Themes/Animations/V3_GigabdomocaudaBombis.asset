@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_GigabdomocaudaBombis
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_GigabdomocaudaBombis
+  runtimeController: {fileID: 9100000, guid: 19c697be9c48d464b9b4fb4fd6d06277, type: 2}
+  idle: {fileID: 7400000, guid: 3aa8da92fb7f0f34b9bdea1091350389, type: 2}
+  walk: {fileID: 7400000, guid: a074ece3427deb24cb1f3e525cd02720, type: 2}
+  run: {fileID: 7400000, guid: 7b55d6b36a058dd4abea2f7f0a665ef9, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 6de2b0a01f3fb2940aaf6abad63f4b5e, type: 3}
+  - {fileID: 1827226128182048838, guid: 0b023dcc18b9fad409dc18910cc3f418, type: 3}
+  - {fileID: 1827226128182048838, guid: ccd6945d07ecb12478979efaf78565cb, type: 3}
+  - {fileID: 1827226128182048838, guid: 8801d9bad1c714a4eb5dbbacbe39468a, type: 3}
+  - {fileID: 1827226128182048838, guid: 7c32318d982976947a1d9f66b2118d86, type: 3}
+  hit: {fileID: 1827226128182048838, guid: a0ad04aef8c61704d96c5340b22821df, type: 3}
+  death: {fileID: 1827226128182048838, guid: 209e23d32b099ba41a8a1f50e66bf0eb, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 967fb2ef490ec8544b619237e381ab06, type: 2}
+  parryCollapse: {fileID: 7400000, guid: ece39285a0d9abb40942bdabcd5c1da3, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 766126eea24ef1c4abadf0723143b494, type: 2}
+  stunRecover: {fileID: 7400000, guid: bc82d9afec2ba8348b0cbb8b47d12a5e, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/5ab1a987/GigabdomocaudaBombis@CrawlForward_RM.fbx"

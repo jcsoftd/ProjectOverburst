@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Ghoul
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Ghoul
+  runtimeController: {fileID: 9100000, guid: 20d85d2ad6dc4e9469a774cbb587a9aa, type: 2}
+  idle: {fileID: 7400000, guid: d370a8b163bf70246a304719e9c0b81d, type: 3}
+  walk: {fileID: 7400000, guid: c9b4d175e82478443966b1e0e0a37ebe, type: 3}
+  run: {fileID: 7400000, guid: 35973fb0bd581dc4a8e11b9221966924, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: af84d9698cdb86449a1d16ea9e082ddf, type: 3}
+  - {fileID: 7400000, guid: 3542cd2efaa61d44ca69271dc5618998, type: 3}
+  - {fileID: 7400000, guid: 9af4fb5e5b0b03841b03dcfca3193997, type: 3}
+  - {fileID: 7400000, guid: 8f78a5dd4539bc648bd5220dcd7cca03, type: 3}
+  hit: {fileID: 7400000, guid: 9664c11bd1ec0e349a853e0015d02f89, type: 3}
+  death: {fileID: 7400000, guid: 697b469632c14b644b03a8f1453169cc, type: 3}
+  optional:
+  - {fileID: 7400000, guid: c9b4d175e82478443966b1e0e0a37ebe, type: 3}
+  parryCollapse: {fileID: 7400000, guid: b1e97d9c55e9491458e4a8ab4a952f5d, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 219f5f937a1b53341bd8ff2f9d6f22fd, type: 2}
+  stunRecover: {fileID: 7400000, guid: 177381809ff93db4697f95693b2e36d5, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P04/2d63f67a/Ghoul@Walk_RM.FBX"

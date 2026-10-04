@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: V3_Anglerox
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: V3_Anglerox
+  displayName: Anglerox
+  referenceHealthCoefficient: 18
+  species: {fileID: 11400000, guid: 3f16dccace8ff3d42aa140cb7608bea6, type: 2}
+  grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 3411980923652148504, guid: 95c817555d32a144bbf471122dd10a49, type: 3}
+  animationProfile: {fileID: 11400000, guid: b2adfeb0f062cab468f0edde59d6ea8e, type: 2}
+  abilitySet: {fileID: 11400000, guid: bdea0b519d0cf8d4a996e241f687848e, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 0a137b25ba1edb34b9f8df526c7dc167, type: 2}
+  movementProfile: {fileID: 11400000, guid: 5bf1458911d3f064b871a3221377b72f, type: 2}
+  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  squadParticipationMode: 1
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

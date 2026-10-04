@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Deinodonte
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Deinodonte
+  runtimeController: {fileID: 9100000, guid: 49ebcc56c00a4414194c2f61df780c86, type: 2}
+  idle: {fileID: 7400000, guid: fe827843d35e3304ca877fe4f9cc38f3, type: 3}
+  walk: {fileID: 7400000, guid: b465aca00fe1edb4981d34d7d4a18ec4, type: 3}
+  run: {fileID: 7400000, guid: 330408f45d6604e4191195a3a7ca6918, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 6d773a069e26adc4bb5a4088026eba5b, type: 3}
+  - {fileID: 7400000, guid: 3fdc847826df90e4380bdc041692e3a8, type: 3}
+  - {fileID: 7400000, guid: 3e3ce48979f278f438e6e1fff4f87e68, type: 3}
+  - {fileID: 7400000, guid: 5a182c141e18c0648944e16b03324ff2, type: 3}
+  hit: {fileID: 7400000, guid: e576e1268eea0174580696de041f4173, type: 3}
+  death: {fileID: 7400000, guid: b3b58a40644288546b5f744c557434ad, type: 3}
+  optional:
+  - {fileID: 7400000, guid: b465aca00fe1edb4981d34d7d4a18ec4, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 6340ee67dfaa7f947bb62887f014e70e, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: ede699be56771374d94dc133358070c6, type: 2}
+  stunRecover: {fileID: 7400000, guid: 12c86a2fa086a6a4f9af244d253a8e93, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/6099cc47/Deinodonte@Walk_RM.FBX"

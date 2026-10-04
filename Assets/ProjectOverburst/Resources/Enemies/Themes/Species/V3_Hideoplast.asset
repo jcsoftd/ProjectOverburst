@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Hideoplast
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Hideoplast
+  displayName: Hideoplast
+  vendorPrefab: {fileID: 4960153498474352827, guid: 2c7d2ca099d5e5e479456ba1ead0afe3, type: 3}
+  animationProfile: {fileID: 11400000, guid: 1ed4c15777eadb447a838281b0c46901, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 6ad74e6fd86c5e24e8252bf7561da3a8, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 8f2d563c3027d5e469b218a9f876faa1, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 3326f2c1a0036a54995173cf2597dee5, type: 2}
+  threatCost: 3

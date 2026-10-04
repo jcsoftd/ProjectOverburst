@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Perderos_ClawsAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: ff1633fccba9fb32
+  originalClip: {fileID: 7400000, guid: bcf6f38477d02c14bab6ed7aa410b517, type: 3}
+  runtimeClip: {fileID: 7400000, guid: bcf6f38477d02c14bab6ed7aa410b517, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 4.720264
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.28571427, y: 0.5142857}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.28571427
+      capsules:
+      - a: {x: -1.1822058, y: 4.521993, z: -0.40960574}
+        b: {x: -0.4490911, y: 5.358061, z: 0.39168048}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: -1.3685682, y: 4.101277, z: 0.8522192}
+        b: {x: -0.83153135, y: 5.0341506, z: 1.7006665}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -1.3191435, y: 2.7625887, z: 2.3122392}
+        b: {x: -1.1193352, y: 3.3714285, z: 3.523814}
+        radius: 0.23
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: -0.87224454, y: 1.6644583, z: 2.851031}
+        b: {x: -0.71613395, y: 1.7459502, z: 4.2102637}
+        radius: 0.23
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: -0.50080854, y: 1.0109776, z: 2.8075945}
+        b: {x: -0.28748438, y: 0.6911362, z: 4.1231637}
+        radius: 0.23
+    maximumPlanarReach: 4.500734

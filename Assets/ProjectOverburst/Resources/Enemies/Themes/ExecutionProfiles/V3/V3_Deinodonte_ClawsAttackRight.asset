@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Deinodonte_ClawsAttackRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: c695294e2f5bdd9d
+  originalClip: {fileID: 7400000, guid: 3fdc847826df90e4380bdc041692e3a8, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 3fdc847826df90e4380bdc041692e3a8, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 0
+  stationaryStartRange: 4.1862473
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.25, y: 0.45}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.25
+      capsules:
+      - a: {x: 1.5566081, y: 2.7892742, z: -1.4330524}
+        b: {x: 2.226889, y: 3.840072, z: -1.0429105}
+        radius: 0.23
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: 1.9568923, y: 3.0290625, z: -0.22172229}
+        b: {x: 2.5585527, y: 3.920624, z: 0.51907647}
+        radius: 0.23
+    - normalizedTime: 0.35
+      capsules:
+      - a: {x: 1.3929205, y: 2.7137632, z: 1.6651082}
+        b: {x: 1.6137184, y: 2.9993737, z: 2.9202325}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 0.60762167, y: 2.1657267, z: 2.373449}
+        b: {x: 0.5297247, y: 2.1176293, z: 3.6762471}
+        radius: 0.23
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.29614812, y: 1.851274, z: 2.3993483}
+        b: {x: 0.118985444, y: 1.5952566, z: 3.667705}
+        radius: 0.23
+    maximumPlanarReach: 3.944216

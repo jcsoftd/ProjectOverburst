@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Hideoplast
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Hideoplast
+  runtimeController: {fileID: 9100000, guid: d5d70429cf3b3d644913a714f514fcfe, type: 2}
+  idle: {fileID: 7400000, guid: 6be2bbb8aae362d4c83e823a8e2c8492, type: 3}
+  walk: {fileID: 7400000, guid: ad9b5f584daf4dd40a0efe5b3d6e48d1, type: 3}
+  run: {fileID: 7400000, guid: 34ec168f2f6f5a9428f488ceac8a7e46, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 892e291491d37c14d9a36681958dcf39, type: 3}
+  - {fileID: 7400000, guid: e514e7c644e339d47a7b0f0c22ea692d, type: 3}
+  - {fileID: 7400000, guid: 17b627dbe51eab14683227ea3db5c0b7, type: 3}
+  - {fileID: 7400000, guid: 733684f9f2f731747a821b78b1d82e7c, type: 3}
+  hit: {fileID: 7400000, guid: c35c75b6a4d590b4ca2aac65d9eabde8, type: 3}
+  death: {fileID: 7400000, guid: 63a4b22d833409f4b8f1abb1d46ef06d, type: 3}
+  optional:
+  - {fileID: 7400000, guid: ad9b5f584daf4dd40a0efe5b3d6e48d1, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 41371141be8f98f4a9082811473bb212, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: abb4a11d946477a45afc3d2c7ddc70b9, type: 2}
+  stunRecover: {fileID: 7400000, guid: beacb11874a0eea40a3a61ca272535ce, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/be30a103/Hideoplast@Walk_RM.FBX"

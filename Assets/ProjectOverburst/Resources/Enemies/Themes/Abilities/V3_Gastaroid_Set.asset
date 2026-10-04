@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_Gastaroid_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_Gastaroid
+  abilities:
+  - {fileID: 11400000, guid: 8cff127db8082a6439ec43099316cf84, type: 2}
+  - {fileID: 11400000, guid: 7ccefed9e3543a04aa0aafede3ba4a35, type: 2}
+  - {fileID: 11400000, guid: d822bf0cea58f6241b6366777196ec38, type: 2}
+  - {fileID: 11400000, guid: fa9182ff885b8fe43bff3c76b1e3939a, type: 2}
+  - {fileID: 11400000, guid: 72adfe7c35567004bae036cf8c01eefa, type: 2}

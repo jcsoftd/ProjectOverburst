@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_Deinodonte_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_Deinodonte
+  abilities:
+  - {fileID: 11400000, guid: b0ee6c46d10827d45a956a1265985a43, type: 2}
+  - {fileID: 11400000, guid: 870424a66d607a04eb51f31b8e99d12e, type: 2}
+  - {fileID: 11400000, guid: d21a05679dcf7154a9f2d7d909b499c8, type: 2}
+  - {fileID: 11400000, guid: 07e0f9d51c81e4d41a5b2d8a2e899ba4, type: 2}

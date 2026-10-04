@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Hideoplast_2HitComboClawsAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 201da768d42bd2b1
+  originalClip: {fileID: 7400000, guid: e514e7c644e339d47a7b0f0c22ea692d, type: 3}
+  runtimeClip: {fileID: 7400000, guid: e514e7c644e339d47a7b0f0c22ea692d, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.8333334}
+  motionPolicy: 0
+  stationaryStartRange: 2.298962
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.18181817, y: 0.3272727}
+  - {x: 0.58181816, y: 0.7272727}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.18181817
+      capsules:
+      - a: {x: 0.86161274, y: 2.1632152, z: 0.028893845}
+        b: {x: 0.62807727, y: 2.493708, z: 0.6566571}
+        radius: 0.16
+    - normalizedTime: 0.21818182
+      capsules:
+      - a: {x: 0.80809784, y: 1.7153006, z: 0.73761374}
+        b: {x: 0.7191904, y: 1.91586, z: 1.4515629}
+        radius: 0.16
+    - normalizedTime: 0.25454545
+      capsules:
+      - a: {x: 0.57830715, y: 1.1960567, z: 1.0830674}
+        b: {x: 0.4670446, y: 1.1390183, z: 1.8194226}
+        radius: 0.16
+    - normalizedTime: 0.29090908
+      capsules:
+      - a: {x: 0.41281062, y: 0.7090029, z: 1.1864562}
+        b: {x: 0.19636571, y: 0.46664184, z: 1.858962}
+        radius: 0.16
+    - normalizedTime: 0.3272727
+      capsules:
+      - a: {x: 0.5765373, y: 0.6142152, z: 1.0333529}
+        b: {x: 0.25508752, y: 0.33337167, z: 1.6462548}
+        radius: 0.16
+    maximumPlanarReach: 2.0384114
+  - frames:
+    - normalizedTime: 0.58181816
+      capsules:
+      - a: {x: -0.6682015, y: 2.00295, z: -0.34186715}
+        b: {x: -0.6011839, y: 2.1720881, z: 0.3825308}
+        radius: 0.16
+    - normalizedTime: 0.6181818
+      capsules:
+      - a: {x: -0.7767706, y: 2.2365975, z: -0.25579888}
+        b: {x: -0.52413845, y: 2.549523, z: 0.37357095}
+        radius: 0.16
+    - normalizedTime: 0.6545454
+      capsules:
+      - a: {x: -0.8345339, y: 2.0224307, z: 0.43010145}
+        b: {x: -0.6302569, y: 2.2988138, z: 1.0932266}
+        radius: 0.16
+    - normalizedTime: 0.6909091
+      capsules:
+      - a: {x: -0.6246384, y: 1.484542, z: 0.96387565}
+        b: {x: -0.5194661, y: 1.4928883, z: 1.7032814}
+        radius: 0.16
+    - normalizedTime: 0.7272727
+      capsules:
+      - a: {x: -0.36749727, y: 1.0267103, z: 1.1591715}
+        b: {x: -0.25197914, y: 0.75620705, z: 1.8457102}
+        radius: 0.16
+    maximumPlanarReach: 2.022831

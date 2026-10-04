@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: V3_Deinodonte
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: V3_Deinodonte
+  displayName: Deinodonte
+  referenceHealthCoefficient: 18
+  species: {fileID: 11400000, guid: 39e0c2836659e4747bc1375e0883741a, type: 2}
+  grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 7074454911003930599, guid: 1ef1aa855a96bb54f94a844611bba8a1, type: 3}
+  animationProfile: {fileID: 11400000, guid: b802a4c09c5d74142a9846c6d595b957, type: 2}
+  abilitySet: {fileID: 11400000, guid: a10b0b3e831a2314283e20c985240c52, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: e0d2cceddd7e66d4fa9ba87bc096eb37, type: 2}
+  movementProfile: {fileID: 11400000, guid: b5829f2b5eedc2146b1384bed0e8d656, type: 2}
+  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  squadParticipationMode: 1
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

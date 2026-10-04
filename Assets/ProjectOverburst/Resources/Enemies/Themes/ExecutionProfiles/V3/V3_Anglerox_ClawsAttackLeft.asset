@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Anglerox_ClawsAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 312694397d1410e2
+  originalClip: {fileID: 7400000, guid: 534c4578827f2cd4787dd262b7a1d210, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 534c4578827f2cd4787dd262b7a1d210, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 3.2823493
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.28571427, y: 0.5142857}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.28571427
+      capsules:
+      - a: {x: -0.3074444, y: 2.104442, z: 1.9577941}
+        b: {x: -0.13617061, y: 2.0357103, z: 2.7723494}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: 0.15673313, y: 1.7018797, z: 1.8970338}
+        b: {x: 0.5973581, y: 1.47344, z: 2.5687659}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 0.18113306, y: 1.549522, z: 1.7754889}
+        b: {x: 0.8516353, y: 1.3996172, z: 2.250373}
+        radius: 0.23
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: 0.03790189, y: 1.4916756, z: 1.6763681}
+        b: {x: 0.8058216, y: 1.4106555, z: 1.9946376}
+        radius: 0.23
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: -0.11770869, y: 1.4852427, z: 1.5822924}
+        b: {x: 0.6396329, y: 1.3336103, z: 1.9000994}
+        radius: 0.23
+    maximumPlanarReach: 3.0056915

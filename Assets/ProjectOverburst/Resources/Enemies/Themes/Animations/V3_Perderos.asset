@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Perderos
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Perderos
+  runtimeController: {fileID: 9100000, guid: a4fc025599faa3744912493a1e87df80, type: 2}
+  idle: {fileID: 7400000, guid: 908f8dabd2651a240a537bc2d4a82fbc, type: 3}
+  walk: {fileID: 7400000, guid: bc8be1989ad7d9045a2e9e27a9cdf580, type: 3}
+  run: {fileID: 7400000, guid: 9d25a7247ceecab499b8a19853d97288, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: bcf6f38477d02c14bab6ed7aa410b517, type: 3}
+  - {fileID: 7400000, guid: 5fd1506e2c162d248a8cd081f1fa4314, type: 3}
+  - {fileID: 7400000, guid: 67085f3ed1e6d2445824007006f1165c, type: 3}
+  - {fileID: 7400000, guid: c2b7f949234de8b469ad4c0f88ecb1dd, type: 3}
+  hit: {fileID: 7400000, guid: 6947a2432f015674fbce6dfe21b22dd4, type: 3}
+  death: {fileID: 7400000, guid: eaee70c2bddc6b6419df45102666f8ff, type: 3}
+  optional:
+  - {fileID: 7400000, guid: bc8be1989ad7d9045a2e9e27a9cdf580, type: 3}
+  parryCollapse: {fileID: 7400000, guid: e558c9a70c72b9f418deafb5dde290bb, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 691229aa7bbe77a4998b0ce7e34ee0ec, type: 2}
+  stunRecover: {fileID: 7400000, guid: b65c595c119436f4d9b0fc3cf655cdfa, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/81e45d61/Perderos@Walk_RM.FBX"

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_GigabdomocaudaBombis_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_GigabdomocaudaBombis
+  abilities:
+  - {fileID: 11400000, guid: aacd8ea565c0ea448876b9683afc9617, type: 2}
+  - {fileID: 11400000, guid: 29d3ddfdc738e584cbc1ca7b671c1ad5, type: 2}
+  - {fileID: 11400000, guid: 63165b04bb68bd14b89e8085113aa30f, type: 2}
+  - {fileID: 11400000, guid: 8f8b5847048a82c4da5261a8c7fe5760, type: 2}
+  - {fileID: 11400000, guid: 421aba2ffc6095b4e9877aa63e9e6d74, type: 2}

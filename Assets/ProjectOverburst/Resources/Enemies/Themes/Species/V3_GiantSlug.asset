@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_GiantSlug
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_GiantSlug
+  displayName: Giant Slug
+  vendorPrefab: {fileID: 9060218399276946843, guid: 677becd1a82ed674dbb6f2d213e503b8, type: 3}
+  animationProfile: {fileID: 11400000, guid: c421f421156b53442b0debcf1fa9efe5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: d43d21b64f842964c9e22c75e1676278, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: e384113495e8a844285d8440841202ad, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 68b7eba7bbb41a44092b16d48bbb56cb, type: 2}
+  threatCost: 3

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Perderos_ClawsAttackRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 6d3328a7f4cb2c96
+  originalClip: {fileID: 7400000, guid: 67085f3ed1e6d2445824007006f1165c, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 67085f3ed1e6d2445824007006f1165c, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 4.707839
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.28571427, y: 0.5142857}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.28571427
+      capsules:
+      - a: {x: 1.5622965, y: 4.1671567, z: -0.14426714}
+        b: {x: 0.9657185, y: 5.007645, z: 0.75917107}
+        radius: 0.23
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: 1.6233844, y: 3.7153356, z: 1.010118}
+        b: {x: 1.2052275, y: 4.6181607, z: 1.9527625}
+        radius: 0.23
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 1.4022236, y: 2.563679, z: 2.3180695}
+        b: {x: 1.249321, y: 3.1218312, z: 3.5604923}
+        radius: 0.23
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: 0.91989464, y: 1.6372746, z: 2.8349144}
+        b: {x: 0.7878647, y: 1.6967043, z: 4.197839}
+        radius: 0.23
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: 0.5465062, y: 1.0195087, z: 2.8018167}
+        b: {x: 0.35910386, y: 0.6823005, z: 4.1169963}
+        radius: 0.23
+    maximumPlanarReach: 4.5011334
