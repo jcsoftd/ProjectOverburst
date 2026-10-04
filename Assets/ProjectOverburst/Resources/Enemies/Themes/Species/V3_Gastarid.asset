@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Gastarid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Gastarid
+  displayName: Gastarid
+  vendorPrefab: {fileID: 1692520884677746, guid: 41757abca6a71d04f858d1e4d2abdaf9, type: 3}
+  animationProfile: {fileID: 11400000, guid: 5bca5fa11a742a444b7f1c670b4b4fe5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: f875defd714e08848ab103192f368b36, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 1093f1ec7724d214e92ea637f45a4027, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 243d5c66bcf5ffe4083f593a07243d40, type: 2}
+  threatCost: 1

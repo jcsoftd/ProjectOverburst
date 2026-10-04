@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_SkeletonKnight_Small_1HandedAttack1
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 15d95839647c7b65
+  originalClip: {fileID: 7400000, guid: 910cb645d11cd234997299977e671fc2, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 910cb645d11cd234997299977e671fc2, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.6666667}
+  motionPolicy: 0
+  stationaryStartRange: 1.1712681
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.24999999, y: 0.35}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.24999999
+      capsules:
+      - a: {x: -0.34747148, y: 0.6738359, z: 0.6070428}
+        b: {x: -0.5939935, y: 0.65217215, z: 0.94126815}
+        radius: 0.08
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: -0.5183482, y: 0.7050443, z: 0.3691585}
+        b: {x: -0.9051142, y: 0.71056116, z: 0.5219023}
+        radius: 0.08
+    - normalizedTime: 0.35
+      capsules:
+      - a: {x: -0.5381527, y: 0.74284554, z: 0.15837322}
+        b: {x: -0.9501715, y: 0.7984539, z: 0.14851572}
+        radius: 0.08
+    maximumPlanarReach: 1.1930202

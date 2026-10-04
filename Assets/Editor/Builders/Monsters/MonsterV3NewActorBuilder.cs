@@ -104,11 +104,14 @@ public static class MonsterV3NewActorBuilder
         controller.AddParameter("HitX",AnimatorControllerParameterType.Float);controller.AddParameter("HitZ",AnimatorControllerParameterType.Float);
         Action(controller,sm,loco,"GotHit","Get_hit",hit,false);Action(controller,sm,loco,"Death","Death",death,false,true);
         Action(controller,sm,loco,"IdleBreak","Idle_break",idle,false);
+        if(parry.Length==3)
+        {
         var collapse=sm.AddState(EnemyAnimationBridge.ParryCollapseStateName);collapse.motion=parry[0];collapse.speed=EnemyAnimationBridge.ParryCollapseSpeed;
         var stunned=sm.AddState(EnemyAnimationBridge.StunnedLoopStateName);stunned.motion=parry[1];
         var recover=sm.AddState(EnemyAnimationBridge.StunRecoverStateName);recover.motion=parry[2];
         var toLoop=collapse.AddTransition(stunned);toLoop.hasExitTime=true;toLoop.exitTime=1;toLoop.duration=.08f;
         var toIdle=recover.AddTransition(loco);toIdle.hasExitTime=true;toIdle.exitTime=1;toIdle.duration=.08f;
+        }
         Save(controller);return controller;
     }
     public static string Apply(string batchPath,string output)
@@ -145,9 +148,11 @@ public static class MonsterV3NewActorBuilder
         var rows=batch["entries"].OfType<JObject>().ToArray();
         if(!card["weak"].Values<JObject>().Select(r=>(string)r["key"]).OrderBy(x=>x).SequenceEqual(rows.Where(r=>(string)r["role"]=="weak").Select(r=>(string)r["selectionKey"]).OrderBy(x=>x)))
             throw new InvalidOperationException("Incomplete approved weak selection.");
-        var strong=rows.Single(r=>(string)r["role"]=="strong");
-        if(card["strong"].Count()!=1||(string)card["strong"][0]["key"]!=(string)strong["selectionKey"]
-            ||(string)strong["parryMotionReceipt"]?["status"]!="APPROVED_IMPORT_VERIFIED_ACTOR_BIND_PENDING")throw new InvalidOperationException("Confirmed strong and approved three motions required.");
+        var strong=rows.SingleOrDefault(r=>(string)r["role"]=="strong");
+        bool weakOnlySmall=strong==null&&(string)batch["grade"]=="small"&&key.EndsWith(":small",StringComparison.Ordinal)&&card["strong"].Count()==0;
+        if(strong==null&&!weakOnlySmall)throw new InvalidOperationException("Only confirmed small actors may omit strong/parry motions.");
+        if(!weakOnlySmall&&(card["strong"].Count()!=1||(string)card["strong"][0]["key"]!=(string)strong["selectionKey"]
+            ||(string)strong["parryMotionReceipt"]?["status"]!="APPROVED_IMPORT_VERIFIED_ACTOR_BIND_PENDING"))throw new InvalidOperationException("Confirmed strong and approved three motions required.");
         var seed=AssetDatabase.LoadAssetAtPath<EnemyDefinition>((string)batch["seedDefinition"]);
         if(seed==null||!seed.IsValid||!seed.ActorPrefab.IsAuthoringValid||seed.ResolveRuntimeStats().VisualScale!=Vector3.one)
             throw new InvalidOperationException("Valid production actor core with unit grade/variant scale required.");
@@ -169,7 +174,7 @@ public static class MonsterV3NewActorBuilder
         for(int i=0;i<locomotionSources.Length;i++)if(!locomotionSources[i].isLooping)paths.Add(Root+"Animations/"+id+"_"+locomotionRoles[i]+"_Loop.anim");
         foreach(string path in paths)if(File.Exists(Path.Combine(Project,path))||File.Exists(Path.Combine(Project,path+".meta"))||AssetDatabase.LoadMainAssetAtPath(path)!=null)
             throw new InvalidOperationException("Creation target already exists; preserved: "+path);
-        var parry=new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
+        var parry=weakOnlySmall?Array.Empty<AnimationClip>():new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
         {
             var binding=strong["parryMotionReceipt"]["runtimeBindings"][role];var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>((string)binding["assetPath"]);
             if(clip==null||!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip,out string guid,out long localId)||guid!=(string)binding["guid"]||localId!=(long)binding["localId"]
@@ -186,16 +191,18 @@ public static class MonsterV3NewActorBuilder
             var controller=Controller(Root+"Animations/AC_"+id+".controller",idle,walk,run,back,(bool?)batch["reverseBackwardAnimation"]==true,hit,death,attacks,parry,created,folders);
             var animation=Create<EnemyAnimationProfile>(Root+"Animations/"+id+".asset",created,folders);
             animation.Configure(id,controller,idle,walk,run,attacks,hit,death,new[]{back},new[]{(string)batch["extras"]["CrawlForward_RM"]});
-            Ref(animation,"parryCollapse",parry[0]);Ref(animation,"stunnedLoop",parry[1]);Ref(animation,"stunRecover",parry[2]);Save(animation);
+            if(parry.Length==3){Ref(animation,"parryCollapse",parry[0]);Ref(animation,"stunnedLoop",parry[1]);Ref(animation,"stunRecover",parry[2]);}
+            Save(animation);
             var abilities=new List<EnemyAbilityDefinition>();
             foreach(var row in rows)
             {
                 bool isStrong=(string)row["role"]=="strong";var source=Enumerable.Range(0,seed.AbilitySet.Count).Select(seed.AbilitySet.GetAbility).First(a=>a.IsTelegraphedStrongAttack==isStrong);
                 var ability=Create(Root+"Abilities/"+id+"_"+row["actualClip"]+".asset",created,folders,source);ability.ConfigureWeakAttackExecution(null);
                 Text(ability,"abilityId",id+"_"+row["actualClip"]);Text(ability,"animatorTrigger","Attack"+(abilities.Count+1));
-                float time=isStrong?(int)batch["strongImpactFrame"]/Original(row).frameRate/Original(row).length:(float)row["hitNormalizedTimes"][0];
+                var hitTimes=isStrong?(batch["strongHitNormalizedTimes"] as JArray??new JArray((int)batch["strongImpactFrame"]/Original(row).frameRate/Original(row).length)):(JArray)row["hitNormalizedTimes"];
+                float time=(float)hitTimes[0];
                 Number(ability,"hitNormalizedTime",time);Number(ability,"hitDelay",time*Original(row).length);Number(ability,"attackAnimationDuration",Original(row).length);
-                Number(ability,"attackLockDuration",Original(row).length);ability.ConfigureAdditionalHits(Array.Empty<float>());
+                Number(ability,"attackLockDuration",Original(row).length);ability.ConfigureAdditionalHits(hitTimes.Skip(1).Select(t=>(float)t).ToArray());
                 if(isStrong){Number(ability,"range",(float)batch["strongRange"]);Number(ability,"hitRadius",(float)batch["strongRange"]);}
                 else
                 {
@@ -269,7 +276,7 @@ public static class MonsterV3NewActorBuilder
             foreach(var p in sourceFiles.Properties())if(Hash(Path.Combine(Project,p.Name))!=(string)p.Value)throw new InvalidOperationException("Source preservation failed: "+p.Name);
             var hashes=new JObject();foreach(string path in created)foreach(string suffix in new[]{"",".meta"})hashes[path+suffix]=Hash(Path.Combine(Project,path+suffix));
             var result=new JObject{["status"]="APPLIED_REVIEW_ACTOR",["batchSha256"]=Hash(batchPath),["cardKey"]=key,["enemyId"]=id,
-                ["definitionPath"]=AssetDatabase.GetAssetPath(definition),["actorPath"]=actorPath,["weakCount"]=rows.Count(r=>(string)r["role"]=="weak"),["strongCount"]=1,["approvedParryCount"]=3,
+                ["definitionPath"]=AssetDatabase.GetAssetPath(definition),["actorPath"]=actorPath,["weakCount"]=rows.Count(r=>(string)r["role"]=="weak"),["strongCount"]=strong==null?0:1,["approvedParryCount"]=parry.Length,
                 ["assetHashes"]=hashes,["sourceFilesPreserved"]=sourceFiles.Count,["mainCatalogChanged"]=false,["themeTablesChanged"]=false,
                 ["fullGameRosterApplied"]=false,["newAudioApplied"]=false,["footfallsPending"]=batch["footfallsPending"],["gameplayVerified"]=false,
                 ["scenesPreserved"]=JToken.DeepEquals(before,Scenes()),["tierDefaultsFrom"]=seed.EnemyId};

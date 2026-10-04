@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Crassoplast_Bite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 8cffaabda230e718
+  originalClip: {fileID: 1827226128182048838, guid: 9e4601cfacee7154c91e40ce0df117d6, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 9e4601cfacee7154c91e40ce0df117d6, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 0.6932305
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.4, y: 0.53333336}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: -0.022438785, y: 0.1474657, z: 0.26637116}
+        b: {x: -0.03539344, y: 0.15361655, z: 0.46646023}
+        radius: 0.075
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: -0.044237744, y: 0.11217233, z: 0.27009803}
+        b: {x: -0.07267545, y: 0.10233143, z: 0.46823052}
+        radius: 0.075
+    - normalizedTime: 0.53333336
+      capsules:
+      - a: {x: -0.0372027, y: 0.08299188, z: 0.25521106}
+        b: {x: -0.06320912, y: 0.06295039, z: 0.45221475}
+        radius: 0.075
+    maximumPlanarReach: 0.54883707

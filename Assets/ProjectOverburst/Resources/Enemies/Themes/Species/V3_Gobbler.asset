@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Gobbler
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Gobbler
+  displayName: Gobbler
+  vendorPrefab: {fileID: 5447342107732448593, guid: b31b5231d06d4044589d7f76777bc99f, type: 3}
+  animationProfile: {fileID: 11400000, guid: d49a19ebec048ed498a722191d1b976c, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: ce2cb54b75b78a04bbeb8a95a9b6e328, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: d790a8369f1cff146acb3151a2408d3c, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 86616802e4ab2b54d9846822edffc435, type: 2}
+  threatCost: 1

@@ -27,7 +27,7 @@ public static class MonsterV3NewActorVerifier
         {
             var ability=definition.AbilitySet.GetAbility(i);var row=rows.Single(r=>ability.AbilityId==definition.EnemyId+"_"+r["actualClip"]);
             var clip=definition.AnimationProfile.GetAttackClip(i);
-            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==(strong?1:(int)row["selectedHitCount"])&&ability.IsTelegraphedStrongAttack==strong
+            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==(strong?((batch["strongHitNormalizedTimes"] as JArray)?.Count??1):(int)row["selectedHitCount"])&&ability.IsTelegraphedStrongAttack==strong
                 &&clip!=null&&clip.name==(string)row["actualClip"]&&AssetDatabase.GetAssetPath(clip)==(string)row["sourcePath"];
             if(strong)pass&=ability.IsParryable&&ability.WeakAttackExecution==null;
             else pass&=ability.WeakAttackExecution!=null&&ability.WeakAttackExecution.SelectionKey==(string)row["selectionKey"]&&ability.WeakAttackExecution.ValidateAuthoring(out _);
@@ -46,7 +46,7 @@ public static class MonsterV3NewActorVerifier
         bool allOriginalTransformsPresent=rigPaths.All(p=>p==""||actor.Animator.transform.Find(p)!=null);
         bool allWeightedBonesPresent=weightedPaths.All(p=>p==""||actor.Animator.transform.Find(p)!=null);
         var bindingIssues=new JArray();var unusedExporterHelpers=new JArray();
-        foreach(var clip in new[]{animation.Idle,animation.Walk,animation.Run,animation.Hit,animation.Death}.Concat(parry).Concat(rows.Select(r=>
+        foreach(var clip in new[]{animation.Idle,animation.Walk,animation.Run,animation.Hit,animation.Death}.Concat(parry.Where(c=>c!=null)).Concat(rows.Select(r=>
             AssetDatabase.LoadAllAssetsAtPath((string)r["sourcePath"]).OfType<AnimationClip>().Single(c=>!c.name.StartsWith("__preview__")))).Distinct())
         {
             if(clip==null){bindingIssues.Add("Missing required clip");continue;}
@@ -76,14 +76,17 @@ public static class MonsterV3NewActorVerifier
                 batch["materialOverrides"]?[AssetDatabase.GetAssetPath(m)] is JObject mapping?AssetDatabase.LoadAssetAtPath<Material>((string)mapping["targetPath"]):m));
         bool common=actor.GetComponent<BloodHitTarget>()?.Profile!=null&&actor.GetComponent<MonsterHitSfxTarget>()?.Bundle==null;
         bool locomotionLoops=animation.Idle.isLooping&&animation.Walk.isLooping&&animation.Run.isLooping;
+        bool requiresParry=rows.Any(r=>(string)r["role"]=="strong");
+        bool parryValid=requiresParry?parry.All(c=>c!=null)&&parry[1].isLooping&&!parry[0].isLooping&&!parry[2].isLooping
+            :(string)batch["grade"]=="small"&&parry.All(c=>c==null);
         bool passAll=valid&&locomotionLoops&&missing.Count==0&&attacks.Count==rows.Length&&attacks.All(a=>(bool)a["pass"])&&bindingIssues.Count==0&&rig&&common&&allOriginalTransformsPresent&&allWeightedBonesPresent
-            &&parry.All(c=>c!=null)&&parry[1].isLooping&&!parry[0].isLooping&&!parry[2].isLooping;
+            &&parryValid;
         var result=new JObject{["status"]=passAll?"PASS_SAVED_NEW_ACTOR_BINDINGS":"FAIL",["validCoreReferences"]=valid,["missingScripts"]=missing,
             ["locomotionLoops"]=locomotionLoops,["attacks"]=attacks,["missingAnimationBindings"]=bindingIssues,["unusedExporterHelpers"]=unusedExporterHelpers,
             ["allOriginalTransformsPresent"]=allOriginalTransformsPresent,["allWeightedBonesPresent"]=allWeightedBonesPresent,
             ["originalAvatarMeshesPreserved"]=rig,["commonHitConnectedNewBundleEmpty"]=common,
             ["actorRootScale"]=new JArray(actor.transform.localScale.x,actor.transform.localScale.y,actor.transform.localScale.z),
-            ["parryClips"]=new JArray(parry.Select(AssetDatabase.GetAssetPath)),["gameplayVerified"]=false,["themeActivation"]=false};
+            ["requiresParry"]=requiresParry,["parryClips"]=new JArray(parry.Where(c=>c!=null).Select(AssetDatabase.GetAssetPath)),["gameplayVerified"]=false,["themeActivation"]=false};
         File.WriteAllText(output,result.ToString());if(!passAll)throw new InvalidOperationException("Saved actor bindings failed; inspect result.");return result;
     }
 }

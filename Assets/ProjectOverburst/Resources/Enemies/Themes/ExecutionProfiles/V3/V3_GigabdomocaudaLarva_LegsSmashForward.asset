@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_GigabdomocaudaLarva_LegsSmashForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 0a492405257960a2
+  originalClip: {fileID: 1827226128182048838, guid: e83045d3e231dce4d9fab70a5e294de0, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: e83045d3e231dce4d9fab70a5e294de0, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 1
+  stationaryStartRange: 0.8553718
+  maxAdvanceDistance: 0.15
+  advanceWindow: {x: 0.2, y: 0.4}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.5142857}
+  - {x: 0.79999995, y: 0.91428566}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.15942565, y: 0.34303907, z: 0.0927173}
+        b: {x: -0.23142147, y: 0.52547973, z: 0.108513415}
+        radius: 0.075
+      - a: {x: 0.23059778, y: 0.2886082, z: 0.21609034}
+        b: {x: 0.2865384, y: 0.42790964, z: 0.34330377}
+        radius: 0.075
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: -0.21998464, y: 0.2856657, z: 0.21593215}
+        b: {x: -0.27388188, y: 0.43931895, z: 0.32640025}
+        radius: 0.075
+      - a: {x: 0.18356968, y: 0.13617785, z: 0.40855366}
+        b: {x: 0.20519003, y: 0.14082764, z: 0.6040745}
+        radius: 0.075
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: -0.19554359, y: 0.1673813, z: 0.43499234}
+        b: {x: -0.21754044, y: 0.17515734, z: 0.63037175}
+        radius: 0.075
+      - a: {x: 0.22273777, y: 0.19134688, z: 0.40106097}
+        b: {x: 0.2509646, y: 0.20072728, z: 0.5955673}
+        radius: 0.075
+    maximumPlanarReach: 0.7418526
+  - frames:
+    - normalizedTime: 0.79999995
+      capsules:
+      - a: {x: -0.2128259, y: 0.34704003, z: 0.2509325}
+        b: {x: -0.2393482, y: 0.3192932, z: 0.44391984}
+        radius: 0.075
+      - a: {x: 0.18039908, y: 0.41194278, z: 0.18550119}
+        b: {x: 0.2395665, y: 0.43076634, z: 0.37221587}
+        radius: 0.075
+    - normalizedTime: 0.8571428
+      capsules:
+      - a: {x: -0.19139531, y: 0.3743357, z: 0.12741587}
+        b: {x: -0.24892728, y: 0.41725865, z: 0.31062374}
+        radius: 0.075
+      - a: {x: 0.19517389, y: 0.36338407, z: 0.17417185}
+        b: {x: 0.30131125, y: 0.3691641, z: 0.33975843}
+        radius: 0.075
+    - normalizedTime: 0.91428566
+      capsules:
+      - a: {x: -0.17845528, y: 0.33592963, z: 0.12436373}
+        b: {x: -0.2853127, y: 0.3642467, z: 0.28714305}
+        radius: 0.075
+      - a: {x: 0.21211699, y: 0.2942845, z: 0.17499354}
+        b: {x: 0.33352992, y: 0.29258177, z: 0.32982713}
+        radius: 0.075
+    maximumPlanarReach: 0.5793336

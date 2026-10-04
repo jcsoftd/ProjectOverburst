@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Gobbler_RamAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 631f38df3da87859
+  originalClip: {fileID: 1827226128182048838, guid: 113114a479b5a564fabeaf0cc75b863e, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 113114a479b5a564fabeaf0cc75b863e, type: 3}
+  sourceTrimSeconds: {x: 0, y: 2}
+  motionPolicy: 1
+  stationaryStartRange: 0.71905065
+  maxAdvanceDistance: 0.15
+  advanceWindow: {x: 0.2, y: 0.4}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.4, y: 0.53333336}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: 0.044161893, y: 0.7859917, z: 0.37644377}
+        b: {x: 0.046007276, y: 0.7808369, z: 0.41480982}
+        radius: 0.12
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: 0.0229315, y: 0.64662147, z: 0.4099749}
+        b: {x: 0.025406085, y: 0.63652825, z: 0.44731048}
+        radius: 0.12
+    - normalizedTime: 0.53333336
+      capsules:
+      - a: {x: 0.016210439, y: 0.62065995, z: 0.4127287}
+        b: {x: 0.018873122, y: 0.60740983, z: 0.44905066}
+        radius: 0.12
+    maximumPlanarReach: 0.5694471

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Crassoplast
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Crassoplast
+  displayName: Crassoplast
+  vendorPrefab: {fileID: 773061848373190309, guid: 76d4b99e9fe15064a9731d84948fd7e5, type: 3}
+  animationProfile: {fileID: 11400000, guid: 031d42bb3ca1b1d4b9a89a08ff70efca, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 012d375c099c25445a977b5d1773ee29, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 42a01c7ab9dd5a140ba3e20f93acba3e, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: ab108a323da3597479971a00994db84e, type: 2}
+  threatCost: 1

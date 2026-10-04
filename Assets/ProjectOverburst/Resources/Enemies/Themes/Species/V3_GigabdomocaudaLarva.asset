@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_GigabdomocaudaLarva
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_GigabdomocaudaLarva
+  displayName: Gigabdomocauda Larva
+  vendorPrefab: {fileID: 8936658968561396973, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
+  animationProfile: {fileID: 11400000, guid: 160b6b19fd054824d8a3b073f343b8ee, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: cd77bcdf510b5bd46a10f195b7de3d37, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 0a71e995934241e4b9a22ed2bc3d4dc0, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 9a0e4c8c5b8c1aa498b5018e545cf7ce, type: 2}
+  threatCost: 1

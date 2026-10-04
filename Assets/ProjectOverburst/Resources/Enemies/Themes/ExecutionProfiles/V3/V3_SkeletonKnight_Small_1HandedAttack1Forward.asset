@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_SkeletonKnight_Small_1HandedAttack1Forward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: dba40ff446805f13
+  originalClip: {fileID: 7400000, guid: 136199d22cdee5d46a2235b04910ac68, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 136199d22cdee5d46a2235b04910ac68, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.6666667}
+  motionPolicy: 1
+  stationaryStartRange: 1.3328775
+  maxAdvanceDistance: 0.15
+  advanceWindow: {x: 0.2, y: 0.4}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.24999999, y: 0.35}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.24999999
+      capsules:
+      - a: {x: -0.073257275, y: 0.6506752, z: 0.69109434}
+        b: {x: -0.115433924, y: 0.610617, z: 1.1028775}
+        radius: 0.08
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: -0.27830955, y: 0.63289195, z: 0.5926027}
+        b: {x: -0.48937058, y: 0.57565546, z: 0.9463347}
+        radius: 0.08
+    - normalizedTime: 0.35
+      capsules:
+      - a: {x: -0.39222708, y: 0.6414373, z: 0.45612448}
+        b: {x: -0.71015507, y: 0.6022154, z: 0.7213272}
+        radius: 0.08
+    maximumPlanarReach: 1.1889021

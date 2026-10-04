@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: V3_GigabdomocaudaLarva_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: V3_GigabdomocaudaLarva
+  abilities:
+  - {fileID: 11400000, guid: 44fde7f1f45c66f42bb4829607f535e5, type: 2}
+  - {fileID: 11400000, guid: 5f7d0cc28c9d4a640806cf0b7f7c6cb3, type: 2}
+  - {fileID: 11400000, guid: 68640a60c163fea489374516d8ed73ec, type: 2}

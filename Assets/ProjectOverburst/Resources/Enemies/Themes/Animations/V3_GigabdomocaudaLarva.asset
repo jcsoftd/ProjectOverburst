@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_GigabdomocaudaLarva
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_GigabdomocaudaLarva
+  runtimeController: {fileID: 9100000, guid: b73427c7178f8ba438a5eda9e2a72734, type: 2}
+  idle: {fileID: 7400000, guid: f1a11e7e1350dd84b9c2ed9764e72a68, type: 2}
+  walk: {fileID: 7400000, guid: 41be3fae313bcf34a879a9e1214950b7, type: 2}
+  run: {fileID: 7400000, guid: 70ab5cd1c8910b344a8b28b6b8d6f422, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: e1105bf643823ed47bc9086cc901534d, type: 3}
+  - {fileID: 1827226128182048838, guid: e83045d3e231dce4d9fab70a5e294de0, type: 3}
+  - {fileID: 1827226128182048838, guid: 423493e4e67ee9541aa4d16c134e5d6c, type: 3}
+  hit: {fileID: 1827226128182048838, guid: ef2d937427888f34dac9f38950ff0f7d, type: 3}
+  death: {fileID: 1827226128182048838, guid: c54ab2be8f842724f99a3d00e65ccbf5, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 8e2f591cc21f7114280242fbec55e613, type: 2}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/36a551ce/GigabdomocaudaLarva@CrawlForward_RM.fbx"

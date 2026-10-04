@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: V3_SkeletonKnight_Small
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: V3_SkeletonKnight_Small
+  displayName: Skeleton Knight
+  referenceHealthCoefficient: 2.56
+  species: {fileID: 11400000, guid: c07c08ddd570c3f4f8b8e5a9bb928734, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 2046707520390723529, guid: b1452bdf07a78b94db6a4006a9d75143, type: 3}
+  animationProfile: {fileID: 11400000, guid: 7a5fff4962d96354bb1b0f5c9f1a01a0, type: 2}
+  abilitySet: {fileID: 11400000, guid: 1cd35d0f5100056429ab987cbab41646, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 16daebe4f75c4754e9f587524f3428af, type: 2}
+  movementProfile: {fileID: 11400000, guid: 53e769284f30bd441bd7b64a137c73bc, type: 2}
+  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

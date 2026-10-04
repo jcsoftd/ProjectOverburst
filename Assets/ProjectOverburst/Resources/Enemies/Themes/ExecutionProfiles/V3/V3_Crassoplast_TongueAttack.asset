@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Crassoplast_TongueAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: e9505bb9a034c5ed
+  originalClip: {fileID: 1827226128182048838, guid: 204b3f97af2d6634da0fe37be884935f, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 204b3f97af2d6634da0fe37be884935f, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 1.7151614
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.33333334, y: 0.46666667}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: -0.12827063, y: 0.29085726, z: 0.78093874}
+        b: {x: -0.16058964, y: 0.36859706, z: 1.3756036}
+        radius: 0.075
+      - a: {x: 0.12813269, y: 0.2905619, z: 0.7808624}
+        b: {x: 0.15668286, y: 0.3673975, z: 1.3758454}
+        radius: 0.075
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: -0.12574776, y: 0.20184235, z: 0.7962131}
+        b: {x: -0.12209698, y: 0.18428957, z: 1.4899058}
+        radius: 0.075
+      - a: {x: 0.12437808, y: 0.20057255, z: 0.79692215}
+        b: {x: 0.1087904, y: 0.1776915, z: 1.4901614}
+        radius: 0.075
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: -0.11963685, y: 0.09516936, z: 0.683428}
+        b: {x: -0.11600728, y: 0.15608273, z: 1.282844}
+        radius: 0.075
+      - a: {x: 0.11565471, y: 0.09406205, z: 0.6864498}
+        b: {x: 0.10215346, y: 0.16181381, z: 1.2847853}
+        radius: 0.075
+    maximumPlanarReach: 1.5699004

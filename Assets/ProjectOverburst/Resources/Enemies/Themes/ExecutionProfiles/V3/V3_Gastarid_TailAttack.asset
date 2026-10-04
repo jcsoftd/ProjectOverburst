@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Gastarid_TailAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 99a76efd6a0ccede
+  originalClip: {fileID: 7400000, guid: d389080589d2bf642b9f20e9f49ad76a, type: 3}
+  runtimeClip: {fileID: 7400000, guid: d389080589d2bf642b9f20e9f49ad76a, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.6666667}
+  motionPolicy: 0
+  stationaryStartRange: 0.988046
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.24999999, y: 0.35}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.24999999
+      capsules:
+      - a: {x: 0.008178826, y: 0.6045569, z: 0.34913382}
+        b: {x: -0.008177927, y: 0.5533578, z: 0.5233542}
+        radius: 0.075
+      - a: {x: -0.008177927, y: 0.5533578, z: 0.5233542}
+        b: {x: -0.028387608, y: 0.5093344, z: 0.76304597}
+        radius: 0.075
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: 0.009473831, y: 0.5811193, z: 0.35167927}
+        b: {x: 0.008956704, y: 0.5151954, z: 0.52141064}
+        radius: 0.075
+      - a: {x: 0.008956704, y: 0.5151954, z: 0.52141064}
+        b: {x: 0.01202132, y: 0.3916357, z: 0.7350327}
+        radius: 0.075
+    - normalizedTime: 0.35
+      capsules:
+      - a: {x: 0.0013468734, y: 0.5779582, z: 0.34500617}
+        b: {x: 0.010988555, y: 0.513978, z: 0.51500803}
+        radius: 0.075
+      - a: {x: 0.010988555, y: 0.513978, z: 0.51500803}
+        b: {x: 0.03284109, y: 0.36238903, z: 0.7078157}
+        radius: 0.075
+    maximumPlanarReach: 0.8385738

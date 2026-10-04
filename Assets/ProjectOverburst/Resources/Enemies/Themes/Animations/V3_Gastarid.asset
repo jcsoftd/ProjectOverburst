@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Gastarid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Gastarid
+  runtimeController: {fileID: 9100000, guid: 51a3ca3340ac7754c8452f08ef6ffdba, type: 2}
+  idle: {fileID: 7400000, guid: e4f6ad648cf6cde469f1c02dee6fbf7b, type: 2}
+  walk: {fileID: 7400000, guid: 2db494c751fbd044dba447e6ce4f2a21, type: 2}
+  run: {fileID: 7400000, guid: 6d357e2c1ec8d264da5be5fd403fc96f, type: 2}
+  attackClips:
+  - {fileID: 7400000, guid: ccbe68ef1b955464b940aed874afd257, type: 3}
+  - {fileID: 7400000, guid: d389080589d2bf642b9f20e9f49ad76a, type: 3}
+  hit: {fileID: 7400000, guid: 0a3b743f4da596c48a9b78323e221f0f, type: 3}
+  death: {fileID: 7400000, guid: 679c9f4efbba9e44282add881a477663, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 9afd54fa414952a4989d9f2702da1026, type: 2}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P13/665765e7/Gastarid@Walk_RM.FBX"

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: V3_GigabdomocaudaLarva_LegsSmashForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: V3_GigabdomocaudaLarva_LegsSmashForward
+  weakAttackExecution: {fileID: 11400000, guid: fa784c70090778a4db89d0c6ac9e9a0b, type: 2}
+  animatorTrigger: Attack2
+  executionMode: 0
+  damage: 5
+  referencePatternDamagePercent: 4
+  telegraphedStrongAttack: 0
+  telegraphedAttack: 1
+  preparationDuration: 0.48
+  releaseDuration: 0.14
+  recoveryDuration: 0.24
+  minimumWarningTime: 0.62
+  minimumRecoveryTime: 0.24
+  parryable: 0
+  minimumRange: 0
+  range: 1.050142
+  hitRadius: 0.84014213
+  hitAngle: 125
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 1.15
+  hitDelay: 0.53333336
+  hitNormalizedTime: 0.45714283
+  attackAnimationDuration: 1.1666667
+  attackLockDuration: 1.1666667
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes:
+  - 0.8571428

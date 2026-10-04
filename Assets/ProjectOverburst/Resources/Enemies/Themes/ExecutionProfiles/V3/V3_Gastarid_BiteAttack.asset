@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Gastarid_BiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 76b4c0bd8573ab4c
+  originalClip: {fileID: 7400000, guid: ccbe68ef1b955464b940aed874afd257, type: 3}
+  runtimeClip: {fileID: 7400000, guid: ccbe68ef1b955464b940aed874afd257, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 0.55
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.4, y: 0.53333336}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: -0.021644752, y: 0.4888208, z: 0.2893119}
+        b: {x: -0.023813432, y: 0.49557275, z: 0.32484442}
+        radius: 0.075
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: -0.03942112, y: 0.45087367, z: 0.2774515}
+        b: {x: -0.049115017, y: 0.45302007, z: 0.31229797}
+        radius: 0.075
+    - normalizedTime: 0.53333336
+      capsules:
+      - a: {x: -0.061541453, y: 0.3782303, z: 0.25759265}
+        b: {x: -0.07971712, y: 0.37480947, z: 0.28875026}
+        radius: 0.075
+    maximumPlanarReach: 0.40071613
