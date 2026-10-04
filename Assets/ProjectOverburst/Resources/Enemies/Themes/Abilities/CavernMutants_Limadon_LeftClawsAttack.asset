@@ -10,34 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: CavernMutants_Limadon_FeelerConcentratedShot
+  m_Name: CavernMutants_Limadon_LeftClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
-  abilityId: CavernMutants_Limadon_FeelerConcentratedShot
-  weakAttackExecution: {fileID: 11400000, guid: 4a069d36f111a9142913ec353defc52d, type: 2}
-  animatorTrigger: Attack2
-  executionMode: 4
+  abilityId: CavernMutants_Limadon_LeftClawsAttack
+  weakAttackExecution: {fileID: 11400000, guid: dcd1b69cf063f3b40bafdbe0a3f52b6c, type: 2}
+  animatorTrigger: Attack3
+  executionMode: 0
   damage: 10
-  referencePatternDamagePercent: 9
+  referencePatternDamagePercent: 7
   telegraphedStrongAttack: 0
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
-  minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  preparationDuration: 0.48
+  releaseDuration: 0.14
+  recoveryDuration: 0.24
+  minimumWarningTime: 0.62
+  minimumRecoveryTime: 0.24
   parryable: 0
-  minimumRange: 2.8
-  range: 8
+  minimumRange: 0
+  range: 1.822
   hitRadius: 1.522
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 2.4
-  hitDelay: 2.1666665
-  hitNormalizedTime: 0.6842105
-  attackAnimationDuration: 3.1666667
-  attackLockDuration: 3.0083334
-  weight: 0.6
+  cooldown: 1.15
+  hitDelay: 0.53333336
+  hitNormalizedTime: 0.45714283
+  attackAnimationDuration: 1.1666667
+  attackLockDuration: 1.1083333
+  weight: 1
   priority: 0
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1

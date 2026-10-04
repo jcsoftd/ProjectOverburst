@@ -20,6 +20,8 @@ MonoBehaviour:
   attackClips:
   - {fileID: 1827226128182048838, guid: 4613d209950a2324a9fa75aa418c3919, type: 3}
   - {fileID: 1827226128182048838, guid: 88db4f692ca671240b53944c48a113e1, type: 3}
+  - {fileID: 1827226128182048838, guid: 7ddd0089699d69041b7b032996d2bd9b, type: 3}
+  - {fileID: 1827226128182048838, guid: 5860126e46e78824ea493cc4cca4ac59, type: 3}
   hit: {fileID: 1827226128182048838, guid: 3f2cc4090842fe04ab19eaa28d01bc82, type: 3}
   death: {fileID: 1827226128182048838, guid: 5f6e2c2aad4cef549a48789f97e7480b, type: 3}
   optional:
@@ -40,6 +42,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 4f09bd7f502a54a4985314f568968d4b, type: 3}
   - {fileID: 1827226128182048838, guid: c1fc31ffc34cab84e9b5370a2af3dedd, type: 3}
   - {fileID: 1827226128182048838, guid: 69c81b3236f2e71418ca141c5ea34c50, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 12/Limadon/FBX Files/Limadon@2HitComboClawsAttackForward_RM.fbx"

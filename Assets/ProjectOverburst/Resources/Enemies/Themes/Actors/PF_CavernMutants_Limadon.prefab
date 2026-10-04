@@ -259,6 +259,7 @@ GameObject:
   - component: {fileID: 3181254191537108625}
   - component: {fileID: 4394095974272021281}
   - component: {fileID: 3807093665678668912}
+  - component: {fileID: 4378197504601446316}
   m_Layer: 7
   m_Name: PF_CavernMutants_Limadon
   m_TagString: Untagged
@@ -590,6 +591,7 @@ MonoBehaviour:
   - Attack1
   - Attack2
   - Attack3
+  - Attack4
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -783,6 +785,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides:
+  - ability: {fileID: 11400000, guid: a7ec331f7eca23148a00330cac339e21, type: 2}
+    socket: {fileID: 9830959583666710}
+    localOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &7118006513407480961
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -878,6 +884,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &4394095974272021281
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -904,6 +914,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: f8b6720ab1ec0be4cbcd039d50ba3442, type: 2}
+--- !u!114 &4378197504601446316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6195546670040126410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 1866606929907476246}
+  movement: {fileID: 7512678189208974649}
 --- !u!1 &7501883198109454282
 GameObject:
   m_ObjectHideFlags: 0
@@ -1888,6 +1912,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}
+--- !u!4 &9830959583666710 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3666546273497793954, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}
+  m_PrefabInstance: {fileID: 3657166286738646964}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &398120416626124316 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 3983070158204944808, guid: c9b245711d0f2124296197dc7ec6c915, type: 3}

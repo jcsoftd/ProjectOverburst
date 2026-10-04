@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: CavernMutants_Limadon_BiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: ced38faf64c934d7
+  originalClip: {fileID: 1827226128182048838, guid: 4613d209950a2324a9fa75aa418c3919, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 4613d209950a2324a9fa75aa418c3919, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.1666667}
+  motionPolicy: 0
+  stationaryStartRange: 1.24
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.34285712, y: 0.45714283}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.34285712
+      capsules:
+      - a: {x: 0.02635086, y: 0.7570711, z: 1.0276625}
+        b: {x: 0.02635086, y: 0.8579746, z: 1.0276625}
+        radius: 0.12391003
+    - normalizedTime: 0.37142855
+      capsules:
+      - a: {x: -0.0044634417, y: 0.69526136, z: 1.0302757}
+        b: {x: -0.0044634417, y: 0.79561114, z: 1.0302757}
+        radius: 0.120149665
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.03541543, y: 0.6397171, z: 1.0237303}
+        b: {x: -0.03541543, y: 0.71812844, z: 1.0237303}
+        radius: 0.12032438
+    - normalizedTime: 0.4285714
+      capsules:
+      - a: {x: -0.06388598, y: 0.5791585, z: 1.0121373}
+        b: {x: -0.06388598, y: 0.6415997, z: 1.0121373}
+        radius: 0.12171805
+    - normalizedTime: 0.45714283
+      capsules:
+      - a: {x: -0.088716224, y: 0.5204879, z: 0.9930525}
+        b: {x: -0.088716224, y: 0.58359826, z: 0.9930525}
+        radius: 0.12117556
+    maximumPlanarReach: 1.1519104
