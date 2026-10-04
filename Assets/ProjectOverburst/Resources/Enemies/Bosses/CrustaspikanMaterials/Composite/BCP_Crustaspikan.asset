@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ed20a1108037c44c97b32aa064cf8b7, type: 3}
+  m_Name: BCP_Crustaspikan
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCompositePatternSet
+  summonCatalog: {fileID: 11400000, guid: 1fd4313b91d942841a0c73a944c19eb4, type: 2}
+  spitPatterns:
+  - material: {fileID: 11400000, guid: a46546e81ee65cb45b8e140ef4e86b66, type: 2}
+    bloodSpray: {fileID: 7252067777743632364, guid: 9e196141037a00543af222ab58343ca0, type: 3}
+    sprayScale: 1
+    beamRadius: 0.75
+    firstSweepStartYaw: -45
+    firstSweepEndYaw: 45
+    reverseSecondSweep: 1
+    emissions:
+    - normalizedTime: 0.31304348
+      phase: 0
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 0.7
+        maximumAlive: 3
+      yawOffset: 0
+      landingDistance: 8
+      scatter: 1
+    - normalizedTime: 0.42608693
+      phase: 0
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 0.7
+        maximumAlive: 3
+      yawOffset: 0
+      landingDistance: 10
+      scatter: 1
+    - normalizedTime: 0.6956521
+      phase: 1
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: 8cd201b8ee3bd0f41a550bd8f5073000, type: 2}
+        flightVisual: {fileID: 4592192762968903855, guid: 0452cbca7113ce048ba7848fc1d4f8e2, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.5658029
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 1
+        maximumAlive: 1
+      yawOffset: 0
+      landingDistance: 11
+      scatter: 1
+  - material: {fileID: 11400000, guid: c1fb26f7a80c24840aaf7c0f5e8ddebd, type: 2}
+    bloodSpray: {fileID: 1952497739835943775, guid: 2c0bed1df0001b445b5f9916f545bd1c, type: 3}
+    sprayScale: 0.9
+    beamRadius: 0.65
+    firstSweepStartYaw: 0
+    firstSweepEndYaw: 0
+    reverseSecondSweep: 0
+    emissions:
+    - normalizedTime: 0.53103447
+      phase: 0
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 0.7
+        maximumAlive: 3
+      yawOffset: -10
+      landingDistance: 8
+      scatter: 1
+    - normalizedTime: 0.6068965
+      phase: 0
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 0.7
+        maximumAlive: 3
+      yawOffset: 0
+      landingDistance: 10
+      scatter: 1
+    - normalizedTime: 0.6758621
+      phase: 0
+      count: 1
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 1.5
+        wakeSeconds: 0.7
+        maximumAlive: 3
+      yawOffset: 10
+      landingDistance: 9
+      scatter: 1
+  throwMaterial: {fileID: 11400000, guid: 4eeaeef6b251241448b1aeb5813eaf37, type: 2}
+  elite:
+    definition: {fileID: 11400000, guid: aae5d59e28022e1418398a4e8af7f685, type: 2}
+    flightVisual: {fileID: 5838840423658166395, guid: fe7e1f1a48dae2341bfacb21a43e52dc, type: 3}
+    visualScale: 1
+    landingCenterHeight: 1.0441705
+    flightSeconds: 0.85
+    arcHeight: 1.5
+    wakeSeconds: 1.2
+    maximumAlive: 1
+  throwPayload: 2
+  eliteRevealFrame: 70
+  eliteFullSizeFrame: 100
+  authoringNotes: "\uC0AC\uC6A9\uC790 \uC9C0\uC2DC\uB85C \uC6B0\uC120 \uC801\uC6A9\uD55C
+    \uC2DC\uD5D8 \uAD6C\uC131. \uBD84\uC0AC1:33\u201357F/68\u201394F, \uC18C\uD6152+\uC911\uD6151.
+    \uBD84\uC0AC2:74\u2013106F, \uC18C\uD6153. \uBC14\uC704\xB7\uC554\uAD74 \uAC70\uC218
+    \uD22C\uCC99\uC740 \uAD50\uB300, SetNextThrowPayload\uB85C \uC120\uD0DD \uAC00\uB2A5.
+    \uC885\xB7\uC218\uB7C9\xB7\uBC29\uCD9C\xB7\uAE30\uC0C1\xB7\uC18D\uB3C4\xB7\uD53C\uD574\uB294
+    \uD6C4\uC18D \uC870\uC808. \uACF5\uAE09\uC0AC \uC6D0\uBCF8\uC740 \uC218\uC815\uD558\uC9C0
+    \uC54A\uC74C."

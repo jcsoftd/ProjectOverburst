@@ -16,7 +16,7 @@ MonoBehaviour:
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack14
   executionMode: 4
-  damage: 20
+  damage: 10
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 0
   telegraphedAttack: 0
@@ -42,4 +42,5 @@ MonoBehaviour:
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
-  additionalHitNormalizedTimes: []
+  additionalHitNormalizedTimes:
+  - 0.5913043

@@ -1185,6 +1185,7 @@ GameObject:
   - component: {fileID: 7717820150902000779}
   - component: {fileID: 2633972393711153056}
   - component: {fileID: 8744712018190669643}
+  - component: {fileID: 5084204934209598916}
   m_Layer: 7
   m_Name: PF_CrustaspikanMaterials
   m_TagString: Untagged
@@ -1664,6 +1665,7 @@ MonoBehaviour:
   meleeExecutor: {fileID: 5246157934285669832}
   abilitySet: {fileID: 11400000, guid: 4212893ed560f804d848cd120684c67e, type: 2}
   executors:
+  - {fileID: 5084204934209598916}
   - {fileID: 7717820150902000779}
   avoidSameAbilityTwice: 1
 --- !u!114 &5561364221357481629
@@ -1903,6 +1905,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCombatDirector
   profile: {fileID: 11400000, guid: eed327cf83951284c8ae6299169480fa, type: 2}
+--- !u!114 &5084204934209598916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2730059863437412784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62939d88256b08e4e982f129497eec10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCompositePatternExecutor
+  patterns: {fileID: 11400000, guid: 674d19d22301b854f9fbf42019b47da5, type: 2}
 --- !u!1 &2890662813473528419
 GameObject:
   m_ObjectHideFlags: 0

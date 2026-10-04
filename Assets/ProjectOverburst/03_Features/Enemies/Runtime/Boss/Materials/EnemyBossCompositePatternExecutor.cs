@@ -1,0 +1,298 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+// Selected before the basic material executor for the three opt-in composite attacks.
+[DisallowMultipleComponent]
+public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
+{
+    [SerializeField] EnemyBossCompositePatternSet patterns;
+    EnemyActor actor;
+    EnemyBossMaterialExecutor basic;
+    EnemyMovementReaction reaction;
+    CombatTarget owner;
+    Coroutine cast;
+    int generation,sequence,throwCount;
+    uint lease;
+    bool entered,prepared,preparationSeen;
+    EnemyBossThrowPayload? overridePayload,preparedPayload;
+    EnemyBossAttackMaterial current;
+    EnemyBossCompositePatternSet.Pattern spit;
+    Transform target,mouth,leftHand,rightHand;
+    Vector3 aim;
+    Quaternion aimRotation;
+    float progress,speed=1f,aimDistance;
+    AnimatorUpdateMode previousUpdate;
+    Animator samplingAnimator;
+    readonly bool[] released=new bool[3],shown=new bool[3];
+    bool[] emitted=Array.Empty<bool>();
+    readonly HashSet<CombatHealth>[] damaged={new HashSet<CombatHealth>(),new HashSet<CombatHealth>(),new HashSet<CombatHealth>()};
+    readonly EnemyStrongAttackWarning[] warnings=new EnemyStrongAttackWarning[3];
+    readonly Collider[] overlap=new Collider[64];
+    readonly RaycastHit[] rayHits=new RaycastHit[64];
+    readonly Dictionary<GameObject,EnemyBossBloodSpray> sprays=new Dictionary<GameObject,EnemyBossBloodSpray>();
+    readonly List<Visual> visuals=new List<Visual>();
+    readonly List<Flight> flights=new List<Flight>();
+    readonly List<Add> adds=new List<Add>();
+    Visual held;
+    EnemyBossBloodSpray activeSpray;
+    static readonly WaitForFixedUpdate AfterPhysics=new WaitForFixedUpdate();
+    public EnemyBossCompositePatternSet Patterns=>patterns;
+    public EnemyBossAttackMaterial CurrentMaterial=>current;
+    public float NormalizedTime=>progress;
+    public Vector3 BeamOrigin {get;private set;}
+    public Vector3 BeamDirection {get;private set;}
+    public float BeamLength {get;private set;}
+    public int ActiveBeamPhase {get;private set;}=-1;
+    public int DamageCount {get;private set;}
+    public int ReleaseCount {get;private set;}
+    public int EmissionCount {get;private set;}
+    public int SummonedCount {get;private set;}
+    public int RockThrowCount {get;private set;}
+    public int EliteThrowCount {get;private set;}
+    public int CompletedCount {get;private set;}
+    public int ActiveFlightCount=>flights.Count;
+    public int ActiveVisualCount {get{int n=0;foreach(var v in visuals)if(v.used)n++;return n;}}
+    public int LiveAddCount {get{PruneAdds();return adds.Count;}}
+    public int BloodParticleCount=>activeSpray!=null?activeSpray.ParticleCount:0;
+    public bool IsEliteHeld=>held!=null && held.payload==patterns?.elite && held.root.activeSelf;
+    public string LastFailure {get;private set;}
+    public override bool IsExecuting=>cast!=null || flights.Count>0;
+    public event Action<EnemyActor> MonsterLanded;
+    sealed class Visual {public GameObject root,prefab;public EnemyBossCompositePatternSet.Payload payload;public bool used;}
+    sealed class Flight {public Visual visual;public Vector3 start,landing,position;public float time,duration,arc;public uint lease;public int phase;public bool impact;}
+    sealed class Add {public EnemyActor actor;public uint lease;public EnemyBossCompositePatternSet.Payload payload;public float wake;public bool ai;}
+    int PlayerMask=>1<<LayerMask.NameToLayer("Player");
+    int BlockerMask=>~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
+    bool Usable=>actor!=null && actor.IsLeased && actor.Health!=null && !actor.Health.IsDead && actor.Melee!=null
+        && actor.Melee.StatusActionSpeedMultiplier>0f && (reaction==null || !reaction.BlocksAttack);
+    public void Configure(EnemyBossCompositePatternSet set){patterns=set;}
+    void Resolve()
+    {
+        if(actor==null)actor=GetComponent<EnemyActor>();if(basic==null)basic=GetComponent<EnemyBossMaterialExecutor>();
+        if(owner==null)owner=GetComponent<CombatTarget>();if(reaction==null)reaction=GetComponent<EnemyMovementReaction>();
+        if(actor?.Animator==null || mouth!=null)return;
+        foreach(var bone in actor.Animator.GetComponentsInChildren<Transform>(true)){
+            if(bone.name=="Crustaspikan_ Head")mouth=bone;
+            if(bone.name=="Crustaspikan_ L Hand")leftHand=bone;
+            if(bone.name=="Crustaspikan_ R Hand")rightHand=bone;
+        }
+    }
+    void Awake()=>Resolve();
+    void OnEnable(){Resolve();if(actor?.Health!=null)actor.Health.OnDead+=Died;if(reaction!=null)reaction.ReactionStarted+=Reacted;}
+    void OnDisable(){if(actor?.Health!=null)actor.Health.OnDead-=Died;if(reaction!=null)reaction.ReactionStarted-=Reacted;Cancel();ReleaseSummons();}
+    void Died(CombatHealth health,DamageInfo info){Cancel();ReleaseSummons();}
+    void Reacted(){if(reaction==null || reaction.BlocksAttack)Cancel();}
+    public override bool Supports(EnemyAbilityDefinition ability)=>patterns!=null && patterns.IsValid
+        && (patterns.Find(ability)!=null || patterns.throwMaterial.ability==ability);
+    public override bool CanStart(EnemyAbilityDefinition ability,Transform aimTarget)
+    {
+        Resolve();if(!Supports(ability)||!Usable||aimTarget==null||IsExecuting||basic.IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart)return false;
+        var delta=actor.AbilityController.ResolveAimPosition(aimTarget)-transform.position;delta.y=0f;
+        return EnemyAttackThreatGeometry.MatchesUseConditions(actor,ability,delta.magnitude,actor.Health.NormalizedHp);
+    }
+    public void SetNextThrowPayload(EnemyBossThrowPayload payload){overridePayload=payload;}
+    EnemyBossThrowPayload ResolvePayload()
+    {
+        var mode=overridePayload??patterns.throwPayload;
+        if(mode==EnemyBossThrowPayload.Alternate)mode=(throwCount&1)==0?EnemyBossThrowPayload.Rock:EnemyBossThrowPayload.Elite;
+        if(mode==EnemyBossThrowPayload.Elite && Reserved(patterns.elite)>=patterns.elite.maximumAlive)mode=EnemyBossThrowPayload.Rock;
+        return mode;
+    }
+    public override bool TryStart(EnemyAbilityDefinition ability,int index,Transform aimTarget)
+    {
+        if(!CanStart(ability,aimTarget))return false;
+        var payload=preparedPayload??ResolvePayload();basic.Cancel();ReleaseHeld();preparedPayload=null;overridePayload=null;prepared=false;
+        reaction?.PrepareForAttack();spit=patterns.Find(ability);current=spit!=null?spit.material:patterns.throwMaterial;
+        target=aimTarget;aim=actor.AbilityController.ResolveAimPosition(target);aim.y=transform.position.y;
+        aimDistance=Mathf.Max(4f,Vector3.Distance(aim,transform.position));var facing=aim-transform.position;facing.y=0f;
+        aimRotation=facing.sqrMagnitude>.001f?Quaternion.LookRotation(facing):transform.rotation;transform.rotation=aimRotation;
+        sequence=EnemyAttackSequence.Next();lease=actor.LeaseVersion;generation++;progress=0f;entered=false;LastFailure=null;
+        speed=actor.Melee.AbilityAnimationSpeed*current.AnimationSpeedMultiplier;
+        for(int i=0;i<3;i++){released[i]=shown[i]=false;damaged[i].Clear();}
+        emitted=new bool[spit?.emissions.Length??0];
+        samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
+        if(spit==null){held=Acquire(payload==EnemyBossThrowPayload.Elite?patterns.elite:null);held.root.SetActive(true);throwCount++;}
+        GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(ability);
+        cast=StartCoroutine(Execute(generation));return true;
+    }
+    public override float ResolveCooldown(float cooldown)=>actor?.Melee!=null?actor.Melee.ResolveAbilityCooldown(cooldown):cooldown;
+    IEnumerator Execute(int token)
+    {
+        var material=current;bool completed=false;float wait=0f,last=0f;
+        try{
+            actor.Movement.ApplyActionLock(material.ability.ResolveExecutionDuration(speed)+.5f);
+            actor.AnimationBridge.SetAttackAnimSpeed(material.ability.ResolvePhaseAnimationSpeed(0f,speed));actor.AnimationBridge.PlayAttack(material.ability.AnimatorTrigger);
+            while(token==generation && Usable && actor.LeaseVersion==lease){
+                yield return AfterPhysics;if(token!=generation||!Usable||actor.LeaseVersion!=lease)yield break;
+                if(!actor.AnimationBridge.TryGetAttackMotionTime(material.ability.AnimatorTrigger,material.runtimeClip,out float normalized)){
+                    if(entered)break;wait+=Time.fixedDeltaTime;if(wait>.65f){LastFailure="Composite motion did not enter.";yield break;}continue;
+                }
+                entered=true;progress=Mathf.Clamp01(normalized);if(progress+.0001f<last){LastFailure="Composite timeline regressed.";yield break;}
+                speed=actor.Melee.AbilityAnimationSpeed*material.AnimationSpeedMultiplier;
+                actor.AnimationBridge.SetAttackAnimSpeed(material.ability.ResolvePhaseAnimationSpeed(progress,speed));actor.Movement.ApplyActionLock(.25f);
+                float until=material.ability.ResolvePacedTime(material.strikes[0].impact,speed)-material.ability.ResolvePacedTime(progress,speed);
+                if(material.tracksTargetDuringWindup && target!=null && until>material.aimLockLeadSeconds){
+                    aim=actor.AbilityController.ResolveAimPosition(target);aim.y=transform.position.y;
+                    var facing=aim-transform.position;facing.y=0f;aimDistance=Mathf.Max(4f,facing.magnitude);
+                    if(facing.sqrMagnitude>.001f)aimRotation=Quaternion.LookRotation(facing);transform.rotation=aimRotation;
+                }
+                ActiveBeamPhase=-1;
+                for(int phase=0;phase<material.strikes.Length;phase++){
+                    var strike=material.strikes[phase];
+                    if(!released[phase] && progress>=strike.impact){released[phase]=true;ReleaseCount++;actor.AbilityController.NotifyAbilityImpact(material.ability,phase);if(spit==null)Throw(phase);}
+                    if(token!=generation||!Usable)yield break;
+                    bool crossed=last<strike.contactStart && progress>=strike.contactStart;
+                    if(spit!=null && released[phase] && (progress<=strike.contactEnd || crossed)){
+                        ActiveBeamPhase=phase;Beam(phase);if(token!=generation||!Usable)yield break;
+                    }
+                    Warning(phase);
+                }
+                if(spit!=null){
+                    for(int i=0;i<emitted.Length;i++)if(!emitted[i] && progress>=spit.emissions[i].normalizedTime){
+                        emitted[i]=true;var emission=spit.emissions[i];
+                        if(last>material.strikes[emission.phase].contactEnd)continue;
+                        for(int count=0;count<emission.count;count++)Eject(emission,count);
+                    }
+                    if(ActiveBeamPhase<0)activeSpray?.Stop(false);
+                }
+                last=progress;if(progress>=.999f)break;
+            }
+            if(token==generation && Usable && entered){completed=true;CompletedCount++;}
+        }finally{if(token==generation){RestoreAnimator();cast=null;actor?.Movement?.CancelActionLock();activeSpray?.Stop(false);
+            if(spit!=null)HideWarnings();if(!completed){ClearFlights();ReleaseHeld();HideWarnings();}
+            if(flights.Count==0)current=null;ActiveBeamPhase=-1;}}
+    }
+    Vector3 Mouth()=>mouth.TransformPoint(current!=null?current.muzzleOffset:new Vector3(-.55f,.35f,0f));
+    float SweepYaw(int phase,float normalized)
+    {
+        var strike=spit.material.strikes[phase];float t=Mathf.InverseLerp(strike.contactStart,strike.contactEnd,normalized);
+        bool reverse=phase>0 && spit.reverseSecondSweep;
+        return Mathf.Lerp(reverse?spit.firstSweepEndYaw:spit.firstSweepStartYaw,reverse?spit.firstSweepStartYaw:spit.firstSweepEndYaw,t);
+    }
+    Vector3 Endpoint(float yaw,float distance,float height=.8f)=>transform.position+aimRotation*Quaternion.Euler(0f,yaw,0f)*Vector3.forward*distance+Vector3.up*height;
+    void Beam(int phase)
+    {
+        BeamOrigin=Mouth();Vector3 endpoint=Endpoint(SweepYaw(phase,progress),aimDistance,target!=null?Mathf.Clamp(target.position.y-transform.position.y+.8f,.5f,1.5f):.8f);
+        BeamDirection=(endpoint-BeamOrigin).normalized;BeamLength=current.ability.Range;
+        int hits=Physics.SphereCastNonAlloc(BeamOrigin,spit.beamRadius,BeamDirection,rayHits,BeamLength,BlockerMask,QueryTriggerInteraction.Ignore);
+        float blocker=BeamLength;
+        for(int i=0;i<hits;i++)if(CombatTarget.Resolve(rayHits[i].collider)==null)blocker=Mathf.Min(blocker,rayHits[i].distance);
+        BeamLength=blocker;
+        int token=generation;
+        for(int i=0;i<hits;i++)if(rayHits[i].distance<=blocker+.001f){var victim=CombatTarget.Resolve(rayHits[i].collider);if(victim!=null)Damage(victim,rayHits[i].point,phase);if(token!=generation||!Usable)return;}
+        if(!sprays.TryGetValue(spit.bloodSpray,out activeSpray)){var root=Instantiate(spit.bloodSpray,transform,false);activeSpray=root.GetComponent<EnemyBossBloodSpray>();sprays.Add(spit.bloodSpray,activeSpray);}
+        activeSpray.Place(BeamOrigin,BeamDirection,BeamLength);activeSpray.Begin(GetComponent<BloodHitTarget>()?.Profile,spit.sprayScale);
+    }
+    void Damage(CombatTarget victim,Vector3 point,int phase)
+    {
+        if(!Usable || actor.LeaseVersion!=lease || !CombatTargetFilter.CanDamage(owner,victim) || victim.DamageReceiver==null || victim.DamageReceiver.IsDead || !damaged[phase].Add(victim.DamageReceiver))return;
+        float damage=current.ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier*current.DamageMultiplier;
+        victim.DamageReceiver.TakeDamage(new DamageInfo(damage,point,gameObject,BeamDirection,sourceAttackSequenceId:sequence,sourceAttackPhaseIndex:phase,enemyAbility:current.ability));DamageCount++;
+    }
+    void Warning(int phase)
+    {
+        if(!current.showTelegraph)return;var strike=current.strikes[phase];
+        if(spit!=null && progress>=strike.contactEnd){warnings[phase]?.Hide();return;}
+        if(spit==null && released[phase])return;
+        if(phase>0 && progress<current.strikes[phase-1].contactEnd)return;
+        float lead=Mathf.Max(.01f,current.ability.ResolvePacedTime(strike.impact,speed)-current.ability.ResolvePacedTime(progress,speed));
+        if(spit==null)lead+=current.flightSeconds;
+        if(warnings[phase]==null){warnings[phase]=gameObject.AddComponent<EnemyStrongAttackWarning>();warnings[phase].SetRadialProfiles(basic.Collection.radialFillProfile,basic.Collection.radialBorderProfile);}
+        if(!shown[phase]){warnings[phase].Show(strike.shape==GroundIndicatorShape.Rectangle?strike.length:strike.radius,false,strike.angle,strike.shape==GroundIndicatorShape.Rectangle,true,lead,strike.width*.5f,strike.innerRadius,strike.shape);shown[phase]=true;
+            if(strike.shape==GroundIndicatorShape.Rectangle)foreach(var indicator in warnings[phase].GetComponentsInChildren<ProceduralGroundIndicator>(true))indicator.SetCorridorCapRadius(0f);}
+        warnings[phase].SetCenter(spit==null?aim:transform.position);warnings[phase].SetFacing(aimRotation*Vector3.forward);warnings[phase].SetRemaining(lead,false);
+    }
+    Visual Acquire(EnemyBossCompositePatternSet.Payload payload)
+    {
+        GameObject prefab=payload?.flightVisual;
+        foreach(var visual in visuals)if(!visual.used && visual.prefab==prefab){visual.used=true;visual.payload=payload;return visual;}
+        var created=new Visual{prefab=prefab,payload=payload,used=true};
+        if(prefab!=null)created.root=Instantiate(prefab,transform,false);
+        else{created.root=new GameObject("Composite held/flight rock");created.root.transform.SetParent(transform,false);created.root.AddComponent<MeshFilter>().sharedMesh=basic.Collection.boulderMesh;created.root.AddComponent<MeshRenderer>().sharedMaterial=basic.Collection.boulderMaterial;}
+        created.root.SetActive(false);visuals.Add(created);return created;
+    }
+    void Free(Visual visual){if(visual==null)return;visual.root.SetActive(false);visual.used=false;}
+    Vector3 Hands()=>((leftHand.position+rightHand.position)*.5f)+transform.rotation*basic.Collection.boulderOffset;
+    void ReleaseHeld(){if(held!=null)Free(held);held=null;}
+    void Throw(int phase)
+    {
+        if(held==null)return;var payload=held.payload;
+        held.root.transform.position=Hands();flights.Add(new Flight{visual=held,start=Hands(),position=Hands(),landing=Ground(aim),duration=current.flightSeconds,arc=current.arcHeight,phase=phase,lease=lease,impact=true});
+        if(payload==null)RockThrowCount++;else EliteThrowCount++;held=null;
+    }
+    void Eject(EnemyBossCompositePatternSet.Emission emission,int index)
+    {
+        if(emission.count==0 || Reserved(emission.payload)>=emission.payload.maximumAlive)return;
+        float yaw=SweepYaw(emission.phase,emission.normalizedTime)+emission.yawOffset;
+        Vector3 landing=Endpoint(yaw,emission.landingDistance,0f)+aimRotation*Vector3.right*((index-(emission.count-1)*.5f)*emission.scatter);
+        var visual=Acquire(emission.payload);var start=Mouth();visual.root.SetActive(true);visual.root.transform.position=start;
+        flights.Add(new Flight{visual=visual,start=start,position=start,landing=Ground(landing),duration=emission.payload.flightSeconds,arc=emission.payload.arcHeight,phase=emission.phase,lease=lease});EmissionCount++;
+    }
+    Vector3 Ground(Vector3 point){if(Physics.Raycast(point+Vector3.up*16f,Vector3.down,out var hit,32f,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore))point.y=hit.point.y;else point.y=transform.position.y;return point;}
+    void PruneAdds(){for(int i=adds.Count-1;i>=0;i--)if(adds[i].actor==null || !adds[i].actor.IsLeased || adds[i].actor.LeaseVersion!=adds[i].lease || adds[i].actor.Health.IsDead)adds.RemoveAt(i);}
+    int Reserved(EnemyBossCompositePatternSet.Payload payload){PruneAdds();int count=0;foreach(var add in adds)if(add.payload.definition==payload.definition)count++;foreach(var flight in flights)if(flight.visual.payload?.definition==payload.definition)count++;return count;}
+    void Land(Flight flight)
+    {
+        int token=generation;
+        if(flight.impact){BeamDirection=(flight.landing-flight.start).normalized;var strike=current.strikes[flight.phase];
+            int count=strike.Query(transform,overlap,PlayerMask,flight.landing,Quaternion.identity);
+            for(int i=0;i<count;i++)if(strike.Intersects(overlap[i],transform,flight.landing,Quaternion.identity)){var victim=CombatTarget.Resolve(overlap[i]);if(victim!=null)Damage(victim,overlap[i].ClosestPoint(flight.landing+Vector3.up*.8f),flight.phase);if(token!=generation||!Usable)return;}
+            EnemyStrongAttackImpactVfx.Play(flight.landing);warnings[flight.phase]?.Hide();
+        }
+        var payload=flight.visual.payload;if(payload==null)return;
+        var service=EnemySpawnService.Current;if(service==null){LastFailure="No spawn service for boss payload.";return;}
+        if(!service.RegisterAdditionalCatalog(patterns.summonCatalog,out string error)){LastFailure=error;return;}
+        if(service.TrySpawn(new EnemySpawnRequest(payload.definition,flight.landing,aimRotation,target,gameObject,transform,transform.parent,
+            seed:sequence,context:GetComponent<EnemyRank>()?.Encounter??EncounterContext.Test),out var summoned)){
+            bool ai=summoned.AI.enabled;summoned.AI.enabled=false;summoned.Movement.ApplyActionLock(payload.wakeSeconds);
+            adds.Add(new Add{actor=summoned,lease=summoned.LeaseVersion,payload=payload,wake=Time.time+payload.wakeSeconds,ai=ai});SummonedCount++;MonsterLanded?.Invoke(summoned);
+        }else LastFailure="Boss payload spawn rejected: "+payload.definition.EnemyId;
+    }
+    void FixedUpdate()
+    {
+        if(IsExecuting && !Usable){Cancel();return;}int token=generation;
+        for(int i=flights.Count-1;i>=0;i--){var flight=flights[i];if(actor.LeaseVersion!=flight.lease){Free(flight.visual);flights.RemoveAt(i);continue;}
+            flight.time+=Time.fixedDeltaTime;float t=Mathf.Clamp01(flight.time/flight.duration);
+            Vector3 center=flight.visual.payload==null?Vector3.up*basic.Collection.boulderVisualRadius:Vector3.up*flight.visual.payload.landingCenterHeight*flight.visual.payload.visualScale;
+            Vector3 next=Vector3.Lerp(flight.start,flight.landing+center,t)+Vector3.up*(4f*flight.arc*t*(1f-t));
+            var step=next-flight.position;
+            if(t<.98f && step.sqrMagnitude>.000001f && Physics.SphereCast(flight.position,.15f,step.normalized,out _,step.magnitude,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore)){
+                if(flight.impact)warnings[flight.phase]?.Hide();Free(flight.visual);flights.RemoveAt(i);continue;}
+            flight.position=next;flight.visual.root.transform.position=next;flight.visual.root.transform.rotation=aimRotation;
+            flight.visual.root.transform.localScale=Vector3.one*(flight.visual.payload?.visualScale??basic.Collection.boulderVisualRadius);
+            if(t>=1f){Land(flight);if(token!=generation)return;Free(flight.visual);flights.RemoveAt(i);}
+            else if(flight.impact){warnings[flight.phase]?.SetCenter(flight.landing);warnings[flight.phase]?.SetRemaining(flight.duration-flight.time,false);}
+        }
+        if(cast==null && flights.Count==0)current=null;
+        PruneAdds();foreach(var add in adds)if(add.wake>0f && Time.time>=add.wake){add.actor.Movement.CancelActionLock();add.actor.AI.enabled=add.ai;add.wake=0f;}
+    }
+    void LateUpdate()
+    {
+        Resolve();if(patterns==null || actor?.Animator==null)return;
+        var state=actor.Animator.GetCurrentAnimatorStateInfo(0);bool extracting=state.IsName("Material_UnearthRock");
+        if(extracting && !preparationSeen){preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;}
+        if(!extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock"))preparationSeen=false;
+        if(prepared && preparedPayload==EnemyBossThrowPayload.Elite && (extracting || state.IsName("Material_WalkForwardWithRock") || state.IsName("Material_WalkBackwardsWithRock"))){
+            float frame=state.normalizedTime*(basic.Collection.FindMotion("UnearthRock").runtime.length*30f);
+            if(!extracting || frame>=patterns.eliteRevealFrame){basic.SetRockHeld(false);if(held==null)held=Acquire(patterns.elite);held.root.SetActive(true);
+                float size=!extracting?1f:Mathf.Lerp(.2f,1f,Mathf.InverseLerp(patterns.eliteRevealFrame,patterns.eliteFullSizeFrame,frame));
+                held.root.transform.localScale=Vector3.one*patterns.elite.visualScale*size;}
+        }
+        if(held!=null){held.root.transform.SetPositionAndRotation(Hands(),transform.rotation);if(cast!=null)held.root.transform.localScale=Vector3.one*(held.payload?.visualScale??basic.Collection.boulderVisualRadius);}
+        if(prepared && !basic.IsExecuting && !extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock") && cast==null){ReleaseHeld();prepared=false;preparedPayload=null;}
+    }
+    void HideWarnings(){foreach(var warning in warnings)warning?.Hide();}
+    void RestoreAnimator(){if(samplingAnimator!=null)samplingAnimator.updateMode=previousUpdate;samplingAnimator=null;}
+    void ClearFlights(){foreach(var flight in flights)Free(flight.visual);flights.Clear();}
+    public void ReleaseSummons(){var service=EnemySpawnService.Current;foreach(var add in adds)if(service!=null && add.actor!=null && add.actor.IsLeased && add.actor.LeaseVersion==add.lease)service.Release(add.actor);adds.Clear();}
+    public override void Cancel()
+    {
+        generation++;if(cast!=null)StopCoroutine(cast);cast=null;RestoreAnimator();ClearFlights();ReleaseHeld();HideWarnings();
+        foreach(var visual in sprays.Values)visual.Stop(true);activeSpray=null;current=null;spit=null;prepared=false;preparedPayload=null;ActiveBeamPhase=-1;
+        actor?.Movement?.CancelActionLock();
+    }
+    public override void ResetForReuse(){Resolve();Cancel();ReleaseSummons();overridePayload=null;preparationSeen=false;throwCount=0;DamageCount=ReleaseCount=EmissionCount=SummonedCount=RockThrowCount=EliteThrowCount=CompletedCount=0;LastFailure=null;}
+    void OnDestroy(){Cancel();ReleaseSummons();foreach(var visual in visuals)if(visual.root!=null)Destroy(visual.root);foreach(var spray in sprays.Values)if(spray!=null)Destroy(spray.gameObject);}
+}

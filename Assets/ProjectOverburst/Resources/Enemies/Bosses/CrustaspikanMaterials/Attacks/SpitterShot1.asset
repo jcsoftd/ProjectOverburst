@@ -18,31 +18,53 @@ MonoBehaviour:
   originalClip: {fileID: 1827226128182048838, guid: 2de7a26e014f82641a0b302780320a4c, type: 3}
   runtimeClip: {fileID: 7400000, guid: d9fcdb1b1f5ebfb40beff6951e77d8f9, type: 2}
   delivery: 1
+  tuning:
+    damageMultiplier: 1
+    animationSpeedMultiplier: 1
+    parries: []
   strikes:
   - contactStart: 0.28695652
     impact: 0.28695652
-    contactEnd: 0.33913043
-    shape: 3
-    localOrigin: {x: 0.81119716, y: 0, z: 1.8564842}
+    contactEnd: 0.49565214
+    shape: 0
+    localOrigin: {x: 0, y: 0, z: 0}
     yaw: 0
-    radius: 0.18
+    radius: 24
     innerRadius: 0
-    angle: 360
-    width: 0.36
+    angle: 90
+    width: 1.5
     length: 24
     minimumHeight: 0
-    maximumHeight: 3
-    timingBasis: "Native 30 fps: 33\u201339; contact/release."
+    maximumHeight: 10
+    timingBasis: "Native 30fps mouth-open motion; provisional composite window 33\u201357F.
+      One damage per physical target per sweep/line phase."
+  - contactStart: 0.5913043
+    impact: 0.5913043
+    contactEnd: 0.8173913
+    shape: 0
+    localOrigin: {x: 0, y: 0, z: 0}
+    yaw: 0
+    radius: 24
+    innerRadius: 0
+    angle: 90
+    width: 1.5
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 10
+    timingBasis: "Native 30fps mouth-open motion; provisional composite window 68\u201394F.
+      One damage per physical target per sweep/line phase."
   showTelegraph: 1
   tracksTargetDuringWindup: 1
   aimLockLeadSeconds: 0.3
   muzzleBone: Crustaspikan_ Head
-  muzzleOffset: {x: 0, y: 0, z: 0}
+  muzzleOffset: {x: -0.55, y: 0.35, z: 0}
   projectileRadius: 0.18
   projectileSpeed: 12
   flightSeconds: 1.2
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
-    split across genuine strikes. '
+  assemblyNotes: "\uC88C\u2192\uC6B0 / \uC6B0\u2192\uC88C \uD53C\uD574 \uBD84\uC0AC\uC640
+    \uC554\uAD74 \uC18C\uD6152+\uC911\uD6151 \uD1A0\uCD9C. \uAE30\uBCF8 \uACC4\uC218\xB7\uC18D\uB3C4\uB294
+    \uC7AC\uB8CC tuning, \uD1A0\uCD9C \uC138\uBD80\uB294 BCP_Crustaspikan. \uC2DC\uD5D8\uAC12\uC740
+    \uCD94\uD6C4 \uC218\uC815."
