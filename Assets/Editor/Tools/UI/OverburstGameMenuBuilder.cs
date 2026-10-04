@@ -254,6 +254,7 @@ public static class OverburstGameMenuBuilder
         panel.combatFacingIndicator = SwitchRow(combat, 2, "전투 방향 표시", "전투 중 발밑에 캐릭터가 바라보는 방향을 표시합니다", true, false);
 
         AddCombatFacingOptions(panel, combat);
+        AddPresentationOptions(panel);
 
         BuildControls(panel, (RectTransform)panel.pages[3].transform);
 
@@ -280,6 +281,82 @@ public static class OverburstGameMenuBuilder
 
     // 설정 한 줄: 왼쪽에 이름·설명, 오른쪽에 조작 칸. 줄 사이는 장비 창과 같은 구분선.
     // 모든 탭·아래 줄이 같은 두 세로선(왼쪽 RowInset, 오른쪽 창폭-RowInset)에 맞춘다.
+    public static void AddPresentationSettings()
+    {
+        PlayerCombatFacingVfxBuilder.RequireIdle();
+        LoadFonts();
+        var asset=AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        if(asset==null || EditorUtility.IsDirty(asset))throw new System.InvalidOperationException("Menu prefab missing or dirty.");
+        var root=PrefabUtility.LoadPrefabContents(PrefabPath);
+        try
+        {
+            AddPresentationOptions(root.GetComponentInChildren<OverburstSettingsPanel>(true));
+            PrefabUtility.SaveAsPrefabAsset(root,PrefabPath,out bool saved);
+            if(!saved)throw new System.InvalidOperationException("Settings prefab save failed.");
+        }
+        finally{PrefabUtility.UnloadPrefabContents(root);}
+    }
+    private static void AddPresentationOptions(OverburstSettingsPanel panel)
+    {
+        var page=(RectTransform)panel.pages[2].transform;
+        if(panel.combatScroll==null)
+        {
+            var existing=page.Cast<Transform>().Where(t=>t.name.StartsWith("Row • ")).ToArray();
+            var viewport=new GameObject("Combat Viewport",typeof(RectTransform),typeof(Image),typeof(RectMask2D),typeof(ScrollRect)).GetComponent<RectTransform>();
+            viewport.SetParent(page,false);Stretch(viewport);
+            viewport.offsetMin=new Vector2(0,270);viewport.offsetMax=new Vector2(0,-20);
+            viewport.GetComponent<Image>().color=Color.clear;
+            var list=new GameObject("Combat List",typeof(RectTransform)).GetComponent<RectTransform>();
+            list.SetParent(viewport,false);list.anchorMin=new Vector2(0,1);list.anchorMax=new Vector2(1,1);list.pivot=new Vector2(.5f,1);list.sizeDelta=new Vector2(0,1430);
+            foreach(var row in existing){row.SetParent(list,false);Stretch(row);}
+            var scroll=viewport.GetComponent<ScrollRect>();scroll.viewport=viewport;scroll.content=list;scroll.horizontal=false;scroll.vertical=true;
+            scroll.movementType=ScrollRect.MovementType.Clamped;scroll.scrollSensitivity=80;scroll.inertia=true;
+            var bar=new GameObject("Combat Scrollbar",typeof(RectTransform),typeof(Image),typeof(Scrollbar)).GetComponent<RectTransform>();
+            bar.SetParent(page,false);Stretch(bar);bar.anchorMin=new Vector2(1,0);bar.anchorMax=Vector2.one;
+            bar.offsetMin=new Vector2(-145,270);bar.offsetMax=new Vector2(-135,-20);bar.GetComponent<Image>().color=Hex("403B3073");
+            var handle=NewImage(bar,"Handle",new Color(Bright.r,Bright.g,Bright.b,.38f));Stretch(handle.transform);
+            var scrollbar=bar.GetComponent<Scrollbar>();scrollbar.direction=Scrollbar.Direction.BottomToTop;scrollbar.handleRect=handle.rectTransform;scrollbar.targetGraphic=handle;
+            scrollbar.navigation=new Navigation{mode=Navigation.Mode.None};scroll.verticalScrollbar=scrollbar;
+            panel.combatScroll=scroll;
+        }
+        var content=panel.combatScroll.content;content.sizeDelta=new Vector2(0,1770);
+        if(panel.parryPresentation==null)
+            EffectRow(content,5,"패링 연출","패링 성공 순간의 금속 불꽃과 검날 빛",true,1,2,out panel.parryPresentation,out panel.parryPresentationIntensity);
+        if(panel.heavyPresentation==null)
+            EffectRow(content,6,"완충 강공 연출","에너지가 가득 찬 강공의 원소 발광과 화면 반응",true,1,2,out panel.heavyPresentation,out panel.heavyPresentationIntensity);
+        if(panel.motionBlur==null)
+            EffectRow(content,7,"모션블러","움직이는 카메라와 캐릭터의 잔상 · 기본 꺼짐",false,.01f,1,out panel.motionBlur,out panel.motionBlurIntensity);
+        if(panel.edgeBlur==null)
+            EffectRow(content,8,"가장자리 흐림","탐험 중 화면 가장자리를 부드럽게 흐립니다",true,.72f,1,out panel.edgeBlur,out panel.explorationEdgeBlurIntensity);
+        if(panel.combatEdgeBlurIntensity==null)
+            panel.combatEdgeBlurIntensity=SliderRow(content,9,"전투 중 흐림 강도","전투 중에는 이 강도로 가장자리 흐림을 적용합니다",.42f,true);
+        var rows=new[]{panel.cameraShake.transform.parent.parent,panel.hitEffect.transform.parent.parent,panel.combatFacingIndicator.transform.parent.parent,
+            panel.combatFacingStyle.transform.parent.parent,panel.combatFacingBrightness.transform.parent.parent,
+            panel.parryPresentation.transform.parent.parent,panel.heavyPresentation.transform.parent.parent,panel.motionBlur.transform.parent.parent,panel.edgeBlur.transform.parent.parent,panel.combatEdgeBlurIntensity.transform.parent.parent};
+        for(int i=0;i<rows.Length;i++)
+        {
+            float y=RowTop-i*170;
+            ((RectTransform)rows[i].Find("Label")).anchoredPosition=new Vector2(RowInset,y-40);
+            ((RectTransform)rows[i].Find("Description")).anchoredPosition=new Vector2(RowInset,y-108);
+            ((RectTransform)rows[i].Find("Control")).anchoredPosition=new Vector2(-RowInset,y-96);
+            var rule=rows[i].Find("Rule");
+            if(i<rows.Length-1){if(rule==null)rule=NewImage(rows[i],"Rule",Rule).transform;Place((RectTransform)rule,new Vector2(0,1),new Vector2(RowInset,y-156),new Vector2(RowWidth,2),new Vector2(0,1));}
+            else if(rule!=null)Object.DestroyImmediate(rule.gameObject);
+            foreach(var selectable in rows[i].GetComponentsInChildren<Selectable>(true))
+                if(!selectable.GetComponent<OverburstMenuSoundHook>())selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
+        }
+    }
+    private static void EffectRow(RectTransform page,int index,string title,string description,bool enabled,float value,float maximum,out Toggle toggle,out Slider slider)
+    {
+        toggle=SwitchRow(page,index,title,description,enabled,index==7);
+        var slot=(RectTransform)toggle.transform.parent;
+        var toggleRect=(RectTransform)toggle.transform;toggleRect.anchorMin=toggleRect.anchorMax=new Vector2(0,.5f);toggleRect.pivot=new Vector2(0,.5f);toggleRect.anchoredPosition=new Vector2(10,0);
+        var group=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Kit+"Controls/Sliders/Slider Group (Horizontal).prefab"));
+        var control=group.transform.Find("Slider (Horizontal)");control.SetParent(slot,false);Object.DestroyImmediate(group);
+        var rect=(RectTransform)control;rect.anchorMin=new Vector2(.30f,.5f);rect.anchorMax=new Vector2(1,.5f);rect.pivot=new Vector2(.5f,.5f);rect.anchoredPosition=Vector2.zero;rect.sizeDelta=new Vector2(0,104);
+        slider=control.GetComponent<Slider>();slider.minValue=0;slider.maxValue=maximum;slider.wholeNumbers=false;slider.SetValueWithoutNotify(value);
+        Restyle(control.Find("Text").GetComponent<Text>(),Mathf.RoundToInt(value*100)+"%",sans,34,Bright);
+    }
     private const float RowInset = 200f;
     private const float RowWidth = 2400f - RowInset * 2f;
     private const float RowTop = -70f;

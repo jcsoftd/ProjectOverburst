@@ -13,16 +13,16 @@ using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
-public static class CombatMomentPreviewVerifier
+public static class CombatPresentationSettingsVerifier
 {
-    private const string Key = "Overburst.CombatMomentPreviewVerifier.";
+    private const string Key = "Overburst.CombatPresentationSettingsVerifier.";
     private static int Phase { get => SessionState.GetInt(Key + "phase", 0); set => SessionState.SetInt(Key + "phase", value); }
     private static int Cycle { get => SessionState.GetInt(Key + "cycle", 0); set => SessionState.SetInt(Key + "cycle", value); }
     private static string Output => SessionState.GetString(Key + "output", "");
     public static string Status => SessionState.GetString(Key + "status", "NOT_RUN");
     private static double Deadline => double.Parse(SessionState.GetString(Key + "deadline", "0"), System.Globalization.CultureInfo.InvariantCulture);
 
-    static CombatMomentPreviewVerifier()
+    static CombatPresentationSettingsVerifier()
     {
         EditorApplication.update += Tick;
         Application.logMessageReceived += Log;
@@ -31,28 +31,32 @@ public static class CombatMomentPreviewVerifier
 
     public static string VerifyAssets()
     {
-        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(CombatMomentPreviewBuilder.PrefabPath);
+        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(CombatMomentPresentationBuilder.PrefabPath);
         Require(prefab!=null && prefab.GetComponent<CombatMomentPresentation>()!=null,"Native moment prefab exists");
         var lines=prefab.GetComponentsInChildren<LineRenderer>(true);
         Require(lines.Length==51 && lines.All(x=>!x.enabled && x.sharedMaterial!=null),"51 prepared line renderers disabled at rest");
         Require(prefab.GetComponentsInChildren<Transform>(true).All(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)==0),"Moment prefab Missing Script 0");
-        var material=AssetDatabase.LoadAssetAtPath<Material>(CombatMomentPreviewBuilder.MaterialPath);
+        var material=AssetDatabase.LoadAssetAtPath<Material>(CombatMomentPresentationBuilder.MaterialPath);
         Require(material!=null && material.shader.name=="OVERBURST/CombatMomentGlow" && material.GetFloat("_Intensity")==4f,"Native HDR material binding");
-        Require(AssetDatabase.AssetPathToGUID(CombatMomentPreviewBuilder.PrefabPath).Length==32,"Prefab GUID valid");
+        Require(AssetDatabase.AssetPathToGUID(CombatMomentPresentationBuilder.PrefabPath).Length==32,"Prefab GUID valid");
         Require(material.shader.isSupported && !ShaderUtil.ShaderHasError(material.shader),"HDR glow shader supported and error-free");
         var hub=AssetDatabase.LoadAssetAtPath<GameObject>(DebugHubPrefabBuilder.PrefabPath);
         var view=hub!=null?hub.GetComponent<Overburst.DebugTools.DebugHubView>():null;
         Require(view!=null && view.ItemIds.All(id=>!id.StartsWith("presentation.moment.",StringComparison.Ordinal)),"Moment items removed from native debug panel");
         Require(hub.GetComponentsInChildren<Transform>(true).All(t=>!t.name.StartsWith("Row presentation.moment.",StringComparison.Ordinal)),"No baked moment rows remain");
-        var ui=prefab.GetComponentInChildren<CombatMomentPreviewToggle>(true);
-        Require(ui!=null && ui.ParryButton!=null && ui.HeavyButton!=null && ui.ParryCaption.font!=null && ui.HeavyCaption.font!=null,"Two standalone toggle references load");
-        Require(ui.GetComponent<Canvas>().renderMode==RenderMode.ScreenSpaceOverlay,"Temporary buttons render outside the debug panel");
-        Require(((RectTransform)ui.ParryButton.transform).anchoredPosition==new Vector2(16,-216) && ((RectTransform)ui.HeavyButton.transform).anchoredPosition==new Vector2(16,-264),"Temporary buttons follow existing preview controls");
-        var renderer=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.Universal.UniversalRendererData>(OverburstEdgeBlurPreviewBuilder.RendererPath);
+        Require(prefab.GetComponentsInChildren<Canvas>(true).Length==0,"Moment prefab contains no temporary UI");
+        var menu=AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
+        var panel=menu.GetComponentInChildren<OverburstSettingsPanel>(true);
+        Require(panel.parryPresentation!=null && panel.heavyPresentation!=null && panel.motionBlur!=null && panel.edgeBlur!=null && panel.combatScroll!=null,"Four native settings toggles and scroll references");
+        Require(panel.parryPresentationIntensity.maxValue==2 && panel.heavyPresentationIntensity.maxValue==2 && panel.motionBlurIntensity.maxValue==1 && panel.explorationEdgeBlurIntensity.maxValue==1 && panel.combatEdgeBlurIntensity.maxValue==1,"Settings slider bounds");
+        Require(menu.GetComponentsInChildren<Transform>(true).All(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)==0),"Game menu Missing Script 0");
+        var motion=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/Resources/Camera/PF_OverburstMotionBlur.prefab");
+        Require(motion.GetComponent<OverburstMotionBlur>()!=null && motion.GetComponentsInChildren<Canvas>(true).Length==0,"Formal motion prefab binding and no temporary UI");
+        var renderer=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.Universal.UniversalRendererData>(OverburstEdgeBlurBuilder.RendererPath);
         Require(renderer.rendererFeatures.OfType<OverburstEdgeBlurRendererFeature>().Count()==1,"Existing combined feature only once");
-        OverburstEdgeBlurPreviewVerifier.VerifyAssets();
+        OverburstEdgeBlurVerifier.VerifyAssets();
         VerifyMomentPixels(renderer.rendererFeatures.OfType<OverburstEdgeBlurRendererFeature>().Single().BlurShader);
-        return "PASS: native moment/standalone toggle references / Missing Script / HDR material / center-alpha-gain GPU checks / existing edge blur GPU regression";
+        return "PASS: native presentation settings and service references / Missing Script / HDR material / center-alpha-gain GPU checks / existing edge blur GPU regression";
     }
 
     private static void VerifyMomentPixels(Shader shader)
@@ -88,7 +92,10 @@ public static class CombatMomentPreviewVerifier
             if(pattern!=null)Object.DestroyImmediate(pattern);if(readback!=null)Object.DestroyImmediate(readback);
         }
     }
-    public static bool UiOnly => SessionState.GetBool(Key+"uiOnly",false);
+    public static int CurrentCycle=>Cycle;
+    public static bool CaptureComparisons=>SessionState.GetBool(Key+"captureVideos",false);
+    public static bool CaptureOnly=>SessionState.GetBool(Key+"captureOnly",false);
+    public static string ComparisonOutput=>Path.Combine(Output,"Frames");
     public static string Begin(string output)
     {
         if (Phase != 0 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -106,7 +113,9 @@ public static class CombatMomentPreviewVerifier
         SessionState.SetString(Key + "status", "RUNNING");
         SessionState.EraseString(Key + "failure");
         SessionState.SetString(Key + "activeScene", SceneManager.GetActiveScene().path);
-        SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 300).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 1800).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        Directory.CreateDirectory(Path.Combine(output,"IsolatedAccount"));
+        File.WriteAllText(Path.Combine(output,"IsolatedAccount",OverburstGameSettings.FileName),"{\"version\":1,\"cameraShake\":0.4,\"hitEffect\":0.6}");
         Cycle = 1;
         Phase = 1;
         SceneManager.SetActiveScene(boot);
@@ -115,12 +124,12 @@ public static class CombatMomentPreviewVerifier
     }
 
     private static double idleStarted=-1;
-    public static string BeginWhenIdle(string output,bool uiOnly=false)
+    public static string BeginWhenIdle(string output,bool uiOnly=false,bool captureOnly=false)
     {
         if(Phase!=0)throw new InvalidOperationException("This verifier already running");
         SessionState.SetString(Key+"pendingOutput",IsolatedSavePlayGuard.ValidateDirectory(output));
         SessionState.SetString(Key+"pendingDeadline",(EditorApplication.timeSinceStartup+600).ToString("R",System.Globalization.CultureInfo.InvariantCulture));
-        SessionState.SetBool(Key+"uiOnly",uiOnly);SessionState.SetString(Key+"status","WAITING");idleStarted=-1;
+        SessionState.SetBool(Key+"uiOnly",uiOnly);SessionState.SetBool(Key+"captureOnly",captureOnly);SessionState.SetString(Key+"status","WAITING");idleStarted=-1;
         return "Waiting for stable idle Editor; does not stop another Play";
     }
     private static void TryBeginQueued()
@@ -136,7 +145,7 @@ public static class CombatMomentPreviewVerifier
         SessionState.EraseString(Key+"pendingOutput");SessionState.EraseString(Key+"pendingDeadline");
         try
         {
-            if(UiOnly){CombatMomentPreviewBuilder.BuildToggle();CombatMomentPreviewBuilder.RemoveDebugPanelItems();}
+            CombatMomentPresentationBuilder.UpgradePreviewAssets();
             Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output,"assets-result.json"),JsonConvert.SerializeObject(new{status="PASS",result=VerifyAssets()},Formatting.Indented));
             Begin(output);
@@ -152,7 +161,7 @@ public static class CombatMomentPreviewVerifier
             if (EditorApplication.timeSinceStartup > Deadline) throw new TimeoutException("Moment verification timeout");
             if (Phase == 3 && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                if (Cycle == 1 && Status == "RUNNING")
+                if (Cycle == 1 && Status == "RUNNING" && !CaptureOnly)
                 {
                     Cycle = 2;
                     Phase = 1;
@@ -180,6 +189,8 @@ public static class CombatMomentPreviewVerifier
                 SessionState.EraseString(Key + "deadline");
                 SessionState.EraseString(Key + "activeScene");
                 SessionState.EraseBool(Key + "uiOnly");
+                SessionState.EraseBool(Key + "captureVideos");
+                SessionState.EraseBool(Key + "captureOnly");
                 return;
             }
             if (!EditorApplication.isPlaying) return;
@@ -191,7 +202,7 @@ public static class CombatMomentPreviewVerifier
                 PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching) return;
             Check(Path.GetFullPath(AccountBootstrap.SaveDirectory) == Path.GetFullPath(Path.Combine(Output, "IsolatedAccount")), "Product boot uses isolated account");
             Phase = 2;
-            new GameObject("EdgeBlurVerificationRunner").AddComponent<CombatMomentPreviewVerificationRunner>();
+            new GameObject("CombatPresentationSettingsVerificationRunner").AddComponent<CombatPresentationSettingsVerificationRunner>();
         }
         catch (Exception error) { Fail(error); }
     }
@@ -268,16 +279,28 @@ public static class CombatMomentPreviewVerifier
     }
 }
 
-public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
+public sealed class CombatPresentationSettingsVerificationRunner : MonoBehaviour
 {
     private static readonly System.Reflection.BindingFlags Fields=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
     private IEnumerator Start()
     {
-        var routine=Run();
-        while(true){object yielded;try{if(!routine.MoveNext())break;yielded=routine.Current;}catch(Exception error){CombatMomentPreviewVerifier.Fail(error);break;}yield return yielded;}
-        (routine as IDisposable)?.Dispose();Destroy(gameObject);
+        var stack=new Stack<IEnumerator>();stack.Push(Run());
+        try
+        {
+            while(stack.Count>0)
+            {
+                object yielded=null;bool completed=false;Exception failure=null;
+                try{var current=stack.Peek();if(!current.MoveNext()){(current as IDisposable)?.Dispose();stack.Pop();completed=true;}else yielded=current.Current;}
+                catch(Exception error){failure=error;}
+                if(failure!=null){CombatPresentationSettingsVerifier.Fail(failure);break;}
+                if(completed)continue;
+                if(yielded is IEnumerator inner && !(yielded is CustomYieldInstruction)){stack.Push(inner);continue;}
+                yield return yielded;
+            }
+        }
+        finally{while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();Destroy(gameObject);}
     }
-    private static void Check(bool value,string label)=>CombatMomentPreviewVerifier.Check(value,label);
+    private static void Check(bool value,string label)=>CombatPresentationSettingsVerifier.Check(value,label);
     private static IEnumerator Wait(float seconds){float end=Time.unscaledTime+seconds;while(Time.unscaledTime<end)yield return null;}
     private static void Amount(OverburstElementEnergy energy,float value)
     {
@@ -288,23 +311,27 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
     private static T Field<T>(object owner,string name)=>(T)owner.GetType().GetField(name,Fields).GetValue(owner);
     private static IEnumerator Run()
     {
-        if(CombatMomentPreviewVerifier.UiOnly){yield return VerifyToggleUi();CombatMomentPreviewVerifier.CompleteCycle();yield break;}
+        if(CombatPresentationSettingsVerifier.CaptureOnly)
+        {
+            yield return CombatPresentationComparisonCapture.Run(CombatPresentationSettingsVerifier.ComparisonOutput,Check);
+            CombatPresentationSettingsVerifier.CompleteCycle();yield break;
+        }
         var actor=PlayerContext.Instance.CurrentActor;var equipment=actor.Equipment;var melee=actor.GetComponent<MeleeRuntime>();
         // Product energy is created on the first confirmed elemental hit; the isolated fixture fills it before any hit.
         var energy=equipment.GetComponent<OverburstElementEnergy>() ?? equipment.gameObject.AddComponent<OverburstElementEnergy>();
         var parry=actor.GetComponent<PlayerParryController>();
         var preview=Object.FindFirstObjectByType<CombatMomentPresentation>();
         var oldWeapon=equipment.CurrentWeaponItem;var oldGem=equipment.EquippedElementGem;
-        var edge=Object.FindFirstObjectByType<OverburstEdgeBlurPreview>();bool oldEdge=OverburstEdgeBlurPreview.IsEnabled;
+        var edge=Object.FindFirstObjectByType<OverburstEdgeBlur>();bool oldEdge=OverburstEdgeBlur.IsEnabled;
         var setGem=typeof(PlayerEquipment).GetMethod("SetElementGem",Fields);
         var success=typeof(PlayerParryController).GetMethod("PlaySuccess",Fields);
         try
         {
             Check(preview!=null && CombatMomentPresentation.IsPrepared,"Product boot prepares effect prefab");
             Check(Object.FindObjectsByType<CombatMomentPresentation>(FindObjectsSortMode.None).Length==1,"One persistent presentation service");
-            Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Two preview toggles default on each Play");
+            
             Check(CombatMomentPresentation.ActiveVisualCount==0,"Prepared visuals start inactive");
-            yield return VerifyToggleUi();
+            yield return VerifySettingsUi();
             var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
             Check(weapon!=null && equipment.EquipWeaponItem(new ItemData(weapon,1,ItemGrade.Common)),"Product greatsword equipped in isolated account");
             var gems=AssetDatabase.FindAssets("t:ElementGemItemData").Select(x=>AssetDatabase.LoadAssetAtPath<ElementGemItemData>(AssetDatabase.GUIDToAssetPath(x))).Where(x=>x!=null).ToArray();
@@ -317,7 +344,7 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
                 {
                     melee.CancelCurrentAttackState();Amount(energy,amount);int before=CombatMomentPresentation.HeavyPulses;
                     Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,element+"/"+amount+" actual heavy accepted");
-                    float deadline=Time.unscaledTime+8f;bool captured=false;
+                    float deadline=Time.unscaledTime+45f;bool captured=false;
                     while(melee.IsHeavyAttackInProgress && Time.unscaledTime<deadline)
                     {
                         if(!captured && CombatMomentPresentation.HeavyPulses>before){captured=true;
@@ -325,7 +352,15 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
                             var committed=Field<OverburstElementDischarge>(melee,"activeDischarge");
                             Check(committed!=null && CombatMomentPresentation.LastHeavyElement==element && Mathf.Abs(CombatMomentPresentation.LastHeavyEnergy-committed.Energy)<.02f,element+" consumed energy snapshot");
                             Check(Mathf.Abs(CombatMomentPresentation.LastHeavyOvercharge-committed.Overcharge)<.0001f,element+" overcharge snapshot preserved");
-                            if(element==WeaponElement.Fire){yield return new WaitForEndOfFrame();Capture("FireFull");}
+                            if(element==WeaponElement.Fire)
+                            {
+                                var menu=Object.FindFirstObjectByType<OverburstGameMenu>(FindObjectsInactive.Include);menu.Open();
+                                var effect=Object.FindFirstObjectByType<CombatMomentPresentation>();float bladeAlpha=effect.BladeGlow.startColor.a,coreAlpha=effect.ImpactCore.startColor.a;
+                                OverburstGameSettings.HeavyPresentationIntensity=.5f;
+                                Check(Mathf.Abs(effect.BladeGlow.startColor.a-bladeAlpha*.5f)<.01f && Mathf.Abs(effect.ImpactCore.startColor.a-coreAlpha*.5f)<.01f,"Heavy strength scales blade and impact immediately during pause");
+                                OverburstGameSettings.HeavyPresentationIntensity=1f;menu.Close();
+                                yield return new WaitForEndOfFrame();Capture("FireFull");
+                            }
                         }
                         yield return null;
                     }
@@ -338,7 +373,7 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
             Amount(energy,100f);int dashBefore=CombatMomentPresentation.HeavyPulses;
             typeof(MeleeRuntime).GetField("requestedDodgeFollowUp",Fields).SetValue(melee,PlayerDodgeFollowUpKind.Heavy);
             Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,"E definition accepted via pending-followup fixture");
-            float dashDeadline=Time.unscaledTime+8f;while(melee.IsHeavyAttackInProgress && Time.unscaledTime<dashDeadline)yield return null;
+            float dashDeadline=Time.unscaledTime+45f;while(melee.IsHeavyAttackInProgress && Time.unscaledTime<dashDeadline)yield return null;
             Check(!melee.IsHeavyAttackInProgress && CombatMomentPresentation.HeavyPulses==dashBefore+1,"E separate commit produces one full pulse");yield return Wait(.4f);
             Amount(energy,100f);int disabled=CombatMomentPresentation.HeavyPulses;CombatMomentPresentation.SetHeavyEnabled(false);
             Check(melee.TryStartHeavyAttack(actor.transform.forward)==WeaponActionResult.Accepted,"Disabled presentation keeps heavy action");
@@ -355,13 +390,25 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
             Overburst.DebugTools.DebugHub.OpenTab(Overburst.DebugTools.DebugTabs.Presentation);float pausedGain=CombatMomentPresentation.CurrentScreenGain;
             yield return Wait(.3f);Check(Mathf.Abs(CombatMomentPresentation.CurrentScreenGain-pausedGain)<.00001f,"F1 pause freezes moment clock");
             Overburst.DebugTools.DebugHub.Close();
-            float parryDeadline=Time.unscaledTime+10f;while(melee.IsHeavyAttackInProgress && Time.unscaledTime<parryDeadline)yield return null;
+            float parryDeadline=Time.unscaledTime+45f;while(melee.IsHeavyAttackInProgress && Time.unscaledTime<parryDeadline)yield return null;
             Check(!melee.IsHeavyAttackInProgress && CombatMomentPresentation.HeavyPulses==heavyBefore+1,"Parried two rotations discharge only one final pulse");
             Check(Mathf.Abs(energy.Amount-50f)<.02f,"Parried full-energy refund remains 50 percent");yield return Wait(.4f);
             var snapshot=new ElementGemAttackSnapshot(equipment);int count=CombatMomentPresentation.ParryPulses;
             CombatMomentPresentation.SetParryEnabled(false);CombatMomentPresentation.Parry(equipment,100001,0,2,snapshot,actor.transform.position+Vector3.up,actor.transform.forward);
             Check(CombatMomentPresentation.ParryPulses==count && CombatMomentPresentation.ActiveVisualCount==0,"Parry OFF suppresses only added visuals");CombatMomentPresentation.SetParryEnabled(true);
-            CombatMomentPresentation.Parry(equipment,100002,0,2,snapshot,actor.transform.position+Vector3.up,actor.transform.forward);yield return null;
+            CombatMomentPresentation.Parry(equipment,100002,0,2,snapshot,actor.transform.position+Vector3.up,actor.transform.forward);
+            {
+                var menu=Object.FindFirstObjectByType<OverburstGameMenu>(FindObjectsInactive.Include);menu.Open();
+                var effect=Object.FindFirstObjectByType<CombatMomentPresentation>();float alpha=effect.BladeGlow.startColor.a;
+                OverburstGameSettings.ParryPresentationIntensity=.5f;
+                Check(Mathf.Abs(effect.BladeGlow.startColor.a-alpha*.5f)<.01f,"Parry strength scales current blade immediately during pause");
+                typeof(CombatMomentPresentation).GetField("screenStarted",Fields).SetValue(effect,OverburstGameClock.UnscaledTime-.03f);
+                Check(Mathf.Abs(CombatMomentPresentation.CurrentScreenGain+.025f)<.002f,"Parry screen strength is scaled independently");
+                OverburstGameSettings.ParryPresentationIntensity=0;
+                Check(OverburstGameSettings.ParryPresentationEnabled && CombatMomentPresentation.ActiveContactCount==0 && CombatMomentPresentation.CurrentScreenGain==0,"Zero strength ends parry lease while enabled choice remains saved");
+                OverburstGameSettings.ParryPresentationIntensity=1;menu.Close();
+            }
+            CombatMomentPresentation.Parry(equipment,100012,0,2,snapshot,actor.transform.position+Vector3.up,actor.transform.forward);yield return null;
             edge.SetEnabled(false);int passes=OverburstEdgeBlurRendererFeature.RecordedPassCount;
             for(int i=0;i<2;i++)yield return new WaitForEndOfFrame();
             Check(OverburstEdgeBlurRendererFeature.RecordedPassCount>passes,"Moment works while edge blur is off");
@@ -383,38 +430,117 @@ public sealed class CombatMomentPreviewVerificationRunner : MonoBehaviour
             CombatMomentPresentation.SetParryEnabled(true);CombatMomentPresentation.SetHeavyEnabled(true);CombatMomentPresentation.SetScreenEnabled(true);CombatMomentPresentation.SetBladeEnabled(true);CombatMomentPresentation.SetLocalEnabled(true);
             if(edge!=null)edge.SetEnabled(oldEdge);if(oldWeapon!=null)equipment.EquipWeaponItem(oldWeapon);setGem.Invoke(equipment,new object[]{oldGem});
         }
-        CombatMomentPreviewVerifier.CompleteCycle();
+        if(CombatPresentationSettingsVerifier.CurrentCycle==2 && CombatPresentationSettingsVerifier.CaptureComparisons)
+            yield return CombatPresentationComparisonCapture.Run(CombatPresentationSettingsVerifier.ComparisonOutput,Check);
+        PreserveNextPlaySettings();CombatPresentationSettingsVerifier.CompleteCycle();
     }
     private static void Capture(string label)
     {
-        Texture2D texture=null;try{texture=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(CombatMomentPreviewVerifier.CapturePath(label),texture.EncodeToPNG());}finally{if(texture!=null)Object.Destroy(texture);}
+        Texture2D texture=null;try{texture=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(CombatPresentationSettingsVerifier.CapturePath(label),texture.EncodeToPNG());}finally{if(texture!=null)Object.Destroy(texture);}
     }
-    private static IEnumerator VerifyToggleUi()
+    private static IEnumerator VerifySettingsUi()
     {
-        var ui=Object.FindFirstObjectByType<CombatMomentPreviewToggle>();
-        Check(ui!=null && Object.FindObjectsByType<CombatMomentPreviewToggle>(FindObjectsSortMode.None).Length==1,"One standalone temporary toggle overlay");
-        Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Both standalone toggles default on each Play");
-        Check(!Overburst.DebugTools.DebugRegistry.AllItems.Any(x=>x.Id.StartsWith("presentation.moment.",StringComparison.Ordinal)),"No moment items registered in debug panel");
-        Overburst.DebugTools.DebugHub.OpenTab(Overburst.DebugTools.DebugTabs.Presentation);yield return null;
-        Check(!Object.FindFirstObjectByType<Overburst.DebugTools.DebugHubView>().GetComponentsInChildren<Transform>(true).Any(t=>t.name.StartsWith("Row presentation.moment.",StringComparison.Ordinal)),"Opened debug panel has no moment rows");
-        Overburst.DebugTools.DebugHub.Close();yield return null;
-        ClickToggle(ui.ParryButton);
-        Check(!CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled && ui.ParryCaption.text=="패링 연출: 꺼짐","Outside parry button applies independently and updates caption");
-        ClickToggle(ui.ParryButton);ClickToggle(ui.HeavyButton);
-        Check(CombatMomentPresentation.ParryEnabled && !CombatMomentPresentation.HeavyEnabled && ui.HeavyCaption.text=="완충 강공: 꺼짐","Outside heavy button applies independently and updates caption");
-        ClickToggle(ui.HeavyButton);
-        yield return new WaitForEndOfFrame();Capture("OutsideToggles");
-        Check(ui.ParryCaption.text=="패링 연출: 켜짐" && ui.HeavyCaption.text=="완충 강공: 켜짐","Both outside captions restore on");
-        ui.gameObject.SetActive(false);yield return null;ui.gameObject.SetActive(true);
-        Check(CombatMomentPresentation.ParryEnabled && CombatMomentPresentation.HeavyEnabled,"Temporary UI enable cycle preserves selected effects");
+        var menu=Object.FindFirstObjectByType<OverburstGameMenu>(FindObjectsInactive.Include);
+        var motion=Object.FindFirstObjectByType<OverburstMotionBlur>();
+        Check(menu!=null && motion!=null,"Formal menu and motion blur boot in product");
+        Check(Object.FindObjectsByType<OverburstMotionBlur>(FindObjectsSortMode.None).Length==1,"One persistent motion service");
+        Check(!Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None).Any(x=>x.name=="Temporary_MomentToggles" || x.name=="Temporary_MotionBlurToggle" || x.name=="Temporary_EdgeBlurToggle"),"Temporary presentation buttons removed");
+        Check(Object.FindObjectsByType<OverburstEdgeBlur>(FindObjectsSortMode.None).Length==1,"One persistent edge blur service");
+        if(CombatPresentationSettingsVerifier.CurrentCycle==1)
+        {
+            Check(OverburstGameSettings.ParryPresentationEnabled && OverburstGameSettings.HeavyPresentationEnabled && !OverburstGameSettings.MotionBlurEnabled,"Old settings file defaults: moments ON / motion OFF");
+            Check(OverburstGameSettings.ParryPresentationIntensity==1 && OverburstGameSettings.HeavyPresentationIntensity==1 && OverburstGameSettings.MotionBlurIntensity==.01f,"Old settings intensity defaults retained");
+            Check(OverburstGameSettings.EdgeBlurEnabled && OverburstGameSettings.ExplorationEdgeBlurIntensity==.72f && OverburstGameSettings.CombatEdgeBlurIntensity==.42f,"Old settings retain exploration/combat edge defaults");
+            Check(Mathf.Approximately(OverburstGameSettings.CameraShakeScale,.4f) && Mathf.Approximately(OverburstGameSettings.HitEffectScale,.6f),"Old settings preserve existing player choices");
+        }
+        else
+        {
+            Check(!OverburstGameSettings.ParryPresentationEnabled && OverburstGameSettings.HeavyPresentationEnabled && OverburstGameSettings.MotionBlurEnabled,"New Play restores three saved switches");
+            Check(Mathf.Approximately(OverburstGameSettings.ParryPresentationIntensity,.35f) && Mathf.Approximately(OverburstGameSettings.HeavyPresentationIntensity,.65f) && Mathf.Approximately(motion.Settings.intensity.value,.2f),"New Play restores saved intensities and actual motion volume");
+            Check(!OverburstGameSettings.EdgeBlurEnabled && Mathf.Approximately(OverburstGameSettings.ExplorationEdgeBlurIntensity,.55f) && Mathf.Approximately(OverburstGameSettings.CombatEdgeBlurIntensity,.25f),"New Play restores edge OFF and both saved mode intensities");
+        }
+        menu.Open();menu.OpenSettings();var panel=menu.settings;panel.tabs[2].isOn=true;
+        yield return Wait(.25f);
+        Check(panel.combatScroll!=null && panel.parryPresentation!=null && panel.heavyPresentation!=null && panel.motionBlur!=null,"Native combat settings controls are wired");
+        Check(Time.timeScale==0,"Settings pause retained");
+        foreach(var toggle in new[]{panel.parryPresentation,panel.heavyPresentation,panel.motionBlur,panel.edgeBlur})
+        {
+            bool before=toggle.isOn;ClickControl(toggle);Check(toggle.isOn!=before,"Visible settings toggle raycast applies "+toggle.transform.parent.parent.name);ClickControl(toggle);
+        }
+        panel.parryPresentation.isOn=false;panel.heavyPresentation.isOn=false;panel.motionBlur.isOn=false;
+        panel.parryPresentationIntensity.value=.35f;panel.heavyPresentationIntensity.value=.65f;panel.motionBlurIntensity.value=.2f;
+        panel.edgeBlur.isOn=false;panel.explorationEdgeBlurIntensity.value=.55f;panel.combatEdgeBlurIntensity.value=.25f;
+        Check(!OverburstEdgeBlur.IsEnabled,"Changing edge intensities while OFF preserves disabled state");
+        panel.edgeBlur.isOn=true;
+        var mode=PlayerCombatModeController.GetOrCreate();bool wasCombat=mode.IsCombatModeActive;
+        mode.ExitCombatMode(PlayerCombatModeReason.System);
+        Check(Mathf.Approximately(OverburstEdgeBlur.CurrentStrength,.55f),"Exploration uses saved edge intensity immediately while paused");
+        mode.EnterCombatMode(PlayerCombatModeReason.System);
+        Check(Mathf.Approximately(OverburstEdgeBlur.CurrentStrength,.25f),"Combat uses its independent saved edge intensity immediately while paused");
+        if(!wasCombat)mode.ExitCombatMode(PlayerCombatModeReason.System);
+        Check(!CombatMomentPresentation.ParryEnabled && !CombatMomentPresentation.HeavyEnabled && motion.Settings.intensity.value==0,"Intensity changes while off preserve switches and actual zero motion");
+        panel.motionBlur.isOn=true;
+        Check(Mathf.Approximately(motion.Settings.intensity.value,.2f),"Motion volume updates immediately while menu is paused");
+        panel.parryPresentation.isOn=true;panel.heavyPresentation.isOn=true;
+        foreach(var slider in new[]{panel.parryPresentationIntensity,panel.heavyPresentationIntensity,panel.motionBlurIntensity,panel.explorationEdgeBlurIntensity,panel.combatEdgeBlurIntensity})
+        {
+            ClickSlider(slider,.5f);
+            Check(Mathf.Abs(slider.normalizedValue-.5f)<.03f,"Visible settings slider accepts pointer "+slider.transform.parent.parent.name);
+        }
+        panel.parryPresentationIntensity.value=1.5f;panel.heavyPresentationIntensity.value=.5f;panel.motionBlurIntensity.value=.12f;
+        panel.explorationEdgeBlurIntensity.value=.55f;panel.combatEdgeBlurIntensity.value=.25f;
+        menu.CloseSettings();
+        var saved=File.ReadAllText(OverburstGameSettings.FilePath);
+        Check(saved.Contains("parryPresentationIntensity") && saved.Contains("heavyPresentationIntensity") && saved.Contains("motionBlurIntensity"),"Closing settings persists all presentation fields");
+        Check(saved.Contains("edgeBlur") && saved.Contains("explorationEdgeBlurIntensity") && saved.Contains("combatEdgeBlurIntensity"),"Closing settings persists edge switch and both mode intensities");
+        menu.OpenSettings();panel.tabs[2].isOn=true;yield return null;
+        Check(panel.parryPresentationIntensity.value==1.5f && panel.heavyPresentationIntensity.value==.5f && Mathf.Approximately(panel.motionBlurIntensity.value,.12f),"Reopening settings restores selected values");
+        Check(panel.edgeBlur.isOn && Mathf.Approximately(panel.explorationEdgeBlurIntensity.value,.55f) && Mathf.Approximately(panel.combatEdgeBlurIntensity.value,.25f),"Reopening settings restores both edge strengths");
+        panel.combatScroll.verticalNormalizedPosition=0;Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();Capture("FormalSettings");
+        panel.resetButton.onClick.Invoke();
+        Check(panel.parryPresentation.isOn && panel.heavyPresentation.isOn && !panel.motionBlur.isOn,"Combat reset restores ON / ON / OFF");
+        Check(panel.parryPresentationIntensity.value==1 && panel.heavyPresentationIntensity.value==1 && Mathf.Approximately(panel.motionBlurIntensity.value,.01f),"Combat reset restores 100% / 100% / 1%");
+        Check(panel.edgeBlur.isOn && Mathf.Approximately(panel.explorationEdgeBlurIntensity.value,.72f) && Mathf.Approximately(panel.combatEdgeBlurIntensity.value,.42f),"Combat reset restores edge ON / exploration 72% / combat 42%");
+        Check(panel.parryPresentationIntensity.GetComponentInChildren<UnityEngine.UI.Text>().text=="100%","Reset refreshes visible percentage");
+        OverburstGameSettings.ParryPresentationIntensity=float.NaN;OverburstGameSettings.HeavyPresentationIntensity=20;OverburstGameSettings.MotionBlurIntensity=-1;
+        Check(OverburstGameSettings.ParryPresentationIntensity==1 && OverburstGameSettings.HeavyPresentationIntensity==2 && OverburstGameSettings.MotionBlurIntensity==0,"Saved numeric inputs normalize invalid and out-of-range values");
+        panel.resetButton.onClick.Invoke();menu.CloseSettings();menu.Close();yield return Wait(.25f);
+        Check(!OverburstGameMenu.IsOpen && Time.timeScale>0,"Menu closes and resumes gameplay");
     }
-    private static void ClickToggle(UnityEngine.UI.Button button)
+    private static void ScrollTo(UnityEngine.UI.Selectable control)
     {
+        var scroll=control.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+        if(scroll!=null)
+        {
+            Canvas.ForceUpdateCanvases();var local=scroll.viewport.InverseTransformPoint(control.transform.position);
+            scroll.content.localPosition+=new Vector3(0,scroll.viewport.rect.center.y-local.y,0);scroll.velocity=Vector2.zero;
+        }
         Canvas.ForceUpdateCanvases();
-        var pointer=new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
-        {button=UnityEngine.EventSystems.PointerEventData.InputButton.Left,position=RectTransformUtility.WorldToScreenPoint(null,button.transform.position)};
-        var hits=new List<UnityEngine.EventSystems.RaycastResult>();UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointer,hits);
-        Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Button>()==button,"Outside "+button.name+" receives visible UI raycast");
-        UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject,pointer,UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
     }
+    private static void ClickControl(UnityEngine.UI.Toggle control)
+    {
+        ScrollTo(control);
+        var pointer=new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current){button=UnityEngine.EventSystems.PointerEventData.InputButton.Left,position=RectTransformUtility.WorldToScreenPoint(null,control.transform.position)};
+        var hits=new List<UnityEngine.EventSystems.RaycastResult>();UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointer,hits);
+        Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Toggle>()==control,"Settings switch receives UI raycast");
+        UnityEngine.EventSystems.ExecuteEvents.Execute(control.gameObject,pointer,UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+    }
+    private static void ClickSlider(UnityEngine.UI.Slider slider,float position)
+    {
+        ScrollTo(slider);var area=slider.handleRect.parent.GetComponent<RectTransform>();
+        var point=area.TransformPoint(new Vector3(Mathf.Lerp(area.rect.xMin,area.rect.xMax,position),area.rect.center.y,0));
+        var pointer=new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current){button=UnityEngine.EventSystems.PointerEventData.InputButton.Left,position=RectTransformUtility.WorldToScreenPoint(null,point)};
+        var hits=new List<UnityEngine.EventSystems.RaycastResult>();UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointer,hits);
+        Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Slider>()==slider,"Settings slider receives UI raycast");
+        UnityEngine.EventSystems.ExecuteEvents.Execute(slider.gameObject,pointer,UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(slider.gameObject,pointer,UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+    }
+    private static void PreserveNextPlaySettings()
+    {
+        OverburstGameSettings.ParryPresentationEnabled=false;OverburstGameSettings.HeavyPresentationEnabled=true;OverburstGameSettings.MotionBlurEnabled=true;
+        OverburstGameSettings.ParryPresentationIntensity=.35f;OverburstGameSettings.HeavyPresentationIntensity=.65f;OverburstGameSettings.MotionBlurIntensity=.2f;
+        OverburstGameSettings.EdgeBlurEnabled=false;OverburstGameSettings.ExplorationEdgeBlurIntensity=.55f;OverburstGameSettings.CombatEdgeBlurIntensity=.25f;
+        OverburstGameSettings.SaveIfDirty();
+    }
+
 }

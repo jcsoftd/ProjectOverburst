@@ -37,6 +37,12 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     public UISwitchSelect combatFacingStyle;
     public Slider combatFacingBrightness;
 
+    public Toggle parryPresentation, heavyPresentation, motionBlur;
+    public Slider parryPresentationIntensity, heavyPresentationIntensity, motionBlurIntensity;
+    public Toggle edgeBlur;
+    public Slider explorationEdgeBlurIntensity,combatEdgeBlurIntensity;
+    public ScrollRect combatScroll;
+
     [Header("Controls")]
     public OverburstKeyBindingRow[] keyRows;
     public ScrollRect keyScroll;
@@ -81,6 +87,15 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         if (combatFacingIndicator != null) combatFacingIndicator.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.CombatFacingIndicator = v; menu.PlayClick(); } });
         if (combatFacingStyle != null) combatFacingStyle.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.CombatFacingStyle = (CombatFacingIndicatorStyle)i; });
         if (combatFacingBrightness != null) combatFacingBrightness.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CombatFacingBrightness = v; });
+        if(edgeBlur!=null)edgeBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.EdgeBlurEnabled=v;menu.PlayClick();}});
+        if(explorationEdgeBlurIntensity!=null)explorationEdgeBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.ExplorationEdgeBlurIntensity=v;});
+        if(combatEdgeBlurIntensity!=null)combatEdgeBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.CombatEdgeBlurIntensity=v;});
+        if(parryPresentation!=null)parryPresentation.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.ParryPresentationEnabled=v;menu.PlayClick();}});
+        if(heavyPresentation!=null)heavyPresentation.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.HeavyPresentationEnabled=v;menu.PlayClick();}});
+        if(motionBlur!=null)motionBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.MotionBlurEnabled=v;menu.PlayClick();}});
+        if(parryPresentationIntensity!=null)parryPresentationIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.ParryPresentationIntensity=v;});
+        if(heavyPresentationIntensity!=null)heavyPresentationIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.HeavyPresentationIntensity=v;});
+        if(motionBlurIntensity!=null)motionBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.MotionBlurIntensity=v;});
         vSync.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.SetFrameOptions(v, OverburstGameSettings.FrameLimit); RefreshFrameRow(); menu.PlayClick(); } });
         frameLimit.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.SetFrameOptions(OverburstGameSettings.VSync, OverburstGameSettings.FrameLimits[i]); });
         screenMode.onChange.AddListener((i, _) => { if (!refreshing) ChangeDisplay(Modes[i], OverburstGameSettings.Resolution); });
@@ -109,6 +124,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         }
         finally { refreshing = false; }
         if (keyScroll != null) keyScroll.verticalNormalizedPosition = 1f;
+        if (combatScroll != null) combatScroll.verticalNormalizedPosition = 1f;
         SelectDefault();
     }
 
@@ -154,6 +170,15 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             if (combatFacingIndicator != null) combatFacingIndicator.SetIsOnWithoutNotify(OverburstGameSettings.CombatFacingIndicator);
             if (combatFacingStyle != null) FillOptions(combatFacingStyle, new[] { "기존 절제형", "끝 연장형" }, (int)OverburstGameSettings.CombatFacingStyle);
             if (combatFacingBrightness != null) combatFacingBrightness.SetValueWithoutNotify(OverburstGameSettings.CombatFacingBrightness);
+            if(edgeBlur!=null)edgeBlur.SetIsOnWithoutNotify(OverburstGameSettings.EdgeBlurEnabled);
+            if(explorationEdgeBlurIntensity!=null){explorationEdgeBlurIntensity.SetValueWithoutNotify(OverburstGameSettings.ExplorationEdgeBlurIntensity);explorationEdgeBlurIntensity.GetComponent<UISliderDisplayValue>()?.SetValue(OverburstGameSettings.ExplorationEdgeBlurIntensity);}
+            if(combatEdgeBlurIntensity!=null){combatEdgeBlurIntensity.SetValueWithoutNotify(OverburstGameSettings.CombatEdgeBlurIntensity);combatEdgeBlurIntensity.GetComponent<UISliderDisplayValue>()?.SetValue(OverburstGameSettings.CombatEdgeBlurIntensity);}
+            if(parryPresentation!=null)parryPresentation.SetIsOnWithoutNotify(OverburstGameSettings.ParryPresentationEnabled);
+            if(heavyPresentation!=null)heavyPresentation.SetIsOnWithoutNotify(OverburstGameSettings.HeavyPresentationEnabled);
+            if(motionBlur!=null)motionBlur.SetIsOnWithoutNotify(OverburstGameSettings.MotionBlurEnabled);
+            if(parryPresentationIntensity!=null){parryPresentationIntensity.SetValueWithoutNotify(OverburstGameSettings.ParryPresentationIntensity);parryPresentationIntensity.GetComponent<UISliderDisplayValue>()?.SetValue(OverburstGameSettings.ParryPresentationIntensity);}
+            if(heavyPresentationIntensity!=null){heavyPresentationIntensity.SetValueWithoutNotify(OverburstGameSettings.HeavyPresentationIntensity);heavyPresentationIntensity.GetComponent<UISliderDisplayValue>()?.SetValue(OverburstGameSettings.HeavyPresentationIntensity);}
+            if(motionBlurIntensity!=null){motionBlurIntensity.SetValueWithoutNotify(OverburstGameSettings.MotionBlurIntensity);motionBlurIntensity.GetComponent<UISliderDisplayValue>()?.SetValue(OverburstGameSettings.MotionBlurIntensity);}
             vSync.SetIsOnWithoutNotify(OverburstGameSettings.VSync);
             // 슬라이더·스위치 모양(값 글자·손잡이 위치)도 값에 맞춘다.
             foreach (var display in GetComponentsInChildren<UISliderDisplayValue>(true)) display.SetValue(display.GetComponent<Slider>().value);

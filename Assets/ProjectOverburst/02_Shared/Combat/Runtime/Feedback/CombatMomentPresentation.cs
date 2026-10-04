@@ -2,10 +2,10 @@ using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Temporary parry/full-energy presentation. Damage, energy, time effects and camera impulses remain owned by combat.
+// Parry/full-energy presentation with persisted game settings. Combat owns damage, energy and action timing.
 public sealed class CombatMomentPresentation : MonoBehaviour
 {
-    public const string ResourcePath = "Combat/VFX/PF_CombatMomentPreview";
+    public const string ResourcePath = "Combat/VFX/PF_CombatMomentPresentation";
     [Serializable] public sealed class ContactVisual
     {
         public LineRenderer core, cross;
@@ -38,13 +38,15 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     public static int ActiveContactCount { get { int n=0; if(instance!=null) foreach(var c in instance.contacts) if(c.active)n++; return n; } }
     public static bool IsPrepared => instance != null;
     public static int ActiveVisualCount => instance == null ? 0 : ActiveContactCount + (instance.bladeKind>0?1:0) + (instance.impactActive?1:0);
-    public static float CurrentScreenGain => instance != null ? instance.EvaluateScreen() : 0f;
+    public static float CurrentScreenGain => instance != null ? instance.EvaluateScreen()*instance.ScaleForKind(instance.screenKind) : 0f;
     public static WeaponElement LastHeavyElement { get; private set; }
     public static float LastHeavyEnergy { get; private set; }
     public static float LastHeavyOvercharge { get; private set; }
     public LineRenderer BladeGlow => bladeGlow;
     public LineRenderer ImpactCore => impactCore;
 
+    private float parryIntensity=1f,heavyIntensity=1f;
+    private float ScaleForKind(int kind)=>kind==1?parryIntensity:heavyIntensity;
     private PlayerEquipment owner;
     private CombatHealth ownerHealth;
     private Transform weaponRoot;
@@ -65,22 +67,18 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     private static void ResetState()
     {
         instance=null;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         parryEnabled=heavyEnabled=screenEnabled=bladeEnabled=localEnabled=true;
-#else
-        parryEnabled=heavyEnabled=screenEnabled=bladeEnabled=localEnabled=false;
-#endif
         ParryPulses=HeavyPulses=ContactBursts=PreparedPulses=0;
         LastHeavyElement=WeaponElement.None; LastHeavyEnergy=LastHeavyOvercharge=0f;
     }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Prepare()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
         if(instance!=null)return;
         var prefab=Resources.Load<GameObject>(ResourcePath);
         if(prefab!=null)Instantiate(prefab);
-#endif
+
     }
     private void Awake()
     {
@@ -88,6 +86,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
         instance=this; DontDestroyOnLoad(gameObject);
         foreach(var c in contacts)c.velocities=new Vector3[c.sparks.Length];
         ClearVisuals(); SceneManager.activeSceneChanged+=SceneChanged;
+        OverburstGameSettings.Changed+=ApplySettings;ApplySettings();
     }
     private static float Now => OverburstGameClock.UnscaledTime;
     private static float Smooth(float x){x=Mathf.Clamp01(x);return x*x*(3f-2f*x);}
@@ -120,15 +119,26 @@ public sealed class CombatMomentPresentation : MonoBehaviour
         foreach(var k in recent)if(k.owner==key.owner && k.root==key.root && k.action==action && k.phase==phase && k.kind==kind)return false;
         recent[nextKey]=key;nextKey=(nextKey+1)%recent.Length;return true;
     }
-    public static void SetParryEnabled(bool value){parryEnabled=value;if(!value && instance!=null)instance.CancelKind(1);}
-    public static void SetHeavyEnabled(bool value){heavyEnabled=value;if(!value && instance!=null){instance.CancelKind(2);instance.CancelKind(3);}}
+    public static void SetParryEnabled(bool value)=>OverburstGameSettings.ParryPresentationEnabled=value;
+    public static void SetHeavyEnabled(bool value)=>OverburstGameSettings.HeavyPresentationEnabled=value;
+    private void ApplySettings()
+    {
+        parryEnabled=OverburstGameSettings.ParryPresentationEnabled;
+        heavyEnabled=OverburstGameSettings.HeavyPresentationEnabled;
+        parryIntensity=OverburstGameSettings.ParryPresentationIntensity;
+        heavyIntensity=OverburstGameSettings.HeavyPresentationIntensity;
+        if(!parryEnabled || parryIntensity<=0f)CancelKind(1);
+        if(!heavyEnabled || heavyIntensity<=0f){CancelKind(2);CancelKind(3);}
+        foreach(var c in contacts)if(c.active)TickContact(c);
+        TickBlade();TickImpact();
+    }
     public static void SetScreenEnabled(bool value){screenEnabled=value;if(!value && instance!=null)instance.screenKind=0;}
     public static void SetBladeEnabled(bool value){bladeEnabled=value;if(!value && instance!=null){instance.bladeKind=0;instance.bladeGlow.enabled=instance.bladeSweep.enabled=false;}}
     public static void SetLocalEnabled(bool value){localEnabled=value;if(!value && instance!=null){instance.StopContacts();instance.impactActive=false;instance.impactCore.enabled=false;}}
 
     public static void Parry(PlayerEquipment equipment,int action,int chain,int tier,ElementGemAttackSnapshot snapshot,Vector3 point,Vector3 direction)
     {
-        if(!parryEnabled || instance==null || !instance.isActiveAndEnabled || action<=0 || !snapshot.IsCurrent || !instance.Bind(equipment))return;
+        if(!parryEnabled || instance==null || instance.parryIntensity<=0f || !instance.isActiveAndEnabled || action<=0 || !snapshot.IsCurrent || !instance.Bind(equipment))return;
         var s=instance;
         if(!s.Once(action,chain,1))return;
         if(localEnabled && s.lastContactFrame!=Time.frameCount){s.SpawnContact(point,direction,tier,s.ColorFor(snapshot.Element),action+chain);s.lastContactFrame=Time.frameCount;}
@@ -140,7 +150,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     }
     public static void Heavy(PlayerEquipment equipment,int action,int phase,OverburstElementDischarge discharge,Vector3 point,Vector3 facing,float radius,bool sweep)
     {
-        if(!heavyEnabled || instance==null || !instance.isActiveAndEnabled || action<=0 || discharge==null || discharge.NormalizedEnergy<1f-.0001f
+        if(!heavyEnabled || instance==null || instance.heavyIntensity<=0f || !instance.isActiveAndEnabled || action<=0 || discharge==null || discharge.NormalizedEnergy<1f-.0001f
             || !discharge.GemAttack.IsCurrent || !instance.Bind(equipment) || !instance.Once(action,phase,3))return;
         var s=instance;HeavyPulses++;LastHeavyElement=discharge.Element;LastHeavyEnergy=discharge.Energy;LastHeavyOvercharge=discharge.Overcharge;
         float gain=1.6f*(1f+.15f*discharge.Overcharge);Color color=s.ColorFor(discharge.Element);
@@ -149,7 +159,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     }
     public static void PrepareHeavy(PlayerEquipment equipment,int action,int phase,float remaining,bool sweep)
     {
-        if(!heavyEnabled || instance==null || !instance.isActiveAndEnabled || remaining<0f || remaining>.10f || !instance.Bind(equipment))return;
+        if(!heavyEnabled || instance==null || instance.heavyIntensity<=0f || !instance.isActiveAndEnabled || remaining<0f || remaining>.10f || !instance.Bind(equipment))return;
         if(!instance.Once(action,phase,4))return;
         PreparedPulses++;instance.StartScreen(2,action,equipment.transform.position);
         if(!sweep)instance.StartBlade(2,action,Color.white,.15f,equipment.transform.position);
@@ -181,7 +191,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     {
         gain=0f;center=new Vector2(.5f,.5f);
         if(instance==null || !instance.isActiveAndEnabled || !instance.OwnerValid() || camera==null)return false;
-        gain=instance.EvaluateScreen();if(Mathf.Abs(gain)<.000001f)return false;
+        gain=instance.EvaluateScreen()*instance.ScaleForKind(instance.screenKind);if(Mathf.Abs(gain)<.000001f)return false;
         var viewport=camera.WorldToViewportPoint(instance.screenPoint);
         if(viewport.z<=0f || viewport.x<0f || viewport.x>1f || viewport.y<0f || viewport.y>1f){gain=0f;return false;}
         center=new Vector2(viewport.x,viewport.y);return true;
@@ -201,11 +211,11 @@ public sealed class CombatMomentPresentation : MonoBehaviour
         {bladeKind=0;bladeGlow.enabled=bladeSweep.enabled=false;return;}
         float peak=bladeKind==1?parryPeak:bladeKind==3?heavyPeak:0f;
         float fade=bladeKind==2?Smooth(age/.10f):age<=peak?1f:1f-Smooth((age-peak)/(duration-peak));
-        Color c=bladeColor;c.a=bladeGain*fade*(bladeKind==1?.14f:.30f);
+        Color c=bladeColor;c.a=bladeGain*fade*(bladeKind==1?.14f:.30f)*ScaleForKind(bladeKind);
         float length=Vector3.Distance(bottom,tip);bladeGlow.enabled=true;bladeGlow.widthMultiplier=Mathf.Clamp(length*.018f,.014f,.055f);
         bladeGlow.startColor=bladeGlow.endColor=c;bladeGlow.SetPosition(0,bottom);bladeGlow.SetPosition(1,tip);
         bladeSweep.enabled=bladeKind==1 && age>=.02f && age<.11f;
-        if(bladeSweep.enabled){float p=Mathf.Lerp(bladeContact,0f,Smooth((age-.02f)/.09f));c.a=.65f;
+        if(bladeSweep.enabled){float p=Mathf.Lerp(bladeContact,0f,Smooth((age-.02f)/.09f));c.a=.65f*parryIntensity;
             bladeSweep.startColor=bladeSweep.endColor=c;bladeSweep.widthMultiplier=Mathf.Clamp(length*.015f,.014f,.045f);
             bladeSweep.SetPosition(0,Vector3.Lerp(bottom,tip,Mathf.Clamp01(p-.09f)));bladeSweep.SetPosition(1,Vector3.Lerp(bottom,tip,Mathf.Clamp01(p+.09f)));}
     }
@@ -226,11 +236,11 @@ public sealed class CombatMomentPresentation : MonoBehaviour
         float age=Now-c.started;if(age>=sparkLifetime){c.active=false;HideContact(c);return;}
         var camera=mainCamera;Vector3 right=camera!=null?camera.transform.right:Vector3.right, up=camera!=null?camera.transform.up:Vector3.up;
         bool flash=age<parryPeak;c.core.enabled=c.cross.enabled=flash;
-        if(flash){Color white=new Color(.91f,.95f,1f,.8f*(1f-Smooth(age/parryPeak)));
+        if(flash){Color white=new Color(.91f,.95f,1f,.8f*(1f-Smooth(age/parryPeak))*parryIntensity);
             c.core.startColor=c.core.endColor=c.cross.startColor=c.cross.endColor=white;
             c.core.SetPosition(0,c.point-right*.11f);c.core.SetPosition(1,c.point+right*.11f);
             c.cross.SetPosition(0,c.point-up*.055f);c.cross.SetPosition(1,c.point+up*.055f);}
-        Color col=Color.Lerp(c.color,Color.white,.55f);col.a=.65f*(1f-Smooth(age/sparkLifetime));
+        Color col=Color.Lerp(c.color,Color.white,.55f);col.a=.65f*(1f-Smooth(age/sparkLifetime))*parryIntensity;
         for(int i=0;i<c.sparks.Length;i++){var line=c.sparks[i];line.enabled=i<c.count;if(!line.enabled)continue;
             Vector3 p=c.point+c.velocities[i]*age;line.startColor=line.endColor=col;
             line.SetPosition(0,p);line.SetPosition(1,p-c.velocities[i].normalized*(.07f*(1f-age/sparkLifetime)));}
@@ -248,7 +258,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     {
         if(!impactActive || !localEnabled){impactCore.enabled=false;return;}
         float age=Now-impactStarted;if(age>=heavyLifetime){impactActive=false;impactCore.enabled=false;return;}
-        Color c=impactColor;c.a*=age<=heavyPeak?1f:1f-Smooth((age-heavyPeak)/(heavyLifetime-heavyPeak));
+        Color c=impactColor;c.a*=heavyIntensity*(age<=heavyPeak?1f:1f-Smooth((age-heavyPeak)/(heavyLifetime-heavyPeak)));
         impactCore.startColor=impactCore.endColor=c;impactCore.enabled=true;
     }
     private void LateUpdate()
@@ -271,7 +281,7 @@ public sealed class CombatMomentPresentation : MonoBehaviour
     private void OnDisable(){if(instance==this)ClearVisuals();}
     private void OnDestroy()
     {
-        SceneManager.activeSceneChanged-=SceneChanged;
+        SceneManager.activeSceneChanged-=SceneChanged;OverburstGameSettings.Changed-=ApplySettings;
         if(ownerHealth!=null){ownerHealth.OnDead-=Died;ownerHealth.OnReset-=ResetHealth;}
         if(instance==this)instance=null;
     }

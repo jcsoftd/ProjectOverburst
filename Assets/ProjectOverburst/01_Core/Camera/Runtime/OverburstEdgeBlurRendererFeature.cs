@@ -31,8 +31,8 @@ public sealed class OverburstEdgeBlurRendererFeature : ScriptableRendererFeature
             cameraData.cameraType != CameraType.Game || cameraData.renderType != CameraRenderType.Base ||
             !cameraData.camera.CompareTag("MainCamera")) return;
         bool momentActive = CombatMomentPresentation.TryGetScreen(cameraData.camera, out float gain, out Vector2 center);
-        if (!OverburstEdgeBlurPreview.IsEnabled && !momentActive) return;
-        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlurPreview.IsEnabled ? OverburstEdgeBlurPreview.CurrentStrength : 0f);
+        if (!OverburstEdgeBlur.IsEnabled && !momentActive) return;
+        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlur.IsEnabled ? OverburstEdgeBlur.CurrentStrength : 0f);
         material.SetVector("_MomentPulse", new Vector4(center.x, center.y, gain, 0f));
         renderer.EnqueuePass(pass);
     }
