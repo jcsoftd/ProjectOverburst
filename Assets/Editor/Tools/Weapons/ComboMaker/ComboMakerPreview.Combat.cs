@@ -14,7 +14,8 @@ namespace Overburst.EditorTools.ComboMaker
         public GameObject TargetPrefab {get;set;}
         public EnemyDefinition TargetDefinition {get;set;}
         public EnemyHitWeightProfile WeightOverride {get;set;}
-        public float CurrentEnergy => heavyDischarged?0:EnergyNormalized;
+        public float CurrentEnergy => heavyDischarged?0:Mathf.Clamp01(EnergyNormalized);
+        public float PreviewEnergyAmount => heavyDischarged?0:Mathf.Max(0,Element==WeaponElement.Light?EnergyNormalized:Mathf.Min(1,EnergyNormalized))*OverburstElementTuning.Current.maximumEnergy;
         public float TargetDisplacement => dummy==null?0:Vector3.Distance(dummy.transform.position,TargetPosition);
         public bool HeavyDischarged => heavyDischarged;
         private MeleeWeaponElementFx energyFx;
@@ -136,14 +137,20 @@ namespace Overburst.EditorTools.ComboMaker
         private void EvaluateHeavyDischarge(MeleeComboStepData step)
         {
             if(HeavyDefinition==null||heavyDischarged||step.attackPhases==null||step.attackPhases.Length==0)return;
-            if(Progress<step.attackPhases[0].SafeStart)return;
+            int index=Mathf.Clamp(HeavyDefinition.dischargePhaseIndex,0,step.attackPhases.Length-1);
+            if(Progress<step.attackPhases[index].SafeStart)return;
             heavyDischarged=true;
             if(EnergyNormalized<=0 || !ShowEffects)return;
-            var prefab=HeavyDefinition.elementVfx.GetImpact(Element);
+            var prefab=Element==WeaponElement.Light?HeavyDefinition.elementVfx.GetLightImpact(EnergyNormalized>1):HeavyDefinition.elementVfx.GetImpact(Element);
             if(prefab==null)return;
-            var phase=step.attackPhases[0];var pattern=phase.ResolvePattern(stats.range,stats.meleeSlashAngle,width);
+            var phase=step.attackPhases[index];var pattern=phase.ResolvePattern(stats.range,stats.meleeSlashAngle,width);
             Vector3 center=actor.transform.position+Vector3.forward*pattern.ForwardOffset;
-            ActivateEffect(InstantiateEffect(prefab,center,Quaternion.identity,Vector3.one*Mathf.Lerp(.6f,1.2f,EnergyNormalized)),3);
+            float radius=CombatBalanceFormulas.DischargeRadius(OverburstElementTuning.Current,Mathf.Clamp01(EnergyNormalized));
+            var go=InstantiateEffect(prefab,center,Quaternion.identity,Vector3.one*HeavyDefinition.elementVfx.ImpactScale(Element,radius));
+            if(Element==WeaponElement.Light)
+                foreach(var particle in go.GetComponentsInChildren<ParticleSystem>(true))
+                {var main=particle.main;main.simulationSpeed*=OverburstElementTuning.Current.SafeLightTripleVfxPlaybackSpeed;}
+            ActivateEffect(go,0);
         }
     }
 }

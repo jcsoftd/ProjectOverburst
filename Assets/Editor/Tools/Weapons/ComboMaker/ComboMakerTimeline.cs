@@ -14,6 +14,7 @@ namespace Overburst.EditorTools.ComboMaker
         private bool dragEnd,dragging;
         private float progress;
         private bool heavyMode;
+        private int dischargePhase;
         private Label continuationLabel;
         private Func<int,float,float> cueTime;
         public ComboMakerTimeline(Action<float> onSeek,Action<int,int,bool,float> onEdit)
@@ -42,8 +43,8 @@ namespace Overburst.EditorTools.ComboMaker
             RegisterCallback<PointerUpEvent>(e=>{dragging=false;this.ReleasePointer(e.pointerId);});
             RegisterCallback<PointerCaptureOutEvent>(e=>dragging=false);
         }
-        public void SetData(MeleeComboDefinition data,int step,float value,Func<int,float,float> resolveCue,bool heavy=false)
-        {combo=data;stepIndex=step;progress=value;cueTime=resolveCue;heavyMode=heavy;continuationLabel.text=heavy?"방출":"연계";MarkDirtyRepaint();}
+        public void SetData(MeleeComboDefinition data,int step,float value,Func<int,float,float> resolveCue,bool heavy=false,int discharge=0)
+        {combo=data;stepIndex=step;progress=value;cueTime=resolveCue;heavyMode=heavy;dischargePhase=discharge;continuationLabel.text=heavy?"방출":"연계";MarkDirtyRepaint();}
         private float X(float t)=>LabelWidth+t*Mathf.Max(1,contentRect.width-LabelWidth-8);
         private void Move(float x)
         {
@@ -72,7 +73,10 @@ namespace Overburst.EditorTools.ComboMaker
             foreach(var move in step.movementPhases??Array.Empty<AttackMovementPhaseData>())Bar(painter,2,move.SafeStart,move.SafeEnd,new Color(.67f,.75f,.40f));
             foreach(var trail in step.trailPhases??Array.Empty<AttackTrailPhaseData>())Bar(painter,3,trail.SafeStart,trail.SafeEnd,new Color(.65f,.56f,.87f));
             if(heavyMode && step.attackPhases!=null && step.attackPhases.Length>0)
-                Bar(painter,4,step.attackPhases[0].SafeStart,step.attackPhases[0].SafeStart+.006f,new Color(.39f,.77f,.74f));
+            {
+                var phase=step.attackPhases[Mathf.Clamp(dischargePhase,0,step.attackPhases.Length-1)];
+                Bar(painter,4,phase.SafeStart,phase.SafeStart+.006f,new Color(.39f,.77f,.74f));
+            }
             else Bar(painter,4,step.comboInputWindow.SafeStart,step.comboInputWindow.SafeEnd,new Color(.39f,.77f,.74f));
             Bar(painter,5,step.actionCancelStartNormalized,1,new Color(.46f,.61f,.86f));
             painter.strokeColor=Color.white;painter.lineWidth=2;painter.BeginPath();painter.MoveTo(new Vector2(X(progress),Top-4));painter.LineTo(new Vector2(X(progress),Top+6*LaneHeight));painter.Stroke();

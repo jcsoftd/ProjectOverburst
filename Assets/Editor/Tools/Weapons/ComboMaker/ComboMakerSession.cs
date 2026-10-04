@@ -24,6 +24,16 @@ namespace Overburst.EditorTools.ComboMaker
         }
         public string Baseline => baseline;
 
+        public void LoadWeapon(WeaponItemData weapon, ComboMakerAttackMode mode, string recovery=null, string originalBaseline=null)
+        {
+            var definition = weapon != null ? weapon.GetMeleeDefinition() : null;
+            var asset = ComboMakerAttackBinding.Asset(definition, mode);
+            if (asset == null) throw new InvalidOperationException("이 무기에 연결된 " + ComboMakerAttackBinding.Label(mode) + " 자산이 없습니다.");
+            if (asset is MeleeHeavyAttackDefinition heavy)
+                LoadHeavy(definition.comboDefinition, heavy, recovery, originalBaseline);
+            else Load((MeleeComboDefinition)asset, recovery, originalBaseline);
+        }
+
         public void Load(MeleeComboDefinition source, string recovery = null, string originalBaseline = null)
         {
             Dispose();
@@ -78,12 +88,14 @@ namespace Overburst.EditorTools.ComboMaker
             if (!FinitePositive(Working.resetDelay)) errors.Add("콤보 대기시간은 0보다 커야 합니다.");
             if (IsHeavy && (!FinitePositive(HeavyWorking.chargedDamageMultiplier) || !FinitePositive(HeavyWorking.emptyDamageMultiplier)))
                 errors.Add("강공 피해 배율은 0보다 커야 합니다.");
+            if (IsHeavy && (HeavyWorking.dischargePhaseIndex < 0 || HeavyWorking.dischargePhaseIndex >= (Working.steps[0].attackPhases?.Length ?? 0)))
+                errors.Add("원소 방출 판정 인덱스는 현재 타격 구간 안에 있어야 합니다. 첫 구간은 0입니다.");
             for (int i = 0; i < Working.StepCount; i++)
             {
                 var step = Working.steps[i];
                 if (!MeleeComboStepValidator.TryValidate(step, out var error)) errors.Add($"{i + 1}타: {error}");
                 if (!FinitePositive(step.animationSpeedMultiplier)) errors.Add($"{i + 1}타: 속도는 0보다 커야 합니다.");
-                if (!FiniteNormalized(step.actionCancelStartNormalized) || !FiniteNormalized(step.continuationStartNormalizedTime))
+                if (!FiniteNormalized(step.actionCancelStartNormalized) || !FiniteNormalized(step.continuationStartNormalizedTime) || !FiniteNormalized(step.settledIdleStartNormalizedTime))
                     errors.Add($"{i + 1}타: 진입점과 취소 시점은 0~1이어야 합니다.");
                 if (float.IsNaN(step.transitionDuration) || float.IsInfinity(step.transitionDuration) || step.transitionDuration < 0)
                     errors.Add($"{i + 1}타: 블렌딩 시간은 0 이상이어야 합니다.");

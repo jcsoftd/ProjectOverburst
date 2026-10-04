@@ -13,6 +13,7 @@ namespace Overburst.EditorTools.ComboMaker
         {
             {"attackName","공격 이름"},{"animationClip","애니메이션"},{"animationSpeedMultiplier","재생 속도"},
             {"transitionDuration","진입 블렌딩 (초)"},{"continuationStartNormalizedTime","연계 진입점"},
+            {"settledIdleStartNormalizedTime","Idle 복귀 후 준비 동작 기준"},{"dashHeavyFocus","대시 강공 집중·해방 시계"},
             {"comboInputWindow","다음 타 연결 구간"},{"actionCancelStartNormalized","이동 취소 시점"},
             {"playbackAcceleration","구간 가속"},{"startNormalized","시작"},{"endNormalized","종료"},{"peakMultiplier","최대 배속"},
             {"baseAnimationSpeed","전체 기본 속도"},{"entryTransitionDuration","첫 타 블렌딩 (초)"},{"resetDelay","콤보 대기시간 (초)"},
@@ -41,22 +42,24 @@ namespace Overburst.EditorTools.ComboMaker
         {
             if(editorScroll==null||session.Working==null)return;
             Vector2 scroll=editorScroll.scrollOffset;editorScroll.Clear();serialized.Update();ClampStep();
-            editorTitle.text=heavyMode?"강공 설정 · 별도 자산":$"{selectedStep+1:00}타 설정";
+            editorTitle.text=IsHeavyMode?ComboMakerAttackBinding.Label(attackMode)+" 설정 · 별도 자산":$"{ComboMakerAttackBinding.Label(attackMode)} · {selectedStep+1:00}타 설정";
             for(int i=0;i<tabButtons.Count;i++)tabButtons[i].EnableInClassList("selected",tab==i);
             string step=$"steps.Array.data[{selectedStep}]";
             if(tab==0)
             {
                 var motion=Card("공격 동작");editorScroll.Add(motion);
                 AddField(motion,step+".attackName");AddField(motion,step+".animationClip");AddField(motion,step+".animationSpeedMultiplier");AddField(motion,step+".transitionDuration");
-                if(heavyMode)
+                if(IsHeavyMode)
                 {
                     var heavy=Card("에너지에 따른 강공 피해");editorScroll.Add(heavy);
                     AddHeavyFloat(heavy,"에너지 있음",true);AddHeavyFloat(heavy,"에너지 없음",false);
+                    AddHeavyDischargeIndex(heavy);
                     AddField(heavy,step+".actionCancelStartNormalized");AddField(heavy,step+".playbackAcceleration");
                     return;
                 }
                 var flow=Card("다음 타 연결");editorScroll.Add(flow);
                 AddField(flow,step+".continuationStartNormalizedTime");AddField(flow,step+".comboInputWindow",null,true);AddField(flow,step+".actionCancelStartNormalized");
+                AddField(flow,step+".settledIdleStartNormalizedTime");
                 AddField(flow,step+".playbackAcceleration");
                 var common=new Foldout {text="전체 콤보 설정",value=false};editorScroll.Add(common);
                 AddField(common,"baseAnimationSpeed");AddField(common,"entryTransitionDuration");AddField(common,"resetDelay");AddField(common,step+".attackId");
@@ -76,7 +79,7 @@ namespace Overburst.EditorTools.ComboMaker
                     if(phases.arraySize>1)card.Add(ActionButton("이 타격 삭제",()=>EditArray(step+".attackPhases",index,false)));
                 }
                 editorScroll.Add(ActionButton("+ 타격 구간 추가",()=>EditArray(step+".attackPhases",-1,true)));
-                if(heavyMode)BuildHeavyVfx(editorScroll);
+                if(IsHeavyMode)BuildHeavyVfx(editorScroll);
             }
             else if(tab==3)
             {

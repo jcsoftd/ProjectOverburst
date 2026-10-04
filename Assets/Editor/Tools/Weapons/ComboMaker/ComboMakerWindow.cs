@@ -15,6 +15,8 @@ namespace Overburst.EditorTools.ComboMaker
         [SerializeField] private string recovery,baseline;
         [SerializeField] private int selectedStep,tab;
         [SerializeField] private bool heavyMode;
+        [SerializeField] private ComboMakerAttackMode attackMode;
+        private bool IsHeavyMode => session != null && session.IsHeavy;
         private ComboMakerSession session;
         private ComboMakerPreview preview;
         private MeleeComboDefinition previewData;
@@ -29,6 +31,7 @@ namespace Overburst.EditorTools.ComboMaker
         private Label dirtyBadge,statusLabel,previewLabel,timeLabel,editorTitle;
         private HelpBox validationBox;
         private Button applyButton,playButton,elementFxButton;
+        private DropdownField playbackMode;
         private Image previewImage;
         private VisualElement previewHost,geometry;
         private ComboMakerTimeline timeline;
@@ -41,13 +44,19 @@ namespace Overburst.EditorTools.ComboMaker
             w.titleContent=new GUIContent("콤보 메이커");w.minSize=new Vector2(1100,720);w.Show();
         }
         [MenuItem("Assets/OVERBURST/콤보 메이커에서 열기",true)]
-        private static bool CanOpenAsset()=>Selection.activeObject is MeleeComboDefinition || Selection.activeObject is WeaponItemData;
+        private static bool CanOpenAsset()=>Selection.activeObject is MeleeComboDefinition || Selection.activeObject is MeleeHeavyAttackDefinition || Selection.activeObject is WeaponItemData;
         [MenuItem("Assets/OVERBURST/콤보 메이커에서 열기",false,2000)]
         private static void OpenAsset()
         {
             Open();var w=GetWindow<ComboMakerWindow>();
-            var item=Selection.activeObject as WeaponItemData ?? w.weapons.FirstOrDefault(x=>x.GetMeleeComboDefinition()==Selection.activeObject);
-            if(item!=null) w.SelectWeapon(item);
+            if (Selection.activeObject is WeaponItemData weapon) { w.SelectWeapon(weapon); return; }
+            foreach (var item in w.weapons)
+                foreach (ComboMakerAttackMode mode in Enum.GetValues(typeof(ComboMakerAttackMode)))
+                    if (ComboMakerAttackBinding.Asset(item.GetMeleeDefinition(),mode)==Selection.activeObject)
+                    {
+                        if (!w.ResolvePending()) return;
+                        w.selectedWeapon=item;w.attackMode=mode;w.selectedStep=0;w.LoadSource();return;
+                    }
         }
 
         private void OnEnable()
@@ -55,6 +64,7 @@ namespace Overburst.EditorTools.ComboMaker
             titleContent=new GUIContent("콤보 메이커");minSize=new Vector2(1100,720);
             saveChangesMessage="작업 사본의 변경을 현재 무기의 콤보 자산에 적용할까요?";
             session=new ComboMakerSession();preview=new ComboMakerPreview();
+            if(heavyMode){attackMode=ComboMakerAttackMode.Heavy;heavyMode=false;}
             weapons=AssetDatabase.FindAssets("t:WeaponItemData",new[]{"Assets/ProjectOverburst"})
                 .Select(g=>AssetDatabase.LoadAssetAtPath<WeaponItemData>(AssetDatabase.GUIDToAssetPath(g)))
                 .Where(w=>w!=null && w.GetMeleeComboDefinition()!=null)
@@ -128,7 +138,7 @@ namespace Overburst.EditorTools.ComboMaker
             var header=Row();header.AddToClassList("header");rootVisualElement.Add(header);
             var titles=new VisualElement();titles.style.flexGrow=1;
             var title=new Label("COMBO MAKER");title.AddToClassList("brand");titles.Add(title);
-            var caption=new Label("약공 · 강공 · 원소 에너지 · 몬스터 피격 프리뷰");caption.AddToClassList("muted");titles.Add(caption);header.Add(titles);
+            var caption=new Label("약공 · 강공 · 패링 · 닷지 · 대시 / 현재 게임 자산 편집");caption.AddToClassList("muted");titles.Add(caption);header.Add(titles);
             dirtyBadge=new Label();dirtyBadge.AddToClassList("badge");header.Add(dirtyBadge);
             header.Add(ActionButton("원본 다시 읽기",ReloadSource));
             applyButton=ActionButton("검증 후 무기에 적용",()=>Apply());applyButton.AddToClassList("primary");header.Add(applyButton);
@@ -144,22 +154,25 @@ namespace Overburst.EditorTools.ComboMaker
                 var b=ActionButton(label,()=>SelectWeapon(item));b.tooltip=item.name;b.AddToClassList("weapon-card");
                 b.EnableInClassList("selected",item==selectedWeapon);library.Add(b);
             }
-            var modes=Row();library.Add(modes);
-            var light=ActionButton("약공",()=>SelectAttackMode(false));light.EnableInClassList("selected",!heavyMode);modes.Add(light);
-            var heavy=ActionButton("강공",()=>SelectAttackMode(true));heavy.EnableInClassList("selected",heavyMode);
-            heavy.SetEnabled(selectedWeapon.GetMeleeDefinition().heavyAttackDefinition!=null);modes.Add(heavy);
-            heavy.tooltip=heavy.enabledSelf?"별도 강공 자산 편집":"이 무기에 연결된 강공 자산이 없습니다.";
-            library.Add(Title(heavyMode?"강공 방출":"약공 콤보"));
+            library.Add(Title("공격 종류"));
+            foreach(ComboMakerAttackMode mode in Enum.GetValues(typeof(ComboMakerAttackMode)))
+            {
+                var selected=mode;var asset=ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),mode);
+                var button=ActionButton(ComboMakerAttackBinding.Label(mode),()=>SelectAttackMode(selected));
+                button.name="attack-mode-"+mode;button.EnableInClassList("selected",attackMode==mode);button.SetEnabled(asset!=null);
+                button.tooltip=asset!=null?AssetDatabase.GetAssetPath(asset):"이 무기에 연결된 자산이 없습니다.";library.Add(button);
+            }
+            library.Add(Title(ComboMakerAttackBinding.Label(attackMode)));
             for(int i=0;i<session.Working.StepCount;i++)
             {
                 int index=i;var step=session.Working.steps[i];
                 var card=ActionButton("",()=>SelectStep(index));card.AddToClassList("step-card");card.EnableInClassList("selected",i==selectedStep);
-                card.Add(new Label($"{(heavyMode?"강공":(i+1).ToString("00")+"타")}    {step.attackPhases?.Length??0}회 타격"));
+                card.Add(new Label($"{(IsHeavyMode?ComboMakerAttackBinding.Label(attackMode):(i+1).ToString("00")+"타")}    {step.attackPhases?.Length??0}회 타격"));
                 var clip=new Label(step.animationClip!=null?step.animationClip.name:"클립 없음");clip.AddToClassList("clip-name");card.Add(clip);
                 var detail=new Label($"{StepSeconds(i):0.00}초  ·  {step.attackName}");detail.AddToClassList("muted");detail.AddToClassList("clip-name");card.Add(detail);
                 card.tooltip=step.attackName+"\n"+step.attackId;library.Add(card);
             }
-            if(heavyMode)return;
+            if(attackMode!=ComboMakerAttackMode.Light)return;
             var buttons=Row();library.Add(buttons);buttons.Add(ActionButton("복제",DuplicateStep));
             var remove=ActionButton("삭제",RemoveStep);remove.SetEnabled(session.Working.StepCount>1);buttons.Add(remove);
             var up=ActionButton("↑",()=>MoveStep(-1));up.SetEnabled(selectedStep>0);buttons.Add(up);
@@ -173,6 +186,7 @@ namespace Overburst.EditorTools.ComboMaker
             toolbar.Add(ActionButton("정지",()=>{preview.Playing=false;preview.Begin(selectedStep,false,true);renderDirty=true;UpdateStatus();}));
             var mode=new DropdownField(new List<string>{"선택 동작 반복","전체 약공 연결"},0);mode.name="combo-play-mode";mode.style.flexGrow=1;
             mode.RegisterValueChangedCallback(e=>{preview.All=mode.index==1;preview.Playing=false;preview.Begin(preview.All?0:selectedStep,false,true);renderDirty=true;UpdateStatus();});toolbar.Add(mode);
+            playbackMode=mode;
             var loop=new Toggle {text="반복",value=preview.Loop};loop.RegisterValueChangedCallback(e=>preview.Loop=e.newValue);toolbar.Add(loop);
             float[] speeds={.25f,.5f,1,1.5f,2};var speed=new DropdownField(new List<string>{"0.25×","0.5×","1×","1.5×","2×"},2);
             speed.style.width=70;speed.RegisterValueChangedCallback(e=>preview.Speed=speeds[speed.index]);toolbar.Add(speed);
@@ -225,7 +239,7 @@ namespace Overburst.EditorTools.ComboMaker
                 {
                     preview.Dispose();if(previewData!=null)DestroyImmediate(previewData);
                     previewData=Instantiate(session.Working);previewData.hideFlags=HideFlags.HideAndDontSave;
-                    preview.HeavyDefinition=heavyMode?session.HeavyWorking:null;
+                    preview.HeavyDefinition=IsHeavyMode?session.HeavyWorking:null;
                     if(validation.Count==0)MeleeAttackVfxSlopeBakeUtility.BakeWorkingCopy(session.Source,previewData);
                     preview.Load(selectedWeapon,previewData);preview.Begin(selectedStep,false,true);
                     if(placeTargetAfterRebuild){preview.PlaceTargetAtImpact();placeTargetAfterRebuild=false;}
@@ -255,14 +269,14 @@ namespace Overburst.EditorTools.ComboMaker
             var bloodStatus=rootVisualElement.Q<Label>("blood-preview-status");if(bloodStatus!=null)bloodStatus.text=preview.BloodStatus;
             playButton.text=preview.Playing?"Ⅱ 일시정지":"▶ 재생";playButton.SetEnabled(preview.Ready&&validation.Count==0&&!needsBake&&!EditorApplication.isPlayingOrWillChangePlaymode);
             previewLabel.text=preview.Ready?$"{WeaponLabel(selectedWeapon)} / {preview.StepIndex+1}타     적중 {preview.HitCount} · VFX {preview.CueCount}":needsBake?"프리뷰 준비 중…":message;
-            if(preview.Ready)previewLabel.text=$"{WeaponLabel(selectedWeapon)} · {(heavyMode?"강공":(preview.StepIndex+1)+"타")} · 에너지 {preview.CurrentEnergy*100:0}% · 적중 {preview.HitCount}\n{(previewEnemy!=null?previewEnemy.DisplayName:"연습 표적")} · 밀림 {preview.TargetDisplacement:0.00}m";
+            if(preview.Ready)previewLabel.text=$"{WeaponLabel(selectedWeapon)} · {ComboMakerAttackBinding.Label(attackMode)} {(IsHeavyMode?"":(preview.StepIndex+1)+"타")} · 에너지 {preview.PreviewEnergyAmount:0} · 적중 {preview.HitCount}\n{(previewEnemy!=null?previewEnemy.DisplayName:"연습 표적")} · 밀림 {preview.TargetDisplacement:0.00}m";
             var mode=rootVisualElement.Q<DropdownField>("combo-play-mode");
-            if(mode!=null){mode.SetEnabled(!heavyMode);if(heavyMode){mode.SetValueWithoutNotify(mode.choices[0]);preview.All=false;}}
+            if(mode!=null){mode.SetEnabled(attackMode==ComboMakerAttackMode.Light);if(attackMode!=ComboMakerAttackMode.Light){mode.SetValueWithoutNotify(mode.choices[0]);preview.All=false;}}
             if(preview.Ready)
             {
                 var step=previewData.steps[preview.StepIndex];
                 timeLabel.text=$"{preview.Progress*100:0.0}%  ·  클립 {preview.Progress*(step.animationClip!=null?step.animationClip.length:0):0.000}s  ·  경과 {preview.Elapsed:0.000}s";
-                timeline.SetData(previewData,preview.StepIndex,preview.Progress,(p,t)=>preview.CueTime(p,t),heavyMode);
+                timeline.SetData(previewData,preview.StepIndex,preview.Progress,(p,t)=>preview.CueTime(p,t),IsHeavyMode,IsHeavyMode?session.HeavyWorking.SafeDischargePhaseIndex:0);
             }
             else
             {
@@ -281,7 +295,8 @@ namespace Overburst.EditorTools.ComboMaker
                 elementFxButton.SetEnabled(supported&&!EditorApplication.isPlayingOrWillChangePlaymode);
                 elementFxButton.tooltip=supported?"현재 프리뷰 원소의 검신·트레일을 모든 대검에 공통 적용합니다.":"원소 FX가 있는 대검에서 사용할 수 있습니다.";
             }
-            applyButton.SetEnabled(session.Working!=null&&session.Dirty&&validation.Count==0&&!EditorApplication.isPlayingOrWillChangePlaymode);
+            applyButton.SetEnabled(session.Working!=null&&session.Dirty&&!session.SourceChanged&&validation.Count==0&&!needsBake&&!EditorApplication.isPlayingOrWillChangePlaymode);
+            if(playbackMode!=null)playbackMode.SetEnabled(attackMode==ComboMakerAttackMode.Light);
             statusLabel.text=message;statusLabel.tooltip=message;
             string errors=string.Join("\n",validation);
             if(session.SourceChanged)errors+="\n원본이 외부에서 변경되었습니다. 다시 읽기 후 편집하세요.";
@@ -311,13 +326,13 @@ namespace Overburst.EditorTools.ComboMaker
             int answer=EditorUtility.DisplayDialogComplex("미적용 콤보","현재 작업 사본의 변경을 어떻게 할까요?","적용","돌아가기","변경 버리기");
             return answer==2 || answer==0&&Apply();
         }
-        private void SelectWeapon(WeaponItemData item){if(item==selectedWeapon||!ResolvePending())return;selectedWeapon=item;if(item.GetMeleeDefinition().heavyAttackDefinition==null)heavyMode=false;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
-        private void SelectAttackMode(bool heavy){if(heavyMode==heavy||!ResolvePending())return;heavyMode=heavy;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
+        private void SelectWeapon(WeaponItemData item){if(item==selectedWeapon||!ResolvePending())return;selectedWeapon=item;if(ComboMakerAttackBinding.Asset(item.GetMeleeDefinition(),attackMode)==null)attackMode=ComboMakerAttackMode.Light;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
+        private void SelectAttackMode(ComboMakerAttackMode mode){if(attackMode==mode||ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),mode)==null||!ResolvePending())return;attackMode=mode;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
         private void LoadSession(string draft=null,string original=null)
         {
-            if(heavyMode && selectedWeapon.GetMeleeDefinition().heavyAttackDefinition!=null)
-                session.LoadHeavy(selectedWeapon.GetMeleeComboDefinition(),selectedWeapon.GetMeleeDefinition().heavyAttackDefinition,draft,original);
-            else {heavyMode=false;session.Load(selectedWeapon.GetMeleeComboDefinition(),draft,original);}
+            if(ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),attackMode)==null)attackMode=ComboMakerAttackMode.Light;
+            session.LoadWeapon(selectedWeapon,attackMode,draft,original);
+            if(attackMode!=ComboMakerAttackMode.Light){preview.All=false;playbackMode?.SetValueWithoutNotify("선택 동작 반복");}
         }
         private void ReloadSource(){if(ResolvePending())LoadSource();}
         private void LoadSource()
@@ -325,7 +340,7 @@ namespace Overburst.EditorTools.ComboMaker
         private bool Apply()
         {try{session.Apply();CaptureRecovery();message="적용 완료 · 원본 자산 Undo 지원";ScheduleRebuild();return true;}catch(Exception e){message="적용하지 못했습니다: "+e.Message;UpdateStatus();return false;}}
         public override void SaveChanges(){if(Apply())base.SaveChanges();}
-        public override void DiscardChanges(){if(session?.Source!=null)LoadSession();recovery=baseline="";hasUnsavedChanges=false;base.DiscardChanges();}
+        public override void DiscardChanges(){if(session?.Source!=null)LoadSource();hasUnsavedChanges=false;base.DiscardChanges();}
         private void MoveStep(int direction)
         {Undo.RecordObject(session.Working,"콤보 순서 변경");var a=session.Working.steps;int next=selectedStep+direction;(a[selectedStep],a[next])=(a[next],a[selectedStep]);selectedStep=next;Changed();BuildEditor();}
         private void DuplicateStep()

@@ -452,17 +452,31 @@ namespace Overburst.EditorTools.ComboMaker
             var catalog = Resources.Load<MeleeElementHitVfxCatalog>(MeleeElementHitVfxCatalog.ResourcePath);
             if (prefab == null && catalog != null) catalog.TryResolve(Element, out prefab);
             Vector3 hitPoint=targetVolume!=null?targetVolume.CurrentHurtVolume.Center:dummy.transform.position;
+            float bodySize=1f;
+            if(targetVolume!=null)hitPoint=CombatTargetVfxPlacement.ResolveContact(targetVolume,hitPoint,Vector3.forward,out bodySize);
             if (prefab != null && ShowHits)
             {
-                var go = InstantiateEffect(prefab, hitPoint, Quaternion.identity, Vector3.one);
-                go.GetComponent<MeleeElementHitVfxController>()?.SetElement(Element);
-                ActivateEffect(go, catalog != null ? catalog.ResolveLifetime(Element) : 3);
+                bool fromCatalog=HitOverride==null&&catalog!=null;
+                float speed=fromCatalog?catalog.ResolvePlaybackSpeed(Element):1;
+                Vector3 scale=fromCatalog?prefab.transform.localScale*catalog.ResolveTierScale(bodySize)*catalog.ResolveHitScale(Element):prefab.transform.localScale;
+                var go = InstantiateEffect(prefab, hitPoint, Quaternion.identity, scale);
+                var controller=go.GetComponent<MeleeElementHitVfxController>();
+                controller?.SetElement(Element);controller?.SetPlaybackSpeed(speed);
+                ActivateEffect(go, fromCatalog ? catalog.ResolveLifetime(Element)/speed : 3);
             }
             var blood = Resources.Load<BloodHitCatalog>(BloodHitCatalog.ResourcePath);
             var bloodProfile=BloodProfile!=null?BloodProfile:targetBlood;
-            if (!ShowBlood || blood == null || bloodProfile == null || bloodProfile.suppressBlood) return;
+            if (!ShowBlood || bloodProfile == null || bloodProfile.suppressBlood) return;
             var shape=pattern.IsThrust?CombatImpactShape.Thrust:phase.vfxSwingSettings.orientation==AttackVfxSwingOrientation.Vertical?CombatImpactShape.Downward:CombatImpactShape.Sweep;
             var direction=shape==CombatImpactShape.Sweep?Vector3.right*(phase.vfxSwingSettings.reverseDirection?-1:1):Vector3.forward;
+            var weight=WeightOverride!=null?WeightOverride:TargetDefinition?.MovementProfile?.HitWeightProfile;
+            float weightSize=weight!=null&&weight.Weight==EnemyHitWeight.Heavy?1.28f:weight!=null&&weight.Weight==EnemyHitWeight.Standard?1.14f:1;
+            float visualSize=bodySize*weightSize;
+            if(weightSize>1.2f)visualSize=Mathf.Max(visualSize,1.25f);
+            else if(weightSize>1f)visualSize=Mathf.Max(visualSize,.8f);
+            visualSize=Mathf.Clamp(visualSize,.55f,1.95f);
+            if(PackBlood){SpawnPackBlood(bloodProfile,shape,hitPoint,direction,visualSize);return;}
+            if(blood==null)return;
             var asset = blood.Resolve(shape);
             uint bloodSeed = BloodHitVfxService.CosmeticSeed(17, HitCount, 0, 1);
             BloodHitCatalog.SweepVariation bloodVariation = null;
@@ -476,9 +490,7 @@ namespace Overburst.EditorTools.ComboMaker
             bloodGo.transform.rotation=Quaternion.LookRotation(direction,Vector3.up)*(bloodVariation!=null?Quaternion.Euler(bloodVariation.localEuler):shape==CombatImpactShape.Downward?Quaternion.identity:Quaternion.Euler(0,90,0));
             var vfx = bloodGo.AddComponent<VisualEffect>();
             vfx.visualEffectAsset = asset; vfx.initialEventName="BloodIdle"; vfx.startSeed = bloodVariation!=null?bloodSeed:17; vfx.resetSeedOnPlay = false;
-            var weight=WeightOverride!=null?WeightOverride:TargetDefinition?.MovementProfile?.HitWeightProfile;
-            float visualSize=weight!=null&&weight.Weight==EnemyHitWeight.Heavy?1.28f:weight!=null&&weight.Weight==EnemyHitWeight.Standard?1.14f:1;
-            if (vfx.HasFloat("HitSize")) vfx.SetFloat("HitSize", bloodProfile.size*visualSize*(bloodVariation!=null?bloodVariation.sizeMultiplier:1f));
+            if (vfx.HasFloat("HitSize")) vfx.SetFloat("HitSize", bloodProfile.size*visualSize*(HeavyDefinition!=null?1.1f:1f)*(bloodVariation!=null?bloodVariation.sizeMultiplier:1f));
             if (vfx.HasVector4("BloodColorMain")) vfx.SetVector4("BloodColorMain", bloodProfile.mainColor.linear);
             if (vfx.HasVector4("BloodColorSecondary")) vfx.SetVector4("BloodColorSecondary", bloodProfile.secondaryColor.linear);
             if (vfx.HasVector4("BloodSpecularColor")) vfx.SetVector4("BloodSpecularColor", bloodProfile.specularColor.linear);
@@ -502,10 +514,10 @@ namespace Overburst.EditorTools.ComboMaker
             return go;
         }
 
-        private void ActivateEffect(GameObject go, float lifetime)
+        private void ActivateEffect(GameObject go, float lifetime, Material[] ownedMaterials=null)
         {
             go.SetActive(true);
-            effects.Add(new Effect(go, lifetime));
+            effects.Add(new Effect(go, lifetime, ownedMaterials));
         }
 
         public void SetView(int view)
@@ -639,10 +651,14 @@ namespace Overburst.EditorTools.ComboMaker
             public bool PendingGraph => graphs.Length>0&&(!graphStarted||graphSeconds>0);
             private readonly DecalProjector decal;
             private readonly Material decalMaterial;
+            private readonly Material[] ownedMaterials;
+            private readonly BloodPackGroundPattern groundPattern;
             public bool Finished => age >= lifetime;
-            public Effect(GameObject go, float requestedLifetime)
+            public Effect(GameObject go, float requestedLifetime, Material[] ownedMaterials=null)
             {
                 root = go;
+                this.ownedMaterials=ownedMaterials??Array.Empty<Material>();
+                groundPattern=go.GetComponent<BloodPackGroundPattern>();
                 decal=go.name=="혈흔 바닥 프리뷰"?go.GetComponent<DecalProjector>():null;
                 if(decal!=null){decalMaterial=decal.material;decal.enabled=false;}
                 particles = go.GetComponentsInChildren<ParticleSystem>(false);
@@ -672,6 +688,7 @@ namespace Overburst.EditorTools.ComboMaker
             {
                 age += dt;
                 if(decal!=null){decal.enabled=age>=.16f;decal.fadeFactor=1-Mathf.Clamp01((age-.16f-BloodGroundDecalService.HoldSeconds)/BloodGroundDecalService.FadeSeconds);}
+                if(decal!=null&&groundPattern!=null)groundPattern.Apply(decal,Mathf.Max(0,age-.16f));
                 foreach (var p in particles) if (p != null) p.Simulate(dt, false, false, false);
                 graphSeconds+=dt;
                 shockwave?.Advance(dt);
@@ -698,6 +715,7 @@ namespace Overburst.EditorTools.ComboMaker
                 foreach (var vfx in graphs) if (vfx != null) vfx.Stop();
                 Object.DestroyImmediate(root);
                 if(decalMaterial!=null)Object.DestroyImmediate(decalMaterial);
+                foreach(var material in ownedMaterials)if(material!=null)Object.DestroyImmediate(material);
             }
         }
     }
