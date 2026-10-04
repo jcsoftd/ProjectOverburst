@@ -84,6 +84,12 @@ public static partial class PlayerEvadeVerifier
     }
     static IEnumerator VerifySwordFacingGameplay()
     {
+        if (SessionState.GetBool(SwordPresentationKey, false))
+        {
+            SessionState.EraseBool(SwordPresentationKey);
+            yield return CaptureSwordPresentation();
+            yield break;
+        }
         if (SessionState.GetBool(SwordStopVerificationKey, false))
         {
             SessionState.EraseBool(SwordStopVerificationKey);
@@ -139,7 +145,7 @@ public static partial class PlayerEvadeVerifier
             yield return FacingSample(2.8f, "reverse_settle");
             Check(Math.Abs(Mathf.DeltaAngle(facing.LowerYaw, facing.AimYaw)) < set.turnThreshold, "역입력 후 안정 각도");
 
-            yield return FacingReset(); FacingAim(80); yield return FacingWait(.25f);
+            yield return FacingReset(); facingProbe.phase = "turn_attack_pre"; FacingAim(80); yield return FacingWait(.25f);
             Check(driver.ActiveFacingTurn != null, "공격 연결 시험 턴 시작");
             Send(false, false, true);
             yield return FacingSample(.2f, "turn_attack");
@@ -157,7 +163,7 @@ public static partial class PlayerEvadeVerifier
             Check(driver.ActiveFacingTurn == null && !facing.IsPoseActive, "턴 중 회피 입력 우선");
             yield return FacingWait(1.1f);
 
-            yield return FacingReset(); FacingAim(80); yield return FacingWait(.25f);
+            yield return FacingReset(); facingProbe.phase = "turn_move_pre"; FacingAim(80); yield return FacingWait(.25f);
             Check(driver.ActiveFacingTurn != null, "이동 연결 시험 턴 시작");
             Vector3 moveOrigin = actor.transform.position;
             Send(true); yield return FacingSample(.15f, "turn_move_entry");
@@ -171,7 +177,7 @@ public static partial class PlayerEvadeVerifier
             Check(facingProbe.frames.Any(f => f.phase == "stop_turn_return" && f.clips.Any(n=>n.StartsWith("Sword_Turn_"))),
                 "Stop 이후 새 조준에 실제 턴 연결");
 
-            yield return FacingReset(); FacingAim(178); yield return FacingWait(.3f);
+            yield return FacingReset(); facingProbe.phase = "turn_180_attack_pre"; FacingAim(178); yield return FacingWait(.3f);
             Check(driver.ActiveFacingTurn != null && Math.Abs(driver.ActiveFacingTurn.angle)==180,
                 "180도 턴 중 공격 시험 준비");
             Send(false,false,true); yield return FacingSample(.2f,"turn_180_attack"); Send();
@@ -207,6 +213,7 @@ public static partial class PlayerEvadeVerifier
             var circular = facingProbe.frames.Where(f=>f.phase=="continuous_360" || f.phase=="continuous_settle").ToArray();
             Check(circular.Zip(circular.Skip(1),(a,b)=>new {dt=b.time-a.time,step=Math.Abs(Mathf.DeltaAngle(a.chestYaw,b.chestYaw))})
                 .Where(x=>x.dt>0 && x.dt<.035f).All(x=>x.step<45f), "180도 경계 상체 단일 프레임 45도 초과 스냅 없음");
+            yield return ContinuousAimDemonstration();
         }
         finally
         {
@@ -219,10 +226,36 @@ public static partial class PlayerEvadeVerifier
         }
         // Same real input/Animator regression for all eight already adapted attacks.
         yield return VerifySwordIdleGameplay();
+        File.WriteAllText(Path.Combine(output,"FacingSuiteCompleted.json"),"{\"status\":\"PASS\",\"continuousAim\":true}");
+    }
+    static IEnumerator ContinuousAimDemonstration()
+    {
+        yield return FacingReset();
+        facingProbe.phase = "aim_demo";
+        float[] times = {0,1.3f,2.6f,4.8f,7.2f,9.6f,12,14,16,18};
+        float[] angles = {0,35,-35,105,-115,115,-135,175,0,0};
+        float start = Time.time, limit = Time.unscaledTime + 60;
+        while(Time.time-start < times[times.Length-1] && Time.unscaledTime < limit)
+        {
+            float t = Time.time-start;
+            int segment = 0;
+            while(segment < times.Length-2 && t > times[segment+1])segment++;
+            float progress = Mathf.Clamp01((t-times[segment])/(times[segment+1]-times[segment]));
+            progress = progress*progress*(3-2*progress);
+            FacingAim(Mathf.Lerp(angles[segment],angles[segment+1],progress));
+            yield return null;
+        }
+        Check(Time.time-start >= 18,"끊김 없는 좌우 조준18초 완주");
+        var rows=facingProbe.frames.Where(f=>f.phase=="aim_demo").ToArray();
+        Check(rows.Length>=500,"연속 조준 실제500프레임 이상 촬영");
+        Check(rows.All(f=>f.leftWeight==0 && f.rightWeight==0),"연속 조준 발 IK0");
+        Check(rows.Any(f=>f.clips.Any(c=>c.StartsWith("Sword_Turn_"))),"연속 좌우 조준에서 실제 하체 디딤");
+        Check(rows.Zip(rows.Skip(1),(a,c)=>Mathf.Abs(Mathf.DeltaAngle(a.chestYaw,c.chestYaw))).All(v=>v<45),
+            "연속 조준 단일 프레임45도 초과 상체 스냅 없음");
     }
 }
 
-[DefaultExecutionOrder(950)]
+[DefaultExecutionOrder(10000)]
 public sealed class SwordFacingPoseProbe : MonoBehaviour
 {
     [Serializable]
@@ -235,7 +268,9 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         public string[] clips;
         public float[][] feet;
         public float[] actor, model, hipsLocal;
-        public float speed;
+        public float speed, unscaled, gauge, attackProgress;
+        public int comboStep, parrySuccess;
+        public bool attacking, heavy, parrying, evading;
         public bool stopActive;
         public int stopSector;
         public float stopElapsed, stopDistance, stopRate, stopNormalized;
@@ -251,9 +286,12 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
     Transform[] feet;
     Transform chest, hips;
     Transform[] joints;
+    SwordCleanCaptureStage cleanStage;
+    public bool presentationCamera;
     Camera captureCamera;
-    RenderTexture captureTarget;
-    Texture2D capturePixels;
+    RenderTexture captureTarget, footTarget;
+    Texture2D capturePixels, footPixels;
+    bool captureFeet;
     string captureDirectory;
     float nextCapture;
     int priorCaptureRate;
@@ -280,47 +318,115 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         weight = left.GetType().GetField("Weight");
     }
     public Vector3[] FootPositions() => feet.Select(f => f.position).ToArray();
-    public void StartCapture(string directory)
+    public void StartCapture(string directory, bool fixedClock = true)
     {
         captureDirectory = directory; Directory.CreateDirectory(directory);
-        priorCaptureRate = Time.captureFramerate; Time.captureFramerate = 30;
+        priorCaptureRate = Time.captureFramerate; Time.captureFramerate = fixedClock ? 30 : 0;
         var cameraObject = new GameObject("Owned Sword facing capture camera");
         cameraObject.transform.SetParent(transform, false);
         captureCamera = cameraObject.AddComponent<Camera>();
-        captureCamera.CopyFrom(Camera.main); captureCamera.enabled = false;
-        captureCamera.orthographic = true; captureCamera.orthographicSize = 1.65f;
-        captureCamera.clearFlags = CameraClearFlags.SolidColor; captureCamera.backgroundColor = new Color(.13f,.16f,.19f);
-        int ui = LayerMask.NameToLayer("UI"); if (ui >= 0) captureCamera.cullingMask &= ~(1 << ui);
-        captureTarget = new RenderTexture(768,768,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB); captureTarget.Create();
-        capturePixels = new Texture2D(768,768,TextureFormat.RGB24,false);
-        captureCamera.targetTexture = captureTarget;
+        var sourceCamera = Camera.main;
+        if (sourceCamera == null) throw new InvalidOperationException("The gameplay camera is unavailable.");
+        captureCamera.CopyFrom(sourceCamera); captureCamera.enabled = false;
+        cleanStage = new SwordCleanCaptureStage(animator, facing.transform);
+        var equipment = facing.GetComponent<PlayerEquipment>();
+        if (equipment != null && equipment.CurrentWeaponRoot != null) cleanStage.AddVisibleActor(equipment.CurrentWeaponRoot.transform);
+        int height = Mathf.Max(2,Mathf.RoundToInt(1280f/sourceCamera.aspect/2f)*2);
+        captureTarget = new RenderTexture(1280,height,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB); captureTarget.Create();
+        capturePixels = new Texture2D(1280,height,TextureFormat.RGB24,false);
+        captureFeet = fixedClock;
+        if (captureFeet)
+        {
+            Directory.CreateDirectory(Path.Combine(directory,"Foot"));
+            footTarget = new RenderTexture(1024,1024,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB); footTarget.Create();
+            footPixels = new Texture2D(1024,1024,TextureFormat.RGB24,false);
+        }
     }
+    void CopyGameplayCamera(Camera source)
+    {
+        captureCamera.CopyFrom(source); captureCamera.enabled = false;
+        captureCamera.transform.SetPositionAndRotation(cleanStage.Position(source.transform.position),source.transform.rotation);
+        captureCamera.scene = cleanStage.Scene; captureCamera.targetTexture = captureTarget;
+        captureCamera.cullingMask = ~0;
+        int ui = LayerMask.NameToLayer("UI"); if (ui >= 0) captureCamera.cullingMask &= ~(1 << ui);
+        captureCamera.clearFlags = CameraClearFlags.SolidColor; captureCamera.backgroundColor = new Color(.13f,.16f,.19f);
+        captureCamera.rect = new Rect(0,0,1,1); captureCamera.aspect = source.aspect;
+        captureCamera.projectionMatrix = source.projectionMatrix;
+    }
+    string CaptureFootDetail(string name, Vector3 feetViewport)
+    {
+        if (!captureFeet) return null;
+        Vector3 hip = captureCamera.WorldToViewportPoint(cleanStage.Position(hips.position));
+        Vector3 leftFoot = captureCamera.WorldToViewportPoint(cleanStage.Position(feet[0].position));
+        Vector3 rightFoot = captureCamera.WorldToViewportPoint(cleanStage.Position(feet[1].position));
+        float size = Mathf.Clamp(Mathf.Max(Mathf.Abs(hip.y-feetViewport.y)*captureTarget.height*1.4f+70,
+            Mathf.Abs(leftFoot.x-rightFoot.x)*captureTarget.width*1.2f+64),110,320);
+        Vector2 center = new Vector2((hip.x+feetViewport.x)*.5f,(hip.y+feetViewport.y)*.5f);
+        var projection = captureCamera.projectionMatrix;
+        var crop = Matrix4x4.identity;
+        crop.m00 = captureTarget.width/size; crop.m11 = captureTarget.height/size;
+        crop.m03 = -(center.x*2-1)*crop.m00; crop.m13 = -(center.y*2-1)*crop.m11;
+        try
+        {
+            // Render the same evaluated pose and game viewpoint at a higher detail resolution.
+            captureCamera.targetTexture = footTarget; captureCamera.projectionMatrix = crop*projection;
+            captureCamera.Render(); RenderTexture.active = footTarget;
+            footPixels.ReadPixels(new Rect(0,0,1024,1024),0,0); footPixels.Apply();
+            string relative = "Foot/"+name;
+            File.WriteAllBytes(Path.Combine(captureDirectory,relative),footPixels.EncodeToPNG());
+            return relative;
+        }
+        finally {captureCamera.targetTexture = captureTarget;captureCamera.projectionMatrix = projection;}
+    }
+    public void AddCaptureActor(Transform actor) => cleanStage.AddVisibleActor(actor);
     void Capture()
     {
         if (captureCamera == null || Time.unscaledTime < nextCapture
-            || !(phase.StartsWith("small_") || phase.StartsWith("turn_") || phase.StartsWith("attack_") || phase.StartsWith("move_") || phase.StartsWith("stop_"))) return;
+            || !(phase.StartsWith("small_") || phase.StartsWith("turn_") || phase.StartsWith("attack_") || phase.StartsWith("move_") || phase.StartsWith("stop_") || phase.StartsWith("combat_") || phase == "aim_demo")) return;
         nextCapture = Time.unscaledTime;
-        Vector3 target = facing.transform.position + Vector3.up * 1.05f;
-        captureCamera.transform.position = target + new Vector3(3.4f,2.2f,-4.4f);
-        captureCamera.transform.LookAt(target);
+        var gameplayCamera = Camera.main;
+        if (gameplayCamera == null) throw new InvalidOperationException("The gameplay camera was removed during capture.");
+        CopyGameplayCamera(gameplayCamera);
+        cleanStage.Sync(captureCamera,presentationCamera);
+        Vector3 feetViewport = captureCamera.WorldToViewportPoint(cleanStage.Position((feet[0].position+feet[1].position)*.5f));
         var previous = RenderTexture.active;
         try
         {
             captureCamera.Render(); RenderTexture.active = captureTarget;
-            capturePixels.ReadPixels(new Rect(0,0,768,768),0,0); capturePixels.Apply();
+            capturePixels.ReadPixels(new Rect(0,0,captureTarget.width,captureTarget.height),0,0); capturePixels.Apply();
             string name = captureIndex++.ToString("D5") + ".png";
             File.WriteAllBytes(Path.Combine(captureDirectory,name),capturePixels.EncodeToPNG());
-            captures.Add(new {name,phase,time=Time.time,frame=Time.frameCount,aim=facing.AimYaw,lower=facing.LowerYaw});
+            captures.Add(new {name,phase,time=Time.time,unscaled=Time.unscaledTime,frame=Time.frameCount,
+                aim=facing.AimYaw,lower=facing.LowerYaw,feetViewport=new[]{feetViewport.x,feetViewport.y},
+                actorFraming=cleanStage.ActorFraming(captureCamera),
+                width=captureTarget.width,height=captureTarget.height,
+                view="live gameplay Camera.main",footName=CaptureFootDetail(name,feetViewport),
+                gameCamera=new {name=gameplayCamera.name,orthographic=gameplayCamera.orthographic,
+                    fieldOfView=gameplayCamera.fieldOfView,orthographicSize=gameplayCamera.orthographicSize,aspect=gameplayCamera.aspect,
+                    position=new[]{gameplayCamera.transform.position.x,gameplayCamera.transform.position.y,gameplayCamera.transform.position.z},
+                    euler=new[]{gameplayCamera.transform.eulerAngles.x,gameplayCamera.transform.eulerAngles.y,gameplayCamera.transform.eulerAngles.z},
+                    quarterView=gameplayCamera.GetComponentInParent<QuarterViewCamera>() != null,
+                    positionError=Vector3.Distance(captureCamera.transform.position,cleanStage.Position(gameplayCamera.transform.position)),
+                    rotationError=Quaternion.Angle(captureCamera.transform.rotation,gameplayCamera.transform.rotation)}});
         }
         finally {RenderTexture.active = previous;}
     }
     void OnDestroy()
     {
-        if (captureDirectory != null) Time.captureFramerate = priorCaptureRate;
-        if (captureDirectory != null) File.WriteAllText(Path.Combine(captureDirectory,"Frames.json"), JsonConvert.SerializeObject(captures));
-        if (captureCamera != null) DestroyImmediate(captureCamera.gameObject);
-        if (captureTarget != null) {captureTarget.Release();DestroyImmediate(captureTarget);}
-        if (capturePixels != null) DestroyImmediate(capturePixels);
+        try
+        {
+            if (captureDirectory != null) File.WriteAllText(Path.Combine(captureDirectory,"Frames.json"), JsonConvert.SerializeObject(captures));
+        }
+        finally
+        {
+            if (captureDirectory != null) Time.captureFramerate = priorCaptureRate;
+            if (captureCamera != null) DestroyImmediate(captureCamera.gameObject);
+            if (captureTarget != null) {captureTarget.Release();DestroyImmediate(captureTarget);}
+            if (capturePixels != null) DestroyImmediate(capturePixels);
+            if (footTarget != null) {footTarget.Release();DestroyImmediate(footTarget);}
+            if (footPixels != null) DestroyImmediate(footPixels);
+            cleanStage?.Dispose(); cleanStage = null;
+        }
     }
     static float Yaw(Quaternion q) { Vector3 v = q * Vector3.forward; return Mathf.Atan2(v.x,v.z)*Mathf.Rad2Deg; }
     void LateUpdate()
@@ -331,6 +437,10 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         float target = facing.LowerYaw + (facing.Set?.idleChestYaw ?? 0) + facing.UpperDelta;
         var movement = facing.GetComponent<PlayerMovement>();
         var motor = facing.GetComponent<OverburstCharacterMotor3D>();
+        var melee = facing.GetComponent<MeleeRuntime>();
+        var energy = facing.GetComponent<OverburstElementEnergy>();
+        var parry = facing.GetComponent<PlayerParryController>();
+        var evade = facing.GetComponent<PlayerEvadeController>();
         Vector3 actorPosition = facing.transform.position, modelPosition = animator.transform.position;
         frames.Add(new Frame { frame = Time.frameCount, time = Time.time, phase = phase,
             aim = facing.AimYaw, lower = facing.LowerYaw, delta = Mathf.DeltaAngle(facing.LowerYaw, facing.AimYaw),
@@ -341,7 +451,13 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
             feet = feet.Select(b=>new[]{b.position.x,b.position.y,b.position.z}).ToArray(),
             actor = new[]{actorPosition.x,actorPosition.y,actorPosition.z}, model = new[]{modelPosition.x,modelPosition.y,modelPosition.z},
             hipsLocal = new[]{animator.transform.InverseTransformPoint(hips.position).x, animator.transform.InverseTransformPoint(hips.position).y, animator.transform.InverseTransformPoint(hips.position).z},
-            speed = movement.Locomotion.HorizontalVelocity.magnitude,
+            speed = movement.Locomotion.HorizontalVelocity.magnitude, unscaled=Time.unscaledTime,
+            gauge=energy != null ? energy.Amount : 0,
+            attacking=melee.IsAttackInProgress, heavy=melee.IsHeavyAttackInProgress,
+            parrying=melee.IsHeavyParryMotionActive, evading=evade.IsEvading,
+            parrySuccess=parry != null ? parry.SuccessCount : 0,
+            comboStep=(int)typeof(MeleeRuntime).GetField("comboStepIndex",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(melee),
+            attackProgress=melee.IsAttackInProgress ? (float)typeof(MeleeRuntime).GetMethod("GetAttackNormalizedTime",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(melee,null) : 0,
             stopActive = movement.IsCombatStopCurveActive,
             stopSector = facing.Set != null ? Array.IndexOf(facing.Set.directions, movement.CombatStopMotion) : -1,
             stopElapsed = movement.CombatStopCurveElapsed, stopDistance = movement.CombatStopCurveDistance,

@@ -119,6 +119,7 @@ public static partial class PlayerEvadeVerifier
                 } finally { UnityEngine.Object.DestroyImmediate(wall); }
                 Check(!animator.applyRootMotion,"공유 Animator 자동 루트모션 비활성 유지");
             }
+            File.WriteAllText(Path.Combine(output,"StopSuiteCompleted.json"),"{\"status\":\"PASS\",\"directions\":8}");
         } finally {
             if(facingProbe!=null) {
                 File.WriteAllText(Path.Combine(output,"FacingPoses.json"),JsonConvert.SerializeObject(facingProbe.frames,Formatting.None));
