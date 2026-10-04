@@ -28,7 +28,7 @@ MonoBehaviour:
   parryable: 0
   minimumRange: 0
   range: 24
-  hitRadius: 2.8
+  hitRadius: 4.5
   hitAngle: 360
   verticalTolerance: 3
   requireLineOfSight: 1

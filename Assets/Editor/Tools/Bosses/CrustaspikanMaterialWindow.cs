@@ -35,6 +35,8 @@ public sealed class CrustaspikanMaterialWindow : EditorWindow
         attack=Mathf.Clamp(attack,0,collection.attacks.Length-1);
         attack=EditorGUILayout.Popup("공격 재료",attack,collection.attacks.Select(m=>m.displayName+" / "+m.runtimeClip.name).ToArray());
         if(GUILayout.Button("선택한 공격 재료 열기"))Selection.activeObject=collection.attacks[attack];
+        foreach(var strike in collection.attacks[attack].strikes)
+            EditorGUILayout.LabelField(strike.shape==GroundIndicatorShape.Donut?$"도넛 · 안쪽 {strike.innerRadius:0.##}m / 바깥 {strike.radius:0.##}m":strike.shape==GroundIndicatorShape.Sector?$"부채꼴 · {strike.radius:0.##}m / {strike.angle:0}° / 방향 {strike.yaw:0}°":strike.shape==GroundIndicatorShape.Rectangle?$"직선 · 폭 {strike.width:0.##}m / 길이 {strike.length:0.##}m":$"원형 · 반경 {strike.radius:0.##}m");
         DrawPreview();
         using(new EditorGUI.DisabledScope(!EditorApplication.isPlaying))
         {

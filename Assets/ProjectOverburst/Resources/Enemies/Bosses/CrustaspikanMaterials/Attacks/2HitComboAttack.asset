@@ -22,12 +22,12 @@ MonoBehaviour:
   - contactStart: 0.27058825
     impact: 0.27058825
     contactEnd: 0.30588236
-    shape: 1
-    localOrigin: {x: -0.2085936, y: 0, z: 8.148724}
-    yaw: 0
-    radius: 1.85
-    innerRadius: 0
-    angle: 360
+    shape: 0
+    localOrigin: {x: 0, y: 0, z: 0}
+    yaw: -25
+    radius: 11.5
+    innerRadius: 0.575
+    angle: 150
     width: 3.7
     length: 24
     minimumHeight: 0
@@ -36,12 +36,12 @@ MonoBehaviour:
   - contactStart: 0.5117647
     impact: 0.5117647
     contactEnd: 0.5470588
-    shape: 1
-    localOrigin: {x: -4.3757153, y: 0, z: 6.855255}
-    yaw: 0
-    radius: 1.85
-    innerRadius: 0
-    angle: 360
+    shape: 0
+    localOrigin: {x: 0, y: 0, z: 0}
+    yaw: -10
+    radius: 11.5
+    innerRadius: 0.575
+    angle: 150
     width: 3.7
     length: 24
     minimumHeight: 0
@@ -58,5 +58,9 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
-    split across genuine strikes. '
+  assemblyNotes: "Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. \n\uACF5\uAC04 \uD310\uC815 v2: \uD729\uC4F8\uAE30
+    \xB7 \uACF5\uACA9\uD558\uB294 \uC190\uC758 \uD638\uB97C \uB36E\uB294 \uBD80\uCC44\uAF34.
+    Sector 11.5m (150deg, yaw -25deg) / Sector 11.5m (150deg, yaw -10deg). \uC6D0\uBCF8
+    \uD0C0\uACA9 \uD504\uB808\uC784 \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0
+    \uACF5\uC720."

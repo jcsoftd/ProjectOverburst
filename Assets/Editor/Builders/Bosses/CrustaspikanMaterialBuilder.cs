@@ -124,6 +124,83 @@ public static class CrustaspikanMaterialBuilder
             return profile;
         }
     }
+    /// <summary>Update owned spatial materials without rebuilding clips, rig, controller, or combat timings.</summary>
+    public static string UpdateGeometry(string planPath,string outputDirectory)
+    {
+        Idle();
+        if(IsolatedSavePlayGuard.RequiresAccountChoice||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires","")))
+            throw new InvalidOperationException("Returned account required.");
+        string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(Project).FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        planPath=Path.GetFullPath(planPath);outputDirectory=Path.GetFullPath(outputDirectory);
+        if(!planPath.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||!outputDirectory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Private authoring and artifact paths required.");
+        var plan=JObject.Parse(File.ReadAllText(planPath));
+        var collection=AssetDatabase.LoadAssetAtPath<EnemyBossMaterialCollection>(CollectionPath);
+        if((string)plan["schema"]!="overburst.boss.material-geometry.v1"||collection?.attacks.Length!=16||plan["entries"].Count()!=16)
+            throw new ArgumentException("Complete saved material geometry plan required.");
+        foreach(var pair in ((JObject)plan["expectedHashes"]).Properties())
+            if(!pair.Name.StartsWith(Root+"/Attacks/",StringComparison.Ordinal)&&!pair.Name.StartsWith(Root+"/Abilities/",StringComparison.Ordinal))
+                throw new ArgumentException("Unexpected geometry asset path.");
+            else if(Hash(Path.Combine(Project,pair.Name))!=(string)pair.Value)
+                throw new InvalidOperationException("Owned asset changed: "+pair.Name);
+        var rows=plan["entries"].OfType<JObject>().ToDictionary(r=>(string)r["id"]);
+        foreach(var m in collection.attacks)
+        {
+            var row=rows[m.runtimeClip.name];
+            string attackPath=AssetDatabase.GetAssetPath(m),abilityPath=AssetDatabase.GetAssetPath(m.ability);
+            if(plan["expectedHashes"][attackPath]==null||plan["expectedHashes"][abilityPath]==null||plan["expectedHashes"][attackPath+".meta"]==null||plan["expectedHashes"][abilityPath+".meta"]==null)
+                throw new ArgumentException("Asset and meta preconditions missing.");
+            if(!m.IsValid||row["strikes"].Count()!=m.strikes.Length)throw new InvalidOperationException("Saved material differs: "+m.name);
+            for(int i=0;i<m.strikes.Length;i++)
+            {
+                var old=m.strikes[i];var s=row["strikes"][i];
+                if(Mathf.Abs(old.contactStart-(float)s["contactStart"])>.000001f||Mathf.Abs(old.impact-(float)s["impact"])>.000001f||Mathf.Abs(old.contactEnd-(float)s["contactEnd"])>.000001f)
+                    throw new ArgumentException("Geometry update cannot change timing.");
+                var probe=new EnemyBossMaterialStrike {contactStart=old.contactStart,impact=old.impact,contactEnd=old.contactEnd,
+                    shape=(GroundIndicatorShape)Enum.Parse(typeof(GroundIndicatorShape),(string)s["shape"]),
+                    localOrigin=new Vector3((float)s["localOrigin"][0],(float)s["localOrigin"][1],(float)s["localOrigin"][2]),yaw=(float)s["yaw"],
+                    radius=(float)s["radius"],innerRadius=(float)s["innerRadius"],angle=(float)s["angle"],width=old.width,length=old.length,
+                    minimumHeight=old.minimumHeight,maximumHeight=old.maximumHeight};
+                if(!probe.IsValid||probe.shape==GroundIndicatorShape.Sector&&probe.innerRadius+.000001f<probe.radius*.05f)
+                    throw new ArgumentException("Invalid or visually mismatched geometry: "+m.name);
+            }
+            float required=m.delivery==EnemyBossMaterialDelivery.Melee?row["strikes"].Max(s=>new Vector2((float)s["localOrigin"][0],(float)s["localOrigin"][2]).magnitude+(float)s["radius"]):m.ability.Range;
+            if(!EnemyBossMaterialStrike.Finite((float)row["range"])||(float)row["range"]<required)
+                throw new ArgumentException("Selection range must contain attack geometry.");
+        }
+        var before=Scenes();var originals=new Dictionary<Object,string>();var changed=new JArray();
+        Directory.CreateDirectory(outputDirectory);var backup=Path.Combine(outputDirectory,"AssetBackup");Directory.CreateDirectory(backup);
+        foreach(var m in collection.attacks)foreach(var o in new Object[]{m,m.ability})
+        {originals[o]=EditorJsonUtility.ToJson(o);string path=AssetDatabase.GetAssetPath(o);File.Copy(Path.Combine(Project,path),Path.Combine(backup,path.Replace('/','_')));File.Copy(Path.Combine(Project,path+".meta"),Path.Combine(backup,path.Replace('/','_')+".meta"));}
+        try
+        {
+            foreach(var m in collection.attacks)
+            {
+                var row=rows[m.runtimeClip.name];var so=new SerializedObject(m);var strikes=so.FindProperty("strikes");
+                for(int i=0;i<m.strikes.Length;i++)
+                {
+                    var s=row["strikes"][i];var p=strikes.GetArrayElementAtIndex(i);
+                    p.FindPropertyRelative("shape").enumValueIndex=(int)Enum.Parse(typeof(GroundIndicatorShape),(string)s["shape"]);
+                    p.FindPropertyRelative("localOrigin").vector3Value=new Vector3((float)s["localOrigin"][0],(float)s["localOrigin"][1],(float)s["localOrigin"][2]);
+                    foreach(string field in new[]{"yaw","radius","innerRadius","angle"})p.FindPropertyRelative(field).floatValue=(float)s[field];
+                }
+                so.FindProperty("assemblyNotes").stringValue=(string)row["notes"];so.ApplyModifiedPropertiesWithoutUndo();
+                Set(m.ability,"range",p=>p.floatValue=(float)row["range"]);
+                Set(m.ability,"hitRadius",p=>p.floatValue=m.strikes[0].radius);
+                Set(m.ability,"hitAngle",p=>p.floatValue=m.strikes[0].shape==GroundIndicatorShape.Sector?m.strikes[0].angle:360f);
+                if(!m.IsValid)throw new InvalidOperationException("Updated material invalid: "+m.name);
+                foreach(var o in new Object[]{m,m.ability})if(EditorJsonUtility.ToJson(o)!=originals[o]){Save(o);changed.Add(AssetDatabase.GetAssetPath(o));}
+            }
+            if(!JToken.DeepEquals(before,Scenes()))throw new InvalidOperationException("Open scene state changed.");
+            var result=new JObject{["status"]="APPLIED",["changedAssets"]=changed,["planSha256"]=Hash(planPath),["scenesBefore"]=before,["scenesAfter"]=Scenes(),["timingPreserved"]=true};
+            File.WriteAllText(Path.Combine(outputDirectory,"geometry-apply.json"),result.ToString());return result.ToString();
+        }
+        catch(Exception error)
+        {
+            foreach(var pair in originals){EditorJsonUtility.FromJsonOverwrite(pair.Value,pair.Key);Save(pair.Key);}
+            File.WriteAllText(Path.Combine(outputDirectory,"geometry-apply.json"),new JObject{["status"]="FAILED_GEOMETRY_ROLLED_BACK",["error"]=error.ToString()}.ToString());throw;
+        }
+    }
     public static string Apply(string planPath,string outputDirectory)
     {
         Idle();string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(Project).FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;

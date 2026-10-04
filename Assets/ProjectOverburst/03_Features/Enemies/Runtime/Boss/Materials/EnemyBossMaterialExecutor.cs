@@ -228,7 +228,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         {
             float size=strike.shape==GroundIndicatorShape.Rectangle?strike.length:strike.radius;
             warnings[phase].Show(size,material.ability.IsParryable,strike.shape==GroundIndicatorShape.Circle?360f:strike.angle,
-                strike.shape==GroundIndicatorShape.Rectangle,true,lead,strike.width*.5f,strike.innerRadius);
+                strike.shape==GroundIndicatorShape.Rectangle,true,lead,strike.width*.5f,strike.innerRadius,strike.shape);
             // This rectangle has square ends. The authored strike and approved indicator share that boundary.
             if(strike.shape==GroundIndicatorShape.Rectangle)
                 foreach(var indicator in warnings[phase].GetComponentsInChildren<ProceduralGroundIndicator>(true))

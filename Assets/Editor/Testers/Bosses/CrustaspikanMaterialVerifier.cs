@@ -19,7 +19,7 @@ public static class CrustaspikanMaterialVerifier
 {
     const string Key="Overburst.CrustaspikanMaterialVerifier.";
     sealed class Plan
-    {public string output,phase,token,fixture,previousStart;public bool realPlayer,background,extras;public float captureDelta,timeScale;public double deadline;public JArray scenes;}
+    {public string output,phase,token,fixture,previousStart;public bool realPlayer,background,extras,geometry;public float captureDelta,timeScale;public double deadline;public JArray scenes;}
     static Plan plan;
     static readonly List<Object> owned=new List<Object>();
     static readonly JArray cases=new JArray();
@@ -37,13 +37,13 @@ public static class CrustaspikanMaterialVerifier
         string saved=SessionState.GetString(Key+"plan","");if(!string.IsNullOrEmpty(saved))plan=JsonConvert.DeserializeObject<Plan>(saved);
         EditorApplication.update+=Tick;EditorApplication.playModeStateChanged+=Changed;AssemblyReloadEvents.beforeAssemblyReload+=Reload;
     }
-    public static string Start(string output,bool realPlayer=false,bool extras=false)
+    public static string Start(string output,bool realPlayer=false,bool extras=false,bool geometry=false)
     {
         Require(plan==null&&!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating,"Idle Editor required.");
         Require(string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)&&string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))&&string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","")),"Unoccupied account required.");
         output=Path.GetFullPath(output);string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(Application.dataPath).Parent.FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
         Require(output.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)&&!File.Exists(Path.Combine(output,"plan.json")),"Fresh private output required.");Directory.CreateDirectory(output);
-        plan=new Plan{output=output,phase="booting",token=Guid.NewGuid().ToString("N"),realPlayer=realPlayer,extras=extras,background=Application.runInBackground,captureDelta=Time.captureDeltaTime,timeScale=Time.timeScale,deadline=EditorApplication.timeSinceStartup+1200,scenes=Scenes(),previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)};
+        plan=new Plan{output=output,phase="booting",token=Guid.NewGuid().ToString("N"),realPlayer=realPlayer,extras=extras,geometry=geometry,background=Application.runInBackground,captureDelta=Time.captureDeltaTime,timeScale=Time.timeScale,deadline=EditorApplication.timeSinceStartup+1200,scenes=Scenes(),previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)};
         plan.fixture=realPlayer?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Bosses/CrustaspikanFixture_"+plan.token+".unity";
         cases.Clear();failure=null;Persist();File.WriteAllText(Path.Combine(output,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
         Scene active=SceneManager.GetActiveScene(),fixture=default;
@@ -61,7 +61,7 @@ public static class CrustaspikanMaterialVerifier
         try
         {
             if(plan.phase=="booting"&&EditorApplication.isPlaying)
-            {Require(OwnPlay,"Account mismatch.");var root=new GameObject("Crustaspikan material verifier");owned.Add(root);host=root.AddComponent<EnemyMotor>();root.GetComponent<Rigidbody>().isKinematic=true;plan.phase="running";Persist();routine=host.StartCoroutine(Drive(plan.realPlayer?PlayerCases():plan.extras?Extras():FixtureCases()));}
+            {Require(OwnPlay,"Account mismatch.");var root=new GameObject("Crustaspikan material verifier");owned.Add(root);host=root.AddComponent<EnemyMotor>();root.GetComponent<Rigidbody>().isKinematic=true;plan.phase="running";Persist();routine=host.StartCoroutine(Drive(plan.realPlayer?PlayerCases():plan.extras?Extras():plan.geometry?GeometryCases():FixtureCases()));}
             if(plan.phase=="running"){Require(OwnPlay,"Own Play interrupted.");EditorApplication.QueuePlayerLoopUpdate();}
             if(plan.phase!="returning"&&EditorApplication.timeSinceStartup>plan.deadline)Return("Verifier timeout.");
             if(plan.phase=="returning")FinishReturn();
@@ -94,6 +94,88 @@ public static class CrustaspikanMaterialVerifier
         Require(service.TrySpawn(new EnemySpawnRequest(collection.actorDefinition,position,Quaternion.identity,target,context:EncounterContext.Test),out var actor),"Saved actor spawn failed.");
         actor.AI.enabled=false;actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;return actor;
     }
+    static void ProbeWarning(EnemyBossMaterialExecutor executor,EnemyBossAttackMaterial material,int phase,JArray probes)
+    {
+        var warnings=(EnemyStrongAttackWarning[])typeof(EnemyBossMaterialExecutor).GetField("warnings",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(executor);
+        var warning=warnings[phase];if(warning==null||!warning.IsVisible)return;
+        var indicator=warning.GetComponentsInChildren<ProceduralGroundIndicator>(true).Single(p=>p.IsVisible);
+        var strike=material.strikes[phase];
+        Require(indicator.Shape==strike.shape,"Native warning shape differs from damage.");
+        if(strike.shape==GroundIndicatorShape.Rectangle)
+            Require(Mathf.Abs(indicator.Width-strike.width)<.001f&&Mathf.Abs(indicator.Length-strike.length)<.001f&&indicator.CorridorCapRadius==0f,"Native corridor dimensions differ from damage.");
+        else Require(Mathf.Abs(indicator.OuterRadius-strike.radius)<.001f&&Mathf.Abs(indicator.InnerRadius-strike.innerRadius)<.001f,"Native warning radii differ from damage.");
+        if(material.delivery==EnemyBossMaterialDelivery.Melee)
+        {
+            var expected=strike.Origin(executor.transform);expected.y=executor.transform.position.y+.045f;
+            Require(Vector3.Distance(indicator.transform.position,expected)<.002f,"Warning center differs from strike.");
+            Require(Quaternion.Angle(indicator.transform.rotation,strike.Rotation(executor.transform))<.02f,"Warning facing differs from strike.");
+        }
+        if(strike.shape==GroundIndicatorShape.Sector)Require(Mathf.Abs(indicator.Angle-strike.angle)<.001f,"Warning sector angle differs from strike.");
+        if(strike.shape!=GroundIndicatorShape.Rectangle)
+        {
+            var distances=indicator.Surface.mesh.vertices.Select(v=>new Vector2(v.x,v.y).magnitude).ToArray();
+            Require(Mathf.Abs(distances.Min()-strike.innerRadius)<.002f&&Mathf.Abs(distances.Max()-strike.radius)<.002f,"Rendered boundary differs from damage.");
+        }
+        probes.Add(new JObject{["phase"]=phase,["shape"]=indicator.Shape.ToString(),["outer"]=indicator.OuterRadius,["inner"]=indicator.InnerRadius,["angle"]=indicator.Angle});
+    }
+    static Vector3 ContactPoint(EnemyBossMaterialStrike strike,Transform owner)
+    {
+        if(strike.shape==GroundIndicatorShape.Sector||strike.shape==GroundIndicatorShape.Donut)
+            return strike.Origin(owner)+strike.Rotation(owner)*Vector3.forward*Mathf.Lerp(strike.innerRadius,strike.radius,.65f);
+        if(strike.localOrigin.sqrMagnitude<.001f)return strike.Origin(owner)+strike.Rotation(owner)*Vector3.forward*(strike.radius*.65f);
+        return strike.Origin(owner);
+    }
+    static IEnumerator GeometryCases()
+    {
+        // Boundaries use a clean fixture: a previous target must not occlude line of sight.
+        var collection=AssetDatabase.LoadAssetAtPath<EnemyBossMaterialCollection>(CrustaspikanMaterialBuilder.CollectionPath);var service=Service(collection);
+        var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(floor);floor.transform.position=Vector3.down*.5f;floor.transform.localScale=new Vector3(100,1,100);
+        var victim=new GameObject("Geometry physical boundary target");owned.Add(victim);victim.layer=LayerMask.NameToLayer("Player");
+        var capsule=victim.AddComponent<CapsuleCollider>();capsule.radius=.2f;capsule.height=1.55f;capsule.center=Vector3.up*.775f;
+        var target=victim.AddComponent<CombatTarget>();target.Configure(CombatTeam.PlayerParty,false);target.ConfigureVolume(capsule.center,.5f,1.55f);victim.GetComponent<CombatHealth>().SetMaxHp(100000,true);
+        foreach(var material in collection.attacks.Where(m=>m.delivery==EnemyBossMaterialDelivery.Melee))
+        {
+            var actor=Spawn(service,collection,Vector3.up*.035f,victim.transform);var executor=actor.GetComponent<EnemyBossMaterialExecutor>();
+            foreach(var c in actor.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(c,capsule);
+            yield return null;yield return new WaitForFixedUpdate();
+            for(int phase=0;phase<material.strikes.Length;phase++)
+            {
+                var s=material.strikes[phase];Vector3 origin=s.Origin(actor.transform);Quaternion rotation=s.Rotation(actor.transform);
+                Action<string,Vector3,bool> probe=(name,point,expected)=>
+                {
+                    Position(victim.transform,point);
+                    Require(s.Intersects(capsule,actor.transform)==expected,"Physical geometry boundary failed: "+material.name+"/"+phase+"/"+name);
+                    Require(executor.WouldHit(material.ability,target,phase)==expected,"Threat geometry differs: "+material.name+"/"+phase+"/"+name);
+                    cases.Add(new JObject{["pass"]=true,["id"]=material.materialId,["phase"]=phase,["scenario"]=name,["expectedHit"]=expected,["shape"]=s.shape.ToString(),["physicalRadius"]=capsule.radius,["combatRadius"]=.5f});
+                };
+                probe("outer-body-overlap",origin+rotation*Vector3.forward*(s.radius+.19f),true);
+                probe("outer-body-outside",origin+rotation*Vector3.forward*(s.radius+.22f),false);
+                probe("valid-contact",ContactPoint(s,actor.transform),true);
+                if(s.innerRadius>0f)
+                {
+                    probe("safe-center",origin,false);
+                    probe("inner-body-overlap",origin+rotation*Vector3.forward*(s.innerRadius-.19f),true);
+                    probe("inner-body-inside-hole",origin+rotation*Vector3.forward*(s.innerRadius-.22f),false);
+                }
+                if(s.shape==GroundIndicatorShape.Sector)
+                {
+                    float d=Mathf.Lerp(s.innerRadius,s.radius,.65f);
+                    foreach(float side in new[]{-1f,1f})
+                    {
+                        Vector3 ray=Quaternion.Euler(0,s.angle*.5f*side,0)*Vector3.forward;
+                        Vector3 outward=new Vector3(ray.z,0,-ray.x)*side;
+                        probe("angular-body-overlap-"+side,origin+rotation*(ray*d+outward*.19f),true);
+                        probe("angular-body-outside-"+side,origin+rotation*(ray*d+outward*.22f),false);
+                    }
+                    probe("behind-sector",origin-rotation*Vector3.forward*d,false);
+                }
+                else if(s.shape==GroundIndicatorShape.Donut)
+                    probe("rear-ring",origin-rotation*Vector3.forward*Mathf.Lerp(s.innerRadius,s.radius,.65f),true);
+                Result("RUNNING");
+            }
+            service.Release(actor);yield return null;
+        }
+    }
     static IEnumerator FixtureCases()
     {
         Time.captureDeltaTime=1f/60;
@@ -110,24 +192,27 @@ public static class CrustaspikanMaterialVerifier
         {
             foreach(string scenario in new[]{"contact","evade","cancel"})
             {
-                damage.Clear();health.SetMaxHp(100000,true);var actor=Spawn(service,collection,Vector3.up*.035f,victim.transform);current=actor.GetComponent<EnemyBossMaterialExecutor>();
+                damage.Clear();var warningProbes=new JArray();health.SetMaxHp(100000,true);var actor=Spawn(service,collection,Vector3.up*.035f,victim.transform);current=actor.GetComponent<EnemyBossMaterialExecutor>();
                 Require(actor.LeaseVersion>priorLease,"Lease did not advance.");bool reused=previous==null||previous==actor;Require(reused,"Owned pool did not reuse actor.");priorLease=actor.LeaseVersion;previous=actor;
                 foreach(var collider in actor.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(collider,capsule);
                 yield return null;yield return new WaitForFixedUpdate();
-                Vector3 aim=material.delivery==EnemyBossMaterialDelivery.Melee?material.strikes[0].Origin(actor.transform):actor.transform.position+Vector3.forward*12f;Position(victim.transform,aim);
+                Vector3 aim=material.delivery==EnemyBossMaterialDelivery.Melee?ContactPoint(material.strikes[0],actor.transform):actor.transform.position+Vector3.forward*12f;Position(victim.transform,aim);
                 Require(actor.AbilityController.TryStartAbility(material.ability,victim.transform),"Native start rejected: "+material.materialId);float limit=Time.time+material.runtimeClip.length+4f;
                 while(current.IsExecuting)
                 {
                     Require(Time.time<limit,"Attack completion timeout: "+material.materialId+"; "+current.LastFailure);
                     if(material.delivery==EnemyBossMaterialDelivery.Melee&&scenario=="contact")
-                    {int phase=0;while(phase<material.strikes.Length-1&&current.NormalizedTime>material.strikes[phase].contactEnd)phase++;Position(victim.transform,material.strikes[phase].Origin(actor.transform));}
+                    {int phase=0;while(phase<material.strikes.Length-1&&current.NormalizedTime>material.strikes[phase].contactEnd)phase++;Position(victim.transform,ContactPoint(material.strikes[phase],actor.transform));}
                     if(scenario=="evade"&&current.NormalizedTime>=material.strikes[0].impact-.15f/material.runtimeClip.length)Position(victim.transform,new Vector3(25f,.035f,-15f));
                     if(scenario=="cancel"&&current.NormalizedTime>=material.strikes[0].impact*.5f){actor.AbilityController.Cancel();break;}
+                    if(scenario=="contact")for(int phase=0;phase<material.strikes.Length;phase++)
+                        if(!warningProbes.OfType<JObject>().Any(p=>(int)p["phase"]==phase)&&current.NormalizedTime<material.strikes[phase].impact)ProbeWarning(current,material,phase,warningProbes);
                     yield return new WaitForFixedUpdate();
                 }
                 Require(current.LastFailure==null,"Motion execution failed: "+current.LastFailure);
                 if(scenario=="contact")
                 {
+                    Require(warningProbes.Count==material.strikes.Length,"Native warnings were not inspected.");
                     Require(damage.Count==material.strikes.Length,"Wrong physical contact count: "+material.materialId+" / "+damage.Count);
                     for(int phase=0;phase<material.strikes.Length;phase++)
                     {
@@ -136,7 +221,7 @@ public static class CrustaspikanMaterialVerifier
                     }
                 }
                 else Require(damage.Count==0,"Damage after evade/cancel.");
-                cases.Add(new JObject{["pass"]=true,["id"]=material.materialId,["scenario"]=scenario,["physicalColliderRadius"]=capsule.radius,["combatVolumeRadius"]=volume.Radius,["reused"]=reused,["impacts"]=current.ImpactCount,["launches"]=current.LaunchCount,["damageEvents"]=damage.DeepClone()});Result("RUNNING");
+                cases.Add(new JObject{["pass"]=true,["id"]=material.materialId,["scenario"]=scenario,["physicalColliderRadius"]=capsule.radius,["combatVolumeRadius"]=volume.Radius,["reused"]=reused,["impacts"]=current.ImpactCount,["launches"]=current.LaunchCount,["damageEvents"]=damage.DeepClone(),["warningProbes"]=warningProbes});Result("RUNNING");
                 service.Release(actor);yield return null;Require(!current.IsExecuting&&!current.IsRockHeld&&current.ActiveProjectileCount==0,"Pool cleanup failed.");
             }
         }
@@ -156,6 +241,11 @@ public static class CrustaspikanMaterialVerifier
         Require(!EnemyThemeTrialService.InArena&&!EnemyThemeTrialService.Busy,"Foreign trial active.");EnemyThemeTrialService.ToggleArena();Require(EnemyThemeTrialService.InArena,"Actual review arena entry rejected.");
         var collection=AssetDatabase.LoadAssetAtPath<EnemyBossMaterialCollection>(CrustaspikanMaterialBuilder.CollectionPath);var service=Service(collection);var melee=player.GetComponent<MeleeRuntime>();melee.SetManualInputEnabled(true);playerActor.Health.SetMaxHp(100000,true);
         PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);Time.captureDeltaTime=1f/60;var target=player.GetComponent<CombatTarget>();
+        // The product can grade low-energy parries separately. This fixture checks a fully charged parry.
+        var fire=AssetDatabase.LoadAssetAtPath<ElementGemItemData>("Assets/ProjectOverburst/Resources/Items/ElementGems/EG_Fire_Common.asset");
+        var setGem=typeof(PlayerEquipment).GetMethod("SetElementGem",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public);
+        Require(fire!=null&&setGem!=null,"Actual full-energy parry fixture missing.");setGem.Invoke(playerActor.Equipment,new object[]{new ItemData(fire,1,ItemGrade.Common)});yield return null;
+        var energy=melee.GetComponent<OverburstElementEnergy>();if(energy==null){energy=melee.gameObject.AddComponent<OverburstElementEnergy>();owned.Add(energy);}Require(energy!=null,"Actual element energy missing.");
         EnemyActor enemy=null;
         try
         {
@@ -163,16 +253,22 @@ public static class CrustaspikanMaterialVerifier
             foreach(var material in collection.attacks.Where(m=>m.ability.IsParryable))
             {
                 melee.CancelCurrentAttackState();yield return null;
+                int charges=0;while(energy.Normalized<.999f&&charges++<100)
+                    Require(energy.RecordConfirmedHit(playerActor.Equipment.CurrentWeaponItem.runtimeInstanceId,playerActor.Equipment.ActiveElement,EnemyAttackSequence.Next(),1f),"Actual parry energy setup rejected.");
+                Require(energy.Normalized>=.999f,"Actual parry fixture energy not full.");float chargedEnergy=energy.Normalized;
                 enemy=Spawn(service,collection,stage,player.transform);var executor=enemy.GetComponent<EnemyBossMaterialExecutor>();yield return null;yield return new WaitForFixedUpdate();
-                Position(player.transform,material.strikes[0].Origin(enemy.transform)+Vector3.up*.02f);player.transform.rotation=Quaternion.LookRotation(enemy.transform.position-player.transform.position);
+                Position(player.transform,ContactPoint(material.strikes[0],enemy.transform)+Vector3.up*.02f);player.transform.rotation=Quaternion.LookRotation(enemy.transform.position-player.transform.position);
                 Require(enemy.AbilityController.TryStartAbility(material.ability,player.transform),"Actual attack start failed.");float deadline=Time.unscaledTime+15f;
                 while(!enemy.AbilityController.IsParryThreatTo(target)){Require(Time.unscaledTime<deadline,"Actual parry threat never opened: "+material.materialId);yield return null;}
                 var controller=player.GetComponent<PlayerParryController>();int before=controller!=null?controller.SuccessCount:0;float hp=playerActor.Health.CurrentHp,normalized=executor.NormalizedTime;
                 Capture(Camera.main,Path.Combine(plan.output,material.materialId+"-game-camera.png"));
                 Require(melee.TryStartHeavyAttack(enemy.transform.position-player.transform.position)==WeaponActionResult.Accepted,"Actual heavy input rejected.");controller=player.GetComponent<PlayerParryController>();Require(controller!=null,"Actual parry controller missing.");
                 float success=Time.unscaledTime+1f;while(controller.SuccessCount==before){Require(Time.unscaledTime<success,"Actual player parry failed.");yield return null;}
-                Require(!executor.IsExecuting&&enemy.GetComponent<EnemyMovementReaction>().IsParryStunned&&playerActor.Health.CurrentHp==hp,"Actual parry cancel/stun/health mismatch.");
-                cases.Add(new JObject{["pass"]=true,["id"]=material.materialId,["scenario"]="actualPlayerHeavyParry",["nativeProgress"]=normalized,["successCount"]=controller.SuccessCount-before,["cancelled"]=true,["noPlayerDamage"]=true});Result("RUNNING");
+                string grade=typeof(PlayerParryController).GetProperty("ActionGrade")?.GetValue(controller)?.ToString()??"Perfect";
+                bool stunned=enemy.GetComponent<EnemyMovementReaction>().IsParryStunned;
+                Require(grade=="Perfect"&&!executor.IsExecuting&&stunned&&playerActor.Health.CurrentHp==hp,
+                    "Actual parry mismatch: grade="+grade+"; executing="+executor.IsExecuting+"; stunned="+stunned+"; hpBefore="+hp+"; hpAfter="+playerActor.Health.CurrentHp);
+                cases.Add(new JObject{["pass"]=true,["id"]=material.materialId,["scenario"]="actualPlayerHeavyParry",["parryGrade"]=grade,["chargedEnergy"]=chargedEnergy,["nativeProgress"]=normalized,["successCount"]=controller.SuccessCount-before,["cancelled"]=true,["noPlayerDamage"]=true});Result("RUNNING");
                 yield return new WaitForSecondsRealtime(.35f);service.Release(enemy);enemy=null;melee.CancelCurrentAttackState();
                 float slowEnd=Time.unscaledTime+4f;while(Time.timeScale<.999f&&Time.unscaledTime<slowEnd)yield return null;
             }

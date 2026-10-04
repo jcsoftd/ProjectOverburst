@@ -26,7 +26,8 @@ public sealed class EnemyBossMaterialStrike
         && Finite(radius) && Finite(width) && Finite(length) && Finite(innerRadius) && Finite(angle) && Finite(yaw)
         && Finite(localOrigin.x) && Finite(localOrigin.y) && Finite(localOrigin.z) && Finite(minimumHeight) && Finite(maximumHeight)
         && radius > 0f && innerRadius>=0f && innerRadius<radius && angle>0f && angle<=360f && width > 0f && length > 0f && maximumHeight > minimumHeight
-        && (shape == GroundIndicatorShape.Circle || shape == GroundIndicatorShape.Sector || shape == GroundIndicatorShape.Rectangle);
+        && (shape == GroundIndicatorShape.Circle || shape == GroundIndicatorShape.Sector || shape == GroundIndicatorShape.Donut || shape == GroundIndicatorShape.Rectangle)
+        && (shape != GroundIndicatorShape.Donut || (innerRadius > 0f && angle >= 359.9f));
     public static bool Finite(float value)=>!float.IsNaN(value)&&!float.IsInfinity(value);
     public Quaternion Rotation(Transform owner) => owner.rotation * Quaternion.Euler(0f,yaw,0f);
     public Vector3 Origin(Transform owner) => owner.TransformPoint(localOrigin);
@@ -57,7 +58,7 @@ public sealed class EnemyBossMaterialStrike
         }
         float distance = p.magnitude;
         if(distance > radius + bodyRadius || distance + bodyRadius < innerRadius) return false;
-        if(shape == GroundIndicatorShape.Circle || angle >= 359.9f) return true;
+        if(shape == GroundIndicatorShape.Circle || shape == GroundIndicatorShape.Donut || angle >= 359.9f) return true;
         float half = angle * .5f * Mathf.Deg2Rad;
         if(distance < .000001f || Mathf.Abs(Mathf.Atan2(p.x,p.y)) <= half) return true;
         for(int sideIndex=0;sideIndex<2;sideIndex++)

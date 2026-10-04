@@ -22,12 +22,12 @@ MonoBehaviour:
   - contactStart: 0.5307692
     impact: 0.5307692
     contactEnd: 0.5769231
-    shape: 1
-    localOrigin: {x: -0.1623083, y: 0, z: 8.201198}
-    yaw: 0
-    radius: 1.8
-    innerRadius: 0
-    angle: 360
+    shape: 0
+    localOrigin: {x: 0, y: 0, z: 0}
+    yaw: -25
+    radius: 11
+    innerRadius: 0.55
+    angle: 150
     width: 3.6
     length: 24
     minimumHeight: 0
@@ -44,5 +44,8 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
-    split across genuine strikes. '
+  assemblyNotes: "Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. \n\uACF5\uAC04 \uD310\uC815 v2: \uD729\uC4F8\uAE30
+    \xB7 \uACF5\uACA9\uD558\uB294 \uC190\uC758 \uD638\uB97C \uB36E\uB294 \uBD80\uCC44\uAF34.
+    Sector 11m (150deg, yaw -25deg). \uC6D0\uBCF8 \uD0C0\uACA9 \uD504\uB808\uC784
+    \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0 \uACF5\uC720."

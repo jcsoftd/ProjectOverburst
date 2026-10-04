@@ -41,7 +41,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
 
     public void Show(float size, bool canParry, float angle = 360f,
         bool charge = false, bool useTelegraph = true, float leadSeconds = 1f,
-        float halfWidth = .4f, float innerRadius = 0f)
+        float halfWidth = .4f, float innerRadius = 0f, GroundIndicatorShape? indicatorShape = null)
     {
         if (visual == null)
         {
@@ -66,11 +66,11 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         }
         EnemyStrongAttackImpactVfx.Prewarm();
         visual.SetActive(true);
-        ConfigureTelegraph(size, angle, charge, useTelegraph, leadSeconds);
+        ConfigureTelegraph(size, angle, charge, useTelegraph, leadSeconds, indicatorShape);
         SetRemaining(leadSeconds);
     }
     private void ConfigureTelegraph(float size, float angle, bool charge, bool enabled,
-        float leadSeconds)
+        float leadSeconds, GroundIndicatorShape? indicatorShape)
     {
         StopTelegraph();
         if (!enabled) return;
@@ -94,8 +94,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             {
                 visual.transform.localScale = Vector3.one;
                 procedural.gameObject.SetActive(true);
-                procedural.Configure(charge ? GroundIndicatorShape.Rectangle
-                    : angle >= 359.9f ? GroundIndicatorShape.Circle : GroundIndicatorShape.Sector,
+                procedural.Configure(indicatorShape ?? (charge ? GroundIndicatorShape.Rectangle
+                    : angle >= 359.9f ? GroundIndicatorShape.Circle : GroundIndicatorShape.Sector),
                     size, sectorInnerRadius, angle, corridorHalfWidth * 2f, size, charge ? corridorHalfWidth : 0f);
                 warningLeadSeconds = Mathf.Max(.01f, leadSeconds);
                 procedural.SetProgress(0f);

@@ -25,7 +25,7 @@ MonoBehaviour:
     shape: 1
     localOrigin: {x: -1.1043082, y: 0, z: 8.336154}
     yaw: 0
-    radius: 2.8
+    radius: 4.5
     innerRadius: 0
     angle: 360
     width: 5.6
@@ -44,6 +44,9 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: Base clip only; no RM displacement. One pattern damage budget is
+  assemblyNotes: "Base clip only; no RM displacement. One pattern damage budget is
     split across genuine strikes. UnearthRock and rock walks may precede this independently;
-    a held rock is supplied for standalone review.
+    a held rock is supplied for standalone review.\n\uACF5\uAC04 \uD310\uC815 v2:
+    \uBC14\uC704 \uD22C\uCC99 \xB7 \uD655\uC815\uB41C \uCC29\uC9C0\uC810 \uC6D0\uD615.
+    Circle 4.5m. \uC6D0\uBCF8 \uD0C0\uACA9 \uD504\uB808\uC784 \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1
+    \uC704\uD611\xB7\uC608\uACE0 \uACF5\uC720."

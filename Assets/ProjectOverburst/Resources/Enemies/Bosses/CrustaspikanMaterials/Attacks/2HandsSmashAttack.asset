@@ -22,11 +22,11 @@ MonoBehaviour:
   - contactStart: 0.425
     impact: 0.425
     contactEnd: 0.4625
-    shape: 1
-    localOrigin: {x: -0.70570064, y: 0, z: 9.462142}
+    shape: 2
+    localOrigin: {x: 0, y: 0, z: 0}
     yaw: 0
-    radius: 3
-    innerRadius: 0
+    radius: 14
+    innerRadius: 3.5
     angle: 360
     width: 6
     length: 24
@@ -44,5 +44,8 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
-    split across genuine strikes. '
+  assemblyNotes: "Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. \n\uACF5\uAC04 \uD310\uC815 v2: \uC591\uC190 \uCDA9\uACA9\uD30C
+    \xB7 \uBCF4\uC2A4 \uC911\uC2EC \uB3C4\uB11B / \uC548\uCABD\uC73C\uB85C \uBD99\uC5B4
+    \uD68C\uD53C. Donut 14m, inner 3.5m. \uC6D0\uBCF8 \uD0C0\uACA9 \uD504\uB808\uC784
+    \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0 \uACF5\uC720."

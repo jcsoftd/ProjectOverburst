@@ -25,7 +25,7 @@ MonoBehaviour:
     shape: 1
     localOrigin: {x: 0.30819902, y: 0, z: 3.583553}
     yaw: 0
-    radius: 1.7
+    radius: 3.5
     innerRadius: 0
     angle: 360
     width: 3.4
@@ -44,5 +44,8 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
-    split across genuine strikes. '
+  assemblyNotes: "Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. \n\uACF5\uAC04 \uD310\uC815 v2: \uBC1C\uCC0D\uAE30
+    \xB7 \uBC1C \uCC29\uC9C0\uC810 \uC6D0\uD615. Circle 3.5m. \uC6D0\uBCF8 \uD0C0\uACA9
+    \uD504\uB808\uC784 \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0
+    \uACF5\uC720."
