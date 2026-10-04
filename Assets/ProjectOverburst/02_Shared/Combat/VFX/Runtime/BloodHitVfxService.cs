@@ -23,11 +23,12 @@ public sealed class BloodHitVfxService : MonoBehaviour
         public int Priority, Source, Sequence, Phase, Target;
         public bool AllowSuppressed, VarySweep;
     }
-    private struct Slot { public VisualEffect Effect; public float Until; public int Priority, StartFrame; public bool PendingPlay; }
+    private struct Slot { public VisualEffect Effect; public float Until; public int Priority, StartFrame; public bool PendingPlay; public float BaseHitSize; public BloodHitProfile Profile; }
     private readonly Pending[] queue = new Pending[QueueCapacity];
     private readonly Slot[] slots = new Slot[Capacity];
     private readonly int[] recentTargets = new int[Capacity], recentVariations = new int[Capacity];
     private int recentCursor;
+    private int tuningRevision = -1;
     public int LastSweepVariation { get; private set; } = -1;
     public int SweepVariationPlayedCount { get; private set; }
     private BloodHitCatalog catalog;
@@ -342,6 +343,11 @@ public sealed class BloodHitVfxService : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (tuningRevision != BloodComparisonTuning.Revision)
+        {
+            tuningRevision = BloodComparisonTuning.Revision; packPool?.RefreshTuning();
+            for (int i = 0; i < Capacity; i++) if (slots[i].Until > 0f) ApplyTuning(i);
+        }
         packPool?.Tick(Time.time);
         for (int i = 0; i < Capacity; i++)
         {
@@ -447,12 +453,10 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (request.WeightScale > 1.2f) visualSize = Mathf.Max(visualSize, 1.25f);
         else if (request.WeightScale > 1f) visualSize = Mathf.Max(visualSize, .8f);
         visualSize = Mathf.Clamp(visualSize, .55f, 1.95f);
-        vfx.SetFloat(HitSize, request.Profile.size * visualSize
+        slots[chosen].BaseHitSize = request.Profile.size * visualSize
             * (request.Priority >= 2 ? 1.2f : request.Priority == 1 ? 1.1f : 1f)
-            * (variant != null ? variant.sizeMultiplier : 1f));
-        vfx.SetVector4(MainColor, request.Profile.mainColor.linear);
-        vfx.SetVector4(SecondaryColor, request.Profile.secondaryColor.linear);
-        vfx.SetVector4(SpecularColor, request.Profile.specularColor.linear);
+            * (variant != null ? variant.sizeMultiplier : 1f);
+        slots[chosen].Profile = request.Profile; ApplyTuning(chosen);
         vfx.SetFloat(Specular, request.Profile.specular);
         vfx.SetInt(LoopCount, 1);
         vfx.resetSeedOnPlay = variant == null;
@@ -509,6 +513,14 @@ public sealed class BloodHitVfxService : MonoBehaviour
         recentTargets[index] = target; recentVariations[index] = variation;
     }
 
+    private void ApplyTuning(int index)
+    {
+        var slot = slots[index]; var profile = slot.Profile;
+        slot.Effect.SetFloat(HitSize, slot.BaseHitSize * BloodComparisonTuning.Scale);
+        slot.Effect.SetVector4(MainColor, BloodComparisonTuning.SprayColor(profile.mainColor));
+        slot.Effect.SetVector4(SecondaryColor, BloodComparisonTuning.SprayColor(profile.secondaryColor));
+        slot.Effect.SetVector4(SpecularColor, BloodComparisonTuning.SprayColor(profile.specularColor));
+    }
     private void Release(int index)
     {
         var vfx = slots[index].Effect;
@@ -516,7 +528,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         vfx.Reinit();
         vfx.gameObject.SetActive(false);
         slots[index].Until = 0;
-        slots[index].PendingPlay = false;
+        slots[index].PendingPlay = false; slots[index].Profile = null;
         legacyActiveCount--;
     }
 

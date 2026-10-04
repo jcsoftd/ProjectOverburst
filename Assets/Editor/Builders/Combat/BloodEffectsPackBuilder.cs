@@ -178,8 +178,11 @@ public static class BloodEffectsPackBuilder
             catalog.screenMaterials[i] = material;
         }
     }
-    static void BuildToggle()
+    [MenuItem("OVERBURST/Combat/Blood Comparison/임시 조절 UI 생성")]
+    public static void BuildToggle()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required");
         var root = new GameObject("Temporary_BloodComparison", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         try
         {
@@ -205,10 +208,48 @@ public static class BloodEffectsPackBuilder
             colorButton.GetComponentInChildren<TMP_Text>().fontSize = 19;
             so.FindProperty("colorButton").objectReferenceValue = colorButton;
             so.FindProperty("colorCaption").objectReferenceValue = colorButton.GetComponentInChildren<TMP_Text>();
+            var tuningButton = RunUiLayout.Button(root.transform, "BloodTuningToggle", "크기 · 색상 조절", font, null, 0, 0, 232, 32, null);
+            TopLeft(tuningButton, 16, -408); tuningButton.GetComponentInChildren<TMP_Text>().fontSize = 17;
+            tuningButton.navigation = new Navigation { mode = Navigation.Mode.None };
+            var panel = RunUiLayout.Image(root.transform, "BloodTuningPanel", null, new Color(.10f,.11f,.13f,.96f), 0, 0, 332, 344);
+            TopLeft(panel, 16, -448); panel.raycastTarget = true;
+            so.FindProperty("tuningButton").objectReferenceValue = tuningButton;
+            so.FindProperty("tuningPanel").objectReferenceValue = panel.gameObject;
+            string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기", "바닥 빨강 (R)", "바닥 초록 (G)", "바닥 파랑 (B)" };
+            var minus = so.FindProperty("decreaseButtons"); var plus = so.FindProperty("increaseButtons"); var values = so.FindProperty("valueCaptions");
+            minus.arraySize = plus.arraySize = values.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+            {
+                float y = -12 - i * 40;
+                var label = RunUiLayout.Text(panel.transform, "Name" + i, names[i], font, 0, 0, 144, 34, 17, RunUiLayout.Ivory, TextAlignmentOptions.MidlineLeft);
+                TopLeft(label, 12, y);
+                var decrease = RunUiLayout.Button(panel.transform, "Decrease" + i, "-", font, null, 0, 0, 34, 34, null);
+                TopLeft(decrease, 166, y); decrease.navigation = new Navigation { mode = Navigation.Mode.None };
+                decrease.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(34,28);
+                var value = RunUiLayout.Text(panel.transform, "Value" + i, "1.0", font, 0, 0, 54, 34, 17, RunUiLayout.Ivory);
+                TopLeft(value, 210, y);
+                var increase = RunUiLayout.Button(panel.transform, "Increase" + i, "+", font, null, 0, 0, 34, 34, null);
+                TopLeft(increase, 274, y); increase.navigation = new Navigation { mode = Navigation.Mode.None };
+                increase.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(34,28);
+                minus.GetArrayElementAtIndex(i).objectReferenceValue = decrease;
+                plus.GetArrayElementAtIndex(i).objectReferenceValue = increase;
+                values.GetArrayElementAtIndex(i).objectReferenceValue = value;
+            }
+            var reset = RunUiLayout.Button(panel.transform, "ResetTuning", "현재 버전 초기화", font, null, 0, 0, 308, 30, null);
+            TopLeft(reset, 12, -302); reset.GetComponentInChildren<TMP_Text>().fontSize = 16;
+            reset.navigation = new Navigation { mode = Navigation.Mode.None };
+            so.FindProperty("resetButton").objectReferenceValue = reset;
+            panel.gameObject.SetActive(false);
             so.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.SaveAsPrefabAsset(root, TogglePath);
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }
+    }
+    static void TopLeft(Component value, float x, float y)
+    {
+        var rect = (RectTransform)value.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0,1);
+        rect.anchoredPosition = new Vector2(x,y);
     }
     static void Folder(string path)
     {

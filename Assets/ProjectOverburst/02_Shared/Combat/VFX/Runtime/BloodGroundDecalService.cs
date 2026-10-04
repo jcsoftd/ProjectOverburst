@@ -41,7 +41,10 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         public bool SpreadComplete;
         public Vector3 Point;
         public float Started;
-        public bool Active;
+        public bool Active, Pack;
+        public Material Source;
+        public BloodHitProfile Profile;
+        public Vector3 BaseSize;
     }
 
     private readonly Pending[] pending = new Pending[PendingCapacity];
@@ -51,6 +54,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     private static readonly ProfilerMarker MaterialCreateMarker = new ProfilerMarker("Overburst.BloodDecal.CreateMaterial");
     private static readonly ProfilerMarker ShowMarker = new ProfilerMarker("Overburst.BloodDecal.Show");
     private int pendingCount;
+    private int tuningRevision = -1;
     private int groundMask;
     private BloodHitCatalog catalog;
     private BloodEffectsPackCatalog packCatalog;
@@ -192,6 +196,15 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (tuningRevision != BloodComparisonTuning.Revision)
+        {
+            tuningRevision = BloodComparisonTuning.Revision;
+            for (int i = 0; i < Capacity; i++) if (slots[i].Active)
+            {
+                slots[i].Projector.size = TunedSize(slots[i].BaseSize);
+                slots[i].Projector.material = TintedMaterial(slots[i].Source, slots[i].Profile, slots[i].Pack);
+            }
+        }
         float now = Time.time;
         for (int i = 0; i < Capacity; i++)
         {
@@ -256,10 +269,11 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             request.Point + request.Normal * .015f,
             Quaternion.LookRotation(-request.Normal, request.Tangent));
         projector.material = TintedMaterial(source.material, request.Profile, request.Pack);
-        float footprintScale = request.Pack ? BloodEffectsPackPool.SizeMultiplier : 1f;
-        projector.size = new Vector3(
-            Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f) * footprintScale,
-            Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f) * footprintScale, ProjectionDepth);
+        slots[index].BaseSize = new Vector3(
+            Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f),
+            Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f), ProjectionDepth);
+        slots[index].Source = source.material; slots[index].Profile = request.Profile; slots[index].Pack = request.Pack;
+        projector.size = TunedSize(slots[index].BaseSize);
         projector.pivot = Vector3.zero;
         projector.drawDistance = Mathf.Min(source.drawDistance, 40f);
         projector.fadeScale = source.fadeScale;
@@ -279,6 +293,11 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         return true;
     }
 
+    private static Vector3 TunedSize(Vector3 source)
+    {
+        float scale = BloodComparisonTuning.Scale * BloodComparisonTuning.GroundScale;
+        return new Vector3(source.x * scale, source.y * scale, source.z);
+    }
     private Material TintedMaterial(Material source, BloodHitProfile profile, bool pack)
     {
         long key = ((long)source.GetInstanceID() << 32) ^ (uint)profile.GetInstanceID();
@@ -295,17 +314,17 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         }
         if (material.HasProperty("_BaseColor"))
         {
-            if (pack) material.SetVector("_BaseColor", profile.mainColor.linear);
-            else material.SetColor("_BaseColor", profile.mainColor);
+            if (pack) material.SetVector("_BaseColor", BloodComparisonTuning.GroundColor(profile.mainColor));
+            else material.SetColor("_BaseColor", BloodComparisonTuning.GroundColor(profile.mainColor).gamma);
             if (pack && material.HasProperty("_AlbedoPower")) material.SetFloat("_AlbedoPower", .55f);
             if (material.HasProperty("_HueShift")) material.SetFloat("_HueShift", 0f);
             if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", pack ? .95f : .32f);
             if (material.HasProperty("_AmbientColorIntensity")) material.SetFloat("_AmbientColorIntensity", .25f);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", pack ? Mathf.Clamp(profile.specular, .1f, .4f) : Mathf.Clamp(profile.specular + .18f, .22f, .5f));
         }
-        if (material.HasProperty(MainColor)) material.SetColor(MainColor, profile.mainColor.linear);
-        if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, profile.secondaryColor.linear);
-        if (material.HasProperty(SpecularColor)) material.SetColor(SpecularColor, profile.specularColor.linear);
+        if (material.HasProperty(MainColor)) material.SetColor(MainColor, BloodComparisonTuning.GroundColor(profile.mainColor));
+        if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, BloodComparisonTuning.GroundColor(profile.secondaryColor));
+        if (material.HasProperty(SpecularColor)) material.SetColor(SpecularColor, BloodComparisonTuning.GroundColor(profile.specularColor));
         if (material.HasProperty(SpecularValue)) material.SetFloat(SpecularValue, Mathf.Min(profile.specular, .4f));
         return material;
     }
@@ -314,7 +333,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
     {
         slots[index].Projector.gameObject.SetActive(false);
         slots[index].Projector.fadeFactor = 1f;
-        slots[index].Active = false;
+        slots[index].Active = false; slots[index].Profile = null; slots[index].Source = null;
         ActiveCount--;
     }
 

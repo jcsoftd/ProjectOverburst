@@ -4,14 +4,15 @@ using UnityEngine;
 public sealed class BloodEffectsPackPool
 {
     public const int Capacity = 48;
-    public const float SizeMultiplier = 2f;
+    public static float SizeMultiplier => BloodComparisonTuning.Scale;
     sealed class Slot
     {
         public GameObject root;
         public ParticleSystem[] systems;
         public Renderer[] renderers;
         public int variant, priority;
-        public float until;
+        public float until, baseScale;
+        public BloodHitProfile profile;
     }
     readonly Slot[] slots = new Slot[Capacity];
     readonly int[] targets = new int[96], variants = new int[96];
@@ -96,16 +97,11 @@ public sealed class BloodEffectsPackPool
         Vector3 up = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > .95f ? Vector3.forward : Vector3.up;
         chosen.root.transform.SetPositionAndRotation(point, Quaternion.LookRotation(direction, up) * Quaternion.Euler(definition.localEuler));
         // Profile sizes were authored for VFX Graph. Normalize around the game's 3.5 baseline.
-        chosen.root.transform.localScale = Vector3.one * definition.scale * Mathf.Clamp(profile.size / 3.5f, .4f, 1.6f)
-            * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f) * SizeMultiplier;
-        block.Clear();
-        block.SetColor("_BaseColor", profile.mainColor);
-        block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular, .1f, .4f));
-        block.SetFloat("_HueShift", 0f);
-        block.SetFloat("_AlbedoPower", .45f);
-        block.SetFloat("_ColorIntensity", 1.1f);
-        block.SetFloat("_AmbientColorIntensity", .7f);
-        foreach (var renderer in chosen.renderers) renderer.SetPropertyBlock(block);
+        chosen.baseScale = definition.scale * Mathf.Clamp(profile.size / 3.5f, .4f, 1.6f)
+            * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f);
+        chosen.root.transform.localScale = Vector3.one * chosen.baseScale * SizeMultiplier;
+        chosen.profile = profile;
+        ApplyStyle(chosen);
         for (int i = 0; i < chosen.systems.Length; i++)
         {
             var ps = chosen.systems[i];
@@ -125,6 +121,24 @@ public sealed class BloodEffectsPackPool
             targets[at] = target; variants[at] = variant;
         }
         return true;
+    }
+    void ApplyStyle(Slot slot)
+    {
+        var profile = slot.profile;
+        block.Clear(); block.SetColor("_BaseColor", profile.mainColor);
+        block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular, .1f, .4f));
+        block.SetFloat("_HueShift", 0f); block.SetFloat("_AlbedoPower", .45f);
+        block.SetFloat("_ColorIntensity", 1.1f * BloodComparisonTuning.SprayBrightness);
+        block.SetFloat("_AmbientColorIntensity", .7f);
+        foreach (var renderer in slot.renderers) renderer.SetPropertyBlock(block);
+    }
+    public void RefreshTuning()
+    {
+        foreach (var slot in slots) if (slot != null && slot.until > 0f)
+        {
+            slot.root.transform.localScale = Vector3.one * slot.baseScale * SizeMultiplier;
+            ApplyStyle(slot);
+        }
     }
     void Release(Slot slot)
     {
