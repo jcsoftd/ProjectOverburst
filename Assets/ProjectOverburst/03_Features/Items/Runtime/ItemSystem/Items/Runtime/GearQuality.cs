@@ -30,7 +30,8 @@ public static class GearQuality
     {
         GearStat.MaxHealth, GearStat.Armor, GearStat.Attack, GearStat.AttackSpeed,
         GearStat.NormalDamage, GearStat.WeakDamage, GearStat.HeavyDamage,
-        GearStat.EliteBossDamage, GearStat.ElementalDamage, GearStat.CriticalDamage
+        GearStat.EliteBossDamage, GearStat.ElementalDamage, GearStat.CriticalDamage,
+        GearStat.ExplorationMoveSpeed, GearStat.CombatMoveSpeed
     };
 
     public static List<GearStatRoll> Roll(GearItemData data, ItemGrade grade, int seed)
@@ -120,6 +121,8 @@ public static class GearQuality
             case GearStat.Armor: return IntegerSecondary(GearKind.Chest, item.level, .05f, w);
             case GearStat.Attack: return IntegerSecondary(GearKind.Earring, item.level, .10f, w);
             case GearStat.AttackSpeed: return .25f + .15f * w;
+            case GearStat.ExplorationMoveSpeed:
+            case GearStat.CombatMoveSpeed: return .5f + .25f * w;
             default: return .5f + .25f * w;
         }
     }

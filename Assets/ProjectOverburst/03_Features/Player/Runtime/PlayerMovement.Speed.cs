@@ -9,7 +9,7 @@ public partial class PlayerMovement
             return 0f;
 
         if (IsCombatWalkLocomotionMode)
-            return GetMeleeCombatMoveSpeed() * GetActiveBuffMoveSpeedMultiplier()
+            return GetMeleeCombatMoveSpeed() * GetActiveBuffMoveSpeedMultiplier(true)
                 * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
@@ -18,7 +18,7 @@ public partial class PlayerMovement
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속
 
-        return speed * GetActiveBuffMoveSpeedMultiplier()
+        return speed * GetActiveBuffMoveSpeedMultiplier(IsCombatMoveMode)
             * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
     }
 
@@ -51,13 +51,14 @@ public partial class PlayerMovement
             : Mathf.Max(0f, meleeCombatMoveSpeed);
     }
 
-    private float GetActiveBuffMoveSpeedMultiplier()
+    private float GetActiveBuffMoveSpeedMultiplier(bool useCombatSpeed)
     {
         if (playerBuffController == null)
             playerBuffController = ResolveBuffController();
 
         return (playerBuffController != null ? playerBuffController.ActiveMoveSpeedMultiplier : 1f)
-            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed));
+            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed))
+            * GearStatTotals.From(playerEquipment).MovementSpeedMultiplier(useCombatSpeed);
     }
 
     private PlayerBuffController ResolveBuffController()
@@ -95,7 +96,7 @@ public partial class PlayerMovement
     private float ResolveBaseMoveSpeed(ActorMovementGait gait, bool useCombatSpeed)
     {
         if (useCombatSpeed)
-            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed()); // 전투 전용 Walk 속도
+            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed(), true); // 전투 전용 Walk 속도
 
         return gait == ActorMovementGait.Walk ? WalkMoveSpeed : RunMoveSpeed;
     }
@@ -112,9 +113,9 @@ public partial class PlayerMovement
         return activeMovementIntent.Gait;
     }
 
-    private float ResolveAuthoredMoveSpeed(float authoredSpeed)
+    private float ResolveAuthoredMoveSpeed(float authoredSpeed, bool useCombatSpeed = false)
     {
         return Mathf.Max(0f, authoredSpeed)
-            * GetActiveBuffMoveSpeedMultiplier();
+            * GetActiveBuffMoveSpeedMultiplier(useCombatSpeed);
     }
 }

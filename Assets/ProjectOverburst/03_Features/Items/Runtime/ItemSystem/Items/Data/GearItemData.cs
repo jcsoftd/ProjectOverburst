@@ -5,7 +5,8 @@ public enum GearSlot { Helmet, Chest, Gloves, Boots, Earring, Necklace }
 public enum GearStat
 {
     MaxHealth, Armor, Attack, CriticalChance, AttackSpeed, NormalDamage,
-    WeakDamage, HeavyDamage, EliteBossDamage, ElementalDamage, CriticalDamage
+    WeakDamage, HeavyDamage, EliteBossDamage, ElementalDamage, CriticalDamage,
+    ExplorationMoveSpeed = 11, CombatMoveSpeed = 12
 }
 
 [CreateAssetMenu(fileName = "NewGear", menuName = "Items/Overburst Gear")]

@@ -5,6 +5,7 @@ public struct GearStatTotals
 {
     public float MaxHealth, Armor, Attack, CriticalChance, AttackSpeed, NormalDamage;
     public float WeakDamage, HeavyDamage, EliteBossDamage, ElementalDamage, CriticalDamage;
+    public float ExplorationMoveSpeed, CombatMoveSpeed;
 
     public static GearStatTotals From(PlayerEquipment equipment)
     {
@@ -61,8 +62,13 @@ public struct GearStatTotals
             case GearStat.EliteBossDamage: EliteBossDamage += value; break;
             case GearStat.ElementalDamage: ElementalDamage += value; break;
             case GearStat.CriticalDamage: CriticalDamage += value; break;
+            case GearStat.ExplorationMoveSpeed: ExplorationMoveSpeed += value; break;
+            case GearStat.CombatMoveSpeed: CombatMoveSpeed += value; break;
         }
     }
+
+    public float MovementSpeedMultiplier(bool useCombatSpeed)
+        => Mathf.Max(0f, 1f + (useCombatSpeed ? CombatMoveSpeed : ExplorationMoveSpeed) * .01f);
 
     public float TargetDamage(EnemyGradeType grade) => grade == EnemyGradeType.Normal
         ? NormalDamage : EliteBossDamage;
