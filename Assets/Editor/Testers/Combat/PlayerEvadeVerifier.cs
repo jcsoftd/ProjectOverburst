@@ -326,7 +326,7 @@ public static partial class PlayerEvadeVerifier
         if (!mouse.enabled) InputSystem.EnableDevice(mouse);
         var keys = new List<Key>(); if (heldMove) keys.Add(Key.W); if (heldShift) keys.Add(Key.LeftShift);
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
-        Vector2 point = Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(actor.transform.position + testFacing * 6f) : Vector2.zero;
+        Vector2 point = Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(actor.transform.position + (dashAttackPointerDirection.sqrMagnitude > .001f ? dashAttackPointerDirection : testFacing) * 6f) : Vector2.zero;
         if (pointerAtComparison) point = new Vector2(Mathf.Max(8f, Screen.width - 620f) + 145f, Screen.height - 164f);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = (ushort)((heldLeft ? 1 : 0) | (heldRight ? 2 : 0)) });
         if (poseNextStart) actor.transform.rotation = Quaternion.LookRotation(testFacing);

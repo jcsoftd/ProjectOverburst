@@ -11,7 +11,8 @@ public static class DashHeavyAttackBuilder
     public const string PatternPath="Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Heavy/AP_GreatswordDashHeavy_Forward.asset";
     public const string MaterialPath="Assets/ProjectOverburst/Resources/Combat/VFX/DashHeavyFocus.mat";
     public const string SourcePath=PlayerEvadeBuilder.SourceRoot+"02_Attack/04_Combo_Attack_04/Combo_Attack_04_04.anim";
-    public const float HitSeconds=.50f, WaveEndSeconds=.80f;
+    public const float HitSeconds=.50f, WaveEndSeconds=.80f, RecoverySeconds=1.05f;
+    public const string ShockwavePath="Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/VFX/Shockwaves/DF_GRS_CircleShockwave.asset";
     public const string GatherPath="Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/DashHeavyGather.wav";
     public const string ReleasePath="Assets/ThirdParty/11_사운드/Hack and Slash Sound Library/Audio/Slash/Sword Slash Metallic Ring Short 01.wav";
 
@@ -67,7 +68,8 @@ public static class DashHeavyAttackBuilder
         phase.progressSource=AttackProgressSource.NormalizedTime;phase.basisFollowMode=AttackBasisFollowMode.Fixed;
         phase.vfxCues=Array.Empty<AttackVfxCueData>();phase.useBakedVfxSwingSlope=false;
         phase.vfxSwingSettings.orientation=AttackVfxSwingOrientation.Horizontal;
-        step.attackPhases=new[]{phase};heavy.attack=step;heavy.dischargePhaseIndex=0;
+        step.attackPhases=new[]{phase};ConfigureRecoveryAndShockwave(ref step);
+        heavy.attack=step;heavy.dischargePhaseIndex=0;
         EditorUtility.SetDirty(heavy);AssetDatabase.SaveAssetIfDirty(heavy);
         HeavyFocusPresentationBuilder.BuildAssets();
         definition.dashHeavyAttackDefinition=heavy;EditorUtility.SetDirty(definition);AssetDatabase.SaveAssetIfDirty(definition);
@@ -77,6 +79,30 @@ public static class DashHeavyAttackBuilder
         EditorUtility.SetDirty(catalog);AssetDatabase.SaveAssetIfDirty(catalog);
         if(normalBefore!=EditorJsonUtility.ToJson(definition.heavyAttackDefinition)||parryBefore!=EditorJsonUtility.ToJson(definition.parriedHeavyAttackDefinition))
             throw new InvalidOperationException("일반·패링 강공 데이터가 변경됐습니다.");
+    }
+    [MenuItem("OVERBURST/Weapons/Apply Dash Heavy Recovery And Shockwave")]
+    public static void ApplyRecoveryAndShockwave()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("유휴 Editor가 필요합니다.");
+        var heavy=AssetDatabase.LoadAssetAtPath<MeleeHeavyAttackDefinition>(HeavyPath);
+        if(heavy==null || EditorUtility.IsDirty(heavy))
+            throw new InvalidOperationException("대시 강공 자산 누락 또는 미저장 변경");
+        var step=heavy.attack;ConfigureRecoveryAndShockwave(ref step);heavy.attack=step;
+        EditorUtility.SetDirty(heavy);AssetDatabase.SaveAssetIfDirty(heavy);
+    }
+    private static void ConfigureRecoveryAndShockwave(ref MeleeComboStepData step)
+    {
+        var shockwave=AssetDatabase.LoadAssetAtPath<MeleeAttackVfxDefinition>(ShockwavePath);
+        if(step.animationClip==null || step.attackPhases==null || step.attackPhases.Length!=1 || shockwave==null)
+            throw new InvalidOperationException("대시 강공 모션·단일 판정·칼날 충격파가 필요합니다.");
+        var phase=step.attackPhases[0];
+        step.actionCancelStartNormalized=Mathf.Clamp01(Mathf.Max(RecoverySeconds/step.animationClip.length,phase.SafeEnd+.025f));
+        phase.vfxCues=new[]{new AttackVfxCueData{
+            definition=shockwave,motionRole=AttackVfxMotionRole.HorizontalCircular,
+            placementMode=AttackVfxPlacementMode.OwnerOrigin,triggerProgress=0f,
+            scaleMultiplier=.8f,shockwaveIntensityMultiplier=.35f,shockwaveSpeedMultiplier=1.2f}};
+        step.attackPhases[0]=phase;
     }
     private static T LoadOrCreate<T>(string path) where T:ScriptableObject
     {

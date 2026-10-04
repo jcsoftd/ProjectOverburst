@@ -64,6 +64,12 @@ public static partial class PlayerEvadeVerifier
         Time.captureFramerate=0;
         try
         {
+            if (SessionState.GetBool(DashHeavyRecoveryOnlyKey, false))
+            {
+                SessionState.EraseBool(DashHeavyRecoveryOnlyKey);
+                yield return VerifyDashHeavyRecovery();
+                yield break;
+            }
             bool focusOnly = SessionState.GetBool(HeavyFocusOnlyKey, false);
             SessionState.EraseBool(HeavyFocusOnlyKey);
             yield return VerifyHeavyFocusMotions();

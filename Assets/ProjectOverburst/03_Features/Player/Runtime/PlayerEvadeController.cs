@@ -390,7 +390,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         if (activeType == PlayerEvadeType.Roll) RotateToEvadeDirection(deltaTime);
         else if (activeType == PlayerEvadeType.CombatDodge)
         {
-            var target = Quaternion.LookRotation(meleeRuntime != null && (meleeRuntime.IsDodgeLightWindupActive || meleeRuntime.IsDashHeavyWindupActive) ? activeDirection : activeFacing, Vector3.up);
+            var target = Quaternion.LookRotation(meleeRuntime != null && (meleeRuntime.IsDodgeLightWindupActive || meleeRuntime.IsDashHeavyWindupActive) ? meleeRuntime.DodgeAttackFacing : activeFacing, Vector3.up);
             transform.rotation = meleeRuntime != null && (meleeRuntime.IsDodgeLightWindupActive || meleeRuntime.IsDashHeavyWindupActive)
                 ? Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-24f * Mathf.Max(0f, deltaTime))) : target;
         }

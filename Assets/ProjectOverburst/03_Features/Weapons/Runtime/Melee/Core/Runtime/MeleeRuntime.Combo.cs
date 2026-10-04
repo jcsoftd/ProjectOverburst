@@ -110,10 +110,14 @@ public partial class MeleeRuntime
             return false;
         }
 
+        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy && !IsDashHeavyRecoveryOpen(normalizedTime))
+            return false;
+
         bool hasRawMoveInput = HasRawMoveInput();
         // The dodge opener's authored cancel boundary is source frame 60.
         // Once reached, held movement may blend out of the recovery as well.
-        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light) return hasRawMoveInput;
+        if (activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light
+            || activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy) return hasRawMoveInput;
         if (suppressHandoffMoveCancelUntilRelease)
         {
             if (!hasRawMoveInput)
@@ -137,11 +141,13 @@ public partial class MeleeRuntime
 
     private void CancelActiveAttackByMoveInput()
     {
-        bool dodgeLightRecovery = activeDodgeFollowUp == PlayerDodgeFollowUpKind.Light;
+        bool dodgeRecovery = activeDodgeFollowUp != PlayerDodgeFollowUpKind.None;
+        float blendDuration = activeDodgeFollowUp == PlayerDodgeFollowUpKind.Heavy
+            ? DashHeavyRecoveryBlendDuration : DodgeLightMovementBlendDuration;
         KeepComboWindowForCancel();
         CancelActiveAttack(WeaponActionCompletionReason.CancelledByMovement, false);
-        if (dodgeLightRecovery)
-            playerAnimatorController?.BlendDodgeLightRecoveryToLocomotion(DodgeLightMovementBlendDuration);
+        if (dodgeRecovery)
+            playerAnimatorController?.BlendMeleeRecoveryToLocomotion(blendDuration);
         else playerAnimatorController?.CancelWeaponRuntimeState(); // 후반 이동 취소 시 공격 애니메이션도 종료
     }
 

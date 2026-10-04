@@ -44,6 +44,10 @@ public partial class MeleeRuntime
             return;
         }
 
+        // Finish the wave and committed element work before accepting recovery input.
+        if (TryContinueAfterDashHeavyRecovery(normalizedTime))
+            return;
+
         if (shouldCancelByMoveInput)
         {
             CancelActiveAttackByMoveInput();

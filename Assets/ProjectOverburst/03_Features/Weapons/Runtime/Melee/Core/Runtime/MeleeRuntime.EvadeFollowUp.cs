@@ -6,6 +6,24 @@ public partial class MeleeRuntime
     private PlayerDodgeFollowUpKind requestedDodgeFollowUp;
     private PlayerDodgeFollowUpKind activeDodgeFollowUp;
     private MeleeComboDefinition dodgeTrajectoryDefinition;
+    private Vector3 dodgeAttackFacing;
+    private PlayerDodgeFollowUpRequest dodgeAttackFacingRequest;
+    public Vector3 DodgeAttackFacing => dodgeAttackFacing;
+
+    private void CaptureDodgeAttackFacing(in PlayerDodgeFollowUpRequest request)
+    {
+        dodgeAttackFacing = CaptureAttackStartDirection();
+        dodgeAttackFacingRequest = request;
+    }
+    private Vector3 ResolveDodgeAttackFacing(in PlayerDodgeFollowUpRequest request)
+    {
+        bool previewMatches = (dodgeLightWindup || dashHeavyWindup)
+            && request.Kind == dodgeAttackFacingRequest.Kind
+            && request.EvadeExecutionId == dodgeAttackFacingRequest.EvadeExecutionId
+            && request.InputRevision == dodgeAttackFacingRequest.InputRevision
+            && request.WeaponInstanceId == dodgeAttackFacingRequest.WeaponInstanceId;
+        return previewMatches ? dodgeAttackFacing : CaptureAttackStartDirection();
+    }
     private bool dodgeLightWindup;
     private PlayerDodgeFollowUpRequest dodgeLightWindupRequest;
     private float dodgeLightWindupStart, dodgeLightWindupDuration, dodgeHandoffProgress;
@@ -78,6 +96,7 @@ public partial class MeleeRuntime
             float progress = Mathf.Clamp01((OverburstGameClock.UnscaledTime - start) / duration);
             if (!playerAnimatorController.PlayMeleeCombatAttack(0, step.animationClip, step.animationClip.length / duration,
                 duration * (1f - progress), .08f * Time.timeScale, true, progress)) return;
+            CaptureDodgeAttackFacing(request);
             dodgeLightSwingPlayed = false;
             dodgeLightSwingStartedAt = -1f;
             dodgeLightWindup = true; dodgeLightWindupRequest = request;
@@ -125,7 +144,7 @@ public partial class MeleeRuntime
         if (request.Kind == PlayerDodgeFollowUpKind.Heavy
             && (definition.dashHeavyAttackDefinition == null || !definition.dashHeavyAttackDefinition.IsConfigured))
             return false;
-        Vector3 direction = request.Direction; direction.y = 0f;
+        Vector3 direction = ResolveDodgeAttackFacing(request); direction.y = 0f;
         if (direction.sqrMagnitude <= .0001f) return false;
         direction.Normalize();
         dodgeHandoffProgress = dodgeLightWindup && request.Kind == PlayerDodgeFollowUpKind.Light

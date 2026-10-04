@@ -61,10 +61,10 @@ public partial class PlayerAnimation
             OverburstGameClock.UnscaledDeltaTime / explorationEvadeExitBlend));
     }
 
-    public void BlendDodgeLightRecoveryToLocomotion(float transitionDuration)
+    public void BlendMeleeRecoveryToLocomotion(float transitionDuration)
     {
         if (weaponCombatAnimatorRouter != null
-            && weaponCombatAnimatorRouter.TryBlendDodgeLightRecoveryToLocomotion(transitionDuration)) return;
+            && weaponCombatAnimatorRouter.TryBlendMeleeRecoveryToLocomotion(transitionDuration)) return;
         CancelWeaponRuntimeState();
     }
 

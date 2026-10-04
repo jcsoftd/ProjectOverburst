@@ -2,11 +2,44 @@ using UnityEngine;
 
 public partial class MeleeRuntime
 {
+    private const float DashHeavyRecoveryBlendDuration = .12f;
+
+    private bool IsDashHeavyRecoveryOpen(float normalizedTime)
+    {
+        if (!isAttacking || !activeAttackIsHeavy || activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy
+            || normalizedTime < Mathf.Clamp01(activeAttackStep.actionCancelStartNormalized)) return false;
+        if (activeAttackPhases != null)
+            foreach (var phase in activeAttackPhases)
+                if (normalizedTime < phase.SafeEnd) return false;
+        return dashHeavyTravel == null
+            || dashHeavyTravel.Start + Time.time - dashHeavyPreviewStart >= dashHeavyTravel.Stop;
+    }
+
+    private bool TryContinueAfterDashHeavyRecovery(float normalizedTime)
+    {
+        if (!manualInputEnabled || activeActionSource != WeaponActionSource.PlayerInput
+            || !IsDashHeavyRecoveryOpen(normalizedTime) || !CanAttackFromCurrentMovementState()) return false;
+        var inputs = ResolveFacade()?.CombatInputs;
+        var heavy = playerEquipment?.CurrentWeaponData?.GetMeleeDefinition()?.heavyAttackDefinition;
+        bool nextHeavy = inputs != null && inputs.HasHeavy && heavy != null && heavy.IsConfigured;
+        if (!nextHeavy && !IsPrimaryAttackInputPressed()) return false;
+
+        Vector3 direction = CaptureAttackStartDirection();
+        GetComponent<PlayerParryController>()?.CloseWindow();
+        FinishActiveAttack();
+        playerController?.CancelWeaponActionLocks();
+        // Keep the outgoing attack pose for the next state's authored crossfade.
+        if (nextHeavy) TryStartHeavyAttack(direction);
+        else TryStartAction(new WeaponActionRequest(WeaponActionSource.PlayerInput, null, direction), out _);
+        return true;
+    }
+
     private float dashHeavySwingCue;
     private bool dashHeavyWindup, dashHeavyGatherPlayed, dashHeavyReleasePlayed, dashHeavySwingPlayed;
     private PlayerDodgeFollowUpRequest dashHeavyRequest;
     private ElementGemAttackSnapshot dashHeavyPreviewGem;
     private float dashHeavyPreviewStart, dashHeavyPlaybackSpeed, dashHeavyMovedDistance, dashHeavyHandoffElapsed;
+    private Vector3 dashHeavyTravelDirection;
     private DashHeavyTravelPlan dashHeavyTravel;
     private DashHeavyFocusPresentation dashHeavyPresentation;
     private int dashHeavyDarkBarrageId;
@@ -39,6 +72,8 @@ public partial class MeleeRuntime
             float remaining = fullDuration*heavy.attack.playbackAcceleration.ToElapsed(1f);
             if (!playerAnimatorController.PlayMeleeCombatAttack(0,heavy.attack.animationClip,dashHeavyPlaybackSpeed,
                 remaining,.08f*Time.timeScale,true,0f,heavy.attack.playbackAcceleration)) return;
+            CaptureDodgeAttackFacing(request);
+            dashHeavyTravelDirection = ResolvePlanarDirection(request.Direction);
             dashHeavyPreviewStart = Time.time;
             dashHeavyRequest = request;
             dashHeavyPreviewGem = new ElementGemAttackSnapshot(playerEquipment);
@@ -83,7 +118,7 @@ public partial class MeleeRuntime
             float target=dashHeavyTravel.Position(t);
             float delta=Mathf.Max(0f,target-dashHeavyMovedDistance);
             dashHeavyMovedDistance=target;
-            if(delta>0f) playerController?.CombatMotion?.ApplyEvadeDisplacement(activeAttackDirection*delta);
+            if(delta>0f) playerController?.CombatMotion?.ApplyEvadeDisplacement(dashHeavyTravelDirection*delta);
         }
         TickDashHeavyFocus(progress*DashHeavyFocusClock.ClipLength);
     }
