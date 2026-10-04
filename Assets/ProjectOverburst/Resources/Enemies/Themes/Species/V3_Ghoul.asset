@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Ghoul
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Ghoul
-  displayName: Ghoul
+  displayName: "\uC885\uC591 \uC2DD\uADC0"
   vendorPrefab: {fileID: 2161097644017189955, guid: 09efc08a66079d1489a0aee5d107d882, type: 3}
   animationProfile: {fileID: 11400000, guid: bd92b737d3cffac499525c3f2a2ecd56, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 288f88f6e07f66045b1af9e28a059979, type: 2}

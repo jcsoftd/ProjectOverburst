@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Deinodonte
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Deinodonte
-  displayName: Deinodonte
+  displayName: "\uC1A1\uACF3\uB2C8 \uD3ED\uAD70"
   vendorPrefab: {fileID: 118994, guid: 86c737425152f734bb70ab7fc3179d8b, type: 3}
   animationProfile: {fileID: 11400000, guid: b802a4c09c5d74142a9846c6d595b957, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: a10b0b3e831a2314283e20c985240c52, type: 2}

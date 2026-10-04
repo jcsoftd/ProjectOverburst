@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Tetrapuss
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Tetrapuss
-  displayName: Tetrapuss
+  displayName: "\uC0AC\uCD09\uC218 \uBD84\uD574\uC790"
   vendorPrefab: {fileID: 1454671353951084, guid: e4ccd84e7db558a4d833f0cae7c328ae, type: 3}
   animationProfile: {fileID: 11400000, guid: 7a171502df052734ba7d5eafa080035d, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: fd04bb0ba1fe4094997fdbfdc56cd9d7, type: 2}

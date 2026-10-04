@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_DeathSkull
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_DeathSkull
-  displayName: Death Skull
+  displayName: "\uB0A0\uAC1C \uD574\uACE8"
   vendorPrefab: {fileID: 2494569411399838829, guid: 975bb056d1b26f146949180188dcb0e3, type: 3}
   animationProfile: {fileID: 11400000, guid: cb13caa5916a70945ac7a556e858192c, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 976c3d9d4790d314291fe209d68c2e01, type: 2}

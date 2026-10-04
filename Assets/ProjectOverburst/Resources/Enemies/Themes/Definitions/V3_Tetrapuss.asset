@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Tetrapuss
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Tetrapuss
-  displayName: Tetrapuss
+  displayName: "\uC0AC\uCD09\uC218 \uBD84\uD574\uC790"
   referenceHealthCoefficient: 2.56
   species: {fileID: 11400000, guid: 2ac458f4df96a7c4387faaeb6fb4151e, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Telluropod
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Telluropod
-  displayName: Telluropod
+  displayName: "\uCD09\uC218\uC785 \uD3EC\uC2DD\uCCB4"
   vendorPrefab: {fileID: 144432, guid: fb33bd06f47c4ab4a8cd4e68704ba097, type: 3}
   animationProfile: {fileID: 11400000, guid: 6719fa7460a3a214b907cef871431cd7, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 652e6513cbe54ec438dddf53e872ea7e, type: 2}

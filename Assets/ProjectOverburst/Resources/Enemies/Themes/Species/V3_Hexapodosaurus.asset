@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Hexapodosaurus
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Hexapodosaurus
-  displayName: Hexapodosaurus
+  displayName: "\uC5EC\uC12F\uBC1C \uD131\uC9D0\uC2B9"
   vendorPrefab: {fileID: 2908831537548375840, guid: 309d6a87c19c6704caf4b75fbc53caab, type: 3}
   animationProfile: {fileID: 11400000, guid: cc19104ddd0f41d40959973957f3e18d, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 7d4be390a812f8b46a41905896597be0, type: 2}

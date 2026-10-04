@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_GiantSlug
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_GiantSlug
-  displayName: Giant Slug
+  displayName: "\uB2E4\uC548 \uC810\uC561\uAD34"
   vendorPrefab: {fileID: 9060218399276946843, guid: 677becd1a82ed674dbb6f2d213e503b8, type: 3}
   animationProfile: {fileID: 11400000, guid: c421f421156b53442b0debcf1fa9efe5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: d43d21b64f842964c9e22c75e1676278, type: 2}

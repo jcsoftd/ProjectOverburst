@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Crassoplast
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Crassoplast
-  displayName: Crassoplast
+  displayName: "\uCC3D\uBC31\uD55C \uAC08\uB798\uD131"
   referenceHealthCoefficient: 2.56
   species: {fileID: 11400000, guid: 688c10af48b10ee43b20661c6c0d7c36, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Onyscidus
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Onyscidus
-  displayName: Onyscidus
+  displayName: "\uD478\uB978\uB208 \uBC29\uD328\uAC11\uCCB4"
   vendorPrefab: {fileID: 7564638783374153818, guid: e9be7be0a27ec154dbd5df87ce6c500c, type: 3}
   animationProfile: {fileID: 11400000, guid: 05b3c8c00090a714cb4ed9852a732d83, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 0b3011ef2473e204992cf1c0a3a3be7d, type: 2}

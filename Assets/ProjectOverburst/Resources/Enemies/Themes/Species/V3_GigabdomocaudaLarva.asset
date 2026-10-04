@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_GigabdomocaudaLarva
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_GigabdomocaudaLarva
-  displayName: Gigabdomocauda Larva
+  displayName: "\uCC3D\uBC31\uD55C \uC54C\uB0AD \uC720\uCDA9"
   vendorPrefab: {fileID: 8936658968561396973, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
   animationProfile: {fileID: 11400000, guid: 160b6b19fd054824d8a3b073f343b8ee, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: cd77bcdf510b5bd46a10f195b7de3d37, type: 2}

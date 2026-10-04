@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Kentriplokame
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Kentriplokame
-  displayName: Kentriplokame
+  displayName: "\uB3C5\uB0AD \uAF2C\uB9AC\uCE68"
   vendorPrefab: {fileID: 7162089166164676862, guid: d2334ee7b5240c34d83946007ff5106b, type: 3}
   animationProfile: {fileID: 11400000, guid: 1f00d2458faac1646b945dffa61dd895, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f4395167b52084742ba3976b279a0d61, type: 2}

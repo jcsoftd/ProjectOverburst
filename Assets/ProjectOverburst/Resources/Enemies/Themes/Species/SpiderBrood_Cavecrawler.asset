@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Cavecrawler
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Cavecrawler
-  displayName: Cavecrawler
+  displayName: "\uC554\uAD74 \uAC08\uD034\uCDA9"
   vendorPrefab: {fileID: 6735205811123252913, guid: 25d46811d0cd06b4f876253c47563313, type: 3}
   animationProfile: {fileID: 11400000, guid: 375e12bbb3585c24ea993ea8cdc85654, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: ac7759dde11cc5741aae1636bc7071a9, type: 2}

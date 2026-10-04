@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Clypeosaurus
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Clypeosaurus
-  displayName: Clypeosaurus
+  displayName: "\uB3C5\uB0AD \uCCA0\uAC11\uC218"
   vendorPrefab: {fileID: 5523472075301917310, guid: 941961b13b8a8764cb54bb489fb004bb, type: 3}
   animationProfile: {fileID: 11400000, guid: 186bf838695ca084ea22377af12415b5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 5afd883f906625c449191a5312eb488f, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Gastarid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Gastarid
-  displayName: Gastarid
+  displayName: "\uAD11\uAC11 \uCD94\uACA9\uCCB4"
   vendorPrefab: {fileID: 1692520884677746, guid: 41757abca6a71d04f858d1e4d2abdaf9, type: 3}
   animationProfile: {fileID: 11400000, guid: 5bca5fa11a742a444b7f1c670b4b4fe5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: f875defd714e08848ab103192f368b36, type: 2}

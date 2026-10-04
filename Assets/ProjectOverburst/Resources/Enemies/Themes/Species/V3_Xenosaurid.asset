@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Xenosaurid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Xenosaurid
-  displayName: Xenosaurid
+  displayName: "\uCC3D\uBC31\uD55C \uAC00\uC2DC\uAF2C\uB9AC"
   vendorPrefab: {fileID: 1007151615169100110, guid: a4d8b451869f397408c1588b26f6d0bc, type: 3}
   animationProfile: {fileID: 11400000, guid: 4ece44977732a2c41a2cd7797426bb81, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 19eee64bf5c320d4bbba76030aa5153a, type: 2}

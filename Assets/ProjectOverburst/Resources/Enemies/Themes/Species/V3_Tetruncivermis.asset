@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Tetruncivermis
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Tetruncivermis
-  displayName: Tetruncivermis
+  displayName: "\uAC08\uB798\uC785 \uBD84\uC808\uCDA9"
   vendorPrefab: {fileID: 7500967399506956537, guid: 06696c4431b290f43a118fc1f38b742f, type: 3}
   animationProfile: {fileID: 11400000, guid: df269e7d13b74d0469c1acad21538f37, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 7dfa620fc08289b428bbeb4a026da1dd, type: 2}

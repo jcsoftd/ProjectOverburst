@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Crassorrid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Crassorrid
-  displayName: Crassorrid
+  displayName: "\uC0B4\uB369\uC774 \uC544\uADC0"
   vendorPrefab: {fileID: 1773622563929569183, guid: 0c4c6ad11483d4e42b4a1ef7666789d0, type: 3}
   animationProfile: {fileID: 11400000, guid: a71e0e9cc7b457a489afd1a8cff1be92, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 5f5052f6ee161ad4a832abb01e5d1fd6, type: 2}

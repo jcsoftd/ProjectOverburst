@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Kapeloproboskid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Kapeloproboskid
-  displayName: Kapeloproboskid
+  displayName: "\uB1CC\uB0AD \uBD80\uC720\uCCB4"
   vendorPrefab: {fileID: 5555707140931479309, guid: ffc38f8e374ac5445abd8eac3444e246, type: 3}
   animationProfile: {fileID: 11400000, guid: 368a8a585d6815148adb26c33dd50132, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 7e2314d974a28aa49bc4809a098ab365, type: 2}

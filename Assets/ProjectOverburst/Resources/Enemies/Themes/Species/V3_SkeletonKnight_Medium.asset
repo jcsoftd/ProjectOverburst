@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_SkeletonKnight_Medium
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_SkeletonKnight_Medium
-  displayName: Skeleton Knight
+  displayName: "\uB0A9\uACE8 \uADFC\uC704\uBCD1"
   vendorPrefab: {fileID: 1005806008958709862, guid: 24482ef7632aa6042b45735370df80ec, type: 3}
   animationProfile: {fileID: 11400000, guid: 6ad0a45b8410b7140a2eed8a9a86af35, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: ab5dcf029848e34478adfb09be846b1a, type: 2}

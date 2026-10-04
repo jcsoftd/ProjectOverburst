@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Gryllunguis
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Gryllunguis
-  displayName: Gryllunguis
+  displayName: "\uBD84\uD64D\uB0AD \uD3EC\uC2DD\uCDA9"
   vendorPrefab: {fileID: 3264619696002382205, guid: 7182572b14725044b9ac951419099363, type: 3}
   animationProfile: {fileID: 11400000, guid: 9fd7be08f906b2741b7454ec3c217c99, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 8454b5ee861120d4d912a4dc565219f2, type: 2}

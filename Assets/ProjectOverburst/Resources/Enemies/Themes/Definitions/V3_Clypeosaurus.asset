@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Clypeosaurus
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Clypeosaurus
-  displayName: Clypeosaurus
+  displayName: "\uB3C5\uB0AD \uCCA0\uAC11\uC218"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: 35b27bfd29579fe499c5f3f93600c1e3, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

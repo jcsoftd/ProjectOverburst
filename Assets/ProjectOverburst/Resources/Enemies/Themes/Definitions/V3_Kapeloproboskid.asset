@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Kapeloproboskid
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Kapeloproboskid
-  displayName: Kapeloproboskid
+  displayName: "\uB1CC\uB0AD \uBD80\uC720\uCCB4"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: 485a3b6e1e1fe1f46b27525f07b2f306, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

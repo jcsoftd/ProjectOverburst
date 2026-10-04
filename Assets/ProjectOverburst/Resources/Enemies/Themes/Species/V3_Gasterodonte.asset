@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Gasterodonte
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Gasterodonte
-  displayName: Gasterodonte
+  displayName: "\uCC22\uC5B4\uC9C4\uD131 \uC12D\uC2DD\uCCB4"
   vendorPrefab: {fileID: 9161148632783801881, guid: 20089a28c0d5fa943b266315c0024719, type: 3}
   animationProfile: {fileID: 11400000, guid: ef2fd7f7429c10a4896813d4137137a5, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 4b7eb0c58fca02e4499c9f7bdac70045, type: 2}

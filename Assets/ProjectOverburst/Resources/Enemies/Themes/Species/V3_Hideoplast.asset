@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Hideoplast
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Hideoplast
-  displayName: Hideoplast
+  displayName: "\uB2E4\uAD00\uC808 \uBCC0\uC774\uCCB4"
   vendorPrefab: {fileID: 4960153498474352827, guid: 2c7d2ca099d5e5e479456ba1ead0afe3, type: 3}
   animationProfile: {fileID: 11400000, guid: 1ed4c15777eadb447a838281b0c46901, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 6ad74e6fd86c5e24e8252bf7561da3a8, type: 2}

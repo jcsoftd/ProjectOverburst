@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Funglicane
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Funglicane
-  displayName: Funglicane
+  displayName: "\uAD6C\uD615 \uD3EC\uC790\uCCB4"
   vendorPrefab: {fileID: 6753501059967932892, guid: 5809dd09fe30abb44919e294a0389dc7, type: 3}
   animationProfile: {fileID: 11400000, guid: 089853bac8a812c4ebfb69910e88904c, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 36d09a53e0022d4439d0ab92d0f930e4, type: 2}

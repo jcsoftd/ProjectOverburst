@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Anglerox
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Anglerox
-  displayName: Anglerox
+  displayName: "\uC720\uC778\uCD09\uC218 \uD3EC\uC2DD\uCCB4"
   vendorPrefab: {fileID: 8694943018831287373, guid: 523607d74500f59438ef678ce1d0b29d, type: 3}
   animationProfile: {fileID: 11400000, guid: b2adfeb0f062cab468f0edde59d6ea8e, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: bdea0b519d0cf8d4a996e241f687848e, type: 2}

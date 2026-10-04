@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_KingSpawnLarvae
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_KingSpawnLarvae
-  displayName: King Spawn Larvae
+  displayName: "\uAC80\uC740\uAF2C\uB9AC \uB0AD\uC720\uCCB4"
   vendorPrefab: {fileID: 6448569207982274544, guid: f3e7b506f2d74cf408ab2bb7d14413ac, type: 3}
   animationProfile: {fileID: 11400000, guid: 3c77dac36f69b554fb8a4633f61b0dae, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 9d2895d6a7876e744b91d8d003d83b47, type: 2}

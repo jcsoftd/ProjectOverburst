@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Trimaxillopod
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Trimaxillopod
-  displayName: Trimaxillopod
+  displayName: "\uC0BC\uAC08\uB798\uD131 \uC0AC\uB0E5\uCDA9"
   vendorPrefab: {fileID: 8836743294037636487, guid: 381ab665d427c054a89a6f4546eb0a19, type: 3}
   animationProfile: {fileID: 11400000, guid: ed0621e60d7ffa54da7675e996e2fde9, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 1696748e6feaec44ead34180b70afc99, type: 2}

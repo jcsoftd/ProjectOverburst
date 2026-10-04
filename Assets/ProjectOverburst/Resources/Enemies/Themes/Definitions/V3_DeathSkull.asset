@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_DeathSkull
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_DeathSkull
-  displayName: Death Skull
+  displayName: "\uB0A0\uAC1C \uD574\uACE8"
   referenceHealthCoefficient: 2.56
   species: {fileID: 11400000, guid: 4bc973a2635ad7846a4ac18fff930b13, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

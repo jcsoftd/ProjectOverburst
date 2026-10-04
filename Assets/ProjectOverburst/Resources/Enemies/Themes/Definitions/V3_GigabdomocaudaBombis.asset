@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_GigabdomocaudaBombis
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_GigabdomocaudaBombis
-  displayName: Gigabdomocauda Bombis
+  displayName: "\uC7A5\uB2E4\uB9AC \uC0B0\uB780\uCCB4"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: 716f2b06714a6234d8877cf11458b7d4, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

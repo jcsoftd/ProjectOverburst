@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Skorpmare
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Skorpmare
-  displayName: Skorpmare
+  displayName: "\uC30D\uCD09\uC218 \uB9E4\uBCF5\uC218"
   vendorPrefab: {fileID: 125364, guid: b850ae572c3fe1d4ab82b0aed92607d5, type: 3}
   animationProfile: {fileID: 11400000, guid: d43eadd6290f35841a4d3932f4731f75, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 5237f395f4d6eba419629feab4344018, type: 2}

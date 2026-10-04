@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Gastaroid
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Gastaroid
-  displayName: Gastaroid
+  displayName: "\uAC80\uD478\uB978 \uAC08\uD034\uCCB4"
   vendorPrefab: {fileID: 1417165993201412, guid: a41c9ca533106594baf9ef4497457c11, type: 3}
   animationProfile: {fileID: 11400000, guid: 2a63baf6da2381840a8ce7b376a48749, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: bac1520171697be49ad5f8a1ce7ed4a5, type: 2}

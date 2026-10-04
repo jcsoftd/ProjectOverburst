@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Cavecrawler
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: SpiderBrood_Cavecrawler
-  displayName: Cavecrawler
+  displayName: "\uC554\uAD74 \uAC08\uD034\uCDA9"
   referenceHealthCoefficient: 6.04
   species: {fileID: 11400000, guid: 347389e17d26a2942bb7b7e60039fa7c, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

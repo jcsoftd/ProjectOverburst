@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Deinodonte
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Deinodonte
-  displayName: Deinodonte
+  displayName: "\uC1A1\uACF3\uB2C8 \uD3ED\uAD70"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: 39e0c2836659e4747bc1375e0883741a, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

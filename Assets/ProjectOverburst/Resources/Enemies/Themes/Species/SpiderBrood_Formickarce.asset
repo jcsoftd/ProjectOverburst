@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Formickarce
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: SpiderBrood_Formickarce
-  displayName: Formickarce
+  displayName: "\uB3C5\uB0AD \uCC99\uD6C4\uCDA9"
   vendorPrefab: {fileID: 6277497783615806078, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
   animationProfile: {fileID: 11400000, guid: 8d12511c94b77bc4eaad71e9633c717d, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 71dfc6e9e68834f47b8929802bc9dc5f, type: 2}

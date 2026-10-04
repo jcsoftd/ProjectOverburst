@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_darkKnight2
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_darkKnight2
-  displayName: Death Knight 2
+  displayName: "\uD751\uCCA0 \uC0AC\uB839\uAE30\uC0AC"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: bc84697bdde259443b39feeb93c1a6ce, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

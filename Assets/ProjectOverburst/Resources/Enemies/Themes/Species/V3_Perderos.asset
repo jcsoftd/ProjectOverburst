@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Perderos
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Perderos
-  displayName: Perderos
+  displayName: "\uB4F1\uAC11 \uD3EC\uC2DD\uC218"
   vendorPrefab: {fileID: 1447412156832593092, guid: c9f28724f4d533d4f9678f29abfb975d, type: 3}
   animationProfile: {fileID: 11400000, guid: 3f5ac6d79aca2e64ab0240dff7abf9db, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 17ceea93af531e145bb5cce3e50ca335, type: 2}

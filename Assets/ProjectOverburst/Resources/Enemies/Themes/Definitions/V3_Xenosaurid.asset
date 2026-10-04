@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Xenosaurid
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Xenosaurid
-  displayName: Xenosaurid
+  displayName: "\uCC3D\uBC31\uD55C \uAC00\uC2DC\uAF2C\uB9AC"
   referenceHealthCoefficient: 6.04
   species: {fileID: 11400000, guid: 45b7df45b0ee34a47b19b8250293c7d0, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

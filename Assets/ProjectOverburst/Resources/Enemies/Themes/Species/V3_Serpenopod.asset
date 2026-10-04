@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Serpenopod
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Serpenopod
-  displayName: Serpenopod
+  displayName: "\uC138\uBC1C \uAE34\uD131\uB8E1"
   vendorPrefab: {fileID: 7282962917103849540, guid: 5d226bc64f924b84f8dfe8e24ab7464b, type: 3}
   animationProfile: {fileID: 11400000, guid: b57a1eeff8d21474089a4f7bbcbc7162, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 54d1117ecd150b5418392b5602040c75, type: 2}

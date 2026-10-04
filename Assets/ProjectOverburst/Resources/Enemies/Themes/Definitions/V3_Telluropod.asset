@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Telluropod
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Telluropod
-  displayName: Telluropod
+  displayName: "\uCD09\uC218\uC785 \uD3EC\uC2DD\uCCB4"
   referenceHealthCoefficient: 6.04
   species: {fileID: 11400000, guid: e82c947744a86374a9fb62ef2c91b6be, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

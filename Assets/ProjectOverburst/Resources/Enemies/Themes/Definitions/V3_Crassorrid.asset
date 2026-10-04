@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Crassorrid
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Crassorrid
-  displayName: Crassorrid
+  displayName: "\uC0B4\uB369\uC774 \uC544\uADC0"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: c81e38f5bc9a08e48bf62a764edf8eda, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}

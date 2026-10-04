@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Lacodon
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Lacodon
-  displayName: Lacodon
+  displayName: "\uACB9\uD131 \uC0AC\uB0E5\uC218"
   vendorPrefab: {fileID: 5004724868438515384, guid: 04d42cc3beadf2045b01ad657bb81022, type: 3}
   animationProfile: {fileID: 11400000, guid: d22d45387e410864cb779b18b27308f3, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: 842df7b7ea6c60a4aa8e05d55c789fb6, type: 2}

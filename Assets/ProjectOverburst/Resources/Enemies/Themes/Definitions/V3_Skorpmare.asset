@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Skorpmare
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Skorpmare
-  displayName: Skorpmare
+  displayName: "\uC30D\uCD09\uC218 \uB9E4\uBCF5\uC218"
   referenceHealthCoefficient: 6.04
   species: {fileID: 11400000, guid: 0de5e57d6f428a346955225dd1ec4c73, type: 2}
   grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}

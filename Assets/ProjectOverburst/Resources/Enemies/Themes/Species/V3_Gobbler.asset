@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Gobbler
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
   speciesId: V3_Gobbler
-  displayName: Gobbler
+  displayName: "\uD310\uAC11 \uC544\uADC0"
   vendorPrefab: {fileID: 5447342107732448593, guid: b31b5231d06d4044589d7f76777bc99f, type: 3}
   animationProfile: {fileID: 11400000, guid: d49a19ebec048ed498a722191d1b976c, type: 2}
   defaultAbilitySet: {fileID: 11400000, guid: ce2cb54b75b78a04bbeb8a95a9b6e328, type: 2}

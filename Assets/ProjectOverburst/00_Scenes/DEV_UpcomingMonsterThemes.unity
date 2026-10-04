@@ -160,7 +160,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 64898}
-  m_Text: Funglicane
+  m_Text: "\uAD6C\uD615 \uD3EC\uC790\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -3080,7 +3080,7 @@ GameObject:
   - component: {fileID: 36237166}
   - component: {fileID: 36237167}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Cavecrawler"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uC554\uAD74 \uAC08\uD034\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3119,7 +3119,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:cavecrawler:medium
-  displayName: Cavecrawler
+  displayName: "\uC554\uAD74 \uAC08\uD034\uCDA9"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -3585,7 +3585,7 @@ GameObject:
   - component: {fileID: 44002800}
   - component: {fileID: 44002801}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Hideoplast"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uB2E4\uAD00\uC808 \uBCC0\uC774\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3624,7 +3624,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:hideoplast:medium
-  displayName: Hideoplast
+  displayName: "\uB2E4\uAD00\uC808 \uBCC0\uC774\uCCB4"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -6586,7 +6586,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 92806701}
-  m_Text: Gobbler
+  m_Text: "\uD310\uAC11 \uC544\uADC0"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -9001,7 +9001,7 @@ GameObject:
   - component: {fileID: 164892532}
   - component: {fileID: 164892533}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Kapeloproboskid"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uB1CC\uB0AD \uBD80\uC720\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9040,7 +9040,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:kapeloproboskid:elite
-  displayName: Kapeloproboskid
+  displayName: "\uB1CC\uB0AD \uBD80\uC720\uCCB4"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -13329,7 +13329,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 180493558}
-  m_Text: King Spawn Larvae
+  m_Text: "\uAC80\uC740\uAF2C\uB9AC \uB0AD\uC720\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -13433,7 +13433,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 183709809}
-  m_Text: Skorpmare
+  m_Text: "\uC30D\uCD09\uC218 \uB9E4\uBCF5\uC218"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -14956,7 +14956,7 @@ GameObject:
   - component: {fileID: 200625336}
   - component: {fileID: 200625337}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Gasterodonte"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uCC22\uC5B4\uC9C4\uD131 \uC12D\uC2DD\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -14995,7 +14995,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gasterodonte:elite
-  displayName: Gasterodonte
+  displayName: "\uCC22\uC5B4\uC9C4\uD131 \uC12D\uC2DD\uCCB4"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -15488,7 +15488,7 @@ GameObject:
   - component: {fileID: 224793442}
   - component: {fileID: 224793443}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Tetruncivermis"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uAC08\uB798\uC785 \uBD84\uC808\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -15527,7 +15527,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:tetruncivermis:small
-  displayName: Tetruncivermis
+  displayName: "\uAC08\uB798\uC785 \uBD84\uC808\uCDA9"
   grade: small
   selectionStatus: core
   warnings: 
@@ -15912,7 +15912,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 253941905}
-  m_Text: Hideoplast
+  m_Text: "\uB2E4\uAD00\uC808 \uBCC0\uC774\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -16090,7 +16090,7 @@ GameObject:
   - component: {fileID: 256183806}
   - component: {fileID: 256183807}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Formickarce"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uB3C5\uB0AD \uCC99\uD6C4\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16129,7 +16129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:formickarce:medium
-  displayName: Formickarce
+  displayName: "\uB3C5\uB0AD \uCC99\uD6C4\uCDA9"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -16600,7 +16600,7 @@ GameObject:
   - component: {fileID: 277016384}
   - component: {fileID: 277016385}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Gryllunguis"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uBD84\uD64D\uB0AD \uD3EC\uC2DD\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16639,7 +16639,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gryllunguis:small
-  displayName: Gryllunguis
+  displayName: "\uBD84\uD64D\uB0AD \uD3EC\uC2DD\uCDA9"
   grade: small
   selectionStatus: core
   warnings: 
@@ -20826,7 +20826,7 @@ GameObject:
   - component: {fileID: 314430226}
   - component: {fileID: 314430227}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Funglicane"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uAD6C\uD615 \uD3EC\uC790\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20865,7 +20865,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:funglicane:small
-  displayName: Funglicane
+  displayName: "\uAD6C\uD615 \uD3EC\uC790\uCCB4"
   grade: small
   selectionStatus: core
   warnings: 
@@ -21345,7 +21345,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 350408569}
-  m_Text: Kapeloproboskid
+  m_Text: "\uB1CC\uB0AD \uBD80\uC720\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -21449,7 +21449,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 353838591}
-  m_Text: Tetruncivermis
+  m_Text: "\uAC08\uB798\uC785 \uBD84\uC808\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -35815,7 +35815,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 453902336}
-  m_Text: Gastarid
+  m_Text: "\uAD11\uAC11 \uCD94\uACA9\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -35919,7 +35919,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 457290832}
-  m_Text: Anglerox
+  m_Text: "\uC720\uC778\uCD09\uC218 \uD3EC\uC2DD\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -36291,7 +36291,7 @@ GameObject:
   - component: {fileID: 471553620}
   - component: {fileID: 471553621}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Death Knight 2"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uD751\uCCA0 \uC0AC\uB839\uAE30\uC0AC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -36331,7 +36331,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:death-knight-2:elite
-  displayName: Death Knight 2
+  displayName: "\uD751\uCCA0 \uC0AC\uB839\uAE30\uC0AC"
   grade: elite
   selectionStatus: core
   warnings: "attack7\uACFC Attack10\uC740 \uC6D0\uBCF8/GIF\uAC00 \uB3D9\uC77C\uD569\uB2C8\uB2E4.
@@ -39588,7 +39588,7 @@ GameObject:
   - component: {fileID: 497508055}
   - component: {fileID: 497508056}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Ghoul"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uC885\uC591 \uC2DD\uADC0"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39627,7 +39627,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:ghoul:medium
-  displayName: Ghoul
+  displayName: "\uC885\uC591 \uC2DD\uADC0"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -44263,7 +44263,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 603727523}
-  m_Text: Onyscidus
+  m_Text: "\uD478\uB978\uB208 \uBC29\uD328\uAC11\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -44441,7 +44441,7 @@ GameObject:
   - component: {fileID: 617418232}
   - component: {fileID: 617418233}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Skeleton Knight"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uB0A9\uACE8 \uADFC\uC704\uBCD1"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44480,7 +44480,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:skeleton-knight:medium
-  displayName: Skeleton Knight
+  displayName: "\uB0A9\uACE8 \uADFC\uC704\uBCD1"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -49480,7 +49480,7 @@ GameObject:
   - component: {fileID: 662079329}
   - component: {fileID: 662079330}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Onyscidus"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uD478\uB978\uB208 \uBC29\uD328\uAC11\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -49519,7 +49519,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:onyscidus:elite
-  displayName: Onyscidus
+  displayName: "\uD478\uB978\uB208 \uBC29\uD328\uAC11\uCCB4"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -49948,7 +49948,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 696343618}
-  m_Text: Telluropod
+  m_Text: "\uCD09\uC218\uC785 \uD3EC\uC2DD\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -50525,7 +50525,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 736175575}
-  m_Text: Gigabdomocauda Larva
+  m_Text: "\uCC3D\uBC31\uD55C \uC54C\uB0AD \uC720\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -51922,7 +51922,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 746178212}
-  m_Text: Clypeosaurus
+  m_Text: "\uB3C5\uB0AD \uCCA0\uAC11\uC218"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -59311,7 +59311,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 788819439}
-  m_Text: Death Knight 2
+  m_Text: "\uD751\uCCA0 \uC0AC\uB839\uAE30\uC0AC"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -59385,7 +59385,7 @@ GameObject:
   - component: {fileID: 789043663}
   - component: {fileID: 789043664}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] King Spawn Larvae"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uAC80\uC740\uAF2C\uB9AC \uB0AD\uC720\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -59424,7 +59424,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:king-spawn-larvae:small
-  displayName: King Spawn Larvae
+  displayName: "\uAC80\uC740\uAF2C\uB9AC \uB0AD\uC720\uCCB4"
   grade: small
   selectionStatus: core
   warnings: 
@@ -65080,7 +65080,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 843323442}
-  m_Text: Crassorrid
+  m_Text: "\uC0B4\uB369\uC774 \uC544\uADC0"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -71182,7 +71182,7 @@ GameObject:
   - component: {fileID: 897637089}
   - component: {fileID: 897637090}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Giant Slug"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uB2E4\uC548 \uC810\uC561\uAD34"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -71221,7 +71221,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:giant-slug:medium
-  displayName: Giant Slug
+  displayName: "\uB2E4\uC548 \uC810\uC561\uAD34"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -74187,7 +74187,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 922595384}
-  m_Text: Tetrapuss
+  m_Text: "\uC0AC\uCD09\uC218 \uBD84\uD574\uC790"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -74291,7 +74291,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 925257144}
-  m_Text: Trimaxillopod
+  m_Text: "\uC0BC\uAC08\uB798\uD131 \uC0AC\uB0E5\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -78497,7 +78497,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 973415684}
-  m_Text: Lacodon
+  m_Text: "\uACB9\uD131 \uC0AC\uB0E5\uC218"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -78571,7 +78571,7 @@ GameObject:
   - component: {fileID: 978207222}
   - component: {fileID: 978207223}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Crassoplast"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uCC3D\uBC31\uD55C \uAC08\uB798\uD131"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -78610,7 +78610,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:crassoplast:small
-  displayName: Crassoplast
+  displayName: "\uCC3D\uBC31\uD55C \uAC08\uB798\uD131"
   grade: small
   selectionStatus: core
   warnings: 
@@ -81529,7 +81529,7 @@ GameObject:
   - component: {fileID: 1023653218}
   - component: {fileID: 1023653219}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Gastarid"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uAD11\uAC11 \uCD94\uACA9\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -81568,7 +81568,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gastarid:small
-  displayName: Gastarid
+  displayName: "\uAD11\uAC11 \uCD94\uACA9\uCCB4"
   grade: small
   selectionStatus: core
   warnings: 
@@ -94613,7 +94613,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1136574763}
-  m_Text: Xenosaurid
+  m_Text: "\uCC3D\uBC31\uD55C \uAC00\uC2DC\uAF2C\uB9AC"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -99759,7 +99759,7 @@ GameObject:
   - component: {fileID: 1182079029}
   - component: {fileID: 1182079030}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Death Skull"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uB0A0\uAC1C \uD574\uACE8"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -99798,7 +99798,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:death-skull:small
-  displayName: Death Skull
+  displayName: "\uB0A0\uAC1C \uD574\uACE8"
   grade: small
   selectionStatus: core
   warnings: 
@@ -101973,7 +101973,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1197444110}
-  m_Text: Gastarias
+  m_Text: "\uBD89\uC740\uB0AD \uBC30\uC591\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -102263,7 +102263,7 @@ GameObject:
   - component: {fileID: 1218403787}
   - component: {fileID: 1218403788}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Anglerox"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uC720\uC778\uCD09\uC218 \uD3EC\uC2DD\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -102302,7 +102302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:anglerox:elite
-  displayName: Anglerox
+  displayName: "\uC720\uC778\uCD09\uC218 \uD3EC\uC2DD\uCCB4"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -104592,7 +104592,7 @@ GameObject:
   - component: {fileID: 1227232035}
   - component: {fileID: 1227232036}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Gigabdomocauda Bombis"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uC7A5\uB2E4\uB9AC \uC0B0\uB780\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -104631,7 +104631,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gigabdomocauda-bombis:elite
-  displayName: Gigabdomocauda Bombis
+  displayName: "\uC7A5\uB2E4\uB9AC \uC0B0\uB780\uCCB4"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -105136,7 +105136,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1239062616}
-  m_Text: Skeleton Knight
+  m_Text: "\uB0A9\uACE8 \uAC80\uBCD1"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -105826,7 +105826,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1261807577}
-  m_Text: Cavecrawler
+  m_Text: "\uC554\uAD74 \uAC08\uD034\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -111254,7 +111254,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1334692723}
-  m_Text: Formickarce
+  m_Text: "\uB3C5\uB0AD \uCC99\uD6C4\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -113059,7 +113059,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1375021972}
-  m_Text: Crassoplast
+  m_Text: "\uCC3D\uBC31\uD55C \uAC08\uB798\uD131"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -114972,7 +114972,7 @@ GameObject:
   - component: {fileID: 1392650866}
   - component: {fileID: 1392650867}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Skorpmare"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uC30D\uCD09\uC218 \uB9E4\uBCF5\uC218"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -115011,7 +115011,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:skorpmare:medium
-  displayName: Skorpmare
+  displayName: "\uC30D\uCD09\uC218 \uB9E4\uBCF5\uC218"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -118131,7 +118131,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1441363131}
-  m_Text: Deinodonte
+  m_Text: "\uC1A1\uACF3\uB2C8 \uD3ED\uAD70"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -129314,7 +129314,7 @@ GameObject:
   - component: {fileID: 1511611649}
   - component: {fileID: 1511611650}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Gigabdomocauda Larva"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uCC3D\uBC31\uD55C \uC54C\uB0AD \uC720\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -129353,7 +129353,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gigabdomocauda-larva:small
-  displayName: Gigabdomocauda Larva
+  displayName: "\uCC3D\uBC31\uD55C \uC54C\uB0AD \uC720\uCDA9"
   grade: small
   selectionStatus: core
   warnings: 
@@ -138837,7 +138837,7 @@ GameObject:
   - component: {fileID: 1621794451}
   - component: {fileID: 1621794452}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Trimaxillopod"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uC0BC\uAC08\uB798\uD131 \uC0AC\uB0E5\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -138876,7 +138876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:trimaxillopod:medium
-  displayName: Trimaxillopod
+  displayName: "\uC0BC\uAC08\uB798\uD131 \uC0AC\uB0E5\uCDA9"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -139609,7 +139609,7 @@ GameObject:
   - component: {fileID: 1641542047}
   - component: {fileID: 1641542048}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Telluropod"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uCD09\uC218\uC785 \uD3EC\uC2DD\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -139648,7 +139648,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:telluropod:medium
-  displayName: Telluropod
+  displayName: "\uCD09\uC218\uC785 \uD3EC\uC2DD\uCCB4"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -142823,7 +142823,7 @@ GameObject:
   - component: {fileID: 1690308960}
   - component: {fileID: 1690308961}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Gastaroid"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uAC80\uD478\uB978 \uAC08\uD034\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -142862,7 +142862,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gastaroid:medium
-  displayName: Gastaroid
+  displayName: "\uAC80\uD478\uB978 \uAC08\uD034\uCCB4"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -142992,7 +142992,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1691944620}
-  m_Text: Gastaroid
+  m_Text: "\uAC80\uD478\uB978 \uAC08\uD034\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -147096,7 +147096,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1715151059}
-  m_Text: Hexapodosaurus
+  m_Text: "\uC5EC\uC12F\uBC1C \uD131\uC9D0\uC2B9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -148807,7 +148807,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1727564792}
-  m_Text: Kentriplokame
+  m_Text: "\uB3C5\uB0AD \uAF2C\uB9AC\uCE68"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -149193,7 +149193,7 @@ GameObject:
   - component: {fileID: 1738370806}
   - component: {fileID: 1738370807}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Perderos"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uB4F1\uAC11 \uD3EC\uC2DD\uC218"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -149232,7 +149232,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:perderos:elite
-  displayName: Perderos
+  displayName: "\uB4F1\uAC11 \uD3EC\uC2DD\uC218"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -150737,7 +150737,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1753714976}
-  m_Text: Giant Slug
+  m_Text: "\uB2E4\uC548 \uC810\uC561\uAD34"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -151020,7 +151020,7 @@ GameObject:
   - component: {fileID: 1774468560}
   - component: {fileID: 1774468561}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Gastarias"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uBD89\uC740\uB0AD \uBC30\uC591\uCDA9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -151060,7 +151060,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gastarias:small
-  displayName: Gastarias
+  displayName: "\uBD89\uC740\uB0AD \uBC30\uC591\uCDA9"
   grade: small
   selectionStatus: core
   warnings: "\uD14C\uB9C8\uC5D0\uB294 \uD3EC\uD568\uB418\uC5B4 \uC788\uC9C0\uB9CC
@@ -154599,7 +154599,7 @@ GameObject:
   - component: {fileID: 1779356233}
   - component: {fileID: 1779356234}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Deinodonte"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uC1A1\uACF3\uB2C8 \uD3ED\uAD70"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -154638,7 +154638,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:deinodonte:elite
-  displayName: Deinodonte
+  displayName: "\uC1A1\uACF3\uB2C8 \uD3ED\uAD70"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -157255,7 +157255,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1836639315}
-  m_Text: Gasterodonte
+  m_Text: "\uCC22\uC5B4\uC9C4\uD131 \uC12D\uC2DD\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -157719,7 +157719,7 @@ GameObject:
   - component: {fileID: 1851152377}
   - component: {fileID: 1851152378}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Kentriplokame"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uB3C5\uB0AD \uAF2C\uB9AC\uCE68"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -157758,7 +157758,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:kentriplokame:medium
-  displayName: Kentriplokame
+  displayName: "\uB3C5\uB0AD \uAF2C\uB9AC\uCE68"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -163182,7 +163182,7 @@ GameObject:
   - component: {fileID: 1924214677}
   - component: {fileID: 1924214678}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Hexapodosaurus"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uC5EC\uC12F\uBC1C \uD131\uC9D0\uC2B9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -163221,7 +163221,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:hexapodosaurus:small
-  displayName: Hexapodosaurus
+  displayName: "\uC5EC\uC12F\uBC1C \uD131\uC9D0\uC2B9"
   grade: small
   selectionStatus: core
   warnings: 
@@ -170391,7 +170391,7 @@ GameObject:
   - component: {fileID: 1942146732}
   - component: {fileID: 1942146733}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Skeleton Knight"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uB0A9\uACE8 \uAC80\uBCD1"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -170430,7 +170430,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:skeleton-knight:small
-  displayName: Skeleton Knight
+  displayName: "\uB0A9\uACE8 \uAC80\uBCD1"
   grade: small
   selectionStatus: core
   warnings: 
@@ -173715,7 +173715,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1976755304}
-  m_Text: Perderos
+  m_Text: "\uB4F1\uAC11 \uD3EC\uC2DD\uC218"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -174223,7 +174223,7 @@ GameObject:
   - component: {fileID: 1993125078}
   - component: {fileID: 1993125079}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Crassorrid"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uC0B4\uB369\uC774 \uC544\uADC0"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -174262,7 +174262,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:crassorrid:elite
-  displayName: Crassorrid
+  displayName: "\uC0B4\uB369\uC774 \uC544\uADC0"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -174354,7 +174354,7 @@ GameObject:
   - component: {fileID: 1994944225}
   - component: {fileID: 1994944226}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] Clypeosaurus"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC5D8\uB9AC\uD2B8] \uB3C5\uB0AD \uCCA0\uAC11\uC218"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -174393,7 +174393,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:clypeosaurus:elite
-  displayName: Clypeosaurus
+  displayName: "\uB3C5\uB0AD \uCCA0\uAC11\uC218"
   grade: elite
   selectionStatus: core
   warnings: 
@@ -174693,7 +174693,7 @@ GameObject:
   - component: {fileID: 2000961751}
   - component: {fileID: 2000961752}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Lacodon"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uACB9\uD131 \uC0AC\uB0E5\uC218"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -174732,7 +174732,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:lacodon:medium
-  displayName: Lacodon
+  displayName: "\uACB9\uD131 \uC0AC\uB0E5\uC218"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -174901,7 +174901,7 @@ GameObject:
   - component: {fileID: 2014590281}
   - component: {fileID: 2014590282}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Xenosaurid"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uCC3D\uBC31\uD55C \uAC00\uC2DC\uAF2C\uB9AC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -174940,7 +174940,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:xenosaurid:medium
-  displayName: Xenosaurid
+  displayName: "\uCC3D\uBC31\uD55C \uAC00\uC2DC\uAF2C\uB9AC"
   grade: medium
   selectionStatus: core
   warnings: 
@@ -175246,7 +175246,7 @@ GameObject:
   - component: {fileID: 2019356641}
   - component: {fileID: 2019356642}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Gobbler"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uD310\uAC11 \uC544\uADC0"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -175285,7 +175285,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:gobbler:small
-  displayName: Gobbler
+  displayName: "\uD310\uAC11 \uC544\uADC0"
   grade: small
   selectionStatus: core
   warnings: 
@@ -178073,7 +178073,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2024465260}
-  m_Text: Serpenopod
+  m_Text: "\uC138\uBC1C \uAE34\uD131\uB8E1"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -181145,7 +181145,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2055248861}
-  m_Text: Death Skull
+  m_Text: "\uB0A0\uAC1C \uD574\uACE8"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -185072,7 +185072,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: -4.3028016}
-  m_LocalScale: {x: 0.062434964, y: 0.062434964, z: 0.062434964}
+  m_LocalScale: {x: 0.06489616, y: 0.06489616, z: 0.06489616}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1227232035}
@@ -185085,7 +185085,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2067588899}
-  m_Text: Gigabdomocauda Bombis
+  m_Text: "\uC7A5\uB2E4\uB9AC \uC0B0\uB780\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -185159,7 +185159,7 @@ GameObject:
   - component: {fileID: 2080017129}
   - component: {fileID: 2080017130}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] Tetrapuss"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC18C\uD615] \uC0AC\uCD09\uC218 \uBD84\uD574\uC790"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -185198,7 +185198,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:tetrapuss:small
-  displayName: Tetrapuss
+  displayName: "\uC0AC\uCD09\uC218 \uBD84\uD574\uC790"
   grade: small
   selectionStatus: core
   warnings: 
@@ -185286,7 +185286,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2080024233}
-  m_Text: Gryllunguis
+  m_Text: "\uBD84\uD64D\uB0AD \uD3EC\uC2DD\uCDA9"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -185480,7 +185480,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2084337540}
-  m_Text: Ghoul
+  m_Text: "\uC885\uC591 \uC2DD\uADC0"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -186732,7 +186732,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2124691783}
-  m_Text: Skeleton Knight
+  m_Text: "\uB0A9\uACE8 \uADFC\uC704\uBCD1"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -187014,7 +187014,7 @@ GameObject:
   - component: {fileID: 2141910590}
   - component: {fileID: 2141910591}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] Serpenopod"
+  m_Name: "[\uC8FC\uB825 \xB7 \uC911\uD615] \uC138\uBC1C \uAE34\uD131\uB8E1"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -187053,7 +187053,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:serpenopod:medium
-  displayName: Serpenopod
+  displayName: "\uC138\uBC1C \uAE34\uD131\uB8E1"
   grade: medium
   selectionStatus: core
   warnings: 

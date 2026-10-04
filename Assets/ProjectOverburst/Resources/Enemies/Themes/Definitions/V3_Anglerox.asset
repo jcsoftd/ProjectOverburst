@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: V3_Anglerox
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   enemyId: V3_Anglerox
-  displayName: Anglerox
+  displayName: "\uC720\uC778\uCD09\uC218 \uD3EC\uC2DD\uCCB4"
   referenceHealthCoefficient: 18
   species: {fileID: 11400000, guid: 3f16dccace8ff3d42aa140cb7608bea6, type: 2}
   grade: {fileID: 11400000, guid: a31d741b009cc2b4c8677c617e319108, type: 2}
