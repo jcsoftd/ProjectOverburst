@@ -15,6 +15,6 @@ MonoBehaviour:
   abilitySetId: DeathHarvest_RakeBrute
   abilities:
   - {fileID: 11400000, guid: 27fdb5b65fea4aa47a7f996df9958b5e, type: 2}
-  - {fileID: 11400000, guid: 24e2aa2b43afa1b44b2b9aaf102d7eb6, type: 2}
-  - {fileID: 11400000, guid: ff302d9ff3e9c0f48bb57929f866b4b0, type: 2}
-  - {fileID: 11400000, guid: ea8f5bb0ef1a2e3409891ff838bb48d1, type: 2}
+  - {fileID: 11400000, guid: 30813d08094159e4c97e4ed1315a70de, type: 2}
+  - {fileID: 11400000, guid: 21c84dfd30ab4c44f9b0bdcfdff09b14, type: 2}
+  - {fileID: 11400000, guid: 2c9991403963ca442a8832a1865b76ae, type: 2}

@@ -705,6 +705,7 @@ GameObject:
   - component: {fileID: 7978269258270819685}
   - component: {fileID: 9026289371694808442}
   - component: {fileID: 6900479509506111431}
+  - component: {fileID: 8748142885222510080}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeBrute
   m_TagString: Untagged
@@ -1034,8 +1035,9 @@ MonoBehaviour:
   abilitySet: {fileID: 11400000, guid: 7abe2c9f921e8d54c9bed9ce5bc33dff, type: 2}
   attackTriggers:
   - Attack1
-  - Attack2
-  - Attack3
+  - Attack5
+  - Attack6
+  - Attack7
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1400,6 +1402,20 @@ MonoBehaviour:
   moveWeights:
   - 0.5
   - 0.5
+--- !u!114 &8748142885222510080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630111263970318984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 2020135034638308272}
+  movement: {fileID: 7473553573119233952}
 --- !u!1 &8397776656497602290
 GameObject:
   m_ObjectHideFlags: 0

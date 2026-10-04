@@ -116,4 +116,31 @@ public static class MonsterRakeZombieMotionBuilder
             File.WriteAllText(Path.Combine(outputDirectory,"apply-result.json"),new JObject{["status"]="FAILED_OWNED_BACKUPS_RESTORED",["error"]=error.ToString()}.ToString());throw;
         }
     }
+    public static string CreateInPlaceWeakClips(string planPath,string outputDirectory)
+    {
+        Idle();var plan=JObject.Parse(File.ReadAllText(planPath));
+        if(Hash((string)plan["approvedPath"])!=(string)plan["approvedSha256"])throw new InvalidOperationException("Approved input changed.");
+        string project=Directory.GetParent(Application.dataPath).FullName;
+        string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(project).FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        outputDirectory=Path.GetFullPath(outputDirectory);if(!outputDirectory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase))throw new ArgumentException("Private output directory required.");
+        Directory.CreateDirectory(outputDirectory);var rows=plan["entries"].OfType<JObject>().ToArray();
+        if(rows.Length!=3||rows.Any(r=>(string)r["cardKey"]!="runtime:DeathHarvest_RakeBrute"||(string)r["motionPolicy"]!="Stationary"))throw new ArgumentException("Three approved stationary Rake attacks required.");
+        foreach(var row in rows){string target=(string)row["runtimeClipPath"];
+            if(!target.StartsWith("Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/Derived/V3/DeathHarvest_RakeBrute_",StringComparison.Ordinal)||AssetDatabase.LoadMainAssetAtPath(target)!=null)throw new InvalidOperationException("Fresh owned derived clip required.");
+            if(Hash(Path.Combine(project,(string)row["sourcePath"]))!=(string)row["sourceSha256"])throw new InvalidOperationException("Source changed.");}
+        var created=new List<string>();var receipts=new JArray();
+        try{
+            foreach(var row in rows){string path=(string)row["runtimeClipPath"],parent=Path.GetDirectoryName(path).Replace('\\','/');
+                string current="Assets";foreach(string segment in parent.Split('/').Skip(1)){string next=current+"/"+segment;if(!AssetDatabase.IsValidFolder(next))AssetDatabase.CreateFolder(current,segment);current=next;}
+                var original=AssetDatabase.LoadAllAssetsAtPath((string)row["sourcePath"]).OfType<AnimationClip>().Single(c=>c.name==(string)row["actualClip"]);
+                if(!original.isHumanMotion)throw new InvalidOperationException("Humanoid motion required.");
+                var clip=UnityEngine.Object.Instantiate(original);clip.name=original.name;
+                var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=false;settings.loopBlendPositionXZ=false;AnimationUtility.SetAnimationClipSettings(clip,settings);
+                AssetDatabase.CreateAsset(clip,path);created.Add(path);AssetDatabase.SaveAssetIfDirty(clip);
+                if(!clip.isHumanMotion||Mathf.Abs(clip.length-original.length)>.001f)throw new InvalidOperationException("Derived clip identity changed.");
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip,out string guid,out long localId);
+                receipts.Add(new JObject{["path"]=path,["clip"]=clip.name,["guid"]=guid,["localId"]=localId,["sha256"]=Hash(Path.Combine(project,path)),["sourceSha256"]=row["sourceSha256"].DeepClone(),["sourcePath"]=row["sourcePath"].DeepClone(),["fps"]=clip.frameRate,["seconds"]=clip.length,["human"]=clip.isHumanMotion,["loop"]=settings.loopTime,["bakeRootXZIntoPose"]=settings.loopBlendPositionXZ});}
+            File.WriteAllText(Path.Combine(outputDirectory,"in-place-clips.json"),new JObject{["status"]="PASS_SAVED_HUMANOID_IN_PLACE_CLIPS",["entries"]=receipts,["originalSourcesChanged"]=false}.ToString());return "PASS_SAVED_HUMANOID_IN_PLACE_CLIPS";
+        }catch{foreach(string path in created)AssetDatabase.DeleteAsset(path);throw;}
+    }
 }

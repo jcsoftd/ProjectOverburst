@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: DeathHarvest_RakeBrute_Zombie_Attack02
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 4640f8ab04e72f86
+  originalClip: {fileID: 1827226128182048838, guid: ed65b0b83710d1a47b8dad2f41fd8a51, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 51af24da04fe90c49be70570a75964f5, type: 2}
+  sourceTrimSeconds: {x: 0, y: 2.3333335}
+  motionPolicy: 0
+  stationaryStartRange: 0.62
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.47142854, y: 0.52857137}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.47142854
+      capsules:
+      - a: {x: -0.5843059, y: 0.8900644, z: 0.35816377}
+        b: {x: -0.5843059, y: 0.8900644, z: 0.35816377}
+        radius: 0.23136029
+    - normalizedTime: 0.48571426
+      capsules:
+      - a: {x: -0.4513065, y: 0.6521074, z: 0.34786016}
+        b: {x: -0.4513065, y: 0.6521074, z: 0.34786016}
+        radius: 0.22158009
+    - normalizedTime: 0.49999997
+      capsules:
+      - a: {x: -0.1965966, y: 0.4677357, z: 0.34554437}
+        b: {x: -0.1965966, y: 0.5001158, z: 0.34554437}
+        radius: 0.20586392
+    - normalizedTime: 0.5142857
+      capsules:
+      - a: {x: 0.110929295, y: 0.48763415, z: 0.3523824}
+        b: {x: 0.110929295, y: 0.48763415, z: 0.3523824}
+        radius: 0.21241659
+    - normalizedTime: 0.52857137
+      capsules:
+      - a: {x: 0.33851215, y: 0.63937896, z: 0.32446536}
+        b: {x: 0.33851215, y: 0.63937896, z: 0.32446536}
+        radius: 0.21879888
+    maximumPlanarReach: 0.916703

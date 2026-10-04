@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: DeathHarvest_RakeBrute_Zombie_Attack03
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 56950b70ee5338d7
+  originalClip: {fileID: 1827226128182048838, guid: d613c2f107f9f2c4aa6ad0b1291923dc, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 78894d1351b7aeb4ba395f54b341df3c, type: 2}
+  sourceTrimSeconds: {x: 0, y: 2.3000002}
+  motionPolicy: 0
+  stationaryStartRange: 0.96
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.23188403, y: 0.28985506}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.23188403
+      capsules:
+      - a: {x: -0.42199185, y: 2.002903, z: 0.6184087}
+        b: {x: -0.42199185, y: 2.002903, z: 0.6184087}
+        radius: 0.22199306
+    - normalizedTime: 0.2463768
+      capsules:
+      - a: {x: -0.32377458, y: 1.925266, z: 0.85565275}
+        b: {x: -0.32377458, y: 1.925266, z: 0.85565275}
+        radius: 0.22531298
+    - normalizedTime: 0.26086953
+      capsules:
+      - a: {x: 0.038085185, y: 1.7017369, z: 1.0310656}
+        b: {x: 0.038085185, y: 1.7017369, z: 1.0894567}
+        radius: 0.19684523
+    - normalizedTime: 0.27536228
+      capsules:
+      - a: {x: 0.4033995, y: 1.317276, z: 0.98388207}
+        b: {x: 0.4033995, y: 1.317276, z: 0.98388207}
+        radius: 0.20757604
+    - normalizedTime: 0.28985506
+      capsules:
+      - a: {x: 0.60117054, y: 0.9970772, z: 0.6556344}
+        b: {x: 0.60117054, y: 0.9970772, z: 0.6556344}
+        radius: 0.21751198
+    maximumPlanarReach: 1.2869675

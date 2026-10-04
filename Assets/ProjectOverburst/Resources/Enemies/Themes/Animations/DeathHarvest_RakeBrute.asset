@@ -19,9 +19,9 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: 0da2fc682221e9a41b1b73f9ee210b9f, type: 3}
   attackClips:
   - {fileID: 8993902097722301239, guid: aa1309852e3e0674981003944b280a38, type: 3}
-  - {fileID: 8993902097722301239, guid: 634ec6ebcfa6dd04192f081ecc744b89, type: 3}
-  - {fileID: 8993902097722301239, guid: 5f97f17ac2f7a0f40b86c4185918f537, type: 3}
-  - {fileID: 8993902097722301239, guid: 714da30514f853d44b31f7ec3843acea, type: 3}
+  - {fileID: 7400000, guid: 46afd0d9837ef0e4893787a82b9c2e80, type: 2}
+  - {fileID: 7400000, guid: 78894d1351b7aeb4ba395f54b341df3c, type: 2}
+  - {fileID: 7400000, guid: 51af24da04fe90c49be70570a75964f5, type: 2}
   hit: {fileID: 8993902097722301239, guid: 98971071d6487274298d5b9a4d8e252f, type: 3}
   death: {fileID: 8993902097722301239, guid: 49118fafc216ec7408eef058dd7bc6b0, type: 3}
   optional:
