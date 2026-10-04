@@ -99,16 +99,16 @@ Material:
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _ColorIntensity: 0.45
+    - _ColorIntensity: 0.0018439904
     - _ColorMask: 15
     - _ColorPower: 2.2
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DistortionIntensity: 16.11
+    - _DistortionIntensity: 12
     - _DstBlend: 0
-    - _EdgeBlur: 1
+    - _EdgeBlur: 0.1
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -131,7 +131,7 @@ Material:
     - _Offset: -0.03
     - _Parallax: 0.005
     - _QueueOffset: 0
-    - _RadialUV_Power: 5
+    - _RadialUV_Power: 9.353204
     - _ReceiveShadows: 1
     - _RotationSpeed: 0
     - _ScrollSpeed_X: 0
@@ -146,7 +146,7 @@ Material:
     - _StencilReadMask: 255
     - _StencilWriteMask: 255
     - _Surface: 0
-    - _Thickness: 0
+    - _Thickness: 0.33350003
     - _UV_X_ScaleFix: 1
     - _UseMask: 0
     - _Use_Mask: 1
