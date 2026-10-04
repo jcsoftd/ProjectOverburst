@@ -7,6 +7,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
     private CombatMoveMotion activeMoveMotion;
     private CombatTurnMotion activeFacingTurn;
     private float facingMotionEnd, facingTurnStart;
+    private float facingStartDuration;
     private PlayerCombatFacingController facingController;
 
     public CombatLocomotionSet FacingSet => activeProfile != null ? activeProfile.combatLocomotionSet : null;
@@ -45,6 +46,19 @@ public partial class MeleeWeaponCombatAnimatorDriver
         CancelFacingTurn();
         facingMotion = FacingMotion.None;
         activeMoveMotion = null;
+        facingStartDuration = 0f;
+    }
+    private float FacingMoveDuration(CombatMoveMotion motion, AnimationClip clip)
+    {
+        var set = FacingSet;
+        if (set == null || !set.scaleStartStopWithLocomotionSpeed || activeProfile == null)
+            return clip.length;
+        int sector = System.Array.IndexOf(set.directions, motion);
+        if (sector < 0 || motion.authoredSpeed <= .05f) return clip.length;
+        Vector3 direction = Quaternion.Euler(0, sector * 45f, 0) * Vector3.forward;
+        float speed = activeProfile.locomotionReferenceSpeeds.GetSpeed(direction)
+            * ResolvePositiveOrDefault(activeProfile.locomotionAnimationSpeedMultiplier, 1f);
+        return clip.length / Mathf.Max(.01f, speed / motion.authoredSpeed);
     }
     private bool TryPlayDetailedLocomotion(float blend)
     {
@@ -68,16 +82,18 @@ public partial class MeleeWeaponCombatAnimatorDriver
                 activeMoveMotion = direction;
                 if (!PlayState(layerIndex, layerName, direction.startState, set.moveBlendSeconds, 0, direction.start.length)) return false;
                 facingMotion = FacingMotion.Start;
-                facingMotionEnd = Time.time + direction.start.length;
+                facingStartDuration = FacingMoveDuration(direction, direction.start);
+                facingMotionEnd = Time.time + facingStartDuration;
             }
             else if (facingMotion == FacingMotion.Start && Time.time < facingMotionEnd && direction != activeMoveMotion)
             {
                 // Lower-body alignment can cross a sector during the first step. Carry that
                 // step into the new directional Start instead of dropping straight into Run.
                 float progress = activeMoveMotion != null
-                    ? Mathf.Clamp01(1 - (facingMotionEnd - Time.time) / activeMoveMotion.start.length) : 0;
+                    ? Mathf.Clamp01(1 - (facingMotionEnd - Time.time) / Mathf.Max(.01f, facingStartDuration)) : 0;
                 PlayState(layerIndex, layerName, direction.startState, set.moveBlendSeconds, progress, direction.start.length);
-                facingMotionEnd = Time.time + (1 - progress) * direction.start.length;
+                facingStartDuration = FacingMoveDuration(direction, direction.start);
+                facingMotionEnd = Time.time + (1 - progress) * facingStartDuration;
                 activeMoveMotion = direction;
             }
             else if (facingMotion == FacingMotion.Stop
@@ -95,7 +111,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
             if (activeMoveMotion == null) { ResetFacingMotion(); return true; }
             PlayState(layerIndex, layerName, activeMoveMotion.stopState, set.moveBlendSeconds, 0, activeMoveMotion.stop.length);
             facingMotion = FacingMotion.Stop;
-            facingMotionEnd = Time.time + activeMoveMotion.stop.length;
+            facingMotionEnd = Time.time + FacingMoveDuration(activeMoveMotion, activeMoveMotion.stop);
         }
         else if (facingMotion == FacingMotion.None || (facingMotion == FacingMotion.Stop && Time.time >= facingMotionEnd))
         {

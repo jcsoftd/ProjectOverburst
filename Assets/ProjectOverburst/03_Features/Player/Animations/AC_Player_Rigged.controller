@@ -509,7 +509,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_0
-  m_Speed: 1
+  m_Speed: 1.5479877
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -691,7 +691,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_4
-  m_Speed: 1
+  m_Speed: 1.240387
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -816,7 +816,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_3
-  m_Speed: 1
+  m_Speed: 1.0912492
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1329,7 +1329,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_1
-  m_Speed: 1
+  m_Speed: 1.606594
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1489,7 +1489,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_6
-  m_Speed: 1
+  m_Speed: 1.3681592
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1595,7 +1595,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_1
-  m_Speed: 1
+  m_Speed: 1.606594
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1621,7 +1621,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_7
-  m_Speed: 1
+  m_Speed: 1.606594
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1728,7 +1728,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_6
-  m_Speed: 1
+  m_Speed: 1.3681592
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1754,7 +1754,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_5
-  m_Speed: 1
+  m_Speed: 1.0910225
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2366,7 +2366,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_0
-  m_Speed: 1
+  m_Speed: 1.5479877
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2495,7 +2495,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_4
-  m_Speed: 1
+  m_Speed: 1.240387
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2559,7 +2559,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 5e7f0f2b7d05d9341af17ee065787ce4, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: 1}
-    m_TimeScale: 0.88610476
+    m_TimeScale: 1.4072615
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2567,7 +2567,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 81838b3f961ac5c49a1cf18df84670d1, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: -1}
-    m_TimeScale: 0.99004436
+    m_TimeScale: 1.1276245
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2575,7 +2575,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 6759154be2049ad4f82612f04c854bce, type: 3}
     m_Threshold: 0
     m_Position: {x: -1, y: 0}
-    m_TimeScale: 0.98641115
+    m_TimeScale: 1.2437811
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2583,7 +2583,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: ef001405e61617048827f06d09fcdc2f, type: 3}
     m_Threshold: 0
     m_Position: {x: 1, y: 0}
-    m_TimeScale: 0.9893937
+    m_TimeScale: 1.2437811
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2591,7 +2591,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: baba680bfa19c9e40831b9c4e9cf0010, type: 3}
     m_Threshold: 0
     m_Position: {x: -0.707, y: 0.707}
-    m_TimeScale: 1.0137755
+    m_TimeScale: 1.4605399
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2599,7 +2599,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: b43fdd23d7065d34aa268dc54e62e54b, type: 3}
     m_Threshold: 0
     m_Position: {x: 0.707, y: 0.707}
-    m_TimeScale: 1.0110933
+    m_TimeScale: 1.4605399
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2607,7 +2607,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 9e2b9a0d389b4754caa8fb2404e7eec6, type: 3}
     m_Threshold: 0
     m_Position: {x: -0.707, y: -0.707}
-    m_TimeScale: 0.8244374
+    m_TimeScale: 0.9918386
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2615,7 +2615,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 5de9e2f68a1e39240ad05609ea0e6282, type: 3}
     m_Threshold: 0
     m_Position: {x: 0.707, y: -0.707}
-    m_TimeScale: 0.8235665
+    m_TimeScale: 0.99204475
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2674,7 +2674,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 5e7f0f2b7d05d9341af17ee065787ce4, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: 1}
-    m_TimeScale: 0.88610476
+    m_TimeScale: 1.4072615
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2682,7 +2682,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 81838b3f961ac5c49a1cf18df84670d1, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: -1}
-    m_TimeScale: 0.99004436
+    m_TimeScale: 1.1276245
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2690,7 +2690,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 6759154be2049ad4f82612f04c854bce, type: 3}
     m_Threshold: 0
     m_Position: {x: -1, y: 0}
-    m_TimeScale: 0.98641115
+    m_TimeScale: 1.2437811
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2698,7 +2698,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: ef001405e61617048827f06d09fcdc2f, type: 3}
     m_Threshold: 0
     m_Position: {x: 1, y: 0}
-    m_TimeScale: 0.9893937
+    m_TimeScale: 1.2437811
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2706,7 +2706,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: baba680bfa19c9e40831b9c4e9cf0010, type: 3}
     m_Threshold: 0
     m_Position: {x: -0.707, y: 0.707}
-    m_TimeScale: 1.0137755
+    m_TimeScale: 1.4605399
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2714,7 +2714,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: b43fdd23d7065d34aa268dc54e62e54b, type: 3}
     m_Threshold: 0
     m_Position: {x: 0.707, y: 0.707}
-    m_TimeScale: 1.0110933
+    m_TimeScale: 1.4605399
     m_CycleOffset: 0
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2722,7 +2722,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 9e2b9a0d389b4754caa8fb2404e7eec6, type: 3}
     m_Threshold: 0
     m_Position: {x: -0.707, y: -0.707}
-    m_TimeScale: 0.8244374
+    m_TimeScale: 0.9918386
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -2730,7 +2730,7 @@ BlendTree:
     m_Motion: {fileID: 1827226128182048838, guid: 5de9e2f68a1e39240ad05609ea0e6282, type: 3}
     m_Threshold: 0
     m_Position: {x: 0.707, y: -0.707}
-    m_TimeScale: 0.8235665
+    m_TimeScale: 0.99204475
     m_CycleOffset: 0.325
     m_DirectBlendParameter: Blend
     m_Mirror: 0
@@ -3636,7 +3636,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_2
-  m_Speed: 1
+  m_Speed: 1.3681592
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -3684,7 +3684,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_2
-  m_Speed: 1
+  m_Speed: 1.3681592
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -3735,7 +3735,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_7
-  m_Speed: 1
+  m_Speed: 1.606594
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -3819,7 +3819,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStart_5
-  m_Speed: 1
+  m_Speed: 1.0910225
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -3845,7 +3845,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Melee_SwordStop_3
-  m_Speed: 1
+  m_Speed: 1.0912492
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []

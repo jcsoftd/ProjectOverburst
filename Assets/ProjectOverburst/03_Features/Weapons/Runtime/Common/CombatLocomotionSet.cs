@@ -26,6 +26,8 @@ public sealed class CombatLocomotionSet : ScriptableObject
     public string idleState = "Melee_SwordIdle";
     // Clockwise: F, FR, R, BR, B, BL, L, FL.
     public CombatMoveMotion[] directions = new CombatMoveMotion[8];
+    [Tooltip("전투 이동 보폭 배속에 Start/Stop 재생과 전환 시계를 함께 맞춥니다.")]
+    public bool scaleStartStopWithLocomotionSpeed;
     public CombatTurnMotion left90, right90, left180, right180;
     [Range(40f, 75f)] public float turnThreshold = 58f;
     [Range(65f, 85f)] public float maximumUpperTwist = 75f;
