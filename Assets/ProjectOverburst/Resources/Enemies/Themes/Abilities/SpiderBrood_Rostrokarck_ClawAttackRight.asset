@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Rostrokarck_ClawAttackRight
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: SpiderBrood_Rostrokarck_ClawAttackRight
+  weakAttackExecution: {fileID: 11400000, guid: f1d839aeee68d504cae20e47e3f464aa, type: 2}
   animatorTrigger: Attack2
   executionMode: 0
   damage: 18
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.78000003
-  hitNormalizedTime: 0.52
+  hitDelay: 0.7
+  hitNormalizedTime: 0.46666664
   attackAnimationDuration: 1.5000001
   attackLockDuration: 1.4250001
   weight: 1
@@ -42,3 +43,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

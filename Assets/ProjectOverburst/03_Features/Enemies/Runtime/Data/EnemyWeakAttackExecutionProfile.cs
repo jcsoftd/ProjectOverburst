@@ -28,6 +28,18 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
     [SerializeField] private string poseRootBonePath;
     [SerializeField] private Vector2[] contactWindows;
     [SerializeField] private EnemyWeakAttackContactGeometry[] contactGeometry;
+    [SerializeField] private bool blockedApproachProjectileFallback;
+    [SerializeField] private string[] projectileMuzzleBonePaths;
+    public bool RequiresBlockedApproach => blockedApproachProjectileFallback;
+    public string ProjectileMuzzleBonePath(int phase) => projectileMuzzleBonePaths != null && projectileMuzzleBonePaths.Length > 0
+        ? projectileMuzzleBonePaths[phase % projectileMuzzleBonePaths.Length] : null;
+    public void ConfigureProjectileFallback(bool blockedApproach, string[] muzzles)
+    {
+        if (blockedApproach && (motionPolicy != EnemyWeakAttackMotionPolicy.Stationary || muzzles == null || muzzles.Length != 2))
+            throw new ArgumentException("접근 차단 후순위 공격은 제자리 양쪽 발사구가 필요합니다.");
+        blockedApproachProjectileFallback = blockedApproach;
+        projectileMuzzleBonePaths = muzzles != null ? (string[])muzzles.Clone() : null;
+    }
 
     public int ContactGeometryCount => contactGeometry != null ? contactGeometry.Length : 0;
     public bool HasContactGeometry => ContactGeometryCount != 0;

@@ -13,17 +13,18 @@ MonoBehaviour:
   m_Name: SpiderBrood_Rostrokarck_SpittersAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: SpiderBrood_Rostrokarck_SpittersAttack
+  weakAttackExecution: {fileID: 11400000, guid: 1d6688cc516d7a34cb40298d310329c1, type: 2}
   animatorTrigger: Attack5
   executionMode: 4
   damage: 18
-  referencePatternDamagePercent: 12
+  referencePatternDamagePercent: 28
   telegraphedStrongAttack: 0
   telegraphedAttack: 1
-  preparationDuration: 0.52
-  releaseDuration: 0.14
+  preparationDuration: 0.4
+  releaseDuration: 0.2
   recoveryDuration: 0.24
   minimumWarningTime: 0.65999997
-  minimumRecoveryTime: 0.24
+  minimumRecoveryTime: 0.35
   parryable: 0
   minimumRange: 2.8
   range: 8
@@ -31,14 +32,19 @@ MonoBehaviour:
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 1.5
-  hitDelay: 0.7
-  hitNormalizedTime: 0.42
+  cooldown: 14
+  hitDelay: 0.4
+  hitNormalizedTime: 0.24
   attackAnimationDuration: 1.6666667
   attackLockDuration: 1.5833334
   weight: 0.6
-  priority: 0
+  priority: -10
   minimumSelfHealthNormalized: 0
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
-  additionalHitNormalizedTimes: []
+  additionalHitNormalizedTimes:
+  - 0.33999997
+  - 0.43999997
+  - 0.53999996
+  - 0.64
+  projectilesPerRelease: 2

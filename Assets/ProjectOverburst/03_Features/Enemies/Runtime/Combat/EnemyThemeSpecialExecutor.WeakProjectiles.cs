@@ -20,6 +20,7 @@ public sealed partial class EnemyThemeSpecialExecutor
     }
     private readonly List<WeakProjectile> weakProjectiles = new List<WeakProjectile>();
     private EnemyWeakAttackReactionScope weakProjectileReaction;
+    public bool IsWeakProjectileActionExecuting => routine != null;
     private bool HasWeakProjectiles
     {
         get { foreach (var shot in weakProjectiles) if (shot.active) return true; return false; }
@@ -34,7 +35,7 @@ public sealed partial class EnemyThemeSpecialExecutor
                 * ability.ReferencePatternDamagePercent / 100f)) : ability.Damage;
         total *= actor.RuntimeStats.DamageMultiplier;
         float allocation = total / ability.HitCount;
-        bool useContactBudget = EnemyWeakAttackDamageBudget.TryCreate(total, ability.HitCount, out var budget);
+        bool useContactBudget = EnemyWeakProjectileDamageBudget.TryCreate(total, ability.HitCount, out var budget);
         weakProjectileReaction = ability.HitCount > 1 ? new EnemyWeakAttackReactionScope(gameObject, sequence, actor) : null;
         float speed = actor.Melee.AbilityAnimationSpeed, started = Time.time;
         float executionDuration = ability.ResolveExecutionDuration(speed);
@@ -102,6 +103,13 @@ public sealed partial class EnemyThemeSpecialExecutor
             weakProjectiles.Add(shot);
         }
         shot.ability = ability; shot.position = ResolveMuzzle(ability);
+        string muzzlePath = ability.WeakAttackExecution?.ProjectileMuzzleBonePath(phase);
+        if (!string.IsNullOrEmpty(muzzlePath))
+        {
+            var muzzle = transform.Find(muzzlePath);
+            if (muzzle == null) throw new System.InvalidOperationException("Missing authored projectile muzzle: " + muzzlePath);
+            shot.position = muzzle.position;
+        }
         shot.direction = (aim - shot.position).normalized; shot.remaining = ability.Range + 2f;
         shot.damage = damage; shot.sequence = sequence; shot.phase = phase; shot.lease = lease;
         shot.tint = GetComponent<BloodHitTarget>()?.Profile; shot.electric = false;

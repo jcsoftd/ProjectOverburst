@@ -21,8 +21,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 2cf61f45081854442937bcd5764d09b5, type: 3}
   - {fileID: 1827226128182048838, guid: c0d1d415fdd2ad140a060fcb87a749f5, type: 3}
   - {fileID: 1827226128182048838, guid: 8087534b058e1c94eab306c2f2e7075e, type: 3}
-  - {fileID: 1827226128182048838, guid: 5dc9929e1c6523f41b652c1d0f7e581e, type: 3}
   - {fileID: 1827226128182048838, guid: 337b3d0f8bc88234eb6e77a61d240f91, type: 3}
+  - {fileID: 1827226128182048838, guid: d6bf294e02d1c0e4c853e9941e7950cf, type: 3}
+  - {fileID: 1827226128182048838, guid: 06788a7f57f326547b1effa71d20f77e, type: 3}
   hit: {fileID: 1827226128182048838, guid: 3f288f17770e7de4b82137f501ce5c2a, type: 3}
   death: {fileID: 1827226128182048838, guid: 790746adfceb57543a383f057b55ed9d, type: 3}
   optional:
@@ -40,6 +41,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: fcef968cd5d24dd4f969367c897e59d8, type: 3}
   - {fileID: 1827226128182048838, guid: 3a3351b681fd7b3429c1820e82f75c03, type: 3}
   - {fileID: 1827226128182048838, guid: 867e65869bc93044493682f37ea8bb95, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@2HitComboAttackClawAttackForward_RM.fbx"

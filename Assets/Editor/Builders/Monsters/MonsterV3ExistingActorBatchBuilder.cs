@@ -12,7 +12,7 @@ using UnityEngine;
 // Inputs and recovery artifacts are supplied by the caller outside Assets.
 public static class MonsterV3ExistingActorBatchBuilder
 {
-    public const int Revision = 5;
+    public const int Revision = 6;
     const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes/";
     static string Project => Directory.GetParent(Application.dataPath).FullName;
     static string Workspace => Directory.GetParent(Project).FullName;
@@ -76,7 +76,22 @@ public static class MonsterV3ExistingActorBatchBuilder
         Set(ability,"hitDelay",p=>p.floatValue=time*Runtime(row).length);
         Set(ability,"attackAnimationDuration",p=>p.floatValue=Runtime(row).length);
         // Preserve existing pacing, cooldown, weight, priority and total pattern damage.
-        ability.ConfigureAdditionalHits(row["hitNormalizedTimes"].Skip(1).Select(v=>(float)v).ToArray());
+        int perRelease=(int?)row["projectilesPerRelease"]??1;
+        ability.ConfigureProjectileGrouping(perRelease);
+        var additionalTimes=row["hitNormalizedTimes"].Where((v,i)=>i%perRelease==0).Skip(1).Select(v=>(float)v).ToArray();
+        try { ability.ConfigureAdditionalHits(additionalTimes); }
+        catch(ArgumentException error)
+        { throw new ArgumentException("Invalid release sequence for "+row["actualClip"]+": first="+ability.HitNormalizedTime
+            +", perRelease="+perRelease+", additional="+string.Join(",",additionalTimes),error); }
+        if((string)row["rangedUsePolicy"]=="BlockedApproachFallback")
+        {
+            Set(ability,"cooldown",p=>p.floatValue=14f);
+            Set(ability,"priority",p=>p.intValue=-10);
+            Set(ability,"preparationDuration",p=>p.floatValue=.4f);
+            Set(ability,"releaseDuration",p=>p.floatValue=Runtime(row).length*.12f);
+            Set(ability,"minimumRecoveryTime",p=>p.floatValue=.35f);
+            Set(ability,"referencePatternDamagePercent",p=>p.floatValue=(float)row["damageBudget"]["referencePatternDamagePercent"]);
+        }
         EditorUtility.SetDirty(ability);
     }
     static AnimatorState AddAttack(AnimatorController ac,string trigger,AnimationClip clip)
@@ -235,6 +250,14 @@ public static class MonsterV3ExistingActorBatchBuilder
                             entry.FindPropertyRelative("localOffset").vector3Value=Vector3.zero;
                         }
                         tuning.ApplyModifiedPropertiesWithoutUndo();
+                        if(ranged.Any(r=>(string)r["rangedUsePolicy"]=="BlockedApproachFallback"))
+                        {
+                            var fallback=root.GetComponent<EnemyBlockedApproachProjectileExecutor>()??root.AddComponent<EnemyBlockedApproachProjectileExecutor>();
+                            fallback.Configure(special);
+                            var executors=root.GetComponents<EnemyAbilityExecutor>().Where(e=>e!=special&&e!=fallback).Prepend(fallback).ToArray();
+                            Set(root.GetComponent<EnemyAbilityController>(),"executors",p=>{
+                                p.arraySize=executors.Length;for(int i=0;i<executors.Length;i++)p.GetArrayElementAtIndex(i).objectReferenceValue=executors[i];});
+                        }
                     }
                     Set(melee,"attackTriggers",p=>{p.arraySize=picked.Count;for(int i=0;i<picked.Count;i++)p.GetArrayElementAtIndex(i).stringValue=picked[i].AnimatorTrigger;});
                     PrefabUtility.SaveAsPrefabAsset(root,actorPath,out bool success);

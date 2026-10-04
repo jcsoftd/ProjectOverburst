@@ -128,6 +128,8 @@ public static class EnemyAttackThreatGeometry
     public static float ResolveStartRange(EnemyActor actor, EnemyAbilityDefinition ability)
     {
         if (ability == null) return 0f;
+        if (ability.WeakAttackExecution != null && ability.WeakAttackExecution.RequiresBlockedApproach
+            && (actor == null || actor.GetComponent<EnemyBlockedApproachProjectileExecutor>()?.HasFallbackPermission(ability) != true)) return 0f;
         if (ability.HasWeakAttackExecution) return ability.WeakAttackExecution.ApproachStartRange;
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile
             || ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)

@@ -76,6 +76,8 @@ GameObject:
   - component: {fileID: 9167266858906836875}
   - component: {fileID: 8113703347898051434}
   - component: {fileID: 5410736428556006124}
+  - component: {fileID: 2666477989679705511}
+  - component: {fileID: 4558588766127996578}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Rostrokarck
   m_TagString: Untagged
@@ -407,6 +409,9 @@ MonoBehaviour:
   - Attack1
   - Attack2
   - Attack3
+  - Attack5
+  - Attack6
+  - Attack7
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -542,8 +547,8 @@ MonoBehaviour:
   meleeExecutor: {fileID: 7009188532757926794}
   abilitySet: {fileID: 11400000, guid: f8bd69f23ce578147ab46b690d1ed296, type: 2}
   executors:
+  - {fileID: 4558588766127996578}
   - {fileID: 8595486057166613045}
-  - {fileID: 2410553166004636367}
   - {fileID: 3921201287495492872}
   avoidSameAbilityTwice: 1
 --- !u!114 &3931641982555719659
@@ -600,6 +605,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: aff1a3fa17d54fd4fb81a0c59e351862, type: 2}
   signalColor: {r: 0.8, g: 0.45, b: 1, a: 1}
+  muzzleOverrides:
+  - ability: {fileID: 11400000, guid: 7a09038a37e097c4c89b57d9e285a063, type: 2}
+    socket: {fileID: 7622809246689317935}
+    localOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &3921201287495492872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -710,6 +719,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0.5, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &8113703347898051434
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,6 +749,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &2666477989679705511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7009188532757926794}
+  movement: {fileID: 2775110808756875909}
+--- !u!114 &4558588766127996578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4365012782904227232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15568fc18c39b964f859c2488cef8e47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBlockedApproachProjectileExecutor
+  projectileExecutor: {fileID: 2410553166004636367}
 --- !u!1 &5224895147244991241
 GameObject:
   m_ObjectHideFlags: 0
@@ -1696,5 +1736,10 @@ Transform:
 --- !u!95 &5461943110985006679 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 6960581798429417176, guid: 66802a39bff22ec4fb395aeead14f888, type: 3}
+  m_PrefabInstance: {fileID: 3122204101006876815}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7622809246689317935 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4800244055708710048, guid: 66802a39bff22ec4fb395aeead14f888, type: 3}
   m_PrefabInstance: {fileID: 3122204101006876815}
   m_PrefabAsset: {fileID: 0}

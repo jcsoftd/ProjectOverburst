@@ -128,8 +128,21 @@ public sealed class EnemyAbilityDefinition : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float maximumSelfHealthNormalized = 1f;
     [SerializeField] private bool requireTargetInRangeUntilHit = true;
     [SerializeField] private float[] additionalHitNormalizedTimes;
-    public int HitCount => 1 + (additionalHitNormalizedTimes != null ? additionalHitNormalizedTimes.Length : 0);
-    public float GetHitNormalizedTime(int index) => index == 0 ? HitNormalizedTime : additionalHitNormalizedTimes[index - 1];
+    [SerializeField, Range(1, 2)] private int projectilesPerRelease = 1;
+    public int ProjectilesPerRelease => executionMode == EnemyAbilityExecutionMode.Projectile ? Mathf.Clamp(projectilesPerRelease, 1, 2) : 1;
+    public int ReleaseCount => 1 + (additionalHitNormalizedTimes != null ? additionalHitNormalizedTimes.Length : 0);
+    public int HitCount => ReleaseCount * ProjectilesPerRelease;
+    public float GetHitNormalizedTime(int index)
+    {
+        int release = index / ProjectilesPerRelease;
+        return release == 0 ? HitNormalizedTime : additionalHitNormalizedTimes[release - 1];
+    }
+    public void ConfigureProjectileGrouping(int count)
+    {
+        if (count < 1 || count > 2 || count > 1 && executionMode != EnemyAbilityExecutionMode.Projectile)
+            throw new System.ArgumentException("동시 발사는 투사체 공격의 1~2발만 지원합니다.");
+        projectilesPerRelease = count;
+    }
     public void ConfigureAdditionalHits(params float[] times)
     {
         float previous = HitNormalizedTime;

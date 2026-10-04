@@ -123,7 +123,8 @@ public static class MonsterWeakAttackExecutionWriter
         for (int i=0;i<times.Count;i++)
         {
             float time = (float)times[i];
-            if (float.IsNaN(time) || float.IsInfinity(time) || time <= previous || time > .95f
+            bool sameRelease = ability.ProjectilesPerRelease > 1 && i % ability.ProjectilesPerRelease != 0;
+            if (float.IsNaN(time) || float.IsInfinity(time) || (sameRelease ? time != previous : time <= previous) || time > .95f
                 || Mathf.Abs(time-ability.GetHitNormalizedTime(i)) > .0001f)
                 throw new ArgumentException("실제 타격 시점과 능력 사건이 맞지 않습니다.");
             previous=time;
@@ -148,6 +149,8 @@ public static class MonsterWeakAttackExecutionWriter
         }
         if (melee && (ability.HitCount > 3 || ability.HitCount != (int?)selected["selectedCount"]))
             throw new ArgumentException("선택 근접 약공 타수/최대3타가 맞지 않습니다.");
+        if (!melee && ability.HitCount != (int?)selected["selectedCount"])
+            throw new ArgumentException("선택 투사체 수와 실제 발사 수가 맞지 않습니다.");
         string policy = RequiredString(authored,"motionPolicy");
         if (policy != (string)selected["motionPolicy"]) throw new ArgumentException("승인한 시각적 실행 분류와 다릅니다.");
         var candidate=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();
@@ -174,6 +177,8 @@ public static class MonsterWeakAttackExecutionWriter
             }
             candidate.Configure(selectionKey, original, motion, trim, policy, reach, advance, window, curve,
                 (string)authored["poseRootBonePath"], ReadContactWindows(authored), ReadContactGeometry(authored));
+            candidate.ConfigureProjectileFallback((string)authored["rangedUsePolicy"]=="BlockedApproachFallback",
+                (authored["projectileMuzzleBonePaths"] as JArray)?.Values<string>().ToArray());
     }
 
     private static EnemyWeakAttackContactFrame[][] ReadContactGeometry(JObject authored)
