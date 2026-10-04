@@ -97,18 +97,8 @@ public sealed class DashHeavyFocusPresentation : MonoBehaviour
             && energy.GemRevision == attack.GemRevision && energy.Element == attack.Element
             && OverburstElementRules.IsActive(attack.Element) && energy.Normalized >= MinimumEnergyFraction;
     }
-    public static Color ColorFor(WeaponElement element)
-    {
-        switch (element)
-        {
-            case WeaponElement.Fire: return new Color(1f, .35f, .09f);
-            case WeaponElement.Ice: return new Color(.4f, .85f, 1f);
-            case WeaponElement.Electric: return new Color(.68f, .55f, 1f);
-            case WeaponElement.Dark: return new Color(.72f, .15f, .30f);
-            case WeaponElement.Light: return new Color(1f, .89f, .5f);
-            default: return new Color(1f, .985f, .955f);
-        }
-    }
+    // Gathering lights use the original Soft02 neutral tint for every element.
+    public static Color ColorFor(WeaponElement element) => new Color(1f, .985f, .955f);
     private static void SetupRenderer(Renderer renderer)
     {
         renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;

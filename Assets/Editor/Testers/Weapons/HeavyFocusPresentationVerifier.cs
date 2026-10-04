@@ -58,7 +58,7 @@ public static class HeavyFocusPresentationVerifier
             Require(Mathf.Abs(DashHeavyFocusClock.RealAt(source) - elapsed) < .00001f, "포즈·판정 시계 역변환 " + i);
         }
         foreach (WeaponElement element in new[] { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light })
-            Require(DashHeavyFocusPresentation.ColorFor(element) != Color.white, "원소 색상 " + element);
+            Require(DashHeavyFocusPresentation.ColorFor(element) == new Color(1f, .985f, .955f), "원래 중립 빛 색상 " + element);
         Require(windows[1].Start < normal.attack.animationClip.length * .23f && windows[1].End > normal.attack.animationClip.length * .23f, "일반 강공 점프 최고점 포함");
         Require(windows[1].TimeScale(normal.attack.attackPhases[normal.SafeDischargePhaseIndex].SafeStart * normal.attack.animationClip.length) == 1f,
             "일반 강공 타격 전에 집중 감속 복귀");
