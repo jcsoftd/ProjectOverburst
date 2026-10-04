@@ -16,6 +16,7 @@ public static class HideoutGroundHazeBuilder
     public const string ScenePath="Assets/ProjectOverburst/00_Scenes/HideoutScene.unity";
     public const string Root="Assets/ProjectOverburst/05_Art/Environment/BarbarianHideout/Atmosphere";
     public const string PrefabPath=Root+"/PF_HideoutGroundHaze.prefab";
+    public const string OcclusionExcludedLayer="TransparentFX";
     const string MaterialPath=Root+"/MAT_HideoutGroundHaze.mat";
     const string Output="../개인파일/코덱스산출/Environment/20261004_HideoutAtmosphere";
     const string Name="Hideout Ground Haze";
@@ -115,7 +116,8 @@ public static class HideoutGroundHazeBuilder
             var go=GameObject.CreatePrimitive(PrimitiveType.Cube);
             try
             {
-                go.name=Name; Object.DestroyImmediate(go.GetComponent<Collider>());
+                go.name=Name; go.layer=LayerMask.NameToLayer(OcclusionExcludedLayer);
+                Object.DestroyImmediate(go.GetComponent<Collider>());
                 go.transform.position=(Min+Max)*.5f; go.transform.localScale=Max-Min;
                 var renderer=go.GetComponent<MeshRenderer>(); renderer.sharedMaterial=mat;
                 renderer.shadowCastingMode=ShadowCastingMode.Off; renderer.receiveShadows=false;
@@ -200,6 +202,7 @@ public static class HideoutGroundHazeBuilder
     static void Validate(Scene scene)
     {
         var all=All(scene); var go=all.Single(t=>t.name==Name).gameObject;
+        if(go.layer!=LayerMask.NameToLayer(OcclusionExcludedLayer)) throw new Exception("Haze volume must be excluded from world occlusion.");
         if(PrefabUtility.GetPrefabInstanceStatus(go)!=PrefabInstanceStatus.Connected) throw new Exception("Haze prefab disconnected.");
         if(all.Any(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)>0)) throw new Exception("Missing script.");
         var mat=go.GetComponent<Renderer>().sharedMaterial;

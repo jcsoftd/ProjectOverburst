@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 198819016815687575}
   - component: {fileID: 5013101647203091455}
   - component: {fileID: 2946375354270180034}
-  m_Layer: 0
+  m_Layer: 1
   m_Name: PF_HideoutGroundHaze
   m_TagString: Untagged
   m_Icon: {fileID: 0}

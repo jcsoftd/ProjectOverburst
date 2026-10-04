@@ -28,7 +28,7 @@ public static class HideoutGroundHazeVerifier
         EditorApplication.playModeStateChanged+=State;
         Application.logMessageReceived+=Log;
     }
-    public static string Begin()
+    public static string Begin(string outputPath=null)
     {
         if(Phase!=0||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)
             throw new InvalidOperationException("Idle Editor required.");
@@ -36,8 +36,9 @@ public static class HideoutGroundHazeVerifier
             throw new InvalidOperationException("Another isolated account is prepared.");
         var boot=SceneManager.GetSceneByName(PersistentSceneFlow.PersistentSceneName);
         if(!boot.isLoaded) throw new InvalidOperationException("Loaded PersistentScene required.");
-        Directory.CreateDirectory(DefaultOutput);
-        SessionState.SetString(Key+"output",Path.GetFullPath(DefaultOutput));
+        string destination=string.IsNullOrWhiteSpace(outputPath)?DefaultOutput:outputPath;
+        Directory.CreateDirectory(destination);
+        SessionState.SetString(Key+"output",Path.GetFullPath(destination));
         SessionState.SetString(Key+"before",BarbarianCampUrpVerifier.EditorSnapshot());
         SessionState.SetString(Key+"startScene",EditorSceneManager.playModeStartScene!=null?AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene):"");
         SessionState.SetString(Key+"realHash",RealHash());
@@ -98,12 +99,17 @@ public static class HideoutGroundHazeVerifier
             var haze=all.Where(t=>t.name=="Hideout Ground Haze").ToArray();
             if(haze.Length!=1||!haze[0].gameObject.activeInHierarchy) throw new Exception("One active haze volume required.");
             var renderer=haze[0].GetComponent<MeshRenderer>(); var mat=renderer.sharedMaterial;
+            int hazeLayer=LayerMask.NameToLayer(HideoutGroundHazeBuilder.OcclusionExcludedLayer);
+            if(renderer.gameObject.layer!=hazeLayer) throw new Exception("Haze volume must be excluded from world occlusion.");
+            var occlusionProfile=Resources.Load<HighlightPlus.HighlightProfile>(OverburstWorldHighlight.ProfileResource(OverburstWorldHighlightStyle.PlayerOcclusion));
+            if(occlusionProfile==null || (occlusionProfile.seeThroughOccluderMask.value&(1<<hazeLayer))!=0) throw new Exception("Player occlusion mask includes the haze layer.");
             if(!mat.shader.isSupported||mat.GetTexture("_Noise")==null||mat.GetTexture("_GroundHeight")==null) throw new Exception("Runtime haze asset invalid.");
             if(all.Single(t=>t.name=="Camp Ground Mist").gameObject.activeSelf) throw new Exception("Legacy mist would be doubled.");
             if(haze[0].GetComponent<Collider>()!=null) throw new Exception("Haze must not affect collision.");
             if(all.Any(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)>0)) throw new Exception("Hideout has missing scripts.");
             var camera=Camera.main;
             if(camera==null||!camera.GetUniversalAdditionalCameraData().requiresDepthTexture) throw new Exception("Gameplay camera depth unavailable.");
+            if((camera.cullingMask&(1<<hazeLayer))==0) throw new Exception("Gameplay camera excludes the haze layer.");
             // Give the product camera and hideout loading presentation several real frames to settle.
             int frames=SessionState.GetInt(Key+"frames",0)+1;SessionState.SetInt(Key+"frames",frames);
             if(frames<90) return;
