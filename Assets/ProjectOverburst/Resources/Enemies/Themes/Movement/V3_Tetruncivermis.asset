@@ -24,7 +24,7 @@ MonoBehaviour:
   crowdWeight: 1
   hitWeightProfile: {fileID: 11400000, guid: c3232b65cad03454caa74d5e24473033, type: 2}
   crowdAnimationSpeedLimit: 1.12
-  turnAnimationReferenceSpeeds: {x: 90, y: 90}
+  turnAnimationReferenceSpeeds: {x: 0, y: 0}
   leftTurnProgress:
     serializedVersion: 2
     m_Curve:

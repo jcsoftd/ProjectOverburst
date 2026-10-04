@@ -21,6 +21,9 @@ public static class MonsterV3NewActorVerifier
         var definition=AssetDatabase.LoadAssetAtPath<EnemyDefinition>((string)receipt["definitionPath"]);var actor=definition.ActorPrefab;
         bool valid=definition.IsValid&&actor.IsAuthoringValid&&actor.Definition==definition&&actor.Identity.Definition==definition
             &&actor.Movement.Profile==definition.MovementProfile&&actor.Animator.runtimeAnimatorController==definition.AnimationProfile.RuntimeController;
+        var movementController=actor.Animator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
+        valid&=!definition.MovementProfile.HasTurnAnimation||movementController!=null
+            &&new[]{"FacingTurnLeft","FacingTurnRight"}.All(name=>movementController.layers[0].stateMachine.states.Any(s=>s.state.name==name));
         var missing=new JArray(actor.GetComponentsInChildren<Transform>(true).Where(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)>0).Select(t=>t.name));
         var attacks=new JArray();var rows=batch["entries"].OfType<JObject>().ToArray();
         for(int i=0;i<definition.AbilitySet.Count;i++)

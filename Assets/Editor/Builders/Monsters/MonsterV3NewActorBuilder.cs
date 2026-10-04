@@ -246,6 +246,9 @@ public static class MonsterV3NewActorBuilder
             }
             var set=Create<EnemyAbilitySet>(Root+"Abilities/"+id+"_Set.asset",created,folders);set.Configure(id,abilities.ToArray());Save(set);
             var movement=Create(Root+"Movement/"+id+".asset",created,folders,seed.MovementProfile);Text(movement,"profileId",id);
+            // A cloned movement preset must not wait for turn states absent from this controller.
+            if(!new[]{"FacingTurnLeft","FacingTurnRight"}.All(name=>controller.layers[0].stateMachine.states.Any(s=>s.state.name==name)))
+                movement.ConfigureTurnAnimation(0,0);
             bool nativeInPlace=(string)batch["locomotionReferencePolicy"]=="NativeInPlaceAtGradeSpeed";
             float modelScale=Vector(batch["modelScale"]).x;
             if(nativeInPlace&&locomotionSources.Skip(1).Any(c=>RootSpeed(c,modelScale,false)>.05f))
