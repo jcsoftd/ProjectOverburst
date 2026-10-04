@@ -22,6 +22,8 @@ namespace Overburst.EditorTools.ComboMaker
         private MeleeComboDefinition previewData;
         private SerializedObject serialized;
         private WeaponItemData[] weapons=Array.Empty<WeaponItemData>();
+        private ComboMakerWeaponLibrary.Entry[] weaponGroups=Array.Empty<ComboMakerWeaponLibrary.Entry>();
+        private ComboMakerWeaponLibrary.Entry CurrentGroup => weaponGroups.FirstOrDefault(g=>g.Weapons.Contains(selectedWeapon));
         private List<string> validation=new List<string>();
         private double lastTick,rebuildAt,lastRender;
         private bool needsBake,renderDirty=true;
@@ -62,14 +64,17 @@ namespace Overburst.EditorTools.ComboMaker
         private void OnEnable()
         {
             titleContent=new GUIContent("콤보 메이커");minSize=new Vector2(1100,720);
-            saveChangesMessage="작업 사본의 변경을 현재 무기의 콤보 자산에 적용할까요?";
+            saveChangesMessage="작업 사본의 변경을 이 무기 종류 전체의 공통 콤보에 적용할까요?";
             session=new ComboMakerSession();preview=new ComboMakerPreview();
             if(heavyMode){attackMode=ComboMakerAttackMode.Heavy;heavyMode=false;}
-            weapons=AssetDatabase.FindAssets("t:WeaponItemData",new[]{"Assets/ProjectOverburst"})
-                .Select(g=>AssetDatabase.LoadAssetAtPath<WeaponItemData>(AssetDatabase.GUIDToAssetPath(g)))
-                .Where(w=>w!=null && w.GetMeleeComboDefinition()!=null)
-                .OrderByDescending(w=>AssetDatabase.GetAssetPath(w).Contains("WP02")).ThenBy(w=>w.name).ToArray();
-            if(selectedWeapon==null) selectedWeapon=weapons.FirstOrDefault();
+            RefreshWeaponLibrary();
+            if(selectedWeapon==null || !weapons.Contains(selectedWeapon))
+            {
+                var previous=selectedWeapon;
+                selectedWeapon=weaponGroups.FirstOrDefault(g=>previous!=null&&g.WeaponClass==previous.weaponClass)?.Representative??weaponGroups.FirstOrDefault()?.Representative;
+                if(previous==null || selectedWeapon==null || ComboMakerAttackBinding.Asset(previous.GetMeleeDefinition(),attackMode)!=ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),attackMode))
+                {recovery=null;baseline=null;}
+            }
             if(selectedWeapon!=null)
             {
                 LoadSession(string.IsNullOrEmpty(recovery)?null:recovery,string.IsNullOrEmpty(baseline)?null:baseline);
@@ -98,7 +103,7 @@ namespace Overburst.EditorTools.ComboMaker
             var outer=new TwoPaneSplitView(0,220,TwoPaneSplitViewOrientation.Horizontal) {viewDataKey="combo-library-split"};
             outer.AddToClassList("workspace");rootVisualElement.Add(outer);
             var left=new VisualElement();left.AddToClassList("library");left.style.minWidth=180;outer.Add(left);
-            left.Add(Title("무기와 콤보"));
+            left.Add(Title("무기 종류 · 공통 콤보"));
             var searchField=new TextField("검색") {value=search};searchField.AddToClassList("weapon-search");
             searchField.RegisterValueChangedCallback(e=>{search=e.newValue;BuildLibrary();});left.Add(searchField);
             library=new ScrollView();library.AddToClassList("library-scroll");left.Add(library);
@@ -141,23 +146,26 @@ namespace Overburst.EditorTools.ComboMaker
             var caption=new Label("약공 · 강공 · 패링 · 닷지 · 대시 / 현재 게임 자산 편집");caption.AddToClassList("muted");titles.Add(caption);header.Add(titles);
             dirtyBadge=new Label();dirtyBadge.AddToClassList("badge");header.Add(dirtyBadge);
             header.Add(ActionButton("원본 다시 읽기",ReloadSource));
-            applyButton=ActionButton("검증 후 무기에 적용",()=>Apply());applyButton.AddToClassList("primary");header.Add(applyButton);
+            applyButton=ActionButton("검증 후 공통 콤보 적용",()=>Apply());applyButton.AddToClassList("primary");header.Add(applyButton);
         }
 
         private void BuildLibrary()
         {
-            if(library==null || session.Working==null) return;library.Clear();
-            foreach(var item in weapons)
+            if(library==null) return;library.Clear();
+            foreach(var group in weaponGroups)
             {
-                string label=WeaponLabel(item);
-                if(!label.Contains(search,StringComparison.OrdinalIgnoreCase) && !item.name.Contains(search,StringComparison.OrdinalIgnoreCase)) continue;
-                var b=ActionButton(label,()=>SelectWeapon(item));b.tooltip=item.name;b.AddToClassList("weapon-card");
-                b.EnableInClassList("selected",item==selectedWeapon);library.Add(b);
+                var selected=group;string label=group.Label;
+                if(!label.Contains(search,StringComparison.OrdinalIgnoreCase) && !group.WeaponClass.ToString().Contains(search,StringComparison.OrdinalIgnoreCase)) continue;
+                var b=ActionButton(label,()=>SelectWeapon(selected.Representative));b.name="weapon-class-"+(int)group.WeaponClass;b.AddToClassList("weapon-card");
+                b.tooltip=group.Weapons.Length+"종의 무기가 같은 공통 콤보를 사용합니다.";
+                b.EnableInClassList("selected",group==CurrentGroup);library.Add(b);
             }
+            if(session.Working==null){library.Add(Title("정식 카탈로그에 등록된 근접 콤보가 없습니다."));return;}
+            var scope=new Label((CurrentGroup?.Label??"공통 콤보")+" · "+(CurrentGroup?.Weapons.Length??0)+"종에 공통 적용");scope.AddToClassList("hint");library.Add(scope);
             library.Add(Title("공격 종류"));
             foreach(ComboMakerAttackMode mode in Enum.GetValues(typeof(ComboMakerAttackMode)))
             {
-                var selected=mode;var asset=ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),mode);
+                var selected=mode;var asset=CurrentGroup?.SharedAsset(mode,out _);
                 var button=ActionButton(ComboMakerAttackBinding.Label(mode),()=>SelectAttackMode(selected));
                 button.name="attack-mode-"+mode;button.EnableInClassList("selected",attackMode==mode);button.SetEnabled(asset!=null);
                 button.tooltip=asset!=null?AssetDatabase.GetAssetPath(asset):"이 무기에 연결된 자산이 없습니다.";library.Add(button);
@@ -243,7 +251,7 @@ namespace Overburst.EditorTools.ComboMaker
                     if(validation.Count==0)MeleeAttackVfxSlopeBakeUtility.BakeWorkingCopy(session.Source,previewData);
                     preview.Load(selectedWeapon,previewData);preview.Begin(selectedStep,false,true);
                     if(placeTargetAfterRebuild){preview.PlaceTargetAtImpact();placeTargetAfterRebuild=false;}
-                    message=validation.Count>0?"설정 오류를 수정한 뒤 적용하세요.":"현재 무기 기본 능력치 기준 · 작업 사본 프리뷰";
+                    message=validation.Count>0?"설정 오류를 수정한 뒤 적용하세요.":"공통 콤보 작업 사본 · 선택 외형의 기본 능력치로 프리뷰";
                 }
                 catch(Exception e){preview.Dispose();message="프리뷰 준비 실패: "+e.Message;}
                 CaptureRecovery();renderDirty=true;UpdateStatus();
@@ -295,10 +303,11 @@ namespace Overburst.EditorTools.ComboMaker
                 elementFxButton.SetEnabled(supported&&!EditorApplication.isPlayingOrWillChangePlaymode);
                 elementFxButton.tooltip=supported?"현재 프리뷰 원소의 검신·트레일을 모든 대검에 공통 적용합니다.":"원소 FX가 있는 대검에서 사용할 수 있습니다.";
             }
-            applyButton.SetEnabled(session.Working!=null&&session.Dirty&&!session.SourceChanged&&validation.Count==0&&!needsBake&&!EditorApplication.isPlayingOrWillChangePlaymode);
+            var bindingIssues=CurrentGroup?.BindingIssues().ToArray()??new[]{"정식 무기 카탈로그의 종류를 선택하세요."};
+            applyButton.SetEnabled(session.Working!=null&&session.Dirty&&!session.SourceChanged&&bindingIssues.Length==0&&validation.Count==0&&!needsBake&&!EditorApplication.isPlayingOrWillChangePlaymode);
             if(playbackMode!=null)playbackMode.SetEnabled(attackMode==ComboMakerAttackMode.Light);
             statusLabel.text=message;statusLabel.tooltip=message;
-            string errors=string.Join("\n",validation);
+            string errors=string.Join("\n",validation.Concat(bindingIssues));
             if(session.SourceChanged)errors+="\n원본이 외부에서 변경되었습니다. 다시 읽기 후 편집하세요.";
             validationBox.text=errors;validationBox.style.display=string.IsNullOrWhiteSpace(errors)?DisplayStyle.None:DisplayStyle.Flex;
             UpdateTransport();
@@ -326,7 +335,25 @@ namespace Overburst.EditorTools.ComboMaker
             int answer=EditorUtility.DisplayDialogComplex("미적용 콤보","현재 작업 사본의 변경을 어떻게 할까요?","적용","돌아가기","변경 버리기");
             return answer==2 || answer==0&&Apply();
         }
-        private void SelectWeapon(WeaponItemData item){if(item==selectedWeapon||!ResolvePending())return;selectedWeapon=item;if(ComboMakerAttackBinding.Asset(item.GetMeleeDefinition(),attackMode)==null)attackMode=ComboMakerAttackMode.Light;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
+        private void RefreshWeaponLibrary()
+        {weaponGroups=ComboMakerWeaponLibrary.Collect();weapons=weaponGroups.SelectMany(g=>g.Weapons).ToArray();}
+        private void SelectWeapon(WeaponItemData item)
+        {
+            if(item==selectedWeapon)return;
+            var group=weaponGroups.FirstOrDefault(g=>g.Weapons.Contains(item));
+            if(group==null){message="정식 카탈로그에 등록된 무기 종류만 편집합니다.";UpdateStatus();return;}
+            if(group==CurrentGroup){SelectPreviewWeapon(item);return;}
+            if(!ResolvePending())return;
+            selectedWeapon=item;if(ComboMakerAttackBinding.Asset(item.GetMeleeDefinition(),attackMode)==null)attackMode=ComboMakerAttackMode.Light;
+            selectedStep=0;placeTargetAfterRebuild=true;LoadSource();
+        }
+        private void SelectPreviewWeapon(WeaponItemData item)
+        {
+            if(item==null || item==selectedWeapon || CurrentGroup==null || !CurrentGroup.Weapons.Contains(item))return;
+            var asset=CurrentGroup.SharedAsset(attackMode,out string issue);
+            if(issue!=null || asset!=session.Asset){message=issue??"공통 연결이 바뀌었습니다. 원본을 다시 읽으세요.";UpdateStatus();return;}
+            selectedWeapon=item;CaptureRecovery();ScheduleRebuild();BuildEditor();
+        }
         private void SelectAttackMode(ComboMakerAttackMode mode){if(attackMode==mode||ComboMakerAttackBinding.Asset(selectedWeapon.GetMeleeDefinition(),mode)==null||!ResolvePending())return;attackMode=mode;selectedStep=0;placeTargetAfterRebuild=true;LoadSource();}
         private void LoadSession(string draft=null,string original=null)
         {
@@ -334,11 +361,30 @@ namespace Overburst.EditorTools.ComboMaker
             session.LoadWeapon(selectedWeapon,attackMode,draft,original);
             if(attackMode!=ComboMakerAttackMode.Light){preview.All=false;playbackMode?.SetValueWithoutNotify("선택 동작 반복");}
         }
-        private void ReloadSource(){if(ResolvePending())LoadSource();}
+        private void ReloadSource()
+        {
+            if(!ResolvePending())return;RefreshWeaponLibrary();
+            if(!weapons.Contains(selectedWeapon)){selectedWeapon=weaponGroups.FirstOrDefault()?.Representative;selectedStep=0;}
+            if(selectedWeapon==null){message="정식 카탈로그에 등록된 근접 콤보가 없습니다.";BuildLibrary();UpdateStatus();return;}
+            LoadSource();
+        }
         private void LoadSource()
         {preview.Dispose();serialized?.Dispose();LoadSession();serialized=new SerializedObject(session.Working);ClampStep();CaptureRecovery();BuildLibrary();BuildEditor();ScheduleRebuild();}
         private bool Apply()
-        {try{session.Apply();CaptureRecovery();message="적용 완료 · 원본 자산 Undo 지원";ScheduleRebuild();return true;}catch(Exception e){message="적용하지 못했습니다: "+e.Message;UpdateStatus();return false;}}
+        {
+            try
+            {
+                RefreshWeaponLibrary();var group=CurrentGroup;
+                if(group==null)throw new InvalidOperationException("정식 카탈로그의 공통 무기 종류를 선택하세요.");
+                var issues=group.BindingIssues().ToArray();
+                if(issues.Length>0)throw new InvalidOperationException(string.Join("\n",issues));
+                if(group.SharedAsset(attackMode,out _)!=session.Asset)throw new InvalidOperationException("공통 자산 연결이 바뀌었습니다. 원본을 다시 읽으세요.");
+                session.Apply();CaptureRecovery();
+                message=group.Label+" 적용 완료 · "+group.Weapons.Length+"종이 같은 콤보 사용 · 원본 Undo 지원";
+                ScheduleRebuild();return true;
+            }
+            catch(Exception e){message="적용하지 못했습니다: "+e.Message;UpdateStatus();return false;}
+        }
         public override void SaveChanges(){if(Apply())base.SaveChanges();}
         public override void DiscardChanges(){if(session?.Source!=null)LoadSource();hasUnsavedChanges=false;base.DiscardChanges();}
         private void MoveStep(int direction)
@@ -348,7 +394,7 @@ namespace Overburst.EditorTools.ComboMaker
         private void RemoveStep()
         {if(session.Working.StepCount<=1||!EditorUtility.DisplayDialog("타수 삭제","작업 사본에서 선택 타를 삭제합니다.","삭제","취소"))return;serialized.Update();serialized.FindProperty("steps").DeleteArrayElementAtIndex(selectedStep);serialized.ApplyModifiedProperties();ClampStep();Changed();BuildEditor();}
         private float StepSeconds(int i)=>ComboMakerSession.Duration(session.Working,i)*session.Working.steps[i].playbackAcceleration.ToElapsed(1);
-        private static string WeaponLabel(WeaponItemData item)=>item==null?"무기":AssetDatabase.GetAssetPath(item).Contains("WP02")?"대검":AssetDatabase.GetAssetPath(item).Contains("WP01")?"한손검":item.name;
+        private static string WeaponLabel(WeaponItemData item)=>item==null?"무기":ComboMakerWeaponLibrary.ClassLabel(item.weaponClass)+" 공통";
         private static VisualElement Row(){var row=new VisualElement();row.AddToClassList("row");return row;}
         private static Label Title(string text){var label=new Label(text);label.AddToClassList("section-title");return label;}
         private static Button ActionButton(string text,Action action)=>new Button(action){text=text};

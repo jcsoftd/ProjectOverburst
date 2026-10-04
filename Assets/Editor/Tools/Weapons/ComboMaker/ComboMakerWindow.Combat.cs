@@ -32,6 +32,7 @@ namespace Overburst.EditorTools.ComboMaker
         }
         private void BuildTargetOptions(VisualElement parent)
         {
+            BuildWeaponPreviewField(parent);
             var options=Card("대상 · 넉백 · 혈흔");parent.Add(options);
             var authored=new Toggle("제작 중 몬스터도 표시"){value=includeAuthoringEnemies};
             authored.tooltip="테마 스폰에 아직 연결하지 않은 전투 Actor도 비교합니다.";
@@ -70,6 +71,16 @@ namespace Overburst.EditorTools.ComboMaker
             preview.ShowKnockback=previewKnockback;preview.TargetDefinition=previewEnemy;preview.TargetPrefab=previewEnemy!=null?previewEnemy.ActorPrefab.gameObject:null;preview.WeightOverride=previewWeight;
             preview.ShowBlood=previewBlood;
             preview.PackBlood=previewPackBlood;
+        }
+        private void BuildWeaponPreviewField(VisualElement parent)
+        {
+            var group=CurrentGroup;if(group==null)return;
+            var choices=group.Weapons.Select(ComboMakerWeaponLibrary.PreviewLabel).ToList();
+            var visual=new DropdownField("프리뷰 외형",choices,Mathf.Max(0,Array.IndexOf(group.Weapons,selectedWeapon))){name="preview-weapon-visual"};
+            visual.tooltip="외형과 기본 능력치만 비교합니다. 편집 중인 공통 콤보와 적용 대상은 유지합니다.";
+            visual.SetEnabled(!group.BindingIssues().Any());
+            visual.RegisterValueChangedCallback(_=>SelectPreviewWeapon(group.Weapons[visual.index]));parent.Add(visual);
+            var scope=new Label(group.Label+" 편집 · 외형을 바꿔도 작업 사본 유지");scope.AddToClassList("hint");parent.Add(scope);
         }
         private void AddHeavyFloat(VisualElement parent,string label,bool charged)
         {

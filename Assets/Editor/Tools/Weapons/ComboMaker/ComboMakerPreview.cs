@@ -156,9 +156,10 @@ namespace Overburst.EditorTools.ComboMaker
             if (adapter == null) throw new InvalidOperationException("플레이어 리그 어댑터가 없습니다.");
             adapter.ResolveReferences();
             animator = adapter.Animator;
-            if (animator == null || adapter.RightHandWeaponSocket == null || item.weaponRootPrefab == null)
+            var weaponPrefab = WeaponLevelCatalog.ResolveVisual(item);
+            if (animator == null || adapter.RightHandWeaponSocket == null || weaponPrefab == null)
                 throw new InvalidOperationException("Animator, 오른손 소켓 또는 장착 무기가 없습니다.");
-            weapon = Object.Instantiate(item.weaponRootPrefab, adapter.RightHandWeaponSocket, false);
+            weapon = Object.Instantiate(weaponPrefab, adapter.RightHandWeaponSocket, false);
             pose = weapon.GetComponentInChildren<WeaponPose>(true);
             trace = weapon.GetComponentInChildren<WeaponTraceBinding>(true);
             DisableBehaviours(actor);
