@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: 2HitComboAttackForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_2HitComboAttackForward
+  displayName: "\uC804\uC9C4 \uB3D9\uC791 2\uC5F0\uD0C0"
+  ability: {fileID: 11400000, guid: 5fcb3755c88089543b1d0d953c1ae631, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: 408e6e21312a17d43929030251db64e2, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 95efb910199ac4444b3871ce81a56ef8, type: 2}
+  delivery: 0
+  strikes:
+  - contactStart: 0.28947368
+    impact: 0.28947368
+    contactEnd: 0.32105264
+    shape: 1
+    localOrigin: {x: 1.0111481, y: 0, z: 7.943731}
+    yaw: 0
+    radius: 1.85
+    innerRadius: 0
+    angle: 360
+    width: 3.7
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 55\u201361; contact/release."
+  - contactStart: 0.5947368
+    impact: 0.5947368
+    contactEnd: 0.6263158
+    shape: 1
+    localOrigin: {x: -2.1846428, y: 0, z: 7.352604}
+    yaw: 0
+    radius: 1.85
+    innerRadius: 0
+    angle: 360
+    width: 3.7
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 113\u2013119; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 0
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 1.85
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. '

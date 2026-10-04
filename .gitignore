@@ -147,3 +147,7 @@ Assets/StreamingAssets/aa/
 
 # Licensed supplier-derived V3 locomotion curves; restore payload and meta from private Recovery.
 /Assets/ProjectOverburst/Resources/Enemies/Themes/Animations/V3_*_Loop.anim*
+
+# Licensed Crustaspikan derived clips; restore with the material builder and original meta recovery.
+/Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/LicensedClips/
+/Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/LicensedClips.meta

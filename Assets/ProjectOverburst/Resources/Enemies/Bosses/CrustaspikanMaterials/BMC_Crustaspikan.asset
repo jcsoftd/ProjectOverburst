@@ -1,0 +1,541 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 192e9f297417e784a8baac6a9134c2cc, type: 3}
+  m_Name: BMC_Crustaspikan
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossMaterialCollection
+  actorDefinition: {fileID: 11400000, guid: 6ab1ba03c159c4a4c8ccaf7224ac1eb7, type: 2}
+  catalog: {fileID: 11400000, guid: a4ea9d9620a0c7141904751f6bee8e5a, type: 2}
+  attacks:
+  - {fileID: 11400000, guid: 0daa2834b23379a45af185cfd2a85f49, type: 2}
+  - {fileID: 11400000, guid: 1f15fbbe0b3b4c84f80e95c8982a45f3, type: 2}
+  - {fileID: 11400000, guid: ea9c4eaee9edef04faeb78b479dd3889, type: 2}
+  - {fileID: 11400000, guid: ec2f98cf9fd2bd84e9a1259af6b6c92b, type: 2}
+  - {fileID: 11400000, guid: 75135d1b3ad46424aae5e9615ffd3f77, type: 2}
+  - {fileID: 11400000, guid: e56a4d8e6c0080a4998d1524b4b03ac5, type: 2}
+  - {fileID: 11400000, guid: 4c1800eaab3135c418d64e58771ad771, type: 2}
+  - {fileID: 11400000, guid: 6b816d03557a924449d2474b9ec37307, type: 2}
+  - {fileID: 11400000, guid: b83c883cdf85198469b8728ed38402f9, type: 2}
+  - {fileID: 11400000, guid: b210628ab60464348bf438e67a399040, type: 2}
+  - {fileID: 11400000, guid: 4207fa36ef32c074da1c44a56c6b2db4, type: 2}
+  - {fileID: 11400000, guid: eead64c80c0de974d84986e21477dc2e, type: 2}
+  - {fileID: 11400000, guid: 7ec4401b464767f4cb802c54a51a5069, type: 2}
+  - {fileID: 11400000, guid: a46546e81ee65cb45b8e140ef4e86b66, type: 2}
+  - {fileID: 11400000, guid: c1fb26f7a80c24840aaf7c0f5e8ddebd, type: 2}
+  - {fileID: 11400000, guid: 4eeaeef6b251241448b1aeb5813eaf37, type: 2}
+  motions:
+  - id: 2HandsSmashAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@2HandsSmashAttack.fbx"
+    sourceGuid: ce129e0ecca6e5d4b9fd7233556e3e9d
+    source: {fileID: 1827226128182048838, guid: ce129e0ecca6e5d4b9fd7233556e3e9d, type: 3}
+    runtime: {fileID: 7400000, guid: ebb7753d4a037034e8be8f6278c31bcc, type: 2}
+    state: Material_2HandsSmashAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: 2HitComboAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@2HitComboAttack.fbx"
+    sourceGuid: 93456689994aecd4ba88a01eb4b7379e
+    source: {fileID: 1827226128182048838, guid: 93456689994aecd4ba88a01eb4b7379e, type: 3}
+    runtime: {fileID: 7400000, guid: b481ef78b58648944b0825997afa0388, type: 2}
+    state: Material_2HitComboAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: 2HitComboAttackForward
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@2HitComboAttackForward.fbx"
+    sourceGuid: 408e6e21312a17d43929030251db64e2
+    source: {fileID: 1827226128182048838, guid: 408e6e21312a17d43929030251db64e2, type: 3}
+    runtime: {fileID: 7400000, guid: 95efb910199ac4444b3871ce81a56ef8, type: 2}
+    state: Material_2HitComboAttackForward
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Death
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Death.fbx"
+    sourceGuid: b5269177d2d455b42ae4acd127e2fc7e
+    source: {fileID: 1827226128182048838, guid: b5269177d2d455b42ae4acd127e2fc7e, type: 3}
+    runtime: {fileID: 7400000, guid: 87f63bf8671745747b5fbd3882318f28, type: 2}
+    state: Material_Death
+    rootMotionVariant: 0
+    preparation: 0
+  - id: GetHitBack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@GetHitBack.fbx"
+    sourceGuid: aebefc558f0b10341a36b4f300710cc5
+    source: {fileID: 1827226128182048838, guid: aebefc558f0b10341a36b4f300710cc5, type: 3}
+    runtime: {fileID: 7400000, guid: d9e9d2091c244ff488459bc2337b4eb9, type: 2}
+    state: Material_GetHitBack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: GetHitFront
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@GetHitFront.fbx"
+    sourceGuid: 97f4a195795d5644fa053d5f154bc64a
+    source: {fileID: 1827226128182048838, guid: 97f4a195795d5644fa053d5f154bc64a, type: 3}
+    runtime: {fileID: 7400000, guid: b20320024252d9e4ab6a324335a27ccc, type: 2}
+    state: Material_GetHitFront
+    rootMotionVariant: 0
+    preparation: 0
+  - id: GetHitLeft
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@GetHitLeft.fbx"
+    sourceGuid: 305de3eb7a0d68f42819393669cae86e
+    source: {fileID: 1827226128182048838, guid: 305de3eb7a0d68f42819393669cae86e, type: 3}
+    runtime: {fileID: 7400000, guid: 4a57a289c08267e41adae615dc09742d, type: 2}
+    state: Material_GetHitLeft
+    rootMotionVariant: 0
+    preparation: 0
+  - id: GetHitRight
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@GetHitRight.fbx"
+    sourceGuid: cf66f34ea725a914496db3b0824182f2
+    source: {fileID: 1827226128182048838, guid: cf66f34ea725a914496db3b0824182f2, type: 3}
+    runtime: {fileID: 7400000, guid: 345e1c594abe57f428ab3394ea7c1c45, type: 2}
+    state: Material_GetHitRight
+    rootMotionVariant: 0
+    preparation: 0
+  - id: IdleBreathe
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@IdleBreathe.fbx"
+    sourceGuid: 315b5f41e101ab3459e279e05e1c3762
+    source: {fileID: 1827226128182048838, guid: 315b5f41e101ab3459e279e05e1c3762, type: 3}
+    runtime: {fileID: 7400000, guid: fd4175fccca137842b92fdb350b67143, type: 2}
+    state: Material_IdleBreathe
+    rootMotionVariant: 0
+    preparation: 0
+  - id: IdleLookAround
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@IdleLookAround.fbx"
+    sourceGuid: d384a39166afd4241bd07d8efcaedf88
+    source: {fileID: 1827226128182048838, guid: d384a39166afd4241bd07d8efcaedf88, type: 3}
+    runtime: {fileID: 7400000, guid: 81f81b137ffa01048bc87e0cdc7c4352, type: 2}
+    state: Material_IdleLookAround
+    rootMotionVariant: 0
+    preparation: 0
+  - id: LeftFootStompAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@LeftFootStompAttack.fbx"
+    sourceGuid: 104de54a92890c04986aa12b01b21c80
+    source: {fileID: 1827226128182048838, guid: 104de54a92890c04986aa12b01b21c80, type: 3}
+    runtime: {fileID: 7400000, guid: 7c7ad5227bbb409459e3831cd9ba51db, type: 2}
+    state: Material_LeftFootStompAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: LeftHandAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@LeftHandAttack.fbx"
+    sourceGuid: 9795eb987a45edb4ab365d82d6e5ddf7
+    source: {fileID: 1827226128182048838, guid: 9795eb987a45edb4ab365d82d6e5ddf7, type: 3}
+    runtime: {fileID: 7400000, guid: eb4745dc5fa86c74093caed457c71d08, type: 2}
+    state: Material_LeftHandAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: LeftHandSmashAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@LeftHandSmashAttack.fbx"
+    sourceGuid: 3c992c474ed67fd448b30c4a84d9eba2
+    source: {fileID: 1827226128182048838, guid: 3c992c474ed67fd448b30c4a84d9eba2, type: 3}
+    runtime: {fileID: 7400000, guid: 36f2d22220496e04781fe59fe784cc84, type: 2}
+    state: Material_LeftHandSmashAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: RightFootStompAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@RightFootStompAttack.fbx"
+    sourceGuid: eed2c94f66259b54b97c07459fbbb770
+    source: {fileID: 1827226128182048838, guid: eed2c94f66259b54b97c07459fbbb770, type: 3}
+    runtime: {fileID: 7400000, guid: 1617e0c67cd23b04babb29deca672d99, type: 2}
+    state: Material_RightFootStompAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: RightHandAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@RightHandAttack.fbx"
+    sourceGuid: c33e2f94c5e1d2f4ab6d9ffa291a89eb
+    source: {fileID: 1827226128182048838, guid: c33e2f94c5e1d2f4ab6d9ffa291a89eb, type: 3}
+    runtime: {fileID: 7400000, guid: 3a42512b72ee5724b85518ec3c6a500a, type: 2}
+    state: Material_RightHandAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: RightHandSmashAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@RightHandSmashAttack.fbx"
+    sourceGuid: 85db423e83224724cba9a9f5a9edfebc
+    source: {fileID: 1827226128182048838, guid: 85db423e83224724cba9a9f5a9edfebc, type: 3}
+    runtime: {fileID: 7400000, guid: 59beaf5a76152864482a8ecc2da02617, type: 2}
+    state: Material_RightHandSmashAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Roar1
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Roar1.fbx"
+    sourceGuid: 629ab08abffd21c4bbdeb81a309ecf98
+    source: {fileID: 1827226128182048838, guid: 629ab08abffd21c4bbdeb81a309ecf98, type: 3}
+    runtime: {fileID: 7400000, guid: 4f3c02ec0fc50ad4cb3cdd6c26c1796c, type: 2}
+    state: Material_Roar1
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Roar2
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Roar2.fbx"
+    sourceGuid: 56f6b375ab951d042ad9273428633697
+    source: {fileID: 1827226128182048838, guid: 56f6b375ab951d042ad9273428633697, type: 3}
+    runtime: {fileID: 7400000, guid: 875a83b5690c977429b6e0fca62ab505, type: 2}
+    state: Material_Roar2
+    rootMotionVariant: 0
+    preparation: 0
+  - id: SpitterShot1
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@SpitterShot1.fbx"
+    sourceGuid: 2de7a26e014f82641a0b302780320a4c
+    source: {fileID: 1827226128182048838, guid: 2de7a26e014f82641a0b302780320a4c, type: 3}
+    runtime: {fileID: 7400000, guid: d9fcdb1b1f5ebfb40beff6951e77d8f9, type: 2}
+    state: Material_SpitterShot1
+    rootMotionVariant: 0
+    preparation: 0
+  - id: SpitterShot2
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@SpitterShot2.fbx"
+    sourceGuid: 764e321accf958341922702fde494fe4
+    source: {fileID: 1827226128182048838, guid: 764e321accf958341922702fde494fe4, type: 3}
+    runtime: {fileID: 7400000, guid: 17f7d90a12de8a544b6fb350d978f37c, type: 2}
+    state: Material_SpitterShot2
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Taunt
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Taunt.fbx"
+    sourceGuid: 7f98a32e433ddc64f98fa890546af36f
+    source: {fileID: 1827226128182048838, guid: 7f98a32e433ddc64f98fa890546af36f, type: 3}
+    runtime: {fileID: 7400000, guid: 5d0a6d82004ca1947ae3e5559360c505, type: 2}
+    state: Material_Taunt
+    rootMotionVariant: 0
+    preparation: 0
+  - id: ThrowRock
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@ThrowRock.fbx"
+    sourceGuid: fb3eba972b7ef6d4b9d6ad97a6e5edf8
+    source: {fileID: 1827226128182048838, guid: fb3eba972b7ef6d4b9d6ad97a6e5edf8, type: 3}
+    runtime: {fileID: 7400000, guid: aee33ac06cf1c8b44be68916f8363d52, type: 2}
+    state: Material_ThrowRock
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn180Left
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn180Left.fbx"
+    sourceGuid: 24976e7812abccb4f9c5c0ba70deffc3
+    source: {fileID: 1827226128182048838, guid: 24976e7812abccb4f9c5c0ba70deffc3, type: 3}
+    runtime: {fileID: 7400000, guid: 5549eb6b953719b4f901c0ccfc0ab0c2, type: 2}
+    state: Material_Turn180Left
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn180Right
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn180Right.fbx"
+    sourceGuid: 0c8288e19d31b384d8bb35381264ff7e
+    source: {fileID: 1827226128182048838, guid: 0c8288e19d31b384d8bb35381264ff7e, type: 3}
+    runtime: {fileID: 7400000, guid: 66e4b8faa6aa09a408dbba27b5c445fe, type: 2}
+    state: Material_Turn180Right
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90Left
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90Left.fbx"
+    sourceGuid: bd7fefdb74909e347831573b5e7bcbfe
+    source: {fileID: 1827226128182048838, guid: bd7fefdb74909e347831573b5e7bcbfe, type: 3}
+    runtime: {fileID: 7400000, guid: 2280f5c9dea1ea54faf9f0d3e1b21789, type: 2}
+    state: Material_Turn90Left
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90LeftFootStompAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90LeftFootStompAttack.fbx"
+    sourceGuid: 4f64a3207658dc14dba00b229518d55f
+    source: {fileID: 1827226128182048838, guid: 4f64a3207658dc14dba00b229518d55f, type: 3}
+    runtime: {fileID: 7400000, guid: 096c52602d854b948b902bebbdf4dbc4, type: 2}
+    state: Material_Turn90LeftFootStompAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90LeftHandAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90LeftHandAttack.fbx"
+    sourceGuid: c2d355c9666014d4e83a684e7ce6b2a8
+    source: {fileID: 1827226128182048838, guid: c2d355c9666014d4e83a684e7ce6b2a8, type: 3}
+    runtime: {fileID: 7400000, guid: d47bccbe69942584998d328686602515, type: 2}
+    state: Material_Turn90LeftHandAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90Right
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90Right.fbx"
+    sourceGuid: c412edb528808234e84b97e34603750f
+    source: {fileID: 1827226128182048838, guid: c412edb528808234e84b97e34603750f, type: 3}
+    runtime: {fileID: 7400000, guid: fd936cc3b3764fb44859c8a0fbf00b1f, type: 2}
+    state: Material_Turn90Right
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90RightFootStompAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90RightFootStompAttack.fbx"
+    sourceGuid: 3f3b1f63ddf7e764ea66922ec1c1df5a
+    source: {fileID: 1827226128182048838, guid: 3f3b1f63ddf7e764ea66922ec1c1df5a, type: 3}
+    runtime: {fileID: 7400000, guid: 5c8eb1435785d5549b4a8bfe7e02cc2e, type: 2}
+    state: Material_Turn90RightFootStompAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: Turn90RightHandAttack
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90RightHandAttack.fbx"
+    sourceGuid: 248cadaf374c5b84d8de704240ff9e45
+    source: {fileID: 1827226128182048838, guid: 248cadaf374c5b84d8de704240ff9e45, type: 3}
+    runtime: {fileID: 7400000, guid: 952d222c0519e384e9be5ca13951d856, type: 2}
+    state: Material_Turn90RightHandAttack
+    rootMotionVariant: 0
+    preparation: 0
+  - id: UnearthRock
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@UnearthRock.fbx"
+    sourceGuid: f1c87eeaa2a856b4bbe6dc606d6b4161
+    source: {fileID: 1827226128182048838, guid: f1c87eeaa2a856b4bbe6dc606d6b4161, type: 3}
+    runtime: {fileID: 7400000, guid: 1c51bf555febece46b383e763cc995ea, type: 2}
+    state: Material_UnearthRock
+    rootMotionVariant: 0
+    preparation: 1
+  - id: WalkBackwards
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkBackwards.fbx"
+    sourceGuid: 3ff9656a5816e8844a523755058862db
+    source: {fileID: 1827226128182048838, guid: 3ff9656a5816e8844a523755058862db, type: 3}
+    runtime: {fileID: 7400000, guid: ff98088603499e743b9359d5c30367a9, type: 2}
+    state: Material_WalkBackwards
+    rootMotionVariant: 0
+    preparation: 0
+  - id: WalkBackwardsWithRock
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkBackwardsWithRock.fbx"
+    sourceGuid: 720c3198518f95a47872500371cab792
+    source: {fileID: 1827226128182048838, guid: 720c3198518f95a47872500371cab792, type: 3}
+    runtime: {fileID: 7400000, guid: 588660a2b8ca01b4bb9b96c5ab4ef87d, type: 2}
+    state: Material_WalkBackwardsWithRock
+    rootMotionVariant: 0
+    preparation: 1
+  - id: WalkForward
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkForward.fbx"
+    sourceGuid: a12b2ac29a87b0e408b880386a8f9ce0
+    source: {fileID: 1827226128182048838, guid: a12b2ac29a87b0e408b880386a8f9ce0, type: 3}
+    runtime: {fileID: 7400000, guid: 566455914120cef45969c7d4b7124446, type: 2}
+    state: Material_WalkForward
+    rootMotionVariant: 0
+    preparation: 0
+  - id: WalkForwardWithRock
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkForwardWithRock.fbx"
+    sourceGuid: a0755a031023544449fc82ae280d768f
+    source: {fileID: 1827226128182048838, guid: a0755a031023544449fc82ae280d768f, type: 3}
+    runtime: {fileID: 7400000, guid: 1f465b1ee42800849b422ad87e180f7a, type: 2}
+    state: Material_WalkForwardWithRock
+    rootMotionVariant: 0
+    preparation: 1
+  - id: WalkLeft
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkLeft.fbx"
+    sourceGuid: 504ec36f54e54dc48a4f02067d52e40e
+    source: {fileID: 1827226128182048838, guid: 504ec36f54e54dc48a4f02067d52e40e, type: 3}
+    runtime: {fileID: 7400000, guid: b37f2aef5a05728439b01dae39d70f65, type: 2}
+    state: Material_WalkLeft
+    rootMotionVariant: 0
+    preparation: 0
+  - id: WalkRight
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkRight.fbx"
+    sourceGuid: 0ca00b1a42375ad44a6f64dca3a00948
+    source: {fileID: 1827226128182048838, guid: 0ca00b1a42375ad44a6f64dca3a00948, type: 3}
+    runtime: {fileID: 7400000, guid: 2be115755731e0147a5d4a70d7e5054a, type: 2}
+    state: Material_WalkRight
+    rootMotionVariant: 0
+    preparation: 0
+  - id: 2HandsSmashAttack_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@2HandsSmashAttack_RM.fbx"
+    sourceGuid: 47f9c4c5a4760ec43a9ed0d45321c290
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: 2HitComboAttackForward_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@2HitComboAttackForward_RM.fbx"
+    sourceGuid: 4c58d30624af30c4e9c3bb0cb40902c7
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn180Left_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn180Left_RM.fbx"
+    sourceGuid: 517620cd7d458a54390eaa2fdc622321
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn180Right_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn180Right_RM.fbx"
+    sourceGuid: 621acef81a6727140859b110ea15171c
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90LeftFootStompAttack_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90LeftFootStompAttack_RM.fbx"
+    sourceGuid: 25ac98945733e3a4d8ec65d7119dfcbe
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90LeftHandAttack_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90LeftHandAttack_RM.fbx"
+    sourceGuid: 8693eb76c1238974598b87930bc1f6bd
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90Left_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90Left_RM.fbx"
+    sourceGuid: 047bc0b61cab3554c8883db8e1b6dd71
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90RightFootStompAttack_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90RightFootStompAttack_RM.fbx"
+    sourceGuid: 9e3b93d4d67570b459026be90e053779
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90RightHandAttack_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90RightHandAttack_RM.fbx"
+    sourceGuid: 7fa8ecf0659f0ea4195744676265664b
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: Turn90Right_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@Turn90Right_RM.fbx"
+    sourceGuid: 619cb32b8a1585247ac5d50eaa2355f1
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkBackwardsWithRock_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkBackwardsWithRock_RM.fbx"
+    sourceGuid: b528eaf1083ba3346935e924575f9e48
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkBackwards_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkBackwards_RM.fbx"
+    sourceGuid: 2b5f223727673494da77baf55385a7b9
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkForwardWithRock_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkForwardWithRock_RM.fbx"
+    sourceGuid: b2f9e1e40fe486e428989ae438521bda
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkForward_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkForward_RM.fbx"
+    sourceGuid: ca1a9c3feb8434d47bd7a03c1a3ee96e
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkLeft_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkLeft_RM.fbx"
+    sourceGuid: 7acb2b419b8d0884b8fb84f564494798
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  - id: WalkRight_RM
+    sourcePath: "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor
+      1/Monster Full Pack Vol 2/Monster Pack Vol 11/Crustaspikan/FBX Files/Crustaspikan@WalkRight_RM.fbx"
+    sourceGuid: e162ec15e99d11744870871553e9f2eb
+    source: {fileID: 0}
+    runtime: {fileID: 0}
+    state: 
+    rootMotionVariant: 1
+    preparation: 0
+  boulderMesh: {fileID: 4300000, guid: 70b066e51f3465348b1cadea0438da14, type: 2}
+  radialFillProfile:
+  - 0.000000014901161
+  - 0.2350353
+  - 0.31761357
+  - 0.43173268
+  - 0.54391813
+  - 0.6698119
+  - 0.8071338
+  - 0.8903777
+  - 0.941745
+  - 0.9756079
+  - 1
+  radialBorderProfile:
+  - 0.000000014901161
+  - 0.2350353
+  - 0.31761357
+  - 0.43173268
+  - 0.54391813
+  - 0.6698119
+  - 0.8071338
+  - 0.8903777
+  - 0.941745
+  - 0.9756079
+  - 1
+  boulderMaterial: {fileID: 2100000, guid: a7e4ae963887ddb4aab493b102c17972, type: 2}
+  boulderLeftHandBone: Crustaspikan_ L Hand
+  boulderRightHandBone: Crustaspikan_ R Hand
+  boulderOffset: {x: 0, y: 0.25, z: 0.15}
+  boulderVisualRadius: 0.85

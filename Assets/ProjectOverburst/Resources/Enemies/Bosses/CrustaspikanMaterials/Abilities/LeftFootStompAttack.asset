@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: LeftFootStompAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  abilityId: Crustaspikan_LeftFootStompAttack
+  weakAttackExecution: {fileID: 0}
+  animatorTrigger: Attack8
+  executionMode: 3
+  damage: 20
+  referencePatternDamagePercent: 0
+  telegraphedStrongAttack: 1
+  telegraphedAttack: 0
+  preparationDuration: 0.55
+  releaseDuration: 0.14
+  recoveryDuration: 0.28
+  minimumWarningTime: 0
+  minimumRecoveryTime: 0.3
+  parryable: 1
+  minimumRange: 0
+  range: 5.502954
+  hitRadius: 1.7
+  hitAngle: 360
+  verticalTolerance: 3
+  requireLineOfSight: 1
+  cooldown: 0.2
+  hitDelay: 0
+  hitNormalizedTime: 0.38709676
+  attackAnimationDuration: 5.166667
+  attackLockDuration: 5.166667
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []

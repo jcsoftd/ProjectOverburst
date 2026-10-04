@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: SpitterShot2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_SpitterShot2
+  displayName: "\uBD84\uBE44\uBB3C \uBC1C\uC0AC 2"
+  ability: {fileID: 11400000, guid: 7063144e90b320e4bbe390c1e43e621c, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: 764e321accf958341922702fde494fe4, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 17f7d90a12de8a544b6fb350d978f37c, type: 2}
+  delivery: 1
+  strikes:
+  - contactStart: 0.5103448
+    impact: 0.5103448
+    contactEnd: 0.55172414
+    shape: 3
+    localOrigin: {x: -0.24883303, y: 0, z: 2.3459742}
+    yaw: 0
+    radius: 0.22
+    innerRadius: 0
+    angle: 360
+    width: 0.44
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 74\u201380; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 1
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 0.22
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. '

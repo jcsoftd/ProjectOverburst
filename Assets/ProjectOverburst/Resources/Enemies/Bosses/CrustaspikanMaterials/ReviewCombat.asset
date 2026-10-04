@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e45f2a17b49c8fa42bda0ecec62419f0, type: 3}
+  m_Name: ReviewCombat
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCombatProfile
+  patterns:
+  - patternId: Crustaspikan_2HandsSmashAttack
+    displayName: "\uC591\uC190 \uB0B4\uB824\uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: f587c304a4258504080dfa4226bb59cc, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_2HitComboAttack
+    displayName: "\uC591\uC190 2\uC5F0\uD0C0"
+    ability: {fileID: 11400000, guid: 00cf5d7376c7bae4f90f32758c3bd657, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_2HitComboAttackForward
+    displayName: "\uC804\uC9C4 \uB3D9\uC791 2\uC5F0\uD0C0"
+    ability: {fileID: 11400000, guid: 5fcb3755c88089543b1d0d953c1ae631, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_LeftHandAttack
+    displayName: "\uC67C\uC190 \uACF5\uACA9"
+    ability: {fileID: 11400000, guid: ba001cb163e9d7b4e8c2871f67936249, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_RightHandAttack
+    displayName: "\uC624\uB978\uC190 \uACF5\uACA9"
+    ability: {fileID: 11400000, guid: aa9a907418ccf324f8b31d00b6cc7e62, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_LeftHandSmashAttack
+    displayName: "\uC67C\uC190 \uAC15\uD0C0"
+    ability: {fileID: 11400000, guid: 67d6afd453c0e24429ca805970d0da34, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_RightHandSmashAttack
+    displayName: "\uC624\uB978\uC190 \uAC15\uD0C0"
+    ability: {fileID: 11400000, guid: 9c1abe720f44eec4fb763f4cba325de1, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_LeftFootStompAttack
+    displayName: "\uC67C\uBC1C \uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: 5e4fd25541278a043b540ea131f384fb, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_RightFootStompAttack
+    displayName: "\uC624\uB978\uBC1C \uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: 12c81f52d433cd648872c70148259b74, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_Turn90LeftFootStompAttack
+    displayName: "\uC67C\uCABD \uD68C\uC804 \uBC1C\uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: 5181332c849d70246b1ffd701f5dd3dd, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_Turn90RightFootStompAttack
+    displayName: "\uC624\uB978\uCABD \uD68C\uC804 \uBC1C\uCC0D\uAE30"
+    ability: {fileID: 11400000, guid: adae7c0d39fa7484888bc7963cc9b941, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_Turn90LeftHandAttack
+    displayName: "\uC67C\uCABD \uD68C\uC804 \uC190 \uACF5\uACA9"
+    ability: {fileID: 11400000, guid: 247a83e758b7601499cdc0358ce5b88a, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_Turn90RightHandAttack
+    displayName: "\uC624\uB978\uCABD \uD68C\uC804 \uC190 \uACF5\uACA9"
+    ability: {fileID: 11400000, guid: e4930fd6edb473b48acba0917336344b, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_SpitterShot1
+    displayName: "\uBD84\uBE44\uBB3C \uBC1C\uC0AC 1"
+    ability: {fileID: 11400000, guid: f3f4d476eda946e4ead95eaf40042393, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_SpitterShot2
+    displayName: "\uBD84\uBE44\uBB3C \uBC1C\uC0AC 2"
+    ability: {fileID: 11400000, guid: 7063144e90b320e4bbe390c1e43e621c, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  - patternId: Crustaspikan_ThrowRock
+    displayName: "\uBC14\uC704 \uB358\uC9C0\uAE30"
+    ability: {fileID: 11400000, guid: ffb45221a9146544a9a6536d1c92add9, type: 2}
+    phaseMask: 1
+    weight: 1
+    unparryableDangerCue: 0
+    phaseTwoFollowUp: 
+  decisionInterval: 0.25
+  repeatDelay: 0.8
+  followUpWindow: 1.6
+  groggyMax: 100
+  parryGain: 0
+  heavyHitGain: 0
+  decayDelay: 10
+  decayPerSecond: 5
+  groggyDuration: 4.5
+  groggyProtection: 8
+  parryRecoil: 1
+  groggyState: Boss_Groggy
+  phaseTransitionDuration: 2.4
+  transitionState: Boss_Roar
+  phaseBehaviors:
+  - {fileID: 11400000, guid: e696127327ae3bf4fa29b428552cfbc2, type: 2}
+  dangerTint: {r: 1, g: 0.16, b: 0.1, a: 1}
+  dangerClip: {fileID: 0}
+  roarClip: {fileID: 0}
+  groggyClip: {fileID: 0}
+  sfxVolume: 0.8

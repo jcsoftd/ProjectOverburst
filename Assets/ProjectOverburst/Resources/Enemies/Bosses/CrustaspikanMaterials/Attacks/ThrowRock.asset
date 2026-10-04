@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: ThrowRock
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_ThrowRock
+  displayName: "\uBC14\uC704 \uB358\uC9C0\uAE30"
+  ability: {fileID: 11400000, guid: ffb45221a9146544a9a6536d1c92add9, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: fb3eba972b7ef6d4b9d6ad97a6e5edf8, type: 3}
+  runtimeClip: {fileID: 7400000, guid: aee33ac06cf1c8b44be68916f8363d52, type: 2}
+  delivery: 2
+  strikes:
+  - contactStart: 0.22222222
+    impact: 0.22222222
+    contactEnd: 0.26666668
+    shape: 1
+    localOrigin: {x: -1.1043082, y: 0, z: 8.336154}
+    yaw: 0
+    radius: 2.8
+    innerRadius: 0
+    angle: 360
+    width: 5.6
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 30\u201336; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 1
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 0.8
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. UnearthRock and rock walks may precede this independently;
+    a held rock is supplied for standalone review.

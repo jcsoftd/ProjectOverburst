@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: Turn90LeftHandAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_Turn90LeftHandAttack
+  displayName: "\uC67C\uCABD \uD68C\uC804 \uC190 \uACF5\uACA9"
+  ability: {fileID: 11400000, guid: 247a83e758b7601499cdc0358ce5b88a, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: c2d355c9666014d4e83a684e7ce6b2a8, type: 3}
+  runtimeClip: {fileID: 7400000, guid: d47bccbe69942584998d328686602515, type: 2}
+  delivery: 0
+  strikes:
+  - contactStart: 0.42962962
+    impact: 0.42962962
+    contactEnd: 0.47407407
+    shape: 1
+    localOrigin: {x: -6.1791487, y: 0, z: 5.197193}
+    yaw: 0
+    radius: 1.9
+    innerRadius: 0
+    angle: 360
+    width: 3.8
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 58\u201364; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 0
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 1.9
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. Actual striking limb differs from turn direction
+    in the name.

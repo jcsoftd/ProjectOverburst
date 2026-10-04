@@ -28,6 +28,12 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     private GroundIndicatorShape lastShape;
     private float simulatedTime = -1f;
     private bool refreshing;
+    private float[] radialSurfaceProfile, radialBorderProfile;
+    public void SetRadialProfiles(float[] surfaceProfile, float[] borderProfile)
+    {
+        radialSurfaceProfile = surfaceProfile; radialBorderProfile = borderProfile;
+        if (activeRoot != null) { ClearMeshes(); Refresh(); }
+    }
 
     public GroundIndicatorShape Shape => shape;
     public float OuterRadius => outerRadius;
@@ -143,9 +149,9 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
     private void BuildGeometry()
     {
         Mesh surface = shape == GroundIndicatorShape.Sector ? SectorMesh()
-            : shape == GroundIndicatorShape.Rectangle ? RectangleMesh() : RadialMesh(SurfaceSourceMesh(), InnerRadius, false);
+            : shape == GroundIndicatorShape.Rectangle ? RectangleMesh() : RadialMesh(SurfaceSourceMesh(), InnerRadius, false, radialSurfaceProfile);
         Mesh rim = shape == GroundIndicatorShape.Sector || shape == GroundIndicatorShape.Rectangle
-            ? surface : RadialMesh(BorderSourceMesh(), InnerRadius, false);
+            ? surface : RadialMesh(BorderSourceMesh(), InnerRadius, false, radialBorderProfile);
         Bind(fill, surface); Bind(border, rim);
         if (shape == GroundIndicatorShape.Rectangle)
         {
@@ -189,8 +195,8 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
         {
             var innerFill = InnerLayer(fill, "Inner native fill outside hole");
             var innerBorder = InnerLayer(border, "Inner native border outside hole");
-            Bind(innerFill, RadialMesh(SurfaceSourceMesh(), InnerRadius, true));
-            Bind(innerBorder, RadialMesh(BorderSourceMesh(), InnerRadius, true));
+            Bind(innerFill, RadialMesh(SurfaceSourceMesh(), InnerRadius, true, radialSurfaceProfile));
+            Bind(innerBorder, RadialMesh(BorderSourceMesh(), InnerRadius, true, radialBorderProfile));
             InnerProperties(innerFill.GetComponent<ParticleSystemRenderer>());
             InnerProperties(innerBorder.GetComponent<ParticleSystemRenderer>());
         }
@@ -231,15 +237,19 @@ public sealed class ProceduralGroundIndicator : MonoBehaviour
         }
         return MeshFrom("Authored cone UV with curved near edge", vertices, uv, triangles);
     }
-    private Mesh RadialMesh(Mesh original, float holeMeters, bool reflect)
+    private Mesh RadialMesh(Mesh original, float holeMeters, bool reflect, float[] authoredProfile)
     {
-        var originalVertices = original.vertices; var originalUv = original.uv;
         var profile = new float[11];
-        for (int ring = 0; ring <= 10; ring++)
+        if (authoredProfile != null && authoredProfile.Length == 11) System.Array.Copy(authoredProfile, profile, 11);
+        else
         {
-            int found = -1;
-            for (int i = 0; i < originalUv.Length; i++) if (Mathf.Abs(originalUv[i].y - ring * .1f) < .0001f) { found = i; break; }
-            profile[ring] = found >= 0 ? new Vector2(originalVertices[found].x, originalVertices[found].y).magnitude : ring * .1f;
+            var originalVertices = original.vertices; var originalUv = original.uv;
+            for (int ring = 0; ring <= 10; ring++)
+            {
+                int found = -1;
+                for (int i = 0; i < originalUv.Length; i++) if (Mathf.Abs(originalUv[i].y - ring * .1f) < .0001f) { found = i; break; }
+                profile[ring] = found >= 0 ? new Vector2(originalVertices[found].x, originalVertices[found].y).magnitude : ring * .1f;
+            }
         }
         float hole = holeMeters / outerRadius;
         var distances = new List<float> { hole, 1f };

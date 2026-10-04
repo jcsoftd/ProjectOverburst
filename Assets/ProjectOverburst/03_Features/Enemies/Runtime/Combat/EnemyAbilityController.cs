@@ -23,6 +23,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private EnemyStrongAttackWarning strongWarning;
     private EnemyActor actor;
     private EnemyThemeSpecialExecutor themeExecutor;
+    private EnemyBossMaterialExecutor bossMaterialExecutor;
     private bool finalImpactDelivered;
     private int nextImpactIndex;
     private bool warningAimLocked;
@@ -71,7 +72,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private bool strongUsedInFight;
     private int RequiredAttacksBetweenStrong => !strongUsedInFight ? 1
         : reaction != null && reaction.CanActThroughOrdinaryHit ? LargeAttacksBetweenStrong : MediumAttacksBetweenStrong;
-    public bool IsStrongAttackLocked => attacksSinceStrong < RequiredAttacksBetweenStrong && HasNonStrongAbility();
+    public bool IsStrongAttackLocked => bossMaterialExecutor == null && attacksSinceStrong < RequiredAttacksBetweenStrong && HasNonStrongAbility();
     private bool IsSelectable(EnemyAbilityDefinition ability) => IsCooldownReady(ability)
         && !(ability.IsTelegraphedStrongAttack && IsStrongAttackLocked);
     private bool HasNonStrongAbility()
@@ -94,6 +95,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     public bool IsParryThreatTo(CombatTarget player)
     {
         EnemyAbilityDefinition ability = lastCommittedAbility;
+        if (bossMaterialExecutor != null && bossMaterialExecutor.CurrentMaterial?.ability == ability)
+            return bossMaterialExecutor.IsParryThreatTo(player);
         if (player == null || ability == null || !ability.IsParryable
             || !IsExecuting || finalImpactDelivered
             || Time.time < firstImpactAt - ParryLeadSeconds || Time.time > lastImpactAt + .03f)
@@ -115,6 +118,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         if (strongTarget == null) return;
         if (!IsExecuting) { EndStrongWarning(); return; }
+        if (bossMaterialExecutor != null && bossMaterialExecutor.IsExecuting) return;
         if (finalImpactDelivered) { strongWarning?.Hide(); return; }
         var currentAbility = lastCommittedAbility;
         if (currentAbility != null && currentAbility.UsesPacedTimeline && animationBridge != null
@@ -294,6 +298,28 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
 
         if (!TrySelectAbility(target, out AbilityCandidate selected))
             return false;
+        return CommitAbility(selected, target);
+    }
+
+    // Explicit composition uses the same eligibility, cooldown and commit route as weighted AI selection.
+    public bool TryStartAbility(EnemyAbilityDefinition requested, Transform target)
+    {
+        ResolveReferences();
+        if (requested == null || target == null || ResolveIsExecuting() || abilitySet == null || !abilitySet.IsValid) return false;
+        PrepareAttackAim(target);
+        Vector3 delta = ResolveAimPosition(target) - transform.position; delta.y = 0f;
+        float hp = health != null ? health.NormalizedHp : 1f;
+        for (int index = 0; index < abilitySet.Count; index++)
+        {
+            if (abilitySet.GetAbility(index) != requested) continue;
+            if (!TryResolveAvailableCandidate(requested, target, delta.magnitude, hp, out var executor)) return false;
+            return CommitAbility(new AbilityCandidate(requested, executor, index), target);
+        }
+        return false;
+    }
+
+    private bool CommitAbility(AbilityCandidate selected, Transform target)
+    {
         float speed = meleeExecutor != null ? meleeExecutor.AbilityAnimationSpeed : 1f;
         float first = selected.Ability.ResolveFirstImpactTime(speed);
         float duration = selected.Ability.ResolveExecutionDuration(speed);
@@ -318,7 +344,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         nextImpactIndex = 0;
         warningAimLocked = false;
         // 예고 공격은 모두 준비 동안 대상을 향해 돈다. 바닥 장판과 패링 빛은 근접 강공만(평타·원거리는 없음).
-        strongWarningShown = selected.Ability.IsMeleeStrongAttack;
+        strongWarningShown = selected.Ability.IsMeleeStrongAttack && !(selected.Executor is EnemyBossMaterialExecutor);
         if (selected.Ability.IsTelegraphedAttack)
         {
             strongTarget = target; strongAim = target.position;
@@ -567,6 +593,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         if (actor == null) actor = GetComponent<EnemyActor>();
         if (themeExecutor == null) themeExecutor = GetComponent<EnemyThemeSpecialExecutor>();
+        if (bossMaterialExecutor == null) bossMaterialExecutor = GetComponent<EnemyBossMaterialExecutor>();
         if (movement == null) movement = GetComponent<EnemyMovement>();
         if (reaction == null) reaction = GetComponent<EnemyMovementReaction>();
         if (animationBridge == null) animationBridge = GetComponent<EnemyAnimationBridge>();

@@ -159,6 +159,8 @@ public static class EnemyAttackThreatGeometry
     {
         if (actor == null || ability == null || target == null || !target.IsAlive)
             return false;
+        var materialExecutor = actor.GetComponent<EnemyBossMaterialExecutor>();
+        if (materialExecutor != null && materialExecutor.Supports(ability)) return materialExecutor.WouldHit(ability, target);
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.Charge)
             return actor.GetComponent<EnemyThemeSpecialExecutor>()?.WouldChargeHit(ability, target) == true;
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc

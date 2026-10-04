@@ -26,6 +26,9 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private static Camera signalCamera;
     private static readonly HashSet<EnemyStrongAttackWarning> ThreatSignals = new HashSet<EnemyStrongAttackWarning>();
     private bool signalPlayed;
+    private float[] radialSurfaceProfile, radialBorderProfile;
+    public void SetRadialProfiles(float[] surfaceProfile, float[] borderProfile)
+    { radialSurfaceProfile = surfaceProfile; radialBorderProfile = borderProfile; }
     // Registered by PlayerParryController; the warning never searches the scene for it.
     public static CombatTarget PlayerTarget { get; set; }
     // Parry-ready signals that are about to hit the player. Read by the player-side cue.
@@ -84,6 +87,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
                 instance.name = "Procedural attack indicator";
                 procedural = instance.GetComponent<ProceduralGroundIndicator>();
                 if (procedural == null) Destroy(instance);
+                else if (radialSurfaceProfile != null && radialBorderProfile != null)
+                    procedural.SetRadialProfiles(radialSurfaceProfile, radialBorderProfile);
             }
             if (procedural != null)
             {

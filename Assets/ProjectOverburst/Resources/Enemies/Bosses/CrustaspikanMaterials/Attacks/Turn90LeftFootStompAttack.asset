@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: Turn90LeftFootStompAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_Turn90LeftFootStompAttack
+  displayName: "\uC67C\uCABD \uD68C\uC804 \uBC1C\uCC0D\uAE30"
+  ability: {fileID: 11400000, guid: 5181332c849d70246b1ffd701f5dd3dd, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: 4f64a3207658dc14dba00b229518d55f, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 096c52602d854b948b902bebbdf4dbc4, type: 2}
+  delivery: 0
+  strikes:
+  - contactStart: 0.3529412
+    impact: 0.3529412
+    contactEnd: 0.3882353
+    shape: 1
+    localOrigin: {x: -2.5382984, y: 0, z: 1.1309242}
+    yaw: 0
+    radius: 1.7
+    innerRadius: 0
+    angle: 360
+    width: 3.4
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 60\u201366; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 0
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 1.7
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. '

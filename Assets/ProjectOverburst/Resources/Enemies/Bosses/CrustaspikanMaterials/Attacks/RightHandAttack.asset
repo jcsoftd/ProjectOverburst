@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a02423cb2aaac4284cccd76c71c583, type: 3}
+  m_Name: RightHandAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBossAttackMaterial
+  materialId: Crustaspikan_RightHandAttack
+  displayName: "\uC624\uB978\uC190 \uACF5\uACA9"
+  ability: {fileID: 11400000, guid: aa9a907418ccf324f8b31d00b6cc7e62, type: 2}
+  originalClip: {fileID: 1827226128182048838, guid: c33e2f94c5e1d2f4ab6d9ffa291a89eb, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 3a42512b72ee5724b85518ec3c6a500a, type: 2}
+  delivery: 0
+  strikes:
+  - contactStart: 0.5307692
+    impact: 0.5307692
+    contactEnd: 0.5769231
+    shape: 1
+    localOrigin: {x: -0.1623083, y: 0, z: 8.201198}
+    yaw: 0
+    radius: 1.8
+    innerRadius: 0
+    angle: 360
+    width: 3.6
+    length: 24
+    minimumHeight: 0
+    maximumHeight: 3
+    timingBasis: "Native 30 fps: 69\u201375; contact/release."
+  showTelegraph: 1
+  tracksTargetDuringWindup: 0
+  aimLockLeadSeconds: 0.3
+  muzzleBone: Crustaspikan_ Head
+  muzzleOffset: {x: 0, y: 0, z: 0}
+  projectileRadius: 1.8
+  projectileSpeed: 12
+  flightSeconds: 1.2
+  arcHeight: 4
+  advanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  assemblyNotes: 'Base clip only; no RM displacement. One pattern damage budget is
+    split across genuine strikes. '
