@@ -24,6 +24,8 @@ public static class PlayerCombatFacingVfxVerifier
     static string output;
     static double deadline;
     static bool background;
+    static bool backgroundCaptured;
+    static string runId;
 
     static PlayerCombatFacingVfxVerifier()
     {
@@ -37,50 +39,75 @@ public static class PlayerCombatFacingVfxVerifier
 
     public static void Start(string directory, bool expectedInitialEnabled = true, string settingsDirectory = null)
     {
-        PlayerCombatFacingVfxBuilder.RequireIdle();
-        if (IsolatedSavePlayGuard.RequiresAccountChoice) throw new InvalidOperationException("이전 격리 검증의 실제 계정 반환을 기다립니다.");
-        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
-            throw new InvalidOperationException("다른 설정 격리 경로가 사용 중입니다.");
-        string isolatedSettings = IsolatedSavePlayGuard.ValidateDirectory(settingsDirectory ?? Path.Combine(Path.GetDirectoryName(directory), "Settings"));
-        output = IsolatedSavePlayGuard.ValidateDirectory(directory); Directory.CreateDirectory(output);
-        string startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene);
-        SessionState.SetString(Key + "startScene", startScene);
-        SessionState.SetString(Key + "output", output);
-        SessionState.SetBool(Key + "return", false);
-        SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 120).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (!string.IsNullOrEmpty(SessionState.GetString(Key + "output", "")))
+            throw new InvalidOperationException("이 검증기의 이전 실행·반환이 끝나지 않았습니다.");
+        output = IsolatedSavePlayGuard.ValidateDirectory(directory);
+        Directory.CreateDirectory(output);
+        runId = Guid.NewGuid().ToString("N");
+        checks.Clear(); errors.Clear(); backgroundCaptured = false;
+        bool prepared = false;
+        // 같은 폴더를 재사용해도 이번 실행이 시작되는 순간 이전 PASS는 유효하지 않다.
+        WritePlayResult("RUNNING", "preflight");
+        PlayerCombatFacingOptionsVerifier.PrepareResult(output, runId);
+        File.WriteAllText(Path.Combine(output, "editor_return.json"), JsonConvert.SerializeObject(new { status = "NOT_RUN", runId }, Formatting.Indented));
+        Status("RUNNING", "Checking owned Play prerequisites");
         try
         {
-        SessionState.SetBool(Key + "expectedInitial", expectedInitialEnabled);
-            Directory.CreateDirectory(isolatedSettings);
+            PlayerCombatFacingVfxBuilder.RequireIdle();
+            if (IsolatedSavePlayGuard.RequiresAccountChoice) throw new InvalidOperationException("이전 격리 검증의 실제 계정 반환을 기다립니다.");
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
+                throw new InvalidOperationException("다른 설정 격리 경로가 사용 중입니다.");
+            string isolatedSettings = IsolatedSavePlayGuard.ValidateDirectory(settingsDirectory ?? Path.Combine(Path.GetDirectoryName(output), "Settings"));
+            string startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene);
+            SessionState.SetString(Key + "startScene", startScene);
+            SessionState.SetString(Key + "output", output);
+            SessionState.SetString(Key + "runId", runId);
+            SessionState.SetBool(Key + "finished", false);
+            SessionState.SetBool(Key + "return", false);
+            SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 120).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            prepared = true;
+            SessionState.SetBool(Key + "expectedInitial", expectedInitialEnabled);
             SessionState.SetString(Key + "settings", isolatedSettings);
+            Directory.CreateDirectory(isolatedSettings);
             Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", isolatedSettings);
-        File.WriteAllText(Path.Combine(output, "before.json"), JsonConvert.SerializeObject(new { startScene, scenes = Enumerable.Range(0, UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i => { var s = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }).ToArray() }, Formatting.Indented));
-        EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
-        EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.playModeStateChanged += OnPlayState;
-        EditorApplication.update -= AutoBegin; EditorApplication.update += AutoBegin;
-        IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(output, "Account"));
+            File.WriteAllText(Path.Combine(output, "before.json"), JsonConvert.SerializeObject(new { runId, startScene, scenes = Enumerable.Range(0, UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i => { var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i); return new { scene.path, scene.isDirty, scene.rootCount }; }).ToArray() }, Formatting.Indented));
+            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
+            EditorApplication.playModeStateChanged -= OnPlayState; EditorApplication.playModeStateChanged += OnPlayState;
+            EditorApplication.update -= AutoBegin; EditorApplication.update += AutoBegin;
+            IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(output, "Account"));
         }
-        catch { SessionState.SetBool(Key + "return", true); ScheduleReturn(); throw; }
+        catch (Exception e)
+        {
+            errors.Add(e.ToString());
+            if (prepared) Finish("boot setup");
+            else { WritePlayResult("FAIL", "preflight"); Status("FAIL", "Play prerequisites failed; no Editor state was changed"); }
+            throw;
+        }
     }
 
     static void AutoBegin()
     {
         output = SessionState.GetString(Key + "output", "");
+        runId = SessionState.GetString(Key + "runId", "");
         if (string.IsNullOrEmpty(output)) { EditorApplication.update -= AutoBegin; return; }
         if (SessionState.GetBool(Key + "return", false)) { EditorApplication.update -= AutoBegin; ScheduleReturn(); return; }
-        if (!EditorApplication.isPlaying)
+        try
         {
-            double limit = double.Parse(SessionState.GetString(Key + "deadline", "0"), System.Globalization.CultureInfo.InvariantCulture);
-            if (EditorApplication.timeSinceStartup > limit) { errors.Add("Play boot timeout"); SessionState.SetBool(Key + "return", true); ScheduleReturn(); }
-            return;
+            if (!EditorApplication.isPlaying)
+            {
+                double limit = double.Parse(SessionState.GetString(Key + "deadline", "0"), System.Globalization.CultureInfo.InvariantCulture);
+                if (EditorApplication.timeSinceStartup > limit) throw new TimeoutException("Play boot timeout");
+                return;
+            }
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            EditorApplication.update -= AutoBegin;
+            checks.Clear(); errors.Clear(); deadline = EditorApplication.timeSinceStartup + 65;
+            background = Application.runInBackground; backgroundCaptured = true; Application.runInBackground = true;
+            Application.logMessageReceived += OnLog;
+            routine = Scenario(); EditorApplication.update += Tick;
+            Status("RUNNING", "Waiting for the actual player and ground");
         }
-        if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
-        EditorApplication.update -= AutoBegin;
-        checks.Clear(); errors.Clear(); deadline = EditorApplication.timeSinceStartup + 65;
-        background = Application.runInBackground; Application.runInBackground = true;
-        Application.logMessageReceived += OnLog;
-        routine = Scenario(); EditorApplication.update += Tick;
-        Status("RUNNING", "Waiting for the actual player and ground");
+        catch (Exception e) { errors.Add(e.ToString()); Finish("boot"); }
     }
 
     static void OnLog(string message, string trace, LogType type)
@@ -134,7 +161,7 @@ public static class PlayerCombatFacingVfxVerifier
         menu.Open(); menu.OpenSettings(); panel.tabs[2].isOn = true;
         Check(toggle.isOn == expectedInitial && panel.pages[2].activeSelf, "전투 표시 탭에서 저장 상태 동기화");
         toggle.isOn = true;
-        PlayerCombatFacingOptionsVerifier.VerifyLive(effect, panel, menu, output);
+        PlayerCombatFacingOptionsVerifier.VerifyLive(effect, panel, menu, output, runId);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "Settings.png"));
         var uiWait = Wait(.4); while (uiWait.MoveNext()) yield return null;
         toggle.isOn = false;
@@ -200,7 +227,7 @@ public static class PlayerCombatFacingVfxVerifier
             wait = Wait(.2); while (wait.MoveNext()) yield return null;
             Check(Mathf.Abs(effect.FlowTime - phase) < .0001f, "메뉴 정지 중 빛결 시계 정지");
         }
-        finally { OverburstTimeEffectArbiter.SetPaused(wasPaused); }
+        finally { if (EditorApplication.isPlaying && OwnAccount()) OverburstTimeEffectArbiter.SetPaused(wasPaused); }
         effect.enabled = false; Check(!effect.IsVisible && !effect.VisualRoot.gameObject.activeSelf, "비활성화 즉시 표시 반환");
         effect.enabled = true; wait = Wait(.35); while (wait.MoveNext()) yield return null;
         Check(effect.IsVisible, "재활성화 후 전투 표시 복귀");
@@ -244,20 +271,54 @@ public static class PlayerCombatFacingVfxVerifier
     }
     static bool OwnAccount()
     { return string.Equals(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), Path.Combine(output, "Account"), StringComparison.OrdinalIgnoreCase); }
-    static void Finish()
+    static void WritePlayResult(string status, string stage)
     {
-        EditorApplication.update -= Tick; Application.logMessageReceived -= OnLog;
-        (routine as IDisposable)?.Dispose(); routine = null;
-        if (OwnAccount()) { if (OverburstGameMenu.IsOpen) OverburstGameMenu.Instance?.Close(); if (effect != null) effect.enabled = false; OverburstTimeEffectArbiter.SetPaused(false); Application.runInBackground = background; }
-        File.WriteAllText(Path.Combine(output, "play_validation.json"), JsonConvert.SerializeObject(new { status = errors.Count == 0 ? "PASS" : "FAIL", checks, errors, ownsAccount = OwnAccount(), productPlayerPrefab = true }, Formatting.Indented));
-        Status(errors.Count == 0 ? "PASS" : "FAIL", "Runtime checks finished; returning the Editor and account");
-        actor = null; effect = null;
-        SessionState.SetBool(Key + "return", true);
-        if (EditorApplication.isPlaying && OwnAccount()) EditorApplication.ExitPlaymode();
-        else ScheduleReturn();
+        File.WriteAllText(Path.Combine(output, "play_validation.json"), JsonConvert.SerializeObject(new { status, runId, stage, checks, errors, ownsAccount = OwnAccount(), productPlayerPrefab = true }, Formatting.Indented));
+    }
+    static void Finish(string stage = "runtime")
+    {
+        if (SessionState.GetBool(Key + "finished", false)) { ScheduleReturn(); return; }
+        SessionState.SetBool(Key + "finished", true);
+        EditorApplication.update -= Tick; EditorApplication.update -= AutoBegin; Application.logMessageReceived -= OnLog;
+        try { (routine as IDisposable)?.Dispose(); }
+        catch (Exception e) { errors.Add("Scenario cleanup: " + e); }
+        finally { routine = null; }
+        try
+        {
+            if (OwnAccount() && EditorApplication.isPlaying)
+            {
+                if (OverburstGameMenu.IsOpen) OverburstGameMenu.Instance?.Close();
+                if (effect != null) effect.enabled = false;
+                OverburstTimeEffectArbiter.SetPaused(false);
+                if (backgroundCaptured) Application.runInBackground = background;
+            }
+        }
+        catch (Exception e) { errors.Add("Owned Play cleanup: " + e); }
+        finally { actor = null; effect = null; backgroundCaptured = false; }
+        try
+        {
+            WritePlayResult(errors.Count == 0 ? "PASS" : "FAIL", stage);
+            Status(errors.Count == 0 ? "PASS" : "FAIL", "Runtime checks finished; returning the Editor and account");
+        }
+        finally
+        {
+            SessionState.SetBool(Key + "return", true);
+            if (EditorApplication.isPlayingOrWillChangePlaymode && OwnAccount()) EditorApplication.ExitPlaymode();
+            ScheduleReturn();
+        }
     }
     static void OnPlayState(PlayModeStateChange state)
-    { if (state == PlayModeStateChange.EnteredEditMode) { SessionState.SetBool(Key + "return", true); ScheduleReturn(); } }
+    {
+        if (state != PlayModeStateChange.EnteredEditMode) return;
+        if (!SessionState.GetBool(Key + "finished", false))
+        {
+            output = SessionState.GetString(Key + "output", "");
+            runId = SessionState.GetString(Key + "runId", "");
+            errors.Add("Owned Play ended before verification finished");
+            Finish("interrupted");
+        }
+        else { SessionState.SetBool(Key + "return", true); ScheduleReturn(); }
+    }
     static void ScheduleReturn()
     { EditorApplication.update -= Restore; EditorApplication.update += Restore; }
     static void Restore()
@@ -284,12 +345,16 @@ public static class PlayerCombatFacingVfxVerifier
         try
         {
             EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionState.GetString(Key + "startScene", ""));
+            // Play 진입 전에 취소되면 EnteredEditMode가 없어 소유 active 영수증만 남을 수 있다.
+            if (string.Equals(active, account, StringComparison.OrdinalIgnoreCase))
+                SessionState.EraseString("Overburst.IsolatedSavePlayGuard.active");
             IsolatedSavePlayGuard.UseRealAccount();
             Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", null);
             EditorUtility.UnloadUnusedAssetsImmediate(true); GC.Collect();
             bool ready = !IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory) && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""));
-            File.WriteAllText(Path.Combine(output, "editor_return.json"), JsonConvert.SerializeObject(new { status = ready ? "PASS" : "FAIL", requiresAccountChoice = IsolatedSavePlayGuard.RequiresAccountChoice, saveOverride = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), active, playStartScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), resourcesCleaned = true, scenes = Enumerable.Range(0, UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i => { var s = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }).ToArray() }, Formatting.Indented));
-            SessionState.EraseString(Key + "output"); SessionState.EraseString(Key + "deadline"); SessionState.EraseString(Key + "startScene"); SessionState.EraseString(Key + "settings"); SessionState.EraseBool(Key + "expectedInitial"); SessionState.EraseBool(Key + "return"); Detach();
+            File.WriteAllText(Path.Combine(output, "editor_return.json"), JsonConvert.SerializeObject(new { status = ready ? "PASS" : "FAIL", runId = SessionState.GetString(Key + "runId", ""), requiresAccountChoice = IsolatedSavePlayGuard.RequiresAccountChoice, saveOverride = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), active = IsolatedSavePlayGuard.ActiveDirectory, playStartScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), resourcesCleaned = true, scenes = Enumerable.Range(0, UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i => { var s = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }).ToArray() }, Formatting.Indented));
+            if (!ready) { Status("DEFERRED", "Account return is not ready; owned return state is retained"); return; }
+            SessionState.EraseString(Key + "output"); SessionState.EraseString(Key + "deadline"); SessionState.EraseString(Key + "startScene"); SessionState.EraseString(Key + "settings"); SessionState.EraseBool(Key + "expectedInitial"); SessionState.EraseBool(Key + "return"); SessionState.EraseBool(Key + "finished"); SessionState.EraseString(Key + "runId"); Detach();
         }
         catch (Exception e) { File.WriteAllText(Path.Combine(output, "return_error.txt"), e.ToString()); Detach(); }
     }
@@ -302,7 +367,7 @@ public static class PlayerCombatFacingVfxVerifier
         ScheduleReturn();
     }
     static void Status(string status, string note)
-    { File.WriteAllText(Path.Combine(output, "status.json"), JsonConvert.SerializeObject(new { status, note }, Formatting.Indented)); }
+    { File.WriteAllText(Path.Combine(output, "status.json"), JsonConvert.SerializeObject(new { status, runId, note }, Formatting.Indented)); }
 
     static void ReloadSettings() => typeof(OverburstGameSettings).GetField("loaded", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
 }
