@@ -1065,8 +1065,70 @@ MonoBehaviour:
   runStrideDistance: 1.8
   minimumMoveSpeed: 0.2
   landingMinimumFallSpeed: 2
-  animationEventGraceSeconds: 0.3
   minimumEmissionInterval: 0.08
+  minimumSameFootInterval: 0.12
+  maximumContactHeight: 0.1
+  animationContactClips:
+  - {fileID: 7400000, guid: 6e6335e214c6822429c8346313e7b39f, type: 2}
+  - {fileID: 7400000, guid: a6570a7fc2839124a8083deb7e68e0fa, type: 2}
+  - {fileID: 7400000, guid: ceb3d3df867b77d4686f0e93634c0436, type: 2}
+  - {fileID: 7400000, guid: b8974c19238527f4a9980eb148fe289f, type: 2}
+  - {fileID: 7400000, guid: 19488e3065e8b384b8fdf2fe3274135f, type: 2}
+  - {fileID: 7400000, guid: d41e6175a64888346b28f4a959e7a88f, type: 2}
+  - {fileID: 7400000, guid: 4718395f7ab08b24fa3c56f563ed068b, type: 2}
+  - {fileID: 7400000, guid: 35f809f6d8004a5438cb9c20354f556b, type: 2}
+  - {fileID: 7400000, guid: fc309ee7be986bb4698706ea3f399517, type: 2}
+  - {fileID: 7400000, guid: d73166f97be5e56449e4a44f4f6a1038, type: 2}
+  - {fileID: 7400000, guid: fbd3a0c8b85e946459b41d7ff670a5a9, type: 2}
+  - {fileID: 7400000, guid: d0c61b60343fb8c49b4c16c30bbfbd63, type: 2}
+  - {fileID: 7400000, guid: 997a1b4545be0bf4da240685677a34a0, type: 2}
+  - {fileID: 7400000, guid: a5b47a3c0efc5054dac5000dbbc588ac, type: 2}
+  - {fileID: 7400000, guid: 9ea420b25f177d8409ba351a0624eb3c, type: 2}
+  - {fileID: 7400000, guid: e057ac5607c012b42bb3737e5cc50aa5, type: 2}
+  - {fileID: 7400000, guid: 7a9b6c10a831ac24daed63f686c663d3, type: 2}
+  - {fileID: 7400000, guid: eb367e312bb8295488e6e0321eaf0548, type: 2}
+  animationContactCycleOffsets:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0.325
+  - 0
+  - 0.325
+  - 0
+  - 0.325
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  legacyLocomotionClips:
+  - {fileID: 1827226128182048838, guid: 5e7f0f2b7d05d9341af17ee065787ce4, type: 3}
+  - {fileID: 1827226128182048838, guid: 81838b3f961ac5c49a1cf18df84670d1, type: 3}
+  - {fileID: 1827226128182048838, guid: 6759154be2049ad4f82612f04c854bce, type: 3}
+  - {fileID: 1827226128182048838, guid: ef001405e61617048827f06d09fcdc2f, type: 3}
+  - {fileID: 1827226128182048838, guid: baba680bfa19c9e40831b9c4e9cf0010, type: 3}
+  - {fileID: 1827226128182048838, guid: b43fdd23d7065d34aa268dc54e62e54b, type: 3}
+  - {fileID: 1827226128182048838, guid: 9e2b9a0d389b4754caa8fb2404e7eec6, type: 3}
+  - {fileID: 1827226128182048838, guid: 5de9e2f68a1e39240ad05609ea0e6282, type: 3}
+  animationContactStates:
+  - Base Layer.NormalMove
+  - Combat_MeleeWeapon_StateMachine.Melee_Locomotion
+  - Combat_MeleeWeapon_TransitionLower_StateMachine.Melee_TransitionLower_Locomotion
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_0
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_1
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_2
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_3
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_4
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_5
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_6
+  - Combat_MeleeWeapon_StateMachine.Melee_SwordStart_7
+  legacyDistanceStates:
+  - Base Layer.AimMove
 --- !u!114 &4180381286012201543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2447,6 +2509,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3685196032733651928, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1628769172605033088}
+    - targetCorrespondingSourceObject: {fileID: 3685196032733651928, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1617215212639154682}
   m_SourcePrefab: {fileID: 100100000, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}
 --- !u!4 &1803667880718756744 stripped
 Transform:
@@ -2496,6 +2561,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHumanoidLeftHandIKDriver
   targetAnimator: {fileID: 7151613634543266744}
   gripController: {fileID: 7628724603490647202}
+--- !u!114 &1617215212639154682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4509333364385721208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dd36d6c858b66e4a86def457da67c8c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFootstepAnimationRelay
 --- !u!4 &4668932068030827964 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5583140221868557596, guid: d2dd2ddc3af840641b1ca0f5dc830b7b, type: 3}

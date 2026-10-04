@@ -43,6 +43,8 @@ public sealed class SurfaceResolver : MonoBehaviour
     public SurfaceProfile DefaultProfile => defaultProfile;
     public SurfaceProfile LastResolvedProfile { get; private set; }
     public Collider LastResolvedCollider { get; private set; }
+    public int SurfaceProbeCount { get; private set; }
+    public Vector3 LastSamplePosition { get; private set; }
 
     public void Configure(
         SurfaceProfile configuredDefaultProfile,
@@ -58,9 +60,13 @@ public sealed class SurfaceResolver : MonoBehaviour
         rules = configuredRules ?? Array.Empty<SurfaceResolutionRule>();
     }
 
-    public SurfaceProfile Resolve()
+    public SurfaceProfile Resolve() => Resolve(transform.position);
+
+    public SurfaceProfile Resolve(Vector3 samplePosition)
     {
-        Vector3 origin = transform.position + Vector3.up * rayStartHeight;
+        SurfaceProbeCount++;
+        LastSamplePosition = samplePosition;
+        Vector3 origin = samplePosition + Vector3.up * rayStartHeight;
         if (!Physics.Raycast(origin, Vector3.down, out RaycastHit hit, rayDistance, groundMask, QueryTriggerInteraction.Ignore))
         {
             LastResolvedCollider = null;

@@ -10,6 +10,7 @@ public class PlayerVisualPipeline : MonoBehaviour
     [SerializeField] private PlayerLeftHandGrip leftHandGripController;
     [SerializeField] private PlayerHumanoidLeftHandIKDriver leftHandIkDriver;
     [SerializeField] private PlayerFootLock footLock;
+    private FootstepEmitter footstepEmitter;
 
     private void Awake()
     {
@@ -63,6 +64,7 @@ public class PlayerVisualPipeline : MonoBehaviour
 
         EnsureLeftHandIkDriver();
         EnsureFootLock();
+        EnsureFootsteps();
     }
 
     private void EnsureLeftHandIkDriver()
@@ -85,6 +87,14 @@ public class PlayerVisualPipeline : MonoBehaviour
             playerController,
             GetComponent<PlayerEquipment>(),
             leftHandSocket);
+    }
+
+    private void EnsureFootsteps()
+    {
+        if (targetAnimator == null) return;
+        if (footstepEmitter == null) footstepEmitter = GetComponent<FootstepEmitter>();
+        if (footstepEmitter != null)
+            footstepEmitter.BindAnimation(targetAnimator, targetAnimator.GetComponent<HumanoidFootContactRig>());
     }
 
     private void EnsureFootLock()
