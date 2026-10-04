@@ -9,7 +9,7 @@ public partial class PlayerMovement
             return 0f;
 
         if (IsCombatWalkLocomotionMode)
-            return GetMeleeCombatMoveSpeed() * GetActiveBuffMoveSpeedMultiplier(true)
+            return ResolveAuthoredMoveSpeed(GetMeleeCombatMoveSpeed(), true)
                 * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
 
         float baseMoveSpeed = isWalkMode ? walkSpeed : runSpeed; // 기본 이동은 달리기
@@ -18,7 +18,7 @@ public partial class PlayerMovement
         if (landingSlowTimer > 0f)
             speed *= landingSpeedMultiplier; // 착지 감속
 
-        return speed * GetActiveBuffMoveSpeedMultiplier(IsCombatMoveMode)
+        return ResolveAuthoredMoveSpeed(speed, IsCombatMoveMode)
             * (HasGreatswordEquipped ? GreatswordLocomotionSpeedMultiplier : 1f);
     }
 
@@ -51,14 +51,13 @@ public partial class PlayerMovement
             : Mathf.Max(0f, meleeCombatMoveSpeed);
     }
 
-    private float GetActiveBuffMoveSpeedMultiplier(bool useCombatSpeed)
+    private float GetActiveBuffMoveSpeedMultiplier()
     {
         if (playerBuffController == null)
             playerBuffController = ResolveBuffController();
 
         return (playerBuffController != null ? playerBuffController.ActiveMoveSpeedMultiplier : 1f)
-            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed))
-            * GearStatTotals.From(playerEquipment).MovementSpeedMultiplier(useCombatSpeed);
+            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed));
     }
 
     private PlayerBuffController ResolveBuffController()
@@ -116,6 +115,7 @@ public partial class PlayerMovement
     private float ResolveAuthoredMoveSpeed(float authoredSpeed, bool useCombatSpeed = false)
     {
         return Mathf.Max(0f, authoredSpeed)
-            * GetActiveBuffMoveSpeedMultiplier(useCombatSpeed);
+            * GetActiveBuffMoveSpeedMultiplier()
+            * GearStatTotals.From(playerEquipment).MovementSpeedMultiplier(useCombatSpeed);
     }
 }
