@@ -27,7 +27,7 @@ namespace Overburst.EditorTools.Weapons
 
         private sealed class Cue
         {
-            public string id, title, group, trigger, note;
+            public string id, title, group, trigger, note, propertyPath;
             public CueState state;
             public UnityEngine.Object source;
             public UnityEngine.Object asset;
@@ -177,77 +177,102 @@ namespace Overburst.EditorTools.Weapons
         private static GameObject LoadPrefab(string path) => AssetDatabase.LoadAssetAtPath<GameObject>(path);
 
         private void Add(string id, string title, string group, string trigger, CueState expected,
-            UnityEngine.Object asset, UnityEngine.Object source, string note)
+            UnityEngine.Object asset, UnityEngine.Object source, string note, string propertyPath = null)
         {
             cues.Add(new Cue { id = id, title = title, group = group, trigger = trigger,
                 state = asset == null && expected == CueState.Connected ? CueState.Missing : expected,
-                asset = asset, source = source, note = note });
+                asset = asset, source = source, note = note, propertyPath = propertyPath });
         }
 
         private void ReloadCues()
         {
             string oldId = active?.id;
-            cues.Clear();
             var heavy = AssetDatabase.LoadAssetAtPath<MeleeHeavyAttackDefinition>(Heavy);
             var hits = AssetDatabase.LoadAssetAtPath<MeleeElementHitVfxCatalog>(HitCatalog);
-            GameObject fireHit = null, iceHit = null, electricHit = null, darkHit = null, lightHit = null;
-            hits?.TryResolve(WeaponElement.Fire, out fireHit);
-            hits?.TryResolve(WeaponElement.Ice, out iceHit);
-            hits?.TryResolve(WeaponElement.Electric, out electricHit);
-            hits?.TryResolve(WeaponElement.Dark, out darkHit);
-            hits?.TryResolve(WeaponElement.Light, out lightHit);
-
-            Add("VFX.FIRE.HIT", "불 · 원소 타격", "불", "불 속성 적중", CueState.Connected,
-                fireHit, hits, "Projectile_Hit_Impact / 원소 타격 런타임 풀");
-            Add("VFX.FIRE.HV.CIRCLE", "불 · 강공 착지", "불", "불 강공 지면 충돌", CueState.Connected,
-                heavy != null ? heavy.elementVfx.fireImpact : null, heavy, "Fire Burst sim 1");
-            Add("VFX.FIRE.HV.CHAIN", "불 · 연쇄폭발", "불", "연소 대상 전파", CueState.Connected,
-                heavy != null ? heavy.elementVfx.fireChainExplosion : null, heavy, "착지 효과와 별도 슬롯");
-            Add("VFX.FIRE.STATUS.BURN", "불 · 연소", "불", "연소 상태 지속", CueState.Connected,
-                LoadPrefab(Shared + "ElementStatusAura/Modules/PF_VFX_MeleeElementStatusAura_BurningModule.prefab"),
-                null, "Fire Loop sim 1");
-
-            Add("VFX.ICE.HIT", "얼음 · 원소 타격", "얼음", "얼음 속성 적중", CueState.Connected,
-                iceHit, hits, "Ice_Hit_FX / 원소 타격 런타임 풀");
-            Add("VFX.ICE.HV.CIRCLE", "얼음 · 강공 착지", "얼음", "얼음 강공 지면 충돌", CueState.Connected,
-                heavy != null ? heavy.elementVfx.iceImpact : null, heavy, "전용 iceImpact 비어 있음 · 공통 지면 파동 사용");
-            Add("VFX.ICE.HV.SHATTER", "얼음 · 쇄빙", "얼음", "빙결 대상에 강공 적중", CueState.Connected,
-                heavy != null ? heavy.elementVfx.iceShatter : null, heavy, "Shatter Proc");
-            Add("VFX.ICE.STATUS.LOOP", "얼음 · 빙결", "얼음", "빙결 상태 지속", CueState.Connected,
-                LoadPrefab(Reaction + "FreezeShatter/PF_VFX_Reaction_Freeze_Loop.prefab"),
-                null, "FrostAura Loop 연결 · 시작·종료 래퍼 제거");
-
-            Add("VFX.ELEC.HIT", "번개 · 원소 타격", "번개", "번개 속성 적중", CueState.Connected,
-                electricHit, hits, "원소 타격 런타임 풀");
-            Add("VFX.ELEC.HV.CIRCLE", "번개 · 강공 착지", "번개", "번개 강공 지면 충돌", CueState.Connected,
-                heavy != null ? heavy.elementVfx.electricImpact : null, heavy, "Slam Circular 후반 폭발");
-            bool chainComplete = heavy != null && heavy.elementVfx.electricChainLink != null;
-            string chainNote = heavy == null ? "강공 정의를 찾을 수 없음" :
-                $"연결 줄기 {(chainComplete ? "연결" : "비어 있음")} · 빈 시작·도착 래퍼는 제거됨";
-            Add("VFX.ELEC.HV.CHAIN.LINK", "번개 · 연쇄번개", "번개", "첫 적중에서 파생 대상까지", chainComplete ? CueState.Connected : CueState.Missing,
-                heavy != null ? heavy.elementVfx.electricChainLink : null, heavy,
-                chainNote);
-            Add("VFX.ELEC.STATUS.SHOCK", "번개 · 감전", "번개", "감전 상태 지속", CueState.Connected,
-                LoadPrefab(Shared + "ElementStatusAura/Modules/PF_VFX_MeleeElementStatusAura_ShockedModule.prefab"),
-                null, "대상 상태 오라");
-
-            Add("VFX.DARK.HIT", "어둠 · 원소 타격", "어둠", "어둠 속성 적중", CueState.Connected,
-                darkHit, hits, "원소 타격 런타임 풀");
-            Add("VFX.DARK.HV.CIRCLE", "어둠 · 강공 착지", "어둠", "어둠 강공 지면 충돌", CueState.Shared,
-                null, heavy, "전용 착지 프리팹 없음 · 공통 파동 사용");
-            Add("VFX.DARK.HV.PULL", "어둠 · 인력", "어둠", "강공 범위 적 흡인", CueState.Missing,
-                null, heavy, "메커니즘 구현 · 전용 VFX 슬롯/프리팹 없음");
-
-            Add("VFX.LIGHT.HIT", "빛 · 원소 타격", "빛", "빛 속성 적중", CueState.Connected,
-                lightHit, hits, "원소 타격 런타임 풀");
-            Add("VFX.LIGHT.HV.CIRCLE", "빛 · 강공 착지", "빛", "빛 강공 지면 충돌", CueState.Shared,
-                null, heavy, "전용 착지 프리팹 없음 · 공통 파동 사용");
-            Add("VFX.LIGHT.HV.ECHO", "빛 · 잔광", "빛", "첫 폭발 뒤 2차 파동", CueState.Shared,
-                null, heavy, "전용 빛 VFX 없이 공통 파동 재사용");
-
+            CollectCues(heavy, hits);
             active = cues.FirstOrDefault(c => c.id == oldId) ?? cues.FirstOrDefault();
             RebuildList();
             ShowActive();
+        }
+
+        private void CollectCues(MeleeHeavyAttackDefinition heavy, MeleeElementHitVfxCatalog hits)
+        {
+            cues.Clear();
+            var elements = new[] { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light };
+            var ids = new[] { "FIRE", "ICE", "ELEC", "DARK", "LIGHT" };
+            var groups = new[] { "불", "얼음", "번개", "어둠", "빛" };
+            for (int i = 0; i < elements.Length; i++)
+            {
+                GameObject hit = null;
+                hits?.TryResolve(elements[i], out hit);
+                Add("VFX." + ids[i] + ".HIT", groups[i] + " · 원소 타격", groups[i], groups[i] + " 속성 적중",
+                    CueState.Connected, hit, hits, "현재 원소 타격 카탈로그의 런타임 풀");
+            }
+            CollectHeavyCues(heavy);
+            Add("VFX.FIRE.STATUS.BURN", "불 · 연소", "불", "연소 상태 지속", CueState.Connected,
+                LoadPrefab(Shared + "ElementStatusAura/Modules/PF_VFX_MeleeElementStatusAura_BurningModule.prefab"),
+                null, "현재 연소 상태 오라 모듈");
+            Add("VFX.ICE.STATUS.LOOP", "얼음 · 빙결", "얼음", "빙결 상태 지속", CueState.Connected,
+                LoadPrefab(Reaction + "FreezeShatter/PF_VFX_Reaction_Freeze_Loop.prefab"),
+                null, "FrostAura Loop 연결 · 시작·종료 래퍼 제거");
+            Add("VFX.ELEC.STATUS.SHOCK", "번개 · 감전", "번개", "감전 상태 지속", CueState.Connected,
+                LoadPrefab(Shared + "ElementStatusAura/Modules/PF_VFX_MeleeElementStatusAura_ShockedModule.prefab"),
+                null, "대상 상태 오라");
+            // Keep each element together while preserving the authored slot order within it.
+            var ordered = cues.OrderBy(c => { int index = Array.IndexOf(groups, c.group); return index >= 0 ? index : groups.Length; }).ToArray();
+            cues.Clear(); cues.AddRange(ordered);
+        }
+
+        private void CollectHeavyCues(MeleeHeavyAttackDefinition heavy)
+        {
+            if (heavy == null) return;
+            using var serialized = new SerializedObject(heavy);
+            var root = serialized.FindProperty("elementVfx");
+            var property = root.Copy(); var end = root.GetEndProperty();
+            if (!property.NextVisible(true)) return;
+            do
+            {
+                if (SerializedProperty.EqualContents(property, end)) break;
+                if (property.propertyType != SerializedPropertyType.ObjectReference) continue;
+                var info = HeavyCueInfo(property.name);
+                var asset = property.objectReferenceValue;
+                var state = CueState.Connected;
+                string note = info.note;
+                if (property.name == "fireChainExplosion" && asset == null && heavy.elementVfx.FireChainExplosion != null)
+                {
+                    asset = heavy.elementVfx.FireChainExplosion; state = CueState.Shared;
+                    note = "전용 연쇄폭발이 비어 있어 현재 불 착지 프리팹을 공통 사용합니다.";
+                }
+                Add(info.id, info.title, info.group, info.trigger, state, asset, heavy,
+                    property.propertyPath + " · " + note, property.propertyPath);
+            } while (property.NextVisible(false));
+        }
+
+        private static (string id, string title, string group, string trigger, string note) HeavyCueInfo(string field)
+        {
+            switch (field)
+            {
+                case "fireImpact": return ("VFX.FIRE.HV.CIRCLE", "불 · 강공 착지", "불", "불 강공 지면 충돌", "현재 불 착지 폭발");
+                case "fireChainExplosion": return ("VFX.FIRE.HV.CHAIN", "불 · 연쇄폭발", "불", "연소 대상 전파", "비어 있으면 현재 불 착지 프리팹을 사용합니다.");
+                case "iceImpact": return ("VFX.ICE.HV.CIRCLE", "얼음 · 강공 착지", "얼음", "얼음 강공 지면 충돌", "현재 전용 착지 슬롯입니다. 비어 있으면 전용 착지 VFX를 재생하지 않습니다.");
+                case "iceShatter": return ("VFX.ICE.HV.SHATTER", "얼음 · 쇄빙", "얼음", "빙결 대상에 강공 적중", "현재 쇄빙 폭발");
+                case "electricImpact": return ("VFX.ELEC.HV.CIRCLE", "번개 · 강공 착지", "번개", "번개 강공 지면 충돌", "현재 번개 착지 폭발");
+                case "electricDirectHit": return ("VFX.ELEC.HV.DIRECT", "번개 · 직접 타격", "번개", "착지 원에 직접 맞은 적마다", "직접 적중한 대상의 발밑에서 재생합니다.");
+                case "electricChainLink": return ("VFX.ELEC.HV.CHAIN.LINK", "번개 · 연쇄번개", "번개", "첫 적중에서 파생 대상까지", "현재 연결 프리팹 · 단독 프리뷰는 일반 프리팹 형태를 표시합니다.");
+                case "darkBarrageSlam": return ("VFX.DARK.HV.CIRCLE", "어둠 · 탄막 내려찍기", "어둠", "어둠 강공 착지 1회", "잠식 탄막의 착지 효과입니다.");
+                case "darkBarrageProjectile": return ("VFX.DARK.HV.BARRAGE.PROJECTILE", "어둠 · 탄막 투사체", "어둠", "잠식 회수 후 발사되는 탄 1발", "투사체와 트레일이 모두 비면 런타임 임시 구체·트레일을 사용합니다. 단독 프리뷰는 탄의 이동을 실행하지 않습니다.");
+                case "darkBarrageTrail": return ("VFX.DARK.HV.BARRAGE.TRAIL", "어둠 · 탄막 트레일", "어둠", "탄 뒤를 따라가는 꼬리", "선택적인 별도 트레일 슬롯입니다. 본체에 포함된 트레일은 투사체 프리뷰에서 확인합니다. 투사체와 별도 트레일이 모두 비면 런타임 임시 구체·트레일을 사용합니다.");
+                case "darkBarrageHit": return ("VFX.DARK.HV.BARRAGE.HIT", "어둠 · 탄막 명중", "어둠", "탄이 명중할 때", "현재 탄막 명중 폭발");
+                case "lightDoubleImpact": return ("VFX.LIGHT.HV.DOUBLE", "빛 · 2연타", "빛", "에너지 100 이하의 빛 강공", "현재 2연타 프리팹 · 실전은 빛 재생 속도 설정을 적용합니다.");
+                case "lightTripleImpact": return ("VFX.LIGHT.HV.TRIPLE", "빛 · 3연타", "빛", "에너지 100 초과의 빛 강공", "현재 3연타 프리팹 · 실전은 빛 재생 속도 설정을 적용합니다.");
+                default:
+                    string group = field.StartsWith("fire", StringComparison.OrdinalIgnoreCase) ? "불"
+                        : field.StartsWith("ice", StringComparison.OrdinalIgnoreCase) ? "얼음"
+                        : field.StartsWith("electric", StringComparison.OrdinalIgnoreCase) ? "번개"
+                        : field.StartsWith("dark", StringComparison.OrdinalIgnoreCase) ? "어둠"
+                        : field.StartsWith("light", StringComparison.OrdinalIgnoreCase) ? "빛" : "공용";
+                    return ("VFX.HV." + field, group + " · " + ObjectNames.NicifyVariableName(field), group, "현재 강공 연결", "새로 등록된 원소 VFX 슬롯");
+            }
         }
         private static string StateName(CueState state) => state == CueState.Connected ? "연결" : state == CueState.Shared ? "공통 사용" : "빈 자리";
 
@@ -271,7 +296,7 @@ namespace Overburst.EditorTools.Weapons
                     || (filter == "내 선택" && cue.IsSelected));
                 if (!visible) continue;
                 if (group != cue.group) { group = cue.group; cueList.Add(Text(group, "group-heading")); }
-                var row = new VisualElement(); row.AddToClassList("cue-row");
+                var row = new VisualElement { name = cue.id }; row.AddToClassList("cue-row");
                 if (cue == active) row.AddToClassList("active");
                 if (cue.state == CueState.Missing) row.AddToClassList("missing-row");
                 var toggle = new Toggle { value = cue.IsSelected }; toggle.AddToClassList("cue-toggle"); row.Add(toggle);
