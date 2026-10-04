@@ -20,6 +20,12 @@ public static partial class PlayerEvadeVerifier
     static float PlanarDistance(float[] a, float[] b) => new Vector2(a[0]-b[0],a[2]-b[2]).magnitude;
     static IEnumerator VerifySwordStopGameplay()
     {
+        if (SessionState.GetBool(StopCurveComparisonKey, false))
+        {
+            SessionState.EraseBool(StopCurveComparisonKey);
+            yield return VerifySwordStopCurveComparison();
+            yield break;
+        }
         bool expectInPlace = SessionState.GetBool(SwordStopVerificationKey + ".ExpectInPlace",true);
         SessionState.EraseBool(SwordStopVerificationKey + ".ExpectInPlace");
         var facing=actor.GetComponent<PlayerCombatFacingController>();
