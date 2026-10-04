@@ -114,7 +114,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
         int weakCases=selectedBatch==null?0:selectedBatch["entries"].Where(r=>(string)r["role"]=="weak"
             &&((bool?)r["nativeContactGeometryAuthored"]==true||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true))
-            .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length;
+            .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length+((bool?)selectedBatch?["verifyRakeLocomotion"]==true?3:0);
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
@@ -213,6 +213,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan.realPlayerParry){yield return RunRealPlayerParryCases();yield break;}
         if(plan.leaseVerification){yield return RunLeaseCases();yield break;}
         var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
+        if((bool?)author["verifyRakeLocomotion"]==true){yield return RunRakeLocomotionCases();if(plan.leaseDefinitionPaths?.Length>0)yield return RunLeaseCases();yield break;}
         var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
         var rows=author["entries"].OfType<JObject>().Where(r=>((bool?)r["nativeContactGeometryAuthored"]==true
             ||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true)

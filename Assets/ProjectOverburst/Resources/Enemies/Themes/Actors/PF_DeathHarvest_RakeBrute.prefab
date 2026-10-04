@@ -704,6 +704,7 @@ GameObject:
   - component: {fileID: 8931458856288355145}
   - component: {fileID: 7978269258270819685}
   - component: {fileID: 9026289371694808442}
+  - component: {fileID: 6900479509506111431}
   m_Layer: 7
   m_Name: PF_DeathHarvest_RakeBrute
   m_TagString: Untagged
@@ -1238,6 +1239,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &1430244186474592112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1252,6 +1257,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4642b3db83287e445b336e5cbad04d66, type: 2}
   signalColor: {r: 0.42, g: 0.69, b: 0.74, a: 1}
+  muzzleOverrides: []
 --- !u!114 &4292043295596135408
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1367,6 +1373,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 60ec0a855d1eb6547a546e35f917d3be, type: 2}
+--- !u!114 &6900479509506111431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630111263970318984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fc2069045dea6e499a9997c8184ca28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyLocomotionVariantSelector
+  animator: {fileID: 2192559949298045591}
+  moveParameter: Locomotion
+  moveChoiceParameter: MoveVariant
+  locomotionState: Locomotion
+  idleStates:
+  - IdleVariant_0
+  - IdleVariant_1
+  - IdleVariant_2
+  idleWeights:
+  - 0.5
+  - 0.3
+  - 0.2
+  moveWeights:
+  - 0.5
+  - 0.5
 --- !u!1 &8397776656497602290
 GameObject:
   m_ObjectHideFlags: 0
