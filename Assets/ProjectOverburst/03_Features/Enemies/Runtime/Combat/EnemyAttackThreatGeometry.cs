@@ -50,6 +50,7 @@ public static class EnemyAttackThreatGeometry
     public static Vector3 ResolveImpactCenter(EnemyActor actor, EnemyAbilityDefinition ability, Vector3 attackPoint)
     {
         if (actor == null || ability == null) return attackPoint;
+        if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry) return actor.transform.position;
         if (ability.ExecutionMode == EnemyAbilityExecutionMode.AreaSlam
             || UsesStandardAttackAreas && ability.IsMeleeStrongAttack && ResolveHitAngle(actor, ability) < 359.9f)
             return actor.transform.position;
@@ -75,6 +76,8 @@ public static class EnemyAttackThreatGeometry
     public static float ResolveRadius(EnemyActor actor, EnemyAbilityDefinition ability)
     {
         if (ability == null) return 0f;
+        if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry)
+            return ability.WeakAttackExecution.MaximumContactPlanarReach;
         float radius = ability.HitRadius;
         bool strong = ability.IsTelegraphedStrongAttack;
         switch (ResolveTier(actor))
@@ -89,6 +92,7 @@ public static class EnemyAttackThreatGeometry
     public static float ResolveHitAngle(EnemyActor actor, EnemyAbilityDefinition ability)
     {
         if (ability == null) return 0f;
+        if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry) return 360f;
         float angle = ability.HitAngle;
         if (angle >= 359.9f || !ability.IsTelegraphedStrongAttack
             || ResolveTier(actor) == ThreatTier.None) return angle;

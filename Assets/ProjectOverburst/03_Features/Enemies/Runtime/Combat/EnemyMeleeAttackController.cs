@@ -25,6 +25,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     [SerializeField] private bool avoidSameAttackTwice = true; // 동일 모션 연속 방지
 
     private readonly Collider[] hitBuffer = new Collider[16];
+    private readonly Collider[] weakContactBuffer = new Collider[64];
+    private readonly Collider[] weakContactPreviewBuffer = new Collider[64];
+    private EnemyWeakAttackContactGeometry[] activeWeakContactGeometry;
     private readonly RaycastHit[] lineOfSightBuffer = new RaycastHit[8];
     private readonly HashSet<CombatHealth> damagedTargets = new HashSet<CombatHealth>();
     private CombatHealth health; // 사망 및 피격 확인
@@ -68,6 +71,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     {
         if (ability == null || target == null || attackPoint == null
             || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
+        if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry)
+            return WouldContactGeometryHit(ability,target);
         Vector3 center = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
         int count = Physics.OverlapSphereNonAlloc(center,
             EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
@@ -139,7 +144,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         weakMotionDriver?.End();
         weakImpacts.Cancel(); activeWeakAbility = null;
         weakReactionScope?.Cancel(); weakReactionScope = null;
-        activeWeakExecution = null;
+        activeWeakExecution = null; activeWeakContactGeometry = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();
     }
@@ -514,6 +519,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         try
         {
             activeWeakExecution = ability.WeakAttackExecution;
+            activeWeakContactGeometry = activeWeakExecution.CopyContactGeometry();
             activeWeakAbility = ability;
             weakClockTrigger = triggerName;
             weakCommittedForward = transform.forward;
@@ -565,7 +571,9 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
                         lastStrikeAt = Time.time;
                         if (CanResolveHit())
                         {
-                            if (ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)
+                            if (activeWeakContactGeometry != null)
+                                ResolveContactGeometryHit(weakDamageBudget.ForPhase(phase),ability,committedTarget);
+                            else if (ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget)
                                 ResolveDirectTargetHit(committedTarget, ability, weakDamageBudget.ForPhase(phase), true);
                             else ResolveArcHit(weakDamageBudget.ForPhase(phase), EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
                                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, ability), ability);
@@ -592,7 +600,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             if (attackSequenceId == executionSequence)
             {
                 weakMotionDriver?.End(); weakImpacts.Cancel();
-                activeWeakExecution = null; activeWeakAbility = null;
+                activeWeakExecution = null; activeWeakContactGeometry = null; activeWeakAbility = null;
                 weakAttackClock.Cancel();
                 movement?.ClearAttackDisplacement(); movement?.CancelActionLock();
                 attackRoutine = null;
@@ -720,6 +728,77 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         targetHealth.TakeDamage(info); // 선택한 단일 대상에게 한 번만 직접 피해
     }
 
+    private Quaternion ContactFacing
+    {
+        get
+        {
+            Vector3 forward = activeWeakExecution != null ? weakCommittedForward : transform.forward;
+            forward.y = 0f;
+            return Quaternion.LookRotation(forward.sqrMagnitude > .0001f ? forward.normalized : Vector3.forward);
+        }
+    }
+    private Vector3 ContactSightOrigin => (combatTarget != null ? combatTarget.CurrentVolume.Center : transform.position + Vector3.up)
+        + WeakPhysicsOffset;
+
+    private bool WouldContactGeometryHit(EnemyAbilityDefinition ability, CombatTarget wanted)
+    {
+        var profile = ability.WeakAttackExecution;
+        bool live = activeWeakExecution == profile && weakAttackClock.HasEntered;
+        int first = live ? attackPhaseIndex : 0, end = live ? first + 1 : profile.ContactGeometryCount;
+        for (int phase = first; phase < end; phase++)
+        {
+            var geometry = live && activeWeakContactGeometry != null && (uint)phase < (uint)activeWeakContactGeometry.Length
+                ? activeWeakContactGeometry[phase] : profile.GetContactGeometry(phase);
+            if (geometry == null) continue;
+            float time = live ? weakAttackClock.NormalizedTime : ability.GetHitNormalizedTime(phase);
+            for (int shape = 0; shape < geometry.CapsuleCount; shape++)
+            {
+                int count = EnemyWeakAttackContactQuery.Overlap(gameObject.scene.GetPhysicsScene(),geometry,shape,time,
+                    transform.position + WeakPhysicsOffset,ContactFacing,weakContactPreviewBuffer,targetLayer,out _);
+                if (count == weakContactPreviewBuffer.Length) continue;
+                for (int i = 0; i < count; i++)
+                    if (weakContactPreviewBuffer[i] != null && CombatTarget.Resolve(weakContactPreviewBuffer[i]) == wanted
+                        && (!ability.RequireLineOfSight || HasDirectLineOfSight(wanted,wanted.CurrentVolume.Center,ContactSightOrigin,true))) return true;
+            }
+        }
+        return false;
+    }
+
+    private void ResolveContactGeometryHit(float damage, EnemyAbilityDefinition ability, CombatTarget committedTarget)
+    {
+        int sequence = attackSequenceId, phase = attackPhaseIndex; uint lease = WeakOwnerLease;
+        var shapes = activeWeakContactGeometry;
+        if (shapes == null || (uint)phase >= (uint)shapes.Length || shapes[phase] == null) return;
+        var geometry = shapes[phase]; var reaction = weakReactionScope;
+        float time = weakAttackClock.NormalizedTime;
+        Vector3 position = transform.position + WeakPhysicsOffset; Quaternion facing = ContactFacing;
+        damagedTargets.Clear();
+        for (int shape = 0; shape < geometry.CapsuleCount; shape++)
+        {
+            int count = EnemyWeakAttackContactQuery.Overlap(gameObject.scene.GetPhysicsScene(),geometry,shape,time,
+                position,facing,weakContactBuffer,targetLayer,out Vector3 center);
+            if (count == weakContactBuffer.Length) continue;
+            for (int i = 0; i < count; i++)
+            {
+                if (IsAttackInterrupted() || activeWeakExecution == null || attackSequenceId != sequence
+                    || WeakOwnerLease != lease || !ReferenceEquals(activeWeakContactGeometry,shapes)) return;
+                Collider collider = weakContactBuffer[i]; if (collider == null) continue;
+                var hitTarget = CombatTarget.Resolve(collider);
+                if (ability.ExecutionMode == EnemyAbilityExecutionMode.DirectTarget && hitTarget != committedTarget) continue;
+                if (hitTarget != null && !CombatTargetFilter.CanDamage(combatTarget,hitTarget)) continue;
+                var receiver = hitTarget != null ? hitTarget.DamageReceiver : collider.GetComponentInParent<CombatHealth>();
+                if (receiver == null || receiver == health || receiver.IsDead || damagedTargets.Contains(receiver)) continue;
+                if (ability.RequireLineOfSight && hitTarget != null
+                    && !HasDirectLineOfSight(hitTarget,hitTarget.CurrentVolume.Center,ContactSightOrigin,true)) continue;
+                if (!damagedTargets.Add(receiver)) continue;
+                Vector3 direction = receiver.transform.position - position; direction.y = 0f;
+                receiver.TakeDamage(new DamageInfo(damage,collider.ClosestPoint(center),gameObject,
+                    direction.sqrMagnitude > .0001f ? direction.normalized : facing * Vector3.forward,
+                    sourceAttackSequenceId:sequence,sourceAttackPhaseIndex:phase,enemyAbility:ability,weakAttackReactionScope:reaction));
+            }
+        }
+    }
+
     private void ResolveArcHit(
         float resolvedDamage,
         float resolvedRadius,
@@ -840,14 +919,14 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
     private bool HasDirectLineOfSight(
         CombatTarget committedTarget,
         Vector3 targetCenter,
-        Vector3 origin)
+        Vector3 origin, bool forceScenePhysics = false)
     {
         Vector3 delta = targetCenter - origin;
         float distance = delta.magnitude;
         if (distance <= 0.0001f)
             return true;
 
-        int hitCount = activeWeakExecution != null
+        int hitCount = activeWeakExecution != null || forceScenePhysics
             ? gameObject.scene.GetPhysicsScene().Raycast(origin, delta / distance, lineOfSightBuffer, distance, ~0, QueryTriggerInteraction.Ignore)
             : Physics.RaycastNonAlloc(
             origin,
@@ -1096,7 +1175,7 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         weakMotionDriver?.End();
         weakImpacts.Cancel(); activeWeakAbility = null;
         weakReactionScope?.Cancel(); weakReactionScope = null;
-        activeWeakExecution = null;
+        activeWeakExecution = null; activeWeakContactGeometry = null;
         weakAttackClock.Cancel();
         movement?.ClearAttackDisplacement();
         damagedTargets.Clear(); // 타격 대상 정리

@@ -102,11 +102,15 @@ public static class MonsterWeakAttackExecutionProfileVerifier
                     new JArray(Mathf.Max(0,Mathf.Floor(current.GetHitNormalizedTime(i)*source.length*source.frameRate)-1)/(source.length*source.frameRate),
                         Mathf.Min(Mathf.Round(source.length*source.frameRate),Mathf.Ceil(current.GetHitNormalizedTime(i)*source.length*source.frameRate)+1)/(source.length*source.frameRate))))}
             };
+            var contactWindows=(JArray)authored["contactWindowsNormalized"];
+            authored["contactGeometry"]=new JObject{{"coordinateBasis","FinalEffectiveGameGeometry"},
+                {"phases",new JArray(contactWindows.Select(w=>new JObject{{"frames",new JArray(w.Select(t=>new JObject{
+                    {"normalizedTime",t},{"capsules",new JArray(new JObject{{"a",new JArray(0,1,1)},{"b",new JArray(0,1,1.2f)},{"radius",.3f}})}}))}}))}};
             string before=EditorJsonUtility.ToJson(current);
             MonsterWeakAttackExecutionWriter.Validate(v3Path,v3Hash,cardKey,selectionKey,authored,current,source,source);
             Check("native current contact fixture validates",true);
             Reject("reject stale V3 hash",()=>MonsterWeakAttackExecutionWriter.Validate(v3Path,new string('0',64),cardKey,selectionKey,authored,current,source,source));
-            foreach(string field in new [] {"sourceGuid","sourceLocalId","sourceSha256","nativeFps","motionPolicy","hitNormalizedTimes","nativeAuthoringComplete","runtimeClipPath","stationaryStartRange","contactWindowsNormalized"})
+            foreach(string field in new [] {"sourceGuid","sourceLocalId","sourceSha256","nativeFps","motionPolicy","hitNormalizedTimes","nativeAuthoringComplete","runtimeClipPath","stationaryStartRange","contactWindowsNormalized","contactGeometry"})
             {
                 var changed=(JObject)authored.DeepClone();
                 if(field=="sourceGuid"||field=="sourceSha256")changed[field]="incorrect";
@@ -115,7 +119,7 @@ public static class MonsterWeakAttackExecutionProfileVerifier
                 else if(field=="motionPolicy")changed[field]="VisualJump";
                 else if(field=="hitNormalizedTimes")changed[field]=new JArray(.1f);
                 else if(field=="runtimeClipPath")changed[field]="Assets/incorrect.anim";
-                else if(field=="stationaryStartRange" || field=="contactWindowsNormalized")changed[field]=null;
+                else if(field=="stationaryStartRange" || field=="contactWindowsNormalized" || field=="contactGeometry")changed[field]=null;
                 else changed[field]=false;
                 Reject("reject altered "+field,()=>MonsterWeakAttackExecutionWriter.Validate(v3Path,v3Hash,cardKey,selectionKey,changed,current,source,source));
             }

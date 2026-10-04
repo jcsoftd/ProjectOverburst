@@ -132,6 +132,8 @@ public static class MonsterWeakAttackExecutionWriter
         if (melee)
         {
             var windows = ReadContactWindows(authored);
+            var geometry = ReadContactGeometry(authored);
+            if (geometry == null || geometry.Length != times.Count) throw new ArgumentException("타격별 실제 판정 저작이 없습니다.");
             if (windows == null || windows.Length != times.Count) throw new ArgumentException("타격별 원본 접촉 구간이 없습니다.");
             var trim = RequiredPair(authored, "sourceTrimSeconds");
             for (int i = 0; i < windows.Length; i++)
@@ -171,7 +173,31 @@ public static class MonsterWeakAttackExecutionWriter
                 curve = new AnimationCurve(keys);
             }
             candidate.Configure(selectionKey, original, motion, trim, policy, reach, advance, window, curve,
-                (string)authored["poseRootBonePath"], ReadContactWindows(authored));
+                (string)authored["poseRootBonePath"], ReadContactWindows(authored), ReadContactGeometry(authored));
+    }
+
+    private static EnemyWeakAttackContactFrame[][] ReadContactGeometry(JObject authored)
+    {
+        var data = authored["contactGeometry"];
+        if (data == null || data.Type == JTokenType.Null) return null;
+        if (!(data is JObject geometry) || (string)geometry["coordinateBasis"] != "FinalEffectiveGameGeometry"
+            || !(geometry["phases"] is JArray phases)) throw new ArgumentException("최종 게임 좌표의 판정 저작이 아닙니다.");
+        return phases.Select(p =>
+        {
+            if (!(p["frames"] is JArray frames)) throw new ArgumentException("판정 자세가 없습니다.");
+            return frames.Select(f =>
+            {
+                if (!(f["capsules"] is JArray shapes)) throw new ArgumentException("판정 캡슐이 없습니다.");
+                return new EnemyWeakAttackContactFrame(RequiredFloat((JObject)f,"normalizedTime"),shapes.Select(c =>
+                    new EnemyWeakAttackContactCapsule(RequiredVector((JObject)c,"a"),RequiredVector((JObject)c,"b"),RequiredFloat((JObject)c,"radius"))).ToArray());
+            }).ToArray();
+        }).ToArray();
+    }
+    private static Vector3 RequiredVector(JObject data, string key)
+    {
+        if (!(data[key] is JArray array) || array.Count != 3 || array.Any(v=>v.Type==JTokenType.Null))
+            throw new ArgumentException("판정 좌표 누락: "+key);
+        return new Vector3((float)array[0],(float)array[1],(float)array[2]);
     }
 
     private static Vector2[] ReadContactWindows(JObject authored)

@@ -27,6 +27,32 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
     [SerializeField] private AnimationCurve advanceProgress;
     [SerializeField] private string poseRootBonePath;
     [SerializeField] private Vector2[] contactWindows;
+    [SerializeField] private EnemyWeakAttackContactGeometry[] contactGeometry;
+
+    public int ContactGeometryCount => contactGeometry != null ? contactGeometry.Length : 0;
+    public bool HasContactGeometry => ContactGeometryCount != 0;
+    public EnemyWeakAttackContactGeometry GetContactGeometry(int phase)
+        => (uint)phase < (uint)ContactGeometryCount ? contactGeometry[phase] : null;
+    public EnemyWeakAttackContactGeometry[] CopyContactGeometry()
+        => contactGeometry != null ? (EnemyWeakAttackContactGeometry[])contactGeometry.Clone() : null;
+    public float MaximumContactPlanarReach
+    {
+        get
+        {
+            float reach = 0f;
+            for (int i = 0; i < ContactGeometryCount; i++)
+                if (contactGeometry[i] != null) reach = Mathf.Max(reach,contactGeometry[i].MaximumPlanarReach);
+            return reach;
+        }
+    }
+    private bool ContactGeometryValid()
+    {
+        if (!HasContactGeometry) return true;
+        if (ContactGeometryCount != ContactWindowCount || ContactGeometryCount > 3) return false;
+        for (int i = 0; i < ContactGeometryCount; i++)
+            if (contactGeometry[i] == null || !contactGeometry[i].HasData) return false;
+        return true;
+    }
 
     public int ContactWindowCount => contactWindows != null ? contactWindows.Length : 0;
     public bool HasContactWindows => ContactWindowCount != 0;
@@ -79,7 +105,7 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
         && FinitePositive(stationaryStartRange) && FiniteNonNegative(maxAdvanceDistance)
         && (uint)motionPolicy <= (uint)EnemyWeakAttackMotionPolicy.Channel
         && (!UsesAdvance || maxAdvanceDistance > 0f && ValidWindow(advanceWindow) && advanceProgress != null)
-        && (UsesAdvance || maxAdvanceDistance == 0f) && ContactWindowsValid();
+        && (UsesAdvance || maxAdvanceDistance == 0f) && ContactWindowsValid() && ContactGeometryValid();
 
     public float ResolveAdvanceBudget(float startingDistance)
     {
@@ -105,6 +131,8 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
         float duration = sourceTrimSeconds.y - sourceTrimSeconds.x;
         if (Mathf.Abs(runtimeClip.length - duration) > Mathf.Max(.001f, 1f / OriginalFps + .001f))
         { reason = "실제 클립 길이와 원본 사용 구간이 맞지 않습니다."; return false; }
+        for (int i = 0; i < ContactGeometryCount; i++)
+            if (!contactGeometry[i].Validate(contactWindows[i],out reason)) return false;
         if (UsesAdvance)
         {
             var keys = advanceProgress.keys;
@@ -142,7 +170,8 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
 
     public void Configure(string key, AnimationClip source, AnimationClip motion, Vector2 trimSeconds,
         EnemyWeakAttackMotionPolicy policy, float stationaryReach, float advanceMeters,
-        Vector2 motionWindow, AnimationCurve progress, string rootBonePath, Vector2[] authoredContactWindows = null)
+        Vector2 motionWindow, AnimationCurve progress, string rootBonePath, Vector2[] authoredContactWindows = null,
+        EnemyWeakAttackContactFrame[][] authoredContactGeometry = null)
     {
         // Validate on a temporary profile before replacing authored data on an existing asset.
         var candidate = CreateInstance<EnemyWeakAttackExecutionProfile>();
@@ -156,12 +185,20 @@ public sealed class EnemyWeakAttackExecutionProfile : ScriptableObject
             candidate.advanceProgress = progress != null ? new AnimationCurve(progress.keys) : null;
             candidate.poseRootBonePath = rootBonePath ?? string.Empty;
             candidate.contactWindows = authoredContactWindows != null ? (Vector2[])authoredContactWindows.Clone() : null;
+            if (authoredContactGeometry != null)
+            {
+                if (authoredContactGeometry.Length != candidate.ContactWindowCount || authoredContactGeometry.Length == 0)
+                    throw new ArgumentException("타격별 판정과 접촉 구간 수가 다릅니다.");
+                candidate.contactGeometry = new EnemyWeakAttackContactGeometry[authoredContactGeometry.Length];
+                for (int i = 0; i < authoredContactGeometry.Length; i++)
+                    candidate.contactGeometry[i] = EnemyWeakAttackContactGeometry.Create(authoredContactGeometry[i],candidate.contactWindows[i]);
+            }
             if (!candidate.ValidateAuthoring(out string reason)) throw new ArgumentException(reason);
             selectionKey = candidate.selectionKey; originalClip = source; runtimeClip = motion;
             sourceTrimSeconds = trimSeconds; motionPolicy = policy; stationaryStartRange = stationaryReach;
             maxAdvanceDistance = advanceMeters; advanceWindow = motionWindow;
             advanceProgress = candidate.advanceProgress; poseRootBonePath = candidate.poseRootBonePath;
-            contactWindows = candidate.contactWindows;
+            contactWindows = candidate.contactWindows; contactGeometry = candidate.contactGeometry;
         }
         finally
         {
