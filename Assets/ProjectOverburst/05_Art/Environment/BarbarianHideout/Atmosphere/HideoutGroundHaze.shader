@@ -14,6 +14,7 @@ Shader "OVERBURST/Environment/Ground Haze"
         _BoundsMax ("Volume maximum", Vector) = (26,4,31,0)
         _GroundBounds ("Ground XZ minimum and extent", Vector) = (-36,-30,108,76)
         _ClearCenter ("Open camp XZ and radii", Vector) = (0,2,8.5,9)
+        _CenterDensity ("Camp centre density multiplier", Range(0,1)) = 0.18
         [HideInInspector] _PreviewTime ("Preview time", Float) = -1
     }
     SubShader
@@ -42,6 +43,7 @@ Shader "OVERBURST/Environment/Ground Haze"
                 float4 _FogColor, _SunTint, _Wind, _BoundsMin, _BoundsMax, _GroundBounds, _ClearCenter;
                 float4 _GroundHeight_TexelSize;
                 float _Density, _Height, _NoiseScale, _PreviewTime;
+                float _CenterDensity;
             CBUFFER_END
 
             struct Attributes { float4 positionOS:POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
@@ -76,7 +78,7 @@ Shader "OVERBURST/Environment/Ground Haze"
                 float top=_Height*lerp(.48,1.55,cloud);
                 float vertical=exp2(-h*2.0/_Height)*smoothstep(top,top*.48,h);
                 float groundFade=smoothstep(0,.16,h);
-                return _Density*wisps*vertical*groundFade*boundary*lerp(.18,1,clearing);
+                return _Density*wisps*vertical*groundFade*boundary*lerp(_CenterDensity,1,clearing);
             }
             half4 Frag(Varyings i):SV_Target
             {
