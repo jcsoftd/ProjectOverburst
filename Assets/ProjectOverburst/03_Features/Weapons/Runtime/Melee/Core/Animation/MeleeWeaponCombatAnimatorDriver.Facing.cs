@@ -16,6 +16,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
     public bool CanStartFacingTurn => CanUseCombatFacing && facingMotion == FacingMotion.Idle
         && !targetAnimator.IsInTransition(layerIndex);
     public CombatTurnMotion ActiveFacingTurn => activeFacingTurn;
+    public CombatMoveMotion ActiveFacingStop => facingMotion == FacingMotion.Stop ? activeMoveMotion : null;
     public bool IsStationaryFacingPose => facingMotion == FacingMotion.Idle || facingMotion == FacingMotion.Turn;
     public float FacingTurnElapsed => Mathf.Clamp(Time.time - facingTurnStart, 0f, activeFacingTurn?.Duration ?? 0f);
 
@@ -59,6 +60,25 @@ public partial class MeleeWeaponCombatAnimatorDriver
         float speed = activeProfile.locomotionReferenceSpeeds.GetSpeed(direction)
             * ResolvePositiveOrDefault(activeProfile.locomotionAnimationSpeedMultiplier, 1f);
         return clip.length / Mathf.Max(.01f, speed / motion.authoredSpeed);
+    }
+    // Called by movement before its motor step on release, so pose and displacement start together.
+    public bool TryBeginFacingStop(out CombatMoveMotion motion, out float duration, out float humanScale)
+    {
+        motion = null; duration = 0f; humanScale = 1f;
+        if (!CanUseCombatFacing || activeMoveMotion == null || activeMoveMotion.stop == null
+            || (facingMotion != FacingMotion.Start && facingMotion != FacingMotion.Loop)) return false;
+        float fullDuration = FacingMoveDuration(activeMoveMotion, activeMoveMotion.stop);
+        float firstStep = Mathf.Min(Time.deltaTime, fullDuration);
+        // CrossFade enters at its offset on this frame. The motor has already consumed
+        // this frame's interval, so start the pose at that same point in the Stop curve.
+        if (!PlayState(layerIndex, layerName, activeMoveMotion.stopState, FacingSet.moveBlendSeconds,
+            firstStep / fullDuration, activeMoveMotion.stop.length)) return false;
+        motion = activeMoveMotion;
+        duration = fullDuration;
+        humanScale = targetAnimator != null && targetAnimator.isHuman ? targetAnimator.humanScale : 1f;
+        facingMotion = FacingMotion.Stop;
+        facingMotionEnd = Time.time + duration - firstStep;
+        return true;
     }
     private bool TryPlayDetailedLocomotion(float blend)
     {
@@ -109,9 +129,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
         else if (facingMotion == FacingMotion.Loop || facingMotion == FacingMotion.Start)
         {
             if (activeMoveMotion == null) { ResetFacingMotion(); return true; }
-            PlayState(layerIndex, layerName, activeMoveMotion.stopState, set.moveBlendSeconds, 0, activeMoveMotion.stop.length);
-            facingMotion = FacingMotion.Stop;
-            facingMotionEnd = Time.time + FacingMoveDuration(activeMoveMotion, activeMoveMotion.stop);
+            TryBeginFacingStop(out _, out _, out _);
         }
         else if (facingMotion == FacingMotion.None || (facingMotion == FacingMotion.Stop && Time.time >= facingMotionEnd))
         {

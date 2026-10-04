@@ -34,7 +34,7 @@ public partial class PlayerMovement
             activeMovementIntent,
             BaseMoveSpeed,
             acceleration,
-            ResolveCombatStopDeceleration(jumpVelocity),
+            ResolveCombatStopDeceleration(jumpVelocity, Mathf.Max(0f, deltaTime)),
             airControl,
             jumpVelocity,
             Mathf.Max(0f, deltaTime));
@@ -42,20 +42,22 @@ public partial class PlayerMovement
             landingSlowTimer = landingSlowDuration; // 같은 Move에서 발생한 착지를 즉시 소비
     }
 
-    private float ResolveCombatStopDeceleration(float jumpVelocity)
+    private float ResolveCombatStopDeceleration(float jumpVelocity, float deltaTime)
     {
         var set = combatFacingController != null ? combatFacingController.Set : null;
         bool eligible = set != null && combatFacingController.IsPoseActive
             && IsMeleeCombatLocomotionMode && !IsLootAutoMoveActive
-            && !IsEvading && !IsMeleeAttackMoveLocked && jumpVelocity <= 0f
+            && !IsEvading && !IsMeleeAttackMoveLocked && !IsConditionMovementBlocked && jumpVelocity <= 0f
             && !GameplayInputBlocker.IsGameplayInputBlocked
             && set.stopBrakeSeconds > 0f && set.stopBrakeMaxDistance > 0f;
         if (!eligible || activeMovementIntent.ShouldMove)
         {
+            CancelCombatStopCurve(!activeMovementIntent.ShouldMove);
             combatStopWasMoving = eligible && activeMovementIntent.ShouldMove;
             combatStopDeceleration = 0f;
             return deceleration;
         }
+        if (StepCombatStopCurve(set, deltaTime)) return 0f;
         float speed = locomotion.HorizontalVelocity.magnitude;
         if (combatStopWasMoving)
         {
@@ -96,6 +98,7 @@ public partial class PlayerMovement
 
     public void Stop()
     {
+        CancelCombatStopCurve(false);
         combatStopWasMoving = false;
         combatStopDeceleration = 0f;
         lootAutoMoveActive = false;

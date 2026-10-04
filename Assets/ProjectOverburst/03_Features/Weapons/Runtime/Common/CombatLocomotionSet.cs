@@ -18,6 +18,10 @@ public sealed class CombatMoveMotion
     public AnimationClip start, loop, stop;
     public string startState, stopState;
     public float loopCycleOffset, startLoopPhase, authoredSpeed;
+    // Native source Stop displacement projected onto this direction, in source-avatar metres.
+    public AnimationCurve stopDistance;
+    [Min(.001f)] public float stopSourceHumanScale = 1f;
+    public bool stopMatchEntrySpeed;
 }
 
 [CreateAssetMenu(menuName = "OVERBURST/Weapons/Combat Locomotion Set")]
@@ -36,6 +40,7 @@ public sealed class CombatLocomotionSet : ScriptableObject
     [Min(0f)] public float turnBlendSeconds = .08f;
     [Min(0f)] public float moveBlendSeconds = .12f;
     [Min(0f)] public float recoverySeconds = .12f;
+    [Min(0f)] public float stopEntrySeconds = .08f;
     [Min(0f)] public float stopBrakeSeconds = .12f;
     [Min(0f)] public float stopBrakeMaxDistance = .18f;
     public float idleChestYaw;

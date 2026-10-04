@@ -236,6 +236,9 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         public float[][] feet;
         public float[] actor, model, hipsLocal;
         public float speed;
+        public bool stopActive;
+        public int stopSector;
+        public float stopElapsed, stopDistance, stopRate, stopNormalized;
         public bool grounded, controllerEnabled;
         public float groundGap, verticalVelocity;
         public float chestYaw;
@@ -253,6 +256,7 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
     Texture2D capturePixels;
     string captureDirectory;
     float nextCapture;
+    int priorCaptureRate;
     int captureIndex;
     readonly List<object> captures = new List<object>();
     PlayerFootLock footLock;
@@ -279,6 +283,7 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
     public void StartCapture(string directory)
     {
         captureDirectory = directory; Directory.CreateDirectory(directory);
+        priorCaptureRate = Time.captureFramerate; Time.captureFramerate = 30;
         var cameraObject = new GameObject("Owned Sword facing capture camera");
         cameraObject.transform.SetParent(transform, false);
         captureCamera = cameraObject.AddComponent<Camera>();
@@ -286,15 +291,15 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         captureCamera.orthographic = true; captureCamera.orthographicSize = 1.65f;
         captureCamera.clearFlags = CameraClearFlags.SolidColor; captureCamera.backgroundColor = new Color(.13f,.16f,.19f);
         int ui = LayerMask.NameToLayer("UI"); if (ui >= 0) captureCamera.cullingMask &= ~(1 << ui);
-        captureTarget = new RenderTexture(640,640,24,RenderTextureFormat.ARGB32); captureTarget.Create();
-        capturePixels = new Texture2D(640,640,TextureFormat.RGB24,false);
+        captureTarget = new RenderTexture(768,768,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB); captureTarget.Create();
+        capturePixels = new Texture2D(768,768,TextureFormat.RGB24,false);
         captureCamera.targetTexture = captureTarget;
     }
     void Capture()
     {
         if (captureCamera == null || Time.unscaledTime < nextCapture
             || !(phase.StartsWith("small_") || phase.StartsWith("turn_") || phase.StartsWith("attack_") || phase.StartsWith("move_") || phase.StartsWith("stop_"))) return;
-        nextCapture = Time.unscaledTime + .05f;
+        nextCapture = Time.unscaledTime;
         Vector3 target = facing.transform.position + Vector3.up * 1.05f;
         captureCamera.transform.position = target + new Vector3(3.4f,2.2f,-4.4f);
         captureCamera.transform.LookAt(target);
@@ -302,7 +307,7 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
         try
         {
             captureCamera.Render(); RenderTexture.active = captureTarget;
-            capturePixels.ReadPixels(new Rect(0,0,640,640),0,0); capturePixels.Apply();
+            capturePixels.ReadPixels(new Rect(0,0,768,768),0,0); capturePixels.Apply();
             string name = captureIndex++.ToString("D5") + ".png";
             File.WriteAllBytes(Path.Combine(captureDirectory,name),capturePixels.EncodeToPNG());
             captures.Add(new {name,phase,time=Time.time,frame=Time.frameCount,aim=facing.AimYaw,lower=facing.LowerYaw});
@@ -311,6 +316,7 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
     }
     void OnDestroy()
     {
+        if (captureDirectory != null) Time.captureFramerate = priorCaptureRate;
         if (captureDirectory != null) File.WriteAllText(Path.Combine(captureDirectory,"Frames.json"), JsonConvert.SerializeObject(captures));
         if (captureCamera != null) DestroyImmediate(captureCamera.gameObject);
         if (captureTarget != null) {captureTarget.Release();DestroyImmediate(captureTarget);}
@@ -336,6 +342,13 @@ public sealed class SwordFacingPoseProbe : MonoBehaviour
             actor = new[]{actorPosition.x,actorPosition.y,actorPosition.z}, model = new[]{modelPosition.x,modelPosition.y,modelPosition.z},
             hipsLocal = new[]{animator.transform.InverseTransformPoint(hips.position).x, animator.transform.InverseTransformPoint(hips.position).y, animator.transform.InverseTransformPoint(hips.position).z},
             speed = movement.Locomotion.HorizontalVelocity.magnitude,
+            stopActive = movement.IsCombatStopCurveActive,
+            stopSector = facing.Set != null ? Array.IndexOf(facing.Set.directions, movement.CombatStopMotion) : -1,
+            stopElapsed = movement.CombatStopCurveElapsed, stopDistance = movement.CombatStopCurveDistance,
+            stopRate = movement.CombatStopCurveRate,
+            stopNormalized = Mathf.Clamp01(animator.IsInTransition(layer) && movement.CombatStopMotion != null
+                && animator.GetNextAnimatorStateInfo(layer).shortNameHash == Animator.StringToHash(movement.CombatStopMotion.stopState)
+                ? animator.GetNextAnimatorStateInfo(layer).normalizedTime : animator.GetCurrentAnimatorStateInfo(layer).normalizedTime),
             grounded=movement.IsGrounded, controllerEnabled=facing.GetComponent<CharacterController>().enabled,
             groundGap=motor.GroundGap, verticalVelocity=movement.VerticalVelocity });
         frames[frames.Count-1].chestYaw = Yaw(chest.rotation);
