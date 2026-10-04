@@ -173,6 +173,7 @@ GameObject:
   - component: {fileID: 2952157416299981037}
   - component: {fileID: 4241196682905767704}
   - component: {fileID: 77481285937991216}
+  - component: {fileID: 8115567034517875424}
   m_Layer: 7
   m_Name: PF_VenomBrood_Venodonte_Tint1
   m_TagString: Untagged
@@ -501,9 +502,8 @@ MonoBehaviour:
   attackPoint: {fileID: 2523657294024647165}
   abilitySet: {fileID: 11400000, guid: ad02d0c9c9a0a85479747cc1ca3df091, type: 2}
   attackTriggers:
-  - Attack1
-  - Attack2
   - Attack3
+  - Attack4
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -697,6 +697,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 3e98d0190d79b804bae04ba8f3aec79c, type: 2}
   signalColor: {r: 1, g: 0.6, b: 0.12, a: 1}
+  muzzleOverrides:
+  - ability: {fileID: 11400000, guid: 13969e352849792458396498eafcc94e, type: 2}
+    socket: {fileID: 5609590226886751579}
+    localOffset: {x: 0, y: 0, z: 0}
+  - ability: {fileID: 11400000, guid: 80e20b43967de594ab49c0e6e3e108ad, type: 2}
+    socket: {fileID: 5609590226886751579}
+    localOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &2453652731666680776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -792,6 +799,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &4241196682905767704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -818,6 +829,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &8115567034517875424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5119254518068260491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 2455347179577841208}
+  movement: {fileID: 2043781314210719713}
 --- !u!1 &5124614282259971113
 GameObject:
   m_ObjectHideFlags: 0
@@ -1651,6 +1676,11 @@ PrefabInstance:
 --- !u!95 &2318514281932889101 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5238522555572707024, guid: 328c0817618a94d4d8065e353ddf2c4c, type: 3}
+  m_PrefabInstance: {fileID: 7539022438987711197}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5609590226886751579 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2686036958091261830, guid: 328c0817618a94d4d8065e353ddf2c4c, type: 3}
   m_PrefabInstance: {fileID: 7539022438987711197}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8560543134633313911 stripped

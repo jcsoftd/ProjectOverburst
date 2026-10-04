@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: PrimalHunt_Venosaur_Tint_Brown_BiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: PrimalHunt_Venosaur_Tint_Brown_BiteAttack
+  weakAttackExecution: {fileID: 11400000, guid: 8d6fb10565fc1034ea79261639e0e671, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 10
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.23333333
-  hitNormalizedTime: 0.35
+  hitDelay: 0.26666665
+  hitNormalizedTime: 0.39999998
   attackAnimationDuration: 0.6666667
   attackLockDuration: 0.6333333
   weight: 1

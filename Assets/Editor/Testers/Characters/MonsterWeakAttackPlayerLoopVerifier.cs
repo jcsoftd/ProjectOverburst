@@ -112,7 +112,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(frameRates.Length==0 || frameRates.Distinct().Count()!=frameRates.Length
             || frameRates.Any(rate=>rate!=15 && rate!=30 && rate!=60))
             throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
-        int weakCases=selectedBatch==null?0:selectedBatch["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*frameRates.Length;
+        int weakCases=selectedBatch==null?0:selectedBatch["entries"].Where(r=>(string)r["role"]=="weak"
+            &&((bool?)r["nativeContactGeometryAuthored"]==true||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true))
+            .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length;
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
@@ -212,7 +214,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan.leaseVerification){yield return RunLeaseCases();yield break;}
         var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
         var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
-        var rows=author["entries"].OfType<JObject>().Where(r=>(bool?)r["nativeContactGeometryAuthored"]==true
+        var rows=author["entries"].OfType<JObject>().Where(r=>((bool?)r["nativeContactGeometryAuthored"]==true
+            ||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true)
             &&(!string.IsNullOrEmpty(plan.attackBatch)||originalIds.Contains((string)r["cardKey"]))).ToArray();
         if(rows.Length==0||string.IsNullOrEmpty(plan.attackBatch)&&rows.Length!=8)throw new InvalidOperationException("Native authored attack batch is empty or unexpected.");
         var runs=from fps in plan.validationFrameRates??new[]{15,30,60}
@@ -223,6 +226,12 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         {
             int fps=run.fps;JObject row=run.row;string scenario=run.scenario;
             Time.captureDeltaTime=1f/fps;
+            if((string)row["visualType"]=="ranged")
+            {
+                yield return RunProjectileCase(row,fps);
+                if((bool?)row["verifyCancelBeforeHit"]==true)yield return RunProjectileCase(row,fps,true);
+                continue;
+            }
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>((string)row["actorGeometryPlacement"]["actorPrefabPath"]);
             var go=UnityEngine.Object.Instantiate(prefab,new Vector3(19000,0,19000),Quaternion.identity); owned.Add(go);
             foreach(var component in go.GetComponentsInChildren<MonoBehaviour>(true))

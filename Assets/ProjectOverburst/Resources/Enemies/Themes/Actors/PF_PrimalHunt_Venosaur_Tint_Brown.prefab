@@ -193,6 +193,7 @@ GameObject:
   - component: {fileID: 8851841686969704270}
   - component: {fileID: 4294815431303886689}
   - component: {fileID: 3900341399976038461}
+  - component: {fileID: 1428927532935409106}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Venosaur_Tint_Brown
   m_TagString: Untagged
@@ -524,6 +525,8 @@ MonoBehaviour:
   - Attack1
   - Attack2
   - Attack3
+  - Attack4
+  - Attack5
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -717,6 +720,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 77e96168dd33029419bd68f0e359411b, type: 2}
   signalColor: {r: 1, g: 0.3, b: 0.15, a: 1}
+  muzzleOverrides:
+  - ability: {fileID: 11400000, guid: 84a288e63a11f654c9d7fbd9ccb89a7f, type: 2}
+    socket: {fileID: 2532849733469011658}
+    localOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &5657545770505126473
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -812,6 +819,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &4294815431303886689
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -838,6 +849,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: f8b6720ab1ec0be4cbcd039d50ba3442, type: 2}
+--- !u!114 &1428927532935409106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3285127751773417009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 6254108857581957452}
+  movement: {fileID: 6519486011608823844}
 --- !u!1 &5155752461605611244
 GameObject:
   m_ObjectHideFlags: 0
@@ -1732,6 +1757,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 606eb3be8a606c24b90d3dd281b1faca, type: 3}
+--- !u!4 &2532849733469011658 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2426931740432655366, guid: 606eb3be8a606c24b90d3dd281b1faca, type: 3}
+  m_PrefabInstance: {fileID: 182480337820392140}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3686061548994303118 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3580301872756362818, guid: 606eb3be8a606c24b90d3dd281b1faca, type: 3}

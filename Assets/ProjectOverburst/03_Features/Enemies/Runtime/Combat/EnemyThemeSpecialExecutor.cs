@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Optional extension for theme actors. Selection, turn reservation and movement still belong to existing AI.
 [DisallowMultipleComponent]
-public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
+public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
 {
     [SerializeField] private Material signalMaterial;
     [SerializeField] private Color signalColor = new Color(1f,.45f,.15f);
@@ -32,8 +32,8 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private int attackSequenceId;
     private readonly RaycastHit[] hits = new RaycastHit[24];
     // Flight belongs to the attack too: a short animation must not cancel a distant shot.
-    public override bool IsExecuting => routine != null || boltFlying;
-    public bool HasProjectile => boltFlying;
+    public override bool IsExecuting => routine != null || HasProjectile;
+    public bool HasProjectile => boltFlying || HasWeakProjectiles;
     public Vector3 ChargeDirection => chargeDirection;
     public int LaunchCount { get; private set; }
     public int ImpactCount { get; private set; }
@@ -64,7 +64,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override bool CanStart(EnemyAbilityDefinition ability, Transform target)
     {
         Resolve();
-        if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
+        if (!Supports(ability) || target == null || routine != null || HasProjectile || !Usable()
             || actor.Movement.IsActionLocked || actor.AnimationBridge.BlocksAttackStart) return false;
         Vector3 point = actor.AbilityController.ResolveAimPosition(target);
         float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);
@@ -107,8 +107,13 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (!CanStart(ability,target)) return false;
         reaction?.PrepareForAttack();
         attackSequenceId = EnemyAttackSequence.Next();
-        if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile) EnsureProjectileVisual();
-        routine = StartCoroutine(Execute(ability,target));
+        if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile && ability.HasWeakAttackExecution)
+            routine = StartCoroutine(ExecuteWeakProjectile(ability, target));
+        else
+        {
+            if (ability.ExecutionMode == EnemyAbilityExecutionMode.Projectile) EnsureProjectileVisual();
+            routine = StartCoroutine(Execute(ability,target));
+        }
         return true;
     }
     public override float ResolveCooldown(float duration) { Resolve(); return actor != null ? actor.Melee.ResolveAbilityCooldown(duration) : duration; }
@@ -220,6 +225,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     }
     private void FixedUpdate()
     {
+        TickWeakProjectiles();
         if (!boltFlying) return;
         if (!Usable()) { EndBolt(); return; }
         float step = Mathf.Min(boltRemaining,10f*Time.fixedDeltaTime);
@@ -233,7 +239,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         boltPosition += boltDirection*step; bolt.transform.position = boltPosition; boltRemaining-=step;
         if (boltRemaining<=0) { SplashBolt(boltPosition); EndBolt(); }
     }
-    private void LateUpdate() { if (boltFlying && bolt != null) bolt.transform.position = boltPosition; }
+    private void LateUpdate() { if (boltFlying && bolt != null) bolt.transform.position = boltPosition; UpdateWeakProjectileVisuals(); }
     private void EnsureProjectileVisual()
     {
         if (bolt == null)
@@ -320,7 +326,7 @@ public sealed class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (routine!=null) { StopCoroutine(routine);routine=null; if(actor!=null)actor.Movement.CancelActionLock(); }
         if(actor!=null && actor.Movement!=null)actor.Movement.ClearAttackDisplacement();
         chargeDirection = Vector3.zero;
-        EndBolt();
+        EndBolt(); CancelWeakProjectiles();
     }
     public override void ResetForReuse() { Resolve();Cancel();LaunchCount=0;ImpactCount=0; }
 }

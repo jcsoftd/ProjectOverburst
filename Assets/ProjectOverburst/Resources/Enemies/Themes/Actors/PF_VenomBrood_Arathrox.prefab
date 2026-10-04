@@ -637,6 +637,7 @@ GameObject:
   - component: {fileID: 5888988256748710833}
   - component: {fileID: 5397612272844689083}
   - component: {fileID: 3084227024857967210}
+  - component: {fileID: 8128987864846678664}
   m_Layer: 7
   m_Name: PF_VenomBrood_Arathrox
   m_TagString: Untagged
@@ -966,8 +967,8 @@ MonoBehaviour:
   abilitySet: {fileID: 11400000, guid: ec7d30cf0027eb04b89b6a87cf61117f, type: 2}
   attackTriggers:
   - Attack1
-  - Attack2
   - Attack3
+  - Attack2
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1161,6 +1162,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 3e98d0190d79b804bae04ba8f3aec79c, type: 2}
   signalColor: {r: 1, g: 0.6, b: 0.12, a: 1}
+  muzzleOverrides:
+  - ability: {fileID: 11400000, guid: 12ef85279cc3f504fa3231f253bf66b3, type: 2}
+    socket: {fileID: 4789195120811887848}
+    localOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &9028236005742879983
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1256,6 +1261,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &5397612272844689083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1282,6 +1291,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: e241b1392923f7240aa0f7c166d1e88c, type: 2}
+--- !u!114 &8128987864846678664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6208213465318903433}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 6912677976707858822}
+  movement: {fileID: 817349049423438376}
 --- !u!1 &6679831113033357472
 GameObject:
   m_ObjectHideFlags: 0
@@ -1639,6 +1662,11 @@ PrefabInstance:
 --- !u!4 &4276489910326974635 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7263342068874804752, guid: fca509132bd195146920acf570ca228a, type: 3}
+  m_PrefabInstance: {fileID: 6887613286028289723}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4789195120811887848 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2153587432451009107, guid: fca509132bd195146920acf570ca228a, type: 3}
   m_PrefabInstance: {fileID: 6887613286028289723}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &7906359687030309585 stripped

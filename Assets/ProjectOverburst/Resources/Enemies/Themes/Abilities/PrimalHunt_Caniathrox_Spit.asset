@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: PrimalHunt_Venosaur_Tint_Brown_ClawsAttackRight
+  m_Name: PrimalHunt_Caniathrox_Spit
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
-  abilityId: PrimalHunt_Venosaur_Tint_Brown_ClawsAttackRight
-  weakAttackExecution: {fileID: 11400000, guid: c43fe05c74857644e9475e75e44ece23, type: 2}
+  abilityId: PrimalHunt_Caniathrox_Spit
+  weakAttackExecution: {fileID: 11400000, guid: 2c6d068fb1b07d549a8db3defbf9b469, type: 2}
   animatorTrigger: Attack3
-  executionMode: 0
-  damage: 10
-  referencePatternDamagePercent: 9
+  executionMode: 4
+  damage: 5
+  referencePatternDamagePercent: 4
   telegraphedStrongAttack: 0
   telegraphedAttack: 1
   preparationDuration: 0.48
@@ -27,16 +27,16 @@ MonoBehaviour:
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.822
-  hitRadius: 1.5220001
+  range: 8
+  hitRadius: 0.8883
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.5
-  hitNormalizedTime: 0.5
-  attackAnimationDuration: 1
-  attackLockDuration: 0.95
+  hitDelay: 0.19999999
+  hitNormalizedTime: 0.29999998
+  attackAnimationDuration: 0.6666667
+  attackLockDuration: 0.7916667
   weight: 1
   priority: 0
   minimumSelfHealthNormalized: 0

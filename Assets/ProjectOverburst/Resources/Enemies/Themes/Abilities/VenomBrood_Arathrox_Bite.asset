@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Arathrox_Bite
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: VenomBrood_Arathrox_Bite
+  weakAttackExecution: {fileID: 11400000, guid: fbdf55c062c5c8d4a9151ab19213e3de, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 10
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.22000001
-  hitNormalizedTime: 0.33
+  hitDelay: 0.26666665
+  hitNormalizedTime: 0.39999998
   attackAnimationDuration: 0.6666667
   attackLockDuration: 0.6333333
   weight: 1

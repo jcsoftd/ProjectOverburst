@@ -15,3 +15,4 @@ MonoBehaviour:
   abilitySetId: PrimalHunt_Caniathrox
   abilities:
   - {fileID: 11400000, guid: 6bd0f9aa842481a4f8f4bb57d4ba9fd0, type: 2}
+  - {fileID: 11400000, guid: 11cb1278b2d42784c9ddd29e03615d3d, type: 2}

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: PrimalHunt_Venosaur_Tint_Brown_ClawsAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 046c39ae26ae3647
+  originalClip: {fileID: 1827226128182048838, guid: e9837cffd3675734ea67f8a7a860e513, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: e9837cffd3675734ea67f8a7a860e513, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 1.81
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.36666667, y: 0.5}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.36666667
+      capsules:
+      - a: {x: -0.29382288, y: 1.1076319, z: 1.4906495}
+        b: {x: -0.29382288, y: 1.1076319, z: 1.6483905}
+        radius: 0.39424896
+    - normalizedTime: 0.4
+      capsules:
+      - a: {x: -0.054840326, y: 0.81771827, z: 1.5121351}
+        b: {x: -0.054840326, y: 0.81771827, z: 1.5121351}
+        radius: 0.48613802
+    - normalizedTime: 0.43333334
+      capsules:
+      - a: {x: 0.089099646, y: 0.65323526, z: 1.3886569}
+        b: {x: 0.089099646, y: 0.65323526, z: 1.3886569}
+        radius: 0.46102658
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: 0.14234373, y: 0.573025, z: 1.2752945}
+        b: {x: 0.14234373, y: 0.573025, z: 1.2752945}
+        radius: 0.43400025
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.15060933, y: 0.5369865, z: 1.2018554}
+        b: {x: 0.15060933, y: 0.5369865, z: 1.2018554}
+        radius: 0.4183548
+    maximumPlanarReach: 2.0686214

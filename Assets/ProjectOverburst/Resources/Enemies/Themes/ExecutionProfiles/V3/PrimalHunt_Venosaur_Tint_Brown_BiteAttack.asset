@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: PrimalHunt_Venosaur_Tint_Brown_BiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: ad42a4ccd08e0aeb
+  originalClip: {fileID: 1827226128182048838, guid: 76c7f03dc28f1ad43b4fdb355fd8a0ba, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 76c7f03dc28f1ad43b4fdb355fd8a0ba, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.6666667}
+  motionPolicy: 0
+  stationaryStartRange: 1.81
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.29999998, y: 0.5}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.29999998
+      capsules:
+      - a: {x: 0.14944752, y: 1.1460278, z: 1.4976952}
+        b: {x: 0.14944752, y: 1.1460278, z: 1.4976952}
+        radius: 0.44636428
+    - normalizedTime: 0.35
+      capsules:
+      - a: {x: 0.1550428, y: 0.9948508, z: 1.4551681}
+        b: {x: 0.1550428, y: 0.9948508, z: 1.5169421}
+        radius: 0.3846123
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 0.14747044, y: 0.90116465, z: 1.3740371}
+        b: {x: 0.14747044, y: 0.90116465, z: 1.4678065}
+        radius: 0.35386056
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.13192362, y: 0.8243169, z: 1.2866124}
+        b: {x: 0.13192362, y: 0.8243169, z: 1.387983}
+        radius: 0.32818
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.117184006, y: 0.7887613, z: 1.2341139}
+        b: {x: 0.117184006, y: 0.7887613, z: 1.3154655}
+        radius: 0.31928375
+    maximumPlanarReach: 1.9514973

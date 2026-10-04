@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
   abilitySetId: VenomBrood_Venodonte_Tint1
   abilities:
-  - {fileID: 11400000, guid: f950302500384df4892269604758c472, type: 2}
+  - {fileID: 11400000, guid: 13969e352849792458396498eafcc94e, type: 2}
+  - {fileID: 11400000, guid: 80e20b43967de594ab49c0e6e3e108ad, type: 2}

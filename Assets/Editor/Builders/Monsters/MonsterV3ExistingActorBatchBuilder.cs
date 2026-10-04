@@ -12,7 +12,7 @@ using UnityEngine;
 // Inputs and recovery artifacts are supplied by the caller outside Assets.
 public static class MonsterV3ExistingActorBatchBuilder
 {
-    public const int Revision = 4;
+    public const int Revision = 5;
     const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes/";
     static string Project => Directory.GetParent(Application.dataPath).FullName;
     static string Workspace => Directory.GetParent(Project).FullName;
@@ -66,7 +66,12 @@ public static class MonsterV3ExistingActorBatchBuilder
         ability.ConfigureWeakAttackExecution(null);
         float time=(float)row["hitNormalizedTimes"][0];
         Set(ability,"animatorTrigger",p=>p.stringValue=trigger);
-        Set(ability,"executionMode",p=>p.enumValueIndex=(int)EnemyAbilityExecutionMode.MeleeArc);
+        var mode=(string)row["visualType"]=="ranged"?EnemyAbilityExecutionMode.Projectile:EnemyAbilityExecutionMode.MeleeArc;
+        Set(ability,"executionMode",p=>p.enumValueIndex=(int)mode);
+        if(mode==EnemyAbilityExecutionMode.Projectile)
+            Set(ability,"range",p=>p.floatValue=(float)row["stationaryStartRange"]);
+        if(mode==EnemyAbilityExecutionMode.MeleeArc && (string)row["motionPolicy"]=="VisualJump")
+            Set(ability,"minimumRange",p=>p.floatValue=0f);
         Set(ability,"hitNormalizedTime",p=>p.floatValue=time);
         Set(ability,"hitDelay",p=>p.floatValue=time*Runtime(row).length);
         Set(ability,"attackAnimationDuration",p=>p.floatValue=Runtime(row).length);
@@ -172,7 +177,9 @@ public static class MonsterV3ExistingActorBatchBuilder
                     string trigger;
                     if(ability==null)
                     {
-                        var seed=picked.First(a=>!a.IsTelegraphedStrongAttack);ability=UnityEngine.Object.Instantiate(seed);
+                        var seed=picked.FirstOrDefault(a=>!a.IsTelegraphedStrongAttack)
+                            ?? Enumerable.Range(0,def.AbilitySet.Count).Select(def.AbilitySet.GetAbility).First(a=>!a.IsTelegraphedStrongAttack);
+                        ability=UnityEngine.Object.Instantiate(seed);
                         var pending=ac.layers[0].stateMachine.states.FirstOrDefault(s=>s.state.name.StartsWith("Attack_",StringComparison.Ordinal)
                             && s.state.motion==Runtime(row)).state;
                         int next=ac.parameters.Where(p=>p.name.StartsWith("Attack",StringComparison.Ordinal))
@@ -203,6 +210,32 @@ public static class MonsterV3ExistingActorBatchBuilder
                     if(melee==null || movement==null)throw new InvalidOperationException("Actor movement/executor missing.");
                     var driver=root.GetComponent<EnemyWeakAttackMotionDriver>()??root.AddComponent<EnemyWeakAttackMotionDriver>();
                     driver.Configure(melee,movement);
+                    var ranged=selectedRows.Where(r=>(string)r["visualType"]=="ranged").ToArray();
+                    if(ranged.Length>0)
+                    {
+                        var special=root.GetComponent<EnemyThemeSpecialExecutor>();
+                        if(special==null)
+                        {
+                            special=root.AddComponent<EnemyThemeSpecialExecutor>();
+                            var executors=root.GetComponents<EnemyAbilityExecutor>();
+                            Set(root.GetComponent<EnemyAbilityController>(),"executors",p=>{
+                                p.arraySize=executors.Length;for(int i=0;i<executors.Length;i++)p.GetArrayElementAtIndex(i).objectReferenceValue=executors[i];});
+                        }
+                        var tuning=new SerializedObject(special);var muzzles=tuning.FindProperty("muzzleOverrides");
+                        foreach(var row in ranged)
+                        {
+                            var ability=AssetDatabase.LoadAssetAtPath<EnemyAbilityDefinition>(abilityTargets[(string)row["selectionKey"]]);
+                            string boneName=(string)row["muzzleBone"];
+                            var socket=root.GetComponentsInChildren<Transform>(true).Single(t=>t.name==boneName);
+                            int index=0;while(index<muzzles.arraySize&&muzzles.GetArrayElementAtIndex(index).FindPropertyRelative("ability").objectReferenceValue!=ability)index++;
+                            if(index==muzzles.arraySize)muzzles.InsertArrayElementAtIndex(index);
+                            var entry=muzzles.GetArrayElementAtIndex(index);
+                            entry.FindPropertyRelative("ability").objectReferenceValue=ability;
+                            entry.FindPropertyRelative("socket").objectReferenceValue=socket;
+                            entry.FindPropertyRelative("localOffset").vector3Value=Vector3.zero;
+                        }
+                        tuning.ApplyModifiedPropertiesWithoutUndo();
+                    }
                     Set(melee,"attackTriggers",p=>{p.arraySize=picked.Count;for(int i=0;i<picked.Count;i++)p.GetArrayElementAtIndex(i).stringValue=picked[i].AnimatorTrigger;});
                     PrefabUtility.SaveAsPrefabAsset(root,actorPath,out bool success);
                     if(!success)throw new IOException("Actor save failed: "+actorPath);
