@@ -106,7 +106,7 @@ public static class HideoutGroundHazeBuilder
         mat.SetVector("_BoundsMin",Min); mat.SetVector("_BoundsMax",Max);
         mat.SetVector("_GroundBounds",new Vector4(-36,-30,108,76));
         mat.SetVector("_ClearCenter",new Vector4(0,2,8.5f,9));
-        mat.SetFloat("_Density",.25f); mat.SetFloat("_Height",1.2f); mat.SetFloat("_NoiseScale",.12f);
+        mat.SetFloat("_Density",.4f); mat.SetFloat("_Height",1.5f); mat.SetFloat("_CenterDensity",.35f); mat.SetFloat("_NoiseScale",.12f);
         mat.SetColor("_FogColor",new Color(.67f,.62f,.53f,1));
         mat.SetColor("_SunTint",new Color(.91f,.85f,.70f,1));
         mat.SetFloat("_PreviewTime",-1); EditorUtility.SetDirty(mat); AssetDatabase.SaveAssetIfDirty(mat);

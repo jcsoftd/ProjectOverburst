@@ -33,8 +33,9 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Density: 0.25
-    - _Height: 1.2
+    - _CenterDensity: 0.35
+    - _Density: 0.4
+    - _Height: 1.5
     - _NoiseScale: 0.12
     - _PreviewTime: -1
     m_Colors:
