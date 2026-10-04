@@ -27,10 +27,37 @@ public static class MonsterV3NewActorVerifier
         {
             var ability=definition.AbilitySet.GetAbility(i);var row=rows.Single(r=>ability.AbilityId==definition.EnemyId+"_"+r["actualClip"]);
             var clip=definition.AnimationProfile.GetAttackClip(i);
-            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==(strong?((batch["strongHitNormalizedTimes"] as JArray)?.Count??1):(int)row["selectedHitCount"])&&ability.IsTelegraphedStrongAttack==strong
+            bool strong=(string)row["role"]=="strong";bool pass=ability.IsValid&&ability.HitCount==(strong?((batch["strongHitNormalizedTimes"] as JArray)?.Count??1):((int?)row["runtimeHitCount"]??(int)row["selectedHitCount"]))&&ability.IsTelegraphedStrongAttack==strong
                 &&clip!=null&&clip.name==(string)row["actualClip"]&&AssetDatabase.GetAssetPath(clip)==(string)row["sourcePath"];
             if(strong)pass&=ability.IsParryable&&ability.WeakAttackExecution==null;
             else pass&=ability.WeakAttackExecution!=null&&ability.WeakAttackExecution.SelectionKey==(string)row["selectionKey"]&&ability.WeakAttackExecution.ValidateAuthoring(out _);
+            if((string)row["executionMode"]=="Projectile")
+            {
+                var executor=actor.GetComponent<EnemyThemeSpecialExecutor>();
+                pass&=ability.ExecutionMode==EnemyAbilityExecutionMode.Projectile&&executor!=null;
+                if(executor!=null)
+                {
+                    var array=new SerializedObject(executor).FindProperty("muzzleOverrides");bool socketFound=false;
+                    for(int slot=0;slot<array.arraySize;slot++)
+                    {
+                        var entry=array.GetArrayElementAtIndex(slot);
+                        if(entry.FindPropertyRelative("ability").objectReferenceValue!=ability)continue;
+                        var socket=entry.FindPropertyRelative("socket").objectReferenceValue as Transform;
+                        socketFound=socket!=null&&socket.name==(string)row["muzzleBone"]&&socket.IsChildOf(actor.transform);
+                    }
+                    pass&=socketFound;
+                }
+            }
+            if((string)row["executionMode"]=="Zone")
+            {
+                var executor=actor.GetComponent<EnemyChannelAbilityExecutor>();
+                pass&=(string)row["sourceCountKind"]=="continuous"&&ability.HitCount==3&&executor!=null&&executor.Supports(ability);
+                if(executor!=null)
+                {
+                    var socket=new SerializedObject(executor).FindProperty("muzzle").objectReferenceValue as Transform;
+                    pass&=socket!=null&&socket.name==(string)row["muzzleBone"]&&socket.IsChildOf(actor.transform);
+                }
+            }
             attacks.Add(new JObject{["ability"]=ability.AbilityId,["strong"]=strong,["selection"]=row["selectionKey"],["hits"]=ability.HitCount,["pass"]=pass});
         }
         var animation=definition.AnimationProfile;var parry=new[]{animation.ParryCollapse,animation.StunnedLoop,animation.StunRecover};
@@ -61,7 +88,7 @@ public static class MonsterV3NewActorVerifier
                 var exportNode=exportModel!=null?exportModel.transform.Find(p):null;
                 bool duplicateTerminal=Regex.IsMatch(node,@"_\d+ \d+$")&&exportNode!=null&&exportNode.childCount==0
                     &&rigPaths.Contains(p.Substring(0,p.LastIndexOf('/')+1)+Regex.Replace(node,@" \d+$",""));
-                bool helperName=Regex.IsMatch(node,@"^(nub( \d+)?|.*_nub|Dummy\d+|IK Chain\d+)$")||duplicateTerminal;
+                bool helperName=Regex.IsMatch(node,@"^(nub( \d+)?|.*_nub|Dummy\d+|IK Chain\d+|Character1_Ctrl_.*|Sword\d*)$")||duplicateTerminal;
                 bool originalDescendant=rigPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool weightedDescendant=weightedPaths.Any(x=>x==p||x.StartsWith(p+"/",StringComparison.Ordinal));
                 bool unusedHelper=helperName&&exportModel!=null&&exportModel.transform.Find(p)!=null&&!originalDescendant&&!weightedDescendant;

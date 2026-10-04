@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Kapeloproboskid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Kapeloproboskid
+  runtimeController: {fileID: 9100000, guid: 6ad66591e18edb946b5db48795d501f7, type: 2}
+  idle: {fileID: 7400000, guid: 02ec223f8bfd827468220a252a9e14c4, type: 2}
+  walk: {fileID: 7400000, guid: bf2e18a2b5456bc4bbad4106f48ff7c9, type: 2}
+  run: {fileID: 7400000, guid: 2767f6042708e8c49a71cc2a6fa4e44f, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 4f6943067a147aa4eb620ed40aaca910, type: 3}
+  - {fileID: 1827226128182048838, guid: 6631750507a6a70429b41e24cdc783da, type: 3}
+  - {fileID: 1827226128182048838, guid: a3f5814fea2d8e14fa942d4518480a91, type: 3}
+  - {fileID: 1827226128182048838, guid: ae0226213df6182429d1ac0f7aba218a, type: 3}
+  hit: {fileID: 1827226128182048838, guid: faeb53b9e2aea0449a1187b98f66f384, type: 3}
+  death: {fileID: 1827226128182048838, guid: 1af0c308f20dfd741bffd18ba9dfd687, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 038f1f535c371984fb102f1039b86ae1, type: 2}
+  parryCollapse: {fileID: 7400000, guid: fb71f4f6ce2c08043aea1d6dbfbd8277, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: b4b42fafc099c034f932dc4c4d16b783, type: 2}
+  stunRecover: {fileID: 7400000, guid: 7852c5bc0a013a64b8cf0f5c88311d19, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/a3c5d1d0/Kapeloproboskid@FlyForward.fbx"

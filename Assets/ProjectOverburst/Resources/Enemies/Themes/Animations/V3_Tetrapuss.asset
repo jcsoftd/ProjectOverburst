@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Tetrapuss
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Tetrapuss
+  runtimeController: {fileID: 9100000, guid: 2c3bbe17170ed3d4b810dfedac720a58, type: 2}
+  idle: {fileID: 7400000, guid: e49da30df1a18bd4d89aec79aff75724, type: 3}
+  walk: {fileID: 7400000, guid: c394591d574c67a489b3980a521b30b1, type: 3}
+  run: {fileID: 7400000, guid: c394591d574c67a489b3980a521b30b1, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 6d48f7ccda5d6df4ca90d29b7ce272d4, type: 3}
+  - {fileID: 7400000, guid: c0e07444d13918b4aa0cd64833d44bd1, type: 3}
+  hit: {fileID: 7400000, guid: 9f47b4256c7c0d944a0f64b4ad90cf37, type: 3}
+  death: {fileID: 7400000, guid: 651dc47d884cbf045a90faded431b36a, type: 3}
+  optional:
+  - {fileID: 7400000, guid: c394591d574c67a489b3980a521b30b1, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P13/af051e78/Tetrapuss@CrawlForward_RM.FBX"

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_darkKnight2_attack1
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: fd5d17b4e09e469f
+  originalClip: {fileID: 1827226128182048838, guid: 62e8c04b200ca4c409a077ebe715a998, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 62e8c04b200ca4c409a077ebe715a998, type: 3}
+  sourceTrimSeconds: {x: 0, y: 2.4583333}
+  motionPolicy: 0
+  stationaryStartRange: 0.8
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.37288138, y: 0.44067797}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.37288138
+      capsules:
+      - a: {x: -0.40887982, y: 1.6845219, z: 1.056641}
+        b: {x: -0.90066975, y: 2.4960022, z: 2.1299634}
+        radius: 0.13
+    - normalizedTime: 0.40677968
+      capsules:
+      - a: {x: -0.7730424, y: 1.671343, z: 0.5526872}
+        b: {x: -1.8772787, y: 2.5744998, z: 0.4209693}
+        radius: 0.13
+    - normalizedTime: 0.44067797
+      capsules:
+      - a: {x: -0.69103014, y: 1.5663177, z: 0.18062188}
+        b: {x: -1.4393104, y: 2.2748284, z: -0.8146009}
+        radius: 0.13
+    maximumPlanarReach: 2.4425635

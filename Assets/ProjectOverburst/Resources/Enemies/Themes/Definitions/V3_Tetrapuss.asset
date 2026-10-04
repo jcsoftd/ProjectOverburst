@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: V3_Tetrapuss
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: V3_Tetrapuss
+  displayName: Tetrapuss
+  referenceHealthCoefficient: 2.56
+  species: {fileID: 11400000, guid: 2ac458f4df96a7c4387faaeb6fb4151e, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 8533180688396482881, guid: 0711e405ef703334aa9b9c2a87b155fd, type: 3}
+  animationProfile: {fileID: 11400000, guid: 7a171502df052734ba7d5eafa080035d, type: 2}
+  abilitySet: {fileID: 11400000, guid: fd04bb0ba1fe4094997fdbfdc56cd9d7, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: c8fd363913c986e4ca2d81c3e3b39eb2, type: 2}
+  movementProfile: {fileID: 11400000, guid: 1d3aee933eae7d647a499c9e41b04bcf, type: 2}
+  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

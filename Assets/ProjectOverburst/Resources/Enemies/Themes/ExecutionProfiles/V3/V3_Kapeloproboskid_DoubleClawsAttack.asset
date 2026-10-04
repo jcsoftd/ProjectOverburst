@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Kapeloproboskid_DoubleClawsAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: c69c14a46aa46125
+  originalClip: {fileID: 1827226128182048838, guid: 4f6943067a147aa4eb620ed40aaca910, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 4f6943067a147aa4eb620ed40aaca910, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333335}
+  motionPolicy: 0
+  stationaryStartRange: 4.5956135
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.49999994, y: 0.5999999}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.49999994
+      capsules:
+      - a: {x: -0.44453093, y: 1.2244667, z: 3.4843755}
+        b: {x: -0.39035642, y: 0.69774735, z: 4.40135}
+        radius: 0.18
+      - a: {x: 0.41480827, y: 1.3154224, z: 3.5284944}
+        b: {x: 0.32186934, y: 0.79482394, z: 4.445854}
+        radius: 0.18
+    - normalizedTime: 0.54999995
+      capsules:
+      - a: {x: -0.44229436, y: 1.1907029, z: 3.4809341}
+        b: {x: -0.3812924, y: 0.6294365, z: 4.376741}
+        radius: 0.18
+      - a: {x: 0.42818496, y: 1.3181971, z: 3.5350225}
+        b: {x: 0.30777472, y: 0.78643495, z: 4.442735}
+        radius: 0.18
+    - normalizedTime: 0.5999999
+      capsules:
+      - a: {x: -0.4376787, y: 1.2095356, z: 3.4249856}
+        b: {x: -0.3746968, y: 0.6399633, z: 4.3153963}
+        radius: 0.18
+      - a: {x: 0.38408855, y: 1.306487, z: 3.500477}
+        b: {x: 0.29499233, y: 0.7853816, z: 4.417932}
+        radius: 0.18
+    maximumPlanarReach: 4.6374903

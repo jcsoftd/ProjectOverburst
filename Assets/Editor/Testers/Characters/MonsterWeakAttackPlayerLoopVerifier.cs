@@ -373,7 +373,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
                 bool reused=lease==0||actor==previous;
                 bool fresh=actor.IsLeased&&actor.LeaseVersion>lastVersion&&!actor.Melee.IsAttacking
-                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive
+                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive&&!actor.AbilityController.IsExecuting
                     &&!actor.AnimationBridge.IsBlockingActionActive&&actor.transform.localScale==Vector3.one;
                 var expected=Enumerable.Range(0,definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility)
                     .Where(a=>a.WeakAttackExecution!=null).Select(a=>a.WeakAttackExecution.SelectionKey).ToHashSet();
@@ -381,7 +381,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 float initialAttackRange=actor.AbilityController.AttackRange;
                 float initialDistance=Mathf.Max(4.5f,initialAttackRange+1.25f);
                 targetRoot.transform.position=new Vector3(0,0,initialDistance);
-                actor.AI.RequestAggro(targetRoot.transform);float begin=Time.time,limit=Time.time+10;bool driverObserved=false;
+                actor.AI.RequestAggro(targetRoot.transform);float begin=Time.time,limit=Time.time+10;bool driverObserved=false,projectileObserved=false,channelObserved=false;
                 while(Time.time<limit)
                 {
                     moved+=Vector3.Distance(previousPosition,actor.transform.position);previousPosition=actor.transform.position;
@@ -389,6 +389,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                     var ability=actor.AbilityController.LastCommittedAbility;
                     if(ability!=null&&ability.WeakAttackExecution!=null)actual.Add(ability.WeakAttackExecution.SelectionKey);
                     driverObserved|=actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive;
+                    projectileObserved|=actor.GetComponent<EnemyThemeSpecialExecutor>()?.IsExecuting==true;
+                    channelObserved|=actor.GetComponent<EnemyChannelAbilityExecutor>()?.IsExecuting==true;
                     if(Time.time-begin>4&&actual.Count>0&&damageEvents.Count>0&&!actor.Melee.IsAttacking)break;
                     yield return null;
                 }
@@ -399,11 +401,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 uint version=actor.LeaseVersion;previous=actor;lastVersion=version;
                 service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
                 bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!actor.Melee.IsAttacking
-                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive
+                    &&actor.Melee.ActiveWeakExecution==null&&!actor.GetComponent<EnemyWeakAttackMotionDriver>().IsActive&&!actor.AbilityController.IsExecuting
                     &&actor.Animator.updateMode==definition.ActorPrefab.Animator.updateMode&&pool.LeasedCount==0&&pool.PendingReturnCount==0;
-                bool pass=fresh&&reused&&aiAttack&&approached&&driverObserved&&reset;
+                                var shot=actor.GetComponent<EnemyThemeSpecialExecutor>();var channel=actor.GetComponent<EnemyChannelAbilityExecutor>();
+                reset&=(shot==null||!shot.HasProjectile&&shot.LaunchCount==0&&shot.ImpactCount==0)
+                    &&(channel==null||!channel.IsEmitting&&channel.PulseCount==0&&channel.DamageCount==0);
+                bool pass=fresh&&reused&&aiAttack&&approached&&(driverObserved||projectileObserved||channelObserved)&&reset;
                 cases.Add(new JObject{["id"]=id,["lease"]=lease,["leaseVersion"]=version,["freshState"]=fresh,["samePooledActor"]=reused,
-                    ["actualAiAttack"]=aiAttack,["approached"]=approached,["driverObserved"]=driverObserved,["reset"]=reset,["pass"]=pass,["movedMeters"]=moved,
+                    ["actualAiAttack"]=aiAttack,["approached"]=approached,["driverObserved"]=driverObserved,["projectileExecutorObserved"]=projectileObserved,["channelExecutorObserved"]=channelObserved,["reset"]=reset,["pass"]=pass,["movedMeters"]=moved,
                     ["initialDistance"]=initialDistance,["initialAttackRange"]=initialAttackRange,["finalDistance"]=finalDistance,
                     ["playerCapsuleCenter"]=new JArray(capsule.center.x,capsule.center.y,capsule.center.z),
                     ["playerCapsuleRadius"]=capsule.radius,["playerCapsuleHeight"]=capsule.height,

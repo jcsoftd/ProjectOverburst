@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Kapeloproboskid
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Kapeloproboskid
+  displayName: Kapeloproboskid
+  vendorPrefab: {fileID: 5555707140931479309, guid: ffc38f8e374ac5445abd8eac3444e246, type: 3}
+  animationProfile: {fileID: 11400000, guid: 368a8a585d6815148adb26c33dd50132, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 7e2314d974a28aa49bc4809a098ab365, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: fd6bd0c0bb0c4cd449580b75d821eb57, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: edf47a0ec4b5a394f84530201f79ae81, type: 2}
+  threatCost: 12

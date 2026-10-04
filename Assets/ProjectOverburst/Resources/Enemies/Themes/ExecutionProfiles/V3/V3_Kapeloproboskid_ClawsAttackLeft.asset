@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Kapeloproboskid_ClawsAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: d7e2dab9a65e0b92
+  originalClip: {fileID: 1827226128182048838, guid: 6631750507a6a70429b41e24cdc783da, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 6631750507a6a70429b41e24cdc783da, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333335}
+  motionPolicy: 0
+  stationaryStartRange: 4.5797668
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.44999996, y: 0.54999995}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.44999996
+      capsules:
+      - a: {x: -0.27027264, y: 1.5754675, z: 3.231985}
+        b: {x: 0.054294724, y: 1.0772599, z: 4.1081457}
+        radius: 0.18
+    - normalizedTime: 0.49999994
+      capsules:
+      - a: {x: -0.16727279, y: 1.3813373, z: 3.380893}
+        b: {x: 0.13917154, y: 0.9459375, z: 4.296169}
+        radius: 0.18
+    - normalizedTime: 0.54999995
+      capsules:
+      - a: {x: -0.19011188, y: 1.4667574, z: 3.3429246}
+        b: {x: 0.14967978, y: 0.9920492, z: 4.22633}
+        radius: 0.18
+    maximumPlanarReach: 4.478422

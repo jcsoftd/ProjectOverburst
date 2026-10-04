@@ -34,7 +34,7 @@ public static class MonsterV3NewActorBuilder
     static AnimationClip Clip(string path)=>AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().Single(c=>!c.name.StartsWith("__preview__",StringComparison.Ordinal));
     static AnimationClip Original(JObject row)=>AssetDatabase.LoadAllAssetsAtPath((string)row["sourcePath"]).OfType<AnimationClip>().Single(c=>
         AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c,out string g,out long id)&&g==(string)row["sourceGuid"]&&id==(long)row["sourceLocalId"]);
-    static float RootSpeed(AnimationClip clip,float scale)
+    static float RootSpeed(AnimationClip clip,float scale,bool requireTravel=true)
     {
         var bindings=AnimationUtility.GetCurveBindings(clip);
         var rootTranslation=bindings.Where(b=>b.propertyName=="RootT.z").ToArray();
@@ -66,7 +66,7 @@ public static class MonsterV3NewActorBuilder
                 if(speed>.01f)break;
             }
         }
-        if(speed<=.01f)throw new InvalidOperationException("Selected native locomotion has no calibrated root travel: "+clip.name);
+        if(requireTravel&&speed<=.01f)throw new InvalidOperationException("Selected native locomotion has no calibrated root travel: "+clip.name);
         return speed;
     }
     static Vector3 Vector(JToken a)=>new Vector3((float)a[0],(float)a[1],(float)a[2]);
@@ -233,6 +233,12 @@ public static class MonsterV3NewActorBuilder
                 if(isStrong){Number(ability,"range",(float)batch["strongRange"]);Number(ability,"hitRadius",(float)batch["strongRange"]);}
                 else
                 {
+                    if((string)row["executionMode"]=="Projectile"||(string)row["executionMode"]=="Zone")
+                    {
+                        var mode=(EnemyAbilityExecutionMode)Enum.Parse(typeof(EnemyAbilityExecutionMode),(string)row["executionMode"]);
+                        Set(ability,"executionMode",p=>p.enumValueIndex=(int)mode);
+                        Number(ability,"range",(float)row["stationaryStartRange"]);
+                    }
                     MonsterWeakAttackExecutionWriter.Apply(approvedPath,approvedSha,key,(string)row["selectionKey"],row,ability,Original(row),Original(row));
                     created.Add(AssetDatabase.GetAssetPath(ability.WeakAttackExecution));
                 }
@@ -240,10 +246,16 @@ public static class MonsterV3NewActorBuilder
             }
             var set=Create<EnemyAbilitySet>(Root+"Abilities/"+id+"_Set.asset",created,folders);set.Configure(id,abilities.ToArray());Save(set);
             var movement=Create(Root+"Movement/"+id+".asset",created,folders,seed.MovementProfile);Text(movement,"profileId",id);
-            float rmSpeed=RootSpeed(Clip((string)batch["extras"]["CrawlForward_RM"]),Vector(batch["modelScale"]).x);
-            float runSpeed=batch["extras"]["Run_RM"]!=null?RootSpeed(Clip((string)batch["extras"]["Run_RM"]),Vector(batch["modelScale"]).x):rmSpeed;
+            bool nativeInPlace=(string)batch["locomotionReferencePolicy"]=="NativeInPlaceAtGradeSpeed";
+            float modelScale=Vector(batch["modelScale"]).x;
+            if(nativeInPlace&&locomotionSources.Skip(1).Any(c=>RootSpeed(c,modelScale,false)>.05f))
+                throw new InvalidOperationException("In-place policy requires native locomotion with no horizontal root travel.");
+            float rmSpeed=nativeInPlace?movement.MoveSpeed:RootSpeed(Clip((string)batch["extras"]["CrawlForward_RM"]),modelScale);
+            float runSpeed=nativeInPlace?movement.MoveSpeed*movement.RunSpeedMultiplier:
+                batch["extras"]["Run_RM"]!=null?RootSpeed(Clip((string)batch["extras"]["Run_RM"]),modelScale):rmSpeed;
             movement.ConfigureAnimationReferenceSpeeds(rmSpeed,runSpeed);
-            Number(movement,"backpedalAnimationReferenceSpeed",RootSpeed(Clip((string)batch["extras"]["CrawlBackwards_RM"]),Vector(batch["modelScale"]).x));Save(movement);
+            movement.ConfigureBackpedalAnimationReferenceSpeed(nativeInPlace?movement.MoveSpeed:
+                RootSpeed(Clip((string)batch["extras"]["CrawlBackwards_RM"]),modelScale));Save(movement);
             var behavior=Create(Root+"Behavior/"+id+".asset",created,folders,seed.BehaviorProfile);Text(behavior,"profileId",id);
             Set(behavior,"playTauntOnAlert",p=>p.boolValue=false);Number(behavior,"preferredMinDistance",(float)batch["bodyRadius"]+.45f);
             Number(behavior,"preferredApproachDistance",(float)batch["bodyRadius"]+.8f);Save(behavior);
@@ -302,6 +314,43 @@ public static class MonsterV3NewActorBuilder
             actorRoot.GetComponent<EnemyVisualRootGuard>().Configure(animator.transform);
             var weakDriver=actorRoot.GetComponent<EnemyWeakAttackMotionDriver>()??actorRoot.AddComponent<EnemyWeakAttackMotionDriver>();
             weakDriver.Configure(actor.Melee,actor.Movement);
+            if(rows.Any(r=>(string)r["executionMode"]=="Projectile"))
+            {
+                var projectile=actorRoot.GetComponent<EnemyThemeSpecialExecutor>()??actorRoot.AddComponent<EnemyThemeSpecialExecutor>();
+                Set(projectile,"muzzleOverrides",p=>
+                {
+                    var shots=rows.Select((r,i)=>new{row=r,index=i}).Where(x=>(string)x.row["executionMode"]=="Projectile").ToArray();
+                    p.arraySize=shots.Length;
+                    for(int i=0;i<shots.Length;i++)
+                    {
+                        var item=p.GetArrayElementAtIndex(i);var shot=shots[i];
+                        var mouth=animator.GetComponentsInChildren<Transform>(true).Single(t=>t.name==(string)shot.row["muzzleBone"]);
+                        item.FindPropertyRelative("ability").objectReferenceValue=abilities[shot.index];
+                        item.FindPropertyRelative("socket").objectReferenceValue=mouth;
+                        item.FindPropertyRelative("localOffset").vector3Value=Vector3.zero;
+                    }
+                });
+                Set(actor.AbilityController,"executors",p=>
+                {
+                    var executors=actorRoot.GetComponents<EnemyAbilityExecutor>();p.arraySize=executors.Length;
+                    for(int i=0;i<executors.Length;i++)p.GetArrayElementAtIndex(i).objectReferenceValue=executors[i];
+                });
+            }
+            var channelRow=rows.SingleOrDefault(r=>(string)r["executionMode"]=="Zone");
+            if(channelRow!=null)
+            {
+                if((string)channelRow["sourceCountKind"]!="continuous"||(int?)channelRow["runtimeHitCount"]!=3)
+                    throw new InvalidOperationException("A confirmed continuous attack with three budgeted pulses is required.");
+                var channel=actorRoot.GetComponent<EnemyChannelAbilityExecutor>()??actorRoot.AddComponent<EnemyChannelAbilityExecutor>();
+                Ref(channel,"channelAbility",abilities[Array.IndexOf(rows,channelRow)]);
+                Ref(channel,"muzzle",animator.GetComponentsInChildren<Transform>(true).Single(t=>t.name==(string)channelRow["muzzleBone"]));
+                Number(channel,"castRadius",.07f);
+                Set(actor.AbilityController,"executors",p=>
+                {
+                    var executors=actorRoot.GetComponents<EnemyAbilityExecutor>();p.arraySize=executors.Length;
+                    for(int i=0;i<executors.Length;i++)p.GetArrayElementAtIndex(i).objectReferenceValue=executors[i];
+                });
+            }
             Ref(actorRoot.GetComponent<EnemyDeathPresentation>(),"visualRoot",null);
             CombatImpactFeelBuilder.ConfigureActor(actor,definition);actorRoot.SetActive(true);
             string actorPath=Root+"Actors/PF_"+id+".prefab";Folder(Root+"Actors",folders);

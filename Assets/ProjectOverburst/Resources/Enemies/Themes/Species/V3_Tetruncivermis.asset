@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Tetruncivermis
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Tetruncivermis
+  displayName: Tetruncivermis
+  vendorPrefab: {fileID: 7500967399506956537, guid: 06696c4431b290f43a118fc1f38b742f, type: 3}
+  animationProfile: {fileID: 11400000, guid: df269e7d13b74d0469c1acad21538f37, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 7dfa620fc08289b428bbeb4a026da1dd, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: ebc39f50afd1b8844990f5cdca1abd51, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 9cc115b41ebaeaf4dbcba591c9e553e7, type: 2}
+  threatCost: 1

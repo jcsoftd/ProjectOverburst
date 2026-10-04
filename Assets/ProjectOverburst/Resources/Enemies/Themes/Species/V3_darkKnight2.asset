@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_darkKnight2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_darkKnight2
+  displayName: Death Knight 2
+  vendorPrefab: {fileID: 3349699980788411274, guid: 2794fadd35fd2b94cbdaa91082c18a56, type: 3}
+  animationProfile: {fileID: 11400000, guid: a44011b3a1fb22b4ca544010552565f0, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 1db313e51d6ae8e4cbbced982b1d39e9, type: 2}
+  combatRole: 3
+  baseMaxHealth: 330
+  movementProfile: {fileID: 11400000, guid: ad6b59a27e120dd449bb9661bb576522, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 4ea74737bbbe8dd4d98fea1ebd737bba, type: 2}
+  threatCost: 12

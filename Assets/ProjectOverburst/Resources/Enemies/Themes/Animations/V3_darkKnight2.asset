@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_darkKnight2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_darkKnight2
+  runtimeController: {fileID: 9100000, guid: dbfb8dccd010bda4eb9fff9f7763fb5a, type: 2}
+  idle: {fileID: 7400000, guid: 94d22eb9cbafeb94eabee3ce2049c590, type: 2}
+  walk: {fileID: 7400000, guid: 8f9018e63e9b4624ab0466b7cd4ca042, type: 2}
+  run: {fileID: 7400000, guid: 3e8dd2dbff2158344a70f68e508d2a17, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 17979f54c4e684e42837e175a65224c9, type: 3}
+  - {fileID: 1827226128182048838, guid: 64f04a03f5a796f4b9de3fc204df9913, type: 3}
+  - {fileID: 1827226128182048838, guid: 62e8c04b200ca4c409a077ebe715a998, type: 3}
+  - {fileID: 1827226128182048838, guid: 6c2abd77b2c479541864547d77711647, type: 3}
+  - {fileID: 1827226128182048838, guid: 051f4ccafc710a141a3c30b5f013cb0c, type: 3}
+  - {fileID: 1827226128182048838, guid: 1a55cd6723d7c2147ba64e0e709d6cef, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 2be5999f2ad7cf74ea5344dbc3de96e6, type: 3}
+  death: {fileID: 1827226128182048838, guid: d37dcf794dc8060458c256f6f89915ca, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 92be7a451f80cb549a6261b817829539, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 4145047b05725c74c8877597bbacf09a, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 471ed4405c6d25c4cba091572191d69d, type: 2}
+  stunRecover: {fileID: 7400000, guid: 6ed7109fcef5c4d4285493600663d4e5, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/DeathHarvest/DeathKnight2/Animations/darkKnight2@walk1.fbx"

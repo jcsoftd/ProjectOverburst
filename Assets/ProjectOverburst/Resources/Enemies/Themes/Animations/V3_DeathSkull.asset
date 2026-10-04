@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_DeathSkull
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_DeathSkull
+  runtimeController: {fileID: 9100000, guid: 33bd7901a5a3bda4bb410eae8ef39daa, type: 2}
+  idle: {fileID: 7400000, guid: ff0c1a503e2d8c3438b79ec14282b545, type: 3}
+  walk: {fileID: 7400000, guid: ff0c1a503e2d8c3438b79ec14282b545, type: 3}
+  run: {fileID: 7400000, guid: ff0c1a503e2d8c3438b79ec14282b545, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: 058c5b8aece5fa047827167ccaff1979, type: 3}
+  hit: {fileID: 7400000, guid: 75ee9010a86e7954f852595786ff2edb, type: 3}
+  death: {fileID: 7400000, guid: 272b50b86b0cf6f47b544240fb37ceca, type: 3}
+  optional:
+  - {fileID: 7400000, guid: ff0c1a503e2d8c3438b79ec14282b545, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P05/ff0c1a50/DeathSkull@FlyNormal.FBX"

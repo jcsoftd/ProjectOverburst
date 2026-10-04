@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: V3_Gryllunguis_JumpBite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 6bd9feabdf95e86c
+  originalClip: {fileID: 7400000, guid: bc0763129bd49ce4692d5d171c2df341, type: 3}
+  runtimeClip: {fileID: 7400000, guid: bc0763129bd49ce4692d5d171c2df341, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.8333334}
+  motionPolicy: 2
+  stationaryStartRange: 0.53765875
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.31999996, y: 0.47999996}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.31999996
+      capsules:
+      - a: {x: -0.00000054321896, y: 0.8830572, z: 0.24636844}
+        b: {x: -0.00000044892658, y: 0.7248292, z: 0.28378594}
+        radius: 0.09
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.00000057455384, y: 0.84683293, z: 0.27105752}
+        b: {x: -0.00000049009856, y: 0.68425703, z: 0.27333578}
+        radius: 0.09
+    - normalizedTime: 0.47999996
+      capsules:
+      - a: {x: -0.0000008427426, y: 0.7474131, z: 0.29765874}
+        b: {x: -0.0000006504127, y: 0.59622735, z: 0.23783407}
+        radius: 0.09
+    maximumPlanarReach: 0.38765875
