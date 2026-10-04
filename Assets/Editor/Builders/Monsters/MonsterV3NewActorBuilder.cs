@@ -58,6 +58,19 @@ public static class MonsterV3NewActorBuilder
         value.name=Path.GetFileNameWithoutExtension(path);AssetDatabase.CreateAsset(value,path);created.Add(path);return value;
     }
     static void Save(Object asset){EditorUtility.SetDirty(asset);AssetDatabase.SaveAssetIfDirty(asset);}
+    static Material RenderMaterial(Material source,JObject batch,List<string> created,List<string> folders)
+    {
+        var mapping=batch["materialOverrides"]?[AssetDatabase.GetAssetPath(source)] as JObject;
+        if(mapping==null)return source;
+        string path=(string)mapping["targetPath"];
+        if(!path.StartsWith("Assets/ProjectOverburst/05_Art/Materials/",StringComparison.Ordinal))throw new ArgumentException("Owned render material path required.");
+        var existing=AssetDatabase.LoadAssetAtPath<Material>(path);if(existing!=null)return existing;
+        var template=AssetDatabase.LoadAssetAtPath<Material>((string)mapping["templatePath"]);
+        if(template==null||template.shader==null||template.shader.name!="Universal Render Pipeline/Lit")throw new InvalidOperationException("Approved URP render material unavailable.");
+        Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
+        var material=Object.Instantiate(template);material.name=Path.GetFileNameWithoutExtension(path);
+        AssetDatabase.CreateAsset(material,path);created.Add(path);return material;
+    }
     static AnimatorState Action(AnimatorController controller,AnimatorStateMachine sm,AnimatorState idle,string trigger,string name,AnimationClip clip,bool attack,bool terminal=false)
     {
         controller.AddParameter(trigger,AnimatorControllerParameterType.Trigger);
@@ -139,6 +152,7 @@ public static class MonsterV3NewActorBuilder
             Original(row);paths.Add(Root+"Abilities/"+id+"_"+row["actualClip"]+".asset");
             if((string)row["role"]=="weak")paths.Add(MonsterWeakAttackExecutionWriter.Root+"/"+id+"_"+row["actualClip"]+".asset");
         }
+        if(batch["materialOverrides"] is JObject materialMappings)foreach(var mapping in materialMappings.Properties())paths.Add((string)mapping.Value["targetPath"]);
         foreach(string path in paths)if(File.Exists(Path.Combine(Project,path))||File.Exists(Path.Combine(Project,path+".meta"))||AssetDatabase.LoadMainAssetAtPath(path)!=null)
             throw new InvalidOperationException("Creation target already exists; preserved: "+path);
         var parry=new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
@@ -193,6 +207,8 @@ public static class MonsterV3NewActorBuilder
             var scaled=new GameObject("Authored model scale").transform;scaled.SetParent(visual,false);scaled.localScale=Vector(batch["modelScale"]);
             var model=(GameObject)PrefabUtility.InstantiatePrefab(prefab,scene);model.transform.SetParent(scaled,false);
             model.transform.localPosition=new Vector3(0,(float)batch["modelYOffset"]/scaled.localScale.x,0);model.transform.localRotation=Quaternion.identity;model.transform.localScale=Vector3.one;
+            foreach(var renderer in model.GetComponentsInChildren<Renderer>(true))
+                renderer.sharedMaterials=renderer.sharedMaterials.Select(m=>RenderMaterial(m,batch,created,folders)).ToArray();
             var animator=model.GetComponentInChildren<Animator>(true);if(animator==null)throw new InvalidOperationException("Native Animator missing.");
             animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;animator.fireEvents=false;
             foreach(var c in actorRoot.GetComponentsInChildren<MonoBehaviour>(true))

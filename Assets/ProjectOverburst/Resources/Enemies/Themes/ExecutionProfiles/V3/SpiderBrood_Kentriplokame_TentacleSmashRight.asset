@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: SpiderBrood_Kentriplokame_TentacleSmashRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 061e1d98ff1a82af
+  originalClip: {fileID: 1827226128182048838, guid: aa45b2888e930fc45a7949f5aae04b4e, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: aa45b2888e930fc45a7949f5aae04b4e, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 0
+  stationaryStartRange: 1.9
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.5}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: 0.39326352, y: 0.5712636, z: 1.4884262}
+        b: {x: 0.3834817, y: 0.7739698, z: 1.6884253}
+        radius: 0.16
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.18548502, y: 0.17763741, z: 1.508749}
+        b: {x: 0.12678583, y: 0.33372945, z: 1.7386118}
+        radius: 0.16
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.14142594, y: 0.050717108, z: 1.4573528}
+        b: {x: 0.018820962, y: 0.057834152, z: 1.7144285}
+        radius: 0.16
+    maximumPlanarReach: 1.9032285

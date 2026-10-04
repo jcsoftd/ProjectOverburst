@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: SpiderBrood_Formickarce
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: SpiderBrood_Formickarce
+  displayName: Formickarce
+  referenceHealthCoefficient: 6.04
+  species: {fileID: 11400000, guid: 4170f55a4f952b24fa4c59bc6f733ef3, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 435856832333211978, guid: 018ca036e073d0a4983a972714dbf5e5, type: 3}
+  animationProfile: {fileID: 11400000, guid: 8d12511c94b77bc4eaad71e9633c717d, type: 2}
+  abilitySet: {fileID: 11400000, guid: 71dfc6e9e68834f47b8929802bc9dc5f, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: e4580a887a9bdb74db155356cdb3a41e, type: 2}
+  movementProfile: {fileID: 11400000, guid: 6ae71af1abee634439d7432ff730a7d8, type: 2}
+  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

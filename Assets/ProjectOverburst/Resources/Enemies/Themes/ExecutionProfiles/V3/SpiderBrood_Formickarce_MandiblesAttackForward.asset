@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: SpiderBrood_Formickarce_MandiblesAttackForward
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 8f77ca545f8f51d6
+  originalClip: {fileID: 1827226128182048838, guid: 369b805fdf50c91499970122b85f4069, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 369b805fdf50c91499970122b85f4069, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 1
+  stationaryStartRange: 1.9
+  maxAdvanceDistance: 0.2
+  advanceWindow: {x: 0.25, y: 0.45}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.5}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.43136743, y: 1.1103727, z: 1.1031137}
+        b: {x: -0.67802805, y: 1.1731211, z: 1.2588804}
+        radius: 0.16
+      - a: {x: 0.47654805, y: 1.0426995, z: 1.1206651}
+        b: {x: 0.7241034, y: 1.0693583, z: 1.2851273}
+        radius: 0.16
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: -0.1815266, y: 0.87986654, z: 1.4146049}
+        b: {x: -0.24612463, y: 0.817041, z: 1.6990726}
+        radius: 0.16
+      - a: {x: 0.21140216, y: 0.8504885, z: 1.4180233}
+        b: {x: 0.26396683, y: 0.7789753, z: 1.702918}
+        radius: 0.16
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: -0.1858197, y: 0.9141747, z: 1.5105693}
+        b: {x: -0.24987629, y: 0.8568369, z: 1.7963164}
+        radius: 0.16
+      - a: {x: 0.23651919, y: 0.88912904, z: 1.5012728}
+        b: {x: 0.30857202, y: 0.8237021, z: 1.783354}
+        radius: 0.16
+    maximumPlanarReach: 1.9736125

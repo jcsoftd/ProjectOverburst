@@ -65,7 +65,8 @@ public static class MonsterV3NewActorVerifier
         }
         bool rig=actor.Animator.avatar==source.GetComponentInChildren<Animator>(true).avatar&&!actor.Animator.applyRootMotion
             &&actor.VisualRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(s=>s.sharedMesh).SequenceEqual(source.GetComponentsInChildren<SkinnedMeshRenderer>(true).Select(s=>s.sharedMesh))
-            &&actor.VisualRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials).SequenceEqual(source.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials));
+            &&actor.VisualRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials).SequenceEqual(source.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(s=>s.sharedMaterials).Select(m=>
+                batch["materialOverrides"]?[AssetDatabase.GetAssetPath(m)] is JObject mapping?AssetDatabase.LoadAssetAtPath<Material>((string)mapping["targetPath"]):m));
         bool common=actor.GetComponent<BloodHitTarget>()?.Profile!=null&&actor.GetComponent<MonsterHitSfxTarget>()?.Bundle==null;
         bool passAll=valid&&missing.Count==0&&attacks.Count==3&&attacks.All(a=>(bool)a["pass"])&&bindingIssues.Count==0&&rig&&common&&allOriginalTransformsPresent&&allWeightedBonesPresent
             &&parry.All(c=>c!=null)&&parry[1].isLooping&&!parry[0].isLooping&&!parry[2].isLooping;

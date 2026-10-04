@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: SpiderBrood_Formickarce
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: SpiderBrood_Formickarce
+  displayName: Formickarce
+  vendorPrefab: {fileID: 6277497783615806078, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  animationProfile: {fileID: 11400000, guid: 8d12511c94b77bc4eaad71e9633c717d, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 71dfc6e9e68834f47b8929802bc9dc5f, type: 2}
+  combatRole: 1
+  baseMaxHealth: 110
+  movementProfile: {fileID: 11400000, guid: 6ae71af1abee634439d7432ff730a7d8, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: e4580a887a9bdb74db155356cdb3a41e, type: 2}
+  threatCost: 3

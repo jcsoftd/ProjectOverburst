@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: SpiderBrood_Kentriplokame
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: SpiderBrood_Kentriplokame
+  runtimeController: {fileID: 9100000, guid: 27d99eaba6709a84aaba3e732186132e, type: 2}
+  idle: {fileID: 1827226128182048838, guid: 09a6882dbb420ad41b70ddba15fd92b5, type: 3}
+  walk: {fileID: 1827226128182048838, guid: 668d3773a6c31384e88914eef4e288da, type: 3}
+  run: {fileID: 1827226128182048838, guid: 668d3773a6c31384e88914eef4e288da, type: 3}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: bb66f0f52235abd43adece8c963334c7, type: 3}
+  - {fileID: 1827226128182048838, guid: aa45b2888e930fc45a7949f5aae04b4e, type: 3}
+  - {fileID: 1827226128182048838, guid: 4003eb4f015c0cc4daf1ea17119e381d, type: 3}
+  hit: {fileID: 1827226128182048838, guid: a3a315befc78f3f459ba324cb9b34864, type: 3}
+  death: {fileID: 1827226128182048838, guid: fd5e5bb65aea4b7418ed4e8a69cdfc5b, type: 3}
+  optional:
+  - {fileID: 1827226128182048838, guid: 669e1f10d9e71584c80944345fbe77ca, type: 3}
+  parryCollapse: {fileID: 7400000, guid: f356752511633e64bb4000e54667188f, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: b186bd5a8bca7b649860c0626841095b, type: 2}
+  stunRecover: {fileID: 7400000, guid: 0502c279136e7b44da684825097c11cc, type: 2}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
+    Full Pack Vol 2/Monster Pack Vol 10/Kentriplokame/FBX Files/Kentriplokame@CrawlForward_RM.fbx"
