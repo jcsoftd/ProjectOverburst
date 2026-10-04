@@ -36,10 +36,37 @@ public static class MonsterV3NewActorBuilder
         AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c,out string g,out long id)&&g==(string)row["sourceGuid"]&&id==(long)row["sourceLocalId"]);
     static float RootSpeed(AnimationClip clip,float scale)
     {
-        var binding=AnimationUtility.GetCurveBindings(clip).Single(b=>b.propertyName=="RootT.z");
-        var curve=AnimationUtility.GetEditorCurve(clip,binding);
-        float speed=Mathf.Abs(curve.Evaluate(clip.length)-curve.Evaluate(0))/clip.length*scale;
-        if(speed<=.01f)throw new InvalidOperationException("Selected native locomotion has no calibrated root travel.");
+        var bindings=AnimationUtility.GetCurveBindings(clip);
+        var rootTranslation=bindings.Where(b=>b.propertyName=="RootT.z").ToArray();
+        float speed=0;
+        if(rootTranslation.Length==1)
+        {
+            var curve=AnimationUtility.GetEditorCurve(clip,rootTranslation[0]);
+            speed=Mathf.Abs(curve.Evaluate(clip.length)-curve.Evaluate(0))/clip.length*scale;
+        }
+        else
+        {
+            // Generic exports can retain translation on the actual top-level Transform.
+            // Only a root-level curve is eligible; animated limbs cannot calibrate gait speed.
+            var model=AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GetAssetPath(clip));
+            foreach(var group in bindings.Where(b=>b.type==typeof(Transform)&&b.propertyName.StartsWith("m_LocalPosition.")
+                &&b.path.Count(c=>c=='/')==0).GroupBy(b=>b.path).OrderBy(g=>g.Key.Length))
+            {
+                Vector3 travel=Vector3.zero;
+                foreach(var binding in group)
+                {
+                    var curve=AnimationUtility.GetEditorCurve(clip,binding);float delta=curve.Evaluate(clip.length)-curve.Evaluate(0);
+                    if(binding.propertyName=="m_LocalPosition.x")travel.x=delta;
+                    else if(binding.propertyName=="m_LocalPosition.z")travel.z=delta;
+                }
+                var node=string.IsNullOrEmpty(group.Key)?model.transform:model.transform.Find(group.Key);
+                if(node==null)continue;
+                if(node.parent!=null)travel=node.parent.TransformVector(travel);
+                speed=new Vector2(travel.x,travel.z).magnitude/clip.length*scale;
+                if(speed>.01f)break;
+            }
+        }
+        if(speed<=.01f)throw new InvalidOperationException("Selected native locomotion has no calibrated root travel: "+clip.name);
         return speed;
     }
     static Vector3 Vector(JToken a)=>new Vector3((float)a[0],(float)a[1],(float)a[2]);

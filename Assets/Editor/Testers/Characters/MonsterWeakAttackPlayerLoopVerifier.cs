@@ -23,6 +23,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     {
         public string directory, fixture, previousStart, phase, token, testDefinition, attackBatch;
         public int expectedWeakCases;
+        public string[] leaseDefinitionPaths;
         public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
@@ -65,6 +66,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             throw new ArgumentException("Valid saved project-owned review definition required.");
         return StartInternal(outputDirectory,false,1f,false,true,true,definitionPath);
     }
+    public static string StartNewActorLeaseBatch(string outputDirectory,string[] definitionPaths)
+    {
+        if(definitionPaths==null||definitionPaths.Length==0||definitionPaths.Distinct().Count()!=definitionPaths.Length
+            ||definitionPaths.Any(p=>!p.StartsWith("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/",StringComparison.Ordinal)
+                ||AssetDatabase.LoadAssetAtPath<EnemyDefinition>(p)?.IsValid!=true))
+            throw new ArgumentException("Distinct saved project-owned definitions required.");
+        return StartInternal(outputDirectory,false,1,false,true,true,null,false,null,definitionPaths);
+    }
     public static string StartSavedAttackBatch(string outputDirectory,string authoringPath)
     {
         authoringPath=Path.GetFullPath(authoringPath);
@@ -73,7 +82,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             throw new ArgumentException("Private native authoring batch required.");
         return StartInternal(outputDirectory,false,1,false,true,false,null,false,authoringPath);
     }
-    static string StartInternal(string outputDirectory,bool fixedAnimator,float attackSpeed,bool stress,bool savedProfiles,bool leaseVerification,string testDefinition=null,bool realPlayerParry=false,string attackBatch=null)
+    static string StartInternal(string outputDirectory,bool fixedAnimator,float attackSpeed,bool stress,bool savedProfiles,bool leaseVerification,string testDefinition=null,bool realPlayerParry=false,string attackBatch=null,string[] leaseDefinitionPaths=null)
     {
         if(float.IsNaN(attackSpeed) || float.IsInfinity(attackSpeed) || attackSpeed<=0f)throw new ArgumentException("Invalid attack speed.");
         if(plan!=null || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
@@ -88,8 +97,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
-            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+180,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=string.IsNullOrEmpty(attackBatch)?0:JObject.Parse(File.ReadAllText(attackBatch))["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*3,scenes=SceneEvidence() };
+            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,(leaseDefinitionPaths?.Length??0)*25+90),
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=string.IsNullOrEmpty(attackBatch)?0:JObject.Parse(File.ReadAllText(attackBatch))["entries"].Count(r=>(string)r["role"]=="weak"&&(bool?)r["nativeContactGeometryAuthored"]==true)*3,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -321,10 +330,10 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var pool=serviceRoot.AddComponent<EnemyPoolService>();pool.Configure(poolRoot.transform,0);
         var service=serviceRoot.AddComponent<EnemySpawnService>();
         var catalog=AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
-        if(!string.IsNullOrEmpty(plan.testDefinition))
+        if(plan.leaseDefinitionPaths?.Length>0||!string.IsNullOrEmpty(plan.testDefinition))
         {
             catalog=ScriptableObject.CreateInstance<EnemyCatalog>();owned.Add(catalog);
-            catalog.Configure(new[]{AssetDatabase.LoadAssetAtPath<EnemyDefinition>(plan.testDefinition)});
+            catalog.Configure((plan.leaseDefinitionPaths??new[]{plan.testDefinition}).Select(AssetDatabase.LoadAssetAtPath<EnemyDefinition>).ToArray());
         }
         service.Configure(catalog,pool);
         var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(floor);floor.name="V3 lease fixture ground";
@@ -332,7 +341,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var playerPrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/03_Features/Player/Prefabs/PF_PlayerActor.prefab");
         var volume=playerPrefab.GetComponent<CombatTarget>().CurrentVolume;
         var targetRoot=new GameObject("Native player-sized AI target");owned.Add(targetRoot);targetRoot.layer=playerPrefab.layer;
-        targetRoot.transform.position=new Vector3(0,1,4.5f);
+        targetRoot.transform.position=new Vector3(0,plan.leaseDefinitionPaths?.Length>0?0:1,4.5f);
         var capsule=targetRoot.AddComponent<CapsuleCollider>();capsule.center=volume.Center;capsule.radius=volume.Radius;capsule.height=volume.HalfHeight*2;
         var target=targetRoot.AddComponent<CombatTarget>();target.Configure(CombatTeam.PlayerParty,false);
         target.ConfigureVolume(volume.Center,volume.Radius,volume.HalfHeight*2);var health=targetRoot.GetComponent<CombatHealth>();health.SetMaxHp(100000,true);
@@ -341,7 +350,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         health.OnDamaged+=(_,info)=>damageEvents.Add(new JObject{["frame"]=Time.frameCount,["damage"]=info.damage,
             ["phase"]=info.sourceAttackPhaseIndex,["sequence"]=info.sourceAttackSequenceId});
         yield return null;yield return new WaitForFixedUpdate();
-        var definitions=string.IsNullOrEmpty(plan.testDefinition)
+        var definitions=plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Select(AssetDatabase.LoadAssetAtPath<EnemyDefinition>).ToArray():string.IsNullOrEmpty(plan.testDefinition)
             ?new[]{"Cephalonops","Ceratoferox","Gasterobrach","Gorhorrid"}.Select(name=>AssetDatabase.LoadAssetAtPath<EnemyDefinition>(
                 "Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/CavernMutants_"+name+".asset")).ToArray()
             :new[]{AssetDatabase.LoadAssetAtPath<EnemyDefinition>(plan.testDefinition)};
@@ -351,7 +360,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             EnemyActor previous=null;uint lastVersion=0;
             for(int lease=0;lease<2;lease++)
             {
-                targetRoot.transform.position=new Vector3(0,1,4.5f);health.SetMaxHp(100000,true);damageEvents.Clear();
+                targetRoot.transform.position=new Vector3(0,plan.leaseDefinitionPaths?.Length>0?0:1,4.5f);health.SetMaxHp(100000,true);damageEvents.Clear();
                 var request=new EnemySpawnRequest(definition,Vector3.zero,Quaternion.identity,targetRoot.transform,null,targetRoot.transform,null,1,1,71+lease);
                 if(!service.TrySpawn(request,out var actor))throw new Exception("Production spawn failed: "+id);
                 actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
@@ -397,13 +406,13 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
             ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
             ["geometryFixture"]=plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; native player-sized capsule target":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
-            ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["realPlayerParry"]=plan.realPlayerParry,["nativeAttackBatch"]=plan.attackBatch,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
+            ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["leaseDefinitionPaths"]=plan.leaseDefinitionPaths==null?null:JArray.FromObject(plan.leaseDefinitionPaths),["realPlayerParry"]=plan.realPlayerParry,["nativeAttackBatch"]=plan.attackBatch,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
     static void Return(string error)
     {
         if(plan==null)return;
         if(error!=null)failure=error;
-        WriteResult(error==null && cases.Count==(!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?1:plan.leaseVerification?(string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
+        WriteResult(error==null && cases.Count==(!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?1:plan.leaseVerification?(plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Length*2:string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
         plan.phase="returning";plan.deadline=EditorApplication.timeSinceStartup+120;Save();
         if(OwnPlay)EditorApplication.ExitPlaymode();
     }

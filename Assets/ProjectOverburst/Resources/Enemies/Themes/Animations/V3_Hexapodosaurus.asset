@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: V3_Hexapodosaurus
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: V3_Hexapodosaurus
+  runtimeController: {fileID: 9100000, guid: a930cbdc9fd2fe4438cce01388dcc094, type: 2}
+  idle: {fileID: 7400000, guid: e3a0612a9a9999c44996b0b1e51b240f, type: 2}
+  walk: {fileID: 7400000, guid: b332298974546e74d9c174da6cefe45b, type: 2}
+  run: {fileID: 7400000, guid: c711fa13ca420914297cf597bb9fe7f0, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: 70bc4f71b92a5a547a5bd17284064765, type: 3}
+  - {fileID: 1827226128182048838, guid: 3afb043bfa11e434e859c83503863a81, type: 3}
+  hit: {fileID: 1827226128182048838, guid: 8d8577b58a6482c459f38a7a141341e0, type: 3}
+  death: {fileID: 1827226128182048838, guid: 2b8a60f0ff91ea444b627b21a797493a, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 20a5447be0a3eac4db7ec869ff2264ce, type: 2}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/cdee3c31/Hexapodosaurus@WalkForward_RM.fbx"
