@@ -104,8 +104,58 @@ public static class BloodEffectsPackBuilder
         catalog.downwardDecals = new[] { decals[2], decals[3], decals[6], decals[7] };
         catalog.lethalDecals = decals;
         catalog.trailDecals = new[] { decals[8], decals[9] };
+        BuildProfileShaders();
         BuildScreen(catalog);
         EditorUtility.SetDirty(catalog); BuildToggle(); AssetDatabase.SaveAssetIfDirty(catalog);
+    }
+    // Keep the pack's texture relief and alpha, while profile RGB supplies the blood hue.
+    [MenuItem("OVERBURST/Combat/Blood Comparison/A 색감 기준 셰이더 연결")]
+    public static void BuildProfileShaders()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required");
+        var catalog = AssetDatabase.LoadAssetAtPath<BloodEffectsPackCatalog>(CatalogPath);
+        if (catalog == null) throw new InvalidOperationException("Build the blood catalog first");
+        Folder(Root + "/Shaders");
+        catalog.sprayProfileShader = ProfileShader("BloodFX_PBR_URP", "SG_BloodPackSprayProfile");
+        catalog.groundProfileShader = ProfileShader("BloodFX_PBR_Projector_URP", "SG_BloodPackGroundProfile");
+        EditorUtility.SetDirty(catalog); AssetDatabase.SaveAssetIfDirty(catalog);
+    }
+    static Shader ProfileShader(string sourceName, string name)
+    {
+        string source = Vendor + "/1_URP/Shader/" + sourceName + ".shadergraph";
+        string path = Root + "/Shaders/" + name + ".shadergraph";
+        if (!System.IO.File.Exists(path) && !AssetDatabase.CopyAsset(source, path))
+            throw new InvalidOperationException("Profile shader copy failed: " + path);
+        var assembly = System.Linq.Enumerable.First(AppDomain.CurrentDomain.GetAssemblies(), a => a.GetType("UnityEditor.ShaderGraph.GraphData") != null);
+        var graphType = assembly.GetType("UnityEditor.ShaderGraph.GraphData");
+        var jsonType = assembly.GetType("UnityEditor.ShaderGraph.Serialization.MultiJson");
+        var graph = Activator.CreateInstance(graphType, true);
+        var messages = graphType.GetProperty("messageManager");
+        messages.SetValue(graph, Activator.CreateInstance(messages.PropertyType, true));
+        jsonType.GetMethod("Deserialize").MakeGenericMethod(graphType).Invoke(null,
+            new object[] { graph, System.IO.File.ReadAllText(source), null, false });
+        graphType.GetProperty("assetGuid").SetValue(graph, AssetDatabase.AssetPathToGUID(path));
+        graphType.GetProperty("path").SetValue(graph, "OVERBURST/Blood");
+        graphType.GetMethod("OnEnable").Invoke(graph, null);
+        var getNode = System.Linq.Enumerable.Single(graphType.GetMethods(), m => m.Name == "GetNodeFromId" && !m.IsGenericMethod);
+        var split = getNode.Invoke(graph, new object[] { "7c3a7b7b56114c22b3d0affef96583a7" });
+        var combine = getNode.Invoke(graph, new object[] { "a9d96fa7ca2d414dbcc28a2ad8bd40ce" });
+        if (split == null || combine == null) throw new InvalidOperationException("Supplier texture color nodes changed");
+        var slot = split.GetType().GetMethod("GetSlotReference");
+        var from = slot.Invoke(split, new object[] { 1 });
+        for (int channel = 1; channel <= 2; channel++)
+        {
+            var to = combine.GetType().GetMethod("GetSlotReference").Invoke(combine, new object[] { channel });
+            if (graphType.GetMethod("Connect").Invoke(graph, new[] { from, to }) == null)
+                throw new InvalidOperationException("Profile shader color connection failed");
+        }
+        string serialized = (string)jsonType.GetMethod("Serialize").Invoke(null, new[] { graph });
+        var graphUtil = assembly.GetType("UnityEditor.ShaderGraph.GraphUtil");
+        if (!(bool)graphUtil.GetMethod("WriteToFile").Invoke(null, new object[] { path, serialized }))
+            throw new InvalidOperationException("Profile shader save failed");
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+        return AssetDatabase.LoadAssetAtPath<Shader>(path) ?? throw new InvalidOperationException("Profile shader import failed");
     }
     static void BuildScreen(BloodEffectsPackCatalog catalog)
     {

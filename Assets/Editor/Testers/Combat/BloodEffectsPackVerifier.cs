@@ -49,6 +49,9 @@ public static class BloodEffectsPackVerifier
         checks.Clear();
         var catalog = AssetDatabase.LoadAssetAtPath<BloodEffectsPackCatalog>(BloodEffectsPackBuilder.CatalogPath);
         Check(catalog != null && catalog.sprays.Length == 7,"7 distinct splash and flowing forms loaded");
+        Check(catalog.sprayProfileShader != null && catalog.groundProfileShader != null, "profile spray and ground shaders loaded");
+        foreach (var shader in new[] { catalog.sprayProfileShader, catalog.groundProfileShader })
+            Check(shader.isSupported && !ShaderUtil.ShaderHasError(shader), "valid profile shader " + shader.name);
         foreach (CombatImpactShape shape in Enum.GetValues(typeof(CombatImpactShape)))
             Check(catalog.sprays.Count(s=>s.Accepts(shape,0))>=2,"multiple regular forms for "+shape);
         foreach (var spray in catalog.sprays)
@@ -192,6 +195,8 @@ public static class BloodEffectsPackVerifier
                     var renderer=blood.GetComponentsInChildren<ParticleSystemRenderer>(true).First(r=>r.gameObject.activeInHierarchy);
                     var block=new MaterialPropertyBlock();renderer.GetPropertyBlock(block);
                     Check(block.GetColor("_BaseColor") == BloodHitVfxService.ResolveColorProfile(profile).mainColor,"new pack profile tint reaches renderer");
+                    var data=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
+                    Check(renderer.sharedMaterial.shader==data.sprayProfileShader,"new pack uses neutral texture profile shader");
                 }
                 yield return Wait(.22f);
                 Check(ground.ActiveCount>0,"ground splatter landed "+pack+" "+shape+" noGround="+ground.SkippedNoGroundCount+" late="+ground.SkippedLateCount);

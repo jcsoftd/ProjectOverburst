@@ -20,6 +20,7 @@ public sealed class BloodEffectsPackCatalog : ScriptableObject
     }
     public Spray[] sprays;
     public GameObject[] sweepDecals, thrustDecals, downwardDecals, lethalDecals, trailDecals;
+    public Shader sprayProfileShader, groundProfileShader;
     public Sprite screenSprite;
     public Material[] screenMaterials;
     public GameObject ResolveDecal(CombatImpactShape shape, bool lethal, int variant, bool trail = false)

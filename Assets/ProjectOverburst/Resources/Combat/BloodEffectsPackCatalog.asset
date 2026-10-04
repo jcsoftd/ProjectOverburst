@@ -101,6 +101,8 @@ MonoBehaviour:
   trailDecals:
   - {fileID: 4389679175604454054, guid: ecfb75c7784442640a57fdacc3377752, type: 3}
   - {fileID: 3937411567558097179, guid: 7e67ca7dd1f5cda4796dbffb8a698f39, type: 3}
+  sprayProfileShader: {fileID: -6465566751694194690, guid: 3deaefe592a1aaf4191a5c4ae638377c, type: 3}
+  groundProfileShader: {fileID: -6465566751694194690, guid: 30331ee709314134db504f0fd88133bf, type: 3}
   screenSprite: {fileID: 21300000, guid: c25d3429d53ec10469038f9080d8187e, type: 3}
   screenMaterials:
   - {fileID: 2100000, guid: bdffe47054c72444f8c4b903e757f253, type: 2}

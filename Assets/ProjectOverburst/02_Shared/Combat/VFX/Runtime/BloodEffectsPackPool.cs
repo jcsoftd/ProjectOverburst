@@ -16,6 +16,7 @@ public sealed class BloodEffectsPackPool
     readonly Slot[] slots = new Slot[Capacity];
     readonly int[] targets = new int[96], variants = new int[96];
     readonly MaterialPropertyBlock block = new MaterialPropertyBlock();
+    readonly System.Collections.Generic.Dictionary<Material, Material> profileMaterials = new System.Collections.Generic.Dictionary<Material, Material>();
     readonly BloodEffectsPackCatalog catalog;
     int cursor;
     public int ActiveCount { get; private set; }
@@ -39,9 +40,26 @@ public sealed class BloodEffectsPackPool
             var slot = new Slot { root = root, variant = variant,
                 systems = root.GetComponentsInChildren<ParticleSystem>(true), renderers = root.GetComponentsInChildren<Renderer>(true) };
             foreach (var ps in slot.systems) ps.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+            foreach (var renderer in slot.renderers)
+            {
+                var shared = renderer.sharedMaterials;
+                for (int materialIndex = 0; materialIndex < shared.Length; materialIndex++) shared[materialIndex] = ProfileMaterial(shared[materialIndex]);
+                renderer.sharedMaterials = shared;
+            }
             slots[i] = slot;
         }
         Ready = true;
+    }
+    Material ProfileMaterial(Material source)
+    {
+        if (!source || !catalog.sprayProfileShader) return source;
+        if (!profileMaterials.TryGetValue(source, out var material))
+        {
+            material = new Material(source) { name = source.name + " profile", hideFlags = HideFlags.HideAndDontSave };
+            material.shader = catalog.sprayProfileShader;
+            profileMaterials.Add(source, material);
+        }
+        return material;
     }
     public void Tick(float now)
     {
@@ -82,10 +100,11 @@ public sealed class BloodEffectsPackPool
             * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f) * SizeMultiplier;
         block.Clear();
         block.SetColor("_BaseColor", profile.mainColor);
-        block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular + .22f, .25f, .55f));
+        block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular, .1f, .4f));
         block.SetFloat("_HueShift", 0f);
-        block.SetFloat("_ColorIntensity", .8f);
-        block.SetFloat("_AmbientColorIntensity", .45f);
+        block.SetFloat("_AlbedoPower", .45f);
+        block.SetFloat("_ColorIntensity", 1.1f);
+        block.SetFloat("_AmbientColorIntensity", .7f);
         foreach (var renderer in chosen.renderers) renderer.SetPropertyBlock(block);
         for (int i = 0; i < chosen.systems.Length; i++)
         {
@@ -121,5 +140,7 @@ public sealed class BloodEffectsPackPool
     {
         Clear();
         foreach (var slot in slots) if (slot?.root != null) Object.Destroy(slot.root);
+        foreach (var material in profileMaterials.Values) if (material) Object.Destroy(material);
+        profileMaterials.Clear();
     }
 }

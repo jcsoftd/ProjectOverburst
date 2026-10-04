@@ -255,7 +255,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         projector.transform.SetPositionAndRotation(
             request.Point + request.Normal * .015f,
             Quaternion.LookRotation(-request.Normal, request.Tangent));
-        projector.material = TintedMaterial(source.material, request.Profile);
+        projector.material = TintedMaterial(source.material, request.Profile, request.Pack);
         float footprintScale = request.Pack ? BloodEffectsPackPool.SizeMultiplier : 1f;
         projector.size = new Vector3(
             Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f) * footprintScale,
@@ -279,7 +279,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         return true;
     }
 
-    private Material TintedMaterial(Material source, BloodHitProfile profile)
+    private Material TintedMaterial(Material source, BloodHitProfile profile, bool pack)
     {
         long key = ((long)source.GetInstanceID() << 32) ^ (uint)profile.GetInstanceID();
         if (!materials.TryGetValue(key, out Material material) || !material)
@@ -290,15 +290,18 @@ public sealed class BloodGroundDecalService : MonoBehaviour
                 name = source.name + " • " + profile.name + " pooled",
                 hideFlags = HideFlags.HideAndDontSave
             };
+            if (pack && packCatalog != null && packCatalog.groundProfileShader) material.shader = packCatalog.groundProfileShader;
             materials[key] = material;
         }
         if (material.HasProperty("_BaseColor"))
         {
-            material.SetColor("_BaseColor", profile.mainColor);
+            if (pack) material.SetVector("_BaseColor", profile.mainColor.linear);
+            else material.SetColor("_BaseColor", profile.mainColor);
+            if (pack && material.HasProperty("_AlbedoPower")) material.SetFloat("_AlbedoPower", .55f);
             if (material.HasProperty("_HueShift")) material.SetFloat("_HueShift", 0f);
-            if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", .32f);
+            if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", pack ? .95f : .32f);
             if (material.HasProperty("_AmbientColorIntensity")) material.SetFloat("_AmbientColorIntensity", .25f);
-            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", Mathf.Clamp(profile.specular + .18f, .22f, .5f));
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", pack ? Mathf.Clamp(profile.specular, .1f, .4f) : Mathf.Clamp(profile.specular + .18f, .22f, .5f));
         }
         if (material.HasProperty(MainColor)) material.SetColor(MainColor, profile.mainColor.linear);
         if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, profile.secondaryColor.linear);
