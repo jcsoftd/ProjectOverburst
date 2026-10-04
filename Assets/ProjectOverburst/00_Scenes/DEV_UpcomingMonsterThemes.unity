@@ -13537,7 +13537,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 189265712}
-  m_Text: 'Succubus Sisters: Complete Edition'
+  m_Text: "\uBABD\uB9C8 \uC790\uB9E4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -20636,7 +20636,7 @@ GameObject:
   - component: {fileID: 308909163}
   - component: {fileID: 308909164}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] Ingenalvus"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uC554\uD751 \uC0B0\uB780\uBAA8"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20675,7 +20675,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:ingenalvus:boss
-  displayName: Ingenalvus
+  displayName: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   grade: boss
   selectionStatus: core
   warnings: 
@@ -33475,7 +33475,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 426472689}
-  m_Text: King Spawn
+  m_Text: "\uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -35699,7 +35699,7 @@ GameObject:
   - component: {fileID: 453054933}
   - component: {fileID: 453054934}
   m_Layer: 30
-  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] Titanockarce"
+  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] \uCD09\uC218 \uAC11\uAC01\uC655"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35738,7 +35738,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:titanockarce:boss
-  displayName: Titanockarce
+  displayName: "\uCD09\uC218 \uAC11\uAC01\uC655"
   grade: boss
   selectionStatus: reserve
   warnings: 
@@ -39279,7 +39279,7 @@ GameObject:
   - component: {fileID: 483938250}
   - component: {fileID: 483938251}
   m_Layer: 30
-  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] King Spawn"
+  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] \uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39318,7 +39318,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:king-spawn:boss
-  displayName: King Spawn
+  displayName: "\uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   grade: boss
   selectionStatus: reserve
   warnings: 
@@ -50663,7 +50663,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 740450745}
-  m_Text: King Spawn
+  m_Text: "\uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -55913,7 +55913,7 @@ GameObject:
   - component: {fileID: 775560180}
   - component: {fileID: 775560181}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] Ingenalvus"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uC554\uD751 \uC0B0\uB780\uBAA8"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -55952,7 +55952,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:ingenalvus:boss
-  displayName: Ingenalvus
+  displayName: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   grade: boss
   selectionStatus: core
   warnings: 
@@ -65288,7 +65288,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 844879115}
-  m_Text: Crustaspikan
+  m_Text: "\uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -67461,7 +67461,7 @@ GameObject:
   - component: {fileID: 857566605}
   - component: {fileID: 857566606}
   m_Layer: 30
-  m_Name: "[\uC6B0\uC120 \uBCF4\uC2A4 \xB7 \uBCF4\uC2A4] Ingenalvus"
+  m_Name: "[\uC6B0\uC120 \uBCF4\uC2A4 \xB7 \uBCF4\uC2A4] \uC554\uD751 \uC0B0\uB780\uBAA8"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -67500,7 +67500,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:ingenalvus:boss
-  displayName: Ingenalvus
+  displayName: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   grade: boss
   selectionStatus: priority
   warnings: 
@@ -67831,7 +67831,7 @@ GameObject:
   - component: {fileID: 864972213}
   - component: {fileID: 864972214}
   m_Layer: 30
-  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] Megaloricovolvens"
+  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] \uBC29\uD328\uD314 \uAC70\uC218"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -67870,7 +67870,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:megaloricovolvens:boss
-  displayName: Megaloricovolvens
+  displayName: "\uBC29\uD328\uD314 \uAC70\uC218"
   grade: boss
   selectionStatus: reserve
   warnings: 
@@ -74797,7 +74797,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 943329326}
-  m_Text: Megaloricovolvens
+  m_Text: "\uBC29\uD328\uD314 \uAC70\uC218"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -78381,7 +78381,7 @@ GameObject:
   - component: {fileID: 971375732}
   - component: {fileID: 971375733}
   m_Layer: 30
-  m_Name: "[\uC6B0\uC120 \uBCF4\uC2A4 \xB7 \uBCF4\uC2A4] Crustaspikan"
+  m_Name: "[\uC6B0\uC120 \uBCF4\uC2A4 \xB7 \uBCF4\uC2A4] \uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -78420,7 +78420,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:crustaspikan:boss
-  displayName: Crustaspikan
+  displayName: "\uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   grade: boss
   selectionStatus: priority
   warnings: 
@@ -99334,7 +99334,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1162784196}
-  m_Text: Crustaspikan
+  m_Text: "\uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -107383,7 +107383,7 @@ GameObject:
   - component: {fileID: 1271675919}
   - component: {fileID: 1271675920}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] King Spawn"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -107422,7 +107422,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:king-spawn:boss
-  displayName: King Spawn
+  displayName: "\uAC80\uC740\uB0AD \uBC88\uC2DD\uBAA8\uCCB4"
   grade: boss
   selectionStatus: core
   warnings: 
@@ -107603,7 +107603,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1274638666}
-  m_Text: Ingenalvus
+  m_Text: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -125448,7 +125448,7 @@ GameObject:
   - component: {fileID: 1468605127}
   - component: {fileID: 1468605128}
   m_Layer: 30
-  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] Succubus Sisters: Complete Edition"
+  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] \uBABD\uB9C8 \uC790\uB9E4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -125488,7 +125488,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:succubus-sisters-complete-edition:boss
-  displayName: 'Succubus Sisters: Complete Edition'
+  displayName: "\uBABD\uB9C8 \uC790\uB9E4"
   grade: boss
   selectionStatus: reserve
   warnings: "\uC804\uC6A9 \uC774\uB3D9 \uBAA8\uC158\uC774 \uC5F0\uACB0\uB418\uC9C0
@@ -129449,7 +129449,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1514724383}
-  m_Text: Kraken
+  m_Text: "\uAC11\uAC01 \uD06C\uB77C\uCF04"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -129747,7 +129747,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1542480034}
-  m_Text: Ingenalvus
+  m_Text: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -138274,7 +138274,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1584417466}
-  m_Text: 'Succubus Sisters: Complete Edition'
+  m_Text: "\uBABD\uB9C8 \uC790\uB9E4"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -157329,7 +157329,7 @@ GameObject:
   - component: {fileID: 1839408821}
   - component: {fileID: 1839408822}
   m_Layer: 30
-  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] Kraken"
+  m_Name: "[\uC608\uBE44 \xB7 \uBCF4\uC2A4] \uAC11\uAC01 \uD06C\uB77C\uCF04"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -157368,7 +157368,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:kraken:boss
-  displayName: Kraken
+  displayName: "\uAC11\uAC01 \uD06C\uB77C\uCF04"
   grade: boss
   selectionStatus: reserve
   warnings: 
@@ -170231,7 +170231,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1930547305}
-  m_Text: Ingenalvus
+  m_Text: "\uC554\uD751 \uC0B0\uB780\uBAA8"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -170305,7 +170305,7 @@ GameObject:
   - component: {fileID: 1932356556}
   - component: {fileID: 1932356557}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] Titanockarce"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uCD09\uC218 \uAC11\uAC01\uC655"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -170344,7 +170344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:titanockarce:boss
-  displayName: Titanockarce
+  displayName: "\uCD09\uC218 \uAC11\uAC01\uC655"
   grade: boss
   selectionStatus: core
   warnings: 
@@ -174073,7 +174073,7 @@ GameObject:
   - component: {fileID: 1990652518}
   - component: {fileID: 1990652519}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] Succubus Sisters: Complete Edition"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uBABD\uB9C8 \uC790\uB9E4"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -174113,7 +174113,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:succubus-sisters-complete-edition:boss
-  displayName: 'Succubus Sisters: Complete Edition'
+  displayName: "\uBABD\uB9C8 \uC790\uB9E4"
   grade: boss
   selectionStatus: core
   warnings: "\uC804\uC6A9 \uC774\uB3D9 \uBAA8\uC158\uC774 \uC5F0\uACB0\uB418\uC9C0
@@ -174491,7 +174491,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1996278238}
-  m_Text: Titanockarce
+  m_Text: "\uCD09\uC218 \uAC11\uAC01\uC655"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -174827,7 +174827,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2013343957}
-  m_Text: Titanockarce
+  m_Text: "\uCD09\uC218 \uAC11\uAC01\uC655"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -185762,7 +185762,7 @@ GameObject:
   - component: {fileID: 2087083873}
   - component: {fileID: 2087083874}
   m_Layer: 30
-  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] Crustaspikan"
+  m_Name: "[\uC8FC\uB825 \xB7 \uBCF4\uC2A4] \uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -185801,7 +185801,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpcomingMonsterReviewStation
   cardKey: planned:crustaspikan:boss
-  displayName: Crustaspikan
+  displayName: "\uD751\uAC11 \uAC00\uC2DC\uD3ED\uAD70"
   grade: boss
   selectionStatus: core
   warnings: 
