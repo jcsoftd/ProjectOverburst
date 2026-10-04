@@ -11,6 +11,16 @@ public static class GroundIndicatorVerifier
     public static object Verify()
     {
         GroundIndicatorBuilder.RequireIdle();
+        var nova = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(GroundIndicatorBuilder.SourceGuid));
+        Require(nova != null, "Original Nova source is missing");
+        int radialLayers = 0;
+        foreach (var renderer in nova.GetComponentsInChildren<ParticleSystemRenderer>(true))
+        {
+            if (!renderer.name.Contains("fill_add_soft") && !renderer.name.Contains("border_add_soft")) continue;
+            Require(renderer.mesh != null && renderer.mesh.isReadable, "Nova radial mesh must be readable during Play");
+            radialLayers++;
+        }
+        Require(radialLayers == 2, "Nova fill and border source layers changed");
         var checks = new List<object>(); var scene = EditorSceneManager.NewPreviewScene();
         var native = new HashSet<Material>();
         foreach (string guid in new[] { GroundIndicatorBuilder.ConeGuid, GroundIndicatorBuilder.SourceGuid, GroundIndicatorBuilder.RectangleGuid })
