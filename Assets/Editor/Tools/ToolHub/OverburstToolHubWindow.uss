@@ -1,0 +1,305 @@
+.hub-root {
+    flex-grow: 1;
+    min-width: 1000px;
+    background-color: rgb(16, 20, 26);
+    color: rgb(220, 228, 238);
+}
+
+.hub-header {
+    height: 88px;
+    min-height: 88px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(40, 49, 61);
+    background-color: rgb(20, 25, 33);
+}
+
+.hub-eyebrow {
+    margin-bottom: -1px;
+    color: rgb(80, 177, 216);
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.hub-title {
+    color: rgb(239, 244, 250);
+    font-size: 23px;
+    -unity-font-style: bold;
+}
+
+.hub-subtitle {
+    margin-top: 2px;
+    color: rgb(126, 142, 160);
+    font-size: 10px;
+}
+
+.hub-count {
+    height: 25px;
+    padding-left: 11px;
+    padding-right: 11px;
+    border-width: 1px;
+    border-color: rgb(48, 67, 82);
+    border-radius: 3px;
+    background-color: rgb(27, 35, 44);
+    color: rgb(117, 156, 180);
+    font-size: 9px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.hub-tool-icon {
+    flex-shrink: 0;
+    overflow: hidden;
+    border-width: 1px;
+    border-color: rgb(47, 76, 96);
+    border-radius: 50%;
+    background-color: rgb(12, 20, 29);
+}
+
+.hub-tool-icon-image {
+    width: 100%;
+    height: 100%;
+}
+
+.hub-tool-icon--missing {
+    opacity: 0;
+}
+
+.hub-scroll {
+    flex-grow: 1;
+}
+
+.hub-scroll-content {
+    padding: 22px 26px 24px 26px;
+}
+
+.hub-scroll .unity-scroller--horizontal {
+    display: none;
+}
+
+.hub-main-card {
+    min-height: 152px;
+    flex-direction: row;
+    align-items: stretch;
+    margin-bottom: 24px;
+    border-width: 1px;
+    border-color: rgb(47, 66, 82);
+    border-radius: 5px;
+    background-color: rgb(24, 32, 41);
+}
+
+.hub-main-content {
+    flex-grow: 1;
+    justify-content: center;
+    padding-left: 21px;
+    padding-right: 20px;
+}
+
+.hub-main-icon-area {
+    width: 170px;
+    min-width: 170px;
+    align-items: center;
+    justify-content: center;
+    border-right-width: 1px;
+    border-right-color: rgb(42, 56, 70);
+    background-color: rgb(20, 29, 39);
+}
+
+.hub-card-category {
+    color: rgb(73, 160, 196);
+    font-size: 9px;
+    -unity-font-style: bold;
+}
+
+.hub-main-title {
+    margin-top: 3px;
+    color: rgb(238, 244, 250);
+    font-size: 21px;
+    -unity-font-style: bold;
+}
+
+.hub-main-description {
+    max-width: 720px;
+    margin-top: 4px;
+    color: rgb(155, 172, 190);
+    font-size: 11px;
+    white-space: normal;
+}
+
+.hub-tags {
+    flex-direction: row;
+    margin-top: 12px;
+}
+
+.hub-tag {
+    height: 20px;
+    margin-right: 5px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-width: 1px;
+    border-color: rgb(49, 67, 82);
+    border-radius: 3px;
+    background-color: rgb(20, 27, 35);
+    color: rgb(128, 153, 171);
+    font-size: 9px;
+    -unity-text-align: middle-center;
+}
+
+.hub-main-action {
+    width: 216px;
+    min-width: 216px;
+    align-items: center;
+    justify-content: center;
+    border-left-width: 1px;
+    border-left-color: rgb(42, 53, 65);
+}
+
+.hub-main-tool-icon {
+    width: 132px;
+    height: 132px;
+}
+
+.hub-main-button {
+    width: 196px;
+    height: 34px;
+    margin: 0;
+    border-width: 1px;
+    border-color: rgb(79, 183, 222);
+    border-radius: 3px;
+    background-color: rgb(43, 130, 164);
+    color: rgb(242, 250, 254);
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.hub-main-button:hover {
+    background-color: rgb(51, 151, 187);
+}
+
+.hub-section-heading {
+    height: 27px;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.hub-section-title {
+    margin-right: 12px;
+    color: rgb(203, 214, 226);
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+.hub-section-line {
+    flex-grow: 1;
+    height: 1px;
+    background-color: rgb(38, 47, 58);
+}
+
+.hub-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.hub-tool-card {
+    width: 32.55%;
+    min-height: 164px;
+    flex-direction: row;
+    align-items: center;
+    margin-right: 0.78%;
+    margin-bottom: 8px;
+    padding: 13px 14px;
+    border-width: 1px;
+    border-color: rgb(42, 51, 62);
+    border-radius: 4px;
+    background-color: rgb(22, 27, 35);
+    -unity-text-align: upper-left;
+}
+
+.hub-tool-card:hover {
+    border-color: rgb(55, 75, 91);
+    background-color: rgb(26, 33, 42);
+}
+
+.hub-tool-card:hover .hub-tool-icon {
+    border-color: rgb(72, 151, 183);
+    background-color: rgb(17, 30, 42);
+}
+
+.hub-tool-card--missing {
+    opacity: 0.55;
+}
+
+.hub-card-icon-area {
+    width: 110px;
+    min-width: 110px;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.hub-card-tool-icon {
+    width: 104px;
+    height: 104px;
+}
+
+.hub-tool-copy {
+    flex-grow: 1;
+    min-width: 0;
+    height: 100%;
+    justify-content: center;
+    margin-left: 10px;
+}
+
+.hub-general-section {
+    margin-top: 18px;
+}
+
+.hub-tool-title {
+    margin-top: 2px;
+    color: rgb(223, 231, 240);
+    font-size: 13px;
+    -unity-font-style: bold;
+}
+
+.hub-tool-description {
+    margin-top: 6px;
+    color: rgb(124, 139, 155);
+    font-size: 10px;
+    white-space: normal;
+}
+
+.hub-tool-launch {
+    width: 70px;
+    height: 18px;
+    margin-top: 8px;
+    color: rgb(91, 177, 211);
+    font-size: 9px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+}
+
+.hub-status-bar {
+    height: 27px;
+    min-height: 27px;
+    justify-content: center;
+    padding-left: 26px;
+    padding-right: 26px;
+    border-top-width: 1px;
+    border-top-color: rgb(35, 43, 53);
+    background-color: rgb(18, 23, 29);
+}
+
+.hub-status {
+    color: rgb(90, 107, 124);
+    font-size: 9px;
+}
+
+.hub-status--error {
+    color: rgb(229, 119, 119);
+}
