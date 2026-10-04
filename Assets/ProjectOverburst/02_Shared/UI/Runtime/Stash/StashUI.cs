@@ -124,6 +124,14 @@ public class StashUI : MonoBehaviour // 창고 UI
         if (!isOpen && (stashPanel == null || !stashPanel.activeSelf))
             return;
 
+        SlotUI dragOrigin = DragSlot.OriginSlot;
+        if (dragOrigin != null &&
+            (slotBridge != null && ReferenceEquals(dragOrigin.OwnerBridge, slotBridge) ||
+             inventoryUI != null && dragOrigin.transform.IsChildOf(inventoryUI.transform)))
+        {
+            DragSlot.ClearDragState(); // 패널을 숨기기 전에 창고 세션 드래그 취소
+        }
+
         isOpen = false; // 닫힘
         SetPanelVisible(false);
         GameplayInputBlocker.Unblock(this); // 입력 복구
