@@ -63,6 +63,9 @@ public static class EdgeEffectsIconReviewBuilder
         readonly RenderTexture previous;
         public readonly List<Object> owned=new List<Object>();
         public readonly List<Material> timed=new List<Material>();
+        readonly List<Image> timedImages=new List<Image>();
+        public Font captionFont;
+        Sprite ring;
         readonly Dictionary<Shader,Shader> clocks=new Dictionary<Shader,Shader>();
         readonly Dictionary<Texture,Texture> neutralTextures=new Dictionary<Texture,Texture>();
         readonly FieldInfo radial=typeof(SlotGradeEffect).GetField("radialGradientSprite",BindingFlags.NonPublic|BindingFlags.Static);
@@ -82,7 +85,7 @@ public static class EdgeEffectsIconReviewBuilder
         }
         public void Caption(string text,float x,float y,float w,int size=16,Color? c=null){
             var go=new GameObject(text,typeof(RectTransform),typeof(Text));go.transform.SetParent(canvas.transform,false);
-            var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=size;t.color=c??new Color(.78f,.8f,.82f);
+            var t=go.GetComponent<Text>();t.font=captionFont?captionFont:Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=size;t.color=c??new Color(.78f,.8f,.82f);
             t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Overflow;t.verticalOverflow=VerticalWrapMode.Overflow;
             Top(t.rectTransform,x,y,w,32);
         }
@@ -159,6 +162,68 @@ public static class EdgeEffectsIconReviewBuilder
             }
             return go;
         }
+
+        public GameObject ItemSlot(BaseItemData item,ItemGrade grade,float x,float y,float scale){
+            var go=Slot(item.icon,grade,x,y,scale,false,true);
+            // Presentation-only data avoids rolling stats or writing a runtime identity.
+            var data=(ItemData)Activator.CreateInstance(typeof(ItemData),true);data.baseData=item;data.grade=grade;data.level=1;data.stackCount=1;
+            var view=go.GetComponent<OverburstUIItemSlotView>();view.PresentType(data);view.PresentElement(data);
+            return go;
+        }
+        Sprite RingSprite(){
+            if(ring)return ring;
+            var tex=new Texture2D(168,168,TextureFormat.RGBA32,false){name="Preview border stencil",filterMode=FilterMode.Bilinear};
+            var pixels=new Color32[168*168];
+            for(int y=0;y<168;y++)for(int x=0;x<168;x++){
+                float dx=Mathf.Abs(x-83.5f),dy=Mathf.Abs(y-83.5f);
+                bool inside=dx<83.5f&&dy<83.5f;
+                bool middle=dx<66&&dy<66;
+                pixels[y*168+x]=new Color32(255,255,255,(byte)(inside&&!middle?255:0));
+            }
+            tex.SetPixels32(pixels);tex.Apply();ring=Sprite.Create(tex,new Rect(0,0,168,168),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect);
+            owned.Add(ring);owned.Add(tex);return ring;
+        }
+        public void FittedEffect(GameObject prefab,GameObject slot,ItemGrade grade){
+            if(grade==ItemGrade.Common)return;
+            var view=slot.GetComponent<OverburstUIItemSlotView>();
+            var icon=(Image)new SerializedObject(view).FindProperty("icon").objectReferenceValue;
+            var root=new GameObject("Fitted border "+prefab.name,typeof(RectTransform),typeof(Image),typeof(Mask));
+            root.transform.SetParent(slot.transform,false);root.transform.SetSiblingIndex(icon.transform.GetSiblingIndex()+1);
+            Top(root.GetComponent<RectTransform>(),0,0,84,84);
+            var stencil=root.GetComponent<Image>();stencil.sprite=RingSprite();stencil.raycastTarget=false;root.GetComponent<Mask>().showMaskGraphic=false;
+            float strength=grade==ItemGrade.Uncommon?.30f:grade==ItemGrade.Rare?.34f:grade==ItemGrade.Epic?.38f:grade==ItemGrade.Legendary?.42f:grade==ItemGrade.Artifact?.44f:grade==ItemGrade.Mythic?.46f:.48f;
+            bool linear=prefab.name=="EdgeGlow_10"||prefab.name=="EdgeGlow_11"||prefab.name=="EdgeGlow_19";
+            var go=Effect(prefab,0,0,84,grade,strength,true,root.transform);
+            var images=go.GetComponentsInChildren<Image>(true);
+            foreach(var image in images){
+                var m=image.material;
+                if(m.HasProperty("_XThicknessScaleFactor"))m.SetFloat("_XThicknessScaleFactor",1);
+                if(m.HasProperty("_DistortionIntensity"))m.SetFloat("_DistortionIntensity",Mathf.Min(4.2f,m.GetFloat("_DistortionIntensity")*.28f));
+                if(m.HasProperty("_Thickness"))m.SetFloat("_Thickness",linear?.045f:Mathf.Clamp(m.GetFloat("_Thickness")*.65f,.004f,.009f));
+                if(m.HasProperty("_EdgeBlur"))m.SetFloat("_EdgeBlur",linear?.08f:Mathf.Min(.32f,m.GetFloat("_EdgeBlur")*.40f));
+                if(m.HasProperty("_Color"))m.SetColor("_Color",Color.white);
+                if(m.HasProperty("_MainTexScaleOffset")&&m.GetTexture("_MainTex")&&m.GetTexture("_MainTex").name.StartsWith("Projectile_",StringComparison.Ordinal)){
+                    // A projectile's bright axis is at U=.5; place it on the square rim.
+                    var uv=m.GetVector("_MainTexScaleOffset");uv.x=3;uv.z=-2.5f;m.SetVector("_MainTexScaleOffset",uv);
+                    m.SetFloat("_RadialUV_Power",1);m.SetFloat("_ScrollSpeed_X",0);
+                }
+                if(!m.HasProperty("_ColorIntensity")){var color=image.color;color.a=strength;image.color=color;}
+                if(image.transform!=go.transform){var r=image.rectTransform;r.anchorMin=Vector2.zero;r.anchorMax=Vector2.one;r.offsetMin=Vector2.zero;r.offsetMax=Vector2.zero;r.localScale=Vector3.one;r.localRotation=Quaternion.identity;}
+            }
+            if(linear){
+                // Linear lightning presets become four connected rim strips at the real slot size.
+                var templates=images.Select(i=>new{material=i.material,color=i.color}).ToArray();
+                Object.DestroyImmediate(go);
+                for(int edge=0;edge<4;edge++)foreach(var template in templates){
+                    var bolt=new GameObject("Rim lightning "+edge,typeof(RectTransform),typeof(Image));bolt.transform.SetParent(root.transform,false);
+                    var image=bolt.GetComponent<Image>();image.material=template.material;image.color=template.color;image.raycastTarget=false;
+                    var r=image.rectTransform;r.anchorMin=r.anchorMax=r.pivot=new Vector2(.5f,.5f);r.sizeDelta=new Vector2(10,76);
+                    r.anchoredPosition=edge==0?new Vector2(-37,0):edge==1?new Vector2(37,0):edge==2?new Vector2(0,37):new Vector2(0,-37);
+                    r.localRotation=Quaternion.Euler(0,0,edge<2?0:90);
+                }
+            }
+        }
+
         public void ClockMaterials(){
             foreach(var image in canvas.GetComponentsInChildren<Image>(true)){
                 if(!image.material||image.material.shader.name=="UI/Default")continue;
@@ -174,13 +239,15 @@ public static class EdgeEffectsIconReviewBuilder
                     if(ShaderUtil.ShaderHasError(clock))throw new InvalidOperationException("Clock shader failed: "+path);
                     clocks.Add(shader,clock);owned.Add(clock);
                 }
-                var mat=new Material(original){shader=clock,hideFlags=HideFlags.HideAndDontSave,name="Capture clock "+original.name};owned.Add(mat);timed.Add(mat);image.material=mat;
+                var mat=new Material(original){shader=clock,hideFlags=HideFlags.HideAndDontSave,name="Capture clock "+original.name};owned.Add(mat);timed.Add(mat);timedImages.Add(image);image.material=mat;
             }
         }
         public void SaveFrame(string path,float seconds){
             foreach(var mat in timed)mat.SetVector("_EdgeCaptureTime",new Vector4(seconds/20,seconds,seconds*2,seconds*3));
             foreach(var t in canvas.GetComponentsInChildren<Transform>(true))t.gameObject.layer=30;
-            Canvas.ForceUpdateCanvases();camera.Render();
+            Canvas.ForceUpdateCanvases();
+            foreach(var image in timedImages)if(image&&image.materialForRendering)image.materialForRendering.SetVector("_EdgeCaptureTime",new Vector4(seconds/20,seconds,seconds*2,seconds*3));
+            camera.Render();
             Texture2D pixels=null;
             try{RenderTexture.active=target;pixels=new Texture2D(width,height,TextureFormat.RGBA32,false);pixels.ReadPixels(new Rect(0,0,width,height),0,0);pixels.Apply();File.WriteAllBytes(path,pixels.EncodeToPNG());}
             finally{RenderTexture.active=previous;if(pixels)Object.DestroyImmediate(pixels);}
@@ -189,7 +256,7 @@ public static class EdgeEffectsIconReviewBuilder
             RenderTexture.active=previous;if(camera)camera.targetTexture=null;
             if(target){target.Release();Object.DestroyImmediate(target);}
             if(scene.IsValid()){if(persist)EditorSceneManager.CloseScene(scene,true);else EditorSceneManager.ClosePreviewScene(scene);}
-            foreach(var o in owned)if(o)Object.DestroyImmediate(o);owned.Clear();timed.Clear();clocks.Clear();neutralTextures.Clear();
+            foreach(var o in owned)if(o)Object.DestroyImmediate(o);owned.Clear();timed.Clear();timedImages.Clear();clocks.Clear();neutralTextures.Clear();
             if(!beforeRadial){var sprite=(Sprite)radial.GetValue(null);if(sprite){var tex=sprite.texture;Object.DestroyImmediate(sprite);if(tex)Object.DestroyImmediate(tex);}radial.SetValue(null,null);}
         }
     }
@@ -258,6 +325,80 @@ public static class EdgeEffectsIconReviewBuilder
         File.WriteAllText(Output+"/data/"+kind+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",kind,frames,fps=20,width,height,source="Native Unity preview scene with supplier shaders and material clock substitution only",items=items.Select(i=>new{name=i.itemName,path=AssetDatabase.GetAssetPath(i),icon=AssetDatabase.GetAssetPath(i.icon)}),currentMode=ExperimentalSlotOutlineModeState.CurrentMode.ToString(),sharedScenePreserved=true,cleanup=true},Newtonsoft.Json.Formatting.Indented));
         return "PASS: "+kind+" "+frames+" native frames; preview scene and temporary materials removed";
     }
+
+    const string MatrixOutput=Output+"/GradeMatrixV2";
+    static readonly ItemGrade[] MatrixGrades={ItemGrade.Common,ItemGrade.Uncommon,ItemGrade.Rare,ItemGrade.Epic,ItemGrade.Legendary,ItemGrade.Artifact,ItemGrade.Mythic,ItemGrade.Cursed};
+    static readonly string[] MatrixLabels={"일반","비범","희귀","영웅","전설","유물","신화","저주"};
+    public static string PreviewGradeMatrix(){return CaptureGradeMatrix(1,0);}
+    [MenuItem("OVERBURST/UI/Edge Effects/Capture All Grade Rows")]
+    public static void CaptureAllGradeRowsMenu(){Debug.Log(QueueGradeMatrix());}
+    const string MatrixPending="OVERBURST.EdgeEffectsReview.MatrixPending";
+    [InitializeOnLoadMethod]
+    static void ResumeMatrixCapture(){
+        if(SessionState.GetBool(MatrixPending,false)){EditorApplication.update-=RunPendingMatrix;EditorApplication.update+=RunPendingMatrix;}
+    }
+    public static string QueueGradeMatrix(){
+        Directory.CreateDirectory(MatrixOutput+"/data");
+        SessionState.SetBool(MatrixPending,true);SessionState.SetString(MatrixPending+".expires",DateTime.UtcNow.AddMinutes(20).ToString("o"));
+        File.WriteAllText(MatrixOutput+"/data/queue.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="QUEUED",expires=SessionState.GetString(MatrixPending+".expires","")},Newtonsoft.Json.Formatting.Indented));
+        EditorApplication.update-=RunPendingMatrix;EditorApplication.update+=RunPendingMatrix;
+        return "QUEUED: capture runs only in idle EditMode, resumes after reload, expires in 20 minutes";
+    }
+    static void RunPendingMatrix(){
+        if(!SessionState.GetBool(MatrixPending,false)){EditorApplication.update-=RunPendingMatrix;return;}
+        DateTime expires;
+        if(!DateTime.TryParse(SessionState.GetString(MatrixPending+".expires",""),null,System.Globalization.DateTimeStyles.RoundtripKind,out expires)||DateTime.UtcNow>expires){
+            CancelMatrixCapture();File.WriteAllText(MatrixOutput+"/data/queue.json","{\"status\":\"EXPIRED\"}");return;
+        }
+        if(Busy())return;
+        EditorApplication.update-=RunPendingMatrix;
+        try{
+            string result=CaptureGradeMatrix();
+            File.WriteAllText(MatrixOutput+"/data/queue.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status=result.StartsWith("PASS")?"PASS":"FAIL",result},Newtonsoft.Json.Formatting.Indented));
+        }catch(Exception exception){
+            File.WriteAllText(MatrixOutput+"/data/queue.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="FAIL",error=exception.ToString()},Newtonsoft.Json.Formatting.Indented));Debug.LogException(exception);
+        }finally{CancelMatrixCapture();}
+    }
+    public static void CancelMatrixCapture(){EditorApplication.update-=RunPendingMatrix;SessionState.SetBool(MatrixPending,false);SessionState.EraseString(MatrixPending+".expires");}
+    public static string CaptureGradeMatrix(){return CaptureGradeMatrix(90,-1);}
+    public static string CaptureGradeMatrixWeapons(){return CaptureGradeMatrix(90,0);}
+    static string CaptureGradeMatrix(int frames,int onlyItem){
+        if(Busy())return "DEFERRED: Editor busy; nothing created";
+        var before=SharedScenes();var active=SceneManager.GetActiveScene();var effects=Effects();var items=Items();
+        if(effects.Length!=20)throw new InvalidOperationException("Expected 20 presets");
+        var records=new List<object>();int count=0;
+        for(int itemIndex=0;itemIndex<items.Length;itemIndex++){
+            if(onlyItem>=0&&onlyItem!=itemIndex)continue;
+            for(int batch=0;batch<4;batch++){
+                string name="item"+itemIndex+"-batch"+batch;string folder=MatrixOutput+"/media/frames/"+name;Directory.CreateDirectory(folder);
+                using(var board=new Board(1280,1050)){
+                    board.captionFont=Font.CreateDynamicFontFromOSFont("Malgun Gothic",20);board.owned.Add(board.captionFont);
+                    board.Caption("OVERBURST   /   "+items[itemIndex].itemName,28,20,1200,26);
+                    board.Caption("같은 아이콘 · 실제 등급색 · 84px 슬롯 기준 / 일반은 게임 기준대로 효과 없음",28,61,1200,16);
+                    for(int col=0;col<MatrixGrades.Length;col++){
+                        board.Caption(MatrixLabels[col],130+col*143,107,120,18,GradeConfig.GetGradeColor(MatrixGrades[col]));
+                        board.canvas.transform.GetChild(board.canvas.transform.childCount-1).GetComponent<Text>().alignment=TextAnchor.UpperCenter;
+                    }
+                    for(int row=0;row<5;row++){
+                        int effectIndex=batch*5+row;float y=144+row*178;
+                        board.Panel(20,y,1240,164);board.Caption("효과 "+(effectIndex+1).ToString("D2"),32,y+52,95,17);board.Caption(effects[effectIndex].name.Replace("EdgeGlow_",""),32,y+82,95,13);
+                        for(int col=0;col<MatrixGrades.Length;col++){
+                            var slot=board.ItemSlot(items[itemIndex],MatrixGrades[col],130+col*143,y+21,1.42f);board.FittedEffect(effects[effectIndex],slot,MatrixGrades[col]);count++;
+                        }
+                    }
+                    board.ClockMaterials();
+                    for(int f=0;f<frames;f++)board.SaveFrame(folder+"/"+f.ToString("D4")+".png",2f+f/15f);
+                }
+                records.Add(new{name,itemIndex,batch,item=items[itemIndex].itemName,frames,fps=15,width=1280,height=1050,presets=effects.Skip(batch*5).Take(5).Select(e=>e.name).ToArray(),rowY=144,rowStep=178,rowHeight=164});
+            }
+        }
+        if(SceneManager.GetActiveScene()!=active)SceneManager.SetActiveScene(active);
+        if(!before.SequenceEqual(SharedScenes()))throw new InvalidOperationException("Shared scenes changed during matrix capture");
+        Directory.CreateDirectory(MatrixOutput+"/data");
+        File.WriteAllText(MatrixOutput+"/data/"+(frames==1?"preview":onlyItem>=0?"weapons":"matrix")+"-capture.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{status="PASS",frames,fps=15,slots=count,records,grades=MatrixLabels,gradeValues=MatrixGrades.Select(g=>g.ToString()).ToArray(),sameArtworkAcrossGrades=true,source="Native Unity supplier shaders on the real slot prefab; rim stencil and per-family fitting; deterministic material clock",commonHasEffect=false,typeAndElementBadges=true,sharedScenePreserved=true,temporaryResourcesDisposed=true},Newtonsoft.Json.Formatting.Indented));
+        return "PASS: grade matrix "+records.Count+" boards; "+count+" same-artwork grade slots; preview resources removed";
+    }
+
     public static string BuildReview(){
         if(Busy())return "DEFERRED: Editor busy; nothing created";
         var before=SharedScenes();var active=SceneManager.GetActiveScene();EnsureFolder(Path.GetDirectoryName(ReviewScene).Replace('\\','/'));
