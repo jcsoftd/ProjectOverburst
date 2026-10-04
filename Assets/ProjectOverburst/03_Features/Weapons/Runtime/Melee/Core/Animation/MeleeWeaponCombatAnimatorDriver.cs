@@ -145,6 +145,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         CaptureBaseAnimatorController();
         ApplyCurrentProfile();
         ResolveLayerIndex();
+        InitializeFacing();
     }
 
     private void Awake()
@@ -395,6 +396,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
 
     public void ForceResetLayer()
     {
+        ResetFacingMotion();
         dodgeLightRecoveryBlendUntil = 0f;
         RestoreHeavyParryClock();
         dodgeLightPreviewPlaying = false;
@@ -426,6 +428,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
             return;
 
         activeProfile = profile;
+        ResetFacingMotion();
         profileApplied = true;
         layerName = profile.animatorLayerName;
         transitionLowerLayerName = profile.transitionLowerLayerName;
@@ -699,6 +702,7 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
 
     private void PlayLocomotionByGuardState(float transitionDuration, bool realTimeTransition = false)
     {
+        if (TryPlayDetailedLocomotion(transitionDuration)) return;
         bool targetGuard = playerMovement != null && playerMovement.IsMeleeGuarding;
         string stateName = targetGuard
             ? guardLocomotionStateName
@@ -802,12 +806,17 @@ public partial class MeleeWeaponCombatAnimatorDriver : MonoBehaviour, IWeaponCom
         float normalizedStartTime,
         float clipLength = 1f)
     {
+        bool carryAim = action == DriverAction.Attack && facingController != null
+            && facingController.IsPoseActive && facingController.IsStationaryPose;
+        if (!carryAim) facingController?.CancelAttackPoseBlend();
+        ResetFacingMotion();
         if (action != DriverAction.Parry && action != DriverAction.Attack)
             RestoreHeavyParryClock();
         if (!PlayState(layerIndex, layerName, stateName, Mathf.Max(0f, transitionDuration), normalizedStartTime, clipLength))
             return;
 
         activeAction = action;
+        if (carryAim) facingController.BeginAttackPoseBlend(transitionDuration);
         dodgeLightRecoveryBlendUntil = 0f;
         activeActionEndTime = Time.time + Mathf.Max(0.01f, duration);
     }

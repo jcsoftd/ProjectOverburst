@@ -209,6 +209,7 @@ public partial class PlayerMovement
 
     public void ResetMotionAfterTeleport()
     {
+        combatFacingController?.ResetAfterTeleport();
         GetComponent<PlayerKnockdownController>()?.ResetReaction();
         Stop();
         if (characterMotor != null)

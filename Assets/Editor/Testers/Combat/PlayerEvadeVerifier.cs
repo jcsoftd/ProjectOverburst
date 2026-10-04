@@ -64,6 +64,7 @@ public static partial class PlayerEvadeVerifier
 
     static PlayerEvadeVerifier()
     {
+        ResumeFacingQueue();
         if (!string.IsNullOrEmpty(SessionState.GetString(PendingKey, ""))) EditorApplication.update += AutoBegin;
         if (!string.IsNullOrEmpty(SessionState.GetString(ReturnKey, "")))
         {
@@ -138,6 +139,7 @@ public static partial class PlayerEvadeVerifier
             && !Path.GetFullPath(current).StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
         ClearPending(); SessionState.EraseBool(PendingKey + ".LightOnly");
         SessionState.EraseBool(SwordIdleVerificationKey);
+        SessionState.EraseBool(SwordFacingVerificationKey);
         SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
         SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
@@ -553,6 +555,16 @@ public static partial class PlayerEvadeVerifier
 
     static IEnumerator Run()
     {
+        if (SessionState.GetBool(SwordFacingVerificationKey, false))
+        {
+            float bootLimit = Time.unscaledTime + 25f;
+            while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
+                || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)
+                && Time.unscaledTime < bootLimit) yield return null;
+            Check(PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching
+                && PersistentSceneFlow.Instance.CurrentSubSceneName == PersistentSceneFlow.HideoutSceneName,
+                "턴 검증 실제 Hideout 로딩 완료");
+        }
         actor = PlayerContext.GetOrCreate().CurrentActor; input = PlayerInputFacade.Current;
         evade = actor.GetComponent<PlayerEvadeController>(); melee = actor.GetComponent<MeleeRuntime>(); movement = actor.GetComponent<PlayerMovement>();
         animator = actor.GetComponentInChildren<Animator>(true); var ui = EnemyThemeTrialHarness.Current;
@@ -579,6 +591,12 @@ public static partial class PlayerEvadeVerifier
             blocker = new GameObject("OwnedEvadeInputBlocker");
             evade.OnEvadeStarted += Started; evade.OnEvadeEnded += Ended;
             poseProbe = blocker.AddComponent<PlayerEvadePoseProbe>(); poseProbe.animator = animator;
+            if (SessionState.GetBool(SwordFacingVerificationKey, false))
+            {
+                SessionState.EraseBool(SwordFacingVerificationKey);
+                yield return VerifySwordFacingGameplay();
+                yield break;
+            }
             if (SessionState.GetBool(SwordIdleVerificationKey, false))
             {
                 SessionState.EraseBool(SwordIdleVerificationKey);

@@ -43,14 +43,15 @@ MonoBehaviour:
   unequipClip: {fileID: 7400000, guid: 9bf9b79b33baa79488644161cfa12aa8, type: 3}
   combatIdleClip: {fileID: 7400000, guid: cc4d61713745c3143a25f9b7d3053f40, type: 2}
   locomotion:
-    forward: {fileID: 7400000, guid: 44414a149a628da4487ab5c9d6687dce, type: 3}
-    backward: {fileID: 7400000, guid: 4891fbabfe9055e42a6fe2c8544c1278, type: 3}
-    left: {fileID: 7400000, guid: b9bf2424b271bc04d95a1a2c5012c600, type: 3}
-    right: {fileID: 7400000, guid: e2daf80f60ff831468028b4ae4d00caf, type: 3}
-    forwardLeft: {fileID: 7400000, guid: 4fe70c7c2cd2bc449beca070dd3c28e7, type: 3}
-    forwardRight: {fileID: 7400000, guid: 924abf1e7042bfa47927fa46f1584dbf, type: 3}
-    backwardLeft: {fileID: 7400000, guid: c8392779d5048474a97af66a16edeae9, type: 3}
-    backwardRight: {fileID: 7400000, guid: 6cf98b2c372e99f499d1ac9d3ffd84be, type: 3}
+    forward: {fileID: 7400000, guid: ceb3d3df867b77d4686f0e93634c0436, type: 2}
+    backward: {fileID: 7400000, guid: fbd3a0c8b85e946459b41d7ff670a5a9, type: 2}
+    left: {fileID: 7400000, guid: 9ea420b25f177d8409ba351a0624eb3c, type: 2}
+    right: {fileID: 7400000, guid: 4718395f7ab08b24fa3c56f563ed068b, type: 2}
+    forwardLeft: {fileID: 7400000, guid: 7a9b6c10a831ac24daed63f686c663d3, type: 2}
+    forwardRight: {fileID: 7400000, guid: 19488e3065e8b384b8fdf2fe3274135f, type: 2}
+    backwardLeft: {fileID: 7400000, guid: 997a1b4545be0bf4da240685677a34a0, type: 2}
+    backwardRight: {fileID: 7400000, guid: fc309ee7be986bb4698706ea3f399517, type: 2}
+  combatLocomotionSet: {fileID: 11400000, guid: 721bf97405327b74da4f052e61b3303a, type: 2}
   guardIdleClip: {fileID: 1827226128182048838, guid: fbabf70af34fcc54a950bb3ea45ef7f5, type: 3}
   guardLocomotion:
     forward: {fileID: 1827226128182048838, guid: fbabf70af34fcc54a950bb3ea45ef7f5, type: 3}

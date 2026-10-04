@@ -53,6 +53,7 @@ public partial class PlayerMovement
         if (!MeleeAimCalculator.TryGetMouseDirectionFromPlayer(transform, meleeAimCamera, out Vector3 direction))
             return;
 
+        if (combatFacingController != null && combatFacingController.AcceptAim(direction)) return;
         RotateToDirection(direction, meleeFacingRotationSpeed);
     }
 

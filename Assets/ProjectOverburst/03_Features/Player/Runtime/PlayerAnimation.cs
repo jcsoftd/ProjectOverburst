@@ -126,10 +126,12 @@ public partial class PlayerAnimation : MonoBehaviour // 플레이어 애니
     private float meleeFullBodyRestoreTime;
 
     private PlayerCombatModeController combatModeController;
+    private PlayerCombatFacingController combatFacing;
 
     private void Awake()
     {
         playerController = GetComponent<PlayerMovement>(); // 이동 컨트롤러
+        combatFacing = GetComponent<PlayerCombatFacingController>();
 
         RefreshAnimatorReference();
 

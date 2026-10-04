@@ -43,6 +43,7 @@ public sealed class PlayerFootLock : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float positionWeight = 1f;
     [SerializeField, Range(0f, 1f)] private float rotationWeight = 1f;
     [Header("Combat Idle Only")]
+    [SerializeField] private bool enableCombatIdleFootIk;
     [SerializeField, Range(0f, .25f)] private float combatIdlePositionWeight = .2f;
     [SerializeField, Min(0f)] private float combatIdleMaxPositionCorrection = .005f;
 
@@ -130,6 +131,13 @@ public sealed class PlayerFootLock : MonoBehaviour
 
     private void OnAnimatorIK(int layerIndex)
     {
+        if (targetAnimator != null && playerMovement != null && playerMovement.IsMeleeCombatLocomotionMode
+            && !enableCombatIdleFootIk)
+        {
+            ReleaseFootImmediately(leftFoot);
+            ReleaseFootImmediately(rightFoot);
+            return;
+        }
         if (playerMovement != null && playerMovement.IsKnockedDown)
         {
             targetAnimator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 0);

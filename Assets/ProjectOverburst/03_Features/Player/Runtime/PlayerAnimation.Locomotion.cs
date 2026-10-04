@@ -13,7 +13,10 @@ public partial class PlayerAnimation
         if (!playerController.IsCombatMoveMode)
             return new Vector2(0f, Mathf.Clamp01(playerController.MoveInput.magnitude));
 
-        Vector3 localMove = transform.InverseTransformDirection(playerController.MoveDirection); // 로컬 이동
+        var facing = combatFacing;
+        Vector3 localMove = facing != null && facing.IsPoseActive
+            ? Quaternion.Inverse(Quaternion.Euler(0, facing.LowerYaw, 0)) * playerController.MoveDirection
+            : transform.InverseTransformDirection(playerController.MoveDirection);
 
         return Vector2.ClampMagnitude(new Vector2(localMove.x, localMove.z), 1f);
     }

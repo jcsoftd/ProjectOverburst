@@ -147,6 +147,8 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     public AnimationClip combatIdleClip;
     [InspectorName("8방향 이동")]
     public DirectionalAnimationSet8 locomotion;
+    [InspectorName("실시간 조준과 전투 턴/시작/정지 세트")]
+    public CombatLocomotionSet combatLocomotionSet;
     [InspectorName("가드 대기")]
     public AnimationClip guardIdleClip;
     [InspectorName("가드 4방향 이동")]

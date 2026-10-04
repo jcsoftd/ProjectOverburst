@@ -1,0 +1,5 @@
+# Licensed animation copies; restore their GUIDs with the private UnityPackage.
+*.anim
+*.anim.meta
+SwordCombatLocomotion.asset
+SwordCombatLocomotion.asset.meta

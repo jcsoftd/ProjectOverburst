@@ -23,6 +23,7 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
     [SerializeField] private PlayerMovementInputSource movementInputSource;
     [SerializeField] private OverburstCharacterMotor3D characterMotor;
     [SerializeField] private PlayerLocomotion locomotion;
+    private PlayerCombatFacingController combatFacingController;
     [SerializeField] private CombatMotionDriver combatMotion;
 
     [Header("Character Controller")]
@@ -283,6 +284,8 @@ public partial class PlayerMovement : MonoBehaviour, IActorMotor // 공용 이�
 
     private void Awake()
     {
+        combatFacingController = GetComponent<PlayerCombatFacingController>();
+        if (combatFacingController == null) combatFacingController = gameObject.AddComponent<PlayerCombatFacingController>();
         knockdownController = GetComponent<PlayerKnockdownController>();
         if (characterMotor == null)
             characterMotor = GetComponent<OverburstCharacterMotor3D>();

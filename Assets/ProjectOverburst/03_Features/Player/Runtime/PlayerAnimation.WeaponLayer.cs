@@ -61,6 +61,8 @@ public partial class PlayerAnimation
 
     private void ApplyMeleeAimUpperBodyYawOffset()
     {
+        var facing = combatFacing;
+        if (facing != null && facing.Set != null) return;
         float yawOffset = GetCurrentMeleeAimUpperBodyYawOffset();
         if (!useMeleeAimUpperBodyYawOffset || Mathf.Approximately(yawOffset, 0f))
             return;
