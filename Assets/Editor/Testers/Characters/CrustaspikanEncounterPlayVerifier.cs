@@ -26,6 +26,7 @@ public static class CrustaspikanEncounterPlayVerifier
     private static bool dodgeRequested;
     private static bool movedOut;
     private static int dropCount;
+    private static readonly List<KeyValuePair<Behaviour,bool>> cameraDrivers=new List<KeyValuePair<Behaviour,bool>>();
     static CrustaspikanEncounterPlayVerifier(){EditorApplication.update+=Update;EditorApplication.playModeStateChanged+=Changed;}
     public static string Start(string directory)
     {
@@ -74,6 +75,12 @@ public static class CrustaspikanEncounterPlayVerifier
             case 0:
                 if(host?.Entrance==null || !host.CanEnter)return;
                 player=PlayerContext.Instance.CurrentActor;oldCamera=Camera.main;originalHp=player.Health.CurrentHp;
+                cameraDrivers.Clear();
+                var oldBrain=oldCamera.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+                if(oldBrain!=null)cameraDrivers.Add(new KeyValuePair<Behaviour,bool>(oldBrain,oldBrain.enabled));
+                foreach(var quarter in UnityEngine.Object.FindObjectsByType<QuarterViewCamera>(FindObjectsSortMode.None))
+                    if(quarter.GetComponent<Camera>()==oldCamera || quarter.CinemachineRig?.Brain==oldBrain && oldBrain!=null)
+                        cameraDrivers.Add(new KeyValuePair<Behaviour,bool>(quarter,quarter.enabled));
                 originalLeases=EnemySpawnService.Current!=null?EnemySpawnService.Current.Pool.LeasedCount:0;
                 Teleport(host.Entrance.transform.position+Vector3.back);entryPosition=player.transform.position;
                 Check(host.Entrance.TryInteract(player)==InteractionExecutionResult.StartedTransition,"entrance uses shared interaction contract");
@@ -91,7 +98,17 @@ public static class CrustaspikanEncounterPlayVerifier
                 var executor=encounter.Brain.Actor.GetComponent<EnemyBossMaterialExecutor>();
                 if(Age<10f || executor.ImpactCount+encounter.Brain.Composite.ReleaseCount<1 && Age<24f)return;
                 Check(encounter.Brain.PatternCount>0 && executor.ImpactCount+encounter.Brain.Composite.ReleaseCount>0,"automatic BT starts and releases real attacks");
-                encounter.ClearSummons();
+                var cachedAim = new SerializedObject(player.GetComponent<MeleeRuntime>()).FindProperty("attackCamera").objectReferenceValue as Camera;
+                foreach (var offset in new[] {Vector3.forward*8f,Vector3.right*8f,Vector3.left*8f})
+                {
+                    var pointer=Camera.main.WorldToScreenPoint(player.transform.position+offset);
+                    Check(MeleeAimCalculator.TryGetDirectionFromPlayer(player.transform,cachedAim,new Vector2(pointer.x,pointer.y),.01f,out var direction)
+                        && Vector3.Dot(direction,offset.normalized)>.999f,"cached melee camera matches battle pointer direction "+offset);
+                }
+                var cachedMovement = new SerializedObject(player.Movement).FindProperty("movementCamera").objectReferenceValue as Transform;
+                Check(Vector3.Dot(cachedMovement.forward,Camera.main.transform.forward)>.999f,"cached movement camera matches battle axes");
+                // 자동 첫 공격이 남긴 재료별 쿨다운도 격리한다. 게임의 쿨다운 규칙은 우회하지 않는다.
+                encounter.Restart();
                 player.GetComponent<MeleeRuntime>().CancelCurrentAction();
                 var sword=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
                 Check(player.Equipment.EquipWeaponItem(new ItemData(sword,1,ItemGrade.Common)),"isolated player equips actual greatsword");
@@ -187,6 +204,7 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(host.ActiveEncounter==null && host.Entrance.gameObject.activeSelf,"return reactivates entrance");
                 Check(Vector3.Distance(player.transform.position,entryPosition)<.2f,"return restores entry position");
                 Check(Camera.main==oldCamera && oldCamera.enabled,"return restores main camera");
+                Check(cameraDrivers.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"return restores original camera drivers");
                 Check(!player.Health.IsDeathFromDamagePrevented,"encounter death protection released");
                 Check((EnemySpawnService.Current!=null?EnemySpawnService.Current.Pool.LeasedCount:0)==originalLeases,"owned actors returned to shared pool");
                 Check(player.Health.CurrentHp>=originalHp,"practice damage healed on return");Finish("PASS","");break;

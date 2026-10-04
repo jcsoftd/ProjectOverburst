@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // 무대/카메라/풀 수명만 소유하며, 분사와 토출/발굴/투척은 검증된 실제 재료 실행기를 재사용한다.
+[DefaultExecutionOrder(10000)]
 public sealed class CrustaspikanEncounter : MonoBehaviour
 {
     public CrustaspikanEncounterSettings Settings { get; private set; }
@@ -21,6 +22,14 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     private CrustaspikanEncounterHud hud;
     private Camera previousCamera, battleCamera;
     private bool previousCameraEnabled, exiting;
+    private Vector3 previousCameraPosition;
+    private Quaternion previousCameraRotation;
+    private Matrix4x4 previousProjection;
+    private Rect previousPixelRect;
+    private float previousFov, previousNear, previousFar, previousAspect;
+    private bool previousOrthographic;
+    private bool previousAutomaticProjection;
+    private readonly List<Behaviour> pausedCameraDrivers = new List<Behaviour>();
     private readonly List<AudioListener> oldListeners = new List<AudioListener>();
     private readonly Dictionary<EnemyActor, bool> oldLoot = new Dictionary<EnemyActor, bool>();
     private readonly Dictionary<EnemyActor, uint> leases = new Dictionary<EnemyActor, uint>();
@@ -92,13 +101,31 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     private void SetupCamera()
     {
         previousCamera = Camera.main; previousCameraEnabled = previousCamera != null && previousCamera.enabled;
-        if (previousCamera != null) previousCamera.enabled = false;
+        if (previousCamera != null)
+        {
+            previousCameraPosition = previousCamera.transform.position; previousCameraRotation = previousCamera.transform.rotation;
+            previousProjection = previousCamera.projectionMatrix; previousPixelRect = previousCamera.pixelRect;
+            previousFov = previousCamera.fieldOfView; previousNear = previousCamera.nearClipPlane; previousFar = previousCamera.farClipPlane;
+            previousAspect = previousCamera.aspect; previousOrthographic = previousCamera.orthographic;
+            var defaultProjection = previousOrthographic
+                ? Matrix4x4.Ortho(-previousCamera.orthographicSize * previousAspect, previousCamera.orthographicSize * previousAspect,
+                    -previousCamera.orthographicSize, previousCamera.orthographicSize, previousNear, previousFar)
+                : Matrix4x4.Perspective(previousFov, previousAspect, previousNear, previousFar);
+            previousAutomaticProjection = true;
+            for (int i = 0; i < 16; i++) if (Mathf.Abs(previousProjection[i] - defaultProjection[i]) > .0001f) previousAutomaticProjection = false;
+            var brain = previousCamera.GetComponent<Unity.Cinemachine.CinemachineBrain>();
+            foreach (var quarter in FindObjectsByType<QuarterViewCamera>(FindObjectsSortMode.None))
+                if (quarter.GetComponent<Camera>() == previousCamera || quarter.CinemachineRig?.Brain == brain && brain != null) PauseDriver(quarter);
+            PauseDriver(brain); previousCamera.enabled = false;
+        }
         foreach (var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
             if (listener.enabled) { oldListeners.Add(listener); listener.enabled = false; }
         var go = new GameObject("Crustaspikan Battle Camera"); go.transform.SetParent(transform, false); go.tag = "MainCamera";
         battleCamera = go.AddComponent<Camera>(); battleCamera.fieldOfView = 50; battleCamera.nearClipPlane = .1f; battleCamera.farClipPlane = 180;
         battleCamera.backgroundColor = new Color(.04f, .05f, .07f); battleCamera.clearFlags = CameraClearFlags.Skybox; go.AddComponent<AudioListener>();
     }
+    private void PauseDriver(Behaviour driver)
+    { if (driver != null && driver.enabled) { pausedCameraDrivers.Add(driver); driver.enabled = false; } }
     private void LateUpdate()
     {
         if (exiting || battleCamera == null || player == null) return;
@@ -107,6 +134,15 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         focus.y = ArenaCenter.y + 2f;
         Vector3 position = focus + new Vector3(0, 31, -30);
         battleCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
+        // 플레이어의 기존 카메라 캐시는 유지하고, 보이는 화면과 같은 마우스 ray/이동 축을 제공한다.
+        if (previousCamera != null)
+        {
+            previousCamera.transform.SetPositionAndRotation(battleCamera.transform.position, battleCamera.transform.rotation);
+            previousCamera.orthographic = battleCamera.orthographic; previousCamera.fieldOfView = battleCamera.fieldOfView;
+            previousCamera.nearClipPlane = battleCamera.nearClipPlane; previousCamera.farClipPlane = battleCamera.farClipPlane;
+            previousCamera.aspect = battleCamera.aspect; previousCamera.pixelRect = battleCamera.pixelRect;
+            previousCamera.projectionMatrix = battleCamera.projectionMatrix;
+        }
     }
     private void Update()
     {
@@ -165,7 +201,17 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         if (exiting) return; exiting = true; ClearCombat();
         if (player != null) { player.Health.SetDamageDeathPrevention(this, false); if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); } }
         if (battleCamera != null) { battleCamera.enabled = false; var listener = battleCamera.GetComponent<AudioListener>(); if (listener != null) listener.enabled = false; }
-        if (previousCamera != null) previousCamera.enabled = previousCameraEnabled;
+        if (previousCamera != null)
+        {
+            previousCamera.transform.SetPositionAndRotation(previousCameraPosition, previousCameraRotation);
+            previousCamera.orthographic = previousOrthographic; previousCamera.fieldOfView = previousFov;
+            previousCamera.nearClipPlane = previousNear; previousCamera.farClipPlane = previousFar;
+            previousCamera.aspect = previousAspect; previousCamera.pixelRect = previousPixelRect; previousCamera.projectionMatrix = previousProjection;
+            if (previousAutomaticProjection) previousCamera.ResetProjectionMatrix();
+            previousCamera.enabled = previousCameraEnabled;
+        }
+        foreach (var driver in pausedCameraDrivers) if (driver != null) driver.enabled = true;
+        pausedCameraDrivers.Clear();
         foreach (var listener in oldListeners) if (listener != null) listener.enabled = true;
         oldListeners.Clear(); host?.OnExit(this); Destroy(gameObject);
     }
