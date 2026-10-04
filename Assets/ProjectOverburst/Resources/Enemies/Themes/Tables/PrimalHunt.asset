@@ -17,18 +17,34 @@ MonoBehaviour:
   entries:
   - definition: {fileID: 11400000, guid: 929ea20f8561197468ee5338b5fd42a3, type: 2}
     tier: 0
-    weight: 30
+    weight: 1
+  - definition: {fileID: 11400000, guid: 9634f4999bb55894b8d54cecc65bd40c, type: 2}
+    tier: 0
+    weight: 1
   - definition: {fileID: 11400000, guid: aafb8628bea9d7d40bca6c787790efd7, type: 2}
     tier: 1
     weight: 1
   - definition: {fileID: 11400000, guid: 350743b12ea973147b5a9c7badcf0a01, type: 2}
     tier: 1
     weight: 1
-  - definition: {fileID: 11400000, guid: 506de4abb08bc5f45bf213cb083cfb2d, type: 2}
+  - definition: {fileID: 11400000, guid: 6b8e26b8de7290b4c8ae4da20e176db4, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 0d033d46224c756448dc9efd99b44b5e, type: 2}
     tier: 2
     weight: 1
-  - definition: {fileID: 11400000, guid: 9634f4999bb55894b8d54cecc65bd40c, type: 2}
+  - definition: {fileID: 11400000, guid: 8e4bcaf417690be448108829af6327c8, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: dc3ff0b938b7edc4cbdff01864f70bd7, type: 2}
     tier: 0
-    weight: 10
+    weight: 1
+  - definition: {fileID: 11400000, guid: 8202fd2d1a3058d4ab69f0f58f5bfd0a, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 4c0e9b065080c6149997ce298a0f15f8, type: 2}
+    tier: 1
+    weight: 1
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 1, g: 0.3, b: 0.15, a: 1}
+  approvedRosterLocked: 1

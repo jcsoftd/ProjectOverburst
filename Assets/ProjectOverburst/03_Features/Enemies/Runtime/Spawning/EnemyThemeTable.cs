@@ -18,6 +18,8 @@ public sealed class EnemyThemeTable : ScriptableObject
     [SerializeField] private Entry[] entries;
     [SerializeField] private EnemyCatalog catalog;
     [SerializeField] private Color accent = Color.cyan;
+    [SerializeField] private bool approvedRosterLocked;
+    public bool IsApprovedRosterLocked => approvedRosterLocked;
     public string ThemeId => themeId;
     public string DisplayName => displayName;
     public Color Accent => accent;
@@ -26,9 +28,31 @@ public sealed class EnemyThemeTable : ScriptableObject
 
     public void Configure(string id, string label, EnemyCatalog sourceCatalog, Color color, Entry[] roster)
     {
+        if (approvedRosterLocked && (id != themeId || sourceCatalog != catalog || !SameMembership(roster)))
+            throw new InvalidOperationException("승인 테마 편성은 V3 테마 적용 도구로 변경해야 합니다.");
+        WriteRoster(id, label, sourceCatalog, color, roster);
+    }
+
+    private bool SameMembership(Entry[] incoming)
+    {
+        if (incoming == null || incoming.Length != Entries.Count) return false;
+        var seen = new HashSet<EnemyDefinition>();
+        foreach (var row in incoming)
+        {
+            if (row.definition == null || !seen.Add(row.definition)) return false;
+            bool found = false;
+            foreach (var old in Entries) if (old.definition == row.definition && old.tier == row.tier) { found = true; break; }
+            if (!found) return false;
+        }
+        return true;
+    }
+    private void WriteRoster(string id, string label, EnemyCatalog sourceCatalog, Color color, Entry[] roster)
+    {
         themeId = id; displayName = label; catalog = sourceCatalog; accent = color;
         entries = roster != null ? (Entry[])roster.Clone() : Array.Empty<Entry>();
     }
+    public void ConfigureApproved(string id, string label, EnemyCatalog sourceCatalog, Color color, Entry[] roster)
+    { WriteRoster(id, label, sourceCatalog, color, roster); approvedRosterLocked = true; }
 
     public bool Validate(out string reason)
     {

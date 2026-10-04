@@ -131,6 +131,7 @@ public static class MonsterThemeAuthoringPolicy
     // 카탈로그: 기존 순서와 항목을 유지하고 새 정의만 뒤에 붙인다. 참조가 끊긴 항목은 뺀다.
     public static bool MergeCatalog(EnemyCatalog catalog, IEnumerable<EnemyDefinition> definitions, ICollection<Object> touched)
     {
+        if (catalog.IsApprovedRosterLocked) return false;
         var current = Enumerable.Range(0, catalog.Count).Select(catalog.GetDefinition).ToList();
         var merged = current.Where(d => d != null).ToList();
         foreach (var definition in definitions)
@@ -148,6 +149,7 @@ public static class MonsterThemeAuthoringPolicy
     public static bool MergeTable(EnemyThemeTable table, bool created, string id, string label, EnemyCatalog catalog,
         Color accent, IEnumerable<EnemyThemeTable.Entry> generated, ICollection<Object> touched)
     {
+        if (table.IsApprovedRosterLocked) return false;
         var current = table.Entries.ToList();
         var merged = current.Where(e => e.definition != null).ToList();
         foreach (var entry in generated)
@@ -170,6 +172,9 @@ public static class MonsterThemeAuthoringPolicy
     // 프리셋 로스터: 기존 로스터를 유지하고 새 비정예 액터만 붙인다.
     public static bool AppendPresetRoster(EnemyAiPreset preset, IEnumerable<GameObject> newMembers, ICollection<Object> touched)
     {
+        var approvedTable = AssetDatabase.LoadAssetAtPath<EnemyThemeTable>(Root + "/Tables/"
+            + System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(preset)) + ".asset");
+        if (approvedTable != null && approvedTable.IsApprovedRosterLocked) return false;
         var roster = Enumerable.Range(0, preset.DefaultMonsterCount).Select(preset.GetDefaultMonsterPrefab).ToList();
         int before = roster.Count;
         foreach (var member in newMembers)

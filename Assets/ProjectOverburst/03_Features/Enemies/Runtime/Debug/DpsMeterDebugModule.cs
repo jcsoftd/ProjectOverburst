@@ -14,7 +14,6 @@ public static class DpsMeterDebugModule
 
     private const float DummyHp = 10000000f;
     private const float IdleFreezeSeconds = 3f;
-    private static readonly string[] TableIds = { "SpiderBrood", "VenomBrood", "PrimalHunt", "CavernMutants", "DeathHarvest" };
 
     private static readonly List<EnemyActor> dummies = new List<EnemyActor>();
     private static readonly Queue<(float time, float damage)> window = new Queue<(float time, float damage)>();
@@ -163,10 +162,10 @@ public static class DpsMeterDebugModule
         var wanted = tier == DummyTier.Small ? EnemyThemeTier.Small
             : tier == DummyTier.Medium ? EnemyThemeTier.Medium
             : EnemyThemeTier.Elite;
-        foreach (string id in TableIds)
+        foreach (var candidate in MapThemeCatalog.Tables)
         {
-            table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/" + id);
-            if (table == null)
+            table = candidate;
+            if (table == null || !MapThemeCatalog.IsEnabledForRuns(table.ThemeId))
                 continue;
             foreach (EnemyThemeTable.Entry entry in table.Entries)
             {

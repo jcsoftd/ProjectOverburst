@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbeba349f1ced524b8f2728ab69e760d, type: 3}
+  m_Name: AlienContainment
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
+  themeId: AlienContainment
+  displayName: "\uACA9\uB9AC\uAD6C\uC5ED\uC758 \uC678\uACC4 \uD3EC\uC2DD\uAD70"
+  entries:
+  - definition: {fileID: 11400000, guid: b264f7e4268a75f46a8c474f3173b777, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: c0d7419e260f21c4bb61e9c4381fefda, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: aa379d002c98afc49bb10dfbef49bb6c, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: d9c056abf0398f040b324f104d859935, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: 106a71c918acb1848b8dbe6bac91c0cc, type: 2}
+    tier: 1
+    weight: 1
+  catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
+  accent: {r: 0.49, g: 0.69, b: 0.75, a: 1}
+  approvedRosterLocked: 1

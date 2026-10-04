@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbeba349f1ced524b8f2728ab69e760d, type: 3}
+  m_Name: RotsporeMarsh
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
+  themeId: RotsporeMarsh
+  displayName: "\uD3EC\uC790\uB0AD \uBD80\uD328\uC2B5\uC9C0"
+  entries:
+  - definition: {fileID: 11400000, guid: e123f5f1540987b4a811eed9a22d79b1, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 6a48e4becb517df46865f2e78ad993e3, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: c968a7302a0f7d44cb8713126c36b3eb, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 6a17d7bf2a4ae91428ff98d792cd64fe, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: b5317c1a1706f5146b6d54ef5852db42, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: 226542f5bd6ebaa4aaaa6dcba280db75, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 621c57a60ddf54643931de94827dd870, type: 2}
+    tier: 2
+    weight: 1
+  catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
+  accent: {r: 0.56, g: 0.64, b: 0.34, a: 1}
+  approvedRosterLocked: 1

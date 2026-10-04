@@ -38,7 +38,7 @@ public static class MapThemeCatalog
         return table != null ? table.DisplayName : "미지정";
     }
 
-    public static bool IsEnabledForRuns(string themeId) => themeId != "DeathHarvest";
+    public static bool IsEnabledForRuns(string themeId) => Resolve(themeId) != null;
 
     public static EnemyThemeTable ResolveForRun(string themeId)
     {

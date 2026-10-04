@@ -23,6 +23,6 @@ MonoBehaviour:
   abilitySet: {fileID: 11400000, guid: 7e2314d974a28aa49bc4809a098ab365, type: 2}
   behaviorProfile: {fileID: 11400000, guid: edf47a0ec4b5a394f84530201f79ae81, type: 2}
   movementProfile: {fileID: 11400000, guid: fd6bd0c0bb0c4cd449580b75d821eb57, type: 2}
-  aiPreset: {fileID: 11400000, guid: 1e3a5e308843fba4693c102b70f09158, type: 2}
+  aiPreset: {fileID: 11400000, guid: 3a6abb27ec0c75d47ac2aa2fa865427b, type: 2}
   squadParticipationMode: 1
   tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

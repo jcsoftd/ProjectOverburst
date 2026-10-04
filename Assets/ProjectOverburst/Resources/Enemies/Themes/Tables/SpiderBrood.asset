@@ -13,16 +13,16 @@ MonoBehaviour:
   m_Name: SpiderBrood
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
   themeId: SpiderBrood
-  displayName: "\uAC70\uBBF8 \uBD80\uD654 \uAD70\uB77D"
+  displayName: "\uAC11\uAC01 \uBD80\uD654\uAD70\uB77D"
   entries:
   - definition: {fileID: 11400000, guid: 3a426d79fd227ab4faba0872e9609008, type: 2}
     tier: 0
     weight: 1
-  - definition: {fileID: 11400000, guid: 25fef6354cb7f1d4c80b738daca93b30, type: 2}
-    tier: 0
-    weight: 1
-  - definition: {fileID: 11400000, guid: 09ff75223f1384c45a63de407562869f, type: 2}
+  - definition: {fileID: 11400000, guid: 2033557b5e3d3654292cdbdfe9c65f0f, type: 2}
     tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 70a01da8e228c014b9e4f5978f7ff7b2, type: 2}
+    tier: 0
     weight: 1
   - definition: {fileID: 11400000, guid: ea097e41d53b4a84a80cb3cfcbd2a9a2, type: 2}
     tier: 1
@@ -30,5 +30,12 @@ MonoBehaviour:
   - definition: {fileID: 11400000, guid: 9adbf377268eff44280bcd61fd8dda3a, type: 2}
     tier: 2
     weight: 1
+  - definition: {fileID: 11400000, guid: 48a85010ac28f0d4f9fdc418b6db68f2, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: 8a6e78a78631b72438f4e5ffcab04e4b, type: 2}
+    tier: 1
+    weight: 1
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 0.8, g: 0.45, b: 1, a: 1}
+  approvedRosterLocked: 1

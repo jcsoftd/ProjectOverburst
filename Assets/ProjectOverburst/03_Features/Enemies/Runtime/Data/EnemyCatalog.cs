@@ -5,6 +5,8 @@ using UnityEngine;
 public sealed class EnemyCatalog : ScriptableObject
 {
     [SerializeField] private EnemyDefinition[] definitions;
+    [SerializeField] private bool approvedRosterLocked;
+    public bool IsApprovedRosterLocked => approvedRosterLocked;
 
     public int Count => definitions != null ? definitions.Length : 0;
 
@@ -62,10 +64,24 @@ public sealed class EnemyCatalog : ScriptableObject
         return true;
     }
 
+    private bool SameMembers(EnemyDefinition[] incoming)
+    {
+        if (incoming == null || incoming.Length != Count) return false;
+        var seen = new HashSet<EnemyDefinition>();
+        foreach (var definition in incoming)
+            if (definition == null || !seen.Add(definition)
+                || !TryGet(definition.EnemyId, out var found) || found != definition) return false;
+        return true;
+    }
+    private void WriteMembers(EnemyDefinition[] incoming)
+        => definitions = incoming != null ? (EnemyDefinition[])incoming.Clone() : new EnemyDefinition[0];
+    public void ConfigureApproved(EnemyDefinition[] incoming)
+    { WriteMembers(incoming); approvedRosterLocked = true; }
+
     public void Configure(EnemyDefinition[] enemyDefinitions)
     {
-        definitions = enemyDefinitions != null
-            ? (EnemyDefinition[])enemyDefinitions.Clone()
-            : new EnemyDefinition[0];
+        if (approvedRosterLocked && !SameMembers(enemyDefinitions))
+            throw new System.InvalidOperationException("승인 편성은 V3 테마 적용 도구로 변경해야 합니다.");
+        WriteMembers(enemyDefinitions);
     }
 }

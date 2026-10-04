@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: AIP_ProtofactorSquad
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
   presetId: Theme_SpiderBrood
-  displayName: "\uAC70\uBBF8 \uBD80\uD654 \uAD70\uB77D"
+  displayName: "\uAC11\uAC01 \uBD80\uD654\uAD70\uB77D"
   defaultMonsterPrefabs:
   - {fileID: 8201098357881587490, guid: 050ec0d5a38c61945a9147c473684874, type: 3}
-  - {fileID: 518271336578342469, guid: d445c796b50bd384db769088969ca3d7, type: 3}
-  - {fileID: 1964193565842774903, guid: 8e86c082212efc44bb0216f8ba2cb919, type: 3}
+  - {fileID: 8867899257478956869, guid: f68dd1607a9174949951496df24ec58f, type: 3}
+  - {fileID: 7309064600645800441, guid: dc7ebc56993cb0045b2514e099409278, type: 3}
   - {fileID: 5984709002563124745, guid: 4c5757324fe206d44b2f4420aae32d71, type: 3}
+  - {fileID: 8334438503643691340, guid: 018ca036e073d0a4983a972714dbf5e5, type: 3}
   activationCount: 41
   minimumSquadSize: 4
   maximumSquadSize: 8

@@ -17,18 +17,31 @@ MonoBehaviour:
   entries:
   - definition: {fileID: 11400000, guid: 78a6a0b88d4065e43875b91615f0a925, type: 2}
     tier: 0
-    weight: 4
+    weight: 1
   - definition: {fileID: 11400000, guid: d380c81f710d5164f807859c002ce5a3, type: 2}
     tier: 0
     weight: 1
   - definition: {fileID: 11400000, guid: d80671d286866b540ad0713d8518634a, type: 2}
     tier: 1
     weight: 1
-  - definition: {fileID: 11400000, guid: 6639a24bf53b7ef4aaa83dfda97e1bee, type: 2}
+  - definition: {fileID: 11400000, guid: 328c7d5bae9af59488181dd9dbe49d3b, type: 2}
     tier: 1
-    weight: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: b43a3deb7f14a174a8a879180cc279cc, type: 2}
+    tier: 1
+    weight: 1
   - definition: {fileID: 11400000, guid: 6b795c81119b496469cd6377091f49fa, type: 2}
     tier: 2
     weight: 1
+  - definition: {fileID: 11400000, guid: 3e8de67b3a75a4c4eabd6d8159844120, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: 70d8f91881506da4dae0fdef7e923df2, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: cb131aa83cd877b41948e69782272f66, type: 2}
+    tier: 1
+    weight: 1
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 1, g: 0.6, b: 0.12, a: 1}
+  approvedRosterLocked: 1

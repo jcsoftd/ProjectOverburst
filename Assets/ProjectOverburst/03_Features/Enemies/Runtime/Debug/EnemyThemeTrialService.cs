@@ -24,11 +24,13 @@ public static class EnemyThemeTrialService
     // 옛 MonsterThemeDebugBuilder와 같은 순서·짧은 이름.
     internal static readonly (string id, string shortName)[] Themes =
     {
-        ("SpiderBrood", "거미"),
+        ("SpiderBrood", "갑각"),
         ("VenomBrood", "독낭"),
         ("PrimalHunt", "원시"),
         ("CavernMutants", "암굴"),
         ("DeathHarvest", "사령"),
+        ("RotsporeMarsh", "부패습지"),
+        ("AlienContainment", "격리구역"),
     };
 
     private const string TablePath = "Enemies/Themes/Tables/";
@@ -67,7 +69,7 @@ public static class EnemyThemeTrialService
             foreach ((string id, string shortName) in Themes)
             {
                 var table = Resources.Load<EnemyThemeTable>(TablePath + id);
-                if (table == null)
+                if (table == null || !MapThemeCatalog.IsEnabledForRuns(id) || !table.Validate(out _))
                 {
                     Debug.LogWarning("[EnemyThemeTrial] 테마 표가 없어요: " + id);
                     continue;

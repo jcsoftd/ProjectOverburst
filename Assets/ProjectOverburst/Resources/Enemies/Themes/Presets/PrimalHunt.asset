@@ -16,9 +16,13 @@ MonoBehaviour:
   displayName: "\uC6D0\uC2DC \uD3EC\uC2DD\uC790 \uBB34\uB9AC"
   defaultMonsterPrefabs:
   - {fileID: 6024500269617527656, guid: acddb6429a58d9c4d8ad95d7ac56e58a, type: 3}
+  - {fileID: 2654542685511227936, guid: ce4298e82a3841a49960fb975c3d45d6, type: 3}
   - {fileID: 5743882186582413383, guid: c8e339d2b093e53459dc08cd47e2748b, type: 3}
   - {fileID: 3285127751773417009, guid: 060a4a080108f2945a902874fd3417a8, type: 3}
-  - {fileID: 2654542685511227936, guid: ce4298e82a3841a49960fb975c3d45d6, type: 3}
+  - {fileID: 1124696185979830252, guid: e1eb84e442ce5f34eb3e3e925417fda9, type: 3}
+  - {fileID: 4844707450176470904, guid: 8387d8bd99fcf3f48994e59a18d490e1, type: 3}
+  - {fileID: 1606079115573047722, guid: 11afaf74d634cbe42aa7e64eafdc0a05, type: 3}
+  - {fileID: 8733626898592871854, guid: 46172b28c0bfcaf4e8fff4d46da74b20, type: 3}
   activationCount: 41
   minimumSquadSize: 4
   maximumSquadSize: 8

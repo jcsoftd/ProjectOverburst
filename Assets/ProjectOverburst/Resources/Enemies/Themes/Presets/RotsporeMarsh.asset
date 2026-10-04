@@ -10,18 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6716893f518624145b054002229b7a41, type: 3}
-  m_Name: AIP_ProtofactorSquad
+  m_Name: RotsporeMarsh
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAiPreset
-  presetId: Theme_VenomBrood
-  displayName: "\uB3C5\uB0AD \uC678\uACE8\uACA9 \uAD70\uB77D"
+  presetId: Theme_RotsporeMarsh
+  displayName: "\uD3EC\uC790\uB0AD \uBD80\uD328\uC2B5\uC9C0"
   defaultMonsterPrefabs:
-  - {fileID: 5119254518068260491, guid: 97ae65691c06bfb42847de4278b6f3e6, type: 3}
-  - {fileID: 4570057587784831911, guid: 8bb799894ea0b524796bc22133876f33, type: 3}
-  - {fileID: 6208213465318903433, guid: fd3119c0e918bf64b9a4b54c9b3c06ce, type: 3}
-  - {fileID: 5539308836508024865, guid: 69b606bae5c45904caf9f4ac97828765, type: 3}
-  - {fileID: 6195546670040126410, guid: 3909230b31694ee4aad7b52cc6325c37, type: 3}
-  - {fileID: 5268341166794777068, guid: 34b6cf774964e7c459b5bc06e2dc6a2a, type: 3}
-  - {fileID: 4099610483456478091, guid: 39d233364994873449cc4ff8d97af451, type: 3}
+  - {fileID: 8751882371924713417, guid: 18d98b1aeb7f69245a78e64e936777b1, type: 3}
+  - {fileID: 9168752397991987376, guid: 0711e405ef703334aa9b9c2a87b155fd, type: 3}
+  - {fileID: 5076789848971599069, guid: c5643a33bed07f948acb21bc605252cc, type: 3}
+  - {fileID: 1134510057457217613, guid: 13c03fca20a3f714faeea2c40c84b760, type: 3}
+  - {fileID: 8957645519449073329, guid: c6560db36164d5a4c823ca9933dfacdc, type: 3}
   activationCount: 41
   minimumSquadSize: 4
   maximumSquadSize: 8

@@ -17,9 +17,12 @@ MonoBehaviour:
   defaultMonsterPrefabs:
   - {fileID: 2989860340918798508, guid: f3570fc78b5697b42929325dd2aac293, type: 3}
   - {fileID: 272275322220572443, guid: a8c6a0bd76bbc9149aa901773aa26624, type: 3}
+  - {fileID: 9125945504032885752, guid: 761a4133e99044645af2f42553aa08f3, type: 3}
   - {fileID: 2525296777039982481, guid: c1fe14a5155457c4bb07dfa80bd29141, type: 3}
-  - {fileID: 6195546670040126410, guid: 3909230b31694ee4aad7b52cc6325c37, type: 3}
   - {fileID: 6481229745826855543, guid: e11af370018dffd4faab1b451070f374, type: 3}
+  - {fileID: 5830359132219417066, guid: 6601b826024e88849a26251847f488a9, type: 3}
+  - {fileID: 3581357567983519530, guid: ebfa10bcfebbbdb44bf4583a46499a6e, type: 3}
+  - {fileID: 6127770081363601318, guid: 15754047570cca8459f67dc772f6c55b, type: 3}
   activationCount: 41
   minimumSquadSize: 4
   maximumSquadSize: 8
