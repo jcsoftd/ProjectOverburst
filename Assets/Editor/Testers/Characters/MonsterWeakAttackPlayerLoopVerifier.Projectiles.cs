@@ -47,6 +47,17 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             if(component!=null&&new[]{"EnemyAIController","EnemyCrowdAgent","EnemySensor","RunFallGuard"}.Contains(component.GetType().Name))component.enabled=false;
         actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
         var executor=actor.GetComponent<EnemyThemeSpecialExecutor>();
+        EnemyActor peerActor=null;EnemyThemeSpecialExecutor peerExecutor=null;
+        bool concurrentRequested=(bool?)row["verifyConcurrentProjectiles"]==true,peerStarted=true;
+        if(concurrentRequested)
+        {
+            Vector3 peerPosition=Vector3.right*1.8f;
+            if(!service.TrySpawn(new EnemySpawnRequest(definition,peerPosition,Quaternion.LookRotation(victim.transform.position-peerPosition),victim.transform,null,victim.transform,null,1,1,92),out peerActor))
+                throw new InvalidOperationException("Concurrent saved Actor spawn failed.");
+            foreach(var component in peerActor.GetComponentsInChildren<MonoBehaviour>(true))
+                if(component!=null&&new[]{"EnemyAIController","EnemyCrowdAgent","EnemySensor","RunFallGuard"}.Contains(component.GetType().Name))component.enabled=false;
+            peerActor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;peerExecutor=peerActor.GetComponent<EnemyThemeSpecialExecutor>();
+        }
         yield return null;yield return new WaitForFixedUpdate();yield return null;
         Physics.SyncTransforms();Vector3 start=actor.transform.position;
         bool blockedFallback=ability.WeakAttackExecution.RequiresBlockedApproach;
@@ -87,37 +98,110 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             actor.Movement.StopMovement();actor.Movement.enabled=true;
         }
         bool started=actor.AbilityController.TryStartAbility(ability,victim.transform),cancelled=false;
+        if(peerActor!=null)peerStarted=peerActor.AbilityController.TryStartAbility(ability,victim.transform);
+        bool occlusionRequested=(bool?)row["verifyProjectileOcclusion"]==true;
+        if(occlusionRequested&&started)
+        {
+            var flightWall=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(flightWall);
+            flightWall.transform.position=(actor.transform.position+victim.transform.position)*.5f+Vector3.up*1.9f;
+            flightWall.transform.localScale=new Vector3(10,4,.3f);Physics.SyncTransforms();
+        }
+        bool nextMeleeRequested=(bool?)row["verifyNextMeleeDuringFlight"]==true;
+        bool nextMeleeAttempted=false,nextMeleeStarted=false,flightPreservedByAICleanup=false,nextMeleeStartedDuringFlight=false;
+        GameObject nextVictim=null;
+        string terminalPolicy=(string)row["terminalProjectilePolicy"];
+        int damageBeforeTerminal=0,launchesBeforeTerminal=0;
+        uint leaseBeforeTerminal=actor.LeaseVersion;
+        bool terminalPolicyVerified=true;
         float deadline=Time.time+ability.ResolveExecutionDuration(actor.Melee.AbilityAnimationSpeed)+ability.Range/10f+3f;
-        while(started&&executor.IsExecuting&&Time.time<deadline)
+        while(started&&(executor.IsExecuting||executor.HasProjectile||peerExecutor!=null&&(peerExecutor.IsExecuting||peerExecutor.HasProjectile)||nextMeleeStarted&&actor.AbilityController.IsExecuting)&&Time.time<deadline)
         {
             if(blockedFallback&&!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked)
                 actionReleasedWhileFlight=true;
+            if(nextMeleeRequested&&!nextMeleeAttempted&&!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked)
+            {
+                nextMeleeAttempted=true;
+                actor.AI.CancelAttack();
+                flightPreservedByAICleanup=executor.HasProjectile&&!actor.AbilityController.IsExecuting;
+                var close=Enumerable.Range(0,definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility)
+                    .First(a=>!a.IsTelegraphedStrongAttack&&a.WeakAttackExecution!=null&&a.WeakAttackExecution.IsStationaryMotion
+                        &&a.ExecutionMode==EnemyAbilityExecutionMode.MeleeArc);
+                nextVictim=new GameObject("Next melee target while previous weak shots fly");owned.Add(nextVictim);nextVictim.layer=prefab.layer;
+                nextVictim.transform.position=actor.transform.position+actor.transform.forward*Mathf.Max(
+                    actor.GetComponent<EnemyCrowdAgent>().BodyRadius+collider.radius+.1f,close.WeakAttackExecution.StationaryStartRange*.85f);
+                var nextBody=nextVictim.AddComponent<CapsuleCollider>();nextBody.center=collider.center;nextBody.radius=collider.radius;nextBody.height=collider.height;
+                var nextTarget=nextVictim.AddComponent<CombatTarget>();nextTarget.Configure(CombatTeam.PlayerParty,false);
+                nextTarget.ConfigureVolume(volume.Center,volume.Radius,volume.HalfHeight*2);nextTarget.DamageReceiver.SetMaxHp(100000,true);
+                foreach(var shape in actor.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(shape,nextBody);
+                Physics.SyncTransforms();
+                nextMeleeStarted=actor.AbilityController.TryStartAbility(close,nextVictim.transform);
+                nextMeleeStartedDuringFlight=nextMeleeStarted&&executor.HasProjectile&&actor.AbilityController.IsExecuting;
+            }
             if(cancelBeforeImpact&&!cancelled&&executor.LaunchCount>0){actor.AbilityController.Cancel();cancelled=true;}
+            if(terminalPolicy!=null&&!cancelled&&executor.LaunchCount>0
+                &&(terminalPolicy!="explicit-after-action"||!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked))
+            {
+                damageBeforeTerminal=damage.Count;launchesBeforeTerminal=executor.LaunchCount;
+                if(terminalPolicy=="death")
+                {
+                    actor.Health.TakeDamage(new DamageInfo(999999,actor.transform.position,victim,suppressDefaultHitVfx:true));
+                    terminalPolicyVerified=actor.Health.IsDead&&!executor.HasProjectile;
+                }
+                else if(terminalPolicy=="lease")service.Release(actor);
+                else if(terminalPolicy=="explicit-after-action")actor.AbilityController.Cancel();
+                else throw new InvalidOperationException("Unknown terminal projectile policy.");
+                cancelled=true;
+            }
             yield return null;
         }
-        if(cancelBeforeImpact)for(int i=0;i<6;i++)yield return null;
-        int count=cancelBeforeImpact?0:ability.HitCount;
+        if(terminalPolicy=="lease")
+        {
+            yield return null;yield return new WaitForFixedUpdate();yield return null;
+            bool reused=service.TrySpawn(request,out var nextActor);
+            terminalPolicyVerified=reused&&nextActor==actor&&actor.LeaseVersion!=leaseBeforeTerminal&&!executor.HasProjectile;
+            if(reused)foreach(var component in nextActor.GetComponentsInChildren<MonoBehaviour>(true))
+                if(component!=null&&new[]{"EnemyAIController","EnemyCrowdAgent","EnemySensor","RunFallGuard"}.Contains(component.GetType().Name))component.enabled=false;
+        }
+        if(cancelBeforeImpact||terminalPolicy!=null)for(int i=0;i<6;i++)yield return null;
+        int actorCount=peerActor==null?1:2;
+        int count=terminalPolicy!=null?damageBeforeTerminal:cancelBeforeImpact||occlusionRequested?0:ability.HitCount*actorCount;
         int level=actor.GetComponent<EnemyRank>()?.Level??1;
         float total=ability.UsesLevelDamageBudget?Mathf.Max(1f,OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)*ability.ReferencePatternDamagePercent/100f)):ability.Damage;
         if(!EnemyWeakProjectileDamageBudget.TryCreate(total*actor.RuntimeStats.DamageMultiplier,ability.HitCount,out var budget))
             throw new InvalidOperationException("Selected projectile damage budget invalid.");
         bool stationary=Vector2.Distance(new Vector2(start.x,start.z),new Vector2(actor.transform.position.x,actor.transform.position.z))<.04f;
-        bool pass=started&&!executor.IsExecuting&&!executor.HasProjectile&&stationary
-            &&damage.Count==count&&damage.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,count))
-            &&Mathf.Abs(damage.Sum(d=>(float)d["damage"])-(cancelBeforeImpact?0:budget.Total))<.001f
-            &&(cancelBeforeImpact?cancelled&&executor.LaunchCount==ability.ProjectilesPerRelease:executor.LaunchCount==count&&executor.ImpactCount==count)
-            &&(!blockedFallback||rejectedBeforeBlocked&&readyAfterBlocked&&(cancelBeforeImpact||actionReleasedWhileFlight))
-            &&damage.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v);
-        if(blockedFallback&&started)cooldownRejected=!actor.AbilityController.TryStartAbility(ability,victim.transform);
+        float expectedDamage=terminalPolicy!=null?Enumerable.Range(0,count).Sum(budget.ForPhase):cancelBeforeImpact||occlusionRequested?0:budget.Total*actorCount;
+        int observedLaunches=terminalPolicy=="lease"?launchesBeforeTerminal:executor.LaunchCount+(peerExecutor?.LaunchCount??0);
+        int observedImpacts=executor.ImpactCount+(peerExecutor?.ImpactCount??0);
+        bool phaseOrder=peerActor==null?damage.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,count))
+            :damage.GroupBy(d=>(int)d["sequence"]).Count()==2&&damage.GroupBy(d=>(int)d["sequence"])
+                .All(g=>g.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,ability.HitCount)));
+        bool reactions=peerActor==null?damage.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v)
+            :damage.GroupBy(d=>(int)d["sequence"]).All(g=>g.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v));
+        bool pass=started&&peerStarted&&!executor.IsExecuting&&!executor.HasProjectile&&stationary
+            &&damage.Count==count&&phaseOrder
+            &&Mathf.Abs(damage.Sum(d=>(float)d["damage"])-expectedDamage)<.001f
+            &&(terminalPolicy!=null?cancelled&&terminalPolicyVerified&&observedLaunches>0:cancelBeforeImpact?cancelled&&executor.LaunchCount==ability.ProjectilesPerRelease:observedLaunches==ability.HitCount*actorCount&&observedImpacts==count)
+            &&(!blockedFallback||rejectedBeforeBlocked&&readyAfterBlocked&&(cancelBeforeImpact||terminalPolicy!=null||occlusionRequested||actionReleasedWhileFlight))
+            &&reactions;
+        if(blockedFallback&&started&&terminalPolicy==null)cooldownRejected=!actor.AbilityController.TryStartAbility(ability,victim.transform);
         pass&=movingRejected&&closeRejected&&blockedLineRejected&&cooldownRejected;
-        int launches=executor.LaunchCount,impacts=executor.ImpactCount;
+        if(nextMeleeRequested)pass&=nextMeleeAttempted&&nextMeleeStarted&&flightPreservedByAICleanup&&nextMeleeStartedDuringFlight;
+        int launches=observedLaunches,impacts=observedImpacts;
+        if(peerActor!=null)service.Release(peerActor);
         service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
         bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!executor.IsExecuting&&!executor.HasProjectile&&executor.LaunchCount==0&&executor.ImpactCount==0
-            &&pool.LeasedCount==0&&pool.PendingReturnCount==0;
+            &&pool.LeasedCount==0&&pool.PendingReturnCount==0&&(peerActor==null||!peerActor.IsLeased&&!peerExecutor.HasProjectile);
         cases.Add(new JObject{["id"]=id,["selectionKey"]=row["selectionKey"].DeepClone(),["clip"]=row["actualClip"].DeepClone(),
-            ["projectile"]=true,["fps"]=fps,["scenario"]=cancelBeforeImpact?"cancel-before-impact":"normal",["started"]=started,
+            ["projectile"]=true,["fps"]=fps,["scenario"]=concurrentRequested?"concurrent-two-actors":occlusionRequested?"wall-during-flight":terminalPolicy!=null?terminalPolicy:cancelBeforeImpact?"cancel-before-impact":nextMeleeRequested?"next-melee-while-flight":"normal",["started"]=started,
             ["expectedProjectiles"]=count,["launches"]=launches,["impacts"]=impacts,["stationaryRootPreserved"]=stationary,["reset"]=reset,
-            ["targetRadius"]=collider.radius,["targetHeight"]=collider.height,["expectedDamage"]=cancelBeforeImpact?0:budget.Total,["damageEvents"]=damage,["pass"]=pass&&reset});
+            ["targetRadius"]=collider.radius,["targetHeight"]=collider.height,["expectedDamage"]=expectedDamage,["damageEvents"]=damage,["pass"]=pass&&reset});
+        if(concurrentRequested||occlusionRequested)
+        {
+            var saved=(JObject)cases[cases.Count-1];saved["actorCount"]=actorCount;saved["peerStarted"]=peerStarted;
+            saved["expectedLaunches"]=ability.HitCount*actorCount;saved["expectedImpacts"]=count;
+            saved["separateSequenceAndReactionScopes"]=phaseOrder&&reactions;
+        }
         if(blockedFallback)
         {
             var saved=(JObject)cases[cases.Count-1];saved["fallbackRejectedBeforeBlocked"]=rejectedBeforeBlocked;
@@ -127,6 +211,18 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             saved["movingApproachRejected"]=movingRejected;saved["freeApproachTravel"]=freeTravel;
             saved["closeAttackAvailableRejected"]=closeRejected;saved["blockedLineRejected"]=blockedLineRejected;saved["longCooldownRejected"]=cooldownRejected;saved["blockedFixture"]="Real Chase/destination intent with controlled zero displacement; not a crowd collision test";
         }
+        if(nextMeleeRequested)
+        {
+            var saved=(JObject)cases[cases.Count-1];saved["nextMeleeStarted"]=nextMeleeStarted;
+            saved["flightPreservedByAICleanup"]=flightPreservedByAICleanup;saved["nextMeleeStartedDuringFlight"]=nextMeleeStartedDuringFlight;
+        }
+        if(terminalPolicy!=null)
+        {
+            var saved=(JObject)cases[cases.Count-1];saved["terminalPolicyVerified"]=terminalPolicyVerified;
+            saved["damageBeforeTerminal"]=damageBeforeTerminal;saved["damageAfterTerminal"]=damage.Count;
+            saved["cancelled"]=cancelled;
+        }
+        if(nextVictim!=null)UnityEngine.Object.Destroy(nextVictim);
         WriteResult("RUNNING");UnityEngine.Object.Destroy(serviceRoot);UnityEngine.Object.Destroy(victim);UnityEngine.Object.Destroy(floor);yield return null;
     }
 
@@ -207,7 +303,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         }
         bool autonomousStart = executor.LaunchCount > 0;
         float flightDeadline = Time.time + 5f;
-        while (autonomousStart && executor.IsExecuting && Time.time < flightDeadline) yield return null;
+        while (autonomousStart && (executor.IsExecuting || executor.HasProjectile) && Time.time < flightDeadline) yield return null;
         int launches = executor.LaunchCount, impacts = executor.ImpactCount;
         bool flightFinished = !executor.IsExecuting && !executor.HasProjectile;
         bool blockersPreserved = blockers.All(b => b.IsLeased && b.Movement.enabled && b.GetComponent<EnemyCrowdAgent>().IsCrowdActive);

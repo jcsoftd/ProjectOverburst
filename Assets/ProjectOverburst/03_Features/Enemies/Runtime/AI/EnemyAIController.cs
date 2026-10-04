@@ -413,10 +413,19 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
 
     public void CancelAttack()
     {
-        if (abilityController != null)
-            abilityController.Cancel();
-        else
-            meleeAttack?.CancelAttack();
+        var projectile = GetComponent<EnemyThemeSpecialExecutor>();
+        bool completedWeakAction = projectile != null && projectile.BeginCompletedWeakActionCleanup();
+        try
+        {
+            if (abilityController != null)
+                abilityController.Cancel();
+            else
+                meleeAttack?.CancelAttack();
+        }
+        finally
+        {
+            if (completedWeakAction) projectile.EndCompletedWeakActionCleanup();
+        }
     }
 
     public float TargetDistance => IsTargetValid()

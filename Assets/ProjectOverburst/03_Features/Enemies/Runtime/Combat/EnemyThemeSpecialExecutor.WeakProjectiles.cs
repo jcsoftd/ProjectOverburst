@@ -20,7 +20,17 @@ public sealed partial class EnemyThemeSpecialExecutor
     }
     private readonly List<WeakProjectile> weakProjectiles = new List<WeakProjectile>();
     private EnemyWeakAttackReactionScope weakProjectileReaction;
+    private bool preserveWeakFlightDuringAIActionCleanup;
     public bool IsWeakProjectileActionExecuting => routine != null;
+    public bool BeginCompletedWeakActionCleanup()
+    {
+        if (preserveWeakFlightDuringAIActionCleanup || routine != null || boltFlying || !HasWeakProjectiles
+            || !isActiveAndEnabled || !Usable() || actor.Movement.IsActionLocked
+            || actor.AnimationBridge.BlocksAttackStart || actor.AbilityController.IsExecuting) return false;
+        preserveWeakFlightDuringAIActionCleanup = true;
+        return true;
+    }
+    public void EndCompletedWeakActionCleanup() => preserveWeakFlightDuringAIActionCleanup = false;
     private bool HasWeakProjectiles
     {
         get { foreach (var shot in weakProjectiles) if (shot.active) return true; return false; }
@@ -173,6 +183,9 @@ public sealed partial class EnemyThemeSpecialExecutor
     { foreach (var shot in weakProjectiles) if (shot.active && shot.gameObject != null) shot.gameObject.transform.position = shot.position; }
     private void CancelWeakProjectiles()
     {
+        // Only the AI's cleanup of an already completed action keeps released weak shots.
+        // Direct cancellation, reactions, death and pool reset continue to remove them.
+        if (preserveWeakFlightDuringAIActionCleanup && isActiveAndEnabled && Usable()) return;
         foreach (var shot in weakProjectiles) EndWeakProjectile(shot);
         weakProjectileReaction?.Cancel(); weakProjectileReaction = null;
     }

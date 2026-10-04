@@ -34,8 +34,8 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private EnemyAbilityDefinition activeParryAbility;
     public int ActiveAttackSequenceId => attackSequenceId;
     private readonly RaycastHit[] hits = new RaycastHit[24];
-    // Flight belongs to the attack too: a short animation must not cancel a distant shot.
-    public override bool IsExecuting => routine != null || HasProjectile;
+    // Legacy bolts own their flight; V3 weak shots survive completed AI action cleanup independently.
+    public override bool IsExecuting => routine != null || boltFlying;
     public bool HasProjectile => boltFlying || HasWeakProjectiles;
     public Vector3 ChargeDirection => chargeDirection;
     public int LaunchCount { get; private set; }
