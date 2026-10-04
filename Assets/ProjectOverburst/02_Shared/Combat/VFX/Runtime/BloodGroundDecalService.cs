@@ -256,9 +256,10 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             request.Point + request.Normal * .015f,
             Quaternion.LookRotation(-request.Normal, request.Tangent));
         projector.material = TintedMaterial(source.material, request.Profile);
+        float footprintScale = request.Pack ? BloodEffectsPackPool.SizeMultiplier : 1f;
         projector.size = new Vector3(
-            Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f),
-            Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f), ProjectionDepth);
+            Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f) * footprintScale,
+            Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f) * footprintScale, ProjectionDepth);
         projector.pivot = Vector3.zero;
         projector.drawDistance = Mathf.Min(source.drawDistance, 40f);
         projector.fadeScale = source.fadeScale;

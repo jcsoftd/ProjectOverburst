@@ -4,6 +4,7 @@ using UnityEngine;
 public sealed class BloodEffectsPackPool
 {
     public const int Capacity = 48;
+    public const float SizeMultiplier = 2f;
     sealed class Slot
     {
         public GameObject root;
@@ -78,7 +79,7 @@ public sealed class BloodEffectsPackPool
         chosen.root.transform.SetPositionAndRotation(point, Quaternion.LookRotation(direction, up) * Quaternion.Euler(definition.localEuler));
         // Profile sizes were authored for VFX Graph. Normalize around the game's 3.5 baseline.
         chosen.root.transform.localScale = Vector3.one * definition.scale * Mathf.Clamp(profile.size / 3.5f, .4f, 1.6f)
-            * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f);
+            * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f) * SizeMultiplier;
         block.Clear();
         block.SetColor("_BaseColor", profile.mainColor);
         block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular + .22f, .25f, .55f));
