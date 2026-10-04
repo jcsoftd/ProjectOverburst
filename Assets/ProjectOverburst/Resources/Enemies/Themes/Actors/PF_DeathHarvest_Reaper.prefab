@@ -137,6 +137,7 @@ GameObject:
   - component: {fileID: 1643597675611218228}
   - component: {fileID: 7942608176411265755}
   - component: {fileID: 4390605088196430773}
+  - component: {fileID: 3947564887449699221}
   m_Layer: 7
   m_Name: PF_DeathHarvest_Reaper
   m_TagString: Untagged
@@ -468,6 +469,7 @@ MonoBehaviour:
   - Attack1
   - Attack2
   - Attack3
+  - Attack4
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -671,6 +673,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0.3, z: 0.35}
   burnScale: 1.3
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &5916963940038697552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -685,6 +691,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4642b3db83287e445b336e5cbad04d66, type: 2}
   signalColor: {r: 0.42, g: 0.69, b: 0.74, a: 1}
+  muzzleOverrides: []
 --- !u!114 &5753781724241672143
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -782,6 +789,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 568fd37e747fcd34ab3ffe3d4da8d2bb, type: 2}
+--- !u!114 &3947564887449699221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4745963789831692456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 770439688934804059}
+  movement: {fileID: 5796576335025451137}
 --- !u!1 &5025276219172829565
 GameObject:
   m_ObjectHideFlags: 0

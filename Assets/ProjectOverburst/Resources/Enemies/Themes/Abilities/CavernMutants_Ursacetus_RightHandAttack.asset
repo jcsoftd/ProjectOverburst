@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CavernMutants_Ursacetus_RightHandAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: CavernMutants_Ursacetus_RightHandAttack
+  weakAttackExecution: {fileID: 11400000, guid: 393ec03dd63ef9d47a0e8a58ed7ad62d, type: 2}
   animatorTrigger: Attack2
   executionMode: 0
   damage: 18
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 2.2533333
-  hitNormalizedTime: 0.52
+  hitDelay: 2.3333333
+  hitNormalizedTime: 0.5384615
   attackAnimationDuration: 4.3333335
   attackLockDuration: 4.116667
   weight: 1

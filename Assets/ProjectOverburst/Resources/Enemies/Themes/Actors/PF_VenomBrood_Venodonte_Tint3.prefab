@@ -703,6 +703,7 @@ GameObject:
   - component: {fileID: 7691941775920652587}
   - component: {fileID: 1681206226378416123}
   - component: {fileID: 7668753647266307924}
+  - component: {fileID: 6945934510611251699}
   m_Layer: 7
   m_Name: PF_VenomBrood_Venodonte_Tint3
   m_TagString: Untagged
@@ -1033,7 +1034,6 @@ MonoBehaviour:
   attackTriggers:
   - Attack1
   - Attack2
-  - Attack3
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1227,6 +1227,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 3e98d0190d79b804bae04ba8f3aec79c, type: 2}
   signalColor: {r: 1, g: 0.6, b: 0.12, a: 1}
+  muzzleOverrides: []
 --- !u!114 &1740707485215264059
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1322,6 +1323,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &1681206226378416123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1348,6 +1353,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &6945934510611251699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4570057587784831911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 8915590309025040533}
+  movement: {fileID: 4336954294243685597}
 --- !u!1 &7158489066053685152
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: VenomBrood_Venodonte_Tint3_JumpBiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: VenomBrood_Venodonte_Tint3_JumpBiteAttack
+  weakAttackExecution: {fileID: 11400000, guid: 15e5f6d95498ef74d84871aaebb3b907, type: 2}
   animatorTrigger: Attack2
-  executionMode: 2
+  executionMode: 0
   damage: 5
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 0
@@ -25,15 +26,15 @@ MonoBehaviour:
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.24
   parryable: 1
-  minimumRange: 1.8
+  minimumRange: 0
   range: 4.8
   hitRadius: 1.269
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.8
-  hitDelay: 0.5166667
-  hitNormalizedTime: 0.62
+  hitDelay: 0.4
+  hitNormalizedTime: 0.48
   attackAnimationDuration: 0.8333334
   attackLockDuration: 0.7916667
   weight: 0.45

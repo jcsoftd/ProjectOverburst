@@ -734,6 +734,7 @@ GameObject:
   - component: {fileID: 1167208510686582804}
   - component: {fileID: 3609597590576847620}
   - component: {fileID: 4232212267156602741}
+  - component: {fileID: 6397393590158232820}
   m_Layer: 7
   m_Name: PF_SpiderBrood_RostrokarckLarvae
   m_TagString: Untagged
@@ -1064,7 +1065,6 @@ MonoBehaviour:
   attackTriggers:
   - Attack1
   - Attack2
-  - Attack3
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1258,6 +1258,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: aff1a3fa17d54fd4fb81a0c59e351862, type: 2}
   signalColor: {r: 0.8, g: 0.45, b: 1, a: 1}
+  muzzleOverrides: []
 --- !u!114 &2474282901909631136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1353,6 +1354,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: -0.1, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &3609597590576847620
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1379,6 +1384,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &6397393590158232820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8201098357881587490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 6184117059154163217}
+  movement: {fileID: 6387080259131853150}
 --- !u!1 &9113998070291543019
 GameObject:
   m_ObjectHideFlags: 0

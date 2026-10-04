@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Kupolobrach_Tint_Orange_ClawsAttackLeft
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: VenomBrood_Kupolobrach_Tint_Orange_ClawsAttackLeft
+  weakAttackExecution: {fileID: 11400000, guid: 22dd9fad756596b4a9468259194064a0, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 18
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.65333337
-  hitNormalizedTime: 0.49
+  hitDelay: 0.6666667
+  hitNormalizedTime: 0.5
   attackAnimationDuration: 1.3333334
   attackLockDuration: 1.2666667
   weight: 1

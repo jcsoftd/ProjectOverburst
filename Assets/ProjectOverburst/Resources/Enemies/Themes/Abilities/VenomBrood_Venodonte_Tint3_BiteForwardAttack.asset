@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: VenomBrood_Venodonte_Tint3_BiteForwardAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: VenomBrood_Venodonte_Tint3_BiteForwardAttack
+  weakAttackExecution: {fileID: 11400000, guid: 05f09a8843fbc9747b51a8ec2d2c11e2, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 5
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.37333333
-  hitNormalizedTime: 0.56
+  hitDelay: 0.36666667
+  hitNormalizedTime: 0.55
   attackAnimationDuration: 0.6666667
   attackLockDuration: 0.6333333
   weight: 1

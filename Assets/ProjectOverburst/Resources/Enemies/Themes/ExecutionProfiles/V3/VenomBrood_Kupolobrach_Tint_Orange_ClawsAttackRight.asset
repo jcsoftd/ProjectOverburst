@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: VenomBrood_Kupolobrach_Tint_Orange_ClawsAttackRight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 2b739a624244b8fd
+  originalClip: {fileID: 1827226128182048838, guid: 7c9cb3285e4e1de4d82645a20fd85caf, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 7c9cb3285e4e1de4d82645a20fd85caf, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 0
+  stationaryStartRange: 3.84
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.45, y: 0.55}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: 0.19905442, y: 0.8599656, z: 2.9417567}
+        b: {x: 0.19905442, y: 0.8599656, z: 2.9417567}
+        radius: 0.26270178
+    - normalizedTime: 0.475
+      capsules:
+      - a: {x: 0.07529087, y: 0.3473575, z: 3.3247766}
+        b: {x: 0.07529087, y: 0.3473575, z: 3.3247766}
+        radius: 0.23223445
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: 0.0679465, y: 0.050049797, z: 3.5505168}
+        b: {x: 0.0679465, y: 0.07339677, z: 3.5505168}
+        radius: 0.20568392
+    - normalizedTime: 0.525
+      capsules:
+      - a: {x: 0.041585, y: 0.05171992, z: 3.5474524}
+        b: {x: 0.041585, y: 0.07052302, z: 3.5474524}
+        radius: 0.20673272
+    - normalizedTime: 0.55
+      capsules:
+      - a: {x: 0.021003492, y: 0.053771228, z: 3.540024}
+        b: {x: 0.021003492, y: 0.067630395, z: 3.540024}
+        radius: 0.20792353
+    maximumPlanarReach: 3.756851

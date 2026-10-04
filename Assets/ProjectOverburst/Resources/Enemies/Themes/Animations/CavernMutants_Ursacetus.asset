@@ -21,6 +21,9 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 29fe47d160eb5e740bad941bbcad5628, type: 3}
   - {fileID: 7400000, guid: 4657efa32609d3542b08cf05146ab40f, type: 3}
   - {fileID: 7400000, guid: 3faf891af64d44047b858668dc875df1, type: 3}
+  - {fileID: 7400000, guid: 78904d7c0fb0f934884e50fd2ee3f331, type: 3}
+  - {fileID: 7400000, guid: 0eafc90c6eeb80c42b3a4dc222337061, type: 3}
+  - {fileID: 7400000, guid: f028759b58dd06e46a5cc0bf0cd2586b, type: 3}
   hit: {fileID: 7400000, guid: ced72a8e8386f5646a358f8c9c968dbc, type: 3}
   death: {fileID: 7400000, guid: 8dc1dfa99b4dc3b4e9977cbff59e5177, type: 3}
   optional:
@@ -53,6 +56,9 @@ MonoBehaviour:
   - {fileID: 7400000, guid: fe00a39070b9bf54c8a69981543fe45c, type: 3}
   - {fileID: 7400000, guid: 05001f7ea39ba5f4a8e99dd311356839, type: 3}
   - {fileID: 7400000, guid: fd98c8a26872b1d4495c669717d80673, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@2HandsSmashAttack_RM.fbx"

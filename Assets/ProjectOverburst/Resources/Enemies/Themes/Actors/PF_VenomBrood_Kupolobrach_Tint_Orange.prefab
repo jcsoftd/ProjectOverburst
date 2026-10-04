@@ -669,6 +669,7 @@ GameObject:
   - component: {fileID: 4027630933906464358}
   - component: {fileID: 1546537975311751458}
   - component: {fileID: 1678087762293822254}
+  - component: {fileID: 9013816616055870524}
   m_Layer: 7
   m_Name: PF_VenomBrood_Kupolobrach_Tint_Orange
   m_TagString: Untagged
@@ -1193,6 +1194,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 3e98d0190d79b804bae04ba8f3aec79c, type: 2}
   signalColor: {r: 1, g: 0.6, b: 0.12, a: 1}
+  muzzleOverrides: []
 --- !u!114 &70390016785267708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1303,6 +1305,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &1546537975311751458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1329,6 +1335,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: e241b1392923f7240aa0f7c166d1e88c, type: 2}
+--- !u!114 &9013816616055870524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7234183645417013779}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 9147241384716044990}
+  movement: {fileID: 7626312840456387529}
 --- !u!1 &7628901543186096153
 GameObject:
   m_ObjectHideFlags: 0

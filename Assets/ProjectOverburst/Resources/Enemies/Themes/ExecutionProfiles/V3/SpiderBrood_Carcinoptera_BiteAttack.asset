@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: SpiderBrood_Carcinoptera_BiteAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: ebf0b923a57fc360
+  originalClip: {fileID: 1827226128182048838, guid: ab3760688d7bc014799881ed1783c961, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: ab3760688d7bc014799881ed1783c961, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.8333334}
+  motionPolicy: 0
+  stationaryStartRange: 1.3
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.48, y: 0.64}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.48
+      capsules:
+      - a: {x: -0.08915208, y: 0.9880823, z: 0.6049948}
+        b: {x: -0.08915208, y: 0.9880823, z: 0.6049948}
+        radius: 0.4518738
+    - normalizedTime: 0.52
+      capsules:
+      - a: {x: -0.08999653, y: 0.8909067, z: 0.63820326}
+        b: {x: -0.08999653, y: 0.8909067, z: 0.6463641}
+        radius: 0.4278578
+    - normalizedTime: 0.56
+      capsules:
+      - a: {x: -0.08275038, y: 0.8535421, z: 0.5628071}
+        b: {x: -0.08275038, y: 0.8535421, z: 0.8368261}
+        radius: 0.35189885
+    - normalizedTime: 0.59999996
+      capsules:
+      - a: {x: -0.069261536, y: 0.8035065, z: 0.5160495}
+        b: {x: -0.069261536, y: 0.8035065, z: 0.8973144}
+        radius: 0.30754167
+    - normalizedTime: 0.64
+      capsules:
+      - a: {x: -0.059350327, y: 0.7315928, z: 0.50831425}
+        b: {x: -0.059350327, y: 0.7315928, z: 0.86191463}
+        radius: 0.30833972
+    maximumPlanarReach: 1.2075253

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: CavernMutants_Ursacetus_RightHandSmashAttack
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 7aa8c391fa300a53
+  originalClip: {fileID: 7400000, guid: 78904d7c0fb0f934884e50fd2ee3f331, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 78904d7c0fb0f934884e50fd2ee3f331, type: 3}
+  sourceTrimSeconds: {x: 0, y: 5.8333335}
+  motionPolicy: 0
+  stationaryStartRange: 3.35
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.5485714, y: 0.57142854}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.5485714
+      capsules:
+      - a: {x: -0.6042443, y: 0.43549797, z: 2.408646}
+        b: {x: -0.6042443, y: 0.43549797, z: 2.408646}
+        radius: 0.9875873
+    - normalizedTime: 0.5542857
+      capsules:
+      - a: {x: -0.57894814, y: 0.43401536, z: 2.401847}
+        b: {x: -0.57894814, y: 0.43401536, z: 2.401847}
+        radius: 0.9850619
+    - normalizedTime: 0.56
+      capsules:
+      - a: {x: -0.5548856, y: 0.4349698, z: 2.3954003}
+        b: {x: -0.5548856, y: 0.4349698, z: 2.3954003}
+        radius: 0.98148406
+    - normalizedTime: 0.5657143
+      capsules:
+      - a: {x: -0.5307805, y: 0.4365496, z: 2.3894365}
+        b: {x: -0.5307805, y: 0.4365496, z: 2.3894365}
+        radius: 0.9774481
+    - normalizedTime: 0.57142854
+      capsules:
+      - a: {x: -0.50479364, y: 0.4368613, z: 2.3846905}
+        b: {x: -0.50479364, y: 0.4368613, z: 2.3846905}
+        radius: 0.9733091
+    maximumPlanarReach: 3.4708688

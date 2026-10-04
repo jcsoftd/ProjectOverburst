@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SpiderBrood_Carcinoptera_BiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: SpiderBrood_Carcinoptera_BiteAttack
+  weakAttackExecution: {fileID: 11400000, guid: 66fcc9ec6fdce594c814c2fd47dbfd05, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 10
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.45833337
-  hitNormalizedTime: 0.55
+  hitDelay: 0.4666667
+  hitNormalizedTime: 0.56
   attackAnimationDuration: 0.8333334
   attackLockDuration: 0.7916667
   weight: 1

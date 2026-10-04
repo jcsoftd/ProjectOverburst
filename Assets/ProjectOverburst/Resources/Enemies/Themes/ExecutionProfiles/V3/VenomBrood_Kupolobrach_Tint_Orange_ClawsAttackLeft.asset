@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: VenomBrood_Kupolobrach_Tint_Orange_ClawsAttackLeft
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: e2ec6e3036401d3a
+  originalClip: {fileID: 1827226128182048838, guid: 6c060b95f2a3c9e42a14bb8afe8d1762, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 6c060b95f2a3c9e42a14bb8afe8d1762, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.3333334}
+  motionPolicy: 0
+  stationaryStartRange: 3.83
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.45, y: 0.55}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.45
+      capsules:
+      - a: {x: -0.33805996, y: 0.4353481, z: 3.2069702}
+        b: {x: -0.33805996, y: 0.4353481, z: 3.2069702}
+        radius: 0.24767008
+    - normalizedTime: 0.475
+      capsules:
+      - a: {x: -0.1471856, y: 0.12926203, z: 3.4653926}
+        b: {x: -0.1471856, y: 0.17836672, z: 3.4653926}
+        radius: 0.21046296
+    - normalizedTime: 0.5
+      capsules:
+      - a: {x: -0.071634315, y: 0.022476204, z: 3.553628}
+        b: {x: -0.071634315, y: 0.09321239, z: 3.553628}
+        radius: 0.19312853
+    - normalizedTime: 0.525
+      capsules:
+      - a: {x: -0.07179925, y: 0.01760117, z: 3.5514169}
+        b: {x: -0.07179925, y: 0.09303146, z: 3.5514169}
+        radius: 0.19131455
+    - normalizedTime: 0.55
+      capsules:
+      - a: {x: -0.07301275, y: 0.016048007, z: 3.5476942}
+        b: {x: -0.07301275, y: 0.092384584, z: 3.5476942}
+        radius: 0.19065675
+    maximumPlanarReach: 3.7474785

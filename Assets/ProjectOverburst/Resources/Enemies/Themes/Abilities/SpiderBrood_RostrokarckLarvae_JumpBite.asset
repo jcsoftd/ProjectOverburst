@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: SpiderBrood_RostrokarckLarvae_JumpBite
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: SpiderBrood_RostrokarckLarvae_JumpBite
+  weakAttackExecution: {fileID: 11400000, guid: db5bb718d1a7dc943bff2fd4d0755594, type: 2}
   animatorTrigger: Attack2
-  executionMode: 2
+  executionMode: 0
   damage: 5
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 0
@@ -25,15 +26,15 @@ MonoBehaviour:
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.24
   parryable: 1
-  minimumRange: 1.8
+  minimumRange: 0
   range: 4.8
   hitRadius: 1.269
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.8
-  hitDelay: 0.3306667
-  hitNormalizedTime: 0.62
+  hitDelay: 0.3
+  hitNormalizedTime: 0.5625
   attackAnimationDuration: 0.53333336
   attackLockDuration: 0.50666666
   weight: 0.45

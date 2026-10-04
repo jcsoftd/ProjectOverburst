@@ -15,4 +15,4 @@ MonoBehaviour:
   abilitySetId: PrimalHunt_CrustaspikanLarvae
   abilities:
   - {fileID: 11400000, guid: 4b918527fec19794a98fbf6ae9a19a82, type: 2}
-  - {fileID: 11400000, guid: b4a95e072d0a8e94786631742a7a7334, type: 2}
+  - {fileID: 11400000, guid: ed0899993f776dc419f03c94125f5081, type: 2}

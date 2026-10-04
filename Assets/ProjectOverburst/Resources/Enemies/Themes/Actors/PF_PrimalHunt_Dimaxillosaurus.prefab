@@ -616,6 +616,7 @@ GameObject:
   - component: {fileID: 1161374119120396290}
   - component: {fileID: 5206783196007004947}
   - component: {fileID: 2291146787801443010}
+  - component: {fileID: 5931304619215357312}
   m_Layer: 7
   m_Name: PF_PrimalHunt_Dimaxillosaurus
   m_TagString: Untagged
@@ -1140,6 +1141,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 77e96168dd33029419bd68f0e359411b, type: 2}
   signalColor: {r: 1, g: 0.3, b: 0.15, a: 1}
+  muzzleOverrides: []
 --- !u!114 &2059825963392406062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1235,6 +1237,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &5206783196007004947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1261,6 +1267,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 40686e91a2b879d46a762bd7b78f5f1f, type: 2}
+--- !u!114 &5931304619215357312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5743882186582413383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 3615536391168467370}
+  movement: {fileID: 4981794992739200191}
 --- !u!1 &6399899884801756462
 GameObject:
   m_ObjectHideFlags: 0

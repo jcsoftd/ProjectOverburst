@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 4736015745710446969}
   - component: {fileID: 7422204108592275131}
   - component: {fileID: 5158791050608234913}
+  - component: {fileID: 1682881746545564787}
   m_Layer: 7
   m_Name: PF_CavernMutants_Ursacetus
   m_TagString: Untagged
@@ -376,6 +377,9 @@ MonoBehaviour:
   - Attack1
   - Attack2
   - Attack3
+  - Attack4
+  - Attack5
+  - Attack6
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -569,6 +573,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: 4923911a0255a274cbbf169dfbef093e, type: 2}
   signalColor: {r: 0.42, g: 0.76, b: 0.65, a: 1}
+  muzzleOverrides: []
 --- !u!114 &3429033549364401679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -679,6 +684,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0.35}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &7422204108592275131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -705,6 +714,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 40686e91a2b879d46a762bd7b78f5f1f, type: 2}
+--- !u!114 &1682881746545564787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 881338938614917874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7394319376622681864}
+  movement: {fileID: 8204355365131800004}
 --- !u!1 &1100991635629342362
 GameObject:
   m_ObjectHideFlags: 0

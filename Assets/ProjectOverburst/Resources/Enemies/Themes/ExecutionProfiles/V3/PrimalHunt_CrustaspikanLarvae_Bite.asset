@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: PrimalHunt_CrustaspikanLarvae_Bite
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: c68bd2dc40c083bb
+  originalClip: {fileID: 1827226128182048838, guid: 2f6368f030c665549968d111a4ead004, type: 3}
+  runtimeClip: {fileID: 1827226128182048838, guid: 2f6368f030c665549968d111a4ead004, type: 3}
+  sourceTrimSeconds: {x: 0, y: 0.8333334}
+  motionPolicy: 0
+  stationaryStartRange: 0.91
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.39999998, y: 0.56}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.39999998
+      capsules:
+      - a: {x: -0.0824205, y: 0.20135646, z: 0.63448405}
+        b: {x: -0.0824205, y: 0.20135646, z: 0.63448405}
+        radius: 0.3057519
+    - normalizedTime: 0.43999997
+      capsules:
+      - a: {x: -0.06358878, y: 0.21186043, z: 0.59537375}
+        b: {x: -0.06358878, y: 0.21186043, z: 0.59537375}
+        radius: 0.26431313
+    - normalizedTime: 0.48
+      capsules:
+      - a: {x: -0.056186587, y: 0.2179041, z: 0.5636815}
+        b: {x: -0.056186587, y: 0.2179041, z: 0.5636815}
+        radius: 0.24477178
+    - normalizedTime: 0.52
+      capsules:
+      - a: {x: -0.05168152, y: 0.20967473, z: 0.5511277}
+        b: {x: -0.05168152, y: 0.20967473, z: 0.5511277}
+        radius: 0.2445716
+    - normalizedTime: 0.56
+      capsules:
+      - a: {x: -0.047312304, y: 0.2077607, z: 0.54052997}
+        b: {x: -0.047312304, y: 0.2077607, z: 0.54052997}
+        radius: 0.24453071
+    maximumPlanarReach: 0.9455668

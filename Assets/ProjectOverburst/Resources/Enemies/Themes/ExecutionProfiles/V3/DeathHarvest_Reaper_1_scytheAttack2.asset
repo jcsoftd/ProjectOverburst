@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: DeathHarvest_Reaper_1_scytheAttack2
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: c9ffa8fa5ab7f8ca
+  originalClip: {fileID: 7400000, guid: 6d35867ad8bcb584aafbecde01ab85ba, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 6d35867ad8bcb584aafbecde01ab85ba, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.8333334}
+  motionPolicy: 0
+  stationaryStartRange: 3.93
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.21818182, y: 0.29090908}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.21818182
+      capsules:
+      - a: {x: 2.558036, y: 3.552812, z: -1.8635168}
+        b: {x: 2.558036, y: 3.552812, z: -0.34611565}
+        radius: 1.302791
+    - normalizedTime: 0.23636363
+      capsules:
+      - a: {x: 1.5116901, y: 3.1009836, z: 0.71478695}
+        b: {x: 3.0112476, y: 3.1009836, z: 0.71478695}
+        radius: 1.2314978
+    - normalizedTime: 0.25454545
+      capsules:
+      - a: {x: 0.62098414, y: 2.2922945, z: 2.7129173}
+        b: {x: 1.6613305, y: 2.2922945, z: 2.7129173}
+        radius: 1.518933
+    - normalizedTime: 0.27272728
+      capsules:
+      - a: {x: -0.36593723, y: 1.7070961, z: 1.8274474}
+        b: {x: -0.36593723, y: 1.7070961, z: 2.9288092}
+        radius: 1.3361597
+    - normalizedTime: 0.29090908
+      capsules:
+      - a: {x: -2.2978334, y: 1.6009926, z: 1.6888783}
+        b: {x: -2.2978334, y: 1.6009926, z: 1.6888783}
+        radius: 1.8031245
+    maximumPlanarReach: 4.700118

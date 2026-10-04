@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: DeathHarvest_Reaper_0_scytheAttack1
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   abilityId: DeathHarvest_Reaper_0_scytheAttack1
+  weakAttackExecution: {fileID: 11400000, guid: 99bda31ec5882144386b64022f865f57, type: 2}
   animatorTrigger: Attack1
   executionMode: 0
   damage: 19
@@ -32,8 +33,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.8
-  hitDelay: 0.605
-  hitNormalizedTime: 0.33
+  hitDelay: 0.43333334
+  hitNormalizedTime: 0.23636363
   attackAnimationDuration: 1.8333334
   attackLockDuration: 1.76
   weight: 1

@@ -19,7 +19,7 @@ MonoBehaviour:
   run: {fileID: 1827226128182048838, guid: 542c7fed5536df74bb5ec9d961c339e6, type: 3}
   attackClips:
   - {fileID: 1827226128182048838, guid: 2f6368f030c665549968d111a4ead004, type: 3}
-  - {fileID: 1827226128182048838, guid: 913b392eae292d740b47041c82ded079, type: 3}
+  - {fileID: 1827226128182048838, guid: 5339e22b7815a564eb142f056381fb02, type: 3}
   hit: {fileID: 1827226128182048838, guid: bcda13caf17e6c840ba2cc1c968a4b04, type: 3}
   death: {fileID: 1827226128182048838, guid: 015ee943c8c8e2e438a40bd1c20a049e, type: 3}
   optional:
@@ -34,6 +34,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 7fbba64b5ca3e9d4193bba31a991975a, type: 3}
   - {fileID: 1827226128182048838, guid: dc7353f52f7fa9d4884e46d04d5a8d77, type: 3}
   - {fileID: 1827226128182048838, guid: 652128374fc1cb445b4bb652c4de0bcd, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 11/CrustaspikanLarvae/FBX Files/CrustaspikanLarvae@BiteForward_RM.fbx"

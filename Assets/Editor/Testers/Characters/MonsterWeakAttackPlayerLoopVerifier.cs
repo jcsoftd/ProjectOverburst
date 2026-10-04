@@ -83,6 +83,17 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             throw new ArgumentException("Private native authoring batch required.");
         return StartInternal(outputDirectory,false,1,false,true,false,null,false,authoringPath);
     }
+    public static string StartSavedAttackAndLeaseBatch(string outputDirectory,string authoringPath,string[] definitionPaths)
+    {
+        authoringPath=Path.GetFullPath(authoringPath);
+        string allowed=Path.GetFullPath(Path.Combine(Workspace,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        if(!authoringPath.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||!File.Exists(authoringPath)
+            ||definitionPaths==null||definitionPaths.Length==0||definitionPaths.Distinct().Count()!=definitionPaths.Length
+            ||definitionPaths.Any(p=>!p.StartsWith("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/",StringComparison.Ordinal)
+                ||AssetDatabase.LoadAssetAtPath<EnemyDefinition>(p)?.IsValid!=true))
+            throw new ArgumentException("Private attack batch and distinct saved definitions required.");
+        return StartInternal(outputDirectory,false,1,false,true,false,null,false,authoringPath,definitionPaths);
+    }
     static string StartInternal(string outputDirectory,bool fixedAnimator,float attackSpeed,bool stress,bool savedProfiles,bool leaseVerification,string testDefinition=null,bool realPlayerParry=false,string attackBatch=null,string[] leaseDefinitionPaths=null)
     {
         if(float.IsNaN(attackSpeed) || float.IsInfinity(attackSpeed) || attackSpeed<=0f)throw new ArgumentException("Invalid attack speed.");
@@ -105,8 +116,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
-            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+Math.Max(180,Math.Max((leaseDefinitionPaths?.Length??1)*(realPlayerParry?90:leaseVerification?70:25)+90,weakCases*12+90)),
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=weakCases,validationFrameRates=frameRates,scenes=SceneEvidence() };
+            captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,attackBatch=attackBatch,expectedWeakCases=weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -145,7 +156,12 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 if(!OwnPlay)throw new InvalidOperationException("Isolated account mismatch.");
                 var go=new GameObject("WeakAttackPlayerLoopHost"); owned.Add(go);
                 host=go.AddComponent<EnemyMotor>(); go.GetComponent<Rigidbody>().isKinematic=true;
-                plan.phase="running"; Save();
+                plan.phase="running";
+                // Import and domain-reload time belong to boot, not to the attack budget.
+                plan.deadline=EditorApplication.timeSinceStartup+Math.Max(180,Math.Max(
+                    (plan.leaseDefinitionPaths?.Length??1)*(plan.realPlayerParry?90:plan.leaseVerification||!string.IsNullOrEmpty(plan.attackBatch)?70:25)+90,
+                    plan.expectedWeakCases*12+90));
+                Save();
                 routine=host.StartCoroutine(Drive(RunCases()));
             }
             if(plan.phase=="running")
@@ -258,9 +274,15 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             float startingDistance=plan.savedProfiles?profile.ApproachStartRange-.10f:1f;
             // The saved player pivot is at the capsule center. Ground its lowest point
             // at the actor's floor height, as in the production Actor lease test.
-            float groundOffset=plan.savedProfiles?playerVolume.HalfHeight-playerVolume.Center.y:0f;
+            var playerBody=playerPrefab!=null?playerPrefab.GetComponentsInChildren<CapsuleCollider>(true).Single(c=>c.enabled&&!c.isTrigger):null;
+            Vector3 bodyCenter=playerBody!=null?playerPrefab.transform.InverseTransformPoint(playerBody.transform.TransformPoint(playerBody.center)):playerVolume.Center;
+            Vector3 bodyScale=playerBody!=null?playerBody.transform.lossyScale:Vector3.one;
+            float bodyRadius=playerBody!=null?playerBody.radius*Mathf.Max(Mathf.Abs(bodyScale.x),Mathf.Abs(bodyScale.z)):playerVolume.Radius;
+            float bodyHeight=playerBody!=null?playerBody.height*Mathf.Abs(bodyScale.y):playerVolume.HalfHeight*2;
+            if(playerBody!=null&&playerBody.direction!=1)throw new InvalidOperationException("Saved player capsule axis changed.");
+            float groundOffset=plan.savedProfiles?bodyHeight*.5f-bodyCenter.y:0f;
             victim.transform.position=go.transform.position+Vector3.forward*startingDistance+Vector3.up*groundOffset;
-            var collider=victim.AddComponent<CapsuleCollider>();collider.center=playerVolume.Center;collider.radius=playerVolume.Radius;collider.height=playerVolume.HalfHeight*2;
+            var collider=victim.AddComponent<CapsuleCollider>();collider.center=bodyCenter;collider.radius=bodyRadius;collider.height=bodyHeight;
             foreach(var shape in go.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(shape,collider);
             var target=victim.AddComponent<CombatTarget>();target.Configure(plan.savedProfiles?CombatTeam.PlayerParty:CombatTeam.Neutral,false);
             target.ConfigureVolume(playerVolume.Center,playerVolume.Radius,playerVolume.HalfHeight*2);
@@ -321,11 +343,13 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 ["fixedDelta"]=Time.fixedDeltaTime,["started"]=started,["startFrame"]=startFrame,
                 ["scenario"]=scenario,["pauseVerified"]=pauseVerified,["expectedHits"]=expected.Length,["pass"]=pass,["hits"]=hits,["samples"]=samples});
             var last=(JObject)cases[cases.Count-1];last["savedProfile"]=plan.savedProfiles;last["startingDistance"]=startingDistance;
-            last["targetRadius"]=playerVolume.Radius;last["targetGroundOffsetY"]=groundOffset;last["expectedDamage"]=expectedDamage;
+            last["targetRadius"]=collider.radius;last["targetHeight"]=collider.height;last["targetCenterY"]=collider.center.y;last["targetGroundOffsetY"]=groundOffset;last["expectedDamage"]=expectedDamage;
             WriteResult("RUNNING");
             melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);
             yield return null;
         }
+        if(!string.IsNullOrEmpty(plan.attackBatch)&&plan.leaseDefinitionPaths?.Length>0)
+            yield return RunLeaseCases();
     }
 
     // Production spawn/AI/ability/pool path. The target uses the saved player's body volume;

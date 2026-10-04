@@ -703,6 +703,7 @@ GameObject:
   - component: {fileID: 115963120271739973}
   - component: {fileID: 8131505342895100354}
   - component: {fileID: 438791408256871926}
+  - component: {fileID: 7612303822647028850}
   m_Layer: 7
   m_Name: PF_SpiderBrood_Carcinoptera
   m_TagString: Untagged
@@ -1227,6 +1228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeSpecialExecutor
   signalMaterial: {fileID: 2100000, guid: aff1a3fa17d54fd4fb81a0c59e351862, type: 2}
   signalColor: {r: 0.8, g: 0.45, b: 1, a: 1}
+  muzzleOverrides: []
 --- !u!114 &2087358380358382673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1322,6 +1324,10 @@ MonoBehaviour:
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: -0.45, z: 0}
   burnScale: 1
+  shockOffset: {x: 0, y: 0, z: 0}
+  shockScale: 1
+  corrosionOffset: {x: 0, y: 0, z: 0}
+  corrosionScale: 1
 --- !u!114 &8131505342895100354
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1348,6 +1354,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHitSfxTarget
   bundle: {fileID: 11400000, guid: 52a1c85ee3e48244eb8b84d8b0fe609e, type: 2}
+--- !u!114 &7612303822647028850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5984709002563124745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eda51c7a802e24b449bbf9594314109f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
+  owner: {fileID: 7923157940721170476}
+  movement: {fileID: 3106671489988073022}
 --- !u!1 &6129475259670029066
 GameObject:
   m_ObjectHideFlags: 0

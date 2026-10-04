@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: DeathHarvest_Reaper_2_scytheAttack3
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: 7081ad57cf3f1e6a
+  originalClip: {fileID: 7400000, guid: 379beafb37dae4c4bb6b41416fbf191f, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 379beafb37dae4c4bb6b41416fbf191f, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1.8333334}
+  motionPolicy: 0
+  stationaryStartRange: 4.72
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0, y: 0}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: 
+  contactWindows:
+  - {x: 0.25454545, y: 0.3272727}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.25454545
+      capsules:
+      - a: {x: 0.7396375, y: 3.5295749, z: 2.9580183}
+        b: {x: 0.7396375, y: 5.547688, z: 2.9580183}
+        radius: 1.1480389
+    - normalizedTime: 0.27272728
+      capsules:
+      - a: {x: 0.24790767, y: 3.511988, z: 3.3351645}
+        b: {x: 0.24790767, y: 3.511988, z: 3.4042559}
+        radius: 1.7638931
+    - normalizedTime: 0.29090908
+      capsules:
+      - a: {x: 0.058752954, y: 2.4581892, z: 2.3322065}
+        b: {x: 0.058752954, y: 2.4581892, z: 4.0060096}
+        radius: 1.1641738
+    - normalizedTime: 0.3090909
+      capsules:
+      - a: {x: -0.09693807, y: 1.1544287, z: 2.0759463}
+        b: {x: -0.09693807, y: 1.1544287, z: 3.8783407}
+        radius: 1.2103136
+    - normalizedTime: 0.3272727
+      capsules:
+      - a: {x: -0.19301498, y: 0.69660044, z: 2.0839663}
+        b: {x: -0.19301498, y: 0.69660044, z: 3.492303}
+        radius: 1.3643789
+    maximumPlanarReach: 5.177164
