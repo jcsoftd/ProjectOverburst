@@ -164,6 +164,8 @@ namespace Overburst.EditorTools.BossMaker
     {
         public EnemyBossMaterialCollection Collection { get; }
         public List<BossMakerDraft> Drafts { get; } = new List<BossMakerDraft>();
+        readonly List<EnemyBossCompositePatternSet> composites = new List<EnemyBossCompositePatternSet>();
+        public List<CrustaspikanEncounterSettings> Encounters { get; } = new List<CrustaspikanEncounterSettings>();
         readonly HashSet<string> bones;
         public bool Dirty => Drafts.Any(d => d.Dirty);
         public BossMakerSession(EnemyBossMaterialCollection collection, IEnumerable<BossMakerRecovery> recovery = null)
@@ -176,6 +178,7 @@ namespace Overburst.EditorTools.BossMaker
             {
                 foreach (var m in collection.attacks.Where(a => a != null))
                     Drafts.Add(new BossMakerDraft(m, recovery?.FirstOrDefault(r => r.guid == AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m)))));
+                RefreshRuntimeLinks();
             }
             catch { Dispose(); throw; }
         }
@@ -191,13 +194,56 @@ namespace Overburst.EditorTools.BossMaker
                     && (!bones.Contains(Collection.boulderLeftHandBone ?? "") || !bones.Contains(Collection.boulderRightHandBone ?? "")))
                     errors.Add(d.Source.displayName + ": 바위 투척 양손 뼈 연결을 확인하세요.");
             }
+            ValidateComposites(errors, onlyDirty);
             return errors;
+        }
+        public EnemyBossCompositePatternSet CompositeFor(EnemyBossAttackMaterial material)
+            => composites.FirstOrDefault(s => s != null && (s.throwMaterial == material
+                || s.spitPatterns.Any(p => p != null && p.material == material)));
+        void RefreshRuntimeLinks()
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:EnemyBossCompositePatternSet"))
+            {
+                var source = AssetDatabase.LoadAssetAtPath<EnemyBossCompositePatternSet>(AssetDatabase.GUIDToAssetPath(guid));
+                if (source == null || composites.Contains(source) || !Drafts.Any(d => source.throwMaterial == d.Source
+                    || source.spitPatterns.Any(p => p != null && p.material == d.Source))) continue;
+                composites.Add(source);
+            }
+            Encounters.Clear();
+            foreach (string guid in AssetDatabase.FindAssets("t:CrustaspikanEncounterSettings"))
+            {
+                var settings = AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(AssetDatabase.GUIDToAssetPath(guid));
+                if (settings != null && settings.materials == Collection) Encounters.Add(settings);
+            }
+        }
+        void ValidateComposites(List<string> errors, bool onlyDirty)
+        {
+            foreach (var set in composites)
+            {
+                if (set == null) continue;
+                foreach (var pattern in set.spitPatterns)
+                {
+                    if (pattern == null) continue;
+                    var draft = Drafts.FirstOrDefault(d => d.Source == pattern.material && (!onlyDirty || d.Dirty));
+                    if (draft == null) continue;
+                    foreach (var emission in pattern.emissions)
+                    {
+                        if (emission == null || emission.phase < 0 || emission.phase >= draft.Material.strikes.Length)
+                        { errors.Add(draft.Material.displayName + ": 복합 토출의 타격 연결을 확인하세요."); continue; }
+                        var strike = draft.Material.strikes[emission.phase];
+                        if (emission.normalizedTime >= strike.contactStart && emission.normalizedTime <= strike.contactEnd) continue;
+                        errors.Add($"{draft.Material.displayName}: {emission.normalizedTime * draft.FrameCount:0.##}F 토출이 "
+                            + $"{strike.contactStart * draft.FrameCount:0.##}~{strike.contactEnd * draft.FrameCount:0.##}F 판정 창 밖에 있습니다. 복합 공격 설정을 함께 조절하세요.");
+                    }
+                }
+            }
         }
         public void Apply()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 throw new InvalidOperationException("유휴 EditMode에서 저장하세요.");
             var changed = Drafts.Where(d => d.Dirty).ToArray();
+            RefreshRuntimeLinks();
             var errors = Validate(true);
             if (errors.Count > 0) throw new InvalidOperationException(string.Join("\n", errors));
             if (changed.GroupBy(d => d.AbilitySource).Any(g => g.Count() > 1)) throw new InvalidOperationException("변경 공격들이 같은 능력을 공유합니다. 한 공격씩 저장하거나 능력을 분리하세요.");
@@ -226,6 +272,10 @@ namespace Overburst.EditorTools.BossMaker
             }
         }
         public BossMakerRecovery[] Capture() => Drafts.Where(d => d.Dirty).Select(d => d.Capture()).ToArray();
-        public void Dispose() { foreach (var draft in Drafts) draft.Dispose(); Drafts.Clear(); }
+        public void Dispose()
+        {
+            foreach (var draft in Drafts) draft.Dispose(); Drafts.Clear();
+            composites.Clear(); Encounters.Clear();
+        }
     }
 }

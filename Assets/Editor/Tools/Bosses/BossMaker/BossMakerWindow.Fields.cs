@@ -25,13 +25,28 @@ namespace Overburst.EditorTools.BossMaker
             jump.Add(Button(m.delivery == EnemyBossMaterialDelivery.Melee ? "타격" : "발사", () => Seek(m.strikes[strikeIndex].impact), "boss-jump-hit"));
             jump.Add(Button("판정 끝", () => Seek(m.strikes[strikeIndex].contactEnd)));
             fields.Add(new Label("클립: " + m.runtimeClip.name));
+            var composite = session.CompositeFor(d.Source);
+            if (composite != null)
+            {
+                fields.Add(new HelpBox(m.delivery == EnemyBossMaterialDelivery.Spit
+                    ? "실제 공격은 분사·잡몹 토출입니다. 분사 범위와 방출은 복합 설정에서 조절하며, 여기의 프리뷰는 기본 모션·재료 궤적을 보여줍니다."
+                    : "바위·정예 투척 공격입니다. 정예 종류·출현·기상은 복합 설정에서 조절하며 프리뷰에는 기본 바위를 보여줍니다.", HelpBoxMessageType.Info));
+                fields.Add(Button("복합 공격 설정 열기", () => Selection.activeObject = composite, "boss-open-composite"));
+            }
+            if (session.Encounters.Count > 0)
+            {
+                fields.Add(new HelpBox("임시 보스방의 피해·속도·패링은 전투 설정이 확정합니다. 재료의 해당 값만 바꾸면 이 방에 적용되지 않습니다.", HelpBoxMessageType.Info));
+                foreach (var encounter in session.Encounters)
+                    fields.Add(Button("보스방 전투 설정 열기", () => Selection.activeObject = encounter, "boss-open-encounter"));
+            }
             if (tab == 0) GeometryFields(); else if (tab == 1) TimingFields(); else if (tab == 2) DamageSpeedFields(); else DeliveryFields();
             fields.Add(Button("원본 자산 열기", () => Selection.activeObject = d.Source, "boss-open-source"));
         }
         void GeometryFields()
         {
             var s = Draft.Material.strikes[strikeIndex];
-            fields.Add(Heading("지면 판정 · 미터"));
+            bool beam = Draft.Material.delivery == EnemyBossMaterialDelivery.Spit && session.CompositeFor(Draft.Source) != null;
+            fields.Add(Heading(beam ? "지면 전조 · 미터" : "지면 판정 · 미터"));
             var kinds = new List<string> { "부채꼴", "원형", "도넛", "직사각형" };
             var shape = new DropdownField("형태", kinds, (int)s.shape) { name = "boss-shape" };
             shape.RegisterValueChangedCallback(_ => Edit("판정 형태", () =>
@@ -64,7 +79,8 @@ namespace Overburst.EditorTools.BossMaker
             var d = Draft; var m = d.Material; int phase = strikeIndex; var s = m.strikes[phase]; var p = m.tuning.parries[phase];
             fields.Add(Heading("원본 모션 프레임"));
             Float(m.delivery == EnemyBossMaterialDelivery.Melee ? "타격 · 판정 시작 F" : "발사 F", s.impact * d.FrameCount, v => { s.impact = v / d.FrameCount; s.contactStart = s.impact; }, "boss-impact-frame");
-            if (m.delivery == EnemyBossMaterialDelivery.Melee) Float("판정 끝 F", s.contactEnd * d.FrameCount, v => s.contactEnd = v / d.FrameCount, "boss-contact-end-frame");
+            if (m.delivery == EnemyBossMaterialDelivery.Melee || m.delivery == EnemyBossMaterialDelivery.Spit && session.CompositeFor(d.Source) != null)
+                Float("판정 끝 F", s.contactEnd * d.FrameCount, v => s.contactEnd = v / d.FrameCount, "boss-contact-end-frame");
             else Note("발사 시점 이후의 피해는 비행체 접촉 또는 바위 착지로 발생합니다. 접촉 창은 근접 공격의 창과 구분합니다.");
             float speed = m.AnimationSpeedMultiplier * (preview?.BaseSpeed ?? 1f);
             Note($"{d.FrameCount:0.##}프레임 / {m.runtimeClip.frameRate:0.##}fps\n이 타격의 실제 시점: {d.Ability.ResolvePacedTime(s.impact, speed):0.000}s\n원본의 타격 자세와 실제 재생 시간을 함께 확인하세요.");
@@ -114,19 +130,20 @@ namespace Overburst.EditorTools.BossMaker
         }
         void DeliveryFields()
         {
-            var m = Draft.Material; fields.Add(Heading("코드 이동 · RM 제외"));
-            Float("전진 거리 (m)", m.advanceDistance, v => m.advanceDistance = v, "boss-advance-distance");
-            Float("전진 시작 F", m.advanceWindow.x * Draft.FrameCount, v => m.advanceWindow.x = v / Draft.FrameCount, "boss-advance-start");
-            Float("전진 끝 F", m.advanceWindow.y * Draft.FrameCount, v => m.advanceWindow.y = v / Draft.FrameCount, "boss-advance-end");
+            var m = Draft.Material; bool composite = session.CompositeFor(Draft.Source) != null; fields.Add(Heading("코드 이동 · RM 제외"));
+            Float("전진 거리 (m)", m.advanceDistance, v => m.advanceDistance = v, "boss-advance-distance").SetEnabled(!composite);
+            Float("전진 시작 F", m.advanceWindow.x * Draft.FrameCount, v => m.advanceWindow.x = v / Draft.FrameCount, "boss-advance-start").SetEnabled(!composite);
+            Float("전진 끝 F", m.advanceWindow.y * Draft.FrameCount, v => m.advanceWindow.y = v / Draft.FrameCount, "boss-advance-end").SetEnabled(!composite);
+            if (composite) Note("복합 실행기는 재료의 전진 값을 사용하지 않습니다. 보스방의 이동 단계에서 접근을 조절합니다.");
             Toggle("준비 중 표적 추적", m.tracksTargetDuringWindup, v => m.tracksTargetDuringWindup = v, "boss-track-target");
             Float("조준 고정 선행 (s)", m.aimLockLeadSeconds, v => m.aimLockLeadSeconds = v, "boss-aim-lock");
             if (m.delivery != EnemyBossMaterialDelivery.Melee)
             {
                 fields.Add(Heading("비행체"));
-                Float("충돌 몸체 반경 (m)", m.projectileRadius, v => m.projectileRadius = v, "boss-projectile-radius");
+                Float("충돌 몸체 반경 (m)", m.projectileRadius, v => m.projectileRadius = v, "boss-projectile-radius").SetEnabled(!composite);
                 if (m.delivery == EnemyBossMaterialDelivery.Spit)
                 {
-                    Float("비행 속도 (m/s)", m.projectileSpeed, v => m.projectileSpeed = v, "boss-projectile-speed");
+                    Float("비행 속도 (m/s)", m.projectileSpeed, v => m.projectileSpeed = v, "boss-projectile-speed").SetEnabled(!composite);
                     var bone = new TextField("발사 소켓") { value = m.muzzleBone, name = "boss-muzzle", isDelayed = true };
                     bone.RegisterValueChangedCallback(e => Edit("발사 소켓", () => m.muzzleBone = e.newValue)); fields.Add(bone);
                     Vector("소켓 오프셋", m.muzzleOffset, v => m.muzzleOffset = v, "boss-muzzle-offset");
@@ -134,7 +151,7 @@ namespace Overburst.EditorTools.BossMaker
                 else { Float("비행 시간 (s)", m.flightSeconds, v => m.flightSeconds = v, "boss-flight-seconds"); Float("포물선 높이 (m)", m.arcHeight, v => m.arcHeight = v, "boss-arc-height"); }
                 var distance = new FloatField("프리뷰 표적 거리 (m)") { value = preview?.TargetDistance ?? 12f, name = "boss-preview-target-distance", isDelayed = true };
                 distance.RegisterValueChangedCallback(e => { if (preview != null && EnemyBossMaterialStrike.Finite(e.newValue) && e.newValue > 0f) { preview.TargetDistance = e.newValue; preview.Changed(); renderDirty = true; } }); fields.Add(distance);
-                Note("파란 선은 원본 발사 자세의 소켓과 현재 프리뷰 표적을 잇는 궤적입니다. 표적 거리와 감상 재생은 게임 자산에 저장하지 않습니다.");
+                Note("파란 선은 코드 전진을 적용한 발사 자세와 현재 프리뷰 표적을 잇는 기본 재료 궤적입니다. 표적 거리와 감상 재생은 게임 자산에 저장하지 않습니다.");
             }
             var notes = new TextField("조립 메모") { value = m.assemblyNotes, multiline = true, name = "boss-notes", isDelayed = true };
             notes.RegisterValueChangedCallback(e => Edit("조립 메모", () => m.assemblyNotes = e.newValue)); fields.Add(notes);

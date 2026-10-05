@@ -59,11 +59,16 @@ namespace Overburst.EditorTools.BossMaker
             if (support == null)
             {
                 var m = draft.Material;
-                float advance = m.advanceDistance > 0 && m.advanceWindow.y > m.advanceWindow.x
-                    ? Mathf.InverseLerp(m.advanceWindow.x, m.advanceWindow.y, Progress) * m.advanceDistance : 0f;
+                float advance = AdvanceAt(Progress);
                 displacement = Vector3.forward * advance; stage.OffsetActor(displacement);
                 if (m.delivery == EnemyBossMaterialDelivery.Boulder) stage.SetHeldRockPreview(Progress < m.strikes[0].impact);
             }
+        }
+        float AdvanceAt(float progress)
+        {
+            var m = draft.Material;
+            return m.advanceDistance > 0f && m.advanceWindow.y > m.advanceWindow.x
+                ? Mathf.InverseLerp(m.advanceWindow.x, m.advanceWindow.y, progress) * m.advanceDistance : 0f;
         }
         public void Tick(float delta)
         {
@@ -99,7 +104,8 @@ namespace Overburst.EditorTools.BossMaker
                     if (muzzle == null) { launches.Clear(); return; }
                     start = muzzle.TransformPoint(m.muzzleOffset);
                 }
-                launches.Add(start);
+                // The runtime launches from the socket after code displacement, at each release pose.
+                launches.Add(start + Vector3.forward * AdvanceAt(strike.impact));
             }
         }
         public void Orbit(Vector2 delta) { stage.Yaw += delta.x * .4f; stage.Pitch = Mathf.Clamp(stage.Pitch + delta.y * .3f, -10f, 89f); }
@@ -174,7 +180,7 @@ namespace Overburst.EditorTools.BossMaker
             {
                 var m = draft.Material; var start = launches[phase];
                 if (m.delivery == EnemyBossMaterialDelivery.Boulder)
-                    yield return Enumerable.Range(0, 41).Select(i => Arc(start, Target, i / 40f, m.arcHeight)).ToArray();
+                    yield return Enumerable.Range(0, 41).Select(i => Arc(start, Target + Vector3.up * collection.boulderVisualRadius, i / 40f, m.arcHeight)).ToArray();
                 else
                 { var direction = (Target + Vector3.up * .9f - start).normalized; yield return new[] { start, start + direction * m.ability.Range }; }
             }
@@ -187,7 +193,7 @@ namespace Overburst.EditorTools.BossMaker
             {
                 var m = draft.Material; float age = Elapsed - draft.Ability.ResolvePacedTime(m.strikes[phase].impact, m.AnimationSpeedMultiplier * BaseSpeed);
                 if (age < 0f) continue;
-                if (m.delivery == EnemyBossMaterialDelivery.Boulder && age <= m.flightSeconds) yield return Arc(launches[phase], Target, age / m.flightSeconds, m.arcHeight);
+                if (m.delivery == EnemyBossMaterialDelivery.Boulder && age <= m.flightSeconds) yield return Arc(launches[phase], Target + Vector3.up * collection.boulderVisualRadius, age / m.flightSeconds, m.arcHeight);
                 if (m.delivery == EnemyBossMaterialDelivery.Spit && age * m.projectileSpeed <= m.ability.Range) yield return launches[phase] + (Target + Vector3.up * .9f - launches[phase]).normalized * age * m.projectileSpeed;
             }
         }
