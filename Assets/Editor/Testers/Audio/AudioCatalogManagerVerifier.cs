@@ -10,14 +10,15 @@ using Object = UnityEngine.Object;
 
 public static class AudioCatalogManagerVerifier
 {
-    private const string Output = "../개인파일/코덱스산출/Tools/AudioCatalogManager/20261005_RuntimeCatalogs";
+    private static string Output = "../개인파일/코덱스산출/Tools/AudioCatalogManager/20261005_RuntimeCatalogs";
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private static int checks;
 
     [MenuItem("OVERBURST/테스트/오디오/카탈로그 관리자")]
-    public static void Run()
+    public static void Run() => Run("../개인파일/코덱스산출/Tools/AudioCatalogManager/20261005_RuntimeCatalogs", true);
+    public static void Run(string output, bool render = true)
     {
-        RequireIdle();
+        RequireIdle(); Output=output;
         Directory.CreateDirectory(Output + "/data");
         Directory.CreateDirectory(Output + "/captures");
         checks = 0;
@@ -57,6 +58,8 @@ public static class AudioCatalogManagerVerifier
             AudioCatalogManagerCommandLineValidation.ValidateFromCommandLine();
             Check(true, "Current catalog command-line regression");
 
+            if(render)
+            {
             window = ScriptableObject.CreateInstance<AudioCatalogManagerWindow>();
             window.position = new Rect(80f, 80f, 1100f, 820f);
             window.ShowUtility();
@@ -65,6 +68,7 @@ public static class AudioCatalogManagerVerifier
                 Set(window, "selectedIndex", index);
                 Set(window, "selectedProviderName", providers[index].DisplayName);
                 Set(window, "inspectorScroll", Vector2.zero);
+                window.CreateGUI();
                 Capture(window, Output + "/captures/catalog-" + index + ".png");
                 Check(Get<int>(window, "selectedIndex") == index, "Native inspector renders " + providers[index].DisplayName);
                 Set(window, "search", providers[index].DisplayName);
@@ -76,6 +80,7 @@ public static class AudioCatalogManagerVerifier
                 Set(window, "missingOnly", false);
                 Call(window, "RefreshProviders");
                 Check(Get<int>(window, "selectedIndex") == index, "Selected provider survives refresh " + index);
+            }
             }
             // The native AudioUtil call is checked separately from a human listening review.
             Type audioUtil = typeof(AudioImporter).Assembly.GetType("UnityEditor.AudioUtil");

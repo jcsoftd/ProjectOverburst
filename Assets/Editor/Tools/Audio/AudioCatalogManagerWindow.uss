@@ -1,0 +1,47 @@
+.audio-root { flex-grow: 1; background-color: #141a22; color: #dde6ef; }
+.audio-header { height: 76px; min-height: 76px; padding: 14px 22px; flex-direction: row; align-items: center; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: #303c4b; background-color: #1b232e; }
+.audio-eyebrow { color: #87c9bc; font-size: 10px; -unity-font-style: bold; letter-spacing: 1px; }
+.audio-title { font-size: 24px; -unity-font-style: bold; color: #f0f5fa; }
+.audio-muted { color: #95a8bc; font-size: 11px; }
+.audio-body { flex-direction: row; flex-grow: 1; min-height: 0; }
+.audio-sidebar { width: 224px; min-width: 224px; padding: 16px 12px; background-color: #18202b; border-right-width: 1px; border-right-color: #303c4b; }
+.audio-section { margin-bottom: 10px; color: #9bb0c7; font-size: 11px; -unity-font-style: bold; }
+.audio-sidebar .unity-toggle { margin: 10px 0 14px 0; font-size: 10px; }
+.audio-catalog { min-height: 70px; align-items: flex-start; justify-content: center; margin: 3px 0; padding: 12px; border-width: 1px; border-color: #34475b; border-radius: 5px; background-color: #202d3c; }
+.audio-catalog:hover { background-color: #2b3f51; }
+.audio-catalog--selected { background-color: #25453f; border-color: #5b8d7f; }
+.audio-catalog-name { font-size: 12px; -unity-font-style: bold; color: #d5e6e2; }
+.audio-catalog-count { font-size: 10px; margin-top: 7px; color: #91aeb2; }
+.audio-spacer { flex-grow: 1; }
+.audio-main { flex-grow: 1; min-width: 0; min-height: 0; padding: 18px 22px; }
+.audio-heading-row { flex-direction: row; justify-content: space-between; align-items: center; }
+.audio-sheet-title { font-size: 20px; -unity-font-style: bold; color: #e8eff7; margin-bottom: 5px; }
+.audio-path { margin-top: 7px; margin-bottom: 12px; color: #819bb3; font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
+.audio-tools { flex-direction: row; margin-bottom: 12px; align-items: center; }
+.audio-cue-search { flex-grow: 1; min-width: 100px; margin-right: 7px; }
+.audio-inspector-scroll { flex-grow: 1; min-height: 0; }
+.audio-cue-card { margin: 0 4px 10px 0; border-width: 1px; border-color: #34475b; border-radius: 5px; background-color: #1e2a38; padding: 11px 12px; }
+.audio-cue-card > .unity-foldout__toggle { -unity-font-style: bold; color: #d0e3eb; font-size: 12px; margin: 0; }
+.audio-cue-card > .unity-foldout__content { margin-top: 10px; margin-left: 0; }
+.audio-clip-row { flex-direction: row; align-items: center; margin: 5px 0; }
+.audio-clip-field { flex-grow: 1; min-width: 0; }
+.audio-clip-field .unity-base-field__label { min-width: 55px; color: #91a8bd; font-size: 10px; }
+.audio-settings { margin: 12px 0 3px 0; padding-top: 8px; border-top-width: 1px; border-top-color: #3a4b5f; }
+.audio-settings .unity-foldout__toggle { color: #9db4c9; font-size: 10px; }
+.audio-setting { margin: 5px 0; }
+.audio-setting .unity-base-field__label { min-width: 155px; color: #99afc5; font-size: 11px; }
+.audio-note { color: #8ca4ba; font-size: 10px; white-space: normal; margin: 8px 2px; }
+.audio-issues { margin-top: 12px; }
+.audio-footer { min-height: 86px; flex-direction: row; align-items: center; padding: 10px 16px; border-top-width: 1px; border-top-color: #344254; background-color: #1c2633; }
+.audio-footer-info { flex-grow: 1; min-width: 0; margin-right: 12px; }
+.audio-badges { flex-direction: row; }
+.audio-badge { font-size: 10px; padding: 4px 8px; margin-right: 6px; background-color: #283745; color: #a5c4cf; border-radius: 3px; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+.audio-badge--dirty { color: #ffcf8f; background-color: #4a3927; }
+.audio-actions { flex-direction: row; }
+.audio-secondary, .audio-primary, .audio-play, .audio-remove { height: 31px; padding: 0 12px; margin: 2px 3px; border-radius: 4px; border-width: 1px; font-size: 11px; }
+.audio-secondary, .audio-remove { background-color: #293849; border-color: #40536a; color: #b9cbdd; }
+.audio-secondary:hover { background-color: #354a61; }
+.audio-primary { background-color: #386c60; border-color: #5c9c88; color: #e4fff3; -unity-font-style: bold; }
+.audio-primary:hover { background-color: #478674; }
+.audio-play { width: 34px; padding: 0; background-color: #315d61; border-color: #4d868d; color: #bff6ec; }
+.audio-root .unity-button:disabled { opacity: 0.4; }

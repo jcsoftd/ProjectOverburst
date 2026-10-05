@@ -1,0 +1,76 @@
+.balance-root { flex-grow: 1; background-color: #141a22; color: #dde6ef; }
+.balance-header { height: 76px; min-height: 76px; padding: 14px 22px; flex-direction: row; align-items: center; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: #303c4b; background-color: #1b232e; }
+.balance-eyebrow { color: #7fb9cc; font-size: 10px; -unity-font-style: bold; letter-spacing: 1px; }
+.balance-title { font-size: 24px; -unity-font-style: bold; color: #f0f5fa; }
+.balance-subtitle, .balance-muted { color: #95a8bc; font-size: 11px; }
+.balance-body { flex-direction: row; flex-grow: 1; min-height: 0; }
+.balance-sidebar { width: 166px; min-width: 166px; padding: 14px 10px; background-color: #18202b; border-right-width: 1px; border-right-color: #303c4b; }
+.balance-nav-heading { margin: 13px 9px 7px 9px; color: #8599b0; font-size: 10px; -unity-font-style: bold; }
+.balance-nav { height: 38px; margin: 2px 0; padding-left: 12px; -unity-text-align: middle-left; border-width: 1px; border-color: rgba(0,0,0,0); border-radius: 5px; color: #b6c6d8; background-color: rgba(0,0,0,0); }
+.balance-nav:hover { background-color: #283748; color: #edf4fa; }
+.balance-nav--selected { background-color: #244256; border-color: #3c667c; color: #b8e7f5; -unity-font-style: bold; }
+.balance-spacer { flex-grow: 1; }
+.balance-sidebar-note { margin: 10px 4px; color: #8396aa; font-size: 10px; white-space: normal; }
+.balance-workspace { flex-direction: row; flex-grow: 1; min-width: 0; min-height: 0; }
+.balance-center { flex-grow: 1; min-width: 0; min-height: 0; padding: 16px 16px 12px 16px; }
+.balance-sheet-heading { flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.balance-sheet-title { font-size: 18px; -unity-font-style: bold; color: #e8eff7; margin-bottom: 3px; }
+.balance-count { padding: 6px 9px; border-width: 1px; border-color: #3a4b60; border-radius: 4px; color: #aac2d9; font-size: 11px; }
+.balance-filters { flex-direction: row; align-items: center; margin-bottom: 10px; }
+.balance-search { flex-grow: 1; min-width: 100px; margin-right: 8px; }
+.balance-group { width: 135px; margin-right: 8px; }
+.balance-conditions { flex-direction: row; flex-wrap: wrap; margin-bottom: 8px; }
+.balance-conditions > .unity-base-field { width: 165px; margin: 0 8px 6px 0; }
+.balance-conditions .unity-base-field__label { min-width: 74px; font-size: 10px; color: #98adc2; }
+.balance-table { flex-grow: 1; min-height: 160px; overflow: hidden; border-width: 1px; border-color: #344254; border-radius: 5px; background-color: #18212d; }
+.balance-table-scroll { flex-grow: 1; }
+.balance-table-header { height: 38px; min-height: 38px; flex-direction: row; background-color: #253343; border-bottom-width: 1px; border-bottom-color: #40536a; }
+.balance-column { margin: 0; border-radius: 0; border-width: 0; border-right-width: 1px; border-right-color: #34475c; background-color: rgba(0,0,0,0); color: #abbdd0; font-size: 11px; }
+.balance-column:hover, .balance-column--sorted { background-color: #30465b; color: #beeafa; }
+.balance-list { flex-grow: 1; min-height: 150px; }
+.balance-data-row { align-items: center; height: 36px; background-color: #18222e; border-bottom-width: 1px; border-bottom-color: #243242; }
+.balance-row--alternate { background-color: #1c2734; }
+.balance-data-row:hover { background-color: #283b4e; }
+.balance-list .unity-collection-view__item--selected .balance-data-row { background-color: #284b63; }
+.balance-data-row #row-name { padding: 0 10px; font-size: 11px; color: #c2d2e3; overflow: hidden; text-overflow: ellipsis; }
+.balance-number { height: 26px; margin: 0 2px; }
+.balance-number .unity-base-field__input { background-color: #202d3d; border-width: 1px; border-color: #35465a; border-radius: 3px; padding: 3px 7px; color: #e0e9f3; }
+.balance-number .unity-base-field__input:focus { border-color: #80c7df; }
+.balance-number--changed .unity-base-field__input { color: #ffcf88; border-color: #a77842; background-color: #3a3026; }
+.balance-readonly { color: #91bed0; font-size: 10px; padding-left: 5px; }
+.balance-details { width: 306px; min-width: 306px; min-height: 0; background-color: #1b2531; border-left-width: 1px; border-left-color: #344254; }
+.balance-detail-scroll { flex-grow: 1; padding: 18px 14px; }
+.balance-selection-title { font-size: 16px; -unity-font-style: bold; margin: 8px 0; white-space: normal; color: #eef4fa; }
+.balance-path { color: #819bb3; font-size: 10px; white-space: normal; margin-bottom: 12px; }
+.balance-detail-actions { flex-direction: row; flex-wrap: wrap; margin-bottom: 12px; }
+.balance-section-title { font-size: 11px; color: #a9bdd2; -unity-font-style: bold; margin: 14px 0 8px 0; padding-top: 10px; border-top-width: 1px; border-top-color: #38495c; }
+.balance-comparison { padding: 7px 0; border-bottom-width: 1px; border-bottom-color: #2e3b4c; }
+.balance-comparison-name { color: #93a8bf; font-size: 10px; }
+.balance-comparison-value { color: #d3e0ec; margin-top: 3px; font-size: 12px; white-space: normal; }
+.balance-comparison-value--changed { color: #ffd292; }
+.balance-preview { white-space: normal; font-size: 11px; color: #c4d4e4; margin: 4px 0 16px 0; }
+.balance-empty { display: none; position: absolute; top: 46px; bottom: 26px; left: 12px; right: 12px; align-items: center; justify-content: center; background-color: #18212d; }
+.balance-empty--visible { display: flex; }
+.balance-empty .balance-secondary { margin-top: 14px; min-width: 130px; }
+.balance-footer { min-height: 88px; flex-direction: row; align-items: center; padding: 10px 16px; border-top-width: 1px; border-top-color: #344254; background-color: #1c2633; }
+.balance-state { flex-grow: 1; min-width: 0; margin-right: 16px; }
+.balance-state-badges { flex-direction: row; }
+.balance-state-badge { font-size: 10px; color: #93acbf; margin-right: 6px; padding: 4px 8px; background-color: #283745; border-radius: 3px; }
+.balance-state-badge--changed { color: #ffcf8f; background-color: #4a3927; }
+.balance-state-badge--pending { color: #97e3d1; background-color: #25473f; }
+.balance-status { color: #97abc0; font-size: 10px; white-space: normal; margin-top: 6px; }
+.balance-actions { flex-direction: row; align-items: center; }
+.balance-secondary, .balance-primary, .balance-save { height: 32px; padding: 0 12px; margin: 2px 3px; border-radius: 4px; border-width: 1px; -unity-font-style: bold; font-size: 11px; }
+.balance-secondary { background-color: #293849; border-color: #40536a; color: #b9cbdd; }
+.balance-secondary:hover { background-color: #354a61; }
+.balance-primary { background-color: #34708d; border-color: #509ab7; color: #effaff; }
+.balance-primary:hover { background-color: #4284a2; }
+.balance-save { background-color: #31554d; border-color: #4f8073; color: #bceede; }
+.balance-save:hover { background-color: #3e6c60; }
+.balance-root .unity-button:disabled { opacity: 0.38; }
+.balance-root--compact .balance-workspace { flex-direction: column; }
+.balance-root--compact .balance-details { width: auto; min-width: 0; height: 210px; min-height: 210px; border-left-width: 0; border-top-width: 1px; border-top-color: #344254; }
+.balance-root--compact .balance-detail-scroll { padding: 10px 16px; }
+.balance-root--compact .balance-footer { flex-direction: column; align-items: stretch; }
+.balance-root--compact .balance-actions { justify-content: flex-end; margin-top: 7px; }
+.balance-root--compact .balance-subtitle { display: none; }

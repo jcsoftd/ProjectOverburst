@@ -13,9 +13,9 @@ using Object = UnityEngine.Object;
 
 namespace Overburst.EditorBalance
 {
-    public static class BalanceTableRuntimeAlignmentVerifier
+    public static partial class BalanceTableRuntimeAlignmentVerifier
     {
-        const string Output = "../개인파일/코덱스산출/Tools/BalanceTable/20261005_RuntimeAlignment";
+        static string Output = "../개인파일/코덱스산출/Tools/BalanceTable/20261005_RuntimeAlignment";
         const string Temp = "Assets/Editor/Testers/Balance/__BalanceTableRuntimeAlignment.asset";
         const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
         static OverburstBalanceTableWindow window;
@@ -31,10 +31,12 @@ namespace Overburst.EditorBalance
         public static bool Running { get; private set; }
 
         [MenuItem("OVERBURST/테스트/밸런스/현행 데이터와 편집 저장")]
-        public static void Run()
+        public static void Run() => Run("../개인파일/코덱스산출/Tools/BalanceTable/20261005_RuntimeAlignment", false);
+
+        public static void Run(string output, bool redesign = false)
         {
             if (Running) throw new InvalidOperationException("밸런스 표 검증이 이미 실행 중입니다.");
-            RequireIdle();
+            RequireIdle(); Output = output; toolkitUX = redesign;
             if (AssetDatabase.LoadMainAssetAtPath(Temp) != null || File.Exists(Temp))
                 throw new InvalidOperationException("검증 임시 경로가 이미 존재합니다. 덮어쓰지 않습니다.");
             Directory.CreateDirectory(Output + "/data"); Directory.CreateDirectory(Output + "/captures");
@@ -81,7 +83,8 @@ namespace Overburst.EditorBalance
                 }
                 if (stage == 12) { ChooseView(5); SelectContactRow(); stage++; return; }
                 if (stage == 13) { VerifyContactUi(); Capture(window, Output + "/captures/weak-contact.png"); stage++; return; }
-                if (stage == 14) { VerifySaveConflict(); stage++; return; }
+                if (toolkitUX && stage >= 14 && stage < 20) { VerifyToolkitStep(stage - 14); stage++; return; }
+                if (stage == (toolkitUX ? 20 : 14)) { VerifySaveConflict(); stage++; return; }
                 Finish("PASS", null);
             }
             catch (Exception error) { Finish("FAIL", error.ToString()); }

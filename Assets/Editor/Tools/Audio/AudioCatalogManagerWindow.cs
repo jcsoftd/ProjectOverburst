@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEditor.UIElements;
+using UnityEngine.UIElements;
+using System.Linq;
 
 public readonly struct AudioCatalogValidationIssue
 {
@@ -26,6 +29,7 @@ public interface IAudioCatalogEditorProvider
     bool SupportsConfirmedDefaults { get; }
     void Refresh();
     void DrawInspector();
+    VisualElement CreateInspector(Action changed);
     IReadOnlyList<AudioCatalogValidationIssue> CollectIssues();
     void ApplyConfirmedDefaults();
     int AddMissingElements();
@@ -49,289 +53,136 @@ public static class AudioCatalogEditorProviderRegistry
 
 public sealed class AudioCatalogManagerWindow : EditorWindow
 {
-    private const float MinimumLeftWidth = 155f;
-    private const float MaximumLeftWidth = 205f;
-    private readonly List<IAudioCatalogEditorProvider> providers =
-        new List<IAudioCatalogEditorProvider>();
-
-    [SerializeField] private Vector2 catalogScroll;
-    [SerializeField] private Vector2 inspectorScroll;
-    [SerializeField] private string search = string.Empty;
-    [SerializeField] private bool missingOnly;
-    [SerializeField] private string selectedProviderName = string.Empty;
-    private int selectedIndex;
-
+    readonly List<IAudioCatalogEditorProvider> providers = new List<IAudioCatalogEditorProvider>();
+    [SerializeField] string search = "", cueSearch = "", selectedProviderName = "";
+    [SerializeField] bool missingOnly;
+    [SerializeField] Vector2 inspectorScroll;
+    int selectedIndex;
+    VisualElement catalogList, inspectorHost, issuesHost;
+    Label title, summary, path, savedState, previewState, message;
+    Button saveButton, stopButton;
+    IVisualElementScheduledItem stateSchedule;
+    string feedback = "";
     [MenuItem("JC Tool/오디오/오디오 카탈로그 관리자")]
-    private static void Open()
+    static void Open() => GetWindow<AudioCatalogManagerWindow>("오디오 카탈로그 관리자");
+    void OnEnable()
     {
-        GetWindow<AudioCatalogManagerWindow>("오디오 카탈로그 관리자");
+        titleContent = new GUIContent("오디오 카탈로그 관리자"); minSize = new Vector2(960,680);
+        feedback = "클립을 지정하고 선택한 카탈로그만 저장합니다.";
+        Undo.undoRedoPerformed += HandleUndoRedo; RefreshProviders();
     }
-
-    private void OnEnable()
+    void OnDisable()
+    { stateSchedule?.Pause(); Undo.undoRedoPerformed -= HandleUndoRedo; rootVisualElement.Unbind(); AudioCatalogEditorPreview.StopAll(); ReleaseProviders(); }
+    static T Style<T>(T element,string name) where T:VisualElement { element.AddToClassList(name); return element; }
+    static Label Text(string text,string style)=>Style(new Label(text),style);
+    public void CreateGUI()
     {
-        titleContent = new GUIContent("오디오 카탈로그 관리자");
-        minSize = new Vector2(760f, 540f);
-        Undo.undoRedoPerformed += HandleUndoRedo;
-        RefreshProviders();
+        var root=rootVisualElement; stateSchedule?.Pause(); root.Unbind(); root.Clear(); root.AddToClassList("audio-root");
+        var stylesheet=AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/Editor/Tools/Audio/AudioCatalogManagerWindow.uss");
+        if(stylesheet!=null&&!root.styleSheets.Contains(stylesheet))root.styleSheets.Add(stylesheet);
+        var header=Style(new VisualElement(),"audio-header"); var heading=new VisualElement();
+        heading.Add(Text("OVERBURST  /  SOUND LIBRARY","audio-eyebrow")); heading.Add(Text("오디오 카탈로그","audio-title")); header.Add(heading);
+        header.Add(Text("탐색 · 클립 지정 · 미리듣기","audio-muted")); root.Add(header);
+        var body=Style(new VisualElement(),"audio-body"); root.Add(body);
+        var sidebar=Style(new VisualElement(),"audio-sidebar"); body.Add(sidebar); sidebar.Add(Text("카탈로그","audio-section"));
+        var catalogSearch=new ToolbarSearchField {name="catalog-search",value=search}; catalogSearch.tooltip="카탈로그 이름 또는 경로 검색";
+        catalogSearch.style.width=Length.Percent(100);catalogSearch.style.maxWidth=Length.Percent(100);catalogSearch.style.minWidth=0;
+        catalogSearch.RegisterValueChangedCallback(e=>{search=e.newValue??"";BuildCatalogList();RenderSelected();}); sidebar.Add(catalogSearch);
+        var missing=new Toggle("누락된 카탈로그만") {name="missing-only",value=missingOnly}; missing.RegisterValueChangedCallback(e=>{missingOnly=e.newValue;BuildCatalogList();RenderSelected();}); sidebar.Add(missing);
+        catalogList=Style(new VisualElement(),"audio-catalog-list"); sidebar.Add(catalogList);
+        sidebar.Add(Style(new VisualElement(),"audio-spacer")); sidebar.Add(Style(new Button(RefreshProviders){text="원본 다시 읽기"},"audio-secondary"));
+        sidebar.Add(Text("설정은 게임 재생에 사용됩니다.\n미리듣기는 클립 원음을 재생합니다.","audio-note"));
+        var main=Style(new VisualElement(),"audio-main"); body.Add(main);
+        var headingRow=Style(new VisualElement(),"audio-heading-row"); main.Add(headingRow); var labels=new VisualElement(); headingRow.Add(labels);
+        title=Text("","audio-sheet-title"); summary=Text("","audio-muted"); labels.Add(title);labels.Add(summary);
+        var locate=Style(new Button(()=>{var asset=Selected?.CatalogAsset;if(asset!=null)EditorGUIUtility.PingObject(asset);}){text="원본 위치"},"audio-secondary"); headingRow.Add(locate);
+        path=Text("","audio-path"); main.Add(path);
+        var tools=Style(new VisualElement(),"audio-tools"); main.Add(tools);
+        var cueField=Style(new ToolbarSearchField {name="cue-search",value=cueSearch},"audio-cue-search");cueField.tooltip="선택한 카탈로그의 클립 구분 검색";
+        cueField.RegisterValueChangedCallback(e=>{cueSearch=e.newValue??"";FilterCues();});tools.Add(cueField);
+        tools.Add(Style(new Button(()=>{cueSearch="";cueField.SetValueWithoutNotify("");FilterCues();}){text="검색 초기화"},"audio-secondary"));
+        tools.Add(Style(new Button(()=>SetFoldouts(true)){text="모두 펼치기"},"audio-secondary"));tools.Add(Style(new Button(()=>SetFoldouts(false)){text="모두 접기"},"audio-secondary"));
+        var scroll=Style(new ScrollView(),"audio-inspector-scroll");main.Add(scroll);
+        inspectorHost=new VisualElement {name="audio-editor"};scroll.Add(inspectorHost);
+        issuesHost=Style(new VisualElement(),"audio-issues");scroll.Add(issuesHost);
+        var footer=Style(new VisualElement(),"audio-footer");root.Add(footer);
+        var footerInfo=Style(new VisualElement(),"audio-footer-info");footer.Add(footerInfo);
+        var badges=Style(new VisualElement(),"audio-badges");footerInfo.Add(badges);savedState=Text("","audio-badge");savedState.name="audio-save-state";previewState=Text("","audio-badge");badges.Add(savedState);badges.Add(previewState);
+        message=Text(feedback,"audio-note");footerInfo.Add(message);
+        var actions=Style(new VisualElement(),"audio-actions");footer.Add(actions);
+        stopButton=Style(new Button(()=>{AudioCatalogEditorPreview.StopAll();UpdateState();}){text="■  미리듣기 정지",name="stop-preview"},"audio-secondary");actions.Add(stopButton);
+        actions.Add(Style(new Button(ValidateSelected){text="검증"},"audio-secondary"));saveButton=Style(new Button(SaveSelected){text="선택 카탈로그 저장",name="save-catalog"},"audio-primary");actions.Add(saveButton);
+        BuildCatalogList();RenderSelected();stateSchedule=root.schedule.Execute(UpdateState).Every(500);
     }
-
-    private void OnDisable()
+    IAudioCatalogEditorProvider Selected => selectedIndex>=0&&selectedIndex<providers.Count?providers[selectedIndex]:null;
+    bool MatchesFilter(IAudioCatalogEditorProvider provider)=>provider!=null&&(!missingOnly||provider.HasMissingReference)&&(string.IsNullOrWhiteSpace(search)||provider.DisplayName.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||provider.AssetPath.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0);
+    public static bool CanEdit => !EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating&&!BuildPipeline.isBuildingPlayer&&!EditorUtility.scriptCompilationFailed;
+    void BuildCatalogList()
     {
-        Undo.undoRedoPerformed -= HandleUndoRedo;
-        AudioCatalogEditorPreview.StopAll();
-        ReleaseProviders();
-    }
-
-    private void OnGUI()
-    {
-        DrawToolbar();
-        EditorGUILayout.BeginHorizontal();
-        DrawCatalogList();
-        GUILayout.Space(2f);
-        DrawSelectedCatalog();
-        EditorGUILayout.EndHorizontal();
-    }
-
-    private void DrawToolbar()
-    {
-        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-        if (GUILayout.Button("새로고침", EditorStyles.toolbarButton, GUILayout.Width(70f)))
-            RefreshProviders();
-        if (GUILayout.Button("검증", EditorStyles.toolbarButton, GUILayout.Width(50f)))
-            ValidateSelected();
-        if (GUILayout.Button("저장", EditorStyles.toolbarButton, GUILayout.Width(50f)))
-            SaveSelected();
-        GUILayout.Space(4f);
-        EditorGUILayout.LabelField("검색", GUILayout.Width(30f));
-        search = EditorGUILayout.TextField(search);
-        missingOnly = GUILayout.Toggle(
-            missingOnly,
-            "누락만",
-            EditorStyles.toolbarButton,
-            GUILayout.Width(62f));
-        if (GUILayout.Button("미리듣기 정지", EditorStyles.toolbarButton, GUILayout.Width(96f)))
-            AudioCatalogEditorPreview.StopAll();
-        EditorGUILayout.EndHorizontal();
-    }
-
-    private void DrawCatalogList()
-    {
-        float width = Mathf.Clamp(position.width * 0.2f, MinimumLeftWidth, MaximumLeftWidth);
-        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(width), GUILayout.ExpandHeight(false));
-        EditorGUILayout.LabelField("카탈로그", EditorStyles.miniBoldLabel);
-        float listHeight = Mathf.Clamp(providers.Count * 22f + 4f, 26f, 160f);
-        catalogScroll = EditorGUILayout.BeginScrollView(catalogScroll, GUILayout.Height(listHeight));
-        for (int i = 0; i < providers.Count; i++)
+        if(catalogList==null)return;catalogList.Clear();
+        for(int i=0;i<providers.Count;i++)
         {
-            IAudioCatalogEditorProvider provider = providers[i];
-            if (!MatchesFilter(provider))
-                continue;
-
-            IReadOnlyList<AudioCatalogValidationIssue> issues = provider.CollectIssues();
-            CountIssues(issues, out int warningCount, out int errorCount);
-            string label = BuildCatalogLabel(provider, warningCount, errorCount);
-            bool selected = i == selectedIndex;
-            Color previous = GUI.backgroundColor;
-            GUI.backgroundColor = GetStatusColor(provider.CatalogAsset == null, warningCount, errorCount);
-            if (GUILayout.Toggle(selected, label, "Button", GUILayout.Height(20f)) && !selected)
-            {
-                selectedIndex = i;
-                selectedProviderName = provider.DisplayName;
-                inspectorScroll = Vector2.zero;
-            }
-            GUI.backgroundColor = previous;
+            var provider=providers[i];if(!MatchesFilter(provider))continue;int index=i;
+            var button=Style(new Button(()=>SelectProvider(index)){name="catalog-"+i},"audio-catalog");
+            button.EnableInClassList("audio-catalog--selected",index==selectedIndex);
+            button.Add(Text(provider.DisplayName,"audio-catalog-name"));
+            var issues=provider.CollectIssues();CountIssues(issues,out int warnings,out int errors);
+            button.Add(Text(provider.ReadElementCount()+"구분 · "+provider.ReadClipCount()+"클립"+(errors>0?" · 오류 "+errors:warnings>0?" · 경고 "+warnings:""),"audio-catalog-count"));catalogList.Add(button);
         }
-        EditorGUILayout.EndScrollView();
-        EditorGUILayout.EndVertical();
+        if(catalogList.childCount==0)catalogList.Add(Text("검색 조건에 맞는\n카탈로그가 없습니다.","audio-note"));
     }
-
-    private void DrawSelectedCatalog()
+    void SelectProvider(int index)
+    {selectedIndex=index;selectedProviderName=providers[index].DisplayName;cueSearch="";rootVisualElement.Q<ToolbarSearchField>("cue-search")?.SetValueWithoutNotify("");BuildCatalogList();RenderSelected();}
+    void RenderSelected()
     {
-        EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-        if (providers.Count == 0 || selectedIndex < 0 || selectedIndex >= providers.Count)
-        {
-            EditorGUILayout.HelpBox("지원되는 오디오 카탈로그가 없습니다.", MessageType.Info);
-            EditorGUILayout.EndVertical();
-            return;
-        }
-
-        IAudioCatalogEditorProvider provider = providers[selectedIndex];
-        EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode
-            || EditorApplication.isCompiling || EditorApplication.isUpdating);
-        DrawCatalogHeader(provider);
-        inspectorScroll = EditorGUILayout.BeginScrollView(inspectorScroll);
-        provider.DrawInspector();
-        EditorGUILayout.EndScrollView();
-        EditorGUI.EndDisabledGroup();
-        EditorGUILayout.EndVertical();
+        if(inspectorHost==null)return;inspectorHost.Unbind();inspectorHost.Clear();issuesHost.Clear();
+        var provider=Selected;bool visible=provider!=null&&MatchesFilter(provider);
+        title.text=visible?provider.DisplayName:"카탈로그를 선택하세요";summary.text=visible?provider.ReadElementCount()+"구분 · 연결 클립 "+provider.ReadClipCount():"검색 조건을 확인하거나 왼쪽에서 선택하세요.";path.text=visible?provider.AssetPath:"";path.tooltip=path.text;
+        if(visible)inspectorHost.Add(provider.CreateInspector(()=>{BuildCatalogList();summary.text=provider.ReadElementCount()+"구분 · 연결 클립 "+provider.ReadClipCount();FilterCues();UpdateState();}));
+        FilterCues();UpdateState();
     }
-
-    private void DrawCatalogHeader(IAudioCatalogEditorProvider provider)
+    void FilterCues()
     {
-        IReadOnlyList<AudioCatalogValidationIssue> issues = provider.CollectIssues();
-        CountIssues(issues, out int warningCount, out int errorCount);
-        string dirtyState = provider.CatalogAsset != null && EditorUtility.IsDirty(provider.CatalogAsset)
-            ? "변경됨"
-            : "저장됨";
-        string validationState = errorCount == 0 && warningCount == 0
-            ? "정상"
-            : "경고 " + warningCount + " / 오류 " + errorCount;
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField(provider.DisplayName, EditorStyles.boldLabel, GUILayout.Width(126f));
-        Color previous = GUI.contentColor;
-        GUI.contentColor = errorCount > 0
-            ? new Color(1f, 0.35f, 0.35f)
-            : warningCount > 0 ? new Color(1f, 0.65f, 0.15f) : previous;
-        EditorGUILayout.LabelField(dirtyState + " · " + validationState, EditorStyles.miniLabel);
-        GUI.contentColor = previous;
-        GUILayout.FlexibleSpace();
-        EditorGUI.BeginDisabledGroup(provider.CatalogAsset == null);
-        EditorGUI.EndDisabledGroup();
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.LabelField("행/구분 " + provider.ReadElementCount()
-            + " · 연결 클립 " + provider.ReadClipCount(), EditorStyles.miniLabel);
-
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("경로", EditorStyles.miniLabel, GUILayout.Width(28f));
-        EditorGUILayout.SelectableLabel(
-            provider.CatalogAsset != null ? provider.AssetPath : "에셋 없음",
-            EditorStyles.textField,
-            GUILayout.Height(EditorGUIUtility.singleLineHeight));
-        EditorGUI.BeginDisabledGroup(provider.CatalogAsset == null);
-        if (GUILayout.Button("선택", GUILayout.Width(44f)))
-            Selection.activeObject = provider.CatalogAsset;
-        if (GUILayout.Button("위치", GUILayout.Width(44f)))
-            EditorGUIUtility.PingObject(provider.CatalogAsset);
-        EditorGUI.EndDisabledGroup();
-        EditorGUILayout.EndHorizontal();
+        if(inspectorHost==null)return;
+        foreach(var card in inspectorHost.Query<Foldout>(className:"audio-cue-card").ToList())
+            card.style.display=string.IsNullOrWhiteSpace(cueSearch)||card.text.IndexOf(cueSearch,StringComparison.OrdinalIgnoreCase)>=0?DisplayStyle.Flex:DisplayStyle.None;
+        var empty=inspectorHost.Q<Label>("cue-empty");
+        bool noResult=!string.IsNullOrWhiteSpace(cueSearch)&&inspectorHost.Query<Foldout>(className:"audio-cue-card").ToList().All(c=>c.style.display==DisplayStyle.None);
+        if(noResult&&empty==null){empty=Text("검색한 클립 구분이 없습니다. 검색어를 바꾸거나 검색을 초기화하세요.","audio-note");empty.name="cue-empty";inspectorHost.Add(empty);}
+        if(empty!=null)empty.style.display=noResult?DisplayStyle.Flex:DisplayStyle.None;
     }
-
-    private bool MatchesFilter(IAudioCatalogEditorProvider provider)
+    void SetFoldouts(bool expanded)
+    {foreach(var card in inspectorHost.Query<Foldout>(className:"audio-cue-card").ToList())card.value=expanded;}
+    void UpdateState()
     {
-        if (provider == null)
-            return false;
-        if (missingOnly && !provider.HasMissingReference)
-            return false;
-        return string.IsNullOrWhiteSpace(search)
-            || provider.DisplayName.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0
-            || provider.AssetPath.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
+        if(saveButton==null)return;var provider=Selected;var asset=provider?.CatalogAsset;
+        bool dirty=asset!=null&&EditorUtility.IsDirty(asset);savedState.text=dirty?"미저장 변경 있음":"저장된 상태";savedState.EnableInClassList("audio-badge--dirty",dirty);
+        var issues=provider?.CollectIssues()??Array.Empty<AudioCatalogValidationIssue>();CountIssues(issues,out int warnings,out int errors);
+        saveButton.SetEnabled(dirty&&asset!=null&&AssetDatabase.Contains(asset)&&CanEdit&&errors==0&&MatchesFilter(provider));
+        inspectorHost.SetEnabled(CanEdit);AudioCatalogEditorPreview.RefreshPlaybackState();stopButton.SetEnabled(AudioCatalogEditorPreview.CurrentClip!=null);
+        previewState.text=AudioCatalogEditorPreview.CurrentClip!=null?"미리듣기 · "+AudioCatalogEditorPreview.CurrentClip.name:"미리듣기 대기";
+        message.text=CanEdit?feedback:"Play·컴파일·임포트·빌드가 끝나면 편집할 수 있습니다.";
+        issuesHost.Clear();foreach(var issue in issues)issuesHost.Add(new HelpBox(issue.Message,issue.Type==MessageType.Error?HelpBoxMessageType.Error:issue.Type==MessageType.Warning?HelpBoxMessageType.Warning:HelpBoxMessageType.Info));
     }
-
-    private void RefreshProviders()
+    void RefreshProviders()
     {
-        string previousName = selectedProviderName;
-        ReleaseProviders();
-        providers.Clear();
-        providers.AddRange(AudioCatalogEditorProviderRegistry.CreateProviders());
-        selectedIndex = 0;
-        for (int i = 0; i < providers.Count; i++)
-        {
-            providers[i].Refresh();
-            if (!string.IsNullOrEmpty(previousName)
-                && string.Equals(providers[i].DisplayName, previousName, StringComparison.Ordinal))
-            {
-                selectedIndex = i;
-            }
-        }
-
-        if (providers.Count > 0)
-            selectedProviderName = providers[selectedIndex].DisplayName;
-        Repaint();
+        rootVisualElement.Unbind();ReleaseProviders();providers.Clear();providers.AddRange(AudioCatalogEditorProviderRegistry.CreateProviders());selectedIndex=0;
+        for(int i=0;i<providers.Count;i++){providers[i].Refresh();if(providers[i].DisplayName==selectedProviderName)selectedIndex=i;}
+        if(providers.Count>0)selectedProviderName=providers[selectedIndex].DisplayName;
+        BuildCatalogList();RenderSelected();Repaint();
     }
-
-    private void HandleUndoRedo()
+    void HandleUndoRedo()=>RefreshProviders();
+    void ReleaseProviders(){foreach(var provider in providers)(provider as IDisposable)?.Dispose();}
+    void ValidateSelected()
+    {var provider=Selected;if(provider==null)return;CountIssues(provider.CollectIssues(),out int warnings,out int errors);feedback=errors==0&&warnings==0?"검증 통과. 현재 연결과 재생 설정이 유효합니다.":"검증 결과 · 경고 "+warnings+" / 오류 "+errors;UpdateState();}
+    void SaveSelected()
     {
-        for (int i = 0; i < providers.Count; i++)
-            providers[i].Refresh();
-        Repaint();
+        var provider=Selected;if(!CanEdit||provider?.CatalogAsset==null||!AssetDatabase.Contains(provider.CatalogAsset))return;
+        CountIssues(provider.CollectIssues(),out int warnings,out int errors);if(errors>0){feedback="오류를 먼저 해결한 뒤 저장하세요.";UpdateState();return;}
+        AssetDatabase.SaveAssetIfDirty(provider.CatalogAsset);feedback=provider.DisplayName+"을 저장했습니다.";UpdateState();
     }
-
-    private void ReleaseProviders()
-    {
-        foreach (IAudioCatalogEditorProvider provider in providers)
-            (provider as IDisposable)?.Dispose();
-    }
-
-    private void ValidateSelected()
-    {
-        if (providers.Count == 0 || selectedIndex < 0 || selectedIndex >= providers.Count)
-            return;
-        IAudioCatalogEditorProvider provider = providers[selectedIndex];
-        IReadOnlyList<AudioCatalogValidationIssue> issues = provider.CollectIssues();
-        CountIssues(issues, out int warningCount, out int errorCount);
-        if (warningCount == 0 && errorCount == 0)
-        {
-            Debug.Log("[OVERBURST] 오디오 카탈로그 검증 통과: " + provider.DisplayName);
-            ShowNotification(new GUIContent("검증을 통과했습니다."));
-        }
-        else
-        {
-            Debug.LogWarning(
-                "[OVERBURST] 오디오 카탈로그 검증 결과: 경고 "
-                + warningCount + "개, 오류 " + errorCount + "개 - " + provider.DisplayName);
-            ShowNotification(new GUIContent("경고 " + warningCount + "개 / 오류 " + errorCount + "개"));
-            for (int i = 0; i < issues.Count; i++)
-            {
-                if (issues[i].Type == MessageType.Error)
-                    Debug.LogError("[OVERBURST] " + issues[i].Message);
-                else if (issues[i].Type == MessageType.Warning)
-                    Debug.LogWarning("[OVERBURST] " + issues[i].Message);
-            }
-        }
-        Repaint();
-    }
-
-    private void SaveSelected()
-    {
-        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling
-            || EditorApplication.isUpdating
-            || providers.Count == 0 || selectedIndex < 0 || selectedIndex >= providers.Count)
-            return;
-        UnityEngine.Object asset = providers[selectedIndex].CatalogAsset;
-        if (asset == null)
-            return;
-        AssetDatabase.SaveAssetIfDirty(asset);
-        ShowNotification(new GUIContent("카탈로그를 저장했습니다."));
-        Repaint();
-    }
-
-    private static string BuildCatalogLabel(
-        IAudioCatalogEditorProvider provider,
-        int warningCount,
-        int errorCount)
-    {
-        if (provider.CatalogAsset == null)
-            return "[누락] " + provider.DisplayName;
-        if (errorCount > 0 || warningCount > 0)
-            return "[" + warningCount + "/" + errorCount + "] " + provider.DisplayName;
-        return "[정상] " + provider.DisplayName;
-    }
-
-    private static Color GetStatusColor(bool missing, int warningCount, int errorCount)
-    {
-        if (missing || errorCount > 0)
-            return new Color(1f, 0.65f, 0.65f);
-        if (warningCount > 0)
-            return new Color(1f, 0.88f, 0.55f);
-        return new Color(0.7f, 1f, 0.72f);
-    }
-
-    private static void CountIssues(
-        IReadOnlyList<AudioCatalogValidationIssue> issues,
-        out int warningCount,
-        out int errorCount)
-    {
-        warningCount = 0;
-        errorCount = 0;
-        for (int i = 0; i < issues.Count; i++)
-        {
-            if (issues[i].Type == MessageType.Error)
-                errorCount++;
-            else if (issues[i].Type == MessageType.Warning)
-                warningCount++;
-        }
-    }
+    static void CountIssues(IReadOnlyList<AudioCatalogValidationIssue> issues,out int warnings,out int errors)
+    {warnings=errors=0;foreach(var issue in issues){if(issue.Type==MessageType.Error)errors++;else if(issue.Type==MessageType.Warning)warnings++;}}
 }
 
 public static class AudioCatalogManagerCommandLineValidation
@@ -366,6 +217,7 @@ public static class AudioCatalogEditorPreview
     private static readonly MethodInfo StopMethod =
         FindMethod("StopAllPreviewClips") ?? FindMethod("StopAllClips");
 
+    public static AudioClip CurrentClip { get; private set; }
     public static void Play(AudioClip clip)
     {
         if (clip == null || PlayMethod == null)
@@ -384,12 +236,19 @@ public static class AudioCatalogEditorPreview
                         ? false
                         : type.IsValueType ? Activator.CreateInstance(type) : null;
         }
-        PlayMethod.Invoke(null, arguments);
+        PlayMethod.Invoke(null, arguments); CurrentClip = clip;
     }
 
     public static void StopAll()
     {
-        StopMethod?.Invoke(null, null);
+        StopMethod?.Invoke(null, null); CurrentClip = null;
+    }
+
+    public static void RefreshPlaybackState()
+    {
+        if(CurrentClip==null||AudioUtilType==null)return;
+        var playing=AudioUtilType.GetMethod("IsPreviewClipPlaying",BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic);
+        if(playing!=null&&playing.GetParameters().Length==0&&!(bool)playing.Invoke(null,null))CurrentClip=null;
     }
 
     private static MethodInfo FindMethod(string name)

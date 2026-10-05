@@ -114,6 +114,7 @@ namespace Overburst.EditorBalance
         public BalanceField(BalanceTableDocument document, string path, float min, float max, float factor)
         { Document = document; Path = path; Minimum = min; Maximum = max; DisplayFactor = factor; MarkBaseline(); }
         public SerializedPropertyType Type => Document.Serialized.FindProperty(Path).propertyType;
+        public float OriginalValue => original;
         public bool Changed => !Value.Equals(original);
         public float Value
         {

@@ -4,7 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-public abstract class SerializedAudioCatalogEditorProvider<T> : IAudioCatalogEditorProvider, IDisposable
+public abstract partial class SerializedAudioCatalogEditorProvider<T> : IAudioCatalogEditorProvider, IDisposable
     where T : ScriptableObject
 {
     protected T catalog;
