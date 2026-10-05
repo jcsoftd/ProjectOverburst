@@ -74,8 +74,10 @@ public sealed class PlayerKnockdownController : MonoBehaviour
 
     public static bool IsKnockdownHit(DamageInfo info)
     {
-        if (info.isDamageOverTime || !info.triggersOnHitEffects || info.elementalReactionType != ElementalReactionType.None
-            || info.enemyAbility == null || !info.enemyAbility.IsMeleeStrongAttack || info.source == null) return false;
+        if (info.isDamageOverTime || !info.triggersOnHitEffects || info.isParryResidualDamage
+            || info.elementalReactionType != ElementalReactionType.None || info.enemyAbility == null || info.source == null) return false;
+        if (info.knocksDownPlayer) return true;
+        if (!info.enemyAbility.IsMeleeStrongAttack) return false;
         EnemyRank rank = info.source.GetComponentInParent<EnemyRank>();
         return rank != null && (rank.GradeType == EnemyGradeType.Elite || rank.GradeType == EnemyGradeType.GreaterElite);
     }

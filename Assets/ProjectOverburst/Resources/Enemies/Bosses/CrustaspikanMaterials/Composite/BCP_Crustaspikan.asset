@@ -17,7 +17,10 @@ MonoBehaviour:
   - material: {fileID: 11400000, guid: a46546e81ee65cb45b8e140ef4e86b66, type: 2}
     bloodSpray: {fileID: 7252067777743632364, guid: 9e196141037a00543af222ab58343ca0, type: 3}
     sprayScale: 1
-    beamRadius: 0.75
+    beamRadius: 0.95
+    sprayHalfAngle: 24
+    spraySpeed: 22
+    sprayGravity: 18
     firstSweepStartYaw: -45
     firstSweepEndYaw: 45
     reverseSecondSweep: 1
@@ -39,7 +42,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 8
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.3652174
       phase: 0
       count: 2
@@ -57,7 +64,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 11
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.42608693
       phase: 0
       count: 2
@@ -75,7 +86,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 13
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.47826084
       phase: 0
       count: 2
@@ -93,7 +108,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 9
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.62608695
       phase: 1
       count: 2
@@ -111,7 +130,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 11
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.67826086
       phase: 1
       count: 2
@@ -129,7 +152,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 13
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.6956521
       phase: 1
       count: 1
@@ -147,7 +174,11 @@ MonoBehaviour:
         maximumAlive: 1
       yawOffset: 0
       landingDistance: 11
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.7304348
       phase: 1
       count: 2
@@ -165,7 +196,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 9
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.7826087
       phase: 1
       count: 2
@@ -183,11 +218,18 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 0
       landingDistance: 12
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 18
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
   - material: {fileID: 11400000, guid: c1fb26f7a80c24840aaf7c0f5e8ddebd, type: 2}
     bloodSpray: {fileID: 1952497739835943775, guid: 2c0bed1df0001b445b5f9916f545bd1c, type: 3}
     sprayScale: 0.9
-    beamRadius: 0.65
+    beamRadius: 0.85
+    sprayHalfAngle: 20
+    spraySpeed: 22
+    sprayGravity: 18
     firstSweepStartYaw: 0
     firstSweepEndYaw: 0
     reverseSecondSweep: 0
@@ -209,7 +251,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: -8
       landingDistance: 8
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 16
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.5793103
       phase: 0
       count: 3
@@ -227,7 +273,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 5
       landingDistance: 11
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 16
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.6275862
       phase: 0
       count: 3
@@ -245,7 +295,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: -5
       landingDistance: 14
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 16
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
     - normalizedTime: 0.6758621
       phase: 0
       count: 3
@@ -263,7 +317,11 @@ MonoBehaviour:
         maximumAlive: 12
       yawOffset: 8
       landingDistance: 10
-      scatter: 1.25
+      scatter: 3.2
+      yawScatter: 16
+      launchJitterSeconds: 0.14
+      originScatter: 0.45
+      apexScatter: 0.35
   throwMaterial: {fileID: 11400000, guid: 4eeaeef6b251241448b1aeb5813eaf37, type: 2}
   elite:
     definition: {fileID: 11400000, guid: aae5d59e28022e1418398a4e8af7f685, type: 2}
@@ -277,18 +335,13 @@ MonoBehaviour:
     airPitch: 50
     wakeSeconds: 1.5
     maximumAlive: 1
+  eliteImpactKnockdown: 1
   throwPayload: 2
   eliteRevealFrame: 70
   eliteFullSizeFrame: 100
-  authoringNotes: "\uB300\uB7C9 \uBD84\uCD9C \uC2DC\uD5D8 \uAD6C\uC131. \uBD84\uC0AC1:5\uACB9
-    \uD608\uD754,33\u201357F/68\u201394F,\uC18C\uD61516+\uC911\uD6151(8\uBB36\uC74C+\uC911\uD615).
-    \uBD84\uC0AC2:3\uACB9 \uD608\uD754,74\u2013106F,\uC18C\uD61512(3\uB9C8\uB9AC\uC5294\uBB36\uC74C).
-    \uC608\uC57D: \uC18C\uD615 \uAC01 \uC88512,\uC911\uD6151,\uC815\uC6081\u3001\uBC29
-    \uC0C1\uD55C26\u3002 \uD1A0\uCD9C/\uC815\uC608:Ballistic,\uC911\uB82532,\uCD5C\uACE0\uC810
-    \uC0C1\uC2B9 \uC18C\uD6150.22/\uC911\uD6150.3/\uC815\uC6080.55m. \uBE44\uD589
-    \uC2DC\uAC04\uC740 \uCD9C\uBC1C\xB7\uCC29\uC9C0 \uB192\uC774\uC640 \uC911\uB825\uC73C\uB85C
-    \uC0B0\uCD9C\uD558\uBA70 flightSeconds\uB294 TimedArc\uC6A9. \uC18D\uB3C4\uC5D0
-    \uB530\uB77C \uACF5\uC911 \uAE30\uC6B8\uAE30\xB7\uCC29\uC9C0 \uC804 \uC815\uB82C,\uC815\uC608
-    \uAE30\uC0C11.5\uCD08. \uD53C\uD574/\uBD84\uC0AC \uD310\uC815\uCC3D\uC740 \uAE30\uC874
-    \uAC12. \uBC14\uC704\uB294 \uAE30\uC874 TimedArc. \uC2DC\uD5D8\uAC12 \uC870\uC808
-    \uAC00\uB2A5."
+  authoringNotes: "\uC655\uBCF517 / \uC815\uBA7412 \uB300\uB7C9 \uD1A0\uCD9C. \uC561\uCCB4\uC640
+    \uBAAC\uC2A4\uD130\uB294 \uC911\uB825 \uACE1\uC120\uC744 \uC0AC\uC6A9\uD55C\uB2E4.
+    \uBC29\uCD9C \uC0AC\uAC74\uBCC4 \uB85C\uCEEC \uC2DC\uB4DC\uB85C \uCD9C\uBC1C\xB7\uC2DC\uC810\xB7\uCC29\uC9C0\xB7\uAE30\uC6B8\uAE30\uB97C
+    \uBD84\uC0B0\uD55C\uB2E4. \uC815\uC608 \uCC29\uC9C0 \uD53C\uD574\uB294 \uC2E4\uC81C
+    HP \uC190\uC2E4 \uB4A4 \uAE30\uC874 \uD50C\uB808\uC774\uC5B4 \uB109\uB2E4\uC6B4\xB7\uAE30\uC0C1\uC73C\uB85C
+    \uC5F0\uACB0\uD55C\uB2E4. \uC218\uCE58\uB294 \uC870\uC815\uC6A9 \uC2DC\uD5D8\uAC12."

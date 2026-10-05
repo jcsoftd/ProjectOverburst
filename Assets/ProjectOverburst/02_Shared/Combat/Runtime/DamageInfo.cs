@@ -31,6 +31,8 @@ public struct DamageInfo
     public bool suppressRepeatedAttackReaction;
     // Incomplete parry still loses HP, but its nonfatal contact owns the player's motion.
     public bool isParryResidualDamage;
+    // Explicit authored impact; Health still gates this on confirmed, nonfatal HP loss.
+    public bool knocksDownPlayer;
 
     public DamageInfo(
         float damage,
@@ -53,12 +55,14 @@ public struct DamageInfo
         EnemyAbilityDefinition enemyAbility = null,
         float weakKnockbackDistance = -1f,
         ElementGemAttackSnapshot gemAttack = default,
-        EnemyWeakAttackReactionScope weakAttackReactionScope = null)
+        EnemyWeakAttackReactionScope weakAttackReactionScope = null,
+        bool knocksDownPlayer = false)
     {
         this.gemAttack = gemAttack;
         this.weakAttackReactionScope = weakAttackReactionScope;
         suppressRepeatedAttackReaction = false;
         isParryResidualDamage = false;
+        this.knocksDownPlayer = knocksDownPlayer;
         this.damage = damage;
         this.hitPoint = hitPoint;
         this.source = source;

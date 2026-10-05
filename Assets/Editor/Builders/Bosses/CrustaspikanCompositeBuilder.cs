@@ -54,7 +54,7 @@ public static class CrustaspikanCompositeBuilder
                 firstSweepStartYaw=0f,firstSweepEndYaw=0f,
                 emissions=new[]{Emission(line,77,0,smallA,8f,-10f),Emission(line,88,0,smallB,10f),Emission(line,98,0,smallA,9f,10f)}}
         };
-        ConfigureDenseEmissions(set);
+        ConfigureDenseEmissions(set);ConfigureVomit(set);
         EditorUtility.SetDirty(set);AssetDatabase.SaveAssetIfDirty(set);Require(set.IsValid,"Composite authoring invalid.");
         var prefab=PrefabUtility.LoadPrefabContents(actorPath);
         try{
@@ -112,7 +112,7 @@ public static class CrustaspikanCompositeBuilder
         foreach(var path in new[]{PatternPath,AssetDatabase.GetAssetPath(encounter)}.Concat(set.spitPatterns.SelectMany(p=>new[]{AssetDatabase.GetAssetPath(p.material),AssetDatabase.GetAssetPath(p.bloodSpray)})))
         {string name=Path.GetFileName(path);File.Copy(path,Path.Combine(backup,name),false);File.Copy(path+".meta",Path.Combine(backup,name+".meta"),false);}
         var blood=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);Require(blood?.sprays?.Length>=7,"Blood flow sources missing.");
-        ConfigureDenseEmissions(set);
+        ConfigureDenseEmissions(set);ConfigureVomit(set);
         foreach(var pattern in set.spitPatterns){bool sweep=pattern.material.runtimeClip.name=="SpitterShot1";
             pattern.bloodSpray=Spray(blood,sweep?5:6,sweep?"Sweep":"Line");
             pattern.material.assemblyNotes=sweep?"5겹 왕복 피해 분사 + 암굴 소형16/중형1. 방출은 BCP_Crustaspikan에서 조절.":"3겹 직선 피해 분사 + 암굴 소형12. 방출은 BCP_Crustaspikan에서 조절.";
@@ -151,30 +151,89 @@ public static class CrustaspikanCompositeBuilder
         }finally{if(root!=null)Object.DestroyImmediate(root);}
         return new EnemyBossCompositePatternSet.Payload{definition=definition,flightVisual=AssetDatabase.LoadAssetAtPath<GameObject>(path),landingCenterHeight=Mathf.Max(.1f,height),wakeSeconds=wake,maximumAlive=limit};
     }
+    static void ConfigureVomit(EnemyBossCompositePatternSet set)
+    {
+        set.eliteImpactKnockdown=true;
+        foreach(var pattern in set.spitPatterns){
+            bool sweep=pattern.material.runtimeClip.name=="SpitterShot1";
+            pattern.sprayHalfAngle=sweep?24f:20f;pattern.spraySpeed=22f;pattern.sprayGravity=18f;
+            pattern.beamRadius=sweep?.95f:.85f;
+            foreach(var strike in pattern.material.strikes){strike.shape=GroundIndicatorShape.Sector;strike.radius=24f;strike.angle=sweep?140f:44f;}
+            foreach(var emission in pattern.emissions){emission.scatter=3.2f;emission.yawScatter=sweep?18f:16f;
+                emission.originScatter=.45f;emission.apexScatter=.35f;emission.launchJitterSeconds=.14f;}
+            pattern.material.assemblyNotes=sweep
+                ?"입에서 퍼지고 아래로 처지는 왕복 토사물 분사. 소형16+중형1을 불규칙한 위치·간격·중력 궤적으로 토출. 지면 예고140°·24m, 실제 이동 부채꼴 접촉은 타격창당1회."
+                :"정면을 향해 퍼지는 토사물 분사. 소형12를 불규칙한 위치·간격·중력 궤적으로 토출. 지면 예고44°·24m, 실제 부채꼴 접촉은 타격창당1회.";
+        }
+        set.authoringNotes="왕복17 / 정면12 대량 토출. 액체와 몬스터는 중력 곡선을 사용한다. 방출 사건별 로컬 시드로 출발·시점·착지·기울기를 분산한다. 정예 착지 피해는 실제 HP 손실 뒤 기존 플레이어 넉다운·기상으로 연결한다. 수치는 조정용 시험값.";
+    }
+    public static string UpdateVomit(string output)
+    {
+        Require(!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating,"Idle Editor required.");
+        Require(!IsolatedSavePlayGuard.RequiresAccountChoice&&string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            &&string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            &&string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","")),"Unoccupied account required.");
+        string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(Application.dataPath).Parent.FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        Require(Path.GetFullPath(output).StartsWith(allowed,StringComparison.OrdinalIgnoreCase),"Private output required.");Directory.CreateDirectory(output);
+        var set=AssetDatabase.LoadAssetAtPath<EnemyBossCompositePatternSet>(PatternPath);Require(set!=null&&!EditorUtility.IsDirty(set),"Saved, unoccupied composite set required.");
+        foreach(var pattern in set.spitPatterns)Require(!EditorUtility.IsDirty(pattern.material),"Attack material is being edited.");
+        var blood=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);Require(blood?.sprays?.Length>=7,"Blood flow sources missing.");
+        ConfigureVomit(set);
+        foreach(var pattern in set.spitPatterns){bool sweep=pattern.material.runtimeClip.name=="SpitterShot1";
+            pattern.bloodSpray=Spray(blood,sweep?5:6,sweep?"Sweep":"Line");EditorUtility.SetDirty(pattern.material);AssetDatabase.SaveAssetIfDirty(pattern.material);}
+        Require(set.IsValid,"Vomit composite invalid.");EditorUtility.SetDirty(set);AssetDatabase.SaveAssetIfDirty(set);
+        var result=new JObject{["status"]="APPLIED_NATIVE",["patternsValid"]=set.IsValid,["eliteImpactKnockdown"]=set.eliteImpactKnockdown,
+            ["patterns"]=new JArray(set.spitPatterns.Select(p=>new JObject{["clip"]=p.material.runtimeClip.name,["fanHalfAngle"]=p.sprayHalfAngle,
+                ["gravity"]=p.sprayGravity,["speed"]=p.spraySpeed,["count"]=p.emissions.Sum(e=>e.count),
+                ["shape"]=p.material.strikes[0].shape.ToString(),["warningAngle"]=p.material.strikes[0].angle}))};
+        File.WriteAllText(Path.Combine(output,"apply-result.json"),result.ToString());return result.ToString();
+    }
     static GameObject Spray(BloodEffectsPackCatalog catalog,int index,string name)
     {
         var root=new GameObject("PF_CrustaspikanBlood"+name);root.SetActive(false);string path=Root+"/Composite/Visuals/PF_CrustaspikanBlood"+name+".prefab";
         try{
             int layers=name=="Sweep"?5:3;
             for(int i=0;i<layers;i++){
-                var layer=Object.Instantiate(catalog.sprays[index].prefab,root.transform,false);layer.name="FlowLayer_"+(i+1);
+                var layer=Object.Instantiate(catalog.sprays[index].prefab,root.transform,false);layer.name="VomitLayer_"+(i+1);
                 foreach(var nestedController in layer.GetComponentsInChildren<EnemyBossBloodSpray>(true))Object.DestroyImmediate(nestedController);
-                layer.transform.localScale*=name=="Sweep"?1.3f:1.2f;
-                layer.transform.localPosition=i==0?Vector3.zero:new Vector3((i%2==0?1f:-1f)*.18f,i<=2?.08f:-.12f,0f);
-                layer.transform.localRotation=Quaternion.Euler(i==0?0f:(i<=2?.35f:-.35f),i==0?0f:(i%2==0?.8f:-.8f),0f);layer.SetActive(true);
+                layer.transform.localScale=Vector3.one;layer.transform.localPosition=Vector3.zero;
+                layer.transform.localRotation=Quaternion.Euler(0f,Mathf.Lerp(-17.3f,17.3f,i/(float)(layers-1)),0f);layer.SetActive(true);
+                var systems=layer.GetComponentsInChildren<ParticleSystem>(true);
+                for(int j=0;j<systems.Length;j++){
+                    var ps=systems[j];ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);
+                    ps.transform.SetParent(layer.transform,false);ps.transform.localPosition=Vector3.zero;ps.transform.localRotation=Quaternion.identity;ps.transform.localScale=Vector3.one;
+                    var main=ps.main;main.loop=true;main.duration=.62f;main.startDelay=0f;main.playOnAwake=false;main.stopAction=ParticleSystemStopAction.None;
+                    main.startSpeed=new ParticleSystem.MinMaxCurve(18f,24f);main.startLifetime=new ParticleSystem.MinMaxCurve(.5f,1.05f);main.gravityModifier=0f;
+                    main.maxParticles=96;main.simulationSpace=ParticleSystemSimulationSpace.World;main.scalingMode=ParticleSystemScalingMode.Shape;
+                    main.startSize3D=true;bool clump=j%3==0;
+                    main.startSizeX=new ParticleSystem.MinMaxCurve(clump?.65f:.14f,clump?1.8f:.45f);
+                    main.startSizeY=new ParticleSystem.MinMaxCurve(clump?.9f:.2f,clump?1.9f:.65f);main.startSizeZ=1f;
+                    main.startColor=Color.white;
+                    var color=ps.colorOverLifetime;color.enabled=true;var gradient=new Gradient();
+                    gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},
+                        new[]{new GradientAlphaKey(1f,0),new GradientAlphaKey(.9f,.75f),new GradientAlphaKey(0f,1)});color.color=gradient;
+                    main.startRotation=new ParticleSystem.MinMaxCurve(-Mathf.PI,Mathf.PI);
+                    var shape=ps.shape;shape.enabled=true;shape.shapeType=ParticleSystemShapeType.Cone;shape.angle=7.6f;shape.radius=.28f;shape.scale=new Vector3(1f,.32f,1f);
+                    var emission=ps.emission;emission.enabled=true;
+                    var pulse=new AnimationCurve(new Keyframe(0f,.3f),new Keyframe(.1f,1f),new Keyframe(.22f,.35f),new Keyframe(.4f,.9f),new Keyframe(.6f,.18f),new Keyframe(.82f,.8f),new Keyframe(1f,.3f));
+                    emission.rateOverTime=new ParticleSystem.MinMaxCurve(clump?60f:44f,pulse);
+                    emission.SetBursts(new[]{new ParticleSystem.Burst(0f,(short)3,(short)7),new ParticleSystem.Burst(.18f,(short)2,(short)6),new ParticleSystem.Burst(.4f,(short)3,(short)8)});
+                    var velocity=ps.velocityOverLifetime;velocity.enabled=false;var limit=ps.limitVelocityOverLifetime;limit.enabled=false;
+                    var noise=ps.noise;noise.enabled=true;noise.strength=.22f;noise.frequency=.65f;noise.scrollSpeed=.25f;noise.damping=true;
+                    var force=ps.forceOverLifetime;force.enabled=true;force.space=ParticleSystemSimulationSpace.World;force.x=force.z=0f;force.y=-18f;
+                    var collision=ps.collision;collision.enabled=true;collision.type=ParticleSystemCollisionType.World;collision.mode=ParticleSystemCollisionMode.Collision3D;
+                    collision.collidesWith=~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Player"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
+                    collision.quality=ParticleSystemCollisionQuality.Medium;collision.bounce=0f;collision.dampen=1f;collision.lifetimeLoss=1f;collision.radiusScale=.12f;collision.sendCollisionMessages=false;
+                    var renderer=ps.GetComponent<ParticleSystemRenderer>();renderer.renderMode=clump?ParticleSystemRenderMode.Billboard:ParticleSystemRenderMode.Stretch;renderer.alignment=ParticleSystemRenderSpace.View;
+                    renderer.velocityScale=.025f;renderer.lengthScale=1.35f;renderer.cameraVelocityScale=0f;
+                }
             }
-            foreach(var ps in root.GetComponentsInChildren<ParticleSystem>(true)){
-                ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);var main=ps.main;main.loop=true;main.duration=1f;main.startDelay=0f;main.playOnAwake=false;main.stopAction=ParticleSystemStopAction.None;
-                main.startSpeed=22f;main.startLifetime=.8f;main.gravityModifier=.05f;main.maxParticles=128;main.simulationSpace=ParticleSystemSimulationSpace.World;
-                main.startSizeMultiplier*=1.15f;main.scalingMode=ParticleSystemScalingMode.Hierarchy;ps.transform.localRotation=Quaternion.identity;var shape=ps.shape;shape.angle=1.2f;shape.radius=.2f;
-                var emission=ps.emission;emission.rateOverTime=name=="Sweep"?55f:48f;emission.SetBursts(Array.Empty<ParticleSystem.Burst>());}
             foreach(var renderer in root.GetComponentsInChildren<Renderer>(true)){
                 var shared=renderer.sharedMaterials;
                 for(int i=0;i<shared.Length;i++){if(shared[i]==null)continue;string materialPath=Root+"/Composite/Materials/M_BossBlood_"+shared[i].name.Replace('/','_')+".mat";
                     var material=AssetDatabase.LoadAssetAtPath<Material>(materialPath);if(material==null){material=new Material(shared[i]){name="M_BossBlood_"+shared[i].name};material.shader=catalog.sprayProfileShader;AssetDatabase.CreateAsset(material,materialPath);}shared[i]=material;}
                 renderer.sharedMaterials=shared;}
-            var controller=root.GetComponent<EnemyBossBloodSpray>();if(controller==null)root.AddComponent<EnemyBossBloodSpray>();
-            return PrefabUtility.SaveAsPrefabAsset(root,path);
+            root.AddComponent<EnemyBossBloodSpray>();return PrefabUtility.SaveAsPrefabAsset(root,path);
         }finally{Object.DestroyImmediate(root);}
     }
 }

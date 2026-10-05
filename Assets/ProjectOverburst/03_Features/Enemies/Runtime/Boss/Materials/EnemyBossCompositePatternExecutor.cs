@@ -27,6 +27,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     Animator samplingAnimator;
     readonly bool[] released=new bool[3],shown=new bool[3];
     bool[] emitted=Array.Empty<bool>();
+    PendingEmission[] pendingEmissions=Array.Empty<PendingEmission>();
     readonly HashSet<CombatHealth>[] damaged={new HashSet<CombatHealth>(),new HashSet<CombatHealth>(),new HashSet<CombatHealth>()};
     readonly EnemyStrongAttackWarning[] warnings=new EnemyStrongAttackWarning[3];
     readonly Collider[] overlap=new Collider[64];
@@ -61,7 +62,30 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     public override bool IsExecuting=>cast!=null || flights.Count>0;
     public event Action<EnemyActor> MonsterLanded;
     sealed class Visual {public GameObject root,prefab;public EnemyBossCompositePatternSet.Payload payload;public bool used;}
-    sealed class Flight {public Visual visual;public Vector3 start,landing,position,end,velocity;public float time,duration,arc,gravity;public uint lease;public int phase;public bool impact,ballistic;}
+    sealed class Flight {public Visual visual;public Vector3 start,landing,position,end,velocity;public Quaternion facing;public float time,duration,arc,gravity,roll;public uint lease;public int phase;public bool impact,ballistic;}
+    sealed class PendingEmission {public EnemyBossCompositePatternSet.Emission emission;public float normalized;public uint seed;}
+    // A private sequence seed keeps replayable spread independent of every other actor's Unity Random state.
+    struct SpreadRandom
+    {
+        uint state;
+        public SpreadRandom(uint seed){state=seed==0?0x9E3779B9u:seed;}
+        public float Range(float min,float max){state^=state<<13;state^=state>>17;state^=state<<5;return Mathf.Lerp(min,max,(state&0xFFFFFFu)/16777215f);}
+    }
+    void PlanEmissions()
+    {
+        var planned=new List<PendingEmission>();
+        if(spit!=null)for(int i=0;i<spit.emissions.Length;i++){
+            var emission=spit.emissions[i];var strike=current.strikes[emission.phase];
+            for(int n=0;n<emission.count;n++){
+                uint seed=unchecked((uint)sequence*0x9E3779B9u^lease*0x85EBCA6Bu^(uint)(i+1)*0xC2B2AE35u^(uint)(n+1)*0x27D4EB2Fu);
+                var random=new SpreadRandom(seed);
+                float maximumJitter=emission.launchJitterSeconds/Mathf.Max(.01f,current.runtimeClip.length);
+                planned.Add(new PendingEmission{emission=emission,seed=seed,
+                    normalized=Mathf.Min(strike.contactEnd-.0001f,emission.normalizedTime+random.Range(0f,maximumJitter))});
+            }
+        }
+        planned.Sort((a,b)=>a.normalized.CompareTo(b.normalized));pendingEmissions=planned.ToArray();emitted=new bool[pendingEmissions.Length];
+    }
     sealed class Add {public EnemyActor actor;public uint lease;public EnemyBossCompositePatternSet.Payload payload;public float wake;public bool ai;}
     int PlayerMask=>1<<LayerMask.NameToLayer("Player");
     int BlockerMask=>~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
@@ -111,7 +135,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         sequence=EnemyAttackSequence.Next();lease=actor.LeaseVersion;generation++;progress=0f;entered=false;LastFailure=null;
         speed=actor.Melee.AbilityAnimationSpeed*current.AnimationSpeedMultiplier;
         for(int i=0;i<3;i++){released[i]=shown[i]=false;damaged[i].Clear();}
-        emitted=new bool[spit?.emissions.Length??0];
+        PlanEmissions();
         samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
         if(spit==null){held=Acquire(payload==EnemyBossThrowPayload.Elite?patterns.elite:null);held.root.SetActive(true);throwCount++;}
         GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(ability);
@@ -150,10 +174,10 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
                     Warning(phase);
                 }
                 if(spit!=null){
-                    for(int i=0;i<emitted.Length;i++)if(!emitted[i] && progress>=spit.emissions[i].normalizedTime){
-                        emitted[i]=true;var emission=spit.emissions[i];
-                        if(last>material.strikes[emission.phase].contactEnd)continue;
-                        for(int count=0;count<emission.count;count++)Eject(emission,count);
+                    for(int i=0;i<emitted.Length;i++)if(!emitted[i] && progress>=pendingEmissions[i].normalized){
+                        emitted[i]=true;var item=pendingEmissions[i];
+                        if(last>material.strikes[item.emission.phase].contactEnd)continue;
+                        Eject(item.emission,item.seed);
                     }
                     if(ActiveBeamPhase<0)activeSpray?.Stop(false);
                 }
@@ -174,22 +198,44 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     Vector3 Endpoint(float yaw,float distance,float height=.8f)=>transform.position+aimRotation*Quaternion.Euler(0f,yaw,0f)*Vector3.forward*distance+Vector3.up*height;
     void Beam(int phase)
     {
-        BeamOrigin=Mouth();Vector3 endpoint=Endpoint(SweepYaw(phase,progress),aimDistance,target!=null?Mathf.Clamp(target.position.y-transform.position.y+.8f,.5f,1.5f):.8f);
-        BeamDirection=(endpoint-BeamOrigin).normalized;BeamLength=current.ability.Range;
-        int hits=Physics.SphereCastNonAlloc(BeamOrigin,spit.beamRadius,BeamDirection,rayHits,BeamLength,BlockerMask,QueryTriggerInteraction.Ignore);
-        float blocker=BeamLength;
-        for(int i=0;i<hits;i++)if(CombatTarget.Resolve(rayHits[i].collider)==null)blocker=Mathf.Min(blocker,rayHits[i].distance);
-        BeamLength=blocker;
+        BeamOrigin=Mouth();float yaw=SweepYaw(phase,progress);
+        Vector3 endpoint=Endpoint(yaw,Mathf.Min(aimDistance,current.ability.Range),1.25f);
+        Vector3 planar=endpoint-BeamOrigin;planar.y=0f;float distance=Mathf.Max(1f,planar.magnitude);
+        float duration=distance/spit.spraySpeed;
+        float vertical=(endpoint.y-BeamOrigin.y+.5f*spit.sprayGravity*duration*duration)/duration;
+        Vector3 velocity=planar.normalized*spit.spraySpeed+Vector3.up*vertical;
+        BeamDirection=velocity.normalized;BeamLength=distance;
         int token=generation;
-        for(int i=0;i<hits;i++)if(rayHits[i].distance<=blocker+.001f){var victim=CombatTarget.Resolve(rayHits[i].collider);if(victim!=null)Damage(victim,rayHits[i].point,phase);if(token!=generation||!Usable)return;}
+        // A curved curtain follows the same launch speed and world gravity as the visible liquid.
+        int rays=Mathf.Clamp(Mathf.CeilToInt(2f*spit.sprayHalfAngle*Mathf.Deg2Rad*distance/(spit.beamRadius*1.5f))+1,3,32);
+        const int steps=12;
+        for(int ray=0;ray<rays;ray++){
+            float offset=Mathf.Lerp(-spit.sprayHalfAngle,spit.sprayHalfAngle,ray/(float)(rays-1));
+            Vector3 launch=Quaternion.AngleAxis(offset,Vector3.up)*velocity;
+            Vector3 previous=BeamOrigin;
+            for(int step=1;step<=steps;step++){
+                float time=duration*step/steps;
+                Vector3 next=BeamOrigin+launch*time+Vector3.down*(.5f*spit.sprayGravity*time*time);
+                Vector3 segment=next-previous;float length=segment.magnitude;
+                int count=Physics.SphereCastNonAlloc(previous,spit.beamRadius,segment.normalized,rayHits,length,BlockerMask,QueryTriggerInteraction.Ignore);
+                float blocker=length;
+                for(int i=0;i<count;i++)if(CombatTarget.Resolve(rayHits[i].collider)==null)blocker=Mathf.Min(blocker,rayHits[i].distance);
+                for(int i=0;i<count;i++)if(rayHits[i].distance<=blocker+.001f){
+                    var victim=CombatTarget.Resolve(rayHits[i].collider);if(victim!=null)Damage(victim,rayHits[i].point,phase);
+                    if(token!=generation||!Usable)return;
+                }
+                if(blocker<length-.001f)break;previous=next;
+            }
+        }
         if(!sprays.TryGetValue(spit.bloodSpray,out activeSpray)){var root=Instantiate(spit.bloodSpray,transform,false);activeSpray=root.GetComponent<EnemyBossBloodSpray>();sprays.Add(spit.bloodSpray,activeSpray);}
-        activeSpray.Place(BeamOrigin,BeamDirection,BeamLength);activeSpray.Begin(GetComponent<BloodHitTarget>()?.Profile,spit.sprayScale);
+        activeSpray.Place(BeamOrigin,velocity,duration,spit.sprayHalfAngle,spit.sprayGravity,sequence);
+        activeSpray.Begin(GetComponent<BloodHitTarget>()?.Profile,spit.sprayScale);
     }
-    void Damage(CombatTarget victim,Vector3 point,int phase)
+    void Damage(CombatTarget victim,Vector3 point,int phase,bool knockdown=false)
     {
         if(!Usable || actor.LeaseVersion!=lease || !CombatTargetFilter.CanDamage(owner,victim) || victim.DamageReceiver==null || victim.DamageReceiver.IsDead || !damaged[phase].Add(victim.DamageReceiver))return;
         float damage=current.ability.ResolveDamage(GetComponent<EnemyRank>()?.Level??1)*actor.RuntimeStats.DamageMultiplier*current.DamageMultiplier;
-        victim.DamageReceiver.TakeDamage(new DamageInfo(damage,point,gameObject,BeamDirection,sourceAttackSequenceId:sequence,sourceAttackPhaseIndex:phase,enemyAbility:current.ability));DamageCount++;
+        victim.DamageReceiver.TakeDamage(new DamageInfo(damage,point,gameObject,BeamDirection,sourceAttackSequenceId:sequence,sourceAttackPhaseIndex:phase,enemyAbility:current.ability,knocksDownPlayer:knockdown));DamageCount++;
     }
     void Warning(int phase)
     {
@@ -226,11 +272,12 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     Flight CreateFlight(Visual visual,Vector3 start,Vector3 landing,float duration,float arc,int phase,bool impact)
     {
         var payload=visual.payload;Vector3 end=landing+(payload==null?Vector3.up*basic.Collection.boulderVisualRadius:PayloadCenter(payload));
-        var flight=new Flight{visual=visual,start=start,position=start,landing=landing,end=end,duration=duration,arc=arc,phase=phase,lease=lease,impact=impact};
+        var flight=new Flight{visual=visual,start=start,position=start,landing=landing,end=end,duration=duration,arc=arc,facing=aimRotation,phase=phase,lease=lease,impact=impact};
         if(payload?.trajectory==EnemyBossPayloadTrajectory.Ballistic){
-            flight.ballistic=true;flight.gravity=payload.gravity;flight.duration=BallisticDuration(payload,start,end);
+            flight.ballistic=true;flight.gravity=payload.gravity;float apex=Mathf.Max(start.y,end.y)+arc;
+            flight.duration=Mathf.Max(.05f,Mathf.Sqrt(2f*(apex-start.y)/payload.gravity)+Mathf.Sqrt(2f*(apex-end.y)/payload.gravity));
             flight.velocity=(end-start)/flight.duration;
-            flight.velocity.y=Mathf.Sqrt(2f*payload.gravity*(Mathf.Max(start.y,end.y)+payload.arcHeight-start.y));
+            flight.velocity.y=Mathf.Sqrt(2f*payload.gravity*(Mathf.Max(start.y,end.y)+arc-start.y));
         }
         return flight;
     }
@@ -240,13 +287,20 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         held.root.transform.position=Hands();flights.Add(CreateFlight(held,Hands(),Ground(aim),current.flightSeconds,current.arcHeight,phase,true));
         if(payload==null)RockThrowCount++;else EliteThrowCount++;held=null;
     }
-    void Eject(EnemyBossCompositePatternSet.Emission emission,int index)
+    void Eject(EnemyBossCompositePatternSet.Emission emission,uint seed)
     {
         if(emission.count==0 || Reserved(emission.payload)>=emission.payload.maximumAlive)return;
-        float yaw=SweepYaw(emission.phase,emission.normalizedTime)+emission.yawOffset;
-        Vector3 landing=Endpoint(yaw,emission.landingDistance,0f)+aimRotation*Vector3.right*((index-(emission.count-1)*.5f)*emission.scatter);
-        var visual=Acquire(emission.payload);var start=Mouth();visual.root.SetActive(true);visual.root.transform.position=start;
-        flights.Add(CreateFlight(visual,start,Ground(landing),emission.payload.flightSeconds,emission.payload.arcHeight,emission.phase,false));EmissionCount++;
+        var random=new SpreadRandom(seed);
+        float yaw=SweepYaw(emission.phase,progress)+emission.yawOffset+random.Range(-emission.yawScatter,emission.yawScatter);
+        float distance=Mathf.Clamp(emission.landingDistance+random.Range(-emission.scatter,emission.scatter),2f,current.ability.Range-1f);
+        Vector3 landing=Endpoint(yaw,distance,0f);
+        Vector3 start=Mouth()+aimRotation*new Vector3(random.Range(-emission.originScatter,emission.originScatter),
+            random.Range(-emission.originScatter*.5f,emission.originScatter*.5f),random.Range(-.15f,.25f));
+        var visual=Acquire(emission.payload);visual.root.SetActive(true);visual.root.transform.position=start;
+        var flight=CreateFlight(visual,start,Ground(landing),emission.payload.flightSeconds,
+            emission.payload.arcHeight+random.Range(0f,emission.apexScatter),emission.phase,false);
+        flight.facing=Quaternion.LookRotation(Vector3.ProjectOnPlane(flight.end-start,Vector3.up));
+        flight.roll=random.Range(-45f,45f);flights.Add(flight);EmissionCount++;
     }
     Vector3 Ground(Vector3 point){if(Physics.Raycast(point+Vector3.up*16f,Vector3.down,out var hit,32f,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore))point.y=hit.point.y;else point.y=transform.position.y;return point;}
     void PruneAdds(){for(int i=adds.Count-1;i>=0;i--)if(adds[i].actor==null || !adds[i].actor.IsLeased || adds[i].actor.LeaseVersion!=adds[i].lease || adds[i].actor.Health.IsDead)adds.RemoveAt(i);}
@@ -256,7 +310,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         int token=generation;
         if(flight.impact){BeamDirection=(flight.landing-flight.start).normalized;var strike=current.strikes[flight.phase];
             int count=strike.Query(transform,overlap,PlayerMask,flight.landing,Quaternion.identity);
-            for(int i=0;i<count;i++)if(strike.Intersects(overlap[i],transform,flight.landing,Quaternion.identity)){var victim=CombatTarget.Resolve(overlap[i]);if(victim!=null)Damage(victim,overlap[i].ClosestPoint(flight.landing+Vector3.up*.8f),flight.phase);if(token!=generation||!Usable)return;}
+            for(int i=0;i<count;i++)if(strike.Intersects(overlap[i],transform,flight.landing,Quaternion.identity)){var victim=CombatTarget.Resolve(overlap[i]);if(victim!=null)Damage(victim,overlap[i].ClosestPoint(flight.landing+Vector3.up*.8f),flight.phase,patterns.eliteImpactKnockdown&&flight.visual.payload==patterns.elite);if(token!=generation||!Usable)return;}
             EnemyStrongAttackImpactVfx.Play(flight.landing);warnings[flight.phase]?.Hide();
         }
         var payload=flight.visual.payload;if(payload==null)return;
@@ -280,13 +334,13 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
             var step=next-flight.position;
             if(t<.98f && step.sqrMagnitude>.000001f && Physics.SphereCast(flight.position,.15f,step.normalized,out _,step.magnitude,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore)){
                 if(flight.impact)warnings[flight.phase]?.Hide();Free(flight.visual);flights.RemoveAt(i);continue;}
-            flight.position=next;flight.visual.root.transform.position=next;flight.visual.root.transform.rotation=aimRotation;
+            flight.position=next;flight.visual.root.transform.position=next;flight.visual.root.transform.rotation=flight.facing;
             if(flight.ballistic){
                 float verticalSpeed=flight.velocity.y-flight.gravity*flight.time;
                 float pitch=Mathf.Clamp(-Mathf.Atan2(verticalSpeed,new Vector2(flight.velocity.x,flight.velocity.z).magnitude)*Mathf.Rad2Deg,
                     -flight.visual.payload.airPitch*.5f,flight.visual.payload.airPitch);
                 pitch*=1f-Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(.8f,1f,t));
-                flight.visual.root.transform.rotation=aimRotation*Quaternion.Euler(pitch,0f,0f);
+                flight.visual.root.transform.rotation=flight.facing*Quaternion.Euler(pitch,0f,flight.roll*(1f-Mathf.SmoothStep(0f,1f,t)));
             }
             flight.visual.root.transform.localScale=Vector3.one*(flight.visual.payload?.visualScale??basic.Collection.boulderVisualRadius);
             if(t>=1f){Land(flight);if(token!=generation)return;Free(flight.visual);flights.RemoveAt(i);}
@@ -316,7 +370,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     public void ReleaseSummons(){var service=EnemySpawnService.Current;foreach(var add in adds)if(service!=null && add.actor!=null && add.actor.IsLeased && add.actor.LeaseVersion==add.lease)service.Release(add.actor);adds.Clear();}
     public override void Cancel()
     {
-        generation++;if(cast!=null)StopCoroutine(cast);cast=null;RestoreAnimator();ClearFlights();ReleaseHeld();HideWarnings();
+        generation++;pendingEmissions=Array.Empty<PendingEmission>();emitted=Array.Empty<bool>();if(cast!=null)StopCoroutine(cast);cast=null;RestoreAnimator();ClearFlights();ReleaseHeld();HideWarnings();
         foreach(var visual in sprays.Values)visual.Stop(true);activeSpray=null;current=null;spit=null;prepared=false;preparedPayload=null;ActiveBeamPhase=-1;
         actor?.Movement?.CancelActionLock();
     }

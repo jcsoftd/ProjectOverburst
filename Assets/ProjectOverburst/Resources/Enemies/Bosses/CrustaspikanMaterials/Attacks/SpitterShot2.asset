@@ -26,12 +26,12 @@ MonoBehaviour:
   - contactStart: 0.5103448
     impact: 0.5103448
     contactEnd: 0.73103446
-    shape: 3
+    shape: 0
     localOrigin: {x: 0, y: 0, z: 0}
     yaw: 0
     radius: 24
     innerRadius: 0
-    angle: 360
+    angle: 44
     width: 1.5
     length: 24
     minimumHeight: 0
@@ -49,5 +49,7 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: "3\uACB9 \uC9C1\uC120 \uD53C\uD574 \uBD84\uC0AC + \uC554\uAD74 \uC18C\uD61512.
-    \uBC29\uCD9C\uC740 BCP_Crustaspikan\uC5D0\uC11C \uC870\uC808."
+  assemblyNotes: "\uC815\uBA74\uC744 \uD5A5\uD574 \uD37C\uC9C0\uB294 \uD1A0\uC0AC\uBB3C
+    \uBD84\uC0AC. \uC18C\uD61512\uB97C \uBD88\uADDC\uCE59\uD55C \uC704\uCE58\xB7\uAC04\uACA9\xB7\uC911\uB825
+    \uADA4\uC801\uC73C\uB85C \uD1A0\uCD9C. \uC9C0\uBA74 \uC608\uACE044\xB0\xB724m,
+    \uC2E4\uC81C \uBD80\uCC44\uAF34 \uC811\uCD09\uC740 \uD0C0\uACA9\uCC3D\uB2F91\uD68C."

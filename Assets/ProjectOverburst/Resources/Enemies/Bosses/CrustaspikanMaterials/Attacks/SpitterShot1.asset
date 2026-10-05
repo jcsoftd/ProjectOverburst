@@ -31,7 +31,7 @@ MonoBehaviour:
     yaw: 0
     radius: 24
     innerRadius: 0
-    angle: 90
+    angle: 140
     width: 1.5
     length: 24
     minimumHeight: 0
@@ -46,7 +46,7 @@ MonoBehaviour:
     yaw: 0
     radius: 24
     innerRadius: 0
-    angle: 90
+    angle: 140
     width: 1.5
     length: 24
     minimumHeight: 0
@@ -64,5 +64,8 @@ MonoBehaviour:
   arcHeight: 4
   advanceDistance: 0
   advanceWindow: {x: 0, y: 0}
-  assemblyNotes: "5\uACB9 \uC655\uBCF5 \uD53C\uD574 \uBD84\uC0AC + \uC554\uAD74 \uC18C\uD61516/\uC911\uD6151.
-    \uBC29\uCD9C\uC740 BCP_Crustaspikan\uC5D0\uC11C \uC870\uC808."
+  assemblyNotes: "\uC785\uC5D0\uC11C \uD37C\uC9C0\uACE0 \uC544\uB798\uB85C \uCC98\uC9C0\uB294
+    \uC655\uBCF5 \uD1A0\uC0AC\uBB3C \uBD84\uC0AC. \uC18C\uD61516+\uC911\uD6151\uC744
+    \uBD88\uADDC\uCE59\uD55C \uC704\uCE58\xB7\uAC04\uACA9\xB7\uC911\uB825 \uADA4\uC801\uC73C\uB85C
+    \uD1A0\uCD9C. \uC9C0\uBA74 \uC608\uACE0140\xB0\xB724m, \uC2E4\uC81C \uC774\uB3D9
+    \uBD80\uCC44\uAF34 \uC811\uCD09\uC740 \uD0C0\uACA9\uCC3D\uB2F91\uD68C."
