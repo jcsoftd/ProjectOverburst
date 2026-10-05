@@ -11,6 +11,7 @@ public sealed partial class EnemyThemeSpecialExecutor
         public GameObject gameObject;
         public EnemyBioProjectileVisual visual;
         public EnemyAbilityDefinition ability;
+        public EnemyWeakAttackReactionScope reaction;
         public BloodHitProfile tint;
         public Vector3 position, direction;
         public float remaining, damage, scale;
@@ -19,6 +20,7 @@ public sealed partial class EnemyThemeSpecialExecutor
         public bool active, electric;
     }
     private readonly List<WeakProjectile> weakProjectiles = new List<WeakProjectile>();
+    private readonly List<EnemyWeakAttackReactionScope> weakProjectileReactions = new List<EnemyWeakAttackReactionScope>();
     private EnemyWeakAttackReactionScope weakProjectileReaction;
     private bool preserveWeakFlightDuringAIActionCleanup;
     public bool IsWeakProjectileActionExecuting => routine != null;
@@ -47,6 +49,7 @@ public sealed partial class EnemyThemeSpecialExecutor
         float allocation = total / ability.HitCount;
         bool useContactBudget = EnemyWeakProjectileDamageBudget.TryCreate(total, ability.HitCount, out var budget);
         weakProjectileReaction = ability.HitCount > 1 ? new EnemyWeakAttackReactionScope(gameObject, sequence, actor) : null;
+        if (weakProjectileReaction != null) weakProjectileReactions.Add(weakProjectileReaction);
         float speed = actor.Melee.AbilityAnimationSpeed, started = Time.time;
         float executionDuration = ability.ResolveExecutionDuration(speed);
         float windup = ability.ResolveWindupDelay(speed), duration = ability.ResolvePacedTime(1f, speed);
@@ -86,7 +89,7 @@ public sealed partial class EnemyThemeSpecialExecutor
         float recoveryEnd = Mathf.Max(started + executionDuration, lastRelease + ability.MinimumRecoveryTime);
         while (Time.time < recoveryEnd && Usable() && actor.LeaseVersion == lease) yield return null;
         routine = null;
-        if (!HasWeakProjectiles) { weakProjectileReaction?.Cancel(); weakProjectileReaction = null; }
+        TrimWeakProjectileReactionScopes();
     }
     private void LaunchWeakProjectile(EnemyAbilityDefinition ability, Vector3 aim, float damage, int sequence, int phase, uint lease)
     {
@@ -112,7 +115,7 @@ public sealed partial class EnemyThemeSpecialExecutor
             shot.gameObject.name = "Reusable V3 weak projectile";
             weakProjectiles.Add(shot);
         }
-        shot.ability = ability; shot.position = ResolveMuzzle(ability);
+        shot.ability = ability; shot.reaction = weakProjectileReaction; shot.position = ResolveMuzzle(ability);
         string muzzlePath = ability.WeakAttackExecution?.ProjectileMuzzleBonePath(phase);
         if (!string.IsNullOrEmpty(muzzlePath))
         {
@@ -156,7 +159,7 @@ public sealed partial class EnemyThemeSpecialExecutor
                 {
                     target.DamageReceiver.TakeDamage(new DamageInfo(shot.damage, point, gameObject, shot.direction,
                         sourceAttackSequenceId: shot.sequence, sourceAttackPhaseIndex: shot.phase,
-                        enemyAbility: shot.ability, weakAttackReactionScope: weakProjectileReaction));
+                        enemyAbility: shot.ability, weakAttackReactionScope: shot.reaction));
                     ImpactCount++;
                 }
                 EndWeakProjectile(shot); continue;
@@ -165,7 +168,21 @@ public sealed partial class EnemyThemeSpecialExecutor
             shot.gameObject.transform.position = shot.position;
             if (shot.remaining <= 0f) { SplashWeakProjectile(shot, shot.position); EndWeakProjectile(shot); }
         }
-        if (routine == null && !HasWeakProjectiles) { weakProjectileReaction?.Cancel(); weakProjectileReaction = null; }
+        TrimWeakProjectileReactionScopes();
+    }
+    private void TrimWeakProjectileReactionScopes()
+    {
+        for (int i = weakProjectileReactions.Count - 1; i >= 0; i--)
+        {
+            var scope = weakProjectileReactions[i];
+            if (routine != null && scope == weakProjectileReaction) continue;
+            bool flying = false;
+            foreach (var shot in weakProjectiles)
+                if (shot.active && shot.reaction == scope) { flying = true; break; }
+            if (flying) continue;
+            scope.Cancel(); weakProjectileReactions.RemoveAt(i);
+            if (scope == weakProjectileReaction) weakProjectileReaction = null;
+        }
     }
     private void SplashWeakProjectile(WeakProjectile shot, Vector3 point)
     {
@@ -176,7 +193,7 @@ public sealed partial class EnemyThemeSpecialExecutor
     }
     private static void EndWeakProjectile(WeakProjectile shot)
     {
-        shot.active = false; shot.ability = null;
+        shot.active = false; shot.ability = null; shot.reaction = null;
         if (shot.visual != null) shot.visual.Stop(); else if (shot.gameObject != null) shot.gameObject.SetActive(false);
     }
     private void UpdateWeakProjectileVisuals()
@@ -187,6 +204,7 @@ public sealed partial class EnemyThemeSpecialExecutor
         // Direct cancellation, reactions, death and pool reset continue to remove them.
         if (preserveWeakFlightDuringAIActionCleanup && isActiveAndEnabled && Usable()) return;
         foreach (var shot in weakProjectiles) EndWeakProjectile(shot);
-        weakProjectileReaction?.Cancel(); weakProjectileReaction = null;
+        foreach (var scope in weakProjectileReactions) scope.Cancel();
+        weakProjectileReactions.Clear(); weakProjectileReaction = null;
     }
 }

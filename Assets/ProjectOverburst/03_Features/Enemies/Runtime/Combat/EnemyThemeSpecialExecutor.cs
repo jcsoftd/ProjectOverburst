@@ -67,7 +67,7 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     public override bool CanStart(EnemyAbilityDefinition ability, Transform target)
     {
         Resolve();
-        if (!Supports(ability) || target == null || routine != null || HasProjectile || !Usable()
+        if (!Supports(ability) || target == null || routine != null || boltFlying || !Usable()
             || actor.Movement.IsActionLocked || actor.AnimationBridge.BlocksAttackStart) return false;
         Vector3 point = actor.AbilityController.ResolveAimPosition(target);
         float distance = Vector3.Distance(new Vector3(point.x, transform.position.y, point.z), transform.position);

@@ -40,13 +40,34 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var health=target.DamageReceiver;health.SetMaxHp(100000,true);
         var settings=new SerializedObject(health);settings.FindProperty("showDamageNumbers").boolValue=false;settings.ApplyModifiedPropertiesWithoutUndo();
         var damage=new JArray();health.OnDamaged+=(_,info)=>damage.Add(new JObject{["phase"]=info.sourceAttackPhaseIndex,["damage"]=info.damage,
-            ["sequence"]=info.sourceAttackSequenceId,["repeatReactionSuppressed"]=info.suppressRepeatedAttackReaction});
+            ["sequence"]=info.sourceAttackSequenceId,["repeatReactionSuppressed"]=info.suppressRepeatedAttackReaction,
+            ["reactionScopeSequence"]=info.weakAttackReactionScope==null?null:JToken.FromObject(typeof(EnemyWeakAttackReactionScope)
+                .GetField("sequence",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(info.weakAttackReactionScope)),
+            ["projectileSelectionKey"]=info.enemyAbility?.WeakAttackExecution?.SelectionKey});
         var request=new EnemySpawnRequest(definition,Vector3.zero,Quaternion.identity,victim.transform,null,victim.transform,null,1,1,91);
         if(!service.TrySpawn(request,out var actor))throw new InvalidOperationException("Saved projectile Actor spawn failed: "+id);
         foreach(var component in actor.GetComponentsInChildren<MonoBehaviour>(true))
             if(component!=null&&new[]{"EnemyAIController","EnemyCrowdAgent","EnemySensor","RunFallGuard"}.Contains(component.GetType().Name))component.enabled=false;
         actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
         var executor=actor.GetComponent<EnemyThemeSpecialExecutor>();
+        bool nextProjectileRequested=(bool?)row["verifyNextProjectileDuringFlight"]==true;
+        EnemyAbilityDefinition nextProjectile=null;
+        EnemyAbilitySet overlapSet=null;
+        if(nextProjectileRequested)
+        {
+            // An unsaved second slot exposes this execution contract without changing
+            // the production ability's long cooldown or blocked-approach policy.
+            nextProjectile=UnityEngine.Object.Instantiate(ability);owned.Add(nextProjectile);
+            var secondProfile=UnityEngine.Object.Instantiate(ability.WeakAttackExecution);owned.Add(secondProfile);
+            var secondSettings=new SerializedObject(secondProfile);
+            secondSettings.FindProperty("selectionKey").stringValue="overlap-"+ability.WeakAttackExecution.SelectionKey;
+            secondSettings.FindProperty("blockedApproachProjectileFallback").boolValue=false;
+            secondSettings.ApplyModifiedPropertiesWithoutUndo();nextProjectile.ConfigureWeakAttackExecution(secondProfile);
+            var secondSet=ScriptableObject.CreateInstance<EnemyAbilitySet>();owned.Add(secondSet);
+            overlapSet=secondSet;
+            secondSet.Configure("Isolated second projectile slot",Enumerable.Range(0,definition.AbilitySet.Count)
+                .Select(definition.AbilitySet.GetAbility).ToArray());
+        }
         EnemyActor peerActor=null;EnemyThemeSpecialExecutor peerExecutor=null;
         bool concurrentRequested=(bool?)row["verifyConcurrentProjectiles"]==true,peerStarted=true;
         if(concurrentRequested)
@@ -108,16 +129,45 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         }
         bool nextMeleeRequested=(bool?)row["verifyNextMeleeDuringFlight"]==true;
         bool nextMeleeAttempted=false,nextMeleeStarted=false,flightPreservedByAICleanup=false,nextMeleeStartedDuringFlight=false;
+        bool nextProjectileAttempted=false,nextProjectileStarted=false,nextProjectileStartedDuringFlight=false,originalCooldownRejected=true;
+        int launchesAtSecondStart=0;
+        JObject nextProjectileEligibility=null;
         GameObject nextVictim=null;
         string terminalPolicy=(string)row["terminalProjectilePolicy"];
         int damageBeforeTerminal=0,launchesBeforeTerminal=0;
         uint leaseBeforeTerminal=actor.LeaseVersion;
         bool terminalPolicyVerified=true;
         float deadline=Time.time+ability.ResolveExecutionDuration(actor.Melee.AbilityAnimationSpeed)+ability.Range/10f+3f;
+        if(nextProjectileRequested)deadline+=ability.ResolveExecutionDuration(actor.Melee.AbilityAnimationSpeed);
         while(started&&(executor.IsExecuting||executor.HasProjectile||peerExecutor!=null&&(peerExecutor.IsExecuting||peerExecutor.HasProjectile)||nextMeleeStarted&&actor.AbilityController.IsExecuting)&&Time.time<deadline)
         {
             if(blockedFallback&&!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked)
                 actionReleasedWhileFlight=true;
+            if(nextProjectileRequested&&!nextProjectileAttempted&&!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked)
+            {
+                nextProjectileAttempted=true;
+                actor.AI.CancelAttack();flightPreservedByAICleanup=executor.HasProjectile&&!actor.AbilityController.IsExecuting;
+                originalCooldownRejected=!actor.AbilityController.TryStartAbility(ability,victim.transform);
+                overlapSet.Configure("Isolated second projectile slot",Enumerable.Range(0,definition.AbilitySet.Count)
+                    .Select(definition.AbilitySet.GetAbility).Concat(new[]{nextProjectile}).ToArray());
+                // Bind the unsaved set after spawn initialization. Reconfiguring the
+                // controller here would clear cooldowns and weaken this assertion.
+                var controllerSettings=new SerializedObject(actor.AbilityController);
+                controllerSettings.FindProperty("abilitySet").objectReferenceValue=overlapSet;
+                var routedExecutors=controllerSettings.FindProperty("executors");
+                bool registered=false;
+                for(int i=0;i<routedExecutors.arraySize;i++)registered|=routedExecutors.GetArrayElementAtIndex(i).objectReferenceValue==executor;
+                if(!registered){int index=routedExecutors.arraySize;routedExecutors.arraySize++;routedExecutors.GetArrayElementAtIndex(index).objectReferenceValue=executor;}
+                controllerSettings.ApplyModifiedPropertiesWithoutUndo();
+                nextProjectileEligibility=new JObject { ["valid"]=nextProjectile.IsValid,["setValid"]=overlapSet.IsValid,
+                    ["executorReady"]=executor.CanStart(nextProjectile,victim.transform),
+                    ["cooldownReady"]=actor.AbilityController.IsCooldownReady(nextProjectile),
+                    ["actionLocked"]=actor.Movement.IsActionLocked,["animationBlocked"]=actor.AnimationBridge.BlocksAttackStart,
+                    ["unsavedExecutorRouteAdded"]=!registered };
+                launchesAtSecondStart=executor.LaunchCount;
+                nextProjectileStarted=actor.AbilityController.TryStartAbility(nextProjectile,victim.transform);
+                nextProjectileStartedDuringFlight=nextProjectileStarted&&executor.HasProjectile&&actor.AbilityController.IsExecuting;
+            }
             if(nextMeleeRequested&&!nextMeleeAttempted&&!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked)
             {
                 nextMeleeAttempted=true;
@@ -139,6 +189,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             }
             if(cancelBeforeImpact&&!cancelled&&executor.LaunchCount>0){actor.AbilityController.Cancel();cancelled=true;}
             if(terminalPolicy!=null&&!cancelled&&executor.LaunchCount>0
+                &&(!nextProjectileRequested||nextProjectileStarted)
+                &&(terminalPolicy!="explicit-after-second-release"||executor.LaunchCount>launchesAtSecondStart)
                 &&(terminalPolicy!="explicit-after-action"||!executor.IsWeakProjectileActionExecuting&&executor.HasProjectile&&!actor.Movement.IsActionLocked))
             {
                 damageBeforeTerminal=damage.Count;launchesBeforeTerminal=executor.LaunchCount;
@@ -148,13 +200,13 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                     terminalPolicyVerified=actor.Health.IsDead&&!executor.HasProjectile;
                 }
                 else if(terminalPolicy=="lease")service.Release(actor);
-                else if(terminalPolicy=="explicit-after-action")actor.AbilityController.Cancel();
+                else if(terminalPolicy=="explicit-after-action"||terminalPolicy=="explicit-after-second-release")actor.AbilityController.Cancel();
                 else throw new InvalidOperationException("Unknown terminal projectile policy.");
                 cancelled=true;
             }
             yield return null;
         }
-        if(terminalPolicy=="lease")
+        if(terminalPolicy=="lease"&&cancelled)
         {
             yield return null;yield return new WaitForFixedUpdate();yield return null;
             bool reused=service.TrySpawn(request,out var nextActor);
@@ -164,36 +216,45 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         }
         if(cancelBeforeImpact||terminalPolicy!=null)for(int i=0;i<6;i++)yield return null;
         int actorCount=peerActor==null?1:2;
-        int count=terminalPolicy!=null?damageBeforeTerminal:cancelBeforeImpact||occlusionRequested?0:ability.HitCount*actorCount;
+        int attackCount=nextProjectileRequested?2:actorCount;
+        int count=terminalPolicy!=null?damageBeforeTerminal:cancelBeforeImpact||occlusionRequested?0:ability.HitCount*attackCount;
         int level=actor.GetComponent<EnemyRank>()?.Level??1;
         float total=ability.UsesLevelDamageBudget?Mathf.Max(1f,OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)*ability.ReferencePatternDamagePercent/100f)):ability.Damage;
         if(!EnemyWeakProjectileDamageBudget.TryCreate(total*actor.RuntimeStats.DamageMultiplier,ability.HitCount,out var budget))
             throw new InvalidOperationException("Selected projectile damage budget invalid.");
         bool stationary=Vector2.Distance(new Vector2(start.x,start.z),new Vector2(actor.transform.position.x,actor.transform.position.z))<.04f;
-        float expectedDamage=terminalPolicy!=null?Enumerable.Range(0,count).Sum(budget.ForPhase):cancelBeforeImpact||occlusionRequested?0:budget.Total*actorCount;
+        float expectedDamage=terminalPolicy!=null?damage.Take(damageBeforeTerminal).Sum(d=>budget.ForPhase((int)d["phase"]))
+            :cancelBeforeImpact||occlusionRequested?0:budget.Total*attackCount;
         int observedLaunches=terminalPolicy=="lease"?launchesBeforeTerminal:executor.LaunchCount+(peerExecutor?.LaunchCount??0);
         int observedImpacts=executor.ImpactCount+(peerExecutor?.ImpactCount??0);
-        bool phaseOrder=peerActor==null?damage.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,count))
-            :damage.GroupBy(d=>(int)d["sequence"]).Count()==2&&damage.GroupBy(d=>(int)d["sequence"])
-                .All(g=>g.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,ability.HitCount)));
-        bool reactions=peerActor==null?damage.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v)
+        bool groupedAttacks=peerActor!=null||nextProjectileRequested;
+        bool phaseOrder=!groupedAttacks?damage.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,count))
+            :(terminalPolicy!=null||damage.GroupBy(d=>(int)d["sequence"]).Count()==2)&&damage.GroupBy(d=>(int)d["sequence"])
+                .All(g=>g.Select(d=>(int)d["phase"]).OrderBy(i=>i).SequenceEqual(Enumerable.Range(0,terminalPolicy!=null?g.Count():ability.HitCount)));
+        bool reactions=!groupedAttacks?damage.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v)
             :damage.GroupBy(d=>(int)d["sequence"]).All(g=>g.Select((d,i)=>(bool)d["repeatReactionSuppressed"]==(i>0)).All(v=>v));
+        bool snapshotScopes=damage.All(d=>d["reactionScopeSequence"].Type==JTokenType.Null||(int)d["reactionScopeSequence"]==(int)d["sequence"]);
         bool pass=started&&peerStarted&&!executor.IsExecuting&&!executor.HasProjectile&&stationary
             &&damage.Count==count&&phaseOrder
             &&Mathf.Abs(damage.Sum(d=>(float)d["damage"])-expectedDamage)<.001f
-            &&(terminalPolicy!=null?cancelled&&terminalPolicyVerified&&observedLaunches>0:cancelBeforeImpact?cancelled&&executor.LaunchCount==ability.ProjectilesPerRelease:observedLaunches==ability.HitCount*actorCount&&observedImpacts==count)
+            &&(terminalPolicy!=null?cancelled&&terminalPolicyVerified&&observedLaunches>0:cancelBeforeImpact?cancelled&&executor.LaunchCount==ability.ProjectilesPerRelease:observedLaunches==ability.HitCount*attackCount&&observedImpacts==count)
             &&(!blockedFallback||rejectedBeforeBlocked&&readyAfterBlocked&&(cancelBeforeImpact||terminalPolicy!=null||occlusionRequested||actionReleasedWhileFlight))
-            &&reactions;
+            &&reactions&&snapshotScopes;
         if(blockedFallback&&started&&terminalPolicy==null)cooldownRejected=!actor.AbilityController.TryStartAbility(ability,victim.transform);
         pass&=movingRejected&&closeRejected&&blockedLineRejected&&cooldownRejected;
         if(nextMeleeRequested)pass&=nextMeleeAttempted&&nextMeleeStarted&&flightPreservedByAICleanup&&nextMeleeStartedDuringFlight;
+        if(nextProjectileRequested)pass&=nextProjectileAttempted&&nextProjectileStarted&&flightPreservedByAICleanup
+            &&nextProjectileStartedDuringFlight&&originalCooldownRejected;
         int launches=observedLaunches,impacts=observedImpacts;
         if(peerActor!=null)service.Release(peerActor);
         service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
         bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!executor.IsExecuting&&!executor.HasProjectile&&executor.LaunchCount==0&&executor.ImpactCount==0
             &&pool.LeasedCount==0&&pool.PendingReturnCount==0&&(peerActor==null||!peerActor.IsLeased&&!peerExecutor.HasProjectile);
+        bool reactionScopesCleared=((System.Collections.ICollection)typeof(EnemyThemeSpecialExecutor).GetField("weakProjectileReactions",
+            System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(executor)).Count==0;
+        reset&=reactionScopesCleared;
         cases.Add(new JObject{["id"]=id,["selectionKey"]=row["selectionKey"].DeepClone(),["clip"]=row["actualClip"].DeepClone(),
-            ["projectile"]=true,["fps"]=fps,["scenario"]=concurrentRequested?"concurrent-two-actors":occlusionRequested?"wall-during-flight":terminalPolicy!=null?terminalPolicy:cancelBeforeImpact?"cancel-before-impact":nextMeleeRequested?"next-melee-while-flight":"normal",["started"]=started,
+            ["projectile"]=true,["fps"]=fps,["scenario"]=nextProjectileRequested?"same-actor-next-projectile/"+(terminalPolicy??"normal"):concurrentRequested?"concurrent-two-actors":occlusionRequested?"wall-during-flight":terminalPolicy!=null?terminalPolicy:cancelBeforeImpact?"cancel-before-impact":nextMeleeRequested?"next-melee-while-flight":"normal",["started"]=started,
             ["expectedProjectiles"]=count,["launches"]=launches,["impacts"]=impacts,["stationaryRootPreserved"]=stationary,["reset"]=reset,
             ["targetRadius"]=collider.radius,["targetHeight"]=collider.height,["expectedDamage"]=expectedDamage,["damageEvents"]=damage,["pass"]=pass&&reset});
         if(concurrentRequested||occlusionRequested)
@@ -215,6 +276,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         {
             var saved=(JObject)cases[cases.Count-1];saved["nextMeleeStarted"]=nextMeleeStarted;
             saved["flightPreservedByAICleanup"]=flightPreservedByAICleanup;saved["nextMeleeStartedDuringFlight"]=nextMeleeStartedDuringFlight;
+        }
+        if(nextProjectileRequested)
+        {
+            var saved=(JObject)cases[cases.Count-1];saved["nextProjectileStartedDuringFlight"]=nextProjectileStartedDuringFlight;
+            saved["flightPreservedByAICleanup"]=flightPreservedByAICleanup;saved["originalCooldownRejected"]=originalCooldownRejected;
+            saved["separateSequenceAndReactionScopes"]=phaseOrder&&reactions;saved["reactionScopesCleared"]=reactionScopesCleared;
+            saved["reactionScopesMatchTheirOwnAttack"]=snapshotScopes;saved["nextProjectileEligibility"]=nextProjectileEligibility;
+            saved["fixture"]= "Unsaved second projectile slot with identical saved motion/timing and no blocked-approach prerequisite; production cooldown/fallback and assets unchanged";
         }
         if(terminalPolicy!=null)
         {
