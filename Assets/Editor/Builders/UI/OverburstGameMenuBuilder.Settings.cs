@@ -31,10 +31,12 @@ public static partial class OverburstGameMenuBuilder
         if (panel == null || panel.pages.Length != 4 || panel.combatScroll == null) throw new InvalidOperationException("Settings contract changed");
         var list = panel.combatScroll.content;
         if (panel.bloodStyle == null)
-            panel.bloodStyle = SelectRow(list, 0, "혈흔 효과", "기존 효과와 새 혈흔 팩 중 선택합니다", out _);
+            panel.bloodStyle = SelectRow(list, 0, "혈흔 효과", "혈흔 A·B·C 중 사용할 효과를 선택합니다", out _);
         if (panel.bloodPalette == null)
             panel.bloodPalette = SelectRow(list, 0, "혈흔 색상", "몬스터별 색상 또는 모두 붉은색으로 표시합니다", out _);
-        panel.bloodStyle.options.Clear(); panel.bloodStyle.options.AddRange(new[] { "기존 혈흔", "새 혈흔 팩" });
+        var bloodDescription = panel.bloodStyle.transform.parent.parent.Find("Description");
+        if (bloodDescription) bloodDescription.GetComponent<Text>().text = "혈흔 A·B·C 중 사용할 효과를 선택합니다";
+        panel.bloodStyle.options.Clear(); panel.bloodStyle.options.AddRange(new[] { "A · 기존 혈흔", "B · Blood Effects Pack", "C · Volumetric Blood" });
         panel.bloodStyle.SelectOptionByIndex(0);
         panel.bloodPalette.options.Clear(); panel.bloodPalette.options.AddRange(new[] { "몬스터별 색상", "전체 붉은색" });
         panel.bloodPalette.SelectOptionByIndex(0);

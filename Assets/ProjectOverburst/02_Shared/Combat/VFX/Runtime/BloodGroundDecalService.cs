@@ -30,7 +30,8 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         public Vector3 Point, Normal, Tangent;
         public CombatImpactShape Shape;
         public float Size, At;
-        public bool Lethal, Pack, Trail;
+        public bool Lethal, Trail;
+        public BloodEffectStyle Style;
         public int Variant;
     }
 
@@ -41,7 +42,8 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         public bool SpreadComplete;
         public Vector3 Point;
         public float Started;
-        public bool Active, Pack;
+        public bool Active;
+        public BloodEffectStyle Style;
         public Material Source;
         public BloodHitProfile Profile;
         public Vector3 BaseSize;
@@ -144,7 +146,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         pending[pendingCount++] = new Pending
         {
             Profile = profile,
-            Pack = BloodHitVfxService.PackEnabled,
+            Style = BloodHitVfxService.CurrentStyle,
             Trail = trail,
             Point = point,
             Normal = normal,
@@ -202,7 +204,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             for (int i = 0; i < Capacity; i++) if (slots[i].Active)
             {
                 slots[i].Projector.size = TunedSize(slots[i].BaseSize);
-                slots[i].Projector.material = TintedMaterial(slots[i].Source, slots[i].Profile, slots[i].Pack);
+                slots[i].Projector.material = TintedMaterial(slots[i].Source, slots[i].Profile, slots[i].Style);
             }
         }
         float now = Time.time;
@@ -255,7 +257,8 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             if (!slots[i].Active) { index = i; break; }
         if (index < 0) return false; // Existing marks always retain their full 15+5 seconds.
 
-        GameObject prefab = request.Pack && packCatalog != null ? packCatalog.ResolveDecal(request.Shape, request.Lethal, request.Variant, request.Trail)
+        var selectedCatalog = request.Style == BloodEffectStyle.Legacy ? null : Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourceFor(request.Style));
+        GameObject prefab = selectedCatalog != null ? selectedCatalog.ResolveDecal(request.Shape, request.Lethal, request.Variant, request.Trail)
             : catalog.ResolveDecal(request.Shape, request.Lethal, request.Variant);
         DecalProjector source = prefab ? prefab.GetComponent<DecalProjector>() : null;
         if (!source || !source.material) return false;
@@ -263,16 +266,16 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         DecalProjector projector = slots[index].Projector;
         float scale = request.Trail ? request.Size : request.Lethal ? Mathf.Clamp(request.Size, 1f, 1.8f)
             : Mathf.Max(.7f, .85f * request.Size);
-        var pattern = request.Pack ? prefab.GetComponent<BloodPackGroundPattern>() : null;
+        var pattern = request.Style != BloodEffectStyle.Legacy ? prefab.GetComponent<BloodPackGroundPattern>() : null;
         projector.gameObject.SetActive(false);
         projector.transform.SetPositionAndRotation(
             request.Point + request.Normal * .015f,
             Quaternion.LookRotation(-request.Normal, request.Tangent));
-        projector.material = TintedMaterial(source.material, request.Profile, request.Pack);
+        projector.material = TintedMaterial(source.material, request.Profile, request.Style);
         slots[index].BaseSize = new Vector3(
             Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f),
             Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f), ProjectionDepth);
-        slots[index].Source = source.material; slots[index].Profile = request.Profile; slots[index].Pack = request.Pack;
+        slots[index].Source = source.material; slots[index].Profile = request.Profile; slots[index].Style = request.Style;
         projector.size = TunedSize(slots[index].BaseSize);
         projector.pivot = Vector3.zero;
         projector.drawDistance = Mathf.Min(source.drawDistance, 40f);
@@ -298,8 +301,9 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         float scale = BloodComparisonTuning.Scale * BloodComparisonTuning.GroundScale;
         return new Vector3(source.x * scale, source.y * scale, source.z);
     }
-    private Material TintedMaterial(Material source, BloodHitProfile profile, bool pack)
+    private Material TintedMaterial(Material source, BloodHitProfile profile, BloodEffectStyle style)
     {
+        bool pack = style == BloodEffectStyle.EffectsPack;
         long key = ((long)source.GetInstanceID() << 32) ^ (uint)profile.GetInstanceID();
         if (!materials.TryGetValue(key, out Material material) || !material)
         {
@@ -321,6 +325,12 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", pack ? .95f : .32f);
             if (material.HasProperty("_AmbientColorIntensity")) material.SetFloat("_AmbientColorIntensity", .25f);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", pack ? Mathf.Clamp(profile.specular, .1f, .4f) : Mathf.Clamp(profile.specular + .18f, .22f, .5f));
+        }
+        if (style == BloodEffectStyle.Volumetric)
+        {
+            if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", BloodComparisonTuning.GroundColor(profile.mainColor).gamma);
+            if (material.HasProperty("_LightIntencity")) material.SetFloat("_LightIntencity", .75f);
+            if (material.HasProperty("_Cutout")) material.SetFloat("_Cutout", 0f);
         }
         if (material.HasProperty(MainColor)) material.SetColor(MainColor, BloodComparisonTuning.GroundColor(profile.mainColor));
         if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, BloodComparisonTuning.GroundColor(profile.secondaryColor));

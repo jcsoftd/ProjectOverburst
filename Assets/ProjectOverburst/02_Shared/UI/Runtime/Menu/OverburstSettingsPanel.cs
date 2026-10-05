@@ -110,7 +110,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         resetButton.onClick.AddListener(ResetCurrentTab);
         closeButton.onClick.AddListener(() => menu.CloseSettings());
         if (footerCloseButton != null) footerCloseButton.onClick.AddListener(() => menu.CloseSettings());
-        if (bloodStyle != null) bloodStyle.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.BloodPack = i == 1; RefreshBlood(); menu.PlayClick(); } });
+        if (bloodStyle != null) bloodStyle.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.BloodStyle = (BloodEffectStyle)i; RefreshBlood(); menu.PlayClick(); } });
         if (bloodPalette != null) bloodPalette.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.BloodUniformRed = i == 1; menu.PlayClick(); } });
         if (bloodRows != null) foreach (var row in bloodRows) row.Bind();
         if (bloodResetButton != null) bloodResetButton.onClick.AddListener(() => { BloodComparisonTuning.ResetCurrent(); RefreshBlood(); menu.PlayClick(); });
@@ -223,7 +223,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     void RefreshBlood()
     {
         bool wasRefreshing = refreshing; refreshing = true;
-        if (bloodStyle != null) FillOptions(bloodStyle, new[] { "기존 혈흔", "새 혈흔 팩" }, OverburstGameSettings.BloodPack ? 1 : 0);
+        if (bloodStyle != null) FillOptions(bloodStyle, new[] { "A · 기존 혈흔", "B · Blood Effects Pack", "C · Volumetric Blood" }, (int)OverburstGameSettings.BloodStyle);
         if (bloodPalette != null) FillOptions(bloodPalette, new[] { "몬스터별 색상", "전체 붉은색" }, OverburstGameSettings.BloodUniformRed ? 1 : 0);
         if (bloodRows != null) foreach (var row in bloodRows) row.RefreshValue();
         refreshing = wasRefreshing;

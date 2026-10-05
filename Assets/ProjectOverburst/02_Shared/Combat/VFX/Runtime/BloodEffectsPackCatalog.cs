@@ -4,6 +4,9 @@ using UnityEngine;
 public sealed class BloodEffectsPackCatalog : ScriptableObject
 {
     public const string ResourcePath = "Combat/BloodEffectsPackCatalog";
+    public const string VolumetricResourcePath = "Combat/VolumetricBloodCatalog";
+    public bool volumetric;
+    public static string ResourceFor(BloodEffectStyle style) => style == BloodEffectStyle.Volumetric ? VolumetricResourcePath : ResourcePath;
     [System.Serializable]
     public sealed class Spray
     {

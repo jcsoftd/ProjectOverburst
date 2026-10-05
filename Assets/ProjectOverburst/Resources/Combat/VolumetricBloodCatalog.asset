@@ -1,0 +1,235 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8f6104d9a99690479e0bd17ce78f9cf, type: 3}
+  m_Name: VolumetricBloodCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::BloodEffectsPackCatalog
+  volumetric: 1
+  sprays:
+  - label: Blood1
+    prefab: {fileID: 1773178199040575241, guid: 1580f2ef6a09cc04684d331bad6e6c22, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.35
+  - label: Blood2
+    prefab: {fileID: 2644462598983400480, guid: 42caaac84ead7ab4f80537844a07a283, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood3
+    prefab: {fileID: 8538528412666001684, guid: c6b1005fb576453489bdb1fe0a7b946e, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.35
+  - label: Blood4
+    prefab: {fileID: 4352141544812114836, guid: 4058ae1b8830e954c9748dc569055b6d, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.05
+  - label: Blood5
+    prefab: {fileID: 1808147986012975657, guid: a992d8c9edcb0a14b92d85178d503620, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.1499999
+  - label: Blood6
+    prefab: {fileID: 8660714917631796084, guid: facdc5923a78ed74ebcdac51e7869f35, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.05
+  - label: Blood7
+    prefab: {fileID: 5431358343891805903, guid: b83e33664a50b8b47853016c88adc3d8, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood8
+    prefab: {fileID: 292952276392746157, guid: 0a39c267f0b51844dbc41a80213f88ab, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.85
+  - label: Blood9
+    prefab: {fileID: 2602163338425454708, guid: 2a7787ef396a5a540a2a9a178d2579f2, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood10
+    prefab: {fileID: 7477945047277647557, guid: dfd58e31d4f7ac54c9a8ff860e1a360e, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood11
+    prefab: {fileID: 6704190975549576279, guid: 16872be1cf4a857458ddf6e8280230fb, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood12
+    prefab: {fileID: 5201862319165036420, guid: cdff2791f70213f4aab3a67c330f9603, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.1499999
+  - label: blood13
+    prefab: {fileID: 8090029907308666464, guid: 8e9175918b8943a43b48b2b28b451e98, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 3.25
+  - label: Blood14
+    prefab: {fileID: 7098490317083393663, guid: 7fb16b240ddc5004c9d91b9c3815d79a, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.25
+  - label: Blood15
+    prefab: {fileID: 8103781154460534498, guid: 94ca7ac55d7d53743be0fe13cb0ecc88, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.55
+  - label: Blood2_Left
+    prefab: {fileID: 4808542942030704811, guid: 10761b7b0297a804ea056110e9b42713, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.05
+  - label: Blood2_Right
+    prefab: {fileID: 3860855316046942068, guid: 10276f087416af0428ebcae4d46afbd4, type: 3}
+    shapeMask: 7
+    minimumPriority: 0
+    flowing: 0
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 1.2
+    lifetime: 2.05
+  - label: "\uC774\uB3D9 \uD54F\uBC29\uC6B8 1"
+    prefab: {fileID: 511438579157396620, guid: 73c4ea7465680a54ca32243b593eda5f, type: 3}
+    shapeMask: 7
+    minimumPriority: 1
+    flowing: 1
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.65
+    lifetime: 0.55
+  - label: "\uC774\uB3D9 \uD54F\uBC29\uC6B8 2"
+    prefab: {fileID: 8997972553619142259, guid: 3056805c5d1c335488f5087cea10dfeb, type: 3}
+    shapeMask: 7
+    minimumPriority: 1
+    flowing: 1
+    localEuler: {x: 0, y: 0, z: 0}
+    scale: 0.65
+    lifetime: 0.55
+  sweepDecals:
+  - {fileID: 3969509505556938695, guid: a12888209f7e0254c94e621762f487b0, type: 3}
+  - {fileID: 3789153499576250891, guid: cde1448e1224d28429f13e9a22705db2, type: 3}
+  - {fileID: 6944866150222577972, guid: e6636fd6ba0ef3d449aa7617153fda53, type: 3}
+  - {fileID: 1839081661905612772, guid: 219af0c373935ad4987ec34ffd32062e, type: 3}
+  - {fileID: 7798936714423047830, guid: 789755c23efc97d49a57b2ff9752fd65, type: 3}
+  - {fileID: 7966225840999450460, guid: 4109fcd2da198784e91bec57dec22468, type: 3}
+  - {fileID: 4761571298246322266, guid: a5e0337455e832e4ca27f7c097cd93ef, type: 3}
+  - {fileID: 2816414881522636883, guid: ba223d214b0168646adf3a704f76e431, type: 3}
+  - {fileID: 6544729097121169784, guid: 0397be2804aeff54b8764f968b2471c1, type: 3}
+  - {fileID: 1826880608107263106, guid: 7001453c26f3f4a408f562ea953a94f3, type: 3}
+  - {fileID: 1196936859521828605, guid: e87c9655784fc1b4895add29da46d78b, type: 3}
+  - {fileID: 1946673205302085599, guid: 07cbe49329467094f96bf0a44dfeb263, type: 3}
+  thrustDecals:
+  - {fileID: 3789153499576250891, guid: cde1448e1224d28429f13e9a22705db2, type: 3}
+  - {fileID: 7552510775690152436, guid: 3c95d9beaae722f4b9af634c663425d1, type: 3}
+  - {fileID: 1839081661905612772, guid: 219af0c373935ad4987ec34ffd32062e, type: 3}
+  - {fileID: 9108682301168262708, guid: df31fda2cc4869d4ca2d37268eb32300, type: 3}
+  - {fileID: 7966225840999450460, guid: 4109fcd2da198784e91bec57dec22468, type: 3}
+  - {fileID: 1838803726277128636, guid: bdb6d285fac608b479b49958bd933efa, type: 3}
+  - {fileID: 2816414881522636883, guid: ba223d214b0168646adf3a704f76e431, type: 3}
+  - {fileID: 2606590439863566590, guid: 09c2852e1bd32ed4d83875b493ae889a, type: 3}
+  - {fileID: 1826880608107263106, guid: 7001453c26f3f4a408f562ea953a94f3, type: 3}
+  - {fileID: 1569802246141762561, guid: 53d05b86614ad1645b214c00a928807d, type: 3}
+  - {fileID: 1946673205302085599, guid: 07cbe49329467094f96bf0a44dfeb263, type: 3}
+  downwardDecals:
+  - {fileID: 3969509505556938695, guid: a12888209f7e0254c94e621762f487b0, type: 3}
+  - {fileID: 7552510775690152436, guid: 3c95d9beaae722f4b9af634c663425d1, type: 3}
+  - {fileID: 6944866150222577972, guid: e6636fd6ba0ef3d449aa7617153fda53, type: 3}
+  - {fileID: 9108682301168262708, guid: df31fda2cc4869d4ca2d37268eb32300, type: 3}
+  - {fileID: 7798936714423047830, guid: 789755c23efc97d49a57b2ff9752fd65, type: 3}
+  - {fileID: 1838803726277128636, guid: bdb6d285fac608b479b49958bd933efa, type: 3}
+  - {fileID: 4761571298246322266, guid: a5e0337455e832e4ca27f7c097cd93ef, type: 3}
+  - {fileID: 2606590439863566590, guid: 09c2852e1bd32ed4d83875b493ae889a, type: 3}
+  - {fileID: 6544729097121169784, guid: 0397be2804aeff54b8764f968b2471c1, type: 3}
+  - {fileID: 1569802246141762561, guid: 53d05b86614ad1645b214c00a928807d, type: 3}
+  - {fileID: 1196936859521828605, guid: e87c9655784fc1b4895add29da46d78b, type: 3}
+  lethalDecals:
+  - {fileID: 3969509505556938695, guid: a12888209f7e0254c94e621762f487b0, type: 3}
+  - {fileID: 3789153499576250891, guid: cde1448e1224d28429f13e9a22705db2, type: 3}
+  - {fileID: 7552510775690152436, guid: 3c95d9beaae722f4b9af634c663425d1, type: 3}
+  - {fileID: 6944866150222577972, guid: e6636fd6ba0ef3d449aa7617153fda53, type: 3}
+  - {fileID: 1839081661905612772, guid: 219af0c373935ad4987ec34ffd32062e, type: 3}
+  - {fileID: 9108682301168262708, guid: df31fda2cc4869d4ca2d37268eb32300, type: 3}
+  - {fileID: 7798936714423047830, guid: 789755c23efc97d49a57b2ff9752fd65, type: 3}
+  - {fileID: 7966225840999450460, guid: 4109fcd2da198784e91bec57dec22468, type: 3}
+  - {fileID: 1838803726277128636, guid: bdb6d285fac608b479b49958bd933efa, type: 3}
+  - {fileID: 4761571298246322266, guid: a5e0337455e832e4ca27f7c097cd93ef, type: 3}
+  - {fileID: 2816414881522636883, guid: ba223d214b0168646adf3a704f76e431, type: 3}
+  - {fileID: 2606590439863566590, guid: 09c2852e1bd32ed4d83875b493ae889a, type: 3}
+  - {fileID: 6544729097121169784, guid: 0397be2804aeff54b8764f968b2471c1, type: 3}
+  - {fileID: 1826880608107263106, guid: 7001453c26f3f4a408f562ea953a94f3, type: 3}
+  - {fileID: 1569802246141762561, guid: 53d05b86614ad1645b214c00a928807d, type: 3}
+  - {fileID: 1196936859521828605, guid: e87c9655784fc1b4895add29da46d78b, type: 3}
+  - {fileID: 1946673205302085599, guid: 07cbe49329467094f96bf0a44dfeb263, type: 3}
+  trailDecals:
+  - {fileID: 3969509505556938695, guid: a12888209f7e0254c94e621762f487b0, type: 3}
+  - {fileID: 3789153499576250891, guid: cde1448e1224d28429f13e9a22705db2, type: 3}
+  - {fileID: 7552510775690152436, guid: 3c95d9beaae722f4b9af634c663425d1, type: 3}
+  sprayProfileShader: {fileID: 0}
+  groundProfileShader: {fileID: 0}
+  screenSprite: {fileID: 21300000, guid: c25d3429d53ec10469038f9080d8187e, type: 3}
+  screenMaterials:
+  - {fileID: 2100000, guid: bdffe47054c72444f8c4b903e757f253, type: 2}
+  - {fileID: 2100000, guid: f6effe6368b480142860529c455629a4, type: 2}
+  - {fileID: 2100000, guid: 77de7ad79a39bb446a04b2f4defce836, type: 2}
+  - {fileID: 2100000, guid: a2bb80f7c2c107d45990734de53f9927, type: 2}

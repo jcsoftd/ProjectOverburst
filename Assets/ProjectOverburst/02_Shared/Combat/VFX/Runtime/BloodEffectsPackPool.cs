@@ -13,6 +13,8 @@ public sealed class BloodEffectsPackPool
         public int variant, priority;
         public float until, baseScale;
         public BloodHitProfile profile;
+        public VolumetricBloodAnimationData animation;
+        public float started;
     }
     readonly Slot[] slots = new Slot[Capacity];
     readonly int[] targets = new int[96], variants = new int[96];
@@ -36,7 +38,7 @@ public sealed class BloodEffectsPackPool
             int variant = i % source.sprays.Length;
             if (source.sprays[variant]?.prefab == null) { Dispose(); return; }
             var root = Object.Instantiate(source.sprays[variant].prefab, parent);
-            root.name = "Blood Pack " + i;
+            root.name = (source.volumetric ? "Blood Volumetric " : "Blood Pack ") + i;
             root.SetActive(false);
             var slot = new Slot { root = root, variant = variant,
                 systems = root.GetComponentsInChildren<ParticleSystem>(true), renderers = root.GetComponentsInChildren<Renderer>(true) };
@@ -47,6 +49,8 @@ public sealed class BloodEffectsPackPool
                 for (int materialIndex = 0; materialIndex < shared.Length; materialIndex++) shared[materialIndex] = ProfileMaterial(shared[materialIndex]);
                 renderer.sharedMaterials = shared;
             }
+            slot.animation = root.GetComponent<VolumetricBloodAnimationData>();
+            if (source.volumetric && (slot.animation == null || slot.animation.layers == null || slot.animation.layers.Length == 0)) { Object.Destroy(root); Dispose(); return; }
             slots[i] = slot;
         }
         Ready = true;
@@ -64,7 +68,11 @@ public sealed class BloodEffectsPackPool
     }
     public void Tick(float now)
     {
-        foreach (var slot in slots) if (slot != null && slot.until > 0f && now >= slot.until) Release(slot);
+        foreach (var slot in slots) if (slot != null && slot.until > 0f)
+        {
+            if (now >= slot.until) Release(slot);
+            else if (slot.animation != null) ApplyAnimation(slot, now - slot.started);
+        }
     }
     public bool Play(BloodHitProfile profile, Vector3 point, Vector3 direction, CombatImpactShape shape,
         float size, int priority, uint seed, int target, bool drip = false)
@@ -95,13 +103,19 @@ public sealed class BloodEffectsPackPool
         var definition = catalog.sprays[variant];
         direction = direction.sqrMagnitude < .0001f ? Vector3.forward : direction.normalized;
         Vector3 up = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > .95f ? Vector3.forward : Vector3.up;
-        chosen.root.transform.SetPositionAndRotation(point, Quaternion.LookRotation(direction, up) * Quaternion.Euler(definition.localEuler));
+        // VAT includes world gravity; tilt would rotate the fall sideways. Keep only attack yaw.
+        var rotation = catalog.volumetric ? Quaternion.Euler(0f, Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + 270f, 0f)
+            : Quaternion.LookRotation(direction, up);
+        chosen.root.transform.SetPositionAndRotation(point, rotation * Quaternion.Euler(definition.localEuler));
         // Profile sizes were authored for VFX Graph. Normalize around the game's 3.5 baseline.
         chosen.baseScale = definition.scale * Mathf.Clamp(profile.size / 3.5f, .4f, 1.6f)
             * size * (priority >= 2 ? 1.2f : priority == 1 ? 1.1f : 1f);
         chosen.root.transform.localScale = Vector3.one * chosen.baseScale * SizeMultiplier;
         chosen.profile = profile;
+        chosen.started = Time.time;
+        foreach (var renderer in chosen.renderers) renderer.enabled = true;
         ApplyStyle(chosen);
+        if (chosen.animation != null) ApplyAnimation(chosen, 0f);
         for (int i = 0; i < chosen.systems.Length; i++)
         {
             var ps = chosen.systems[i];
@@ -125,12 +139,30 @@ public sealed class BloodEffectsPackPool
     void ApplyStyle(Slot slot)
     {
         var profile = slot.profile;
+        if (slot.animation != null) { ApplyAnimation(slot, Time.time - slot.started); return; }
         block.Clear(); block.SetColor("_BaseColor", profile.mainColor);
         block.SetFloat("_Smoothness", Mathf.Clamp(profile.specular, .1f, .4f));
         block.SetFloat("_HueShift", 0f); block.SetFloat("_AlbedoPower", .45f);
         block.SetFloat("_ColorIntensity", 1.1f * BloodComparisonTuning.SprayBrightness);
         block.SetFloat("_AmbientColorIntensity", .7f);
         foreach (var renderer in slot.renderers) renderer.SetPropertyBlock(block);
+    }
+    void ApplyAnimation(Slot slot, float age)
+    {
+        foreach (var layer in slot.animation.layers)
+        {
+            if (!layer.renderer) continue;
+            layer.renderer.enabled = age < layer.seconds;
+            if (!layer.renderer.enabled) continue;
+            float frame = layer.speed.Evaluate(Mathf.Clamp01(age / layer.seconds)) * layer.frames + layer.offset + 1.1f;
+            block.Clear();
+            block.SetFloat("_UseCustomTime", 1f);
+            block.SetFloat("_TimeInFrames", (Mathf.Ceil(-frame) + 1f) / (layer.frames + 1f));
+            block.SetFloat("_LightIntencity", 1f);
+            block.SetColor("_Color", BloodComparisonTuning.SprayColor(slot.profile.mainColor).gamma * 2f);
+            block.SetColor("_SpecColor", BloodComparisonTuning.SprayColor(slot.profile.specularColor).gamma * .22f);
+            layer.renderer.SetPropertyBlock(block);
+        }
     }
     public void RefreshTuning()
     {

@@ -17,7 +17,8 @@ public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
     [SerializeField] Button[] decreaseButtons = System.Array.Empty<Button>(), increaseButtons = System.Array.Empty<Button>();
     [SerializeField] TMP_Text[] valueCaptions = System.Array.Empty<TMP_Text>();
     static TemporaryBloodComparisonToggle instance;
-    bool displayed, displayedRed;
+    BloodEffectStyle displayed;
+    bool displayedRed;
     int revision = -1;
     public Button Button => button;
     public TMP_Text Caption => caption;
@@ -56,7 +57,7 @@ public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
     }
     public void Toggle()
     {
-        BloodHitVfxService.SetPackEnabled(!BloodHitVfxService.PackEnabled); Refresh();
+        OverburstGameSettings.BloodStyle = (BloodEffectStyle)(((int)BloodHitVfxService.CurrentStyle + 1) % 3); Refresh();
     }
     public void ToggleColor() { BloodHitVfxService.SetUniformRed(!BloodHitVfxService.UniformRed); Refresh(); }
     public void ToggleTuning() { if (tuningPanel) tuningPanel.SetActive(!tuningPanel.activeSelf); Refresh(); }
@@ -68,15 +69,15 @@ public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
         if (tuningPanel && tuningPanel.activeInHierarchy && Mouse.current != null)
             over |= RectTransformUtility.RectangleContainsScreenPoint((RectTransform)tuningPanel.transform, Mouse.current.position.ReadValue(), null);
         GameplayInputBlocker.SetBlocked(this, over);
-        if (displayed != BloodHitVfxService.PackEnabled || displayedRed != BloodHitVfxService.UniformRed || revision != BloodComparisonTuning.Revision) Refresh();
+        if (displayed != BloodHitVfxService.CurrentStyle || displayedRed != BloodHitVfxService.UniformRed || revision != BloodComparisonTuning.Revision) Refresh();
     }
     static bool IsOver(Button value) => value != null && value.gameObject.activeInHierarchy && Mouse.current != null &&
         RectTransformUtility.RectangleContainsScreenPoint((RectTransform)value.transform, Mouse.current.position.ReadValue(), null);
     void Refresh()
     {
-        displayed = BloodHitVfxService.PackEnabled; displayedRed = BloodHitVfxService.UniformRed; revision = BloodComparisonTuning.Revision;
-        if (caption) caption.text = displayed ? "혈흔 B · 새 팩" : "혈흔 A · 기존";
-        if (button) button.targetGraphic.color = displayed ? new Color(.36f,.16f,.18f,.96f) : new Color(.18f,.20f,.24f,.96f);
+        displayed = BloodHitVfxService.CurrentStyle; displayedRed = BloodHitVfxService.UniformRed; revision = BloodComparisonTuning.Revision;
+        if (caption) caption.text = displayed == BloodEffectStyle.Volumetric ? "혈흔 C · 입체 혈흔" : displayed == BloodEffectStyle.EffectsPack ? "혈흔 B · 새 팩" : "혈흔 A · 기존";
+        if (button) button.targetGraphic.color = displayed != BloodEffectStyle.Legacy ? new Color(.36f,.16f,.18f,.96f) : new Color(.18f,.20f,.24f,.96f);
         if (colorCaption) colorCaption.text = displayedRed ? "색상 · 전체 붉은색" : "색상 · 몬스터별 조정";
         if (colorButton) colorButton.targetGraphic.color = displayedRed ? new Color(.36f,.16f,.18f,.96f) : new Color(.20f,.29f,.24f,.96f);
         for (int i = 0; i < valueCaptions.Length; i++)

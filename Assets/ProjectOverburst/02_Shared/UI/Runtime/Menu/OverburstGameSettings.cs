@@ -8,6 +8,8 @@ using UnityEngine.InputSystem;
 /// 경로: OVERBURST_SETTINGS_DIRECTORY → OVERBURST_SAVE_DIRECTORY(격리 검증 계정) → persistentDataPath.
 /// 화면 설정은 사용자가 한 번이라도 바꾼 뒤에만 적용해, 설정 파일이 없을 때는 프로젝트 기본값을 건드리지 않는다.
 /// </summary>
+public enum BloodEffectStyle { Legacy = 0, EffectsPack = 1, Volumetric = 2 }
+
 public enum CombatFacingIndicatorStyle { Quiet = 0, Extended = 1 }
 
 public static class OverburstGameSettings
@@ -18,10 +20,12 @@ public static class OverburstGameSettings
     [Serializable]
     private sealed class Data
     {
-        public int version = 2;
+        public int version = 3;
+        public int bloodStyle;
         public bool bloodPack, bloodUniformRed;
         public BloodComparisonTuning.Values bloodA = new BloodComparisonTuning.Values(false);
         public BloodComparisonTuning.Values bloodB = new BloodComparisonTuning.Values(true);
+        public BloodComparisonTuning.Values bloodC = new BloodComparisonTuning.Values(false);
         public float masterVolume = 1f;
         public float uiVolume = .8f;
         public bool muteInBackground;
@@ -76,22 +80,38 @@ public static class OverburstGameSettings
     public static float MotionBlurIntensity { get { Ensure(); return data.motionBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.01f,1f); if(Mathf.Approximately(data.motionBlurIntensity,v))return; data.motionBlurIntensity=v; Notify(); } }
     private static float NormalizeEffect(float value,float fallback,float maximum) => float.IsNaN(value)||float.IsInfinity(value) ? fallback : Mathf.Clamp(value,0f,maximum);
 
+    public static BloodEffectStyle BloodStyle
+    {
+        get { Ensure(); return (BloodEffectStyle)data.bloodStyle; }
+        set
+        {
+            Ensure(); value = (BloodEffectStyle)Mathf.Clamp((int)value, 0, 2);
+            if (data.bloodStyle == (int)value) return;
+            if (!BloodHitVfxService.SetStyle(value)) return;
+            data.bloodStyle = (int)value; data.bloodPack = value == BloodEffectStyle.EffectsPack;
+            BloodComparisonTuning.Invalidate(); Notify();
+        }
+    }
+    // Preserve the A/B API for older tools and version-two settings files.
     public static bool BloodPack
     {
-        get { Ensure(); return data.bloodPack; }
-        set { Ensure(); if (data.bloodPack == value) return; if (!BloodHitVfxService.SetPackEnabled(value)) return; data.bloodPack = value; BloodComparisonTuning.Invalidate(); Notify(); }
+        get => BloodStyle == BloodEffectStyle.EffectsPack;
+        set => BloodStyle = value ? BloodEffectStyle.EffectsPack : BloodEffectStyle.Legacy;
     }
     public static bool BloodUniformRed
     {
         get { Ensure(); return data.bloodUniformRed; }
         set { Ensure(); if (data.bloodUniformRed == value) return; data.bloodUniformRed = value; BloodHitVfxService.SetUniformRed(value); Notify(); }
     }
-    internal static BloodComparisonTuning.Values BloodValues(bool pack) { Ensure(); return pack ? data.bloodB : data.bloodA; }
+    internal static BloodComparisonTuning.Values BloodValues(bool pack) => BloodValues(pack ? BloodEffectStyle.EffectsPack : BloodEffectStyle.Legacy);
+    internal static BloodComparisonTuning.Values BloodValues(BloodEffectStyle style) { Ensure(); return style == BloodEffectStyle.Volumetric ? data.bloodC : style == BloodEffectStyle.EffectsPack ? data.bloodB : data.bloodA; }
     internal static void NotifyBloodTuning() { BloodComparisonTuning.Invalidate(); Notify(); }
-    public static void ResetBloodStyle(bool pack)
+    public static void ResetBloodStyle(bool pack) => ResetBloodStyle(pack ? BloodEffectStyle.EffectsPack : BloodEffectStyle.Legacy);
+    public static void ResetBloodStyle(BloodEffectStyle style)
     {
         Ensure();
-        if (pack) data.bloodB = new BloodComparisonTuning.Values(true);
+        if (style == BloodEffectStyle.Volumetric) data.bloodC = new BloodComparisonTuning.Values(false);
+        else if (style == BloodEffectStyle.EffectsPack) data.bloodB = new BloodComparisonTuning.Values(true);
         else data.bloodA = new BloodComparisonTuning.Values(false);
         NotifyBloodTuning();
     }
@@ -144,7 +164,7 @@ public static class OverburstGameSettings
             string path = FilePath;
             if (!File.Exists(path)) return;
             // 새 항목은 초기값을 유지한다. 이전 파일에 방향 표시가 없으면 켜짐으로 시작한다.
-            var read = new Data { vSync = data.vSync, frameLimit = data.frameLimit, screenMode = data.screenMode, width = data.width, height = data.height };
+            var read = new Data { version = 1, vSync = data.vSync, frameLimit = data.frameLimit, screenMode = data.screenMode, width = data.width, height = data.height };
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
             read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
@@ -152,7 +172,10 @@ public static class OverburstGameSettings
             read.explorationEdgeBlurIntensity=NormalizeEffect(read.explorationEdgeBlurIntensity,.72f,1f);read.combatEdgeBlurIntensity=NormalizeEffect(read.combatEdgeBlurIntensity,.42f,1f);
             read.bloodA = read.bloodA ?? new BloodComparisonTuning.Values(false);
             read.bloodB = read.bloodB ?? new BloodComparisonTuning.Values(true);
-            read.bloodA.Normalize(false); read.bloodB.Normalize(true); read.version = 2;
+            read.bloodC = read.bloodC ?? new BloodComparisonTuning.Values(false);
+            read.bloodStyle = read.version < 3 ? (read.bloodPack ? 1 : 0) : Mathf.Clamp(read.bloodStyle, 0, 2);
+            read.bloodPack = read.bloodStyle == 1;
+            read.bloodA.Normalize(false); read.bloodB.Normalize(true); read.bloodC.Normalize(false); read.version = 3;
             data = read;
         }
         catch (Exception error)
@@ -210,7 +233,7 @@ public static class OverburstGameSettings
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
-            case "combat": data.bloodPack = defaults.bloodPack; data.bloodUniformRed = defaults.bloodUniformRed; data.bloodA = defaults.bloodA; data.bloodB = defaults.bloodB; BloodHitVfxService.SetPackEnabled(data.bloodPack); BloodHitVfxService.SetUniformRed(data.bloodUniformRed); BloodComparisonTuning.Invalidate(); data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
+            case "combat": data.bloodStyle = defaults.bloodStyle; data.bloodPack = defaults.bloodPack; data.bloodC = defaults.bloodC; data.bloodUniformRed = defaults.bloodUniformRed; data.bloodA = defaults.bloodA; data.bloodB = defaults.bloodB; BloodHitVfxService.SetStyle((BloodEffectStyle)data.bloodStyle); BloodHitVfxService.SetUniformRed(data.bloodUniformRed); BloodComparisonTuning.Invalidate(); data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
         }
         Notify();
     }

@@ -1883,7 +1883,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\uAE30\uC874 \uD608\uD754"
+  m_Text: "A \xB7 \uAE30\uC874 \uD608\uD754"
 --- !u!114 &5446524255408119688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34814,10 +34814,11 @@ MonoBehaviour:
   m_Text: {fileID: 3225765730947808135}
   m_PrevButton: {fileID: 5511876961632437895}
   m_NextButton: {fileID: 8582292664192209851}
-  m_SelectedItem: "\uAE30\uC874 \uD608\uD754"
+  m_SelectedItem: "A \xB7 \uAE30\uC874 \uD608\uD754"
   m_Options:
-  - "\uAE30\uC874 \uD608\uD754"
-  - "\uC0C8 \uD608\uD754 \uD329"
+  - "A \xB7 \uAE30\uC874 \uD608\uD754"
+  - "B \xB7 Blood Effects Pack"
+  - "C \xB7 Volumetric Blood"
   onChange:
     m_PersistentCalls:
       m_Calls: []
@@ -55953,7 +55954,8 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\uAE30\uC874 \uD6A8\uACFC\uC640 \uC0C8 \uD608\uD754 \uD329 \uC911 \uC120\uD0DD\uD569\uB2C8\uB2E4"
+  m_Text: "\uD608\uD754 A\xB7B\xB7C \uC911 \uC0AC\uC6A9\uD560 \uD6A8\uACFC\uB97C
+    \uC120\uD0DD\uD569\uB2C8\uB2E4"
 --- !u!1 &7179506409583550319
 GameObject:
   m_ObjectHideFlags: 0

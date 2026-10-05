@@ -65,7 +65,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
             SubscribeHealth();
         }
 
-        if (packVignette != BloodHitVfxService.PackEnabled) ApplyVignetteStyle(false);
+        if (packVignette != BloodHitVfxService.UsePackVignette) ApplyVignetteStyle(false);
         UpdateVignette();
     }
 
@@ -170,7 +170,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
     {
         if (vignetteImage == null) return;
         if (bloodPack == null) bloodPack = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
-        bool pack = BloodHitVfxService.PackEnabled && bloodPack != null && bloodPack.screenSprite != null
+        bool pack = BloodHitVfxService.UsePackVignette && bloodPack != null && bloodPack.screenSprite != null
             && bloodPack.screenMaterials != null && bloodPack.screenMaterials.Length > 0;
         if (pack)
         {

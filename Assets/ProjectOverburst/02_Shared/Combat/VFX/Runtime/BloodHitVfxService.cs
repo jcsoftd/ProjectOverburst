@@ -37,11 +37,13 @@ public sealed class BloodHitVfxService : MonoBehaviour
     private int legacyActiveCount;
     private int retiredPackPlayedCount;
     private uint retiredPackPlayedVariants;
-    private static bool packEnabled;
+    private static BloodEffectStyle currentStyle;
     private static bool uniformRed;
     private readonly System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile> redProfiles = new System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile>();
     private readonly System.Collections.Generic.HashSet<BloodHitProfile> redProfileInstances = new System.Collections.Generic.HashSet<BloodHitProfile>();
-    public static bool PackEnabled => packEnabled;
+    public static BloodEffectStyle CurrentStyle => currentStyle;
+    public static bool PackEnabled => currentStyle == BloodEffectStyle.EffectsPack;
+    public static bool UsePackVignette => currentStyle != BloodEffectStyle.Legacy;
     public static bool UniformRed => uniformRed;
     public static void SetUniformRed(bool enabled)
     {
@@ -70,35 +72,26 @@ public sealed class BloodHitVfxService : MonoBehaviour
     public int PackPlayedCount => retiredPackPlayedCount + (packPool != null ? packPool.PlayedCount : 0);
     public int LastPackVariation => packPool != null ? packPool.LastVariant : -1;
     public uint PackPlayedVariants => retiredPackPlayedVariants | (packPool != null ? packPool.PlayedVariants : 0);
-    public static bool SetPackEnabled(bool enabled)
+    public static bool SetPackEnabled(bool enabled) => SetStyle(enabled ? BloodEffectStyle.EffectsPack : BloodEffectStyle.Legacy);
+    public static bool SetStyle(BloodEffectStyle style)
     {
+        if ((int)style < 0 || (int)style > 2) return false;
         if (instance == null) Bootstrap();
         if (instance == null) return false;
-        BloodEffectsPackPool preparedPool = instance.packPool;
-        if (enabled && preparedPool == null)
+        if (currentStyle == style && (style == BloodEffectStyle.Legacy ? instance.slots[0].Effect != null : instance.packPool != null && instance.packPool.Ready)) return true;
+        BloodEffectsPackPool preparedPool = null;
+        if (style != BloodEffectStyle.Legacy)
         {
-            var data = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
+            var data = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourceFor(style));
             preparedPool = new BloodEffectsPackPool(instance.transform, data);
             if (!preparedPool.Ready) { preparedPool.Dispose(); return false; }
         }
-        if (enabled && !preparedPool.Ready) return false;
         instance.Clear();
-        if (instance.groundDecals != null)
-        {
-            if (packEnabled != enabled) instance.groundDecals.ClearForPackChange();
-            else instance.groundDecals.ClearForComparison();
-        }
-        if (enabled)
-        {
-            instance.DisposeLegacyPool();
-            instance.packPool = preparedPool;
-        }
-        else
-        {
-            instance.DisposePackPool();
-            instance.CreateLegacyPool();
-        }
-        packEnabled = enabled;
+        if (instance.groundDecals != null) instance.groundDecals.ClearForPackChange();
+        instance.DisposePackPool();
+        if (style == BloodEffectStyle.Legacy) instance.CreateLegacyPool();
+        else { instance.DisposeLegacyPool(); instance.packPool = preparedPool; }
+        currentStyle = style;
         instance.tuningRevision = -1;
         return true;
     }
@@ -155,7 +148,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
     public int PeakQueuedCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { instance = null; packEnabled = false; uniformRed = false; }
+    private static void ResetStatics() { instance = null; currentStyle = BloodEffectStyle.Legacy; uniformRed = false; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -177,7 +170,11 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray)) return;
 #endif
         SetUniformRed(OverburstGameSettings.BloodUniformRed);
-        SetPackEnabled(OverburstGameSettings.BloodPack);
+        if (!SetStyle(OverburstGameSettings.BloodStyle))
+        {
+            SetStyle(BloodEffectStyle.Legacy);
+            OverburstGameSettings.BloodStyle = BloodEffectStyle.Legacy;
+        }
     }
 
     public static void Request(in CombatHitFeedbackRequest hit, Vector3 point, float size)
@@ -240,7 +237,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (profile == null || profile.suppressBlood || instance == null || instance.groundDecals == null || IsOffscreen(feet + Vector3.up * .5f)) return false;
         profile = ResolveColorProfile(profile);
         // Small falling drops have no attack priority; they cannot evict a combat splash.
-        if (packEnabled && instance.packPool != null)
+        if (currentStyle != BloodEffectStyle.Legacy && instance.packPool != null)
             instance.packPool.Play(profile, feet + Vector3.up * .6f, Vector3.down, CombatImpactShape.Downward,
                 .12f, 0, CosmeticSeed(0, Time.frameCount, 0, health.GetInstanceID()), health.GetInstanceID(), true);
         instance.groundDecals.Request(profile, feet + Vector3.up * .5f, travel, CombatImpactShape.Thrust, .38f, 0, false, .08f, true);
@@ -392,10 +389,10 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (tuningRevision != BloodComparisonTuning.Revision)
         {
             tuningRevision = BloodComparisonTuning.Revision;
-            if (packEnabled) packPool?.RefreshTuning();
+            if (currentStyle != BloodEffectStyle.Legacy) packPool?.RefreshTuning();
             else for (int i = 0; i < Capacity; i++) if (slots[i].Until > 0f) ApplyTuning(i);
         }
-        if (packEnabled) packPool?.Tick(Time.time);
+        if (currentStyle != BloodEffectStyle.Legacy) packPool?.Tick(Time.time);
         else for (int i = 0; i < Capacity; i++)
         {
             if (slots[i].Until > 0 && Time.time >= slots[i].Until) Release(i);
@@ -443,7 +440,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             return true;
         }
 #endif
-        if (packEnabled)
+        if (currentStyle != BloodEffectStyle.Legacy)
         {
             float size = Mathf.Clamp(request.Size * request.WeightScale, .55f, 1.95f);
             if (request.WeightScale > 1.2f) size = Mathf.Max(size, 1.25f);

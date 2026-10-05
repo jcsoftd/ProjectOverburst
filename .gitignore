@@ -151,3 +151,7 @@ Assets/StreamingAssets/aa/
 # Licensed Crustaspikan derived clips; restore with the material builder and original meta recovery.
 /Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/LicensedClips/
 /Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/LicensedClips.meta
+
+# Licensed Volumetric Blood VAT derivatives; restore with package and native builder.
+/Assets/ProjectOverburst/Resources/Combat/VolumetricBlood/
+/Assets/ProjectOverburst/Resources/Combat/VolumetricBlood.meta

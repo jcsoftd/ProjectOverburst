@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// Both styles use the PC settings file; the gameplay pools consume the selected values.
+// All styles use the PC settings file; the gameplay pools consume the selected values.
 public static class BloodComparisonTuning
 {
     public enum Control { Scale, SprayBrightness, GroundScale, GroundBrightness, GroundRed, GroundGreen, GroundBlue }
@@ -28,7 +28,7 @@ public static class BloodComparisonTuning
                 NormalizeValue(Control.GroundGreen, groundRgb.y, 1f), NormalizeValue(Control.GroundBlue, groundRgb.z, 1f));
         }
     }
-    static Values Current => OverburstGameSettings.BloodValues(BloodHitVfxService.PackEnabled);
+    static Values Current => OverburstGameSettings.BloodValues(BloodHitVfxService.CurrentStyle);
     public static int Revision { get; private set; }
     public static float Scale => Current.scale;
     public static float SprayBrightness => Current.sprayBrightness;
@@ -73,7 +73,7 @@ public static class BloodComparisonTuning
         }
         OverburstGameSettings.NotifyBloodTuning();
     }
-    public static void ResetCurrent() => OverburstGameSettings.ResetBloodStyle(BloodHitVfxService.PackEnabled);
+    public static void ResetCurrent() => OverburstGameSettings.ResetBloodStyle(BloodHitVfxService.CurrentStyle);
     public static Color SprayColor(Color source) => LinearTint(source, Vector3.one, SprayBrightness);
     public static Color GroundColor(Color source) => LinearTint(source, GroundRgb, GroundBrightness);
     static Color LinearTint(Color source, Vector3 rgb, float brightness)

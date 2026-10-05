@@ -19,7 +19,7 @@ using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
-public static class SettingsPresentationVerifier
+public static partial class SettingsPresentationVerifier
 {
     const string Key = "Overburst.SettingsPresentationVerifier.";
     static readonly List<string> checks = new List<string>();
@@ -90,7 +90,9 @@ public static class SettingsPresentationVerifier
     static IEnumerator Verify()
     {
         yield return Wait(2f);
+        if (File.Exists(Path.Combine(output,"only-c-ground"))) { yield return VerifyCGroundFixture(); yield break; }
         bool reload = File.Exists(Path.Combine(output, "expect-reload"));
+        if (File.Exists(Path.Combine(output,"expect-c-reload"))) { CheckCReload(); OverburstGameSettings.BloodPack=true; }
         Check(Object.FindFirstObjectByType<TemporaryBloodComparisonToggle>() == null, "temporary comparison HUD no longer auto creates");
         Check(BloodHitVfxService.PackEnabled == reload && OverburstGameSettings.BloodPack == reload, "saved style applied at boot");
         CheckExclusivePools(Object.FindFirstObjectByType<BloodHitVfxService>(), reload, "saved boot");
@@ -186,7 +188,7 @@ public static class SettingsPresentationVerifier
         string saved = Path.Combine(output, "isolated-save", OverburstGameSettings.FileName);
         Check(File.Exists(saved), "settings saved when menu closes");
         var json = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(saved));
-        Check((int)json["version"] == 2 && (bool)json["bloodPack"] && (bool)json["bloodUniformRed"], "version two stores selection and palette");
+        Check((int)json["version"] == 3 && (bool)json["bloodPack"] && (bool)json["bloodUniformRed"], "version three stores selection and palette");
         Check(Mathf.Approximately((float)json["bloodB"]["scale"], 1.6f) && Mathf.Approximately((float)json["bloodB"]["groundRgb"]["x"], 1.8f), "B size and ground color serialized");
         Check(Mathf.Approximately((float)json["bloodA"]["scale"], 1f), "A adjustments kept independently");
         var blood = Object.FindFirstObjectByType<BloodHitVfxService>();
@@ -265,7 +267,8 @@ public static class SettingsPresentationVerifier
         }
         File.WriteAllText(Path.Combine(output,"pool-switch-result.json"), JsonConvert.SerializeObject(switchSamples,Formatting.Indented));
         yield return VerifyZeroStrengthEffects();
-        OverburstGameSettings.BloodPack=true; OverburstGameSettings.SaveIfDirty();
+        if (File.Exists(Path.Combine(output,"verify-c"))) yield return VerifyVolumetric(player,health,targetRoot,blood,ground);
+        else { OverburstGameSettings.BloodPack=true; OverburstGameSettings.SaveIfDirty(); }
     }
     static IEnumerator VerifyZeroStrengthEffects()
     {
