@@ -128,7 +128,7 @@ public sealed class BloodEffectsPackPool
         }
         chosen.root.SetActive(true);
         foreach (var ps in chosen.systems) ps.Play(false);
-        chosen.until = Time.time + definition.lifetime;
+        chosen.until = Time.time + definition.lifetime / (catalog.volumetric ? VolumetricBloodAnimationData.PlaybackSpeed : 1f);
         chosen.priority = priority;
         LastBaseScale = chosen.baseScale; LastRotation = chosen.root.transform.rotation;
         ActiveCount++; PlayedCount++; LastVariant = variant; PlayedVariants |= 1u << variant;
@@ -154,6 +154,7 @@ public sealed class BloodEffectsPackPool
     }
     void ApplyAnimation(Slot slot, float age)
     {
+        age *= VolumetricBloodAnimationData.PlaybackSpeed;
         foreach (var layer in slot.animation.layers)
         {
             if (!layer.renderer) continue;

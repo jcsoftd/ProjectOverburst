@@ -49,6 +49,37 @@ public static partial class SettingsPresentationVerifier
         File.WriteAllText(Path.Combine(directory,"quality-assets.json"),JsonConvert.SerializeObject(new {success=true,checks=results},Formatting.Indented));
         return "PASS " + results.Count;
     }
+    static IEnumerator VerifyCPlaybackTuning(BloodHitProfile profile, Vector3 point, BloodGroundDecalService ground)
+    {
+        var blood=Object.FindFirstObjectByType<BloodHitVfxService>();
+        var pool=(BloodEffectsPackPool)typeof(BloodHitVfxService).GetField("packPool",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(blood);
+        var catalog=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.VolumetricResourcePath);
+        float timeScale=Time.timeScale, baselineScale=0f;var sizes=new List<object>();
+        try
+        {
+            Time.timeScale=0f;
+            foreach(float weight in new[]{1f,1.14f,1.28f})
+            {
+                pool.Clear();ground.ClearForComparison();
+                BloodHitVfxService.RequestAt(profile,point,Vector3.forward,CombatImpactShape.Sweep,1f,0,weight);
+                yield return Frames(4);
+                Check(pool.ActiveCount==1,"C real request plays for weight "+weight);
+                if(weight==1f)baselineScale=pool.LastBaseScale;
+                else Check(Mathf.Abs(pool.LastBaseScale/baselineScale-(weight==1.14f?1.07f:1.14f))<.001f,"C automatic body growth reduced "+weight);
+                sizes.Add(new{weight,scale=pool.LastBaseScale,ratio=pool.LastBaseScale/baselineScale});
+            }
+            var data=blood.GetComponentsInChildren<VolumetricBloodAnimationData>(false).First();
+            var layer=data.layers.OrderByDescending(l=>l.seconds).First();
+            pool.Tick(Time.time+layer.seconds/(2f*VolumetricBloodAnimationData.PlaybackSpeed));
+            var block=new MaterialPropertyBlock();layer.renderer.GetPropertyBlock(block);
+            float frame=layer.speed.Evaluate(.5f)*layer.frames+layer.offset+1.1f;
+            Check(layer.renderer.enabled && Mathf.Abs(block.GetFloat("_TimeInFrames")-(Mathf.Ceil(-frame)+1f)/(layer.frames+1f))<.0001f,"C VAT reaches authored halfway frame sooner");
+            pool.Tick(Time.time+catalog.sprays[pool.LastVariant].lifetime/VolumetricBloodAnimationData.PlaybackSpeed+.01f);
+            Check(pool.ActiveCount==0,"C shortened playback returns its lease");
+            File.WriteAllText(Path.Combine(output,"timing-growth.json"),JsonConvert.SerializeObject(new{speed=VolumetricBloodAnimationData.PlaybackSpeed,sizes},Formatting.Indented));
+        }
+        finally{Time.timeScale=timeScale;pool.Clear();ground.ClearForComparison();}
+    }
     static IEnumerator VerifyCQualityFixture()
     {
         OverburstGameSettings.BloodStyle = BloodEffectStyle.Volumetric;
@@ -78,6 +109,7 @@ public static partial class SettingsPresentationVerifier
                 finally {RenderTexture.active=previous;}
             }
             Physics.SyncTransforms();ground.ClearForComparison();yield return Frames(3);
+            yield return VerifyCPlaybackTuning(profile,PlayerInputFacade.Current.transform.position+Vector3.up,ground);
             var baseline=Capture("quality-baseline");
             foreach (var definition in catalog.sprays.Where(s=>!s.flowing))
             {

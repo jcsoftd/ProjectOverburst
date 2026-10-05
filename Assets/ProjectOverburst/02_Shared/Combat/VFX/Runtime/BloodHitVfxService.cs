@@ -322,7 +322,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             Vector3 fling = Quaternion.AngleAxis(Random.Range(-110f, 110f), Vector3.up) * forward;
             float distance = radius + Random.Range(.35f, 1.9f);
             instance.groundDecals.Request(profile, center + fling * distance, fling, CombatImpactShape.Downward,
-                Random.Range(.8f, 1.3f) * weight, 1, false, .14f + distance * .12f);
+                Random.Range(.8f, 1.3f) * (currentStyle == BloodEffectStyle.Volumetric ? Mathf.Lerp(1f, weight, .5f) : weight), 1, false, .14f + distance * .12f);
         }
     }
 
@@ -434,6 +434,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             if (request.WeightScale > 1.2f) diagnosticSize = Mathf.Max(diagnosticSize, 1.25f);
             else if (request.WeightScale > 1f) diagnosticSize = Mathf.Max(diagnosticSize, .8f);
             diagnosticSize = Mathf.Clamp(diagnosticSize, .55f, 1.95f);
+            if (currentStyle == BloodEffectStyle.Volumetric) diagnosticSize = Mathf.Lerp(Mathf.Clamp(request.Size, .55f, 1.95f), diagnosticSize, .5f);
             if (groundDecals)
                 groundDecals.Request(request.Profile, request.Position, request.Direction,
                     request.Shape, diagnosticSize, request.Priority, request.AllowSuppressed);
@@ -445,6 +446,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             float size = Mathf.Clamp(request.Size * request.WeightScale, .55f, 1.95f);
             if (request.WeightScale > 1.2f) size = Mathf.Max(size, 1.25f);
             else if (request.WeightScale > 1f) size = Mathf.Max(size, .8f);
+            if (currentStyle == BloodEffectStyle.Volumetric) size = Mathf.Lerp(Mathf.Clamp(request.Size, .55f, 1.95f), size, .5f);
             uint packSeed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
             if (!packPool.Play(request.Profile, request.Position, request.Direction, request.Shape, size,
                 request.Priority, packSeed, request.Target, accented: request.Accent)) return false;

@@ -146,7 +146,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             if (!TryGround(landingPoint, Vector3.zero, size, out point, out normal)) { SkippedNoGroundCount++; return; }
             direction = effectRotation * Vector3.forward;
             nativeSize = native.LandingSize(fraction) * effectScale;
-            landingDelay = Mathf.Max(0f, native.landing.Evaluate(fraction));
+            landingDelay = Mathf.Max(0f, native.landing.Evaluate(fraction)) / VolumetricBloodAnimationData.PlaybackSpeed;
         }
         if (Overlaps(point))
         {
