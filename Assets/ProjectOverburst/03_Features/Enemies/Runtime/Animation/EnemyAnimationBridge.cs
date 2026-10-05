@@ -49,6 +49,8 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool hasFrozenAnimatorSpeed;
     private float animatorSpeedBeforeFreeze = 1f;
     private Coroutine parryStunRoutine;
+    private bool normalParryActive, normalParryClockHeld;
+    private float animatorSpeedBeforeNormalParryHold;
     private bool parryStunActive; // 패링 무너짐·기절 루프·회복 재생 중
 
     public bool HasAnimator { get { return animator != null; } }
@@ -67,6 +69,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         }
     }
     public bool IsParryStunAnimating => parryStunActive;
+    public bool IsNormalParryReacting => normalParryActive;
 
     private void Awake()
     {
@@ -119,6 +122,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void SetAnimator(Animator targetAnimator)
     {
+        StopParryStun();
         RestoreFrozenAnimatorSpeed();
         animator = targetAnimator;
         attackMotionController = null; availableAttackMotions.Clear();
@@ -259,12 +263,75 @@ public class EnemyAnimationBridge : MonoBehaviour
     private const float ParryCollapseBlend = .1f; // 공격 자세 -> 무너짐 첫 자세
     private const float StunRecoverBlend = .25f;  // 루프 중간 자세 -> 회복 첫 자세
 
+    public const float NormalParryHoldSeconds = .2f;
     private sealed class ParryStunClipSet { public bool valid; public float collapse, loop, recover; }
     private static readonly Dictionary<RuntimeAnimatorController, ParryStunClipSet> ParryStunClipCache =
         new Dictionary<RuntimeAnimatorController, ParryStunClipSet>();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetParryStunClipCache() { ParryStunClipCache.Clear(); }
+
+    // Normal parry shows the collapsed pose, briefly holds it, then recovers without a stun loop.
+    public bool TryPlayNormalParryReaction(out float reactionSeconds)
+    {
+        reactionSeconds = 0f;
+        if (isDead || isFrozen || animator == null || !isActiveAndEnabled
+            || !TryGetParryStunClips(out ParryStunClipSet clips)) return false;
+        StopParryStun();
+        ClearBlockingAction();
+        ResetActionTriggers();
+        reactionSeconds = clips.collapse / ParryCollapseSpeed + NormalParryHoldSeconds + clips.recover;
+        parryStunActive = normalParryActive = true;
+        SetMoveAmount(0f);
+        animator.CrossFadeInFixedTime(BaseLayerHash(ParryCollapseStateName), ParryCollapseBlend, 0, 0f);
+        parryStunRoutine = StartCoroutine(RunNormalParryReaction(clips.collapse, clips.recover));
+        return true;
+    }
+
+    private IEnumerator RunNormalParryReaction(float collapseSeconds, float recoverSeconds)
+    {
+        try
+        {
+            float entryWait = 0f;
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName(ParryCollapseStateName))
+            {
+                entryWait += Time.deltaTime;
+                if (entryWait > ActionStateEntryTimeout) yield break;
+                yield return null;
+            }
+            while (true)
+            {
+                var state = animator.GetCurrentAnimatorStateInfo(0);
+                float nextProgress = Time.deltaTime * state.speed * state.speedMultiplier
+                    * Mathf.Max(0f, animator.speed) / Mathf.Max(.01f, collapseSeconds);
+                if (state.normalizedTime + nextProgress >= .98f) break;
+                yield return null;
+            }
+            // Stay before the authored exit at 1.0 so normal parry never enters Stunned_Loop.
+            animatorSpeedBeforeNormalParryHold = animator.speed;
+            normalParryClockHeld = true;
+            animator.speed = 0f;
+            animator.Play(BaseLayerHash(ParryCollapseStateName), 0, .999f);
+            animator.Update(0f);
+            for (float t = 0f; t < NormalParryHoldSeconds; t += Time.deltaTime) yield return null;
+            RestoreNormalParryClock();
+            animator.CrossFadeInFixedTime(BaseLayerHash(StunRecoverStateName), StunRecoverBlend, 0, 0f);
+            for (float t = 0f; t < recoverSeconds; t += Time.deltaTime) yield return null;
+        }
+        finally
+        {
+            RestoreNormalParryClock();
+            parryStunRoutine = null;
+            parryStunActive = normalParryActive = false;
+        }
+    }
+
+    private void RestoreNormalParryClock()
+    {
+        if (!normalParryClockHeld) return;
+        normalParryClockHeld = false;
+        if (animator != null) animator.speed = animatorSpeedBeforeNormalParryHold;
+    }
 
     // 전용 클립이 있으면 무너짐을 재생하고, 공격을 막는 기절 시간(무너짐 + 기절 루프)을 돌려준다.
     // 회복 동작은 그 뒤에 재생되며 끝날 때까지 회전·이동·공격 시작을 막는다.
@@ -317,8 +384,9 @@ public class EnemyAnimationBridge : MonoBehaviour
     {
         if (parryStunRoutine != null)
             StopCoroutine(parryStunRoutine);
+        RestoreNormalParryClock();
         parryStunRoutine = null;
-        parryStunActive = false;
+        parryStunActive = normalParryActive = false;
     }
 
     private bool TryGetParryStunClips(out ParryStunClipSet clips)

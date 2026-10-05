@@ -53,6 +53,7 @@ public static class ThreeTierParryVerifier
         checks.Clear(); var owned = new List<UnityEngine.Object>(); var scene = EditorSceneManager.NewPreviewScene();
         try
         {
+            MovementContracts();
             foreach (var sample in new[] { (0f, ParryGrade.Incomplete), (.29999f, ParryGrade.Incomplete),
                 (.30f, ParryGrade.Normal), (.79999f, ParryGrade.Normal), (.80f, ParryGrade.Perfect), (1f, ParryGrade.Perfect), (2f, ParryGrade.Perfect) })
                 Check(PlayerParryController.ResolveGrade(sample.Item1) == sample.Item2, "boundary " + sample.Item1);
@@ -89,6 +90,33 @@ public static class ThreeTierParryVerifier
         { File.WriteAllText(Path.Combine(directory, "contracts.json"), JsonConvert.SerializeObject(new { status = "FAIL", checks, error = e.ToString() }, Formatting.Indented)); throw; }
         finally
         { foreach (var value in owned) if (value != null) UnityEngine.Object.DestroyImmediate(value); EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    static void MovementContracts()
+    {
+        var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(GreatswordHeavyParryBuilder.WeaponDefinitionPath);
+        var normal = weapon.heavyAttackDefinition.attack.movementPhases;
+        var counter = weapon.parriedHeavyAttackDefinition.attack.movementPhases;
+        Check(normal != null && normal.Length > 0 && counter != null && counter.Length == normal.Length, "counter has normal heavy movement phases");
+        float Travel(AttackMovementPhaseData[] phases, float start, float end, int fps)
+        {
+            float distance = 0f;
+            var executor = new AttackMovementExecutor();
+            Check(executor.Begin(phases, Vector3.forward, d => distance += d.z, start), "movement executor accepts saved phases");
+            for (int i = 0; i <= fps; i++) executor.Tick(Mathf.Lerp(start, end, i / (float)fps));
+            executor.Cancel();
+            return distance;
+        }
+        foreach (int fps in new[] { 15, 30, 60 })
+        {
+            Check(Near(Travel(normal, 0f, 1f, fps), 2f) && Near(Travel(counter, 0f, 1f, fps), 2f), "normal and counter advance two meters at " + fps);
+            foreach (float beforeParry in new[] { 0f, .10f, .20f, .34f, .5f })
+            {
+                float resume = Mathf.Max(beforeParry, .138f / weapon.parriedHeavyAttackDefinition.attack.animationClip.length);
+                float total = Travel(normal, 0f, beforeParry, fps) + Travel(counter, resume, 1f, fps);
+                Check(Near(total, 2f), "late parry preserves two-meter total without duplicated travel " + fps + "/" + beforeParry);
+            }
+        }
     }
 
     public static void StartIsolated(string directory)
@@ -180,8 +208,8 @@ public static class ThreeTierParryVerifier
     }
     static void Reloading()
     {
-        if (!SessionState.GetBool(Key + "started", false) && EditorApplication.isPlayingOrWillChangePlaymode
-            && !EditorApplication.isCompiling) return; // Expected domain reload during the owned Play entry.
+        if (!SessionState.GetBool(Key + "started", false) && EditorApplication.isPlayingOrWillChangePlaymode)
+            return; // No fixtures exist yet; resume the owned boot after its expected reload/compile.
         if (!SessionState.GetBool(Key + "returnPending", false)) Finish("RELOADING", null);
     }
     static void ReturnAccount()
@@ -249,7 +277,7 @@ public static class ThreeTierParryVerifier
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "actual trial spawn service");
             foreach (var table in ui.tables) Check(spawn.RegisterAdditionalCatalog(table.Catalog, out _), "catalog registered");
             var definition = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).First(d => d != null
-                && d.Grade.GradeType != EnemyGradeType.Boss && Enumerable.Range(0, d.AbilitySet.Count)
+                && d.Grade.GradeType != EnemyGradeType.Boss && d.AnimationProfile != null && d.AnimationProfile.ParryCollapse != null && Enumerable.Range(0, d.AbilitySet.Count)
                     .Any(i => d.AbilitySet.GetAbility(i).IsParryable && d.AbilitySet.GetAbility(i).UsesPacedTimeline && d.AbilitySet.GetAbility(i).ExecutionMode == EnemyAbilityExecutionMode.MeleeArc));
             var ability = Enumerable.Range(0, definition.AbilitySet.Count).Select(i => definition.AbilitySet.GetAbility(i)).First(a => a.IsParryable
                 && a.UsesPacedTimeline && a.ExecutionMode == EnemyAbilityExecutionMode.MeleeArc);
@@ -273,10 +301,45 @@ public static class ThreeTierParryVerifier
                 return enemy;
             }
             void Release() { foreach (var enemy in leases) if (enemy != null && enemy.IsLeased) spawn.Release(enemy); leases.Clear(); }
+            Vector3 fixtureOrigin = player.transform.position;
+            void ResetPosition()
+            {
+                var controller = actor.CharacterController;
+                bool enabled = controller != null && controller.enabled;
+                if (controller != null) controller.enabled = false;
+                try { player.transform.position = fixtureOrigin; }
+                finally { if (controller != null) controller.enabled = enabled; }
+                actor.Movement.ResetMotionAfterTeleport();
+                actor.GetComponent<PlayerCombatFacingController>()?.ResetAfterTeleport();
+                Physics.SyncTransforms();
+            }
+            // Empty-lane controls measure the actual motor without a monster clipping the travel.
+            foreach (float parryAt in new[] { -1f, 0f, .20f })
+            {
+                melee.CancelCurrentAttackState(); parry.CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(parry);
+                ResetPosition();
+                Energy(50f); yield return Wait(.3f);
+                Vector3 origin = player.transform.position;
+                Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, "free-lane heavy accepted");
+                if (parryAt >= 0f)
+                {
+                    float deadline = Time.unscaledTime + 5f;
+                    while ((float)typeof(MeleeRuntime).GetMethod("GetAttackNormalizedTime", Fields).Invoke(melee, null) < parryAt)
+                    { Check(Time.unscaledTime < deadline, "late parry control reaches requested progress"); yield return null; }
+                    melee.NotifyHeavyParried(Field<int>(melee, "activeActionId"), ParryGrade.Normal);
+                }
+                float timeout = Time.unscaledTime + 12f;
+                while (melee.IsAttackInProgress) { Check(Time.unscaledTime < timeout, "free-lane action completes"); yield return null; }
+                float distance = Vector3.Dot(player.transform.position - origin, Vector3.forward);
+                Write("free-travel-" + (parryAt < 0f ? "normal" : parryAt == 0f ? "immediate" : "late") + ".json", new { distance, parryAt });
+                Check(Near(distance, 2f, .1f), "actual free-lane normal/immediate/late counter advance: " + distance);
+                yield return Wait(.3f);
+            }
             foreach (var item in new[] { (0f, 1, false), (29.999f, 1, false), (30f, 1, false), (79.999f, 1, false), (80f, 1, false),
                 (100f, 1, false), (20f, 2, false), (50f, 2, false), (80f, 2, false), (20f, 2, true), (50f, 2, true), (80f, 2, true), (120f, 1, false), (20f, 1, false) })
             {
                 melee.CancelCurrentAttackState(); parry.CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(parry);
+                ResetPosition();
                 if (item.Item1 > 100f)
                 {
                     var light = AssetDatabase.LoadAssetAtPath<ElementGemItemData>("Assets/ProjectOverburst/Resources/Items/ElementGems/EG_Light_Legendary.asset");
@@ -311,6 +374,7 @@ public static class ThreeTierParryVerifier
                     enemy.Health.OnDamageResolved += onEnemyDamage; hooks.Add((enemy.Health, onEnemyDamage));
                 }
                 ParryGrade expected = item.Item1 >= 80f ? ParryGrade.Perfect : item.Item1 >= 30f ? ParryGrade.Normal : ParryGrade.Incomplete;
+                Vector3 attackStartPosition = player.transform.position;
                 Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, "player heavy accepted");
                 Check(parry.ActionGrade == expected, "accepted action locks exact grade " + item.Item1);
                 var cancelStun = new Dictionary<int, bool>();
@@ -318,7 +382,30 @@ public static class ThreeTierParryVerifier
                 {
                     foreach (var enemy in enemies)
                         if (!enemy.AbilityController.IsExecuting && !cancelStun.ContainsKey(enemy.GetInstanceID()))
-                            cancelStun[enemy.GetInstanceID()] = enemy.GetComponent<EnemyMovementReaction>().IsParryStunned;
+                        {
+                            var reaction = enemy.GetComponent<EnemyMovementReaction>();
+                            cancelStun[enemy.GetInstanceID()] = reaction.IsParryStunned;
+                            if (expected == ParryGrade.Normal)
+                                Check(reaction.BlocksAttack && enemy.AnimationBridge.IsNormalParryReacting, "normal collapse blocks attacks without perfect stun");
+                        }
+                }
+                bool normalCollapseSeen = false, normalRecoverSeen = false, normalHoldSeen = false;
+                void ObserveNormalReaction()
+                {
+                    if (expected != ParryGrade.Normal) return;
+                    foreach (var enemy in enemies)
+                    {
+                        var motion = enemy.AnimationBridge.MotionAnimator;
+                        if (motion == null) continue;
+                        var state = motion.GetCurrentAnimatorStateInfo(0);
+                        var next = motion.GetNextAnimatorStateInfo(0);
+                        Check(!state.IsName(EnemyAnimationBridge.StunnedLoopStateName)
+                            && (!motion.IsInTransition(0) || !next.IsName(EnemyAnimationBridge.StunnedLoopStateName)), "normal parry skips stunned loop");
+                        normalCollapseSeen |= state.IsName(EnemyAnimationBridge.ParryCollapseStateName);
+                        normalRecoverSeen |= state.IsName(EnemyAnimationBridge.StunRecoverStateName)
+                            || motion.IsInTransition(0) && next.IsName(EnemyAnimationBridge.StunRecoverStateName);
+                        normalHoldSeen |= state.IsName(EnemyAnimationBridge.ParryCollapseStateName) && state.normalizedTime > .98f && Near(motion.speed, 0f);
+                    }
                 }
                 ObserveCancellation();
                 // Keep a confirmed contact pending past the short clip to exercise its completion boundary.
@@ -363,6 +450,7 @@ public static class ThreeTierParryVerifier
                     bool committed = Field<bool>(melee, "heavyDischargeCommitted"); if (committed && !priorCommit) commits++; priorCommit = committed;
                     Check(parry.ActionGrade == expected, "grade survives energy change/consume/refund");
                     ObserveCancellation();
+                    ObserveNormalReaction();
                     ObserveLabel();
                     yield return null;
                 }
@@ -373,6 +461,14 @@ public static class ThreeTierParryVerifier
                 Check(parry.ParriedAttackCount - parries == enemies.Count && enemies.All(e => !e.AbilityController.IsExecuting), "all source executions cancelled");
                 ObserveCancellation();
                 Check(cancelStun.Count == enemies.Count && cancelStun.Values.All(stunned => stunned == (expected == ParryGrade.Perfect)), "grade stun applies to every enemy");
+                float forwardTravel = Vector3.Dot(player.transform.position - attackStartPosition, Vector3.forward);
+                if (expected != ParryGrade.Incomplete)
+                {
+                    Write("travel-latest.json", new { grade = expected.ToString(), forwardTravel, start = attackStartPosition.ToString("F4"), end = player.transform.position.ToString("F4"), direction = Field<Vector3>(melee, "activeAttackDirection").ToString("F4"), step = Field<MeleeComboStepData>(melee, "activeAttackStep").attackId, normalCollapseSeen, normalHoldSeen, normalRecoverSeen });
+                    // This fixture puts a physical monster ahead; the same heavy collision policy may shorten travel.
+                    Check(forwardTravel >= -.05f && forwardTravel <= 2.1f, "counter travel respects the two-meter budget and physical blockers: " + forwardTravel);
+                }
+                if (expected == ParryGrade.Normal) Check(normalCollapseSeen && normalHoldSeen && normalRecoverSeen, "actual normal collapse hold recover observed");
                 Check(parry.FeedbackCount - feedback == 1 && ParryFeedbackService.LastAdditionalTingCount == (int)expected, "one feedback and one/two/three ting voices per action");
                 if (expected == ParryGrade.Incomplete)
                 {
@@ -391,7 +487,7 @@ public static class ThreeTierParryVerifier
                 var nextExecution = snapshots[0]; nextExecution.sourceAttackSequenceId = EnemyAttackSequence.Next();
                 Check(!parry.TryCancelDamage(nextExecution), "same actor has no blanket immunity for another execution");
                 Check(animator.updateMode == originalMode && Near(animator.speed, originalSpeed), "Animator clock restored");
-                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started, label = expectedLabel, visibleLabelCount = labelInstances.Count, delayedContact });
+                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started, label = expectedLabel, visibleLabelCount = labelInstances.Count, delayedContact, forwardTravel, normalCollapseSeen, normalHoldSeen, normalRecoverSeen });
                 Write("progress.json", new { status = "RUNNING", completed = cases.Count, cases });
                 foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback; hooks.Clear();
                 Release(); yield return Wait(.4f);

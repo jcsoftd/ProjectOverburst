@@ -178,10 +178,19 @@ public sealed class PlayerParryController : MonoBehaviour
         enemy.AbilityController.Cancel();
         var boss = enemy.GetComponent<EnemyBossCombatDirector>();
         if (boss != null) { boss.NotifyParried(grade); if (grade == ParryGrade.Perfect) enemy.AnimationBridge?.PlayHit(); return; }
-        if (grade != ParryGrade.Perfect) return;
+        if (grade == ParryGrade.Incomplete) return;
         EnemyRank rank = enemy.GetComponent<EnemyRank>();
         EnemyAnimationBridge bridge = enemy.AnimationBridge;
         var reaction = enemy.GetComponent<EnemyMovementReaction>();
+        if (grade == ParryGrade.Normal)
+        {
+            // A forced brief reaction blocks elites without granting the perfect-parry stun reward.
+            if (reaction != null && reaction.IsParryStunned) return;
+            if (bridge != null && bridge.TryPlayNormalParryReaction(out float reactionSeconds))
+                reaction?.ApplyHitStun(reactionSeconds);
+            else { reaction?.ApplyHitStun(.35f); bridge?.PlayHit(); }
+            return;
+        }
         if (bridge != null && bridge.TryPlayParryStun(out float seconds)) reaction?.ApplyParryStun(seconds);
         else { reaction?.ApplyParryStun(rank != null && rank.Rank == EnemyRankType.Elite ? FallbackStunLarge : FallbackStunMedium); bridge?.PlayHit(); }
         Vector3 away = enemy.transform.position - playerPosition; away.y = 0f;

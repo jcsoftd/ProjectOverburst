@@ -124,7 +124,7 @@ public static class GreatswordHeavyParryBuilder
             attack.animationClip = clip; attack.animationSpeedMultiplier = 1f;
             attack.transitionDuration = .1f; attack.continuationStartNormalizedTime = .138f / clip.length;
             attack.playbackAcceleration = default;
-            attack.movementPhases = Array.Empty<AttackMovementPhaseData>();
+            attack.movementPhases = CopyMovementPhases(weapon.heavyAttackDefinition.attack.movementPhases);
             attack.visualHeightCurve = new AnimationCurve();
             attack.actionCancelStartNormalized = 1.05f / clip.length;
             attack.attackPhases = new[] { first, second, slam };
@@ -164,6 +164,38 @@ public static class GreatswordHeavyParryBuilder
         if (keys[keys.Count - 1].time < end - start - .000001f) keys.Add(Boundary(source, end, end - start));
         return new AnimationCurve(keys.ToArray()) { preWrapMode = WrapMode.ClampForever, postWrapMode = WrapMode.ClampForever };
     }
+
+    public static void ApplyCounterMovement()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("패링 강공 이동 적용은 유휴 편집 모드에서 실행하세요.");
+        var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(WeaponDefinitionPath);
+        if (weapon == null || weapon.heavyAttackDefinition == null || weapon.parriedHeavyAttackDefinition == null)
+            throw new InvalidOperationException("일반·패링 강공 정의가 필요합니다.");
+        var counter = weapon.parriedHeavyAttackDefinition;
+        var step = counter.attack;
+        step.movementPhases = CopyMovementPhases(weapon.heavyAttackDefinition.attack.movementPhases);
+        counter.attack = step;
+        EditorUtility.SetDirty(counter);
+        AssetDatabase.SaveAssetIfDirty(counter);
+    }
+
+    private static AttackMovementPhaseData[] CopyMovementPhases(AttackMovementPhaseData[] source)
+    {
+        if (source == null) return Array.Empty<AttackMovementPhaseData>();
+        var copy = (AttackMovementPhaseData[])source.Clone();
+        for (int i = 0; i < copy.Length; i++)
+        {
+            var phase = copy[i];
+            phase.progressCurve = CopyCurve(phase.progressCurve);
+            phase.localForwardCurve = CopyCurve(phase.localForwardCurve);
+            copy[i] = phase;
+        }
+        return copy;
+    }
+
+    private static AnimationCurve CopyCurve(AnimationCurve curve) => curve == null ? null
+        : new AnimationCurve(curve.keys) { preWrapMode = curve.preWrapMode, postWrapMode = curve.postWrapMode };
 
     private static Keyframe Boundary(AnimationCurve curve, float time, float shiftedTime)
     {
