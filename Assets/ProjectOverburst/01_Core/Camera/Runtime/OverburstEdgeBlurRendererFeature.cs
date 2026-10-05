@@ -31,7 +31,9 @@ public sealed class OverburstEdgeBlurRendererFeature : ScriptableRendererFeature
             cameraData.cameraType != CameraType.Game || cameraData.renderType != CameraRenderType.Base ||
             !cameraData.camera.CompareTag("MainCamera")) return;
         if (!OverburstEdgeBlur.IsEnabled) return;
-        material.SetFloat("_EdgeBlurStrength", OverburstEdgeBlur.CurrentStrength);
+        float strength = OverburstEdgeBlur.CurrentStrength;
+        if (strength <= 0f) return;
+        material.SetFloat("_EdgeBlurStrength", strength);
         renderer.EnqueuePass(pass);
     }
 

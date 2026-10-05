@@ -264,7 +264,83 @@ public static class SettingsPresentationVerifier
             switchSamples.Add(new { pass, pack, switchMs=clock.Elapsed.TotalMilliseconds, memoryBefore, memoryAfter=UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), note="Editor sample; object ownership verified, no FPS or process RAM claim" });
         }
         File.WriteAllText(Path.Combine(output,"pool-switch-result.json"), JsonConvert.SerializeObject(switchSamples,Formatting.Indented));
+        yield return VerifyZeroStrengthEffects();
         OverburstGameSettings.BloodPack=true; OverburstGameSettings.SaveIfDirty();
+    }
+    static IEnumerator VerifyZeroStrengthEffects()
+    {
+        var camera=Camera.main;
+        var actor=PlayerInputFacade.Current;
+        var effect=actor.GetComponent<PlayerCombatFacingVfx>();
+        var mode=PlayerCombatModeController.GetOrCreate();
+        Check(camera!=null && effect!=null && effect.VisualRoot!=null, "actual camera and player facing effect for zero strength");
+        bool previousMode=mode.IsCombatModeActive;
+        bool previousEdge=OverburstGameSettings.EdgeBlurEnabled, previousFacing=OverburstGameSettings.CombatFacingIndicator;
+        float previousExplore=OverburstGameSettings.ExplorationEdgeBlurIntensity, previousCombat=OverburstGameSettings.CombatEdgeBlurIntensity;
+        float previousBrightness=OverburstGameSettings.CombatFacingBrightness;
+        RenderTexture render=null;
+        try
+        {
+            render=new RenderTexture(640,360,24,RenderTextureFormat.ARGBHalf){name="Owned Zero Strength Render"};render.Create();
+            int RenderPasses()
+            {
+                int before=OverburstEdgeBlurRendererFeature.RecordedPassCount;
+                UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,new UniversalRenderPipeline.SingleCameraRequest{destination=render});
+                return OverburstEdgeBlurRendererFeature.RecordedPassCount-before;
+            }
+            OverburstGameSettings.EdgeBlurEnabled=true;
+            for(int repeat=0;repeat<2;repeat++)
+            {
+                mode.ExitCombatMode(PlayerCombatModeReason.System);
+                OverburstGameSettings.ExplorationEdgeBlurIntensity=0f;OverburstGameSettings.CombatEdgeBlurIntensity=.42f;
+                Check(OverburstEdgeBlur.CurrentStrength==0f && RenderPasses()==0, "exploration zero skips actual render graph pass "+repeat);
+                OverburstGameSettings.ExplorationEdgeBlurIntensity=.72f;
+                Check(RenderPasses()>0, "exploration positive resumes actual pass "+repeat);
+                mode.EnterCombatMode(PlayerCombatModeReason.System);
+                OverburstGameSettings.CombatEdgeBlurIntensity=0f;
+                Check(OverburstEdgeBlur.CurrentStrength==0f && RenderPasses()==0, "combat zero skips actual render graph pass "+repeat);
+                OverburstGameSettings.CombatEdgeBlurIntensity=.42f;
+                Check(RenderPasses()>0, "combat positive resumes actual pass "+repeat);
+                OverburstGameSettings.EdgeBlurEnabled=false;
+                Check(RenderPasses()==0, "edge toggle off still skips actual pass "+repeat);
+                OverburstGameSettings.EdgeBlurEnabled=true;
+            }
+            OverburstGameSettings.CombatFacingIndicator=true;OverburstGameSettings.CombatFacingBrightness=1f;
+            yield return Wait(.4f);
+            Check(effect.IsVisible, "actual player facing visible before zero optimization");
+            var root=effect.VisualRoot;
+            var rendererIds=root.GetComponentsInChildren<Renderer>(true).Select(r=>r.GetInstanceID()).ToArray();
+            var materials=root.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).ToArray();
+            for(int repeat=0;repeat<3;repeat++)
+            {
+                var menu=OverburstGameMenu.Instance;menu.Open();menu.OpenSettings();menu.settings.tabs[2].isOn=true;
+                float fade=effect.Visibility;
+                menu.settings.combatFacingBrightness.value=0f;
+                Check(!effect.IsVisible && !root.gameObject.activeSelf, "paused UI zero immediately hides rendering "+repeat);
+                Check(Mathf.Approximately(effect.Visibility,fade), "zero retains existing fade state "+repeat);
+                menu.settings.combatFacingBrightness.value=1f;
+                Check(effect.IsVisible && Mathf.Approximately(effect.Visibility,fade), "paused positive immediately resumes same fade "+repeat);
+                menu.settings.combatFacingBrightness.value=0f;menu.CloseSettings();menu.Close();
+                float clock=effect.FlowTime;Vector3 position=root.position;
+                yield return Frames(20);
+                Check(!root.gameObject.activeSelf && Mathf.Approximately(clock,effect.FlowTime) && root.position==position, "unpaused zero skips clock placement and rendering "+repeat);
+                OverburstGameSettings.CombatFacingBrightness=1f;
+                yield return Frames(4);
+                Check(effect.IsVisible && !Mathf.Approximately(clock,effect.FlowTime), "positive resumes actual player update "+repeat);
+                Check(root.GetComponentsInChildren<Renderer>(true).Select(r=>r.GetInstanceID()).SequenceEqual(rendererIds)
+                    && root.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).SequenceEqual(materials), "zero positive creates no replacement renderers or materials "+repeat);
+            }
+            OverburstGameSettings.CombatFacingBrightness=0f;mode.ExitCombatMode(PlayerCombatModeReason.System);
+            OverburstGameSettings.CombatFacingBrightness=1f;yield return Wait(.25f);
+            Check(!effect.IsVisible, "restored brightness in exploration stays hidden");
+        }
+        finally
+        {
+            if(render!=null){render.Release();Object.DestroyImmediate(render);}
+            OverburstGameSettings.EdgeBlurEnabled=previousEdge;OverburstGameSettings.ExplorationEdgeBlurIntensity=previousExplore;OverburstGameSettings.CombatEdgeBlurIntensity=previousCombat;
+            OverburstGameSettings.CombatFacingIndicator=previousFacing;OverburstGameSettings.CombatFacingBrightness=previousBrightness;
+            if(previousMode)mode.EnterCombatMode(PlayerCombatModeReason.System);else mode.ExitCombatMode(PlayerCombatModeReason.System);
+        }
     }
     static void CheckExclusivePools(BloodHitVfxService blood, bool pack, string phase)
     {

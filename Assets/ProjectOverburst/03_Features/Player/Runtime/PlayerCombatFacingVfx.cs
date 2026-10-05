@@ -61,6 +61,11 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
             if (visibility > 0f || visualRoot.gameObject.activeSelf) HideImmediately();
             return;
         }
+        if (OverburstGameSettings.CombatFacingBrightness <= 0f)
+        {
+            SuspendForZeroBrightness();
+            return;
+        }
         float dt = OverburstGameClock.UnscaledDeltaTime;
         phase = Mathf.Repeat(phase + dt, 8f);
         bool requested = PlayerCombatModeController.IsSharedCombatModeActive()
@@ -143,9 +148,20 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         if (visualRoot != null) visualRoot.gameObject.SetActive(false);
     }
 
+    void SuspendForZeroBrightness()
+    {
+        // Preserve the fade so brightness can resume immediately, even while paused.
+        if (visualRoot != null && visualRoot.gameObject.activeSelf) visualRoot.gameObject.SetActive(false);
+        hadGround = false;
+    }
+
     void OnSettingsChanged()
     {
         if (!OverburstGameSettings.CombatFacingIndicator) HideImmediately();
+        else if (OverburstGameSettings.CombatFacingBrightness <= 0f) SuspendForZeroBrightness();
+        else if (visualRoot != null && visibility > 0f && PlayerCombatModeController.IsSharedCombatModeActive()
+            && movement != null && movement.isActiveAndEnabled && movement.ControlAuthority == ActorControlAuthority.Player
+            && (health == null || !health.IsDead)) visualRoot.gameObject.SetActive(true);
         ApplyAppearance();
         ApplyRendererProperties();
     }
