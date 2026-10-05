@@ -84,6 +84,12 @@ public static partial class PlayerEvadeVerifier
     }
     static IEnumerator VerifySwordFacingGameplay()
     {
+        if (SessionState.GetBool(ElementSupplementKey, false))
+        {
+            SessionState.EraseBool(ElementSupplementKey);
+            yield return CaptureElementSupplement();
+            yield break;
+        }
         if (SessionState.GetBool(SwordPresentationKey, false))
         {
             SessionState.EraseBool(SwordPresentationKey);
