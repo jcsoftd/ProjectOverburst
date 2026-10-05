@@ -358,6 +358,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         MaintainEvadeDirection(OverburstGameClock.UnscaledDeltaTime);
 
         playerMovement?.PrepareEvadeMotion();
+        combatMotion?.BeginEvadeMotion();
         if (!PlayEvadeAnimation(activeType, activeDuration)) { EndEvade(false); return false; }
         OnEvadeStarted?.Invoke(activeType);
         OverburstFeelFeedbackHub.Request(OverburstFeelCue.Evade, transform.position);
@@ -511,6 +512,7 @@ public class PlayerEvadeController : MonoBehaviour // Dash / Roll 회피
         PlayerDodgeFollowUpRequest request = default;
         bool followUp = inputs != null && inputs.TakeDodgeFollowUp(endedExecutionId, completed, out request);
         isEvading = false;
+        combatMotion?.EndEvadeMotion();
         LastEndWasCompleted = completed;
         invincibleEndTime = perfectWindowEndTime = OverburstGameClock.UnscaledTime;
 

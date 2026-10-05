@@ -118,6 +118,9 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private Vector3 enemySupportCenter;
     private bool standingOnEnemy;
     private readonly Collider[] enemyOverlaps = new Collider[EnemyOverlapCapacity];
+    private bool evadeEnemyPassThrough;
+    private bool enemyWasExcludedBeforeEvade;
+    private bool resolvingEvadeOverlap;
 
     public CharacterController Controller
     {
@@ -143,6 +146,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     public bool DidLandThisStep => didLandThisStep;
     public float LandingFallSpeed => landingFallSpeed;
     public bool StandingOnEnemy => standingOnEnemy;
+    public bool EvadeEnemyPassThrough => evadeEnemyPassThrough;
     public Vector3 ExternalVelocity => externalVelocity;
     public Transform CurrentPlatform => currentPlatform;
     public Vector3 PlatformVelocity => platformVelocity;
@@ -183,6 +187,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
 
     private void OnDisable()
     {
+        EndEvadeMotion();
         ResetMotion();
     }
 
@@ -343,7 +348,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         };
     }
 
-    // 회피·무기 root motion 같은 직접 변위 경로. 적 관통 방지는 호출자(PlayerMovement)가 먼저 적용한다.
+    // 무기 root motion 같은 직접 변위 경로. 적 관통 방지는 CombatMotionDriver가 먼저 적용한다.
     public void MoveDirect(Vector3 displacement)
     {
         EnsureInitialized();
@@ -354,6 +359,45 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         isGrounded = (controller.isGrounded && !standingOnEnemy) || (flags & CollisionFlags.Below) != 0;
         ResolveExternalCollisions(flags);
         ReanchorPlatform();
+    }
+
+    // 회피 동안 이 플레이어의 적 몸 충돌만 제외한다. 플라스크의 개별 IgnoreCollision 소유권과는 독립적이다.
+    public void BeginEvadeMotion()
+    {
+        EnsureInitialized();
+        if (evadeEnemyPassThrough || controller == null) return;
+        int mask = ResolveEnemyLayerMask();
+        enemyWasExcludedBeforeEvade = (controller.excludeLayers.value & mask) != 0;
+        controller.excludeLayers = controller.excludeLayers.value | mask;
+        evadeEnemyPassThrough = true;
+        resolvingEvadeOverlap = false;
+        standingOnEnemy = false;
+    }
+
+    public void EndEvadeMotion()
+    {
+        if (!evadeEnemyPassThrough) return;
+        evadeEnemyPassThrough = false;
+        if (controller == null || enemyWasExcludedBeforeEvade) return;
+        resolvingEvadeOverlap = true;
+        // 다른 레이어의 기존 제외 설정은 그대로 유지한다.
+        controller.excludeLayers = controller.excludeLayers.value & ~ResolveEnemyLayerMask();
+    }
+
+    // 기존 모터의 CharacterController 슬라이딩을 사용한다. 빠른 회피도 캡슐 반경의 절반씩 이동해
+    // 곡면 기둥의 접촉 법선이 갱신되도록 한다. 프레임당 총 요청 변위는 늘리지 않는다.
+    public Vector3 MoveEvade(Vector3 displacement)
+    {
+        EnsureInitialized();
+        if (controller == null || !controller.enabled) return Vector3.zero;
+        Vector3 start = transform.position;
+        float maxStep = Mathf.Max(0.05f, ControllerWorldRadius() * 0.5f);
+        int steps = Mathf.Clamp(Mathf.CeilToInt(displacement.magnitude / maxStep), 1, 64);
+        Vector3 step = displacement / steps;
+        for (int i = 0; i < steps; i++) MoveDirect(step);
+        Vector3 travelled = transform.position - start;
+        travelled.y = 0f;
+        return travelled;
     }
 
     public void AttachToPlatform(Transform platform)
@@ -840,6 +884,23 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         // 2026-10-01 (2차, Play 로그): 이미 적 몸에 파묻힌 캡슐은 CharacterController가 충돌로 보지 않아 걸어 들어가도 막히지 않고,
         // 겹침이 풀릴 때 X·Z가 고정된 적 물리와 서로 위로 밀어 올린다(한 프레임 0.76m 상승). 이동 전에 수평으로만 밀어낸다.
         Vector3 moveDisplacement = displacement + ComputeEnemySeparation();
+        resolvingEvadeOverlap = resolvingEvadeOverlap && OverlapEnemyBodies(controller.skinWidth) > 0;
+        if (!resolvingEvadeOverlap) return ExecuteCollisionMove(moveDisplacement);
+
+        // 회피가 큰 적 내부에서 끝나면 CC의 겹침 해소가 위/아래로 튀게 할 수 있다.
+        // 겹침이 남은 이동에서만 적 접촉을 빼고 기존의 최대 0.5m 수평 분리를 적용한다.
+        // 벽/바닥은 계속 충돌하며, 제외 비트는 같은 호출의 finally에서 즉시 복원한다.
+        int excluded = controller.excludeLayers.value;
+        try
+        {
+            controller.excludeLayers = excluded | ResolveEnemyLayerMask();
+            return ExecuteCollisionMove(moveDisplacement);
+        }
+        finally { controller.excludeLayers = excluded; }
+    }
+
+    private CollisionFlags ExecuteCollisionMove(Vector3 moveDisplacement)
+    {
         Vector3 startPosition = transform.position;
         CollisionFlags flags = MoveTrackingSupport(moveDisplacement);
         // 2026-10-01: 적 몸을 딛고 올라가는 이동은 처음부터 막는다.
@@ -986,7 +1047,8 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private int OverlapEnemyBodies(float inflate)
     {
         int mask = ResolveEnemyLayerMask();
-        if (mask == 0 || controller == null || !controller.enabled)
+        if (mask == 0 || controller == null || !controller.enabled
+            || (controller.excludeLayers.value & mask) != 0)
             return 0;
 
         float baseRadius = ControllerWorldRadius();

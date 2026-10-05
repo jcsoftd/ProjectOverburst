@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// GOAL B2: 공격 root motion과 회피 직접 이동의 적 관통 방지를 한 소유자로 모은다.
+// GOAL B2: 공격 root motion의 적 관통 방지와 회피 이동 정책을 한 소유자로 모은다.
 // 실제 CharacterController 이동은 OverburstCharacterMotor3D만 실행한다.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(OverburstCharacterMotor3D))]
@@ -48,12 +48,23 @@ public sealed class CombatMotionDriver : MonoBehaviour
 
     public Vector3 ApplyEvadeDisplacement(Vector3 displacement)
     {
+        ResolveReferences();
         displacement.y = 0f;
-        Vector3 safeDisplacement = ResolveSafeDisplacement(displacement);
-        if (motor != null && safeDisplacement.sqrMagnitude > 0.000001f)
-            motor.MoveDirect(safeDisplacement);
-        return safeDisplacement;
+        Vector3 safeDisplacement = motor != null && motor.EvadeEnemyPassThrough
+            ? displacement : ResolveSafeDisplacement(displacement);
+        return motor != null && safeDisplacement.sqrMagnitude > 0.000001f
+            ? motor.MoveEvade(safeDisplacement) : Vector3.zero;
     }
+
+    public void BeginEvadeMotion()
+    {
+        ResolveReferences();
+        motor?.BeginEvadeMotion();
+    }
+
+    public void EndEvadeMotion() => motor?.EndEvadeMotion();
+
+    private void OnDisable() => EndEvadeMotion();
 
     public Vector3 ApplyWeaponRootMotion(Vector3 displacement)
     {

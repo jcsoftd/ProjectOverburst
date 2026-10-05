@@ -149,6 +149,7 @@ public static partial class PlayerEvadeVerifier
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
         SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
         SessionState.EraseBool(DodgeLightCooldownKey);
+        SessionState.EraseBool(EvadeCollisionKey);
         Application.runInBackground = SessionState.GetBool(ReturnKey + ".BackgroundBefore", Application.runInBackground);
         SessionState.EraseBool(ReturnKey + ".BackgroundBefore");
         bool previouslyBlocked = IsolatedSavePlayGuard.RequiresAccountChoice;
@@ -563,7 +564,7 @@ public static partial class PlayerEvadeVerifier
     static IEnumerator Run()
     {
         if (SessionState.GetBool(SwordFacingVerificationKey, false) || SessionState.GetBool(HeavyFocusOnlyKey, false)
-            || SessionState.GetBool(DodgeLightCooldownKey, false))
+            || SessionState.GetBool(DodgeLightCooldownKey, false) || SessionState.GetBool(EvadeCollisionKey, false))
         {
             float bootLimit = Time.unscaledTime + 25f;
             while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
@@ -618,6 +619,12 @@ public static partial class PlayerEvadeVerifier
                 yield break;
             }
             if (dashHeavyOnly) { yield return VerifyDashHeavy(); yield break; }
+            if (SessionState.GetBool(EvadeCollisionKey, false))
+            {
+                SessionState.EraseBool(EvadeCollisionKey);
+                yield return VerifyEvadeCollision();
+                yield break;
+            }
             if (SessionState.GetBool(DodgeLightCooldownKey, false))
             {
                 SessionState.EraseBool(DodgeLightCooldownKey);
