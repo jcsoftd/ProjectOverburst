@@ -90,7 +90,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 10.5
     rearOnly: 0
-    counters: 10
     steps:
     - kind: 0
       materialOrMotion: LeftHandAttack
@@ -105,7 +104,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 11
     rearOnly: 0
-    counters: 9
     steps:
     - kind: 0
       materialOrMotion: RightHandAttack
@@ -120,7 +118,6 @@ MonoBehaviour:
     minimumDistance: 2
     maximumDistance: 11.5
     rearOnly: 0
-    counters: 3
     steps:
     - kind: 0
       materialOrMotion: 2HitComboAttack
@@ -135,7 +132,6 @@ MonoBehaviour:
     minimumDistance: 7
     maximumDistance: 17
     rearOnly: 0
-    counters: 2
     steps:
     - kind: 2
       materialOrMotion: 
@@ -154,7 +150,6 @@ MonoBehaviour:
     minimumDistance: 6
     maximumDistance: 14.5
     rearOnly: 0
-    counters: 1
     steps:
     - kind: 0
       materialOrMotion: LeftHandSmashAttack
@@ -169,7 +164,6 @@ MonoBehaviour:
     minimumDistance: 4
     maximumDistance: 12.5
     rearOnly: 0
-    counters: 4
     steps:
     - kind: 0
       materialOrMotion: RightHandSmashAttack
@@ -184,7 +178,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 6.5
     rearOnly: 0
-    counters: 6
     steps:
     - kind: 0
       materialOrMotion: LeftFootStompAttack
@@ -199,7 +192,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 7
     rearOnly: 0
-    counters: 6
     steps:
     - kind: 0
       materialOrMotion: RightFootStompAttack
@@ -214,7 +206,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 7
     rearOnly: 1
-    counters: 7
     steps:
     - kind: 0
       materialOrMotion: Turn90LeftFootStompAttack
@@ -229,7 +220,6 @@ MonoBehaviour:
     minimumDistance: 0
     maximumDistance: 7
     rearOnly: 1
-    counters: 7
     steps:
     - kind: 0
       materialOrMotion: Turn90RightFootStompAttack
@@ -244,7 +234,6 @@ MonoBehaviour:
     minimumDistance: 2
     maximumDistance: 11.5
     rearOnly: 0
-    counters: 10
     steps:
     - kind: 0
       materialOrMotion: Turn90LeftHandAttack
@@ -259,7 +248,6 @@ MonoBehaviour:
     minimumDistance: 2
     maximumDistance: 11.5
     rearOnly: 0
-    counters: 9
     steps:
     - kind: 0
       materialOrMotion: Turn90RightHandAttack
@@ -274,7 +262,6 @@ MonoBehaviour:
     minimumDistance: 3.5
     maximumDistance: 14
     rearOnly: 0
-    counters: 6
     steps:
     - kind: 0
       materialOrMotion: 2HandsSmashAttack
@@ -289,7 +276,6 @@ MonoBehaviour:
     minimumDistance: 6
     maximumDistance: 24
     rearOnly: 0
-    counters: 8
     steps:
     - kind: 0
       materialOrMotion: SpitterShot2
@@ -304,7 +290,6 @@ MonoBehaviour:
     minimumDistance: 6
     maximumDistance: 24
     rearOnly: 0
-    counters: 8
     steps:
     - kind: 0
       materialOrMotion: SpitterShot1
@@ -319,7 +304,6 @@ MonoBehaviour:
     minimumDistance: 8
     maximumDistance: 24
     rearOnly: 0
-    counters: 8
     steps:
     - kind: 1
       materialOrMotion: UnearthRock
@@ -338,7 +322,6 @@ MonoBehaviour:
     minimumDistance: 6
     maximumDistance: 24
     rearOnly: 0
-    counters: 8
     steps:
     - kind: 4
       materialOrMotion: 
@@ -357,7 +340,6 @@ MonoBehaviour:
     minimumDistance: 2
     maximumDistance: 8
     rearOnly: 0
-    counters: 5
     steps:
     - kind: 2
       materialOrMotion: 
@@ -386,10 +368,13 @@ MonoBehaviour:
   poiseDecayDelay: 10
   poiseDecayPerSecond: 5
   maximumAdds: 26
-  tacticWeightMultiplier: 1.35
   protectPlayerFromDeath: 1
-  enableAdaptiveTactics: 1
+  approachDistance: 8
   enableBossEvasion: 1
+  evasionTriggerDistance: 7
+  evasionDistance: 3
+  evasionSeconds: 1
+  evasionCooldown: 12
   entrance:
     enabled: 1
     detailSeconds: 1.3

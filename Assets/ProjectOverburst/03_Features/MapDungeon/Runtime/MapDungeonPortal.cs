@@ -7,12 +7,12 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
 {
     private MapDungeonPortalPanel panel;
     private bool entering;
-    private Material visualMaterial;
+    private GameObject promptRoot;
 
     public Component InteractionComponent => this;
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 320;
-    public string InteractionPrompt => "F : 지도 포탈";
+    public string InteractionPrompt => "던전 입장 · 지도 선택";
     public InteractionDistanceMode DistanceMode => InteractionDistanceMode.Horizontal;
     public float InteractionRange => 3f;
     public string StableInteractionId => InteractionStableIdUtility.Build(this);
@@ -36,28 +36,20 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
         }
         var root = new GameObject("MapDungeonPortal");
         SceneManager.MoveGameObjectToScene(root, scene);
-        root.transform.position = anchor.transform.position - anchor.transform.forward * 1.8f;
+        root.transform.position = HideoutPortalLayout.TryGetPosition(scene, HideoutPortalKind.Dungeon, out var position)
+            ? position : anchor.transform.position - anchor.transform.forward * 1.8f;
         root.AddComponent<MapDungeonPortal>().BuildVisual();
     }
 
     private void BuildVisual()
     {
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-        visualMaterial = new Material(shader) { color = new Color(.32f, .58f, .67f) };
-        var baseObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        baseObject.name = "PortalBase";
-        baseObject.transform.SetParent(transform, false);
-        baseObject.transform.localPosition = Vector3.up * .12f;
-        baseObject.transform.localScale = new Vector3(2.5f, .12f, 2.5f);
-        baseObject.GetComponent<Renderer>().sharedMaterial = visualMaterial;
-        Destroy(baseObject.GetComponent<Collider>());
-        var core = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        core.name = "PortalCore";
-        core.transform.SetParent(transform, false);
-        core.transform.localPosition = Vector3.up * 1.5f;
-        core.transform.localScale = new Vector3(.65f, 1.1f, .65f);
-        core.GetComponent<Renderer>().sharedMaterial = visualMaterial;
-        Destroy(core.GetComponent<Collider>());
+        gameObject.AddComponent<HideoutPortalVisual>().Configure(HideoutPortalKind.Dungeon);
+        var source=FindFirstObjectByType<WorldInteractionKeyPrompt>(FindObjectsInactive.Include);
+        if(source!=null)
+        {
+            promptRoot=Instantiate(source.gameObject,transform,false);promptRoot.name="Dungeon Portal Interaction Key";
+            promptRoot.transform.localPosition=Vector3.up*2.3f;promptRoot.SetActive(false);
+        }
     }
 
     private void OnEnable() => InteractionRegistry.Register(this);
@@ -65,12 +57,8 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
     private void OnDisable()
     {
         InteractionRegistry.Unregister(this);
+        SetInteractionPromptVisible(false);
         ClosePanel();
-    }
-
-    private void OnDestroy()
-    {
-        if (visualMaterial != null) Destroy(visualMaterial);
     }
 
     private void Update()
@@ -96,7 +84,7 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
         return InteractionExecutionResult.Succeeded;
     }
 
-    public void SetInteractionPromptVisible(bool visible) { }
+    public void SetInteractionPromptVisible(bool visible) { if(promptRoot!=null)promptRoot.SetActive(visible); }
 
     public bool EnterLevelOne()
     {

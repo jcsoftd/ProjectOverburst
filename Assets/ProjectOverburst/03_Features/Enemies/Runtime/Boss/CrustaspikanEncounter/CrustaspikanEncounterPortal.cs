@@ -50,7 +50,6 @@ public sealed class CrustaspikanEncounterHost : MonoBehaviour
     public bool CanEnter => ActiveEncounter==null && Settings!=null && PersistentSceneFlow.Instance!=null
         && !PersistentSceneFlow.Instance.IsSwitching && PersistentSceneFlow.Instance.CurrentSubSceneName==PersistentSceneFlow.HideoutSceneName;
     public CrustaspikanEncounterSettings Settings {get;private set;}
-    private CrustaspikanArenaVisuals portalVisuals;
     private float nextCheck;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] private static void Reset()=>Current=null;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)] private static void Install()
@@ -66,16 +65,16 @@ public sealed class CrustaspikanEncounterHost : MonoBehaviour
         if(flow==null || flow.IsSwitching || flow.CurrentSubSceneName!=PersistentSceneFlow.HideoutSceneName)
         {
             if(ActiveEncounter!=null)ActiveEncounter.Exit(false);
-            if(Entrance!=null){Destroy(Entrance.gameObject);Entrance=null;portalVisuals?.Dispose();portalVisuals=null;}return;
+            if(Entrance!=null){Destroy(Entrance.gameObject);Entrance=null;}return;
         }
         var player=PlayerContext.Instance!=null?PlayerContext.Instance.CurrentActor:null;
         if(Settings==null || player==null || Entrance!=null || ActiveEncounter!=null)return;
-        portalVisuals=new CrustaspikanArenaVisuals();
-        Vector3 position=player.transform.position+new Vector3(-5,0,5);
-        if(Physics.Raycast(position+Vector3.up*15,Vector3.down,out var ground,40f,LayerMask.GetMask("Ground","Default"),QueryTriggerInteraction.Ignore))position.y=ground.point.y+.05f;
-        var go=portalVisuals.Portal(transform,Vector3.zero,new Color(.08f,.9f,1f),"크러스피칸 임시 보스방 포탈");go.transform.position=position;
+        var hideout=SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
+        if(!HideoutPortalLayout.TryGetPosition(hideout,HideoutPortalKind.Boss,out var position))return;
+        var go=new GameObject("크러스피칸 임시 보스방 포탈");go.transform.position=position;
+        go.AddComponent<HideoutPortalVisual>().Configure(HideoutPortalKind.Boss);
         // 포탈은 하이드아웃 씬 수명에 맞춘다.
-        go.transform.SetParent(null);SceneManager.MoveGameObjectToScene(go,player.gameObject.scene);
+        go.transform.SetParent(null);SceneManager.MoveGameObjectToScene(go,hideout);
         Entrance=go.AddComponent<CrustaspikanEncounterPortal>();Entrance.Configure(this);
     }
     public bool Enter(PlayerActorRuntime player)
@@ -96,6 +95,6 @@ public sealed class CrustaspikanEncounterHost : MonoBehaviour
     {
         if(ActiveEncounter!=null)ActiveEncounter.Exit(false);
         if(Entrance!=null)Destroy(Entrance.gameObject);
-        portalVisuals?.Dispose();if(Current==this)Current=null;
+        if(Current==this)Current=null;
     }
 }

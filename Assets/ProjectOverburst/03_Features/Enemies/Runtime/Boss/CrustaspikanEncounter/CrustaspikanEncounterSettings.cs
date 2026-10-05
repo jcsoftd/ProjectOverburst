@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 
 public enum CrustaspikanStepKind { Attack, Motion, Move, Wait, LiftElite, ThrowElite }
-public enum CrustaspikanTactic { Balanced, Evade, Dash, Weak, Heavy, DashAttack, Parry, Rear, Range, Left, Right }
 
 // 재료 원본은 읽기만 한다. 전투별 배속/피해/패링 규칙은 실행 때 복제한 재료에 적용한다.
 [CreateAssetMenu(menuName = "OVERBURST/Enemies/Crustaspikan Encounter")]
@@ -33,7 +32,6 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
         [Min(0f)] public float minimumDistance;
         [Min(0f)] public float maximumDistance = 24f;
         public bool rearOnly;
-        public CrustaspikanTactic counters;
         public Step[] steps = Array.Empty<Step>();
     }
     public EnemyBossMaterialCollection materials;
@@ -53,10 +51,14 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     public float groggySeconds = 4.5f, groggyProtection = 8f;
     public float poiseDecayDelay = 10f, poiseDecayPerSecond = 5f;
     [Range(4, 48)] public int maximumAdds = 26;
-    [Range(1f, 2f)] public float tacticWeightMultiplier = 1.35f;
     public bool protectPlayerFromDeath = true;
-    public bool enableAdaptiveTactics = true;
+    [Header("현재 상황 기반 기본 AI")]
+    [Min(1f)] public float approachDistance = 8f;
     public bool enableBossEvasion = true;
+    [Min(1f)] public float evasionTriggerDistance = 7f;
+    [Min(.5f)] public float evasionDistance = 3f;
+    [Min(.1f)] public float evasionSeconds = 1f;
+    [Min(1f)] public float evasionCooldown = 12f;
     [Header("포탈 입장 연출")]
     public CrustaspikanEntranceCinematic.Settings entrance = new CrustaspikanEntranceCinematic.Settings();
 
@@ -66,6 +68,10 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             || adds == null || !adds.Validate(out reason)) { reason = "보스 재료 또는 소환 테마가 없습니다."; return false; }
         if (bossHp <= 0 || groggyMax <= 0 || arenaRadius < 16 || maximumAdds < 4
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
+        if (!Finite(betweenPatterns) || betweenPatterns < 0f || !Finite(approachDistance) || approachDistance < 1f
+            || !Finite(evasionTriggerDistance) || evasionTriggerDistance < 1f || !Finite(evasionDistance) || evasionDistance < .5f
+            || !Finite(evasionSeconds) || evasionSeconds < .1f || !Finite(evasionCooldown) || evasionCooldown < 1f)
+        { reason = "기본 AI 이동/대기 수치가 유효하지 않습니다."; return false; }
         if (entrance != null && entrance.enabled && (materials.FindMotion(entrance.roarMotion)?.IsPlayable != true
             || materials.FindMotion(entrance.arrivalMotion)?.IsPlayable != true
             || !Finite(entrance.emergenceSeconds) || entrance.emergenceSeconds < .1f

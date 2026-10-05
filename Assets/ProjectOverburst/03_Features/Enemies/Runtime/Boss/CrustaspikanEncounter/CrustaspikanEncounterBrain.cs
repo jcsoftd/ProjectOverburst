@@ -6,7 +6,8 @@ using UnityEngine;
 public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSource
 {
     public EnemyActor Actor { get; private set; }
-    public CrustaspikanStyleObserver Observer { get; private set; }
+    public CrustaspikanCombatContext Context { get; private set; }
+    public string CurrentPatternId => current?.id ?? "";
     public int Phase { get; private set; } = 1;
     public float Poise { get; private set; }
     public int GroggyCount { get; private set; }
@@ -46,7 +47,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     private CrustaspikanEncounterSettings.Pattern current;
     private int stepIndex, lastParry;
     private bool stepStarted, transitionStarted, disposed;
-    private float stepStartedAt, stepUntil, readyAt, groggyUntil, protectionUntil, lastPoiseAt, nextDodgeAt, dashAttackUntil;
+    private float stepStartedAt, stepUntil, readyAt, groggyUntil, protectionUntil, lastPoiseAt, nextDodgeAt;
     private Vector3 moveDestination;
     private string lastFamily = "";
     private int consecutiveFamily;
@@ -65,15 +66,6 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     float IEnemyBossHudSource.Groggy01 => settings.groggyMax > 0f ? Poise / settings.groggyMax : 0f;
     EnemyBossEmblemFxMode IEnemyBossHudSource.EmblemFx => Actor.BossPhaseController.BossDefinition != null
         ? Actor.BossPhaseController.BossDefinition.EmblemFx : EnemyBossEmblemFxMode.Fire;
-    private string TacticLabel => Observer.Tactic switch
-    {
-        CrustaspikanTactic.Evade => "회피", CrustaspikanTactic.Dash => "대시",
-        CrustaspikanTactic.Weak => "약공", CrustaspikanTactic.Heavy => "강공",
-        CrustaspikanTactic.DashAttack => "대시 공격", CrustaspikanTactic.Parry => "패링",
-        CrustaspikanTactic.Rear => "후방", CrustaspikanTactic.Range => "원거리",
-        CrustaspikanTactic.Left => "왼쪽 회피", CrustaspikanTactic.Right => "오른쪽 회피", _ => "균형형"
-    };
-
     public CrustaspikanEncounterBrain(CrustaspikanEncounter encounter, EnemyActor actor, PlayerActorRuntime player)
     {
         this.encounter = encounter; settings = encounter.Settings; Actor = actor; this.player = player;
@@ -99,7 +91,6 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         parryDirector.Configure(proxy); lastParry = parryDirector.ParryCount;
         actor.Health.SetMaxHp(settings.bossHp, true);
         actor.Health.OnDamageResolved += OnDamage;
-        Observer = new CrustaspikanStyleObserver(); Observer.Bind(player, actor, encounter);
         melee = player.GetComponent<MeleeRuntime>();
         energy = player.GetComponent<OverburstElementEnergy>();
         readyAt = Time.time + 2f;
@@ -160,11 +151,9 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     public void Tick()
     {
         if (!IsActive || encounter.Defeated || player == null) return;
-        Observer.Tick();
-        if (melee != null && melee.IsDashHeavyWindupActive) dashAttackUntil = Time.time + 1.5f;
         while (lastParry < parryDirector.ParryCount)
         {
-            lastParry++; Observer.Parried(); CancelPattern();
+            lastParry++; CancelPattern();
             var parry = player.GetComponent<PlayerParryController>();
             float value = parry != null && parry.ActionGrade == ParryGrade.Incomplete ? 5f
                 : parry != null && parry.ActionGrade == ParryGrade.Normal ? 20f : settings.perfectParryPoise;
@@ -190,87 +179,109 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         State = "2페이즈 전환";
         if (!transitionStarted)
         {
-            transitionStarted = true; Phase = 2; Observer.Freeze(settings.enableAdaptiveTactics);
+            transitionStarted = true; Phase = 2;
             Actor.Movement.StopMovement(); Actor.AbilityController.Cancel();
             executor.TryPlayMotion("Roar2"); transitionDeadline = Time.time + 6f;
-            encounter.Announce("습관 간파: " + TacticLabel, 7f);
+            encounter.Announce("2페이즈 · 군락의 분노", 5f);
         }
         if (!executor.IsExecuting || Time.time > transitionDeadline)
         { executor.Cancel(); transitionStarted = false; readyAt = Time.time + 1f; }
         return CrustaspikanNodeStatus.Running;
     }
+    private CrustaspikanCombatContext ReadContext() => new CrustaspikanCombatContext(
+        Actor.transform.position, Actor.transform.forward, player.transform.position, encounter.PlayerVelocity,
+        energy != null ? energy.Normalized : 0f, settings.groggyMax > 0f ? Poise / settings.groggyMax : 0f, encounter.AliveAdds, Phase);
     private bool CanDodge()
     {
-        if (!settings.enableBossEvasion || melee == null || !melee.IsHeavyAttackInProgress || Time.time < nextDodgeAt) return false;
-        return Vector3.Distance(Actor.transform.position, player.transform.position) < 7f;
+        if (!settings.enableBossEvasion || melee == null || !melee.IsHeavyMovementAfterimageWindow || Time.time < nextDodgeAt) return false;
+        var context = ReadContext();
+        return context.Distance < settings.evasionTriggerDistance && context.ForwardDot > .2f
+            && TryMoveDestination(new Vector3(0, 0, -settings.evasionDistance), out _);
     }
     private CrustaspikanNodeStatus Dodge()
     {
-        nextDodgeAt = Time.time + 12f; DodgeCount++;
-        current = new CrustaspikanEncounterSettings.Pattern { id = "reactive_backstep", label = "강공 관측 · 후퇴 반격", family = "evade", steps = new[] {
-            new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Move, localDisplacement = new Vector3(0,0,-3f), seconds = 1f },
+        nextDodgeAt = Time.time + settings.evasionCooldown; DodgeCount++;
+        current = new CrustaspikanEncounterSettings.Pattern { id = "reactive_backstep", label = "강공 준비 견제 · 후퇴 반격", family = "evade", steps = new[] {
+            new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Move, localDisplacement = new Vector3(0,0,-settings.evasionDistance), seconds = settings.evasionSeconds },
             new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Wait, seconds = .35f },
             new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Attack, materialOrMotion = "RightHandAttack" } } };
         BeginPattern(); encounter.Announce("강공 견제", 1.5f); return CrustaspikanNodeStatus.Running;
     }
     private CrustaspikanNodeStatus SelectPattern()
     {
-        candidates.Clear(); float total = 0f;
+        Context = ReadContext(); candidates.Clear(); float total = 0f;
         foreach (var p in settings.patterns)
         {
             if (!Eligible(p)) continue; candidates.Add(p); total += Weight(p);
         }
-        if (total <= 0)
+        if (total <= 0f)
         {
-            State = "거리 좁히기";
-            Actor.Movement.SetDestination(player.transform.position, 6f, EnemyLocomotionMode.Walk, .85f);
+            if (Context.Distance > settings.approachDistance + .5f)
+            {
+                State = "거리 좁히기";
+                Actor.Movement.SetDestination(encounter.ClampArena(player.transform.position, 5f), settings.approachDistance, EnemyLocomotionMode.Walk, .85f);
+            }
+            else
+            {
+                State = "방향 정렬 · 재사용 대기";
+                Actor.Movement.StopMovement(); Actor.Movement.FacePosition(player.transform.position);
+            }
             return CrustaspikanNodeStatus.Running;
         }
         float draw = UnityEngine.Random.value * total;
-        foreach (var p in candidates) { draw -= Weight(p); if (draw <= 0) { current = p; break; } }
+        foreach (var p in candidates) { draw -= Weight(p); if (draw <= 0f) { current = p; break; } }
         if (current == null) current = candidates[candidates.Count - 1];
         BeginPattern(); return CrustaspikanNodeStatus.Running;
     }
     private float Weight(CrustaspikanEncounterSettings.Pattern p)
     {
-        float w = p.weight;
-        if (Phase == 2 && p.counters != CrustaspikanTactic.Balanced && p.counters == Observer.Tactic) w *= settings.tacticWeightMultiplier;
-        if (p.id == LastPattern) w *= .4f;
-        Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0;
-        if (p.family == "ranged" && delta.magnitude > 12) w *= 1.3f;
-        if (p.family == "rear" && Vector3.Dot(Actor.transform.forward, delta.normalized) < -.35f) w *= 1.4f;
-        // 현재 게이지는 작은 상황 보정에만 쓴다. 확정된 공격의 판정이나 리듬은 바꾸지 않는다.
-        if (energy != null && energy.Normalized >= .8f && p.counters == CrustaspikanTactic.Parry) w *= 1.15f;
-        if (p.steps[0].kind == CrustaspikanStepKind.Attack && encounter.PlayerVelocity.sqrMagnitude > .25f)
+        float w = CrustaspikanCombatDecision.Weight(p, Context, LastPattern, lastFamily, consecutiveFamily);
+        if (p.steps[0].kind == CrustaspikanStepKind.Attack && Context.Velocity.sqrMagnitude > .25f)
         {
             var m = attacks[p.steps[0].materialOrMotion];
-            Quaternion facing = delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
-            Vector3 predictedOffset = encounter.PlayerVelocity * .25f;
+            Quaternion facing = Context.Delta.sqrMagnitude > .001f ? Quaternion.LookRotation(Context.Delta) : Actor.transform.rotation;
+            Vector3 predictedOffset = Vector3.ClampMagnitude(Context.Velocity * .25f, 2f);
             foreach (var strike in m.strikes)
                 if (strike.Intersects(player.CharacterController, Actor.transform,
                     Actor.transform.position + facing * strike.localOrigin - predictedOffset,
-                    facing * Quaternion.Euler(0,strike.yaw,0))) { w *= 1.15f; break; }
+                    facing * Quaternion.Euler(0, strike.yaw, 0))) { w *= 1.15f; break; }
         }
         return w;
     }
     private bool Eligible(CrustaspikanEncounterSettings.Pattern p)
     {
-        if ((p.phaseMask & (1 << (Phase - 1))) == 0 || cooldowns.TryGetValue(p.id, out float until) && Time.time < until) return false;
-        Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0; float distance = delta.magnitude;
-        if (distance < p.minimumDistance || distance > p.maximumDistance) return false;
-        if (p.rearOnly && Vector3.Dot(Actor.transform.forward, delta.normalized) > -.2f) return false;
-        if (p.family == lastFamily && consecutiveFamily >= 2) return false;
-        if ((p.family == "summon" || p.id == "elite_throw") && encounter.AliveAdds >= settings.maximumAdds) return false;
+        if ((p.phaseMask & (1 << (Phase - 1))) == 0) return false;
+        if (cooldowns.TryGetValue(p.id, out float until) && Time.time < until) return false;
+        if (Context.Distance < p.minimumDistance || Context.Distance > p.maximumDistance) return false;
+        if (p.rearOnly && Context.ForwardDot > -.2f) return false;
+        if (CrustaspikanCombatDecision.NeedsSummonSlot(p) && Context.AliveAdds >= settings.maximumAdds) return false;
+        // 모션/이동으로 시작하는 조립도 뒤에 쓸 공격의 재사용을 먼저 확인한다.
+        foreach (var step in p.steps)
+        {
+            if (step.kind == CrustaspikanStepKind.Move && !TryMoveDestination(step.localDisplacement, out _)) return false;
+            string key = step.kind == CrustaspikanStepKind.ThrowElite ? "ThrowRock"
+                : step.kind == CrustaspikanStepKind.Attack ? step.materialOrMotion : null;
+            if (key != null && !Actor.AbilityController.IsCooldownReady(attacks[key].ability)) return false;
+        }
         var first = p.steps[0];
         if (first.kind != CrustaspikanStepKind.Attack) return true;
         var m = attacks[first.materialOrMotion];
-        if (!Actor.AbilityController.IsCooldownReady(m.ability)) return false;
         if (m.delivery != EnemyBossMaterialDelivery.Melee) return true;
-        Quaternion facing = delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
-        Collider body = player.CharacterController;
+        Quaternion facing = Context.Delta.sqrMagnitude > .001f ? Quaternion.LookRotation(Context.Delta) : Actor.transform.rotation;
         foreach (var s in m.strikes)
-            if (s.Intersects(body, Actor.transform, Actor.transform.position + facing * s.localOrigin, facing * Quaternion.Euler(0,s.yaw,0))) return true;
+            if (s.Intersects(player.CharacterController, Actor.transform, Actor.transform.position + facing * s.localOrigin, facing * Quaternion.Euler(0, s.yaw, 0))) return true;
         return false;
+    }
+    private bool TryMoveDestination(Vector3 local, out Vector3 destination)
+    {
+        Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0f;
+        Quaternion facing = delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
+        Vector3 desired = Actor.transform.position + facing * local;
+        destination = encounter.ClampArena(desired, 5f);
+        Vector3 travel = destination - Actor.transform.position; travel.y = 0f;
+        Vector3 requested = facing * local; requested.y = 0f;
+        return requested.sqrMagnitude < .001f || travel.magnitude >= Mathf.Min(.75f, requested.magnitude * .5f)
+            && Vector3.Dot(travel.normalized, requested.normalized) > .5f && Actor.Movement.IsWalkablePosition(destination);
     }
     private void BeginPattern()
     {
@@ -297,13 +308,12 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
                     if (s.kind == CrustaspikanStepKind.ThrowElite) composite.SetNextThrowPayload(EnemyBossThrowPayload.Elite);
                     if (!Actor.AbilityController.TryStartAbility(attacks[key].ability, player.transform))
                     { Actor.Movement.FacePosition(player.transform.position); if (Time.time > stepAttemptAt + 4f) { CancelPattern(); readyAt = Time.time + .4f; } return CrustaspikanNodeStatus.Running; }
-                    if (attacks[key].IsStrikeParryable(attacks[key].strikes.Length - 1)) Observer.Opportunity();
                     break;
                 case CrustaspikanStepKind.Motion:
                     if (s.materialOrMotion == "UnearthRock") composite.SetNextThrowPayload(EnemyBossThrowPayload.Rock);
                     if (!executor.TryPlayMotion(s.materialOrMotion, s.materialOrMotion == "UnearthRock")) { CancelPattern(); return CrustaspikanNodeStatus.Failure; } break;
                 case CrustaspikanStepKind.Move:
-                    moveDestination = encounter.ClampArena(Actor.transform.position + Actor.transform.rotation * s.localDisplacement, 5f);
+                    if (!TryMoveDestination(s.localDisplacement, out moveDestination)) { CancelPattern(); readyAt = Time.time + .4f; return CrustaspikanNodeStatus.Failure; }
                     break;
                 case CrustaspikanStepKind.LiftElite:
                     composite.SetNextThrowPayload(EnemyBossThrowPayload.Elite); executor.TryPlayMotion("UnearthRock", true); break;
@@ -341,7 +351,6 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     {
         if (fatal || damage <= 0 || info.isDamageOverTime || !info.triggersOnHitEffects || info.source == null
             || info.source.GetComponentInParent<PlayerActorRuntime>() != player) return;
-        Observer.ObserveHit(info, Time.time < dashAttackUntil);
         if ((info.playerAttackKind & (PlayerAttackKind.Weak | PlayerAttackKind.Heavy)) == 0) return;
         long key = ((long)info.source.GetInstanceID() << 32) ^ (uint)info.sourceAttackSequenceId;
         if (info.sourceAttackSequenceId != 0 && !hitSequences.Add(key)) return;
@@ -373,7 +382,6 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     public void Dispose()
     {
         if (disposed) return; disposed = true;
-        Observer.Dispose();
         if (Actor != null && Actor.LeaseVersion == leaseVersion)
         {
             Actor.Health.OnDamageResolved -= OnDamage;

@@ -17,6 +17,8 @@ public static class CrustaspikanEncounterPlayVerifier
     private static int stage;
     private static float stageAt;
     private static bool started,early,last;
+    private static bool portalPreviewReady,portalPreviewCaptured;
+    private static float portalPreviewAt;
     private static string output;
     private static PlayerActorRuntime player;
     private static CrustaspikanEncounter encounter;
@@ -72,6 +74,7 @@ public static class CrustaspikanEncounterPlayVerifier
         directory=IsolatedSavePlayGuard.ValidateDirectory(directory);Directory.CreateDirectory(directory);
         var settings=AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(CrustaspikanEncounterBuilder.AssetPath);
         if(settings==null || !settings.Validate(out string reason))throw new InvalidOperationException("설정 자산이 유효하지 않습니다.");
+        portalPreviewReady=false;portalPreviewCaptured=false;
         wheelQueued=false;wheelChecked=false;groggyHudChecked=false;legacyBoss=null;legacyHud=null;legacySpawns=null;legacyServiceRoot=null;
         entranceChecked=false;entranceFinishedAt=-1f;nextEntranceFrame=0f;entranceFrame=0;entranceShots.Clear();entranceFrames.Clear();
         firstEntrance=null;skippedEntrance=null;externalInputOwner=null;skipQueued=false;interruptedActor=null;
@@ -166,6 +169,20 @@ public static class CrustaspikanEncounterPlayVerifier
             case 0:
                 if(host?.Entrance==null || !host.CanEnter)return;
                 player=PlayerContext.Instance.CurrentActor;oldCamera=Camera.main;originalHp=player.Health.CurrentHp;
+                if(!portalPreviewReady)
+                {
+                    var mapPortal=UnityEngine.Object.FindFirstObjectByType<MapDungeonPortal>();
+                    if(mapPortal==null)return;
+                    Teleport((mapPortal.transform.position+host.Entrance.transform.position)*.5f+Vector3.right*2f);
+                    var camera=QuarterViewCamera.ActiveInstance;
+                    if(camera!=null && camera.CurrentTarget!=null)camera.SetTarget(camera.CurrentTarget);
+                    portalPreviewReady=true;portalPreviewAt=Time.realtimeSinceStartup;return;
+                }
+                if(!portalPreviewCaptured)
+                {
+                    if(Time.realtimeSinceStartup<portalPreviewAt+2f)return;
+                    ScreenCapture.CaptureScreenshot(Path.Combine(output,"hideout-portals.png"));portalPreviewCaptured=true;return;
+                }
                 gameplayCamera=QuarterViewCamera.ActiveInstance;
                 Check(gameplayCamera!=null && gameplayCamera.UsesCinemachine,"existing gameplay camera is ready");
                 entryDistance=gameplayCamera.CurrentDistance;entryYaw=gameplayCamera.CurrentYaw;
@@ -193,10 +210,12 @@ public static class CrustaspikanEncounterPlayVerifier
                     if(quarter.GetComponent<Camera>()==oldCamera || quarter.CinemachineRig?.Brain==oldBrain && oldBrain!=null)
                         cameraDrivers.Add(new KeyValuePair<Behaviour,bool>(quarter,quarter.enabled));
                 originalLeases=EnemySpawnService.Current!=null?EnemySpawnService.Current.Pool.LeasedCount:0;
+                VerifyHideoutPortals(host);
                 Teleport(host.Entrance.transform.position+Vector3.back);entryPosition=player.transform.position;
                 Check(host.Entrance.TryInteract(player)==InteractionExecutionResult.StartedTransition,"entrance uses shared interaction contract");
                 encounter=host.ActiveEncounter;Check(encounter?.Brain!=null,"boss lease and encounter created");
                 Check(encounter.Brain.Actor.Health.MaxHp==3000f,"boss HP 3000");
+                VerifyBasicDecisionRules();
                 Check(!encounter.Brain.Actor.GetComponent<EnemyTargetHpReporter>().enabled,"boss suppresses duplicate target HP display");
                 Check(encounter.Brain.RuntimeMaterials.attacks.Length==16 && encounter.Brain.RuntimeMaterials.attacks.All(m=>m.IsValid),"16 current material clones valid");
                 Check(encounter.Settings.patterns.Where(p=>p.id=="strong_spit" || p.id=="elite_throw" || p.id=="retreat_counter").All(p=>p.phaseMask==2),"strong spit elite and delayed counter introduced in phase two");
@@ -345,7 +364,7 @@ public static class CrustaspikanEncounterPlayVerifier
                 encounter.Brain.Actor.Health.TakeDamage(new DamageInfo(1800f,encounter.Brain.Actor.transform.position,player.gameObject,triggersOnHitEffects:false));Next();break;
             case 5:
                 if(encounter.Brain.Phase!=2 || encounter.Brain.IsTransitioning)return;
-                Check(encounter.Brain.Observer.Frozen && encounter.Brain.Observer.Tactic==CrustaspikanTactic.Heavy,"phase two freezes observed heavy-hit tactic");
+                Check(!encounter.BossHud.DisplayedState.Contains("간파") && !encounter.BossHud.DisplayedState.Contains("습관"),"phase two has no learned-style announcement");
                 Check(encounter.BossHud.DisplayedPhaseIndex==1 && encounter.BossHud.DisplayedLitPhaseGems==1,"existing phase gems follow BT phase two");
                 Check(Mathf.Abs(encounter.BossHud.DisplayedGroggy01)<.001f,"existing groggy UI clears after opening");
                 encounter.ClearSummons();
@@ -369,14 +388,14 @@ public static class CrustaspikanEncounterPlayVerifier
                 if(encounter.EliteThrows<1 || Age<10f)return;
                 Check(encounter.EliteThrows==1,"held elite releases on actual throw impact");
                 Check(encounter.GetComponentsInChildren<EnemyActor>().Any(a=>a!=encounter.Brain.Actor && a.Definition.EnemyId=="CavernMutants_Ursacetus" && a.AI.enabled),"thrown elite lands and fights");
-                Check(encounter.AliveAdds<=6,"small medium elite retain cap six");
+                Check(encounter.AliveAdds<=encounter.Settings.maximumAdds,"small medium elite retain current room cap");
                 var settings=host.Settings;Check(!EditorUtility.IsDirty(settings.materials) && settings.materials.attacks.All(m=>!EditorUtility.IsDirty(m)),"source material assets remain clean");
                 ScreenCapture.CaptureScreenshot(Path.Combine(output,"arena-phase-two.png"));
                 Next();break;
             case 9:
                 // 캡처를 위한 5초 여유. 이후 재시작/왕복의 풀 수명을 검사한다.
                 if(Age<5f)return;
-                encounter.Restart();Check(encounter.Brain.Phase==1 && encounter.Brain.Poise==0 && !encounter.Brain.Observer.Frozen,"restart resets phase poise observation");
+                encounter.Restart();Check(encounter.Brain.Phase==1 && encounter.Brain.Poise==0 && encounter.Brain.PatternCount==0,"restart resets phase poise and AI choices without style collection");
                 Check(ReferenceEquals(encounter.BossHud.BoundEncounterSource,encounter.Brain) && encounter.BossHud.IsVisible
                     && encounter.BossHud.DisplayedHealth01>.999f && encounter.BossHud.DisplayedLitPhaseGems==2,"restart rebinds existing boss HUD to new lease");
                 Check(encounter.AliveAdds==0 && encounter.Brain.Actor.Health.CurrentHp==3000,"restart releases summons and refills boss");
@@ -567,6 +586,56 @@ public static class CrustaspikanEncounterPlayVerifier
     }
     private static void Teleport(Vector3 position)
     {bool active=player.CharacterController.enabled;player.CharacterController.enabled=false;player.transform.position=position;player.CharacterController.enabled=active;player.Movement.ResetMotionAfterTeleport();Physics.SyncTransforms();}
+    private static void VerifyHideoutPortals(CrustaspikanEncounterHost host)
+    {
+        var map=UnityEngine.Object.FindFirstObjectByType<MapDungeonPortal>();
+        Check(map!=null && host.Entrance!=null,"both actual hideout entry portals exist");
+        var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
+        Check(HideoutPortalLayout.TryGetPosition(scene,HideoutPortalKind.Dungeon,out var dungeonPosition)
+            && Vector3.Distance(map.transform.position,dungeonPosition)<.01f,"dungeon portal uses camp-left layout");
+        Check(HideoutPortalLayout.TryGetPosition(scene,HideoutPortalKind.Boss,out var bossPosition)
+            && Vector3.Distance(host.Entrance.transform.position,bossPosition)<.01f,"boss portal uses paired camp-left layout");
+        Check(Vector3.Distance(map.transform.position,host.Entrance.transform.position)>map.InteractionRange+host.Entrance.InteractionRange,"portal interaction ranges do not overlap");
+        Check(map.GetComponent<HideoutPortalVisual>()?.Kind==HideoutPortalKind.Dungeon
+            && host.Entrance.GetComponent<HideoutPortalVisual>()?.Kind==HideoutPortalKind.Boss,"portals have distinct blue dungeon and red boss presentations");
+        foreach(var portal in new[]{map.gameObject,host.Entrance.gameObject})
+        {
+            var visual=portal.GetComponent<HideoutPortalVisual>();
+            Check(visual!=null && visual.HasAssetPresentation && Resources.Load<GameObject>(visual.AssetResourcePath)!=null,"portal instantiates its package asset wrapper "+portal.name);
+            Check(portal.GetComponentsInChildren<ParticleSystem>().Any(p=>p.main.loop && p.IsAlive()),"native portal asset keeps emitting its authored loop "+portal.name);
+            Check(portal.GetComponentsInChildren<Renderer>().Any(r=>r.enabled) && portal.GetComponentsInChildren<Collider>().All(c=>!c.enabled),"portal asset is visible and has no blocking collider "+portal.name);
+            Check(Physics.Raycast(portal.transform.position+Vector3.up*2f,Vector3.down,out var ground,5f,LayerMask.GetMask("Ground"))
+                && Mathf.Abs(portal.transform.position.y-ground.point.y)<.1f,"portal stands on actual camp ground "+portal.name);
+        }
+        Check(map.TryInteract(player)==InteractionExecutionResult.Succeeded && GameplayInputBlocker.IsGameplayInputBlocked,"relocated dungeon portal opens existing map panel and owns input");
+        map.ClosePanel();Check(!GameplayInputBlocker.IsGameplayInputBlocked,"closing dungeon panel releases its own input");
+        File.WriteAllText(Path.Combine(output,"portal-layout.json"),JsonConvert.SerializeObject(new{status="PASS",dungeon=new[]{dungeonPosition.x,dungeonPosition.y,dungeonPosition.z},boss=new[]{bossPosition.x,bossPosition.y,bossPosition.z},spacing=Vector3.Distance(dungeonPosition,bossPosition)},Formatting.Indented));
+    }
+    private static void VerifyBasicDecisionRules()
+    {
+        var patterns=encounter.Settings.patterns;
+        var ranged=patterns.First(p=>p.id=="rock_throw");
+        var counter=patterns.First(p=>p.id=="retreat_counter");
+        var rear=patterns.First(p=>p.id=="rear_left");
+        var heavy=patterns.First(p=>p.id=="left_smash");
+        var light=patterns.First(p=>p.id=="left_light");
+        var front=new CrustaspikanCombatContext(Vector3.zero,Vector3.forward,Vector3.forward*8f,Vector3.zero,0f,0f,0,1);
+        var far=new CrustaspikanCombatContext(Vector3.zero,Vector3.forward,Vector3.forward*18f,Vector3.forward*3f,0f,0f,0,1);
+        var approaching=new CrustaspikanCombatContext(Vector3.zero,Vector3.forward,Vector3.forward*8f,-Vector3.forward*3f,0f,0f,0,2);
+        var back=new CrustaspikanCombatContext(Vector3.zero,Vector3.forward,-Vector3.forward*6f,Vector3.zero,0f,0f,0,1);
+        var phaseTwo=new CrustaspikanCombatContext(Vector3.zero,Vector3.forward,Vector3.forward*8f,Vector3.zero,0f,0f,0,2);
+        Check(CrustaspikanCombatDecision.Weight(ranged,far,"","",0)>CrustaspikanCombatDecision.Weight(ranged,front,"","",0),"moving away at range increases throw preference");
+        Check(CrustaspikanCombatDecision.Weight(counter,approaching,"","",0)>CrustaspikanCombatDecision.Weight(counter,front,"","",0),"current approach increases delayed counter preference");
+        Check(CrustaspikanCombatDecision.Weight(rear,back,"","",0)>CrustaspikanCombatDecision.Weight(rear,front,"","",0),"rear position increases rear control preference");
+        Check(CrustaspikanCombatDecision.Weight(heavy,phaseTwo,"","",0)>CrustaspikanCombatDecision.Weight(heavy,front,"","",0),"phase two changes heavy preference without learned style");
+        float repeat=CrustaspikanCombatDecision.Weight(light,front,light.id,light.family,2);
+        Check(repeat>0f && repeat<light.weight*.1f,"repeated sole family remains selectable at strongly reduced weight");
+        Check(CrustaspikanCombatDecision.NeedsSummonSlot(patterns.First(p=>p.id=="elite_throw")) && !CrustaspikanCombatDecision.NeedsSummonSlot(ranged),"elite needs summon capacity while rock does not");
+        Check(typeof(CrustaspikanEncounterBrain).GetProperty("Observer")==null
+            && typeof(CrustaspikanEncounterSettings).GetField("enableAdaptiveTactics")==null
+            && typeof(CrustaspikanEncounterBrain).Assembly.GetType("CrustaspikanStyleObserver")==null,"style observer and adaptive toggle are absent from compiled runtime");
+        Check(patterns.Count(p=>(p.phaseMask&1)!=0)==15 && patterns.Count(p=>(p.phaseMask&2)!=0)==18,"first phase has 15 candidates and second phase has all 18");
+    }
     private static void Write(string status,string error)
     {
         File.WriteAllText(Path.Combine(output,"play-result.json"),JsonConvert.SerializeObject(new{status,stage,utc=DateTime.UtcNow,checks=passed.Distinct().ToArray(),error,
