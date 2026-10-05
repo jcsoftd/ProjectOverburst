@@ -145,6 +145,7 @@ public static class MonsterPresentationCalibrationBuilder
                     var vfx=root.GetComponent<CombatTargetVfxPlacement>();if(vfx!=null){var v=new SerializedObject(vfx);foreach(string f in new[]{"bodyRadius","bodyHeight","hitRadius","hitHeight"})ScaleFloat(v,f,factor);foreach(string f in new[]{"localBodyCenter","localHitCenter"})ScaleVector(v,f,factor,air?Vector3.up*offset:Vector3.zero);v.ApplyModifiedPropertiesWithoutUndo();}
                     foreach(var anchor in actor.Anchors.GetComponentsInChildren<Transform>(true).Skip(1))anchor.localPosition=anchor.localPosition*factor+Vector3.up*offset;
                 }
+                PrefabUtility.RecordPrefabInstancePropertyModifications(model);
                 var authoredModelOverrides=PrefabUtility.GetPropertyModifications(model.gameObject);
                 var basePosition=model.localPosition;var baseRotation=model.localRotation;var baseScale=model.localScale;
                 var transforms=root.GetComponentsInChildren<Transform>(true);var positions=transforms.Select(t=>t.localPosition).ToArray();var rotations=transforms.Select(t=>t.localRotation).ToArray();var scales=transforms.Select(t=>t.localScale).ToArray();

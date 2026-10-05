@@ -23,7 +23,7 @@ public static class MonsterUndeadPresentationBuilder
    if(AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath)!=null)throw new InvalidOperationException("Death copy already exists: "+clipPath);
    var copy=UnityEngine.Object.Instantiate(source);copy.name=id+"_Death_Once";copy.wrapMode=WrapMode.ClampForever;var settings=AnimationUtility.GetAnimationClipSettings(copy);settings.loopTime=false;settings.loopBlend=false;AnimationUtility.SetAnimationClipSettings(copy,settings);
    float maximumLift=0;
-   if(id=="DeathHarvest_Reaper"||id=="V3_darkKnight2"){
+   if(id=="DeathHarvest_Reaper"||id=="V3_darkKnight2"||id=="V3_SkeletonKnight_Small"||id=="V3_SkeletonKnight_Medium"){
     var instance=PrefabUtility.LoadPrefabContents(AssetDatabase.GetAssetPath(definition.ActorPrefab));PlayableGraph graph=default;
     try{
      instance.SetActive(true);foreach(var b in instance.GetComponentsInChildren<MonoBehaviour>(true))if(b!=null)b.enabled=false;var actor=instance.GetComponent<EnemyActor>();actor.VisualRoot.localScale=definition.ResolveRuntimeStats().VisualScale;var animator=actor.Animator;animator.enabled=true;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.applyRootMotion=false;

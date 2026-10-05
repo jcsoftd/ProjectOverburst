@@ -16,7 +16,10 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             var animator=actor.Animator;var originalCull=animator.cullingMode;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;var rb=actor.GetComponent<Rigidbody>();
             var selector=actor.GetComponent<EnemyLocomotionVariantSelector>();if(selector!=null)selector.enabled=false;
             yield return null;yield return new WaitForFixedUpdate();yield return null;
-            var samples=new JArray();bool valid=true;
+            float initialIdleHeight=UpcomingMonsterThemeReviewSizing.GeometryBounds(actor.VisualRoot.gameObject).size.y;
+            float expectedIdleHeight=(float?)author["expectedIdleHeights"]?[d.EnemyId]??0;
+            bool initialHeightPass=expectedIdleHeight<=0||Mathf.Abs(initialIdleHeight-expectedIdleHeight)<.10f;
+            var samples=new JArray();bool valid=initialHeightPass;
             foreach(var mode in new[]{EnemyLocomotionMode.Walk,EnemyLocomotionMode.Run,EnemyLocomotionMode.Backpedal})
             {
                 actor.Movement.StopMovement();rb.position=Vector3.zero;rb.rotation=Quaternion.identity;rb.linearVelocity=Vector3.zero;actor.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);Physics.SyncTransforms();
@@ -37,7 +40,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             // The model offset must not grow across pooled leases.
             Vector3 beforeScale=animator.transform.localScale;var grounding=actor.GetComponent<EnemyLocomotionGroundClearance>();animator.cullingMode=originalCull;service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
             bool released=!actor.IsLeased&&!actor.gameObject.activeSelf&&pool.LeasedCount==0&&pool.PendingReturnCount==0&&(grounding==null||grounding.CurrentLift==0);
-            cases.Add(new JObject{{"id",d.EnemyId},{"scenario","calibrated-walk-run-back-stop"},{"samples",samples},{"idleReset",idleReset},{"pass",valid&&idleReset}});WriteResult("RUNNING");
+            cases.Add(new JObject{{"id",d.EnemyId},{"scenario","calibrated-walk-run-back-stop"},{"samples",samples},{"initialIdleGeometryHeight",initialIdleHeight},{"expectedIdleHeight",expectedIdleHeight},{"initialHeightPass",initialHeightPass},{"idleReset",idleReset},{"pass",valid&&idleReset}});WriteResult("RUNNING");
             bool spawned=service.TrySpawn(request,out var reused);if(!spawned)throw new Exception("Reuse failed");reused.AI.enabled=false;yield return null;yield return new WaitForFixedUpdate();yield return null;var cap=reused.CollisionRoot.GetComponentInChildren<CapsuleCollider>();
             bool reusePass=reused.IsAuthoringValid&&reused.transform.localScale==Vector3.one&&reused.Animator.transform.localScale==beforeScale&&!reused.Movement.IsActionLocked&&cap.radius>0&&cap.height>0&&reused.Health.CurrentHp==reused.Health.MaxHp;
             service.Release(reused);yield return null;yield return new WaitForFixedUpdate();cases.Add(new JObject{{"id",d.EnemyId},{"scenario","calibrated-pool-reuse"},{"pass",reusePass&&pool.LeasedCount==0&&pool.PendingReturnCount==0&&released}});WriteResult("RUNNING");
