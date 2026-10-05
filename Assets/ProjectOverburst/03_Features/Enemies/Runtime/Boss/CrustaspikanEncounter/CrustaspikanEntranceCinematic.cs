@@ -14,14 +14,21 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     public sealed class Settings
     {
         public bool enabled = true;
-        [Min(.25f)] public float detailSeconds = 1.5f;
-        [Min(.25f)] public float riseSeconds = 1.6f;
+        [Tooltip("출현 전 지면 이상 징후 길이")][Min(.25f)] public float detailSeconds = 1.3f;
+        [Tooltip("출현 모션 시작부터 포효까지")][Min(.25f)] public float riseSeconds = 2.55f;
+        public string arrivalMotion = "2HandsSmashAttack";
+        [Range(.05f, .95f)] public float arrivalImpactNormalized = .425f;
+        [Min(.1f)] public float emergenceSeconds = 1.1f;
         public string roarMotion = "Roar1";
-        [Min(.25f)] public float revealSeconds = 1.35f;
-        [Min(.1f)] public float returnSeconds = 1f;
+        [Min(.25f)] public float revealSeconds = .35f;
+        [Min(.1f)] public float returnSeconds = .75f;
         [Min(0f)] public float combatGraceSeconds = 1f;
-        public string subtitle = "암굴의 포식자";
+        [HideInInspector] public string subtitle = "암굴의 포식자"; // 이전 저작 값을 보존한다. 소개 카드는 그리지 않는다.
         public AudioClip roarClip;
+        public AudioClip rumbleClip;
+        public AudioClip breachClip;
+        public AudioClip impactClip;
+        public AudioClip inhaleClip;
         [Range(0f, 1f)] public float roarVolume = .75f;
     }
 
@@ -30,15 +37,22 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     public bool RoarStarted { get; private set; }
     public bool RoarAudioStarted { get; private set; }
     public bool ImpactStarted { get; private set; }
+    public bool ArrivalStarted { get; private set; }
+    public bool RumbleAudioStarted { get; private set; }
+    public bool ImpactAudioStarted { get; private set; }
+    public bool VisualRestored { get; private set; }
+    public bool FloorGeometryRestored { get; private set; }
+    public float ImpactElapsed { get; private set; }
     public int ShotIndex { get; private set; }
     public float Elapsed { get; private set; }
     public float Duration => roarEnd + settings.revealSeconds + settings.returnSeconds;
     public CinemachineCamera ShotCamera => shotCamera;
-    public float TitleAlpha => title != null ? title.alpha : 0f;
-    public float RoarStart => settings.detailSeconds + settings.riseSeconds;
+    public float ArrivalImpactAt => settings.detailSeconds + arrivalLength * settings.arrivalImpactNormalized;
+    public float RoarStart => Mathf.Max(settings.detailSeconds + settings.riseSeconds, ArrivalImpactAt + .22f);
     public float RevealStart => Mathf.Lerp(RoarStart, roarEnd, .62f);
     public int HiddenCanvasCount => hiddenCanvases.Count;
-    private float roarEnd;
+    public Vector3 VisualOffset => visualRoot != null ? visualRoot.localPosition - visualRestPosition : Vector3.zero;
+    private float roarEnd, arrivalLength;
     private Settings settings;
     private CrustaspikanEncounter encounter;
     private EnemyActor actor;
@@ -46,17 +60,22 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     private OverburstCinemachineCameraRig rig;
     private CinemachineCamera shotCamera;
     private GameObject presentation;
-    private CanvasGroup title;
-    private AudioSource voice;
-    private bool voicePaused;
+    private AudioSource voice, rumble, impact, breath;
+    private bool voicePaused, breachEmitted, roarPressureEmitted, visualCaptured, inhaleStarted;
     private RectTransform topBar, bottomBar;
-    private RectTransform titleRule;
     private Light keyLight, rimLight, mouthLight, arenaFill;
     private Renderer arenaFloor;
+    private MeshFilter floorFilter;
+    private Mesh previousFloorMesh, tornFloorMesh;
+    private Vector3[] tornFloorVertices;
+    private const int HoleSegments = 64;
     private MaterialPropertyBlock previousFloorBlock;
     private float previousFillIntensity;
     private ParticleSystem groundBurst;
-    private LineRenderer shockwave;
+    private Transform crater, visualRoot;
+    private Vector3 visualRestPosition;
+    private readonly List<LineRenderer> fractures = new List<LineRenderer>();
+    private readonly List<Transform> debris = new List<Transform>();
     private readonly Dictionary<Renderer, bool> hiddenArenaRenderers = new Dictionary<Renderer, bool>();
     private readonly List<UnityEngine.Object> resources = new List<UnityEngine.Object>();
     private Transform head, claw;
@@ -75,8 +94,10 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         if (IsPlaying || tuning == null || !tuning.enabled || owner.Brain == null
             || camera == null || !camera.UsesCinemachine || camera.CinemachineRig?.Brain == null) return false;
         encounter = owner; actor = owner.Brain.Actor; lease = actor.LeaseVersion; rig = camera.CinemachineRig; settings = tuning;
+        var arrival = owner.Brain.RuntimeMaterials.FindMotion(settings.arrivalMotion);
         var motion = owner.Brain.RuntimeMaterials.FindMotion(settings.roarMotion);
-        if (motion?.IsPlayable != true) return false;
+        if (motion?.IsPlayable != true || arrival?.IsPlayable != true || actor.VisualRoot == null) return false;
+        arrivalLength = arrival.runtime.length;
         roarEnd = RoarStart + motion.runtime.length;
         basePosition = actor.transform.position; baseRotation = actor.transform.rotation;
         var renderers = actor.GetComponentsInChildren<Renderer>();
@@ -89,7 +110,9 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             if (bone.name == owner.Brain.RuntimeMaterials.boulderLeftHandBone) claw = bone;
         }
         smoothedHead = HeadPosition;
-        WasSkipped = RoarStarted = RoarAudioStarted = ImpactStarted = voicePaused = false; Elapsed = 0f; ShotIndex = 0;
+        WasSkipped = RoarStarted = RoarAudioStarted = ImpactStarted = voicePaused = false;
+        ArrivalStarted = RumbleAudioStarted = ImpactAudioStarted = VisualRestored = FloorGeometryRestored = breachEmitted = roarPressureEmitted = inhaleStarted = false;
+        Elapsed = 0f; ShotIndex = 0; ImpactElapsed = -1f;
         IsPlaying = true;
         try
         {
@@ -106,6 +129,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             rig.OutputCamera.clearFlags = CameraClearFlags.SolidColor; rig.OutputCamera.backgroundColor = Backdrop;
             CaptureArena();
             BuildPresentation();
+            visualRoot = actor.VisualRoot; visualRestPosition = visualRoot.localPosition; visualCaptured = true;
+            ApplyEmergence(0f); smoothedHead = HeadPosition;
             ApplyShot(0f);
             return true;
         }
@@ -140,6 +165,7 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             if (renderer.name == "Arena Floor")
             {
                 arenaFloor = renderer; previousFloorBlock = new MaterialPropertyBlock(); renderer.GetPropertyBlock(previousFloorBlock);
+                floorFilter = renderer.GetComponent<MeshFilter>(); previousFloorMesh = floorFilter != null ? floorFilter.sharedMesh : null;
                 var filmBlock = new MaterialPropertyBlock(); renderer.GetPropertyBlock(filmBlock);
                 filmBlock.SetColor("_BaseColor", new Color(.025f, .031f, .045f)); renderer.SetPropertyBlock(filmBlock);
             }
@@ -158,11 +184,14 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         shotCamera.OutputChannel = rig.VirtualCamera.OutputChannel;
         shotCamera.Lens = rig.VirtualCamera.Lens;
         voice = presentation.AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0f;
+        rumble = presentation.AddComponent<AudioSource>(); rumble.playOnAwake = false; rumble.spatialBlend = 0f; rumble.pitch = .72f;
+        impact = presentation.AddComponent<AudioSource>(); impact.playOnAwake = false; impact.spatialBlend = 0f; impact.pitch = .82f;
+        breath = presentation.AddComponent<AudioSource>(); breath.playOnAwake = false; breath.spatialBlend = 0f;
         keyLight = Light("Entrance Warm Key", Local(-.7f, 1.05f, 1.1f), new Color(1f, .68f, .38f), 6f);
         rimLight = Light("Entrance Cold Rim", Local(.55f, .95f, -.65f), new Color(.12f, .52f, .85f), 8f);
         mouthLight = Light("Entrance Mouth Glow", HeadPosition, new Color(1f, .18f, .035f), 0f);
         mouthLight.type = LightType.Point; mouthLight.range = height * .45f;
-        BuildAtmosphere();
+        BuildAtmosphere(); BuildRupture();
 
         var canvasObject = new GameObject("Crustaspikan Entrance Letterbox", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
         canvasObject.transform.SetParent(presentation.transform, false);
@@ -170,19 +199,9 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         var scaler = canvasObject.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = .5f;
         topBar = Bar(canvasObject.transform, "Top Letterbox", true); bottomBar = Bar(canvasObject.transform, "Bottom Letterbox", false);
-        var titleObject = new GameObject("Boss Title", typeof(RectTransform), typeof(CanvasGroup)); titleObject.transform.SetParent(canvasObject.transform, false);
-        var titleRect = titleObject.GetComponent<RectTransform>(); titleRect.anchorMin = titleRect.anchorMax = new Vector2(.5f, .205f);
-        titleRect.sizeDelta = new Vector2(1200, 180); title = titleObject.GetComponent<CanvasGroup>(); title.blocksRaycasts = false;
         TMP_FontAsset font = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/Pretendard_Medium SDF") ?? TMP_Settings.defaultFontAsset;
-        Text(titleObject.transform, "CRUSTASPIKAN", 16, 76f, new Color(.75f, .82f, .84f), font, 18);
-        Text(titleObject.transform, "크러스피칸", 76, 14f, new Color(1f, .87f, .56f), font, 9);
-        Text(titleObject.transform, settings.subtitle, 22, -58f, new Color(.85f, .85f, .8f), font, 5);
-        var rule = new GameObject("Title Rule", typeof(RectTransform), typeof(Image)); rule.transform.SetParent(titleObject.transform, false);
-        titleRule = rule.GetComponent<RectTransform>(); titleRule.sizeDelta = new Vector2(0, 1); titleRule.anchoredPosition = new Vector2(0, -35);
-        var line = rule.GetComponent<Image>(); line.color = new Color(.9f, .69f, .36f, .7f); line.raycastTarget = false;
         var hint = Text(canvasObject.transform, "SPACE  ·  건너뛰기", 17, 0, new Color(.7f, .72f, .73f), font, 1);
         hint.rectTransform.anchorMin = hint.rectTransform.anchorMax = new Vector2(.93f, .055f); hint.rectTransform.sizeDelta = new Vector2(260, 35);
-        title.alpha = 0f;
     }
     private Light Light(string label, Vector3 position, Color color, float intensity)
     {
@@ -204,11 +223,7 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         texture.SetPixels(pixels); texture.Apply(false, true); resources.Add(texture);
         var dustMaterial = TransparentMaterial("Crustaspikan Entrance Dust Material"); dustMaterial.SetTexture("_BaseMap", texture);
         Particles("Entrance Ground Haze", dustMaterial, true);
-        groundBurst = Particles("Entrance Roar Dust", dustMaterial, false);
-        var wave = new GameObject("Entrance Roar Shockwave"); wave.transform.SetParent(presentation.transform, false);
-        wave.transform.position = basePosition + Vector3.up * .08f;
-        shockwave = wave.AddComponent<LineRenderer>(); shockwave.useWorldSpace = false; shockwave.loop = true;
-        shockwave.positionCount = 96; shockwave.sharedMaterial = TransparentMaterial("Crustaspikan Entrance Shockwave Material"); shockwave.enabled = false;
+        groundBurst = Particles("Entrance Rupture Dust", dustMaterial, false);
     }
     private Material TransparentMaterial(string label)
     {
@@ -218,14 +233,115 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); material.renderQueue = 3000; resources.Add(material); return material;
     }
+    private void BuildRupture()
+    {
+        // 바닥 Collider와 본체 위치는 유지하고, 지면 위의 연출 메시만 파열시킨다.
+        var material = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "Crustaspikan Entrance Rupture Material" };
+        material.SetColor("_BaseColor", new Color(.016f, .012f, .009f)); resources.Add(material);
+        var vertices = new Vector3[HoleSegments * 3]; var uv = new Vector2[vertices.Length]; var triangles = new int[HoleSegments * 12];
+        for (int i = 0; i < HoleSegments; i++)
+        {
+            float a = i * Mathf.PI * 2f / HoleSegments; Vector3 radial = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+            vertices[i] = radial * HoleRadius(i);
+            vertices[i + HoleSegments] = vertices[i] + Vector3.down * height * .22f;
+            vertices[i + HoleSegments * 2] = vertices[i] + radial * height * (.045f + .035f * Hash(i + 2));
+            uv[i] = new Vector2(i / 8f, 1f); uv[i + HoleSegments] = new Vector2(i / 8f, 0f); uv[i + HoleSegments * 2] = new Vector2(i / 8f, 1.4f);
+            int next = (i + 1) % HoleSegments, at = i * 12;
+            triangles[at] = i; triangles[at + 1] = next; triangles[at + 2] = i + HoleSegments;
+            triangles[at + 3] = next; triangles[at + 4] = next + HoleSegments; triangles[at + 5] = i + HoleSegments;
+            triangles[at + 6] = i; triangles[at + 7] = i + HoleSegments * 2; triangles[at + 8] = next + HoleSegments * 2;
+            triangles[at + 9] = i; triangles[at + 10] = next + HoleSegments * 2; triangles[at + 11] = next;
+        }
+        var mesh = new Mesh { name = "Crustaspikan Entrance Rupture Mesh", vertices = vertices, triangles = triangles, uv = uv };
+        mesh.RecalculateNormals(); mesh.RecalculateBounds(); resources.Add(mesh);
+        var opening = new GameObject("Entrance Torn Ground", typeof(MeshFilter), typeof(MeshRenderer));
+        opening.transform.SetParent(presentation.transform, false); opening.transform.position = basePosition + Vector3.up * .015f;
+        opening.GetComponent<MeshFilter>().sharedMesh = mesh;
+        opening.GetComponent<MeshRenderer>().sharedMaterial = encounter.Brain.RuntimeMaterials.boulderMaterial ?? material; crater = opening.transform;
+        if (floorFilter != null)
+        {
+            tornFloorVertices = new Vector3[HoleSegments * 2]; var floorTriangles = new int[HoleSegments * 6];
+            for (int i = 0; i < HoleSegments; i++)
+            {
+                float a = i * Mathf.PI * 2f / HoleSegments;
+                Vector3 edge = encounter.ArenaCenter + new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * encounter.Settings.arenaRadius;
+                tornFloorVertices[i + HoleSegments] = floorFilter.transform.InverseTransformPoint(edge);
+                int next = (i + 1) % HoleSegments, at = i * 6;
+                floorTriangles[at] = i; floorTriangles[at + 1] = i + HoleSegments; floorTriangles[at + 2] = next + HoleSegments;
+                floorTriangles[at + 3] = i; floorTriangles[at + 4] = next + HoleSegments; floorTriangles[at + 5] = next;
+            }
+            tornFloorMesh = new Mesh { name = "Crustaspikan Entrance Open Floor Mesh", vertices = tornFloorVertices, triangles = floorTriangles };
+            resources.Add(tornFloorMesh); floorFilter.sharedMesh = tornFloorMesh;
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            var fissure = new GameObject("Entrance Ground Fracture " + i); fissure.transform.SetParent(presentation.transform, false);
+            fissure.transform.position = basePosition + Vector3.up * .018f;
+            var line = fissure.AddComponent<LineRenderer>(); line.useWorldSpace = false; line.positionCount = 5;
+            line.sharedMaterial = material; line.startColor = line.endColor = Color.white;
+            float angle = i * Mathf.PI * .25f + .1f * Mathf.Sin(i * 11f);
+            for (int p = 0; p < 5; p++)
+            {
+                float a = angle + .12f * Mathf.Sin(p * 9.5f + i);
+                line.SetPosition(p, new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * height * (.1f + p * (.12f + .035f * Hash(i + 7))));
+            }
+            line.startWidth = 1f; line.endWidth = .08f;
+            fractures.Add(line);
+        }
+        var source = encounter.Brain.RuntimeMaterials;
+        if (source.boulderMesh == null || source.boulderMaterial == null) return;
+        float diameter = Mathf.Max(.01f, source.boulderMesh.bounds.size.magnitude);
+        for (int i = 0; i < 22; i++)
+        {
+            var piece = new GameObject("Entrance Flying Stone " + i, typeof(MeshFilter), typeof(MeshRenderer));
+            piece.transform.SetParent(presentation.transform, false);
+            piece.GetComponent<MeshFilter>().sharedMesh = source.boulderMesh; piece.GetComponent<MeshRenderer>().sharedMaterial = source.boulderMaterial;
+            float size = height * (.025f + .035f * Hash(i + 4));
+            piece.transform.localScale = new Vector3(1.5f, .65f, 1f) * (size / diameter);
+            debris.Add(piece.transform);
+        }
+    }
+    private static float Hash(int seed) => Mathf.Repeat(Mathf.Sin(seed * 12.9898f) * 43758.5453f, 1f);
+    private float HoleRadius(int index) => height * (.49f + .03f * Mathf.Sin(index * 7.13f));
+    private void ApplyEmergence(float time)
+    {
+        if (!visualCaptured || visualRoot == null) return;
+        float rise = Ease((time - settings.detailSeconds) / settings.emergenceSeconds);
+        Vector3 worldOffset = Vector3.down * height * 1.12f * (1f - rise);
+        visualRoot.localPosition = visualRestPosition + visualRoot.parent.InverseTransformVector(worldOffset);
+        float fracture = Ease(time / settings.detailSeconds);
+        if (crater != null) crater.localScale = Vector3.one * Mathf.Lerp(.015f, 1f, rise);
+        foreach (var line in fractures) line.widthMultiplier = Mathf.Lerp(.004f, .036f, fracture);
+        if (tornFloorMesh != null && floorFilter != null)
+        {
+            for (int i = 0; i < HoleSegments; i++)
+            {
+                float a = i * Mathf.PI * 2f / HoleSegments;
+                Vector3 point = basePosition + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * HoleRadius(i) * Mathf.Lerp(.015f, 1f, rise);
+                point.y = encounter.ArenaCenter.y; tornFloorVertices[i] = floorFilter.transform.InverseTransformPoint(point);
+            }
+            tornFloorMesh.vertices = tornFloorVertices; tornFloorMesh.RecalculateNormals(); tornFloorMesh.RecalculateBounds();
+        }
+        float age = Mathf.Max(0, time - settings.detailSeconds);
+        for (int i = 0; i < debris.Count; i++)
+        {
+            float a = i * 2.39996f; Vector3 radial = new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a));
+            float radius = height * (.25f + .22f * Hash(i + 10));
+            float lift = time < settings.detailSeconds ? Mathf.Abs(Mathf.Sin(time * 23f + i)) * fracture * .09f
+                : Mathf.Max(0f, age * (6f + 7f * Hash(i + 20)) - age * age * 6.5f);
+            float outward = time < settings.detailSeconds ? 0f : Mathf.Min(age, 1.3f) * (2f + 3f * Hash(i + 30));
+            debris[i].position = basePosition + radial * (radius + outward) + Vector3.up * (.07f + lift);
+            debris[i].rotation = Quaternion.Euler(i * 39f + age * 130f, i * 71f + age * 89f, i * 23f + age * 97f);
+        }
+    }
     private ParticleSystem Particles(string label, Material material, bool looping)
     {
         var go = new GameObject(label); go.transform.SetParent(presentation.transform, false); go.transform.position = basePosition + Vector3.up * .12f;
         var system = go.AddComponent<ParticleSystem>(); system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = system.main; main.playOnAwake = false; main.loop = looping; main.duration = 12;
-        main.simulationSpace = ParticleSystemSimulationSpace.World; main.maxParticles = looping ? 60 : 100;
+        main.simulationSpace = ParticleSystemSimulationSpace.World; main.maxParticles = looping ? 70 : 220;
         main.startLifetime = new ParticleSystem.MinMaxCurve(looping ? 3f : .6f, looping ? 6f : 1.8f);
-        main.startSize = new ParticleSystem.MinMaxCurve(height * .02f, height * (looping ? .055f : .09f));
+        main.startSize = new ParticleSystem.MinMaxCurve(height * .035f, height * (looping ? .07f : .17f));
         main.startSpeed = new ParticleSystem.MinMaxCurve(looping ? .05f : 3f, looping ? .3f : 9f);
         main.startColor = new Color(.43f, .34f, .24f, looping ? .2f : .65f);
         var shape = system.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = looping ? 15f : 82f;
@@ -262,18 +378,43 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         if (voice != null && voicePaused != (Time.timeScale <= 0f))
         {
             voicePaused = Time.timeScale <= 0f;
-            if (voicePaused) voice.Pause(); else voice.UnPause();
+            foreach (var source in new[] { voice, rumble, impact, breath })
+                if (voicePaused) source.Pause(); else source.UnPause();
         }
         Elapsed += Time.deltaTime;
+        ApplyEmergence(Elapsed);
+        if (!RumbleAudioStarted && Elapsed >= .12f && settings.rumbleClip != null)
+        { rumble.PlayOneShot(settings.rumbleClip, .42f); RumbleAudioStarted = true; }
+        if (!ArrivalStarted && Elapsed >= settings.detailSeconds)
+        {
+            ArrivalStarted = actor.GetComponent<EnemyBossMaterialExecutor>().TryPlayMotion(settings.arrivalMotion);
+            if (!ArrivalStarted) { Debug.LogWarning("[Crustaspikan] 출현 동작을 시작할 수 없어 전투로 반환합니다."); Stop(false); return; }
+        }
+        if (!breachEmitted && ArrivalStarted)
+        {
+            breachEmitted = true; groundBurst.Play(); groundBurst.Emit(150);
+            if (settings.breachClip != null) impact.PlayOneShot(settings.breachClip, .5f);
+        }
+        var pose = actor.Animator.GetCurrentAnimatorStateInfo(0);
+        if (!ImpactStarted && ArrivalStarted && pose.IsName("Material_" + settings.arrivalMotion) && pose.normalizedTime >= settings.arrivalImpactNormalized)
+        {
+            ImpactStarted = true; ImpactElapsed = Elapsed; groundBurst.Emit(120);
+            if (settings.impactClip != null) { impact.PlayOneShot(settings.impactClip, .55f); ImpactAudioStarted = true; }
+        }
         if (!RoarStarted && Elapsed >= RoarStart)
         {
+            if (!ImpactStarted) { Debug.LogWarning("[Crustaspikan] 출현 모션이 접촉 시점에 도달하지 못해 전투로 반환합니다."); Stop(false); return; }
+            actor.GetComponent<EnemyBossMaterialExecutor>().Cancel();
             RoarStarted = actor.GetComponent<EnemyBossMaterialExecutor>().TryPlayMotion(settings.roarMotion);
-            if (RoarStarted && settings.roarClip != null)
-            { voice.PlayOneShot(settings.roarClip, settings.roarVolume); RoarAudioStarted = true; }
             if (!RoarStarted) { Debug.LogWarning("[Crustaspikan] 등장 포효를 시작할 수 없어 전투 시점으로 반환합니다."); Stop(false); return; }
         }
-        if (!ImpactStarted && Elapsed >= Mathf.Lerp(RoarStart, roarEnd, .35f))
-        { ImpactStarted = true; groundBurst.Play(); groundBurst.Emit(90); }
+        if (!inhaleStarted && RoarStarted && settings.inhaleClip != null)
+        { inhaleStarted = true; breath.PlayOneShot(settings.inhaleClip, .5f); }
+        // 입을 벌리는 실제 포효 구간에 음성과 압력을 맞춘다. 준비 자세에서 먼저 소리내지 않는다.
+        if (!RoarAudioStarted && RoarStarted && Elapsed >= Mathf.Lerp(RoarStart, roarEnd, .22f) && settings.roarClip != null)
+        { breath.Stop(); voice.PlayOneShot(settings.roarClip, settings.roarVolume); RoarAudioStarted = true; }
+        if (!roarPressureEmitted && Elapsed >= Mathf.Lerp(RoarStart, roarEnd, .35f))
+        { roarPressureEmitted = true; groundBurst.Emit(90); }
         if (Elapsed >= Duration) Stop(false);
     }
     private void LateUpdate()
@@ -289,28 +430,35 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         if (time < settings.detailSeconds)
         {
             ShotIndex = 0; float t = Ease(time / settings.detailSeconds);
-            position = Vector3.Lerp(Local(-1.12f, .11f, .82f), Local(-.76f, .19f, .97f), t);
-            focus = ClawPosition; fov = Mathf.Lerp(46f, 38f, t); dutch = Mathf.Lerp(-5f, -2f, t);
+            position = Vector3.Lerp(Local(-.28f, .11f, 1.45f), Local(-.3f, .10f, 1.38f), t);
+            focus = Local(0f, .018f, .10f); fov = 58f; dutch = -1.5f;
+            float tremor = t * t * OverburstGameSettings.CameraShakeScale;
+            position += Vector3.up * Mathf.Sin(time * 31f) * tremor * .025f;
         }
-        else if (time < RoarStart)
+        else if (!ImpactStarted)
         {
-            ShotIndex = 1; float t = Ease((time - settings.detailSeconds) / settings.riseSeconds);
-            position = Vector3.Lerp(Local(-.76f, .19f, .97f), Local(-.3f, .78f, 1.25f), t);
-            focus = Vector3.Lerp(ClawPosition, smoothedHead, t); fov = Mathf.Lerp(38f, 44f, t); dutch = -2f * (1f - t);
+            ShotIndex = 1; float t = Ease((time - settings.detailSeconds) / (ArrivalImpactAt - settings.detailSeconds));
+            position = Vector3.Lerp(Local(-.3f, .10f, 1.38f), Local(-.46f, .21f, 1.85f), Ease((time - settings.detailSeconds) / .9f));
+            focus = Vector3.Lerp(Local(0, .05f, .1f), Local(0, .56f, .1f), Ease((time - settings.detailSeconds - .24f) / .9f));
+            fov = Mathf.Lerp(58f, 63f, t); dutch = -3f * Mathf.Sin(t * Mathf.PI);
         }
         else if (time < RevealStart)
         {
             ShotIndex = 2; float t = Mathf.Clamp01((time - RoarStart) / (roarEnd - RoarStart));
-            position = Vector3.Lerp(Local(.16f, .57f, 1.05f), Local(-.08f, .61f, .9f), Ease(t / .62f)); focus = smoothedHead;
+            float recover = Ease((time - ImpactElapsed - .08f) / .6f);
+            position = Vector3.Lerp(Local(.57f, .16f, 1.25f), Local(.28f, .47f, 1.02f), recover);
+            focus = Vector3.Lerp(Local(0, .24f, .2f), smoothedHead, recover);
+            float slam = Mathf.Exp(-Mathf.Max(0, time - ImpactElapsed) * 8f) * OverburstGameSettings.CameraShakeScale;
             float pulse = Mathf.Exp(-Mathf.Pow((t - .35f) / .11f, 2)) * OverburstGameSettings.CameraShakeScale;
-            position += baseRotation * new Vector3(Mathf.Sin(time * 43f) * .75f, Mathf.Sin(time * 57f) * .5f, .7f) * pulse * height * .011f;
-            fov = Mathf.Lerp(43f, 36f, Ease(t / .62f)) + pulse * 5f; dutch = Mathf.Sin(time * 39f) * pulse * 1.15f;
+            position += baseRotation * new Vector3(Mathf.Sin(time * 43f) * .8f, -1f + Mathf.Sin(time * 57f) * .5f, 1f) * (pulse + slam) * height * .018f;
+            fov = Mathf.Lerp(64f, 46f, recover) + pulse * 7f; dutch = Mathf.Sin(time * 39f) * (pulse * 2f + slam * 4f);
         }
         else
         {
             ShotIndex = returning > 0f ? 4 : 3; float t = Ease((time - RevealStart) / (roarEnd + settings.revealSeconds - RevealStart));
-            position = Vector3.Lerp(Local(-.8f, .56f, 1.38f), Local(-.96f, .64f, 1.52f), t);
-            focus = Local(0, .38f, 0); fov = Mathf.Lerp(51f, 46f, t);
+            position = Vector3.Lerp(Local(-.08f, .22f, 1.48f), Local(-.18f, .34f, 1.95f), t);
+            focus = Vector3.Lerp(smoothedHead, Local(0, .48f, 0), t); fov = Mathf.Lerp(62f, 57f, t);
+            dutch = -2f * (1f - t);
         }
         shotCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
         var lens = shotCamera.Lens; lens.FieldOfView = fov; lens.Dutch = dutch; lens.ModeOverride = LensSettings.OverrideModes.Perspective;
@@ -318,24 +466,14 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         float weight = Ease(time / .45f) * (1f - Ease(returning));
         cameraOverride = rig.Brain.SetCameraOverride(cameraOverride, 100, rig.VirtualCamera, shotCamera, weight, Time.deltaTime);
         float bars = Mathf.Min(Ease(time / .45f), 1f - Ease(returning));
-        topBar.sizeDelta = bottomBar.sizeDelta = new Vector2(0, 130f * bars);
-        float reveal = Ease((time - RevealStart - .15f) / .65f);
-        title.alpha = reveal * (1f - Ease(returning));
-        title.transform.localScale = Vector3.one * Mathf.Lerp(1.1f, 1f, reveal);
-        titleRule.sizeDelta = new Vector2(640f * reveal, 1f);
-        keyLight.intensity = Mathf.Lerp(1.5f, 6f, Ease(time / RoarStart)); rimLight.intensity = Mathf.Lerp(3f, 8f, Ease(time / RoarStart));
+        topBar.sizeDelta = bottomBar.sizeDelta = new Vector2(0, 105f * bars);
+        float exposed = Ease((time - settings.detailSeconds) / .7f);
+        keyLight.intensity = Mathf.Lerp(.2f, 5f, exposed); rimLight.intensity = Mathf.Lerp(.5f, 9f, exposed);
         mouthLight.transform.position = HeadPosition + baseRotation * Vector3.forward * .25f;
         float roarTime = Mathf.Clamp01((time - RoarStart) / (roarEnd - RoarStart));
         mouthLight.intensity = 5f * Mathf.Sin(roarTime * Mathf.PI);
-        float waveAge = time - Mathf.Lerp(RoarStart, roarEnd, .35f);
-        shockwave.enabled = waveAge >= 0f && waveAge < 2f;
-        if (shockwave.enabled)
-        {
-            float radius = Mathf.Lerp(height * .55f, height * 2.2f, Ease(waveAge / 2f));
-            for (int i = 0; i < 96; i++) { float a = i * Mathf.PI * 2 / 96; shockwave.SetPosition(i, new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * radius); }
-            shockwave.widthMultiplier = Mathf.Lerp(.2f, .035f, waveAge / 2f);
-            shockwave.startColor = shockwave.endColor = new Color(.75f, .52f, .27f, .35f * (1 - waveAge / 2f));
-        }
+        // 저음은 출현 직전만 남기고 포효와 충돌음의 자리를 비운다.
+        rumble.volume = Mathf.Lerp(.35f, 1f, Ease(time / settings.detailSeconds)) * (1f - Ease((time - settings.detailSeconds) / .5f));
         if (returning > 0f && rig.OutputCamera != null) rig.OutputCamera.backgroundColor = Color.Lerp(Backdrop, previousBackground, Ease(returning));
     }
     private static float Ease(float value) { float t = Mathf.Clamp01(value); return t * t * (3f - 2f * t); }
@@ -352,18 +490,24 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             if (cameraAppearanceCaptured && rig?.OutputCamera != null)
             { rig.OutputCamera.backgroundColor = previousBackground; rig.OutputCamera.clearFlags = previousClearFlags; }
             cameraAppearanceCaptured = false;
+            if (visualCaptured && actor != null && actor.IsLeased && actor.LeaseVersion == lease && visualRoot != null)
+            { visualRoot.localPosition = visualRestPosition; VisualRestored = true; }
+            visualCaptured = false;
             foreach (var pair in hiddenCanvases) if (pair.Key != null) pair.Key.enabled = pair.Value;
             hiddenCanvases.Clear();
             foreach (var pair in hiddenArenaRenderers) if (pair.Key != null) pair.Key.enabled = pair.Value;
             hiddenArenaRenderers.Clear();
             if (arenaFloor != null) arenaFloor.SetPropertyBlock(previousFloorBlock);
             arenaFloor = null; previousFloorBlock = null;
+            if (floorFilter != null) { floorFilter.sharedMesh = previousFloorMesh; FloorGeometryRestored = true; }
+            floorFilter = null; previousFloorMesh = tornFloorMesh = null; tornFloorVertices = null;
             if (arenaFill != null) arenaFill.intensity = previousFillIntensity;
             arenaFill = null;
             if (presentation != null) { presentation.SetActive(false); Destroy(presentation); }
             foreach (var resource in resources) if (resource != null) Destroy(resource);
             resources.Clear();
-            presentation = null; shotCamera = null; title = null; voice = null;
+            presentation = null; shotCamera = null; voice = rumble = impact = breath = null;
+            fractures.Clear(); debris.Clear(); crater = null;
             if (actor != null && actor.IsLeased && actor.LeaseVersion == lease) encounter.Brain?.FinishEntrance(cancelling ? 0f : settings.combatGraceSeconds);
         }
         finally { GameplayInputBlocker.Unblock(this); }

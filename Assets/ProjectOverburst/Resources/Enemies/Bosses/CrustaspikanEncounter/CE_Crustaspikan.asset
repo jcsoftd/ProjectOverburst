@@ -392,12 +392,19 @@ MonoBehaviour:
   enableBossEvasion: 1
   entrance:
     enabled: 1
-    detailSeconds: 1.5
-    riseSeconds: 1.6
+    detailSeconds: 1.3
+    riseSeconds: 2.55
+    arrivalMotion: 2HandsSmashAttack
+    arrivalImpactNormalized: 0.425
+    emergenceSeconds: 1.1
     roarMotion: Roar1
-    revealSeconds: 1.35
-    returnSeconds: 1
+    revealSeconds: 0.35
+    returnSeconds: 0.75
     combatGraceSeconds: 1
     subtitle: "\uC554\uAD74\uC758 \uD3EC\uC2DD\uC790"
     roarClip: {fileID: 8300000, guid: edfbbe9afae144eccada637c4185a140, type: 3}
+    rumbleClip: {fileID: 8300000, guid: b6b594698b5a0ae47809b57e33ac9b3e, type: 3}
+    breachClip: {fileID: 8300000, guid: ee14490c6c912c54daf0c7ba3b044996, type: 3}
+    impactClip: {fileID: 8300000, guid: a4e95e9a1c578024e87026aa5b2008f5, type: 3}
+    inhaleClip: {fileID: 8300000, guid: ef96f604f7afd4266b6019b76fa14d1a, type: 3}
     roarVolume: 0.75

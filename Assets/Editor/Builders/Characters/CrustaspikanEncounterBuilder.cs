@@ -6,21 +6,32 @@ using UnityEngine;
 public static class CrustaspikanEncounterBuilder
 {
     public const string AssetPath="Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanEncounter/CE_Crustaspikan.asset";
-    // 등장 사운드 참조 하나만 연결한다. 이미 저작된 패턴·수치와 사용자의 사운드 선택은 보존한다.
+    // 비어 있는 등장 사운드만 연결한다. 이미 저작된 전투 수치와 사운드 선택은 보존한다.
     public static string ConnectEntranceSound()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("유휴 EditMode에서 등장 사운드를 연결하세요.");
         var settings=AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(AssetPath);
         if(settings==null || EditorUtility.IsDirty(settings))throw new InvalidOperationException("전투 설정의 미저장 변경을 먼저 소유 작업에서 마쳐야 합니다.");
-        if(settings.entrance?.roarClip!=null)return "Authored entrance sound preserved";
-        var clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/11_사운드/Dragon Kit Sound FX/Dragon_RoarBig_1.wav");
-        if(clip==null)throw new InvalidOperationException("기존 Dragon Kit 포효 클립을 찾지 못했습니다.");
         var serialized=new SerializedObject(settings);serialized.Update();
-        var sound=serialized.FindProperty("entrance.roarClip");
-        if(sound==null)throw new InvalidOperationException("등장 설정이 컴파일되지 않았습니다.");
-        sound.objectReferenceValue=clip;serialized.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(settings);
-        return "Existing Dragon_RoarBig_1 linked to entrance only";
+        var sounds=new[] {
+            new[]{"roarClip","Dragon Kit Sound FX/Dragon_RoarBig_1.wav"},
+            new[]{"inhaleClip","Dragon Kit Sound FX/Dragon_Inhale_1.wav"},
+            new[]{"rumbleClip","Pro Sound Collection/Cinematic Sounds/cinematic_deep_bass_rumble_01.wav"},
+            new[]{"breachClip","Pro Sound Collection/Impacts_Smashable/rock_earthquake_impact_01.wav"},
+            new[]{"impactClip","Pro Sound Collection/Impacts_Smashable/rock_impact_heavy_slam_01.wav"}
+        };
+        foreach(var entry in sounds)
+        {
+            var sound=serialized.FindProperty("entrance."+entry[0]);
+            if(sound==null)throw new InvalidOperationException("등장 사운드 설정이 컴파일되지 않았습니다.");
+            if(sound.objectReferenceValue!=null)continue;
+            var clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/11_사운드/"+entry[1]);
+            if(clip==null)throw new InvalidOperationException("기존 등장 효과음을 찾지 못했습니다: "+entry[1]);
+            sound.objectReferenceValue=clip;
+        }
+        serialized.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(settings);
+        return "Existing rumble, earth rupture, heavy slam, inhale and roar linked to entrance only";
     }
     [MenuItem("OVERBURST/Builders/Crustaspikan/Build First Encounter Settings")]
     public static void BuildMenu()=>Debug.Log(Build());

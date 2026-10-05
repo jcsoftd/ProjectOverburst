@@ -67,6 +67,9 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
         if (bossHp <= 0 || groggyMax <= 0 || arenaRadius < 16 || maximumAdds < 4
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
         if (entrance != null && entrance.enabled && (materials.FindMotion(entrance.roarMotion)?.IsPlayable != true
+            || materials.FindMotion(entrance.arrivalMotion)?.IsPlayable != true
+            || !Finite(entrance.emergenceSeconds) || entrance.emergenceSeconds < .1f
+            || !Finite(entrance.arrivalImpactNormalized) || entrance.arrivalImpactNormalized < .05f || entrance.arrivalImpactNormalized > .95f
             || !Finite(entrance.detailSeconds) || entrance.detailSeconds < .25f || !Finite(entrance.riseSeconds) || entrance.riseSeconds < .25f
             || !Finite(entrance.revealSeconds) || entrance.revealSeconds < .25f || !Finite(entrance.returnSeconds) || entrance.returnSeconds < .1f
             || !Finite(entrance.combatGraceSeconds) || entrance.combatGraceSeconds < 0f || !Finite(entrance.roarVolume)))
