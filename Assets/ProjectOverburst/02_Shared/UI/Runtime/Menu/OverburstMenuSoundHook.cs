@@ -19,7 +19,7 @@ public sealed class OverburstMenuSoundHook : MonoBehaviour, IPointerEnterHandler
 
     public void OnSelect(BaseEventData eventData)
     {
-        if (eventData is PointerEventData) return;
+        if (eventData is PointerEventData || (!(eventData is AxisEventData) && !OverburstGameMenu.NavigationRequestedThisFrame)) return;
         OverburstGameMenu.Instance?.PlayHover();
         ScrollIntoView();
     }
@@ -42,7 +42,8 @@ public sealed class OverburstMenuSoundHook : MonoBehaviour, IPointerEnterHandler
         // viewport 로컬 단위를 content 로컬 단위로 바꿔 옮긴다.
         float scale = scroll.content.lossyScale.y / Mathf.Max(.0001f, viewport.lossyScale.y);
         var position = scroll.content.anchoredPosition;
-        position.y -= shift / Mathf.Max(.0001f, scale) - (shift > 0f ? -24f : 24f);
+        position.y -= (shift + (shift > 0f ? 24f : -24f)) / Mathf.Max(.0001f, scale);
+        position.y = Mathf.Clamp(position.y, 0f, Mathf.Max(0f, scroll.content.rect.height - viewport.rect.height));
         scroll.content.anchoredPosition = position;
         scroll.StopMovement();
     }

@@ -34,7 +34,7 @@ public static class ScreenEffectSettingsVerifier
         var menu=AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
         var panel=menu.GetComponentInChildren<OverburstSettingsPanel>(true);
         Require(panel.motionBlur!=null && panel.edgeBlur!=null && panel.combatScroll!=null,"Remaining screen settings wired");
-        Require(panel.combatScroll.content.childCount==8 && panel.combatScroll.content.rect.height==1430,"Eight settings rows without gaps");
+        Require(new UnityEngine.Component[]{panel.cameraShake,panel.hitEffect,panel.combatFacingIndicator,panel.combatFacingStyle,panel.combatFacingBrightness,panel.motionBlur,panel.edgeBlur,panel.combatEdgeBlurIntensity}.All(c=>c!=null && c.transform.IsChildOf(panel.combatScroll.content)),"Eight screen effect settings retained in the formal scroll list");
         Require(menu.GetComponentsInChildren<Transform>(true).All(x=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(x.gameObject)==0),"Menu Missing Script 0");
         var motion=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/Resources/Camera/PF_OverburstMotionBlur.prefab");
         Require(motion!=null && motion.GetComponent<OverburstMotionBlur>()!=null,"Motion blur prefab retained");

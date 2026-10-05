@@ -1,6 +1,7 @@
 using System;
 using Overburst.Persistence;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -326,6 +327,20 @@ public sealed class OverburstGameMenu : MonoBehaviour
         EventSystem.current.SetSelectedGameObject(target.gameObject);
     }
 
+    internal static bool NavigationRequestedThisFrame
+    {
+        get
+        {
+            var keyboard = Keyboard.current;
+            bool keys = keyboard != null && (keyboard.upArrowKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame ||
+                keyboard.leftArrowKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame ||
+                keyboard.wKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame || keyboard.tabKey.wasPressedThisFrame);
+            var pad = Gamepad.current;
+            return keys || (pad != null && (pad.dpad.up.wasPressedThisFrame || pad.dpad.down.wasPressedThisFrame ||
+                pad.dpad.left.wasPressedThisFrame || pad.dpad.right.wasPressedThisFrame || pad.leftStick.ReadValue().sqrMagnitude > .25f));
+        }
+    }
+
     // 마우스로 빈 곳을 눌러 선택이 풀려도 방향키로 바로 이어 쓰게 한다.
     private void KeepSelection()
     {
@@ -333,6 +348,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
         if (system == null || settings.ConsumesEscape) return;
         var current = system.currentSelectedGameObject;
         if (current != null && current.activeInHierarchy && current.transform.IsChildOf(transform)) return;
+        if (!NavigationRequestedThisFrame) return;
         if (modal.activeSelf) Select(modalCancel);
         else if (settings.gameObject.activeSelf) settings.SelectDefault();
         else Select(resumeButton);

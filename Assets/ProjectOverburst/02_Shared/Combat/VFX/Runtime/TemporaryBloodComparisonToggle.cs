@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Remove PF_TemporaryBloodComparison to retire the comparison. No saved preference.
+// Explicit regression preview for the formal saved blood settings.
 [DefaultExecutionOrder(-1000), DisallowMultipleComponent]
 public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
 {
@@ -31,16 +31,12 @@ public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
     public TMP_Text[] ValueCaptions => valueCaptions;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetState() => instance = null;
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Prepare()
+    // Retained for explicit Editor regression previews; regular Play uses the game settings.
+    public static TemporaryBloodComparisonToggle CreateForTesting()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        if (instance == null)
-        {
-            var prefab = Resources.Load<GameObject>(ResourcePath);
-            if (prefab != null) Instantiate(prefab);
-        }
-#endif
+        if (instance != null) return instance;
+        var prefab = Resources.Load<GameObject>(ResourcePath);
+        return prefab != null ? Instantiate(prefab).GetComponent<TemporaryBloodComparisonToggle>() : null;
     }
     void Awake()
     {

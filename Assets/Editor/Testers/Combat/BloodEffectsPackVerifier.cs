@@ -143,8 +143,9 @@ public static class BloodEffectsPackVerifier
         yield return Wait(2);
         blood=Object.FindFirstObjectByType<BloodHitVfxService>(); ground=Object.FindFirstObjectByType<BloodGroundDecalService>();
         player=PlayerInputFacade.Current.GetComponent<CombatHealth>();
-        var toggle=Object.FindFirstObjectByType<TemporaryBloodComparisonToggle>();
+        var toggle=TemporaryBloodComparisonToggle.CreateForTesting();
         Check(blood != null && ground != null && player != null && toggle != null,"product services, player and comparison HUD bootstrapped");
+        owned.Add(toggle.gameObject);
         float worldDeadline=Time.unscaledTime+60f;
         bool worldReady=false;
         while(Time.unscaledTime<worldDeadline)
@@ -157,7 +158,8 @@ public static class BloodEffectsPackVerifier
         }
         Check(worldReady,"product world ground ready before blood requests");
         yield return Wait(.5f);
-        Check(!BloodHitVfxService.PackEnabled && !BloodHitVfxService.UniformRed,"new Play starts at preserved A palette");
+        Check(BloodHitVfxService.PackEnabled==OverburstGameSettings.BloodPack && BloodHitVfxService.UniformRed==OverburstGameSettings.BloodUniformRed,"new Play follows saved blood choices");
+        BloodHitVfxService.SetPackEnabled(false);BloodHitVfxService.SetUniformRed(false);
         var cameraRoot=new GameObject("Owned Blood Capture Camera");owned.Add(cameraRoot);camera=cameraRoot.AddComponent<Camera>();
         camera.CopyFrom(Camera.main);camera.enabled=false;camera.orthographic=true;camera.orthographicSize=2.1f;
         texture=new RenderTexture(960,640,24,RenderTextureFormat.ARGB32);texture.Create();
@@ -300,7 +302,7 @@ public static class BloodEffectsPackVerifier
             if(!toggle.TuningPanel.activeSelf)Click(toggle.TuningButton);
             Check(toggle.TuningPanel.activeSelf,"tuning panel opens "+pack);
             Check(Mathf.Approximately(BloodComparisonTuning.GroundBrightness,pack?.8f:1f),"floor default brightness aligned with spray "+pack);
-            Check(Mathf.Approximately(BloodComparisonTuning.Scale,pack?2f:1f) && Mathf.Approximately(BloodComparisonTuning.SprayBrightness,pack?.8f:1f),"A/B initial scale and reduced B brightness "+pack);
+            Check(Mathf.Approximately(BloodComparisonTuning.Scale,pack?1.5f:1f) && Mathf.Approximately(BloodComparisonTuning.SprayBrightness,pack?.8f:1f),"A/B initial scale and reduced B brightness "+pack);
             BloodHitVfxService.RequestAt(profile,point,Vector3.right,CombatImpactShape.Sweep,1f,1,targetId:7101);
             yield return Frames(4);yield return Wait(.22f);
             var projector=ground.GetComponentsInChildren<DecalProjector>().First(p=>p.gameObject.activeInHierarchy);
@@ -353,7 +355,7 @@ public static class BloodEffectsPackVerifier
             Check(ground.ActiveCount>0,"fresh tuned floor visible for capture "+pack);
             Capture(point-Vector3.up*.6f,(pack?"B":"A")+"_TunedFloor");
             Click(toggle.ResetButton);yield return Frames(2);
-            Check(Mathf.Approximately(BloodComparisonTuning.Scale,originalScale) && BloodComparisonTuning.GroundRgb==Vector3.one && Mathf.Approximately(BloodComparisonTuning.GroundScale,1f),"current version reset restores defaults "+pack);
+            Check(Mathf.Approximately(BloodComparisonTuning.Scale,originalScale) && BloodComparisonTuning.GroundRgb==new Vector3(pack?1.7f:1f,1f,1f) && Mathf.Approximately(BloodComparisonTuning.GroundScale,1f),"current version reset restores defaults "+pack);
             BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,.1f);Click(toggle.DecreaseButtons[0]);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,.1f),"scale lower bound0.1 "+pack);
             BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,4f);Click(toggle.IncreaseButtons[0]);
@@ -363,7 +365,7 @@ public static class BloodEffectsPackVerifier
         }
         BloodHitVfxService.SetPackEnabled(false);BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,1.3f);
         BloodComparisonTuning.Set(BloodComparisonTuning.Control.GroundRed,.8f);
-        BloodHitVfxService.SetPackEnabled(true);Check(Mathf.Approximately(BloodComparisonTuning.Scale,2f) && BloodComparisonTuning.GroundRgb==Vector3.one,"A adjustments keep B defaults");
+        BloodHitVfxService.SetPackEnabled(true);Check(Mathf.Approximately(BloodComparisonTuning.Scale,1.5f) && BloodComparisonTuning.GroundRgb==new Vector3(1.7f,1f,1f),"A adjustments keep B defaults");
         BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,2.4f);
         BloodHitVfxService.SetPackEnabled(false);Check(Mathf.Approximately(BloodComparisonTuning.Scale,1.3f) && Mathf.Approximately(BloodComparisonTuning.GroundRgb.x,.8f),"return to A retains its own tuning");
         BloodComparisonTuning.ResetCurrent();BloodHitVfxService.SetPackEnabled(true);

@@ -18,7 +18,10 @@ public static class OverburstGameSettings
     [Serializable]
     private sealed class Data
     {
-        public int version = 1;
+        public int version = 2;
+        public bool bloodPack, bloodUniformRed;
+        public BloodComparisonTuning.Values bloodA = new BloodComparisonTuning.Values(false);
+        public BloodComparisonTuning.Values bloodB = new BloodComparisonTuning.Values(true);
         public float masterVolume = 1f;
         public float uiVolume = .8f;
         public bool muteInBackground;
@@ -72,6 +75,26 @@ public static class OverburstGameSettings
     public static bool MotionBlurEnabled { get { Ensure(); return data.motionBlur; } set { Ensure(); if(data.motionBlur==value)return; data.motionBlur=value; Notify(); } }
     public static float MotionBlurIntensity { get { Ensure(); return data.motionBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.01f,1f); if(Mathf.Approximately(data.motionBlurIntensity,v))return; data.motionBlurIntensity=v; Notify(); } }
     private static float NormalizeEffect(float value,float fallback,float maximum) => float.IsNaN(value)||float.IsInfinity(value) ? fallback : Mathf.Clamp(value,0f,maximum);
+
+    public static bool BloodPack
+    {
+        get { Ensure(); return data.bloodPack; }
+        set { Ensure(); if (data.bloodPack == value) return; if (!BloodHitVfxService.SetPackEnabled(value)) return; data.bloodPack = value; BloodComparisonTuning.Invalidate(); Notify(); }
+    }
+    public static bool BloodUniformRed
+    {
+        get { Ensure(); return data.bloodUniformRed; }
+        set { Ensure(); if (data.bloodUniformRed == value) return; data.bloodUniformRed = value; BloodHitVfxService.SetUniformRed(value); Notify(); }
+    }
+    internal static BloodComparisonTuning.Values BloodValues(bool pack) { Ensure(); return pack ? data.bloodB : data.bloodA; }
+    internal static void NotifyBloodTuning() { BloodComparisonTuning.Invalidate(); Notify(); }
+    public static void ResetBloodStyle(bool pack)
+    {
+        Ensure();
+        if (pack) data.bloodB = new BloodComparisonTuning.Values(true);
+        else data.bloodA = new BloodComparisonTuning.Values(false);
+        NotifyBloodTuning();
+    }
 
     public static FullScreenMode ScreenMode { get { Ensure(); return (FullScreenMode)data.screenMode; } }
     public static Vector2Int Resolution { get { Ensure(); return new Vector2Int(data.width, data.height); } }
@@ -127,6 +150,9 @@ public static class OverburstGameSettings
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
             read.motionBlurIntensity = NormalizeEffect(read.motionBlurIntensity,.01f,1f);
             read.explorationEdgeBlurIntensity=NormalizeEffect(read.explorationEdgeBlurIntensity,.72f,1f);read.combatEdgeBlurIntensity=NormalizeEffect(read.combatEdgeBlurIntensity,.42f,1f);
+            read.bloodA = read.bloodA ?? new BloodComparisonTuning.Values(false);
+            read.bloodB = read.bloodB ?? new BloodComparisonTuning.Values(true);
+            read.bloodA.Normalize(false); read.bloodB.Normalize(true); read.version = 2;
             data = read;
         }
         catch (Exception error)
@@ -184,7 +210,7 @@ public static class OverburstGameSettings
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;
-            case "combat": data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
+            case "combat": data.bloodPack = defaults.bloodPack; data.bloodUniformRed = defaults.bloodUniformRed; data.bloodA = defaults.bloodA; data.bloodB = defaults.bloodB; BloodHitVfxService.SetPackEnabled(data.bloodPack); BloodHitVfxService.SetUniformRed(data.bloodUniformRed); BloodComparisonTuning.Invalidate(); data.cameraShake = defaults.cameraShake; data.hitEffect = defaults.hitEffect; data.combatFacingIndicator = defaults.combatFacingIndicator; data.combatFacingStyle = defaults.combatFacingStyle; data.combatFacingBrightness = defaults.combatFacingBrightness; data.edgeBlur=defaults.edgeBlur; data.explorationEdgeBlurIntensity=defaults.explorationEdgeBlurIntensity; data.combatEdgeBlurIntensity=defaults.combatEdgeBlurIntensity; data.motionBlur=defaults.motionBlur; data.motionBlurIntensity=defaults.motionBlurIntensity; break;
         }
         Notify();
     }

@@ -132,6 +132,8 @@ public sealed class BloodHitVfxService : MonoBehaviour
             vfx.initialEventName = "BloodIdle";
             instance.slots[i].Effect = vfx;
         }
+        SetUniformRed(OverburstGameSettings.BloodUniformRed);
+        SetPackEnabled(OverburstGameSettings.BloodPack);
     }
 
     public static void Request(in CombatHitFeedbackRequest hit, Vector3 point, float size)

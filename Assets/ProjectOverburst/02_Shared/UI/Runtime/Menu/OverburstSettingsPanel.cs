@@ -43,6 +43,11 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     public Slider explorationEdgeBlurIntensity,combatEdgeBlurIntensity;
     public ScrollRect combatScroll;
 
+    [Header("Blood")]
+    public UISwitchSelect bloodStyle, bloodPalette;
+    public OverburstSettingsNumberRow[] bloodRows;
+    public Button bloodResetButton;
+
     [Header("Controls")]
     public OverburstKeyBindingRow[] keyRows;
     public ScrollRect keyScroll;
@@ -58,6 +63,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     private OverburstGameMenu menu;
     private bool refreshing;
     private int currentTab;
+    private readonly float[] scrollPositions = { 1f, 1f, 1f, 1f };
     private readonly List<Vector2Int> resolutions = new List<Vector2Int>();
     private InputActionRebindingExtensions.RebindingOperation rebind;
     private int rebindEndedFrame = -1;
@@ -84,13 +90,13 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         muteInBackground.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.MuteInBackground = v; menu.PlayClick(); } });
         cameraShake.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CameraShakeScale = v; });
         hitEffect.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.HitEffectScale = v; });
-        if (combatFacingIndicator != null) combatFacingIndicator.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.CombatFacingIndicator = v; menu.PlayClick(); } });
+        if (combatFacingIndicator != null) combatFacingIndicator.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.CombatFacingIndicator = v; RefreshDependencies(); menu.PlayClick(); } });
         if (combatFacingStyle != null) combatFacingStyle.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.CombatFacingStyle = (CombatFacingIndicatorStyle)i; });
         if (combatFacingBrightness != null) combatFacingBrightness.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CombatFacingBrightness = v; });
-        if(edgeBlur!=null)edgeBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.EdgeBlurEnabled=v;menu.PlayClick();}});
+        if(edgeBlur!=null)edgeBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.EdgeBlurEnabled=v;RefreshDependencies();menu.PlayClick();}});
         if(explorationEdgeBlurIntensity!=null)explorationEdgeBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.ExplorationEdgeBlurIntensity=v;});
         if(combatEdgeBlurIntensity!=null)combatEdgeBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.CombatEdgeBlurIntensity=v;});
-        if(motionBlur!=null)motionBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.MotionBlurEnabled=v;menu.PlayClick();}});
+        if(motionBlur!=null)motionBlur.onValueChanged.AddListener(v=>{if(!refreshing){OverburstGameSettings.MotionBlurEnabled=v;RefreshDependencies();menu.PlayClick();}});
         if(motionBlurIntensity!=null)motionBlurIntensity.onValueChanged.AddListener(v=>{if(!refreshing)OverburstGameSettings.MotionBlurIntensity=v;});
         vSync.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.SetFrameOptions(v, OverburstGameSettings.FrameLimit); RefreshFrameRow(); menu.PlayClick(); } });
         frameLimit.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.SetFrameOptions(OverburstGameSettings.VSync, OverburstGameSettings.FrameLimits[i]); });
@@ -104,6 +110,10 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         resetButton.onClick.AddListener(ResetCurrentTab);
         closeButton.onClick.AddListener(() => menu.CloseSettings());
         if (footerCloseButton != null) footerCloseButton.onClick.AddListener(() => menu.CloseSettings());
+        if (bloodStyle != null) bloodStyle.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.BloodPack = i == 1; RefreshBlood(); menu.PlayClick(); } });
+        if (bloodPalette != null) bloodPalette.onChange.AddListener((i, _) => { if (!refreshing) { OverburstGameSettings.BloodUniformRed = i == 1; menu.PlayClick(); } });
+        if (bloodRows != null) foreach (var row in bloodRows) row.Bind();
+        if (bloodResetButton != null) bloodResetButton.onClick.AddListener(() => { BloodComparisonTuning.ResetCurrent(); RefreshBlood(); menu.PlayClick(); });
         keyPrompt.SetActive(false);
     }
 
@@ -119,24 +129,43 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             for (int i = 0; i < pages.Length; i++) pages[i].SetActive(i == currentTab);
         }
         finally { refreshing = false; }
-        if (keyScroll != null) keyScroll.verticalNormalizedPosition = 1f;
-        if (combatScroll != null) combatScroll.verticalNormalizedPosition = 1f;
+        RestoreScroll(currentTab);
         SelectDefault();
     }
 
     public void SelectDefault()
     {
         var page = pages[Mathf.Clamp(currentTab, 0, pages.Length - 1)];
-        var first = page.GetComponentsInChildren<Selectable>(false).FirstOrDefault(s => s.IsInteractable());
+        var first = page.GetComponentsInChildren<Selectable>(false).FirstOrDefault(s => s.IsInteractable() && Visible(s));
         OverburstGameMenu.Select(first != null ? first : (Selectable)tabs[currentTab]);
+    }
+    static bool Visible(Selectable item)
+    {
+        var scroll = item.GetComponentInParent<ScrollRect>();
+        if (scroll == null || scroll.viewport == null) return true;
+        var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport, item.transform);
+        return bounds.min.y >= scroll.viewport.rect.yMin && bounds.max.y <= scroll.viewport.rect.yMax;
+    }
+    void RememberScroll(int tab)
+    {
+        var scroll = tab == 2 ? combatScroll : tab == 3 ? keyScroll : null;
+        if (scroll != null) scrollPositions[tab] = scroll.verticalNormalizedPosition;
+    }
+    void RestoreScroll(int tab)
+    {
+        Canvas.ForceUpdateCanvases();
+        var scroll = tab == 2 ? combatScroll : tab == 3 ? keyScroll : null;
+        if (scroll != null) { scroll.StopMovement(); scroll.verticalNormalizedPosition = scrollPositions[tab]; }
     }
 
     private void SelectTab(int index)
     {
         if (currentTab == index && pages[index].activeSelf) return;
+        RememberScroll(currentTab);
         currentTab = index;
         for (int i = 0; i < pages.Length; i++) pages[i].SetActive(i == index);
         statusText.text = string.Empty;
+        RestoreScroll(index);
         if (!refreshing) menu.PlayClick();
     }
 
@@ -185,8 +214,26 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
                 limitIndex >= 0 ? limitIndex : OverburstGameSettings.FrameLimits.Length - 1);
             RefreshFrameRow();
             RefreshKeys();
+            RefreshBlood();
+            RefreshDependencies();
         }
         finally { refreshing = false; }
+    }
+
+    void RefreshBlood()
+    {
+        bool wasRefreshing = refreshing; refreshing = true;
+        if (bloodStyle != null) FillOptions(bloodStyle, new[] { "기존 혈흔", "새 혈흔 팩" }, OverburstGameSettings.BloodPack ? 1 : 0);
+        if (bloodPalette != null) FillOptions(bloodPalette, new[] { "몬스터별 색상", "전체 붉은색" }, OverburstGameSettings.BloodUniformRed ? 1 : 0);
+        if (bloodRows != null) foreach (var row in bloodRows) row.RefreshValue();
+        refreshing = wasRefreshing;
+    }
+    void RefreshDependencies()
+    {
+        if (combatFacingBrightness != null) combatFacingBrightness.interactable = OverburstGameSettings.CombatFacingIndicator;
+        if (motionBlurIntensity != null) motionBlurIntensity.interactable = OverburstGameSettings.MotionBlurEnabled;
+        if (explorationEdgeBlurIntensity != null) explorationEdgeBlurIntensity.interactable = OverburstGameSettings.EdgeBlurEnabled;
+        if (combatEdgeBlurIntensity != null) combatEdgeBlurIntensity.interactable = OverburstGameSettings.EdgeBlurEnabled;
     }
 
     private void RefreshFrameRow()
@@ -340,6 +387,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
 
     private void OnDisable()
     {
+        RememberScroll(currentTab);
         if (rebind != null) rebind.Cancel();
     }
 }

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 // 2026-10-01 ESC 메뉴·설정 프리팹 저작(99A: Editor API). RPG11 키트 원본(게임 메뉴·설정 창·확인창·슬라이더·스위치·탭)을 복제해
 // 한글 글꼴과 프로젝트 색(장비·인벤토리 창과 같은 값)으로 다듬는다. 다시 실행하면 프리팹을 통째로 새로 만든다.
-public static class OverburstGameMenuBuilder
+public static partial class OverburstGameMenuBuilder
 {
     public const string PrefabPath = "Assets/ProjectOverburst/Resources/UI/Menu/PF_OverburstGameMenu_Rpg11.prefab";
     private const string Kit = "Assets/ThirdParty/RPG and MMO UI 11/Prefabs/";
@@ -276,6 +276,7 @@ public static class OverburstGameMenuBuilder
         Place((RectTransform)reset.transform, new Vector2(0f, 0f), new Vector2(RowInset - KeySpriteInset, 116f), new Vector2(440f, 130f), new Vector2(0f, .5f));
         panel.resetButton = reset;
         panel.statusText = NewText(footer, "Status", string.Empty, sans, 30, Label, TextAnchor.MiddleCenter, new Vector2(.5f, 0f), new Vector2(0f, 116f), new Vector2(1200f, 60f), new Vector2(.5f, .5f));
+        UpgradeSettingsLayout(panel);
         return panel;
     }
 
@@ -290,7 +291,9 @@ public static class OverburstGameMenuBuilder
         var root=PrefabUtility.LoadPrefabContents(PrefabPath);
         try
         {
-            AddScreenEffectOptions(root.GetComponentInChildren<OverburstSettingsPanel>(true));
+            var panel = root.GetComponentInChildren<OverburstSettingsPanel>(true);
+            AddScreenEffectOptions(panel);
+            UpgradeSettingsLayout(panel);
             PrefabUtility.SaveAsPrefabAsset(root,PrefabPath,out bool saved);
             if(!saved)throw new System.InvalidOperationException("Settings prefab save failed.");
         }
@@ -426,6 +429,7 @@ public static class OverburstGameMenuBuilder
                     if (!selectable.GetComponent<OverburstMenuSoundHook>()) selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
             }
             AddCombatFacingOptions(panel, (RectTransform)panel.pages[2].transform);
+            UpgradeSettingsLayout(panel);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
             if (!saved) throw new System.InvalidOperationException("Menu prefab save failed.");
         }
