@@ -140,15 +140,15 @@ public sealed class PlayerProgression : MonoBehaviour
         if (equipment != null) equipment.RefreshCurrentWeaponStats();
         if (health == null) return;
         float previousMaximum = health.MaxHp;
-        float baseMaximum = Mathf.Max(1f, previousMaximum - appliedHealthBonus);
+        float baseMaximum = Mathf.Max(1f, health.UnmodifiedMaxHp - appliedHealthBonus);
         float permanentBonus = CombatBalanceFormulas.PlayerPermanentHealthBonus(Level, GearStatTotals.From(equipment));
         float preRunMaximum = Mathf.Max(1f, baseMaximum + permanentBonus);
         float bonus = permanentBonus + preRunMaximum * MapRunBuffs.Bonus(MapBuffKind.MaxHealth);
         float nextMaximum = Mathf.Max(1f, baseMaximum + bonus);
         appliedHealthBonus = bonus;
-        health.SetMaxHp(nextMaximum, false);
-        if (healIncrease && !health.IsDead && nextMaximum > previousMaximum)
-            health.Heal(nextMaximum - previousMaximum);
+        health.SetMaxHp(nextMaximum - health.AppliedRunMaxHpPenalty, false);
+        if (healIncrease && !health.IsDead && health.MaxHp > previousMaximum)
+            health.Heal(health.MaxHp - previousMaximum);
         Changed?.Invoke();
     }
 

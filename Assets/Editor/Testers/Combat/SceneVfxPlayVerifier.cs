@@ -69,6 +69,12 @@ public static class SceneVfxPlayVerifier
         catch { Phase = 3; throw; }
         return new { status = "STARTED", output, cycles = 2 };
     }
+    public static object StartRequiredFixes(string outputDirectory)
+    {
+        var result = Start(outputDirectory);
+        SessionState.SetBool(Key + "requiredFixes", true);
+        return result;
+    }
     static void RequireNoForeign()
     {
         foreach (string key in new[] { "Overburst.WeakAttackPlayerLoop.plan", "Overburst.CombatPerformance.folder", "Overburst.CombatPerformance.phase", "Overburst.VisualPlay.Session.plan", "Overburst.VisualPlay.Session.deferredPlan", "Overburst.PlayerFootstepProductVerifier.Pending", "Overburst.CombatFacingVerifier.output", "Overburst.CrustaspikanMaterialVerifier.plan", "Overburst.KANGoal.BuildOwner" })
@@ -91,7 +97,10 @@ public static class SceneVfxPlayVerifier
                 if (readyFrame < 0) { readyFrame = Time.frameCount; return; }
                 if (Time.frameCount - readyFrame < 10) return;
                 EditorApplication.LockReloadAssemblies(); reloadLocked = true; AssetDatabase.DisallowAutoRefresh(); refreshLocked = true;
-                work.Push(VfxSceneOwnershipChecks.Run(Path.Combine(Output, "Cycle" + SessionState.GetInt(Key + "cycle", 1)), Account)); Phase = 2;
+                string cycle = Path.Combine(Output, "Cycle" + SessionState.GetInt(Key + "cycle", 1));
+                work.Push(VfxSceneOwnershipChecks.Run(cycle, Account));
+                if (SessionState.GetBool(Key + "requiredFixes", false)) work.Push(RequiredJiraFixChecks.Run(cycle));
+                Phase = 2;
             }
             if (lostWork) throw new InvalidOperationException("Scene VFX coroutine was lost during domain reload.");
             if (frame == Time.frameCount) return; frame = Time.frameCount;
@@ -128,7 +137,7 @@ public static class SceneVfxPlayVerifier
         bool scenes = File.ReadAllText(Path.Combine(Output, "before.json")) == JsonConvert.SerializeObject(Scenes(), Formatting.Indented);
         File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = guard && scenes && SessionState.GetString(Key + "status", "") == "PASS_SCOPED" ? "PASS_SCOPED" : "FAIL", guard, scenePreserved = scenes, startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) }, Formatting.Indented));
         foreach (string suffix in new[] { "output", "start", "deadline", "status" }) SessionState.EraseString(Key + suffix);
-        SessionState.EraseBool(Key + "background"); SessionState.EraseInt(Key + "cycle"); Phase = 0; EditorApplication.update -= Tick;
+        SessionState.EraseBool(Key + "background"); SessionState.EraseBool(Key + "requiredFixes"); SessionState.EraseInt(Key + "cycle"); Phase = 0; EditorApplication.update -= Tick;
     }
     static void BeforeReload() { if (Phase == 2) Finish("FAIL_RELOADED", new InvalidOperationException("Scene VFX verification interrupted by reload.")); }
     static object[] Scenes() => Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i)).Select(s => (object)new { s.path, s.isDirty, s.rootCount }).ToArray();

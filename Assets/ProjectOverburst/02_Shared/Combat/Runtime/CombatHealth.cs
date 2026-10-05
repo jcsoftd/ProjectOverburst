@@ -47,6 +47,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     public event Action<CombatHealth> OnReset;
 
     public float MaxHp { get { return maxHp; } }
+    public float UnmodifiedMaxHp => maxHp + appliedRunMaxHpPenalty;
+    public float AppliedRunMaxHpPenalty => appliedRunMaxHpPenalty;
     public float CurrentHp { get { return currentHp; } }
     public float NormalizedHp { get { return maxHp > 0f ? Mathf.Clamp01(currentHp / maxHp) : 0f; } }
     public bool IsDead { get; private set; }

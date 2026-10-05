@@ -27,6 +27,7 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     private EnemyBioProjectileVisual boltVisual;
     private BloodHitProfile boltTint;
     private bool boltElectric;
+    private UnityEngine.SceneManagement.Scene boltContentScene;
     private float boltScale = 1f;
     private Vector3 chargeDirection;
     private int attackSequenceId;
@@ -294,6 +295,8 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     // Spit leaves the mouth as a short jet in the thrower's blood colour and bursts where it lands.
     private void LaunchVisual(EnemyAbilityDefinition ability)
     {
+        var contentScene = WorldSessionState.ContentScene;
+        boltContentScene = contentScene.IsValid() && contentScene.isLoaded ? contentScene : default;
         var catalog = EnemyProjectileVfxCatalog.Current;
         var blood = GetComponent<BloodHitTarget>();
         boltTint = blood != null ? blood.Profile : null;
@@ -319,11 +322,13 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
         if (boltTint != null)
             BloodHitVfxService.RequestAt(boltTint, point, boltDirection, CombatImpactShape.Downward,
                 (catalog != null ? catalog.impactSplashSize : .9f) * Mathf.Sqrt(boltScale), 1, 1f, GetInstanceID(), allowSuppressed: true);
-        if (boltElectric) MeleeElementHitVfxService.TryPlay(WeaponElement.Electric, point);
+        if (boltElectric && boltContentScene.IsValid() && boltContentScene.isLoaded)
+            MeleeElementHitVfxService.TryPlayInScene(WeaponElement.Electric, point, boltContentScene.handle);
     }
     private void EndBolt()
     {
         boltFlying=false;boltAbility=null;
+        boltContentScene = default;
         if (boltVisual != null) boltVisual.Stop(); // drips already in the air keep falling
         else if (bolt != null) bolt.SetActive(false);
     }

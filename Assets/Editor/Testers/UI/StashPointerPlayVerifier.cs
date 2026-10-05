@@ -93,6 +93,7 @@ public static class StashPointerPlayVerifier
         SessionState.SetString(KeyPrefix + "Deadline", (EditorApplication.timeSinceStartup + 900).ToString("R", CultureInfo.InvariantCulture));
         SessionState.SetInt(KeyPrefix + "Cycle", 1);
         SessionState.SetString(KeyPrefix + "Status", "RUNNING");
+        SessionState.SetBool(KeyPrefix + "InputRestored", false);
         EditorSceneManager.playModeStartScene = boot;
         Application.runInBackground = true;
         Phase = 1;
@@ -166,7 +167,8 @@ public static class StashPointerPlayVerifier
             if (!string.IsNullOrEmpty(value) && Path.GetFullPath(value) != Account) return;
         IsolatedSavePlayGuard.UseRealAccount();
         bool guard = !IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")) && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""));
-        if (guard && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" && SessionState.GetInt(KeyPrefix + "Cycle", 1) == 1)
+        bool inputRestored = SessionState.GetBool(KeyPrefix + "InputRestored", false);
+        if (guard && inputRestored && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" && SessionState.GetInt(KeyPrefix + "Cycle", 1) == 1)
         {
             SessionState.SetInt(KeyPrefix + "Cycle", 2); Phase = 1; cycleOutput = null; readySinceFrame = -1;
             IsolatedSavePlayGuard.EnterIsolatedPlay(Account); return;
@@ -174,10 +176,11 @@ public static class StashPointerPlayVerifier
         EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionState.GetString(KeyPrefix + "StartScene", ""));
         Application.runInBackground = SessionState.GetBool(KeyPrefix + "Background", false);
         bool scenePreserved = File.ReadAllText(Path.Combine(Output, "before.json")) == JsonConvert.SerializeObject(Scenes(), Formatting.Indented);
-        string result = guard && scenePreserved && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" ? "PASS" : "FAIL";
-        File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = result, guard, scenePreserved, scenes = Scenes(), startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), inputRestored = originalSettings == null }, Formatting.Indented));
+        string result = guard && scenePreserved && inputRestored && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" ? "PASS" : "FAIL";
+        File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = result, guard, scenePreserved, scenes = Scenes(), startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), inputRestored }, Formatting.Indented));
         foreach (string suffix in new[] { "Output", "StartScene", "Deadline", "Status" }) SessionState.EraseString(KeyPrefix + suffix);
         SessionState.EraseInt(KeyPrefix + "Cycle"); SessionState.EraseBool(KeyPrefix + "Background"); Phase = 0;
+        SessionState.EraseBool(KeyPrefix + "InputRestored");
         EditorApplication.update -= Tick;
     }
     static object[] Scenes() => Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i)).Select(s => (object)new { s.path, s.isDirty, s.rootCount }).ToArray();
@@ -210,6 +213,7 @@ public static class StashPointerPlayVerifier
             {
                 var trace = pair.Item1.AddComponent<StashUiVisibilityTrace>(); trace.Output = cycleOutput; trace.Role = pair.Item2; trace.Stage = "setup"; visibilityTraces.Add(trace);
             }
+            SessionState.SetBool(KeyPrefix + "InputRestored", false);
             originalSettings = InputSystem.settings; originalSettingsJson = EditorJsonUtility.ToJson(originalSettings);
             ownedSettings = UnityEngine.Object.Instantiate(originalSettings); ownedSettings.hideFlags = HideFlags.HideAndDontSave;
             ownedSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
@@ -255,7 +259,9 @@ public static class StashPointerPlayVerifier
             if (originalSettings != null)
             {
                 InputSystem.settings = originalSettings;
-                bool restored = EditorJsonUtility.ToJson(originalSettings) == originalSettingsJson;
+                bool restored = ReferenceEquals(InputSystem.settings, originalSettings) && EditorJsonUtility.ToJson(originalSettings) == originalSettingsJson
+                    && (keyboard == null || !keyboard.added) && (mouse == null || !mouse.added);
+                SessionState.SetBool(KeyPrefix + "InputRestored", restored);
                 File.WriteAllText(Path.Combine(cycleOutput, "input-return.json"), JsonConvert.SerializeObject(new { status = restored ? "PASS" : "FAIL", originalUnchanged = restored, ownedDevicesRemoved = keyboard == null || !keyboard.added, mouseRemoved = mouse == null || !mouse.added }));
             }
             if (ownedSettings != null) UnityEngine.Object.DestroyImmediate(ownedSettings);

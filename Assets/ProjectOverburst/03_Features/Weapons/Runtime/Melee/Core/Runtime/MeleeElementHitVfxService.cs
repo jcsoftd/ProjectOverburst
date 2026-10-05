@@ -61,6 +61,13 @@ public static class MeleeElementHitVfxService
             return Play(element, hitPoint, -1f, 0);
     }
 
+    // 몸 크기를 모르는 적중도 생성한 콘텐츠 씬과 함께 반환한다.
+    public static bool TryPlayInScene(WeaponElement element, Vector3 hitPoint, int contentSceneHandle)
+    {
+        using (PlayMarker.Auto())
+            return Play(element, hitPoint, -1f, contentSceneHandle);
+    }
+
     // sizeMultiplier = CombatTargetVfxPlacement.ResolveContact의 몸 크기 배율(0.55~1.5).
     public static bool TryPlay(WeaponElement element, Vector3 hitPoint, float sizeMultiplier, int contentSceneHandle = 0)
     {

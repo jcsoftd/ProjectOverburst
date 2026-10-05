@@ -33,6 +33,9 @@ public static class VfxSceneOwnershipChecks
         var ownedInstances = new HashSet<GameObject>();
         GameObject fixturePrefab = null;
         GameObject borrowedFireInstance = null;
+        GameObject borrowedElectricInstance = null;
+        GameObject boltOwner = null;
+        EnemyAbilityDefinition boltAbility = null;
         MeleeAttackVfxDefinition definition = null;
         MeleeElementHitVfxCatalog clone = null;
         var catalogField = typeof(MeleeElementHitVfxService).GetField("catalog", All);
@@ -52,6 +55,7 @@ public static class VfxSceneOwnershipChecks
             Check(authored != null && authored.TryResolve(WeaponElement.Fire, out _), "Authored Fire hit content resolves");
             clone = UnityEngine.Object.Instantiate(authored); clone.hideFlags = HideFlags.HideAndDontSave;
             clone.fireLifetime = 60f; clone.firePlaybackSpeed = 1f;
+            clone.electricLifetime = 60f;
             catalogField.SetValue(null, clone); attemptedField.SetValue(null, true);
             clone.TryResolve(WeaponElement.Fire, out var firePrefab);
             long fireReturnsBefore = TransientVfxPool.GetStatistics(firePrefab).Returns;
@@ -75,11 +79,32 @@ public static class VfxSceneOwnershipChecks
             var hitObject = Field<GameObject>(hit, "Instance");
             borrowedFireInstance = hitObject;
             ownedInstances.Add(hitObject);
+            boltOwner = new GameObject("KAN9OwnedElectricBolt"); boltOwner.SetActive(false);
+            SceneManager.MoveGameObjectToScene(boltOwner, a);
+            var executor = boltOwner.AddComponent<EnemyThemeSpecialExecutor>();
+            boltAbility = ScriptableObject.CreateInstance<EnemyAbilityDefinition>();
+            contentSetter.Invoke(null, new object[] { a });
+            typeof(EnemyThemeSpecialExecutor).GetMethod("LaunchVisual", All).Invoke(executor, new object[] { boltAbility });
+            typeof(EnemyThemeSpecialExecutor).GetField("boltElectric", All).SetValue(executor, true);
+            contentSetter.Invoke(null, new object[] { b });
+            clone.TryResolve(WeaponElement.Electric, out var electricPrefab);
+            long electricReturns = TransientVfxPool.GetStatistics(electricPrefab).Returns;
+            typeof(EnemyThemeSpecialExecutor).GetMethod("SplashBolt", All).Invoke(executor, new object[] { Vector3.zero });
+            var electric = Leases().FirstOrDefault(l => ReferenceEquals(Field<GameObject>(l, "Prefab"), electricPrefab) && Field<int>(l, "ContentSceneHandle") == a.handle);
+            Check(electric != null, "Electric bolt impact retains launch scene A after current content changes to B");
+            borrowedElectricInstance = Field<GameObject>(electric, "Instance"); ownedInstances.Add(borrowedElectricInstance);
+            var expectedScale = electricPrefab.transform.localScale * (MeleeElementHitVfxService.UniformHitScale * clone.ResolveHitScale(WeaponElement.Electric));
+            Check((borrowedElectricInstance.transform.localScale - expectedScale).sqrMagnitude < .000001f, "Scene-owned electric impact retains uniform small hit size");
+            typeof(EnemyThemeSpecialExecutor).GetMethod("EndBolt", All).Invoke(executor, null);
+            int electricActive = TransientVfxPool.GetStatistics(electricPrefab).Active;
+            typeof(EnemyThemeSpecialExecutor).GetMethod("SplashBolt", All).Invoke(executor, new object[] { Vector3.zero });
+            Check(!((Scene)typeof(EnemyThemeSpecialExecutor).GetField("boltContentScene", All).GetValue(executor)).IsValid() && TransientVfxPool.GetStatistics(electricPrefab).Active == electricActive, "Cancelled bolt clears scene owner and cannot emit a new electric lease");
             var beforeB = TransientVfxPool.GetStatistics(fixturePrefab);
             var unloadB = SceneManager.UnloadSceneAsync(b); while (!unloadB.isDone) yield return null;
             var afterB = TransientVfxPool.GetStatistics(fixturePrefab);
             Check(OwnerOf(cueObject) == null && !cueObject.activeSelf && afterB.Active == beforeB.Active - 1 && afterB.Returns == beforeB.Returns + 1, "B unload stops cue and returns exactly its lease", new { beforeB, afterB });
             Check(OwnerOf(hitObject) == a.handle && hitObject.activeSelf && OwnerOf(persistent) == 0 && persistent.activeSelf, "B unload preserves A hit and independent handle0 effect");
+            Check(OwnerOf(borrowedElectricInstance) == a.handle && borrowedElectricInstance.activeSelf, "B unload preserves electric impact owned by A");
             var oldA = TransientVfxPool.Spawn(fixturePrefab, Vector3.zero, Quaternion.identity, .1f, 8, useUnscaledTime: true, contentSceneHandle: a.handle);
             ownedInstances.Add(oldA);
             Check(ReferenceEquals(oldA, cueObject), "Returned B cue instance is reused for A lease");
@@ -90,6 +115,7 @@ public static class VfxSceneOwnershipChecks
             Check(ReferenceEquals(oldA, reused) && OwnerOf(reused) == c.handle, "Same instance receives a fresh C ownership lease");
             var unloadA = SceneManager.UnloadSceneAsync(a); while (!unloadA.isDone) yield return null;
             Check(OwnerOf(hitObject) == null && !hitObject.activeSelf && hitObject.GetComponentsInChildren<ParticleSystem>(true).All(p => !p.IsAlive(true)) && TransientVfxPool.GetStatistics(firePrefab).Returns == fireReturnsBefore + 1, "A unload stops and clears real Fire particles and returns its pool resource");
+            Check(OwnerOf(borrowedElectricInstance) == null && !borrowedElectricInstance.activeSelf && TransientVfxPool.GetStatistics(electricPrefab).Returns == electricReturns + 1, "A unload returns electric impact exactly once before its extended lifetime");
             Check(OwnerOf(reused) == c.handle && reused.activeSelf, "Unloading old owner A does not return reused C lease");
             Check(OwnerOf(persistent) == 0 && persistent.activeSelf, "Second scene unload still preserves handle0 independent lifetime");
             var natural = TransientVfxPool.Spawn(fixturePrefab, Vector3.zero, Quaternion.identity, .1f, 8, useUnscaledTime: true);
@@ -103,7 +129,7 @@ public static class VfxSceneOwnershipChecks
         finally
         {
             ReturnOwned(ownedInstances);
-            foreach (var instance in ownedInstances) if (instance != null && instance != borrowedFireInstance) UnityEngine.Object.DestroyImmediate(instance);
+            foreach (var instance in ownedInstances) if (instance != null && instance != borrowedFireInstance && instance != borrowedElectricInstance) UnityEngine.Object.DestroyImmediate(instance);
             if (fixturePrefab != null)
             {
                 ((IDictionary)typeof(TransientVfxPool).GetField("Pools", All).GetValue(null)).Remove(fixturePrefab);
@@ -115,6 +141,8 @@ public static class VfxSceneOwnershipChecks
             if (definition != null) UnityEngine.Object.Destroy(definition);
             if (clone != null) UnityEngine.Object.Destroy(clone);
             if (fixturePrefab != null) UnityEngine.Object.Destroy(fixturePrefab);
+            if (boltOwner != null) UnityEngine.Object.Destroy(boltOwner);
+            if (boltAbility != null) UnityEngine.Object.Destroy(boltAbility);
             File.WriteAllText(Path.Combine(output, "vfx-result.json"), JsonConvert.SerializeObject(new { status, checks, syntheticOwnershipScenes = true, realPlayerSceneTransitionResidual = "NOT_REPRODUCED", originalCatalogRestored = ReferenceEquals(catalogField.GetValue(null), originalCatalog), contentSceneRestored = WorldSessionState.ContentScene == previousContent }, Formatting.Indented));
         }
     }
