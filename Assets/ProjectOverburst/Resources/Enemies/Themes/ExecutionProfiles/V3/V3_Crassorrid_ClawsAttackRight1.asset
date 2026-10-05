@@ -36,16 +36,25 @@ MonoBehaviour:
       - a: {x: 1.5709082, y: 3.1792197, z: 1.3994092}
         b: {x: 1.49911, y: 3.6381924, z: 2.0488849}
         radius: 0.23
+      - a: {x: 0.992548, y: 3.9329214, z: 2.2581408}
+        b: {x: 1.7580771, y: 4.1833277, z: 2.5052512}
+        radius: 0.53600806
     - normalizedTime: 0.35999998
       capsules:
       - a: {x: 0.88680834, y: 1.9476361, z: 2.6316588}
         b: {x: 0.65984225, y: 1.8598539, z: 3.3921914}
         radius: 0.23
+      - a: {x: 0.1748493, y: 2.0604715, z: 3.7953694}
+        b: {x: 0.7519076, y: 1.6857853, z: 4.00907}
+        radius: 0.47284684
     - normalizedTime: 0.42
       capsules:
       - a: {x: 0.3006947, y: 1.2836496, z: 2.7197437}
         b: {x: -0.18260168, y: 0.90483725, z: 3.23019}
         radius: 0.23
-    maximumPlanarReach: 3.6857712
+      - a: {x: -0.1937502, y: 0.48222303, z: 3.4364781}
+        b: {x: -0.8600591, y: 0.6931402, z: 3.273167}
+        radius: 0.44770595
+    maximumPlanarReach: 4.5518184
   blockedApproachProjectileFallback: 0
   projectileMuzzleBonePaths: []

@@ -43,8 +43,10 @@ public static class MonsterPresentationCalibrationBuilder
     static IEnumerable<AnimationClip> Clips(Motion motion){if(motion is AnimationClip clip){yield return clip;yield break;}if(motion is BlendTree tree)foreach(var child in tree.children)foreach(var c in Clips(child.motion))yield return c;}
     public static string ApplyMeasuredClawContacts(string authoringPath,string outputDirectory)
     {
-        if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)
-            throw new Exception("Idle Editor required");
+        if(BuildPipeline.isBuildingPlayer||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
+            ||!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))||IsolatedSavePlayGuard.RequiresAccountChoice)
+            throw new Exception("Idle unoccupied Editor and resolved account required");
         directory=Path.GetFullPath(outputDirectory);
         string allowed=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
         if(!directory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||Directory.Exists(directory))
@@ -85,6 +87,11 @@ public static class MonsterPresentationCalibrationBuilder
                     }
                 }
             }
+            if(row["advanceWindow"] is JArray advanceWindow){
+                var previousWindow=row["previousAdvanceWindow"];var currentWindow=profile.AdvanceWindow;
+                if(!profile.UsesAdvance||Mathf.Abs(currentWindow.x-(float)previousWindow[0])>.000001f||Mathf.Abs(currentWindow.y-(float)previousWindow[1])>.000001f)throw new Exception("Advance window changed after visual measurement");
+                so.FindProperty("advanceWindow").vector2Value=new Vector2((float)advanceWindow[0],(float)advanceWindow[1]);
+            }
             if(row["stationaryStartRange"]!=null)so.FindProperty("stationaryStartRange").floatValue=(float)row["stationaryStartRange"];
             if((bool?)row["replaceContactWindows"]==true){var windows=so.FindProperty("contactWindows");for(int g=0;g<windows.arraySize;g++)windows.GetArrayElementAtIndex(g).vector2Value=new Vector2((float)row["contactWindowsNormalized"][g][0],(float)row["contactWindowsNormalized"][g][1]);}
             so.ApplyModifiedPropertiesWithoutUndo();if(!profile.ValidateAuthoring(out string reason))throw new Exception(reason);Save(profile);
@@ -109,7 +116,7 @@ public static class MonsterPresentationCalibrationBuilder
     }
     public static string Apply(string planPath,string outputDirectory)
     {
-        if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
+        if(BuildPipeline.isBuildingPlayer||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
             ||!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","")))throw new Exception("Idle Editor required");
         directory=Path.GetFullPath(outputDirectory);string allowed=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출"))+Path.DirectorySeparatorChar;

@@ -27,10 +27,10 @@ MonoBehaviour:
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.050142
-  hitRadius: 0.84014213
+  range: 1.6193312
+  hitRadius: 0.9442392
   hitAngle: 125
-  verticalTolerance: 1.5
+  verticalTolerance: 1.6858561
   requireLineOfSight: 1
   cooldown: 1.15
   hitDelay: 0.46666667
@@ -43,3 +43,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

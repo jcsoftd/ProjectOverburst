@@ -25,7 +25,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 051f4ccafc710a141a3c30b5f013cb0c, type: 3}
   - {fileID: 1827226128182048838, guid: 1a55cd6723d7c2147ba64e0e709d6cef, type: 3}
   hit: {fileID: 1827226128182048838, guid: 2be5999f2ad7cf74ea5344dbc3de96e6, type: 3}
-  death: {fileID: 1827226128182048838, guid: d37dcf794dc8060458c256f6f89915ca, type: 3}
+  death: {fileID: 7400000, guid: a6f843e27804cca43b4b1a08fb29cdbb, type: 2}
   optional:
   - {fileID: 7400000, guid: 92be7a451f80cb549a6261b817829539, type: 2}
   parryCollapse: {fileID: 7400000, guid: 4145047b05725c74c8877597bbacf09a, type: 2}

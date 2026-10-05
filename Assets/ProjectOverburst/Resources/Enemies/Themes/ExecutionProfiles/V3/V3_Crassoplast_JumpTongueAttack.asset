@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 1827226128182048838, guid: 89fca26d5295dc94d8172d93192fe7dc, type: 3}
   sourceTrimSeconds: {x: 0, y: 1}
   motionPolicy: 2
-  stationaryStartRange: 2.1858325
+  stationaryStartRange: 1.969624
   maxAdvanceDistance: 0
   advanceWindow: {x: 0, y: 0}
   advanceProgress:
@@ -39,6 +39,12 @@ MonoBehaviour:
       - a: {x: 0.15208152, y: 0.62575364, z: 0.7944968}
         b: {x: 0.20313036, y: 0.6664874, z: 1.2114772}
         radius: 0.097500004
+      - a: {x: -0.071720794, y: 0.7689168, z: 1.3243695}
+        b: {x: -0.34581155, y: 0.67021537, z: 1.3340439}
+        radius: 0.14380518
+      - a: {x: 0.07154943, y: 0.739551, z: 1.3302222}
+        b: {x: 0.34727407, y: 0.6431142, z: 1.3342882}
+        radius: 0.14416316
     - normalizedTime: 0.46666667
       capsules:
       - a: {x: -0.17011325, y: 0.47148034, z: 0.92091745}
@@ -47,6 +53,12 @@ MonoBehaviour:
       - a: {x: 0.16311547, y: 0.46455812, z: 0.9213835}
         b: {x: 0.22619475, y: 0.5127898, z: 1.5048649}
         radius: 0.097500004
+      - a: {x: -0.09860748, y: 0.60072595, z: 1.6131247}
+        b: {x: -0.37433106, y: 0.5082719, z: 1.6317735}
+        radius: 0.14408018
+      - a: {x: 0.09288964, y: 0.5942586, z: 1.6151471}
+        b: {x: 0.3694303, y: 0.5015458, z: 1.6301326}
+        radius: 0.1444599
     - normalizedTime: 0.53333336
       capsules:
       - a: {x: -0.16513419, y: 0.41655195, z: 1.0204962}
@@ -55,6 +67,12 @@ MonoBehaviour:
       - a: {x: 0.16687977, y: 0.42487487, z: 1.0210878}
         b: {x: 0.16437994, y: 0.29110134, z: 1.9367256}
         radius: 0.097500004
-    maximumPlanarReach: 2.041189
+      - a: {x: -0.14375867, y: 0.28316537, z: 1.893847}
+        b: {x: -0.15681697, y: 0.23241635, z: 2.1357503}
+        radius: 0.10383983
+      - a: {x: 0.13149282, y: 0.29747608, z: 1.8953073}
+        b: {x: 0.15209259, y: 0.24602188, z: 2.139589}
+        radius: 0.10416357
+    maximumPlanarReach: 2.2491517
   blockedApproachProjectileFallback: 0
   projectileMuzzleBonePaths: []

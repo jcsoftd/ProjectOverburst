@@ -25,7 +25,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         public int expectedWeakCases;
         public int[] validationFrameRates;
         public string[] leaseDefinitionPaths;
-        public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry, presentationCalibration;
+        public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry, presentationCalibration, undeadCrowdVerification;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
         public JArray scenes;
@@ -112,7 +112,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(frameRates.Length==0 || frameRates.Distinct().Count()!=frameRates.Length
             || frameRates.Any(rate=>rate!=15 && rate!=30 && rate!=60))
             throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
-        int presentationCases=(bool?)selectedBatch?["verifyPresentationCalibration"]==true?selectedBatch["definitions"].Count()*2:0;
+        int presentationCases=((bool?)selectedBatch?["verifyUndeadCrowd"]==true?(((bool?)selectedBatch?["verifyCrowd"]??true)?4:0)+(selectedBatch?["deathDefinitions"] is JArray selectedDeaths?selectedDeaths.Count:4):0)+((bool?)selectedBatch?["verifyPresentationCalibration"]==true?selectedBatch["definitions"].Count()*2:0);
         int weakCases=selectedBatch==null?0:selectedBatch["entries"].Where(r=>(string)r["role"]=="weak"
             &&((bool?)r["nativeContactGeometryAuthored"]==true||((string)r["visualType"]=="ranged"||(string)r["visualType"]=="channel")&&(bool?)r["nativeAuthoringComplete"]==true))
             .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length+((bool?)selectedBatch?["verifyRakeLocomotion"]==true?3:0);
@@ -120,7 +120,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -216,6 +216,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan.realPlayerParry){yield return RunRealPlayerParryCases();yield break;}
         if(plan.leaseVerification){yield return RunLeaseCases();yield break;}
         var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
+        if((bool?)author["verifyUndeadCrowd"]==true){yield return RunUndeadCrowdCases(author);if((bool?)author["verifyPresentationCalibration"]==true)yield return RunPresentationCalibrationCases(author);yield break;}
         if((bool?)author["verifyPresentationCalibration"]==true){yield return RunPresentationCalibrationCases(author);yield break;}
         if((bool?)author["verifyRakeLocomotion"]==true){yield return RunRakeLocomotionCases();if(plan.leaseDefinitionPaths?.Length>0)yield return RunLeaseCases();yield break;}
         var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
@@ -287,6 +288,13 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             var playerVolume=playerPrefab!=null?playerPrefab.GetComponent<CombatTarget>().CurrentVolume:new CombatTargetVolume(Vector3.up,5,5);
             if(playerPrefab!=null)victim.layer=playerPrefab.layer;
             float startingDistance=plan.savedProfiles?profile.ApproachStartRange-.10f:1f;
+            GameObject contactFloor=null;
+            if(plan.savedProfiles){
+                contactFloor=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(contactFloor);contactFloor.name="Owned saved attack ground";
+                contactFloor.transform.position=go.transform.position-Vector3.up*.5f;contactFloor.transform.localScale=new Vector3(80,1,80);
+            }
+            Vector3 initialActorPosition=go.transform.position;
+
             // The saved player pivot is at the capsule center. Ground its lowest point
             // at the actor's floor height, as in the production Actor lease test.
             var playerBody=playerPrefab!=null?playerPrefab.GetComponentsInChildren<CapsuleCollider>(true).Single(c=>c.enabled&&!c.isTrigger):null;
@@ -316,12 +324,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             Physics.SyncTransforms();
             bool started=melee.TryStartAbility(victim.transform,ability,0);
             int startFrame=Time.frameCount;float deadline=Time.time+clip.length*4+2;
-            bool acted=false,returnedTarget=false,pauseVerified=true;
+            bool acted=false,returnedTarget=false,pauseVerified=true;int targetPathIndex=0;
             while(started && melee.IsAttacking && Time.time<deadline)
             {
                 bridge.TryGetAttackMotionTime(ability.AnimatorTrigger,clip,out float actual);
                 samples.Add(new JObject{["frame"]=Time.frameCount,["time"]=Time.time,["delta"]=Time.deltaTime,["fixedTime"]=Time.fixedTime,
-                    ["clock"]=melee.WeakAttackNormalizedTime,["animator"]=actual,["entered"]=melee.HasEnteredWeakAttack});
+                    ["clock"]=melee.WeakAttackNormalizedTime,["animator"]=actual,["entered"]=melee.HasEnteredWeakAttack,
+                    ["actorDistance"]=Vector3.Distance(go.transform.position,initialActorPosition),["targetDistance"]=Vector3.Distance(go.transform.position,victim.transform.position),["advanceConsumed"]=driver.ConsumedDistance});
+                if(row["targetPath"] is JArray targetPath){while(targetPathIndex<targetPath.Count&&melee.WeakAttackNormalizedTime>=(float)targetPath[targetPathIndex]["normalizedTime"]){var destination=targetPath[targetPathIndex]["actorLocalPosition"];victim.transform.position=go.transform.TransformPoint(new Vector3((float)destination[0],groundOffset,(float)destination[2]));Physics.SyncTransforms();targetPathIndex++;}}
                 if(!acted && melee.WeakAttackNormalizedTime>=.16f && scenario!="normal" && scenario!="cancel-on-hit")
                 {
                     acted=true;
@@ -345,6 +355,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 for(int observe=0;observe<6;observe++)yield return null;
             int[] expected=scenario=="cancel" || scenario=="freeze"?Array.Empty<int>():scenario=="first-miss"?new[]{1}:
                 scenario=="cancel-on-hit"?new[]{0}:Enumerable.Range(0,times.Length).ToArray();
+            if(scenario=="normal"&&row["expectedContactPhases"] is JArray expectedContact){expected=expectedContact.Values<int>().ToArray();if(expected.Any(p=>p<0||p>=times.Length)||expected.Distinct().Count()!=expected.Length)throw new Exception("Invalid explicit contact fixture phases");}
             float damageMultiplier=(float)typeof(EnemyMeleeAttackController).GetField("definitionDamageMultiplier",Private).GetValue(melee);
             if(!ability.TryResolveWeakDamageBudget(go.GetComponent<EnemyRank>()?.Level??1,damageMultiplier,out var budget))throw new InvalidOperationException("Saved damage budget invalid.");
             float expectedDamage=expected.Sum(phase=>budget.ForPhase(phase));
@@ -358,9 +369,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 ["fixedDelta"]=Time.fixedDeltaTime,["started"]=started,["startFrame"]=startFrame,
                 ["scenario"]=scenario,["pauseVerified"]=pauseVerified,["expectedHits"]=expected.Length,["pass"]=pass,["hits"]=hits,["samples"]=samples});
             var last=(JObject)cases[cases.Count-1];last["savedProfile"]=plan.savedProfiles;last["startingDistance"]=startingDistance;
-            last["targetRadius"]=collider.radius;last["targetHeight"]=collider.height;last["targetCenterY"]=collider.center.y;last["targetGroundOffsetY"]=groundOffset;last["expectedDamage"]=expectedDamage;
+            last["targetRadius"]=collider.radius;last["targetHeight"]=collider.height;last["targetCenterY"]=collider.center.y;last["targetGroundOffsetY"]=groundOffset;last["expectedDamage"]=expectedDamage;last["expectedContactPhases"]=new JArray(expected);last["controlledTargetPath"]=row["targetPath"]?.DeepClone();
             WriteResult("RUNNING");
-            melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);
+            melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);if(contactFloor!=null)UnityEngine.Object.Destroy(contactFloor);
             yield return null;
         }
         if(!string.IsNullOrEmpty(plan.attackBatch)&&plan.leaseDefinitionPaths?.Length>0)
@@ -472,7 +483,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     {
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
-            ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
+            ["cases"]=cases,["crowdDeathFixture"]=plan.undeadCrowdVerification,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
             ["geometryFixture"]=plan.presentationCalibration?"Saved spawn, locomotion Animator and physics, ground clearance and pool reuse; AI selection disabled":!string.IsNullOrEmpty(plan.themeActivationPath)?"Actual PersistentScene player, seven authored map themes, real field spawn budgets and shared pool":plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; actual saved player physical capsule and separate combat volume":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
             ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["leaseDefinitionPaths"]=plan.leaseDefinitionPaths==null?null:JArray.FromObject(plan.leaseDefinitionPaths),["realPlayerParry"]=plan.realPlayerParry&&string.IsNullOrEmpty(plan.themeActivationPath),["nativeAttackBatch"]=plan.attackBatch,["themeActivationPlan"]=plan.themeActivationPath,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }

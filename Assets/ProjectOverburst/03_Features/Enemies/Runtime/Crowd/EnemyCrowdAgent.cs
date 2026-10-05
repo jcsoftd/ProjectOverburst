@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class EnemyCrowdAgent : MonoBehaviour // 군집 조회용 개체 데이터와 등록 생명주기
 {
     private const float FallbackBodyRadius = 0.5f;
+    private const float DefaultCrowdRadiusMultiplier = 1.12f;
     private const float EliteCrowdWeightMultiplier = 1.1f;
     internal const float YieldActivationDistance = EnemyCrowdPrioritySolver.YieldActivationDistance;
     private const float YieldDirectionHoldDuration = EnemyCrowdPrioritySolver.YieldDirectionHoldDuration;
@@ -13,6 +14,7 @@ public sealed class EnemyCrowdAgent : MonoBehaviour // 군집 조회용 개체 �
 
     [SerializeField] private CombatHealth health; // 사망 등록 해제
     [SerializeField] private CapsuleCollider bodyCollider; // 몸 반경 원본
+    [SerializeField, Range(1f, 1.5f)] private float crowdRadiusMultiplier = DefaultCrowdRadiusMultiplier; // 판정 크기와 별개인 군집 여유
 
     private EnemyAIController controller;
     private EnemyMovement movement;
@@ -36,9 +38,11 @@ public sealed class EnemyCrowdAgent : MonoBehaviour // 군집 조회용 개체 �
     }
     public Vector3 SnapshotPosition => snapshotPosition;
     public bool IsCrowdActive => isActiveAndEnabled && (health == null || !health.IsDead);
-    public float BodyRadius => bodyCollider != null
+    public float PhysicalBodyRadius => bodyCollider != null
         ? Mathf.Max(bodyCollider.bounds.extents.x, bodyCollider.bounds.extents.z)
         : FallbackBodyRadius;
+    public float CrowdRadiusMultiplier => Mathf.Clamp(crowdRadiusMultiplier, 1f, 1.5f);
+    public float BodyRadius => PhysicalBodyRadius * CrowdRadiusMultiplier;
     public float CrowdWeight => movement != null && movement.Profile != null
         ? movement.Profile.CrowdWeight
         : 1f;
@@ -211,7 +215,9 @@ public sealed class EnemyCrowdAgent : MonoBehaviour // 군집 조회용 개체 �
 
         Vector3 scale = capsule.transform.lossyScale;
         float horizontalScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
-        return Mathf.Max(0.05f, capsule.radius * horizontalScale);
+        var agent = root.GetComponent<EnemyCrowdAgent>();
+        float multiplier = agent != null ? agent.CrowdRadiusMultiplier : DefaultCrowdRadiusMultiplier;
+        return Mathf.Max(0.05f, capsule.radius * horizontalScale) * multiplier;
     }
 
     private void SubscribeHealth()

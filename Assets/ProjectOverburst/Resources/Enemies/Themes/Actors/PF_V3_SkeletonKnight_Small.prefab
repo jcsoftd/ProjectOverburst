@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 245565454780939843}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.9, z: 0}
+  m_LocalPosition: {x: 0.041174322, y: 0.8413921, z: 0.20652477}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -689,13 +689,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTarget
   damageReceiver: {fileID: 3729191568005191899}
   affiliation: {fileID: 4451696434444738850}
-  localCenter: {x: 0, y: 0.47, z: 0}
-  radius: 0.18
-  height: 0.9
+  localCenter: {x: 0, y: 0.77, z: 0}
+  radius: 0.3
+  height: 1.5
   useCustomHurtVolume: 1
-  hurtLocalCenter: {x: 0, y: 0.7174999, z: 0}
-  hurtRadius: 0.3
-  hurtHeight: 1.3949999
+  hurtLocalCenter: {x: 0, y: 0.795, z: 0}
+  hurtRadius: 0.33717126
+  hurtHeight: 1.55
 --- !u!114 &837274575041970730
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -843,6 +843,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCrowdAgent
   health: {fileID: 3729191568005191899}
   bodyCollider: {fileID: 4123539095711597655}
+  crowdRadiusMultiplier: 1.12
 --- !u!114 &8681939820527448147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1163,13 +1164,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
   useAuthoredVolume: 1
-  localBodyCenter: {x: -0.00019555716, y: 0.33509144, z: 0.06484331}
-  bodyRadius: 0.51414305
-  bodyHeight: 0.62
+  localBodyCenter: {x: 0, y: 0.77, z: 0}
+  bodyRadius: 0.3
+  bodyHeight: 1.5
   useAuthoredHitVolume: 1
-  localHitCenter: {x: -0.00033524085, y: 0.36015674, z: 0.06830282}
-  hitRadius: 0.602
-  hitHeight: 1.1159999
+  localHitCenter: {x: -0.00037677857, y: 0.40478164, z: 0.07676582}
+  hitRadius: 0.67659026
+  hitHeight: 1.2542769
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
@@ -1243,7 +1244,7 @@ Transform:
   m_GameObject: {fileID: 5304722907616991195}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.8, z: 0.8}
+  m_LocalPosition: {x: 0.041174322, y: 0.8413921, z: 0.37921348}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1398,10 +1399,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.18
-  m_Height: 0.9
+  m_Radius: 0.3
+  m_Height: 1.5
   m_Direction: 1
-  m_Center: {x: 0, y: 0.47, z: 0}
+  m_Center: {x: 0, y: 0.77, z: 0}
 --- !u!1 &9083280137966044045
 GameObject:
   m_ObjectHideFlags: 0
@@ -1427,7 +1428,7 @@ Transform:
   m_GameObject: {fileID: 9083280137966044045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6949999, z: 0}
+  m_LocalPosition: {x: 0.041174322, y: 1.966392, z: 0.20652477}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

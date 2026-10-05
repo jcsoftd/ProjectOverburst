@@ -72,10 +72,12 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         actor.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;var channel=actor.GetComponent<EnemyChannelAbilityExecutor>();
         yield return null;yield return new WaitForFixedUpdate();yield return null;Physics.SyncTransforms();
         Vector3 start=actor.transform.position;bool started=actor.AbilityController.TryStartAbility(ability,victim.transform);
+        if(!ability.TryResolveWeakDamageBudget(actor.GetComponent<EnemyRank>()?.Level??1,actor.RuntimeStats.DamageMultiplier,out var damageBudget))throw new Exception("Channel damage budget invalid");
+        float expectedDamage=Enumerable.Range(0,ability.HitCount).Sum(damageBudget.ForPhase);
         float deadline=Time.time+ability.ResolveExecutionDuration(actor.Melee.AbilityAnimationSpeed)+4;
         while(actor.AbilityController.IsExecuting&&Time.time<deadline)yield return null;
         bool normal=started&&!actor.AbilityController.IsExecuting&&channel.PulseCount==ability.HitCount&&channel.DamageCount==ability.HitCount
-            &&hits.Count==ability.HitCount&&hits.Select(h=>(int)h["phase"]).SequenceEqual(Enumerable.Range(0,ability.HitCount))&&Vector3.Distance(start,actor.transform.position)<.05f&&!channel.IsEmitting;
+            &&Mathf.Abs(hits.Sum(h=>(float)h["damage"])-expectedDamage)<.001f&&hits.Count==ability.HitCount&&hits.Select(h=>(int)h["phase"]).SequenceEqual(Enumerable.Range(0,ability.HitCount))&&Vector3.Distance(start,actor.transform.position)<.05f&&!channel.IsEmitting;
         var evidence=hits.DeepClone();service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
         bool reset=channel.PulseCount==0&&channel.DamageCount==0&&!channel.IsExecuting&&!channel.IsEmitting&&pool.PendingReturnCount==0;
         if(!service.TrySpawn(request,out actor))throw new Exception("Channel reuse failed");
@@ -85,7 +87,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         for(int i=0;i<12;i++){yield return new WaitForFixedUpdate();yield return null;}
         bool cancelled=restarted&&hits.Count==previousHits&&!channel.IsExecuting&&!channel.IsEmitting&&channel.PulseCount==0;
         service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
-        cases.Add(new JObject{{"id",id},{"selectionKey",row["selectionKey"]},{"scenario","saved-channel-pulses-cancel-reuse"},{"fps",fps},{"hits",evidence},{"expectedHits",ability.HitCount},{"normal",normal},{"poolReset",reset},{"cancelled",cancelled},{"pass",normal&&reset&&cancelled&&pool.LeasedCount==0&&pool.PendingReturnCount==0}});WriteResult("RUNNING");
+        cases.Add(new JObject{{"id",id},{"selectionKey",row["selectionKey"]},{"scenario","saved-channel-pulses-cancel-reuse"},{"fps",fps},{"hits",evidence},{"expectedHits",ability.HitCount},{"expectedDamage",expectedDamage},{"normal",normal},{"poolReset",reset},{"cancelled",cancelled},{"pass",normal&&reset&&cancelled&&pool.LeasedCount==0&&pool.PendingReturnCount==0}});WriteResult("RUNNING");
         UnityEngine.Object.Destroy(services);UnityEngine.Object.Destroy(victim);UnityEngine.Object.Destroy(floor);yield return null;
     }
 }

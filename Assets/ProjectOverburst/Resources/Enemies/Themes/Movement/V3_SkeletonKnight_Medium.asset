@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_SkeletonKnight_Medium
   moveSpeed: 1.3
   turnSpeed: 420
-  animationReferenceSpeed: 1.1908906
-  runAnimationReferenceSpeed: 3.4428232
-  backpedalAnimationReferenceSpeed: 1.1908906
+  animationReferenceSpeed: 1.3337495
+  runAnimationReferenceSpeed: 3.8558238
+  backpedalAnimationReferenceSpeed: 1.3337495
   runSpeedMultiplier: 1.6153846
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20

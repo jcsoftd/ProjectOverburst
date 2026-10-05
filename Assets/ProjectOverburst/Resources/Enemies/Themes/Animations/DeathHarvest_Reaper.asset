@@ -23,7 +23,7 @@ MonoBehaviour:
   - {fileID: 7400000, guid: 379beafb37dae4c4bb6b41416fbf191f, type: 3}
   - {fileID: 7400000, guid: d97ed16e5e0d1914f81c775b51942572, type: 3}
   hit: {fileID: 7400000, guid: 5d01ad16e50b61640a533108db1cdcd5, type: 3}
-  death: {fileID: 7400000, guid: 56127f17fec6b99418cd6fc67462f400, type: 3}
+  death: {fileID: 7400000, guid: 1a4676379600a3f4d84b6c4a1752473e, type: 2}
   optional:
   - {fileID: 7400000, guid: 91c3e0eae70e713459ac452be14e7a16, type: 3}
   - {fileID: 7400000, guid: 4378bbd1f6bc18b46a0661347b89adae, type: 3}
