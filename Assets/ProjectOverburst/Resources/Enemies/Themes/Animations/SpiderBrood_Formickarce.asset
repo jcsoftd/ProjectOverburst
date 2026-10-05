@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: SpiderBrood_Formickarce
   runtimeController: {fileID: 9100000, guid: 77a29a646506bc649ab06711d21cebf1, type: 2}
-  idle: {fileID: 1827226128182048838, guid: 6c787c36fa4b4d34883d7fc98ae448b5, type: 3}
-  walk: {fileID: 1827226128182048838, guid: a95e5ab2076945740bf9249730097b97, type: 3}
-  run: {fileID: 1827226128182048838, guid: a95e5ab2076945740bf9249730097b97, type: 3}
+  idle: {fileID: 7400000, guid: 3e881c3d956c8f04f82c5900f9bafca7, type: 2}
+  walk: {fileID: 7400000, guid: 3a9485d7c9333304ba74aceae67d9965, type: 2}
+  run: {fileID: 7400000, guid: 3a9485d7c9333304ba74aceae67d9965, type: 2}
   attackClips:
   - {fileID: 1827226128182048838, guid: 369b805fdf50c91499970122b85f4069, type: 3}
   - {fileID: 1827226128182048838, guid: e4d8cc9d444fda2419b5ac006fb671a0, type: 3}
@@ -24,7 +24,7 @@ MonoBehaviour:
   hit: {fileID: 1827226128182048838, guid: 218c19fad9f1a054f9c83c9f830bfd75, type: 3}
   death: {fileID: 1827226128182048838, guid: 40d93afe9a0e0324e99e88c73f6c3033, type: 3}
   optional:
-  - {fileID: 1827226128182048838, guid: 6ec69643b1b135a47a1d1138864119c1, type: 3}
+  - {fileID: 7400000, guid: a05af66038c9bdb438657bead6e81512, type: 2}
   parryCollapse: {fileID: 7400000, guid: d727a420d3bc1d748b1ec2b77d587c31, type: 2}
   stunnedLoop: {fileID: 7400000, guid: c8e122246fcf60243bc5eaa902699beb, type: 2}
   stunRecover: {fileID: 7400000, guid: 10c9feee25bf5a84bb6a834291618d12, type: 2}

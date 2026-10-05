@@ -16,6 +16,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         return StartInternal(outputDirectory,false,1,false,true,false,definitionPath,true);
     }
     static MonsterParryVideoCapture activeParryCapture;
+    const int PerfectParryFixtureVersion=3;
     static IEnumerator CaptureParryFrames(MonsterParryVideoCapture capture)
     { while(true) { yield return null;capture.CaptureFrame(); } }
     static void ParryRequire(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
@@ -128,8 +129,21 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             // The saved full ability set and AI choose the strong; actual player heavy input performs the parry.
             var controller=player.GetComponent<PlayerParryController>();int before=controller!=null?controller.SuccessCount:0;
             float health=playerActor.Health.CurrentHp;
+            // Prepare the isolated gauge after run/account synchronization; the real accepted action owns the grade.
+            var energy=melee.GetComponent<OverburstElementEnergy>();
+            if(energy==null){energy=melee.gameObject.AddComponent<OverburstElementEnergy>();owned.Add(energy);}
+            var equipment=melee.GetComponent<PlayerEquipment>();
+            var gem=AssetDatabase.LoadAssetAtPath<ElementGemItemData>("Assets/ProjectOverburst/Resources/Items/ElementGems/EG_Fire_Common.asset");
+            var equipGem=typeof(PlayerEquipment).GetMethod("SetElementGem",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            var amount=typeof(OverburstElementEnergy).GetField("<Amount>k__BackingField",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            ParryRequire(equipment!=null&&gem!=null&&equipGem!=null&&amount!=null,"Perfect-parry isolated gauge setup unavailable");
+            equipGem.Invoke(equipment,new object[]{new ItemData(gem,1,ItemGrade.Common)});
+            energy.BindWeapon(equipment.CurrentWeaponItem.runtimeInstanceId,equipment.ActiveElement,equipment.EquippedElementGem?.runtimeInstanceId,equipment.GemRevision);
+            amount.SetValue(energy,energy.BaseMaximum);
+            ParryRequire(energy.Normalized>=.8f,"Perfect-parry fixture charge did not reach the product threshold");
             ParryRequire(melee.TryStartHeavyAttack(enemy.transform.position-player.transform.position)==WeaponActionResult.Accepted,"Actual heavy input rejected");
             controller=player.GetComponent<PlayerParryController>();ParryRequire(controller!=null,"Player parry controller missing");
+            ParryRequire(controller.ActionGrade==ParryGrade.Perfect,"Accepted heavy did not lock perfect-parry grade");
             float parryDeadline=Time.unscaledTime+1;
             while(controller.SuccessCount==before){ParryRequire(Time.unscaledTime<parryDeadline,"Real parry judgment did not succeed");yield return null;}
             ParryRequire(controller.SuccessCount==before+1&&!enemy.AbilityController.IsExecuting&&enemy.GetComponent<EnemyMovementReaction>().IsParryStunned,"Real success/cancel/stun mismatch");
@@ -173,6 +187,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             bool reset=!enemy.IsLeased&&!enemy.gameObject.activeSelf&&!enemy.AnimationBridge.IsParryStunAnimating&&!enemy.GetComponent<EnemyMovementReaction>().IsParryStunned&&!enemy.AbilityController.IsExecuting;
             ParryRequire(reset,"Parry state leaked into the pool");
             cases.Add(new JObject{["pass"]=recorded,["id"]=definition.EnemyId,["actualPlayerHeavyParry"]=true,["parrySuccessDelta"]=controller.SuccessCount-before,
+                ["parryGrade"]=controller.ActionGrade.ToString(),["fixtureVersion"]=PerfectParryFixtureVersion,
                 ["strongAbility"]=strong.AbilityId,["strongNormalizedAtInput"]=originalAttackTime,["allSavedAbilitiesRetained"]=true,["states"]=JArray.FromObject(states),
                 ["actionLockPreserved"]=lockPreserved,["recoverFirstSeconds"]=recoverFirst,["expectedHoldSeconds"]=expectedHold,["expectedRecoverSeconds"]=expectedRecover,
                 ["resumedAbility"]=resumedAbility,["poolReset"]=reset,["playerDamageAtParry"]=0,["videoRecorded"]=recorded,["videoPath"]=capture.VideoPath});
