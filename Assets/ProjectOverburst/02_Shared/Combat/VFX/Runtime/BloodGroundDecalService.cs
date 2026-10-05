@@ -366,8 +366,22 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     public void ClearForComparison() => Clear();
 
+    public void ClearForPackChange()
+    {
+        Clear();
+        for (int i = 0; i < Capacity; i++)
+        {
+            var projector = slots[i].Projector;
+            if (projector != null) projector.material = null;
+            slots[i] = new Slot { Projector = projector };
+        }
+        foreach (var material in materials.Values) if (material != null) Destroy(material);
+        materials.Clear();
+    }
+
     private void Clear()
     {
+        System.Array.Clear(pending, 0, pendingCount);
         pendingCount = 0;
         for (int i = 0; i < Capacity; i++)
             if (slots[i].Active && slots[i].Projector)

@@ -93,6 +93,7 @@ public static class SettingsPresentationVerifier
         bool reload = File.Exists(Path.Combine(output, "expect-reload"));
         Check(Object.FindFirstObjectByType<TemporaryBloodComparisonToggle>() == null, "temporary comparison HUD no longer auto creates");
         Check(BloodHitVfxService.PackEnabled == reload && OverburstGameSettings.BloodPack == reload, "saved style applied at boot");
+        CheckExclusivePools(Object.FindFirstObjectByType<BloodHitVfxService>(), reload, "saved boot");
         Check(OverburstGameSettings.BloodUniformRed == reload && BloodHitVfxService.UniformRed == reload, "saved palette applied at boot");
         Check(Mathf.Approximately(OverburstGameSettings.MasterVolume, .62f) && Mathf.Approximately(OverburstGameSettings.CameraShakeScale, .4f), "legacy audio and camera fields preserved");
         Check(Mathf.Approximately(BloodComparisonTuning.Scale, reload ? 1.6f : 1f), "scale initial or restored");
@@ -220,6 +221,7 @@ public static class SettingsPresentationVerifier
                 particles|=pack?blood.GetComponentsInChildren<ParticleSystem>(true).Any(p=>p.particleCount>0):blood.GetComponentsInChildren<VisualEffect>(true).Any(v=>v.aliveParticleCount>0);
             }
             Check(blood.PlayedCount>played && particles,"formal style routes actual monster blood "+pack);
+            CheckExclusivePools(blood, pack, "actual hit");
             yield return Wait(.65f);
             Check(ground.ActiveCount>0,"formal style routes actual ground blood "+pack);
             int count=ground.MaterialVariantCount; int revision=BloodComparisonTuning.Revision;
@@ -230,7 +232,46 @@ public static class SettingsPresentationVerifier
             Check(Object.FindFirstObjectByType<PlayerDamageFeedback>().UsingPackVignette==pack,"actual player hit selects saved vignette style "+pack);
             yield return Wait(.65f);
         }
+        var reusedGround = ground.GetComponentsInChildren<DecalProjector>(true).Select(p=>p.GetInstanceID()).ToArray();
+        var switchSamples = new List<object>();
+        for (int pass = 0; pass < 4; pass++)
+        {
+            bool pack = pass % 2 != 0;
+            var oldSprays = blood.transform.Cast<Transform>().Where(t=>t.name.StartsWith("Blood Pack ") || (t.name.StartsWith("Blood ") && t.GetComponent<VisualEffect>()!=null)).Select(t=>t.gameObject).ToArray();
+            var oldMaterials = ground.GetComponentsInChildren<DecalProjector>(true).Select(p=>p.material)
+                .Concat(blood.GetComponentsInChildren<ParticleSystemRenderer>(true).SelectMany(r=>r.sharedMaterials))
+                .Where(m=>m!=null && !EditorUtility.IsPersistent(m)).Distinct().ToArray();
+            long memoryBefore = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            OverburstGameSettings.BloodPack = pack; clock.Stop();
+            yield return Frames(3);
+            CheckExclusivePools(blood, pack, "repeat " + pass);
+            Check(oldSprays.All(go=>go==null), "previous native spray objects destroyed " + pass);
+            Check(oldMaterials.All(m=>m==null), "previous owned spray and ground materials destroyed " + pass);
+            Check(ground.ActiveCount==0 && ground.MaterialVariantCount==0, "previous ground marks and material cache released " + pass);
+            Check(ground.GetComponentsInChildren<DecalProjector>(true).Select(p=>p.GetInstanceID()).SequenceEqual(reusedGround), "one shared ground pool retained " + pass);
+            int count = blood.PlayedCount;
+            var point = targetRoot.transform.position + Vector3.up;
+            BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,false,WeaponElement.None,point,false,target:health,impactDirection:Vector3.right),point,1f);
+            yield return Frames(8);
+            Check(blood.PlayedCount>count, "hit after pool recreation " + pass);
+            yield return Wait(.65f);
+            Check(ground.ActiveCount>0, "ground after pool recreation " + pass);
+            var currentSprays = blood.transform.Cast<Transform>().Where(t=>t.name.StartsWith("Blood Pack ") || (t.name.StartsWith("Blood ") && t.GetComponent<VisualEffect>()!=null)).Select(t=>t.GetInstanceID()).ToArray();
+            Check(BloodHitVfxService.SetPackEnabled(pack), "same pack remains ready " + pass);
+            yield return Frames(2);
+            Check(blood.transform.Cast<Transform>().Where(t=>t.name.StartsWith("Blood Pack ") || (t.name.StartsWith("Blood ") && t.GetComponent<VisualEffect>()!=null)).Select(t=>t.GetInstanceID()).SequenceEqual(currentSprays), "same selection reuses current pool " + pass);
+            switchSamples.Add(new { pass, pack, switchMs=clock.Elapsed.TotalMilliseconds, memoryBefore, memoryAfter=UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), note="Editor sample; object ownership verified, no FPS or process RAM claim" });
+        }
+        File.WriteAllText(Path.Combine(output,"pool-switch-result.json"), JsonConvert.SerializeObject(switchSamples,Formatting.Indented));
         OverburstGameSettings.BloodPack=true; OverburstGameSettings.SaveIfDirty();
+    }
+    static void CheckExclusivePools(BloodHitVfxService blood, bool pack, string phase)
+    {
+        Check(blood != null, "blood service present " + phase);
+        Check(blood.GetComponentsInChildren<VisualEffect>(true).Length == (pack ? 0 : BloodHitVfxService.Capacity), "only selected legacy pool " + phase);
+        Check(blood.transform.Cast<Transform>().Count(t=>t.name.StartsWith("Blood Pack ")) == (pack ? BloodEffectsPackPool.Capacity : 0), "only selected pack pool " + phase);
+        Check(blood.GetComponentsInChildren<DecalProjector>(true).Length == BloodGroundDecalService.Capacity, "one ground pool " + phase);
     }
     static void CheckBDefaults()
     {

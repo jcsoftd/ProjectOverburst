@@ -25,7 +25,7 @@ public sealed class BloodEffectsPackPool
     public int PreemptedCount { get; private set; }
     public int LastVariant { get; private set; } = -1;
     public uint PlayedVariants { get; private set; }
-    public bool Ready { get; }
+    public bool Ready { get; private set; }
 
     public BloodEffectsPackPool(Transform parent, BloodEffectsPackCatalog source)
     {
@@ -153,7 +153,12 @@ public sealed class BloodEffectsPackPool
     public void Dispose()
     {
         Clear();
-        foreach (var slot in slots) if (slot?.root != null) Object.Destroy(slot.root);
+        Ready = false;
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i]?.root != null) Object.Destroy(slots[i].root);
+            slots[i] = null;
+        }
         foreach (var material in profileMaterials.Values) if (material) Object.Destroy(material);
         profileMaterials.Clear();
     }

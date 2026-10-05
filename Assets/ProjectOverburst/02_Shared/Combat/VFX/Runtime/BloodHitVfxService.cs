@@ -35,6 +35,8 @@ public sealed class BloodHitVfxService : MonoBehaviour
     private BloodGroundDecalService groundDecals;
     private BloodEffectsPackPool packPool;
     private int legacyActiveCount;
+    private int retiredPackPlayedCount;
+    private uint retiredPackPlayedVariants;
     private static bool packEnabled;
     private static bool uniformRed;
     private readonly System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile> redProfiles = new System.Collections.Generic.Dictionary<BloodHitProfile, BloodHitProfile>();
@@ -65,23 +67,75 @@ public sealed class BloodHitVfxService : MonoBehaviour
         }
         return profile;
     }
-    public int PackPlayedCount => packPool != null ? packPool.PlayedCount : 0;
+    public int PackPlayedCount => retiredPackPlayedCount + (packPool != null ? packPool.PlayedCount : 0);
     public int LastPackVariation => packPool != null ? packPool.LastVariant : -1;
-    public uint PackPlayedVariants => packPool != null ? packPool.PlayedVariants : 0;
+    public uint PackPlayedVariants => retiredPackPlayedVariants | (packPool != null ? packPool.PlayedVariants : 0);
     public static bool SetPackEnabled(bool enabled)
     {
         if (instance == null) Bootstrap();
         if (instance == null) return false;
-        if (enabled && instance.packPool == null)
+        BloodEffectsPackPool preparedPool = instance.packPool;
+        if (enabled && preparedPool == null)
         {
             var data = Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);
-            instance.packPool = new BloodEffectsPackPool(instance.transform, data);
+            preparedPool = new BloodEffectsPackPool(instance.transform, data);
+            if (!preparedPool.Ready) { preparedPool.Dispose(); return false; }
         }
-        if (enabled && !instance.packPool.Ready) return false;
+        if (enabled && !preparedPool.Ready) return false;
         instance.Clear();
-        if (instance.groundDecals != null) instance.groundDecals.ClearForComparison();
+        if (instance.groundDecals != null)
+        {
+            if (packEnabled != enabled) instance.groundDecals.ClearForPackChange();
+            else instance.groundDecals.ClearForComparison();
+        }
+        if (enabled)
+        {
+            instance.DisposeLegacyPool();
+            instance.packPool = preparedPool;
+        }
+        else
+        {
+            instance.DisposePackPool();
+            instance.CreateLegacyPool();
+        }
         packEnabled = enabled;
+        instance.tuningRevision = -1;
         return true;
+    }
+    private void CreateLegacyPool()
+    {
+        if (slots[0].Effect != null) return;
+        for (int i = 0; i < Capacity; i++)
+        {
+            var child = new GameObject("Blood " + i);
+            child.SetActive(false);
+            child.transform.SetParent(transform, false);
+            var vfx = child.AddComponent<VisualEffect>();
+            vfx.visualEffectAsset = catalog.ResolvePooledGraph(i);
+            vfx.initialEventName = "BloodIdle";
+            slots[i].Effect = vfx;
+        }
+    }
+    private void DisposeLegacyPool()
+    {
+        for (int i = 0; i < Capacity; i++)
+        {
+            if (slots[i].Effect != null)
+            {
+                slots[i].Effect.gameObject.SetActive(false);
+                Destroy(slots[i].Effect.gameObject);
+            }
+            slots[i] = default;
+        }
+        legacyActiveCount = 0;
+    }
+    private void DisposePackPool()
+    {
+        if (packPool == null) return;
+        retiredPackPlayedCount += packPool.PlayedCount;
+        retiredPackPlayedVariants |= packPool.PlayedVariants;
+        packPool.Dispose();
+        packPool = null;
     }
     private int queued;
     public int PlayedCount { get; private set; }
@@ -122,16 +176,6 @@ public sealed class BloodHitVfxService : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.BloodSpray)) return;
 #endif
-        for (int i = 0; i < Capacity; i++)
-        {
-            var child = new GameObject("Blood " + i);
-            child.SetActive(false);
-            child.transform.SetParent(root.transform, false);
-            var vfx = child.AddComponent<VisualEffect>();
-            vfx.visualEffectAsset = data.ResolvePooledGraph(i);
-            vfx.initialEventName = "BloodIdle";
-            instance.slots[i].Effect = vfx;
-        }
         SetUniformRed(OverburstGameSettings.BloodUniformRed);
         SetPackEnabled(OverburstGameSettings.BloodPack);
     }
@@ -347,11 +391,12 @@ public sealed class BloodHitVfxService : MonoBehaviour
     {
         if (tuningRevision != BloodComparisonTuning.Revision)
         {
-            tuningRevision = BloodComparisonTuning.Revision; packPool?.RefreshTuning();
-            for (int i = 0; i < Capacity; i++) if (slots[i].Until > 0f) ApplyTuning(i);
+            tuningRevision = BloodComparisonTuning.Revision;
+            if (packEnabled) packPool?.RefreshTuning();
+            else for (int i = 0; i < Capacity; i++) if (slots[i].Until > 0f) ApplyTuning(i);
         }
-        packPool?.Tick(Time.time);
-        for (int i = 0; i < Capacity; i++)
+        if (packEnabled) packPool?.Tick(Time.time);
+        else for (int i = 0; i < Capacity; i++)
         {
             if (slots[i].Until > 0 && Time.time >= slots[i].Until) Release(i);
             else if (slots[i].PendingPlay && Time.frameCount > slots[i].StartFrame)
@@ -547,7 +592,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
     }
     private void OnDestroy()
     {
-        packPool?.Dispose();
+        DisposePackPool();
         foreach (var profile in redProfiles.Values) if (profile != null) Destroy(profile);
         redProfiles.Clear();
         redProfileInstances.Clear();
