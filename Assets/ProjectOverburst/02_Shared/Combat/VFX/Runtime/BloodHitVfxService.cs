@@ -21,7 +21,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         public CombatImpactShape Shape;
         public float Size, WeightScale;
         public int Priority, Source, Sequence, Phase, Target;
-        public bool AllowSuppressed, VarySweep;
+        public bool AllowSuppressed, VarySweep, Accent;
     }
     private struct Slot { public VisualEffect Effect; public float Until; public int Priority, StartFrame; public bool PendingPlay; public float BaseHitSize; public BloodHitProfile Profile; }
     private readonly Pending[] queue = new Pending[QueueCapacity];
@@ -197,7 +197,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             Priority = (hit.IsLethal ? 2 : 0) + (hit.IsCritical ? 1 : 0),
             Source = hit.Source != null ? hit.Source.GetInstanceID() : 0,
             Sequence = hit.AttackSequenceId, Phase = hit.PhaseIndex, Target = hit.Target.GetInstanceID(),
-            VarySweep = hit.ImpactShape == CombatImpactShape.Sweep
+            Accent = hit.IsCritical || hit.IsStrong || hit.IsLethal, VarySweep = hit.ImpactShape == CombatImpactShape.Sweep
         };
         instance.Enqueue(request);
     }
@@ -212,7 +212,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
     // It shares the queue, pool, per-frame budget, priorities and ground marks with melee blood.
     public static bool RequestAt(BloodHitProfile profile, Vector3 point, Vector3 direction,
         CombatImpactShape shape, float size, int priority, float weightScale = 1f,
-        int targetId = 0, bool allowSuppressed = false)
+        int targetId = 0, bool allowSuppressed = false, bool critical = false, bool strong = false, bool lethal = false)
     {
         if (profile == null || (profile.suppressBlood && !allowSuppressed)) return false;
         if (instance == null) Bootstrap();
@@ -227,7 +227,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         {
             Profile = profile, Position = point, Direction = direction, Shape = shape,
             Size = Mathf.Clamp(size, .55f, 1.5f), WeightScale = Mathf.Max(.5f, weightScale),
-            Priority = Mathf.Clamp(priority, 0, 3), Target = targetId, AllowSuppressed = allowSuppressed
+            Priority = Mathf.Clamp(priority, 0, 3), Target = targetId, AllowSuppressed = allowSuppressed, Accent = critical || strong || lethal
         });
         return true;
     }
@@ -249,7 +249,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
     {
         if (health == null || !health.TryGetComponent<BloodHitTarget>(out var target)) return;
         RequestAt(target.Profile, point, direction, shape, size, priority,
-            ResolveWeightScale(health), health.GetInstanceID());
+            ResolveWeightScale(health), health.GetInstanceID(), lethal: health.IsDead);
     }
 
     // Player wounds use one red profile. Like enemy blood, the spray starts on the side facing the
@@ -275,7 +275,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             ? CombatImpactShape.Thrust : strong ? CombatImpactShape.Downward : CombatImpactShape.Sweep;
         Vector3 wound = center - direction * Mathf.Min(radius, .3f);
         if (!RequestAt(playerProfile, wound, direction, shape, strong ? 1.4f : 1.2f,
-            health.CurrentHp <= 0f ? 2 : 1, 1f, health.GetInstanceID())) return;
+            health.CurrentHp <= 0f ? 2 : 1, 1f, health.GetInstanceID(), critical: info.isCritical, strong: strong, lethal: health.CurrentHp <= 0f)) return;
         // A splatter lands behind the player on top of the spray's own mark.
         if (instance.groundDecals != null)
             instance.groundDecals.Request(playerProfile, center + direction * .55f, direction,
@@ -306,7 +306,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
             deathsThisFrame = 0;
         }
         bool full = deathsThisFrame++ < FullDeathBurstsPerFrame;
-        RequestAt(profile, center, forward, CombatImpactShape.Downward, size, 3, weight, id);
+        RequestAt(profile, center, forward, CombatImpactShape.Downward, size, 3, weight, id, lethal: true);
         if (!full) return;
         float spread = Random.Range(40f, 65f);
         RequestAt(profile, center, Quaternion.AngleAxis(spread, Vector3.up) * forward,
@@ -447,14 +447,15 @@ public sealed class BloodHitVfxService : MonoBehaviour
             else if (request.WeightScale > 1f) size = Mathf.Max(size, .8f);
             uint packSeed = CosmeticSeed(request.Source, request.Sequence, request.Phase, request.Target);
             if (!packPool.Play(request.Profile, request.Position, request.Direction, request.Shape, size,
-                request.Priority, packSeed, request.Target)) return false;
+                request.Priority, packSeed, request.Target, accented: request.Accent)) return false;
             PlayedCount++;
             PeakActiveCount = Mathf.Max(PeakActiveCount, ActiveCount);
             if (request.Shape == CombatImpactShape.Thrust) ThrustPlayedCount++;
             else if (request.Shape == CombatImpactShape.Downward) DownwardPlayedCount++;
             else SweepPlayedCount++;
             if (groundDecals != null) groundDecals.Request(request.Profile, request.Position, request.Direction,
-                request.Shape, size, request.Priority, request.AllowSuppressed);
+                request.Shape, size, request.Priority, request.AllowSuppressed, .16f, false,
+                    currentStyle == BloodEffectStyle.Volumetric ? packPool.LastGroundPrefab : null, packPool.LastBaseScale, packPool.LastRotation);
             return true;
         }
         var graph = catalog.Resolve(request.Shape);

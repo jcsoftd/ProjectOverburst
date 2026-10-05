@@ -100,7 +100,8 @@ public partial class MeleeRuntime
                 impactDirection: runtimeData.Pattern.IsThrust || phase.vfxSwingSettings.orientation == AttackVfxSwingOrientation.Vertical
                     ? hit.Direction : Vector3.Cross(Vector3.up, hit.Direction)
                         * (phase.vfxSwingSettings.reverseDirection ? -1f : 1f),
-                elementSfxEnergy: elementSfxEnergy));
+                elementSfxEnergy: elementSfxEnergy,
+                isStrong: activeAttackIsHeavy));
         }
 
         if (impact.triggersOnHitEffects)

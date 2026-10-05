@@ -26,6 +26,9 @@ public sealed class BloodEffectsPackPool
     public int PlayedCount { get; private set; }
     public int PreemptedCount { get; private set; }
     public int LastVariant { get; private set; } = -1;
+    public float LastBaseScale { get; private set; }
+    public Quaternion LastRotation { get; private set; }
+    public GameObject LastGroundPrefab => LastVariant >= 0 ? catalog.sprays[LastVariant].groundPrefab : null;
     public uint PlayedVariants { get; private set; }
     public bool Ready { get; private set; }
 
@@ -75,13 +78,14 @@ public sealed class BloodEffectsPackPool
         }
     }
     public bool Play(BloodHitProfile profile, Vector3 point, Vector3 direction, CombatImpactShape shape,
-        float size, int priority, uint seed, int target, bool drip = false)
+        float size, int priority, uint seed, int target, bool drip = false, bool accented = false)
     {
         if (!Ready) return false;
         int previous = -1;
         if (target != 0) for (int i = 0; i < targets.Length; i++) if (targets[i] == target) { previous = variants[i]; break; }
-        int variant = catalog.ResolveSpray(shape, priority, seed, previous, drip);
+        int variant = catalog.ResolveSpray(shape, priority, seed, previous, drip, accented);
         if (variant < 0) return false;
+        bool preferAccent = accented && catalog.sprays[variant].impactAccent;
         Slot chosen = null;
         foreach (var slot in slots) if (slot.variant == variant && slot.until == 0f) { chosen = slot; break; }
         // A busy form can borrow another eligible lease instead of dropping while the pool is free.
@@ -90,12 +94,12 @@ public sealed class BloodEffectsPackPool
                 for (int offset = 1; offset < catalog.sprays.Length && chosen == null; offset++)
                 {
                     int candidate = (variant + offset) % catalog.sprays.Length;
-                    if (!catalog.Accepts(candidate, shape, priority, drip) || (pass == 0 && candidate == previous)) continue;
+                    if (!catalog.Accepts(candidate, shape, priority, drip, accented) || (pass == 0 && (candidate == previous || (preferAccent && !catalog.sprays[candidate].impactAccent)))) continue;
                     foreach (var slot in slots) if (slot.variant == candidate && slot.until == 0f) { chosen = slot; break; }
                 }
         if (chosen == null && priority > 0)
             foreach (var slot in slots)
-                if (catalog.Accepts(slot.variant, shape, priority, drip) && slot.priority < priority
+                if (catalog.Accepts(slot.variant, shape, priority, drip, accented) && slot.priority < priority
                     && (chosen == null || slot.until < chosen.until)) chosen = slot;
         if (chosen == null) return false;
         variant = chosen.variant;
@@ -126,6 +130,7 @@ public sealed class BloodEffectsPackPool
         foreach (var ps in chosen.systems) ps.Play(false);
         chosen.until = Time.time + definition.lifetime;
         chosen.priority = priority;
+        LastBaseScale = chosen.baseScale; LastRotation = chosen.root.transform.rotation;
         ActiveCount++; PlayedCount++; LastVariant = variant; PlayedVariants |= 1u << variant;
         if (target != 0)
         {
@@ -158,7 +163,9 @@ public sealed class BloodEffectsPackPool
             block.Clear();
             block.SetFloat("_UseCustomTime", 1f);
             block.SetFloat("_TimeInFrames", (Mathf.Ceil(-frame) + 1f) / (layer.frames + 1f));
-            block.SetFloat("_LightIntencity", 1f);
+            var sun = RenderSettings.sun;
+            block.SetFloat("_LightIntencity", sun && sun.isActiveAndEnabled ? Mathf.Clamp(sun.intensity, .01f, 1f) : 1f);
+            block.SetVector("_SunPos", sun && sun.isActiveAndEnabled ? -sun.transform.forward : new Vector3(1f, .5f, 1f));
             block.SetColor("_Color", BloodComparisonTuning.SprayColor(slot.profile.mainColor).gamma * 2f);
             block.SetColor("_SpecColor", BloodComparisonTuning.SprayColor(slot.profile.specularColor).gamma * .22f);
             layer.renderer.SetPropertyBlock(block);

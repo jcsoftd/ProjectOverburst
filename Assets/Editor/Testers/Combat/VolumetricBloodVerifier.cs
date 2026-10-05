@@ -78,6 +78,7 @@ public static partial class SettingsPresentationVerifier
             {
                 ground.ClearForComparison();ground.Request(profile,center+Vector3.up,Vector3.forward,CombatImpactShape.Downward,1f,2,false,0f);yield return Frames(3);
                 var decal=ground.GetComponentsInChildren<DecalProjector>(true).First(p=>p.gameObject.activeSelf);
+                yield return Wait(1.5f);
                 var image=Capture("C_Floor_"+i);int changed=0,red=0;
                 for(int p=0;p<image.Length;p++)if(Math.Abs(image[p].r-baseline[p].r)+Math.Abs(image[p].g-baseline[p].g)+Math.Abs(image[p].b-baseline[p].b)>25)
                 {changed++;if(image[p].r>image[p].g*1.3f && image[p].r>image[p].b*1.2f)red++;}
@@ -123,7 +124,7 @@ public static partial class SettingsPresentationVerifier
         int played=blood.PlayedCount;
         BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,false,WeaponElement.None,point,false,target:enemy,impactDirection:Vector3.right),point,1f);
         yield return Frames(8);Check(blood.PlayedCount>played && pool.ActiveCount>0,"C actual monster hit routes into VAT pool");
-        yield return Wait(.6f);Check(ground.ActiveCount>0,"C actual hit reaches native ground decal");
+        yield return Wait(1.8f);Check(ground.ActiveCount>0,"C actual hit reaches native ground decal");
         int materials=ground.MaterialVariantCount;
         var mark=ground.GetComponentsInChildren<DecalProjector>(true).First(p=>p.gameObject.activeSelf);
         var material=mark.material;var size=mark.size;var tint=material.GetColor("_TintColor");
@@ -133,6 +134,22 @@ public static partial class SettingsPresentationVerifier
         Check(mark.material==material && ground.MaterialVariantCount==materials && mark.size.x>size.x && mark.material.GetColor("_TintColor")!=tint,"C floor size and color reuse existing material");
         player.TakeDamage(new DamageInfo(1,player.transform.position+Vector3.up,targetRoot,Vector3.right));yield return Frames(4);
         Check(Object.FindFirstObjectByType<PlayerDamageFeedback>().UsingPackVignette && pool.ActiveCount>0,"C actual player blood and pack screen wound");
+        Check(!catalog.sprays[pool.LastVariant].impactAccent,"ordinary player wound excludes large radial form");
+        foreach (CombatImpactShape shape in Enum.GetValues(typeof(CombatImpactShape)))
+        {
+            pool.Clear();ground.ClearForComparison();
+            BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,true,WeaponElement.None,point,false,target:enemy,impactShape:shape,impactDirection:Vector3.right),point,1f);
+            yield return Frames(8);Check(catalog.sprays[pool.LastVariant].impactAccent,"actual critical request chooses radial form "+shape);
+            pool.Clear();ground.ClearForComparison();
+            BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,false,WeaponElement.None,point,false,isLethal:true,target:enemy,impactShape:shape,impactDirection:Vector3.right),point,1f);
+            yield return Frames(8);Check(catalog.sprays[pool.LastVariant].impactAccent,"noncritical lethal request chooses radial form "+shape);
+            pool.Clear();ground.ClearForComparison();
+            BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,false,WeaponElement.None,point,false,target:enemy,impactShape:shape,impactDirection:Vector3.right,isStrong:true),point,1f);
+            yield return Frames(8);Check(catalog.sprays[pool.LastVariant].impactAccent,"noncritical heavy request chooses radial form "+shape);
+            pool.Clear();ground.ClearForComparison();
+            BloodHitVfxService.Request(new CombatHitFeedbackRequest(player.gameObject,sequence++,null,false,WeaponElement.None,point,false,target:enemy,impactShape:shape,impactDirection:Vector3.right),point,1f);
+            yield return Frames(8);Check(!catalog.sprays[pool.LastVariant].impactAccent && catalog.sprays[pool.LastVariant].Accepts(shape,0),"ordinary request retains attack family "+shape);
+        }
         // Render VAT at two times while the world is frozen. Geometry motion must reach actual pixels.
         var cameraRoot=new GameObject("Owned C Blood Camera");owned.Add(cameraRoot);
         var camera=cameraRoot.AddComponent<Camera>();camera.CopyFrom(Camera.main);camera.enabled=false;
@@ -158,8 +175,12 @@ public static partial class SettingsPresentationVerifier
                 var selected=BloodHitVfxService.ResolveColorProfile(profile);
                 for(int i=0;i<catalog.sprays.Length;i++)
                 {
-                    pool.Clear();bool drip=i>=17;uint seed=(uint)(drip?i-17:i);
-                    Check(pool.Play(selected,point,Vector3.right,CombatImpactShape.Sweep,drip?.25f:1f,0,seed,0,drip),"C form playback "+red+" "+i);
+                    pool.Clear();bool drip=i>=17;
+                    var definition=catalog.sprays[i];var shape=CombatImpactShape.Sweep;
+                    if (!drip && !definition.Accepts(shape,definition.minimumPriority,accented:definition.impactAccent)) shape=definition.Accepts(CombatImpactShape.Thrust,definition.minimumPriority,accented:definition.impactAccent)?CombatImpactShape.Thrust:CombatImpactShape.Downward;
+                    uint seed=0;while(seed<1000 && catalog.ResolveSpray(shape,definition.minimumPriority,seed,-1,drip,definition.impactAccent)!=i)seed++;
+                    Check(seed<1000,"C form belongs to an intentional attack group "+i);
+                    Check(pool.Play(selected,point,Vector3.right,shape,drip?.25f:1f,definition.minimumPriority,seed,0,drip,definition.impactAccent),"C form playback "+red+" "+i);
                     Check(pool.LastVariant==i,"C uses authored form "+red+" "+i);
                     pool.Tick(Time.time+.12f);var first=Capture("C_"+(red?"Red":"Profile")+"_Form_"+i);
                     pool.Tick(Time.time+(drip?.3f:.6f));var second=Capture(null);
@@ -171,8 +192,10 @@ public static partial class SettingsPresentationVerifier
                         if(Difference(first[p],second[p])>25)moving++;
                         if(first[p].r>180 && first[p].b>180 && first[p].g<50)pink++;
                     }
-                    Check(visible>4 && moving>4 && pink<20,"C actual VAT pixels visible and animated "+red+" "+i);
                     forms.Add(new{red,i,visible,moving,pink});
+                    File.WriteAllText(Path.Combine(output,"C-form-pixels-progress.json"),JsonConvert.SerializeObject(forms,Formatting.Indented));
+                    if(drip)Capture("C_"+(red?"Red":"Profile")+"_Drip_Late_"+i);
+                    Check(visible>4 && moving>4 && pink<20,"C actual VAT pixels visible and animated "+red+" "+i);
                 }
             }
             pool.Clear();ground.ClearForComparison();
@@ -183,6 +206,8 @@ public static partial class SettingsPresentationVerifier
                 ground.Request(profile,point,Vector3.right,CombatImpactShape.Downward,1f,2,false,0f);
                 yield return Frames(3);
                 Check(ground.ActiveCount==1,"C ground form activated "+i);
+                var native=ground.GetComponentsInChildren<DecalProjector>(true).First(p=>p.gameObject.activeSelf);
+                native.material.SetFloat("_Cutout",0f);
                 var image=Capture("C_Ground_Form_"+i);int visible=0;
                 for(int p=0;p<image.Length;p++)if(Math.Abs(image[p].r-floorBaseline[p].r)+Math.Abs(image[p].g-floorBaseline[p].g)+Math.Abs(image[p].b-floorBaseline[p].b)>25)visible++;
                 Check(visible>10,"C native ground form reaches actual pixels "+i);floors.Add(new{i,visible});

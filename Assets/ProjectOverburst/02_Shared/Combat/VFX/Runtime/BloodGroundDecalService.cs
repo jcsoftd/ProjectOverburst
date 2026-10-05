@@ -33,6 +33,9 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         public bool Lethal, Trail;
         public BloodEffectStyle Style;
         public int Variant;
+        public GameObject Template;
+        public Vector3 NativeSize;
+        public bool NativeLanding;
     }
 
     private struct Slot
@@ -47,6 +50,8 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         public Material Source;
         public BloodHitProfile Profile;
         public Vector3 BaseSize;
+        public VolumetricBloodGroundData Native;
+        public Material NativeMaterial;
     }
 
     private readonly Pending[] pending = new Pending[PendingCapacity];
@@ -115,7 +120,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     public void Request(BloodHitProfile profile, Vector3 hitPoint, Vector3 direction,
         CombatImpactShape shape, float size, int priority, bool allowSuppressed = false,
-        float landingDelay = LandingDelay, bool trail = false)
+        float landingDelay = LandingDelay, bool trail = false, GameObject exactPrefab = null, float effectScale = 1f, Quaternion effectRotation = default)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!Overburst.DebugTools.CombatEffectDiagnosticControls.Allowed(Overburst.DebugTools.CombatDiagnosticEffect.GroundDecals)) return;
@@ -127,6 +132,21 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         {
             SkippedNoGroundCount++;
             return;
+        }
+        Vector3 nativeSize = default;
+        var native = exactPrefab ? exactPrefab.GetComponent<VolumetricBloodGroundData>() : null;
+        if (native && BloodHitVfxService.CurrentStyle == BloodEffectStyle.Volumetric && !trail)
+        {
+            float worldScale = effectScale * BloodComparisonTuning.Scale;
+            float fraction = native.HeightFraction(hitPoint.y - point.y, worldScale);
+            Vector3 offset = effectRotation * (native.LandingOffset(fraction) * worldScale);
+            offset.y = 0f;
+            Vector3 landingPoint = hitPoint + Vector3.ClampMagnitude(offset, 1.8f * BloodComparisonTuning.Scale);
+            landingPoint.y = hitPoint.y; // Authored projector Y is replaced by the detected floor height.
+            if (!TryGround(landingPoint, Vector3.zero, size, out point, out normal)) { SkippedNoGroundCount++; return; }
+            direction = effectRotation * Vector3.forward;
+            nativeSize = native.LandingSize(fraction) * effectScale;
+            landingDelay = Mathf.Max(0f, native.landing.Evaluate(fraction));
         }
         if (Overlaps(point))
         {
@@ -146,6 +166,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         pending[pendingCount++] = new Pending
         {
             Profile = profile,
+            Template = exactPrefab, NativeSize = nativeSize, NativeLanding = native && !trail,
             Style = BloodHitVfxService.CurrentStyle,
             Trail = trail,
             Point = point,
@@ -204,7 +225,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             for (int i = 0; i < Capacity; i++) if (slots[i].Active)
             {
                 slots[i].Projector.size = TunedSize(slots[i].BaseSize);
-                slots[i].Projector.material = TintedMaterial(slots[i].Source, slots[i].Profile, slots[i].Style);
+                RefreshMaterial(i);
             }
         }
         float now = Time.time;
@@ -221,6 +242,11 @@ public sealed class BloodGroundDecalService : MonoBehaviour
             {
                 slots[i].Pattern.Apply(slots[i].Projector, age);
                 slots[i].SpreadComplete = age >= slots[i].Pattern.spreadSeconds;
+            }
+            if (slots[i].Native && !slots[i].SpreadComplete)
+            {
+                slots[i].NativeMaterial.SetFloat("_Cutout", slots[i].Native.CutoutAt(age));
+                slots[i].SpreadComplete = age >= slots[i].Native.RevealSeconds;
             }
             if (age > HoldSeconds)
                 slots[i].Projector.fadeFactor = 1f - (age - HoldSeconds) / FadeSeconds;
@@ -258,7 +284,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         if (index < 0) return false; // Existing marks always retain their full 15+5 seconds.
 
         var selectedCatalog = request.Style == BloodEffectStyle.Legacy ? null : Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourceFor(request.Style));
-        GameObject prefab = selectedCatalog != null ? selectedCatalog.ResolveDecal(request.Shape, request.Lethal, request.Variant, request.Trail)
+        GameObject prefab = request.Template ? request.Template : selectedCatalog != null ? selectedCatalog.ResolveDecal(request.Shape, request.Lethal, request.Variant, request.Trail)
             : catalog.ResolveDecal(request.Shape, request.Lethal, request.Variant);
         DecalProjector source = prefab ? prefab.GetComponent<DecalProjector>() : null;
         if (!source || !source.material) return false;
@@ -271,11 +297,12 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         projector.transform.SetPositionAndRotation(
             request.Point + request.Normal * .015f,
             Quaternion.LookRotation(-request.Normal, request.Tangent));
-        projector.material = TintedMaterial(source.material, request.Profile, request.Style);
-        slots[index].BaseSize = new Vector3(
+        slots[index].Native = request.Style == BloodEffectStyle.Volumetric ? prefab.GetComponent<VolumetricBloodGroundData>() : null;
+        slots[index].BaseSize = request.NativeLanding ? new Vector3(Mathf.Clamp(request.NativeSize.x, .65f, 3f), Mathf.Clamp(request.NativeSize.y, .65f, 3f), ProjectionDepth) : new Vector3(
             Mathf.Clamp(source.size.x * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f),
             Mathf.Clamp(source.size.y * scale, request.Trail ? .18f : .65f, request.Trail ? .8f : 2.4f), ProjectionDepth);
         slots[index].Source = source.material; slots[index].Profile = request.Profile; slots[index].Style = request.Style;
+        RefreshMaterial(index);
         projector.size = TunedSize(slots[index].BaseSize);
         projector.pivot = Vector3.zero;
         projector.drawDistance = Mathf.Min(source.drawDistance, 40f);
@@ -294,6 +321,21 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         PeakActiveCount = Mathf.Max(PeakActiveCount, ActiveCount);
         ShownCount++;
         return true;
+    }
+
+    private void RefreshMaterial(int index)
+    {
+        ref var slot = ref slots[index];
+        var material = TintedMaterial(slot.Source, slot.Profile, slot.Style);
+        if (slot.Native)
+        {
+            // A bounded material per projector keeps simultaneous reveal ages independent.
+            if (!slot.NativeMaterial) slot.NativeMaterial = new Material(material) { name = "C Blood Ground Lease " + index, hideFlags = HideFlags.HideAndDontSave };
+            else slot.NativeMaterial.CopyPropertiesFromMaterial(material);
+            slot.NativeMaterial.SetFloat("_Cutout", slot.Native.CutoutAt(slot.Active ? Time.time - slot.Started : 0f));
+            slot.Projector.material = slot.NativeMaterial;
+        }
+        else slot.Projector.material = material;
     }
 
     private static Vector3 TunedSize(Vector3 source)
@@ -362,6 +404,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
 
     private void OnDestroy()
     {
+        foreach (var slot in slots) if (slot.NativeMaterial) { if (Application.isPlaying) Destroy(slot.NativeMaterial); else DestroyImmediate(slot.NativeMaterial); }
         foreach (Material material in materials.Values)
         {
             if (!material) continue;
@@ -383,6 +426,7 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         {
             var projector = slots[i].Projector;
             if (projector != null) projector.material = null;
+            if (slots[i].NativeMaterial) Destroy(slots[i].NativeMaterial);
             slots[i] = new Slot { Projector = projector };
         }
         foreach (var material in materials.Values) if (material != null) Destroy(material);

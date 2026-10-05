@@ -12,6 +12,9 @@ public static class VolumetricBloodBuilder
     public const string Vendor = "Assets/ThirdParty/06_VFX/KriptoFX/VolumetricBloodFluids";
     public const string Root = "Assets/ProjectOverburst/Resources/Combat/VolumetricBlood";
     public const string CatalogPath = "Assets/ProjectOverburst/Resources/Combat/VolumetricBloodCatalog.asset";
+    // Same-camera A/B reference at their existing defaults; keep the user's C multiplier at 1.
+    static readonly float[] ScreenScales = { 2.4f, 2.3f, 4.8f, 5.7f, 7.7f, 5.5f, 2.8f, 1.9f, 2.3f, 3f, 2.9f, 2.4f, 1.25f, 4.3f, 2f, 6.45f, 2.1f, 38f, 24f };
+    public static float DefaultScreenScale(int form) => ScreenScales[form];
     [MenuItem("OVERBURST/Combat/Blood Comparison/C 입체 혈흔 생성")]
     public static string Build()
     {
@@ -26,7 +29,7 @@ public static class VolumetricBloodBuilder
         for (int i = 0; i < names.Length + 2; i++)
         {
             bool drip = i >= names.Length;
-            string sourceName = drip ? (i == names.Length ? "Blood1" : "Blood2") : names[i];
+            string sourceName = drip ? (i == names.Length ? "Blood5" : "Blood6") : names[i];
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(Vendor + "/Prefabs/" + sourceName + ".prefab");
             if (!source) throw new InvalidOperationException("C source missing: " + sourceName);
             // Read prefab assets without instantiating supplier ExecuteAlways lifecycle scripts.
@@ -79,11 +82,11 @@ public static class VolumetricBloodBuilder
                 data.layers = layers.ToArray();
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, Root + "/Sprays/" + root.name + ".prefab");
                 sprays.Add(new BloodEffectsPackCatalog.Spray { label = drip ? "이동 핏방울 " + (i - names.Length + 1) : sourceName,
-                    prefab = prefab, shapeMask = 7, flowing = drip, minimumPriority = drip ? 1 : 0,
-                    scale = source.transform.localScale.x * (drip ? .65f : 1.2f), lifetime = lifetime + .05f });
+                    prefab = prefab, shapeMask = drip ? 0 : ShapeMask(i), flowing = drip, minimumPriority = drip ? 1 : 0, impactAccent = !drip && (i == 7 || i == 12),
+                    scale = source.transform.localScale.x * DefaultScreenScale(i), lifetime = lifetime + .05f });
             }
             finally { Object.DestroyImmediate(root); }
-            if (drip) continue;
+            if (drip) { sprays[i].groundPrefab = decals[i == names.Length ? 4 : 5]; continue; }
             var originalDecal = source.GetComponentInChildren<DecalProjector>(true);
             // Blood5 is authored without a ground projector; use the adjacent native splatter.
             if (!originalDecal) originalDecal = AssetDatabase.LoadAssetAtPath<GameObject>(Vendor + "/Prefabs/Blood4.prefab").GetComponentInChildren<DecalProjector>(true);
@@ -93,8 +96,25 @@ public static class VolumetricBloodBuilder
             {
                 var projector = mark.AddComponent<DecalProjector>();
                 projector.material = originalDecal.material; projector.size = originalDecal.size;
+                var native = mark.AddComponent<VolumetricBloodGroundData>();
+                var authored = originalDecal.GetComponents<MonoBehaviour>();
+                var reveal = new SerializedObject(authored.First(c => c && c.GetType().Name == "BFX_ShaderProperies"));
+                var landing = new SerializedObject(authored.First(c => c && c.GetType().Name == "BFX_DecalSettings"));
+                native.cutout = CopyCurve(reveal.FindProperty("FloatCurve").animationCurveValue);
+                native.curveSeconds = reveal.FindProperty("GraphTimeMultiplier").floatValue;
+                native.intensity = reveal.FindProperty("GraphIntensityMultiplier").floatValue;
+                native.landing = CopyCurve(landing.FindProperty("TimeByHeight").animationCurveValue);
+                native.heightMax = landing.FindProperty("TimeHeightMax").floatValue;
+                native.scaleMin = landing.FindProperty("TimeScaleMin").vector3Value;
+                native.scaleMax = landing.FindProperty("TimeScaleMax").vector3Value;
+                native.offsetMin = landing.FindProperty("TimeOffsetMin").vector3Value;
+                native.offsetMax = landing.FindProperty("TimeOffsetMax").vector3Value;
+                native.offset = source.transform.InverseTransformPoint(originalDecal.transform.position);
+                var decalScale = originalDecal.transform.localScale;
+                native.size = new Vector3(decalScale.x, decalScale.z, .07f);
                 projector.drawDistance = 40f; projector.fadeScale = .8f;
-                decals.Add(PrefabUtility.SaveAsPrefabAsset(mark,Root + "/Decals/" + mark.name + ".prefab"));
+                var ground = PrefabUtility.SaveAsPrefabAsset(mark,Root + "/Decals/" + mark.name + ".prefab");
+                decals.Add(ground); sprays[i].groundPrefab = ground;
             }
             finally { Object.DestroyImmediate(mark); }
         }
@@ -111,6 +131,19 @@ public static class VolumetricBloodBuilder
         OverburstGameMenuBuilder.UpgradeSettingsPresentation();
         return "C ready: 17 impact forms, 2 drip forms and 17 ground definitions";
     }
+    // Classified from the authored forms: ribbons/fans for sweeps, narrow jets for thrusts,
+    // upward and radial splashes for downward impacts. Large radial forms emphasize critical hits, heavy attacks and kills; ordinary hits retain their attack family.
+    static int ShapeMask(int i)
+    {
+        int sweep = 1 << (int)CombatImpactShape.Sweep, thrust = 1 << (int)CombatImpactShape.Thrust;
+        int downward = 1 << (int)CombatImpactShape.Downward;
+        if (i == 7 || i == 12) return downward;
+        if (i == 3 || i == 6 || i == 13) return sweep | downward;
+        if (i == 2 || i == 4 || i == 5 || i == 14) return thrust;
+        if (i == 0 || i == 8 || i == 11) return sweep | thrust;
+        return sweep;
+    }
+    static AnimationCurve CopyCurve(AnimationCurve c) => new AnimationCurve(c.keys) { preWrapMode = c.preWrapMode, postWrapMode = c.postWrapMode };
     static void Folder(string path)
     {
         if (AssetDatabase.IsValidFolder(path)) return;

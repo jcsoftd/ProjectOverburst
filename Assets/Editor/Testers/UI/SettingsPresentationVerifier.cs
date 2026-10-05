@@ -90,6 +90,8 @@ public static partial class SettingsPresentationVerifier
     static IEnumerator Verify()
     {
         yield return Wait(2f);
+        if (File.Exists(Path.Combine(output,"only-blood-scale"))) { yield return VerifyBloodScreenScale(); yield break; }
+        if (File.Exists(Path.Combine(output,"only-c-quality"))) { yield return VerifyCQualityFixture(); yield break; }
         if (File.Exists(Path.Combine(output,"only-c-ground"))) { yield return VerifyCGroundFixture(); yield break; }
         bool reload = File.Exists(Path.Combine(output, "expect-reload"));
         if (File.Exists(Path.Combine(output,"expect-c-reload"))) { CheckCReload(); OverburstGameSettings.BloodPack=true; }
@@ -141,6 +143,7 @@ public static partial class SettingsPresentationVerifier
             ScreenCapture.CaptureScreenshot(Path.Combine(output, "settings-tab-" + i + ".png")); yield return Frames(2);
         }
         panel.tabs[2].isOn = true; yield return Frames(2);
+        yield return VerifySettingsDetails(panel);
         SetScroll(panel.combatScroll, .29f); yield return Frames(3);
         ScreenCapture.CaptureScreenshot(Path.Combine(output,"settings-blood-size.png")); yield return Frames(2);
         float bookmark = panel.combatScroll.verticalNormalizedPosition;

@@ -86,6 +86,14 @@ public static partial class OverburstGameMenuBuilder
         {
             var label = tab.transform.Find("Text").GetComponent<Text>();
             label.alignment = TextAnchor.MiddleCenter; label.alignByGeometry = true;
+            var layout = tab.GetComponent<HorizontalLayoutGroup>();
+            if (layout) layout.enabled = false;
+            var element = tab.GetComponent<LayoutElement>() ?? tab.gameObject.AddComponent<LayoutElement>();
+            element.preferredWidth = 360f; element.preferredHeight = 112f;
+            element.flexibleWidth = 0f; element.flexibleHeight = 0f;
+            label.rectTransform.anchorMin = new Vector2(0f,.5f); label.rectTransform.anchorMax = new Vector2(1f,.5f);
+            label.rectTransform.pivot = new Vector2(.5f,.5f); label.rectTransform.anchoredPosition = new Vector2(0f,-6.5f);
+            label.rectTransform.sizeDelta = new Vector2(-40f,72f);
         }
         foreach (var row in panel.keyRows)
         {
@@ -118,11 +126,11 @@ public static partial class OverburstGameMenuBuilder
         row.anchorMin = new Vector2(0f,1f); row.anchorMax = Vector2.one; row.pivot = new Vector2(.5f,1f);
         row.anchoredPosition = new Vector2(0f,-y); row.sizeDelta = new Vector2(0f,SettingsRowHeight);
         var label = row.Find("Label").GetComponent<Text>();
-        Place(label.rectTransform,new Vector2(0f,1f),new Vector2(RowInset,-18f),new Vector2(850f,52f),new Vector2(0f,1f));
+        Place(label.rectTransform,new Vector2(0f,1f),new Vector2(RowInset,-28f),new Vector2(850f,52f),new Vector2(0f,1f));
         label.fontSize = 40; label.alignment = TextAnchor.MiddleLeft; label.alignByGeometry = true;
         var description = row.Find("Description").GetComponent<Text>();
-        Place(description.rectTransform,new Vector2(0f,1f),new Vector2(RowInset,-76f),new Vector2(850f,62f),new Vector2(0f,1f));
-        description.fontSize = 28; description.alignment = TextAnchor.UpperLeft; description.alignByGeometry = false;
+        Place(description.rectTransform,new Vector2(0f,1f),new Vector2(RowInset,-84f),new Vector2(850f,44f),new Vector2(0f,1f));
+        description.fontSize = 28; description.alignment = TextAnchor.MiddleLeft; description.alignByGeometry = true;
         description.verticalOverflow = VerticalWrapMode.Truncate;
         var slot = (RectTransform)row.Find("Control");
         Place(slot,new Vector2(1f,.5f),new Vector2(-RowInset,0f),new Vector2(900f,104f),new Vector2(1f,.5f));
@@ -138,23 +146,41 @@ public static partial class OverburstGameMenuBuilder
                 text.rectTransform.pivot = new Vector2(.5f,.5f); text.rectTransform.anchoredPosition = Vector2.zero;
                 text.rectTransform.sizeDelta = new Vector2(-200f,72f);
             }
-            foreach (var slider in slot.GetComponentsInChildren<Slider>(true))
+            foreach (var toggle in slot.GetComponentsInChildren<Toggle>(true))
             {
-                var value = slider.transform.Find("Text")?.GetComponent<Text>();
-                if (value != null)
+                toggle.transform.localScale = Vector3.one * 1.15f;
+                foreach (var pair in new[] { ("On Text",49f), ("Off Text",145f) })
                 {
-                    Place(value.rectTransform,new Vector2(1f,.5f),new Vector2(0f,0f),new Vector2(160f,64f),new Vector2(1f,.5f));
-                    value.fontSize = 34; value.raycastTarget = false;
-                }
-                // Leave a fixed number column so text and track never overlap.
-                foreach (var name in new[] { "Background", "Fill Area", "Handle Slide Area" })
-                {
-                    var child = slider.transform.Find(name) as RectTransform;
-                    if (child != null) child.offsetMax = new Vector2(-190f,child.offsetMax.y);
+                    var text = toggle.transform.Find(pair.Item1)?.GetComponent<Text>();
+                    if (!text) continue;
+                    Place(text.rectTransform,new Vector2(0f,.5f),new Vector2(pair.Item2,0f),new Vector2(80f,64f),new Vector2(.5f,.5f));
+                    text.alignment = TextAnchor.MiddleCenter; text.alignByGeometry = true; text.raycastTarget = false;
                 }
             }
+            foreach (var slider in slot.GetComponentsInChildren<Slider>(true)) ArrangePercentageSlider(slider, slot.GetComponentInChildren<Toggle>(true) != null);
+
         }
         y += SettingsRowHeight;
+    }
+    static void ArrangePercentageSlider(Slider slider, bool combined)
+    {
+        var body = (RectTransform)slider.transform;
+        body.anchorMin = new Vector2(combined ? .34f : 0f,.5f); body.anchorMax = new Vector2(1f,.5f);
+        body.pivot = new Vector2(.5f,.5f); body.sizeDelta = new Vector2(0f,104f); body.anchoredPosition = Vector2.zero;
+        var value = slider.transform.Find("Text")?.GetComponent<Text>();
+        if (value)
+        {
+            Place(value.rectTransform,new Vector2(1f,.5f),new Vector2(-20f,0f),new Vector2(150f,64f),new Vector2(1f,.5f));
+            value.fontSize = 34; value.raycastTarget = false;
+        }
+        var fillArea = slider.fillRect.parent as RectTransform;
+        fillArea.anchorMin = new Vector2(0f,.5f); fillArea.anchorMax = new Vector2(1f,.5f);
+        fillArea.offsetMin = new Vector2(46f,-10f); fillArea.offsetMax = new Vector2(-226f,10f);
+        var handleArea = slider.handleRect.parent as RectTransform;
+        handleArea.anchorMin = new Vector2(0f,.5f); handleArea.anchorMax = new Vector2(1f,.5f);
+        handleArea.offsetMin = new Vector2(46f,-40f); handleArea.offsetMax = new Vector2(-226f,40f);
+        slider.handleRect.pivot = new Vector2(.5f,.5f); slider.handleRect.sizeDelta = new Vector2(40f,-16f);
+        slider.handleRect.anchoredPosition = Vector2.zero;
     }
     static void Header(RectTransform list, string name, string caption, ref float y)
     {

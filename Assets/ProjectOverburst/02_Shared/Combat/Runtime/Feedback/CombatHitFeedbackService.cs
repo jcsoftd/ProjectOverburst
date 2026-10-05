@@ -12,6 +12,7 @@ public readonly struct CombatHitFeedbackRequest
     public readonly int AttackSequenceId;
     public readonly CombatHitFeedbackProfile Profile;
     public readonly bool IsCritical;
+    public readonly bool IsStrong;
     public readonly WeaponElement Element;
     public readonly Vector3 HitPoint;
     public readonly bool AllowGlobalFeedback;
@@ -40,12 +41,14 @@ public readonly struct CombatHitFeedbackRequest
         CombatHealth target = null,
         CombatImpactShape impactShape = CombatImpactShape.Sweep,
         Vector3 impactDirection = default,
-        float elementSfxEnergy = MeleeElementSfxService.FullVolumeEnergy)
+        float elementSfxEnergy = MeleeElementSfxService.FullVolumeEnergy,
+        bool isStrong = false)
     {
         Source = source;
         AttackSequenceId = attackSequenceId;
         Profile = profile;
         IsCritical = isCritical;
+        IsStrong = isStrong;
         Element = element;
         HitPoint = hitPoint;
         AllowGlobalFeedback = allowGlobalFeedback;
@@ -192,7 +195,7 @@ public sealed class CombatHitFeedbackService : MonoBehaviour
                 groups[i].AnyCritical, request.Element, request.HitPoint, request.AllowGlobalFeedback,
                 request.CameraRequestKind, request.WorldDirection, request.CameraPriority,
                 request.HasCameraDirectionOverride, request.CameraDirectionOverride, groups[i].AnyLethal,
-                request.PhaseIndex, request.Target, request.ImpactShape, request.ImpactDirection, request.ElementSfxEnergy));
+                request.PhaseIndex, request.Target, request.ImpactShape, request.ImpactDirection, request.ElementSfxEnergy, request.IsStrong));
         }
     }
 
