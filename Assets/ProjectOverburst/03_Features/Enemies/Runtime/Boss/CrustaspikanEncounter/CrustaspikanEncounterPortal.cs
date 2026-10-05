@@ -1,4 +1,3 @@
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -6,8 +5,7 @@ public sealed class CrustaspikanEncounterPortal : MonoBehaviour, IInteractable
 {
     private CrustaspikanEncounterHost host;
     private CrustaspikanEncounter encounter;
-    private TextMeshPro label;
-    private bool prompt;
+    private GameObject promptRoot;
     public Component InteractionComponent => this;
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 15;
@@ -20,12 +18,18 @@ public sealed class CrustaspikanEncounterPortal : MonoBehaviour, IInteractable
     public void Configure(CrustaspikanEncounterHost host, CrustaspikanEncounter encounter = null)
     {
         this.host=host;this.encounter=encounter;
-        var go=new GameObject("Portal Label");go.transform.SetParent(transform,false);go.transform.localPosition=Vector3.up*3.5f;
-        label=go.AddComponent<TextMeshPro>();label.font=Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/Pretendard_Medium SDF") ?? TMP_Settings.defaultFontAsset;
-        label.fontSize=3.5f;label.alignment=TextAlignmentOptions.Center;label.rectTransform.sizeDelta=new Vector2(10,2);label.text=InteractionPrompt;
+        // 하이드아웃에 이미 저작된 F 키캡을 재사용한다. 카메라 거리에 따라 커지는 별도 글자는 만들지 않는다.
+        var source=FindFirstObjectByType<WorldInteractionKeyPrompt>(FindObjectsInactive.Include);
+        if(source!=null)
+        {
+            promptRoot=Instantiate(source.gameObject,transform,false);
+            promptRoot.name="Portal Interaction Key";
+            promptRoot.transform.localPosition=Vector3.up*2.3f;
+            promptRoot.SetActive(false);
+        }
     }
     private void OnEnable()=>InteractionRegistry.Register(this);
-    private void OnDisable()=>InteractionRegistry.Unregister(this);
+    private void OnDisable(){InteractionRegistry.Unregister(this);SetInteractionPromptVisible(false);}
     public bool IsInteractionAvailable(PlayerActorRuntime actor)=>actor!=null && !actor.Health.IsDead && (encounter!=null || host!=null && host.CanEnter);
     public InteractionExecutionResult TryInteract(PlayerActorRuntime actor)
     {
@@ -33,13 +37,7 @@ public sealed class CrustaspikanEncounterPortal : MonoBehaviour, IInteractable
         if(encounter!=null){encounter.Exit(true);return InteractionExecutionResult.Succeeded;}
         return host.Enter(actor)?InteractionExecutionResult.StartedTransition:InteractionExecutionResult.Rejected;
     }
-    public void SetInteractionPromptVisible(bool visible){prompt=visible;}
-    private void LateUpdate()
-    {
-        if(label==null || Camera.main==null)return;
-        label.transform.rotation=Camera.main.transform.rotation;
-        label.color=prompt?new Color(.5f,1f,1f):Color.white;
-    }
+    public void SetInteractionPromptVisible(bool visible){if(promptRoot!=null)promptRoot.SetActive(visible);}
 }
 
 // 하이드아웃 원본 씬을 저장하지 않고 런타임에 포탈을 한 번 생성한다.

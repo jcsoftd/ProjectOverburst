@@ -4,6 +4,22 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// 전투 선택기와 표시를 분리한다. 독립 BT도 기존 보스 HUD의 체력·그로기·단계 보석을 사용한다.
+public interface IEnemyBossHudSource
+{
+    CombatHealth Health { get; }
+    string DisplayName { get; }
+    int Level { get; }
+    int PhaseIndex { get; }
+    float[] PhaseThresholds { get; }
+    EnemyBossEmblemFxMode EmblemFx { get; }
+    bool IsActive { get; }
+    bool IsDefeated { get; }
+    float Groggy01 { get; }
+    bool IsGroggy { get; }
+    bool IsTransitioning { get; }
+}
+
 // 2026-10-01: 상단 보스 HUD. 대상 HUD와 같은 네임플레이트 구성(EnemyTargetHudRpg11Builder)에
 // 단계 보석·단계 경계 눈금·마름모 셰이더 연출(HudBossEmblemFx, 보스별 EnemyBossDefinition.EmblemFx)을 더했다.
 [DisallowMultipleComponent]
@@ -33,6 +49,9 @@ public sealed class EnemyBossHudView : MonoBehaviour
     private EnemyBossPhaseController boundBoss;
     private CombatHealth boundHealth;
     private EnemyBossCombatDirector boundDirector;
+    private IEnemyBossHudSource encounterSource;
+    private string encounterNotice = string.Empty;
+    private float encounterNoticeUntil;
     private readonly HudDamageTrail trail = new HudDamageTrail();
     private readonly List<Image> phaseGems = new List<Image>();
     private readonly List<RectTransform> phaseTicks = new List<RectTransform>();
@@ -40,6 +59,8 @@ public sealed class EnemyBossHudView : MonoBehaviour
     private int shownPhaseIndex = -1;
 
     public EnemyBossPhaseController BoundBoss => boundBoss;
+    public IEnemyBossHudSource BoundEncounterSource => encounterSource;
+    public int DisplayedPhaseIndex => encounterSource != null ? encounterSource.PhaseIndex : boundBoss != null ? boundBoss.CurrentPhaseIndex : -1;
     public float DisplayedGroggy01 => groggyFill != null ? groggyFill.fillAmount : 0f;
     public string DisplayedState => stateText != null ? stateText.text : string.Empty;
     public bool IsVisible =>
@@ -80,6 +101,11 @@ public sealed class EnemyBossHudView : MonoBehaviour
         EnemyBossEncounterRegistry.BossDefeated += HandleBossDefeated;
         EnemyBossEncounterRegistry.EncounterEnded += HandleEncounterEnded;
 
+        if (encounterSource != null)
+        {
+            BindEncounter(encounterSource);
+            return;
+        }
         EnemyBossPhaseController current =
             EnemyBossEncounterRegistry.Current;
         if (current != null)
@@ -114,7 +140,7 @@ public sealed class EnemyBossHudView : MonoBehaviour
 
     private void HandleEncounterStarted(EnemyBossPhaseController boss)
     {
-        Bind(boss);
+        if (encounterSource == null) Bind(boss);
     }
 
     private void HandlePhaseChanged(
@@ -150,6 +176,8 @@ public sealed class EnemyBossHudView : MonoBehaviour
         }
 
         UnbindHealth();
+        encounterSource = null;
+        encounterNotice = string.Empty;
         boundBoss = boss;
         boundDirector = boss.GetComponent<EnemyBossCombatDirector>();
         boundHealth = boss.Health;
@@ -175,16 +203,69 @@ public sealed class EnemyBossHudView : MonoBehaviour
     {
         UnbindHealth();
         statusRow?.Unbind();
+        encounterSource = null;
+        encounterNotice = string.Empty;
         boundBoss = null;
         boundDirector = null;
         RefreshDirector();
         SetVisible(false);
     }
 
+    public void BindEncounter(IEnemyBossHudSource source)
+    {
+        if (source == null || source.Health == null)
+            throw new System.ArgumentException("보스 HUD에는 현재 전투의 살아 있는 Health가 필요합니다.", nameof(source));
+
+        Clear();
+        encounterSource = source;
+        boundHealth = source.Health;
+        boundHealth.OnHealthChanged += HandleHealthChanged;
+        boundHealth.OnDead += HandleHealthDead;
+        statusRow?.Bind(boundHealth);
+        emblemFx?.SetMode(source.EmblemFx);
+        BuildPhaseMarks((source.PhaseThresholds?.Length ?? 0) + 1, source.PhaseThresholds);
+        trail.Bind(trailFill);
+        trail.Snap(CurrentHealth01());
+        Refresh();
+        SetVisible(source.IsActive && !source.IsDefeated);
+    }
+
+    public void ClearEncounter(IEnemyBossHudSource source)
+    {
+        if (!ReferenceEquals(encounterSource, source)) return;
+        Clear();
+        if (EnemyBossEncounterRegistry.Current != null) Bind(EnemyBossEncounterRegistry.Current);
+    }
+
+    public void ShowEncounterNotice(IEnemyBossHudSource source, string text, float seconds)
+    {
+        if (!ReferenceEquals(encounterSource, source)) return;
+        encounterNotice = text ?? string.Empty;
+        encounterNoticeUntil = Time.unscaledTime + Mathf.Max(0f, seconds);
+    }
+
     // 그로기 게이지와 전환 상태는 매 프레임 바뀌므로 표시 중인 보스 1개만 읽는다.
     private void LateUpdate()
     {
         trail.Tick();
+        if (encounterSource != null)
+        {
+            if (!encounterSource.IsActive || encounterSource.IsDefeated)
+            {
+                if (healthFill != null) healthFill.fillAmount = 0f;
+                trail.Snap(0f);
+                UnbindHealth();
+                statusRow?.Unbind();
+                SetVisible(false);
+            }
+            else
+            {
+                if (shownPhaseIndex != encounterSource.PhaseIndex) Refresh();
+                SetVisible(true);
+            }
+            RefreshDirector();
+            return;
+        }
         if (boundBoss == null) return;
         RefreshDirector();
         if (boundDirector != null) SetVisible(!boundBoss.IsDefeated && boundDirector.IsEngaged);
@@ -192,16 +273,20 @@ public sealed class EnemyBossHudView : MonoBehaviour
 
     private void RefreshDirector()
     {
-        bool has = boundDirector != null && boundBoss != null && !boundBoss.IsDefeated;
+        bool custom = encounterSource != null;
+        bool has = custom ? encounterSource.IsActive && !encounterSource.IsDefeated
+            : boundDirector != null && boundBoss != null && !boundBoss.IsDefeated;
         if (groggyFill != null)
         {
             groggyFill.transform.parent.gameObject.SetActive(has);
-            if (has) groggyFill.fillAmount = boundDirector.Groggy01;
+            groggyFill.fillAmount = !has ? 0f : custom ? Mathf.Clamp01(encounterSource.Groggy01) : boundDirector.Groggy01;
         }
         if (stateText != null)
         {
-            string state = !has ? string.Empty : boundDirector.IsGroggy ? "그로기"
-                : boundDirector.IsTransitioning ? "포효" : string.Empty;
+            string state = !has ? string.Empty
+                : (custom ? encounterSource.IsGroggy : boundDirector.IsGroggy) ? "그로기"
+                : (custom ? encounterSource.IsTransitioning : boundDirector.IsTransitioning) ? "포효"
+                : custom && Time.unscaledTime < encounterNoticeUntil ? encounterNotice : string.Empty;
             if (stateText.text != state) stateText.text = state;
         }
     }
@@ -234,13 +319,29 @@ public sealed class EnemyBossHudView : MonoBehaviour
 
     private float CurrentHealth01()
     {
-        CombatHealth health = boundBoss != null ? boundBoss.Health : null;
+        CombatHealth health = encounterSource != null ? encounterSource.Health : boundBoss != null ? boundBoss.Health : null;
         float maximum = health != null ? Mathf.Max(0f, health.MaxHp) : 0f;
         return maximum > 0f ? Mathf.Clamp01(health.CurrentHp / maximum) : 0f;
     }
 
     private void Refresh()
     {
+        if (encounterSource != null)
+        {
+            CombatHealth currentHealth = encounterSource.IsActive && !encounterSource.IsDefeated ? encounterSource.Health : null;
+            float max = currentHealth != null ? Mathf.Max(0f, currentHealth.MaxHp) : 0f;
+            float hp = currentHealth != null ? Mathf.Clamp(currentHealth.CurrentHp, 0f, max) : 0f;
+            float ratio = max > 0f ? hp / max : 0f;
+            int count = (encounterSource.PhaseThresholds?.Length ?? 0) + 1;
+            ApplyTexts(encounterSource.DisplayName, encounterSource.Level, hp, max);
+            if (phaseText != null) phaseText.text = $"PHASE {encounterSource.PhaseIndex + 1} / {count}";
+            if (healthFill != null) healthFill.fillAmount = ratio;
+            trail.Set(ratio);
+            ApplyPhaseGems(encounterSource.PhaseIndex, count);
+            RefreshDirector();
+            SetVisible(currentHealth != null);
+            return;
+        }
         if (boundBoss == null)
             return;
 

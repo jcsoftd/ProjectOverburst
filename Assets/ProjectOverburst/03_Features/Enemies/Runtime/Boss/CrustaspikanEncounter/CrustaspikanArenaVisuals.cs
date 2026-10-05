@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 // 임시 무대의 절차형 메시/재질을 전투 소유자가 해제한다. 기존 씬/재질을 변경하지 않는다.
 public sealed class CrustaspikanArenaVisuals
@@ -85,52 +83,4 @@ public sealed class CrustaspikanArenaVisuals
         for(int i=0;i<96;i++){float a=i*Mathf.PI*2/96;line.SetPosition(i,vertical?new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)*radius:new Vector3(Mathf.Sin(a),0,Mathf.Cos(a))*radius);}
     }
     public void Dispose() { foreach(var resource in resources) if(resource!=null) Object.Destroy(resource); resources.Clear(); }
-}
-
-public sealed class CrustaspikanEncounterHud : MonoBehaviour
-{
-    private CrustaspikanEncounter encounter;
-    private TextMeshProUGUI title, detail, message;
-    private Image hp, poise;
-    private string announcement=""; private float announcementUntil;
-    public void Bind(CrustaspikanEncounter encounter)
-    {
-        this.encounter=encounter;
-        var canvas=gameObject.AddComponent<Canvas>(); canvas.renderMode=RenderMode.ScreenSpaceOverlay; canvas.sortingOrder=65;
-        var scaler=gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution=new Vector2(1920,1080);
-        gameObject.AddComponent<GraphicRaycaster>();
-        title=Text("Boss Name",new Vector2(0, -32),new Vector2(780,40),26);
-        hp=Bar("HP",new Vector2(0,-75),new Color(.72f,.11f,.1f));
-        poise=Bar("Groggy",new Vector2(0,-97),new Color(.9f,.68f,.18f));
-        detail=Text("Combat Status",new Vector2(0,-128),new Vector2(1000,40),18);
-        message=Text("Announcement",new Vector2(0,-225),new Vector2(1100,100),28);
-        var help=Text("Practice Controls",new Vector2(0,-170),new Vector2(1150,36),18);
-        help.text="원형 무대 반지름 20m · 격자 1m / 굵은 선 5m · F8 재시작 · F9 하이드아웃 복귀 · 최소 체력 1 보호";
-    }
-    private TextMeshProUGUI Text(string name, Vector2 offset, Vector2 size,float fontSize)
-    {
-        var go=new GameObject(name,typeof(RectTransform));go.transform.SetParent(transform,false);
-        var r=go.GetComponent<RectTransform>();r.anchorMin=r.anchorMax=new Vector2(.5f,1);r.anchoredPosition=offset;r.sizeDelta=size;
-        var t=go.AddComponent<TextMeshProUGUI>();t.font=Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/Pretendard_Medium SDF") ?? TMP_Settings.defaultFontAsset;
-        t.fontSize=fontSize;t.alignment=TextAlignmentOptions.Center;t.color=Color.white;t.raycastTarget=false; return t;
-    }
-    private Image Bar(string name,Vector2 offset,Color color)
-    {
-        var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(transform,false);
-        var r=go.GetComponent<RectTransform>();r.anchorMin=r.anchorMax=new Vector2(.5f,1);r.anchoredPosition=offset;r.sizeDelta=new Vector2(720,14);
-        var background=go.GetComponent<Image>();background.color=new Color(.05f,.06f,.08f,.9f);background.raycastTarget=false;
-        var fill=new GameObject("Fill",typeof(RectTransform),typeof(Image));fill.transform.SetParent(go.transform,false);
-        var f=fill.GetComponent<RectTransform>();f.anchorMin=Vector2.zero;f.anchorMax=Vector2.one;f.offsetMin=f.offsetMax=Vector2.zero;
-        var image=fill.GetComponent<Image>();image.color=color;image.raycastTarget=false;return image;
-    }
-    public void Announce(string text,float seconds) { announcement=text;announcementUntil=Time.time+seconds; }
-    private void Update()
-    {
-        var b=encounter?.Brain;if(b==null)return;
-        title.text=$"CRUSTASPIKAN · {b.Phase}페이즈   {b.Actor.Health.CurrentHp:0} / {b.Actor.Health.MaxHp:0}";
-        hp.rectTransform.anchorMax=new Vector2(b.Actor.Health.NormalizedHp,1);
-        poise.rectTransform.anchorMax=new Vector2(b.Poise/encounter.Settings.groggyMax,1);
-        detail.text=$"{b.State}    그로기 {b.Poise:0}/{encounter.Settings.groggyMax:0}    소환 {encounter.AliveAdds}/{encounter.Settings.maximumAdds}    {b.Observer.Explanation}";
-        message.text=Time.time<announcementUntil?announcement:"";
-    }
 }

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// 무대/카메라/풀 수명만 소유하며, 분사와 토출/발굴/투척은 검증된 실제 재료 실행기를 재사용한다.
+// 무대/풀 수명을 소유한다. 카메라 조작과 보스 표시는 기존 게임 카메라와 저작된 HUD를 사용한다.
 [DefaultExecutionOrder(10000)]
 public sealed class CrustaspikanEncounter : MonoBehaviour
 {
@@ -15,22 +15,19 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public int TotalAddsSpawned => Brain?.Composite != null ? Brain.Composite.SummonedCount : 0;
     public int EliteThrows => Brain?.Composite != null ? Brain.Composite.EliteThrowCount : 0;
     public bool Defeated { get; private set; }
+    public EnemyBossHudView BossHud => bossHud;
     private CrustaspikanEncounterHost host;
     private PlayerActorRuntime player;
     private EnemySpawnService spawns;
     private CrustaspikanArenaVisuals visuals;
-    private CrustaspikanEncounterHud hud;
-    private Camera previousCamera, battleCamera;
-    private bool previousCameraEnabled, exiting;
-    private Vector3 previousCameraPosition;
-    private Quaternion previousCameraRotation;
-    private Matrix4x4 previousProjection;
-    private Rect previousPixelRect;
-    private float previousFov, previousNear, previousFar, previousAspect;
-    private bool previousOrthographic;
-    private bool previousAutomaticProjection;
-    private readonly List<Behaviour> pausedCameraDrivers = new List<Behaviour>();
-    private readonly List<AudioListener> oldListeners = new List<AudioListener>();
+    private EnemyBossHudView bossHud;
+    private GameObject ownedBossHud;
+    private QuarterViewCamera gameplayCamera;
+    private OverburstCinemachineCameraRig cameraRig;
+    private Collider previousConfinerVolume;
+    private float previousConfinerSlowing;
+    private bool confinerCaptured, exiting;
+    private readonly List<EnemyTargetHpHud> pausedTargetHuds = new List<EnemyTargetHpHud>();
     private readonly Dictionary<EnemyActor, bool> oldLoot = new Dictionary<EnemyActor, bool>();
     private readonly Dictionary<EnemyActor, uint> leases = new Dictionary<EnemyActor, uint>();
     private Vector3 returnPosition, previousPlayerPosition;
@@ -53,21 +50,20 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
             || !spawns.RegisterAdditionalCatalog(settings.composites.summonCatalog, out reason))
         { Debug.LogError("[Crustaspikan] " + reason); return false; }
         player.Health.SetDamageDeathPrevention(this, settings.protectPlayerFromDeath);
-        SetupCamera();
-        var ui = new GameObject("Crustaspikan Practice HUD"); ui.transform.SetParent(transform, false);
-        hud = ui.AddComponent<CrustaspikanEncounterHud>(); hud.Bind(this);
+        if (!PreparePresentation()) return false;
         var portal = visuals.Portal(transform, new Vector3(0, .05f, -settings.arenaRadius + 3f), new Color(.8f, .3f, 1f), "하이드아웃 복귀 포탈");
         portal.AddComponent<CrustaspikanEncounterPortal>().Configure(host, this);
         Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
         if (!SpawnBoss()) return false;
-        Announce("크러스피칸 · 임시 보스전\n청색 신호는 패링, 붉은 공격은 회피", 3f); return true;
+        return true;
     }
     private bool SpawnBoss()
     {
         if (!spawns.TrySpawn(new EnemySpawnRequest(Settings.materials.actorDefinition, ArenaCenter + new Vector3(0, .05f, 2), Quaternion.Euler(0, 180, 0),
             targetTransform: player.transform, spawnParent: transform, context: EncounterContext.Test), out var actor)) return false;
         DisableLoot(actor); Brain = new CrustaspikanEncounterBrain(this, actor, player);
-        Brain.Composite.MonsterLanded += DisableLoot; return true;
+        Brain.Composite.MonsterLanded += DisableLoot;
+        bossHud.BindEncounter(Brain); return true;
     }
     private void DisableLoot(EnemyActor actor)
     {
@@ -98,51 +94,34 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         var loot = actor.GetComponent<EnemyLootDropper>(); if (loot != null && oldLoot.TryGetValue(actor, out bool value)) loot.enabled = value;
     }
     private void RestoreAllLoot() { foreach (var actor in oldLoot.Keys) RestoreLoot(actor); }
-    private void SetupCamera()
+    private bool PreparePresentation()
     {
-        previousCamera = Camera.main; previousCameraEnabled = previousCamera != null && previousCamera.enabled;
-        if (previousCamera != null)
+        foreach (var view in FindObjectsByType<EnemyBossHudView>(FindObjectsSortMode.None))
+            if (view.isActiveAndEnabled) { bossHud = view; break; }
+        if (bossHud == null)
         {
-            previousCameraPosition = previousCamera.transform.position; previousCameraRotation = previousCamera.transform.rotation;
-            previousProjection = previousCamera.projectionMatrix; previousPixelRect = previousCamera.pixelRect;
-            previousFov = previousCamera.fieldOfView; previousNear = previousCamera.nearClipPlane; previousFar = previousCamera.farClipPlane;
-            previousAspect = previousCamera.aspect; previousOrthographic = previousCamera.orthographic;
-            var defaultProjection = previousOrthographic
-                ? Matrix4x4.Ortho(-previousCamera.orthographicSize * previousAspect, previousCamera.orthographicSize * previousAspect,
-                    -previousCamera.orthographicSize, previousCamera.orthographicSize, previousNear, previousFar)
-                : Matrix4x4.Perspective(previousFov, previousAspect, previousNear, previousFar);
-            previousAutomaticProjection = true;
-            for (int i = 0; i < 16; i++) if (Mathf.Abs(previousProjection[i] - defaultProjection[i]) > .0001f) previousAutomaticProjection = false;
-            var brain = previousCamera.GetComponent<Unity.Cinemachine.CinemachineBrain>();
-            foreach (var quarter in FindObjectsByType<QuarterViewCamera>(FindObjectsSortMode.None))
-                if (quarter.GetComponent<Camera>() == previousCamera || quarter.CinemachineRig?.Brain == brain && brain != null) PauseDriver(quarter);
-            PauseDriver(brain); previousCamera.enabled = false;
+            var prefab = Resources.Load<GameObject>("UI/HUD/PF_EnemyBossHud");
+            if (prefab == null) { Debug.LogError("[Crustaspikan] 기존 보스 HUD 프리팹을 찾지 못했습니다."); return false; }
+            ownedBossHud = Instantiate(prefab, transform, false);
+            bossHud = ownedBossHud.GetComponent<EnemyBossHudView>();
+            if (bossHud == null) return false;
         }
-        foreach (var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
-            if (listener.enabled) { oldListeners.Add(listener); listener.enabled = false; }
-        var go = new GameObject("Crustaspikan Battle Camera"); go.transform.SetParent(transform, false); go.tag = "MainCamera";
-        battleCamera = go.AddComponent<Camera>(); battleCamera.fieldOfView = 50; battleCamera.nearClipPlane = .1f; battleCamera.farClipPlane = 180;
-        battleCamera.backgroundColor = new Color(.04f, .05f, .07f); battleCamera.clearFlags = CameraClearFlags.Skybox; go.AddComponent<AudioListener>();
-    }
-    private void PauseDriver(Behaviour driver)
-    { if (driver != null && driver.enabled) { pausedCameraDrivers.Add(driver); driver.enabled = false; } }
-    private void LateUpdate()
-    {
-        if (exiting || battleCamera == null || player == null) return;
-        Vector3 focus = player.transform.position;
-        if (Brain?.Actor != null) focus = Vector3.Lerp(focus, Brain.Actor.transform.position, .3f);
-        focus.y = ArenaCenter.y + 2f;
-        Vector3 position = focus + new Vector3(0, 31, -30);
-        battleCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
-        // 플레이어의 기존 카메라 캐시는 유지하고, 보이는 화면과 같은 마우스 ray/이동 축을 제공한다.
-        if (previousCamera != null)
+        // 같은 상단 자리를 쓰는 일반 대상 HUD는 이 전투 동안만 쉬고, 쫄의 머리 위 HP는 유지한다.
+        foreach (var view in FindObjectsByType<EnemyTargetHpHud>(FindObjectsSortMode.None))
+            if (view.enabled) { pausedTargetHuds.Add(view); view.enabled = false; }
+
+        gameplayCamera = QuarterViewCamera.ActiveInstance;
+        if (gameplayCamera == null && Camera.main != null) gameplayCamera = Camera.main.GetComponent<QuarterViewCamera>();
+        cameraRig = gameplayCamera != null ? gameplayCamera.CinemachineRig : null;
+        if (cameraRig != null && cameraRig.Confiner != null)
         {
-            previousCamera.transform.SetPositionAndRotation(battleCamera.transform.position, battleCamera.transform.rotation);
-            previousCamera.orthographic = battleCamera.orthographic; previousCamera.fieldOfView = battleCamera.fieldOfView;
-            previousCamera.nearClipPlane = battleCamera.nearClipPlane; previousCamera.farClipPlane = battleCamera.farClipPlane;
-            previousCamera.aspect = battleCamera.aspect; previousCamera.pixelRect = battleCamera.pixelRect;
-            previousCamera.projectionMatrix = battleCamera.projectionMatrix;
+            previousConfinerVolume = cameraRig.Confiner.BoundingVolume;
+            previousConfinerSlowing = cameraRig.Confiner.SlowingDistance;
+            confinerCaptured = true;
+            // 원격 임시 무대에 하이드아웃의 공간 제한만 적용하지 않는다. 줌·시점·렌즈는 바꾸지 않는다.
+            cameraRig.SetConfinerVolume(null);
         }
+        return true;
     }
     private void Update()
     {
@@ -158,14 +137,15 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     public Vector3 ClampArena(Vector3 position, float margin = 2f)
     { Vector3 delta = position - ArenaCenter; delta.y = 0; return ArenaCenter + Vector3.ClampMagnitude(delta, Settings.arenaRadius - margin) + Vector3.up * .08f; }
-    public void Announce(string text, float seconds) => hud?.Announce(text, seconds);
+    public void Announce(string text, float seconds) => bossHud?.ShowEncounterNotice(Brain, text, seconds);
     public void BossDefeated()
-    { if (Defeated) return; Defeated = true; Announce("크러스피칸 격파!\nF8 다시 전투 · 복귀 포탈 또는 F9", 30f); }
+    { if (Defeated) return; Defeated = true; }
     private void Teleport(Vector3 position, Quaternion rotation)
     {
         if (player == null) return; var cc = player.CharacterController; bool enabled = cc != null && cc.enabled;
         if (enabled) cc.enabled = false; player.transform.SetPositionAndRotation(position, rotation); if (enabled) cc.enabled = true;
         previousPlayerPosition = position; PlayerVelocity = Vector3.zero; player.Movement?.ResetMotionAfterTeleport(); Physics.SyncTransforms();
+        if (gameplayCamera != null && gameplayCamera.CurrentTarget != null) gameplayCamera.SetTarget(gameplayCamera.CurrentTarget);
     }
     public void ClearSummons()
     {
@@ -185,6 +165,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     {
         if (Brain != null)
         {
+            bossHud?.ClearEncounter(Brain);
             var actor = Brain.Actor; Brain.Composite.MonsterLanded -= DisableLoot; ClearSummons(); RestoreAllLoot(); Brain.Dispose(); Brain = null;
             if (actor != null && actor.IsLeased && actor.LeaseVersion == leases[actor]) spawns.Release(actor);
         }
@@ -194,26 +175,17 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     {
         if (exiting) return; ClearCombat(); Defeated = false;
         player.Health.Heal(player.Health.MaxHp); Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
-        SpawnBoss(); Announce("보스전 재시작 · 관측 기록 초기화", 2f);
+        SpawnBoss(); Announce("재전투", 2f);
     }
     public void Exit(bool returnToHideout)
     {
         if (exiting) return; exiting = true; ClearCombat();
         if (player != null) { player.Health.SetDamageDeathPrevention(this, false); if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); } }
-        if (battleCamera != null) { battleCamera.enabled = false; var listener = battleCamera.GetComponent<AudioListener>(); if (listener != null) listener.enabled = false; }
-        if (previousCamera != null)
-        {
-            previousCamera.transform.SetPositionAndRotation(previousCameraPosition, previousCameraRotation);
-            previousCamera.orthographic = previousOrthographic; previousCamera.fieldOfView = previousFov;
-            previousCamera.nearClipPlane = previousNear; previousCamera.farClipPlane = previousFar;
-            previousCamera.aspect = previousAspect; previousCamera.pixelRect = previousPixelRect; previousCamera.projectionMatrix = previousProjection;
-            if (previousAutomaticProjection) previousCamera.ResetProjectionMatrix();
-            previousCamera.enabled = previousCameraEnabled;
-        }
-        foreach (var driver in pausedCameraDrivers) if (driver != null) driver.enabled = true;
-        pausedCameraDrivers.Clear();
-        foreach (var listener in oldListeners) if (listener != null) listener.enabled = true;
-        oldListeners.Clear(); host?.OnExit(this); Destroy(gameObject);
+        if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
+        foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
+        pausedTargetHuds.Clear();
+        if (ownedBossHud != null) Destroy(ownedBossHud);
+        host?.OnExit(this); Destroy(gameObject);
     }
     private void OnDestroy() { if (!exiting) Exit(false); visuals?.Dispose(); }
 }

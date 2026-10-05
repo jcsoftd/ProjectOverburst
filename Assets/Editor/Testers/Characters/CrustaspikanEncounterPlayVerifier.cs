@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 // 기존 Editor의 미저장 씬을 건드리지 않고 한 번의 격리 Play에서 실제 왕복·판정·조립을 확인한다.
 [InitializeOnLoad]
@@ -26,14 +27,28 @@ public static class CrustaspikanEncounterPlayVerifier
     private static bool dodgeRequested;
     private static bool movedOut;
     private static int dropCount;
+    private static QuarterViewCamera gameplayCamera;
+    private static float entryDistance, entryYaw, entryPitch, entryFov, zoomBefore;
+    private static bool wheelQueued, wheelChecked, groggyHudChecked;
+    private static Collider entryConfiner;
+    private static float entryConfinerSlowing;
+    private static EnemyActor legacyBoss;
+    private static EnemyBossHudView legacyHud;
+    private static EnemySpawnService legacySpawns;
+    private static GameObject legacyServiceRoot;
+    private static readonly List<KeyValuePair<EnemyTargetHpHud,bool>> targetHuds=new List<KeyValuePair<EnemyTargetHpHud,bool>>();
     private static readonly List<KeyValuePair<Behaviour,bool>> cameraDrivers=new List<KeyValuePair<Behaviour,bool>>();
     static CrustaspikanEncounterPlayVerifier(){EditorApplication.update+=Update;EditorApplication.playModeStateChanged+=Changed;}
     public static string Start(string directory)
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)throw new InvalidOperationException("Editor가 유휴 상태여야 합니다.");
+        if(SessionState.GetBool(Key+"returnPending",false) || IsolatedSavePlayGuard.RequiresAccountChoice
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)))
+            throw new InvalidOperationException("이전 격리 검증의 실제 계정 반환이 먼저 완료돼야 합니다.");
         directory=IsolatedSavePlayGuard.ValidateDirectory(directory);Directory.CreateDirectory(directory);
         var settings=AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(CrustaspikanEncounterBuilder.AssetPath);
         if(settings==null || !settings.Validate(out string reason))throw new InvalidOperationException("설정 자산이 유효하지 않습니다.");
+        wheelQueued=false;wheelChecked=false;groggyHudChecked=false;legacyBoss=null;legacyHud=null;legacySpawns=null;legacyServiceRoot=null;
         SessionState.SetString(Key+"output",directory);SessionState.SetBool(Key+"pending",true);
         File.WriteAllText(Path.Combine(directory,"play-start.json"),JsonConvert.SerializeObject(new{status="STARTING",utc=DateTime.UtcNow,
             sourceMaterialsDirty=EditorUtility.IsDirty(settings.materials),startScene=AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene)},Formatting.Indented));
@@ -44,21 +59,58 @@ public static class CrustaspikanEncounterPlayVerifier
         if(change==PlayModeStateChange.EnteredEditMode && SessionState.GetBool(Key+"pending",false))
         {
             SessionState.SetBool(Key+"pending",false);
-            EditorApplication.delayCall+=()=>{
-                if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)return;
+            SessionState.SetBool(Key+"returnPending",true);
+            SessionState.SetFloat(Key+"returnDeadline",(float)EditorApplication.timeSinceStartup+120f);
+        }
+    }
+    private static void TryReturnAccount()
+    {
+        if(!SessionState.GetBool(Key+"returnPending",false))return;
+        var path=SessionState.GetString(Key+"output","");
+        if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+        {
+            if(EditorApplication.timeSinceStartup>SessionState.GetFloat(Key+"returnDeadline",0f))
+            {
+                SessionState.SetBool(Key+"returnPending",false);
+                File.WriteAllText(Path.Combine(path,"editor-return.json"),JsonConvert.SerializeObject(new{status="DEFERRED_EDITOR_BUSY"},Formatting.Indented));
+            }
+            return;
+        }
+        var owned=Path.Combine(path,"IsolatedSave");
+        string[] directories={IsolatedSavePlayGuard.ActiveDirectory,Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
+            SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","")};
+        if(directories.Any(d=>!string.IsNullOrEmpty(d) && !string.Equals(Path.GetFullPath(d).TrimEnd(Path.DirectorySeparatorChar),
+            Path.GetFullPath(owned).TrimEnd(Path.DirectorySeparatorChar),StringComparison.OrdinalIgnoreCase)))
+        {
+            if(EditorApplication.timeSinceStartup>SessionState.GetFloat(Key+"returnDeadline",0f))
+            {
+                SessionState.SetBool(Key+"returnPending",false);
+                File.WriteAllText(Path.Combine(path,"editor-return.json"),JsonConvert.SerializeObject(new{status="DEFERRED_OTHER_OWNER",directories},Formatting.Indented));
+            }
+            return;
+        }
+        try
+        {
                 IsolatedSavePlayGuard.UseRealAccount();
-                var path=SessionState.GetString(Key+"output","");
+                SessionState.SetBool(Key+"returnPending",false);
                 File.WriteAllText(Path.Combine(path,"editor-return.json"),JsonConvert.SerializeObject(new{
+                    status="RETURNED",returnPending=false,
                     playing=EditorApplication.isPlaying,save=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
                     active=IsolatedSavePlayGuard.ActiveDirectory,blocked=IsolatedSavePlayGuard.RequiresAccountChoice,
                     prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),expires=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),
                     scenes=Enumerable.Range(0,UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i=>{var s=UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);return new{s.name,s.path,s.isDirty,roots=s.rootCount};}).ToArray(),
-                    startScene=AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene)},Formatting.Indented));
-            };
+                    startScene=AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene),
+                    backgroundBehavior=InputSystem.settings.backgroundBehavior.ToString(),runInBackground=Application.runInBackground},Formatting.Indented));
+        }
+        catch(Exception error)
+        {
+            SessionState.SetBool(Key+"returnPending",false);
+            Debug.LogException(error);
         }
     }
     private static void Update()
     {
+        TryReturnAccount();
         if(!EditorApplication.isPlaying || !SessionState.GetBool(Key+"pending",false))return;
         if(!started){started=true;output=SessionState.GetString(Key+"output","");stage=0;stageAt=Time.realtimeSinceStartup;passed.Clear();}
         try{Tick();}catch(Exception error){Finish("FAIL",error.ToString());}
@@ -75,6 +127,15 @@ public static class CrustaspikanEncounterPlayVerifier
             case 0:
                 if(host?.Entrance==null || !host.CanEnter)return;
                 player=PlayerContext.Instance.CurrentActor;oldCamera=Camera.main;originalHp=player.Health.CurrentHp;
+                gameplayCamera=QuarterViewCamera.ActiveInstance;
+                Check(gameplayCamera!=null && gameplayCamera.UsesCinemachine,"existing gameplay camera is ready");
+                entryDistance=gameplayCamera.CurrentDistance;entryYaw=gameplayCamera.CurrentYaw;
+                entryPitch=gameplayCamera.CurrentPitch;entryFov=oldCamera.fieldOfView;
+                entryConfiner=gameplayCamera.CinemachineRig.Confiner.BoundingVolume;
+                entryConfinerSlowing=gameplayCamera.CinemachineRig.Confiner.SlowingDistance;
+                targetHuds.Clear();
+                foreach(var view in UnityEngine.Object.FindObjectsByType<EnemyTargetHpHud>(FindObjectsSortMode.None))
+                    targetHuds.Add(new KeyValuePair<EnemyTargetHpHud,bool>(view,view.enabled));
                 cameraDrivers.Clear();
                 var oldBrain=oldCamera.GetComponent<Unity.Cinemachine.CinemachineBrain>();
                 if(oldBrain!=null)cameraDrivers.Add(new KeyValuePair<Behaviour,bool>(oldBrain,oldBrain.enabled));
@@ -92,8 +153,30 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(encounter.Brain.Composite.Patterns.IsValid && encounter.Brain.Composite.Patterns.spitPatterns.All(p=>encounter.Brain.RuntimeMaterials.Find(p.material.ability)==p.material),"native composite routes reference encounter clones");
                 Check(player.Health.IsDeathFromDamagePrevented,"practice player death protection active");
                 Check(Physics.Raycast(encounter.ArenaCenter+Vector3.right*15f+Vector3.up*10,Vector3.down,out var floor,20f) && floor.collider.name=="Arena Floor","circular arena has upward floor collider");
-                Check(Camera.main!=oldCamera,"battle camera selected");Next();break;
+                Check(Camera.main==oldCamera && oldCamera.enabled,"same gameplay camera remains selected");
+                Check(cameraDrivers.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"camera drivers remain enabled during battle");
+                Check(Mathf.Abs(gameplayCamera.CurrentDistance-entryDistance)<.001f && Mathf.Abs(gameplayCamera.CurrentYaw-entryYaw)<.001f
+                    && Mathf.Abs(gameplayCamera.CurrentPitch-entryPitch)<.001f && Mathf.Abs(oldCamera.fieldOfView-entryFov)<.001f,"entry preserves zoom yaw pitch and lens");
+                Check(encounter.GetComponentsInChildren<Camera>(true).Length==0 && GameObject.Find("Crustaspikan Practice HUD")==null,"no extra battle camera or temporary health HUD");
+                Check(encounter.BossHud!=null && ReferenceEquals(encounter.BossHud.BoundEncounterSource,encounter.Brain),"authored boss HUD binds current BT");
+                Check(encounter.BossHud.IsVisible && Mathf.Abs(encounter.BossHud.DisplayedHealth01-1f)<.001f
+                    && encounter.BossHud.DisplayedLitPhaseGems==2,"existing HP bar and phase gems show first phase");
+                Check(targetHuds.All(pair=>!pair.Key.enabled),"overlapping ordinary target HUD is suspended");
+                var portalKey=host.Entrance.GetComponentInChildren<WorldInteractionKeyPrompt>(true);
+                Check(portalKey!=null && portalKey.HasUsableView && portalKey.KeyLabel=="F","portal reuses authored shared F keycap");
+                Next();break;
             case 1:
+                if(!wheelQueued)
+                {
+                    Check(Mouse.current!=null,"mouse device available for real zoom input");
+                    zoomBefore=gameplayCamera.CurrentDistance;
+                    InputSystem.QueueDeltaStateEvent(Mouse.current.scroll,new Vector2(0,120));wheelQueued=true;return;
+                }
+                if(!wheelChecked && Age>1.5f)
+                {
+                    Check(gameplayCamera.CurrentDistance<zoomBefore-.05f,"mouse wheel changes existing camera distance in arena");
+                    InputSystem.QueueDeltaStateEvent(Mouse.current.scroll,new Vector2(0,-120));wheelChecked=true;
+                }
                 if(Age>1f && Age<1.2f)ScreenCapture.CaptureScreenshot(Path.Combine(output,"arena-phase-one.png"));
                 var executor=encounter.Brain.Actor.GetComponent<EnemyBossMaterialExecutor>();
                 if(Age<10f || executor.ImpactCount+encounter.Brain.Composite.ReleaseCount<1 && Age<24f)return;
@@ -143,12 +226,21 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(encounter.Brain.IsGroggy && encounter.Brain.GroggyCount==1,"300 poise triggers one groggy and cancels assembly");
                 Check(!encounter.Brain.Actor.AbilityController.IsExecuting,"groggy clears in-flight boss execution");Next();break;
             case 4:
+                if(!groggyHudChecked && Age>.2f && encounter.Brain.IsGroggy)
+                {
+                    Check(Mathf.Abs(encounter.BossHud.DisplayedHealth01-encounter.Brain.Actor.Health.NormalizedHp)<.001f,"existing boss HP fill follows actual damage");
+                    Check(encounter.BossHud.DisplayedGroggy01>.999f && encounter.BossHud.DisplayedState=="그로기","existing groggy UI shows 300 and groggy state");
+                    ScreenCapture.CaptureScreenshot(Path.Combine(output,"arena-groggy-native-hud.png"));groggyHudChecked=true;
+                }
                 if(encounter.Brain.IsGroggy || Age<5.5f)return;
+                Check(groggyHudChecked,"groggy HUD captured during actual opening");
                 Check(encounter.Brain.Poise==0,"groggy resets after 4.5 seconds");
                 encounter.Brain.Actor.Health.TakeDamage(new DamageInfo(1800f,encounter.Brain.Actor.transform.position,player.gameObject,triggersOnHitEffects:false));Next();break;
             case 5:
                 if(encounter.Brain.Phase!=2 || encounter.Brain.IsTransitioning)return;
                 Check(encounter.Brain.Observer.Frozen && encounter.Brain.Observer.Tactic==CrustaspikanTactic.Heavy,"phase two freezes observed heavy-hit tactic");
+                Check(encounter.BossHud.DisplayedPhaseIndex==1 && encounter.BossHud.DisplayedLitPhaseGems==1,"existing phase gems follow BT phase two");
+                Check(Mathf.Abs(encounter.BossHud.DisplayedGroggy01)<.001f,"existing groggy UI clears after opening");
                 encounter.ClearSummons();
                 Teleport(encounter.Brain.Actor.transform.position+encounter.Brain.Actor.transform.forward*10f);
                 Check(encounter.Brain.StartPatternForReview("weak_spit"),"weak spit assembly starts");impacts=encounter.TotalAddsSpawned;Next();break;
@@ -178,6 +270,8 @@ public static class CrustaspikanEncounterPlayVerifier
                 // 캡처를 위한 5초 여유. 이후 재시작/왕복의 풀 수명을 검사한다.
                 if(Age<5f)return;
                 encounter.Restart();Check(encounter.Brain.Phase==1 && encounter.Brain.Poise==0 && !encounter.Brain.Observer.Frozen,"restart resets phase poise observation");
+                Check(ReferenceEquals(encounter.BossHud.BoundEncounterSource,encounter.Brain) && encounter.BossHud.IsVisible
+                    && encounter.BossHud.DisplayedHealth01>.999f && encounter.BossHud.DisplayedLitPhaseGems==2,"restart rebinds existing boss HUD to new lease");
                 Check(encounter.AliveAdds==0 && encounter.Brain.Actor.Health.CurrentHp==3000,"restart releases summons and refills boss");
                 player.GetComponent<MeleeRuntime>().CancelCurrentAction();
                 dodgeStart=encounter.Brain.Actor.transform.position;dodgeRequested=false;
@@ -197,6 +291,8 @@ public static class CrustaspikanEncounterPlayVerifier
             case 11:
                 if(Age<.6f)return;
                 Check(encounter.Defeated,"boss death ends selection and announces defeat");
+                Check(!encounter.BossHud.IsVisible && encounter.BossHud.DisplayedHealth01==0 && encounter.BossHud.DisplayedGroggy01==0,"defeated HUD stays hidden after pooled health reset");
+                ScreenCapture.CaptureScreenshot(Path.Combine(output,"arena-defeated-native-hud.png"));
                 Check(UnityEngine.Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None).Length+UnityEngine.Object.FindObjectsByType<CurrencyWorldPickup>(FindObjectsSortMode.None).Length==dropCount,"practice boss death grants no item or currency drops");
                 encounter.Exit(true);Next();break;
             case 12:
@@ -205,9 +301,35 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(Vector3.Distance(player.transform.position,entryPosition)<.2f,"return restores entry position");
                 Check(Camera.main==oldCamera && oldCamera.enabled,"return restores main camera");
                 Check(cameraDrivers.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"return restores original camera drivers");
+                Check(gameplayCamera.CinemachineRig.Confiner.BoundingVolume==entryConfiner
+                    && Mathf.Abs(gameplayCamera.CinemachineRig.Confiner.SlowingDistance-entryConfinerSlowing)<.001f,"return restores hideout camera volume");
+                Check(targetHuds.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"return restores ordinary target HUD state");
+                Check(UnityEngine.Object.FindObjectsByType<EnemyBossHudView>(FindObjectsSortMode.None).All(v=>v.BoundEncounterSource==null),"return clears BT HUD subscriptions");
                 Check(!player.Health.IsDeathFromDamagePrevented,"encounter death protection released");
                 Check((EnemySpawnService.Current!=null?EnemySpawnService.Current.Pool.LeasedCount:0)==originalLeases,"owned actors returned to shared pool");
-                Check(player.Health.CurrentHp>=originalHp,"practice damage healed on return");Finish("PASS","");break;
+                Check(player.Health.CurrentHp>=originalHp,"practice damage healed on return");
+                legacySpawns=EnemySpawnService.Current;
+                if(legacySpawns==null)
+                {
+                    legacyServiceRoot=new GameObject("Crustaspikan Legacy HUD Verification Services");
+                    var inactive=new GameObject("Inactive Actors");inactive.transform.SetParent(legacyServiceRoot.transform,false);inactive.SetActive(false);
+                    var pool=legacyServiceRoot.AddComponent<EnemyPoolService>();pool.Configure(inactive.transform,0);
+                    legacySpawns=legacyServiceRoot.AddComponent<EnemySpawnService>();legacySpawns.Configure(host.Settings.materials.catalog,pool);
+                }
+                Check(legacySpawns.TrySpawn(new EnemySpawnRequest(host.Settings.materials.actorDefinition,
+                    player.transform.position+Vector3.forward*8f,Quaternion.identity,targetTransform:player.transform,context:EncounterContext.Test),out legacyBoss),"legacy boss spawns with restored native phase controller");
+                legacyHud=UnityEngine.Object.FindObjectsByType<EnemyBossHudView>(FindObjectsSortMode.None).FirstOrDefault(v=>v.BoundBoss==legacyBoss.BossPhaseController);
+                Check(legacyHud!=null && legacyHud.BoundEncounterSource==null,"existing registry still binds ordinary boss HUD");
+                Next();break;
+            case 13:
+                if(Age<.5f)return;
+                Check(Mathf.Abs(legacyHud.DisplayedHealth01-legacyBoss.Health.NormalizedHp)<.001f,"ordinary boss HUD displays native health after BT encounter");
+                legacyBoss.Health.TakeDamage(new DamageInfo(1f,legacyBoss.transform.position,player.gameObject,triggersOnHitEffects:false));
+                Check(Mathf.Abs(legacyHud.DisplayedHealth01-legacyBoss.Health.NormalizedHp)<.001f,"ordinary boss HUD retains health event updates");
+                legacySpawns.Release(legacyBoss);legacyBoss=null;
+                Check(legacyHud.BoundBoss==null && !legacyHud.IsVisible,"ordinary boss registry unbinds HUD on pool return");
+                Check(legacySpawns.Pool.LeasedCount==originalLeases,"legacy HUD check returns its native boss lease");
+                Finish("PASS","");break;
         }
     }
     private static void Teleport(Vector3 position)
@@ -223,6 +345,10 @@ public static class CrustaspikanEncounterPlayVerifier
     private static void Finish(string status,string error)
     {
         Write(status,error);if(encounter!=null)encounter.Exit(true);
+        if(legacyBoss!=null && legacyBoss.IsLeased && legacySpawns!=null)legacySpawns.Release(legacyBoss);
+        legacyBoss=null;
+        if(legacyServiceRoot!=null)UnityEngine.Object.Destroy(legacyServiceRoot);
+        legacyServiceRoot=null;legacySpawns=null;
         started=false;EditorApplication.ExitPlaymode();
     }
 }

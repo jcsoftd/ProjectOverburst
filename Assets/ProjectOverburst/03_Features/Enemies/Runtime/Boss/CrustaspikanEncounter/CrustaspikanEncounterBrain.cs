@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 전투 지휘만 소유한다. 접촉 판정·피해·패링 경고는 기존 재료 실행기로 보낸다.
-public sealed class CrustaspikanEncounterBrain : IDisposable
+public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSource
 {
     public EnemyActor Actor { get; private set; }
     public CrustaspikanStyleObserver Observer { get; private set; }
@@ -36,6 +36,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
     private readonly EnemyOverheadHpBar overhead;
     private readonly bool originalReporter, originalOverhead;
     private readonly uint leaseVersion;
+    private readonly float[] phaseThresholds;
     private readonly List<UnityEngine.Object> clones = new List<UnityEngine.Object>();
     private readonly Dictionary<string, EnemyBossAttackMaterial> attacks = new Dictionary<string, EnemyBossAttackMaterial>();
     private readonly Dictionary<string, float> cooldowns = new Dictionary<string, float>();
@@ -54,9 +55,29 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
     private MeleeRuntime melee;
     private OverburstElementEnergy energy;
 
+    public bool IsActive => !disposed && Actor != null && Actor.IsLeased && Actor.LeaseVersion == leaseVersion;
+    public bool IsDefeated => encounter.Defeated || !IsActive || Actor.Health.IsDead;
+    CombatHealth IEnemyBossHudSource.Health => IsActive ? Actor.Health : null;
+    string IEnemyBossHudSource.DisplayName => "크러스피칸";
+    int IEnemyBossHudSource.Level => IsActive ? Actor.GetComponent<EnemyRank>()?.Level ?? 1 : 1;
+    int IEnemyBossHudSource.PhaseIndex => Phase - 1;
+    float[] IEnemyBossHudSource.PhaseThresholds => phaseThresholds;
+    float IEnemyBossHudSource.Groggy01 => settings.groggyMax > 0f ? Poise / settings.groggyMax : 0f;
+    EnemyBossEmblemFxMode IEnemyBossHudSource.EmblemFx => Actor.BossPhaseController.BossDefinition != null
+        ? Actor.BossPhaseController.BossDefinition.EmblemFx : EnemyBossEmblemFxMode.Fire;
+    private string TacticLabel => Observer.Tactic switch
+    {
+        CrustaspikanTactic.Evade => "회피", CrustaspikanTactic.Dash => "대시",
+        CrustaspikanTactic.Weak => "약공", CrustaspikanTactic.Heavy => "강공",
+        CrustaspikanTactic.DashAttack => "대시 공격", CrustaspikanTactic.Parry => "패링",
+        CrustaspikanTactic.Rear => "후방", CrustaspikanTactic.Range => "원거리",
+        CrustaspikanTactic.Left => "왼쪽 회피", CrustaspikanTactic.Right => "오른쪽 회피", _ => "균형형"
+    };
+
     public CrustaspikanEncounterBrain(CrustaspikanEncounter encounter, EnemyActor actor, PlayerActorRuntime player)
     {
         this.encounter = encounter; settings = encounter.Settings; Actor = actor; this.player = player;
+        phaseThresholds = new[] { settings.phaseTwoHp };
         executor = actor.GetComponent<EnemyBossMaterialExecutor>();
         composite = actor.GetComponent<EnemyBossCompositePatternExecutor>(); originalComposite = composite.Patterns;
         parryDirector = actor.GetComponent<EnemyBossCombatDirector>(); reaction = actor.GetComponent<EnemyMovementReaction>();
@@ -128,7 +149,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
     private EnemyBossMaterialCollection runtimeMaterials;
     public void Tick()
     {
-        if (disposed || Actor == null || !Actor.IsLeased || player == null) return;
+        if (!IsActive || encounter.Defeated || player == null) return;
         Observer.Tick();
         if (melee != null && melee.IsDashHeavyWindupActive) dashAttackUntil = Time.time + 1.5f;
         while (lastParry < parryDirector.ParryCount)
@@ -162,7 +183,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
             transitionStarted = true; Phase = 2; Observer.Freeze(settings.enableAdaptiveTactics);
             Actor.Movement.StopMovement(); Actor.AbilityController.Cancel();
             executor.TryPlayMotion("Roar2"); transitionDeadline = Time.time + 6f;
-            encounter.Announce("보스가 당신의 전투 스타일을 분석했습니다\n" + Observer.Explanation, 7f);
+            encounter.Announce("습관 간파: " + TacticLabel, 7f);
         }
         if (!executor.IsExecuting || Time.time > transitionDeadline)
         { executor.Cancel(); transitionStarted = false; readyAt = Time.time + 1f; }
@@ -180,7 +201,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
             new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Move, localDisplacement = new Vector3(0,0,-3f), seconds = 1f },
             new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Wait, seconds = .35f },
             new CrustaspikanEncounterSettings.Step { kind = CrustaspikanStepKind.Attack, materialOrMotion = "RightHandAttack" } } };
-        BeginPattern(); encounter.Announce("보스가 강공을 보고 물러납니다", 1.5f); return CrustaspikanNodeStatus.Running;
+        BeginPattern(); encounter.Announce("강공 견제", 1.5f); return CrustaspikanNodeStatus.Running;
     }
     private CrustaspikanNodeStatus SelectPattern()
     {
@@ -317,7 +338,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
         float gain = (info.playerAttackKind & PlayerAttackKind.Heavy) != 0 ? settings.heavyPoise : settings.weakPoise;
         Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0;
         if (Vector3.Dot(Actor.transform.forward, delta.normalized) < -.5f)
-        { gain *= settings.backPoiseMultiplier; BackHitCount++; encounter.Announce("백어택 · 그로기 축적 ×" + settings.backPoiseMultiplier.ToString("0.00"), .8f); }
+        { gain *= settings.backPoiseMultiplier; BackHitCount++; encounter.Announce("백어택", .8f); }
         AddPoise(gain);
     }
     private void AddPoise(float amount)
@@ -331,7 +352,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable
         reaction.ApplyBossStun(settings.groggySeconds);
         var motion = runtimeMaterials.FindMotion("GetHitFront");
         if (motion != null) { Actor.Animator.CrossFadeInFixedTime(motion.state, .08f); Actor.Animator.speed = .25f; }
-        encounter.Announce("그로기! · 4.5초 공격 기회", settings.groggySeconds);
+        encounter.Announce("그로기", settings.groggySeconds);
     }
     public bool StartPatternForReview(string id)
     {
