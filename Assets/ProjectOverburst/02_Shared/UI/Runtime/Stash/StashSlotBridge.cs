@@ -10,6 +10,7 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     private SlotUI previewOriginSlot; // 드래그 출발
     public int CurrentTabIndex => stash != null ? stash.CurrentTabIndex : 0; // 현재 탭
+    public int OccupiedSlotCount { get; private set; } // 현재 표시 슬롯 갱신 때 함께 계산
     public int LastStoreAllFailedCount { get; private set; } // 전체보관 실패
 
     private void Awake()
@@ -53,14 +54,18 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
         if (stash == null || stashSlots == null)
             return;
 
+        int occupied = 0;
         for (int i = 0; i < stashSlots.Length; i++)
         {
             if (stashSlots[i] == null)
                 continue;
 
-            stashSlots[i].SetDisplayItem(stash.GetItemAt(i)); // 현재 탭 데이터
+            ItemData item = stash.GetItemAt(i);
+            stashSlots[i].SetDisplayItem(item); // 현재 탭 데이터
+            if (stashSlots[i].DisplayItem != null) occupied++;
             stashSlots[i].SetLocked(false); // 창고 슬롯
         }
+        OccupiedSlotCount = occupied;
     }
 
     public bool SwitchTab(int tabIndex)
