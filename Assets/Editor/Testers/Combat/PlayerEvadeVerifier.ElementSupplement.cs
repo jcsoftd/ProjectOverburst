@@ -22,9 +22,15 @@ public static partial class PlayerEvadeVerifier
     static void ClearElementSupplementMode(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.EnteredEditMode && SessionState.GetString(PendingKey, "") == "")
-        { SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); }
+        { SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); SessionState.EraseBool(ElementSupplementKey + ".ParryOnly"); }
     }
-    public static void StartElementSupplementIsolated(string directory, string elements = "Fire,Ice,Electric,Dark,Light")
+    [MenuItem("OVERBURST/검증/영상/원소 패링 3단계 촬영")]
+    public static void CaptureParrySupplementMenu()
+    {
+        string root = Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/Video/ElementParry"));
+        StartElementSupplementIsolated(Path.Combine(root, DateTime.Now.ToString("yyyyMMdd_HHmmss")), "Fire,Electric,Ice,Dark,Light", true);
+    }
+    public static void StartElementSupplementIsolated(string directory, string elements = "Fire,Ice,Electric,Dark,Light", bool parryOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -37,12 +43,13 @@ public static partial class PlayerEvadeVerifier
         if (parsed.Length == 0 || parsed.Any(e => e == WeaponElement.None)) throw new ArgumentException("Explicit elements required.");
         SessionState.SetString(ElementSupplementKey + ".Elements", string.Join(",", parsed));
         SessionState.SetBool(ElementSupplementKey, true);
+        SessionState.SetBool(ElementSupplementKey + ".ParryOnly", parryOnly);
         try
         {
             StartSwordFacingIsolated(directory);
             SessionState.SetString(ReturnKey + ".Deadline", (EditorApplication.timeSinceStartup + 1800).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
-        catch { SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); throw; }
+        catch { SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); SessionState.EraseBool(ElementSupplementKey + ".ParryOnly"); throw; }
     }
 
     static IEnumerator CaptureElementSupplement()
@@ -50,6 +57,8 @@ public static partial class PlayerEvadeVerifier
         deadline = EditorApplication.timeSinceStartup + 1700;
         string elementNames = SessionState.GetString(ElementSupplementKey + ".Elements", "Fire");
         SessionState.EraseString(ElementSupplementKey + ".Elements");
+        bool parryOnly = SessionState.GetBool(ElementSupplementKey + ".ParryOnly", false);
+        SessionState.EraseBool(ElementSupplementKey + ".ParryOnly");
         var elements = elementNames.Split(',').Select(e => (WeaponElement)Enum.Parse(typeof(WeaponElement), e)).ToArray();
         var targets = new List<EnemyActor>();
         var listeners = new List<Action<CombatHealth, DamageInfo>>();
@@ -93,40 +102,44 @@ public static partial class PlayerEvadeVerifier
             {
                 ReleasePresentationTargets(targets, listeners);
                 yield return Reset(); EquipDashHeavyGem(element); yield return Wait(.8f);
-                for (int i = 0; i < 3; i++)
+                if (!parryOnly)
                 {
-                    var point = origin + forward * (2f + PresentationEnemyOffset(i, 3)) + Vector3.Cross(Vector3.up, forward) * PresentationEnemyLateral(i, 3);
-                    Check(Physics.Raycast(point + Vector3.up * 4, Vector3.down, out var floor, 9, LayerMask.GetMask("Default", "Environment", "Ground")), "시연 몬스터 접지");
-                    Check(spawn.TrySpawn(new EnemySpawnRequest(small, floor.point + Vector3.up * .035f, Quaternion.LookRotation(-forward), actor.transform), out var enemy), "실제 시연 몬스터");
-                    targets.Add(enemy); leased.Add(enemy); enemy.AI.enabled = false; enemy.Movement.StopMovement(); enemy.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                    int index = i;
-                    Action<CombatHealth, DamageInfo> listener = (hp, damage) => hits.Add(new { phase, frame = movie.FrameCount, target = index, kind = damage.playerAttackKind.ToString(), primary = damage.triggersOnHitEffects, hp = hp.CurrentHp });
-                    listeners.Add(listener); enemy.Health.OnDamaged += listener;
-                }
-                // Warm the deployed effect once, outside every retained shot.
-                yield return SupplementReset(targets, 2f); SetSupplementGauge(energy, 100);
-                yield return StartFocusHeavy("원소 촬영 준비 " + element); yield return PresentationAttackEnd(); yield return Wait(1.4f);
-                foreach (int gauge in new[] { 0, 50, 100 })
-                {
-                    yield return SupplementReset(targets, 2f);
-                    if (gauge > 0) { phase = "setup_element_states"; yield return SupplementPrime(); yield return SupplementReset(targets, 2f); }
-                    SetSupplementGauge(energy, gauge);
-                    phase = element + "_heavy_" + gauge; int hitBefore = hits.Count;
-                    movie.Begin(Path.Combine(output, "Raw", phase), phase, gauge);
-                    yield return Wait(.8f);
-                    yield return StartFocusHeavy(phase + " 실제 강공 수락");
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var point = origin + forward * (2f + PresentationEnemyOffset(i, 3)) + Vector3.Cross(Vector3.up, forward) * PresentationEnemyLateral(i, 3);
+                        Check(Physics.Raycast(point + Vector3.up * 4, Vector3.down, out var floor, 9, LayerMask.GetMask("Default", "Environment", "Ground")), "시연 몬스터 접지");
+                        Check(spawn.TrySpawn(new EnemySpawnRequest(small, floor.point + Vector3.up * .035f, Quaternion.LookRotation(-forward), actor.transform), out var enemy), "실제 시연 몬스터");
+                        targets.Add(enemy); leased.Add(enemy); enemy.AI.enabled = false; enemy.Movement.StopMovement(); enemy.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                        int index = i;
+                        Action<CombatHealth, DamageInfo> listener = (hp, damage) => hits.Add(new { phase, frame = movie.FrameCount, target = index, kind = damage.playerAttackKind.ToString(), primary = damage.triggersOnHitEffects, hp = hp.CurrentHp });
+                        listeners.Add(listener); enemy.Health.OnDamaged += listener;
+                    }
+                    // Warm the deployed effect once, outside every retained shot.
+                    yield return SupplementReset(targets, 2f); SetSupplementGauge(energy, 100);
+                    yield return StartFocusHeavy("원소 촬영 준비 " + element); yield return PresentationAttackEnd(); yield return Wait(1.4f);
+                    foreach (int gauge in new[] { 0, 50, 100 })
+                    {
+                        yield return SupplementReset(targets, 2f);
+                        if (gauge > 0) { phase = "setup_element_states"; yield return SupplementPrime(); yield return SupplementReset(targets, 2f); }
+                        SetSupplementGauge(energy, gauge);
+                        phase = element + "_heavy_" + gauge; int hitBefore = hits.Count;
+                        movie.Begin(Path.Combine(output, "Raw", phase), phase, gauge);
+                        yield return Wait(.8f);
+                        yield return StartFocusHeavy(phase + " 실제 강공 수락");
+                        yield return PresentationAttackEnd(); yield return Wait(1.5f);
+                        var take = movie.End(); Check(hits.Count > hitBefore, phase + " 실제 피해");
+                        cases.Add(new { phase, element = element.ToString(), action = "heavy", startingGauge = gauge, endingGauge = energy.Amount, hits = hits.Count - hitBefore, take }); Progress(phase);
+                    }
+                    yield return SupplementReset(targets, 2f); phase = "setup_element_states"; yield return SupplementPrime();
+                    yield return SupplementReset(targets, 5.7f); SetSupplementGauge(energy, 100);
+                    phase = element + "_dash_heavy_100"; int dashHitBefore = hits.Count;
+                    movie.Begin(Path.Combine(output, "Raw", phase), phase, 100); yield return Wait(.8f);
+                    yield return StartDodge(false, false, true); Send();
                     yield return PresentationAttackEnd(); yield return Wait(1.5f);
-                    var take = movie.End(); Check(hits.Count > hitBefore, phase + " 실제 피해");
-                    cases.Add(new { phase, element = element.ToString(), action = "heavy", startingGauge = gauge, endingGauge = energy.Amount, hits = hits.Count - hitBefore, take }); Progress(phase);
+                    var dashTake = movie.End(); Check(hits.Count > dashHitBefore, phase + " 실제 대시 강공 피해");
+                    cases.Add(new { phase, element = element.ToString(), action = "dash_heavy", startingGauge = 100, endingGauge = energy.Amount, hits = hits.Count - dashHitBefore, take = dashTake }); Progress(phase);
+
                 }
-                yield return SupplementReset(targets, 2f); phase = "setup_element_states"; yield return SupplementPrime();
-                yield return SupplementReset(targets, 5.7f); SetSupplementGauge(energy, 100);
-                phase = element + "_dash_heavy_100"; int dashHitBefore = hits.Count;
-                movie.Begin(Path.Combine(output, "Raw", phase), phase, 100); yield return Wait(.8f);
-                yield return StartDodge(false, false, true); Send();
-                yield return PresentationAttackEnd(); yield return Wait(1.5f);
-                var dashTake = movie.End(); Check(hits.Count > dashHitBefore, phase + " 실제 대시 강공 피해");
-                cases.Add(new { phase, element = element.ToString(), action = "dash_heavy", startingGauge = 100, endingGauge = energy.Amount, hits = hits.Count - dashHitBefore, take = dashTake }); Progress(phase);
 
                 ReleasePresentationTargets(targets, listeners);
                 float range = Mathf.Max(1.1f, ability.Range * .85f);
@@ -135,7 +148,8 @@ public static partial class PlayerEvadeVerifier
                 targets.Add(elite); leased.Add(elite); elite.AI.enabled = false; elite.Movement.StopMovement(); elite.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 elite.AbilityController.Configure(abilitySet, .1f, 1);
                 var parry = actor.GetComponent<PlayerParryController>();
-                foreach (int gauge in new[] { 0, 50, 100 })
+                movie.BindParryTarget(elite);
+                foreach (int gauge in parryOnly ? new[] { 100, 50, 0 } : new[] { 0, 50, 100 })
                 {
                     yield return SupplementReset(targets, range); actor.Health.ResetHealth(); SetSupplementGauge(energy, gauge);
                     phase = element + "_parry_" + gauge; int successBefore = parry.SuccessCount;
@@ -144,10 +158,22 @@ public static partial class PlayerEvadeVerifier
                     float threatEnd = Time.unscaledTime + 6;
                     while (!elite.AbilityController.IsParryThreatTo(actor.GetComponent<CombatTarget>()) && Time.unscaledTime < threatEnd) yield return null;
                     Check(elite.AbilityController.IsParryThreatTo(actor.GetComponent<CombatTarget>()), phase + " 실제 적 위협");
-                    yield return StartDodge(false); Send(false, false, false, true); yield return Frames(2); Send();
+                    // Start every parry demonstration with standing heavy input. A dodge here
+                    // can cross the close enemy before the target-limited counter even begins.
+                    Send(false, false, false, true);
+                    float acceptEnd = Time.unscaledTime + 2f;
+                    while (!melee.IsHeavyAttackInProgress && Time.unscaledTime < acceptEnd) yield return null;
+                    Check(melee.IsHeavyAttackInProgress, phase + " 제자리 실제 강공 입력 수락");
+                    Check(!evade.IsEvading, phase + " 선행 회피 없음");
+                    Send();
                     yield return PresentationAttackEnd(); yield return Wait(1.5f);
                     var take = movie.End();
                     Check(parry.SuccessCount == successBefore + 1, phase + " 실제 패링 성공");
+                    Check(parry.ActionGrade == PlayerParryController.ResolveGrade(gauge / 100f), phase + " 실제 패링 등급");
+                    if (parryOnly && gauge == 50)
+                        Check(movie.NormalCollapseSeen && movie.NormalHoldSeen && movie.NormalRecoverSeen, phase + " 현재 일반 무너짐 정지 회복");
+                    if (parryOnly && gauge == 100) Check(movie.PerfectStunSeen, phase + " 현재 완벽 기절");
+                    if (parryOnly) Check(movie.MinimumApproachSeparation >= -.02f && !movie.EvadeSeen, phase + " 적 관통과 선행 회피 없음");
                     cases.Add(new { phase, element = element.ToString(), action = "parry", startingGauge = gauge, endingGauge = energy.Amount, success = parry.SuccessCount - successBefore, expectedGrade = PlayerParryController.ResolveGrade(gauge / 100f).ToString(), take }); Progress(phase);
                 }
                 File.WriteAllText(Path.Combine(output, "Supplement.json"), JsonConvert.SerializeObject(new { status = "RUNNING", actualPlayer = true, actualHits = true, actualAudio = true, cases, hits }, Formatting.Indented));
@@ -160,7 +186,7 @@ public static partial class PlayerEvadeVerifier
             Time.captureDeltaTime = captureDelta;
             ReleasePresentationTargets(targets, listeners);
             typeof(PlayerEquipment).GetMethod("SetElementGem", Private).Invoke(actor.Equipment, new object[] { previousGem });
-            SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements");
+            SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); SessionState.EraseBool(ElementSupplementKey + ".ParryOnly");
         }
     }
     static IEnumerator SupplementReset(List<EnemyActor> targets, float distance)
@@ -208,6 +234,19 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
     MeleeRuntime melee;
     PlayerEvadeController evade;
     bool ownsAudio;
+    EnemyActor parryTarget;
+    Vector3 startingPlayerPosition;
+    Vector3 initialApproachDirection;
+    readonly System.Reflection.FieldInfo counterMovement = typeof(MeleeRuntime).GetField("heavyParryCounterMovement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+    readonly System.Reflection.FieldInfo parryStage = typeof(MeleeRuntime).GetField("heavyParryStage", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+    readonly System.Reflection.MethodInfo attackProgress = typeof(MeleeRuntime).GetMethod("GetAttackNormalizedTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+    public float MinimumApproachSeparation { get; private set; }
+    public bool EvadeSeen { get; private set; }
+    public bool NormalCollapseSeen { get; private set; }
+    public bool NormalHoldSeen { get; private set; }
+    public bool NormalRecoverSeen { get; private set; }
+    public bool PerfectStunSeen { get; private set; }
+    public void BindParryTarget(EnemyActor target) { parryTarget = target; }
     string directory, phase, error;
     int startingGauge;
     long samples;
@@ -221,6 +260,11 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
         if (encoder != null) throw new InvalidOperationException("Previous shot still owned.");
         directory = path; phase = shot; startingGauge = gauge; Directory.CreateDirectory(path);
         error = null; FrameCount = 0; samples = 0; peak = 0; frames.Clear();
+        NormalCollapseSeen = NormalHoldSeen = NormalRecoverSeen = PerfectStunSeen = false;
+        startingPlayerPosition = actor.transform.position;
+        initialApproachDirection = parryTarget != null ? parryTarget.transform.position - startingPlayerPosition : Vector3.zero;
+        initialApproachDirection.y = 0f; initialApproachDirection.Normalize();
+        MinimumApproachSeparation = float.PositiveInfinity; EvadeSeen = false;
         try
         {
             if (Screen.width != 1920 || Screen.height != 1080) throw new InvalidOperationException("FHD Game View required.");
@@ -255,7 +299,30 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
                     if (count > 0 && !encoder.AddSamples(audio)) throw new InvalidOperationException("Audio samples rejected.");
                     for (int i = 0; i < audio.Length; i++) peak = Mathf.Max(peak, Mathf.Abs(audio[i])); samples += count;
                 }
-                frames.Add(new { index = FrameCount, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString() });
+                bool collapse = false, recover = false, normalReacting = false, stunned = false;
+                float enemySpeed = 1f, enemyProgress = 0f;
+                if (parryTarget != null && parryTarget.Animator != null)
+                {
+                    var motion = parryTarget.Animator;
+                    var state = motion.GetCurrentAnimatorStateInfo(0);
+                    collapse = state.IsName(EnemyAnimationBridge.ParryCollapseStateName);
+                    recover = state.IsName(EnemyAnimationBridge.StunRecoverStateName)
+                        || motion.IsInTransition(0) && motion.GetNextAnimatorStateInfo(0).IsName(EnemyAnimationBridge.StunRecoverStateName);
+                    normalReacting = parryTarget.AnimationBridge != null && parryTarget.AnimationBridge.IsNormalParryReacting;
+                    var reaction = parryTarget.GetComponent<EnemyMovementReaction>();
+                    stunned = reaction != null && reaction.IsParryStunned;
+                    enemySpeed = motion.speed; enemyProgress = state.normalizedTime;
+                    NormalCollapseSeen |= normalReacting && collapse;
+                    NormalHoldSeen |= normalReacting && collapse && enemyProgress > .98f && Mathf.Abs(enemySpeed) < .001f;
+                    NormalRecoverSeen |= normalReacting && recover;
+                    PerfectStunSeen |= stunned;
+                }
+                Vector3 position = actor.transform.position;
+                Vector3 enemyPosition = parryTarget != null ? parryTarget.transform.position : position;
+                float approachSeparation = parryTarget != null ? Vector3.Dot(enemyPosition - position, initialApproachDirection) : 0f;
+                MinimumApproachSeparation = Mathf.Min(MinimumApproachSeparation, approachSeparation);
+                EvadeSeen |= evade.IsEvading;
+                frames.Add(new { index = FrameCount, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString(), playerX = position.x, playerY = position.y, playerZ = position.z, enemyX = enemyPosition.x, enemyY = enemyPosition.y, enemyZ = enemyPosition.z, approachSeparation, counterMoving = counterMovement != null && (bool)counterMovement.GetValue(melee), parryStage = parryStage?.GetValue(melee)?.ToString(), attackProgress = melee.IsAttackInProgress && attackProgress != null ? (float)attackProgress.Invoke(melee, null) : 0f, collapse, recover, normalReacting, stunned, enemySpeed, enemyProgress });
                 if (FrameCount == 0) File.WriteAllBytes(Path.Combine(directory, "first.png"), texture.EncodeToPNG());
                 FrameCount++;
             }
@@ -280,7 +347,7 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
                 if (texture != null) { DestroyImmediate(texture); texture = null; }
             }
         }
-        var result = new { status = error == null && FrameCount > 0 && peak > 0 ? "PASS" : "FAIL", phase, startingGauge, frames = FrameCount, fps = Fps, duration = FrameCount / (float)Fps, audioSamples = samples, audioPeak = peak, error, nativeAudio = true, productHud = true };
+        var result = new { status = error == null && FrameCount > 0 && peak > 0 ? "PASS" : "FAIL", phase, startingGauge, frames = FrameCount, fps = Fps, duration = FrameCount / (float)Fps, audioSamples = samples, audioPeak = peak, error, nativeAudio = true, productHud = true, normalCollapseSeen = NormalCollapseSeen, normalHoldSeen = NormalHoldSeen, normalRecoverSeen = NormalRecoverSeen, perfectStunSeen = PerfectStunSeen, minimumApproachSeparation = MinimumApproachSeparation, evadeSeen = EvadeSeen, playerTravel = Vector3.Distance(startingPlayerPosition, actor.transform.position) };
         File.WriteAllText(Path.Combine(directory, "take.json"), JsonConvert.SerializeObject(result, Formatting.Indented));
         File.WriteAllText(Path.Combine(directory, "frames.json"), JsonConvert.SerializeObject(frames));
         if (error != null) throw new InvalidOperationException(error);
