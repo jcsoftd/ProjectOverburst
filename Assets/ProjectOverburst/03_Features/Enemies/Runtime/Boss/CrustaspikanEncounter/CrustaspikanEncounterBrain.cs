@@ -6,6 +6,7 @@ using UnityEngine;
 public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSource
 {
     public EnemyActor Actor { get; private set; }
+    public Transform Target => HasLivingTarget ? player.transform : null;
     public CrustaspikanCombatContext Context { get; private set; }
     public string CurrentPatternId => current?.id ?? "";
     public int Phase { get; private set; } = 1;
@@ -57,6 +58,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     private OverburstElementEnergy energy;
 
     public bool IsActive => !disposed && Actor != null && Actor.IsLeased && Actor.LeaseVersion == leaseVersion;
+    private bool HasLivingTarget => player != null && player.isActiveAndEnabled && player.Health != null && !player.Health.IsDead;
     public bool IsDefeated => encounter.Defeated || !IsActive || Actor.Health.IsDead;
     CombatHealth IEnemyBossHudSource.Health => IsActive ? Actor.Health : null;
     string IEnemyBossHudSource.DisplayName => "크러스피칸";
@@ -82,6 +84,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         if (hpReporter != null) hpReporter.enabled = false;
         if (overhead != null) overhead.enabled = false;
         actor.AI.enabled = false;
+        actor.AI.SetTarget(player.transform);
         actor.BossPhaseController.ResetForPool(); actor.BossPhaseController.enabled = false;
         BuildMaterials();
         // 공통 디렉터는 패링 접수와 반동만 담당. 수치/페이즈/선택은 이 전투가 한 번만 처리한다.
@@ -150,7 +153,14 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     }
     public void Tick()
     {
-        if (!IsActive || encounter.Defeated || player == null) return;
+        if (!IsActive || encounter.Defeated) return;
+        if (Actor.Health.IsDead) { tree.Tick(); return; }
+        if (!HasLivingTarget)
+        {
+            CancelPattern(); Actor.Movement.StopMovement(); State = "유효한 대상 대기"; return;
+        }
+        if (Actor.AI.Target != player.transform) Actor.AI.SetTarget(player.transform);
+        Context = ReadContext();
         while (lastParry < parryDirector.ParryCount)
         {
             lastParry++; CancelPattern();
@@ -173,7 +183,32 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     private CrustaspikanNodeStatus Dead() { CancelPattern(); State = "격파"; encounter.BossDefeated(); return CrustaspikanNodeStatus.Running; }
     private CrustaspikanNodeStatus Suspended()
     { CancelPattern(); Actor.Movement.StopMovement(); State = IsGroggy ? "그로기 · 공격 기회" : "패링 반동"; return CrustaspikanNodeStatus.Running; }
-    private CrustaspikanNodeStatus Wait() { State = "다음 공방 준비"; Actor.Movement.StopMovement(); return CrustaspikanNodeStatus.Running; }
+    private CrustaspikanNodeStatus Wait()
+    {
+        State = "다음 공방 준비"; Actor.Movement.StopMovement();
+        FaceTarget();
+        return CrustaspikanNodeStatus.Running;
+    }
+    private void FaceTarget()
+    {
+        if (!Actor.Movement.IsActionLocked && !Actor.Movement.IsStatusMovementLocked)
+            Actor.Movement.FacePosition(player.transform.position);
+    }
+    private Quaternion CandidateFacing(CrustaspikanEncounterSettings.Pattern pattern)
+    {
+        // Rear counters keep the pose the player moved behind; forward attacks prepare a new facing.
+        return pattern.rearOnly || Context.Delta.sqrMagnitude < .001f
+            ? Actor.transform.rotation : Quaternion.LookRotation(Context.Delta);
+    }
+    private bool IntersectsTarget(EnemyBossAttackMaterial material, Quaternion facing, Vector3 prediction = default)
+    {
+        foreach (var strike in material.strikes)
+        {
+            Vector3 origin = Actor.transform.position + facing * Vector3.Scale(strike.localOrigin, Actor.transform.lossyScale) - prediction;
+            if (strike.Intersects(player.CharacterController, Actor.transform, origin, facing * Quaternion.Euler(0, strike.yaw, 0))) return true;
+        }
+        return false;
+    }
     private CrustaspikanNodeStatus Transition()
     {
         State = "2페이즈 전환";
@@ -224,7 +259,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
             else
             {
                 State = "방향 정렬 · 재사용 대기";
-                Actor.Movement.StopMovement(); Actor.Movement.FacePosition(player.transform.position);
+                Actor.Movement.StopMovement(); FaceTarget();
             }
             return CrustaspikanNodeStatus.Running;
         }
@@ -239,12 +274,9 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         if (p.steps[0].kind == CrustaspikanStepKind.Attack && Context.Velocity.sqrMagnitude > .25f)
         {
             var m = attacks[p.steps[0].materialOrMotion];
-            Quaternion facing = Context.Delta.sqrMagnitude > .001f ? Quaternion.LookRotation(Context.Delta) : Actor.transform.rotation;
+            Quaternion facing = CandidateFacing(p);
             Vector3 predictedOffset = Vector3.ClampMagnitude(Context.Velocity * .25f, 2f);
-            foreach (var strike in m.strikes)
-                if (strike.Intersects(player.CharacterController, Actor.transform,
-                    Actor.transform.position + facing * strike.localOrigin - predictedOffset,
-                    facing * Quaternion.Euler(0, strike.yaw, 0))) { w *= 1.15f; break; }
+            if (IntersectsTarget(m, facing, predictedOffset)) w *= 1.15f;
         }
         return w;
     }
@@ -267,10 +299,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         if (first.kind != CrustaspikanStepKind.Attack) return true;
         var m = attacks[first.materialOrMotion];
         if (m.delivery != EnemyBossMaterialDelivery.Melee) return true;
-        Quaternion facing = Context.Delta.sqrMagnitude > .001f ? Quaternion.LookRotation(Context.Delta) : Actor.transform.rotation;
-        foreach (var s in m.strikes)
-            if (s.Intersects(player.CharacterController, Actor.transform, Actor.transform.position + facing * s.localOrigin, facing * Quaternion.Euler(0, s.yaw, 0))) return true;
-        return false;
+        return IntersectsTarget(m, CandidateFacing(p));
     }
     private bool TryMoveDestination(Vector3 local, out Vector3 destination)
     {
@@ -298,6 +327,9 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         var s = current.steps[stepIndex];
         if (!stepStarted)
         {
+            bool preparesAim = s.kind == CrustaspikanStepKind.Attack || s.kind == CrustaspikanStepKind.ThrowElite
+                || s.kind == CrustaspikanStepKind.LiftElite || s.kind == CrustaspikanStepKind.Motion && s.materialOrMotion == "UnearthRock";
+            if (preparesAim && !PrepareStepFacing()) return CrustaspikanNodeStatus.Running;
             stepStartedAt = Time.time; stepUntil = Time.time + s.seconds;
             Actor.AbilityController.ClearPreparedAim();
             switch (s.kind)
@@ -305,9 +337,13 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
                 case CrustaspikanStepKind.Attack:
                 case CrustaspikanStepKind.ThrowElite:
                     var key = s.kind == CrustaspikanStepKind.ThrowElite ? "ThrowRock" : s.materialOrMotion;
+                    // The player can leave the chosen footprint while the boss turns or approaches.
+                    // Re-evaluate at commitment instead of releasing a strike into empty space.
+                    if (attacks[key].delivery == EnemyBossMaterialDelivery.Melee && !IntersectsTarget(attacks[key], Actor.transform.rotation))
+                    { CancelPattern(); readyAt = Time.time + .1f; return CrustaspikanNodeStatus.Running; }
                     if (s.kind == CrustaspikanStepKind.ThrowElite) composite.SetNextThrowPayload(EnemyBossThrowPayload.Elite);
                     if (!Actor.AbilityController.TryStartAbility(attacks[key].ability, player.transform))
-                    { Actor.Movement.FacePosition(player.transform.position); if (Time.time > stepAttemptAt + 4f) { CancelPattern(); readyAt = Time.time + .4f; } return CrustaspikanNodeStatus.Running; }
+                    { if (Time.time > stepAttemptAt + settings.attackPreparationTimeout) { CancelPattern(); readyAt = Time.time + .4f; } return CrustaspikanNodeStatus.Running; }
                     break;
                 case CrustaspikanStepKind.Motion:
                     if (s.materialOrMotion == "UnearthRock") composite.SetNextThrowPayload(EnemyBossThrowPayload.Rock);
@@ -338,6 +374,17 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         }
         if (done) { Actor.Movement.StopMovement(); stepIndex++; stepStarted = false; stepAttemptAt = Time.time; }
         return CrustaspikanNodeStatus.Running;
+    }
+    private bool PrepareStepFacing()
+    {
+        if (current.rearOnly) return true;
+        Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0f;
+        if (delta.sqrMagnitude < .001f || Vector3.Angle(Actor.transform.forward, delta) <= settings.attackFacingTolerance) return true;
+        State = "대상 조준 · " + current.label;
+        Actor.Movement.StopMovement(); FaceTarget();
+        if (Time.time > stepAttemptAt + settings.attackPreparationTimeout)
+        { CancelPattern(); readyAt = Time.time + .1f; }
+        return false;
     }
     private void FinishPattern()
     { current = null; stepStarted = false; readyAt = Time.time + (Phase == 1 ? settings.betweenPatterns : settings.phaseTwoBetweenPatterns); }

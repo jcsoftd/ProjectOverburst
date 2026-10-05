@@ -54,6 +54,8 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     public bool protectPlayerFromDeath = true;
     [Header("현재 상황 기반 기본 AI")]
     [Min(1f)] public float approachDistance = 8f;
+    [Range(1f, 15f)] public float attackFacingTolerance = 8f;
+    [Min(.5f)] public float attackPreparationTimeout = 4f;
     public bool enableBossEvasion = true;
     [Min(1f)] public float evasionTriggerDistance = 7f;
     [Min(.5f)] public float evasionDistance = 3f;
@@ -69,6 +71,8 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
         if (bossHp <= 0 || groggyMax <= 0 || arenaRadius < 16 || maximumAdds < 4
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
         if (!Finite(betweenPatterns) || betweenPatterns < 0f || !Finite(approachDistance) || approachDistance < 1f
+            || !Finite(attackFacingTolerance) || attackFacingTolerance < 1f || attackFacingTolerance > 15f
+            || !Finite(attackPreparationTimeout) || attackPreparationTimeout < .5f
             || !Finite(evasionTriggerDistance) || evasionTriggerDistance < 1f || !Finite(evasionDistance) || evasionDistance < .5f
             || !Finite(evasionSeconds) || evasionSeconds < .1f || !Finite(evasionCooldown) || evasionCooldown < 1f)
         { reason = "기본 AI 이동/대기 수치가 유효하지 않습니다."; return false; }
