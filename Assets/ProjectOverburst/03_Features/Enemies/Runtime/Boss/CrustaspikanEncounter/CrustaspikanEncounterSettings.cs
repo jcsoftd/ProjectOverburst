@@ -52,7 +52,7 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     public float backPoiseMultiplier = 1.25f;
     public float groggySeconds = 4.5f, groggyProtection = 8f;
     public float poiseDecayDelay = 10f, poiseDecayPerSecond = 5f;
-    [Range(4, 12)] public int maximumAdds = 6;
+    [Range(4, 48)] public int maximumAdds = 26;
     [Range(1f, 2f)] public float tacticWeightMultiplier = 1.35f;
     public bool protectPlayerFromDeath = true;
     public bool enableAdaptiveTactics = true;

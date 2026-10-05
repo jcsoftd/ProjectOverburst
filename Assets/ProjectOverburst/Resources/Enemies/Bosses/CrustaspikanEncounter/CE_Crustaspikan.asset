@@ -385,7 +385,7 @@ MonoBehaviour:
   groggyProtection: 8
   poiseDecayDelay: 10
   poiseDecayPerSecond: 5
-  maximumAdds: 6
+  maximumAdds: 26
   tacticWeightMultiplier: 1.35
   protectPlayerFromDeath: 1
   enableAdaptiveTactics: 1

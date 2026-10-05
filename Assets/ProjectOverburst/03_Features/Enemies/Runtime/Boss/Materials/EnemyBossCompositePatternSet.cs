@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 
 public enum EnemyBossThrowPayload { Rock, Elite, Alternate }
+public enum EnemyBossPayloadTrajectory { TimedArc, Ballistic }
 
 [CreateAssetMenu(menuName="OVERBURST/Enemies/Boss Composite Patterns",fileName="BCP_Boss")]
 public sealed class EnemyBossCompositePatternSet : ScriptableObject
@@ -14,10 +15,15 @@ public sealed class EnemyBossCompositePatternSet : ScriptableObject
         [Min(0f)] public float landingCenterHeight=1f;
         [Min(.1f)] public float flightSeconds=.85f;
         [Min(0f)] public float arcHeight=1.5f;
+        public EnemyBossPayloadTrajectory trajectory=EnemyBossPayloadTrajectory.TimedArc;
+        [Min(.1f)] public float gravity=32f;
+        [Range(0f,70f)] public float airPitch=35f;
         [Min(0f)] public float wakeSeconds=.7f;
         [Min(1)] public int maximumAlive=3;
         public bool IsValid => definition!=null && definition.IsValid && flightVisual!=null && visualScale>0f
-            && flightSeconds>0f && arcHeight>=0f && wakeSeconds>=0f && maximumAlive>0;
+            && flightSeconds>0f && arcHeight>=0f && wakeSeconds>=0f && maximumAlive>0
+            && (trajectory==EnemyBossPayloadTrajectory.TimedArc || trajectory==EnemyBossPayloadTrajectory.Ballistic&&gravity>0f&&!float.IsInfinity(gravity))
+            && airPitch>=0f&&airPitch<=70f;
     }
     [Serializable] public sealed class Emission
     {

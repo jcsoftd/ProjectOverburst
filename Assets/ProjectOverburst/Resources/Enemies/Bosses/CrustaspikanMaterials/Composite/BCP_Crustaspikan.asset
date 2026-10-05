@@ -24,34 +24,112 @@ MonoBehaviour:
     emissions:
     - normalizedTime: 0.31304348
       phase: 0
-      count: 1
+      count: 2
       payload:
         definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
         flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
         visualScale: 1
         landingCenterHeight: 0.17654362
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
         wakeSeconds: 0.7
-        maximumAlive: 3
+        maximumAlive: 12
       yawOffset: 0
       landingDistance: 8
-      scatter: 1
-    - normalizedTime: 0.42608693
+      scatter: 1.25
+    - normalizedTime: 0.3652174
       phase: 0
-      count: 1
+      count: 2
       payload:
         definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
         flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
         visualScale: 1
         landingCenterHeight: 0.22667617
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
         wakeSeconds: 0.7
-        maximumAlive: 3
+        maximumAlive: 12
       yawOffset: 0
-      landingDistance: 10
-      scatter: 1
+      landingDistance: 11
+      scatter: 1.25
+    - normalizedTime: 0.42608693
+      phase: 0
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 13
+      scatter: 1.25
+    - normalizedTime: 0.47826084
+      phase: 0
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 9
+      scatter: 1.25
+    - normalizedTime: 0.62608695
+      phase: 1
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 11
+      scatter: 1.25
+    - normalizedTime: 0.67826086
+      phase: 1
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 13
+      scatter: 1.25
     - normalizedTime: 0.6956521
       phase: 1
       count: 1
@@ -61,12 +139,51 @@ MonoBehaviour:
         visualScale: 1
         landingCenterHeight: 0.5658029
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.3
+        trajectory: 1
+        gravity: 32
+        airPitch: 35
         wakeSeconds: 1
         maximumAlive: 1
       yawOffset: 0
       landingDistance: 11
-      scatter: 1
+      scatter: 1.25
+    - normalizedTime: 0.7304348
+      phase: 1
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
+        flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.17654362
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 9
+      scatter: 1.25
+    - normalizedTime: 0.7826087
+      phase: 1
+      count: 2
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 0
+      landingDistance: 12
+      scatter: 1.25
   - material: {fileID: 11400000, guid: c1fb26f7a80c24840aaf7c0f5e8ddebd, type: 2}
     bloodSpray: {fileID: 1952497739835943775, guid: 2c0bed1df0001b445b5f9916f545bd1c, type: 3}
     sprayScale: 0.9
@@ -77,49 +194,76 @@ MonoBehaviour:
     emissions:
     - normalizedTime: 0.53103447
       phase: 0
-      count: 1
+      count: 3
       payload:
         definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
         flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
         visualScale: 1
         landingCenterHeight: 0.17654362
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
         wakeSeconds: 0.7
-        maximumAlive: 3
-      yawOffset: -10
+        maximumAlive: 12
+      yawOffset: -8
       landingDistance: 8
-      scatter: 1
-    - normalizedTime: 0.6068965
+      scatter: 1.25
+    - normalizedTime: 0.5793103
       phase: 0
-      count: 1
+      count: 3
       payload:
         definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
         flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
         visualScale: 1
         landingCenterHeight: 0.22667617
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
         wakeSeconds: 0.7
-        maximumAlive: 3
-      yawOffset: 0
-      landingDistance: 10
-      scatter: 1
-    - normalizedTime: 0.6758621
+        maximumAlive: 12
+      yawOffset: 5
+      landingDistance: 11
+      scatter: 1.25
+    - normalizedTime: 0.6275862
       phase: 0
-      count: 1
+      count: 3
       payload:
         definition: {fileID: 11400000, guid: bbd384db71d094c479a390f9c2503b91, type: 2}
         flightVisual: {fileID: 5290777766811793032, guid: 8c7603df4a50ef04aadafaf1c4f79f28, type: 3}
         visualScale: 1
         landingCenterHeight: 0.17654362
         flightSeconds: 0.85
-        arcHeight: 1.5
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
         wakeSeconds: 0.7
-        maximumAlive: 3
-      yawOffset: 10
-      landingDistance: 9
-      scatter: 1
+        maximumAlive: 12
+      yawOffset: -5
+      landingDistance: 14
+      scatter: 1.25
+    - normalizedTime: 0.6758621
+      phase: 0
+      count: 3
+      payload:
+        definition: {fileID: 11400000, guid: 216b97f9c5a2e8b43a416e3b78a139cf, type: 2}
+        flightVisual: {fileID: 6476353020113417715, guid: e8f8bccc34770b646a3cfb86885750e8, type: 3}
+        visualScale: 1
+        landingCenterHeight: 0.22667617
+        flightSeconds: 0.85
+        arcHeight: 0.22
+        trajectory: 1
+        gravity: 32
+        airPitch: 30
+        wakeSeconds: 0.7
+        maximumAlive: 12
+      yawOffset: 8
+      landingDistance: 10
+      scatter: 1.25
   throwMaterial: {fileID: 11400000, guid: 4eeaeef6b251241448b1aeb5813eaf37, type: 2}
   elite:
     definition: {fileID: 11400000, guid: aae5d59e28022e1418398a4e8af7f685, type: 2}
@@ -127,16 +271,24 @@ MonoBehaviour:
     visualScale: 1
     landingCenterHeight: 1.0441705
     flightSeconds: 0.85
-    arcHeight: 1.5
-    wakeSeconds: 1.2
+    arcHeight: 0.55
+    trajectory: 1
+    gravity: 32
+    airPitch: 50
+    wakeSeconds: 1.5
     maximumAlive: 1
   throwPayload: 2
   eliteRevealFrame: 70
   eliteFullSizeFrame: 100
-  authoringNotes: "\uC0AC\uC6A9\uC790 \uC9C0\uC2DC\uB85C \uC6B0\uC120 \uC801\uC6A9\uD55C
-    \uC2DC\uD5D8 \uAD6C\uC131. \uBD84\uC0AC1:33\u201357F/68\u201394F, \uC18C\uD6152+\uC911\uD6151.
-    \uBD84\uC0AC2:74\u2013106F, \uC18C\uD6153. \uBC14\uC704\xB7\uC554\uAD74 \uAC70\uC218
-    \uD22C\uCC99\uC740 \uAD50\uB300, SetNextThrowPayload\uB85C \uC120\uD0DD \uAC00\uB2A5.
-    \uC885\xB7\uC218\uB7C9\xB7\uBC29\uCD9C\xB7\uAE30\uC0C1\xB7\uC18D\uB3C4\xB7\uD53C\uD574\uB294
-    \uD6C4\uC18D \uC870\uC808. \uACF5\uAE09\uC0AC \uC6D0\uBCF8\uC740 \uC218\uC815\uD558\uC9C0
-    \uC54A\uC74C."
+  authoringNotes: "\uB300\uB7C9 \uBD84\uCD9C \uC2DC\uD5D8 \uAD6C\uC131. \uBD84\uC0AC1:5\uACB9
+    \uD608\uD754,33\u201357F/68\u201394F,\uC18C\uD61516+\uC911\uD6151(8\uBB36\uC74C+\uC911\uD615).
+    \uBD84\uC0AC2:3\uACB9 \uD608\uD754,74\u2013106F,\uC18C\uD61512(3\uB9C8\uB9AC\uC5294\uBB36\uC74C).
+    \uC608\uC57D: \uC18C\uD615 \uAC01 \uC88512,\uC911\uD6151,\uC815\uC6081\u3001\uBC29
+    \uC0C1\uD55C26\u3002 \uD1A0\uCD9C/\uC815\uC608:Ballistic,\uC911\uB82532,\uCD5C\uACE0\uC810
+    \uC0C1\uC2B9 \uC18C\uD6150.22/\uC911\uD6150.3/\uC815\uC6080.55m. \uBE44\uD589
+    \uC2DC\uAC04\uC740 \uCD9C\uBC1C\xB7\uCC29\uC9C0 \uB192\uC774\uC640 \uC911\uB825\uC73C\uB85C
+    \uC0B0\uCD9C\uD558\uBA70 flightSeconds\uB294 TimedArc\uC6A9. \uC18D\uB3C4\uC5D0
+    \uB530\uB77C \uACF5\uC911 \uAE30\uC6B8\uAE30\xB7\uCC29\uC9C0 \uC804 \uC815\uB82C,\uC815\uC608
+    \uAE30\uC0C11.5\uCD08. \uD53C\uD574/\uBD84\uC0AC \uD310\uC815\uCC3D\uC740 \uAE30\uC874
+    \uAC12. \uBC14\uC704\uB294 \uAE30\uC874 TimedArc. \uC2DC\uD5D8\uAC12 \uC870\uC808
+    \uAC00\uB2A5."

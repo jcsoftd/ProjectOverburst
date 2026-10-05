@@ -102,6 +102,13 @@ public static class CrustaspikanCompositeVerifier
     static CombatTarget victimTarget;
     static void Record(string scenario,EnemyBossAttackMaterial material,JObject details=null)
     {var row=details??new JObject();row["pass"]=true;row["scenario"]=scenario;row["id"]=material!=null?material.materialId:"";cases.Add(row);Result("RUNNING");}
+    static int PatternCount(EnemyBossCompositePatternSet.Pattern pattern)=>pattern.emissions.Sum(e=>e.count);
+    static object FlightField(object flight,string name)=>flight.GetType().GetField(name).GetValue(flight);
+    static object FirstBallisticFlight(EnemyBossCompositePatternExecutor executor)
+    {
+        var flights=(IEnumerable)typeof(EnemyBossCompositePatternExecutor).GetField("flights",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(executor);
+        foreach(var flight in flights)if((bool)FlightField(flight,"ballistic"))return flight;return null;
+    }
     static void Capture(string path)
     {
         RenderTexture render=null;Texture2D pixels=null;var previous=RenderTexture.active;
@@ -118,7 +125,9 @@ public static class CrustaspikanCompositeVerifier
         Position(victim.transform,new Vector3(0,.035f,12f));yield return null;yield return new WaitForFixedUpdate();
         int initialSpawn=composite.SummonedCount,initialDamage=composite.DamageCount;float start=Time.time;bool stopped=false,wallBuilt=false;
         GameObject wall=null;int peakParticles=0,peakFlights=0;var beamPhases=new HashSet<int>();
-        Require(actor.AbilityController.TryStartAbility(material.ability,victim.transform),"Composite start rejected: "+scenario+" / "+material.name);
+        object tracked=null;var curve=new JArray();JObject trajectory=null;float previousSample=-1f;
+        Require(actor.AbilityController.TryStartAbility(material.ability,victim.transform),"Composite start rejected: "+scenario+" / "+material.name
+            +"; executorReady="+composite.CanStart(material.ability,victim.transform)+"; movementLocked="+actor.Movement.IsActionLocked+"; animationBlocked="+actor.AnimationBridge.BlocksAttackStart);
         string variant=material.delivery==EnemyBossMaterialDelivery.Boulder?(composite.IsEliteHeld?"-elite":"-rock"):"";
         string frames=Path.Combine(plan.output,"Frames",material.runtimeClip.name+"-"+scenario+variant);if(movie)Directory.CreateDirectory(frames);float nextCapture=Time.time;int frame=0;
         float limit=Time.time+material.runtimeClip.length+5f;
@@ -131,6 +140,12 @@ public static class CrustaspikanCompositeVerifier
             if(scenario=="wall" && !wallBuilt && t>=material.strikes[0].contactStart-.04f){wall=GameObject.CreatePrimitive(PrimitiveType.Cube);owned.Add(wall);wall.name="Owned stream blocker";wall.transform.position=new Vector3(0,4,6);wall.transform.localScale=new Vector3(10,8,.5f);Physics.SyncTransforms();wallBuilt=true;}
             peakParticles=Mathf.Max(peakParticles,composite.BloodParticleCount);peakFlights=Mathf.Max(peakFlights,composite.ActiveFlightCount);
             if(composite.ActiveBeamPhase>=0)beamPhases.Add(composite.ActiveBeamPhase);
+            if(tracked==null)tracked=FirstBallisticFlight(composite);
+            if(tracked!=null){float flightTime=(float)FlightField(tracked,"time"),duration=(float)FlightField(tracked,"duration");
+                if(trajectory==null){var origin=(Vector3)FlightField(tracked,"start");var end=(Vector3)FlightField(tracked,"end");
+                    trajectory=new JObject{["gravity"]=(float)FlightField(tracked,"gravity"),["duration"]=duration,["startHeight"]=origin.y,["endHeight"]=end.y};}
+                if(flightTime<duration&&flightTime-previousSample>=.05f){var position=(Vector3)FlightField(tracked,"position");curve.Add(new JObject{["time"]=flightTime,["x"]=position.x,["y"]=position.y,["z"]=position.z});previousSample=flightTime;}
+            }
             if(movie && Time.time>=nextCapture){Capture(Path.Combine(frames,frame++.ToString("D4")+".png"));nextCapture+=.125f;}
             yield return new WaitForFixedUpdate();
         }
@@ -142,10 +157,15 @@ public static class CrustaspikanCompositeVerifier
             for(int i=0;i<material.strikes.Length;i++)Require(hits.OfType<JObject>().Count(x=>(int)x["phase"]==i)==1,"Repeated damage within a sweep phase.");
             Require(composite.SummonedCount-initialSpawn==expectedSummons,"Monster count mismatch.");
             if(material.delivery==EnemyBossMaterialDelivery.Spit)Require(peakParticles>0 && beamPhases.Count==material.strikes.Length,"Blood pack stream/sweep phases not executed.");
+            if(expectedSummons>0){Require(trajectory!=null&&curve.Count>=3,"No actual ballistic trajectory observed.");
+                var a=curve[0];var b=curve[1];var c=curve[2];float ab=(float)b["time"]-(float)a["time"],bc=(float)c["time"]-(float)b["time"];
+                float v1=((float)b["y"]-(float)a["y"])/ab,v2=((float)c["y"]-(float)b["y"])/bc;
+                float acceleration=(v2-v1)/((ab+bc)*.5f);trajectory["observedVerticalAcceleration"]=acceleration;
+                Require(Mathf.Abs(acceleration+(float)trajectory["gravity"])<1f,"Flight did not accelerate downward according to configured gravity.");}
         }
         if(scenario=="evade"||scenario=="wall"||scenario=="cancel")Require(hits.Count==0,"Damage through evade/wall/cancel.");
         if(scenario=="cancel")Require(composite.SummonedCount==initialSpawn,"Summons before cancelled emission.");
-        var details=new JObject{["damageEvents"]=hits.DeepClone(),["summoned"]=composite.SummonedCount-initialSpawn,["peakParticles"]=peakParticles,["peakFlights"]=peakFlights,["beamPhases"]=new JArray(beamPhases),["seconds"]=Time.time-start,["movieFrames"]=frame};
+        var details=new JObject{["damageEvents"]=hits.DeepClone(),["summoned"]=composite.SummonedCount-initialSpawn,["peakParticles"]=peakParticles,["peakFlights"]=peakFlights,["beamPhases"]=new JArray(beamPhases),["seconds"]=Time.time-start,["movieFrames"]=frame,["trajectory"]=trajectory,["curveSamples"]=curve};
         if(wall!=null)Object.Destroy(wall);Record(scenario,material,details);
     }
     static IEnumerator CompositeCases()
@@ -170,8 +190,8 @@ public static class CrustaspikanCompositeVerifier
         foreach(var entry in set.spitPatterns){foreach(var scenario in new[]{"contact","evade","cancel","air-cancel"}){
             var actor=Spawn(service,collection,Vector3.up*.035f,victim.transform);composite=actor.GetComponent<EnemyBossCompositePatternExecutor>();Require(composite!=null,"Composite prefab component missing.");
             Require(actor.LeaseVersion>lastLease,"Lease did not advance.");if(previous!=null)Require(previous==actor,"Boss pool did not reuse its actor.");lastLease=actor.LeaseVersion;previous=actor;
-            yield return Cast(actor,entry.material,victim,scenario,3,scenario=="contact");
-            int live=composite.LiveAddCount;if(scenario=="contact")Require(live==3,"Live add count mismatch.");
+            int expected=PatternCount(entry);yield return Cast(actor,entry.material,victim,scenario,expected,scenario=="contact");
+            int live=composite.LiveAddCount;if(scenario=="contact")Require(live==expected,"Live add count mismatch.");
             service.Release(actor);yield return null;Require(composite.ActiveFlightCount==0&&composite.ActiveVisualCount==0&&composite.LiveAddCount==0&&composite.BloodParticleCount==0,"Pool return leaked composite objects.");Record("pool-return",entry.material);
         }}
         var blocked=Spawn(service,collection,Vector3.up*.035f,victim.transform);yield return Cast(blocked,set.spitPatterns[1].material,victim,"wall");service.Release(blocked);yield return null;
@@ -190,16 +210,33 @@ public static class CrustaspikanCompositeVerifier
         Record("elite-ground-extraction-and-hold",set.throwMaterial);yield return Cast(prepared,set.throwMaterial,victim,"contact",1);service.Release(prepared);yield return null;
         var tuned=Spawn(service,collection,Vector3.up*.035f,victim.transform);var runtimeSet=Object.Instantiate(set);owned.Add(runtimeSet);
         var runtimeMaterial=Object.Instantiate(set.spitPatterns[0].material);owned.Add(runtimeMaterial);runtimeMaterial.tuning.damageMultiplier=.5f;runtimeMaterial.tuning.animationSpeedMultiplier=1.5f;runtimeSet.spitPatterns[0].material=runtimeMaterial;
-        tuned.GetComponent<EnemyBossCompositePatternExecutor>().Configure(runtimeSet);yield return Cast(tuned,runtimeMaterial,victim,"contact",3);
+        tuned.GetComponent<EnemyBossCompositePatternExecutor>().Configure(runtimeSet);yield return Cast(tuned,runtimeMaterial,victim,"contact",PatternCount(runtimeSet.spitPatterns[0]));
         Require(hits.OfType<JObject>().All(x=>Mathf.Abs((float)x["damage"]-5f)<.001f),"Composite damage coefficient ignored.");
         Require(Mathf.Approximately(set.spitPatterns[0].material.DamageMultiplier,1f)&&Mathf.Approximately(set.spitPatterns[0].material.AnimationSpeedMultiplier,1f),"Runtime tuning mutated authored source.");
-        Record("runtime-speed-and-damage-tuning",runtimeMaterial);service.Release(tuned);yield return null;
+        Record("runtime-speed-and-damage-tuning",runtimeMaterial);tuned.GetComponent<EnemyBossCompositePatternExecutor>().Configure(set);service.Release(tuned);yield return null;
         // Landed actors are the real pool leases and retain the encounter target after their wake lock.
-        var join=Spawn(service,collection,Vector3.up*.035f,victim.transform);yield return Cast(join,set.spitPatterns[1].material,victim,"contact",3);
-        composite=join.GetComponent<EnemyBossCompositePatternExecutor>();Require(composite.LiveAddCount==3,"Actual add leases missing.");
+        var join=Spawn(service,collection,Vector3.up*.035f,victim.transform);yield return Cast(join,set.spitPatterns[1].material,victim,"contact",PatternCount(set.spitPatterns[1]));
+        composite=join.GetComponent<EnemyBossCompositePatternExecutor>();Require(composite.LiveAddCount==PatternCount(set.spitPatterns[1]),"Actual add leases missing.");
         var addActors=Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Where(x=>x!=join&&x.IsLeased&&x.Definition!=null&&set.summonCatalog.TryGet(x.Definition.EnemyId,out _)).ToArray();
-        Require(addActors.Length==3&&addActors.All(x=>x.AI.enabled&&x.AbilityController!=null&&x.Health!=null),"Landed adds did not enter their real combat AI.");Record("landed-add-real-ai",set.spitPatterns[1].material);
+        Require(addActors.Length==PatternCount(set.spitPatterns[1])&&addActors.All(x=>x.AI.enabled&&x.AbilityController!=null&&x.Health!=null),"Landed adds did not enter their real combat AI.");Record("landed-add-real-ai",set.spitPatterns[1].material);
         service.Release(join);yield return null;
+        // Repeated large casts must include in-flight reservations and stop at the per-species cap.
+        if(plan.extras){
+            var crowded=Spawn(service,collection,Vector3.up*.035f,victim.transform);var pattern=set.spitPatterns[0];
+            int expected=PatternCount(pattern);yield return Cast(crowded,pattern.material,victim,"contact",expected);
+            // The count test keeps leases alive while pausing their separate attack scheduling.
+            foreach(var add in Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Where(a=>a!=crowded&&a.IsLeased)){
+                add.AI.enabled=false;add.AbilityController.Cancel();EnemyCombatCoordinator.ReleaseStrongAttack(add.AbilityController);}
+            var remaining=pattern.emissions.GroupBy(e=>e.payload.definition.EnemyId).Sum(g=>Mathf.Max(0,g.First().payload.maximumAlive-g.Sum(e=>e.count)));
+            yield return new WaitForSeconds(pattern.material.ability.Cooldown+.1f);
+            yield return Cast(crowded,pattern.material,victim,"contact",remaining);
+            composite=crowded.GetComponent<EnemyBossCompositePatternExecutor>();
+            Require(composite.LiveAddCount==expected+remaining,"Repeated cast did not respect live plus flying reservation caps.");
+            Record("dense-repeat-reservation-cap",pattern.material,new JObject{["liveAdds"]=composite.LiveAddCount,["firstCast"]=expected,["secondCast"]=remaining});
+            crowded.Health.TakeDamage(new DamageInfo(1000000f,crowded.transform.position,victim,Vector3.forward));yield return null;
+            Require(composite.LiveAddCount==0&&composite.ActiveVisualCount==0&&composite.ActiveFlightCount==0&&composite.BloodParticleCount==0,"Boss death left a dense wave alive.");
+            if(crowded.IsLeased)service.Release(crowded);Record("dense-wave-boss-death-cleanup",pattern.material);
+        }
         Require(Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).All(x=>!x.IsLeased),"Owned fixture left leased actors.");
         Record("all-owned-leases-returned",null);
     }

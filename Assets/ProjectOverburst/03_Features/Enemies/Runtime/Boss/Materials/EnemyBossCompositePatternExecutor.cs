@@ -61,7 +61,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     public override bool IsExecuting=>cast!=null || flights.Count>0;
     public event Action<EnemyActor> MonsterLanded;
     sealed class Visual {public GameObject root,prefab;public EnemyBossCompositePatternSet.Payload payload;public bool used;}
-    sealed class Flight {public Visual visual;public Vector3 start,landing,position;public float time,duration,arc;public uint lease;public int phase;public bool impact;}
+    sealed class Flight {public Visual visual;public Vector3 start,landing,position,end,velocity;public float time,duration,arc,gravity;public uint lease;public int phase;public bool impact,ballistic;}
     sealed class Add {public EnemyActor actor;public uint lease;public EnemyBossCompositePatternSet.Payload payload;public float wake;public bool ai;}
     int PlayerMask=>1<<LayerMask.NameToLayer("Player");
     int BlockerMask=>~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
@@ -198,7 +198,8 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         if(spit==null && released[phase])return;
         if(phase>0 && progress<current.strikes[phase-1].contactEnd)return;
         float lead=Mathf.Max(.01f,current.ability.ResolvePacedTime(strike.impact,speed)-current.ability.ResolvePacedTime(progress,speed));
-        if(spit==null)lead+=current.flightSeconds;
+        if(spit==null)lead+=held?.payload?.trajectory==EnemyBossPayloadTrajectory.Ballistic
+            ?BallisticDuration(held.payload,Hands(),Ground(aim)+PayloadCenter(held.payload)):current.flightSeconds;
         if(warnings[phase]==null){warnings[phase]=gameObject.AddComponent<EnemyStrongAttackWarning>();warnings[phase].SetRadialProfiles(basic.Collection.radialFillProfile,basic.Collection.radialBorderProfile);}
         if(!shown[phase]){warnings[phase].Show(strike.shape==GroundIndicatorShape.Rectangle?strike.length:strike.radius,false,strike.angle,strike.shape==GroundIndicatorShape.Rectangle,true,lead,strike.width*.5f,strike.innerRadius,strike.shape);shown[phase]=true;
             if(strike.shape==GroundIndicatorShape.Rectangle)foreach(var indicator in warnings[phase].GetComponentsInChildren<ProceduralGroundIndicator>(true))indicator.SetCorridorCapRadius(0f);}
@@ -216,10 +217,27 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     void Free(Visual visual){if(visual==null)return;visual.root.SetActive(false);visual.used=false;}
     Vector3 Hands()=>((leftHand.position+rightHand.position)*.5f)+transform.rotation*basic.Collection.boulderOffset;
     void ReleaseHeld(){if(held!=null)Free(held);held=null;}
+    static Vector3 PayloadCenter(EnemyBossCompositePatternSet.Payload payload)=>Vector3.up*payload.landingCenterHeight*payload.visualScale;
+    static float BallisticDuration(EnemyBossCompositePatternSet.Payload payload,Vector3 start,Vector3 end)
+    {
+        float apex=Mathf.Max(start.y,end.y)+payload.arcHeight;
+        return Mathf.Max(.05f,Mathf.Sqrt(2f*(apex-start.y)/payload.gravity)+Mathf.Sqrt(2f*(apex-end.y)/payload.gravity));
+    }
+    Flight CreateFlight(Visual visual,Vector3 start,Vector3 landing,float duration,float arc,int phase,bool impact)
+    {
+        var payload=visual.payload;Vector3 end=landing+(payload==null?Vector3.up*basic.Collection.boulderVisualRadius:PayloadCenter(payload));
+        var flight=new Flight{visual=visual,start=start,position=start,landing=landing,end=end,duration=duration,arc=arc,phase=phase,lease=lease,impact=impact};
+        if(payload?.trajectory==EnemyBossPayloadTrajectory.Ballistic){
+            flight.ballistic=true;flight.gravity=payload.gravity;flight.duration=BallisticDuration(payload,start,end);
+            flight.velocity=(end-start)/flight.duration;
+            flight.velocity.y=Mathf.Sqrt(2f*payload.gravity*(Mathf.Max(start.y,end.y)+payload.arcHeight-start.y));
+        }
+        return flight;
+    }
     void Throw(int phase)
     {
         if(held==null)return;var payload=held.payload;
-        held.root.transform.position=Hands();flights.Add(new Flight{visual=held,start=Hands(),position=Hands(),landing=Ground(aim),duration=current.flightSeconds,arc=current.arcHeight,phase=phase,lease=lease,impact=true});
+        held.root.transform.position=Hands();flights.Add(CreateFlight(held,Hands(),Ground(aim),current.flightSeconds,current.arcHeight,phase,true));
         if(payload==null)RockThrowCount++;else EliteThrowCount++;held=null;
     }
     void Eject(EnemyBossCompositePatternSet.Emission emission,int index)
@@ -228,7 +246,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         float yaw=SweepYaw(emission.phase,emission.normalizedTime)+emission.yawOffset;
         Vector3 landing=Endpoint(yaw,emission.landingDistance,0f)+aimRotation*Vector3.right*((index-(emission.count-1)*.5f)*emission.scatter);
         var visual=Acquire(emission.payload);var start=Mouth();visual.root.SetActive(true);visual.root.transform.position=start;
-        flights.Add(new Flight{visual=visual,start=start,position=start,landing=Ground(landing),duration=emission.payload.flightSeconds,arc=emission.payload.arcHeight,phase=emission.phase,lease=lease});EmissionCount++;
+        flights.Add(CreateFlight(visual,start,Ground(landing),emission.payload.flightSeconds,emission.payload.arcHeight,emission.phase,false));EmissionCount++;
     }
     Vector3 Ground(Vector3 point){if(Physics.Raycast(point+Vector3.up*16f,Vector3.down,out var hit,32f,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore))point.y=hit.point.y;else point.y=transform.position.y;return point;}
     void PruneAdds(){for(int i=adds.Count-1;i>=0;i--)if(adds[i].actor==null || !adds[i].actor.IsLeased || adds[i].actor.LeaseVersion!=adds[i].lease || adds[i].actor.Health.IsDead)adds.RemoveAt(i);}
@@ -255,12 +273,21 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         if(IsExecuting && !Usable){Cancel();return;}int token=generation;
         for(int i=flights.Count-1;i>=0;i--){var flight=flights[i];if(actor.LeaseVersion!=flight.lease){Free(flight.visual);flights.RemoveAt(i);continue;}
             flight.time+=Time.fixedDeltaTime;float t=Mathf.Clamp01(flight.time/flight.duration);
-            Vector3 center=flight.visual.payload==null?Vector3.up*basic.Collection.boulderVisualRadius:Vector3.up*flight.visual.payload.landingCenterHeight*flight.visual.payload.visualScale;
-            Vector3 next=Vector3.Lerp(flight.start,flight.landing+center,t)+Vector3.up*(4f*flight.arc*t*(1f-t));
+            Vector3 next=flight.ballistic
+                ?flight.start+flight.velocity*flight.time+Vector3.down*(.5f*flight.gravity*flight.time*flight.time)
+                :Vector3.Lerp(flight.start,flight.end,t)+Vector3.up*(4f*flight.arc*t*(1f-t));
+            if(t>=1f)next=flight.end;
             var step=next-flight.position;
             if(t<.98f && step.sqrMagnitude>.000001f && Physics.SphereCast(flight.position,.15f,step.normalized,out _,step.magnitude,BlockerMask&~PlayerMask,QueryTriggerInteraction.Ignore)){
                 if(flight.impact)warnings[flight.phase]?.Hide();Free(flight.visual);flights.RemoveAt(i);continue;}
             flight.position=next;flight.visual.root.transform.position=next;flight.visual.root.transform.rotation=aimRotation;
+            if(flight.ballistic){
+                float verticalSpeed=flight.velocity.y-flight.gravity*flight.time;
+                float pitch=Mathf.Clamp(-Mathf.Atan2(verticalSpeed,new Vector2(flight.velocity.x,flight.velocity.z).magnitude)*Mathf.Rad2Deg,
+                    -flight.visual.payload.airPitch*.5f,flight.visual.payload.airPitch);
+                pitch*=1f-Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(.8f,1f,t));
+                flight.visual.root.transform.rotation=aimRotation*Quaternion.Euler(pitch,0f,0f);
+            }
             flight.visual.root.transform.localScale=Vector3.one*(flight.visual.payload?.visualScale??basic.Collection.boulderVisualRadius);
             if(t>=1f){Land(flight);if(token!=generation)return;Free(flight.visual);flights.RemoveAt(i);}
             else if(flight.impact){warnings[flight.phase]?.SetCenter(flight.landing);warnings[flight.phase]?.SetRemaining(flight.duration-flight.time,false);}

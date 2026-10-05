@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Overburst.Persistence;
 using UnityEditor;
 using UnityEngine;
 using Object=UnityEngine.Object;
@@ -27,13 +28,13 @@ public static class CrustaspikanCompositeBuilder
         {File.Copy(path,Path.Combine(backup,Path.GetFileName(Path.GetDirectoryName(path))+"_"+Path.GetFileName(path)),true);File.Copy(path+".meta",Path.Combine(backup,Path.GetFileName(Path.GetDirectoryName(path))+"_"+Path.GetFileName(path)+".meta"),true);}
         Folder(Root+"/Composite");Folder(Root+"/Composite/Visuals");Folder(Root+"/Composite/Materials");
         var blood=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);Require(blood?.sprays?.Length>=7,"Blood Effects Pack flow sources missing.");
-        var smallA=Payload("Ceratoferox",3,.7f);var smallB=Payload("Cephalonops",3,.7f);var medium=Payload("Gasterobrach",1,1f);var elite=Payload("Ursacetus",1,1.2f);
+        var smallA=Payload("Ceratoferox",12,.7f);var smallB=Payload("Cephalonops",12,.7f);var medium=Payload("Gasterobrach",1,1f);var elite=Payload("Ursacetus",1,1.2f);
         var sweep=collection.attacks.First(x=>x.runtimeClip.name=="SpitterShot1");var line=collection.attacks.First(x=>x.runtimeClip.name=="SpitterShot2");
         sweep.strikes=new[]{Strike(sweep,33,57,GroundIndicatorShape.Sector),Strike(sweep,68,94,GroundIndicatorShape.Sector)};
         line.strikes=new[]{Strike(line,74,106,GroundIndicatorShape.Rectangle)};
         sweep.muzzleOffset=line.muzzleOffset=new Vector3(-.55f,.35f,0f);
-        sweep.assemblyNotes="좌→우 / 우→좌 피해 분사와 암굴 소형2+중형1 토출. 기본 계수·속도는 재료 tuning, 토출 세부는 BCP_Crustaspikan. 시험값은 추후 수정.";
-        line.assemblyNotes="직선 피해 분사와 암굴 소형3 토출. 기본 계수·속도는 재료 tuning, 토출 세부는 BCP_Crustaspikan. 시험값은 추후 수정.";
+        sweep.assemblyNotes="좌→우 / 우→좌 5겹 피해 분사와 암굴 소형16+중형1 토출. 기본 계수·속도는 재료 tuning, 토출 세부는 BCP_Crustaspikan. 시험값은 추후 수정.";
+        line.assemblyNotes="3겹 직선 피해 분사와 암굴 소형12 토출. 기본 계수·속도는 재료 tuning, 토출 세부는 BCP_Crustaspikan. 시험값은 추후 수정.";
         var ability=new SerializedObject(sweep.ability);ability.FindProperty("hitNormalizedTime").floatValue=sweep.strikes[0].impact;
         var extra=ability.FindProperty("additionalHitNormalizedTimes");extra.arraySize=1;extra.GetArrayElementAtIndex(0).floatValue=sweep.strikes[1].impact;
         ability.FindProperty("damage").floatValue=10f;ability.ApplyModifiedPropertiesWithoutUndo();
@@ -53,7 +54,7 @@ public static class CrustaspikanCompositeBuilder
                 firstSweepStartYaw=0f,firstSweepEndYaw=0f,
                 emissions=new[]{Emission(line,77,0,smallA,8f,-10f),Emission(line,88,0,smallB,10f),Emission(line,98,0,smallA,9f,10f)}}
         };
-        set.authoringNotes="사용자 지시로 우선 적용한 시험 구성. 분사1:33–57F/68–94F, 소형2+중형1. 분사2:74–106F, 소형3. 바위·암굴 거수 투척은 교대, SetNextThrowPayload로 선택 가능. 종·수량·방출·기상·속도·피해는 후속 조절. 공급사 원본은 수정하지 않음.";
+        ConfigureDenseEmissions(set);
         EditorUtility.SetDirty(set);AssetDatabase.SaveAssetIfDirty(set);Require(set.IsValid,"Composite authoring invalid.");
         var prefab=PrefabUtility.LoadPrefabContents(actorPath);
         try{
@@ -71,8 +72,59 @@ public static class CrustaspikanCompositeBuilder
             ["bloodSource"]=new JArray(blood.sprays[5].label,blood.sprays[6].label),["summons"]=new JArray(smallA.definition.DisplayName,smallB.definition.DisplayName,medium.definition.DisplayName,elite.definition.DisplayName),["play"]="NOT_RUN"};
         File.WriteAllText(Path.Combine(output,"apply-result.json"),result.ToString());return result.ToString();
     }
-    static EnemyBossCompositePatternSet.Emission Emission(EnemyBossAttackMaterial material,int frame,int phase,EnemyBossCompositePatternSet.Payload payload,float distance,float yaw=0f)
-        =>new EnemyBossCompositePatternSet.Emission{normalizedTime=frame/(material.runtimeClip.length*30f),phase=phase,payload=payload,landingDistance=distance,yawOffset=yaw,count=1};
+    static EnemyBossCompositePatternSet.Emission Emission(EnemyBossAttackMaterial material,int frame,int phase,EnemyBossCompositePatternSet.Payload payload,float distance,float yaw=0f,int count=1)
+        =>new EnemyBossCompositePatternSet.Emission{normalizedTime=frame/(material.runtimeClip.length*30f),phase=phase,payload=payload,landingDistance=distance,yawOffset=yaw,count=count,scatter=1.25f};
+    static void ConfigureDenseEmissions(EnemyBossCompositePatternSet set)
+    {
+        var sweep=set.spitPatterns.Single(p=>p.material.runtimeClip.name=="SpitterShot1");
+        var line=set.spitPatterns.Single(p=>p.material.runtimeClip.name=="SpitterShot2");
+        var payloads=set.spitPatterns.SelectMany(p=>p.emissions).Select(e=>e.payload).ToArray();
+        var smallA=payloads.First(p=>p.definition.EnemyId=="CavernMutants_Ceratoferox");
+        var smallB=payloads.First(p=>p.definition.EnemyId=="CavernMutants_Cephalonops");
+        var medium=payloads.First(p=>p.definition.EnemyId=="CavernMutants_Gasterobrach");
+        smallA.maximumAlive=smallB.maximumAlive=12;medium.maximumAlive=1;
+        foreach(var payload in new[]{smallA,smallB,medium,set.elite}){payload.trajectory=EnemyBossPayloadTrajectory.Ballistic;payload.gravity=32f;}
+        smallA.arcHeight=smallB.arcHeight=.22f;smallA.airPitch=smallB.airPitch=30f;
+        medium.arcHeight=.3f;medium.airPitch=35f;set.elite.arcHeight=.55f;set.elite.airPitch=50f;set.elite.wakeSeconds=1.5f;
+        sweep.emissions=new[]{
+            Emission(sweep.material,36,0,smallA,8f,count:2),Emission(sweep.material,42,0,smallB,11f,count:2),
+            Emission(sweep.material,49,0,smallA,13f,count:2),Emission(sweep.material,55,0,smallB,9f,count:2),
+            Emission(sweep.material,72,1,smallA,11f,count:2),Emission(sweep.material,78,1,smallB,13f,count:2),
+            Emission(sweep.material,80,1,medium,11f),Emission(sweep.material,84,1,smallA,9f,count:2),
+            Emission(sweep.material,90,1,smallB,12f,count:2)};
+        line.emissions=new[]{Emission(line.material,77,0,smallA,8f,-8f,3),Emission(line.material,84,0,smallB,11f,5f,3),
+            Emission(line.material,91,0,smallA,14f,-5f,3),Emission(line.material,98,0,smallB,10f,8f,3)};
+        set.authoringNotes="대량 분출 시험 구성. 분사1:5겹 혈흔,33–57F/68–94F,소형16+중형1(8묶음+중형). 분사2:3겹 혈흔,74–106F,소형12(3마리씩4묶음). 예약: 소형 각 종12,중형1,정예1、방 상한26。 토출/정예:Ballistic,중력32,최고점 상승 소형0.22/중형0.3/정예0.55m. 비행 시간은 출발·착지 높이와 중력으로 산출하며 flightSeconds는 TimedArc용. 속도에 따라 공중 기울기·착지 전 정렬,정예 기상1.5초. 피해/분사 판정창은 기존 값. 바위는 기존 TimedArc. 시험값 조절 가능.";
+    }
+    // Density changes preserve the boss prefab, models, motions, combat tuning, and payload visuals.
+    public static string UpdateDensity(string output)
+    {
+        Require(!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating,"Idle Editor required.");
+        Require(string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)&&!IsolatedSavePlayGuard.RequiresAccountChoice
+            &&string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY"))
+            &&string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","")),"Unoccupied account required.");
+        string allowed=Path.GetFullPath(Path.Combine(Directory.GetParent(Application.dataPath).Parent.FullName,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        Require(Path.GetFullPath(output).StartsWith(allowed,StringComparison.OrdinalIgnoreCase)&&!File.Exists(Path.Combine(output,"apply-result.json")),"Fresh private output required.");
+        var set=AssetDatabase.LoadAssetAtPath<EnemyBossCompositePatternSet>(PatternPath);Require(set!=null&&set.IsValid,"Existing patterns missing.");
+        var encounter=AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>("Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanEncounter/CE_Crustaspikan.asset");
+        Require(encounter!=null&&encounter.composites==set&&!EditorUtility.IsDirty(encounter)&&!EditorUtility.IsDirty(set),"Saved matching encounter settings required.");
+        Directory.CreateDirectory(output);string backup=Path.Combine(output,"Before");Directory.CreateDirectory(backup);
+        foreach(var path in new[]{PatternPath,AssetDatabase.GetAssetPath(encounter)}.Concat(set.spitPatterns.SelectMany(p=>new[]{AssetDatabase.GetAssetPath(p.material),AssetDatabase.GetAssetPath(p.bloodSpray)})))
+        {string name=Path.GetFileName(path);File.Copy(path,Path.Combine(backup,name),false);File.Copy(path+".meta",Path.Combine(backup,name+".meta"),false);}
+        var blood=Resources.Load<BloodEffectsPackCatalog>(BloodEffectsPackCatalog.ResourcePath);Require(blood?.sprays?.Length>=7,"Blood flow sources missing.");
+        ConfigureDenseEmissions(set);
+        foreach(var pattern in set.spitPatterns){bool sweep=pattern.material.runtimeClip.name=="SpitterShot1";
+            pattern.bloodSpray=Spray(blood,sweep?5:6,sweep?"Sweep":"Line");
+            pattern.material.assemblyNotes=sweep?"5겹 왕복 피해 분사 + 암굴 소형16/중형1. 방출은 BCP_Crustaspikan에서 조절.":"3겹 직선 피해 분사 + 암굴 소형12. 방출은 BCP_Crustaspikan에서 조절.";
+            EditorUtility.SetDirty(pattern.material);AssetDatabase.SaveAssetIfDirty(pattern.material);}
+        encounter.maximumAdds=26;EditorUtility.SetDirty(encounter);AssetDatabase.SaveAssetIfDirty(encounter);
+        EditorUtility.SetDirty(set);AssetDatabase.SaveAssetIfDirty(set);Require(set.IsValid&&encounter.Validate(out _),"Density configuration invalid.");
+        var result=new JObject{["status"]="APPLIED_NATIVE",["maximumAdds"]=encounter.maximumAdds,
+            ["patterns"]=new JArray(set.spitPatterns.Select(p=>new JObject{["clip"]=p.material.runtimeClip.name,
+                ["layers"]=p.bloodSpray.transform.childCount,["particleSystems"]=p.bloodSpray.GetComponentsInChildren<ParticleSystem>(true).Length,
+                ["monsters"]=p.emissions.Sum(e=>e.count),["waves"]=p.emissions.Length})),["play"]="NOT_RUN"};
+        File.WriteAllText(Path.Combine(output,"apply-result.json"),result.ToString());return result.ToString();
+    }
     static EnemyBossMaterialStrike Strike(EnemyBossAttackMaterial material,int start,int end,GroundIndicatorShape shape)
         =>new EnemyBossMaterialStrike{contactStart=start/(material.runtimeClip.length*30f),impact=start/(material.runtimeClip.length*30f),contactEnd=end/(material.runtimeClip.length*30f),
             shape=shape,radius=24f,width=1.5f,length=24f,angle=shape==GroundIndicatorShape.Sector?90f:360f,minimumHeight=0f,maximumHeight=10f,
@@ -101,14 +153,21 @@ public static class CrustaspikanCompositeBuilder
     }
     static GameObject Spray(BloodEffectsPackCatalog catalog,int index,string name)
     {
-        var root=Object.Instantiate(catalog.sprays[index].prefab);root.SetActive(false);string path=Root+"/Composite/Visuals/PF_CrustaspikanBlood"+name+".prefab";
+        var root=new GameObject("PF_CrustaspikanBlood"+name);root.SetActive(false);string path=Root+"/Composite/Visuals/PF_CrustaspikanBlood"+name+".prefab";
         try{
-            root.name="PF_CrustaspikanBlood"+name;
+            int layers=name=="Sweep"?5:3;
+            for(int i=0;i<layers;i++){
+                var layer=Object.Instantiate(catalog.sprays[index].prefab,root.transform,false);layer.name="FlowLayer_"+(i+1);
+                foreach(var nestedController in layer.GetComponentsInChildren<EnemyBossBloodSpray>(true))Object.DestroyImmediate(nestedController);
+                layer.transform.localScale*=name=="Sweep"?1.3f:1.2f;
+                layer.transform.localPosition=i==0?Vector3.zero:new Vector3((i%2==0?1f:-1f)*.18f,i<=2?.08f:-.12f,0f);
+                layer.transform.localRotation=Quaternion.Euler(i==0?0f:(i<=2?.35f:-.35f),i==0?0f:(i%2==0?.8f:-.8f),0f);layer.SetActive(true);
+            }
             foreach(var ps in root.GetComponentsInChildren<ParticleSystem>(true)){
                 ps.Stop(false,ParticleSystemStopBehavior.StopEmittingAndClear);var main=ps.main;main.loop=true;main.duration=1f;main.startDelay=0f;main.playOnAwake=false;main.stopAction=ParticleSystemStopAction.None;
-                main.startSpeed=22f;main.startLifetime=.8f;main.gravityModifier=.05f;main.maxParticles=64;main.simulationSpace=ParticleSystemSimulationSpace.World;
-                main.scalingMode=ParticleSystemScalingMode.Hierarchy;ps.transform.localRotation=Quaternion.identity;var shape=ps.shape;shape.angle=3f;shape.radius=.15f;
-                var emission=ps.emission;emission.rateOverTime=name=="Sweep"?30f:22f;emission.SetBursts(Array.Empty<ParticleSystem.Burst>());}
+                main.startSpeed=22f;main.startLifetime=.8f;main.gravityModifier=.05f;main.maxParticles=128;main.simulationSpace=ParticleSystemSimulationSpace.World;
+                main.startSizeMultiplier*=1.15f;main.scalingMode=ParticleSystemScalingMode.Hierarchy;ps.transform.localRotation=Quaternion.identity;var shape=ps.shape;shape.angle=1.2f;shape.radius=.2f;
+                var emission=ps.emission;emission.rateOverTime=name=="Sweep"?55f:48f;emission.SetBursts(Array.Empty<ParticleSystem.Burst>());}
             foreach(var renderer in root.GetComponentsInChildren<Renderer>(true)){
                 var shared=renderer.sharedMaterials;
                 for(int i=0;i<shared.Length;i++){if(shared[i]==null)continue;string materialPath=Root+"/Composite/Materials/M_BossBlood_"+shared[i].name.Replace('/','_')+".mat";
