@@ -32,7 +32,7 @@ namespace Overburst.DebugTools.Performance
         PlayerActorRuntime player; MeleeRuntime melee; PlayerEvadeController evade; PlayerInputFacade input;
         EnemySpawnService spawner; GameObject ownedRoot; BloodHitVfxService blood;
         WeaponItemData weapon; ItemData oldWeapon, oldGem;
-        float oldHp; bool enteredArena, inputOwned, oldGameplay, oldBackground, settingsOwned, playerOwned;
+        float oldUnmodifiedMaxHp; bool enteredArena, inputOwned, oldGameplay, oldBackground, settingsOwned, playerOwned;
         int oldVsync, oldTarget, releaseKeyboardFrame = -1, poolStart, parryStart, actionOrdinal;
         Keyboard keyboard; Key evadeKey;
         ReadOnlyArray<InputDevice>? oldDevices;
@@ -195,7 +195,7 @@ namespace Overburst.DebugTools.Performance
                         if (Physics.Raycast(point + Vector3.up * 5, Vector3.down, out var hit, 12, ground >= 0 ? 1 << ground : Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) point.y = hit.point.y + .1f;
                         var enemy = spawner.Spawn(new EnemySpawnRequest(roster[i], point, Quaternion.identity, player.transform, ownedRoot, player.transform, ownedRoot.transform, seed: Run.profile.seed + i));
                         if (enemy == null) throw new InvalidOperationException("스폰 실패: " + i);
-                        enemy.Health.SetMaxHp(Run.profile.enemyHp, true); enemy.Health.OnDamageResolved += EnemyHit; enemies.Add(enemy);
+                        enemy.Health.SetUnmodifiedMaxHp(Run.profile.enemyHp, true); enemy.Health.OnDamageResolved += EnemyHit; enemies.Add(enemy);
                         if ((i + 1) % Run.profile.spawnPerFrame == 0) yield return null;
                     }
                     yield return null; yield return null; End();
@@ -255,14 +255,14 @@ namespace Overburst.DebugTools.Performance
                 if (best == null) throw new InvalidOperationException("원소 보석 누락: " + element);
                 var item = new ItemData(best, 1, best.fixedGrade); item.gemState = ElementGemQuality.Roll(best, Run.profile.seed); gems[element] = item;
             }
-            oldWeapon = player.Equipment.CurrentWeaponItem; oldGem = player.Equipment.EquippedElementGem; oldHp = player.GetComponent<CombatHealth>().MaxHp;
+            oldWeapon = player.Equipment.CurrentWeaponItem; oldGem = player.Equipment.EquippedElementGem; oldUnmodifiedMaxHp = player.GetComponent<CombatHealth>().UnmodifiedMaxHp;
             playerOwned = true;
             oldVsync = QualitySettings.vSyncCount; oldTarget = Application.targetFrameRate; settingsOwned = true;
             if (Run.profile.uncapped) { QualitySettings.vSyncCount = 0; Application.targetFrameRate = -1; }
             var result = EnemyThemeTrialService.ToggleArena(); if (!result.Success) throw new InvalidOperationException(result.Message); enteredArena = true;
             foreach (var arena in UnityEngine.Object.FindObjectsByType<EnemyThemeDebugArena>(FindObjectsSortMode.None))
                 foreach (var zone in arena.GetComponentsInChildren<EnemyThemeTriggerZone>(true)) if (zone.TryGetComponent(out Collider c)) c.enabled = false;
-            player.GetComponent<CombatHealth>().SetMaxHp(10000000, true); player.GetComponent<CombatHealth>().OnDamageResolved += PlayerHit;
+            player.GetComponent<CombatHealth>().SetUnmodifiedMaxHp(10000000, true); player.GetComponent<CombatHealth>().OnDamageResolved += PlayerHit;
             oldGameplay = input.IsGameplayEnabled; oldDevices = input.GameplayMap.devices; inputOwned = true;
             keyboard = InputSystem.AddDevice<Keyboard>("OverburstPerformanceKeyboard");
             input.GameplayMap.devices = new InputDevice[] { keyboard }; input.EnableGameplay();
@@ -450,7 +450,7 @@ namespace Overburst.DebugTools.Performance
                 CleanupStep(() => { if (evade != null) { evade.OnEvadeStarted -= EvadeStarted; evade.OnEvadeEnded -= EvadeEnded; if (playerOwned) evade.CancelForKnockdown(); } });
                 CleanupStep(() => { if (inputOwned && input != null) { input.GameplayMap.devices = oldDevices; input.CombatInputs?.Invalidate(); if (oldGameplay) input.EnableGameplay(); else input.DisableGameplay(); } });
                 CleanupStep(() => { if (keyboard != null) InputSystem.RemoveDevice(keyboard); });
-                CleanupStep(() => { if (playerOwned && player != null) { player.GetComponent<CombatHealth>().OnDamageResolved -= PlayerHit; player.GetComponent<CombatHealth>().SetMaxHp(oldHp, true); } });
+                CleanupStep(() => { if (playerOwned && player != null) { player.GetComponent<CombatHealth>().OnDamageResolved -= PlayerHit; player.GetComponent<CombatHealth>().SetUnmodifiedMaxHp(oldUnmodifiedMaxHp, true); } });
                 CleanupStep(() => { if (playerOwned && player != null) { player.Equipment.SetElementGem(oldGem); if (oldWeapon != null) player.Equipment.EquipWeaponItem(oldWeapon); else player.Equipment.ClearCurrentWeapon(); } });
                 CleanupStep(() => { if (enteredArena && EnemyThemeTrialService.InArena) { var result = EnemyThemeTrialService.ToggleArena(); if (!result.Success) throw new InvalidOperationException(result.Message); } });
                 CleanupStep(() => { if (ownedRoot != null) Destroy(ownedRoot); });

@@ -202,7 +202,7 @@ public partial class ShopUI
 
         previousInventoryVisible = inventoryUI.IsVisible;
         inventoryUI.SetVisible(true);
-        inventoryUI.InputToggleLocked = true;
+        inventoryUI.SetInputToggleLocked(this, true);
         inventoryToggleLockedByShop = true;
     }
 
@@ -213,7 +213,7 @@ public partial class ShopUI
 
         if (inventoryToggleLockedByShop)
         {
-            inventoryUI.InputToggleLocked = false;
+            inventoryUI.SetInputToggleLocked(this, false);
             inventoryToggleLockedByShop = false;
         }
 

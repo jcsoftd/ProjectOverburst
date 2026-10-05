@@ -17,7 +17,7 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public static PlayerInputFacade Current { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStaticState() => Current = null;
+    private static void ResetStaticState() { Current = null; gameplayMapDisabledOwners.Clear(); }
 
     public static readonly string[] RequiredGameplayActions =
     {
@@ -77,6 +77,62 @@ public sealed class PlayerInputFacade : MonoBehaviour
     private readonly Dictionary<string, InputAction> uiActions = new Dictionary<string, InputAction>(StringComparer.Ordinal);
     private bool subscribedToActionChange;
     private InputDevice lastDevice;
+    private bool gameplayRequestedEnabled;
+    private bool initializationAttempted;
+    private static readonly HashSet<UnityEngine.Object> gameplayMapDisabledOwners = new HashSet<UnityEngine.Object>();
+    private readonly HashSet<string> diagnosedFailures = new HashSet<string>(StringComparer.Ordinal);
+    private const int DiagnosticLimit = 8;
+    private static readonly Predicate<UnityEngine.Object> DestroyedOwner = owner => owner == null;
+
+    public void SetGameplayMapDisabled(UnityEngine.Object owner, bool disabled)
+    {
+        if (owner == null) return;
+        gameplayMapDisabledOwners.RemoveWhere(DestroyedOwner);
+        if (disabled) gameplayMapDisabledOwners.Add(owner); else gameplayMapDisabledOwners.Remove(owner);
+        ApplyGameplayMapState();
+        if (Current != null && Current != this) Current.ApplyGameplayMapState();
+    }
+
+    public static void ReleaseGameplayMapDisabled(UnityEngine.Object owner)
+    {
+        if (owner == null) return;
+        gameplayMapDisabledOwners.Remove(owner);
+        gameplayMapDisabledOwners.RemoveWhere(DestroyedOwner);
+        if (Current != null) Current.ApplyGameplayMapState();
+    }
+
+    private void PublishCurrent()
+    {
+        PlayerInputFacade previous = Current;
+        Current = this;
+        if (previous != null && previous != this) previous.ApplyGameplayMapState();
+    }
+
+    private void LateUpdate()
+    {
+        if (Current == this && gameplayMapDisabledOwners.Count > 0 && gameplayMapDisabledOwners.RemoveWhere(DestroyedOwner) > 0)
+            ApplyGameplayMapState();
+    }
+
+    private void ApplyGameplayMapState()
+    {
+        gameplayMapDisabledOwners.RemoveWhere(DestroyedOwner);
+        bool allow = Current == this && isActiveAndEnabled && gameplayRequestedEnabled && gameplayMapDisabledOwners.Count == 0;
+        if (gameplayMap == null || gameplayMap.enabled == allow) return;
+        try
+        {
+            if (allow) gameplayMap.Enable();
+            else { CombatInputs?.Invalidate(); gameplayMap.Disable(); }
+        }
+        catch (Exception error) { Diagnose("Gameplay/map-state", error); }
+    }
+
+    private void Diagnose(string operation, Exception error)
+    {
+        string key = operation + ":" + error.GetType().Name;
+        if (diagnosedFailures.Count >= DiagnosticLimit || !diagnosedFailures.Add(key)) return;
+        Debug.LogWarning("[PlayerInputFacade] " + key + ": " + error.Message, this);
+    }
 
     public InputActionAsset SourceAsset => sourceAsset;
     public InputActionAsset RuntimeAsset => runtimeAsset;
@@ -100,8 +156,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             {
                 return lastDevice != null ? lastDevice.name : string.Empty;
             }
-            catch (Exception)
+            catch (Exception error)
             {
+                Diagnose("last-device", error);
                 return string.Empty;
             }
         }
@@ -195,63 +252,53 @@ public sealed class PlayerInputFacade : MonoBehaviour
         EnsureInitialized();
         if (Current != null && Current != this)
             Debug.LogWarning("[PlayerInputFacade] Current가 이미 있어 교체한다.", this);
-        Current = this;
+        PublishCurrent();
     }
 
     private void OnEnable()
     {
+        diagnosedFailures.Clear();
+        initializationAttempted = false;
         EnsureInitialized();
         if (Current != null && Current != this)
             Debug.LogWarning("[PlayerInputFacade] Current가 이미 있어 교체한다.", this);
-        Current = this;
+        PublishCurrent();
+        gameplayRequestedEnabled = autoEnableGameplay;
         if (autoEnableGameplay)
             EnableGameplay();
         if (autoEnableUi)
             EnableUi();
         if (autoEnableDebugValidation)
             EnableDebugValidation();
-        CombatInputs?.Dispose();
-        CombatInputs = new PlayerCombatInputBuffer(this);
+        var previousBuffer = CombatInputs; CombatInputs = null;
+        try { previousBuffer?.Dispose(); } catch (Exception error) { Diagnose("enable/combat-buffer-release", error); }
+        try { CombatInputs = new PlayerCombatInputBuffer(this); } catch (Exception error) { Diagnose("enable/combat-buffer-create", error); }
     }
 
-    private void OnDisable()
-    {
-        CombatInputs?.Dispose();
-        CombatInputs = null;
-        DisableAllMaps();
-        UnsubscribeActionChange();
-        ReleaseRuntimeAsset();
-        if (Current == this)
-            Current = null;
-    }
+    private void OnDisable() { ReleaseAllRuntime(); }
+    private void OnDestroy() { ReleaseAllRuntime(); lastDevice = null; }
 
-    private void OnDestroy()
+    private void ReleaseAllRuntime()
     {
-        CombatInputs?.Dispose();
-        CombatInputs = null;
-        DisableAllMaps();
-        UnsubscribeActionChange();
-        ReleaseRuntimeAsset();
-        lastDevice = null;
-        if (Current == this)
-            Current = null;
+        var buffer = CombatInputs; CombatInputs = null;
+        try { buffer?.Dispose(); } catch (Exception error) { Diagnose("cleanup/combat-buffer", error); }
+        try { DisableAllMaps(); } catch (Exception error) { Diagnose("cleanup/maps", error); }
+        try { UnsubscribeActionChange(); } catch (Exception error) { Diagnose("cleanup/subscription", error); }
+        try { ReleaseRuntimeAsset(); } catch (Exception error) { Diagnose("cleanup/runtime-asset", error); }
+        if (Current == this) Current = null;
     }
 
     private void ReleaseRuntimeAsset()
     {
+        initializationAttempted = false;
         gameplayActions.Clear();
         uiActions.Clear();
         gameplayMap = null;
         uiMap = null;
         debugValidationMap = null;
-        if (runtimeAsset == null)
-            return;
-
-        if (Application.isPlaying)
-            Destroy(runtimeAsset);
-        else
-            DestroyImmediate(runtimeAsset);
-        runtimeAsset = null;
+        var releasedAsset = runtimeAsset; runtimeAsset = null;
+        if (releasedAsset == null) return;
+        if (Application.isPlaying) Destroy(releasedAsset); else DestroyImmediate(releasedAsset);
     }
 
     public void EnsureInitialized()
@@ -262,12 +309,16 @@ public sealed class PlayerInputFacade : MonoBehaviour
             SubscribeActionChange();
             return;
         }
+        if (initializationAttempted) return;
+        initializationAttempted = true;
         if (sourceAsset == null)
         {
-            Debug.LogError("[PlayerInputFacade] SourceAsset이 비어 있다. InputSystem_Actions를 주입하라.", this);
+            Diagnose("initialize/source", new InvalidOperationException("SourceAsset이 비어 있다. InputSystem_Actions를 주입하라."));
             return;
         }
 
+        try
+        {
         // Recreate action-map state from the authoring JSON. Instantiate can retain a stale
         // resolved map index after the .inputactions asset is reimported during Editor Play.
         runtimeAsset = InputActionAsset.FromJson(sourceAsset.ToJson());
@@ -278,11 +329,11 @@ public sealed class PlayerInputFacade : MonoBehaviour
         uiMap = runtimeAsset.FindActionMap(UiMapName);
         debugValidationMap = runtimeAsset.FindActionMap(DebugValidationMapName);
         if (gameplayMap == null)
-            Debug.LogError("[PlayerInputFacade] Gameplay map을 찾을 수 없다.", this);
+            Diagnose("initialize/Gameplay", new InvalidOperationException("Gameplay map을 찾을 수 없다."));
         if (uiMap == null)
-            Debug.LogError("[PlayerInputFacade] UI map을 찾을 수 없다.", this);
+            Diagnose("initialize/UI", new InvalidOperationException("UI map을 찾을 수 없다."));
         if (debugValidationMap == null)
-            Debug.LogError("[PlayerInputFacade] DebugValidation map을 찾을 수 없다.", this);
+            Diagnose("initialize/DebugValidation", new InvalidOperationException("DebugValidation map을 찾을 수 없다."));
 
         gameplayActions.Clear();
         uiActions.Clear();
@@ -290,20 +341,29 @@ public sealed class PlayerInputFacade : MonoBehaviour
         if (uiMap != null)
             CacheActions(uiMap, MajorUiActions, uiActions);
         SubscribeActionChange();
+        }
+        catch (Exception error)
+        {
+            Diagnose("initialize/runtime", error);
+            try { DisableAllMaps(); } catch (Exception cleanupError) { Diagnose("initialize/map-cleanup", cleanupError); }
+            try { UnsubscribeActionChange(); } catch (Exception cleanupError) { Diagnose("initialize/subscription-cleanup", cleanupError); }
+            try { ReleaseRuntimeAsset(); } catch (Exception cleanupError) { Diagnose("initialize/asset-cleanup", cleanupError); }
+            initializationAttempted = true; // 재활성화 전에는 매 프레임 재생성하지 않는다.
+        }
     }
 
     public void EnableGameplay()
     {
         EnsureInitialized();
-        if (gameplayMap != null && !gameplayMap.enabled)
-            gameplayMap.Enable();
+        gameplayRequestedEnabled = true;
+        ApplyGameplayMapState();
     }
 
     public void DisableGameplay()
     {
+        gameplayRequestedEnabled = false;
         CombatInputs?.Invalidate();
-        if (gameplayMap != null && gameplayMap.enabled)
-            gameplayMap.Disable();
+        ApplyGameplayMapState();
     }
 
     private void OnApplicationFocus(bool focused)
@@ -389,8 +449,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetGameplayAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.ReadValue<Vector2>();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("ReadVector2/" + actionName, error);
         }
         return Vector2.zero;
     }
@@ -402,8 +463,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetGameplayAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.IsPressed();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("IsPressed/" + actionName, error);
         }
         return false;
     }
@@ -415,8 +477,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetGameplayAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.WasPressedThisFrame();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("WasPressedThisFrame/" + actionName, error);
         }
         return false;
     }
@@ -428,8 +491,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetGameplayAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.WasReleasedThisFrame();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("WasReleasedThisFrame/" + actionName, error);
         }
         return false;
     }
@@ -441,8 +505,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetUiAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.ReadValue<Vector2>();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("ReadUiVector2/" + actionName, error);
         }
         return Vector2.zero;
     }
@@ -454,8 +519,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetUiAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.IsPressed();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("IsUiPressed/" + actionName, error);
         }
         return false;
     }
@@ -467,8 +533,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetUiAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.WasPressedThisFrame();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("WasUiPressedThisFrame/" + actionName, error);
         }
         return false;
     }
@@ -480,13 +547,14 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (TryGetUiAction(actionName, out InputAction action) && action != null && action.enabled)
                 return action.WasReleasedThisFrame();
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("WasUiReleasedThisFrame/" + actionName, error);
         }
         return false;
     }
 
-    private static void CacheActions(InputActionMap map, string[] names, Dictionary<string, InputAction> cache)
+    private void CacheActions(InputActionMap map, string[] names, Dictionary<string, InputAction> cache)
     {
         if (map == null || names == null || cache == null)
             return;
@@ -496,24 +564,21 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (action != null)
                 cache[name] = action;
             else
-                Debug.LogError("[PlayerInputFacade] Action을 찾을 수 없다: " + map.name + "/" + name);
+                Diagnose("initialize/" + map.name + "/" + name, new InvalidOperationException("Action을 찾을 수 없다."));
         }
     }
 
     private void DisableAllMaps()
     {
-        try
-        {
-            if (gameplayMap != null && gameplayMap.enabled)
-                gameplayMap.Disable();
-            if (uiMap != null && uiMap.enabled)
-                uiMap.Disable();
-            if (debugValidationMap != null && debugValidationMap.enabled)
-                debugValidationMap.Disable();
-        }
-        catch (Exception)
-        {
-        }
+        DisableMap(gameplayMap, GameplayMapName);
+        DisableMap(uiMap, UiMapName);
+        DisableMap(debugValidationMap, DebugValidationMapName);
+    }
+
+    private void DisableMap(InputActionMap map, string mapName)
+    {
+        try { if (map != null && map.enabled) map.Disable(); }
+        catch (Exception error) { Diagnose("cleanup/" + mapName, error); }
     }
 
     private void SubscribeActionChange()
@@ -525,8 +590,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             InputSystem.onActionChange += HandleActionChange;
             subscribedToActionChange = true;
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("subscribe-action-change", error);
             subscribedToActionChange = false;
         }
     }
@@ -539,8 +605,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
         {
             InputSystem.onActionChange -= HandleActionChange;
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("unsubscribe-action-change", error);
         }
         subscribedToActionChange = false;
     }
@@ -563,8 +630,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
             if (activeControl != null && activeControl.device != null)
                 lastDevice = activeControl.device;
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            Diagnose("track-device", error);
         }
     }
 }

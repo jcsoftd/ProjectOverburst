@@ -41,7 +41,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     Dictionary<string, OverburstSkillTreeCatalog.Node> index;
     Dictionary<string, OverburstSkillTreeNodeView> views;
     Dictionary<string, int> captionSizes;
-    bool initialized, restoreGameplay, externalEntry;
+    bool initialized, externalEntry;
     PlayerInputFacade lockedInput;
     GameObject returnSelection;
     WeaponElement shownElement = (WeaponElement)(-1);
@@ -86,6 +86,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         var flow = PersistentSceneFlow.Instance;
         entry.interactable = IsOpen || (!OverburstGameMenu.IsOpen && !GameplayInputBlocker.IsGameplayInputBlocked && (flow == null || !flow.IsSwitching));
         if (!IsOpen) return;
+        SyncGameplayMapOwner();
         if (PlayerInputFacade.Current != null && PlayerInputFacade.Current.UiCancelPressedThisFrame) { Close(); return; }
         var keyboard = Keyboard.current;
         if (keyboard != null)
@@ -110,10 +111,16 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (Application.isPlaying)
         {
             TooltipManager.Instance?.HideTooltip(); GameplayInputBlocker.Block(this);
-            lockedInput = PlayerInputFacade.Current; restoreGameplay = lockedInput != null && lockedInput.IsGameplayEnabled;
-            if (restoreGameplay) lockedInput.DisableGameplay();
+            SyncGameplayMapOwner();
         }
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(views[SelectedId].button.gameObject);
+    }
+    void SyncGameplayMapOwner()
+    {
+        var current = PlayerInputFacade.Current;
+        if (current == null) return;
+        lockedInput = current;
+        if (lockedInput != null) lockedInput.SetGameplayMapDisabled(this, true);
     }
     public void Close()
     {
@@ -123,8 +130,8 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (surface) surface.SetActive(false);
         if (entry) entry.gameObject.SetActive(!externalEntry);
         GameplayInputBlocker.Unblock(this);
-        if (restoreGameplay && lockedInput != null) lockedInput.EnableGameplay();
-        restoreGameplay = false; lockedInput = null;
+        PlayerInputFacade.ReleaseGameplayMapDisabled(this);
+        lockedInput = null;
         if (ownsSelection && events != null)
             events.SetSelectedGameObject(returnSelection && returnSelection.activeInHierarchy ? returnSelection : entry && entry.gameObject.activeInHierarchy ? entry.gameObject : null);
         returnSelection = null;

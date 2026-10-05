@@ -147,6 +147,8 @@ public partial class ShopUI : MonoBehaviour
         if (isOpen)
             Close();
 
+        if (inventoryUI != null) inventoryUI.SetInputToggleLocked(this, false);
+        inventoryToggleLockedByShop = false;
         GameplayInputBlocker.Unblock(this);
         ReleaseInteracting();
     }
@@ -156,6 +158,8 @@ public partial class ShopUI : MonoBehaviour
         if (openShop == this)
             openShop = null;
 
+        if (inventoryUI != null) inventoryUI.SetInputToggleLocked(this, false);
+        inventoryToggleLockedByShop = false;
         GameplayInputBlocker.Unblock(this);
         ReleaseInteracting();
     }
@@ -228,6 +232,8 @@ public partial class ShopUI : MonoBehaviour
         ClearPlayerInventorySelection();
         SetPanelVisible(false);
         RestorePlayerInventoryWindow();
+        if (inventoryUI != null) inventoryUI.SetInputToggleLocked(this, false);
+        inventoryToggleLockedByShop = false;
         GameplayInputBlocker.Unblock(this);
         ReleaseInteracting();
     }

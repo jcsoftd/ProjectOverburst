@@ -67,7 +67,7 @@ public partial class ShopUI
         if (inventoryUI != null)
         {
             inventoryUI.SetVisible(tradeVisible);
-            inventoryUI.InputToggleLocked = true;
+            inventoryUI.SetInputToggleLocked(this, true);
             inventoryToggleLockedByShop = true;
         }
 

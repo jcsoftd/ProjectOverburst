@@ -1,17 +1,34 @@
-param([Parameter(Mandatory=$true)][string]$Directory)
+param(
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [ValidateSet('CurrentRun','HistoricalSnapshots')][string]$Scope='CurrentRun'
+)
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path -LiteralPath $Directory).Path
-$processResult=Get-Content -LiteralPath (Join-Path $root 'process-results.json') -Raw | ConvertFrom-Json
-$processStatus=if($processResult.processStatus){$processResult.processStatus}else{$processResult.status}
-if ($processStatus -ne 'PASS_SCOPED' -or $processResult.cases.Count -ne 7) { throw 'All seven actual force-kill/two-restart cases must finish first.' }
+$expected=@('checkpoint','entry-pending','entry-active','transfer-before','transfer-after','settlement-before','settlement-after')
+$boundaries=@{'checkpoint'='after-checkpoint';'entry-pending'='after-write';'entry-active'='after-write';'transfer-before'='before-write';'transfer-after'='after-write';'settlement-before'='before-write';'settlement-after'='after-write'}
 $checks=[Collections.Generic.List[object]]::new()
 function Check([bool]$Pass,[string]$Label,[string]$CaseName) {
     $checks.Add(@{case=$CaseName;label=$Label;pass=$Pass})
     if (!$Pass) { throw "$CaseName - $Label" }
 }
 function Has-Item($Snapshot,[string]$Id) { return @($Snapshot.items | Where-Object instanceId -eq $Id).Count -eq 1 }
-$result=[ordered]@{status='RUNNING';checks=$checks;source='Independent assertions on exported first/second recovered snapshots, without invoking production recovery functions';trueWriteInProgress=$processResult.trueWriteInProgress;cases=@()}
+$result=[ordered]@{status='RUNNING';scope=$Scope;checks=$checks;source='Independent assertions on exported first/second recovered snapshots, without invoking production recovery functions';buildMatch='NOT_RUN';processStartEvidence='NOT_RECORDED_LEGACY';trueWriteInProgress=$null;cases=@()}
 try {
+    $processResult=Get-Content -LiteralPath (Join-Path $root 'process-results.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $result.trueWriteInProgress=$processResult.trueWriteInProgress
+    $processStatus=if($processResult.processStatus){$processResult.processStatus}else{$processResult.status}
+    Check ($processStatus -ceq 'PASS_SCOPED') 'Full process result required; partial cases/restarts cannot enter full gate' 'manifest'
+    $names=@($processResult.cases | ForEach-Object case)
+    Check ($names.Count -eq 7 -and @($names | Sort-Object -Unique).Count -eq 7 -and @($names | Where-Object {$expected -cnotcontains $_}).Count -eq 0) 'Exact expected set of seven case names, each once' 'manifest'
+    if ($Scope -eq 'CurrentRun') {
+        Check ($processResult.sha256 -match '^[A-Fa-f0-9]{64}$' -and $processResult.managedAssemblySha256 -match '^[A-Fa-f0-9]{64}$') 'Recorded executable and managed assembly hashes are mandatory' 'build'
+        $exe=$processResult.executable
+        $dll=Join-Path (Split-Path $exe) 'OVERBURST_Data/Managed/Assembly-CSharp.dll'
+        $result.managedAssemblySha256=(Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
+        Check ((Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash -eq $processResult.sha256) 'Player executable still matches the recorded run' 'build'
+        Check ($result.managedAssemblySha256 -eq $processResult.managedAssemblySha256) 'Managed assembly still matches the recorded run' 'build'
+        $result.buildMatch='PASS_RECORDED_RUN_ONLY'
+    }
     foreach ($case in $processResult.cases) {
         $name=$case.case
         $dir=Join-Path $root $name
@@ -21,10 +38,23 @@ try {
         $s=$first.snapshot
         $kill=Get-Content -LiteralPath (Join-Path $dir 'kill.json') -Raw | ConvertFrom-Json
         $ready=Get-Content -LiteralPath (Join-Path $dir 'crash-ready.json') -Raw | ConvertFrom-Json
-        Check ($kill.pid -eq $ready.pid -and $kill.pid -gt 0 -and !$kill.normalExitRequested -and $kill.status -eq 'KILLED') 'Owned Player PID was OS-killed at the marked boundary without normal quit' $name
-        Check ($first.status -eq 'PASS' -and $second.status -eq 'PASS') 'Both actual Player restarts passed' $name
-        Check ($first.actualInventoryProjection -and $second.actualInventoryProjection) 'Actual booted inventory IDs and quantities matched persisted account' $name
-        Check ($second.repeatedRestart -and !$second.interrupted) 'Second restart did not apply recovery again' $name
+        Check ($case.status -ceq 'PASS' -and $case.restartCount -eq 2 -and $case.revisionStable -eq $true -and $case.liveInventoryProjection -eq $true) 'Case completed exactly two restarts and live projection' $name
+        Check ($seed.caseName -ceq $name -and $ready.caseName -ceq $name -and $kill.case -ceq $name -and $first.caseName -ceq $name -and $second.caseName -ceq $name) 'Manifest, seed, ready, kill and both restart labels agree' $name
+        Check ($case.boundary -ceq $boundaries[$name] -and $ready.boundary -ceq $boundaries[$name] -and $kill.boundary -ceq $boundaries[$name] -and $ready.status -ceq 'READY_FOR_OS_KILL') 'Manifest, ready and kill use the expected case boundary' $name
+        Check ($first.repeatedRestart -eq $false -and $second.repeatedRestart -eq $true -and $first.revision -eq $second.revision) 'Distinct first and second recovered restart evidence' $name
+        if ($processResult.ownedProcessReceipts -eq $true) {
+            $start=Get-Content -LiteralPath (Join-Path $dir 'crash-start.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+            Check ($start.case -ceq $name -and $start.mode -ceq 'crash' -and $start.attempt -ceq 'crash' -and $start.pid -eq $ready.pid -and $start.pid -eq $kill.pid -and $start.pid -gt 0 -and $start.executable -eq $processResult.executable) 'Same-run owned start, ready and kill identify the same Player' $name
+            foreach ($attempt in 1,2) {
+                $receipt=Get-Content -LiteralPath (Join-Path $dir "verify-$attempt-process.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+                Check ($receipt.case -ceq $name -and $receipt.mode -ceq 'verify' -and $receipt.attempt -ceq "verify-$attempt" -and $receipt.pid -gt 0 -and $receipt.executable -eq $processResult.executable -and $receipt.exitCode -eq 0 -and $receipt.completed -eq $true -and $receipt.startedUtc -and $receipt.exitedUtc) "Owned restart $attempt started and exited successfully" $name
+            }
+            $result.processStartEvidence='PASS_RECORDED_STARTS'
+        }
+        Check ($kill.pid -eq $ready.pid -and $kill.pid -gt 0 -and $kill.normalExitRequested -eq $false -and $kill.status -ceq 'KILLED') 'Owned Player PID was OS-killed at the marked boundary without normal quit' $name
+        Check ($first.status -ceq 'PASS' -and $second.status -ceq 'PASS') 'Both actual Player restarts passed' $name
+        Check ($first.actualInventoryProjection -eq $true -and $second.actualInventoryProjection -eq $true) 'Actual booted inventory IDs and quantities matched persisted account' $name
+        Check ($second.repeatedRestart -eq $true -and $second.interrupted -eq $false) 'Second restart did not apply recovery again' $name
         Check (($s | ConvertTo-Json -Depth 100 -Compress) -ceq ($second.snapshot | ConvertTo-Json -Depth 100 -Compress)) 'Entire recovered account is stable across restart, including revision and reward ledger' $name
         $ids=@($s.items | ForEach-Object instanceId)
         Check (($ids | Sort-Object -Unique).Count -eq $ids.Count) 'No duplicated item identities' $name
@@ -58,13 +88,8 @@ try {
         }
         $result.cases+=@{case=$name;status='PASS';pid=$kill.pid;restartCount=2;revision=$first.revision;itemCount=$ids.Count;stashCount=$stashItem[0].count}
     }
-    $exe=$processResult.executable
-    $dll=Join-Path (Split-Path $exe) 'OVERBURST_Data/Managed/Assembly-CSharp.dll'
-    $result.managedAssemblySha256=(Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
-    Check ((Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash -eq $processResult.sha256) 'Player executable still matches the recorded run' 'build'
-    Check (!$processResult.managedAssemblySha256 -or $result.managedAssemblySha256 -eq $processResult.managedAssemblySha256) 'Managed assembly still matches the recorded run' 'build'
-    $result.status='PASS_SCOPED'
+    $result.status=if($Scope -eq 'CurrentRun'){'PASS_SCOPED'}else{'PASS_HISTORICAL_SNAPSHOTS'}
     $result.checkCount=$checks.Count
 } catch { $result.status='FAIL'; $result.error=$_.Exception.Message; throw }
 finally { $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $root 'independent-contract-result.json') -Encoding utf8 }
-'PASS actual recovery contracts: '+$checks.Count+' independent assertions'
+$result.status+': '+$checks.Count+' independent assertions ('+$Scope+')'

@@ -33,7 +33,7 @@ public sealed class HideoutSpinningCatEasterEgg : MonoBehaviour
     private RectTransform[] beams;
     private float startedAt;
     private PlayerInputFacade blockedInput;
-    private bool restoreGameplay;
+
     private Vector3 idlePosition;
     private Quaternion idleRotation;
     private Vector3 idleScale;
@@ -120,9 +120,9 @@ public sealed class HideoutSpinningCatEasterEgg : MonoBehaviour
             stageCamera.aspect = (float)width / height;
             surface.texture = stageTexture;
             blockedInput = PlayerInputFacade.Current;
-            restoreGameplay = blockedInput != null && blockedInput.IsGameplayEnabled;
+
             GameplayInputBlocker.Block(this);
-            if (restoreGameplay) blockedInput.DisableGameplay();
+            if (blockedInput != null) blockedInput.SetGameplayMapDisabled(this, true);
             startedAt = Time.unscaledTime;
             ActivationCount++;
             contacts.Clear();
@@ -172,6 +172,9 @@ public sealed class HideoutSpinningCatEasterEgg : MonoBehaviour
     private void Update()
     {
         if (!IsActive) { FaceWorldPhoto(); return; }
+        var currentInput = PlayerInputFacade.Current;
+        if (currentInput != null) blockedInput = currentInput;
+        if (blockedInput != null) blockedInput.SetGameplayMapDisabled(this, true);
         // MenuGate samples our blocker earlier in the frame, so this Escape never opens the pause menu.
         if (Keyboard.current?.escapeKey.wasPressedThisFrame == true
             || PlayerInputFacade.Current?.UiCancelPressedThisFrame == true)
@@ -279,8 +282,8 @@ public sealed class HideoutSpinningCatEasterEgg : MonoBehaviour
         beams = null;
         if (stageTexture != null) {stageTexture.Release(); Destroy(stageTexture); stageTexture = null;}
         GameplayInputBlocker.Unblock(this);
-        if (restoreGameplay && blockedInput != null) blockedInput.EnableGameplay();
-        restoreGameplay = false;
+        PlayerInputFacade.ReleaseGameplayMapDisabled(this);
+
         blockedInput = null;
         if (visual != null && Application.isPlaying)
         {

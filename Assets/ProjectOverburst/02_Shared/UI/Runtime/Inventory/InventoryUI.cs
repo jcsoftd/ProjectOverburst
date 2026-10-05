@@ -37,7 +37,20 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
     private PlayerStash subscribedStash;
 
     public bool IsVisible => inventoryPanel != null && inventoryPanel.activeSelf; // 패널 표시
-    public bool InputToggleLocked { get; set; } // Tab 잠금
+    private readonly HashSet<UnityEngine.Object> toggleLockOwners = new HashSet<UnityEngine.Object>();
+    private bool legacyToggleLocked;
+    public bool InputToggleLocked
+    {
+        get { toggleLockOwners.RemoveWhere(owner => owner == null); return legacyToggleLocked || toggleLockOwners.Count > 0; }
+        set { legacyToggleLocked = value; } // 호환 요청 하나만 변경한다. 다른 소유자의 요청은 유지한다.
+    }
+
+    public void SetInputToggleLocked(UnityEngine.Object owner, bool locked)
+    {
+        if (owner == null) return;
+        toggleLockOwners.RemoveWhere(source => source == null);
+        if (locked) toggleLockOwners.Add(owner); else toggleLockOwners.Remove(owner);
+    }
 
     public TMP_FontAsset KoreanFontAsset => koreanFontAsset;
 
@@ -94,12 +107,15 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
             Toggle();
     }
 
-    public void Toggle()
-    {
-        if (!EnsureRuntimeUI())
-            return;
+    public void Toggle() => TryToggleFromUser();
 
-        SetVisible(!inventoryPanel.activeSelf);
+    public bool TryToggleFromUser()
+    {
+        if (InputToggleLocked || !EnsureRuntimeUI()) return false;
+        if (inventoryPanel.activeSelf) { SetVisible(false); return true; }
+        if (PersistentSceneFlow.Instance != null && PersistentSceneFlow.Instance.IsSwitching) return false;
+        SetVisible(true);
+        return true;
     }
 
     public void SetVisible(bool visible)

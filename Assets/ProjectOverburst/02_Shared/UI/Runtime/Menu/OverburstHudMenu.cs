@@ -32,7 +32,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
     public static bool IsExpanded => Instance != null && Instance.IsOpen;
     OverburstGameUI owner;
     PlayerInputFacade lockedInput;
-    bool initialized, restoreGameplay;
+    bool initialized;
     float animation, slide;
     Vector2 lastRootSize;
     Rect lastSafeArea;
@@ -107,6 +107,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
     void Update()
     {
         if (!initialized) return;
+        if (IsOpen) SyncGameplayMapOwner();
         if (IsOpen && PlayerInputFacade.Current != null && PlayerInputFacade.Current.UiCancelPressedThisFrame) Close();
         if (IsOpen && PersistentSceneFlow.Instance && PersistentSceneFlow.Instance.IsSwitching) CloseImmediate();
         animation = Mathf.MoveTowards(animation, IsOpen ? 1 : 0, Time.unscaledDeltaTime / .13f);
@@ -143,11 +144,16 @@ public sealed class OverburstHudMenu : MonoBehaviour
         {
             TooltipManager.Instance?.HideTooltip();
             GameplayInputBlocker.Block(this);
-            lockedInput = PlayerInputFacade.Current;
-            restoreGameplay = lockedInput != null && lockedInput.IsGameplayEnabled;
-            if (restoreGameplay) lockedInput.DisableGameplay();
+            SyncGameplayMapOwner();
             Play(false);
         }
+    }
+    void SyncGameplayMapOwner()
+    {
+        var current = PlayerInputFacade.Current;
+        if (current == null) return;
+        lockedInput = current;
+        if (lockedInput != null) lockedInput.SetGameplayMapDisabled(this, true);
     }
     public void Close()
     {
@@ -157,8 +163,8 @@ public sealed class OverburstHudMenu : MonoBehaviour
         if (triggerIcon) triggerIcon.sprite = menuIcon;
         if (triggerVisual) triggerVisual.Refresh();
         GameplayInputBlocker.Unblock(this);
-        if (restoreGameplay && lockedInput != null) lockedInput.EnableGameplay();
-        restoreGameplay = false; lockedInput = null;
+        PlayerInputFacade.ReleaseGameplayMapDisabled(this);
+        lockedInput = null;
         if (EventSystem.current && EventSystem.current.currentSelectedGameObject && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(content))
             EventSystem.current.SetSelectedGameObject(trigger && trigger.gameObject.activeInHierarchy ? trigger.gameObject : null);
     }

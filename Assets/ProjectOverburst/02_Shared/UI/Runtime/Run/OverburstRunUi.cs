@@ -31,7 +31,7 @@ public sealed class OverburstRunUi : MonoBehaviour
     private readonly List<GameObject> equipmentSources=new List<GameObject>();
     private Vector2 originalInventoryPosition,originalEquipmentPosition;
     private bool equipmentLayoutActive;
-    private bool inventoryWasVisible, inventoryWasToggleLocked, inventoryCaptured;
+    private bool inventoryWasVisible, inventoryCaptured;
     public bool IsTransferOpen => IsOpen && !showingCards;
     public bool IsOpen => modal != null && modal.activeSelf;
 
@@ -218,8 +218,8 @@ public sealed class OverburstRunUi : MonoBehaviour
         inventory=game!=null?game.inventory:UnityEngine.Object.FindFirstObjectByType<InventoryUI>();
         if(inventory!=null)
         {
-            inventoryWasVisible=inventory.IsVisible;inventoryWasToggleLocked=inventory.InputToggleLocked;
-            inventoryCaptured=true;inventory.InputToggleLocked=true;inventory.SetVisible(true);
+            inventoryWasVisible=inventory.IsVisible;
+            inventoryCaptured=true;inventory.SetInputToggleLocked(this,true);inventory.SetVisible(true);
             Canvas.ForceUpdateCanvases();
             PositionBesideInventory(game!=null?game.inventoryWindow.transform as RectTransform:null);
             if(game!=null)
@@ -354,7 +354,7 @@ public sealed class OverburstRunUi : MonoBehaviour
         if(inventoryCaptured && inventory!=null)
         {
             DragSlot.ClearDragState();
-            inventory.InputToggleLocked=inventoryWasToggleLocked;
+            inventory.SetInputToggleLocked(this,false);
             inventory.SetVisible(inventoryWasVisible);
         }
         foreach(var source in equipmentSources)if(source!=null){source.SetActive(false);Destroy(source);}
@@ -376,7 +376,7 @@ public sealed class OverburstRunUi : MonoBehaviour
         if(!showingCards && inventoryCaptured && inventory!=null && !inventory.IsVisible)Cancel();
     }
     private void OnDisable(){Close();}
-    private void OnDestroy(){GameplayInputBlocker.Unblock(this);}
+    private void OnDestroy(){if(inventory!=null)inventory.SetInputToggleLocked(this,false);GameplayInputBlocker.Unblock(this);}
 }
 
 

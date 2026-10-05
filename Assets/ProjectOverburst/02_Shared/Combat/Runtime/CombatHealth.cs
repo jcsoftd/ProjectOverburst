@@ -46,6 +46,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     public event Action<CombatHealth, DamageInfo> OnDead;
     public event Action<CombatHealth> OnReset;
 
+    // Final maximum after run modifiers. UnmodifiedMaxHp uses the same base/gear/card total before them.
     public float MaxHp { get { return maxHp; } }
     public float UnmodifiedMaxHp => maxHp + appliedRunMaxHpPenalty;
     public float AppliedRunMaxHpPenalty => appliedRunMaxHpPenalty;
@@ -251,9 +252,15 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             }
     }
 
+    // Compatibility: value is the previous penalty-relative input, not a new unmodified target.
+    // Keep until all callers declare their units and their owner migrations pass regression checks.
     public void SetMaxHp(float value, bool refill)
+        => SetUnmodifiedMaxHp(value + appliedRunMaxHpPenalty, refill);
+
+    // Accept the base + permanent/gear + card total before run modifiers; apply the run multiplier once.
+    public void SetUnmodifiedMaxHp(float value, bool refill)
     {
-        float unmodifiedMax = Mathf.Max(1f, value + appliedRunMaxHpPenalty);
+        float unmodifiedMax = Mathf.Max(1f, value);
         maxHp = Mathf.Max(1f, unmodifiedMax * runMaxHpMultiplier);
         appliedRunMaxHpPenalty = unmodifiedMax - maxHp;
 

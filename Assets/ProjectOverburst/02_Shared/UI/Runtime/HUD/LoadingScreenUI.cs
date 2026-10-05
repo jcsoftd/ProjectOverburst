@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UI;
 
 public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
@@ -27,8 +28,11 @@ public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
         ForceHide(); // 시작 숨김
     }
 
+    private readonly HashSet<InventoryUI> lockedInventories = new HashSet<InventoryUI>();
+
     private void OnDisable()
     {
+        SetInventoryToggleLocked(false);
         GameplayInputBlocker.Unblock(this); // 잠금 해제
     }
 
@@ -55,6 +59,7 @@ public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
 
     private void OnDestroy()
     {
+        SetInventoryToggleLocked(false);
         GameplayInputBlocker.Unblock(this);
         if (artworkMaterial != null)
         {
@@ -167,11 +172,14 @@ public sealed class LoadingScreenUI : MonoBehaviour // 로딩 화면
 
     private void SetInventoryToggleLocked(bool locked)
     {
-        InventoryUI[] inventoryUis = FindObjectsByType<InventoryUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (int i = 0; i < inventoryUis.Length; i++)
+        if (!locked)
         {
-            if (inventoryUis[i] != null)
-                inventoryUis[i].InputToggleLocked = locked;
+            foreach (InventoryUI inventory in lockedInventories)
+                if (inventory != null) inventory.SetInputToggleLocked(this, false);
+            lockedInventories.Clear();
+            return;
         }
+        foreach (InventoryUI inventory in FindObjectsByType<InventoryUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (inventory != null) { inventory.SetInputToggleLocked(this, true); lockedInventories.Add(inventory); }
     }
 }

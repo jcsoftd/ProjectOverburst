@@ -59,7 +59,7 @@ public class StashUI : MonoBehaviour // 창고 UI
     {
         isOpen = false;
         if (inventoryUI != null)
-            inventoryUI.InputToggleLocked = false; // Tab 복구
+            inventoryUI.SetInputToggleLocked(this, false); // Tab 복구
 
         GameplayInputBlocker.Unblock(this); // 입력 복구
         ReleaseInteracting();
@@ -67,6 +67,7 @@ public class StashUI : MonoBehaviour // 창고 UI
 
     private void OnDestroy()
     {
+        if (inventoryUI != null) inventoryUI.SetInputToggleLocked(this, false);
         GameplayInputBlocker.Unblock(this); // 입력 복구
         ReleaseInteracting();
     }
@@ -111,7 +112,7 @@ public class StashUI : MonoBehaviour // 창고 UI
 
         if (inventoryUI != null)
         {
-            inventoryUI.InputToggleLocked = true; // Tab 차단
+            inventoryUI.SetInputToggleLocked(this, true); // Tab 차단
             inventoryUI.SetVisible(true); // 인벤토리 표시
         }
 
@@ -139,7 +140,7 @@ public class StashUI : MonoBehaviour // 창고 UI
 
         if (inventoryUI != null)
         {
-            inventoryUI.InputToggleLocked = false; // Tab 복구
+            inventoryUI.SetInputToggleLocked(this, false); // Tab 복구
 
             if (!inventoryWasOpenBeforeStash)
                 inventoryUI.SetVisible(false); // 원래 숨김

@@ -146,7 +146,7 @@ public sealed class PlayerProgression : MonoBehaviour
         float bonus = permanentBonus + preRunMaximum * MapRunBuffs.Bonus(MapBuffKind.MaxHealth);
         float nextMaximum = Mathf.Max(1f, baseMaximum + bonus);
         appliedHealthBonus = bonus;
-        health.SetMaxHp(nextMaximum - health.AppliedRunMaxHpPenalty, false);
+        health.SetUnmodifiedMaxHp(nextMaximum, false);
         if (healIncrease && !health.IsDead && health.MaxHp > previousMaximum)
             health.Heal(health.MaxHp - previousMaximum);
         Changed?.Invoke();

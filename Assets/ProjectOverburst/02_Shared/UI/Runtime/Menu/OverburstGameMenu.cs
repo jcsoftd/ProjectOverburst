@@ -52,7 +52,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
 
     private Action modalConfirmAction;
     private Action modalCancelAction;
-    private bool restoreGameplayMap;
+    private PlayerInputFacade lockedInput;
     private float fadeTarget;
     private GameObject lastSelection;
 
@@ -114,6 +114,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
 
     private void Update()
     {
+        if (IsOpen) SyncGameplayMapOwner();
         UpdateFade();
         if (IsOpen) KeepSelection();
 
@@ -135,9 +136,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
         OverburstTimeEffectArbiter.SetPaused(true);
         AudioListener.pause = true;
         GameplayInputBlocker.Block(this);
-        var input = PlayerInputFacade.Current;
-        restoreGameplayMap = input != null && input.IsGameplayEnabled;
-        if (restoreGameplayMap) input.DisableGameplay(); // 인벤토리·퀵슬롯 같은 게임 키가 메뉴 뒤에서 반응하지 않게 한다.
+        SyncGameplayMapOwner(); // UI Cancel은 유지하고 Gameplay만 소유 요청으로 막는다.
 
         settings.gameObject.SetActive(false);
         modal.SetActive(false);
@@ -171,8 +170,16 @@ public sealed class OverburstGameMenu : MonoBehaviour
         OverburstTimeEffectArbiter.SetPaused(false);
         AudioListener.pause = false;
         GameplayInputBlocker.Unblock(this);
-        if (restoreGameplayMap) PlayerInputFacade.Current?.EnableGameplay();
-        restoreGameplayMap = false;
+        PlayerInputFacade.ReleaseGameplayMapDisabled(this);
+        lockedInput = null;
+    }
+
+    private void SyncGameplayMapOwner()
+    {
+        var current = PlayerInputFacade.Current;
+        if (current == null) return;
+        lockedInput = current;
+        if (lockedInput != null) lockedInput.SetGameplayMapDisabled(this, true);
     }
 
     // ESC 한 번 = 한 단계 뒤로.

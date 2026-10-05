@@ -282,17 +282,17 @@ public sealed class PlayerStateCoordinator : MonoBehaviour
         if (CurrentCondition != PlayerConditionState.Normal)
         {
             CurrentCondition = PlayerConditionState.Normal;
-            try { ConditionChanged?.Invoke(CurrentCondition); } catch (Exception e) { Debug.LogException(e); }
+            Notify(ConditionChanged, CurrentCondition);
         }
         if (CurrentLocomotion != PlayerLocomotionState.Idle)
         {
             CurrentLocomotion = PlayerLocomotionState.Idle;
-            try { LocomotionChanged?.Invoke(CurrentLocomotion); } catch (Exception e) { Debug.LogException(e); }
+            Notify(LocomotionChanged, CurrentLocomotion);
         }
         if (CurrentAction != PlayerActionState.None)
         {
             CurrentAction = PlayerActionState.None;
-            try { ActionChanged?.Invoke(CurrentAction); } catch (Exception e) { Debug.LogException(e); }
+            Notify(ActionChanged, CurrentAction);
         }
     }
 
@@ -356,6 +356,14 @@ public sealed class PlayerStateCoordinator : MonoBehaviour
     private void HandleSceneUnloaded(Scene scene)
     {
         ClearTransientStates();
+        SyncInputBlockedFromBlocker();
+    }
+
+    private static void Notify<T>(Action<T> subscribers, T value)
+    {
+        if (subscribers == null) return;
+        foreach (Action<T> callback in subscribers.GetInvocationList())
+            try { callback(value); } catch (Exception error) { Debug.LogException(error); }
     }
 
     private void RecomputeConditions(bool notify)
@@ -378,7 +386,7 @@ public sealed class PlayerStateCoordinator : MonoBehaviour
         CurrentCondition = next;
         if (notify)
         {
-            try { ConditionChanged?.Invoke(CurrentCondition); } catch (Exception e) { Debug.LogException(e); }
+            Notify(ConditionChanged, CurrentCondition);
         }
     }
 
@@ -404,7 +412,7 @@ public sealed class PlayerStateCoordinator : MonoBehaviour
         CurrentLocomotion = next;
         if (notify)
         {
-            try { LocomotionChanged?.Invoke(CurrentLocomotion); } catch (Exception e) { Debug.LogException(e); }
+            Notify(LocomotionChanged, CurrentLocomotion);
         }
     }
 
@@ -428,7 +436,7 @@ public sealed class PlayerStateCoordinator : MonoBehaviour
         CurrentAction = next;
         if (notify)
         {
-            try { ActionChanged?.Invoke(CurrentAction); } catch (Exception e) { Debug.LogException(e); }
+            Notify(ActionChanged, CurrentAction);
         }
     }
 }

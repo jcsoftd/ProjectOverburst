@@ -643,13 +643,27 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             loadingScreen = FindFirstObjectByType<LoadingScreenUI>(FindObjectsInactive.Include); // 씬 UI
     }
 
+    private static void CloseOwnedUi(System.Action close)
+    {
+        try { close(); } catch (System.Exception error) { Debug.LogException(error); }
+    }
+
     private static void ClosePersistentUiForSceneSwitch()
     {
+        foreach (ShopUI ui in FindObjectsByType<ShopUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (ui != null) CloseOwnedUi(ui.Close);
+        foreach (OverburstRunUi ui in FindObjectsByType<OverburstRunUi>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (ui != null) CloseOwnedUi(ui.Close);
+        foreach (OverburstGameUI ui in FindObjectsByType<OverburstGameUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (ui != null) CloseOwnedUi(ui.CloseEquipment);
+        if (OverburstGameMenu.Instance != null) CloseOwnedUi(OverburstGameMenu.Instance.Close);
+        if (OverburstSkillTreeUI.Instance != null) CloseOwnedUi(OverburstSkillTreeUI.Instance.Close);
+        if (OverburstHudMenu.Instance != null) CloseOwnedUi(OverburstHudMenu.Instance.CloseImmediate);
         StashUI[] stashUis = FindObjectsByType<StashUI>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 창고 UI
         for (int i = 0; i < stashUis.Length; i++)
         {
             if (stashUis[i] != null)
-                stashUis[i].Close(); // 창고 닫기
+                CloseOwnedUi(stashUis[i].Close); // 자기 요청 반환
         }
 
         InventoryUI[] inventoryUis = FindObjectsByType<InventoryUI>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 인벤 UI
@@ -659,8 +673,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             if (inventoryUi == null)
                 continue;
 
-            inventoryUi.InputToggleLocked = false; // Tab 복구
-            inventoryUi.SetVisible(false); // 인벤 숨김
+
+            CloseOwnedUi(() => inventoryUi.SetVisible(false)); // 인벤 숨김
         }
 
         DragSlot.ClearDragState(); // 드래그 취소
@@ -668,6 +682,6 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (TooltipManager.Instance != null)
             TooltipManager.Instance.HideTooltip(); // Tooltip 숨김
 
-        GameplayInputBlocker.ClearAllForSceneReturn(); // 입력 복구
+
     }
 }

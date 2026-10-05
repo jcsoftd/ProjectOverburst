@@ -95,7 +95,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         GameplayInputBlocker.SetBlocked(this,equipmentWindow.gameObject.activeInHierarchy);
     }
     // 장비창의 인벤토리 버튼과 인벤토리의 장비 버튼은 서로 여닫는 토글이다. 글자는 지금 상태의 반대 동작을 보인다.
-    public void ToggleInventory(){if(inventory.IsVisible){if(stash.IsOpen)stash.Close();else inventory.SetVisible(false);}else inventory.SetVisible(true);}
+    public void ToggleInventory(){if(inventory.IsVisible&&stash.IsOpen)stash.Close();else if(inventory.IsVisible&&shop&&shop.IsOpen)shop.Close();else inventory.TryToggleFromUser();}
     private bool? shownInventoryOpen,shownEquipmentOpen;
     private void RefreshWindowButtons(){
         bool inventoryOpen=inventory.IsVisible,equipmentOpen=equipmentWindow.gameObject.activeSelf;

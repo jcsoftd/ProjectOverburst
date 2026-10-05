@@ -50,8 +50,8 @@ public static class StashPointerPlayVerifier
     static string QueuePath => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/Jira/20261005_KAN_Goal/gui-auto-start.json"));
     static StashPointerPlayVerifier()
     {
-        if (Phase != 0) { lostWorkOnReload = Phase == 2; EditorApplication.update += Tick; }
-        else if (File.Exists(QueuePath)) EditorApplication.update += TryQueuedStart;
+        if (Phase != 0 && Phase != 4) { lostWorkOnReload = Phase == 2; EditorApplication.update += Tick; }
+        else if (Phase == 0 && File.Exists(QueuePath)) EditorApplication.update += TryQueuedStart;
     }
     static void TryQueuedStart()
     {
@@ -93,27 +93,36 @@ public static class StashPointerPlayVerifier
         SessionState.SetString(KeyPrefix + "Deadline", (EditorApplication.timeSinceStartup + 900).ToString("R", CultureInfo.InvariantCulture));
         SessionState.SetInt(KeyPrefix + "Cycle", 1);
         SessionState.SetString(KeyPrefix + "Status", "RUNNING");
-        SessionState.SetBool(KeyPrefix + "InputRestored", false);
+        SessionState.SetBool(KeyPrefix + "InputRestored", true);
+        SessionState.SetInt(KeyPrefix + "Pid", System.Diagnostics.Process.GetCurrentProcess().Id);
+        SessionState.SetString(KeyPrefix + "Project", Application.dataPath);
         EditorSceneManager.playModeStartScene = boot;
         Application.runInBackground = true;
         Phase = 1;
         EditorApplication.update -= Tick; EditorApplication.update += Tick;
         try { IsolatedSavePlayGuard.EnterIsolatedPlay(Account); }
-        catch { Phase = 3; throw; }
+        catch { SessionState.SetString(KeyPrefix + "Status", "FAIL_START"); BeginReturn(); throw; }
         return new { status = "STARTED", output, cycles = 2, inputPath = "InputSystem -> EventSystem -> product handlers" };
     }
     static void RequireNoForeignSession()
     {
+        if (SessionState.GetInt("Overburst.KAN9SceneVfx.phase", 0) != 0 || SessionState.GetInt("Overburst.KAN5StopFailure.phase", 0) != 0) throw new InvalidOperationException("Other owned goal verification still active.");
         foreach (string key in new[] { "Overburst.WeakAttackPlayerLoop.plan", "Overburst.CombatPerformance.folder", "Overburst.CombatPerformance.phase", "Overburst.VisualPlay.Session.plan", "Overburst.VisualPlay.Session.deferredPlan", "Overburst.PlayerFootstepProductVerifier.Pending", "Overburst.CombatFacingVerifier.output", "Overburst.CrustaspikanMaterialVerifier.plan", "Overburst.KANGoal.BuildOwner" })
             if (!string.IsNullOrEmpty(SessionState.GetString(key, ""))) throw new InvalidOperationException("Foreign owner: " + key);
     }
     static void Tick()
     {
         if (Phase == 0) { EditorApplication.update -= Tick; return; }
+        if (Phase == 4) { EditorApplication.update -= Tick; return; }
+        if (Phase == 3)
+        {
+            try { ReturnToEditor(); }
+            catch (Exception error) { SuspendReturn("Return error: " + error.Message); }
+            return;
+        }
         if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
         try
         {
-            if (Phase == 3) { ReturnToEditor(); return; }
             if (EditorApplication.timeSinceStartup > double.Parse(SessionState.GetString(KeyPrefix + "Deadline", "0"), CultureInfo.InvariantCulture)) throw new TimeoutException("Pointer verification deadline.");
             if (!EditorApplication.isPlaying || IsolatedSavePlayGuard.ActiveDirectory != Account) return;
             EditorApplication.QueuePlayerLoopUpdate();
@@ -149,7 +158,7 @@ public static class StashPointerPlayVerifier
         if (refreshLocked) { AssetDatabase.AllowAutoRefresh(); refreshLocked = false; }
         if (reloadLocked) { EditorApplication.UnlockReloadAssemblies(); reloadLocked = false; }
         SessionState.SetString(KeyPrefix + "Status", status);
-        Phase = 3;
+        BeginReturn();
         string path = cycleOutput ?? Output;
         try
         {
@@ -159,26 +168,66 @@ public static class StashPointerPlayVerifier
         finally { if (EditorApplication.isPlaying && IsolatedSavePlayGuard.ActiveDirectory == Account) EditorApplication.ExitPlaymode(); }
     }
     static void BeforeReload() { if (Phase == 2) Finish("FAIL_RELOADED", new InvalidOperationException("UI verification interrupted by domain reload.")); }
+    static void BeginReturn()
+    {
+        Phase = 3;
+        SessionState.SetString(KeyPrefix + "ReturnDeadlineUtc", DateTime.UtcNow.AddSeconds(120).ToString("o", CultureInfo.InvariantCulture));
+        SessionState.SetString(KeyPrefix + "ReturnReason", "Waiting for owned Play to finish and idle Editor.");
+    }
+    public static void CancelReturn()
+    {
+        if (Phase != 3) throw new InvalidOperationException("Only the pending return can be cancelled.");
+        SuspendReturn("Cancelled; restoration information retained. ResumeReturn after the foreign owner finishes.");
+    }
+    public static void ResumeReturn()
+    {
+        if (Phase != 4 || string.IsNullOrEmpty(Output)) throw new InvalidOperationException("No deferred owned return.");
+        BeginReturn();
+        EditorApplication.update -= Tick; EditorApplication.update += Tick;
+    }
+    static void SuspendReturn(string reason)
+    {
+        Phase = 4; EditorApplication.update -= Tick;
+        SessionState.SetString(KeyPrefix + "ReturnReason", reason);
+        try
+        {
+            if (!string.IsNullOrEmpty(Output)) File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = "DEFERRED", productStatus = SessionState.GetString(KeyPrefix + "Status", ""), reason, resume = "StashPointerPlayVerifier.ResumeReturn() after healthy idle Editor and no foreign owner", account = Account, originalStartScene = SessionState.GetString(KeyPrefix + "StartScene", ""), originalBackground = SessionState.GetBool(KeyPrefix + "Background", false), inputRestored = SessionState.GetBool(KeyPrefix + "InputRestored", false), callbackRemoved = true, restorationRetained = true }, Formatting.Indented));
+        }
+        catch (Exception error) { Debug.LogWarning("[KAN14 반환] 결과 저장 실패; SessionState의 복원 정보는 유지합니다: " + error.Message); }
+    }
     static void ReturnToEditor()
     {
-        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
-        try { RequireNoForeignSession(); } catch { return; }
+        string deadline = SessionState.GetString(KeyPrefix + "ReturnDeadlineUtc", "");
+        if (string.IsNullOrEmpty(deadline)) { BeginReturn(); deadline = SessionState.GetString(KeyPrefix + "ReturnDeadlineUtc", ""); }
+        if (DateTime.UtcNow >= DateTime.Parse(deadline, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind))
+        { SuspendReturn("Return deadline expired: " + SessionState.GetString(KeyPrefix + "ReturnReason", "")); return; }
+        SessionState.SetString(KeyPrefix + "ReturnReason", "Editor is playing, compiling, importing or building.");
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating || BuildPipeline.isBuildingPlayer) return;
+        if (SessionState.GetInt(KeyPrefix + "Pid", 0) != System.Diagnostics.Process.GetCurrentProcess().Id || SessionState.GetString(KeyPrefix + "Project", "") != Application.dataPath)
+        { SuspendReturn("Editor PID/project does not match owned session."); return; }
+        try { RequireNoForeignSession(); } catch (Exception error) { SessionState.SetString(KeyPrefix + "ReturnReason", error.Message); return; }
         foreach (string value in new[] { Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), IsolatedSavePlayGuard.ActiveDirectory, SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "") })
-            if (!string.IsNullOrEmpty(value) && Path.GetFullPath(value) != Account) return;
+            if (!string.IsNullOrEmpty(value) && !string.Equals(Path.GetFullPath(value), Account, StringComparison.OrdinalIgnoreCase)) { SessionState.SetString(KeyPrefix + "ReturnReason", "Foreign account path: " + value); return; }
+        string currentStart = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene);
+        if (currentStart != "Assets/ProjectOverburst/00_Scenes/PersistentScene.unity" && currentStart != SessionState.GetString(KeyPrefix + "StartScene", ""))
+        { SessionState.SetString(KeyPrefix + "ReturnReason", "Start scene now belongs to another owner."); return; }
         IsolatedSavePlayGuard.UseRealAccount();
         bool guard = !IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "")) && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""));
         bool inputRestored = SessionState.GetBool(KeyPrefix + "InputRestored", false);
         if (guard && inputRestored && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" && SessionState.GetInt(KeyPrefix + "Cycle", 1) == 1)
         {
             SessionState.SetInt(KeyPrefix + "Cycle", 2); Phase = 1; cycleOutput = null; readySinceFrame = -1;
+            SessionState.EraseString(KeyPrefix + "ReturnDeadlineUtc"); SessionState.EraseString(KeyPrefix + "ReturnReason");
             IsolatedSavePlayGuard.EnterIsolatedPlay(Account); return;
         }
         EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionState.GetString(KeyPrefix + "StartScene", ""));
         Application.runInBackground = SessionState.GetBool(KeyPrefix + "Background", false);
         bool scenePreserved = File.ReadAllText(Path.Combine(Output, "before.json")) == JsonConvert.SerializeObject(Scenes(), Formatting.Indented);
-        string result = guard && scenePreserved && inputRestored && SessionState.GetString(KeyPrefix + "Status", "") == "PASS" ? "PASS" : "FAIL";
-        File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = result, guard, scenePreserved, scenes = Scenes(), startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), inputRestored }, Formatting.Indented));
-        foreach (string suffix in new[] { "Output", "StartScene", "Deadline", "Status" }) SessionState.EraseString(KeyPrefix + suffix);
+        bool realPlayAllowed = IsolatedSavePlayGuard.CanEnter(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""), 0, EditorApplication.timeSinceStartup, IsolatedSavePlayGuard.RequiresAccountChoice);
+        string result = guard && realPlayAllowed && scenePreserved && inputRestored && !EditorUtility.scriptCompilationFailed ? "PASS" : "FAIL";
+        File.WriteAllText(Path.Combine(Output, "return.json"), JsonConvert.SerializeObject(new { status = result, productStatus = SessionState.GetString(KeyPrefix + "Status", ""), guard, realPlayAllowed, scenePreserved, scenes = Scenes(), startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), inputRestored, callbackRemoved = true, pendingCleared = true }, Formatting.Indented));
+        foreach (string suffix in new[] { "Output", "StartScene", "Deadline", "Status", "ReturnDeadlineUtc", "ReturnReason", "Project" }) SessionState.EraseString(KeyPrefix + suffix);
+        SessionState.EraseInt(KeyPrefix + "Pid");
         SessionState.EraseInt(KeyPrefix + "Cycle"); SessionState.EraseBool(KeyPrefix + "Background"); Phase = 0;
         SessionState.EraseBool(KeyPrefix + "InputRestored");
         EditorApplication.update -= Tick;

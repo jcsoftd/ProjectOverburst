@@ -63,14 +63,10 @@ public static class GameplayInputBlocker // 입력 잠금
         if (blocked == lastBroadcastBlocked)
             return;
         lastBroadcastBlocked = blocked;
-        try
-        {
-            BlockStateChanged?.Invoke(blocked);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogException(exception);
-        }
+        var subscribers = BlockStateChanged;
+        if (subscribers == null) return;
+        foreach (Action<bool> callback in subscribers.GetInvocationList())
+            try { callback(blocked); } catch (Exception exception) { Debug.LogException(exception); }
     }
 
     private static void RemoveInvalidBlockers()

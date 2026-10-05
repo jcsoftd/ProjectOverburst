@@ -42,7 +42,7 @@ public sealed class VisualPlayContext : IDisposable
     readonly HashSet<int> previousPickups = new HashSet<int>();
     Vector3 previousPosition;
     Quaternion previousRotation;
-    float previousMaxHp;
+    float previousUnmodifiedMaxHp;
     public PlayerActorRuntime Actor { get { var actor = PlayerContext.Instance?.CurrentActor; return actor != null ? actor : null; } }
     public PlayerInventory Inventory => PlayerContext.Instance?.CurrentActorInventory;
     public MeleeRuntime Melee => Actor != null ? Actor.GetComponent<MeleeRuntime>() : null;
@@ -71,7 +71,7 @@ public sealed class VisualPlayContext : IDisposable
         Require(Actor != null && Inventory != null, "실제 플레이어와 인벤토리가 필요해요");
         accountOwner = AccountGameplaySession.Current;
         ResetAccountFixture();
-        previousPosition = Actor.transform.position; previousRotation = Actor.transform.rotation; previousMaxHp = Actor.Health.MaxHp;
+        previousPosition = Actor.transform.position; previousRotation = Actor.transform.rotation; previousUnmodifiedMaxHp = Actor.Health.UnmodifiedMaxHp;
         foreach (var pickup in UnityEngine.Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None)) previousPickups.Add(pickup.GetInstanceID());
         Actor.Health.ResetHealth();
         Actor.GetComponent<PlayerKnockdownController>()?.ResetReaction();
@@ -299,7 +299,7 @@ public sealed class VisualPlayContext : IDisposable
         foreach (var pickup in UnityEngine.Object.FindObjectsByType<WorldItemPickup>(FindObjectsSortMode.None))
             if (!previousPickups.Contains(pickup.GetInstanceID())) UnityEngine.Object.Destroy(pickup.gameObject);
         if (Actor != null && WorldSessionState.IsHideout && !EnemyThemeTrialService.InArena)
-        { ActorTeleportUtility.TeleportSafely(Actor.transform, previousPosition, previousRotation); Actor.Health.SetMaxHp(previousMaxHp, true); }
+        { ActorTeleportUtility.TeleportSafely(Actor.transform, previousPosition, previousRotation); Actor.Health.SetUnmodifiedMaxHp(previousUnmodifiedMaxHp, true); }
     }
 }
 #endif

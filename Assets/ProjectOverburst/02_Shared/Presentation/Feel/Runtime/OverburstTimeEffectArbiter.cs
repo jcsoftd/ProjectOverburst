@@ -154,14 +154,10 @@ public sealed class OverburstTimeEffectArbiter : MonoBehaviour
             Time.timeScale = pausedTimeScale;
         }
 
-        try
-        {
-            PauseChanged?.Invoke(paused);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogException(exception);
-        }
+        var subscribers = PauseChanged;
+        if (subscribers != null)
+            foreach (Action<bool> callback in subscribers.GetInvocationList())
+                try { callback(paused); } catch (Exception exception) { Debug.LogException(exception); }
     }
 
     private void Awake()
