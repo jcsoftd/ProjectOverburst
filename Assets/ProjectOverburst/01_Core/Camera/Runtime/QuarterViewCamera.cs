@@ -87,6 +87,25 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
 
     public Transform CurrentTarget => target;
     public float CurrentDistance => distance;
+    private UnityEngine.Object framingOwner;
+    private float framingScale = 1f, distanceBeforeFraming, targetBeforeFraming;
+    public float FramingDistanceScale => framingOwner != null ? framingScale : 1f;
+    public float EffectiveDistance => distance * FramingDistanceScale;
+    public bool TryBeginFramingScope(UnityEngine.Object owner, float scale)
+    {
+        if (owner == null || framingOwner != null && framingOwner != owner) return false;
+        if (framingOwner == owner) return true;
+        distanceBeforeFraming = distance; targetBeforeFraming = targetDistance;
+        framingOwner = owner; framingScale = Mathf.Clamp(scale, .5f, 2f);
+        distance = targetDistance = Mathf.Clamp(defaultZoomDistance, minDistance, maxZoomDistance);
+        return true;
+    }
+    public void EndFramingScope(UnityEngine.Object owner)
+    {
+        if (framingOwner != owner) return;
+        distance = distanceBeforeFraming; targetDistance = targetBeforeFraming;
+        framingOwner = null; framingScale = 1f;
+    }
     public float CurrentYaw => yaw;
     public float CloseUpBlend
     {
@@ -474,13 +493,13 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend) * (1f - Mathf.Max(CurrentZoomPunch(), CurrentHeavyFocusZoom())); // 패링과 강공 집중 확대를 합성
         if (UsesCinemachine)
         {
-            cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, distance, forceCameraCut, frameScale);
+            cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, EffectiveDistance, forceCameraCut, frameScale);
             forceCameraCut = false;
             return;
         }
 
         Quaternion viewRotation = Quaternion.Euler(viewPitch, yaw, 0f); // 뷰 회전
-        Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, distance * frameScale);
+        Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, EffectiveDistance * frameScale);
         Vector3 cameraPosition = viewFocus + cameraOffset;
         if (cachedCamera != null)
             cachedCamera.orthographic = false;

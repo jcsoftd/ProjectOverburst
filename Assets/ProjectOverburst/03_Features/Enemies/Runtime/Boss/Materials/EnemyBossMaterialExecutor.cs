@@ -47,6 +47,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     public bool IsRockHeld => heldBoulder!=null && heldBoulder.activeSelf;
     public string LastFailure { get; private set; }
     public event Action<EnemyBossAttackMaterial,int> StrikeReleased;
+    public event Action<EnemyBossAttackMaterial> AttackCancelled;
     public override bool IsExecuting => cast!=null || motion!=null || flights.Count!=0;
     private int TargetMask => 1<<LayerMask.NameToLayer("Player");
     private int FlightMask => ~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
@@ -89,7 +90,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     }
     private void Died(CombatHealth source,DamageInfo damage)=>Cancel();
     private void ReactionStarted() { if(reaction==null || reaction.BlocksAttack)Cancel(); }
-    private bool Usable => actor!=null && actor.IsLeased && actor.Health!=null && !actor.Health.IsDead
+    private bool Usable => (GetComponent<CrustaspikanTemporaryReaction>()?.BlocksActions != true) && actor!=null && actor.IsLeased && actor.Health!=null && !actor.Health.IsDead
         && actor.Movement!=null && (reaction==null || !reaction.BlocksAttack)
         && actor.Melee!=null && actor.Melee.StatusActionSpeedMultiplier>0f;
     public override bool Supports(EnemyAbilityDefinition ability)=>collection!=null && collection.Find(ability)?.IsValid==true;
@@ -457,6 +458,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     private void HideWarnings(){for(int i=0;i<3;i++){warnings[i]?.Hide();warningShown[i]=false;}}
     public override void Cancel()
     {
+        if(cast!=null && entered && CurrentMaterial!=null) AttackCancelled?.Invoke(CurrentMaterial);
         generation++;if(cast!=null){StopCoroutine(cast);cast=null;}if(motion!=null){StopCoroutine(motion);motion=null;}ReleaseHeldPose();RestoreSampling();
         actor?.Movement?.ClearAttackDisplacement();actor?.Movement?.CancelActionLock();
         for(int i=flights.Count-1;i>=0;i--)EndFlight(i);HideWarnings();

@@ -1186,6 +1186,7 @@ GameObject:
   - component: {fileID: 2633972393711153056}
   - component: {fileID: 8744712018190669643}
   - component: {fileID: 5084204934209598916}
+  - component: {fileID: 1940001911383852210}
   m_Layer: 7
   m_Name: PF_CrustaspikanMaterials
   m_TagString: Untagged
@@ -1918,6 +1919,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBossCompositePatternExecutor
   patterns: {fileID: 11400000, guid: 674d19d22301b854f9fbf42019b47da5, type: 2}
+--- !u!114 &1940001911383852210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2730059863437412784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2459414307c28704684567a20158ad1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanTemporaryReaction
+  rewindSeconds: 0.7
+  reboundHoldSeconds: 0.14
+  collapseBlendSeconds: 0.32
+  rewindKeep: 0.4
+  maximumRewindClipSeconds: 0.45
+  deathFallStart: 0.42
+  deathProneStart: 0.78
+  collapseSeconds: 1.05
+  recoverySeconds: 2.6
+  getUpClip: {fileID: 7400000, guid: 6fe79ad14abf6734e93b60a8b8c55e2f, type: 2}
 --- !u!1 &2890662813473528419
 GameObject:
   m_ObjectHideFlags: 0

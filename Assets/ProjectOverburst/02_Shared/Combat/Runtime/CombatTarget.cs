@@ -32,6 +32,26 @@ public sealed class CombatTarget : MonoBehaviour
     // 전용 피격 판정에 따로 곱한다. 소환할 때마다 다시 넣는 실행 값이라 저장하지 않는다.
     [System.NonSerialized] private Vector3 variantHurtScale = Vector3.one;
     private IElementalStatusReceiver elementalStatusReceiver;
+    private Object temporaryHurtOwner;
+    private Vector3 temporaryHurtLocalCenter;
+    private float temporaryHurtRadius, temporaryHurtHeight;
+    public bool TrySetTemporaryHurtVolume(Object owner, CombatTargetVolume volume)
+    {
+        if (owner == null || temporaryHurtOwner != null && temporaryHurtOwner != owner) return false;
+        Vector3 center = transform.InverseTransformPoint(volume.Center);
+        bool changed = temporaryHurtOwner != owner || (center - temporaryHurtLocalCenter).sqrMagnitude > .000001f
+            || Mathf.Abs(temporaryHurtRadius - volume.Radius) > .001f || Mathf.Abs(temporaryHurtHeight - volume.HalfHeight * 2) > .001f;
+        temporaryHurtOwner = owner; temporaryHurtLocalCenter = center;
+        temporaryHurtRadius = volume.Radius; temporaryHurtHeight = volume.HalfHeight * 2;
+        if (changed && isActiveAndEnabled) CombatTargetRegistry.NotifySpatialChanged(this);
+        return true;
+    }
+    public void ClearTemporaryHurtVolume(Object owner)
+    {
+        if (temporaryHurtOwner != owner) return;
+        temporaryHurtOwner = null;
+        if (isActiveAndEnabled) CombatTargetRegistry.NotifySpatialChanged(this);
+    }
 
     public CombatHealth DamageReceiver => damageReceiver;
     public IDamageable Damageable => damageReceiver;
@@ -92,6 +112,7 @@ public sealed class CombatTarget : MonoBehaviour
 
     public CombatTargetVolume ResolveHurtVolumeAtRootPosition(Vector3 rootWorldPosition)
     {
+        if (temporaryHurtOwner != null) return new CombatTargetVolume(rootWorldPosition + transform.TransformVector(temporaryHurtLocalCenter), temporaryHurtRadius, temporaryHurtHeight * .5f);
         if (!useCustomHurtVolume)
             return ResolveVolumeAtRootPosition(rootWorldPosition);
 

@@ -28,7 +28,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     private OverburstCinemachineCameraRig cameraRig;
     private Collider previousConfinerVolume;
     private float previousConfinerSlowing;
-    private bool confinerCaptured, exiting;
+    private bool confinerCaptured, exiting, framingCaptured;
     private readonly List<EnemyTargetHpHud> pausedTargetHuds = new List<EnemyTargetHpHud>();
     private readonly Dictionary<EnemyActor, bool> oldLoot = new Dictionary<EnemyActor, bool>();
     private readonly Dictionary<EnemyActor, uint> leases = new Dictionary<EnemyActor, uint>();
@@ -121,13 +121,14 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
 
         gameplayCamera = QuarterViewCamera.ActiveInstance;
         if (gameplayCamera == null && Camera.main != null) gameplayCamera = Camera.main.GetComponent<QuarterViewCamera>();
+        framingCaptured = gameplayCamera != null && gameplayCamera.TryBeginFramingScope(this, 1.65f);
         cameraRig = gameplayCamera != null ? gameplayCamera.CinemachineRig : null;
         if (cameraRig != null && cameraRig.Confiner != null)
         {
             previousConfinerVolume = cameraRig.Confiner.BoundingVolume;
             previousConfinerSlowing = cameraRig.Confiner.SlowingDistance;
             confinerCaptured = true;
-            // 원격 임시 무대에 하이드아웃의 공간 제한만 적용하지 않는다. 줌·시점·렌즈는 바꾸지 않는다.
+            // 원격 임시 무대에 하이드아웃의 공간 제한만 적용하지 않는다. 휠·시점·렌즈는 기존 경로를 사용한다.
             cameraRig.SetConfinerVolume(null);
         }
         return true;
@@ -195,6 +196,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public void Exit(bool returnToHideout)
     {
         if (exiting) return; exiting = true; EntranceCinematic?.Cancel(); ClearCombat();
+        if (framingCaptured && gameplayCamera != null) gameplayCamera.EndFramingScope(this); framingCaptured = false;
         if (player != null) { player.Health.SetDamageDeathPrevention(this, false); if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); } }
         if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
         foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
