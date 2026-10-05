@@ -41,7 +41,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     Dictionary<string, OverburstSkillTreeCatalog.Node> index;
     Dictionary<string, OverburstSkillTreeNodeView> views;
     Dictionary<string, int> captionSizes;
-    bool initialized, restoreGameplay;
+    bool initialized, restoreGameplay, externalEntry;
     PlayerInputFacade lockedInput;
     GameObject returnSelection;
     WeaponElement shownElement = (WeaponElement)(-1);
@@ -97,6 +97,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (viewport.rect.size != lastViewport) { HideTooltip(); LayoutMap(); }
         if (Time.unscaledTime >= nextRefresh) { nextRefresh = Time.unscaledTime + .15f; if (shownElement != CurrentElement) { RefreshDetail(); if (!string.IsNullOrEmpty(hoverId)) ShowTooltip(hoverId); } }
     }
+    public void UseExternalEntry(bool value) { externalEntry = value; if (entry) entry.gameObject.SetActive(!externalEntry && !IsOpen); }
     public void Toggle() { if (IsOpen) Close(); else Open(); }
     public void Open()
     {
@@ -120,7 +121,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         bool ownsSelection = surface && events != null && events.currentSelectedGameObject != null && events.currentSelectedGameObject.transform.IsChildOf(surface.transform);
         HideTooltip();
         if (surface) surface.SetActive(false);
-        if (entry) entry.gameObject.SetActive(true);
+        if (entry) entry.gameObject.SetActive(!externalEntry);
         GameplayInputBlocker.Unblock(this);
         if (restoreGameplay && lockedInput != null) lockedInput.EnableGameplay();
         restoreGameplay = false; lockedInput = null;

@@ -76,6 +76,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         // 2026-10-01 ESC 메뉴(일시정지·설정). 저작된 프리팹을 이 캔버스 아래에 한 번 놓는다.
         OverburstGameMenu.Install(transform);
         OverburstSkillTreeUI.Install(transform);
+        OverburstHudMenu.Install(this);
         Refresh();
     }
     private void Update(){
@@ -87,7 +88,7 @@ public sealed class OverburstGameUI : MonoBehaviour
             else inventoryWindow.WindowRect.anchoredPosition=inventoryBeforeShop;
         }
         var input=PlayerInputFacade.Current;
-        if(input!=null&&!OverburstGameMenu.IsOpen&&!OverburstSkillTreeUI.IsWindowOpen){if(input.EquipmentPressedThisFrame)ToggleEquipment();else if(input.UiCancelPressedThisFrame&&equipmentWindow.gameObject.activeSelf)CloseEquipment();}
+        if(input!=null&&!OverburstGameMenu.IsOpen&&!OverburstSkillTreeUI.IsWindowOpen&&!OverburstHudMenu.IsExpanded){if(input.EquipmentPressedThisFrame)ToggleEquipment();else if(input.UiCancelPressedThisFrame&&equipmentWindow.gameObject.activeSelf)CloseEquipment();}
         if(Time.unscaledTime>=nextRefresh){nextRefresh=Time.unscaledTime+.1f;Refresh();}
         RefreshWindowButtons();
         GameplayInputBlocker.SetBlocked(this,equipmentWindow.gameObject.activeInHierarchy);
