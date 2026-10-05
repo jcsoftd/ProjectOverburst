@@ -16,11 +16,14 @@ namespace Overburst.EditorBalance
         {
             public string Name, Group;
             public Object Source;
+            public bool BossMaterial;
             public readonly List<BalanceField> Fields = new List<BalanceField>();
+            public readonly Dictionary<int, (float? value, string text, string note)> ReadOnly = new Dictionary<int, (float?, string, string)>();
         }
         readonly Dictionary<Object, BalanceTableDocument> documents = new Dictionary<Object, BalanceTableDocument>();
         readonly HashSet<Object> pendingSave = new HashSet<Object>();
         readonly HashSet<Object> appliedSources = new HashSet<Object>();
+        readonly Dictionary<Object, string> appliedBaselines = new Dictionary<Object, string>();
         readonly List<Row> rows = new List<Row>();
         readonly List<Row> filtered = new List<Row>();
         View view;
@@ -118,6 +121,8 @@ namespace Overburst.EditorBalance
         }
         void Add(Row row, Object target, string path, float min, float max, float factor = 1)
             => row.Fields.Add(target != null ? Document(target).Field(path, min, max, factor) : null);
+        void AddReadOnly(Row row, float? value, string text, string note)
+        { row.ReadOnly[row.Fields.Count] = (value, text, note); row.Fields.Add(null); }
         static T[] Assets<T>(string folder) where T : Object => AssetDatabase.FindAssets("t:" + typeof(T).Name, new[] { folder })
             .Select(g => AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(g))).Where(x => x != null).ToArray();
         void BuildRows()
@@ -157,7 +162,7 @@ namespace Overburst.EditorBalance
             }
             else if (view == View.Enemies || view == View.Abilities)
             {
-                var defs = Assets<EnemyDefinition>("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions");
+                var defs = Assets<EnemyDefinition>("Assets/ProjectOverburst/Resources/Enemies");
                 if (view == View.Enemies)
                 {
                     headings = new[] { "체력 Q 계수", "걷기 m/s", "달리기 ×", "회전 °/s" };
@@ -170,13 +175,41 @@ namespace Overburst.EditorBalance
                 }
                 else
                 {
-                    headings = new[] { "피해 예산 %", "강공", "패링", "예고 최소 s", "회복 최소 s", "쿨다운 s", "사거리 m", "반경 m", "각도 °" };
+                    headings = new[] { "피해 예산 %", "강공", "패링", "예고 최소 s", "회복 최소 s", "쿨다운 s", "발동 거리 m", "반경/접촉 m", "각도 °" };
                     foreach (var a in defs.Where(d => d.AbilitySet != null).SelectMany(d => Enumerable.Range(0, d.AbilitySet.Count).Select(d.AbilitySet.GetAbility)).Where(a => a != null).Distinct())
                     {
                         var r = new Row { Name = a.AbilityId, Group = a.ExecutionMode.ToString(), Source = a };
                         Add(r, a, "referencePatternDamagePercent", .01f, 100); Add(r, a, "telegraphedStrongAttack", 0, 1);
                         Add(r, a, "parryable", 0, 1); Add(r, a, "minimumWarningTime", 0, 10); Add(r, a, "minimumRecoveryTime", 0, 10);
-                        Add(r, a, "cooldown", .1f, 60); Add(r, a, "range", .1f, 100); Add(r, a, "hitRadius", .01f, 30); Add(r, a, "hitAngle", 1, 360); rows.Add(r);
+                        Add(r, a, "cooldown", .1f, 60);
+                        bool material = BalanceTableRuntimeView.UsesBossMaterial(a, defs);
+                        r.BossMaterial = material;
+                        bool contact = BalanceTableRuntimeView.UsesContactGeometry(a);
+                        bool channel = BalanceTableRuntimeView.UsesChannelGeometry(a, defs);
+                        if (material)
+                        {
+                            const string note = "보스 재료 실행기의 판정입니다. 보스 메이커에서 조절하세요.";
+                            AddReadOnly(r, null, "보스 재료", note); AddReadOnly(r, null, "보스 재료", note); AddReadOnly(r, null, "보스 재료", note);
+                        }
+                        else
+                        {
+                            if (a.HasWeakAttackExecution) AddReadOnly(r, a.WeakAttackExecution.ApproachStartRange, null,
+                                "V3 약공 프로필의 발동 거리입니다. 몬스터 튜너에서 프로필을 확인하세요.");
+                            else Add(r, a, "range", .1f, 100);
+                            if (channel)
+                            {
+                                const string note = "채널 실행기의 발사점과 SphereCast 반경을 사용합니다. 이 정의의 원형 반경과 부채꼴 각도는 사용하지 않습니다.";
+                                AddReadOnly(r, null, "채널 실행기", note); AddReadOnly(r, null, "채널 실행기", note);
+                            }
+                            else if (contact)
+                            {
+                                AddReadOnly(r, a.WeakAttackExecution.MaximumContactPlanarReach, null,
+                                    "접촉 캡슐의 최대 평면 도달 거리입니다. 원형 반경이 아니며 프로필의 실제 좌표를 사용합니다.");
+                                AddReadOnly(r, null, "접촉 캡슐", "V3 약공 접촉은 부채꼴 각도를 사용하지 않습니다. 몬스터 튜너의 공격 범위에서 확인하세요.");
+                            }
+                            else { Add(r, a, "hitRadius", .01f, 30); Add(r, a, "hitAngle", 1, 360); }
+                        }
+                        rows.Add(r);
                     }
                 }
             }
@@ -221,7 +254,8 @@ namespace Overburst.EditorBalance
                 var number = new FloatField { name = "number", isDelayed = true }; number.style.flexGrow = 1;
                 number.RegisterValueChangedCallback(e => { if (number.userData is BalanceField f) { f.Value = e.newValue / f.DisplayFactor; Changed(); } });
                 var toggle = new Toggle { name = "toggle" }; toggle.RegisterValueChangedCallback(e => { if (toggle.userData is BalanceField f) { f.Value = e.newValue ? 1 : 0; Changed(); } });
-                cell.Add(number); cell.Add(toggle); root.Add(cell);
+                var readOnly = new Label { name = "read-only" }; readOnly.style.unityTextAlign = TextAnchor.MiddleLeft;
+                cell.Add(number); cell.Add(toggle); cell.Add(readOnly); root.Add(cell);
             }
             return root;
         }
@@ -232,9 +266,14 @@ namespace Overburst.EditorBalance
             for (int i = 0; i < headings.Length; i++)
             {
                 var f = row.Fields[i]; var cell = root.Q("cell-" + i); var number = cell.Q<FloatField>("number"); var toggle = cell.Q<Toggle>("toggle");
+                var readOnly = cell.Q<Label>("read-only");
+                bool derived = row.ReadOnly.TryGetValue(i, out var resolved);
+                readOnly.style.display = derived ? DisplayStyle.Flex : DisplayStyle.None;
+                readOnly.text = derived ? (resolved.value.HasValue ? resolved.value.Value.ToString("0.###") : resolved.text) : "";
                 bool boolean = f != null && f.Type == SerializedPropertyType.Boolean;
                 number.userData = f; toggle.userData = f; number.SetEnabled(f != null); toggle.SetEnabled(f != null);
-                number.style.display = boolean ? DisplayStyle.None : DisplayStyle.Flex; toggle.style.display = boolean ? DisplayStyle.Flex : DisplayStyle.None;
+                number.style.display = boolean || derived ? DisplayStyle.None : DisplayStyle.Flex; toggle.style.display = boolean ? DisplayStyle.Flex : DisplayStyle.None;
+                cell.tooltip = derived ? resolved.note : "";
                 if (f != null)
                 {
                     number.SetValueWithoutNotify(f.Value * f.DisplayFactor); toggle.SetValueWithoutNotify(f.Value > .5f);
@@ -251,10 +290,12 @@ namespace Overburst.EditorBalance
             if (onlyAvailableLevel && view == View.GearItems)
                 source = source.Where(r => ((GearItemData)Document(r.Source).Draft).AppearsAtLevel(itemLevel));
             if (sortColumn < 0) source = ascending ? source.OrderBy(r => r.Name) : source.OrderByDescending(r => r.Name);
-            else source = ascending ? source.OrderBy(r => r.Fields[sortColumn]?.Value ?? 0) : source.OrderByDescending(r => r.Fields[sortColumn]?.Value ?? 0);
+            else source = ascending ? source.OrderBy(r => CellValue(r, sortColumn)) : source.OrderByDescending(r => CellValue(r, sortColumn));
             filtered.AddRange(source); list?.Rebuild(); if (count != null) count.text = $"{filtered.Count} / {rows.Count}행";
             if (selected != null && !filtered.Contains(selected)) { selected = null; RefreshPreview(); }
         }
+        static float CellValue(Row row, int column) => row.ReadOnly.TryGetValue(column, out var derived)
+            ? derived.value ?? 0f : row.Fields[column]?.Value ?? 0f;
         void Changed() { hasUnsavedChanges = true; saveChangesMessage = "밸런스 표의 편집 내용을 적용하고 변경한 자산을 저장할까요?"; list?.RefreshItems(); RefreshPreview(); RefreshStatus(); }
         void RefreshStatus(string message = null)
         {
@@ -265,19 +306,21 @@ namespace Overburst.EditorBalance
         void ValidateDraft() { var errors = ValidationErrors(); RefreshStatus(errors.Length == 0 ? "검증 통과. 원본값 범위와 외부 변경 충돌이 없습니다." : string.Join("\n", errors.Take(6))); }
         public void ApplyDraft()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) { RefreshStatus("Play를 종료한 뒤 적용하세요."); return; }
+            if (!CanWrite()) { RefreshStatus("Play·컴파일·임포트·빌드가 끝난 뒤 적용하세요."); return; }
             var errors = ValidationErrors(); if (errors.Length > 0) { RefreshStatus(string.Join("\n", errors.Take(6))); return; }
             Undo.IncrementCurrentGroup(); int undoGroup = Undo.GetCurrentGroup(); Undo.SetCurrentGroupName("밸런스 테이블 적용");
-            foreach (var d in documents.Values.Where(d => d.IsChanged).ToArray()) { d.Apply(); pendingSave.Add(d.Source); appliedSources.Add(d.Source); }
+            foreach (var d in documents.Values.Where(d => d.IsChanged).ToArray())
+            { d.Apply(); pendingSave.Add(d.Source); appliedSources.Add(d.Source); appliedBaselines[d.Source] = EditorJsonUtility.ToJson(d.Source); }
             Undo.CollapseUndoOperations(undoGroup); hasUnsavedChanges = pendingSave.Count > 0; list?.RefreshItems(); RefreshPreview(); RefreshStatus();
         }
         public void SaveApplied()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) { RefreshStatus("Play를 종료한 뒤 저장하세요."); return; }
-            if (pendingSave.Any(s => s != null && documents.TryGetValue(s, out var d) && d.HasConflict))
+            if (!CanWrite()) { RefreshStatus("Play·컴파일·임포트·빌드가 끝난 뒤 저장하세요."); return; }
+            if (pendingSave.Any(s => s != null && (!appliedBaselines.TryGetValue(s, out var baseline)
+                || EditorJsonUtility.ToJson(s) != baseline)))
             { RefreshStatus("적용 후 원본이 외부에서 변경되었습니다. 저장을 중단했습니다. 원본을 확인하고 새로고침하세요."); return; }
             foreach (var source in pendingSave) if (source != null) AssetDatabase.SaveAssetIfDirty(source);
-            pendingSave.Clear(); hasUnsavedChanges = HasDraftChanges; RefreshStatus("이 툴에서 적용한 자산을 저장했습니다. 씬은 저장하지 않았습니다.");
+            pendingSave.Clear(); appliedBaselines.Clear(); hasUnsavedChanges = HasDraftChanges; RefreshStatus("이 툴에서 적용한 자산을 저장했습니다. 씬은 저장하지 않았습니다.");
         }
         public override void SaveChanges() { ApplyDraft(); if (HasDraftChanges) return; SaveApplied(); if (pendingSave.Count == 0) base.SaveChanges(); }
         public override void DiscardChanges()
@@ -286,7 +329,7 @@ namespace Overburst.EditorBalance
             foreach (var d in documents.Values) d.Rebase();
             // Closing without saving keeps already applied assets dirty, like the Inspector.
             // Unity Undo remains available; only the working copies belong to this window.
-            pendingSave.Clear(); base.DiscardChanges(); list?.RefreshItems(); RefreshPreview();
+            pendingSave.Clear(); appliedBaselines.Clear(); base.DiscardChanges(); list?.RefreshItems(); RefreshPreview();
         }
         bool ConfirmDiscard() => !HasDraftChanges || EditorUtility.DisplayDialog("초안 새로고침", "적용 전 초안을 버리고 현재 원본을 다시 읽습니다.", "새로고침", "계속 편집");
         void Reload()
@@ -297,7 +340,8 @@ namespace Overburst.EditorBalance
         void UndoChanged()
         {
             foreach (var d in documents.Values)
-                if (!d.IsChanged && appliedSources.Contains(d.Source)) { d.Rebase(); if (EditorUtility.IsDirty(d.Source)) pendingSave.Add(d.Source); }
+                if (!d.IsChanged && appliedSources.Contains(d.Source))
+                { d.Rebase(); if (EditorUtility.IsDirty(d.Source)) { pendingSave.Add(d.Source); appliedBaselines[d.Source] = EditorJsonUtility.ToJson(d.Source); } }
             hasUnsavedChanges = HasDraftChanges || pendingSave.Count > 0; list?.RefreshItems(); RefreshPreview(); RefreshStatus("Undo/Redo 반영. 되돌린 내용을 유지하려면 변경 자산 저장을 누르세요.");
         }
         void RefreshPreview()
@@ -314,7 +358,8 @@ namespace Overburst.EditorBalance
                 {
                     var item = new ItemData(w, itemLevel, grade, element: WeaponElement.Fire);
                     var stats = WeaponStatCalculator.CalculateWeaponBase(item);
-                    preview.text = $"{selected.Name}\n품질 표본 {grade} · 시드 {seed} / 무기 단독 공격 {stats.damage:0.##}, 공속 ×{stats.meleeAttackSpeedMultiplier:0.###}, 치확 {stats.critChance:0.##}%, 치피 {stats.critDamageMultiplier * 100:0.##}%, 사거리 {stats.range:0.###}m\n플레이어 Lv{playerLevel} 성장만 적용한 공격 {stats.damage * OverburstGrowthRules.PlayerAttackFactor(playerLevel):0.##} (장비/물약/카드 제외). 모델 {(w.weaponRootPrefab != null ? "연결" : "미연결")} / 아이콘 {(w.icon != null ? "연결" : "미연결")}. 공통 공속 초안은 적용 후 계산에 반영됩니다.";
+                    float playerDamage = CombatBalanceFormulas.ComposePlayerWeaponStats(stats, default, playerLevel, 0f).damage;
+                    preview.text = $"{selected.Name}\n품질 표본 {grade} · 시드 {seed} / 무기 단독 공격 {stats.damage:0.##}, 공속 ×{stats.meleeAttackSpeedMultiplier:0.###}, 치확 {stats.critChance:0.##}%, 치피 {stats.critDamageMultiplier * 100:0.##}%, 사거리 {stats.range:0.###}m\n플레이어 Lv{playerLevel} 성장만 적용한 공격 {playerDamage:0.##} (장비/물약/카드 제외). 모델 {(w.weaponRootPrefab != null ? "연결" : "미연결")} / 아이콘 {(w.icon != null ? "연결" : "미연결")}. 공통 공속 초안은 적용 후 계산에 반영됩니다.";
                 }
                 else if (draft is GearItemData g)
                 {
@@ -325,17 +370,23 @@ namespace Overburst.EditorBalance
                 {
                     var stats = enemy.ResolveRuntimeStats(); float levelFactor = (itemLevel - 1) / 99f; var b = OverburstBalanceTable.Current;
                     var move = enemy.MovementProfile != null ? (EnemyMovementProfile)Document(enemy.MovementProfile).Draft : null;
-                    preview.text = selected.Name + $"\nLv{itemLevel} HP {OverburstCombatBalance.RoundStat(enemy.ReferenceHealthCoefficient * OverburstCombatBalance.ReferenceExpectedHit(itemLevel)):0} / 추격 {(move != null ? move.MoveSpeed * move.RunSpeedMultiplier : 0) * Mathf.Min(b.EnemyMoveCap, stats.MoveSpeedMultiplier * (1 + b.EnemyMoveGrowth * levelFactor)):0.##}m/s / 공격 배율 ×{Mathf.Min(b.EnemyAttackCap, stats.AttackSpeedMultiplier * (1 + b.EnemyAttackGrowth * levelFactor)):0.###}\n" + baseline;
+                    float hp = enemy.ReferenceHealthCoefficient > 0f
+                        ? CombatBalanceFormulas.EnemyReferenceHealth(enemy.ReferenceHealthCoefficient, itemLevel)
+                        : Mathf.Max(1f, stats.MaxHealth) * OverburstGrowthRules.EnemyHealthFactor(itemLevel);
+                    preview.text = selected.Name + $"\nLv{itemLevel} HP {hp:0} / 추격 {(move != null ? move.MoveSpeed * move.RunSpeedMultiplier : 0) * Mathf.Min(b.EnemyMoveCap, stats.MoveSpeedMultiplier * (1 + b.EnemyMoveGrowth * levelFactor)):0.##}m/s / 공격 배율 ×{Mathf.Min(b.EnemyAttackCap, stats.AttackSpeedMultiplier * (1 + b.EnemyAttackGrowth * levelFactor)):0.###}\n" + baseline;
                 }
                 else if (draft is EnemyAbilityDefinition ability)
                 {
                     float speed = Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, 1 + OverburstBalanceTable.Current.EnemyAttackGrowth * (itemLevel - 1) / 99f);
-                    preview.text = selected.Name + $"\nLv{itemLevel} 원피해 {ability.ResolveDamage(itemLevel):0}/타 × {ability.HitCount}타 / 예정 첫 타격 {ability.ResolveFirstImpactTime(speed):0.###}s / 최소 실행 {ability.ResolveExecutionDuration(speed):0.###}s / 다음 시작 ≥ {Mathf.Max(ability.Cooldown, ability.ResolveExecutionDuration(speed)):0.###}s\n투사체는 발사 시각입니다. 실제 접촉·구르기·패링 체감은 Play에서 확인하세요.";
+                    preview.text = selected.Name + "\n" + BalanceTableRuntimeView.DescribeAbility(ability, itemLevel, speed,
+                        selected.BossMaterial);
                 }
                 else preview.text = selected.Name + "\n" + baseline + "\n구간/성장 변경은 장비와 몬스터 기준 곡선에 함께 반영됩니다. 기준 무기는 공격20·치확15%·치피160%의 S0입니다.";
             }
             catch (Exception e) { preview.text = "계산 오류: " + e.Message; }
             finally { UnityEngine.Random.state = oldRandom; }
         }
+        static bool CanWrite() => !EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isCompiling
+            && !EditorApplication.isUpdating && !BuildPipeline.isBuildingPlayer && !EditorUtility.scriptCompilationFailed;
     }
 }

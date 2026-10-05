@@ -29,12 +29,10 @@ namespace Overburst.EditorBalance
             Draft.hideFlags = HideFlags.HideAndDontSave;
             Serialized = new SerializedObject(Draft);
         }
-        // 소형(일반 등급 + 가벼운 피격 체급) 몬스터의 공격 목록에 든 공격. 도메인 리로드마다 한 번만 모은다.
-        private static HashSet<Object> smallEnemyAbilities;
+        // 편성·체급 변경을 같은 Editor 세션에서도 읽는다.
         private static HashSet<Object> SmallEnemyAbilities()
         {
-            if (smallEnemyAbilities != null) return smallEnemyAbilities;
-            smallEnemyAbilities = new HashSet<Object>();
+            var smallEnemyAbilities = new HashSet<Object>();
             foreach (string guid in AssetDatabase.FindAssets("t:EnemyDefinition", new[] { "Assets/ProjectOverburst/Resources/Enemies" }))
             {
                 var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(AssetDatabase.GUIDToAssetPath(guid));
@@ -63,8 +61,9 @@ namespace Overburst.EditorBalance
             foreach (var f in Fields)
                 if (f.Changed && (!float.IsFinite(f.Value) || f.Value < f.Minimum || f.Value > f.Maximum))
                     yield return Source.name + "/" + f.Path + $": 허용 범위 {f.Minimum}~{f.Maximum}";
-            if (Draft is EnemyAbilityDefinition && IsChanged)
+            if (Draft is EnemyAbilityDefinition ability && IsChanged)
             {
+                if (!ability.IsValid) yield return Source.name + ": 공격 정의와 V3 약공 프로필의 연결 계약이 유효하지 않습니다.";
                 bool strong = Serialized.FindProperty("telegraphedStrongAttack").boolValue;
                 if (strong && Serialized.FindProperty("minimumWarningTime").floatValue < .30f)
                     yield return Source.name + ": 강공 전조는 마지막 대응 신호 0.30초 이상이어야 합니다.";
