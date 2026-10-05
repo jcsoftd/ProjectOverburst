@@ -208,8 +208,12 @@ public static class PlayerCombatFacingVfxVerifier
             Check(Mathf.Approximately(effect.FlowTime, stoppedPhase), "전투·정지 빛결 시계 보존 " + repeat);
             menu.CloseSettings(); menu.Close();
             mode.ExitCombatMode(PlayerCombatModeReason.System);
-            wait = Wait(.3); while (wait.MoveNext()) yield return null;
-            Check(!effect.IsVisible, "밝기 회귀 후 일반 탐험 fade 종료 " + repeat);
+            double fadeWaitStart = EditorApplication.timeSinceStartup;
+            int fadeStartFrame = Time.frameCount;
+            while (effect.IsVisible && EditorApplication.timeSinceStartup - fadeWaitStart < 2) yield return null;
+            File.AppendAllText(Path.Combine(output, "fade-observations.jsonl"), JsonConvert.SerializeObject(new { repeat, elapsed = EditorApplication.timeSinceStartup - fadeWaitStart, frames = Time.frameCount - fadeStartFrame, visibility = effect.Visibility, combat = mode.IsCombatModeActive, paused = OverburstTimeEffectArbiter.IsPaused }) + "\n");
+            Check(!effect.IsVisible && !mode.IsCombatModeActive && !OverburstTimeEffectArbiter.IsPaused,
+                "밝기 회귀 후 일반 탐험 fade 종료 " + repeat);
         }
         for (int cycle = 0; cycle < 2; cycle++)
         {
