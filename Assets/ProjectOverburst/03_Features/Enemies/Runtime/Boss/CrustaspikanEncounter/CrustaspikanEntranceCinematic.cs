@@ -18,6 +18,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         [Tooltip("출현 모션 시작부터 포효까지")][Min(.25f)] public float riseSeconds = 2.55f;
         public string arrivalMotion = "2HandsSmashAttack";
         [Range(.05f, .95f)] public float arrivalImpactNormalized = .425f;
+        [Tooltip("내려찍은 뒤 몸을 세우는 회복 구간까지 재생")][Range(.5f, .95f)] public float arrivalRecoveryNormalized = .82f;
+        [Tooltip("회복 자세에서 포효 준비 자세로 이어지는 시간")][Range(.05f, 1f)] public float motionBlendSeconds = .4f;
         [Min(.1f)] public float emergenceSeconds = 1.1f;
         public string roarMotion = "Roar1";
         [Min(.25f)] public float revealSeconds = .35f;
@@ -43,16 +45,17 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     public bool VisualRestored { get; private set; }
     public bool FloorGeometryRestored { get; private set; }
     public float ImpactElapsed { get; private set; }
+    public float RoarArrivalProgress { get; private set; }
     public int ShotIndex { get; private set; }
     public float Elapsed { get; private set; }
     public float Duration => roarEnd + settings.revealSeconds + settings.returnSeconds;
     public CinemachineCamera ShotCamera => shotCamera;
     public float ArrivalImpactAt => settings.detailSeconds + arrivalLength * settings.arrivalImpactNormalized;
-    public float RoarStart => Mathf.Max(settings.detailSeconds + settings.riseSeconds, ArrivalImpactAt + .22f);
+    public float RoarStart => RoarStarted ? roarStartedAt : Mathf.Max(settings.detailSeconds + settings.riseSeconds, settings.detailSeconds + arrivalLength * settings.arrivalRecoveryNormalized);
     public float RevealStart => Mathf.Lerp(RoarStart, roarEnd, .62f);
     public int HiddenCanvasCount => hiddenCanvases.Count;
     public Vector3 VisualOffset => visualRoot != null ? visualRoot.localPosition - visualRestPosition : Vector3.zero;
-    private float roarEnd, arrivalLength;
+    private float roarEnd, roarLength, roarStartedAt, arrivalLength;
     private Settings settings;
     private CrustaspikanEncounter encounter;
     private EnemyActor actor;
@@ -98,7 +101,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         var motion = owner.Brain.RuntimeMaterials.FindMotion(settings.roarMotion);
         if (motion?.IsPlayable != true || arrival?.IsPlayable != true || actor.VisualRoot == null) return false;
         arrivalLength = arrival.runtime.length;
-        roarEnd = RoarStart + motion.runtime.length;
+        roarStartedAt = -1f; RoarArrivalProgress = 0f; RoarStarted = false;
+        roarLength = motion.runtime.length; roarEnd = RoarStart + roarLength;
         basePosition = actor.transform.position; baseRotation = actor.transform.rotation;
         var renderers = actor.GetComponentsInChildren<Renderer>();
         Bounds bounds = renderers.Length > 0 ? renderers[0].bounds : new Bounds(basePosition + Vector3.up * 5, Vector3.one * 10);
@@ -403,10 +407,21 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         }
         if (!RoarStarted && Elapsed >= RoarStart)
         {
-            if (!ImpactStarted) { Debug.LogWarning("[Crustaspikan] 출현 모션이 접촉 시점에 도달하지 못해 전투로 반환합니다."); Stop(false); return; }
-            actor.GetComponent<EnemyBossMaterialExecutor>().Cancel();
-            RoarStarted = actor.GetComponent<EnemyBossMaterialExecutor>().TryPlayMotion(settings.roarMotion);
-            if (!RoarStarted) { Debug.LogWarning("[Crustaspikan] 등장 포효를 시작할 수 없어 전투 시점으로 반환합니다."); Stop(false); return; }
+            if (!ImpactStarted || !pose.IsName("Material_" + settings.arrivalMotion))
+            { Debug.LogWarning("[Crustaspikan] 출현 모션의 회복을 이어갈 수 없어 전투로 반환합니다."); Stop(false); return; }
+            if (pose.normalizedTime >= settings.arrivalRecoveryNormalized)
+            {
+                var roar = encounter.Brain.RuntimeMaterials.FindMotion(settings.roarMotion);
+                int state = Animator.StringToHash(actor.Animator.GetLayerName(0) + "." + roar.state);
+                if (!actor.Animator.HasState(0, state))
+                { Debug.LogWarning("[Crustaspikan] 등장 포효 상태를 찾지 못해 전투 시점으로 반환합니다."); Stop(false); return; }
+                // 공격 재료의 즉시 Play를 쓰지 않고 현재 회복 자세에서 이 컷신의 포효로 이어 붙인다.
+                actor.GetComponent<EnemyBossMaterialExecutor>().Cancel();
+                actor.Animator.CrossFadeInFixedTime(state, settings.motionBlendSeconds, 0, 0f);
+                actor.Movement.ApplyActionLock(roarLength + settings.revealSeconds + settings.returnSeconds + .1f);
+                RoarArrivalProgress = pose.normalizedTime; roarStartedAt = Elapsed; RoarStarted = true;
+                roarEnd = roarStartedAt + roarLength;
+            }
         }
         if (!inhaleStarted && RoarStarted && settings.inhaleClip != null)
         { inhaleStarted = true; breath.PlayOneShot(settings.inhaleClip, .5f); }
@@ -445,9 +460,10 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         else if (time < RevealStart)
         {
             ShotIndex = 2; float t = Mathf.Clamp01((time - RoarStart) / (roarEnd - RoarStart));
-            float recover = Ease((time - ImpactElapsed - .08f) / .6f);
-            position = Vector3.Lerp(Local(.57f, .16f, 1.25f), Local(.28f, .47f, 1.02f), recover);
-            focus = Vector3.Lerp(Local(0, .24f, .2f), smoothedHead, recover);
+            float recover = Ease((time - ImpactElapsed - .12f) / Mathf.Max(.6f, RoarStart - ImpactElapsed + .25f));
+            position = Vector3.Lerp(Local(-.46f, .21f, 1.85f), Local(-.18f, .47f, 1.02f), recover);
+            Vector3 dippedFocus = Vector3.Lerp(Local(0, .56f, .1f), Local(0, .24f, .2f), Ease((time - ImpactElapsed) / .18f));
+            focus = Vector3.Lerp(dippedFocus, smoothedHead, recover);
             float slam = Mathf.Exp(-Mathf.Max(0, time - ImpactElapsed) * 8f) * OverburstGameSettings.CameraShakeScale;
             float pulse = Mathf.Exp(-Mathf.Pow((t - .35f) / .11f, 2)) * OverburstGameSettings.CameraShakeScale;
             position += baseRotation * new Vector3(Mathf.Sin(time * 43f) * .8f, -1f + Mathf.Sin(time * 57f) * .5f, 1f) * (pulse + slam) * height * .018f;
@@ -456,9 +472,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         else
         {
             ShotIndex = returning > 0f ? 4 : 3; float t = Ease((time - RevealStart) / (roarEnd + settings.revealSeconds - RevealStart));
-            position = Vector3.Lerp(Local(-.08f, .22f, 1.48f), Local(-.18f, .34f, 1.95f), t);
-            focus = Vector3.Lerp(smoothedHead, Local(0, .48f, 0), t); fov = Mathf.Lerp(62f, 57f, t);
-            dutch = -2f * (1f - t);
+            position = Vector3.Lerp(Local(-.18f, .47f, 1.02f), Local(-.18f, .34f, 1.95f), t);
+            focus = Vector3.Lerp(smoothedHead, Local(0, .48f, 0), t); fov = Mathf.Lerp(46f, 57f, t);
         }
         shotCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
         var lens = shotCamera.Lens; lens.FieldOfView = fov; lens.Dutch = dutch; lens.ModeOverride = LensSettings.OverrideModes.Perspective;

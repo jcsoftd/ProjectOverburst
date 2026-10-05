@@ -396,6 +396,8 @@ MonoBehaviour:
     riseSeconds: 2.55
     arrivalMotion: 2HandsSmashAttack
     arrivalImpactNormalized: 0.425
+    arrivalRecoveryNormalized: 0.82
+    motionBlendSeconds: 0.4
     emergenceSeconds: 1.1
     roarMotion: Roar1
     revealSeconds: 0.35

@@ -70,6 +70,8 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             || materials.FindMotion(entrance.arrivalMotion)?.IsPlayable != true
             || !Finite(entrance.emergenceSeconds) || entrance.emergenceSeconds < .1f
             || !Finite(entrance.arrivalImpactNormalized) || entrance.arrivalImpactNormalized < .05f || entrance.arrivalImpactNormalized > .95f
+            || !Finite(entrance.arrivalRecoveryNormalized) || entrance.arrivalRecoveryNormalized <= entrance.arrivalImpactNormalized || entrance.arrivalRecoveryNormalized > .95f
+            || !Finite(entrance.motionBlendSeconds) || entrance.motionBlendSeconds < .05f || entrance.motionBlendSeconds > 1f
             || !Finite(entrance.detailSeconds) || entrance.detailSeconds < .25f || !Finite(entrance.riseSeconds) || entrance.riseSeconds < .25f
             || !Finite(entrance.revealSeconds) || entrance.revealSeconds < .25f || !Finite(entrance.returnSeconds) || entrance.returnSeconds < .1f
             || !Finite(entrance.combatGraceSeconds) || entrance.combatGraceSeconds < 0f || !Finite(entrance.roarVolume)))
