@@ -117,7 +117,18 @@ public static class UpcomingMonsterThemeReviewSizing
             if(skin!=null)mesh=skin.sharedMesh;
             else {var filter=renderer.GetComponent<MeshFilter>();if(filter!=null)mesh=filter.sharedMesh;}
             if(mesh==null)continue;
-            var vertices=mesh.vertices;
+            Vector3[] vertices;
+            if(mesh.isReadable || !Application.isPlaying)vertices=mesh.vertices;
+            else
+            {
+                // Editor-only inspection without changing the imported model's Read/Write setting.
+                using(var data=MeshUtility.AcquireReadOnlyMeshData(mesh))
+                {
+                    var points=new Unity.Collections.NativeArray<Vector3>(data[0].vertexCount,Unity.Collections.Allocator.Temp);
+                    try { data[0].GetVertices(points); vertices=points.ToArray(); }
+                    finally { points.Dispose(); }
+                }
+            }
             Matrix4x4[] matrices=null;
             if(skin!=null)
             {

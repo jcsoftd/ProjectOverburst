@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Gastarias
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 1.1090254
-  runAnimationReferenceSpeed: 1.1090254
-  backpedalAnimationReferenceSpeed: 1.1090254
+  animationReferenceSpeed: 1.6635381
+  runAnimationReferenceSpeed: 1.6635381
+  backpedalAnimationReferenceSpeed: 1.6635381
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

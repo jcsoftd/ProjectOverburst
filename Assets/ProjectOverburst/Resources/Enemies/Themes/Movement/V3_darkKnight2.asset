@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_darkKnight2
   moveSpeed: 1.4
   turnSpeed: 200
-  animationReferenceSpeed: 1.4
-  runAnimationReferenceSpeed: 2
-  backpedalAnimationReferenceSpeed: 1.4
+  animationReferenceSpeed: 1.798
+  runAnimationReferenceSpeed: 7.047
+  backpedalAnimationReferenceSpeed: 0.956
   runSpeedMultiplier: 1.4285715
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55

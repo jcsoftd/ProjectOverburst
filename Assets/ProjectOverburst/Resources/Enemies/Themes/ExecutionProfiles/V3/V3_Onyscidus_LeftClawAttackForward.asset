@@ -51,17 +51,19 @@ MonoBehaviour:
   - frames:
     - normalizedTime: 0.45
       capsules:
-      - a: {x: -0.6288378, y: 1.274577, z: 2.4307497}
-        b: {x: -0.71225744, y: 2.110875, z: 3.5941224}
+      - a: {x: -0.6288378, y: 1.591745, z: 2.4307497}
+        b: {x: -0.71225744, y: 2.428043, z: 3.5941224}
         radius: 0.23
     - normalizedTime: 0.5
       capsules:
-      - a: {x: -0.5173275, y: 1.1509241, z: 2.6452034}
-        b: {x: -0.51117706, y: 1.5534289, z: 4.022789}
+      - a: {x: -0.5173275, y: 1.4680921, z: 2.6452034}
+        b: {x: -0.51117706, y: 1.8705969, z: 4.022789}
         radius: 0.23
     - normalizedTime: 0.55
       capsules:
-      - a: {x: -0.51258314, y: 0.97671515, z: 2.5500684}
-        b: {x: -0.56104296, y: 1.4449859, z: 3.9058578}
+      - a: {x: -0.51258314, y: 1.2938831, z: 2.5500684}
+        b: {x: -0.56104296, y: 1.7621539, z: 3.9058578}
         radius: 0.23
     maximumPlanarReach: 4.2851367
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Skorpmare
   moveSpeed: 1.3
   turnSpeed: 420
-  animationReferenceSpeed: 1.2761995
-  runAnimationReferenceSpeed: 4.2539983
-  backpedalAnimationReferenceSpeed: 1.2761995
+  animationReferenceSpeed: 1.529
+  runAnimationReferenceSpeed: 3.847
+  backpedalAnimationReferenceSpeed: 1.529
   runSpeedMultiplier: 1.6153846
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20

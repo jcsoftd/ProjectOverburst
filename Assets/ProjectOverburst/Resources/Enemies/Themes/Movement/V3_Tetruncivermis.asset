@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Tetruncivermis
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 0.5689413
-  runAnimationReferenceSpeed: 0.5689413
-  backpedalAnimationReferenceSpeed: 0.5689413
+  animationReferenceSpeed: 1.0525414
+  runAnimationReferenceSpeed: 1.0525414
+  backpedalAnimationReferenceSpeed: 1.0525414
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

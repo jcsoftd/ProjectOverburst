@@ -593,10 +593,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.2233
-  m_Height: 0.4466
+  m_Radius: 0.279125
+  m_Height: 0.55825
   m_Direction: 1
-  m_Center: {x: 0, y: 0.24330002, z: 0}
+  m_Center: {x: 0, y: 0.29912502, z: 0}
 --- !u!1 &3494511090596441151
 GameObject:
   m_ObjectHideFlags: 0
@@ -622,7 +622,7 @@ Transform:
   m_GameObject: {fileID: 3494511090596441151}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.24563003, z: 0}
+  m_LocalPosition: {x: 0.0000041127205, y: 0.3232861, z: -0.000000834465}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -653,7 +653,7 @@ Transform:
   m_GameObject: {fileID: 3675960302322501754}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.455, z: 0.4683}
+  m_LocalPosition: {x: 0.0000041127205, y: 0.3232861, z: 0.41234356}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -841,13 +841,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTarget
   damageReceiver: {fileID: 2269960235578858657}
   affiliation: {fileID: 332365175493990347}
-  localCenter: {x: 0, y: 0.24330002, z: 0}
-  radius: 0.2233
-  height: 0.4466
+  localCenter: {x: 0, y: 0.29912502, z: 0}
+  radius: 0.279125
+  height: 0.55825
   useCustomHurtVolume: 1
-  hurtLocalCenter: {x: 0, y: 0.23, z: 0.08}
-  hurtRadius: 0.38
-  hurtHeight: 0.5
+  hurtLocalCenter: {x: 0, y: 0.2875, z: 0.099999994}
+  hurtRadius: 0.475
+  hurtHeight: 0.625
 --- !u!114 &6412372099826270056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1312,13 +1312,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
   useAuthoredVolume: 1
-  localBodyCenter: {x: 0.0057614804, y: 0.22223832, z: 0.08501681}
-  bodyRadius: 0.40409285
-  bodyHeight: 0.5
+  localBodyCenter: {x: 0.0072018504, y: 0.2777979, z: 0.10627101}
+  bodyRadius: 0.50511605
+  bodyHeight: 0.625
   useAuthoredHitVolume: 1
-  localHitCenter: {x: 0.009876824, y: 0.21669427, z: 0.08860025}
-  hitRadius: 0.5097787
-  hitHeight: 0.5075306
+  localHitCenter: {x: 0.01234603, y: 0.27086782, z: 0.11075031}
+  hitRadius: 0.63722336
+  hitHeight: 0.6344133
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
@@ -1392,7 +1392,7 @@ Transform:
   m_GameObject: {fileID: 7158489066053685152}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.77725774, z: 0}
+  m_LocalPosition: {x: 0.0000041127205, y: 0.92157227, z: -0.000000834465}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1595,16 +1595,28 @@ PrefabInstance:
       value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.000030517578
+      value: 0.000038146973
       objectReference: {fileID: 0}
     - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.03628088
+      value: 0.0453511
       objectReference: {fileID: 0}
     - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.45555115
+      value: 0.5694389
       objectReference: {fileID: 0}
     - target: {fileID: 8345213884982080776, guid: 36e1c8fee4cd6d843b388246727af959, type: 3}
       propertyPath: m_LocalRotation.w

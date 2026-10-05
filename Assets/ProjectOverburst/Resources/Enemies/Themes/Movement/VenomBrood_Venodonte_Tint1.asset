@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: VenomBrood_Venodonte_Tint1
   moveSpeed: 1.65
   turnSpeed: 420
-  animationReferenceSpeed: 1.5179881
-  runAnimationReferenceSpeed: 1.5179881
-  backpedalAnimationReferenceSpeed: 1.5173724
+  animationReferenceSpeed: 1.8974851
+  runAnimationReferenceSpeed: 1.8974851
+  backpedalAnimationReferenceSpeed: 1.8967155
   runSpeedMultiplier: 1.6363637
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

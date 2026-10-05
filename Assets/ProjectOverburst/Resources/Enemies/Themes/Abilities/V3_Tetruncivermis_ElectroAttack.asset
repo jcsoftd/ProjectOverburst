@@ -45,3 +45,4 @@ MonoBehaviour:
   additionalHitNormalizedTimes:
   - 0.5
   - 0.7
+  projectilesPerRelease: 1

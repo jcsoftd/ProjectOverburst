@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_GigabdomocaudaLarva
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 0.49812987
-  runAnimationReferenceSpeed: 0.49812987
-  backpedalAnimationReferenceSpeed: 0.4980405
+  animationReferenceSpeed: 0.7721013
+  runAnimationReferenceSpeed: 0.7721013
+  backpedalAnimationReferenceSpeed: 0.77196276
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

@@ -57,7 +57,7 @@ Transform:
   m_GameObject: {fileID: 2942702233847526008}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.9, z: 0}
+  m_LocalPosition: {x: 0.00007343292, y: 0.27879965, z: -0.39691532}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -119,7 +119,7 @@ Transform:
   m_GameObject: {fileID: 5148366253747615856}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.6467203, z: 0}
+  m_LocalPosition: {x: 0.00007343292, y: 0.84750783, z: -0.39691532}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -176,10 +176,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.18
-  m_Height: 0.4
+  m_Radius: 0.279
+  m_Height: 0.62
   m_Direction: 1
-  m_Center: {x: 0, y: 0.22, z: 0}
+  m_Center: {x: 0, y: 0.33, z: 0}
 --- !u!1 &5692703704355053278
 GameObject:
   m_ObjectHideFlags: 0
@@ -394,13 +394,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatTarget
   damageReceiver: {fileID: 3765538757591935033}
   affiliation: {fileID: 2601339941376296817}
-  localCenter: {x: 0, y: 0.22, z: 0}
-  radius: 0.18
-  height: 0.4
+  localCenter: {x: 0, y: 0.33, z: 0}
+  radius: 0.279
+  height: 0.62
   useCustomHurtVolume: 1
-  hurtLocalCenter: {x: 0, y: 0.195, z: 0}
-  hurtRadius: 0.3
-  hurtHeight: 0.35
+  hurtLocalCenter: {x: 0, y: 0.30224997, z: 0}
+  hurtRadius: 0.465
+  hurtHeight: 0.54249996
 --- !u!114 &6114889912008513695
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -866,13 +866,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatTargetVfxPlacement
   useAuthoredVolume: 1
-  localBodyCenter: {x: -0.00019555716, y: 0.33509144, z: 0.06484331}
-  bodyRadius: 0.51414305
-  bodyHeight: 0.62
+  localBodyCenter: {x: -0.0003031136, y: 0.5193917, z: 0.10050713}
+  bodyRadius: 0.79692173
+  bodyHeight: 0.96099997
   useAuthoredHitVolume: 1
-  localHitCenter: {x: -0.00033524085, y: 0.36015674, z: 0.06830282}
-  hitRadius: 0.602
-  hitHeight: 1.1159999
+  localHitCenter: {x: -0.0005196233, y: 0.5582429, z: 0.10586937}
+  hitRadius: 0.9331
+  hitHeight: 1.7297999
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
   burnOffset: {x: 0, y: 0, z: 0}
@@ -1425,7 +1425,7 @@ Transform:
   m_GameObject: {fileID: 8324899918028965858}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.8, z: 0.8}
+  m_LocalPosition: {x: 0.00007343292, y: 0.27879965, z: 0.346505}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1628,12 +1628,24 @@ PrefabInstance:
       value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.07388957
+      value: 0.114528835
       objectReference: {fileID: 0}
     - target: {fileID: 8597005926439417431, guid: 5f75db050fda8b34ab288b52a07d8b91, type: 3}
       propertyPath: m_LocalPosition.z

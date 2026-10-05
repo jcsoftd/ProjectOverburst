@@ -34,7 +34,7 @@ MonoBehaviour:
   requireLineOfSight: 1
   cooldown: 1.15
   hitDelay: 0.46666667
-  hitNormalizedTime: 0.35
+  hitNormalizedTime: 0.398827
   attackAnimationDuration: 1.3333334
   attackLockDuration: 1.3333334
   weight: 1
@@ -43,3 +43,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

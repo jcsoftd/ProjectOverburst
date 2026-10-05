@@ -29,3 +29,5 @@ MonoBehaviour:
   poseRootBonePath: 
   contactWindows: []
   contactGeometry: []
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

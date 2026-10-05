@@ -25,7 +25,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         public int expectedWeakCases;
         public int[] validationFrameRates;
         public string[] leaseDefinitionPaths;
-        public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry;
+        public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry, presentationCalibration;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
         public JArray scenes;
@@ -112,14 +112,15 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(frameRates.Length==0 || frameRates.Distinct().Count()!=frameRates.Length
             || frameRates.Any(rate=>rate!=15 && rate!=30 && rate!=60))
             throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
+        int presentationCases=(bool?)selectedBatch?["verifyPresentationCalibration"]==true?selectedBatch["definitions"].Count()*2:0;
         int weakCases=selectedBatch==null?0:selectedBatch["entries"].Where(r=>(string)r["role"]=="weak"
-            &&((bool?)r["nativeContactGeometryAuthored"]==true||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true))
+            &&((bool?)r["nativeContactGeometryAuthored"]==true||((string)r["visualType"]=="ranged"||(string)r["visualType"]=="channel")&&(bool?)r["nativeAuthoringComplete"]==true))
             .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length+((bool?)selectedBatch?["verifyRakeLocomotion"]==true?3:0);
         Directory.CreateDirectory(outputDirectory);
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,expectedWeakCases=weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -215,10 +216,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan.realPlayerParry){yield return RunRealPlayerParryCases();yield break;}
         if(plan.leaseVerification){yield return RunLeaseCases();yield break;}
         var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
+        if((bool?)author["verifyPresentationCalibration"]==true){yield return RunPresentationCalibrationCases(author);yield break;}
         if((bool?)author["verifyRakeLocomotion"]==true){yield return RunRakeLocomotionCases();if(plan.leaseDefinitionPaths?.Length>0)yield return RunLeaseCases();yield break;}
         var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
         var rows=author["entries"].OfType<JObject>().Where(r=>((bool?)r["nativeContactGeometryAuthored"]==true
-            ||(string)r["visualType"]=="ranged"&&(bool?)r["nativeAuthoringComplete"]==true)
+            ||((string)r["visualType"]=="ranged"||(string)r["visualType"]=="channel")&&(bool?)r["nativeAuthoringComplete"]==true)
             &&(!string.IsNullOrEmpty(plan.attackBatch)||originalIds.Contains((string)r["cardKey"]))).ToArray();
         if(rows.Length==0||string.IsNullOrEmpty(plan.attackBatch)&&rows.Length!=8)throw new InvalidOperationException("Native authored attack batch is empty or unexpected.");
         var runs=from fps in plan.validationFrameRates??new[]{15,30,60}
@@ -229,6 +231,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         {
             int fps=run.fps;JObject row=run.row;string scenario=run.scenario;
             Time.captureDeltaTime=1f/fps;
+            if((string)row["visualType"]=="channel"){yield return RunPresentationChannelCase(row,fps);continue;}
             if((string)row["visualType"]=="ranged")
             {
                 yield return RunProjectileCase(row,fps);
@@ -470,7 +473,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
             ["cases"]=cases,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
-            ["geometryFixture"]=!string.IsNullOrEmpty(plan.themeActivationPath)?"Actual PersistentScene player, seven authored map themes, real field spawn budgets and shared pool":plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; actual saved player physical capsule and separate combat volume":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
+            ["geometryFixture"]=plan.presentationCalibration?"Saved spawn, locomotion Animator and physics, ground clearance and pool reuse; AI selection disabled":!string.IsNullOrEmpty(plan.themeActivationPath)?"Actual PersistentScene player, seven authored map themes, real field spawn budgets and shared pool":plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; actual saved player physical capsule and separate combat volume":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
             ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["leaseDefinitionPaths"]=plan.leaseDefinitionPaths==null?null:JArray.FromObject(plan.leaseDefinitionPaths),["realPlayerParry"]=plan.realPlayerParry&&string.IsNullOrEmpty(plan.themeActivationPath),["nativeAttackBatch"]=plan.attackBatch,["themeActivationPlan"]=plan.themeActivationPath,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
     static void Return(string error)

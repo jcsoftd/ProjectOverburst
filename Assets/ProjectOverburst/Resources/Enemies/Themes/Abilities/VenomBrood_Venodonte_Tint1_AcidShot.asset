@@ -28,7 +28,7 @@ MonoBehaviour:
   parryable: 0
   minimumRange: 0
   range: 8
-  hitRadius: 0.8883
+  hitRadius: 0.88830006
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
@@ -43,3 +43,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

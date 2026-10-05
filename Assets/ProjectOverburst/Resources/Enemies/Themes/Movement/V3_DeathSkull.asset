@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_DeathSkull
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 1.15
-  runAnimationReferenceSpeed: 2.5
-  backpedalAnimationReferenceSpeed: 1.15
+  animationReferenceSpeed: 2.0125
+  runAnimationReferenceSpeed: 4.375
+  backpedalAnimationReferenceSpeed: 2.0125
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

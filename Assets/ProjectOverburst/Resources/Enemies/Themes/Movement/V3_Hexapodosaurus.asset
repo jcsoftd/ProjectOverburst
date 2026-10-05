@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Hexapodosaurus
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 0.39132872
-  runAnimationReferenceSpeed: 0.39132872
-  backpedalAnimationReferenceSpeed: 0.39136246
+  animationReferenceSpeed: 0.5869931
+  runAnimationReferenceSpeed: 0.5869931
+  backpedalAnimationReferenceSpeed: 0.5870437
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Crassoplast
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 0.4390853
-  runAnimationReferenceSpeed: 0.4390853
-  backpedalAnimationReferenceSpeed: 0.43899336
+  animationReferenceSpeed: 0.5708109
+  runAnimationReferenceSpeed: 0.5708109
+  backpedalAnimationReferenceSpeed: 0.57069135
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: CavernMutants_Ceratoferox
   moveSpeed: 1.2
   turnSpeed: 420
-  animationReferenceSpeed: 0.3583823
-  runAnimationReferenceSpeed: 1.6926293
-  backpedalAnimationReferenceSpeed: 0.3583823
+  animationReferenceSpeed: 0.404
+  runAnimationReferenceSpeed: 1.726
+  backpedalAnimationReferenceSpeed: 0.404
   runSpeedMultiplier: 2.1249998
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

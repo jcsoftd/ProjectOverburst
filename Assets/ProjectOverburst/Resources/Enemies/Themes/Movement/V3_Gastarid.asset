@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: V3_Gastarid
   moveSpeed: 1.15
   turnSpeed: 420
-  animationReferenceSpeed: 0.9316414
-  runAnimationReferenceSpeed: 4.017703
-  backpedalAnimationReferenceSpeed: 0.9316414
+  animationReferenceSpeed: 1.2111338
+  runAnimationReferenceSpeed: 5.223014
+  backpedalAnimationReferenceSpeed: 1.2111338
   runSpeedMultiplier: 2.173913
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: CavernMutants_Gasterobrach
   moveSpeed: 1.3
   turnSpeed: 420
-  animationReferenceSpeed: 1.5782955
-  runAnimationReferenceSpeed: 3.1513247
-  backpedalAnimationReferenceSpeed: 1.5782955
+  animationReferenceSpeed: 1.578
+  runAnimationReferenceSpeed: 3.678
+  backpedalAnimationReferenceSpeed: 1.578
   runSpeedMultiplier: 1.6153846
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 20
