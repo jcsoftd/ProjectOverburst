@@ -124,6 +124,8 @@ public static class OverburstToolHubVerifier // 실제 카드와 메뉴·아이�
             {
                 var button = buttons[launchIndex];
                 launchWindowsBefore = CurrentWindows();
+                // A missing click callback must not reuse the previous tool's success.
+                root.Q<Label>("tool-hub-status").text = "검증 실행 대기 · " + button.name;
                 var point = button.worldBound.center;
                 var picked = root.panel.Pick(point);
                 Add(button.name + " 표시 좌표", picked != null && (picked == button || button.Contains(picked)), picked?.name ?? "none");
@@ -138,7 +140,7 @@ public static class OverburstToolHubVerifier // 실제 카드와 메뉴·아이�
             {
                 var button = buttons[launchIndex];
                 var status = root.Q<Label>("tool-hub-status").text;
-                Add(button.name + " 실제 포인터 실행", status.Contains("창을 열었습니다."), status);
+                Add(button.name + " 실제 포인터 실행", status.EndsWith(" 창을 열었습니다.", StringComparison.Ordinal), status);
                 CloseCreatedWindows(launchWindowsBefore);
                 Add(button.name + " 프리뷰 반환", UnityEditor.SceneManagement.EditorSceneManager.previewSceneCount == report.previewsBefore);
                 launchIndex++;

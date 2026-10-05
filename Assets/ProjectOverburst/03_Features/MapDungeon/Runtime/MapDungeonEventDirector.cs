@@ -325,7 +325,8 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
         {
             title = nearest.Kind == MapEventKind.Hunt ? "몬스터 토벌" : "오브젝트 수호";
             if (nearest.Phase == MapEventPhase.Complete) body = "완료 · 상자를 열어 카드 한 장을 선택하세요";
-            else if (nearest.Phase == MapEventPhase.Failed) body = "수호 실패 · 이 상자는 열 수 없습니다";
+            else if (nearest.Phase == MapEventPhase.Failed) body = nearest.Kind == MapEventKind.Hunt
+                ? "토벌 실패 · 이 상자는 열 수 없습니다" : "수호 실패 · 이 상자는 열 수 없습니다";
             else if (nearest.Kind == MapEventKind.Hunt)
                 body = "소환 " + nearest.Wave + "/2 · 남은 몬스터 " + nearest.LivingCount;
             else body = "남은 시간 " + Mathf.CeilToInt(nearest.GuardRemaining) + "초 · 수호 대상 "

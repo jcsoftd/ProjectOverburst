@@ -399,11 +399,19 @@ public static class EdgeEffectsIconReviewBuilder
         return "PASS: grade matrix "+records.Count+" boards; "+count+" same-artwork grade slots; preview resources removed";
     }
 
+    static void RequireCompletePresets(GameObject[] effects){
+        if(effects==null || effects.Length!=20 || effects.Any(effect=>effect==null))
+            throw new InvalidOperationException("Expected 20 loaded supplier presets before creating a review scene");
+    }
+
     public static string BuildReview(){
         if(Busy())return "DEFERRED: Editor busy; nothing created";
+        var effects=Effects();
+        RequireCompletePresets(effects);
+        var items=Items();
         var before=SharedScenes();var active=SceneManager.GetActiveScene();EnsureFolder(Path.GetDirectoryName(ReviewScene).Replace('\\','/'));
         using(var board=new Board(1500,970,true)){
-            Catalog(board,Effects(),Items());
+            Catalog(board,effects,items);
             foreach(var t in board.canvas.GetComponentsInChildren<Transform>(true))t.gameObject.layer=30;
             board.camera.enabled=true;
             // Stored canvas uses the same logical reference size on any game view.

@@ -42,11 +42,8 @@ public sealed class GroundIndicatorWindow : EditorWindow
         if(Event.current.type==EventType.Repaint&&rect.width>1&&rect.height>1)
         {
             preview.BeginPreview(rect,GUIStyle.none);
-            float extent=Mathf.Max(outer,shape==GroundIndicatorShape.Rectangle?length:0,.1f);
-            Vector3 center=shape==GroundIndicatorShape.Rectangle?Vector3.forward*length*.5f:Vector3.zero;
-            var camera=preview.camera;camera.orthographic=true;camera.orthographicSize=extent*1.15f;
-            camera.transform.position=center+(top?new Vector3(0,10,.001f):new Vector3(0,8,6)).normalized*extent*4;
-            camera.transform.LookAt(center);camera.nearClipPlane=.01f;camera.farClipPlane=extent*10+20;
+            var camera=preview.camera;
+            FramePreviewCamera(camera,indicator,top,rect);
             camera.clearFlags=CameraClearFlags.Color;camera.backgroundColor=new Color(.04f,.045f,.055f);
             preview.Render(true);GUI.DrawTexture(rect,preview.EndPreview(),ScaleMode.StretchToFill,false);
         }
@@ -59,6 +56,19 @@ public sealed class GroundIndicatorWindow : EditorWindow
                 SavePreviewPrefab(instance,path);
             }
         }
+    }
+    internal static void FramePreviewCamera(Camera camera,ProceduralGroundIndicator indicator,bool top,Rect rect)
+    {
+        bool rectangle=indicator.Shape==GroundIndicatorShape.Rectangle;
+        float extent=Mathf.Max(indicator.OuterRadius,rectangle?indicator.Length:0,.1f);
+        float halfWidth=rectangle?indicator.Width*.5f:indicator.OuterRadius;
+        Vector3 center=rectangle?Vector3.forward*indicator.Length*.5f:Vector3.zero;
+        camera.aspect=Mathf.Max(.01f,rect.width/Mathf.Max(1f,rect.height));
+        camera.orthographic=true;
+        // Keep the existing vertical framing and also fit wide shapes in narrow windows.
+        camera.orthographicSize=Mathf.Max(extent,(halfWidth+indicator.FlameWidth)/camera.aspect)*1.15f;
+        camera.transform.position=center+(top?new Vector3(0,10,.001f):new Vector3(0,8,6)).normalized*extent*4;
+        camera.transform.LookAt(center);camera.nearClipPlane=.01f;camera.farClipPlane=extent*10+20;
     }
     public static void SavePreviewPrefab(GameObject root,string path)
     {

@@ -177,6 +177,40 @@ public static class PlayerCombatFacingVfxVerifier
         mode.ExitCombatMode(PlayerCombatModeReason.System);
         var wait = Wait(.3); while (wait.MoveNext()) yield return null;
         Check(!effect.IsVisible, "탐험 모드에서는 숨김");
+        for (int repeat = 0; repeat < 2; repeat++)
+        {
+            mode.EnterCombatMode(PlayerCombatModeReason.System);
+            wait = Wait(.35); while (wait.MoveNext()) yield return null;
+            Check(effect.IsVisible && effect.Visibility > .99f, "밝기 회귀 전 전투 표시 " + repeat);
+            mode.ExitCombatMode(PlayerCombatModeReason.System);
+            menu.Open(); menu.OpenSettings(); panel.tabs[2].isOn = true;
+            Check(effect.Visibility > 0f && OverburstTimeEffectArbiter.IsPaused, "fade 종료 전 탐험·정지 전제 " + repeat);
+            float stoppedPhase = effect.FlowTime;
+            panel.combatFacingBrightness.value = 0f;
+            panel.combatFacingBrightness.value = 1f;
+            wait = Wait(.15); while (wait.MoveNext()) yield return null;
+            Check(!effect.IsVisible && !effect.VisualRoot.gameObject.activeSelf && effect.Visibility == 0f,
+                "탐험·정지 밝기 0→복귀에서도 숨김 유지 " + repeat);
+            Check(Mathf.Approximately(effect.FlowTime, stoppedPhase), "탐험·정지 빛결 시계 보존 " + repeat);
+            menu.CloseSettings(); menu.Close();
+            mode.EnterCombatMode(PlayerCombatModeReason.System);
+            wait = Wait(.35); while (wait.MoveNext()) yield return null;
+            menu.Open(); menu.OpenSettings(); panel.tabs[2].isOn = true;
+            float visibleBefore = effect.Visibility;
+            stoppedPhase = effect.FlowTime;
+            panel.combatFacingBrightness.value = 0f;
+            Check(!effect.VisualRoot.gameObject.activeSelf && Mathf.Approximately(effect.Visibility, visibleBefore),
+                "전투·정지 밝기 0은 페이드 보존 " + repeat);
+            panel.combatFacingBrightness.value = 1f;
+            wait = Wait(.15); while (wait.MoveNext()) yield return null;
+            Check(effect.IsVisible && Mathf.Approximately(effect.Visibility, visibleBefore),
+                "전투·정지 밝기 복귀는 현재 전투 표시 복원 " + repeat);
+            Check(Mathf.Approximately(effect.FlowTime, stoppedPhase), "전투·정지 빛결 시계 보존 " + repeat);
+            menu.CloseSettings(); menu.Close();
+            mode.ExitCombatMode(PlayerCombatModeReason.System);
+            wait = Wait(.3); while (wait.MoveNext()) yield return null;
+            Check(!effect.IsVisible, "밝기 회귀 후 일반 탐험 fade 종료 " + repeat);
+        }
         for (int cycle = 0; cycle < 2; cycle++)
         {
             mode.EnterCombatMode(PlayerCombatModeReason.System);

@@ -68,10 +68,12 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         }
         float dt = OverburstGameClock.UnscaledDeltaTime;
         phase = Mathf.Repeat(phase + dt, 8f);
-        bool requested = PlayerCombatModeController.IsSharedCombatModeActive()
-            && movement != null && movement.isActiveAndEnabled
-            && movement.ControlAuthority == ActorControlAuthority.Player
-            && (health == null || !health.IsDead);
+        bool requested = IsDisplayRequested();
+        if (!requested && OverburstTimeEffectArbiter.IsPaused)
+        {
+            HideImmediately();
+            return;
+        }
         bool grounded = false;
         RaycastHit ground = default;
         if (requested || visibility > 0f) grounded = TryGround(out ground);
@@ -148,9 +150,19 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
         if (visualRoot != null) visualRoot.gameObject.SetActive(false);
     }
 
+    bool IsDisplayRequested() => PlayerCombatModeController.IsSharedCombatModeActive()
+            && movement != null && movement.isActiveAndEnabled
+            && movement.ControlAuthority == ActorControlAuthority.Player
+            && (health == null || !health.IsDead);
+
     void SuspendForZeroBrightness()
     {
-        // Preserve the fade so brightness can resume immediately, even while paused.
+        if (!IsDisplayRequested())
+        {
+            HideImmediately();
+            return;
+        }
+        // An active combat display can resume immediately while the settings menu is paused.
         if (visualRoot != null && visualRoot.gameObject.activeSelf) visualRoot.gameObject.SetActive(false);
         hadGround = false;
     }
@@ -159,9 +171,8 @@ public sealed class PlayerCombatFacingVfx : MonoBehaviour
     {
         if (!OverburstGameSettings.CombatFacingIndicator) HideImmediately();
         else if (OverburstGameSettings.CombatFacingBrightness <= 0f) SuspendForZeroBrightness();
-        else if (visualRoot != null && visibility > 0f && PlayerCombatModeController.IsSharedCombatModeActive()
-            && movement != null && movement.isActiveAndEnabled && movement.ControlAuthority == ActorControlAuthority.Player
-            && (health == null || !health.IsDead)) visualRoot.gameObject.SetActive(true);
+        else if (visualRoot != null && visibility > 0f && IsDisplayRequested()) visualRoot.gameObject.SetActive(true);
+        else if (!IsDisplayRequested() && OverburstTimeEffectArbiter.IsPaused) HideImmediately();
         ApplyAppearance();
         ApplyRendererProperties();
     }
