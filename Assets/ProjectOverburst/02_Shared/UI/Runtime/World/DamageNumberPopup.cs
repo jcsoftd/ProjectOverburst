@@ -265,7 +265,7 @@ public sealed class DamageNumberPopup : MMFloatingText
             * (request.Kind == DamageNumberKind.Discharge && request.IsCritical ? 1.2f : 1f);
 
         bool custom = request.Kind == DamageNumberKind.PlayerHit || request.Kind == DamageNumberKind.Heal
-            || request.Kind == DamageNumberKind.Stun;
+            || request.Kind == DamageNumberKind.Stun || DamageNumberStyles.IsParry(request.Kind);
         bool critical = request.IsCritical && request.Kind != DamageNumberKind.DamageOverTime;
         Color color = request.Kind == DamageNumberKind.DamageOverTime
             ? DamageNumberStyles.DamageOverTimeColor(request.Element)
@@ -273,10 +273,11 @@ public sealed class DamageNumberPopup : MMFloatingText
             : DamageNumberStyles.TryGetGradient(request, out _) ? Color.white : CriticalAttackColor;
         try
         {
-            // 세리프 원본이 가는 굵기라 종류별 연출은 모두 굵게 쓴다.
+            // 패링은 기절과 같은 SemiBold 원본을 쓰므로 합성 굵기를 더하지 않는다.
             if (custom)
                 InitializeText(displayText, color, position, 24f * pendingFontScale, finishedCallback,
-                    FontStyles.Bold, false, 0f, false, 0);
+                    DamageNumberStyles.IsParry(request.Kind) ? FontStyles.Normal : FontStyles.Bold,
+                    false, 0f, false, 0);
             else
                 InitializeText(null, color, position, FontSize(SelectedSize, critical) * pendingFontScale, finishedCallback,
                     FontStyles.Bold, false, 0f, true, Mathf.Max(1, Mathf.RoundToInt(value)), critical, true);
@@ -339,7 +340,7 @@ public sealed class DamageNumberPopup : MMFloatingText
             targetCamera = Camera.main;
         DamageNumberFeelPreset preset = isDamage ? SelectedPreset : DamageNumberFeelPreset.Original;
         SetUseUnscaledTime((isDamage && preset != DamageNumberFeelPreset.Original)
-            || (hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun), false);
+            || (hasPendingStyle && (pendingStyle.Kind == DamageNumberKind.Stun || DamageNumberStyles.IsParry(pendingStyle.Kind))), false);
         onFinished = finishedCallback;
         _startedAt = GetTime();
         _newPosition = Vector3.zero;
@@ -377,8 +378,9 @@ public sealed class DamageNumberPopup : MMFloatingText
             text.fontSize = fontSize;
             text.fontStyle = fontStyle;
             text.fontWeight = fontStyle == FontStyles.Bold ? FontWeight.Bold : FontWeight.Regular;
-            text.characterSpacing = hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun
-                ? 2.5f : isReaction ? ReactionCharacterSpacing : 0f;
+            text.characterSpacing = hasPendingStyle && DamageNumberStyles.IsParry(pendingStyle.Kind) ? 1f
+                : hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun ? 2.5f
+                : isReaction ? ReactionCharacterSpacing : 0f;
             text.alignment = TextAlignmentOptions.Center;
             if (hasPendingStyle)
                 FloatingFeedbackTextStyle.ApplyStyle(text, baseFontMaterial, DamageNumberStyles.MaterialFor(pendingStyle));
@@ -564,10 +566,19 @@ public sealed class DamageNumberPopup : MMFloatingText
     // 2026-09-30 v2: 종류별 연출은 게임 창 제목과 같은 Noto Serif KR로 쓴다(숫자·기호·방출 이름만 구운 전용 자산).
     private static TMP_FontAsset cachedStyledFont;
     private static TMP_FontAsset cachedStunFont;
+    private static TMP_FontAsset cachedParryFont;
     private static bool styledFontMissingLogged;
 
     private Material ApplyStyledFont(bool isDamage)
     {
+        if (hasPendingStyle && DamageNumberStyles.IsParry(pendingStyle.Kind))
+        {
+            if (cachedParryFont == null)
+                cachedParryFont = Resources.Load<TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Parry SDF");
+            if (cachedParryFont == null) return ApplyFont(isDamage);
+            text.font = cachedParryFont;
+            return cachedParryFont.material != null ? cachedParryFont.material : text.fontSharedMaterial;
+        }
         if (hasPendingStyle && pendingStyle.Kind == DamageNumberKind.Stun)
         {
             if (cachedStunFont == null)

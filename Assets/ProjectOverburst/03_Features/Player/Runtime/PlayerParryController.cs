@@ -212,17 +212,15 @@ public sealed class PlayerParryController : MonoBehaviour
     }
     private void ShowGradeLabel()
     {
-        string label = ActionGrade == ParryGrade.Perfect ? "완벽패링"
-            : ActionGrade == ParryGrade.Normal ? "패링" : "불완전패링";
-        Color color = ActionGrade == ParryGrade.Perfect ? new Color(1f, .82f, .3f)
-            : ActionGrade == ParryGrade.Normal ? Color.white : new Color(.92f, .80f, .62f);
+        DamageNumberKind kind = ActionGrade == ParryGrade.Perfect ? DamageNumberKind.PerfectParry
+            : ActionGrade == ParryGrade.Normal ? DamageNumberKind.Parry : DamageNumberKind.IncompleteParry;
         Vector3 head = transform.position + Vector3.up * 2.1f;
         if (playerTarget != null)
         {
             CombatTargetVolume volume = playerTarget.CurrentVolume;
             head = volume.Center + Vector3.up * (volume.HalfHeight + .35f);
         }
-        DamageNumberSpawner.SpawnStatusText(head, label, color, 0f);
+        DamageNumberSpawner.SpawnParry(head, kind);
     }
     public bool TryCancelDamage(DamageInfo info)
     {

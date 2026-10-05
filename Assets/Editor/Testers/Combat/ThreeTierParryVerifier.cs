@@ -328,6 +328,7 @@ public static class ThreeTierParryVerifier
                 int commits = 0; bool priorCommit = false; float started = Time.unscaledTime;
                 string expectedLabel = expected == ParryGrade.Perfect ? "완벽패링" : expected == ParryGrade.Normal ? "패링" : "불완전패링";
                 var labelInstances = new HashSet<int>();
+                var inspectedLabels = new HashSet<int>();
                 void ObserveLabel()
                 {
                     if (parry.FeedbackCount == feedback) return;
@@ -335,7 +336,10 @@ public static class ThreeTierParryVerifier
                     {
                         var text = popup.GetComponent<TMPro.TextMeshProUGUI>();
                         if (text == null || text.text != expectedLabel || popup.FxElapsed > .3f) continue;
-                        if (!labelInstances.Add(popup.GetInstanceID())) continue;
+                        if (popup.FxElapsed >= .08f && text.color.a > .7f && capturedGrades.Add(expected))
+                            ScreenCapture.CaptureScreenshot(Path.Combine(Output, "parry-" + expected.ToString().ToLowerInvariant() + ".png"));
+                        labelInstances.Add(popup.GetInstanceID());
+                        if (popup.FxElapsed < .08f || !inspectedLabels.Add(popup.GetInstanceID())) continue;
                         text.ForceMeshUpdate();
                         Check(text.textInfo.characterCount == expectedLabel.Length && text.textInfo.characterInfo.Take(expectedLabel.Length)
                             .Select((character, index) => character.textElement != null && character.textElement.unicode == expectedLabel[index]).All(v => v), "Korean grade label glyphs render");
@@ -343,8 +347,13 @@ public static class ThreeTierParryVerifier
                         Vector3 head = Field<Vector3>(popup, "worldPosition");
                         Check(head.y > volume.Center.y + volume.HalfHeight && Vector2.Distance(new Vector2(head.x, head.z),
                             new Vector2(volume.Center.x, volume.Center.z)) < .35f, "grade label originates above player head");
-                        Check(text.color.a > 0f && text.font != null && text.canvas != null, "grade label visible on actual HUD canvas");
-                        if (capturedGrades.Add(expected)) ScreenCapture.CaptureScreenshot(Path.Combine(Output, "parry-" + expected.ToString().ToLowerInvariant() + ".png"));
+                        Check(text.color.a > .7f && text.font != null && text.canvas != null, "grade label visible on actual HUD canvas after entrance fade");
+                        Check(text.font == Resources.Load<TMPro.TMP_FontAsset>("UI/Fonts/DamageFloating/NotoSerifKR_Parry SDF"),
+                            "parry uses baked Noto Serif grade font");
+                        Check(Near(text.fontSize, expected == ParryGrade.Perfect ? 24f : 22f) && Near(text.characterSpacing, 1f)
+                            && text.fontStyle == TMPro.FontStyles.Normal, "parry size spacing and authored SemiBold weight");
+                        Check(text.enableVertexGradient && popup.GetComponentsInChildren<UnityEngine.UI.Image>(false).Length == 0,
+                            "parry grade gradient with no underline plate icons or active accents");
                     }
                 }
                 ObserveLabel();
@@ -360,7 +369,7 @@ public static class ThreeTierParryVerifier
                 ObserveLabel();
                 yield return Wait(.15f);
                 ObserveLabel();
-                Check(labelInstances.Count == 1, "one head grade label per action including simultaneous/deferred parries");
+                Check(labelInstances.Count == 1 && inspectedLabels.Count == 1, "one visible head grade label per action including simultaneous/deferred parries");
                 Check(parry.ParriedAttackCount - parries == enemies.Count && enemies.All(e => !e.AbilityController.IsExecuting), "all source executions cancelled");
                 ObserveCancellation();
                 Check(cancelStun.Count == enemies.Count && cancelStun.Values.All(stunned => stunned == (expected == ParryGrade.Perfect)), "grade stun applies to every enemy");

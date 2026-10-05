@@ -5,7 +5,7 @@ using UnityEngine;
 // 2026-09-30: 피해 숫자 종류별 연출. 움직임·크기·투명도 곡선은 FEEL(MMFloatingText)이 맡고,
 // 글자별 정점 연출·장식은 DamageNumberFx, 글자 재질은 FloatingFeedbackTextStyle이 맡는다.
 // DamageNumberStyleSettings.Enabled를 끄면 이전 연출 경로를 그대로 쓴다(되돌리기 스위치).
-public enum DamageNumberKind { Normal, Critical, DamageOverTime, Discharge, PlayerHit, Heal, Stun }
+public enum DamageNumberKind { Normal, Critical, DamageOverTime, Discharge, PlayerHit, Heal, Stun, IncompleteParry, Parry, PerfectParry }
 
 public enum DamageNumberMaterialStyle
 {
@@ -66,6 +66,20 @@ public sealed class DamageNumberMotion
 
 public static class DamageNumberStyles
 {
+    public static bool IsParry(DamageNumberKind kind) => kind == DamageNumberKind.IncompleteParry
+        || kind == DamageNumberKind.Parry || kind == DamageNumberKind.PerfectParry;
+
+    public static string ParryLabel(DamageNumberKind kind)
+    {
+        switch (kind)
+        {
+            case DamageNumberKind.IncompleteParry: return "불완전패링";
+            case DamageNumberKind.Parry: return "패링";
+            case DamageNumberKind.PerfectParry: return "완벽패링";
+            default: return string.Empty;
+        }
+    }
+
     // 원소 방출 판정: 원소 방출 피해는 약공·강공 표시 없이 Elemental만 달고 온다(ElementDischargeBatch,
     // MeleeHeavyDischargeExecutor, ShatterWaveScheduler, UpperElementCombatUtility). 원소가 붙은 일반 타격은 Weak/Heavy가 같이 붙는다.
     public static DamageNumberStyleRequest Classify(in DamageInfo info, int electricChainCount)
@@ -119,7 +133,10 @@ public static class DamageNumberStyles
         switch (request.Kind)
         {
             case DamageNumberKind.Critical: return DamageNumberMaterialStyle.Critical;
-            case DamageNumberKind.Stun: return DamageNumberMaterialStyle.Critical;
+            case DamageNumberKind.Stun:
+            case DamageNumberKind.IncompleteParry:
+            case DamageNumberKind.Parry:
+            case DamageNumberKind.PerfectParry: return DamageNumberMaterialStyle.Critical;
             case DamageNumberKind.DamageOverTime: return DamageNumberMaterialStyle.DamageOverTime;
             case DamageNumberKind.PlayerHit: return DamageNumberMaterialStyle.PlayerHit;
             case DamageNumberKind.Heal: return DamageNumberMaterialStyle.Heal;
@@ -166,7 +183,10 @@ public static class DamageNumberStyles
         switch (request.Kind)
         {
             case DamageNumberKind.Critical: top = Hex(0xF6DC97); bottom = Hex(0xDDA24A); break;
-            case DamageNumberKind.Stun: top = Hex(0xF2E3B1); bottom = Hex(0xC69954); break;
+            case DamageNumberKind.Stun:
+            case DamageNumberKind.PerfectParry: top = Hex(0xF2E3B1); bottom = Hex(0xC69954); break;
+            case DamageNumberKind.IncompleteParry: top = Hex(0xD2C1A9); bottom = Hex(0xAD9474); break;
+            case DamageNumberKind.Parry: top = Hex(0xEDE6D6); bottom = Hex(0xD6D0C3); break;
             case DamageNumberKind.PlayerHit: top = Hex(0xEE8172); bottom = Hex(0xB52A20); break;
             case DamageNumberKind.Heal: top = Hex(0xBDEAC4); bottom = Hex(0x5DAE6E); break;
             case DamageNumberKind.Discharge:
@@ -213,6 +233,9 @@ public static class DamageNumberStyles
             case DamageNumberKind.PlayerHit: return PlayerHitMotion;
             case DamageNumberKind.Heal: return HealMotion;
             case DamageNumberKind.Stun: return StunMotion;
+            case DamageNumberKind.IncompleteParry: return IncompleteParryMotion;
+            case DamageNumberKind.Parry: return ParryMotion;
+            case DamageNumberKind.PerfectParry: return PerfectParryMotion;
             case DamageNumberKind.Discharge:
                 switch (request.Element)
                 {
@@ -315,6 +338,22 @@ public static class DamageNumberStyles
         Scale = Curve(0f, .78f, .07f, 1.18f, .2f, 1f, 1f, 1f),
         Opacity = Curve(0f, 1f, .68f, 1f, 1f, 0f),
     };
+
+    // 패링은 문구만 표시한다. 장식/밑줄 없이 짧은 팽창·상승·페이드로 등급을 구분한다.
+    private static readonly DamageNumberMotion IncompleteParryMotion = ParryTextMotion(.72f, 8f, 22f / 24f, 1.035f);
+    private static readonly DamageNumberMotion ParryMotion = ParryTextMotion(.82f, 10f, 22f / 24f, 1.05f);
+    private static readonly DamageNumberMotion PerfectParryMotion = ParryTextMotion(.95f, 12f, 1f, 1.08f);
+
+    private static DamageNumberMotion ParryTextMotion(float lifetime, float rise, float fontScale, float peak)
+    {
+        return new DamageNumberMotion
+        {
+            Lifetime = lifetime, Rise = rise, LateralRange = 0f, FontScale = fontScale,
+            Vertical = Curve(0f, 0f, .66f, 0f, 1f, 1f),
+            Scale = Curve(0f, .9f, .12f, peak, .25f, 1f, 1f, 1f),
+            Opacity = Curve(0f, 0f, .12f, 1f, .66f, 1f, 1f, 0f),
+        };
+    }
 
     private static readonly DamageNumberMotion HealMotion = new DamageNumberMotion
     {

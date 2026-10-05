@@ -344,6 +344,17 @@ public sealed class DamageNumberSpawner : MonoBehaviour
             popup.InitializeCustom(displayText, color, presentationPosition, 22f, spawner.ReleasePopup);
     }
 
+    public static void SpawnParry(Vector3 headPosition, DamageNumberKind kind)
+    {
+        if (!DamageNumberStyles.IsParry(kind) || !TryResolveInstance(out DamageNumberSpawner spawner)
+            || !spawner.CanPresent(headPosition))
+            return;
+        DamageNumberPopup popup = spawner.GetPopup();
+        if (popup != null)
+            popup.InitializeStyled(0f, new DamageNumberStyleRequest(kind, WeaponElement.None, false),
+                headPosition, spawner.ReleasePopup, DamageNumberStyles.ParryLabel(kind));
+    }
+
     public static void SpawnStun(Vector3 headPosition)
     {
         if (!TryResolveInstance(out DamageNumberSpawner spawner) || !spawner.CanPresent(headPosition))
