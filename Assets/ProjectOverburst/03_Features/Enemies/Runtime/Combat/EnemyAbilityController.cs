@@ -27,6 +27,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     private bool finalImpactDelivered;
     private int nextImpactIndex;
     private bool warningAimLocked;
+    private bool bossOwnsCommittedAim;
     public void NotifyAbilityImpact(EnemyAbilityDefinition ability, int index)
     {
         if (ability != lastCommittedAbility) return;
@@ -118,7 +119,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         if (strongTarget == null) return;
         if (!IsExecuting) { EndStrongWarning(); return; }
-        if (bossMaterialExecutor != null && bossMaterialExecutor.IsExecuting) return;
+        if (bossOwnsCommittedAim || bossMaterialExecutor != null && bossMaterialExecutor.IsExecuting) return;
         if (finalImpactDelivered) { strongWarning?.Hide(); return; }
         var currentAbility = lastCommittedAbility;
         if (currentAbility != null && currentAbility.UsesPacedTimeline && animationBridge != null
@@ -165,6 +166,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
     {
         reaction?.SetStrongAttackActive(false);
         strongTarget = null;
+        bossOwnsCommittedAim = false;
         strongWarningShown = false;
         strongWarning?.Hide();
         EnemyCombatCoordinator.ReleaseStrongAttack(this);
@@ -344,8 +346,9 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         finalImpactDelivered = false;
         nextImpactIndex = 0;
         warningAimLocked = false;
-        // 예고 공격은 모두 준비 동안 대상을 향해 돈다. 바닥 장판과 패링 빛은 근접 강공만(평타·원거리는 없음).
-        strongWarningShown = selected.Ability.IsMeleeStrongAttack && !(selected.Executor is EnemyBossMaterialExecutor);
+        // 보스 장판과 조준은 재료 실행기가 소유한다. 공용 추적이 확정 방향을 덮어쓰지 않는다.
+        bossOwnsCommittedAim = selected.Executor is EnemyBossMaterialExecutor || selected.Executor is EnemyBossCompositePatternExecutor;
+        strongWarningShown = selected.Ability.IsMeleeStrongAttack && !bossOwnsCommittedAim;
         if (selected.Ability.IsTelegraphedAttack)
         {
             strongTarget = target; strongAim = target.position;

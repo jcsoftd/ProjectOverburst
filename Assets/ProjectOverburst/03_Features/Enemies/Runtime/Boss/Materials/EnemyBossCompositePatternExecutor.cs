@@ -156,12 +156,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
                 entered=true;progress=Mathf.Clamp01(normalized);if(progress+.0001f<last){LastFailure="Composite timeline regressed.";yield break;}
                 speed=actor.Melee.AbilityAnimationSpeed*material.AnimationSpeedMultiplier;
                 actor.AnimationBridge.SetAttackAnimSpeed(material.ability.ResolvePhaseAnimationSpeed(progress,speed));actor.Movement.ApplyActionLock(.25f);
-                float until=material.ability.ResolvePacedTime(material.strikes[0].impact,speed)-material.ability.ResolvePacedTime(progress,speed);
-                if(material.tracksTargetDuringWindup && target!=null && until>material.aimLockLeadSeconds){
-                    aim=actor.AbilityController.ResolveAimPosition(target);aim.y=transform.position.y;
-                    var facing=aim-transform.position;facing.y=0f;aimDistance=Mathf.Max(4f,facing.magnitude);
-                    if(facing.sqrMagnitude>.001f)aimRotation=Quaternion.LookRotation(facing);transform.rotation=aimRotation;
-                }
+                // 시작 시 확정한 aim·aimRotation·aimDistance를 분사와 투척이 끝날 때까지 유지한다.
                 ActiveBeamPhase=-1;
                 for(int phase=0;phase<material.strikes.Length;phase++){
                     var strike=material.strikes[phase];

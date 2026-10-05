@@ -114,12 +114,12 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         castSpeed=actor.Melee.AbilityAnimationSpeed*CurrentMaterial.AnimationSpeedMultiplier;
         if(CurrentMaterial.delivery==EnemyBossMaterialDelivery.Boulder)SetRockHeld(true);
         samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
-        cast=StartCoroutine(Execute(CurrentMaterial,target,generation));return true;
+        cast=StartCoroutine(Execute(CurrentMaterial,generation));return true;
     }
     public override float ResolveCooldown(float baseCooldown)
     {Resolve();return actor!=null && actor.Melee!=null?actor.Melee.ResolveAbilityCooldown(baseCooldown):Mathf.Max(0f,baseCooldown);}
 
-    private IEnumerator Execute(EnemyBossAttackMaterial material,Transform target,int token)
+    private IEnumerator Execute(EnemyBossAttackMaterial material,int token)
     {
         var ability=material.ability;float wait=0f,lastProgress=0f;bool completed=false;
         try
@@ -142,13 +142,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
                 entered=true;progress=Mathf.Clamp01(normalized);
                 if(progress+.0001f<lastProgress){LastFailure="Attack timeline regressed; cancelled.";yield break;}
                 castSpeed=actor.Melee.AbilityAnimationSpeed*material.AnimationSpeedMultiplier;
-                float firstRemaining=ability.ResolvePacedTime(material.strikes[0].impact,castSpeed)-ability.ResolvePacedTime(progress,castSpeed);
-                if(material.tracksTargetDuringWindup && target!=null && firstRemaining>material.aimLockLeadSeconds)
-                {
-                    committedAim=target.position;committedAim.y=transform.position.y;
-                    Vector3 facing=committedAim-transform.position;facing.y=0f;
-                    if(facing.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(facing),60f*Time.fixedDeltaTime);
-                }
+                // 목표는 TryStart에서 확정한다. 장판 전 준비와 후속타에서도 다시 추적하지 않는다.
                 actor.AnimationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress,castSpeed));
                 actor.Movement.ApplyActionLock(.25f);
                 if(material.advanceDistance>0f)
