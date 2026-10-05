@@ -183,7 +183,7 @@ public static partial class SettingsPresentationVerifier
         panel.combatFacingIndicator.isOn = false; panel.motionBlur.isOn = false; panel.edgeBlur.isOn = false;
         Check(!panel.combatFacingBrightness.interactable && !panel.motionBlurIntensity.interactable && !panel.explorationEdgeBlurIntensity.interactable && !panel.combatEdgeBlurIntensity.interactable, "dependent controls disabled coherently");
         panel.combatFacingIndicator.isOn = true; panel.motionBlur.isOn = true; panel.edgeBlur.isOn = true;
-        Check(panel.combatFacingBrightness.interactable && panel.motionBlurIntensity.interactable && panel.explorationEdgeBlurIntensity.interactable, "dependent controls restored");
+        Check(panel.combatFacingBrightness.interactable && panel.motionBlurIntensity.interactable == (OverburstGameSettings.MotionBlurAvailable && OverburstGameSettings.MotionBlurEnabled) && panel.explorationEdgeBlurIntensity.interactable, "dependent controls respect motion availability");
         menu.CloseSettings(); menu.Close(); yield return Frames(3);
         string saved = Path.Combine(output, "isolated-save", OverburstGameSettings.FileName);
         Check(File.Exists(saved), "settings saved when menu closes");

@@ -42,6 +42,7 @@ public static class ScreenEffectSettingsVerifier
         return "PASS: eight settings rows, references, Missing Script 0 and actual edge GPU checks";
     }
     public static int CurrentCycle=>Cycle;
+    public static bool ScreenOnly => SessionState.GetBool(Key + "screenOnly", false);
     public static string Begin(string output)
     {
         if (Phase != 0 || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -61,7 +62,7 @@ public static class ScreenEffectSettingsVerifier
         SessionState.SetString(Key + "activeScene", SceneManager.GetActiveScene().path);
         SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 1800).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         Directory.CreateDirectory(Path.Combine(output,"IsolatedAccount"));
-        File.WriteAllText(Path.Combine(output,"IsolatedAccount",OverburstGameSettings.FileName),"{\"version\":1,\"cameraShake\":0.4,\"hitEffect\":0.6,\"parryPresentation\":true,\"heavyPresentation\":true,\"parryPresentationIntensity\":1,\"heavyPresentationIntensity\":1}");
+        File.WriteAllText(Path.Combine(output,"IsolatedAccount",OverburstGameSettings.FileName),"{\"version\":1,\"cameraShake\":0.4,\"hitEffect\":0.6,\"motionBlur\":true,\"motionBlurIntensity\":0.37,\"parryPresentation\":true,\"heavyPresentation\":true,\"parryPresentationIntensity\":1,\"heavyPresentationIntensity\":1}");
         Cycle = 1;
         Phase = 1;
         SceneManager.SetActiveScene(boot);
@@ -70,9 +71,10 @@ public static class ScreenEffectSettingsVerifier
     }
 
     private static double idleStarted=-1;
-    public static string BeginWhenIdle(string output)
+    public static string BeginWhenIdle(string output, bool screenOnly = false)
     {
         if(Phase!=0)throw new InvalidOperationException("This verifier already running");
+        SessionState.SetBool(Key + "screenOnly", screenOnly);
         SessionState.SetString(Key+"pendingOutput",IsolatedSavePlayGuard.ValidateDirectory(output));
         SessionState.SetString(Key+"pendingDeadline",(EditorApplication.timeSinceStartup+600).ToString("R",System.Globalization.CultureInfo.InvariantCulture));
         SessionState.SetString(Key+"status","WAITING");idleStarted=-1;
@@ -91,7 +93,7 @@ public static class ScreenEffectSettingsVerifier
         SessionState.EraseString(Key+"pendingOutput");SessionState.EraseString(Key+"pendingDeadline");
         try
         {
-            OverburstGameMenuBuilder.AddScreenEffectSettings();
+            // Verify the current product prefab without rebuilding or changing its layout.
             Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output,"assets-result.json"),JsonConvert.SerializeObject(new{status="PASS",result=VerifyAssets()},Formatting.Indented));
             Begin(output);
@@ -134,6 +136,7 @@ public static class ScreenEffectSettingsVerifier
                 WriteResult();
                 SessionState.EraseString(Key + "deadline");
                 SessionState.EraseString(Key + "activeScene");
+                SessionState.EraseBool(Key + "screenOnly");
                 return;
             }
             if (!EditorApplication.isPlaying) return;
@@ -203,7 +206,7 @@ public static class ScreenEffectSettingsVerifier
     {
         if (Phase == 0 || (type != LogType.Error && type != LogType.Exception && type != LogType.Assert)) return;
         var errors = JsonConvert.DeserializeObject<List<string>>(SessionState.GetString(Key + "errors", "[]"));
-        errors.Add(message);
+        errors.Add(message + "\n" + trace);
         SessionState.SetString(Key + "errors", JsonConvert.SerializeObject(errors));
     }
 
@@ -212,6 +215,7 @@ public static class ScreenEffectSettingsVerifier
         if (string.IsNullOrEmpty(Output)) return;
         File.WriteAllText(Path.Combine(Output, "play-result.json"), JsonConvert.SerializeObject(new {
             status = Status, phase = Phase, cycles = Cycle,
+            scope = ScreenOnly ? "SCREEN_EFFECTS" : "FULL_BASELINE",
             checks = JsonConvert.DeserializeObject<List<string>>(SessionState.GetString(Key + "checks", "[]")),
             errors = JsonConvert.DeserializeObject<List<string>>(SessionState.GetString(Key + "errors", "[]")),
             failure = SessionState.GetString(Key + "failure", ""),
@@ -255,7 +259,7 @@ public sealed class ScreenEffectSettingsVerificationRunner : MonoBehaviour
     private static IEnumerator Run()
     {
         yield return VerifySettingsUi();
-        if(ScreenEffectSettingsVerifier.CurrentCycle==1)
+        if(ScreenEffectSettingsVerifier.CurrentCycle==1 && !ScreenEffectSettingsVerifier.ScreenOnly)
         {
             var actor=PlayerContext.Instance.CurrentActor;var equipment=actor.Equipment;
             var melee=actor.GetComponent<MeleeRuntime>();var parry=actor.GetComponent<PlayerParryController>();
@@ -311,6 +315,27 @@ public sealed class ScreenEffectSettingsVerificationRunner : MonoBehaviour
                 if(enteredArena && EnemyThemeTrialService.InArena)EnemyThemeTrialService.ToggleArena();
             }
         }
+        if (ScreenEffectSettingsVerifier.ScreenOnly)
+        {
+            bool enteredArena = false;
+            var previousMode = EnemyThemeTrialService.Mode;
+            try
+            {
+                // Stress50 has a shared roster for every enabled theme; no encounter is started.
+                Check(EnemyThemeTrialService.SetMode(EnemyThemeTrialMode.Stress50).Success, "Supported arena fixture mode selected");
+                enteredArena = EnemyThemeTrialService.ToggleArena().Success;
+                Check(enteredArena, "Combat test map entered for disabled motion check");
+                yield return Wait(.8f);
+                VerifyDisabledVolume(Object.FindFirstObjectByType<OverburstMotionBlur>());
+            }
+            finally
+            {
+                if (EnemyThemeTrialService.InArena) EnemyThemeTrialService.ToggleArena();
+                EnemyThemeTrialService.SetMode(previousMode);
+            }
+            yield return Wait(.5f);
+            VerifyDisabledVolume(Object.FindFirstObjectByType<OverburstMotionBlur>());
+        }
         PreserveNextPlaySettings();ScreenEffectSettingsVerifier.CompleteCycle();
     }
 
@@ -327,20 +352,25 @@ public sealed class ScreenEffectSettingsVerificationRunner : MonoBehaviour
         Check(Object.FindObjectsByType<OverburstEdgeBlur>(FindObjectsSortMode.None).Length==1,"One persistent edge blur service");
         if(ScreenEffectSettingsVerifier.CurrentCycle==1)
         {
-            Check(!OverburstGameSettings.MotionBlurEnabled && Mathf.Approximately(OverburstGameSettings.MotionBlurIntensity,.01f),"Old file keeps motion default OFF / 1%");
+            Check(!OverburstGameSettings.MotionBlurEnabled && Mathf.Approximately(OverburstGameSettings.MotionBlurIntensity,.37f),"Legacy ON is forced OFF while selected intensity is preserved");
             Check(OverburstGameSettings.EdgeBlurEnabled && OverburstGameSettings.ExplorationEdgeBlurIntensity==.72f && OverburstGameSettings.CombatEdgeBlurIntensity==.42f,"Old settings retain exploration/combat edge defaults");
             Check(Mathf.Approximately(OverburstGameSettings.CameraShakeScale,.4f) && Mathf.Approximately(OverburstGameSettings.HitEffectScale,.6f),"Old settings preserve existing player choices");
         }
         else
         {
-            Check(OverburstGameSettings.MotionBlurEnabled && Mathf.Approximately(motion.Settings.intensity.value,.2f),"New Play restores motion ON / 20%");
+            Check(!OverburstGameSettings.MotionBlurEnabled && Mathf.Approximately(OverburstGameSettings.MotionBlurIntensity,.2f) && motion.Settings.intensity.value==0,"Second Play retains motion OFF and saved 20% intensity");
             Check(!OverburstGameSettings.EdgeBlurEnabled && Mathf.Approximately(OverburstGameSettings.ExplorationEdgeBlurIntensity,.55f) && Mathf.Approximately(OverburstGameSettings.CombatEdgeBlurIntensity,.25f),"New Play restores edge OFF and both saved mode intensities");
         }
         menu.Open();menu.OpenSettings();var panel=menu.settings;panel.tabs[2].isOn=true;
         yield return Wait(.25f);
-        Check(panel.combatScroll.content.childCount==8 && panel.motionBlur!=null && panel.edgeBlur!=null,"Only remaining settings controls present");
+        Check(panel.motionBlur!=null && panel.edgeBlur!=null && panel.motionBlur.transform.IsChildOf(panel.combatScroll.content) && panel.edgeBlur.transform.IsChildOf(panel.combatScroll.content),"Screen settings retained in current product scroll layout");
         Check(Time.timeScale==0,"Settings pause retained");
-        foreach(var toggle in new[]{panel.motionBlur,panel.edgeBlur})
+        Check(!OverburstGameSettings.MotionBlurAvailable && !panel.motionBlur.interactable && !panel.motionBlurIntensity.interactable && !panel.motionBlur.isOn,"Motion controls show unavailable OFF state");
+        ClickControl(panel.motionBlur);Check(!panel.motionBlur.isOn && !motion.IsEnabled,"Pointer cannot enable unavailable motion blur");
+        float disabledIntensity=panel.motionBlurIntensity.value;
+        ClickSlider(panel.motionBlurIntensity,.5f);Check(Mathf.Approximately(panel.motionBlurIntensity.value,disabledIntensity),"Pointer cannot change unavailable intensity");
+        VerifyDisabledVolume(motion);
+        foreach(var toggle in new[]{panel.edgeBlur})
         {
             bool before=toggle.isOn;ClickControl(toggle);Check(toggle.isOn!=before,"Visible settings toggle raycast applies "+toggle.transform.parent.parent.name);ClickControl(toggle);
         }
@@ -356,8 +386,10 @@ public sealed class ScreenEffectSettingsVerificationRunner : MonoBehaviour
         Check(Mathf.Approximately(OverburstEdgeBlur.CurrentStrength,.25f),"Combat uses its independent saved edge intensity immediately while paused");
         if(!wasCombat)mode.ExitCombatMode(PlayerCombatModeReason.System);
         panel.motionBlur.isOn=true;
-        Check(Mathf.Approximately(motion.Settings.intensity.value,.2f),"Motion volume updates immediately while menu is paused");
-        foreach(var slider in new[]{panel.motionBlurIntensity,panel.explorationEdgeBlurIntensity,panel.combatEdgeBlurIntensity})
+        Check(!panel.motionBlur.isOn && !motion.IsEnabled && motion.Settings.intensity.value==0,"Programmatic toggle cannot enable motion while paused");
+        OverburstGameSettings.MotionBlurEnabled=true;
+        Check(!OverburstGameSettings.MotionBlurEnabled && motion.Settings.intensity.value==0,"Direct settings ON request remains OFF");
+        foreach(var slider in new[]{panel.explorationEdgeBlurIntensity,panel.combatEdgeBlurIntensity})
         {
             ClickSlider(slider,.5f);
             Check(Mathf.Abs(slider.normalizedValue-.5f)<.03f,"Visible settings slider accepts pointer "+slider.transform.parent.parent.name);
@@ -366,18 +398,42 @@ public sealed class ScreenEffectSettingsVerificationRunner : MonoBehaviour
         panel.motionBlurIntensity.value=.12f;
         menu.CloseSettings();
         var saved=File.ReadAllText(OverburstGameSettings.FilePath);
-        Check(!saved.Contains("parryPresentation") && !saved.Contains("heavyPresentation") && saved.Contains("motionBlurIntensity"),"Saving drops retired fields and retains motion setting");
+        var savedJson=Newtonsoft.Json.Linq.JObject.Parse(saved);
+        Check(!saved.Contains("parryPresentation") && !saved.Contains("heavyPresentation") && !(bool)savedJson["motionBlur"] && Mathf.Approximately((float)savedJson["motionBlurIntensity"],.12f),"Saving stores motion OFF and retains selected intensity");
         Check(saved.Contains("edgeBlur") && saved.Contains("explorationEdgeBlurIntensity") && saved.Contains("combatEdgeBlurIntensity"),"Closing settings persists edge switch and both mode intensities");
         menu.OpenSettings();panel.tabs[2].isOn=true;yield return null;
         Check(Mathf.Approximately(panel.motionBlurIntensity.value,.12f),"Reopening restores selected motion intensity");
         Check(panel.edgeBlur.isOn && Mathf.Approximately(panel.explorationEdgeBlurIntensity.value,.55f) && Mathf.Approximately(panel.combatEdgeBlurIntensity.value,.25f),"Reopening settings restores both edge strengths");
-        panel.combatScroll.verticalNormalizedPosition=0;Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();Capture("FormalSettings");
+        ScrollTo(panel.motionBlur);Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();Capture("MotionBlurDisabled");
         panel.resetButton.onClick.Invoke();
         Check(!panel.motionBlur.isOn && Mathf.Approximately(panel.motionBlurIntensity.value,.01f),"Reset retains motion OFF / 1%");
         Check(panel.edgeBlur.isOn && Mathf.Approximately(panel.explorationEdgeBlurIntensity.value,.72f) && Mathf.Approximately(panel.combatEdgeBlurIntensity.value,.42f),"Combat reset restores edge ON / exploration 72% / combat 42%");
         OverburstGameSettings.MotionBlurIntensity=float.NaN;Check(Mathf.Approximately(OverburstGameSettings.MotionBlurIntensity,.01f),"Motion NaN falls back safely");
         panel.resetButton.onClick.Invoke();menu.CloseSettings();menu.Close();yield return Wait(.25f);
         Check(!OverburstGameMenu.IsOpen && Time.timeScale>0,"Menu closes and resumes gameplay");
+    }
+    private static void VerifyDisabledVolume(OverburstMotionBlur motion)
+    {
+        Check(motion != null && !motion.IsEnabled && motion.Volume.enabled && motion.Settings.intensity.value == 0 && !motion.Settings.IsActive(), "Owned override stays zero and native blur pass inactive");
+        Check(motion.TargetCamera != null, "Product camera remains bound across maps");
+        GameObject host=null;VolumeProfile profile=null;VolumeStack stack=null;
+        try
+        {
+            host=new GameObject("DisabledMotionFallbackFixture",typeof(Volume));host.layer=motion.Volume.gameObject.layer;
+            profile=ScriptableObject.CreateInstance<VolumeProfile>();profile.hideFlags=HideFlags.DontSave;
+            var fallback=profile.Add<MotionBlur>(true);fallback.intensity.Override(1f);
+            var volume=host.GetComponent<Volume>();volume.isGlobal=true;volume.priority=motion.Volume.priority-1;volume.sharedProfile=profile;
+            stack=VolumeManager.instance.CreateStack();
+            VolumeManager.instance.Update(stack,motion.TargetCamera.transform,1<<host.layer);
+            var composed=stack.GetComponent<MotionBlur>();
+            Check(composed.intensity.value==0 && !composed.IsActive(), "Lower-priority map blur ON composes to zero / inactive");
+        }
+        finally
+        {
+            if(stack!=null)VolumeManager.instance.DestroyStack(stack);
+            if(host!=null)Object.DestroyImmediate(host);
+            if(profile!=null){foreach(var component in profile.components)Object.DestroyImmediate(component);Object.DestroyImmediate(profile);}
+        }
     }
     private static void ScrollTo(UnityEngine.UI.Selectable control)
     {

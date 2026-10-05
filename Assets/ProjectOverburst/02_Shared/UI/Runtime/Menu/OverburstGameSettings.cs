@@ -76,7 +76,13 @@ public static class OverburstGameSettings
     public static bool EdgeBlurEnabled { get { Ensure(); return data.edgeBlur; } set { Ensure(); if(data.edgeBlur==value)return; data.edgeBlur=value; Notify(); } }
     public static float ExplorationEdgeBlurIntensity { get { Ensure(); return data.explorationEdgeBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.72f,1f); if(Mathf.Approximately(data.explorationEdgeBlurIntensity,v))return; data.explorationEdgeBlurIntensity=v; Notify(); } }
     public static float CombatEdgeBlurIntensity { get { Ensure(); return data.combatEdgeBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.42f,1f); if(Mathf.Approximately(data.combatEdgeBlurIntensity,v))return; data.combatEdgeBlurIntensity=v; Notify(); } }
-    public static bool MotionBlurEnabled { get { Ensure(); return data.motionBlur; } set { Ensure(); if(data.motionBlur==value)return; data.motionBlur=value; Notify(); } }
+    // 현재 제품에서는 사용하지 않는다. 향후 블러 연결 시 이 정책과 기본값을 함께 검토한다.
+    public static bool MotionBlurAvailable => false;
+    public static bool MotionBlurEnabled
+    {
+        get { Ensure(); return MotionBlurAvailable && data.motionBlur; }
+        set { Ensure(); value = MotionBlurAvailable && value; if (data.motionBlur == value) return; data.motionBlur = value; Notify(); }
+    }
     public static float MotionBlurIntensity { get { Ensure(); return data.motionBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.01f,1f); if(Mathf.Approximately(data.motionBlurIntensity,v))return; data.motionBlurIntensity=v; Notify(); } }
     private static float NormalizeEffect(float value,float fallback,float maximum) => float.IsNaN(value)||float.IsInfinity(value) ? fallback : Mathf.Clamp(value,0f,maximum);
 
@@ -168,6 +174,11 @@ public static class OverburstGameSettings
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
             read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
+            if (!MotionBlurAvailable && read.motionBlur)
+            {
+                read.motionBlur = false;
+                dirty = true; // 기존 켜짐 값도 다음 정상 설정 저장 때 꺼짐으로 기록한다.
+            }
             read.motionBlurIntensity = NormalizeEffect(read.motionBlurIntensity,.01f,1f);
             read.explorationEdgeBlurIntensity=NormalizeEffect(read.explorationEdgeBlurIntensity,.72f,1f);read.combatEdgeBlurIntensity=NormalizeEffect(read.combatEdgeBlurIntensity,.42f,1f);
             read.bloodA = read.bloodA ?? new BloodComparisonTuning.Values(false);

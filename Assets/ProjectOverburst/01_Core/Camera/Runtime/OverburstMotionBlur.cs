@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-/// <summary>게임 설정의 모션블러 선택을 모든 빌드에 적용한다. 꺼짐은 맵의 블러도 0으로 덮는다.</summary>
+/// <summary>사용 가능 정책과 게임 설정을 적용한다. 현재 꺼짐은 맵의 블러도 0으로 덮어 렌더 패스를 비활성화한다.</summary>
 [DisallowMultipleComponent]
 public sealed class OverburstMotionBlur : MonoBehaviour
 {
@@ -78,6 +78,7 @@ public sealed class OverburstMotionBlur : MonoBehaviour
     private void ApplyState()
     {
         if (motionBlur != null) motionBlur.intensity.Override(IsEnabled ? SelectedIntensity : 0f);
+        // 꺼짐에도 Volume을 유지해 하위 맵 프로필의 모션블러가 다시 드러나지 않게 한다.
         if (volume != null) volume.enabled = isActiveAndEnabled;
     }
     private void OnEnable() { if (instance == this) ApplyState(); }

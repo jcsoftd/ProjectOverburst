@@ -231,7 +231,22 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     void RefreshDependencies()
     {
         if (combatFacingBrightness != null) combatFacingBrightness.interactable = OverburstGameSettings.CombatFacingIndicator;
-        if (motionBlurIntensity != null) motionBlurIntensity.interactable = OverburstGameSettings.MotionBlurEnabled;
+        if (motionBlur != null)
+        {
+            motionBlur.SetIsOnWithoutNotify(OverburstGameSettings.MotionBlurEnabled);
+            motionBlur.GetComponent<UIToggle_OnOff>()?.OnValueChanged(motionBlur.isOn);
+            motionBlur.interactable = OverburstGameSettings.MotionBlurAvailable;
+            for (var row = motionBlur.transform.parent; row != null; row = row.parent)
+            {
+                var description = row.Find("Description")?.GetComponent<Text>();
+                if (description == null) continue;
+                description.text = OverburstGameSettings.MotionBlurAvailable
+                    ? "움직이는 카메라와 캐릭터의 잔상 · 기본 꺼짐"
+                    : "현재 사용하지 않습니다";
+                break;
+            }
+        }
+        if (motionBlurIntensity != null) motionBlurIntensity.interactable = OverburstGameSettings.MotionBlurAvailable && OverburstGameSettings.MotionBlurEnabled;
         if (explorationEdgeBlurIntensity != null) explorationEdgeBlurIntensity.interactable = OverburstGameSettings.EdgeBlurEnabled;
         if (combatEdgeBlurIntensity != null) combatEdgeBlurIntensity.interactable = OverburstGameSettings.EdgeBlurEnabled;
     }
