@@ -124,10 +124,10 @@ public static class GreatswordHeavyParryBuilder
             attack.animationClip = clip; attack.animationSpeedMultiplier = 1f;
             attack.transitionDuration = .1f; attack.continuationStartNormalizedTime = .138f / clip.length;
             attack.playbackAcceleration = default;
-            attack.movementPhases = CopyMovementPhases(weapon.heavyAttackDefinition.attack.movementPhases);
             attack.visualHeightCurve = new AnimationCurve();
             attack.actionCancelStartNormalized = 1.05f / clip.length;
             attack.attackPhases = new[] { first, second, slam };
+            attack.movementPhases = MeleeRuntime.CreateParryCounterMovementPhases(weapon.comboDefinition.steps[2], attack, 2, MeleeRuntime.ParryCounterMaximumTravel);
             attack.trailPhases = new[] {
                 new AttackTrailPhaseData { startNormalizedTime = first.SafeStart, endNormalizedTime = first.SafeEnd },
                 new AttackTrailPhaseData { startNormalizedTime = second.SafeStart, endNormalizedTime = second.SafeEnd },
@@ -174,28 +174,11 @@ public static class GreatswordHeavyParryBuilder
             throw new InvalidOperationException("일반·패링 강공 정의가 필요합니다.");
         var counter = weapon.parriedHeavyAttackDefinition;
         var step = counter.attack;
-        step.movementPhases = CopyMovementPhases(weapon.heavyAttackDefinition.attack.movementPhases);
+        step.movementPhases = MeleeRuntime.CreateParryCounterMovementPhases(weapon.comboDefinition.steps[2], step, counter.SafeDischargePhaseIndex, MeleeRuntime.ParryCounterMaximumTravel);
         counter.attack = step;
         EditorUtility.SetDirty(counter);
         AssetDatabase.SaveAssetIfDirty(counter);
     }
-
-    private static AttackMovementPhaseData[] CopyMovementPhases(AttackMovementPhaseData[] source)
-    {
-        if (source == null) return Array.Empty<AttackMovementPhaseData>();
-        var copy = (AttackMovementPhaseData[])source.Clone();
-        for (int i = 0; i < copy.Length; i++)
-        {
-            var phase = copy[i];
-            phase.progressCurve = CopyCurve(phase.progressCurve);
-            phase.localForwardCurve = CopyCurve(phase.localForwardCurve);
-            copy[i] = phase;
-        }
-        return copy;
-    }
-
-    private static AnimationCurve CopyCurve(AnimationCurve curve) => curve == null ? null
-        : new AnimationCurve(curve.keys) { preWrapMode = curve.preWrapMode, postWrapMode = curve.postWrapMode };
 
     private static Keyframe Boundary(AnimationCurve curve, float time, float shiftedTime)
     {

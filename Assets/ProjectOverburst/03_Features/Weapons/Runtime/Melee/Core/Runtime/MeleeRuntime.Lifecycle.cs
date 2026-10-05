@@ -21,7 +21,7 @@ public partial class MeleeRuntime
 
         if (!shouldContinueCombo && !shouldCancelByMoveInput)
         {
-            attackMovementExecutor.Tick(Mathf.Max(normalizedTime, heavyParryMovementFloor));
+            attackMovementExecutor.Tick(normalizedTime);
             attackVisualHeight.Tick(normalizedTime);
             attackTrailExecutor.Tick(normalizedTime);
         }
@@ -263,6 +263,11 @@ public partial class MeleeRuntime
 
     private void ApplyAttackDisplacement(Vector3 displacement)
     {
+        if (heavyParryCounterMovement)
+        {
+            ApplyHeavyParryCounterDisplacement(displacement);
+            return;
+        }
         // Greatsword weak hits already spend the full advance-based knockback budget.
         // A second, damage-free body push would exceed it before the hit lands.
         if (activeAttackIsHeavy || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword)

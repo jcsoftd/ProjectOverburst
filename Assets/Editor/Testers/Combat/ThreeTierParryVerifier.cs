@@ -97,7 +97,7 @@ public static class ThreeTierParryVerifier
         var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(GreatswordHeavyParryBuilder.WeaponDefinitionPath);
         var normal = weapon.heavyAttackDefinition.attack.movementPhases;
         var counter = weapon.parriedHeavyAttackDefinition.attack.movementPhases;
-        Check(normal != null && normal.Length > 0 && counter != null && counter.Length == normal.Length, "counter has normal heavy movement phases");
+        Check(normal != null && normal.Length > 0 && counter != null && counter.Length == 2, "counter has separate rotation and landing movement phases");
         float Travel(AttackMovementPhaseData[] phases, float start, float end, int fps)
         {
             float distance = 0f;
@@ -110,12 +110,11 @@ public static class ThreeTierParryVerifier
         foreach (int fps in new[] { 15, 30, 60 })
         {
             Check(Near(Travel(normal, 0f, 1f, fps), 2f) && Near(Travel(counter, 0f, 1f, fps), 2f), "normal and counter advance two meters at " + fps);
-            foreach (float beforeParry in new[] { 0f, .10f, .20f, .34f, .5f })
-            {
-                float resume = Mathf.Max(beforeParry, .138f / weapon.parriedHeavyAttackDefinition.attack.animationClip.length);
-                float total = Travel(normal, 0f, beforeParry, fps) + Travel(counter, resume, 1f, fps);
-                Check(Near(total, 2f), "late parry preserves two-meter total without duplicated travel " + fps + "/" + beforeParry);
-            }
+            float rotation = Travel(counter, 0f, counter[0].SafeEnd, fps);
+            var comboThird = weapon.comboDefinition.steps[2];
+            float comboTravel = Travel(comboThird.movementPhases, 0f, 1f, fps);
+            Check(Near(rotation, comboTravel), "counter rotations use combo3 travel at " + fps);
+            Check(Near(Travel(counter, counter[1].SafeStart, counter[1].SafeEnd, fps), 2f - comboTravel), "remaining travel ends at landing impact at " + fps);
         }
     }
 
@@ -273,6 +272,10 @@ public static class ThreeTierParryVerifier
             var equipGem = typeof(PlayerEquipment).GetMethod("SetElementGem", Fields);
             var fire = AssetDatabase.LoadAssetAtPath<ElementGemItemData>("Assets/ProjectOverburst/Resources/Items/ElementGems/EG_Fire_Common.asset");
             equipGem.Invoke(actor.Equipment, new object[] { new ItemData(fire, 1, ItemGrade.Common) });
+            float bootUntil = Time.unscaledTime + 30f;
+            while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
+                || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)
+            { Check(Time.unscaledTime < bootUntil, "hideout finishes boot before trial entry"); yield return null; }
             if (!ui.InArena) ui.ToggleArena(); yield return Wait(1f);
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "actual trial spawn service");
             foreach (var table in ui.tables) Check(spawn.RegisterAdditionalCatalog(table.Catalog, out _), "catalog registered");
@@ -321,18 +324,20 @@ public static class ThreeTierParryVerifier
                 Energy(50f); yield return Wait(.3f);
                 Vector3 origin = player.transform.position;
                 Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, "free-lane heavy accepted");
+                float expectedDistance = 2f;
                 if (parryAt >= 0f)
                 {
                     float deadline = Time.unscaledTime + 5f;
                     while ((float)typeof(MeleeRuntime).GetMethod("GetAttackNormalizedTime", Fields).Invoke(melee, null) < parryAt)
                     { Check(Time.unscaledTime < deadline, "late parry control reaches requested progress"); yield return null; }
+                    expectedDistance = Vector3.Dot(player.transform.position - origin, Vector3.forward);
                     melee.NotifyHeavyParried(Field<int>(melee, "activeActionId"), ParryGrade.Normal);
                 }
                 float timeout = Time.unscaledTime + 12f;
                 while (melee.IsAttackInProgress) { Check(Time.unscaledTime < timeout, "free-lane action completes"); yield return null; }
                 float distance = Vector3.Dot(player.transform.position - origin, Vector3.forward);
                 Write("free-travel-" + (parryAt < 0f ? "normal" : parryAt == 0f ? "immediate" : "late") + ".json", new { distance, parryAt });
-                Check(Near(distance, 2f, .1f), "actual free-lane normal/immediate/late counter advance: " + distance);
+                Check(Near(distance, expectedDistance, .1f), "normal heavy retains travel; targetless counter preserves prior travel without a blind lunge: " + distance);
                 yield return Wait(.3f);
             }
             foreach (var item in new[] { (0f, 1, false), (29.999f, 1, false), (30f, 1, false), (79.999f, 1, false), (80f, 1, false),

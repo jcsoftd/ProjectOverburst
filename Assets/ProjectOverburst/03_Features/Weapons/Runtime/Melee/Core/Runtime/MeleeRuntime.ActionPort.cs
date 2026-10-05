@@ -379,7 +379,9 @@ public partial class MeleeRuntime
     // Compatibility for direct counter-motion tools; product defense supplies the locked grade.
     public void NotifyHeavyParried(int actionId) => NotifyHeavyParried(actionId, ParryGrade.Perfect);
 
-    public void NotifyHeavyParried(int actionId, ParryGrade grade)
+    public void NotifyHeavyParried(int actionId, ParryGrade grade) => NotifyHeavyParried(actionId, grade, null);
+
+    public void NotifyHeavyParried(int actionId, ParryGrade grade, EnemyActor counterTarget)
     {
         if (!activeAttackIsHeavy || heavyParried || heavyParryOnly || actionId <= 0 || actionId != activeActionId) return;
         if (grade == ParryGrade.Incomplete)
@@ -391,6 +393,7 @@ public partial class MeleeRuntime
             return;
         }
         heavyParried = true;
+        SetHeavyParryCounterTarget(counterTarget);
         if (heavyDischargeCommitted) activeDischarge?.TryRefundParried();
         else TryBeginHeavyParryMotion();
     }

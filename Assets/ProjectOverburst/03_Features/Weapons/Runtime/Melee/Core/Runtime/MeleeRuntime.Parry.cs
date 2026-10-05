@@ -6,7 +6,6 @@ public partial class MeleeRuntime
     private HeavyParryStage heavyParryStage;
     private float heavyParryElapsed, heavyParryDuration, heavyParryBridgeDuration;
     private float heavyParrySavedElapsed, heavyParrySavedProgress;
-    private float heavyParryMovementFloor;
     private bool heavyParrySwingPending;
     private bool heavyParryOnly;
     private int heavyParryStartedFrame;
@@ -46,8 +45,7 @@ public partial class MeleeRuntime
         }
         heavyParrySavedProgress = parryOnly ? previousProgress : Mathf.Clamp(heavyStartSeconds / Mathf.Max(.01f, activeAttackAnimationClip.length), 0f, .95f);
         heavyParrySavedElapsed = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(heavyParrySavedProgress);
-        // A fixed pose restart must neither undo late-parry travel nor apply skipped windup travel.
-        heavyParryMovementFloor = Mathf.Max(previousProgress, heavyParrySavedProgress);
+        // Counter travel starts after the parry bridge and owns a fresh target-limited budget.
         HeavyParryContactDelay = contactDelay;
         heavyParryElapsed = 0f;
         heavyParryStartedFrame = Time.frameCount;
@@ -127,8 +125,7 @@ public partial class MeleeRuntime
         heavyParryStage = HeavyParryStage.None;
         BeginHeavyFocusPresentation();
         attackStartTime = Time.time - heavyParrySavedElapsed;
-        attackMovementExecutor.Begin(activeAttackStep.movementPhases, activeAttackDirection,
-            ApplyAttackDisplacement, heavyParryMovementFloor);
+        if (!BeginHeavyParryCounterMovement()) return true;
         attackTrailExecutor.Begin(activeAttackStep.trailPhases, StartAttackTrail, StopAttackTrail);
         float remainingDuration = attackDuration * activeAttackStep.playbackAcceleration.ToElapsed(1f) - heavyParrySavedElapsed;
         MeleeAttackLock.Begin(playerController, remainingDuration, activeAttackDirection);
@@ -143,7 +140,7 @@ public partial class MeleeRuntime
 
     private void HoldHeavyParryLocks()
     {
-        // Reissuing the owned lock also covers a late parry after some heavy advance.
+        // Keep the accepted action locked through the stationary parry and its bridge.
         MeleeAttackLock.Begin(playerController, Mathf.Max(.1f, attackDuration), activeAttackDirection);
         playerEquipment?.CurrentWeaponPose?.BeginActivePose(Mathf.Max(.1f, attackDuration));
     }
@@ -168,6 +165,6 @@ public partial class MeleeRuntime
         heavyParryOnly = false;
         heavyParryElapsed = heavyParryDuration = heavyParryBridgeDuration = 0f;
         heavyParrySavedElapsed = heavyParrySavedProgress = HeavyParryContactDelay = 0f;
-        heavyParryMovementFloor = 0f;
+        ResetHeavyParryMovement();
     }
 }

@@ -134,6 +134,19 @@ public sealed class PlayerParryController : MonoBehaviour
     {
         ParryGrade grade = ActionGrade; int resolvedActionId = actionId;
         Vector3 center = Vector3.zero;
+        EnemyActor counterTarget = null; float nearestDistance = float.PositiveInfinity;
+        Vector3 playerCenter = playerTarget != null ? playerTarget.CurrentVolume.Center : transform.position;
+        for (int i = 0; i < threats.Length; i++)
+        {
+            EnemyActor enemy = threats[i].Enemy;
+            CombatTarget target = enemy.GetComponent<CombatTarget>();
+            Vector3 offset = (target != null ? target.CurrentVolume.Center : enemy.transform.position) - playerCenter;
+            offset.y = 0f;
+            float distance = offset.sqrMagnitude;
+            if (distance < nearestDistance || distance == nearestDistance
+                && (counterTarget == null || enemy.GetInstanceID() < counterTarget.GetInstanceID()))
+            { nearestDistance = distance; counterTarget = enemy; }
+        }
         // Record every execution before cancelling any of them or emitting HP events.
         for (int i = 0; i < threats.Length; i++)
         { cancelledExecutions.Add(threats[i].Key); parriedThisAction.Add(threats[i].Enemy); center += threats[i].Contact; }
@@ -144,7 +157,7 @@ public sealed class PlayerParryController : MonoBehaviour
             enemy.GetComponent<HitFlashFeedback>()?.FlashOnce();
             CancelAndReact(enemy, transform.position, grade);
         }
-        melee?.NotifyHeavyParried(resolvedActionId, grade);
+        melee?.NotifyHeavyParried(resolvedActionId, grade, counterTarget);
         SuccessCount++; ParriedAttackCount += threats.Length;
         if (grade == ParryGrade.Incomplete)
             for (int i = 0; i < threats.Length; i++) health?.TakeParryResidualDamage(threats[i].Damage, IncompleteDamageFraction);
