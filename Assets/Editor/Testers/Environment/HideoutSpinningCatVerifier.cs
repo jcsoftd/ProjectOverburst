@@ -20,7 +20,7 @@ public static class HideoutSpinningCatVerifier
     const string Key = "Overburst.OiiaCatVerifier.";
     static int Phase {get => SessionState.GetInt(Key + "phase", 0); set => SessionState.SetInt(Key + "phase", value);}
     static int Cycle {get => SessionState.GetInt(Key + "cycle", 1); set => SessionState.SetInt(Key + "cycle", value);}
-    static string Account => Path.GetFullPath(Path.Combine(HideoutSpinningCatBuilder.Output, "IsolatedAccount"));
+    static string Account => Path.GetFullPath(Path.Combine(HideoutOiiaReferenceBuilder.Output, "IsolatedAccount"));
     static HideoutSpinningCatEasterEgg cat;
     static PlayerActorRuntime player;
     static Keyboard keyboard;
@@ -42,7 +42,7 @@ public static class HideoutSpinningCatVerifier
         if (Phase != 0) throw new InvalidOperationException("Verifier already running.");
         var boot = SceneManager.GetSceneByName(PersistentSceneFlow.PersistentSceneName);
         if (!boot.isLoaded) throw new InvalidOperationException("PersistentScene required.");
-        Directory.CreateDirectory(HideoutSpinningCatBuilder.Output);
+        Directory.CreateDirectory(HideoutOiiaReferenceBuilder.Output);
         SessionState.SetString(Key + "before", HideoutSpinningCatBuilder.EditorSnapshot());
         SessionState.SetString(Key + "start", EditorSceneManager.playModeStartScene == null ? "" : AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "real", RealHash());
@@ -55,7 +55,7 @@ public static class HideoutSpinningCatVerifier
         return "OIIA two isolated boots scheduled; verifier owns only its isolated save and transient input device.";
     }
 
-    static void Deadline() => SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 150).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+    static void Deadline() => SessionState.SetString(Key + "deadline", (EditorApplication.timeSinceStartup + 260).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
     static bool OwnsAccount() => string.Equals(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), Account, StringComparison.OrdinalIgnoreCase);
     static void State(PlayModeStateChange state)
     {
@@ -111,7 +111,9 @@ public static class HideoutSpinningCatVerifier
                 var bindings = AnimationUtility.GetCurveBindings(clip);
                 Check(bindings.Any(b => b.propertyName.StartsWith("blendShape.")) && bindings.Any(b => b.propertyName.Contains("Rotation")), "Original transform and morph curves imported");
                 Check(so.FindProperty("hitsToActivate").intValue == 50, "Threshold exactly 50");
-                Check(so.FindProperty("music").objectReferenceValue == null, "Unavailable remix is not substituted");
+                Check(cat.HasReferenceMedia && so.FindProperty("music").objectReferenceValue != null, "Supplied remix, original photo and timeline assigned");
+                Check(!cat.IsReferenceSpinning && ((GameObject)so.FindProperty("stillVisual").objectReferenceValue).activeSelf,
+                    "Idle cat displays the exact reference photo");
                 HitThroughAttackArea(1);
                 Check(cat.HitCount == 1 && !cat.IsActive, "Actual attack area and damage resolver register one hit");
                 var health = cat.GetComponent<CombatHealth>();
@@ -136,7 +138,7 @@ public static class HideoutSpinningCatVerifier
             {
                 Check(cat.VisibleCatCount == 12, "Population reaches bounded 12 cats");
                 Check(Resources.FindObjectsOfTypeAll<RenderTexture>().Any(t => t.name == "OIIA stage (temporary)" && t.IsCreated()), "Screen stage texture created");
-                capturing = true; player.StartCoroutine(Capture());
+                capturing = true; player.StartCoroutine(CaptureChecked());
             }
             else if (Phase == 3)
             {
@@ -151,6 +153,7 @@ public static class HideoutSpinningCatVerifier
                 if (keyboard != null) {InputSystem.RemoveDevice(keyboard); keyboard = null;}
                 Check(!GameplayInputBlocker.IsGameplayInputBlocked && PlayerInputFacade.Current.IsGameplayEnabled, "Escape restores gameplay input");
                 Check(cat.HitCount == 0, "Escape resets the 50-hit counter");
+                Check(!cat.GetComponent<AudioSource>().isPlaying && !cat.IsReferenceSpinning, "Escape stops audio and restores the still photo");
                 for (int i = 1; i <= 50; i++) HitThroughAttackArea(i + 100);
                 Check(cat.IsActive && cat.ActivationCount == 2, "Another 50 hits can retrigger");
                 cat.gameObject.SetActive(false);
@@ -165,7 +168,7 @@ public static class HideoutSpinningCatVerifier
                 Check(!Resources.FindObjectsOfTypeAll<RenderTexture>().Any(t => t.name == "OIIA stage (temporary)"), "Transient render texture destroyed");
                 var errors = JsonConvert.DeserializeObject<List<string>>(SessionState.GetString(Key + "errors", "[]"));
                 Check(errors.Count == 0, "No runtime errors");
-                Write("play_cycle_" + Cycle + ".json", new {status = "PASS", checks, errors, cycle = Cycle, audio = "NOT_RUN_MISSING_CLIP", userFeel = "NOT_RUN", playerBuild = "NOT_RUN"});
+                Write("play_cycle_" + Cycle + ".json", new {status = "PASS", checks, errors, cycle = Cycle, audio = "PASS_NATIVE_PLAYBACK_AND_SAMPLE_CLOCK", referenceTiming = "PASS_ALL_REFERENCE_BOUNDARIES", userFeel = "NOT_RUN", playerBuild = "NOT_RUN"});
                 Phase = 8; EditorApplication.ExitPlaymode();
             }
         }
@@ -208,17 +211,95 @@ public static class HideoutSpinningCatVerifier
         finally {executor.Cancel(); Object.Destroy(pattern);}
     }
 
+    static System.Collections.IEnumerator CaptureChecked()
+    {
+        var routine = Capture();
+        while (true)
+        {
+            object step = null; Exception failure = null; bool more = false;
+            try { more = routine.MoveNext(); if (more) step = routine.Current; }
+            catch (Exception exception) { failure = exception; }
+            if (failure != null)
+            {
+                Write("failure.json", new {status = "FAIL", error = failure.ToString(), cycle = Cycle, checks});
+                Phase = 9;
+                if (EditorApplication.isPlaying && OwnsAccount()) EditorApplication.ExitPlaymode();
+                yield break;
+            }
+            if (!more) yield break;
+            yield return step;
+        }
+    }
     static System.Collections.IEnumerator Capture()
     {
         Texture2D texture = null;
+        var source = cat.GetComponent<AudioSource>();
         try
         {
+            var so = new SerializedObject(cat);
+            var timeline = (OiiaCatReferenceTimeline)so.FindProperty("referenceTimeline").objectReferenceValue;
+            var expected = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(HideoutOiiaReferenceBuilder.Output, "Prepared/timeline.json")));
+            var boundaries = expected["transitionFrames"].ToObject<int[]>();
+            Check(source.isPlaying && source.timeSamples > 0 && source.clip.frequency == 44100 && source.clip.samples == 5937330,
+                "Actual supplied audio is playing and its sample position advances");
+            int beforeSample = source.timeSamples;
+            yield return new WaitForSecondsRealtime(.15f);
+            Check(source.timeSamples > beforeSample, "Audio sample clock advances independently of scene time");
+            var samples = new float[2048]; source.GetOutputData(samples, 0);
+            // Unity allocates the analysis buffer on the first request; allow the DSP to fill it.
+            yield return new WaitForSecondsRealtime(.15f);
+            source.GetOutputData(samples, 0);
+            float rms = Mathf.Sqrt(samples.Sum(s => s * s) / samples.Length);
+            Write("audio_cycle_" + Cycle + ".json", new { status = rms > .00001f ? "PASS" : "FAIL", source.isPlaying, source.timeSamples,
+                source.isVirtual, source.mute, source.priority, listenerPaused = AudioListener.pause,
+                listenerVolume = AudioListener.volume, sourceVolume = source.volume, rms, audibleUserCheck = "NOT_RUN" });
+            Check(rms > .00001f, "Audio source produces non-silent output samples");
+            source.Pause();
+            int tested = 0;
+            foreach (int boundary in boundaries)
+            {
+                foreach (int frame in new[] { boundary - 1, boundary })
+                {
+                    source.timeSamples = frame * 1470;
+                    yield return null;
+                    bool spin = boundaries.Count(b => b <= frame) % 2 == 1;
+                    if (cat.ReferenceFrame != frame || cat.IsReferenceSpinning != spin) throw new Exception("Reference mismatch at source frame " + frame);
+                    foreach (var pivot in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None).Where(t => t.name.StartsWith("OIIA flying cat ")))
+                    {
+                        if (pivot.GetChild(0).gameObject.activeSelf != spin || pivot.GetChild(1).gameObject.activeSelf == spin)
+                            throw new Exception("Clone photo/spin visibility mismatch at source frame " + frame);
+                    }
+                    tested++;
+                }
+            }
+            Check(tested == boundaries.Length * 2, "All measured reference transitions and preceding frames match actual runtime visuals");
+            source.timeSamples = 30 * 1470;
+            yield return null;
+            var stage = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None).Single(t => t.name == "OIIA flying cat 0");
+            var position = stage.localPosition; var rotation = stage.localRotation;
+            source.timeSamples = 31 * 1470;
+            yield return null;
+            Check(stage.localPosition == position && stage.localRotation == rotation, "Still-photo interval freezes cat motion");
             yield return new WaitForEndOfFrame();
             texture = ScreenCapture.CaptureScreenshotAsTexture();
-            File.WriteAllBytes(Path.Combine(HideoutSpinningCatBuilder.Output, "chaos_" + Cycle + ".png"), texture.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(HideoutOiiaReferenceBuilder.Output, "still_" + Cycle + ".png"), texture.EncodeToPNG());
+            Object.Destroy(texture); texture = null;
+            source.timeSamples = 70 * 1470;
+            yield return null;
+            Check(cat.IsReferenceSpinning, "Spin interval displays the original morphed model");
+            yield return new WaitForEndOfFrame();
+            texture = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(HideoutOiiaReferenceBuilder.Output, "chaos_" + Cycle + ".png"), texture.EncodeToPNG());
+            Object.Destroy(texture); texture = null;
+            source.timeSamples = source.clip.samples - 4410;
+            source.UnPause();
+            yield return new WaitForSecondsRealtime(.3f);
+            Check(source.isPlaying && cat.ReferenceFrame < 30 && !cat.IsReferenceSpinning, "End of song loops audio and photo timeline together");
+            Write("timing_cycle_" + Cycle + ".json", new { status = "PASS", referenceBoundaries = boundaries.Length, testedFrames = tested,
+                sourceFrameRate = timeline.FrameRate, sourceFrames = timeline.FrameCount, frameTolerance = 0, loopPassed = true });
             Phase = 3;
         }
-        finally {if (texture != null) Object.Destroy(texture); capturing = false;}
+        finally { if (texture != null) Object.Destroy(texture); capturing = false; }
     }
 
     static void Check(bool condition, string name) {if (!condition) throw new Exception(name); checks.Add(name);}
@@ -262,5 +343,5 @@ public static class HideoutSpinningCatVerifier
         using (var hash = SHA256.Create()) return string.Join("|", Directory.GetFiles(root, "*", SearchOption.AllDirectories).OrderBy(p => p)
             .Select(p => p.Substring(root.Length) + ":" + BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(p)))));
     }
-    static void Write(string file, object result) => HideoutSpinningCatBuilder.Write(file, result);
+    static void Write(string file, object result) => HideoutOiiaReferenceBuilder.Write(file, result);
 }
