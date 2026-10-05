@@ -23,7 +23,7 @@ MonoBehaviour:
   knockbackReductionPercent: 55
   crowdWeight: 4
   hitWeightProfile: {fileID: 11400000, guid: ffc270ad5b652de498ca414a8fc33bf1, type: 2}
-  crowdAnimationSpeedLimit: 0
+  crowdAnimationSpeedLimit: 1.12
   turnAnimationReferenceSpeeds: {x: 0, y: 0}
   leftTurnProgress:
     serializedVersion: 2
