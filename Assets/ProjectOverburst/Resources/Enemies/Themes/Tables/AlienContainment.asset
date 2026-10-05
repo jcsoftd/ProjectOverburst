@@ -15,6 +15,9 @@ MonoBehaviour:
   themeId: AlienContainment
   displayName: "\uACA9\uB9AC\uAD6C\uC5ED\uC758 \uC678\uACC4 \uD3EC\uC2DD\uAD70"
   entries:
+  - definition: {fileID: 11400000, guid: 19d3aae52ecf8b343a7c9d6a2a73cf69, type: 2}
+    tier: 0
+    weight: 1
   - definition: {fileID: 11400000, guid: b264f7e4268a75f46a8c474f3173b777, type: 2}
     tier: 0
     weight: 1

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: V3_Gastarias
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: V3_Gastarias
+  displayName: "\uBD89\uC740\uB0AD \uBC30\uC591\uCDA9"
+  vendorPrefab: {fileID: 1134064213896204, guid: c335dc62e4832014fa348e67604c9ed9, type: 3}
+  animationProfile: {fileID: 11400000, guid: 9cf3939e0e539ce45a4255aa70bf565c, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 7caf2cd9fcd025342900da4a29a36870, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: bb9907f046eee1045afe9e020d49e52c, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: d4c7bfc48ff8c5e4684aecfd83e6b093, type: 2}
+  threatCost: 1

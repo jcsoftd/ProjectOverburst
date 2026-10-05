@@ -24,6 +24,9 @@ MonoBehaviour:
   - definition: {fileID: 11400000, guid: fa1ae6f32b2482c448296f46d5303c6d, type: 2}
     tier: 0
     weight: 1
+  - definition: {fileID: 11400000, guid: dc9bf0d614228624ba85199d69d0dd1b, type: 2}
+    tier: 1
+    weight: 1
   - definition: {fileID: 11400000, guid: 8143dfd3d3ba6554199ca3d876983d5d, type: 2}
     tier: 1
     weight: 1

@@ -15,6 +15,7 @@ MonoBehaviour:
   presetId: Theme_AlienContainment
   displayName: "\uACA9\uB9AC\uAD6C\uC5ED\uC758 \uC678\uACC4 \uD3EC\uC2DD\uAD70"
   defaultMonsterPrefabs:
+  - {fileID: 64078508444445709, guid: 4c9734d412315604bbde0d45d76a3c3c, type: 3}
   - {fileID: 3150040978167508081, guid: dd6de2fdbc137594fb01589899b838a5, type: 3}
   - {fileID: 6195135106373329220, guid: a233188ece2a4bf4f904bd245d0faada, type: 3}
   - {fileID: 8409828179506848195, guid: 10381600a8c4b10418757a0bd0e22587, type: 3}
