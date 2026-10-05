@@ -16,6 +16,8 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public int EliteThrows => Brain?.Composite != null ? Brain.Composite.EliteThrowCount : 0;
     public bool Defeated { get; private set; }
     public EnemyBossHudView BossHud => bossHud;
+    public CrustaspikanEntranceCinematic EntranceCinematic { get; private set; }
+    public bool IsIntroducing => EntranceCinematic != null && EntranceCinematic.IsPlaying;
     private CrustaspikanEncounterHost host;
     private PlayerActorRuntime player;
     private EnemySpawnService spawns;
@@ -55,6 +57,13 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         portal.AddComponent<CrustaspikanEncounterPortal>().Configure(host, this);
         Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
         if (!SpawnBoss()) return false;
+        if (settings.entrance != null && settings.entrance.enabled)
+        {
+            var director = new GameObject("Crustaspikan Entrance Director"); director.transform.SetParent(transform, false);
+            EntranceCinematic = director.AddComponent<CrustaspikanEntranceCinematic>();
+            if (!EntranceCinematic.Play(this, player, gameplayCamera, settings.entrance))
+            { Destroy(director); EntranceCinematic = null; Brain.FinishEntrance(1f); }
+        }
         return true;
     }
     private bool SpawnBoss()
@@ -127,6 +136,12 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     {
         if (exiting || Brain == null) return;
         if (player == null || spawns == null) { Exit(false); return; }
+        if (IsIntroducing)
+        {
+            if (Keyboard.current != null && Keyboard.current.f9Key.wasPressedThisFrame) Exit(true);
+            previousPlayerPosition = player.transform.position; PlayerVelocity = Vector3.zero;
+            return;
+        }
         if (Time.deltaTime > 0f) PlayerVelocity = Vector3.ClampMagnitude((player.transform.position - previousPlayerPosition) / Time.deltaTime, 12f);
         previousPlayerPosition = player.transform.position;
         if (Keyboard.current != null && !GameplayInputBlocker.IsGameplayInputBlocked)
@@ -173,13 +188,13 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     public void Restart()
     {
-        if (exiting) return; ClearCombat(); Defeated = false;
+        if (exiting) return; EntranceCinematic?.Cancel(); ClearCombat(); Defeated = false;
         player.Health.Heal(player.Health.MaxHp); Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
         SpawnBoss(); Announce("재전투", 2f);
     }
     public void Exit(bool returnToHideout)
     {
-        if (exiting) return; exiting = true; ClearCombat();
+        if (exiting) return; exiting = true; EntranceCinematic?.Cancel(); ClearCombat();
         if (player != null) { player.Health.SetDamageDeathPrevention(this, false); if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); } }
         if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
         foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;

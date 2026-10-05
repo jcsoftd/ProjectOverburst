@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 // 기존 Editor의 미저장 씬을 건드리지 않고 한 번의 격리 Play에서 실제 왕복·판정·조립을 확인한다.
 [InitializeOnLoad]
@@ -31,6 +32,18 @@ public static class CrustaspikanEncounterPlayVerifier
     private static float entryDistance, entryYaw, entryPitch, entryFov, zoomBefore;
     private static bool wheelQueued, wheelChecked, groggyHudChecked;
     private static Collider entryConfiner;
+    private static bool entranceChecked;
+    private static float entranceFinishedAt, nextEntranceFrame;
+    private static int entranceFrame;
+    private static readonly HashSet<int> entranceShots = new HashSet<int>();
+    private static readonly List<object> entranceFrames = new List<object>();
+    private static CrustaspikanEntranceCinematic firstEntrance, skippedEntrance;
+    private static CameraClearFlags entryClearFlags;
+    private static Color entryBackground;
+    private static Unity.Cinemachine.CinemachineBlendDefinition entryBlend;
+    private static int entryPriority;
+    private static GameObject externalInputOwner;
+    private static readonly Dictionary<Canvas,bool> gameplayHudCanvases = new Dictionary<Canvas,bool>();
     private static float entryConfinerSlowing;
     private static EnemyActor legacyBoss;
     private static EnemyBossHudView legacyHud;
@@ -49,6 +62,8 @@ public static class CrustaspikanEncounterPlayVerifier
         var settings=AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(CrustaspikanEncounterBuilder.AssetPath);
         if(settings==null || !settings.Validate(out string reason))throw new InvalidOperationException("설정 자산이 유효하지 않습니다.");
         wheelQueued=false;wheelChecked=false;groggyHudChecked=false;legacyBoss=null;legacyHud=null;legacySpawns=null;legacyServiceRoot=null;
+        entranceChecked=false;entranceFinishedAt=-1f;nextEntranceFrame=0f;entranceFrame=0;entranceShots.Clear();entranceFrames.Clear();
+        firstEntrance=null;skippedEntrance=null;externalInputOwner=null;
         SessionState.SetString(Key+"output",directory);SessionState.SetBool(Key+"pending",true);
         File.WriteAllText(Path.Combine(directory,"play-start.json"),JsonConvert.SerializeObject(new{status="STARTING",utc=DateTime.UtcNow,
             sourceMaterialsDirty=EditorUtility.IsDirty(settings.materials),startScene=AssetDatabase.GetAssetPath(UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene)},Formatting.Indented));
@@ -131,8 +146,19 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(gameplayCamera!=null && gameplayCamera.UsesCinemachine,"existing gameplay camera is ready");
                 entryDistance=gameplayCamera.CurrentDistance;entryYaw=gameplayCamera.CurrentYaw;
                 entryPitch=gameplayCamera.CurrentPitch;entryFov=oldCamera.fieldOfView;
+                entryClearFlags=oldCamera.clearFlags;entryBackground=oldCamera.backgroundColor;
+                entryBlend=gameplayCamera.CinemachineRig.Brain.DefaultBlend;entryPriority=gameplayCamera.CinemachineRig.VirtualCamera.Priority.Value;
                 entryConfiner=gameplayCamera.CinemachineRig.Confiner.BoundingVolume;
                 entryConfinerSlowing=gameplayCamera.CinemachineRig.Confiner.SlowingDistance;
+                gameplayHudCanvases.Clear();
+                foreach(var gameUi in UnityEngine.Object.FindObjectsByType<OverburstGameUI>(FindObjectsSortMode.None))
+                {
+                    var hudCanvas=gameUi.hud!=null?gameUi.hud.GetComponentInParent<Canvas>()?.rootCanvas:null;
+                    if(hudCanvas==null)continue;
+                    foreach(var canvas in hudCanvas.GetComponentsInChildren<Canvas>(true))
+                        if(canvas.renderMode!=RenderMode.WorldSpace)gameplayHudCanvases[canvas]=canvas.enabled;
+                }
+                Check(gameplayHudCanvases.Count>0,"actual RPG player HUD and nested minimap canvases captured");
                 targetHuds.Clear();
                 foreach(var view in UnityEngine.Object.FindObjectsByType<EnemyTargetHpHud>(FindObjectsSortMode.None))
                     targetHuds.Add(new KeyValuePair<EnemyTargetHpHud,bool>(view,view.enabled));
@@ -164,8 +190,41 @@ public static class CrustaspikanEncounterPlayVerifier
                 Check(targetHuds.All(pair=>!pair.Key.enabled),"overlapping ordinary target HUD is suspended");
                 var portalKey=host.Entrance.GetComponentInChildren<WorldInteractionKeyPrompt>(true);
                 Check(portalKey!=null && portalKey.HasUsableView && portalKey.KeyLabel=="F","portal reuses authored shared F keycap");
+                firstEntrance=encounter.EntranceCinematic;
+                Check(firstEntrance!=null && firstEntrance.IsPlaying,"portal entry starts actual entrance cinematic");
                 Next();break;
             case 1:
+                if(!entranceChecked)
+                {
+                    if(encounter.IsIntroducing)
+                    {
+                        CaptureEntrance();
+                        return;
+                    }
+                    if(entranceFinishedAt<0f){entranceFinishedAt=Time.realtimeSinceStartup;return;}
+                    if(Time.realtimeSinceStartup-entranceFinishedAt<.3f)return;
+                    Check(firstEntrance.RoarStarted && !firstEntrance.WasSkipped,"full entrance completes authored roar without skipping");
+                    Check(firstEntrance.RoarAudioStarted,"entrance uses existing authored roar audio");
+                    Check(entranceShots.Contains(0) && entranceShots.Contains(1) && entranceShots.Contains(2) && entranceShots.Contains(3),"all four entrance camera shots captured");
+                    Check(!GameplayInputBlocker.IsGameplayInputBlocked,"natural entrance completion returns gameplay input");
+                    Check(encounter.BossHud.GetComponentInParent<Canvas>()!=null && encounter.BossHud.GetComponentInParent<Canvas>().enabled
+                        && gameplayHudCanvases.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"authored boss player and nested minimap canvases return after entrance");
+                    Check(firstEntrance.ImpactStarted,"roar impact starts owned dust and shockwave");
+                    Check(encounter.GetComponentsInChildren<Renderer>().Where(r=>r.name=="1m Grid" || r.name=="5m Grid").All(r=>r.enabled)
+                        && Mathf.Abs(encounter.GetComponentsInChildren<Light>().First(l=>l.name=="Arena Fill Light").intensity-18f)<.001f,"cinematic restores arena grid and original fill light");
+                    var floorBlock=new MaterialPropertyBlock();encounter.GetComponentsInChildren<Renderer>().First(r=>r.name=="Arena Floor").GetPropertyBlock(floorBlock);
+                    Check(floorBlock.isEmpty,"cinematic returns floor appearance without material edits");
+                    Check(Mathf.Abs(gameplayCamera.CurrentDistance-entryDistance)<.001f && Mathf.Abs(gameplayCamera.CurrentYaw-entryYaw)<.001f
+                        && Mathf.Abs(gameplayCamera.CurrentPitch-entryPitch)<.001f && Mathf.Abs(oldCamera.fieldOfView-entryFov)<.001f,"entrance returns original combat distance yaw pitch and lens");
+                    Check(oldCamera.clearFlags==entryClearFlags && Vector4.Distance(oldCamera.backgroundColor,entryBackground)<.001f,"cinematic backdrop restores original camera appearance");
+                    Check(gameplayCamera.CinemachineRig.Brain.DefaultBlend.Style==entryBlend.Style
+                        && Mathf.Abs(gameplayCamera.CinemachineRig.Brain.DefaultBlend.Time-entryBlend.Time)<.001f
+                        && gameplayCamera.CinemachineRig.VirtualCamera.Priority.Value==entryPriority,"cinematic leaves authored blend policy and combat camera priority intact");
+                    Check(UnityEngine.Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None)
+                        .All(c=>!c.name.StartsWith("Crustaspikan Entrance")),"completed entrance returns temporary Cinemachine camera and lights");
+                    File.WriteAllText(Path.Combine(output,"entrance-frames.json"),JsonConvert.SerializeObject(entranceFrames,Formatting.Indented));
+                    entranceChecked=true;stageAt=Time.realtimeSinceStartup;
+                }
                 if(!wheelQueued)
                 {
                     Check(Mouse.current!=null,"mouse device available for real zoom input");
@@ -329,8 +388,79 @@ public static class CrustaspikanEncounterPlayVerifier
                 legacySpawns.Release(legacyBoss);legacyBoss=null;
                 Check(legacyHud.BoundBoss==null && !legacyHud.IsVisible,"ordinary boss registry unbinds HUD on pool return");
                 Check(legacySpawns.Pool.LeasedCount==originalLeases,"legacy HUD check returns its native boss lease");
+                Next();break;
+            case 14:
+                if(Age<.5f)return;
+                Teleport(host.Entrance.transform.position+Vector3.back);
+                Check(host.Entrance.TryInteract(player)==InteractionExecutionResult.StartedTransition,"second portal entry starts cinematic again");
+                encounter=host.ActiveEncounter;skippedEntrance=encounter.EntranceCinematic;
+                Check(skippedEntrance!=null && skippedEntrance.IsPlaying,"repeat entry owns fresh entrance director");
+                Check(Keyboard.current!=null,"keyboard available for actual cinematic skip input");
+                InputSystem.QueueStateEvent(Keyboard.current,new KeyboardState(UnityEngine.InputSystem.Key.Space));Next();break;
+            case 15:
+                InputSystem.QueueStateEvent(Keyboard.current,new KeyboardState());
+                if(Age<.6f)return;
+                Check(skippedEntrance.WasSkipped && !encounter.IsIntroducing,"actual space input skips entrance");
+                Check(!GameplayInputBlocker.IsGameplayInputBlocked && encounter.BossHud.GetComponentInParent<Canvas>()!=null
+                    && encounter.BossHud.GetComponentInParent<Canvas>().enabled
+                    && gameplayHudCanvases.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"skip returns input and actual authored HUD including minimap");
+                Check(Camera.main==oldCamera && oldCamera.clearFlags==entryClearFlags
+                    && gameplayCamera.CinemachineRig.Brain.ActiveVirtualCamera==gameplayCamera.CinemachineRig.VirtualCamera,"skip returns same output camera and native combat virtual camera");
+                encounter.Exit(true);Next();break;
+            case 16:
+                if(Age<.5f)return;
+                Teleport(host.Entrance.transform.position+Vector3.back);
+                Check(host.Entrance.TryInteract(player)==InteractionExecutionResult.StartedTransition,"third entry starts interruption check");
+                encounter=host.ActiveEncounter;
+                externalInputOwner=new GameObject("Crustaspikan External Input Owner Verification");GameplayInputBlocker.Block(externalInputOwner);
+                InputSystem.QueueStateEvent(Keyboard.current,new KeyboardState(UnityEngine.InputSystem.Key.F9));Next();break;
+            case 17:
+                InputSystem.QueueStateEvent(Keyboard.current,new KeyboardState());
+                if(Age<.6f)return;
+                Check(host.ActiveEncounter==null,"actual F9 returns during entrance without waiting for movie");
+                Check(GameplayInputBlocker.IsGameplayInputBlocked,"interrupted entrance preserves another input owner's blocker");
+                GameplayInputBlocker.Unblock(externalInputOwner);UnityEngine.Object.Destroy(externalInputOwner);externalInputOwner=null;
+                Check(!GameplayInputBlocker.IsGameplayInputBlocked,"own and verification input leases are returned");
+                Check(oldCamera.clearFlags==entryClearFlags && Vector4.Distance(oldCamera.backgroundColor,entryBackground)<.001f,"interrupted entrance restores camera appearance");
+                Check(UnityEngine.Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None)
+                    .All(c=>!c.name.StartsWith("Crustaspikan Entrance")),"interruption destroys cinematic virtual cameras");
+                Check(UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).All(l=>!l.name.StartsWith("Entrance "))
+                    && GameObject.Find("Crustaspikan Entrance Letterbox")==null,"interruption returns cinematic lights and title canvas");
+                Check(UnityEngine.Resources.FindObjectsOfTypeAll<Material>().All(m=>!m.name.StartsWith("Crustaspikan Entrance"))
+                    && UnityEngine.Resources.FindObjectsOfTypeAll<Texture2D>().All(t=>t.name!="Crustaspikan Entrance Soft Dust"),"repeated entrances return owned particle materials and texture");
+                Check(gameplayHudCanvases.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"interruption restores all authored gameplay HUD canvases");
+                Check(UnityEngine.Object.FindObjectsByType<EnemyBossHudView>(FindObjectsSortMode.None).All(v=>v.BoundEncounterSource==null),"repeat entrances leave no stale BT HUD binding");
                 Finish("PASS","");break;
         }
+    }
+    private static void CaptureEntrance()
+    {
+        var intro=encounter.EntranceCinematic;
+        Check(GameplayInputBlocker.IsGameplayInputBlocked,"entrance owns gameplay input lock");
+        Check(intro.HiddenCanvasCount>0 && gameplayHudCanvases.All(pair=>pair.Key!=null && !pair.Key.enabled),"entrance suppresses actual player HUD and nested minimap canvas");
+        Check(encounter.Brain.PatternCount==0 && encounter.AliveAdds==0,"BT attacks and summons stay paused throughout entrance");
+        Check(Camera.main==oldCamera && cameraDrivers.All(pair=>pair.Key!=null && pair.Key.enabled==pair.Value),"entrance uses same output camera with native drivers enabled");
+        Check(Mathf.Abs(gameplayCamera.CurrentDistance-entryDistance)<.001f && Mathf.Abs(gameplayCamera.CurrentYaw-entryYaw)<.001f,"entrance never rewrites combat zoom or yaw");
+        if(intro.Elapsed>=nextEntranceFrame)
+        {
+            string folder=Path.Combine(output,"EntranceFrames");Directory.CreateDirectory(folder);
+            string name="intro-"+(entranceFrame++).ToString("D4")+".png";
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder,name));
+            entranceFrames.Add(new{name,elapsed=intro.Elapsed,shot=intro.ShotIndex});nextEntranceFrame=intro.Elapsed+.125f;
+        }
+        float roarLength=encounter.Brain.RuntimeMaterials.FindMotion(encounter.Settings.entrance.roarMotion).runtime.length;
+        float shotAge=intro.ShotIndex==0?intro.Elapsed:intro.ShotIndex==1?intro.Elapsed-encounter.Settings.entrance.detailSeconds
+            :intro.ShotIndex==2?intro.Elapsed-intro.RoarStart:intro.Elapsed-intro.RevealStart;
+        if(intro.ShotIndex<4 && shotAge>(intro.ShotIndex==2?1.15f:.6f) && (intro.ShotIndex!=3 || intro.TitleAlpha>.9f) && entranceShots.Add(intro.ShotIndex))
+            ScreenCapture.CaptureScreenshot(Path.Combine(output,"entrance-shot-"+intro.ShotIndex+".png"));
+        if(intro.ShotIndex==2 && shotAge>.3f && shotAge<roarLength-.3f)
+        {
+            Check(intro.RoarStarted && encounter.Brain.Actor.Animator.GetCurrentAnimatorStateInfo(0).IsName("Material_"+encounter.Settings.entrance.roarMotion),"cinematic actually runs authored non-RM roar animation");
+            Check(encounter.Brain.Actor.GetComponent<EnemyBossMaterialExecutor>().DamageCount==0,"entrance roar releases no attack damage");
+        }
+        if(intro.ShotIndex==3 && intro.TitleAlpha>.9f)Check(true,"boss title appears with full-body reveal");
+        if(intro.ImpactStarted && intro.Elapsed<Mathf.Lerp(intro.RoarStart,intro.RoarStart+roarLength,.35f)+.4f)
+            Check(intro.GetComponentsInChildren<ParticleSystem>().Any(p=>p.particleCount>0),"roar impact emits actual atmospheric particles");
     }
     private static void Teleport(Vector3 position)
     {bool active=player.CharacterController.enabled;player.CharacterController.enabled=false;player.transform.position=position;player.CharacterController.enabled=active;player.Movement.ResetMotionAfterTeleport();Physics.SyncTransforms();}
@@ -344,11 +474,17 @@ public static class CrustaspikanEncounterPlayVerifier
     }
     private static void Finish(string status,string error)
     {
+        started=false;
+        try
+        {
         Write(status,error);if(encounter!=null)encounter.Exit(true);
         if(legacyBoss!=null && legacyBoss.IsLeased && legacySpawns!=null)legacySpawns.Release(legacyBoss);
         legacyBoss=null;
         if(legacyServiceRoot!=null)UnityEngine.Object.Destroy(legacyServiceRoot);
         legacyServiceRoot=null;legacySpawns=null;
-        started=false;EditorApplication.ExitPlaymode();
+        if(externalInputOwner!=null){GameplayInputBlocker.Unblock(externalInputOwner);UnityEngine.Object.Destroy(externalInputOwner);externalInputOwner=null;}
+        if(Keyboard.current!=null)InputSystem.QueueStateEvent(Keyboard.current,new KeyboardState());
+        }
+        finally { EditorApplication.ExitPlaymode(); }
     }
 }

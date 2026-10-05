@@ -390,3 +390,14 @@ MonoBehaviour:
   protectPlayerFromDeath: 1
   enableAdaptiveTactics: 1
   enableBossEvasion: 1
+  entrance:
+    enabled: 1
+    detailSeconds: 1.5
+    riseSeconds: 1.6
+    roarMotion: Roar1
+    revealSeconds: 1.35
+    returnSeconds: 1
+    combatGraceSeconds: 1
+    subtitle: "\uC554\uAD74\uC758 \uD3EC\uC2DD\uC790"
+    roarClip: {fileID: 8300000, guid: edfbbe9afae144eccada637c4185a140, type: 3}
+    roarVolume: 0.75

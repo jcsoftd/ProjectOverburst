@@ -147,6 +147,16 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(set, 1f, 1f);
     }
     private EnemyBossMaterialCollection runtimeMaterials;
+    public void BeginEntrance()
+    {
+        CancelPattern(); Actor.AbilityController.Cancel(); Actor.Movement.StopMovement(); State = "등장";
+    }
+    public void FinishEntrance(float graceSeconds)
+    {
+        if (!IsActive) return;
+        executor.Cancel(); Actor.Movement.CancelActionLock(); Actor.Movement.StopMovement();
+        Actor.Animator.Play("Locomotion", 0, 0f); readyAt = Time.time + Mathf.Max(0f, graceSeconds); State = "준비";
+    }
     public void Tick()
     {
         if (!IsActive || encounter.Defeated || player == null) return;

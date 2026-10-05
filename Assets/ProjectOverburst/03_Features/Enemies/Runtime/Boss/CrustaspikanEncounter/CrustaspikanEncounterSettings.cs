@@ -57,6 +57,8 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     public bool protectPlayerFromDeath = true;
     public bool enableAdaptiveTactics = true;
     public bool enableBossEvasion = true;
+    [Header("포탈 입장 연출")]
+    public CrustaspikanEntranceCinematic.Settings entrance = new CrustaspikanEntranceCinematic.Settings();
 
     public bool Validate(out string reason)
     {
@@ -64,6 +66,11 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             || adds == null || !adds.Validate(out reason)) { reason = "보스 재료 또는 소환 테마가 없습니다."; return false; }
         if (bossHp <= 0 || groggyMax <= 0 || arenaRadius < 16 || maximumAdds < 4
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
+        if (entrance != null && entrance.enabled && (materials.FindMotion(entrance.roarMotion)?.IsPlayable != true
+            || !Finite(entrance.detailSeconds) || entrance.detailSeconds < .25f || !Finite(entrance.riseSeconds) || entrance.riseSeconds < .25f
+            || !Finite(entrance.revealSeconds) || entrance.revealSeconds < .25f || !Finite(entrance.returnSeconds) || entrance.returnSeconds < .1f
+            || !Finite(entrance.combatGraceSeconds) || entrance.combatGraceSeconds < 0f || !Finite(entrance.roarVolume)))
+        { reason = "등장 모션 또는 컷 길이가 유효하지 않습니다."; return false; }
         var ids = new System.Collections.Generic.HashSet<string>();
         foreach (var p in patterns)
         {
