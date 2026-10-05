@@ -337,6 +337,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
         CountCommittedAttack(selected.Ability);
+        if (selected.Executor is EnemyBossMaterialExecutor) GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(selected.Ability);
         if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
         firstImpactAt = Time.time + first;
         lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
