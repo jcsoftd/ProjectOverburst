@@ -66,7 +66,7 @@ internal static class EnemySquadDebugModule
 
     private static void RegisterThemeTrial()
     {
-        DebugSection s = DebugRegistry.Section(DebugTabs.Spawn, "적 테마 시험", 10, "테마 추가 = 카탈로그 한 줄");
+        DebugSection s = DebugRegistry.Section(DebugTabs.Spawn, "적 테마 시험", 10, "게임 편성 7테마 · 최신 몬스터");
         s.Choice("규모", () => EnemyThemeTrialService.Mode, value => EnemyThemeTrialService.SetMode(value),
                 EnemyThemeTrialPresets.Label)
             .WithId("spawn.theme.mode")
@@ -81,7 +81,7 @@ internal static class EnemySquadDebugModule
                 .WithId("spawn.theme." + current.Id)
                 .EnabledWhen(() => EnemyThemeTrialService.HasPlayer && !EnemyThemeTrialService.Busy,
                     "진행 중인 시험을 먼저 정리하세요")
-                .Tip(current.Table.DisplayName + " · 왼쪽 1회, 오른쪽 3회 공세");
+                .Tip(current.Table.DisplayName + $" · {current.Table.Entries.Count}종 · 왼쪽 1회, 오른쪽 3회 공세");
         }
         s.Progress("진행", () => EnemyThemeTrialService.Progress)
             .WithId("spawn.theme.progress")
