@@ -153,6 +153,8 @@ public partial class MeleeRuntime
         ResolveFacade()?.CombatInputs?.ClearAttack();
         ResolveFacade()?.CombatInputs?.ClearHeavy();
         Vector3 direction = activeAttackDirection;
+        // Finish the confirmed contact before a short parry closes its feedback window.
+        GetComponent<PlayerParryController>()?.CompleteParryContact(activeActionId);
         StopActiveAttackStep();
         ResetComboState();
         CompleteActiveAction(true, WeaponActionCompletionReason.Completed, direction);

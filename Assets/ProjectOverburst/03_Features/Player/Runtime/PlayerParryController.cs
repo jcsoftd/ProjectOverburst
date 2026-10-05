@@ -148,7 +148,8 @@ public sealed class PlayerParryController : MonoBehaviour
         SuccessCount++; ParriedAttackCount += threats.Length;
         if (grade == ParryGrade.Incomplete)
             for (int i = 0; i < threats.Length; i++) health?.TakeParryResidualDamage(threats[i].Damage, IncompleteDamageFraction);
-        if (health == null || health.IsDead || actionId != resolvedActionId || !windowOpen) return;
+        // A confirmed parry still presents its contact if the parry-only fallback closed the action.
+        if (health == null || health.IsDead || actionId != resolvedActionId) return;
         if (!feedbackScheduled)
         {
             feedbackScheduled = true; pendingCenter = center; pendingCount = threats.Length;
@@ -191,6 +192,7 @@ public sealed class PlayerParryController : MonoBehaviour
     {
         if (!feedbackPending) return;
         feedbackPending = false; FeedbackCount++;
+        ShowGradeLabel();
         ParryFeedbackService.Tier tier = ParryFeedbackService.ResolveTier(ActionGrade);
         CombatActionSfxService.PlayParrySuccess(pendingCenter);
         ParryFeedbackService.Play(pendingCenter, transform.position, tier, pendingCount, 0, parriedThisAction);
@@ -203,6 +205,24 @@ public sealed class PlayerParryController : MonoBehaviour
         OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParryHitStop, .01f, tier.HitStop);
         for (int i = 0; i < pendingContacts.Count; i++) ParryFeedbackService.PlayContact(pendingContacts[i], ActionGrade);
         pendingContacts.Clear();
+    }
+    public void CompleteParryContact(int acceptedActionId)
+    {
+        if (acceptedActionId == actionId && feedbackPending) FlushPendingFeedback();
+    }
+    private void ShowGradeLabel()
+    {
+        string label = ActionGrade == ParryGrade.Perfect ? "완벽패링"
+            : ActionGrade == ParryGrade.Normal ? "패링" : "불완전패링";
+        Color color = ActionGrade == ParryGrade.Perfect ? new Color(1f, .82f, .3f)
+            : ActionGrade == ParryGrade.Normal ? Color.white : new Color(.92f, .80f, .62f);
+        Vector3 head = transform.position + Vector3.up * 2.1f;
+        if (playerTarget != null)
+        {
+            CombatTargetVolume volume = playerTarget.CurrentVolume;
+            head = volume.Center + Vector3.up * (volume.HalfHeight + .35f);
+        }
+        DamageNumberSpawner.SpawnStatusText(head, label, color, 0f);
     }
     public bool TryCancelDamage(DamageInfo info)
     {

@@ -15,10 +15,10 @@ public sealed class ParryFeedbackService : MonoBehaviour
 
     private static readonly Tier[] Grades =
     {
-        new Tier { Grade = ParryGrade.Incomplete, HitStop = .025f, Slow = .08f, SlowScale = .8f, SlowRecover = .10f,
-            CameraAmplitude = .025f, CameraDuration = .08f, Zoom = .01f, ZoomIn = .035f, ZoomOut = .12f, FlashScale = .35f },
+        new Tier { Grade = ParryGrade.Incomplete, HitStop = .04f, Slow = .12f, SlowScale = .65f, SlowRecover = .15f,
+            CameraAmplitude = .04f, CameraDuration = .10f, Zoom = .02f, ZoomIn = .04f, ZoomOut = .18f, FlashScale = 1f },
         new Tier { Grade = ParryGrade.Normal, HitStop = .05f, Slow = .15f, SlowScale = .5f, SlowRecover = .20f,
-            CameraAmplitude = .06f, CameraDuration = .12f, Zoom = .04f, ZoomIn = .045f, ZoomOut = .25f, FlashScale = .65f },
+            CameraAmplitude = .06f, CameraDuration = .12f, Zoom = .04f, ZoomIn = .045f, ZoomOut = .25f, FlashScale = 1f },
         new Tier { Grade = ParryGrade.Perfect, HitStop = .09f, Slow = .30f, SlowScale = .15f, SlowRecover = .35f,
             KnockbackRadius = 2.5f, CameraAmplitude = .12f, CameraDuration = .20f, Zoom = .09f, ZoomIn = .06f, ZoomOut = .40f, FlashScale = 1f },
     };

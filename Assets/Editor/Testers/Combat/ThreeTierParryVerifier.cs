@@ -233,6 +233,8 @@ public static class ThreeTierParryVerifier
         ItemData oldWeapon = actor.Equipment.CurrentWeaponItem, oldGem = actor.Equipment.EquippedElementGem;
         var originalMode = animator.updateMode; float originalSpeed = animator.speed; float oldMaxHp = actor.Health.MaxHp;
         bool oldDamageDebug = CombatDebugSettings.ReduceIncomingPlayerDamageBy99_9Percent;
+        PlayerAnimation originalPlayerAnimation = Field<PlayerAnimation>(melee, "playerAnimatorController");
+        var capturedGrades = new HashSet<ParryGrade>();
         try
         {
             Check(melee != null && player != null, "product player melee and facade");
@@ -272,7 +274,7 @@ public static class ThreeTierParryVerifier
             }
             void Release() { foreach (var enemy in leases) if (enemy != null && enemy.IsLeased) spawn.Release(enemy); leases.Clear(); }
             foreach (var item in new[] { (0f, 1, false), (29.999f, 1, false), (30f, 1, false), (79.999f, 1, false), (80f, 1, false),
-                (100f, 1, false), (20f, 2, false), (50f, 2, false), (80f, 2, false), (20f, 2, true), (50f, 2, true), (80f, 2, true), (120f, 1, false) })
+                (100f, 1, false), (20f, 2, false), (50f, 2, false), (80f, 2, false), (20f, 2, true), (50f, 2, true), (80f, 2, true), (120f, 1, false), (20f, 1, false) })
             {
                 melee.CancelCurrentAttackState(); parry.CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(parry);
                 if (item.Item1 > 100f)
@@ -319,17 +321,46 @@ public static class ThreeTierParryVerifier
                             cancelStun[enemy.GetInstanceID()] = enemy.GetComponent<EnemyMovementReaction>().IsParryStunned;
                 }
                 ObserveCancellation();
+                // Keep a confirmed contact pending past the short clip to exercise its completion boundary.
+                bool delayedContact = cases.Count == 13;
+                if (delayedContact) Set(parry, "pendingDelay", 10f);
                 if (item.Item3) Energy(item.Item1 < 30f ? 100f : 0f);
                 int commits = 0; bool priorCommit = false; float started = Time.unscaledTime;
+                string expectedLabel = expected == ParryGrade.Perfect ? "완벽패링" : expected == ParryGrade.Normal ? "패링" : "불완전패링";
+                var labelInstances = new HashSet<int>();
+                void ObserveLabel()
+                {
+                    if (parry.FeedbackCount == feedback) return;
+                    foreach (var popup in UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsSortMode.None))
+                    {
+                        var text = popup.GetComponent<TMPro.TextMeshProUGUI>();
+                        if (text == null || text.text != expectedLabel || popup.FxElapsed > .3f) continue;
+                        if (!labelInstances.Add(popup.GetInstanceID())) continue;
+                        text.ForceMeshUpdate();
+                        Check(text.textInfo.characterCount == expectedLabel.Length && text.textInfo.characterInfo.Take(expectedLabel.Length)
+                            .Select((character, index) => character.textElement != null && character.textElement.unicode == expectedLabel[index]).All(v => v), "Korean grade label glyphs render");
+                        CombatTargetVolume volume = actor.GetComponent<CombatTarget>().CurrentVolume;
+                        Vector3 head = Field<Vector3>(popup, "worldPosition");
+                        Check(head.y > volume.Center.y + volume.HalfHeight && Vector2.Distance(new Vector2(head.x, head.z),
+                            new Vector2(volume.Center.x, volume.Center.z)) < .35f, "grade label originates above player head");
+                        Check(text.color.a > 0f && text.font != null && text.canvas != null, "grade label visible on actual HUD canvas");
+                        if (capturedGrades.Add(expected)) ScreenCapture.CaptureScreenshot(Path.Combine(Output, "parry-" + expected.ToString().ToLowerInvariant() + ".png"));
+                    }
+                }
+                ObserveLabel();
                 while (melee.IsAttackInProgress)
                 {
                     Check(Time.unscaledTime - started < 12f, "player action completes");
                     bool committed = Field<bool>(melee, "heavyDischargeCommitted"); if (committed && !priorCommit) commits++; priorCommit = committed;
                     Check(parry.ActionGrade == expected, "grade survives energy change/consume/refund");
                     ObserveCancellation();
+                    ObserveLabel();
                     yield return null;
                 }
+                ObserveLabel();
                 yield return Wait(.15f);
+                ObserveLabel();
+                Check(labelInstances.Count == 1, "one head grade label per action including simultaneous/deferred parries");
                 Check(parry.ParriedAttackCount - parries == enemies.Count && enemies.All(e => !e.AbilityController.IsExecuting), "all source executions cancelled");
                 ObserveCancellation();
                 Check(cancelStun.Count == enemies.Count && cancelStun.Values.All(stunned => stunned == (expected == ParryGrade.Perfect)), "grade stun applies to every enemy");
@@ -351,15 +382,16 @@ public static class ThreeTierParryVerifier
                 var nextExecution = snapshots[0]; nextExecution.sourceAttackSequenceId = EnemyAttackSequence.Next();
                 Check(!parry.TryCancelDamage(nextExecution), "same actor has no blanket immunity for another execution");
                 Check(animator.updateMode == originalMode && Near(animator.speed, originalSpeed), "Animator clock restored");
-                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started });
+                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started, label = expectedLabel, visibleLabelCount = labelInstances.Count, delayedContact });
                 Write("progress.json", new { status = "RUNNING", completed = cases.Count, cases });
                 foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback; hooks.Clear();
                 Release(); yield return Wait(.4f);
             }
             // Deliberately advance the source phase before invoking the real Health callback.
             // The callback must retain the original hit rather than snapshot the next phase.
-            foreach (float amount in new[] { 20f, 50f, 80f })
+            foreach (var sample in new[] { (20f, false), (50f, false), (80f, false), (20f, true) })
             {
+                float amount = sample.Item1; bool noMotion = sample.Item2;
                 melee.CancelCurrentAttackState(); parry.CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(parry);
                 equipGem.Invoke(actor.Equipment, new object[] { new ItemData(fire, 1, ItemGrade.Common) }); Energy(amount);
                 var enemy = Spawn(Vector3.forward, .5f);
@@ -377,20 +409,30 @@ public static class ThreeTierParryVerifier
                 int beforeParries = parry.ParriedAttackCount;
                 Check(melee.TryStartHeavyAttack(Vector3.forward) == WeaponActionResult.Accepted, "callback fixture player heavy accepted");
                 Check(parry.ParriedAttackCount == beforeParries, "callback fixture suppresses proactive path");
-                actor.Health.TakeDamage(original);
+                int beforeFeedback = parry.FeedbackCount;
+                if (noMotion) Set(melee, "playerAnimatorController", null);
+                try { actor.Health.TakeDamage(original); }
+                finally { Set(melee, "playerAnimatorController", originalPlayerAnimation); }
+                if (noMotion)
+                {
+                    Check(!melee.IsAttackInProgress && parry.FeedbackCount == beforeFeedback + 1, "parry-only motion fallback retains contact presentation");
+                    Check(UnityEngine.Object.FindObjectsByType<DamageNumberPopup>(FindObjectsSortMode.None).Any(p => p.FxElapsed < .1f
+                        && p.GetComponent<TMPro.TextMeshProUGUI>().text == "불완전패링"), "motion fallback retains head label");
+                }
                 Check(parry.ParriedAttackCount == beforeParries + 1 && !enemy.AbilityController.IsExecuting, "real Health callback resolves parry");
                 Check(count == (amount < 30f ? 1 : 0), "callback residual only for incomplete");
                 if (amount < 30f) Check(Near(loss, referenceLoss * .2f, .01f) && receivedOriginal.sourceAttackPhaseIndex == 0
                     && receivedOriginal.sourceAttackSequenceId == original.sourceAttackSequenceId, "original phase and normally mitigated residual retained");
                 actor.Health.TakeDamage(original);
                 Check(count == (amount < 30f ? 1 : 0), "callback execution absorbs duplicate once");
-                cases.Add(new { fixture = "original damage callback", amount, referenceLoss, loss, count });
+                cases.Add(new { fixture = noMotion ? "parry-only motion fallback" : "original damage callback", amount, referenceLoss, loss, count });
                 foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback; hooks.Clear();
                 melee.CancelCurrentAttackState(); Release(); yield return Wait(.4f);
             }
         }
         finally
         {
+            Set(melee, "playerAnimatorController", originalPlayerAnimation);
             CombatDebugSettings.SetPlayerDamageReductionDebug(oldDamageDebug);
             if (ownsEnergy && energy != null) UnityEngine.Object.Destroy(energy);
             foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback;
