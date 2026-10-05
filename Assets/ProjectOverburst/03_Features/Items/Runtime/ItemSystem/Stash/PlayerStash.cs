@@ -303,6 +303,117 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         return true;
     }
 
+    public bool TryMoveFromInventory(PlayerInventory inventory, int inventoryIndex, int stashIndex,
+        ItemData expectedSource, ItemData expectedTarget)
+    {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() =>
+                TryMoveFromInventory(inventory, inventoryIndex, stashIndex, expectedSource, expectedTarget));
+        if (!Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(inventory, this)
+            || inventory == null || inventoryIndex < 0 || inventoryIndex >= inventory.Capacity
+            || stashIndex < 0 || stashIndex >= Capacity || expectedSource == null
+            || !ReferenceEquals(inventory.GetItemAt(inventoryIndex), expectedSource)
+            || !ReferenceEquals(GetItemAt(stashIndex), expectedTarget)
+            || !string.IsNullOrEmpty(expectedSource.originRunId)
+            || (expectedTarget != null && expectedSource.IsSameRuntimeItem(expectedTarget))) return false;
+        bool merge = CanStack(expectedSource, expectedTarget);
+        if (inventoryIndex >= inventory.UnlockedSlotCount && expectedTarget != null && !merge) return false;
+        if (!merge && (!CanReplaceTradeItemAt(stashIndex, expectedTarget, expectedSource)
+            || !inventory.CanReplaceOwnedItemAt(inventoryIndex, expectedSource, expectedTarget))) return false;
+        int tab = currentTabIndex;
+        int previousCount = expectedTarget?.stackCount ?? 0;
+        int mergedCount = merge ? checked(previousCount + expectedSource.stackCount) : 0;
+        expectedSource.EnsureRuntimeState(); expectedSource.EnsureAcquisitionOrder();
+        expectedTarget?.EnsureRuntimeState();
+        if (!inventory.TryReplaceOwnedItemAt(inventoryIndex, expectedSource, merge ? null : expectedTarget, false)) return false;
+        try
+        {
+            if (merge)
+            {
+                Overburst.Persistence.AccountGameplaySession.TrackStack(expectedTarget);
+                expectedTarget.stackCount = mergedCount;
+            }
+            else GetItemsForTab(tab)[stashIndex] = expectedSource;
+        }
+        catch
+        {
+            if (merge) expectedTarget.stackCount = previousCount;
+            else GetItemsForTab(tab)[stashIndex] = expectedTarget;
+            if (!inventory.TryRestoreOwnedItemAt(inventoryIndex, merge ? null : expectedTarget, expectedSource))
+                throw new InvalidOperationException("Inventory ownership changed during stash compensation.");
+            throw;
+        }
+        NotifyInventoryTrade(inventory);
+        return true;
+    }
+
+    public bool TryMoveToInventory(PlayerInventory inventory, int stashIndex, int inventoryIndex,
+        ItemData expectedSource, ItemData expectedTarget)
+    {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() =>
+                TryMoveToInventory(inventory, stashIndex, inventoryIndex, expectedSource, expectedTarget));
+        if (!Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(inventory, this)
+            || inventory == null || inventory.IsOverCapacity || inventoryIndex < 0
+            || inventoryIndex >= inventory.UnlockedSlotCount || stashIndex < 0 || stashIndex >= Capacity
+            || expectedSource == null || !ReferenceEquals(GetItemAt(stashIndex), expectedSource)
+            || !ReferenceEquals(inventory.GetItemAt(inventoryIndex), expectedTarget)
+            || (expectedTarget != null && expectedSource.IsSameRuntimeItem(expectedTarget))) return false;
+        bool merge = CanStack(expectedSource, expectedTarget);
+        if (!merge && (!inventory.CanReplaceOwnedItemAt(inventoryIndex, expectedTarget, expectedSource)
+            || !CanReplaceTradeItemAt(stashIndex, expectedSource, expectedTarget))) return false;
+        int tab = currentTabIndex;
+        int previousCount = expectedTarget?.stackCount ?? 0;
+        int mergedCount = merge ? checked(previousCount + expectedSource.stackCount) : 0;
+        expectedSource.EnsureRuntimeState(); expectedSource.EnsureAcquisitionOrder();
+        expectedTarget?.EnsureRuntimeState();
+        var tabItems = GetItemsForTab(tab);
+        tabItems[stashIndex] = merge ? null : expectedTarget;
+        try
+        {
+            if (merge)
+            {
+                Overburst.Persistence.AccountGameplaySession.TrackStack(expectedTarget);
+                expectedTarget.stackCount = mergedCount;
+            }
+            else if (!inventory.TryReplaceOwnedItemAt(inventoryIndex, expectedTarget, expectedSource, false))
+            {
+                tabItems[stashIndex] = expectedSource;
+                return false;
+            }
+        }
+        catch
+        {
+            if (merge) expectedTarget.stackCount = previousCount;
+            else if (!ReferenceEquals(inventory.GetItemAt(inventoryIndex), expectedTarget)
+                && !inventory.TryRestoreOwnedItemAt(inventoryIndex, expectedSource, expectedTarget))
+                throw new InvalidOperationException("Inventory ownership changed during stash compensation.");
+            tabItems[stashIndex] = expectedSource;
+            throw;
+        }
+        NotifyInventoryTrade(inventory);
+        return true;
+    }
+
+    private bool CanReplaceTradeItemAt(int index, ItemData expected, ItemData replacement)
+    {
+        EnsureAllTabCapacity();
+        if (index < 0 || index >= Capacity || !ReferenceEquals(GetItemAt(index), expected)
+            || (replacement != null && !replacement.HasValidBaseData)) return false;
+        if (replacement == null) return true;
+        for (int tab = 0; tab < TabCount; tab++)
+            for (int slot = 0; slot < Capacity; slot++)
+                if ((tab != currentTabIndex || slot != index)
+                    && IsSameRuntimeItem(GetItemsForTab(tab)[slot], replacement)) return false;
+        return true;
+    }
+
+    private void NotifyInventoryTrade(PlayerInventory inventory)
+    {
+        try { inventory.NotifyAccountApplied(); } catch (Exception error) { Debug.LogException(error); }
+        try { NotifyChanged(); } catch (Exception error) { Debug.LogException(error); }
+    }
+
     public bool TryStoreInCurrentTab(ItemData item)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)

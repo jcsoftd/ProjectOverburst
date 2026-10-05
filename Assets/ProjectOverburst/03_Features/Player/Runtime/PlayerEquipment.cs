@@ -65,7 +65,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     {
         if (item != null) item.EnsureRuntimeState();
         PlayerAccountInventoryService.Loadout.ElementalGem = item;
-        Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
+        Overburst.Persistence.AccountGameplaySession.SynchronizeEquipmentAfterCommit(this);
     }
     private bool SyncGemContext()
     {
@@ -166,6 +166,108 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         currentWeaponPose?.SnapToCurrentPose();
     }
 
+    public bool TryEquipFromInventorySlot(PlayerInventory source, int sourceIndex, ItemData expected, int weaponSlot)
+    {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() =>
+                TryEquipFromInventorySlot(source, sourceIndex, expected, weaponSlot));
+        if (!Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(source)
+            || source == null || expected == null || !ReferenceEquals(source.GetItemAt(sourceIndex), expected)
+            || expected.itemType != "Weapon" || weaponSlot < 0 || weaponSlot >= WeaponSlotCount) return false;
+        var previous = GetWeaponSlotItem(weaponSlot);
+        if (sourceIndex < 0 || sourceIndex >= source.UnlockedSlotCount
+            || !OwnsWeaponOnlyAt(source, expected, sourceIndex, -1)
+            || (previous != null && (source.IsOverCapacity || !OwnsWeaponOnlyAt(source, previous, -1, weaponSlot)))) return false;
+        int previousActive = activeWeaponSlotIndex;
+        if (!source.TryReplaceOwnedItemAt(sourceIndex, expected, previous, false)) return false;
+        bool succeeded = false;
+        try { succeeded = EquipWeaponSlotCore(expected, weaponSlot) == WeaponSlotEquipResult.Applied; }
+        finally
+        {
+            if (!succeeded)
+            {
+                weaponSlotItems[weaponSlot] = previous;
+                activeWeaponSlotIndex = previousActive;
+                if (!source.TryRestoreOwnedItemAt(sourceIndex, previous, expected))
+                    throw new System.InvalidOperationException("Inventory ownership changed during weapon compensation.");
+                if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing != true)
+                {
+                    if (previous == null) ClearCurrentWeaponVisual();
+                    else RestoreWeaponTradeVisual();
+                }
+            }
+        }
+        if (!succeeded) return false;
+        NotifyInventoryWeaponTrade(source);
+        return true;
+    }
+
+    public bool TryUnequipToInventorySlot(PlayerInventory target, int targetIndex, int weaponSlot, ItemData expected)
+    {
+        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
+            return Overburst.Persistence.AccountGameplaySession.Run(() =>
+                TryUnequipToInventorySlot(target, targetIndex, weaponSlot, expected));
+        if (!Overburst.Persistence.AccountGameplaySession.UsesAccountStorage(target)
+            || target == null || target.IsOverCapacity || expected == null || weaponSlot < 0 || weaponSlot >= WeaponSlotCount
+            || !ReferenceEquals(GetWeaponSlotItem(weaponSlot), expected) || targetIndex < 0
+            || targetIndex >= target.UnlockedSlotCount || target.GetItemAt(targetIndex) != null
+            || !OwnsWeaponOnlyAt(target, expected, -1, weaponSlot)) return false;
+        if (!target.TryReplaceOwnedItemAt(targetIndex, null, expected, false)) return false;
+        bool succeeded = false;
+        try { succeeded = ClearWeaponSlotCore(weaponSlot); }
+        finally
+        {
+            if (!succeeded)
+            {
+                weaponSlotItems[weaponSlot] = expected;
+                if (!target.TryRestoreOwnedItemAt(targetIndex, expected, null))
+                    throw new System.InvalidOperationException("Inventory ownership changed during weapon compensation.");
+                if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing != true)
+                    RestoreWeaponTradeVisual();
+            }
+        }
+        if (!succeeded) return false;
+        NotifyInventoryWeaponTrade(target);
+        return true;
+    }
+
+    internal ItemData PeekWeaponSlotItem(int slotIndex)
+    {
+        var slots = PlayerAccountInventoryService.Loadout.Weapons;
+        return slots != null && slotIndex >= 0 && slotIndex < slots.Length ? slots[slotIndex] : null;
+    }
+
+    private bool OwnsWeaponOnlyAt(PlayerInventory storage, ItemData item, int inventoryIndex, int weaponSlot)
+    {
+        for (int i = 0; i < storage.Capacity; i++)
+            if (i != inventoryIndex && SameWeaponIdentity(storage.GetItemAt(i), item)) return false;
+        var loadout = PlayerAccountInventoryService.Loadout;
+        var weapons = loadout.Weapons;
+        if (weapons != null)
+            for (int i = 0; i < weapons.Length; i++)
+                if (i != weaponSlot && SameWeaponIdentity(weapons[i], item)) return false;
+        if (loadout.Gear != null)
+            foreach (var equipped in loadout.Gear)
+                if (SameWeaponIdentity(equipped, item)) return false;
+        if (loadout.Bags != null)
+            foreach (var equipped in loadout.Bags)
+                if (SameWeaponIdentity(equipped, item)) return false;
+        return !SameWeaponIdentity(loadout.ElementalGem, item);
+    }
+
+    private static bool SameWeaponIdentity(ItemData left, ItemData right)
+    {
+        return left != null && right != null && (ReferenceEquals(left, right)
+            || (!string.IsNullOrEmpty(left.runtimeInstanceId) && !string.IsNullOrEmpty(right.runtimeInstanceId)
+                && string.Equals(left.runtimeInstanceId, right.runtimeInstanceId, System.StringComparison.Ordinal)));
+    }
+
+    private void NotifyInventoryWeaponTrade(PlayerInventory inventorySource)
+    {
+        try { inventorySource.NotifyAccountApplied(); } catch (System.Exception error) { Debug.LogException(error); }
+        try { NotifyWeaponSlotsChanged(); } catch (System.Exception error) { Debug.LogException(error); }
+    }
+
     public void ClearCurrentWeapon()
     {
         ClearWeaponSlot(activeWeaponSlotIndex);
@@ -175,6 +277,13 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() => ClearWeaponSlot(slotIndex));
+        if (!ClearWeaponSlotCore(slotIndex)) return false;
+        NotifyWeaponSlotsChanged();
+        return true;
+    }
+
+    private bool ClearWeaponSlotCore(int slotIndex)
+    {
         EnsureWeaponSlots();
 
         if (!IsWeaponSlotIndexValid(slotIndex) || weaponSlotItems[slotIndex] == null)
@@ -185,7 +294,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         if (slotIndex == activeWeaponSlotIndex)
         {
             if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing == true)
-                Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
+                Overburst.Persistence.AccountGameplaySession.SynchronizeEquipmentAfterCommit(this);
             else
             {
                 ResetWeaponRuntimeStateForSwitch();
@@ -193,7 +302,6 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
             }
         }
 
-        NotifyWeaponSlotsChanged();
         return true;
     }
 
@@ -251,21 +359,50 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
 
     public void SynchronizeAccountLoadoutVisual()
     {
+        CompleteLoadoutVisualSynchronization(SynchronizeLoadoutVisualCore());
+    }
+
+    internal void RequireAccountLoadoutVisual()
+    {
+        var result = SynchronizeLoadoutVisualCore();
+        if (result == LoadoutVisualResult.Failed)
+            throw new System.InvalidOperationException("Committed weapon visual projection could not be applied.");
+        CompleteLoadoutVisualSynchronization(result);
+    }
+
+    private void RestoreWeaponTradeVisual()
+    {
+        if (SynchronizeLoadoutVisualCore() == LoadoutVisualResult.Failed)
+            throw new System.InvalidOperationException("Previous weapon visual could not be restored after a failed trade.");
+    }
+
+    private enum LoadoutVisualResult { Unchanged, GemChanged, Applied, Failed }
+
+    private LoadoutVisualResult SynchronizeLoadoutVisualCore()
+    {
         EnsureWeaponSlots();
         EnsureGearSlots();
         var item = weaponSlotItems[activeWeaponSlotIndex];
         bool gemChanged = SyncGemContext();
-        if (CurrentWeaponItem == item && (item == null || currentWeaponRoot != null))
+        if (CurrentWeaponItem == item && (item == null || (currentWeaponRoot != null && currentWeaponAimSource != null)))
         {
             RefreshCurrentWeaponStats();
-            if (gemChanged) NotifyWeaponSlotsChanged();
-            return;
+            return gemChanged ? LoadoutVisualResult.GemChanged : LoadoutVisualResult.Unchanged;
         }
         ResetWeaponRuntimeStateForSwitch();
-        EquipCurrentWeaponVisual(item);
+        bool applied = EquipCurrentWeaponVisual(item);
+        if (item != null && !applied) return LoadoutVisualResult.Failed;
         RefreshCurrentWeaponStats();
+        return LoadoutVisualResult.Applied;
+    }
+
+    private void CompleteLoadoutVisualSynchronization(LoadoutVisualResult result)
+    {
+        if (result == LoadoutVisualResult.Unchanged) return;
+        if (result == LoadoutVisualResult.Failed) RefreshCurrentWeaponStats();
         NotifyWeaponSlotsChanged();
-        Overburst.Persistence.AccountGameplaySession.Notify(RaiseGearSlotsChanged);
+        if (result != LoadoutVisualResult.GemChanged)
+            Overburst.Persistence.AccountGameplaySession.Notify(RaiseGearSlotsChanged);
     }
 
     public ItemData GetGearSlotItem(int slotIndex)
@@ -339,18 +476,29 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() => EquipWeaponItemToSlot(item, slotIndex));
+        var result = EquipWeaponSlotCore(item, slotIndex);
+        if (result == WeaponSlotEquipResult.Rejected) return false;
+        if (result == WeaponSlotEquipResult.Applied) inventory?.RemoveItem(item);
+        NotifyWeaponSlotsChanged();
+        return result == WeaponSlotEquipResult.Applied;
+    }
+
+    private enum WeaponSlotEquipResult { Rejected, Applied, VisualFailed }
+
+    private WeaponSlotEquipResult EquipWeaponSlotCore(ItemData item, int slotIndex)
+    {
         if (item == null || item.itemType != "Weapon")
-            return false; // 무기 전용
+            return WeaponSlotEquipResult.Rejected; // 무기 전용
 
         EnsureWeaponSlots();
 
         if (!IsWeaponSlotIndexValid(slotIndex))
-            return false;
+            return WeaponSlotEquipResult.Rejected;
 
         WeaponItemData weaponData = item.baseData as WeaponItemData;
 
         if (weaponData == null || WeaponLevelCatalog.ResolveVisual(weaponData) == null || !WeaponContentPolicy.IsActiveWeapon(weaponData))
-            return false; // prefab 없음
+            return WeaponSlotEquipResult.Rejected; // prefab 없음
 
         item.EnsureRuntimeState(); // 런타임 보정
 
@@ -361,10 +509,8 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         if (Overburst.Persistence.AccountGameplaySession.Current?.IsEditing == true)
         {
             activeWeaponSlotIndex = slotIndex;
-            inventory?.RemoveItem(item);
-            Overburst.Persistence.AccountGameplaySession.Notify(SynchronizeAccountLoadoutVisual);
-            NotifyWeaponSlotsChanged();
-            return true;
+            Overburst.Persistence.AccountGameplaySession.SynchronizeEquipmentAfterCommit(this);
+            return WeaponSlotEquipResult.Applied;
         }
         ResetWeaponRuntimeStateForSwitch(); // 런타임 정리
         activeWeaponSlotIndex = slotIndex; // 활성 슬롯
@@ -374,13 +520,10 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
             weaponSlotItems[slotIndex] = previousSlotItem; // 롤백 item
             activeWeaponSlotIndex = previousActiveIndex; // 롤백 index
             EquipCurrentWeaponVisual(GetWeaponSlotItem(activeWeaponSlotIndex));
-            NotifyWeaponSlotsChanged();
-            return false;
+            return WeaponSlotEquipResult.VisualFailed;
         }
 
-        inventory?.RemoveItem(item); // 인벤 제거
-        NotifyWeaponSlotsChanged();
-        return true;
+        return WeaponSlotEquipResult.Applied;
     }
 
     private bool EquipCurrentWeaponVisual(ItemData item)

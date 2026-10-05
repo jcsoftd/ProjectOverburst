@@ -41,29 +41,10 @@ public partial class InventorySlotBridge
 
     private SlotMoveResult MoveInventoryBagToBagSlot(SlotUI sourceSlot, int bagSlotIndex)
     {
-        if (inventory == null || !IsBagSlotIndexValid(bagSlotIndex))
-            return SlotMoveResult.Fail("Inventory or bag slot is invalid.");
-
-        if (!TryCreateInventorySourceSnapshot(sourceSlot, "Bag", out InventorySourceSnapshot source))
+        if (!IsBagSlotIndexValid(bagSlotIndex) || !TryCreateInventorySourceSnapshot(sourceSlot, "Bag", out InventorySourceSnapshot source))
             return SlotMoveResult.Fail("Source bag is invalid.");
-
-        ItemData newBag = source.Item; // 새 가방
-        if (!IsBagItem(newBag))
-            return SlotMoveResult.Fail("Source item is not a bag.");
-
-        ItemData oldBag = equippedBags[bagSlotIndex]; // 기존 가방
-        ItemData[] proposedBags = CopyEquippedBags(); // 가상 장착
-        proposedBags[bagSlotIndex] = newBag;
-        int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags); // 예상 칸
-
-        // Exchange while both original ownership references are still available.
-        if (!inventory.TryReplaceOwnedItemAt(source.SlotIndex, newBag, oldBag))
-            return SlotMoveResult.Fail("Failed to exchange bag ownership.");
-
-        equippedBags[bagSlotIndex] = newBag;
-        inventory.SetUnlockedSlotCount(proposedUnlockedSlots);
-
-        return SlotMoveResult.Success();
+        return PlayerAccountInventoryService.TryEquipBagFromInventorySlot(inventory, source.SlotIndex, source.Item, bagSlotIndex, baseInventorySlotCount)
+            ? SlotMoveResult.Success() : SlotMoveResult.Fail("Failed to exchange bag ownership.");
     }
 
     private bool HandleDropFromBagSlot(SlotUI sourceBagSlot, SlotUI targetSlot)
@@ -105,24 +86,9 @@ public partial class InventorySlotBridge
 
     private SlotMoveResult MoveBagSlotToInventorySlot(int bagSlotIndex, int targetSlotIndex)
     {
-        if (!IsBagSlotIndexValid(bagSlotIndex) || equippedBags[bagSlotIndex] == null || inventory == null)
-            return SlotMoveResult.Fail("Bag slot is invalid or empty.");
-
-        ItemData bag = equippedBags[bagSlotIndex]; // 해제 가방
-        ItemData[] proposedBags = CopyEquippedBags(); // 해제 가정
-        proposedBags[bagSlotIndex] = null;
-        int proposedUnlockedSlots = CalculateUnlockedInventorySlotCount(proposedBags); // 예상 칸
-
-        if (targetSlotIndex < 0 || targetSlotIndex >= proposedUnlockedSlots || inventory.GetItemAt(targetSlotIndex) != null)
-            return SlotMoveResult.Fail("Target inventory slot is invalid.");
-
-        if (!inventory.TryReplaceOwnedItemAt(targetSlotIndex, null, bag))
-            return SlotMoveResult.Fail("Failed to return equipped bag.");
-
-        equippedBags[bagSlotIndex] = null;
-        inventory.SetUnlockedSlotCount(proposedUnlockedSlots);
-
-        return SlotMoveResult.Success();
+        if (!IsBagSlotIndexValid(bagSlotIndex)) return SlotMoveResult.Fail("Bag slot is invalid.");
+        return PlayerAccountInventoryService.TryUnequipBagToInventorySlot(inventory, targetSlotIndex, equippedBags[bagSlotIndex], bagSlotIndex, baseInventorySlotCount)
+            ? SlotMoveResult.Success() : SlotMoveResult.Fail("Failed to return equipped bag.");
     }
 
     private bool SwapBagSlots(int fromIndex, int toIndex)
@@ -176,24 +142,13 @@ public partial class InventorySlotBridge
 
     private int GetUnlockedInventorySlotCount()
     {
-        return CalculateUnlockedInventorySlotCount(equippedBags);
+        return inventory != null ? inventory.UnlockedSlotCount : 0;
     }
 
     private int CalculateUnlockedInventorySlotCount(ItemData[] bags)
     {
-        int total = Mathf.Max(0, Overburst.Persistence.AccountGameplaySession.Current?.BaseUnlockedSlots ?? baseInventorySlotCount); // 계정 기본 칸
-
-        if (bags != null)
-        {
-            for (int i = 0; i < bags.Length; i++)
-            {
-                if (bags[i] != null && bags[i].baseData is BagItemData bagData)
-                    total += BagQuality.AdditionalSlots(bags[i]); // 가방 보너스
-            }
-        }
-
-        int maxSlots = inventorySlots != null && inventorySlots.Length > 0 ? inventorySlots.Length : inventory != null ? inventory.Capacity : total; // UI 한계
-        return Mathf.Clamp(total, 0, maxSlots);
+        return inventory != null ? inventory.CalculateUnlockedSlotCount(bags,
+            Overburst.Persistence.AccountGameplaySession.Current?.BaseUnlockedSlots ?? baseInventorySlotCount) : 0;
     }
 
     private ItemData[] CopyEquippedBags()

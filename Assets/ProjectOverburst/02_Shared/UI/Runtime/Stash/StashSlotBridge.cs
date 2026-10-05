@@ -291,51 +291,11 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     private bool TryMoveInventoryToStash(int inventoryIndex, int stashIndex)
     {
-        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(() => TryMoveInventoryToStash(inventoryIndex, stashIndex));
-        if (inventory == null || stash == null)
-            return false;
-
-        ItemData sourceItem = inventory.GetItemAt(inventoryIndex); // 원본
-        ItemData targetItem = stash.GetItemAt(stashIndex); // 대상
-
-        if (sourceItem == null || inventoryIndex < 0 || inventoryIndex >= inventory.Capacity || !string.IsNullOrEmpty(sourceItem.originRunId))
-            return false;
-
-        if (inventoryIndex >= inventory.UnlockedSlotCount && targetItem != null && !stash.CanStack(sourceItem, targetItem)) return false;
-
-        if (targetItem != null && (ReferenceEquals(sourceItem, targetItem) || sourceItem.IsSameRuntimeItem(targetItem)))
-            return false;
-
-        if (stash.CanStack(sourceItem, targetItem))
-        {
-            targetItem.stackCount += sourceItem.stackCount; // 스택 병합
-            inventory.ClearSlot(inventoryIndex); // 원본 제거
-            RefreshAfterMutation(); // UI 갱신
-            return true;
-        }
-
-        inventory.ClearSlot(inventoryIndex); // 임시 제거
-        stash.ClearSlot(stashIndex); // 임시 제거
-
-        bool stashSet = stash.SetItemAt(stashIndex, sourceItem); // 창고 배치
-        bool inventorySet = targetItem == null || inventory.SetItemAt(inventoryIndex, targetItem); // 교환 배치
-
-        if (stashSet && inventorySet)
-        {
-            RefreshAfterMutation(); // UI 갱신
-            return true;
-        }
-
-        stash.ClearSlot(stashIndex); // 롤백 준비
-        inventory.ClearSlot(inventoryIndex); // 롤백 준비
-        inventory.SetItemAt(inventoryIndex, sourceItem); // 원본 복구
-
-        if (targetItem != null)
-            stash.SetItemAt(stashIndex, targetItem); // 대상 복구
-
-        RefreshAfterMutation(); // UI 갱신
-        return false;
+        if (inventory == null || stash == null) return false;
+        bool moved = stash.TryMoveFromInventory(inventory, inventoryIndex, stashIndex,
+            inventory.GetItemAt(inventoryIndex), stash.GetItemAt(stashIndex));
+        RefreshAfterMutation();
+        return moved;
     }
 
     private int FindPreferredStashTarget(ItemData item)
@@ -355,54 +315,11 @@ public class StashSlotBridge : MonoBehaviour, ISlotInteractionBridge // 창고 �
 
     private bool TryMoveStashToInventory(int stashIndex, int inventoryIndex)
     {
-        if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
-            return Overburst.Persistence.AccountGameplaySession.Run(() => TryMoveStashToInventory(stashIndex, inventoryIndex));
-        if (inventory == null || stash == null)
-            return false;
-
-        if (inventory.IsOverCapacity) return false;
-
-        if (inventoryIndex < 0 || inventoryIndex >= inventory.UnlockedSlotCount)
-            return false;
-
-        ItemData sourceItem = stash.GetItemAt(stashIndex); // 원본
-        ItemData targetItem = inventory.GetItemAt(inventoryIndex); // 대상
-
-        if (sourceItem == null)
-            return false;
-
-        if (targetItem != null && (ReferenceEquals(sourceItem, targetItem) || sourceItem.IsSameRuntimeItem(targetItem)))
-            return false;
-
-        if (stash.CanStack(sourceItem, targetItem))
-        {
-            targetItem.stackCount += sourceItem.stackCount; // 스택 병합
-            stash.ClearSlot(stashIndex); // 원본 제거
-            RefreshAfterMutation(); // UI 갱신
-            return true;
-        }
-
-        stash.ClearSlot(stashIndex); // 임시 제거
-        inventory.ClearSlot(inventoryIndex); // 임시 제거
-
-        bool inventorySet = inventory.SetItemAt(inventoryIndex, sourceItem); // 인벤 배치
-        bool stashSet = targetItem == null || stash.SetItemAt(stashIndex, targetItem); // 교환 배치
-
-        if (inventorySet && stashSet)
-        {
-            RefreshAfterMutation(); // UI 갱신
-            return true;
-        }
-
-        inventory.ClearSlot(inventoryIndex); // 롤백 준비
-        stash.ClearSlot(stashIndex); // 롤백 준비
-        stash.SetItemAt(stashIndex, sourceItem); // 원본 복구
-
-        if (targetItem != null)
-            inventory.SetItemAt(inventoryIndex, targetItem); // 대상 복구
-
-        RefreshAfterMutation(); // UI 갱신
-        return false;
+        if (inventory == null || stash == null) return false;
+        bool moved = stash.TryMoveToInventory(inventory, stashIndex, inventoryIndex,
+            stash.GetItemAt(stashIndex), inventory.GetItemAt(inventoryIndex));
+        RefreshAfterMutation();
+        return moved;
     }
 
     private bool CanAcceptTarget(SlotUI sourceSlot, SlotUI targetSlot)

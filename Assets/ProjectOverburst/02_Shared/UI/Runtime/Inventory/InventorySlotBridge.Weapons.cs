@@ -4,27 +4,7 @@ using UnityEngine;
 // InventorySlotBridge partial: 무기 장착·해제·이동과 되돌리기. 필드와 Unity 수명주기는 InventorySlotBridge.cs에 있다.
 public partial class InventorySlotBridge
 {
-    private bool NormalizeEquippedWeaponOwnership()
-    {
-        if (inventory == null || !HasWeaponEquipment() || allowEquippedWeaponInInventory || normalizingEquippedWeaponOwnership)
-            return false;
 
-        normalizingEquippedWeaponOwnership = true; // 재진입 방지
-        bool changed = false;
-
-        for (int i = 0; i < RequiredWeaponSlotCount; i++)
-        {
-            ItemData equippedWeapon = GetEquippedWeapon(i);
-            if (equippedWeapon == null)
-                continue;
-
-            if (inventory.ClearAllMatchingItems(equippedWeapon)) // 장착품 중복 제거
-                changed = true;
-        }
-
-        normalizingEquippedWeaponOwnership = false;
-        return changed;
-    }
 
     private void EnsureWeaponSlotCount()
     {
@@ -74,36 +54,9 @@ public partial class InventorySlotBridge
 
     private SlotMoveResult MoveWeaponSlotToInventorySlot(int weaponSlotIndex, int inventorySlotIndex)
     {
-        if (!HasWeaponEquipment() || inventory == null)
-            return SlotMoveResult.Fail("Inventory or equipment is missing.");
-
-        ItemData currentWeapon = GetEquippedWeapon(weaponSlotIndex);
-        if (currentWeapon == null)
-            return SlotMoveResult.Fail("Weapon slot is empty.");
-
-        if (inventorySlotIndex < 0 || inventorySlotIndex >= inventory.UnlockedSlotCount)
-            return SlotMoveResult.Fail("Target inventory slot is invalid.");
-
-        if (inventory.GetItemAt(inventorySlotIndex) != null)
-            return SlotMoveResult.Fail("Target inventory slot is not empty.");
-
-        allowEquippedWeaponInInventory = true; // 이동 중 예외
-
-        if (!inventory.SetItemAt(inventorySlotIndex, currentWeapon))
-        {
-            allowEquippedWeaponInInventory = false;
-            return SlotMoveResult.Fail("Failed to place weapon in inventory.");
-        }
-
-        if (!ClearEquippedWeapon(weaponSlotIndex))
-        {
-            inventory.ClearSlot(inventorySlotIndex); // 롤백
-            allowEquippedWeaponInInventory = false;
-            return SlotMoveResult.Fail("Failed to clear weapon slot.");
-        }
-
-        allowEquippedWeaponInInventory = false; // 예외 해제
-        return SlotMoveResult.Success();
+        var item = GetEquippedWeapon(weaponSlotIndex);
+        return playerEquipment != null && playerEquipment.TryUnequipToInventorySlot(inventory, inventorySlotIndex, weaponSlotIndex, item)
+            ? SlotMoveResult.Success() : SlotMoveResult.Fail("Failed to return weapon to inventory.");
     }
 
     private bool EquipWeaponFromInventorySlot(SlotUI sourceSlot)
@@ -122,54 +75,15 @@ public partial class InventorySlotBridge
 
     private bool EquipWeaponFromInventorySlotCore(SlotUI sourceSlot, int weaponSlotIndex)
     {
-        if (inventory == null || !HasWeaponEquipment() || sourceSlot == null || sourceSlot.IsWeaponSlot || sourceSlot.IsBagSlot || sourceSlot.IsLocked)
-            return false;
-
-        if (!TryCreateInventorySourceSnapshot(sourceSlot, "Weapon", out InventorySourceSnapshot source))
-            return false;
-
-        ItemData item = source.Item; // 장착할 무기
-        ItemData previousWeapon = GetEquippedWeapon(weaponSlotIndex); // 기존 무기
-        if (!ClearInventorySource(source))
-            return false;
-
-        if (!EquipWeapon(weaponSlotIndex, item))
-        {
-            RestoreInventorySource(source); // 원본 복구
-            RefreshSlotsAfterDataChange();
-            return false;
-        }
-
-        ClearInventoryCopiesOfEquippedWeapon(item); // 중복 제거
-
-        if (previousWeapon != null && !IsSameRuntimeItem(previousWeapon, item) && !inventory.ContainsItem(previousWeapon))
-        {
-            int returnIndex = inventory.GetItemAt(source.SlotIndex) == null ? source.SlotIndex : inventory.FindFirstEmptySlot(); // 반환 위치
-            if (returnIndex < 0 || !inventory.SetItemAt(returnIndex, previousWeapon))
-                return RollbackWeaponEquip(weaponSlotIndex, previousWeapon, source);
-        }
-
+        if (!HasWeaponEquipment() || !TryCreateInventorySourceSnapshot(sourceSlot, "Weapon", out InventorySourceSnapshot source)) return false;
+        bool equipped = playerEquipment.TryEquipFromInventorySlot(inventory, source.SlotIndex, source.Item, weaponSlotIndex);
         RefreshSlotsAfterDataChange();
-        return true;
+        return equipped;
     }
 
-    private bool ClearInventoryCopiesOfEquippedWeapon(ItemData equippedItem)
-    {
-        return inventory != null && inventory.ClearAllMatchingItems(equippedItem);
-    }
 
-    private bool RollbackWeaponEquip(int weaponSlotIndex, ItemData previousWeapon, InventorySourceSnapshot source)
-    {
-        if (previousWeapon != null)
-            EquipWeapon(weaponSlotIndex, previousWeapon);
-        else
-            ClearEquippedWeapon(weaponSlotIndex);
 
-        RestoreInventorySource(source);
 
-        RefreshSlotsAfterDataChange();
-        return false;
-    }
 
     private bool UnequipWeaponToFirstAvailableSlot(int weaponSlotIndex)
     {
@@ -178,31 +92,14 @@ public partial class InventorySlotBridge
 
     private bool UnequipWeaponToFirstAvailableSlotCore(int weaponSlotIndex)
     {
-        if (inventory == null || !HasWeaponEquipment())
-            return false;
-
-        ItemData currentWeapon = GetEquippedWeapon(weaponSlotIndex); // 해제 무기
-
-        if (currentWeapon == null)
-            return false;
-
-        if (inventory.ContainsItem(currentWeapon))
-        {
-            ClearEquippedWeapon(weaponSlotIndex);
-            RefreshSlotsAfterDataChange();
-            return true;
-        }
-
-        int emptySlot = inventory.FindFirstEmptySlot(); // 반환 칸
-        if (emptySlot < 0)
-            return false;
-
-        SlotMoveResult result = MoveWeaponSlotToInventorySlot(weaponSlotIndex, emptySlot);
-        if (!result.Succeeded)
-            return false;
-
+        if (inventory == null || !HasWeaponEquipment()) return false;
+        var item = GetEquippedWeapon(weaponSlotIndex);
+        if (item == null) return false;
+        int emptySlot = inventory.FindFirstEmptySlot();
+        if (emptySlot < 0) return false;
+        var result = MoveWeaponSlotToInventorySlot(weaponSlotIndex, emptySlot);
         RefreshSlotsAfterDataChange();
-        return true;
+        return result.Succeeded;
     }
 
     private bool HasWeaponEquipment()
@@ -212,18 +109,12 @@ public partial class InventorySlotBridge
 
     private ItemData GetEquippedWeapon(int weaponSlotIndex)
     {
-        return playerEquipment != null ? playerEquipment.GetWeaponSlotItem(weaponSlotIndex) : null;
+        return playerEquipment != null ? playerEquipment.PeekWeaponSlotItem(weaponSlotIndex) : null;
     }
 
-    private bool EquipWeapon(int weaponSlotIndex, ItemData item)
-    {
-        return playerEquipment != null && playerEquipment.EquipWeaponItemToSlot(item, weaponSlotIndex);
-    }
 
-    private bool ClearEquippedWeapon(int weaponSlotIndex)
-    {
-        return playerEquipment != null && playerEquipment.ClearWeaponSlot(weaponSlotIndex);
-    }
+
+
 
     private bool IsActiveWeaponSlot(int weaponSlotIndex)
     {

@@ -51,9 +51,20 @@ namespace Overburst.Persistence
 
         public static void Restore(AccountSnapshot state, PlayerAccountInventoryService account, AccountContentRegistry registry)
         {
+            RestoreCore(state, account, registry, equipment => equipment.SynchronizeAccountLoadoutVisual());
+        }
+
+        internal static void RestoreForSession(AccountSnapshot state, PlayerAccountInventoryService account, AccountContentRegistry registry)
+        {
+            RestoreCore(state, account, registry, equipment => equipment.RequireAccountLoadoutVisual());
+        }
+
+        private static void RestoreCore(AccountSnapshot state, PlayerAccountInventoryService account, AccountContentRegistry registry, Action<PlayerEquipment> applyEquipment)
+        {
             var items = AccountPlayerProjection.Restore(state, account.Inventory, account.Stash, PlayerProgression.Current, registry, false);
             AccountMerchantProjection.Restore(state, registry, items, false);
-            PlayerContext.Instance?.CurrentActorEquipment?.SynchronizeAccountLoadoutVisual();
+            var equipment = PlayerContext.Instance?.CurrentActorEquipment;
+            if (equipment != null) applyEquipment(equipment);
             PlayerProgression.Current?.RefreshStats();
             account.RefreshBagBonusesForCurrentActor();
             account.Inventory.NotifyAccountApplied();

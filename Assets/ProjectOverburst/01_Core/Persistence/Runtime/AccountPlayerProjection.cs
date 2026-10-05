@@ -61,6 +61,7 @@ namespace Overburst.Persistence
         internal static void ApplyCommittedBindings(AccountSnapshot state, PlayerInventory inventory, AccountContentRegistry registry)
         {
             var loadout = PlayerAccountInventoryService.Loadout;
+            inventory.SetUnlockedSlotCount(state.unlockedSlots);
             state.flasks.CopyTo(loadout.FlaskIds);
             for (int i = 0; i < state.quickSlots.Count; i++)
             {

@@ -268,18 +268,45 @@ public class PlayerInventory : MonoBehaviour
         return false;
     }
 
+    public int CalculateUnlockedSlotCount(ItemData[] bags, int baseUnlockedSlots)
+    {
+        int total = Mathf.Max(0, baseUnlockedSlots);
+        if (bags != null)
+            foreach (var bag in bags)
+                total = checked(total + BagQuality.AdditionalSlots(bag));
+        return Mathf.Clamp(total, 0, Capacity);
+    }
+
+    internal bool TryReplaceOwnedItemAt(int index, ItemData expected, ItemData replacement, bool notify)
+    {
+        if (!CanReplaceOwnedItemAt(index, expected, replacement)) return false;
+        replacement?.EnsureRuntimeState();
+        EnsureSlotExists(index);
+        items[index] = replacement;
+        if (notify) Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
+        return true;
+    }
+
+    // Local compensation restores property already owned before the exchange.
+    // Empty locked slots still cannot be targets of ordinary acquisition.
+    internal bool TryRestoreOwnedItemAt(int index, ItemData expectedCurrent, ItemData original)
+    {
+        if (index < 0 || index >= Capacity || !ReferenceEquals(GetItemAt(index), expectedCurrent)) return false;
+        EnsureSlotExists(index);
+        items[index] = original;
+        return true;
+    }
+
+    internal void SetUnlockedSlotCountWithoutNotification(int value)
+    {
+        unlockedSlotCount = Mathf.Clamp(value, 0, Capacity);
+    }
+
     public bool TryReplaceOwnedItemAt(int index, ItemData expected, ItemData replacement)
     {
         if (Overburst.Persistence.AccountGameplaySession.ShouldRoute)
             return Overburst.Persistence.AccountGameplaySession.Run(() => TryReplaceOwnedItemAt(index, expected, replacement));
-        if (!CanReplaceOwnedItemAt(index, expected, replacement))
-            return false;
-
-        replacement?.EnsureRuntimeState();
-        EnsureSlotExists(index);
-        items[index] = replacement; // 한 슬롯에서 소유권 교체
-        Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
-        return true;
+        return TryReplaceOwnedItemAt(index, expected, replacement, true);
     }
 
     public bool MoveOrSwapItems(int fromIndex, int toIndex)

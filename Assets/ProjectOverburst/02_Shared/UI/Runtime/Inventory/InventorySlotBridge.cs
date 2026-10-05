@@ -29,12 +29,8 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
     private ItemData[] equippedBags
     {
         get => PlayerAccountInventoryService.Loadout.Bags;
-        set => PlayerAccountInventoryService.Loadout.Bags = value;
     }
     private SlotUI previewOriginSlot; // preview 원본
-    private bool normalizingEquippedWeaponOwnership; // 중복 정리 중
-    private bool allowEquippedWeaponInInventory; // 장착 이동 예외
-    private bool synchronizingInventoryState; // 동기화 중
     private bool suppressSlotEventRefresh; // 이벤트 억제
     private const int RequiredWeaponSlotCount = 1; // 무기 슬롯 수
 
@@ -166,7 +162,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
             {
                 if (bagSlots[i] != null)
                 {
-                    bagSlots[i].SetDisplayItem(i < equippedBags.Length ? equippedBags[i] : null);
+                    bagSlots[i].SetDisplayItem(equippedBags != null && i < equippedBags.Length ? equippedBags[i] : null);
                     bagSlots[i].SetNewItemMarker(false); // 가방 슬롯 제외
                 }
             }
@@ -175,9 +171,8 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
 
     public void RefreshSlotsWithOwnershipCheck()
     {
-        SynchronizeInventoryStateBeforeRefresh(); // 소유권 정리
-        ApplyEquippedBagStatBonuses(); // 가방 능력치
-        RefreshSlots(); // UI 반영
+        // Compatibility entry point: ownership and capacity belong to committed data.
+        RefreshSlots();
     }
 
     public bool CanSortInventory(out string reason)
@@ -210,7 +205,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
 
     private void HandleInventoryChanged()
     {
-        if (synchronizingInventoryState || suppressSlotEventRefresh)
+        if (suppressSlotEventRefresh)
             return;
 
         RefreshSlotsWithOwnershipCheck();
@@ -218,7 +213,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
 
     private void HandleWeaponSlotsChanged()
     {
-        if (synchronizingInventoryState || suppressSlotEventRefresh)
+        if (suppressSlotEventRefresh)
             return;
 
         RefreshSlotsWithOwnershipCheck();
@@ -229,33 +224,11 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
         RefreshSlotsWithOwnershipCheck();
     }
 
-    private void SynchronizeInventoryStateBeforeRefresh()
-    {
-        if (synchronizingInventoryState)
-            return;
 
-        synchronizingInventoryState = true;
 
-        try
-        {
-            NormalizeInventoryOwnership();
-            SyncInventorySlotCapacity();
-        }
-        finally
-        {
-            synchronizingInventoryState = false;
-        }
-    }
 
-    private bool NormalizeInventoryOwnership()
-    {
-        return NormalizeEquippedWeaponOwnership();
-    }
 
-    private bool SyncInventorySlotCapacity()
-    {
-        return inventory != null && inventory.SetUnlockedSlotCount(GetUnlockedInventorySlotCount());
-    }
+
 
     private T RunSlotDataMutation<T>(Func<T> operation)
     {
@@ -324,7 +297,7 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
     private void InitBagSlots()
     {
         if (equippedBags == null || equippedBags.Length != EquippedBagSlotCount)
-            equippedBags = new ItemData[EquippedBagSlotCount];
+            Debug.LogError("Account bag slots are not ready. Bind a prepared account before inventory interaction.", this);
 
         if (bagSlots == null)
             return;
@@ -371,25 +344,9 @@ public partial class InventorySlotBridge : MonoBehaviour, ISlotInteractionBridge
         return source.IsValid;
     }
 
-    private bool ClearInventorySource(InventorySourceSnapshot source)
-    {
-        return source.IsValid && inventory != null && inventory.ClearFirstMatchingItem(source.Item);
-    }
 
-    private bool RestoreInventorySource(InventorySourceSnapshot source)
-    {
-        if (!source.IsValid || inventory == null)
-            return false;
 
-        if (inventory.ContainsItem(source.Item))
-            return true;
 
-        if (inventory.GetItemAt(source.SlotIndex) == null && inventory.SetItemAt(source.SlotIndex, source.Item))
-            return true;
-
-        int emptySlot = inventory.FindFirstEmptySlot(); // fallback 칸
-        return emptySlot >= 0 && inventory.SetItemAt(emptySlot, source.Item);
-    }
 
     private bool IsSameRuntimeItem(ItemData left, ItemData right)
     {

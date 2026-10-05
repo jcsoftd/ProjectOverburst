@@ -14,6 +14,7 @@ namespace Overburst.Persistence
         private readonly List<Action> notifications = new List<Action>();
         private readonly Dictionary<ItemData, int> originalStackCounts = new Dictionary<ItemData, int>();
         private readonly List<Action> rollbackActions = new List<Action>();
+        private readonly List<PlayerEquipment> equipmentProjections = new List<PlayerEquipment>();
         private bool editing;
         private bool restoring;
         public bool IsEditing => editing;
@@ -85,16 +86,28 @@ namespace Overburst.Persistence
             notifications.Clear();
             originalStackCounts.Clear();
             rollbackActions.Clear();
+            equipmentProjections.Clear();
             try
             {
                 if (!operation()) return false;
+                if (!currencyOnly)
+                {
+                    var inventory = account.Inventory;
+                    inventory.SetUnlockedSlotCount(inventory.CalculateUnlockedSlotCount(
+                        PlayerAccountInventoryService.Loadout.Bags, before.baseUnlockedSlots));
+                }
                 committed = transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), before.revision,
                     () => currencyOnly
                         ? AccountGameplayProjection.CaptureCurrencyInventory(before, account.Inventory, registry)
                         : AccountGameplayProjection.Capture(before, account, registry), saveImmediately);
                 if (committed && !currencyOnly)
                 {
-                    try { AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry); }
+                    try
+                    {
+                        AccountPlayerProjection.ApplyCommittedBindings(transactions.Read(), account.Inventory, registry);
+                        foreach (var equipment in equipmentProjections)
+                            if (equipment != null) equipment.RequireAccountLoadoutVisual();
+                    }
                     catch (Exception error) { RequireProjectionRecovery(error); RestoreAuthoritativeProjection(); }
                 }
                 return committed;
@@ -120,6 +133,7 @@ namespace Overburst.Persistence
                     editing = false;
                     originalStackCounts.Clear();
                     rollbackActions.Clear();
+                    equipmentProjections.Clear();
                     var queued = notifications.ToArray(); notifications.Clear();
                     foreach (var notification in queued)
                         try { notification(); } catch (Exception error) { Debug.LogException(error); }
@@ -215,7 +229,7 @@ namespace Overburst.Persistence
             restoring = true;
             try
             {
-                AccountGameplayProjection.Restore(transactions.Read(), account, registry);
+                AccountGameplayProjection.RestoreForSession(transactions.Read(), account, registry);
                 ProjectionError = null;
                 GameplayInputBlocker.Unblock(account);
                 return true;
@@ -235,6 +249,23 @@ namespace Overburst.Persistence
         {
             try { return Current != null ? Current.Execute(operation) : operation(); }
             catch (System.IO.IOException error) { Debug.LogError("계정 저장에 실패해 변경을 취소했습니다: " + error.Message); return false; }
+        }
+
+        internal static void SynchronizeEquipmentAfterCommit(PlayerEquipment equipment)
+        {
+            if (equipment == null) return;
+            if (Current != null && Current.editing && !Current.restoring)
+            {
+                if (!Current.equipmentProjections.Contains(equipment)) Current.equipmentProjections.Add(equipment);
+                return;
+            }
+            equipment.SynchronizeAccountLoadoutVisual();
+        }
+
+        internal static bool UsesAccountStorage(PlayerInventory inventory, PlayerStash stash = null)
+        {
+            return Current == null || (Current.account != null && ReferenceEquals(Current.account.Inventory, inventory)
+                && (stash == null || ReferenceEquals(Current.account.Stash, stash)));
         }
 
         public static void TrackStack(ItemData item)
