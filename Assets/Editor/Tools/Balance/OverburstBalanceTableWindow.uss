@@ -31,7 +31,8 @@
 .balance-data-row { align-items: center; height: 36px; background-color: #18222e; border-bottom-width: 1px; border-bottom-color: #243242; }
 .balance-row--alternate { background-color: #1c2734; }
 .balance-data-row:hover { background-color: #283b4e; }
-.balance-list .unity-collection-view__item--selected .balance-data-row { background-color: #284b63; }
+.balance-list .unity-collection-view__item--selected .balance-data-row,
+.balance-list .unity-collection-view__item--selected.balance-data-row { background-color: #284b63; }
 .balance-data-row #row-name { padding: 0 10px; font-size: 11px; color: #c2d2e3; overflow: hidden; text-overflow: ellipsis; }
 .balance-number { height: 26px; margin: 0 2px; }
 .balance-number .unity-base-field__input { background-color: #202d3d; border-width: 1px; border-color: #35465a; border-radius: 3px; padding: 3px 7px; color: #e0e9f3; }
