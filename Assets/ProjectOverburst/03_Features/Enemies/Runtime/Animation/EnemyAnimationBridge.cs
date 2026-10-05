@@ -52,11 +52,13 @@ public class EnemyAnimationBridge : MonoBehaviour
     private bool normalParryActive, normalParryClockHeld;
     private float animatorSpeedBeforeNormalParryHold;
     private bool parryStunActive; // 패링 무너짐·기절 루프·회복 재생 중
+    private bool parryStunRecovering, parryHitReturnPending, parryHitEntered;
+    private float parryHitRequestTime;
 
     public bool HasAnimator { get { return animator != null; } }
     public Animator MotionAnimator => animator;
     public bool IsFrozen { get { return isFrozen; } }
-    public bool BlocksAttackStart => IsBlockingActionActive
+    public bool BlocksAttackStart => parryStunActive || IsBlockingActionActive
         && !(blockingActionStateName == hitStateName && movementReaction != null
             && movementReaction.ActsThroughOrdinaryHit && !movementReaction.BlocksAttack);
     public bool IsBlockingActionActive
@@ -227,8 +229,25 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayHit()
     {
-        if (isDead || isFrozen || parryStunActive)
-            return; // 패링 기절 동작은 일반 피격 모션이 덮지 않는다
+        if (isDead || isFrozen)
+            return;
+        if (parryStunActive)
+        {
+            // 기절의 종료 시각과 행동 잠금은 유지하고 피격 자세만 잠깐 재생한다.
+            // 일반 패링의 끝 자세 정지와 기상 동작은 기존대로 마친다.
+            if (!normalParryActive && !parryStunRecovering && animator != null
+                && animator.isActiveAndEnabled && HasState(hitStateName))
+            {
+                if (hasHitTrigger) animator.ResetTrigger(hitTriggerHash);
+                parryHitReturnPending = true;
+                parryHitEntered = false;
+                parryHitRequestTime = Time.time;
+                int fullPath = BaseLayerHash(hitStateName);
+                animator.CrossFadeInFixedTime(animator.HasState(0, fullPath) ? fullPath
+                    : Animator.StringToHash(hitStateName), .07f, 0, 0f);
+            }
+            return;
+        }
 
         // Hit/Death state speeds are authored independently; never accelerate the whole Animator.
         BeginBlockingAction(hitStateName);
@@ -355,15 +374,42 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private IEnumerator RunParryStun(float stunSeconds, float recoverSeconds)
     {
-        // 애니메이터와 같은 게임 시간으로 센다(히트스톱·슬로우 중에는 둘 다 같이 느려진다).
-        for (float t = 0f; t < stunSeconds; t += Time.deltaTime)
-            yield return null;
-        if (animator != null)
-            animator.CrossFadeInFixedTime(BaseLayerHash(StunRecoverStateName), StunRecoverBlend, 0, 0f);
-        for (float t = 0f; t < recoverSeconds; t += Time.deltaTime)
-            yield return null;
-        parryStunRoutine = null;
-        parryStunActive = false;
+        try
+        {
+            // 피격 재시작은 이 시간을 늘리지 않는다. 히트스톱·슬로우는 애니메이터와 같이 따른다.
+            for (float t = 0f; t < stunSeconds; t += Time.deltaTime)
+            {
+                ResumeParryStunAfterHit();
+                yield return null;
+            }
+            parryHitReturnPending = parryHitEntered = false;
+            parryStunRecovering = true;
+            if (animator != null)
+                animator.CrossFadeInFixedTime(BaseLayerHash(StunRecoverStateName), StunRecoverBlend, 0, 0f);
+            for (float t = 0f; t < recoverSeconds; t += Time.deltaTime)
+                yield return null;
+        }
+        finally
+        {
+            parryStunRoutine = null;
+            parryStunActive = parryStunRecovering = parryHitReturnPending = parryHitEntered = false;
+        }
+    }
+
+    private void ResumeParryStunAfterHit()
+    {
+        if (!parryHitReturnPending || animator == null) return;
+        var state = animator.GetCurrentAnimatorStateInfo(0);
+        bool currentHit = IsMatchingState(state, hitStateName);
+        bool transitioning = animator.IsInTransition(0);
+        bool nextHit = transitioning && IsMatchingState(animator.GetNextAnimatorStateInfo(0), hitStateName);
+        if (currentHit || nextHit) parryHitEntered = true;
+        if (!parryHitEntered && Time.time < parryHitRequestTime + ActionStateEntryTimeout) return;
+        if (nextHit || currentHit && !transitioning && state.normalizedTime < 1f) return;
+
+        // Get_hit의 Locomotion 전이 대신 남아 있는 기절 루프로 돌아간다.
+        parryHitReturnPending = parryHitEntered = false;
+        animator.CrossFadeInFixedTime(BaseLayerHash(StunnedLoopStateName), ParryCollapseBlend, 0, 0f);
     }
 
     // 빙결이 기절 동작을 끊었다가 풀리면, 남은 기절 시간만큼 기절 루프부터 이어 간다.
@@ -387,6 +433,8 @@ public class EnemyAnimationBridge : MonoBehaviour
         RestoreNormalParryClock();
         parryStunRoutine = null;
         parryStunActive = normalParryActive = false;
+        parryStunRecovering = parryHitReturnPending = parryHitEntered = false;
+        parryHitRequestTime = 0f;
     }
 
     private bool TryGetParryStunClips(out ParryStunClipSet clips)
