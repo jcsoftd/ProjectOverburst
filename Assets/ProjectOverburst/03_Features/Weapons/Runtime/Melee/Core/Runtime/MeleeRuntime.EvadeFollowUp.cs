@@ -31,6 +31,9 @@ public partial class MeleeRuntime
     public const float DodgeLightComboBlendDuration = .16f;
     public const float DodgeLightMovementBlendDuration = .24f;
     public const float DodgeLightFinishBlendDuration = .20f;
+    public const float DodgeLightInternalCooldown = 1.2f;
+    private float nextDodgeLightTime;
+    public float DodgeLightCooldownRemaining => Mathf.Max(0f, nextDodgeLightTime - OverburstGameClock.UnscaledTime);
     private bool dodgeLightSwingPlayed;
     private int dodgeLightSwingSequence;
     private float dodgeLightSwingStartedAt = -1f;
@@ -84,7 +87,7 @@ public partial class MeleeRuntime
     {
         ResolveReferences();
         var inputs = ResolveFacade()?.CombatInputs;
-        if (isAttacking || playerAnimatorController == null || inputs == null || !inputs.IsDodgeFollowUpRequestValid(request))
+        if (DodgeLightCooldownRemaining > 0f || isAttacking || playerAnimatorController == null || inputs == null || !inputs.IsDodgeFollowUpRequestValid(request))
         { CancelDodgeLightWindup(); return; }
         float start = Mathf.Max(earliestStart, request.RequestedAt);
         if (OverburstGameClock.UnscaledTime < start) return;
@@ -139,6 +142,12 @@ public partial class MeleeRuntime
             return false;
         var definition = playerEquipment.CurrentWeaponData.GetMeleeDefinition();
         if (definition == null || request.Kind == PlayerDodgeFollowUpKind.None) return false;
+        if (request.Kind == PlayerDodgeFollowUpKind.Light && DodgeLightCooldownRemaining > 0f)
+        {
+            CancelDodgeLightWindup();
+            DiscardDodgeComboContinuation();
+            return false;
+        }
         if (request.Kind == PlayerDodgeFollowUpKind.Light
             && (definition.dodgeAttackDefinition == null || !definition.dodgeAttackDefinition.HasSteps)) return false;
         if (request.Kind == PlayerDodgeFollowUpKind.Heavy
@@ -166,6 +175,9 @@ public partial class MeleeRuntime
                 result = TryStartAction(action, out _);
             }
             if (result != WeaponActionResult.Accepted) { CancelDodgeLightWindup(); DiscardDodgeComboContinuation(); return false; }
+            // Consume only an accepted attack; cancelling its recovery or changing weapons does not refund it.
+            if (request.Kind == PlayerDodgeFollowUpKind.Light)
+                nextDodgeLightTime = OverburstGameClock.UnscaledTime + DodgeLightInternalCooldown;
             suppressHandoffMoveCancelUntilRelease = HasRawMoveInput();
             bufferedHandoffComboContinuation = false;
             return true;

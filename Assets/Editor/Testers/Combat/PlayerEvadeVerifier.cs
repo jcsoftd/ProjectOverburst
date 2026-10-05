@@ -148,6 +148,7 @@ public static partial class PlayerEvadeVerifier
         SessionState.EraseBool(PendingKey + ".DashVisualOnly");
         SessionState.EraseBool(PendingKey + ".PaletteOnly");
         SessionState.EraseBool(PendingKey + ".DashHeavyOnly");
+        SessionState.EraseBool(DodgeLightCooldownKey);
         Application.runInBackground = SessionState.GetBool(ReturnKey + ".BackgroundBefore", Application.runInBackground);
         SessionState.EraseBool(ReturnKey + ".BackgroundBefore");
         bool previouslyBlocked = IsolatedSavePlayGuard.RequiresAccountChoice;
@@ -561,7 +562,8 @@ public static partial class PlayerEvadeVerifier
 
     static IEnumerator Run()
     {
-        if (SessionState.GetBool(SwordFacingVerificationKey, false) || SessionState.GetBool(HeavyFocusOnlyKey, false))
+        if (SessionState.GetBool(SwordFacingVerificationKey, false) || SessionState.GetBool(HeavyFocusOnlyKey, false)
+            || SessionState.GetBool(DodgeLightCooldownKey, false))
         {
             float bootLimit = Time.unscaledTime + 25f;
             while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
@@ -616,6 +618,12 @@ public static partial class PlayerEvadeVerifier
                 yield break;
             }
             if (dashHeavyOnly) { yield return VerifyDashHeavy(); yield break; }
+            if (SessionState.GetBool(DodgeLightCooldownKey, false))
+            {
+                SessionState.EraseBool(DodgeLightCooldownKey);
+                yield return VerifyDodgeLightCooldown();
+                yield break;
+            }
             if (lightOnly) { yield return VerifyDodgeLightOverlap(); yield return VerifyDodgeComboResume(); yield return VerifyDodgeLightRecovery(); yield break; }
             yield return Reset(false); yield return StartDodge(false);
             Check(evade.ActiveType == PlayerEvadeType.ExplorationDodge && !evade.IsInvincible && !evade.IsPerfectEvadeWindowActive, "탐험 닷지와 무적 없음");
