@@ -15,6 +15,11 @@ public abstract class EnemyAbilityExecutor : MonoBehaviour // 능력 실행 방�
         int abilityIndex,
         Transform target);
 
+    public virtual bool CanStart(EnemyAbilityDefinition ability, Transform target, in EnemyAbilityStartContext context) => !context.IsPrepared && CanStart(ability, target);
+
+    public virtual bool TryStart(EnemyAbilityDefinition ability, int abilityIndex, Transform target, in EnemyAbilityStartContext context)
+        => !context.IsPrepared && TryStart(ability, abilityIndex, target);
+
     public abstract float ResolveCooldown(float baseCooldown);
 
     public abstract void Cancel();

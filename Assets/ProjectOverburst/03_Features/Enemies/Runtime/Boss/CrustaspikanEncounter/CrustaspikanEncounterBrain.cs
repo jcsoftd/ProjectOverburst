@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 전투 지휘만 소유한다. 접촉 판정·피해·패링 경고는 기존 재료 실행기로 보낸다.
-public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSource
+public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSource
 {
     public EnemyActor Actor { get; private set; }
     public Transform Target => HasLivingTarget ? player.transform : null;
@@ -71,6 +71,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     public CrustaspikanEncounterBrain(CrustaspikanEncounter encounter, EnemyActor actor, PlayerActorRuntime player)
     {
         this.encounter = encounter; settings = encounter.Settings; Actor = actor; this.player = player;
+        if (actor.AnimationBridge.HasInvalidMotionProfile) throw new System.InvalidOperationException(actor.AnimationBridge.MotionConfigurationError);
         phaseThresholds = new[] { settings.phaseTwoHp };
         executor = actor.GetComponent<EnemyBossMaterialExecutor>();
         composite = actor.GetComponent<EnemyBossCompositePatternExecutor>(); originalComposite = composite.Patterns;
@@ -149,7 +150,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     {
         if (!IsActive) return;
         executor.Cancel(); Actor.Movement.CancelActionLock(); Actor.Movement.StopMovement();
-        Actor.Animator.Play("Locomotion", 0, 0f); readyAt = Time.time + Mathf.Max(0f, graceSeconds); State = "준비";
+        if (!UsesMotion) Actor.Animator.Play("Locomotion", 0, 0f); readyAt = Time.time + Mathf.Max(0f, graceSeconds); State = "준비";
     }
     public void Tick()
     {
@@ -173,9 +174,9 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
             Poise = Mathf.Max(0, Poise - settings.poiseDecayPerSecond * Time.deltaTime);
         if (groggyUntil > 0 && !IsGroggy)
         {
-            groggyUntil = 0; Poise = 0; Actor.Animator.speed = 1f;
+            groggyUntil = 0; Poise = 0; if (!UsesMotion) Actor.Animator.speed = 1f;
             var idle = runtimeMaterials.FindMotion("IdleBreathe");
-            if (idle != null) Actor.Animator.CrossFadeInFixedTime(idle.state, .1f);
+            if (!UsesMotion && idle != null) Actor.Animator.CrossFadeInFixedTime(idle.state, .1f);
             readyAt = Time.time + .5f;
         }
         tree.Tick();
@@ -211,6 +212,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     }
     private CrustaspikanNodeStatus Transition()
     {
+        if (UsesMotion) return RunOwnedPhaseTransition();
         State = "2페이즈 전환";
         if (!transitionStarted)
         {
@@ -304,7 +306,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
     private bool TryMoveDestination(Vector3 local, out Vector3 destination)
     {
         Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0f;
-        Quaternion facing = delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
+        Quaternion facing = UsesMotion ? Actor.Movement.PhysicalRotation : delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
         Vector3 desired = Actor.transform.position + facing * local;
         destination = encounter.ClampArena(desired, 5f);
         Vector3 travel = destination - Actor.transform.position; travel.y = 0f;
@@ -319,9 +321,11 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         consecutiveFamily = current.family == lastFamily ? consecutiveFamily + 1 : 1; lastFamily = current.family;
         cooldowns[current.id] = Time.time + current.cooldown;
         Actor.Movement.StopMovement(); Actor.AbilityController.ClearPreparedAim();
+        if (UsesMotion) BeginMotionPattern();
     }
     private CrustaspikanNodeStatus RunPattern()
     {
+        if (UsesMotion) return RunOwnedPattern();
         State = current.label;
         if (stepIndex >= current.steps.Length) { FinishPattern(); return CrustaspikanNodeStatus.Success; }
         var s = current.steps[stepIndex];
@@ -393,6 +397,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         if (current == null) return;
         Actor.AbilityController.Cancel(); Actor.Movement.CancelActionLock(); Actor.Movement.StopMovement();
         current = null; stepStarted = false;
+        if (UsesMotion) Actor.Movement.SetMoveFacingPolicy(false);
     }
     private void OnDamage(CombatHealth health, DamageInfo info, float damage, bool fatal)
     {
@@ -415,9 +420,10 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         GroggyCount++; CancelPattern(); Actor.AbilityController.Cancel(); Actor.Movement.StopMovement();
         groggyUntil = Time.time + settings.groggySeconds;
         protectionUntil = groggyUntil + settings.groggyProtection;
-        reaction.ApplyBossStun(settings.groggySeconds);
+        var temporary = Actor.GetComponent<CrustaspikanTemporaryReaction>();
+        if (temporary == null || !temporary.TryPlayGroggy(settings.groggySeconds)) reaction.ApplyBossStun(settings.groggySeconds);
         var motion = runtimeMaterials.FindMotion("GetHitFront");
-        if (motion != null) { Actor.Animator.CrossFadeInFixedTime(motion.state, .08f); Actor.Animator.speed = .25f; }
+        if (!UsesMotion && motion != null) { Actor.Animator.CrossFadeInFixedTime(motion.state, .08f); Actor.Animator.speed = .25f; }
         encounter.Announce("그로기", settings.groggySeconds);
     }
     public bool StartPatternForReview(string id)
@@ -432,7 +438,7 @@ public sealed class CrustaspikanEncounterBrain : IDisposable, IEnemyBossHudSourc
         if (Actor != null && Actor.LeaseVersion == leaseVersion)
         {
             Actor.Health.OnDamageResolved -= OnDamage;
-            CancelPattern(); Actor.AbilityController.Cancel(); Actor.Animator.speed = 1f;
+            CancelPattern(); Actor.AbilityController.Cancel(); if (!UsesMotion) Actor.Animator.speed = 1f;
             executor.Configure(originalMaterials); Actor.AbilityController.Configure(originalAbilities, 1f, 1f);
             composite.ReleaseSummons(); composite.Configure(originalComposite);
             parryDirector.Configure(originalProfile); Actor.AI.enabled = originalAI; Actor.BossPhaseController.enabled = originalPhase;

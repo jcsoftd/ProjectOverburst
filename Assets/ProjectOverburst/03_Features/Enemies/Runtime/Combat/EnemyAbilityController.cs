@@ -310,30 +310,33 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     }
 
     // Explicit composition uses the same eligibility, cooldown and commit route as weighted AI selection.
-    public bool TryStartAbility(EnemyAbilityDefinition requested, Transform target)
+    public bool TryStartAbility(EnemyAbilityDefinition requested, Transform target) => TryStartAbility(requested, target, default);
+
+    public bool TryStartAbility(EnemyAbilityDefinition requested, Transform target, in EnemyAbilityStartContext startContext)
     {
         ResolveReferences();
         if (requested == null || target == null || ResolveIsExecuting() || abilitySet == null || !abilitySet.IsValid) return false;
-        PrepareAttackAim(target);
-        Vector3 delta = ResolveAimPosition(target) - transform.position; delta.y = 0f;
+        if (!startContext.IsPrepared) PrepareAttackAim(target);
+        else if (animationBridge == null || !animationBridge.CanCommitPreparedAttack(startContext)) return false;
+        Vector3 delta = (startContext.IsPrepared || startContext.KeepCurrentFacing ? startContext.AimPosition : ResolveAimPosition(target)) - transform.position; delta.y = 0f;
         float hp = health != null ? health.NormalizedHp : 1f;
         for (int index = 0; index < abilitySet.Count; index++)
         {
             if (abilitySet.GetAbility(index) != requested) continue;
-            if (!TryResolveAvailableCandidate(requested, target, delta.magnitude, hp, out var executor)) return false;
-            return CommitAbility(new AbilityCandidate(requested, executor, index), target);
+            if (!TryResolveAvailableCandidate(requested, target, delta.magnitude, hp, out var executor, startContext)) return false;
+            return CommitAbility(new AbilityCandidate(requested, executor, index), target, startContext);
         }
         return false;
     }
 
-    private bool CommitAbility(AbilityCandidate selected, Transform target)
+    private bool CommitAbility(AbilityCandidate selected, Transform target, EnemyAbilityStartContext startContext = default)
     {
         float speed = meleeExecutor != null ? meleeExecutor.AbilityAnimationSpeed : 1f;
         float first = selected.Ability.ResolveFirstImpactTime(speed);
         float duration = selected.Ability.ResolveExecutionDuration(speed);
         if (selected.Ability.IsTelegraphedStrongAttack
-            && !EnemyCombatCoordinator.TryReserveStrongAttack(this, target.position, Time.time + first, Time.time + duration)) return false;
-        if (!selected.Executor.TryStart(selected.Ability, selected.Index, target))
+            && !EnemyCombatCoordinator.TryReserveStrongAttack(this, startContext.IsPrepared || startContext.KeepCurrentFacing ? startContext.AimPosition : ResolveAimPosition(target), Time.time + first, Time.time + duration)) return false;
+        if (!selected.Executor.TryStart(selected.Ability, selected.Index, target, startContext))
         {
             EnemyCombatCoordinator.ReleaseStrongAttack(this);
             return false;
@@ -357,7 +360,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         strongWarningShown = selected.Ability.IsMeleeStrongAttack && !bossOwnsCommittedAim;
         if (selected.Ability.IsTelegraphedAttack)
         {
-            strongTarget = target; strongAim = target.position;
+            strongTarget = target; strongAim = startContext.IsPrepared || startContext.KeepCurrentFacing ? startContext.AimPosition : ResolveAimPosition(target);
         }
         if (!strongWarningShown) strongWarning?.Hide();
         else
@@ -529,14 +532,14 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     }
 
     private bool TryResolveAvailableCandidate(EnemyAbilityDefinition ability, Transform target,
-        float distance, float selfHealth, out EnemyAbilityExecutor executor)
+        float distance, float selfHealth, out EnemyAbilityExecutor executor, EnemyAbilityStartContext startContext = default)
     {
         executor = null;
         if (ability == null || !ability.IsValid
             || !EnemyAttackThreatGeometry.MatchesUseConditions(actor, ability, distance, selfHealth)
             || !IsSelectable(ability) || strongOnlyPass && !ability.IsTelegraphedStrongAttack) return false;
         executor = FindExecutor(ability);
-        return executor != null && executor.CanStart(ability, target);
+        return executor != null && executor.CanStart(ability, target, startContext);
     }
 
     private static bool IsStationaryWeakMelee(EnemyAbilityDefinition ability)

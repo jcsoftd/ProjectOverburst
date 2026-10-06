@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyAnimationBridge : MonoBehaviour
+public partial class EnemyAnimationBridge : MonoBehaviour
 {
     private const float LocomotionDampTime = 0.08f; // 걷기·달리기 전환 급변 완화
     private const float ActionStateEntryTimeout = 0.75f; // Trigger가 상태에 진입하지 못했을 때 이동 잠금 자동 해제
@@ -58,13 +58,14 @@ public class EnemyAnimationBridge : MonoBehaviour
     public bool HasAnimator { get { return animator != null; } }
     public Animator MotionAnimator => animator;
     public bool IsFrozen { get { return isFrozen; } }
-    public bool BlocksAttackStart => parryStunActive || IsBlockingActionActive
+    public bool BlocksAttackStart => HasInvalidMotionProfile || HasOwnedBlockingMotion || parryStunActive || IsBlockingActionActive
         && !(blockingActionStateName == hitStateName && movementReaction != null
             && movementReaction.ActsThroughOrdinaryHit && !movementReaction.BlocksAttack);
     public bool IsBlockingActionActive
     {
         get
         {
+            if (HasOwnedBlockingMotion) return true;
             if (parryStunActive) return true; // 패링 반응 중에는 회전·공격·이동 시작을 막는다
             RefreshBlockingAction();
             return !string.IsNullOrEmpty(blockingActionStateName);
@@ -86,6 +87,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         hitResponseCoordinator = GetComponent<EnemyHitResponseCoordinator>();
         ResolveMovementReaction();
         ResolveDefenseController();
+        CacheMotionBindings();
     }
 
     private void OnEnable()
@@ -110,6 +112,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     private void OnDisable()
     {
+        InvalidateOwnedMotion(EnemyMotionReason.Disabled, false);
         StopParryStun();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false;
@@ -124,6 +127,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void SetAnimator(Animator targetAnimator)
     {
+        InvalidateOwnedMotion(EnemyMotionReason.Reused, false);
         StopParryStun();
         RestoreFrozenAnimatorSpeed();
         animator = targetAnimator;
@@ -134,12 +138,14 @@ public class EnemyAnimationBridge : MonoBehaviour
             animator.applyRootMotion = false; // 루트 모션 비활성
 
         CacheParameters();
+        CacheMotionBindings();
         if (isFrozen)
             ForceFrozenIdle();
     }
 
     public void ResetForReuse()
     {
+        InvalidateOwnedMotion(EnemyMotionReason.Reused, false);
         StopParryStun();
         RestoreFrozenAnimatorSpeed();
         ClearBlockingAction();
@@ -158,10 +164,12 @@ public class EnemyAnimationBridge : MonoBehaviour
         SetMoveAmount(0f);
         SetMoveAnimSpeed(1f);
         SetAttackAnimSpeed(1f);
+        CacheMotionBindings();
     }
 
     public void SetMoveAmount(float value)
     {
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return;
         if (animator == null || !hasMoveParameter)
             return;
 
@@ -175,6 +183,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void SetMoveAnimSpeed(float value)
     {
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return;
         if (animator == null || !hasMoveAnimSpeedParameter)
             return;
 
@@ -187,6 +196,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void SetAttackAnimSpeed(float value)
     {
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return;
         if (animator == null || !hasAttackAnimSpeedParameter)
             return;
 
@@ -195,6 +205,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayAttack()
     {
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return;
         if (isDead || isFrozen)
             return;
 
@@ -203,6 +214,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayAttack(string triggerName)
     {
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return;
         if (isDead || isFrozen)
             return;
 
@@ -229,6 +241,12 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayHit()
     {
+        if (UsesOwnedMotion)
+        {
+            TryPlayOwnedPresentation("GetHitReaction", EnemyMotionRole.Reaction, this, false, out _);
+            return;
+        }
+        if (HasInvalidMotionProfile) return;
         if (isDead || isFrozen)
             return;
         if (parryStunActive)
@@ -294,6 +312,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     public bool TryPlayNormalParryReaction(out float reactionSeconds)
     {
         reactionSeconds = 0f;
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return false;
         if (isDead || isFrozen || animator == null || !isActiveAndEnabled
             || !TryGetParryStunClips(out ParryStunClipSet clips)) return false;
         StopParryStun();
@@ -357,6 +376,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     public bool TryPlayParryStun(out float stunSeconds)
     {
         stunSeconds = 0f;
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return false;
         if (isDead || isFrozen || animator == null || !isActiveAndEnabled
             || !TryGetParryStunClips(out ParryStunClipSet clips))
             return false;
@@ -508,6 +528,13 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public void PlayDeath()
     {
+        if (UsesOwnedMotion)
+        {
+            isFrozen = false; isDead = true;
+            TryPlayOwnedPresentation("Death", EnemyMotionRole.Death, this, true, out _);
+            return;
+        }
+        if (HasInvalidMotionProfile) return;
         StopParryStun();
         RestoreFrozenAnimatorSpeed();
         isFrozen = false; // 사망 표현이 빙결보다 우선
@@ -588,6 +615,7 @@ public class EnemyAnimationBridge : MonoBehaviour
 
     public bool AllowsMovement(EnemyLocomotionMode locomotionMode)
     {
+        if (HasInvalidMotionProfile || HasOwnedBlockingMotion && ownedRequest.Role != EnemyMotionRole.Carry) return false;
         if (isFrozen || parryStunActive)
             return false;
 
@@ -684,6 +712,7 @@ public class EnemyAnimationBridge : MonoBehaviour
         if (isDead || isFrozen || parryStunActive || animator == null || string.IsNullOrWhiteSpace(triggerName))
             return false;
 
+        if (UsesOwnedMotion || HasInvalidMotionProfile) return false;
         bool hasTrigger = HasParameter(triggerName, AnimatorControllerParameterType.Trigger);
         if (!hasTrigger || !BeginBlockingAction(stateName, allowedMode))
             return false;
@@ -774,6 +803,16 @@ public class EnemyAnimationBridge : MonoBehaviour
             return;
 
         isFrozen = frozen;
+        if (UsesOwnedMotion)
+        {
+            if (frozen)
+            {
+                if (TryPlayOwnedPresentation("FrozenPose", EnemyMotionRole.Frozen, this, true, out var handle))
+                    TrySampleOwnedPose(handle, MotionStateHash(motionPlaybackProfile.Find("FrozenPose").state), 0f);
+            }
+            else if (ownedHandle.IsValid && ownedRequest.Role == EnemyMotionRole.Frozen) CancelMotion(ownedHandle, EnemyMotionReason.OwnerCancelled);
+            return;
+        }
         if (!frozen)
         {
             RestoreFrozenAnimatorSpeed();

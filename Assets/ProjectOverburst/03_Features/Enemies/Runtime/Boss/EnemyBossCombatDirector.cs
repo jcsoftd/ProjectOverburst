@@ -298,7 +298,8 @@ public sealed class EnemyBossCombatDirector : MonoBehaviour
         pendingFollowUp = null;
         HideDangerCue();
         abilities?.Cancel();
-        reaction.ApplyBossStun(profile.groggyDuration); // 기존 패링 기절 상태: 공격·이동 차단, 받는 피해 ×1.4, 기절 별
+        var temporary = actor != null ? actor.GetComponent<CrustaspikanTemporaryReaction>() : null;
+        if (temporary == null || !temporary.TryPlayGroggy(profile.groggyDuration)) reaction.ApplyBossStun(profile.groggyDuration);
         if (actor != null) EnemyParryStunIndicator.Show(actor);
         PlaySfx(profile.groggyClip);
     }
@@ -411,6 +412,12 @@ public sealed class EnemyBossCombatDirector : MonoBehaviour
     // ---------- 공용 ----------
     private void CrossFade(string state, float seconds)
     {
+        if (actor != null && actor.AnimationBridge != null && actor.AnimationBridge.UsesOwnedMotion)
+        {
+            if (actor.GetComponent<CrustaspikanTemporaryReaction>()?.BlocksActions != true)
+                actor.AnimationBridge.TryPlayOwnedStatePresentation(state, this);
+            return;
+        }
         var animator = actor != null ? actor.Animator : null;
         if (animator == null || string.IsNullOrEmpty(state) || !animator.isActiveAndEnabled) return;
         int hash = Animator.StringToHash("Base Layer." + state);

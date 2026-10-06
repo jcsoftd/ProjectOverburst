@@ -57,6 +57,7 @@ public sealed class EnemyLocomotionVariantSelector : MonoBehaviour
     }
     private void LateUpdate()
     {
+        if (bridge != null && (bridge.UsesOwnedMotion || bridge.HasInvalidMotionProfile)) return;
         if (animator == null || !animator.isActiveAndEnabled || actor == null || !actor.IsLeased
             || health == null || health.IsDead || bridge == null || bridge.IsFrozen
             || bridge.IsBlockingActionActive || abilities != null && abilities.IsExecuting)

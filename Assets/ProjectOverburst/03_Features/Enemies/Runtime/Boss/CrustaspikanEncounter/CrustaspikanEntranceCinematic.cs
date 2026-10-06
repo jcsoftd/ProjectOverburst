@@ -391,7 +391,10 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         { rumble.PlayOneShot(settings.rumbleClip, .42f); RumbleAudioStarted = true; }
         if (!ArrivalStarted && Elapsed >= settings.detailSeconds)
         {
-            ArrivalStarted = actor.GetComponent<EnemyBossMaterialExecutor>().TryPlayMotion(settings.arrivalMotion);
+            var materialExecutor = actor.GetComponent<EnemyBossMaterialExecutor>();
+            ArrivalStarted = actor.AnimationBridge.UsesOwnedMotion
+                ? materialExecutor.TryPlayMotion(settings.arrivalMotion, false, GetInstanceID(), 0, this, EnemyMotionRole.Introduction)
+                : materialExecutor.TryPlayMotion(settings.arrivalMotion);
             if (!ArrivalStarted) { Debug.LogWarning("[Crustaspikan] 출현 동작을 시작할 수 없어 전투로 반환합니다."); Stop(false); return; }
         }
         if (!breachEmitted && ArrivalStarted)
@@ -416,9 +419,17 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
                 if (!actor.Animator.HasState(0, state))
                 { Debug.LogWarning("[Crustaspikan] 등장 포효 상태를 찾지 못해 전투 시점으로 반환합니다."); Stop(false); return; }
                 // 공격 재료의 즉시 Play를 쓰지 않고 현재 회복 자세에서 이 컷신의 포효로 이어 붙인다.
-                actor.GetComponent<EnemyBossMaterialExecutor>().Cancel();
-                actor.Animator.CrossFadeInFixedTime(state, settings.motionBlendSeconds, 0, 0f);
-                actor.Movement.ApplyActionLock(roarLength + settings.revealSeconds + settings.returnSeconds + .1f);
+                if (actor.AnimationBridge.UsesOwnedMotion)
+                {
+                    if (!actor.GetComponent<EnemyBossMaterialExecutor>().TryHandoffIntroduction(settings.roarMotion, this, settings.motionBlendSeconds))
+                    { Debug.LogWarning("[Crustaspikan] 등장 모션 인계가 거절되어 전투로 반환합니다."); Stop(false); return; }
+                }
+                else
+                {
+                    actor.GetComponent<EnemyBossMaterialExecutor>().Cancel();
+                    actor.Animator.CrossFadeInFixedTime(state, settings.motionBlendSeconds, 0, 0f);
+                    actor.Movement.ApplyActionLock(roarLength + settings.revealSeconds + settings.returnSeconds + .1f);
+                }
                 RoarArrivalProgress = pose.normalizedTime; roarStartedAt = Elapsed; RoarStarted = true;
                 roarEnd = roarStartedAt + roarLength;
             }

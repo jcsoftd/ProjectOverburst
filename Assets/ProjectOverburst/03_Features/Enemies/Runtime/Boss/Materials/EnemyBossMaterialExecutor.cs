@@ -5,7 +5,7 @@ using UnityEngine;
 
 // Opt-in execution for independently reusable authored boss attacks. AI selection and phase composition stay outside this component.
 [DisallowMultipleComponent]
-public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
+public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
 {
     [SerializeField] private EnemyBossMaterialCollection collection;
     private EnemyActor actor;
@@ -48,7 +48,9 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     public string LastFailure { get; private set; }
     public event Action<EnemyBossAttackMaterial,int> StrikeReleased;
     public event Action<EnemyBossAttackMaterial> AttackCancelled;
-    public override bool IsExecuting => cast!=null || motion!=null || flights.Count!=0;
+    public override bool IsExecuting => cast!=null || motion!=null || flights.Count!=0
+        || UsesMotion && (CurrentMaterial != null && !executionResult.IsTerminal
+            || actor.AnimationBridge.OwnsMotion(playbackHandle) && !IsHoldingPreparation);
     private int TargetMask => 1<<LayerMask.NameToLayer("Player");
     private int FlightMask => ~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
     private static readonly WaitForFixedUpdate AfterPhysics=new WaitForFixedUpdate();
@@ -97,6 +99,8 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     public override bool CanStart(EnemyAbilityDefinition ability,Transform target)
     {
         Resolve();
+        if (UsesMotion) return CanStart(ability, target, default);
+        if (actor != null && actor.AnimationBridge.HasInvalidMotionProfile) return false;
         if(!Supports(ability)||!Usable||target==null||IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart) return false;
         Vector3 aim=actor.AbilityController.ResolveAimPosition(target);
         Vector3 delta=aim-transform.position;delta.y=0f;
@@ -104,6 +108,8 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     }
     public override bool TryStart(EnemyAbilityDefinition ability,int abilityIndex,Transform target)
     {
+        Resolve();
+        if (UsesMotion) return TryStart(ability, abilityIndex, target, default);
         if(!CanStart(ability,target))return false;
         ReleaseHeldPose();
         reaction?.PrepareForAttack();
@@ -363,7 +369,10 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     // Support motions have no damaging windows. A single cycle can precede any assembled attack.
     public bool TryPlayMotion(string id,bool holdLastPose=false)
     {
-        Resolve();var entry=collection!=null?collection.FindMotion(id):null;
+        Resolve();
+        if (UsesMotion) return TryPlayMotion(id, holdLastPose, 0, 0, this);
+        if (actor != null && actor.AnimationBridge.HasInvalidMotionProfile) return false;
+        var entry=collection!=null?collection.FindMotion(id):null;
         if(entry==null||!entry.IsPlayable||!Usable||IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart)return false;
         ReleaseHeldPose();LastFailure=null;int token=++generation;lease=actor.LeaseVersion;
         motion=StartCoroutine(PlayMotion(entry,holdLastPose,token));return true;
@@ -399,6 +408,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     private void ReleaseHeldPose(){if(poseHeld&&actor!=null&&actor.Animator!=null)actor.Animator.speed=previousAnimatorSpeed;poseHeld=false;}
     private void FixedUpdate()
     {
+        if (UsesMotion) TryFinishOwnedExecution();
         if(flights.Count==0)return;
         if(!Usable){Cancel();return;}
         int token=generation;
@@ -443,7 +453,8 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
             }
             flight.position=next;flight.visual.root.transform.position=next;
         }
-        if(flights.Count==0 && cast==null)CurrentMaterial=null;
+        if (UsesMotion) TryFinishOwnedExecution();
+        else if(flights.Count==0 && cast==null)CurrentMaterial=null;
     }
     private void EndFlight(int index)
     {var flight=flights[index];if(flight.visual.bio!=null)flight.visual.bio.Stop();flight.visual.root.SetActive(false);flight.visual.used=false;flights.RemoveAt(index);}
@@ -452,6 +463,7 @@ public sealed class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     private void HideWarnings(){for(int i=0;i<3;i++){warnings[i]?.Hide();warningShown[i]=false;}}
     public override void Cancel()
     {
+        if (UsesMotion) { CancelOwnedExecution(); return; }
         if(cast!=null && entered && CurrentMaterial!=null) AttackCancelled?.Invoke(CurrentMaterial);
         generation++;if(cast!=null){StopCoroutine(cast);cast=null;}if(motion!=null){StopCoroutine(motion);motion=null;}ReleaseHeldPose();RestoreSampling();
         actor?.Movement?.ClearAttackDisplacement();actor?.Movement?.CancelActionLock();

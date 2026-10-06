@@ -1404,6 +1404,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51583a60d8d86ff4a9b6d6fb970bf643, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationBridge
+  motionPlaybackProfile: {fileID: 11400000, guid: 8f003685b6b3aa74f99078a5d611a2d7, type: 2}
   animator: {fileID: 4595012519792498919}
   moveParameter: Locomotion
   locomotionStateName: Locomotion
@@ -1593,6 +1594,7 @@ MonoBehaviour:
   aggroReleaseDelay: 2
   findPlayerByTag: 1
   playerTag: Player
+  chaseObservationInterval: 0.65
   useDensityApproachSteering: 1
   logStateChanges: 0
 --- !u!114 &837842348292111384
@@ -1935,6 +1937,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2459414307c28704684567a20158ad1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanTemporaryReaction
+  parryDazedClip: {fileID: 7400000, guid: f7ab975501aa4224a886b66e7bb124fe, type: 2}
+  dazedBlendSeconds: 0.22
+  dazedRecoverySeconds: 0.38
+  minimumDazedCycles: 1
   rewindSeconds: 0.7
   reboundHoldSeconds: 0.14
   collapseBlendSeconds: 0.32

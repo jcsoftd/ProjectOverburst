@@ -17,6 +17,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
 
     public bool IsPositionHeld { get { return isPositionHeld; } }
     public bool IsFrozen { get { return isFrozen; } }
+    public Quaternion Rotation => body != null ? body.rotation : transform.rotation;
     public Vector3 Position { get { return body != null ? body.position : transform.position; } }
 
     private void Awake()

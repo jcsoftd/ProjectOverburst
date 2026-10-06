@@ -15,7 +15,7 @@ public enum EnemyLocomotionMode
 [RequireComponent(typeof(EnemyMovementReaction))]
 [RequireComponent(typeof(EnemyLocomotionAnimator))]
 [RequireComponent(typeof(EnemyCrowdAgent))]
-public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 잠금 조정
+public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 잠금 조정
 {
     private const float MaxHardOverlapCorrection = 0.08f;
 
@@ -81,7 +81,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         }
     }
     public bool HasDestination { get { return hasDestination; } }
-    public bool IsActionLocked { get { return Time.time < actionLockEndTime; } }
+    public bool IsActionLocked { get { return Time.time < actionLockEndTime || motionLockOwner.IsValid && Time.time < motionLockUntil; } }
     public EnemyLocomotionMode LocomotionMode { get { return locomotionMode; } }
     public float StatusMoveSpeedMultiplier { get { return statusMoveSpeedMultiplier; } }
     public bool IsStatusMovementLocked { get { return statusMoveSpeedMultiplier <= 0f; } }
@@ -95,6 +95,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void OnEnable()
     {
+        ResetMotionMovement();
         ClearAttackDisplacement();
         ResolveReferences();
         SetStatusMoveSpeedMultiplier(1f);
@@ -109,6 +110,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     private void OnDisable()
     {
+        ResetMotionMovement();
         facingRequestUntil = 0f;
         ClearAttackDisplacement();
         SetStatusMoveSpeedMultiplier(1f);
@@ -142,7 +144,8 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return;
         }
 
-        if (profile != null && profile.HasTurnAnimation && Time.time < facingRequestUntil
+        if (TickOwnedFacing()) return;
+        if (!UsesMotionFacing && profile != null && profile.HasTurnAnimation && Time.time < facingRequestUntil
             && !hasDestination && !IsActionLocked && (reaction == null || !reaction.IsHitStunActive)
             && (locomotionAnimator == null || locomotionAnimator.AllowsMovement(locomotionMode)))
         {
@@ -346,6 +349,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     public bool IsFacingForAttack(Vector3 worldPosition)
     {
+        if (UsesMotionFacing) return IsFacingForAttack(worldPosition, motionBridge.PlaybackProfile.FacingTolerance);
         if (profile == null || !profile.HasTurnAnimation) return true;
         if (locomotionAnimator != null && locomotionAnimator.IsTurning) return false;
         Vector3 direction = worldPosition - transform.position; direction.y = 0f;
@@ -354,10 +358,10 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     public void FacePosition(Vector3 worldPosition)
     {
-        if (IsStatusMovementLocked)
+        if (IsStatusMovementLocked || HasCommittedMotionFacing)
             return;
 
-        if (profile != null && profile.HasTurnAnimation)
+        if (UsesMotionFacing || profile != null && profile.HasTurnAnimation)
         {
             requestedFacingPosition = worldPosition;
             facingRequestUntil = Time.time + .35f;
@@ -406,6 +410,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
 
     public void ResolveReferences()
     {
+        if (motionBridge == null) motionBridge = GetComponent<EnemyAnimationBridge>();
         if (health == null)
             health = GetComponent<CombatHealth>();
         if (motor == null)
@@ -598,6 +603,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
         }
 
         Vector3 facingDirection = hasFacingPosition ? facingPosition - transform.position : delta;
+        ResolveOwnedMoveFacing(ref turnSpeed, ref facingDirection);
         if (EnemyCrowdService.SubmitMovementIntent(
             this,
             crowdAgent,
@@ -685,6 +691,7 @@ public sealed class EnemyMovement : MonoBehaviour // AI 이동 명령과 이동 
             return;
         }
 
+        ResolveOwnedMoveFacing(ref turnSpeed, ref facingDirection);
         motor?.MoveToPosition(resolvedPosition, turnSpeed, facingDirection);
         float actualMoveSpeed = actualMovement.magnitude / Mathf.Max(0.0001f, Time.fixedDeltaTime);
         locomotionAnimator?.SetMovement(

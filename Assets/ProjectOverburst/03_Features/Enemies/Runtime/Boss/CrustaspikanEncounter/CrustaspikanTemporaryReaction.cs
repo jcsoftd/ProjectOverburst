@@ -1,11 +1,11 @@
 using UnityEngine;
 
-// Temporary, opt-in presentation. Samples existing non-RM clips without invoking logical death.
+// Owned temporary reactions: authored standing daze for parry, existing non-RM fall/get-up for groggy.
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(11000)]
-public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
+public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
 {
-    public enum ReactionPhase { Ready, Rewind, ReboundHold, Collapse, Prone, Recover }
+    public enum ReactionPhase { Ready, Rewind, ReboundHold, Collapse, Prone, Recover, DazedEnter, Dazed, DazedRecover }
     [SerializeField, Min(.03f)] private float rewindSeconds = .7f;
     [SerializeField, Min(0f)] private float reboundHoldSeconds = .14f;
     [SerializeField, Min(.05f)] private float collapseBlendSeconds = .32f;
@@ -76,7 +76,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
         ObserveParry();
         // The existing encounter and common director both announce groggy through this forced boss stun.
         float shortRecoil = director != null && director.Profile != null ? director.Profile.parryRecoil : 1f;
-        if (reaction.ParryStunRemaining > shortRecoil + .1f && !groggy) TryPlayGroggy(reaction.ParryStunRemaining);
+        if (!groggy && (director != null && director.IsGroggy || !BlocksActions && reaction.ParryStunRemaining > shortRecoil + .1f)) TryPlayGroggy(reaction.ParryStunRemaining);
     }
     private bool Alive => actor != null && actor.IsLeased && actor.Health != null && !actor.Health.IsDead;
     private bool ResolveMotions()
@@ -90,6 +90,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
     }
     private void CaptureCancelledAttack(EnemyBossAttackMaterial material)
     {
+        if (UsesMotion) { CaptureOwnedCancelledAttack(material); return; }
         if (!Alive || BlocksActions || material == null || actor.AnimationBridge == null
             || !actor.AnimationBridge.TryGetAttackMotionTime(material.ability.AnimatorTrigger, material.runtimeClip, out float time)) return;
         animator = actor.Animator;
@@ -110,13 +111,14 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
         bool captured = capturedLease == actor.LeaseVersion && Time.frameCount - cancelledFrame <= 2
             && Time.unscaledTime - cancelledTime < .25f && cancelledState != 0 && cancelledNormalized > .02f;
         if (!captured) return; // Ordinary cancellations and incomplete/normal parries never masquerade as a rewind.
-        TakeOwnership(); groggy = false; proneSeconds = Mathf.Max(.25f, director.Profile.parryRecoil - collapseSeconds - collapseBlendSeconds);
+        if (!TakeOwnership()) return; groggy = false; dazedSeconds = Mathf.Max(director.Profile.parryRecoil, parryDazedClip != null ? parryDazedClip.length * minimumDazedCycles : 0f);
         LastRewindStart = cancelledNormalized;
         LastRewindEnd = Mathf.Max(cancelledNormalized * rewindKeep, cancelledNormalized - maximumRewindClipSeconds / cancelledMaterial.runtimeClip.length);
         // A last-hit parry must not rewind through a preceding strike in a multi-hit clip.
         for (int i = 0; i < cancelledMaterial.strikes.Length - 1; i++)
             if (cancelledMaterial.strikes[i].contactEnd < cancelledNormalized)
                 LastRewindEnd = Mathf.Max(LastRewindEnd, cancelledMaterial.strikes[i].contactEnd);
+        if (UsesMotion) LastRewindEnd = Mathf.Max(LastRewindEnd, cancelledConsumedEnd);
         RewindCount++; Phase = ReactionPhase.Rewind; elapsed = 0f; stageStartFrame = Time.frameCount;
         Sample(cancelledState, LastRewindStart);
     }
@@ -125,7 +127,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
         ObserveParry();
         if (!ResolveMotions()) return false;
         bool keepRewind = Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold;
-        TakeOwnership(); groggy = true; proneSeconds = Mathf.Max(.25f, stunSeconds - collapseSeconds - collapseBlendSeconds);
+        if (!TakeOwnership()) return false; groggy = true; proneSeconds = Mathf.Max(.25f, stunSeconds - collapseSeconds - collapseBlendSeconds);
         if (Phase == ReactionPhase.Prone) elapsed = 0f;
         else if (!keepRewind && Phase != ReactionPhase.Collapse) BeginCollapse();
         applyingLock = true;
@@ -133,8 +135,9 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
         finally { applyingLock = false; }
         return true;
     }
-    private void TakeOwnership()
+    private bool TakeOwnership()
     {
+        if (UsesMotion) return TakeOwnedReaction();
         if (!ownsAnimator)
         {
             ownedLease = actor.LeaseVersion; speedBefore = animator.speed; updateBefore = animator.updateMode;
@@ -148,6 +151,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
             triggerHashes = triggers.ToArray();
         }
         animator.speed = 0f; actor.Movement?.StopMovement();
+        return true;
     }
     private void ResetActionTriggers()
     {
@@ -155,6 +159,11 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
     }
     private void Sample(int stateHash, float normalized)
     {
+        if (UsesMotion)
+        {
+            if (actor.AnimationBridge.TrySampleOwnedPose(reactionHandle, stateHash, Mathf.Clamp01(normalized))) SampledNormalizedTime = Mathf.Clamp01(normalized);
+            return;
+        }
         ResetActionTriggers(); animator.speed = 0f;
         animator.Play(stateHash, 0, Mathf.Clamp01(normalized)); animator.Update(0f);
         SampledNormalizedTime = Mathf.Clamp01(normalized);
@@ -164,13 +173,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
     private void BeginCollapse()
     {
         collapseFrom = Phase == ReactionPhase.Recover ? (getUpClip != null ? Mathf.Lerp(deathProneStart, deathFallStart, SampledNormalizedTime) : SampledNormalizedTime) : deathFallStart;
-        if (blendBones == null)
-        {
-            blendBones = animator.GetComponentsInChildren<Transform>(true);
-            blendPositions = new Vector3[blendBones.Length]; blendScales = new Vector3[blendBones.Length]; blendRotations = new Quaternion[blendBones.Length];
-        }
-        for (int i = 0; i < blendBones.Length; i++)
-        { blendPositions[i] = blendBones[i].localPosition; blendRotations[i] = blendBones[i].localRotation; blendScales[i] = blendBones[i].localScale; }
+        CaptureBlendPose();
         Phase = ReactionPhase.Collapse; elapsed = 0f; stageStartFrame = Time.frameCount; SampleCollapse();
     }
     private void SampleCollapse()
@@ -181,14 +184,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
             : Mathf.Lerp(deathProneStart, 1f, (fall - .9f) / .1f);
         Sample(DeathState, normalized);
         float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / collapseBlendSeconds));
-        if (blend >= 1f) return;
-        for (int i = 0; i < blendBones.Length; i++)
-        {
-            var bone = blendBones[i]; if (bone == null || bone == animator.transform) continue;
-            bone.localPosition = Vector3.Lerp(blendPositions[i], bone.localPosition, blend);
-            bone.localRotation = Quaternion.Slerp(blendRotations[i], bone.localRotation, blend);
-            bone.localScale = Vector3.Lerp(blendScales[i], bone.localScale, blend);
-        }
+        BlendCapturedPose(blend);
     }
     private void LateUpdate()
     {
@@ -196,12 +192,13 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
         if (!BlocksActions) return;
         if (!Alive || actor.LeaseVersion != ownedLease) { Cancel(); return; }
         // Freeze and pause keep the stage clock and never fight the bridge's frozen pose.
-        if (actor.AnimationBridge.IsFrozen || Time.deltaTime <= 0f) return;
+        if (actor.AnimationBridge.IsFrozen || Time.timeScale <= 0f || Time.deltaTime <= 0f) return;
+        if (UsesMotion && !actor.AnimationBridge.OwnsMotion(reactionHandle) && !TakeOwnedReaction()) return;
         actor.Movement?.StopMovement();
         applyingLock = true;
         try
         {
-            if (Phase == ReactionPhase.Recover) reaction?.ApplyHitStun(.08f, false);
+            if (Phase == ReactionPhase.Recover || Phase == ReactionPhase.DazedRecover) reaction?.ApplyHitStun(.08f, false);
             else if (reaction != null && reaction.ParryStunRemaining < .08f) reaction.ApplyBossStun(.08f);
         }
         finally { applyingLock = false; }
@@ -216,8 +213,12 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
                 break;
             case ReactionPhase.ReboundHold:
                 Sample(cancelledState, LastRewindEnd);
-                if (elapsed >= reboundHoldSeconds) BeginCollapse();
+                if (elapsed >= reboundHoldSeconds) { if (groggy) BeginCollapse(); else BeginDazed(); }
                 break;
+            case ReactionPhase.DazedEnter:
+            case ReactionPhase.Dazed:
+            case ReactionPhase.DazedRecover:
+                TickDazed(); break;
             case ReactionPhase.Collapse:
                 SampleCollapse();
                 if (elapsed >= collapseBlendSeconds + collapseSeconds) { Phase = ReactionPhase.Prone; elapsed = 0f; stageStartFrame = Time.frameCount; Sample(DeathState, 1f); }
@@ -235,7 +236,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
                 if (elapsed >= recoverySeconds)
                 {
                     RecoveryCount++; ReleaseAnimator(); Phase = ReactionPhase.Ready; groggy = false;
-                    animator.CrossFadeInFixedTime("Locomotion", .12f, 0, 0f);
+                    if (!UsesMotion) animator.CrossFadeInFixedTime("Locomotion", .12f, 0, 0f);
                 }
                 break;
         }
@@ -243,7 +244,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
     }
     private void FollowProneHurtVolume()
     {
-        if (!ownsAnimator || Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold || hurtTarget == null || chestBone == null || pelvisBone == null) return;
+        if (!groggy || !ownsAnimator || Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold || hurtTarget == null || chestBone == null || pelvisBone == null) return;
         Vector3 center = (chestBone.position + pelvisBone.position) * .5f;
         float upright = Mathf.Abs(Vector3.Dot((chestBone.position - pelvisBone.position).normalized, actor.transform.up));
         float height = Mathf.Lerp(hurtBefore.Radius * 2, hurtBefore.HalfHeight * 2, upright);
@@ -254,6 +255,7 @@ public sealed class CrustaspikanTemporaryReaction : MonoBehaviour
     }
     private void ReleaseAnimator()
     {
+        if (UsesMotion) { ReleaseOwnedReaction(); return; }
         if (ownsAnimator && animator != null) { animator.speed = speedBefore; animator.updateMode = updateBefore; }
         hurtTarget?.ClearTemporaryHurtVolume(this);
         ownsAnimator = false;

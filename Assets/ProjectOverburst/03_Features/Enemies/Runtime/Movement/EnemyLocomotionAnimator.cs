@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메이션 전담
+public sealed partial class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메이션 전담
 {
     [SerializeField] private EnemyAnimationBridge animationBridge; // Animator 연결
     private EnemyMovement movement;
@@ -22,6 +22,7 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
     public bool BeginFacingTurn(Vector3 direction)
     {
         ResolveReferences();
+        if (animationBridge != null && animationBridge.UsesOwnedMotion) return BeginOwnedFacingTurn(direction);
         if(IsTurning || Time.frameCount==completedTurnFrame || animator==null || movement==null || !movement.Profile.HasTurnAnimation || animationBridge.IsBlockingActionActive)return false;
         direction.y=0f;if(direction.sqrMagnitude<.0001f)return false;
         float angle=Mathf.Clamp(Vector3.SignedAngle(transform.forward,direction,Vector3.up),-90f,90f);
@@ -34,11 +35,17 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
         return true;
     }
 
-    public void CancelFacingTurn() { IsTurning=false; turnEntered=false; }
+    public void CancelFacingTurn()
+    {
+        if (animationBridge != null && animationBridge.UsesOwnedMotion && animationBridge.OwnsMotion(facingHandle))
+            animationBridge.CancelMotion(facingHandle, EnemyMotionReason.OwnerCancelled);
+        IsTurning=false; turnEntered=false;
+    }
 
     public bool TickFacingTurn(EnemyMotor motor)
     {
         if(!IsTurning)return false;
+        if (animationBridge != null && animationBridge.UsesOwnedMotion) return TickOwnedFacingTurn(motor);
         var state=animator.GetCurrentAnimatorStateInfo(0);
         if(!state.IsName(turnState) && animator.IsInTransition(0))state=animator.GetNextAnimatorStateInfo(0);
         motor.HoldPosition();
@@ -67,6 +74,7 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
         Vector3 displacement = transform.position - previousPosition;
         previousPosition = transform.position; displacement.y = 0f;
         if(IsTurning)return;
+        if (animationBridge != null && animationBridge.UsesOwnedMotion) { UpdateOwnedLocomotion(displacement); return; }
         if (movement == null || movement.Profile == null || !movement.Profile.MatchAnimationToActualMovement || animationBridge == null) return;
         float dt = Time.deltaTime;
         if (dt <= .00001f) return;
@@ -99,6 +107,7 @@ public sealed class EnemyLocomotionAnimator : MonoBehaviour // 이동 애니메�
         requestedAmount = Mathf.Clamp(movementAmount, -1f, 2f);
         this.referenceSpeed = Mathf.Max(.01f, referenceSpeed);
         if (Mathf.Abs(requestedAmount) > .01f) { lastMovingAmount = requestedAmount; lastMovingReference = this.referenceSpeed; }
+        if (animationBridge.UsesOwnedMotion || animationBridge.HasInvalidMotionProfile) return;
         if (movement != null && movement.Profile != null && movement.Profile.MatchAnimationToActualMovement)
             return; // 테마 액터는 LateUpdate에서 실제 이동량으로 발놀림 동기화
 

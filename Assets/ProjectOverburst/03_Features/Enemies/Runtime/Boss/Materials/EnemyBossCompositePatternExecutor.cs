@@ -5,7 +5,7 @@ using UnityEngine;
 
 // Selected before the basic material executor for the three opt-in composite attacks.
 [DisallowMultipleComponent]
-public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
+public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
 {
     [SerializeField] EnemyBossCompositePatternSet patterns;
     EnemyActor actor;
@@ -59,7 +59,8 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     public int BloodParticleCount=>activeSpray!=null?activeSpray.ParticleCount:0;
     public bool IsEliteHeld=>held!=null && held.payload==patterns?.elite && held.root.activeSelf;
     public string LastFailure {get;private set;}
-    public override bool IsExecuting=>cast!=null || flights.Count>0;
+    public override bool IsExecuting=>cast!=null || flights.Count>0
+        || UsesMotion && (current != null && !executionResult.IsTerminal || actor.AnimationBridge.OwnsMotion(playbackHandle));
     public event Action<EnemyActor> MonsterLanded;
     sealed class Visual {public GameObject root,prefab;public EnemyBossCompositePatternSet.Payload payload;public bool used;}
     sealed class Flight {public Visual visual;public Vector3 start,landing,position,end,velocity;public Quaternion facing;public float time,duration,arc,gravity,roll;public uint lease;public int phase;public bool impact,ballistic;}
@@ -112,7 +113,10 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
         && (patterns.Find(ability)!=null || patterns.throwMaterial.ability==ability);
     public override bool CanStart(EnemyAbilityDefinition ability,Transform aimTarget)
     {
-        Resolve();if(!Supports(ability)||!Usable||aimTarget==null||IsExecuting||basic.IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart)return false;
+        Resolve();
+        if (UsesMotion) return CanStart(ability, aimTarget, default);
+        if (actor != null && actor.AnimationBridge.HasInvalidMotionProfile) return false;
+        if(!Supports(ability)||!Usable||aimTarget==null||IsExecuting||basic.IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart)return false;
         var delta=actor.AbilityController.ResolveAimPosition(aimTarget)-transform.position;delta.y=0f;
         return EnemyAttackThreatGeometry.MatchesUseConditions(actor,ability,delta.magnitude,actor.Health.NormalizedHp);
     }
@@ -126,6 +130,8 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     }
     public override bool TryStart(EnemyAbilityDefinition ability,int index,Transform aimTarget)
     {
+        Resolve();
+        if (UsesMotion) return TryStart(ability, index, aimTarget, default);
         if(!CanStart(ability,aimTarget))return false;
         var payload=preparedPayload??ResolvePayload();basic.Cancel();ReleaseHeld();preparedPayload=null;overridePayload=null;prepared=false;
         reaction?.PrepareForAttack();spit=patterns.Find(ability);current=spit!=null?spit.material:patterns.throwMaterial;
@@ -341,12 +347,14 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
             if(t>=1f){Land(flight);if(token!=generation)return;Free(flight.visual);flights.RemoveAt(i);}
             else if(flight.impact){warnings[flight.phase]?.SetCenter(flight.landing);warnings[flight.phase]?.SetRemaining(flight.duration-flight.time,false);}
         }
-        if(cast==null && flights.Count==0)current=null;
+        if (UsesMotion) TryFinishOwnedExecution();
+        else if(cast==null && flights.Count==0)current=null;
         PruneAdds();foreach(var add in adds)if(add.wake>0f && Time.time>=add.wake){add.actor.Movement.CancelActionLock();add.actor.AI.enabled=add.ai;add.wake=0f;}
     }
     void LateUpdate()
     {
         Resolve();if(patterns==null || actor?.Animator==null)return;
+        if (UsesMotion) { ObserveOwnedPreparation(); return; }
         var state=actor.Animator.GetCurrentAnimatorStateInfo(0);bool extracting=state.IsName("Material_UnearthRock");
         if(extracting && !preparationSeen){preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;}
         if(!extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock"))preparationSeen=false;
@@ -365,6 +373,7 @@ public sealed class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
     public void ReleaseSummons(){var service=EnemySpawnService.Current;foreach(var add in adds)if(service!=null && add.actor!=null && add.actor.IsLeased && add.actor.LeaseVersion==add.lease)service.Release(add.actor);adds.Clear();}
     public override void Cancel()
     {
+        if (UsesMotion) { CancelOwnedExecution(); return; }
         generation++;pendingEmissions=Array.Empty<PendingEmission>();emitted=Array.Empty<bool>();if(cast!=null)StopCoroutine(cast);cast=null;RestoreAnimator();ClearFlights();ReleaseHeld();HideWarnings();
         foreach(var visual in sprays.Values)visual.Stop(true);activeSpray=null;current=null;spit=null;prepared=false;preparedPayload=null;ActiveBeamPhase=-1;
         actor?.Movement?.CancelActionLock();

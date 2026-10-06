@@ -134,7 +134,10 @@ public static class CrustaspikanTemporaryReactionVerifier
         Vector3 position = strike.Origin(actor.transform) + strike.Rotation(actor.transform) * Vector3.forward
             * (strike.shape == GroundIndicatorShape.Donut ? (strike.innerRadius + strike.radius) * .5f : Mathf.Min(6, strike.radius * .5f));
         position.y = Origin.y; Warp(position); yield return new WaitForSeconds(.3f);
-        Require(actor.AbilityController.TryStartAbility(material.ability, player.transform), "Attack start failed: " + material.materialId);
+        // Turned attack materials are probed at their authored strike direction, preserving the actual committed body facing.
+        var startContext = actor.AnimationBridge.UsesOwnedMotion
+            ? EnemyAbilityStartContext.RearCounter(player.transform.position, actor.Movement.PhysicalRotation) : default;
+        Require(actor.AbilityController.TryStartAbility(material.ability, player.transform, startContext), "Attack start failed: " + material.materialId);
         float deadline = Time.unscaledTime + 90, lastProgress = 0; int frame = 0, impacts = 0, rewinds = reaction.RewindCount;
         var poses = new JArray(); var snapshots = new JArray(); bool requested = false, observed = false, positioned = false, avoidedEarlier = false; float requestAt = 0; Vector3 reactionRoot = Origin;
         int parries = player.GetComponent<PlayerParryController>().ParriedAttackCount;
@@ -175,8 +178,10 @@ public static class CrustaspikanTemporaryReactionVerifier
         Require(player.GetComponent<PlayerParryController>().ParriedAttackCount == parries + 1, "Actual player parry did not confirm exactly once.");
         if (energyAmount >= 80)
         {
-            Require(reaction.RewindCount == rewinds + 1 && poses.OfType<JObject>().Any(p => (string)p["phase"] == "Prone")
-                && poses.OfType<JObject>().Any(p => (string)p["phase"] == "Recover"), "Rewind/prone/recover stage missing.");
+            Require(reaction.RewindCount == rewinds + 1 && poses.OfType<JObject>().Any(p => (string)p["phase"] == "Dazed")
+                && poses.OfType<JObject>().Any(p => (string)p["phase"] == "DazedRecover")
+                && !poses.OfType<JObject>().Any(p => (string)p["phase"] == "Prone" || (string)p["phase"] == "Collapse")
+                && reaction.LastDazedCycles >= 1f, "Standing dazed loop/recovery missing or parry incorrectly collapsed.");
             Require(Mathf.Abs(reaction.LastRewindStart - lastProgress) < .08f && reaction.LastRewindEnd < reaction.LastRewindStart
                 && (reaction.LastRewindStart - reaction.LastRewindEnd) * material.runtimeClip.length <= .451f, "Contact pose snapshot or bounded recoil extent mismatch.");
             Require(actor.Animator.speed > .99f && !reaction.BlocksActions, "Animator speed or reaction lock left behind.");
@@ -241,6 +246,7 @@ public static class CrustaspikanTemporaryReactionVerifier
             foreach (var attack in collection.attacks.Where(m => m.delivery == EnemyBossMaterialDelivery.Melee)) yield return Parry(attack);
             yield return Parry(basic, 0, false); yield return Parry(basic, 50, false);
         }
+        yield return DazedEdges();
         PrepareHeavy(100); var boss = Spawn(); var temporary = boss.GetComponent<CrustaspikanTemporaryReaction>();
         var encounterRoot = new GameObject("Owned groggy presentation encounter"); owned.Add(encounterRoot); var encounter = encounterRoot.AddComponent<CrustaspikanEncounter>();
         var settings = Object.Instantiate(AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(CrustaspikanEncounterBuilder.AssetPath)); owned.Add(settings); settings.groggyMax = 10;
@@ -290,6 +296,66 @@ public static class CrustaspikanTemporaryReactionVerifier
         Require(!cancelled.GetComponent<CrustaspikanTemporaryReaction>().BlocksActions && cancelled.GetComponent<CrustaspikanTemporaryReaction>().RewindCount == before, "Ordinary cancellation caused a parry reaction.");
         Record("ordinary-cancel-no-rewind"); Release(cancelled);
         yield return CameraFraming();
+    }
+    static IEnumerator DazedEdges()
+    {
+        var boss = Spawn(); var temporary = boss.GetComponent<CrustaspikanTemporaryReaction>();
+        Vector3 initialRoot = boss.transform.position; var initialVolume = boss.GetComponent<CombatTarget>().CurrentHurtVolume;
+        yield return new WaitForSeconds(.6f); // Let physical ground placement settle before observing the animation.
+        var origin = boss.transform.position; var rotation = boss.transform.rotation;
+        var target = boss.GetComponent<CombatTarget>(); var standing = target.CurrentHurtVolume;
+        Vector3 standingLocal = boss.transform.InverseTransformPoint(standing.Center);
+        File.WriteAllText(Path.Combine(plan.output, "dazed-spawn-baseline.json"), new JObject {
+            ["initialRoot"] = new JArray(initialRoot.x, initialRoot.y, initialRoot.z), ["settledRoot"] = new JArray(origin.x, origin.y, origin.z),
+            ["initialCenter"] = new JArray(initialVolume.Center.x, initialVolume.Center.y, initialVolume.Center.z),
+            ["settledCenter"] = new JArray(standing.Center.x, standing.Center.y, standing.Center.z) }.ToString());
+        Require(temporary.TryPlayParryDaze(5.6f), "Standing daze entry rejected.");
+        float deadline = Time.unscaledTime + 45;
+        while (temporary.Phase != CrustaspikanTemporaryReaction.ReactionPhase.Dazed && Time.unscaledTime < deadline) yield return null;
+        Require(Time.unscaledTime < deadline, "Daze loop entry timed out.");
+        float sampled = temporary.SampledNormalizedTime;
+        var oldHandle = temporary.ReactionHandle; boss.AnimationBridge.SetFrozen(true);
+        yield return new WaitForSeconds(.3f);
+        Require(temporary.Phase == CrustaspikanTemporaryReaction.ReactionPhase.Dazed && temporary.SampledNormalizedTime == sampled, "Freeze advanced standing daze.");
+        boss.AnimationBridge.SetFrozen(false); yield return null;
+        Require(boss.AnimationBridge.OwnsMotion(temporary.ReactionHandle) && temporary.ReactionHandle != oldHandle, "Daze did not reacquire after thaw.");
+        Record("dazed-freeze-resume-new-owner");
+        sampled = temporary.SampledNormalizedTime; float previousScale = Time.timeScale;
+        try
+        {
+            Time.timeScale = 0; yield return new WaitForSecondsRealtime(.15f);
+            Require(temporary.SampledNormalizedTime == sampled && temporary.Phase == CrustaspikanTemporaryReaction.ReactionPhase.Dazed, "Pause advanced standing daze.");
+        }
+        finally { Time.timeScale = previousScale; }
+        Record("dazed-pause-preserves-loop-clock");
+        boss.Health.TakeDamage(new DamageInfo(1, boss.transform.position, player.gameObject, Vector3.forward));
+        yield return null;
+        Require(temporary.Phase == CrustaspikanTemporaryReaction.ReactionPhase.Dazed && !temporary.IsGroggyAnimating, "Ordinary hit converted daze to collapse.");
+        var hitVolume = target.CurrentHurtVolume;
+        File.WriteAllText(Path.Combine(plan.output, "dazed-hit-volume.json"), new JObject {
+            ["expectedCenter"] = new JArray(standing.Center.x, standing.Center.y, standing.Center.z),
+            ["actualCenter"] = new JArray(hitVolume.Center.x, hitVolume.Center.y, hitVolume.Center.z),
+            ["expectedRadius"] = standing.Radius, ["actualRadius"] = hitVolume.Radius,
+            ["expectedHalfHeight"] = standing.HalfHeight, ["actualHalfHeight"] = hitVolume.HalfHeight, ["phase"] = temporary.Phase.ToString() }.ToString());
+        Require(Vector3.Distance(boss.transform.TransformPoint(standingLocal), hitVolume.Center) < .01f && Mathf.Abs(standing.Radius - hitVolume.Radius) < .001f
+            && Mathf.Abs(standing.HalfHeight - hitVolume.HalfHeight) < .001f, "Standing daze used prone hurt volume.");
+        Record("dazed-hit-keeps-standing-hurt-volume");
+        int frame = 0; var poses = new JArray();
+        while (temporary.BlocksActions && Time.unscaledTime < deadline)
+        { yield return null; Capture("DazedLoop", frame++); poses.Add(Pose(boss, temporary)); }
+        Vector3 delta = boss.transform.position - origin; delta.y = 0;
+        Require(!temporary.BlocksActions && temporary.LastDazedCycles >= 2f && boss.Animator.speed > .99f
+            && delta.magnitude < .01f && Quaternion.Angle(rotation, boss.transform.rotation) < .01f, "Sustained daze loop/facing/recovery failed.");
+        Record("dazed-two-cycles-facing-fixed-recovery", new JObject { ["cycles"] = temporary.LastDazedCycles, ["horizontalRootDrift"] = delta.magnitude, ["poses"] = poses });
+        Require(temporary.TryPlayParryDaze(5.6f), "Daze interruption entry rejected."); yield return new WaitForSeconds(.4f);
+        Require(temporary.TryPlayGroggy(.8f) && temporary.IsGroggyAnimating && temporary.Phase == CrustaspikanTemporaryReaction.ReactionPhase.Collapse, "Groggy did not replace standing daze with weighted collapse.");
+        Record("dazed-to-groggy-collapse");
+        Release(boss); var reused = Spawn();
+        Require(reused == boss && !temporary.BlocksActions && reused.Animator.speed > .99f, "Daze/groggy pool reuse retained owner.");
+        Require(temporary.TryPlayParryDaze(5.6f), "Daze death entry rejected."); yield return new WaitForSeconds(.4f);
+        reused.Health.TakeDamage(new DamageInfo(2000000, reused.transform.position, player.gameObject, Vector3.forward)); yield return null;
+        Require(reused.Health.IsDead && !temporary.BlocksActions && reused.Animator.speed > .99f, "Death retained standing daze sampler.");
+        Record("dazed-death-and-pool-release"); Release(reused);
     }
     static JObject BodyProjection(EnemyActor actor)
     {

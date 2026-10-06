@@ -3,7 +3,7 @@ using UnityEngine;
 [DefaultExecutionOrder(500)]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyActor))]
-public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
+public sealed partial class EnemyEliteFootstepEmitter : MonoBehaviour
 {
     private static readonly RaycastHit[] GroundHits = new RaycastHit[32];
     [SerializeField] private EnemyActor actor;
@@ -26,6 +26,7 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
         actor = owner;
         profile = footfallProfile;
         ResetTracking();
+        if (isActiveAndEnabled) BindMotionContacts();
     }
 
     private void Awake()
@@ -33,11 +34,12 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
         if (actor == null) actor = GetComponent<EnemyActor>();
     }
 
-    private void OnEnable() => ResetTracking();
-    private void OnDisable() => ResetTracking();
+    private void OnEnable() { ResetTracking(); BindMotionContacts(); }
+    private void OnDisable() { ResetTracking(); UnbindMotionContacts(); }
 
     private void LateUpdate()
     {
+        if (motionContactBridge != null && (motionContactBridge.UsesOwnedMotion || motionContactBridge.HasInvalidMotionProfile)) return;
         if (actor == null || profile == null || !profile.IsValid || !actor.IsLeased
             || actor.Definition == null || actor.Definition.EnemyId != profile.EnemyId
             || actor.Health == null || actor.Health.IsDead || actor.Animator == null
@@ -101,14 +103,14 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
         if (crossedIndex >= 0) EmitContact(position, delta, running, crossedIndex);
     }
 
-    private void EmitContact(Vector3 position, Vector3 travel, bool running, int contactIndex)
+    private void EmitContact(Vector3 position, Vector3 travel, bool running, int contactIndex, Vector3? sampledFoot = null)
     {
         QuarterViewCamera camera = QuarterViewCamera.ActiveInstance;
         if (camera == null || camera.CurrentTarget == null) return;
         Vector3 difference = camera.CurrentTarget.position - position;
         difference.y = 0f;
         float distance = difference.magnitude;
-        Vector3 foot = transform.TransformPoint(profile.GetContact(running, contactIndex).LocalPosition);
+        Vector3 foot = sampledFoot ?? transform.TransformPoint(profile.GetContact(running, contactIndex).LocalPosition);
         EnemyGroundStepTier tier = profile.GroundStepTier;
         bool audible = tier == EnemyGroundStepTier.Elite
             && distance < EnemyGroundStepTuning.AudibleDistance(tier);

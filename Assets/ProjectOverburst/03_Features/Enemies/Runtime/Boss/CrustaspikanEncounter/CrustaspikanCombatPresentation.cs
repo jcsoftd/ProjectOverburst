@@ -70,7 +70,7 @@ public sealed class CrustaspikanCombatPresentation : MonoBehaviour
     {
         if (!Ready) return;
         FootContactCount++;
-        Play(point, distance, 1f, ground, true);
+        Play(point, distance, footsteps != null ? footsteps.CurrentContactStrength : 1f, ground, true);
     }
     private void Strike(EnemyBossAttackMaterial material, int phase)
     {
@@ -125,7 +125,7 @@ public sealed class CrustaspikanCombatPresentation : MonoBehaviour
         {
             slot.dust.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = slot.dust.main;
-            main.startSizeMultiplier = walking ? 1.55f : 1.8f + strength * .65f;
+            main.startSizeMultiplier = walking ? 1.55f * Mathf.Sqrt(strength) : 1.8f + strength * .65f;
             main.startSpeedMultiplier = walking ? .75f : 1f + strength * .25f;
             main.startLifetimeMultiplier = walking ? .7f : .85f;
             slot.dust.Play(true); DustBurstCount++;
@@ -135,20 +135,20 @@ public sealed class CrustaspikanCombatPresentation : MonoBehaviour
         AudioClip clip = walking && profile.footsteps.Length > 0 ? profile.footsteps[soundCursor++ % profile.footsteps.Length] : profile.groundImpact;
         if (clip != null)
         {
-            slot.attack.clip = clip; slot.attack.volume = attenuation * (walking ? profile.footstepVolume : profile.impactVolume);
+            slot.attack.clip = clip; slot.attack.volume = attenuation * (walking ? profile.footstepVolume * strength : profile.impactVolume);
             slot.attack.pitch = walking ? profile.footstepPitch + ((soundCursor & 1) == 0 ? -.025f : .025f) : .82f;
             slot.attack.Play(); AudioEmissionCount++;
         }
         if (profile.rumble != null)
         {
             slot.tail.clip = profile.rumble; slot.tail.pitch = 1f;
-            slot.tail.volume = attenuation * (walking ? profile.footRumbleVolume : profile.impactRumbleVolume);
+            slot.tail.volume = attenuation * (walking ? profile.footRumbleVolume * strength : profile.impactRumbleVolume);
             slot.tailStarted = Time.unscaledTime; slot.tail.Play(); AudioEmissionCount++;
         }
         if (distance < 11f)
         {
             float nearby = Mathf.SmoothStep(0f, 1f, 1f - distance / 11f);
-            QuarterViewCamera.ActiveInstance?.QueueGroundStep(nearby * (walking ? profile.footCameraAmplitude : profile.strikeCameraAmplitude), walking ? .12f : .16f);
+            QuarterViewCamera.ActiveInstance?.QueueGroundStep(nearby * (walking ? profile.footCameraAmplitude * strength : profile.strikeCameraAmplitude), walking ? .12f : .16f);
         }
     }
     private Slot Acquire()
