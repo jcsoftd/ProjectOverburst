@@ -97,6 +97,12 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             if (!text.transform.IsChildOf(viewport) && (chrome == null || !text.transform.IsChildOf(chrome)))
                 text.fontSize = Mathf.Max(10, Mathf.RoundToInt(text.fontSize * .88f));
         foreach (var node in nodes) if (node.stateMark) node.stateMark.fontSize = 12;
+        var legend = window.Find("Node Legend")?.GetComponent<Text>();
+        if (legend)
+        {
+            legend.supportRichText = true;
+            legend.text = "<color=#FFD466>● 습득 완료</color>    <color=#CCD6E0>○ 습득 가능</color>    <color=#8C99A6>× 미습득</color>    <color=#D9AF57>! 포인트 부족</color>    <color=#EBF2FF>+ 습득 예정</color>    <color=#F27957>− 환급 예정</color>    <color=#9494A8>… 확장 예정</color>";
+        }
         foreach (var node in nodes) node.Bind(this);
         entry.onClick.AddListener(Toggle); close.onClick.AddListener(Close);
         zoomOut.onClick.AddListener(() => ZoomAt(Zoom - .2f, Vector2.zero)); zoomIn.onClick.AddListener(() => ZoomAt(Zoom + .2f, Vector2.zero));
@@ -287,8 +293,10 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         int equippedIndex=OverburstSkillTreeCatalog.ElementIndex(CurrentElement);
         equippedIcon.sprite=equippedIndex<5?elementSprites[equippedIndex]:views["S_W1"].icon.sprite;equippedIcon.color=equippedIndex<5?Color.white:new Color(.65f,.61f,.53f);
         detailNodeIcon.sprite=views[n.id].icon.sprite;
+        var state = StateFor(n.id); var statusColor = OverburstSkillTreeNodeView.StatusColor(state);
+        detailNodeIcon.color = views[n.id].icon.color; nodeName.color = state == OverburstSkillTreeNodeView.NodeState.Learned ? statusColor : new Color(.86f,.87f,.89f); meta.color = statusColor;
         kindLabel.text = OverburstSkillTreeCatalog.AreaName(n.area) + " · " + OverburstSkillTreeCatalog.KindName(n.kind);
-        nodeName.text = n.name; meta.text = Meta(n); trigger.text = n.kind == "stat" ? "모든 공격과 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "중앙에서 연결된 능력치 노드를 선택해 강화합니다." : n.trigger;
+        nodeName.text = n.name; meta.text = n.cost > 0 ? OverburstSkillTreeNodeView.StatusName(state) + " · " + Meta(n) : Meta(n); trigger.text = n.kind == "stat" ? "모든 공격과 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "중앙에서 연결된 능력치 노드를 선택해 강화합니다." : n.trigger;
         prerequisites.text = n.requires.Length > 0 ? "필수 선행  " + string.Join(" + ", n.requires.Select(id => index[id].name)) : n.cost == 0 ? "무료 안내 노드 · 포인트를 소비하지 않습니다" : "중앙과 연결된 습득 노드에 인접해야 합니다";
         effectHeading.GetComponent<Text>().text = n.IsReserved ? "예정 효과 · 원소별 방향" : "강화 효과";
         prerequisites.rectTransform.sizeDelta = new Vector2(396, 42);
@@ -326,6 +334,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         tipEffect.text = n.IsReserved ? n.description : n.kind == "stat" ? n.name + " · 원소 교체 시에도 유지" : "무료 안내 노드 · 포인트를 소비하지 않습니다";
         tipPrerequisites.text = n.requires.Length == 0 ? (n.IsReserved ? "연결된 강화 경로의 확장 목표" : n.cost == 0 ? "공통 시작 경로" : "중앙과 연결된 습득 노드에 인접해야 합니다") : "선행  " + string.Join(" + ", n.requires.Select(p => index[p].name));
         tipState.text = n.IsReserved ? "확장 예정 · 현재 습득 불가" : n.cost == 0 ? "기본 경로" : Plan.Has(id) ? (Plan.IsApplied(id) ? "습득 완료" : "습득 예정 · 적용 필요") + " · 클릭하여 상세 고정" : Plan.IsApplied(id) ? "환급 예정 · 적용 필요" : Plan.Available(n) ? (Plan.Remaining >= n.cost ? "습득 가능 · " : "포인트 부족 · ") + "클릭하여 상세 고정" : "연결 노드 습득 필요 · 클릭하여 상세 고정";
+        tipState.color = OverburstSkillTreeNodeView.StatusColor(StateFor(id));
         tooltip.gameObject.SetActive(true); tooltip.SetAsLastSibling();
         float y = 16; Text[] fields = { tipName, tipMeta, tipTrigger, tipEffect, tipPrerequisites, tipState };
         foreach (var field in fields)
