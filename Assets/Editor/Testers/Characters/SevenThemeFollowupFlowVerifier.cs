@@ -21,7 +21,7 @@ public static partial class SevenThemeFollowupFlowVerifier
 {
     const string Key="Overburst.SevenThemeFollowupFlow.plan";
     const string ModeKey="Overburst.SevenThemeFollowupFlow.run";
-    static string Folder=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Monsters/20261006_SevenThemeImprovement/"+(Mode.StartsWith("Chase",StringComparison.Ordinal)?"GOAL_02":Mode.StartsWith("Visual",StringComparison.Ordinal)?"GOAL_03":Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)?"GOAL_04":"GOAL_01"),SessionState.GetString(ModeKey,"BaselineNative")));
+    static string Folder=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Monsters/20261006_SevenThemeImprovement/"+(Mode.StartsWith("Combat",StringComparison.Ordinal)?"RotationFollowup":Mode.StartsWith("Chase",StringComparison.Ordinal)?"GOAL_02":Mode.StartsWith("Visual",StringComparison.Ordinal)?"GOAL_03":Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)?"GOAL_04":"GOAL_01"),SessionState.GetString(ModeKey,"BaselineNative")));
     static string Account=>Path.Combine(Folder,"Account");
     static EnemyMotor host;
     static double lastTraceWrite;
@@ -92,7 +92,7 @@ public static partial class SevenThemeFollowupFlowVerifier
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.WeakAttackPlayerLoop.plan",""))||!string.IsNullOrEmpty(SessionState.GetString(Key,"")))
             throw new InvalidOperationException("Idle, unreserved shared Editor required.");
-        if(run!="BaselineNative"&&run!="AfterNative"&&run!="NearBefore"&&run!="NearAfter"&&run!="ChaseCompare"&&run!="ChaseSupplement"&&run!="VisualInterpolation"&&run!="VisualDeath"&&run!="VisualDeath2"&&run!="ParryGeometry"&&run!="VisualDeath3"&&run!="VisualInterpolationRender"&&run!="VisualInterpolationRender2"&&run!="ParryGeometry2"&&run!="ParryGeometryAfter")throw new InvalidOperationException("Owned baseline or result only.");
+        if(run!="BaselineNative"&&run!="AfterNative"&&run!="NearBefore"&&run!="NearAfter"&&run!="ChaseCompare"&&run!="ChaseSupplement"&&run!="VisualInterpolation"&&run!="VisualDeath"&&run!="VisualDeath2"&&run!="ParryGeometry"&&run!="VisualDeath3"&&run!="VisualInterpolationRender"&&run!="VisualInterpolationRender2"&&run!="ParryGeometry2"&&run!="ParryGeometryAfter"&&run!="CombatBefore"&&run!="CombatAfter"&&run!="CombatAfter2"&&run!="CombatAfter3"&&run!="CombatAfter4"&&run!="CombatAfter5"&&run!="CombatCueVisibility"&&run!="CombatCueVisibility2")throw new InvalidOperationException("Owned baseline or result only.");
         SessionState.SetString(ModeKey,run);
         Directory.CreateDirectory(Folder);
         if(File.Exists(Path.Combine(Folder,"plan.json")))throw new InvalidOperationException("Fresh audit output required.");
@@ -159,6 +159,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         var visual=GameObject.CreatePrimitive(PrimitiveType.Capsule);visual.transform.SetParent(target,false);Object.Destroy(visual.GetComponent<Collider>());visual.transform.localPosition=capsule.center;visual.transform.localScale=new Vector3(capsule.radius*2,capsule.height/2,capsule.radius*2);
         var mat=new Material(Shader.Find("Universal Render Pipeline/Lit"));owned.Add(mat);mat.color=new Color(.96f,.69f,.28f);visual.GetComponent<Renderer>().sharedMaterial=mat;
         yield return null;yield return new WaitForFixedUpdate();
+        if(Mode.StartsWith("Combat",StringComparison.Ordinal)){yield return CombatFollowup(catalog,health,combat);yield break;}
         if(Mode=="ChaseCompare"){yield return ChaseComparison(catalog,health);yield break;}
         if(Mode=="ChaseSupplement"){yield return ChaseComparison(catalog,health,new[]{"VenomBrood_Arathrox","CavernMutants_Limadon"},new[]{0f,.65f});yield return ChaseSafety(catalog,health);yield break;}
         if(Mode=="VisualInterpolation"||Mode.StartsWith("VisualInterpolationRender",StringComparison.Ordinal)){yield return InterpolationComparison(catalog,health);yield break;}

@@ -139,6 +139,7 @@ GameObject:
   - component: {fileID: 3533626365886751099}
   - component: {fileID: 7441796015841084789}
   - component: {fileID: 3595254288402480708}
+  - component: {fileID: 954668869809224935}
   m_Layer: 7
   m_Name: PF_V3_Kapeloproboskid
   m_TagString: Untagged
@@ -354,6 +355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51583a60d8d86ff4a9b6d6fb970bf643, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationBridge
+  motionPlaybackProfile: {fileID: 0}
   animator: {fileID: 9045645976161208734}
   moveParameter: Locomotion
   locomotionStateName: Locomotion
@@ -430,6 +432,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCrowdAgent
   health: {fileID: 4854305884245642426}
   bodyCollider: {fileID: 8196221222253324435}
+  crowdRadiusMultiplier: 1.12
 --- !u!114 &1475000520461520863
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -530,6 +533,7 @@ MonoBehaviour:
   aggroReleaseDelay: 2
   findPlayerByTag: 1
   playerTag: Player
+  chaseObservationInterval: 0.65
   useDensityApproachSteering: 1
   logStateChanges: 0
 --- !u!114 &7805252661032678001
@@ -739,6 +743,7 @@ MonoBehaviour:
   actor: {fileID: 1488640905649368149}
   profile: {fileID: 11400000, guid: 56c3bbafc657c8d40a5add2cb832db19, type: 2}
   minimumMoveSpeed: 0.3
+  customFeedbackDistance: 0
 --- !u!114 &7997848870252544023
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -819,6 +824,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
   owner: {fileID: 1350668372903681850}
   movement: {fileID: 1475000520461520863}
+--- !u!114 &954668869809224935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4599092965511755540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c6c8b203d9859341b9d6102a0e7aa79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyParryCueAnchor
+  head: {fileID: 1322493929922014419}
+  headClearance: 0.85
+  silhouetteClearance: 0.3
+  cueSize: 3.2
 --- !u!1 &4785312749501310466
 GameObject:
   m_ObjectHideFlags: 0
@@ -1717,6 +1738,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ffc38f8e374ac5445abd8eac3444e246, type: 3}
+--- !u!4 &1322493929922014419 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9178560768420119168, guid: ffc38f8e374ac5445abd8eac3444e246, type: 3}
+  m_PrefabInstance: {fileID: 7870811499094617683}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3127956384725472228 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5067119785110814135, guid: ffc38f8e374ac5445abd8eac3444e246, type: 3}
