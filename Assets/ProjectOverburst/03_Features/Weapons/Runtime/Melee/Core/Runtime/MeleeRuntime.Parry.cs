@@ -11,6 +11,8 @@ public partial class MeleeRuntime
     private int heavyParryStartedFrame;
     public bool IsHeavyParryMotionActive => heavyParryStage != HeavyParryStage.None;
     public float HeavyParryContactDelay { get; private set; }
+    public bool IsHeavyParryBladeMotion => heavyParryStage == HeavyParryStage.Parry && !heavyParryOnly
+        && Time.frameCount > heavyParryStartedFrame + 1;
     public bool IsHeavyParryUpswing => heavyParryStage == HeavyParryStage.Parry && !heavyParryOnly
         && Time.frameCount > heavyParryStartedFrame + 1 && heavyParryElapsed < HeavyParryContactDelay;
 

@@ -17,7 +17,7 @@ public sealed class PerfectParryContactProfile : ScriptableObject
     public bool upswingAfterimage = true;
     public Material upswingAfterimageMaterial;
     [Range(0f, 1f)] public float upswingAfterimageOpacity = .42f;
-    [Min(.1f)] public float upswingAfterimageLifetime = .22f;
+    [Min(.1f)] public float upswingAfterimageLifetime = .28f;
     public bool IsReady => enhancedPresentation && mainPrefab != null && additionalPrefab != null
         && mainPrefab.GetComponent<PerfectParryContactVfx>() != null
         && additionalPrefab.GetComponent<PerfectParryContactVfx>() != null

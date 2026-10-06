@@ -65,7 +65,7 @@ public sealed class PerfectParryWeaponAfterimage : MonoBehaviour
             properties.SetColor(TintId, tint); properties.SetColor(AccentId, new Color(1f, .86f, .42f, tint.a));
             foreach (var piece in frame.pieces) if (piece.renderer != null && piece.renderer.enabled) piece.renderer.SetPropertyBlock(properties);
         }
-        bool eligible = parry != null && parry.ActionGrade == ParryGrade.Perfect && melee.IsHeavyParryUpswing;
+        bool eligible = parry != null && parry.ActionGrade == ParryGrade.Perfect && melee.IsHeavyParryBladeMotion;
         if (!eligible) { emitting = false; return; }
         if (sourceWeapon != equipment.CurrentWeaponRoot) { Clear(); sourceWeapon = equipment.CurrentWeaponRoot; CacheSources(); }
         if (!emitting)

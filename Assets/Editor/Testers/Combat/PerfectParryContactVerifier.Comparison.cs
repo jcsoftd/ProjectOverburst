@@ -91,8 +91,17 @@ public static partial class PerfectParryContactVerifier
                 Check(ParryFeedbackService.LastAdditionalTingCount == (int)ParryGrade.Perfect, "All original perfect-parry ting layers remain");
                 Check(presenter.MainCount - main == (version == "A_Legacy" ? 0 : 1), "Selected legacy/enhanced route");
                 Check(afterimage.CapturedCount - captures == 0 ? version != "C_ContactAfterimage" : version == "C_ContactAfterimage", "Upswing weapon poses only follow the selected perfect enhancement");
-                Check(afterimage.ActiveCount == 0 && !afterimage.IsEmitting, "Upswing poses finish before the next action");
-                cases.Add(new { version, capturedWeaponPoses = afterimage.CapturedCount - captures, take, grade = parry.ActionGrade.ToString(), gaugeAfter = energy.Amount,
+                Check(afterimage.ActiveCount == 0 && !afterimage.IsEmitting, "Parry blade poses finish before the next action");
+                var recorded = JArray.Parse(File.ReadAllText(Path.Combine(output, version, "frames.json")));
+                int pullbackCaptures = 0;
+                for (int i = 1; i < recorded.Count; i++)
+                {
+                    int added = (int)recorded[i]["weaponCaptures"] - (int)recorded[i - 1]["weaponCaptures"];
+                    Check(added <= 0 || (bool)recorded[i]["afterimagePhase"], "Weapon poses never emit in the counter/bridge");
+                    if (added > 0 && !(bool)recorded[i]["upswing"]) pullbackCaptures += added;
+                }
+                Check(version == "C_ContactAfterimage" ? pullbackCaptures > 0 : pullbackCaptures == 0, "Only enhanced perfect parry records the post-upswing pullback");
+                cases.Add(new { version, pullbackCaptures, capturedWeaponPoses = afterimage.CapturedCount - captures, take, grade = parry.ActionGrade.ToString(), gaugeAfter = energy.Amount,
                     sourceCancelled = !enemy.AbilityController.IsExecuting, mainDelta = presenter.MainCount - main });
                 File.WriteAllText(Path.Combine(output, "comparison.json"), JsonConvert.SerializeObject(new { status = "RUNNING", cases }, Formatting.Indented));
                 spawn.Release(enemy); enemy = null;
@@ -178,7 +187,7 @@ public sealed class PerfectParryComparisonRecorder : MonoBehaviour
                 observations.Add(new { startFrame = before, endFrame = frames, presentationSeconds, realSeconds = Time.realtimeSinceStartupAsDouble - began,
                     audioSeconds = samples / (double)AudioSettings.outputSampleRate, suggestedCount, requestedCount = count, Time.timeScale, Time.unscaledDeltaTime, parry.SuccessCount, parry.FeedbackCount,
                     presenter.MainCount, presenter.AdditionalCount,
-                    weaponPoses = actor.GetComponent<PerfectParryWeaponAfterimage>()?.ActiveCount ?? 0, upswing = actor.GetComponent<MeleeRuntime>().IsHeavyParryUpswing });
+                    weaponPoses = actor.GetComponent<PerfectParryWeaponAfterimage>()?.ActiveCount ?? 0, weaponCaptures = actor.GetComponent<PerfectParryWeaponAfterimage>()?.CapturedCount ?? 0, afterimagePhase = actor.GetComponent<MeleeRuntime>().IsHeavyParryBladeMotion, upswing = actor.GetComponent<MeleeRuntime>().IsHeavyParryUpswing });
             }
             catch (Exception e) { error = e.ToString(); End(); }
             finally { RenderTexture.active = prior; }

@@ -31,4 +31,4 @@ MonoBehaviour:
   upswingAfterimage: 1
   upswingAfterimageMaterial: {fileID: 2100000, guid: c7215696c02e5a34988b9f8818b6fb69, type: 2}
   upswingAfterimageOpacity: 0.42
-  upswingAfterimageLifetime: 0.22
+  upswingAfterimageLifetime: 0.28
