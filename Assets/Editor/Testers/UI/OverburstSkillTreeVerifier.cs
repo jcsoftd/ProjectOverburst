@@ -76,6 +76,8 @@ public static class OverburstSkillTreeVerifier
             }
             Require(ui.nodes.First(n=>n.nodeId=="S_W1").caption.fontSize==13&&ui.areaLabels[0].GetComponent<Text>().fontSize==14,"Compact default stat 13 / direction 14 typography "+size);
             Require(ui.nodeName.fontSize==21&&ui.trigger.fontSize==14&&ui.tipName.fontSize==18,"Compact detail and hover hierarchy "+size);
+            Require(ui.nodes.All(n=>n.Accent&&!n.Accent.raycastTarget&&!n.selection.gameObject.activeSelf),"Separate focus accents never use the old brass selection fill "+size);
+            Require(ui.Catalog.segments.All(s=>ui.routes.StateFor(s)==OverburstSkillTreeRoutes.RouteState.Inactive),"Free guides alone never light learned routes "+size);
             var openingBoxes=new List<KeyValuePair<string,Rect>>();
             foreach(var node in ui.nodes.Where(n=>n.gameObject.activeInHierarchy)){openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId,Bounds((RectTransform)node.transform)));if(node.captionRect&&node.captionRect.gameObject.activeInHierarchy)openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId+":label",Bounds(node.captionRect)));}
             var openingOverlaps=new List<string>();for(int i=0;i<openingBoxes.Count;i++)for(int j=i+1;j<openingBoxes.Count;j++)if(Overlap(openingBoxes[i].Value,openingBoxes[j].Value))openingOverlaps.Add(openingBoxes[i].Key+" / "+openingBoxes[j].Key);
@@ -122,6 +124,25 @@ public static class OverburstSkillTreeVerifier
                 ui.Plan.Toggle("S_W1");ui.Refresh();Require(ui.StateFor("S_W1")==OverburstSkillTreeNodeView.NodeState.RefundDraft,"Refund draft state");
                 ui.Plan.Cancel();ui.Refresh();
                 Require(ui.nodes.Where(n=>n.stateMark).Select(n=>n.State).Distinct().Count()>=3,"Frame and icon badges use distinct states");
+                var sample=new[]{"S_W1","S_H1","S_D1","S_Q1"};ui.Plan.Load(8,sample);ui.Refresh();ui.ResetDefaultMap();ui.SelectNode("S_W2",false);ui.HideTooltip();Canvas.ForceUpdateCanvases();Render(camera,rt);
+                var learnedView=ui.nodes.First(n=>n.nodeId=="S_W1");var lockedView=ui.nodes.First(n=>n.nodeId=="S_W4");var availableView=ui.nodes.First(n=>n.nodeId=="S_W2");
+                Require(learnedView.State==OverburstSkillTreeNodeView.NodeState.Learned&&learnedView.Accent.State==learnedView.State&&learnedView.stateMark.text=="✓","Learned node owns permanent gold rim and check badge");
+                Require(availableView.State==OverburstSkillTreeNodeView.NodeState.Available&&availableView.stateMark.text=="○"&&availableView.Accent.Focused,"Available focus remains an unlearned hollow node");
+                var hudBrass=(Color)typeof(OverburstHudMenuBuilder).GetField("Gold",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                var hudIvory=(Color)typeof(OverburstHudMenuBuilder).GetField("Ivory",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                Require(learnedView.frame.color==hudBrass&&learnedView.icon.color==hudIvory&&OverburstSkillTreePalette.Brass==hudBrass,"Ownership uses existing HUD brass and ivory exactly");
+                Require(ui.nodes.All(v=>v.frame.color.r>=v.frame.color.g&&v.frame.color.g>=v.frame.color.b&&v.icon.color.r>=v.icon.color.g&&v.icon.color.g>=v.icon.color.b),"All node states remain in the warm RPG11 palette");
+                Require(learnedView.icon.color.grayscale>lockedView.icon.color.grayscale+.4f&&learnedView.frame.color.grayscale>lockedView.frame.color.grayscale+.25f,"Learned versus locked icon and fill luminance separation");
+                var lockedTint=lockedView.frame.color;var lockedCaption=lockedView.caption.color;ui.SelectNode("S_W4",false);ui.HideTooltip();
+                Require(lockedView.frame.color==lockedTint&&lockedView.caption.color==lockedCaption&&lockedView.Accent.Focused&&lockedView.Accent.State==OverburstSkillTreeNodeView.NodeState.Locked,"Selection never makes locked fill/caption learned gold");
+                Require(ui.meta.text.Contains("미습득")&&ui.detailNodeIcon.color==lockedView.icon.color,"Detail explicitly exposes selected locked status");
+                Require(ui.Catalog.segments.Where(s=>s.sources.Any(id=>id=="ROOT")).All(s=>ui.routes.StateFor(s)==OverburstSkillTreeRoutes.RouteState.Learned),"Paid allocation lights the correct central guide routes");
+                Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-states-default.png"),ref pixels);
+                ui.Plan.Toggle("S_W2");ui.Refresh();Require(availableView.State==OverburstSkillTreeNodeView.NodeState.PurchaseDraft&&availableView.stateMark.text=="+"&&availableView.Accent.State==availableView.State,"Draft owns pale dashed rim and plus badge");
+                Require(ui.Catalog.segments.Any(s=>ui.routes.StateFor(s)==OverburstSkillTreeRoutes.RouteState.PurchaseDraft),"Draft has separate pale dashed routes");
+                ui.Plan.Toggle("S_W1");ui.Refresh();Require(learnedView.State==OverburstSkillTreeNodeView.NodeState.RefundDraft&&learnedView.stateMark.text=="−"&&ui.Catalog.segments.Any(s=>ui.routes.StateFor(s)==OverburstSkillTreeRoutes.RouteState.RefundDraft),"Refund owns red rim/minus and route state");
+                ui.Plan.Cancel();ui.Refresh();ui.ResetMap();ui.SelectNode("S_W1",false);ui.HideTooltip();Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-states-fit.png"),ref pixels);
+                Require(ui.nodes.All(n=>n.transform.Find("State Accent")&&n.GetComponentsInChildren<OverburstSkillTreeNodeAccent>(true).Length==1),"Refresh/cancel never duplicates accent objects");
                 foreach(var n in ui.Catalog.nodes.Where(n=>n.IsReserved)){ui.SelectNode(n.id,true);ui.ShowTooltip(n.id);Require(!ui.action.interactable&&ui.actionLabel.text.Contains("확장 예정")&&ui.tipState.text.Contains("확장 예정"),"Reserved node read-only detail "+n.id);}
                 ui.SelectNode("K_W",true);ui.ShowTooltip("K_W");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-keystone.png"),ref pixels);
                 ui.Plan.Load(0,Array.Empty<string>());ui.Refresh();ui.SelectNode("S_W1",true);ui.ShowTooltip("S_W1");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-tooltip.png"),ref pixels);
