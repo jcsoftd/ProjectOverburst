@@ -31,7 +31,12 @@ public static partial class PerfectParryContactVerifier
         }
         Check(p.upswingAfterimageMaterial != null && p.upswingAfterimageMaterial.shader.isSupported, "Weapon poses reuse the supported dash afterimage material");
         var main = p.mainPrefab.GetComponent<PerfectParryContactVfx>();
-        Check(main.flash != null && main.stroke != null && main.glow != null && main.sparks != null, "Main has four authored layers");
+        Check(main.flash != null && main.stroke != null && main.glow != null && main.sparks != null, "Primary and deferred spark slots retain complete prefab references");
+        Check(main.stroke.GetComponent<ParticleSystemRenderer>().renderMode == ParticleSystemRenderMode.Billboard
+            && main.stroke.main.startSize3D
+            && main.stroke.main.maxParticles >= 7, "Immediate fragments retain independently authored needle length and thickness");
+        Check(main.stroke.GetComponent<ParticleSystemRenderer>().sharedMaterial == main.sparks.GetComponent<ParticleSystemRenderer>().sharedMaterial,
+            "Immediate and deferred fragments share the selected metal spark texture");
         Check(p.additionalPrefab.GetComponent<PerfectParryContactVfx>().additional, "Secondary prefab uses the reduced contact path");
         foreach (var clip in new[] { p.impact, p.ring, p.low })
         {
@@ -91,7 +96,7 @@ public sealed class PerfectParryContactProbe : MonoBehaviour
         Vector3 strokePosition = count > 0 ? particles[0].position : Vector3.zero;
         Color current = count > 0 ? particles[0].GetCurrentColor(cue.stroke) : Color.clear;
         samples.Add(new { sequence, frame = Time.frameCount, cue.Age, cue.SparksEmitted, cue.IsPlaybackAlive,
-            particles = count, sparks = cue.sparks.particleCount, currentAlpha = current.a,
+            particles = count, sparks = cue.sparks.particleCount, haloParticles = cue.glow != null ? cue.glow.particleCount : 0, currentAlpha = current.a,
             cuePosition = Point(cue.transform.position), strokePosition = Point(strokePosition), bladeRoot = Point(bladeA), bladeTip = Point(bladeB), segmentValid,
             cueScreen = Point(view != null ? view.WorldToScreenPoint(cue.transform.position) : Vector3.zero),
             presenter.MainCount, presenter.AdditionalCount, ParryFeedbackService.LastPerfectLayerCount });

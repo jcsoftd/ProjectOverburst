@@ -99,6 +99,9 @@ public static partial class PerfectParryContactVerifier
                     Check((bool)point["legacyFlashFound"] && (bool)point["addedContactFound"]
                         && (float)point["contactCenterGap"] <= .0001f,
                         "Actual original flash and added contact roots share one world-space center");
+                foreach (var point in alignment)
+                    Check((int)point["immediateFragments"] == 7 && (int)point["haloParticles"] == 0,
+                        "Seven actual metal fragments replace the round contact body and halo");
                 int pullbackCaptures = 0;
                 for (int i = 1; i < recorded.Count; i++)
                 {
@@ -209,6 +212,8 @@ public sealed class PerfectParryComparisonRecorder : MonoBehaviour
                 float contactCenterGap = legacyFlash != null && addedContact != null
                     ? Vector3.Distance(legacyFlash.position, addedContact.transform.position) : -1f;
                 observations.Add(new { alignmentObserved, legacyFlashFound = legacyFlash != null, addedContactFound = addedContact != null,
+                    immediateFragments = addedContact != null ? addedContact.stroke.particleCount : 0,
+                    haloParticles = addedContact != null && addedContact.glow != null ? addedContact.glow.particleCount : 0,
                     contactCenterGap, legacyFlashCenter = legacyFlash != null ? new[] { legacyFlash.position.x, legacyFlash.position.y, legacyFlash.position.z } : null,
                     addedContactCenter = addedContact != null ? new[] { addedContact.transform.position.x, addedContact.transform.position.y, addedContact.transform.position.z } : null,
                     startFrame = before, endFrame = frames, presentationSeconds, realSeconds = Time.realtimeSinceStartupAsDouble - began,

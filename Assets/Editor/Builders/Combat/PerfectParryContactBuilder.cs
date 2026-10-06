@@ -31,6 +31,46 @@ public static class PerfectParryContactBuilder
         profile.low = Sound("PerfectParry_Low", "Blade Clash Impact Blunt 01.wav", 0f, .14f, .006f, .06f, true);
         EditorUtility.SetDirty(profile); AssetDatabase.SaveAssets();
     }
+    [MenuItem("OVERBURST/제작/전투/완벽패링 금속 스파크 적용")]
+    public static void BuildMetalSparkVisuals()
+    {
+        RequireIdle();
+        var line = AssetDatabase.LoadAssetAtPath<Material>(Root + "/M_ContactStroke.mat");
+        var spark = AssetDatabase.LoadAssetAtPath<Material>(Root + "/M_ContactSpark.mat");
+        if (line == null || spark == null) throw new InvalidOperationException("Existing contact materials are required.");
+        foreach (string name in new[] { "PF_PerfectParryContact", "PF_PerfectParryAdditional" })
+        {
+            string path = Root + "/" + name + ".prefab";
+            var go = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var cue = go.GetComponent<PerfectParryContactVfx>();
+                if (cue == null || cue.sparks == null || !cue.additional && (cue.flash == null || cue.stroke == null))
+                    throw new InvalidOperationException("Contact prefab slots are incomplete: " + path);
+                if (!cue.additional) cue.flash.GetComponent<ParticleSystemRenderer>().sharedMaterial = line;
+                AuthorMetalSparkParticles(cue, line);
+                PrefabUtility.SaveAsPrefabAsset(go, path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(go); }
+        }
+    }
+    private static void AuthorMetalSparkParticles(PerfectParryContactVfx cue, Material material)
+    {
+        if (!cue.additional) { var flashMain = cue.flash.main; flashMain.startSize3D = true; }
+        foreach (var ps in cue.additional ? new[] { cue.sparks } : new[] { cue.stroke, cue.sparks })
+        {
+            var main = ps.main; main.maxParticles = 8; main.gravityModifier = .45f; main.startSize3D = true;
+            var renderer = ps.GetComponent<ParticleSystemRenderer>(); renderer.sharedMaterial = material;
+            renderer.renderMode = ParticleSystemRenderMode.Billboard; renderer.lengthScale = 1f; renderer.velocityScale = 0f;
+            var color = ps.colorOverLifetime; color.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(new Color(1f, .88f, .62f), .65f) },
+                new[] { new GradientAlphaKey(1f, 0), new GradientAlphaKey(.95f, .4f), new GradientAlphaKey(.70f, .75f), new GradientAlphaKey(0f, 1f) });
+            color.color = gradient;
+            var size = ps.sizeOverLifetime; size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0, .9f), new Keyframe(.3f, 1f), new Keyframe(.75f, .65f), new Keyframe(1, .1f)));
+        }
+    }
     [MenuItem("OVERBURST/비교/완벽패링/기존 연출로 롤백")]
     public static void UseLegacy() { SetEnhanced(false); }
     [MenuItem("OVERBURST/비교/완벽패링/새 접촉 연출 적용")]
@@ -118,6 +158,7 @@ public static class PerfectParryContactBuilder
             if (!small)
             { cue.flash = Particle(go.transform, "WhiteStrike", line, false); var flashMain = cue.flash.main; flashMain.maxParticles = 2; cue.stroke = Particle(go.transform, "ReadableGoldStrike", impact, false); cue.glow = Particle(go.transform, "SoftContactHalo", glow, false); }
             cue.sparks = Particle(go.transform, "DelayedMetalSparks", spark, true);
+            AuthorMetalSparkParticles(cue, line);
             return PrefabUtility.SaveAsPrefabAsset(go, Root + "/" + go.name + ".prefab");
         }
         finally { UnityEngine.Object.DestroyImmediate(go); }
