@@ -17,6 +17,9 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
 
     public EnemyFootfallProfile Profile => profile;
     public int ContactCount { get; private set; }
+    [SerializeField, Min(0f)] private float customFeedbackDistance;
+    public event System.Action<Vector3, float, Collider> GroundContact;
+    public bool UsesCustomFeedback => customFeedbackDistance > 0f && GroundContact != null;
 
     public void Configure(EnemyActor owner, EnemyFootfallProfile footfallProfile)
     {
@@ -110,7 +113,7 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
         bool audible = tier == EnemyGroundStepTier.Elite
             && distance < EnemyGroundStepTuning.AudibleDistance(tier);
         bool dustEligible = EnemyFootDustVfx.IsEligible(foot, profile.VisualWeight, distance);
-        if (!audible && !dustEligible) return;
+        if (!audible && !dustEligible && !(UsesCustomFeedback && distance < customFeedbackDistance)) return;
         int mask = LayerMask.GetMask("Default", "Environment", "Ground");
         int count = Physics.RaycastNonAlloc(foot + Vector3.up * 0.55f, Vector3.down,
             GroundHits, 1.6f, mask, QueryTriggerInteraction.Ignore);
@@ -133,6 +136,7 @@ public sealed class EnemyEliteFootstepEmitter : MonoBehaviour
 
         Vector3 point = chosen.point;
         ContactCount++;
+        if (UsesCustomFeedback) { GroundContact.Invoke(point, distance, chosen.collider); return; }
         travel.y = 0f;
         if (dustEligible)
             EnemyFootDustVfx.TryEmit(point, chosen.normal, travel,

@@ -1187,6 +1187,8 @@ GameObject:
   - component: {fileID: 8744712018190669643}
   - component: {fileID: 5084204934209598916}
   - component: {fileID: 1940001911383852210}
+  - component: {fileID: 3899230435060072019}
+  - component: {fileID: 1248115086829207155}
   m_Layer: 7
   m_Name: PF_CrustaspikanMaterials
   m_TagString: Untagged
@@ -1478,6 +1480,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCrowdAgent
   health: {fileID: 2191335860243363724}
   bodyCollider: {fileID: 5668027231604438141}
+  crowdRadiusMultiplier: 1.12
 --- !u!114 &8074585512514065496
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1796,8 +1799,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyEliteFootstepEmitter
   actor: {fileID: 511335050990648569}
-  profile: {fileID: 11400000, guid: 91a81bde997d6054d91ec06b184cf794, type: 2}
+  profile: {fileID: 11400000, guid: 22287afa27514a54db1a5e6d7bb2fc2b, type: 2}
   minimumMoveSpeed: 0.3
+  customFeedbackDistance: 18
 --- !u!114 &8256749339774600669
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1941,6 +1945,35 @@ MonoBehaviour:
   collapseSeconds: 1.05
   recoverySeconds: 2.6
   getUpClip: {fileID: 7400000, guid: 6fe79ad14abf6734e93b60a8b8c55e2f, type: 2}
+--- !u!114 &3899230435060072019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2730059863437412784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27e515aef23e8ed49900ae9f93762bbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanCombatPresentation
+  profile: {fileID: 11400000, guid: 616950e65227f5849be600abc92a21a9, type: 2}
+--- !u!114 &1248115086829207155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2730059863437412784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c6c8b203d9859341b9d6102a0e7aa79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyParryCueAnchor
+  head: {fileID: 6294009712439220267}
+  headClearance: 0.85
+  silhouetteClearance: 0.3
+  cueSize: 3.2
 --- !u!1 &2890662813473528419
 GameObject:
   m_ObjectHideFlags: 0

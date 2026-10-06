@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68b3238945b88ea4ca60efba715c981f, type: 3}
+  m_Name: CP_Crustaspikan
+  m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanCombatPresentationProfile
+  footsteps:
+  - {fileID: 8300000, guid: 01e53c3f9df5af74e94030f336e5908d, type: 3}
+  - {fileID: 8300000, guid: 47b43bcb8f276624aa937d7406945c4b, type: 3}
+  - {fileID: 8300000, guid: 7344d419bbeecb0468a15407736f264e, type: 3}
+  - {fileID: 8300000, guid: 4910d625f4c9c0243b9fdea92c00cc97, type: 3}
+  groundImpact: {fileID: 8300000, guid: a4e95e9a1c578024e87026aa5b2008f5, type: 3}
+  rumble: {fileID: 8300000, guid: b6b594698b5a0ae47809b57e33ac9b3e, type: 3}
+  dustPrefab: {fileID: 6847065353342689008, guid: de4f30556e94de746ae0725a1001c2b2, type: 3}
+  footstepVolume: 0.52
+  footstepPitch: 0.62
+  impactVolume: 0.62
+  footRumbleVolume: 0.12
+  impactRumbleVolume: 0.25
+  rumbleSeconds: 0.8
+  audibleDistance: 18
+  footCameraAmplitude: 0.026
+  strikeCameraAmplitude: 0.045
+  groundStrikes:
+  - materialId: Crustaspikan_2HandsSmashAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ L Finger01
+    - Crustaspikan_ R Finger01
+    strength: 2.3
+  - materialId: Crustaspikan_2HitComboAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ R Finger01
+    strength: 1.4
+  - materialId: Crustaspikan_2HitComboAttack
+    phase: 1
+    contactBones:
+    - Crustaspikan_ L Finger01
+    strength: 1.4
+  - materialId: Crustaspikan_2HitComboAttackForward
+    phase: 0
+    contactBones:
+    - Crustaspikan_ R Finger01
+    strength: 1.4
+  - materialId: Crustaspikan_2HitComboAttackForward
+    phase: 1
+    contactBones:
+    - Crustaspikan_ L Finger01
+    strength: 1.4
+  - materialId: Crustaspikan_LeftHandSmashAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ L Finger01
+    strength: 1.8
+  - materialId: Crustaspikan_RightHandSmashAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ R Finger01
+    strength: 1.8
+  - materialId: Crustaspikan_LeftFootStompAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ L Toe0
+    strength: 1.4
+  - materialId: Crustaspikan_RightFootStompAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ R Toe0
+    strength: 1.4
+  - materialId: Crustaspikan_Turn90LeftFootStompAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ L Toe0
+    strength: 1.4
+  - materialId: Crustaspikan_Turn90RightFootStompAttack
+    phase: 0
+    contactBones:
+    - Crustaspikan_ R Toe0
+    strength: 1.4

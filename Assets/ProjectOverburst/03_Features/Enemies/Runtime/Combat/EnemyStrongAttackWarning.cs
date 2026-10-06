@@ -241,6 +241,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     // 2026-09-30: 패링 빛은 몸·강공 장판과 겹치지 않도록 머리 바로 위에 띄운다(몸 꼭대기 +0.35m).
     // 여러 강공이 겹칠 때 구분되게 소켓마다 좌우로 조금 벌리고, 머리에 가리지 않게 카메라 쪽으로 살짝 당긴다.
     private const float SignalAboveHead = .35f;
+    private EnemyParryCueAnchor authoredCueAnchor;
     private void PositionSignal()
     {
         if (signalParticles == null) return;
@@ -248,9 +249,18 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         if (signalCamera == null) signalCamera = Camera.main;
         signalParticles.transform.position = ResolveCuePosition(signalCamera, signalSocketIndex);
     }
-    public float ResolveCueSize() => Mathf.Clamp((GetComponent<CombatTarget>()?.CurrentVolume.Radius ?? .5f) * 2.15f, 3.2f, 4.7f) * Mathf.Max(.01f, cueScale);
+    public float ResolveCueSize()
+    {
+        if (authoredCueAnchor == null) authoredCueAnchor = GetComponent<EnemyParryCueAnchor>();
+        if (authoredCueAnchor != null && authoredCueAnchor.isActiveAndEnabled && authoredCueAnchor.Head != null)
+            return authoredCueAnchor.CueSize * Mathf.Max(.01f, cueScale);
+        return Mathf.Clamp((GetComponent<CombatTarget>()?.CurrentVolume.Radius ?? .5f) * 2.15f, 3.2f, 4.7f) * Mathf.Max(.01f, cueScale);
+    }
     public Vector3 ResolveCuePosition(Camera camera, int socketIndex = 1)
     {
+        if (authoredCueAnchor == null) authoredCueAnchor = GetComponent<EnemyParryCueAnchor>();
+        if (authoredCueAnchor != null && authoredCueAnchor.isActiveAndEnabled && authoredCueAnchor.TryResolve(camera, out var authoredPosition))
+            return authoredPosition;
         CombatTarget target = body != null ? body : GetComponent<CombatTarget>();
         if (cueSocket != null && (cueSocket == transform || cueSocket.IsChildOf(transform)))
             return cueSocket.TransformPoint(cueOffset);
