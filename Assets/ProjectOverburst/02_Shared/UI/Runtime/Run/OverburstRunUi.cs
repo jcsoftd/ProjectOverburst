@@ -371,6 +371,7 @@ public sealed class OverburstRunUi : MonoBehaviour
     private void Update()
     {
         if(!IsOpen)return;
+        if(!showingCards && PlayerContext.Instance?.CurrentActorHealth?.IsDead==true){Close();return;}
         if(!showingCards)RefreshEquipmentLayout();
         if(PlayerInputFacade.Current?.UiCancelPressedThisFrame==true){Cancel();return;}
         if(!showingCards && inventoryCaptured && inventory!=null && !inventory.IsVisible)Cancel();

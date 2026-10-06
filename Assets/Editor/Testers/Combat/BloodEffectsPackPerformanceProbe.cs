@@ -32,7 +32,7 @@ public static class BloodEffectsPackPerformanceProbe
     static Camera camera;
     static RenderTexture texture;
     static Texture2D pixels;
-    static bool background;
+    static bool background, backgroundCaptured, randomCaptured;
     static readonly List<object> results = new List<object>();
     static readonly List<ProfilerRecorder> recorders = new List<ProfilerRecorder>();
     static readonly string[] metricNames = { "CPU Main Thread Frame Time", "CPU Render Thread Frame Time", "GPU Frame Time", "Draw Calls Count", "Batches Count", "SetPass Calls Count", "GC Allocated In Frame" };
@@ -50,16 +50,17 @@ public static class BloodEffectsPackPerformanceProbe
     static long lastTimestamp;
     static readonly Vector3 center = new Vector3(5000f, 0f, 5000f);
     public static string Progress { get; private set; } = "idle";
-    public static bool IsRunning => !string.IsNullOrEmpty(SessionState.GetString(Key + "return", ""));
+    public static bool IsRunning => !string.IsNullOrEmpty(SessionState.GetString(Key + "return", "")) && !SessionState.GetBool(Key+"returnTimedOut",false);
     static BloodEffectsPackPerformanceProbe()
     {
         EditorApplication.playModeStateChanged += StateChanged;
         if (!string.IsNullOrEmpty(SessionState.GetString(Key + "pending", ""))) EditorApplication.update += AutoStart;
-        if (!string.IsNullOrEmpty(SessionState.GetString(Key + "return", ""))) EditorApplication.update += Return;
+        if (!string.IsNullOrEmpty(SessionState.GetString(Key + "return", "")) && !SessionState.GetBool(Key+"returnTimedOut",false)) EditorApplication.update += Return;
     }
     public static void Start(string directory)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) throw new InvalidOperationException("Idle Editor required");
+        if (!string.IsNullOrEmpty(SessionState.GetString(Key+"return",""))) throw new InvalidOperationException("Previous return is pending; resume it first.");
         output = IsolatedSavePlayGuard.ValidateDirectory(directory); Directory.CreateDirectory(output);
         SessionState.SetString(Key + "pending",output);
         SessionState.SetString(Key + "return",output);
@@ -73,7 +74,9 @@ public static class BloodEffectsPackPerformanceProbe
     }
     static void StateChanged(PlayModeStateChange state)
     {
-        if (state == PlayModeStateChange.ExitingPlayMode && work.Count > 0) Finish(new Exception("User or external Play exit"),false);
+        string pending=SessionState.GetString(Key+"pending","");
+        if ((state == PlayModeStateChange.ExitingPlayMode || state == PlayModeStateChange.EnteredEditMode) && (work.Count > 0 || !string.IsNullOrEmpty(pending)))
+        { if(!string.IsNullOrEmpty(pending))output=pending;Finish(new Exception("User or external Play exit"),false); }
         if (state == PlayModeStateChange.EnteredEditMode && !string.IsNullOrEmpty(SessionState.GetString(Key + "return","")))
         { EditorApplication.update -= Return; EditorApplication.update += Return; }
     }
@@ -87,9 +90,10 @@ public static class BloodEffectsPackPerformanceProbe
             Finish(new Exception("Startup timeout"),EditorApplication.isPlaying); return;
         }
         if (!EditorApplication.isPlaying || PlayerInputFacade.Current == null || Camera.main == null) return;
+        if (!string.Equals(IsolatedSavePlayGuard.ActiveDirectory,Path.Combine(pending,"isolated-save"),StringComparison.OrdinalIgnoreCase)) return;
         output=pending; SessionState.EraseString(Key+"pending"); EditorApplication.update -= AutoStart;
         checks.Clear(); results.Clear(); frame=-1; sequence=100; deadline=EditorApplication.timeSinceStartup+600;
-        background=Application.runInBackground; Application.runInBackground=true;
+        background=Application.runInBackground; backgroundCaptured=true; Application.runInBackground=true;
         work.Push(Verify()); EditorApplication.update += Tick;
     }
     static void Tick()
@@ -211,7 +215,7 @@ public static class BloodEffectsPackPerformanceProbe
             if(worldReady)break;yield return null;
         }
         Check(worldReady,"product world finished loading before benchmark");
-        randomState=UnityEngine.Random.state;
+        randomState=UnityEngine.Random.state; randomCaptured=true;
         priorCameras=Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);cameraEnabled=priorCameras.Select(c=>c.enabled).ToArray();
         var template=Camera.main;Check(template,"main camera ready");
         var cameraRoot=new GameObject("Owned blood performance camera");owned.Add(cameraRoot);camera=cameraRoot.AddComponent<Camera>();camera.CopyFrom(template);
@@ -274,23 +278,55 @@ public static class BloodEffectsPackPerformanceProbe
         if(priorCanvases!=null)for(int i=0;i<priorCanvases.Length;i++)if(priorCanvases[i])priorCanvases[i].enabled=canvasEnabled[i];
         if(camera)GameplayInputBlocker.Unblock(camera.gameObject);
         if(fixtureMaterial){Object.DestroyImmediate(fixtureMaterial);fixtureMaterial=null;}
-        UnityEngine.Random.state=randomState;
+        if(randomCaptured){UnityEngine.Random.state=randomState;randomCaptured=false;}
     }
     static void Finish(Exception error,bool exit)
     {
         EditorApplication.update-=Tick;EditorApplication.update-=AutoStart;
-        while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
-        Write(true,error); ReleaseFixture();
-        if(camera!=null)camera.targetTexture=null;
-        if(texture!=null){texture.Release();Object.DestroyImmediate(texture);texture=null;}
-        if(pixels!=null){Object.DestroyImmediate(pixels);pixels=null;}
-        foreach(var item in owned)if(item!=null)Object.DestroyImmediate(item);owned.Clear();
-        Application.runInBackground=background;
-        SessionState.EraseString(Key+"pending");SessionState.EraseFloat(Key+"deadline");
-        File.WriteAllText(Path.Combine(output,"play-result.json"),JsonConvert.SerializeObject(new {success=error==null,checks,error=error?.ToString()},Formatting.Indented));
-        if(exit && EditorApplication.isPlaying)EditorApplication.ExitPlaymode();
-        if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+        try
+        {
+            while(work.Count>0)
+            {
+                try{(work.Pop() as IDisposable)?.Dispose();}
+                catch(Exception cleanup){error=error??cleanup;Debug.LogException(cleanup);}
+            }
+            Write(true,error);
+        }
+        catch(Exception report){error=error??report;Debug.LogException(report);}
+        finally
+        {
+            try
+            {
+                ReleaseFixture();
+                if(camera!=null)camera.targetTexture=null;
+                if(texture!=null){texture.Release();Object.DestroyImmediate(texture);texture=null;}
+                if(pixels!=null){Object.DestroyImmediate(pixels);pixels=null;}
+                foreach(var item in owned)if(item!=null)Object.DestroyImmediate(item);owned.Clear();
+            }
+            catch(Exception cleanup){error=error??cleanup;Debug.LogException(cleanup);}
+            finally
+            {
+                if(backgroundCaptured){Application.runInBackground=background;backgroundCaptured=false;}
+                SessionState.EraseString(Key+"pending");SessionState.EraseFloat(Key+"deadline");
+                try{File.WriteAllText(Path.Combine(output,"play-result.json"),JsonConvert.SerializeObject(new {success=error==null,checks,error=error?.ToString()},Formatting.Indented));}
+                catch(Exception report){Debug.LogException(report);}
+                string ownedAccount=Path.Combine(output,"isolated-save");
+                if(exit && EditorApplication.isPlaying && string.Equals(IsolatedSavePlayGuard.ActiveDirectory,ownedAccount,StringComparison.OrdinalIgnoreCase))
+                    EditorApplication.ExitPlaymode();
+                if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+            }
+        }
     }
+    [MenuItem("OVERBURST/테스트/혈흔 A·B 측정 복귀 재시도")]
+    public static void ResumeReturn()
+    {
+        if(string.IsNullOrEmpty(SessionState.GetString(Key+"return","")))return;
+        SessionState.EraseBool(Key+"returnTimedOut");
+        SessionState.SetFloat(Key+"returnDeadline",(float)(EditorApplication.timeSinceStartup+900));
+        EditorApplication.update-=Return;EditorApplication.update+=Return;
+        Progress="return pending";
+    }
+
     static void Return()
     {
         string path=SessionState.GetString(Key+"return","");
@@ -298,17 +334,22 @@ public static class BloodEffectsPackPerformanceProbe
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(Key+"returnDeadline",0))
         {
             EditorApplication.update-=Return;
-            File.WriteAllText(Path.Combine(path,"return-result.json"),"{\"success\":false,\"reason\":\"idle return timeout\"}");
+            SessionState.SetBool(Key+"returnTimedOut",true);
+            Progress="return timeout; ResumeReturn is available";
+            try{File.WriteAllText(Path.Combine(path,"return-result.json"),"{\"success\":false,\"reason\":\"idle return timeout; ResumeReturn available\"}");}
+            catch(Exception report){Debug.LogException(report);}
             return;
         }
         if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)return;
         string current=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)??"";
-        if(!string.IsNullOrEmpty(current) && !Path.GetFullPath(current).StartsWith(Path.GetFullPath(path),StringComparison.OrdinalIgnoreCase))return;
+        string ownedAccount=Path.Combine(path,"isolated-save"),prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","");
+        if(!string.IsNullOrEmpty(current) && !string.Equals(Path.GetFullPath(current),Path.GetFullPath(ownedAccount),StringComparison.OrdinalIgnoreCase))return;
+        if(!string.IsNullOrEmpty(prepared) && !string.Equals(prepared,ownedAccount,StringComparison.OrdinalIgnoreCase))return;
         if(!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory))return;
         string startScene=SessionState.GetString(Key+"startScene","");
         EditorSceneManager.playModeStartScene=string.IsNullOrEmpty(startScene)?null:AssetDatabase.LoadAssetAtPath<SceneAsset>(startScene);
         IsolatedSavePlayGuard.UseRealAccount();
-        SessionState.EraseString(Key+"return");SessionState.EraseString(Key+"startScene");SessionState.EraseFloat(Key+"returnDeadline");EditorApplication.update-=Return;
+        SessionState.EraseString(Key+"return");SessionState.EraseString(Key+"startScene");SessionState.EraseFloat(Key+"returnDeadline");SessionState.EraseBool(Key+"returnTimedOut");EditorApplication.update-=Return;
         File.WriteAllText(Path.Combine(path,"return-result.json"),JsonConvert.SerializeObject(new {success=!IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)),guardActive=IsolatedSavePlayGuard.ActiveDirectory,prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),expires=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),scenes=Enumerable.Range(0,SceneManager.sceneCount).Select(i=>{var s=SceneManager.GetSceneAt(i);return new{s.path,s.isDirty};})},Formatting.Indented));
     }
 }

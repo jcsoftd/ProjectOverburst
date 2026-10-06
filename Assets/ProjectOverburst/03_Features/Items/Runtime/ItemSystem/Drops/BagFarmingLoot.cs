@@ -76,7 +76,9 @@ public static class BagFarmingLoot
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .5f : elite ? .15f : .025f);
-        if (UnityEngine.Random.value >= Mathf.Min(1, chance * (1 + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
+        float effectiveChance = Mathf.Min(1, chance * (1 + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
+        float chanceRoll = UnityEngine.Random.value;
+        if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         ItemGrade grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level, boss, elite, rarePercent,
             MapOptionPolicy.HighGradeRollBias(mapGrade));
         var data = definitions.FirstOrDefault(x => x.defaultGrade == grade) ?? definitions[0];

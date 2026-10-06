@@ -246,6 +246,8 @@ public sealed class MapDungeonEventDirector : MonoBehaviour
 
     private RunTransferResult TransferItem(MapRunTransferObject transferObject, string itemId)
     {
+        var health = PlayerContext.Instance?.CurrentActorHealth;
+        if (health == null || health.IsDead) return RunTransferResult.Unavailable;
         if (transferObject == null || transferObject.Used || !TryGetActiveRun(out var account, out var run))
             return RunTransferResult.Unavailable;
         AccountSnapshot snapshot = account.Read();

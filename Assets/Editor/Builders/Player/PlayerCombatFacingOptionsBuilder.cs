@@ -27,6 +27,7 @@ public static class PlayerCombatFacingOptionsBuilder
             string backup = Path.Combine(output, Path.GetFileName(path) + ".before");
             if (!File.Exists(backup)) File.Copy(path, backup);
         }
+        ValidateMenuInput();
         GameObject player = null;
         try
         {
@@ -52,6 +53,20 @@ public static class PlayerCombatFacingOptionsBuilder
         OverburstGameMenuBuilder.AddCombatFacingSetting();
         Validate(output);
         if (before != SceneState()) throw new Exception("열린 사용자 씬 상태가 변경됐습니다.");
+    }
+
+    static void ValidateMenuInput()
+    {
+        var menu = PrefabUtility.LoadPrefabContents(OverburstGameMenuBuilder.PrefabPath);
+        try
+        {
+            var panel = menu.GetComponentInChildren<OverburstSettingsPanel>(true);
+            if (panel == null || panel.pages == null || panel.pages.Length != 4
+                || panel.pages.Any(page => page == null)
+                || panel.cameraShake == null || panel.hitEffect == null)
+                throw new InvalidOperationException("Settings panel contract changed.");
+        }
+        finally { PrefabUtility.UnloadPrefabContents(menu); }
     }
 
     public static string MeshPath(bool extended, int i) => extended

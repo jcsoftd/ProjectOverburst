@@ -20,7 +20,9 @@ public static class FlaskLootPolicy
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType != EnemyGradeType.Normal;
         float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .30f : .04f);
-        if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
+        float effectiveChance = Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
+        float chanceRoll = Random.value;
+        if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         float roll = Random.value;
         ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);

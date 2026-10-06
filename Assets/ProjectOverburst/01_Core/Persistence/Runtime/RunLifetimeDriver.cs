@@ -76,7 +76,7 @@ namespace Overburst.Persistence
                 GameplayInputBlocker.Block(this);
                 TryReturn();
             }
-            catch (IOException error)
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
             {
                 // Keep the request pending: the same outcome is retried without announcing success.
                 LastError = error.Message;
