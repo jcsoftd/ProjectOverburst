@@ -63,7 +63,7 @@ public static class OverburstSkillTreeVerifier
             var canvas=canvasGo.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=10;
             var scaler=canvasGo.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
             var go=Object.Instantiate(prefab,canvasGo.transform,false);var ui=go.GetComponent<OverburstSkillTreeUI>();ui.Initialize();ui.Open();ui.HideTooltip();Canvas.ForceUpdateCanvases();ui.FitWindow();ui.Refresh();Canvas.ForceUpdateCanvases();Render(camera,rt);
-            Require(Mathf.Approximately(ui.Zoom,1.1f)&&ui.Zoom>ui.FitZoom,"Opening zoom is readable 110% above full-map fit "+size);
+            Require(Mathf.Approximately(ui.Zoom,1.2f)&&ui.Zoom>ui.FitZoom,"Opening zoom is readable 120% above full-map fit "+size);
             var openingBoxes=new List<KeyValuePair<string,Rect>>();
             foreach(var node in ui.nodes.Where(n=>n.gameObject.activeInHierarchy)){openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId,Bounds((RectTransform)node.transform)));if(node.captionRect&&node.captionRect.gameObject.activeInHierarchy)openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId+":label",Bounds(node.captionRect)));}
             foreach(var area in ui.areaLabels.Where(n=>n.gameObject.activeInHierarchy))openingBoxes.Add(new KeyValuePair<string,Rect>(area.name,Bounds(area)));

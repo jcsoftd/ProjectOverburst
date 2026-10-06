@@ -32,7 +32,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public RectTransform tooltip;
     public Text tipName, tipMeta, tipTrigger, tipEffect, tipPrerequisites, tipState;
     public bool IsOpen => surface != null && surface.activeSelf;
-    public const float DefaultZoom = 1.1f;
+    public const float DefaultZoom = 1.2f;
     public float Zoom { get; private set; } = DefaultZoom;
     public Vector2 Pan { get; private set; }
     public string SelectedId { get; private set; } = "ROOT";
