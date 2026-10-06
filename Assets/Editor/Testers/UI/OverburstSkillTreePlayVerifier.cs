@@ -122,6 +122,7 @@ public static class OverburstSkillTreePlayVerifier
         Check(menu != null, "Vertical HUD menu installed");
         Click(menu.trigger); yield return null;
         while (menu.popup.alpha < .999f) yield return null;
+        Vector2 previous;do{previous=menu.panel.anchoredPosition;Canvas.ForceUpdateCanvases();yield return null;}while(Vector2.Distance(previous,menu.panel.anchoredPosition)>.01f);Canvas.ForceUpdateCanvases();
         var index = Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.SkillTree);
         Check(index >= 0 && Hit((RectTransform)menu.Rows[index].transform) == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
         Click(menu.Rows[index].button); yield return null;
@@ -140,9 +141,11 @@ public static class OverburstSkillTreePlayVerifier
         ui.HideTooltip();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-default.png"));yield return null;
         foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
-        int xp = Enumerable.Range(1, 19).Sum(OverburstGrowthRules.ExperienceToNext);
+        PlayerProgression.Current.AddExperience(OverburstGrowthRules.ExperienceToNext(1));Check(PlayerProgression.Current.FlushPendingExperience(),"Actual first level-up commits");ui.SyncAccount(true);
+        Check(PlayerProgression.CurrentLevel==2&&ui.Plan.Remaining==1,"Actual level1 to2 grants one point");
+        int xp = Enumerable.Range(2, 3).Sum(OverburstGrowthRules.ExperienceToNext);
         PlayerProgression.Current.AddExperience(xp); Check(PlayerProgression.Current.FlushPendingExperience(), "Actual progression flush");
-        ui.SyncAccount(true); Check(PlayerProgression.CurrentLevel == 20 && ui.Plan.Remaining == 4, "Actual level-up grants four milestone points");
+        ui.SyncAccount(true); Check(PlayerProgression.CurrentLevel == 5 && ui.Plan.Remaining == 4, "Actual level5 has four points under temporary rule");
         Canvas.ForceUpdateCanvases(); ui.ResetMap();
         foreach (var node in ui.nodes)
         {
@@ -173,7 +176,7 @@ public static class OverburstSkillTreePlayVerifier
         finally { saveStore.FaultInjector = null; }
         Click(ui.apply); yield return null;
         Check(!ui.Plan.Changed && session.PersistedRevision == session.Revision && session.Read().skillTree.learnedNodeIds.Count == 4, "Native apply durably stores four nodes");
-        float expectedAttack = CombatBalanceFormulas.ComposePlayerWeaponStats(WeaponStatCalculator.Calculate(p.Equipment.CurrentWeaponItem), GearStatTotals.From(p.Equipment), 20, MapRunBuffs.Bonus(MapBuffKind.AttackSpeed), 3).damage;
+        float expectedAttack = CombatBalanceFormulas.ComposePlayerWeaponStats(WeaponStatCalculator.Calculate(p.Equipment.CurrentWeaponItem), GearStatTotals.From(p.Equipment), 5, MapRunBuffs.Bonus(MapBuffKind.AttackSpeed), 3).damage;
         Check(p.Equipment.CurrentWeaponStats.damage == expectedAttack && expectedAttack > attack, "Attack bonus applied once in product weapon composition");
         Check(Mathf.Approximately(PlayerProgression.Current.Armor, armor + 1) && Mathf.Approximately(p.Health.MaxHp, hp * 1.04f), "Flat armor and percent maximum health projection");
         Check(Mathf.Approximately(p.Health.CurrentHp, injured), "Tree health purchase grants no healing");

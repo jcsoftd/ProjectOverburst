@@ -10,6 +10,7 @@ using Overburst.Persistence;
 /// <summary>Native common-tree draft with explicit account commit and cached stat projection.</summary>
 public sealed class OverburstSkillTreeUI : MonoBehaviour
 {
+    public const string PointHelp = "레벨업마다 1포인트 · 변경 후 적용하면 저장됩니다";
     public const string ResourcePath = "UI/SkillTree/PF_OverburstSkillTree_Rpg11";
     public static OverburstSkillTreeUI Instance { get; private set; }
     public static bool IsWindowOpen => Instance != null && Instance.IsOpen;
@@ -103,6 +104,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             legend.supportRichText = true;
             legend.text = "<color=#D6B478>● 습득 완료</color>    <color=#BCAF99>○ 습득 가능</color>    <color=#948A77>× 미습득</color>    <color=#B48D55>! 포인트 부족</color>    <color=#EDE3D1>+ 습득 예정</color>    <color=#CB9A87>− 환급 예정</color>    <color=#97856F>… 확장 예정</color>";
         }
+        feedback.text = PointHelp;
         foreach (var node in nodes) node.Bind(this);
         entry.onClick.AddListener(Toggle); close.onClick.AddListener(Close);
         zoomOut.onClick.AddListener(() => ZoomAt(Zoom - .2f, Vector2.zero)); zoomIn.onClick.AddListener(() => ZoomAt(Zoom + .2f, Vector2.zero));
@@ -234,7 +236,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (tree == null) { feedback.text = "계정 준비 중"; return; }
         bool changed = expectedTree == null || tree.earnedPoints != expectedTree.earnedPoints || !tree.learnedNodeIds.SequenceEqual(expectedTree.learnedNodeIds);
         if (!discardDraft && Plan.Changed && changed) { staleDraft = true; feedback.text = "포인트가 변경되었습니다 · 변경 취소 또는 다시 열기로 갱신"; apply.interactable = false; return; }
-        if (discardDraft || changed) { staleDraft = false; expectedTree = tree; Plan.Load(tree.earnedPoints, tree.learnedNodeIds); feedback.text = CanEdit ? "5레벨마다 1포인트 · 변경 후 적용하면 저장됩니다" : "은신처에서 강화 변경을 적용할 수 있습니다"; Refresh(); }
+        if (discardDraft || changed) { staleDraft = false; expectedTree = tree; Plan.Load(tree.earnedPoints, tree.learnedNodeIds); feedback.text = CanEdit ? PointHelp : "은신처에서 강화 변경을 적용할 수 있습니다"; Refresh(); }
     }
     void EditPlan()
     {

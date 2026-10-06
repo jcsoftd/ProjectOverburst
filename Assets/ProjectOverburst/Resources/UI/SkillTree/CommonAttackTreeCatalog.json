@@ -1,6 +1,6 @@
 {
   "version": "common-tree-foundation-v2",
-  "rewardVersion": "level-five-v1",
+  "rewardVersion": "level-each-temporary-v2",
   "planningBudget": 0,
   "initialPlan": [],
   "nodes": [
@@ -2636,8 +2636,43 @@
   ],
   "rewards": [
     {
+      "sourceId": "level:002",
+      "level": 2,
+      "points": 1
+    },
+    {
+      "sourceId": "level:003",
+      "level": 3,
+      "points": 1
+    },
+    {
+      "sourceId": "level:004",
+      "level": 4,
+      "points": 1
+    },
+    {
       "sourceId": "level:005",
       "level": 5,
+      "points": 1
+    },
+    {
+      "sourceId": "level:006",
+      "level": 6,
+      "points": 1
+    },
+    {
+      "sourceId": "level:007",
+      "level": 7,
+      "points": 1
+    },
+    {
+      "sourceId": "level:008",
+      "level": 8,
+      "points": 1
+    },
+    {
+      "sourceId": "level:009",
+      "level": 9,
       "points": 1
     },
     {
@@ -2646,8 +2681,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:011",
+      "level": 11,
+      "points": 1
+    },
+    {
+      "sourceId": "level:012",
+      "level": 12,
+      "points": 1
+    },
+    {
+      "sourceId": "level:013",
+      "level": 13,
+      "points": 1
+    },
+    {
+      "sourceId": "level:014",
+      "level": 14,
+      "points": 1
+    },
+    {
       "sourceId": "level:015",
       "level": 15,
+      "points": 1
+    },
+    {
+      "sourceId": "level:016",
+      "level": 16,
+      "points": 1
+    },
+    {
+      "sourceId": "level:017",
+      "level": 17,
+      "points": 1
+    },
+    {
+      "sourceId": "level:018",
+      "level": 18,
+      "points": 1
+    },
+    {
+      "sourceId": "level:019",
+      "level": 19,
       "points": 1
     },
     {
@@ -2656,8 +2731,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:021",
+      "level": 21,
+      "points": 1
+    },
+    {
+      "sourceId": "level:022",
+      "level": 22,
+      "points": 1
+    },
+    {
+      "sourceId": "level:023",
+      "level": 23,
+      "points": 1
+    },
+    {
+      "sourceId": "level:024",
+      "level": 24,
+      "points": 1
+    },
+    {
       "sourceId": "level:025",
       "level": 25,
+      "points": 1
+    },
+    {
+      "sourceId": "level:026",
+      "level": 26,
+      "points": 1
+    },
+    {
+      "sourceId": "level:027",
+      "level": 27,
+      "points": 1
+    },
+    {
+      "sourceId": "level:028",
+      "level": 28,
+      "points": 1
+    },
+    {
+      "sourceId": "level:029",
+      "level": 29,
       "points": 1
     },
     {
@@ -2666,8 +2781,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:031",
+      "level": 31,
+      "points": 1
+    },
+    {
+      "sourceId": "level:032",
+      "level": 32,
+      "points": 1
+    },
+    {
+      "sourceId": "level:033",
+      "level": 33,
+      "points": 1
+    },
+    {
+      "sourceId": "level:034",
+      "level": 34,
+      "points": 1
+    },
+    {
       "sourceId": "level:035",
       "level": 35,
+      "points": 1
+    },
+    {
+      "sourceId": "level:036",
+      "level": 36,
+      "points": 1
+    },
+    {
+      "sourceId": "level:037",
+      "level": 37,
+      "points": 1
+    },
+    {
+      "sourceId": "level:038",
+      "level": 38,
+      "points": 1
+    },
+    {
+      "sourceId": "level:039",
+      "level": 39,
       "points": 1
     },
     {
@@ -2676,8 +2831,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:041",
+      "level": 41,
+      "points": 1
+    },
+    {
+      "sourceId": "level:042",
+      "level": 42,
+      "points": 1
+    },
+    {
+      "sourceId": "level:043",
+      "level": 43,
+      "points": 1
+    },
+    {
+      "sourceId": "level:044",
+      "level": 44,
+      "points": 1
+    },
+    {
       "sourceId": "level:045",
       "level": 45,
+      "points": 1
+    },
+    {
+      "sourceId": "level:046",
+      "level": 46,
+      "points": 1
+    },
+    {
+      "sourceId": "level:047",
+      "level": 47,
+      "points": 1
+    },
+    {
+      "sourceId": "level:048",
+      "level": 48,
+      "points": 1
+    },
+    {
+      "sourceId": "level:049",
+      "level": 49,
       "points": 1
     },
     {
@@ -2686,8 +2881,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:051",
+      "level": 51,
+      "points": 1
+    },
+    {
+      "sourceId": "level:052",
+      "level": 52,
+      "points": 1
+    },
+    {
+      "sourceId": "level:053",
+      "level": 53,
+      "points": 1
+    },
+    {
+      "sourceId": "level:054",
+      "level": 54,
+      "points": 1
+    },
+    {
       "sourceId": "level:055",
       "level": 55,
+      "points": 1
+    },
+    {
+      "sourceId": "level:056",
+      "level": 56,
+      "points": 1
+    },
+    {
+      "sourceId": "level:057",
+      "level": 57,
+      "points": 1
+    },
+    {
+      "sourceId": "level:058",
+      "level": 58,
+      "points": 1
+    },
+    {
+      "sourceId": "level:059",
+      "level": 59,
       "points": 1
     },
     {
@@ -2696,8 +2931,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:061",
+      "level": 61,
+      "points": 1
+    },
+    {
+      "sourceId": "level:062",
+      "level": 62,
+      "points": 1
+    },
+    {
+      "sourceId": "level:063",
+      "level": 63,
+      "points": 1
+    },
+    {
+      "sourceId": "level:064",
+      "level": 64,
+      "points": 1
+    },
+    {
       "sourceId": "level:065",
       "level": 65,
+      "points": 1
+    },
+    {
+      "sourceId": "level:066",
+      "level": 66,
+      "points": 1
+    },
+    {
+      "sourceId": "level:067",
+      "level": 67,
+      "points": 1
+    },
+    {
+      "sourceId": "level:068",
+      "level": 68,
+      "points": 1
+    },
+    {
+      "sourceId": "level:069",
+      "level": 69,
       "points": 1
     },
     {
@@ -2706,8 +2981,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:071",
+      "level": 71,
+      "points": 1
+    },
+    {
+      "sourceId": "level:072",
+      "level": 72,
+      "points": 1
+    },
+    {
+      "sourceId": "level:073",
+      "level": 73,
+      "points": 1
+    },
+    {
+      "sourceId": "level:074",
+      "level": 74,
+      "points": 1
+    },
+    {
       "sourceId": "level:075",
       "level": 75,
+      "points": 1
+    },
+    {
+      "sourceId": "level:076",
+      "level": 76,
+      "points": 1
+    },
+    {
+      "sourceId": "level:077",
+      "level": 77,
+      "points": 1
+    },
+    {
+      "sourceId": "level:078",
+      "level": 78,
+      "points": 1
+    },
+    {
+      "sourceId": "level:079",
+      "level": 79,
       "points": 1
     },
     {
@@ -2716,8 +3031,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:081",
+      "level": 81,
+      "points": 1
+    },
+    {
+      "sourceId": "level:082",
+      "level": 82,
+      "points": 1
+    },
+    {
+      "sourceId": "level:083",
+      "level": 83,
+      "points": 1
+    },
+    {
+      "sourceId": "level:084",
+      "level": 84,
+      "points": 1
+    },
+    {
       "sourceId": "level:085",
       "level": 85,
+      "points": 1
+    },
+    {
+      "sourceId": "level:086",
+      "level": 86,
+      "points": 1
+    },
+    {
+      "sourceId": "level:087",
+      "level": 87,
+      "points": 1
+    },
+    {
+      "sourceId": "level:088",
+      "level": 88,
+      "points": 1
+    },
+    {
+      "sourceId": "level:089",
+      "level": 89,
       "points": 1
     },
     {
@@ -2726,8 +3081,48 @@
       "points": 1
     },
     {
+      "sourceId": "level:091",
+      "level": 91,
+      "points": 1
+    },
+    {
+      "sourceId": "level:092",
+      "level": 92,
+      "points": 1
+    },
+    {
+      "sourceId": "level:093",
+      "level": 93,
+      "points": 1
+    },
+    {
+      "sourceId": "level:094",
+      "level": 94,
+      "points": 1
+    },
+    {
       "sourceId": "level:095",
       "level": 95,
+      "points": 1
+    },
+    {
+      "sourceId": "level:096",
+      "level": 96,
+      "points": 1
+    },
+    {
+      "sourceId": "level:097",
+      "level": 97,
+      "points": 1
+    },
+    {
+      "sourceId": "level:098",
+      "level": 98,
+      "points": 1
+    },
+    {
+      "sourceId": "level:099",
+      "level": 99,
       "points": 1
     },
     {

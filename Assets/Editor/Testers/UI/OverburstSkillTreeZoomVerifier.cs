@@ -156,8 +156,8 @@ public static class OverburstSkillTreeZoomVerifier
         Check(JsonConvert.SerializeObject(session.ReadSkillTree())==baseline,"Zoom and selection never change account allocation/points");
         Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Repeated close releases own input");
         // Real isolated-account allocation supplies learned and unlearned states in the same product screen.
-        PlayerProgression.Current.AddExperience(Enumerable.Range(1,39).Sum(OverburstGrowthRules.ExperienceToNext));
-        Check(PlayerProgression.Current.FlushPendingExperience()&&PlayerProgression.CurrentLevel==40,"Isolated progression grants eight milestone points");
+        PlayerProgression.Current.AddExperience(Enumerable.Range(1,8).Sum(OverburstGrowthRules.ExperienceToNext));
+        Check(PlayerProgression.Current.FlushPendingExperience()&&PlayerProgression.CurrentLevel==9,"Isolated progression grants eight points for eight level-ups");
         foreach(var step in Steps(OpenFromMenu()))yield return step;ui.SyncAccount(true);
         Check(ui.Plan.Budget==8&&ui.Plan.Remaining==8,"Real account visual fixture has eight earned points");
         var sample=new[]{"S_W1","S_H1","S_D1","S_Q1"};

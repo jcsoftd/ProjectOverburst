@@ -119,7 +119,7 @@ public static class OverburstSkillTreeBuilder
             ui.action=Button(ui.window,"Edit Plan","계획에서 제거",1284,874,396,44);ui.actionLabel=ui.action.GetComponentInChildren<Text>();
             RuleAt(ui.window,"Footer Rule",30,926,Width-60);
             ui.resetAllocation=Button(ui.window,"Reset Allocation","전체 환급",30,932,190,44);
-            ui.feedback=Label(ui.window,"Plan Status","5레벨마다 1포인트 · 변경 후 적용하면 저장됩니다",240,942,1000,24,13,Muted);
+            ui.feedback=Label(ui.window,"Plan Status",OverburstSkillTreeUI.PointHelp,240,942,1000,24,13,Muted);
             ui.cancel=Button(ui.window,"Cancel Plan","변경 취소",1284,932,190,44);ui.apply=Button(ui.window,"Apply Plan","강화 적용",1490,932,190,44);
             ui.tooltip=Rect(ui.window,"Node Tooltip",0,0,360,320);ui.tooltip.anchorMin=ui.tooltip.anchorMax=new Vector2(.5f,.5f);ui.tooltip.pivot=new Vector2(0,1);
             var tb=ui.tooltip.gameObject.AddComponent<Image>();tb.color=new Color(.072f,.063f,.050f);tb.raycastTarget=false;
