@@ -64,9 +64,20 @@ public static class OverburstSkillTreeVerifier
             var scaler=canvasGo.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
             var go=Object.Instantiate(prefab,canvasGo.transform,false);var ui=go.GetComponent<OverburstSkillTreeUI>();ui.Initialize();ui.Open();ui.HideTooltip();Canvas.ForceUpdateCanvases();ui.FitWindow();ui.Refresh();Canvas.ForceUpdateCanvases();Render(camera,rt);
             Require(Mathf.Approximately(ui.Zoom,1.2f)&&ui.Zoom>ui.FitZoom,"Opening zoom is readable 120% above full-map fit "+size);
+            string[] guideIds={"G_W","G_H","G_D","G_Q"};
+            for(int i=0;i<guideIds.Length;i++)
+            {
+                var guide=ui.nodes.First(n=>n.nodeId==guideIds[i]);
+                Require(guide.captionRect==ui.areaLabels[i]&&guide.caption==ui.areaLabels[i].GetComponent<Text>(),"Direction caption belongs to guide "+guideIds[i]+" "+size);
+                var labelPosition=guide.captionRect.anchoredPosition;
+                Require(Vector2.Distance(labelPosition,((RectTransform)guide.transform).anchoredPosition+guide.captionOffset*ui.Zoom)<.01f,"Direction caption follows its guide "+guideIds[i]+" "+size);
+                Require(ui.nodes.Where(n=>guideIds.Contains(n.nodeId)).OrderBy(n=>Vector2.Distance(labelPosition,((RectTransform)n.transform).anchoredPosition)).First()==guide,"Direction caption nearest correct guide "+guideIds[i]+" "+size);
+                Require(guide.caption.preferredHeight<=guide.captionRect.rect.height&&guide.caption.cachedTextGenerator.characterCountVisible>0,"Direction caption renders without vertical truncation "+guideIds[i]+" "+size);
+            }
+            Require(ui.nodes.First(n=>n.nodeId=="S_W1").caption.fontSize==13&&ui.areaLabels[0].GetComponent<Text>().fontSize==14,"Compact default stat 13 / direction 14 typography "+size);
+            Require(ui.nodeName.fontSize==21&&ui.trigger.fontSize==14&&ui.tipName.fontSize==18,"Compact detail and hover hierarchy "+size);
             var openingBoxes=new List<KeyValuePair<string,Rect>>();
             foreach(var node in ui.nodes.Where(n=>n.gameObject.activeInHierarchy)){openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId,Bounds((RectTransform)node.transform)));if(node.captionRect&&node.captionRect.gameObject.activeInHierarchy)openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId+":label",Bounds(node.captionRect)));}
-            foreach(var area in ui.areaLabels.Where(n=>n.gameObject.activeInHierarchy))openingBoxes.Add(new KeyValuePair<string,Rect>(area.name,Bounds(area)));
             var openingOverlaps=new List<string>();for(int i=0;i<openingBoxes.Count;i++)for(int j=i+1;j<openingBoxes.Count;j++)if(Overlap(openingBoxes[i].Value,openingBoxes[j].Value))openingOverlaps.Add(openingBoxes[i].Key+" / "+openingBoxes[j].Key);
             Require(openingOverlaps.Count==0,"Opening view node/caption/region overlaps 0 "+size+": "+string.Join(", ",openingOverlaps));
             ReadPixels(rt,Path.Combine(output,"native-default-"+size.x+"x"+size.y+".png"),ref pixels);
@@ -79,7 +90,6 @@ public static class OverburstSkillTreeVerifier
                 Require(node.icon.sprite!=null,"Glyph reference "+node.nodeId);
                 if(node.captionRect){boxes.Add(new KeyValuePair<string,Rect>(node.nodeId+":label",Bounds(node.captionRect)));Require(node.caption.preferredWidth<=node.caption.rectTransform.rect.width+1,"Native label width "+node.nodeId);}
             }
-            foreach(var area in ui.areaLabels)boxes.Add(new KeyValuePair<string,Rect>(area.name,Bounds(area)));
             var overlaps=new List<string>();for(int i=0;i<boxes.Count;i++)for(int j=i+1;j<boxes.Count;j++)if(Overlap(boxes[i].Value,boxes[j].Value))overlaps.Add(boxes[i].Key+" / "+boxes[j].Key);
             File.WriteAllText(Path.Combine(output,"bounds-"+size.x+"x"+size.y+".json"),JsonConvert.SerializeObject(new{width=size.x,height=size.y,overlaps,boxes=boxes.Select(x=>new{name=x.Key,x=x.Value.x,y=x.Value.y,width=x.Value.width,height=x.Value.height})},Formatting.Indented));
             Require(overlaps.Count==0,"Native node / caption / region overlaps 0 at "+size+": "+string.Join(", ",overlaps));
@@ -116,7 +126,9 @@ public static class OverburstSkillTreeVerifier
                 ui.SelectNode("K_W",true);ui.ShowTooltip("K_W");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-keystone.png"),ref pixels);
                 ui.Plan.Load(0,Array.Empty<string>());ui.Refresh();ui.SelectNode("S_W1",true);ui.ShowTooltip("S_W1");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-tooltip.png"),ref pixels);
                 ui.HideTooltip();ui.ResetMap();var prior=ui.Pan;var priorZoom=ui.Zoom;var anchor=new Vector2(200,120);ui.ZoomAt(1.6f,anchor);Require(Vector2.Distance(ui.Pan,anchor-(anchor-prior)*1.6f/priorZoom)<.01f,"Cursor anchored native zoom");Require(!ui.tooltip.gameObject.activeSelf,"Zoom closes tooltip");Require(ui.nodes.First(n=>n.nodeId=="S_W1").transform.localScale.x==1.6f&&ui.nodes.First(n=>n.nodeId=="S_W1").caption.fontSize>14,"Zoom grows native node / icon / crisp label");ui.SelectNode("S_W3",true);Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-zoom.png"),ref pixels);
-                ui.ZoomAt(50,Vector2.zero);Require(ui.Zoom==2.5f,"Native max zoom 250%");ui.ZoomAt(-50,Vector2.zero);Require(ui.Zoom==ui.MinimumZoom,"Native dynamic min zoom");ui.SetPan(new Vector2(110,-70));Require(ui.Pan==new Vector2(110,-70),"Native pan");ui.ResetMap();Require(ui.Pan==Vector2.zero,"Native center reset");
+                ui.ZoomAt(50,Vector2.zero);Require(ui.Zoom==2.5f,"Native max zoom 250%");
+                foreach(string id in guideIds){ui.SelectNode(id,true);Canvas.ForceUpdateCanvases();var guide=ui.nodes.First(n=>n.nodeId==id);Require(Bounds(ui.viewport).Contains(Bounds(guide.captionRect).min)&&Bounds(ui.viewport).Contains(Bounds(guide.captionRect).max),"Guide selection retains offset caption at 250% "+id);}
+                ui.ZoomAt(-50,Vector2.zero);Require(ui.Zoom==ui.MinimumZoom,"Native dynamic min zoom");ui.SetPan(new Vector2(110,-70));Require(ui.Pan==new Vector2(110,-70),"Native pan");ui.ResetMap();Require(ui.Pan==Vector2.zero,"Native center reset");
             }
             ui.Close();Require(!ui.IsOpen&&!ui.tooltip.gameObject.activeSelf,"Window and hover close "+size);
         }

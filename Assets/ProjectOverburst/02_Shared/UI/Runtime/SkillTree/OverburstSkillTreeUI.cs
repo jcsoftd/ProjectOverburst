@@ -83,7 +83,20 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         Catalog = JsonUtility.FromJson<OverburstSkillTreeCatalog>(catalogAsset.text); Catalog.Validate(); Plan = new OverburstSkillTreePlan(Catalog);
         index = Catalog.nodes.ToDictionary(n => n.id); views = nodes.ToDictionary(n => n.nodeId);
         mapExtent = new Vector2(Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.x))), Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.y))));
-        captionSizes = nodes.Where(n => n.caption != null).ToDictionary(n => n.nodeId, n => n.caption.fontSize);
+        // Direction names belong to their guide nodes, so pan, zoom and selection keep them together.
+        string[] guideIds = { "G_W", "G_H", "G_D", "G_Q" };
+        Vector2[] guideOffsets = { new Vector2(80, 0), new Vector2(-32, 45), new Vector2(32, 45), new Vector2(80, 0) };
+        for (int i = 0; i < guideIds.Length; i++)
+        {
+            var guide = views[guideIds[i]];
+            guide.captionRect = areaLabels[i]; guide.caption = areaLabels[i].GetComponent<Text>(); guide.captionOffset = guideOffsets[i];
+        }
+        captionSizes = nodes.Where(n => n.caption != null).ToDictionary(n => n.nodeId, n => Mathf.RoundToInt(n.caption.fontSize * .8f));
+        var chrome = window.Find("Shared Window Chrome");
+        foreach (var text in window.GetComponentsInChildren<Text>(true))
+            if (!text.transform.IsChildOf(viewport) && (chrome == null || !text.transform.IsChildOf(chrome)))
+                text.fontSize = Mathf.Max(10, Mathf.RoundToInt(text.fontSize * .88f));
+        foreach (var node in nodes) if (node.stateMark) node.stateMark.fontSize = 12;
         foreach (var node in nodes) node.Bind(this);
         entry.onClick.AddListener(Toggle); close.onClick.AddListener(Close);
         zoomOut.onClick.AddListener(() => ZoomAt(Zoom - .2f, Vector2.zero)); zoomIn.onClick.AddListener(() => ZoomAt(Zoom + .2f, Vector2.zero));
@@ -162,10 +175,11 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         {
             var view = views[id]; var rect = (RectTransform)view.transform;
             var p = index[id].Position * MapScale + Pan; var half = viewport.rect.size / 2;
-            float side = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 : 0) + 18;
+            float left = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 - view.captionOffset.x * Zoom : 0) + 18;
+            float right = Mathf.Max(rect.sizeDelta.x * Zoom / 2, view.captionRect ? view.captionRect.rect.width / 2 + view.captionOffset.x * Zoom : 0) + 18;
             float top = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? view.captionOffset.y * Zoom + view.captionRect.rect.height / 2 : 0) + 18;
             float bottom = Mathf.Max(rect.sizeDelta.y * Zoom / 2, view.captionRect ? -view.captionOffset.y * Zoom + view.captionRect.rect.height / 2 : 0) + 18;
-            Pan += new Vector2(Mathf.Clamp(p.x, -half.x + side, half.x - side) - p.x, Mathf.Clamp(p.y, -half.y + bottom, half.y - top) - p.y);
+            Pan += new Vector2(Mathf.Clamp(p.x, -half.x + left, half.x - right) - p.x, Mathf.Clamp(p.y, -half.y + bottom, half.y - top) - p.y);
         }
         Refresh(); effectScroll.StopMovement(); effectScroll.verticalNormalizedPosition = 1;
     }
@@ -196,18 +210,11 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             view.gameObject.SetActive(visible); if (view.captionRect) view.captionRect.gameObject.SetActive(visible && (Zoom >= Mathf.Min(.65f, FitZoom) || node.id == SelectedId));
             if (view.captionRect)
             {
-                view.caption.fontSize = Mathf.Max(10, Mathf.RoundToInt(captionSizes[node.id] * Zoom));
-                view.captionRect.sizeDelta = new Vector2(Mathf.Ceil(view.caption.preferredWidth) + 6 * Zoom, view.caption.fontSize * 1.25f + 2);
+                // Text grows more slowly than the map, preserving room around enlarged nodes.
+                view.caption.fontSize = Mathf.Max(10, Mathf.RoundToInt(captionSizes[node.id] * Mathf.Pow(Zoom, .75f)));
+                view.captionRect.sizeDelta = new Vector2(Mathf.Ceil(view.caption.preferredWidth) + 6 * Zoom, Mathf.Ceil(view.caption.preferredHeight) + 4);
                 view.captionRect.anchoredPosition = pos + view.captionOffset * Zoom;
             }
-        }
-        Vector2[] regions = { new Vector2(130, 75), new Vector2(110, -110), new Vector2(-130, 75), new Vector2(-110, -110) };
-        for (int i = 0; i < areaLabels.Length; i++)
-        {
-            areaLabels[i].gameObject.SetActive(Zoom >= .5f);
-            var label = areaLabels[i].GetComponent<Text>(); label.fontSize = Mathf.RoundToInt(15 * Zoom);
-            areaLabels[i].sizeDelta = new Vector2(Mathf.Ceil(label.preferredWidth) + 10 * Zoom, 24 * Zoom);
-            areaLabels[i].anchoredPosition = regions[i] * 1.12f * MapScale + Pan;
         }
         routes.Configure(Catalog, Plan, MapScale, Pan, rootCanvas.rootCanvas.scaleFactor * window.localScale.x); lastViewport = viewport.rect.size;
         zoomLabel.text = Mathf.RoundToInt(Zoom * 100) + "%"; zoomOut.interactable = Zoom > MinimumZoom + .001f; zoomIn.interactable = Zoom < 2.499f;
