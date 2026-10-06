@@ -291,7 +291,7 @@ public static class TransientVfxPool
         }
 
         GetCounters(prefab).Misses++;
-        return CreateInstance(prefab);
+        return CreateInstance(prefab, host.transform);
     }
 
     private static void Release(GameObject instance, GameObject prefab, int poolCapacity)
@@ -385,7 +385,30 @@ public static class TransientVfxPool
         GameObject instance,
         out ITransientVfxPlayback playback)
     {
-        return instance.TryGetComponent(out playback);
+        // Keep existing root controllers and particle/mixed profiles authoritative.
+        if (instance.TryGetComponent(out playback))
+            return true;
+
+        playback = null;
+        if (instance.TryGetComponent(out ITransientVfxCompletion _)
+            || instance.GetComponentInChildren<ParticleSystem>(true) != null)
+            return false;
+
+        ITransientVfxPlayback[] children = instance.GetComponentsInChildren<ITransientVfxPlayback>(true);
+        if (children.Length != 1 || !(children[0] is ITransientVfxCompletion))
+            return false;
+
+        Component controller = children[0] as Component;
+        if (controller == null || (controller is Behaviour behaviour && !behaviour.enabled))
+            return false;
+
+        // Root inactivity belongs to pool preparation; hidden child content stays hidden.
+        for (Transform current = controller.transform; current != instance.transform; current = current.parent)
+            if (current == null || !current.gameObject.activeSelf)
+                return false;
+
+        playback = children[0];
+        return true;
     }
 
     private static bool IsPlaybackAlive(GameObject instance)
@@ -402,6 +425,11 @@ public static class TransientVfxPool
             if (particleSystems[i] != null && particleSystems[i].IsAlive(false))
                 return true;
         }
+
+        if (particleSystems.Length == 0
+            && TryGetCustomPlayback(instance, out ITransientVfxPlayback playback)
+            && playback is ITransientVfxCompletion childCompletion)
+            return childCompletion.IsPlaybackAlive;
 
         return false;
     }
