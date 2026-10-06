@@ -30,8 +30,10 @@ public partial class MeleeRuntime
         if (!isAttacking || !activeAttackIsHeavy || heavyDischargeCommitted || IsHeavyParryMotionActive
             || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword
             || playerAnimatorController == null) return false;
+        float counterSpeed = 1f;
+        if (parryOnly && !TryResolveIncompleteParryCounterTempo(out counterSpeed)) return false;
         if (!playerAnimatorController.PlayHeavyParry(out heavyParryDuration,
-            out heavyParryBridgeDuration, out float contactDelay, out float heavyStartSeconds, parryOnly)) return false;
+            out heavyParryBridgeDuration, out float contactDelay, out float heavyStartSeconds, parryOnly, counterSpeed)) return false;
 
         float previousProgress = GetAttackNormalizedTime();
         if (!parryOnly && !ConfigureParriedHeavyAttack())
@@ -56,6 +58,7 @@ public partial class MeleeRuntime
         ClearAttackTrail();
         attackPatternDebugRenderer?.Hide();
         HoldHeavyParryLocks();
+        if (parryOnly && !BeginIncompleteParryCounter()) return false;
         return true;
     }
 
@@ -99,6 +102,11 @@ public partial class MeleeRuntime
         // A long first frame must not replace it with the bridge before the Animator sees it.
         if (Time.frameCount <= heavyParryStartedFrame + 1) return true;
         heavyParryElapsed += Time.unscaledDeltaTime;
+        if (heavyParryOnly)
+        {
+            TickIncompleteParryCounter();
+            if (!isAttacking) return true;
+        }
         if (heavyParryStage == HeavyParryStage.Parry
             && heavyParryElapsed >= heavyParryDuration
             && playerAnimatorController.IsHeavyParryClipComplete)
@@ -152,7 +160,7 @@ public partial class MeleeRuntime
         ResolveFacade()?.CombatInputs?.ClearAttack();
         ResolveFacade()?.CombatInputs?.ClearHeavy();
         Vector3 direction = activeAttackDirection;
-        // Finish the confirmed contact before a short parry closes its feedback window.
+        // Preserve the confirmed contact when the incomplete counter finishes.
         GetComponent<PlayerParryController>()?.CompleteParryContact(activeActionId);
         StopActiveAttackStep();
         ResetComboState();
@@ -163,6 +171,7 @@ public partial class MeleeRuntime
     {
         if (IsHeavyParryMotionActive) playerAnimatorController?.CancelWeaponRuntimeState();
         heavyParryStage = HeavyParryStage.None;
+        ResetIncompleteParryCounter();
         heavyParrySwingPending = false;
         heavyParryOnly = false;
         heavyParryElapsed = heavyParryDuration = heavyParryBridgeDuration = 0f;

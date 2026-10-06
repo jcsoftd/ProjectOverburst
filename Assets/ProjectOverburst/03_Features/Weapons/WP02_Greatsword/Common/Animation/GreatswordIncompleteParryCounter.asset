@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 039e81767dd391e42a0e9cc92868ae92, type: 3}
+  m_Name: GreatswordIncompleteParryCounter
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeComboDefinition
+  resetDelay: 0.5
+  baseAnimationSpeed: 1
+  entryTransitionDuration: 0
+  steps:
+  - attackId: GRS_IncompleteParryCounter
+    attackName: "\uBD88\uC644\uC804 \uD328\uB9C1 \uBC18\uACA91\uD0C0"
+    animationClip: {fileID: 7400000, guid: 149224da0b2ad1f4b8375c16c60dae8b, type: 2}
+    animationSpeedMultiplier: 1
+    transitionDuration: 0.12
+    continuationStartNormalizedTime: 0.26363635
+    settledIdleStartNormalizedTime: 0.9
+    playbackAcceleration:
+      dashHeavyFocus: 0
+      startNormalized: 0
+      endNormalized: 0
+      peakMultiplier: 0
+    comboInputWindow:
+      startNormalizedTime: 0.3529412
+      endNormalizedTime: 0.92
+    actionCancelStartNormalized: 0.36
+    movementPhases: []
+    visualHeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    trailPhases:
+    - startNormalizedTime: 0.26363635
+      endNormalizedTime: 0.38181818
+    attackPhases:
+    - attackPattern: {fileID: 11400000, guid: 091a04fd6e7b71a428a84bac2033bdf3, type: 2}
+      startNormalizedTime: 0.27272728
+      endNormalizedTime: 0.36363637
+      geometry:
+        rangeMultiplier: 1
+        angleMultiplier: 1.55
+        widthMultiplier: 1
+        vfxScaleMultiplier: 1
+        overrideForwardOffset: 0
+        forwardOffset: 0
+      progressSource: 0
+      basisFollowMode: 1
+      impact:
+        damageMultiplier: 1
+        knockbackMultiplier: 1
+        hitStunMultiplier: 1
+        knockbackReactionDuration: 0.36
+        overrideTargetReaction: 1
+        triggersOnHitEffects: 1
+        hitFeedbackProfile: {fileID: 11400000, guid: 831d60b0476e3e84db8f3a739d2b4004, type: 2}
+        airborneImpulse: 0
+        airborneStunDuration: 0
+      vfxCues:
+      - motionRole: 1
+        mirrorAxis: 0
+        definition: {fileID: 11400000, guid: c2d6576cdf3745f41a4852f16fc31903, type: 2}
+        triggerProgress: 0.25
+        placementMode: 3
+        scaleMultiplier: 1
+        shockwaveIntensityMultiplier: 0.2
+        shockwaveSpeedMultiplier: 0
+        autoSwingSlope: 0
+        swingSlopeOffsetDegrees: 0
+        localEulerOffset: {x: 0, y: 0, z: 0}
+        elementOverrideKey: 
+      useBakedVfxSwingSlope: 0
+      bakedVfxSwingSlopeDegrees: 0
+      vfxSwingSlopeOffsetDegrees: 0
+      vfxSwingSettings:
+        orientation: 0
+        bakeMask: 0
+        maxDeviationDegrees: 10
+        maskAngleDegrees: 140
+        verticalPivotHeight: 1
+        verticalHalfWidth: 1.25
+        reverseDirection: 0
+  attackTrajectoryBakeData:
+    schemaVersion: 0
+    sourceFingerprint: 
+    derivedFingerprint: 
+    bakedUtc: 
+    steps: []

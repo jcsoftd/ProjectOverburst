@@ -30,6 +30,8 @@ MonoBehaviour:
   attackTemplateClip: {fileID: 7400000, guid: 181645acac6152547a230a079ade8bf2, type: 2}
   heavyParryClip: {fileID: 7400000, guid: 68189887d296a3a40abb2106e8d52f70, type: 2}
   incompleteHeavyParryClip: {fileID: 7400000, guid: 149224da0b2ad1f4b8375c16c60dae8b, type: 2}
+  incompleteHeavyParryCounterDefinition: {fileID: 11400000, guid: 19e1cecf5360c7e49bc88acf61069f73, type: 2}
+  incompleteParryCounterStartSeconds: 0.48333332
   heavyParryStateName: Melee_HeavyParry
   heavyParrySpeedParameterName: Melee_ParrySpeed
   heavyParryPlaybackSpeed: 0.5

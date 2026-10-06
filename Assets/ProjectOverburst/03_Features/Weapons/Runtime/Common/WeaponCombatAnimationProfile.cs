@@ -121,6 +121,10 @@ public class WeaponCombatAnimationProfile : ScriptableObject
     [InspectorName("불완전 패링 전체 모션")]
     [Tooltip("반격 연결 없이 끝까지 재생합니다. 비어 있으면 기존 패링 클립을 사용합니다.")]
     public AnimationClip incompleteHeavyParryClip;
+    [InspectorName("불완전 패링 반격 1타")]
+    public MeleeComboDefinition incompleteHeavyParryCounterDefinition;
+    [InspectorName("불완전 반격 준비 완료 (클립 초)")]
+    [Min(0f)] public float incompleteParryCounterStartSeconds = 29f / 60f;
     public string heavyParryStateName = "Melee_HeavyParry";
     public string heavyParrySpeedParameterName = "Melee_ParrySpeed";
     [InspectorName("패링 재생 속도")]

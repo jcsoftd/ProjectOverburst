@@ -374,9 +374,15 @@ public static class ThreeTierParryVerifier
                 Action<CombatHealth, DamageInfo, float, bool> onPlayerDamage = (_, info, loss, __) => { incoming++; residual += loss; received.Add(info); };
                 actor.Health.OnDamageResolved += onPlayerDamage; hooks.Add((actor.Health, onPlayerDamage));
                 var hits = new HashSet<int>();
+                var weakCounterHits = new List<(int target, DamageInfo info)>();
                 foreach (var enemy in enemies)
                 {
-                    Action<CombatHealth, DamageInfo, float, bool> onEnemyDamage = (_, info, loss, __) => { if ((info.playerAttackKind & PlayerAttackKind.Heavy) != 0 && loss > 0f) hits.Add(info.sourceAttackPhaseIndex); };
+                    Action<CombatHealth, DamageInfo, float, bool> onEnemyDamage = (health, info, loss, __) => {
+                        if ((info.playerAttackKind & PlayerAttackKind.Heavy) != 0 && loss > 0f) hits.Add(info.sourceAttackPhaseIndex);
+                        if ((info.playerAttackKind & PlayerAttackKind.Weak) != 0 && !info.isDamageOverTime
+                            && info.elementalReactionType == ElementalReactionType.None && loss > 0f)
+                            weakCounterHits.Add((health.GetInstanceID(), info));
+                    };
                     enemy.Health.OnDamageResolved += onEnemyDamage; hooks.Add((enemy.Health, onEnemyDamage));
                 }
                 ParryGrade expected = item.Item1 >= 80f ? ParryGrade.Perfect : item.Item1 >= 30f ? ParryGrade.Normal : ParryGrade.Incomplete;
@@ -482,8 +488,15 @@ public static class ThreeTierParryVerifier
                 if (expected == ParryGrade.Incomplete)
                 {
                     Check(incoming == enemies.Count && residual > 0f && Near(hpBefore - actor.Health.CurrentHp, residual, .1f), "each incomplete execution causes one residual loss");
-                    Check(received.All(info => info.isParryResidualDamage) && commits == 0 && hits.Count == 0, "incomplete ends without counter/discharge");
-                    if (!item.Item3) Check(Near(energy.Amount, amountBefore), "incomplete spends/refunds no energy");
+                    Check(received.All(info => info.isParryResidualDamage) && commits == 0 && hits.Count == 0, "incomplete has no heavy counter/discharge");
+                    Check(weakCounterHits.Count > 0 && weakCounterHits.All(hit => hit.info.sourceAttackPhaseIndex == 0)
+                        && weakCounterHits.GroupBy(hit => hit.target).All(group => group.Count() == 1), "incomplete weak counter hits once per reached target");
+                    if (!item.Item3)
+                    {
+                        float gain = CombatBalanceFormulas.PhaseEnergyGain(OverburstElementTuning.Current,
+                            weakCounterHits.Any(hit => hit.info.isCritical), FlaskCombatModifiers.Bonus(player.gameObject, FlaskEffect.EnergyGain));
+                        Check(Near(energy.Amount, Mathf.Min(energy.Capacity, amountBefore + gain)), "incomplete counter uses one normal weak phase charge without spending/refunding");
+                    }
                 }
                 else
                 {

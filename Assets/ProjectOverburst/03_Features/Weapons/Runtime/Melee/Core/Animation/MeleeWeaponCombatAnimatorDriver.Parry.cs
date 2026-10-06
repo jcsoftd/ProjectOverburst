@@ -6,6 +6,8 @@ public partial class MeleeWeaponCombatAnimatorDriver
 
     private bool incompleteHeavyParry;
     private bool incompleteHeavyParryRecoveryStarted;
+    private bool incompleteHeavyParryCounterStarted;
+    private float heavyParryCounterNormalizedTime, heavyParryCounterSpeed;
     private float heavyParryContactNormalizedTime;
     private AnimationClip heavyParryActiveClip;
     private AnimatorOverrideController heavyParryClipOverrideController;
@@ -25,7 +27,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
         && targetAnimator.GetCurrentAnimatorStateInfo(layerIndex).IsName(activeProfile.heavyParryStateName)
         && targetAnimator.GetCurrentAnimatorStateInfo(layerIndex).normalizedTime >= 1f;
 
-    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds, bool parryOnly = false)
+    public bool TryPlayHeavyParry(out float duration, out float bridgeDuration, out float contactDelay, out float heavyStartSeconds, bool parryOnly = false, float incompleteCounterSpeed = 1f)
     {
         duration = bridgeDuration = contactDelay = heavyStartSeconds = 0f;
         ApplyCurrentProfile();
@@ -41,11 +43,16 @@ public partial class MeleeWeaponCombatAnimatorDriver
         float playbackSpeed = parryOnly ? 1f : Mathf.Max(.05f, activeProfile.heavyParryPlaybackSpeed);
         float clipLength = Mathf.Max(.01f, clip.length);
         float contactSeconds = Mathf.Clamp(activeProfile.heavyParryContactSeconds, 0f, clipLength);
+        float counterSeconds = Mathf.Clamp(activeProfile.incompleteParryCounterStartSeconds, contactSeconds, clipLength);
+        heavyParryCounterSpeed = Mathf.Max(.01f, incompleteCounterSpeed);
+        heavyParryCounterNormalizedTime = counterSeconds / clipLength;
         duration = parryOnly
-            ? contactSeconds + (clipLength - contactSeconds) / IncompleteHeavyParryRecoverySpeed
+            ? contactSeconds + (counterSeconds - contactSeconds) / IncompleteHeavyParryRecoverySpeed
+                + (clipLength - counterSeconds) / heavyParryCounterSpeed
             : clipLength / playbackSpeed;
         incompleteHeavyParry = parryOnly;
         incompleteHeavyParryRecoveryStarted = false;
+        incompleteHeavyParryCounterStarted = false;
         heavyParryContactNormalizedTime = contactSeconds / clipLength;
         bridgeDuration = Mathf.Max(0f, activeProfile.heavyParryToAttackBlend);
         heavyParryBlendSeconds = bridgeDuration;
@@ -126,7 +133,7 @@ public partial class MeleeWeaponCombatAnimatorDriver
                 SetActionSpeedForClip(acceleratedAttackClip, attackBaseDuration);
         }
         if (!heavyParryClockOwned || targetAnimator == null) return;
-        if (incompleteHeavyParry && !incompleteHeavyParryRecoveryStarted && activeProfile != null
+        if (incompleteHeavyParry && !incompleteHeavyParryCounterStarted && activeProfile != null
             && Time.frameCount > heavyParryEntryFrame + 1)
         {
             var state = targetAnimator.GetCurrentAnimatorStateInfo(layerIndex);
@@ -137,6 +144,12 @@ public partial class MeleeWeaponCombatAnimatorDriver
                 if (next.IsName(activeProfile.heavyParryStateName)) state = next;
             }
             if (state.IsName(activeProfile.heavyParryStateName)
+                && state.normalizedTime >= heavyParryCounterNormalizedTime)
+            {
+                incompleteHeavyParryRecoveryStarted = incompleteHeavyParryCounterStarted = true;
+                targetAnimator.SetFloat(activeProfile.heavyParrySpeedParameterName, heavyParryCounterSpeed);
+            }
+            else if (!incompleteHeavyParryRecoveryStarted && state.IsName(activeProfile.heavyParryStateName)
                 && state.normalizedTime >= heavyParryContactNormalizedTime)
             {
                 incompleteHeavyParryRecoveryStarted = true;
@@ -152,6 +165,8 @@ public partial class MeleeWeaponCombatAnimatorDriver
         heavyParryResumeFrame = -1;
         incompleteHeavyParry = false;
         incompleteHeavyParryRecoveryStarted = false;
+        incompleteHeavyParryCounterStarted = false;
+        heavyParryCounterNormalizedTime = heavyParryCounterSpeed = 0f;
         heavyParryContactNormalizedTime = 0f;
         heavyParryActiveClip = null;
         RestoreHeavyParryClipOverride();
@@ -160,6 +175,22 @@ public partial class MeleeWeaponCombatAnimatorDriver
         if (targetAnimator == null) return;
         targetAnimator.updateMode = updateModeBeforeHeavyParry;
         targetAnimator.speed = animatorSpeedBeforeHeavyParry;
+    }
+
+    public bool TryGetHeavyParryClipProgress(out float progress)
+    {
+        progress = 0f;
+        if (!heavyParryClockOwned || activeAction != DriverAction.Parry || targetAnimator == null || activeProfile == null
+            || Time.frameCount <= heavyParryEntryFrame + 1) return false;
+        var state = targetAnimator.GetCurrentAnimatorStateInfo(layerIndex);
+        if (targetAnimator.IsInTransition(layerIndex))
+        {
+            var next = targetAnimator.GetNextAnimatorStateInfo(layerIndex);
+            if (next.IsName(activeProfile.heavyParryStateName)) state = next;
+        }
+        if (!state.IsName(activeProfile.heavyParryStateName)) return false;
+        progress = Mathf.Clamp01(state.normalizedTime);
+        return true;
     }
 
     private bool TryOverrideIncompleteHeavyParryClip(AnimationClip clip)

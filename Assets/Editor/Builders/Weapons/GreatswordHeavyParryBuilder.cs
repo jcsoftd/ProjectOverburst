@@ -16,6 +16,9 @@ public static class GreatswordHeavyParryBuilder
     public const string CounterClipPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_ParriedHeavy.anim";
     public const string CounterDefinitionPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Heavy/GreatswordParriedHeavyAttack.asset";
     public const string WeaponDefinitionPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Definition/GreatswordDefinition.asset";
+    public const string IncompleteCounterPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/GreatswordIncompleteParryCounter.asset";
+    public const float IncompleteCounterReadySeconds = 29f / 60f;
+    public const float IncompleteCounterHitStartSeconds = 30f / 60f, IncompleteCounterHitEndSeconds = 40f / 60f;
     public const string IncompleteClipPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_IncompleteHeavyParry.anim";
     public const float SourceStartSeconds = 0f, SourceEndSeconds = .266f;
     public const int ContactFrame = 4;
@@ -80,6 +83,7 @@ public static class GreatswordHeavyParryBuilder
             AssetDatabase.SaveAssetIfDirty(profile);
             AssetDatabase.SaveAssetIfDirty(controller);
             BuildIncompleteParry();
+            BuildIncompleteParryCounter();
             BuildCounter();
             Debug.Log("[대검 패링] 원본 0~0.266초, 0.5배속 완주 후 Combo_01_4_inplace 0.138초 자세로 0.1초 보간. 약공3타 회전 두 판정 후 착지1회.");
         }
@@ -114,6 +118,45 @@ public static class GreatswordHeavyParryBuilder
             AssetDatabase.SaveAssetIfDirty(clip); AssetDatabase.SaveAssetIfDirty(profile);
         }
         finally { if (copy != null) UnityEngine.Object.DestroyImmediate(copy); }
+    }
+
+    [MenuItem("OVERBURST/Weapons/Build Greatsword Incomplete Parry Counter")]
+    public static void BuildIncompleteParryCounter()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || BuildPipeline.isBuildingPlayer)
+            throw new InvalidOperationException("유휴 편집 모드에서 불완전 반격을 제작하세요.");
+        var profile = AssetDatabase.LoadAssetAtPath<WeaponCombatAnimationProfile>(ProfilePath);
+        var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(WeaponDefinitionPath);
+        var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(IncompleteClipPath);
+        if (profile == null || EditorUtility.IsDirty(profile) || weapon == null || weapon.comboDefinition == null
+            || !weapon.comboDefinition.HasSteps || clip == null || clip.length <= IncompleteCounterHitEndSeconds)
+            throw new InvalidOperationException("저장된 전체 클립·대검 프로필과 약공1타가 필요합니다.");
+        var reference = weapon.comboDefinition.GetStep(0);
+        if (reference.attackPhases == null || reference.attackPhases.Length == 0)
+            throw new InvalidOperationException("약공1타 판정이 없습니다.");
+        var counter = AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(IncompleteCounterPath);
+        if (counter != null && EditorUtility.IsDirty(counter)) throw new InvalidOperationException("반격의 미저장 수정을 보존하세요.");
+        if (counter == null) { counter = ScriptableObject.CreateInstance<MeleeComboDefinition>(); AssetDatabase.CreateAsset(counter, IncompleteCounterPath); }
+        var phase = reference.attackPhases[0];
+        phase.startNormalizedTime = IncompleteCounterHitStartSeconds / clip.length;
+        phase.endNormalizedTime = IncompleteCounterHitEndSeconds / clip.length;
+        phase.progressSource = AttackProgressSource.NormalizedTime;
+        phase.vfxCues = phase.vfxCues != null ? (AttackVfxCueData[])phase.vfxCues.Clone() : Array.Empty<AttackVfxCueData>();
+        var step = reference;
+        step.attackId = "GRS_IncompleteParryCounter"; step.attackName = "불완전 패링 반격1타";
+        step.animationClip = clip; step.animationSpeedMultiplier = 1f; step.playbackAcceleration = default;
+        step.continuationStartNormalizedTime = IncompleteCounterReadySeconds / clip.length;
+        step.movementPhases = Array.Empty<AttackMovementPhaseData>(); step.visualHeightCurve = null;
+        step.attackPhases = new[] { phase };
+        step.trailPhases = new[] { new AttackTrailPhaseData {
+            startNormalizedTime = IncompleteCounterReadySeconds / clip.length,
+            endNormalizedTime = (42f / 60f) / clip.length } };
+        counter.steps = new[] { step }; counter.baseAnimationSpeed = 1f;
+        profile.incompleteHeavyParryCounterDefinition = counter;
+        profile.incompleteParryCounterStartSeconds = IncompleteCounterReadySeconds;
+        EditorUtility.SetDirty(counter); EditorUtility.SetDirty(profile);
+        AssetDatabase.SaveAssetIfDirty(counter); AssetDatabase.SaveAssetIfDirty(profile);
     }
 
     private static void BuildCounter()

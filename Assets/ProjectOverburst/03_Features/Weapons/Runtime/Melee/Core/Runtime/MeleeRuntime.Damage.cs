@@ -11,8 +11,9 @@ public partial class MeleeRuntime
 
     private void DealPatternDamage(AttackPhaseHit hit, int darkBarrageId)
     {
+        bool usesHeavyDamage = activeAttackIsHeavy && !incompleteParryCounterConfigured;
         // The elemental first circle commits once at impact. The phase executor still drives its visual wave.
-        if (activeAttackIsHeavy && activeDischarge != null && !resolvingHeavyBlast
+        if (usesHeavyDamage && activeDischarge != null && !resolvingHeavyBlast
             && activeDodgeFollowUp != PlayerDodgeFollowUpKind.Heavy) return;
         if (hit.Damageable == null)
             return;
@@ -29,7 +30,7 @@ public partial class MeleeRuntime
             runtimeData = new MeleeAttackRuntimeData(runtimeData.Pattern, activeDischarge.FirstBlastDamage,
                 runtimeData.Knockback, runtimeData.HitStunDuration, runtimeData.VfxScale, runtimeData.AttackRangeScale);
         // 2026-10-01: 방출 없는 강공(에너지 0)은 원소 타격 VFX·소리·원소 피해 보너스 없이 일반 타격으로 친다.
-        WeaponElement attackElement = activeAttackIsHeavy && activeDischarge == null
+        WeaponElement attackElement = usesHeavyDamage && activeDischarge == null
             ? WeaponElement.None : ResolveActiveAttackElement();
         bool useElementHitVfx = MeleeElementHitVfxService.CanPlay(attackElement)
             || (hit.TargetHealth != null && hit.TargetHealth.GetComponent<EnemyDeathPresentation>() != null);
@@ -47,13 +48,13 @@ public partial class MeleeRuntime
             hit.HitPoint,
             gameObject,
             hit.Direction,
-            activeAttackIsHeavy && activeDischarge != null && activeDischarge.Element == WeaponElement.Dark
+            usesHeavyDamage && activeDischarge != null && activeDischarge.Element == WeaponElement.Dark
                 ? 0f : ApplyCombatStanceKnockback(runtimeData.Knockback),
             useElementHitVfx,
             attackElement,
             activeAttackWeaponItem != null ? activeAttackWeaponItem.runtimeInstanceId : string.Empty,
             activeHitFeedbackSequenceId,
-            activeAttackIsHeavy ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
+            usesHeavyDamage ? PlayerAttackKind.Heavy : PlayerAttackKind.Weak,
             hit.PhaseIndex,
             ResolveWeakKnockbackDistance(phase), activeGemAttack));
 
@@ -101,7 +102,7 @@ public partial class MeleeRuntime
                     ? hit.Direction : Vector3.Cross(Vector3.up, hit.Direction)
                         * (phase.vfxSwingSettings.reverseDirection ? -1f : 1f),
                 elementSfxEnergy: elementSfxEnergy,
-                isStrong: activeAttackIsHeavy));
+                isStrong: usesHeavyDamage));
         }
 
         if (impact.triggersOnHitEffects)
@@ -128,7 +129,7 @@ public partial class MeleeRuntime
 
     private float ResolveWeakKnockbackDistance(AttackPhaseData phase)
     {
-        if (activeAttackIsHeavy || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword)
+        if ((activeAttackIsHeavy && !incompleteParryCounterConfigured) || activeWeaponData == null || activeWeaponData.weaponClass != WeaponClass.Greatsword)
             return -1f;
         float advance = 0f;
         if (activeAttackStep.movementPhases != null)
