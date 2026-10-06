@@ -123,7 +123,7 @@ public static class OverburstSkillTreePlayVerifier
         var input = PlayerInputFacade.Current; bool gameplay = input.IsGameplayEnabled;
         foreach (var step in Steps(OpenFromMenu())) yield return step;
         Check(GameplayInputBlocker.IsGameplayInputBlocked && !input.IsGameplayEnabled && ui.Plan.Remaining == 0, "Tree owns input and real account budget");
-        Check(Mathf.Approximately(ui.Zoom,1.1f)&&ui.Zoom>ui.FitZoom,"Actual HUD opens expanded 110% default zoom above full-map fit");
+        Check(Mathf.Approximately(ui.Zoom,OverburstSkillTreeUI.DefaultZoom)&&ui.Zoom>ui.FitZoom,"Actual HUD opens configured default zoom above full-map fit");
         ui.HideTooltip();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-default.png"));yield return null;
         foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
@@ -213,8 +213,18 @@ public static class OverburstSkillTreePlayVerifier
         var previous = Keyboard.current; var keyboard = InputSystem.AddDevice<Keyboard>("OwnedSkillTreeFoundationKeyboard");
         try
         {
+            var game = Object.FindFirstObjectByType<OverburstGameUI>();
+            Check(game != null, "Product equipment presenter installed");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.C)); yield return null; yield return null;
+            Check(ui.IsOpen && !game.equipmentWindow.gameObject.activeInHierarchy, "Actual C cannot open equipment behind skill tree");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.Escape)); yield return null; yield return null;
             Check(!ui.IsOpen && !OverburstGameMenu.IsOpen && !GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Actual Escape closes tree and restores input");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.C)); yield return null; yield return null;
+            Check(game.equipmentWindow.gameObject.activeInHierarchy, "Positive control: actual C opens equipment after tree closes");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; game.CloseEquipment(); yield return null;
+            Check(!GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Equipment positive control restores input");
         }
         finally { if (keyboard.added) InputSystem.RemoveDevice(keyboard); if (previous != null && previous.added) previous.MakeCurrent(); }
         Check(File.Exists(Path.Combine(Output, "ingame-skill-tree.png")) && File.Exists(Path.Combine(Output, "ingame-tooltip.png")), "Actual composited Play captures saved");

@@ -206,9 +206,11 @@ public static class OverburstGameSettings
             File.WriteAllText(temp, JsonUtility.ToJson(data, true));
             if (File.Exists(path)) File.Replace(temp, path, null);
             else File.Move(temp, path);
+            dirty = false;
         }
         catch (Exception error)
         {
+            dirty = true;
             Debug.LogWarning("[OverburstGameSettings] 설정을 저장하지 못했습니다: " + error.Message);
         }
     }
@@ -291,7 +293,6 @@ public static class OverburstGameSettings
     public static void SaveIfDirty()
     {
         if (!dirty) return;
-        dirty = false;
         Save();
     }
 

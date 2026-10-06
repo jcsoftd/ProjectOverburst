@@ -15,6 +15,12 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
     private PlayerControlKit activeActorKit;
     private PlayerMovement activeMovement;
 
+    private const float ProgressDistance = 0.05f;
+    private const float NoProgressTimeout = 2f;
+    private Vector3 progressCheckpointPosition;
+    private float checkpointRemainingDistance;
+    private float lastProgressTime;
+
     public bool HasActiveRequest => activeRequest != null;
     public WorldItemPickup ActiveTarget => activeRequest != null ? activeRequest.Target : null;
 
@@ -88,7 +94,37 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
             return;
         }
 
-        activeMovement.UpdateLootAutoMoveDestination(target.transform.position); // 이동 대상 추적
+        Vector3 actorPosition = activeActor.transform.position;
+        Vector3 targetPosition = target.transform.position;
+        float distance = Mathf.Sqrt(GetFlatDistanceSqr(actorPosition, targetPosition));
+        float remaining = Mathf.Max(0f, distance - activeRequest.PickupRadius);
+        // Compare both actor movement toward the current target and remaining range.
+        // Target-only movement and a shared moving platform must not renew the timer.
+        float actorGain = Mathf.Sqrt(GetFlatDistanceSqr(progressCheckpointPosition, targetPosition)) - distance;
+        float remainingGain = checkpointRemainingDistance - remaining;
+        if (actorGain >= ProgressDistance)
+        {
+            if (remainingGain >= ProgressDistance)
+            {
+                progressCheckpointPosition = actorPosition;
+                checkpointRemainingDistance = remaining;
+                lastProgressTime = Time.time;
+            }
+            else if (remainingGain < -ProgressDistance)
+            {
+                // Rebase a retreating target without granting additional waiting time.
+                progressCheckpointPosition = actorPosition;
+                checkpointRemainingDistance = remaining;
+            }
+        }
+
+        if (Time.time - lastProgressTime >= NoProgressTimeout)
+        {
+            CompleteActive(WorldLootAutoMoveDriverResult.Failed);
+            return; // Completion may synchronously start another request.
+        }
+
+        activeMovement.UpdateLootAutoMoveDestination(targetPosition); // 이동 대상 추적
     }
 
     public void Bind(PlayerContext runtime)
@@ -149,6 +185,10 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
         activeActor = actor;
         activeActorKit = actorKit;
         activeMovement = movement;
+        progressCheckpointPosition = actor.transform.position;
+        checkpointRemainingDistance = Mathf.Max(0f,
+            Mathf.Sqrt(GetFlatDistanceSqr(progressCheckpointPosition, target.transform.position)) - request.PickupRadius);
+        lastProgressTime = Time.time;
         return true;
     }
 
@@ -168,6 +208,9 @@ public sealed class PlayerLootAutoMoveDriver : MonoBehaviour, IWorldLootAutoMove
         activeActor = null;
         activeActorKit = null;
         activeMovement = null;
+        progressCheckpointPosition = default;
+        checkpointRemainingDistance = 0f;
+        lastProgressTime = 0f;
         movement?.CancelLootAutoMove();
         request?.Complete(result);
     }

@@ -11,7 +11,7 @@ using UnityEngine.Playables;
 using Object=UnityEngine.Object;
 
 // Applies a measured, per-definition plan; keeps originals, GUIDs, account and open scenes.
-public static class MonsterPresentationCalibrationBuilder
+public static partial class MonsterPresentationCalibrationBuilder
 {
     static readonly HashSet<string> saved=new HashSet<string>();
     static string directory;
@@ -42,78 +42,7 @@ public static class MonsterPresentationCalibrationBuilder
     }
     static IEnumerable<AnimationClip> Clips(Motion motion){if(motion is AnimationClip clip){yield return clip;yield break;}if(motion is BlendTree tree)foreach(var child in tree.children)foreach(var c in Clips(child.motion))yield return c;}
     public static string ApplyMeasuredClawContacts(string authoringPath,string outputDirectory)
-    {
-        if(BuildPipeline.isBuildingPlayer||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
-            ||!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
-            ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))||IsolatedSavePlayGuard.RequiresAccountChoice)
-            throw new Exception("Idle unoccupied Editor and resolved account required");
-        directory=Path.GetFullPath(outputDirectory);
-        string allowed=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
-        if(!directory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||Directory.Exists(directory))
-            throw new Exception("Fresh private output required");
-        saved.Clear();Directory.CreateDirectory(directory);var result=new JArray();
-        foreach(var row in JObject.Parse(File.ReadAllText(authoringPath))["entries"])
-        {
-            string id=((string)row["cardKey"]).Substring("runtime:".Length);
-            var d=AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/"+id+".asset");
-            var ability=Enumerable.Range(0,d.AbilitySet.Count).Select(d.AbilitySet.GetAbility)
-                .Single(a=>a.WeakAttackExecution?.SelectionKey==(string)row["selectionKey"]);
-            var profile=ability.WeakAttackExecution;
-            if(ability.IsTelegraphedStrongAttack)throw new Exception("Only saved weak attacks may be recalibrated");
-            if(row["previousStationaryStartRange"]!=null&&Mathf.Abs(profile.StationaryStartRange-(float)row["previousStationaryStartRange"])>.00001f)throw new Exception("Start range changed after measurement");
-            Backup(profile);
-            var so=new SerializedObject(profile);var groups=so.FindProperty("contactGeometry");
-            var phases=row["contactGeometry"]["phases"];
-            if(groups.arraySize!=phases.Count())throw new Exception("Contact phase count changed");
-            for(int g=0;g<groups.arraySize;g++)
-            {
-                var frames=groups.GetArrayElementAtIndex(g).FindPropertyRelative("frames");var authoredFrames=phases[g]["frames"];
-                bool replaceWindow=(bool?)row["replaceContactWindows"]==true;
-                if(!replaceWindow&&frames.arraySize!=authoredFrames.Count())throw new Exception("Contact sampling times changed");
-                if(replaceWindow){profile.TryGetContactWindow(g,out var previousWindow);var priorWindowData=row["originalContactWindowsNormalized"][g];if(Mathf.Abs(previousWindow.x-(float)priorWindowData[0])>.00001f||Mathf.Abs(previousWindow.y-(float)priorWindowData[1])>.00001f)throw new Exception("Contact window changed after measurement");frames.arraySize=authoredFrames.Count();}
-                for(int f=0;f<frames.arraySize;f++)
-                {
-                    var frame=frames.GetArrayElementAtIndex(f);var authored=authoredFrames[f];
-                    if(!replaceWindow&&Mathf.Abs(frame.FindPropertyRelative("normalizedTime").floatValue-(float)authored["normalizedTime"])>.000001f)
-                        throw new Exception("Contact sampling time changed");
-                    if(replaceWindow)frame.FindPropertyRelative("normalizedTime").floatValue=(float)authored["normalizedTime"];
-                    var capsules=frame.FindPropertyRelative("capsules");var shapes=authored["capsules"];capsules.arraySize=shapes.Count();
-                    for(int c=0;c<capsules.arraySize;c++)
-                    {
-                        var shape=capsules.GetArrayElementAtIndex(c);foreach(string n in new[]{"a","b"}){
-                            var v=shapes[c][n];shape.FindPropertyRelative(n).vector3Value=new Vector3((float)v[0],(float)v[1],(float)v[2]);
-                        }
-                        shape.FindPropertyRelative("radius").floatValue=(float)shapes[c]["radius"];
-                    }
-                }
-            }
-            if(row["advanceWindow"] is JArray advanceWindow){
-                var previousWindow=row["previousAdvanceWindow"];var currentWindow=profile.AdvanceWindow;
-                if(!profile.UsesAdvance||Mathf.Abs(currentWindow.x-(float)previousWindow[0])>.000001f||Mathf.Abs(currentWindow.y-(float)previousWindow[1])>.000001f)throw new Exception("Advance window changed after visual measurement");
-                so.FindProperty("advanceWindow").vector2Value=new Vector2((float)advanceWindow[0],(float)advanceWindow[1]);
-            }
-            if(row["stationaryStartRange"]!=null)so.FindProperty("stationaryStartRange").floatValue=(float)row["stationaryStartRange"];
-            if((bool?)row["replaceContactWindows"]==true){var windows=so.FindProperty("contactWindows");for(int g=0;g<windows.arraySize;g++)windows.GetArrayElementAtIndex(g).vector2Value=new Vector2((float)row["contactWindowsNormalized"][g][0],(float)row["contactWindowsNormalized"][g][1]);}
-            so.ApplyModifiedPropertiesWithoutUndo();if(!profile.ValidateAuthoring(out string reason))throw new Exception(reason);Save(profile);
-            if(row["originalHitNormalizedTimes"] is JArray previous)
-            {
-                if(ability.IsTelegraphedStrongAttack||previous.Count!=ability.ReleaseCount)
-                    throw new Exception("Only unchanged weak-attack strike counts can be recalibrated");
-                for(int phase=0;phase<previous.Count;phase++)
-                    if(Mathf.Abs(ability.GetHitNormalizedTime(phase)-(float)previous[phase])>.000001f)
-                        throw new Exception("Strike time changed after measurement");
-                Backup(ability);var settings=new SerializedObject(ability);var times=(JArray)row["hitNormalizedTimes"];
-                settings.FindProperty("hitNormalizedTime").floatValue=(float)times[0];
-                var extra=settings.FindProperty("additionalHitNormalizedTimes");extra.arraySize=times.Count-1;
-                for(int phase=1;phase<times.Count;phase++)extra.GetArrayElementAtIndex(phase-1).floatValue=(float)times[phase];
-                settings.ApplyModifiedPropertiesWithoutUndo();if(!ability.IsValid)throw new Exception("Measured strike is outside its contact window");Save(ability);
-            }
-            if(row["stationaryStartRange"]!=null){Backup(ability);var rangeSettings=new SerializedObject(ability);rangeSettings.FindProperty("range").floatValue=profile.ApproachStartRange;rangeSettings.ApplyModifiedPropertiesWithoutUndo();if(!ability.IsValid)throw new Exception("Invalid saved measured weak attack");Save(ability);}
-            result.Add(new JObject{{"id",id},{"selectionKey",profile.SelectionKey},{"path",AssetDatabase.GetAssetPath(profile)},
-                {"basis","Native skinned claw surface at saved actor scale; original joint capsules retained"}});
-        }
-        File.WriteAllText(Path.Combine(directory,"applied.json"),result.ToString());return "Saved measured claw contacts: "+result.Count;
-    }
+        => ApplyMeasuredBatch(authoringPath, outputDirectory);
     public static string Apply(string planPath,string outputDirectory)
     {
         if(BuildPipeline.isBuildingPlayer||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
