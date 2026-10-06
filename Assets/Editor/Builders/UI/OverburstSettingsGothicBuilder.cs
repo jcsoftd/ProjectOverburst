@@ -89,14 +89,8 @@ public static class OverburstSettingsGothicBuilder
         header.Find("Text").gameObject.SetActive(false);
         foreach(Transform t in header) if(t!=p.closeButton.transform)t.gameObject.SetActive(false);
         Rect((RectTransform)header,new Rect(8,8,1328,78));
-        Img(header,"Gothic Header",new Rect(0,0,1328,78),Hex("331712"));
-        Img(header,"Header Texture",new Rect(0,0,1328,78),new Color(1,1,1,.3f),KitSprite("Windows/Header/Window_Header_Background.png"));
-        var ornament=KitSprite("Windows/Header/Window_Header_Ornaments.png");
-        Img(header,"Left Ornament",new Rect(0,0,280,78),new Color(1,1,1,.7f),ornament);
-        var right=Img(header,"Right Ornament",new Rect(1048,0,280,78),new Color(1,1,1,.7f),ornament); right.transform.localScale=new Vector3(-1,1,1);
         Txt(header,"Options","OPTIONS",new Rect(440,5,448,17),10,Gold,false,TextAlignmentOptions.Center);
         Txt(header,"Title","설정",new Rect(440,25,448,42),29,Hex("E1C28A"),true,TextAlignmentOptions.Center);
-        Img(header,"Header Rule",new Rect(0,77,1328,1),Hex("685038"));
         p.closeButton.gameObject.SetActive(true);Rect((RectTransform)p.closeButton.transform,new Rect(1259,15,47,47));p.closeButton.transform.SetAsLastSibling();
         Navigation(p.closeButton); RemoveVisualTransitions(p.closeButton.gameObject);
 
@@ -199,6 +193,7 @@ public static class OverburstSettingsGothicBuilder
 
     static void PolishPanel(OverburstSettingsPanel panel)
     {
+        RestoreHeaderLayers(panel);
         var presentation=panel.GetComponent<OverburstSettingsGothicView>();
         var oldTabSurface=panel.transform.Find("Tab Menu").GetComponent<Image>();
         if(oldTabSurface)oldTabSurface.enabled=false;
@@ -265,6 +260,59 @@ public static class OverburstSettingsGothicBuilder
             finally{bodyFont=previous;}
         }
         panel.transform.Find("Navigation Hint").GetComponent<TMP_Text>().text="Esc 닫기   ·   방향키 항목 이동   ·   휠 스크롤";
+    }
+
+    public static string RestoreAssetHeader()
+    {
+        RequireIdle();
+        var asset=AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
+        if(!asset || EditorUtility.IsDirty(asset))throw new InvalidOperationException("Menu prefab missing or dirty");
+        var root=PrefabUtility.LoadPrefabContents(OverburstGameMenuBuilder.PrefabPath);
+        try
+        {
+            var panel=root.GetComponentInChildren<OverburstSettingsPanel>(true);
+            if(!panel.GetComponent<OverburstSettingsGothicView>())throw new InvalidOperationException("Concept B is required");
+            RestoreHeaderLayers(panel);
+            PrefabUtility.SaveAsPrefabAsset(root,OverburstGameMenuBuilder.PrefabPath,out bool saved);
+            if(!saved)throw new InvalidOperationException("Settings header save failed");
+            return "PASS supplier header layers restored";
+        }
+        finally{PrefabUtility.UnloadPrefabContents(root);}
+    }
+
+    static void RestoreHeaderLayers(OverburstSettingsPanel panel)
+    {
+        var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/RPG and MMO UI 11/Prefabs/Windows/Window (Settings).prefab");
+        if(!source)throw new InvalidOperationException("Supplier settings window missing");
+        var sourceHeader=(RectTransform)source.transform.Find("Header");
+        var header=(RectTransform)panel.transform.Find("Header");
+        float scale=header.rect.height/sourceHeader.rect.height;
+        if(scale<=0)throw new InvalidOperationException("Invalid header size");
+        foreach(var branch in new[]{"Border","Background"})
+        {
+            var sourceRoot=sourceHeader.Find(branch);
+            foreach(var original in sourceRoot.GetComponentsInChildren<RectTransform>(true))
+            {
+                string path=AnimationUtility.CalculateTransformPath(original,sourceHeader);
+                var target=header.Find(path) as RectTransform;
+                if(!target)throw new InvalidOperationException("Supplier header layer missing: "+path);
+                target.anchorMin=original.anchorMin;target.anchorMax=original.anchorMax;target.pivot=original.pivot;
+                target.sizeDelta=original.sizeDelta*scale;target.anchoredPosition=original.anchoredPosition*scale;
+                target.localScale=original.localScale;target.localRotation=original.localRotation;
+                target.gameObject.SetActive(original.gameObject.activeSelf && path!="Background/Effect Left" && path!="Background/Effect Right");
+                var sourceImage=original.GetComponent<Image>();var image=target.GetComponent<Image>();
+                if(!sourceImage || !image)continue;
+                image.enabled=sourceImage.enabled;image.sprite=sourceImage.sprite;image.type=sourceImage.type;
+                image.color=path=="Background"?Hex("85241F"):sourceImage.color;
+                image.fillCenter=sourceImage.fillCenter;image.preserveAspect=sourceImage.preserveAspect;
+                image.pixelsPerUnitMultiplier=sourceImage.pixelsPerUnitMultiplier/scale;
+                image.raycastTarget=false;
+            }
+        }
+        // Retain the supplier UIFlippable components; negative scale shifts a top-left pivot inward.
+        foreach(var name in new[]{"Gothic Header","Header Texture","Left Ornament","Right Ornament","Header Rule"})
+            header.Find(name)?.gameObject.SetActive(false);
+        panel.closeButton.transform.SetAsLastSibling();
     }
 
     static void PolishQuietButton(Button button,float width,float height)
