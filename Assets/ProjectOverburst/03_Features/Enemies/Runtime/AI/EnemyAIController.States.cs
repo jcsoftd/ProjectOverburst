@@ -66,6 +66,8 @@ public sealed partial class EnemyAIController
             ChangeToCombatWait(BehaviorProfile.AttackWaitDuration * Random.Range(0.85f, 1.15f));
     }
 
+    internal bool CanRetryBackpedal => repositionState != null && repositionState.CanBackpedal;
+
     internal void ChangeToReposition(bool lowHealthBackstep = false)
     {
         repositionState.PrepareBackpedal(lowHealthBackstep);
@@ -103,7 +105,7 @@ public sealed partial class EnemyAIController
             return false;
         }
 
-        if (lowHealthRepositionConsumed || TargetDistance > AttackExitRange + 1f)
+        if (lowHealthRepositionConsumed || !CanRetryBackpedal || TargetDistance > AttackExitRange + 1f)
             return false;
 
         lowHealthRepositionConsumed = true;
@@ -161,7 +163,10 @@ public sealed partial class EnemyAIController
     private void InitializeStateMachine()
     {
         if (initialized)
+        {
+            repositionState?.ResetBackpedalRetry(); // actor rebind / pool re-enable
             return;
+        }
 
         stateMachine = new EnemyStateMachine();
         roamState = new EnemyRoamState(this);

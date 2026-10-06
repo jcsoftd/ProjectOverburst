@@ -18,6 +18,22 @@ public sealed class EnemyRepositionState : IEnemyState // 후퇴와 전진 도�
     private bool dodgeAnimationTracked;
     private Transform visualRoot;
     private float visualBaseLocalY;
+    private const float FailedBackpedalRetrySeconds = .8f;
+    private float failedBackpedalUntil, backpedalElapsed, expectedBackpedalSpeed;
+    private Transform failedBackpedalTarget;
+    private Vector3 backpedalStartPosition;
+    public bool CanBackpedal => owner.Target != failedBackpedalTarget || Time.time >= failedBackpedalUntil;
+
+    public void ResetBackpedalRetry()
+    {
+        failedBackpedalUntil = 0f; failedBackpedalTarget = null;
+    }
+
+    private void MarkBackpedalFailure()
+    {
+        failedBackpedalUntil = Time.time + FailedBackpedalRetrySeconds;
+        failedBackpedalTarget = owner.Target;
+    }
 
     public string Name { get { return "Reposition"; } }
     internal string DebugModeName => activeMode.ToString(); // 상태 디버그 표시용 하위 모드
@@ -68,6 +84,18 @@ public sealed class EnemyRepositionState : IEnemyState // 후퇴와 전진 도�
             return;
         }
 
+        if (activeMode == RepositionMode.Backpedal)
+        {
+            // Only eligible movement time counts; a Freeze is not a failed retreat.
+            if (owner.Movement != null && owner.Movement.IsStatusMovementLocked) return;
+            backpedalElapsed += Time.deltaTime;
+            if (backpedalElapsed < actionDuration) return;
+            Vector3 moved = owner.transform.position - backpedalStartPosition; moved.y = 0f;
+            float minimumProgress = Mathf.Min(.08f, expectedBackpedalSpeed * backpedalElapsed * .25f);
+            if (moved.magnitude < minimumProgress) MarkBackpedalFailure();
+            owner.ChangeToCombatWait(owner.BehaviorProfile.RecoveryDuration);
+            return;
+        }
         if (activeMode == RepositionMode.DodgeLunge)
             UpdateDodgeVisual();
 
@@ -92,12 +120,25 @@ public sealed class EnemyRepositionState : IEnemyState // 후퇴와 전진 도�
 
         float moveDistance = lowHealthBackstep ? profile.LowHealthRepositionDistance : profile.RepositionDistance;
         Vector3 destination = owner.transform.position + away.normalized * moveDistance;
-        owner.Movement?.SetFacingDestination(
-            destination,
+        backpedalStartPosition = owner.transform.position;
+        backpedalElapsed = 0f;
+        Vector3 resolved;
+        if (owner.Movement == null || !owner.Movement.TryResolveWalkableDestination(destination, out resolved))
+        {
+            MarkBackpedalFailure(); owner.ChangeToCombatWait(); return;
+        }
+        Vector3 step = resolved - backpedalStartPosition; step.y = 0f;
+        if (step.sqrMagnitude < .0025f)
+        {
+            MarkBackpedalFailure(); owner.ChangeToCombatWait(); return;
+        }
+        owner.Movement.SetFacingDestination(
+            resolved,
             0.1f,
             owner.Target.position,
             EnemyLocomotionMode.Backpedal);
 
+        expectedBackpedalSpeed = owner.Movement.ActiveMoveSpeed;
         actionDuration = lowHealthBackstep ? profile.LowHealthRepositionDuration : profile.RepositionDuration;
         actionStartTime = Time.time;
         endTime = actionStartTime + actionDuration;

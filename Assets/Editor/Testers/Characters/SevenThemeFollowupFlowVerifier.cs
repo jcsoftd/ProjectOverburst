@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Collections;
@@ -17,7 +17,7 @@ using Object=UnityEngine.Object;
 // Captures are diagnostics, not a frame-rate benchmark or direct player-input test.
 // Persistent ownership survives reloads; only this fixture's resources/account are returned.
 [InitializeOnLoad]
-public static class SevenThemeFollowupFlowVerifier
+public static partial class SevenThemeFollowupFlowVerifier
 {
     const string Key="Overburst.SevenThemeFollowupFlow.plan";
     const string ModeKey="Overburst.SevenThemeFollowupFlow.run";
@@ -92,7 +92,7 @@ public static class SevenThemeFollowupFlowVerifier
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.WeakAttackPlayerLoop.plan",""))||!string.IsNullOrEmpty(SessionState.GetString(Key,"")))
             throw new InvalidOperationException("Idle, unreserved shared Editor required.");
-        if(run!="BaselineNative"&&run!="AfterNative")throw new InvalidOperationException("Owned baseline or result only.");
+        if(run!="BaselineNative"&&run!="AfterNative"&&run!="NearBefore"&&run!="NearAfter")throw new InvalidOperationException("Owned baseline or result only.");
         SessionState.SetString(ModeKey,run);
         Directory.CreateDirectory(Folder);
         if(File.Exists(Path.Combine(Folder,"plan.json")))throw new InvalidOperationException("Fresh audit output required.");
@@ -159,6 +159,7 @@ public static class SevenThemeFollowupFlowVerifier
         var visual=GameObject.CreatePrimitive(PrimitiveType.Capsule);visual.transform.SetParent(target,false);Object.Destroy(visual.GetComponent<Collider>());visual.transform.localPosition=capsule.center;visual.transform.localScale=new Vector3(capsule.radius*2,capsule.height/2,capsule.radius*2);
         var mat=new Material(Shader.Find("Universal Render Pipeline/Lit"));owned.Add(mat);mat.color=new Color(.96f,.69f,.28f);visual.GetComponent<Renderer>().sharedMaterial=mat;
         yield return null;yield return new WaitForFixedUpdate();
+        if(Mode.StartsWith("Near",StringComparison.Ordinal)){yield return NearProbe(catalog,health,capsule);yield break;}
         string[] ids=new[]{"V3_Anglerox","V3_Hideoplast","V3_Deinodonte","V3_Perderos","SpiderBrood_Formickarce","DeathHarvest_RakeBrute","DeathHarvest_Reaper","V3_Skorpmare","V3_darkKnight2","V3_Gasterodonte","V3_Kapeloproboskid","V3_Onyscidus"};
         var defs=ids.Select(id=>{if(!catalog.TryGet(id,out var definition))throw new InvalidOperationException("Saved catalog ID missing: "+id);return definition;}).ToArray();
         foreach(var d in defs)
