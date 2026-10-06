@@ -76,6 +76,19 @@ public static class BloodComparisonTuning
     public static void ResetCurrent() => OverburstGameSettings.ResetBloodStyle(BloodHitVfxService.CurrentStyle);
     public static Color SprayColor(Color source) => LinearTint(source, Vector3.one, SprayBrightness);
     public static Color GroundColor(Color source) => LinearTint(source, GroundRgb, GroundBrightness);
+    // Same-camera calibration compensates each floor shader's baked lighting/opacity.
+    // Keep the saved brightness and RGB multipliers independent of this material response.
+    const float LegacyGroundResponse = .75f, ParticleGroundResponse = .13f, VolumetricGroundResponse = .15f;
+    public static Color LegacyGroundColor(Color source) => LinearTint(source, GroundRgb, GroundBrightness * LegacyGroundResponse);
+    // Particle property blocks receive profile RGB directly; Material colors need encoding.
+    public static Color ParticleGroundColor(Color source) => LinearTint(source.gamma, GroundRgb, GroundBrightness * ParticleGroundResponse);
+    public static Color VolumetricSprayColor(Color source) => SprayColor(source).gamma * 2f;
+    public static Color VolumetricGroundColor(Color source)
+    {
+        Color color = GroundColor(source).gamma * 2f;
+        color.r *= VolumetricGroundResponse; color.g *= VolumetricGroundResponse; color.b *= VolumetricGroundResponse;
+        return color;
+    }
     static Color LinearTint(Color source, Vector3 rgb, float brightness)
     {
         Color linear = source.linear;

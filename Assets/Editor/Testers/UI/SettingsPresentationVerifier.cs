@@ -90,6 +90,7 @@ public static partial class SettingsPresentationVerifier
     static IEnumerator Verify()
     {
         yield return Wait(2f);
+        if (File.Exists(Path.Combine(output,"only-blood-color"))) { yield return VerifyBloodGroundColor(); yield break; }
         if (File.Exists(Path.Combine(output,"only-blood-scale"))) { yield return VerifyBloodScreenScale(); yield break; }
         if (File.Exists(Path.Combine(output,"only-c-quality"))) { yield return VerifyCQualityFixture(); yield break; }
         if (File.Exists(Path.Combine(output,"only-c-ground"))) { yield return VerifyCGroundFixture(); yield break; }

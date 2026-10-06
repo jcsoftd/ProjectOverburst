@@ -360,23 +360,30 @@ public sealed class BloodGroundDecalService : MonoBehaviour
         }
         if (material.HasProperty("_BaseColor"))
         {
-            if (pack) material.SetVector("_BaseColor", BloodComparisonTuning.GroundColor(profile.mainColor));
-            else material.SetColor("_BaseColor", BloodComparisonTuning.GroundColor(profile.mainColor).gamma);
-            if (pack && material.HasProperty("_AlbedoPower")) material.SetFloat("_AlbedoPower", .55f);
+            // Color properties convert sRGB on upload, including SetVector writes.
+            // A already applies main/secondary blood colors inside its shader.
+            material.SetColor("_BaseColor", pack ? BloodComparisonTuning.ParticleGroundColor(profile.mainColor).gamma : Color.white);
+            if (pack && material.HasProperty("_AlbedoPower")) material.SetFloat("_AlbedoPower", .45f);
             if (material.HasProperty("_HueShift")) material.SetFloat("_HueShift", 0f);
-            if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", pack ? .95f : .32f);
-            if (material.HasProperty("_AmbientColorIntensity")) material.SetFloat("_AmbientColorIntensity", .25f);
+            if (material.HasProperty("_ColorIntensity")) material.SetFloat("_ColorIntensity", 1.1f);
+            if (material.HasProperty("_AmbientColorIntensity")) material.SetFloat("_AmbientColorIntensity", .7f);
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", pack ? Mathf.Clamp(profile.specular, .1f, .4f) : Mathf.Clamp(profile.specular + .18f, .22f, .5f));
         }
         if (style == BloodEffectStyle.Volumetric)
         {
-            if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", BloodComparisonTuning.GroundColor(profile.mainColor).gamma);
+            if (material.HasProperty("_TintColor"))
+            {
+                // Match the VAT property block's raw shader color, then encode for Material.
+                Color tint = BloodComparisonTuning.VolumetricGroundColor(profile.mainColor);
+                tint.a = profile.mainColor.a;
+                material.SetColor("_TintColor", tint.gamma);
+            }
             if (material.HasProperty("_LightIntencity")) material.SetFloat("_LightIntencity", .75f);
             if (material.HasProperty("_Cutout")) material.SetFloat("_Cutout", 0f);
         }
-        if (material.HasProperty(MainColor)) material.SetColor(MainColor, BloodComparisonTuning.GroundColor(profile.mainColor));
-        if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, BloodComparisonTuning.GroundColor(profile.secondaryColor));
-        if (material.HasProperty(SpecularColor)) material.SetColor(SpecularColor, BloodComparisonTuning.GroundColor(profile.specularColor));
+        if (material.HasProperty(MainColor)) material.SetColor(MainColor, BloodComparisonTuning.LegacyGroundColor(profile.mainColor).gamma);
+        if (material.HasProperty(SecondaryColor)) material.SetColor(SecondaryColor, BloodComparisonTuning.LegacyGroundColor(profile.secondaryColor).gamma);
+        if (material.HasProperty(SpecularColor)) material.SetColor(SpecularColor, BloodComparisonTuning.LegacyGroundColor(profile.specularColor).gamma);
         if (material.HasProperty(SpecularValue)) material.SetFloat(SpecularValue, Mathf.Min(profile.specular, .4f));
         return material;
     }

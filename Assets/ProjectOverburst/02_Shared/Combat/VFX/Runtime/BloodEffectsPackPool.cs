@@ -167,7 +167,7 @@ public sealed class BloodEffectsPackPool
             var sun = RenderSettings.sun;
             block.SetFloat("_LightIntencity", sun && sun.isActiveAndEnabled ? Mathf.Clamp(sun.intensity, .01f, 1f) : 1f);
             block.SetVector("_SunPos", sun && sun.isActiveAndEnabled ? -sun.transform.forward : new Vector3(1f, .5f, 1f));
-            block.SetColor("_Color", BloodComparisonTuning.SprayColor(slot.profile.mainColor).gamma * 2f);
+            block.SetColor("_Color", BloodComparisonTuning.VolumetricSprayColor(slot.profile.mainColor));
             block.SetColor("_SpecColor", BloodComparisonTuning.SprayColor(slot.profile.specularColor).gamma * .22f);
             layer.renderer.SetPropertyBlock(block);
         }
