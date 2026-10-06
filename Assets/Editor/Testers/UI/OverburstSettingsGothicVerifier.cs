@@ -174,8 +174,13 @@ public static class OverburstSettingsGothicVerifier
         EditorApplication.update-=Tick;EditorApplication.update-=Begin;EditorApplication.update-=Interrupted;while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
         bool own=OwnPlay();if(own && OverburstGameMenu.Instance){OverburstGameMenu.Instance.settings.CancelRebind();OverburstGameMenu.Instance.Close();}RestoreInput();
         Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseFloat(K+"deadline");
-        output=SessionState.GetString(K+"return",output);Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});
-        if(EditorApplication.isPlaying && own)EditorApplication.ExitPlaymode();if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+        output=SessionState.GetString(K+"return",output);
+        try{Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});}
+        finally
+        {
+            if(EditorApplication.isPlaying && own)EditorApplication.ExitPlaymode();
+            if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+        }
     }
     static void Interrupted()
     {

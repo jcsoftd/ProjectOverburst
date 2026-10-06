@@ -65,6 +65,8 @@ public sealed class EnemyTargetHpSlotUI : MonoBehaviour
         }
 
         SetVisible(true);
+        elementalStatusIcons?.SetPresentationVisible(false);
+        elementalStatusIcons?.Bind(health);
         statusRow?.Bind(health);
 
         EnemyRankType rankType = rank != null ? rank.Rank : EnemyRankType.Normal;
@@ -96,6 +98,7 @@ public sealed class EnemyTargetHpSlotUI : MonoBehaviour
             root = gameObject;
 
         statusRow?.Unbind();
+        elementalStatusIcons?.Unbind();
         SetVisible(true);
         ApplyRank(rankType, displayName, level);
         float safeMax = Mathf.Max(0f, maxHp);
