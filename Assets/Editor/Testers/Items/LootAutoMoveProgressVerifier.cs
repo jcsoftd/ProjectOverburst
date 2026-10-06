@@ -83,12 +83,25 @@ public static class LootAutoMoveProgressVerifier
     }
     static void Finish(Exception error)
     {
-        (work as IDisposable)?.Dispose();work=null;
-        SessionState.SetString(Key+"status",error==null?"PASS_SCOPED":"FAIL");
-        File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,combatEffects="NOT_APPLICABLE",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
-        SessionState.SetBool(Key+"return",true);
-        string active=IsolatedSavePlayGuard.ActiveDirectory;
-        if(EditorApplication.isPlaying&&string.Equals(active,Path.Combine(Output,"IsolatedAccount"),StringComparison.OrdinalIgnoreCase))EditorApplication.ExitPlaymode();
+        var completedWork = work; work = null;
+        try
+        {
+            try { (completedWork as IDisposable)?.Dispose(); }
+            catch (Exception cleanupError) { error = error == null ? cleanupError : new AggregateException(error, cleanupError); }
+            SessionState.SetString(Key+"status",error==null?"PASS_SCOPED":"FAIL");
+            File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,combatEffects="NOT_APPLICABLE",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
+        }
+        catch (Exception reportError)
+        {
+            SessionState.SetString(Key+"status","FAIL");
+            Debug.LogError("[LootAutoMoveProgressVerifier] Verification result could not be recorded: " + reportError);
+        }
+        finally
+        {
+            SessionState.SetBool(Key+"return",true);
+            string active=IsolatedSavePlayGuard.ActiveDirectory;
+            if(EditorApplication.isPlaying&&string.Equals(active,Path.Combine(Output,"IsolatedAccount"),StringComparison.OrdinalIgnoreCase))EditorApplication.ExitPlaymode();
+        }
     }
     static void ReturnAccount()
     {

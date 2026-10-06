@@ -35,6 +35,13 @@ public static partial class MonsterPresentationCalibrationBuilder
         using (var hash = SHA256.Create()) using (var stream = File.OpenRead(path))
             return BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
     }
+
+    static string MeasuredReadbackHash(string path)
+    {
+        try { return MeasuredHash(path); }
+        catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+        { throw new MeasuredReadbackUnavailable("Saved measured bytes could not be confirmed: " + path, error); }
+    }
     // Compare native serialized data with stable asset references, even after an import.
     internal static string MeasuredState(Object asset)
     {
@@ -187,7 +194,7 @@ public static partial class MonsterPresentationCalibrationBuilder
         }
         catch (Exception error) { throw new MeasuredReadbackUnavailable("Saved measured asset needs read-only confirmation: " + asset.Path, error); }
         asset.Original = reloaded;
-        if (AssetDatabase.AssetPathToGUID(asset.Path) != asset.Guid || MeasuredHash(asset.Path + ".meta") != asset.MetaHash
+        if (AssetDatabase.AssetPathToGUID(asset.Path) != asset.Guid || MeasuredReadbackHash(asset.Path + ".meta") != asset.MetaHash
             || MeasuredState(reloaded) != asset.ExpectedState || EditorUtility.IsDirty(reloaded))
             throw new InvalidOperationException("Saved measured asset differs from validated candidate: " + asset.Path);
     }
@@ -247,8 +254,7 @@ public static partial class MonsterPresentationCalibrationBuilder
                 fault?.Invoke("before-save", asset.Original); AssetDatabase.SaveAssetIfDirty(asset.Original);
                 if (EditorUtility.IsDirty(asset.Original))
                     throw new IOException("Measured save did not persist the changed asset: " + asset.Path);
-                try { asset.SavedHash = MeasuredHash(asset.Path); }
-                catch (IOException error) { throw new MeasuredReadbackUnavailable("Saved measured bytes could not be confirmed: " + asset.Path, error); }
+                asset.SavedHash = MeasuredReadbackHash(asset.Path);
                 if (asset.SavedHash == asset.DiskHash) throw new IOException("Measured save did not persist changed bytes: " + asset.Path);
             }
             try { fault?.Invoke("before-verify", null); }
