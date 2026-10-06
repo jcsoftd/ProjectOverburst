@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections;
@@ -21,7 +21,7 @@ public static partial class SevenThemeFollowupFlowVerifier
 {
     const string Key="Overburst.SevenThemeFollowupFlow.plan";
     const string ModeKey="Overburst.SevenThemeFollowupFlow.run";
-    static string Folder=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Monsters/20261006_SevenThemeImprovement/GOAL_01",SessionState.GetString(ModeKey,"BaselineNative")));
+    static string Folder=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/Monsters/20261006_SevenThemeImprovement/"+(Mode.StartsWith("Chase",StringComparison.Ordinal)?"GOAL_02":Mode.StartsWith("Visual",StringComparison.Ordinal)?"GOAL_03":Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)?"GOAL_04":"GOAL_01"),SessionState.GetString(ModeKey,"BaselineNative")));
     static string Account=>Path.Combine(Folder,"Account");
     static EnemyMotor host;
     static double lastTraceWrite;
@@ -92,7 +92,7 @@ public static partial class SevenThemeFollowupFlowVerifier
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))
             ||!string.IsNullOrEmpty(SessionState.GetString("Overburst.WeakAttackPlayerLoop.plan",""))||!string.IsNullOrEmpty(SessionState.GetString(Key,"")))
             throw new InvalidOperationException("Idle, unreserved shared Editor required.");
-        if(run!="BaselineNative"&&run!="AfterNative"&&run!="NearBefore"&&run!="NearAfter")throw new InvalidOperationException("Owned baseline or result only.");
+        if(run!="BaselineNative"&&run!="AfterNative"&&run!="NearBefore"&&run!="NearAfter"&&run!="ChaseCompare"&&run!="ChaseSupplement"&&run!="VisualInterpolation"&&run!="VisualDeath"&&run!="VisualDeath2"&&run!="ParryGeometry"&&run!="VisualDeath3"&&run!="VisualInterpolationRender"&&run!="VisualInterpolationRender2"&&run!="ParryGeometry2"&&run!="ParryGeometryAfter")throw new InvalidOperationException("Owned baseline or result only.");
         SessionState.SetString(ModeKey,run);
         Directory.CreateDirectory(Folder);
         if(File.Exists(Path.Combine(Folder,"plan.json")))throw new InvalidOperationException("Fresh audit output required.");
@@ -114,7 +114,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         if(!EditorApplication.isPlaying||!Same(IsolatedSavePlayGuard.ActiveDirectory)||running)throw new InvalidOperationException("Own Play only; a single fixture runner.");
         var p=JObject.Parse(SessionState.GetString(Key,""));p["status"]="running";p["deadline"]=EditorApplication.timeSinceStartup+900;SessionState.SetString(Key,p.ToString());
         running=true;results.Clear();owned.Clear();currentId=null;var go=new GameObject("Private audit coroutine host");owned.Add(go);host=go.AddComponent<EnemyMotor>();go.GetComponent<Rigidbody>().isKinematic=true;
-        EditorApplication.update+=Observe;
+        if(!Mode.StartsWith("VisualInterpolationRender",StringComparison.Ordinal))EditorApplication.update+=Observe;
         host.StartCoroutine(Drive(Work()));
         return new {status="running",scope="Saved production AI/Animator/physics on flat diagnostic floor with saved player-sized capsule target; 12 selected actors, no live input/player reaction; deterministic capture time, not FPS benchmark"};
     }
@@ -159,6 +159,11 @@ public static partial class SevenThemeFollowupFlowVerifier
         var visual=GameObject.CreatePrimitive(PrimitiveType.Capsule);visual.transform.SetParent(target,false);Object.Destroy(visual.GetComponent<Collider>());visual.transform.localPosition=capsule.center;visual.transform.localScale=new Vector3(capsule.radius*2,capsule.height/2,capsule.radius*2);
         var mat=new Material(Shader.Find("Universal Render Pipeline/Lit"));owned.Add(mat);mat.color=new Color(.96f,.69f,.28f);visual.GetComponent<Renderer>().sharedMaterial=mat;
         yield return null;yield return new WaitForFixedUpdate();
+        if(Mode=="ChaseCompare"){yield return ChaseComparison(catalog,health);yield break;}
+        if(Mode=="ChaseSupplement"){yield return ChaseComparison(catalog,health,new[]{"VenomBrood_Arathrox","CavernMutants_Limadon"},new[]{0f,.65f});yield return ChaseSafety(catalog,health);yield break;}
+        if(Mode=="VisualInterpolation"||Mode.StartsWith("VisualInterpolationRender",StringComparison.Ordinal)){yield return InterpolationComparison(catalog,health);yield break;}
+        if(Mode.StartsWith("VisualDeath",StringComparison.Ordinal)){yield return DeathComparison(catalog,health);yield break;}
+        if(Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)){yield return ParryGeometry(catalog,health,capsule,combat);yield break;}
         if(Mode.StartsWith("Near",StringComparison.Ordinal)){yield return NearProbe(catalog,health,capsule);yield break;}
         string[] ids=new[]{"V3_Anglerox","V3_Hideoplast","V3_Deinodonte","V3_Perderos","SpiderBrood_Formickarce","DeathHarvest_RakeBrute","DeathHarvest_Reaper","V3_Skorpmare","V3_darkKnight2","V3_Gasterodonte","V3_Kapeloproboskid","V3_Onyscidus"};
         var defs=ids.Select(id=>{if(!catalog.TryGet(id,out var definition))throw new InvalidOperationException("Saved catalog ID missing: "+id);return definition;}).ToArray();
@@ -206,19 +211,20 @@ public static partial class SevenThemeFollowupFlowVerifier
     {
         if(!running||!EditorApplication.isPlaying||!Same(IsolatedSavePlayGuard.ActiveDirectory))return;
         if(actor==null||!actor.IsLeased||Time.frameCount==lastFrame)return;lastFrame=Time.frameCount;
+        previewBeforeCapture?.Invoke();
         Vector3 delta=target.position-actor.transform.position;delta.y=0;var a=actor.AbilityController.LastCommittedAbility;float p=-1;if(a!=null)actor.AnimationBridge.TryGetAttackNormalizedTime(a.AnimatorTrigger,out p);
         var info=actor.Animator.GetCurrentAnimatorStateInfo(0);
-        trace.Add(new JObject{["time"]=Time.time-begin,["frame"]=Time.frameCount,["phase"]=phase,["root"]=V(actor.transform.position),["target"]=V(target.position),["yaw"]=actor.transform.eulerAngles.y,
+        trace.Add(new JObject{["time"]=Time.time-begin,["frame"]=Time.frameCount,["phase"]=phase,["root"]=V(actor.transform.position),["physicsRoot"]=V(actor.GetComponent<Rigidbody>().position),["visualRoot"]=V(actor.VisualRoot.position),["modelRoot"]=V(actor.Animator.transform.position),["tacticalObservedTarget"]=V(GetTacticalObservedTarget(actor.AI)),["tacticalDestination"]=V(actor.AI.TacticalDestination),["tacticalReason"]=actor.AI.TacticalReason,["target"]=V(target.position),["yaw"]=actor.transform.eulerAngles.y,
             ["facingError"]=Vector3.Angle(actor.transform.forward,delta),["distance"]=delta.magnitude,["ai"]=actor.AI.CurrentStateName,["ability"]=a!=null?a.AbilityId:null,
             ["executing"]=actor.AbilityController.IsExecuting,["attackPhase"]=p,["animationPhase"]=info.normalizedTime,["blend"]=actor.Animator.IsInTransition(0),["locomotion"]=actor.Animator.GetFloat("Locomotion"),
             ["moveSpeed"]=actor.Animator.parameters.Any(q=>q.name=="MoveAnimSpeed")?actor.Animator.GetFloat("MoveAnimSpeed"):-1,["destination"]=actor.Movement.HasDestination,["debugState"]=actor.AI.CurrentDebugStateName,["targetMatchesFixture"]=actor.AI.Target==target,
-            ["actionLocked"]=actor.Movement.IsActionLocked,["blocked"]=actor.AnimationBridge.IsBlockingActionActive,["hp"]=actor.Health.CurrentHp,["dead"]=actor.Health.IsDead,["interpolation"]=actor.GetComponent<Rigidbody>().interpolation.ToString()});
+            ["actionLocked"]=actor.Movement.IsActionLocked,["blocked"]=actor.AnimationBridge.IsBlockingActionActive,["hp"]=actor.Health.CurrentHp,["dead"]=actor.Health.IsDead,["interpolation"]=actor.GetComponent<Rigidbody>().interpolation.ToString(), ["planningEvaluations"]=actor.AI.PlanningEvaluationCount,["planningReuse"]=actor.AI.PlanningReuseCount,["observationDue"]=ObservationDeadline.GetValue(actor.AI).ToString(),["observedHeading"]=V((Vector3)ObservationHeading.GetValue(actor.AI)),["parryTimeline"]=parryTrace?.DeepClone()});
         camera?.Frame();
     }
     static void Write(string status)=>File.WriteAllText(Path.Combine(Folder,"results.json"),new JObject{["status"]=status,["cases"]=results,["assetWrites"]=0,["actualProductionAIPhysicsAnimator"]=true,["actualPlayerInput"]=false,["scope"]="Flat floor diagnostic target movement, not final game camera, obstacles or performance; original attacks/settings unchanged"}.ToString());
     static void Finish(string reason)
     {
-        if(!running)return;running=false;EditorApplication.update-=Observe;
+        if(!running)return;previewBeforeCapture=null;parryTrace=null;running=false;EditorApplication.update-=Observe;
         try{camera?.Dispose();camera=null;if(trace!=null && currentId!=null)SaveCurrentTrace();Write(reason);}
         finally{foreach(var value in owned)if(value!=null)Object.DestroyImmediate(value);owned.Clear();host=null;actor=null;}
         var p=JObject.Parse(SessionState.GetString(Key,""));p["status"]="returning";p["result"]=reason;SessionState.SetString(Key,p.ToString());
@@ -241,22 +247,25 @@ public static partial class SevenThemeFollowupFlowVerifier
     }
     sealed class Capture:IDisposable
     {
-        Camera cam;RenderTexture rt;Texture2D pixels;MediaEncoder encoder;string directory;Transform player;EnemyActor enemy;int frame,frames;string mark;
-        public Capture(string dir,Transform p,EnemyActor e)
+        Camera cam;RenderTexture rt;Texture2D pixels;MediaEncoder encoder;string directory;Transform player;EnemyActor enemy;int frame,frames;string mark;bool fixedView;int captureFps,frameStride;
+        bool AutomaticRender=>Mode.StartsWith("VisualInterpolationRender",StringComparison.Ordinal);
+        void Rendered(ScriptableRenderContext context,Camera renderedCamera){if(renderedCamera==cam&&camera==this)Observe();}
+        public Capture(string dir,Transform p,EnemyActor e,bool fixedView=false,int recordFps=15)
         {
-            directory=dir;Directory.CreateDirectory(dir);player=p;enemy=e;var obj=new GameObject("Owned AI diagnostic capture camera");cam=obj.AddComponent<Camera>();if(Camera.main!=null)cam.CopyFrom(Camera.main);cam.enabled=false;cam.orthographic=true;cam.nearClipPlane=.1f;cam.farClipPlane=200;cam.GetUniversalAdditionalCameraData().renderPostProcessing=false;
+            directory=dir;this.fixedView=fixedView;captureFps=recordFps;frameStride=Mathf.Max(1,Mathf.RoundToInt(1f/Mathf.Max(.001f,Time.captureDeltaTime)/captureFps));Directory.CreateDirectory(dir);player=p;enemy=e;var obj=new GameObject("Owned AI diagnostic capture camera");cam=obj.AddComponent<Camera>();if(Camera.main!=null)cam.CopyFrom(Camera.main);cam.enabled=false;cam.orthographic=true;cam.nearClipPlane=.1f;cam.farClipPlane=200;cam.GetUniversalAdditionalCameraData().renderPostProcessing=false;
             rt=new RenderTexture(960,540,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);rt.Create();pixels=new Texture2D(960,540,TextureFormat.RGBA32,false);
-            encoder=new MediaEncoder(Path.Combine(dir,"ai-scenarios.mp4"),new VideoTrackEncoderAttributes{frameRate=new MediaRational(15),width=960,height=540,includeAlpha=false,targetBitRate=4500000,bitRateMode=UnityEditor.VideoBitrateMode.High});frame=Time.frameCount;mark="approach";
+            encoder=new MediaEncoder(Path.Combine(dir,"ai-scenarios.mp4"),new VideoTrackEncoderAttributes{frameRate=new MediaRational(captureFps),width=960,height=540,includeAlpha=false,targetBitRate=4500000,bitRateMode=UnityEditor.VideoBitrateMode.High});frame=Time.frameCount;mark="approach";
+            if(AutomaticRender){var q=Quaternion.Euler(38,45,0);cam.transform.SetPositionAndRotation(new Vector3(0,1,3)+q*Vector3.back*50,q);cam.orthographicSize=3.5f;cam.targetTexture=rt;cam.enabled=true;RenderPipelineManager.endCameraRendering+=Rendered;}
         }
         public void Mark(string p){mark=p;}
         public void Frame()
         {
-            if((Time.frameCount-frame)%2!=0||cam==null||enemy==null)return;
+            if((Time.frameCount-frame)%frameStride!=0||cam==null||enemy==null)return;
             Vector3 center=(player.position+enemy.transform.position)*.5f+Vector3.up;float distance=Vector3.Distance(player.position,enemy.transform.position);
             if(phase=="approach"){center=enemy.transform.position+Vector3.up;distance=4.5f;}
-            Quaternion rotation=Quaternion.Euler(38,45,0);cam.orthographicSize=Mathf.Max(4.2f,distance*.45f+2);cam.transform.SetPositionAndRotation(center+rotation*Vector3.back*50,rotation);
-            var prior=RenderTexture.active;try{RenderPipeline.SubmitRenderRequest(cam,new UniversalRenderPipeline.SingleCameraRequest{destination=rt});RenderTexture.active=rt;pixels.ReadPixels(new Rect(0,0,960,540),0,0,false);pixels.Apply(false,false);encoder.AddFrame(pixels);frames++;if(mark!=null){File.WriteAllBytes(Path.Combine(directory,mark+".png"),pixels.EncodeToPNG());mark=null;}}finally{RenderTexture.active=prior;}
+            Quaternion rotation=Quaternion.Euler(38,45,0);cam.orthographicSize=Mathf.Max(4.2f,distance*.45f+2);if(fixedView){center=new Vector3(0,1,4);cam.orthographicSize=9f;if(Mode.StartsWith("Visual",StringComparison.Ordinal)){center=Mode.StartsWith("VisualDeath",StringComparison.Ordinal)?enemy.transform.position+Vector3.up*.8f:new Vector3(0,1,3);cam.orthographicSize=3.5f;}if(Mode.StartsWith("ParryGeometry",StringComparison.Ordinal)){center=enemy.transform.position+Vector3.up;cam.orthographicSize=5.5f;}}cam.transform.SetPositionAndRotation(center+rotation*Vector3.back*50,rotation);
+            var prior=RenderTexture.active;try{if(!AutomaticRender)RenderPipeline.SubmitRenderRequest(cam,new UniversalRenderPipeline.SingleCameraRequest{destination=rt});RenderTexture.active=rt;pixels.ReadPixels(new Rect(0,0,960,540),0,0,false);pixels.Apply(false,false);encoder.AddFrame(pixels);frames++;if(mark!=null){File.WriteAllBytes(Path.Combine(directory,mark+".png"),pixels.EncodeToPNG());mark=null;}}finally{RenderTexture.active=prior;}
         }
-        public void Dispose(){encoder?.Dispose();encoder=null;if(rt!=null){rt.Release();Object.DestroyImmediate(rt);rt=null;}if(pixels!=null){Object.DestroyImmediate(pixels);pixels=null;}if(cam!=null){Object.DestroyImmediate(cam.gameObject);cam=null;}File.WriteAllText(Path.Combine(directory,"video.json"),new JObject{["frames"]=frames,["fps"]=15,["duration"]=frames/15f,["actualPlayer"]=false,["scope"]="Production AI with a diagnostic player-sized capsule; no audio"}.ToString());}
+        public void Dispose(){RenderPipelineManager.endCameraRendering-=Rendered;encoder?.Dispose();encoder=null;if(cam!=null){cam.enabled=false;cam.targetTexture=null;}if(rt!=null){rt.Release();Object.DestroyImmediate(rt);rt=null;}if(pixels!=null){Object.DestroyImmediate(pixels);pixels=null;}if(cam!=null){Object.DestroyImmediate(cam.gameObject);cam=null;}File.WriteAllText(Path.Combine(directory,"video.json"),new JObject{["frames"]=frames,["fps"]=captureFps,["duration"]=frames/(float)captureFps,["actualPlayer"]=false,["scope"]="Production AI with a diagnostic player-sized capsule; no audio"}.ToString());}
     }
 }

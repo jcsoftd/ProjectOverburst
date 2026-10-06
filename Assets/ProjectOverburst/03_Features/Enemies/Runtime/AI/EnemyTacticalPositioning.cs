@@ -34,6 +34,7 @@ public sealed class EnemyTacticalPositioning
         if (!retreatUsed && owner.Target != null) targetAtRetreat = owner.Target.position;
         retreatUsed = true;
     }
+    public Vector3 ObservedAimPosition => observedTarget;
     public EnemyTacticalDecision Evaluate(out Vector3 point)
     {
         point = owner.transform.position;
@@ -68,7 +69,7 @@ public sealed class EnemyTacticalPositioning
             // Finish before consulting the cached plan, including interrupted or blocked retreats.
             decision = EnemyTacticalDecision.Hold; nextEvaluation = 0;
         }
-        if (now < nextEvaluation && Horizontal(observedTarget, aim) < .8f)
+        if (now < nextEvaluation && (owner.ChaseObservationInterval > 0f || Horizontal(observedTarget, aim) < .8f))
         { point = destination; return decision; }
         observedTarget = aim;
         bool clear = abilities.HasRangedPositioningLine(ability, target, current);
@@ -128,7 +129,7 @@ public sealed class EnemyTacticalPositioning
     private EnemyTacticalDecision Store(EnemyTacticalDecision value, Vector3 position, string reason, float now, out Vector3 point)
     {
         decision = value; destination = point = position; Reason = reason;
-        nextEvaluation = now + owner.TacticalProfile.EvaluationInterval;
+        nextEvaluation = now + Mathf.Max(owner.TacticalProfile.EvaluationInterval, owner.ChaseObservationInterval);
         context?.SetDestination(owner, position, value != EnemyTacticalDecision.Legacy);
         return value;
     }

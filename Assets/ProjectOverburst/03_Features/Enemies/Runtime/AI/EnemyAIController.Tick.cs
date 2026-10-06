@@ -74,6 +74,8 @@ public sealed partial class EnemyAIController
 
     private void ResetAiTickSchedule()
     {
+        ResetChaseObservation();
+        delayedChaseEnabled = GetComponent<EnemyBossCombatDirector>() == null;
         ResetPlanningSchedule();
         planningEvaluationCount = planningReuseCount = 0;
         nextAiTickTime = 0f;

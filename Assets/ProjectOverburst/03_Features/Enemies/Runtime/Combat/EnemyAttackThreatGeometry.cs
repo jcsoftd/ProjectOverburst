@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // The parry preview reads the same strike radius and origin used by live damage.
-public static class EnemyAttackThreatGeometry
+public static partial class EnemyAttackThreatGeometry
 {
     // 2026-09-30 패링 타격감: 강공만 더 넓고 넓은 각도로 친다. 일반 예고 공격은 기존 추가량 유지.
     private const float EliteExtra = 1.10f, StandardExtra = .75f;

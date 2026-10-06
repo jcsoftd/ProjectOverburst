@@ -57,6 +57,8 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
     [SerializeField] private string playerTag = "Player";
 
     [Header("Approach")]
+    [SerializeField, Min(0f)] private float chaseObservationInterval = 0.65f; // target observation, independent of CPU LOD
+    internal float ChaseObservationInterval => delayedChaseEnabled ? Mathf.Max(0f, chaseObservationInterval) : 0f;
     [SerializeField] private bool useDensityApproachSteering; // 핵심 멀록 근거리 밀도 접근
 
     [Header("Debug")]
@@ -82,6 +84,10 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
     private bool forceAiTick;
     private float nextChasePlanningTime, nextSeparationPlanningTime, nextTargetPlanningTime;
     private bool hasCachedChasePlan;
+    private bool hasChaseObservation, continuesObservedHeading, delayedChaseEnabled;
+    private Transform observedChaseTarget;
+    private float nextChaseObservationTime;
+    private Vector3 observedChaseHeading;
     private float lastChasePlanningTime = -1f, chasePlanningDeltaTime;
     private Vector3 cachedChasePlan, cachedPlanTargetPosition;
     private int planningEvaluationCount, planningReuseCount;

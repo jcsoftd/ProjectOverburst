@@ -29,7 +29,7 @@ public sealed partial class EnemyAIController
         if (CurrentStateName != "Chase") { ChangeToChase(); return true; }
         if (decision == EnemyTacticalDecision.Retreat)
         {
-            movement.SetFacingDestination(destination, .15f, target.position, EnemyLocomotionMode.Backpedal, 1f);
+            movement.SetFacingDestination(destination, .15f, tacticalPositioning.ObservedAimPosition, EnemyLocomotionMode.Backpedal, 1f);
             tacticalPositioning.CommitRetreat();
         }
         else movement.SetDestination(decision == EnemyTacticalDecision.Navigate ? ResolveChasePlan() : destination,
@@ -102,6 +102,13 @@ public sealed partial class EnemyAIController
 
     internal Vector3 ResolveChasePlan()
     {
+        // Arrival, target displacement and a general planning reset cannot bypass observation.
+        bool observe = delayedChaseEnabled && ChaseObservationInterval > 0f && target != null;
+        if (observe && hasChaseObservation && observedChaseTarget == target && Time.time < nextChaseObservationTime)
+        {
+            planningReuseCount++;
+            return ContinueObservedChaseHeading();
+        }
         bool urgent = !hasCachedChasePlan || target == null
             || HorizontalSqrDistance(cachedPlanTargetPosition, target.position) > 0.25f
             || HorizontalSqrDistance(transform.position, cachedChasePlan) < 0.04f;
@@ -118,7 +125,35 @@ public sealed partial class EnemyAIController
         cachedPlanTargetPosition = target != null ? target.position : transform.position;
         hasCachedChasePlan = true;
         planningEvaluationCount++;
+        if (observe)
+        {
+            hasChaseObservation = true;
+            observedChaseTarget = target;
+            nextChaseObservationTime = Time.time + ChaseObservationInterval;
+            Vector3 step = cachedChasePlan - transform.position; step.y = 0f;
+            observedChaseHeading = step.sqrMagnitude > .0001f ? step.normalized : Vector3.zero;
+            // A short path waypoint must not make the actor stop every 0.35 seconds.
+            // Continue that sampled heading only when the sampled target is still safely far away.
+            continuesObservedHeading = movement != null && step.magnitude <= EnemyApproachSteering.MaximumShortHorizonDistance + .1f
+                && TargetDistance > AttackEnterRange + movement.ActiveMoveSpeed * (ChaseObservationInterval + .2f);
+        }
         return cachedChasePlan;
+    }
+
+    private Vector3 ContinueObservedChaseHeading()
+    {
+        if (!continuesObservedHeading || movement == null) return cachedChasePlan;
+        Vector3 remaining = cachedChasePlan - transform.position; remaining.y = 0f;
+        if (Vector3.Dot(remaining, observedChaseHeading) > .2f) return cachedChasePlan;
+        Vector3 step = EnemyApproachSteering.ResolveShortHorizonDestination(transform.position, observedChaseHeading, movement.ActiveMoveSpeed);
+        // Movement still checks every physics step against the live walkable area and crowds.
+        return movement.IsWalkablePosition(step) ? step : transform.position;
+    }
+
+    private void ResetChaseObservation()
+    {
+        hasChaseObservation = continuesObservedHeading = false;
+        observedChaseTarget = null; nextChaseObservationTime = 0f; observedChaseHeading = Vector3.zero;
     }
 
     private Vector3 CalculateChasePlan()
@@ -238,6 +273,7 @@ public sealed partial class EnemyAIController
 
     internal void EndChaseApproach()
     {
+        ResetChaseObservation();
         hasCachedChasePlan = false;
         ClearSquadPursuitMove();
         densityApproachActive = false;

@@ -206,6 +206,8 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     }
     private void ResolveChargeHit(EnemyAbilityDefinition ability,Vector3 direction)
     {
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+        { ResolveStandardStrongChargeHit(ability, direction); return; }
         float reach = EnemyAttackThreatGeometry.ResolveRadius(actor, ability);
         int count = Physics.SphereCastNonAlloc(Origin,EnemyAttackThreatGeometry.ChargeHalfWidth,direction,hits,Mathf.Max(.8f,reach),Mask,QueryTriggerInteraction.Ignore);
         int nearest = Nearest(count);
@@ -215,6 +217,8 @@ public sealed partial class EnemyThemeSpecialExecutor : EnemyAbilityExecutor
     {
         if (ability == null || target == null || chargeDirection.sqrMagnitude < .0001f)
             return false;
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+            return ResolveStandardStrongChargeTarget(ability, chargeDirection) == target;
         int count = Physics.SphereCastNonAlloc(Origin, EnemyAttackThreatGeometry.ChargeHalfWidth, chargeDirection, hits,
             Mathf.Max(.8f, EnemyAttackThreatGeometry.ResolveRadius(actor, ability)),
             Mask, QueryTriggerInteraction.Ignore);

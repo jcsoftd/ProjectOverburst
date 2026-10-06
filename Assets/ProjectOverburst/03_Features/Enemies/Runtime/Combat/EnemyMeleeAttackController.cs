@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(CombatHealth))]
-public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실행
+public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실행
 {
     [SerializeField] private EnemyMovement movement; // 공격 중 이동 잠금
     [SerializeField] private EnemyMovementReaction movementReaction; // 피격 중 공격 취소
@@ -88,6 +88,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
             || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
         if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry)
             return WouldContactGeometryHit(ability,target);
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+            return WouldStrongAreaHitTarget(ability, target);
         Vector3 center = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
         int count = Physics.OverlapSphereNonAlloc(center,
             EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
@@ -834,6 +836,8 @@ public class EnemyMeleeAttackController : MonoBehaviour // 적 근접 공격 실
         float resolvedAngle,
         EnemyAbilityDefinition ability)
     {
+        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
+        { ResolveStandardStrongAreaHit(resolvedDamage, ability); return; }
         damagedTargets.Clear();
         bool weakExecution = activeWeakExecution != null;
         int executionSequence = attackSequenceId, executionPhase = attackPhaseIndex;
