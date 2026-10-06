@@ -1937,6 +1937,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2459414307c28704684567a20158ad1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanTemporaryReaction
+  parryDazedEnterClip: {fileID: 7400000, guid: 51c1f1717d3c40e4da5837e04b27c2c7, type: 2}
+  parryDazedRecoverClip: {fileID: 7400000, guid: 8f47c70ac1e159946a6bf6cc74bcfb74, type: 2}
   parryDazedClip: {fileID: 7400000, guid: f7ab975501aa4224a886b66e7bb124fe, type: 2}
   dazedBlendSeconds: 0.22
   dazedRecoverySeconds: 0.38

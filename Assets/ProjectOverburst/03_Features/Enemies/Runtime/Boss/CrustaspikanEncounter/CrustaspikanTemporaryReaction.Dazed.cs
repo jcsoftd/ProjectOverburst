@@ -3,12 +3,24 @@ using UnityEngine;
 public sealed partial class CrustaspikanTemporaryReaction
 {
     public const string ParryDazedStateName = "Material_ParryDazed";
+    public const string ParryDazedEnterStateName = "Material_ParryDazedEnter";
+    public const string ParryDazedRecoverStateName = "Material_ParryDazedRecover";
+    [SerializeField] private AnimationClip parryDazedEnterClip;
+    [SerializeField] private AnimationClip parryDazedRecoverClip;
     [SerializeField] private AnimationClip parryDazedClip;
     [SerializeField, Min(.05f)] private float dazedBlendSeconds = .22f;
     [SerializeField, Min(.05f)] private float dazedRecoverySeconds = .38f;
     [SerializeField, Min(1f)] private float minimumDazedCycles = 1f;
     private float dazedSeconds;
     public AnimationClip ParryDazedClip => parryDazedClip;
+    public AnimationClip ParryDazedEnterClip => parryDazedEnterClip;
+    public AnimationClip ParryDazedRecoverClip => parryDazedRecoverClip;
+    private int DazedEnterState => Animator.StringToHash("Base Layer." + ParryDazedEnterStateName);
+    private int DazedRecoverState => Animator.StringToHash("Base Layer." + ParryDazedRecoverStateName);
+    private bool HasDazedTransitions => parryDazedEnterClip != null && parryDazedRecoverClip != null
+        && animator != null && animator.HasState(0, DazedEnterState) && animator.HasState(0, DazedRecoverState);
+    private float DazedEnterDuration => HasDazedTransitions ? parryDazedEnterClip.length : dazedBlendSeconds;
+    private float DazedRecoverDuration => HasDazedTransitions ? parryDazedRecoverClip.length : dazedRecoverySeconds;
     public int DazedCount { get; private set; }
     public float LastDazedCycles { get; private set; }
     private int DazedState => Animator.StringToHash("Base Layer." + ParryDazedStateName);
@@ -21,7 +33,7 @@ public sealed partial class CrustaspikanTemporaryReaction
         dazedSeconds = Mathf.Max(stunSeconds, parryDazedClip.length * minimumDazedCycles);
         if (!TakeOwnership()) return false;
         groggy = false; BeginDazed(); applyingLock = true;
-        try { reaction?.ApplyBossStun(dazedSeconds + dazedBlendSeconds + dazedRecoverySeconds); }
+        try { reaction?.ApplyBossStun(dazedSeconds + DazedEnterDuration + DazedRecoverDuration); }
         finally { applyingLock = false; }
         return true;
     }
@@ -56,16 +68,17 @@ public sealed partial class CrustaspikanTemporaryReaction
         dazedSeconds = Mathf.Max(dazedSeconds, parryDazedClip.length * minimumDazedCycles);
         CaptureBlendPose(); Phase = ReactionPhase.DazedEnter; elapsed = 0f; stageStartFrame = Time.frameCount;
         DazedCount++; LastDazedCycles = 0f;
-        Sample(DazedState, 0f); BlendCapturedPose(0f);
+        Sample(HasDazedTransitions ? DazedEnterState : DazedState, 0f); BlendCapturedPose(0f);
     }
 
     private void TickDazed()
     {
         if (Phase == ReactionPhase.DazedEnter)
         {
-            Sample(DazedState, 0f);
+            Sample(HasDazedTransitions ? DazedEnterState : DazedState,
+                HasDazedTransitions ? Mathf.Clamp01(elapsed / DazedEnterDuration) : 0f);
             BlendCapturedPose(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / dazedBlendSeconds)));
-            if (elapsed >= dazedBlendSeconds) { Phase = ReactionPhase.Dazed; elapsed = 0f; stageStartFrame = Time.frameCount; }
+            if (elapsed >= DazedEnterDuration) { Phase = ReactionPhase.Dazed; elapsed = 0f; stageStartFrame = Time.frameCount; }
         }
         else if (Phase == ReactionPhase.Dazed)
         {
@@ -76,9 +89,17 @@ public sealed partial class CrustaspikanTemporaryReaction
         }
         else
         {
-            Sample(Animator.StringToHash("Base Layer." + idle.state), Mathf.Repeat(elapsed / idle.runtime.length, 1f));
-            BlendCapturedPose(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / dazedRecoverySeconds)));
-            if (elapsed >= dazedRecoverySeconds) FinishStandingReaction();
+            if (HasDazedTransitions)
+            {
+                Sample(DazedRecoverState, Mathf.Clamp01(elapsed / DazedRecoverDuration));
+                BlendCapturedPose(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / dazedBlendSeconds)));
+            }
+            else
+            {
+                Sample(Animator.StringToHash("Base Layer." + idle.state), Mathf.Repeat(elapsed / idle.runtime.length, 1f));
+                BlendCapturedPose(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / dazedRecoverySeconds)));
+            }
+            if (elapsed >= DazedRecoverDuration) FinishStandingReaction();
         }
     }
 
