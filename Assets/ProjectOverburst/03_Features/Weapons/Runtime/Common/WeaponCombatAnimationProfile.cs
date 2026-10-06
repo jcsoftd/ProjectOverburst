@@ -118,6 +118,9 @@ public class WeaponCombatAnimationProfile : ScriptableObject
 
     [Header("패링 후 강공 연결")]
     public AnimationClip heavyParryClip;
+    [InspectorName("불완전 패링 전체 모션")]
+    [Tooltip("반격 연결 없이 끝까지 재생합니다. 비어 있으면 기존 패링 클립을 사용합니다.")]
+    public AnimationClip incompleteHeavyParryClip;
     public string heavyParryStateName = "Melee_HeavyParry";
     public string heavyParrySpeedParameterName = "Melee_ParrySpeed";
     [InspectorName("패링 재생 속도")]

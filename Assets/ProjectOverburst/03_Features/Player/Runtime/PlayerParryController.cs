@@ -91,7 +91,12 @@ public sealed class PlayerParryController : MonoBehaviour
         }
         if (GameplayInputBlocker.IsGameplayInputBlocked || Time.timeScale <= 0f)
             windowEndsAt += Time.unscaledDeltaTime;
-        else if (Time.unscaledTime > windowEndsAt) CloseWindow();
+        else if (Time.unscaledTime > windowEndsAt)
+        {
+            // Stop accepting attacks without dropping an already confirmed contact.
+            CompleteParryContact(actionId);
+            CloseWindow();
+        }
         else TryParryThreats();
     }
     private bool CanParryNow => IsWindowOpen && isActiveAndEnabled && playerTarget != null && playerTarget.IsAlive

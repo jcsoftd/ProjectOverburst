@@ -16,6 +16,7 @@ public static class GreatswordHeavyParryBuilder
     public const string CounterClipPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_ParriedHeavy.anim";
     public const string CounterDefinitionPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Heavy/GreatswordParriedHeavyAttack.asset";
     public const string WeaponDefinitionPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Definition/GreatswordDefinition.asset";
+    public const string IncompleteClipPath = "Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/Common/Animation/Clips/Greatsword_IncompleteHeavyParry.anim";
     public const float SourceStartSeconds = 0f, SourceEndSeconds = .266f;
     public const int ContactFrame = 4;
 
@@ -78,8 +79,39 @@ public static class GreatswordHeavyParryBuilder
             AssetDatabase.SaveAssetIfDirty(clip);
             AssetDatabase.SaveAssetIfDirty(profile);
             AssetDatabase.SaveAssetIfDirty(controller);
+            BuildIncompleteParry();
             BuildCounter();
             Debug.Log("[대검 패링] 원본 0~0.266초, 0.5배속 완주 후 Combo_01_4_inplace 0.138초 자세로 0.1초 보간. 약공3타 회전 두 판정 후 착지1회.");
+        }
+        finally { if (copy != null) UnityEngine.Object.DestroyImmediate(copy); }
+    }
+
+    [MenuItem("OVERBURST/Weapons/Build Greatsword Incomplete Parry")]
+    public static void BuildIncompleteParry()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
+            || BuildPipeline.isBuildingPlayer)
+            throw new InvalidOperationException("유휴 편집 모드에서 불완전 패링 모션을 제작하세요.");
+        var source = AssetDatabase.LoadAssetAtPath<AnimationClip>(SourcePath);
+        var profile = AssetDatabase.LoadAssetAtPath<WeaponCombatAnimationProfile>(ProfilePath);
+        if (source == null || !source.isHumanMotion || profile == null || EditorUtility.IsDirty(profile))
+            throw new InvalidOperationException("패링 원본과 저장된 대검 프로필이 필요합니다.");
+        var copy = UnityEngine.Object.Instantiate(source);
+        try
+        {
+            copy.name = "Greatsword_IncompleteHeavyParry";
+            AnimationUtility.SetAnimationEvents(copy, Array.Empty<AnimationEvent>());
+            var settings = AnimationUtility.GetAnimationClipSettings(copy);
+            settings.startTime = 0f; settings.stopTime = source.length;
+            settings.loopTime = false; settings.loopBlend = false;
+            settings.keepOriginalPositionXZ = true; settings.keepOriginalOrientation = true;
+            AnimationUtility.SetAnimationClipSettings(copy, settings);
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(IncompleteClipPath);
+            if (clip == null) { clip = copy; AssetDatabase.CreateAsset(clip, IncompleteClipPath); copy = null; }
+            else EditorUtility.CopySerialized(copy, clip);
+            profile.incompleteHeavyParryClip = clip;
+            EditorUtility.SetDirty(clip); EditorUtility.SetDirty(profile);
+            AssetDatabase.SaveAssetIfDirty(clip); AssetDatabase.SaveAssetIfDirty(profile);
         }
         finally { if (copy != null) UnityEngine.Object.DestroyImmediate(copy); }
     }
