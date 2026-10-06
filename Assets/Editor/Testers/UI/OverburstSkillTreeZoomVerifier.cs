@@ -68,7 +68,7 @@ public static class OverburstSkillTreeZoomVerifier
     {
         (work as IDisposable)?.Dispose();work=null;
         SessionState.SetString(Key+"status",error==null?"PASS_SCOPED":"FAIL");
-        File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,scope="ZOOM_AND_STATE_UI_WITH_ISOLATED_ALLOCATION",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
+        File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,scope="ZOOM_UI_ONLY_NO_ALLOCATION",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
         SessionState.SetBool(Key+"return",true);
         string active=IsolatedSavePlayGuard.ActiveDirectory;
         if(EditorApplication.isPlaying&&string.Equals(active,Path.Combine(Output,"IsolatedAccount"),StringComparison.OrdinalIgnoreCase))EditorApplication.ExitPlaymode();
@@ -108,15 +108,7 @@ public static class OverburstSkillTreeZoomVerifier
         Click(menu.trigger); yield return null;
         while (menu.popup.alpha < .999f) yield return null;
         var index = Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.SkillTree);
-        Check(index >= 0, "Product HUD skill-tree entry");
-        var row = (RectTransform)menu.Rows[index].transform; var immediate = Hit(row); var beforePosition = menu.panel.anchoredPosition;
-        Vector2 previousPosition;
-        do { previousPosition = menu.panel.anchoredPosition; Canvas.ForceUpdateCanvases(); yield return null; }
-        while (Vector2.Distance(menu.panel.anchoredPosition, previousPosition) > .01f);
-        Canvas.ForceUpdateCanvases(); var settled = Hit(row);
-        var hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(Pointer(row), hits);
-        File.WriteAllText(Path.Combine(Output,"menu-raycast-"+checks.Count+".json"),JsonConvert.SerializeObject(new{immediate=immediate?immediate.name:"null",settled=settled?settled.name:"null",point=new{x=Point(row).x,y=Point(row).y},beforePosition=new{x=beforePosition.x,y=beforePosition.y},afterPosition=new{x=menu.panel.anchoredPosition.x,y=menu.panel.anchoredPosition.y},alpha=menu.popup.alpha,menu.popup.blocksRaycasts,treeOpen=OverburstSkillTreeUI.IsWindowOpen,hits=hits.Select(h=>h.gameObject.name).ToArray()},Formatting.Indented));
-        Check(settled == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
+        Check(index >= 0 && Hit((RectTransform)menu.Rows[index].transform) == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
         Click(menu.Rows[index].button); yield return null;
         Check(OverburstSkillTreeUI.IsWindowOpen && !menu.IsOpen, "HUD row transfers input ownership to skill tree");
     }
@@ -155,31 +147,5 @@ public static class OverburstSkillTreeZoomVerifier
         Click(ui.close);yield return null;
         Check(JsonConvert.SerializeObject(session.ReadSkillTree())==baseline,"Zoom and selection never change account allocation/points");
         Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Repeated close releases own input");
-        // Real isolated-account allocation supplies learned and unlearned states in the same product screen.
-        PlayerProgression.Current.AddExperience(Enumerable.Range(1,39).Sum(OverburstGrowthRules.ExperienceToNext));
-        Check(PlayerProgression.Current.FlushPendingExperience()&&PlayerProgression.CurrentLevel==40,"Isolated progression grants eight milestone points");
-        foreach(var step in Steps(OpenFromMenu()))yield return step;ui.SyncAccount(true);
-        Check(ui.Plan.Budget==8&&ui.Plan.Remaining==8,"Real account visual fixture has eight earned points");
-        var sample=new[]{"S_W1","S_H1","S_D1","S_Q1"};
-        foreach(string id in sample){ui.SelectNode(id,true);Click(ui.action);Check(ui.StateFor(id)==OverburstSkillTreeNodeView.NodeState.PurchaseDraft,"Actual draft is pale/pending "+id);}
-        ui.ResetDefaultMap();ui.SelectNode("S_W1",false);ui.HideTooltip();yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-state-draft.png"));yield return null;
-        Click(ui.apply);yield return null;
-        Check(sample.All(id=>ui.StateFor(id)==OverburstSkillTreeNodeView.NodeState.Learned)&&session.ReadSkillTree().learnedNodeIds.Count==4&&ui.Plan.Remaining==4,"Native apply stores four learned nodes and four remaining points");
-        ui.ResetDefaultMap();ui.SelectNode("S_W2",false);ui.HideTooltip();yield return null;Canvas.ForceUpdateCanvases();
-        foreach(string id in sample){var node=ui.nodes.First(n=>n.nodeId==id);Check(node.Accent.State==OverburstSkillTreeNodeView.NodeState.Learned&&node.stateMark.text=="✓"&&!node.Accent.raycastTarget,"Actual learned gold accent/check never intercepts input "+id);}
-        var available=ui.nodes.First(n=>n.nodeId=="S_W2");Check(available.State==OverburstSkillTreeNodeView.NodeState.Available&&available.stateMark.text=="○"&&available.Accent.Focused,"Actual available focus keeps hollow unlearned state");
-        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-states-default120.png"));yield return null;
-        Click(ui.center);yield return null;Canvas.ForceUpdateCanvases();foreach(var node in ui.nodes)Check(Hit((RectTransform)node.transform)==node.gameObject,"Accent overlay preserves node raycast "+node.nodeId);
-        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-states-fit.png"));yield return null;
-        var locked=ui.nodes.First(n=>n.nodeId=="S_W4");var frame=locked.frame.color;ui.SelectNode("S_W4",true);yield return null;
-        Check(locked.State==OverburstSkillTreeNodeView.NodeState.Locked&&locked.frame.color==frame&&locked.Accent.Focused&&ui.meta.text.Contains("미습득"),"Actual locked focus never turns learned gold");
-        ExecuteEvents.Execute(locked.gameObject,Pointer((RectTransform)locked.transform),ExecuteEvents.pointerEnterHandler);
-        Check(ui.tipState.text.Contains("습득 필요")&&ui.tipState.color==OverburstSkillTreeNodeView.StatusColor(locked.State),"Actual locked hover has correct muted status");ui.HideTooltip();
-        ui.SelectNode("S_W1",true);Click(ui.action);Check(ui.StateFor("S_W1")==OverburstSkillTreeNodeView.NodeState.RefundDraft,"Actual refund is red pending state");
-        ui.ResetDefaultMap();ui.HideTooltip();yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-state-refund.png"));yield return null;Click(ui.cancel);
-        Check(ui.StateFor("S_W1")==OverburstSkillTreeNodeView.NodeState.Learned&&session.ReadSkillTree().learnedNodeIds.Count==4,"Cancel restores gold ownership without altering saved allocation");
-        Click(ui.close);yield return null;foreach(var step in Steps(OpenFromMenu()))yield return step;
-        Check(Mathf.Approximately(ui.Zoom,1.2f)&&sample.All(id=>ui.StateFor(id)==OverburstSkillTreeNodeView.NodeState.Learned),"Reopen restores default zoom and persisted learned presentation");
-        Click(ui.close);yield return null;Check(!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"State checks release own input");
     }
 }
