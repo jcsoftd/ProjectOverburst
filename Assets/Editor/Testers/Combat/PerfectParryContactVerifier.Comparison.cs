@@ -93,6 +93,12 @@ public static partial class PerfectParryContactVerifier
                 Check(afterimage.CapturedCount - captures == 0 ? version != "C_ContactAfterimage" : version == "C_ContactAfterimage", "Upswing weapon poses only follow the selected perfect enhancement");
                 Check(afterimage.ActiveCount == 0 && !afterimage.IsEmitting, "Parry blade poses finish before the next action");
                 var recorded = JArray.Parse(File.ReadAllText(Path.Combine(output, version, "frames.json")));
+                var alignment = recorded.Where(r => (bool)r["alignmentObserved"]).ToArray();
+                Check(alignment.Length == (version == "A_Legacy" ? 0 : 1), "One native root alignment observation per added primary contact");
+                foreach (var point in alignment)
+                    Check((bool)point["legacyFlashFound"] && (bool)point["addedContactFound"]
+                        && (float)point["contactCenterGap"] <= .0001f,
+                        "Actual original flash and added contact roots share one world-space center");
                 int pullbackCaptures = 0;
                 for (int i = 1; i < recorded.Count; i++)
                 {
@@ -101,7 +107,7 @@ public static partial class PerfectParryContactVerifier
                     if (added > 0 && !(bool)recorded[i]["upswing"]) pullbackCaptures += added;
                 }
                 Check(version == "C_ContactAfterimage" ? pullbackCaptures > 0 : pullbackCaptures == 0, "Only enhanced perfect parry records the post-upswing pullback");
-                cases.Add(new { version, pullbackCaptures, capturedWeaponPoses = afterimage.CapturedCount - captures, take, grade = parry.ActionGrade.ToString(), gaugeAfter = energy.Amount,
+                cases.Add(new { version, alignment, pullbackCaptures, capturedWeaponPoses = afterimage.CapturedCount - captures, take, grade = parry.ActionGrade.ToString(), gaugeAfter = energy.Amount,
                     sourceCancelled = !enemy.AbilityController.IsExecuting, mainDelta = presenter.MainCount - main });
                 File.WriteAllText(Path.Combine(output, "comparison.json"), JsonConvert.SerializeObject(new { status = "RUNNING", cases }, Formatting.Indented));
                 spawn.Release(enemy); enemy = null;
@@ -140,12 +146,17 @@ public sealed class PerfectParryComparisonRecorder : MonoBehaviour
     private float peak;
     private string error;
     private double began;
+    private int observedMainCount;
+    private string legacyFlashName;
     private readonly List<object> observations = new List<object>();
     public void Begin(string path)
     {
         if (Screen.width != 1920 || Screen.height != 1080 || AudioSettings.speakerMode != AudioSpeakerMode.Stereo)
             throw new InvalidOperationException("FHD Game View and stereo audio required.");
         directory = path; Directory.CreateDirectory(path); observations.Clear(); frames = 0; samples = 0; peak = 0; error = null;
+        observedMainCount = PlayerContext.Instance.CurrentActor.GetComponent<PerfectParryContactPresenter>().MainCount;
+        var library = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
+        legacyFlashName = library != null && library.ParrySuccess != null ? library.ParrySuccess.name + "(Clone)" : null;
         try
         {
             audioOwned = AudioRenderer.Start(); if (!audioOwned) throw new InvalidOperationException("Audio capture already owned.");
@@ -184,7 +195,23 @@ public sealed class PerfectParryComparisonRecorder : MonoBehaviour
                 { if (!encoder.AddFrame(texture)) throw new InvalidOperationException("Video frame rejected."); frames++; }
                 var actor = PlayerContext.Instance.CurrentActor;
                 var parry = actor.GetComponent<PlayerParryController>(); var presenter = actor.GetComponent<PerfectParryContactPresenter>();
-                observations.Add(new { startFrame = before, endFrame = frames, presentationSeconds, realSeconds = Time.realtimeSinceStartupAsDouble - began,
+                bool alignmentObserved = presenter.MainCount > observedMainCount;
+                Transform legacyFlash = null; PerfectParryContactVfx addedContact = null;
+                if (alignmentObserved)
+                {
+                    legacyFlash = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None)
+                        .Where(t => t.gameObject.activeInHierarchy && t.name == legacyFlashName)
+                        .OrderBy(t => (t.position - presenter.LastPosition).sqrMagnitude).FirstOrDefault();
+                    addedContact = UnityEngine.Object.FindObjectsByType<PerfectParryContactVfx>(FindObjectsSortMode.None)
+                        .FirstOrDefault(c => !c.additional && c.IsPlaybackAlive);
+                    observedMainCount = presenter.MainCount;
+                }
+                float contactCenterGap = legacyFlash != null && addedContact != null
+                    ? Vector3.Distance(legacyFlash.position, addedContact.transform.position) : -1f;
+                observations.Add(new { alignmentObserved, legacyFlashFound = legacyFlash != null, addedContactFound = addedContact != null,
+                    contactCenterGap, legacyFlashCenter = legacyFlash != null ? new[] { legacyFlash.position.x, legacyFlash.position.y, legacyFlash.position.z } : null,
+                    addedContactCenter = addedContact != null ? new[] { addedContact.transform.position.x, addedContact.transform.position.y, addedContact.transform.position.z } : null,
+                    startFrame = before, endFrame = frames, presentationSeconds, realSeconds = Time.realtimeSinceStartupAsDouble - began,
                     audioSeconds = samples / (double)AudioSettings.outputSampleRate, suggestedCount, requestedCount = count, Time.timeScale, Time.unscaledDeltaTime, parry.SuccessCount, parry.FeedbackCount,
                     presenter.MainCount, presenter.AdditionalCount,
                     weaponPoses = actor.GetComponent<PerfectParryWeaponAfterimage>()?.ActiveCount ?? 0, weaponCaptures = actor.GetComponent<PerfectParryWeaponAfterimage>()?.CapturedCount ?? 0, afterimagePhase = actor.GetComponent<MeleeRuntime>().IsHeavyParryBladeMotion, upswing = actor.GetComponent<MeleeRuntime>().IsHeavyParryUpswing });

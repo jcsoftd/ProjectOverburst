@@ -44,7 +44,7 @@ public sealed class PerfectParryContactPresenter : MonoBehaviour
         capturedScene = enemy != null ? enemy.gameObject.scene : default;
         contentScene = capturedScene.handle; captured = enemy != null;
     }
-    public void QueuePresentation() { queued = true; }
+    public void QueuePresentation(Vector3 flashCenter) { savedContact = flashCenter; queued = true; }
     public void AddInitialContact(Vector3 contact) { if (initialContacts.Count < 2) initialContacts.Add(contact); }
     private void LateUpdate()
     {
@@ -76,13 +76,9 @@ public sealed class PerfectParryContactPresenter : MonoBehaviour
             prepareBeforeActivation: prepareExtra, returnMode: TransientVfxReturnMode.NaturalParticleCompletion,
             useUnscaledTime: true, contentSceneHandle: contentScene);
     }
-    public Vector3 ResolvePosition()
-    {
-        if (!TryGetBladeSegment(out Vector3 a, out Vector3 b)) return savedContact;
-        Vector3 blade = b - a;
-        float u = Mathf.Clamp(Vector3.Dot(savedContact - a, blade) / blade.sqrMagnitude, Profile.bladeMin, Profile.bladeMax);
-        return a + blade * u + weapon.transform.TransformVector(Profile.localOffset);
-    }
+    // The original flash owns the contact center, including averaged simultaneous contacts.
+    // Keep the whole added effect fixed there; blade movement is shown by the weapon poses.
+    public Vector3 ResolvePosition() => savedContact;
     public bool TryGetBladeSegment(out Vector3 a, out Vector3 b)
     {
         Transform tip = equipment != null ? equipment.CurrentWeaponTraceBinding?.WeaponTip : null;

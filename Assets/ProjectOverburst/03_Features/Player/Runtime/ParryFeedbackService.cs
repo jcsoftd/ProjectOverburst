@@ -68,7 +68,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
         LastPerfectLayerCount = 0;
         if (tier.Grade == ParryGrade.Perfect && perfectContact != null && perfectContact.CanPresent)
         {
-            perfectContact.QueuePresentation();
+            perfectContact.QueuePresentation(center);
             var profile = perfectContact.Profile; Vector3 contact = perfectContact.ResolvePosition();
             instance.PlayVoice(profile.impact, contact, profile.impactVolume, 1f);
             instance.PlayVoice(profile.ring, contact, profile.ringVolume, 1f);
