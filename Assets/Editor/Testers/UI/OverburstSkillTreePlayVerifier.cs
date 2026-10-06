@@ -119,10 +119,11 @@ public static class OverburstSkillTreePlayVerifier
         while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || !WorldSessionState.IsHideout || PlayerContext.Instance?.CurrentActor == null) yield return null;
         Check(AccountBootstrap.Ready && AccountBootstrap.SaveDirectory.StartsWith(Output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase), "Owned isolated account boot");
         var ui = OverburstSkillTreeUI.Instance; var p = PlayerContext.Instance.CurrentActor; var session = AccountGameplaySession.Current;
-        Check(ui != null && ui.nodes.Length == 21 && session.Read().skillTree.earnedPoints == 0, "Product installs one foundation tree with zero new-account points");
+        Check(ui != null && ui.nodes.Length == 53 && session.Read().skillTree.earnedPoints == 0, "Product installs expanded 53-node tree with zero new-account points");
         var input = PlayerInputFacade.Current; bool gameplay = input.IsGameplayEnabled;
         foreach (var step in Steps(OpenFromMenu())) yield return step;
         Check(GameplayInputBlocker.IsGameplayInputBlocked && !input.IsGameplayEnabled && ui.Plan.Remaining == 0, "Tree owns input and real account budget");
+        foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
         int xp = Enumerable.Range(1, 19).Sum(OverburstGrowthRules.ExperienceToNext);
         PlayerProgression.Current.AddExperience(xp); Check(PlayerProgression.Current.FlushPendingExperience(), "Actual progression flush");
@@ -166,6 +167,7 @@ public static class OverburstSkillTreePlayVerifier
         ui.HideTooltip(); ui.ResetMap(); ui.SelectNode("S_W1", true); Canvas.ForceUpdateCanvases(); yield return null;
         ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-skill-tree.png")); yield return null;
         ui.ShowTooltip("S_W1"); yield return null; ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-tooltip.png")); yield return null;
+        ui.SelectNode("K_W",true);ui.ShowTooltip("K_W");yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-keystone.png"));yield return null;
         ui.HideTooltip(); float fit = ui.Zoom; var pointer = Pointer(ui.viewport); pointer.scrollDelta = Vector2.up;
         ExecuteEvents.Execute(ui.viewport.gameObject, pointer, ExecuteEvents.scrollHandler); Check(Mathf.Approximately(ui.Zoom, fit + .1f), "Real native wheel zoom");
         Click(ui.zoomIn); Click(ui.zoomOut); Check(Mathf.Approximately(ui.Zoom, fit + .1f), "Native zoom buttons");
@@ -190,6 +192,15 @@ public static class OverburstSkillTreePlayVerifier
         Click(ui.resetAllocation); Check(ui.Plan.Remaining == 4 && SkillTreeBonuses.HealthPercent == 4 && SkillTreeBonuses.MovePercent == 1.5f, "Full refund remains preview until applied"); Click(ui.cancel); Check(ui.Plan.Has("S_Q1"), "Full refund preview can cancel");
         p.Health.Heal(100000); Check(p.Health.CurrentHp > hp, "Refund maximum-health clamp fixture");
         Click(ui.resetAllocation); Click(ui.apply); Check(Mathf.Approximately(p.Health.MaxHp, hp) && Mathf.Approximately(p.Health.CurrentHp, hp) && Mathf.Approximately(p.Movement.WalkMoveSpeed, walk), "Health and movement refund return to baseline and clamp current health");
+        foreach (var id in new[] { "S_W1", "S_W3", "S_W5", "S_W6" }) { ui.SelectNode(id, true); Click(ui.action); }
+        Click(ui.apply);
+        Check(ui.Plan.Remaining == 0 && SkillTreeBonuses.AttackPercent == 6 && SkillTreeBonuses.HealthPercent == 4 && SkillTreeBonuses.ArmorFlat == 1, "Added branch stat nodes commit and project actual bonuses");
+        var expandedSave = new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
+        Check(expandedSave.skillTree.learnedNodeIds.Contains("S_W5") && expandedSave.skillTree.learnedNodeIds.Contains("S_W6"), "New branch IDs persist in product account");
+        ui.SelectNode("S_W3", true); Check(ui.Plan.Refunds("S_W3").Length == 3, "Expanded branch refund previews three disconnected nodes");
+        Click(ui.action); Click(ui.apply);
+        Check(ui.Plan.Has("S_W1") && !ui.Plan.Has("S_W5") && !ui.Plan.Has("S_W6") && SkillTreeBonuses.AttackPercent == 3 && SkillTreeBonuses.HealthPercent == 0 && SkillTreeBonuses.ArmorFlat == 0, "Expanded branch refund removes bonuses and preserves root-side node");
+        Click(ui.resetAllocation); Click(ui.apply);
         for (int i = 0; i < 3; i++) { Click(ui.close); yield return null; Check(!GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Repeated close returns input " + i); foreach (var step in Steps(OpenFromMenu())) yield return step; }
         var previous = Keyboard.current; var keyboard = InputSystem.AddDevice<Keyboard>("OwnedSkillTreeFoundationKeyboard");
         try

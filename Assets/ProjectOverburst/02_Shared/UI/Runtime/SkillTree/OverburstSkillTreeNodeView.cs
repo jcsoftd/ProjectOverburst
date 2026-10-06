@@ -17,11 +17,23 @@ public sealed class OverburstSkillTreeNodeView : MonoBehaviour, IPointerEnterHan
         owner = view; button.onClick.AddListener(Click);
     }
     void Click() { owner.HideTooltip(); owner.SelectNode(nodeId, true); }
-    public void Present(bool learned, bool selected, bool available, bool committed = false)
+    public enum NodeState { Guide, Locked, Insufficient, Available, Learned, PurchaseDraft, RefundDraft, Reserved }
+    public NodeState State { get; private set; }
+    public Text stateMark;
+    public Image statePlate;
+    public void Present(NodeState state, bool selected)
     {
-        frame.color = learned ? committed ? new Color(.87f, .73f, .47f) : new Color(.93f, .89f, .77f) : committed ? new Color(.65f, .37f, .27f) : new Color(.59f, .54f, .45f);
-        icon.color = learned ? new Color(.98f, .88f, .66f) : available ? new Color(.86f, .80f, .68f) : new Color(.68f, .64f, .56f);
-        selection.gameObject.SetActive(selected); if (caption) caption.color = selected ? new Color(.96f, .80f, .49f) : new Color(.73f, .69f, .60f);
+        State = state;
+        bool learned = state == NodeState.Learned || state == NodeState.Guide;
+        frame.color = learned ? new Color(.94f,.76f,.40f) : state == NodeState.PurchaseDraft ? new Color(.97f,.93f,.82f) : state == NodeState.RefundDraft ? new Color(.75f,.35f,.24f) : state == NodeState.Available ? new Color(.72f,.67f,.56f) : state == NodeState.Insufficient ? new Color(.57f,.52f,.43f) : state == NodeState.Reserved ? new Color(.51f,.47f,.54f) : new Color(.36f,.34f,.30f);
+        icon.color = learned ? new Color(1,.91f,.70f) : state == NodeState.PurchaseDraft ? new Color(1,.97f,.88f) : state == NodeState.Reserved ? new Color(.69f,.64f,.73f) : state == NodeState.Available ? new Color(.87f,.82f,.71f) : state == NodeState.RefundDraft ? new Color(.84f,.53f,.40f) : new Color(.52f,.50f,.44f);
+        selection.gameObject.SetActive(selected);
+        if (caption) caption.color = selected ? new Color(.96f,.80f,.49f) : learned ? new Color(.88f,.77f,.55f) : state == NodeState.Reserved ? new Color(.68f,.64f,.71f) : new Color(.73f,.69f,.60f);
+        if (stateMark)
+        {
+            stateMark.text = state == NodeState.Learned ? "✓" : state == NodeState.PurchaseDraft ? "+" : state == NodeState.RefundDraft ? "−" : state == NodeState.Available ? "○" : state == NodeState.Insufficient ? "0" : state == NodeState.Locked ? "×" : state == NodeState.Reserved ? "…" : "";
+            stateMark.color = icon.color; statePlate.gameObject.SetActive(state != NodeState.Guide);
+        }
     }
     public void OnPointerEnter(PointerEventData e) => owner?.ShowTooltip(nodeId);
     public void OnPointerExit(PointerEventData e) => owner?.HideTooltip();

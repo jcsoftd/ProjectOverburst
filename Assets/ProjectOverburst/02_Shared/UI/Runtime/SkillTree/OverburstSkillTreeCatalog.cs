@@ -18,7 +18,8 @@ public sealed class OverburstSkillTreeCatalog
     [Serializable] public sealed class Edge { public string a, b; }
     [Serializable] public sealed class Node
     {
-        public string id, name, shortName, area, kind, trigger, stat;
+        public string id, name, shortName, area, kind, trigger, stat, description;
+        public bool IsReserved => kind == "effect" || kind == "active" || kind == "keystone";
         public float x, y, cooldown, value;
         public int cost, icon;
         public string[] requires, effects;
@@ -41,7 +42,7 @@ public sealed class OverburstSkillTreeCatalog
     {
         switch (area) { case "W": return "약공 콤보"; case "H": return "강공"; case "D": return "대시 약공"; case "Q": return "대시 강공"; default: return "공통"; }
     }
-    public static string KindName(string kind) => kind == "stat" ? "능력치" : "기본 경로";
+    public static string KindName(string kind) => kind == "stat" ? "능력치" : kind == "effect" ? "추가 효과" : kind == "active" ? "액티브" : kind == "keystone" ? "최종 핵심" : "기본 경로";
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(version) || nodes == null || connections == null || segments == null || rewards == null) throw new InvalidOperationException("Incomplete skill-tree catalog.");
@@ -49,8 +50,9 @@ public sealed class OverburstSkillTreeCatalog
         foreach (var n in nodes)
         {
             if (n == null || string.IsNullOrWhiteSpace(n.id) || !index.TryAdd(n.id, n) || n.cost < 0 || n.requires == null || float.IsNaN(n.x) || float.IsInfinity(n.x) || float.IsNaN(n.y) || float.IsInfinity(n.y) || float.IsNaN(n.value) || float.IsInfinity(n.value)) throw new InvalidOperationException("Invalid node definition.");
-            if (n.kind != "root" && n.kind != "guide" && n.kind != "stat") throw new InvalidOperationException("Unsupported foundation node " + n.id);
-            if (n.kind != "stat" && (n.cost != 0 || !string.IsNullOrEmpty(n.stat) || n.value != 0 || n.requires.Length != 0)) throw new InvalidOperationException("Free guide cannot own bonuses or mandatory prerequisites.");
+            if (n.kind != "root" && n.kind != "guide" && n.kind != "stat" && !n.IsReserved) throw new InvalidOperationException("Unsupported foundation node " + n.id);
+            if (!n.IsReserved && n.kind != "stat" && (n.cost != 0 || !string.IsNullOrEmpty(n.stat) || n.value != 0 || n.requires.Length != 0)) throw new InvalidOperationException("Free guide cannot own bonuses or mandatory prerequisites.");
+            if (n.IsReserved && (n.cost != 0 || !string.IsNullOrEmpty(n.stat) || n.value != 0 || string.IsNullOrWhiteSpace(n.description) || n.effects == null || n.effects.Length != 6)) throw new InvalidOperationException("Reserved effect cannot grant bonuses or consume points.");
             if (n.kind == "stat" && (n.cost == 0 || n.value <= 0 || !new[] { "attack", "defense", "hp", "move" }.Contains(n.stat))) throw new InvalidOperationException("Invalid stat node " + n.id);
         }
         if (!index.TryGetValue("ROOT", out var root) || root.cost != 0) throw new InvalidOperationException("Free ROOT required.");
@@ -85,7 +87,7 @@ public sealed class OverburstSkillTreePlan
 {
     readonly Dictionary<string, OverburstSkillTreeCatalog.Node> index;
     readonly Dictionary<string, List<string>> neighbors;
-    HashSet<string> planned, applied, active;
+    HashSet<string> planned, applied, active, committedActive;
     public int Budget { get; private set; }
     public OverburstSkillTreePlan(OverburstSkillTreeCatalog catalog, int budget = 0, IEnumerable<string> allocation = null)
     {
@@ -99,16 +101,17 @@ public sealed class OverburstSkillTreePlan
     public string[] Planned => planned.OrderBy(id => id, StringComparer.Ordinal).ToArray();
     public string[] Applied => applied.OrderBy(id => id, StringComparer.Ordinal).ToArray();
     public bool IsApplied(string id) => applied.Contains(id);
+    public bool IsCommitted(string id) => committedActive.Contains(id);
     public void ClearDraft() { planned.Clear(); active = Reach(planned); }
     public bool Has(string id) => active.Contains(id);
-    public bool Available(OverburstSkillTreeCatalog.Node n) => n.requires.All(Has) && (n.id == "ROOT" || neighbors[n.id].Any(Has));
+    public bool Available(OverburstSkillTreeCatalog.Node n) => !n.IsReserved && n.requires.All(Has) && (n.id == "ROOT" || neighbors[n.id].Any(Has));
     HashSet<string> Reach(HashSet<string> allocated)
     {
         var result = new HashSet<string>(); var queue = new Queue<string>(); queue.Enqueue("ROOT");
         while (queue.Count > 0)
         {
             var id = queue.Dequeue(); if (!result.Add(id)) continue;
-            foreach (var next in neighbors[id]) if (index[next].cost == 0 || allocated.Contains(next)) if (!result.Contains(next)) queue.Enqueue(next);
+            foreach (var next in neighbors[id]) if (!index[next].IsReserved && (index[next].cost == 0 || allocated.Contains(next))) if (!result.Contains(next)) queue.Enqueue(next);
         }
         return result;
     }
@@ -123,7 +126,7 @@ public sealed class OverburstSkillTreePlan
         if (budget < 0 || allocation == null) throw new InvalidOperationException("Invalid skill points.");
         var ids = allocation.ToArray(); var next = new HashSet<string>(ids, StringComparer.Ordinal);
         if (next.Count != ids.Length || next.Any(id => !index.ContainsKey(id) || index[id].cost == 0) || !Trim(new HashSet<string>(next)).SetEquals(next) || next.Sum(id => index[id].cost) > budget) throw new InvalidOperationException("Invalid saved allocation; preserve account data.");
-        Budget = budget; planned = next; applied = new HashSet<string>(next); active = Reach(planned);
+        Budget = budget; planned = next; applied = new HashSet<string>(next); active = Reach(planned); committedActive = Reach(applied);
     }
     public string[] Refunds(string id)
     {
@@ -137,7 +140,7 @@ public sealed class OverburstSkillTreePlan
         else { if (!Available(n) || Remaining < n.cost) return false; planned.Add(id); }
         active = Reach(planned); return true;
     }
-    public void Apply() => applied = new HashSet<string>(planned);
+    public void Apply() { applied = new HashSet<string>(planned); committedActive = Reach(applied); }
     public void Cancel() { planned = new HashSet<string>(applied); active = Reach(planned); }
     public float Total(string stat) => planned.Where(id => index[id].stat == stat).Sum(id => index[id].value);
     public float AppliedTotal(string stat) => applied.Where(id => index[id].stat == stat).Sum(id => index[id].value);

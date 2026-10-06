@@ -17,14 +17,15 @@ public static class SkillTreeFoundationVerifier
         try
         {
             var catalog = AccountSkillTree.Catalog; catalog.Validate();
-            Check(catalog.nodes.Length == 21 && catalog.connections.Length == 20 && catalog.segments.Length == 32, "21 nodes / 20 connections / 32 unique segments");
-            var plan = new OverburstSkillTreePlan(catalog, 16);
+            Check(catalog.nodes.Length == 53 && catalog.connections.Length == 64 && catalog.nodes.Count(n => n.IsReserved) == 16, "53 nodes / 64 connections / 16 reserved effect-active-keystone nodes");
+            var plan = new OverburstSkillTreePlan(catalog, 32);
+            foreach (var n in catalog.nodes.Where(n => n.IsReserved)) Check(!plan.Has(n.id) && !plan.Available(n) && !plan.Toggle(n.id), "Reserved visible node cannot activate or consume points " + n.id);
             Check(plan.Has("ROOT") && !plan.Toggle("ROOT") && !plan.Toggle("S_W3"), "Free root and adjacency gate");
-            Check(plan.Toggle("S_W1") && plan.Toggle("S_W3") && plan.Remaining == 14, "Purchase path consumes points");
+            Check(plan.Toggle("S_W1") && plan.Toggle("S_W3") && plan.Remaining == 30, "Purchase path consumes points");
             Check(plan.Refunds("S_W1").SequenceEqual(new[] { "S_W1", "S_W3" }), "Refund previews dependent disconnection");
-            plan.Cancel(); Check(plan.Remaining == 16 && !plan.Changed, "Cancel restores baseline");
+            plan.Cancel(); Check(plan.Remaining == 32 && !plan.Changed, "Cancel restores baseline");
             foreach (var n in catalog.nodes.Where(n => n.cost > 0)) Check(plan.Toggle(n.id), "Purchase " + n.id);
-            Check(plan.Remaining == 0 && plan.Total("attack") == 12 && plan.Total("defense") == 4 && plan.Total("hp") == 16 && plan.Total("move") == 6, "Full first-phase totals");
+            Check(plan.Remaining == 0 && plan.Total("attack") == 24 && plan.Total("defense") == 8 && plan.Total("hp") == 32 && plan.Total("move") == 12, "Expanded available stat totals (32 cost; policy earns 20)");
             Reject(() => new OverburstSkillTreePlan(catalog, 1, new[] { "S_W1", "S_W3" }), "Overspend rejected");
             Reject(() => new OverburstSkillTreePlan(catalog, 16, new[] { "UNKNOWN" }), "Unknown saved node rejected without cleaning");
             Reject(() => new OverburstSkillTreePlan(catalog, 16, new[] { "S_W1", "S_W1" }), "Duplicate saved node rejected");
