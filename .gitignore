@@ -155,3 +155,8 @@ Assets/StreamingAssets/aa/
 # Licensed Volumetric Blood VAT derivatives; restore with package and native builder.
 /Assets/ProjectOverburst/Resources/Combat/VolumetricBlood/
 /Assets/ProjectOverburst/Resources/Combat/VolumetricBlood.meta
+
+# Licensed supplier-derived perfect-parry contact audio; restore with private recovery and native builder.
+/Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Impact.wav*
+/Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Ring.wav*
+/Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Low.wav*

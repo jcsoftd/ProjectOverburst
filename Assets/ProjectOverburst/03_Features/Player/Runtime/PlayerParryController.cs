@@ -24,6 +24,7 @@ public sealed class PlayerParryController : MonoBehaviour
     private bool windowOpen, feedbackScheduled, feedbackPending;
     private ParryGrade lastSlowGrade;
     private Vector3 pendingCenter;
+    private PerfectParryContactPresenter perfectContact;
     private int pendingCount;
 
     public int SuccessCount { get; private set; }
@@ -59,6 +60,8 @@ public sealed class PlayerParryController : MonoBehaviour
     private void Awake()
     {
         melee = GetComponent<MeleeRuntime>(); health = GetComponent<CombatHealth>();
+        perfectContact = GetComponent<PerfectParryContactPresenter>();
+        if (perfectContact == null) perfectContact = gameObject.AddComponent<PerfectParryContactPresenter>();
         playerTarget = GetComponent<CombatTarget>();
         if (GetComponent<ParrySuccessVfx>() == null) gameObject.AddComponent<ParrySuccessVfx>();
     }
@@ -71,6 +74,7 @@ public sealed class PlayerParryController : MonoBehaviour
     {
         if (acceptedActionId <= 0 || actionId == acceptedActionId) return;
         actionId = acceptedActionId;
+        perfectContact?.BeginAction();
         ActionEnergyNormalized = melee != null ? melee.HeavyParryEnergyNormalized : 0f;
         ActionGrade = ResolveGrade(ActionEnergyNormalized);
         windowEndsAt = Time.unscaledTime + WindowSeconds; windowOpen = true;
@@ -79,7 +83,7 @@ public sealed class PlayerParryController : MonoBehaviour
         TryParryThreats();
     }
     public void CloseWindow()
-    { windowOpen = false; feedbackPending = false; pendingContacts.Clear(); }
+    { windowOpen = false; feedbackPending = false; pendingContacts.Clear(); perfectContact?.Cancel(); }
     private void Update()
     {
         if (!windowOpen) return;
@@ -152,6 +156,10 @@ public sealed class PlayerParryController : MonoBehaviour
                 && (counterTarget == null || enemy.GetInstanceID() < counterTarget.GetInstanceID()))
             { nearestDistance = distance; counterTarget = enemy; }
         }
+        if (grade == ParryGrade.Perfect && !feedbackScheduled && perfectContact != null)
+            for (int i = 0; i < threats.Length; i++)
+                if (threats[i].Enemy == counterTarget)
+                { perfectContact.Capture(counterTarget, threats[i].Contact, threats[i].Damage.direction); break; }
         // Record every execution before cancelling any of them or emitting HP events.
         for (int i = 0; i < threats.Length; i++)
         { cancelledExecutions.Add(threats[i].Key); parriedThisAction.Add(threats[i].Enemy); center += threats[i].Contact; }
@@ -174,6 +182,9 @@ public sealed class PlayerParryController : MonoBehaviour
             pendingElapsed = 0f; pendingStartFrame = Time.frameCount;
             pendingDelay = melee != null && melee.IsHeavyParryMotionActive ? melee.HeavyParryContactDelay : 0f;
             feedbackPending = true;
+            if (grade == ParryGrade.Perfect && perfectContact != null && perfectContact.CanPresent)
+                for (int i = 0; i < threats.Length; i++)
+                    if (threats[i].Enemy != counterTarget) perfectContact.AddInitialContact(threats[i].Contact);
             if (pendingDelay <= 0f) FlushPendingFeedback();
         }
         else if (feedbackPending)
@@ -181,7 +192,12 @@ public sealed class PlayerParryController : MonoBehaviour
             // Later threats do not flush the first contact's presentation early.
             for (int i = 0; i < threats.Length; i++) pendingContacts.Add(threats[i].Contact);
         }
-        else ParryFeedbackService.PlayContact(center, grade);
+        else
+        {
+            ParryFeedbackService.PlayContact(center, grade);
+            if (grade == ParryGrade.Perfect && perfectContact != null && perfectContact.CanPresent)
+                perfectContact.PlayAdditional(center, 0f);
+        }
     }
     private static Vector3 ContactPoint(EnemyActor enemy, Vector3 playerCenter)
     {
@@ -221,8 +237,9 @@ public sealed class PlayerParryController : MonoBehaviour
         feedbackPending = false; FeedbackCount++;
         ShowGradeLabel();
         ParryFeedbackService.Tier tier = ParryFeedbackService.ResolveTier(ActionGrade);
+        bool enhanced = ActionGrade == ParryGrade.Perfect && perfectContact != null && perfectContact.CanPresent;
         CombatActionSfxService.PlayParrySuccess(pendingCenter);
-        ParryFeedbackService.Play(pendingCenter, transform.position, tier, pendingCount, 0, parriedThisAction);
+        ParryFeedbackService.Play(pendingCenter, transform.position, tier, pendingCount, 0, parriedThisAction, enhanced ? perfectContact : null);
         if (Time.unscaledTime >= nextSlowAt || ActionGrade > lastSlowGrade)
         {
             nextSlowAt = Time.unscaledTime + SlowCooldown; lastSlowGrade = ActionGrade;
@@ -230,7 +247,11 @@ public sealed class PlayerParryController : MonoBehaviour
                 tier.HitStop + tier.Slow + tier.SlowRecover, tier.SlowRecover);
         }
         OverburstTimeEffectArbiter.Request(this, OverburstTimeEffectKind.ParryHitStop, .01f, tier.HitStop);
-        for (int i = 0; i < pendingContacts.Count; i++) ParryFeedbackService.PlayContact(pendingContacts[i], ActionGrade);
+        for (int i = 0; i < pendingContacts.Count; i++)
+        {
+            ParryFeedbackService.PlayContact(pendingContacts[i], ActionGrade);
+            if (enhanced) perfectContact.PlayAdditional(pendingContacts[i], .12f);
+        }
         pendingContacts.Clear();
     }
     public void CompleteParryContact(int acceptedActionId)

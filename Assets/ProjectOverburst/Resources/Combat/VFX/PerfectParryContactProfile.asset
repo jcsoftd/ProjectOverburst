@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98b8394f5945aa44fb5244f46b036b5c, type: 3}
+  m_Name: PerfectParryContactProfile
+  m_EditorClassIdentifier: Assembly-CSharp::PerfectParryContactProfile
+  enhancedPresentation: 1
+  mainPrefab: {fileID: 7609549927328596710, guid: 32bc152423c89974793d802d979a32aa, type: 3}
+  additionalPrefab: {fileID: 3014383218218111708, guid: bf4eb3bcde6343d48baa8bd1f0089af5, type: 3}
+  impact: {fileID: 8300000, guid: b3b9fca6a9332d04aa61435350983d80, type: 3}
+  ring: {fileID: 8300000, guid: 2f32c14c995eb484dbb6ff2f9490ce7a, type: 3}
+  low: {fileID: 8300000, guid: b1d0ae312b2ef844d9d1799a2c274c75, type: 3}
+  impactVolume: 0.9
+  ringVolume: 0.5
+  lowVolume: 0.65
+  readableSeconds: 0.3
+  totalSeconds: 0.75
+  sparkDelay: 0.08
+  strokeSize: 1.1
+  bladeMin: 0.45
+  bladeMax: 0.85
+  localOffset: {x: 0, y: 0, z: 0}
+  upswingAfterimage: 1
+  upswingAfterimageMaterial: {fileID: 2100000, guid: c7215696c02e5a34988b9f8818b6fb69, type: 2}
+  upswingAfterimageOpacity: 0.42
+  upswingAfterimageLifetime: 0.22

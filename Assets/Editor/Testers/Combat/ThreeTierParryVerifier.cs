@@ -118,7 +118,7 @@ public static class ThreeTierParryVerifier
         }
     }
 
-    public static void StartIsolated(string directory)
+    public static void StartIsolated(string directory, bool perfectContactComparison = false)
     {
         if (!string.IsNullOrEmpty(Output) || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -127,6 +127,7 @@ public static class ThreeTierParryVerifier
         directory = IsolatedSavePlayGuard.ValidateDirectory(directory); Directory.CreateDirectory(directory);
         checks.Clear(); cases.Clear(); frame = -1;
         SessionState.SetString(Key + "output", directory);
+        SessionState.SetBool(Key + "perfectContactComparison", perfectContactComparison);
         SessionState.SetString(Key + "startScene", EditorSceneManager.playModeStartScene == null ? "" : AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", JsonConvert.SerializeObject(Enumerable.Range(0, SceneManager.sceneCount).Select(i => new
             { path = SceneManager.GetSceneAt(i).path, dirty = SceneManager.GetSceneAt(i).isDirty, roots = SceneManager.GetSceneAt(i).rootCount }).ToArray()));
@@ -168,7 +169,7 @@ public static class ThreeTierParryVerifier
         {
             SessionState.SetBool(Key + "started", true); checks.Clear(); cases.Clear();
             SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 240f);
-            stack.Push(Run());
+            stack.Push(SessionState.GetBool(Key + "perfectContactComparison", false) ? PerfectParryContactVerifier.Compare(Output) : Run());
         }
         if (frame == Time.frameCount) return; frame = Time.frameCount;
         try
@@ -242,7 +243,7 @@ public static class ThreeTierParryVerifier
             expires = SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""), startScene = savedStart,
             pid = System.Diagnostics.Process.GetCurrentProcess().Id, project = Application.dataPath });
         foreach (string suffix in new[] { "output", "startScene", "scenes" }) SessionState.EraseString(Key + suffix);
-        foreach (string suffix in new[] { "started", "returnPending", "background" }) SessionState.EraseBool(Key + suffix);
+        foreach (string suffix in new[] { "started", "returnPending", "background", "perfectContactComparison" }) SessionState.EraseBool(Key + suffix);
         foreach (string suffix in new[] { "deadline", "returnAfter", "returnDeadline" }) SessionState.EraseFloat(Key + suffix);
         Unsubscribe();
     }
@@ -474,7 +475,10 @@ public static class ThreeTierParryVerifier
                     Check(forwardTravel >= -.05f && forwardTravel <= 2.1f, "counter travel respects the two-meter budget and physical blockers: " + forwardTravel);
                 }
                 if (expected == ParryGrade.Normal) Check(normalCollapseSeen && normalHoldSeen && normalRecoverSeen, "actual normal collapse hold recover observed");
-                Check(parry.FeedbackCount - feedback == 1 && ParryFeedbackService.LastAdditionalTingCount == (int)expected, "one feedback and one/two/three ting voices per action");
+                bool enhancedContact = expected == ParryGrade.Perfect && PerfectParryContactProfile.Current != null && PerfectParryContactProfile.Current.IsReady;
+                Check(parry.FeedbackCount - feedback == 1 && (enhancedContact
+                    ? ParryFeedbackService.LastPerfectLayerCount == 3 && ParryFeedbackService.LastAdditionalTingCount == (int)expected
+                    : ParryFeedbackService.LastAdditionalTingCount == (int)expected), "one feedback and the selected grade audio bundle per action");
                 if (expected == ParryGrade.Incomplete)
                 {
                     Check(incoming == enemies.Count && residual > 0f && Near(hpBefore - actor.Health.CurrentHp, residual, .1f), "each incomplete execution causes one residual loss");

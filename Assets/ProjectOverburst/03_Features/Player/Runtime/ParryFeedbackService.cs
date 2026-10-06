@@ -37,9 +37,10 @@ public sealed class ParryFeedbackService : MonoBehaviour
     private int nextVoice;
     private AudioClip tingClip, thumpClip;
     public static int LastAdditionalTingCount { get; private set; }
+    public static int LastPerfectLayerCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { instance = null; library = null; LastAdditionalTingCount = 0; }
+    private static void ResetStatics() { instance = null; library = null; LastAdditionalTingCount = 0; LastPerfectLayerCount = 0; }
 
     public static Tier ResolveTier(ParryGrade grade) => Grades[Mathf.Clamp((int)grade, 0, Grades.Length - 1)];
 
@@ -55,14 +56,25 @@ public sealed class ParryFeedbackService : MonoBehaviour
     }
 
     public static void Play(Vector3 center, Vector3 playerPosition, Tier tier, int parriedCount,
-        int chainIndex, ICollection<EnemyActor> parried)
+        int chainIndex, ICollection<EnemyActor> parried, PerfectParryContactPresenter perfectContact = null)
     {
         if (!Application.isPlaying || !EnsureInstance()) return;
+        // Keep the complete original bundle, then add the perfect-only contact layer.
         instance.SpawnFlash(center, tier.FlashScale);
         if (tier.KnockbackRadius > 0f) KnockbackSmall(center, tier.KnockbackRadius, parried);
         instance.PlayLayers(center, tier.Grade, parriedCount);
         RequestCamera(center - playerPosition, tier.CameraAmplitude, tier.CameraDuration);
         QuarterViewCamera.ActiveInstance?.RequestZoomPunch(tier.Zoom, tier.ZoomIn, tier.HitStop + tier.Slow, tier.ZoomOut);
+        LastPerfectLayerCount = 0;
+        if (tier.Grade == ParryGrade.Perfect && perfectContact != null && perfectContact.CanPresent)
+        {
+            perfectContact.QueuePresentation();
+            var profile = perfectContact.Profile; Vector3 contact = perfectContact.ResolvePosition();
+            instance.PlayVoice(profile.impact, contact, profile.impactVolume, 1f);
+            instance.PlayVoice(profile.ring, contact, profile.ringVolume, 1f);
+            instance.PlayVoice(profile.low, contact, profile.lowVolume, 1f);
+            LastPerfectLayerCount = 3;
+        }
     }
 
     // Additional attacks in the same action get a local contact without replaying world/camera/audio feedback.
