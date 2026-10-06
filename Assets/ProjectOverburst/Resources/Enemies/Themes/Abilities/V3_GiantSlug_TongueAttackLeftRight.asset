@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_GiantSlug_TongueAttackLeftRight
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.20730826, y: 0.35789472}
+  - {x: 0.48618415, y: 0.6736842}
   abilityId: V3_GiantSlug_TongueAttackLeftRight
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack2
@@ -44,3 +47,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.6736842
+  projectilesPerRelease: 1

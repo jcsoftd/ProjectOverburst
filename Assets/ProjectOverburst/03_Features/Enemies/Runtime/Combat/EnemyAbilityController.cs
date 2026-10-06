@@ -3,7 +3,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyMeleeAttackController))]
-public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운·실행기 라우팅 공용 표면
+public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·쿨다운·실행기 라우팅 공용 표면
 {
     [SerializeField] private EnemyMeleeAttackController meleeExecutor;
     [SerializeField] private EnemyAbilitySet abilitySet;
@@ -33,6 +33,7 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         if (ability != lastCommittedAbility) return;
         nextImpactIndex = Mathf.Min(index + 1, ability.HitCount - 1);
         if (index >= ability.HitCount - 1) finalImpactDelivered = true;
+        if (ability.HasParryMotionWindows) strongWarning?.SetParryWindow(0f, false, index);
     }
     public bool IsOrdinaryHitProtected
     {
@@ -98,6 +99,9 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
         EnemyAbilityDefinition ability = lastCommittedAbility;
         if (bossMaterialExecutor != null && bossMaterialExecutor.CurrentMaterial?.ability == ability)
             return bossMaterialExecutor.IsParryThreatTo(player);
+        if (ability != null && ability.HasParryMotionWindows)
+            return player != null && player.IsAlive && TryGetActiveParryMotionWindow(out _)
+                && EnemyAttackThreatGeometry.WouldHit(actor, ability, player);
         if (player == null || ability == null || !ability.IsParryable
             || !IsExecuting || finalImpactDelivered
             || Time.time < firstImpactAt - ParryLeadSeconds || Time.time > lastImpactAt + .03f)
@@ -159,7 +163,9 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
             bool threatens = ability != null && ability.IsParryable && player != null && player.IsAlive
                 && remaining <= ParryLeadSeconds + .05f
                 && EnemyAttackThreatGeometry.IsLikelyThreatTo(actor, ability, center, player.transform.position);
-            strongWarning.SetRemaining(remaining, threatens);
+            if (ability != null && ability.HasParryMotionWindows)
+                strongWarning.SetParryWindow(remaining, IsParryThreatTo(player), nextImpactIndex);
+            else strongWarning.SetRemaining(remaining, threatens);
         }
     }
     private void EndStrongWarning()
@@ -363,7 +369,8 @@ public sealed class EnemyAbilityController : MonoBehaviour // 선택·쿨다운�
                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, selected.Ability),
                 selected.Ability.ExecutionMode == EnemyAbilityExecutionMode.Charge,
                 true, first, EnemyAttackThreatGeometry.ChargeHalfWidth,
-                EnemyAttackThreatGeometry.ResolveSectorInnerRadius(actor, selected.Ability));
+                EnemyAttackThreatGeometry.ResolveSectorInnerRadius(actor, selected.Ability),
+                deferParrySignal: selected.Ability.HasParryMotionWindows);
         }
         return true;
     }

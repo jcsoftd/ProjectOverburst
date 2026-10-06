@@ -26,6 +26,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private static Camera signalCamera;
     private static readonly HashSet<EnemyStrongAttackWarning> ThreatSignals = new HashSet<EnemyStrongAttackWarning>();
     private bool signalPlayed;
+    private int motionSignalStrike = -1;
+    public int ParrySignalCount { get; private set; }
     private float[] radialSurfaceProfile, radialBorderProfile;
     public void SetRadialProfiles(float[] surfaceProfile, float[] borderProfile)
     { radialSurfaceProfile = surfaceProfile; radialBorderProfile = borderProfile; }
@@ -41,7 +43,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
 
     public void Show(float size, bool canParry, float angle = 360f,
         bool charge = false, bool useTelegraph = true, float leadSeconds = 1f,
-        float halfWidth = .4f, float innerRadius = 0f, GroundIndicatorShape? indicatorShape = null)
+        float halfWidth = .4f, float innerRadius = 0f, GroundIndicatorShape? indicatorShape = null, bool deferParrySignal = false)
     {
         if (visual == null)
         {
@@ -54,6 +56,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         corridorHalfWidth = Mathf.Max(.01f, halfWidth);
         visual.transform.localRotation = Quaternion.identity;
         parryable = canParry; FinalSignal = false; signalPlayed = false;
+        motionSignalStrike = -1; ParrySignalCount = 0;
         if (canParry)
         {
             signalSocketIndex = signalSequence++ % 3;
@@ -67,7 +70,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         EnemyStrongAttackImpactVfx.Prewarm();
         visual.SetActive(true);
         ConfigureTelegraph(size, angle, charge, useTelegraph, leadSeconds, indicatorShape);
-        SetRemaining(leadSeconds);
+        if (deferParrySignal) SetParryWindow(leadSeconds, false, 0);
+        else SetRemaining(leadSeconds);
     }
     private void ConfigureTelegraph(float size, float angle, bool charge, bool enabled,
         float leadSeconds, GroundIndicatorShape? indicatorShape)
@@ -210,6 +214,32 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
             CombatActionSfxService.PlayStrongWarning(transform.position);
         }
         if (signalPlayed) PositionSignal();
+        bool proceduralActive = procedural != null && procedural.gameObject.activeSelf;
+        visual.transform.localScale = proceduralActive ? Vector3.one : new Vector3(radius, 1f, radius);
+        if (proceduralActive) procedural.SetProgress(1f - Mathf.Max(0f, seconds) / warningLeadSeconds);
+    }
+    // The same pooled glint and common warning sound are replayed once per pending strike.
+    public void SetParryWindow(float seconds, bool threatensPlayer, int strike)
+    {
+        if (visual == null) return;
+        FinalSignal = parryable && threatensPlayer;
+        if (FinalSignal) ThreatSignals.Add(this); else ThreatSignals.Remove(this);
+        if (FinalSignal && motionSignalStrike != strike)
+        {
+            motionSignalStrike = strike; ParrySignalCount++; signalPlayed = true;
+            signalFeel?.StopFeedbacks();
+            signalParticles?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            PositionSignal();
+            if (signalParticles != null) signalFeel?.PlayFeedbacks(signalParticles.transform.position);
+            CombatActionSfxService.PlayStrongWarning(transform.position);
+        }
+        if (!FinalSignal && signalPlayed)
+        {
+            signalPlayed = false;
+            signalFeel?.StopFeedbacks();
+            signalParticles?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (FinalSignal) PositionSignal();
         bool proceduralActive = procedural != null && procedural.gameObject.activeSelf;
         visual.transform.localScale = proceduralActive ? Vector3.one : new Vector3(radius, 1f, radius);
         if (proceduralActive) procedural.SetProgress(1f - Mathf.Max(0f, seconds) / warningLeadSeconds);

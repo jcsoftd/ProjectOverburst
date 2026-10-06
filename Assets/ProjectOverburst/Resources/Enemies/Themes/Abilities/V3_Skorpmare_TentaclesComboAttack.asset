@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Skorpmare_TentaclesComboAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.16100678, y: 0.3047619}
+  - {x: 0.32678568, y: 0.5142857}
+  - {x: 0.53630936, y: 0.7238095}
   abilityId: V3_Skorpmare_TentaclesComboAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack3
@@ -45,3 +49,4 @@ MonoBehaviour:
   additionalHitNormalizedTimes:
   - 0.5142857
   - 0.7238095
+  projectilesPerRelease: 1

@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Ghoul_Attack2HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.1742857, y: 0.32}
+  - {x: 0.41249993, y: 0.59999996}
   abilityId: V3_Ghoul_Attack2HitCombo
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
@@ -44,3 +47,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.59999996
+  projectilesPerRelease: 1

@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Kapeloproboskid_TripleBiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.113285705, y: 0.24999999}
+  - {x: 0.2625, y: 0.45}
+  - {x: 0.46249995, y: 0.65}
   abilityId: V3_Kapeloproboskid_TripleBiteAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
@@ -45,3 +49,4 @@ MonoBehaviour:
   additionalHitNormalizedTimes:
   - 0.45
   - 0.65
+  projectilesPerRelease: 1

@@ -12,7 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: DeathHarvest_Reaper_3_scythe3HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.075, y: 0.15}
+  - {x: 0.305, y: 0.38}
+  - {x: 0.525, y: 0.6}
   abilityId: DeathHarvest_Reaper_3_scythe3HitCombo
+  weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
   executionMode: 0
   damage: 19
@@ -44,3 +49,4 @@ MonoBehaviour:
   additionalHitNormalizedTimes:
   - 0.38
   - 0.6
+  projectilesPerRelease: 1

@@ -12,7 +12,7 @@ public enum EnemyAbilityExecutionMode
 }
 
 [CreateAssetMenu(menuName = "OVERBURST/Enemies/Ability Definition", fileName = "EAD_EnemyAbility")]
-public sealed class EnemyAbilityDefinition : ScriptableObject
+public sealed partial class EnemyAbilityDefinition : ScriptableObject
 {
     [SerializeField] private string abilityId;
     [SerializeField] private EnemyWeakAttackExecutionProfile weakAttackExecution;

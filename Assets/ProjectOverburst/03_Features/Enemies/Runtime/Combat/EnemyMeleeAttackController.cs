@@ -88,8 +88,6 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             || !CombatTargetFilter.CanDamage(combatTarget, target)) return false;
         if (ability.HasWeakAttackExecution && ability.WeakAttackExecution.HasContactGeometry)
             return WouldContactGeometryHit(ability,target);
-        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
-            return WouldStrongAreaHitTarget(ability, target);
         Vector3 center = EnemyAttackThreatGeometry.ResolveImpactCenter(actor, ability, attackPoint.position);
         int count = Physics.OverlapSphereNonAlloc(center,
             EnemyAttackThreatGeometry.ResolveRadius(actor, ability),
@@ -836,8 +834,6 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
         float resolvedAngle,
         EnemyAbilityDefinition ability)
     {
-        if (EnemyAttackThreatGeometry.UsesStandardStrongBodyGeometry(actor, ability))
-        { ResolveStandardStrongAreaHit(resolvedDamage, ability); return; }
         damagedTargets.Clear();
         bool weakExecution = activeWeakExecution != null;
         int executionSequence = attackSequenceId, executionPhase = attackPhaseIndex;

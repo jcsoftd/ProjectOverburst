@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: PrimalHunt_Venosaur_Tint_Brown_2HitComboClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.12199999, y: 0.26}
+  - {x: 0.41250002, y: 0.6}
   abilityId: PrimalHunt_Venosaur_Tint_Brown_2HitComboClawsAttack
+  weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
   executionMode: 0
   damage: 10
@@ -43,3 +47,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.6
+  projectilesPerRelease: 1

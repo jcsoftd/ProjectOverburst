@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: VenomBrood_Kupolobrach_Tint_Orange_2HitComboClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.15685713, y: 0.3}
+  - {x: 0.4725, y: 0.66}
   abilityId: VenomBrood_Kupolobrach_Tint_Orange_2HitComboClawsAttack
+  weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack3
   executionMode: 0
   damage: 18
@@ -43,3 +47,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.66
+  projectilesPerRelease: 1
