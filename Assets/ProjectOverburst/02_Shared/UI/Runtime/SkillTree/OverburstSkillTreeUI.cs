@@ -32,7 +32,8 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public RectTransform tooltip;
     public Text tipName, tipMeta, tipTrigger, tipEffect, tipPrerequisites, tipState;
     public bool IsOpen => surface != null && surface.activeSelf;
-    public float Zoom { get; private set; } = 1;
+    public const float DefaultZoom = 1.1f;
+    public float Zoom { get; private set; } = DefaultZoom;
     public Vector2 Pan { get; private set; }
     public string SelectedId { get; private set; } = "ROOT";
     public OverburstSkillTreeCatalog Catalog { get; private set; }
@@ -118,7 +119,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (Application.isPlaying && (OverburstGameMenu.IsOpen || GameplayInputBlocker.IsGameplayInputBlocked)) return;
         returnSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
         entry.gameObject.SetActive(false);
-        surface.SetActive(true); transform.SetAsLastSibling(); FitWindow(); Canvas.ForceUpdateCanvases(); SyncAccount(observedSession != AccountGameplaySession.Current || !CanEdit); ResetMap(); Refresh();
+        surface.SetActive(true); transform.SetAsLastSibling(); FitWindow(); Canvas.ForceUpdateCanvases(); SyncAccount(observedSession != AccountGameplaySession.Current || !CanEdit); ResetDefaultMap(); Refresh();
         if (Application.isPlaying)
         {
             TooltipManager.Instance?.HideTooltip(); GameplayInputBlocker.Block(this);
@@ -181,6 +182,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         HideTooltip(); Pan = anchor - (anchor - Pan) * value / Zoom; Zoom = value; LayoutMap();
     }
     public void SetPan(Vector2 pan) { HideTooltip(); Pan = pan; LayoutMap(); }
+    public void ResetDefaultMap() { HideTooltip(); Zoom = Mathf.Clamp(DefaultZoom, MinimumZoom, 2.5f); Pan = Vector2.zero; LayoutMap(); }
     public void ResetMap() { HideTooltip(); Zoom = FitZoom; Pan = Vector2.zero; LayoutMap(); }
     public void LayoutMap()
     {
@@ -191,7 +193,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             ((RectTransform)view.transform).anchoredPosition = pos;
             view.transform.localScale = Vector3.one * Zoom;
             bool visible = Mathf.Abs(pos.x) < viewport.rect.width / 2 + 110 * Zoom && Mathf.Abs(pos.y) < viewport.rect.height / 2 + 70 * Zoom;
-            view.gameObject.SetActive(visible); if (view.captionRect) view.captionRect.gameObject.SetActive(visible && (Zoom >= .65f || node.id == SelectedId));
+            view.gameObject.SetActive(visible); if (view.captionRect) view.captionRect.gameObject.SetActive(visible && (Zoom >= Mathf.Min(.65f, FitZoom) || node.id == SelectedId));
             if (view.captionRect)
             {
                 view.caption.fontSize = Mathf.Max(10, Mathf.RoundToInt(captionSizes[node.id] * Zoom));
@@ -205,7 +207,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             areaLabels[i].gameObject.SetActive(Zoom >= .5f);
             var label = areaLabels[i].GetComponent<Text>(); label.fontSize = Mathf.RoundToInt(15 * Zoom);
             areaLabels[i].sizeDelta = new Vector2(Mathf.Ceil(label.preferredWidth) + 10 * Zoom, 24 * Zoom);
-            areaLabels[i].anchoredPosition = regions[i] * MapScale + Pan;
+            areaLabels[i].anchoredPosition = regions[i] * 1.12f * MapScale + Pan;
         }
         routes.Configure(Catalog, Plan, MapScale, Pan, rootCanvas.rootCanvas.scaleFactor * window.localScale.x); lastViewport = viewport.rect.size;
         zoomLabel.text = Mathf.RoundToInt(Zoom * 100) + "%"; zoomOut.interactable = Zoom > MinimumZoom + .001f; zoomIn.interactable = Zoom < 2.499f;

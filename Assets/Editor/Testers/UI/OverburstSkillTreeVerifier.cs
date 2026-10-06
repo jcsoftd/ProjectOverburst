@@ -62,7 +62,15 @@ public static class OverburstSkillTreeVerifier
             canvasGo=new GameObject("Owned Native Skill Tree Canvas",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));SceneManager.MoveGameObjectToScene(canvasGo,scene);canvasGo.layer=5;
             var canvas=canvasGo.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=10;
             var scaler=canvasGo.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
-            var go=Object.Instantiate(prefab,canvasGo.transform,false);var ui=go.GetComponent<OverburstSkillTreeUI>();ui.Initialize();ui.Open();ui.HideTooltip();Canvas.ForceUpdateCanvases();ui.FitWindow();ui.ResetMap();ui.Refresh();Canvas.ForceUpdateCanvases();Render(camera,rt);Canvas.ForceUpdateCanvases();Render(camera,rt);
+            var go=Object.Instantiate(prefab,canvasGo.transform,false);var ui=go.GetComponent<OverburstSkillTreeUI>();ui.Initialize();ui.Open();ui.HideTooltip();Canvas.ForceUpdateCanvases();ui.FitWindow();ui.Refresh();Canvas.ForceUpdateCanvases();Render(camera,rt);
+            Require(Mathf.Approximately(ui.Zoom,1.1f)&&ui.Zoom>ui.FitZoom,"Opening zoom is readable 110% above full-map fit "+size);
+            var openingBoxes=new List<KeyValuePair<string,Rect>>();
+            foreach(var node in ui.nodes.Where(n=>n.gameObject.activeInHierarchy)){openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId,Bounds((RectTransform)node.transform)));if(node.captionRect&&node.captionRect.gameObject.activeInHierarchy)openingBoxes.Add(new KeyValuePair<string,Rect>(node.nodeId+":label",Bounds(node.captionRect)));}
+            foreach(var area in ui.areaLabels.Where(n=>n.gameObject.activeInHierarchy))openingBoxes.Add(new KeyValuePair<string,Rect>(area.name,Bounds(area)));
+            var openingOverlaps=new List<string>();for(int i=0;i<openingBoxes.Count;i++)for(int j=i+1;j<openingBoxes.Count;j++)if(Overlap(openingBoxes[i].Value,openingBoxes[j].Value))openingOverlaps.Add(openingBoxes[i].Key+" / "+openingBoxes[j].Key);
+            Require(openingOverlaps.Count==0,"Opening view node/caption/region overlaps 0 "+size+": "+string.Join(", ",openingOverlaps));
+            ReadPixels(rt,Path.Combine(output,"native-default-"+size.x+"x"+size.y+".png"),ref pixels);
+            ui.ResetMap();ui.Refresh();Canvas.ForceUpdateCanvases();Render(camera,rt);Canvas.ForceUpdateCanvases();Render(camera,rt);
             ReadPixels(rt,Path.Combine(output,"native-"+size.x+"x"+size.y+".png"),ref pixels);
             Require(pixels.GetPixels32().Where((v,i)=>i%31==0).Distinct().Take(64).Count()>32,"Native capture contains rendered pixels "+size);
             var boxes=new List<KeyValuePair<string,Rect>>();
@@ -91,6 +99,7 @@ public static class OverburstSkillTreeVerifier
             var cancelBounds=Bounds((RectTransform)ui.cancel.transform);var applyBounds=Bounds((RectTransform)ui.apply.transform);var actionBounds=Bounds((RectTransform)ui.action.transform);
             Require(Mathf.Abs(cancelBounds.yMin-applyBounds.yMin)<.5f&&Mathf.Abs(cancelBounds.height-applyBounds.height)<.5f&&Mathf.Abs(cancelBounds.width-applyBounds.width)<.5f,"Footer buttons share size and baseline "+size);
             Require(!Overlap(cancelBounds,applyBounds)&&actionBounds.yMin>applyBounds.yMax&&Bounds(ui.window).Contains(cancelBounds.min)&&Bounds(ui.window).Contains(applyBounds.max),"Action/footer buttons have spacing and remain inside window "+size);
+            Require(ui.nodes.Where(n=>n.captionRect).All(n=>n.captionRect.gameObject.activeInHierarchy),"Full-map fit retains node captions "+size);
             Require(ui.nodes.All(n=>viewportBounds.Contains(Bounds((RectTransform)n.transform).min)&&viewportBounds.Contains(Bounds((RectTransform)n.transform).max)),"All 53 targets visible at full-map fit "+size);
             Require(ui.nodeName.cachedTextGenerator.characterCountVisible>0,"Native Korean text generated "+size);
             var save=Path.Combine(output,"native-"+size.x+"x"+size.y+".png");ReadPixels(rt,save,ref pixels);

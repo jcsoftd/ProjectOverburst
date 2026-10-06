@@ -123,6 +123,8 @@ public static class OverburstSkillTreePlayVerifier
         var input = PlayerInputFacade.Current; bool gameplay = input.IsGameplayEnabled;
         foreach (var step in Steps(OpenFromMenu())) yield return step;
         Check(GameplayInputBlocker.IsGameplayInputBlocked && !input.IsGameplayEnabled && ui.Plan.Remaining == 0, "Tree owns input and real account budget");
+        Check(Mathf.Approximately(ui.Zoom,1.1f)&&ui.Zoom>ui.FitZoom,"Actual HUD opens expanded 110% default zoom above full-map fit");
+        ui.HideTooltip();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-default.png"));yield return null;
         foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
         int xp = Enumerable.Range(1, 19).Sum(OverburstGrowthRules.ExperienceToNext);
@@ -132,6 +134,12 @@ public static class OverburstSkillTreePlayVerifier
         foreach (var node in ui.nodes)
         {
             ui.HideTooltip(); Canvas.ForceUpdateCanvases(); var rect = (RectTransform)node.transform;
+            var immediateHit=Hit(rect);
+            if(immediateHit!=node.gameObject){
+                bool culledBefore=node.icon.canvasRenderer.cull;var beforePoint=Point(rect);float beforeZoom=ui.Zoom;var diagnosticPan=ui.Pan;
+                yield return null;Canvas.ForceUpdateCanvases();
+                File.WriteAllText(Path.Combine(Output,"raycast-layout-"+node.nodeId+".json"),JsonConvert.SerializeObject(new{node.nodeId,zoom=beforeZoom,pan=new{x=diagnosticPan.x,y=diagnosticPan.y},point=new{x=beforePoint.x,y=beforePoint.y},immediateHit=immediateHit?immediateHit.name:"null",culledBefore,culledAfter=node.icon.canvasRenderer.cull,afterFrameHit=Hit(rect)?Hit(rect).name:"null",active=node.gameObject.activeInHierarchy},Formatting.Indented));
+            }
             Check(Hit(rect) == node.gameObject, "Native node raycast " + node.nodeId);
             ExecuteEvents.Execute(node.gameObject, Pointer(rect), ExecuteEvents.pointerEnterHandler);
             Check(ui.tooltip.gameObject.activeSelf && ui.tipName.text == ui.Catalog.nodes.First(n => n.id == node.nodeId).name, "Native hover " + node.nodeId);
