@@ -82,8 +82,10 @@ public sealed class PlayerParryController : MonoBehaviour
         if (cancelledExecutions.Count > 256) cancelledExecutions.Clear();
         TryParryThreats();
     }
+    private void CloseAcceptanceWindow()
+    { windowOpen = false; feedbackPending = false; pendingContacts.Clear(); }
     public void CloseWindow()
-    { windowOpen = false; feedbackPending = false; pendingContacts.Clear(); perfectContact?.Cancel(); }
+    { CloseAcceptanceWindow(); perfectContact?.Cancel(); }
     private void Update()
     {
         if (!windowOpen) return;
@@ -99,7 +101,7 @@ public sealed class PlayerParryController : MonoBehaviour
         {
             // Stop accepting attacks without dropping an already confirmed contact.
             CompleteParryContact(actionId);
-            CloseWindow();
+            CloseAcceptanceWindow();
         }
         else TryParryThreats();
     }

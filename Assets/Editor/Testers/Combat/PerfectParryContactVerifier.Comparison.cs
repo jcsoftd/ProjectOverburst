@@ -15,6 +15,8 @@ public static partial class PerfectParryContactVerifier
 {
     public static IEnumerator Compare(string output)
     {
+        if (File.Exists(Path.Combine(output, WindowBoundaryRequest)))
+        { yield return WindowBoundary(output); yield break; }
         var actor = PlayerContext.GetOrCreate().CurrentActor;
         var melee = actor.GetComponent<MeleeRuntime>(); var parry = actor.GetComponent<PlayerParryController>();
         var energy = actor.GetComponent<OverburstElementEnergy>(); bool ownEnergy = energy == null;
