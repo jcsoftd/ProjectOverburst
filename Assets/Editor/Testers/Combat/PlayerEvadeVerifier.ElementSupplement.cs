@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using Unity.Collections;
 using UnityEditor.Media;
@@ -64,10 +65,13 @@ public static partial class PlayerEvadeVerifier
         var listeners = new List<Action<CombatHealth, DamageInfo>>();
         var cases = new List<object>();
         var hits = new List<object>();
+        int expectedTakes = elements.Length * (parryOnly ? 3 : 7);
+        bool captureCompleted = false;
         string phase = "setup";
         ElementSupplementMovieRecorder movie = null;
         var previousGem = actor.Equipment.EquippedElementGem;
         float captureDelta = Time.captureDeltaTime;
+        WriteRecordingSummary("Supplement.json", cases, expectedTakes, false, hits);
         try
         {
             Check(EnemyThemeTrialService.InArena, "보강 촬영 실제 시험장");
@@ -128,7 +132,8 @@ public static partial class PlayerEvadeVerifier
                         yield return StartFocusHeavy(phase + " 실제 강공 수락");
                         yield return PresentationAttackEnd(); yield return Wait(1.5f);
                         var take = movie.End(); Check(hits.Count > hitBefore, phase + " 실제 피해");
-                        cases.Add(new { phase, element = element.ToString(), action = "heavy", startingGauge = gauge, endingGauge = energy.Amount, hits = hits.Count - hitBefore, take }); Progress(phase);
+                        cases.Add(new { phase, element = element.ToString(), action = "heavy", startingGauge = gauge, endingGauge = energy.Amount, hits = hits.Count - hitBefore, take });
+                        Check(IsValidRecordedTake(take), phase + " 실제 영상·오디오 촬영 완료"); Progress(phase);
                     }
                     yield return SupplementReset(targets, 2f); phase = "setup_element_states"; yield return SupplementPrime();
                     yield return SupplementReset(targets, 5.7f); SetSupplementGauge(energy, 100);
@@ -137,7 +142,8 @@ public static partial class PlayerEvadeVerifier
                     yield return StartDodge(false, false, true); Send();
                     yield return PresentationAttackEnd(); yield return Wait(1.5f);
                     var dashTake = movie.End(); Check(hits.Count > dashHitBefore, phase + " 실제 대시 강공 피해");
-                    cases.Add(new { phase, element = element.ToString(), action = "dash_heavy", startingGauge = 100, endingGauge = energy.Amount, hits = hits.Count - dashHitBefore, take = dashTake }); Progress(phase);
+                    cases.Add(new { phase, element = element.ToString(), action = "dash_heavy", startingGauge = 100, endingGauge = energy.Amount, hits = hits.Count - dashHitBefore, take = dashTake });
+                    Check(IsValidRecordedTake(dashTake), phase + " 실제 영상·오디오 촬영 완료"); Progress(phase);
 
                 }
 
@@ -174,21 +180,54 @@ public static partial class PlayerEvadeVerifier
                         Check(movie.NormalCollapseSeen && movie.NormalHoldSeen && movie.NormalRecoverSeen, phase + " 현재 일반 무너짐 정지 회복");
                     if (parryOnly && gauge == 100) Check(movie.PerfectStunSeen, phase + " 현재 완벽 기절");
                     if (parryOnly) Check(movie.MinimumApproachSeparation >= -.02f && !movie.EvadeSeen, phase + " 적 관통과 선행 회피 없음");
-                    cases.Add(new { phase, element = element.ToString(), action = "parry", startingGauge = gauge, endingGauge = energy.Amount, success = parry.SuccessCount - successBefore, expectedGrade = PlayerParryController.ResolveGrade(gauge / 100f).ToString(), take }); Progress(phase);
+                    cases.Add(new { phase, element = element.ToString(), action = "parry", startingGauge = gauge, endingGauge = energy.Amount, success = parry.SuccessCount - successBefore, expectedGrade = PlayerParryController.ResolveGrade(gauge / 100f).ToString(), take });
+                    Check(IsValidRecordedTake(take), phase + " 실제 영상·오디오 촬영 완료"); Progress(phase);
                 }
-                File.WriteAllText(Path.Combine(output, "Supplement.json"), JsonConvert.SerializeObject(new { status = "RUNNING", actualPlayer = true, actualHits = true, actualAudio = true, cases, hits }, Formatting.Indented));
+                WriteRecordingSummary("Supplement.json", cases, expectedTakes, false, hits);
             }
-            File.WriteAllText(Path.Combine(output, "Supplement.json"), JsonConvert.SerializeObject(new { status = "PASS", actualPlayer = true, actualHits = true, actualAudio = true, cases, hits }, Formatting.Indented));
+            WriteRecordingSummary("Supplement.json", cases, expectedTakes, true, hits);
+            captureCompleted = true;
         }
         finally
         {
-            Send(); if (movie != null) { movie.End(); UnityEngine.Object.DestroyImmediate(movie); }
-            Time.captureDeltaTime = captureDelta;
-            ReleasePresentationTargets(targets, listeners);
-            typeof(PlayerEquipment).GetMethod("SetElementGem", Private).Invoke(actor.Equipment, new object[] { previousGem });
-            SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); SessionState.EraseBool(ElementSupplementKey + ".ParryOnly");
+            try
+            {
+                if (!captureCompleted) WriteRecordingSummary("Supplement.json", cases, expectedTakes, true, hits, true);
+                Send(); if (movie != null) movie.End();
+            }
+            finally
+            {
+                if (movie != null) UnityEngine.Object.DestroyImmediate(movie);
+                Time.captureDeltaTime = captureDelta;
+                ReleasePresentationTargets(targets, listeners);
+                typeof(PlayerEquipment).GetMethod("SetElementGem", Private).Invoke(actor.Equipment, new object[] { previousGem });
+                SessionState.EraseBool(ElementSupplementKey); SessionState.EraseString(ElementSupplementKey + ".Elements"); SessionState.EraseBool(ElementSupplementKey + ".ParryOnly");
+            }
         }
     }
+    internal static bool IsValidRecordedTake(object take)
+    {
+        if (take == null) return false;
+        if (take is JToken token && token.Type != JTokenType.Object) return false;
+        var data = take as JObject ?? JObject.FromObject(take);
+        return (string)data["status"] == "PASS" && (int?)data["frames"] > 0
+            && (double?)data["audioPeak"] > 0 && (data["error"] == null || data["error"].Type == JTokenType.Null);
+    }
+    internal static JObject RecordingSummary(IEnumerable<object> recordedCases, int expectedTakes, bool final, object hits = null, bool interrupted = false)
+    {
+        var rows = JArray.FromObject(recordedCases);
+        bool complete = !interrupted && expectedTakes > 0 && rows.Count == expectedTakes && rows.All(c => IsValidRecordedTake(c["take"]));
+        return new JObject {
+            ["status"] = final ? (complete ? "PASS" : "FAIL") : "RUNNING",
+            ["expectedTakes"] = expectedTakes, ["actualTakes"] = rows.Count,
+            ["actualAudio"] = final && complete, ["nativeAudio"] = final && complete,
+            ["nativeGameView"] = final && complete, ["actualPlayer"] = rows.Count > 0, ["actualHits"] = rows.Count > 0,
+            ["cases"] = rows, ["hits"] = hits == null ? null : JToken.FromObject(hits),
+            ["error"] = final && !complete ? "Recording is incomplete or includes a failed/missing take." : null
+        };
+    }
+    static void WriteRecordingSummary(string file, IEnumerable<object> recordedCases, int expectedTakes, bool final, object hits = null, bool interrupted = false)
+        => File.WriteAllText(Path.Combine(output, file), RecordingSummary(recordedCases, expectedTakes, final, hits, interrupted).ToString());
     static IEnumerator SupplementReset(List<EnemyActor> targets, float distance)
     {
         Send(); yield return Reset();

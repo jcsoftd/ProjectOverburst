@@ -58,10 +58,13 @@ public static partial class PlayerEvadeVerifier
         var listeners = new List<Action<CombatHealth, DamageInfo>>();
         var hits = new List<ShowcaseHit>();
         var cases = new List<object>();
+        int expectedTakes = elements.Length * 2;
+        bool captureCompleted = false;
         string phase = "warmup";
         ElementSupplementMovieRecorder movie = null;
         var priorGem = actor.Equipment.EquippedElementGem;
         float priorClock = Time.captureDeltaTime;
+        WriteRecordingSummary("Showcase.json", cases, expectedTakes, false);
         try
         {
             Check(EnemyThemeTrialService.InArena, "원소 시연 실제 시험장");
@@ -136,17 +139,27 @@ public static partial class PlayerEvadeVerifier
                     cases.Add(new { phase, element = element.ToString(), action = dash ? "dash_heavy" : "heavy", smallCount, mediumCount,
                         startingGauge = element == WeaponElement.Light ? 200 : 100, startingRadiance, before, primaryCount, derivedCount,
                         darkLaunched = DarkBarrageScheduler.TotalLaunched - launchedBefore, lightFollowups = LightTripleImpactScheduler.DispatchedHitCount - lightBefore, hits = shotHits, take });
-                    File.WriteAllText(Path.Combine(output, "Showcase.json"), JsonConvert.SerializeObject(new { status = "RUNNING", cases }, Formatting.Indented)); Progress(phase);
+                    Check(IsValidRecordedTake(take), phase + " 실제 영상·오디오 촬영 완료");
+                    WriteRecordingSummary("Showcase.json", cases, expectedTakes, false); Progress(phase);
                 }
             }
-            File.WriteAllText(Path.Combine(output, "Showcase.json"), JsonConvert.SerializeObject(new { status = "PASS", nativeGameView = true, nativeAudio = true, cases }, Formatting.Indented));
+            WriteRecordingSummary("Showcase.json", cases, expectedTakes, true);
+            captureCompleted = true;
         }
         finally
         {
-            Send(); if (movie != null) { movie.End(); UnityEngine.Object.DestroyImmediate(movie); }
-            Time.captureDeltaTime = priorClock; ReleasePresentationTargets(targets, listeners);
-            typeof(PlayerEquipment).GetMethod("SetElementGem", Private).Invoke(actor.Equipment, new object[] { priorGem });
-            SessionState.EraseBool(ElementShowcaseKey); SessionState.EraseString(ElementShowcaseKey + ".Elements");
+            try
+            {
+                if (!captureCompleted) WriteRecordingSummary("Showcase.json", cases, expectedTakes, true, null, true);
+                Send(); if (movie != null) movie.End();
+            }
+            finally
+            {
+                if (movie != null) UnityEngine.Object.DestroyImmediate(movie);
+                Time.captureDeltaTime = priorClock; ReleasePresentationTargets(targets, listeners);
+                typeof(PlayerEquipment).GetMethod("SetElementGem", Private).Invoke(actor.Equipment, new object[] { priorGem });
+                SessionState.EraseBool(ElementShowcaseKey); SessionState.EraseString(ElementShowcaseKey + ".Elements");
+            }
         }
     }
     static float[] Vec(Vector3 p) => new[] { p.x, p.y, p.z };

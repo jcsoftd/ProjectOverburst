@@ -25,6 +25,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         public int expectedWeakCases;
         public int[] validationFrameRates;
         public string[] leaseDefinitionPaths;
+        public string[] presentationCaseKeys;
         public bool background, fixedAnimator, stress, savedProfiles, leaseVerification, realPlayerParry, presentationCalibration, undeadCrowdVerification;
         public float captureDelta, fixedDelta, attackSpeed, timeScale;
         public double deadline;
@@ -107,12 +108,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(!outputDirectory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase) || File.Exists(Path.Combine(outputDirectory,"plan.json")))
             throw new ArgumentException("Use a fresh output directory.");
         var selectedBatch = string.IsNullOrEmpty(attackBatch) ? null : JObject.Parse(File.ReadAllText(attackBatch));
+        var presentationCaseKeys = (bool?)selectedBatch?["verifyPresentationCalibration"] == true
+            ? BuildPresentationCaseKeys(selectedBatch) : null;
         var frameRates = selectedBatch?["validationFrameRates"] is JArray configuredRates
             ? configuredRates.Values<int>().ToArray() : new[]{15,30,60};
         if(frameRates.Length==0 || frameRates.Distinct().Count()!=frameRates.Length
             || frameRates.Any(rate=>rate!=15 && rate!=30 && rate!=60))
             throw new ArgumentException("Batch validation frame rates must be distinct 15, 30 or 60.");
-        int presentationCases=((bool?)selectedBatch?["verifyUndeadCrowd"]==true?(((bool?)selectedBatch?["verifyCrowd"]??true)?4:0)+(selectedBatch?["deathDefinitions"] is JArray selectedDeaths?selectedDeaths.Count:4):0)+((bool?)selectedBatch?["verifyPresentationCalibration"]==true?selectedBatch["definitions"].Count()*2:0);
+        int presentationCases=((bool?)selectedBatch?["verifyUndeadCrowd"]==true?(((bool?)selectedBatch?["verifyCrowd"]??true)?4:0)+(selectedBatch?["deathDefinitions"] is JArray selectedDeaths?selectedDeaths.Count:4):0)+(presentationCaseKeys?.Length??0);
         int weakCases=selectedBatch==null?0:selectedBatch["entries"].Where(r=>(string)r["role"]=="weak"
             &&((bool?)r["nativeContactGeometryAuthored"]==true||((string)r["visualType"]=="ranged"||(string)r["visualType"]=="channel")&&(bool?)r["nativeAuthoringComplete"]==true))
             .Sum(r=>(string)r["visualType"]=="ranged"&&(bool?)r["verifyCancelBeforeHit"]==true?2:1)*frameRates.Length+((bool?)selectedBatch?["verifyRakeLocomotion"]==true?3:0);
@@ -120,7 +123,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,presentationCaseKeys=presentationCaseKeys,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -479,11 +482,38 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         yield return null;
     }
 
+    internal static string[] BuildPresentationCaseKeys(JObject batch)
+    {
+        if(!(batch?["definitions"] is JArray paths) || paths.Count==0)
+            throw new ArgumentException("Presentation definitions must be nonempty.");
+        var ids=new HashSet<string>(StringComparer.Ordinal);
+        var assets=new HashSet<string>(StringComparer.Ordinal);
+        foreach(var token in paths)
+        {
+            string path=token.Type==JTokenType.String?(string)token:null;
+            var definition=string.IsNullOrEmpty(path)?null:AssetDatabase.LoadAssetAtPath<EnemyDefinition>(path);
+            if(path==null || !path.StartsWith("Assets/ProjectOverburst/Resources/Enemies/Themes/Definitions/",StringComparison.Ordinal)
+                || definition==null || !definition.IsValid || string.IsNullOrEmpty(definition.EnemyId)
+                || !assets.Add(AssetDatabase.AssetPathToGUID(path)) || !ids.Add(definition.EnemyId))
+                throw new ArgumentException("Presentation definitions must be valid, saved and unique by asset and EnemyId.");
+        }
+        return ids.SelectMany(id=>new[]{id+"|calibrated-walk-run-back-stop",id+"|calibrated-pool-reuse"}).OrderBy(k=>k,StringComparer.Ordinal).ToArray();
+    }
+    internal static bool PresentationCoverageMatches(string[] expected,JArray results,out string reason)
+    {
+        var actual=(results??new JArray()).Where(c=>((string)c["scenario"]??"").StartsWith("calibrated-",StringComparison.Ordinal))
+            .Select(c=>(string)c["id"]+"|"+(string)c["scenario"]).ToArray();
+        bool valid=expected!=null && expected.Length>0 && expected.Distinct(StringComparer.Ordinal).Count()==expected.Length
+            && actual.Length==expected.Length && actual.Distinct(StringComparer.Ordinal).Count()==actual.Length
+            && new HashSet<string>(expected,StringComparer.Ordinal).SetEquals(actual);
+        reason=valid?null:"Presentation case coverage is empty, duplicated, missing or unexpected.";
+        return valid;
+    }
     static void WriteResult(string state)
     {
         if(plan==null)return;
         File.WriteAllText(Path.Combine(plan.directory,"player-loop-results.json"),new JObject{["status"]=state,["failure"]=failure,
-            ["cases"]=cases,["crowdDeathFixture"]=plan.undeadCrowdVerification,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=true,
+            ["cases"]=cases,["expectedPresentationCases"]=plan.presentationCaseKeys==null?null:JArray.FromObject(plan.presentationCaseKeys),["crowdDeathFixture"]=plan.undeadCrowdVerification,["controlledRenderTimeStep"]=true,["measuredPerformanceFps"]=false,["actualAnimatorPhysicsPlayerLoop"]=cases.Count>0,
             ["geometryFixture"]=plan.presentationCalibration?"Saved spawn, locomotion Animator and physics, ground clearance and pool reuse; AI selection disabled":!string.IsNullOrEmpty(plan.themeActivationPath)?"Actual PersistentScene player, seven authored map themes, real field spawn budgets and shared pool":plan.realPlayerParry?"Actual PersistentScene player, dungeon spawn service, saved Actor AI and real accepted heavy/parry":plan.leaseVerification?"Saved spawn service, catalog, AI, abilities and pool; actual saved player physical capsule and separate combat volume":plan.savedProfiles?"Saved actor/ability/profile/controller; native player-sized capsule at approach boundary":"Controlled oversized target; native authored shapes, reach10 only in memory",
             ["savedProfiles"]=plan.savedProfiles,["actorLeaseVerification"]=plan.leaseVerification,["testDefinition"]=plan.testDefinition,["leaseDefinitionPaths"]=plan.leaseDefinitionPaths==null?null:JArray.FromObject(plan.leaseDefinitionPaths),["realPlayerParry"]=plan.realPlayerParry&&string.IsNullOrEmpty(plan.themeActivationPath),["nativeAttackBatch"]=plan.attackBatch,["themeActivationPlan"]=plan.themeActivationPath,["fullGameRosterApplied"]=false,["newAudioApplied"]=false}.ToString());
     }
@@ -492,7 +522,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         activeParryCapture?.Dispose();activeParryCapture=null;
         if(plan==null)return;
         if(error!=null)failure=error;
-        WriteResult(error==null && cases.Count==(!string.IsNullOrEmpty(plan.themeActivationPath)?7:!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?(plan.leaseDefinitionPaths?.Length??1):plan.leaseVerification?(plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Length*2:string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
+        if(plan.presentationCalibration && !PresentationCoverageMatches(plan.presentationCaseKeys,cases,out string coverageError))
+        { failure=string.IsNullOrEmpty(failure)?coverageError:failure+"\n"+coverageError; error=failure; }
+        WriteResult(error==null && cases.Count>0 && cases.Count==(!string.IsNullOrEmpty(plan.themeActivationPath)?7:!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?(plan.leaseDefinitionPaths?.Length??1):plan.leaseVerification?(plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Length*2:string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
         plan.phase="returning";plan.deadline=EditorApplication.timeSinceStartup+120;Save();
         if(OwnPlay)EditorApplication.ExitPlaymode();
     }

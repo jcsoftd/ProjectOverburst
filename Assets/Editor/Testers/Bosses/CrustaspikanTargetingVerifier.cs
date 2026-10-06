@@ -23,6 +23,7 @@ public static class CrustaspikanTargetingVerifier
     private static bool running, baseline, beganAttack, strikeSeen, lockProbeMoved;
     private static bool sawCue, sawCueAudio, sawFirstComboCue;
     private static int stage, caseIndex, failures, damageHits, commits, misalignedCommits, initialCompositeReleases, parriesBefore;
+    private static int initialMaterialCompletions, initialCompositeCompletions, expectedMaterialCompletions, expectedCompositeCompletions;
     private static float stageAt, gameAt, caseAt, nextSample, startAngle, startHp, observedCommitAt;
     private static bool parryRequested, firstComboThreat;
     private static Quaternion committedRotation;
@@ -188,15 +189,20 @@ public static class CrustaspikanTargetingVerifier
                     Check(Quaternion.Angle(committedRotation, encounter.Brain.Actor.transform.rotation) < 2f, "committed melee direction permits dodge");
                 else if (caseIndex < 14) Check(damageHits > 0, label + " deals actual player damage", new { damageHits, hpLost = startHp - player.Health.CurrentHp });
                 Check(strikeSeen, label + " reaches actual strike event");
-                Check(string.IsNullOrEmpty(material.LastFailure), label + " executor completes", material.LastFailure);
-                Check(string.IsNullOrEmpty(encounter.Brain.Composite.LastFailure), label + " composite executor completes", encounter.Brain.Composite.LastFailure);
+                bool timedOut = Time.time - caseAt > 18f;
+                Check(!timedOut && ExecutionCompleted(initialMaterialCompletions, material.CompletedCount, expectedMaterialCompletions, material.LastFailure),
+                    label + " executor completes", new { before = initialMaterialCompletions, after = material.CompletedCount, expected = expectedMaterialCompletions, timedOut, material.LastFailure });
+                Check(!timedOut && ExecutionCompleted(initialCompositeCompletions, encounter.Brain.Composite.CompletedCount, expectedCompositeCompletions, encounter.Brain.Composite.LastFailure),
+                    label + " composite executor completes", new { before = initialCompositeCompletions, after = encounter.Brain.Composite.CompletedCount, expected = expectedCompositeCompletions, timedOut, encounter.Brain.Composite.LastFailure });
                 if (!baseline && (caseIndex < 5 && label != "combo" || label.StartsWith("turn_hand")))
                 {
                     Check(sawCue, label + " actual parry flash particle");
                     Check(sawCueAudio, label + " actual parry warning sound voice");
                 }
                 if (!baseline && label == "combo") Check(!sawFirstComboCue, "combo first hit gives no parry cue");
-                cases.Add(new { label, startAngle, damageHits, strikeSeen, lockProbeMoved, sawCue, sawCueAudio, sawFirstComboCue });
+                cases.Add(new { label, startAngle, damageHits, strikeSeen, lockProbeMoved, sawCue, sawCueAudio, sawFirstComboCue,
+                    materialCompletions = material.CompletedCount - initialMaterialCompletions, expectedMaterialCompletions,
+                    compositeCompletions = encounter.Brain.Composite.CompletedCount - initialCompositeCompletions, expectedCompositeCompletions, timedOut });
                 caseIndex++;
                 int length = baseline ? 5 : patterns.Length;
                 if (caseIndex < length) { PrepareCase(); stageAt = Time.realtimeSinceStartup; Write("RUNNING", ""); return; }
@@ -315,10 +321,26 @@ public static class CrustaspikanTargetingVerifier
         ResetBoss(angles[caseIndex], distances[caseIndex]); label = patterns[caseIndex];
         beganAttack = strikeSeen = lockProbeMoved = false; damageHits = 0; startAngle = -1; startHp = player.Health.CurrentHp;
         sawCue = sawCueAudio = sawFirstComboCue = false;
+        initialMaterialCompletions = material.CompletedCount;
+        initialCompositeCompletions = encounter.Brain.Composite.CompletedCount;
+        expectedMaterialCompletions = expectedCompositeCompletions = 0;
+        var pattern = encounter.Settings.patterns.Single(p => p.id == label);
+        foreach (var step in pattern.steps)
+        {
+            if (step.kind != CrustaspikanStepKind.Attack && step.kind != CrustaspikanStepKind.ThrowElite) continue;
+            string clip = step.kind == CrustaspikanStepKind.ThrowElite ? "ThrowRock" : step.materialOrMotion;
+            var attack = encounter.Brain.RuntimeMaterials.attacks.Single(a => a.runtimeClip.name == clip);
+            if (encounter.Brain.Composite.Supports(attack.ability)) expectedCompositeCompletions++;
+            else if (material.Supports(attack.ability)) expectedMaterialCompletions++;
+            else throw new InvalidOperationException("No executor supports " + clip);
+        }
+        Check(expectedMaterialCompletions + expectedCompositeCompletions > 0, label + " has expected attack executions");
         caseAt = Time.time; Check(encounter.Brain.StartPatternForReview(label), label + " starts assembly");
         initialCompositeReleases = encounter.Brain.Composite.ReleaseCount;
     }
     private static void Released(EnemyBossAttackMaterial attack, int strike) { strikeSeen = true; }
+    internal static bool ExecutionCompleted(int before, int after, int expected, string error)
+        => expected >= 0 && after - before == expected && string.IsNullOrEmpty(error);
     private static void Damaged(CombatHealth health, DamageInfo info, float amount, bool fatal)
     { if (amount > 0f && encounter?.Brain != null && info.source == encounter.Brain.Actor.gameObject) damageHits++; }
     private static void Unsubscribe()
