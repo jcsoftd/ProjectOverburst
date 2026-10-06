@@ -154,11 +154,17 @@ public static partial class PlayerEvadeVerifier
                 targets.Add(elite); leased.Add(elite); elite.AI.enabled = false; elite.Movement.StopMovement(); elite.Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 elite.AbilityController.Configure(abilitySet, .1f, 1);
                 var parry = actor.GetComponent<PlayerParryController>();
+                var parryDamage = new List<DamageInfo>();
+                Action<CombatHealth, DamageInfo> parryListener = (hp, damage) => {
+                    parryDamage.Add(damage);
+                    hits.Add(new { phase, frame = movie.FrameCount, target = elite.GetInstanceID(), kind = damage.playerAttackKind.ToString(), primary = damage.triggersOnHitEffects, attackPhase = damage.sourceAttackPhaseIndex, dot = damage.isDamageOverTime, reaction = damage.elementalReactionType.ToString(), critical = damage.isCritical, hp = hp.CurrentHp });
+                };
+                listeners.Add(parryListener); elite.Health.OnDamaged += parryListener;
                 movie.BindParryTarget(elite);
                 foreach (int gauge in parryOnly ? new[] { 100, 50, 0 } : new[] { 0, 50, 100 })
                 {
                     yield return SupplementReset(targets, range); actor.Health.ResetHealth(); SetSupplementGauge(energy, gauge);
-                    phase = element + "_parry_" + gauge; int successBefore = parry.SuccessCount;
+                    phase = element + "_parry_" + gauge; int successBefore = parry.SuccessCount; parryDamage.Clear();
                     movie.Begin(Path.Combine(output, "Raw", phase), phase, gauge); yield return Wait(.8f);
                     Check(elite.AbilityController.TryStart(actor.transform), phase + " 실제 적 공격 시작");
                     float threatEnd = Time.unscaledTime + 6;
@@ -178,9 +184,21 @@ public static partial class PlayerEvadeVerifier
                     Check(parry.ActionGrade == PlayerParryController.ResolveGrade(gauge / 100f), phase + " 실제 패링 등급");
                     if (parryOnly && gauge == 50)
                         Check(movie.NormalCollapseSeen && movie.NormalHoldSeen && movie.NormalRecoverSeen, phase + " 현재 일반 무너짐 정지 회복");
-                    if (parryOnly && gauge == 100) Check(movie.PerfectStunSeen, phase + " 현재 완벽 기절");
+                    if (parryOnly && gauge == 100)
+                        Check(movie.PerfectStunSeen && movie.PerfectContactCount == 1 && movie.PerfectAfterimageCount > 0, phase + " 현재 완벽 기절·금속 접촉·검 잔상");
+                    if (parryOnly && gauge == 0)
+                    {
+                        var weakDamage = parryDamage.Where(d => (d.playerAttackKind & PlayerAttackKind.Weak) != 0
+                            && !d.isDamageOverTime && d.elementalReactionType == ElementalReactionType.None).ToArray();
+                        Check(weakDamage.Length == 1 && weakDamage[0].sourceAttackPhaseIndex == 0
+                            && !parryDamage.Any(d => (d.playerAttackKind & PlayerAttackKind.Heavy) != 0), phase + " 현재 불완전 약공 반격 1타");
+                        float gain = CombatBalanceFormulas.PhaseEnergyGain(OverburstElementTuning.Current,
+                            weakDamage[0].isCritical, FlaskCombatModifiers.Bonus(actor.gameObject, FlaskEffect.EnergyGain));
+                        Check(Mathf.Abs(energy.Amount - Mathf.Min(energy.Capacity, gain)) < .01f, phase + " 약공 반격 정상 게이지 획득");
+                        Check(movie.IncompleteCounterSeen && movie.MaximumIncompleteClipProgress >= .98f, phase + " 불완전 전체 클립 끝까지 재생");
+                    }
                     if (parryOnly) Check(movie.MinimumApproachSeparation >= -.02f && !movie.EvadeSeen, phase + " 적 관통과 선행 회피 없음");
-                    cases.Add(new { phase, element = element.ToString(), action = "parry", startingGauge = gauge, endingGauge = energy.Amount, success = parry.SuccessCount - successBefore, expectedGrade = PlayerParryController.ResolveGrade(gauge / 100f).ToString(), take });
+                    cases.Add(new { phase, element = element.ToString(), action = "parry", startingGauge = gauge, endingGauge = energy.Amount, success = parry.SuccessCount - successBefore, expectedGrade = PlayerParryController.ResolveGrade(gauge / 100f).ToString(), counterHits = parryDamage.Count, take });
                     Check(IsValidRecordedTake(take), phase + " 실제 영상·오디오 촬영 완료"); Progress(phase);
                 }
                 WriteRecordingSummary("Supplement.json", cases, expectedTakes, false, hits);
@@ -273,6 +291,15 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
     MeleeRuntime melee;
     PlayerEvadeController evade;
     bool ownsAudio;
+    PlayerAnimation playerAnimation;
+    PerfectParryContactPresenter contactPresenter;
+    PerfectParryWeaponAfterimage weaponAfterimage;
+    int contactAtStart, afterimagesAtStart;
+    readonly System.Reflection.FieldInfo incompleteCounter = typeof(MeleeRuntime).GetField("incompleteParryCounterConfigured", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+    public bool IncompleteCounterSeen { get; private set; }
+    public float MaximumIncompleteClipProgress { get; private set; }
+    public int PerfectContactCount => contactPresenter != null ? contactPresenter.MainCount - contactAtStart : 0;
+    public int PerfectAfterimageCount => weaponAfterimage != null ? weaponAfterimage.CapturedCount - afterimagesAtStart : 0;
     EnemyActor parryTarget;
     Vector3 startingPlayerPosition;
     Vector3 initialApproachDirection;
@@ -293,13 +320,19 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
     readonly List<object> frames = new List<object>();
     public int FrameCount { get; private set; }
     public void Bind(PlayerActorRuntime a, OverburstElementEnergy e, MeleeRuntime m, PlayerEvadeController v)
-    { actor = a; energy = e; melee = m; evade = v; }
+    { actor = a; energy = e; melee = m; evade = v;
+        playerAnimation = (PlayerAnimation)typeof(MeleeRuntime).GetField("playerAnimatorController", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(m);
+        contactPresenter = a.GetComponent<PerfectParryContactPresenter>(); weaponAfterimage = a.GetComponent<PerfectParryWeaponAfterimage>();
+    }
     public void Begin(string path, string shot, int gauge)
     {
         if (encoder != null) throw new InvalidOperationException("Previous shot still owned.");
         directory = path; phase = shot; startingGauge = gauge; Directory.CreateDirectory(path);
         error = null; FrameCount = 0; samples = 0; peak = 0; frames.Clear();
         NormalCollapseSeen = NormalHoldSeen = NormalRecoverSeen = PerfectStunSeen = false;
+        IncompleteCounterSeen = false; MaximumIncompleteClipProgress = 0f;
+        contactAtStart = contactPresenter != null ? contactPresenter.MainCount : 0;
+        afterimagesAtStart = weaponAfterimage != null ? weaponAfterimage.CapturedCount : 0;
         startingPlayerPosition = actor.transform.position;
         initialApproachDirection = parryTarget != null ? parryTarget.transform.position - startingPlayerPosition : Vector3.zero;
         initialApproachDirection.y = 0f; initialApproachDirection.Normalize();
@@ -356,12 +389,17 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
                     NormalRecoverSeen |= normalReacting && recover;
                     PerfectStunSeen |= stunned;
                 }
+                bool incompleteActive = incompleteCounter != null && (bool)incompleteCounter.GetValue(melee);
+                float nativeParryProgress = 0f;
+                bool nativeParrySample = playerAnimation != null && playerAnimation.TryGetHeavyParryClipProgress(out nativeParryProgress);
+                IncompleteCounterSeen |= incompleteActive;
+                if (incompleteActive && nativeParrySample) MaximumIncompleteClipProgress = Mathf.Max(MaximumIncompleteClipProgress, nativeParryProgress);
                 Vector3 position = actor.transform.position;
                 Vector3 enemyPosition = parryTarget != null ? parryTarget.transform.position : position;
                 float approachSeparation = parryTarget != null ? Vector3.Dot(enemyPosition - position, initialApproachDirection) : 0f;
                 MinimumApproachSeparation = Mathf.Min(MinimumApproachSeparation, approachSeparation);
                 EvadeSeen |= evade.IsEvading;
-                frames.Add(new { index = FrameCount, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString(), playerX = position.x, playerY = position.y, playerZ = position.z, enemyX = enemyPosition.x, enemyY = enemyPosition.y, enemyZ = enemyPosition.z, approachSeparation, counterMoving = counterMovement != null && (bool)counterMovement.GetValue(melee), parryStage = parryStage?.GetValue(melee)?.ToString(), attackProgress = melee.IsAttackInProgress && attackProgress != null ? (float)attackProgress.Invoke(melee, null) : 0f, collapse, recover, normalReacting, stunned, enemySpeed, enemyProgress });
+                frames.Add(new { index = FrameCount, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString(), playerX = position.x, playerY = position.y, playerZ = position.z, enemyX = enemyPosition.x, enemyY = enemyPosition.y, enemyZ = enemyPosition.z, approachSeparation, counterMoving = counterMovement != null && (bool)counterMovement.GetValue(melee), parryStage = parryStage?.GetValue(melee)?.ToString(), attackProgress = melee.IsAttackInProgress && attackProgress != null ? (float)attackProgress.Invoke(melee, null) : 0f, incompleteActive, nativeParrySample, nativeParryProgress, perfectContactCount = PerfectContactCount, perfectAfterimageCount = PerfectAfterimageCount, afterimageActive = weaponAfterimage != null ? weaponAfterimage.ActiveCount : 0, afterimageEmitting = weaponAfterimage != null && weaponAfterimage.IsEmitting, collapse, recover, normalReacting, stunned, enemySpeed, enemyProgress });
                 if (FrameCount == 0) File.WriteAllBytes(Path.Combine(directory, "first.png"), texture.EncodeToPNG());
                 FrameCount++;
             }
@@ -386,7 +424,7 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
                 if (texture != null) { DestroyImmediate(texture); texture = null; }
             }
         }
-        var result = new { status = error == null && FrameCount > 0 && peak > 0 ? "PASS" : "FAIL", phase, startingGauge, frames = FrameCount, fps = Fps, duration = FrameCount / (float)Fps, audioSamples = samples, audioPeak = peak, error, nativeAudio = true, productHud = true, normalCollapseSeen = NormalCollapseSeen, normalHoldSeen = NormalHoldSeen, normalRecoverSeen = NormalRecoverSeen, perfectStunSeen = PerfectStunSeen, minimumApproachSeparation = MinimumApproachSeparation, evadeSeen = EvadeSeen, playerTravel = Vector3.Distance(startingPlayerPosition, actor.transform.position) };
+        var result = new { status = error == null && FrameCount > 0 && peak > 0 ? "PASS" : "FAIL", phase, startingGauge, frames = FrameCount, fps = Fps, duration = FrameCount / (float)Fps, audioSamples = samples, audioPeak = peak, error, nativeAudio = true, productHud = true, normalCollapseSeen = NormalCollapseSeen, normalHoldSeen = NormalHoldSeen, normalRecoverSeen = NormalRecoverSeen, perfectStunSeen = PerfectStunSeen, perfectContactCount = PerfectContactCount, perfectAfterimageCount = PerfectAfterimageCount, incompleteCounterSeen = IncompleteCounterSeen, maximumIncompleteClipProgress = MaximumIncompleteClipProgress, minimumApproachSeparation = MinimumApproachSeparation, evadeSeen = EvadeSeen, playerTravel = Vector3.Distance(startingPlayerPosition, actor.transform.position) };
         File.WriteAllText(Path.Combine(directory, "take.json"), JsonConvert.SerializeObject(result, Formatting.Indented));
         File.WriteAllText(Path.Combine(directory, "frames.json"), JsonConvert.SerializeObject(frames));
         if (error != null) throw new InvalidOperationException(error);
