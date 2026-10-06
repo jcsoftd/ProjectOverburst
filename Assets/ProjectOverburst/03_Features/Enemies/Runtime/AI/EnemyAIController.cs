@@ -397,9 +397,11 @@ public sealed partial class EnemyAIController : MonoBehaviour // 적 상태 조�
             : meleeAttack != null && meleeAttack.IsAttacking;
     }
 
-    internal bool IsCommittedAttackPlaying => abilityController != null && abilityController.UsesCommittedAim
-        && (abilityController.IsExecuting || (animationBridge != null && animationBridge.BlocksAttackStart)
-            || (movement != null && movement.IsActionLocked));
+    // A started attack owns its animation tail for every locomotion profile.
+    // Aim style only chooses where it strikes; it cannot shorten a missed swing.
+    internal bool IsCommittedAttackPlaying => IsAttackInProgress()
+        || (animationBridge != null && animationBridge.BlocksAttackStart)
+        || (movement != null && movement.IsActionLocked);
 
     internal float AttackTargetDistance
     {

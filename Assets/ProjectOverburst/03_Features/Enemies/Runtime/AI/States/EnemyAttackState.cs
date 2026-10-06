@@ -33,8 +33,15 @@ public sealed class EnemyAttackState : IEnemyState // 플레이어 근접 공격
 
         // A target leaving the aimed point is a miss, not a request to cancel
         // the committed animation and chase it before the swing/release ends.
-        if (attackStarted && owner.IsCommittedAttackPlaying)
+        if (attackStarted)
+        {
+            if (owner.IsCommittedAttackPlaying)
+                return;
+
+            // A miss still completes the existing recovery before chasing.
+            owner.ChangeToCombatWait(owner.BehaviorProfile.RecoveryDuration);
             return;
+        }
 
         if (owner.IsTargetBeyond(owner.AttackExitRange))
         {
@@ -42,7 +49,7 @@ public sealed class EnemyAttackState : IEnemyState // 플레이어 근접 공격
             return; // 전환 후 공격 중단
         }
 
-        if (!attackStarted || !owner.IsAttackInProgress())
+        if (!attackStarted)
             owner.ChangeToCombatWait(owner.BehaviorProfile.RecoveryDuration); // 공격 후 판단 빈틈
     }
 

@@ -16,7 +16,7 @@ MonoBehaviour:
   runtimeController: {fileID: 9100000, guid: ce048f0f4d501a942b4e5d63dc51b44a, type: 2}
   idle: {fileID: 7400000, guid: 3e657145eb459f548a4419f888b24b7f, type: 3}
   walk: {fileID: 7400000, guid: 136987a8c73f66f4baab10d195528a51, type: 3}
-  run: {fileID: 7400000, guid: d1cdf5da9bfe4524881e506d53229ef0, type: 3}
+  run: {fileID: 7400000, guid: 136987a8c73f66f4baab10d195528a51, type: 3}
   attackClips:
   - {fileID: 7400000, guid: 534c4578827f2cd4787dd262b7a1d210, type: 3}
   - {fileID: 7400000, guid: 10ad53754b0d33742910a8310f0e5bc1, type: 3}

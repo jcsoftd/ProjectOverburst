@@ -16,7 +16,7 @@ MonoBehaviour:
   moveSpeed: 1.3
   turnSpeed: 420
   animationReferenceSpeed: 2.1283545
-  runAnimationReferenceSpeed: 13.947582
+  runAnimationReferenceSpeed: 2.1283545
   backpedalAnimationReferenceSpeed: 2.1283545
   runSpeedMultiplier: 1.6153846
   dodgeSpeedMultiplier: 2.2
