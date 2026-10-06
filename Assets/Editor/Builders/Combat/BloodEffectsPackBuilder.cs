@@ -208,14 +208,14 @@ public static class BloodEffectsPackBuilder
             colorButton.GetComponentInChildren<TMP_Text>().fontSize = 19;
             so.FindProperty("colorButton").objectReferenceValue = colorButton;
             so.FindProperty("colorCaption").objectReferenceValue = colorButton.GetComponentInChildren<TMP_Text>();
-            var tuningButton = RunUiLayout.Button(root.transform, "BloodTuningToggle", "크기 · 색상 조절", font, null, 0, 0, 232, 32, null);
+            var tuningButton = RunUiLayout.Button(root.transform, "BloodTuningToggle", "크기 · 밝기 조절", font, null, 0, 0, 232, 32, null);
             TopLeft(tuningButton, 16, -408); tuningButton.GetComponentInChildren<TMP_Text>().fontSize = 17;
             tuningButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            var panel = RunUiLayout.Image(root.transform, "BloodTuningPanel", null, new Color(.10f,.11f,.13f,.96f), 0, 0, 332, 344);
+            var panel = RunUiLayout.Image(root.transform, "BloodTuningPanel", null, new Color(.10f,.11f,.13f,.96f), 0, 0, 332, 224);
             TopLeft(panel, 16, -448); panel.raycastTarget = true;
             so.FindProperty("tuningButton").objectReferenceValue = tuningButton;
             so.FindProperty("tuningPanel").objectReferenceValue = panel.gameObject;
-            string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기", "바닥 빨강 (R)", "바닥 초록 (G)", "바닥 파랑 (B)" };
+            string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기" };
             var minus = so.FindProperty("decreaseButtons"); var plus = so.FindProperty("increaseButtons"); var values = so.FindProperty("valueCaptions");
             minus.arraySize = plus.arraySize = values.arraySize = names.Length;
             for (int i = 0; i < names.Length; i++)
@@ -236,7 +236,7 @@ public static class BloodEffectsPackBuilder
                 values.GetArrayElementAtIndex(i).objectReferenceValue = value;
             }
             var reset = RunUiLayout.Button(panel.transform, "ResetTuning", "현재 버전 초기화", font, null, 0, 0, 308, 30, null);
-            TopLeft(reset, 12, -302); reset.GetComponentInChildren<TMP_Text>().fontSize = 16;
+            TopLeft(reset, 12, -182); reset.GetComponentInChildren<TMP_Text>().fontSize = 16;
             reset.navigation = new Navigation { mode = Navigation.Mode.None };
             so.FindProperty("resetButton").objectReferenceValue = reset;
             panel.gameObject.SetActive(false);

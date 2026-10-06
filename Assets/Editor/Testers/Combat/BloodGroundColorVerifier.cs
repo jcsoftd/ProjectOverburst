@@ -124,13 +124,12 @@ public static partial class SettingsPresentationVerifier
                     Check(projector.material==originalMaterial,"live brightness adjustment reuses material "+style);
                     Check(material.GetColor(tintProperty).r>beforeBrightness,"live brightness reaches rendered material "+style);
                     Check(Mathf.Approximately(BloodComparisonTuning.GroundBrightness,style==BloodEffectStyle.EffectsPack?.9f:1.1f),"existing 0.1 brightness adjustment "+style);
-                    float beforeRed=material.GetColor(tintProperty).r;
+                    Color beforeScaleTint=material.GetColor(tintProperty);
                     float beforeSize=projector.size.x;
-                    BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundRed,1);
                     BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundScale,1);
                     yield return Frames(3);
-                    Check(projector.material==originalMaterial,"RGB and scale adjustments reuse material "+style);
-                    Check(material.GetColor(tintProperty).r>beforeRed,"live red adjustment reaches rendered material "+style);
+                    Check(projector.material==originalMaterial,"scale adjustment reuses material "+style);
+                    Check(material.GetColor(tintProperty)==beforeScaleTint,"size adjustment keeps approved fixed tint "+style);
                     Check(projector.size.x>beforeSize,"live scale adjustment reaches projector "+style);
                 }
                 ground.ClearForComparison(); yield return Frames(2);
@@ -144,4 +143,40 @@ public static partial class SettingsPresentationVerifier
             Object.DestroyImmediate(floor);owned.Remove(floor);Object.DestroyImmediate(surface);
         }
     }
+    static IEnumerator VerifyFixedBloodSettings()
+    {
+        Check(Enum.GetValues(typeof(BloodComparisonTuning.Control)).Length==4,"only four size and brightness controls remain");
+        var menu=OverburstGameMenu.Instance; menu.Open(); menu.OpenSettings(); yield return Frames(3);
+        var panel=menu.settings; panel.tabs[2].isOn=true; yield return Frames(3);
+        Check(panel.bloodRows.Length==4 && panel.combatScroll.content.childCount==18,"formal menu removes three RGB rows");
+        Check(Mathf.Approximately(panel.combatScroll.content.sizeDelta.y,2688f),"shorter settings content has no removed-row gap");
+        Check(panel.combatScroll.content.GetComponentsInChildren<UnityEngine.UI.Text>(true).All(t=>!t.text.Contains("바닥 빨강") && !t.text.Contains("바닥 초록") && !t.text.Contains("바닥 파랑")),"no RGB captions remain");
+        var color=new Color(.5f,.137f,.153f);
+        foreach(var style in new[]{BloodEffectStyle.Legacy,BloodEffectStyle.EffectsPack,BloodEffectStyle.Volumetric})
+        {
+            panel.bloodStyle.SelectOptionByIndex((int)style); yield return Frames(3);
+            var fixedColor=BloodComparisonTuning.GroundColor(color);
+            var expected=color.linear; expected.r*=style==BloodEffectStyle.EffectsPack?1.7f*.8f:1f; expected.g*=style==BloodEffectStyle.EffectsPack?.8f:1f; expected.b*=style==BloodEffectStyle.EffectsPack?.8f:1f;
+            Check((new Vector3(fixedColor.r,fixedColor.g,fixedColor.b)-new Vector3(expected.r,expected.g,expected.b)).sqrMagnitude<.000001f,"legacy extreme RGB ignored; approved tint used "+style);
+            Check(!JsonUtility.ToJson(new BloodComparisonTuning.Values(style==BloodEffectStyle.EffectsPack)).Contains("groundRgb"),"RGB field omitted from saved values "+style);
+            SetScroll(panel.combatScroll,.2f); yield return Frames(3); float bookmark=panel.combatScroll.verticalNormalizedPosition;
+            float scale=BloodComparisonTuning.Scale; yield return Click(panel.bloodRows[0].increase);
+            Check(Mathf.Approximately(BloodComparisonTuning.Scale,scale+.1f) && Mathf.Abs(panel.combatScroll.verticalNormalizedPosition-bookmark)<.01f,"remaining size button uses0.1 and keeps scroll "+style);
+            SetScroll(panel.combatScroll,0f);yield return Frames(3);
+            float brightness=BloodComparisonTuning.GroundBrightness; yield return Click(panel.bloodRows[3].increase);
+            Check(Mathf.Approximately(BloodComparisonTuning.GroundBrightness,brightness+.1f),"remaining floor brightness button uses0.1 "+style);
+            ScreenCapture.CaptureScreenshot(Path.Combine(output,"fixed-settings-"+style+".png"));yield return Frames(2);
+            yield return Click(panel.bloodResetButton);
+            Check(Mathf.Approximately(BloodComparisonTuning.Scale,scale) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness,brightness),"reset restores approved defaults "+style);
+        }
+        var temp=TemporaryBloodComparisonToggle.CreateForTesting();owned.Add(temp.gameObject);
+        Check(temp.ValueCaptions.Length==4 && temp.DecreaseButtons.Length==4 && temp.IncreaseButtons.Length==4,"explicit preview also has four controls");
+        temp.ToggleTuning();yield return Frames(3);ScreenCapture.CaptureScreenshot(Path.Combine(output,"fixed-preview.png"));yield return Frames(2);
+        var temporaryRoot=temp.gameObject; owned.Remove(temporaryRoot); Object.DestroyImmediate(temporaryRoot);
+        menu.CloseSettings();menu.Close();OverburstGameSettings.SaveIfDirty();yield return Frames(3);
+        var json=Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(OverburstGameSettings.FilePath));
+        Check(new[]{"bloodA","bloodB","bloodC"}.All(k=>json[k]["groundRgb"]==null),"saved file drops RGB while keeping all styles");
+        yield return VerifyBloodGroundColor();
+    }
+
 }

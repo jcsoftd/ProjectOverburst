@@ -40,19 +40,24 @@ public static partial class OverburstGameMenuBuilder
         panel.bloodStyle.SelectOptionByIndex(0);
         panel.bloodPalette.options.Clear(); panel.bloodPalette.options.AddRange(new[] { "몬스터별 색상", "전체 붉은색" });
         panel.bloodPalette.SelectOptionByIndex(0);
-        if (panel.bloodRows == null || panel.bloodRows.Length != 7)
+        var previousRows = panel.bloodRows ?? Array.Empty<OverburstSettingsNumberRow>();
+        var retainedRows = previousRows.Where(row => row && (int)row.control < 4).ToArray();
+        panel.bloodRows = new OverburstSettingsNumberRow[4];
+        string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기" };
+        string[] descriptions = { "비산·이동 핏방울·바닥에 함께 적용합니다", "공중에 흩어지는 혈흔의 밝기", "전체 크기에 추가로 곱하는 바닥 자국 배율", "이미 생긴 자국에도 밝기를 적용합니다" };
+        for (int i = 0; i < panel.bloodRows.Length; i++)
         {
-            string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기", "바닥 빨강 (R)", "바닥 초록 (G)", "바닥 파랑 (B)" };
-            string[] descriptions = { "비산·이동 핏방울·바닥에 함께 적용합니다", "공중에 흩어지는 혈흔의 밝기", "전체 크기에 추가로 곱하는 바닥 자국 배율", "이미 생긴 자국에도 밝기를 적용합니다", "프로필 색의 빨강 성분 배율", "프로필 색의 초록 성분 배율", "프로필 색의 파랑 성분 배율" };
-            panel.bloodRows = new OverburstSettingsNumberRow[7];
-            for (int i = 0; i < 7; i++) panel.bloodRows[i] = BloodNumberRow(list, names[i], descriptions[i], (BloodComparisonTuning.Control)i);
+            var control = (BloodComparisonTuning.Control)i;
+            panel.bloodRows[i] = retainedRows.FirstOrDefault(row => row.control == control) ?? BloodNumberRow(list, names[i], descriptions[i], control);
         }
+        foreach (var row in previousRows.Where(row => row && (int)row.control >= 4)) Object.DestroyImmediate(row.gameObject);
         if (panel.bloodResetButton == null)
         {
-            Row(list, 0, "혈흔 조절값 초기화", "현재 선택한 혈흔의 크기·밝기·바닥 색을 되돌립니다", out var slot, true);
+            Row(list, 0, "혈흔 조절값 초기화", "현재 선택한 혈흔의 크기·밝기를 되돌립니다", out var slot, true);
             panel.bloodResetButton = KitButton("Controls/Buttons/Rectangular/Button (Simple).prefab", slot, "Reset Blood", "선택한 혈흔 초기화", 34);
             Place((RectTransform)panel.bloodResetButton.transform, new Vector2(1f,.5f), Vector2.zero, new Vector2(700f,104f), new Vector2(1f,.5f));
         }
+        ControlRow(panel.bloodResetButton).Find("Description").GetComponent<Text>().text = "현재 선택한 혈흔의 크기·밝기를 되돌립니다";
         float y = 24f;
         Header(list, "Feedback Section", "피격과 화면", ref y);
         foreach (var control in new Component[] { panel.cameraShake, panel.hitEffect, panel.motionBlur, panel.edgeBlur, panel.combatEdgeBlurIntensity }) ArrangeControlRow(control, ref y);

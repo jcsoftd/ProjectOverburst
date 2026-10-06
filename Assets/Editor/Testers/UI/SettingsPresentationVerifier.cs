@@ -52,9 +52,9 @@ public static partial class SettingsPresentationVerifier
         var root = AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
         var panel = root.GetComponentInChildren<OverburstSettingsPanel>(true);
         Check(panel && panel.tabs.Length == 4 && panel.pages.Length == 4, "four settings tabs retained");
-        Check(panel.bloodRows.Length == 7 && panel.bloodStyle && panel.bloodPalette && panel.bloodResetButton, "saved blood controls serialized");
-        Check(panel.combatScroll.content.childCount == 21, "18 controls and three section headings");
-        Check(Mathf.Approximately(panel.combatScroll.content.sizeDelta.y, 3168f), "finite combat content height");
+        Check(panel.bloodRows.Length == 4 && panel.bloodStyle && panel.bloodPalette && panel.bloodResetButton, "saved blood controls serialized");
+        Check(panel.combatScroll.content.childCount == 18, "15 controls and three section headings");
+        Check(Mathf.Approximately(panel.combatScroll.content.sizeDelta.y, 2688f), "finite combat content height");
         foreach (var t in root.GetComponentsInChildren<Transform>(true))
             Check(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) == 0, "loaded scripts " + t.name);
         foreach (var number in panel.bloodRows)
@@ -104,7 +104,7 @@ public static partial class SettingsPresentationVerifier
         Check(Mathf.Approximately(BloodComparisonTuning.Scale, reload ? 1.6f : 1f), "scale initial or restored");
         if (reload)
         {
-            Check(Mathf.Approximately(BloodComparisonTuning.GroundRgb.x, 1.8f), "ground color restored across Play");
+            Check(Mathf.Approximately(BloodComparisonTuning.GroundBrightness, .9f), "ground brightness restored across Play");
             OverburstGameSettings.ResetBloodStyle(true);
             CheckBDefaults();
         }
@@ -130,6 +130,7 @@ public static partial class SettingsPresentationVerifier
         SessionState.SetString(Key+"deviceMasks",JsonConvert.SerializeObject(originalDevices.Select(p=>new{asset=p.Key.GetInstanceID(),devices=p.Value?.Select(d=>d.deviceId).ToArray()})));
         wantedPointer=new MouseState(); InputSystem.onBeforeUpdate+=PushInput;
         yield return Frames(4);
+        if (File.Exists(Path.Combine(output,"only-fixed-blood-settings"))) { yield return VerifyFixedBloodSettings(); yield break; }
         var menu = OverburstGameMenu.Instance;
         Check(menu != null, "product ESC menu installed");
         menu.Open(); menu.OpenSettings(); yield return Frames(5);
@@ -179,8 +180,8 @@ public static partial class SettingsPresentationVerifier
         BloodComparisonTuning.ResetCurrent(); panel.bloodRows[0].RefreshValue();
         yield return Click(panel.bloodRows[0].increase);
         SetScroll(panel.combatScroll, 0f); yield return Frames(3);
-        yield return Click(panel.bloodRows[4].increase);
-        Check(Mathf.Approximately(BloodComparisonTuning.Scale, 1.6f) && Mathf.Approximately(BloodComparisonTuning.GroundRgb.x, 1.8f), "independent size and ground red controls");
+        yield return Click(panel.bloodRows[3].increase);
+        Check(Mathf.Approximately(BloodComparisonTuning.Scale, 1.6f) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness, .9f), "independent size and ground brightness controls");
         yield return Frames(10);
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "settings-blood-adjusted.png")); yield return Frames(2);
         // Disabling parent effects also disables their dependent intensity controls.
@@ -193,7 +194,7 @@ public static partial class SettingsPresentationVerifier
         Check(File.Exists(saved), "settings saved when menu closes");
         var json = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(saved));
         Check((int)json["version"] == 3 && (bool)json["bloodPack"] && (bool)json["bloodUniformRed"], "version three stores selection and palette");
-        Check(Mathf.Approximately((float)json["bloodB"]["scale"], 1.6f) && Mathf.Approximately((float)json["bloodB"]["groundRgb"]["x"], 1.8f), "B size and ground color serialized");
+        Check(Mathf.Approximately((float)json["bloodB"]["scale"], 1.6f) && Mathf.Approximately((float)json["bloodB"]["groundBrightness"], .9f), "B size and ground brightness serialized");
         Check(Mathf.Approximately((float)json["bloodA"]["scale"], 1f), "A adjustments kept independently");
         var blood = Object.FindFirstObjectByType<BloodHitVfxService>();
         Check(blood != null, "blood service remains active after menu");
@@ -359,8 +360,7 @@ public static partial class SettingsPresentationVerifier
     static void CheckBDefaults()
     {
         Check(Mathf.Approximately(BloodComparisonTuning.Scale, 1.5f) && Mathf.Approximately(BloodComparisonTuning.SprayBrightness, .8f)
-            && Mathf.Approximately(BloodComparisonTuning.GroundScale, 1f) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness, .8f)
-            && BloodComparisonTuning.GroundRgb == new Vector3(1.7f,1f,1f), "B defaults match approved screenshot");
+            && Mathf.Approximately(BloodComparisonTuning.GroundScale, 1f) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness, .8f), "B defaults match approved screenshot");
     }
     static void SetScroll(ScrollRect scroll, float value) { scroll.StopMovement(); Canvas.ForceUpdateCanvases(); scroll.verticalNormalizedPosition = value; }
     static Vector2 ScreenPoint(RectTransform rect, Vector2 normalized)
@@ -394,6 +394,17 @@ public static partial class SettingsPresentationVerifier
         SessionState.SetFloat(Key + "deadline",(float)(EditorApplication.timeSinceStartup + 240));
         string save = Path.Combine(output,"isolated-save"); Directory.CreateDirectory(save);
         if (!File.Exists(Path.Combine(output,"expect-reload"))) File.WriteAllText(Path.Combine(save,OverburstGameSettings.FileName),"{\"version\":1,\"masterVolume\":0.62,\"cameraShake\":0.4}");
+        if (File.Exists(Path.Combine(output,"only-fixed-blood-settings")))
+        {
+            var legacy = Newtonsoft.Json.Linq.JObject.Parse("{\"version\":3,\"masterVolume\":0.62,\"cameraShake\":0.4}");
+            legacy["bloodStyle"]=0; legacy["bloodUniformRed"]=false;
+            foreach (string key in new[]{"bloodA","bloodB","bloodC"})
+            {
+                bool pack=key=="bloodB";
+                legacy[key]=new Newtonsoft.Json.Linq.JObject{["scale"]=pack?1.5f:1f,["sprayBrightness"]=pack?.8f:1f,["groundScale"]=1f,["groundBrightness"]=pack?.8f:1f,["groundRgb"]=new Newtonsoft.Json.Linq.JObject{["x"]=0f,["y"]=2f,["z"]=0f}};
+            }
+            File.WriteAllText(Path.Combine(save,OverburstGameSettings.FileName),legacy.ToString());
+        }
         IsolatedSavePlayGuard.EnterIsolatedPlay(save);
     }
     static void StateChanged(PlayModeStateChange state)

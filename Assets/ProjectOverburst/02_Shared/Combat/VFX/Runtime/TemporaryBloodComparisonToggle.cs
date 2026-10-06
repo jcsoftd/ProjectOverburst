@@ -82,7 +82,7 @@ public sealed class TemporaryBloodComparisonToggle : MonoBehaviour
         if (colorButton) colorButton.targetGraphic.color = displayedRed ? new Color(.36f,.16f,.18f,.96f) : new Color(.20f,.29f,.24f,.96f);
         for (int i = 0; i < valueCaptions.Length; i++)
             if (valueCaptions[i]) valueCaptions[i].text = BloodComparisonTuning.Value((BloodComparisonTuning.Control)i).ToString("F1");
-        if (tuningButton) tuningButton.GetComponentInChildren<TMP_Text>().text = tuningPanel && tuningPanel.activeSelf ? "세부 조절 닫기" : "크기 · 색상 조절";
+        if (tuningButton) tuningButton.GetComponentInChildren<TMP_Text>().text = tuningPanel && tuningPanel.activeSelf ? "세부 조절 닫기" : "크기 · 밝기 조절";
     }
     void OnDisable() => GameplayInputBlocker.Unblock(this);
     void OnDestroy()

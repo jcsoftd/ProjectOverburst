@@ -101,7 +101,7 @@ public static partial class SettingsPresentationVerifier
         var blood=Object.FindFirstObjectByType<BloodHitVfxService>();
         Check(OverburstGameSettings.BloodStyle==BloodEffectStyle.Volumetric && BloodHitVfxService.CurrentStyle==BloodEffectStyle.Volumetric,"saved C applied directly at boot");
         CheckCOnly(blood,"saved C boot");
-        Check(Mathf.Approximately(BloodComparisonTuning.Scale,1.2f) && Mathf.Approximately(BloodComparisonTuning.GroundRgb.x,1.2f),"C tuning restored at boot");
+        Check(Mathf.Approximately(BloodComparisonTuning.Scale,1.2f) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness,1.2f),"C tuning restored at boot");
         Check(OverburstGameSettings.BloodUniformRed,"C palette restored at boot");
     }
     static IEnumerator VerifyVolumetric(CombatHealth player,CombatHealth enemy,GameObject targetRoot,BloodHitVfxService blood,BloodGroundDecalService ground)
@@ -129,9 +129,9 @@ public static partial class SettingsPresentationVerifier
         var mark=ground.GetComponentsInChildren<DecalProjector>(true).First(p=>p.gameObject.activeSelf);
         var material=mark.material;var size=mark.size;var tint=material.GetColor("_TintColor");
         BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundScale,1);
-        BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundRed,1);
+        BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundBrightness,1);
         yield return Frames(3);
-        Check(mark.material==material && ground.MaterialVariantCount==materials && mark.size.x>size.x && mark.material.GetColor("_TintColor")!=tint,"C floor size and color reuse existing material");
+        Check(mark.material==material && ground.MaterialVariantCount==materials && mark.size.x>size.x && mark.material.GetColor("_TintColor")!=tint,"C floor size and brightness reuse existing material");
         player.TakeDamage(new DamageInfo(1,player.transform.position+Vector3.up,targetRoot,Vector3.right));yield return Frames(4);
         Check(Object.FindFirstObjectByType<PlayerDamageFeedback>().UsingPackVignette && pool.ActiveCount>0,"C actual player blood and pack screen wound");
         Check(!catalog.sprays[pool.LastVariant].impactAccent,"ordinary player wound excludes large radial form");
@@ -254,7 +254,7 @@ public static partial class SettingsPresentationVerifier
             if(style==BloodEffectStyle.Volumetric)CheckCOnly(blood,"switch cycle");else CheckExclusivePools(blood,style==BloodEffectStyle.EffectsPack,"C cycle "+style);
             Check(ground.GetComponentsInChildren<DecalProjector>(true).Select(p=>p.GetInstanceID()).SequenceEqual(groundIds),"ground pool reused across C cycle "+style);
         }
-        BloodComparisonTuning.ResetCurrent();BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale,2);BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundRed,2);
+        BloodComparisonTuning.ResetCurrent();BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale,2);BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundBrightness,2);
         OverburstGameSettings.BloodUniformRed=true;OverburstGameSettings.SaveIfDirty();
         var saved=Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(OverburstGameSettings.FilePath));
         Check((int)saved["version"]==3 && (int)saved["bloodStyle"]==2 && Mathf.Approximately((float)saved["bloodC"]["scale"],1.2f),"C selection and independent tuning saved");
