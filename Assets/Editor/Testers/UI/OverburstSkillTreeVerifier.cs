@@ -32,23 +32,20 @@ public static class OverburstSkillTreeVerifier
         Require(prefab!=null,"Authored Resources prefab exists");
         Require(prefab.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))==0,"Missing scripts 0");
         Require(AssetDatabase.LoadAllAssetsAtPath(OverburstSkillTreeBuilder.AtlasPath).OfType<Sprite>().Count()==16,"16 generated native sprites");
+        Require(AssetDatabase.LoadAssetAtPath<Sprite>(OverburstSkillTreeBuilder.MoveGlyphPath)!=null,"Authored high-contrast movement glyph");
         var authored=prefab.GetComponent<OverburstSkillTreeUI>();var reference=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/PF_OverburstInventory_Rpg11.prefab");
         var sharedHeader=prefab.transform.Find("Skill Tree Screen/Window/Shared Window Chrome/Header");
         Require(sharedHeader&&sharedHeader.Find("Text").GetComponent<Text>().font==reference.transform.Find("Header/Text").GetComponent<Text>().font,"Same authored header/font as inventory");
         Require(sharedHeader.Find("Border").GetComponent<Image>().type==Image.Type.Tiled&&Mathf.Approximately(((RectTransform)sharedHeader.Find("Border")).rect.height,44),"Header uses authored 22px bottom strip, not full-band stretch");
         Require(authored.elementSprites.Length==5&&authored.effectIcons.Length==6&&authored.effectIcons.Take(5).Select((icon,i)=>icon.sprite==authored.elementSprites[i]).All(v=>v),"All five existing HUD element icons in comparison rows");
         var asset=prefab.GetComponent<OverburstSkillTreeUI>().catalogAsset;var data=JsonUtility.FromJson<OverburstSkillTreeCatalog>(asset.text);data.Validate();
-        Require(data.nodes.Count(n=>n.kind=="stat")==16 && data.nodes.Count(n=>n.cost==0)==5,"16 stat / 5 free / 49 shared nodes");
-        var plan=new OverburstSkillTreePlan(data);Require(plan.Remaining==16,"Review budget has no game-account grant");
-        Require(plan.Toggle("W11") && plan.Remaining==15,"Common advanced plan cost");Require(!plan.Toggle("K_W"),"AND parents required");
-        Require(plan.Toggle("W01")&&!plan.Has("W11")&&plan.Remaining==17,"Parent refund cascades to dependent");plan.Cancel();Require(plan.Remaining==16,"Cancel restores applied plan");
-        foreach(var id in new[]{"W11","S_W2","W02","W12","K_W"})Require(plan.Toggle(id),"Plan add " + id);
-        Require(plan.Remaining==9,"Combined branch and core cost");plan.Toggle("W12");Require(plan.Has("W11")&&!plan.Has("K_W")&&plan.Remaining==13,"Sibling preservation and AND-core removal");
+        Require(data.nodes.Count(n=>n.kind=="stat")==16 && data.nodes.Count(n=>n.cost==0)==5,"16 stat / 5 free / 21 shared nodes");
+        SkillTreeFoundationVerifier.Run(Path.Combine(output,"Rules"));
         var segments=data.segments;
-        for(int i=0;i<segments.Length;i++)for(int j=i+1;j<segments.Length;j++)if(Cross(segments[i].A,segments[i].B,segments[j].A,segments[j].B))throw new InvalidOperationException("Route crossing "+i+"/"+j); Require(true,"All 5356 native route pairs: crossings 0");
+        for(int i=0;i<segments.Length;i++)for(int j=i+1;j<segments.Length;j++)if(Cross(segments[i].A,segments[i].B,segments[j].A,segments[j].B))throw new InvalidOperationException("Route crossing "+i+"/"+j); Require(true,"All native route pairs: crossings 0");
         foreach(var size in new[]{new Vector2Int(1920,1080),new Vector2Int(1600,900),new Vector2Int(1280,720)})CaptureAndCheck(prefab,size,output);
         Require(JsonConvert.SerializeObject(SceneSnapshot())==before,"User scene identities / dirty flags preserved");Require(EditorSceneManager.previewSceneCount==previews,"Owned preview scene / RT / camera returned");
-        File.WriteAllText(Path.Combine(output,"native-results.json"),JsonConvert.SerializeObject(new{status="PASS_SCOPED",checks,checkCount=checks.Count,images=new[]{"native-1920x1080.png","native-1600x900.png","native-1280x720.png","native-tooltip.png","native-zoom.png"},browser="NOT_USED",playerBuild="NOT_RUN",combatModifiers="NOT_APPLIED_UI_ONLY",sceneBefore=JsonConvert.DeserializeObject(before)},Formatting.Indented));
+        File.WriteAllText(Path.Combine(output,"native-results.json"),JsonConvert.SerializeObject(new{status="PASS_SCOPED",checks,checkCount=checks.Count,images=new[]{"native-1920x1080.png","native-1600x900.png","native-1280x720.png","native-tooltip.png","native-zoom.png"},browser="NOT_USED",playerBuild="NOT_RUN",combatModifiers="ACCOUNT_STAT_MODIFIERS",sceneBefore=JsonConvert.DeserializeObject(before)},Formatting.Indented));
     }
     static float Turn(Vector2 a,Vector2 b,Vector2 c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
     static bool Cross(Vector2 a,Vector2 b,Vector2 c,Vector2 d)=>Turn(a,b,c)*Turn(a,b,d)<0&&Turn(c,d,a)*Turn(c,d,b)<0;
@@ -78,18 +75,30 @@ public static class OverburstSkillTreeVerifier
             var overlaps=new List<string>();for(int i=0;i<boxes.Count;i++)for(int j=i+1;j<boxes.Count;j++)if(Overlap(boxes[i].Value,boxes[j].Value))overlaps.Add(boxes[i].Key+" / "+boxes[j].Key);
             File.WriteAllText(Path.Combine(output,"bounds-"+size.x+"x"+size.y+".json"),JsonConvert.SerializeObject(new{width=size.x,height=size.y,overlaps,boxes=boxes.Select(x=>new{name=x.Key,x=x.Value.x,y=x.Value.y,width=x.Value.width,height=x.Value.height})},Formatting.Indented));
             Require(overlaps.Count==0,"Native node / caption / region overlaps 0 at "+size+": "+string.Join(", ",overlaps));
+            foreach(var segment in ui.Catalog.segments)
+            {
+                var a=segment.A*ui.MapScale+ui.Pan;var b=segment.B*ui.MapScale+ui.Pan;bool exposed=false,visible=false;
+                foreach(float t in new[]{.25f,.5f,.75f})
+                {
+                    var local=Vector2.Lerp(a,b,t);var point=RectTransformUtility.WorldToScreenPoint(camera,ui.routes.rectTransform.TransformPoint(local));
+                    if(boxes.Any(box=>box.Value.Contains(point)))continue;exposed=true;
+                    int x=Mathf.Clamp(Mathf.RoundToInt(point.x),1,pixels.width-2),y=Mathf.Clamp(Mathf.RoundToInt(point.y),1,pixels.height-2);
+                    for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++){var color=pixels.GetPixel(x+dx,y+dy);if(Mathf.Max(color.r,color.g,color.b)>.16f)visible=true;}
+                }
+                Require(!exposed||visible,"Actual route pixels visible "+segment.x1+","+segment.y1+" to "+segment.x2+","+segment.y2+" at "+size);
+            }
             var viewportBounds=Bounds(ui.viewport);
             var cancelBounds=Bounds((RectTransform)ui.cancel.transform);var applyBounds=Bounds((RectTransform)ui.apply.transform);var actionBounds=Bounds((RectTransform)ui.action.transform);
             Require(Mathf.Abs(cancelBounds.yMin-applyBounds.yMin)<.5f&&Mathf.Abs(cancelBounds.height-applyBounds.height)<.5f&&Mathf.Abs(cancelBounds.width-applyBounds.width)<.5f,"Footer buttons share size and baseline "+size);
             Require(!Overlap(cancelBounds,applyBounds)&&actionBounds.yMin>applyBounds.yMax&&Bounds(ui.window).Contains(cancelBounds.min)&&Bounds(ui.window).Contains(applyBounds.max),"Action/footer buttons have spacing and remain inside window "+size);
-            Require(ui.nodes.All(n=>viewportBounds.Contains(Bounds((RectTransform)n.transform).min)&&viewportBounds.Contains(Bounds((RectTransform)n.transform).max)),"All 49 targets visible at 100% "+size);
+            Require(ui.nodes.All(n=>viewportBounds.Contains(Bounds((RectTransform)n.transform).min)&&viewportBounds.Contains(Bounds((RectTransform)n.transform).max)),"All 21 targets visible at 100% "+size);
             Require(ui.nodeName.cachedTextGenerator.characterCountVisible>0,"Native Korean text generated "+size);
             var save=Path.Combine(output,"native-"+size.x+"x"+size.y+".png");ReadPixels(rt,save,ref pixels);
             if(size.x==1920){
                 foreach(var n in ui.Catalog.nodes){ui.SelectNode(n.id,true);ui.ShowTooltip(n.id);Canvas.ForceUpdateCanvases();Require(ui.tipName.text==n.name&&ui.tooltip.gameObject.activeSelf,"Native hover contents "+n.id);var frame=Bounds(ui.window);var tip=Bounds(ui.tooltip);Require(frame.Contains(tip.min)&&frame.Contains(tip.max),"Tooltip frame clamp "+n.id);}
-                ui.SelectNode("W01",true);ui.ShowTooltip("W01");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-tooltip.png"),ref pixels);
-                ui.HideTooltip();ui.ResetMap();var prior=ui.Pan;var anchor=new Vector2(200,120);ui.ZoomAt(1.6f,anchor);Require(Vector2.Distance(ui.Pan,anchor-(anchor-prior)*1.6f)<.01f,"Cursor anchored native zoom");Require(!ui.tooltip.gameObject.activeSelf,"Zoom closes tooltip");Require(ui.nodes.First(n=>n.nodeId=="W01").transform.localScale.x==1.6f&&ui.nodes.First(n=>n.nodeId=="W01").caption.fontSize>12,"Zoom grows native node / icon / crisp label");ui.SelectNode("K_W",true);Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-zoom.png"),ref pixels);
-                ui.ZoomAt(50,Vector2.zero);Require(ui.Zoom==2.5f,"Native max zoom 250%");ui.ZoomAt(-50,Vector2.zero);Require(ui.Zoom==1,"Native min zoom 100%");ui.SetPan(new Vector2(110,-70));Require(ui.Pan==new Vector2(110,-70),"Native pan");ui.ResetMap();Require(ui.Pan==Vector2.zero,"Native center reset");
+                ui.SelectNode("S_W1",true);ui.ShowTooltip("S_W1");Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-tooltip.png"),ref pixels);
+                ui.HideTooltip();ui.ResetMap();var prior=ui.Pan;var priorZoom=ui.Zoom;var anchor=new Vector2(200,120);ui.ZoomAt(1.6f,anchor);Require(Vector2.Distance(ui.Pan,anchor-(anchor-prior)*1.6f/priorZoom)<.01f,"Cursor anchored native zoom");Require(!ui.tooltip.gameObject.activeSelf,"Zoom closes tooltip");Require(ui.nodes.First(n=>n.nodeId=="S_W1").transform.localScale.x==1.6f&&ui.nodes.First(n=>n.nodeId=="S_W1").caption.fontSize>14,"Zoom grows native node / icon / crisp label");ui.SelectNode("S_W3",true);Canvas.ForceUpdateCanvases();Render(camera,rt);ReadPixels(rt,Path.Combine(output,"native-zoom.png"),ref pixels);
+                ui.ZoomAt(50,Vector2.zero);Require(ui.Zoom==2.5f,"Native max zoom 250%");ui.ZoomAt(-50,Vector2.zero);Require(ui.Zoom==ui.MinimumZoom,"Native dynamic min zoom");ui.SetPan(new Vector2(110,-70));Require(ui.Pan==new Vector2(110,-70),"Native pan");ui.ResetMap();Require(ui.Pan==Vector2.zero,"Native center reset");
             }
             ui.Close();Require(!ui.IsOpen&&!ui.tooltip.gameObject.activeSelf,"Window and hover close "+size);
         }

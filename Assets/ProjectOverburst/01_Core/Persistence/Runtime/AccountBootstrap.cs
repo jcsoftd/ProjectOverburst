@@ -37,6 +37,7 @@ namespace Overburst.Persistence
                 if (state == null)
                 {
                     state = NewAccountFactory.Create(registry);
+                    state.skillTree = AccountSkillTree.GrantEligible(null, state.level);
                     store.Save(state, state.lastTransactionId);
                 }
                 else
@@ -50,6 +51,14 @@ namespace Overburst.Persistence
                         state = recovery.Read();
                     }
                 }
+                var initializedTree = AccountSkillTree.GrantEligible(state.skillTree, state.level);
+                if (state.skillTree == null || state.skillTree.grants.Count != initializedTree.grants.Count || state.skillTree.catalogVersion != initializedTree.catalogVersion)
+                {
+                    var upgrade = new AccountTransactions(state, store, registry);
+                    upgrade.Execute("skill-tree-init-" + state.revision, state.revision, candidate => candidate.skillTree = initializedTree, true);
+                    state = upgrade.Read();
+                }
+                SkillTreeBonuses.Project(state.skillTree);
                 AccountGameplayProjection.Restore(state, account, registry);
                 var session = new AccountGameplaySession(account, registry, store, state, deferDiskWrites: true);
                 session.Attach();

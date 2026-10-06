@@ -24,6 +24,7 @@ namespace Overburst.Persistence
             if (state.bagExperienceCarry < 0 || state.bagExperienceCarry >= BagQuality.RewardScale
                 || state.bagGoldCarry < 0 || state.bagGoldCarry >= BagQuality.RewardScale)
                 throw new InvalidDataException("Invalid bag reward remainder.");
+            AccountSkillTree.Validate(state.skillTree, state.level);
             var items = new Dictionary<string, ItemSnapshot>(StringComparer.Ordinal);
             foreach (var item in state.items)
             {
@@ -148,6 +149,8 @@ namespace Overburst.Persistence
         public long Revision => current.revision;
         public int BaseUnlockedSlots => current.baseUnlockedSlots;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
+        public SkillTreeSnapshot ReadSkillTree() => current.skillTree?.Copy();
+        internal int CurrentLevel => current.level;
         internal bool CanAcquireFromRun(string runId) => current.run != null && current.run.runId == runId && AccountInvariants.IsRunning(current.run.phase);
         public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);
 
@@ -192,6 +195,8 @@ namespace Overburst.Persistence
                 }
                 if (nextLevel >= OverburstGrowthRules.MaximumLevel) nextExperience = 0;
                 var candidate = current.WithProgression(nextLevel, nextExperience);
+                if (nextLevel != current.level || current.skillTree == null)
+                    candidate.skillTree = AccountSkillTree.GrantEligible(current.skillTree, nextLevel);
                 candidate.bagExperienceCarry = nextLevel >= OverburstGrowthRules.MaximumLevel ? 0 : carry;
                 return candidate;
             });

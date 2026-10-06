@@ -351,7 +351,7 @@ public class PlayerEquipment : MonoBehaviour // 장비/무기 장착
         {
             GearStatTotals gear = GearStatTotals.From(this);
             stats = CombatBalanceFormulas.ComposePlayerWeaponStats(stats, gear, PlayerProgression.CurrentLevel,
-                MapRunBuffs.Bonus(MapBuffKind.AttackSpeed));
+                MapRunBuffs.Bonus(MapBuffKind.AttackSpeed), Overburst.Persistence.SkillTreeBonuses.AttackPercent);
         }
         CurrentWeaponStats = stats;
         CurrentWeaponContext = new ResolvedWeaponContext(CurrentWeaponData, CurrentWeaponStats, ActiveElement);

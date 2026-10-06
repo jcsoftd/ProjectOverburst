@@ -57,7 +57,8 @@ public partial class PlayerMovement
             playerBuffController = ResolveBuffController();
 
         return (playerBuffController != null ? playerBuffController.ActiveMoveSpeedMultiplier : 1f)
-            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed));
+            * (1f + MapRunBuffs.Bonus(MapBuffKind.MoveSpeed))
+            * (1f + Overburst.Persistence.SkillTreeBonuses.MovePercent / 100f);
     }
 
     private PlayerBuffController ResolveBuffController()

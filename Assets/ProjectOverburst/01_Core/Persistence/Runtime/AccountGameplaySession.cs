@@ -29,6 +29,7 @@ namespace Overburst.Persistence
         public bool HasPendingSave => transactions.HasPendingSave;
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
+        public SkillTreeSnapshot ReadSkillTree() => transactions.ReadSkillTree();
         public bool CanAcquireFromRun(string runId) => transactions.CanAcquireFromRun(runId);
         public RunSnapshot ReadRun() => transactions.ReadRun();
 
@@ -39,8 +40,8 @@ namespace Overburst.Persistence
             transactions = new AccountTransactions(initial, store, registry, deferDiskWrites);
         }
 
-        public void Attach() => Current = this;
-        public void Detach() { if (Current == this) { Current = null; GameplayInputBlocker.Unblock(account); } }
+        public void Attach() { Current = this; SkillTreeBonuses.Project(transactions.ReadSkillTree()); PlayerProgression.Current?.RefreshSkillTreeStats(); }
+        public void Detach() { if (Current == this) { Current = null; SkillTreeBonuses.Clear(); GameplayInputBlocker.Unblock(account); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSession() => Current = null;
@@ -184,6 +185,29 @@ namespace Overburst.Persistence
                 return candidate;
             });
             return rewarded;
+        }
+
+        public bool ApplySkillTree(SkillTreeSnapshot expected, string[] ids)
+        {
+            if (!WorldSessionState.IsHideout) throw new InvalidOperationException("은신처에서 강화 변경을 적용할 수 있습니다.");
+            if (editing || restoring) throw new InvalidOperationException("계정 작업이 진행 중입니다.");
+            EnsureProjectionReady();
+            var baseline = new AccountSnapshot { level = transactions.CurrentLevel, skillTree = transactions.ReadSkillTree() }; var oldIds = baseline.skillTree?.learnedNodeIds.ToArray();
+            AccountSkillTree.Allocate(baseline, expected, ids);
+            if (oldIds != null && oldIds.OrderBy(id => id, StringComparer.Ordinal).SequenceEqual(baseline.skillTree.learnedNodeIds)) return false;
+            editing = true;
+            try
+            {
+                bool committed = transactions.Execute(Guid.NewGuid().ToString("N"), transactions.Revision,
+                    candidate => AccountSkillTree.Allocate(candidate, expected, ids), saveImmediately: true);
+                if (committed)
+                {
+                    try { SkillTreeBonuses.Project(transactions.ReadSkillTree()); PlayerProgression.Current?.RefreshSkillTreeStats(); }
+                    catch (Exception error) { RequireProjectionRecovery(error); }
+                }
+                return committed;
+            }
+            finally { editing = false; }
         }
 
         // Run state commands edit the same authoritative account, then project only after disk commit.

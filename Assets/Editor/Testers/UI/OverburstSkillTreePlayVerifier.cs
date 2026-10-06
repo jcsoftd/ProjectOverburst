@@ -69,7 +69,7 @@ public static class OverburstSkillTreePlayVerifier
     {
         (work as IDisposable)?.Dispose();work=null;
         SessionState.SetString(Key+"status",error==null?"PASS_SCOPED":"FAIL");
-        File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,combatEffects="NOT_APPLIED_UI_ONLY",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
+        File.WriteAllText(Path.Combine(Output,"play-results.json"),JsonConvert.SerializeObject(new{status=SessionState.GetString(Key+"status",""),checks,error=error?.ToString(),width=Screen.width,height=Screen.height,combatEffects="ACCOUNT_STAT_MODIFIERS",playerBuild="NOT_RUN",humanFeel="NOT_RUN"},Formatting.Indented));
         SessionState.SetBool(Key+"return",true);
         string active=IsolatedSavePlayGuard.ActiveDirectory;
         if(EditorApplication.isPlaying&&string.Equals(active,Path.Combine(Output,"IsolatedAccount"),StringComparison.OrdinalIgnoreCase))EditorApplication.ExitPlaymode();
@@ -98,53 +98,106 @@ public static class OverburstSkillTreePlayVerifier
     static void Click(UnityEngine.UI.Button b){Check(b.interactable,"Native button available: "+b.name);var e=Pointer((RectTransform)b.transform);ExecuteEvents.Execute(b.gameObject,e,ExecuteEvents.pointerClickHandler);}
     static GameObject Hit(RectTransform r){var results=new List<RaycastResult>();EventSystem.current.RaycastAll(Pointer(r),results);return results.Count==0?null:results[0].gameObject;}
     static string Stats(PlayerActorRuntime p)=>JsonConvert.SerializeObject(new{p.Equipment.CurrentWeaponStats,maxHp=p.Health.MaxHp,speed=p.Movement.BaseMoveSpeed,items=PlayerContext.Instance.CurrentActorInventory.Items.Select(i=>i?.runtimeInstanceId).ToArray(),gem=p.Equipment.EquippedElementGem?.runtimeInstanceId});
+    static IEnumerable Steps(IEnumerator routine)
+    {
+        try { while (routine.MoveNext()) yield return routine.Current; }
+        finally { (routine as IDisposable)?.Dispose(); }
+    }
+    static IEnumerator OpenFromMenu()
+    {
+        var menu = OverburstHudMenu.Instance;
+        Check(menu != null, "Vertical HUD menu installed");
+        Click(menu.trigger); yield return null;
+        while (menu.popup.alpha < .999f) yield return null;
+        var index = Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.SkillTree);
+        Check(index >= 0 && Hit((RectTransform)menu.Rows[index].transform) == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
+        Click(menu.Rows[index].button); yield return null;
+        Check(OverburstSkillTreeUI.IsWindowOpen && !menu.IsOpen, "HUD row transfers input ownership to skill tree");
+    }
     static IEnumerator Verify()
     {
-        while(PersistentSceneFlow.Instance==null||PersistentSceneFlow.Instance.IsSwitching||!WorldSessionState.IsHideout||PlayerContext.Instance?.CurrentActor==null)yield return null;
-        Check(AccountBootstrap.SaveDirectory.StartsWith(Output+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase),"Owned isolated account");
-        var ui=OverburstSkillTreeUI.Instance;Check(ui!=null&&Object.FindObjectsByType<OverburstSkillTreeUI>(FindObjectsSortMode.None).Length==1,"Product GameUI installs exactly one authored skill tree");
-        Check(EventSystem.current!=null&&!ui.IsOpen,"Native EventSystem and initially closed surface");
-        while(!ui.entry.interactable)yield return null; yield return null;
-        var input=PlayerInputFacade.Current;bool gameplay=input!=null&&input.IsGameplayEnabled;bool blocked=GameplayInputBlocker.IsGameplayInputBlocked;Check(!blocked,"Gameplay initially available");
-        Canvas.ForceUpdateCanvases();Check(Hit((RectTransform)ui.entry.transform)==ui.entry.gameObject,"HUD entry native raycast path");Click(ui.entry);yield return null;
-        Check(ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked&&input!=null&&!input.IsGameplayEnabled,"Entry click opens and owns gameplay input block");
-        Check(ui.nodes.Length==49&&ui.Plan.Remaining==16,"49 common nodes with ephemeral planning budget");ui.HideTooltip();Canvas.ForceUpdateCanvases();
-        foreach(var node in ui.nodes){var rect=(RectTransform)node.transform;Check(Hit(rect)==node.gameObject,"Native node raycast "+node.nodeId);ExecuteEvents.Execute(node.gameObject,Pointer(rect),ExecuteEvents.pointerEnterHandler);Check(ui.tooltip.gameObject.activeSelf&&ui.tipName.text==ui.Catalog.nodes.First(n=>n.id==node.nodeId).name,"Native hover "+node.nodeId);ExecuteEvents.Execute(node.gameObject,Pointer(rect),ExecuteEvents.pointerExitHandler);Check(!ui.tooltip.gameObject.activeSelf,"Native hover exit "+node.nodeId);}
-        var p=PlayerContext.Instance.CurrentActor;var before=Stats(p);
-        ui.SelectNode("W11",true);Click(ui.action);Check(ui.Plan.Has("W11")&&ui.Plan.Changed&&ui.Plan.Remaining==15,"Native plan action and cost");Click(ui.cancel);Check(!ui.Plan.Has("W11")&&!ui.Plan.Changed,"Native cancel");
-        ui.SelectNode("W11",true);Click(ui.action);Click(ui.apply);Check(ui.Plan.Has("W11")&&!ui.Plan.Changed,"Native apply remains RAM planning");Check(Stats(p)==before,"Planner leaves actual inventory, weapon stats, HP and movement unchanged");
-        ui.ResetMap();var e=Pointer(ui.viewport);e.scrollDelta=Vector2.up;ExecuteEvents.Execute(ui.viewport.gameObject,e,ExecuteEvents.scrollHandler);Check(Mathf.Approximately(ui.Zoom,1.1f),"Native wheel event zoom");Click(ui.zoomIn);Check(Mathf.Approximately(ui.Zoom,1.3f),"Native plus button zoom");Click(ui.zoomOut);Check(Mathf.Approximately(ui.Zoom,1.1f),"Native minus button zoom");
-        e=Pointer(ui.viewport);ExecuteEvents.Execute(ui.viewport.gameObject,e,ExecuteEvents.beginDragHandler);e.position+=new Vector2(70,-40);var panBefore=ui.Pan;ExecuteEvents.Execute(ui.viewport.gameObject,e,ExecuteEvents.dragHandler);ExecuteEvents.Execute(ui.viewport.gameObject,e,ExecuteEvents.endDragHandler);Check(ui.Pan!=panBefore&&!ui.tooltip.gameObject.activeSelf,"Native drag pans and dismisses tooltip");Click(ui.center);Check(ui.Zoom==1&&ui.Pan==Vector2.zero,"Native center button");
-        var selected=EventSystem.current.currentSelectedGameObject;var axis=new AxisEventData(EventSystem.current){moveDir=MoveDirection.Right,moveVector=Vector2.right};ExecuteEvents.Execute(selected,axis,ExecuteEvents.moveHandler);Check(EventSystem.current.currentSelectedGameObject!=selected&&ui.tooltip.gameObject.activeSelf,"Native directional focus and tooltip");
-        ui.SelectNode("K_W",true);Canvas.ForceUpdateCanvases();float mapZoom=ui.Zoom;var wheel=Pointer(ui.effectScroll.viewport);wheel.scrollDelta=new Vector2(0,-10);ExecuteEvents.Execute(ui.effectScroll.gameObject,wheel,ExecuteEvents.scrollHandler);Canvas.ForceUpdateCanvases();Check(ui.effectScroll.verticalNormalizedPosition<1&&ui.Zoom==mapZoom,"Detail scrolling preserves map zoom");
-        Click(ui.close);yield return null;
-        var previousKeyboard=Keyboard.current;var ownedKeyboard=InputSystem.AddDevice<Keyboard>("OwnedSkillTreeVerifierKeyboard");
-        try{
-            Click(ui.entry);yield return null;InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState(UnityEngine.InputSystem.Key.NumpadPlus));yield return null;yield return null;Check(Mathf.Approximately(ui.Zoom,1.2f),"Actual plus key zoom");InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState());yield return null;InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState(UnityEngine.InputSystem.Key.NumpadMinus));yield return null;yield return null;Check(ui.Zoom==1,"Actual minus key zoom");InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState());yield return null;
-            InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState(UnityEngine.InputSystem.Key.E));yield return null;yield return null;Check(ui.IsOpen&&!OverburstGameMenu.IsOpen&&!Object.FindFirstObjectByType<OverburstGameUI>().equipmentWindow.gameObject.activeInHierarchy,"Equipment key cannot open window underneath skill tree");InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState());yield return null;
-            InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState(UnityEngine.InputSystem.Key.Escape));yield return null;yield return null;Check(!ui.IsOpen&&!OverburstGameMenu.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Actual Escape closes only skill tree and restores input");InputSystem.QueueStateEvent(ownedKeyboard,new KeyboardState());yield return null;
-        }finally{if(ownedKeyboard.added)InputSystem.RemoveDevice(ownedKeyboard);if(previousKeyboard!=null&&previousKeyboard.added)previousKeyboard.MakeCurrent();}
-        Click(ui.entry);yield return null;
-        var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>(Weapon);var item=new ItemData(weapon,1,ItemGrade.Common);Check(p.Inventory.AddItem(item)&&p.Equipment.EquipWeaponItem(item),"Isolated actual weapon fixture");
-        string allocation=string.Join(",",ui.Plan.Planned),topology=JsonConvert.SerializeObject(ui.Catalog.nodes.Select(n=>new{n.id,n.x,n.y,n.cost,n.requires}));
-        foreach(var element in new[]{WeaponElement.Fire,WeaponElement.Ice,WeaponElement.Electric,WeaponElement.Dark,WeaponElement.Light}){
-            var data=Resources.LoadAll<ElementGemItemData>("Items/ElementGems").Where(g=>g.element==element).OrderBy(g=>g.fixedGrade).First();var gem=new ItemData(data,1,data.fixedGrade);var inventory=PlayerContext.Instance.CurrentActorInventory;Check(inventory.AddItem(gem),"Isolated gem inventory "+element);int slot=Enumerable.Range(0,inventory.Items.Count).First(i=>inventory.GetItemAt(i)?.runtimeInstanceId==gem.runtimeInstanceId);
-            Check(ElementGemEquipmentService.EquipFromInventorySlot(slot,gem.runtimeInstanceId),"Actual gem equipment service "+element);yield return null;ui.SelectNode("W01",true);ui.ShowTooltip("W01");yield return null;
-            Check(ui.CurrentElement==element&&ui.elementLabel.text.Contains(OverburstSkillTreeCatalog.ElementName(element))&&ui.tipEffect.text==ui.Catalog.nodes.First(n=>n.id=="W01").effects[OverburstSkillTreeCatalog.ElementIndex(element)],"Real equipped gem detail and tooltip "+element);
-            Check(ui.equippedIcon.sprite==ui.elementSprites[OverburstSkillTreeCatalog.ElementIndex(element)]&&ui.effectIcons.Take(5).Select((icon,i)=>icon.sprite==ui.elementSprites[i]).All(v=>v),"Equipped badge and comparison use actual HUD element icons "+element);
-            Check(string.Join(",",ui.Plan.Planned)==allocation&&JsonConvert.SerializeObject(ui.Catalog.nodes.Select(n=>new{n.id,n.x,n.y,n.cost,n.requires}))==topology,"Shared tree and allocation preserved "+element);
-            if(element==WeaponElement.Fire){
-                ui.HideTooltip();ui.ResetMap();Canvas.ForceUpdateCanvases();yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-skill-tree.png"));yield return null;
-                ui.ShowTooltip("W01");yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-tooltip.png"));yield return null;
-                ui.HideTooltip();ui.ZoomAt(2,Vector2.zero);ui.SelectNode("W01",true);yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-zoom200.png"));yield return null;ui.ResetMap();
-                Check(ui.Plan.Toggle("S_W2"),"Owned pending-plan visual fixture");ui.Refresh();Check(ui.cancel.interactable&&ui.apply.interactable&&ui.cancel.GetComponent<CanvasGroup>().alpha==1&&ui.apply.GetComponent<CanvasGroup>().alpha==1,"Pending plan enables matched footer controls");yield return null;
-                ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-planning-active.png"));yield return null;ui.Plan.Cancel();ui.Refresh();Check(!ui.Plan.Changed&&ui.cancel.GetComponent<CanvasGroup>().alpha<1&&ui.apply.GetComponent<CanvasGroup>().alpha<1,"Applied plan dims inactive controls consistently");
-            }
+        while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching || !WorldSessionState.IsHideout || PlayerContext.Instance?.CurrentActor == null) yield return null;
+        Check(AccountBootstrap.Ready && AccountBootstrap.SaveDirectory.StartsWith(Output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase), "Owned isolated account boot");
+        var ui = OverburstSkillTreeUI.Instance; var p = PlayerContext.Instance.CurrentActor; var session = AccountGameplaySession.Current;
+        Check(ui != null && ui.nodes.Length == 21 && session.Read().skillTree.earnedPoints == 0, "Product installs one foundation tree with zero new-account points");
+        var input = PlayerInputFacade.Current; bool gameplay = input.IsGameplayEnabled;
+        foreach (var step in Steps(OpenFromMenu())) yield return step;
+        Check(GameplayInputBlocker.IsGameplayInputBlocked && !input.IsGameplayEnabled && ui.Plan.Remaining == 0, "Tree owns input and real account budget");
+        ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
+        int xp = Enumerable.Range(1, 19).Sum(OverburstGrowthRules.ExperienceToNext);
+        PlayerProgression.Current.AddExperience(xp); Check(PlayerProgression.Current.FlushPendingExperience(), "Actual progression flush");
+        ui.SyncAccount(true); Check(PlayerProgression.CurrentLevel == 20 && ui.Plan.Remaining == 4, "Actual level-up grants four milestone points");
+        Canvas.ForceUpdateCanvases(); ui.ResetMap();
+        foreach (var node in ui.nodes)
+        {
+            ui.HideTooltip(); Canvas.ForceUpdateCanvases(); var rect = (RectTransform)node.transform;
+            Check(Hit(rect) == node.gameObject, "Native node raycast " + node.nodeId);
+            ExecuteEvents.Execute(node.gameObject, Pointer(rect), ExecuteEvents.pointerEnterHandler);
+            Check(ui.tooltip.gameObject.activeSelf && ui.tipName.text == ui.Catalog.nodes.First(n => n.id == node.nodeId).name, "Native hover " + node.nodeId);
+            ExecuteEvents.Execute(node.gameObject, Pointer(rect), ExecuteEvents.pointerExitHandler);
         }
-        Check(ElementGemEquipmentService.UnequipToInventory(),"Actual gem unequip");ui.RefreshDetail();ui.ShowTooltip("W01");Check(ui.CurrentElement==WeaponElement.None&&ui.tipEffect.text==ui.Catalog.nodes.First(n=>n.id=="W01").effects[5],"Neutral gem fallback");
-        ui.HideTooltip();Click(ui.close);yield return null;Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Native close restores owned input");
-        for(int i=0;i<3;i++){Click(ui.entry);yield return null;Check(ui.IsOpen&&!input.IsGameplayEnabled,"Repeat open "+i);Click(ui.close);yield return null;Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Repeat close "+i);}
-        var other=new GameObject("Owned Skill Tree Input Fixture");GameplayInputBlocker.Block(other);try{ui.Open();Check(!ui.IsOpen,"Respects other gameplay input owner");}finally{GameplayInputBlocker.Unblock(other);Object.Destroy(other);}
-        double until=EditorApplication.timeSinceStartup+5;while(!File.Exists(Path.Combine(Output,"ingame-skill-tree.png"))&&EditorApplication.timeSinceStartup<until)yield return null;Check(File.Exists(Path.Combine(Output,"ingame-skill-tree.png"))&&File.Exists(Path.Combine(Output,"ingame-tooltip.png")),"Composited product UI captures saved");
+        float attack = p.Equipment.CurrentWeaponStats.damage, armor = PlayerProgression.Current.Armor, hp = p.Health.MaxHp, walk = p.Movement.WalkMoveSpeed, run = p.Movement.RunMoveSpeed;
+        p.Health.TakeDamage(new DamageInfo(20, p.transform.position, suppressDefaultHitVfx: true)); float injured = p.Health.CurrentHp;
+        Check(injured < hp, "Actual damaged-health fixture");
+        ui.SelectNode("S_W1", true); Click(ui.action); Check(ui.Plan.Has("S_W1") && ui.Plan.Remaining == 3 && p.Equipment.CurrentWeaponStats.damage == attack, "Draft consumes one point and leaves combat unchanged");
+        Click(ui.cancel); Check(!ui.Plan.Has("S_W1") && ui.Plan.Remaining == 4, "Cancel returns account baseline");
+        foreach (var id in new[] { "S_W1", "S_W3", "S_Q1", "S_Q2" }) { ui.SelectNode(id, true); Click(ui.action); }
+        Check(ui.Plan.Remaining == 0 && ui.Plan.Changed && ui.apply.interactable, "Four-stat draft and aligned active footer");
+        ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-draft.png")); yield return null;
+        var authority = (AccountTransactions)typeof(AccountGameplaySession).GetField("transactions", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(session);
+        var saveStore = (EasySaveAccountStore)typeof(AccountTransactions).GetField("store", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(authority);
+        saveStore.FaultInjector = phase => { if (phase == "before-write") throw new IOException("Owned UI save failure"); };
+        try { Click(ui.apply); Check(ui.Plan.Changed && session.Read().skillTree.learnedNodeIds.Count == 0 && p.Equipment.CurrentWeaponStats.damage == attack && ui.feedback.text.Contains("실패"), "Native UI failed save retains draft and committed stats"); }
+        finally { saveStore.FaultInjector = null; }
+        Click(ui.apply); yield return null;
+        Check(!ui.Plan.Changed && session.PersistedRevision == session.Revision && session.Read().skillTree.learnedNodeIds.Count == 4, "Native apply durably stores four nodes");
+        float expectedAttack = CombatBalanceFormulas.ComposePlayerWeaponStats(WeaponStatCalculator.Calculate(p.Equipment.CurrentWeaponItem), GearStatTotals.From(p.Equipment), 20, MapRunBuffs.Bonus(MapBuffKind.AttackSpeed), 3).damage;
+        Check(p.Equipment.CurrentWeaponStats.damage == expectedAttack && expectedAttack > attack, "Attack bonus applied once in product weapon composition");
+        Check(Mathf.Approximately(PlayerProgression.Current.Armor, armor + 1) && Mathf.Approximately(p.Health.MaxHp, hp * 1.04f), "Flat armor and percent maximum health projection");
+        Check(Mathf.Approximately(p.Health.CurrentHp, injured), "Tree health purchase grants no healing");
+        Check(Mathf.Approximately(p.Movement.WalkMoveSpeed, walk * 1.015f) && Mathf.Approximately(p.Movement.RunMoveSpeed, run * 1.015f), "Actual normal walk and run speed projection");
+        for (int i = 0; i < 5; i++) PlayerProgression.Current.RefreshSkillTreeStats();
+        Check(Mathf.Approximately(p.Health.MaxHp, hp * 1.04f) && p.Equipment.CurrentWeaponStats.damage == expectedAttack && Mathf.Approximately(p.Health.CurrentHp, injured), "Repeated projection cannot compound bonuses or heal");
+        long appliedRevision = session.Revision; Check(!session.ApplySkillTree(session.Read().skillTree, ui.Plan.Planned) && session.Revision == appliedRevision, "Unchanged allocation is a no-op");
+        ui.SelectNode("S_W3", true); Click(ui.action); Click(ui.close); yield return null; foreach (var step in Steps(OpenFromMenu())) yield return step;
+        Check(ui.Plan.Changed && !ui.Plan.Has("S_W3"), "Accidental close preserves same-account draft"); Click(ui.cancel); Check(ui.Plan.Has("S_W3") && !ui.Plan.Changed, "Explicit cancel restores draft baseline");
+        var saved = new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
+        Check(saved.skillTree.learnedNodeIds.Count == 4 && saved.skillTree.grants.Count == 4, "Fresh disk store reads allocation and grant ledger");
+        ui.HideTooltip(); ui.ResetMap(); ui.SelectNode("S_W1", true); Canvas.ForceUpdateCanvases(); yield return null;
+        ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-skill-tree.png")); yield return null;
+        ui.ShowTooltip("S_W1"); yield return null; ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-tooltip.png")); yield return null;
+        ui.HideTooltip(); float fit = ui.Zoom; var pointer = Pointer(ui.viewport); pointer.scrollDelta = Vector2.up;
+        ExecuteEvents.Execute(ui.viewport.gameObject, pointer, ExecuteEvents.scrollHandler); Check(Mathf.Approximately(ui.Zoom, fit + .1f), "Real native wheel zoom");
+        Click(ui.zoomIn); Click(ui.zoomOut); Check(Mathf.Approximately(ui.Zoom, fit + .1f), "Native zoom buttons");
+        pointer = Pointer(ui.viewport); ExecuteEvents.Execute(ui.viewport.gameObject, pointer, ExecuteEvents.beginDragHandler); pointer.position += new Vector2(80, -40); var beforePan = ui.Pan;
+        ExecuteEvents.Execute(ui.viewport.gameObject, pointer, ExecuteEvents.dragHandler); ExecuteEvents.Execute(ui.viewport.gameObject, pointer, ExecuteEvents.endDragHandler);
+        Check(ui.Pan != beforePan && !ui.tooltip.gameObject.activeSelf, "Real native drag"); Click(ui.center); Check(ui.Pan == Vector2.zero && Mathf.Approximately(ui.Zoom, ui.FitZoom), "Dynamic full-map fit");
+        ui.ZoomAt(2, Vector2.zero); ui.SelectNode("S_W1", true); yield return null; ScreenCapture.CaptureScreenshot(Path.Combine(Output, "ingame-zoom200.png")); yield return null; ui.ResetMap();
+        string allocation = string.Join(",", ui.Plan.Planned); string topology = JsonConvert.SerializeObject(ui.Catalog.connections);
+        foreach (var element in new[] { WeaponElement.Fire, WeaponElement.Ice, WeaponElement.Electric, WeaponElement.Dark, WeaponElement.Light })
+        {
+            var data = Resources.LoadAll<ElementGemItemData>("Items/ElementGems").Where(g => g.element == element).OrderBy(g => g.fixedGrade).First();
+            var gem = new ItemData(data, 1, data.fixedGrade); var inventory = PlayerContext.Instance.CurrentActorInventory;
+            Check(inventory.AddItem(gem), "Actual gem inventory " + element); int slot = Enumerable.Range(0, inventory.Items.Count).First(i => inventory.GetItemAt(i)?.runtimeInstanceId == gem.runtimeInstanceId);
+            Check(ElementGemEquipmentService.EquipFromInventorySlot(slot, gem.runtimeInstanceId), "Actual gem equip " + element); yield return null; ui.RefreshDetail(); ui.ShowTooltip("S_W1");
+            Check(ui.CurrentElement == element && ui.equippedIcon.sprite == ui.elementSprites[OverburstSkillTreeCatalog.ElementIndex(element)], "Actual HUD element badge " + element);
+            Check(string.Join(",", ui.Plan.Planned) == allocation && JsonConvert.SerializeObject(ui.Catalog.connections) == topology && SkillTreeBonuses.AttackPercent == 3 && SkillTreeBonuses.ArmorFlat == 1 && SkillTreeBonuses.HealthPercent == 4 && SkillTreeBonuses.MovePercent == 1.5f, "One shared tree and bonuses across " + element);
+        }
+        Check(ElementGemEquipmentService.UnequipToInventory(), "Actual gem unequip");
+        ui.HideTooltip(); Click(ui.close); yield return null; foreach (var step in Steps(OpenFromMenu())) yield return step; Check(ui.Plan.Planned.Length == 4, "Reopen loads durable allocation");
+        ui.SelectNode("S_W1", true); Check(ui.Plan.Refunds("S_W1").Length == 2, "Product cascading refund preview"); Click(ui.action); Click(ui.apply);
+        Check(ui.Plan.Remaining == 2 && !ui.Plan.Has("S_W1") && !ui.Plan.Has("S_W3") && ui.Plan.Has("S_Q1") && SkillTreeBonuses.AttackPercent == 0 && SkillTreeBonuses.ArmorFlat == 0, "Durable refund removes disconnected bonuses and retains sibling branch");
+        Click(ui.resetAllocation); Check(ui.Plan.Remaining == 4 && SkillTreeBonuses.HealthPercent == 4 && SkillTreeBonuses.MovePercent == 1.5f, "Full refund remains preview until applied"); Click(ui.cancel); Check(ui.Plan.Has("S_Q1"), "Full refund preview can cancel");
+        p.Health.Heal(100000); Check(p.Health.CurrentHp > hp, "Refund maximum-health clamp fixture");
+        Click(ui.resetAllocation); Click(ui.apply); Check(Mathf.Approximately(p.Health.MaxHp, hp) && Mathf.Approximately(p.Health.CurrentHp, hp) && Mathf.Approximately(p.Movement.WalkMoveSpeed, walk), "Health and movement refund return to baseline and clamp current health");
+        for (int i = 0; i < 3; i++) { Click(ui.close); yield return null; Check(!GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Repeated close returns input " + i); foreach (var step in Steps(OpenFromMenu())) yield return step; }
+        var previous = Keyboard.current; var keyboard = InputSystem.AddDevice<Keyboard>("OwnedSkillTreeFoundationKeyboard");
+        try
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(UnityEngine.InputSystem.Key.Escape)); yield return null; yield return null;
+            Check(!ui.IsOpen && !OverburstGameMenu.IsOpen && !GameplayInputBlocker.IsGameplayInputBlocked && input.IsGameplayEnabled == gameplay, "Actual Escape closes tree and restores input");
+        }
+        finally { if (keyboard.added) InputSystem.RemoveDevice(keyboard); if (previous != null && previous.added) previous.MakeCurrent(); }
+        Check(File.Exists(Path.Combine(Output, "ingame-skill-tree.png")) && File.Exists(Path.Combine(Output, "ingame-tooltip.png")), "Actual composited Play captures saved");
     }
 }

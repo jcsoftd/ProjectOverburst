@@ -33,6 +33,7 @@ namespace Overburst.Persistence
         public string lastTransactionId;
         public long bossClearCount;
         public string elementalGemInstanceId;
+        public SkillTreeSnapshot skillTree;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)
         {

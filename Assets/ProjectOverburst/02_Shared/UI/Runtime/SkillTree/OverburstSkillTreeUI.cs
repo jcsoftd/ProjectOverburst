@@ -5,8 +5,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Overburst.Persistence;
 
-/// <summary>Native common-tree window and ephemeral build planner. Combat/account ownership stays outside this UI.</summary>
+/// <summary>Native common-tree draft with explicit account commit and cached stat projection.</summary>
 public sealed class OverburstSkillTreeUI : MonoBehaviour
 {
     public const string ResourcePath = "UI/SkillTree/PF_OverburstSkillTree_Rpg11";
@@ -19,7 +20,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public OverburstSkillTreeRoutes routes;
     public OverburstSkillTreeNodeView[] nodes;
     public RectTransform[] areaLabels;
-    public Button entry, close, zoomOut, zoomIn, center, action, cancel, apply;
+    public Button entry, close, zoomOut, zoomIn, center, action, cancel, apply, resetAllocation;
     public Text remaining, zoomLabel, elementLabel, kindLabel, nodeName, meta, trigger, prerequisites, actionLabel, feedback;
     public Text[] effectLabels, effectBodies, statValues;
     public Image equippedIcon, detailNodeIcon;
@@ -33,10 +34,18 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public bool IsOpen => surface != null && surface.activeSelf;
     public float Zoom { get; private set; } = 1;
     public Vector2 Pan { get; private set; }
-    public string SelectedId { get; private set; } = "W01";
+    public string SelectedId { get; private set; } = "ROOT";
     public OverburstSkillTreeCatalog Catalog { get; private set; }
     public OverburstSkillTreePlan Plan { get; private set; }
-    public float MapScale => Mathf.Max(.44f, Mathf.Min((viewport.rect.width - 100) / 1600, (viewport.rect.height - 100) / 1600)) * Zoom;
+    public float MapScale => .66f * Zoom;
+    public float FitZoom => Mathf.Min(1f, (viewport.rect.width - 130) / (mapExtent.x * 1.32f), (viewport.rect.height - 130) / (mapExtent.y * 1.32f));
+    public float MinimumZoom => Mathf.Min(.25f, FitZoom);
+    Vector2 mapExtent;
+    SkillTreeSnapshot expectedTree;
+    long observedRevision = -1;
+    AccountGameplaySession observedSession;
+    bool staleDraft;
+    public bool CanEdit => !Application.isPlaying || (AccountGameplaySession.Current != null && WorldSessionState.IsHideout && !AccountGameplaySession.Current.NeedsProjectionRecovery);
     public WeaponElement CurrentElement => PlayerContext.Instance?.CurrentActorEquipment != null ? PlayerContext.Instance.CurrentActorEquipment.ActiveElement : WeaponElement.None;
     Dictionary<string, OverburstSkillTreeCatalog.Node> index;
     Dictionary<string, OverburstSkillTreeNodeView> views;
@@ -66,18 +75,20 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     void OnEnable() => UnityEngine.SceneManagement.SceneManager.sceneUnloaded += SceneUnloaded;
     void OnDisable() { UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= SceneUnloaded; Close(); }
     void OnDestroy() { Close(); if (Instance == this) Instance = null; }
-    void SceneUnloaded(UnityEngine.SceneManagement.Scene scene) => Close();
+    void SceneUnloaded(UnityEngine.SceneManagement.Scene scene) { Plan?.Cancel(); Close(); }
     public void Initialize()
     {
         if (initialized) return;
         Catalog = JsonUtility.FromJson<OverburstSkillTreeCatalog>(catalogAsset.text); Catalog.Validate(); Plan = new OverburstSkillTreePlan(Catalog);
         index = Catalog.nodes.ToDictionary(n => n.id); views = nodes.ToDictionary(n => n.nodeId);
+        mapExtent = new Vector2(Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.x))), Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.y))));
         captionSizes = nodes.Where(n => n.caption != null).ToDictionary(n => n.nodeId, n => n.caption.fontSize);
         foreach (var node in nodes) node.Bind(this);
         entry.onClick.AddListener(Toggle); close.onClick.AddListener(Close);
         zoomOut.onClick.AddListener(() => ZoomAt(Zoom - .2f, Vector2.zero)); zoomIn.onClick.AddListener(() => ZoomAt(Zoom + .2f, Vector2.zero));
         center.onClick.AddListener(ResetMap);
         action.onClick.AddListener(EditPlan); cancel.onClick.AddListener(CancelPlan); apply.onClick.AddListener(ApplyPlan);
+        if (resetAllocation) resetAllocation.onClick.AddListener(ResetAllocation);
         initialized = true; HideTooltip(); Refresh();
     }
     void Update()
@@ -96,7 +107,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         }
         FitWindow();
         if (viewport.rect.size != lastViewport) { HideTooltip(); LayoutMap(); }
-        if (Time.unscaledTime >= nextRefresh) { nextRefresh = Time.unscaledTime + .15f; if (shownElement != CurrentElement) { RefreshDetail(); if (!string.IsNullOrEmpty(hoverId)) ShowTooltip(hoverId); } }
+        if (Time.unscaledTime >= nextRefresh) { nextRefresh = Time.unscaledTime + .15f; if (AccountGameplaySession.Current != null && observedRevision != AccountGameplaySession.Current.Revision) SyncAccount(false); if (shownElement != CurrentElement) { RefreshDetail(); if (!string.IsNullOrEmpty(hoverId)) ShowTooltip(hoverId); } }
     }
     public void UseExternalEntry(bool value) { externalEntry = value; if (entry) entry.gameObject.SetActive(!externalEntry && !IsOpen); }
     public void Toggle() { if (IsOpen) Close(); else Open(); }
@@ -107,7 +118,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (Application.isPlaying && (OverburstGameMenu.IsOpen || GameplayInputBlocker.IsGameplayInputBlocked)) return;
         returnSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
         entry.gameObject.SetActive(false);
-        surface.SetActive(true); transform.SetAsLastSibling(); FitWindow(); Canvas.ForceUpdateCanvases(); Refresh();
+        surface.SetActive(true); transform.SetAsLastSibling(); FitWindow(); Canvas.ForceUpdateCanvases(); SyncAccount(observedSession != AccountGameplaySession.Current || !CanEdit); ResetMap(); Refresh();
         if (Application.isPlaying)
         {
             TooltipManager.Instance?.HideTooltip(); GameplayInputBlocker.Block(this);
@@ -161,16 +172,16 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     {
         var source = index[from].Position;
         var nearest = Catalog.nodes.Where(n => n.id != from && Vector2.Dot(n.Position - source, axis) > 0).OrderBy(n => (n.Position - source).magnitude + Mathf.Abs(Vector2.Dot(n.Position - source, new Vector2(-axis.y, axis.x))) * 2).FirstOrDefault();
-        if (nearest != null && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(views[nearest.id].button.gameObject);
+        if (nearest != null && EventSystem.current != null) { SelectNode(nearest.id, true); EventSystem.current.SetSelectedGameObject(views[nearest.id].button.gameObject); }
     }
     public void ZoomAt(float next, Vector2 anchor)
     {
-        float value = Mathf.Clamp(next, 1, 2.5f);
+        float value = Mathf.Clamp(next, MinimumZoom, 2.5f);
         if (Mathf.Approximately(value, Zoom)) return;
         HideTooltip(); Pan = anchor - (anchor - Pan) * value / Zoom; Zoom = value; LayoutMap();
     }
     public void SetPan(Vector2 pan) { HideTooltip(); Pan = pan; LayoutMap(); }
-    public void ResetMap() { HideTooltip(); Zoom = 1; Pan = Vector2.zero; LayoutMap(); }
+    public void ResetMap() { HideTooltip(); Zoom = FitZoom; Pan = Vector2.zero; LayoutMap(); }
     public void LayoutMap()
     {
         if (!initialized) return;
@@ -179,39 +190,76 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
             var view = views[node.id]; var pos = node.Position * MapScale + Pan;
             ((RectTransform)view.transform).anchoredPosition = pos;
             view.transform.localScale = Vector3.one * Zoom;
+            bool visible = Mathf.Abs(pos.x) < viewport.rect.width / 2 + 110 * Zoom && Mathf.Abs(pos.y) < viewport.rect.height / 2 + 70 * Zoom;
+            view.gameObject.SetActive(visible); if (view.captionRect) view.captionRect.gameObject.SetActive(visible && (Zoom >= .65f || node.id == SelectedId));
             if (view.captionRect)
             {
-                view.caption.fontSize = Mathf.RoundToInt(captionSizes[node.id] * Zoom);
-                view.captionRect.sizeDelta = new Vector2(Mathf.Ceil(view.caption.preferredWidth) + 6 * Zoom, (captionSizes[node.id] * 1.25f + 2) * Zoom);
+                view.caption.fontSize = Mathf.Max(10, Mathf.RoundToInt(captionSizes[node.id] * Zoom));
+                view.captionRect.sizeDelta = new Vector2(Mathf.Ceil(view.caption.preferredWidth) + 6 * Zoom, view.caption.fontSize * 1.25f + 2);
                 view.captionRect.anchoredPosition = pos + view.captionOffset * Zoom;
             }
         }
-        Vector2[] regions = { new Vector2(0, 220), new Vector2(285, 0), new Vector2(-285, 0), new Vector2(0, -220) };
+        Vector2[] regions = { new Vector2(150, 160), new Vector2(220, 90), new Vector2(-220, 90), new Vector2(150, -160) };
         for (int i = 0; i < areaLabels.Length; i++)
         {
+            areaLabels[i].gameObject.SetActive(Zoom >= .5f);
             var label = areaLabels[i].GetComponent<Text>(); label.fontSize = Mathf.RoundToInt(15 * Zoom);
             areaLabels[i].sizeDelta = new Vector2(Mathf.Ceil(label.preferredWidth) + 10 * Zoom, 24 * Zoom);
             areaLabels[i].anchoredPosition = regions[i] * MapScale + Pan;
         }
-        routes.Configure(Catalog, Plan, MapScale, Pan); lastViewport = viewport.rect.size;
-        zoomLabel.text = Mathf.RoundToInt(Zoom * 100) + "%"; zoomOut.interactable = Zoom > 1.001f; zoomIn.interactable = Zoom < 2.499f;
+        routes.Configure(Catalog, Plan, MapScale, Pan, rootCanvas.rootCanvas.scaleFactor * window.localScale.x); lastViewport = viewport.rect.size;
+        zoomLabel.text = Mathf.RoundToInt(Zoom * 100) + "%"; zoomOut.interactable = Zoom > MinimumZoom + .001f; zoomIn.interactable = Zoom < 2.499f;
         ButtonOpacity(zoomOut);ButtonOpacity(zoomIn);
+    }
+    public void SyncAccount(bool discardDraft)
+    {
+        var session = AccountGameplaySession.Current;
+        if (session == null) return;
+        var tree = session.ReadSkillTree(); observedRevision = session.Revision; observedSession = session;
+        if (tree == null) { feedback.text = "계정 준비 중"; return; }
+        bool changed = expectedTree == null || tree.earnedPoints != expectedTree.earnedPoints || !tree.learnedNodeIds.SequenceEqual(expectedTree.learnedNodeIds);
+        if (!discardDraft && Plan.Changed && changed) { staleDraft = true; feedback.text = "포인트가 변경되었습니다 · 변경 취소 또는 다시 열기로 갱신"; apply.interactable = false; return; }
+        if (discardDraft || changed) { staleDraft = false; expectedTree = tree; Plan.Load(tree.earnedPoints, tree.learnedNodeIds); feedback.text = CanEdit ? "5레벨마다 1포인트 · 변경 후 적용하면 저장됩니다" : "은신처에서 강화 변경을 적용할 수 있습니다"; Refresh(); }
     }
     void EditPlan()
     {
-        HideTooltip(); if (!Plan.Toggle(SelectedId)) return;
-        feedback.text = "강화 계획 변경 · 전투 효과 준비 중"; Refresh();
+        HideTooltip(); if (!CanEdit || !Plan.Toggle(SelectedId)) return;
+        feedback.text = "변경 미리보기 · 적용하면 능력치에 반영됩니다"; Refresh();
     }
-    public void CancelPlan() { HideTooltip(); Plan.Cancel(); feedback.text = "직전 강화 계획으로 돌아갔습니다"; Refresh(); }
-    public void ApplyPlan() { HideTooltip(); Plan.Apply(); feedback.text = "강화 계획 적용 · 전투 효과 준비 중"; Refresh(); }
+    public void CancelPlan() { HideTooltip(); Plan.Cancel(); SyncAccount(true); feedback.text = "변경을 취소했습니다"; Refresh(); }
+    public void ResetAllocation()
+    {
+        if (!CanEdit) return; HideTooltip(); Plan.ClearDraft(); feedback.text = "전체 환급 미리보기 · 적용하면 " + Plan.Remaining + "포인트를 사용할 수 있습니다"; Refresh();
+    }
+    public void ApplyPlan()
+    {
+        HideTooltip(); SyncAccount(false); if (!CanEdit || staleDraft || !Plan.Changed) return;
+        if (!Application.isPlaying) { Plan.Apply(); feedback.text = "Editor 미리보기"; Refresh(); return; }
+        try
+        {
+            if (!AccountGameplaySession.Current.ApplySkillTree(expectedTree, Plan.Planned)) return;
+            SyncAccount(true); feedback.text = "강화 적용 및 저장 완료";
+            if (AccountGameplaySession.Current.NeedsProjectionRecovery) feedback.text = "강화 저장 완료 · 화면 복구 중";
+        }
+        catch (System.IO.IOException) { feedback.text = "저장에 실패했습니다 · 변경을 유지했으니 다시 적용해 주세요"; }
+        catch (InvalidOperationException error) { feedback.text = error.Message; }
+        Refresh();
+    }
     public void Refresh()
     {
         if (!initialized) return;
-        remaining.text = Plan.Remaining + " / " + Catalog.planningBudget;
-        foreach (var node in Catalog.nodes) views[node.id].Present(Plan.Has(node.id), node.id == SelectedId, Plan.Available(node));
-        cancel.interactable = apply.interactable = Plan.Changed;
+        remaining.text = Plan.Remaining + " / " + Plan.Budget;
+        foreach (var node in Catalog.nodes) views[node.id].Present(Plan.Has(node.id), node.id == SelectedId, Plan.Available(node), node.cost == 0 || Plan.IsApplied(node.id));
+        cancel.interactable = Plan.Changed; apply.interactable = Plan.Changed && CanEdit && !staleDraft;
+        if (resetAllocation) { resetAllocation.interactable = CanEdit && Plan.Planned.Length > 0; ButtonOpacity(resetAllocation); }
         ButtonOpacity(cancel);ButtonOpacity(apply);
-        for (int i = 0; i < statValues.Length; i++) statValues[i].text = "+" + Plan.Total(new[] { "attack", "defense", "hp", "move" }[i]).ToString("0.#") + "%";
+        for (int i = 0; i < statValues.Length; i++)
+        {
+            string stat = new[] { "attack", "defense", "hp", "move" }[i], unit = i == 1 ? "" : "%";
+            float current = Plan.AppliedTotal(stat), preview = Plan.Total(stat); bool changed = !Mathf.Approximately(current, preview);
+            statValues[i].text = changed ? current.ToString("0.#") + " → " + preview.ToString("0.#") + unit : "+" + preview.ToString("0.#") + unit;
+            statValues[i].color = changed ? new Color(.96f,.80f,.49f) : new Color(.91f,.88f,.81f);
+        }
         RefreshDetail(); LayoutMap();
     }
     public void RefreshDetail()
@@ -222,26 +270,30 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         equippedIcon.sprite=equippedIndex<5?elementSprites[equippedIndex]:views["S_W1"].icon.sprite;equippedIcon.color=equippedIndex<5?Color.white:new Color(.65f,.61f,.53f);
         detailNodeIcon.sprite=views[n.id].icon.sprite;
         kindLabel.text = OverburstSkillTreeCatalog.AreaName(n.area) + " · " + OverburstSkillTreeCatalog.KindName(n.kind);
-        nodeName.text = n.name; meta.text = Meta(n); trigger.text = n.kind == "stat" ? "모든 공격과 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "기본 공격은 강화 계획 없이 사용할 수 있습니다." : n.trigger;
-        prerequisites.text = n.requires.Length > 0 ? "선행  " + string.Join(" + ", n.requires.Select(id => index[id].name)) : "모든 공격의 공통 시작점";
+        nodeName.text = n.name; meta.text = Meta(n); trigger.text = n.kind == "stat" ? "모든 공격과 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "중앙에서 연결된 능력치 노드를 선택해 강화합니다." : n.trigger;
+        prerequisites.text = n.requires.Length > 0 ? "필수 선행  " + string.Join(" + ", n.requires.Select(id => index[id].name)) : n.cost == 0 ? "무료 안내 노드 · 포인트를 소비하지 않습니다" : "중앙과 연결된 습득 노드에 인접해야 합니다";
+        effectHeading.GetComponent<Text>().text = "강화 효과";
+        prerequisites.rectTransform.sizeDelta = new Vector2(396, 42);
         float effectsY=Mathf.Clamp(181+trigger.preferredHeight+24,220,260);effectHeading.anchoredPosition=new Vector2(22,-effectsY);effectRule.anchoredPosition=new Vector2(22,-effectsY-35);var effectViewport=effectScroll.viewport;effectViewport.anchoredPosition=new Vector2(22,-effectsY-48);effectViewport.sizeDelta=new Vector2(effectViewport.sizeDelta.x,610-effectsY-48);
         string[] elements = { "불", "얼음", "번개", "어둠", "빛", "미장착" }; float y = 0;
         for (int i = 0; i < effectBodies.Length; i++)
         {
-            bool show = n.kind != "stat" || i == 0;
+            bool show = i == 0;
             effectBodies[i].transform.parent.gameObject.SetActive(show); if (!show) continue;
-            effectLabels[i].text = n.kind == "stat" ? "공용" : elements[i];
+            effectLabels[i].text = "공용";
             effectLabels[i].color = i == OverburstSkillTreeCatalog.ElementIndex(CurrentElement) || n.kind == "stat" ? new Color(.89f,.74f,.47f) : new Color(.67f,.63f,.55f);
-            effectIcons[i].sprite=n.kind=="stat"?views[n.id].icon.sprite:i<5?elementSprites[i]:views["S_W1"].icon.sprite;effectIcons[i].color=n.kind=="stat"||i==5?new Color(.80f,.73f,.60f):Color.white;
+            effectIcons[i].sprite=views[n.id].icon.sprite;effectIcons[i].color=n.kind=="stat"||i==5?new Color(.80f,.73f,.60f):Color.white;
             effectRowSurfaces[i].color=i==equippedIndex&&n.kind!="stat"?new Color(.22f,.17f,.10f,.5f):new Color(0,0,0,0);
-            effectBodies[i].text = n.kind == "stat" ? n.name + " · 보석 교체 시에도 유지" : n.effects != null && n.effects.Length == 6 ? n.effects[i] : "모든 원소가 같은 기본 공격과 강화 경로를 사용합니다.";
+            effectBodies[i].text = n.kind == "stat" ? n.name + " · 원소 교체 시에도 유지\n" + (n.stat == "defense" ? "방어력에 고정 수치를 더합니다." : n.stat == "hp" ? "기본 체력과 영구 보너스의 합에 적용합니다. 적용 시 체력을 회복하지 않습니다." : n.stat == "move" ? "걷기·달리기·전투 이동에 적용합니다." : "무기·장비·레벨 공격력을 합친 뒤 적용합니다.") : "무료 경로 안내\n연결된 능력치 노드부터 습득할 수 있습니다.";
             float h = Mathf.Max(48, effectBodies[i].preferredHeight + 16);
             var row = (RectTransform)effectBodies[i].transform.parent; row.anchoredPosition = new Vector2(0, -y); row.sizeDelta = new Vector2(row.sizeDelta.x, h); y += h;
         }
         effectContent.sizeDelta = new Vector2(effectContent.sizeDelta.x, y);
-        bool included = Plan.Has(n.id); int count = n.cost > 0 && included ? Plan.Refunds(n.id).Length : 0;
-        actionLabel.text = n.cost == 0 ? "기본 경로" : included ? "계획에서 제거" + (count > 1 ? " · 연결 " + count + "개" : "") : !Plan.Available(n) ? "선행 계획 필요" : "계획에 추가 · " + n.cost + "포인트";
-        action.interactable = n.cost > 0 && (included || (Plan.Available(n) && Plan.Remaining >= n.cost));
+        if (effectScroll.verticalScrollbar) effectScroll.verticalScrollbar.gameObject.SetActive(y > effectScroll.viewport.rect.height);
+        bool included = Plan.Has(n.id); var refundIds = n.cost > 0 && included ? Plan.Refunds(n.id) : Array.Empty<string>(); int count = refundIds.Length;
+        if (count > 1) prerequisites.text = "환급 대상  " + string.Join(" · ", refundIds.Select(id => index[id].name)) + "\n총 " + refundIds.Sum(id => index[id].cost) + "포인트 · 적용 전 취소 가능";
+        actionLabel.text = n.cost == 0 ? "기본 경로" : included ? "환급 미리보기" + (count > 1 ? " · " + count + "개" : " · " + n.cost + "포인트") : !Plan.Available(n) ? "연결 노드 습득 필요" : Plan.Remaining < n.cost ? "포인트 부족" : "습득 미리보기 · " + n.cost + "포인트";
+        action.interactable = CanEdit && n.cost > 0 && (included || (Plan.Available(n) && Plan.Remaining >= n.cost));
         ButtonOpacity(action);
     }
     static void ButtonOpacity(Button button){var group=button.GetComponent<CanvasGroup>();if(group)group.alpha=button.interactable?1:.45f;}
@@ -252,9 +304,9 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
         if (!IsOpen || !index.TryGetValue(id, out var n)) return;
         hoverId = id; tipName.text = n.name; tipMeta.text = Meta(n);
         tipTrigger.text = n.kind == "stat" ? "모든 원소에 같은 능력치 보정" : string.IsNullOrEmpty(n.trigger) ? "공통 공격의 시작 경로" : n.trigger;
-        tipEffect.text = n.kind == "stat" ? n.name + " · 보석 교체 시에도 유지" : n.Effect(CurrentElement);
-        tipPrerequisites.text = n.requires.Length == 0 ? "공통 시작점" : "선행  " + string.Join(" + ", n.requires.Select(p => index[p].name));
-        tipState.text = n.cost == 0 ? "기본 경로" : Plan.Has(id) ? "계획에 포함 · 클릭하여 상세 고정" : Plan.Available(n) ? "계획에 추가 가능 · 클릭하여 상세 고정" : "선행 계획 필요 · 클릭하여 상세 고정";
+        tipEffect.text = n.kind == "stat" ? n.name + " · 원소 교체 시에도 유지" : "무료 안내 노드 · 포인트를 소비하지 않습니다";
+        tipPrerequisites.text = n.requires.Length == 0 ? (n.cost == 0 ? "공통 시작 경로" : "중앙과 연결된 습득 노드에 인접해야 합니다") : "선행  " + string.Join(" + ", n.requires.Select(p => index[p].name));
+        tipState.text = n.cost == 0 ? "기본 경로" : Plan.Has(id) ? (Plan.IsApplied(id) ? "습득 완료" : "습득 예정 · 적용 필요") + " · 클릭하여 상세 고정" : Plan.IsApplied(id) ? "환급 예정 · 적용 필요" : Plan.Available(n) ? (Plan.Remaining >= n.cost ? "습득 가능 · " : "포인트 부족 · ") + "클릭하여 상세 고정" : "연결 노드 습득 필요 · 클릭하여 상세 고정";
         tooltip.gameObject.SetActive(true); tooltip.SetAsLastSibling();
         float y = 16; Text[] fields = { tipName, tipMeta, tipTrigger, tipEffect, tipPrerequisites, tipState };
         foreach (var field in fields)

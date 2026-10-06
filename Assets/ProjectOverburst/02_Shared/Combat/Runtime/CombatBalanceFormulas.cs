@@ -16,9 +16,9 @@ public static class CombatBalanceFormulas
 
     // ── 플레이어 무기 최종 수치: PlayerEquipment.RefreshCurrentWeaponStats
     public static WeaponFinalStats ComposePlayerWeaponStats(WeaponFinalStats stats, GearStatTotals gear, int playerLevel,
-        float runAttackSpeed)
+        float runAttackSpeed, float skillAttackPercent = 0f)
     {
-        stats.damage = OverburstCombatBalance.RoundStat((stats.damage + gear.Attack) * OverburstGrowthRules.PlayerAttackFactor(playerLevel));
+        stats.damage = OverburstCombatBalance.RoundStat((stats.damage + gear.Attack) * OverburstGrowthRules.PlayerAttackFactor(playerLevel) * (1f + skillAttackPercent / 100f));
         stats.critChance = Mathf.Min(65f, stats.critChance + gear.CriticalChance);
         stats.meleeAttackSpeedMultiplier = Mathf.Min(WeaponGradeStatRoller.MaximumMeleeAttackSpeedMultiplier,
             stats.meleeAttackSpeedMultiplier + gear.AttackSpeed / 100f);

@@ -14,10 +14,11 @@ public static class OverburstSkillTreeBuilder
     public const string Root = "Assets/ProjectOverburst/Resources/UI/SkillTree";
     public const string PrefabPath = Root + "/PF_OverburstSkillTree_Rpg11.prefab";
     public const string AtlasPath = "Assets/ProjectOverburst/05_Art/UI/SkillTree/AttackGlyphAtlas.png";
+    public const string MoveGlyphPath = "Assets/ProjectOverburst/05_Art/UI/SkillTree/Icon_SkillTreeMove.png";
     const string Vendor = "Assets/ThirdParty/RPG and MMO UI 11/Textures/";
     public const float Width = 1728, Height = 988;
     static Font body, heading;
-    static Sprite buttonSprite, buttonBorder, round, square, glow;
+    static Sprite buttonSprite, buttonBorder, round, square, glow, moveGlyph;
     static readonly Color Gold = new Color(.87f,.73f,.47f), Ivory = new Color(.91f,.88f,.81f), Muted = new Color(.64f,.60f,.53f), Surface = new Color(.051f,.047f,.043f), Rule = new Color(.27f,.23f,.17f);
     [MenuItem("OVERBURST/UI/Build Common Skill Tree")]
     public static void BuildMenu() => Build();
@@ -33,7 +34,8 @@ public static class OverburstSkillTreeBuilder
         round = SpriteAt("Controls/Buttons/Circular/Button_Circular_Foreground.png");
         square = SpriteAt("Miscellaneous/General/General_Container_Border_2.png");
         glow = square;
-        ImportAtlas();
+        moveGlyph = EnsureMoveGlyph();
+        // Existing atlas GUID/slicing belongs to the original UI authoring pass.
         var sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath).OfType<Sprite>().OrderBy(s => s.name, StringComparer.Ordinal).ToArray();
         if (sprites.Length != 16) throw new InvalidOperationException("16 generated attack glyph sprites required.");
         var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/CommonAttackTreeCatalog.json");
@@ -60,14 +62,14 @@ public static class OverburstSkillTreeBuilder
             foreach(var drag in sharedHeader.GetComponentsInChildren<UIDragObject>(true))Object.DestroyImmediate(drag);
             var title=sharedHeader.transform.Find("Text").GetComponent<Text>();title.text="스킬트리";var titleRect=title.rectTransform;titleRect.anchorMin=titleRect.anchorMax=titleRect.pivot=new Vector2(0,1);titleRect.anchoredPosition=new Vector2(128,-28);titleRect.sizeDelta=new Vector2((Width-128)*2,88);
             ui.close=sharedHeader.transform.Find("Button (Close)").GetComponent<Button>();ui.close.onClick=new Button.ButtonClickedEvent();var closeRect=(RectTransform)ui.close.transform;closeRect.anchorMin=closeRect.anchorMax=closeRect.pivot=new Vector2(0,1);closeRect.anchoredPosition=new Vector2((Width-58)*2,-40);closeRect.sizeDelta=new Vector2(72,72);
-            Label(ui.window,"Common Tree Caption","공통 공격 강화",30,30,240,26,13,Muted);
-            Label(ui.window,"Planning Points Caption","계획 포인트",1374,15,236,23,12,Muted,TextAnchor.MiddleRight);
-            ui.remaining = Label(ui.window,"Planning Points","16 / 24",1374,37,236,29,22,Ivory,TextAnchor.MiddleRight);
+            Label(ui.window,"Common Tree Caption","공통 스킬트리",30,30,240,26,13,Muted);
+            Label(ui.window,"Planning Points Caption","남은 스킬포인트",1374,15,236,23,12,Muted,TextAnchor.MiddleRight);
+            ui.remaining = Label(ui.window,"Planning Points","0 / 0",1374,37,236,29,22,Ivory,TextAnchor.MiddleRight);
             Label(ui.window,"Map Controls Hint","휠 / + − 확대·축소 · 드래그 이동",28,94,520,25,12,Muted);
             ui.zoomOut = Button(ui.window,"Zoom Out","−",928,90,36,36);ui.zoomOut.GetComponentInChildren<Text>().fontSize=18;
             ui.zoomLabel = Label(ui.window,"Zoom Value","100%",970,90,68,36,14,Ivory,TextAnchor.MiddleCenter);
             ui.zoomIn = Button(ui.window,"Zoom In","+",1044,90,36,36);ui.zoomIn.GetComponentInChildren<Text>().fontSize=18;
-            ui.center = Button(ui.window,"Center Map","중앙 보기",1094,90,132,36);
+            ui.center = Button(ui.window,"Center Map","전체 보기",1094,90,132,36);
             ui.viewport = Rect(ui.window,"Tree Viewport",18,126,1220,744);
             ui.viewport.gameObject.AddComponent<Image>().color = new Color(.060f,.056f,.050f); ui.viewport.gameObject.AddComponent<RectMask2D>();
             ui.viewport.gameObject.AddComponent<OverburstSkillTreeMapInput>().owner = ui;
@@ -79,7 +81,7 @@ public static class OverburstSkillTreeBuilder
             ui.areaLabels = regions.Select((name,i) => {
                 var t = Label(textLayer,"Region " + i,name,0,0,140,24,15,Gold,TextAnchor.MiddleCenter,true); t.rectTransform.sizeDelta=new Vector2(Mathf.Ceil(t.preferredWidth)+10,24); t.rectTransform.anchorMin=t.rectTransform.anchorMax=t.rectTransform.pivot=new Vector2(.5f,.5f); return t.rectTransform;
             }).ToArray();
-            Label(ui.window,"Node Legend","작은 원 · 능력치      원 · 공격 강화      사각 · 핵심 / 연계 / 액티브",38,880,1190,25,12,Muted,TextAnchor.MiddleCenter);
+            Label(ui.window,"Node Legend","금색 · 습득 완료      밝은색 · 습득 예정      적갈색 · 환급 예정",38,880,1190,25,12,Muted,TextAnchor.MiddleCenter);
             var right = Rect(ui.window,"Selected Node Panel",1262,96,440,796);
             var divider = Picture(ui.window,"Column Rule",null,Rule,1250,104,1,790);
             var elementSprites=new[]{"Fire","Ice","Electric","Dark","Light"}.Select(element=>AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectOverburst/Resources/UI/WeaponElements/Icon_WeaponElement_"+element+".png")).ToArray();if(elementSprites.Any(s=>!s))throw new InvalidOperationException("Existing HUD element icons required.");
@@ -92,9 +94,9 @@ public static class OverburstSkillTreeBuilder
             ui.nodeName = Label(right,"Name","약공 2타 강화",82,57,336,39,24,Gold,TextAnchor.MiddleLeft,true);
             ui.meta = Label(right,"Cost and Cooldown","1포인트 · 조건마다 발동",82,99,336,26,13,Muted);
             RuleAt(right,"Detail Header Rule",22,137,396);
-            Label(right,"Trigger Heading","발동 조건",22,151,396,21,12,Muted);
+            Label(right,"Trigger Heading","적용 방식",22,151,396,21,12,Muted);
             ui.trigger = Label(right,"Trigger","",22,181,396,63,16,Ivory,TextAnchor.UpperLeft); ui.trigger.horizontalOverflow = HorizontalWrapMode.Wrap;
-            ui.effectHeading=Label(right,"Effect Heading","원소별 강화 효과",22,225,396,27,15,Gold).rectTransform;
+            ui.effectHeading=Label(right,"Effect Heading","강화 효과",22,225,396,27,15,Gold).rectTransform;
             ui.effectRule=Picture(right,"Effect Rule",null,Rule,22,260,396,1).rectTransform;
             var effectView = Rect(right,"Effects Viewport",22,273,396,337); effectView.gameObject.AddComponent<Image>().color = Color.clear; effectView.gameObject.AddComponent<RectMask2D>();
             ui.effectContent = Rect(effectView,"Effect Rows",0,0,374,500); ui.effectContent.anchorMin= new Vector2(0,1);ui.effectContent.anchorMax= new Vector2(1,1);ui.effectContent.pivot=new Vector2(.5f,1);ui.effectContent.offsetMin=new Vector2(0,-500);ui.effectContent.offsetMax=new Vector2(-18,0);
@@ -111,13 +113,14 @@ public static class OverburstSkillTreeBuilder
             var thumb=Rect(scrollTrack,"Thumb",0,0,4,120);Stretch(thumb);var thumbImage=thumb.gameObject.AddComponent<Image>();thumbImage.color=new Color(.48f,.39f,.25f);var scrollBar=scrollTrack.gameObject.AddComponent<Scrollbar>();scrollBar.handleRect=thumb;scrollBar.targetGraphic=thumbImage;scrollBar.direction=Scrollbar.Direction.BottomToTop;ui.effectScroll.verticalScrollbar=scrollBar;ui.effectScroll.verticalScrollbarVisibility=ScrollRect.ScrollbarVisibility.AutoHide;
             RuleAt(right,"Prerequisite Rule",22,624,396);
             ui.prerequisites=Label(right,"Prerequisites","",22,636,396,42,12,Muted,TextAnchor.UpperLeft);ui.prerequisites.horizontalOverflow=HorizontalWrapMode.Wrap;
-            Label(right,"Stat Heading","계획 능력치 합계",22,680,396,25,15,Gold);
+            Label(right,"Stat Heading","능력치 미리보기",22,680,396,25,15,Gold);
             ui.statValues = new Text[4]; string[] statNames={"공격력","방어력","최대 체력","이동속도"};
-            for(int i=0;i<4;i++){float x=22+i%2*210,y=714+i/2*26;Label(right,"Stat " + i,statNames[i],x,y,114,24,13,Muted);ui.statValues[i]=Label(right,"Stat Value " + i,"",x+115,y,67,24,15,Ivory,TextAnchor.MiddleRight);}
+            for(int i=0;i<4;i++){float x=22+i%2*210,y=714+i/2*26;Label(right,"Stat " + i,statNames[i],x,y,88,24,13,Muted);ui.statValues[i]=Label(right,"Stat Value " + i,"",x+90,y,96,24,13,Ivory,TextAnchor.MiddleRight);}
             ui.action=Button(ui.window,"Edit Plan","계획에서 제거",1284,874,396,44);ui.actionLabel=ui.action.GetComponentInChildren<Text>();
             RuleAt(ui.window,"Footer Rule",30,926,Width-60);
-            ui.feedback=Label(ui.window,"Plan Status","강화 계획 · 전투 효과 준비 중",30,942,950,24,13,Muted);
-            ui.cancel=Button(ui.window,"Cancel Plan","변경 취소",1284,932,190,44);ui.apply=Button(ui.window,"Apply Plan","계획 적용",1490,932,190,44);
+            ui.resetAllocation=Button(ui.window,"Reset Allocation","전체 환급",30,932,190,44);
+            ui.feedback=Label(ui.window,"Plan Status","5레벨마다 1포인트 · 변경 후 적용하면 저장됩니다",240,942,1000,24,13,Muted);
+            ui.cancel=Button(ui.window,"Cancel Plan","변경 취소",1284,932,190,44);ui.apply=Button(ui.window,"Apply Plan","강화 적용",1490,932,190,44);
             ui.tooltip=Rect(ui.window,"Node Tooltip",0,0,360,320);ui.tooltip.anchorMin=ui.tooltip.anchorMax=new Vector2(.5f,.5f);ui.tooltip.pivot=new Vector2(0,1);
             var tb=ui.tooltip.gameObject.AddComponent<Image>();tb.color=new Color(.072f,.063f,.050f);tb.raycastTarget=false;
             var tf=Image(ui.tooltip,"Tooltip Frame",SpriteAt("Miscellaneous/General/General_Container_Border_2.png"),new Color(.88f,.72f,.43f));Stretch(tf.rectTransform);tf.type=UnityEngine.UI.Image.Type.Sliced;tf.pixelsPerUnitMultiplier=2;
@@ -127,31 +130,56 @@ public static class OverburstSkillTreeBuilder
             foreach(var t in new[]{ui.tipTrigger,ui.tipEffect,ui.tipPrerequisites,ui.tipState})t.horizontalOverflow=HorizontalWrapMode.Wrap;
             ui.tooltip.gameObject.SetActive(false); ui.surface.SetActive(false);
             PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);
-            return "CREATED " + PrefabPath + "; shared nodes=49; unique routes=104; glyphs=16";
+            return "CREATED " + PrefabPath + "; shared nodes=" + data.nodes.Length + "; unique routes=" + data.segments.Length;
         }
         finally { if(root)Object.DestroyImmediate(root);EditorSceneManager.ClosePreviewScene(scene); }
     }
     static OverburstSkillTreeNodeView Node(OverburstSkillTreeUI owner,Transform parent,Transform captions,OverburstSkillTreeCatalog.Node n,Sprite[] atlas)
     {
-        float size=n.kind=="root"?52:n.kind=="stat"?28:n.kind=="keystone"?44:n.kind=="guide"?30:34;
+        float size=n.kind=="root"?64:n.kind=="stat"?44:n.kind=="keystone"?44:n.kind=="guide"?36:34;
         var r=Rect(parent,"Node " + n.id,0,0,size,size);r.anchorMin=r.anchorMax=r.pivot=new Vector2(.5f,.5f);
         var frame=r.gameObject.AddComponent<Image>();frame.sprite=new[]{"keystone","active","bridge"}.Contains(n.kind)?square:round;frame.raycastTarget=true;if(new[]{"keystone","active","bridge"}.Contains(n.kind)){frame.type=UnityEngine.UI.Image.Type.Sliced;frame.pixelsPerUnitMultiplier=3;}
         var view=r.gameObject.AddComponent<OverburstSkillTreeNodeView>();view.nodeId=n.id;view.frame=frame;view.button=r.gameObject.AddComponent<Button>();view.button.targetGraphic=frame;
         var navigation=view.button.navigation;navigation.mode=Navigation.Mode.None;view.button.navigation=navigation;
         var selected=Picture(r,"Selected Frame",new[]{"keystone","active","bridge"}.Contains(n.kind)?glow:round,Gold,0,0,size+8,size+8);selected.rectTransform.anchorMin=selected.rectTransform.anchorMax=selected.rectTransform.pivot=new Vector2(.5f,.5f);selected.rectTransform.anchoredPosition=Vector2.zero;selected.transform.SetAsFirstSibling();if(new[]{"keystone","active","bridge"}.Contains(n.kind)){selected.type=UnityEngine.UI.Image.Type.Sliced;selected.pixelsPerUnitMultiplier=3;}view.selection=selected;
-        Sprite glyph=n.kind=="stat"?SpriteAt(new[]{"attack","defense","hp","move"}.Contains(n.stat)?new[]{"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png","HUD/Unit Frames/Unit Frame/Roles/Icon_Defense.png","Mobile/Action Buttons/Icons/Heart.png","Windows/Character/Equip Slot/Icons/Boots.png"}[Array.IndexOf(new[]{"attack","defense","hp","move"},n.stat)]:"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png"):atlas[Mathf.Clamp(n.icon,0,15)];
-        float iconSize=n.kind=="stat"?16:n.kind=="keystone"?30:23;
+        Sprite glyph=n.stat=="move"?moveGlyph:n.kind=="stat"?SpriteAt(new[]{"attack","defense","hp","move"}.Contains(n.stat)?new[]{"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png","HUD/Unit Frames/Unit Frame/Roles/Icon_Defense.png","Mobile/Action Buttons/Icons/Heart.png","Windows/Character/Equip Slot/Icons/Boots.png"}[Array.IndexOf(new[]{"attack","defense","hp","move"},n.stat)]:"HUD/Unit Frames/Unit Frame/Roles/Icon_Melee.png"):atlas[Mathf.Clamp(n.icon,0,15)];
+        float iconSize=n.kind=="stat"?24:n.kind=="keystone"?30:23;
         view.icon=Picture(r,"Glyph",glyph,Gold,0,0,iconSize,iconSize);view.icon.preserveAspect=true;view.icon.rectTransform.anchorMin=view.icon.rectTransform.anchorMax=view.icon.rectTransform.pivot=new Vector2(.5f,.5f);view.icon.rectTransform.anchoredPosition=Vector2.zero;
         if(n.kind=="advanced"){var pip=Picture(r,"Upgrade Mark",round,Gold,0,0,8,8);pip.rectTransform.anchorMin=pip.rectTransform.anchorMax=new Vector2(1,0);pip.rectTransform.pivot=new Vector2(.5f,.5f);pip.rectTransform.anchoredPosition=new Vector2(-1,1);}
         if(!new[]{"root","guide"}.Contains(n.kind)){
-            int fontSize=n.kind=="stat"?11:12;var plate=Rect(captions,"Caption " + n.id,0,0,100,19);var im=plate.gameObject.AddComponent<Image>();im.color=new Color(.060f,.056f,.050f);im.raycastTarget=false;
+            int fontSize=n.kind=="stat"?14:12;var plate=Rect(captions,"Caption " + n.id,0,0,100,19);var im=plate.gameObject.AddComponent<Image>();im.color=new Color(.060f,.056f,.050f);im.raycastTarget=false;
             view.caption=Label(plate,"Text",n.shortName,0,0,100,19,fontSize,Muted,TextAnchor.MiddleCenter);Stretch(view.caption.rectTransform);
             view.captionRect=plate;plate.anchorMin=plate.anchorMax=plate.pivot=new Vector2(.5f,.5f);plate.sizeDelta=new Vector2(Mathf.Ceil(view.caption.preferredWidth)+6,fontSize*1.25f+2);
-            view.captionOffset=new Vector2(0,-(n.kind=="keystone"?38:n.kind=="stat"?27:31));
+            view.captionOffset=new Vector2(0,-(n.kind=="keystone"?38:n.kind=="stat"?36:31));
         }
         return view;
     }
     static Sprite SpriteAt(string path) { var sprite=AssetDatabase.LoadAssetAtPath<Sprite>(Vendor+path);if(!sprite)throw new InvalidOperationException("Package sprite missing: " + path);return sprite; }
+    static Sprite EnsureMoveGlyph()
+    {
+        // White vector strokes stay legible under the game's gold/ivory state tints.
+        if (!File.Exists(MoveGlyphPath))
+        {
+            var texture = new Texture2D(128,128,TextureFormat.RGBA32,false);
+            try
+            {
+                Vector2[] starts = {new Vector2(44,36),new Vector2(70,64),new Vector2(70,36),new Vector2(96,64),new Vector2(12,64),new Vector2(18,46),new Vector2(18,82)};
+                Vector2[] ends = {new Vector2(70,64),new Vector2(44,92),new Vector2(96,64),new Vector2(70,92),new Vector2(37,64),new Vector2(34,46),new Vector2(34,82)};
+                var colors = new Color32[128*128];
+                for(int y=0;y<128;y++)for(int x=0;x<128;x++)
+                {
+                    var p = new Vector2(x+.5f,y+.5f);float distance=float.MaxValue;
+                    for(int i=0;i<starts.Length;i++){var delta=ends[i]-starts[i];var nearest=starts[i]+delta*Mathf.Clamp01(Vector2.Dot(p-starts[i],delta)/delta.sqrMagnitude);distance=Mathf.Min(distance,Vector2.Distance(p,nearest));}
+                    colors[y*128+x]=new Color32(255,255,255,(byte)Mathf.RoundToInt(Mathf.Clamp01(3.6f-distance)*255));
+                }
+                texture.SetPixels32(colors);texture.Apply();File.WriteAllBytes(MoveGlyphPath,texture.EncodeToPNG());
+            }
+            finally { Object.DestroyImmediate(texture); }
+            AssetDatabase.ImportAsset(MoveGlyphPath,ImportAssetOptions.ForceSynchronousImport);
+            var importer=(TextureImporter)AssetImporter.GetAtPath(MoveGlyphPath);importer.textureType=TextureImporterType.Sprite;importer.spriteImportMode=SpriteImportMode.Single;importer.alphaIsTransparency=true;importer.mipmapEnabled=false;importer.textureCompression=TextureImporterCompression.Uncompressed;importer.maxTextureSize=128;importer.wrapMode=TextureWrapMode.Clamp;importer.SaveAndReimport();
+        }
+        var sprite=AssetDatabase.LoadAssetAtPath<Sprite>(MoveGlyphPath);if(!sprite)throw new InvalidOperationException("Movement glyph must import as a sprite.");return sprite;
+    }
     static RectTransform Rect(Transform parent,string name,float x,float y,float w,float h)
     {var go=new GameObject(name,typeof(RectTransform));go.layer=5;var r=(RectTransform)go.transform;r.SetParent(parent,false);r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.anchoredPosition=new Vector2(x,-y);r.sizeDelta=new Vector2(w,h);return r;}
     static void Stretch(RectTransform r) { r.anchorMin=Vector2.zero;r.anchorMax=Vector2.one;r.offsetMin=r.offsetMax=Vector2.zero;r.pivot=new Vector2(.5f,.5f); }
