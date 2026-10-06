@@ -312,6 +312,13 @@ public static class OverburstSettingsGothicBuilder
         // Retain the supplier UIFlippable components; negative scale shifts a top-left pivot inward.
         foreach(var name in new[]{"Gothic Header","Header Texture","Left Ornament","Right Ornament","Header Rule"})
             header.Find(name)?.gameObject.SetActive(false);
+        var title=header.Find("Title").GetComponent<TMP_Text>();
+        var titleRect=title.rectTransform;
+        var background=(RectTransform)header.Find("Background");
+        titleRect.anchorMin=titleRect.anchorMax=new Vector2(.5f,1);titleRect.pivot=new Vector2(.5f,.5f);
+        titleRect.anchoredPosition=new Vector2(0,-background.rect.height*.5f);
+        // Use glyph geometry instead of the font's asymmetric ascender/descender line box.
+        title.margin=Vector4.zero;title.alignment=TextAlignmentOptions.MidlineGeoAligned;
         panel.closeButton.transform.SetAsLastSibling();
     }
 
