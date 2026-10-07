@@ -170,7 +170,7 @@ public static class CrustaspikanParryRecoilBuilder
                 contactNormalized = (float)document["clips"][pair.Key]["contactNormalized"],
                 cueBone = AttackCueBone((string)document["clips"][pair.Key]["attack"], (int)document["clips"][pair.Key]["strikeIndex"]) }).ToArray();
             AssetDatabase.CreateAsset(profile, ProfilePath); AssetDatabase.SaveAssetIfDirty(profile);
-            EnsureNativeAssets(); ValidateNative();
+            EnsureNativeAssets(); ConfigureAttackCues(); ValidateNative();
             Write("native-import.json", new { status = "PASS_NATIVE_IMPORT", input = sourceFile, sourceSha256 = SourceHash(sourceFile),
                 bones = bones.Length, clips = profile.motions.Length, rootMotion = false, speed = profile.playbackSpeed,
                 calibration = "Existing native Idle at .23; same handedness and per-bone rest rotation as current standing daze" });
@@ -234,7 +234,27 @@ public static class CrustaspikanParryRecoilBuilder
             if (bone == null || !prefab.GetComponentsInChildren<Transform>(true).Any(t => t.name == bone)) throw new InvalidOperationException("Actual attacking hand missing.");
             if (!string.IsNullOrEmpty(motion.cueBone) && motion.cueBone != bone) throw new InvalidOperationException("An authored cue changed externally.");
         }
-        foreach (var motion in profile.motions) { motion.cueBone = AttackCueBone(motion.attack, motion.strikeIndex); motion.cueOffset = Vector3.zero; }
+        var preview = EditorSceneManager.NewPreviewScene(); GameObject clone = null;
+        var positions = new Dictionary<CrustaspikanParryRecoilProfile.Motion, Vector3>();
+        try
+        {
+            clone = Object.Instantiate(prefab); UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(clone, preview);
+            foreach (var component in clone.GetComponentsInChildren<MonoBehaviour>(true)) component.enabled = false;
+            var animator = clone.GetComponent<EnemyActor>().Animator; animator.enabled = false; animator.fireEvents = false;
+            foreach (var motion in profile.motions)
+            {
+                // The approved recoil starts in the advanced attack pose, before the limb is knocked back.
+                motion.clip.SampleAnimation(animator.gameObject, 0f);
+                var limb = animator.GetComponentsInChildren<Transform>(true).Single(t => t.name == AttackCueBone(motion.attack, motion.strikeIndex));
+                positions.Add(motion, clone.transform.InverseTransformPoint(limb.position + Vector3.up * .25f));
+            }
+        }
+        finally { if (clone != null) Object.DestroyImmediate(clone); EditorSceneManager.ClosePreviewScene(preview); }
+        foreach (var motion in profile.motions)
+        {
+            motion.cueBone = AttackCueBone(motion.attack, motion.strikeIndex); motion.cueOffset = Vector3.zero;
+            motion.useCueRootPosition = true; motion.cueRootPosition = positions[motion];
+        }
         EditorUtility.SetDirty(profile); AssetDatabase.SaveAssetIfDirty(profile);
     }
     public static void ValidateNative()

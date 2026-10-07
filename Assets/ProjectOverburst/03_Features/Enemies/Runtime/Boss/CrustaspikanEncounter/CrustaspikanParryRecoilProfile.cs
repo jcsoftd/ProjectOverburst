@@ -14,6 +14,8 @@ public sealed class CrustaspikanParryRecoilProfile : ScriptableObject
         public int sourceFrame;
         public string cueBone;
         public Vector3 cueOffset;
+        public bool useCueRootPosition;
+        public Vector3 cueRootPosition;
         public bool IsValid => !string.IsNullOrEmpty(attack) && !string.IsNullOrEmpty(state) && strikeIndex >= 0
             && clip != null && !clip.isLooping && clip.length > 0f && contactNormalized > 0f && contactNormalized < 1f;
     }
@@ -46,6 +48,7 @@ public sealed class CrustaspikanParryRecoilProfile : ScriptableObject
             if (motion == null || parry == null || !parry.canParry) continue;
             parry.overrideWindow = true; parry.cueLeadSeconds = .25f;
             parry.cueBone = motion.cueBone; parry.cueOffset = motion.cueOffset;
+            parry.useCueRootPosition = motion.useCueRootPosition; parry.cueRootPosition = motion.cueRootPosition;
             parry.startNormalized = motion.contactNormalized;
             parry.endNormalized = material.strikes[i].impact;
         }

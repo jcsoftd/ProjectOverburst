@@ -64,6 +64,7 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         bool positioned = motion.strikeIndex == 0, requested = false, observed = false, edgeDone = false, signalled = false;
         int impactsAtRequest = 0, frame = 0; var poses = new JArray(); var stages = new JArray(); var cueSamples = new JArray();
         var expectedCueBone = boss.Animator.GetComponentsInChildren<Transform>(true).Single(t => t.name == motion.cueBone);
+        Require(motion.useCueRootPosition && tuning.useCueRootPosition && tuning.cueRootPosition == motion.cueRootPosition, "Reviewed attacking-limb position was not applied.");
         Vector3? fixedCuePosition = null; var visibleParticles = new ParticleSystem.Particle[1];
         Vector3 reactionRoot = boss.transform.position;
         string id = motion.attack + "-hit" + (motion.strikeIndex + 1) + (edge != null ? "-" + edge + "-" + energyAmount : "");
@@ -91,7 +92,7 @@ public static partial class CrustaspikanTemporaryReactionVerifier
                 float size = visibleCount > 0 ? visibleParticles[0].GetCurrentSize(particle) : 0f;
                 var cueMaterial = particle.GetComponent<ParticleSystemRenderer>().sharedMaterial;
                 Require(projected.z > 0f && projected.x > 0f && projected.x < 1f && projected.y > 0f && projected.y < 1f
-                    && positionError < .0001f && particleError < .0001f && size >= liveCue.ResolveCueSize() * 1.75f
+                    && positionError < .0001f && particleError < .0001f && size >= liveCue.ResolveCueSize() * .95f && size <= liveCue.ResolveCueSize() * 1.45f
                     && particle.main.simulationSpace == ParticleSystemSimulationSpace.World
                     && cueMaterial.GetFloat("_ZTest") == (float)UnityEngine.Rendering.CompareFunction.Always && !cueMaterial.IsKeywordEnabled("_USESOFTALPHA"),
                     "Rendered glint moved or lost the enlarged visible style: " + id + " / " + positionError + " / " + particleError + " / " + size);
@@ -105,6 +106,11 @@ public static partial class CrustaspikanTemporaryReactionVerifier
                 signalled = boss.GetComponentsInChildren<EnemyStrongAttackWarning>(true).Any(w => w.IsVisible && w.FinalSignal
                     && (bool)typeof(EnemyStrongAttackWarning).GetField("signalPlayed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(w));
                 Require(signalled && cueSamples.Count >= 2, "Authored parry contact had no fixed attacking-side glint/sound request: " + id);
+                Vector3 cueViewport = camera.WorldToViewportPoint(fixedCuePosition.Value), handViewport = camera.WorldToViewportPoint(expectedCueBone.position);
+                float handDistancePixels = Vector2.Distance(new Vector2(cueViewport.x * 960f, cueViewport.y * 540f), new Vector2(handViewport.x * 960f, handViewport.y * 540f));
+                Require(handDistancePixels < 85f, "Flash is detached from the actual attacking limb: " + id + " / " + handDistancePixels);
+                cueSamples.Last["contactHandDistancePixels"] = handDistancePixels;
+                cueSamples.Last["contactHandWorld"] = new JArray(expectedCueBone.position.x, expectedCueBone.position.y, expectedCueBone.position.z);
                 if (edge == null) Capture(id + "-cue", 0);
                 Require(material.IsParryCueWindowOpen(motion.strikeIndex, executor.NormalizedTime, 1f, material.AnimationSpeedMultiplier), "Cue did not precede authored parry contact.");
                 impactsAtRequest = executor.ImpactCount; reactionRoot = boss.transform.position;

@@ -32,6 +32,8 @@ public sealed class EnemyBossAttackTuning
             if (!EnemyBossMaterialStrike.Finite(p.cueLeadSeconds) || p.cueLeadSeconds < 0f) return false;
             if (!EnemyBossMaterialStrike.Finite(p.cueOffset.x) || !EnemyBossMaterialStrike.Finite(p.cueOffset.y)
                 || !EnemyBossMaterialStrike.Finite(p.cueOffset.z)) return false;
+            if (p.useCueRootPosition && (!EnemyBossMaterialStrike.Finite(p.cueRootPosition.x)
+                || !EnemyBossMaterialStrike.Finite(p.cueRootPosition.y) || !EnemyBossMaterialStrike.Finite(p.cueRootPosition.z))) return false;
             if (!p.overrideWindow) continue;
             if (!EnemyBossMaterialStrike.Finite(p.startNormalized) || !EnemyBossMaterialStrike.Finite(p.endNormalized)
                 || p.startNormalized < 0f || p.startNormalized > p.endNormalized || strikes[i] == null
@@ -49,6 +51,8 @@ public sealed class EnemyBossStrikeParryTuning
     [Min(0f)] public float cueLeadSeconds;
     public string cueBone;
     public Vector3 cueOffset;
+    public bool useCueRootPosition;
+    public Vector3 cueRootPosition;
     [Range(0f, 1f)] public float startNormalized;
     [Range(0f, 1f)] public float endNormalized = 1f;
 }

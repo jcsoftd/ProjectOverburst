@@ -11,15 +11,17 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     [SerializeField, Min(.01f)] private float cueScale = 1f;
     private Transform attackCueSocket;
     private Vector3 attackCueOffset;
+    private Vector3? attackCueRootPosition;
     private bool attackCuePositionHeld;
     private Vector3 attackCueWorldPosition;
     private Material attackCueMaterial;
     public Transform AttackCueSocket => attackCueSocket;
     // Runtime strike placement takes precedence over the common head cue.
-    public void SetAttackCue(Transform socket, Vector3 offset)
+    public void SetAttackCue(Transform socket, Vector3 offset, Vector3? rootPosition = null)
     {
         attackCueSocket = socket != null && (socket == transform || socket.IsChildOf(transform)) ? socket : null;
         attackCueOffset = offset;
+        attackCueRootPosition = attackCueSocket != null ? rootPosition : null;
     }
     private GameObject visual;
     private MMF_Player signalFeel;
@@ -291,7 +293,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
                 attackCueMaterial.DisableKeyword("_USESOFTALPHA");
                 attackCueMaterial.renderQueue = 3100;
             }
-            EnemyParryCueVisual.ConfigureAttack(signalParticles, attackCueMaterial ?? material, ResolveCueSize() * 2.2f);
+            EnemyParryCueVisual.ConfigureAttack(signalParticles, attackCueMaterial ?? material, ResolveCueSize() * 1.1f);
         }
         else
         {
@@ -329,6 +331,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         if (authoredCueAnchor == null) authoredCueAnchor = GetComponent<EnemyParryCueAnchor>();
         if (attackCueSocket != null)
         {
+            // A reviewed strike pose places the flash beside the attacking limb, not its raised windup pose.
+            if (attackCueRootPosition.HasValue) return transform.TransformPoint(attackCueRootPosition.Value);
             if (authoredCueAnchor != null && authoredCueAnchor.isActiveAndEnabled
                 && authoredCueAnchor.TryResolveAttackSocket(attackCueSocket, attackCueOffset, camera, out var attackPosition)) return attackPosition;
             return attackCueSocket.TransformPoint(attackCueOffset);
@@ -361,7 +365,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         signalFeel?.StopFeedbacks();
         if (signalParticles != null)
             signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero; attackCuePositionHeld = false; attackCueWorldPosition = Vector3.zero;
+        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero; attackCueRootPosition = null; attackCuePositionHeld = false; attackCueWorldPosition = Vector3.zero;
     }
     private void LateUpdate() { if (signalPlayed && attackCueSocket != null) PositionSignal(); }
     private void OnDisable() => Hide();
