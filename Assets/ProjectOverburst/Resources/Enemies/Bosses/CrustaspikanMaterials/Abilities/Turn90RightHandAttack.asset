@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: Turn90RightHandAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows: []
   abilityId: Crustaspikan_Turn90RightHandAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack13
@@ -27,9 +28,9 @@ MonoBehaviour:
   minimumRecoveryTime: 0.3
   parryable: 1
   minimumRange: 0
-  range: 12
-  hitRadius: 11.5
-  hitAngle: 160
+  range: 9.5
+  hitRadius: 9
+  hitAngle: 145
   verticalTolerance: 3
   requireLineOfSight: 1
   cooldown: 0.2
@@ -43,3 +44,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

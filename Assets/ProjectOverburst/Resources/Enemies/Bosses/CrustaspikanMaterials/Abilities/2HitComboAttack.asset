@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: 2HitComboAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows: []
   abilityId: Crustaspikan_2HitComboAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack2
@@ -27,9 +28,9 @@ MonoBehaviour:
   minimumRecoveryTime: 0.3
   parryable: 1
   minimumRange: 0
-  range: 12
-  hitRadius: 11.5
-  hitAngle: 150
+  range: 9.75
+  hitRadius: 9.25
+  hitAngle: 135
   verticalTolerance: 3
   requireLineOfSight: 1
   cooldown: 0.2
@@ -44,3 +45,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.5117647
+  projectilesPerRelease: 1

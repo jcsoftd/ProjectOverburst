@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: LeftFootStompAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows: []
   abilityId: Crustaspikan_LeftFootStompAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack8
@@ -27,8 +28,8 @@ MonoBehaviour:
   minimumRecoveryTime: 0.3
   parryable: 1
   minimumRange: 0
-  range: 7.302954
-  hitRadius: 3.5
+  range: 6.2029543
+  hitRadius: 2.4
   hitAngle: 360
   verticalTolerance: 3
   requireLineOfSight: 1
@@ -43,3 +44,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

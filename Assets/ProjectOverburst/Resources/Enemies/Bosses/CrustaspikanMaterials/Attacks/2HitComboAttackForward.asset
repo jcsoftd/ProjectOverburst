@@ -18,6 +18,10 @@ MonoBehaviour:
   originalClip: {fileID: 1827226128182048838, guid: 408e6e21312a17d43929030251db64e2, type: 3}
   runtimeClip: {fileID: 7400000, guid: 95efb910199ac4444b3871ce81a56ef8, type: 2}
   delivery: 0
+  tuning:
+    damageMultiplier: 1
+    animationSpeedMultiplier: 1
+    parries: []
   strikes:
   - contactStart: 0.28947368
     impact: 0.28947368
@@ -25,9 +29,9 @@ MonoBehaviour:
     shape: 0
     localOrigin: {x: 0, y: 0, z: 0}
     yaw: -15
-    radius: 12
-    innerRadius: 0.6
-    angle: 150
+    radius: 9.5
+    innerRadius: 0.475
+    angle: 135
     width: 3.7
     length: 24
     minimumHeight: 0
@@ -39,9 +43,9 @@ MonoBehaviour:
     shape: 0
     localOrigin: {x: 0, y: 0, z: 0}
     yaw: 5
-    radius: 12
-    innerRadius: 0.6
-    angle: 150
+    radius: 9.5
+    innerRadius: 0.475
+    angle: 135
     width: 3.7
     length: 24
     minimumHeight: 0
@@ -63,4 +67,7 @@ MonoBehaviour:
     \xB7 \uACF5\uACA9\uD558\uB294 \uC190\uC758 \uD638\uB97C \uB36E\uB294 \uBD80\uCC44\uAF34.
     Sector 12m (150deg, yaw -15deg) / Sector 12m (150deg, yaw 5deg). \uC6D0\uBCF8
     \uD0C0\uACA9 \uD504\uB808\uC784 \uC720\uC9C0; \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0
-    \uACF5\uC720."
+    \uACF5\uC720.\n\uACF5\uAC04 \uD310\uC815 v3: 2026-10-07 \uC2B9\uC778 \uD6C4 \uACFC\uB300
+    \uBC94\uC704 \uC870\uC815. \uB3D9\uC791\uBCC4 \uD615\uD0DC/\uC911\uC2EC/\uBC29\uD5A5
+    \uC720\uC9C0, \uD53C\uD574\xB7\uC704\uD611\xB7\uC608\uACE0 \uB3D9\uC77C \uD310\uC815.
+    Sector \uBC18\uACBD9.5m/135\uB3C4 / Sector \uBC18\uACBD9.5m/135\uB3C4"

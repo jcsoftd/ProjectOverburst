@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: ThrowRock
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows: []
   abilityId: Crustaspikan_ThrowRock
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack16
@@ -28,7 +29,7 @@ MonoBehaviour:
   parryable: 0
   minimumRange: 0
   range: 24
-  hitRadius: 4.5
+  hitRadius: 3.5
   hitAngle: 360
   verticalTolerance: 3
   requireLineOfSight: 1
@@ -43,3 +44,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

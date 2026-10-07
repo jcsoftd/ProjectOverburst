@@ -161,7 +161,7 @@ public static class CrustaspikanMaterialBuilder
                     localOrigin=new Vector3((float)s["localOrigin"][0],(float)s["localOrigin"][1],(float)s["localOrigin"][2]),yaw=(float)s["yaw"],
                     radius=(float)s["radius"],innerRadius=(float)s["innerRadius"],angle=(float)s["angle"],width=old.width,length=old.length,
                     minimumHeight=old.minimumHeight,maximumHeight=old.maximumHeight};
-                if(!probe.IsValid||probe.shape==GroundIndicatorShape.Sector&&probe.innerRadius+.000001f<probe.radius*.05f)
+                if(!probe.IsValid||m.delivery==EnemyBossMaterialDelivery.Melee&&probe.shape==GroundIndicatorShape.Sector&&probe.innerRadius+.000001f<probe.radius*.05f)
                     throw new ArgumentException("Invalid or visually mismatched geometry: "+m.name);
             }
             float required=m.delivery==EnemyBossMaterialDelivery.Melee?row["strikes"].Max(s=>new Vector2((float)s["localOrigin"][0],(float)s["localOrigin"][2]).magnitude+(float)s["radius"]):m.ability.Range;
@@ -176,7 +176,7 @@ public static class CrustaspikanMaterialBuilder
         {
             foreach(var m in collection.attacks)
             {
-                var row=rows[m.runtimeClip.name];var so=new SerializedObject(m);var strikes=so.FindProperty("strikes");
+                var row=rows[m.runtimeClip.name];if((bool?)row["updateGeometry"]==false)continue;var so=new SerializedObject(m);var strikes=so.FindProperty("strikes");
                 for(int i=0;i<m.strikes.Length;i++)
                 {
                     var s=row["strikes"][i];var p=strikes.GetArrayElementAtIndex(i);

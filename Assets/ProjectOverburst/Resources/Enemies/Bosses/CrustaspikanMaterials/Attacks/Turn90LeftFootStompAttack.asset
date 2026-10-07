@@ -18,6 +18,10 @@ MonoBehaviour:
   originalClip: {fileID: 1827226128182048838, guid: 4f64a3207658dc14dba00b229518d55f, type: 3}
   runtimeClip: {fileID: 7400000, guid: 096c52602d854b948b902bebbdf4dbc4, type: 2}
   delivery: 0
+  tuning:
+    damageMultiplier: 1
+    animationSpeedMultiplier: 1
+    parries: []
   strikes:
   - contactStart: 0.3529412
     impact: 0.3529412
@@ -25,7 +29,7 @@ MonoBehaviour:
     shape: 1
     localOrigin: {x: 0, y: 0, z: 0}
     yaw: 0
-    radius: 7
+    radius: 5.25
     innerRadius: 0
     angle: 360
     width: 3.4
@@ -48,4 +52,7 @@ MonoBehaviour:
     split across genuine strikes. \n\uACF5\uAC04 \uD310\uC815 v2: \uD68C\uC804 \uBC1C\uCC0D\uAE30
     \uCDA9\uACA9\uD30C \xB7 \uBCF4\uC2A4 \uC911\uC2EC \uC6D0\uD615 / \uBC14\uAE65\uC73C\uB85C
     \uC774\uD0C8. Circle 7m. \uC6D0\uBCF8 \uD0C0\uACA9 \uD504\uB808\uC784 \uC720\uC9C0;
-    \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0 \uACF5\uC720."
+    \uD53C\uD574\xB7\uD328\uB9C1 \uC704\uD611\xB7\uC608\uACE0 \uACF5\uC720.\n\uACF5\uAC04
+    \uD310\uC815 v3: 2026-10-07 \uC2B9\uC778 \uD6C4 \uACFC\uB300 \uBC94\uC704 \uC870\uC815.
+    \uB3D9\uC791\uBCC4 \uD615\uD0DC/\uC911\uC2EC/\uBC29\uD5A5 \uC720\uC9C0, \uD53C\uD574\xB7\uC704\uD611\xB7\uC608\uACE0
+    \uB3D9\uC77C \uD310\uC815. Circle \uBC18\uACBD5.25m"
