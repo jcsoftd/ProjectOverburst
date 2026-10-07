@@ -388,8 +388,11 @@ public static partial class ElementGemPlayVerifier
         Check(session.ExecuteState(run+"-entry",state=>{AccountRunCommands.PrepareEntry(state,run,map,null,true);AccountRunCommands.Activate(state,run);}),"run enters authoritative state");
         SetWorldPhase(WorldPhase.Run);
         var enemy=new GameObject("ElementGemNaturalBoss");enemy.transform.position=new Vector3(7000,0,7000);
+        var previousLootOverride = CombatDebugSettings.RunLootOverride;
         try
         {
+            // 드랍 여부의 확률은 별도 분포 검사로 확인하고, 여기서는 실제 사망→보석 획득 경로를 강제한다.
+            CombatDebugSettings.SetRunLootOverride(RunLootDebugOverride.Always);
             var health=enemy.AddComponent<CombatHealth>();var rank=enemy.AddComponent<EnemyRank>();rank.ConfigureTemporaryBoss(new EncounterContext(run,25,ItemGrade.Common));
             var drop=enemy.AddComponent<EnemyLootDropper>();drop.Configure(null,inventory,equipment.transform,null);drop.ConfigureEncounter(new EncounterContext(run,25,ItemGrade.Common));
             var before=new List<WorldItemPickup>();WorldItemPickup.CopyActivePickups(before);var old=new HashSet<int>(before.Select(x=>x.GetInstanceID()));
@@ -403,7 +406,7 @@ public static partial class ElementGemPlayVerifier
             Check(equipment.EquippedElementGem==null&&!session.Read().items.Any(x=>x.instanceId==farmed.runtimeInstanceId)&&session.Read().items.Any(x=>x.instanceId==gem.runtimeInstanceId),"run failure removes new equipped gem and retains prior gem");
             foreach(var pickup in after)if(pickup!=null&&!old.Contains(pickup.GetInstanceID()))UnityEngine.Object.DestroyImmediate(pickup.gameObject);
         }
-        finally { UnityEngine.Object.DestroyImmediate(enemy); SetWorldPhase(WorldPhase.Hideout); }
+        finally { CombatDebugSettings.SetRunLootOverride(previousLootOverride); UnityEngine.Object.DestroyImmediate(enemy); SetWorldPhase(WorldPhase.Hideout); }
         foreach(bool transfer in new[]{true,false})
         {
             run="gem-settle-"+Guid.NewGuid().ToString("N");

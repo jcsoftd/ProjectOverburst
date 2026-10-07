@@ -102,6 +102,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             DropFarmingItem(ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.forward * .35f);
             DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.right * .35f);
             DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.left * .35f);
+            DropFarmingItem(WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.back * .35f);
         }
         using (GoldMarker.Auto()) DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 

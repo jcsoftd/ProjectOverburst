@@ -42,6 +42,7 @@ internal static class ItemDebugModule
     private static int[] simulated;
     private static int simulatedGear;
     private static int simulatedFlask;
+    private static int simulatedWeapon;
     private static string simulationSummary = "아직 모의하지 않았어요";
 
     private static CurrencyType currency = CurrencyType.Gold;
@@ -296,7 +297,7 @@ internal static class ItemDebugModule
             .WithId("items.drop.summary");
         s.Choice("런 드롭 확률", () => CombatDebugSettings.RunLootOverride, CombatDebugSettings.SetRunLootOverride, LootOverrideLabel)
             .WithId("items.drop.override")
-            .Tip("던전 몬스터가 죽을 때 물약·장비 드롭 확률(각각)을 강제한다. 등급은 규칙대로 굴린다. 모의·1회 굴림에도 적용된다.")
+            .Tip("던전 몬스터가 죽을 때 파밍 아이템의 드롭 확률을 각각 강제한다. 등급은 규칙대로 굴린다. 모의·1회 굴림은 물약·장비·무기를 확인한다.")
             .Keywords("drop", "드롭", "loot");
     }
 
@@ -305,17 +306,18 @@ internal static class ItemDebugModule
         PlayerActorRuntime actor = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActor : null;
         if (actor == null)
             return DebugResult.Fail("플레이어가 없어요");
-        // EnemyLootDropper.HandleDead와 같은 순서: 물약 → 장비.
+        // 자연 드랍 정책으로 물약·장비·무기를 각각 확인한다.
         ItemData flask = FlaskLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade);
         ItemData gear = GearLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade);
+        ItemData weapon = WeaponLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade);
         int placed = 0;
-        var parts = new List<string>(2);
-        foreach (ItemData item in new[] { flask, gear })
+        var parts = new List<string>(3);
+        foreach (ItemData item in new[] { flask, gear, weapon })
         {
             if (item == null)
                 continue;
             item.level = dropMapLevel;
-            if (WorldItemDropFactory.CreateWorldPickup(item, ScatterPosition(actor.transform, placed, 2),
+            if (WorldItemDropFactory.CreateWorldPickup(item, ScatterPosition(actor.transform, placed, 3),
                     actor.Inventory, actor.transform) != null)
             {
                 placed++;
@@ -332,12 +334,14 @@ internal static class ItemDebugModule
         simulated = new int[GradeOrder.Length];
         simulatedGear = 0;
         simulatedFlask = 0;
+        simulatedWeapon = 0;
         try
         {
             for (int i = 0; i < SimulationCount; i++)
             {
                 Count(FlaskLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade), ref simulatedFlask);
                 Count(GearLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade), ref simulatedGear);
+                Count(WeaponLootPolicy.Roll(dropMonster, dropMapLevel, dropMapGrade), ref simulatedWeapon);
             }
         }
         finally
@@ -347,8 +351,8 @@ internal static class ItemDebugModule
         }
 
         var builder = new StringBuilder();
-        builder.Append($"{SimulationCount}마리 · 물약 {simulatedFlask} · 장비 {simulatedGear} · {watch.Elapsed.TotalMilliseconds:0.0}ms");
-        int total = simulatedFlask + simulatedGear;
+        builder.Append($"{SimulationCount}마리 · 물약 {simulatedFlask} · 장비 {simulatedGear} · 무기 {simulatedWeapon} · {watch.Elapsed.TotalMilliseconds:0.0}ms");
+        int total = simulatedFlask + simulatedGear + simulatedWeapon;
         bool first = true;
         for (int i = 0; i < GradeOrder.Length; i++)
         {

@@ -40,7 +40,7 @@ public static class ElementGemLootPolicy
     public static ItemData Roll(EnemyRank rank,int level,ItemGrade mapGrade=ItemGrade.Common,float rarePercent=0)
     {
         var kind=rank!=null?rank.GradeType:EnemyGradeType.Normal;
-        float chance=CombatDebugSettings.ApplyRunLootChance(kind==EnemyGradeType.Boss?1f:kind==EnemyGradeType.Elite?.12f:.03f);
+        float chance=CombatDebugSettings.ApplyRunLootChance(kind==EnemyGradeType.Boss?.25f:kind==EnemyGradeType.Elite?.05f:.01f);
         float effectiveChance=Mathf.Min(1,chance*(1+MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll=UnityEngine.Random.value;
         if(effectiveChance<=0 || (effectiveChance<1 && chanceRoll>=effectiveChance))return null;

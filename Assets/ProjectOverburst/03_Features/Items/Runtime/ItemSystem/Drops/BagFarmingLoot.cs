@@ -75,7 +75,7 @@ public static class BagFarmingLoot
         if (definitions == null || definitions.Length == 0) return null;
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;
-        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .5f : elite ? .15f : .025f);
+        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? .05f : elite ? .02f : .005f);
         float effectiveChance = Mathf.Min(1, chance * (1 + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
         float chanceRoll = UnityEngine.Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
@@ -89,13 +89,9 @@ public static class BagFarmingLoot
     {
         if (!Eligible(source?.baseData)) return null;
         if (source.baseData is ElementGemItemData) return ElementGemLootPolicy.CreateRoll(level,rank!=null?rank.GradeType:EnemyGradeType.Normal,mapGrade,rarePercent);
-        ItemGrade grade;
-        if (source.baseData is WeaponItemData)
-            TryTableGrade(ItemGrade.Common, ItemGrade.Mythic, true, rarePercent, out grade);
-        else
-            grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level,
-                rank != null && rank.GradeType == EnemyGradeType.Boss,
-                rank != null && rank.GradeType != EnemyGradeType.Normal, rarePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
+        ItemGrade grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level,
+            rank != null && rank.GradeType == EnemyGradeType.Boss,
+            rank != null && rank.GradeType != EnemyGradeType.Normal, rarePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
         return new ItemData(source.baseData, level, grade, 1);
     }
 }

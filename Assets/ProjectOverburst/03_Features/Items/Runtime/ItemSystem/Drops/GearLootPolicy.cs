@@ -37,8 +37,10 @@ public static class GearLootPolicy
         if (items.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
         bool elite = gradeType == EnemyGradeType.Elite;
-        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .35f : .08f);
-        if (Random.value >= Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
+        float chance = CombatDebugSettings.ApplyRunLootChance(boss ? 1f : elite ? .15f : .03f);
+        float effectiveChance = Mathf.Min(1f, chance * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)));
+        float chanceRoll = Random.value;
+        if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         float roll = Random.value;
         ItemGrade grade = FlaskLootPolicy.SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
         return new ItemData(items[Random.Range(0, items.Length)],
