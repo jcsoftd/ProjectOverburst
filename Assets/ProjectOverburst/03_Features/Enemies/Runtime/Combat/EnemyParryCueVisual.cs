@@ -16,6 +16,7 @@ public static class EnemyParryCueVisual
         main.startColor = new Color(4f, 3.2f, 1.7f, 1f);
         main.maxParticles = 1;
         main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.scalingMode = ParticleSystemScalingMode.Hierarchy;
         var emission = particles.emission;
         emission.rateOverTime = 0f;
         emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 1) });
@@ -42,5 +43,18 @@ public static class EnemyParryCueVisual
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         renderer.receiveShadows = false;
         particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
+    public static void ConfigureAttack(ParticleSystem particles, Material material, float size)
+    {
+        Configure(particles, material);
+        var main = particles.main;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.scalingMode = ParticleSystemScalingMode.Shape;
+        main.startSize = size;
+        main.startColor = new Color(8f, 6.4f, 3.4f, 1f);
+        var pulse = particles.sizeOverLifetime;
+        pulse.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            new Keyframe(0f, 1.1f), new Keyframe(.1f, 1.25f),
+            new Keyframe(.45f, 1.15f), new Keyframe(.8f, .95f), new Keyframe(1f, .35f)));
     }
 }

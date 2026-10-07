@@ -64,6 +64,7 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         bool positioned = motion.strikeIndex == 0, requested = false, observed = false, edgeDone = false, signalled = false;
         int impactsAtRequest = 0, frame = 0; var poses = new JArray(); var stages = new JArray(); var cueSamples = new JArray();
         var expectedCueBone = boss.Animator.GetComponentsInChildren<Transform>(true).Single(t => t.name == motion.cueBone);
+        Vector3? fixedCuePosition = null; var visibleParticles = new ParticleSystem.Particle[1];
         Vector3 reactionRoot = boss.transform.position;
         string id = motion.attack + "-hit" + (motion.strikeIndex + 1) + (edge != null ? "-" + edge + "-" + energyAmount : "");
         while (Time.unscaledTime < deadline)
@@ -79,23 +80,31 @@ public static partial class CrustaspikanTemporaryReactionVerifier
             if (!requested && liveCue != null)
             {
                 var particle = (ParticleSystem)typeof(EnemyStrongAttackWarning).GetField("signalParticles", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(liveCue);
-                // Match the frame that is actually rendered after the animated rig and the glint's LateUpdate.
+                // Inspect the actual rendered particle: the arm may move, the flash must not.
                 yield return new WaitForEndOfFrame();
                 Vector3 position = particle.transform.position;
-                Vector3 projected = camera.WorldToViewportPoint(position), hand = camera.WorldToViewportPoint(expectedCueBone.TransformPoint(motion.cueOffset));
-                float projectionError = Vector2.Distance(new Vector2(projected.x, projected.y), new Vector2(hand.x, hand.y));
+                Vector3 projected = camera.WorldToViewportPoint(position);
+                if (!fixedCuePosition.HasValue) fixedCuePosition = position;
+                float positionError = Vector3.Distance(position, fixedCuePosition.Value);
+                int visibleCount = particle.GetParticles(visibleParticles);
+                float particleError = visibleCount > 0 ? Vector3.Distance(visibleParticles[0].position, fixedCuePosition.Value) : float.PositiveInfinity;
+                float size = visibleCount > 0 ? visibleParticles[0].GetCurrentSize(particle) : 0f;
+                var cueMaterial = particle.GetComponent<ParticleSystemRenderer>().sharedMaterial;
                 Require(projected.z > 0f && projected.x > 0f && projected.x < 1f && projected.y > 0f && projected.y < 1f
-                    && projectionError < .002f && particle.particleCount > 0,
-                    "Rendered glint did not track the attacking hand: " + id + " / " + projectionError + " / " + projected);
+                    && positionError < .0001f && particleError < .0001f && size >= liveCue.ResolveCueSize() * 1.75f
+                    && particle.main.simulationSpace == ParticleSystemSimulationSpace.World
+                    && cueMaterial.GetFloat("_ZTest") == (float)UnityEngine.Rendering.CompareFunction.Always && !cueMaterial.IsKeywordEnabled("_USESOFTALPHA"),
+                    "Rendered glint moved or lost the enlarged visible style: " + id + " / " + positionError + " / " + particleError + " / " + size);
                 cueSamples.Add(new JObject { ["bone"] = expectedCueBone.name, ["world"] = new JArray(position.x, position.y, position.z),
-                    ["screen"] = new JArray(projected.x, projected.y), ["projectionError"] = projectionError, ["particleCount"] = particle.particleCount });
+                    ["screen"] = new JArray(projected.x, projected.y), ["positionError"] = positionError, ["particleError"] = particleError,
+                    ["worldSize"] = size, ["particleCount"] = visibleCount });
             }
             if (!requested && executor.HasEnteredMotion && executor.NormalizedTime >= inputNormalized
                 && executor.WouldHit(material.ability, player.GetComponent<CombatTarget>(), motion.strikeIndex))
             {
                 signalled = boss.GetComponentsInChildren<EnemyStrongAttackWarning>(true).Any(w => w.IsVisible && w.FinalSignal
                     && (bool)typeof(EnemyStrongAttackWarning).GetField("signalPlayed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(w));
-                Require(signalled && cueSamples.Count >= 2, "Authored parry contact had no moving attacking-hand glint/sound request: " + id);
+                Require(signalled && cueSamples.Count >= 2, "Authored parry contact had no fixed attacking-side glint/sound request: " + id);
                 if (edge == null) Capture(id + "-cue", 0);
                 Require(material.IsParryCueWindowOpen(motion.strikeIndex, executor.NormalizedTime, 1f, material.AnimationSpeedMultiplier), "Cue did not precede authored parry contact.");
                 impactsAtRequest = executor.ImpactCount; reactionRoot = boss.transform.position;

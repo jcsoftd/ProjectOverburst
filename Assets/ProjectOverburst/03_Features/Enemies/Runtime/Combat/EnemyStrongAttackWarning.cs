@@ -11,6 +11,9 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     [SerializeField, Min(.01f)] private float cueScale = 1f;
     private Transform attackCueSocket;
     private Vector3 attackCueOffset;
+    private bool attackCuePositionHeld;
+    private Vector3 attackCueWorldPosition;
+    private Material attackCueMaterial;
     public Transform AttackCueSocket => attackCueSocket;
     // Runtime strike placement takes precedence over the common head cue.
     public void SetAttackCue(Transform socket, Vector3 offset)
@@ -65,17 +68,13 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         sectorInnerRadius = Mathf.Clamp(innerRadius, 0f, Mathf.Max(0f, size - .01f));
         corridorHalfWidth = Mathf.Max(.01f, halfWidth);
         visual.transform.localRotation = Quaternion.identity;
-        parryable = canParry; FinalSignal = false; signalPlayed = false;
+        parryable = canParry; FinalSignal = false; signalPlayed = false; attackCuePositionHeld = false;
         motionSignalStrike = -1; ParrySignalCount = 0;
         if (canParry)
         {
             signalSocketIndex = signalSequence++ % 3;
             EnsureSignal();
-            if (body != null)
-            {
-                var main = signalParticles.main;
-                main.startSize = ResolveCueSize();
-            }
+            ConfigureStrikeSignal();
         }
         EnemyStrongAttackImpactVfx.Prewarm();
         visual.SetActive(true);
@@ -236,7 +235,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         if (FinalSignal) ThreatSignals.Add(this); else ThreatSignals.Remove(this);
         if (FinalSignal && motionSignalStrike != strike)
         {
-            motionSignalStrike = strike; ParrySignalCount++; signalPlayed = true;
+            motionSignalStrike = strike; ParrySignalCount++; signalPlayed = true; attackCuePositionHeld = false;
             signalFeel?.StopFeedbacks();
             signalParticles?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             PositionSignal();
@@ -278,6 +277,28 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         }
         signalFeel.Initialization(true);
     }
+    private void ConfigureStrikeSignal()
+    {
+        var material = telegraphLibrary != null ? telegraphLibrary.ParryGlint : null;
+        if (attackCueSocket != null)
+        {
+            if (attackCueMaterial == null && material != null)
+            {
+                attackCueMaterial = new Material(material) { name = "Owned fixed attack parry glint", hideFlags = HideFlags.DontSave };
+                foreach (string property in new[] { "_ZTest", "_ZTestTransparent", "_BUILTIN_ZTest" })
+                    if (attackCueMaterial.HasProperty(property)) attackCueMaterial.SetFloat(property, (float)UnityEngine.Rendering.CompareFunction.Always);
+                if (attackCueMaterial.HasProperty("_UseSoftAlpha")) attackCueMaterial.SetFloat("_UseSoftAlpha", 0f);
+                attackCueMaterial.DisableKeyword("_USESOFTALPHA");
+                attackCueMaterial.renderQueue = 3100;
+            }
+            EnemyParryCueVisual.ConfigureAttack(signalParticles, attackCueMaterial ?? material, ResolveCueSize() * 2.2f);
+        }
+        else
+        {
+            EnemyParryCueVisual.Configure(signalParticles, material);
+            var main = signalParticles.main; main.startSize = ResolveCueSize();
+        }
+    }
     // 2026-09-30: 패링 빛은 몸·강공 장판과 겹치지 않도록 머리 바로 위에 띄운다(몸 꼭대기 +0.35m).
     // 여러 강공이 겹칠 때 구분되게 소켓마다 좌우로 조금 벌리고, 머리에 가리지 않게 카메라 쪽으로 살짝 당긴다.
     private const float SignalAboveHead = .35f;
@@ -287,7 +308,14 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         if (signalParticles == null) return;
         if (body == null) body = GetComponent<CombatTarget>();
         if (signalCamera == null) signalCamera = Camera.main;
-        signalParticles.transform.position = ResolveCuePosition(signalCamera, signalSocketIndex);
+        if (attackCueSocket != null)
+        {
+            // Capture the attacking side once; the flash must stay where it appeared.
+            if (!attackCuePositionHeld)
+            { attackCueWorldPosition = ResolveCuePosition(signalCamera, signalSocketIndex); attackCuePositionHeld = true; }
+            signalParticles.transform.position = attackCueWorldPosition;
+        }
+        else signalParticles.transform.position = ResolveCuePosition(signalCamera, signalSocketIndex);
     }
     public float ResolveCueSize()
     {
@@ -333,8 +361,13 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         signalFeel?.StopFeedbacks();
         if (signalParticles != null)
             signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero;
+        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero; attackCuePositionHeld = false; attackCueWorldPosition = Vector3.zero;
     }
     private void LateUpdate() { if (signalPlayed && attackCueSocket != null) PositionSignal(); }
     private void OnDisable() => Hide();
+    private void OnDestroy()
+    {
+        if (attackCueMaterial == null) return;
+        if (Application.isPlaying) Destroy(attackCueMaterial); else DestroyImmediate(attackCueMaterial);
+    }
 }
