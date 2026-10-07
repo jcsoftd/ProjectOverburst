@@ -1084,7 +1084,8 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
 
     private void FaceTargetOnce()
     {
-        if (movement != null && movement.Profile != null && movement.Profile.HasTurnAnimation)
+        if (movement != null && (movement.UsesSmoothCombatFacing || movement.UsesMotionFacing
+            || movement.Profile != null && movement.Profile.HasTurnAnimation))
             return; // 테마 몬스터는 회전 동작을 완료한 방향으로 공격하며 순간 정렬하지 않는다.
         if (target == null)
             return;

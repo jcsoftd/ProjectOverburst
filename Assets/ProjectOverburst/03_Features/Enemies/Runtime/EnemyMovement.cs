@@ -96,6 +96,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
     private void OnEnable()
     {
         ResetMotionMovement();
+        ResetCombatFacing();
         ClearAttackDisplacement();
         ResolveReferences();
         SetStatusMoveSpeedMultiplier(1f);
@@ -111,6 +112,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
     private void OnDisable()
     {
         ResetMotionMovement();
+        ResetCombatFacing();
         facingRequestUntil = 0f;
         ClearAttackDisplacement();
         SetStatusMoveSpeedMultiplier(1f);
@@ -191,6 +193,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
             StopLocomotionOutput();
             return;
         }
+        if (TickCombatFacing()) return;
         UpdateDestinationMovement();
     }
 
@@ -350,6 +353,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
     public bool IsFacingForAttack(Vector3 worldPosition)
     {
         if (UsesMotionFacing) return IsFacingForAttack(worldPosition, motionBridge.PlaybackProfile.FacingTolerance);
+        if (UsesSmoothCombatFacing) return IsSmoothCombatFacing(worldPosition);
         if (profile == null || !profile.HasTurnAnimation) return true;
         if (locomotionAnimator != null && locomotionAnimator.IsTurning) return false;
         Vector3 direction = worldPosition - transform.position; direction.y = 0f;
@@ -361,7 +365,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
         if (IsStatusMovementLocked || HasCommittedMotionFacing)
             return;
 
-        if (UsesMotionFacing || profile != null && profile.HasTurnAnimation)
+        if (UsesSmoothCombatFacing || UsesMotionFacing || profile != null && profile.HasTurnAnimation)
         {
             requestedFacingPosition = worldPosition;
             facingRequestUntil = Time.time + .35f;
@@ -604,6 +608,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
 
         Vector3 facingDirection = hasFacingPosition ? facingPosition - transform.position : delta;
         ResolveOwnedMoveFacing(ref turnSpeed, ref facingDirection);
+        ConfigureCombatFacing(hasFacingPosition && UsesSmoothCombatFacing);
         if (EnemyCrowdService.SubmitMovementIntent(
             this,
             crowdAgent,
@@ -692,6 +697,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
         }
 
         ResolveOwnedMoveFacing(ref turnSpeed, ref facingDirection);
+        ConfigureCombatFacing(hasFacingPosition && UsesSmoothCombatFacing);
         motor?.MoveToPosition(resolvedPosition, turnSpeed, facingDirection);
         float actualMoveSpeed = actualMovement.magnitude / Mathf.Max(0.0001f, Time.fixedDeltaTime);
         locomotionAnimator?.SetMovement(

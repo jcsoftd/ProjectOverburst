@@ -14,6 +14,15 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     private bool isPositionHeld; // 정지 상태 XZ 고정 여부
     private bool isFrozen; // 빙결 위치·회전 하드 락
     public bool ContinuousFacing { get; set; }
+    private float facingSmoothTime, facingAngularVelocity, lastFacingTick = float.NegativeInfinity;
+    public float FacingSmoothTime
+    {
+        get => facingSmoothTime;
+        set { float next = Mathf.Max(0f, value); if (next != facingSmoothTime) ResetFacingSmoothing(); facingSmoothTime = next; }
+    }
+    public void ResetFacingSmoothing() { facingAngularVelocity = 0f; lastFacingTick = float.NegativeInfinity; }
+    private void OnEnable() => ResetFacingSmoothing();
+    private void OnDisable() => ResetFacingSmoothing();
 
     public bool IsPositionHeld { get { return isPositionHeld; } }
     public bool IsFrozen { get { return isFrozen; } }
@@ -168,6 +177,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         }
 
         isFrozen = frozen;
+        ResetFacingSmoothing();
         Stop();
         if (body == null || body.isKinematic)
             return;
@@ -230,7 +240,17 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
 
         Quaternion targetRotation = Quaternion.LookRotation(desiredFacingDirection, Vector3.up);
         Quaternion currentRotation = body != null && !body.isKinematic ? body.rotation : transform.rotation;
-        Quaternion nextRotation = Quaternion.RotateTowards(currentRotation, targetRotation, turnSpeed * Time.fixedDeltaTime);
+        Quaternion nextRotation;
+        if (facingSmoothTime > 0f)
+        {
+            if (Time.fixedTime - lastFacingTick > Time.fixedDeltaTime * 2.5f) facingAngularVelocity = 0f;
+            lastFacingTick = Time.fixedTime;
+            float yaw = currentRotation.eulerAngles.y;
+            float nextYaw = Mathf.SmoothDampAngle(yaw, targetRotation.eulerAngles.y,
+                ref facingAngularVelocity, facingSmoothTime, turnSpeed, Time.fixedDeltaTime);
+            nextRotation = Quaternion.AngleAxis(Mathf.DeltaAngle(yaw, nextYaw), Vector3.up) * currentRotation;
+        }
+        else nextRotation = Quaternion.RotateTowards(currentRotation, targetRotation, turnSpeed * Time.fixedDeltaTime);
 
         if (body != null && !body.isKinematic)
             body.MoveRotation(nextRotation);

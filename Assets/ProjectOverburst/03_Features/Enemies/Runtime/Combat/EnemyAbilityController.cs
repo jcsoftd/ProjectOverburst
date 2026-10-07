@@ -112,16 +112,19 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
     private EnemyMovement movement;
     private EnemyMovementReaction reaction;
     private EnemyAnimationBridge animationBridge;
+    private bool smoothFacingAttackCommitted;
     private Transform preparedTarget;
     private Vector3 preparedPosition;
 
-    public bool UsesCommittedAim => movement != null && movement.Profile != null && movement.Profile.HasTurnAnimation;
+    public bool UsesCommittedAim => movement != null && (movement.UsesSmoothCombatFacing
+        || movement.Profile != null && movement.Profile.HasTurnAnimation);
     public bool HasPreparedAim(Transform target) => UsesCommittedAim && target != null && preparedTarget == target;
     public Vector3 ResolveAimPosition(Transform target) => strongTarget != null && strongTarget == target
         ? strongAim : HasPreparedAim(target) ? preparedPosition : target != null ? target.position : transform.position;
     private void Update()
     {
         ObserveAttackCompletion();
+        if (smoothFacingAttackCommitted && !IsExecuting) ClearPreparedAim();
         if (strongTarget == null) return;
         if (!IsExecuting) { EndStrongWarning(); return; }
         if (bossOwnsCommittedAim || bossMaterialExecutor != null && bossMaterialExecutor.IsExecuting) return;
@@ -191,7 +194,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         }
         return ResolveAimPosition(target);
     }
-    public void ClearPreparedAim() { preparedTarget = null; }
+    public void ClearPreparedAim() { preparedTarget = null; smoothFacingAttackCommitted = false; }
     private void OnEnable()
     {
         ResolveReferences(); ClearPreparedAim();
@@ -351,6 +354,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
         committedAttackRunning = true;
+        smoothFacingAttackCommitted = movement != null && movement.UsesSmoothCombatFacing;
         CountCommittedAttack(selected.Ability);
         if (selected.Executor is EnemyBossMaterialExecutor) GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(selected.Ability);
         if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
@@ -358,7 +362,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         lastImpactAt = Time.time + selected.Ability.ResolveLastImpactTime(speed);
         finalImpactDelivered = false;
         nextImpactIndex = 0;
-        warningAimLocked = false;
+        warningAimLocked = movement != null && movement.UsesSmoothCombatFacing;
         // 보스 장판과 조준은 재료 실행기가 소유한다. 공용 추적이 확정 방향을 덮어쓰지 않는다.
         bossOwnsCommittedAim = selected.Executor is EnemyBossMaterialExecutor || selected.Executor is EnemyBossCompositePatternExecutor;
         strongWarningShown = selected.Ability.IsMeleeStrongAttack && !bossOwnsCommittedAim;
