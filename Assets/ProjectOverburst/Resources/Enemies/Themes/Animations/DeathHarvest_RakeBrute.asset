@@ -31,7 +31,7 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 9ffb9a6a781daab47a9152e522e10f6d, type: 3}
   - {fileID: 7400000, guid: 5315812823a0b17498da764a57cc1b9c, type: 3}
   - {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: 3f17d9638c752d94b8eeba8840fe00f2, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 2db17b9e2f577f540bfebf6b5a79b057, type: 2}
+  stunRecover: {fileID: 7400000, guid: d495d731f97e7ee46baf417038483fba, type: 2}
   excludedRootMotionClipPaths: []

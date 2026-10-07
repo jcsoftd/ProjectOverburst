@@ -28,8 +28,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 78f157527160c734d9257aff0217dd57, type: 2}
   optional:
   - {fileID: 7400000, guid: fe52d0bcd6d90bf4db9981cdfc23855d, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 985368fe7791c854f9a717af54df9971, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 6eda2f4191cd3b74b8f81d690de7282b, type: 2}
-  stunRecover: {fileID: 7400000, guid: 1aed352b2938ecb468e5bb5702b8c38c, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 8b5588a795fcc8545ad0046410bd6477, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 334d3411abd50344d8adaf3ca8243d81, type: 2}
+  stunRecover: {fileID: 7400000, guid: a102d2af93f205b4085d77d270519bfd, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P04/c7dcd906/SkeletonKnight@2HandedWalk_RM.FBX"

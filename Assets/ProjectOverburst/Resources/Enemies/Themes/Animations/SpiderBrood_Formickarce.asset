@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 40d93afe9a0e0324e99e88c73f6c3033, type: 3}
   optional:
   - {fileID: 7400000, guid: a05af66038c9bdb438657bead6e81512, type: 2}
-  parryCollapse: {fileID: 7400000, guid: d727a420d3bc1d748b1ec2b77d587c31, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: c8e122246fcf60243bc5eaa902699beb, type: 2}
-  stunRecover: {fileID: 7400000, guid: 10c9feee25bf5a84bb6a834291618d12, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 453468ed29c54fc4a9c477a01756c23a, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 904ab3b2afcd3e045a46f99ff60f8178, type: 2}
+  stunRecover: {fileID: 7400000, guid: f9c9b777a08475b4ba7384f4979a9c61, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/214cda34/Formickarce@CrawlForward_RM.fbx"

@@ -35,6 +35,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 47c8d826892d5e143a72c2ec3d0538e8, type: 3}
   - {fileID: 1827226128182048838, guid: 74cce48900c3911439eb6977d54b161c, type: 3}
   - {fileID: 1827226128182048838, guid: 7d74ef10fccd81148bf247fc72d1a7e4, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 466eeffc9ee525b46a977dab89440840, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: e65f3703c438d024ea30aabaa3154d5f, type: 2}
+  stunRecover: {fileID: 7400000, guid: e5a2f6eb9f56a87449290196ef49bf30, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 10/Carcinoptera/FBX Files/Carcinoptera@BiteAttack_RM.fbx"

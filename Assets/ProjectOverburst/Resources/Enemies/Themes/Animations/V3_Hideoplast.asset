@@ -26,8 +26,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 63a4b22d833409f4b8f1abb1d46ef06d, type: 3}
   optional:
   - {fileID: 7400000, guid: ad9b5f584daf4dd40a0efe5b3d6e48d1, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 41371141be8f98f4a9082811473bb212, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: abb4a11d946477a45afc3d2c7ddc70b9, type: 2}
-  stunRecover: {fileID: 7400000, guid: beacb11874a0eea40a3a61ca272535ce, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 1b4f37aa45696af43b8d21e4e1d9f1f8, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 868bcf0ae7dca214c9048dcc7fc5c41b, type: 2}
+  stunRecover: {fileID: 7400000, guid: b979c1c7309528c4c932da77a53dcc09, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/be30a103/Hideoplast@Walk_RM.FBX"

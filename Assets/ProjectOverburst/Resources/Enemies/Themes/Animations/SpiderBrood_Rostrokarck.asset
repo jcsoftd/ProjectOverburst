@@ -41,9 +41,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: fcef968cd5d24dd4f969367c897e59d8, type: 3}
   - {fileID: 1827226128182048838, guid: 3a3351b681fd7b3429c1820e82f75c03, type: 3}
   - {fileID: 1827226128182048838, guid: 867e65869bc93044493682f37ea8bb95, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: f96e68a304a33b14c9c4416698f93bf7, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 26a0a6596fc61d74c98d31692b7529a3, type: 2}
+  stunRecover: {fileID: 7400000, guid: 7c2f4cc270ec9d344ad09170a437f491, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack vol 9/Rostrokarck/FBX files/Rostrokarck@2HitComboAttackClawAttackForward_RM.fbx"

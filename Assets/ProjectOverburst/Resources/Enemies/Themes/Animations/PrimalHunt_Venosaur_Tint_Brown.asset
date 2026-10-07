@@ -39,6 +39,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: f4c66917205815143a30971e3b947895, type: 3}
   - {fileID: 1827226128182048838, guid: 9b068f97816b23a42b95d000a900de01, type: 3}
   - {fileID: 1827226128182048838, guid: 2c875092731b6e443b8a5c594adcb9d5, type: 3}
+  parryCollapse: {fileID: 7400000, guid: c2d39d437d1f55c4aa8ebbe4dc478bf6, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: c2de07f01dc722c4daf9f93550d84deb, type: 2}
+  stunRecover: {fileID: 7400000, guid: f66943088732d0e4eaddff50cdeceb7c, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 12/Venosaur/FBX Files/Venosaur@2HitComboClawsAttack_RM.fbx"

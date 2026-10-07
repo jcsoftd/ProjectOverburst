@@ -16,7 +16,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         return StartInternal(outputDirectory,false,1,false,true,false,definitionPath,true);
     }
     static MonsterParryVideoCapture activeParryCapture;
-    const int PerfectParryFixtureVersion=3;
+    const int PerfectParryFixtureVersion=5;
     static IEnumerator CaptureParryFrames(MonsterParryVideoCapture capture)
     { while(true) { yield return null;capture.CaptureFrame(); } }
     static void ParryRequire(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
@@ -69,8 +69,18 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             Time.captureDeltaTime=1f/60; // Owned deterministic simulation; the existing return restores its prior value.
             capture=new MonsterParryVideoCapture();activeParryCapture=capture;
             captureRoutine=host.StartCoroutine(CaptureParryFrames(capture));
+            Vector3 playerCaptureAnchor=player.transform.position;
+            Quaternion playerCaptureRotation=player.transform.rotation;
             foreach(var definition in definitions)
             {
+                // Each take starts at the same valid dungeon floor. Cumulative
+                // real attack/knockback displacement must not leave the arena.
+                melee.CancelCurrentAttackState();
+                var playerCapsule=player.GetComponent<CharacterController>();bool capsuleEnabled=playerCapsule!=null&&playerCapsule.enabled;
+                if(capsuleEnabled)playerCapsule.enabled=false;
+                player.transform.SetPositionAndRotation(playerCaptureAnchor,playerCaptureRotation);
+                if(capsuleEnabled)playerCapsule.enabled=true;
+                playerActor.Movement?.ResetMotionAfterTeleport();Physics.SyncTransforms();
                 string output=Path.Combine(plan.directory,definition.EnemyId);Directory.CreateDirectory(output);
                 var work=RunRealPlayerParryCase(definition,service,player,playerActor,melee,capture,output);
                 string caseError=null;
@@ -110,10 +120,15 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var target=player.GetComponent<CombatTarget>();
         try
         {
-            Vector3 spawn=player.transform.position+Vector3.forward*1.4f;
+            var savedStrong=Enumerable.Range(0,definition.AbilitySet.Count).Select(i=>definition.AbilitySet.GetAbility(i)).First(a=>a.IsParryable);
+            float captureDistance=Mathf.Clamp(Mathf.Max(1.4f,savedStrong.MinimumRange+.6f),1.4f,Mathf.Max(1.4f,savedStrong.Range-.1f));
+            Vector3 spawn=player.transform.position+Vector3.forward*captureDistance;
             ParryRequire(Physics.Raycast(spawn+Vector3.up*4,Vector3.down,out var floor,9,LayerMask.GetMask("Default","Environment","Ground")),"Actual spawn floor missing");
             ParryRequire(service.TrySpawn(new EnemySpawnRequest(definition,floor.point+Vector3.up*.035f,Quaternion.LookRotation(Vector3.back),player.transform,context:EncounterContext.Test),out enemy),"Actual saved Actor spawn failed");
             enemy.Health.SetMaxHp(100000,true);enemy.Animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
+            // Capture the recovery even when the real perfect-parry elemental
+            // follow-up is lethal. Damage and reaction code still run normally.
+            enemy.Health.SetDamageDeathPrevention(host,true);
             enemy.AI.RequestAggro(player.transform);yield return null;
             float attackDeadline=Time.time+35;EnemyAbilityDefinition strong=null;float originalAttackTime=0;
             while(true)
@@ -183,11 +198,14 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             string resumedAbility=enemy.AbilityController.LastCommittedAbility.AbilityId;
             capture.Mark("resumed");yield return null;yield return null;
             bool recorded=capture.Complete();
+            enemy.Health.SetDamageDeathPrevention(host,false);
+            ParryRequire(!enemy.Health.IsDeathFromDamagePrevented,"Capture survival lease leaked before pool release");
             service.Release(enemy);yield return null;yield return new WaitForFixedUpdate();
             bool reset=!enemy.IsLeased&&!enemy.gameObject.activeSelf&&!enemy.AnimationBridge.IsParryStunAnimating&&!enemy.GetComponent<EnemyMovementReaction>().IsParryStunned&&!enemy.AbilityController.IsExecuting;
             ParryRequire(reset,"Parry state leaked into the pool");
             cases.Add(new JObject{["pass"]=recorded,["id"]=definition.EnemyId,["actualPlayerHeavyParry"]=true,["parrySuccessDelta"]=controller.SuccessCount-before,
                 ["parryGrade"]=controller.ActionGrade.ToString(),["fixtureVersion"]=PerfectParryFixtureVersion,
+                ["fixturePreventsLethalDamage"]=true,["captureSurvivalLeaseReturned"]=true,
                 ["strongAbility"]=strong.AbilityId,["strongNormalizedAtInput"]=originalAttackTime,["allSavedAbilitiesRetained"]=true,["states"]=JArray.FromObject(states),
                 ["actionLockPreserved"]=lockPreserved,["recoverFirstSeconds"]=recoverFirst,["expectedHoldSeconds"]=expectedHold,["expectedRecoverSeconds"]=expectedRecover,
                 ["resumedAbility"]=resumedAbility,["poolReset"]=reset,["playerDamageAtParry"]=0,["videoRecorded"]=recorded,["videoPath"]=capture.VideoPath});
@@ -196,6 +214,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         finally
         {
             capture.Complete();melee.CancelCurrentAttackState();
+            if(enemy!=null)enemy.Health.SetDamageDeathPrevention(host,false);
             if(enemy!=null&&enemy.IsLeased&&service!=null)service.Release(enemy);
             if(trace.Count>0)File.WriteAllText(Path.Combine(output,"parry-trace.json"),trace.ToString());
         }

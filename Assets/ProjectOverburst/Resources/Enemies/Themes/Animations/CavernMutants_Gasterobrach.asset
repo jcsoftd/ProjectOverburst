@@ -47,6 +47,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 4eca6b2795f4ff849ab49e992d87c3e9, type: 3}
   - {fileID: 1827226128182048838, guid: f1f6fd85a24dd72479b26d02236211d1, type: 3}
   - {fileID: 1827226128182048838, guid: e18129ae62114b34789da3a626f45a79, type: 3}
+  parryCollapse: {fileID: 7400000, guid: 28f6cd916f6ccd444994ad7c46ac61e4, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: ca828c28b46a9b04c9979731fbd1134b, type: 2}
+  stunRecover: {fileID: 7400000, guid: af4417a19477cfe45bbb5b28338f8032, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Gasterobrach/FBX files/Gasterobrach@Attack2HitComboForward_RM.fbx"

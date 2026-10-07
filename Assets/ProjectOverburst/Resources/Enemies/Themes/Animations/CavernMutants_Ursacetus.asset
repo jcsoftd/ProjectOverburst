@@ -56,9 +56,9 @@ MonoBehaviour:
   - {fileID: 7400000, guid: fe00a39070b9bf54c8a69981543fe45c, type: 3}
   - {fileID: 7400000, guid: 05001f7ea39ba5f4a8e99dd311356839, type: 3}
   - {fileID: 7400000, guid: fd98c8a26872b1d4495c669717d80673, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: 84928c7f7d5ab724c983f1dab8a652e7, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 42ee1fc819be2d2429e4fd0961a2fff9, type: 2}
+  stunRecover: {fileID: 7400000, guid: da98afa89a7db2444b4c7e58c54cfda8, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Ursacetus/FBX Files/Ursacetus@2HandsSmashAttack_RM.fbx"

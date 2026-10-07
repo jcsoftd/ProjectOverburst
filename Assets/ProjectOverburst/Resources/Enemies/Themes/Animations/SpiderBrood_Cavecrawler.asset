@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: f0970c698e2ed184c8eb7124cd07174b, type: 3}
   optional:
   - {fileID: 7400000, guid: 2ee15d98a8ee2b24fbe31967c92dbd75, type: 3}
-  parryCollapse: {fileID: 7400000, guid: f59507f33a615a647a41d2a871b2d2aa, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 546d1c8dc6cd3274eaea51d5bf3977e8, type: 2}
-  stunRecover: {fileID: 7400000, guid: 8dcb9e7f535c2d047b81f888d8de96bf, type: 2}
+  parryCollapse: {fileID: 7400000, guid: baf1e1bdea2230f4c8778509edd56a8f, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: e7c0889389b94704eacd70213dce3e09, type: 2}
+  stunRecover: {fileID: 7400000, guid: 7f828e95c08b9a64fab5de37e6c4ccd3, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/9b47bb06/Cavecrawler@CrawlForward_RM.FBX"

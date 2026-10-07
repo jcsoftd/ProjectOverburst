@@ -27,7 +27,7 @@ MonoBehaviour:
   optional:
   - {fileID: 7400000, guid: 91c3e0eae70e713459ac452be14e7a16, type: 3}
   - {fileID: 7400000, guid: 4378bbd1f6bc18b46a0661347b89adae, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: 86468c12c429f9b4db142faca17ee91f, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: c98fc70e17c09ee428e45ceb40e70466, type: 2}
+  stunRecover: {fileID: 7400000, guid: 9a88c91e264765b48bd0445c8dfd5a00, type: 2}
   excludedRootMotionClipPaths: []

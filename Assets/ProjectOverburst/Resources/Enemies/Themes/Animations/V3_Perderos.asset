@@ -26,8 +26,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: eaee70c2bddc6b6419df45102666f8ff, type: 3}
   optional:
   - {fileID: 7400000, guid: bc8be1989ad7d9045a2e9e27a9cdf580, type: 3}
-  parryCollapse: {fileID: 7400000, guid: e558c9a70c72b9f418deafb5dde290bb, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 691229aa7bbe77a4998b0ce7e34ee0ec, type: 2}
-  stunRecover: {fileID: 7400000, guid: b65c595c119436f4d9b0fc3cf655cdfa, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 81dedd315cf678748823ebc95242ba99, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 1055c7abcd88a45448d9c321dc6a0b93, type: 2}
+  stunRecover: {fileID: 7400000, guid: 82a7335129cd94c489fee624db16cd1a, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/81e45d61/Perderos@Walk_RM.FBX"

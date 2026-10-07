@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 070415fb37ea4544ea376d35766f7a70, type: 3}
   optional:
   - {fileID: 7400000, guid: 83ae9fdb43e734c4bb4b715471eb6097, type: 2}
-  parryCollapse: {fileID: 7400000, guid: e1062b7a10e517f479dd7c21cd14e9de, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 55328efd7885b874b8283c0aee93663d, type: 2}
-  stunRecover: {fileID: 7400000, guid: bc0d6e2dd494e3442ae650cff94e1aee, type: 2}
+  parryCollapse: {fileID: 7400000, guid: b44f56b63f180654d860c10c8a89b205, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 11b7748ed0870bc41b09ad1c82318eed, type: 2}
+  stunRecover: {fileID: 7400000, guid: b134a7221fa03ef48a5ab86b58f8105c, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P05/6cef8764/Lacodon@Walk_RM.FBX"

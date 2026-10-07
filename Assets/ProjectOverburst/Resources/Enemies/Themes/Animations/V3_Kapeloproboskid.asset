@@ -26,8 +26,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 1af0c308f20dfd741bffd18ba9dfd687, type: 3}
   optional:
   - {fileID: 7400000, guid: 038f1f535c371984fb102f1039b86ae1, type: 2}
-  parryCollapse: {fileID: 7400000, guid: fb71f4f6ce2c08043aea1d6dbfbd8277, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: b4b42fafc099c034f932dc4c4d16b783, type: 2}
-  stunRecover: {fileID: 7400000, guid: 7852c5bc0a013a64b8cf0f5c88311d19, type: 2}
+  parryCollapse: {fileID: 7400000, guid: f74eb91f30be6c3468bc2da14d3d55e4, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 38bd2ac92615d1f4591224ef612158a1, type: 2}
+  stunRecover: {fileID: 7400000, guid: 8347175e866e36c4aac99be54a47dc00, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/a3c5d1d0/Kapeloproboskid@FlyForward.fbx"

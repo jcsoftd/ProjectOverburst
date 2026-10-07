@@ -40,6 +40,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 0a983571c5cffaa45a9634c1a85ecc48, type: 3}
   - {fileID: 1827226128182048838, guid: 113e00bd1a749964b9b093a7c5390217, type: 3}
   - {fileID: 1827226128182048838, guid: e6dfaaaf0f45d8347b6224d1cd3a5294, type: 3}
+  parryCollapse: {fileID: 7400000, guid: ab7ec1314837dfc4ea19a5832244e964, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: a4ccaae4ce7df6a4087e0e1144c79d0d, type: 2}
+  stunRecover: {fileID: 7400000, guid: 14ff343af6b30f74496ac0b302de2e04, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 7/Dimaxillosaurus/FBX Files/Dimaxillosaurus@2HitComboClawsAttackForward_RM.fbx"

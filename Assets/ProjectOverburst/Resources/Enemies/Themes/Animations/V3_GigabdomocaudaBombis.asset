@@ -27,8 +27,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 209e23d32b099ba41a8a1f50e66bf0eb, type: 3}
   optional:
   - {fileID: 7400000, guid: 967fb2ef490ec8544b619237e381ab06, type: 2}
-  parryCollapse: {fileID: 7400000, guid: ece39285a0d9abb40942bdabcd5c1da3, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 766126eea24ef1c4abadf0723143b494, type: 2}
-  stunRecover: {fileID: 7400000, guid: bc82d9afec2ba8348b0cbb8b47d12a5e, type: 2}
+  parryCollapse: {fileID: 7400000, guid: ac1638f166ff9cb4eb1aaeb0450c710f, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 741c6dc951132e9419418503137ec2a8, type: 2}
+  stunRecover: {fileID: 7400000, guid: aa187e8a0999b2c4f8c75f3f0b86bba2, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/5ab1a987/GigabdomocaudaBombis@CrawlForward_RM.fbx"

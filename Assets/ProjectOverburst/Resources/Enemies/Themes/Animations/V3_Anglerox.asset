@@ -26,9 +26,9 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 1f6e842ea67538545934bab5238eb752, type: 3}
   optional:
   - {fileID: 7400000, guid: 136987a8c73f66f4baab10d195528a51, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 25164b908d167f24785cec912767ecc9, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 8b2bc96a173d4ef4b962b3b8b244533c, type: 2}
-  stunRecover: {fileID: 7400000, guid: f6d8c21203f166b478ee1072a465cb33, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 4b2fd6683bd994c4caef620ec5c8fcc0, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 7ed278f3661cfa94795943cd52220528, type: 2}
+  stunRecover: {fileID: 7400000, guid: bf150e9bfa7d08e4884ba6a8dd35628f, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Anglerox/FBX Files/Anglerox@Walk_RM.fbx"

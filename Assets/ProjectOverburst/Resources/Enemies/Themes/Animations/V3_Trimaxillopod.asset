@@ -24,8 +24,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 94518fe1438dce24386869620fdd31a2, type: 3}
   optional:
   - {fileID: 7400000, guid: f00877116474d4b4ca4a54d5e0bd919c, type: 2}
-  parryCollapse: {fileID: 7400000, guid: a89b08d3c621f784b85c0bd833b195d2, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 8c1706cfcc2da0a479b22a5acf306260, type: 2}
-  stunRecover: {fileID: 7400000, guid: 8687cd4a4bbd18e49a6a6316ce2d5c28, type: 2}
+  parryCollapse: {fileID: 7400000, guid: fe75ff3c2e091d44b954467073ff1e45, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 01fb45b962bc384479334df0cd52ca8c, type: 2}
+  stunRecover: {fileID: 7400000, guid: 84e47176faf450f439124c75ef008195, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/e4fec06d/Trimaxillopod@WalkForward_RM.fbx"

@@ -27,9 +27,9 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: a5c5dfe3a7de28649b58a617d335db3f, type: 3}
   optional:
   - {fileID: 1827226128182048838, guid: 37da31a4ceaedd14ca17608a6e231968, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 7985729651032f44ea9c2e70cf722eea, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: d89533045dc5e3d469978f70dac624ce, type: 2}
-  stunRecover: {fileID: 7400000, guid: 1288abbe508b5034c985a2b5807e1c9a, type: 2}
+  parryCollapse: {fileID: 7400000, guid: a4d677871aa1b4e4ba3e958eb10a46cd, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: cd97efb234b429b45a15481f2de4c9fe, type: 2}
+  stunRecover: {fileID: 7400000, guid: f9487d5e04432c945a040b68f22c9547, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack vol 9/Crassorrid/FBX Files/Crassorrid@WalkForward_RM.fbx"

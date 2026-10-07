@@ -27,9 +27,9 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 625471fa513c30f448467e840e9cfa5d, type: 3}
   optional:
   - {fileID: 7400000, guid: 4c0a98e62b355324bac860303c1d033e, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 89068a46abeb3704f8f296e29b3f15fd, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 0dcc177cd0f87984bafb58f4cd568ba5, type: 2}
-  stunRecover: {fileID: 7400000, guid: f2a03a1e6be0a8f49a9cdce014681725, type: 2}
+  parryCollapse: {fileID: 7400000, guid: b7c074dd704138a4c9641ff58c3d8851, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 9b61904376ea4ab42ba761951826fc95, type: 2}
+  stunRecover: {fileID: 7400000, guid: 0da8519cbfeeebd4598ddd034b934632, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor/Sci Fi/Sci
     Fi Characters Mega Pack Vol 2/Sci Fi Creatures Vol 2/Onyscidus/FBX Files/Onyscidus@CrawlForward_RM.fbx"

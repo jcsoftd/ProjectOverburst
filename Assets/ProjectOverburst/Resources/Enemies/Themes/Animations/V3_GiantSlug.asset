@@ -24,8 +24,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 56d1c42bf6e4503498b66b1afce8999a, type: 3}
   optional:
   - {fileID: 7400000, guid: 293ec6dd2b8ddae4d8ec45bd8250b3d7, type: 3}
-  parryCollapse: {fileID: 7400000, guid: f5d8c3e1960a3bd45890aa514aef1f14, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 1b7d39f34b57522459b6bf25e08b7a80, type: 2}
-  stunRecover: {fileID: 7400000, guid: 34b9006722a3f8a4eb4c0e43e1ee1ce8, type: 2}
+  parryCollapse: {fileID: 7400000, guid: d8170468dcb1fb94ca4aa26b85d4479c, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 97e3a5fdd7b7c4c4baba9f6a58e21651, type: 2}
+  stunRecover: {fileID: 7400000, guid: 8fe32ba74fd9b344ea2b8a38b650335b, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P09/9b938aba/GiantSlug@CrawlForward_RM.FBX"

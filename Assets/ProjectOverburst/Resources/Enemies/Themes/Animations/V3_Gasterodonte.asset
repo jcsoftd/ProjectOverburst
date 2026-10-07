@@ -26,8 +26,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: cb38808f610c55044828eb02d74d264d, type: 3}
   optional:
   - {fileID: 1827226128182048838, guid: b9272c50cdb0b054ca7935fea9bed0f3, type: 3}
-  parryCollapse: {fileID: 7400000, guid: 37cf9be0898066141b72e05720b0a663, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 42267aa20f22fd6469d1e01df2400607, type: 2}
-  stunRecover: {fileID: 7400000, guid: fc8849e721f9aa742ba36ce1130ee21c, type: 2}
+  parryCollapse: {fileID: 7400000, guid: e55afd3b13da15f4a8218266f2833e80, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: b27b8718e359b3e4aa3d022560755d65, type: 2}
+  stunRecover: {fileID: 7400000, guid: ffec5ae336ab39a4bbd61c092e4ac5f3, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/784a642e/Gasterodonte@Crawl_RM.fbx"

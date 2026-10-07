@@ -27,8 +27,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 7c71a988fd710db4bbaa384f9249dff1, type: 3}
   optional:
   - {fileID: 7400000, guid: 7f0ce4f9e61eb094f9c60d188809c692, type: 2}
-  parryCollapse: {fileID: 7400000, guid: 895684d532731aa448569fe1b9ee4edc, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: af2a725dc8ae6884c92f86f2d05af684, type: 2}
-  stunRecover: {fileID: 7400000, guid: ec265b9244a54024a9e7f0deb0558cc0, type: 2}
+  parryCollapse: {fileID: 7400000, guid: ba941e1631ab44f458e8e623469f090f, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: c7afbefb3f119e542a3e921708548775, type: 2}
+  stunRecover: {fileID: 7400000, guid: 0dbbfad68c92a444280507b1b566660b, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/562c14d3/Xenosaurid@WalkForward_RM.fbx"

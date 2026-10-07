@@ -28,8 +28,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: a6f843e27804cca43b4b1a08fb29cdbb, type: 2}
   optional:
   - {fileID: 7400000, guid: 92be7a451f80cb549a6261b817829539, type: 2}
-  parryCollapse: {fileID: 7400000, guid: 4145047b05725c74c8877597bbacf09a, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 471ed4405c6d25c4cba091572191d69d, type: 2}
-  stunRecover: {fileID: 7400000, guid: 6ed7109fcef5c4d4285493600663d4e5, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 13af0abf3ee76e647880f758108ebe51, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 276e49ca3ed161f44ba9491539fe66a4, type: 2}
+  stunRecover: {fileID: 7400000, guid: dc97978760ed13a4da3d7b5d7321da2b, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/DeathHarvest/DeathKnight2/Animations/darkKnight2@walk1.fbx"

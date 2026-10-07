@@ -34,9 +34,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: d3dc5741c84261245a51cc966d01f9cf, type: 3}
   - {fileID: 1827226128182048838, guid: 61828ae49972d0943904ae4af60a9bd1, type: 3}
   - {fileID: 1827226128182048838, guid: 42338923402d8b04ea0b949636e0f3b5, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: c5395afb3a150e947aac6d5dabbbe56d, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 18846ee90922bed459a79d3f22e15416, type: 2}
+  stunRecover: {fileID: 7400000, guid: f72c9b6886b3cd44a85f82925e73a1eb, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 12/Arathrox/FBX Files/Arathrox@Bite_RM.fbx"

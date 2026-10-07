@@ -42,9 +42,9 @@ MonoBehaviour:
   - {fileID: 1827226128182048838, guid: 53fb401a4472a3b41b69b73282eea933, type: 3}
   - {fileID: 1827226128182048838, guid: c378234d3b3c5bc409ffd659a4d97eca, type: 3}
   - {fileID: 1827226128182048838, guid: b94698a17da79a44eb9e7db3fd7e442a, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: c333dcb148eaffe4e95b6df9251f60b0, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 86a85716e50e7dc41b500acd76adea6f, type: 2}
+  stunRecover: {fileID: 7400000, guid: 1eb2495eeb1798747aa5ecc23b26c2ee, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 11/Kupolobrach/FBX Files/Kupolobrach@2HitComboClawsAttackForward_RM.fbx"

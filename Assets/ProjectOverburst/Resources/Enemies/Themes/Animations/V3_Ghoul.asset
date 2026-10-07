@@ -26,8 +26,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 697b469632c14b644b03a8f1453169cc, type: 3}
   optional:
   - {fileID: 7400000, guid: c9b4d175e82478443966b1e0e0a37ebe, type: 3}
-  parryCollapse: {fileID: 7400000, guid: b1e97d9c55e9491458e4a8ab4a952f5d, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 219f5f937a1b53341bd8ff2f9d6f22fd, type: 2}
-  stunRecover: {fileID: 7400000, guid: 177381809ff93db4697f95693b2e36d5, type: 2}
+  parryCollapse: {fileID: 7400000, guid: 26a5e05ea6adcfb4aa4868f9244a9f9e, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: fa28a6ae1553035459a506d10a72485c, type: 2}
+  stunRecover: {fileID: 7400000, guid: 37ea2da7f6ac6a845b5621554249fe33, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P04/2d63f67a/Ghoul@Walk_RM.FBX"

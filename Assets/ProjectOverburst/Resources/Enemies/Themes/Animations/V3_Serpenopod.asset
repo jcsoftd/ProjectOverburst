@@ -26,9 +26,9 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 5fcf813be8938e1478bab5d7d351a102, type: 3}
   optional:
   - {fileID: 1827226128182048838, guid: 7a8f149296053c342a5d771266f2e61a, type: 3}
-  parryCollapse: {fileID: 7400000, guid: a43e588f031062d429df7e2141e8e7fd, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: 3b08aec7046a8334289f177590e3a33d, type: 2}
-  stunRecover: {fileID: 7400000, guid: e9f515ab9cb93924398757d4d60fcf33, type: 2}
+  parryCollapse: {fileID: 7400000, guid: e73476afbeccda940b1a7ad20309f9f7, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 997a555b754a70845b11c64da1058be9, type: 2}
+  stunRecover: {fileID: 7400000, guid: 8a799c4351c8ce148b8ba95fcb8a1171, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack vol 9/Serpenopod/FBX Files/Serpenopod@WalkForward_RM.fbx"

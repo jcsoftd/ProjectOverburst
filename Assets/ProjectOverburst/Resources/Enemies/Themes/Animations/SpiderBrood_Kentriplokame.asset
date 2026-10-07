@@ -25,9 +25,9 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: fd5e5bb65aea4b7418ed4e8a69cdfc5b, type: 3}
   optional:
   - {fileID: 1827226128182048838, guid: 669e1f10d9e71584c80944345fbe77ca, type: 3}
-  parryCollapse: {fileID: 7400000, guid: f356752511633e64bb4000e54667188f, type: 2}
-  stunnedLoop: {fileID: 7400000, guid: b186bd5a8bca7b649860c0626841095b, type: 2}
-  stunRecover: {fileID: 7400000, guid: 0502c279136e7b44da684825097c11cc, type: 2}
+  parryCollapse: {fileID: 7400000, guid: edaca7ca42bb0fd42b72a60818d73fe0, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 282eb2882b25ba447be0e26d6aa1aac4, type: 2}
+  stunRecover: {fileID: 7400000, guid: 3e41926e327227a4594c1b6175cb1a23, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/Protofactor 1/Monster
     Full Pack Vol 2/Monster Pack Vol 10/Kentriplokame/FBX Files/Kentriplokame@CrawlForward_RM.fbx"
