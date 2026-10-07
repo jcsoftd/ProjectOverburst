@@ -42,10 +42,11 @@ public static class AppearanceCustomizationPlayVerifier
     public static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);checks.Add(message);}
     static string Dir(string name,string destination){string path=Path.GetFullPath(Path.Combine(destination,name));Directory.CreateDirectory(path);return path;}
     static void Write(string name,object data)=>File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(data,Formatting.Indented));
-    public static void Start(string label,string destination=Destination)
+    public static void Start(string label,string destination=Destination,bool equipmentOnly=false)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("External settings directory active");
+        SessionState.SetBool(K+"equipment",equipmentOnly);
         output=Dir(label,destination);string save=Path.Combine(output,"isolated-save");Directory.CreateDirectory(save);
 
         Write("edit-before.json",new{pid=System.Diagnostics.Process.GetCurrentProcess().Id,scenes=Scenes(),input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)});
@@ -56,6 +57,24 @@ public static class AppearanceCustomizationPlayVerifier
         EditorApplication.update-=Begin;EditorApplication.update+=Begin;
         try{IsolatedSavePlayGuard.EnterIsolatedPlay(save);}catch(Exception error){Finish(error);}
     }
+    public static void StartEquipment(string label,string destination)
+    {
+        Start(label,destination,true);
+    }
+    static IEnumerator VerifyEquipment()
+    {
+        yield return Frames(20);SetupInput();yield return Frames(4);
+        yield return EquipmentPreviewRotationPlayChecks.Verify(output);
+    }
+    public static IEnumerator Drag(RectTransform rect,Vector2 delta)
+    {
+        Canvas.ForceUpdateCanvases();var position=Point(rect);
+        pointer=new MouseState{position=position};yield return Frames(2);
+        pointer.buttons=1;yield return Frames(2);
+        pointer.position=position+delta;pointer.delta=delta;yield return Frames(1);
+        pointer.delta=Vector2.zero;yield return Frames(3);
+        pointer.buttons=0;yield return Frames(3);
+    }
     static object[] Scenes()=>Enumerable.Range(0,SceneManager.sceneCount).Select(i=>{var s=SceneManager.GetSceneAt(i);return (object)new{s.path,s.isDirty};}).ToArray();
     static bool OwnPlay()=>string.Equals(IsolatedSavePlayGuard.ActiveDirectory,Path.Combine(SessionState.GetString(K+"return",""),"isolated-save"),StringComparison.OrdinalIgnoreCase);
     static void Begin()
@@ -65,7 +84,7 @@ public static class AppearanceCustomizationPlayVerifier
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"deadline",0)){Finish(new Exception("Boot timeout"));return;}
         if(!EditorApplication.isPlaying || !OwnPlay() || PlayerInputFacade.Current==null || AppearanceCustomizationPanel.Instance==null || !AccountBootstrap.Ready || !WorldSessionState.IsHideout || !PlayerContext.Instance?.CurrentActor || Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Length!=1)return;
         EditorApplication.update-=Begin;SessionState.EraseString(K+"pending");SessionState.SetBool(K+"running",true);
-        checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+600;frame=-1;work.Push(Verify());EditorApplication.update+=Tick;
+        checks.Clear();Application.runInBackground=true;deadline=EditorApplication.timeSinceStartup+600;frame=-1;work.Push(SessionState.GetBool(K+"equipment",false)?VerifyEquipment():Verify());EditorApplication.update+=Tick;
     }
     static void Tick()
     {
@@ -220,7 +239,7 @@ public static class AppearanceCustomizationPlayVerifier
     {
         EditorApplication.update-=Tick;EditorApplication.update-=Begin;EditorApplication.update-=Interrupted;while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
         bool own=OwnPlay();if(own && AppearanceCustomizationPanel.Instance)AppearanceCustomizationPanel.Instance.Close();RestoreInput();
-        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseFloat(K+"deadline");
+        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseBool(K+"equipment");SessionState.EraseFloat(K+"deadline");
         output=SessionState.GetString(K+"return",output);
         try{Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});}
         finally

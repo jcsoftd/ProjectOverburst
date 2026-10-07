@@ -82,7 +82,7 @@ namespace Overburst.Appearance.AnimationPreview
         public void Select(AppearanceAnimationOption option)
         {
             if(!CanOperate||option==null)return;
-            Selected=option;Preview.SetFraming(option.category=="Expression"?AppearanceFraming.Face:AppearanceFraming.FullBody);Preview.Play(option.clip,loop.isOn);RefreshRows();
+            Selected=option;Preview.Play(option.clip,loop.isOn);RefreshRows();
         }
         public void ExcludeOrRestore()
         {
@@ -100,7 +100,6 @@ namespace Overburst.Appearance.AnimationPreview
             if(Preview&&Owner.Session!=null)
             {
                 if(Preview.ActiveClip!=Owner.catalog.idleClip)Preview.StopAnimation();
-                Preview.SetFraming(AppearanceFraming.FullBody);
             }
         }
         public override void SessionClosed()

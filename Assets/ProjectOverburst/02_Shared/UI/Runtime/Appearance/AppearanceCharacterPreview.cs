@@ -33,6 +33,8 @@ namespace Overburst.Appearance
         private AppearancePreviewPhysics physics;
 #if UNITY_EDITOR
         private AppearancePreviewGrounding grounding;
+        private AppearancePreviewRetargeting retargeting;
+        private float avatarFloorOffset;
 #endif
         private RenderTexture texture;
         private P09AppearanceApplier applier;
@@ -42,13 +44,21 @@ namespace Overburst.Appearance
         private AnimationClip activeClip;
         private float yaw, zoom=1f, speed=1f;
         private bool dragging, paused, looping=true, comparing;
-        private float animationHeight,motionDistance;
+        private float animationHeight;
         private Quaternion animationRotation=Quaternion.identity;
         private bool seekingMotion;
-        private Transform[] framingBones=Array.Empty<Transform>();
         public float AnimationHeight=>animationHeight;
         public Quaternion AnimationRotation=>animationRotation;
-        private bool HasMotionRoot=>activeClip&&activeClip.isHumanMotion&&activeClip!=catalog.idleClip;
+        private bool HasMotionRoot
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if(retargeting!=null)return false;
+#endif
+                return activeClip&&activeClip.isHumanMotion&&activeClip!=catalog.idleClip;
+            }
+        }
         private Vector3 modelPosition;
         private Quaternion modelRotation;
         private double nextResize;
@@ -104,9 +114,9 @@ namespace Overburst.Appearance
                 applier=new P09AppearanceApplier(model.transform,catalog,OwnMaterial);
                 applier.ApplyPreviewBody(session.Draft,session.PreviewBody,session.EquipmentExampleId,session.HeadgearVisible);
                 model.AddComponent<AppearancePreviewMotionRoot>().Initialize(this,animator);
-                CacheFramingBones();
 #if UNITY_EDITOR
                 grounding=new AppearancePreviewGrounding(model,animator,catalog);
+                avatarFloorOffset=grounding.AvatarFloorOffset;
 #endif
                 physics=rig.AddComponent<AppearancePreviewPhysics>();physics.Initialize(this,model);
                 CreateCameraAndLights();
@@ -210,7 +220,6 @@ namespace Overburst.Appearance
                 SetSpeed(1);
                 if(activeClip&&(activeClip!=catalog.idleClip||paused))StopAnimation();
             }
-            CacheFramingBones();
             if(physics){physics.RefreshSelection();physics.ResetSimulation();}
             FrameCamera();RenderNow();
         }
@@ -230,30 +239,7 @@ namespace Overburst.Appearance
             }
             float distance=span/(2f*Mathf.Tan(viewCamera.fieldOfView*Mathf.Deg2Rad*.5f))/zoom;
             float angle=session.Framing==AppearanceFraming.Face?faceCameraTilt:session.Framing==AppearanceFraming.UpperBody?upperBodyCameraTilt:fullBodyCameraTilt;
-            if(HasMotionRoot&&session.Framing==AppearanceFraming.FullBody&&framingBones.Length>0)
-            {
-                var inverse=Quaternion.Inverse(Quaternion.Euler(angle,0,0));float minY=float.PositiveInfinity,maxY=float.NegativeInfinity;
-                foreach(var bone in framingBones)
-                {
-                    if(!bone)continue;var projected=inverse*(bone.position-rig.transform.position);
-                    minY=Mathf.Min(minY,projected.y);maxY=Mathf.Max(maxY,projected.y);
-                }
-                float centerY=(minY+maxY)*.5f;
-                focus=centerY/Mathf.Cos(angle*Mathf.Deg2Rad);
-                float centerZ=-focus*Mathf.Sin(angle*Mathf.Deg2Rad);
-                float halfFov=Mathf.Tan(viewCamera.fieldOfView*Mathf.Deg2Rad*.5f);
-                // Perspective depth matters when an elevated hand moves toward the camera.
-                // Include mesh beyond the weighted bones and retain visible top/bottom margins.
-                foreach(var bone in framingBones)
-                {
-                    if(!bone)continue;var projected=inverse*(bone.position-rig.transform.position);
-                    float relativeDepth=projected.z-centerZ;
-                    float vertical=(Mathf.Abs(projected.y-centerY)+.12f)/(halfFov*.88f)-relativeDepth;
-                    float horizontal=(Mathf.Abs(projected.x)+.12f)/(halfFov*viewCamera.aspect*.42f)-relativeDepth;
-                    motionDistance=Mathf.Max(motionDistance,vertical,horizontal);
-                }
-                distance=Mathf.Max(distance,motionDistance/zoom);
-            }
+            // Framing and user zoom alone control the camera. Animation never changes it.
             var center=rig.transform.position+Vector3.up*focus;
             var offset=Quaternion.Euler(angle,0,0)*new Vector3(0,0,-distance);
             viewCamera.transform.position=center+offset;
@@ -263,12 +249,23 @@ namespace Overburst.Appearance
         {
             if(!animator||!clip||(clip!=catalog.idleClip&&!CanPreviewAnimations))return;
             if(graph.IsValid())graph.Destroy();
+#if UNITY_EDITOR
+            retargeting?.Dispose();retargeting=AppearancePreviewRetargeting.Create(clip);
+#endif
             applier?.ClearExpressions();
             activeClip=clip;looping=repeat;paused=false;ResetMotionRoot();animator.applyRootMotion=HasMotionRoot;
             graph=PlayableGraph.Create("Appearance Animation Preview");
             graph.SetTimeUpdateMode(DirectorUpdateMode.UnscaledGameTime);
-            clipPlayable=AnimationClipPlayable.Create(graph,clip);
-            clipPlayable.SetApplyFootIK(false);
+            var poseClip=clip;
+#if UNITY_EDITOR
+            if(retargeting!=null)poseClip=retargeting.Clip;
+#endif
+            clipPlayable=AnimationClipPlayable.Create(graph,poseClip);
+            bool retargetFeet=false;
+#if UNITY_EDITOR
+            retargetFeet=retargeting!=null;
+#endif
+            clipPlayable.SetApplyFootIK(retargetFeet);
             clipPlayable.SetApplyPlayableIK(false);
             clipPlayable.SetSpeed(speed);
             var output=AnimationPlayableOutput.Create(graph,"Appearance Animation",animator);
@@ -284,7 +281,8 @@ namespace Overburst.Appearance
             graph.Play();
             // Animation events carry gameplay meaning. Preview source has no event receivers.
             animator.fireEvents=false;
-            graph.Evaluate(0);ResetMotionRoot();ApplyStaticExpression();if(physics)physics.ResetSimulation();FrameCamera();
+            graph.Evaluate(0);ResetMotionRoot();ApplyStaticExpression();
+            if(physics)physics.ResetSimulation();FrameCamera();
         }
         private void ApplyStaticExpression()
         {
@@ -348,18 +346,21 @@ namespace Overburst.Appearance
             else{clipPlayable.SetTime(time);graph.Evaluate(0);}
             ApplyStaticExpression();SynchronizeHeadAttachments();if(physics)physics.ResetSimulation();FrameCamera();
         }
-        private void CacheFramingBones()
-        {
-            var bones=new HashSet<Transform>();foreach(var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())foreach(var bone in skin.bones)if(bone)bones.Add(bone);framingBones=new List<Transform>(bones).ToArray();
-        }
-        private void ResetMotionRoot(){animationHeight=0;animationRotation=Quaternion.identity;motionDistance=0;ApplyMotionRoot();}
+        private void ResetMotionRoot(){animationHeight=0;animationRotation=Quaternion.identity;ApplyMotionRoot();}
         private void ApplyMotionRoot()
         {
             if(!model)return;
+#if UNITY_EDITOR
+            if(retargeting!=null)
+            {
+                model.transform.localPosition=modelPosition+Vector3.up*avatarFloorOffset;
+                model.transform.localRotation=Quaternion.Euler(0,yaw,0);
+                return;
+            }
+#endif
             model.transform.localPosition=modelPosition+Vector3.up*animationHeight;
             model.transform.localRotation=Quaternion.Euler(0,yaw,0)*animationRotation;
-            // Retargeted soles are measured from the actual skin, including toe/heel rotation.
-            // All developer motions share the same floor, also after seeks and loops.
+            // Preserve the existing game/expression contact path; authored motions return above.
 #if UNITY_EDITOR
             if(CanPreviewAnimations)grounding?.Plant(rig.transform,model.transform);
 #endif
@@ -376,7 +377,7 @@ namespace Overburst.Appearance
             {nextResize=Time.realtimeSinceStartupAsDouble+.5;ResizeTexture();}
             if(clipPlayable.IsValid()&&activeClip&&PlaybackTime>=activeClip.length)
             {
-                if(looping && activeClip.length>0){float framedDistance=motionDistance;Seek(PlaybackTime%activeClip.length);motionDistance=Mathf.Max(framedDistance,motionDistance);}
+                if(looping && activeClip.length>0)Seek(PlaybackTime%activeClip.length);
                 else {clipPlayable.SetTime(activeClip.length);paused=true;clipPlayable.SetSpeed(0);}
             }
             ApplyStaticExpression();
@@ -437,6 +438,9 @@ namespace Overburst.Appearance
             if(physics){physics.Dispose();physics=null;}
             if(session!=null)session.Changed-=ApplyDraft;
             if(graph.IsValid())graph.Destroy();
+#if UNITY_EDITOR
+            retargeting?.Dispose();retargeting=null;
+#endif
             if(target)target.texture=null;
             if(viewCamera)viewCamera.targetTexture=null;
             if(texture){texture.Release();ReleaseObject(texture);}
@@ -447,7 +451,7 @@ namespace Overburst.Appearance
 #if UNITY_EDITOR
             grounding=null;
 #endif
-            expressionSampler=null;expressionParts.Clear();sampledExpression=null;expressionWeights=null;framingBones=Array.Empty<Transform>();animationHeight=motionDistance=0;animationRotation=Quaternion.identity;seekingMotion=false;
+            expressionSampler=null;expressionParts.Clear();sampledExpression=null;expressionWeights=null;animationHeight=0;animationRotation=Quaternion.identity;seekingMotion=false;
         }
         private static void ReleaseObject(UnityEngine.Object value)
         {if(!value)return;if(Application.isPlaying)Destroy(value);else DestroyImmediate(value);}

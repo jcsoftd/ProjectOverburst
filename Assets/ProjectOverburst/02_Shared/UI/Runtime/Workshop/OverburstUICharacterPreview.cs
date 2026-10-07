@@ -32,6 +32,12 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
     private static Dictionary<string, List<Transform>> templateByName;
     private static GameObject weaponVisual;
     private static int users;
+    private static bool framingValid;
+    private static int framedAppearance;
+    private static int framedPrefabId;
+    private static Vector3 framedCameraPosition;
+    private static Quaternion framedCameraRotation;
+    private static float framedCameraSize, framedCameraFarClip;
 
     private PlayerContext subscribedContext;
     private PlayerEquipment subscribedEquipment;
@@ -221,7 +227,7 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         }
     }
 
-    private static int ComputeAppearanceFingerprint(Transform sourceRoot, Transform weapon)
+    private static int ComputeAppearanceFingerprint(Transform sourceRoot, Transform weapon, bool visibleOnly = false)
     {
         unchecked
         {
@@ -231,6 +237,8 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
                 if (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer))
                     continue;
                 if (weapon && renderer.transform.IsChildOf(weapon))
+                    continue;
+                if (visibleOnly && (!renderer.enabled || !renderer.gameObject.activeInHierarchy))
                     continue;
                 hash = hash * 31 + (renderer.gameObject.activeInHierarchy && renderer.enabled ? 1 : 0);
                 hash = hash * 31 + (GetMesh(renderer) ? GetMesh(renderer).GetInstanceID() : 0);
@@ -325,7 +333,6 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
             return;
         yawOffset = Mathf.Repeat(yawOffset + eventData.delta.x * dragDegreesPerPixel, 360f);
         ApplyPreviewYaw();
-        FrameModel();
         RenderNow();
     }
 
@@ -593,32 +600,77 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         }
     }
 
-    private static void FrameModel()
+    private void FrameModel()
     {
         if (!previewCamera || !model || !model.activeInHierarchy)
             return;
 
-        bool found = false;
-        Bounds bounds = default;
-        foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>())
+        int appearance = ComputeAppearanceFingerprint(model.transform, null, true);
+        if (framingValid && framedAppearance == appearance)
         {
-            if (!renderer.enabled || (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer)))
-                continue;
-            if (!found)
-            {
-                bounds = renderer.bounds;
-                found = true;
-            }
-            else
-                bounds.Encapsulate(renderer.bounds);
-        }
-        if (!found)
+            previewCamera.transform.SetLocalPositionAndRotation(framedCameraPosition, framedCameraRotation);
+            previewCamera.orthographicSize = framedCameraSize;
+            previewCamera.farClipPlane = framedCameraFarClip;
             return;
+        }
 
-        previewCamera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x / Aspect) * 1.08f;
-        previewCamera.transform.position = bounds.center + new Vector3(0f, 0.03f, -5f);
-        previewCamera.transform.LookAt(bounds.center + new Vector3(0f, 0.03f, 0f));
-        previewCamera.farClipPlane = Mathf.Max(12f, bounds.extents.z * 2f + 8f);
+        // Equipment changes may need new framing. Drag yaw and the moving idle pose
+        // must not feed the fit, or the portrait changes size as its world bounds turn.
+        SampleIdle(IdleSampleSeconds);
+        model.transform.localRotation = Quaternion.Euler(0f, InitialYaw, 0f);
+        try
+        {
+            bool found = false;
+            Bounds bounds = default;
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>())
+            {
+                if (!renderer.enabled || (!(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer)))
+                    continue;
+                Mesh baked = null;
+                try
+                {
+                    Bounds localBounds = renderer.localBounds;
+                    if (renderer is SkinnedMeshRenderer skin)
+                    {
+                        // Read the reference pose now, without the previous rendered frame's bounds.
+                        baked = new Mesh { hideFlags = HideFlags.HideAndDontSave };
+                        skin.BakeMesh(baked);
+                        baked.RecalculateBounds();
+                        localBounds = baked.bounds;
+                    }
+                    Matrix4x4 matrix = renderer.localToWorldMatrix;
+                    for (int x = -1; x <= 1; x += 2)
+                        for (int y = -1; y <= 1; y += 2)
+                            for (int z = -1; z <= 1; z += 2)
+                            {
+                                Vector3 point = matrix.MultiplyPoint3x4(localBounds.center +
+                                    Vector3.Scale(localBounds.extents, new Vector3(x, y, z)));
+                                if (!found) { bounds = new Bounds(point, Vector3.zero); found = true; }
+                                else bounds.Encapsulate(point);
+                            }
+                }
+                finally { if (baked) DestroyOwned(baked); }
+            }
+            if (!found)
+                return;
+
+            previewCamera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x / Aspect) * 1.08f;
+            previewCamera.transform.position = bounds.center + new Vector3(0f, 0.03f, -5f);
+            previewCamera.transform.LookAt(bounds.center + new Vector3(0f, 0.03f, 0f));
+            previewCamera.farClipPlane = Mathf.Max(12f, bounds.extents.z * 2f + 8f);
+            framedCameraPosition = previewCamera.transform.localPosition;
+            framedCameraRotation = previewCamera.transform.localRotation;
+            framedCameraSize = previewCamera.orthographicSize;
+            framedCameraFarClip = previewCamera.farClipPlane;
+            framedAppearance = appearance;
+            framingValid = true;
+        }
+        finally
+        {
+            SampleIdle(Application.isPlaying
+                ? GetIdleTime(Time.realtimeSinceStartupAsDouble)
+                : IdleSampleSeconds);
+        }
     }
 
     private void EnsureRig()
@@ -632,6 +684,9 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
 
         DisposeRig();
         currentSource = visualPrefab;
+        int prefabId = visualPrefab.GetInstanceID();
+        if (framedPrefabId != prefabId) framingValid = false;
+        framedPrefabId = prefabId;
         rig = new GameObject("UI Character Preview • isolated");
         rig.hideFlags = HideFlags.HideAndDontSave;
         rig.transform.position = new Vector3(0f, -10000f, 0f);
@@ -713,6 +768,8 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         model = null;
         previewCamera = null;
         currentSource = null;
+        // Keep only numeric framing for the same visible geometry on reentry.
+        // The rig, texture, camera and all visual references are still released.
         templateRenderers = null;
         templateByPath = null;
         templateByName = null;
