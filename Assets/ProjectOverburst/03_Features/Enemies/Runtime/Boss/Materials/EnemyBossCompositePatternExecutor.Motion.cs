@@ -267,6 +267,35 @@ public sealed partial class EnemyBossCompositePatternExecutor
             facing * Quaternion.Euler(12f * (1f - lift), 0f, -6f * Mathf.Sin(lift * Mathf.PI) * (1f - lift)));
         held.root.SetActive(true);
     }
+    EnemyBossPayloadGrip eliteGrip;
+    float eliteGripReleaseUntil;
+    // Remove the previous rendered correction before the next normal/fixed Animator evaluation.
+    void Update() => eliteGrip?.Restore();
+    void FitEliteHands()
+    {
+        if (!patterns.fitEliteHands || leftHand == null || rightHand == null || !Usable) return;
+        if (held?.payload == patterns.elite && held.root.activeSelf)
+        {
+            float weight = 1f;
+            if (prepared && extractionAnchored && actor.AnimationBridge.TryReadMotion(preparationHandle, out var sample)
+                && sample.MotionId == "UnearthRock")
+            {
+                float frame = sample.Normalized * sample.Clip.length * sample.Clip.frameRate;
+                weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(patterns.eliteRevealFrame, patterns.eliteFullSizeFrame, frame));
+            }
+            if (eliteGrip == null) eliteGrip = new EnemyBossPayloadGrip(leftHand, rightHand);
+            eliteGrip.Apply(held.root.transform, patterns.eliteLeftHandGrip, patterns.eliteRightHandGrip, weight, patterns.eliteGripPalmTilt);
+        }
+        else if (eliteGripReleaseUntil > Time.time && current == patterns.throwMaterial)
+        {
+            // Release from the animated hand socket, never chase the departing projectile.
+            float weight = Mathf.SmoothStep(0f, 1f, (eliteGripReleaseUntil - Time.time) / Mathf.Max(.01f, patterns.eliteGripReleaseSeconds));
+            if (eliteGrip == null) eliteGrip = new EnemyBossPayloadGrip(leftHand, rightHand);
+            Vector3 center = Hands();
+            eliteGrip.ApplyPoints(center + aimRotation * (patterns.eliteLeftHandGrip * patterns.elite.visualScale),
+                center + aimRotation * (patterns.eliteRightHandGrip * patterns.elite.visualScale), weight, aimRotation * Vector3.forward, patterns.eliteGripPalmTilt);
+        }
+    }
     void CancelOwnedExecution()
     {
         if (actor.AnimationBridge.OwnsMotion(playbackHandle)) actor.AnimationBridge.CancelMotion(playbackHandle, EnemyMotionReason.OwnerCancelled);

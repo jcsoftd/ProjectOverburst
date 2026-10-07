@@ -537,5 +537,5 @@ MonoBehaviour:
   boulderMaterial: {fileID: 2100000, guid: a7e4ae963887ddb4aab493b102c17972, type: 2}
   boulderLeftHandBone: Crustaspikan_ L Hand
   boulderRightHandBone: Crustaspikan_ R Hand
-  boulderOffset: {x: 0, y: 0.25, z: 0.15}
-  boulderVisualRadius: 0.85
+  boulderOffset: {x: 0, y: 0.9, z: 0.15}
+  boulderVisualRadius: 1.75

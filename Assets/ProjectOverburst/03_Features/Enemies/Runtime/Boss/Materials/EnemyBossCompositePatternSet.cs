@@ -77,6 +77,13 @@ public sealed class EnemyBossCompositePatternSet : ScriptableObject
     public EnemyBossThrowPayload throwPayload=EnemyBossThrowPayload.Alternate;
     [Min(0f)] public float eliteRevealFrame=70f;
     [Min(0f)] public float eliteFullSizeFrame=100f;
+    [Header("Elite hand fit (flight visual local space)")]
+    public bool fitEliteHands;
+    public Vector3 eliteHoldOffset = new Vector3(0f, .25f, .15f);
+    public Vector3 eliteLeftHandGrip = new Vector3(-1.55f, .25f, -.3f);
+    public Vector3 eliteRightHandGrip = new Vector3(1.55f, .25f, -.3f);
+    [Range(0f, 35f)] public float eliteGripPalmTilt = 12f;
+    [Min(.01f)] public float eliteGripReleaseSeconds = .18f;
     [TextArea] public string authoringNotes;
     public bool IsValid
     {

@@ -339,6 +339,12 @@ MonoBehaviour:
   throwPayload: 2
   eliteRevealFrame: 70
   eliteFullSizeFrame: 100
+  fitEliteHands: 1
+  eliteHoldOffset: {x: 0, y: 0.25, z: 0.15}
+  eliteLeftHandGrip: {x: -1.55, y: 0.25, z: -0.3}
+  eliteRightHandGrip: {x: 1.55, y: 0.25, z: -0.3}
+  eliteGripPalmTilt: 12
+  eliteGripReleaseSeconds: 0.18
   authoringNotes: "\uC655\uBCF517 / \uC815\uBA7412 \uB300\uB7C9 \uD1A0\uCD9C. \uC561\uCCB4\uC640
     \uBAAC\uC2A4\uD130\uB294 \uC911\uB825 \uACE1\uC120\uC744 \uC0AC\uC6A9\uD55C\uB2E4.
     \uBC29\uCD9C \uC0AC\uAC74\uBCC4 \uB85C\uCEEC \uC2DC\uB4DC\uB85C \uCD9C\uBC1C\xB7\uC2DC\uC810\xB7\uCC29\uC9C0\xB7\uAE30\uC6B8\uAE30\uB97C
