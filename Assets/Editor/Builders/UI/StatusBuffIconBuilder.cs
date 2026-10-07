@@ -102,11 +102,14 @@ public static class StatusBuffIconBuilder
         parent.sizeDelta = new Vector2(6 * so.FindProperty("cellSpacing").floatValue, parent.sizeDelta.y);
     }
 
-    static void ConfigureBuffBar(BuffBarUI bar)
+    public static void ConfigureBuffBar(BuffBarUI bar)
     {
         if (bar == null) throw new InvalidOperationException("Buff bar missing");
         var root = (RectTransform)bar.transform;
-        root.sizeDelta = new Vector2(400f, 72f);
+        root.anchorMin = root.anchorMax = new Vector2(.5f, 0f);
+        root.pivot = Vector2.zero;
+        root.anchoredPosition = new Vector2(-335f, 134f);
+        root.sizeDelta = new Vector2(282f, 34f);
         foreach (string legacy in new[] { "HealingBuff_Regen", "Debuff_Slow" }) root.Find(legacy)?.gameObject.SetActive(false);
         var template = root.Find("BuffIconSlot_01");
         var more = root.Find("MoreIndicator").GetComponent<TextMeshProUGUI>();
@@ -120,7 +123,7 @@ public static class StatusBuffIconBuilder
             if (slot == null) { slot = Object.Instantiate(template.gameObject, root, false).transform; slot.name = name; }
             var rect = (RectTransform)slot;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2((i < BuffBarUI.TimedSlotCount ? i : i - BuffBarUI.TimedSlotCount) * 34f, i < BuffBarUI.TimedSlotCount ? 0f : -36f);
+            rect.anchoredPosition = new Vector2(i * 37f, 0f);
             rect.sizeDelta = Vector2.one * 30f;
             slot.gameObject.SetActive(true);
             foreach (Image image in slot.GetComponentsInChildren<Image>(true))
@@ -131,23 +134,68 @@ public static class StatusBuffIconBuilder
             text.font = more.font;
             text.fontSize = 12f;
             text.fontStyle = FontStyles.Bold;
-            text.alignment = TextAlignmentOptions.BottomRight;
+            text.alignment = TextAlignmentOptions.BottomLeft;
             text.color = Color.white;
             text.raycastTarget = false;
             text.text = string.Empty;
             var labelRect = (RectTransform)number;
             labelRect.anchorMin = Vector2.zero; labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = new Vector2(0f, -2f); labelRect.offsetMax = new Vector2(3f, 0f);
+            labelRect.offsetMin = new Vector2(-1f, -2f); labelRect.offsetMax = Vector2.zero;
+            Transform polarity = slot.Find("Polarity");
+            if (polarity == null)
+            {
+                polarity = new GameObject("Polarity", typeof(RectTransform), typeof(CanvasRenderer), typeof(BuffPolarityIndicatorUI)).transform;
+                polarity.SetParent(slot, false);
+            }
+            if (polarity.GetComponent<CanvasRenderer>() == null) polarity.gameObject.AddComponent<CanvasRenderer>();
+            var indicator = polarity.GetComponent<BuffPolarityIndicatorUI>();
+            if (indicator == null) indicator = polarity.gameObject.AddComponent<BuffPolarityIndicatorUI>();
+            var polarityRect = (RectTransform)polarity;
+            polarityRect.anchorMin = polarityRect.anchorMax = polarityRect.pivot = new Vector2(1f, 0f);
+            polarityRect.anchoredPosition = new Vector2(1f, -2f);
+            polarityRect.sizeDelta = new Vector2(10f, 12f);
+            indicator.raycastTarget = false;
+            polarity.SetAsLastSibling();
             var component = slot.GetComponent<BuffIconSlotUI>();
             var slotSo = new SerializedObject(component);
             Set(slotSo, "valueText", text);
+            Set(slotSo, "polarityIndicator", indicator);
             slotSo.ApplyModifiedPropertiesWithoutUndo();
             slots.GetArrayElementAtIndex(i).objectReferenceValue = component;
+            Sprite example = PreviewIcon(i);
+            component.SetEffect("preview_" + i, example, stacks: i == 6 ? 2 : 0, permanent: true, isDebuff: i == 1);
         }
+        // Preserve former row objects and their identities, but keep them out of the visible strip.
+        foreach (BuffIconSlotUI slot in root.GetComponentsInChildren<BuffIconSlotUI>(true))
+            if (!Enumerable.Range(0, BuffBarUI.SlotCount).Any(i => slot.name == "BuffIconSlot_" + (i + 1).ToString("00")))
+            { slot.SetVisible(false); slot.gameObject.SetActive(false); }
         so.ApplyModifiedPropertiesWithoutUndo();
         var moreRect = (RectTransform)more.transform;
         moreRect.anchorMin = moreRect.anchorMax = moreRect.pivot = new Vector2(0f, 1f);
-        moreRect.anchoredPosition = new Vector2(310f, -4f);
+        moreRect.anchoredPosition = new Vector2(259f, 0f);
+        moreRect.sizeDelta = new Vector2(23f, 30f);
+        more.text = more.font != null && more.font.HasCharacter('\u2026') ? "\u2026" : "...";
+        more.fontSize = 24f;
+        more.alignment = TextAlignmentOptions.Center;
+        more.color = new Color(.88f, .78f, .59f, 1f);
+        more.raycastTarget = false;
+        more.gameObject.SetActive(true);
+    }
+
+    static Sprite PreviewIcon(int index)
+    {
+        switch (index)
+        {
+            case 0: return StatusBuffIcons.Status("healing");
+            case 1: return StatusBuffIcons.Status("slow");
+            case 2: return StatusBuffIcons.Load("02_Potion_Buffs/potion_regeneration");
+            case 3: return StatusBuffIcons.Load("02_Potion_Buffs/potion_berserker");
+            case 4: return StatusBuffIcons.Load("02_Potion_Buffs/potion_ironclad");
+            case 5: return StatusBuffIcons.Load("02_Potion_Buffs/potion_ghost");
+            case 6: return StatusBuffIcons.Map(MapBuffKind.MaxHealth);
+            case 7: return StatusBuffIcons.Map(MapBuffKind.Attack);
+            default: return StatusBuffIcons.Map(MapBuffKind.ExperienceGain);
+        }
     }
 
     static void Set(SerializedObject so, string field, Object value) => so.FindProperty(field).objectReferenceValue = value;

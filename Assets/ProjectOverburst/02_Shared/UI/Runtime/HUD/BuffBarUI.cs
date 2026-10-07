@@ -5,9 +5,9 @@ using UnityEngine;
 [DefaultExecutionOrder(10003)]
 public sealed class BuffBarUI : MonoBehaviour
 {
-    public const int TimedSlotCount = 9;
+    public const int TimedSlotCount = 7;
     public const int MapSlotCount = 8;
-    public const int SlotCount = TimedSlotCount + MapSlotCount;
+    public const int SlotCount = TimedSlotCount;
     [SerializeField] private PlayerBuffController buffController;
     [SerializeField] private BuffIconSlotUI[] slots = new BuffIconSlotUI[SlotCount];
     [SerializeField] private TextMeshProUGUI moreIndicator;
@@ -44,41 +44,44 @@ public sealed class BuffBarUI : MonoBehaviour
         activeBuffs.Sort(CompareRemaining);
         foreach (BuffInstance buff in activeBuffs)
         {
-            if (shown < TimedSlotCount && slots[shown] != null) slots[shown++].SetBuff(buff);
+            if (shown < SlotCount && slots[shown] != null) slots[shown++].SetBuff(buff);
             total++;
         }
         activeFlasks.Clear();
         if (flasks != null) flasks.Effects.GetActive(activeFlasks, Time.time);
         foreach (FlaskEffectSnapshot flask in activeFlasks)
         {
-            if (shown < TimedSlotCount && slots[shown] != null)
+            if (shown < SlotCount && slots[shown] != null)
                 slots[shown++].SetEffect(FlaskKeys[(int)flask.Data.kind], StatusBuffIcons.Flask(flask.Data), flask.Remaining, flask.Duration);
             total++;
         }
         if (energy != null && energy.Element == WeaponElement.Light && energy.RadianceStacks > 0)
         {
-            if (shown < TimedSlotCount && slots[shown] != null)
+            if (shown < SlotCount && slots[shown] != null)
                 slots[shown++].SetEffect("radiance", StatusBuffIcons.Status("radiance"), stacks: energy.RadianceStacks, permanent: true);
             total++;
         }
-        for (int i = shown; i < TimedSlotCount; i++) slots[i]?.SetVisible(false);
         VisibleTimedCount = shown;
-        if (moreIndicator != null) moreIndicator.gameObject.SetActive(total > TimedSlotCount);
 
         System.Array.Clear(mapStacks, 0, mapStacks.Length);
         MapRunBuffs map = MapRunBuffs.Current;
         if (map != null && WorldSessionState.Phase == WorldPhase.Run)
             foreach (MapCardChoice card in map.Selected)
                 if (card.Kind == MapCardKind.Buff) mapStacks[(int)card.Buff]++;
-        shown = 0;
+        int shownMap = 0;
         for (int i = 0; i < MapSlotCount; i++)
         {
             if (mapStacks[i] == 0) continue;
-            BuffIconSlotUI slot = slots[TimedSlotCount + shown++];
-            slot?.SetEffect(MapKeys[i], StatusBuffIcons.Map((MapBuffKind)i), stacks: mapStacks[i], permanent: true);
+            if (shown < SlotCount && slots[shown] != null)
+            {
+                slots[shown++].SetEffect(MapKeys[i], StatusBuffIcons.Map((MapBuffKind)i), stacks: mapStacks[i], permanent: true);
+                shownMap++;
+            }
+            total++;
         }
-        for (int i = shown; i < MapSlotCount; i++) slots[TimedSlotCount + i]?.SetVisible(false);
-        VisibleMapCount = shown;
+        for (int i = shown; i < SlotCount; i++) slots[i]?.SetVisible(false);
+        VisibleMapCount = shownMap;
+        if (moreIndicator != null) moreIndicator.gameObject.SetActive(total > SlotCount);
     }
 
     private void HideAll()

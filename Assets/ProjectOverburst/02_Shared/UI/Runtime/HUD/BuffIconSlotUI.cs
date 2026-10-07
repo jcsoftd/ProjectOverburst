@@ -7,11 +7,13 @@ public sealed class BuffIconSlotUI : MonoBehaviour
     [SerializeField] private Image baseImage;
     [SerializeField] private Image fillImage;
     [SerializeField] private TMP_Text valueText;
+    [SerializeField] private BuffPolarityIndicatorUI polarityIndicator;
 
     private static Sprite defaultArrowSprite;
     private int lastNumber = int.MinValue;
     public string DisplayedKey { get; private set; }
     public Sprite DisplayedSprite => fillImage != null && fillImage.enabled ? fillImage.sprite : null;
+    public bool DisplayedIsDebuff { get; private set; }
 
     private void Awake()
     {
@@ -30,16 +32,18 @@ public sealed class BuffIconSlotUI : MonoBehaviour
         }
 
         SetEffect(instance.BuffId, StatusBuffIcons.Buff(instance.Definition) ?? GetDefaultArrowSprite(), instance.RemainingTime,
-            instance.Definition.duration);
+            instance.Definition.duration, isDebuff: instance.Definition.isDebuff);
     }
 
     public void SetEffect(string key, Sprite sprite, float remaining = 0f, float duration = 0f,
-        int stacks = 0, bool permanent = false)
+        int stacks = 0, bool permanent = false, bool isDebuff = false)
     {
         BindVisuals();
         if (sprite == null) { SetVisible(false); return; }
         DisplayedKey = key;
+        DisplayedIsDebuff = isDebuff;
         float alpha = permanent ? 1f : ExpireBlinkAlpha(remaining, duration);
+        if (polarityIndicator != null) polarityIndicator.SetAppearance(isDebuff, alpha);
         ConfigureImage(baseImage, sprite, new Color(1f, 1f, 1f, .22f * alpha), Image.Type.Simple);
         ConfigureImage(fillImage, sprite, new Color(1f, 1f, 1f, alpha), permanent ? Image.Type.Simple : Image.Type.Filled);
         if (fillImage != null)
@@ -67,7 +71,8 @@ public sealed class BuffIconSlotUI : MonoBehaviour
         if (fillImage != null)
             fillImage.enabled = visible;
         if (valueText != null) valueText.enabled = visible;
-        if (!visible) DisplayedKey = null;
+        if (polarityIndicator != null) polarityIndicator.enabled = visible;
+        if (!visible) { DisplayedKey = null; DisplayedIsDebuff = false; }
     }
 
     // 2026-09-30: 끝나기 3초 전부터 깜빡이고, 마지막 1초는 더 빠르게 깜빡여 곧 사라진다는 것을 알린다.
@@ -90,6 +95,8 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             fillImage = transform.Find("Fill") != null ? transform.Find("Fill").GetComponent<Image>() : null;
         if (valueText == null)
             valueText = transform.Find("Value") != null ? transform.Find("Value").GetComponent<TMP_Text>() : null;
+        if (polarityIndicator == null)
+            polarityIndicator = transform.Find("Polarity")?.GetComponent<BuffPolarityIndicatorUI>();
     }
 
     private static void ConfigureImage(Image image, Sprite sprite, Color color, Image.Type type)
