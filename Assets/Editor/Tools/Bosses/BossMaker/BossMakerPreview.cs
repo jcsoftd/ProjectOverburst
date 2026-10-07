@@ -93,10 +93,7 @@ namespace Overburst.EditorTools.BossMaker
                 Vector3 start;
                 if (m.delivery == EnemyBossMaterialDelivery.Boulder)
                 {
-                    var left = rig.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == collection.boulderLeftHandBone);
-                    var right = rig.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == collection.boulderRightHandBone);
-                    if (left == null || right == null) { launches.Clear(); return; }
-                    start = (left.position + right.position) * .5f + collection.boulderOffset;
+                    start = stage.HeldRockPosition;
                 }
                 else
                 {

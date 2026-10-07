@@ -5,6 +5,7 @@ using UnityEngine;
 
 // Selected before the basic material executor for the three opt-in composite attacks.
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(1001)]
 public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExecutor
 {
     [SerializeField] EnemyBossCompositePatternSet patterns;
@@ -57,6 +58,7 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     public int ActiveVisualCount {get{int n=0;foreach(var v in visuals)if(v.used)n++;return n;}}
     public int LiveAddCount {get{PruneAdds();return adds.Count;}}
     public int BloodParticleCount=>activeSpray!=null?activeSpray.ParticleCount:0;
+    public bool IsRockHeld=>held!=null && held.payload==null && held.root.activeSelf;
     public bool IsEliteHeld=>held!=null && held.payload==patterns?.elite && held.root.activeSelf;
     public string LastFailure {get;private set;}
     public override bool IsExecuting=>cast!=null || flights.Count>0
@@ -143,7 +145,7 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
         for(int i=0;i<3;i++){released[i]=shown[i]=false;damaged[i].Clear();}
         PlanEmissions();
         samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
-        if(spit==null){held=Acquire(payload==EnemyBossThrowPayload.Elite?patterns.elite:null);held.root.SetActive(true);throwCount++;}
+        if(spit==null){basic.ClaimSupportPresentation(this);held=Acquire(payload==EnemyBossThrowPayload.Elite?patterns.elite:null);PlaceHeld(Hands(),aimRotation);throwCount++;}
         GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(ability);
         cast=StartCoroutine(Execute(generation));return true;
     }
@@ -267,9 +269,11 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     {
         bool elite = held?.payload == patterns?.elite || preparedPayload == EnemyBossThrowPayload.Elite || eliteGripReleaseUntil > Time.time;
         Vector3 offset = elite ? patterns.eliteHoldOffset : basic.Collection.boulderOffset;
-        return (leftHand.position + rightHand.position) * .5f + transform.rotation * offset;
+        Vector3 left=leftHand.position,right=rightHand.position;
+        eliteGrip?.ReadSourcePositions(ref left,ref right);
+        return EnemyBossPayloadSocket.Position(left,right,transform.rotation,offset);
     }
-    void ReleaseHeld(){eliteGrip?.Restore();eliteGripReleaseUntil=0f;if(held!=null)Free(held);held=null;extractionAnchored=false;}
+    void ReleaseHeld(){eliteGrip?.Restore();basic?.ReleaseSupportPresentation(this);eliteGripReleaseUntil=0f;if(held!=null)Free(held);held=null;extractionAnchored=false;}
     static Vector3 PayloadCenter(EnemyBossCompositePatternSet.Payload payload)=>Vector3.up*payload.landingCenterHeight*payload.visualScale;
     static float BallisticDuration(EnemyBossCompositePatternSet.Payload payload,Vector3 start,Vector3 end)
     {
@@ -290,8 +294,8 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     }
     void Throw(int phase)
     {
-        if(held==null)return;eliteGrip?.Restore();var payload=held.payload;
-        held.root.transform.position=Hands();flights.Add(CreateFlight(held,Hands(),Ground(aim),current.flightSeconds,current.arcHeight,phase,true));
+        if(held==null)return;var payload=held.payload;
+        Vector3 start=Hands();PlaceHeld(start,aimRotation);flights.Add(CreateFlight(held,start,Ground(aim),current.flightSeconds,current.arcHeight,phase,true));
         if(payload==null)RockThrowCount++;else {EliteThrowCount++;eliteGripReleaseUntil=Time.time+patterns.eliteGripReleaseSeconds;}held=null;
     }
     void Eject(EnemyBossCompositePatternSet.Emission emission,uint seed)
@@ -331,7 +335,6 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     }
     void FixedUpdate()
     {
-        eliteGrip?.Restore();
         if(IsExecuting && !Usable){Cancel();return;}int token=generation;
         for(int i=flights.Count-1;i>=0;i--){var flight=flights[i];if(actor.LeaseVersion!=flight.lease){Free(flight.visual);flights.RemoveAt(i);continue;}
             flight.time+=Time.fixedDeltaTime;float t=Mathf.Clamp01(flight.time/flight.duration);
@@ -355,23 +358,25 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
             else if(flight.impact){warnings[flight.phase]?.SetCenter(flight.landing);warnings[flight.phase]?.SetRemaining(flight.duration-flight.time,false);}
         }
         if (UsesMotion) TryFinishOwnedExecution();
-        else if(cast==null && flights.Count==0)current=null;
+        else if(cast==null && flights.Count==0 && current!=null){basic.ReleaseSupportPresentation(this);current=null;}
         PruneAdds();foreach(var add in adds)if(add.wake>0f && Time.time>=add.wake){add.actor.Movement.CancelActionLock();add.actor.AI.enabled=add.ai;add.wake=0f;}
     }
     void LateUpdate()
     {
-        eliteGrip?.Restore();
         Resolve();if(patterns==null || actor?.Animator==null)return;
         if (UsesMotion) { ObserveOwnedPreparation(); FitEliteHands(); return; }
         var state=actor.Animator.GetCurrentAnimatorStateInfo(0);bool extracting=state.IsName("Material_UnearthRock");
-        if(extracting && !preparationSeen){preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;extractionAnchored=false;}
+        if(extracting && !preparationSeen){basic.ClaimSupportPresentation(this);preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;extractionAnchored=false;}
         if(!extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock"))preparationSeen=false;
         bool extractionPlaced=false;
-        if(prepared && preparedPayload==EnemyBossThrowPayload.Elite && (extracting || state.IsName("Material_WalkForwardWithRock") || state.IsName("Material_WalkBackwardsWithRock"))){
-            float frame=state.normalizedTime*(basic.Collection.FindMotion("UnearthRock").runtime.length*30f);
-            if(!extracting || frame>=patterns.eliteRevealFrame){PlaceExtractedElite(extracting?frame:patterns.eliteFullSizeFrame,transform.rotation);extractionPlaced=true;}
+        if(prepared && (extracting || state.IsName("Material_WalkForwardWithRock") || state.IsName("Material_WalkBackwardsWithRock")))
+        {
+            var clip=basic.Collection.FindMotion("UnearthRock").runtime;
+            float frame=extracting?state.normalizedTime*clip.length*clip.frameRate:Mathf.Max(patterns.eliteFullSizeFrame,EnemyBossPayloadSocket.RockRevealFrame);
+            if(!extracting || frame>=(preparedPayload==EnemyBossThrowPayload.Elite?patterns.eliteRevealFrame:EnemyBossPayloadSocket.RockRevealFrame))
+            { PlacePreparedPayload(frame,transform.rotation);extractionPlaced=true; }
         }
-        if(held!=null && !extractionPlaced){held.root.transform.SetPositionAndRotation(Hands(),transform.rotation);if(cast!=null)held.root.transform.localScale=Vector3.one*(held.payload?.visualScale??basic.Collection.boulderVisualRadius);}
+        if(held!=null && !extractionPlaced)PlaceHeld(Hands(),transform.rotation);
         FitEliteHands();
         if(prepared && !basic.IsExecuting && !extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock") && cast==null){ReleaseHeld();prepared=false;preparedPayload=null;}
     }

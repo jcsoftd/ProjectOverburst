@@ -5,6 +5,7 @@ using UnityEngine;
 
 // Opt-in execution for independently reusable authored boss attacks. AI selection and phase composition stay outside this component.
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(1000)]
 public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
 {
     [SerializeField] private EnemyBossMaterialCollection collection;
@@ -118,7 +119,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         for(int i=0;i<3;i++){hitTargets[i].Clear();released[i]=false;warningShown[i]=false;}
         committedAim=actor.AbilityController.ResolveAimPosition(target);committedAim.y=transform.position.y;
         castSpeed=actor.Melee.AbilityAnimationSpeed*CurrentMaterial.AnimationSpeedMultiplier;
-        if(CurrentMaterial.delivery==EnemyBossMaterialDelivery.Boulder)SetRockHeld(true);
+        if(CurrentMaterial.delivery==EnemyBossMaterialDelivery.Boulder){ClaimSupportPresentation(this);SetRockHeld(true);}
         samplingAnimator=actor.Animator;previousUpdate=samplingAnimator.updateMode;samplingAnimator.updateMode=AnimatorUpdateMode.Fixed;
         cast=StartCoroutine(Execute(CurrentMaterial,generation));return true;
     }
@@ -352,9 +353,22 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         root.AddComponent<MeshFilter>().sharedMesh=collection.boulderMesh;root.AddComponent<MeshRenderer>().sharedMaterial=collection.boulderMaterial;
         root.transform.localScale=Vector3.one*collection.boulderVisualRadius;root.SetActive(false);return root;
     }
+    UnityEngine.Object supportPresentationOwner;
+    private bool OwnsSupportPresentation => supportPresentationOwner == this;
+    public UnityEngine.Object SupportPresentationOwner => supportPresentationOwner;
+    internal void ClaimSupportPresentation(UnityEngine.Object owner)
+    {
+        if (supportPresentationOwner == owner) return;
+        SetRockHeld(false); supportPresentationOwner = owner;
+    }
+    internal void ReleaseSupportPresentation(UnityEngine.Object owner)
+    {
+        if (supportPresentationOwner == owner) supportPresentationOwner = null;
+    }
     public void SetRockHeld(bool held)
     {
         Resolve();if(collection==null)return;
+        if(held){if(supportPresentationOwner==null)supportPresentationOwner=this;if(!OwnsSupportPresentation)return;}
         if(!held && heldBoulder==null)return;
         if(heldBoulder==null)heldBoulder=CreateRock("Held boss boulder");
         heldBoulder.transform.position=RockPosition();
@@ -366,7 +380,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     {
         if(boulderLeftHand==null)boulderLeftHand=Socket(collection.boulderLeftHandBone);
         if(boulderRightHand==null)boulderRightHand=Socket(collection.boulderRightHandBone);
-        return (boulderLeftHand.position+boulderRightHand.position)*.5f+transform.TransformVector(collection.boulderOffset);
+        return EnemyBossPayloadSocket.Position(boulderLeftHand.position,boulderRightHand.position,transform.rotation,collection.boulderOffset);
     }
     private void LateUpdate(){if(IsRockHeld)heldBoulder.transform.position=RockPosition();}
     // Support motions have no damaging windows. A single cycle can precede any assembled attack.
@@ -377,7 +391,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         if (actor != null && actor.AnimationBridge.HasInvalidMotionProfile) return false;
         var entry=collection!=null?collection.FindMotion(id):null;
         if(entry==null||!entry.IsPlayable||!Usable||IsExecuting||actor.Movement.IsActionLocked||actor.AnimationBridge.BlocksAttackStart)return false;
-        ReleaseHeldPose();LastFailure=null;int token=++generation;lease=actor.LeaseVersion;
+        ReleaseHeldPose();ClaimSupportPresentation(this);LastFailure=null;int token=++generation;lease=actor.LeaseVersion;
         motion=StartCoroutine(PlayMotion(entry,holdLastPose,token));return true;
     }
     private IEnumerator PlayMotion(EnemyBossMaterialCollection.Motion entry,bool hold,int token)
@@ -385,7 +399,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         float elapsed=0f;bool done=false;
         try
         {
-            if(entry.id.Contains("WithRock"))SetRockHeld(true);
+            if(entry.id.Contains("WithRock") && OwnsSupportPresentation)SetRockHeld(true);
             if(entry.id=="UnearthRock")SetRockHeld(false);
             actor.Animator.Play(entry.state,0,0f);actor.Movement.ApplyActionLock(entry.runtime.length+.1f);
             while(token==generation && Usable && actor.LeaseVersion==lease)
@@ -396,7 +410,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
                 if(!state.IsName(entry.state))
                 {if(elapsed>.25f){LastFailure="Support motion interrupted.";yield break;}elapsed+=Time.deltaTime;continue;}
                 elapsed+=Time.deltaTime;
-                if(entry.id=="UnearthRock" && state.normalizedTime>=100f/(entry.runtime.length*entry.runtime.frameRate))SetRockHeld(true);
+                if(entry.id=="UnearthRock" && OwnsSupportPresentation && !IsRockHeld && state.normalizedTime>=EnemyBossPayloadSocket.RockRevealFrame/(entry.runtime.length*entry.runtime.frameRate))SetRockHeld(true);
                 if(state.normalizedTime>=.99f)
                 {
                     done=true;
@@ -457,7 +471,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
             flight.position=next;flight.visual.root.transform.position=next;
         }
         if (UsesMotion) TryFinishOwnedExecution();
-        else if(flights.Count==0 && cast==null)CurrentMaterial=null;
+        else if(flights.Count==0 && cast==null && CurrentMaterial!=null){ReleaseSupportPresentation(this);CurrentMaterial=null;}
     }
     private void EndFlight(int index)
     {var flight=flights[index];if(flight.visual.bio!=null)flight.visual.bio.Stop();flight.visual.root.SetActive(false);flight.visual.used=false;flights.RemoveAt(index);}
@@ -466,6 +480,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
     private void HideWarnings(){for(int i=0;i<3;i++){warnings[i]?.Hide();warningShown[i]=false;}}
     public override void Cancel()
     {
+        ReleaseSupportPresentation(this);
         if (UsesMotion) { CancelOwnedExecution(); return; }
         if(cast!=null && entered && CurrentMaterial!=null) AttackCancelled?.Invoke(CurrentMaterial);
         generation++;if(cast!=null){StopCoroutine(cast);cast=null;}if(motion!=null){StopCoroutine(motion);motion=null;}ReleaseHeldPose();RestoreSampling();

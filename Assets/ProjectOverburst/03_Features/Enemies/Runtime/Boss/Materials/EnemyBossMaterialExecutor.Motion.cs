@@ -60,7 +60,7 @@ public sealed partial class EnemyBossMaterialExecutor
         // Melee clamps every positive status rate to .01; the material multiplier is applied afterwards.
         executionUpperBound = Time.time + ability.ResolveExecutionDuration(.01f * material.AnimationSpeedMultiplier) + flightBudget + .65f;
         executionResult = playbackResult = new EnemyMotionResult(playbackHandle, EnemyMotionState.Entering);
-        if (material.delivery == EnemyBossMaterialDelivery.Boulder) SetRockHeld(true);
+        if (material.delivery == EnemyBossMaterialDelivery.Boulder) { ClaimSupportPresentation(this); SetRockHeld(true); }
         cast = StartCoroutine(ExecuteOwned(material, generation, flightBudget)); return true;
     }
 
@@ -145,6 +145,7 @@ public sealed partial class EnemyBossMaterialExecutor
             Rate = binding.rate, HoldLastPose = hold, GroupId = group, StepId = step,
             OnInvalidated = OwnedInvalidated, OnTerminated = OwnedTerminated };
         if (!actor.AnimationBridge.TryBeginMotion(request, out var handle, out _)) return false;
+        ClaimSupportPresentation(owner != null ? owner : this);
         playbackHandle = handle; playbackResult = executionResult = new EnemyMotionResult(handle, EnemyMotionState.Entering);
         LastFailure = null; generation++; lease = actor.LeaseVersion; bodyRecovered = false;
         executionDeadline = Time.time + actor.AnimationBridge.PlaybackProfile.DurationBudget(binding, binding.rate);
@@ -161,7 +162,8 @@ public sealed partial class EnemyBossMaterialExecutor
             var result = playbackResult.Handle == handle && playbackResult.IsTerminal ? playbackResult : actor.AnimationBridge.GetMotionResult(handle);
             if (result.IsTerminal) { playbackResult = executionResult = result; motion = null; yield break; }
             if (actor.AnimationBridge.TryReadMotion(handle, out var sample) && entry.id == "UnearthRock"
-                && sample.Normalized >= 100f / (entry.runtime.length * entry.runtime.frameRate)) SetRockHeld(true);
+                && OwnsSupportPresentation && !IsRockHeld
+                && sample.Normalized >= EnemyBossPayloadSocket.RockRevealFrame / (entry.runtime.length * entry.runtime.frameRate)) SetRockHeld(true);
             if (result.ReadyForHandoff)
             { playbackResult = executionResult = result; motion = null; actor.Movement.RefreshMotionLock(handle, 30f); yield break; }
             if (Time.time > executionDeadline && !hold) { actor.AnimationBridge.FailMotion(handle, EnemyMotionReason.DeadlineExceeded); yield break; }
@@ -192,7 +194,7 @@ public sealed partial class EnemyBossMaterialExecutor
         if (result.Reason == EnemyMotionReason.HandoffAccepted) return;
         invalidatedMaterial = CurrentMaterial;
         for (int i = flights.Count - 1; i >= 0; i--) EndFlight(i);
-        HideWarnings(); SetRockHeld(false); CurrentMaterial = null; executionResult = result;
+        HideWarnings(); SetRockHeld(false); ReleaseSupportPresentation(this); CurrentMaterial = null; executionResult = result;
     }
     private void OwnedTerminated(EnemyMotionResult result)
     {
@@ -210,7 +212,7 @@ public sealed partial class EnemyBossMaterialExecutor
     private void TryFinishOwnedExecution()
     {
         if (!UsesMotion || !bodyRecovered || playbackResult.State != EnemyMotionState.Completed || cast != null || flights.Count != 0 || CurrentMaterial == null) return;
-        actor.Movement.ReleaseMotionLock(playbackHandle); CurrentMaterial = null;
+        actor.Movement.ReleaseMotionLock(playbackHandle); ReleaseSupportPresentation(this); CurrentMaterial = null;
         executionResult = new EnemyMotionResult(playbackHandle, EnemyMotionState.Completed); CompletedCount++;
     }
     private void CancelOwnedExecution()

@@ -30,6 +30,10 @@ public static class CrustaspikanPayloadGripVerifier
     static readonly Vector3 Origin = new Vector3(1600, .035f, 1600);
     static string Account => Path.Combine(plan.output, "Account");
     static bool OwnPlay => plan != null && string.Equals(IsolatedSavePlayGuard.ActiveDirectory, Account, StringComparison.OrdinalIgnoreCase);
+    static bool ForeignReservation => Different(IsolatedSavePlayGuard.ActiveDirectory)
+        || Different(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""))
+        || Different(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable));
+    static bool Different(string directory) => !string.IsNullOrEmpty(directory) && !string.Equals(directory, Account, StringComparison.OrdinalIgnoreCase);
     static JArray Scenes() => new JArray(Enumerable.Range(0, SceneManager.sceneCount).Select(i => SceneManager.GetSceneAt(i)).Select(s => new JObject { ["path"] = s.path, ["dirty"] = s.isDirty, ["roots"] = s.rootCount }));
     static void Require(bool pass, string error) { if (!pass) throw new InvalidOperationException(error); }
     static void Persist() => SessionState.SetString(Key, JsonConvert.SerializeObject(plan));
@@ -54,7 +58,20 @@ public static class CrustaspikanPayloadGripVerifier
     {
         if (plan == null) return;
         if (plan.phase == "returning") { Return(); return; }
-        if (EditorApplication.timeSinceStartup > plan.deadline) { Finish("Range verification timed out."); return; }
+        if (EditorApplication.isPlayingOrWillChangePlaymode && !OwnPlay || ForeignReservation) return;
+        if (!EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isCompiling && !EditorApplication.isUpdating
+            && (plan.phase == "running" || plan.phase == "booting" && IsolatedSavePlayGuard.RequiresAccountChoice))
+        {
+            // Play exit reloads this static verifier; retain recorded cases before returning an interrupted run.
+            string evidence = Path.Combine(plan.output, "result.json");
+            if (cases.Count == 0 && File.Exists(evidence))
+                foreach (var row in JObject.Parse(File.ReadAllText(evidence))["cases"]) cases.Add(row.DeepClone());
+            Finish("Owned Play stopped before verification completed."); return;
+        }
+        if (EditorApplication.timeSinceStartup > plan.deadline)
+        {
+            Finish("Range verification timed out."); return;
+        }
         if (plan.phase != "booting" || !EditorApplication.isPlaying || !OwnPlay) return;
         plan.phase = "running"; Persist(); previousPlayerTarget = EnemyStrongAttackWarning.PlayerTarget;
         var root = new GameObject("Owned boss range verifier"); owned.Add(root); host = root.AddComponent<EnemyMotor>();
@@ -157,7 +174,7 @@ public static class CrustaspikanPayloadGripVerifier
         foreach(var c in actor.GetComponentsInChildren<Collider>(true))Physics.IgnoreCollision(c,capsule);
         var executor=actor.GetComponent<EnemyBossCompositePatternExecutor>();var basic=actor.GetComponent<EnemyBossMaterialExecutor>();
         var material=collection.attacks.Single(m=>m.runtimeClip.name=="ThrowRock");
-        var frames=new JArray();var samples=new JArray();var damage=new JArray();float start=Time.realtimeSinceStartup,next=start,deadline=start+45f;int index=0;bool buried=false;
+        var frames=new JArray();var samples=new JArray();var damage=new JArray();float start=Time.realtimeSinceStartup,next=start,deadline=start+45f;int index=0;bool buried=false;bool ownershipRecorded=false;
         Action<CombatHealth,DamageInfo> observer=(_,info)=>damage.Add(new JObject{["damage"]=info.damage,["knockdown"]=info.knocksDownPlayer});health.OnDamaged+=observer;
         try
         {
@@ -165,6 +182,12 @@ public static class CrustaspikanPayloadGripVerifier
             while(!executor.TryGetPreparedStartContext(out _)&&Time.realtimeSinceStartup<deadline)
             {
                 yield return new WaitForEndOfFrame();
+                Require(!basic.IsRockHeld && basic.SupportPresentationOwner==executor,"Composite support spawned a second held rock.");
+                if(actor.AnimationBridge.TryReadMotion(basic.PlaybackHandle,out var ownedSample) && ownedSample.Normalized*ownedSample.Clip.length*ownedSample.Clip.frameRate>=EnemyBossPayloadSocket.RockRevealFrame && !ownershipRecorded)
+                {
+                    Require(kind==EnemyBossThrowPayload.Rock?executor.IsRockHeld:executor.IsEliteHeld,"Composite preparation did not own its held visual.");
+                    Record(new JObject{["case"]=kind+"-single-presentation-owner",["basicRockActive"]=false});ownershipRecorded=true;
+                }
                 if(kind==EnemyBossThrowPayload.Elite&&executor.IsEliteHeld)
                 {
                     var ground=(Vector3)typeof(EnemyBossCompositePatternExecutor).GetField("extractionGround",Private).GetValue(executor);
@@ -184,8 +207,8 @@ public static class CrustaspikanPayloadGripVerifier
             }
             else
             {
-                var held=(GameObject)typeof(EnemyBossMaterialExecutor).GetField("heldBoulder",Private).GetValue(basic);
-                Require(basic.IsRockHeld&&Mathf.Abs(held.transform.localScale.x-1.75f)<.001f&&Mathf.Abs(collection.boulderOffset.y-.9f)<.001f,"Rock size/height not applied.");
+                var held=Held(executor).gameObject;
+                Require(executor.IsRockHeld&&!basic.IsRockHeld&&Mathf.Abs(held.transform.localScale.x-1.75f)<.001f&&Mathf.Abs(collection.boulderOffset.y-.9f)<.001f,"Rock size/height not applied.");
                 Record(new JObject{["case"]="rock-size-and-height",["scale"]=held.transform.localScale.x,["offsetY"]=collection.boulderOffset.y,["renderDiameter"]=held.GetComponent<Renderer>().bounds.size.x});
             }
             if(carry)
@@ -218,6 +241,7 @@ public static class CrustaspikanPayloadGripVerifier
             Require(executor.SummonedCount==(kind==EnemyBossThrowPayload.Elite?1:0)&&!(Grip(executor)?.IsApplied??false),"Release retained grip or summon did not land.");
             Require(Mathf.Abs(launchScale-(kind==EnemyBossThrowPayload.Elite?executor.Patterns.elite.visualScale:1.75f))<.001f,"Launch scale differs from held size.");
             if(kind==EnemyBossThrowPayload.Elite)Require(maxGripError<.18f,"Throw grip exceeded reachable body contact.");
+            Require(basic.SupportPresentationOwner==null,"Completed throw retained presentation ownership.");
             Record(new JObject{["case"]=kind+"-prepared-throw",["launchHeight"]=launch.y-Origin.y,["launchScale"]=launchScale,["maximumGripError"]=maxGripError,["damage"]=damage,["summoned"]=executor.SummonedCount});
             File.WriteAllText(Path.Combine(plan.output,kind+"-frames.json"),frames.ToString());File.WriteAllText(Path.Combine(plan.output,kind+"-samples.json"),samples.ToString());
         }
@@ -237,6 +261,7 @@ public static class CrustaspikanPayloadGripVerifier
             Require(Time.realtimeSinceStartup<deadline,"Cancel checkpoint missing.");yield return new WaitForEndOfFrame();
             if(scenario=="target-lost")target.gameObject.SetActive(false);else if(scenario=="disable-held")executor.enabled=false;else executor.Cancel();
             yield return null;yield return new WaitForEndOfFrame();
+            Require(actor.GetComponent<EnemyBossMaterialExecutor>().SupportPresentationOwner==null,"Cancel retained presentation ownership.");
             Require(!executor.IsEliteHeld&&!executor.HasPreparation&&executor.ActiveVisualCount==0&&!(Grip(executor)?.IsApplied??false),"Cancel/disable retained held body or bone corrections.");
             Record(new JObject{["case"]=scenario,["lease"]=actor.LeaseVersion,["gripRestored"]=true});
         }

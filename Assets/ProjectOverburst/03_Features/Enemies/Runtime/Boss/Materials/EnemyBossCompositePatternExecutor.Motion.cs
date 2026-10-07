@@ -26,7 +26,7 @@ public sealed partial class EnemyBossCompositePatternExecutor
     {
         Resolve(); if (!UsesMotion || aimTarget == null || group == 0 || HasPreparation || IsExecuting) return false;
         // Payload and aim are installed only after the support request is accepted.
-        if (!basic.TryPlayMotion("UnearthRock", true, group, step, basic)) return false;
+        if (!basic.TryPlayMotion("UnearthRock", true, group, step, this)) return false;
         overridePayload = payload; preparedPayload = ResolvePayload(); extractionAnchored = false;
         preparationHandle = basic.PlaybackHandle; preparedLease = actor.LeaseVersion;
         preparedTarget = aimTarget; preparationDeadline = Time.time + actor.AnimationBridge.PlaybackProfile.DurationBudget(actor.AnimationBridge.PlaybackProfile.Find("UnearthRock"), 1f) + 30f;
@@ -65,7 +65,7 @@ public sealed partial class EnemyBossCompositePatternExecutor
     {
         if (result.Handle != preparationHandle) return;
         actor.Movement.ReleaseMotionLock(result.Handle, result.Reason != EnemyMotionReason.HandoffAccepted);
-        if (result.Reason != EnemyMotionReason.HandoffAccepted) { prepared = false; ReleaseHeld(); basic.SetRockHeld(false); }
+        if (result.Reason != EnemyMotionReason.HandoffAccepted) { prepared = false; ReleaseHeld(); }
     }
     public override bool CanStart(EnemyAbilityDefinition ability, Transform aimTarget, in EnemyAbilityStartContext context)
     {
@@ -117,7 +117,7 @@ public sealed partial class EnemyBossCompositePatternExecutor
         if (spit == null)
         {
             if (held == null) held = Acquire(payload == EnemyBossThrowPayload.Elite ? patterns.elite : null);
-            held.root.SetActive(true); throwCount++; basic.SetRockHeld(false);
+            basic.ClaimSupportPresentation(this); PlaceHeld(Hands(), aimRotation); throwCount++;
         }
         else ReleaseHeld();
         prepared = false; preparedPayload = overridePayload = null; preparationHandle = default;
@@ -218,17 +218,17 @@ public sealed partial class EnemyBossCompositePatternExecutor
     void TryFinishOwnedExecution()
     {
         if (!UsesMotion || !bodyRecovered || playbackResult.State != EnemyMotionState.Completed || cast != null || flights.Count != 0 || current == null) return;
-        actor.Movement.ReleaseMotionLock(playbackHandle); current = null;
+        actor.Movement.ReleaseMotionLock(playbackHandle); basic.ReleaseSupportPresentation(this); current = null;
         executionResult = new EnemyMotionResult(playbackHandle, EnemyMotionState.Completed); CompletedCount++;
     }
     void ObserveOwnedPreparation()
     {
-        if (!prepared) { if (held != null) held.root.transform.SetPositionAndRotation(Hands(), aimRotation); return; }
-        if (!HasPreparation) { ReleaseHeld(); basic.SetRockHeld(false); prepared = false; preparedPayload = null; return; }
+        if (!prepared) { if (held != null) PlaceHeld(Hands(), aimRotation); return; }
+        if (!HasPreparation) { ReleaseHeld(); prepared = false; preparedPayload = null; return; }
         if (preparedTarget == null || !preparedTarget.gameObject.activeInHierarchy || Time.time > preparationDeadline)
         {
             actor.AnimationBridge.FailMotion(preparationHandle, preparedTarget == null || !preparedTarget.gameObject.activeInHierarchy ? EnemyMotionReason.TargetLost : EnemyMotionReason.DeadlineExceeded);
-            prepared = false; preparedTarget = null; ReleaseHeld(); basic.SetRockHeld(false); return;
+            prepared = false; preparedTarget = null; ReleaseHeld(); return;
         }
         if (actor.AnimationBridge.CurrentMotionRole == EnemyMotionRole.Carry)
         {
@@ -241,39 +241,47 @@ public sealed partial class EnemyBossCompositePatternExecutor
                 float rate = delta.magnitude / Time.deltaTime / Mathf.Max(.01f, binding.strideSpeed);
                 actor.AnimationBridge.TryUpdateOwnedMotionIntent(preparationHandle, new EnemyMotionIntent(new Vector2(0f, local.z < 0f ? -1f : 1f), Mathf.Clamp(rate, .01f, 8f)));
             }
-            if (held != null) held.root.transform.SetPositionAndRotation(Hands(), preparedFacing);
+            if (held != null) PlaceHeld(Hands(), preparedFacing);
             return;
         }
         if (!actor.AnimationBridge.TryReadMotion(preparationHandle, out var sample)) return;
         var entry = basic.Collection.FindMotion("UnearthRock");
         float frame = sample.Normalized * entry.runtime.length * entry.runtime.frameRate;
-        if (preparedPayload == EnemyBossThrowPayload.Elite && frame >= patterns.eliteRevealFrame)
-        {
-            PlaceExtractedElite(frame, preparedFacing);
-        }
+        PlacePreparedPayload(frame, preparedFacing);
     }
     // Dig at a fixed world ground point, then lift a full-size body into the two-hand socket.
     // SmoothStep makes the transfer continuous with both the buried start and the moving held pose.
     void PlaceExtractedElite(float frame, Quaternion facing)
     {
-        basic.SetRockHeld(false);
         if (held == null) held = Acquire(patterns.elite);
         if (!extractionAnchored) { extractionGround = Ground(Hands()); extractionAnchored = true; }
         float lift = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(patterns.eliteRevealFrame, patterns.eliteFullSizeFrame, frame));
         Vector3 buried = extractionGround - Vector3.up * Mathf.Max(.25f, PayloadCenter(patterns.elite).y);
-        var body = held.root.transform;
-        body.localScale = Vector3.one * patterns.elite.visualScale;
-        body.SetPositionAndRotation(Vector3.Lerp(buried, Hands(), lift),
+        PlaceHeld(Vector3.Lerp(buried, Hands(), lift),
             facing * Quaternion.Euler(12f * (1f - lift), 0f, -6f * Mathf.Sin(lift * Mathf.PI) * (1f - lift)));
+    }
+    void PlacePreparedPayload(float frame, Quaternion facing)
+    {
+        if (preparedPayload == EnemyBossThrowPayload.Elite)
+        {
+            if (frame >= patterns.eliteRevealFrame) PlaceExtractedElite(frame, facing);
+        }
+        else if (frame >= EnemyBossPayloadSocket.RockRevealFrame)
+        {
+            if (held == null) held = Acquire(null);
+            PlaceHeld(Hands(), facing);
+        }
+    }
+    void PlaceHeld(Vector3 position, Quaternion facing)
+    {
+        held.root.transform.SetPositionAndRotation(position, facing);
         held.root.SetActive(true);
     }
     EnemyBossPayloadGrip eliteGrip;
     float eliteGripReleaseUntil;
-    // Remove the previous rendered correction before the next normal/fixed Animator evaluation.
-    void Update() => eliteGrip?.Restore();
     void FitEliteHands()
     {
-        if (!patterns.fitEliteHands || leftHand == null || rightHand == null || !Usable) return;
+        if (!patterns.fitEliteHands || leftHand == null || rightHand == null || !Usable) { eliteGrip?.Restore(); return; }
         if (held?.payload == patterns.elite && held.root.activeSelf)
         {
             float weight = 1f;
@@ -295,6 +303,7 @@ public sealed partial class EnemyBossCompositePatternExecutor
             eliteGrip.ApplyPoints(center + aimRotation * (patterns.eliteLeftHandGrip * patterns.elite.visualScale),
                 center + aimRotation * (patterns.eliteRightHandGrip * patterns.elite.visualScale), weight, aimRotation * Vector3.forward, patterns.eliteGripPalmTilt);
         }
+        else eliteGrip?.Restore();
     }
     void CancelOwnedExecution()
     {

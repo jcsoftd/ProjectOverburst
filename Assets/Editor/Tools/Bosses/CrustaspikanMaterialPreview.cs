@@ -23,6 +23,8 @@ public sealed class CrustaspikanMaterialPreview : IDisposable
     bool firstRender = true;
     public static int LiveStages { get; private set; }
     public Camera Camera => renderer?.camera;
+    Transform leftHand, rightHand;
+    public Vector3 HeldRockPosition => EnemyBossPayloadSocket.Position(leftHand.position,rightHand.position,rig.transform.rotation,collection.boulderOffset);
     public Transform AnimationRoot => rig != null ? rig.transform : null;
     public void SetHeldRockPreview(bool visible) { if (boulder != null) boulder.SetActive(visible); }
     public void OffsetActor(Vector3 offset)
@@ -148,6 +150,10 @@ public sealed class CrustaspikanMaterialPreview : IDisposable
             visual.transform.localScale = sourceVisual.lossyScale;
             var path = AnimationUtility.CalculateTransformPath(source, sourceVisual);
             rig = string.IsNullOrEmpty(path) ? visual : visual.transform.Find(path).gameObject;
+            var handNodes=rig.GetComponentsInChildren<Transform>(true);
+            leftHand=handNodes.FirstOrDefault(t=>t.name==collection.boulderLeftHandBone);
+            rightHand=handNodes.FirstOrDefault(t=>t.name==collection.boulderRightHandBone);
+            if(leftHand==null || rightHand==null)throw new InvalidOperationException("바위 양손 소켓을 확인하세요.");
             foreach (var node in visual.GetComponentsInChildren<Transform>(true)) node.gameObject.hideFlags = HideFlags.HideAndDontSave;
             foreach (var behaviour in visual.GetComponentsInChildren<MonoBehaviour>(true)) if (behaviour != null) Object.DestroyImmediate(behaviour);
             foreach (var collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
@@ -208,16 +214,13 @@ public sealed class CrustaspikanMaterialPreview : IDisposable
         if (!found) throw new InvalidOperationException("검토 모델의 표시 메시가 없습니다.");
         BodyBounds = bounds;
         comparison.transform.position = new Vector3(bounds.min.x - 1f, 0, bounds.center.z);
-        bool rock = clip.name.Contains("WithRock") || clip.name == "UnearthRock" && Time * clip.frameRate >= 100f || clip.name == "ThrowRock" && Time * clip.frameRate < 30f;
+        bool rock = clip.name.Contains("WithRock") || clip.name == "UnearthRock" && Time * clip.frameRate >= EnemyBossPayloadSocket.RockRevealFrame || clip.name == "ThrowRock" && Time * clip.frameRate < 30f;
         if (boulder != null)
         {
             boulder.SetActive(rock);
             if (rock)
             {
-                var nodes = rig.GetComponentsInChildren<Transform>(true);
-                var left = nodes.FirstOrDefault(t => t.name == collection.boulderLeftHandBone);
-                var right = nodes.FirstOrDefault(t => t.name == collection.boulderRightHandBone);
-                if (left != null && right != null) boulder.transform.position = (left.position + right.position) * .5f + rig.transform.rotation * collection.boulderOffset;
+                boulder.transform.position = HeldRockPosition;
                 bounds.Encapsulate(boulder.GetComponent<Renderer>().bounds);
             }
         }

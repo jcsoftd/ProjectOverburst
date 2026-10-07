@@ -10,11 +10,15 @@ public sealed class EnemyBossPayloadGrip
     { left = new Arm(leftHand); right = new Arm(rightHand); }
 
     public void Restore() { left.Restore(); right.Restore(); }
+    public void ReadSourcePositions(ref Vector3 leftPosition, ref Vector3 rightPosition)
+    {
+        leftPosition = left.ReadSourcePosition(leftPosition);
+        rightPosition = right.ReadSourcePosition(rightPosition);
+    }
 
     public void Apply(Transform payload, Vector3 leftPoint, Vector3 rightPoint, float weight, float palmTilt)
     {
-        Restore();
-        if (payload == null || weight <= .0001f) return;
+        if (payload == null || weight <= .0001f) { Restore(); return; }
         ApplyPoints(payload.TransformPoint(leftPoint), payload.TransformPoint(rightPoint), weight, payload.forward, palmTilt);
     }
 
@@ -44,6 +48,21 @@ public sealed class EnemyBossPayloadGrip
         static void Restore(Transform bone, Quaternion applied, Quaternion source)
         { if (bone != null && Mathf.Abs(Quaternion.Dot(bone.localRotation, applied)) > .999999f) bone.localRotation = source; }
 
+        public Vector3 ReadSourcePosition(Vector3 fallback)
+        {
+            if (hand == null) return fallback;
+            if (!Applied || upper == null) return hand.position;
+            var matrix = upper.parent != null ? upper.parent.localToWorldMatrix : Matrix4x4.identity;
+            matrix *= Local(upper, appliedUpper, sourceUpper);
+            matrix *= Local(elbow, appliedElbow, sourceElbow);
+            matrix *= Local(hand, appliedHand, sourceHand);
+            return matrix.MultiplyPoint3x4(Vector3.zero);
+        }
+        static Matrix4x4 Local(Transform bone, Quaternion applied, Quaternion source)
+        {
+            var rotation = Mathf.Abs(Quaternion.Dot(bone.localRotation, applied)) > .999999f ? source : bone.localRotation;
+            return Matrix4x4.TRS(bone.localPosition, rotation, bone.localScale);
+        }
         public void Fit(Vector3 point, float weight, Vector3 tiltAxis, float tilt)
         {
             if (upper == null || elbow == null || hand == null) return;
