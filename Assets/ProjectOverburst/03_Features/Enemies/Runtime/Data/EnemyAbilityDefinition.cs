@@ -39,9 +39,12 @@ public sealed partial class EnemyAbilityDefinition : ScriptableObject
     [SerializeField, Min(.1f)] private float preparationDuration = .55f;
     [SerializeField, Min(.05f)] private float releaseDuration = .14f;
     [SerializeField, Min(.05f)] private float recoveryDuration = .28f;
+    [SerializeField, Range(0f, 1f)] private float preparationEndNormalized;
     public bool IsTelegraphedAttack => telegraphedAttack || telegraphedStrongAttack;
     public bool UsesPacedTimeline => telegraphedAttack;
-    private float PreparationEnd => Mathf.Max(.02f, HitNormalizedTime - .12f);
+    public float PreparationEnd => preparationEndNormalized > 0f
+        ? Mathf.Clamp(preparationEndNormalized, .001f, HitNormalizedTime - .001f)
+        : Mathf.Max(.02f, HitNormalizedTime - .12f);
     private float LastHit => GetHitNormalizedTime(HitCount - 1);
     [SerializeField, Min(0f)] private float minimumWarningTime;
     [SerializeField, Min(0f)] private float minimumRecoveryTime;
@@ -56,14 +59,12 @@ public sealed partial class EnemyAbilityDefinition : ScriptableObject
     public static bool IsWeakMeleeExecution(EnemyAbilityExecutionMode mode) => IsMeleeExecution(mode) || mode == EnemyAbilityExecutionMode.DirectTarget;
     public bool IsMeleeStrongAttack => telegraphedStrongAttack && IsMeleeExecution(executionMode);
     public bool IsParryable => IsMeleeStrongAttack && parryable;
-    private float PreparationSeconds(float speed) => Mathf.Max(.42f,
-        preparationDuration / Mathf.Max(.01f, speed));
-    private float ReleaseSeconds(float speed) => Mathf.Max(.10f,
-        releaseDuration / Mathf.Max(.01f, speed));
+    private float PreparationSeconds(float speed) => Mathf.Max(.42f, preparationDuration) / Mathf.Max(.01f, speed);
+    private float ReleaseSeconds(float speed) => Mathf.Max(.10f, releaseDuration) / Mathf.Max(.01f, speed);
     // Very long authored tails must not be crushed into a few frames on return.
-    private float RecoverySeconds(float speed) => Mathf.Max(MinimumRecoveryTime,
-        recoveryDuration / Mathf.Max(.01f, speed),
-        UsesPacedTimeline ? AttackAnimationDuration * (1f - LastHit) / 3f : 0f);
+    private float RecoverySeconds(float speed) => Mathf.Max(MinimumRecoveryTime, recoveryDuration,
+        UsesPacedTimeline ? AttackAnimationDuration * (1f - LastHit) / 3f : 0f) / Mathf.Max(.01f, speed);
+    public float ResolveMinimumRecoveryTime(float speed) => MinimumRecoveryTime / Mathf.Max(.01f, speed);
     public float ResolvePacedTime(float normalized, float speed)
     {
         normalized = Mathf.Clamp01(normalized);
@@ -97,7 +98,7 @@ public sealed partial class EnemyAbilityDefinition : ScriptableObject
         + ResolvePacedTime(LastHit, animationSpeed);
     public float ResolveExecutionDuration(float animationSpeed) => Mathf.Max(
         ResolveWindupDelay(animationSpeed) + ResolvePacedTime(1f, animationSpeed),
-        ResolveLastImpactTime(animationSpeed) + MinimumRecoveryTime);
+        ResolveLastImpactTime(animationSpeed) + ResolveMinimumRecoveryTime(animationSpeed));
     public float ResolveDamage(int level) => UsesLevelDamageBudget
         ? Mathf.Max(1f, OverburstCombatBalance.RoundStat(OverburstCombatBalance.ReferenceEffectiveHealth(level)
             * referencePatternDamagePercent / (100f * HitCount))) : Damage;

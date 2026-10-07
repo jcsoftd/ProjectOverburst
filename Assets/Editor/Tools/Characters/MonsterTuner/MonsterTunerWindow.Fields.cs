@@ -365,12 +365,15 @@ namespace Overburst.EditorTools.MonsterTuner
             string address = "ability:" + abilityIndex;
             int timingDetails = fields.contentContainer.childCount;
             Heading("공격 시간"); Field(address, "attackAnimationDuration", "모션 기준 초"); Field(address, "hitNormalizedTime", "첫 타격 비율"); Field(address, "additionalHitNormalizedTimes", "추가 타격 비율");
-            if (workingAbility.UsesPacedTimeline) { Field(address, "preparationDuration", "준비 초"); Field(address, "releaseDuration", "발동 초"); Field(address, "recoveryDuration", "회수 초"); }
+            if (workingAbility.UsesPacedTimeline) { Field(address, "preparationEndNormalized", "휘두르기 시작 비율"); Field(address, "preparationDuration", "준비 초"); Field(address, "releaseDuration", "휘두르기 → 첫 타격 초"); Field(address, "recoveryDuration", "회수 초"); }
             Field(address, "minimumWarningTime", "최소 예고 초"); Field(address, "minimumRecoveryTime", "최소 회수 초");
             FoldDetails(timingDetails, "attack-timing-details", "타격 시점·준비·회복 시간 조절");
             BuildAttackGeometryFields(address);
             Note("시간축은 1레벨·상태이상 없는 실전 공격 속도 기준입니다. 재생 배속은 프리뷰에만 적용합니다.");
             for (int i = 0; i < workingAbility.HitCount; i++) Note("타격 " + (i + 1) + " · " + (workingAbility.ResolveWindupDelay(stage.AttackSpeed) + workingAbility.ResolvePacedTime(workingAbility.GetHitNormalizedTime(i), stage.AttackSpeed)).ToString("F3") + "s");
+            if (workingAbility.TryGetParryMotionWindow(0, out var parry))
+                Note("핑 이후 패링 가능 " + (workingAbility.ResolvePacedTime(parry.y, stage.AttackSpeed) - workingAbility.ResolvePacedTime(parry.x, stage.AttackSpeed)).ToString("F3") + "초 · 첫 타만 패링");
+            Note("공격 종료 후 대기 " + session.Value("variant", "attackInterval").number.ToString("F2") + "초");
             BuildAttackPlacementFields();
         }
         private void PreviewAttack()
@@ -385,9 +388,18 @@ namespace Overburst.EditorTools.MonsterTuner
             if (workingAbility.IsParryable && warning != null)
             {
                 string address = MonsterTunerAddress.Component(stage.Actor, warning); Heading("패링 예고 위치");
-                SocketField(address, "cueSocket", "cueOffset", "부착 뼈", true);
-                Field(address, "cueOffset", "예고 보정"); Field(address, "cueScale", "예고 크기");
-                Note("예고 빛의 배치를 조절합니다. 패링 가능 범위는 공격 피해 판정을 따릅니다.");
+                if (workingAbility.HasAttackCue)
+                {
+                    Note("공격 부위 · " + workingAbility.ParryCueBonePath.Split('/').Last());
+                    Field("ability:" + abilityIndex, "parryCueLocalPosition", "공격 부위 근처 위치");
+                    Field("ability:" + abilityIndex, "parryCueScale", "예고 크기 배율");
+                    Note("켜지는 순간 이 위치에 고정됩니다. 몬스터 크기를 바꾸면 위치도 함께 맞춰집니다.");
+                }
+                else
+                {
+                    SocketField(address, "cueSocket", "cueOffset", "부착 뼈", true);
+                    Field(address, "cueOffset", "예고 보정"); Field(address, "cueScale", "예고 크기");
+                }
             }
             var executor = stage.Actor.GetComponent<EnemyThemeSpecialExecutor>();
             if (workingAbility.ExecutionMode != EnemyAbilityExecutionMode.Projectile || executor == null) return;

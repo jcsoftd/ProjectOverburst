@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Anglerox_JumpClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Anglerox/root/Anglerox_/Anglerox_
+    Pelvis/Anglerox_ Spine/Anglerox_ Spine1/Anglerox_ Spine2/Anglerox_ Neck/Anglerox_
+    R Clavicle/Anglerox_ R UpperArm/Anglerox_ R Forearm/Anglerox_ R Hand
+  parryCueLocalPosition: {x: 2.0007489, y: 4.712739, z: 0.85450333}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.43999997, y: 0.48}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.7
+  releaseDuration: 0.44999996
+  recoveryDuration: 0.96296304
+  preparationEndNormalized: 0.42
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

@@ -12,16 +12,20 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     private Transform attackCueSocket;
     private Vector3 attackCueOffset;
     private Vector3? attackCueRootPosition;
+    private float attackCueSizeScale = 1f;
     private bool attackCuePositionHeld;
     private Vector3 attackCueWorldPosition;
     private Material attackCueMaterial;
     public Transform AttackCueSocket => attackCueSocket;
+    public bool HasFixedAttackCue => attackCuePositionHeld;
+    public Vector3 FixedAttackCuePosition => attackCueWorldPosition;
     // Runtime strike placement takes precedence over the common head cue.
-    public void SetAttackCue(Transform socket, Vector3 offset, Vector3? rootPosition = null)
+    public void SetAttackCue(Transform socket, Vector3 offset, Vector3? rootPosition = null, float sizeScale = 1f)
     {
         attackCueSocket = socket != null && (socket == transform || socket.IsChildOf(transform)) ? socket : null;
         attackCueOffset = offset;
         attackCueRootPosition = attackCueSocket != null ? rootPosition : null;
+        attackCueSizeScale = Mathf.Max(.01f, sizeScale);
     }
     private GameObject visual;
     private MMF_Player signalFeel;
@@ -76,7 +80,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         {
             signalSocketIndex = signalSequence++ % 3;
             EnsureSignal();
-            ConfigureStrikeSignal();
+            ConfigureSignalVisual(signalParticles);
         }
         EnemyStrongAttackImpactVfx.Prewarm();
         visual.SetActive(true);
@@ -279,8 +283,10 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         }
         signalFeel.Initialization(true);
     }
-    private void ConfigureStrikeSignal()
+    public void ConfigureSignalVisual(ParticleSystem particles)
     {
+        if (particles == null) return;
+        if (telegraphLibrary == null) telegraphLibrary = Resources.Load<EnemyTelegraphVisualLibrary>("Enemies/Balance/EnemyTelegraphVisualLibrary");
         var material = telegraphLibrary != null ? telegraphLibrary.ParryGlint : null;
         if (attackCueSocket != null)
         {
@@ -293,12 +299,12 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
                 attackCueMaterial.DisableKeyword("_USESOFTALPHA");
                 attackCueMaterial.renderQueue = 3100;
             }
-            EnemyParryCueVisual.ConfigureAttack(signalParticles, attackCueMaterial ?? material, ResolveCueSize() * 1.1f);
+            EnemyParryCueVisual.ConfigureAttack(particles, attackCueMaterial ?? material, ResolveCueSize() * 1.1f * attackCueSizeScale);
         }
         else
         {
-            EnemyParryCueVisual.Configure(signalParticles, material);
-            var main = signalParticles.main; main.startSize = ResolveCueSize();
+            EnemyParryCueVisual.Configure(particles, material);
+            var main = particles.main; main.startSize = ResolveCueSize();
         }
     }
     // 2026-09-30: 패링 빛은 몸·강공 장판과 겹치지 않도록 머리 바로 위에 띄운다(몸 꼭대기 +0.35m).
@@ -365,7 +371,7 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         signalFeel?.StopFeedbacks();
         if (signalParticles != null)
             signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero; attackCueRootPosition = null; attackCuePositionHeld = false; attackCueWorldPosition = Vector3.zero;
+        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero; attackCueRootPosition = null; attackCueSizeScale = 1f; attackCuePositionHeld = false; attackCueWorldPosition = Vector3.zero;
     }
     private void LateUpdate() { if (signalPlayed && attackCueSocket != null) PositionSignal(); }
     private void OnDisable() => Hide();

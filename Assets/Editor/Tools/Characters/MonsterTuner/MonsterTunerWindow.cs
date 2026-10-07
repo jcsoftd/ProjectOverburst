@@ -211,7 +211,7 @@ namespace Overburst.EditorTools.MonsterTuner
         private void BuildTabs(VisualElement right)
         {
             var row = new VisualElement(); row.AddToClassList("mt-row");
-            string[] labels = { "크기", "위치·범위", "효과", "공격", "모션" };
+            string[] labels = { "크기", "위치·범위", "효과", "공격", "모션", "능력치" };
             for (int i = 0; i < labels.Length; i++)
             {
                 int index = i; var button = new Button(() => { tab = index; BuildFields(); }) { text = labels[i], name = "tab" + i };
@@ -223,9 +223,9 @@ namespace Overburst.EditorTools.MonsterTuner
         private void BuildFields()
         {
             fields?.Clear(); RefreshPointCard(); if (session == null || stage.Actor == null) return;
-            for (int i = 0; i < 5; i++) rootVisualElement.Q<Button>("tab" + i)?.EnableInClassList("selected", i == tab);
+            for (int i = 0; i < 6; i++) rootVisualElement.Q<Button>("tab" + i)?.EnableInClassList("selected", i == tab);
             if (tab == 0) BuildScaleFields(); else if (tab == 1) BuildPointFields();
-            else if (tab == 2) BuildAuraFields(); else if (tab == 3) BuildAttackFields(); else BuildAnimationFields();
+            else if (tab == 2) BuildAuraFields(); else if (tab == 3) BuildAttackFields(); else if (tab == 4) BuildAnimationFields(); else BuildStatFields();
         }
         private void Tick()
         {

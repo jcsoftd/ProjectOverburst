@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Crassorrid_SmashAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Crassorrid/root/Crassorrid_/Crassorrid_
+    Pelvis/Crassorrid_ Spine/Crassorrid_ Spine1/Crassorrid_ Spine2/Crassorrid_ L
+    Clavicle/Crassorrid_ L UpperArm/Crassorrid_ L Forearm/Crassorrid_ L Hand
+  parryCueLocalPosition: {x: -0.08650339, y: 2.92785, z: 2.4123967}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.32, y: 0.42}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.35999998
+  recoveryDuration: 1.0740741
+  preparationEndNormalized: 0.29999998
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

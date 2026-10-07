@@ -14,6 +14,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     {
         EnemyActor enemy=null;EnemyAbilitySet practiceSet=null,savedSet=null;
         var disabled=new Dictionary<Behaviour,bool>();var events=new JArray();var samples=new JArray();
+        var cuePositions=new JArray();var intervalSamples=new JArray();
         var pendingDamage=new Queue<JObject>();Action<CombatHealth,DamageInfo,float,bool> damageObserver=null;
         var knockdown=player.GetComponent<PlayerKnockdownController>();bool knockdownEnabled=knockdown!=null&&knockdown.enabled;
         try
@@ -33,7 +34,12 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             melee.CancelCurrentAttackState();
             savedSet=enemy.AbilityController.AbilitySet;
             practiceSet=ScriptableObject.CreateInstance<EnemyAbilitySet>();practiceSet.Configure("StrongCueInspection_"+definition.EnemyId,new[]{strong});
-            enemy.AbilityController.Configure(practiceSet,1,1);
+            string requestPath=Path.Combine(plan.directory,"cue-review-request.json");
+            var request=File.Exists(requestPath)?JObject.Parse(File.ReadAllText(requestPath)):new JObject();
+            float attackSpeed=(float?)request["attackSpeedMultiplier"]??1f;
+            float interval=(float?)request["attackIntervalSeconds"]??definition.ResolveRuntimeStats().AttackInterval;
+            enemy.AbilityController.Configure(practiceSet,1,attackSpeed,interval);
+            ParryRequire(Mathf.Abs(enemy.Melee.AbilityAnimationSpeed-attackSpeed)<.001f,"Requested attack speed not consumed by actual attack executor");
             float inner=EnemyAttackThreatGeometry.ResolveSectorInnerRadius(enemy,strong);
             distance=Mathf.Min(Mathf.Max(distance,inner+.65f),EnemyAttackThreatGeometry.ResolveStartRange(enemy,strong)-.12f);
             ParryRequire(distance>Mathf.Max(strong.MinimumRange,inner+.2f),"Cue capture has no native valid target range");
@@ -77,6 +83,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 var warning=enemy.GetComponent<EnemyStrongAttackWarning>();
                 if(started&&warning!=null)
                 {
+                    if(warning.HasFixedAttackCue)
+                    {
+                        var point=warning.FixedAttackCuePosition;
+                        cuePositions.Add(new JObject{["frame1Based"]=frame,["videoSeconds"]=time,["position"]=new JArray(point.x,point.y,point.z)});
+                    }
                     bool actualSignal=warning.IsVisible&&warning.FinalSignal&&EnemyStrongAttackWarning.ActiveThreatSignalCount>0;
                     if(strong.HasParryMotionWindows)
                     {
@@ -108,6 +119,15 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             }
             float tail=Time.time+.4f;while(Time.time<tail)yield return null;
             capture.FrameObserved=null;bool recorded=capture.Complete();
+            float intervalDeadline=Time.time+interval+1f;
+            while(!enemy.AbilityController.IsAttackIntervalReady)
+            {
+                float remaining=enemy.AbilityController.RemainingAttackInterval;
+                bool denied=!enemy.AbilityController.TryStartAbility(strong,player.transform);
+                intervalSamples.Add(new JObject{["remainingSeconds"]=remaining,["newAttackDenied"]=denied});
+                ParryRequire(denied&&Time.time<intervalDeadline,"Post-attack interval failed");
+                yield return null;
+            }
             bool noParry=parry==null||parry.SuccessCount==parryBefore;
             var cues=events.Where(e=>((string)e["event"]).StartsWith("cue-",StringComparison.Ordinal)).ToArray();
             bool preAttack=events.Any(e=>(string)e["event"]=="attack-start"&&(float)e["videoSeconds"]>=.7f);
@@ -117,8 +137,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             bool firstOnlyMatches=!strong.FirstStrikeOnlyParry||samples.Count>0
                 &&samples.All(s=>(float)s["originalNormalized"]<=strong.GetHitNormalizedTime(0)+.00001f||!(bool)s["eligible"]);
             bool observedEligibility=samples.Any(s=>(bool)s["eligible"]);
+            bool fixedCue=!strong.HasAttackCue||cuePositions.Count>1&&cuePositions.All(p=>
+                Vector3.Distance(new Vector3((float)p["position"][0],(float)p["position"][1],(float)p["position"][2]),
+                    new Vector3((float)cuePositions[0]["position"][0],(float)cuePositions[0]["position"][1],(float)cuePositions[0]["position"][2]))<.0001f);
             bool pass=recorded&&started&&ended&&preAttack&&noParry&&cues.Length==strong.ParryStrikeCount
-                &&eligibilityMatches&&firstOnlyMatches&&observedEligibility&&damageCoverage;
+                &&eligibilityMatches&&firstOnlyMatches&&observedEligibility&&damageCoverage&&fixedCue;
             var result=new JObject{["pass"]=pass,["id"]=definition.EnemyId,["strongCueReview"]=true,
                 ["actualPlayerHeavyParry"]=false,["playerParryInputRequested"]=false,["actualParrySuccessCount"]=parry==null?0:parry.SuccessCount-parryBefore,
                 ["strongAbility"]=strong.AbilityId,["savedStrongUnmodified"]=true,["cueEvents"]=events,["cueCount"]=cues.Length,["expectedCueCount"]=strong.ParryStrikeCount,
@@ -127,7 +150,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 ["firstStrikeOnlyParry"]=strong.FirstStrikeOnlyParry,["firstOnlyEligibilityVerified"]=firstOnlyMatches,["observedParryEligibility"]=observedEligibility,
                 ["runtimeEligibilitySamples"]=samples,["nativeDamageHitCount"]=damageHits.Length,
                 ["nativeDamageCoverageComplete"]=damageCoverage,
-                ["damageFramePrecisionSeconds"]=1f/30,["abilityAnimationSpeed"]=enemy.Melee.AbilityAnimationSpeed,
+                ["attackCueWorldFixed"]=fixedCue,["attackCuePositionSamples"]=cuePositions,
+                ["attackIntervalSeconds"]=interval,["intervalBlockedAttempts"]=intervalSamples.Count,["intervalSamples"]=intervalSamples,
+                ["damageFramePrecisionSeconds"]=1f/30,["requestedAttackSpeed"]=attackSpeed,["abilityAnimationSpeed"]=enemy.Melee.AbilityAnimationSpeed,
                 ["videoRecorded"]=recorded,["videoPath"]=capture.VideoPath,["failure"]=pass?null:"Review video, pre-roll or expected cue coverage failed"};
             File.WriteAllText(Path.Combine(output,"cue-events.json"),result.ToString());cases.Add(result);
         }
@@ -137,7 +162,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             capture.FrameObserved=null;capture.Complete();
             if(enemy!=null)
             {
-                enemy.AbilityController.Cancel();if(savedSet!=null)enemy.AbilityController.Configure(savedSet,1,1);
+                enemy.AbilityController.Cancel();if(savedSet!=null){var stats=definition.ResolveRuntimeStats();enemy.AbilityController.Configure(savedSet,stats.DamageMultiplier,stats.AttackSpeedMultiplier,stats.AttackInterval);}
                 foreach(var pair in disabled)if(pair.Key!=null)pair.Key.enabled=pair.Value;
                 if(enemy.IsLeased)service.Release(enemy);
             }

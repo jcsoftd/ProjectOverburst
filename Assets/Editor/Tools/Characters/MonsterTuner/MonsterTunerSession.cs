@@ -143,7 +143,7 @@ namespace Overburst.EditorTools.MonsterTuner
             if (!enableRecovery) return;
             Directory.CreateDirectory(Path.GetDirectoryName(RecoveryPath));
             if (Dirty) File.WriteAllText(RecoveryPath, JsonUtility.ToJson(this, true), new System.Text.UTF8Encoding(false));
-            else if (File.Exists(RecoveryPath)) File.Delete(RecoveryPath);
+            else if (File.Exists(RecoveryPath)) File.WriteAllText(RecoveryPath, JsonUtility.ToJson(this, true), new System.Text.UTF8Encoding(false));
         }
         public bool Restore()
         {

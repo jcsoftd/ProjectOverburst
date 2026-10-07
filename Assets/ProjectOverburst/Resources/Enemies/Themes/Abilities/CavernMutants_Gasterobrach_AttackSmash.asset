@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: CavernMutants_Gasterobrach_AttackSmash
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Gasterobrach/root/Gasterobrach_/Gasterobrach_
+    Pelvis/Gasterobrach_ Spine/Gasterobrach_ Spine1/Gasterobrach_ Spine2/Gasterobrach_
+    L Clavicle/Gasterobrach_ L UpperArm/Gasterobrach_ L Forearm/Gasterobrach_ L Hand
+  parryCueLocalPosition: {x: -0.10306882, y: 1.9953207, z: 1.3882169}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.38333333, y: 0.48}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.73333335
+  releaseDuration: 0.35172415
+  recoveryDuration: 1.1555556
+  preparationEndNormalized: 0.36666667
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.43333334
   parryable: 1

@@ -46,7 +46,7 @@ namespace Overburst.EditorTools.MonsterTuner
             if (ability != null)
             {
                 float windup = ability.ResolveWindupDelay(stage.AttackSpeed);
-                float prep = windup + ability.ResolvePacedTime(Mathf.Max(.02f, ability.HitNormalizedTime - .12f), stage.AttackSpeed);
+                float prep = windup + ability.ResolvePacedTime(ability.PreparationEnd, stage.AttackSpeed);
                 float last = ability.ResolveLastImpactTime(stage.AttackSpeed);
                 Band(0, prep, new Color(.28f, .38f, .48f), 6, 12);
                 Band(prep, last, new Color(.73f, .42f, .24f), 6, 12);
@@ -54,7 +54,11 @@ namespace Overburst.EditorTools.MonsterTuner
                 for (int i = 0; i < ability.HitCount; i++)
                 {
                     float hit = windup + ability.ResolvePacedTime(ability.GetHitNormalizedTime(i), stage.AttackSpeed);
-                    if (ability.IsParryable) Band(Mathf.Max(0, hit - EnemyAbilityController.ParryLeadSeconds), hit, new Color(1f, .86f, .3f), 21, 3);
+                    if (ability.TryGetParryMotionWindow(i, out var parry))
+                        Band(windup + ability.ResolvePacedTime(parry.x, stage.AttackSpeed),
+                            windup + ability.ResolvePacedTime(parry.y, stage.AttackSpeed), new Color(1f, .86f, .3f), 21, 3);
+                    else if (!ability.HasParryMotionWindows && ability.IsParryable)
+                        Band(Mathf.Max(0, hit - EnemyAbilityController.ParryLeadSeconds), hit, new Color(1f, .86f, .3f), 21, 3);
                     Mark(hit, new Color(1f, .73f, .4f), 2);
                 }
             }

@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: DeathHarvest_Reaper_3_scythe3HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/REAPER_PBR/REAPER_/REAPER_ Pelvis/REAPER_
+    Spine/REAPER_ Spine1/REAPER_ Neck/REAPER_ R Clavicle/REAPER_ R UpperArm/REAPER_
+    R Forearm/REAPER_ R Hand
+  parryCueLocalPosition: {x: 1.1454189, y: 2.9810297, z: 1.1509356}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.12, y: 0.15}
   firstStrikeOnlyParry: 1
@@ -22,10 +27,11 @@ MonoBehaviour:
   damage: 19
   referencePatternDamagePercent: 24
   telegraphedStrongAttack: 1
-  telegraphedAttack: 0
-  preparationDuration: 0.6875
-  releaseDuration: 0.175
-  recoveryDuration: 0.35
+  telegraphedAttack: 1
+  preparationDuration: 0.55
+  releaseDuration: 0.39999995
+  recoveryDuration: 1.4814816
+  preparationEndNormalized: 0.10999999
   minimumWarningTime: 1.1
   minimumRecoveryTime: 1.0625
   parryable: 1

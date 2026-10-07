@@ -142,9 +142,12 @@ namespace Overburst.EditorTools.MonsterTuner
         {
             if (Actor == null || session?.Definition == null) return;
             RefreshActorEdits();
-            var stats = session.Definition.ResolveRuntimeStats();
             // Same baseline as a level-one lease, without AI/ability controllers or status effects.
-            Enemy?.Melee?.SetRuntimeAttackSpeedMultiplier(Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, stats.AttackSpeedMultiplier));
+            float attackSpeed = (session.Definition.Grade != null ? session.Definition.Grade.AttackSpeedMultiplier : 1f)
+                * session.Value("variant", "attackSpeedMultiplier").number;
+            Enemy?.Melee?.SetRuntimeAttackSpeedMultiplier(session.Definition.Grade != null && session.Definition.Grade.GradeType == EnemyGradeType.Boss
+                ? Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, attackSpeed)
+                : EnemyRuntimeStats.ResolveAuthoredAttackSpeed(attackSpeed, 1f, OverburstBalanceTable.Current.EnemyAttackCap));
             float gradeScale = session.Definition.Grade != null ? session.Definition.Grade.ScaleMultiplier : 1f;
             Vector3 visual = session.Value("variant", "visualScale").vector * gradeScale;
             Vector3 collision = session.Value("variant", "collisionScale").vector * gradeScale;
@@ -241,13 +244,24 @@ namespace Overburst.EditorTools.MonsterTuner
                     EnemyParryCueVisual.Configure(cueParticles, library != null ? library.ParryGlint : null);
                 }
                 var warning = Actor.GetComponent<EnemyStrongAttackWarning>();
-                float elapsed = Time - Mathf.Max(0f, hit - EnemyAbilityController.ParryLeadSeconds);
-                bool visible = elapsed >= 0f && Time <= hit + .08f;
+                bool hasWindow = ability.TryGetParryMotionWindow(0, out var window);
+                float cueAt = hasWindow ? ability.ResolveWindupDelay(AttackSpeed) + ability.ResolvePacedTime(window.x, AttackSpeed)
+                    : Mathf.Max(0f, hit - EnemyAbilityController.ParryLeadSeconds);
+                float elapsed = Time - cueAt;
+                bool visible = elapsed >= 0f && Time <= hit;
                 cueParticles.gameObject.SetActive(visible);
                 if (visible)
                 {
+                    if (ability.TryResolveAttackCue(Enemy, out var socket, out var cuePosition))
+                    {
+                        warning.SetAttackCue(socket, Vector3.zero, cuePosition, ability.ParryCueScale);
+                    }
+                    else
+                    {
+                        warning.SetAttackCue(null, Vector3.zero);
+                    }
+                    warning.ConfigureSignalVisual(cueParticles);
                     cueParticles.transform.position = warning.ResolveCuePosition(Camera);
-                    var main = cueParticles.main; main.startSize = warning.ResolveCueSize();
                     cueParticles.Simulate(elapsed, false, true, true); cueParticles.Pause(false);
                 }
             }

@@ -13,6 +13,7 @@ public sealed class EnemyVariantProfile : ScriptableObject
     [SerializeField, Min(0f)] private float damageMultiplier = 1f;
     [SerializeField, Min(0.01f)] private float moveSpeedMultiplier = 1f;
     [SerializeField, Min(0.01f)] private float attackSpeedMultiplier = 1f;
+    [SerializeField, Min(0f)] private float attackInterval = 1f;
 
     public string VariantId => variantId;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? variantId : displayName;
@@ -24,6 +25,7 @@ public sealed class EnemyVariantProfile : ScriptableObject
     public float DamageMultiplier => Mathf.Max(0f, damageMultiplier);
     public float MoveSpeedMultiplier => Mathf.Max(0.01f, moveSpeedMultiplier);
     public float AttackSpeedMultiplier => Mathf.Max(0.01f, attackSpeedMultiplier);
+    public float AttackInterval => Mathf.Max(0f, attackInterval);
     public bool IsValid => !string.IsNullOrWhiteSpace(variantId);
 
     public void Configure(string id, string label, Vector3 scale, Color colorTint)

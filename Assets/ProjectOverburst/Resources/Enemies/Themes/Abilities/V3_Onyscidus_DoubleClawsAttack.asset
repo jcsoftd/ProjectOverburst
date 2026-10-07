@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Onyscidus_DoubleClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Onyscidus/root/Onyscidus_Pelvis/Onyscidus_Pelvis2/Onyscidus_UpperSpine1/Onyscidus_LegFontLeft1/Onyscidus_LegFontLeft2/Onyscidus_LegFontLeft3
+  parryCueLocalPosition: {x: -0.00796819, y: 4.3232756, z: 1.1437409}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.45999998, y: 0.53999996}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.73333335
+  releaseDuration: 0.375
+  recoveryDuration: 0.85185194
+  preparationEndNormalized: 0.43999997
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

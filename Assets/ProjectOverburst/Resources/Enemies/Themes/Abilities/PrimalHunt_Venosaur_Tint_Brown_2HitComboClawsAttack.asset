@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: PrimalHunt_Venosaur_Tint_Brown_2HitComboClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Venosaur_Tint_Brown Variant/root/Venosaur_/Venosaur_
+    Pelvis/Venosaur_ Spine/Venosaur_ Spine1/Venosaur_ Spine2/Venosaur_ R Clavicle/Venosaur_
+    R UpperArm/Venosaur_ R Forearm/Venosaur_ R Hand
+  parryCueLocalPosition: {x: 0.8755952, y: 1.5073464, z: 1.7086942}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.19999999, y: 0.26}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.52222216
+  recoveryDuration: 0.66666675
+  preparationEndNormalized: 0.15555555
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Skorpmare_TentaclesComboAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Skorpmare/root/Skorpmare_/Skorpmare_
+    Pelvis/Skorpmare_ Spine/Skorpmare_TentacleLeft_1/Skorpmare_TentacleLeft_2/Skorpmare_TentacleLeft_3/Skorpmare_TentacleLeft_4/Skorpmare_TentacleLeft_5/Skorpmare_TentacleLeft_6/Skorpmare_TentacleLeft_7/Skorpmare_TentacleLeft_8/Skorpmare_TentacleLeft_9/Skorpmare_TentacleLeft_10/Skorpmare_TentacleLeft_11/Skorpmare_TentacleLeft_12
+  parryCueLocalPosition: {x: -0.12658949, y: 1.7485137, z: 2.0329652}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.24761903, y: 0.3047619}
   firstStrikeOnlyParry: 1
@@ -23,9 +27,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.8
+  releaseDuration: 0.4
+  recoveryDuration: 1.0740743
+  preparationEndNormalized: 0.22857141
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

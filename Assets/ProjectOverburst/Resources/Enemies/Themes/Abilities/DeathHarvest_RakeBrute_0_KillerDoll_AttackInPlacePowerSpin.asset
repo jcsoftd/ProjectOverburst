@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: DeathHarvest_RakeBrute_0_KillerDoll_AttackInPlacePowerSpin
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/The Rake Skin 2/root/pelvis/thigh_r/calf_r/foot_r
+  parryCueLocalPosition: {x: 0.24694178, y: 1.429938, z: 0.99402153}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.30344826, y: 0.56}
   firstStrikeOnlyParry: 1
@@ -22,10 +25,11 @@ MonoBehaviour:
   damage: 11
   referencePatternDamagePercent: 13
   telegraphedStrongAttack: 1
-  telegraphedAttack: 0
-  preparationDuration: 0.6875
-  releaseDuration: 0.175
-  recoveryDuration: 0.35
+  telegraphedAttack: 1
+  preparationDuration: 1.4333333
+  releaseDuration: 1.8190478
+  recoveryDuration: 2.362963
+  preparationEndNormalized: 0.2965517
   minimumWarningTime: 0.9
   minimumRecoveryTime: 0.88611114
   parryable: 1

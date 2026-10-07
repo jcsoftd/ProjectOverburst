@@ -35,7 +35,11 @@ namespace Overburst.EditorTools.MonsterTuner
                 if (value.type == SerializedPropertyType.Vector3 && !Finite(value.vector)) errors.Add(edit.label + ": XYZ에 유한한 숫자를 입력하세요.");
                 string name = edit.property.ToLowerInvariant();
                 if (value.type == SerializedPropertyType.Float && (name.Contains("radius") || name.Contains("height") || name.Contains("scale") || name == "attackanimationduration") && value.number <= 0f) errors.Add(edit.label + ": 0보다 커야 합니다.");
-                if (edit.target == "variant" && (value.vector.x <= 0f || value.vector.y <= 0f || value.vector.z <= 0f)) errors.Add(edit.label + ": 크기 XYZ는 모두 양수여야 합니다.");
+                if (edit.target == "variant" && value.type == SerializedPropertyType.Vector3 && (value.vector.x <= 0f || value.vector.y <= 0f || value.vector.z <= 0f)) errors.Add(edit.label + ": 크기 XYZ는 모두 양수여야 합니다.");
+                if (edit.target == "variant" && (name == "attackspeedmultiplier" || name == "movespeedmultiplier" || name == "healthmultiplier") && value.number <= 0f) errors.Add(edit.label + ": 0보다 커야 합니다.");
+                if (name == "attackinterval" && value.number < 0f) errors.Add("공격간격은 0초 이상입니다.");
+                if (name == "damagemultiplier" && value.number < 0f) errors.Add("피해 배율은 0 이상입니다.");
+                if (name == "parrycuescale" && value.number <= 0f) errors.Add("패링 예고 크기는 0보다 커야 합니다.");
                 if (name == "burnscale" && (value.number < .3f || value.number > 2f)) errors.Add("화상 크기 보정은 현재 게임 범위 0.3~2 안에서 입력하세요.");
                 if (name == "hitnormalizedtime" && (value.number < .05f || value.number > .95f)) errors.Add("첫 타격 비율은 0.05~0.95입니다.");
                 if (name == "hitangle" && (value.number < 0f || value.number > 360f)) errors.Add("공격 각도는 0~360도입니다.");
@@ -65,6 +69,10 @@ namespace Overburst.EditorTools.MonsterTuner
                 try
                 {
                     session.Apply(ability, "ability:" + i);
+                    if (ability.HasAttackCue && ability.UsesPacedTimeline
+                        && ability.TryGetParryMotionWindow(0, out var firstWindow)
+                        && (firstWindow.x <= ability.PreparationEnd || firstWindow.y > ability.HitNormalizedTime + .00001f))
+                        errors.Add(ability.AbilityId + ": 패링 예고는 휘두르기 시작 뒤, 첫 타격 전에 있어야 합니다.");
                     float previous = ability.HitNormalizedTime;
                     for (int hit = 1; hit < ability.HitCount; hit++)
                     {
@@ -90,7 +98,7 @@ namespace Overburst.EditorTools.MonsterTuner
         public static List<string> Plan(MonsterTunerSession session, MonsterTunerCatalog catalog)
         {
             var result = new List<string>(); var definition = session.Definition;
-            if (session.edits.Any(e => e.target == "variant")) result.Add("크기 프로필" + (catalog.Uses(definition.Variant) > 1 ? " · 공유 " + catalog.Uses(definition.Variant) + "종 → 이 몬스터용 분리" : " · 현재 프로필"));
+            if (session.edits.Any(e => e.target == "variant")) result.Add("몬스터 능력치·크기 프로필" + (catalog.Uses(definition.Variant) > 1 ? " · 공유 " + catalog.Uses(definition.Variant) + "종 → 이 몬스터용 분리" : " · 현재 프로필"));
             if (session.edits.Any(e => e.target.StartsWith("component:", StringComparison.Ordinal))) result.Add("Actor 프리팹 · 기준점/판정/오라/예고/머즐의 변경 필드");
             if (session.edits.Any(e => e.target.StartsWith("ability:", StringComparison.Ordinal))) result.Add("공격 정의 · 공유 공격과 공격 세트는 이 몬스터용 분리");
             if (session.edits.Any(e => e.target == "animation")) result.Add("애니메이션 프로필 + 실제 Controller 모션 연결 · FBX/클립 원본 유지");
@@ -230,7 +238,7 @@ namespace Overburst.EditorTools.MonsterTuner
                 {
                     foreach (var pair in snapshots) { EditorUtility.CopySerialized(pair.Value, pair.Key); AssetDatabase.SaveAssetIfDirty(pair.Key); }
                     if (prefabSaved && finalPrefabPath == sourcePrefabPath && snapshotPrefab != null) PrefabUtility.SaveAsPrefabAsset(snapshotPrefab, sourcePrefabPath);
-                    foreach (string path in created.AsEnumerable().Reverse()) if (AssetDatabase.LoadMainAssetAtPath(path) != null) AssetDatabase.DeleteAsset(path);
+                    foreach (string path in created.AsEnumerable().Reverse()) if (AssetDatabase.LoadMainAssetAtPath(path) != null && !AssetDatabase.MoveAssetToTrash(path)) throw new IOException("저장 복구 자산을 휴지통으로 이동하지 못했습니다: " + path);
                     session.Persist(); result.RolledBack = true; result.Message += "\n이번 저장을 복구했습니다. 편집 사본은 유지합니다.";
                 }
                 catch (Exception recovery) { result.Message += "\n복구 실패: " + recovery.Message + "\n백업: " + result.Backup; }

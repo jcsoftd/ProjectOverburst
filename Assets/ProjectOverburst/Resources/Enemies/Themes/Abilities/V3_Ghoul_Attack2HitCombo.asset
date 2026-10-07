@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Ghoul_Attack2HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Ghoul_PBR/root/GHOUL_/GHOUL_
+    Pelvis/GHOUL_ Spine/GHOUL_ Spine1/GHOUL_ L Clavicle/GHOUL_ L UpperArm/GHOUL_
+    L Forearm/GHOUL_ L Hand
+  parryCueLocalPosition: {x: -0.69918877, y: 1.7272632, z: 0.79071486}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.14, y: 0.21999998}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.375
+  recoveryDuration: 0.74074084
+  preparationEndNormalized: 0.12
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

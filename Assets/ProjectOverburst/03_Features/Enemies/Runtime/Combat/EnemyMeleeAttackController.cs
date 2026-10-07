@@ -418,6 +418,13 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
                     && animationBridge.TryGetAttackNormalizedTime(triggerName, out float normalizedTime))
                 {
                     observedAttackAnimation = true;
+                    float previousAttackSpeed = resolvedAttackSpeed;
+                    resolvedAttackSpeed = ResolveAttackSpeedMultiplier();
+                    if (ability != null && ability.UsesPacedTimeline
+                        && !Mathf.Approximately(previousAttackSpeed, resolvedAttackSpeed))
+                        maximumHitWait = Mathf.Max(maximumHitWait, elapsed + .5f
+                            + Mathf.Max(0f, ability.ResolvePacedTime(impactTime, resolvedAttackSpeed)
+                                - ability.ResolvePacedTime(normalizedTime, resolvedAttackSpeed)));
                     if (!strongReleasePlayed && impactIndex == 0
                         && ability != null && ability.IsTelegraphedStrongAttack
                         && normalizedTime >= impactTime - .055f)
@@ -505,13 +512,21 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             if (!stayedInRange) break;
         }
 
+        float recoveryStartedAt = Time.time;
         float recoveryEnd = Mathf.Max(startedAt + executionDuration,
-            Time.time + (ability != null ? ability.MinimumRecoveryTime : 0f));
-        while (Time.time < recoveryEnd && token == executionGeneration && !IsAttackInterrupted())
+            recoveryStartedAt + (ability != null ? ability.ResolveMinimumRecoveryTime(resolvedAttackSpeed) : 0f));
+        while (token == executionGeneration && !IsAttackInterrupted())
         {
-            if (ability != null && animationBridge != null
-                && animationBridge.TryGetAttackNormalizedTime(triggerName, out float progress))
+            resolvedAttackSpeed = ResolveAttackSpeedMultiplier();
+            float progress = 0f;
+            bool motionPresent = animationBridge != null && animationBridge.TryGetAttackNormalizedTime(triggerName, out progress);
+            if (ability != null && motionPresent)
                 animationBridge.SetAttackAnimSpeed(ability.ResolvePhaseAnimationSpeed(progress, resolvedAttackSpeed));
+            bool waiting = ability != null && ability.UsesPacedTimeline
+                ? motionPresent && progress < 1f || Time.time < recoveryStartedAt + ability.ResolveMinimumRecoveryTime(resolvedAttackSpeed)
+                : Time.time < recoveryEnd;
+            if (!waiting) break;
+            movement?.ApplyActionLock(.2f);
             yield return null;
         }
         if (token == executionGeneration) attackRoutine = null;
@@ -614,7 +629,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             bool completed = attackSequenceId == executionSequence && weakAttackClock.State == EnemyAttackClock.Phase.Completed && !IsAttackInterrupted();
             if (completed)
             {
-                float recoveryEnd = Mathf.Max(Time.time, lastStrikeAt + ability.MinimumRecoveryTime);
+                float recoveryEnd = Mathf.Max(Time.time, lastStrikeAt + ability.ResolveMinimumRecoveryTime(ResolveAttackSpeedMultiplier()));
                 while (Time.time < recoveryEnd && !IsAttackInterrupted() && attackSequenceId == executionSequence)
                 { movement?.ApplyActionLock(.2f); yield return null; }
             }
@@ -1119,9 +1134,11 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
 
     private float ResolveAttackSpeedMultiplier()
     {
-        return Mathf.Max(
-            0.01f,
-            Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, attackSpeedMultiplier * runtimeAttackSpeedMultiplier) * statusActionSpeedMultiplier);
+        float speed = attackSpeedMultiplier * runtimeAttackSpeedMultiplier;
+        if (actor != null && actor.Definition != null && actor.Definition.Grade != null
+            && actor.Definition.Grade.GradeType == EnemyGradeType.Boss)
+            speed = Mathf.Min(OverburstBalanceTable.Current.EnemyAttackCap, speed);
+        return Mathf.Max(0.01f, speed * statusActionSpeedMultiplier);
     }
 
     private float ResolveMaximumAttackRange()

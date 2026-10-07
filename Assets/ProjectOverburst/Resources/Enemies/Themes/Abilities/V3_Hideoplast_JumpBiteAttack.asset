@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Hideoplast_JumpBiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Hideoplast/root/Hideoplast_/Hideoplast_
+    Pelvis/Hideoplast_ Spine/Hideoplast_ Spine1/Hideoplast_ Neck/Hideoplast_ Head/Hideoplast_JawLower
+  parryCueLocalPosition: {x: 0.14481173, y: 1.9747086, z: 1.1204755}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.36666667, y: 0.46666667}
   firstStrikeOnlyParry: 1
@@ -23,9 +27,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.4
+  recoveryDuration: 0.5925926
+  preparationEndNormalized: 0.33333334
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

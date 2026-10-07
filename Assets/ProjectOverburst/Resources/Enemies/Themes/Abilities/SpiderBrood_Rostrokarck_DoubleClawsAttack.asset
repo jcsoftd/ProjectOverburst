@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: SpiderBrood_Rostrokarck_DoubleClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Rostrokarck/root/Rostrokarck_Thorax/Rostrokarck_LegLeftFront1/Rostrokarck_LegLeftFront2/Rostrokarck_LegLeftFront3
+  parryCueLocalPosition: {x: 0.13609912, y: 3.7139125, z: 0.41710794}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.33999997, y: 0.5}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.4285715
+  recoveryDuration: 0.92592597
+  preparationEndNormalized: 0.32
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

@@ -122,6 +122,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var target=player.GetComponent<CombatTarget>();
         try
         {
+            var runtimeStats = definition.ResolveRuntimeStats();
             var savedStrong=Enumerable.Range(0,definition.AbilitySet.Count).Select(i=>definition.AbilitySet.GetAbility(i)).First(a=>a.IsParryable);
             float captureDistance=Mathf.Clamp(Mathf.Max(1.4f,savedStrong.MinimumRange+.6f),1.4f,Mathf.Max(1.4f,savedStrong.Range-.1f));
             Vector3 spawn=player.transform.position+Vector3.forward*captureDistance;
@@ -141,7 +142,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 savedSet=enemy.AbilityController.AbilitySet;
                 captureSet=ScriptableObject.CreateInstance<EnemyAbilitySet>();
                 captureSet.Configure("NativeStrongCapture_"+definition.EnemyId,new[]{savedStrong});
-                enemy.AbilityController.Configure(captureSet,1,1);
+                enemy.AbilityController.Configure(captureSet,runtimeStats.DamageMultiplier,runtimeStats.AttackSpeedMultiplier,runtimeStats.AttackInterval);
             }
             enemy.AI.RequestAggro(player.transform);yield return null;
             float attackDeadline=Time.time+35;EnemyAbilityDefinition strong=null;float originalAttackTime=0;
@@ -222,7 +223,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             }
             ParryRequire(!enemy.AnimationBridge.IsParryStunAnimating&&states.Contains("Locomotion"),"Recovery did not reach locomotion");
             ParryRequire(new[]{EnemyAnimationBridge.ParryCollapseStateName,EnemyAnimationBridge.StunnedLoopStateName,EnemyAnimationBridge.StunRecoverStateName}.All(states.Contains)&&lockPreserved,"Role states or action lock missing");
-            if(savedSet!=null)enemy.AbilityController.Configure(savedSet,1,1);
+            if(savedSet!=null)enemy.AbilityController.Configure(savedSet,runtimeStats.DamageMultiplier,runtimeStats.AttackSpeedMultiplier,runtimeStats.AttackInterval);
             float resume=Time.time+10;bool resumed=false;
             while(Time.time<resume)
             {
@@ -252,7 +253,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 ["fixturePreventsLethalDamage"]=true,["captureSurvivalLeaseReturned"]=true,
                 ["captureRangeRepositions"]=captureRangeRepositions,
                 ["strongRequestedForCapture"]=strongRequestedForCapture,
-                ["captureSingleStrongPractice"]=captureSet!=null,
+                ["captureSingleStrongPractice"]=captureSet!=null,["attackSpeedMultiplier"]=runtimeStats.AttackSpeedMultiplier,["attackIntervalSeconds"]=runtimeStats.AttackInterval,
                 ["savedSetRestoredBeforeResume"]=savedSet==null||enemy.AbilityController.AbilitySet==savedSet,
                 ["strongAbility"]=strong.AbilityId,["strongNormalizedAtInput"]=originalAttackTime,["allSavedAbilitiesRetained"]=captureSet==null,["states"]=JArray.FromObject(states),
                 ["actionLockPreserved"]=lockPreserved,["recoverFirstSeconds"]=recoverFirst,["expectedHoldSeconds"]=expectedHold,["expectedRecoverSeconds"]=expectedRecover,
@@ -262,7 +263,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         finally
         {
             capture.Complete();melee.CancelCurrentAttackState();
-            if(enemy!=null&&savedSet!=null)enemy.AbilityController.Configure(savedSet,1,1);
+            if(enemy!=null&&savedSet!=null){var stats=definition.ResolveRuntimeStats();enemy.AbilityController.Configure(savedSet,stats.DamageMultiplier,stats.AttackSpeedMultiplier,stats.AttackInterval);}
             if(enemy!=null)enemy.Health.SetDamageDeathPrevention(host,false);
             if(enemy!=null&&enemy.IsLeased&&service!=null)service.Release(enemy);
             if(trace.Count>0)File.WriteAllText(Path.Combine(output,"parry-trace.json"),trace.ToString());

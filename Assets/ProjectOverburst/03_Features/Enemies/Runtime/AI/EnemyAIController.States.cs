@@ -136,7 +136,7 @@ public sealed partial class EnemyAIController
 
     internal void ReleaseAttackTurn()
     {
-        EnemyCombatCoordinator.ReleaseAttackTurn(this, BehaviorProfile.AttackTurnCooldown);
+        EnemyCombatCoordinator.ReleaseAttackTurn(this, abilityController != null ? 0f : BehaviorProfile.AttackTurnCooldown);
     }
 
     private void HandleDead(CombatHealth source, DamageInfo info)

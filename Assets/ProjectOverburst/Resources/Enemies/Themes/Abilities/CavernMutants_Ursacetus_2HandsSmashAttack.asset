@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: CavernMutants_Ursacetus_2HandsSmashAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Ursacetus/root/Ursacetus_/Ursacetus_
+    Pelvis/Ursacetus_ Spine/Ursacetus_ Spine1/Ursacetus_ Spine2/Ursacetus_ L Clavicle/Ursacetus_
+    L UpperArm/Ursacetus_ L Forearm/Ursacetus_ L Hand
+  parryCueLocalPosition: {x: -0.34809545, y: 3.663982, z: 1.1514349}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.33749998, y: 0.44}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 22
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 1.7333333
+  releaseDuration: 0.87619054
+  recoveryDuration: 3.3185186
+  preparationEndNormalized: 0.325
   minimumWarningTime: 0.86
   minimumRecoveryTime: 1.2444445
   parryable: 1

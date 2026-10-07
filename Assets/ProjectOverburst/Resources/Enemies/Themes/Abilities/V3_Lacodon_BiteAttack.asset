@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Lacodon_BiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Lacodon_PBR/ROOT_/LACODON_/LACODON_
+    Pelvis/LACODON_ Spine/LACODON_ Spine1/LACODON_ Spine2/LACODON_ Neck/LACODON_
+    Neck1/LACODON_ Neck2/LACODON_ Head
+  parryCueLocalPosition: {x: 0.23173414, y: 1.4257796, z: 0.9954714}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.3142857, y: 0.5142857}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.3809524
+  recoveryDuration: 0.62962973
+  preparationEndNormalized: 0.28571427
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

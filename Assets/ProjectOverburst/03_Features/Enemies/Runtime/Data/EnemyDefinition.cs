@@ -84,7 +84,8 @@ public sealed class EnemyDefinition : ScriptableObject
             Vector3.Scale(gradeVector, variant != null ? variant.VisualScale : Vector3.one),
             Vector3.Scale(gradeVector, variant != null ? variant.CollisionScale : Vector3.one),
             Vector3.Scale(gradeVector, variant != null ? variant.AnchorScale : Vector3.one),
-            variant != null ? variant.Tint : Color.white);
+            variant != null ? variant.Tint : Color.white,
+            variant != null ? variant.AttackInterval : 0f);
     }
 
     public void ConfigureIdentity(string id, string label)

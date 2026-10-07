@@ -121,6 +121,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
         ? strongAim : HasPreparedAim(target) ? preparedPosition : target != null ? target.position : transform.position;
     private void Update()
     {
+        ObserveAttackCompletion();
         if (strongTarget == null) return;
         if (!IsExecuting) { EndStrongWarning(); return; }
         if (bossOwnsCommittedAim || bossMaterialExecutor != null && bossMaterialExecutor.IsExecuting) return;
@@ -277,10 +278,12 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
     public void Configure(
         EnemyAbilitySet configuredAbilitySet,
         float damageMultiplier,
-        float attackSpeedMultiplier)
+        float attackSpeedMultiplier,
+        float attackIntervalSeconds = 0f)
     {
         ResolveReferences();
         abilitySet = configuredAbilitySet;
+        ConfigureAttackInterval(attackIntervalSeconds);
         ClearPreparedAim();
         readyTimeByAbility.Clear();
         lastCommittedAbilityIndex = -1;
@@ -296,7 +299,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
     public bool TryStart(Transform target)
     {
         ResolveReferences();
-        if (target == null || ResolveIsExecuting())
+        if (target == null || ResolveIsExecuting() || !IsAttackIntervalReady)
             return false;
 
         PrepareAttackAim(target);
@@ -315,7 +318,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
     public bool TryStartAbility(EnemyAbilityDefinition requested, Transform target, in EnemyAbilityStartContext startContext)
     {
         ResolveReferences();
-        if (requested == null || target == null || ResolveIsExecuting() || abilitySet == null || !abilitySet.IsValid) return false;
+        if (requested == null || target == null || ResolveIsExecuting() || !IsAttackIntervalReady || abilitySet == null || !abilitySet.IsValid) return false;
         if (!startContext.IsPrepared) PrepareAttackAim(target);
         else if (animationBridge == null || !animationBridge.CanCommitPreparedAttack(startContext)) return false;
         Vector3 delta = (startContext.IsPrepared || startContext.KeepCurrentFacing ? startContext.AimPosition : ResolveAimPosition(target)) - transform.position; delta.y = 0f;
@@ -347,6 +350,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
         lastCommittedAbilityIndex = selected.Index;
         lastCommittedAbility = selected.Ability;
         lastCommittedAt = Time.time;
+        committedAttackRunning = true;
         CountCommittedAttack(selected.Ability);
         if (selected.Executor is EnemyBossMaterialExecutor) GetComponent<EnemyBossCombatDirector>()?.NotifyCommitted(selected.Ability);
         if (selected.Ability.IsTelegraphedStrongAttack) reaction?.SetStrongAttackActive(true);
@@ -367,6 +371,9 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
         {
             if (strongWarning == null) strongWarning = gameObject.AddComponent<EnemyStrongAttackWarning>();
             if (actor == null) actor = GetComponent<EnemyActor>();
+            if (selected.Ability.TryResolveAttackCue(actor, out var cueSocket, out var cuePosition))
+                strongWarning.SetAttackCue(cueSocket, Vector3.zero, cuePosition, selected.Ability.ParryCueScale);
+            else strongWarning.SetAttackCue(null, Vector3.zero);
             strongWarning.Show(EnemyAttackThreatGeometry.ResolveRadius(actor, selected.Ability),
                 selected.Ability.IsParryable,
                 EnemyAttackThreatGeometry.ResolveHitAngle(actor, selected.Ability),
@@ -383,7 +390,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
     public bool HasAvailableAbility(Transform target)
     {
         ResolveReferences();
-        if (target == null || ResolveIsExecuting()) return false;
+        if (target == null || ResolveIsExecuting() || !IsAttackIntervalReady) return false;
         if (abilitySet == null || !abilitySet.IsValid || executors.Length == 0)
             return true; // Preserve the legacy melee-only start path.
         Vector3 delta = ResolveAimPosition(target) - transform.position; delta.y = 0f;
@@ -427,6 +434,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
             executors[i]?.Cancel();
         if (executors.Length == 0)
             meleeExecutor?.CancelAttack();
+        ObserveAttackCompletion();
     }
 
     public void ClearTarget()
@@ -452,6 +460,7 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 靹犿儩路炜
 
         readyTimeByAbility.Clear();
         candidates.Clear();
+        ConfigureAttackInterval(0f);
         lastCommittedAbilityIndex = -1;
         lastCommittedAbility = null;
         ResetStrongCadence();

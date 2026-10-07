@@ -39,7 +39,7 @@ public sealed class EnemyAttackState : IEnemyState // 플레이어 근접 공격
                 return;
 
             // A miss still completes the existing recovery before chasing.
-            owner.ChangeToCombatWait(owner.BehaviorProfile.RecoveryDuration);
+            owner.ChangeToCombatWait(); // AbilityController owns the post-attack interval.
             return;
         }
 

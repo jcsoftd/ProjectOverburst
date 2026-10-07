@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Clypeosaurus_SmashAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Clypeosaurus/root/Clypeosaurus_Body/Clypeosaurus_LegLeft_A_1/Clypeosaurus_LegLeft_A_2/Clypeosaurus_LegLeft_A_3
+  parryCueLocalPosition: {x: -0.02979257, y: 2.2058136, z: 1.6643927}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.37894735, y: 0.50526315}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 1.1666666
+  releaseDuration: 0.61904764
+  recoveryDuration: 1.7407408
+  preparationEndNormalized: 0.36842105
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.6527778
   parryable: 1

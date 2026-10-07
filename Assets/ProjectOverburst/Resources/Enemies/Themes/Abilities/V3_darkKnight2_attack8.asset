@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_darkKnight2_attack8
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/DarkKnight2_skin1/root/pelvis/spine_01/spine_02/spine_03/clavicle_r/upperarm_r/lowerarm_r/hand_r/Bone_Sword
+  parryCueLocalPosition: {x: 0.6379059, y: 1.6700737, z: 0.47124895}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.43333322, y: 0.5333332}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.40000004
+  recoveryDuration: 0.5185188
+  preparationEndNormalized: 0.39999992
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

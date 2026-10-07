@@ -186,7 +186,10 @@ public sealed class EnemyActor : MonoBehaviour
         abilityController.Configure(
             enemyDefinition.AbilitySet,
             stats.DamageMultiplier,
-            Mathf.Min(balance.EnemyAttackCap, stats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress)));
+            enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss
+                ? Mathf.Min(balance.EnemyAttackCap, stats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress))
+                : EnemyRuntimeStats.ResolveAuthoredAttackSpeed(stats.AttackSpeedMultiplier, 1f + balance.EnemyAttackGrowth * levelProgress, balance.EnemyAttackCap),
+            enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss ? 0f : stats.AttackInterval);
         bossOutcomeController?.ResetForPool();
         if (bossPhaseController != null
             && !bossPhaseController.PrepareForLease(this))

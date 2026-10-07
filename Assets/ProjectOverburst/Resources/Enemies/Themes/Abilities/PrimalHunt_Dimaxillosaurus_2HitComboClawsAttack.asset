@@ -12,6 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: PrimalHunt_Dimaxillosaurus_2HitComboClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Dimaxillosaurus/root/Dimaxillosaurus_/Dimaxillosaurus_
+    Pelvis/Dimaxillosaurus_ Spine/Dimaxillosaurus_ Spine1/Dimaxillosaurus_ Spine2/Dimaxillosaurus_
+    R Clavicle/Dimaxillosaurus_ R UpperArm/Dimaxillosaurus_ R Forearm/Dimaxillosaurus_
+    R Hand
+  parryCueLocalPosition: {x: 1.1808996, y: 2.3133483, z: 1.2573489}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.16363636, y: 0.2}
   firstStrikeOnlyParry: 1
@@ -23,9 +29,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.44999996
+  recoveryDuration: 0.8351852
+  preparationEndNormalized: 0.14545454
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

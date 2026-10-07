@@ -7,7 +7,7 @@ using UnityEngine;
 
 // Saves reviewed regular-monster parry windows and the approved pacing revision.
 // Animation clips and every field outside the explicit revision are preserved.
-public static class MonsterStrongParryTimingBuilder
+public static partial class MonsterStrongParryTimingBuilder
 {
     static string Project => Directory.GetParent(Application.dataPath).FullName;
     static string Workspace => Directory.GetParent(Project).FullName;

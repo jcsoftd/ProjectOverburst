@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: SpiderBrood_Cavecrawler_StingerAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Cavecrawler/root/CAVECRAWLER_/CAVECRAWLER_THORAX/CAVECRAWLER_ABDOMEN
+  parryCueLocalPosition: {x: 0.00000025858043, y: 1.2722635, z: -0.14052778}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.23333333, y: 0.4}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.35999998
+  recoveryDuration: 0.6666667
+  preparationEndNormalized: 0.2
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

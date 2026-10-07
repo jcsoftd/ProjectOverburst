@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: CavernMutants_Gorhorrid_SmashAttackLeft
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Gorhorrid/root/Gorhorrid_/Gorhorrid_
+    Pelvis/Gorhorrid_ Spine/Gorhorrid_ Spine1/Gorhorrid_ Spine2/Gorhorrid_ L Clavicle/Gorhorrid_
+    L UpperArm/Gorhorrid_ L Forearm/Gorhorrid_ L Hand
+  parryCueLocalPosition: {x: -0.605449, y: 1.7478029, z: 1.121348}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.28888887, y: 0.41}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 9
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.55
+  releaseDuration: 0.35504586
+  recoveryDuration: 0.9833334
+  preparationEndNormalized: 0.26666665
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

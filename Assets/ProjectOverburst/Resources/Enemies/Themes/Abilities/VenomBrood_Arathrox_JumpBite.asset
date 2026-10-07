@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: VenomBrood_Arathrox_JumpBite
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Arathrox/root/Arathrox_Hips/Arathrox_Thorax/Arathrox_Neck1/Arathrox_Neck2/Arathrox_Head/Arathrox_JawLower
+  parryCueLocalPosition: {x: -0.05765327, y: 1.4642369, z: 1.3378187}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.35, y: 0.62}
   firstStrikeOnlyParry: 1
@@ -23,9 +26,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 14
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.90000004
-  releaseDuration: 0.19999999
+  preparationDuration: 0.55
+  releaseDuration: 0.35555556
   recoveryDuration: 0.425
+  preparationEndNormalized: 0.29999998
   minimumWarningTime: 0.88
   minimumRecoveryTime: 0.425
   parryable: 1

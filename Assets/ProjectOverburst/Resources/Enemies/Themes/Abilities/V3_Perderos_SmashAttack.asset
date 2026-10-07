@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Perderos_SmashAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: VisualRoot/Authored model scale/Perderos/root/Perderos_/Perderos_
+    Pelvis/Perderos_ Spine/Perderos_ Spine1/Perderos_ L Clavicle/Perderos_ L UpperArm/Perderos_
+    L Forearm/Perderos_ L Hand
+  parryCueLocalPosition: {x: -0.00000918, y: 4.585072, z: 2.4485397}
+  parryCueScale: 0.55
   parryMotionWindows:
   - {x: 0.39999998, y: 0.5333333}
   firstStrikeOnlyParry: 1
@@ -23,9 +28,10 @@ MonoBehaviour:
   referencePatternDamagePercent: 20
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.875
-  releaseDuration: 0.19999999
-  recoveryDuration: 0.425
+  preparationDuration: 0.56666666
+  releaseDuration: 0.35
+  recoveryDuration: 0.7777779
+  preparationEndNormalized: 0.37777776
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
