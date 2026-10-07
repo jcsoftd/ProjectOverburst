@@ -16,7 +16,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         return StartInternal(outputDirectory,false,1,false,true,false,definitionPath,true);
     }
     static MonsterParryVideoCapture activeParryCapture;
-    const int PerfectParryFixtureVersion=5;
+    const int PerfectParryFixtureVersion=8;
     static IEnumerator CaptureParryFrames(MonsterParryVideoCapture capture)
     { while(true) { yield return null;capture.CaptureFrame(); } }
     static void ParryRequire(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
@@ -116,7 +116,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
     static IEnumerator RunRealPlayerParryCase(EnemyDefinition definition,EnemySpawnService service,PlayerInputFacade player,
         PlayerActorRuntime playerActor,MeleeRuntime melee,MonsterParryVideoCapture capture,string output)
     {
-        EnemyActor enemy=null;var trace=new JArray();var states=new HashSet<string>();
+        EnemyActor enemy=null;EnemyAbilitySet captureSet=null,savedSet=null;var trace=new JArray();var states=new HashSet<string>();
         var target=player.GetComponent<CombatTarget>();
         try
         {
@@ -129,10 +129,51 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             // Capture the recovery even when the real perfect-parry elemental
             // follow-up is lethal. Damage and reaction code still run normally.
             enemy.Health.SetDamageDeathPrevention(host,true);
+            string requestFile=Path.Combine(plan.directory,"request-saved-strong.json");
+            var request=File.Exists(requestFile)?JObject.Parse(File.ReadAllText(requestFile)):null;
+            bool requestStrongForCapture=request!=null&&request["targets"].Values<string>().Contains(definition.EnemyId);
+            if(requestStrongForCapture&&(bool?)request["singleSavedStrongPractice"]==true)
+            {
+                // The same saved strong/Actor and real parry path in a practice
+                // setup. Restore the complete saved set before testing resume.
+                savedSet=enemy.AbilityController.AbilitySet;
+                captureSet=ScriptableObject.CreateInstance<EnemyAbilitySet>();
+                captureSet.Configure("NativeStrongCapture_"+definition.EnemyId,new[]{savedStrong});
+                enemy.AbilityController.Configure(captureSet,1,1);
+            }
             enemy.AI.RequestAggro(player.transform);yield return null;
             float attackDeadline=Time.time+35;EnemyAbilityDefinition strong=null;float originalAttackTime=0;
+            float nextRangeCheck=0;int captureRangeRepositions=0;bool strongRequestedForCapture=false;
             while(true)
             {
+                // After the required ordinary attack, approach can put the
+                // stationary capture target inside a charge's minimum range
+                // or the native sector's near inset. Step it out before the
+                // recorded strong, retaining the full AI/ability selection.
+                if(!capture.IsRecording&&!enemy.AbilityController.IsExecuting
+                    &&!enemy.AbilityController.IsStrongAttackLocked&&Time.time>=nextRangeCheck)
+                {
+                    nextRangeCheck=Time.time+.25f;
+                    Vector3 away=player.transform.position-enemy.transform.position;away.y=0;
+                    float minimum=Mathf.Max(savedStrong.MinimumRange+.25f,EnemyAttackThreatGeometry.ResolveSectorInnerRadius(enemy,savedStrong)+.35f);
+                    if(away.magnitude<minimum||requestStrongForCapture)
+                    {
+                        if(requestStrongForCapture)away=enemy.transform.forward;
+                        if(away.sqrMagnitude<.001f)away=-enemy.transform.forward;
+                        float distance=Mathf.Min(Mathf.Max(captureDistance,minimum+.2f),EnemyAttackThreatGeometry.ResolveStartRange(enemy,savedStrong)-.1f);
+                        Vector3 position=enemy.transform.position+away.normalized*distance;
+                        ParryRequire(distance>minimum,"Capture strong has no valid distance outside its near inset");
+                        ParryRequire(Physics.Raycast(position+Vector3.up*4,Vector3.down,out var stepFloor,9,LayerMask.GetMask("Default","Environment","Ground")),"Capture strong has no valid floor outside its near inset");
+                        var capsule=player.GetComponent<CharacterController>();bool enabled=capsule!=null&&capsule.enabled;
+                        if(enabled)capsule.enabled=false;
+                        player.transform.position=stepFloor.point+Vector3.up*.035f;
+                        if(enabled)capsule.enabled=true;
+                        playerActor.Movement?.ResetMotionAfterTeleport();Physics.SyncTransforms();
+                        enemy.AbilityController.ClearPreparedAim();captureRangeRepositions++;
+                    }
+                    if(requestStrongForCapture)
+                        strongRequestedForCapture|=enemy.AbilityController.TryStartAbility(savedStrong,player.transform);
+                }
                 strong=enemy.AbilityController.LastCommittedAbility;
                 if(strong!=null&&strong.IsTelegraphedStrongAttack&&enemy.AbilityController.IsExecuting&&!capture.IsRecording)
                     capture.BeginTake(output,player.transform,enemy.transform);
@@ -179,6 +220,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             }
             ParryRequire(!enemy.AnimationBridge.IsParryStunAnimating&&states.Contains("Locomotion"),"Recovery did not reach locomotion");
             ParryRequire(new[]{EnemyAnimationBridge.ParryCollapseStateName,EnemyAnimationBridge.StunnedLoopStateName,EnemyAnimationBridge.StunRecoverStateName}.All(states.Contains)&&lockPreserved,"Role states or action lock missing");
+            if(savedSet!=null)enemy.AbilityController.Configure(savedSet,1,1);
             float resume=Time.time+10;bool resumed=false;
             while(Time.time<resume)
             {
@@ -206,7 +248,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             cases.Add(new JObject{["pass"]=recorded,["id"]=definition.EnemyId,["actualPlayerHeavyParry"]=true,["parrySuccessDelta"]=controller.SuccessCount-before,
                 ["parryGrade"]=controller.ActionGrade.ToString(),["fixtureVersion"]=PerfectParryFixtureVersion,
                 ["fixturePreventsLethalDamage"]=true,["captureSurvivalLeaseReturned"]=true,
-                ["strongAbility"]=strong.AbilityId,["strongNormalizedAtInput"]=originalAttackTime,["allSavedAbilitiesRetained"]=true,["states"]=JArray.FromObject(states),
+                ["captureRangeRepositions"]=captureRangeRepositions,
+                ["strongRequestedForCapture"]=strongRequestedForCapture,
+                ["captureSingleStrongPractice"]=captureSet!=null,
+                ["savedSetRestoredBeforeResume"]=savedSet==null||enemy.AbilityController.AbilitySet==savedSet,
+                ["strongAbility"]=strong.AbilityId,["strongNormalizedAtInput"]=originalAttackTime,["allSavedAbilitiesRetained"]=captureSet==null,["states"]=JArray.FromObject(states),
                 ["actionLockPreserved"]=lockPreserved,["recoverFirstSeconds"]=recoverFirst,["expectedHoldSeconds"]=expectedHold,["expectedRecoverSeconds"]=expectedRecover,
                 ["resumedAbility"]=resumedAbility,["poolReset"]=reset,["playerDamageAtParry"]=0,["videoRecorded"]=recorded,["videoPath"]=capture.VideoPath});
             enemy=null;melee.CancelCurrentAttackState();
@@ -214,9 +260,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         finally
         {
             capture.Complete();melee.CancelCurrentAttackState();
+            if(enemy!=null&&savedSet!=null)enemy.AbilityController.Configure(savedSet,1,1);
             if(enemy!=null)enemy.Health.SetDamageDeathPrevention(host,false);
             if(enemy!=null&&enemy.IsLeased&&service!=null)service.Release(enemy);
             if(trace.Count>0)File.WriteAllText(Path.Combine(output,"parry-trace.json"),trace.ToString());
+            if(captureSet!=null)UnityEngine.Object.DestroyImmediate(captureSet);
         }
     }
 }
