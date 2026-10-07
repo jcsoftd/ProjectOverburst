@@ -17,6 +17,33 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
     [SerializeField, Min(0.1f)] private float hitHeight = 2f;
     [SerializeField, Range(0.4f, 1f)] private float contactRadiusFraction = 0.5f;
     [SerializeField, Range(0f, 0.8f)] private float contactHeightFraction = 0.55f;
+    [Header("몸통 타격점 · 실제 스킨 표면")]
+    [Tooltip("몸통 중심을 따라갈 관절. 원본 모델의 관절을 연결한다.")]
+    [SerializeField] private Transform bodyContactAnchor;
+    [SerializeField] private Vector3 bodyContactLocalCenter;
+    [Tooltip("몸통 표면의 방향별 접점. 스킨 가중치를 보존해 숙임·도약·기절 자세도 따라간다.")]
+    [SerializeField] private BodyContactSample[] bodyContactSamples = System.Array.Empty<BodyContactSample>();
+
+    [System.Serializable]
+    public struct BodyContactSample
+    {
+        public Vector3 localDirection;
+        public BodySkinWeight[] weights;
+    }
+
+    [System.Serializable]
+    public struct BodySkinWeight
+    {
+        public Transform bone;
+        public Vector3 localPoint;
+        public float weight;
+    }
+
+    public bool HasBodyContacts => bodyContactAnchor != null && bodyContactSamples != null
+        && bodyContactSamples.Length > 0;
+
+    public Vector3 BodyContactCenter => HasBodyContacts
+        ? bodyContactAnchor.TransformPoint(bodyContactLocalCenter) : HitVolume.Center;
     [Tooltip("화상 불 위치 보정(몬스터 방향 기준, m). 몸 모양이 튀는 몬스터만 쓴다.")]
     [SerializeField] private Vector3 burnOffset;
     [Tooltip("화상 불 크기 보정. 기본 1")]
@@ -106,6 +133,9 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         CombatTargetVolume volume = placement != null
             ? placement.HitVolume : target.CurrentHurtVolume;
         if (volume.Radius <= 0f || volume.HalfHeight <= 0f) return rawHitPoint;
+        hitSizeMultiplier = Mathf.Clamp(Mathf.Sqrt(volume.Radius / HitReferenceRadius), 0.55f, 1.5f);
+        if (placement != null && placement.TryResolveBodyContact(rawHitPoint, incomingDirection, out Vector3 bodyPoint))
+            return bodyPoint;
         float radiusFraction = placement != null ? placement.contactRadiusFraction : 0.82f;
 
         Vector3 direction = incomingDirection;
@@ -127,8 +157,46 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
         point.y = Mathf.Clamp(suggestedY,
             volume.Center.y - volume.HalfHeight * 0.4f,
             volume.Center.y + volume.HalfHeight * 0.75f);
-        hitSizeMultiplier = Mathf.Clamp(Mathf.Sqrt(volume.Radius / HitReferenceRadius), 0.55f, 1.5f);
         return point;
+    }
+
+    public static Vector3 ResolveBodyCenter(CombatTarget target, out float radius)
+    {
+        CombatTargetVolume volume = target != null ? target.CurrentHurtVolume : default;
+        radius = volume.Radius;
+        if (target != null && target.TryGetComponent(out CombatTargetVfxPlacement placement) && placement.HasBodyContacts)
+            return placement.BodyContactCenter;
+        return volume.Center;
+    }
+
+    private bool TryResolveBodyContact(Vector3 rawHitPoint, Vector3 incomingDirection, out Vector3 point)
+    {
+        point = default;
+        if (!HasBodyContacts) return false;
+        Vector3 facing = -Vector3.ProjectOnPlane(incomingDirection, Vector3.up);
+        if (facing.sqrMagnitude < .0001f) facing = rawHitPoint - BodyContactCenter;
+        if (facing.sqrMagnitude < .0001f) facing = -transform.forward;
+        Vector3 localFacing = bodyContactAnchor.InverseTransformDirection(facing.normalized);
+        int best = -1;
+        float score = float.NegativeInfinity;
+        for (int i = 0; i < bodyContactSamples.Length; i++)
+        {
+            var sample = bodyContactSamples[i];
+            if (sample.weights == null || sample.weights.Length == 0) continue;
+            float dot = Vector3.Dot(localFacing, sample.localDirection);
+            if (dot > score) { score = dot; best = i; }
+        }
+        if (best < 0) return false;
+        float total = 0f;
+        foreach (var influence in bodyContactSamples[best].weights)
+        {
+            if (influence.bone == null || influence.weight <= 0f) return false;
+            point += influence.bone.TransformPoint(influence.localPoint) * influence.weight;
+            total += influence.weight;
+        }
+        if (total < .0001f) return false;
+        point /= total;
+        return true;
     }
 
 #if UNITY_EDITOR

@@ -503,6 +503,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51583a60d8d86ff4a9b6d6fb970bf643, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationBridge
+  motionPlaybackProfile: {fileID: 0}
   animator: {fileID: 1604606868325838140}
   moveParameter: Locomotion
   locomotionStateName: Locomotion
@@ -579,6 +580,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCrowdAgent
   health: {fileID: 4632533779062539318}
   bodyCollider: {fileID: 5351211760717821595}
+  crowdRadiusMultiplier: 1.12
 --- !u!114 &5422338013184727947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -678,6 +680,7 @@ MonoBehaviour:
   aggroReleaseDelay: 2
   findPlayerByTag: 1
   playerTag: Player
+  chaseObservationInterval: 0.65
   useDensityApproachSteering: 1
   logStateChanges: 0
 --- !u!114 &3732795395137303489
@@ -906,6 +909,269 @@ MonoBehaviour:
   hitHeight: 3.163229
   contactRadiusFraction: 0.5
   contactHeightFraction: 0.55
+  bodyContactAnchor: {fileID: 176708417299381776}
+  bodyContactLocalCenter: {x: -0.32537234, y: 0.12387054, z: -0.000000044703476}
+  bodyContactSamples:
+  - localDirection: {x: 0.5038709, y: -0.8637791, z: 0.000000029802337}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.15009466, y: -0.86207443, z: -0.0000000058330327}
+      weight: 0.123649366
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: 0.06299371, y: -0.72512054, z: -0.000000077737354}
+      weight: 0.09184073
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.3180917, y: -0.7232422, z: -0.000000026155298}
+      weight: 0.062860094
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: 0.33298412, y: -0.3349973, z: 0.4986568}
+      weight: 0.0017404056
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.2629449, y: -0.8006839, z: -0.089088485}
+      weight: 0.0001270703
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.37512088, y: -0.8383581, z: -0.0890885}
+      weight: 0.000022952665
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: 0.10858486, y: -0.8452264, z: -0.08908856}
+      weight: 0.000007739648
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.23650226, y: -0.77736336, z: 0.000000007511444}
+      weight: 0.5928389
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.34007743, y: -0.84223336, z: -0.000000010061179}
+      weight: 0.087672696
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: 0.13526218, y: -0.8221747, z: -0.000000062575715}
+      weight: 0.03924007
+  - localDirection: {x: 0.4655159, y: -0.7980279, z: 0.38268346}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.3399039, y: -0.90505624, z: 0.6421414}
+      weight: 0.15577164
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: -0.116610594, y: -0.091366075, z: 0.24166328}
+      weight: 0.121821925
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.17806251, y: -0.9753426, z: 0.48516467}
+      weight: 0.099753186
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: 0.10737789, y: -0.06937563, z: 0.31321794}
+      weight: 0.07594728
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.40610287, y: -0.64665306, z: 0.48516464}
+      weight: 0.040107906
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: -0.053013477, y: -0.73753864, z: 0.48516458}
+      weight: 0.032097053
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.31736052, y: -0.9259437, z: 0.43407398}
+      weight: 0.2552614
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: 0.00029296556, y: 0.031697787, z: 0.36586228}
+      weight: 0.16281287
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.4916656, y: -0.76716536, z: 0.43407395}
+      weight: 0.048088275
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: -0.02287518, y: -0.88223094, z: 0.4340739}
+      weight: 0.008338503
+  - localDirection: {x: 0.3562904, y: -0.610784, z: 0.7071068}
+    weights:
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: -0.015227532, y: 0.084306836, z: 0.009700975}
+      weight: 0.082514316
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.19394286, y: -0.63577765, z: 0.6085195}
+      weight: 0.04820241
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.22384547, y: -0.9336004, z: 0.6085195}
+      weight: 0.0007012258
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: -0.07662656, y: -0.042566326, z: -0.23324475}
+      weight: 0.12813896
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.11712364, y: -0.54237294, z: 0.86202216}
+      weight: 0.09361575
+    - bone: {fileID: 6537208105163855554}
+      localPoint: {x: -0.048872072, y: -0.13916372, z: -0.20571125}
+      weight: 0.4433781
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.082131594, y: -0.63288474, z: 0.90000415}
+      weight: 0.20344928
+  - localDirection: {x: 0.19282292, y: -0.33055398, z: 0.9238795}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.09612639, y: -0.33048064, z: 1.3322529}
+      weight: 0.42587608
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.039190605, y: -0.36954474, z: 1.1924303}
+      weight: 0.4526578
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.03831607, y: -0.14257799, z: 1.2215793}
+      weight: 0.121466115
+  - localDirection: {x: -0.000000029571599, y: -0.000000081287574, z: 0.99999994}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.37971088, y: 0.14410836, z: 0.96541184}
+      weight: 0.2512809
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.31791314, y: 0.059837338, z: 1.1435724}
+      weight: 0.417605
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.29353955, y: 0.18927252, z: 1.130132}
+      weight: 0.33111408
+  - localDirection: {x: -0.19282316, y: 0.33055392, z: 0.9238795}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.4735775, y: 0.35870016, z: 0.54387}
+      weight: 0.48620635
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.46151307, y: 0.2348559, z: 0.52515715}
+      weight: 0.010258914
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.42847496, y: 0.32169113, z: 0.6571104}
+      weight: 0.50353473
+  - localDirection: {x: -0.35629052, y: 0.610784, z: 0.70710677}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.5311911, y: 0.5814215, z: 0.4753073}
+      weight: 0.41060182
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.56948644, y: 0.44973963, z: 0.32117274}
+      weight: 0.31826118
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.50611347, y: 0.38384673, z: 0.44919217}
+      weight: 0.271137
+  - localDirection: {x: -0.46551597, y: 0.79802775, z: 0.38268346}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.68076086, y: 0.6431415, z: 0.21901546}
+      weight: 0.51389396
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.611416, y: 0.63451445, z: 0.3372099}
+      weight: 0.13556308
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.6579712, y: 0.8180944, z: 0.34116694}
+      weight: 0.35054293
+  - localDirection: {x: -0.5038709, y: 0.8637791, z: -0.00000011722511}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.94114333, y: 1.0913851, z: -0.01588877}
+      weight: 0.0000064074993
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.9462334, y: 1.0948994, z: -0.00000007314221}
+      weight: 0.3117837
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.8825932, y: 1.1213819, z: -0.000000064702235}
+      weight: 0.6882099
+  - localDirection: {x: -0.46551585, y: 0.79802775, z: -0.38268346}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.6807608, y: 0.6431415, z: -0.21901558}
+      weight: 0.5138941
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.65797114, y: 0.8180944, z: -0.34116703}
+      weight: 0.3505433
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.6114159, y: 0.63451445, z: -0.33721}
+      weight: 0.13556263
+  - localDirection: {x: -0.35629052, y: 0.61078423, z: -0.7071067}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.531191, y: 0.5814215, z: -0.47530735}
+      weight: 0.41060197
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.5061134, y: 0.38384676, z: -0.44919226}
+      weight: 0.27113622
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.5694864, y: 0.44973966, z: -0.32117283}
+      weight: 0.3182618
+  - localDirection: {x: -0.19282298, y: 0.33055407, z: -0.9238795}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.47357735, y: 0.3587002, z: -0.5438701}
+      weight: 0.4862072
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.4284748, y: 0.3216912, z: -0.65711045}
+      weight: 0.50353414
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.46151295, y: 0.23485593, z: -0.5251573}
+      weight: 0.010258683
+  - localDirection: {x: 0.000000089637695, y: -0.000000021682926, z: -0.99999994}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.37971064, y: 0.14410843, z: -0.96541196}
+      weight: 0.2512809
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.2935393, y: 0.1892726, z: -1.130132}
+      weight: 0.33111405
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.31791288, y: 0.059837412, z: -1.1435724}
+      weight: 0.41760504
+  - localDirection: {x: 0.19282322, y: -0.330554, z: -0.9238795}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.09612607, y: -0.33048055, z: -1.3322529}
+      weight: 0.4258757
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.03831578, y: -0.14257792, z: -1.2215793}
+      weight: 0.12146584
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: -0.03919032, y: -0.36954466, z: -1.1924303}
+      weight: 0.45265847
+  - localDirection: {x: 0.35629052, y: -0.610784, z: -0.7071068}
+    weights:
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: -0.015322916, y: -0.084163666, z: 0.00958257}
+      weight: 0.082981095
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.19394286, y: -0.63577783, z: -0.6085196}
+      weight: 0.048358902
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: -0.048973024, y: 0.1393086, z: -0.20582668}
+      weight: 0.4433569
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.08213184, y: -0.63288474, z: -0.90000415}
+      weight: 0.20343976
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: -0.07673045, y: 0.042712156, z: -0.23335968}
+      weight: 0.12820165
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.117123656, y: -0.54237306, z: -0.86202234}
+      weight: 0.093661726
+  - localDirection: {x: 0.46551606, y: -0.7980279, z: -0.3826834}
+    weights:
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.33990416, y: -0.90505594, z: -0.6421416}
+      weight: 0.15604137
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: -0.11669263, y: 0.09150934, z: 0.24155018}
+      weight: 0.12203189
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.31736004, y: -0.9259441, z: -0.43407407}
+      weight: 0.24869457
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: 0.00021496078, y: -0.031556897, z: 0.36574346}
+      weight: 0.17063552
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.4916655, y: -0.76716477, z: -0.43407407}
+      weight: 0.046851143
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: -0.022875503, y: -0.8822304, z: -0.43407416}
+      weight: 0.008123989
+    - bone: {fileID: 176708417299381776}
+      localPoint: {x: 0.17806219, y: -0.97534275, z: -0.48516467}
+      weight: 0.09390534
+    - bone: {fileID: 5460285983947163389}
+      localPoint: {x: 0.107299365, y: 0.06951451, z: 0.31309485}
+      weight: 0.08574407
+    - bone: {fileID: 1627602638516413676}
+      localPoint: {x: -0.40610275, y: -0.64665276, z: -0.4851647}
+      weight: 0.037756655
+    - bone: {fileID: 7126921568548500567}
+      localPoint: {x: -0.053013537, y: -0.7375383, z: -0.48516476}
+      weight: 0.030215425
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
   shockOffset: {x: 0, y: 0, z: 0}
@@ -1692,13 +1958,38 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+--- !u!4 &176708417299381776 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2198500635847985554, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  m_PrefabInstance: {fileID: 2085571181578286978}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &1604606868325838140 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 771763160384625342, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
   m_PrefabInstance: {fileID: 2085571181578286978}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &1627602638516413676 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 749576699464749934, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  m_PrefabInstance: {fileID: 2085571181578286978}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4658016850499303238 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6653494873268191428, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  m_PrefabInstance: {fileID: 2085571181578286978}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5460285983947163389 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6284697262211002751, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  m_PrefabInstance: {fileID: 2085571181578286978}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6537208105163855554 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5064785767727587648, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
+  m_PrefabInstance: {fileID: 2085571181578286978}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7126921568548500567 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9085597287885095893, guid: 1cd32a21d8701394a9cd8cb9ceebae80, type: 3}
   m_PrefabInstance: {fileID: 2085571181578286978}
   m_PrefabAsset: {fileID: 0}

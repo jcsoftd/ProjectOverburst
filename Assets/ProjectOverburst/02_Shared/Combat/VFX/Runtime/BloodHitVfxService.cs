@@ -234,13 +234,19 @@ public sealed class BloodHitVfxService : MonoBehaviour
 
     public static bool RequestBleed(CombatHealth health, BloodHitProfile profile, Vector3 feet, Vector3 travel)
     {
-        if (profile == null || profile.suppressBlood || instance == null || instance.groundDecals == null || IsOffscreen(feet + Vector3.up * .5f)) return false;
+        if (profile == null || profile.suppressBlood || instance == null || instance.groundDecals == null) return false;
+        Vector3 spray = feet + Vector3.up * .6f;
+        Vector3 groundOrigin = feet + Vector3.up * .5f;
+        if (health != null && health.TryGetComponent(out CombatTarget target)
+            && target.TryGetComponent(out CombatTargetVfxPlacement placement) && placement.HasBodyContacts)
+            groundOrigin = spray = placement.BodyContactCenter;
+        if (IsOffscreen(groundOrigin)) return false;
         profile = ResolveColorProfile(profile);
         // Small falling drops have no attack priority; they cannot evict a combat splash.
         if (currentStyle != BloodEffectStyle.Legacy && instance.packPool != null)
-            instance.packPool.Play(profile, feet + Vector3.up * .6f, Vector3.down, CombatImpactShape.Downward,
+            instance.packPool.Play(profile, spray, Vector3.down, CombatImpactShape.Downward,
                 .12f, 0, CosmeticSeed(0, Time.frameCount, 0, health.GetInstanceID()), health.GetInstanceID(), true);
-        instance.groundDecals.Request(profile, feet + Vector3.up * .5f, travel, CombatImpactShape.Thrust, .38f, 0, false, .08f, true);
+        instance.groundDecals.Request(profile, groundOrigin, travel, CombatImpactShape.Thrust, .38f, 0, false, .08f, true);
         return true;
     }
 
@@ -248,6 +254,9 @@ public sealed class BloodHitVfxService : MonoBehaviour
         CombatImpactShape shape, float size, int priority)
     {
         if (health == null || !health.TryGetComponent<BloodHitTarget>(out var target)) return;
+        if (health.TryGetComponent(out CombatTarget combatTarget)
+            && combatTarget.TryGetComponent(out CombatTargetVfxPlacement placement) && placement.HasBodyContacts)
+            point = CombatTargetVfxPlacement.ResolveContact(combatTarget, point, direction, out _);
         RequestAt(target.Profile, point, direction, shape, size, priority,
             ResolveWeightScale(health), health.GetInstanceID(), lethal: health.IsDead);
     }
@@ -313,7 +322,11 @@ public sealed class BloodHitVfxService : MonoBehaviour
             CombatImpactShape.Sweep, size * .85f, 3, weight, id);
         RequestAt(profile, center, Quaternion.AngleAxis(-spread - Random.Range(0f, 30f), Vector3.up) * forward,
             CombatImpactShape.Sweep, size * .85f, 3, weight, id);
-        RequestAt(profile, center + Vector3.up * .15f, (forward + Vector3.up * .8f).normalized,
+        Vector3 risingCenter = center + Vector3.up * .15f;
+        if (health.TryGetComponent(out CombatTarget combatTarget)
+            && combatTarget.TryGetComponent(out CombatTargetVfxPlacement placement) && placement.HasBodyContacts)
+            risingCenter = center;
+        RequestAt(profile, risingCenter, (forward + Vector3.up * .8f).normalized,
             CombatImpactShape.Thrust, size * .8f, 3, weight, id);
         if (instance.groundDecals == null || IsOffscreen(center)) return;
         // Flung drops land later the farther they fly.
@@ -332,9 +345,7 @@ public sealed class BloodHitVfxService : MonoBehaviour
         if (target == null) target = health.GetComponentInParent<CombatTarget>();
         if (target != null)
         {
-            CombatTargetVolume volume = target.CurrentHurtVolume;
-            radius = volume.Radius;
-            return volume.Center;
+            return CombatTargetVfxPlacement.ResolveBodyCenter(target, out radius);
         }
         radius = .45f;
         return health.transform.position + Vector3.up;
