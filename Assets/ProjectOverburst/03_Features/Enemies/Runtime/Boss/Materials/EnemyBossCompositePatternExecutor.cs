@@ -263,7 +263,7 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     }
     void Free(Visual visual){if(visual==null)return;visual.root.SetActive(false);visual.used=false;}
     Vector3 Hands()=>((leftHand.position+rightHand.position)*.5f)+transform.rotation*basic.Collection.boulderOffset;
-    void ReleaseHeld(){if(held!=null)Free(held);held=null;}
+    void ReleaseHeld(){if(held!=null)Free(held);held=null;extractionAnchored=false;}
     static Vector3 PayloadCenter(EnemyBossCompositePatternSet.Payload payload)=>Vector3.up*payload.landingCenterHeight*payload.visualScale;
     static float BallisticDuration(EnemyBossCompositePatternSet.Payload payload,Vector3 start,Vector3 end)
     {
@@ -356,15 +356,14 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
         Resolve();if(patterns==null || actor?.Animator==null)return;
         if (UsesMotion) { ObserveOwnedPreparation(); return; }
         var state=actor.Animator.GetCurrentAnimatorStateInfo(0);bool extracting=state.IsName("Material_UnearthRock");
-        if(extracting && !preparationSeen){preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;}
+        if(extracting && !preparationSeen){preparedPayload=ResolvePayload();preparationSeen=true;prepared=true;extractionAnchored=false;}
         if(!extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock"))preparationSeen=false;
+        bool extractionPlaced=false;
         if(prepared && preparedPayload==EnemyBossThrowPayload.Elite && (extracting || state.IsName("Material_WalkForwardWithRock") || state.IsName("Material_WalkBackwardsWithRock"))){
             float frame=state.normalizedTime*(basic.Collection.FindMotion("UnearthRock").runtime.length*30f);
-            if(!extracting || frame>=patterns.eliteRevealFrame){basic.SetRockHeld(false);if(held==null)held=Acquire(patterns.elite);held.root.SetActive(true);
-                float size=!extracting?1f:Mathf.Lerp(.2f,1f,Mathf.InverseLerp(patterns.eliteRevealFrame,patterns.eliteFullSizeFrame,frame));
-                held.root.transform.localScale=Vector3.one*patterns.elite.visualScale*size;}
+            if(!extracting || frame>=patterns.eliteRevealFrame){PlaceExtractedElite(extracting?frame:patterns.eliteFullSizeFrame,transform.rotation);extractionPlaced=true;}
         }
-        if(held!=null){held.root.transform.SetPositionAndRotation(Hands(),transform.rotation);if(cast!=null)held.root.transform.localScale=Vector3.one*(held.payload?.visualScale??basic.Collection.boulderVisualRadius);}
+        if(held!=null && !extractionPlaced){held.root.transform.SetPositionAndRotation(Hands(),transform.rotation);if(cast!=null)held.root.transform.localScale=Vector3.one*(held.payload?.visualScale??basic.Collection.boulderVisualRadius);}
         if(prepared && !basic.IsExecuting && !extracting && !state.IsName("Material_WalkForwardWithRock") && !state.IsName("Material_WalkBackwardsWithRock") && cast==null){ReleaseHeld();prepared=false;preparedPayload=null;}
     }
     void HideWarnings(){foreach(var warning in warnings)warning?.Hide();}

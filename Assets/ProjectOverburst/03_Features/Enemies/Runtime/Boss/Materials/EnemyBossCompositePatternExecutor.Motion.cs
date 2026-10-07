@@ -12,6 +12,8 @@ public sealed partial class EnemyBossCompositePatternExecutor
     float preparationDeadline;
     Vector3 carryPreviousPosition;
     bool bodyRecovered;
+    bool extractionAnchored;
+    Vector3 extractionGround;
     float executionDeadline, executionUpperBound, executionLastRate, executionLastProgressAt;
     public EnemyMotionHandle PlaybackHandle => playbackHandle;
     public EnemyMotionResult ExecutionResult => executionResult;
@@ -25,7 +27,7 @@ public sealed partial class EnemyBossCompositePatternExecutor
         Resolve(); if (!UsesMotion || aimTarget == null || group == 0 || HasPreparation || IsExecuting) return false;
         // Payload and aim are installed only after the support request is accepted.
         if (!basic.TryPlayMotion("UnearthRock", true, group, step, basic)) return false;
-        overridePayload = payload; preparedPayload = ResolvePayload();
+        overridePayload = payload; preparedPayload = ResolvePayload(); extractionAnchored = false;
         preparationHandle = basic.PlaybackHandle; preparedLease = actor.LeaseVersion;
         preparedTarget = aimTarget; preparationDeadline = Time.time + actor.AnimationBridge.PlaybackProfile.DurationBudget(actor.AnimationBridge.PlaybackProfile.Find("UnearthRock"), 1f) + 30f;
         preparedAim = actor.AbilityController.ResolveAimPosition(aimTarget); preparedAim.y = transform.position.y;
@@ -247,11 +249,23 @@ public sealed partial class EnemyBossCompositePatternExecutor
         float frame = sample.Normalized * entry.runtime.length * entry.runtime.frameRate;
         if (preparedPayload == EnemyBossThrowPayload.Elite && frame >= patterns.eliteRevealFrame)
         {
-            basic.SetRockHeld(false); if (held == null) held = Acquire(patterns.elite);
-            held.root.SetActive(true); held.root.transform.SetPositionAndRotation(Hands(), preparedFacing);
-            float size = Mathf.Lerp(.2f, 1f, Mathf.InverseLerp(patterns.eliteRevealFrame, patterns.eliteFullSizeFrame, frame));
-            held.root.transform.localScale = Vector3.one * patterns.elite.visualScale * size;
+            PlaceExtractedElite(frame, preparedFacing);
         }
+    }
+    // Dig at a fixed world ground point, then lift a full-size body into the two-hand socket.
+    // SmoothStep makes the transfer continuous with both the buried start and the moving held pose.
+    void PlaceExtractedElite(float frame, Quaternion facing)
+    {
+        basic.SetRockHeld(false);
+        if (held == null) held = Acquire(patterns.elite);
+        if (!extractionAnchored) { extractionGround = Ground(Hands()); extractionAnchored = true; }
+        float lift = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(patterns.eliteRevealFrame, patterns.eliteFullSizeFrame, frame));
+        Vector3 buried = extractionGround - Vector3.up * Mathf.Max(.25f, PayloadCenter(patterns.elite).y);
+        var body = held.root.transform;
+        body.localScale = Vector3.one * patterns.elite.visualScale;
+        body.SetPositionAndRotation(Vector3.Lerp(buried, Hands(), lift),
+            facing * Quaternion.Euler(12f * (1f - lift), 0f, -6f * Mathf.Sin(lift * Mathf.PI) * (1f - lift)));
+        held.root.SetActive(true);
     }
     void CancelOwnedExecution()
     {
