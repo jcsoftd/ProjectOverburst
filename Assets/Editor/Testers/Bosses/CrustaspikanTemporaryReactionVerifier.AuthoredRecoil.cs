@@ -62,7 +62,8 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         float positionNormalized = motion.contactNormalized - .30f * material.AnimationSpeedMultiplier / material.runtimeClip.length;
         float deadline = Time.unscaledTime + 60f, requestAt = 0f, recoilAt = -1f, dazeAt = -1f, recoverAt = -1f, finishAt = -1f, suspendedGame = 0f;
         bool positioned = motion.strikeIndex == 0, requested = false, observed = false, edgeDone = false, signalled = false;
-        int impactsAtRequest = 0, frame = 0; var poses = new JArray(); var stages = new JArray();
+        int impactsAtRequest = 0, frame = 0; var poses = new JArray(); var stages = new JArray(); var cueSamples = new JArray();
+        var expectedCueBone = boss.Animator.GetComponentsInChildren<Transform>(true).Single(t => t.name == motion.cueBone);
         Vector3 reactionRoot = boss.transform.position;
         string id = motion.attack + "-hit" + (motion.strikeIndex + 1) + (edge != null ? "-" + edge + "-" + energyAmount : "");
         while (Time.unscaledTime < deadline)
@@ -73,12 +74,29 @@ public static partial class CrustaspikanTemporaryReactionVerifier
                 targetPosition = strike.Origin(boss.transform) + strike.Rotation(boss.transform) * Vector3.forward * Mathf.Min(6, strike.radius * .5f);
                 targetPosition.y = Origin.y; Warp(targetPosition); positioned = true;
             }
+            var liveCue = boss.GetComponents<EnemyStrongAttackWarning>().FirstOrDefault(w => w.IsVisible && w.FinalSignal && w.AttackCueSocket == expectedCueBone
+                && (bool)typeof(EnemyStrongAttackWarning).GetField("signalPlayed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(w));
+            if (!requested && liveCue != null)
+            {
+                var particle = (ParticleSystem)typeof(EnemyStrongAttackWarning).GetField("signalParticles", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(liveCue);
+                // Match the frame that is actually rendered after the animated rig and the glint's LateUpdate.
+                yield return new WaitForEndOfFrame();
+                Vector3 position = particle.transform.position;
+                Vector3 projected = camera.WorldToViewportPoint(position), hand = camera.WorldToViewportPoint(expectedCueBone.TransformPoint(motion.cueOffset));
+                float projectionError = Vector2.Distance(new Vector2(projected.x, projected.y), new Vector2(hand.x, hand.y));
+                Require(projected.z > 0f && projected.x > 0f && projected.x < 1f && projected.y > 0f && projected.y < 1f
+                    && projectionError < .002f && particle.particleCount > 0,
+                    "Rendered glint did not track the attacking hand: " + id + " / " + projectionError + " / " + projected);
+                cueSamples.Add(new JObject { ["bone"] = expectedCueBone.name, ["world"] = new JArray(position.x, position.y, position.z),
+                    ["screen"] = new JArray(projected.x, projected.y), ["projectionError"] = projectionError, ["particleCount"] = particle.particleCount });
+            }
             if (!requested && executor.HasEnteredMotion && executor.NormalizedTime >= inputNormalized
                 && executor.WouldHit(material.ability, player.GetComponent<CombatTarget>(), motion.strikeIndex))
             {
                 signalled = boss.GetComponentsInChildren<EnemyStrongAttackWarning>(true).Any(w => w.IsVisible && w.FinalSignal
                     && (bool)typeof(EnemyStrongAttackWarning).GetField("signalPlayed", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(w));
-                Require(signalled, "Authored parry contact had no advance glint/sound request: " + id);
+                Require(signalled && cueSamples.Count >= 2, "Authored parry contact had no moving attacking-hand glint/sound request: " + id);
+                if (edge == null) Capture(id + "-cue", 0);
                 Require(material.IsParryCueWindowOpen(motion.strikeIndex, executor.NormalizedTime, 1f, material.AnimationSpeedMultiplier), "Cue did not precede authored parry contact.");
                 impactsAtRequest = executor.ImpactCount; reactionRoot = boss.transform.position;
                 var action = player.GetComponent<MeleeRuntime>().TryStartHeavyAttack((boss.transform.position - player.transform.position).normalized);
@@ -160,6 +178,7 @@ public static partial class CrustaspikanTemporaryReactionVerifier
             ["advanceSignal"] = signalled, ["recoilRate"] = reaction.LastAuthoredRecoilRate, ["clipSeconds"] = motion.clip.length,
             ["recoilStageSeconds"] = dazeAt >= 0 ? dazeAt - recoilAt - suspendedGame : -1f, ["dazeSeconds"] = recoverAt >= 0 ? recoverAt - dazeAt : -1f,
             ["recoverSeconds"] = finishAt >= 0 && recoverAt >= 0 ? finishAt - recoverAt : -1f, ["acceptedNormalized"] = reaction.LastRewindStart,
+            ["cueBone"] = expectedCueBone.name, ["cueSamples"] = cueSamples,
             ["authoredNormalized"] = motion.contactNormalized, ["frames"] = frame, ["stages"] = stages, ["poses"] = poses });
         brain?.Dispose(); brain = null; Release(boss); player.GetComponent<MeleeRuntime>().CancelCurrentAttackState(); yield return new WaitForSeconds(.4f);
     }

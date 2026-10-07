@@ -3,11 +3,21 @@ using MoreMountains.Feedbacks;
 using UnityEngine;
 
 // Analytic ground geometry with a reversible supplier Telegraph fallback; body cue stays separate.
+[DefaultExecutionOrder(11100)]
 public sealed class EnemyStrongAttackWarning : MonoBehaviour
 {
     [SerializeField] private Transform cueSocket;
     [SerializeField] private Vector3 cueOffset;
     [SerializeField, Min(.01f)] private float cueScale = 1f;
+    private Transform attackCueSocket;
+    private Vector3 attackCueOffset;
+    public Transform AttackCueSocket => attackCueSocket;
+    // Runtime strike placement takes precedence over the common head cue.
+    public void SetAttackCue(Transform socket, Vector3 offset)
+    {
+        attackCueSocket = socket != null && (socket == transform || socket.IsChildOf(transform)) ? socket : null;
+        attackCueOffset = offset;
+    }
     private GameObject visual;
     private MMF_Player signalFeel;
     private ParticleSystem signalParticles;
@@ -289,6 +299,12 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
     public Vector3 ResolveCuePosition(Camera camera, int socketIndex = 1)
     {
         if (authoredCueAnchor == null) authoredCueAnchor = GetComponent<EnemyParryCueAnchor>();
+        if (attackCueSocket != null)
+        {
+            if (authoredCueAnchor != null && authoredCueAnchor.isActiveAndEnabled
+                && authoredCueAnchor.TryResolveAttackSocket(attackCueSocket, attackCueOffset, camera, out var attackPosition)) return attackPosition;
+            return attackCueSocket.TransformPoint(attackCueOffset);
+        }
         if (authoredCueAnchor != null && authoredCueAnchor.isActiveAndEnabled && authoredCueAnchor.TryResolve(camera, out var authoredPosition))
             return authoredPosition;
         CombatTarget target = body != null ? body : GetComponent<CombatTarget>();
@@ -317,7 +333,8 @@ public sealed class EnemyStrongAttackWarning : MonoBehaviour
         signalFeel?.StopFeedbacks();
         if (signalParticles != null)
             signalParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        FinalSignal = false;
+        FinalSignal = false; attackCueSocket = null; attackCueOffset = Vector3.zero;
     }
+    private void LateUpdate() { if (signalPlayed && attackCueSocket != null) PositionSignal(); }
     private void OnDisable() => Hide();
 }

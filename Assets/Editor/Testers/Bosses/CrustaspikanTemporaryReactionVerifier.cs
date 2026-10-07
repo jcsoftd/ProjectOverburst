@@ -25,7 +25,8 @@ public static partial class CrustaspikanTemporaryReactionVerifier
     static readonly List<EnemyActor> leases = new List<EnemyActor>();
     static EnemySpawnService service;
     static EnemyMotor host;
-    static Camera camera;
+    static Camera camera, previousCueCamera;
+    static bool ownsCueCamera;
     static RenderTexture rt;
     static Texture2D pixels;
     static PlayerActorRuntime player;
@@ -242,7 +243,12 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         rt = new RenderTexture(960, 540, 24); rt.Create(); owned.Add(rt); pixels = new Texture2D(960, 540, TextureFormat.RGB24, false); owned.Add(pixels);
         Time.captureDeltaTime = 1f / 30f; Time.timeScale = 1; Warp(Origin + Vector3.forward * 6); yield return new WaitForSeconds(.6f);
         if (plan.cameraOnly) { yield return CameraFraming(); yield break; }
-        if (plan.recoilOnly) { yield return AuthoredRecoilCases(); yield break; }
+        if (plan.recoilOnly)
+        {
+            var cueCamera = typeof(EnemyStrongAttackWarning).GetField("signalCamera", BindingFlags.Static | BindingFlags.NonPublic);
+            previousCueCamera = cueCamera.GetValue(null) as Camera; ownsCueCamera = true; cueCamera.SetValue(null, camera);
+            yield return AuthoredRecoilCases(); yield break;
+        }
         var basic = collection.attacks.First(m => m.delivery == EnemyBossMaterialDelivery.Melee);
         if (!plan.extrasOnly)
         {
@@ -422,9 +428,17 @@ public static partial class CrustaspikanTemporaryReactionVerifier
             Record("actual-room-camera-entry-reset-restart-exit-" + run);
         }
     }
+    static void RestoreCueCamera()
+    {
+        if (!ownsCueCamera) return;
+        var field = typeof(EnemyStrongAttackWarning).GetField("signalCamera", BindingFlags.Static | BindingFlags.NonPublic);
+        if (field.GetValue(null) as Camera == camera) field.SetValue(null, previousCueCamera);
+        previousCueCamera = null; ownsCueCamera = false;
+    }
     static void Finish(string error)
     {
         if (plan == null) return;
+        RestoreCueCamera();
         if (observedHealth != null && damageObserver != null) observedHealth.OnDamageResolved -= damageObserver; observedHealth = null; damageObserver = null;
         brain?.Dispose(); brain = null;
         foreach (var actor in leases) Release(actor); leases.Clear(); if (rt != null) rt.Release();
@@ -439,6 +453,7 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         string prepared = SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", "");
         if (!string.IsNullOrEmpty(env) && !string.Equals(env, Account, StringComparison.OrdinalIgnoreCase)
             || !string.IsNullOrEmpty(prepared) && !string.Equals(prepared, Account, StringComparison.OrdinalIgnoreCase)) return;
+        RestoreCueCamera();
         for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]); owned.Clear(); routine = null; host = null; rt = null; pixels = null;
         Time.captureDeltaTime = plan.capture; Time.timeScale = plan.timeScale; Application.runInBackground = plan.background;
         EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(plan.previousStart) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.previousStart);

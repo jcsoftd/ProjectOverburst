@@ -21,6 +21,17 @@ public sealed class EnemyParryCueAnchor : MonoBehaviour
         position = default;
         if (head == null || !(head == transform || head.IsChildOf(transform))) return false;
         position = head.position + Vector3.up * headClearance;
+        return PullInFrontOfBody(camera, ref position);
+    }
+    public bool TryResolveAttackSocket(Transform socket, Vector3 offset, Camera camera, out Vector3 position)
+    {
+        position = default;
+        if (socket == null || !(socket == transform || socket.IsChildOf(transform))) return false;
+        position = socket.TransformPoint(offset);
+        return PullInFrontOfBody(camera, ref position, true);
+    }
+    private bool PullInFrontOfBody(Camera camera, ref Vector3 position, bool preserveProjection = false)
+    {
         if (camera == null) return true;
         if (bodies == null) bodies = GetComponentsInChildren<SkinnedMeshRenderer>(true);
         bool found = false; Bounds silhouette = default;
@@ -35,8 +46,14 @@ public sealed class EnemyParryCueAnchor : MonoBehaviour
         Vector3 toCue = position - camera.transform.position;
         float distance = toCue.magnitude;
         if (distance <= .01f) return true;
-        // Preserve the head's screen position while bringing the glint in front of raised arms/shoulders.
+        // Preserve the chosen bone's screen position while bringing the glint in front of the body.
         var ray = new Ray(camera.transform.position, toCue / distance);
+        if (preserveProjection && camera.orthographic)
+        {
+            Vector3 viewport = camera.WorldToViewportPoint(position);
+            ray = camera.ViewportPointToRay(new Vector3(viewport.x, viewport.y, 0f));
+            distance = Vector3.Dot(position - ray.origin, ray.direction);
+        }
         if (silhouette.IntersectRay(ray, out float front) && front >= .1f && front < distance)
             position = ray.GetPoint(Mathf.Max(.1f, front - silhouetteClearance));
         return true;

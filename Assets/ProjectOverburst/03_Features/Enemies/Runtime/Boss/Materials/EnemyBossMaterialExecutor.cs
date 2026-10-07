@@ -226,6 +226,8 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         var strike=material.strikes[phase];
         if(warnings[phase]==null)
         {warnings[phase]=gameObject.AddComponent<EnemyStrongAttackWarning>();warnings[phase].SetRadialProfiles(collection.radialFillProfile,collection.radialBorderProfile);}
+        var parry=material.tuning?.parries!=null && phase<material.tuning.parries.Length ? material.tuning.parries[phase] : null;
+        warnings[phase].SetAttackCue(string.IsNullOrEmpty(parry?.cueBone) ? null : Socket(parry.cueBone), parry?.cueOffset ?? Vector3.zero);
         if(!warningShown[phase])
         {
             float size=strike.shape==GroundIndicatorShape.Rectangle?strike.length:strike.radius;

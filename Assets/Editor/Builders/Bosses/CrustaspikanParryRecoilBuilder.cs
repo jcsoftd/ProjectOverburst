@@ -167,7 +167,8 @@ public static class CrustaspikanParryRecoilBuilder
             profile.motions = pending.Select(pair => new CrustaspikanParryRecoilProfile.Motion {
                 attack = (string)document["clips"][pair.Key]["attack"], strikeIndex = (int)document["clips"][pair.Key]["strikeIndex"],
                 state = StateName(pair.Key), clip = pair.Value, sourceFrame = (int)document["clips"][pair.Key]["chosenFrame"],
-                contactNormalized = (float)document["clips"][pair.Key]["contactNormalized"] }).ToArray();
+                contactNormalized = (float)document["clips"][pair.Key]["contactNormalized"],
+                cueBone = AttackCueBone((string)document["clips"][pair.Key]["attack"], (int)document["clips"][pair.Key]["strikeIndex"]) }).ToArray();
             AssetDatabase.CreateAsset(profile, ProfilePath); AssetDatabase.SaveAssetIfDirty(profile);
             EnsureNativeAssets(); ValidateNative();
             Write("native-import.json", new { status = "PASS_NATIVE_IMPORT", input = sourceFile, sourceSha256 = SourceHash(sourceFile),
@@ -213,6 +214,28 @@ public static class CrustaspikanParryRecoilBuilder
         foreach (string id in new[] { "2HitComboAttack", "2HitComboAttackForward" })
         { var rule = encounter.Rule(id); if (rule == null) throw new InvalidOperationException("Combo rule missing."); rule.firstHitParry = true; }
         EditorUtility.SetDirty(encounter); AssetDatabase.SaveAssetIfDirty(encounter);
+    }
+    public static string AttackCueBone(string attack, int strikeIndex)
+    {
+        if (attack == "2HitComboAttack" || attack == "2HitComboAttackForward") return "Crustaspikan_ " + (strikeIndex == 0 ? "R" : "L") + " Hand";
+        if (attack == "RightHandAttack" || attack == "RightHandSmashAttack" || attack == "Turn90LeftHandAttack") return "Crustaspikan_ R Hand";
+        if (attack == "LeftHandAttack" || attack == "LeftHandSmashAttack" || attack == "Turn90RightHandAttack") return "Crustaspikan_ L Hand";
+        return null;
+    }
+    public static void ConfigureAttackCues()
+    {
+        CrustaspikanMotionPlaybackBuilder.RequireIdle();
+        var profile = AssetDatabase.LoadAssetAtPath<CrustaspikanParryRecoilProfile>(ProfilePath);
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CrustaspikanMotionPlaybackBuilder.PrefabPath);
+        if (profile == null || profile.motions.Length != 10 || prefab == null) throw new InvalidOperationException("Approved recoil assets missing.");
+        foreach (var motion in profile.motions)
+        {
+            string bone = AttackCueBone(motion.attack, motion.strikeIndex);
+            if (bone == null || !prefab.GetComponentsInChildren<Transform>(true).Any(t => t.name == bone)) throw new InvalidOperationException("Actual attacking hand missing.");
+            if (!string.IsNullOrEmpty(motion.cueBone) && motion.cueBone != bone) throw new InvalidOperationException("An authored cue changed externally.");
+        }
+        foreach (var motion in profile.motions) { motion.cueBone = AttackCueBone(motion.attack, motion.strikeIndex); motion.cueOffset = Vector3.zero; }
+        EditorUtility.SetDirty(profile); AssetDatabase.SaveAssetIfDirty(profile);
     }
     public static void ValidateNative()
     {
