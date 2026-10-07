@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEditor.Media;
 using UnityEngine;
@@ -17,16 +18,18 @@ public sealed class MonsterParryVideoCapture : IDisposable
     Transform player, enemy;
     string directory, error;
     int firstFrame, count;
-    string pendingMark;
+    readonly List<string> pendingMarks=new List<string>();
+    readonly JArray markers=new JArray();
+    public Action<int,float> FrameObserved { get; set; }
     public bool IsRecording => encoder != null;
     public string VideoPath { get; private set; }
 
-    public void BeginTake(string output, Transform playerTransform, Transform enemyTransform)
+    public void BeginTake(string output, Transform playerTransform, Transform enemyTransform, string fileName="actual-heavy-parry.mp4", string firstMark="strong")
     {
         Complete(); directory = output; Directory.CreateDirectory(directory);
         player = playerTransform; enemy = enemyTransform; error = null; count = 0;
-        firstFrame = Time.frameCount; pendingMark = "strong";
-        VideoPath = Path.Combine(directory, "actual-heavy-parry.mp4");
+        firstFrame = Time.frameCount; pendingMarks.Clear();markers.Clear();pendingMarks.Add(firstMark);
+        VideoPath = Path.Combine(directory, fileName);
         try
         {
             if (Camera.main == null) throw new InvalidOperationException("Actual game camera missing.");
@@ -48,7 +51,7 @@ public sealed class MonsterParryVideoCapture : IDisposable
         catch (Exception e) { error = e.ToString(); Complete(); throw; }
     }
 
-    public void Mark(string name) { if (IsRecording) pendingMark = name; }
+    public void Mark(string name) { if (IsRecording && !pendingMarks.Contains(name)) pendingMarks.Add(name); }
     public void CaptureFrame()
     {
         if (!IsRecording || (Time.frameCount - firstFrame) % 2 != 0) return;
@@ -78,9 +81,16 @@ public sealed class MonsterParryVideoCapture : IDisposable
                 RenderTexture.active = target; pixels.ReadPixels(new Rect(0, 0, Width, Height), 0, 0, false); pixels.Apply(false, false);
                 if (!encoder.AddFrame(pixels)) throw new InvalidOperationException("Video frame rejected.");
                 count++;
-                if (pendingMark != null)
+                FrameObserved?.Invoke(count,(count-1)/(float)Fps);
+                if (pendingMarks.Count > 0)
                 {
-                    File.WriteAllBytes(Path.Combine(directory, pendingMark + ".png"), pixels.EncodeToPNG()); pendingMark = null;
+                    var encoded=pixels.EncodeToPNG();
+                    foreach(string name in pendingMarks)
+                    {
+                        File.WriteAllBytes(Path.Combine(directory,name+".png"),encoded);
+                        markers.Add(new JObject{["name"]=name,["frame1Based"]=count,["videoSeconds"]=(count-1)/(float)Fps,["gameSeconds"]=Time.time});
+                    }
+                    pendingMarks.Clear();
                 }
             }
             finally { RenderTexture.active = previous; }
@@ -94,7 +104,7 @@ public sealed class MonsterParryVideoCapture : IDisposable
         catch (Exception e) { error = e.ToString(); }
         finally
         {
-            encoder = null;
+            encoder = null;FrameObserved=null;
             if (target != null) { target.Release(); UnityEngine.Object.DestroyImmediate(target); target = null; }
             if (pixels != null) { UnityEngine.Object.DestroyImmediate(pixels); pixels = null; }
             if (captureCamera != null) { UnityEngine.Object.DestroyImmediate(captureCamera.gameObject); captureCamera = null; }
@@ -104,7 +114,7 @@ public sealed class MonsterParryVideoCapture : IDisposable
         {
             ["status"] = pass ? "PASS" : "FAIL", ["error"] = error, ["path"] = VideoPath,
             ["frames"] = count, ["fps"] = Fps, ["width"] = Width, ["height"] = Height,
-            ["durationSeconds"] = count / (float)Fps, ["actualPlayerTest"] = true, ["audioRecorded"] = false
+            ["durationSeconds"] = count / (float)Fps, ["markers"]=markers, ["actualPlayerTest"] = true, ["audioRecorded"] = false
         }.ToString());
         return pass;
     }

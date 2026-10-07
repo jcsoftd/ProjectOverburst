@@ -16,7 +16,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         return StartInternal(outputDirectory,false,1,false,true,false,definitionPath,true);
     }
     static MonsterParryVideoCapture activeParryCapture;
-    const int PerfectParryFixtureVersion=8;
+    const int PerfectParryFixtureVersion=9;
     static IEnumerator CaptureParryFrames(MonsterParryVideoCapture capture)
     { while(true) { yield return null;capture.CaptureFrame(); } }
     static void ParryRequire(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
@@ -82,7 +82,9 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
                 if(capsuleEnabled)playerCapsule.enabled=true;
                 playerActor.Movement?.ResetMotionAfterTeleport();Physics.SyncTransforms();
                 string output=Path.Combine(plan.directory,definition.EnemyId);Directory.CreateDirectory(output);
-                var work=RunRealPlayerParryCase(definition,service,player,playerActor,melee,capture,output);
+                var cueReviewFile=Path.Combine(plan.directory,"cue-review-request.json");
+                bool cueReview=File.Exists(cueReviewFile)&&(bool?)JObject.Parse(File.ReadAllText(cueReviewFile))["recordStrongCueOnly"]==true;
+                var work=cueReview?RunStrongCueReviewCase(definition,service,player,playerActor,melee,capture,output):RunRealPlayerParryCase(definition,service,player,playerActor,melee,capture,output);
                 string caseError=null;
                 try
                 {
