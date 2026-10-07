@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: V3_GiantSlug_TongueAttackLeftRight
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   parryMotionWindows:
-  - {x: 0.20730826, y: 0.35789472}
-  - {x: 0.48618415, y: 0.6736842}
+  - {x: 0.28421053, y: 0.35789472}
+  firstStrikeOnlyParry: 1
   abilityId: V3_GiantSlug_TongueAttackLeftRight
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack2
@@ -23,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.4305556
   parryable: 1
   minimumRange: 0
   range: 1.9

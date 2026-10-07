@@ -117,8 +117,8 @@ public static partial class SevenThemeFollowupFlowVerifier
                 yield return null;
             }
             var finalWarning=actor.GetComponent<EnemyStrongAttackWarning>();int count=finalWarning!=null?(int)signalProperty.GetValue(finalWarning):0;
-            results.Add(new JObject{["scenario"]="multi_hit_motion_windows",["id"]=d.EnemyId,["name"]=d.DisplayName,["ability"]=ability.AbilityId,["hitCount"]=ability.HitCount,["speed"]=speed,["signalCount"]=count,["seenWindows"]=new JArray(seen.OrderBy(i=>i)),["beforeClipDenied"]=!beforeClip,["deliveredStrikeClosed"]=!late,["updateOrderSampleDifferences"]=mismatches,["damageEvents"]=damages.DeepClone(),["spatialDebug"]=spatialDebug,["captureCameraUsedForCue"]=Mode.StartsWith("CombatCueVisibility",StringComparison.Ordinal),["authoredCueAnchor"]=actor.GetComponent<EnemyParryCueAnchor>()?.Head?.name,["actualPlayerInput"]=false});
-            if(beforeClip||late||seen.Count!=ability.HitCount||count!=ability.HitCount)throw new InvalidOperationException("Per-strike signal failed "+d.EnemyId+" "+count+"/"+ability.HitCount);
+            results.Add(new JObject{["scenario"]="multi_hit_motion_windows",["id"]=d.EnemyId,["name"]=d.DisplayName,["ability"]=ability.AbilityId,["hitCount"]=ability.HitCount,["parryStrikeCount"]=ability.ParryStrikeCount,["firstStrikeOnlyParry"]=ability.FirstStrikeOnlyParry,["speed"]=speed,["signalCount"]=count,["seenWindows"]=new JArray(seen.OrderBy(i=>i)),["beforeClipDenied"]=!beforeClip,["deliveredStrikeClosed"]=!late,["updateOrderSampleDifferences"]=mismatches,["damageEvents"]=damages.DeepClone(),["spatialDebug"]=spatialDebug,["captureCameraUsedForCue"]=Mode.StartsWith("CombatCueVisibility",StringComparison.Ordinal),["authoredCueAnchor"]=actor.GetComponent<EnemyParryCueAnchor>()?.Head?.name,["actualPlayerInput"]=false});
+            if(beforeClip||late||seen.Count!=ability.ParryStrikeCount||count!=ability.ParryStrikeCount)throw new InvalidOperationException("Parry signal failed "+d.EnemyId+" "+count+"/"+ability.ParryStrikeCount);
             SaveCase(currentId);yield return null;
         }
         if(Mode.StartsWith("CombatCueVisibility",StringComparison.Ordinal))yield break;
@@ -130,7 +130,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         catalog.TryGet("DeathHarvest_Reaper",out var d);var ability=Strong(d);
         var cancel=typeof(PlayerParryController).GetMethod("CancelAndReact",BindingFlags.Static|BindingFlags.NonPublic);
         var active=typeof(EnemyAbilityController).GetMethod("TryGetActiveParryMotionWindow");
-        foreach(int strike in new[]{0,1,2})
+        foreach(int strike in Enumerable.Range(0,ability.ParryStrikeCount))
         {
             currentId=d.EnemyId+"_parry_cancel_"+strike;begin=Time.time;trace=new JArray();damages=new JArray();phase="strong_attack";
             target.position=Vector3.forward*2.5f;hp.SetMaxHp(1000000,true);Physics.SyncTransforms();
@@ -164,7 +164,7 @@ public static partial class SevenThemeFollowupFlowVerifier
         var active=typeof(EnemyAbilityController).GetMethod("TryGetActiveParryMotionWindow");
         var window=typeof(EnemyAbilityDefinition).GetMethod("TryGetParryMotionWindow");
         var checks=new JArray();
-        for(int i=0;i<ability.HitCount;i++)
+        for(int i=0;i<ability.ParryStrikeCount;i++)
         {
             var wargs=new object[]{i,default(Vector2)};if(!(bool)window.Invoke(ability,wargs))throw new InvalidOperationException("window missing");var w=(Vector2)wargs[1];
             foreach(var sample in new[]{(w.x-.001f,false),(w.x+.001f,true),(w.y-.001f,true),(w.y+.001f,false)})

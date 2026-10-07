@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PrimalHunt_Dimaxillosaurus_2HitComboClawsAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   parryMotionWindows:
-  - {x: 0.069714285, y: 0.2}
-  - {x: 0.40249997, y: 0.59}
+  - {x: 0.16363636, y: 0.2}
+  firstStrikeOnlyParry: 1
   abilityId: PrimalHunt_Dimaxillosaurus_2HitComboClawsAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack3
@@ -23,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
   range: 1.7852483

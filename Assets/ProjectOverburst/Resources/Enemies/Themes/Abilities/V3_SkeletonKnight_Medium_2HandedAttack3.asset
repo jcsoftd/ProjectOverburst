@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_SkeletonKnight_Medium_2HandedAttack3
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.33333334, y: 0.46666667}
+  firstStrikeOnlyParry: 1
   abilityId: V3_SkeletonKnight_Medium_2HandedAttack3
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack6
@@ -20,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
   range: 2.1279237

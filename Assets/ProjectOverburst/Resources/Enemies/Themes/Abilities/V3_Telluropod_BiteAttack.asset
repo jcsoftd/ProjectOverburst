@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Telluropod_BiteAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.29999998, y: 0.35}
+  firstStrikeOnlyParry: 1
   abilityId: V3_Telluropod_BiteAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack2
@@ -20,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
   range: 1.9
@@ -43,3 +46,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

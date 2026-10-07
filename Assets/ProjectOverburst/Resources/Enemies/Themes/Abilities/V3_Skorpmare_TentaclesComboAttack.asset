@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: V3_Skorpmare_TentaclesComboAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   parryMotionWindows:
-  - {x: 0.16100678, y: 0.3047619}
-  - {x: 0.32678568, y: 0.5142857}
-  - {x: 0.53630936, y: 0.7238095}
+  - {x: 0.24761903, y: 0.3047619}
+  firstStrikeOnlyParry: 1
   abilityId: V3_Skorpmare_TentaclesComboAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack3
@@ -24,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
   range: 1.9

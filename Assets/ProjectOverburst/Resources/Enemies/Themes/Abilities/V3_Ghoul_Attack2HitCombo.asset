@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: V3_Ghoul_Attack2HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   parryMotionWindows:
-  - {x: 0.1742857, y: 0.32}
-  - {x: 0.41249993, y: 0.59999996}
+  - {x: 0.14, y: 0.21999998}
+  firstStrikeOnlyParry: 1
   abilityId: V3_Ghoul_Attack2HitCombo
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
@@ -23,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 12
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
-  preparationDuration: 0.7
-  releaseDuration: 0.16
-  recoveryDuration: 0.34
+  preparationDuration: 0.875
+  releaseDuration: 0.19999999
+  recoveryDuration: 0.425
   minimumWarningTime: 0.86
-  minimumRecoveryTime: 0.34
+  minimumRecoveryTime: 0.425
   parryable: 1
   minimumRange: 0
   range: 1.9
@@ -36,8 +36,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.53333336
-  hitNormalizedTime: 0.32
+  hitDelay: 0.36666667
+  hitNormalizedTime: 0.21999998
   attackAnimationDuration: 1.6666667
   attackLockDuration: 1.6666667
   weight: 1

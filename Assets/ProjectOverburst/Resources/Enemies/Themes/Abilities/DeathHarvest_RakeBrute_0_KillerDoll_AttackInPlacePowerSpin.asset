@@ -12,14 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: DeathHarvest_RakeBrute_0_KillerDoll_AttackInPlacePowerSpin
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryMotionWindows:
+  - {x: 0.30344826, y: 0.56}
+  firstStrikeOnlyParry: 1
   abilityId: DeathHarvest_RakeBrute_0_KillerDoll_AttackInPlacePowerSpin
+  weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack1
   executionMode: 3
   damage: 11
   referencePatternDamagePercent: 13
   telegraphedStrongAttack: 1
+  telegraphedAttack: 0
+  preparationDuration: 0.6875
+  releaseDuration: 0.175
+  recoveryDuration: 0.35
   minimumWarningTime: 0.9
-  minimumRecoveryTime: 0.65
+  minimumRecoveryTime: 0.88611114
   parryable: 1
   minimumRange: 0
   range: 2.1172965
@@ -38,3 +46,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

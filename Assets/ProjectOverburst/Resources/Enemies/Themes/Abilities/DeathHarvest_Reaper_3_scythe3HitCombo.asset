@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: DeathHarvest_Reaper_3_scythe3HitCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
   parryMotionWindows:
-  - {x: 0.075, y: 0.15}
-  - {x: 0.305, y: 0.38}
-  - {x: 0.525, y: 0.6}
+  - {x: 0.12, y: 0.15}
+  firstStrikeOnlyParry: 1
   abilityId: DeathHarvest_Reaper_3_scythe3HitCombo
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack4
@@ -24,11 +23,11 @@ MonoBehaviour:
   referencePatternDamagePercent: 24
   telegraphedStrongAttack: 1
   telegraphedAttack: 0
-  preparationDuration: 0.55
-  releaseDuration: 0.14
-  recoveryDuration: 0.28
+  preparationDuration: 0.6875
+  releaseDuration: 0.175
+  recoveryDuration: 0.35
   minimumWarningTime: 1.1
-  minimumRecoveryTime: 0.85
+  minimumRecoveryTime: 1.0625
   parryable: 1
   minimumRange: 0
   range: 2.8578587
