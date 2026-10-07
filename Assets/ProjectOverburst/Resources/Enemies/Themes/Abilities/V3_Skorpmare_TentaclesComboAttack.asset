@@ -17,7 +17,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.12658949, y: 1.7485137, z: 2.0329652}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.24761903, y: 0.3047619}
+  - {x: 0.19047618, y: 0.3047619}
   firstStrikeOnlyParry: 1
   abilityId: V3_Skorpmare_TentaclesComboAttack
   weakAttackExecution: {fileID: 0}
@@ -28,9 +28,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.8
-  releaseDuration: 0.4
+  releaseDuration: 0.33333334
   recoveryDuration: 1.0740743
   preparationEndNormalized: 0.22857141
+  motionReleaseReferenceNormalized: 0.3047619
+  motionRecoveryStartNormalized: 0.7238095
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

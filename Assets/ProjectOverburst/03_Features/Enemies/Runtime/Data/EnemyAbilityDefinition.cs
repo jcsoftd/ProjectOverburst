@@ -40,12 +40,28 @@ public sealed partial class EnemyAbilityDefinition : ScriptableObject
     [SerializeField, Min(.05f)] private float releaseDuration = .14f;
     [SerializeField, Min(.05f)] private float recoveryDuration = .28f;
     [SerializeField, Range(0f, 1f)] private float preparationEndNormalized;
+    [SerializeField, Range(0f, 1f), Tooltip("재생 속도 계산에 사용하는 원본 첫 타격 자세. 0이면 현재 첫 타격을 사용합니다.")]
+    private float motionReleaseReferenceNormalized;
+    [SerializeField, Range(0f, 1f), Tooltip("원본 모션이 회수 동작으로 전환하는 자세. 0이면 현재 마지막 타격을 사용합니다.")]
+    private float motionRecoveryStartNormalized;
     public bool IsTelegraphedAttack => telegraphedAttack || telegraphedStrongAttack;
     public bool UsesPacedTimeline => telegraphedAttack;
+    private float MotionReleaseReference => motionReleaseReferenceNormalized > 0f
+        ? motionReleaseReferenceNormalized : HitNormalizedTime;
+    private float MotionRecoveryStart => motionRecoveryStartNormalized > 0f
+        ? motionRecoveryStartNormalized : LastHit;
     public float PreparationEnd => preparationEndNormalized > 0f
-        ? Mathf.Clamp(preparationEndNormalized, .001f, HitNormalizedTime - .001f)
-        : Mathf.Max(.02f, HitNormalizedTime - .12f);
+        ? Mathf.Clamp(preparationEndNormalized, .001f, MotionReleaseReference - .001f)
+        : Mathf.Max(.02f, MotionReleaseReference - .12f);
     private float LastHit => GetHitNormalizedTime(HitCount - 1);
+    public void ConfigureMotionPacing(float releaseReference, float recoveryStart)
+    {
+        if (float.IsNaN(releaseReference) || float.IsNaN(recoveryStart)
+            || releaseReference <= PreparationEnd || recoveryStart < releaseReference || recoveryStart >= 1f)
+            throw new System.ArgumentException("재생 속도의 기준 자세는 준비 끝 < 첫 타격 기준 <= 회수 시작 < 1이어야 합니다.");
+        motionReleaseReferenceNormalized = releaseReference;
+        motionRecoveryStartNormalized = recoveryStart;
+    }
     [SerializeField, Min(0f)] private float minimumWarningTime;
     [SerializeField, Min(0f)] private float minimumRecoveryTime;
     [SerializeField] private bool parryable;
@@ -63,27 +79,27 @@ public sealed partial class EnemyAbilityDefinition : ScriptableObject
     private float ReleaseSeconds(float speed) => Mathf.Max(.10f, releaseDuration) / Mathf.Max(.01f, speed);
     // Very long authored tails must not be crushed into a few frames on return.
     private float RecoverySeconds(float speed) => Mathf.Max(MinimumRecoveryTime, recoveryDuration,
-        UsesPacedTimeline ? AttackAnimationDuration * (1f - LastHit) / 3f : 0f) / Mathf.Max(.01f, speed);
+        UsesPacedTimeline ? AttackAnimationDuration * (1f - MotionRecoveryStart) / 3f : 0f) / Mathf.Max(.01f, speed);
     public float ResolveMinimumRecoveryTime(float speed) => MinimumRecoveryTime / Mathf.Max(.01f, speed);
     public float ResolvePacedTime(float normalized, float speed)
     {
         normalized = Mathf.Clamp01(normalized);
         if (!UsesPacedTimeline) return AttackAnimationDuration * normalized / Mathf.Max(.01f, speed);
         float prep = PreparationEnd;
-        float releaseRate = ReleaseSeconds(speed) / (HitNormalizedTime - prep);
+        float releaseRate = ReleaseSeconds(speed) / (MotionReleaseReference - prep);
         if (normalized <= prep) return PreparationSeconds(speed) * normalized / prep;
         float time = PreparationSeconds(speed);
-        if (normalized <= LastHit) return time + (normalized - prep) * releaseRate;
-        return time + (LastHit - prep) * releaseRate
-            + (normalized - LastHit) * RecoverySeconds(speed) / Mathf.Max(.01f, 1f - LastHit);
+        if (normalized <= MotionRecoveryStart) return time + (normalized - prep) * releaseRate;
+        return time + (MotionRecoveryStart - prep) * releaseRate
+            + (normalized - MotionRecoveryStart) * RecoverySeconds(speed) / Mathf.Max(.01f, 1f - MotionRecoveryStart);
     }
     public float ResolvePhaseAnimationSpeed(float normalized, float speed)
     {
         if (!UsesPacedTimeline) return Mathf.Max(.01f, speed);
         float secondsPerNormalized = normalized < PreparationEnd
             ? PreparationSeconds(speed) / PreparationEnd
-            : normalized < LastHit ? ReleaseSeconds(speed) / (HitNormalizedTime - PreparationEnd)
-            : RecoverySeconds(speed) / Mathf.Max(.01f, 1f - LastHit);
+            : normalized < MotionRecoveryStart ? ReleaseSeconds(speed) / (MotionReleaseReference - PreparationEnd)
+            : RecoverySeconds(speed) / Mathf.Max(.01f, 1f - MotionRecoveryStart);
         return AttackAnimationDuration / secondsPerNormalized;
     }
     public float ResolveWindupDelay(float animationSpeed)

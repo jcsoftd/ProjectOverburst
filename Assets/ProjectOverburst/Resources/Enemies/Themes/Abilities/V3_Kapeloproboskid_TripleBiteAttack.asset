@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.010796336, y: 2.1501586, z: 0.91223454}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.1625, y: 0.24999999}
+  - {x: 0.1375, y: 0.24999999}
   firstStrikeOnlyParry: 1
   abilityId: V3_Kapeloproboskid_TripleBiteAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.38095236
+  releaseDuration: 0.24242423
   recoveryDuration: 1.037037
   preparationEndNormalized: 0.14999999
+  motionReleaseReferenceNormalized: 0.24999999
+  motionRecoveryStartNormalized: 0.65
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -50,6 +52,6 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
-  - 0.45
-  - 0.65
+  - 0.55
+  - 0.7625
   projectilesPerRelease: 1

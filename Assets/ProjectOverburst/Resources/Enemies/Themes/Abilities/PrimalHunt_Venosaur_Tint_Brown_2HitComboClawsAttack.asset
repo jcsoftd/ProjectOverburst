@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.8755952, y: 1.5073464, z: 1.7086942}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.19999999, y: 0.26}
+  - {x: 0.17777777, y: 0.3111111}
   firstStrikeOnlyParry: 1
   abilityId: PrimalHunt_Venosaur_Tint_Brown_2HitComboClawsAttack
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.52222216
+  releaseDuration: 0.3730159
   recoveryDuration: 0.66666675
   preparationEndNormalized: 0.15555555
+  motionReleaseReferenceNormalized: 0.26
+  motionRecoveryStartNormalized: 0.6
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -42,8 +44,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.39000002
-  hitNormalizedTime: 0.26
+  hitDelay: 0.46666667
+  hitNormalizedTime: 0.3111111
   attackAnimationDuration: 1.5000001
   attackLockDuration: 1.4250001
   weight: 1
@@ -52,5 +54,5 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
-  - 0.6
+  - 0.6444444
   projectilesPerRelease: 1

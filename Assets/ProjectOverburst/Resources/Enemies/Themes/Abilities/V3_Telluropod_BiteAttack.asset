@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.000000017000831, y: 0.9806415, z: 0.299515}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.29999998, y: 0.35}
+  - {x: 0.29999998, y: 0.475}
   firstStrikeOnlyParry: 1
   abilityId: V3_Telluropod_BiteAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.45
+  releaseDuration: 0.27777773
   recoveryDuration: 0.962963
   preparationEndNormalized: 0.275
+  motionReleaseReferenceNormalized: 0.35
+  motionRecoveryStartNormalized: 0.35
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -40,8 +42,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.46666667
-  hitNormalizedTime: 0.35
+  hitDelay: 0.6333333
+  hitNormalizedTime: 0.475
   attackAnimationDuration: 1.3333334
   attackLockDuration: 1.3333334
   weight: 1

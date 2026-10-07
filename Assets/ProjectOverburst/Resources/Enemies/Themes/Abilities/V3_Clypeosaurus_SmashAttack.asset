@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.02979257, y: 2.2058136, z: 1.6643927}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.37894735, y: 0.50526315}
+  - {x: 0.39999998, y: 0.5368421}
   firstStrikeOnlyParry: 1
   abilityId: V3_Clypeosaurus_SmashAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 1.1666666
-  releaseDuration: 0.61904764
+  releaseDuration: 0.30952382
   recoveryDuration: 1.7407408
   preparationEndNormalized: 0.36842105
+  motionReleaseReferenceNormalized: 0.50526315
+  motionRecoveryStartNormalized: 0.50526315
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.6527778
   parryable: 1
@@ -40,8 +42,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 1.6
-  hitNormalizedTime: 0.50526315
+  hitDelay: 1.7
+  hitNormalizedTime: 0.5368421
   attackAnimationDuration: 3.1666667
   attackLockDuration: 3.1666667
   weight: 1

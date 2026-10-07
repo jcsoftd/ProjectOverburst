@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.34809545, y: 3.663982, z: 1.1514349}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.33749998, y: 0.44}
+  - {x: 0.3125, y: 0.44}
   firstStrikeOnlyParry: 1
   abilityId: CavernMutants_Ursacetus_2HandsSmashAttack
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 1.7333333
-  releaseDuration: 0.87619054
+  releaseDuration: 0.32280704
   recoveryDuration: 3.3185186
   preparationEndNormalized: 0.325
+  motionReleaseReferenceNormalized: 0.44
+  motionRecoveryStartNormalized: 0.44
   minimumWarningTime: 0.86
   minimumRecoveryTime: 1.2444445
   parryable: 1

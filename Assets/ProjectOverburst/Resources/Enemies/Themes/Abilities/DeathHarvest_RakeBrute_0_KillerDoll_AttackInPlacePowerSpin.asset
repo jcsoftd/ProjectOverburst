@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.24694178, y: 1.429938, z: 0.99402153}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.30344826, y: 0.56}
+  - {x: 0.44827583, y: 0.56}
   firstStrikeOnlyParry: 1
   abilityId: DeathHarvest_RakeBrute_0_KillerDoll_AttackInPlacePowerSpin
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 1.4333333
-  releaseDuration: 1.8190478
+  releaseDuration: 1.2733334
   recoveryDuration: 2.362963
   preparationEndNormalized: 0.2965517
+  motionReleaseReferenceNormalized: 0.56
+  motionRecoveryStartNormalized: 0.56
   minimumWarningTime: 0.9
   minimumRecoveryTime: 0.88611114
   parryable: 1

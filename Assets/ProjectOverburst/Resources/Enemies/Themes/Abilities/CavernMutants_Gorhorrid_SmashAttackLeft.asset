@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.605449, y: 1.7478029, z: 1.121348}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.28888887, y: 0.41}
+  - {x: 0.26666665, y: 0.41}
   firstStrikeOnlyParry: 1
   abilityId: CavernMutants_Gorhorrid_SmashAttackLeft
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.35504586
+  releaseDuration: 0.3071429
   recoveryDuration: 0.9833334
   preparationEndNormalized: 0.26666665
+  motionReleaseReferenceNormalized: 0.41
+  motionRecoveryStartNormalized: 0.41
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

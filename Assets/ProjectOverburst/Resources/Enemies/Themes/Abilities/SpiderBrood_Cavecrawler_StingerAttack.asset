@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.00000025858043, y: 1.2722635, z: -0.14052778}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.23333333, y: 0.4}
+  - {x: 0.26666668, y: 0.4}
   firstStrikeOnlyParry: 1
   abilityId: SpiderBrood_Cavecrawler_StingerAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.35999998
+  releaseDuration: 0.30769232
   recoveryDuration: 0.6666667
   preparationEndNormalized: 0.2
+  motionReleaseReferenceNormalized: 0.4
+  motionRecoveryStartNormalized: 0.4
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

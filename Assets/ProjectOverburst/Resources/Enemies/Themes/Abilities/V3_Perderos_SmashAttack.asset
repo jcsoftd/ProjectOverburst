@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.00000918, y: 4.585072, z: 2.4485397}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.39999998, y: 0.5333333}
+  - {x: 0.37777776, y: 0.5333333}
   firstStrikeOnlyParry: 1
   abilityId: V3_Perderos_SmashAttack
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.56666666
-  releaseDuration: 0.35
+  releaseDuration: 0.23333333
   recoveryDuration: 0.7777779
   preparationEndNormalized: 0.37777776
+  motionReleaseReferenceNormalized: 0.5333333
+  motionRecoveryStartNormalized: 0.5333333
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

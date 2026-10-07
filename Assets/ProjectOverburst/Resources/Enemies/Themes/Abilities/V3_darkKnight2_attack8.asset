@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.6379059, y: 1.6700737, z: 0.47124895}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.43333322, y: 0.5333332}
+  - {x: 0.43333322, y: 0.56666654}
   firstStrikeOnlyParry: 1
   abilityId: V3_darkKnight2_attack8
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.40000004
+  releaseDuration: 0.2666666
   recoveryDuration: 0.5185188
   preparationEndNormalized: 0.39999992
+  motionReleaseReferenceNormalized: 0.5333332
+  motionRecoveryStartNormalized: 0.5333332
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -40,8 +42,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.5333333
-  hitNormalizedTime: 0.5333332
+  hitDelay: 0.56666666
+  hitNormalizedTime: 0.56666654
   attackAnimationDuration: 1.0000002
   attackLockDuration: 1.0000002
   weight: 1

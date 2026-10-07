@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.065207005, y: 1.9426078, z: 1.8520404}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.39999998, y: 0.55}
+  - {x: 0.35, y: 0.55}
   firstStrikeOnlyParry: 1
   abilityId: V3_Gasterodonte_AllTentaclesAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.35
+  releaseDuration: 0.23333335
   recoveryDuration: 0.6666667
   preparationEndNormalized: 0.375
+  motionReleaseReferenceNormalized: 0.55
+  motionRecoveryStartNormalized: 0.55
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

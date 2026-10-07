@@ -19,7 +19,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 1.1808996, y: 2.3133483, z: 1.2573489}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.16363636, y: 0.2}
+  - {x: 0.16363636, y: 0.29090908}
   firstStrikeOnlyParry: 1
   abilityId: PrimalHunt_Dimaxillosaurus_2HitComboClawsAttack
   weakAttackExecution: {fileID: 0}
@@ -30,9 +30,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.44999996
+  releaseDuration: 0.27777782
   recoveryDuration: 0.8351852
   preparationEndNormalized: 0.14545454
+  motionReleaseReferenceNormalized: 0.2
+  motionRecoveryStartNormalized: 0.59
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -43,8 +45,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.36666667
-  hitNormalizedTime: 0.2
+  hitDelay: 0.53333336
+  hitNormalizedTime: 0.29090908
   attackAnimationDuration: 1.8333334
   attackLockDuration: 1.7416667
   weight: 1

@@ -19,7 +19,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.36484006, y: 1.7939132, z: 0.5679889}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.33333334, y: 0.46666667}
+  - {x: 0.36666667, y: 0.5}
   firstStrikeOnlyParry: 1
   abilityId: V3_SkeletonKnight_Medium_2HandedAttack3
   weakAttackExecution: {fileID: 0}
@@ -30,9 +30,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.375
+  releaseDuration: 0.27777776
   recoveryDuration: 0.5925926
   preparationEndNormalized: 0.3
+  motionReleaseReferenceNormalized: 0.46666667
+  motionRecoveryStartNormalized: 0.46666667
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -43,8 +45,8 @@ MonoBehaviour:
   verticalTolerance: 1.6799397
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.46666667
-  hitNormalizedTime: 0.46666667
+  hitDelay: 0.5
+  hitNormalizedTime: 0.5
   attackAnimationDuration: 1
   attackLockDuration: 1
   weight: 1

@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.0801591, y: 1.5398234, z: 0.47294244}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.33333328, y: 0.39999995}
+  - {x: 0.2333333, y: 0.39999995}
   firstStrikeOnlyParry: 1
   abilityId: V3_Xenosaurid_TailAttackMiddle
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.45000002
+  releaseDuration: 0.2777778
   recoveryDuration: 0.6666668
   preparationEndNormalized: 0.29999995
+  motionReleaseReferenceNormalized: 0.39999995
+  motionRecoveryStartNormalized: 0.39999995
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1

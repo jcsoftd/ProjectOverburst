@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.8970232, y: 0.26955134, z: 1.9020526}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.28421053, y: 0.35789472}
+  - {x: 0.24210526, y: 0.35789472}
   firstStrikeOnlyParry: 1
   abilityId: V3_GiantSlug_TongueAttackLeftRight
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.8666667
-  releaseDuration: 0.38095233
+  releaseDuration: 0.31372544
   recoveryDuration: 1.1481482
   preparationEndNormalized: 0.2736842
+  motionReleaseReferenceNormalized: 0.35789472
+  motionRecoveryStartNormalized: 0.6736842
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.4305556
   parryable: 1

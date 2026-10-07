@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.10306882, y: 1.9953207, z: 1.3882169}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.38333333, y: 0.48}
+  - {x: 0.35, y: 0.48}
   firstStrikeOnlyParry: 1
   abilityId: CavernMutants_Gasterobrach_AttackSmash
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.73333335
-  releaseDuration: 0.35172415
+  releaseDuration: 0.30222216
   recoveryDuration: 1.1555556
   preparationEndNormalized: 0.36666667
+  motionReleaseReferenceNormalized: 0.48
+  motionRecoveryStartNormalized: 0.48
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.43333334
   parryable: 1

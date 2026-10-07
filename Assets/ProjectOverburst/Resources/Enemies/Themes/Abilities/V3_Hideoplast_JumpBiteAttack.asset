@@ -17,7 +17,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.14481173, y: 1.9747086, z: 1.1204755}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.36666667, y: 0.46666667}
+  - {x: 0.36666667, y: 0.6333333}
   firstStrikeOnlyParry: 1
   abilityId: V3_Hideoplast_JumpBiteAttack
   weakAttackExecution: {fileID: 0}
@@ -28,9 +28,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.4
+  releaseDuration: 0.28985506
   recoveryDuration: 0.5925926
   preparationEndNormalized: 0.33333334
+  motionReleaseReferenceNormalized: 0.46666667
+  motionRecoveryStartNormalized: 0.46666667
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -41,8 +43,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.46666667
-  hitNormalizedTime: 0.46666667
+  hitDelay: 0.6333333
+  hitNormalizedTime: 0.6333333
   attackAnimationDuration: 1
   attackLockDuration: 1
   weight: 1

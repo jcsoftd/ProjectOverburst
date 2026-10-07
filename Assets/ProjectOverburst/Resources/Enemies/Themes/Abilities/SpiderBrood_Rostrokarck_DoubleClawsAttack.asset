@@ -16,7 +16,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 0.13609912, y: 3.7139125, z: 0.41710794}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.33999997, y: 0.5}
+  - {x: 0.33999997, y: 0.55999994}
   firstStrikeOnlyParry: 1
   abilityId: SpiderBrood_Rostrokarck_DoubleClawsAttack
   weakAttackExecution: {fileID: 0}
@@ -27,9 +27,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.4285715
+  releaseDuration: 0.2857143
   recoveryDuration: 0.92592597
   preparationEndNormalized: 0.32
+  motionReleaseReferenceNormalized: 0.5
+  motionRecoveryStartNormalized: 0.5
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -40,8 +42,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.8333334
-  hitNormalizedTime: 0.5
+  hitDelay: 0.93333334
+  hitNormalizedTime: 0.55999994
   attackAnimationDuration: 1.6666667
   attackLockDuration: 1.5833334
   weight: 1

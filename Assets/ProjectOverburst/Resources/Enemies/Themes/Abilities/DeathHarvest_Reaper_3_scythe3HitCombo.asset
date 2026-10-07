@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: 1.1454189, y: 2.9810297, z: 1.1509356}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.12, y: 0.15}
+  - {x: 0.10999999, y: 0.16}
   firstStrikeOnlyParry: 1
   abilityId: DeathHarvest_Reaper_3_scythe3HitCombo
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.39999995
+  releaseDuration: 0.26666677
   recoveryDuration: 1.4814816
   preparationEndNormalized: 0.10999999
+  motionReleaseReferenceNormalized: 0.15
+  motionRecoveryStartNormalized: 0.6
   minimumWarningTime: 1.1
   minimumRecoveryTime: 1.0625
   parryable: 1
@@ -42,8 +44,8 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 5
-  hitDelay: 0.50000006
-  hitNormalizedTime: 0.15
+  hitDelay: 0.53333336
+  hitNormalizedTime: 0.16
   attackAnimationDuration: 3.3333335
   attackLockDuration: 3.2
   weight: 1
@@ -52,6 +54,6 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
-  - 0.38
-  - 0.6
+  - 0.39
+  - 0.63
   projectilesPerRelease: 1

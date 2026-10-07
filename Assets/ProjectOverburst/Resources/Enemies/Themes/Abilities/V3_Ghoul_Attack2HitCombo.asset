@@ -18,7 +18,7 @@ MonoBehaviour:
   parryCueLocalPosition: {x: -0.69918877, y: 1.7272632, z: 0.79071486}
   parryCueScale: 0.55
   parryMotionWindows:
-  - {x: 0.14, y: 0.21999998}
+  - {x: 0.12, y: 0.21999998}
   firstStrikeOnlyParry: 1
   abilityId: V3_Ghoul_Attack2HitCombo
   weakAttackExecution: {fileID: 0}
@@ -29,9 +29,11 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.375
+  releaseDuration: 0.27777776
   recoveryDuration: 0.74074084
   preparationEndNormalized: 0.12
+  motionReleaseReferenceNormalized: 0.21999998
+  motionRecoveryStartNormalized: 0.59999996
   minimumWarningTime: 0.86
   minimumRecoveryTime: 0.425
   parryable: 1
@@ -42,7 +44,7 @@ MonoBehaviour:
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 2.4
-  hitDelay: 0.36666667
+  hitDelay: 0.36666664
   hitNormalizedTime: 0.21999998
   attackAnimationDuration: 1.6666667
   attackLockDuration: 1.6666667
