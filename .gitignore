@@ -172,3 +172,9 @@ Assets/StreamingAssets/aa/
 # Licensed P09 cloth selection/prebuild geometry; restore the preview model from private recovery.
 /Assets/ProjectOverburst/Resources/UI/Appearance/PF_AppearancePreviewModel.prefab
 /Assets/ProjectOverburst/Resources/UI/Appearance/PF_AppearancePreviewModel.prefab.meta
+
+# Licensed animation copies in Assets root; keep local with original meta files.
+/Assets/Combo_02_3.anim
+/Assets/Combo_02_3.anim.meta
+/Assets/Parry_Counter_Attack.anim
+/Assets/Parry_Counter_Attack.anim.meta
