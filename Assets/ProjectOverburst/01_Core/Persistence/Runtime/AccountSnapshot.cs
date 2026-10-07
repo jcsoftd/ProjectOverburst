@@ -34,6 +34,7 @@ namespace Overburst.Persistence
         public long bossClearCount;
         public string elementalGemInstanceId;
         public SkillTreeSnapshot skillTree;
+        public CharacterAppearanceSnapshot appearance;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)
         {

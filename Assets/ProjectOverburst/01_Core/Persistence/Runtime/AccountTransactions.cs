@@ -150,6 +150,7 @@ namespace Overburst.Persistence
         public int BaseUnlockedSlots => current.baseUnlockedSlots;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
         public SkillTreeSnapshot ReadSkillTree() => current.skillTree?.Copy();
+        public CharacterAppearanceSnapshot ReadAppearance() => current.appearance?.Copy();
         internal int CurrentLevel => current.level;
         internal bool CanAcquireFromRun(string runId) => current.run != null && current.run.runId == runId && AccountInvariants.IsRunning(current.run.phase);
         public RunSnapshot ReadRun() => ItemSnapshotCodec.CopyValues(current.run);

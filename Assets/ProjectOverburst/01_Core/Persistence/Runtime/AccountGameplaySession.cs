@@ -30,6 +30,33 @@ namespace Overburst.Persistence
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
         public SkillTreeSnapshot ReadSkillTree() => transactions.ReadSkillTree();
+        public CharacterAppearanceSnapshot ReadAppearance() => transactions.ReadAppearance();
+        public event Action<CharacterAppearanceSnapshot> AppearanceCommitted;
+        public string AppearanceProjectionError { get; private set; }
+
+        public bool ApplyAppearance(CharacterAppearanceSnapshot expected, CharacterAppearanceSnapshot next)
+        {
+            if (!WorldSessionState.IsHideout) throw new InvalidOperationException("은신처에서 외모를 변경할 수 있습니다.");
+            if (editing || restoring) throw new InvalidOperationException("계정 작업이 진행 중입니다.");
+            EnsureProjectionReady();
+            AccountAppearanceCommands.Validate(next);
+            var saved = next.Copy();
+            editing = true;
+            try
+            {
+                bool committed = transactions.Execute(Guid.NewGuid().ToString("N"), transactions.Revision,
+                    candidate => AccountAppearanceCommands.Apply(candidate, expected, saved), saveImmediately: true);
+                if (!committed) return false;
+                AppearanceProjectionError = null;
+                var listeners = AppearanceCommitted;
+                if (listeners != null)
+                    foreach (Action<CharacterAppearanceSnapshot> listener in listeners.GetInvocationList())
+                        try { listener(saved.Copy()); }
+                        catch (Exception error) { AppearanceProjectionError = error.Message; Debug.LogException(error); }
+                return true;
+            }
+            finally { editing = false; }
+        }
         public bool CanAcquireFromRun(string runId) => transactions.CanAcquireFromRun(runId);
         public RunSnapshot ReadRun() => transactions.ReadRun();
 

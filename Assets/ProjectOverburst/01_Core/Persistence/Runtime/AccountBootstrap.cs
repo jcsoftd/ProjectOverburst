@@ -64,6 +64,7 @@ namespace Overburst.Persistence
                 session.Attach();
                 AccountAutosave.StartFor(session);
                 Ready = true;
+                PlayerAppearanceController.Install();
                 return true;
             }
             catch (Exception error)

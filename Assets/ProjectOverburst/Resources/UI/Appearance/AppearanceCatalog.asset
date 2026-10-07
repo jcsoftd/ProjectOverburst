@@ -1,0 +1,344 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e70cf538d0341f47a1a93170a49d19b, type: 3}
+  m_Name: AppearanceCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::Overburst.Appearance.CharacterAppearanceCatalog
+  visualPrefab: {fileID: 8396569187097779974, guid: 0bed19e185e75544195001b078db93f3, type: 3}
+  idleClip: {fileID: 7400000, guid: f64ce7deb2084b44d8a9639446efb25f, type: 2}
+  defaultAppearance:
+    dataVersion: 1
+    bodyTypeId: human.female
+    faceId: p09.face.female.03
+    hairStyleId: p09.hair.09
+    hairColorId: p09.haircolor.09
+    skinColorId: p09.skin.female.01
+    eyeColorId: p09.eye.03
+    bodyShapeId: p09.bodyshape.m
+  faces:
+  - id: p09.face.female.01
+    displayName: "\uC5BC\uAD74 1"
+    rendererName: Female_Face_01
+    thumbnail: {fileID: 21300000, guid: 0e0d3286c507fdd419a42ceef6aa57b9, type: 3}
+  - id: p09.face.female.02
+    displayName: "\uC5BC\uAD74 2"
+    rendererName: Female_Face_02
+    thumbnail: {fileID: 21300000, guid: 597d3c35870fd1140a2fa7a2ee581d3a, type: 3}
+  - id: p09.face.female.03
+    displayName: "\uC5BC\uAD74 3"
+    rendererName: Female_Face_03
+    thumbnail: {fileID: 21300000, guid: a04699bdbd2e09d4087ef510cb439452, type: 3}
+  hairStyles:
+  - id: p09.hair.01
+    displayName: "\uBA38\uB9AC 1"
+    rendererName: Hair_01
+    thumbnail: {fileID: 21300000, guid: e3df10727d08d154b895b82ddf821353, type: 3}
+  - id: p09.hair.02
+    displayName: "\uBA38\uB9AC 2"
+    rendererName: Hair_02
+    thumbnail: {fileID: 21300000, guid: d4b106260688c9b4ea4b5c5a4b4d3f6f, type: 3}
+  - id: p09.hair.03
+    displayName: "\uBA38\uB9AC 3"
+    rendererName: Hair_03
+    thumbnail: {fileID: 21300000, guid: 82474970a2b1cf04fab3e0b9f7cc1369, type: 3}
+  - id: p09.hair.04
+    displayName: "\uBA38\uB9AC 4"
+    rendererName: Hair_04
+    thumbnail: {fileID: 21300000, guid: f034437f3aa11bd4ebde690526ec1276, type: 3}
+  - id: p09.hair.05
+    displayName: "\uBA38\uB9AC 5"
+    rendererName: Hair_05
+    thumbnail: {fileID: 21300000, guid: 3e873116651a5b040975ceadcea8e904, type: 3}
+  - id: p09.hair.06
+    displayName: "\uBA38\uB9AC 6"
+    rendererName: Hair_06
+    thumbnail: {fileID: 21300000, guid: eb961a96e7ff36c498f60a340d6a8404, type: 3}
+  - id: p09.hair.07
+    displayName: "\uBA38\uB9AC 7"
+    rendererName: Hair_07
+    thumbnail: {fileID: 21300000, guid: d5edf69df6ada45418c0e9ffeb92d4c3, type: 3}
+  - id: p09.hair.08
+    displayName: "\uBA38\uB9AC 8"
+    rendererName: Hair_08
+    thumbnail: {fileID: 21300000, guid: 47843f734d8b75f4ca4de0f020778d4c, type: 3}
+  - id: p09.hair.09
+    displayName: "\uBA38\uB9AC 9"
+    rendererName: Hair_09
+    thumbnail: {fileID: 21300000, guid: 318997f5dfa73084c8baa28ee9a74c39, type: 3}
+  - id: p09.hair.10
+    displayName: "\uBA38\uB9AC 10"
+    rendererName: Hair_10
+    thumbnail: {fileID: 21300000, guid: a1429f07322436b4894c50c091d34699, type: 3}
+  - id: p09.hair.11
+    displayName: "\uBA38\uB9AC 11"
+    rendererName: Hair_11
+    thumbnail: {fileID: 21300000, guid: e755fc04776385d4cab8b05ea87d3b10, type: 3}
+  - id: p09.hair.12
+    displayName: "\uBA38\uB9AC 12"
+    rendererName: Hair_12
+    thumbnail: {fileID: 21300000, guid: 49b171fdd4a1f214ab722af0dc79a6a8, type: 3}
+  - id: p09.hair.13
+    displayName: "\uBA38\uB9AC 13"
+    rendererName: Hair_13
+    thumbnail: {fileID: 21300000, guid: 2ed469a52ce90b345a6a07432df31e53, type: 3}
+  - id: p09.hair.none
+    displayName: "\uC5C6\uC74C"
+    rendererName: SkinHead_Female
+    thumbnail: {fileID: 21300000, guid: f2cb7652ad601fd49b22659c9a47f491, type: 3}
+  hairColors:
+  - id: p09.haircolor.01
+    displayName: 01
+    material: {fileID: 2100000, guid: f74bd206f27ce0f4ab019b4b693bf9a0, type: 2}
+    hair10Material: {fileID: 2100000, guid: 104ae2c5d69b116489690f1aabba91f6, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -7915799510721504140, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.02
+    displayName: 02
+    material: {fileID: 2100000, guid: 0bbd1876259222148bc67e1edf175dd1, type: 2}
+    hair10Material: {fileID: 2100000, guid: 81adcd99d4fd2184f8c63a7063ff8df3, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 4399376667168655195, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.03
+    displayName: 03
+    material: {fileID: 2100000, guid: 26da13232b42f6a4ca35370cad305648, type: 2}
+    hair10Material: {fileID: 2100000, guid: 6ddbce3b1d03cad4fb0a58e4d4c40001, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -1579388374466626859, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.04
+    displayName: 04
+    material: {fileID: 2100000, guid: 16739f2bf565db147936edca2206e753, type: 2}
+    hair10Material: {fileID: 2100000, guid: d76493244248c8e4f943c36d1a3813e6, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -785334357947564171, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.05
+    displayName: 05
+    material: {fileID: 2100000, guid: a1e3ed3d8a793f94d99bb56844838be7, type: 2}
+    hair10Material: {fileID: 2100000, guid: 59382126d5a1afb42847d397f7892fd9, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -3295080435702146804, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.06
+    displayName: 06
+    material: {fileID: 2100000, guid: 702624787ab04d445a33693ec4ccf91a, type: 2}
+    hair10Material: {fileID: 2100000, guid: f33ea3b61e1a1d24099a535a3f7f3af2, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 5929801969358728678, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.07
+    displayName: 07
+    material: {fileID: 2100000, guid: d8a0aa8db24894e44be018a0c02fe384, type: 2}
+    hair10Material: {fileID: 2100000, guid: bc1325c9645e7114785a7e324ad2311c, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 2628141061528153073, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.08
+    displayName: 08
+    material: {fileID: 2100000, guid: 2ff068357339e4342bc1714c8e84eda4, type: 2}
+    hair10Material: {fileID: 2100000, guid: 569b834b8be0e4d4f895beadc4239d63, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 4362524113612087466, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.haircolor.09
+    displayName: 09
+    material: {fileID: 2100000, guid: 5de9ce337e675b140ab90cb8db34a3a7, type: 2}
+    hair10Material: {fileID: 2100000, guid: bee78cce994ca104bb178ea90e34a210, type: 2}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -2202934628940636210, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  skinColors:
+  - id: p09.skin.female.01
+    displayName: 01
+    material: {fileID: 2100000, guid: b13092b06ba8b064d8b13bf78bcdbafc, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 414081755648850185, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.skin.female.02
+    displayName: 02
+    material: {fileID: 2100000, guid: 878137f1354a4b344963c70776935600, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 1725739887855299374, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.skin.female.03
+    displayName: 03
+    material: {fileID: 2100000, guid: d72dfc3274af98e47b2f05a7b7da198f, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -4867784289964480475, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  eyeColors:
+  - id: p09.eye.01
+    displayName: 01
+    material: {fileID: 2100000, guid: e8416df2fe5514040934dca2bff43e26, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -4659034137759544888, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.eye.02
+    displayName: 02
+    material: {fileID: 2100000, guid: f8fe0c88d24f5e541a710bda589a9a7c, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 6434515116885039415, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.eye.03
+    displayName: 03
+    material: {fileID: 2100000, guid: c7a3e253d1b96754fb9a43e87385d176, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 9200045939640992494, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.eye.04
+    displayName: 04
+    material: {fileID: 2100000, guid: 3550ab8f7d049544d8dcb5938e60a399, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 4494814930471475631, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  - id: p09.eye.05
+    displayName: 05
+    material: {fileID: 2100000, guid: de24483bd2be4184ab1361e8c6958210, type: 2}
+    hair10Material: {fileID: 0}
+    swatch: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: -2260821899030410315, guid: a95840c83e32ded4499db75c755f1e3f, type: 3}
+  bodyStyles:
+  - id: p09.bodyshape.s
+    displayName: S
+    scale: {x: 0.85, y: 0.8, z: 0.85}
+  - id: p09.bodyshape.m
+    displayName: M
+    scale: {x: 1, y: 1, z: 1}
+  - id: p09.bodyshape.l
+    displayName: L
+    scale: {x: 1.2, y: 1.2, z: 1.2}
+  equipmentExamples:
+  - id: p09.armor.female.001
+    displayName: "\uC7A5\uBE44 1"
+    rendererNames:
+    - Fem_Armor_001_Arm
+    - Fem_Armor_001_Chest
+    - Fem_Armor_001_Leg
+    - Fem_Armor_001_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 53d67d673bd02044d91ad84c99b32300, type: 3}
+  - id: p09.armor.female.002
+    displayName: "\uC7A5\uBE44 2"
+    rendererNames:
+    - Fem_Armor_002_Arm
+    - Fem_Armor_002_Chest
+    - Fem_Armor_002_Head
+    - Fem_Armor_002_Leg
+    - Fem_Armor_002_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 7284e72064e220a40b8c076eb640ae67, type: 3}
+  - id: p09.armor.female.003
+    displayName: "\uC7A5\uBE44 3"
+    rendererNames:
+    - Fem_Armor_003_Arm
+    - Fem_Armor_003_Chest
+    - Fem_Armor_003_Head
+    - Fem_Armor_003_Leg
+    - Fem_Armor_003_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: a3d7850ff23db814199cf3b26cff099a, type: 3}
+  - id: p09.armor.female.004
+    displayName: "\uC7A5\uBE44 4"
+    rendererNames:
+    - Fem_Armor_004_Arm
+    - Fem_Armor_004_Chest
+    - Fem_Armor_004_Head
+    - Fem_Armor_004_Leg
+    - Fem_Armor_004_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 707f5af1b91b6e14ba84d218c2db629c, type: 3}
+  - id: p09.armor.female.005
+    displayName: "\uC7A5\uBE44 5"
+    rendererNames:
+    - Fem_Armor_005_Arm
+    - Fem_Armor_005_Chest
+    - Fem_Armor_005_Chest_Cloth
+    - Fem_Armor_005_Head
+    - Fem_Armor_005_Leg
+    - Fem_Armor_005_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: e76b6fe93253bf94ea08880540e029f6, type: 3}
+  - id: p09.armor.female.006
+    displayName: "\uC7A5\uBE44 6"
+    rendererNames:
+    - Fem_Armor_006_Arm
+    - Fem_Armor_006_Chest
+    - Fem_Armor_006_Head
+    - Fem_Armor_006_Leg
+    - Fem_Armor_006_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 2adccbd384d770a4cb9645de49f3276a, type: 3}
+  - id: p09.armor.female.007
+    displayName: "\uC7A5\uBE44 7"
+    rendererNames:
+    - Fem_Armor_007_Arm
+    - Fem_Armor_007_Chest
+    - Fem_Armor_007_Chest_Cloak
+    - Fem_Armor_007_Head
+    - Fem_Armor_007_Leg
+    - Fem_Armor_007_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 80d0be735335ef24db7e2847fcf82b4f, type: 3}
+  - id: p09.armor.female.008
+    displayName: "\uC7A5\uBE44 8"
+    rendererNames:
+    - Fem_Armor_008_Arm
+    - Fem_Armor_008_Chest
+    - Fem_Armor_008_Head
+    - Fem_Armor_008_Leg
+    - Fem_Armor_008_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: af4827e9c3619f74494bf43216021627, type: 3}
+  - id: p09.armor.female.009
+    displayName: "\uC7A5\uBE44 9"
+    rendererNames:
+    - Fem_Armor_009_Arm
+    - Fem_Armor_009_Chest
+    - Fem_Armor_009_Chest_Cloak
+    - Fem_Armor_009_Head
+    - Fem_Armor_009_Leg
+    - Fem_Armor_009_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: f9fdf26665365104da5c40f28b87ce7f, type: 3}
+  - id: p09.armor.female.010
+    displayName: "\uC7A5\uBE44 10"
+    rendererNames:
+    - Fem_Armor_010_Arm
+    - Fem_Armor_010_Chest
+    - Fem_Armor_010_Chest_Cloak
+    - Fem_Armor_010_Head
+    - Fem_Armor_010_Leg
+    - Fem_Armor_010_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 22494d14d2586c84c9250bdd284be20b, type: 3}
+  - id: p09.armor.female.011
+    displayName: "\uC7A5\uBE44 11"
+    rendererNames:
+    - Fem_Armor_011_Arm
+    - Fem_Armor_011_Chest
+    - Fem_Armor_011_Chest_Cloak
+    - Fem_Armor_011_Head
+    - Fem_Armor_011_Leg
+    - Fem_Armor_011_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: a3c052ffefbe0b04d8bb4bd5a476d631, type: 3}
+  - id: p09.armor.female.012
+    displayName: "\uC7A5\uBE44 12"
+    rendererNames:
+    - Fem_Armor_012_Arm
+    - Fem_Armor_012_Chest
+    - Fem_Armor_012_Chest_Cloak
+    - Fem_Armor_012_Head
+    - Fem_Armor_012_Leg
+    - Fem_Armor_012_Waist
+    baseBodyNames: []
+    thumbnail: {fileID: 21300000, guid: 1fe533dd32c89d449b65b91b4b3d1b0f, type: 3}
+  underwearBodyNames:
+  - Female_Body_Arm
+  - Female_Body_Chest
+  - Female_Body_Leg
+  nudeBodyNames:
+  - Female_Body_Arm
+  - Female_Body_Nakid_Chest
+  - Female_Body_Nakid_Leg

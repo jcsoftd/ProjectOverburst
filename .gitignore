@@ -160,3 +160,15 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Impact.wav*
 /Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Ring.wav*
 /Assets/ProjectOverburst/Resources/Combat/VFX/PerfectParryContact/PerfectParry_Low.wav*
+
+# Licensed P09 source texture copies for the appearance preview; restore from private recovery.
+/Assets/ProjectOverburst/05_Art/UI/Appearance/HighQualityTextures/
+/Assets/ProjectOverburst/05_Art/UI/Appearance/HighQualityTextures.meta
+
+# Licensed P09 presentation pose curves; restore with the private recovery and native builder.
+/Assets/ProjectOverburst/Resources/UI/Appearance/AppearancePresentationIdle.anim
+/Assets/ProjectOverburst/Resources/UI/Appearance/AppearancePresentationIdle.anim.meta
+
+# Licensed P09 cloth selection/prebuild geometry; restore the preview model from private recovery.
+/Assets/ProjectOverburst/Resources/UI/Appearance/PF_AppearancePreviewModel.prefab
+/Assets/ProjectOverburst/Resources/UI/Appearance/PF_AppearancePreviewModel.prefab.meta
