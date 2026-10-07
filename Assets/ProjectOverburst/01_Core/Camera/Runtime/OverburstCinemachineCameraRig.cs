@@ -49,8 +49,9 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
     public float PerspectiveFieldOfView => Mathf.Clamp(
         2f * Mathf.Atan(referenceOrthographicSize / Mathf.Max(0.01f, referenceDistance)) * Mathf.Rad2Deg,
         1f, 179f);
+    public float CurrentFieldOfView => virtualCamera != null ? virtualCamera.Lens.FieldOfView : PerspectiveFieldOfView;
     public float CurrentViewHalfHeight => follow != null
-        ? follow.FollowOffset.magnitude * Mathf.Tan(PerspectiveFieldOfView * 0.5f * Mathf.Deg2Rad)
+        ? follow.FollowOffset.magnitude * Mathf.Tan(CurrentFieldOfView * 0.5f * Mathf.Deg2Rad)
         : referenceOrthographicSize;
     // 기존 호출 호환: 충격 크기는 현재 초점 거리에서의 화면 반높이를 사용한다.
     public float CurrentOrthographicSize => CurrentViewHalfHeight;
@@ -143,6 +144,11 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
 
     public void SynchronizeView(Vector3 focusPosition, float pitch, float yaw, float distance, bool cut, float frameScale)
     {
+        SynchronizeView(focusPosition, pitch, yaw, distance, cut, frameScale, 0f);
+    }
+
+    public void SynchronizeView(Vector3 focusPosition, float pitch, float yaw, float distance, bool cut, float frameScale, float fieldOfViewOffset)
+    {
         if (!IsConfigured)
             return;
 
@@ -158,7 +164,7 @@ public sealed class OverburstCinemachineCameraRig : MonoBehaviour
 
         LensSettings lens = virtualCamera.Lens;
         lens.ModeOverride = LensSettings.OverrideModes.Perspective;
-        lens.FieldOfView = PerspectiveFieldOfView;
+        lens.FieldOfView = Mathf.Clamp(PerspectiveFieldOfView + Mathf.Max(0f, fieldOfViewOffset), 1f, 179f);
         virtualCamera.Lens = lens;
 
         if (cut)

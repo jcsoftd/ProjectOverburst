@@ -49,6 +49,15 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     private bool dodgeFollowWasActive;
     private float dodgeFollowRecoveryEnd;
 
+    [Header("Dash Field of View")]
+    [SerializeField] private bool enableDashFieldOfView = true;
+    [SerializeField, Range(0f, 8f)] private float dashFieldOfViewIncrease = 2.5f;
+    [SerializeField, Min(.01f)] private float dashFieldOfViewInTime = .08f;
+    [SerializeField, Min(.01f)] private float dashFieldOfViewOutTime = .18f;
+    private float dashFieldOfViewOffset, dashFieldOfViewVelocity;
+    private float fallbackFieldOfView = 60f;
+    public float CurrentDashFieldOfViewOffset => dashFieldOfViewOffset;
+
     [Header("Cinemachine 3 Adapter")]
     [SerializeField] private OverburstCinemachineCameraRig cinemachineRig;
 
@@ -127,7 +136,10 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         targetDistance = Mathf.Clamp(distance, minDistance, maxZoomDistance); // 줌 초기값
         cachedCamera = GetComponent<Camera>(); // 카메라 캐시
         if (cachedCamera != null)
+        {
+            fallbackFieldOfView = cachedCamera.fieldOfView;
             cachedCamera.orthographic = false;
+        }
         if (cinemachineRig == null)
             cinemachineRig = FindFirstObjectByType<OverburstCinemachineCameraRig>(FindObjectsInactive.Include);
     }
@@ -144,16 +156,21 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         zoomPunchStart = -1f;
         heavyFocusOwner = null; heavyFocusZoom = 0f;
         ResetDodgeFollow();
+        ResetDashFieldOfView();
     }
 
     private void LateUpdate()
     {
         if (target == null)
+        {
+            if (dashFieldOfViewOffset > 0f) ResetDashFieldOfView();
             return;
+        }
 
         UpdateZoomInput();
         UpdateZoomDistance();
         UpdateFocusPosition();
+        UpdateDashFieldOfView(OverburstGameClock.UnscaledDeltaTime);
         ApplyCameraTransform();
         FlushGroundStepRequest();
         ApplyCombatImpact();
@@ -166,6 +183,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         bool canSmoothSwitch = target != null && newTarget != null && target != newTarget && hasFocusPosition;
         target = newTarget; // 추적 대상
         ResetDodgeFollow();
+        ResetDashFieldOfView();
 
         if (canSmoothSwitch)
         {
@@ -182,6 +200,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     {
         yaw = newYaw; // yaw 고정
         ResetDodgeFollow();
+        ResetDashFieldOfView();
         hasFocusPosition = false; // 즉시 재정렬
         forceCameraCut = true;
     }
@@ -450,6 +469,39 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         dodgeFollowWasActive = false; dodgeFollowRecoveryEnd = 0f;
     }
 
+    private void ResolveTargetEvade()
+    {
+        if (dodgeFollowTarget == target) return;
+        dodgeFollowTarget = target;
+        cameraEvade = target != null ? target.GetComponent<PlayerEvadeController>() : null;
+    }
+
+    private void ResetDashFieldOfView()
+    {
+        dashFieldOfViewOffset = dashFieldOfViewVelocity = 0f;
+        if (UsesCinemachine) cinemachineRig.ApplyProjectionPolicy();
+        else if (cachedCamera != null) cachedCamera.fieldOfView = fallbackFieldOfView;
+    }
+
+    private void UpdateDashFieldOfView(float deltaTime)
+    {
+        if (!enableDashFieldOfView)
+        {
+            if (dashFieldOfViewOffset > 0f) ResetDashFieldOfView();
+            return;
+        }
+        ResolveTargetEvade();
+        if (deltaTime <= 0f) return; // 메뉴 정지에서는 멈추고 히트스톱에서는 회피와 같은 시계를 쓴다.
+        bool dashing = cameraEvade != null && cameraEvade.isActiveAndEnabled && cameraEvade.IsEvading
+            && cameraEvade.ActiveType != PlayerEvadeType.Roll;
+        float desired = dashing ? Mathf.Clamp(dashFieldOfViewIncrease, 0f, 8f) : 0f;
+        // 현재 값에서 이어 보간하므로 재대시도 튀거나 시야각이 누적되지 않는다.
+        dashFieldOfViewOffset = Mathf.SmoothDamp(dashFieldOfViewOffset, desired, ref dashFieldOfViewVelocity,
+            Mathf.Max(.01f, dashing ? dashFieldOfViewInTime : dashFieldOfViewOutTime), Mathf.Infinity, deltaTime);
+        if (!dashing && dashFieldOfViewOffset < .001f)
+            dashFieldOfViewOffset = dashFieldOfViewVelocity = 0f;
+    }
+
     private float ResolveDodgeFollowSharpness(float normalSharpness, out bool dodgeClock)
     {
         dodgeClock = false;
@@ -458,11 +510,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
             dodgeFollowWasActive = false; dodgeFollowRecoveryEnd = 0f;
             return normalSharpness;
         }
-        if (dodgeFollowTarget != target)
-        {
-            dodgeFollowTarget = target;
-            cameraEvade = target != null ? target.GetComponent<PlayerEvadeController>() : null;
-        }
+        ResolveTargetEvade();
         if (cameraEvade != null && cameraEvade.IsEvading && cameraEvade.ActiveType == PlayerEvadeType.CombatDodge)
         {
             dodgeClock = true; dodgeFollowWasActive = true;
@@ -493,7 +541,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         float frameScale = Mathf.Lerp(1f, closeUpFrameScale, blend) * (1f - Mathf.Max(CurrentZoomPunch(), CurrentHeavyFocusZoom())); // 패링과 강공 집중 확대를 합성
         if (UsesCinemachine)
         {
-            cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, EffectiveDistance, forceCameraCut, frameScale);
+            cinemachineRig.SynchronizeView(viewFocus, viewPitch, yaw, EffectiveDistance, forceCameraCut, frameScale, dashFieldOfViewOffset);
             forceCameraCut = false;
             return;
         }
@@ -502,7 +550,10 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
         Vector3 cameraOffset = viewRotation * Vector3.back * Mathf.Max(0.01f, EffectiveDistance * frameScale);
         Vector3 cameraPosition = viewFocus + cameraOffset;
         if (cachedCamera != null)
+        {
             cachedCamera.orthographic = false;
+            cachedCamera.fieldOfView = Mathf.Clamp(fallbackFieldOfView + dashFieldOfViewOffset, 1f, 179f);
+        }
 
         transform.position = cameraPosition;
         transform.rotation = viewRotation;
