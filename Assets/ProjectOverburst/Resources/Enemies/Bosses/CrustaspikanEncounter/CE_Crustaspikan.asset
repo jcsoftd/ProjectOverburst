@@ -20,66 +20,82 @@ MonoBehaviour:
     speed: 0.85
     damage: 1.4
     finalHitParry: 0
+    firstHitParry: 0
   - clip: 2HitComboAttack
     speed: 1.1
     damage: 0.9
     finalHitParry: 1
+    firstHitParry: 1
   - clip: 2HitComboAttackForward
     speed: 1.1
     damage: 0.9
     finalHitParry: 1
+    firstHitParry: 1
   - clip: LeftHandAttack
     speed: 1.2
     damage: 0.45
     finalHitParry: 1
+    firstHitParry: 0
   - clip: RightHandAttack
     speed: 1.2
     damage: 0.45
     finalHitParry: 1
+    firstHitParry: 0
   - clip: LeftHandSmashAttack
     speed: 0.95
     damage: 1.3
     finalHitParry: 1
+    firstHitParry: 0
   - clip: RightHandSmashAttack
     speed: 0.95
     damage: 1.3
     finalHitParry: 1
+    firstHitParry: 0
   - clip: LeftFootStompAttack
     speed: 1.05
     damage: 0.8
     finalHitParry: 0
+    firstHitParry: 0
   - clip: RightFootStompAttack
     speed: 1.05
     damage: 0.8
     finalHitParry: 0
+    firstHitParry: 0
   - clip: Turn90LeftFootStompAttack
     speed: 1.05
     damage: 0.8
     finalHitParry: 0
+    firstHitParry: 0
   - clip: Turn90RightFootStompAttack
     speed: 1.05
     damage: 0.8
     finalHitParry: 0
+    firstHitParry: 0
   - clip: Turn90LeftHandAttack
     speed: 1.1
     damage: 0.9
     finalHitParry: 1
+    firstHitParry: 0
   - clip: Turn90RightHandAttack
     speed: 1.1
     damage: 0.9
     finalHitParry: 1
+    firstHitParry: 0
   - clip: SpitterShot1
     speed: 1
     damage: 0.75
     finalHitParry: 0
+    firstHitParry: 0
   - clip: SpitterShot2
     speed: 1
     damage: 0.5
     finalHitParry: 0
+    firstHitParry: 0
   - clip: ThrowRock
     speed: 1
     damage: 0.75
     finalHitParry: 0
+    firstHitParry: 0
   patterns:
   - id: left_light
     label: "\uC67C\uC190 \uC57D\uACF5"
@@ -370,6 +386,8 @@ MonoBehaviour:
   maximumAdds: 26
   protectPlayerFromDeath: 1
   approachDistance: 8
+  attackFacingTolerance: 8
+  attackPreparationTimeout: 4
   enableBossEvasion: 1
   evasionTriggerDistance: 7
   evasionDistance: 3

@@ -121,7 +121,9 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
             m.tuning = new EnemyBossAttackTuning { animationSpeedMultiplier = rule?.speed ?? 1f, damageMultiplier = rule?.damage ?? 1f,
                 parries = new EnemyBossStrikeParryTuning[m.strikes.Length] };
             for (int i = 0; i < m.strikes.Length; i++) m.tuning.parries[i] = new EnemyBossStrikeParryTuning
-                { canParry = (rule?.finalHitParry ?? true) && i == m.strikes.Length - 1 && source.delivery == EnemyBossMaterialDelivery.Melee };
+                { canParry = ((rule?.finalHitParry ?? true) && i == m.strikes.Length - 1
+                    || (rule?.firstHitParry ?? false) && i == 0) && source.delivery == EnemyBossMaterialDelivery.Melee };
+            Actor.GetComponent<CrustaspikanTemporaryReaction>()?.ParryRecoilProfile?.ApplyWindows(m);
             attacks.Add(source.runtimeClip.name, m); list.Add(m); abilities.Add(m.ability);
         }
         runtimeMaterials.attacks = list.ToArray();

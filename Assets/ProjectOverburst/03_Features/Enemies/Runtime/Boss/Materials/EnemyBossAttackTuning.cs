@@ -28,7 +28,9 @@ public sealed class EnemyBossAttackTuning
         for (int i = 0; i < parries.Length; i++)
         {
             var p = parries[i];
-            if (p == null || !p.overrideWindow) continue;
+            if (p == null) continue;
+            if (!EnemyBossMaterialStrike.Finite(p.cueLeadSeconds) || p.cueLeadSeconds < 0f) return false;
+            if (!p.overrideWindow) continue;
             if (!EnemyBossMaterialStrike.Finite(p.startNormalized) || !EnemyBossMaterialStrike.Finite(p.endNormalized)
                 || p.startNormalized < 0f || p.startNormalized > p.endNormalized || strikes[i] == null
                 || p.endNormalized > strikes[i].impact) return false;
@@ -42,6 +44,7 @@ public sealed class EnemyBossStrikeParryTuning
 {
     public bool canParry = true;
     public bool overrideWindow;
+    [Min(0f)] public float cueLeadSeconds;
     [Range(0f, 1f)] public float startNormalized;
     [Range(0f, 1f)] public float endNormalized = 1f;
 }

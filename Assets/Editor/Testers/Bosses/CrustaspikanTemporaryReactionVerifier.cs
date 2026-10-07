@@ -15,10 +15,10 @@ using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
-public static class CrustaspikanTemporaryReactionVerifier
+public static partial class CrustaspikanTemporaryReactionVerifier
 {
     const string Key = "Overburst.CrustaspikanTemporaryReactionVerifier.";
-    sealed class Plan { public string output, phase, previousStart; public JArray scenes; public bool background, extrasOnly, cameraOnly; public float timeScale, capture; public double deadline; }
+    sealed class Plan { public string output, phase, previousStart; public JArray scenes; public bool background, extrasOnly, cameraOnly, recoilOnly; public float timeScale, capture; public double deadline; }
     static Plan plan;
     static readonly JArray cases = new JArray();
     static readonly List<Object> owned = new List<Object>();
@@ -45,17 +45,18 @@ public static class CrustaspikanTemporaryReactionVerifier
         var saved = SessionState.GetString(Key + "plan", ""); if (!string.IsNullOrEmpty(saved)) plan = JsonConvert.DeserializeObject<Plan>(saved);
         EditorApplication.update += Tick; EditorApplication.playModeStateChanged += Changed;
     }
-    public static string Start(string output) => StartInternal(output, false, false);
+    public static string Start(string output) => StartInternal(output, false, false,
+        AssetDatabase.LoadAssetAtPath<CrustaspikanParryRecoilProfile>(CrustaspikanParryRecoilBuilder.ProfilePath) != null);
     public static string StartExtras(string output) => StartInternal(output, true, false);
     public static string StartCamera(string output) => StartInternal(output, true, true);
-    static string StartInternal(string output, bool extrasOnly, bool cameraOnly)
+    static string StartInternal(string output, bool extrasOnly, bool cameraOnly, bool recoilOnly = false)
     {
         Require(plan == null && !EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isCompiling && !EditorApplication.isUpdating && !EditorUtility.scriptCompilationFailed, "Idle Editor required.");
         Require(!IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
             && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)), "Unoccupied real-account selection required.");
         output = IsolatedSavePlayGuard.ValidateDirectory(output); Require(!Directory.Exists(output), "Fresh evidence directory required."); Directory.CreateDirectory(output);
         plan = new Plan { output = output, phase = "booting", scenes = Scenes(), previousStart = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),
-            background = Application.runInBackground, capture = Time.captureDeltaTime, timeScale = Time.timeScale, extrasOnly = extrasOnly, cameraOnly = cameraOnly, deadline = EditorApplication.timeSinceStartup + 1200 };
+            background = Application.runInBackground, capture = Time.captureDeltaTime, timeScale = Time.timeScale, extrasOnly = extrasOnly, cameraOnly = cameraOnly, recoilOnly = recoilOnly, deadline = EditorApplication.timeSinceStartup + 1200 };
         cases.Clear(); SavePlan(); File.WriteAllText(Path.Combine(output, "plan.json"), JsonConvert.SerializeObject(plan, Formatting.Indented));
         EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
         Application.runInBackground = true; IsolatedSavePlayGuard.EnterIsolatedPlay(Account); return "Started actual-player boss reaction verification.";
@@ -116,7 +117,8 @@ public static class CrustaspikanTemporaryReactionVerifier
     {
         var previous = RenderTexture.active;
         try { camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt; pixels.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0); pixels.Apply();
-            var path = Path.Combine(plan.output, "Frames", folder); Directory.CreateDirectory(path); File.WriteAllBytes(Path.Combine(path, frame.ToString("D4") + ".png"), pixels.EncodeToPNG()); }
+            var path = Path.Combine(plan.output, "Frames", folder); Directory.CreateDirectory(path);
+            File.WriteAllBytes(Path.Combine(path, frame.ToString("D4") + (plan.recoilOnly ? ".jpg" : ".png")), plan.recoilOnly ? pixels.EncodeToJPG(88) : pixels.EncodeToPNG()); }
         finally { RenderTexture.active = previous; camera.targetTexture = null; }
     }
     static JObject Pose(EnemyActor actor, CrustaspikanTemporaryReaction reaction)
@@ -240,6 +242,7 @@ public static class CrustaspikanTemporaryReactionVerifier
         rt = new RenderTexture(960, 540, 24); rt.Create(); owned.Add(rt); pixels = new Texture2D(960, 540, TextureFormat.RGB24, false); owned.Add(pixels);
         Time.captureDeltaTime = 1f / 30f; Time.timeScale = 1; Warp(Origin + Vector3.forward * 6); yield return new WaitForSeconds(.6f);
         if (plan.cameraOnly) { yield return CameraFraming(); yield break; }
+        if (plan.recoilOnly) { yield return AuthoredRecoilCases(); yield break; }
         var basic = collection.attacks.First(m => m.delivery == EnemyBossMaterialDelivery.Melee);
         if (!plan.extrasOnly)
         {
@@ -445,5 +448,6 @@ public static class CrustaspikanTemporaryReactionVerifier
             ["active"] = IsolatedSavePlayGuard.ActiveDirectory, ["prepared"] = SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared", ""),
             ["expires"] = SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""), ["environment"] = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable) }.ToString());
         SessionState.EraseString(Key + "plan"); plan = null;
+        cases.Clear(); service = null; collection = null; camera = null; player = null;
     }
 }

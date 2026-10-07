@@ -217,7 +217,7 @@ public sealed partial class EnemyBossMaterialExecutor : EnemyAbilityExecutor
         }
         var warning=EnsureWarning(material,phase,Mathf.Max(.01f,remaining));
         warning.SetCenter(origin);warning.SetFacing(rotation*Vector3.forward);
-        bool threatens=material.IsParryWindowOpen(phase,normalized,remaining)
+        bool threatens=material.IsParryCueWindowOpen(phase,normalized,remaining,castSpeed)
             && EnemyStrongAttackWarning.PlayerTarget!=null && WouldHit(material.ability,EnemyStrongAttackWarning.PlayerTarget,phase);
         warning.SetRemaining(remaining,threatens);
     }

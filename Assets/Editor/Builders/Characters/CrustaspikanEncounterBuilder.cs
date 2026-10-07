@@ -56,7 +56,8 @@ public static class CrustaspikanEncounterBuilder
             if(clip.Contains("FootStomp")){speed=1.05f;damage=.8f;parry=false;}
             if(clip=="2HandsSmashAttack"){speed=.85f;damage=1.4f;parry=false;}
             if(clip.Contains("Spitter") || clip=="ThrowRock"){speed=1f;damage=clip=="SpitterShot2"?.5f:.75f;parry=false;}
-            rules.Add(new CrustaspikanEncounterSettings.MaterialRule{clip=clip,speed=speed,damage=damage,finalHitParry=parry});
+            rules.Add(new CrustaspikanEncounterSettings.MaterialRule{clip=clip,speed=speed,damage=damage,finalHitParry=parry,
+                firstHitParry=clip=="2HitComboAttack" || clip=="2HitComboAttackForward"});
         }
         s.materialRules=rules.ToArray();
         var patterns=new List<CrustaspikanEncounterSettings.Pattern>{

@@ -13,6 +13,7 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
         [Min(.1f)] public float speed = 1f;
         [Min(0f)] public float damage = 1f;
         public bool finalHitParry = true;
+        public bool firstHitParry;
     }
     [Serializable] public sealed class Step
     {

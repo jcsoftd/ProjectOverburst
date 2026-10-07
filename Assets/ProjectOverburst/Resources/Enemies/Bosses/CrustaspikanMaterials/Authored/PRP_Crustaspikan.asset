@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a41ea9df240a32f488adcec568d107ea, type: 3}
+  m_Name: PRP_Crustaspikan
+  m_EditorClassIdentifier: Assembly-CSharp::CrustaspikanParryRecoilProfile
+  playbackSpeed: 1.5
+  poseBlendSeconds: 0.08
+  motions:
+  - attack: 2HitComboAttack
+    state: Material_ParryRecoil_2HitComboAttack
+    strikeIndex: 1
+    clip: {fileID: 7400000, guid: 0d768ea6df69cf943b6d3e3583922a1f, type: 2}
+    contactNormalized: 0.49411765
+    sourceFrame: 84
+  - attack: 2HitComboAttackForward
+    state: Material_ParryRecoil_2HitComboAttackForward
+    strikeIndex: 1
+    clip: {fileID: 7400000, guid: c08a76a9d7241fc438de44207e237751, type: 2}
+    contactNormalized: 0.5842105
+    sourceFrame: 111
+  - attack: LeftHandAttack
+    state: Material_ParryRecoil_LeftHandAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 23c87729f43967c44a07401d6230b21d, type: 2}
+    contactNormalized: 0.4
+    sourceFrame: 52
+  - attack: RightHandAttack
+    state: Material_ParryRecoil_RightHandAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 3370bf37099fa7448b8bdfe54ea23571, type: 2}
+    contactNormalized: 0.5153846
+    sourceFrame: 67
+  - attack: LeftHandSmashAttack
+    state: Material_ParryRecoil_LeftHandSmashAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: f6581c892ce7a4149bb4a1be63ec891a, type: 2}
+    contactNormalized: 0.3488372
+    sourceFrame: 75
+  - attack: RightHandSmashAttack
+    state: Material_ParryRecoil_RightHandSmashAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 2f0525c6b885f494bb615a29a30bd7fd, type: 2}
+    contactNormalized: 0.4457143
+    sourceFrame: 78
+  - attack: Turn90LeftHandAttack
+    state: Material_ParryRecoil_Turn90LeftHandAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 5a282ed08549f03469140981d4e94b92, type: 2}
+    contactNormalized: 0.4148148
+    sourceFrame: 56
+  - attack: Turn90RightHandAttack
+    state: Material_ParryRecoil_Turn90RightHandAttack
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 3b4d60f64495c8a41a7653cd4f726809, type: 2}
+    contactNormalized: 0.46896553
+    sourceFrame: 68
+  - attack: 2HitComboAttack
+    state: Material_ParryRecoil_2HitComboAttack_Hit1
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: 643cc4817c444fa418821d8461a870ff, type: 2}
+    contactNormalized: 0.25882354
+    sourceFrame: 44
+  - attack: 2HitComboAttackForward
+    state: Material_ParryRecoil_2HitComboAttackForward_Hit1
+    strikeIndex: 0
+    clip: {fileID: 7400000, guid: d62b5de075876284dbf7e6ff807b04b2, type: 2}
+    contactNormalized: 0.27894738
+    sourceFrame: 53

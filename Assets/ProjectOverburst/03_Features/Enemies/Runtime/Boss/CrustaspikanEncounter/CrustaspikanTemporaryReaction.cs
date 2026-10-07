@@ -5,7 +5,7 @@ using UnityEngine;
 [DefaultExecutionOrder(11000)]
 public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
 {
-    public enum ReactionPhase { Ready, Rewind, ReboundHold, Collapse, Prone, Recover, DazedEnter, Dazed, DazedRecover }
+    public enum ReactionPhase { Ready, Rewind, ReboundHold, Collapse, Prone, Recover, DazedEnter, Dazed, DazedRecover, AuthoredRecoil }
     [SerializeField, Min(.03f)] private float rewindSeconds = .7f;
     [SerializeField, Min(0f)] private float reboundHoldSeconds = .14f;
     [SerializeField, Min(.05f)] private float collapseBlendSeconds = .32f;
@@ -111,7 +111,9 @@ public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
         bool captured = capturedLease == actor.LeaseVersion && Time.frameCount - cancelledFrame <= 2
             && Time.unscaledTime - cancelledTime < .25f && cancelledState != 0 && cancelledNormalized > .02f;
         if (!captured) return; // Ordinary cancellations and incomplete/normal parries never masquerade as a rewind.
+        bool useAuthoredRecoil = PrepareAuthoredRecoil();
         if (!TakeOwnership()) return; groggy = false; dazedSeconds = Mathf.Max(director.Profile.parryRecoil, parryDazedClip != null ? parryDazedClip.length * minimumDazedCycles : 0f);
+        if (useAuthoredRecoil) { BeginAuthoredRecoil(); return; }
         LastRewindStart = cancelledNormalized;
         LastRewindEnd = Mathf.Max(cancelledNormalized * rewindKeep, cancelledNormalized - maximumRewindClipSeconds / cancelledMaterial.runtimeClip.length);
         // A last-hit parry must not rewind through a preceding strike in a multi-hit clip.
@@ -126,7 +128,7 @@ public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
     {
         ObserveParry();
         if (!ResolveMotions()) return false;
-        bool keepRewind = Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold;
+        bool keepRewind = Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold || Phase == ReactionPhase.AuthoredRecoil;
         if (!TakeOwnership()) return false; groggy = true; proneSeconds = Mathf.Max(.25f, stunSeconds - collapseSeconds - collapseBlendSeconds);
         if (Phase == ReactionPhase.Prone) elapsed = 0f;
         else if (!keepRewind && Phase != ReactionPhase.Collapse) BeginCollapse();
@@ -206,6 +208,8 @@ public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
         elapsed += Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold ? Time.unscaledDeltaTime : Time.deltaTime;
         switch (Phase)
         {
+            case ReactionPhase.AuthoredRecoil:
+                TickAuthoredRecoil(); break;
             case ReactionPhase.Rewind:
                 float rebound = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / rewindSeconds));
                 Sample(cancelledState, Mathf.Lerp(LastRewindStart, LastRewindEnd, rebound));
@@ -244,7 +248,7 @@ public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
     }
     private void FollowProneHurtVolume()
     {
-        if (!groggy || !ownsAnimator || Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold || hurtTarget == null || chestBone == null || pelvisBone == null) return;
+        if (!groggy || !ownsAnimator || Phase == ReactionPhase.Rewind || Phase == ReactionPhase.ReboundHold || Phase == ReactionPhase.AuthoredRecoil || hurtTarget == null || chestBone == null || pelvisBone == null) return;
         Vector3 center = (chestBone.position + pelvisBone.position) * .5f;
         float upright = Mathf.Abs(Vector3.Dot((chestBone.position - pelvisBone.position).normalized, actor.transform.up));
         float height = Mathf.Lerp(hurtBefore.Radius * 2, hurtBefore.HalfHeight * 2, upright);
@@ -263,6 +267,6 @@ public sealed partial class CrustaspikanTemporaryReaction : MonoBehaviour
     public void Cancel()
     {
         ReleaseAnimator(); Phase = ReactionPhase.Ready; groggy = false; elapsed = 0f;
-        cancelledState = 0; capturedLease = 0; cancelledMaterial = null;
+        cancelledState = 0; capturedLease = 0; cancelledMaterial = null; authoredRecoil = null;
     }
 }

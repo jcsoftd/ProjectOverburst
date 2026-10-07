@@ -1943,6 +1943,7 @@ MonoBehaviour:
   dazedBlendSeconds: 0.22
   dazedRecoverySeconds: 0.38
   minimumDazedCycles: 1
+  parryRecoilProfile: {fileID: 11400000, guid: 7ff02abbc66f3f248ae95f2d78b7f0e7, type: 2}
   rewindSeconds: 0.7
   reboundHoldSeconds: 0.14
   collapseBlendSeconds: 0.32

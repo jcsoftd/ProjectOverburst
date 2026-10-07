@@ -101,6 +101,15 @@ public sealed class EnemyBossAttackMaterial : ScriptableObject
     public bool IsParryWindowOpen(int phase, float progress, float remaining) => IsStrikeParryable(phase)
         && (tuning != null ? tuning.WindowOpen(phase, progress, remaining, EnemyAbilityController.ParryLeadSeconds)
             : remaining >= -.03f && remaining <= EnemyAbilityController.ParryLeadSeconds);
+    public bool IsParryCueWindowOpen(int phase, float progress, float remaining, float speed)
+    {
+        if (!IsStrikeParryable(phase)) return false;
+        var entry = tuning?.parries != null && phase >= 0 && phase < tuning.parries.Length ? tuning.parries[phase] : null;
+        if (entry == null || !entry.overrideWindow || entry.cueLeadSeconds <= 0f) return IsParryWindowOpen(phase, progress, remaining);
+        float toWindow = ability.ResolvePacedTime(entry.startNormalized, speed) - ability.ResolvePacedTime(progress, speed);
+        return progress <= entry.endNormalized && (progress >= entry.startNormalized
+            || toWindow >= 0f && toWindow <= entry.cueLeadSeconds);
+    }
     public EnemyBossMaterialStrike[] strikes = Array.Empty<EnemyBossMaterialStrike>();
     public bool showTelegraph = true;
     public bool tracksTargetDuringWindup;

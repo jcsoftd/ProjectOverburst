@@ -62,13 +62,14 @@ public sealed partial class CrustaspikanTemporaryReaction
         }
     }
 
-    private void BeginDazed()
+    private void BeginDazed(bool fromAuthoredRecoil = false)
     {
         if (!HasDazedMotion) { FinishStandingReaction(); return; }
         dazedSeconds = Mathf.Max(dazedSeconds, parryDazedClip.length * minimumDazedCycles);
-        CaptureBlendPose(); Phase = ReactionPhase.DazedEnter; elapsed = 0f; stageStartFrame = Time.frameCount;
+        CaptureBlendPose(); Phase = fromAuthoredRecoil ? ReactionPhase.Dazed : ReactionPhase.DazedEnter; elapsed = 0f; stageStartFrame = Time.frameCount;
         DazedCount++; LastDazedCycles = 0f;
-        Sample(HasDazedTransitions ? DazedEnterState : DazedState, 0f); BlendCapturedPose(0f);
+        Sample(fromAuthoredRecoil ? DazedState : HasDazedTransitions ? DazedEnterState : DazedState, 0f);
+        if (!fromAuthoredRecoil) BlendCapturedPose(0f);
     }
 
     private void TickDazed()
