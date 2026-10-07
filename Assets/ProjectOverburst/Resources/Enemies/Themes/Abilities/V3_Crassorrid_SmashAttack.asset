@@ -29,7 +29,7 @@ MonoBehaviour:
   telegraphedStrongAttack: 1
   telegraphedAttack: 1
   preparationDuration: 0.55
-  releaseDuration: 0.25000003
+  releaseDuration: 0.336
   recoveryDuration: 1.0740741
   preparationEndNormalized: 0.29999998
   motionReleaseReferenceNormalized: 0.42
