@@ -349,6 +349,42 @@ public static class OverburstSettingsGothicBuilder
         }
     }
 
+    public static string PolishScrolling()
+    {
+        RequireIdle();
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath);
+        if (EditorUtility.IsDirty(asset)) throw new InvalidOperationException("Menu asset has unsaved changes");
+        var root = PrefabUtility.LoadPrefabContents(OverburstGameMenuBuilder.PrefabPath);
+        try
+        {
+            var view = root.GetComponentInChildren<OverburstSettingsGothicView>(true);
+            if (!view || view.scrolls.Length != 4) throw new InvalidOperationException("Four B categories required");
+            foreach (var scroll in view.scrolls) ConfigureWheel(scroll);
+            PrefabUtility.SaveAsPrefabAsset(root, OverburstGameMenuBuilder.PrefabPath, out bool saved);
+            if (!saved) throw new InvalidOperationException("Smooth scroll save failed");
+            return "PASS four settings viewports use smooth wheel";
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    static void ConfigureWheel(ScrollRect scroll)
+    {
+        // Legacy combat/key ScrollRects live on their own viewport. A child intercepts wheel events
+        // while preserving the original ScrollRect and all settings references for native dragging.
+        if (scroll.viewport == scroll.transform)
+        {
+            var oldWheel = scroll.GetComponent<OverburstSettingsSmoothScroll>();
+            if (oldWheel) UnityEngine.Object.DestroyImmediate(oldWheel);
+            var viewport = Node(scroll.viewport, "Wheel Viewport"); Stretch(viewport);
+            var hit = viewport.gameObject.AddComponent<Image>(); hit.color = Color.clear; hit.raycastTarget = true;
+            scroll.content.SetParent(viewport, false); scroll.viewport = viewport;
+        }
+        scroll.scrollSensitivity = 32 * D / 6f;
+        var wheel = scroll.viewport.GetComponent<OverburstSettingsSmoothScroll>()
+            ?? scroll.viewport.gameObject.AddComponent<OverburstSettingsSmoothScroll>();
+        wheel.scroll = scroll; wheel.unitsPerNotch = 32 * D; wheel.smoothTime = .10f;
+    }
+
     static ScrollRect ScrollPage(GameObject page,ScrollRect existing)
     {
         var rect=(RectTransform)page.transform; Stretch(rect);
@@ -365,8 +401,9 @@ public static class OverburstSettingsGothicBuilder
         if(!viewport.GetComponent<Image>()){var hit=viewport.gameObject.AddComponent<Image>();hit.color=Color.clear;hit.raycastTarget=true;}
         content.anchorMin=new Vector2(0,1);content.anchorMax=Vector2.one;content.pivot=new Vector2(.5f,1);content.anchoredPosition=Vector2.zero;content.sizeDelta=Vector2.zero;
         ListLayout(content);scroll.viewport=viewport;scroll.content=content;scroll.horizontal=false;scroll.vertical=true;
-        scroll.movementType=ScrollRect.MovementType.Clamped;scroll.scrollSensitivity=48*D;scroll.decelerationRate=.08f;
+        scroll.movementType=ScrollRect.MovementType.Clamped;scroll.scrollSensitivity=32*D/6f;scroll.decelerationRate=.08f;
         if(scroll.verticalScrollbar){scroll.verticalScrollbar.gameObject.SetActive(false);scroll.verticalScrollbar=null;}
+        ConfigureWheel(scroll);
         return scroll;
     }
     static void ListLayout(RectTransform t)

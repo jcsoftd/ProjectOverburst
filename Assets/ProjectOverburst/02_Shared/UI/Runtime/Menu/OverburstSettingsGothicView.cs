@@ -67,6 +67,8 @@ public sealed class OverburstSettingsGothicView : MonoBehaviour
 
     public void RefreshTab(int tab)
     {
+        foreach (var scroll in scrolls)
+            if (scroll && scroll.viewport) scroll.viewport.GetComponent<OverburstSettingsSmoothScroll>()?.Cancel();
         pageTitle.text = Titles[tab]; pageDescription.text = Descriptions[tab];
         RefreshTabStyle();
         if (selected) selected.SetHighlighted(false);
@@ -140,6 +142,7 @@ public sealed class OverburstSettingsGothicView : MonoBehaviour
     {
         var scroll = row.GetComponentInParent<ScrollRect>();
         if (!scroll || !scroll.viewport || !scroll.content) return;
+        scroll.viewport.GetComponent<OverburstSettingsSmoothScroll>()?.Cancel();
         RebuildLayout();
         var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport, row.transform);
         var view = scroll.viewport.rect;
