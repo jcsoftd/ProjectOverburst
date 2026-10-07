@@ -55,7 +55,7 @@ namespace Overburst.EditorTools.BossMaker
                 if (s.shape == GroundIndicatorShape.Donut && s.innerRadius <= 0f) s.innerRadius = s.radius * .3f;
                 if (s.shape == GroundIndicatorShape.Sector && s.angle >= 359.5f) s.angle = 160f;
             }, true)); fields.Add(shape);
-            if (s.shape == GroundIndicatorShape.Sector || s.shape == GroundIndicatorShape.Rectangle) Float("방향 Y (도)", s.yaw, v => s.yaw = v, "boss-yaw");
+            if (s.shape == GroundIndicatorShape.Sector || s.shape == GroundIndicatorShape.Rectangle) Float("방향 Y (도)", s.yaw, v => s.yaw = v, "boss-yaw").SetEnabled(!beam);
             if (s.shape == GroundIndicatorShape.Rectangle)
             { Float("폭 (m)", s.width, v => s.width = v, "boss-width"); Float("길이 (m)", s.length, v => s.length = v, "boss-length"); }
             else
@@ -65,9 +65,10 @@ namespace Overburst.EditorTools.BossMaker
                 if (s.shape == GroundIndicatorShape.Sector) Float("각도 (도)", s.angle, v => s.angle = v, "boss-angle");
             }
             var detail = new Foldout { text = "중심·높이 세부 조정", value = false }; fields.Add(detail); fieldHost = detail;
-            Vector("중심 오프셋", s.localOrigin, v => s.localOrigin = v, "boss-origin");
+            Vector("중심 오프셋", s.localOrigin, v => s.localOrigin = v, "boss-origin").SetEnabled(!beam);
             Float("아래 높이 (m)", s.minimumHeight, v => s.minimumHeight = v, "boss-min-height"); Float("위 높이 (m)", s.maximumHeight, v => s.maximumHeight = v, "boss-max-height"); fieldHost = fields;
             Toggle("바닥 전조 표시", Draft.Material.showTelegraph, v => Draft.Material.showTelegraph = v, "boss-show-telegraph");
+            if (beam) Note("복합 분사의 지면 전조는 보스 중심에서 표적 방향으로 나갑니다. 중심 오프셋·방향 Y는 사용하지 않으므로 편집하지 않습니다. 실제 분사 방향·궤적은 연결된 복합 공격 설정에서 조절하세요.");
             Note(Draft.Material.delivery == EnemyBossMaterialDelivery.Boulder ? "원형 중심은 공격을 확정한 표적 착지점입니다. 프리뷰 표적 거리는 이동·발사 탭에서 조절합니다."
                 : Draft.Material.delivery == EnemyBossMaterialDelivery.Spit ? "직선은 입에서 표적을 향한 예고 경로입니다. 피해는 비행체의 실제 몸체 접촉에서 발생합니다."
                 : s.shape == GroundIndicatorShape.Donut ? "안쪽 원 안은 안전 지대입니다. 실제 몸체가 고리와 겹치면 맞습니다. 반경 손잡이를 끌어 함께 확인하세요."
@@ -126,7 +127,8 @@ namespace Overburst.EditorTools.BossMaker
             AbilityFloat("쿨다운 (s)", "cooldown", "boss-cooldown");
             AbilityFloat("선택 최소 거리 (m)", "minimumRange", "boss-min-range");
             AbilityFloat("선택 최대 거리 (m)", "range", "boss-range");
-            AbilityFloat("선택 가중치", "weight", "boss-weight");
+            AbilityFloat("일반 AI 선택 가중치", "weight", "boss-weight").tooltip = "일반 능력 선택기에 적용됩니다. 조립 보스방에서는 연결된 전투 설정의 패턴 가중치를 사용합니다.";
+            if (session.Encounters.Count > 0) Note("조립 보스방의 선택 빈도는 연결된 전투 설정의 패턴 가중치로 조절합니다. 이 일반 AI 가중치는 보스방 패턴 빈도에 적용되지 않습니다.");
         }
         void DeliveryFields()
         {
@@ -160,8 +162,8 @@ namespace Overburst.EditorTools.BossMaker
         { Draft.Edit(label, action); Changed(); if (rebuild) BuildFields(); }
         FloatField Float(string label, float value, Action<float> apply, string name)
         { var field = new FloatField(label) { value = value, name = name, isDelayed = true }; field.RegisterValueChangedCallback(e => Edit(label, () => apply(e.newValue), true)); FieldHost.Add(field); return field; }
-        void Vector(string label, Vector3 value, Action<Vector3> apply, string name)
-        { var field = new Vector3Field(label) { value = value, name = name }; field.RegisterValueChangedCallback(e => Edit(label, () => apply(e.newValue))); FieldHost.Add(field); }
+        Vector3Field Vector(string label, Vector3 value, Action<Vector3> apply, string name)
+        { var field = new Vector3Field(label) { value = value, name = name }; field.RegisterValueChangedCallback(e => Edit(label, () => apply(e.newValue))); FieldHost.Add(field); return field; }
         Toggle Toggle(string label, bool value, Action<bool> apply, string name)
         { var field = new Toggle(label) { value = value, name = name }; field.RegisterValueChangedCallback(e => Edit(label, () => apply(e.newValue), true)); FieldHost.Add(field); return field; }
         FloatField AbilityFloat(string label, string path, string name)

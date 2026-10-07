@@ -195,6 +195,10 @@ namespace Overburst.EditorTools.BossMaker
                     errors.Add(d.Source.displayName + ": 바위 투척 양손 뼈 연결을 확인하세요.");
             }
             ValidateComposites(errors, onlyDirty);
+            var edits = Drafts.GroupBy(d => d.Source).ToDictionary(g => g.Key, g => g.First().Material);
+            foreach (var encounter in Encounters)
+                if (!CrustaspikanEncounterMaterialResolver.ValidateCollection(encounter, Collection, encounter.ParryRecoilProfile, out var reason, edits))
+                    errors.Add(encounter.name + ": " + reason);
             return errors;
         }
         public EnemyBossCompositePatternSet CompositeFor(EnemyBossAttackMaterial material)

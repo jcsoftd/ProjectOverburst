@@ -15,12 +15,15 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public int TotalAddsSpawned => Brain?.Composite != null ? Brain.Composite.SummonedCount : 0;
     public int EliteThrows => Brain?.Composite != null ? Brain.Composite.EliteThrowCount : 0;
     public bool Defeated { get; private set; }
+    public string LastFailure { get; private set; }
     public EnemyBossHudView BossHud => bossHud;
     public CrustaspikanEntranceCinematic EntranceCinematic { get; private set; }
     public bool IsIntroducing => EntranceCinematic != null && EntranceCinematic.IsPlaying;
     private CrustaspikanEncounterHost host;
     private PlayerActorRuntime player;
     private EnemySpawnService spawns;
+    private EnemyActor leasedBoss;
+    private uint leasedBossVersion;
     private CrustaspikanArenaVisuals visuals;
     private EnemyBossHudView bossHud;
     private GameObject ownedBossHud;
@@ -68,11 +71,23 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     private bool SpawnBoss()
     {
-        if (!spawns.TrySpawn(new EnemySpawnRequest(Settings.materials.actorDefinition, ArenaCenter + new Vector3(0, .05f, 2), Quaternion.Euler(0, 180, 0),
-            targetTransform: player.transform, spawnParent: transform, context: EncounterContext.Test), out var actor)) return false;
-        DisableLoot(actor); Brain = new CrustaspikanEncounterBrain(this, actor, player);
-        Brain.Composite.MonsterLanded += DisableLoot;
-        bossHud.BindEncounter(Brain); return true;
+        try
+        {
+            if (!spawns.TrySpawn(new EnemySpawnRequest(Settings.materials.actorDefinition, ArenaCenter + new Vector3(0, .05f, 2), Quaternion.Euler(0, 180, 0),
+                targetTransform: player.transform, spawnParent: transform, context: EncounterContext.Test), out var actor))
+            { LastFailure = "보스를 대여하지 못했습니다."; return false; }
+            // 전투 로직 생성이 실패하거나 드롭 컴포넌트가 없어도 대여 수명을 소유한다.
+            leasedBoss = actor; leasedBossVersion = actor.LeaseVersion;
+            DisableLoot(actor); Brain = new CrustaspikanEncounterBrain(this, actor, player);
+            Brain.Composite.MonsterLanded += DisableLoot;
+            bossHud.BindEncounter(Brain); return true;
+        }
+        catch (System.Exception error)
+        {
+            LastFailure = error.Message;
+            Debug.LogWarning("[Crustaspikan] 보스 준비 실패: " + LastFailure);
+            ClearCombat(); return false;
+        }
     }
     private void DisableLoot(EnemyActor actor)
     {
@@ -179,30 +194,75 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     private void ClearCombat()
     {
-        if (Brain != null)
+        try
         {
-            bossHud?.ClearEncounter(Brain);
-            var actor = Brain.Actor; Brain.Composite.MonsterLanded -= DisableLoot; ClearSummons(); RestoreAllLoot(); Brain.Dispose(); Brain = null;
-            if (actor != null && actor.IsLeased && actor.LeaseVersion == leases[actor]) spawns.Release(actor);
+            if (Brain != null)
+            {
+                bossHud?.ClearEncounter(Brain);
+                Brain.Composite.MonsterLanded -= DisableLoot; ClearSummons();
+            }
         }
-        oldLoot.Clear(); leases.Clear();
+        finally
+        {
+            try { RestoreAllLoot(); }
+            finally
+            {
+                try { Brain?.Dispose(); }
+                finally
+                {
+                    Brain = null;
+                    try
+                    {
+                        if (leasedBoss != null && leasedBoss.IsLeased && leasedBoss.LeaseVersion == leasedBossVersion)
+                            spawns.Release(leasedBoss);
+                    }
+                    finally { leasedBoss = null; oldLoot.Clear(); leases.Clear(); }
+                }
+            }
+        }
     }
-    public void Restart()
+    public void Restart() => TryRestart();
+    public bool TryRestart()
     {
-        if (exiting) return; EntranceCinematic?.Cancel(); ClearCombat(); Defeated = false;
-        player.Health.Heal(player.Health.MaxHp); Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
-        SpawnBoss(); Announce("재전투", 2f);
+        if (exiting) return false;
+        bool restarted = false; LastFailure = "";
+        try
+        {
+            EntranceCinematic?.Cancel(); ClearCombat(); Defeated = false;
+            if (!Settings.Validate(out string reason)) { LastFailure = reason; return false; }
+            if (player == null || player.Health == null) { LastFailure = "재전투할 플레이어가 없습니다."; return false; }
+            player.Health.Heal(player.Health.MaxHp); Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
+            if (!SpawnBoss()) return false;
+            Announce("재전투", 2f); restarted = true; return true;
+        }
+        catch (System.Exception error)
+        {
+            LastFailure = error.Message;
+            Debug.LogWarning("[Crustaspikan] 재전투 준비 실패: " + LastFailure); return false;
+        }
+        finally { if (!restarted) Exit(true); }
     }
     public void Exit(bool returnToHideout)
     {
-        if (exiting) return; exiting = true; EntranceCinematic?.Cancel(); ClearCombat();
-        if (framingCaptured && gameplayCamera != null) gameplayCamera.EndFramingScope(this); framingCaptured = false;
-        if (player != null) { player.Health.SetDamageDeathPrevention(this, false); if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); } }
-        if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
-        foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
-        pausedTargetHuds.Clear();
-        if (ownedBossHud != null) Destroy(ownedBossHud);
-        host?.OnExit(this); Destroy(gameObject);
+        if (exiting) return; exiting = true;
+        try { EntranceCinematic?.Cancel(); ClearCombat(); }
+        finally
+        {
+            try
+            {
+                if (framingCaptured && gameplayCamera != null) gameplayCamera.EndFramingScope(this); framingCaptured = false;
+                if (player != null && player.Health != null)
+                {
+                    player.Health.SetDamageDeathPrevention(this, false);
+                    if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); }
+                }
+                if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
+                foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
+                pausedTargetHuds.Clear();
+                if (ownedBossHud != null) Destroy(ownedBossHud);
+            }
+            finally { host?.OnExit(this); Destroy(gameObject); }
+        }
     }
     private void OnDestroy() { if (!exiting) Exit(false); visuals?.Dispose(); }
 }

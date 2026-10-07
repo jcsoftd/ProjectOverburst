@@ -65,10 +65,14 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     [Header("포탈 입장 연출")]
     public CrustaspikanEntranceCinematic.Settings entrance = new CrustaspikanEntranceCinematic.Settings();
 
+    public CrustaspikanParryRecoilProfile ParryRecoilProfile => materials?.actorDefinition?.ActorPrefab != null
+        ? materials.actorDefinition.ActorPrefab.GetComponent<CrustaspikanTemporaryReaction>()?.ParryRecoilProfile : null;
+
     public bool Validate(out string reason)
     {
         if (materials == null || composites == null || !composites.IsValid || materials.actorDefinition == null || !materials.actorDefinition.IsValid
             || adds == null || !adds.Validate(out reason)) { reason = "보스 재료 또는 소환 테마가 없습니다."; return false; }
+        if (!CrustaspikanEncounterMaterialResolver.ValidateCollection(this, materials, ParryRecoilProfile, out reason)) return false;
         if (bossHp <= 0 || groggyMax <= 0 || arenaRadius < 16 || maximumAdds < 4
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
         if (!Finite(betweenPatterns) || betweenPatterns < 0f || !Finite(approachDistance) || approachDistance < 1f
@@ -87,6 +91,7 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             || !Finite(entrance.revealSeconds) || entrance.revealSeconds < .25f || !Finite(entrance.returnSeconds) || entrance.returnSeconds < .1f
             || !Finite(entrance.combatGraceSeconds) || entrance.combatGraceSeconds < 0f || !Finite(entrance.roarVolume)))
         { reason = "등장 모션 또는 컷 길이가 유효하지 않습니다."; return false; }
+        if (patterns == null) { reason = "조립 패턴 배열이 없습니다."; return false; }
         var ids = new System.Collections.Generic.HashSet<string>();
         foreach (var p in patterns)
         {
@@ -111,6 +116,7 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     }
     public MaterialRule Rule(string clip)
     {
+        if (materialRules == null) return null;
         foreach (var r in materialRules) if (r != null && r.clip == clip) return r;
         return null;
     }

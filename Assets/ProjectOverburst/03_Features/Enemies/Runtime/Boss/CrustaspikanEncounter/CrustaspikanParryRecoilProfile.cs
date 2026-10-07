@@ -39,12 +39,15 @@ public sealed class CrustaspikanParryRecoilProfile : ScriptableObject
         return null;
     }
     public void ApplyWindows(EnemyBossAttackMaterial material)
+        => ApplyWindows(material, material != null ? material.tuning : null);
+
+    public void ApplyWindows(EnemyBossAttackMaterial material, EnemyBossAttackTuning tuning)
     {
-        if (material == null || material.tuning?.parries == null) return;
+        if (material == null || tuning?.parries == null) return;
         for (int i = 0; i < material.strikes.Length; i++)
         {
             var motion = Find(material.runtimeClip.name, i);
-            var parry = material.tuning.parries[i];
+            var parry = tuning.parries[i];
             if (motion == null || parry == null || !parry.canParry) continue;
             parry.overrideWindow = true; parry.cueLeadSeconds = .25f;
             parry.cueBone = motion.cueBone; parry.cueOffset = motion.cueOffset;

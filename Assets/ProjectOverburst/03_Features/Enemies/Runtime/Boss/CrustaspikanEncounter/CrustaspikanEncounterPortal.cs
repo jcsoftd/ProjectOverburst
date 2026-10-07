@@ -50,6 +50,7 @@ public sealed class CrustaspikanEncounterHost : MonoBehaviour
     public bool CanEnter => ActiveEncounter==null && Settings!=null && PersistentSceneFlow.Instance!=null
         && !PersistentSceneFlow.Instance.IsSwitching && PersistentSceneFlow.Instance.CurrentSubSceneName==PersistentSceneFlow.HideoutSceneName;
     public CrustaspikanEncounterSettings Settings {get;private set;}
+    public string LastFailure {get;private set;}
     private float nextCheck;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] private static void Reset()=>Current=null;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)] private static void Install()
@@ -79,12 +80,30 @@ public sealed class CrustaspikanEncounterHost : MonoBehaviour
     }
     public bool Enter(PlayerActorRuntime player)
     {
-        if(!CanEnter)return false;
-        if(!Settings.Validate(out string reason)){Debug.LogError("[Crustaspikan] "+reason);return false;}
-        var go=new GameObject("Crustaspikan First Encounter");SceneManager.MoveGameObjectToScene(go,player.gameObject.scene);
-        ActiveEncounter=go.AddComponent<CrustaspikanEncounter>();
-        if(ActiveEncounter.Begin(this,Settings,player)){if(Entrance!=null)Entrance.gameObject.SetActive(false);return true;}
-        ActiveEncounter.Exit(true);ActiveEncounter=null;return false;
+        if(!CanEnter || player==null || player.Health==null)return false;
+        bool entered=false; GameObject go=null; LastFailure="";
+        try
+        {
+            if(!Settings.Validate(out string reason)){LastFailure=reason;Debug.LogWarning("[Crustaspikan] "+reason);return false;}
+            go=new GameObject("Crustaspikan First Encounter");SceneManager.MoveGameObjectToScene(go,player.gameObject.scene);
+            ActiveEncounter=go.AddComponent<CrustaspikanEncounter>();
+            if(!ActiveEncounter.Begin(this,Settings,player))
+            {LastFailure=string.IsNullOrEmpty(ActiveEncounter.LastFailure)?"보스방 준비를 완료하지 못했습니다.":ActiveEncounter.LastFailure;return false;}
+            if(Entrance!=null)Entrance.gameObject.SetActive(false);
+            entered=true;return true;
+        }
+        catch(System.Exception error)
+        {
+            LastFailure=error.Message;Debug.LogWarning("[Crustaspikan] 입장 준비 실패: "+LastFailure);return false;
+        }
+        finally
+        {
+            if(!entered)
+            {
+                if(ActiveEncounter!=null)ActiveEncounter.Exit(true);
+                else if(go!=null)Destroy(go);
+            }
+        }
     }
     internal void OnExit(CrustaspikanEncounter encounter)
     {

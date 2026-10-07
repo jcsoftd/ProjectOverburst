@@ -47,7 +47,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     private CrustaspikanNode tree;
     private CrustaspikanEncounterSettings.Pattern current;
     private int stepIndex, lastParry;
-    private bool stepStarted, transitionStarted, disposed;
+    private bool stepStarted, transitionStarted, disposed, stateApplied;
     private float stepStartedAt, stepUntil, readyAt, groggyUntil, protectionUntil, lastPoiseAt, nextDodgeAt;
     private Vector3 moveDestination;
     private string lastFamily = "";
@@ -82,34 +82,44 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         leaseVersion = actor.LeaseVersion;
         hpReporter = actor.GetComponent<EnemyTargetHpReporter>(); overhead = actor.GetComponent<EnemyOverheadHpBar>();
         originalReporter = hpReporter != null && hpReporter.enabled; originalOverhead = overhead != null && overhead.enabled;
-        if (hpReporter != null) hpReporter.enabled = false;
-        if (overhead != null) overhead.enabled = false;
-        actor.AI.enabled = false;
-        actor.AI.SetTarget(player.transform);
-        actor.BossPhaseController.ResetForPool(); actor.BossPhaseController.enabled = false;
-        BuildMaterials();
-        // 공통 디렉터는 패링 접수와 반동만 담당. 수치/페이즈/선택은 이 전투가 한 번만 처리한다.
-        var proxy = ScriptableObject.CreateInstance<EnemyBossCombatProfile>(); clones.Add(proxy);
-        proxy.name = "Crustaspikan Parry Reception (Runtime)"; proxy.parryGain = 0; proxy.heavyHitGain = 0;
-        proxy.groggyMax = settings.groggyMax; proxy.patterns = Array.Empty<EnemyBossCombatProfile.Pattern>();
-        parryDirector.Configure(proxy); lastParry = parryDirector.ParryCount;
-        actor.Health.SetMaxHp(settings.bossHp, true);
-        actor.Health.OnDamageResolved += OnDamage;
-        melee = player.GetComponent<MeleeRuntime>();
-        energy = player.GetComponent<OverburstElementEnergy>();
-        readyAt = Time.time + 2f;
-        tree = new CrustaspikanSelector(
-            Node(() => Actor.Health.IsDead, Dead),
-            Node(() => IsGroggy || reaction.BlocksAttack, Suspended),
-            Node(() => Phase == 1 && Actor.Health.NormalizedHp <= settings.phaseTwoHp && current == null || transitionStarted, Transition),
-            Node(() => current != null, RunPattern),
-            Node(() => Time.time < readyAt || ReviewMode, Wait),
-            Node(CanDodge, Dodge),
-            Node(() => true, SelectPattern));
+        try
+        {
+            BuildMaterials();
+            stateApplied = true;
+            if (hpReporter != null) hpReporter.enabled = false;
+            if (overhead != null) overhead.enabled = false;
+            actor.AI.enabled = false;
+            actor.AI.SetTarget(player.transform);
+            actor.BossPhaseController.ResetForPool(); actor.BossPhaseController.enabled = false;
+            composite.Configure(runtimeComposite);
+            executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(runtimeAbilities, 1f, 1f);
+            // 공통 디렉터는 패링 접수와 반동만 담당. 수치/페이즈/선택은 이 전투가 한 번만 처리한다.
+            var proxy = ScriptableObject.CreateInstance<EnemyBossCombatProfile>(); clones.Add(proxy);
+            proxy.name = "Crustaspikan Parry Reception (Runtime)"; proxy.parryGain = 0; proxy.heavyHitGain = 0;
+            proxy.groggyMax = settings.groggyMax; proxy.patterns = Array.Empty<EnemyBossCombatProfile.Pattern>();
+            parryDirector.Configure(proxy); lastParry = parryDirector.ParryCount;
+            actor.Health.SetMaxHp(settings.bossHp, true);
+            actor.Health.OnDamageResolved += OnDamage;
+            melee = player.GetComponent<MeleeRuntime>();
+            energy = player.GetComponent<OverburstElementEnergy>();
+            readyAt = Time.time + 2f;
+            tree = new CrustaspikanSelector(
+                Node(() => Actor.Health.IsDead, Dead),
+                Node(() => IsGroggy || reaction.BlocksAttack, Suspended),
+                Node(() => Phase == 1 && Actor.Health.NormalizedHp <= settings.phaseTwoHp && current == null || transitionStarted, Transition),
+                Node(() => current != null, RunPattern),
+                Node(() => Time.time < readyAt || ReviewMode, Wait),
+                Node(CanDodge, Dodge),
+                Node(() => true, SelectPattern));
+        }
+        catch { Dispose(); throw; }
     }
     private static CrustaspikanNode Node(Func<bool> condition, Func<CrustaspikanNodeStatus> action) => new CrustaspikanActionNode(condition, action);
     private void BuildMaterials()
     {
+        var recoil = Actor.GetComponent<CrustaspikanTemporaryReaction>()?.ParryRecoilProfile;
+        if (!CrustaspikanEncounterMaterialResolver.ValidateCollection(settings, originalMaterials, recoil, out var reason))
+            throw new InvalidOperationException(reason);
         runtimeMaterials = UnityEngine.Object.Instantiate(originalMaterials); clones.Add(runtimeMaterials);
         runtimeMaterials.name = "Crustaspikan Encounter Materials (Runtime)";
         var list = new List<EnemyBossAttackMaterial>(); var abilities = new List<EnemyAbilityDefinition>();
@@ -117,13 +127,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         {
             var m = UnityEngine.Object.Instantiate(source); clones.Add(m);
             m.ability = UnityEngine.Object.Instantiate(source.ability); clones.Add(m.ability);
-            var rule = settings.Rule(source.runtimeClip.name);
-            m.tuning = new EnemyBossAttackTuning { animationSpeedMultiplier = rule?.speed ?? 1f, damageMultiplier = rule?.damage ?? 1f,
-                parries = new EnemyBossStrikeParryTuning[m.strikes.Length] };
-            for (int i = 0; i < m.strikes.Length; i++) m.tuning.parries[i] = new EnemyBossStrikeParryTuning
-                { canParry = ((rule?.finalHitParry ?? true) && i == m.strikes.Length - 1
-                    || (rule?.firstHitParry ?? false) && i == 0) && source.delivery == EnemyBossMaterialDelivery.Melee };
-            Actor.GetComponent<CrustaspikanTemporaryReaction>()?.ParryRecoilProfile?.ApplyWindows(m);
+            if (!CrustaspikanEncounterMaterialResolver.TryResolveTuning(settings, m, recoil, out m.tuning, out reason))
+                throw new InvalidOperationException(reason);
             attacks.Add(source.runtimeClip.name, m); list.Add(m); abilities.Add(m.ability);
         }
         runtimeMaterials.attacks = list.ToArray();
@@ -138,12 +143,16 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                 emission.payload.maximumAlive = emission.payload.definition.EnemyId == "CavernMutants_Gasterobrach" ? 1 : smallCap;
         }
         compound.elite.maximumAlive = 1;
-        composite.Configure(compound);
+        if (!compound.IsValid) throw new InvalidOperationException("전투용 복합 공격의 최종 연결이 유효하지 않습니다.");
+        runtimeComposite = compound;
         var set = ScriptableObject.CreateInstance<EnemyAbilitySet>(); clones.Add(set);
         set.Configure("CrustaspikanEncounterRuntime", abilities.ToArray());
-        executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(set, 1f, 1f);
+        if (!set.IsValid) throw new InvalidOperationException("전투용 공격 능력 연결이 유효하지 않습니다.");
+        runtimeAbilities = set;
     }
     private EnemyBossMaterialCollection runtimeMaterials;
+    private EnemyBossCompositePatternSet runtimeComposite;
+    private EnemyAbilitySet runtimeAbilities;
     public void BeginEntrance()
     {
         CancelPattern(); Actor.AbilityController.Cancel(); Actor.Movement.StopMovement(); State = "등장";
@@ -437,17 +446,23 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     public void Dispose()
     {
         if (disposed) return; disposed = true;
-        if (Actor != null && Actor.LeaseVersion == leaseVersion)
+        try
         {
-            Actor.Health.OnDamageResolved -= OnDamage;
-            CancelPattern(); Actor.AbilityController.Cancel(); if (!UsesMotion) Actor.Animator.speed = 1f;
-            executor.Configure(originalMaterials); Actor.AbilityController.Configure(originalAbilities, 1f, 1f);
-            composite.ReleaseSummons(); composite.Configure(originalComposite);
-            parryDirector.Configure(originalProfile); Actor.AI.enabled = originalAI; Actor.BossPhaseController.enabled = originalPhase;
-            if (hpReporter != null) hpReporter.enabled = originalReporter;
-            if (overhead != null) overhead.enabled = originalOverhead;
+            if (stateApplied && Actor != null && Actor.LeaseVersion == leaseVersion)
+            {
+                Actor.Health.OnDamageResolved -= OnDamage;
+                CancelPattern(); Actor.AbilityController.Cancel(); if (!UsesMotion) Actor.Animator.speed = 1f;
+                executor.Configure(originalMaterials); Actor.AbilityController.Configure(originalAbilities, 1f, 1f);
+                composite.ReleaseSummons(); composite.Configure(originalComposite);
+                parryDirector.Configure(originalProfile); Actor.AI.enabled = originalAI; Actor.BossPhaseController.enabled = originalPhase;
+                if (hpReporter != null) hpReporter.enabled = originalReporter;
+                if (overhead != null) overhead.enabled = originalOverhead;
+            }
         }
-        foreach (var clone in clones) if (clone != null) UnityEngine.Object.Destroy(clone);
-        clones.Clear();
+        finally
+        {
+            foreach (var clone in clones) if (clone != null) UnityEngine.Object.Destroy(clone);
+            clones.Clear(); stateApplied = false;
+        }
     }
 }
