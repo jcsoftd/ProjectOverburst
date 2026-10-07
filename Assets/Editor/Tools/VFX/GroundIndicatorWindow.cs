@@ -38,6 +38,7 @@ public sealed class GroundIndicatorWindow : EditorWindow
         indicator.Configure(shape,outer,inner,angle,width,length);
         indicator.SetFlameWidth(flame);indicator.SetProgress(progress);
         outer=indicator.OuterRadius;inner=indicator.InnerRadius;angle=indicator.Angle;flame=indicator.FlameWidth;
+        width=indicator.Width;length=indicator.Length;
         Rect rect=GUILayoutUtility.GetRect(100,100,200,500,GUILayout.ExpandWidth(true),GUILayout.ExpandHeight(true));
         if(Event.current.type==EventType.Repaint&&rect.width>1&&rect.height>1)
         {
@@ -76,13 +77,15 @@ public sealed class GroundIndicatorWindow : EditorWindow
         var indicator = root.GetComponent<ProceduralGroundIndicator>();
         if (indicator == null || !indicator.UsesApprovedDesign) throw new System.InvalidOperationException("Approved source references missing.");
         float progress = indicator.Progress;
+        HideFlags flags = root.hideFlags;
         try
         {
+            root.hideFlags = HideFlags.None;
             indicator.ReleaseRuntime();
             var saved = PrefabUtility.SaveAsPrefabAsset(root, path, out bool ok);
             if (!ok || saved == null) throw new System.InvalidOperationException("Indicator save failed: " + path);
         }
-        finally { indicator.Refresh(); indicator.SetProgress(progress); }
+        finally { root.hideFlags = flags; indicator.Refresh(); indicator.SetProgress(progress); }
     }
     private bool EnsurePreview()
     {

@@ -65,8 +65,10 @@ namespace Overburst.EditorTools.BossMaker
         }
         void DrawOverlay(MeshGenerationContext context)
         {
-            if (preview == null || Draft == null || !preview.ShowGeometry || motionPicker.index > 0 || !Draft.Material.IsValid) return;
-            var painter = context.painter2D; var size = overlay.contentRect.size; var active = preview.ActiveDraft ?? Draft; var m = active.Material;
+            if (preview == null || Draft == null || !preview.ShowGeometry || motionPicker.index > 0) return;
+            var active = preview.ActiveDraft ?? Draft; var m = active.Material;
+            if (!m.IsValid) return;
+            var painter = context.painter2D; var size = overlay.contentRect.size;
             for (int phase = 0; phase < m.strikes.Length; phase++)
             {
                 if (!preview.ShowAllStrikes && phase != strikeIndex) continue;

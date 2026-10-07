@@ -118,7 +118,7 @@ public static class FlaskTooltip
                 + EffectValue(data.primaryEffect, primaryApplied));
 
         if (data.secondaryEffect != FlaskEffect.CritDamage) return;
-        float secondaryApplied = Mathf.Min(stats.secondary, Mathf.Max(0f, 2f - weapon.critDamageMultiplier));
+        float secondaryApplied = Mathf.Min(stats.secondary, Mathf.Max(0f, OverburstCombatBalance.FinalCriticalDamage - weapon.critDamageMultiplier));
         if (secondaryApplied < stats.secondary - .0001f)
             AppendNote(text, "현재 무기 적용: " + Label(data.secondaryEffect) + " "
                 + EffectValue(data.secondaryEffect, secondaryApplied));

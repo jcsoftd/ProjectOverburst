@@ -234,7 +234,7 @@ namespace Overburst.EditorTools.MonsterTuner
             if (now - lastTick < 1d / 30d) return;
             float delta = (float)(now - lastTick); lastTick = now;
             bool locked = EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling;
-            fields?.SetEnabled(!locked); viewport.SetEnabled(!locked);
+            fields?.SetEnabled(!locked); viewport.SetEnabled(!locked); list?.SetEnabled(!locked);
             pointCard?.SetEnabled(!locked);
             rootVisualElement.Q("quick-motions")?.SetEnabled(!locked);
             saveButton.SetEnabled(session != null && session.Dirty && !locked);
@@ -295,8 +295,14 @@ namespace Overburst.EditorTools.MonsterTuner
         private void BeforeReload() { CloseSaveReview(); DisposeThumbnails(); foreach (var draft in sessions.Values) if (draft != null) draft.Persist(); stage.Dispose(); }
         private void PlayState(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.ExitingEditMode) BeforeReload();
-            if (state == PlayModeStateChange.EnteredEditMode && session != null) { stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); list?.RefreshItems(); }
+            if (state == PlayModeStateChange.ExitingEditMode) { list?.SetEnabled(false); BeforeReload(); }
+            if (state == PlayModeStateChange.EnteredEditMode && session != null)
+            {
+                stage.Load(session); RefreshPoints(); BuildFields(); UpdateHeader(); list?.RefreshItems();
+                int selected = filtered.FindIndex(entry => entry.Guid == selectedDefinitionGuid);
+                list?.SetSelectionWithoutNotify(selected < 0 ? Array.Empty<int>() : new[] { selected });
+                list?.SetEnabled(true);
+            }
         }
         private void OnDisable()
         {

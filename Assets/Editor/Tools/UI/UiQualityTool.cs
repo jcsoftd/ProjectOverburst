@@ -62,7 +62,7 @@ public static class UiQualityTool // UI 품질 유틸
         Scene scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
         FixSortDropdownHierarchyInternal(scene);
         EditorSceneManager.MarkSceneDirty(scene);
-        EditorSceneManager.SaveScene(scene);
+        SaveSceneOrThrow(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[ProjectVTP] Sort dropdown hierarchy fix completed. PersistentScene saved.");
     }
@@ -75,9 +75,15 @@ public static class UiQualityTool // UI 품질 유틸
         CreateMinimapZoomSizeTextInternal(scene);
         FixSortDropdownHierarchyInternal(scene);
         EditorSceneManager.MarkSceneDirty(scene);
-        EditorSceneManager.SaveScene(scene);
+        SaveSceneOrThrow(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("[ProjectVTP] UI quality fix 1st pass completed. PersistentScene saved.");
+    }
+
+    private static void SaveSceneOrThrow(Scene scene)
+    {
+        if (!EditorSceneManager.SaveScene(scene))
+            throw new System.IO.IOException("UI 씬 저장에 실패했습니다. 미저장 변경사항을 유지합니다: " + scene.path);
     }
 
     private static bool ConfirmPersistentSceneQualityFix(string targetName)
