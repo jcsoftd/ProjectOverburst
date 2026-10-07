@@ -99,8 +99,12 @@ namespace Overburst.Appearance
                     if (showHead || !name.EndsWith("_Head",StringComparison.Ordinal)) allowed.Add(name);
                 foreach(var name in example.baseBodyNames) allowed.Add(name);
             }
-            else foreach(var name in mode==AppearancePreviewBody.Nude?catalog.nudeBodyNames:catalog.underwearBodyNames)
-                allowed.Add(name);
+#if UNITY_EDITOR
+            else foreach(var name in mode==AppearancePreviewBody.Nude?catalog.nudeBodyNames:catalog.underwearBodyNames)allowed.Add(name);
+#else
+            else if(mode==AppearancePreviewBody.Underwear)foreach(var name in catalog.underwearBodyNames)allowed.Add(name);
+            else throw new ArgumentOutOfRangeException(nameof(mode));
+#endif
             allowed.Add(CharacterAppearanceCatalog.Required(catalog.faces,value.faceId,x=>x.id).rendererName);
             var hair=CharacterAppearanceCatalog.Required(catalog.hairStyles,value.hairStyleId,x=>x.id);
             if (!string.IsNullOrEmpty(hair.rendererName)) allowed.Add(hair.rendererName);

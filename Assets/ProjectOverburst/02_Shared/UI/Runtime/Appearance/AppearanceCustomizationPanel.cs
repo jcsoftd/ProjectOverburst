@@ -13,6 +13,9 @@ namespace Overburst.Appearance
     public sealed class AppearanceCustomizationPanel : MonoBehaviour
     {
         public const string ResourcePath="UI/Appearance/PF_OverburstAppearance_Rpg11";
+#if UNITY_EDITOR
+        public const string EditorPreviewPath="Assets/ProjectOverburst/05_Art/UI/Appearance/EditorPreview/PF_AppearanceEditorPreview.prefab";
+#endif
         public static AppearanceCustomizationPanel Instance {get;private set;}
         public static bool IsOpen=>Instance&&Instance.Session!=null;
         public CharacterAppearanceCatalog catalog;
@@ -62,7 +65,11 @@ namespace Overburst.Appearance
         }
         private void Wire()
         {
-            if(wired)return;wired=true;
+            if(wired)return;
+#if UNITY_EDITOR
+            InstallEditorPreview();
+#endif
+            wired=true;
             foreach(var choice in choices)choice.Bind(SelectChoice);
             appearanceTab.onClick.AddListener(ShowAppearance);
             optionalTabs=GetComponentsInChildren<AppearanceOptionalTab>(true);
@@ -80,6 +87,16 @@ namespace Overburst.Appearance
             continueEditing.onClick.AddListener(()=>discardConfirmation.SetActive(false));
             discardAndClose.onClick.AddListener(Close);
         }
+#if UNITY_EDITOR
+        private void InstallEditorPreview()
+        {
+            if(!surface||surface.transform.Find("Editor Preview Extensions"))return;
+            var prefab=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(EditorPreviewPath);
+            if(!prefab)return;
+            var extension=Instantiate(prefab,surface.transform,false);extension.name="Editor Preview Extensions";
+            foreach(var developer in extension.GetComponentsInChildren<AppearanceDeveloperPreview>(true))developer.panel=this;
+        }
+#endif
         public bool Open(AppearanceStylistInteractable owner)
         {
             if(Session!=null)return Owner==owner;
@@ -174,6 +191,7 @@ namespace Overburst.Appearance
             pageEquipment.text=(equipmentPage+1)+" / "+Mathf.CeilToInt((catalog.equipmentExamples.Length+1)/4f);
             headgearToggle.GetComponent<AppearanceButtonVisual>().SetSelected(Session.HeadgearVisible);
             headgearToggle.GetComponentInChildren<TMP_Text>().text=Session.HeadgearVisible?"모자 켜짐":"모자 꺼짐";
+            RefreshOptionalTabs();
             apply.interactable=!saving&&!IsExhibition;
         }
         private void SetFraming(AppearanceFraming mode){preview.SetFraming(mode);RefreshFraming();}
@@ -187,6 +205,15 @@ namespace Overburst.Appearance
         }
         private void ChangeHairPage(int delta){hairPage=(hairPage+delta+Mathf.CeilToInt(catalog.hairStyles.Length/4f))%Mathf.CeilToInt(catalog.hairStyles.Length/4f);RefreshChoices();}
         private void ChangeEquipmentPage(int delta){int count=Mathf.CeilToInt((catalog.equipmentExamples.Length+1)/4f);equipmentPage=(equipmentPage+delta+count)%count;RefreshChoices();}
+        private void RefreshOptionalTabs()
+        {
+            if(ActiveExtension&&!ActiveExtension.IsAvailable)
+            {
+                ShowAppearance();
+                if(EventSystem.current)EventSystem.current.SetSelectedGameObject(appearanceTab.gameObject);
+            }
+            foreach(var tab in optionalTabs)if(tab)tab.RefreshAvailability();
+        }
         public void ShowAppearance()
         {
             ActiveExtension=null;appearanceOptions.SetActive(true);
@@ -195,7 +222,7 @@ namespace Overburst.Appearance
         }
         public void ShowExtension(AppearanceOptionalTab selected)
         {
-            if(Session==null||selected==null||!optionalTabs.Contains(selected))return;
+            if(Session==null||selected==null||!selected.IsAvailable||!optionalTabs.Contains(selected))return;
             ActiveExtension=selected;appearanceOptions.SetActive(false);
             appearanceTab.GetComponent<AppearanceButtonVisual>().SetSelected(false);
             foreach(var tab in optionalTabs)if(tab)tab.SetVisible(tab==selected);
@@ -242,6 +269,7 @@ namespace Overburst.Appearance
             if(Session!=null)Session.Changed-=RefreshChoices;
             foreach(var tab in optionalTabs)if(tab)tab.SessionClosed();
             ActiveExtension=null;preview?.Close();Session=null;Owner=null;account=null;saving=false;
+            RefreshOptionalTabs();
             if(surface)surface.SetActive(false);
             GameplayInputBlocker.Unblock(this);PlayerInputFacade.ReleaseGameplayMapDisabled(this);
             if(EventSystem.current&&returnSelection&&returnSelection.activeInHierarchy)

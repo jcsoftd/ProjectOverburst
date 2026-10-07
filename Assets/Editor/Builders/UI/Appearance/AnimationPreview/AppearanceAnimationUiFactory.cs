@@ -56,7 +56,7 @@ public static partial class AppearanceCustomizationBuilder
         panel.excludeSelected=ButtonAt(root,"Exclude Selected","목록에서 제외",0,686,210,42);panel.excludeSelected.GetComponent<Image>().color=new Color(.4f,.09f,.07f);
         panel.excludedList=ButtonAt(root,"Excluded List","제외 목록 (0)",222,686,210,42,false);panel.excludedCount=panel.excludedList.GetComponentInChildren<TMP_Text>();
         Text(root,"Exclusion Hint","제외한 항목은 목록에서 숨겨집니다.",0,734,432,24,15,false,Muted);
-        root.gameObject.SetActive(false);
+        root.gameObject.SetActive(false);panel.tabButton.gameObject.SetActive(false);
     }
     static Slider SliderAt(Transform parent,string name,float x,float y,float w,float h,float min,float max,float value)
     {

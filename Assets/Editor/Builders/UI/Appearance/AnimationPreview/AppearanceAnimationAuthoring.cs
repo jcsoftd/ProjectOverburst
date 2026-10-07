@@ -15,7 +15,7 @@ using Object=UnityEngine.Object;
 
 public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
 {
-    public const string DataRoot=AppearanceCustomizationBuilder.Root+"/AnimationPreview";
+    public const string DataRoot=AppearanceCustomizationBuilder.Art+"/EditorPreview/AnimationPreview";
     public const string LibraryPath=DataRoot+"/AnimationLibrary.asset";
     public const string ThumbnailRoot=AppearanceCustomizationBuilder.Art+"/AnimationPreview";
     const string ConfigPath="Assets/Editor/Builders/UI/Appearance/AnimationPreview/AppearanceAnimationAuthoringSettings.asset";
@@ -64,7 +64,8 @@ public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
         try
         {
             root=new GameObject("Owned Motion Thumbnail Capture",typeof(RectTransform),typeof(RawImage));SceneManager.MoveGameObjectToScene(root,scene);
-            var preview=root.AddComponent<AppearanceCharacterPreview>();preview.Open(catalog,new AppearanceCustomizationSession(catalog,null),root.GetComponent<RawImage>());
+            var session=new AppearanceCustomizationSession(catalog,null);session.SetDeveloperNude(true);
+            var preview=root.AddComponent<AppearanceCharacterPreview>();preview.Open(catalog,session,root.GetComponent<RawImage>());
             SceneManager.MoveGameObjectToScene(preview.Model.transform.root.gameObject,scene);
             int rows=Mathf.CeilToInt(library.animations.Length/(float)columns);atlas=new Texture2D(columns*size,rows*size,TextureFormat.RGBA32,false);
             var sprites=new List<SpriteMetaData>();
@@ -92,8 +93,11 @@ public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
     {if(library)AppearanceCustomizationBuilder.CreateAnimationTab(surface,panel,library);}
     public override void CheckAssets(AppearanceCustomizationPanel panel,List<string> checks)
     {
-        var tab=panel.GetComponentInChildren<AppearanceAnimationPreviewTab>(true);
+        var editorPrefab=AssetDatabase.LoadAssetAtPath<GameObject>(AppearanceCustomizationPanel.EditorPreviewPath);
+        var tab=editorPrefab?editorPrefab.GetComponentInChildren<AppearanceAnimationPreviewTab>(true):null;
+        if(panel.GetComponentInChildren<AppearanceDeveloperPreview>(true)||panel.GetComponentInChildren<AppearanceAnimationPreviewTab>(true))throw new InvalidOperationException("제품 프리팹에 Editor 전용 모듈 잔존");
         if(!Config().includeTab){if(tab)throw new InvalidOperationException("비활성 탭이 남아 있습니다.");checks.Add("optional animation module absent");return;}
+        if(tab&&tab.tabButton.gameObject.activeSelf)throw new InvalidOperationException("애니메이션 탭 기본 노출");
         if(!tab||!tab.library||tab.library.animations.Length!=513||!tab.library.animations.All(x=>x.clip&&x.thumbnail))throw new InvalidOperationException("애니메이션/썸네일 연결 누락");
         if(tab.library.animations.Select(x=>x.id).Distinct().Count()!=513)throw new InvalidOperationException("애니메이션 ID 중복");
         if(!tab.list.GetComponentInParent<ScrollRect>(true).viewport.GetComponent<RectMask2D>())throw new InvalidOperationException("스크롤 뷰 누락");
@@ -108,6 +112,17 @@ public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
     public override void CheckPreview(AppearanceCustomizationPanel panel,List<string> checks)
     {
         var tab=panel.GetComponentInChildren<AppearanceAnimationPreviewTab>(true);if(!tab)return;
+        var blocked=tab.library.animations.First(x=>x.category=="Kawaii");
+        if(tab.IsAvailable||tab.tabButton.gameObject.activeSelf||tab.page.activeSelf)throw new InvalidOperationException("일반 외모 모드에 애니메이션 탭 노출");
+        panel.ShowExtension(tab);tab.Select(blocked);panel.preview.Play(blocked.clip);
+        if(panel.ActiveExtension||tab.Selected!=null||panel.preview.ActiveClip!=panel.catalog.idleClip)throw new InvalidOperationException("누드 비활성 재생 우회");
+        checks.Add("animation tab and direct selection/playback unavailable outside developer nude preview");
+        panel.Session.SetDeveloperNude(true);panel.ShowExtension(tab);tab.Select(blocked);
+        if(!tab.IsAvailable||!tab.tabButton.gameObject.activeSelf||panel.ActiveExtension!=tab||panel.preview.ActiveClip!=blocked.clip)throw new InvalidOperationException("누드 활성 모션 사용 불가");
+        panel.Session.SetDeveloperNude(false);
+        if(tab.IsAvailable||tab.tabButton.gameObject.activeSelf||tab.page.activeSelf||panel.ActiveExtension||!panel.appearanceOptions.activeSelf||tab.Selected!=null||panel.preview.ActiveClip!=panel.catalog.idleClip)throw new InvalidOperationException("누드 해제 시 모션/탭 반환 실패");
+        checks.Add("disabling nude stops motion, clears selection and restores appearance page immediately");
+        panel.Session.SetDeveloperNude(true);
         string path=Path.GetFullPath(AppearanceCustomizationBuilder.Output+"/Native/ExclusionFixtures/"+Guid.NewGuid().ToString("N")+".json");
         tab.SetExclusionStore(new AppearanceAnimationExclusions(path));panel.ShowExtension(tab);tab.kawaiiCategory.onClick.Invoke();Canvas.ForceUpdateCanvases();
         if(tab.list.GetComponentsInChildren<Button>().Length!=416||tab.list.rect.height<=tab.list.GetComponentInParent<ScrollRect>().viewport.rect.height)throw new InvalidOperationException("카와이 목록 수/스크롤 높이 오류");
@@ -139,8 +154,8 @@ public sealed class AppearanceAnimationAuthoring:AppearanceAuthoringExtension
     public static void RemoveFromProduct()
     {
         AppearanceCustomizationBuilder.RequireIdle();var config=Config();config.includeTab=false;EditorUtility.SetDirty(config);AssetDatabase.SaveAssetIfDirty(config);
-        var root=PrefabUtility.LoadPrefabContents(AppearanceCustomizationBuilder.PrefabPath);
-        try{foreach(var module in root.GetComponentsInChildren<AppearanceAnimationPreviewTab>(true))Object.DestroyImmediate(module.gameObject);PrefabUtility.SaveAsPrefabAsset(root,AppearanceCustomizationBuilder.PrefabPath);}
+        var root=PrefabUtility.LoadPrefabContents(AppearanceCustomizationPanel.EditorPreviewPath);
+        try{foreach(var module in root.GetComponentsInChildren<AppearanceAnimationPreviewTab>(true))Object.DestroyImmediate(module.gameObject);PrefabUtility.SaveAsPrefabAsset(root,AppearanceCustomizationPanel.EditorPreviewPath);}
         finally{PrefabUtility.UnloadPrefabContents(root);}
         foreach(var path in new[]{DataRoot,ThumbnailRoot})if(AssetDatabase.IsValidFolder(path))AssetDatabase.DeleteAsset(path);
         Debug.Log("애니메이션 탭과 전용 카탈로그/썸네일을 제거했습니다. 외모·NPC·제외 기록과 원본 애니메이션은 보존됩니다.");

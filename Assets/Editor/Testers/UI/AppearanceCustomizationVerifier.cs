@@ -20,10 +20,10 @@ public static class AppearanceCustomizationVerifier
     static readonly List<string> checks=new List<string>();
     static void Check(bool value,string message){if(!value)throw new InvalidOperationException(message);checks.Add(message);}
     static string Scenes()=>JsonConvert.SerializeObject(Enumerable.Range(0,SceneManager.sceneCount).Select(i=>new{path=SceneManager.GetSceneAt(i).path,dirty=SceneManager.GetSceneAt(i).isDirty,roots=SceneManager.GetSceneAt(i).rootCount}));
-    public static string Native()
+    public static string Native(string destination=null)
     {
         AppearanceCustomizationBuilder.RequireIdle();checks.Clear();string before=Scenes();int previews=EditorSceneManager.previewSceneCount;
-        string output=Path.GetFullPath(AppearanceCustomizationBuilder.Output+"/Native");Directory.CreateDirectory(output);
+        string output=Path.GetFullPath(destination??AppearanceCustomizationBuilder.Output+"/Native");Directory.CreateDirectory(output);
         try
         {
             var catalog=AssetDatabase.LoadAssetAtPath<CharacterAppearanceCatalog>(AppearanceCustomizationBuilder.CatalogPath);

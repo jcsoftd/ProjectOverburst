@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -53,3 +54,4 @@ namespace Overburst.Appearance.AnimationPreview
         public string Json()=>JsonUtility.ToJson(Document,true);
     }
 }
+#endif

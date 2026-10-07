@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,9 +24,12 @@ namespace Overburst.Appearance.AnimationPreview
         private readonly List<Button> rows=new List<Button>();
         private string category="Game";
         private bool wired,refreshing;
+        public override bool IsAvailable=>base.IsAvailable&&Owner.Session.PreviewBody==AppearancePreviewBody.Nude;
+        private bool CanOperate=>IsAvailable&&Owner.ActiveExtension==this;
         private AppearanceCharacterPreview Preview=>Owner?Owner.preview:null;
         protected override void OnShown()
         {
+            if(!IsAvailable)return;
             Wire();
             if(Preview){speed.SetValueWithoutNotify(Preview.PlaybackSpeed);loop.SetIsOnWithoutNotify(Preview.Looping);}
             try{Exclusions??=new AppearanceAnimationExclusions();RefreshRows();}
@@ -37,16 +41,16 @@ namespace Overburst.Appearance.AnimationPreview
             if(wired)return;wired=true;
             gameCategory.onClick.AddListener(()=>SetCategory("Game"));kawaiiCategory.onClick.AddListener(()=>SetCategory("Kawaii"));expressionCategory.onClick.AddListener(()=>SetCategory("Expression"));
             search.onValueChanged.AddListener(_=>RefreshRows());
-            playPause.onClick.AddListener(()=>Preview?.TogglePause());stop.onClick.AddListener(()=>{Preview?.StopAnimation();Selected=null;RefreshRows();});
-            speed.onValueChanged.AddListener(v=>Preview?.SetSpeed(v));loop.onValueChanged.AddListener(v=>Preview?.SetLooping(v));
-            timeline.onValueChanged.AddListener(v=>{if(!refreshing)Preview?.Seek(v);});
+            playPause.onClick.AddListener(()=>{if(CanOperate)Preview?.TogglePause();});stop.onClick.AddListener(()=>{if(!CanOperate)return;Preview?.StopAnimation();Selected=null;RefreshRows();});
+            speed.onValueChanged.AddListener(v=>{if(CanOperate)Preview?.SetSpeed(v);});loop.onValueChanged.AddListener(v=>{if(CanOperate)Preview?.SetLooping(v);});
+            timeline.onValueChanged.AddListener(v=>{if(CanOperate&&!refreshing)Preview?.Seek(v);});
             excludeSelected.onClick.AddListener(ExcludeOrRestore);
-            excludedList.onClick.AddListener(()=>{ShowingExcluded=!ShowingExcluded;Selected=null;Preview?.StopAnimation();RefreshRows();});
+            excludedList.onClick.AddListener(()=>{if(!CanOperate)return;ShowingExcluded=!ShowingExcluded;Selected=null;Preview?.StopAnimation();RefreshRows();});
         }
-        private void SetCategory(string value){category=value;ShowingExcluded=false;Selected=null;Preview?.StopAnimation();RefreshRows();}
+        private void SetCategory(string value){if(!CanOperate)return;category=value;ShowingExcluded=false;Selected=null;Preview?.StopAnimation();RefreshRows();}
         private void Update()
         {
-            if(!Owner||Owner.ActiveExtension!=this||Owner.Session==null||!Preview)return;
+            if(!CanOperate||!Preview)return;
             float time=Preview.PlaybackTime,length=Preview.ActiveClip?Preview.ActiveClip.length:0;
             bool timed=length>.001f;timeline.interactable=timed;speed.interactable=timed;loop.interactable=timed;playPause.interactable=timed;
             timeLabel.text=timed?time.ToString("0.0")+" / "+length.ToString("0.0")+" s":"표정 미리보기";playPauseLabel.text=Preview.IsPaused?"재생":"일시정지";speedLabel.text=Preview.PlaybackSpeed.ToString("0.00")+"×";
@@ -77,12 +81,12 @@ namespace Overburst.Appearance.AnimationPreview
         }
         public void Select(AppearanceAnimationOption option)
         {
-            if(!Owner||Owner.Session==null||option==null)return;
+            if(!CanOperate||option==null)return;
             Selected=option;Preview.SetFraming(option.category=="Expression"?AppearanceFraming.Face:AppearanceFraming.FullBody);Preview.Play(option.clip,loop.isOn);RefreshRows();
         }
         public void ExcludeOrRestore()
         {
-            if(Selected==null||Exclusions==null)return;
+            if(!CanOperate||Selected==null||Exclusions==null)return;
             try
             {
                 if(ShowingExcluded)Exclusions.Restore(Selected.id);else Exclusions.Exclude(Selected);
@@ -90,7 +94,15 @@ namespace Overburst.Appearance.AnimationPreview
             }
             catch(Exception e){Owner.SetFeedback("목록을 저장하지 못했습니다. "+e.Message);}
         }
-        protected override void OnHidden(){if(Preview&&Owner.Session!=null){Preview.StopAnimation();Preview.SetFraming(AppearanceFraming.FullBody);}}
+        protected override void OnHidden()
+        {
+            Selected=null;
+            if(Preview&&Owner.Session!=null)
+            {
+                if(Preview.ActiveClip!=Owner.catalog.idleClip)Preview.StopAnimation();
+                Preview.SetFraming(AppearanceFraming.FullBody);
+            }
+        }
         public override void SessionClosed()
         {
             Selected=null;ShowingExcluded=false;Exclusions=null;category="Game";
@@ -99,3 +111,4 @@ namespace Overburst.Appearance.AnimationPreview
     }
 }
 
+#endif

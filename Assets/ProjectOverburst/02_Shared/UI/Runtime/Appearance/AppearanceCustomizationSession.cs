@@ -3,7 +3,13 @@ using Overburst.Persistence;
 
 namespace Overburst.Appearance
 {
-    public enum AppearancePreviewBody { Underwear, Equipment, Nude }
+    public enum AppearancePreviewBody
+    {
+        Underwear, Equipment
+#if UNITY_EDITOR
+        , Nude
+#endif
+    }
     public enum AppearanceFraming { Face, UpperBody, FullBody }
 
     // This session contains appearance values, never inventory/loadout or animation commands.
@@ -14,8 +20,10 @@ namespace Overburst.Appearance
         public CharacterAppearanceSnapshot CommittedAtOpen {get;}
         public CharacterAppearanceSnapshot Draft {get;private set;}
         public AppearancePreviewBody PreviewBody {get;private set;} = AppearancePreviewBody.Equipment;
+#if UNITY_EDITOR
         private AppearancePreviewBody developerReturnBody;
         private string developerReturnEquipmentId;
+#endif
         public string EquipmentExampleId {get;private set;}
         public bool HeadgearVisible {get;private set;}=true;
         public void ToggleHeadgear(){HeadgearVisible=!HeadgearVisible;Changed?.Invoke();}
@@ -49,6 +57,7 @@ namespace Overburst.Appearance
             EquipmentExampleId=id;PreviewBody=AppearancePreviewBody.Equipment;Changed?.Invoke();
         }
         // Developer extension calls this; no developer-state field exists in the account DTO.
+#if UNITY_EDITOR
         public void SetDeveloperNude(bool enabled)
         {
             if(enabled)
@@ -64,6 +73,7 @@ namespace Overburst.Appearance
             }
             Changed?.Invoke();
         }
+#endif
         public CharacterAppearanceSnapshot CandidateForSave() {catalog.Validate(Draft);return Draft.Copy();}
     }
 }

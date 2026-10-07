@@ -31,6 +31,9 @@ namespace Overburst.Appearance
         private Animator animator;
         private ParentConstraint[] headAttachments;
         private AppearancePreviewPhysics physics;
+#if UNITY_EDITOR
+        private AppearancePreviewGrounding grounding;
+#endif
         private RenderTexture texture;
         private P09AppearanceApplier applier;
         private readonly Dictionary<Material,Material> materials=new Dictionary<Material,Material>();
@@ -50,6 +53,17 @@ namespace Overburst.Appearance
         private Quaternion modelRotation;
         private double nextResize;
         public AnimationClip ActiveClip=>activeClip;
+        public bool CanPreviewAnimations
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return session!=null&&session.PreviewBody==AppearancePreviewBody.Nude;
+#else
+                return false;
+#endif
+            }
+        }
         public bool IsPaused=>paused;
         public float PlaybackTime=>clipPlayable.IsValid()?(float)clipPlayable.GetTime():0;
         public float PlaybackSpeed=>speed;
@@ -91,6 +105,9 @@ namespace Overburst.Appearance
                 applier.ApplyPreviewBody(session.Draft,session.PreviewBody,session.EquipmentExampleId,session.HeadgearVisible);
                 model.AddComponent<AppearancePreviewMotionRoot>().Initialize(this,animator);
                 CacheFramingBones();
+#if UNITY_EDITOR
+                grounding=new AppearancePreviewGrounding(model,animator,catalog);
+#endif
                 physics=rig.AddComponent<AppearancePreviewPhysics>();physics.Initialize(this,model);
                 CreateCameraAndLights();
                 if(quality&&quality.contactShadowMaterial)
@@ -188,6 +205,11 @@ namespace Overburst.Appearance
             if(applier==null||session==null)return;
             applier.ApplyPreviewBody(comparing?session.OriginalForComparison:session.Draft,
                 session.PreviewBody,session.EquipmentExampleId,session.HeadgearVisible);
+            if(!CanPreviewAnimations)
+            {
+                SetSpeed(1);
+                if(activeClip&&(activeClip!=catalog.idleClip||paused))StopAnimation();
+            }
             CacheFramingBones();
             if(physics){physics.RefreshSelection();physics.ResetSimulation();}
             FrameCamera();RenderNow();
@@ -239,7 +261,7 @@ namespace Overburst.Appearance
         }
         public void Play(AnimationClip clip,bool repeat=true)
         {
-            if(!animator||!clip)return;
+            if(!animator||!clip||(clip!=catalog.idleClip&&!CanPreviewAnimations))return;
             if(graph.IsValid())graph.Destroy();
             applier?.ClearExpressions();
             activeClip=clip;looping=repeat;paused=false;ResetMotionRoot();animator.applyRootMotion=HasMotionRoot;
@@ -331,7 +353,17 @@ namespace Overburst.Appearance
             var bones=new HashSet<Transform>();foreach(var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())foreach(var bone in skin.bones)if(bone)bones.Add(bone);framingBones=new List<Transform>(bones).ToArray();
         }
         private void ResetMotionRoot(){animationHeight=0;animationRotation=Quaternion.identity;motionDistance=0;ApplyMotionRoot();}
-        private void ApplyMotionRoot(){if(!model)return;model.transform.localPosition=modelPosition+Vector3.up*animationHeight;model.transform.localRotation=Quaternion.Euler(0,yaw,0)*animationRotation;}
+        private void ApplyMotionRoot()
+        {
+            if(!model)return;
+            model.transform.localPosition=modelPosition+Vector3.up*animationHeight;
+            model.transform.localRotation=Quaternion.Euler(0,yaw,0)*animationRotation;
+            // Retargeted soles are measured from the actual skin, including toe/heel rotation.
+            // All developer motions share the same floor, also after seeks and loops.
+#if UNITY_EDITOR
+            if(CanPreviewAnimations)grounding?.Plant(rig.transform,model.transform);
+#endif
+        }
         internal void ReceiveRootMotion(Vector3 delta,Quaternion rotation)
         {
             if(!HasMotionRoot||seekingMotion)return;animationHeight+=delta.y;animationRotation*=rotation;ApplyMotionRoot();
@@ -412,6 +444,9 @@ namespace Overburst.Appearance
             foreach(var material in materials.Values)ReleaseObject(material);
             materials.Clear();rig=model=null;viewCamera=null;animator=null;texture=null;
             activeClip=null;applier=null;session=null;quality=null;headAttachments=null;dragging=false;
+#if UNITY_EDITOR
+            grounding=null;
+#endif
             expressionSampler=null;expressionParts.Clear();sampledExpression=null;expressionWeights=null;framingBones=Array.Empty<Transform>();animationHeight=motionDistance=0;animationRotation=Quaternion.identity;seekingMotion=false;
         }
         private static void ReleaseObject(UnityEngine.Object value)

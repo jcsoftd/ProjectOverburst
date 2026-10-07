@@ -113,6 +113,7 @@ public static partial class AppearanceCustomizationBuilder
             // Preview scenes have no overlay viewport. Stop its canvas driver while serializing
             // and enable the persistent prefab canvas after it has left the live preview scene.
             canvas.enabled=false;rootRect.localScale=Vector3.one;
+            SaveEditorPreviewExtensions(root);
             var saved=PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);
             var canvasData=new SerializedObject(saved.GetComponent<Canvas>());canvasData.FindProperty("m_Enabled").boolValue=true;canvasData.ApplyModifiedPropertiesWithoutUndo();
             var rectData=new SerializedObject(saved.transform);rectData.FindProperty("m_LocalScale").vector3Value=Vector3.one;rectData.ApplyModifiedPropertiesWithoutUndo();
@@ -214,8 +215,8 @@ public static partial class AppearanceCustomizationBuilder
     [MenuItem("Overburst/UI/외모 커스터마이징/임시 아이콘 제거")]
     public static void RemoveDeveloperExtension()
     {
-        RequireIdle();var root=PrefabUtility.LoadPrefabContents(PrefabPath);
-        try{foreach(var component in root.GetComponentsInChildren<AppearanceDeveloperPreview>(true))Object.DestroyImmediate(component.gameObject);PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);}
+        RequireIdle();var root=PrefabUtility.LoadPrefabContents(AppearanceCustomizationPanel.EditorPreviewPath);
+        try{foreach(var component in root.GetComponentsInChildren<AppearanceDeveloperPreview>(true))Object.DestroyImmediate(component.gameObject);PrefabUtility.SaveAsPrefabAsset(root,AppearanceCustomizationPanel.EditorPreviewPath);}
         finally{PrefabUtility.UnloadPrefabContents(root);}
     }
 }

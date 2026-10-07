@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using UnityEngine;
 
@@ -17,3 +18,4 @@ namespace Overburst.Appearance.AnimationPreview
         public AppearanceAnimationOption[] animations=Array.Empty<AppearanceAnimationOption>();
     }
 }
+#endif

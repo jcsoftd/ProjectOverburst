@@ -40,13 +40,13 @@ public static class AppearanceCustomizationPlayVerifier
         if(SessionState.GetBool(K+"running",false))EditorApplication.update+=Interrupted;
     }
     public static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);checks.Add(message);}
-    static string Dir(string name){string path=Path.GetFullPath(Destination+name);Directory.CreateDirectory(path);return path;}
+    static string Dir(string name,string destination){string path=Path.GetFullPath(Path.Combine(destination,name));Directory.CreateDirectory(path);return path;}
     static void Write(string name,object data)=>File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(data,Formatting.Indented));
-    public static void Start(string label)
+    public static void Start(string label,string destination=Destination)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("External settings directory active");
-        output=Dir(label);string save=Path.Combine(output,"isolated-save");Directory.CreateDirectory(save);
+        output=Dir(label,destination);string save=Path.Combine(output,"isolated-save");Directory.CreateDirectory(save);
 
         Write("edit-before.json",new{pid=System.Diagnostics.Process.GetCurrentProcess().Id,scenes=Scenes(),input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)});
         SessionState.SetString(K+"pending",output);SessionState.SetString(K+"return",output);SessionState.SetString(K+"startScene",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));

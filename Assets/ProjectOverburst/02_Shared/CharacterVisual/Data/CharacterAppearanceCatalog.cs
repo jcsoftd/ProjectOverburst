@@ -50,7 +50,9 @@ namespace Overburst.Appearance
         public AppearanceBodyStyle[] bodyStyles = Array.Empty<AppearanceBodyStyle>();
         public AppearanceEquipmentExample[] equipmentExamples = Array.Empty<AppearanceEquipmentExample>();
         public string[] underwearBodyNames = {"Female_Body_Arm", "Female_Body_Chest", "Female_Body_Leg"};
+#if UNITY_EDITOR
         public string[] nudeBodyNames = {"Female_Body_Arm", "Female_Body_Nakid_Chest", "Female_Body_Nakid_Leg"};
+#endif
 
         public void Validate(CharacterAppearanceSnapshot value)
         {
