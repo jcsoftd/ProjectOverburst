@@ -41,16 +41,16 @@ public static partial class UpcomingMonsterThemeReviewBuilder
     }
     public static string CreateV3(string outputDirectory)
     {
-        try {return CreateV3Core(outputDirectory);}
+        Scene ownedScene=default;
+        try {return CreateV3Core(outputDirectory,ref ownedScene);}
         catch
         {
-            var owned=SceneManager.GetSceneByName("DEV_UpcomingMonsterThemes");
-            if(owned.IsValid() && owned.isLoaded){EditorSceneManager.CloseScene(owned,true);EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Additive);}
+            if(ownedScene.IsValid() && ownedScene.isLoaded){EditorSceneManager.CloseScene(ownedScene,true);EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Additive);}
             throw;
         }
         finally {sources=null;materialCache.Clear();}
     }
-    static string CreateV3Core(string outputDirectory)
+    static string CreateV3Core(string outputDirectory,ref Scene ownedScene)
     {
         RequireEditMode();UpcomingMonsterReviewWindow.StopAll();output=outputDirectory;
         var v3=JObject.Parse(File.ReadAllText(Path.Combine(output,"v3-source.json")));
@@ -90,6 +90,7 @@ public static partial class UpcomingMonsterThemeReviewBuilder
         File.WriteAllText(Path.Combine(output,"native-source-plan.json"),new JObject{{"version",3},{"models",new JArray(sources.Values.Select(s=>{var c=(JObject)s.DeepClone();c.Remove("v3");return c;}))}}.ToString());
         File.WriteAllText(Path.Combine(output,"native-scene-job.json"),new JObject{{"status","RUNNING"},{"phase","v3 placement"}}.ToString());
         var scene=existing.IsValid() && existing.isLoaded?existing:EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Additive);
+        ownedScene=scene;
         scene.name="DEV_UpcomingMonsterThemes";SceneManager.SetActiveScene(scene);foreach(var g in scene.GetRootGameObjects())Object.DestroyImmediate(g);
         materialCache.Clear();instances=new JArray();EnsureFolder(MaterialRoot);
         font=AssetDatabase.LoadAssetAtPath<Font>("Assets/ProjectOverburst/Resources/UI/Fonts/ProjectMT/Source/SpoqaHanSansNeo-Regular.ttf")??Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

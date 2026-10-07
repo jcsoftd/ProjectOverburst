@@ -1045,7 +1045,6 @@ public sealed class SfxPreviewWindow : EditorWindow
     {
         folderPath = BasketRoot;
         error = string.Empty;
-        EnsureBasketRoot();
 
         string raw = (newFolderName ?? string.Empty).Trim().Replace('\\', '/');
         if (string.IsNullOrWhiteSpace(raw))
@@ -1055,16 +1054,26 @@ public sealed class SfxPreviewWindow : EditorWindow
         }
 
         string[] segments = raw.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+        {
+            error = "새 폴더 이름을 입력하세요.";
+            return false;
+        }
+        for (int i = 0; i < segments.Length; i++)
+        {
+            segments[i] = segments[i].Trim();
+            if (!IsValidFolderSegment(segments[i]))
+            {
+                error = "사용할 수 없는 폴더 이름입니다: " + segments[i];
+                return false;
+            }
+        }
+
+        EnsureBasketRoot();
         string parent = BasketRoot;
         for (int i = 0; i < segments.Length; i++)
         {
-            string segment = segments[i].Trim();
-            if (!IsValidFolderSegment(segment))
-            {
-                error = "사용할 수 없는 폴더 이름입니다: " + segment;
-                return false;
-            }
-
+            string segment = segments[i];
             string next = parent + "/" + segment;
             if (!AssetDatabase.IsValidFolder(next))
             {
