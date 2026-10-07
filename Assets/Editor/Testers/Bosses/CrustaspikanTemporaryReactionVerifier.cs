@@ -442,8 +442,8 @@ public static partial class CrustaspikanTemporaryReactionVerifier
         if (observedHealth != null && damageObserver != null) observedHealth.OnDamageResolved -= damageObserver; observedHealth = null; damageObserver = null;
         brain?.Dispose(); brain = null;
         foreach (var actor in leases) Release(actor); leases.Clear(); if (rt != null) rt.Release();
-        File.WriteAllText(Path.Combine(plan.output, "result.json"), new JObject { ["status"] = error == null ? "PASS" : "FAIL", ["failure"] = error, ["cases"] = cases }.ToString());
-        plan.phase = "returning"; SavePlan(); if (OwnPlay) EditorApplication.isPlaying = false;
+        try { File.WriteAllText(Path.Combine(plan.output, "result.json"), new JObject { ["status"] = error == null ? "PASS" : "FAIL", ["failure"] = error, ["cases"] = cases }.ToString()); }
+        finally { plan.phase = "returning"; SavePlan(); if (OwnPlay) EditorApplication.isPlaying = false; }
     }
     static void Changed(PlayModeStateChange change) { if (plan != null && change == PlayModeStateChange.EnteredEditMode) { plan.phase = "returning"; SavePlan(); } }
     static void FinishReturn()

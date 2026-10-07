@@ -221,8 +221,12 @@ public static class AppearanceCustomizationPlayVerifier
         EditorApplication.update-=Tick;EditorApplication.update-=Begin;EditorApplication.update-=Interrupted;while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
         bool own=OwnPlay();if(own && AppearanceCustomizationPanel.Instance)AppearanceCustomizationPanel.Instance.Close();RestoreInput();
         Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseFloat(K+"deadline");
-        output=SessionState.GetString(K+"return",output);Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});
-        if(EditorApplication.isPlaying && own)EditorApplication.ExitPlaymode();if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+        output=SessionState.GetString(K+"return",output);
+        try{Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});}
+        finally
+        {
+            if(EditorApplication.isPlaying && own)EditorApplication.ExitPlaymode();if(!EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.update-=Return;EditorApplication.update+=Return;}
+        }
     }
     static void Interrupted()
     {
@@ -237,13 +241,13 @@ public static class AppearanceCustomizationPlayVerifier
     static void Return()
     {
         output=SessionState.GetString(K+"return","");if(string.IsNullOrEmpty(output)){EditorApplication.update-=Return;return;}
-        if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"returnDeadline",0)){EditorApplication.update-=Return;Write("return-result.json",new{success=false,reason="return timeout"});return;}
         if(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory))return;
         var env=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable);var prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared","");
         foreach(var path in new[]{env,prepared})if(!string.IsNullOrEmpty(path) && !Path.GetFullPath(path).StartsWith(output+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))return;
+        bool timedOut=EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"returnDeadline",0);
         string scene=SessionState.GetString(K+"startScene","");EditorSceneManager.playModeStartScene=string.IsNullOrEmpty(scene)?null:AssetDatabase.LoadAssetAtPath<SceneAsset>(scene);IsolatedSavePlayGuard.UseRealAccount();
         SessionState.EraseString(K+"return");SessionState.EraseString(K+"startScene");SessionState.EraseFloat(K+"returnDeadline");EditorApplication.update-=Return;
-        Write("return-result.json",new{success=!IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)),guard=IsolatedSavePlayGuard.RequiresAccountChoice,active=IsolatedSavePlayGuard.ActiveDirectory,prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),expires=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),scenes=Scenes()});
+        Write("return-result.json",new{reason=timedOut?"return timeout":null,success=!timedOut && !IsolatedSavePlayGuard.RequiresAccountChoice && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)),guard=IsolatedSavePlayGuard.RequiresAccountChoice,active=IsolatedSavePlayGuard.ActiveDirectory,prepared=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),expires=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),scenes=Scenes()});
     }
 }
 

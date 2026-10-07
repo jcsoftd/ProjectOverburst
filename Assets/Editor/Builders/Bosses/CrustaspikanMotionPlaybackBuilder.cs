@@ -118,9 +118,16 @@ public static class CrustaspikanMotionPlaybackBuilder
                 left = new[] { left[i].x, left[i].y, left[i].z }, right = new[] { right[i].x, right[i].y, right[i].z } }).ToArray() };
     }
 
+    public static void RequireOptInOff(GameObject prefab)
+    {
+        var bridge = prefab != null ? prefab.GetComponent<EnemyAnimationBridge>() : null;
+        if (bridge == null || new SerializedObject(bridge).FindProperty("motionPlaybackProfile").objectReferenceValue != null)
+            throw new InvalidOperationException("OFF proof requires an existing bridge with no motion playback profile.");
+    }
+
     public static string BuildDraft()
     {
-        RequireIdle(); Directory.CreateDirectory(Output + "/Evidence");
+        RequireIdle(); RequireOptInOff(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)); Directory.CreateDirectory(Output + "/Evidence");
         File.WriteAllText(Output + "/Evidence/native-draft-receipt.json", JsonConvert.SerializeObject(new { status = "STARTED", utc = DateTime.UtcNow }, Formatting.Indented));
         try { return BuildDraftInternal(); }
         catch (Exception error)
@@ -246,7 +253,7 @@ public static class CrustaspikanMotionPlaybackBuilder
 
     public static string EnableVerified(string resultFile)
     {
-        RequireIdle(); var result = JObject.Parse(File.ReadAllText(resultFile)); var checks = (JArray)result["checks"];
+        RequireIdle(); RequireOptInOff(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)); var result = JObject.Parse(File.ReadAllText(resultFile)); var checks = (JArray)result["checks"];
         foreach (string id in Prerequisites) if (!checks.Any(x => (string)x["id"] == id && (string)x["status"] == "PASS")) throw new InvalidOperationException("Prerequisite not passed: " + id);
         if (!(result["hashes"] is JObject proof) || proof.Count == 0) throw new InvalidOperationException("No source/asset verification basis.");
         foreach (var hash in proof.Properties()) if (!File.Exists(Path.Combine(Project, hash.Name)) || Hash(Path.Combine(Project, hash.Name)) != (string)hash.Value) throw new InvalidOperationException("Verification basis changed: " + hash.Name);

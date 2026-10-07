@@ -417,8 +417,8 @@ public class WeaponPoseTuningWindow : EditorWindow
         roundDecimals = EditorGUILayout.IntSlider("소수점 자리", roundDecimals, 0, 4);
 
         EditorGUI.BeginChangeCheck();
-        Vector3 nextPosition = EditorGUILayout.Vector3Field("로컬 위치", poseTarget.localPosition);
-        Vector3 nextRotation = EditorGUILayout.Vector3Field("로컬 회전", poseTarget.localEulerAngles);
+        Vector3 nextPosition = EditorGUILayout.Vector3Field("그립 위치", targetPose.GetPoseLocalPositionForTuning(selectedSlot));
+        Vector3 nextRotation = EditorGUILayout.Vector3Field("그립 회전", targetPose.GetPoseLocalRotationForTuning(selectedSlot));
         if (EditorGUI.EndChangeCheck())
             ApplyPoseFieldEdit(nextPosition, nextRotation);
 
@@ -466,8 +466,8 @@ public class WeaponPoseTuningWindow : EditorWindow
             return;
 
         ApplyPoseEdit(
-            RoundVector(poseTarget.localPosition, roundDecimals),
-            RoundVector(poseTarget.localEulerAngles, roundDecimals),
+            RoundVector(targetPose.GetPoseLocalPositionForTuning(selectedSlot), roundDecimals),
+            RoundVector(targetPose.GetPoseLocalRotationForTuning(selectedSlot), roundDecimals),
             false);
     }
 
@@ -494,16 +494,18 @@ public class WeaponPoseTuningWindow : EditorWindow
         if (poseTarget == null)
             return;
 
+        Vector3 nextLocalPosition = targetPose.GetPoseLocalPositionForTuning(selectedSlot);
+        Vector3 nextLocalRotation = targetPose.GetPoseLocalRotationForTuning(selectedSlot);
+        Vector3 gripWorldPosition = poseTarget.parent != null ? poseTarget.parent.TransformPoint(nextLocalPosition) : nextLocalPosition;
+        Quaternion gripWorldRotation = poseTarget.parent != null ? poseTarget.parent.rotation * Quaternion.Euler(nextLocalRotation) : Quaternion.Euler(nextLocalRotation);
         Handles.color = Color.cyan;
-        Handles.Label(poseTarget.position, "Weapon Pose: " + GetPoseSlotLabel(selectedSlot));
+        Handles.Label(gripWorldPosition, "Weapon Pose: " + GetPoseSlotLabel(selectedSlot));
 
         EditorGUI.BeginChangeCheck();
-        Vector3 nextLocalPosition = poseTarget.localPosition;
-        Vector3 nextLocalRotation = poseTarget.localEulerAngles;
 
         if (sceneHandleMode == PoseSceneHandleMode.Move)
         {
-            Vector3 nextWorldPosition = Handles.PositionHandle(poseTarget.position, poseTarget.rotation);
+            Vector3 nextWorldPosition = Handles.PositionHandle(gripWorldPosition, gripWorldRotation);
             if (poseTarget.parent != null)
                 nextLocalPosition = poseTarget.parent.InverseTransformPoint(nextWorldPosition);
             else
@@ -511,7 +513,7 @@ public class WeaponPoseTuningWindow : EditorWindow
         }
         else
         {
-            Quaternion nextWorldRotation = Handles.RotationHandle(poseTarget.rotation, poseTarget.position);
+            Quaternion nextWorldRotation = Handles.RotationHandle(gripWorldRotation, gripWorldPosition);
             Quaternion nextLocalQuaternion = poseTarget.parent != null
                 ? Quaternion.Inverse(poseTarget.parent.rotation) * nextWorldRotation
                 : nextWorldRotation;

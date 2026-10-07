@@ -723,9 +723,10 @@ public sealed class WeaponPoseTuningWindowV2 : EditorWindow
         if (previewTarget == null)
             return;
 
+        previewPose.CaptureCurrentTransformAsPose(selectedSlot);
         SetEditedPose(
-            previewTarget.localPosition,
-            NormalizeEuler(previewTarget.localEulerAngles),
+            previewPose.GetPoseLocalPositionForTuning(selectedSlot),
+            previewPose.GetPoseLocalRotationForTuning(selectedSlot),
             true);
     }
 

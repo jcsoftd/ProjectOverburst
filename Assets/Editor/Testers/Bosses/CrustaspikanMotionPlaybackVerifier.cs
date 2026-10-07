@@ -183,6 +183,7 @@ public static class CrustaspikanMotionPlaybackVerifier
         activeCase = "CFG";
         CrustaspikanMotionPlaybackBuilder.ValidateNative(profile, AssetDatabase.LoadAssetAtPath<AnimatorController>(CrustaspikanMotionPlaybackBuilder.ControllerPath), AssetDatabase.LoadAssetAtPath<GameObject>(CrustaspikanMotionPlaybackBuilder.PrefabPath));
         Record("CFG-01", new { bindings = profile.Bindings.Length });
+        CrustaspikanMotionPlaybackBuilder.RequireOptInOff(AssetDatabase.LoadAssetAtPath<GameObject>(CrustaspikanMotionPlaybackBuilder.PrefabPath));
         var native = JObject.Parse(File.ReadAllText(CrustaspikanMotionPlaybackBuilder.Output + "/Evidence/native-draft.json"));
         Require((int)native["attacks"] == 16 && (string)native["status"] == "PASS_NATIVE_DRAFT_OPT_IN_OFF", "Native preservation proof missing."); Record("CFG-02", new { currentAttacks = 16, nativeProof = "native-draft.json" });
         foreach (EnemyMotionConsumers bit in new[] { EnemyMotionConsumers.ContinuousIntent, EnemyMotionConsumers.AttackContext, EnemyMotionConsumers.PreparedAvailability,
