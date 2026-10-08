@@ -17,7 +17,12 @@ namespace Overburst.Persistence
         [SerializeField] private List<AccountContentEntry> entries = new List<AccountContentEntry>();
         private Dictionary<string, UnityEngine.Object> byId;
         private Dictionary<UnityEngine.Object, string> byAsset;
+        private IReadOnlyList<AccountContentEntry> resolvedEntries;
         public IReadOnlyList<AccountContentEntry> Entries => entries;
+        public IReadOnlyList<AccountContentEntry> ResolvedEntries
+        {
+            get { EnsureIndex(); return resolvedEntries; }
+        }
 
         public string IdFor(UnityEngine.Object asset)
         {
@@ -64,6 +69,9 @@ namespace Overburst.Persistence
                 }
             byId = ids;
             byAsset = assets;
+            var merged = new List<AccountContentEntry>(ids.Count);
+            foreach (var pair in ids) merged.Add(new AccountContentEntry { id = pair.Key, asset = pair.Value });
+            resolvedEntries = merged;
         }
 
 #if UNITY_EDITOR
@@ -72,6 +80,7 @@ namespace Overburst.Persistence
             entries = value ?? throw new ArgumentNullException(nameof(value));
             byId = null;
             byAsset = null;
+            resolvedEntries = null;
             EnsureIndex();
         }
 #endif

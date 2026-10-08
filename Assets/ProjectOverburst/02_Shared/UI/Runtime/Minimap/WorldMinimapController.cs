@@ -85,7 +85,9 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     public void ShowForHub(Transform player)
     {
-        Scene scene = SceneManager.GetSceneByName(PersistentSceneFlow.HideoutSceneName);
+        Scene scene = WorldSessionState.ContentScene;
+        if (!scene.IsValid() || !scene.isLoaded || !PersistentSceneFlow.IsHubSceneName(scene.name))
+            scene = SceneManager.GetSceneByName(PersistentSceneFlow.DefaultHubSceneName);
         ShowForScene(player, scene.IsValid() && scene.isLoaded ? scene.handle : int.MinValue);
     }
 

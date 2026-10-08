@@ -25,6 +25,8 @@ public class MerchantDefinition : ScriptableObject
     [SerializeField] private int inventoryCapacity = 20;
     [SerializeField] private List<ShopTab> customTabs = new List<ShopTab>();
     [SerializeField] private List<MerchantStockItemEntry> stockItems = new List<MerchantStockItemEntry>();
+    [Tooltip("Use this merchant's authored stock instead of the category's legacy stock generator.")]
+    [SerializeField] private bool useAuthoredStock;
 
     public string MerchantName { get { return string.IsNullOrWhiteSpace(merchantName) ? name : merchantName; } }
     public ShopCategory Category { get { return category; } }
@@ -33,6 +35,7 @@ public class MerchantDefinition : ScriptableObject
     public int InventoryCapacity { get { return Mathf.Max(1, inventoryCapacity); } }
     public IReadOnlyList<ShopTab> CustomTabs { get { return customTabs; } }
     public IReadOnlyList<MerchantStockItemEntry> StockItems { get { return stockItems; } }
+    public bool UseAuthoredStock => useAuthoredStock;
 
     public void GetSupportedTabs(List<ShopTab> results)
     {

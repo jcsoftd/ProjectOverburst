@@ -12,7 +12,7 @@ namespace Overburst.Persistence
             var oldMerchantItems = new HashSet<string>(target.merchants.SelectMany(x => x.stock.Concat(x.currency)).Where(x => !string.IsNullOrEmpty(x)));
             var table = target.items.Where(x => !oldMerchantItems.Contains(x.instanceId)).ToDictionary(x => x.instanceId, StringComparer.Ordinal);
             target.merchants.Clear();
-            foreach (var definition in registry.Entries.Select(x => x.asset).OfType<MerchantDefinition>())
+            foreach (var definition in registry.ResolvedEntries.Select(x => x.asset).OfType<MerchantDefinition>())
             {
                 MerchantStockRefreshService.AccountInventories.TryGetValue(definition, out var inventory);
                 var merchant = new MerchantSnapshot

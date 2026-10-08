@@ -5,6 +5,7 @@ using Overburst.Persistence;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Overburst.Appearance
@@ -38,6 +39,8 @@ namespace Overburst.Appearance
         private int hairPage,equipmentPage;
         private bool wired,saving;
         private bool projectionRetry;
+        private InputAction ownerCloseInput;
+        private int sessionOpenedFrame;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()=>Instance=null;
@@ -128,6 +131,12 @@ namespace Overburst.Appearance
                 {
                     GameplayInputBlocker.Block(this);
                     PlayerInputFacade.Current?.SetGameplayMapDisabled(this,true);
+                    if(owner&&PlayerInputFacade.Current&&PlayerInputFacade.Current.TryGetGameplayAction("Interact",out var interact))
+                    {
+                        ownerCloseInput=interact.Clone();
+                        ownerCloseInput.Enable();
+                    }
+                    sessionOpenedFrame=Time.frameCount;
                     TooltipManager.Instance?.HideTooltip();
                 }
                 if(EventSystem.current)EventSystem.current.SetSelectedGameObject(appearanceTab.gameObject);
@@ -149,8 +158,21 @@ namespace Overburst.Appearance
                     if(discardConfirmation.activeSelf)discardConfirmation.SetActive(false);
                     else RequestClose();
                 }
+                else if(!saving&&Owner&&Time.frameCount!=sessionOpenedFrame
+                    &&ownerCloseInput?.WasPressedThisFrame()==true&&!IsEditingText())
+                    RequestClose();
+                if(Session==null)return;
                 PlayerInputFacade.Current?.SetGameplayMapDisabled(this,true);
             }
+        }
+        private static bool IsEditingText()
+        {
+            var selected=EventSystem.current?EventSystem.current.currentSelectedGameObject:null;
+            if(!selected)return false;
+            var tmp=selected.GetComponentInParent<TMP_InputField>();
+            if(tmp&&tmp.isFocused)return true;
+            var legacy=selected.GetComponentInParent<InputField>();
+            return legacy&&legacy.isFocused;
         }
         private void SelectChoice(AppearanceChoiceButton choice)
         {
@@ -266,6 +288,7 @@ namespace Overburst.Appearance
         public void SetFeedback(string text){if(feedback)feedback.text=text;}
         public void Close()
         {
+            if(ownerCloseInput!=null){ownerCloseInput.Disable();ownerCloseInput.Dispose();ownerCloseInput=null;}
             if(Session!=null)Session.Changed-=RefreshChoices;
             foreach(var tab in optionalTabs)if(tab)tab.SessionClosed();
             ActiveExtension=null;preview?.Close();Session=null;Owner=null;account=null;saving=false;
@@ -280,4 +303,3 @@ namespace Overburst.Appearance
         private void OnDestroy(){Close();if(Instance==this)Instance=null;}
     }
 }
-

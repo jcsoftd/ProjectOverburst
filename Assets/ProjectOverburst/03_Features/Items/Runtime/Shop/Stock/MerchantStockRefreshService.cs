@@ -81,6 +81,17 @@ public class MerchantStockRefreshService : MonoBehaviour
             instance = null;
     }
 
+    // A content scene can add shops without rewriting the shared PersistentScene asset.
+    public static void RegisterMerchantDefinitions(IEnumerable<MerchantDefinition> definitions)
+    {
+        if (instance == null || definitions == null) return;
+        var merged = new List<MerchantDefinition>(instance.merchantDefinitions ?? System.Array.Empty<MerchantDefinition>());
+        foreach (var definition in definitions)
+            if (definition != null && !merged.Contains(definition)) merged.Add(definition);
+        instance.merchantDefinitions = merged.ToArray();
+        MerchantReputationService.RegisterMerchants(instance.merchantDefinitions);
+    }
+
     public static MerchantInventory GetOrCreateInventory(MerchantDefinition definition)
     {
         if (definition == null)
@@ -185,6 +196,9 @@ public class MerchantStockRefreshService : MonoBehaviour
     {
         if (definition == null)
             return null;
+
+        if (definition.UseAuthoredStock)
+            return CreateFallbackInventory(definition);
 
         MerchantStockGenerationContext context = BuildGenerationContext();
         for (int i = 0; i < stockGenerators.Length; i++)

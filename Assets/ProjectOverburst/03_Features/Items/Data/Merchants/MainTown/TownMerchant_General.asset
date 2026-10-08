@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6b342400eec85247afc6c498dcba470, type: 3}
+  m_Name: TownMerchant_General
+  m_EditorClassIdentifier: Assembly-CSharp::MerchantDefinition
+  merchantName: "\uC7A1\uD654\uC0C1\uC778"
+  category: 0
+  description: "\uAC00\uBC29\uACFC \uC7A5\uC2E0\uAD6C\uB97C \uD310\uB9E4\uD569\uB2C8\uB2E4."
+  merchantGold: 1500
+  inventoryCapacity: 24
+  customTabs: 00000000
+  stockItems:
+  - itemData: {fileID: 11400000, guid: 21bf526e460740359464fca3318f8aaa, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: bef7cc3f7d354dc5b00829323988fdea, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: 92e68b58c5d14fc59d1b72047526a3d9, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: c4762fc6c5caebb408013609176e4990, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: b3691cd14b5641a4eaf2d1b569aa3959, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: f8e181906e8c61c48a130a7bef872d8e, type: 2}
+    stackCount: 1
+    grade: 0
+  - itemData: {fileID: 11400000, guid: 594d23216f47ec246a43a99577e3c980, type: 2}
+    stackCount: 1
+    grade: 0
+  useAuthoredStock: 1

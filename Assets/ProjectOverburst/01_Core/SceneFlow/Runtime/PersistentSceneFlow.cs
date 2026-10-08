@@ -6,7 +6,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 {
     public const string PersistentSceneName = "PersistentScene"; // 상주 씬
     public const string HideoutSceneName = "HideoutScene"; // 전투 테스트 씬
-    public const string DefaultHubSceneName = HideoutSceneName; // 기본 허브
+    public const string MainSceneName = "MainScene";
+    public const string DefaultHubSceneName = MainSceneName; // 기본 마을
     private const int PlayerReadyWaitFrames = 180; // 플레이어 준비 대기
     private const float HubGroundRayHeight = 30f; // 허브 지면 탐색 높이
     private const float HubGroundRayDistance = 100f; // 허브 지면 탐색 거리
@@ -52,7 +53,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BootstrapAfterSceneLoad()
     {
-        if (SceneManager.GetActiveScene().name == HideoutSceneName)
+        if (IsHubSceneName(SceneManager.GetActiveScene().name))
         {
             WorldSessionState.SetContentScene(SceneManager.GetActiveScene());
             WorldSessionState.SetPhase(WorldPhase.Hideout);
@@ -92,7 +93,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
     private void Start()
     {
-        if (SceneManager.GetActiveScene().name != PersistentSceneName) // Persistent 한정
+        if (gameObject.scene.name != PersistentSceneName) // 직접 연 마을의 additive 부팅도 허용
             return;
 
         ResolveLoadingScreen(); // 로딩 UI
@@ -121,7 +122,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
             gameObject.AddComponent<Overburst.Persistence.RunLifetimeDriver>();
         loadingScreen?.SetStatus("전투 효과 준비 중...");
         yield return PrepareCommonPresentation();
-        loadingScreen?.SetStatus("하이드아웃 준비 중...");
+        loadingScreen?.SetStatus("마을 준비 중...");
         loadingScreen?.SetProgress(0.35f);
         yield return EnsureInitialSubScene();
         GameplayInputBlocker.Unblock(this);
@@ -507,7 +508,15 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (cameraController == null)
             return;
 
-        cameraController.SetYaw(QuarterViewCamera.DefaultYaw);
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        MainTownSceneSettings settings = null;
+        if (scene.IsValid() && scene.isLoaded)
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                settings = root.GetComponentInChildren<MainTownSceneSettings>();
+                if (settings != null) break;
+            }
+        cameraController.SetYaw(settings != null ? settings.CameraYaw : QuarterViewCamera.DefaultYaw);
     }
 
     private static string FindLoadedSubSceneName()
@@ -515,6 +524,9 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         string activeSceneName = SceneManager.GetActiveScene().name;
         if (IsManagedSubSceneName(activeSceneName) && IsSceneLoaded(activeSceneName))
             return activeSceneName;
+
+        if (IsSceneLoaded(MainSceneName))
+            return MainSceneName;
 
         if (IsSceneLoaded(HideoutSceneName))
             return HideoutSceneName;
@@ -524,7 +536,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
 
     public static bool IsHubSceneName(string sceneName)
     {
-        return sceneName == HideoutSceneName;
+        return sceneName == MainSceneName || sceneName == HideoutSceneName;
     }
 
     private static bool IsManagedSubSceneName(string sceneName)

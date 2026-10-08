@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/ProjectOverburst/00_Scenes/PersistentScene.unity
     guid: a020a3a8ead5b534ab9693f3a9e8c01e
   - enabled: 1
+    path: Assets/ProjectOverburst/00_Scenes/MainScene.unity
+    guid: b4669f1c7bb346e49b30f134d904a83f
+  - enabled: 1
     path: Assets/ProjectOverburst/00_Scenes/HideoutScene.unity
     guid: 9df285f4799aeb247b976047ee6e985a
   - enabled: 1

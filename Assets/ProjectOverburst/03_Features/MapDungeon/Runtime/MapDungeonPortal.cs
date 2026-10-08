@@ -21,7 +21,7 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
 
     public static void SpawnInHideout(Scene scene)
     {
-        if (!scene.IsValid() || !scene.isLoaded || scene.name != PersistentSceneFlow.HideoutSceneName)
+        if (!scene.IsValid() || !scene.isLoaded || !PersistentSceneFlow.IsHubSceneName(scene.name))
             return;
         foreach (var portal in FindObjectsByType<MapDungeonPortal>(FindObjectsSortMode.None))
             if (portal.gameObject.scene == scene) return;

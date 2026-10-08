@@ -178,3 +178,9 @@ Assets/StreamingAssets/aa/
 /Assets/Combo_02_3.anim.meta
 /Assets/Parry_Counter_Attack.anim
 /Assets/Parry_Counter_Attack.anim.meta
+
+# Licensed Bandit Camp scene composition. Restore the private scene and meta or run MainTownBuilder.
+/Assets/ProjectOverburst/00_Scenes/MainScene.unity
+/Assets/ProjectOverburst/00_Scenes/MainScene.unity.meta
+/Assets/ProjectOverburst/05_Art/Environment/MainTown/
+/Assets/ProjectOverburst/05_Art/Environment/MainTown.meta

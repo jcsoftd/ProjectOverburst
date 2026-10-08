@@ -21,6 +21,14 @@ public static class MerchantDisplayPolicy
         if (merchant == null)
             return "정보 없음";
 
+        if (merchant.UseAuthoredStock)
+        {
+            int count = 0;
+            foreach (var entry in merchant.StockItems)
+                if (entry != null && entry.HasItem) count++;
+            return GetCategoryLabel(merchant) + " " + count + "종";
+        }
+
         switch (merchant.Category)
         {
             case ShopCategory.GeneralGoods:
@@ -63,6 +71,10 @@ public static class MerchantDisplayPolicy
 
             case ShopCategory.Weapon:
                 return "무기";
+            case ShopCategory.Armor:
+                return "방어구";
+            case ShopCategory.Potion:
+                return "물약";
             default:
                 return "상인";
         }
@@ -72,6 +84,20 @@ public static class MerchantDisplayPolicy
     {
         if (merchant == null)
             return "정보 없음";
+
+        if (merchant.UseAuthoredStock)
+        {
+            ItemGrade min = ItemGrade.Artifact, max = ItemGrade.Common;
+            bool found = false;
+            foreach (var entry in merchant.StockItems)
+            {
+                if (entry == null || !entry.HasItem) continue;
+                if ((int)entry.Grade < (int)min) min = entry.Grade;
+                if ((int)entry.Grade > (int)max) max = entry.Grade;
+                found = true;
+            }
+            return !found ? "재고 없음" : min == max ? FormatGradeLabel(min) : FormatGradeLabel(min) + " ~ " + FormatGradeLabel(max);
+        }
 
         switch (merchant.Category)
         {

@@ -92,8 +92,8 @@ namespace Overburst.Persistence
             if (returnRequested || flow == null || flow.IsSwitching) return;
             returnRequested = true;
             flow.ReturnToHub(outcome == RunOutcome.Extracted
-                ? RunSceneReturnContext.CreateExtractSuccess(PersistentSceneFlow.HideoutSceneName, "Default")
-                : RunSceneReturnContext.CreateHubTransfer(PersistentSceneFlow.HideoutSceneName, "Default"));
+                ? RunSceneReturnContext.CreateExtractSuccess(PersistentSceneFlow.DefaultHubSceneName, "Default")
+                : RunSceneReturnContext.CreateHubTransfer(PersistentSceneFlow.DefaultHubSceneName, "Default"));
         }
 
         private void WorldChanged(WorldPhase phase)
