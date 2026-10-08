@@ -66,7 +66,8 @@ internal static class EnemySquadDebugModule
 
     private static void RegisterThemeTrial()
     {
-        DebugSection s = DebugRegistry.Section(DebugTabs.Spawn, "적 테마 시험", 10, "게임 편성 7테마 · 최신 몬스터");
+        DebugSection s = DebugRegistry.Section(DebugTabs.Spawn, "적 테마 시험", 10,
+            $"게임 편성 {EnemyThemeTrialService.Entries.Count}테마 · 최신 몬스터");
         s.Choice("규모", () => EnemyThemeTrialService.Mode, value => EnemyThemeTrialService.SetMode(value),
                 EnemyThemeTrialPresets.Label)
             .WithId("spawn.theme.mode")

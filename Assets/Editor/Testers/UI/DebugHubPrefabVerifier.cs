@@ -28,6 +28,18 @@ public static partial class DebugHubPrefabVerifier
                 throw new InvalidOperationException("디버그 프리팹의 루트 설정 오류");
             if (view.Pages.Length != DebugTabs.Order.Length + 1 || view.Pages.Any(p => p == null || p.parent != view.Content))
                 throw new InvalidOperationException("현재 등록된 탭과 검색 페이지 연결 오류");
+            Transform favorites = view.Pages.Single(p => p.name == "Page " + DebugTabs.Favorites);
+            Transform[] themePages = {
+                view.Pages.Single(p => p.name == "Page " + DebugTabs.Spawn),
+                view.Pages.Single(p => p.name == "Page Search"),
+                favorites.Find("Favorites Rows"), favorites.Find("Recent Rows")
+            };
+            foreach (EnemyThemeTable table in MapThemeCatalog.Tables)
+            {
+                string id = "spawn.theme." + table.ThemeId;
+                if (!view.ItemIds.Contains(id) || themePages.Any(page => page == null || page.Find("Row " + id) == null))
+                    throw new InvalidOperationException("테마 UI 행 누락: " + id + ". Debug Hub Prefab 빌더로 갱신하세요.");
+            }
             foreach (Transform node in root.GetComponentsInChildren<Transform>(true))
                 if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject) > 0)
                     throw new InvalidOperationException("Missing Script: " + node.name);
