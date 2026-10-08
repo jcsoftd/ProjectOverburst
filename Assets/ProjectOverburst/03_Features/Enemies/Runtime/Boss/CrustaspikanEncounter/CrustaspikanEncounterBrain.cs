@@ -47,7 +47,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     private CrustaspikanNode tree;
     private CrustaspikanEncounterSettings.Pattern current;
     private int stepIndex, lastParry;
-    private bool stepStarted, transitionStarted, disposed, stateApplied;
+    private bool stepStarted, transitionStarted, disposed, stateApplied, patternCommitted;
     private float stepStartedAt, stepUntil, readyAt, groggyUntil, protectionUntil, lastPoiseAt, nextDodgeAt;
     private Vector3 moveDestination;
     private string lastFamily = "";
@@ -204,7 +204,34 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     private void FaceTarget()
     {
         if (!Actor.Movement.IsActionLocked && !Actor.Movement.IsStatusMovementLocked)
-            Actor.Movement.FacePosition(player.transform.position);
+            Actor.Movement.FacePosition(ResolveFacingTarget());
+    }
+    private Vector3 ResolveFacingTarget()
+    {
+        Vector3 target = player.transform.position;
+        if (ReviewMode || !UsesMotion || Actor.Movement.IsFacingForAttack(target, settings.attackFacingTolerance)) return target;
+        Vector3 delta = target - Actor.transform.position; delta.y = 0f;
+        if (delta.sqrMagnitude < 1f) return target;
+        float angularSpeed = Vector3.Dot(Vector3.Cross(delta, encounter.PlayerVelocity), Vector3.up) / delta.sqrMagnitude * Mathf.Rad2Deg;
+        if (Mathf.Abs(angularSpeed) < 5f) return target;
+        var profile = Actor.AnimationBridge.PlaybackProfile;
+        float bestError = float.PositiveInfinity;
+        // Predict only the turn landing; the accepted attack still freezes its actual aim.
+        for (int i = 0; i <= 12; i++)
+        {
+            float horizon = .6f + i * .1f;
+            Vector3 predicted = Quaternion.AngleAxis(Mathf.Clamp(angularSpeed * horizon, -90f, 90f), Vector3.up) * delta;
+            float angle = Vector3.SignedAngle(Actor.Movement.PhysicalRotation * Vector3.forward, predicted, Vector3.up);
+            bool halfTurn = Mathf.Abs(angle) > 90f && !Mathf.Approximately(Mathf.Abs(angle), 90f);
+            var binding = profile.Find(halfTurn ? (angle < 0f ? "Turn180Left" : "Turn180Right") : (angle < 0f ? "Turn90Left" : "Turn90Right"));
+            var clip = profile.ResolveClip(binding);
+            if (clip == null || Mathf.Abs(angle) <= profile.FacingTolerance) continue;
+            float rate = binding.rate * Mathf.Clamp(binding.authoredYaw / Mathf.Abs(angle), 1f, 2f);
+            float error = Mathf.Abs(horizon - (clip.length / rate + binding.settleSeconds + binding.blendOut + .02f));
+            if (error >= bestError) continue;
+            bestError = error; target = Actor.transform.position + predicted;
+        }
+        return target;
     }
     private Quaternion CandidateFacing(CrustaspikanEncounterSettings.Pattern pattern)
     {
@@ -267,7 +294,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
             if (Context.Distance > settings.approachDistance + .5f)
             {
                 State = "거리 좁히기";
-                Actor.Movement.SetDestination(encounter.ClampArena(player.transform.position, 5f), settings.approachDistance, EnemyLocomotionMode.Walk, .85f);
+                float speedMultiplier = settings.approachSpeed / Mathf.Max(.1f, Actor.Movement.Profile != null ? Actor.Movement.Profile.MoveSpeed : EnemyMovementProfile.MinimumMoveSpeed);
+                Actor.Movement.SetDestination(encounter.ClampArena(player.transform.position, 5f), settings.approachDistance, EnemyLocomotionMode.Walk, speedMultiplier);
             }
             else
             {
@@ -327,12 +355,17 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private void BeginPattern()
     {
-        stepIndex = 0; stepStarted = false; LastPattern = current.id; PatternCount++;
+        stepIndex = 0; stepStarted = patternCommitted = false;
         stepAttemptAt = Time.time;
-        consecutiveFamily = current.family == lastFamily ? consecutiveFamily + 1 : 1; lastFamily = current.family;
-        cooldowns[current.id] = Time.time + current.cooldown;
         Actor.Movement.StopMovement(); Actor.AbilityController.ClearPreparedAim();
         if (UsesMotion) BeginMotionPattern();
+    }
+    private void CommitPatternStep()
+    {
+        if (patternCommitted || current == null) return;
+        patternCommitted = true; LastPattern = current.id; PatternCount++;
+        consecutiveFamily = current.family == lastFamily ? consecutiveFamily + 1 : 1; lastFamily = current.family;
+        cooldowns[current.id] = Time.time + current.cooldown;
     }
     private CrustaspikanNodeStatus RunPattern()
     {
@@ -370,6 +403,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                     composite.SetNextThrowPayload(EnemyBossThrowPayload.Elite); executor.TryPlayMotion("UnearthRock", true); break;
             }
             stepStarted = true;
+            if (s.kind != CrustaspikanStepKind.Wait) CommitPatternStep();
         }
         bool done = false;
         switch (s.kind)

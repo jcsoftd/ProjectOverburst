@@ -123,6 +123,7 @@ public sealed partial class CrustaspikanEncounterBrain
                     break;
             }
             stepStarted = true;
+            if (step.kind != CrustaspikanStepKind.Wait) CommitPatternStep();
         }
         bool done;
         if (step.kind == CrustaspikanStepKind.Wait) done = Time.time >= stepUntil;

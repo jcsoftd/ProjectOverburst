@@ -17,14 +17,16 @@ public sealed partial class EnemyLocomotionAnimator
         direction.y = 0f; if (direction.sqrMagnitude < .0001f) return false;
         float angle = Vector3.SignedAngle(movement.PhysicalRotation * Vector3.forward, direction, Vector3.up);
         if (Mathf.Abs(angle) <= animationBridge.PlaybackProfile.FacingTolerance) return false;
-        string id = Mathf.Abs(angle) > 90f ? (angle < 0f ? "Turn180Left" : "Turn180Right") : (angle < 0f ? "Turn90Left" : "Turn90Right");
+        bool halfTurn = Mathf.Abs(angle) > 90f && !Mathf.Approximately(Mathf.Abs(angle), 90f);
+        string id = halfTurn ? (angle < 0f ? "Turn180Left" : "Turn180Right") : (angle < 0f ? "Turn90Left" : "Turn90Right");
         facingBinding = animationBridge.PlaybackProfile.Find(id);
         if (facingBinding == null || facingBinding.turnProgress == null) return false;
         turnStart = movement.PhysicalRotation; turnDirection = angle;
         turnEnd = Quaternion.AngleAxis(angle, Vector3.up) * turnStart;
-        FacingBudget = animationBridge.PlaybackProfile.DurationBudget(facingBinding, facingBinding.rate);
+        float rate = facingBinding.rate * Mathf.Clamp(facingBinding.authoredYaw / Mathf.Abs(angle), 1f, 2f);
+        FacingBudget = animationBridge.PlaybackProfile.DurationBudget(facingBinding, rate);
         var request = new EnemyMotionRequest { Owner = this, Role = EnemyMotionRole.Turn, MotionId = id,
-            Rate = facingBinding.rate, Magnitude = Mathf.Abs(angle) / facingBinding.authoredYaw,
+            Rate = rate, Magnitude = Mathf.Abs(angle) / facingBinding.authoredYaw,
             BudgetSeconds = FacingBudget, ExternalCompletion = true,
             OnInvalidated = OnFacingInvalidated, OnTerminated = OnFacingTerminated };
         if (!animationBridge.TryBeginMotion(request, out facingHandle, out _)) return false;

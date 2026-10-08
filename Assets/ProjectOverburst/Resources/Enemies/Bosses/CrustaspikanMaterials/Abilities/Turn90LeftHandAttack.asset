@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: Turn90LeftHandAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
   parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: Crustaspikan_Turn90LeftHandAttack
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack12
@@ -20,10 +24,13 @@ MonoBehaviour:
   damage: 20
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 1
-  telegraphedAttack: 0
-  preparationDuration: 0.55
-  releaseDuration: 0.14
-  recoveryDuration: 0.28
+  telegraphedAttack: 1
+  preparationDuration: 1.3933333
+  releaseDuration: 0.54
+  recoveryDuration: 1.21
+  preparationEndNormalized: 0.30962962
+  motionReleaseReferenceNormalized: 0.42962962
+  motionRecoveryStartNormalized: 0.47407407
   minimumWarningTime: 0
   minimumRecoveryTime: 0.3
   parryable: 1

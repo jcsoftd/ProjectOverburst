@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: SpitterShot1
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: Crustaspikan_SpitterShot1
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack14
@@ -19,10 +24,13 @@ MonoBehaviour:
   damage: 10
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 0
-  telegraphedAttack: 0
-  preparationDuration: 0.55
-  releaseDuration: 0.14
-  recoveryDuration: 0.28
+  telegraphedAttack: 1
+  preparationDuration: 0.64
+  releaseDuration: 0.46000004
+  recoveryDuration: 0.5250001
+  preparationEndNormalized: 0.16695651
+  motionReleaseReferenceNormalized: 0.28695652
+  motionRecoveryStartNormalized: 0.8173913
   minimumWarningTime: 0
   minimumRecoveryTime: 0.3
   parryable: 0
@@ -44,3 +52,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.5913043
+  projectilesPerRelease: 1

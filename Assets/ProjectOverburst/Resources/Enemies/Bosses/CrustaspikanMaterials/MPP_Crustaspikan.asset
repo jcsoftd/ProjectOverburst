@@ -483,12 +483,12 @@ MonoBehaviour:
     lifetime: 1
     ratePolicy: 0
     updateMode: 0
-    rate: 1.25
-    blendIn: 0.12
-    blendOut: 0.16
+    rate: 1.9444447
+    blendIn: 0.08
+    blendOut: 0.1
     completeNormalized: 0.999
     authoredYaw: 180
-    settleSeconds: 0.1
+    settleSeconds: 0.05
     strideSpeed: 1
     turnProgress:
       serializedVersion: 2
@@ -1479,12 +1479,12 @@ MonoBehaviour:
     lifetime: 1
     ratePolicy: 0
     updateMode: 0
-    rate: 1.25
-    blendIn: 0.12
-    blendOut: 0.16
+    rate: 1.9444447
+    blendIn: 0.08
+    blendOut: 0.1
     completeNormalized: 0.999
     authoredYaw: 180
-    settleSeconds: 0.1
+    settleSeconds: 0.05
     strideSpeed: 1
     turnProgress:
       serializedVersion: 2
@@ -2479,12 +2479,12 @@ MonoBehaviour:
     lifetime: 1
     ratePolicy: 0
     updateMode: 0
-    rate: 1.25
-    blendIn: 0.12
-    blendOut: 0.16
+    rate: 3.3333333
+    blendIn: 0.08
+    blendOut: 0.1
     completeNormalized: 0.999
     authoredYaw: 90
-    settleSeconds: 0.1
+    settleSeconds: 0.05
     strideSpeed: 1
     turnProgress:
       serializedVersion: 2
@@ -3647,12 +3647,12 @@ MonoBehaviour:
     lifetime: 1
     ratePolicy: 0
     updateMode: 0
-    rate: 1.25
-    blendIn: 0.12
-    blendOut: 0.16
+    rate: 2.6388888
+    blendIn: 0.08
+    blendOut: 0.1
     completeNormalized: 0.999
     authoredYaw: 90
-    settleSeconds: 0.1
+    settleSeconds: 0.05
     strideSpeed: 1
     turnProgress:
       serializedVersion: 2

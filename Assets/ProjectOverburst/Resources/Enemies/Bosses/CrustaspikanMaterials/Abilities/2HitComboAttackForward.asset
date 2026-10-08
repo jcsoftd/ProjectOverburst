@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: 2HitComboAttackForward
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
   parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: Crustaspikan_2HitComboAttackForward
   weakAttackExecution: {fileID: 0}
   animatorTrigger: Attack3
@@ -20,10 +24,13 @@ MonoBehaviour:
   damage: 10
   referencePatternDamagePercent: 0
   telegraphedStrongAttack: 1
-  telegraphedAttack: 0
-  preparationDuration: 0.55
-  releaseDuration: 0.14
-  recoveryDuration: 0.28
+  telegraphedAttack: 1
+  preparationDuration: 1.0733333
+  releaseDuration: 0.76000005
+  recoveryDuration: 1.21
+  preparationEndNormalized: 0.16947368
+  motionReleaseReferenceNormalized: 0.28947368
+  motionRecoveryStartNormalized: 0.6263158
   minimumWarningTime: 0
   minimumRecoveryTime: 0.3
   parryable: 1
