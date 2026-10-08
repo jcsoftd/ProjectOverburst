@@ -1,13 +1,24 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
 
-public sealed class BuffIconSlotUI : MonoBehaviour
+public sealed class BuffIconSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private Image baseImage;
     [SerializeField] private Image fillImage;
     [SerializeField] private TMP_Text valueText;
     [SerializeField] private BuffPolarityIndicatorUI polarityIndicator;
+    [SerializeField] private UnityEngine.UI.Image hoverTarget;
+    [SerializeField] private BuffTooltipUI tooltip;
+    private object tooltipSource;
+    private float tooltipPrimary, tooltipSecondary;
+    private int tooltipStacks, tooltipMaximum;
+    public string TooltipName { get; private set; }
+    public string TooltipEffect { get; private set; }
+    public float TooltipRemaining { get; private set; }
+    public bool TooltipPermanent { get; private set; }
+    public string TooltipLifetime { get; private set; }
 
     private static Sprite defaultArrowSprite;
     private int lastNumber = int.MinValue;
@@ -33,15 +44,63 @@ public sealed class BuffIconSlotUI : MonoBehaviour
 
         SetEffect(instance.BuffId, StatusBuffIcons.Buff(instance.Definition) ?? GetDefaultArrowSprite(), instance.RemainingTime,
             instance.Definition.duration, isDebuff: instance.Definition.isDebuff);
+        if (tooltipSource != instance.Definition)
+        {
+            tooltipSource = instance.Definition;
+            TooltipName = BuffTooltipText.BuffName(instance.Definition);
+            TooltipEffect = BuffTooltipText.BuffEffect(instance.Definition);
+        }
     }
+
+    public void SetFlask(string key, FlaskEffectSnapshot snapshot)
+    {
+        SetEffect(key, StatusBuffIcons.Flask(snapshot.Data), snapshot.Remaining, snapshot.Duration);
+        if (tooltipSource != snapshot.Data || tooltipPrimary != snapshot.Stats.primary || tooltipSecondary != snapshot.Stats.secondary)
+        {
+            tooltipSource = snapshot.Data; tooltipPrimary = snapshot.Stats.primary; tooltipSecondary = snapshot.Stats.secondary;
+            TooltipName = snapshot.Data.itemName;
+            TooltipEffect = BuffTooltipText.FlaskEffectText(snapshot);
+        }
+    }
+
+    public void SetRadiance(int stacks, int maximum)
+    {
+        SetEffect("radiance", StatusBuffIcons.Status("radiance"), stacks: stacks, permanent: true);
+        TooltipLifetime = "강공 시 소모";
+        if (TooltipName == null || tooltipStacks != stacks || tooltipMaximum != maximum)
+        {
+            tooltipStacks = stacks; tooltipMaximum = maximum; TooltipName = "광휘";
+            TooltipEffect = "빛 강공 강화 · " + BuffTooltipText.Highlight(stacks + " / " + maximum + "중첩");
+        }
+    }
+
+    public void SetMapBuff(string key, MapBuffKind kind, int stacks, float bonus)
+    {
+        SetEffect(key, StatusBuffIcons.Map(kind), stacks: stacks, permanent: true);
+        TooltipLifetime = "던전 종료까지";
+        if (TooltipName == null || tooltipStacks != stacks || tooltipPrimary != bonus)
+        {
+            tooltipStacks = stacks; tooltipPrimary = bonus;
+            TooltipName = BuffTooltipText.MapName(kind);
+            TooltipEffect = BuffTooltipText.MapEffect(kind, stacks, bonus);
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData) => tooltip?.Show(this);
+    public void OnPointerExit(PointerEventData eventData) => tooltip?.Hide(this);
+    private void OnDisable() => tooltip?.Hide(this);
 
     public void SetEffect(string key, Sprite sprite, float remaining = 0f, float duration = 0f,
         int stacks = 0, bool permanent = false, bool isDebuff = false)
     {
         BindVisuals();
         if (sprite == null) { SetVisible(false); return; }
+        if (DisplayedKey != key) { tooltipSource = null; TooltipName = TooltipEffect = null; }
         DisplayedKey = key;
         DisplayedIsDebuff = isDebuff;
+        TooltipRemaining = remaining;
+        TooltipPermanent = permanent;
+        TooltipLifetime = "지속 중";
         float alpha = permanent ? 1f : ExpireBlinkAlpha(remaining, duration);
         if (polarityIndicator != null) polarityIndicator.SetAppearance(isDebuff, alpha);
         ConfigureImage(baseImage, sprite, new Color(1f, 1f, 1f, .22f * alpha), Image.Type.Simple);
@@ -72,7 +131,13 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             fillImage.enabled = visible;
         if (valueText != null) valueText.enabled = visible;
         if (polarityIndicator != null) polarityIndicator.enabled = visible;
-        if (!visible) { DisplayedKey = null; DisplayedIsDebuff = false; }
+        if (hoverTarget != null) hoverTarget.enabled = visible;
+        if (!visible)
+        {
+            tooltip?.Hide(this);
+            DisplayedKey = null; DisplayedIsDebuff = false;
+            tooltipSource = null; TooltipName = TooltipEffect = null;
+        }
     }
 
     // 2026-09-30: 끝나기 3초 전부터 깜빡이고, 마지막 1초는 더 빠르게 깜빡여 곧 사라진다는 것을 알린다.
@@ -97,6 +162,7 @@ public sealed class BuffIconSlotUI : MonoBehaviour
             valueText = transform.Find("Value") != null ? transform.Find("Value").GetComponent<TMP_Text>() : null;
         if (polarityIndicator == null)
             polarityIndicator = transform.Find("Polarity")?.GetComponent<BuffPolarityIndicatorUI>();
+        if (hoverTarget == null) hoverTarget = GetComponent<UnityEngine.UI.Image>();
     }
 
     private static void ConfigureImage(Image image, Sprite sprite, Color color, Image.Type type)

@@ -126,8 +126,9 @@ public static class StatusBuffIconBuilder
             rect.anchoredPosition = new Vector2(i * 37f, 0f);
             rect.sizeDelta = Vector2.one * 30f;
             slot.gameObject.SetActive(true);
+            var hoverImage = slot.GetComponent<Image>();
             foreach (Image image in slot.GetComponentsInChildren<Image>(true))
-            { image.raycastTarget = false; image.preserveAspect = true; image.color = Color.white; }
+            { image.raycastTarget = image == hoverImage; image.preserveAspect = true; image.color = image == hoverImage ? Color.clear : Color.white; }
             Transform number = slot.Find("Value");
             if (number == null) { number = new GameObject("Value", typeof(RectTransform), typeof(TextMeshProUGUI)).transform; number.SetParent(slot, false); }
             var text = number.GetComponent<TextMeshProUGUI>();

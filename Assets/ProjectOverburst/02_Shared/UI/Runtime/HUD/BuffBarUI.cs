@@ -52,13 +52,13 @@ public sealed class BuffBarUI : MonoBehaviour
         foreach (FlaskEffectSnapshot flask in activeFlasks)
         {
             if (shown < SlotCount && slots[shown] != null)
-                slots[shown++].SetEffect(FlaskKeys[(int)flask.Data.kind], StatusBuffIcons.Flask(flask.Data), flask.Remaining, flask.Duration);
+                slots[shown++].SetFlask(FlaskKeys[(int)flask.Data.kind], flask);
             total++;
         }
         if (energy != null && energy.Element == WeaponElement.Light && energy.RadianceStacks > 0)
         {
             if (shown < SlotCount && slots[shown] != null)
-                slots[shown++].SetEffect("radiance", StatusBuffIcons.Status("radiance"), stacks: energy.RadianceStacks, permanent: true);
+                slots[shown++].SetRadiance(energy.RadianceStacks, energy.RadianceMaximum);
             total++;
         }
         VisibleTimedCount = shown;
@@ -74,7 +74,7 @@ public sealed class BuffBarUI : MonoBehaviour
             if (mapStacks[i] == 0) continue;
             if (shown < SlotCount && slots[shown] != null)
             {
-                slots[shown++].SetEffect(MapKeys[i], StatusBuffIcons.Map((MapBuffKind)i), stacks: mapStacks[i], permanent: true);
+                slots[shown++].SetMapBuff(MapKeys[i], (MapBuffKind)i, mapStacks[i], MapRunBuffs.Bonus((MapBuffKind)i));
                 shownMap++;
             }
             total++;

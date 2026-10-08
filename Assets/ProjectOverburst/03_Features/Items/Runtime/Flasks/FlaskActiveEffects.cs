@@ -50,7 +50,7 @@ public sealed class FlaskActiveEffects
         {
             float remaining = Mathf.Max(0f, entry.end - now);
             if (remaining > 0f)
-                results.Add(new FlaskEffectSnapshot(entry.itemId, entry.data, remaining, entry.stats.duration));
+                results.Add(new FlaskEffectSnapshot(entry.itemId, entry.data, remaining, entry.stats.duration, entry.stats));
         }
     }
 
@@ -79,6 +79,9 @@ public readonly struct FlaskEffectSnapshot
     public readonly string ItemId;
     public readonly FlaskItemData Data;
     public readonly float Remaining, Duration;
+    public readonly FlaskStats Stats;
     public FlaskEffectSnapshot(string itemId, FlaskItemData data, float remaining, float duration)
-    { ItemId = itemId; Data = data; Remaining = remaining; Duration = duration; }
+        : this(itemId, data, remaining, duration, new FlaskStats(data != null ? data.primaryValue : 0f, data != null ? data.secondaryValue : 0f, duration, 0f)) { }
+    public FlaskEffectSnapshot(string itemId, FlaskItemData data, float remaining, float duration, FlaskStats stats)
+    { ItemId = itemId; Data = data; Remaining = remaining; Duration = duration; Stats = stats; }
 }

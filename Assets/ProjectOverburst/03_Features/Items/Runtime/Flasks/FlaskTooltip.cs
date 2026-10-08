@@ -156,7 +156,7 @@ public static class FlaskTooltip
         }
     }
 
-    private static string Label(FlaskEffect effect)
+    public static string Label(FlaskEffect effect)
     {
         switch (effect)
         {
@@ -189,7 +189,7 @@ public static class FlaskTooltip
         }
     }
 
-    private static string EffectValue(FlaskEffect effect, float value)
+    public static string EffectValue(FlaskEffect effect, float value)
     {
         bool reduction = effect == FlaskEffect.DirectDamageReduction
             || effect == FlaskEffect.DotDamageReduction
