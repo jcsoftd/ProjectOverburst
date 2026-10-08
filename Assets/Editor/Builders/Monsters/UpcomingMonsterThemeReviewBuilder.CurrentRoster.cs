@@ -20,7 +20,8 @@ public static partial class UpcomingMonsterThemeReviewBuilder
         if(existing.IsValid()&&existing.isLoaded&&existing.isDirty)throw new Exception("Unsaved showcase edits must be preserved");
         var tables=new[]{"SpiderBrood","VenomBrood","PrimalHunt","CavernMutants","DeathHarvest","RotsporeMarsh","AlienContainment","GraveHunt"}
             .Select(id=>AssetDatabase.LoadAssetAtPath<EnemyThemeTable>("Assets/ProjectOverburst/Resources/Enemies/Themes/Tables/"+id+".asset")).ToArray();
-        if(tables.Any(t=>t==null||!t.Validate(out _))||tables.Sum(t=>t.Entries.Count)!=63)throw new Exception("Eight valid themes / 63 actors required");
+        var catalog=AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
+        if(catalog==null||tables.Any(t=>t==null||!t.Validate(out _))||tables.Sum(t=>t.Entries.Count)!=catalog.Count)throw new Exception("Eight valid themes must match the saved catalog");
         Directory.CreateDirectory(directory);string project=Directory.GetParent(Application.dataPath).FullName;
         foreach(string suffix in new[]{"",".meta"})File.Copy(Path.Combine(project,ScenePath+suffix),Path.Combine(directory,"showcase-before"+suffix+(suffix==""?".unity":"")),false);
         var previousActive=SceneManager.GetActiveScene();bool wasOpen=existing.IsValid()&&existing.isLoaded;
@@ -33,9 +34,12 @@ public static partial class UpcomingMonsterThemeReviewBuilder
         if(boss!=null){boss.name="09_별도 보스 비교";boss.transform.position=new Vector3(0,0,336);}
         foreach(var root in roots.Where(r=>r!=boss&&r.name.Length>2&&r.name.Substring(0,2)!="00"&&char.IsDigit(r.name[0])&&char.IsDigit(r.name[1])&&r.name[2]=='_'))UnityEngine.Object.DestroyImmediate(root);
         var lighting=scene.GetRootGameObjects().First(r=>r.name.Contains("조명"));
-        foreach(var camera in lighting.GetComponentsInChildren<Camera>(true)){
-            if(camera.name=="ReviewCamera_8"){camera.name="ReviewCamera_9";camera.transform.position+=new Vector3(-104,0,84);}
-            else if(camera.name!="ReviewCamera_Overview")UnityEngine.Object.DestroyImmediate(camera.gameObject);
+        var cameras=lighting.GetComponentsInChildren<Camera>(true);
+        bool hasCurrentBossCamera=cameras.Any(c=>c.name=="ReviewCamera_9");
+        foreach(var camera in cameras){
+            if(camera.name=="ReviewCamera_Overview"||camera.name=="ReviewCamera_9")continue;
+            if(!hasCurrentBossCamera&&camera.name=="ReviewCamera_8"){camera.name="ReviewCamera_9";camera.transform.position+=new Vector3(-104,0,84);}
+            else UnityEngine.Object.DestroyImmediate(camera.gameObject);
         }
         var stations=new JArray();
         try{
@@ -54,7 +58,17 @@ public static partial class UpcomingMonsterThemeReviewBuilder
                         foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;foreach(var c in actor.GetComponentsInChildren<Collider>(true))c.enabled=false;
                         actor.SetActive(true);actor.transform.localRotation=Quaternion.Euler(0,180,0);
                         var animator=actor.GetComponentInChildren<Animator>(true);animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
-                        var graph=PlayableGraph.Create("Current theme idle");graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);try{var p=AnimationClipPlayable.Create(graph,d.AnimationProfile.Idle);p.SetApplyFootIK(false);var o=AnimationPlayableOutput.Create(graph,"Idle",animator);o.SetSourcePlayable(p);graph.Play();graph.Evaluate(.00001f);}finally{graph.Destroy();}
+                        animator.Rebind();animator.Update(0f);
+                        var graph=PlayableGraph.Create("Current theme idle");graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                        var poseTransforms=actor.GetComponentsInChildren<Transform>(true);
+                        Vector3[] posePositions=null,poseScales=null;Quaternion[] poseRotations=null;
+                        try{var p=AnimationClipPlayable.Create(graph,d.AnimationProfile.Idle);p.SetApplyFootIK(false);var o=AnimationPlayableOutput.Create(graph,"Idle",animator);o.SetSourcePlayable(p);graph.Play();graph.Evaluate(.00001f);
+                            posePositions=poseTransforms.Select(t=>t.localPosition).ToArray();poseRotations=poseTransforms.Select(t=>t.localRotation).ToArray();poseScales=poseTransforms.Select(t=>t.localScale).ToArray();
+                        }finally{graph.Destroy();}
+                        // Humanoid graph teardown restores the bind pose; keep the sampled idle in the saved exhibit.
+                        if(posePositions!=null)for(int poseIndex=0;poseIndex<poseTransforms.Length;poseIndex++){
+                            poseTransforms[poseIndex].localPosition=posePositions[poseIndex];poseTransforms[poseIndex].localRotation=poseRotations[poseIndex];poseTransforms[poseIndex].localScale=poseScales[poseIndex];
+                        }
                         var data=station.AddComponent<UpcomingMonsterReviewStation>();data.cardKey="runtime:"+d.EnemyId;data.displayName=d.DisplayName;data.model=actor;data.grade=Slots[tier];data.selectionStatus="runtime";data.displaySize=UpcomingMonsterThemeReviewSizing.GeometryBounds(actor).size;
                         var motions=new System.Collections.Generic.List<UpcomingMonsterReviewStation.Motion>{new UpcomingMonsterReviewStation.Motion{role="idle",clip=d.AnimationProfile.Idle,concept="실제 게임 대기"},new UpcomingMonsterReviewStation.Motion{role="move",clip=d.AnimationProfile.Walk,concept="실제 게임 보행"},new UpcomingMonsterReviewStation.Motion{role="move",clip=d.AnimationProfile.Run,concept="실제 게임 달리기"}};
                         for(int a=0;a<d.AbilitySet.Count;a++){var ability=d.AbilitySet.GetAbility(a);motions.Add(new UpcomingMonsterReviewStation.Motion{role=ability.IsTelegraphedStrongAttack?"strong":"weak",clip=ability.WeakAttackExecution?.RuntimeClip??d.AnimationProfile.GetAttackClip(a),concept=ability.WeakAttackExecution?.MotionPolicy.ToString()??"확정 강공",count=ability.HitCount+"타",parryable=ability.IsParryable,connection=ability.AnimatorTrigger});}
@@ -70,6 +84,6 @@ public static partial class UpcomingMonsterThemeReviewBuilder
             EditorSceneManager.MarkSceneDirty(scene);if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new Exception("Showcase save failed");
             File.WriteAllText(Path.Combine(directory,"showcase-result.json"),new JObject{["status"]="PASS_SAVED_SHOWCASE",["scene"]=ScenePath,["themes"]=8,["actors"]=stations.Count,["stations"]=stations,["bossExhibitPreserved"]=boss!=null}.ToString());
         }finally{materialCache.Clear();if(previousActive.IsValid()&&previousActive.isLoaded)SceneManager.SetActiveScene(previousActive);if(!wasOpen&&!scene.isDirty)EditorSceneManager.CloseScene(scene,true);}
-        return "PASS_CURRENT_SHOWCASE_8_THEMES_63_ACTORS";
+        return "PASS_CURRENT_SHOWCASE_8_THEMES_"+stations.Count+"_ACTORS";
     }
 }

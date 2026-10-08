@@ -41,13 +41,19 @@ public static class MonsterThemeExtensionBuilder
         return reach;
     }
     public static string Prepare(string directory)
+        => PrepareSelection(directory,7);
+
+    public static string PrepareEquipmentVariants(string directory)
+        => PrepareSelection(directory,4);
+
+    static string PrepareSelection(string directory,int requiredCount)
     {
         Idle();string receipt=Path.Combine(directory,"native-prepare-job.json");
         File.WriteAllText(receipt,new JObject{["status"]="RUNNING",["phase"]="read visual selections"}.ToString());
         var selection=JObject.Parse(File.ReadAllText(Path.Combine(directory,"content-selection.json")));
         var inventory=JObject.Parse(File.ReadAllText(Path.Combine(directory,"native-source-inventory.json")));
         var rows=selection["rows"].OfType<JObject>().ToArray();
-        if(rows.Length!=7||rows.Any(r=>(string)r["timingStatus"]!="VISUAL_REVIEWED"))throw new Exception("Seven visually reviewed source selections required");
+        if(rows.Length!=requiredCount||rows.Any(r=>(string)r["timingStatus"]!="VISUAL_REVIEWED"))throw new Exception("Complete visually reviewed source selections required");
         string presetPath=Root+"Presets/GraveHunt.asset";
         var preset=AssetDatabase.LoadAssetAtPath<EnemyAiPreset>(presetPath);
         if(preset==null){preset=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<EnemyAiPreset>(Root+"Presets/DeathHarvest.asset"));preset.name="GraveHunt";preset.ConfigureIdentity("Theme_GraveHunt",(string)selection["themeName"],Array.Empty<GameObject>());AssetDatabase.CreateAsset(preset,presetPath);Save(preset);}
@@ -59,7 +65,8 @@ public static class MonsterThemeExtensionBuilder
             File.WriteAllText(receipt,new JObject{["status"]="RUNNING",["phase"]="author contacts",["model"]=row["id"]}.ToString());
             string cid=(string)row["id"],id=(string)row["enemyId"],tier=(string)row["tier"],key=cid+":"+tier;
             var source=inventory["models"].OfType<JObject>().Single(m=>(string)m["id"]==cid);
-            var all=inventory["clips"].OfType<JObject>().Where(c=>((string)c["path"]).IndexOf(cid.Replace("-",""),StringComparison.OrdinalIgnoreCase)>=0).ToArray();
+            string sourceId=(string)row["sourceId"]??cid;
+            var all=inventory["clips"].OfType<JObject>().Where(c=>((string)c["path"]).IndexOf(sourceId.Replace("-",""),StringComparison.OrdinalIgnoreCase)>=0).ToArray();
             Func<string,JObject> lookup=name=>all.Single(c=>(string)c["name"]==name);
             Func<string,string> path=name=>(string)lookup(name)["path"];
             var scene=EditorSceneManager.NewPreviewScene();GameObject model=null;PlayableGraph graph=default;
@@ -113,8 +120,12 @@ public static class MonsterThemeExtensionBuilder
                     entries.Add(entry);(heavy?strong:weak).Add(new JObject{["key"]=selectionKey,["clip"]=name,["sourcePath"]=metadata["path"],["selectedCount"]=hitFrames.Length,["motionPolicy"]=entry["motionPolicy"]});
                 }
                 cards[key]=new JObject{["name"]=row["name"],["status"]="native-reviewed",["inRoster"]=true,["isBoss"]=false,["weak"]=weak,["strong"]=strong};
-                var materials=new JObject();foreach(var mat in model.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m!=null).Distinct())
-                    materials[AssetDatabase.GetAssetPath(mat)]=new JObject{["targetPath"]="Assets/ProjectOverburst/05_Art/Materials/Monsters/GraveHunt/"+mat.name+".mat",["convertFromSource"]=true};
+                var materials=new JObject();foreach(var mat in model.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m!=null).Distinct()) {
+                    string materialPath="Assets/ProjectOverburst/05_Art/Materials/Monsters/GraveHunt/"+mat.name+".mat";
+                    var mapping=new JObject{["targetPath"]=materialPath,["convertFromSource"]=true};
+                    if(AssetDatabase.LoadAssetAtPath<Material>(materialPath)!=null)mapping["expectedTargetSha256"]=Hash(Path.Combine(Project,materialPath));
+                    materials[AssetDatabase.GetAssetPath(mat)]=mapping;
+                }
                 var seed=tier=="small"?"CavernMutants_Cephalonops":tier=="medium"?"SpiderBrood_Cavecrawler":"CavernMutants_Ursacetus";
                 var batch=new JObject{["schema"]="overburst.theme-extension.actor.v1",["activateInGame"]=false,["applyAudio"]=false,["approvedPath"]=manifestPath,["cardKey"]=key,["enemyId"]=id,["grade"]=tier,
                     ["seedDefinition"]=Root+"Definitions/"+seed+".asset",["sourcePrefab"]=source["path"],["aiPresetPath"]=presetPath,["idlePath"]=path((string)row["idle"]),["movePath"]=path((string)row["move"]),["runPath"]=path((string)row["run"]),
@@ -136,14 +147,20 @@ public static class MonsterThemeExtensionBuilder
         }
         File.WriteAllText(manifestPath,manifest.ToString());foreach(var batch in batches.OfType<JObject>()){batch["approvedSha256"]=Hash(manifestPath);File.WriteAllText(Path.Combine(directory,(string)batch["enemyId"]+"-batch.json"),batch.ToString());}
         File.WriteAllText(receipt,new JObject{["status"]="PASS",["prepared"]=batches.Count}.ToString());
-        return "PREPARED_NATIVE_REVIEW_BATCHES_7";
+        return "PREPARED_NATIVE_REVIEW_BATCHES_"+batches.Count;
     }
     public static string QueueActors(string directory)
+        => QueuePreparedActors(directory,7);
+
+    public static string QueueEquipmentVariants(string directory)
+        => QueuePreparedActors(directory,4);
+
+    static string QueuePreparedActors(string directory,int requiredCount)
     {
         Idle();if(pending!=null)throw new Exception("Owned actor batch already running");
-        var paths=Directory.GetFiles(directory,"GraveHunt_*-batch.json");if(paths.Length!=7)throw new Exception("Seven prepared batches required");
+        var paths=Directory.GetFiles(directory,"GraveHunt_*-batch.json");if(paths.Length!=requiredCount)throw new Exception("Complete prepared actor batches required");
         pending=new Queue<string>(paths.OrderBy(x=>x));jobDirectory=directory;completed=new JArray();WriteJob("QUEUED");EditorApplication.update+=Tick;
-        return "QUEUED_7_PRODUCTION_CORE_ACTORS";
+        return "QUEUED_"+requiredCount+"_PRODUCTION_CORE_ACTORS";
     }
     static void WriteJob(string status,string error=null)=>File.WriteAllText(Path.Combine(jobDirectory,"actor-build-job.json"),new JObject{
         ["status"]=status,["remaining"]=pending?.Count??0,["completed"]=completed,["error"]=error}.ToString());
@@ -295,8 +312,20 @@ public static class MonsterThemeExtensionBuilder
 
     public static string ApplyFinalWeakContactReview(string directory)
     {
-        Idle();string folder=Path.Combine(directory,"FinalWeakContactReview");Directory.CreateDirectory(folder);var rows=new JArray();
         var ids=JObject.Parse(File.ReadAllText(Path.Combine(directory,"content-selection.json")))["rows"].Select(r=>(string)r["enemyId"]).Concat(new[]{"DeathHarvest_RakeBrute"});
+        return ApplySavedWeakContactReview(directory,ids);
+    }
+
+    public static string ApplyEquipmentVariantContactReview(string directory)
+    {
+        var ids=JObject.Parse(File.ReadAllText(Path.Combine(directory,"content-selection.json")))["rows"].Select(r=>(string)r["enemyId"]).ToArray();
+        if(ids.Length!=4||ids.Distinct().Count()!=4||ids.Any(id=>!id.StartsWith("GraveHunt_Undead",StringComparison.Ordinal)))throw new Exception("Four distinct saved equipment variants required");
+        return ApplySavedWeakContactReview(directory,ids);
+    }
+
+    static string ApplySavedWeakContactReview(string directory,IEnumerable<string> ids)
+    {
+        Idle();string folder=Path.Combine(directory,"FinalWeakContactReview");Directory.CreateDirectory(folder);var rows=new JArray();
         foreach(string id in ids){var d=AssetDatabase.LoadAssetAtPath<EnemyDefinition>(Root+"Definitions/"+id+".asset");
             var weak=Enumerable.Range(0,d.AbilitySet.Count).Select(d.AbilitySet.GetAbility).Where(a=>!a.IsTelegraphedStrongAttack).ToArray();
             var scene=EditorSceneManager.NewPreviewScene();var actor=UnityEngine.Object.Instantiate(d.ActorPrefab.gameObject);SceneManager.MoveGameObjectToScene(actor,scene);

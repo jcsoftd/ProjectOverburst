@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: GraveHunt_UndeadAxe
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: GraveHunt_UndeadAxe
+  displayName: "\uB179\uC2A8 \uB3C4\uB07C\uC878"
+  vendorPrefab: {fileID: 306882876510475115, guid: 746041d87bbb1934aa613f48eff3b825, type: 3}
+  animationProfile: {fileID: 11400000, guid: 0ac057a06e5f58747adde50d1ad7966e, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 9e8163a94be96cc4eb013072ffbcd4c1, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: fa231cb6380859948b8db029c43519a6, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: aac1105f0a4af914c8474abea3fd5bca, type: 2}
+  threatCost: 1

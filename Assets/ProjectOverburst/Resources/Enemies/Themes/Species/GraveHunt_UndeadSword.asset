@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: GraveHunt_UndeadSword
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: GraveHunt_UndeadSword
+  displayName: "\uB179\uC2A8 \uAC80\uC878"
+  vendorPrefab: {fileID: 306882876510475115, guid: 746041d87bbb1934aa613f48eff3b825, type: 3}
+  animationProfile: {fileID: 11400000, guid: 292cdf991f0ca0b4a8de2cd9acd7ea3a, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 2062b894a6e272d4e89326e481949249, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 71a127e9b74ef6c4ea5ca00125d3c770, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 186bc44da0008d44286dda45691c350c, type: 2}
+  threatCost: 1

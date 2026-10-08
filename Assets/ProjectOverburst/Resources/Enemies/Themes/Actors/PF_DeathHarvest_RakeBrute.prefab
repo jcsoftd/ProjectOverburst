@@ -1037,7 +1037,6 @@ MonoBehaviour:
   attackPoint: {fileID: 8395179440027362670}
   abilitySet: {fileID: 11400000, guid: 7abe2c9f921e8d54c9bed9ce5bc33dff, type: 2}
   attackTriggers:
-  - Attack1
   - Attack5
   - Attack6
   - Attack7

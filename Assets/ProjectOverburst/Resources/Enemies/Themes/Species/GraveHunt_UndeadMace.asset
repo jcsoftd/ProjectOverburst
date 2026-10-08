@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: GraveHunt_UndeadMace
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: GraveHunt_UndeadMace
+  displayName: "\uB179\uC2A8 \uCCA0\uD1F4\uC878"
+  vendorPrefab: {fileID: 306882876510475115, guid: 746041d87bbb1934aa613f48eff3b825, type: 3}
+  animationProfile: {fileID: 11400000, guid: 31078f9c3462a16449fff5760ccd48b5, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: b9a389fbfcc386343a58b91b631e4123, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 867072fe9fda049459c368630e795d31, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: b3491f00d0709944bbbe4a4ef4bfdd94, type: 2}
+  threatCost: 1

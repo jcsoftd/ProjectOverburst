@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: GraveHunt_UndeadSword
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: GraveHunt_UndeadSword
+  displayName: "\uB179\uC2A8 \uAC80\uC878"
+  referenceHealthCoefficient: 2.56
+  species: {fileID: 11400000, guid: dc3a29c8b1c13af44932f70c30d209dd, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 970893447005378289, guid: cd6696d4c812a7c41a9eb7a8ed41adb7, type: 3}
+  animationProfile: {fileID: 11400000, guid: 292cdf991f0ca0b4a8de2cd9acd7ea3a, type: 2}
+  abilitySet: {fileID: 11400000, guid: 2062b894a6e272d4e89326e481949249, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 186bc44da0008d44286dda45691c350c, type: 2}
+  movementProfile: {fileID: 11400000, guid: 71a127e9b74ef6c4ea5ca00125d3c770, type: 2}
+  aiPreset: {fileID: 11400000, guid: 92ba5a5ac1ec08f4ba7e15aad5ce422d, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

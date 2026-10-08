@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
+  m_Name: GraveHunt_UndeadAxe_attack2Weapon
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
+  selectionKey: GraveHunt/GraveHunt_UndeadAxe/attack2Weapon
+  originalClip: {fileID: 7400000, guid: 6584024aa9eaf5b4da4dd07e67b67571, type: 3}
+  runtimeClip: {fileID: 7400000, guid: 6584024aa9eaf5b4da4dd07e67b67571, type: 3}
+  sourceTrimSeconds: {x: 0, y: 1}
+  motionPolicy: 0
+  stationaryStartRange: 1.0741646
+  maxAdvanceDistance: 0
+  advanceWindow: {x: 0.08, y: 0.4}
+  advanceProgress:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  poseRootBonePath: helmet_neck_protection
+  contactWindows:
+  - {x: 0.23333333, y: 0.36666667}
+  contactGeometry:
+  - frames:
+    - normalizedTime: 0.23333333
+      capsules:
+      - a: {x: 0.4016226, y: 0.72067666, z: 0.32763946}
+        b: {x: 0.80143774, y: 0.92473423, z: 0.21536976}
+        radius: 0.11848672
+    - normalizedTime: 0.26666668
+      capsules:
+      - a: {x: 0.03439789, y: 0.7301689, z: 0.50646746}
+        b: {x: 0.45062494, y: 0.80893546, z: 0.69260365}
+        radius: 0.11848675
+    - normalizedTime: 0.3
+      capsules:
+      - a: {x: -0.33148956, y: 0.7748844, z: 0.4023089}
+        b: {x: -0.14549042, y: 0.76431036, z: 0.82585144}
+        radius: 0.118486755
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: -0.5026449, y: 0.84047306, z: 0.17977911}
+        b: {x: -0.6018373, y: 0.8186864, z: 0.6312011}
+        radius: 0.118486725
+    - normalizedTime: 0.36666667
+      capsules:
+      - a: {x: -0.52739936, y: 0.8901072, z: 0.0061190766}
+        b: {x: -0.81176883, y: 0.9266753, z: 0.36928898}
+        radius: 0.118486755
+    maximumPlanarReach: 1.0103067
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

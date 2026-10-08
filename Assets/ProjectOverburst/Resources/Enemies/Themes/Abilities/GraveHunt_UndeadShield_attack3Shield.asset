@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: GraveHunt_UndeadShield_attack3Shield
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
+  abilityId: GraveHunt_UndeadShield_attack3Shield
+  weakAttackExecution: {fileID: 11400000, guid: 43461ee5aeaeca443aa3d7cbbb2d4fdd, type: 2}
+  animatorTrigger: Attack2
+  executionMode: 0
+  damage: 10
+  referencePatternDamagePercent: 10
+  telegraphedStrongAttack: 0
+  telegraphedAttack: 1
+  preparationDuration: 0.42
+  releaseDuration: 0.18666668
+  recoveryDuration: 0.76666677
+  preparationEndNormalized: 0.18285713
+  motionReleaseReferenceNormalized: 0.34285712
+  motionRecoveryStartNormalized: 0.44285712
+  minimumWarningTime: 0
+  minimumRecoveryTime: 0.24
+  parryable: 0
+  minimumRange: 0
+  range: 1.682099
+  hitRadius: 1.4867909
+  hitAngle: 125
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 1.15
+  hitDelay: 0.4
+  hitNormalizedTime: 0.34285712
+  attackAnimationDuration: 1.1666667
+  attackLockDuration: 1.1666667
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

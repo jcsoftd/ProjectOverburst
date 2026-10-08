@@ -92,7 +92,10 @@ public static class MonsterV3NewActorBuilder
         if(mapping==null)return source;
         string path=(string)mapping["targetPath"];
         if(!path.StartsWith("Assets/ProjectOverburst/05_Art/Materials/",StringComparison.Ordinal))throw new ArgumentException("Owned render material path required.");
-        var existing=AssetDatabase.LoadAssetAtPath<Material>(path);if(existing!=null)return existing;
+        var existing=AssetDatabase.LoadAssetAtPath<Material>(path);if(existing!=null){
+            if(mapping["expectedTargetSha256"]!=null&&Hash(Path.Combine(Project,path))!=(string)mapping["expectedTargetSha256"])throw new InvalidOperationException("Shared render material changed: "+path);
+            return existing;
+        }
         if((bool?)mapping["convertFromSource"]==true)
         {
             Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
@@ -212,7 +215,10 @@ public static class MonsterV3NewActorBuilder
             Original(row);paths.Add(Root+"Abilities/"+id+"_"+row["actualClip"]+".asset");
             if((string)row["role"]=="weak")paths.Add(MonsterWeakAttackExecutionWriter.Root+"/"+id+"_"+row["actualClip"]+".asset");
         }
-        if(batch["materialOverrides"] is JObject materialMappings)foreach(var mapping in materialMappings.Properties())paths.Add((string)mapping.Value["targetPath"]);
+        if(batch["materialOverrides"] is JObject materialMappings)foreach(var mapping in materialMappings.Properties()){
+            if(mapping.Value["expectedTargetSha256"]==null)paths.Add((string)mapping.Value["targetPath"]);
+            else if(Hash(Path.Combine(Project,(string)mapping.Value["targetPath"]))!=(string)mapping.Value["expectedTargetSha256"])throw new InvalidOperationException("Shared render material changed");
+        }
         var locomotionSources=new[]{Clip((string)batch["idlePath"]),Clip((string)batch["movePath"]),
             Clip((string)batch["runPath"]??(string)batch["movePath"]),Clip((string)batch["extras"]["CrawlBackwards"])};
         var locomotionRoles=new[]{"Idle","Walk","Run","Back"};

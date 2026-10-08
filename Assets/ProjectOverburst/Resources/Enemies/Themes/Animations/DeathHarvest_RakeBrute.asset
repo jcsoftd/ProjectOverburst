@@ -18,18 +18,13 @@ MonoBehaviour:
   walk: {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
   run: {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
   attackClips:
-  - {fileID: 8993902097722301239, guid: aa1309852e3e0674981003944b280a38, type: 3}
   - {fileID: 7400000, guid: 64298db385c8ecf4f81326b75adfa24c, type: 2}
   - {fileID: 7400000, guid: c10bc9cb4dd531740b3ea7c3e470884b, type: 2}
   - {fileID: 7400000, guid: d040632bd0c578347818fe66e48fe247, type: 2}
-  hit: {fileID: 8993902097722301239, guid: 98971071d6487274298d5b9a4d8e252f, type: 3}
-  death: {fileID: 8993902097722301239, guid: 49118fafc216ec7408eef058dd7bc6b0, type: 3}
+  hit: {fileID: 7400000, guid: 33e0f66185db0924bafe3c7d35e8315c, type: 2}
+  death: {fileID: 7400000, guid: 186094f0eea405343befb871c60bac14, type: 2}
   optional:
-  - {fileID: 8993902097722301239, guid: 5770def3f84d9f74f8a7d1d5777d8208, type: 3}
-  - {fileID: 8993902097722301239, guid: 41f0129a33ed0b549935ff0618603c22, type: 3}
-  - {fileID: 8993902097722301239, guid: f06e7c0e926538d4a8a8438dbb5bd79b, type: 3}
-  - {fileID: 1827226128182048838, guid: 9ffb9a6a781daab47a9152e522e10f6d, type: 3}
-  - {fileID: 7400000, guid: 5315812823a0b17498da764a57cc1b9c, type: 3}
+  - {fileID: 7400000, guid: 52f8db1961cc01843a1134ae370df2ad, type: 3}
   - {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
   parryCollapse: {fileID: 7400000, guid: 3f17d9638c752d94b8eeba8840fe00f2, type: 2}
   stunnedLoop: {fileID: 7400000, guid: 2db17b9e2f577f540bfebf6b5a79b057, type: 2}
