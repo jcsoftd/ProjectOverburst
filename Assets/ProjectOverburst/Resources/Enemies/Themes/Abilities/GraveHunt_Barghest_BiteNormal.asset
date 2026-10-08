@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
+  m_Name: GraveHunt_Barghest_BiteNormal
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
+  abilityId: GraveHunt_Barghest_BiteNormal
+  weakAttackExecution: {fileID: 11400000, guid: f19112b0e9cbaae438fd929a2aca8931, type: 2}
+  animatorTrigger: Attack1
+  executionMode: 0
+  damage: 5
+  referencePatternDamagePercent: 4
+  telegraphedStrongAttack: 0
+  telegraphedAttack: 1
+  preparationDuration: 0.42
+  releaseDuration: 0.10666667
+  recoveryDuration: 0.36666667
+  preparationEndNormalized: 0.29
+  motionReleaseReferenceNormalized: 0.45
+  motionRecoveryStartNormalized: 0.55
+  minimumWarningTime: 0
+  minimumRecoveryTime: 0.24
+  parryable: 0
+  minimumRange: 0
+  range: 1.2229085
+  hitRadius: 0.84014213
+  hitAngle: 125
+  verticalTolerance: 1.5
+  requireLineOfSight: 1
+  cooldown: 1.15
+  hitDelay: 0.3
+  hitNormalizedTime: 0.45
+  attackAnimationDuration: 0.6666667
+  attackLockDuration: 0.6666667
+  weight: 1
+  priority: 0
+  minimumSelfHealthNormalized: 0
+  maximumSelfHealthNormalized: 1
+  requireTargetInRangeUntilHit: 0
+  additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

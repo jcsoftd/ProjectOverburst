@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: GraveHunt_DarknessSpider
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: GraveHunt_DarknessSpider
+  displayName: "\uBB18\uC5ED \uC554\uAC70\uBBF8"
+  vendorPrefab: {fileID: 2872082521720472955, guid: 4bce4cac38bc36c41b64b43e529a9e1c, type: 3}
+  animationProfile: {fileID: 11400000, guid: eb021bea449d3224183128a088e84826, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: 7e01d0f729685f94b9577691609eba97, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: 33476b52f7b9ddf40bf57b0476c0fb3d, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 18915d2720aa7c14a8b50fd83bbc69cb, type: 2}
+  threatCost: 1

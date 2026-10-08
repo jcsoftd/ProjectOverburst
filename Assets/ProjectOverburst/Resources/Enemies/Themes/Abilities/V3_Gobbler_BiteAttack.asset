@@ -10,8 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: V3_Gobbler_BiteAttack
+  m_Name: V3_Gobbler_BiteAttack(Clone)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_Gobbler_BiteAttack
   weakAttackExecution: {fileID: 11400000, guid: 589540d5a0717a242a2e2efa1c70cdf1, type: 2}
   animatorTrigger: Attack1
@@ -23,18 +28,21 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.050142
+  range: 0.77508795
   hitRadius: 0.84014213
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.6
-  hitNormalizedTime: 0.6
+  hitDelay: 0.26666668
+  hitNormalizedTime: 0.26666668
   attackAnimationDuration: 1
   attackLockDuration: 1
   weight: 1
@@ -43,3 +51,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1

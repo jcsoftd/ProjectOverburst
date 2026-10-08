@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 1827226128182048838, guid: e20997dbe4e66f5499e7abe0b283ee52, type: 3}
   sourceTrimSeconds: {x: 0, y: 1.1666667}
   motionPolicy: 1
-  stationaryStartRange: 0.807
+  stationaryStartRange: 0.5719231
   maxAdvanceDistance: 0.35
   advanceWindow: {x: 0.22857143, y: 0.45714286}
   advanceProgress:
@@ -70,3 +70,5 @@ MonoBehaviour:
         b: {x: 0.21514195, y: 0.2723113, z: 0.21785483}
         radius: 0.19378592
     maximumPlanarReach: 0.51742876
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d03e978d4b679540974e9a43aac93ba, type: 3}
+  m_Name: GraveHunt_GiantRat
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpeciesDefinition
+  speciesId: GraveHunt_GiantRat
+  displayName: "\uBB18\uD608 \uB4E4\uC950"
+  vendorPrefab: {fileID: 7578528554408039039, guid: 8458f50765dd8064d89a1b7a3ab6a21d, type: 3}
+  animationProfile: {fileID: 11400000, guid: 3a5b454a3361c764392f2bb2e9e73619, type: 2}
+  defaultAbilitySet: {fileID: 11400000, guid: f89a648ba1cb1b343bcaa3bf77d0f3c4, type: 2}
+  combatRole: 0
+  baseMaxHealth: 38
+  movementProfile: {fileID: 11400000, guid: d6802198df7942b45885277b64f776a7, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 27497e3b98150e748a0c5fb1c17b65ab, type: 2}
+  threatCost: 1

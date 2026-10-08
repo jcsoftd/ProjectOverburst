@@ -10,8 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: V3_SkeletonKnight_Small_1HandedAttack2Forward
+  m_Name: V3_SkeletonKnight_Small_1HandedAttack2Forward(Clone)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_SkeletonKnight_Small_1HandedAttack2Forward
   weakAttackExecution: {fileID: 11400000, guid: 4a6e851c34145b54da9e2edd168d878c, type: 2}
   animatorTrigger: Attack4
@@ -23,18 +28,21 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.3310226
+  range: 1.162437
   hitRadius: 0.9442392
   hitAngle: 125
   verticalTolerance: 1.6858561
   requireLineOfSight: 1
   cooldown: 1.15
   hitDelay: 0.4
-  hitNormalizedTime: 0.3883333
+  hitNormalizedTime: 0.4
   attackAnimationDuration: 1
   attackLockDuration: 1
   weight: 1

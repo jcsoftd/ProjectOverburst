@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
   profileId: DeathHarvest_RakeBrute
   runtimeController: {fileID: 9100000, guid: 235d88531625d6949b08e48d4ad14f05, type: 2}
-  idle: {fileID: 1827226128182048838, guid: 954860183fbf15b48afe83f409ecea4d, type: 3}
-  walk: {fileID: 1827226128182048838, guid: 0da2fc682221e9a41b1b73f9ee210b9f, type: 3}
-  run: {fileID: 1827226128182048838, guid: 0da2fc682221e9a41b1b73f9ee210b9f, type: 3}
+  idle: {fileID: 7400000, guid: 52f8db1961cc01843a1134ae370df2ad, type: 3}
+  walk: {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
+  run: {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
   attackClips:
   - {fileID: 8993902097722301239, guid: aa1309852e3e0674981003944b280a38, type: 3}
-  - {fileID: 7400000, guid: 46afd0d9837ef0e4893787a82b9c2e80, type: 2}
-  - {fileID: 7400000, guid: 78894d1351b7aeb4ba395f54b341df3c, type: 2}
-  - {fileID: 7400000, guid: 51af24da04fe90c49be70570a75964f5, type: 2}
+  - {fileID: 7400000, guid: 64298db385c8ecf4f81326b75adfa24c, type: 2}
+  - {fileID: 7400000, guid: c10bc9cb4dd531740b3ea7c3e470884b, type: 2}
+  - {fileID: 7400000, guid: d040632bd0c578347818fe66e48fe247, type: 2}
   hit: {fileID: 8993902097722301239, guid: 98971071d6487274298d5b9a4d8e252f, type: 3}
   death: {fileID: 8993902097722301239, guid: 49118fafc216ec7408eef058dd7bc6b0, type: 3}
   optional:

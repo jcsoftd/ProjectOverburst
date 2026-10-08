@@ -10,8 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
-  m_Name: V3_Hexapodosaurus_JumpBite
+  m_Name: V3_Hexapodosaurus_JumpBite(Clone)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_Hexapodosaurus_JumpBite
   weakAttackExecution: {fileID: 11400000, guid: 3e6be3e05d297a54c90f0e6db6eed0f7, type: 2}
   animatorTrigger: Attack2
@@ -23,18 +28,21 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 0.7287069
+  range: 0.6974223
   hitRadius: 1.2602131
   hitAngle: 125
   verticalTolerance: 2.25
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.4
-  hitNormalizedTime: 0.34285712
+  hitDelay: 0.46666667
+  hitNormalizedTime: 0.39999998
   attackAnimationDuration: 1.1666667
   attackLockDuration: 1.1666667
   weight: 1

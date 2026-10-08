@@ -76,7 +76,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: 51af24da04fe90c49be70570a75964f5, type: 2}
+  m_Motion: {fileID: 7400000, guid: d040632bd0c578347818fe66e48fe247, type: 2}
   m_Tag: 
   m_SpeedParameter: AttackAnimSpeed
   m_MirrorParameter: 
@@ -330,7 +330,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: 78894d1351b7aeb4ba395f54b341df3c, type: 2}
+  m_Motion: {fileID: 7400000, guid: c10bc9cb4dd531740b3ea7c3e470884b, type: 2}
   m_Tag: 
   m_SpeedParameter: AttackAnimSpeed
   m_MirrorParameter: 
@@ -370,7 +370,7 @@ BlendTree:
   m_Name: Approved zombie walk variants
   m_Childs:
   - serializedVersion: 2
-    m_Motion: {fileID: 1827226128182048838, guid: 0da2fc682221e9a41b1b73f9ee210b9f, type: 3}
+    m_Motion: {fileID: 7400000, guid: 2ad2a1eab29d80a40905bf851eb10bb7, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: 0}
     m_TimeScale: 1
@@ -463,7 +463,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 1827226128182048838, guid: 9ffb9a6a781daab47a9152e522e10f6d, type: 3}
+  m_Motion: {fileID: 7400000, guid: 77b1713faad36e5498a4ef3fc9e050c8, type: 3}
   m_Tag: 
   m_SpeedParameter: MoveAnimSpeed
   m_MirrorParameter: 
@@ -1207,7 +1207,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: 46afd0d9837ef0e4893787a82b9c2e80, type: 2}
+  m_Motion: {fileID: 7400000, guid: 64298db385c8ecf4f81326b75adfa24c, type: 2}
   m_Tag: 
   m_SpeedParameter: AttackAnimSpeed
   m_MirrorParameter: 
@@ -1280,7 +1280,7 @@ BlendTree:
     m_DirectBlendParameter: Blend
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: 1827226128182048838, guid: 954860183fbf15b48afe83f409ecea4d, type: 3}
+    m_Motion: {fileID: 7400000, guid: 52f8db1961cc01843a1134ae370df2ad, type: 3}
     m_Threshold: 0
     m_Position: {x: 0, y: 0}
     m_TimeScale: 1
@@ -1502,7 +1502,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 1827226128182048838, guid: 954860183fbf15b48afe83f409ecea4d, type: 3}
+  m_Motion: {fileID: 7400000, guid: 52f8db1961cc01843a1134ae370df2ad, type: 3}
   m_Tag: 
   m_SpeedParameter: MoveAnimSpeed
   m_MirrorParameter: 

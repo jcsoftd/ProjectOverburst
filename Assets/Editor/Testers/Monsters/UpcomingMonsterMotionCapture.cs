@@ -74,11 +74,15 @@ public static class UpcomingMonsterMotionCapture
             model.name="Motion preview "+cid;model.transform.position=Vector3.zero;
             foreach(var component in model.GetComponentsInChildren<MonoBehaviour>(true))component.enabled=false;
             foreach(var a in model.GetComponentsInChildren<Animation>(true))a.enabled=false;
+            model.SetActive(true);
             foreach(var r in model.GetComponentsInChildren<Renderer>(true))
             {
+                if(task["enabledRenderers"] is JArray enabledRenderers)
+                    r.enabled=enabledRenderers.Values<string>().Contains(r.name);
+                if(!r.enabled || !r.gameObject.activeInHierarchy)continue;
                 r.gameObject.layer=Layer;
                 if(r is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=true;
-                if(cid=="death-skull" && r.sharedMaterials.Any(m=>m==null) && r.name.StartsWith("GLOWING_EYE_")){r.enabled=false;continue;}
+                if((cid=="death-skull" || cid=="V3_DeathSkull") && r.sharedMaterials.Any(m=>m==null) && r.name.StartsWith("GLOWING_EYE_")){r.enabled=false;continue;}
                 r.sharedMaterials=r.sharedMaterials.Select(m=>Convert(m,materials)).ToArray();
             }
             var animator=model.GetComponentInChildren<Animator>(true)??model.AddComponent<Animator>();
@@ -95,8 +99,10 @@ public static class UpcomingMonsterMotionCapture
             if(!clip.isHumanMotion && weighted.Count>2 && animatedBones.Length<2)
                 throw new InvalidOperationException("Clip does not animate the displayed rig: "+cid+" "+kind+" ("+clip.name+")");
             // Keep playback sampling independent of the sheet size and clip duration.
-            int n=Mathf.Max(2,Mathf.CeilToInt(clip.length*FramesPerSecond)+1);
-            Func<int,float> sample=f=>Mathf.Min(f/(float)FramesPerSecond,Mathf.Max(0,clip.length-.0001f));
+            int sampleFps=(int?)task["fps"]??FramesPerSecond;
+            if(sampleFps<1 || sampleFps>60)throw new ArgumentException("Capture FPS must be between 1 and 60.");
+            int n=Mathf.Max(2,Mathf.CeilToInt(clip.length*sampleFps)+1);
+            Func<int,float> sample=f=>Mathf.Min(f/(float)sampleFps,Mathf.Max(0,clip.length-.0001f));
             var strips=new JArray();
             Bounds bounds=default;bool hasBounds=false;
             for(int f=0;f<n;f+=3){pose(sample(f));var b=UpcomingMonsterThemeReviewSizing.GeometryBounds(model);if(!hasBounds){bounds=b;hasBounds=true;}else bounds.Encapsulate(b);}
@@ -120,6 +126,7 @@ public static class UpcomingMonsterMotionCapture
             foreach(var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 if(skin.enabled && skin.gameObject.activeInHierarchy && skin.sharedMesh!=null)
                     skins.Add(new CpuSkin(skin));
+            if(skins.Count==0)throw new InvalidOperationException("No visible animated skin: "+cid);
             double shapeRms=0;float jointDegrees=0;
             int chunkCount=0,rows=0,offset=0;
             for(int f=0;f<n;f++)
@@ -150,7 +157,7 @@ public static class UpcomingMonsterMotionCapture
                     Object.DestroyImmediate(sheet);sheet=null;
                 }
             }
-            return new JObject{{"taskKey",TaskKey(task)},{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strips",strips},{"fps",FramesPerSecond},{"sampleEnd",sample(n-1)},{"missingTransformPaths",new JArray(missing)},{"animatedWeightedBonePaths",new JArray(animatedBones)},{"rendererMotion",new JArray(skins.Select(s=>new JObject{{"name",s.Source.name},{"vertices",s.Source.sharedMesh.vertexCount},{"shapeRms",s.ShapeRms},{"jointDegrees",s.JointDegrees}}))},{"cpuSkinned",true},{"shapeRms",shapeRms},{"jointDegrees",jointDegrees},{"skinCount",skins.Count},{"blendShapeCount",skins.Sum(s=>s.Source.sharedMesh.blendShapeCount)},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
+            return new JObject{{"taskKey",TaskKey(task)},{"id",cid},{"kind",kind},{"clip",clip.name},{"sec",clip.length},{"frames",n},{"cols",Cols},{"cell",Cell},{"strips",strips},{"fps",sampleFps},{"sampleEnd",sample(n-1)},{"missingTransformPaths",new JArray(missing)},{"animatedWeightedBonePaths",new JArray(animatedBones)},{"rendererMotion",new JArray(skins.Select(s=>new JObject{{"name",s.Source.name},{"vertices",s.Source.sharedMesh.vertexCount},{"shapeRms",s.ShapeRms},{"jointDegrees",s.JointDegrees}}))},{"cpuSkinned",true},{"shapeRms",shapeRms},{"jointDegrees",jointDegrees},{"skinCount",skins.Count},{"blendShapeCount",skins.Sum(s=>s.Source.sharedMesh.blendShapeCount)},{"human",clip.isHumanMotion},{"animation",task["animation"]},{"source",task["model"]}};
         }
         finally
         {

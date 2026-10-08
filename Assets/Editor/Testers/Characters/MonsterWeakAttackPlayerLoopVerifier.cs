@@ -123,7 +123,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         plan=new Plan { directory=outputDirectory,token=Guid.NewGuid().ToString("N"),phase="booting",
             previousStart=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),background=Application.runInBackground,
             captureDelta=Time.captureDeltaTime,fixedDelta=Time.fixedDeltaTime,deadline=EditorApplication.timeSinceStartup+600,
-            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,presentationCaseKeys=presentationCaseKeys,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
+            fixedAnimator=fixedAnimator,attackSpeed=attackSpeed,timeScale=Time.timeScale,stress=stress,savedProfiles=savedProfiles,leaseVerification=leaseVerification,leaseDefinitionPaths=leaseDefinitionPaths?.ToArray(),testDefinition=testDefinition,realPlayerParry=realPlayerParry,themeActivationPath=themeActivationPath,attackBatch=attackBatch,presentationCalibration=(bool?)selectedBatch?["verifyPresentationCalibration"]==true,presentationCaseKeys=presentationCaseKeys,undeadCrowdVerification=(bool?)selectedBatch?["verifyUndeadCrowd"]==true,expectedWeakCases=!string.IsNullOrEmpty(themeActivationPath)?JObject.Parse(File.ReadAllText(themeActivationPath))["themes"].Count():presentationCases+weakCases+(!leaseVerification&&selectedBatch!=null?(leaseDefinitionPaths?.Length??0)*2:0),validationFrameRates=frameRates,scenes=SceneEvidence() };
         plan.fixture=realPlayerParry?"Assets/ProjectOverburst/00_Scenes/PersistentScene.unity":"Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity";
         cases.Clear(); failure=null; Save();
         File.WriteAllText(Path.Combine(outputDirectory,"plan.json"),JsonConvert.SerializeObject(plan,Formatting.Indented));
@@ -221,7 +221,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var author=JObject.Parse(File.ReadAllText(string.IsNullOrEmpty(plan.attackBatch)?Path.Combine(Workspace,"개인파일/코덱스산출/Monsters/MonsterOverhaulV3/GOAL_A/20261004/attack-authoring.json"):plan.attackBatch));
         if((bool?)author["verifyUndeadCrowd"]==true){yield return RunUndeadCrowdCases(author);if((bool?)author["verifyPresentationCalibration"]==true)yield return RunPresentationCalibrationCases(author);yield break;}
         if((bool?)author["verifyPresentationCalibration"]==true){yield return RunPresentationCalibrationCases(author);yield break;}
-        if((bool?)author["verifyRakeLocomotion"]==true){yield return RunRakeLocomotionCases();if(plan.leaseDefinitionPaths?.Length>0)yield return RunLeaseCases();yield break;}
+        if((bool?)author["verifyRakeLocomotion"]==true && !author["entries"].Any()){yield return RunRakeLocomotionCases();if(plan.leaseDefinitionPaths?.Length>0)yield return RunLeaseCases();yield break;}
         var originalIds=new[]{"runtime:CavernMutants_Cephalonops","runtime:CavernMutants_Ceratoferox","runtime:CavernMutants_Gasterobrach","runtime:CavernMutants_Gorhorrid"};
         var rows=author["entries"].OfType<JObject>().Where(r=>((bool?)r["nativeContactGeometryAuthored"]==true
             ||((string)r["visualType"]=="ranged"||(string)r["visualType"]=="channel")&&(bool?)r["nativeAuthoringComplete"]==true)
@@ -377,6 +377,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
             melee.CancelAttack();UnityEngine.Object.Destroy(go);UnityEngine.Object.Destroy(victim);if(contactFloor!=null)UnityEngine.Object.Destroy(contactFloor);
             yield return null;
         }
+        if((bool?)author["verifyRakeLocomotion"]==true)yield return RunRakeLocomotionCases();
         if(!string.IsNullOrEmpty(plan.attackBatch)&&plan.leaseDefinitionPaths?.Length>0)
             yield return RunLeaseCases();
     }
@@ -525,7 +526,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(error!=null)failure=error;
         if(plan.presentationCalibration && !PresentationCoverageMatches(plan.presentationCaseKeys,cases,out string coverageError))
         { failure=string.IsNullOrEmpty(failure)?coverageError:failure+"\n"+coverageError; error=failure; }
-        WriteResult(error==null && cases.Count>0 && cases.Count==(!string.IsNullOrEmpty(plan.themeActivationPath)?7:!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?(plan.leaseDefinitionPaths?.Length??1):plan.leaseVerification?(plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Length*2:string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
+        WriteResult(error==null && cases.Count>0 && cases.Count==(!string.IsNullOrEmpty(plan.themeActivationPath)||!string.IsNullOrEmpty(plan.attackBatch)?plan.expectedWeakCases:plan.realPlayerParry?(plan.leaseDefinitionPaths?.Length??1):plan.leaseVerification?(plan.leaseDefinitionPaths?.Length>0?plan.leaseDefinitionPaths.Length*2:string.IsNullOrEmpty(plan.testDefinition)?8:2):plan.stress?15:24) && cases.All(c=>(bool)c["pass"])?"PASS_SCOPED_PLAYER_LOOP":"FAIL");
         plan.phase="returning";plan.deadline=EditorApplication.timeSinceStartup+120;Save();
         if(OwnPlay)EditorApplication.ExitPlaymode();
     }
@@ -564,15 +565,18 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)==plan.fixture)
             EditorSceneManager.playModeStartScene=string.IsNullOrEmpty(plan.previousStart)?null:AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.previousStart);
         IsolatedSavePlayGuard.UseRealAccount();
-        if(!plan.realPlayerParry && plan.fixture=="Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity"
-            &&AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)!=null)AssetDatabase.DeleteAsset(plan.fixture);
+        bool fixtureRecycleRequired=!plan.realPlayerParry && plan.fixture=="Assets/Editor/Testers/Characters/WeakPlayerLoop_"+plan.token+".unity"
+            &&AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)!=null;
+        bool fixtureRecycled=!fixtureRecycleRequired || AssetDatabase.MoveAssetToTrash(plan.fixture);
         var now=SceneEvidence();
-        File.WriteAllText(Path.Combine(plan.directory,"return.json"),new JObject{["status"]=!IsolatedSavePlayGuard.RequiresAccountChoice&&JToken.DeepEquals(plan.scenes,now)?"PASS":"FAIL",
+        File.WriteAllText(Path.Combine(plan.directory,"return.json"),new JObject{["status"]=fixtureRecycled&&!IsolatedSavePlayGuard.RequiresAccountChoice&&JToken.DeepEquals(plan.scenes,now)?"PASS":"FAIL",
             ["scenesBefore"]=plan.scenes,["scenesAfter"]=now,["guardChoice"]=IsolatedSavePlayGuard.RequiresAccountChoice,
             ["guardActive"]=IsolatedSavePlayGuard.ActiveDirectory,["guardPrepared"]=SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""),
             ["guardExpires"]=SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires",""),["environment"]=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),
             ["startScene"]=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),["captureDelta"]=Time.captureDeltaTime,["fixedDelta"]=Time.fixedDeltaTime,
-            ["registryCount"]=CombatTargetRegistry.RegisteredCount,["temporarySceneRemoved"]=plan.realPlayerParry||AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)==null}.ToString());
+            ["registryCount"]=CombatTargetRegistry.RegisteredCount,["temporarySceneRemoved"]=plan.realPlayerParry||AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.fixture)==null,
+            ["temporarySceneRecycleRequired"]=fixtureRecycleRequired,["temporarySceneRecycled"]=fixtureRecycled,
+            ["temporarySceneRecycleFailure"]=fixtureRecycled?null:"Unity could not move the owned fixture to the Recycle Bin; the file was preserved."}.ToString());
         SessionState.EraseString(Key+"plan");plan=null;
     }
 }

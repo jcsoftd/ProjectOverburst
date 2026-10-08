@@ -59,6 +59,10 @@ public static partial class UpcomingMonsterThemeReviewBuilder
     public static void RefreshFromJson()
     {
         RequireEditMode();
+        if(AssetDatabase.LoadAssetAtPath<EnemyThemeTable>("Assets/ProjectOverburst/Resources/Enemies/Themes/Tables/GraveHunt.asset")!=null)
+        {
+            RefreshCurrentRoster(Path.Combine(Workspace,"개인파일/코덱스산출/UpcomingMonsterThemes/CurrentRoster",DateTime.Now.ToString("yyyyMMdd_HHmmssfff")));return;
+        }
         if(File.Exists(V3SourcePath)){RefreshV3();return;}
         string root=Path.Combine(Workspace,"개인파일/코덱스산출/UpcomingMonsterThemes");
         string plan=Directory.Exists(root)?Directory.GetFiles(root,"native-source-plan.json",SearchOption.AllDirectories)

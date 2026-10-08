@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbeba349f1ced524b8f2728ab69e760d, type: 3}
+  m_Name: GraveHunt
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
+  themeId: GraveHunt
+  displayName: "\uC800\uC8FC\uBC1B\uC740 \uBB18\uC5ED\uC758 \uC0AC\uB0E5\uB2E8"
+  entries:
+  - definition: {fileID: 11400000, guid: 8b7695aee27d85e4383639a16240ab30, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 0c7c83c8e72ba0b4cb6f3fe9906d59e6, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: b886ce07cedae6f4598f58c603ca6b31, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 9e1e11e294954c34e911667c3c7ee2e4, type: 2}
+    tier: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 2a5eba9ce67d2cb4d88957aa38251154, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: ab065d5f913e79d4d8a006ac21ce9c24, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: 011b0a131c61c5241bd49922a65e9818, type: 2}
+    tier: 2
+    weight: 1
+  - definition: {fileID: 11400000, guid: 2191c51609d150842af235ff94e4a719, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: dc9bf0d614228624ba85199d69d0dd1b, type: 2}
+    tier: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: a468ff9e6df40dd4899de7130a64fddf, type: 2}
+    tier: 2
+    weight: 1
+  catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
+  accent: {r: 0.64, g: 0.46, b: 0.28, a: 1}
+  approvedRosterLocked: 1

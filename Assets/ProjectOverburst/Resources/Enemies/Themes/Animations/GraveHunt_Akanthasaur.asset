@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: GraveHunt_Akanthasaur
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: GraveHunt_Akanthasaur
+  runtimeController: {fileID: 9100000, guid: aa25d242853721947b6e5579b89f6de7, type: 2}
+  idle: {fileID: 7400000, guid: d0f67d4b252835a46a89cc6098cf9f5e, type: 2}
+  walk: {fileID: 7400000, guid: 12db806dc3aca86419aa30db9cbf8858, type: 2}
+  run: {fileID: 7400000, guid: c2fcbe2763606b14dbfaefe54525bd95, type: 2}
+  attackClips:
+  - {fileID: 1827226128182048838, guid: e28a130f9d8df0d4e9e87b6cf740a621, type: 3}
+  - {fileID: 1827226128182048838, guid: 989ad7ec41eaaba468a5b8ec24b5a1fe, type: 3}
+  - {fileID: 1827226128182048838, guid: 8a9f47d3b4b536e4b8ace7ef17d5273c, type: 3}
+  hit: {fileID: 1827226128182048838, guid: f1122cc1ec1b74c4a98e520517be93b9, type: 3}
+  death: {fileID: 1827226128182048838, guid: 4c79aaf2e5f73a14fb56987baabd88a4, type: 3}
+  optional:
+  - {fileID: 7400000, guid: ea18281bdea05f54b9d0a9e7e96f3d0d, type: 2}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/659c634f/Akanthasaur@WalkForward_RM.fbx"

@@ -15,9 +15,9 @@ MonoBehaviour:
   profileId: DeathHarvest_RakeBrute
   moveSpeed: 1.45
   turnSpeed: 390
-  animationReferenceSpeed: 1.45
-  runAnimationReferenceSpeed: 2.1025002
-  backpedalAnimationReferenceSpeed: 0
+  animationReferenceSpeed: 0.28348926
+  runAnimationReferenceSpeed: 0.28348926
+  backpedalAnimationReferenceSpeed: 0.28348926
   runSpeedMultiplier: 1.45
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 25

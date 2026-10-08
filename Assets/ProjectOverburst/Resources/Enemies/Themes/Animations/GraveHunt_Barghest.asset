@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6b5aa23e7971f24ebc23f63b67e0d10, type: 3}
+  m_Name: GraveHunt_Barghest
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationProfile
+  profileId: GraveHunt_Barghest
+  runtimeController: {fileID: 9100000, guid: 590d99232d0ab1044ab1c003eaa3d947, type: 2}
+  idle: {fileID: 7400000, guid: 6a2f980901c11974a96bf5fe9ebc6841, type: 3}
+  walk: {fileID: 7400000, guid: 1ad065f79b4d2f3479a341555dcb46ee, type: 3}
+  run: {fileID: 7400000, guid: 0eb107506851b3f4a93694f2449eaed8, type: 3}
+  attackClips:
+  - {fileID: 7400000, guid: bbcee34dc6dbbbf4f9d67db77f908c89, type: 3}
+  - {fileID: 7400000, guid: 4fa45157fb9408a4696e59e6dc62895e, type: 3}
+  - {fileID: 7400000, guid: 99f69eb858806424d92c816ec5b6b593, type: 3}
+  - {fileID: 7400000, guid: b7affd1c66382de4d9a48cc8a7312a89, type: 3}
+  hit: {fileID: 7400000, guid: 500d5cc8e73d15a4cb34c44f9386e542, type: 3}
+  death: {fileID: 7400000, guid: 32f69bde562bcdd4cabfd08be3c200b7, type: 3}
+  optional:
+  - {fileID: 7400000, guid: 1ad065f79b4d2f3479a341555dcb46ee, type: 3}
+  parryCollapse: {fileID: 0}
+  stunnedLoop: {fileID: 0}
+  stunRecover: {fileID: 0}
+  excludedRootMotionClipPaths:
+  - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P05/14a20535/Barghest@Walk_RM.FBX"

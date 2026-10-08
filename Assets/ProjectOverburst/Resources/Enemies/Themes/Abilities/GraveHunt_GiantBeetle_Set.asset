@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2963b7889b8d51f4a8d75964470a0b52, type: 3}
+  m_Name: GraveHunt_GiantBeetle_Set
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilitySet
+  abilitySetId: GraveHunt_GiantBeetle
+  abilities:
+  - {fileID: 11400000, guid: 8db1133b32b2e864abf6397a5f417d40, type: 2}
+  - {fileID: 11400000, guid: 0fbf5caf6b079534a8cb2880d9916868, type: 2}
+  - {fileID: 11400000, guid: 20f83c12650ae764b8bc3a892fbc9f3b, type: 2}

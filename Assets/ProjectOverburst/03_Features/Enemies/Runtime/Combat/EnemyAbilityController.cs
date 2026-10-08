@@ -368,7 +368,12 @@ public sealed partial class EnemyAbilityController : MonoBehaviour // 선택·�
         strongWarningShown = selected.Ability.IsMeleeStrongAttack && !bossOwnsCommittedAim;
         if (selected.Ability.IsTelegraphedAttack)
         {
-            strongTarget = target; strongAim = startContext.IsPrepared || startContext.KeepCurrentFacing ? startContext.AimPosition : ResolveAimPosition(target);
+            // Resolve before publishing the target; otherwise ResolveAimPosition
+            // sees this new target and returns the previous attack's strongAim.
+            Vector3 committedAim = startContext.IsPrepared || startContext.KeepCurrentFacing
+                ? startContext.AimPosition : ResolveAimPosition(target);
+            strongAim = committedAim;
+            strongTarget = target;
         }
         if (!strongWarningShown) strongWarning?.Hide();
         else

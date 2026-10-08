@@ -1832,14 +1832,11 @@ MonoBehaviour:
   idleStates:
   - IdleVariant_0
   - IdleVariant_1
-  - IdleVariant_2
   idleWeights:
-  - 0.5
-  - 0.3
-  - 0.2
+  - 1
+  - 1
   moveWeights:
-  - 0.5
-  - 0.5
+  - 1
 --- !u!114 &8748142885222510080
 MonoBehaviour:
   m_ObjectHideFlags: 0

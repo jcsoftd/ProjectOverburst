@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: GraveHunt_Akanthasaur
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: GraveHunt_Akanthasaur
+  displayName: "\uBB18\uD608 \uAC00\uC2DC\uD3EC\uC2DD\uC218"
+  referenceHealthCoefficient: 6.04
+  species: {fileID: 11400000, guid: 7f363d89936c02445a6b23b3b40a3257, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 7431629329746694867, guid: 47cf0239cb2064741b451be08ec14652, type: 3}
+  animationProfile: {fileID: 11400000, guid: 3cea231ab91144b438344c64af706cf9, type: 2}
+  abilitySet: {fileID: 11400000, guid: 71a96db0cbdea3448940027da2ee8e18, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 57273d31b2b9ee0499bb6be0bafc6f57, type: 2}
+  movementProfile: {fileID: 11400000, guid: df6deae2664a69646bd0e5a56a4c7965, type: 2}
+  aiPreset: {fileID: 11400000, guid: 92ba5a5ac1ec08f4ba7e15aad5ce422d, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

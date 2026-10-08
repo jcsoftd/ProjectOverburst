@@ -69,4 +69,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: aa379d002c98afc49bb10dfbef49bb6c, type: 2}
   - {fileID: 11400000, guid: d9c056abf0398f040b324f104d859935, type: 2}
   - {fileID: 11400000, guid: 106a71c918acb1848b8dbe6bac91c0cc, type: 2}
+  - {fileID: 11400000, guid: 8b7695aee27d85e4383639a16240ab30, type: 2}
+  - {fileID: 11400000, guid: 0c7c83c8e72ba0b4cb6f3fe9906d59e6, type: 2}
+  - {fileID: 11400000, guid: b886ce07cedae6f4598f58c603ca6b31, type: 2}
+  - {fileID: 11400000, guid: 9e1e11e294954c34e911667c3c7ee2e4, type: 2}
+  - {fileID: 11400000, guid: 2a5eba9ce67d2cb4d88957aa38251154, type: 2}
+  - {fileID: 11400000, guid: ab065d5f913e79d4d8a006ac21ce9c24, type: 2}
+  - {fileID: 11400000, guid: 011b0a131c61c5241bd49922a65e9818, type: 2}
   approvedRosterLocked: 1

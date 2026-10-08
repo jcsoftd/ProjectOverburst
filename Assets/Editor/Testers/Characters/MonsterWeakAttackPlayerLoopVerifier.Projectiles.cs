@@ -246,6 +246,25 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if(nextProjectileRequested)pass&=nextProjectileAttempted&&nextProjectileStarted&&flightPreservedByAICleanup
             &&nextProjectileStartedDuringFlight&&originalCooldownRejected;
         int launches=observedLaunches,impacts=observedImpacts;
+        JArray flightDiagnostics=null;
+        if((bool?)row["projectileDiagnostics"]==true)
+        {
+            flightDiagnostics=new JArray();
+            var shots=(System.Collections.IEnumerable)typeof(EnemyThemeSpecialExecutor).GetField("weakProjectiles",Private).GetValue(executor);
+            int mask=~((1<<LayerMask.NameToLayer("Enemy"))|(1<<LayerMask.NameToLayer("Ignore Raycast")));
+            foreach(var shot in shots)
+            {
+                var type=shot.GetType();
+                var position=(Vector3)type.GetField("position").GetValue(shot);
+                var direction=(Vector3)type.GetField("direction").GetValue(shot);
+                var obstruction=Physics.SphereCastAll(position,.14f,direction,ability.Range+2,mask,QueryTriggerInteraction.Ignore)
+                    .OrderBy(h=>h.distance).Select(h=>new JObject{["collider"]=h.collider.name,["layer"]=h.collider.gameObject.layer,
+                        ["distance"]=h.distance,["target"]=CombatTarget.Resolve(h.collider)?.name});
+                flightDiagnostics.Add(new JObject{["position"]=new JArray(position.x,position.y,position.z),
+                    ["direction"]=new JArray(direction.x,direction.y,direction.z),["targetPosition"]=new JArray(victim.transform.position.x,victim.transform.position.y,victim.transform.position.z),
+                    ["obstructions"]=new JArray(obstruction)});
+            }
+        }
         if(peerActor!=null)service.Release(peerActor);
         service.Release(actor);yield return null;yield return new WaitForFixedUpdate();
         bool reset=!actor.IsLeased&&!actor.gameObject.activeSelf&&!executor.IsExecuting&&!executor.HasProjectile&&executor.LaunchCount==0&&executor.ImpactCount==0
@@ -256,7 +275,7 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         cases.Add(new JObject{["id"]=id,["selectionKey"]=row["selectionKey"].DeepClone(),["clip"]=row["actualClip"].DeepClone(),
             ["projectile"]=true,["fps"]=fps,["scenario"]=nextProjectileRequested?"same-actor-next-projectile/"+(terminalPolicy??"normal"):concurrentRequested?"concurrent-two-actors":occlusionRequested?"wall-during-flight":terminalPolicy!=null?terminalPolicy:cancelBeforeImpact?"cancel-before-impact":nextMeleeRequested?"next-melee-while-flight":"normal",["started"]=started,
             ["expectedProjectiles"]=count,["launches"]=launches,["impacts"]=impacts,["stationaryRootPreserved"]=stationary,["reset"]=reset,
-            ["targetRadius"]=collider.radius,["targetHeight"]=collider.height,["expectedDamage"]=expectedDamage,["damageEvents"]=damage,["pass"]=pass&&reset});
+            ["targetRadius"]=collider.radius,["targetHeight"]=collider.height,["expectedDamage"]=expectedDamage,["damageEvents"]=damage,["flightDiagnostics"]=flightDiagnostics,["pass"]=pass&&reset});
         if(concurrentRequested||occlusionRequested)
         {
             var saved=(JObject)cases[cases.Count-1];saved["actorCount"]=actorCount;saved["peerStarted"]=peerStarted;

@@ -69,6 +69,7 @@ public static class EnemyThemeTrialPresets
                 if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(30, 9, 1);
                 break;
             case "DeathHarvest":
+            case "GraveHunt":
                 if (mode == EnemyThemeTrialMode.Normal) return new EnemyThemeTrialRoster(10, 3, 0);
                 if (mode == EnemyThemeTrialMode.Elite) return new EnemyThemeTrialRoster(8, 2, 1);
                 if (mode == EnemyThemeTrialMode.Large) return new EnemyThemeTrialRoster(33, 8, 1);

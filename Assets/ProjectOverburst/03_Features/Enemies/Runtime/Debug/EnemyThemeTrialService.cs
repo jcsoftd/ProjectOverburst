@@ -28,9 +28,10 @@ public static class EnemyThemeTrialService
         ("VenomBrood", "독낭"),
         ("PrimalHunt", "원시"),
         ("CavernMutants", "암굴"),
-        ("DeathHarvest", "사령"),
+        ("DeathHarvest", "납골"),
         ("RotsporeMarsh", "부패습지"),
         ("AlienContainment", "격리구역"),
+        ("GraveHunt", "묘역"),
     };
 
     private const string TablePath = "Enemies/Themes/Tables/";

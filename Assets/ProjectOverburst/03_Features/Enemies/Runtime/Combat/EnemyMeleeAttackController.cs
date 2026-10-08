@@ -794,7 +794,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             var geometry = live && activeWeakContactGeometry != null && (uint)phase < (uint)activeWeakContactGeometry.Length
                 ? activeWeakContactGeometry[phase] : profile.GetContactGeometry(phase);
             if (geometry == null) continue;
-            float time = live ? weakAttackClock.NormalizedTime : ability.GetHitNormalizedTime(phase);
+            float time = ability.GetHitNormalizedTime(phase);
             for (int shape = 0; shape < geometry.CapsuleCount; shape++)
             {
                 int count = EnemyWeakAttackContactQuery.Overlap(gameObject.scene.GetPhysicsScene(),geometry,shape,time,
@@ -814,7 +814,10 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
         var shapes = activeWeakContactGeometry;
         if (shapes == null || (uint)phase >= (uint)shapes.Length || shapes[phase] == null) return;
         var geometry = shapes[phase]; var reaction = weakReactionScope;
-        float time = weakAttackClock.NormalizedTime;
+        // The fixed clock schedules the crossing; the authored impact pose owns
+        // the shape. A fast swing must not lose its contact because a physics
+        // update has advanced one native frame beyond the impact pose.
+        float time = ability.GetHitNormalizedTime(phase);
         Vector3 position = transform.position + WeakPhysicsOffset; Quaternion facing = ContactFacing;
         damagedTargets.Clear();
         for (int shape = 0; shape < geometry.CapsuleCount; shape++)

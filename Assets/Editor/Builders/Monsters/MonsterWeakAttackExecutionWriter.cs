@@ -12,6 +12,62 @@ public static class MonsterWeakAttackExecutionWriter
 {
     public const string Root = "Assets/ProjectOverburst/Resources/Enemies/Themes/ExecutionProfiles/V3";
 
+    public static void ValidateContentExtension(JObject authored,AnimationClip original)
+    {
+        var candidate=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();
+        try{
+            ConfigureCandidate(candidate,(string)authored["selectionKey"],authored,original,original);
+            var times=authored["hitNormalizedTimes"] as JArray;
+            if(!candidate.ValidateAuthoring(out string reason)||times==null||times.Count<1||times.Count>3||candidate.ContactGeometryCount!=times.Count)
+                throw new ArgumentException(reason??"Native hit/contact mismatch");
+            for(int i=0;i<times.Count;i++)if(!candidate.TryGetContactWindow(i,out var window)||(float)times[i]<window.x||(float)times[i]>window.y)
+                throw new ArgumentException("Native contact interval misses impact");
+        }finally{UnityEngine.Object.DestroyImmediate(candidate);}
+    }
+
+    // New content uses native review data; it must not impersonate a user-confirmed V3 snapshot.
+    public static bool ApplyContentExtension(JObject authored, EnemyAbilityDefinition ability, AnimationClip original, AnimationClip motion)
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle authoring required.");
+        if((string)authored?["reviewStatus"]!="NATIVE_CONTENT_REVIEW"||ability==null||original==null||motion==null
+            ||ability.IsTelegraphedStrongAttack||ability.HitCount<1||ability.HitCount>3
+            ||AssetDatabase.GetAssetPath(original)!=(string)authored["sourcePath"]
+            ||Hash(ProjectFile(AssetDatabase.GetAssetPath(original)))!=(string)authored["sourceSha256"])
+            throw new ArgumentException("Native reviewed weak attack required.");
+        var candidate=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();
+        try {
+            ValidateContentExtension(authored,original);
+            ConfigureCandidate(candidate,(string)authored["selectionKey"],authored,original,motion);
+            if(!candidate.ValidateAuthoring(out string reason)||candidate.ContactGeometryCount!=ability.HitCount
+                ||!candidate.MatchesContactWindows(ability.HitCount,ability.GetHitNormalizedTime(0),ability.HitCount>1?ability.GetHitNormalizedTime(1):0,ability.HitCount>2?ability.GetHitNormalizedTime(2):0))
+                throw new ArgumentException(reason??"Native hit/contact mismatch.");
+            string path=Root+"/"+ability.AbilityId+".asset";
+            if(AssetDatabase.LoadMainAssetAtPath(path)!=null)throw new InvalidOperationException("Existing profile preserved: "+path);
+            EnsureFolder(Root,new System.Collections.Generic.List<string>());
+            candidate.name=ability.AbilityId;AssetDatabase.CreateAsset(candidate,path);
+            ability.ConfigureWeakAttackExecution(candidate);EditorUtility.SetDirty(ability);
+            AssetDatabase.SaveAssetIfDirty(candidate);AssetDatabase.SaveAssetIfDirty(ability);candidate=null;
+            return true;
+        }finally{if(candidate!=null&&!AssetDatabase.Contains(candidate))UnityEngine.Object.DestroyImmediate(candidate);}
+    }
+
+    public static void UpdateContentExtension(JObject authored,EnemyAbilityDefinition ability)
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)throw new InvalidOperationException("Idle native authoring required");
+        var profile=ability?.WeakAttackExecution;var original=profile?.OriginalClip;
+        if(profile==null||original==null||ability.IsTelegraphedStrongAttack||!profile.SelectionKey.StartsWith("GraveHunt/",StringComparison.Ordinal)
+            ||(string)authored["reviewStatus"]!="NATIVE_CONTENT_REVIEW"||AssetDatabase.GetAssetPath(original)!=(string)authored["sourcePath"]
+            ||Hash(ProjectFile(AssetDatabase.GetAssetPath(original)))!=(string)authored["sourceSha256"])throw new ArgumentException("Existing native content/source identity required");
+        var candidate=ScriptableObject.CreateInstance<EnemyWeakAttackExecutionProfile>();
+        try{
+            ValidateContentExtension(authored,original);candidate.name=profile.name;ConfigureCandidate(candidate,(string)authored["selectionKey"],authored,original,profile.RuntimeClip);
+            if(!candidate.MatchesContactWindows(ability.HitCount,ability.GetHitNormalizedTime(0),ability.HitCount>1?ability.GetHitNormalizedTime(1):0,ability.HitCount>2?ability.GetHitNormalizedTime(2):0))throw new ArgumentException("Native damage/contact timings disagree");
+            EditorUtility.CopySerialized(candidate,profile);ability.ConfigureWeakAttackExecution(profile);EditorUtility.SetDirty(profile);EditorUtility.SetDirty(ability);
+            AssetDatabase.SaveAssetIfDirty(profile);AssetDatabase.SaveAssetIfDirty(ability);
+        }finally{UnityEngine.Object.DestroyImmediate(candidate);}
+    }
+
     public static bool Apply(string approvedV3Path, string approvedV3Sha256, string cardKey, string selectionKey, JObject authored,
         EnemyAbilityDefinition ability, AnimationClip original, AnimationClip motion)
     {
@@ -64,15 +120,12 @@ public static class MonsterWeakAttackExecutionWriter
                 EditorJsonUtility.FromJsonOverwrite(previousAbility,ability);
                 EditorUtility.SetDirty(ability); AssetDatabase.SaveAssetIfDirty(ability);
             }
-            if (created) AssetDatabase.DeleteAsset(path);
-            else if (existing != null && previousProfile != null && profileTouched)
+            if (!created && existing != null && previousProfile != null && profileTouched)
             {
                 EditorJsonUtility.FromJsonOverwrite(previousProfile,existing);
                 EditorUtility.SetDirty(existing); AssetDatabase.SaveAssetIfDirty(existing);
             }
-            for(int i=createdFolders.Count-1;i>=0;i--)
-                if(Directory.Exists(createdFolders[i]) && Directory.GetFileSystemEntries(createdFolders[i]).Length==0)
-                    AssetDatabase.DeleteAsset(createdFolders[i]);
+            // Preserve newly created assets on failure for inspection/recoverable cleanup.
             throw;
         }
         finally { UnityEngine.Object.DestroyImmediate(candidate); }

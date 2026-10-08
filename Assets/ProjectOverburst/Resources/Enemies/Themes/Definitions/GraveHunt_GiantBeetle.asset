@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: GraveHunt_GiantBeetle
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: GraveHunt_GiantBeetle
+  displayName: "\uBD80\uD328 \uAC11\uCDA9"
+  referenceHealthCoefficient: 2.56
+  species: {fileID: 11400000, guid: 454b4c058a0f70743915e716433130b5, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 2239758077427038195, guid: 647b7f930a843a44b9bef61b567b8deb, type: 3}
+  animationProfile: {fileID: 11400000, guid: 2f0147f0ae4472e49a0462d471e41824, type: 2}
+  abilitySet: {fileID: 11400000, guid: 77df1dadfbb1fc14ba4935be0f769c05, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 4c9a75c4ab18f7b4d867b54199d1fa00, type: 2}
+  movementProfile: {fileID: 11400000, guid: 843705468ff72fd41a2c2d4d98b63b45, type: 2}
+  aiPreset: {fileID: 11400000, guid: 92ba5a5ac1ec08f4ba7e15aad5ce422d, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

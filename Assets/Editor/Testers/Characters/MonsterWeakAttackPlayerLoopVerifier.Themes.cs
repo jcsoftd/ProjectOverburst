@@ -18,8 +18,11 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         if (!activationPlan.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || !File.Exists(activationPlan))
             throw new ArgumentException("Private approved theme plan required.");
         var input = JObject.Parse(File.ReadAllText(activationPlan));
-        if ((string)input["schema"] != "overburst.v3.theme-activation.v1" || input["themes"].Count() != 7)
-            throw new ArgumentException("Seven approved themes required.");
+        var themeIds=input["themes"]?.Select(t=>(string)t["runtimeThemeId"]).ToArray();
+        if ((string)input["schema"] != "overburst.v3.theme-activation.v1" || themeIds==null || themeIds.Length==0
+            || themeIds.Distinct().Count()!=themeIds.Length || themeIds.Any(id=>string.IsNullOrEmpty(id)
+                || Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/"+id)?.Validate(out _)!=true))
+            throw new ArgumentException("Distinct saved and valid theme tables required.");
         return StartInternal(outputDirectory, false, 1, false, true, false, null, true, null, null, activationPlan);
     }
     static void ThemeRequire(bool ok, string reason) { if (!ok) throw new InvalidOperationException(reason); }

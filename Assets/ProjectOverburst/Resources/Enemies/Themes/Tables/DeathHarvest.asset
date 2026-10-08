@@ -13,25 +13,16 @@ MonoBehaviour:
   m_Name: DeathHarvest
   m_EditorClassIdentifier: Assembly-CSharp::EnemyThemeTable
   themeId: DeathHarvest
-  displayName: "\uC0AC\uB839\uC758 \uB0A9\uACE8 \uC218\uD655\uB2E8"
+  displayName: "\uCE68\uBB35\uC758 \uB0A9\uACE8\uAD70\uB2E8"
   entries:
-  - definition: {fileID: 11400000, guid: 2191c51609d150842af235ff94e4a719, type: 2}
-    tier: 1
-    weight: 1
   - definition: {fileID: 11400000, guid: eda0d4fb07cd00c47b513a5460da8acc, type: 2}
     tier: 0
     weight: 1
   - definition: {fileID: 11400000, guid: fa1ae6f32b2482c448296f46d5303c6d, type: 2}
     tier: 0
     weight: 1
-  - definition: {fileID: 11400000, guid: dc9bf0d614228624ba85199d69d0dd1b, type: 2}
-    tier: 1
-    weight: 1
   - definition: {fileID: 11400000, guid: 8143dfd3d3ba6554199ca3d876983d5d, type: 2}
     tier: 1
-    weight: 1
-  - definition: {fileID: 11400000, guid: a468ff9e6df40dd4899de7130a64fddf, type: 2}
-    tier: 2
     weight: 1
   - definition: {fileID: 11400000, guid: 4b61797b3b3dbe448941bc79b1121513, type: 2}
     tier: 2

@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
   m_Name: DeathHarvest_RakeBrute_Zombie_Attack03
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
-  selectionKey: 56950b70ee5338d7
-  originalClip: {fileID: 1827226128182048838, guid: d613c2f107f9f2c4aa6ad0b1291923dc, type: 3}
-  runtimeClip: {fileID: 7400000, guid: 78894d1351b7aeb4ba395f54b341df3c, type: 2}
-  sourceTrimSeconds: {x: 0, y: 2.3000002}
+  selectionKey: GraveHunt/Rake/Hyper2
+  originalClip: {fileID: 7400000, guid: f6acec63d4280ce4aa203bde549f9b7b, type: 3}
+  runtimeClip: {fileID: 7400000, guid: c10bc9cb4dd531740b3ea7c3e470884b, type: 2}
+  sourceTrimSeconds: {x: 0, y: 3.3333335}
   motionPolicy: 0
-  stationaryStartRange: 0.96
+  stationaryStartRange: 1.6017385
   maxAdvanceDistance: 0
   advanceWindow: {x: 0, y: 0}
   advanceProgress:
@@ -28,32 +28,90 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.23188403, y: 0.28985506}
+  - {x: 0.22999999, y: 0.26999998}
+  - {x: 0.61999995, y: 0.65999997}
+  - {x: 0.85999995, y: 0.9}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.23188403
+    - normalizedTime: 0.22999999
       capsules:
-      - a: {x: -0.42199185, y: 2.002903, z: 0.6184087}
-        b: {x: -0.42199185, y: 2.002903, z: 0.6184087}
-        radius: 0.22199306
-    - normalizedTime: 0.2463768
+      - a: {x: 0.55688655, y: 1.4343334, z: 0.67580336}
+        b: {x: 0.7825802, y: 1.6928458, z: 0.8975133}
+        radius: 0.23
+    - normalizedTime: 0.24
       capsules:
-      - a: {x: -0.32377458, y: 1.925266, z: 0.85565275}
-        b: {x: -0.32377458, y: 1.925266, z: 0.85565275}
-        radius: 0.22531298
-    - normalizedTime: 0.26086953
+      - a: {x: 0.45432115, y: 1.3979045, z: 0.79676604}
+        b: {x: 0.63046664, y: 1.5166112, z: 1.1457688}
+        radius: 0.23
+    - normalizedTime: 0.24999999
       capsules:
-      - a: {x: 0.038085185, y: 1.7017369, z: 1.0310656}
-        b: {x: 0.038085185, y: 1.7017369, z: 1.0894567}
-        radius: 0.19684523
-    - normalizedTime: 0.27536228
+      - a: {x: 0.24381076, y: 1.3456191, z: 0.87459826}
+        b: {x: 0.2100961, y: 1.2534001, z: 1.2711842}
+        radius: 0.23
+    - normalizedTime: 0.26
       capsules:
-      - a: {x: 0.4033995, y: 1.317276, z: 0.98388207}
-        b: {x: 0.4033995, y: 1.317276, z: 0.98388207}
-        radius: 0.20757604
-    - normalizedTime: 0.28985506
+      - a: {x: -0.023041151, y: 1.2136639, z: 0.8423379}
+        b: {x: -0.24513938, y: 1.0476727, z: 1.1424063}
+        radius: 0.23
+    - normalizedTime: 0.26999998
       capsules:
-      - a: {x: 0.60117054, y: 0.9970772, z: 0.6556344}
-        b: {x: 0.60117054, y: 0.9970772, z: 0.6556344}
-        radius: 0.21751198
-    maximumPlanarReach: 1.2869675
+      - a: {x: -0.1837271, y: 1.1120149, z: 0.69899285}
+        b: {x: -0.498791, y: 0.8722626, z: 0.799864}
+        radius: 0.23
+    maximumPlanarReach: 1.5377746
+  - frames:
+    - normalizedTime: 0.61999995
+      capsules:
+      - a: {x: 0.50614125, y: 1.3055224, z: 0.6769584}
+        b: {x: 0.6292216, y: 1.596885, z: 0.93557125}
+        radius: 0.23
+    - normalizedTime: 0.62999994
+      capsules:
+      - a: {x: 0.45727175, y: 1.2458405, z: 0.82122695}
+        b: {x: 0.6142716, y: 1.3223329, z: 1.1905798}
+        radius: 0.23
+    - normalizedTime: 0.64
+      capsules:
+      - a: {x: 0.24548522, y: 1.2263143, z: 0.9073061}
+        b: {x: 0.24431103, y: 1.0655025, z: 1.2828852}
+        radius: 0.23
+    - normalizedTime: 0.65
+      capsules:
+      - a: {x: -0.018737221, y: 1.1107601, z: 0.8592555}
+        b: {x: -0.20498738, y: 0.96176875, z: 1.1909692}
+        radius: 0.23
+    - normalizedTime: 0.65999997
+      capsules:
+      - a: {x: -0.16478646, y: 1.0352011, z: 0.7390294}
+        b: {x: -0.51113206, y: 0.89298046, z: 0.9025517}
+        radius: 0.23
+    maximumPlanarReach: 1.5697051
+  - frames:
+    - normalizedTime: 0.85999995
+      capsules:
+      - a: {x: 0.43308565, y: 1.2469699, z: 0.8020722}
+        b: {x: 0.5702083, y: 1.4052652, z: 1.1528738}
+        radius: 0.23
+    - normalizedTime: 0.87
+      capsules:
+      - a: {x: 0.31203166, y: 1.2240441, z: 0.8780524}
+        b: {x: 0.28750035, y: 1.2489828, z: 1.2851123}
+        radius: 0.23
+    - normalizedTime: 0.88
+      capsules:
+      - a: {x: 0.16210811, y: 1.2270731, z: 0.8774618}
+        b: {x: -0.022228468, y: 1.1362627, z: 1.2305835}
+        radius: 0.23
+    - normalizedTime: 0.89
+      capsules:
+      - a: {x: -0.02182257, y: 1.1543376, z: 0.80639577}
+        b: {x: -0.30849463, y: 1.1070467, z: 1.0936313}
+        radius: 0.23
+    - normalizedTime: 0.9
+      capsules:
+      - a: {x: -0.11547241, y: 1.0661266, z: 0.71410906}
+        b: {x: -0.4928241, y: 1.0135334, z: 0.86162543}
+        radius: 0.23
+    maximumPlanarReach: 1.5468789
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

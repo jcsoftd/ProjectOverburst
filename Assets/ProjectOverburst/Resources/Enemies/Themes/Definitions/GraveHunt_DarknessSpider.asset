@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c05f161dc5b343b4799e95a2e923d35c, type: 3}
+  m_Name: GraveHunt_DarknessSpider
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  enemyId: GraveHunt_DarknessSpider
+  displayName: "\uBB18\uC5ED \uC554\uAC70\uBBF8"
+  referenceHealthCoefficient: 2.56
+  species: {fileID: 11400000, guid: 107c051f7f5b42244ad67f343829eb81, type: 2}
+  grade: {fileID: 11400000, guid: 12163e6029e08ec428dab0d3ac0a53c1, type: 2}
+  variant: {fileID: 11400000, guid: 1c5e357903268aa43abf18bc53262d8a, type: 2}
+  actorPrefab: {fileID: 1286152760310807125, guid: fa5308a2e7ddc264dbaa1e4afdee3c8f, type: 3}
+  animationProfile: {fileID: 11400000, guid: eb021bea449d3224183128a088e84826, type: 2}
+  abilitySet: {fileID: 11400000, guid: 7e01d0f729685f94b9577691609eba97, type: 2}
+  behaviorProfile: {fileID: 11400000, guid: 18915d2720aa7c14a8b50fd83bbc69cb, type: 2}
+  movementProfile: {fileID: 11400000, guid: 33476b52f7b9ddf40bf57b0476c0fb3d, type: 2}
+  aiPreset: {fileID: 11400000, guid: 92ba5a5ac1ec08f4ba7e15aad5ce422d, type: 2}
+  squadParticipationMode: 0
+  tacticalProfile: {fileID: 11400000, guid: 31134124a5ffbe54d9c4b1326104327c, type: 2}

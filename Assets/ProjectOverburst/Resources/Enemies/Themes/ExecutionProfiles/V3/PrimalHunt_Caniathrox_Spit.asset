@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
-  m_Name: PrimalHunt_Caniathrox_Spit
+  m_Name: PrimalHunt_Caniathrox_Spit(Clone)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
   selectionKey: 9b802d1a5bfb054a
   originalClip: {fileID: 1827226128182048838, guid: 3e494b3b497026246b7d856aff3609c4, type: 3}
@@ -29,3 +29,5 @@ MonoBehaviour:
   poseRootBonePath: 
   contactWindows: []
   contactGeometry: []
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

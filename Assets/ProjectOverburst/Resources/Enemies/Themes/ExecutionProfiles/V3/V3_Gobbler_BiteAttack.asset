@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35c8c1cbf6996f14191d8bfa705b2dd7, type: 3}
-  m_Name: V3_Gobbler_BiteAttack
+  m_Name: V3_Gobbler_BiteAttack(Clone)
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackExecutionProfile
   selectionKey: 5f9b1cefa5b48c0c
   originalClip: {fileID: 1827226128182048838, guid: 302d2d39997bdbc4d81acf034e20fbc0, type: 3}
@@ -28,22 +28,34 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.53333336, y: 0.6666667}
+  - {x: 0.2, y: 0.33333334}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.53333336
+    - normalizedTime: 0.2
       capsules:
-      - a: {x: -0.07395226, y: 0.5458157, z: 0.47719535}
-        b: {x: -0.08633182, y: 0.52192676, z: 0.5050879}
+      - a: {x: -0.11209013, y: 0.5676903, z: 0.57596403}
+        b: {x: -0.11855705, y: 0.56601864, z: 0.61413914}
         radius: 0.12
-    - normalizedTime: 0.6
+    - normalizedTime: 0.23333333
       capsules:
-      - a: {x: -0.031937424, y: 0.57100105, z: 0.45636603}
-        b: {x: -0.041492566, y: 0.5476456, z: 0.48577958}
+      - a: {x: -0.15860873, y: 0.51936805, z: 0.56100106}
+        b: {x: -0.17074773, y: 0.50871724, z: 0.5962311}
         radius: 0.12
-    - normalizedTime: 0.6666667
+    - normalizedTime: 0.26666668
       capsules:
-      - a: {x: -0.0028276043, y: 0.59498024, z: 0.43469012}
-        b: {x: -0.010094211, y: 0.57249475, z: 0.4654072}
+      - a: {x: -0.19017603, y: 0.49711698, z: 0.5423423}
+        b: {x: -0.20665625, y: 0.47935438, z: 0.57258874}
         radius: 0.12
-    maximumPlanarReach: 0.6324129
+    - normalizedTime: 0.3
+      capsules:
+      - a: {x: -0.19699088, y: 0.49554113, z: 0.53322875}
+        b: {x: -0.21582998, y: 0.47284362, z: 0.5583657}
+        radius: 0.12
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: -0.18875414, y: 0.4991334, z: 0.5284447}
+        b: {x: -0.20860964, y: 0.47336394, z: 0.54950774}
+        radius: 0.12
+    maximumPlanarReach: 0.745478
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

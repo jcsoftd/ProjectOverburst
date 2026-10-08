@@ -81,6 +81,7 @@ public static class MonsterV3NewActorBuilder
     static T Create<T>(string path,List<string> created,List<string> folders,T seed=null) where T:ScriptableObject
     {
         Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
+        if(created.Contains(path))return AssetDatabase.LoadAssetAtPath<T>(path)??throw new InvalidOperationException("Resumed asset type changed: "+path);
         var value=seed==null?ScriptableObject.CreateInstance<T>():Object.Instantiate(seed);
         value.name=Path.GetFileNameWithoutExtension(path);AssetDatabase.CreateAsset(value,path);created.Add(path);return value;
     }
@@ -92,6 +93,18 @@ public static class MonsterV3NewActorBuilder
         string path=(string)mapping["targetPath"];
         if(!path.StartsWith("Assets/ProjectOverburst/05_Art/Materials/",StringComparison.Ordinal))throw new ArgumentException("Owned render material path required.");
         var existing=AssetDatabase.LoadAssetAtPath<Material>(path);if(existing!=null)return existing;
+        if((bool?)mapping["convertFromSource"]==true)
+        {
+            Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
+            var converted=new Material(Shader.Find("Universal Render Pipeline/Lit"));converted.name=Path.GetFileNameWithoutExtension(path);
+            foreach(var pair in new[]{new[]{"_MainTex","_BaseMap"},new[]{"_BumpMap","_BumpMap"},new[]{"_MetallicGlossMap","_MetallicGlossMap"},new[]{"_OcclusionMap","_OcclusionMap"},new[]{"_EmissionMap","_EmissionMap"}})
+                if(source.HasProperty(pair[0])&&source.GetTexture(pair[0])!=null)converted.SetTexture(pair[1],source.GetTexture(pair[0]));
+            if(source.HasProperty("_Color"))converted.SetColor("_BaseColor",source.GetColor("_Color"));
+            if(source.HasProperty("_Glossiness"))converted.SetFloat("_Smoothness",source.GetFloat("_Glossiness"));
+            if(converted.GetTexture("_BumpMap")!=null)converted.EnableKeyword("_NORMALMAP");
+            if(source.HasProperty("_Mode")&&source.GetFloat("_Mode")>0){converted.SetFloat("_AlphaClip",1);converted.EnableKeyword("_ALPHATEST_ON");converted.SetFloat("_Cull",0);}
+            AssetDatabase.CreateAsset(converted,path);created.Add(path);Save(converted);return converted;
+        }
         var template=AssetDatabase.LoadAssetAtPath<Material>((string)mapping["templatePath"]);
         if(template==null||template.shader==null||template.shader.name!="Universal Render Pipeline/Lit")throw new InvalidOperationException("Approved URP render material unavailable.");
         Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
@@ -101,6 +114,7 @@ public static class MonsterV3NewActorBuilder
     static AnimationClip LoopClip(AnimationClip source,string path,List<string> created,List<string> folders)
     {
         if(source.isLooping)return source;
+        if(created.Contains(path))return AssetDatabase.LoadAssetAtPath<AnimationClip>(path)??throw new InvalidOperationException("Resumed loop missing");
         Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
         var loop=Object.Instantiate(source);loop.name=Path.GetFileNameWithoutExtension(path);
         var settings=AnimationUtility.GetAnimationClipSettings(loop);settings.loopTime=true;
@@ -120,6 +134,7 @@ public static class MonsterV3NewActorBuilder
         AnimationClip[] parry,List<string> created,List<string> folders)
     {
         Folder(Path.GetDirectoryName(path).Replace('\\','/'),folders);
+        if(created.Contains(path))return AssetDatabase.LoadAssetAtPath<AnimatorController>(path)??throw new InvalidOperationException("Resumed controller missing");
         var controller=AnimatorController.CreateAnimatorControllerAtPath(path);created.Add(path);var sm=controller.layers[0].stateMachine;
         foreach(string name in new[]{"Locomotion","MoveAnimSpeed","AttackAnimSpeed"})controller.AddParameter(new AnimatorControllerParameter{
             name=name,type=AnimatorControllerParameterType.Float,defaultFloat=name=="Locomotion"?0:1});
@@ -148,14 +163,15 @@ public static class MonsterV3NewActorBuilder
         string allowed=Path.GetFullPath(Path.Combine(workspace,"개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
         if(!output.StartsWith(allowed,StringComparison.OrdinalIgnoreCase))throw new ArgumentException("Private artifact path required.");
         Directory.CreateDirectory(output);var batch=JObject.Parse(File.ReadAllText(batchPath));
-        if((string)batch["schema"]!="overburst.v3.new-actor-batch.v1"||(bool?)batch["activateInGame"]!=false||(bool?)batch["applyAudio"]!=false)
+        bool contentExtension=(string)batch["schema"]=="overburst.theme-extension.actor.v1";
+        if(!contentExtension&&(string)batch["schema"]!="overburst.v3.new-actor-batch.v1"||(bool?)batch["activateInGame"]!=false||(bool?)batch["applyAudio"]!=false)
             throw new ArgumentException("New review actor batch required; game activation and audio writes are excluded.");
         string approvedPath=(string)batch["approvedPath"],approvedSha=(string)batch["approvedSha256"],key=(string)batch["cardKey"],id=(string)batch["enemyId"];
         if(Hash(approvedPath)!=approvedSha)throw new InvalidOperationException("Approved V3 changed.");
         var approved=JObject.Parse(File.ReadAllText(approvedPath));
         foreach(var i in approved["inputs"])if(Hash((string)i["path"])!=(string)i["sha256"])throw new InvalidOperationException("Selection input changed.");
         var card=approved["cards"]?[key] as JObject;
-        if(card==null||(string)card["status"]!="confirmed"||(bool?)card["inRoster"]!=true||(bool?)card["isBoss"]==true
+        if(card==null||(string)card["status"]!=(contentExtension?"native-reviewed":"confirmed")||(bool?)card["inRoster"]!=true||(bool?)card["isBoss"]==true
             ||id.Any(c=>!(char.IsLetterOrDigit(c)||c=='_'||c=='-')))throw new ArgumentException("Confirmed regular actor required.");
         var sourceFiles=(JObject)batch["expectedSourceFiles"];
         foreach(var p in sourceFiles.Properties())
@@ -178,8 +194,9 @@ public static class MonsterV3NewActorBuilder
         var strong=rows.SingleOrDefault(r=>(string)r["role"]=="strong");
         bool weakOnlySmall=strong==null&&(string)batch["grade"]=="small"&&key.EndsWith(":small",StringComparison.Ordinal)&&card["strong"].Count()==0;
         if(strong==null&&!weakOnlySmall)throw new InvalidOperationException("Only confirmed small actors may omit strong/parry motions.");
+        bool nativeReactionFallback=contentExtension&&(bool?)batch["nativeReactionFallback"]==true;
         if(!weakOnlySmall&&(card["strong"].Count()!=1||(string)card["strong"][0]["key"]!=(string)strong["selectionKey"]
-            ||(string)strong["parryMotionReceipt"]?["status"]!="APPROVED_IMPORT_VERIFIED_ACTOR_BIND_PENDING"))throw new InvalidOperationException("Confirmed strong and approved three motions required.");
+            ||!nativeReactionFallback&&(string)strong["parryMotionReceipt"]?["status"]!="APPROVED_IMPORT_VERIFIED_ACTOR_BIND_PENDING"))throw new InvalidOperationException("Strong selection and reaction binding required.");
         var seed=AssetDatabase.LoadAssetAtPath<EnemyDefinition>((string)batch["seedDefinition"]);
         if(seed==null||!seed.IsValid||!seed.ActorPrefab.IsAuthoringValid||seed.ResolveRuntimeStats().VisualScale!=Vector3.one)
             throw new InvalidOperationException("Valid production actor core with unit grade/variant scale required.");
@@ -191,6 +208,7 @@ public static class MonsterV3NewActorBuilder
             Root+"Animations/AC_"+id+".controller",Root+"Movement/"+id+".asset",Root+"Behavior/"+id+".asset",Root+"Abilities/"+id+"_Set.asset",Root+"Actors/PF_"+id+".prefab"};
         foreach(var row in rows)
         {
+            if(contentExtension&&(string)row["role"]=="weak")MonsterWeakAttackExecutionWriter.ValidateContentExtension(row,Original(row));
             Original(row);paths.Add(Root+"Abilities/"+id+"_"+row["actualClip"]+".asset");
             if((string)row["role"]=="weak")paths.Add(MonsterWeakAttackExecutionWriter.Root+"/"+id+"_"+row["actualClip"]+".asset");
         }
@@ -199,16 +217,19 @@ public static class MonsterV3NewActorBuilder
             Clip((string)batch["runPath"]??(string)batch["movePath"]),Clip((string)batch["extras"]["CrawlBackwards"])};
         var locomotionRoles=new[]{"Idle","Walk","Run","Back"};
         for(int i=0;i<locomotionSources.Length;i++)if(!locomotionSources[i].isLooping)paths.Add(Root+"Animations/"+id+"_"+locomotionRoles[i]+"_Loop.anim");
+        var resume=batch["resumeAssetHashes"] as JObject??new JObject();
+        foreach(var value in resume.Properties())if(Hash(Path.Combine(Project,value.Name))!=(string)value.Value)throw new InvalidOperationException("Interrupted asset changed; preserved: "+value.Name);
         foreach(string path in paths)if(File.Exists(Path.Combine(Project,path))||File.Exists(Path.Combine(Project,path+".meta"))||AssetDatabase.LoadMainAssetAtPath(path)!=null)
-            throw new InvalidOperationException("Creation target already exists; preserved: "+path);
-        var parry=weakOnlySmall?Array.Empty<AnimationClip>():new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
+            if(resume[path]==null||resume[path+".meta"]==null)throw new InvalidOperationException("Creation target already exists; preserved: "+path);
+        var parry=weakOnlySmall||nativeReactionFallback?Array.Empty<AnimationClip>():new[]{"ParryCollapse","StunnedLoop","StunRecover"}.Select(role=>
         {
             var binding=strong["parryMotionReceipt"]["runtimeBindings"][role];var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>((string)binding["assetPath"]);
             if(clip==null||!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip,out string guid,out long localId)||guid!=(string)binding["guid"]||localId!=(long)binding["localId"]
                 ||Mathf.Abs(clip.frameRate-30)>.001f||clip.isLooping!=(role=="StunnedLoop"))throw new InvalidOperationException("Approved runtime binding changed: "+role);
             return clip;
         }).ToArray();
-        var created=new List<string>();var folders=new List<string>();var before=Scenes();Scene scene=default;GameObject actorRoot=null;
+        var created=resume.Properties().Where(p=>!p.Name.EndsWith(".meta",StringComparison.Ordinal)).Select(p=>p.Name).ToList();
+        var folders=new List<string>();var before=Scenes();Scene scene=default;GameObject actorRoot=null;
         AssetDatabase.DisallowAutoRefresh();
         try
         {
@@ -230,6 +251,18 @@ public static class MonsterV3NewActorBuilder
                 float time=(float)hitTimes[0];
                 Number(ability,"hitNormalizedTime",time);Number(ability,"hitDelay",time*Original(row).length);Number(ability,"attackAnimationDuration",Original(row).length);
                 Number(ability,"attackLockDuration",Original(row).length);ability.ConfigureAdditionalHits(hitTimes.Skip(1).Select(t=>(float)t).ToArray());
+                if(contentExtension)
+                {
+                    // New source motions must not inherit another monster's phase landmarks.
+                    float prep=isStrong?(float)row["preparationNormalized"]:Mathf.Max(.03f,time-.16f);
+                    Number(ability,"preparationEndNormalized",prep);Number(ability,"motionReleaseReferenceNormalized",time);
+                    Number(ability,"motionRecoveryStartNormalized",Mathf.Min(.96f,(float)hitTimes.Last+.1f));
+                    Number(ability,"preparationDuration",Mathf.Max(.42f,prep*Original(row).length));
+                    Number(ability,"releaseDuration",isStrong?.35f:Mathf.Max(.10f,(time-prep)*Original(row).length));
+                    Number(ability,"recoveryDuration",Mathf.Max(.24f,(1-(float)hitTimes.Last)*Original(row).length));
+                    Number(ability,"minimumWarningTime",0);Number(ability,"range",(float)row["stationaryStartRange"]);
+                    if(isStrong){ability.ConfigureFirstStrikeOnlyParry(true);ability.ConfigureParryMotionWindows(new Vector2((float)row["cueNormalized"],time));}
+                }
                 if(isStrong){Number(ability,"range",(float)batch["strongRange"]);Number(ability,"hitRadius",(float)batch["strongRange"]);}
                 else
                 {
@@ -239,7 +272,8 @@ public static class MonsterV3NewActorBuilder
                         Set(ability,"executionMode",p=>p.enumValueIndex=(int)mode);
                         Number(ability,"range",(float)row["stationaryStartRange"]);
                     }
-                    MonsterWeakAttackExecutionWriter.Apply(approvedPath,approvedSha,key,(string)row["selectionKey"],row,ability,Original(row),Original(row));
+                    if(contentExtension)MonsterWeakAttackExecutionWriter.ApplyContentExtension(row,ability,Original(row),Original(row));
+                    else MonsterWeakAttackExecutionWriter.Apply(approvedPath,approvedSha,key,(string)row["selectionKey"],row,ability,Original(row),Original(row));
                     created.Add(AssetDatabase.GetAssetPath(ability.WeakAttackExecution));
                 }
                 Save(ability);abilities.Add(ability);
@@ -281,7 +315,10 @@ public static class MonsterV3NewActorBuilder
                 }
             }
             foreach(var renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                if(batch["enabledRenderers"] is JArray enabled)renderer.enabled=enabled.Values<string>().Contains(renderer.name);
                 renderer.sharedMaterials=renderer.sharedMaterials.Select(m=>RenderMaterial(m,batch,created,folders)).ToArray();
+            }
             var animator=model.GetComponentInChildren<Animator>(true);if(animator==null)throw new InvalidOperationException("Native Animator missing.");
             animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;animator.fireEvents=false;
             foreach(var c in actorRoot.GetComponentsInChildren<MonoBehaviour>(true))
@@ -317,6 +354,13 @@ public static class MonsterV3NewActorBuilder
             actorRoot.GetComponent<EnemyVisualRootGuard>().Configure(animator.transform);
             var weakDriver=actorRoot.GetComponent<EnemyWeakAttackMotionDriver>()??actorRoot.AddComponent<EnemyWeakAttackMotionDriver>();
             weakDriver.Configure(actor.Melee,actor.Movement);
+            if(contentExtension&&strong!=null)
+            {
+                var bone=animator.transform.Find((string)strong["contactBonePath"]);
+                if(bone==null)throw new InvalidOperationException("Reviewed strong cue bone missing");
+                abilities[rows.ToList().IndexOf(strong)].ConfigureAttackCue(AnimationUtility.CalculateTransformPath(bone,actorRoot.transform),Vector(strong["cuePositionActorMeters"]),.65f);
+                Save(abilities[rows.ToList().IndexOf(strong)]);
+            }
             if(rows.Any(r=>(string)r["executionMode"]=="Projectile"))
             {
                 var projectile=actorRoot.GetComponent<EnemyThemeSpecialExecutor>()??actorRoot.AddComponent<EnemyThemeSpecialExecutor>();
@@ -372,10 +416,7 @@ public static class MonsterV3NewActorBuilder
         }
         catch(Exception error)
         {
-            // Only assets created by this call are removed. Source models/core assets are never written.
-            for(int i=created.Count-1;i>=0;i--)if(AssetDatabase.LoadMainAssetAtPath(created[i])!=null)AssetDatabase.DeleteAsset(created[i]);
-            for(int i=folders.Count-1;i>=0;i--)if(Directory.Exists(folders[i])&&Directory.GetFileSystemEntries(folders[i]).Length==0)AssetDatabase.DeleteAsset(folders[i]);
-            File.WriteAllText(Path.Combine(output,"failure.json"),new JObject{["status"]="FAILED_CREATED_ASSETS_ROLLED_BACK",["error"]=error.ToString(),["created"]=JArray.FromObject(created)}.ToString());throw;
+            File.WriteAllText(Path.Combine(output,"failure.json"),new JObject{["status"]="FAILED_PARTIAL_ASSETS_PRESERVED",["error"]=error.ToString(),["created"]=JArray.FromObject(created)}.ToString());throw;
         }
         finally
         {if(actorRoot!=null)Object.DestroyImmediate(actorRoot);if(scene.IsValid())EditorSceneManager.ClosePreviewScene(scene);AssetDatabase.AllowAutoRefresh();}

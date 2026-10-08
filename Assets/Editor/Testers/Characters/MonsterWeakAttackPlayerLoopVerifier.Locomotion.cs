@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 public static partial class MonsterWeakAttackPlayerLoopVerifier
@@ -29,19 +30,30 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         var selector=actor.GetComponent<EnemyLocomotionVariantSelector>();var animator=actor.Animator;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
         var motor=actor.GetComponent<EnemyMotor>();selector.enabled=false;actor.Movement.StopMovement();
         yield return null;yield return new WaitForFixedUpdate();
-        var idleClips=new[]{"Zombie_Idle_01","Zombie_Idle_03","Zombie_Idle_2_IPC"};var idleEvidence=new JArray();
+        var configuration=new SerializedObject(selector);
+        var states=configuration.FindProperty("idleStates");var idleWeights=configuration.FindProperty("idleWeights");
+        var savedController=(AnimatorController)animator.runtimeAnimatorController;
+        var idleStates=Enumerable.Range(0,states.arraySize).Where(i=>idleWeights.GetArrayElementAtIndex(i).floatValue>0)
+            .Select(i=>states.GetArrayElementAtIndex(i).stringValue).ToArray();
+        var idleClips=idleStates.Select(name=>((AnimationClip)savedController.layers[0].stateMachine.states.Single(s=>s.state.name==name).state.motion).name).ToArray();
+        var idleEvidence=new JArray();
         for(int i=0;i<idleClips.Length;i++)
         {
-            animator.SetFloat("Locomotion",0);animator.Play("IdleVariant_"+i,0,0f);yield return null;
+            animator.SetFloat("Locomotion",0);animator.Play(idleStates[i],0,0f);yield return null;
             float deadline=Time.time+17;var start=actor.transform.position;
             while(animator.GetCurrentAnimatorStateInfo(0).normalizedTime<1.05f&&Time.time<deadline)yield return null;
             var state=animator.GetCurrentAnimatorStateInfo(0);var clips=animator.GetCurrentAnimatorClipInfo(0);
-            bool pass=state.IsName("IdleVariant_"+i)&&state.loop&&state.normalizedTime>=1.05f&&clips.Any(c=>c.clip.name==idleClips[i]&&c.weight>.9f)
+            bool pass=state.IsName(idleStates[i])&&state.loop&&state.normalizedTime>=1.05f&&clips.Any(c=>c.clip.name==idleClips[i]&&c.weight>.9f)
                 &&Vector2.Distance(new Vector2(start.x,start.z),new Vector2(actor.transform.position.x,actor.transform.position.z))<.03f;
             idleEvidence.Add(new JObject{["clip"]=idleClips[i],["normalized"]=state.normalizedTime,["pass"]=pass});
         }
-        cases.Add(new JObject{["id"]=definition.EnemyId,["scenario"]="saved-three-idle-loop-playback",["clips"]=idleEvidence,["pass"]=idleEvidence.All(e=>(bool)e["pass"])});WriteResult("RUNNING");
-        var moves=new[]{"Zombie_Walk_01_Forward_InPlace","Zombie_Walk_F_2_Loop_IPC"};var moveEvidence=new JArray();
+        cases.Add(new JObject{["id"]=definition.EnemyId,["scenario"]="saved-idle-loop-playback",["clips"]=idleEvidence,["pass"]=idleEvidence.All(e=>(bool)e["pass"])});WriteResult("RUNNING");
+        Func<Motion,AnimationClip[]> leaves=null;
+        leaves=motion=>motion is BlendTree tree?tree.children.SelectMany(c=>leaves(c.motion)).ToArray():motion is AnimationClip clip?new[]{clip}:Array.Empty<AnimationClip>();
+        var locomotion=savedController.layers[0].stateMachine.states.Single(s=>s.state.name=="Locomotion").state.motion;
+        var moves=leaves(locomotion).Where(c=>!idleClips.Contains(c.name)&&c!=definition.AnimationProfile.Idle).Select(c=>c.name).Distinct().ToArray();
+        if(moves.Length!=configuration.FindProperty("moveWeights").arraySize)throw new InvalidOperationException("Saved movement variants do not match selector configuration");
+        var moveEvidence=new JArray();
         for(int i=0;i<moves.Length;i++)
         {
             animator.Play("Locomotion",0,0);animator.SetFloat("MoveVariant",i);var start=actor.transform.position;
@@ -60,8 +72,8 @@ public static partial class MonsterWeakAttackPlayerLoopVerifier
         float idleDeadline=Time.time+21;
         while(selector.IdleSelectionCount<2&&Time.time<idleDeadline)yield return null;
         bool naturalCycle=selector.IdleSelectionCount>=2;
-        victim.transform.position=actor.transform.position+Vector3.forward*.85f;Physics.SyncTransforms();
         var weak=Enumerable.Range(0,definition.AbilitySet.Count).Select(definition.AbilitySet.GetAbility).First(a=>!a.IsTelegraphedStrongAttack);
+        victim.transform.position=actor.transform.position+Vector3.forward*(weak.WeakAttackExecution.ApproachStartRange-.1f);Physics.SyncTransforms();
         int before=selector.IdleSelectionCount;bool started=actor.AbilityController.TryStartAbility(weak,victim.transform),protectedAttack=true,enteredAttack=false;
         float attackDeadline=Time.time+weak.ResolveExecutionDuration(actor.Melee.AbilityAnimationSpeed)+4;
         while(started&&actor.AbilityController.IsExecuting&&Time.time<attackDeadline)
