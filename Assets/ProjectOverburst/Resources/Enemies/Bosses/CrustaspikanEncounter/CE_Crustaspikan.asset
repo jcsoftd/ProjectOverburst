@@ -387,6 +387,8 @@ MonoBehaviour:
   protectPlayerFromDeath: 1
   approachDistance: 8
   approachSpeed: 3
+  maximumFarActions: 1
+  pursuitWalkSeconds: 3
   attackFacingTolerance: 8
   attackPreparationTimeout: 4
   enableBossEvasion: 1

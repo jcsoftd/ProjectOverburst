@@ -33,6 +33,26 @@ public static class CrustaspikanEncounterBuilder
         serialized.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.SaveAssetIfDirty(settings);
         return "Existing rumble, earth rupture, heavy slam, inhale and roar linked to entrance only";
     }
+    public static string ConfigurePursuit(int maximumFarActions, float walkSeconds)
+    {
+        CrustaspikanMotionPlaybackBuilder.RequireIdle();
+        if (IsolatedSavePlayGuard.RequiresAccountChoice || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)))
+            throw new InvalidOperationException("실제 계정으로 반환된 유휴 Editor가 필요합니다.");
+        var settings = AssetDatabase.LoadAssetAtPath<CrustaspikanEncounterSettings>(AssetPath);
+        if (settings == null || EditorUtility.IsDirty(settings)) throw new InvalidOperationException("전투 설정의 미저장 변경을 먼저 확인하세요.");
+        var copy = UnityEngine.Object.Instantiate(settings);
+        try
+        {
+            copy.maximumFarActions = maximumFarActions; copy.pursuitWalkSeconds = walkSeconds;
+            if (!copy.Validate(out var reason)) throw new InvalidOperationException(reason);
+        }
+        finally { UnityEngine.Object.DestroyImmediate(copy); }
+        Undo.RecordObject(settings, "보스 추격 설정");
+        settings.maximumFarActions = maximumFarActions; settings.pursuitWalkSeconds = walkSeconds;
+        EditorUtility.SetDirty(settings); AssetDatabase.SaveAssetIfDirty(settings);
+        return "추격 설정 저장 완료: 먼 거리 행동 " + maximumFarActions + "회 / 실제 보행 " + walkSeconds + "초";
+    }
     [MenuItem("OVERBURST/Builders/Crustaspikan/Build First Encounter Settings")]
     public static void BuildMenu()=>Debug.Log(Build());
     public static string Build()
@@ -44,6 +64,7 @@ public static class CrustaspikanEncounterBuilder
         }
         EnsureFolder("Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanEncounter");
         var s=ScriptableObject.CreateInstance<CrustaspikanEncounterSettings>();
+        s.maximumFarActions=1; s.pursuitWalkSeconds=3f;
         s.materials=AssetDatabase.LoadAssetAtPath<EnemyBossMaterialCollection>("Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/BMC_Crustaspikan.asset");
         s.composites=AssetDatabase.LoadAssetAtPath<EnemyBossCompositePatternSet>("Assets/ProjectOverburst/Resources/Enemies/Bosses/CrustaspikanMaterials/Composite/BCP_Crustaspikan.asset");
         s.adds=AssetDatabase.LoadAssetAtPath<EnemyThemeTable>("Assets/ProjectOverburst/Resources/Enemies/Themes/Tables/CavernMutants.asset");

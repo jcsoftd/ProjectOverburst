@@ -56,6 +56,8 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
     [Header("현재 상황 기반 기본 AI")]
     [Min(1f)] public float approachDistance = 8f;
     [Min(.1f)] public float approachSpeed = 3f;
+    [Range(1, 8), Tooltip("근접 거리 밖에서 실제 실행한 행동 수. 도달 가능한 접근 조립은 별도로 허용합니다.")] public int maximumFarActions = 1;
+    [Range(.5f, 10f), Tooltip("최초 회전 뒤 실제 보행 시작부터 계산하는 추격 제한 시간입니다.")] public float pursuitWalkSeconds = 3f;
     [Range(1f, 15f)] public float attackFacingTolerance = 8f;
     [Min(.5f)] public float attackPreparationTimeout = 4f;
     public bool enableBossEvasion = true;
@@ -78,6 +80,7 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             || !Finite(bossHp) || !Finite(groggyMax) || !Finite(arenaRadius)) { reason = "전투 수치가 유효하지 않습니다."; return false; }
         if (!Finite(betweenPatterns) || betweenPatterns < 0f || !Finite(approachDistance) || approachDistance < 1f
             || !Finite(approachSpeed) || approachSpeed < .1f
+            || maximumFarActions < 1 || maximumFarActions > 8 || !Finite(pursuitWalkSeconds) || pursuitWalkSeconds < .5f || pursuitWalkSeconds > 10f
             || !Finite(attackFacingTolerance) || attackFacingTolerance < 1f || attackFacingTolerance > 15f
             || !Finite(attackPreparationTimeout) || attackPreparationTimeout < .5f
             || !Finite(evasionTriggerDistance) || evasionTriggerDistance < 1f || !Finite(evasionDistance) || evasionDistance < .5f

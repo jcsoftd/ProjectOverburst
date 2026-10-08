@@ -110,6 +110,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                 Node(() => current != null, RunPattern),
                 Node(() => Time.time < readyAt || ReviewMode, Wait),
                 Node(CanDodge, Dodge),
+                Node(() => pursuing, Pursue),
                 Node(() => true, SelectPattern));
         }
         catch { Dispose(); throw; }
@@ -173,6 +174,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         }
         if (Actor.AI.Target != player.transform) Actor.AI.SetTarget(player.transform);
         Context = ReadContext();
+        if (Context.Distance <= settings.approachDistance - .5f) farActions = 0;
+        ObserveFarExecution();
         while (lastParry < parryDirector.ParryCount)
         {
             lastParry++; CancelPattern();
@@ -254,6 +257,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private CrustaspikanNodeStatus Transition()
     {
+        CancelPursuit();
         if (UsesMotion) return RunOwnedPhaseTransition();
         State = "2페이즈 전환";
         if (!transitionStarted)
@@ -293,19 +297,20 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         {
             if (!Eligible(p)) continue; candidates.Add(p); total += Weight(p);
         }
+        if (Context.Distance > settings.approachDistance + .5f && Time.time >= pursuitRetryAt)
+        {
+            if (farActions >= settings.maximumFarActions)
+            {
+                candidates.RemoveAll(p => !ApproachesBeforeAttack(p));
+                total = 0f; foreach (var p in candidates) total += Weight(p);
+            }
+            if (total <= 0f && BeginPursuit()) return CrustaspikanNodeStatus.Running;
+        }
+        // A failed path briefly permits the currently valid ranged candidates.
         if (total <= 0f)
         {
-            if (Context.Distance > settings.approachDistance + .5f)
-            {
-                State = "거리 좁히기";
-                float speedMultiplier = settings.approachSpeed / Mathf.Max(.1f, Actor.Movement.Profile != null ? Actor.Movement.Profile.MoveSpeed : EnemyMovementProfile.MinimumMoveSpeed);
-                Actor.Movement.SetDestination(encounter.ClampArena(player.transform.position, 5f), settings.approachDistance, EnemyLocomotionMode.Walk, speedMultiplier);
-            }
-            else
-            {
-                State = "방향 정렬 · 재사용 대기";
-                Actor.Movement.StopMovement(); FaceTarget();
-            }
+            State = "방향 정렬 · 재사용 대기";
+            Actor.Movement.StopMovement(); FaceTarget();
             return CrustaspikanNodeStatus.Running;
         }
         float draw = UnityEngine.Random.value * total;
@@ -388,6 +393,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private void BeginPattern()
     {
+        CancelPursuit();
+        farPatternObserved = false; patternApproaches = ApproachesBeforeAttack(current); farExecutionAtStart = FarReleaseCount;
         stepIndex = 0; stepStarted = patternCommitted = false;
         ResetMoveStep();
         stepAttemptAt = Time.time;
@@ -396,6 +403,12 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private void CommitPatternStep()
     {
+        if (current != null && stepIndex < current.steps.Length)
+        {
+            var step = current.steps[stepIndex];
+            if (step.kind == CrustaspikanStepKind.Attack && attacks[step.materialOrMotion].delivery == EnemyBossMaterialDelivery.Melee)
+                ObserveFarExecution(true);
+        }
         if (patternCommitted || current == null) return;
         patternCommitted = true; LastPattern = current.id; PatternCount++;
         consecutiveFamily = current.family == lastFamily ? consecutiveFamily + 1 : 1; lastFamily = current.family;
@@ -467,6 +480,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     { current = null; stepStarted = false; ResetMoveStep(); readyAt = Time.time + (Phase == 1 ? settings.betweenPatterns : settings.phaseTwoBetweenPatterns); }
     private void CancelPattern()
     {
+        ObserveFarExecution(); CancelPursuit();
         ResetMoveStep();
         if (current == null) return;
         Actor.AbilityController.Cancel(); Actor.Movement.CancelActionLock(); Actor.Movement.StopMovement();

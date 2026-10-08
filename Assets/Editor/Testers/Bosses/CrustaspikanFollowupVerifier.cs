@@ -26,6 +26,49 @@ public static class CrustaspikanFollowupVerifier
         return "D1 actual portal/owned-motion observation started once.";
     }
 
+    public static string StartD2(string output, bool baseline)
+    {
+        string account = Path.GetFullPath(Path.Combine(output, "Play01/IsolatedSave"));
+        if (!EditorApplication.isPlaying || Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable) != account
+            || !SessionState.GetBool("Overburst.CrustaspikanTempoAudit.pending", false)
+            || SessionState.GetString("Overburst.CrustaspikanTempoAudit.output", "") != output)
+            throw new InvalidOperationException("Own isolated D2 Play required.");
+        if (UnityEngine.Object.FindFirstObjectByType<CrustaspikanD1Observer>() != null || File.Exists(Path.Combine(output, "Play01/result.json")))
+            throw new InvalidOperationException("D2 already started: inspect existing result.");
+        var root = new GameObject("Owned Crustaspikan D2 Observer");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        root.AddComponent<CrustaspikanD1Observer>().InitializeD2(output, baseline);
+        return "D2 actual portal/decision/pursuit observation started once.";
+    }
+    public static string VerifyD2Native(string output)
+    {
+        CrustaspikanMotionPlaybackBuilder.RequireIdle();
+        var settings = Resources.Load<CrustaspikanEncounterSettings>("Enemies/Bosses/CrustaspikanEncounter/CE_Crustaspikan");
+        if (!settings.Validate(out var reason)) throw new InvalidOperationException(reason);
+        var far = typeof(CrustaspikanEncounterSettings).GetField("maximumFarActions");
+        var walk = typeof(CrustaspikanEncounterSettings).GetField("pursuitWalkSeconds");
+        if (far == null || walk == null || (int)far.GetValue(settings) != 1 || (float)walk.GetValue(settings) != 3f)
+            throw new InvalidOperationException("Actual saved pursuit settings mismatch.");
+        int checks = 2;
+        var copy = UnityEngine.Object.Instantiate(settings);
+        try
+        {
+            foreach (int value in new[] { 0, 9 })
+            { far.SetValue(copy, value); if (copy.Validate(out _)) throw new InvalidOperationException("Invalid far count accepted."); checks++; }
+            far.SetValue(copy, 1);
+            foreach (float value in new[] { 0f, .49f, float.NaN, float.PositiveInfinity, 11f })
+            { walk.SetValue(copy, value); if (copy.Validate(out _)) throw new InvalidOperationException("Invalid pursuit budget accepted."); checks++; }
+            walk.SetValue(copy, 3f);
+            using (var serialized = new SerializedObject(copy))
+                if (serialized.FindProperty("maximumFarActions") == null || serialized.FindProperty("pursuitWalkSeconds") == null)
+                    throw new InvalidOperationException("Inspector authoring properties missing.");
+            checks++;
+        }
+        finally { UnityEngine.Object.DestroyImmediate(copy); }
+        Directory.CreateDirectory(output);
+        File.WriteAllText(Path.Combine(output, "native.json"), JsonConvert.SerializeObject(new { status = "PASS_NATIVE", checks, PlayerBuild = "FORBIDDEN", utc = DateTime.UtcNow }, Formatting.Indented));
+        return "D2 native saved settings/invalid-input/Inspector property checks: " + checks;
+    }
     public static string VerifyD1Native(string output)
     {
         CrustaspikanMotionPlaybackBuilder.RequireIdle();
@@ -58,7 +101,8 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
 {
     const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     string output, caseId = "boot";
-    bool baseline, finished;
+    bool baseline, finished, pursuitAudit;
+    CrustaspikanEncounterSettings testSettings, realSettings;
     float bootAt;
     IEnumerator flow;
     PlayerActorRuntime player;
@@ -90,6 +134,7 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
         UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior = UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
         Write("RUNNING", null);
     }
+    public void InitializeD2(string folder, bool original) { pursuitAudit = true; Initialize(folder, original); }
     void Update()
     {
         if (finished) return;
@@ -131,6 +176,8 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
             yield return null;
         }
         while (encounter.IsIntroducing) { encounter.EntranceCinematic.Skip(); yield return null; }
+        if (pursuitAudit)
+        { var audit = RunD2(); while (audit.MoveNext()) yield return null; yield break; }
         foreach (float angle in new[] { 90f, 180f })
         {
             var test = MoveCase("advance-during-turn-" + angle, angle, "advance");
@@ -147,6 +194,7 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
     IEnumerator ResetCase(float angle, float radius)
     {
         caseId = "setup";
+        ReleaseD2Settings();
         Require(encounter.TryRestart(), "Actual restart failed: " + encounter.LastFailure);
         Brain.ReviewMode = true;
         Warp(Boss.transform.position + Boss.Movement.PhysicalRotation * Quaternion.Euler(0, angle, 0) * Vector3.forward * radius + Vector3.up * .1f);
@@ -402,10 +450,175 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
             (Quaternion)type.GetField("preparedFacing", Private).GetValue(Brain.Composite),
             (uint)type.GetField("preparedLease", Private).GetValue(Brain.Composite));
     }
+
+    int FarActions => Field("farActions") != null ? (int)Field("farActions").GetValue(Brain) : 0;
+    bool Pursuing => Field("pursuing") != null && (bool)Field("pursuing").GetValue(Brain);
+    int FarReleaseCount => Boss.GetComponent<EnemyBossMaterialExecutor>().LaunchCount + Brain.Composite.RockThrowCount
+        + Brain.Composite.EliteThrowCount + Brain.Composite.SummonedCount;
+    void ReleaseD2Settings()
+    {
+        if (testSettings == null) return;
+        if (encounter != null && encounter.Brain != null) Field("settings").SetValue(Brain, realSettings);
+        UnityEngine.Object.Destroy(testSettings); testSettings = realSettings = null;
+    }
+    IEnumerator SetupD2(float angle, float radius, params string[] ids)
+    {
+        var setup = ResetCase(angle, radius); while (setup.MoveNext()) yield return null;
+        realSettings = (CrustaspikanEncounterSettings)Field("settings").GetValue(Brain);
+        testSettings = UnityEngine.Object.Instantiate(realSettings);
+        testSettings.patterns = testSettings.patterns.Where(p => ids.Contains(p.id)).ToArray();
+        foreach (var pattern in testSettings.patterns) pattern.cooldown = 0f;
+        // Diagnostic subset/zero pattern cooldown lives only in this clone, never the asset.
+        Field("settings").SetValue(Brain, testSettings);
+        Field("readyAt").SetValue(Brain, 0f); Brain.ReviewMode = false;
+        RefreshContext(); sampledAt = Time.time; sampledPosition = Boss.transform.position;
+    }
+    void RefreshContext()
+        => typeof(CrustaspikanEncounterBrain).GetProperty("Context").GetSetMethod(true).Invoke(Brain, new[] { Call(Brain, "ReadContext") });
+    void ObservePursuit(Vector3 origin)
+    {
+        float speed = Time.time > sampledAt ? Distance(Boss.transform.position, sampledPosition) / (Time.time - sampledAt) : 0f;
+        samples.Add(new { caseId, game = Time.time, pattern = Brain.CurrentPatternId, Brain.State, distance = Brain.Context.Distance,
+            position = VectorData(Boss.transform.position), target = VectorData(player.transform.position), moved = Distance(origin, Boss.transform.position),
+            speed, requestedSpeed = Boss.Movement.ActiveMoveSpeed, turning = Boss.Movement.IsOwnedTurning, command = Boss.Movement.HasDestination,
+            pursuing = Pursuing, farActions = FarActions, releases = FarReleaseCount, count = Brain.PatternCount,
+            walkAt = Field("pursuitWalkAt") != null ? (float)Field("pursuitWalkAt").GetValue(Brain) : 0f,
+            lease = Boss.LeaseVersion, handle = Boss.AnimationBridge.CurrentMotionHandle, role = Boss.AnimationBridge.CurrentMotionRole.ToString(),
+            timeScale = Time.timeScale, diagnosticSettingsClone = true });
+        sampledPosition = Boss.transform.position; sampledAt = Time.time;
+    }
+    void PassD2(object row) { cases.Add(row); Write("RUNNING", null); }
+    IEnumerator RunD2()
+    {
+        var setup = SetupD2(0f, 17f, "weak_spit", "rock_throw"); while (setup.MoveNext()) yield return null;
+        caseId = "far-actions-insert-pursuit";
+        Vector3 origin = Boss.transform.position;
+        var releasedPatterns = new HashSet<string>();
+        int pattern = -1, releaseStart = 0;
+        bool sawPursuit = false, sawPreparationBeforeRelease = false;
+        float maxMove = 0f, deadline = Time.time + 75f;
+        while (true)
+        {
+            if (Brain.PatternCount != pattern) { pattern = Brain.PatternCount; releaseStart = FarReleaseCount; }
+            if (Brain.CurrentPatternId != "" && FarReleaseCount > releaseStart) releasedPatterns.Add(pattern + ":" + Brain.CurrentPatternId);
+            if (!baseline && Brain.PatternCount > 0 && releasedPatterns.Count == 0 && FarReleaseCount == 0)
+            { Require(FarActions == 0, "Preparation consumed far-action allowance."); sawPreparationBeforeRelease = true; }
+            sawPursuit |= Pursuing; maxMove = Mathf.Max(maxMove, Distance(origin, Boss.transform.position));
+            ObservePursuit(origin);
+            if (baseline && releasedPatterns.Count >= 2) break;
+            if (!baseline && sawPursuit && maxMove >= .25f) break;
+            Require(Time.time < deadline, "Far-action/pursuit sequence timeout."); yield return null;
+        }
+        if (baseline) Require(maxMove < .02f, "Original no-pursuit behavior not reproduced.");
+        else Require(releasedPatterns.Count == 1 && FarActions == 1 && sawPreparationBeforeRelease, "Second far action preceded actual pursuit or false commitment.");
+        PassD2(new { id = caseId, status = baseline ? "REPRODUCED" : "PASS", actualFarPatterns = releasedPatterns.Count, maxMove, sawPursuit, sawPreparationBeforeRelease });
+        if (baseline) yield break;
+
+        setup = SetupD2(90f, 17f); while (setup.MoveNext()) yield return null;
+        caseId = "pursuit-turn-and-walk-budget"; origin = Boss.transform.position;
+        Require((bool)Call(Brain, "BeginPursuit"), "Turn pursuit command rejected.");
+        bool sawTurn = false, sawWalk = false; float actualStart = 0f; deadline = Time.time + 9f;
+        while (Pursuing)
+        {
+            float walkAt = (float)Field("pursuitWalkAt").GetValue(Brain);
+            if (Boss.Movement.IsOwnedTurning && Distance(origin, Boss.transform.position) < .02f)
+            { sawTurn = true; Require(walkAt == 0f, "Turn consumed walking budget."); }
+            if (walkAt > 0f) { sawWalk = true; actualStart = walkAt; }
+            if (sawWalk) Warp(Boss.transform.position + Boss.Movement.PhysicalRotation * Vector3.forward * 17f + Vector3.up * .1f);
+            ObservePursuit(origin); Require(Time.time < deadline, "Pursuit total attempt unbounded."); yield return null;
+        }
+        Require(sawTurn && sawWalk && Time.time - actualStart <= 3.15f && Distance(origin, Boss.transform.position) >= .25f, "Pursuit did not use separate actual walking budget.");
+        PassD2(new { id = caseId, status = "PASS", sawTurn, sawWalk, secondsFromActualMove = Time.time - actualStart });
+
+        setup = SetupD2(0f, 9f); while (setup.MoveNext()) yield return null;
+        caseId = "pursuit-distance-hysteresis"; origin = Boss.transform.position;
+        Require((bool)Call(Brain, "BeginPursuit"), "Hysteresis pursuit rejected.");
+        for (int i = 0; i < 20; i++)
+        { Warp(Boss.transform.position + Boss.Movement.PhysicalRotation * Vector3.forward * (i % 2 == 0 ? 8.2f : 7.9f) + Vector3.up * .1f); ObservePursuit(origin); Require(Pursuing, "Pursuit oscillated near 8m."); yield return null; }
+        Warp(Boss.transform.position + Boss.Movement.PhysicalRotation * Vector3.forward * 7.4f + Vector3.up * .1f);
+        deadline = Time.time + .3f;
+        while (Pursuing) { ObservePursuit(origin); Require(Time.time < deadline, "Close pursuit failed to stop."); yield return null; }
+        Require(!Boss.Movement.HasDestination && FarActions == 0, "Close pursuit did not reset allowance/command.");
+        PassD2(new { id = caseId, status = "PASS", stableFrames = 20, stopDistance = Brain.Context.Distance });
+
+        setup = SetupD2(0f, 17f, "rock_throw", "weak_spit"); while (setup.MoveNext()) yield return null;
+        caseId = "blocked-pursuit-allows-ranged-retry"; origin = Boss.transform.position;
+        changedMovement = Boss.Movement; originalMovementEnabled = changedMovement.enabled; originalStatusMultiplier = changedMovement.StatusMoveSpeedMultiplier; changedLease = Boss.LeaseVersion;
+        Field("farActions").SetValue(Brain, 1);
+        Require((bool)Call(Brain, "BeginPursuit"), "Blocked pursuit preparation rejected.");
+        changedMovement.enabled = false; deadline = Time.time + 1.3f;
+        while (Pursuing) { ObservePursuit(origin); Require(Time.time < deadline, "Blocked pursuit hung."); yield return null; }
+        Require(Distance(origin, Boss.transform.position) < .02f && FarActions == 1, "Blocked pursuit falsely consumed/reset execution allowance.");
+        Call(Brain, "SelectPattern"); Require(Brain.CurrentPatternId != "", "Blocked pursuit starved valid ranged candidates.");
+        changedMovement.enabled = originalMovementEnabled; changedMovement = null;
+        PassD2(new { id = caseId, status = "PASS", fallback = Brain.CurrentPatternId, diagnosticDisabledMotor = true });
+
+        setup = SetupD2(0f, 17f); while (setup.MoveNext()) yield return null;
+        caseId = "pursuit-status-lock-and-release"; origin = Boss.transform.position;
+        changedMovement = Boss.Movement; originalMovementEnabled = changedMovement.enabled; originalStatusMultiplier = changedMovement.StatusMoveSpeedMultiplier; changedLease = Boss.LeaseVersion;
+        Require((bool)Call(Brain, "BeginPursuit"), "Status-lock pursuit setup rejected."); changedMovement.SetStatusMoveSpeedMultiplier(0f);
+        yield return null;
+        Require(!Pursuing && !Boss.Movement.HasDestination && Distance(origin, Boss.transform.position) < .02f, "Status lock retained pursuit movement.");
+        changedMovement.SetStatusMoveSpeedMultiplier(originalStatusMultiplier); changedMovement = null;
+        Field("readyAt").SetValue(Brain, 0f); RefreshContext(); Require((bool)Call(Brain, "BeginPursuit"), "Unlocked pursuit rejected."); deadline = Time.time + 2f;
+        while (Distance(origin, Boss.transform.position) < .25f) { ObservePursuit(origin); Require(Time.time < deadline, "Unlocked pursuit failed to move."); yield return null; }
+        PassD2(new { id = caseId, status = "PASS", movedAfterUnlock = Distance(origin, Boss.transform.position) });
+
+        setup = SetupD2(0f, 17f); while (setup.MoveNext()) yield return null;
+        caseId = "pursuit-groggy-cancel-and-recovery"; origin = Boss.transform.position;
+        Require((bool)Call(Brain, "BeginPursuit"), "Groggy pursuit setup rejected."); deadline = Time.time + 2f;
+        while (Distance(origin, Boss.transform.position) < .1f) { Require(Time.time < deadline, "Groggy move setup failed."); yield return null; }
+        Call(Brain, "AddPoise", realSettings.groggyMax);
+        Require(Brain.IsGroggy && !Pursuing && !Boss.Movement.HasDestination, "Groggy did not cancel neutral pursuit."); Brain.ReviewMode = true;
+        deadline = Time.time + 12f;
+        while (Brain.IsGroggy || Boss.GetComponent<EnemyMovementReaction>().BlocksAttack || Boss.GetComponent<CrustaspikanTemporaryReaction>().BlocksActions)
+        { ObservePursuit(origin); Require(Time.time < deadline, "Actual groggy reaction recovery timeout."); yield return null; }
+        Brain.ReviewMode = false; Field("readyAt").SetValue(Brain, 0f); RefreshContext(); origin = Boss.transform.position;
+        Require((bool)Call(Brain, "BeginPursuit"), "Recovered pursuit rejected."); deadline = Time.time + 2f;
+        while (Distance(origin, Boss.transform.position) < .25f) { ObservePursuit(origin); Require(Time.time < deadline, "Recovered pursuit failed to move."); yield return null; }
+        PassD2(new { id = caseId, status = "PASS", recoveredMove = Distance(origin, Boss.transform.position) });
+
+        setup = SetupD2(180f, 17f, "rock_throw"); while (setup.MoveNext()) yield return null;
+        caseId = "cancelled-preparation-keeps-far-allowance"; origin = Boss.transform.position;
+        Require(Brain.StartPatternForReview("rock_throw"), "Preparation pattern rejected."); Brain.ReviewMode = true; deadline = Time.time + 8f;
+        while (Brain.PatternCount == 0) { ObservePursuit(origin); Require(Time.time < deadline, "Actual preparation never committed."); yield return null; }
+        Call(Brain, "CancelPattern"); yield return null;
+        Require(FarActions == 0 && FarReleaseCount == 0, "Preparation cancellation was counted as actual far execution.");
+        PassD2(new { id = caseId, status = "PASS", prefixPatternCount = Brain.PatternCount, actualFarCount = FarActions });
+
+        setup = SetupD2(0f, 10f, "left_smash"); while (setup.MoveNext()) yield return null;
+        caseId = "far-melee-accepted-before-impact"; origin = Boss.transform.position;
+        Brain.ReviewMode = true;
+        Require(Brain.StartPatternForReview("left_smash"), "Far melee setup rejected."); deadline = Time.time + 8f;
+        while (FarActions == 0) { ObservePursuit(origin); Require(Time.time < deadline, "Far melee acceptance not observed."); yield return null; }
+        Require(FarActions == 1 && Brain.PatternCount == 1 && Boss.AbilityController.IsExecuting
+            && Boss.GetComponent<EnemyBossMaterialExecutor>().ImpactCount == 0, "Far melee allowance was not based on actual acceptance.");
+        PassD2(new { id = caseId, status = "PASS", farActions = FarActions, beforeImpact = true });
+
+        setup = SetupD2(0f, 17f, "weak_spit"); while (setup.MoveNext()) yield return null;
+        caseId = "multi-summon-counted-once"; origin = Boss.transform.position; deadline = Time.time + 20f;
+        while (Brain.Composite.SummonedCount < 2 || Brain.CurrentPatternId != "")
+        { ObservePursuit(origin); Require(Time.time < deadline, "Actual multi-summon completion not observed."); yield return null; }
+        Require(FarActions == 1 && Brain.PatternCount == 1, "Multi-summon was counted as multiple far actions.");
+        PassD2(new { id = caseId, status = "PASS", actualSummons = Brain.Composite.SummonedCount, farActions = FarActions });
+
+        setup = SetupD2(0f, 17f); while (setup.MoveNext()) yield return null;
+        caseId = "pursuit-phase-transition-cancels"; origin = Boss.transform.position;
+        Require((bool)Call(Brain, "BeginPursuit"), "Phase pursuit rejected.");
+        Boss.Health.TakeDamage(new DamageInfo(Boss.Health.MaxHp * .6f, Boss.transform.position, player.gameObject));
+        deadline = Time.time + 1f;
+        while (!Brain.IsTransitioning) { ObservePursuit(origin); Require(Time.time < deadline, "Actual health phase transition did not start."); yield return null; }
+        Require(Brain.Phase == 2 && !Pursuing && !Boss.Movement.HasDestination, "Phase transition retained pursuit command.");
+        PassD2(new { id = caseId, status = "PASS", phase = Brain.Phase });
+
+        var regression = MoveCase("D1-advance-regression", 90f, "advance"); while (regression.MoveNext()) yield return null;
+        Require(FarActions == 0, "Actual approach combo was counted as stationary far action.");
+    }
+
     void Write(string status, string error)
     {
         File.WriteAllText(Path.Combine(output, "Play01/result.json"), JsonConvert.SerializeObject(new {
-            status, error, baseline, utc = DateTime.UtcNow, cases, events, samples,
+            status, error, baseline, stage = pursuitAudit ? "D2" : "D1", utc = DateTime.UtcNow, cases, events, samples,
             scope = "Actual isolated portal/restarts, controlled target positions, owned motion and movement; diagnostic patterns labeled.",
             PlayerBuild = "FORBIDDEN", userManualFeel = "NOT_RUN", stoppedFromPlayerCallback = false, assetValuesModified = false
         }, Formatting.Indented));
@@ -419,6 +632,7 @@ public sealed class CrustaspikanD1Observer : MonoBehaviour
             if (changedMovement != null && changedMovement.GetComponent<EnemyActor>().LeaseVersion == changedLease)
             { changedMovement.enabled = originalMovementEnabled; changedMovement.SetStatusMoveSpeedMultiplier(originalStatusMultiplier); }
             changedMovement = null;
+            ReleaseD2Settings();
             if (encounter != null && encounter.Brain != null) encounter.Brain.ReviewMode = true;
         }
     }
