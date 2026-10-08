@@ -103,6 +103,9 @@ public sealed class CrustaspikanEncounterSettings : ScriptableObject
             foreach (var s in p.steps)
             {
                 if (s == null || !Finite(s.seconds) || s.seconds < 0) { reason = "잘못된 조립 단계입니다."; return false; }
+                if (s.kind == CrustaspikanStepKind.Move && (!Finite(s.localDisplacement.x) || !Finite(s.localDisplacement.y) || !Finite(s.localDisplacement.z)
+                    || s.localDisplacement.sqrMagnitude > .000001f && s.seconds <= 0f))
+                { reason = "이동량/실제 보행 제한 시간이 유효하지 않습니다: " + p.id; return false; }
                 if (s.kind == CrustaspikanStepKind.Attack && FindMaterial(s.materialOrMotion) == null)
                 { reason = "공격 재료가 없습니다: " + s.materialOrMotion; return false; }
                 if (s.kind == CrustaspikanStepKind.Motion && (materials.FindMotion(s.materialOrMotion)?.IsPlayable != true))

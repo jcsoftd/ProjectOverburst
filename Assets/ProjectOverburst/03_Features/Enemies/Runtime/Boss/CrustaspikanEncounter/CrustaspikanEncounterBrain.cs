@@ -241,9 +241,13 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private bool IntersectsTarget(EnemyBossAttackMaterial material, Quaternion facing, Vector3 prediction = default)
     {
+        return IntersectsTargetFrom(material, Actor.transform.position, facing, prediction);
+    }
+    private bool IntersectsTargetFrom(EnemyBossAttackMaterial material, Vector3 position, Quaternion facing, Vector3 prediction = default)
+    {
         foreach (var strike in material.strikes)
         {
-            Vector3 origin = Actor.transform.position + facing * Vector3.Scale(strike.localOrigin, Actor.transform.lossyScale) - prediction;
+            Vector3 origin = position + facing * Vector3.Scale(strike.localOrigin, Actor.transform.lossyScale) - prediction;
             if (strike.Intersects(player.CharacterController, Actor.transform, origin, facing * Quaternion.Euler(0, strike.yaw, 0))) return true;
         }
         return false;
@@ -329,12 +333,33 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         if (p.rearOnly && Context.ForwardDot > -.2f) return false;
         if (CrustaspikanCombatDecision.NeedsSummonSlot(p) && Context.AliveAdds >= settings.maximumAdds) return false;
         // 모션/이동으로 시작하는 조립도 뒤에 쓸 공격의 재사용을 먼저 확인한다.
+        Vector3 plannedPosition = Actor.transform.position;
+        Quaternion plannedFacing = Actor.Movement.PhysicalRotation;
+        bool moved = false, prepared = false;
         foreach (var step in p.steps)
         {
-            if (step.kind == CrustaspikanStepKind.Move && !TryMoveDestination(step.localDisplacement, out _)) return false;
+            if (step.kind == CrustaspikanStepKind.Move)
+            {
+                if (!prepared && step.localDisplacement.z > 0f) plannedFacing = FacingTowardTarget(plannedPosition);
+                if (!TryMoveDestinationFrom(plannedPosition, plannedFacing, step.localDisplacement, out plannedPosition)) return false;
+                moved |= step.localDisplacement.sqrMagnitude > .000001f;
+            }
+            else if (step.kind == CrustaspikanStepKind.LiftElite || step.kind == CrustaspikanStepKind.Motion && step.materialOrMotion == "UnearthRock")
+            { plannedFacing = FacingTowardTarget(plannedPosition); prepared = true; }
             string key = step.kind == CrustaspikanStepKind.ThrowElite ? "ThrowRock"
                 : step.kind == CrustaspikanStepKind.Attack ? step.materialOrMotion : null;
-            if (key != null && !Actor.AbilityController.IsCooldownReady(attacks[key].ability)) return false;
+            if (key != null)
+            {
+                var material = attacks[key];
+                if (!Actor.AbilityController.IsCooldownReady(material.ability)) return false;
+                if (moved && material.delivery == EnemyBossMaterialDelivery.Melee)
+                {
+                    Quaternion facing = p.rearOnly || prepared ? plannedFacing : FacingTowardTarget(plannedPosition);
+                    Vector3 aimDelta = Actor.AbilityController.ResolveAimPosition(player.transform) - plannedPosition; aimDelta.y = 0f;
+                    if (!EnemyAttackThreatGeometry.MatchesUseConditions(Actor, material.ability, aimDelta.magnitude, Actor.Health.NormalizedHp)
+                        || !IntersectsTargetFrom(material, plannedPosition, facing)) return false;
+                }
+            }
         }
         var first = p.steps[0];
         if (first.kind != CrustaspikanStepKind.Attack) return true;
@@ -344,11 +369,19 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private bool TryMoveDestination(Vector3 local, out Vector3 destination)
     {
-        Vector3 delta = player.transform.position - Actor.transform.position; delta.y = 0f;
-        Quaternion facing = UsesMotion ? Actor.Movement.PhysicalRotation : delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.transform.rotation;
-        Vector3 desired = Actor.transform.position + facing * local;
+        Quaternion facing = UsesMotion ? Actor.Movement.PhysicalRotation : FacingTowardTarget(Actor.transform.position);
+        return TryMoveDestinationFrom(Actor.transform.position, facing, local, out destination);
+    }
+    private Quaternion FacingTowardTarget(Vector3 position)
+    {
+        Vector3 delta = player.transform.position - position; delta.y = 0f;
+        return delta.sqrMagnitude > .001f ? Quaternion.LookRotation(delta) : Actor.Movement.PhysicalRotation;
+    }
+    private bool TryMoveDestinationFrom(Vector3 position, Quaternion facing, Vector3 local, out Vector3 destination)
+    {
+        Vector3 desired = position + facing * local;
         destination = encounter.ClampArena(desired, 5f);
-        Vector3 travel = destination - Actor.transform.position; travel.y = 0f;
+        Vector3 travel = destination - position; travel.y = 0f;
         Vector3 requested = facing * local; requested.y = 0f;
         return requested.sqrMagnitude < .001f || travel.magnitude >= Mathf.Min(.75f, requested.magnitude * .5f)
             && Vector3.Dot(travel.normalized, requested.normalized) > .5f && Actor.Movement.IsWalkablePosition(destination);
@@ -356,6 +389,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     private void BeginPattern()
     {
         stepIndex = 0; stepStarted = patternCommitted = false;
+        ResetMoveStep();
         stepAttemptAt = Time.time;
         Actor.Movement.StopMovement(); Actor.AbilityController.ClearPreparedAim();
         if (UsesMotion) BeginMotionPattern();
@@ -373,6 +407,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         State = current.label;
         if (stepIndex >= current.steps.Length) { FinishPattern(); return CrustaspikanNodeStatus.Success; }
         var s = current.steps[stepIndex];
+        if (s.kind == CrustaspikanStepKind.Move) return RunMoveStep(s);
         if (!stepStarted)
         {
             bool preparesAim = s.kind == CrustaspikanStepKind.Attack || s.kind == CrustaspikanStepKind.ThrowElite
@@ -396,9 +431,6 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                 case CrustaspikanStepKind.Motion:
                     if (s.materialOrMotion == "UnearthRock") composite.SetNextThrowPayload(EnemyBossThrowPayload.Rock);
                     if (!executor.TryPlayMotion(s.materialOrMotion, s.materialOrMotion == "UnearthRock")) { CancelPattern(); return CrustaspikanNodeStatus.Failure; } break;
-                case CrustaspikanStepKind.Move:
-                    if (!TryMoveDestination(s.localDisplacement, out moveDestination)) { CancelPattern(); readyAt = Time.time + .4f; return CrustaspikanNodeStatus.Failure; }
-                    break;
                 case CrustaspikanStepKind.LiftElite:
                     composite.SetNextThrowPayload(EnemyBossThrowPayload.Elite); executor.TryPlayMotion("UnearthRock", true); break;
             }
@@ -416,10 +448,6 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                 if (Time.time > stepStartedAt + 15f) { Actor.AbilityController.Cancel(); done = true; }
                 break;
             case CrustaspikanStepKind.Wait: done = Time.time >= stepUntil; break;
-            case CrustaspikanStepKind.Move:
-                Actor.Movement.SetFacingDestination(moveDestination, .3f, player.transform.position, EnemyLocomotionMode.Walk, 1.5f);
-                done = Time.time >= stepUntil || Vector3.Distance(Actor.transform.position, moveDestination) < .5f;
-                break;
         }
         if (done) { Actor.Movement.StopMovement(); stepIndex++; stepStarted = false; stepAttemptAt = Time.time; }
         return CrustaspikanNodeStatus.Running;
@@ -436,9 +464,10 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         return false;
     }
     private void FinishPattern()
-    { current = null; stepStarted = false; readyAt = Time.time + (Phase == 1 ? settings.betweenPatterns : settings.phaseTwoBetweenPatterns); }
+    { current = null; stepStarted = false; ResetMoveStep(); readyAt = Time.time + (Phase == 1 ? settings.betweenPatterns : settings.phaseTwoBetweenPatterns); }
     private void CancelPattern()
     {
+        ResetMoveStep();
         if (current == null) return;
         Actor.AbilityController.Cancel(); Actor.Movement.CancelActionLock(); Actor.Movement.StopMovement();
         current = null; stepStarted = false;
