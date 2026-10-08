@@ -52,6 +52,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     private Vector3 moveDestination;
     private string lastFamily = "";
     private int consecutiveFamily;
+    private bool circlingPressure;
+    private float circlingStableSeconds;
     private float transitionDeadline;
     private float stepAttemptAt;
     private MeleeRuntime melee;
@@ -170,10 +172,13 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         if (Actor.Health.IsDead) { tree.Tick(); return; }
         if (!HasLivingTarget)
         {
+            circlingPressure = false; circlingStableSeconds = 0f;
             CancelPattern(); Actor.Movement.StopMovement(); State = "유효한 대상 대기"; return;
         }
         if (Actor.AI.Target != player.transform) Actor.AI.SetTarget(player.transform);
         Context = ReadContext();
+        CrustaspikanCombatDecision.UpdateCirclingPressure(Context, encounter.MotionSampleValid, Time.deltaTime,
+            ref circlingPressure, ref circlingStableSeconds);
         if (Context.Distance <= settings.approachDistance - .5f) farActions = 0;
         ObserveFarExecution();
         while (lastParry < parryDirector.ParryCount)
@@ -273,12 +278,11 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private CrustaspikanCombatContext ReadContext() => new CrustaspikanCombatContext(
         Actor.transform.position, Actor.transform.forward, player.transform.position, encounter.PlayerVelocity,
-        energy != null ? energy.Normalized : 0f, settings.groggyMax > 0f ? Poise / settings.groggyMax : 0f, encounter.AliveAdds, Phase);
+        energy != null ? energy.Normalized : 0f, settings.groggyMax > 0f ? Poise / settings.groggyMax : 0f, encounter.AliveAdds, Phase, encounter.BossVelocity);
     private bool CanDodge()
     {
         if (!settings.enableBossEvasion || melee == null || !melee.IsHeavyMovementAfterimageWindow || Time.time < nextDodgeAt) return false;
-        var context = ReadContext();
-        return context.Distance < settings.evasionTriggerDistance && context.ForwardDot > .2f
+        return Context.Distance < settings.evasionTriggerDistance && Context.ForwardDot > .2f
             && TryMoveDestination(new Vector3(0, 0, -settings.evasionDistance), out _);
     }
     private CrustaspikanNodeStatus Dodge()
@@ -292,7 +296,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private CrustaspikanNodeStatus SelectPattern()
     {
-        Context = ReadContext(); candidates.Clear(); float total = 0f;
+        candidates.Clear(); float total = 0f;
         foreach (var p in settings.patterns)
         {
             if (!Eligible(p)) continue; candidates.Add(p); total += Weight(p);
@@ -320,7 +324,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
     }
     private float Weight(CrustaspikanEncounterSettings.Pattern p)
     {
-        float w = CrustaspikanCombatDecision.Weight(p, Context, LastPattern, lastFamily, consecutiveFamily);
+        float w = CrustaspikanCombatDecision.Weight(p, Context, LastPattern, lastFamily, consecutiveFamily, circlingPressure);
         if (p.steps[0].kind == CrustaspikanStepKind.Attack && Context.Velocity.sqrMagnitude > .25f)
         {
             var m = attacks[p.steps[0].materialOrMotion];

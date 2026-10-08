@@ -10,6 +10,11 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public CrustaspikanEncounterBrain Brain { get; private set; }
     public Vector3 ArenaCenter => transform.position;
     public Vector3 PlayerVelocity { get; private set; }
+    public Vector3 BossVelocity { get; private set; }
+    public bool MotionSampleValid { get; private set; }
+    private Vector3 previousBossPosition;
+    private EnemyMotor bossMotor;
+    private bool hasMotionSample;
     public int AliveAdds => Brain?.Composite != null ? Brain.Composite.LiveAddCount : 0;
     public int ReservedAdds => AliveAdds + (Brain?.Composite != null ? Brain.Composite.ActiveFlightCount : 0);
     public int TotalAddsSpawned => Brain?.Composite != null ? Brain.Composite.SummonedCount : 0;
@@ -78,6 +83,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
             { LastFailure = "보스를 대여하지 못했습니다."; return false; }
             // 전투 로직 생성이 실패하거나 드롭 컴포넌트가 없어도 대여 수명을 소유한다.
             leasedBoss = actor; leasedBossVersion = actor.LeaseVersion;
+            bossMotor = actor.GetComponent<EnemyMotor>(); ResetMotionSamples();
             DisableLoot(actor); Brain = new CrustaspikanEncounterBrain(this, actor, player);
             Brain.Composite.MonsterLanded += DisableLoot;
             bossHud.BindEncounter(Brain); return true;
@@ -155,16 +161,33 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         if (IsIntroducing)
         {
             if (Keyboard.current != null && Keyboard.current.f9Key.wasPressedThisFrame) Exit(true);
-            previousPlayerPosition = player.transform.position; PlayerVelocity = Vector3.zero;
+            ResetMotionSamples();
             return;
         }
-        if (Time.deltaTime > 0f) PlayerVelocity = Vector3.ClampMagnitude((player.transform.position - previousPlayerPosition) / Time.deltaTime, 12f);
-        previousPlayerPosition = player.transform.position;
+        ObserveMotion();
         if (Keyboard.current != null && !GameplayInputBlocker.IsGameplayInputBlocked)
         { if (Keyboard.current.f9Key.wasPressedThisFrame) { Exit(true); return; } if (Keyboard.current.f8Key.wasPressedThisFrame) { Restart(); return; } }
         Brain.Tick();
         if ((player.transform.position - ArenaCenter).sqrMagnitude > Mathf.Pow(Settings.arenaRadius + 8, 2) || player.transform.position.y < -3f)
             Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
+    }
+    private void ResetMotionSamples()
+    {
+        hasMotionSample = MotionSampleValid = false;
+        PlayerVelocity = BossVelocity = Vector3.zero;
+    }
+    private void ObserveMotion()
+    {
+        Vector3 playerPosition = player.transform.position;
+        Vector3 bossPosition = bossMotor != null ? bossMotor.Position : leasedBoss.transform.position;
+        float dt = Time.deltaTime, limit = Mathf.Max(1f, dt * 25f);
+        MotionSampleValid = hasMotionSample && dt > 0f && dt <= .25f && leasedBoss.IsLeased
+            && leasedBoss.LeaseVersion == leasedBossVersion
+            && Vector3.Distance(playerPosition, previousPlayerPosition) <= limit
+            && Vector3.Distance(bossPosition, previousBossPosition) <= limit;
+        PlayerVelocity = MotionSampleValid ? Vector3.ClampMagnitude((playerPosition - previousPlayerPosition) / dt, 12f) : Vector3.zero;
+        BossVelocity = MotionSampleValid ? Vector3.ClampMagnitude((bossPosition - previousBossPosition) / dt, 12f) : Vector3.zero;
+        previousPlayerPosition = playerPosition; previousBossPosition = bossPosition; hasMotionSample = true;
     }
     public Vector3 ClampArena(Vector3 position, float margin = 2f)
     { Vector3 delta = position - ArenaCenter; delta.y = 0; return ArenaCenter + Vector3.ClampMagnitude(delta, Settings.arenaRadius - margin) + Vector3.up * .08f; }
@@ -175,7 +198,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     {
         if (player == null) return; var cc = player.CharacterController; bool enabled = cc != null && cc.enabled;
         if (enabled) cc.enabled = false; player.transform.SetPositionAndRotation(position, rotation); if (enabled) cc.enabled = true;
-        previousPlayerPosition = position; PlayerVelocity = Vector3.zero; player.Movement?.ResetMotionAfterTeleport(); Physics.SyncTransforms();
+        ResetMotionSamples(); player.Movement?.ResetMotionAfterTeleport(); Physics.SyncTransforms();
         if (gameplayCamera != null && gameplayCamera.CurrentTarget != null) gameplayCamera.SetTarget(gameplayCamera.CurrentTarget);
     }
     public void ClearSummons()
@@ -216,7 +239,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
                         if (leasedBoss != null && leasedBoss.IsLeased && leasedBoss.LeaseVersion == leasedBossVersion)
                             spawns.Release(leasedBoss);
                     }
-                    finally { leasedBoss = null; oldLoot.Clear(); leases.Clear(); }
+                    finally { ResetMotionSamples(); bossMotor = null; leasedBoss = null; oldLoot.Clear(); leases.Clear(); }
                 }
             }
         }
