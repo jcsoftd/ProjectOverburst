@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 95d11c7ca628b054a94e568c12b28bb1, type: 3}
   optional:
   - {fileID: 7400000, guid: 8b4c90b4345102d49bfeb0f5c5097027, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: 8e6a3f697e9c5a1479e05a354fc9c408, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 1d2f3c72ba8829f4ea10c87ea18de490, type: 2}
+  stunRecover: {fileID: 7400000, guid: 55b37fe3844c4f942995806826153a76, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P04/c951fff5/Undead@WalkWeapon_RM.FBX"

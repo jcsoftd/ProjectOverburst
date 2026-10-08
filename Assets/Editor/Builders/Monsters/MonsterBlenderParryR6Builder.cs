@@ -51,7 +51,8 @@ public static class MonsterBlenderParryR6Builder
         if (!output.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Private monster output required.");
         if (File.Exists(Path.Combine(output,"data/apply-result.json"))) throw new InvalidOperationException("Application receipt exists; inspect it rather than repeat the batch.");
         var plan = JObject.Parse(File.ReadAllText(Path.Combine(output,"data/apply-input.json")));
-        if ((string)plan["revision"] != Revision || plan["records"].Count() != 35) throw new InvalidDataException("Reviewed r6/35 input required.");
+        int expectedActors = (int?)plan["expectedActors"] ?? 35;
+        if ((string)plan["revision"] != Revision || expectedActors <= 0 || plan["records"].Count() != expectedActors) throw new InvalidDataException("Reviewed r6 input and matching actor count required.");
         foreach (var p in (JObject)plan["preservedHashes"])
             if (Hash(Resolve(p.Key)) != (string)p.Value) throw new InvalidDataException("Input changed since preflight: " + p.Key);
         foreach (var record in plan["records"])
@@ -71,9 +72,11 @@ public static class MonsterBlenderParryR6Builder
         string allowed = Path.GetFullPath(Path.Combine(Workspace, "개인파일/코덱스산출/Monsters")) + Path.DirectorySeparatorChar;
         if (!output.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Private monster output required.");
         if (File.Exists(Path.Combine(output,"data/apply-result.json"))) throw new InvalidOperationException("Inspect existing application receipt before repeating bindings.");
-        var receipt=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/stage-result.json")));
-        if((string)receipt["status"]!="READY_NATIVE_STAGED" || (int)receipt["stagedActors"]!=35) throw new InvalidDataException("All 105 clips must be staged and inspected first.");
         var plan=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/apply-input.json")));
+        int expectedActors = (int?)plan["expectedActors"] ?? 35;
+        if ((string)plan["revision"] != Revision || expectedActors <= 0 || plan["records"].Count() != expectedActors) throw new InvalidDataException("Reviewed r6 input and matching actor count required.");
+        var receipt=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/stage-result.json")));
+        if((string)receipt["status"]!="READY_NATIVE_STAGED" || (int)receipt["stagedActors"]!=expectedActors) throw new InvalidDataException("All reviewed clips must be staged and inspected first.");
         foreach(var p in (JObject)plan["preservedHashes"])
             if(Hash(Resolve(p.Key))!=(string)p.Value) throw new InvalidDataException("Preserved input changed: "+p.Key);
         foreach(var row in receipt["staged"].SelectMany(x=>x["clips"]))

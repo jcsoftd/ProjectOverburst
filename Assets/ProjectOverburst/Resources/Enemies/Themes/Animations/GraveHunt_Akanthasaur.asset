@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 1827226128182048838, guid: 4c79aaf2e5f73a14fb56987baabd88a4, type: 3}
   optional:
   - {fileID: 7400000, guid: ea18281bdea05f54b9d0a9e7e96f3d0d, type: 2}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: 69312d19d0d06bd45ab0d2bcf2205a8c, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: 0229c5ea66130184ca7dd0aeff016214, type: 2}
+  stunRecover: {fileID: 7400000, guid: a03a40e4b3a17484fae8cf1e1a376dde, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P11/659c634f/Akanthasaur@WalkForward_RM.fbx"

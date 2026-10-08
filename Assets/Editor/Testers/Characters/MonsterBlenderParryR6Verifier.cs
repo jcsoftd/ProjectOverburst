@@ -27,7 +27,7 @@ public static class MonsterBlenderParryR6Verifier
         MonsterBlenderParryR6Builder.RequireIdle();string output=Output(privateOutputRelative);
         var plan=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/apply-input.json")));
         var receipt=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/apply-result.json")));
-        if((string)receipt["status"]!="PASS_NATIVE_APPLIED"||(int)receipt["boundActors"]!=35)throw new InvalidDataException("Complete application receipt required.");
+        if((string)receipt["status"]!="PASS_NATIVE_APPLIED"||(int)receipt["boundActors"]!=plan["records"].Count())throw new InvalidDataException("Complete application receipt required.");
         var before=JObject.Parse(File.ReadAllText(Path.Combine(output,"data/native-before.json")));
         var rows=new JArray();var failures=new JArray();int preserved=0;
         foreach(var p in (JObject)plan["preservedHashes"])

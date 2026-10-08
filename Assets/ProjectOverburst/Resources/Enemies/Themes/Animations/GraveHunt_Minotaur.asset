@@ -25,8 +25,8 @@ MonoBehaviour:
   death: {fileID: 7400000, guid: 571db2bb07f530143b00ff9a9a2fbbb7, type: 3}
   optional:
   - {fileID: 7400000, guid: 9b1a870560be1754bb25eabffd5a4434, type: 3}
-  parryCollapse: {fileID: 0}
-  stunnedLoop: {fileID: 0}
-  stunRecover: {fileID: 0}
+  parryCollapse: {fileID: 7400000, guid: fc671bd8d0cfe2d498f9de99b01f147c, type: 2}
+  stunnedLoop: {fileID: 7400000, guid: ef79ae875915eac43b356550ebbe5d7d, type: 2}
+  stunRecover: {fileID: 7400000, guid: ecc27895b66062e40bfef067388bb3d8, type: 2}
   excludedRootMotionClipPaths:
   - "Assets/ThirdParty/01_\uBE44\uC778\uAC04\uCE90\uB9AD\uD130/UpcomingThemes/P05/d43ac10a/Minotaur@Walk_RM.FBX"
