@@ -15,4 +15,3 @@ MonoBehaviour:
   abilitySetId: V3_Tetruncivermis
   abilities:
   - {fileID: 11400000, guid: 16229f723f953c245b88a15ac3fb8472, type: 2}
-  - {fileID: 11400000, guid: 530f2ecbc37c30145b8f4e6c03a5ee24, type: 2}

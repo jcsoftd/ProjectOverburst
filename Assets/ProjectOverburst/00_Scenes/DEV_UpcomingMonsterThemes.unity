@@ -91766,7 +91766,6 @@ GameObject:
   - component: {fileID: 547183704}
   - component: {fileID: 547183703}
   - component: {fileID: 547183702}
-  - component: {fileID: 547183701}
   m_Layer: 30
   m_Name: Saved game visual
   m_TagString: Untagged
@@ -91793,21 +91792,6 @@ Transform:
   - {fileID: 1383631844}
   m_Father: {fileID: 1545556837}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &547183701
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 547183699}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a22cf508c262164d8b33bc98e98bc38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyChannelAbilityExecutor
-  channelAbility: {fileID: 11400000, guid: 530f2ecbc37c30145b8f4e6c03a5ee24, type: 2}
-  muzzle: {fileID: 788591378}
-  castRadius: 0.07
 --- !u!114 &547183702
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92439,7 +92423,6 @@ MonoBehaviour:
   - {fileID: 547183715}
   - {fileID: 547183711}
   - {fileID: 547183710}
-  - {fileID: 547183701}
   avoidSameAbilityTwice: 1
 --- !u!114 &547183715
 MonoBehaviour:
@@ -92567,7 +92550,6 @@ MonoBehaviour:
   abilitySet: {fileID: 11400000, guid: 7dfa620fc08289b428bbeb4a026da1dd, type: 2}
   attackTriggers:
   - Attack1
-  - Attack2
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -236650,7 +236632,7 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1242382208}
-  m_Text: "\uC57D\uACF5 2 / \uAC15\uACF5 0"
+  m_Text: "\uC57D\uACF5 1 / \uAC15\uACF5 0"
   m_OffsetZ: 0
   m_CharacterSize: 1
   m_LineSpacing: 1
@@ -298598,14 +298580,6 @@ MonoBehaviour:
     connection: Attack1
     selectionState: 
     clip: {fileID: 1827226128182048838, guid: 961ec3db2ad106c4084fca0c7801d988, type: 3}
-    parryable: 0
-    needsTrim: 0
-  - role: weak
-    concept: Stationary
-    count: "3\uD0C0"
-    connection: Attack2
-    selectionState: 
-    clip: {fileID: 1827226128182048838, guid: 09979ad91b4156343a2eeacb09be7db5, type: 3}
     parryable: 0
     needsTrim: 0
 --- !u!1 &1546611320

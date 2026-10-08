@@ -17,9 +17,9 @@ MonoBehaviour:
   runtimeClip: {fileID: 1827226128182048838, guid: 113114a479b5a564fabeaf0cc75b863e, type: 3}
   sourceTrimSeconds: {x: 0, y: 2}
   motionPolicy: 1
-  stationaryStartRange: 0.71905065
+  stationaryStartRange: 0.6649578
   maxAdvanceDistance: 0.15
-  advanceWindow: {x: 0.2, y: 0.4}
+  advanceWindow: {x: 0.2, y: 0.28333333}
   advanceProgress:
     serializedVersion: 2
     m_Curve:
@@ -46,22 +46,34 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.4, y: 0.53333336}
+  - {x: 0.26666668, y: 0.33333334}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.4
+    - normalizedTime: 0.26666668
       capsules:
-      - a: {x: 0.044161893, y: 0.7859917, z: 0.37644377}
-        b: {x: 0.046007276, y: 0.7808369, z: 0.41480982}
+      - a: {x: 0.06204192, y: 0.77197355, z: 0.3521137}
+        b: {x: 0.063093536, y: 0.76389384, z: 0.39000252}
         radius: 0.12
-    - normalizedTime: 0.46666667
+    - normalizedTime: 0.28333336
       capsules:
-      - a: {x: 0.0229315, y: 0.64662147, z: 0.4099749}
-        b: {x: 0.025406085, y: 0.63652825, z: 0.44731048}
+      - a: {x: 0.068763696, y: 0.7999301, z: 0.34888148}
+        b: {x: 0.069800325, y: 0.7942824, z: 0.38720864}
         radius: 0.12
-    - normalizedTime: 0.53333336
+    - normalizedTime: 0.3
       capsules:
-      - a: {x: 0.016210439, y: 0.62065995, z: 0.4127287}
-        b: {x: 0.018873122, y: 0.60740983, z: 0.44905066}
+      - a: {x: 0.06984361, y: 0.8144462, z: 0.3494516}
+        b: {x: 0.07096644, y: 0.80993, z: 0.3879262}
         radius: 0.12
-    maximumPlanarReach: 0.5694471
+    - normalizedTime: 0.31666666
+      capsules:
+      - a: {x: 0.06876815, y: 0.82502824, z: 0.35037604}
+        b: {x: 0.0699936, y: 0.8212916, z: 0.38893095}
+        radius: 0.12
+    - normalizedTime: 0.33333334
+      capsules:
+      - a: {x: 0.065876566, y: 0.83081126, z: 0.35219207}
+        b: {x: 0.06720969, y: 0.82749957, z: 0.39078212}
+        radius: 0.12
+    maximumPlanarReach: 0.5165196
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

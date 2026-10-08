@@ -552,7 +552,6 @@ GameObject:
   - component: {fileID: 4315805683930681643}
   - component: {fileID: 6888136974004181666}
   - component: {fileID: 2750081267131160624}
-  - component: {fileID: 7321449746025136155}
   m_Layer: 7
   m_Name: PF_V3_Tetruncivermis
   m_TagString: Untagged
@@ -884,7 +883,6 @@ MonoBehaviour:
   abilitySet: {fileID: 11400000, guid: 7dfa620fc08289b428bbeb4a026da1dd, type: 2}
   attackTriggers:
   - Attack1
-  - Attack2
   targetLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1024,7 +1022,6 @@ MonoBehaviour:
   - {fileID: 9191980391905198664}
   - {fileID: 7109731438109399106}
   - {fileID: 6323273118691823066}
-  - {fileID: 7321449746025136155}
   avoidSameAbilityTwice: 1
 --- !u!114 &4912985815528008606
 MonoBehaviour:
@@ -1639,21 +1636,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyWeakAttackMotionDriver
   owner: {fileID: 6648431921854370771}
   movement: {fileID: 7325689750132932854}
---- !u!114 &7321449746025136155
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5076789848971599069}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a22cf508c262164d8b33bc98e98bc38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyChannelAbilityExecutor
-  channelAbility: {fileID: 11400000, guid: 530f2ecbc37c30145b8f4e6c03a5ee24, type: 2}
-  muzzle: {fileID: 8697465359275429403}
-  castRadius: 0.07
 --- !u!1 &5288662111147514018
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: VenomBrood_Venodonte_Tint1_3AcidShotCombo
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: VenomBrood_Venodonte_Tint1_3AcidShotCombo
   weakAttackExecution: {fileID: 11400000, guid: 65706d88de8598849aa519a4ec3780fc, type: 2}
   animatorTrigger: Attack4
@@ -23,6 +28,9 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
@@ -43,6 +51,6 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
-  - 0.5
-  - 0.79999995
+  - 0.42499998
+  - 0.62499994
   projectilesPerRelease: 1

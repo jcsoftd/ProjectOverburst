@@ -28,34 +28,34 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: helmet_neck_protection
   contactWindows:
-  - {x: 0.2, y: 0.33333334}
+  - {x: 0.23333335, y: 0.36666667}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.2
+    - normalizedTime: 0.23333335
       capsules:
-      - a: {x: -0.40194947, y: 0.8410102, z: 0.42670715}
-        b: {x: -0.4862465, y: 1.1581007, z: -0.059518974}
-        radius: 0.040594023
-    - normalizedTime: 0.23333333
-      capsules:
-      - a: {x: -0.10998388, y: 0.8467196, z: 0.58953756}
-        b: {x: -0.58585113, y: 1.0883671, z: 0.34617615}
+      - a: {x: -0.10998374, y: 0.84671956, z: 0.58953756}
+        b: {x: -0.58585113, y: 1.088367, z: 0.34617636}
         radius: 0.040594026
     - normalizedTime: 0.26666668
       capsules:
-      - a: {x: 0.27773508, y: 0.95891196, z: 0.5333289}
-        b: {x: -0.24872877, y: 1.0896333, z: 0.7565234}
+      - a: {x: 0.27773514, y: 0.9589119, z: 0.5333288}
+        b: {x: -0.24872878, y: 1.0896332, z: 0.75652325}
         radius: 0.040594026
     - normalizedTime: 0.3
       capsules:
-      - a: {x: 0.5311927, y: 1.1672091, z: 0.22443733}
-        b: {x: 0.3236218, y: 1.2734938, z: 0.7626627}
-        radius: 0.040594053
+      - a: {x: 0.53119284, y: 1.1672091, z: 0.22443733}
+        b: {x: 0.3236219, y: 1.2734936, z: 0.76266265}
+        radius: 0.040594026
     - normalizedTime: 0.33333334
       capsules:
-      - a: {x: 0.50766, y: 1.3199208, z: -0.18049352}
-        b: {x: 0.7313044, y: 1.53256, z: 0.31834093}
-        radius: 0.040594034
+      - a: {x: 0.50766003, y: 1.3199208, z: -0.18049352}
+        b: {x: 0.73130447, y: 1.5325599, z: 0.31834093}
+        radius: 0.040594026
+    - normalizedTime: 0.36666667
+      capsules:
+      - a: {x: 0.3360424, y: 1.3323978, z: -0.43461424}
+        b: {x: 0.7813037, y: 1.632864, z: -0.19896515}
+        radius: 0.040594026
     maximumPlanarReach: 0.86907786
   blockedApproachProjectileFallback: 0
   projectileMuzzleBonePaths: []

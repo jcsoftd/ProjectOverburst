@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 7400000, guid: 2d62991b8f2787a41b761f90269045c7, type: 3}
   sourceTrimSeconds: {x: 0, y: 1}
   motionPolicy: 0
-  stationaryStartRange: 1.1678542
+  stationaryStartRange: 0.97043055
   maxAdvanceDistance: 0
   advanceWindow: {x: 0.08, y: 0.4}
   advanceProgress:
@@ -28,33 +28,33 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: helmet_neck_protection
   contactWindows:
-  - {x: 0.3, y: 0.43333334}
+  - {x: 0.33333334, y: 0.46666667}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.3
-      capsules:
-      - a: {x: 0.052352328, y: 0.93094856, z: 0.75288284}
-        b: {x: 0.11841995, y: 1.5129502, z: 0.7841385}
-        radius: 0.04059403
     - normalizedTime: 0.33333334
       capsules:
-      - a: {x: -0.07831947, y: 0.75369287, z: 0.7141351}
+      - a: {x: -0.078319445, y: 0.7536929, z: 0.7141351}
         b: {x: -0.109925225, y: 1.2645031, z: 1.0007395}
-        radius: 0.04059402
+        radius: 0.040594023
     - normalizedTime: 0.36666667
       capsules:
-      - a: {x: -0.09671588, y: 0.6372469, z: 0.6207531}
+      - a: {x: -0.09671588, y: 0.6372469, z: 0.62075317}
         b: {x: -0.22365351, y: 0.9279237, z: 1.1141716}
         radius: 0.040594023
     - normalizedTime: 0.4
       capsules:
-      - a: {x: -0.09104737, y: 0.5850934, z: 0.5354891}
-        b: {x: -0.2818519, y: 0.6611121, z: 1.0849277}
-        radius: 0.040594034
+      - a: {x: -0.09104739, y: 0.58509344, z: 0.5354891}
+        b: {x: -0.28185204, y: 0.66111207, z: 1.0849279}
+        radius: 0.040594023
     - normalizedTime: 0.43333334
       capsules:
-      - a: {x: -0.08021978, y: 0.5638097, z: 0.47198364}
-        b: {x: -0.33243152, y: 0.523949, z: 1.0000635}
+      - a: {x: -0.080219805, y: 0.5638097, z: 0.4719837}
+        b: {x: -0.33243152, y: 0.52394915, z: 1.0000635}
+        radius: 0.040594023
+    - normalizedTime: 0.46666667
+      capsules:
+      - a: {x: -0.06878601, y: 0.54973096, z: 0.4088195}
+        b: {x: -0.38088313, y: 0.4278565, z: 0.89028627}
         radius: 0.040594023
     maximumPlanarReach: 1.1769915
   blockedApproachProjectileFallback: 0

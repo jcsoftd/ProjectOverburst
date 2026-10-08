@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_GigabdomocaudaLarva_Bite
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_GigabdomocaudaLarva_Bite
   weakAttackExecution: {fileID: 11400000, guid: b2716e0b0bf9ba1419a4b8b285f65b55, type: 2}
   animatorTrigger: Attack1
@@ -23,18 +28,21 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 0.8582307
+  range: 0.87335414
   hitRadius: 1.3022202
   hitAngle: 125
   verticalTolerance: 2.3249998
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.39999998
-  hitNormalizedTime: 0.47999996
+  hitDelay: 0.26666668
+  hitNormalizedTime: 0.32
   attackAnimationDuration: 0.8333334
   attackLockDuration: 0.8333334
   weight: 1

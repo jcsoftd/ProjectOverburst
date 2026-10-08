@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_Gobbler_RamAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_Gobbler_RamAttack
   weakAttackExecution: {fileID: 11400000, guid: a915c435668fb7d449e2f568e96b0a6f, type: 2}
   animatorTrigger: Attack2
@@ -23,18 +28,21 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.050142
+  range: 0.6649578
   hitRadius: 0.84014213
   hitAngle: 125
   verticalTolerance: 1.5
   requireLineOfSight: 1
   cooldown: 1.15
-  hitDelay: 0.93333334
-  hitNormalizedTime: 0.46666667
+  hitDelay: 0.6
+  hitNormalizedTime: 0.3
   attackAnimationDuration: 2
   attackLockDuration: 2
   weight: 1
@@ -43,3 +51,4 @@ MonoBehaviour:
   maximumSelfHealthNormalized: 1
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes: []
+  projectilesPerRelease: 1
