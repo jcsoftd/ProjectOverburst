@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class PlayerContext : MonoBehaviour
 {
     private static PlayerContext instance;
+    private static bool quitting;
     [SerializeField] private PlayerActorRuntime actor;
 
     public static PlayerContext Instance => instance;
@@ -23,7 +24,7 @@ public sealed class PlayerContext : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
     {
-        instance = null;
+        instance = null; quitting = false;
     }
 
     private void Awake()
@@ -36,6 +37,8 @@ public sealed class PlayerContext : MonoBehaviour
         instance = this;
         ResolveActor();
     }
+
+    private void OnApplicationQuit() => quitting = true;
 
     private void OnDestroy()
     {
@@ -53,7 +56,7 @@ public sealed class PlayerContext : MonoBehaviour
             instance = existing;
             return existing;
         }
-        if (!Application.isPlaying)
+        if (!Application.isPlaying || quitting)
             return null;
         GameObject owner = new GameObject("PlayerContext");
         DontDestroyOnLoad(owner);

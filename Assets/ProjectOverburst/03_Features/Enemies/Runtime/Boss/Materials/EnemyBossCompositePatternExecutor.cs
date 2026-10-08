@@ -108,7 +108,7 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     }
     void Awake()=>Resolve();
     void OnEnable(){Resolve();if(actor?.Health!=null)actor.Health.OnDead+=Died;if(reaction!=null)reaction.ReactionStarted+=Reacted;}
-    void OnDisable(){if(actor?.Health!=null)actor.Health.OnDead-=Died;if(reaction!=null)reaction.ReactionStarted-=Reacted;Cancel();ReleaseSummons();}
+    void OnDisable(){if(actor?.Health!=null)actor.Health.OnDead-=Died;if(reaction!=null)reaction.ReactionStarted-=Reacted;Cancel();ReleaseSummons(true);}
     void Died(CombatHealth health,DamageInfo info){Cancel();ReleaseSummons();}
     void Reacted(){if(reaction==null || reaction.BlocksAttack)Cancel();}
     public override bool Supports(EnemyAbilityDefinition ability)=>patterns!=null && patterns.IsValid
@@ -383,7 +383,17 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     void HideWarnings(){foreach(var warning in warnings)warning?.Hide();}
     void RestoreAnimator(){if(samplingAnimator!=null)samplingAnimator.updateMode=previousUpdate;samplingAnimator=null;}
     void ClearFlights(){foreach(var flight in flights)Free(flight.visual);flights.Clear();}
-    public void ReleaseSummons(){var service=EnemySpawnService.Current;foreach(var add in adds)if(service!=null && add.actor!=null && add.actor.IsLeased && add.actor.LeaseVersion==add.lease)service.Release(add.actor);adds.Clear();}
+    public void ReleaseSummons(bool deferred = false)
+    {
+        var service = EnemySpawnService.Current;
+        foreach (var add in adds)
+            if (service != null && add.actor != null && add.actor.IsLeased && add.actor.LeaseVersion == add.lease)
+            {
+                if (deferred) service.ReleaseDeferred(add.actor, add.lease);
+                else service.Release(add.actor);
+            }
+        adds.Clear();
+    }
     public override void Cancel()
     {
         if (UsesMotion) { CancelOwnedExecution(); return; }
@@ -392,5 +402,5 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
         actor?.Movement?.CancelActionLock();
     }
     public override void ResetForReuse(){Resolve();Cancel();ReleaseSummons();overridePayload=null;preparationSeen=false;throwCount=0;DamageCount=ReleaseCount=EmissionCount=SummonedCount=RockThrowCount=EliteThrowCount=CompletedCount=0;LastFailure=null;}
-    void OnDestroy(){Cancel();ReleaseSummons();foreach(var visual in visuals)if(visual.root!=null)Destroy(visual.root);foreach(var spray in sprays.Values)if(spray!=null)Destroy(spray.gameObject);}
+    void OnDestroy(){Cancel();ReleaseSummons(true);foreach(var visual in visuals)if(visual.root!=null)Destroy(visual.root);foreach(var spray in sprays.Values)if(spray!=null)Destroy(spray.gameObject);}
 }

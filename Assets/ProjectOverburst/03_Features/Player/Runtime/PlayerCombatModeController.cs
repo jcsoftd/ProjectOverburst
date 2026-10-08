@@ -172,7 +172,7 @@ public sealed class PlayerCombatModeController : MonoBehaviour
         }
 
         if (reason == PlayerCombatModeReason.System)
-            PlayerContext.GetOrCreate()?.CurrentActorKit?.CancelCurrentActions(WeaponActionCancelReason.RuntimeDisabled);
+            PlayerContext.Instance?.CurrentActorKit?.CancelCurrentActions(WeaponActionCancelReason.RuntimeDisabled);
 
         if (currentState == PlayerCombatModeState.Exploration)
         {

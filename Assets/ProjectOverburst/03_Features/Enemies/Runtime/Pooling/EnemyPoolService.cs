@@ -13,10 +13,17 @@ public sealed class EnemyPoolService : MonoBehaviour
         = new Dictionary<EnemyActor, EnemyActor>();
     private readonly HashSet<EnemyActor> availableActors = new HashSet<EnemyActor>();
     private readonly HashSet<EnemyActor> returningActors = new HashSet<EnemyActor>();
-    private readonly HashSet<EnemyActor> explicitReturnActors = new HashSet<EnemyActor>();
 
-    private readonly Dictionary<EnemyActor, EnemyActor> pendingPrefabByActor
-        = new Dictionary<EnemyActor, EnemyActor>();
+    private readonly struct PendingReturn
+    {
+        public readonly EnemyActor prefab;
+        public readonly uint lease;
+        public readonly bool explicitReturn;
+        public PendingReturn(EnemyActor prefab, uint lease, bool explicitReturn)
+        { this.prefab = prefab; this.lease = lease; this.explicitReturn = explicitReturn; }
+    }
+    private readonly Dictionary<EnemyActor, PendingReturn> pendingPrefabByActor = new Dictionary<EnemyActor, PendingReturn>();
+    public string LastReturnFailure { get; private set; }
 
     public Transform InactivePoolRoot => inactivePoolRoot;
     public int DefaultPrewarmCount => Mathf.Max(0, defaultPrewarmCount);
@@ -103,97 +110,80 @@ public sealed class EnemyPoolService : MonoBehaviour
 
     public void Release(EnemyActor actor)
     {
-        if (actor == null)
-            return;
-
-        if (!leasedPrefabByActor.TryGetValue(actor, out EnemyActor prefab)
-            && !pendingPrefabByActor.TryGetValue(actor, out prefab))
+        if (actor == null || returningActors.Contains(actor)) return;
+        if (!TryGetOwnedPrefab(actor, out EnemyActor prefab))
         {
-            if (availableActors.Contains(actor))
-                return; // 사망 비활성으로 이미 반환된 경우
-
-            Debug.LogWarning("[EnemyPoolService] 이 풀에서 대여하지 않은 Actor 반환 요청입니다.", actor);
+            if (!availableActors.Contains(actor)) Debug.LogWarning("[EnemyPoolService] 이 풀에서 대여하지 않은 Actor 반환 요청입니다.", actor);
             return;
         }
-
-        // Reparenting from an ancestor's OnDisable is forbidden by Unity. Finish that return in LateUpdate.
-        if (!actor.gameObject.activeInHierarchy)
-        {
-            leasedPrefabByActor.Remove(actor);
-            pendingPrefabByActor[actor] = prefab;
-            explicitReturnActors.Add(actor);
-            return;
-        }
-        leasedPrefabByActor.Remove(actor);
-        pendingPrefabByActor.Remove(actor);
-        explicitReturnActors.Remove(actor);
-        if (!returningActors.Add(actor))
-            return;
-
+        if (inactivePoolRoot == null || !actor.gameObject.activeInHierarchy) { ReleaseDeferred(actor, actor.LeaseVersion); return; }
+        leasedPrefabByActor.Remove(actor); pendingPrefabByActor.Remove(actor);
+        if (!returningActors.Add(actor)) return;
         try
         {
-            if (actor.gameObject.activeSelf)
-                actor.gameObject.SetActive(false);
+            if (actor.gameObject.activeSelf) actor.gameObject.SetActive(false);
             ReturnToInactiveRoot(prefab, actor);
         }
-        finally
-        {
-            returningActors.Remove(actor);
-        }
+        finally { returningActors.Remove(actor); }
     }
 
+    // Disable/destroy callers request ownership only. Hierarchy changes wait for a safe update.
+    public bool ReleaseDeferred(EnemyActor actor, uint expectedLeaseVersion)
+    {
+        if (actor == null || actor.LeaseVersion != expectedLeaseVersion || returningActors.Contains(actor)) return false;
+        if (!TryGetOwnedPrefab(actor, out EnemyActor prefab)) return false;
+        leasedPrefabByActor.Remove(actor);
+        pendingPrefabByActor[actor] = new PendingReturn(prefab, expectedLeaseVersion, true);
+        return true;
+    }
+    private bool TryGetOwnedPrefab(EnemyActor actor, out EnemyActor prefab)
+    {
+        if (leasedPrefabByActor.TryGetValue(actor, out prefab)) return true;
+        if (pendingPrefabByActor.TryGetValue(actor, out PendingReturn pending) && actor.LeaseVersion == pending.lease)
+        { prefab = pending.prefab; return prefab != null; }
+        prefab = null; return false;
+    }
     internal void NotifyActorDisabled(EnemyActor actor)
     {
-        if (actor == null || returningActors.Contains(actor))
-            return;
-        if (!leasedPrefabByActor.TryGetValue(actor, out EnemyActor prefab))
-            return;
-
+        if (actor == null || returningActors.Contains(actor)) return;
+        if (pendingPrefabByActor.TryGetValue(actor, out PendingReturn pending) && pending.lease == actor.LeaseVersion) return;
+        if (!leasedPrefabByActor.TryGetValue(actor, out EnemyActor prefab)) return;
         leasedPrefabByActor.Remove(actor);
-        pendingPrefabByActor[actor] = prefab;
+        pendingPrefabByActor[actor] = new PendingReturn(prefab, actor.LeaseVersion, false);
     }
-
     private void ReturnToInactiveRoot(EnemyActor prefab, EnemyActor actor)
     {
-        actor.ResetForPool();
-        actor.transform.SetParent(inactivePoolRoot, false);
-        actor.transform.localPosition = Vector3.zero;
-        actor.transform.localRotation = Quaternion.identity;
-        actor.transform.localScale = Vector3.one;
+        actor.ResetForPool(); actor.transform.SetParent(inactivePoolRoot, false);
+        actor.transform.localPosition = Vector3.zero; actor.transform.localRotation = Quaternion.identity; actor.transform.localScale = Vector3.one;
         EnqueueAvailable(prefab, actor);
     }
-
     private void LateUpdate()
     {
-        if (pendingPrefabByActor.Count == 0)
-            return;
-
-        List<KeyValuePair<EnemyActor, EnemyActor>> snapshot
-            = new List<KeyValuePair<EnemyActor, EnemyActor>>(pendingPrefabByActor);
-        pendingPrefabByActor.Clear();
-        for (int i = 0; i < snapshot.Count; i++)
+        if (pendingPrefabByActor.Count == 0) return;
+        var snapshot = new List<KeyValuePair<EnemyActor, PendingReturn>>(pendingPrefabByActor);
+        foreach (var entry in snapshot)
         {
-            EnemyActor actor = snapshot[i].Key;
-            EnemyActor prefab = snapshot[i].Value;
-            bool explicitReturn = explicitReturnActors.Remove(actor);
-            if (actor == null || prefab == null || !returningActors.Add(actor))
-                continue;
-
+            EnemyActor actor = entry.Key; PendingReturn pending = entry.Value;
+            if (actor == null || pending.prefab == null || actor.LeaseVersion != pending.lease)
+            { pendingPrefabByActor.Remove(actor); continue; }
+            if (actor.gameObject.activeSelf && !pending.explicitReturn)
+            { pendingPrefabByActor.Remove(actor); leasedPrefabByActor[actor] = pending.prefab; continue; }
+            if (inactivePoolRoot == null)
+            { LastReturnFailure = "살아 있는 Actor의 비활성 PoolRoot가 없어 반환을 보류했습니다."; continue; }
+            if (!returningActors.Add(actor)) continue;
+            pendingPrefabByActor.Remove(actor);
             try
             {
-                if (actor.gameObject.activeSelf && !explicitReturn)
-                {
-                    leasedPrefabByActor[actor] = prefab;
-                    continue;
-                }
                 if (actor.gameObject.activeSelf) actor.gameObject.SetActive(false);
-                ReturnToInactiveRoot(prefab, actor);
+                ReturnToInactiveRoot(pending.prefab, actor);
             }
-            finally
-            {
-                returningActors.Remove(actor);
-            }
+            finally { returningActors.Remove(actor); }
         }
+    }
+    private void OnDestroy()
+    {
+        // Session teardown has no next LateUpdate; the engine owns object destruction.
+        pendingPrefabByActor.Clear(); leasedPrefabByActor.Clear(); returningActors.Clear(); availableActors.Clear(); availableByPrefab.Clear();
     }
 
     private EnemyActor CreateInactive(EnemyActor prefab)

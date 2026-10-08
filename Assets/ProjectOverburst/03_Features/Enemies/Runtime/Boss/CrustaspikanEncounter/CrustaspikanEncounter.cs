@@ -201,28 +201,30 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         ResetMotionSamples(); player.Movement?.ResetMotionAfterTeleport(); Physics.SyncTransforms();
         if (gameplayCamera != null && gameplayCamera.CurrentTarget != null) gameplayCamera.SetTarget(gameplayCamera.CurrentTarget);
     }
-    public void ClearSummons()
+    public void ClearSummons() => ClearSummons(false);
+    private void ClearSummons(bool deferred)
     {
         if (Brain?.Composite == null) return;
-        RestoreAllLoot(); Brain.Composite.Cancel(); Brain.Composite.ReleaseSummons();
+        RestoreAllLoot(); Brain.Composite.Cancel(); Brain.Composite.ReleaseSummons(deferred);
         foreach (var actor in new List<EnemyActor>(oldLoot.Keys))
         {
             if (actor == Brain.Actor) continue;
-            if (actor != null && actor.IsLeased && actor.LeaseVersion == leases[actor]) spawns.Release(actor);
+            if (spawns != null && actor != null && actor.IsLeased && actor.LeaseVersion == leases[actor])
+            { if (deferred) spawns.ReleaseDeferred(actor, leases[actor]); else spawns.Release(actor); }
             oldLoot.Remove(actor); leases.Remove(actor);
         }
         // 보스의 전투 중 드롭 차단은 유지한다.
         var boss = Brain.Actor; var loot = boss.GetComponent<EnemyLootDropper>();
         if (loot != null) { loot.enabled = false; boss.Health.OnDamageResolved -= OwnedDamage; boss.Health.OnDamageResolved += OwnedDamage; boss.Health.OnDead -= OwnedDead; boss.Health.OnDead += OwnedDead; }
     }
-    private void ClearCombat()
+    private void ClearCombat(bool deferred = false)
     {
         try
         {
             if (Brain != null)
             {
                 bossHud?.ClearEncounter(Brain);
-                Brain.Composite.MonsterLanded -= DisableLoot; ClearSummons();
+                Brain.Composite.MonsterLanded -= DisableLoot; ClearSummons(deferred);
             }
         }
         finally
@@ -230,14 +232,14 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
             try { RestoreAllLoot(); }
             finally
             {
-                try { Brain?.Dispose(); }
+                try { Brain?.Dispose(deferred); }
                 finally
                 {
                     Brain = null;
                     try
                     {
-                        if (leasedBoss != null && leasedBoss.IsLeased && leasedBoss.LeaseVersion == leasedBossVersion)
-                            spawns.Release(leasedBoss);
+                        if (spawns != null && leasedBoss != null && leasedBoss.IsLeased && leasedBoss.LeaseVersion == leasedBossVersion)
+                        { if (deferred) spawns.ReleaseDeferred(leasedBoss, leasedBossVersion); else spawns.Release(leasedBoss); }
                     }
                     finally { ResetMotionSamples(); bossMotor = null; leasedBoss = null; oldLoot.Clear(); leases.Clear(); }
                 }
@@ -265,10 +267,11 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         }
         finally { if (!restarted) Exit(true); }
     }
-    public void Exit(bool returnToHideout)
+    public void Exit(bool returnToHideout) => Exit(returnToHideout, false);
+    private void Exit(bool returnToHideout, bool deferred)
     {
         if (exiting) return; exiting = true;
-        try { EntranceCinematic?.Cancel(); ClearCombat(); }
+        try { EntranceCinematic?.Cancel(); ClearCombat(deferred); }
         finally
         {
             try
@@ -287,5 +290,5 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
             finally { host?.OnExit(this); Destroy(gameObject); }
         }
     }
-    private void OnDestroy() { if (!exiting) Exit(false); visuals?.Dispose(); }
+    private void OnDestroy() { if (!exiting) Exit(false, true); visuals?.Dispose(); }
 }

@@ -524,7 +524,8 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
         foreach (var p in settings.patterns) if (p.id == id) { CancelPattern(); current = p; BeginPattern(); return true; }
         return false;
     }
-    public void Dispose()
+    public void Dispose() => Dispose(false);
+    public void Dispose(bool deferred)
     {
         if (disposed) return; disposed = true;
         try
@@ -534,7 +535,7 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
                 Actor.Health.OnDamageResolved -= OnDamage;
                 CancelPattern(); Actor.AbilityController.Cancel(); if (!UsesMotion) Actor.Animator.speed = 1f;
                 executor.Configure(originalMaterials); Actor.AbilityController.Configure(originalAbilities, 1f, 1f);
-                composite.ReleaseSummons(); composite.Configure(originalComposite);
+                composite.ReleaseSummons(deferred); composite.Configure(originalComposite);
                 parryDirector.Configure(originalProfile); Actor.AI.enabled = originalAI; Actor.BossPhaseController.enabled = originalPhase;
                 if (hpReporter != null) hpReporter.enabled = originalReporter;
                 if (overhead != null) overhead.enabled = originalOverhead;

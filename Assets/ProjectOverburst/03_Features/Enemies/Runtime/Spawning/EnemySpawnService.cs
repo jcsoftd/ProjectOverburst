@@ -123,6 +123,11 @@ public sealed class EnemySpawnService : MonoBehaviour
         pool.Release(actor);
     }
 
+    public bool ReleaseDeferred(EnemyActor actor, uint expectedLeaseVersion)
+    {
+        return pool != null && pool.ReleaseDeferred(actor, expectedLeaseVersion);
+    }
+
     public int Prewarm(EnemyDefinition definition, int count = -1)
     {
         return pool != null ? pool.Prewarm(definition, count) : 0;
