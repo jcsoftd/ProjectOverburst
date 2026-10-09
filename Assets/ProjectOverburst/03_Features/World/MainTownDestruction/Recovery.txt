@@ -1,0 +1,13 @@
+MainTownDestruction recovery
+
+Runtime sources: Assets/ProjectOverburst/03_Features/World/MainTownDestruction
+Builder: Assets/Editor/Builders/Environment/MainTownDestruction
+Verifier: Assets/Editor/Testers/Environment/MainTownDestruction
+
+Generated source-derived meshes, prefabs and catalog remain local. Restore them with their original meta files from the private Recovery_MainTownDestruction.zip. The original Dark Fantasy Bandit Camp & Wilderness assets and current BanditExpansion must already exist. MainScene is also a private composition.
+
+Install from a loaded, clean MainScene using OVERBURST / World / MainScene 파괴 / 현재 맵에 생성 및 연결. Remove the owned scene connection first if reinstalling. Install reuses generated assets; generation is an Editor operation.
+
+Remove only the connection with OVERBURST / World / MainScene 파괴 / 이 연결만 제거. Source scene objects and TerrainData are preserved. To remove files after that, move exactly these three owned folders and each adjacent folder .meta to the operating system Recycle Bin. Never directly delete original/vendor assets or earlier experiment folders.
+
+The runtime uses the existing neutral melee damage route and TransientVfxPool. Trees/open surfaces are sliced in height bands; closed single-material props use the attributed MIT Voronoi authoring core. There is no runtime mesh fracture dependency.

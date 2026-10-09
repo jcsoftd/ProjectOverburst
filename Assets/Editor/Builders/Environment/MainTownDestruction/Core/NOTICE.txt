@@ -1,0 +1,6 @@
+Editor-only authoring copy of MIT Unity Mesh Fracture by sinanata.
+Upstream https://github.com/sinanata/unity-mesh-fracture
+Pinned upstream commit dd04f3dc16d2dcc61d12d62258c84845e795ba4c.
+Uses the corrected core already verified in AutoFractureCactusTrial. Namespace/type renamed only.
+MainTownMeshSlicer reuses the verified local Mojave slicer, preserving exterior material/UV/color channels.
+These copies keep the earlier removable experiments independent of the MainScene rollout.

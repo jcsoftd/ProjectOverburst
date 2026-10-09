@@ -1,0 +1,5 @@
+# Supplier-derived meshes and prefab compositions stay in the private recovery archive.
+/Generated/
+/Generated.meta
+/MainTownDestructionCatalog.asset
+/MainTownDestructionCatalog.asset.meta
