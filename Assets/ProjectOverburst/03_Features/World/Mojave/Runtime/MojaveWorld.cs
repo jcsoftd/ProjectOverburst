@@ -444,7 +444,8 @@ namespace Overburst.Mojave
         {
             var parent=new GameObject("Arroyo banks · stones and weathered rubble").transform;parent.SetParent(generatedRoot,false);
             bool mixed=GetComponent<MojaveCombatTileSet>()?.mixedSizes==true;
-            foreach(var trail in layout.trails)for(int i=2;i<trail.points.Length-2;i+=mixed?4:2) {
+            // Refined roads already dress colony edges; the legacy paired rubble row would repeat their border.
+            if(!refinedRoads)foreach(var trail in layout.trails)for(int i=2;i<trail.points.Length-2;i+=mixed?4:2) {
                 var d=(trail.points[i+1]-trail.points[i-1]).normalized;var normal=new Vector2(-d.y,d.x);
                 for(int side=-1;side<=1;side+=2) {
                     var p=trail.points[i]+normal*side*(trail.width*.5f+Rand(1.1f,2.5f));

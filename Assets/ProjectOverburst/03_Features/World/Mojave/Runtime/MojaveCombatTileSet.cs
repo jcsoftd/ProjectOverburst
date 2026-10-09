@@ -73,6 +73,24 @@ namespace Overburst.Mojave
                 foreach(var lod in go.GetComponentsInChildren<LODGroup>(true))lod.fadeMode=LODFadeMode.None;
                 trailSidePlacementCount++;
             }
+            if(world.refinedRoads) {
+                // Fine debris belongs to the rock colonies; it must not create a second continuous bank.
+                foreach(var mass in world.shoulderMasses) {
+                    var outline=mass.rockOutline;if(outline==null||outline.Length<3)continue;
+                    var center=new Vector2(mass.position.x,mass.position.z);
+                    int count=random.Next(1,4);
+                    var edge=outline[random.Next(outline.Length)];
+                    var outward=(edge-center).normalized;
+                    var colony=edge+outward*Range(1.4f,3.5f);
+                    for(int k=0;k<count;k++) {
+                        var p=colony+new Vector2(Range(-1.5f,1.5f),Range(-1.5f,1.5f));
+                        if(random.NextDouble()<.6)Add(Pick(world.catalog.stones),p,Range(.3f,1.1f),-.09f);
+                        if(random.NextDouble()<.5)Add(Pick(world.catalog.rubble),p+outward*Range(.3f,1.3f),Range(.08f,.18f),-.03f);
+                        if(random.NextDouble()<.35)Add(Pick(world.catalog.shrubs),p-outward*Range(.2f,1.0f),Range(.4f,.85f),-.02f);
+                    }
+                }
+                return;
+            }
             foreach(var trail in world.layout.trails) {
                 float next=mixedSizes?Range(8,12):Range(4,7),travelled=0;
                 for(int i=0;i<trail.points.Length-1;i++) {

@@ -201,35 +201,42 @@ namespace Overburst.Mojave
             }
             var random=new System.Random(world.seed^0x6159);
             float Range(float a,float b)=>Mathf.Lerp(a,b,(float)random.NextDouble());
-            var stations=new List<(Vector2 point,Vector2 normal)>();
-            foreach(var trail in world.layout.trails) {
-                float next=Range(2,8),walked=0;
+            if(prefabs.Length==0)throw new InvalidOperationException("Mojave rock assemblies are required for roadside colonies.");
+            var stations=new List<(Vector2 point,Vector2 normal,float width,float clearance,float yaw)>();
+            // Each bank has its own colony centres; companions gather around an anchor instead of a paired row.
+            foreach(var trail in world.layout.trails)for(int side=-1;side<=1;side+=2) {
+                float next=Range(5,18),walked=0;
                 for(int i=0;i<trail.points.Length-1;i++) {
                     var delta=trail.points[i+1]-trail.points[i];float length=delta.magnitude;if(length<.01f)continue;
-                    var tangent=delta/length;
+                    var tangent=delta/length;var normal=new Vector2(-tangent.y,tangent.x)*side;
                     while(next<walked+length) {
                         var p=trail.points[i]+tangent*(next-walked);
                         if(world.layout.RoomDistance(p,out _)>3) {
-                            stations.Add((p,new Vector2(-tangent.y,tangent.x)));
-                            stations.Add((p+tangent*Range(-2,2),new Vector2(tangent.y,-tangent.x)));
+                            float width=Range(8.5f,13.5f),yaw=Range(0,360);
+                            stations.Add((p,normal,width,Range(.2f,1.8f),yaw));
+                            int companions=random.Next(1,4);
+                            for(int k=0;k<companions;k++) {
+                                float along=Range(3.5f,11f)*(random.Next(2)==0?-1:1);
+                                stations.Add((p+tangent*along,normal,width*Range(.42f,.78f),Range(.15f,3.6f),yaw+Range(-40,40)));
+                            }
                         }
-                        next+=Range(6.5f,10.5f);
+                        next+=Range(17f,34f);
                     }
                     walked+=length;
                 }
             }
-            // Search beside the real road edge; large-first hull tests reclaim empty AABB corners.
-            foreach(float width in new[]{10f,7f,4.5f})foreach(var station in stations) {
+            // Fit the largest individual footprints first, retaining irregular sizes and edge setbacks.
+            foreach(var station in stations.OrderByDescending(s=>s.width)) {
                 if(world.shoulderMasses.Count>=world.layout.places.Count*10)break;
                 float edge=0;while(edge<20&&world.PlayDistance(station.point+station.normal*edge)<.55f)edge+=.5f;
                 if(edge>=20)continue;
                 for(int attempt=0;attempt<3;attempt++) {
                     var prefab=prefabs[random.Next(prefabs.Length)];var shape=Outline(prefab);var source=bounds[prefab];
-                    float scale=Mathf.Clamp(width/Mathf.Max(source.size.x,source.size.z),.4f,1);
-                    var rotation=Quaternion.Euler(0,Range(0,360),0);
+                    float scale=Mathf.Clamp(station.width/Mathf.Max(source.size.x,source.size.z),.3f,1);
+                    var rotation=Quaternion.Euler(0,station.yaw+Range(-15,15),0);
                     var transformed=shape.Select(v=>{var q=rotation*new Vector3(v.x*scale,0,v.y*scale);return new Vector2(q.x,q.z);}).ToArray();
                     float inward=transformed.Min(v=>Vector2.Dot(v,station.normal));
-                    var p=station.point+station.normal*(edge-inward+Range(.15f,.7f));
+                    var p=station.point+station.normal*(edge-inward+station.clearance);
                     var hull=transformed.Select(v=>v+p).ToArray();
                     if(hull.Any(v=>Mathf.Abs(v.x)>world.MapSize*.5f-5||Mathf.Abs(v.y)>world.MapSize*.5f-5))continue;
                     if(MojavePatch.OutlineSamples(hull,.6f).Any(v=>world.PlayDistance(v)<.5f))continue;
