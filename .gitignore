@@ -184,3 +184,15 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/00_Scenes/MainScene.unity.meta
 /Assets/ProjectOverburst/05_Art/Environment/MainTown/
 /Assets/ProjectOverburst/05_Art/Environment/MainTown.meta
+
+# MOJAVE_MAIN_MIGRATION_20261009:BEGIN
+/Assets/ProjectOverburst/04_Contents/World/Mojave/
+/Assets/ProjectOverburst/04_Contents/World/Mojave.meta
+/Assets/ProjectOverburst/00_Scenes/World/Mojave/
+/Assets/ProjectOverburst/00_Scenes/World/Mojave.meta
+/Assets/ProjectOverburst/05_Art/Environment/Mojave/
+/Assets/ProjectOverburst/05_Art/Environment/Mojave.meta
+# MOJAVE_MAIN_MIGRATION_20261009:END
+
+# Licensed Mojave terrain editing dependency; restored from private migration snapshot.
+/Packages/com.jbooth.microverse/

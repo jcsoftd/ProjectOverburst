@@ -1,5 +1,15 @@
 {
   "dependencies": {
+    "com.jbooth.microverse": {
+      "version": "file:com.jbooth.microverse",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.6",
+        "com.unity.burst": "1.6.6",
+        "com.unity.collections": "1.4.0"
+      }
+    },
     "com.notnull92.hera-agent-unity": {
       "version": "file:com.notnull92.hera-agent-unity",
       "depth": 0,
@@ -53,7 +63,7 @@
     },
     "com.unity.collections": {
       "version": "2.6.5",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.burst": "1.8.27",
@@ -235,7 +245,7 @@
     },
     "com.unity.test-framework.performance": {
       "version": "3.4.0",
-      "depth": 3,
+      "depth": 2,
       "source": "registry",
       "dependencies": {
         "com.unity.test-framework": "1.1.33",

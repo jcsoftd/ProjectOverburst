@@ -1,0 +1,25 @@
+.mojave-tool { background-color: rgb(32, 34, 36); padding: 14px; color: rgb(226, 224, 216); }
+.header { padding-bottom: 14px; border-bottom-width: 1px; border-bottom-color: rgb(74, 73, 69); }
+#title { font-size: 20px; -unity-font-style: bold; color: rgb(229, 197, 140); }
+#subtitle { margin-top: 5px; color: rgb(163, 169, 171); font-size: 12px; }
+.body { flex-grow: 1; flex-direction: row; margin-top: 14px; }
+.controls { width: 284px; flex-shrink: 0; padding-right: 14px; }
+.section { font-size: 13px; -unity-font-style: bold; color: rgb(220, 201, 167); margin-bottom: 10px; margin-top: 12px; }
+Button { height: 30px; margin-top: 4px; margin-bottom: 4px; border-radius: 4px; }
+Button.primary { height: 38px; background-color: rgb(104, 80, 46); border-color: rgb(165, 129, 74); -unity-font-style: bold; }
+.row { flex-direction: row; }
+.row > Button { flex-grow: 1; }
+.image-area { flex-grow: 1; min-width: 330px; background-color: rgb(22, 24, 26); border-radius: 6px; }
+#preview-viewport { flex-grow: 1; min-height: 330px; overflow: hidden; }
+#camera-preview { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+#preview-caption { color: rgb(155, 164, 166); margin: 10px; -unity-text-align: middle-center; }
+#stats { margin-top: 12px; white-space: normal; font-size: 12px; color: rgb(211, 211, 205); }
+#camera-note, #save-note, #overlay-note, #collage-note { white-space: normal; color: rgb(150, 160, 164); margin-top: 8px; font-size: 11px; }
+#combat-legend { margin-top: 8px; padding: 8px; background-color: rgb(25, 28, 30); border-radius: 4px; }
+#combat-legend > Label { font-size: 11px; margin-bottom: 3px; }
+.area-label { position: absolute; font-size: 11px; -unity-font-style: bold; background-color: rgba(12, 16, 20, 0.86); padding: 4px; border-radius: 3px; white-space: nowrap; }
+.tile-label { position: absolute; font-size: 10px; color: rgb(255, 228, 160); background-color: rgba(12, 16, 20, 0.9); padding: 3px; border-radius: 3px; }
+#navigation-note { white-space: normal; font-size: 11px; color: rgb(164, 173, 178); margin-top: 8px; margin-bottom: 8px; }
+#status { margin-top: 14px; padding: 10px; background-color: rgb(44, 46, 47); border-radius: 4px; white-space: normal; }
+#status.error { color: rgb(255, 158, 128); }
+.unity-base-field__label { min-width: 88px; }
