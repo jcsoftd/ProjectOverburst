@@ -101,6 +101,7 @@ public static class MerchantTradeItemUtility
         return source.baseData == target.baseData
             && source.grade == target.grade
             && source.level == target.level
+            && source.originRunId == target.originRunId
             && target.stackCount > 0
             && target.stackCount < GetMaxStack(target)
             && IsStackableItem(source);

@@ -128,7 +128,7 @@ public sealed class MerchantTradeValidator
     {
         List<ItemData> simulation = new List<ItemData>();
         int capacity = playerInventory.UnlockedSlotCount;
-        for (int i = 0; i < capacity; i++)
+        for (int i = 0; i < playerInventory.Capacity; i++)
             simulation.Add(playerInventory.GetItemAt(i));
 
         for (int i = 0; i < plan.PlayerOffers.Count; i++)
@@ -137,7 +137,15 @@ public sealed class MerchantTradeValidator
                 return false;
         }
 
-        SimulateSpendInventoryGold(simulation, plan.PlayerPaymentGold);
+        SimulateSpendInventoryGold(simulation, plan.PlayerPaymentGold, capacity);
+
+        if (plan.PlayerIncomingItems.Count > 0 || plan.MerchantPayoutGold > 0)
+        {
+            for (int i = capacity; i < simulation.Count; i++)
+                if (simulation[i] != null)
+                    return false;
+        }
+        simulation.RemoveRange(capacity, simulation.Count - capacity);
 
         for (int i = 0; i < plan.PlayerIncomingItems.Count; i++)
         {
@@ -155,10 +163,10 @@ public sealed class MerchantTradeValidator
         return true;
     }
 
-    private void SimulateSpendInventoryGold(List<ItemData> simulation, int amount)
+    private void SimulateSpendInventoryGold(List<ItemData> simulation, int amount, int unlockedSlots)
     {
         int remaining = Mathf.Max(0, amount);
-        for (int i = 0; i < simulation.Count && remaining > 0; i++)
+        for (int i = 0; i < unlockedSlots && remaining > 0; i++)
         {
             ItemData item = simulation[i];
             if (!MerchantTradeItemUtility.IsGold(item))
