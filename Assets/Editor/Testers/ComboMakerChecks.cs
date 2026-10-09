@@ -151,9 +151,10 @@ public static class ComboMakerChecks
         }
         string path=AssetDatabase.GenerateUniqueAssetPath("Assets/Editor/Testers/ComboMakerHeavyFixture.asset");
         var fixture=UnityEngine.Object.Instantiate(heavy);
+        string fixtureGuid=null;
         try
         {
-            AssetDatabase.CreateAsset(fixture,path);
+            AssetDatabase.CreateAsset(fixture,path); fixtureGuid=AssetDatabase.AssetPathToGUID(path);
             using(var s=new ComboMakerSession())
             {
                 s.LoadHeavy(item.GetMeleeComboDefinition(),fixture);s.Working.steps[0].attackName="heavy save check";s.HeavyWorking.chargedDamageMultiplier=1.47f;s.Apply();
@@ -163,7 +164,7 @@ public static class ComboMakerChecks
                 Undo.ClearUndo(fixture);
             }
         }
-        finally {AssetDatabase.DeleteAsset(path);}
+        finally { if(fixture!=null&&!EditorUtility.IsPersistent(fixture))UnityEngine.Object.DestroyImmediate(fixture); RecycleFixture(path,fixtureGuid); }
         File.WriteAllLines(Path.GetFullPath("../개인파일/코덱스산출/Tools/ComboMaker/CombatExtension.txt"),log);
         return string.Join("\n",log);
     }
@@ -251,9 +252,10 @@ public static class ComboMakerChecks
         var live=AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(sourcePath);
         byte[] liveBytes=File.ReadAllBytes(sourcePath);
         var fixture=UnityEngine.Object.Instantiate(live);
+        string fixtureGuid=null;
         try
         {
-            AssetDatabase.CreateAsset(fixture,fixturePath);
+            AssetDatabase.CreateAsset(fixture,fixturePath); fixtureGuid=AssetDatabase.AssetPathToGUID(fixturePath);
             profiles.SetValue(Activator.CreateInstance(profileType,new object[]{itemPath,fixturePath,"Apply fixture",fixture.StepCount,3}),0);
             using(var session=new ComboMakerSession())
             {
@@ -276,8 +278,8 @@ public static class ComboMakerChecks
         finally
         {
             profiles.SetValue(originalProfile,0);
-            if(AssetDatabase.LoadAssetAtPath<MeleeComboDefinition>(fixturePath)!=null)AssetDatabase.DeleteAsset(fixturePath);
-            else if(fixture!=null)UnityEngine.Object.DestroyImmediate(fixture);
+            if(fixture!=null&&!EditorUtility.IsPersistent(fixture))UnityEngine.Object.DestroyImmediate(fixture);
+            RecycleFixture(fixturePath,fixtureGuid);
         }
         File.WriteAllLines(Path.GetFullPath("../개인파일/코덱스산출/Tools/ComboMaker/Authoring.txt"),log);
         return string.Join("\n",log);
@@ -414,4 +416,14 @@ public static class ComboMakerChecks
         File.WriteAllBytes(path,image.EncodeToPNG());
         UnityEngine.Object.DestroyImmediate(image); RenderTexture.active=old; RenderTexture.ReleaseTemporary(rt);
     }
+    private static void RecycleFixture(string path, string guid)
+    {
+        string current = AssetDatabase.AssetPathToGUID(path, AssetPathToGUIDOptions.OnlyExistingAssets);
+        if (string.IsNullOrEmpty(current)) return;
+        if (string.IsNullOrEmpty(guid) || current != guid || !path.StartsWith("Assets/Editor/Testers/ComboMaker", StringComparison.Ordinal))
+            throw new InvalidOperationException("Fixture ownership changed; preserved: " + path);
+        if (!AssetDatabase.MoveAssetToTrash(path))
+            throw new InvalidOperationException("Could not recycle owned fixture; preserved: " + path);
+    }
+
 }

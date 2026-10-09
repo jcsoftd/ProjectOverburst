@@ -155,7 +155,12 @@ public static class BossMakerAuthoringVerifier
     static void Persist(string state,string error=null)=>File.WriteAllText(Path.Combine(output,"result.json"),new JObject{["status"]=state,["failure"]=error,["cases"]=cases,["fixtureFolder"]=folder,["scenesBefore"]=scenes,["scenesAfter"]=Scenes()}.ToString());
     static void Reload(){if(routine!=null){Persist("FAIL","Interrupted by domain reload.");CloseWindow();CleanupFixture();routine=null;EditorApplication.update-=Tick;}}
     static void CloseWindow(){if(window==null)return;window.ClearVerificationDrafts();window.Close();window=null;}
-    public static void CleanupFixture(){if(!string.IsNullOrEmpty(folder)&&AssetDatabase.AssetPathToGUID(folder)==folderGuid)AssetDatabase.DeleteAsset(folder);}
+    public static bool CleanupFixture()
+    {
+        if(string.IsNullOrEmpty(folder)) return true;
+        try { RecycleFixture(folder,folderGuid); return true; }
+        catch(Exception error) { Persist("FAIL",error.Message); Debug.LogError(error.Message); return false; }
+    }
     static void Change<T>(BaseField<T> field,T value)
     {if(field==null)throw new InvalidOperationException("Expected Toolkit field missing.");var old=field.value;field.SetValueWithoutNotify(value);using(var evt=ChangeEvent<T>.GetPooled(old,value)){evt.target=field;field.SendEvent(evt);}}
     static void Click(Button button){Pointer(button,EventType.MouseDown,button.contentRect.center);Pointer(button,EventType.MouseUp,button.contentRect.center);}
@@ -174,4 +179,14 @@ public static class BossMakerAuthoringVerifier
         }
         finally{RenderTexture.active=previous;if(texture!=null)Object.DestroyImmediate(texture);if(surface!=null){surface.Release();Object.DestroyImmediate(surface);}}
     }
+    private static void RecycleFixture(string path, string guid)
+    {
+        string current = AssetDatabase.AssetPathToGUID(path, AssetPathToGUIDOptions.OnlyExistingAssets);
+        if (string.IsNullOrEmpty(current)) return;
+        if (string.IsNullOrEmpty(guid) || current != guid || !path.StartsWith("Assets/Editor/Testers/Bosses/BossMakerFixture_", StringComparison.Ordinal))
+            throw new InvalidOperationException("Fixture ownership changed; preserved: " + path);
+        if (!AssetDatabase.MoveAssetToTrash(path))
+            throw new InvalidOperationException("Could not recycle owned fixture; preserved: " + path);
+    }
+
 }

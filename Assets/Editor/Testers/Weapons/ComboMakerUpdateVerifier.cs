@@ -134,9 +134,10 @@ public static class ComboMakerUpdateVerifier
             var source=ComboMakerAttackBinding.Heavy(weapon.GetMeleeDefinition(),mode);
             string path=AssetDatabase.GenerateUniqueAssetPath("Assets/Editor/Testers/Weapons/ComboMakerFixture.asset");
             var fixture=Object.Instantiate(source);fixture.hideFlags=HideFlags.None;
+            string fixtureGuid=null;
             try
             {
-                AssetDatabase.CreateAsset(fixture,path);
+                AssetDatabase.CreateAsset(fixture,path); fixtureGuid=AssetDatabase.AssetPathToGUID(path);
                 using(var session=new ComboMakerSession())
                 {
                     session.LoadHeavy(weapon.GetMeleeComboDefinition(),fixture);
@@ -152,7 +153,7 @@ public static class ComboMakerUpdateVerifier
                 }
                 Undo.ClearUndo(fixture);
             }
-            finally{AssetDatabase.DeleteAsset(path);}
+            finally{if(fixture!=null&&!EditorUtility.IsPersistent(fixture))Object.DestroyImmediate(fixture);RecycleFixture(path,fixtureGuid);}
         }
     }
 
@@ -195,4 +196,14 @@ public static class ComboMakerUpdateVerifier
     {if(!passed)throw new InvalidOperationException(label);log.Add("PASS: "+label);}
     private static void Check(bool passed,string label,List<string> log,ref string failure)
     {log.Add((passed?"PASS: ":"FAIL: ")+label);if(!passed)failure=(failure??"")+"\n"+label;}
+    private static void RecycleFixture(string path, string guid)
+    {
+        string current = AssetDatabase.AssetPathToGUID(path, AssetPathToGUIDOptions.OnlyExistingAssets);
+        if (string.IsNullOrEmpty(current)) return;
+        if (string.IsNullOrEmpty(guid) || current != guid || !path.StartsWith("Assets/Editor/Testers/Weapons/ComboMakerFixture", StringComparison.Ordinal))
+            throw new InvalidOperationException("Fixture ownership changed; preserved: " + path);
+        if (!AssetDatabase.MoveAssetToTrash(path))
+            throw new InvalidOperationException("Could not recycle owned fixture; preserved: " + path);
+    }
+
 }

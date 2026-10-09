@@ -103,11 +103,12 @@ public static class ComboMakerLibraryVerifier
         T Copy<T>(T value) where T : Object { var clone = Object.Instantiate(value); clone.hideFlags = HideFlags.HideAndDontSave; allocated.Add(clone); return clone; }
         var catalog = ScriptableObject.CreateInstance<WeaponLevelCatalog>(); allocated.Add(catalog);
         var combo = Object.Instantiate(source.GetMeleeComboDefinition());
+        string fixtureGuid = null;
         var profiles = (Array)typeof(MeleeAttackVfxSlopeBakeUtility).GetField("Profiles", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
         object originalProfile = profiles.GetValue(0);
         try
         {
-            AssetDatabase.CreateAsset(combo, path);
+            AssetDatabase.CreateAsset(combo, path); fixtureGuid = AssetDatabase.AssetPathToGUID(path);
             // Register only the temporary source for the synchronous Apply check.
             // The production bake/save path still runs, and finally restores the registry.
             profiles.SetValue(Activator.CreateInstance(originalProfile.GetType(), new object[]
@@ -141,9 +142,10 @@ public static class ComboMakerLibraryVerifier
         finally
         {
             profiles.SetValue(originalProfile, 0);
-            Undo.ClearUndo(combo); AssetDatabase.DeleteAsset(path);
+            Undo.ClearUndo(combo);
             foreach (var value in allocated) if (value != null) Object.DestroyImmediate(value);
-            if (combo != null) Object.DestroyImmediate(combo);
+            if (combo != null && !EditorUtility.IsPersistent(combo)) Object.DestroyImmediate(combo);
+            RecycleFixture(path, fixtureGuid);
         }
         Require(profiles.GetValue(0).Equals(originalProfile), "임시 베이크 등록 반환", log);
     }
@@ -152,4 +154,14 @@ public static class ComboMakerLibraryVerifier
     { if (!condition) throw new InvalidOperationException(text); log.Add("PASS: " + text); }
     private static void Check(bool condition, string text, List<string> log, ref string failure)
     { log.Add((condition ? "PASS: " : "FAIL: ") + text); if (!condition) failure = (failure ?? "") + "\n" + text; }
+    private static void RecycleFixture(string path, string guid)
+    {
+        string current = AssetDatabase.AssetPathToGUID(path, AssetPathToGUIDOptions.OnlyExistingAssets);
+        if (string.IsNullOrEmpty(current)) return;
+        if (string.IsNullOrEmpty(guid) || current != guid || !path.StartsWith("Assets/Editor/Testers/Weapons/ComboMakerLibraryFixture_", StringComparison.Ordinal))
+            throw new InvalidOperationException("Fixture ownership changed; preserved: " + path);
+        if (!AssetDatabase.MoveAssetToTrash(path))
+            throw new InvalidOperationException("Could not recycle owned fixture; preserved: " + path);
+    }
+
 }

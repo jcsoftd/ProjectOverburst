@@ -221,8 +221,10 @@ public static class BossMakerRuntimeVerifier
         if (AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene) == plan.fixture)
             EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(plan.previousStart) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(plan.previousStart);
         IsolatedSavePlayGuard.UseRealAccount();
-        if (AssetDatabase.AssetPathToGUID(plan.folder) == plan.folderGuid) AssetDatabase.DeleteAsset(plan.folder);
-        var after = Scenes(); bool valid = !IsolatedSavePlayGuard.RequiresAccountChoice && JToken.DeepEquals(plan.scenes, after)
+        bool fixtureRecycled = true;
+        try { RecycleFixture(plan.folder, plan.folderGuid); }
+        catch (Exception error) { plan.failure = error.Message; fixtureRecycled = false; }
+        var after = Scenes(); bool valid = fixtureRecycled && !IsolatedSavePlayGuard.RequiresAccountChoice && JToken.DeepEquals(plan.scenes, after)
             && string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory) && string.IsNullOrEmpty(Prepared)
             && string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""))
             && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable));
@@ -230,7 +232,17 @@ public static class BossMakerRuntimeVerifier
             ["scenesBefore"] = plan.scenes, ["scenesAfter"] = after, ["guardChoice"] = IsolatedSavePlayGuard.RequiresAccountChoice,
             ["active"] = IsolatedSavePlayGuard.ActiveDirectory, ["prepared"] = Prepared, ["expires"] = SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""),
             ["environment"] = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), ["startScene"] = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene),
-            ["ownedFixtureDeleted"] = !Directory.Exists(Path.Combine(Directory.GetParent(Application.dataPath).FullName, plan.folder)), ["pendingAfter"] = "" }.ToString());
+            ["ownedFixtureRecycled"] = fixtureRecycled, ["fixtureRecycleFailure"] = fixtureRecycled ? null : plan.failure, ["pendingAfter"] = "" }.ToString());
         Result(plan.failure == null ? "PASS" : "FAIL"); SessionState.EraseString(Key + "plan"); plan = null;
     }
+    private static void RecycleFixture(string path, string guid)
+    {
+        string current = AssetDatabase.AssetPathToGUID(path, AssetPathToGUIDOptions.OnlyExistingAssets);
+        if (string.IsNullOrEmpty(current)) return;
+        if (string.IsNullOrEmpty(guid) || current != guid || !path.StartsWith("Assets/Editor/Testers/Bosses/BossMakerFixture_", StringComparison.Ordinal))
+            throw new InvalidOperationException("Fixture ownership changed; preserved: " + path);
+        if (!AssetDatabase.MoveAssetToTrash(path))
+            throw new InvalidOperationException("Could not recycle owned fixture; preserved: " + path);
+    }
+
 }
