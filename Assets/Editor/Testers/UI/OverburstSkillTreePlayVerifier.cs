@@ -141,8 +141,16 @@ public static class OverburstSkillTreePlayVerifier
         ui.HideTooltip();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-default.png"));yield return null;
         foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
-        PlayerProgression.Current.AddExperience(OverburstGrowthRules.ExperienceToNext(1));Check(PlayerProgression.Current.FlushPendingExperience(),"Actual first level-up commits");ui.SyncAccount(true);
-        Check(PlayerProgression.CurrentLevel==2&&ui.Plan.Remaining==1,"Actual level1 to2 grants one point");
+        Check(session.ExecuteState("skill-card-prepare", c => { AccountRunCommands.PrepareEntry(c, "skill-card-play", new MapInstanceState(), null); AccountRunCommands.Activate(c, "skill-card-play"); }), "Owned account run-state fixture for XP card");
+        var cardRun = new AccountRunSession(session);
+        Check(cardRun.ClaimEventCard("skill-card-play", "first-level", OverburstGrowthRules.ExperienceToNext(1)), "Actual account XP card commits");
+        ui.SyncAccount(true);
+        Check(PlayerProgression.CurrentLevel == 2 && ui.Plan.Remaining == 1, "Actual XP card level1 to2 projects one point into UI");
+        long cardRevision = session.Revision;
+        Check(!cardRun.ClaimEventCard("skill-card-play", "first-level", OverburstGrowthRules.ExperienceToNext(1)) && session.Revision == cardRevision && session.Read().skillTree.earnedPoints == 1, "Actual repeated XP card cannot duplicate points");
+        var cardSaved = new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();
+        Check(cardSaved.level == 2 && cardSaved.skillTree.earnedPoints == 1 && cardSaved.run.rewardedEncounters.Contains("first-level"), "Actual XP card persists level point and claim together");
+        Check(session.ExecuteState("skill-card-finish", c => AccountRunCommands.Fail(c, "skill-card-play")), "Owned run-state fixture ends before regular progression checks");
         int xp = Enumerable.Range(2, 3).Sum(OverburstGrowthRules.ExperienceToNext);
         PlayerProgression.Current.AddExperience(xp); Check(PlayerProgression.Current.FlushPendingExperience(), "Actual progression flush");
         ui.SyncAccount(true); Check(PlayerProgression.CurrentLevel == 5 && ui.Plan.Remaining == 4, "Actual level5 has four points under temporary rule");

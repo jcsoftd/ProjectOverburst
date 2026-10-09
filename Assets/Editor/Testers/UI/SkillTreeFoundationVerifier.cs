@@ -68,6 +68,37 @@ public static class SkillTreeFoundationVerifier
             Check(loaded.skillTree.learnedNodeIds.SequenceEqual(new[] { "S_W1", "S_W3" }) && loaded.skillTree.earnedPoints == 19 && loaded.weapons.SequenceEqual(baseline.weapons), "Fresh store reopens learned IDs, ledger and existing inventory");
             Reject(() => tx.Execute("stale-allocation", tx.Revision, c => AccountSkillTree.Allocate(c, expected, Array.Empty<string>()), true), "Stale allocation rejected despite current account revision");
             var copied = ItemSnapshotCodec.CopyValues(loaded); copied.skillTree.learnedNodeIds.Clear(); Check(loaded.skillTree.learnedNodeIds.Count == 2, "ES3 nested skill-tree copy isolated");
+            var card = NewAccountFactory.Create(registry);
+            card.skillTree = AccountSkillTree.GrantEligible(null, 1);
+            AccountRunCommands.PrepareEntry(card, "skill-card", new MapInstanceState(), null);
+            AccountRunCommands.Activate(card, "skill-card");
+            AccountRunCommands.ClaimEventCard(card, "skill-card", "first-level", OverburstGrowthRules.ExperienceToNext(1));
+            Check(card.level == 2 && card.experience == 0 && card.skillTree.earnedPoints == 1, "XP card grants first level point atomically");
+            Reject(() => AccountRunCommands.ClaimEventCard(card, "skill-card", "first-level", 1), "Repeated XP card rejected");
+            Check(card.skillTree.earnedPoints == 1 && card.run.rewardedEncounters.Count == 1, "Rejected card cannot duplicate grant ledger");
+            AccountRunCommands.ClaimEventCard(card, "skill-card", "multiple-levels", Enumerable.Range(2, 3).Sum(OverburstGrowthRules.ExperienceToNext));
+            Check(card.level == 5 && card.skillTree.earnedPoints == 4, "XP card grants every crossed level point");
+            AccountRunCommands.ClaimEventCard(card, "skill-card", "no-xp", 0);
+            AccountRunCommands.ClaimEventCard(card, "skill-card", "partial-xp", 1);
+            Check(card.level == 5 && card.experience == 1 && card.skillTree.earnedPoints == 4, "Zero and partial card XP cannot duplicate points");
+            var cap = ItemSnapshotCodec.CopyValues(card); cap.level = 99; cap.experience = 0; cap.skillTree = AccountSkillTree.GrantEligible(null, 99);
+            AccountRunCommands.ClaimEventCard(cap, "skill-card", "cap-level", OverburstGrowthRules.ExperienceToNext(99));
+            AccountRunCommands.ClaimEventCard(cap, "skill-card", "already-cap", 1);
+            Check(cap.level == 100 && cap.experience == 0 && cap.skillTree.earnedPoints == 99, "XP card grants final level and respects cap");
+            var cardStore = new EasySaveAccountStore(Path.Combine(output, "CardAccount")); cardStore.Save(card, "card-baseline");
+            var cardTx = new AccountTransactions(card, cardStore, registry); long cardRevision = cardTx.Revision;
+            cardStore.FaultInjector = phase => { if (phase == "before-write") throw new IOException("Owned XP card save failure"); };
+            bool cardSaveFailed = false;
+            try { cardTx.Execute("failed-card", cardRevision, c => AccountRunCommands.ClaimEventCard(c, "skill-card", "durable-card", OverburstGrowthRules.ExperienceToNext(5)), true); }
+            catch (IOException) { cardSaveFailed = true; }
+            finally { cardStore.FaultInjector = null; }
+            var cardDisk = new EasySaveAccountStore(Path.Combine(output, "CardAccount")).Load();
+            Check(cardSaveFailed && cardTx.Revision == cardRevision && cardTx.Read().level == 5 && cardTx.Read().skillTree.earnedPoints == 4 && !cardTx.Read().run.rewardedEncounters.Contains("durable-card"), "Failed XP card save retains RAM level points and claim");
+            Check(cardDisk.level == 5 && cardDisk.skillTree.earnedPoints == 4 && !cardDisk.run.rewardedEncounters.Contains("durable-card"), "Failed XP card save retains disk level points and claim");
+            Check(cardTx.Execute("durable-card", cardTx.Revision, c => AccountRunCommands.ClaimEventCard(c, "skill-card", "durable-card", OverburstGrowthRules.ExperienceToNext(5)), true), "XP card retry durably commits");
+            cardDisk = new EasySaveAccountStore(Path.Combine(output, "CardAccount")).Load();
+            Check(cardDisk.level == 6 && cardDisk.experience == 1 && cardDisk.skillTree.earnedPoints == 5 && cardDisk.run.rewardedEncounters.Contains("durable-card"), "Fresh store reopens XP card level points and claim together");
+            Check(cardTx.GrantExperience("normal-xp-after-card", cardTx.Revision, 1, out _, out _) && cardTx.Read().skillTree.earnedPoints == 5, "Normal XP after card cannot duplicate level grants");
             File.WriteAllText(Path.Combine(output, "foundation-results.json"), JsonConvert.SerializeObject(new { status = "PASS_SCOPED", checkCount = checks.Count, checks, graphScale = "100/300/1000 rules only; render performance NOT_RUN" }, Formatting.Indented));
         }
         catch (Exception error) { File.WriteAllText(Path.Combine(output, "foundation-results.json"), JsonConvert.SerializeObject(new { status = "FAIL", checks, error = error.ToString() }, Formatting.Indented)); throw; }

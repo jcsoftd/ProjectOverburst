@@ -142,6 +142,7 @@ namespace Overburst.Persistence
                     state.level++;
                 }
                 if (state.level >= OverburstGrowthRules.MaximumLevel) state.experience = 0;
+                state.skillTree = AccountSkillTree.GrantEligible(state.skillTree, state.level);
             }
             run.rewardedEncounters.Add(eventId);
         }
