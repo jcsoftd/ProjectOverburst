@@ -1,0 +1,5 @@
+# Supplier-derived plant geometry and prefab compositions are restored locally.
+*.asset
+*.asset.meta
+*.prefab
+*.prefab.meta
