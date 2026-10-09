@@ -1,0 +1,5 @@
+# Supplier-derived town meshes and prefab compositions are restored locally.
+DF_*_Meshes.asset
+DF_*_Meshes.asset.meta
+PF_AutoFracture_DF_*.prefab
+PF_AutoFracture_DF_*.prefab.meta
