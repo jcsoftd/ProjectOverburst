@@ -9,6 +9,8 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private static ISlotInteractionBridge originBridge; // 출발 Bridge
     public static ItemData DraggedItem { get; private set; }
     public static bool IsDragging => DraggedItem != null;
+    public static bool HasCurrentOrigin => OriginSlot != null && OriginSlot.DisplayItem != null
+        && OriginSlot.DisplayItem.IsSameRuntimeItem(DraggedItem);
 
     private SlotUI slotUI; // 출발 슬롯
     private Canvas canvas; // UI 캔버스
@@ -119,7 +121,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public static void CompleteDrag(PointerEventData eventData)
     {
-        if (!IsDragging)
+        if (!HasCurrentOrigin)
         {
             ClearDragState();
             return;

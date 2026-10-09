@@ -21,8 +21,8 @@ public class SlotDropContext // 드롭 정보
             return null; // target 없음
 
         SlotUI originSlot = DragSlot.OriginSlot;
-        if (originSlot == null)
-            return null; // source 없음
+        if (!DragSlot.HasCurrentOrigin)
+            return null; // source가 시작한 아이템과 달라지면 취소
 
         ISlotInteractionBridge targetBridge = targetDrop.Slot.OwnerBridge;
         ISlotInteractionBridge originBridge = originSlot != null ? originSlot.OwnerBridge : null;

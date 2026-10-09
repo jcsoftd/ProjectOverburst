@@ -16,7 +16,7 @@ public sealed class ElementGemEquipmentSlotUI : MonoBehaviour, IPointerClickHand
     public void OnDrop(PointerEventData data)
     {
         var source = DragSlot.OriginSlot;
-        if (source == null || source.IsBagSlot || source.IsWeaponSlot || !(source.OwnerBridge is InventorySlotBridge) || !(source.DisplayItem?.baseData is ElementGemItemData)) return;
+        if (!DragSlot.HasCurrentOrigin || source.IsBagSlot || source.IsWeaponSlot || !(source.OwnerBridge is InventorySlotBridge) || !(source.DisplayItem?.baseData is ElementGemItemData)) return;
         bool success = ElementGemEquipmentService.EquipFromInventorySlot(source.SlotIndex,source.DisplayItem.runtimeInstanceId);
         DragSlot.MarkDropHandled();
         if (!success) Fail("장착 실패");
