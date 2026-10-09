@@ -1,0 +1,5 @@
+Unity Mesh Fracture core: https://github.com/sinanata/unity-mesh-fracture, commit dd04f3dc16d2dcc61d12d62258c84845e795ba4c, MIT. Local changes: namespace, fixed seed, indexed-vertex compaction, cyclic triangle order, cap area winding.
+
+Cactus source geometry and experiment adapters/builders/verifier were authored for OVERBURST. The current trial pre-bakes 32 cactus fragments and 12 fragments each for the actual town prefabs DF_Barrel_Wood_01, DF_Barrel_Wood_03, and DF_Wood_Box_05. These closed, single-material meshes passed native volume checks and real melee contact trials; arbitrary open foliage, multiple-material meshes, wind, or skinned vegetation have not been validated.
+
+Town model geometry and exterior materials belong to the existing Dark Fantasy Bandit Camp & Wilderness package. Supplier sources are read through Editor mesh data without changing their importers. The generated town prop meshes/prefabs and MainScene placement stay local; the source builders reproduce the examples from the locally available original package. LICENSE.txt applies to the adapted fracture core.
