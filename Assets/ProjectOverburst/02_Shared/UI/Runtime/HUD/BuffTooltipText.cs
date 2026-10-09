@@ -21,15 +21,28 @@ public static class BuffTooltipText
     }
 
     public static string BuffEffect(BuffDefinition definition)
+        => FormatBuff(definition.tickInterval, definition.healPercentPerTick, definition.damagePerTick,
+            definition.moveSpeedMultiplier, definition.isDebuff, 1);
+
+    public static string BuffEffect(BuffInstance instance)
+    {
+        var state = instance.Snapshot;
+        return FormatBuff(state.TickInterval, state.HealPercentPerTick, state.DamagePerTick,
+            state.MoveSpeedMultiplier, state.IsDebuff, state.StackCount);
+    }
+
+    private static string FormatBuff(float interval, float healPercent, float damage, float moveSpeed, bool debuff, int stacks)
     {
         string text = string.Empty;
-        if (definition.healPercentPerTick > 0f)
-            text = Number(definition.tickInterval) + "초마다 최대 체력의 "
-                + Highlight(Number(definition.healPercentPerTick * 100f) + "% 회복", definition.isDebuff);
-        float move = (definition.moveSpeedMultiplier - 1f) * 100f;
+        if (healPercent > 0f)
+            text = Number(interval) + "초마다 최대 체력의 " + Highlight(Number(healPercent * 100f) + "% 회복", debuff);
+        if (damage > 0f)
+            text += (text.Length > 0 ? " · " : "") + Number(interval) + "초마다 " + Highlight(Number(damage) + " 지속 피해", debuff);
+        float move = (moveSpeed - 1f) * 100f;
         if (!Mathf.Approximately(move, 0f))
             text += (text.Length > 0 ? " · " : "") + "이동 속도 "
-                + Highlight((move > 0 ? "+" : "−") + Number(Mathf.Abs(move)) + "%", definition.isDebuff);
+                + Highlight((move > 0 ? "+" : "−") + Number(Mathf.Abs(move)) + "%", debuff);
+        if (stacks > 1) text += (text.Length > 0 ? " · " : "") + stacks + "중첩";
         return text.Length > 0 ? text : "효과 적용 중";
     }
 

@@ -43,12 +43,13 @@ public sealed class BuffIconSlotUI : MonoBehaviour, IPointerEnterHandler, IPoint
         }
 
         SetEffect(instance.BuffId, StatusBuffIcons.Buff(instance.Definition) ?? GetDefaultArrowSprite(), instance.RemainingTime,
-            instance.Definition.duration, isDebuff: instance.Definition.isDebuff);
-        if (tooltipSource != instance.Definition)
+            instance.Definition.duration, stacks: instance.StackCount, isDebuff: instance.Definition.isDebuff);
+        if (tooltipSource != instance.Definition || tooltipStacks != instance.StackCount)
         {
             tooltipSource = instance.Definition;
+            tooltipStacks = instance.StackCount;
             TooltipName = BuffTooltipText.BuffName(instance.Definition);
-            TooltipEffect = BuffTooltipText.BuffEffect(instance.Definition);
+            TooltipEffect = BuffTooltipText.BuffEffect(instance);
         }
     }
 

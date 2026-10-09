@@ -11,25 +11,20 @@ public class PlayerBuffController : MonoBehaviour
     [SerializeField] private Color buffPopupColor = new Color(0.2f, 0.7f, 1f, 1f);
     [SerializeField] private Color debuffPopupColor = new Color(0.72f, 0.25f, 1f, 1f);
 
-    private readonly List<BuffInstance> activeBuffs = new List<BuffInstance>();
-    public event Action BuffsChanged;
+    private readonly StatusEffectRuntime effects = new StatusEffectRuntime();
+    private Action<BuffSnapshot, GameObject, int> executeTick;
+    private Func<bool> tickIsCurrent;
+    private int tickLifecycle;
+    private BuffSnapshot tickSnapshot;
+    private CombatHealth subscribedHealth;
+    private static readonly Action<CombatHealth, float> HealWithFeedback = PlayerHealFeedback.ApplyHealPercent;
+    public event Action BuffsChanged { add => effects.Changed += value; remove => effects.Changed -= value; }
 
     public float ActiveMoveSpeedMultiplier
     {
         get
         {
-            float multiplier = 1f;
-            for (int i = 0; i < activeBuffs.Count; i++)
-            {
-                BuffInstance instance = activeBuffs[i];
-                if (instance != null && instance.Definition != null)
-                {
-                    float speed = instance.Definition.moveSpeedMultiplier;
-                    if (speed < 1f) speed = 1f - (1f-speed) * (1f-Mathf.Clamp01(FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.SlowResistance)));
-                    multiplier *= speed;
-                }
-            }
-
+            float multiplier = effects.MoveSpeedMultiplier(FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.SlowResistance));
             multiplier *= 1f + FlaskCombatModifiers.Bonus(gameObject, FlaskEffect.MoveSpeed);
             return Mathf.Clamp(multiplier, 0.05f, 10f);
         }
@@ -38,23 +33,19 @@ public class PlayerBuffController : MonoBehaviour
     private void Awake()
     {
         ResolveHealth();
+        executeTick = ExecuteTick;
+        tickIsCurrent = IsTickLifetimeCurrent;
     }
 
     private void OnEnable()
     {
         ResolveHealth();
-        if (health == null) return;
-        health.OnDead += HandleDead;
-        health.OnReset += HandleReset;
+        BindHealth();
     }
 
     private void OnDisable()
     {
-        if (health != null)
-        {
-            health.OnDead -= HandleDead;
-            health.OnReset -= HandleReset;
-        }
+        UnbindHealth();
         ClearBuffs();
     }
 
@@ -63,57 +54,35 @@ public class PlayerBuffController : MonoBehaviour
 
     private void ClearBuffs()
     {
-        if (activeBuffs.Count == 0) return;
-        activeBuffs.Clear();
-        NotifyBuffsChanged();
+        effects.Clear();
     }
 
     private void Update()
     {
         ResolveHealth();
-        float deltaTime = Time.deltaTime;
-
-        for (int i = activeBuffs.Count - 1; i >= 0; i--)
-        {
-            BuffInstance instance = activeBuffs[i];
-            if (instance == null || instance.Definition == null)
-            {
-                activeBuffs.RemoveAt(i);
-                NotifyBuffsChanged();
-                continue;
-            }
-
-            if (instance.Tick(deltaTime))
-                ApplyTickHeal(instance.Definition);
-
-            if (instance.IsExpired())
-            {
-                activeBuffs.RemoveAt(i);
-                NotifyBuffsChanged();
-            }
-        }
+        BindHealth();
+        if (executeTick == null) executeTick = ExecuteTick;
+        effects.Advance(Time.deltaTime, executeTick);
     }
 
     public void ApplyBuff(BuffDefinition definition)
     {
-        if (definition == null)
-            return;
-
-        BuffDefinition runtimeDefinition = definition.Clone();
-        runtimeDefinition.Normalize();
-        BuffInstance existing = FindBuff(runtimeDefinition.buffId);
-        if (existing != null)
-        {
-            existing.Refresh();
-            NotifyBuffsChanged();
-            ShowBuffAppliedPopup(runtimeDefinition);
-            return;
-        }
-
-        activeBuffs.Add(new BuffInstance(runtimeDefinition));
-        NotifyBuffsChanged();
-        ShowBuffAppliedPopup(runtimeDefinition);
+        TryApplyBuff(definition);
     }
+
+    public BuffApplyResult TryApplyBuff(BuffDefinition definition, GameObject source = null)
+    {
+        ResolveHealth();
+        BindHealth();
+        if (!isActiveAndEnabled || health == null || health.IsDead) return BuffApplyResult.Rejected;
+        var result = effects.TryApply(definition, out var instance, source);
+        if (result != BuffApplyResult.Rejected && effects.Find(instance.BuffId) == instance)
+            ShowBuffAppliedPopup(instance.Definition);
+        return result;
+    }
+
+    public bool RemoveBuff(string buffId) => effects.Remove(buffId);
+    public int GetSnapshots(List<BuffSnapshot> results) => effects.GetSnapshots(results);
 
     public void ApplySlowDebuff(float duration, float moveSpeedMultiplier)
     {
@@ -126,6 +95,8 @@ public class PlayerBuffController : MonoBehaviour
             initialHealPercent = 0f,
             healPercentPerTick = 0f,
             moveSpeedMultiplier = Mathf.Clamp(moveSpeedMultiplier, 0.05f, 1f),
+            stackingPolicy = BuffStackingPolicy.ReplaceStronger,
+            strength = 1f - Mathf.Clamp(moveSpeedMultiplier, 0.05f, 1f),
             isDebuff = true,
             iconPointsDown = true,
             baseIndicatorColor = new Color(0.38f, 0.12f, 0.14f, 0.85f),
@@ -137,18 +108,7 @@ public class PlayerBuffController : MonoBehaviour
 
     public int GetActiveBuffs(List<BuffInstance> results)
     {
-        if (results == null)
-            return 0;
-
-        results.Clear();
-        for (int i = 0; i < activeBuffs.Count; i++)
-        {
-            BuffInstance instance = activeBuffs[i];
-            if (instance != null && instance.Definition != null && !instance.IsExpired())
-                results.Add(instance);
-        }
-
-        return results.Count;
+        return effects.GetActiveBuffs(results);
     }
 
     public bool TryGetBuffRemainingRatio(string buffId, out float ratio)
@@ -167,18 +127,18 @@ public class PlayerBuffController : MonoBehaviour
         return FindBuff(buffId) != null;
     }
 
-    private void ApplyTickHeal(BuffDefinition definition)
+    private void ExecuteTick(BuffSnapshot snapshot, GameObject source, int ticks)
     {
-        if (health == null || definition == null || definition.healPercentPerTick <= 0f)
-            return;
-
-        PlayerHealFeedback.ApplyHealPercent(health, definition.healPercentPerTick);
+        tickLifecycle = effects.LifecycleVersion;
+        tickSnapshot = snapshot;
+        if (tickIsCurrent == null) tickIsCurrent = IsTickLifetimeCurrent;
+        try { BuffEffectExecutor.ApplyTick(health, snapshot, source, ticks, HealWithFeedback, tickIsCurrent); }
+        finally { tickSnapshot = default; }
     }
 
-    private void NotifyBuffsChanged()
-    {
-        BuffsChanged?.Invoke();
-    }
+    private bool IsTickLifetimeCurrent()
+        => isActiveAndEnabled && tickLifecycle == effects.LifecycleVersion && health == subscribedHealth
+            && effects.IsCurrent(tickSnapshot);
 
     private void ShowBuffAppliedPopup(BuffDefinition definition)
     {
@@ -216,17 +176,29 @@ public class PlayerBuffController : MonoBehaviour
 
     private BuffInstance FindBuff(string buffId)
     {
-        if (string.IsNullOrWhiteSpace(buffId))
-            return null;
+        return effects.Find(buffId);
+    }
 
-        for (int i = 0; i < activeBuffs.Count; i++)
+    private void BindHealth()
+    {
+        if (!isActiveAndEnabled || ReferenceEquals(subscribedHealth, health)) return;
+        UnbindHealth();
+        // A replacement health component starts a new target lifetime.
+        effects.Clear();
+        subscribedHealth = health;
+        if (subscribedHealth == null) return;
+        subscribedHealth.OnDead += HandleDead;
+        subscribedHealth.OnReset += HandleReset;
+    }
+
+    private void UnbindHealth()
+    {
+        if (subscribedHealth != null)
         {
-            BuffInstance instance = activeBuffs[i];
-            if (instance != null && instance.BuffId == buffId)
-                return instance;
+            subscribedHealth.OnDead -= HandleDead;
+            subscribedHealth.OnReset -= HandleReset;
         }
-
-        return null;
+        subscribedHealth = null;
     }
 
     private void ResolveHealth()

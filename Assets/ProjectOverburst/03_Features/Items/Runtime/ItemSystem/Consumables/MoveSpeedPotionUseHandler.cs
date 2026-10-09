@@ -24,6 +24,9 @@ public sealed class MoveSpeedPotionUseHandler : IItemUseHandler
         if (context.PlayerBuffController == null)
             return ItemUseResult.Fail("Player buff controller was not found.");
 
+        if (context.PlayerHealth == null || context.PlayerHealth.IsDead || !context.PlayerBuffController.isActiveAndEnabled)
+            return ItemUseResult.Fail("아이템 사용 불가", true);
+
         if (context.IsCoolingDown)
             return ItemUseResult.Fail("아직 사용할 수 없습니다. 쿨타임 " + context.CooldownRemaining.ToString("0.0") + "초");
 
