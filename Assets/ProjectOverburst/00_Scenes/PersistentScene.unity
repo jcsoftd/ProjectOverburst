@@ -93452,9 +93452,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3907991303670df44a9a6a4a5fb8de5d, type: 2}
   - {fileID: 11400000, guid: bf736b65bf3a55747ac6d0aa75c7d67e, type: 2}
   smallHealPotion: {fileID: 11400000, guid: d34f3877df9b4a148ad8a21ac0aa7d5e, type: 2}
-  mediumHealPotion: {fileID: 0}
-  largeHealPotion: {fileID: 0}
-  extraLargeHealPotion: {fileID: 0}
+  mediumHealPotion: {fileID: 11400000, guid: b1c2d3e4f5a6470899aabbccddeeff01, type: 2}
+  largeHealPotion: {fileID: 11400000, guid: c2d3e4f5a6b7481099aabbccddeeff02, type: 2}
+  extraLargeHealPotion: {fileID: 11400000, guid: d3e4f5a6b7c8492099aabbccddeeff03, type: 2}
   permanentHealPotion: {fileID: 0}
   moveSpeedPotion: {fileID: 11400000, guid: 7d48fabb71e33e74d927ce7bef860d85, type: 2}
   generalGoodsMinStackTotal: 15
