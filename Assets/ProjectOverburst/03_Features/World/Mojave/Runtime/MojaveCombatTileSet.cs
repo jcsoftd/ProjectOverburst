@@ -44,7 +44,7 @@ namespace Overburst.Mojave
         public void DressTrailSides(MojaveWorld world)
         {
             trailSidePlacementCount=0;
-            if(rules==null||rules.Length==0)return;
+            if(world.refinedRoads||rules==null||rules.Length==0)return;
             var parent=new GameObject("Trail shoulders · broken stone and scrub colonies").transform;
             parent.SetParent(world.generatedRoot,false);
             var random=new System.Random(world.seed^0x4172);
@@ -72,24 +72,6 @@ namespace Overburst.Mojave
                 foreach(var collider in go.GetComponentsInChildren<Collider>(true))collider.enabled=false;
                 foreach(var lod in go.GetComponentsInChildren<LODGroup>(true))lod.fadeMode=LODFadeMode.None;
                 trailSidePlacementCount++;
-            }
-            if(world.refinedRoads) {
-                // Fine debris belongs to the rock colonies; it must not create a second continuous bank.
-                foreach(var mass in world.shoulderMasses) {
-                    var outline=mass.rockOutline;if(outline==null||outline.Length<3)continue;
-                    var center=new Vector2(mass.position.x,mass.position.z);
-                    int count=random.Next(1,4);
-                    var edge=outline[random.Next(outline.Length)];
-                    var outward=(edge-center).normalized;
-                    var colony=edge+outward*Range(1.4f,3.5f);
-                    for(int k=0;k<count;k++) {
-                        var p=colony+new Vector2(Range(-1.5f,1.5f),Range(-1.5f,1.5f));
-                        if(random.NextDouble()<.6)Add(Pick(world.catalog.stones),p,Range(.3f,1.1f),-.09f);
-                        if(random.NextDouble()<.5)Add(Pick(world.catalog.rubble),p+outward*Range(.3f,1.3f),Range(.08f,.18f),-.03f);
-                        if(random.NextDouble()<.35)Add(Pick(world.catalog.shrubs),p-outward*Range(.2f,1.0f),Range(.4f,.85f),-.02f);
-                    }
-                }
-                return;
             }
             foreach(var trail in world.layout.trails) {
                 float next=mixedSizes?Range(8,12):Range(4,7),travelled=0;
@@ -123,7 +105,7 @@ namespace Overburst.Mojave
 
         public void RoundSurface(MojaveWorld world,float[,] heights)
         {
-            if(rules==null||rules.Length==0)return;
+            if(world.refinedRoads||rules==null||rules.Length==0)return;
             int n=heights.GetLength(0);float step=world.MapSize/(n-1);float sigma=2.3f/step;int radius=Mathf.CeilToInt(sigma*3);
             var kernel=new float[radius*2+1];float sum=0;
             for(int k=-radius;k<=radius;k++){kernel[k+radius]=Mathf.Exp(-k*k/(2*sigma*sigma));sum+=kernel[k+radius];}

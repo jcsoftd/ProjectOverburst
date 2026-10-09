@@ -85,18 +85,23 @@ namespace Overburst.Mojave
             const float cell=2;
             float half=world.MapSize*.5f;int width=Mathf.CeilToInt(world.MapSize/cell);
             var available=new bool[width*width];
+            var playAvailable=new bool[width*width];
+            var occupiedRocks=new List<Vector2[]>();
             for(int z=0;z<width;z++)for(int x=0;x<width;x++) {
                 var p=new Vector2((x+.5f)*cell-half,(z+.5f)*cell-half);
                 available[z*width+x]=Mathf.Abs(p.x)<half-5&&Mathf.Abs(p.y)<half-5&&world.PlayDistance(p)>(outlined?1.25f:6);
             }
-            bool Available(Vector2 p,out int index) {
+            Array.Copy(available,playAvailable,available.Length);
+            bool Available(Vector2 p,bool compact,out int index) {
                 int x=Mathf.FloorToInt((p.x+half)/cell),z=Mathf.FloorToInt((p.y+half)/cell);index=z*width+x;
-                return x>=0&&x<width&&z>=0&&z<width&&available[index];
+                return x>=0&&x<width&&z>=0&&z<width&&(compact?playAvailable[index]:available[index]);
             }
             foreach(var tile in library.tiles.OrderBy(t=>!library.useAllNaturalCandidates&&(t.name.StartsWith("02_")||t.name.StartsWith("07_")||t.name.StartsWith("13_"))?1:0)
                 .ThenBy(t=>t.placements.Any(a=>a.kind==MojavePropKind.Boulder&&a.height>=4)?0:1).ThenByDescending(t=>t.SurfaceSize.x*t.SurfaceSize.y)) {
                 if(fillLibrary!=null&&!library.useAllNaturalCandidates&&tile.name!="01_Long_Ridge"&&tile.name!="03_Northern_Chain"&&tile.name!="04_Rock_Valley"&&tile.name!="05_Vertical_Ridge"&&tile.name!="08_Rock_Hollow")continue;
                 var points=new List<Vector2>();var extent=tile.SurfaceSize;
+                bool compact=world.refinedRoads&&library.useAllNaturalCandidates&&outlined&&extent.x*extent.y<1500;
+                var outlines=tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3).Select(a=>a.rockOutline).ToArray();
                 float gap=1.25f+Mathf.Clamp((tile.heights.Max()-tile.heights.Min())*.10f,0,1.25f);
                 var corePoints=new List<Vector2>();
                 for(float z=-extent.y*.5f+2;z<extent.y*.5f;z+=4)for(float x=-extent.x*.5f+2;x<extent.x*.5f;x+=4)
@@ -105,7 +110,7 @@ namespace Overburst.Mojave
                 // Trimmed ground already includes the rock footing; do not expand it back into a bounding square.
                 for(float z=-extent.y*.5f+cell*.5f;z<extent.y*.5f;z+=cell)
                     for(float x=-extent.x*.5f+cell*.5f;x<extent.x*.5f;x+=cell)
-                        if(outlined?tile.Footprint(new Vector2(x,z))>.05f:tile.Core(new Vector2(x,z))>.2f)points.Add(new Vector2(x,z));
+                        if(!compact&&(outlined?tile.Footprint(new Vector2(x,z))>.05f:tile.Core(new Vector2(x,z))>.2f))points.Add(new Vector2(x,z));
                 if(outlined)foreach(var rock in tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3))
                     points.AddRange(MojavePatch.OutlineSamples(rock.rockOutline));
                 if(points.Count==0)throw new InvalidOperationException("Empty natural footprint: "+tile.name);
@@ -119,13 +124,13 @@ namespace Overburst.Mojave
                     for(float x=-half+7+pass*step*.5f;x<half-7;x+=step)
                         centers.Add(new Vector2(x,z)+new Vector2((float)rng.NextDouble()-.5f,(float)rng.NextDouble()-.5f)*step*.18f);
                 for(int i=centers.Count-1;i>0;i--){int j=rng.Next(i+1);var p=centers[i];centers[i]=centers[j];centers[j]=p;}
-                if(tile.placements.Any(a=>a.kind==MojavePropKind.Boulder&&a.height>=4))centers=centers.OrderByDescending(p=>world.PlayDistance(p)).ToList();
+                if(!compact&&tile.placements.Any(a=>a.kind==MojavePropKind.Boulder&&a.height>=4))centers=centers.OrderByDescending(p=>world.PlayDistance(p)).ToList();
                 foreach(var center in centers)for(int turn=0,offset=rng.Next(12);turn<12;turn++) {
                     if(accepted>=limit)break;
                     var stamp=new Stamp{tile=tile,center=center,yaw=((turn+offset)%12)*30,connectionPadding=gap};
                     var cells=new HashSet<int>();bool fits=true;
                     foreach(var point in points) {
-                        if(!Available(stamp.World(point),out int index)){fits=false;break;}
+                        if(!Available(stamp.World(point),compact,out int index)){fits=false;break;}
                         cells.Add(index);
                     }
                     if(!fits)continue;
@@ -134,21 +139,44 @@ namespace Overburst.Mojave
                         var p=stamp.World(new Vector2(a.position.x,a.position.z));
                         float radius=a.radius+gap;
                         for(float z=-radius;z<=radius;z+=cell)for(float x=-radius;x<=radius;x+=cell) {
-                            if(!Available(p+new Vector2(x,z),out int index)){fits=false;break;}
+                            if(!Available(p+new Vector2(x,z),false,out int index)){fits=false;break;}
                             cells.Add(index);
                         }
                         if(!fits)break;
                     }
                     if(!fits)continue;
+                    // Small pieces share their sand skirts. Only substantial intersections of real rock outlines reject a placement.
+                    Vector2[][] placedOutlines=null;
+                    if(compact) {
+                        placedOutlines=outlines.Select(o=>o.Select(stamp.World).ToArray()).ToArray();
+                        if(placedOutlines.Any(a=>occupiedRocks.Any(b=>RockOverlap(a,b,.25f))))continue;
+                    }
                     // The coarse occupancy grid is only a broad phase; confirm the actual rock outline against the curved play boundary.
                     if(library.useAllNaturalCandidates&&outlined&&tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3)
                         .Any(a=>MojavePatch.OutlineSamples(a.rockOutline,.5f).Any(q=>world.PlayDistance(stamp.World(q))<.4f)))continue;
                     stamp.groundHeight=Mathf.Max(corePoints.Average(q=>world.PlannedBackgroundHeight(stamp.World(q))-tile.Height(q)),
                         corePoints.Max(q=>world.NearbyPlayHeight(stamp.World(q))+(world.terrainFinish?3.5f:7)-tile.Height(q)));
                     stamps.Add(stamp);accepted++;foreach(int index in cells)available[index]=false;
+                    occupiedRocks.AddRange(placedOutlines??outlines.Select(o=>o.Select(stamp.World).ToArray()));
                     break;
                 }
             }
+        }
+        // Convex LOD0 outlines may touch or overlap shallowly; empty tile terrain is not a solid.
+        public static bool RockOverlap(Vector2[] a,Vector2[] b,float allowed)
+        {
+            bool Separated(Vector2[] edges) {
+                for(int i=0;i<edges.Length;i++) {
+                    var d=edges[(i+1)%edges.Length]-edges[i];if(d.sqrMagnitude<.00001f)continue;
+                    var axis=new Vector2(-d.y,d.x).normalized;
+                    float a0=float.PositiveInfinity,a1=float.NegativeInfinity,b0=a0,b1=a1;
+                    foreach(var p in a){float v=Vector2.Dot(p,axis);a0=Mathf.Min(a0,v);a1=Mathf.Max(a1,v);}
+                    foreach(var p in b){float v=Vector2.Dot(p,axis);b0=Mathf.Min(b0,v);b1=Mathf.Max(b1,v);}
+                    if(Mathf.Min(a1,b1)-Mathf.Max(a0,b0)<=allowed)return true;
+                }
+                return false;
+            }
+            return !Separated(a)&&!Separated(b);
         }
         bool FitsBesideColony(MojaveWorld world,Vector2 p,float radius)
         {

@@ -27,6 +27,7 @@ namespace Overburst.Mojave
         [NonSerialized] public List<Bounds> shoulderFootprints=new List<Bounds>();
         public int groundedPropCount;
         public int conformedMeshCount;
+        public int overlappingPropCount;
         readonly List<Mesh> groundMeshes=new List<Mesh>();
         public void OwnGroundMesh(Mesh mesh)=>groundMeshes.Add(mesh);
         void ReleaseGroundMeshes(){foreach(var mesh in groundMeshes)if(mesh!=null)DestroyOwned(mesh);groundMeshes.Clear();}
@@ -416,6 +417,7 @@ namespace Overburst.Mojave
 
         void DressRidges()
         {
+            if(refinedRoads)return;
             var parent=new GameObject("Rock shoulders and sandstone ridges").transform;parent.SetParent(generatedRoot,false);
             var backdrops=GetComponent<MojaveBackdropSet>();
             // Irregular rock shoulders border connected play space; openings follow the graph rather than a grid.
@@ -444,7 +446,7 @@ namespace Overburst.Mojave
         {
             var parent=new GameObject("Arroyo banks · stones and weathered rubble").transform;parent.SetParent(generatedRoot,false);
             bool mixed=GetComponent<MojaveCombatTileSet>()?.mixedSizes==true;
-            // Refined roads already dress colony edges; the legacy paired rubble row would repeat their border.
+            // Refined roads use authored background pieces instead of an independent paired stone border.
             if(!refinedRoads)foreach(var trail in layout.trails)for(int i=2;i<trail.points.Length-2;i+=mixed?4:2) {
                 var d=(trail.points[i+1]-trail.points[i-1]).normalized;var normal=new Vector2(-d.y,d.x);
                 for(int side=-1;side<=1;side+=2) {

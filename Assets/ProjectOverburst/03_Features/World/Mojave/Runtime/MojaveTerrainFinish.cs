@@ -101,7 +101,7 @@ namespace Overburst.Mojave
         public static void PlanShoulders(MojaveWorld world)
         {
             world.shoulderMasses.Clear();world.shoulderFootprints.Clear();
-            if(world.refinedRoads){PlanRoadsideColonies(world);return;}
+            if(world.refinedRoads)return;
             var prefabs=world.catalog.boulders.Where(p=>p.name.Contains("RockAssemble")).ToArray();
             if(prefabs.Length==0)throw new InvalidOperationException("Mojave rock assemblies are required for natural shoulder masses.");
             var occupied=new List<Bounds>();
@@ -168,87 +168,9 @@ namespace Overburst.Mojave
             }
             return true;
         }
-        static void PlanRoadsideColonies(MojaveWorld world)
-        {
-            var prefabs=world.catalog.boulders.Where(p=>p.name.Contains("RockAssemble")).ToArray();
-            var outlines=new Dictionary<GameObject,Vector2[]>();var bounds=new Dictionary<GameObject,Bounds>();
-            Vector2[] Outline(GameObject prefab) {
-                if(outlines.TryGetValue(prefab,out var result))return result;
-                var points=new List<Vector2>();var lod=prefab.GetComponent<LODGroup>();
-                var renderers=lod!=null?lod.GetLODs()[0].renderers:prefab.GetComponentsInChildren<Renderer>(true);
-                foreach(var renderer in renderers) {
-                    if(renderer==null)continue;var mf=renderer.GetComponent<MeshFilter>();if(mf==null||mf.sharedMesh==null)continue;
-                    foreach(var v in Vertices(mf.sharedMesh)) {var q=mf.transform.TransformPoint(v)-prefab.transform.position;points.Add(new Vector2(q.x,q.z));}
-                }
-                bounds[prefab]=BoundsOf(prefab);outlines[prefab]=result=Hull(points);return result;
-            }
-            Vector2[] Placed(MojavePlacement a) {
-                var matrix=Matrix4x4.TRS(a.position,a.rotation,a.scale);
-                return Outline(a.prefab).Select(v=>{var p=matrix.MultiplyPoint3x4(new Vector3(v.x,0,v.y));return new Vector2(p.x,p.z);}).ToArray();
-            }
-            var occupied=new List<Vector2[]>();
-            var backdrops=world.GetComponent<MojaveBackdropSet>();
-            foreach(var stamp in backdrops.stamps)foreach(var a in backdrops.NaturalPlacements(world,stamp)) {
-                if(a.kind!=MojavePropKind.Boulder||a.height<1.4f||MojaveWorld.IsLooseStoneName(a.prefab.name))continue;
-                if(a.rockOutline!=null&&a.rockOutline.Length>=3)occupied.Add(a.rockOutline.Select(stamp.World).ToArray());
-                else {var p=stamp.World(new Vector2(a.position.x,a.position.z));var placed=a;placed.position=new Vector3(p.x,0,p.y);placed.rotation=backdrops.PlacementRotation(stamp,a.rotation);occupied.Add(Placed(placed));}
-            }
-            foreach(var place in world.layout.places)foreach(var source in world.catalog.patches[place.patch].placements) {
-                if(source.kind!=MojavePropKind.Boulder||source.height<1.4f||MojaveWorld.IsLooseStoneName(source.prefab.name))continue;
-                var p=place.World(new Vector2(source.position.x,source.position.z));
-                if(world.layout.RoomDistance(p,out _)>20||world.TrailDistance(p,out _,out _)<source.radius+.7f)continue;
-                var a=source;a.position=new Vector3(p.x,0,p.y);a.rotation=Quaternion.Euler(0,-place.rotation,0)*a.rotation;occupied.Add(Placed(a));
-            }
-            var random=new System.Random(world.seed^0x6159);
-            float Range(float a,float b)=>Mathf.Lerp(a,b,(float)random.NextDouble());
-            if(prefabs.Length==0)throw new InvalidOperationException("Mojave rock assemblies are required for roadside colonies.");
-            var stations=new List<(Vector2 point,Vector2 normal,float width,float clearance,float yaw)>();
-            // Each bank has its own colony centres; companions gather around an anchor instead of a paired row.
-            foreach(var trail in world.layout.trails)for(int side=-1;side<=1;side+=2) {
-                float next=Range(5,18),walked=0;
-                for(int i=0;i<trail.points.Length-1;i++) {
-                    var delta=trail.points[i+1]-trail.points[i];float length=delta.magnitude;if(length<.01f)continue;
-                    var tangent=delta/length;var normal=new Vector2(-tangent.y,tangent.x)*side;
-                    while(next<walked+length) {
-                        var p=trail.points[i]+tangent*(next-walked);
-                        if(world.layout.RoomDistance(p,out _)>3) {
-                            float width=Range(8.5f,13.5f),yaw=Range(0,360);
-                            stations.Add((p,normal,width,Range(.2f,1.8f),yaw));
-                            int companions=random.Next(1,4);
-                            for(int k=0;k<companions;k++) {
-                                float along=Range(3.5f,11f)*(random.Next(2)==0?-1:1);
-                                stations.Add((p+tangent*along,normal,width*Range(.42f,.78f),Range(.15f,3.6f),yaw+Range(-40,40)));
-                            }
-                        }
-                        next+=Range(17f,34f);
-                    }
-                    walked+=length;
-                }
-            }
-            // Fit the largest individual footprints first, retaining irregular sizes and edge setbacks.
-            foreach(var station in stations.OrderByDescending(s=>s.width)) {
-                if(world.shoulderMasses.Count>=world.layout.places.Count*10)break;
-                float edge=0;while(edge<20&&world.PlayDistance(station.point+station.normal*edge)<.55f)edge+=.5f;
-                if(edge>=20)continue;
-                for(int attempt=0;attempt<3;attempt++) {
-                    var prefab=prefabs[random.Next(prefabs.Length)];var shape=Outline(prefab);var source=bounds[prefab];
-                    float scale=Mathf.Clamp(station.width/Mathf.Max(source.size.x,source.size.z),.3f,1);
-                    var rotation=Quaternion.Euler(0,station.yaw+Range(-15,15),0);
-                    var transformed=shape.Select(v=>{var q=rotation*new Vector3(v.x*scale,0,v.y*scale);return new Vector2(q.x,q.z);}).ToArray();
-                    float inward=transformed.Min(v=>Vector2.Dot(v,station.normal));
-                    var p=station.point+station.normal*(edge-inward+station.clearance);
-                    var hull=transformed.Select(v=>v+p).ToArray();
-                    if(hull.Any(v=>Mathf.Abs(v.x)>world.MapSize*.5f-5||Mathf.Abs(v.y)>world.MapSize*.5f-5))continue;
-                    if(MojavePatch.OutlineSamples(hull,.6f).Any(v=>world.PlayDistance(v)<.5f))continue;
-                    if(occupied.Any(other=>Overlap(hull,other)))continue;
-                    var a=new MojavePlacement{prefab=prefab,position=new Vector3(p.x,0,p.y),rotation=rotation,scale=Vector3.one*scale,kind=MojavePropKind.Boulder,height=source.size.y*scale,rockOutline=hull};
-                    var b=PlacementBounds(a);a.radius=new Vector2(b.extents.x,b.extents.z).magnitude;
-                    world.shoulderMasses.Add(a);world.shoulderFootprints.Add(b);occupied.Add(hull);break;
-                }
-            }
-        }
         public static void DressShoulders(MojaveWorld world)
         {
+            world.shoulderMassCount=0;if(world.refinedRoads)return;
             var parent=new GameObject("Road boundary · large first, then small").transform;parent.SetParent(world.generatedRoot,false);
             world.shoulderMassCount=0;
             foreach(var a in world.shoulderMasses) {
@@ -325,13 +247,43 @@ namespace Overburst.Mojave
         }
         public static void GroundProps(MojaveWorld world,Func<GameObject,bool> include=null)
         {
-            world.groundedPropCount=world.conformedMeshCount=0;
+            world.groundedPropCount=world.conformedMeshCount=world.overlappingPropCount=0;
             var cache=new Dictionary<Mesh,Vector3[]>();
             // Source geometry is shared; terrain contact remains specific to each instance.
             var samples=new Dictionary<Mesh,Vector3[]>();var islandCache=new Dictionary<Mesh,int[]>();
             var backdrops=world.GetComponent<MojaveBackdropSet>();
             bool preservePlayBoundary=backdrops!=null&&backdrops.library!=null&&backdrops.library.useAllNaturalCandidates;
-            foreach(var go in PropRoots(world)) {
+            bool Rock(GameObject g)=>g.name.Contains("Rock")||g.name.Contains("Stone")||g.name.Contains("Boulder");
+            // Ground larger solid forms first. Later small props cannot claim space inside their bodies.
+            var solids=new List<(Bounds bounds,Vector2[] outline)>();
+            var solidCells=new Dictionary<Vector2Int,List<int>>();
+            var partCache=new Dictionary<Mesh,Vector3[][]>();
+            Vector2Int Cell(Vector3 p)=>new Vector2Int(Mathf.FloorToInt(p.x/8),Mathf.FloorToInt(p.z/8));
+            void AddSolid(Bounds bounds,Vector2[] outline) {
+                int index=solids.Count;solids.Add((bounds,outline));var min=Cell(bounds.min);var max=Cell(bounds.max);
+                for(int z=min.y;z<=max.y;z++)for(int x=min.x;x<=max.x;x++) {
+                    var key=new Vector2Int(x,z);if(!solidCells.TryGetValue(key,out var list))solidCells[key]=list=new List<int>();list.Add(index);
+                }
+            }
+            void AddRock(GameObject go) {
+                var lod=go.GetComponent<LODGroup>();
+                foreach(var renderer in lod!=null?lod.GetLODs()[0].renderers:go.GetComponentsInChildren<Renderer>(true)) {
+                    if(renderer==null)continue;var filter=renderer.GetComponent<MeshFilter>();if(filter==null||filter.sharedMesh==null)continue;
+                    var mesh=filter.sharedMesh;
+                    if(!partCache.TryGetValue(mesh,out var parts)) {
+                        if(!cache.TryGetValue(mesh,out var vertices))cache[mesh]=vertices=Vertices(mesh);
+                        if(!islandCache.TryGetValue(mesh,out var islands))islandCache[mesh]=islands=MeshIslands(mesh,vertices);
+                        parts=Enumerable.Range(0,vertices.Length).GroupBy(i=>islands[i]).Select(g=>g.Select(i=>vertices[i]).ToArray()).ToArray();partCache[mesh]=parts;
+                    }
+                    foreach(var part in parts) {
+                        if(part.Length<4)continue;
+                        var points=new List<Vector2>();var bounds=new Bounds(filter.transform.TransformPoint(part[0]),Vector3.zero);
+                        foreach(var v in part){var q=filter.transform.TransformPoint(v);bounds.Encapsulate(q);points.Add(new Vector2(q.x,q.z));}
+                        var hull=Hull(points);if(hull.Length>=3&&bounds.size.y>.15f)AddSolid(bounds,hull);
+                    }
+                }
+            }
+            foreach(var go in PropRoots(world).OrderByDescending(Rock).ThenByDescending(g=>{var b=BoundsOf(g);return b.size.x*b.size.y*b.size.z;})) {
                 if(include!=null&&!include(go))continue;
                 if(go.GetComponentsInChildren<Renderer>(true).Length==0)continue;
                 var b=BoundsOf(go);var p=new Vector2(b.center.x,b.center.z);
@@ -376,6 +328,31 @@ namespace Overburst.Mojave
                         gap=Mathf.Max(gap,q.y-world.Ground(new Vector2(q.x,q.z)).y);
                     }
                     go.transform.position-=Vector3.up*(gap+(rock?.10f:.035f));
+                }
+                if(world.refinedRoads&&!rubble) {
+                    if(rock)AddRock(go);
+                    else {
+                        // Inspect the actual lowest stem points, allowing foliage and shallow edge contact.
+                        var feet=Feet(go,cache,samples);var basePoints=feet.Select(f=>f.transform.TransformPoint(f.point)).ToArray();
+                        if(basePoints.Length>0) {
+                            float bottom=basePoints.Min(q=>q.y);var roots=basePoints.Where(q=>q.y<bottom+.06f).ToArray();
+                            var root=roots.Aggregate(Vector3.zero,(sum,q)=>sum+q)/roots.Length;
+                            bool buried=false;
+                            if(solidCells.TryGetValue(Cell(root),out var list))foreach(int index in list) {
+                                var solid=solids[index];
+                                if(root.y+.25f<solid.bounds.min.y||root.y>solid.bounds.max.y-.05f)continue;
+                                if(MojavePatch.OutlineDistance(solid.outline,new Vector2(root.x,root.z))<-.18f){buried=true;break;}
+                            }
+                            if(buried) {
+                                go.SetActive(false);if(Application.isPlaying)UnityEngine.Object.Destroy(go);else UnityEngine.Object.DestroyImmediate(go);
+                                world.overlappingPropCount++;continue;
+                            }
+                            // Trunks share the same large-first rule; overlapping crowns remain natural.
+                            var contact=BoundsOf(go);float radius=Mathf.Clamp(Mathf.Min(contact.size.x,contact.size.z)*.10f,.08f,.3f);
+                            var hull=Enumerable.Range(0,8).Select(i=>new Vector2(root.x,root.z)+new Vector2(Mathf.Cos(i*Mathf.PI*.25f),Mathf.Sin(i*Mathf.PI*.25f))*radius).ToArray();
+                            AddSolid(new Bounds(root+Vector3.up*.4f,new Vector3(radius*2,.8f,radius*2)),hull);
+                        }
+                    }
                 }
                 foreach(var lod in go.GetComponentsInChildren<LODGroup>(true))lod.RecalculateBounds();
                 world.groundedPropCount++;
