@@ -19,6 +19,7 @@ public static class DpsMeterDebugModule
     private static readonly Queue<(float time, float damage)> window = new Queue<(float time, float damage)>();
     private static readonly HashSet<CombatHealth> hitTargets = new HashSet<CombatHealth>();
     private static EnemySpawnService spawnService;
+    private static DpsMeterRunner runner;
     private static int dummyCount = 1;
     private static DummyTier tier = DummyTier.Medium;
     private static float firstHit = -1f;
@@ -34,6 +35,7 @@ public static class DpsMeterDebugModule
     {
         dummies.Clear();
         spawnService = null;
+        runner = null;
         dummyCount = 1;
         tier = DummyTier.Medium;
         ResetMeasure();
@@ -111,6 +113,8 @@ public static class DpsMeterDebugModule
             forward = Vector3.forward;
         forward.Normalize();
         Vector3 center = player.position + forward * (dummyCount == 1 ? 4f : 6f);
+        EnsureRunner();
+        if (runner == null) return DebugResult.Fail("DPS 실행기를 찾지 못했어요");
         for (int i = 0; i < dummyCount; i++)
         {
             Vector3 at = center;
@@ -128,11 +132,11 @@ public static class DpsMeterDebugModule
                 actor.AI.enabled = false;
             actor.Movement?.StopMovement();
             actor.Health.SetMaxHp(DummyHp, true);
+            actor.Health.SetDamageDeathPrevention(runner, true);
             actor.Health.OnDamageResolved += Record;
             dummies.Add(actor);
         }
         ResetMeasure();
-        EnsureRunner();
         return dummies.Count == dummyCount
             ? DebugResult.Ok($"{definition.DisplayName} {dummies.Count}마리")
             : DebugResult.Fail($"{dummies.Count}/{dummyCount}마리만 소환했어요(자리 부족 등)");
@@ -146,7 +150,10 @@ public static class DpsMeterDebugModule
             if (dummy == null)
                 continue;
             if (dummy.Health != null)
+            {
                 dummy.Health.OnDamageResolved -= Record;
+                dummy.Health.SetDamageDeathPrevention(runner, false);
+            }
             if (dummy.IsLeased && spawnService != null)
             {
                 spawnService.Release(dummy);
@@ -191,13 +198,16 @@ public static class DpsMeterDebugModule
             crits++;
         window.Enqueue((now, actual));
         hitTargets.Add(health);
-        // 죽지 않게 체력을 되채운다(최대 체력의 20% 아래면).
-        if (health.CurrentHp < health.MaxHp * 0.2f)
-            health.ResetHealth();
+
     }
 
     internal static void Tick()
     {
+        // 피해 후속 효과가 실피해를 읽은 뒤 허수아비 체력을 되채운다.
+        foreach (EnemyActor dummy in dummies)
+            if (dummy != null && dummy.IsLeased && dummy.Health != null
+                && dummy.Health.CurrentHp < dummy.Health.MaxHp * 0.2f)
+                dummy.Health.ResetHealth();
         float now = Time.unscaledTime;
         while (window.Count > 0 && now - window.Peek().time > 1f)
             window.Dequeue();
@@ -256,8 +266,8 @@ public static class DpsMeterDebugModule
     private static void EnsureRunner()
     {
         GameObject host = DebugHub.Host;
-        if (host != null && !host.TryGetComponent(out DpsMeterRunner _))
-            host.AddComponent<DpsMeterRunner>();
+        if (host != null)
+            runner = host.GetComponent<DpsMeterRunner>() ?? host.AddComponent<DpsMeterRunner>();
     }
 
     internal static void Shutdown() => Despawn();
