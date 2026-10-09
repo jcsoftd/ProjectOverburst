@@ -16765,63 +16765,6 @@ Transform:
   - {fileID: 747198124}
   m_Father: {fileID: 1019409664}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &573397300
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.4000001
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.02
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -2.7000003
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3013093431127921529, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4398467502530856090, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
-      propertyPath: m_Name
-      value: OIIA Spinning Cat
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 135c0df5180e02343bc2e8ab94b9f557, type: 3}
 --- !u!1001 &575730412
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -58540,6 +58483,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2208167679152417052, guid: 408c9e7196e883a40bcac876f8545094, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4284919249
+      objectReference: {fileID: 0}
+    - target: {fileID: 2208167679152417052, guid: 408c9e7196e883a40bcac876f8545094, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 8100277672094501790, guid: 408c9e7196e883a40bcac876f8545094, type: 3}
       propertyPath: m_Name
       value: Appearance Stylist
@@ -73302,5 +73253,4 @@ SceneRoots:
   - {fileID: 2062768433}
   - {fileID: 1019409664}
   - {fileID: 1359363749}
-  - {fileID: 573397300}
   - {fileID: 1877645746}
