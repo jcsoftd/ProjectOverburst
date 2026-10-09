@@ -34,6 +34,7 @@ public class InventoryContextMenuController : MonoBehaviour
     private InventoryQuickSlotBindingController quickSlots;
     private TMP_FontAsset fontAsset;
     private SlotUI selectedSlot;
+    private ItemData selectedItem;
     private int selectedWeaponSlotIndex = -1;
     private Vector2 lastScreenPosition;
     private float currentMenuWidth = MinMenuWidth;
@@ -81,6 +82,7 @@ public class InventoryContextMenuController : MonoBehaviour
             return;
 
         selectedSlot = slot;
+        selectedItem = slot.DisplayItem;
         selectedWeaponSlotIndex = -1;
         lastScreenPosition = eventData != null ? eventData.position : Vector2.zero;
         selectionController?.Select(slot);
@@ -109,6 +111,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
         ClearMenu();
         selectedSlot = null;
+        selectedItem = null;
         selectedWeaponSlotIndex = -1;
         selectionController?.Clear();
         tooltipManager?.SetSuppressed(false);
@@ -125,6 +128,7 @@ public class InventoryContextMenuController : MonoBehaviour
             return;
 
         selectedSlot = slot;
+        selectedItem = weapon;
         selectedWeaponSlotIndex = weaponSlotIndex;
         lastScreenPosition = eventData != null ? eventData.position : Vector2.zero;
 
@@ -482,6 +486,16 @@ public class InventoryContextMenuController : MonoBehaviour
             && splitCancelButton != null;
     }
 
+    private bool ValidateSelectedItem()
+    {
+        ItemData current = selectedWeaponSlotIndex >= 0
+            ? actionService?.GetWeaponSlotItem(selectedWeaponSlotIndex)
+            : selectedSlot?.DisplayItem;
+        if (current != null && current.IsSameRuntimeItem(selectedItem)) return true;
+        Close();
+        return false;
+    }
+
     private void AddObjectizedButton(string label, bool interactable, Action action)
     {
         if (menuButtons == null || objectizedButtonIndex >= menuButtons.Length)
@@ -499,7 +513,7 @@ public class InventoryContextMenuController : MonoBehaviour
         button.interactable = interactable;
         button.onClick.RemoveAllListeners();
         if (interactable && action != null)
-            button.onClick.AddListener(() => action.Invoke());
+            button.onClick.AddListener(() => { if (ValidateSelectedItem()) action.Invoke(); });
 
         SetButtonText(button, label);
     }
@@ -599,7 +613,7 @@ public class InventoryContextMenuController : MonoBehaviour
 
     private void ConfirmObjectizedSplit()
     {
-        SplitSelectedStack(splitAmountInput);
+        if (ValidateSelectedItem()) SplitSelectedStack(splitAmountInput);
     }
 
     private void AddButton(string label, bool interactable, Action action)
