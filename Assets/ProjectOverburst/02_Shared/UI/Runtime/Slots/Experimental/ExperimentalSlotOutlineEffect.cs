@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class ExperimentalSlotOutlineEffect : MonoBehaviour
 {
     private static readonly int ColorId = Shader.PropertyToID("_Color");
+    private static readonly int HighlightTintId = Shader.PropertyToID("_HighlightTint");
     private static readonly int OutlineThicknessId = Shader.PropertyToID("_OutlineThickness");
     private static readonly int GlowIntensityId = Shader.PropertyToID("_GlowIntensity");
     private static readonly int GlowSizeId = Shader.PropertyToID("_GlowSize");
@@ -37,10 +38,12 @@ public class ExperimentalSlotOutlineEffect : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float alpha = 1f;
 
     private Material runtimeMaterial;
+    private float highlightTint;
 
-    public void SetGradeColor(Color color)
+    public void SetGradeColor(Color color, bool tintHighlights = false)
     {
         gradeColor = color;
+        highlightTint = tintHighlights ? 0.65f : 0f;
         ApplyProperties();
     }
 
@@ -182,6 +185,7 @@ public class ExperimentalSlotOutlineEffect : MonoBehaviour
             return;
 
         runtimeMaterial.SetColor(ColorId, gradeColor);
+        runtimeMaterial.SetFloat(HighlightTintId, highlightTint);
         runtimeMaterial.SetFloat(OutlineThicknessId, outlineThickness);
         runtimeMaterial.SetFloat(GlowIntensityId, glowIntensity);
         runtimeMaterial.SetFloat(GlowSizeId, glowSize);

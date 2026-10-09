@@ -370,7 +370,7 @@ public class SlotGradeEffect : MonoBehaviour // 등급 연출
         ExperimentalSlotOutlineMode selectedMode = ExperimentalSlotOutlineModeState.CurrentMode;
         ExperimentalSlotOutlineMode shaderMode = ResolveExperimentalShaderMode(grade, selectedMode);
 
-        experimentalOutline.SetGradeColor(gradeColor);
+        experimentalOutline.SetGradeColor(gradeColor, grade == ItemGrade.Epic);
         experimentalOutline.SetCircleShape(useCircleOutline);
         experimentalOutline.SetMode(shaderMode);
         experimentalOutline.SetIntensity(

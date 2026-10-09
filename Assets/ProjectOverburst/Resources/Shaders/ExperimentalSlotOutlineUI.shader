@@ -4,6 +4,7 @@
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Color", Color) = (1, 0.45, 0.1, 1)
+        _HighlightTint ("Highlight Grade Tint", Range(0, 1)) = 0
         _OutlineThickness ("Outline Thickness", Range(0.001, 0.5)) = 0.035
         _GlowIntensity ("Glow Intensity", Range(0, 8)) = 3.5
         _GlowSize ("Glow Size", Range(0, 0.5)) = 0.055
@@ -85,6 +86,7 @@
 
             sampler2D _MainTex;
             fixed4 _Color;
+            float _HighlightTint;
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float _OutlineThickness;
@@ -410,6 +412,12 @@
                 #ifdef UNITY_UI_ALPHACLIP
                 clip(alpha - 0.001);
                 #endif
+
+                if (_HighlightTint > 0.0)
+                {
+                    float3 gradeTint = IN.color.rgb / max(max(IN.color.r, IN.color.g), max(IN.color.b, 0.001));
+                    color = min(color, 1.0 / max(alpha, 0.001)) * lerp(float3(1.0, 1.0, 1.0), gradeTint, _HighlightTint);
+                }
 
                 return fixed4(color, alpha);
             }
