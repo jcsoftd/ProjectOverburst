@@ -196,3 +196,12 @@ Assets/StreamingAssets/aa/
 
 # Licensed Mojave terrain editing dependency; restored from private migration snapshot.
 /Packages/com.jbooth.microverse/
+
+# CAVE_MAIN_MIGRATION_20261010:BEGIN
+/Assets/ProjectOverburst/04_Contents/World/Caves/
+/Assets/ProjectOverburst/04_Contents/World/Caves.meta
+/Assets/ProjectOverburst/00_Scenes/World/Caves/
+/Assets/ProjectOverburst/00_Scenes/World/Caves.meta
+/Assets/ProjectOverburst/05_Art/Environment/Caves/
+/Assets/ProjectOverburst/05_Art/Environment/Caves.meta
+# CAVE_MAIN_MIGRATION_20261010:END
