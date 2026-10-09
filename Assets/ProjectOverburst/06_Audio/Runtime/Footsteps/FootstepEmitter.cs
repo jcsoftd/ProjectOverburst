@@ -167,6 +167,7 @@ public sealed class FootstepEmitter : MonoBehaviour
         SelectAnimationSource();
         PlaybackMode = ResolvePlaybackMode();
         bool audioAllowed = Time.timeScale > 0f && !GameplayInputBlocker.IsGameplayInputBlocked
+            && (movement == null || !movement.IsEvading)
             && (state == null || state.CurrentCondition == PlayerConditionState.Normal);
         if (!audioAllowed || delta.sqrMagnitude > 9f)
         { ClearCandidates(); accumulatedDistance = 0f; ClearFootHistory(); return; }
