@@ -14,6 +14,7 @@ namespace Overburst.Mojave
         public Transform dressingRoot, roadPocketRoot;
         public int roadPocketCount, roadRockCount, roadTreeCount;
         public int colonyCount, roadsideColonies, rockColonies, plantCount;
+        public int combatPocketCount, combatColonies;
         public float buildSeconds;
 
         readonly List<(Bounds bounds, Vector2[] outline)> solids = new List<(Bounds, Vector2[])>();
@@ -44,13 +45,13 @@ namespace Overburst.Mojave
                 if (Application.isPlaying) Destroy(dressingRoot.gameObject); else DestroyImmediate(dressingRoot.gameObject);
             }
             solids.Clear(); solidCells.Clear(); visitedSolids.Clear(); colonies.Clear(); plants.Clear(); prefabBounds.Clear();
-            colonyCount = roadsideColonies = rockColonies = plantCount = 0;
+            colonyCount = roadsideColonies = rockColonies = plantCount = combatColonies = 0;
             random = new System.Random(unchecked(world.seed * 397 ^ variation * 7919 ^ 0x4d4a));
             var rocks = CollectSolids();
             dressingRoot = new GameObject("Final vegetation · flower colonies and sheltered scrub").transform;
             dressingRoot.SetParent(world.generatedRoot, false);
             dressingRoot.gameObject.layer = world.generatedRoot.gameObject.layer;
-            int roadsideBudget = Mathf.RoundToInt(36 * world.MapSize / 320);
+            int roadsideBudget = Mathf.RoundToInt(51 * world.MapSize / 320);
             foreach (var trail in world.layout.trails) {
                 float next = Range(3, 8), travelled = 0;
                 for (int i = 0; i < trail.points.Length - 1; i++) {
@@ -68,7 +69,7 @@ namespace Overburst.Mojave
                                 if (TryColony(p, tangent, true)) break;
                                 side = -side;
                             }
-                        next += Range(8, 15);
+                        next += Range(6, 12);
                     }
                     travelled += length;
                 }
@@ -95,6 +96,16 @@ namespace Overburst.Mojave
                     normal = (outside - edge).normalized;
                     var p = edge + normal * Range(.45f, .7f);
                     if (TryColony(p, new Vector2(-normal.y, normal.x), false)) break;
+                }
+            }
+            foreach(var place in world.layout.places) {
+                int added=0;
+                for(int attempt=0;attempt<48&&added<2;attempt++) {
+                    var p=place.center+new Vector2(Range(-18,18),Range(-18,18));
+                    float d=world.layout.RoomDistance(p,out var nearest);
+                    if(nearest!=place||d>-.8f||world.TrailDistance(p,out _,out _)<2||Vector2.Distance(p,place.center)<5)continue;
+                    float angle=Range(0,Mathf.PI*2);
+                    if(TryColony(p,new Vector2(Mathf.Cos(angle),Mathf.Sin(angle)),false,true)){added++;combatColonies++;}
                 }
             }
             buildSeconds = (float)clock.Elapsed.TotalSeconds;
@@ -147,7 +158,7 @@ namespace Overburst.Mojave
         public void DressOpenRoadPockets()
         {
             world = GetComponent<MojaveWorld>();
-            roadPocketCount = roadRockCount = roadTreeCount = 0;
+            roadPocketCount = roadRockCount = roadTreeCount = combatPocketCount = 0;
             if (!world.refinedRoads || world.surface == null || world.catalog == null) return;
             if (roadPocketRoot != null) {
                 roadPocketRoot.gameObject.SetActive(false);
@@ -169,22 +180,25 @@ namespace Overburst.Mojave
             roadPocketRoot = new GameObject("Vacant near-road pockets · irregular rocks and scrub trees").transform;
             roadPocketRoot.SetParent(world.generatedRoot, false); roadPocketRoot.gameObject.layer = world.generatedRoot.gameObject.layer;
             var centers = new List<(Vector2 point, float spacing)>();
-            int budget = Mathf.RoundToInt(25 * world.MapSize / 320);
+            int roadsideBudget = Mathf.RoundToInt(38 * world.MapSize / 320);
+            int budget = roadsideBudget + world.layout.places.Count * 2;
             float half = world.MapSize * .5f - 10;
             for (int attempt = 0; attempt < budget * 320 && roadPocketCount < budget; attempt++) {
                 var center = new Vector2(Range(-half, half), Range(-half, half));
                 float distance = world.TrailDistance(center, out _, out _);
-                if (distance < 1.7f || distance > 10 || world.layout.RoomDistance(center, out _) < 3) continue;
-                if (world.layout.Noise(center, .036f, 2077) < .43f || !Clear(center, .8f) || Nearby(center, 3) > 4) continue;
-                float spacing = Range(9, 19);
+                bool combat = roadPocketCount >= roadsideBudget;
+                float room=world.layout.RoomDistance(center,out var place);
+                if(combat ? room>-.8f||distance<2||Vector2.Distance(center,place.center)<5 : distance<1.2f||distance>10||room<3)continue;
+                if (world.layout.Noise(center, .036f, 2077) < .43f || !Clear(center, .8f, combat) || Nearby(center, 3) > 4) continue;
+                float spacing = combat ? Range(6,10) : Range(7,15);
                 if (centers.Any(c => (center - c.point).sqrMagnitude < Mathf.Pow(Mathf.Max(spacing, c.spacing), 2))) continue;
                 var proposals = new List<(GameObject prefab, float scale, Vector2 point, bool rock)>();
-                int rockTarget = random.Next(1, 3), treeTarget = random.Next(0, 4);
+                int rockTarget = random.Next(1, 3), treeTarget = random.Next(1, 4);
                 var family = world.layout.Noise(center, .023f, 421) > .6f ? trees : cacti;
                 var primary = Pick(family);
                 for (int i = 0; i < rockTarget + treeTarget; i++) {
                     bool rock = i < rockTarget;
-                    var prefab = rock ? Pick(i == 0 && Range(0, 1) < .72f ? medium : small) : (Range(0, 1) < .75f ? primary : Pick(family));
+                    var prefab = rock ? Pick(!combat && i == 0 && Range(0, 1) < .72f ? medium : small) : (Range(0, 1) < .75f ? primary : Pick(family));
                     float angle = Range(0, Mathf.PI * 2), radius = i == 0 ? 0 : Range(.8f, 3.6f);
                     var b = SourceBounds(prefab);
                     float scale = rock ? Range(MojaveWorld.IsLooseStoneName(prefab.name) ? .9f : 1.8f, MojaveWorld.IsLooseStoneName(prefab.name) ? 2.1f : 3.8f) / Mathf.Max(b.size.x, b.size.z) : Range(.72f, 1.18f);
@@ -195,17 +209,17 @@ namespace Overburst.Mojave
                 foreach (var item in proposals.OrderByDescending(p => p.rock).ThenByDescending(p => { var b = SourceBounds(p.prefab); return b.size.x * b.size.y * b.size.z * p.scale * p.scale * p.scale; })) {
                     var b = SourceBounds(item.prefab);
                     float radius = Mathf.Max(.25f, (new Vector2(b.extents.x, b.extents.z).magnitude + new Vector2(b.center.x - item.prefab.transform.position.x, b.center.z - item.prefab.transform.position.z).magnitude) * item.scale);
-                    if (!Clear(item.point, radius) || Nearby(item.point, item.rock ? .7f : 1.2f) > 0) continue;
+                    if (!Clear(item.point, radius, combat) || Nearby(item.point, item.rock ? .7f : 1.2f) > 0) continue;
                     var go = Instantiate(item.prefab, roadPocketRoot); go.name = item.prefab.name;
                     go.transform.localScale = item.prefab.transform.localScale * item.scale;
                     go.transform.SetPositionAndRotation(world.Ground(item.point), Quaternion.Euler(0, Range(0, 360), 0));
                     if (item.rock) world.LimitLooseStone(go);
-                    if (!MojaveTerrainFinish.ClearOfPlay(world, BoundsOf(go.GetComponentsInChildren<Renderer>(true)), .35f)) {
+                    if (!combat && !MojaveTerrainFinish.ClearOfPlay(world, BoundsOf(go.GetComponentsInChildren<Renderer>(true)), .35f)) {
                         go.SetActive(false); if (Application.isPlaying) Destroy(go); else DestroyImmediate(go);
                         continue;
                     }
                     if (group == null) {
-                        group = new GameObject("Vacant pocket " + (roadPocketCount + 1)).transform;
+                        group = new GameObject((combat ? "Combat pocket " : "Vacant pocket ") + (roadPocketCount + 1)).transform;
                         group.SetParent(roadPocketRoot, false); group.position = world.Ground(center);
                     }
                     go.transform.SetParent(group, true);
@@ -221,13 +235,13 @@ namespace Overburst.Mojave
                     if (item.rock) roadRockCount++; else roadTreeCount++;
                 }
                 if (group == null) continue;
-                centers.Add((center, spacing)); roadPocketCount++;
+                centers.Add((center, spacing)); roadPocketCount++; if(combat)combatPocketCount++;
             }
         }
 
-        bool TryColony(Vector2 center, Vector2 tangent, bool roadside)
+        bool TryColony(Vector2 center, Vector2 tangent, bool roadside, bool combat = false)
         {
-            if (!Clear(center, .32f) || Nearby(center, 2.2f) >= 7 || colonies.Any(p => (p - center).sqrMagnitude < 36)) return false;
+            if (!Clear(center, .32f, combat) || Nearby(center, 2.2f) >= 7 || colonies.Any(p => (p - center).sqrMagnitude < 36)) return false;
             var groupPosition = world.Ground(center);
             var normal = new Vector2(-tangent.y, tangent.x);
             float length = Range(1.5f, 2.2f), width = Range(.75f, 1.15f);
@@ -257,7 +271,7 @@ namespace Overburst.Mojave
                 }
                 float radius = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z) * scale, .12f, .8f);
                 float rootSpacing = edge ? .38f : .3f;
-                if (!Clear(p, radius) || Nearby(p, .4f) != 0 || positions.Any(q => (q - p).sqrMagnitude < rootSpacing * rootSpacing)) continue;
+                if (!Clear(p, radius, combat) || Nearby(p, .4f) != 0 || positions.Any(q => (q - p).sqrMagnitude < rootSpacing * rootSpacing)) continue;
                 // Consume rotation RNG here even when the whole colony is later discarded.
                 accepted.Add((prefab, scale, world.Ground(p, -b.min.y * scale - .025f), Quaternion.Euler(0, Range(0, 360), 0)));
                 positions.Add(p);
@@ -281,10 +295,10 @@ namespace Overburst.Mojave
             return true;
         }
 
-        bool Clear(Vector2 p, float radius)
+        bool Clear(Vector2 p, float radius, bool combat = false)
         {
             float half = world.MapSize * .5f - 5;
-            if (Mathf.Abs(p.x) + radius > half || Mathf.Abs(p.y) + radius > half || world.TrailDistance(p, out _, out _) < radius + .35f || world.layout.RoomDistance(p, out _) < radius + .15f) return false;
+            if (Mathf.Abs(p.x) + radius > half || Mathf.Abs(p.y) + radius > half || world.TrailDistance(p, out _, out _) < radius + .35f || (!combat && world.layout.RoomDistance(p, out _) < radius + .15f)) return false;
             var origin = world.surface.transform.position; var size = world.surface.terrainData.size;
             if (world.surface.terrainData.GetSteepness((p.x - origin.x) / size.x, (p.y - origin.z) / size.z) > 30) return false;
             visitedSolids.Clear();

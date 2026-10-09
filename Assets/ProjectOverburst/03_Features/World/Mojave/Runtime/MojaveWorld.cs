@@ -21,6 +21,7 @@ namespace Overburst.Mojave
         [HideInInspector] public bool organicConnections;
         [HideInInspector] public bool terrainFinish;
         [HideInInspector] public bool refinedRoads;
+        [Tooltip("Comparison option: broad, gentle relief inside combat areas and roads.")] public bool playableRelief;
         [HideInInspector] public bool yieldBlockedLargeShoulders;
         public int shoulderMassCount;
         [HideInInspector] public List<MojavePlacement> shoulderMasses=new List<MojavePlacement>();
@@ -28,6 +29,7 @@ namespace Overburst.Mojave
         public int groundedPropCount;
         public int conformedMeshCount;
         public int overlappingPropCount;
+        public int clearedRoadPropCount;
         readonly List<Mesh> groundMeshes=new List<Mesh>();
         public void OwnGroundMesh(Mesh mesh)=>groundMeshes.Add(mesh);
         void ReleaseGroundMeshes(){foreach(var mesh in groundMeshes)if(mesh!=null)DestroyOwned(mesh);groundMeshes.Clear();}
@@ -131,6 +133,7 @@ namespace Overburst.Mojave
             }
             checkpoint?.Invoke(MojaveGenerationStage.Grounding);
             if(finalDetails!=null&&finalDetails.enabled)finalDetails.Rebuild();
+            if(refinedRoads)clearedRoadPropCount=MojaveTerrainFinish.ClearRoadProps(this);
             bakedRandomCombatLayout=randomCombatLayout;
             bakedSeed=seed;bakedLayoutVersion=MojaveLayout.Version;SetWind();Physics.SyncTransforms();
             generationMilliseconds=clock.ElapsedMilliseconds;
@@ -328,6 +331,7 @@ namespace Overburst.Mojave
                 if(backdrops!=null)backdrops.BlendGround(this,heights,paint,backgroundDistances);
                 if(authoredTiles!=null)authoredTiles.RoundSurface(this,heights);
             }
+            if(refinedRoads)MojaveTerrainFinish.FinishSurface(this,heights);
             if(terrainFinish)MojaveTerrainFinish.PaintRoads(this,paint);
             generatedHeights=heights;generatedPaint=paint;
             runtimeData.SetHeights(0,0,heights);runtimeData.SetAlphamaps(0,0,paint);

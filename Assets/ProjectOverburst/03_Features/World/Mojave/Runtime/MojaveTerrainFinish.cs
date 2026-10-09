@@ -245,11 +245,82 @@ namespace Overburst.Mojave
             }
             return result;
         }
+        // Use the stem's lowest ring, not the canopy's low branches, as the planting anchor.
+        public static Vector3 PlantRoot(GameObject go,Dictionary<Mesh,Vector3[]> cache,Dictionary<Mesh,Vector3[]> samples)
+        {
+            var feet=Feet(go,cache,samples).Select(f=>f.transform.TransformPoint(f.point)).ToArray();
+            if(feet.Length==0)throw new InvalidOperationException("No plant root geometry: "+go.name);
+            float bottom=feet.Min(p=>p.y);var ring=feet.Where(p=>p.y<=bottom+.025f).ToArray();
+            return ring.Aggregate(Vector3.zero,(sum,p)=>sum+p)/ring.Length;
+        }
+
+        public static bool IntrudesRoad(MojaveWorld world,GameObject go,Dictionary<Mesh,Vector3[]> cache,Dictionary<Mesh,Vector3[]> samples,Dictionary<Vector2Int,float> road)
+        {
+            bool Inside(Vector2 p,float margin) {
+                var cell=new Vector2Int(Mathf.RoundToInt(p.x*2),Mathf.RoundToInt(p.y*2));
+                if(!road.TryGetValue(cell,out float d))road[cell]=d=world.TrailDistance(new Vector2(cell.x*.5f,cell.y*.5f),out _,out _);
+                // Query the actual point in the uncertain band; cache only definite inside/outside cells.
+                if(d<margin-.5f)return true;if(d>margin+.5f)return false;
+                return world.TrailDistance(p,out _,out _) < margin;
+            }
+            var b=BoundsOf(go);float radius=new Vector2(b.extents.x,b.extents.z).magnitude;
+            if(world.TrailDistance(new Vector2(b.center.x,b.center.z),out _,out _)>radius+.35f)return false;
+            bool solid=go.name.Contains("Rock")||go.name.Contains("Stone")||go.name.Contains("Boulder")||go.name.Contains("Rubble");
+            if(!solid) {
+                var root=PlantRoot(go,cache,samples);
+                return Inside(new Vector2(root.x,root.z),.35f);
+            }
+            var lod=go.GetComponent<LODGroup>();
+            foreach(var renderer in lod!=null?lod.GetLODs()[0].renderers:go.GetComponentsInChildren<Renderer>(true)) {
+                if(renderer==null)continue;var filter=renderer.GetComponent<MeshFilter>();if(filter==null||filter.sharedMesh==null)continue;
+                if(!cache.TryGetValue(filter.sharedMesh,out var vertices))cache[filter.sharedMesh]=vertices=Vertices(filter.sharedMesh);
+                foreach(var v in vertices) {
+                    var q=filter.transform.TransformPoint(v);
+                    if(Inside(new Vector2(q.x,q.z),.25f))return true;
+                }
+            }
+            return false;
+        }
+        public static int ClearRoadProps(MojaveWorld world)
+        {
+            int count=0;var cache=new Dictionary<Mesh,Vector3[]>();var samples=new Dictionary<Mesh,Vector3[]>();var road=new Dictionary<Vector2Int,float>();
+            foreach(var go in PropRoots(world)) {
+                if(!go.activeInHierarchy||!IntrudesRoad(world,go,cache,samples,road))continue;
+                go.SetActive(false);if(Application.isPlaying)UnityEngine.Object.Destroy(go);else UnityEngine.Object.DestroyImmediate(go);count++;
+            }
+            return count;
+        }
+
+        public static void FinishSurface(MojaveWorld world,float[,] heights)
+        {
+            int n=heights.GetLength(0);float step=world.MapSize/(n-1),half=world.MapSize*.5f;
+            // Average a few metres across the bank; the old fixed-edge limiter cannot round this crease.
+            var sum=new double[n+1,n+1];
+            for(int z=0;z<n;z++)for(int x=0;x<n;x++)sum[z+1,x+1]=heights[z,x]+sum[z,x+1]+sum[z+1,x]-sum[z,x];
+            for(int z=0;z<n;z++)for(int x=0;x<n;x++) {
+                var p=new Vector2(x*step-half,z*step-half);
+                float rd=world.layout.RoomDistance(p,out _),tr=world.TrailDistance(p,out _,out _);
+                float land=world.layout.Noise(p,.032f,1171),width=Mathf.Lerp(3.5f,7,land);
+                float weight=Smooth(-3,-.6f,tr)*(1-Smooth(2,width,tr))*Smooth(-1,4,rd);
+                if(weight>0) {
+                    int radius=Mathf.Max(1,Mathf.RoundToInt(Mathf.Lerp(1.3f,2.8f,land)/step));
+                    int x0=Mathf.Max(0,x-radius),x1=Mathf.Min(n,x+radius+1),z0=Mathf.Max(0,z-radius),z1=Mathf.Min(n,z+radius+1);
+                    float average=(float)((sum[z1,x1]-sum[z0,x1]-sum[z1,x0]+sum[z0,x0])/((x1-x0)*(z1-z0)));
+                    heights[z,x]=Mathf.Lerp(heights[z,x],average,weight*.9f);
+                }
+                if(world.playableRelief) {
+                    float relief=(world.layout.Noise(p,.038f,1193)-.5f)*1.25f+(world.layout.Noise(p,.083f,1199)-.5f)*.22f;
+                    heights[z,x]+=relief*(1-Smooth(0,8,world.layout.CombineDistance(rd,tr)))/MojaveLayout.Elevation;
+                }
+            }
+        }
+
         public static void GroundProps(MojaveWorld world,Func<GameObject,bool> include=null)
         {
             world.groundedPropCount=world.conformedMeshCount=world.overlappingPropCount=0;
             var cache=new Dictionary<Mesh,Vector3[]>();
             // Source geometry is shared; terrain contact remains specific to each instance.
+            var plantNames=new HashSet<string>(world.catalog.cacti.Concat(world.catalog.joshua).Where(g=>g!=null).Select(g=>g.name));
             var samples=new Dictionary<Mesh,Vector3[]>();var islandCache=new Dictionary<Mesh,int[]>();
             var backdrops=world.GetComponent<MojaveBackdropSet>();
             bool preservePlayBoundary=backdrops!=null&&backdrops.library!=null&&backdrops.library.useAllNaturalCandidates;
@@ -327,7 +398,10 @@ namespace Overburst.Mojave
                         var q=foot.transform.TransformPoint(foot.point);
                         gap=Mathf.Max(gap,q.y-world.Ground(new Vector2(q.x,q.z)).y);
                     }
-                    go.transform.position-=Vector3.up*(gap+(rock?.10f:.035f));
+                    if(plantNames.Contains(go.name)||go.name.StartsWith("Joshua")||go.name.StartsWith("Saguaro")||go.name.StartsWith("Cuctas")||go.name.StartsWith("Piko")) {
+                        var root=PlantRoot(go,cache,samples);
+                        go.transform.position+=Vector3.up*(world.Ground(new Vector2(root.x,root.z)).y-root.y-.025f);
+                    } else go.transform.position-=Vector3.up*(gap+(rock?.10f:.035f));
                 }
                 if(world.refinedRoads&&!rubble) {
                     if(rock)AddRock(go);
