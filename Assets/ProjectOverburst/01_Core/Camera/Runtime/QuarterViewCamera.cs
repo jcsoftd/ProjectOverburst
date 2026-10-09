@@ -53,7 +53,7 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
     [SerializeField] private bool enableDashFieldOfView = true;
     [SerializeField, Range(0f, 8f)] private float dashFieldOfViewIncrease = 2.5f;
     [SerializeField, Min(.01f)] private float dashFieldOfViewInTime = .08f;
-    [SerializeField, Min(.01f)] private float dashFieldOfViewOutTime = .18f;
+    [SerializeField, Min(.01f)] private float dashFieldOfViewOutTime = .30f;
     private float dashFieldOfViewOffset, dashFieldOfViewVelocity;
     private float fallbackFieldOfView = 60f;
     public float CurrentDashFieldOfViewOffset => dashFieldOfViewOffset;
