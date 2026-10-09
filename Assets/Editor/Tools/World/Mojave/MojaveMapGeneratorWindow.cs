@@ -21,6 +21,8 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     Toggle backdropField;
     [SerializeField] bool mixedCombatSizes = true;
     Toggle combatSizeField;
+    [SerializeField] bool randomCombatLayout;
+    Toggle randomCombatField;
     DropdownField sizeField;
     [SerializeField] int customMapSize;
     IntegerField mapMetresField;
@@ -150,6 +152,13 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         combatSizeField?.SetValueWithoutNotify(value);RefreshControls();if(generate)Generate(requestedSeed);
     }
 
+    public void SetRandomCombatLayout(bool value,bool generate=false)
+    {
+        Guard();
+        if(randomCombatLayout!=value){ReleaseDraft();ReleaseFrame();restoreDraft=false;randomCombatLayout=value;history.Clear();historyIndex=-1;previewPlaceIndex=0;hasFreePose=false;}
+        RefreshControls();if(generate)Generate(requestedSeed);
+    }
+
     void OnEnable()
     {
         EditorApplication.playModeStateChanged += PlayState;
@@ -199,6 +208,8 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         backdropField.RegisterValueChangedCallback(e=>Execute(()=>SetBackdrops(e.newValue,false)));controls.Add(backdropField);
         combatSizeField=new Toggle("소형 32m · 중형 46m · 대형 62.4m 타일 혼합") {name="combat-sizes",value=mixedCombatSizes};
         combatSizeField.RegisterValueChangedCallback(e=>Execute(()=>SetCombatSizes(e.newValue,false)));controls.Add(combatSizeField);
+        randomCombatField=new Toggle("전투 구역 무작위 배치") {name="random-combat-layout",value=randomCombatLayout,tooltip="타일 크기와 겹침을 고려해 위치를 뽑고 가까운 구역 사이에 길을 연결합니다."};
+        randomCombatField.RegisterValueChangedCallback(e=>Execute(()=>SetRandomCombatLayout(e.newValue,false)));controls.Add(randomCombatField);
         seedField = new IntegerField("시드") { name = "seed", value = requestedSeed, isDelayed = true };
         seedField.RegisterValueChangedCallback(e => {requestedSeed=e.newValue;ReleaseDraft();ReleaseFrame();RefreshControls();}); controls.Add(seedField);
         controls.Add(new Button(()=>Execute(PreviewLayout)) {text="레이아웃만 프리뷰",name="layout-preview"});
@@ -288,7 +299,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         AssetDatabase.LoadAssetAtPath<MojaveBackdropLibrary>(MojaveWorldBuilder.BackdropLibraryPath)
         ?? throw new InvalidOperationException("확정된 분리 배경 21종 라이브러리를 찾을 수 없습니다. 삭제예정 자료로 대체하지 않고 현재 라이브러리 연결을 복원해 주세요.");
 
-    public static MojaveLayout BuildLayoutPreview(int seed,int mapSize,int count,bool mixed,bool backdrops,bool expanded,bool compact,out MojaveCatalog catalog)
+    public static MojaveLayout BuildLayoutPreview(int seed,int mapSize,int count,bool mixed,bool backdrops,bool expanded,bool compact,out MojaveCatalog catalog,bool randomCombatLayout=false)
     {
         Guard();var scene=EditorSceneManager.NewPreviewScene();GameObject owner=null;
         try {
@@ -298,6 +309,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
             set.rules=MojaveWorldBuilder.Rules(model.catalog);set.mixedSizes=mixed;
             if(mixed) {var library=AssetDatabase.LoadAssetAtPath<MojaveCombatSizeLibrary>(MojaveWorldBuilder.SizedLibraryPath);model.catalog=library.catalog;set.rules=library.rules;}
             model.seed=seed;model.mapSizeOverride=mapSize;model.combatAreaCount=count;model.expandedMap=expanded;model.compactMap=compact;
+            model.randomCombatLayout=randomCombatLayout;
             model.roundedJunctions=backdrops;model.organicConnections=backdrops;model.terrainFinish=backdrops;model.yieldBlockedLargeShoulders=backdrops&&!mixed;
             model.refinedRoads=backdrops;
             model.EnsureLayout();catalog=model.catalog;return model.layout;
@@ -307,7 +319,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     {
         Guard();if(themeIndex!=2)throw new InvalidOperationException("레이아웃 프리뷰는 다듬은 Mojave에서 선택해.");
         var clock=System.Diagnostics.Stopwatch.StartNew();
-        var plan=BuildLayoutPreview(requestedSeed,customMapSize,combatAreaCount,mixedCombatSizes,useBackdrops,expandedMap,compactMap,out var catalog);
+        var plan=BuildLayoutPreview(requestedSeed,customMapSize,combatAreaCount,mixedCombatSizes,useBackdrops,expandedMap,compactMap,out var catalog,randomCombatLayout);
         ReleaseDraft();ReleaseFrame();restoreDraft=false;QuickLayout=plan;overlay.BindPlan(plan,catalog);FitOverlay();
         foreach(var place in plan.places) {
             var tier=catalog.patches[place.patch].combatSize;string size=tier==MojaveCombatSize.Large?"대형":tier==MojaveCombatSize.Medium?"중형":"소형";
@@ -334,6 +346,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
             candidateWorld.mapSizeOverride=themeIndex==2?customMapSize:0;
             candidateWorld.expandedMap=themeIndex==2&&expandedMap;candidateWorld.compactMap=themeIndex==2&&compactMap;
             candidateWorld.combatAreaCount=themeIndex==2&&expandedMap?combatAreaCount:0;
+            candidateWorld.randomCombatLayout=themeIndex==2&&randomCombatLayout;
             candidateWorld.roundedJunctions=themeIndex==2&&useBackdrops;
             candidateWorld.organicConnections=themeIndex==2&&useBackdrops;
             candidateWorld.terrainFinish=themeIndex==2&&useBackdrops;
@@ -582,6 +595,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         if(world.GetComponent<MojaveBackdropSet>()?.library?.tiles.Any(t=>t.placements.Any(a=>a.rockOutline!=null&&a.rockOutline.Length>=3))==true)suffix+="_RockFootprints";
         if(world.mapSizeOverride>0)suffix+="_Size"+world.mapSizeOverride+"m";
         if(world.combatAreaCount>0)suffix+="_"+world.combatAreaCount+"Areas";
+        if(world.randomCombatLayout)suffix+="_ScatteredCombat";
         if(world.GetComponent<MojaveBackdropSet>()?.library?.useAllNaturalCandidates==true)suffix+="_SeparatedBackground";
         if(world.refinedRoads)suffix+="_VariedRoads";
         string scenePath = AssetDatabase.GenerateUniqueAssetPath(MojaveWorldBuilder.SceneRoot + $"/Generated/{ThemeName}_{world.seed}{suffix}.unity");
@@ -664,6 +678,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         mapMetresField?.SetEnabled(themeIndex==2);mapMetresField?.SetValueWithoutNotify(customMapSize>0?customMapSize:compactMap?320:expandedMap?384:256);
         combatCountField?.SetEnabled(themeIndex==2&&expandedMap);combatCountField?.SetValueWithoutNotify(combatCountField.choices[combatAreaCount==6?1:combatAreaCount==9?2:combatAreaCount==12?3:combatAreaCount==15?4:0]);
         combatSizeField?.SetEnabled(themeIndex==2);combatSizeField?.SetValueWithoutNotify(mixedCombatSizes);
+        randomCombatField?.SetEnabled(themeIndex==2);randomCombatField?.SetValueWithoutNotify(randomCombatLayout);
         backdropField?.SetEnabled(themeIndex==2);backdropField?.SetValueWithoutNotify(useBackdrops);
         rootVisualElement.Q<Button>("layout-preview")?.SetEnabled(themeIndex==2);
         viewField?.SetEnabled(HasDraft);

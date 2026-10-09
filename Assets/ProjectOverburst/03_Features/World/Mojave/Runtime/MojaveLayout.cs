@@ -135,23 +135,7 @@ namespace Overburst.Mojave
             // Resize the layout, preserving authored tile, rock and passage widths.
             if(mapSizeOverride!=0)foreach(var place in places)place.center*=extent/presetExtent;
             if(fewer||(expanded&&combatAreaCount==15)) {
-                var connected=new List<int>{0};var linked=new HashSet<int>();
-                while(connected.Count<places.Count) {
-                    int from=0,to=-1;float shortest=float.PositiveInfinity;
-                    foreach(int a in connected)for(int b=0;b<places.Count;b++)if(!connected.Contains(b)) {
-                        float distance=(places[a].center-places[b].center).sqrMagnitude;
-                        if(distance<shortest){shortest=distance;from=a;to=b;}
-                    }
-                    AddTrail(from,to,4.8f);linked.Add(Mathf.Min(from,to)*places.Count+Mathf.Max(from,to));connected.Add(to);
-                }
-                for(int loop=0;loop<(combatAreaCount==15?3:2);loop++) {
-                    int from=0,to=-1;float shortest=float.PositiveInfinity;
-                    for(int a=0;a<places.Count;a++)for(int b=a+1;b<places.Count;b++)if(!linked.Contains(a*places.Count+b)) {
-                        float distance=(places[a].center-places[b].center).sqrMagnitude;
-                        if(distance<shortest){shortest=distance;from=a;to=b;}
-                    }
-                    if(to>=0){AddTrail(from,to,4.3f);linked.Add(from*places.Count+to);}
-                }
+                ConnectByDistance(r,combatAreaCount==15?3:2);
             } else if(expanded) {
                 AddTrail(0,1,5.2f);AddTrail(1,2,4.6f);AddTrail(2,3,4.4f);AddTrail(1,5,5.1f);
                 AddTrail(5,4,4.7f);AddTrail(4,8,4.3f);AddTrail(5,9,4.5f);AddTrail(5,6,4.8f);
@@ -162,8 +146,66 @@ namespace Overburst.Mojave
                 AddTrail(0,1,5.2f);AddTrail(1,2,4.6f);AddTrail(1,3,4.4f);AddTrail(3,4,5.1f);AddTrail(2,4,4.7f);AddTrail(4,5,4.3f);
                 if(r.NextDouble()>.5) AddTrail(3,5,3.8f);
             }
-            void AddTrail(int a,int b,float width)
-            {
+            void AddTrail(int a,int b,float width)=>CreateTrail(a,b,width,r);
+        }
+
+        public void ScatterCombatPlaces(MojaveCatalog catalog)
+        {
+            var random=new System.Random(unchecked(seed^0x71A95));
+            var radii=new float[places.Count];var order=new List<int>();
+            for(int i=0;i<places.Count;i++) {
+                radii[i]=Mathf.Max(catalog.patches[places[i].patch].size*.707107f,Mathf.Max(places[i].radius.x,places[i].radius.y)*1.28f);
+                order.Add(i);
+            }
+            // Plan large footprints first; commit positions only when every room fits.
+            order.Sort((a,b)=>radii[a]==radii[b]?a.CompareTo(b):radii[b].CompareTo(radii[a]));
+            var positions=new Vector2[places.Count];bool fitted=false;
+            for(int restart=0;restart<32&&!fitted;restart++) {
+                fitted=true;
+                for(int n=0;n<order.Count;n++) {
+                    int index=order[n];float limit=extent*.5f-radii[index]-8;bool found=false;
+                    if(limit<=0)throw new InvalidOperationException("Map is too small for the combat tiles.");
+                    for(int attempt=0;attempt<2048&&!found;attempt++) {
+                        var candidate=new Vector2(Mathf.Lerp(-limit,limit,(float)random.NextDouble()),Mathf.Lerp(-limit,limit,(float)random.NextDouble()));
+                        bool clear=true;
+                        for(int previous=0;previous<n;previous++) {
+                            int other=order[previous];float separation=radii[index]+radii[other]+6;
+                            if((candidate-positions[other]).sqrMagnitude<separation*separation){clear=false;break;}
+                        }
+                        if(clear){positions[index]=candidate;found=true;}
+                    }
+                    if(!found){fitted=false;break;}
+                }
+            }
+            if(!fitted)throw new InvalidOperationException("Combat tiles cannot fit without overlap. Increase the map size or reduce the area count.");
+            for(int i=0;i<places.Count;i++)places[i].center=positions[i];
+            trails.Clear();ConnectByDistance(random,places.Count>=15?3:2);
+        }
+
+        void ConnectByDistance(System.Random random,int loops)
+        {
+            var connected=new List<int>{0};var linked=new HashSet<int>();
+            while(connected.Count<places.Count) {
+                int from=0,to=-1;float shortest=float.PositiveInfinity;
+                foreach(int a in connected)for(int b=0;b<places.Count;b++)if(!connected.Contains(b)) {
+                    float distance=(places[a].center-places[b].center).sqrMagnitude;
+                    if(distance<shortest){shortest=distance;from=a;to=b;}
+                }
+                CreateTrail(from,to,4.8f,random);linked.Add(Mathf.Min(from,to)*places.Count+Mathf.Max(from,to));connected.Add(to);
+            }
+            for(int loop=0;loop<loops;loop++) {
+                int from=0,to=-1;float shortest=float.PositiveInfinity;
+                for(int a=0;a<places.Count;a++)for(int b=a+1;b<places.Count;b++)if(!linked.Contains(a*places.Count+b)) {
+                    float distance=(places[a].center-places[b].center).sqrMagnitude;
+                    if(distance<shortest){shortest=distance;from=a;to=b;}
+                }
+                if(to>=0){CreateTrail(from,to,4.3f,random);linked.Add(from*places.Count+to);}
+            }
+        }
+
+        void CreateTrail(int a,int b,float width,System.Random random)
+        {
+                float Rand(float low,float high)=>Mathf.Lerp(low,high,(float)random.NextDouble());
                 var start=places[a].center;var end=places[b].center;
                 var delta=end-start;var normal=new Vector2(-delta.y,delta.x).normalized;
                 var bend=normal*Rand(-12,12);
@@ -174,7 +216,6 @@ namespace Overburst.Mojave
                     h[k]=Mathf.Lerp(places[a].height,places[b].height,Mathf.SmoothStep(0,1,t));
                     w[k]=width*.5f+(Noise(p[k],.092f,35)-.5f)*.9f;}
                 trails.Add(new MojaveTrail {from=a,to=b,points=p,heights=h,width=width, widths=w});
-            }
         }
 
         public void FitRockTrails(MojaveCatalog catalog,bool roundCorners=false,bool organicConnections=false,bool yieldBlockedShoulders=false)

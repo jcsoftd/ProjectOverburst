@@ -14,6 +14,7 @@ namespace Overburst.Mojave
         public bool expandedMap;
         public bool compactMap;
         public int combatAreaCount;
+        public bool randomCombatLayout;
         [Tooltip("0 = preset; otherwise map side length in metres (256–768). Tiles retain their authored size.")]
         public int mapSizeOverride;
         [HideInInspector] public bool roundedJunctions;
@@ -34,6 +35,7 @@ namespace Overburst.Mojave
         public Terrain surface;
         public int bakedSeed;
         public int bakedLayoutVersion;
+        [HideInInspector] public bool bakedRandomCombatLayout;
         public int authoredPlacementCount;
         public int dressingCount;
         public int coverCount;
@@ -74,7 +76,7 @@ namespace Overburst.Mojave
         {
             if(!Application.isPlaying)return;
             SetWind();
-            if (generatedRoot != null && surface != null && bakedSeed == seed && bakedLayoutVersion == MojaveLayout.Version && Mathf.Approximately(surface.terrainData.size.x,MapSize))
+            if (generatedRoot != null && surface != null && bakedSeed == seed && bakedLayoutVersion == MojaveLayout.Version && bakedRandomCombatLayout == randomCombatLayout && Mathf.Approximately(surface.terrainData.size.x,MapSize))
                 {layout = CreateLayout();volcanoTrailField=catalog.volcano?new VolcanoTrailField(layout):null;}
             else Generate(seed);
         }
@@ -127,6 +129,7 @@ namespace Overburst.Mojave
             checkpoint?.Invoke(MojaveGenerationStage.Grounding);
             var finalDetails=GetComponent<MojaveDetailDressing>();
             if(finalDetails!=null&&finalDetails.enabled)finalDetails.Rebuild();
+            bakedRandomCombatLayout=randomCombatLayout;
             bakedSeed=seed;bakedLayoutVersion=MojaveLayout.Version;SetWind();Physics.SyncTransforms();
             generationMilliseconds=clock.ElapsedMilliseconds;
             checkpoint?.Invoke(MojaveGenerationStage.Complete);
@@ -146,6 +149,7 @@ namespace Overburst.Mojave
             }
             var authoredTiles=GetComponent<MojaveCombatTileSet>();
             if(authoredTiles!=null)authoredTiles.Apply(result,catalog);
+            if(randomCombatLayout)result.ScatterCombatPlaces(catalog);
             if(terrainFinish)foreach(var trail in result.trails){trail.width*=1.45f;for(int i=0;i<trail.widths.Length;i++)trail.widths[i]*=1.45f;}
             var islands=GetComponent<IslandBiome>();if(islands!=null)islands.ConfigureLayout(result);
             var biomass=GetComponent<BiomassBiome>();if(biomass!=null)biomass.ConfigureLayout(result);
