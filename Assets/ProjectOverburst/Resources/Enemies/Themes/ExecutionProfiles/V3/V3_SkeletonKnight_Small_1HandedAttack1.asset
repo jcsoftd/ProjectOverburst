@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 7400000, guid: 910cb645d11cd234997299977e671fc2, type: 3}
   sourceTrimSeconds: {x: 0, y: 0.6666667}
   motionPolicy: 0
-  stationaryStartRange: 1.429622
+  stationaryStartRange: 1.49
   maxAdvanceDistance: 0
   advanceWindow: {x: 0, y: 0}
   advanceProgress:
@@ -35,17 +35,17 @@ MonoBehaviour:
       capsules:
       - a: {x: 0.27720383, y: 0.82371294, z: 0.66986716}
         b: {x: 0.47357678, y: 1.0138257, z: 1.0490205}
-        radius: 0.089912325
+        radius: 0.18991232
     - normalizedTime: 0.19999999
       capsules:
       - a: {x: -0.060712807, y: 0.75740755, z: 0.79778546}
         b: {x: -0.08805393, y: 0.7701486, z: 1.2642106}
-        radius: 0.089912325
+        radius: 0.18991232
     - normalizedTime: 0.25
       capsules:
       - a: {x: -0.39052463, y: 0.7573269, z: 0.6822579}
         b: {x: -0.6675917, y: 0.73297894, z: 1.0578952}
-        radius: 0.089912325
-    maximumPlanarReach: 1.3571857
+        radius: 0.18991232
+    maximumPlanarReach: 1.4571857
   blockedApproachProjectileFallback: 0
   projectileMuzzleBonePaths: []

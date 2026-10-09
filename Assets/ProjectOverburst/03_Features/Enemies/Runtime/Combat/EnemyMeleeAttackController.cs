@@ -104,7 +104,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             if (Mathf.Abs(center.y - volume.Center.y) > volume.HalfHeight + ability.VerticalTolerance)
                 continue;
             if (ability.RequireLineOfSight
-                && !HasDirectLineOfSight(target, volume.Center, center)) continue;
+                && !HasDirectLineOfSight(target, collider.ClosestPoint(ContactSightOrigin), ContactSightOrigin, true)) continue;
             return true;
         }
         return false;
@@ -918,8 +918,8 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
                     && hitTarget != null
                     && !HasDirectLineOfSight(
                         hitTarget,
-                        targetCenter,
-                        impactCenter))
+                        hitCollider.ClosestPoint(ContactSightOrigin),
+                        ContactSightOrigin, true))
                 {
                     continue;
                 }

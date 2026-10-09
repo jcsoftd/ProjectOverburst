@@ -35,7 +35,7 @@ MonoBehaviour:
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 2.1950986
+  range: 2.22
   hitRadius: 1.4867909
   hitAngle: 125
   verticalTolerance: 1.5

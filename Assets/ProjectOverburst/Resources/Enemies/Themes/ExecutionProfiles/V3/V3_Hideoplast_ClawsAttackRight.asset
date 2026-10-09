@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 7400000, guid: 17b627dbe51eab14683227ea3db5c0b7, type: 3}
   sourceTrimSeconds: {x: 0, y: 1}
   motionPolicy: 0
-  stationaryStartRange: 2.279166
+  stationaryStartRange: 2.01
   maxAdvanceDistance: 0
   advanceWindow: {x: 0, y: 0}
   advanceProgress:
@@ -28,32 +28,34 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.26666668, y: 0.53333336}
+  - {x: 0.40000004, y: 0.6666667}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.26666668
+    - normalizedTime: 0.40000004
       capsules:
-      - a: {x: 0.69745785, y: 2.1622198, z: -0.36157635}
-        b: {x: 0.5405531, y: 2.431257, z: 0.31728375}
-        radius: 0.16
-    - normalizedTime: 0.33333334
+      - a: {x: 0.80078113, y: 1.7322649, z: 0.7109377}
+        b: {x: 0.6992187, y: 1.9382061, z: 1.4218752}
+        radius: 0.3
+    - normalizedTime: 0.4666667
       capsules:
-      - a: {x: 0.8617139, y: 2.162728, z: 0.02614454}
-        b: {x: 0.62398446, y: 2.4919965, z: 0.65297693}
-        radius: 0.16
-    - normalizedTime: 0.4
-      capsules:
-      - a: {x: 0.8009204, y: 1.7322645, z: 0.71096176}
-        b: {x: 0.70005953, y: 1.9382058, z: 1.4217832}
-        radius: 0.16
-    - normalizedTime: 0.46666667
-      capsules:
-      - a: {x: 0.5406392, y: 1.262, z: 1.0638852}
-        b: {x: 0.46346113, y: 1.1701297, z: 1.8010787}
-        radius: 0.16
+      - a: {x: 0.5410155, y: 1.2620374, z: 1.0644532}
+        b: {x: 0.4628905, y: 1.1700575, z: 1.8007812}
+        radius: 0.3
     - normalizedTime: 0.53333336
       capsules:
-      - a: {x: 0.29995662, y: 0.8378628, z: 1.1906155}
-        b: {x: 0.21614946, y: 0.47701618, z: 1.8391659}
-        radius: 0.16
-    maximumPlanarReach: 2.019753
+      - a: {x: 0.30078125, y: 0.8378923, z: 1.1914062}
+        b: {x: 0.21484375, y: 0.4767358, z: 1.8378906}
+        radius: 0.3
+    - normalizedTime: 0.6
+      capsules:
+      - a: {x: 0.4531251, y: 0.68496203, z: 1.0917969}
+        b: {x: 0.2539063, y: 0.33099535, z: 1.7187499}
+        radius: 0.3
+    - normalizedTime: 0.6666667
+      capsules:
+      - a: {x: 0.62695307, y: 0.7169471, z: 0.9453125}
+        b: {x: 0.3671875, y: 0.38237923, z: 1.5605469}
+        radius: 0.3
+    maximumPlanarReach: 2.1593227
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

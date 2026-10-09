@@ -30,6 +30,7 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
     private CombatTarget approachBody;
     private PlayerActorRuntime approachPlayer;
     private CombatTarget approachPlayerBody;
+    private CharacterController approachPlayerController;
     private Vector3 destination; // AI 목적지
     private float destinationStopDistance; // 목적지 정지 거리
     private float actionLockEndTime; // 공격 이동 잠금 종료
@@ -566,11 +567,12 @@ public sealed partial class EnemyMovement : MonoBehaviour // AI 이동 명령과
         {
             approachPlayer = player;
             approachPlayerBody = player.GetComponent<CombatTarget>();
+            approachPlayerController = player.GetComponent<CharacterController>();
         }
         if (approachBody == null || approachPlayerBody == null || !approachPlayerBody.IsAlive)
             return candidate;
         var own = approachBody.CurrentVolume;
-        var other = approachPlayerBody.CurrentVolume;
+        var other = EnemyPlayerApproachClearance.ResolveBodyVolume(approachPlayerController, approachPlayerBody);
         if (Mathf.Abs(own.Center.y - other.Center.y) > own.HalfHeight + other.HalfHeight)
             return candidate;
         Vector3 current = motor != null ? motor.Position : transform.position;

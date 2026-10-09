@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 1827226128182048838, guid: 62e8c04b200ca4c409a077ebe715a998, type: 3}
   sourceTrimSeconds: {x: 0, y: 2.4583333}
   motionPolicy: 0
-  stationaryStartRange: 0.8
+  stationaryStartRange: 1.32
   maxAdvanceDistance: 0
   advanceWindow: {x: 0, y: 0}
   advanceProgress:
@@ -28,22 +28,34 @@ MonoBehaviour:
     m_RotationOrder: 4
   poseRootBonePath: 
   contactWindows:
-  - {x: 0.37288138, y: 0.44067797}
+  - {x: 0.2881356, y: 0.42372882}
   contactGeometry:
   - frames:
-    - normalizedTime: 0.37288138
+    - normalizedTime: 0.2881356
       capsules:
-      - a: {x: -0.40887982, y: 1.6845219, z: 1.056641}
-        b: {x: -0.90066975, y: 2.4960022, z: 2.1299634}
-        radius: 0.13
-    - normalizedTime: 0.40677968
+      - a: {x: 0.7968749, y: 1.380627, z: -0.3847658}
+        b: {x: 1.8222654, y: 1.7253722, z: -1.3222659}
+        radius: 0.33
+    - normalizedTime: 0.32203388
       capsules:
-      - a: {x: -0.7730424, y: 1.671343, z: 0.5526872}
-        b: {x: -1.8772787, y: 2.5744998, z: 0.4209693}
-        radius: 0.13
-    - normalizedTime: 0.44067797
+      - a: {x: 0.7851563, y: 1.3805106, z: 0.64843726}
+        b: {x: 2.1621094, y: 1.5519047, z: 1.0019526}
+        radius: 0.33
+    - normalizedTime: 0.3559322
       capsules:
-      - a: {x: -0.69103014, y: 1.5663177, z: 0.18062188}
-        b: {x: -1.4393104, y: 2.2748284, z: -0.8146009}
-        radius: 0.13
-    maximumPlanarReach: 2.4425635
+      - a: {x: 0.24023438, y: 1.5974175, z: 1.171875}
+        b: {x: 0.6660156, y: 2.156978, z: 2.4179688}
+        radius: 0.33
+    - normalizedTime: 0.3898305
+      capsules:
+      - a: {x: -0.66406256, y: 1.7032411, z: 0.83203113}
+        b: {x: -1.6171876, y: 2.620687, z: 1.3789059}
+        radius: 0.33
+    - normalizedTime: 0.42372882
+      capsules:
+      - a: {x: -0.75585943, y: 1.6196837, z: 0.30859393}
+        b: {x: -1.7050782, y: 2.4250062, z: -0.39843693}
+        radius: 0.33
+    maximumPlanarReach: 2.838017
+  blockedApproachProjectileFallback: 0
+  projectileMuzzleBonePaths: []

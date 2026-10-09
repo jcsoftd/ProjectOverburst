@@ -6,6 +6,19 @@ public static class EnemyPlayerApproachClearance
 {
     public const float SurfaceGap = .12f;
 
+    // Body spacing follows the physical player capsule. The larger combat hurt
+    // volume is for receiving attacks and must not stop short-reach enemies.
+    public static CombatTargetVolume ResolveBodyVolume(CharacterController controller, CombatTarget fallback)
+    {
+        if (controller != null && controller.enabled && controller.gameObject.activeInHierarchy)
+        {
+            Bounds bounds = controller.bounds;
+            return new CombatTargetVolume(bounds.center,
+                Mathf.Max(bounds.extents.x, bounds.extents.z), bounds.extents.y);
+        }
+        return fallback != null ? fallback.CurrentVolume : default;
+    }
+
     public static Vector3 Clip(Vector3 current, Vector3 candidate, Vector3 center, float radius)
     {
         Vector3 start = current - center; start.y = 0;

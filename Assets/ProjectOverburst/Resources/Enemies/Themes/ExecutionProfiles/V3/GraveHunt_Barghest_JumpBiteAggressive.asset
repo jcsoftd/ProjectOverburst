@@ -17,7 +17,7 @@ MonoBehaviour:
   runtimeClip: {fileID: 7400000, guid: b7affd1c66382de4d9a48cc8a7312a89, type: 3}
   sourceTrimSeconds: {x: 0, y: 1}
   motionPolicy: 2
-  stationaryStartRange: 1.2333068
+  stationaryStartRange: 1.27
   maxAdvanceDistance: 0
   advanceWindow: {x: 0.08, y: 0.4}
   advanceProgress:
@@ -35,27 +35,27 @@ MonoBehaviour:
       capsules:
       - a: {x: 0.014622342, y: 1.1132592, z: 0.6039766}
         b: {x: 0.014622342, y: 1.1132592, z: 0.8889766}
-        radius: 0.19
+        radius: 0.29
     - normalizedTime: 0.43333334
       capsules:
       - a: {x: -0.0067164763, y: 1.0630927, z: 0.60751224}
         b: {x: -0.0067164763, y: 1.0630927, z: 0.89251226}
-        radius: 0.19
+        radius: 0.29
     - normalizedTime: 0.46666667
       capsules:
       - a: {x: -0.032022845, y: 0.99149877, z: 0.5946237}
         b: {x: -0.032022845, y: 0.99149877, z: 0.87962365}
-        radius: 0.19
+        radius: 0.29
     - normalizedTime: 0.5
       capsules:
       - a: {x: -0.05767135, y: 0.91052854, z: 0.56780624}
         b: {x: -0.05767135, y: 0.91052854, z: 0.85280627}
-        radius: 0.19
+        radius: 0.29
     - normalizedTime: 0.53333336
       capsules:
       - a: {x: -0.07993266, y: 0.82994545, z: 0.5367378}
         b: {x: -0.07993266, y: 0.82994545, z: 0.82173777}
-        radius: 0.19
-    maximumPlanarReach: 1.0825375
+        radius: 0.29
+    maximumPlanarReach: 1.1825376
   blockedApproachProjectileFallback: 0
   projectileMuzzleBonePaths: []

@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: V3_SkeletonKnight_Small_1HandedAttack1
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: V3_SkeletonKnight_Small_1HandedAttack1
   weakAttackExecution: {fileID: 11400000, guid: f5cb5bc5cdd6d3341afc2d56b219c166, type: 2}
   animatorTrigger: Attack5
@@ -23,11 +28,14 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.14
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 1.429622
+  range: 1.49
   hitRadius: 0.9442392
   hitAngle: 125
   verticalTolerance: 1.6858561

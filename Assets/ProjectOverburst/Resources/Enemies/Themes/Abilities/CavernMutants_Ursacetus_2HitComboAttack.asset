@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e9e245444435d449687ffec559e4be, type: 3}
   m_Name: CavernMutants_Ursacetus_2HitComboAttack
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAbilityDefinition
+  parryCueBonePath: 
+  parryCueLocalPosition: {x: 0, y: 0, z: 0}
+  parryCueScale: 1
+  parryMotionWindows: []
+  firstStrikeOnlyParry: 0
   abilityId: CavernMutants_Ursacetus_2HitComboAttack
   weakAttackExecution: {fileID: 11400000, guid: a8c4d1572522918418e65cc5bb3b1349, type: 2}
   animatorTrigger: Attack6
@@ -23,11 +28,14 @@ MonoBehaviour:
   preparationDuration: 0.48
   releaseDuration: 0.32
   recoveryDuration: 0.24
+  preparationEndNormalized: 0
+  motionReleaseReferenceNormalized: 0
+  motionRecoveryStartNormalized: 0
   minimumWarningTime: 0.62
   minimumRecoveryTime: 0.24
   parryable: 0
   minimumRange: 0
-  range: 2.0728047
+  range: 2.54
   hitRadius: 1.7428045
   hitAngle: 125
   verticalTolerance: 1.5
@@ -44,3 +52,4 @@ MonoBehaviour:
   requireTargetInRangeUntilHit: 0
   additionalHitNormalizedTimes:
   - 0.52941173
+  projectilesPerRelease: 1

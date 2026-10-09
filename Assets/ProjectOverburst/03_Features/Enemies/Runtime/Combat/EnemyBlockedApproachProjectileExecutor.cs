@@ -33,9 +33,10 @@ public sealed class EnemyBlockedApproachProjectileExecutor : EnemyAbilityExecuto
         Transform target = actor != null && actor.AI != null ? actor.AI.Target : null;
         if (!CanObserve || target == null) { ResetTracking(); return; }
         if (sampledTarget != target) { ResetTracking(); sampledTarget = target; nextSample = Time.time + .4f; }
-        // Crowd steering can point sideways while the body cannot advance or turn.
-        // Observe the chase intent here; the existing attack executor still requires a completed facing action.
-        bool approach = actor.AI.CurrentStateName == "Chase" && actor.Movement.HasDestination;
+        // Movement clears its destination at an unwalkable boundary before this physics tick.
+        // Chase still owns the approach intent; a turn must finish before counting blocked travel.
+        bool approach = actor.AI.CurrentStateName == "Chase"
+            && actor.Movement.IsFacingForAttack(actor.AbilityController.ResolveAimPosition(target));
         if (!approach)
         {
             blockedSeconds = 0f; samplePosition = transform.position; nextSample = Time.time + .4f;
