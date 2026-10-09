@@ -91,6 +91,7 @@ public static class RequiredJiraFixChecks
             yield return Switching();
             Check(WorldSessionState.Phase == WorldPhase.Run, "Actual dungeon is ready");
             HealthChecks(Check);
+            yield return ResponsibilityChecks(Check);
             ui.equipmentButton.onClick.Invoke();
             Check(ui.equipmentWindow.gameObject.activeSelf, "Equipment can reopen after completed dungeon entry");
             var run = account.ReadRun();
@@ -115,6 +116,77 @@ public static class RequiredJiraFixChecks
             if (ownedSettings != null) UnityEngine.Object.DestroyImmediate(ownedSettings);
             File.WriteAllText(Path.Combine(output, "required-result.json"), JsonConvert.SerializeObject(new { status = restored ? status : "FAIL_INPUT_RETURN", checks, inputRestored = restored, realSceneTransition = true, healthScope = "Product methods on isolated temporary actor; gear/user feel not asserted" }, Formatting.Indented));
             if (!restored) throw new InvalidOperationException("Owned input restore failed.");
+        }
+    }
+    // 실제 Play의 자동 생명주기와 기존 디버그 스폰/Update 경계를 검사한다.
+    static IEnumerator ResponsibilityChecks(Action<bool, string, object> check)
+    {
+        if (DpsMeterDebugModule.AliveDummies != 0) throw new InvalidOperationException("Foreign DPS dummies must be preserved.");
+        var random = UnityEngine.Random.state;
+        var fixture = new GameObject("ResponsibilityBuffActor"); fixture.SetActive(false);
+        var health = fixture.AddComponent<CombatHealth>();
+        typeof(CombatHealth).GetField("showDamageNumbers", All).SetValue(health, false);
+        var buffs = fixture.AddComponent<PlayerBuffController>();
+        var source = new GameObject("ResponsibilityLifeStealActor");
+        var sourceHealth = source.AddComponent<CombatHealth>();
+        typeof(CombatHealth).GetField("showDamageNumbers", All).SetValue(sourceHealth, false);
+        var melee = source.AddComponent<MeleeRuntime>(); melee.enabled = false;
+        typeof(MeleeRuntime).GetField("activeStats", All).SetValue(melee, new WeaponFinalStats { lifeStealPercent = 50 });
+        var module = typeof(DpsMeterDebugModule);
+        var dummies = (List<EnemyActor>)module.GetField("dummies", All).GetValue(null);
+        int notifications = 0;
+        buffs.BuffsChanged += () => notifications++;
+        var active = new List<BuffInstance>();
+        void Apply()
+        {
+            buffs.ApplyBuff(new BuffDefinition { buffId = "responsibility-speed", duration = 60, tickInterval = 60, moveSpeedMultiplier = 1.3f });
+            buffs.ApplySlowDebuff(60, .7f);
+        }
+        try
+        {
+            health.SetMaxHp(100, true); fixture.SetActive(true); yield return null;
+            Apply(); check(buffs.GetActiveBuffs(active) == 2, "P2 automatic OnEnable supports buff and debuff", null);
+            health.TakeDamage(new DamageInfo(10, Vector3.zero)); health.Heal(5);
+            check(buffs.GetActiveBuffs(active) == 2, "P2 nonlethal damage and Heal retain effects in Play", null);
+            int before = notifications; health.ResetHealth();
+            check(buffs.GetActiveBuffs(active) == 0 && notifications == before + 1, "P2 actual Reset clears two effects once", null);
+            Apply(); before = notifications; health.TakeDamage(new DamageInfo(200, Vector3.zero));
+            check(health.IsDead && buffs.GetActiveBuffs(active) == 0 && notifications == before + 1, "P2 actual death clears effects once in Play", null);
+            health.ResetHealth(); Apply(); before = notifications; fixture.SetActive(false);
+            check(buffs.GetActiveBuffs(active) == 0 && notifications == before + 1, "P2 automatic OnDisable clears effects once", null);
+            fixture.SetActive(true); yield return null; Apply(); before = notifications; health.ResetHealth();
+            check(buffs.GetActiveBuffs(active) == 0 && notifications == before + 1, "P2 automatic re-enable reconnects once", null);
+            before = notifications; health.ResetHealth();
+            check(notifications == before && Mathf.Approximately(buffs.ActiveMoveSpeedMultiplier, 1), "P2 repeated empty Reset keeps baseline without notification", null);
+            buffs.ApplyBuff(new BuffDefinition { buffId = "responsibility-expiry", duration = .2f, tickInterval = 60, moveSpeedMultiplier = 1.2f });
+            float deadline = Time.realtimeSinceStartup + 5;
+            while (buffs.GetActiveBuffs(active) != 0 && Time.realtimeSinceStartup < deadline) yield return null;
+            check(buffs.GetActiveBuffs(active) == 0, "P2 ordinary duration expiry still uses automatic Update", null);
+            module.GetMethod("Spawn", All).Invoke(null, null);
+            check(DpsMeterDebugModule.AliveDummies == 1, "V4 authored debug Spawn leases a real catalog dummy", null);
+            var dummy = dummies.Single(); var dummyHealth = dummy.Health;
+            check(dummyHealth.IsDeathFromDamagePrevented, "V4 authored Spawn installs owned death protection", null);
+            dummyHealth.SetMaxHp(100, true); typeof(CombatHealth).GetField("currentHp", All).SetValue(dummyHealth, 5f);
+            sourceHealth.SetMaxHp(100, true); typeof(CombatHealth).GetField("currentHp", All).SetValue(sourceHealth, 20f);
+            var result = MeleeDamageResolver.Apply(new MeleeDamageRequest(dummyHealth, 100, default, 0, 0, 2, Vector3.zero, source, Vector3.zero, 0, true));
+            float recorded = (float)DpsMeterDebugModule.TotalDamage;
+            check(result.ActualDamage > 0 && Mathf.Approximately(result.ActualDamage, recorded) && Mathf.Approximately(5 - dummyHealth.CurrentHp, recorded), "V4 lethal actual damage matches DPS before automatic refill", new { result.ActualDamage, recorded, dummyHealth.CurrentHp });
+            typeof(MeleeRuntime).GetMethod("ApplyOnHitEffects", All).Invoke(melee, new object[] { dummyHealth, result.ActualDamage, Vector3.zero });
+            check(Mathf.Approximately(sourceHealth.CurrentHp, 20 + recorded * .5f), "V4 actual life steal reads damage before refill in Play", new { sourceHealth.CurrentHp, expected = 20 + recorded * .5f, parentHealthFound = melee.GetComponentInParent<CombatHealth>() != null });
+            yield return null; yield return null;
+            check(!dummyHealth.IsDead && Mathf.Approximately(dummyHealth.CurrentHp, dummyHealth.MaxHp), "V4 automatic runner Update refills surviving dummy", null);
+            module.GetMethod("Despawn", All).Invoke(null, null);
+            check(DpsMeterDebugModule.AliveDummies == 0 && !dummy.IsLeased && !dummyHealth.IsDeathFromDamagePrevented, "V4 authored Despawn releases lease and death protection", null);
+            module.GetMethod("Spawn", All).Invoke(null, null);
+            check(DpsMeterDebugModule.AliveDummies == 1 && dummies.Single().Health.IsDeathFromDamagePrevented, "V4 repeat authored Spawn reinstalls protection", null);
+            module.GetMethod("Despawn", All).Invoke(null, null);
+            check(DpsMeterDebugModule.AliveDummies == 0 && !dummyHealth.IsDeathFromDamagePrevented, "V4 repeat authored Despawn leaves no protected dummy", null);
+        }
+        finally
+        {
+            module.GetMethod("Despawn", All).Invoke(null, null);
+            UnityEngine.Object.Destroy(fixture); UnityEngine.Object.Destroy(source);
+            UnityEngine.Random.state = random;
         }
     }
     static void HealthChecks(Action<bool, string, object> check)
