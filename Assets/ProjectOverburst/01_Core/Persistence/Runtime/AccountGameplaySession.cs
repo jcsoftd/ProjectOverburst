@@ -86,13 +86,17 @@ namespace Overburst.Persistence
             if (Current == null) return inventory.AddItem(item);
             if (Current.editing || Current.restoring) return false; // A pickup owns its completion boundary.
             bool checkpoint = RequiresPickupCheckpoint(item);
-            if (checkpoint)
+            try
             {
-                CurrencyPickupBatch.DrainPending();
-                if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
+                if (checkpoint)
+                {
+                    CurrencyPickupBatch.DrainPending();
+                    if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
+                }
+                return Current.Execute(() => inventory.AddItem(item), false, checkpoint);
             }
-            try { return Current.Execute(() => inventory.AddItem(item), false, checkpoint); }
-            catch (System.IO.IOException error) { Debug.LogError("아이템 획득 저장에 실패했습니다: " + error.Message); return false; }
+            catch (Exception error) when (error is System.IO.IOException || error is UnauthorizedAccessException)
+            { Debug.LogError("아이템 획득 저장에 실패했습니다: " + error.Message); return false; }
         }
 
         // Only CurrencyWorldPickup may use this restricted inventory-only mutation path.
