@@ -40,6 +40,34 @@ public class PlayerBuffController : MonoBehaviour
         ResolveHealth();
     }
 
+    private void OnEnable()
+    {
+        ResolveHealth();
+        if (health == null) return;
+        health.OnDead += HandleDead;
+        health.OnReset += HandleReset;
+    }
+
+    private void OnDisable()
+    {
+        if (health != null)
+        {
+            health.OnDead -= HandleDead;
+            health.OnReset -= HandleReset;
+        }
+        ClearBuffs();
+    }
+
+    private void HandleDead(CombatHealth _, DamageInfo info) => ClearBuffs();
+    private void HandleReset(CombatHealth _) => ClearBuffs();
+
+    private void ClearBuffs()
+    {
+        if (activeBuffs.Count == 0) return;
+        activeBuffs.Clear();
+        NotifyBuffsChanged();
+    }
+
     private void Update()
     {
         ResolveHealth();
