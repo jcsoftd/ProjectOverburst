@@ -145,6 +145,16 @@ public class InventoryItemActionService : MonoBehaviour
         }
 
         ItemData item = inventory.FindFirstItemByBaseData(consumableData);
+        string runId = Overburst.Persistence.AccountGameplaySession.Current?.ReadRun()?.runId;
+        if (!string.IsNullOrEmpty(runId))
+        {
+            foreach (ItemData candidate in inventory.Items)
+                if (candidate != null && candidate.stackCount > 0 && candidate.baseData == consumableData && candidate.originRunId == runId)
+                {
+                    item = candidate;
+                    break;
+                }
+        }
         if (item == null)
         {
             ReportConsumableResult(consumableData.itemName + " 보유 수량이 없습니다.", true);
