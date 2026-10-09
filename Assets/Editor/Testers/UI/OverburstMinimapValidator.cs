@@ -17,14 +17,15 @@ public static class OverburstMinimapValidator
         Require(controller.GetComponentsInChildren<MinimapMarkerGraphic>(true).Length == 1, "One marker graphic");
         Require(controller.GetComponentsInChildren<Mask>(true).Length == 1, "One circular mask");
         Require(controller.GetComponentsInChildren<RectMask2D>(true).Length == 0, "No rectangular clip");
-        Require(controller.GetComponentsInChildren<RawImage>(true).Length == 0, "No legacy map/fog");
+        Require(controller.GetComponentsInChildren<RawImage>(true).Length == 1 && view.TerrainImage != null,
+            "One terrain image without legacy map/fog");
         Require(controller.GetComponentsInChildren<Camera>(true).Length == 0, "No map camera");
         foreach (var graphic in controller.GetComponentsInChildren<Graphic>(true))
             Require(!graphic.raycastTarget || graphic.GetComponent<Button>() != null, "Only buttons receive raycasts");
         foreach (var rect in controller.GetComponentsInChildren<RectTransform>(true))
             Require(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(rect.gameObject) == 0, "Missing script: " + rect.name);
         Require(view.ZoomInButton != view.ZoomOutButton, "Distinct zoom buttons");
-        return "PASS: references, single circular Mask/marker Graphic, no old RawImage/camera, raycasts, missing scripts";
+        return "PASS: references, single circular Mask/marker Graphic/terrain image, no map camera, raycasts, missing scripts";
     }
 
     public static object ValidatePlayCore()

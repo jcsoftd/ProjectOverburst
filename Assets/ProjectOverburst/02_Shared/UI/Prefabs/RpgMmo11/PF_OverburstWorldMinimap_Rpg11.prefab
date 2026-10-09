@@ -681,6 +681,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3385523834838790550}
   - {fileID: 704620231195959882}
   - {fileID: 999702729473603878}
   - {fileID: 4940575298089479967}
@@ -817,6 +818,78 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1 &4509068587530914770
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3385523834838790550}
+  - component: {fileID: 4032510207055900188}
+  - component: {fileID: 8998377134613894623}
+  m_Layer: 0
+  m_Name: TerrainMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &3385523834838790550
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4509068587530914770}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2919699010827011141}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &4032510207055900188
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4509068587530914770}
+  m_CullTransparentMesh: 1
+--- !u!114 &8998377134613894623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4509068587530914770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 0}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
 --- !u!1 &4854968399886950604
 GameObject:
   m_ObjectHideFlags: 0
@@ -1623,6 +1696,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldMinimapController
   view: {fileID: 1326644800538516639}
+  terrainMaps:
+  - sceneName: MainScene
+    texture: {fileID: 2800000, guid: 0b92f036b5c567a47825c2e3ab5ce698, type: 3}
+    worldBounds:
+      serializedVersion: 2
+      x: -95.125
+      y: -412.125
+      width: 506.25
+      height: 806.25
+  - sceneName: HideoutScene
+    texture: {fileID: 2800000, guid: c6dfa9976acc3ac48a6dcfb43826e834, type: 3}
+    worldBounds:
+      serializedVersion: 2
+      x: -38.000008
+      y: -32.000008
+      width: 112.000015
+      height: 80.00002
   defaultZoomSize: 55
   currentZoomSize: 55
   minZoomSize: 20
@@ -1682,6 +1772,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MinimapView
   viewRoot: {fileID: 2115440362159413951}
   viewport: {fileID: 2919699010827011141}
+  terrainImage: {fileID: 8998377134613894623}
   markers: {fileID: 6819734968476304958}
   playerMarker: {fileID: 4940575298089479967}
   facingCone: {fileID: 999702729473603878}

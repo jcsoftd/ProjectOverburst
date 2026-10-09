@@ -6,6 +6,7 @@ public sealed class MinimapView : MonoBehaviour
 {
     [SerializeField] private GameObject viewRoot;
     [SerializeField] private RectTransform viewport;
+    [SerializeField] private RawImage terrainImage;
     [SerializeField] private MinimapMarkerGraphic markers;
     [SerializeField] private RectTransform playerMarker;
     [SerializeField] private RectTransform facingCone;
@@ -19,6 +20,9 @@ public sealed class MinimapView : MonoBehaviour
     private float lastZoom = -1f, lastFacing = float.NaN;
     private int width, height;
     private Rect safeArea;
+    private Rect terrainBounds;
+    private Vector3 terrainOrigin;
+    private float terrainYaw = float.NaN, terrainZoom = -1f, terrainRadius = -1f;
 
     public bool IsReady => viewRoot != null && viewport != null && markers != null && markers.Atlas != null
         && playerMarker != null && facingCone != null && minimapCanvas != null
@@ -28,6 +32,38 @@ public sealed class MinimapView : MonoBehaviour
     public Button ZoomInButton => zoomInButton;
     public Button ZoomOutButton => zoomOutButton;
     public GameObject ViewRoot => viewRoot;
+    public RawImage TerrainImage => terrainImage;
+
+    public void SetTerrain(Texture2D texture, Rect worldBounds)
+    {
+        if (terrainImage == null) return;
+        terrainImage.texture = texture;
+        terrainBounds = worldBounds;
+        terrainYaw = float.NaN;
+        bool valid = texture != null && worldBounds.width > 0f && worldBounds.height > 0f;
+        terrainImage.gameObject.SetActive(valid);
+    }
+
+    public void UpdateTerrain(Vector3 origin, float yaw, float zoom)
+    {
+        if (terrainImage == null || terrainImage.texture == null || !terrainImage.gameObject.activeSelf) return;
+        float radius = Radius;
+        if (terrainOrigin.x == origin.x && terrainOrigin.z == origin.z
+            && terrainYaw == yaw && terrainZoom == zoom && terrainRadius == radius) return;
+        terrainOrigin = origin; terrainYaw = yaw; terrainZoom = zoom; terrainRadius = radius;
+        RectTransform rect = terrainImage.rectTransform;
+        Vector2 size = viewport.rect.size;
+        float metresPerUnit = Mathf.Max(1f, zoom) / radius;
+        Vector2 uvSize = new Vector2(size.x * metresPerUnit / terrainBounds.width,
+            size.y * metresPerUnit / terrainBounds.height);
+        Vector2 uvCenter = new Vector2((origin.x - terrainBounds.xMin) / terrainBounds.width,
+            (origin.z - terrainBounds.yMin) / terrainBounds.height);
+        // Keep the quad viewport-sized; scrolling the UVs avoids rasterizing a map-sized quad.
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = size;
+        terrainImage.uvRect = new Rect(uvCenter - uvSize * .5f, uvSize);
+        rect.localRotation = Quaternion.Euler(0f, 0f, yaw);
+    }
 
     public void SetVisible(bool value)
     {

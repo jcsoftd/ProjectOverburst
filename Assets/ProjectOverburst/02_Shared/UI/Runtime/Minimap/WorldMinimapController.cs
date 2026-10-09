@@ -4,7 +4,15 @@ using Unity.Profiling;
 
 public sealed class WorldMinimapController : MonoBehaviour
 {
+    [System.Serializable]
+    public sealed class TerrainMap
+    {
+        public string sceneName;
+        public Texture2D texture;
+        public Rect worldBounds;
+    }
     [SerializeField] private MinimapView view;
+    [SerializeField] private TerrainMap[] terrainMaps = System.Array.Empty<TerrainMap>();
     [SerializeField] private float defaultZoomSize = 55f;
     [SerializeField] private float currentZoomSize = 55f;
     [SerializeField] private float minZoomSize = 20f;
@@ -20,6 +28,10 @@ public sealed class WorldMinimapController : MonoBehaviour
     private int contentScene = int.MinValue;
     private Scene contentSceneInfo;
     private float nextCandidates, nextProjection, nextBinding, yaw;
+    private Texture2D ownedTerrain;
+    private int terrainRevision = -1;
+    private bool usesRunTerrain;
+    public int TerrainBuildCount { get; private set; }
 
     public static WorldMinimapController Instance
     {
@@ -61,6 +73,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         RunFallGuard.TargetTeleported += HandleTeleported;
         HandleBlocked(GameplayInputBlocker.IsGameplayInputBlocked);
         nextBinding = 0;
+        if (requested) BindTerrain();
     }
 
     private void OnDisable()
@@ -74,10 +87,11 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         UnbindPlayer();
         source.Dispose();
+        ClearTerrain();
         view?.SetVisible(false);
     }
 
-    private void OnDestroy() { if (instance == this) instance = null; }
+    private void OnDestroy() { ClearTerrain(); if (instance == this) instance = null; }
 
     public static void ShowHubMinimap(Transform player) => Instance?.ShowForHub(player);
     public static void ShowHideoutMinimap(Transform player) => ShowHubMinimap(player);
@@ -104,6 +118,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         playerTarget = player;
         requested = true;
+        BindTerrain();
         hasYaw = false;
         forceRefresh = true;
         nextBinding = 0;
@@ -115,6 +130,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     {
         requested = false;
         source.Dispose();
+        ClearTerrain();
         UnbindPlayer();
         playerTarget = null;
         contentScene = int.MinValue;
@@ -147,8 +163,10 @@ public sealed class WorldMinimapController : MonoBehaviour
             hasYaw = true;
         }
         if (!hasYaw) return;
+        RefreshRunTerrain();
         view.SetVisible(true);
         view.UpdateSafeArea();
+        view.UpdateTerrain(playerTarget.position, yaw, currentZoomSize);
         view.SetFacing(yaw - playerTarget.eulerAngles.y);
         view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
         bool dirty = source.IsDirty || forceRefresh;
@@ -189,6 +207,57 @@ public sealed class WorldMinimapController : MonoBehaviour
             view.Markers.SetMarkers(markers, count);
             ProjectionCount++;
         }
+    }
+
+    private void BindTerrain()
+    {
+        ClearTerrain();
+        if (!contentSceneInfo.IsValid() || !contentSceneInfo.isLoaded || view == null) return;
+        if (terrainMaps != null)
+            foreach (TerrainMap map in terrainMaps)
+                if (map != null && map.sceneName == contentSceneInfo.name && map.texture != null)
+                { view.SetTerrain(map.texture, map.worldBounds); return; }
+
+        // The global grid is consumed only by its owning product dungeon, never by another loaded scene.
+        foreach (GameObject root in contentSceneInfo.GetRootGameObjects())
+            if (root.GetComponentInChildren<DiamondDungeonWorld>(true) != null)
+            { usesRunTerrain = true; break; }
+        RefreshRunTerrain();
+    }
+
+    private void RefreshRunTerrain()
+    {
+        if (!usesRunTerrain || terrainRevision == RunWalkableContext.Revision) return;
+        terrainRevision = RunWalkableContext.Revision;
+        ReleaseOwnedTerrain();
+        view?.SetTerrain(null, default);
+        RunWalkableArea area = RunWalkableContext.Current;
+        if (area == null || view == null) return;
+        int width = area.Width + 2, height = area.Height + 2;
+        var cells = new byte[checked(width * height)];
+        for (int z = 0; z < area.Height; z++)
+        for (int x = 0; x < area.Width; x++)
+            if (area.IsWalkableCell(x, z)) cells[(z + 1) * width + x + 1] = MinimapTerrainPixels.Ground;
+        ownedTerrain = MinimapTerrainPixels.Create(cells, width, height);
+        view.SetTerrain(ownedTerrain, new Rect(area.OriginX - area.CellSize, area.OriginZ - area.CellSize,
+            width * area.CellSize, height * area.CellSize));
+        TerrainBuildCount++;
+    }
+
+    private void ClearTerrain()
+    {
+        view?.SetTerrain(null, default);
+        ReleaseOwnedTerrain();
+        terrainRevision = -1;
+        usesRunTerrain = false;
+    }
+
+    private void ReleaseOwnedTerrain()
+    {
+        if (ownedTerrain == null) return;
+        if (Application.isPlaying) Destroy(ownedTerrain);
+        else DestroyImmediate(ownedTerrain);
+        ownedTerrain = null;
     }
 
     private void TryBindPlayer()
