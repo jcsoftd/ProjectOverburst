@@ -89,7 +89,7 @@ namespace Overburst.Mojave
             var occupiedRocks=new List<Vector2[]>();
             for(int z=0;z<width;z++)for(int x=0;x<width;x++) {
                 var p=new Vector2((x+.5f)*cell-half,(z+.5f)*cell-half);
-                available[z*width+x]=Mathf.Abs(p.x)<half-5&&Mathf.Abs(p.y)<half-5&&world.PlayDistance(p)>(outlined?1.25f:6);
+                available[z*width+x]=world.InMap(p,5)&&world.PlayDistance(p)>(outlined?1.25f:6);
             }
             Array.Copy(available,playAvailable,available.Length);
             bool Available(Vector2 p,bool rockFit,out int index) {
@@ -459,7 +459,7 @@ namespace Overburst.Mojave
                 int minX=Mathf.Max(0,Mathf.FloorToInt((stamp.center.x-radius+half)/step)),maxX=Mathf.Min(resolution-1,Mathf.CeilToInt((stamp.center.x+radius+half)/step));
                 int minZ=Mathf.Max(0,Mathf.FloorToInt((stamp.center.y-radius+half)/step)),maxZ=Mathf.Min(resolution-1,Mathf.CeilToInt((stamp.center.y+radius+half)/step));
                 for(int z=minZ;z<=maxZ;z++)for(int x=minX;x<=maxX;x++) {
-                    var p=new Vector2((x+.5f)*step-half,(z+.5f)*step-half);var local=stamp.Local(p);float weight=Weight(stamp,local,world.PlayDistance(p));if(weight<=.1f)continue;
+                    var p=new Vector2((x+.5f)*step-half,(z+.5f)*step-half);if(!world.InMap(p,2))continue;var local=stamp.Local(p);float weight=Weight(stamp,local,world.PlayDistance(p));if(weight<=.1f)continue;
                     var extent=stamp.tile.SurfaceSize;
                     int sx=Mathf.Clamp((int)((local.x/extent.x+.5f)*td.detailWidth),0,td.detailWidth-1),sz=Mathf.Clamp((int)((local.y/extent.y+.5f)*td.detailHeight),0,td.detailHeight-1);
                     cells.Add((stamp,x,z,sx,sz,weight));

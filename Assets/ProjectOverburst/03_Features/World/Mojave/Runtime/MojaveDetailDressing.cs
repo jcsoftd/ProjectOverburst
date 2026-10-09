@@ -298,7 +298,7 @@ namespace Overburst.Mojave
         bool Clear(Vector2 p, float radius, bool combat = false)
         {
             float half = world.MapSize * .5f - 5;
-            if (Mathf.Abs(p.x) + radius > half || Mathf.Abs(p.y) + radius > half || world.TrailDistance(p, out _, out _) < radius + .35f || (!combat && world.layout.RoomDistance(p, out _) < radius + .15f)) return false;
+            if (!world.InMap(p,radius+5) || world.TrailDistance(p, out _, out _) < radius + .35f || (!combat && world.layout.RoomDistance(p, out _) < radius + .15f)) return false;
             var origin = world.surface.transform.position; var size = world.surface.terrainData.size;
             if (world.surface.terrainData.GetSteepness((p.x - origin.x) / size.x, (p.y - origin.z) / size.z) > 30) return false;
             visitedSolids.Clear();

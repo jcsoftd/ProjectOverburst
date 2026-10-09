@@ -16,6 +16,7 @@ namespace Overburst.Mojave
         }
         public Rule[] rules;
         public bool mixedSizes;
+        [Range(-1,2), Tooltip("-1 = mixed; 0 = large; 1 = medium; 2 = small.")] public int sizeFilter = -1;
         [HideInInspector] public int trailSidePlacementCount;
 
         public void Apply(MojaveLayout layout,MojaveCatalog catalog)
@@ -25,7 +26,7 @@ namespace Overburst.Mojave
                 var random=new System.Random(layout.seed^0x361A2);
                 void Shuffle<T>(List<T> list) {for(int i=list.Count-1;i>0;i--){int j=random.Next(i+1);var value=list[i];list[i]=list[j];list[j]=value;}}
                 var tiers=new List<MojaveCombatSize>();
-                for(int i=0;i<layout.places.Count;i++)tiers.Add((MojaveCombatSize)(i%3));
+                for(int i=0;i<layout.places.Count;i++)tiers.Add((MojaveCombatSize)(sizeFilter<0?i%3:sizeFilter));
                 Shuffle(tiers);
                 var candidates=new List<int>[3];var used=new int[3];
                 for(int tier=0;tier<3;tier++) {

@@ -17,6 +17,8 @@ namespace Overburst.Mojave
         public bool randomCombatLayout;
         [Tooltip("0 = preset; otherwise map side length in metres (256–768). Tiles retain their authored size.")]
         public int mapSizeOverride;
+        [Tooltip("0,0 = square. Active map width/depth; each axis must fit within MapSize.")] public Vector2 mapDimensions;
+        [Range(.6f,1f), Tooltip("Combat placement uses this fraction of the available map bounds.")] public float combatSpread = 1;
         [HideInInspector] public bool roundedJunctions;
         [HideInInspector] public bool organicConnections;
         [HideInInspector] public bool terrainFinish;
@@ -145,6 +147,7 @@ namespace Overburst.Mojave
             // Keep the accepted macro RNG stream: the original twelve large cuts define its patch count.
             int count=tileSet!=null&&tileSet.mixedSizes?Array.FindAll(catalog.patches,p=>p.combatSize==MojaveCombatSize.Large).Length:catalog.patches.Length;
             var result=new MojaveLayout(seed,count,expandedMap&&GetComponent<MojaveCombatTileSet>()!=null,compactMap,combatAreaCount,mapSizeOverride);
+            result.SetBounds(mapDimensions,combatSpread);
             if(catalog.placeNames!=null&&catalog.placeNames.Length==result.places.Count)
                 for(int i=0;i<result.places.Count;i++)result.places[i].name=catalog.placeNames[i];
             if(catalog.AuthoredSurface) {
@@ -168,6 +171,7 @@ namespace Overburst.Mojave
         }
         public void EnsureLayout() { if(layout==null){layout=CreateLayout();volcanoTrailField=catalog.volcano?new VolcanoTrailField(layout):null;} }
         public float TrailDistance(Vector2 p,out float elevation,out float halfWidth) => volcanoTrailField!=null?volcanoTrailField.Distance(p,out elevation,out halfWidth):layout.TrailDistance(p,out elevation,out halfWidth);
+        public bool InMap(Vector2 p,float inset=0) => layout==null ? Mathf.Abs(p.x)+inset<MapSize*.5f&&Mathf.Abs(p.y)+inset<MapSize*.5f : layout.Contains(p,inset);
         public float PlayDistance(Vector2 p) => layout.CombineDistance(layout.RoomDistance(p,out _),TrailDistance(p,out _,out _));
         public bool IsWalkable(Vector2 p,float clearance=.45f)
         {
@@ -220,9 +224,17 @@ namespace Overburst.Mojave
             destination.heightmapResolution=generatedHeights.GetLength(0);destination.alphamapResolution=generatedPaint.GetLength(0);
             destination.baseMapResolution=512;destination.size=new Vector3(MapSize,48,MapSize);destination.terrainLayers=catalog.layers;
             destination.SetHeights(0,0,generatedHeights);destination.SetAlphamaps(0,0,generatedPaint);destination.SetBaseMapDirty();
+            ApplyMapBoundary(destination);
             generatedDetails?.Write(destination);
             var backdrops=GetComponent<MojaveBackdropSet>();if(backdrops!=null)backdrops.WriteDetails(this,destination);
             if(attach) { surface.terrainData=destination;surface.GetComponent<TerrainCollider>().terrainData=destination; }
+        }
+        void ApplyMapBoundary(TerrainData data)
+        {
+            if(mapDimensions==Vector2.zero)return;
+            int n=data.holesResolution;var solid=new bool[n,n];float step=MapSize/n,half=MapSize*.5f;
+            for(int z=0;z<n;z++)for(int x=0;x<n;x++)solid[z,x]=InMap(new Vector2((x+.5f)*step-half,(z+.5f)*step-half));
+            data.SetHoles(0,0,solid);
         }
         void OnDestroy() {ReleaseGroundMeshes();foreach(var mesh in runtimeWaterMeshes)if(mesh!=null)DestroyOwned(mesh);runtimeWaterMeshes.Clear();if(runtimeData!=null)DestroyOwned(runtimeData);}
         float Rand(float a,float b) => Mathf.Lerp(a,b,(float)random.NextDouble());
@@ -334,6 +346,7 @@ namespace Overburst.Mojave
             if(refinedRoads)MojaveTerrainFinish.FinishSurface(this,heights);
             if(terrainFinish)MojaveTerrainFinish.PaintRoads(this,paint);
             generatedHeights=heights;generatedPaint=paint;
+            ApplyMapBoundary(runtimeData);
             runtimeData.SetHeights(0,0,heights);runtimeData.SetAlphamaps(0,0,paint);
             var go=Terrain.CreateTerrainGameObject(runtimeData);go.name="Shared ground · no tile seams";go.transform.SetParent(generatedRoot,false);go.transform.position=new Vector3(-MapSize*.5f,0,-MapSize*.5f);
             surface=go.GetComponent<Terrain>();surface.materialTemplate=catalog.terrainMaterial;surface.drawInstanced=false;
@@ -348,7 +361,7 @@ namespace Overburst.Mojave
             var parent=new GameObject(place.name+" · source tile "+catalog.patches[place.patch].name).transform;parent.SetParent(generatedRoot,false);
             foreach(var authored in catalog.patches[place.patch].placements) {
                 var p=place.World(new Vector2(authored.position.x,authored.position.z));
-                if(Mathf.Abs(p.x)>MapSize*.5f-9||Mathf.Abs(p.y)>MapSize*.5f-9)continue;
+                if(!InMap(p,9))continue;
                 float rd=layout.RoomDistance(p,out _);float tr=TrailDistance(p,out _,out _);
                 float radius=authored.radius;
                 bool boulder=authored.kind==MojavePropKind.Boulder;

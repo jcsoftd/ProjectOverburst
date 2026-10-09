@@ -84,6 +84,15 @@ namespace Overburst.Mojave
         public readonly int seed;
         public const float Size = 256;
         public readonly float extent;
+        public Vector2 bounds;
+        float combatSpread=1;
+        public bool Contains(Vector2 p,float inset=0)=>Mathf.Abs(p.x)+inset<bounds.x*.5f&&Mathf.Abs(p.y)+inset<bounds.y*.5f;
+        public void SetBounds(Vector2 dimensions,float spread)
+        {
+            bounds=dimensions==Vector2.zero?Vector2.one*extent:dimensions;
+            if(bounds.x<192||bounds.y<192||bounds.x>extent||bounds.y>extent||spread<.6f||spread>1)throw new ArgumentOutOfRangeException(nameof(dimensions));
+            combatSpread=spread;
+        }
         public const float Elevation = 48;
         public const int Version = 3;
         public float junctionRounding;
@@ -93,7 +102,7 @@ namespace Overburst.Mojave
             this.seed = seed;
             float presetExtent = expanded ? (compact ? 320 : 384) : Size;
             if(mapSizeOverride!=0&&(mapSizeOverride<MinimumMapSize||mapSizeOverride>MaximumMapSize))throw new ArgumentOutOfRangeException(nameof(mapSizeOverride));
-            extent = mapSizeOverride==0 ? presetExtent : mapSizeOverride;
+            extent = mapSizeOverride==0 ? presetExtent : mapSizeOverride;bounds=Vector2.one*extent;
             var r = new System.Random(seed);
             float Rand(float a, float b) => Mathf.Lerp(a, b, (float)r.NextDouble());
             var centers = new[] { new Vector2(-65,-72),new Vector2(-25,-32),new Vector2(37,-49),new Vector2(-51,34),new Vector2(25,29),new Vector2(62,81) };
@@ -163,10 +172,10 @@ namespace Overburst.Mojave
             for(int restart=0;restart<32&&!fitted;restart++) {
                 fitted=true;
                 for(int n=0;n<order.Count;n++) {
-                    int index=order[n];float limit=extent*.5f-radii[index]-8;bool found=false;
-                    if(limit<=0)throw new InvalidOperationException("Map is too small for the combat tiles.");
+                    int index=order[n];var limit=(bounds*.5f-Vector2.one*(radii[index]+8))*combatSpread;bool found=false;
+                    if(limit.x<=0||limit.y<=0)throw new InvalidOperationException("Map is too small for the combat tiles.");
                     for(int attempt=0;attempt<2048&&!found;attempt++) {
-                        var candidate=new Vector2(Mathf.Lerp(-limit,limit,(float)random.NextDouble()),Mathf.Lerp(-limit,limit,(float)random.NextDouble()));
+                        var candidate=new Vector2(Mathf.Lerp(-limit.x,limit.x,(float)random.NextDouble()),Mathf.Lerp(-limit.y,limit.y,(float)random.NextDouble()));
                         bool clear=true;
                         for(int previous=0;previous<n;previous++) {
                             int other=order[previous];float separation=radii[index]+radii[other]+6;
@@ -224,7 +233,7 @@ namespace Overburst.Mojave
             foreach(var place in places)foreach(var item in catalog.patches[place.patch].placements) {
                 if(item.kind!=MojavePropKind.Boulder||item.height<1.2f)continue;
                 var p=place.World(new Vector2(item.position.x,item.position.z));float radius=Mathf.Min(item.radius,12);
-                if(Mathf.Abs(p.x)>extent*.5f-9||Mathf.Abs(p.y)>extent*.5f-9||RoomDistance(p,out _)>20)continue;
+                if(!Contains(p,9)||RoomDistance(p,out _)>20)continue;
                 if(Vector2.Distance(p,place.center)<item.radius+5.5f)continue;
                 if(place.kind==MojaveCombatKind.CoverCourt&&PlaceDistance(p,place)<radius+3)continue;
                 obstacles.Add(new Vector3(p.x,p.y,radius+2.4f));
@@ -236,7 +245,7 @@ namespace Overburst.Mojave
             var costs=new float[side*side];var passable=new bool[side*side];
             for(int k=0;k<costs.Length;k++) {
                 var p=Point(k);float distance=PlayDistance(p);
-                passable[k]=Mathf.Abs(p.x)<half-10&&Mathf.Abs(p.y)<half-10&&distance<17&&!Solid(p);
+                passable[k]=Contains(p,10)&&distance<17&&!Solid(p);
                 costs[k]=1+Mathf.Max(0,distance)*.25f;
             }
             bool Clear(Vector2 a,Vector2 b){int steps=Mathf.CeilToInt(Vector2.Distance(a,b)/.6f);for(int i=0;i<=steps;i++)if(Solid(Vector2.Lerp(a,b,i/(float)Mathf.Max(1,steps))))return false;return true;}
@@ -268,7 +277,7 @@ namespace Overburst.Mojave
                     var points=new Vector2[25];bool clear=true;float length=0,displacementCost=0;
                     for(int k=0;k<points.Length;k++) {
                         float t=k/(float)(points.Length-1),u=1-t;var q=u*u*u*start+3*u*u*t*c1+3*u*t*t*c2+t*t*t*end;points[k]=q;
-                        if(Mathf.Abs(q.x)>extent*.5f-8||Mathf.Abs(q.y)>extent*.5f-8||(!allowDisplacement&&k>0&&!Clear(points[k-1],q))){clear=false;break;}
+                        if(!Contains(q,8)||(!allowDisplacement&&k>0&&!Clear(points[k-1],q))){clear=false;break;}
                         if(k>0)length+=Vector2.Distance(points[k-1],q); if(allowDisplacement&&Solid(q))displacementCost+=4;
                     }
                     if(!clear)continue;
@@ -434,6 +443,6 @@ namespace Overburst.Mojave
             float room=RoomDistance(p,out _);float trail=TrailDistance(p,out _,out _);
             return CombineDistance(room,trail);
         }
-        public bool CanWalk(Vector2 p,float clearance=.5f) => Mathf.Abs(p.x)<extent*.5f-4 && Mathf.Abs(p.y)<extent*.5f-4 && PlayDistance(p)<-clearance;
+        public bool CanWalk(Vector2 p,float clearance=.5f) => Contains(p,4) && PlayDistance(p)<-clearance;
     }
 }

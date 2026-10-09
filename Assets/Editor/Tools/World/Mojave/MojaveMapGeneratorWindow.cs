@@ -351,6 +351,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
             candidateWorld.organicConnections=themeIndex==2&&useBackdrops;
             candidateWorld.terrainFinish=themeIndex==2&&useBackdrops;
             candidateWorld.refinedRoads=themeIndex==2&&useBackdrops;
+            candidateWorld.playableRelief=themeIndex==2&&useBackdrops;
             candidateWorld.yieldBlockedLargeShoulders=themeIndex==2&&useBackdrops&&!mixedCombatSizes;
             if(themeIndex==2&&useBackdrops) {
                 var library=backdropLibrary??LoadBackdropLibrary();
