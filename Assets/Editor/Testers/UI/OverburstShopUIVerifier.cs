@@ -195,7 +195,7 @@ public static class OverburstShopUIPlayVerifier
     }
     public static void Run(bool restore) => Run(restore,OverburstShopUIVerifier.Output);
 
-    public static void Run(bool restore,string outputDirectory)
+    public static void Run(bool restore,string outputDirectory,bool verifyFlaskBindings=false)
     {
         ItemTypeIconBuilder.RequireIdle();
         if(SessionState.GetBool(Key+"pending",false) || SessionState.GetBool(Key+"return",false))
@@ -204,6 +204,7 @@ public static class OverburstShopUIPlayVerifier
         string allowed=Path.GetFullPath("../개인파일/코덱스산출").TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
         if(!output.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Verification output must stay under Codex artifacts");
         SessionState.SetString(Key+"output",output);
+        SessionState.SetBool(Key+"flaskBindings",verifyFlaskBindings);
         if(SceneManager.GetActiveScene().name!="PersistentScene") throw new InvalidOperationException("PersistentScene required");
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)) || !string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)
             || !string.IsNullOrEmpty(SessionState.GetString("Overburst.IsolatedSavePlayGuard.prepared",""))) throw new InvalidOperationException("Another account is selected");
@@ -267,7 +268,7 @@ public static class OverburstShopUIPlayVerifier
             && SessionState.GetString(Key+"scenes","")==OverburstShopUIVerifier.Scenes();
         SessionState.SetBool(Key+"pending",false); SessionState.SetBool(Key+"return",false);
         EditorApplication.update-=ReturnAccount; EditorApplication.update-=BootWatch;
-        foreach(string key in new[]{"startScene","scenes","deadline","returnDeadline"})SessionState.EraseString(Key+key); SessionState.EraseInt(Key+"pid");
+        foreach(string key in new[]{"startScene","scenes","deadline","returnDeadline"})SessionState.EraseString(Key+key); SessionState.EraseInt(Key+"pid"); SessionState.EraseBool(Key+"flaskBindings");
         Write(Report.Replace("results","return"),new{status=ready?"PASS":"FAIL",ready,guard=IsolatedSavePlayGuard.RequiresAccountChoice,environment=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),pending=false,callback=false,playing=EditorApplication.isPlayingOrWillChangePlaymode});
         if(!ready)SessionState.SetString(Key+"status","RETURN_FAILED");
     }
@@ -287,6 +288,7 @@ public static class OverburstShopUIPlayVerifier
     {
         while(!PlayerContext.Instance || !PlayerContext.Instance.CurrentActorInventory || !WorldSessionState.IsHideout)yield return null;
         for(int i=0;i<20;i++)yield return null;
+        if(SessionState.GetBool(Key+"flaskBindings",false)) VerifyFlaskBindings();
         var game=Object.FindFirstObjectByType<OverburstGameUI>(); var shop=Object.FindFirstObjectByType<ShopUI>(FindObjectsInactive.Include);
         Check(game && shop,"Persistent product UI loaded");
         var merchant=AssetDatabase.FindAssets("t:MerchantDefinition",new[]{"Assets/ProjectOverburst"}).Select(g=>AssetDatabase.LoadAssetAtPath<MerchantDefinition>(AssetDatabase.GUIDToAssetPath(g))).First(m=>m.Category==ShopCategory.Weapon);
@@ -397,6 +399,40 @@ public static class OverburstShopUIPlayVerifier
         // Persisted account restores the same surviving stack on the second Play.
         SessionState.SetInt(Key+"expectedStack",inventory.Items.Where(i=>i?.baseData==stackData).Sum(i=>i.stackCount));
         for(int i=0;i<15;i++)yield return null;
+    }
+    static void VerifyFlaskBindings()
+    {
+        var account=Overburst.Persistence.AccountGameplaySession.Current;
+        var inventory=PlayerContext.Instance.CurrentActorInventory;
+        var controller=PlayerFlaskController.Current;
+        var registry=Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+        Check(account!=null && controller && inventory,"Flask regression uses actual account actor and controller");
+        ItemData Flask(FlaskKind kind) => new ItemData(registry.Entries.Select(e=>e.asset).OfType<FlaskItemData>().First(d=>d.kind==kind),1,ItemGrade.Common);
+        var first=Flask(FlaskKind.Berserker); var second=Flask(FlaskKind.Giant);
+        Check(inventory.AddItem(first) && inventory.AddItem(second),"Flask fixture items committed to isolated account");
+        Check(controller.TryEquip(0,first,out _) && controller.TryEquip(1,second,out _),"Flasks equipped through actual account commands");
+        string firstId=first.runtimeInstanceId,secondId=second.runtimeInstanceId;
+        Check(controller.TryUse(0,out string firstReason),"First actual flask use: "+firstReason);
+        Check(controller.TryUse(1,out string secondReason),"Second actual flask use: "+secondReason);
+        Check(controller.Effects.Contains(firstId) && controller.Effects.Contains(secondId),"Both actual effects active before removal");
+        Check(!account.Execute(()=>{inventory.RemoveItem(controller.GetItem(0));return false;}),"Failed account removal rolls back");
+        Check(controller.GetItem(0)?.runtimeInstanceId==firstId && controller.Effects.Contains(firstId) && controller.Effects.Contains(secondId),"Rollback retains binding and both active effects");
+        var service=Object.FindFirstObjectByType<MerchantTradeService>();
+        var merchant=AssetDatabase.FindAssets("t:MerchantDefinition",new[]{"Assets/ProjectOverburst"}).Select(g=>AssetDatabase.LoadAssetAtPath<MerchantDefinition>(AssetDatabase.GUIDToAssetPath(g))).First(m=>m.Category==ShopCategory.GeneralGoods);
+        service.Open(merchant);
+        var selling=controller.GetItem(0); int slot=Enumerable.Range(0,inventory.Capacity).First(i=>inventory.GetItemAt(i)==selling);
+        var plan=MerchantTradeTransactionPlan.Create(new List<MerchantTradeOffer>(),new List<MerchantTradeOffer>{new MerchantTradeOffer(MerchantTradeOfferSide.Player,slot,selling)},0,1);
+        var currency=Object.FindFirstObjectByType<StashCurrencyService>();
+        Check(new MerchantTradeValidator().ValidateCurrent(plan,inventory,service.MerchantInventory,currency).success,"Active flask sale preflight accepts actual stock");
+        Check(new MerchantTradeCommitter().Commit(plan,inventory,service.MerchantInventory,currency).success,"Actual merchant commit sells active flask");
+        Check(controller.GetItem(0)==null && !controller.Effects.Contains(firstId),"Committed cleared binding removes sold flask effect");
+        Check(controller.GetItem(1)?.runtimeInstanceId==secondId && controller.Effects.Contains(secondId),"Other equipped flask and active effect survive sale");
+        var replacement=Flask(FlaskKind.Berserker);
+        Check(inventory.AddItem(replacement) && controller.TryEquip(0,replacement,out _) && controller.TryUse(0,out _),"Vacated slot supports equip and use again");
+        Check(controller.TryUnequip(0,out _) && !controller.Effects.Contains(replacement.runtimeInstanceId) && controller.Effects.Contains(secondId),"Explicit unequip clears only its own effect");
+        inventory.RemoveItem(controller.GetItem(1)); inventory.RemoveItem(inventory.Items.First(i=>i?.runtimeInstanceId==replacement.runtimeInstanceId));
+        Check(controller.GetItem(1)==null && controller.Effects.Count==0,"Actual inventory removal clears final active flask");
+        service.Close();
     }
     static void VerifyPendingOfferSortRestriction(OverburstGameUI game, ShopUI shop, MerchantTradeService service)
     {

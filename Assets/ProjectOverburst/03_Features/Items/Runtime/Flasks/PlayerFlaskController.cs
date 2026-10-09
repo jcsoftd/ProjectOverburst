@@ -211,12 +211,20 @@ public sealed class PlayerFlaskController : MonoBehaviour
     private void InventoryChanged()
     {
         for (int i = 0; i < SlotCount; i++)
-            if (!string.IsNullOrEmpty(equippedIds[i]) && GetItem(i) == null)
+        {
+            ItemData current = GetItem(i);
+            ItemData previous = equippedItems[i];
+            if (previous != null && (current == null || previous.runtimeInstanceId != current.runtimeInstanceId))
+            {
+                effects.Remove(previous.runtimeInstanceId);
+                if (previous.flaskState != null) previous.flaskState.equippedSlot = -1;
+            }
+            if (!string.IsNullOrEmpty(equippedIds[i]) && current == null)
             {
                 effects.Remove(equippedIds[i]); equippedIds[i] = null;
-                if (equippedItems[i]?.flaskState != null) equippedItems[i].flaskState.equippedSlot = -1;
-                equippedItems[i] = null;
             }
+            equippedItems[i] = current;
+        }
         Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);
     }
     private void WeaponChanged()
