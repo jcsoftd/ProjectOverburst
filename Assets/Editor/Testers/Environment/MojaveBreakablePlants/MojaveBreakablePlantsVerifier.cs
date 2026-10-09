@@ -44,7 +44,7 @@ public static class MojaveBreakablePlantsVerifier
     public static object AssetsCheck()
     {
         MojaveBreakablePlantsBuilder.RequireIdle();var rows=new List<object>();
-        foreach(string path in AssetDatabase.FindAssets("t:Prefab",new[]{MojaveBreakablePlantsBuilder.Root}).Select(AssetDatabase.GUIDToAssetPath).OrderBy(x=>x))
+        foreach(string path in MojaveBreakablePlantsBuilder.PrefabPaths())
         {
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);var plant=prefab.GetComponent<MojaveBreakablePlant>();
             if(plant==null)throw new InvalidOperationException("Missing adapter: "+path);
@@ -60,7 +60,7 @@ public static class MojaveBreakablePlantsVerifier
             }
             rows.Add(new{path,pieces=plant.FragmentCount,source=PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(intact),lod=intact.GetComponentInChildren<LODGroup>(true)?.lodCount??0,plant.BlocksMovement});
         }
-        if(rows.Count!=48)throw new InvalidOperationException("Expected 48 inspected small-vegetation prefabs.");
+        if(rows.Count!=14)throw new InvalidOperationException("Expected 14 inspected cactus/tree prefabs.");
         var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath(MojaveBreakablePlantsBuilder.TownPath);
         var group=scene.GetRootGameObjects().Single(x=>x.name==MojaveBreakablePlantsBuilder.GroupName);MojaveBreakablePlantsBuilder.ValidateGroup(group);
         string file=MojaveBreakablePlantsBuilder.Artifact+"/Evidence/native-prefab-check.json";
@@ -103,7 +103,7 @@ public static class MojaveBreakablePlantsVerifier
     static IEnumerator Trial()
     {
         var group=GameObject.Find(MojaveBreakablePlantsBuilder.GroupName);Check(group!=null,"Saved Mojave group loads through real MainScene boot");
-        var plants=group.GetComponentsInChildren<MojaveBreakablePlant>();Check(plants.Length==15,"All fifteen representative plants load");
+        var plants=group.GetComponentsInChildren<MojaveBreakablePlant>();Check(plants.Length==MojaveBreakablePlantsBuilder.Examples.Length,"All eight representative cacti/trees load");
         var actor=PlayerContext.Instance.CurrentActor;var weapon=AssetDatabase.LoadAssetAtPath<WeaponItemData>("Assets/ProjectOverburst/03_Features/Weapons/WP02_Greatsword/GRS01_AzureStarblade/GRS01_AzureStarblade.asset");
         Check(actor.Equipment.EquipWeaponItem(new ItemData(weapon,1,ItemGrade.Common)),"Existing greatsword equips in isolated account");
         typeof(PlayerEquipment).GetMethod("SetElementGem",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(actor.Equipment,new object[]{null});
@@ -145,14 +145,14 @@ public static class MojaveBreakablePlantsVerifier
                 Check(plant.Broken&&plant.BreakCount==priorBreaks+2,id+": actual heavy breaks restored plant");
                 until=Time.time+1;while(Time.time<until)yield return null;plant.ResetPlant();Write("progress.json",new{status="TESTING",completed=index+1,total=plants.Length,id,checks=checks.Count});
             }
-            paletteRoot=new GameObject("Owned forty-eight variant probe");paletteRoot.transform.position=plants[0].transform.position+Vector3.up*12;
-            var variants=AssetDatabase.FindAssets("t:Prefab",new[]{MojaveBreakablePlantsBuilder.Root}).Select(AssetDatabase.GUIDToAssetPath).Select((path,index)=>{var instance=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path),paletteRoot.transform);instance.transform.localPosition=new Vector3(index%8*3,0,index/8*3);return instance.GetComponent<MojaveBreakablePlant>();}).ToArray();
-            Check(variants.Length==48,"All forty-eight variants instantiate in Play");
+            paletteRoot=new GameObject("Owned fourteen cactus/tree variant probe");paletteRoot.transform.position=plants[0].transform.position+Vector3.up*12;
+            var variants=MojaveBreakablePlantsBuilder.PrefabPaths().Select((path,index)=>{var instance=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path),paletteRoot.transform);instance.transform.localPosition=new Vector3(index%8*3,0,index/8*3);return instance.GetComponent<MojaveBreakablePlant>();}).ToArray();
+            Check(variants.Length==14,"All fourteen cactus/tree variants instantiate in Play");
             foreach(var plant in variants){((IDamageable)plant).TakeDamage(new DamageInfo(20,plant.transform.position,actor.gameObject,Vector3.forward,0,false,false,true));Check(!plant.Broken,plant.name+": damage-over-time is ignored");((IDamageable)plant).TakeDamage(new DamageInfo(20,plant.transform.position,actor.gameObject,Vector3.forward,0));Check(plant.Broken&&plant.BreakCount==1,plant.name+": direct damage activates its own pieces");}
-            float deadline=Time.time+3.4f;while(Time.time<deadline)yield return null;Check(variants.All(p=>p.DebrisCleared),"All forty-eight variants clear their pieces");foreach(var plant in variants)plant.ResetPlant();Check(variants.All(p=>!p.Broken&&p.GetComponent<CombatTarget>().enabled),"All forty-eight variants restore");Object.Destroy(paletteRoot);paletteRoot=null;
+            float deadline=Time.time+3.4f;while(Time.time<deadline)yield return null;Check(variants.All(p=>p.DebrisCleared),"All fourteen cactus/tree variants clear their pieces");foreach(var plant in variants)plant.ResetPlant();Check(variants.All(p=>!p.Broken&&p.GetComponent<CombatTarget>().enabled),"All fourteen cactus/tree variants restore");Object.Destroy(paletteRoot);paletteRoot=null;
             foreach(var plant in plants)((IDamageable)plant).TakeDamage(new DamageInfo(20,plant.transform.position,actor.gameObject,Vector3.forward,0));
             var keyboard=InputSystem.AddDevice<Keyboard>("OwnedMojaveProbeKeyboard");
-            try{InputSystem.QueueStateEvent(keyboard,new KeyboardState());for(int i=0;i<4;i++)yield return null;InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.F9));for(int i=0;i<8;i++)yield return null;InputSystem.QueueStateEvent(keyboard,new KeyboardState());Check(plants.All(p=>!p.Broken),"F9 restores all fifteen Mojave examples");}
+            try{InputSystem.QueueStateEvent(keyboard,new KeyboardState());for(int i=0;i<4;i++)yield return null;InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.F9));for(int i=0;i<8;i++)yield return null;InputSystem.QueueStateEvent(keyboard,new KeyboardState());Check(plants.All(p=>!p.Broken),"F9 restores all eight Mojave cactus/tree examples");}
             finally{InputSystem.RemoveDevice(keyboard);}
             camera.transform.position=center+new Vector3(10,18,20);camera.transform.LookAt(center);Capture("overview-reset.png");Check(errors.Count==0,"No new runtime errors");
         }

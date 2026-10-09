@@ -15,8 +15,9 @@ public static class MojaveBreakablePlantsBuilder
     public const string GroupName="__EXPERIMENT_MOJAVE_BREAKABLE_PLANTS__";
     public const string TownPath="Assets/ProjectOverburst/00_Scenes/MainScene.unity";
     const string Sources="Assets/ThirdParty/04_환경맵/BK/PureNature_Mojave/Prefabs";
-    public static readonly string[] Examples={"Brittlebush_3","Cuctas_3","Deadbush_2","DryGrass4","Orangili_3","Thistle_3","Tumbleweed_2","Saguaro1","Saguaro3","Saguaro5","Joshua1","Joshua3","Joshua5","Piko1","Piko3"};
+    public static readonly string[] Examples={"Saguaro1","Saguaro3","Saguaro5","Joshua1","Joshua3","Joshua5","Piko1","Piko3"};
     public static string PrefabPath(string name)=>Root+"/PF_Breakable_"+name+".prefab";
+    public static IEnumerable<string> PrefabPaths()=>AssetDatabase.FindAssets("t:Prefab",new[]{Root}).Select(AssetDatabase.GUIDToAssetPath).Where(path=>path.StartsWith(Root+"/PF_Breakable_Saguaro")||path.StartsWith(Root+"/PF_Breakable_Joshua")||path.StartsWith(Root+"/PF_Breakable_Piko")).OrderBy(path=>path);
     public static string Artifact=>Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출/World/20261009_MojaveBreakablePlants"));
 
     [MenuItem("OVERBURST/Experiments/Mojave 식생/파괴 프리팹 생성 및 마을 배치")]
@@ -43,7 +44,7 @@ public static class MojaveBreakablePlantsBuilder
     public static void BuildAssets()
     {
         RequireIdle();Folder(Root);var report=new List<object>();
-        foreach(string path in AssetDatabase.FindAssets("t:Prefab",new[]{Sources+"/Plants",Sources+"/Trees"}).Select(AssetDatabase.GUIDToAssetPath).OrderBy(x=>x))
+        foreach(string path in AssetDatabase.FindAssets("t:Prefab",new[]{Sources+"/Trees"}).Select(AssetDatabase.GUIDToAssetPath).OrderBy(x=>x))
         {
             var original=AssetDatabase.LoadAssetAtPath<GameObject>(path);var lod=original.GetComponentInChildren<LODGroup>(true);
             var renderer=lod!=null?lod.GetLODs()[0].renderers.Single():original.GetComponentsInChildren<MeshRenderer>(true).Single();
