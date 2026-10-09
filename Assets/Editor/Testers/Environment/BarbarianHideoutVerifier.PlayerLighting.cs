@@ -11,7 +11,7 @@ public static partial class BarbarianHideoutVerifier
     {
         VerifyMapLighting(scene);
         var own = Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight");
-        Check(Mathf.Approximately(own.intensity, .3f), "Existing player ambient light retained");
+        Check(PlayerAmbientLightAuthoringBuilder.IsPolicyCurrent(own), "Player torch light uses authored settings");
     }
 
     static void VerifyMapLighting(Scene scene)

@@ -75,6 +75,8 @@ public sealed class EnemyActor : MonoBehaviour
     private void Awake()
     {
         CaptureAuthoredState();
+        if (Application.isPlaying && !TryGetComponent<EnemyAmbientLight>(out _))
+            gameObject.AddComponent<EnemyAmbientLight>();
     }
 
     private void OnDisable()

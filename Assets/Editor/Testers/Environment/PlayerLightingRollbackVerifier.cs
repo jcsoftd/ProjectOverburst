@@ -146,8 +146,8 @@ public static class PlayerLightingRollbackVerifier
             "Map lights include player default layer: " + scene.name);
         Check(Camera.main != null && Camera.main.GetUniversalAdditionalCameraData().renderPostProcessing,
             "Game camera applies map post processing: " + scene.name);
-        Check(Mathf.Approximately(Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight").intensity, .3f),
-            "Existing player ambient light unchanged: " + scene.name);
+        Check(PlayerAmbientLightAuthoringBuilder.IsPolicyCurrent(Actor.GetComponentsInChildren<Light>(true).Single(l => l.name == "PlayerAmbientLight")),
+            "Player torch light uses authored settings: " + scene.name);
     }
 
     static string RealHash()

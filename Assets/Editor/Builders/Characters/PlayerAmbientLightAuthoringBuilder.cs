@@ -9,12 +9,12 @@ public static class PlayerAmbientLightAuthoringBuilder
         "Assets/ProjectOverburst/03_Features/Player/Prefabs/"
         + "PF_PlayerActor.prefab";
     public const string LightObjectName = "PlayerAmbientLight";
-    public const float LightIntensity = 0.3f;
-    public const float LightRange = 4f;
+    public const float LightIntensity = 2f;
+    public const float LightRange = 5.5f;
     public static readonly Vector3 LocalPosition =
-        new(0f, 1.3f, 0f);
+        new(0f, 1.3f, 0.65f);
     public static readonly Color LightColor =
-        new(1f, 0.91f, 0.78f, 1f);
+        new(1f, 0.88f, 0.70f, 1f);
 
     private const string VisualRootName = "VisualRoot";
     private const string LogPath =
@@ -126,7 +126,7 @@ public static class PlayerAmbientLightAuthoringBuilder
             + $"LocalPosition={LocalPosition}\n"
             + $"Intensity={LightIntensity:F2}\n"
             + $"Range={LightRange:F2}\n"
-            + "RealtimeShadows=0";
+            + "RealtimeShadows=None";
     }
 
     public static bool IsPolicyCurrent(Light light)
