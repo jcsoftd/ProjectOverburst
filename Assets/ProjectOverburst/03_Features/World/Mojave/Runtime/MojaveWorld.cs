@@ -124,11 +124,12 @@ namespace Overburst.Mojave
             if(authoredTiles!=null)authoredTiles.DressTrailSides(this);
             if(backdrops!=null)backdrops.Dress(this);
             checkpoint?.Invoke(MojaveGenerationStage.Backdrops);
+            var finalDetails=GetComponent<MojaveDetailDressing>();
+            if(finalDetails!=null&&finalDetails.enabled)finalDetails.DressOpenRoadPockets();
             if(terrainFinish) {
                 MojaveTerrainFinish.GroundProps(this);
             }
             checkpoint?.Invoke(MojaveGenerationStage.Grounding);
-            var finalDetails=GetComponent<MojaveDetailDressing>();
             if(finalDetails!=null&&finalDetails.enabled)finalDetails.Rebuild();
             bakedRandomCombatLayout=randomCombatLayout;
             bakedSeed=seed;bakedLayoutVersion=MojaveLayout.Version;SetWind();Physics.SyncTransforms();

@@ -92,15 +92,16 @@ namespace Overburst.Mojave
                 available[z*width+x]=Mathf.Abs(p.x)<half-5&&Mathf.Abs(p.y)<half-5&&world.PlayDistance(p)>(outlined?1.25f:6);
             }
             Array.Copy(available,playAvailable,available.Length);
-            bool Available(Vector2 p,bool compact,out int index) {
+            bool Available(Vector2 p,bool rockFit,out int index) {
                 int x=Mathf.FloorToInt((p.x+half)/cell),z=Mathf.FloorToInt((p.y+half)/cell);index=z*width+x;
-                return x>=0&&x<width&&z>=0&&z<width&&(compact?playAvailable[index]:available[index]);
+                return x>=0&&x<width&&z>=0&&z<width&&(rockFit?playAvailable[index]:available[index]);
             }
             foreach(var tile in library.tiles.OrderBy(t=>!library.useAllNaturalCandidates&&(t.name.StartsWith("02_")||t.name.StartsWith("07_")||t.name.StartsWith("13_"))?1:0)
                 .ThenBy(t=>t.placements.Any(a=>a.kind==MojavePropKind.Boulder&&a.height>=4)?0:1).ThenByDescending(t=>t.SurfaceSize.x*t.SurfaceSize.y)) {
                 if(fillLibrary!=null&&!library.useAllNaturalCandidates&&tile.name!="01_Long_Ridge"&&tile.name!="03_Northern_Chain"&&tile.name!="04_Rock_Valley"&&tile.name!="05_Vertical_Ridge"&&tile.name!="08_Rock_Hollow")continue;
                 var points=new List<Vector2>();var extent=tile.SurfaceSize;
-                bool compact=world.refinedRoads&&library.useAllNaturalCandidates&&outlined&&extent.x*extent.y<1500;
+                bool rockFit=world.refinedRoads&&library.useAllNaturalCandidates&&outlined;
+                bool compact=rockFit&&extent.x*extent.y<1500;
                 var outlines=tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3).Select(a=>a.rockOutline).ToArray();
                 float gap=1.25f+Mathf.Clamp((tile.heights.Max()-tile.heights.Min())*.10f,0,1.25f);
                 var corePoints=new List<Vector2>();
@@ -110,7 +111,7 @@ namespace Overburst.Mojave
                 // Trimmed ground already includes the rock footing; do not expand it back into a bounding square.
                 for(float z=-extent.y*.5f+cell*.5f;z<extent.y*.5f;z+=cell)
                     for(float x=-extent.x*.5f+cell*.5f;x<extent.x*.5f;x+=cell)
-                        if(!compact&&(outlined?tile.Footprint(new Vector2(x,z))>.05f:tile.Core(new Vector2(x,z))>.2f))points.Add(new Vector2(x,z));
+                        if(!rockFit&&(outlined?tile.Footprint(new Vector2(x,z))>.05f:tile.Core(new Vector2(x,z))>.2f))points.Add(new Vector2(x,z));
                 if(outlined)foreach(var rock in tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3))
                     points.AddRange(MojavePatch.OutlineSamples(rock.rockOutline));
                 if(points.Count==0)throw new InvalidOperationException("Empty natural footprint: "+tile.name);
@@ -130,7 +131,7 @@ namespace Overburst.Mojave
                     var stamp=new Stamp{tile=tile,center=center,yaw=((turn+offset)%12)*30,connectionPadding=gap};
                     var cells=new HashSet<int>();bool fits=true;
                     foreach(var point in points) {
-                        if(!Available(stamp.World(point),compact,out int index)){fits=false;break;}
+                        if(!Available(stamp.World(point),rockFit,out int index)){fits=false;break;}
                         cells.Add(index);
                     }
                     if(!fits)continue;
@@ -145,11 +146,11 @@ namespace Overburst.Mojave
                         if(!fits)break;
                     }
                     if(!fits)continue;
-                    // Small pieces share their sand skirts. Only substantial intersections of real rock outlines reject a placement.
+                    // All authored formations share their sand skirts. Only substantial intersections of real rock outlines reject a placement.
                     Vector2[][] placedOutlines=null;
-                    if(compact) {
+                    if(rockFit) {
                         placedOutlines=outlines.Select(o=>o.Select(stamp.World).ToArray()).ToArray();
-                        if(placedOutlines.Any(a=>occupiedRocks.Any(b=>RockOverlap(a,b,.25f))))continue;
+                        if(placedOutlines.Any(a=>occupiedRocks.Any(b=>RockOverlap(a,b,.4f))))continue;
                     }
                     // The coarse occupancy grid is only a broad phase; confirm the actual rock outline against the curved play boundary.
                     if(library.useAllNaturalCandidates&&outlined&&tile.placements.Where(a=>a.rockOutline!=null&&a.rockOutline.Length>=3)

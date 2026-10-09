@@ -11,7 +11,8 @@ namespace Overburst.Mojave
     public sealed class MojaveDetailDressing : MonoBehaviour
     {
         public int variation = 1;
-        public Transform dressingRoot;
+        public Transform dressingRoot, roadPocketRoot;
+        public int roadPocketCount, roadRockCount, roadTreeCount;
         public int colonyCount, roadsideColonies, rockColonies, plantCount;
         public float buildSeconds;
 
@@ -45,41 +46,7 @@ namespace Overburst.Mojave
             solids.Clear(); solidCells.Clear(); visitedSolids.Clear(); colonies.Clear(); plants.Clear(); prefabBounds.Clear();
             colonyCount = roadsideColonies = rockColonies = plantCount = 0;
             random = new System.Random(unchecked(world.seed * 397 ^ variation * 7919 ^ 0x4d4a));
-            var plantNames = new HashSet<string>(world.catalog.shrubs.Concat(world.catalog.grasses).Where(p => p != null).Select(p => p.name));
-            var rocks = new List<(Bounds bounds, Vector2[] outline)>();
-            var meshVertices = new Dictionary<Mesh, Vector3[]>();
-            foreach (var go in MojaveTerrainFinish.PropRoots(world)) {
-                if (!go.activeInHierarchy) continue;
-                if (plantNames.Contains(go.name)) { AddPlant(XZ(go.transform.position)); continue; }
-                var rs = go.GetComponentsInChildren<Renderer>(true);
-                if (rs.Length == 0) continue;
-                var b = BoundsOf(rs);
-                if (go.name.Contains("Rock") || go.name.Contains("Stone") || go.name.Contains("Boulder")) {
-                    var points = new List<Vector2>();
-                    var lod = go.GetComponent<LODGroup>();
-                    foreach (var renderer in lod != null ? lod.GetLODs()[0].renderers : rs) {
-                        if (renderer == null) continue;
-                        var mf = renderer.GetComponent<MeshFilter>(); if (mf == null || mf.sharedMesh == null) continue;
-                        if (!meshVertices.TryGetValue(mf.sharedMesh, out var vertices)) meshVertices[mf.sharedMesh] = vertices = MojaveTerrainFinish.Vertices(mf.sharedMesh);
-                        foreach (var v in vertices) points.Add(XZ(mf.transform.TransformPoint(v)));
-                    }
-                    var outline = MojaveTerrainFinish.Hull(points);
-                    solids.Add((b, outline));
-                    if (go.name.StartsWith("RockAssemble") && b.size.y > 1.8f && Mathf.Max(b.size.x, b.size.z) > 3)
-                        rocks.Add((b, outline));
-                } else if (go.name.StartsWith("Joshua") || go.name.StartsWith("Saguaro") || go.name.StartsWith("Piko")) {
-                    var p = go.transform.position;
-                    solids.Add((new Bounds(p, new Vector3(.8f, 2, .8f)), null));
-                }
-            }
-            for (int i = 0; i < solids.Count; i++) {
-                var b = solids[i].bounds; var a = SolidCell(XZ(b.min)); var end = SolidCell(XZ(b.max));
-                for (int z = a.y; z <= end.y; z++) for (int x = a.x; x <= end.x; x++) {
-                    var cell = new Vector2Int(x, z);
-                    if (!solidCells.TryGetValue(cell, out var list)) solidCells[cell] = list = new List<int>();
-                    list.Add(i);
-                }
-            }
+            var rocks = CollectSolids();
             dressingRoot = new GameObject("Final vegetation · flower colonies and sheltered scrub").transform;
             dressingRoot.SetParent(world.generatedRoot, false);
             dressingRoot.gameObject.layer = world.generatedRoot.gameObject.layer;
@@ -131,6 +98,131 @@ namespace Overburst.Mojave
                 }
             }
             buildSeconds = (float)clock.Elapsed.TotalSeconds;
+        }
+
+
+        List<(Bounds bounds, Vector2[] outline)> CollectSolids()
+        {
+            solids.Clear(); solidCells.Clear(); visitedSolids.Clear(); plants.Clear();
+            var plantNames = new HashSet<string>(world.catalog.shrubs.Concat(world.catalog.grasses).Where(p => p != null).Select(p => p.name));
+            var treeNames = new HashSet<string>(world.catalog.cacti.Concat(world.catalog.joshua).Where(p => p != null).Select(p => p.name));
+            var rocks = new List<(Bounds bounds, Vector2[] outline)>();
+            var meshVertices = new Dictionary<Mesh, Vector3[]>();
+            foreach (var go in MojaveTerrainFinish.PropRoots(world)) {
+                if (!go.activeInHierarchy) continue;
+                if (plantNames.Contains(go.name)) { AddPlant(XZ(go.transform.position)); continue; }
+                var rs = go.GetComponentsInChildren<Renderer>(true);
+                if (rs.Length == 0) continue;
+                var b = BoundsOf(rs);
+                if (go.name.Contains("Rock") || go.name.Contains("Stone") || go.name.Contains("Boulder")) {
+                    var points = new List<Vector2>();
+                    var lod = go.GetComponent<LODGroup>();
+                    foreach (var renderer in lod != null ? lod.GetLODs()[0].renderers : rs) {
+                        if (renderer == null) continue;
+                        var mf = renderer.GetComponent<MeshFilter>(); if (mf == null || mf.sharedMesh == null) continue;
+                        if (!meshVertices.TryGetValue(mf.sharedMesh, out var vertices)) meshVertices[mf.sharedMesh] = vertices = MojaveTerrainFinish.Vertices(mf.sharedMesh);
+                        foreach (var v in vertices) points.Add(XZ(mf.transform.TransformPoint(v)));
+                    }
+                    var outline = MojaveTerrainFinish.Hull(points);
+                    solids.Add((b, outline));
+                    if (go.name.StartsWith("RockAssemble") && b.size.y > 1.8f && Mathf.Max(b.size.x, b.size.z) > 3)
+                        rocks.Add((b, outline));
+                } else if (treeNames.Contains(go.name)) {
+                    var p = go.transform.position;
+                    solids.Add((new Bounds(p, new Vector3(.8f, 2, .8f)), null));
+                }
+            }
+            for (int i = 0; i < solids.Count; i++) {
+                var b = solids[i].bounds; var a = SolidCell(XZ(b.min)); var end = SolidCell(XZ(b.max));
+                for (int z = a.y; z <= end.y; z++) for (int x = a.x; x <= end.x; x++) {
+                    var cell = new Vector2Int(x, z);
+                    if (!solidCells.TryGetValue(cell, out var list)) solidCells[cell] = list = new List<int>();
+                    list.Add(i);
+                }
+            }
+            return rocks;
+        }
+
+        // Choose vacant pockets across the map; no road stations, paired banks or tangent-aligned rows.
+        public void DressOpenRoadPockets()
+        {
+            world = GetComponent<MojaveWorld>();
+            roadPocketCount = roadRockCount = roadTreeCount = 0;
+            if (!world.refinedRoads || world.surface == null || world.catalog == null) return;
+            if (roadPocketRoot != null) {
+                roadPocketRoot.gameObject.SetActive(false);
+                if (Application.isPlaying) Destroy(roadPocketRoot.gameObject); else DestroyImmediate(roadPocketRoot.gameObject);
+            }
+            CollectSolids(); prefabBounds.Clear();
+            random = new System.Random(unchecked(world.seed * 397 ^ variation * 7919 ^ 0x706b74));
+            Bounds SourceBounds(GameObject prefab) {
+                if (!prefabBounds.TryGetValue(prefab, out var b)) prefabBounds[prefab] = b = BoundsOf(prefab.GetComponentsInChildren<Renderer>(true));
+                return b;
+            }
+            var medium = world.catalog.boulders.Where(p => p != null && !MojaveWorld.IsLooseStoneName(p.name))
+                .Where(p => { var b = SourceBounds(p); return Mathf.Max(b.size.x, b.size.z) >= 1.3f && b.size.y >= .65f; }).ToArray();
+            var small = world.catalog.stones.Where(p => p != null).ToArray();
+            var cacti = world.catalog.cacti.Where(p => p != null).ToArray();
+            var trees = world.catalog.joshua.Where(p => p != null).ToArray();
+            if (medium.Length == 0 || small.Length == 0 || cacti.Length == 0 || trees.Length == 0)
+                throw new InvalidOperationException("The Mojave road pocket rock/tree palette is required.");
+            roadPocketRoot = new GameObject("Vacant near-road pockets · irregular rocks and scrub trees").transform;
+            roadPocketRoot.SetParent(world.generatedRoot, false); roadPocketRoot.gameObject.layer = world.generatedRoot.gameObject.layer;
+            var centers = new List<(Vector2 point, float spacing)>();
+            int budget = Mathf.RoundToInt(25 * world.MapSize / 320);
+            float half = world.MapSize * .5f - 10;
+            for (int attempt = 0; attempt < budget * 320 && roadPocketCount < budget; attempt++) {
+                var center = new Vector2(Range(-half, half), Range(-half, half));
+                float distance = world.TrailDistance(center, out _, out _);
+                if (distance < 1.7f || distance > 10 || world.layout.RoomDistance(center, out _) < 3) continue;
+                if (world.layout.Noise(center, .036f, 2077) < .43f || !Clear(center, .8f) || Nearby(center, 3) > 4) continue;
+                float spacing = Range(9, 19);
+                if (centers.Any(c => (center - c.point).sqrMagnitude < Mathf.Pow(Mathf.Max(spacing, c.spacing), 2))) continue;
+                var proposals = new List<(GameObject prefab, float scale, Vector2 point, bool rock)>();
+                int rockTarget = random.Next(1, 3), treeTarget = random.Next(0, 4);
+                var family = world.layout.Noise(center, .023f, 421) > .6f ? trees : cacti;
+                var primary = Pick(family);
+                for (int i = 0; i < rockTarget + treeTarget; i++) {
+                    bool rock = i < rockTarget;
+                    var prefab = rock ? Pick(i == 0 && Range(0, 1) < .72f ? medium : small) : (Range(0, 1) < .75f ? primary : Pick(family));
+                    float angle = Range(0, Mathf.PI * 2), radius = i == 0 ? 0 : Range(.8f, 3.6f);
+                    var b = SourceBounds(prefab);
+                    float scale = rock ? Range(MojaveWorld.IsLooseStoneName(prefab.name) ? .9f : 1.8f, MojaveWorld.IsLooseStoneName(prefab.name) ? 2.1f : 3.8f) / Mathf.Max(b.size.x, b.size.z) : Range(.72f, 1.18f);
+                    proposals.Add((prefab, scale, center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius, rock));
+                }
+                Transform group = null;
+                // Rocks win; within each family the larger proposed object claims its space first.
+                foreach (var item in proposals.OrderByDescending(p => p.rock).ThenByDescending(p => { var b = SourceBounds(p.prefab); return b.size.x * b.size.y * b.size.z * p.scale * p.scale * p.scale; })) {
+                    var b = SourceBounds(item.prefab);
+                    float radius = Mathf.Max(.25f, (new Vector2(b.extents.x, b.extents.z).magnitude + new Vector2(b.center.x - item.prefab.transform.position.x, b.center.z - item.prefab.transform.position.z).magnitude) * item.scale);
+                    if (!Clear(item.point, radius) || Nearby(item.point, item.rock ? .7f : 1.2f) > 0) continue;
+                    var go = Instantiate(item.prefab, roadPocketRoot); go.name = item.prefab.name;
+                    go.transform.localScale = item.prefab.transform.localScale * item.scale;
+                    go.transform.SetPositionAndRotation(world.Ground(item.point), Quaternion.Euler(0, Range(0, 360), 0));
+                    if (item.rock) world.LimitLooseStone(go);
+                    if (!MojaveTerrainFinish.ClearOfPlay(world, BoundsOf(go.GetComponentsInChildren<Renderer>(true)), .35f)) {
+                        go.SetActive(false); if (Application.isPlaying) Destroy(go); else DestroyImmediate(go);
+                        continue;
+                    }
+                    if (group == null) {
+                        group = new GameObject("Vacant pocket " + (roadPocketCount + 1)).transform;
+                        group.SetParent(roadPocketRoot, false); group.position = world.Ground(center);
+                    }
+                    go.transform.SetParent(group, true);
+                    foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = roadPocketRoot.gameObject.layer;
+                    foreach (var lod in go.GetComponentsInChildren<LODGroup>(true)) lod.fadeMode = LODFadeMode.None;
+                    foreach (var collider in go.GetComponentsInChildren<Collider>(true)) collider.enabled = true;
+                    var solid = item.rock ? BoundsOf(go.GetComponentsInChildren<Renderer>(true)) : new Bounds(go.transform.position, new Vector3(.8f, 2, .8f));
+                    int index = solids.Count; solids.Add((solid, null)); var min = SolidCell(XZ(solid.min)); var max = SolidCell(XZ(solid.max));
+                    for (int z = min.y; z <= max.y; z++) for (int x = min.x; x <= max.x; x++) {
+                        var cell = new Vector2Int(x, z); if (!solidCells.TryGetValue(cell, out var list)) solidCells[cell] = list = new List<int>(); list.Add(index);
+                    }
+                    AddPlant(item.point);
+                    if (item.rock) roadRockCount++; else roadTreeCount++;
+                }
+                if (group == null) continue;
+                centers.Add((center, spacing)); roadPocketCount++;
+            }
         }
 
         bool TryColony(Vector2 center, Vector2 tangent, bool roadside)
