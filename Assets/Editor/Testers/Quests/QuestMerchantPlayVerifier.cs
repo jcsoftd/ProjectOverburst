@@ -243,6 +243,7 @@ public static class QuestMerchantPlayVerifier
         Check(ui.Mode==QuestMerchantUI.WindowMode.None&&!OverburstGameMenu.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"Esc closes dialogue without opening pause menu");
         yield return Approach(npc,actor);ui.SelectOption(1);InputSystem.QueueStateEvent(keyboard,new KeyboardState(Key.F));yield return Frames(8);
         var shop=Object.FindObjectsByType<ShopUI>(FindObjectsInactive.Include,FindObjectsSortMode.None).Single(s=>s.IsOpen);Check(controller.ExecutionCount==before+2,"held F opens trade exactly once");
+        yield return Capture("trade-final-native");
         yield return Click(Field<Button>(shop,"closeButton"));yield return Frames(8);Check(!shop.IsOpen,"held F does not reopen closed trade");InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return Frames(4);
         var inventory=Object.FindObjectsByType<InventoryUI>(FindObjectsInactive.Include,FindObjectsSortMode.None).Single();inventory.SetVisible(true);yield return Frames(4);yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.None,"J cannot open behind inventory");
         var dropdown=Field<TMP_Dropdown>(inventory,"sortDropdown");yield return Click(dropdown);Check(dropdown.transform.Find("Dropdown List")!=null,"original sorting dropdown opens at revised toolbar");yield return new WaitForSecondsRealtime(.3f);
