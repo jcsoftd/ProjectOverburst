@@ -201,6 +201,64 @@ public static class CaveDressingBuilder
         return new { rocks, groups, ruins = 0, lowestFloor = floor, rendererIndex, terrainData = AssetDatabase.GetAssetPath(terrain.terrainData), rooms = world.courts.Count, passages = world.passages.Count, details };
     }
 
+    internal static void FitGroundHeights(float[,] heights, Vector3 origin, Vector3 size,
+        IReadOnlyList<Bounds> supports, Vector2[][] hulls, IReadOnlyList<CaveWorld.Court> courts, IReadOnlyList<CaveWorld.Passage> passages)
+    {
+        int resolution = heights.GetLength(0);
+        for (int z = 0; z < resolution; z++) for (int x = 0; x < resolution; x++)
+            heights[z, x] = origin.y + heights[z, x] * size.y;
+
+        // Keep each cell's original operation order; only omit features whose blend weight is zero.
+        void Patch(Vector2 min, Vector2 max, Func<float, Vector2, float> adjust)
+        {
+            int x0 = Mathf.Clamp(Mathf.FloorToInt((min.x - origin.x) / size.x * (resolution - 1)) - 1, 0, resolution - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt((max.x - origin.x) / size.x * (resolution - 1)) + 1, 0, resolution - 1);
+            int z0 = Mathf.Clamp(Mathf.FloorToInt((min.y - origin.z) / size.z * (resolution - 1)) - 1, 0, resolution - 1);
+            int z1 = Mathf.Clamp(Mathf.CeilToInt((max.y - origin.z) / size.z * (resolution - 1)) + 1, 0, resolution - 1);
+            for (int z = z0; z <= z1; z++) for (int x = x0; x <= x1; x++)
+            {
+                var p = new Vector2(origin.x + x * size.x / (resolution - 1), origin.z + z * size.z / (resolution - 1));
+                heights[z, x] = adjust(heights[z, x], p);
+            }
+        }
+        foreach (var b in supports)
+            Patch(XZ(b.min) - Vector2.one * 9, XZ(b.max) + Vector2.one * 9, (h, p) =>
+            {
+                float dx = Mathf.Max(0, Mathf.Abs(p.x - b.center.x) - b.extents.x);
+                float dz = Mathf.Max(0, Mathf.Abs(p.y - b.center.z) - b.extents.z);
+                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Sqrt(dx * dx + dz * dz) / 9);
+                return Mathf.Max(h, Mathf.Lerp(h, b.min.y + .35f, weight));
+            });
+        for (int i = 0; i < hulls.Length; i++)
+        {
+            var hull = hulls[i]; float ceiling = courts[i].center.y - 3.5f;
+            var min = new Vector2(hull.Min(p => p.x), hull.Min(p => p.y));
+            var max = new Vector2(hull.Max(p => p.x), hull.Max(p => p.y));
+            Patch(min - Vector2.one * 12, max + Vector2.one * 12, (h, p) =>
+            {
+                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, Clearance(p, hull)) / 12);
+                return Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
+            });
+        }
+        foreach (var passage in passages) for (int i = 1; i < passage.points.Length; i++)
+        {
+            var start = passage.points[i - 1]; var end = passage.points[i];
+            var a = XZ(start); var b = XZ(end); var delta = b - a;
+            float halfWidth = passage.widths[Mathf.Min(i, passage.widths.Length - 1)] * .5f;
+            var padding = Vector2.one * (halfWidth + 8);
+            Patch(Vector2.Min(a, b) - padding, Vector2.Max(a, b) + padding, (h, p) =>
+            {
+                float t = Mathf.Clamp01(Vector2.Dot(p - a, delta) / Mathf.Max(.001f, delta.sqrMagnitude));
+                float distance = Vector2.Distance(p, a + delta * t);
+                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, distance - halfWidth) / 8);
+                float ceiling = Mathf.Lerp(start.y, end.y, t) - 3.5f;
+                return Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
+            });
+        }
+        for (int z = 0; z < resolution; z++) for (int x = 0; x < resolution; x++)
+            heights[z, x] = Mathf.Clamp01((heights[z, x] - origin.y) / size.y);
+    }
+
     static Terrain AddDemoTerrain(CaveWorld world, Vector2[][] hulls, Vector2 center)
     {
         var active = SceneManager.GetActiveScene(); Scene demo = default;
@@ -217,35 +275,7 @@ public static class CaveDressingBuilder
             supports.AddRange(world.courts.SelectMany(c => c.tile.GetComponentsInChildren<MeshFilter>())
                 .Where(m => m.name.StartsWith("Platform_") && m.GetComponent<Renderer>()).Select(m => m.GetComponent<Renderer>().bounds));
             int resolution = data.heightmapResolution; var heights = data.GetHeights(0, 0, resolution, resolution);
-            for (int z = 0; z < resolution; z++) for (int x = 0; x < resolution; x++)
-            {
-                var p = new Vector2(origin.x + x * size.x / (resolution - 1), origin.z + z * size.z / (resolution - 1));
-                float h = origin.y + heights[z, x] * size.y;
-                foreach (var b in supports)
-                {
-                    float dx = Mathf.Max(0, Mathf.Abs(p.x - b.center.x) - b.extents.x);
-                    float dz = Mathf.Max(0, Mathf.Abs(p.y - b.center.z) - b.extents.z);
-                    float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Sqrt(dx * dx + dz * dz) / 9);
-                    h = Mathf.Max(h, Mathf.Lerp(h, b.min.y + .35f, weight));
-                }
-                // Only adapt terrain where the new layout needs clearance; never raise a play surface or a connector.
-                for (int i = 0; i < hulls.Length; i++)
-                {
-                    float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, Clearance(p, hulls[i])) / 12);
-                    float ceiling = world.courts[i].center.y - 3.5f;
-                    h = Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
-                }
-                foreach (var passage in world.passages) for (int i = 1; i < passage.points.Length; i++)
-                {
-                    var a = XZ(passage.points[i - 1]); var b = XZ(passage.points[i]); var delta = b - a;
-                    float t = Mathf.Clamp01(Vector2.Dot(p - a, delta) / Mathf.Max(.001f, delta.sqrMagnitude));
-                    float distance = Vector2.Distance(p, a + delta * t);
-                    float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, distance - passage.widths[Mathf.Min(i, passage.widths.Length - 1)] * .5f) / 8);
-                    float ceiling = Mathf.Lerp(passage.points[i - 1].y, passage.points[i].y, t) - 3.5f;
-                    h = Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
-                }
-                heights[z, x] = Mathf.Clamp01((h - origin.y) / size.y);
-            }
+            FitGroundHeights(heights, origin, size, supports, hulls, world.courts, world.passages);
             data.SetHeights(0, 0, heights);
             string path = AssetDatabase.GenerateUniqueAssetPath(Root + "/Demo1_Ground_" + world.seed + ".asset");
             AssetDatabase.CreateAsset(data, path);
