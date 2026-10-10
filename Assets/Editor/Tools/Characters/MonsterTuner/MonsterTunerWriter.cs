@@ -63,6 +63,8 @@ namespace Overburst.EditorTools.MonsterTuner
             }
             for (int i = 0; session.Definition.AbilitySet != null && i < session.Definition.AbilitySet.Count; i++)
             {
+                // 기존 공격의 타이밍은 오라 등 다른 항목의 저장을 막지 않는다.
+                if (!session.edits.Any(e => e.target == "ability:" + i)) continue;
                 var original = session.Definition.AbilitySet.GetAbility(i);
                 if (original == null) continue;
                 var ability = Object.Instantiate(original);

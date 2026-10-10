@@ -1744,9 +1744,9 @@ MonoBehaviour:
   statusAuraLocalCenter: {x: 0, y: 0, z: 0}
   burnOffset: {x: 0, y: 0.35, z: 0}
   burnScale: 1
-  shockOffset: {x: 0, y: 0.15, z: 0}
+  shockOffset: {x: 0, y: 0.45, z: 0}
   shockScale: 1
-  corrosionOffset: {x: 0, y: 0.15, z: 0}
+  corrosionOffset: {x: 0, y: 0.45, z: 0}
   corrosionScale: 1
 --- !u!114 &2002869864812748290
 MonoBehaviour:
