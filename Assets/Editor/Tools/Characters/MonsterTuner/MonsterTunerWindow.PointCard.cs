@@ -80,7 +80,7 @@ namespace Overburst.EditorTools.MonsterTuner
                         parent = socket ?? stage.Actor.transform;
                         space = socket != null ? "부착 뼈 local" : "자동 예고점 기준 · 몬스터 방향 오프셋";
                     }
-                    else if (property.EndsWith("Offset", StringComparison.Ordinal)) space = "VFX 몸 중심 기준 · 몬스터 방향 오프셋";
+                    else if (property.EndsWith("Offset", StringComparison.Ordinal)) space = "상태 오라 몸통 기준 · 몬스터 방향 오프셋";
                     else if (property == "hurtLocalCenter" || property == "localBodyCenter" || property == "localHitCenter")
                         space = "Actor local · 외형/체급 배율 적용 전";
                     else if (property == "m_Center") space = "Collider local";

@@ -38,19 +38,22 @@ public static partial class MonsterTunerVerifier
                     string address = MonsterTunerAddress.Component(stage.Actor, placement);
                     var offset = session.Value(address, "shockOffset"); offset.vector = new Vector3(.3f, .2f, -.1f); session.Set(address, "shockOffset", offset, "검증 보정"); stage.RefreshValues();
                     var shocked = Get<GameObject>(presentationReuse, "shockedAura");
-                    Check("감전 위치 보정 실효값", Vector3.Distance(shocked.transform.position, placement.VisualVolume.Center + stage.Actor.transform.rotation * offset.vector) < .001f);
+                    Check("감전 위치 보정 실효값", Vector3.Distance(shocked.transform.position, placement.StatusAuraCenter + stage.Actor.transform.rotation * offset.vector) < .001f);
                     Vector3 once = shocked.transform.lossyScale;
                     for (int i = 0; i < 5; i++) presentationReuse.ConfigureTarget(target);
                     Check("반복 타깃 설정 크기 누적 없음", Vector3.Distance(once, shocked.transform.lossyScale) < .0001f);
                     session.Discard(); stage.RefreshValues();
-                    Check("타깃 보정 초기화", Vector3.Distance(shocked.transform.position, placement.VisualVolume.Center) < .001f);
+                    CombatTargetVfxPlacement.ResolveAuraTuning(target, MeleeElementStatusAuraType.Shocked, out var resetOffset, out _);
+                    Check("타깃 보정 초기화", Vector3.Distance(shocked.transform.position, placement.StatusAuraCenter + resetOffset) < .001f);
                     var otherSession = MonsterTunerSession.Create(samples.First(e => e != entry).Definition, false);
                     var otherStage = new MonsterTunerPreviewStage();
                     try
                     {
                         otherStage.Load(otherSession);
-                        presentationReuse.ClearAllAuras(); presentationReuse.ConfigureTarget(otherStage.Actor.GetComponent<CombatTarget>());
-                        Check("다른 타깃 재대여 이전 보정 제거", Vector3.Distance(shocked.transform.position, otherStage.Actor.GetComponent<CombatTargetVfxPlacement>().VisualVolume.Center) < .001f);
+                        var otherTarget = otherStage.Actor.GetComponent<CombatTarget>();
+                        presentationReuse.ClearAllAuras(); presentationReuse.ConfigureTarget(otherTarget);
+                        CombatTargetVfxPlacement.ResolveAuraTuning(otherTarget, MeleeElementStatusAuraType.Shocked, out var otherOffset, out _);
+                        Check("다른 타깃 재대여 이전 보정 제거", Vector3.Distance(shocked.transform.position, otherStage.Actor.GetComponent<CombatTargetVfxPlacement>().StatusAuraCenter + otherOffset) < .001f);
                         presentationReuse.ConfigureTarget(target);
                         Check("재대여 후 원래 타깃 크기 복원", Vector3.Distance(shocked.transform.lossyScale, once) < .0001f);
                     }

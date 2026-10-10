@@ -217,8 +217,8 @@ namespace Overburst.EditorTools.MonsterTuner
                     string property = kind + "Offset"; if (serialized.FindProperty(property) == null) continue;
                     string captured = property;
                     Add(placement, captured, (kind == "burn" ? "화상" : kind == "shock" ? "감전" : "잠식") + " 오라 보정", new Color(.9f, .75f, .35f),
-                        () => placement.VisualVolume.Center + placement.transform.rotation * new SerializedObject(placement).FindProperty(captured).vector3Value,
-                        p => Quaternion.Inverse(placement.transform.rotation) * (p - placement.VisualVolume.Center));
+                        () => placement.StatusAuraCenter + placement.transform.rotation * new SerializedObject(placement).FindProperty(captured).vector3Value,
+                        p => Quaternion.Inverse(placement.transform.rotation) * (p - placement.StatusAuraCenter));
                 }
             }
             RefreshWorkingAbility();
