@@ -40,15 +40,15 @@ public static partial class CaveGenerationFilmCapture
             camera.orthographic=false;camera.fieldOfView=2*Mathf.Atan(6.887f/20f)*Mathf.Rad2Deg;
             BeginTake("tour-"+counts[i]);Vector3 focus=route[0];
             Write("progress.json",new{stage="filming tour",count=counts[i],length});
-            for(int f=0;f<660;f++)
+            for(int f=0;f<Fps*14;f++)
             {
-                float t=f/659f,distance=length*Mathf.SmoothStep(0,1,t);
+                float t=f/(float)(Fps*14-1),distance=length*Mathf.SmoothStep(0,1,t);
                 int k=1;while(k<cumulative.Count-1&&cumulative[k]<distance)k++;
                 var targetFocus=Vector3.Lerp(route[k-1],route[k],Mathf.InverseLerp(cumulative[k-1],cumulative[k],distance));
-                focus=Vector3.Lerp(focus,targetFocus,.12f);
+                focus=Vector3.Lerp(focus,targetFocus,1-Mathf.Pow(.88f,30f/Fps));
                 var rotation=Quaternion.Euler(55,45+Mathf.Sin(t*Mathf.PI)*7,0);
                 camera.transform.SetPositionAndRotation(focus+Vector3.up*1.2f-rotation*Vector3.forward*(24+2*Mathf.Sin(t*Mathf.PI)),rotation);
-                Frame();if(f%90==0)System.IO.File.WriteAllBytes(System.IO.Path.Combine(output,"Raw","tour-"+counts[i]+"-"+f+".png"),pixels.EncodeToPNG());
+                Frame();if(f%(Fps*3)==0)System.IO.File.WriteAllBytes(System.IO.Path.Combine(output,"Raw","tour-"+counts[i]+"-"+f+".png"),pixels.EncodeToPNG());
                 samples.Add(new{focus=V(focus),camera=V(camera.transform.position)});yield return null;
             }
             EndTake();Write("tour-"+counts[i]+".json",new{count=counts[i],seed=seeds[i],length,route=route.Select(V).ToArray(),samples,fieldOfView=camera.fieldOfView,terrainEnabled=world.GetComponentInChildren<Terrain>()?.enabled});
@@ -104,15 +104,22 @@ public static partial class CaveGenerationFilmCapture
         }
         if(!found)throw new InvalidOperationException("No blocked candidate area found for the demonstration.");
         var points=boundary.Data.loops.SelectMany(l=>l.points).Select(boundary.transform.TransformPoint).ToArray();
-        var bounds=new Bounds(begin,Vector3.zero);foreach(var p in new[]{c.start,c.end,finish,sideTarget,boundary.transform.TransformPoint(port.pivot)})bounds.Encapsulate(p);
-        View(bounds,0,68,1.2f);
-        var segments=new List<object>();
-        foreach(var loop in boundary.Data.loops)for(int n=0;n<loop.points.Length;n++)
+        List<object> Segments()
         {
-            var a=loop.points[n];var b=loop.points[(n+1)%loop.points.Length];var mid=(a+b)*.5f;bool candidate=false;
-            foreach(var p in boundary.Data.ports){var d=mid-p.pivot;float angle=Mathf.Atan2(d.z,d.x)*Mathf.Rad2Deg;float widthAngle=Mathf.Atan2(p.width*.5f,Mathf.Max(.5f,p.radius))*Mathf.Rad2Deg;if(Mathf.Abs(Mathf.DeltaAngle(angle,p.heading))<=p.halfAngle+widthAngle&&Mathf.Abs(new Vector2(d.x,d.z).magnitude-p.radius)<5)candidate=true;}
-            segments.Add(new{a=Project(boundary.transform.TransformPoint(a)),b=Project(boundary.transform.TransformPoint(b)),candidate,open=c.Sample(boundary.transform.TransformPoint(mid),10,10,out _)});
+            var result=new List<object>();
+            foreach(var loop in boundary.Data.loops)for(int n=0;n<loop.points.Length;n++)
+            {
+                var a=loop.points[n];var b=loop.points[(n+1)%loop.points.Length];var mid=(a+b)*.5f;bool candidate=false;
+                foreach(var p in boundary.Data.ports){var d=mid-p.pivot;float angle=Mathf.Atan2(d.z,d.x)*Mathf.Rad2Deg;float widthAngle=Mathf.Atan2(p.width*.5f,Mathf.Max(.5f,p.radius))*Mathf.Rad2Deg;if(Mathf.Abs(Mathf.DeltaAngle(angle,p.heading))<=p.halfAngle+widthAngle&&Mathf.Abs(new Vector2(d.x,d.z).magnitude-p.radius)<5)candidate=true;}
+                result.Add(new{a=Project(boundary.transform.TransformPoint(a)),b=Project(boundary.transform.TransformPoint(b)),candidate,open=c.Sample(boundary.transform.TransformPoint(mid),10,10,out _)});
+            }
+            return result;
         }
+        var wide=new Bounds(points[0],Vector3.zero);foreach(var p in points)wide.Encapsulate(p);
+        View(wide,0,68,1.08f);Write("outline-boundary.json",new{segments=Segments()});
+        BeginTake("outline");for(int f=0;f<Fps*3;f++){Frame();yield return null;}EndTake();
+        var bounds=new Bounds(begin,Vector3.zero);foreach(var p in new[]{c.start,c.end,finish,sideTarget,boundary.transform.TransformPoint(port.pivot)})bounds.Encapsulate(p);
+        View(bounds,0,68,1.2f);var segments=Segments();
         var side=new Vector3(-axis.z,0,axis.x)*c.walkWidth*.5f;
         var deck=new[]{c.start-side,c.start+side,c.end+side,c.end-side}.Select(Project).ToArray();
         var fans=boundary.Data.ports.Select(p=>new{pivot=Project(boundary.transform.TransformPoint(p.pivot)),arc=Enumerable.Range(0,33).Select(i=>{float a=Mathf.Lerp(p.MinAngle,p.MaxAngle,i/32f)*Mathf.Deg2Rad;return Project(boundary.transform.TransformPoint(p.pivot+new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*(p.radius+p.deckLength*.8f)));}).ToArray()}).ToArray();
@@ -125,9 +132,9 @@ public static partial class CaveGenerationFilmCapture
             {
                 var movement=new CaveFallProtection.Movement();Vector3 at=begin,targetPoint=state=="side"?sideTarget:finish;
                 var records=new List<object>();BeginTake("boundary-"+state);
-                for(int f=0;f<180;f++)
+                for(int f=0;f<Fps*5;f++)
                 {
-                    float t=Mathf.SmoothStep(0,1,Mathf.Clamp01((f-30)/110f));var wanted=Vector3.Lerp(begin,targetPoint,t);
+                    float t=Mathf.SmoothStep(0,1,Mathf.Clamp01((f-Fps*.5f)/(Fps*3.5f)));var wanted=Vector3.Lerp(begin,targetPoint,t);
                     at=movement.Resolve(at,wanted,.35f);Frame();records.Add(new{wanted=Project(wanted),actual=Project(at),wantedWorld=V(wanted),actualWorld=V(at),c.BoundaryOpen});yield return null;
                 }
                 EndTake();float error=Vector2.Distance(new Vector2(at.x,at.z),new Vector2(targetPoint.x,targetPoint.z));
@@ -140,6 +147,6 @@ public static partial class CaveGenerationFilmCapture
         bool corrected=CaveFallProtection.TryDropLanding(begin,dropWanted,.15f,out var landing);
         if(!corrected)throw new InvalidOperationException("Drop landing correction did not find the cave.");
         Write("drop.json",new{origin=Project(begin),wanted=Project(dropWanted),landing=Project(landing),originWorld=V(begin),wantedWorld=V(dropWanted),landingWorld=V(landing),corrected});
-        BeginTake("boundary-drop");for(int f=0;f<180;f++){Frame();yield return null;}EndTake();
+        BeginTake("boundary-drop");for(int f=0;f<Fps*5;f++){Frame();yield return null;}EndTake();
     }
 }

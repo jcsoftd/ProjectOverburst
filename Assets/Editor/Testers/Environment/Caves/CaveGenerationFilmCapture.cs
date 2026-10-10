@@ -19,7 +19,7 @@ using Object = UnityEngine.Object;
 public static partial class CaveGenerationFilmCapture
 {
     const string Key="Overburst.CaveFilm.";
-    const int Width=1920,Height=1080,Fps=30;
+    const int Width=2560,Height=1440,Fps=60;
     static string output;
     static IEnumerator routine;
     static AsyncOperation waiting;
@@ -108,7 +108,7 @@ public static partial class CaveGenerationFilmCapture
     static void BeginTake(string name)
     {
         EndTake();frames=0;takeStarted=EditorApplication.timeSinceStartup;nextSample=takeStarted;
-        encoder=new MediaEncoder(Path.Combine(output,"Raw",name+".mp4"),new VideoTrackEncoderAttributes{frameRate=new MediaRational(Fps),width=Width,height=Height,includeAlpha=false,targetBitRate=16000000,bitRateMode=VideoBitrateMode.High});
+        encoder=new MediaEncoder(Path.Combine(output,"Raw",name+".mp4"),new VideoTrackEncoderAttributes{frameRate=new MediaRational(Fps),width=Width,height=Height,includeAlpha=false,targetBitRate=48000000,bitRateMode=VideoBitrateMode.High});
     }
     static void EndTake(){encoder?.Dispose();encoder=null;}
     static void Frame(int copies=1)
@@ -164,7 +164,7 @@ public static partial class CaveGenerationFilmCapture
         var bootstrap=Object.FindFirstObjectByType<CaveWorld>();if(!bootstrap)throw new InvalidOperationException("Live entry scene missing.");
         var assets=bootstrap.GetComponent<CaveRuntimeGenerator>().assets;Object.Destroy(bootstrap.gameObject);yield return null;
         SetupCamera();
-        int[] counts={9,9,9,12,12,12,15,15,15,20,20,20};int[] seeds={-284089667,1556245222,73145,1904484630,73145,19216,-1619063537,19216,73146,-284089667,1556245222,1904484630};Bounds firstBounds=default;
+        int[] counts={9,9,9,12,12,12,15,15,15,20,20,20};int[] seeds={-284089667,1556245222,73242,1904484630,73145,19216,-1619063537,19216,73146,-284089667,1556245222,1904485018};Bounds firstBounds=default;
         if(File.Exists(Path.Combine(output,"maps.json")))
         {
             var saved=Newtonsoft.Json.Linq.JArray.Parse(File.ReadAllText(Path.Combine(output,"maps.json")));
@@ -193,11 +193,11 @@ public static partial class CaveGenerationFilmCapture
             Write("maps.json",maps);Write("progress.json",new{stage="filming",take});
             var terrain=world.GetComponentInChildren<Terrain>();if(terrain)terrain.enabled=false;float yaw=b.size.z>b.size.x?90:0;
             Time.captureFramerate=Fps;BeginTake("map-"+take+"-overview");
-            for(int f=0;f<180;f++){View(b,yaw+Mathf.Lerp(-5,5,f/179f),67);Frame();if(f==90)File.WriteAllBytes(Path.Combine(output,"Raw","map-"+take+".png"),pixels.EncodeToPNG());yield return null;}EndTake();
+            for(int f=0;f<Fps*3;f++){View(b,yaw+Mathf.Lerp(-5,5,f/(float)(Fps*3-1)),67);Frame();if(f==Fps*3/2)File.WriteAllBytes(Path.Combine(output,"Raw","map-"+take+".png"),pixels.EncodeToPNG());yield return null;}EndTake();
             if(terrain)terrain.enabled=true;
             var connection=world.generatedRoot.GetComponentsInChildren<CaveRigidConnection>().Where(c=>c.stairCount==0).OrderByDescending(c=>Mathf.Abs(SelectedAngle(c))).FirstOrDefault() ?? world.generatedRoot.GetComponentsInChildren<CaveRigidConnection>().First();
             var close=new Bounds((connection.start+connection.end)*.5f,new Vector3(32,16,32));var projections=new List<object>();BeginTake("map-"+take+"-detail");
-            for(int f=0;f<120;f++){View(close,Mathf.Lerp(-10,8,f/119f),Mathf.Lerp(62,67,f/119f),1);Frame();projections.Add(ProjectConnection(connection));yield return null;}EndTake();Write("angles-"+take+".json",projections);Time.captureFramerate=0;
+            for(int f=0;f<Fps*2;f++){float t=f/(float)(Fps*2-1);View(close,Mathf.Lerp(-10,8,t),Mathf.Lerp(62,67,t),1);Frame();projections.Add(ProjectConnection(connection));yield return null;}EndTake();Write("angles-"+take+".json",projections);Time.captureFramerate=0;
             Object.Destroy(world.gameObject);world=null;yield return null;yield return Resources.UnloadUnusedAssets();
         }
         // Record a new real generation with a camera fitted from the identical seed's completed bounds.
