@@ -1764,6 +1764,8 @@ MonoBehaviour:
     - bone: {fileID: 0}
       localPoint: {x: -0.042119354, y: 0.19837208, z: -0.23763835}
       weight: 0.00023434844
+  statusAuraAnchor: {fileID: 2665031358555004630}
+  statusAuraLocalCenter: {x: -0.08921612, y: -0.16612168, z: -0.0044191456}
   burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
   shockOffset: {x: 0, y: 0, z: 0}
@@ -3920,5 +3922,10 @@ Animator:
 --- !u!4 &2665031358555004602 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4876459857862562101, guid: b59ab871761719d4892fc3ac0afed495, type: 3}
+  m_PrefabInstance: {fileID: 7444658549628276623}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2665031358555004630 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4876459857862562137, guid: b59ab871761719d4892fc3ac0afed495, type: 3}
   m_PrefabInstance: {fileID: 7444658549628276623}
   m_PrefabAsset: {fileID: 0}

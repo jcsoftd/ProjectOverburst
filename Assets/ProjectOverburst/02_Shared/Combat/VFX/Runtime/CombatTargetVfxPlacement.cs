@@ -44,6 +44,12 @@ public sealed class CombatTargetVfxPlacement : MonoBehaviour
 
     public Vector3 BodyContactCenter => HasBodyContacts
         ? bodyContactAnchor.TransformPoint(bodyContactLocalCenter) : HitVolume.Center;
+    [Tooltip("몸통 접점이 없는 모델의 상태 오라 전용 기준 관절. 피격 접점은 바꾸지 않는다.")]
+    [SerializeField] private Transform statusAuraAnchor;
+    [SerializeField] private Vector3 statusAuraLocalCenter;
+    public Vector3 StatusAuraCenter => statusAuraAnchor != null
+        ? statusAuraAnchor.TransformPoint(statusAuraLocalCenter)
+        : HasBodyContacts ? BodyContactCenter : VisualVolume.Center;
     [Tooltip("화상 불 위치 보정(몬스터 방향 기준, m). 몸 모양이 튀는 몬스터만 쓴다.")]
     [SerializeField] private Vector3 burnOffset;
     [Tooltip("화상 불 크기 보정. 기본 1")]

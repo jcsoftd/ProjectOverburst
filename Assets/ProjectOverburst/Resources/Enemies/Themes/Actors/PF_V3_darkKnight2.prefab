@@ -1293,7 +1293,7 @@ MonoBehaviour:
     - bone: {fileID: 2850312523076014663}
       localPoint: {x: 0.025926838, y: -0.06132842, z: -0.039114162}
       weight: 0.017431702
-  burnOffset: {x: 0, y: 0.5, z: 0}
+  burnOffset: {x: 0, y: -0.15, z: 0}
   burnScale: 1
   shockOffset: {x: 0, y: 0, z: 0}
   shockScale: 1

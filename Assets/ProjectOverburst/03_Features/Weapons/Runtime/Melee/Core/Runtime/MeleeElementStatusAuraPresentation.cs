@@ -44,11 +44,18 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
 
     private readonly AuraModule[] modules = new AuraModule[4];
     private bool modulesCached;
+    private Transform targetRoot;
+    private CombatTargetVfxPlacement targetPlacement;
+    private Vector3 fallbackCenter, burnLocalOffset, shockLocalOffset, darkLocalOffset;
 
     public void ConfigureTarget(CombatTarget target)
     {
         if(target==null)return;
         var volume=CombatTargetVfxPlacement.ResolveVolume(target);
+        targetRoot=target.transform;
+        target.TryGetComponent(out targetPlacement);
+        fallbackCenter=targetRoot.InverseTransformPoint(volume.Center);
+        Quaternion inverse=Quaternion.Inverse(targetRoot.rotation);
         Vector3 parentScale=transform.lossyScale;
         if(corrodedAura!=null)
         {
@@ -56,6 +63,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
             // so it follows body width; only very flat bodies are limited by height.
             CombatTargetVfxPlacement.ResolveAuraTuning(target,MeleeElementStatusAuraType.Corroded,out Vector3 darkOffset,out float darkTune);
             corrodedAura.transform.position=volume.Center+darkOffset;
+            darkLocalOffset=inverse*darkOffset;
             float fit=Mathf.Min(volume.Radius/.6f,volume.HalfHeight*2f/.7f);
             float darkSize=Mathf.Clamp(fit,.45f,3f)*Mathf.Clamp(corrodedAuraScale,.2f,1.5f);
             SetWorldSize(corrodedAura.transform,darkSize*darkTune,parentScale);
@@ -65,6 +73,7 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
             // The source aura is centered at its origin. Fit to the visual body, not a fixed +1m offset.
             CombatTargetVfxPlacement.ResolveAuraTuning(target,MeleeElementStatusAuraType.Shocked,out Vector3 shockOffset,out float shockTune);
             shockedAura.transform.position=volume.Center+shockOffset;
+            shockLocalOffset=inverse*shockOffset;
             SetWorldSize(shockedAura.transform,Mathf.Clamp(volume.Radius/.6f,.45f,3f)*shockTune,parentScale);
         }
         if(burningAura!=null)
@@ -77,7 +86,27 @@ public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
                 ?burningAura.transform.TransformVector(burningAura.transform.GetChild(0).localPosition):Vector3.zero;
             burningAura.transform.position=volume.Center+Vector3.up*(volume.HalfHeight*burningAuraHeight)
                 +burnOffset-sourceOffset;
+            burnLocalOffset=inverse*(burnOffset-sourceOffset+Vector3.up*(volume.HalfHeight*burningAuraHeight));
         }
+        UpdatePlacement(true);
+    }
+
+    private void LateUpdate() => UpdatePlacement(false);
+
+    private void UpdatePlacement(bool configure)
+    {
+        if(targetRoot==null)return;
+        Vector3 center=targetPlacement!=null?targetPlacement.StatusAuraCenter:targetRoot.TransformPoint(fallbackCenter);
+        Quaternion rotation=targetRoot.rotation;
+        if(burningAura!=null&&(configure||burningAura.activeSelf))burningAura.transform.position=center+rotation*burnLocalOffset;
+        if(shockedAura!=null&&(configure||shockedAura.activeSelf))shockedAura.transform.position=center+rotation*shockLocalOffset;
+        if(corrodedAura!=null&&(configure||corrodedAura.activeSelf))corrodedAura.transform.position=center+rotation*darkLocalOffset;
+    }
+
+    private void OnDisable()
+    {
+        targetRoot=null;
+        targetPlacement=null;
     }
 
     private static void SetWorldSize(Transform aura,float size,Vector3 parentScale)

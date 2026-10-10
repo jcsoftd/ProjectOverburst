@@ -1540,7 +1540,9 @@ MonoBehaviour:
     - bone: {fileID: 3077572148211521795}
       localPoint: {x: 0.07428091, y: 0.15246119, z: 0.009639577}
       weight: 0.0012502265
-  burnOffset: {x: 0, y: -0.45, z: 0}
+  statusAuraAnchor: {fileID: 0}
+  statusAuraLocalCenter: {x: 0, y: 0, z: 0}
+  burnOffset: {x: 0, y: 0, z: 0}
   burnScale: 1
   shockOffset: {x: 0, y: 0, z: 0}
   shockScale: 1
