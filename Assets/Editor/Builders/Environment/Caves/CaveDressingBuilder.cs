@@ -197,7 +197,8 @@ public static class CaveDressingBuilder
         var sun = DemoLighting(world);
         int rendererIndex = EnsureRenderer(); var cameraData = camera.GetUniversalAdditionalCameraData(); cameraData.SetRenderer(rendererIndex); cameraData.requiresDepthTexture = true; cameraData.renderPostProcessing = true;
         var terrain = AddDemoTerrain(world, hulls, new Vector2((minX + maxX) * .5f, (minZ + maxZ) * .5f));
-        return new { rocks, groups, ruins = 0, lowestFloor = floor, rendererIndex, terrainData = AssetDatabase.GetAssetPath(terrain.terrainData), rooms = world.courts.Count, passages = world.passages.Count };
+        var details = CaveDetailDressingBuilder.Apply(world);
+        return new { rocks, groups, ruins = 0, lowestFloor = floor, rendererIndex, terrainData = AssetDatabase.GetAssetPath(terrain.terrainData), rooms = world.courts.Count, passages = world.passages.Count, details };
     }
 
     static Terrain AddDemoTerrain(CaveWorld world, Vector2[][] hulls, Vector2 center)
