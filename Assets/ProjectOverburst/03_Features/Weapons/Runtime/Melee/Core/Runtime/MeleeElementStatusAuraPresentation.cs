@@ -4,6 +4,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class MeleeElementStatusAuraPresentation : MonoBehaviour
 {
+    public const string ResourcePath = "Combat/VFX/PF_VFX_MeleeElementStatusAura";
+
     private sealed class AuraModule
     {
         public readonly GameObject Root;

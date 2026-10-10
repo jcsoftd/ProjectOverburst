@@ -29,8 +29,6 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
 
     private const int ControllerCapacity = 4096;
     private const int PresentationCapacity = 256;
-    private const string PresentationResourcePath =
-        "Combat/VFX/PF_VFX_MeleeElementStatusAura";
     private static MeleeElementStatusAuraVisibilityScheduler instance;
 
     [SerializeField, Min(1)] private int checksPerFrame = DefaultChecksPerFrame;
@@ -579,13 +577,13 @@ public sealed class MeleeElementStatusAuraVisibilityScheduler : MonoBehaviour
         if (presentationLoadFailed)
             return null;
         presentationPrefab = Resources.Load<MeleeElementStatusAuraPresentation>(
-            PresentationResourcePath);
+            MeleeElementStatusAuraPresentation.ResourcePath);
         if (presentationPrefab == null)
         {
             presentationLoadFailed = true;
             Debug.LogError(
                 "[ElementStatusAura] 공용 presentation prefab 누락: Resources/"
-                + PresentationResourcePath);
+                + MeleeElementStatusAuraPresentation.ResourcePath);
         }
         return presentationPrefab;
     }

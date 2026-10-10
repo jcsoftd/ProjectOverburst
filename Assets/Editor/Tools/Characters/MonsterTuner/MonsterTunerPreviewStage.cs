@@ -28,6 +28,9 @@ namespace Overburst.EditorTools.MonsterTuner
         private MeleeElementStatusAuraPresentation auraPresentation;
         private ParticleSystem[] particles = Array.Empty<ParticleSystem>();
         private GameObject effectsRoot;
+        private GameObject comparisonPrefab;
+        private string auraAssetStamp;
+        private bool auraAssetsChanged;
         private UnityEngine.VFX.VisualEffect[] graphs = Array.Empty<UnityEngine.VFX.VisualEffect>();
         private float auraTime;
         private ParticleSystem cueParticles;
@@ -288,13 +291,16 @@ namespace Overburst.EditorTools.MonsterTuner
             ClearAura(); if (Actor == null) return;
             currentAuraType = type; currentStacks = stacks;
             effectsRoot = Root("Monster Tuner preview effects"); effectsRoot.SetActive(false);
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectOverburst/Resources/Combat/VFX/PF_VFX_MeleeElementStatusAura.prefab");
+            var prefab = Resources.Load<MeleeElementStatusAuraPresentation>(MeleeElementStatusAuraPresentation.ResourcePath);
             if (prefab != null)
             {
-                aura = Object.Instantiate(prefab, effectsRoot.transform, false); Sanitize(aura);
+                aura = Object.Instantiate(prefab.gameObject, effectsRoot.transform, false); Sanitize(aura);
                 auraPresentation = aura.GetComponentInChildren<MeleeElementStatusAuraPresentation>(true);
             }
             if (compare != null) { comparison = Object.Instantiate(compare, effectsRoot.transform, false); Sanitize(comparison); }
+            comparisonPrefab = compare;
+            auraAssetStamp = AuraAssetStamp(prefab, compare);
+            EditorApplication.projectChanged += MarkAuraAssetsChanged;
             effectsRoot.SetActive(true);
             var target = Actor.GetComponent<CombatTarget>();
             if (auraPresentation != null)
@@ -308,6 +314,26 @@ namespace Overburst.EditorTools.MonsterTuner
             foreach (var effect in graphs) { effect.pause = true; effect.Reinit(); }
             ReconstructEffects(.15f); needsRender = true;
         }
+        private static string AuraAssetStamp(Object prefab, Object compare)
+        {
+            string Stamp(Object asset)
+            {
+                string path = AssetDatabase.GetAssetPath(asset);
+                return string.IsNullOrEmpty(path) ? string.Empty : path + ":" + AssetDatabase.GetAssetDependencyHash(path);
+            }
+            return Stamp(prefab) + "|" + Stamp(compare);
+        }
+        private void MarkAuraAssetsChanged() { auraAssetsChanged = true; needsRender = true; }
+        private void RefreshAuraAssets()
+        {
+            if (effectsRoot == null || !auraAssetsChanged || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            auraAssetsChanged = false;
+            var prefab = Resources.Load<MeleeElementStatusAuraPresentation>(MeleeElementStatusAuraPresentation.ResourcePath);
+            if (AuraAssetStamp(prefab, comparisonPrefab) == auraAssetStamp) return;
+            float time = auraTime;
+            ShowAura(currentAuraType, currentStacks, comparisonPrefab);
+            ReconstructEffects(time);
+        }
         private void ReconstructEffects(float time)
         {
             auraTime = Mathf.Clamp(time, 0f, 30f);
@@ -319,6 +345,8 @@ namespace Overburst.EditorTools.MonsterTuner
         }
         public void ClearAura()
         {
+            EditorApplication.projectChanged -= MarkAuraAssetsChanged;
+            comparisonPrefab = null; auraAssetStamp = null; auraAssetsChanged = false;
             if (auraPresentation != null) auraPresentation.ClearAllAuras();
             if (effectsRoot != null) Object.DestroyImmediate(effectsRoot);
             effectsRoot = null; aura = null; comparison = null; auraPresentation = null;
@@ -360,6 +388,7 @@ namespace Overburst.EditorTools.MonsterTuner
         public void Render(int width, int height)
         {
             if (Camera == null || !scene.IsValid()) return;
+            RefreshAuraAssets();
             float resolutionScale = Mathf.Min(1f, 2048f / Mathf.Max(32, width, height));
             width = Mathf.Max(32, Mathf.RoundToInt(width * resolutionScale)); height = Mathf.Max(32, Mathf.RoundToInt(height * resolutionScale));
             if (surface == null || surface.width != width || surface.height != height)
@@ -381,6 +410,7 @@ namespace Overburst.EditorTools.MonsterTuner
         }
         public void Dispose()
         {
+            ClearAura();
             actorBaseline.Clear();
             if (graph.IsValid()) graph.Destroy();
             ReleaseSurface();
