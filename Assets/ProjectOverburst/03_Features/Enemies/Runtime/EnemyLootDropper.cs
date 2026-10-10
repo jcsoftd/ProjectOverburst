@@ -124,6 +124,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     private void DropFarmingItem(ItemData item, Vector3 position)
     {
         if (item == null) return;
+        position = ConstrainCaveDrop(position);
         WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickup(StampLoot(item), position, targetInventory, player, pickupGradeVfxSet);
         if (pickup == null || !encounter.IsRun || !BagFarmingLoot.Eligible(item.baseData)) return;
         float chance = BagQuality.EquippedBonus(BagStat.ExtraItemDrop) * .01f;
@@ -131,7 +132,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         ItemData extra = BagFarmingLoot.Extra(item, GetComponent<EnemyRank>(), encounter.MapLevel,
             encounter.MapGrade, BagQuality.EquippedBonus(BagStat.RareGradeWeight));
         // Direct factory call is intentional: an extra drop never rolls another extra.
-        WorldItemDropFactory.CreateWorldPickup(StampLoot(extra), position + Vector3.forward * .35f, targetInventory, player, pickupGradeVfxSet);
+        WorldItemDropFactory.CreateWorldPickup(StampLoot(extra), ConstrainCaveDrop(position + Vector3.forward * .35f), targetInventory, player, pickupGradeVfxSet);
     }
 
     private ItemData StampLoot(ItemData item)
@@ -339,8 +340,16 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
         if (encounter.IsRun)
             amount = BagFarmingLoot.CombatGoldAmount(amount, BagQuality.EquippedBonus(BagStat.CombatGold));
         Vector3 position = dropOrigin + dropOffset + GetScatterOffset(0, 2);
+        position = ConstrainCaveDrop(position);
         WorldItemDropFactory.CreateCurrencyWorldPickupFromExistingItem(
             StampLoot(new ItemData(goldItem, encounter.MapLevel, ItemGrade.Common, amount)), position, targetInventory);
+    }
+
+    private Vector3 ConstrainCaveDrop(Vector3 position)
+    {
+        // Scatter starts from the monster's feet, even when a tall model emits loot high above them.
+        return Overburst.Caves.CaveFallProtection.TryDropLanding(transform.position, position,
+            Mathf.Max(.05f, position.y - transform.position.y), out var safe) ? safe : position;
     }
 
     private void CaptureAuthoredPresentation()

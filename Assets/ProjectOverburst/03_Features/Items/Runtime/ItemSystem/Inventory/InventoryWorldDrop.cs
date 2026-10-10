@@ -107,6 +107,8 @@ public static class InventoryWorldDrop // 인벤토리 월드 드롭
 
         forward.Normalize();
         Vector3 target = origin + forward * Mathf.Max(0.25f, request.ForwardDistance); // 후보 위치
+        if (Overburst.Caves.CaveFallProtection.TryDropLanding(origin, target, Mathf.Max(.05f, request.SpawnHeight), out var safeDrop))
+            return safeDrop;
         Vector3 rayOrigin = target + Vector3.up * Mathf.Max(0.1f, request.GroundProbeHeight); // 지면 ray 시작
 
         if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, Mathf.Max(0.1f, request.GroundProbeDistance), ~0, QueryTriggerInteraction.Ignore))

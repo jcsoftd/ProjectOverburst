@@ -13,6 +13,8 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     private RigidbodyConstraints movementConstraints; // 이동 가능한 원본 제약
     private bool isPositionHeld; // 정지 상태 XZ 고정 여부
     private bool isFrozen; // 빙결 위치·회전 하드 락
+    private Overburst.Caves.CaveFallProtection.Movement caveBoundary;
+    private CapsuleCollider capsule;
     public bool ContinuousFacing { get; set; }
     private float facingSmoothTime, facingAngularVelocity, lastFacingTick = float.NegativeInfinity;
     public float FacingSmoothTime
@@ -21,7 +23,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         set { float next = Mathf.Max(0f, value); if (next != facingSmoothTime) ResetFacingSmoothing(); facingSmoothTime = next; }
     }
     public void ResetFacingSmoothing() { facingAngularVelocity = 0f; lastFacingTick = float.NegativeInfinity; }
-    private void OnEnable() => ResetFacingSmoothing();
+    private void OnEnable() { ResetFacingSmoothing(); caveBoundary = default; }
     private void OnDisable() => ResetFacingSmoothing();
 
     public bool IsPositionHeld { get { return isPositionHeld; } }
@@ -60,6 +62,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         RefreshFacingDirection(facingDirection.sqrMagnitude > 0.0001f ? facingDirection.normalized : normalizedDirection);
         Vector3 currentPosition = body != null ? body.position : transform.position;
         Vector3 nextPosition = currentPosition + normalizedDirection * speed * Time.fixedDeltaTime;
+        nextPosition = ConstrainCavePosition(currentPosition, nextPosition);
 
         if (body != null && !body.isKinematic)
         {
@@ -84,6 +87,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         }
 
         ReleasePositionHold();
+        position = ConstrainCavePosition(Position, position);
         if (body != null && !body.isKinematic)
         {
             body.MovePosition(position);
@@ -105,6 +109,7 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
         }
 
         ReleasePositionHold();
+        position = ConstrainCavePosition(Position, position);
         facingDirection.y = 0f;
         if (facingDirection.sqrMagnitude > 0.0001f)
             RefreshFacingDirection(facingDirection.normalized);
@@ -194,8 +199,44 @@ public sealed class EnemyMotor : MonoBehaviour // Rigidbody 이동과 회전만 
     {
         if (body == null)
             body = GetComponent<Rigidbody>();
+        if (capsule == null) capsule = GetComponent<CapsuleCollider>();
 
         CacheMovementConstraints();
+    }
+
+    private Vector3 ConstrainCavePosition(Vector3 from, Vector3 to)
+    {
+        float radius = capsule != null ? capsule.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) : .4f;
+        float footOffset = capsule != null ? transform.position.y - capsule.bounds.min.y : 0;
+        caveBoundary.Resolve(from, from, radius, footOffset);
+        var preview = caveBoundary;
+        return preview.Resolve(from, to, radius, footOffset);
+    }
+
+    private void FixedUpdate()
+    {
+        // Crowd contacts and external forces bypass MoveToPosition; constrain the physics velocity too.
+        CorrectCavePosition();
+        if (!caveBoundary.Active || body == null || body.isKinematic) return;
+        Vector3 predicted = body.position + body.linearVelocity * Time.fixedDeltaTime;
+        var preview = caveBoundary;
+        float radius = capsule != null ? capsule.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) : .4f;
+        float offset = capsule != null ? transform.position.y - capsule.bounds.min.y : 0;
+        Vector3 safe = preview.Resolve(body.position, predicted, radius, offset);
+        if ((safe - predicted).sqrMagnitude > .000001f)
+            body.linearVelocity = (safe - body.position) / Time.fixedDeltaTime;
+    }
+
+    private void LateUpdate() => CorrectCavePosition();
+
+    private void CorrectCavePosition()
+    {
+        Vector3 current = Position;
+        Vector3 safe = ConstrainCavePosition(current, current);
+        if ((safe - current).sqrMagnitude < .000001f) return;
+        if (body != null) { body.position = safe; if (!body.isKinematic) body.linearVelocity = Vector3.zero; }
+        transform.position = safe;
+        CombatTargetRegistry.NotifySpatialChanged(transform);
     }
 
     private void ReleasePositionHold()

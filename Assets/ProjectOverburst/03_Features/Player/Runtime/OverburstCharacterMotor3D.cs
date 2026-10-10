@@ -121,6 +121,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
     private bool evadeEnemyPassThrough;
     private bool enemyWasExcludedBeforeEvade;
     private bool resolvingEvadeOverlap;
+    private Overburst.Caves.CaveFallProtection.Movement caveBoundary;
 
     public CharacterController Controller
     {
@@ -475,6 +476,7 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
 
     public void ResetMotion()
     {
+        caveBoundary = default;
         HaltMotion();
         isGrounded = false;
         groundNormal = Vector3.up;
@@ -932,9 +934,28 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         enemySupportContact = false;
         enemyTouchContact = false;
         groundSupportContact = false;
-        CollisionFlags flags = controller.Move(displacement);
+        Vector3 start = transform.position;
+        caveBoundary.Resolve(start, start, controller.radius, start.y - GetCharacterFootPosition(start).y);
+        var preview = caveBoundary;
+        Vector3 safe = preview.Resolve(start, start + displacement, controller.radius,
+            start.y - GetCharacterFootPosition(start).y);
+        CollisionFlags flags = controller.Move(safe - start);
+        ConstrainCaveCollisionResult();
         trackingSupportContacts = false;
         return flags;
+    }
+
+    private void ConstrainCaveCollisionResult()
+    {
+        Vector3 position = transform.position;
+        Vector3 safe = caveBoundary.Resolve(position, position, controller.radius,
+            position.y - GetCharacterFootPosition(position).y);
+        if ((safe - position).sqrMagnitude < .000001f) return;
+        controller.enabled = false;
+        transform.position = safe;
+        if (legacyRigidbody != null) legacyRigidbody.position = safe;
+        controller.enabled = true;
+        if (safe.y > position.y && verticalVelocity < 0) verticalVelocity = 0;
     }
 
     // ActorTeleportUtility와 같이 컨트롤러를 끄고 위치를 옮긴 뒤 다시 켜서 시작 위치로 되돌린다.
@@ -1130,7 +1151,15 @@ public sealed class OverburstCharacterMotor3D : MonoBehaviour
         }
         float step = EnemySlideOffSpeed * Mathf.Max(0f, Time.deltaTime);
         if (away.sqrMagnitude > 0.0001f && step > 0f)
-            controller.Move(away.normalized * step);
+        {
+            Vector3 start = transform.position;
+            caveBoundary.Resolve(start, start, controller.radius, start.y - GetCharacterFootPosition(start).y);
+            var preview = caveBoundary;
+            Vector3 safe = preview.Resolve(start, start + away.normalized * step, controller.radius,
+                start.y - GetCharacterFootPosition(start).y);
+            controller.Move(safe - start);
+            ConstrainCaveCollisionResult();
+        }
     }
 
     private static Vector3 Planar(Vector3 value)

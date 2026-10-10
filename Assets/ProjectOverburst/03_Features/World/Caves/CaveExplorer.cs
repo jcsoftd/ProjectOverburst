@@ -16,6 +16,7 @@ namespace Overburst.Caves
         readonly Queue<Vector3> route = new Queue<Vector3>();
         CharacterController body;
         float vertical;
+        CaveFallProtection.Movement caveBoundary;
 
         void Start() { body = GetComponent<CharacterController>(); Teleport(world.courts[0].center); }
         void Update()
@@ -55,9 +56,16 @@ namespace Overburst.Caves
             {
                 float slice = Mathf.Min(.025f, remaining); remaining -= slice;
                 var delta = direction * speed * slice; var next = transform.position + delta;
-                if (direction.sqrMagnitude > .001f && !world.CanStand(next, .4f)) { delta = Vector3.zero; success = false; }
                 vertical = body.isGrounded ? -2 : Mathf.Max(-20, vertical - 24 * slice);
-                body.Move(delta + Vector3.up * vertical * slice);
+                var target = next + Vector3.up * vertical * slice;
+                caveBoundary.Resolve(transform.position, transform.position, body.radius);
+                var preview = caveBoundary;
+                var safe = preview.Resolve(transform.position, target, body.radius);
+                if (new Vector2(safe.x - target.x, safe.z - target.z).sqrMagnitude > .0001f) success = false;
+                body.Move(safe - transform.position);
+                safe = caveBoundary.Resolve(transform.position, transform.position, body.radius);
+                if ((safe - transform.position).sqrMagnitude > .000001f)
+                { body.enabled = false; transform.position = safe; body.enabled = true; }
             }
             return success;
         }
@@ -67,6 +75,7 @@ namespace Overburst.Caves
             if (world.Ground(position, out var hit)) position = hit.point;
             body.enabled = false; transform.position = position + Vector3.up * .06f; body.enabled = true;
             vertical = 0; route.Clear(); Physics.SyncTransforms();
+            caveBoundary = default;
             if (view) view.GetComponent<CaveCamera>()?.Snap();
         }
         public bool MoveTo(Vector3 destination)

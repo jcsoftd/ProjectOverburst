@@ -22,6 +22,7 @@ public sealed class RunFallGuard : MonoBehaviour // 런 낙하 방어선
     private RunFallGuardMode mode; // 처리 모드
     private bool hasLastSafePosition; // 안전 위치 존재
     private bool killTriggered; // 사망 중복 방지
+    private Overburst.Caves.CaveFallProtection.Movement caveBoundary;
 
     public static event System.Action<Transform> TargetTeleported; // 복구 완료 알림
 
@@ -50,6 +51,7 @@ public sealed class RunFallGuard : MonoBehaviour // 런 낙하 방어선
         float minimumSurfaceY)
     {
         walkableArea = area;
+        caveBoundary = default;
         mode = guardMode;
         respawnPosition = targetRespawnPosition;
         minimumAllowedY = minimumSurfaceY - VerticalFallRecoveryDepth;
@@ -104,6 +106,12 @@ public sealed class RunFallGuard : MonoBehaviour // 런 낙하 방어선
             return;
 
         Vector3 position = GetCurrentPosition(); // 현재 위치
+        Vector3 caveSafe = caveBoundary.Resolve(position, position, .4f);
+        if (caveBoundary.Active)
+        {
+            if ((caveSafe - position).sqrMagnitude > .000001f) ApplyCorrectedPosition(caveSafe);
+            return; // Layered cave decks use their own height, never a run-wide kill/respawn plane.
+        }
         Vector2 positionXZ = new Vector2(position.x, position.z); // XZ 위치
 
         if (position.y < minimumAllowedY)

@@ -32,6 +32,9 @@ namespace Overburst.Caves
         public long generationMilliseconds;
         readonly List<Mesh> ownedMeshes = new List<Mesh>();
 
+        void OnEnable() => CaveFallProtection.Register(this);
+        void OnDisable() => CaveFallProtection.Unregister(this);
+
         public void Generate(int nextSeed)
         {
             if (!catalog || !catalog.bridge || !catalog.abyssMaterial || catalog.combatTiles == null || catalog.combatTiles.Length != 6 || catalog.backgroundTiles == null || catalog.backgroundTiles.Length < 4)

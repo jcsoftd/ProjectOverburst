@@ -49,6 +49,8 @@ public sealed class WorldItemDropMotion : MonoBehaviour
             authoredVisualRotation = visualRoot.localRotation;
             authoredRotationCaptured = true;
         }
+        if (Overburst.Caves.CaveFallProtection.TryDropOrigin(transform.position, out var safeOrigin))
+            transform.position = safeOrigin;
         startPosition = transform.position;
         startVisualRotation = visualRoot.localRotation;
         settledVisualRotation = presentation.RollSettledLocalRotation();
@@ -108,6 +110,8 @@ public sealed class WorldItemDropMotion : MonoBehaviour
     {
         Vector2 scatter = UnityEngine.Random.insideUnitCircle * scatterRadius;
         Vector3 candidate = origin + new Vector3(scatter.x, 0f, scatter.y);
+        if (Overburst.Caves.CaveFallProtection.TryDropLanding(origin, candidate, groundClearance, out var safeLanding))
+            return safeLanding;
         Vector3 rayOrigin = candidate + Vector3.up * GroundProbeHeight;
         int hitCount = Physics.RaycastNonAlloc(
             rayOrigin,
