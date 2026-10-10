@@ -12,35 +12,13 @@ using Overburst.Caves;
 using Newtonsoft.Json;
 using Object = UnityEngine.Object;
 
-public static class CavePlatformMapBuilder
+public class CavePlatformMapBuilder : CavePlatformLayout
 {
     public const string Root = "Assets/ProjectOverburst/04_Contents/World/Caves/Procedural";
     public const string SceneRoot = "Assets/ProjectOverburst/00_Scenes/World/Caves";
     public const string LibraryPath = Root + "/PlatformLibrary.asset";
     public const string Source = "Assets/ProjectOverburst/04_Contents/World/Caves/Extracted/Demo1/Platforms";
     public static string Output => Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출/World/CavesGeneration"));
-    public sealed class Room
-    {
-        public int platform;
-        public Vector3 position;
-        public float yaw;
-        public bool[] used;
-    }
-    public sealed class Link
-    {
-        public int a, b, portA, portB;
-        public float angleA, angleB;
-        public Vector3 start, end;
-        public bool stone;
-        public float pitch;
-        public int stairCount, stairDirection;
-        public float reviewShortfall;
-    }
-    public sealed class Layout
-    {
-        public List<Room> rooms = new List<Room>();
-        public List<Link> links = new List<Link>();
-    }
     sealed class Marker
     {
         public Transform transform;
@@ -64,40 +42,6 @@ public static class CavePlatformMapBuilder
         AssetDatabase.CreateFolder(Path.GetDirectoryName(path).Replace('\\', '/'), Path.GetFileName(path));
     }
     static float[] V(Vector3 v) => new[] { v.x, v.y, v.z };
-    static Vector2 XZ(Vector3 v) => new Vector2(v.x, v.z);
-    static Vector3 Direction(float angle) => new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0, Mathf.Sin(angle * Mathf.Deg2Rad));
-    static Vector3 Rotate(Vector3 p, float yaw) => Quaternion.Euler(0, yaw, 0) * p;
-    static float Angle(Vector3 v) => Mathf.Atan2(v.z, v.x) * Mathf.Rad2Deg;
-    static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
-    public static Vector2[] Hull(IEnumerable<Vector2> input)
-    {
-        var points = input.Distinct().OrderBy(p => p.x).ThenBy(p => p.y).ToArray();
-        var hull = new List<Vector2>();
-        foreach (var p in points)
-        { while (hull.Count >= 2 && Cross(hull[hull.Count - 1] - hull[hull.Count - 2], p - hull[hull.Count - 1]) <= 0) hull.RemoveAt(hull.Count - 1); hull.Add(p); }
-        int lower = hull.Count;
-        for (int i = points.Length - 2; i >= 0; i--)
-        { var p = points[i]; while (hull.Count > lower && Cross(hull[hull.Count - 1] - hull[hull.Count - 2], p - hull[hull.Count - 1]) <= 0) hull.RemoveAt(hull.Count - 1); hull.Add(p); }
-        hull.RemoveAt(hull.Count - 1); return hull.ToArray();
-    }
-    static bool Inside(Vector2[] hull, Vector2 p) => Enumerable.Range(0, hull.Length).All(i => Cross(hull[(i + 1) % hull.Length] - hull[i], p - hull[i]) >= -.001f);
-    static float EdgeDistance(Vector2[] hull, Vector2 p) => Enumerable.Range(0, hull.Length).Min(i =>
-    { var a = hull[i]; var d = hull[(i + 1) % hull.Length] - a; return Vector2.Distance(p, a + d * Mathf.Clamp01(Vector2.Dot(p - a, d) / d.sqrMagnitude)); });
-    static Vector2[] WorldHull(CavePlatformLibrary library, Room room) => library.platforms[room.platform].hull.Select(p => XZ(room.position + Rotate(new Vector3(p.x, 0, p.y), room.yaw))).ToArray();
-    static bool Overlap(Vector2[] a, Vector2[] b, float margin)
-    {
-        foreach (var polygon in new[] { a, b })
-            for (int i = 0; i < polygon.Length; i++)
-            {
-                var edge = polygon[(i + 1) % polygon.Length] - polygon[i]; var axis = new Vector2(-edge.y, edge.x).normalized;
-                float amin = a.Min(p => Vector2.Dot(p, axis)), amax = a.Max(p => Vector2.Dot(p, axis));
-                float bmin = b.Min(p => Vector2.Dot(p, axis)), bmax = b.Max(p => Vector2.Dot(p, axis));
-                if (amax + margin < bmin || bmax + margin < amin) return false;
-            }
-        return true;
-    }
-    static bool SegmentCross(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
-        => Cross(b - a, c - a) * Cross(b - a, d - a) < 0 && Cross(d - c, a - c) * Cross(d - c, b - c) < 0;
     static Bounds BoundsOf(IEnumerable<Renderer> renderers)
     { var array = renderers.ToArray(); var bounds = array[0].bounds; foreach (var r in array.Skip(1)) bounds.Encapsulate(r.bounds); return bounds; }
     static bool FloorHit(MeshCollider[] floors, Vector3 near, out Vector3 point)
@@ -289,6 +233,8 @@ public static class CavePlatformMapBuilder
                     if (regions.Count < 2) throw new InvalidOperationException(original.name + " has fewer than two usable connection regions.");
                     var tile = go.GetComponent<CaveTile>() ?? go.AddComponent<CaveTile>(); tile.combat = true; tile.combatRadius = Mathf.Max(1, best); tile.footprintRadius = floorBounds.extents.magnitude; tile.sourcePlatform = original.name;
                     var guide = go.GetComponent<CaveConnectionGuide>() ?? go.AddComponent<CaveConnectionGuide>(); guide.regions = regions.ToArray();
+                    var boundary = go.GetComponent<CavePlatformBoundary>();
+                    if (boundary) boundary.definition = original.GetComponent<CavePlatformBoundary>();
                     var prefab = PrefabUtility.SaveAsPrefabAsset(go, Root + "/Platforms/" + go.name + ".prefab");
                     var obstacles = go.GetComponentsInChildren<Collider>(true).Where(c => c.enabled && !c.isTrigger && !c.transform.IsChildOf(floorRoot)).Select(c => c.bounds).ToArray();
                     entries.Add(new CavePlatformLibrary.Platform { source = original, prefab = prefab, hull = hull, surfaceTriangles = surfaceTriangles.ToArray(), spawn = spawn, regions = regions.ToArray(), obstacles = obstacles });
@@ -324,134 +270,12 @@ public static class CavePlatformMapBuilder
                 placementColliders[platform] = clone.GetComponentsInChildren<Collider>(true).Where(c => c.enabled && !c.isTrigger && !c.transform.IsChildOf(floor)).ToArray();
             }
             Physics.SyncTransforms();
-            return PlanCore(library, count, seed, spacing);
+            Layout result = null;
+            var search = Solve(library, count, seed, spacing, Blocked, value => result = value);
+            try { while(search.MoveNext()) { } } finally { (search as IDisposable)?.Dispose(); }
+            return result;
         }
         finally { placementProbe = null; placementColliders.Clear(); EditorSceneManager.ClosePreviewScene(preview); }
-    }
-    static Layout PlanCore(CavePlatformLibrary library, int count, int seed, float spacing)
-    {
-        if (!library || library.platforms == null || library.platforms.Length < 2 || count < 2 || count > 24) throw new ArgumentException("Use 2–24 rooms.");
-        if (!Mathf.Approximately(spacing, 1)) throw new ArgumentException("Connection distances follow the original bridge/stair dimensions; spacing must stay 1.");
-        if (library.timber == null || library.singleStair == null || library.doubleStair == null) throw new InvalidOperationException("Refresh the connector library first.");
-        var rejected = new Dictionary<string, int>(); int furthest = 0;
-        Layout bestLayout = null; int bestJunctionDeficit = int.MaxValue, bestReviews = int.MaxValue, completeCandidates = 0;
-        void Reject(string reason) { rejected.TryGetValue(reason, out int n); rejected[reason] = n + 1; }
-        for (int restart = 0; restart < 30; restart++)
-        {
-            var random = new System.Random(unchecked(seed + restart * 7919)); var layout = new Layout();
-            var order = Enumerable.Range(0, count).Select(i => i % library.platforms.Length).OrderBy(i => random.Next()).ToList();
-            if (count == 3) order = new[] { "D1_19", "D1_06", "D1_01" }.Select(prefix => Array.FindIndex(library.platforms, p => p.source.name.StartsWith(prefix))).ToList();
-            int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name.StartsWith("D1_19")) : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
-            order.Remove(hub); order.Insert(0, hub);
-            layout.rooms.Add(new Room { platform = hub, position = new Vector3(0, 22, 0), yaw = random.Next(360), used = new bool[library.platforms[hub].regions.Length] });
-            for (int next = 1; next < count; next++)
-            {
-                bool added = false;
-                // Fill authored junctions before extending their branches. Give every open socket
-                // its own angle/candidate budget, so a blocked socket cannot monopolize the search.
-                var frontier = Enumerable.Range(0, layout.rooms.Count)
-                    .SelectMany(i => Enumerable.Range(0, layout.rooms[i].used.Length).Where(p => !layout.rooms[i].used[p])
-                        .Select(p => (room: i, port: p)))
-                    .OrderByDescending(socket => layout.rooms[socket.room].used.Length > 2)
-                    .ThenBy(socket => socket.room).ThenBy(socket => socket.port).ToArray();
-                const int socketAttempts = 240;
-                int priorityAttempts = frontier.Length * socketAttempts;
-                // Junctions placed at the final room would have no budget left for their exits.
-                // Try them early while there is room to grow, then fall back to other shapes.
-                var junctionCandidates = Enumerable.Range(next, order.Count - next)
-                    .Where(i => library.platforms[order[i]].regions.Length > 2 &&
-                        count - next >= library.platforms[order[i]].regions.Length).ToArray();
-                for (int attempt = 0; attempt < priorityAttempts + 700 && !added; attempt++)
-                {
-                    int candidateIndex = junctionCandidates.Length > 0 && attempt < priorityAttempts && attempt % socketAttempts < 90
-                        ? junctionCandidates[random.Next(junctionCandidates.Length)]
-                        : attempt == 0 ? next : next + random.Next(order.Count - next);
-                    int candidatePlatform = order[candidateIndex]; var definition = library.platforms[candidatePlatform];
-                    if (frontier.Length == 0) break;
-                    var socket = frontier[attempt < priorityAttempts ? attempt / socketAttempts : random.Next(frontier.Length)];
-                    int parentIndex = socket.room; var parent = layout.rooms[parentIndex];
-                    int portA = socket.port, portB = random.Next(definition.regions.Length);
-                    var ra = library.platforms[parent.platform].regions[portA]; var rb = definition.regions[portB];
-                    if (ra.stone != rb.stone) { Reject("connector type"); continue; }
-                    if (ra.stone && ra.stairDirection == rb.stairDirection) { Reject("stair rise direction"); continue; }
-                    float aa = attempt == 0 ? ra.heading : Mathf.Lerp(ra.MinAngle, ra.MaxAngle, (float)random.NextDouble());
-                    float ab = attempt == 0 ? rb.heading : Mathf.Lerp(rb.MinAngle, rb.MaxAngle, (float)random.NextDouble());
-                    if (!library.platforms[parent.platform].TryAnchor(ra, aa, out var anchorA) || !definition.TryAnchor(rb, ab, out var anchorB)) { Reject("contact"); continue; }
-                    // Angle() uses mathematical XZ angles; Unity yaw rotates in the opposite direction.
-                    float yaw = parent.yaw + ab - aa - 180;
-                    var direction = Rotate(Direction(aa), parent.yaw);
-                    int stairCount = ra.stone ? 1 + random.Next(Mathf.Min(ra.maxStairCount, rb.maxStairCount)) : 0;
-                    float pitch = 0, length, rise;
-                    if (ra.stone)
-                    {
-                        var pieces = ConnectorPieces(library, stairCount);
-                        length = pieces.Sum(p => new Vector2(p.Span.x, p.Span.z).magnitude);
-                        rise = pieces.Sum(p => Mathf.Abs(p.Span.y)) * ra.stairDirection;
-                        pitch = Mathf.Atan2(rise, length) * Mathf.Rad2Deg;
-                    }
-                    else
-                    {
-                        float pitchMin = Mathf.Max(ra.pitch - ra.pitchTolerance, -rb.pitch - rb.pitchTolerance);
-                        float pitchMax = Mathf.Min(ra.pitch + ra.pitchTolerance, -rb.pitch + rb.pitchTolerance);
-                        if (pitchMax < pitchMin) { Reject("pitch"); continue; }
-                        pitch = Mathf.Lerp(pitchMin, pitchMax, (float)random.NextDouble());
-                        length = library.timber.Span.magnitude * Mathf.Cos(pitch * Mathf.Deg2Rad);
-                        rise = library.timber.Span.magnitude * Mathf.Sin(pitch * Mathf.Deg2Rad);
-                    }
-                    var start = parent.position + Rotate(anchorA, parent.yaw);
-                    var end = start + direction * length + Vector3.up * rise;
-                    var room = new Room { platform = candidatePlatform, position = end - Rotate(anchorB, yaw), yaw = yaw, used = new bool[definition.regions.Length] };
-                    if (Mathf.Abs(room.position.y - 22) > 12) continue;
-                    var hull = WorldHull(library, room);
-                    float shortfall = 0;
-                    if (layout.rooms.Any(r => Overlap(WorldHull(library, r), hull, .4f)))
-                    {
-                        // Keep a small near-miss as an explicitly marked review candidate; never stretch a connector.
-                        if (attempt < priorityAttempts && attempt % socketAttempts < 200) { Reject("floor bounds " + definition.source.name); continue; }
-                        room.position += direction * .65f; hull = WorldHull(library, room); shortfall = .65f;
-                        if (layout.rooms.Any(r => Overlap(WorldHull(library, r), hull, .4f))) { Reject("floor bounds " + definition.source.name); continue; }
-                    }
-                    if (layout.links.Any(l => SegmentCross(XZ(start), XZ(end), XZ(l.start), XZ(l.end)))) continue;
-                    bool crossing = false;
-                    for (int k = 1; k < 20; k++)
-                    {
-                        var p = Vector3.Lerp(start, end, k / 20f);
-                        for (int i = 0; i < layout.rooms.Count; i++) if (i != parentIndex && Inside(WorldHull(library, layout.rooms[i]), XZ(p))) crossing = true;
-                    }
-                    if (crossing) continue;
-                    if (!ApproachClear(library.platforms[parent.platform], anchorA, Direction(aa)) || !ApproachClear(definition, anchorB, Direction(ab))) { Reject("approach " + definition.source.name); continue; }
-                    if (layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
-                    if (layout.rooms.Any(r => PassageHitsRoom(library, r, start, end))) continue;
-                    parent.used[portA] = true; room.used[portB] = true; layout.rooms.Add(room);
-                    order[candidateIndex] = order[next]; order[next] = candidatePlatform;
-                    layout.links.Add(new Link { a = parentIndex, b = next, portA = portA, portB = portB, angleA = aa, angleB = ab, start = start, end = end, stone = ra.stone, pitch = pitch, stairCount = stairCount, stairDirection = ra.stairDirection, reviewShortfall = shortfall }); added = true;
-                }
-                if (!added) break;
-            }
-            furthest = Mathf.Max(furthest, layout.rooms.Count);
-            if (layout.rooms.Count == count)
-            {
-                var junctions = layout.rooms.Where(r => r.used.Length > 2).ToArray();
-                int deficit = junctions.Sum(r => r.used.Count(u => !u));
-                int reviews = layout.links.Count(l => l.reviewShortfall > 0);
-                if (deficit < bestJunctionDeficit || (deficit == bestJunctionDeficit && reviews < bestReviews))
-                { bestLayout = layout; bestJunctionDeficit = deficit; bestReviews = reviews; }
-                // A small map has too few neighbours to fill every exit. Respect that limit;
-                // otherwise compare a few complete arrangements before leaving junctions unused.
-                int unavoidable = Mathf.Max(0, junctions.Sum(r => r.used.Length) - (count - 1 + Mathf.Max(0, junctions.Length - 1)));
-                if (bestJunctionDeficit <= unavoidable || ++completeCandidates >= 4) return bestLayout;
-            }
-        }
-        if (bestLayout != null) return bestLayout;
-        Directory.CreateDirectory(Output + "/Data"); File.WriteAllText(Output + "/Data/plan-rejection.json", JsonConvert.SerializeObject(new { count, seed, furthest, rejected }, Formatting.Indented));
-        var failure = new InvalidOperationException("No layout satisfies the fixed connector dimensions and allowed joint angles for this seed."); failure.Data["LayoutConnectivity"] = true; throw failure;
-    }
-
-    static bool ApproachClear(CavePlatformLibrary.Platform platform, Vector3 anchor, Vector3 direction)
-    {
-        for (float d = -1.2f; d < 2; d += .4f)
-            if (Blocked(platform, anchor + direction * d)) return false;
-        return true;
     }
     static bool Blocked(CavePlatformLibrary.Platform platform, Vector3 floor)
     {
@@ -465,73 +289,8 @@ public static class CavePlatformMapBuilder
         }
         return false;
     }
-    static bool PassageHitsRoom(CavePlatformLibrary library, Room room, Vector3 start, Vector3 end)
-    {
-        for (float t = 0; t <= 1; t += .05f)
-            if (Blocked(library.platforms[room.platform], Rotate(Vector3.Lerp(start, end, t) - room.position, -room.yaw))) return true;
-        return false;
-    }
-
-    public static CavePlatformLibrary.Connector[] ConnectorPieces(CavePlatformLibrary library, int stairs)
-    {
-        switch (stairs)
-        {
-            case 0: return new[] { library.timber };
-            case 1: return new[] { library.singleStair };
-            case 2: return new[] { library.doubleStair };
-            case 3: return new[] { library.doubleStair, library.singleStair };
-            default: throw new ArgumentOutOfRangeException(nameof(stairs));
-        }
-    }
-
     static void Bridge(CaveWorld world, CavePlatformLibrary library, Layout plan, Link link)
-    {
-        var root = new GameObject("Connection " + (link.a + 1) + "–" + (link.b + 1) + (link.stone ? " · Stairs " + link.stairCount : " · Timber fixed length"));
-        root.transform.SetParent(world.generatedRoot, false); root.AddComponent<CaveWalkSurface>();
-        var placed = root.AddComponent<CaveRigidConnection>(); placed.start = link.start; placed.end = link.end; placed.stairCount = link.stairCount;
-        var pieces = new List<CaveRigidConnection.Piece>();
-        var direction = link.end - link.start; direction.y = 0; direction.Normalize();
-        var cursor = link.start;
-        foreach (var piece in ConnectorPieces(library, link.stairCount))
-        {
-            bool reverse = link.stone && Mathf.Sign(piece.Span.y) != link.stairDirection;
-            var entry = reverse ? piece.exit : piece.entry; var exit = reverse ? piece.entry : piece.exit;
-            var scale = piece.prefab.transform.localScale;
-            var span = Vector3.Scale(exit - entry, scale);
-            var targetSpan = link.stone
-                ? direction * new Vector2(span.x, span.z).magnitude + Vector3.up * span.y
-                : (direction * Mathf.Cos(link.pitch * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(link.pitch * Mathf.Deg2Rad)) * span.magnitude;
-            var rotation = link.stone
-                ? Quaternion.LookRotation(direction, Vector3.up) * Quaternion.Inverse(Quaternion.LookRotation(new Vector3(span.x, 0, span.z), Vector3.up))
-                : Quaternion.LookRotation(targetSpan.normalized, Vector3.up) * Quaternion.Inverse(Quaternion.LookRotation(span.normalized, Vector3.up));
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(piece.prefab, world.gameObject.scene);
-            instance.transform.SetParent(root.transform, false);
-            instance.transform.SetPositionAndRotation(cursor - rotation * Vector3.Scale(entry, scale), rotation);
-            // Native mesh references, scale, stair treads, thickness and authored colliders are preserved.
-            if (!instance.GetComponentsInChildren<Collider>(true).Any(c => c.enabled && !c.isTrigger))
-                foreach (var f in instance.GetComponentsInChildren<MeshFilter>(true).Where(f => f.sharedMesh && f.GetComponent<Renderer>() && f.GetComponent<Renderer>().enabled))
-                    f.gameObject.AddComponent<MeshCollider>().sharedMesh = f.sharedMesh;
-            pieces.Add(new CaveRigidConnection.Piece { source = piece.prefab, instance = instance.transform, localStart = entry, localEnd = exit });
-            cursor = instance.transform.TransformPoint(exit);
-        }
-        if (Vector3.Distance(cursor, link.end) > .01f) throw new InvalidOperationException("Rigid connector endpoint did not match its planned dimensions.");
-        placed.pieces = pieces.ToArray(); Physics.SyncTransforms();
-        var floorsA = world.courts[link.a].tile.transform.Find("Platform").GetComponentsInChildren<MeshCollider>();
-        var floorsB = world.courts[link.b].tile.transform.Find("Platform").GetComponentsInChildren<MeshCollider>();
-        placed.startContactGap = FloorHit(floorsA, link.start, out var ga) ? Mathf.Abs(ga.y - link.start.y) : 1;
-        placed.endContactGap = FloorHit(floorsB, link.end, out var gb) ? Mathf.Abs(gb.y - link.end.y) : Mathf.Max(1, link.reviewShortfall);
-        placed.needsReview = link.reviewShortfall > 0 || placed.startContactGap > .25f || placed.endContactGap > .25f;
-        if (placed.needsReview) root.name += " · REVIEW contact";
-        int samples = Mathf.Max(2, Mathf.CeilToInt(Vector3.Distance(link.start, link.end) / .3f));
-        var points = new Vector3[samples + 1];
-        for (int i = 0; i <= samples; i++)
-        {
-            var p = Vector3.Lerp(link.start, link.end, i / (float)samples);
-            if (world.Ground(p, out var hit, 1.2f)) p = hit.point;
-            points[i] = p;
-        }
-        world.passages.Add(new CaveWorld.Passage { a = link.a, b = link.b, points = points, widths = Enumerable.Repeat(ConnectorPieces(library, link.stairCount).Min(p => p.width), points.Length).ToArray() });
-    }
+        => CaveRuntimeGenerator.Connect(world, library, link);
     static void Background(CaveWorld world, CavePlatformLibrary library, Layout plan, System.Random random)
     {
         var root = new GameObject("Cave perimeter · scenery").transform; root.SetParent(world.generatedRoot, false);

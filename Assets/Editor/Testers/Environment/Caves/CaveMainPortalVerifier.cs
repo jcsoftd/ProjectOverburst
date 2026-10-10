@@ -81,7 +81,8 @@ public static class CaveMainPortalVerifier
         while (!WorldSessionState.IsHideout || !PersistentSceneFlow.Instance || PersistentSceneFlow.Instance.IsSwitching || !PlayerContext.Instance?.CurrentActor) yield return null;
         Require(WorldSessionState.ContentScene.name == "MainScene", "Product boot reaches MainScene");
         Require(Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath).Resolve<MapItemData>("map.caves").dungeonThemeId == "Caves", "Cave map has its own registered content ID");
-        foreach (int count in new[] { 9, 12, 15 })
+        int previousSeed = 0, visit = 0;
+        foreach (int count in new[] { 9, 12, 15, 9 })
         {
             var portal = Object.FindObjectsByType<CaveDungeonPortal>(FindObjectsSortMode.None).Single(p => !p.returnToTown);
             Require(portal.destinations.Select(d => d.platforms).SequenceEqual(new[] { 9, 12, 15 }), "Count choices 9 / 12 / 15");
@@ -110,11 +111,33 @@ public static class CaveMainPortalVerifier
             Require(WorldSessionState.ContentScene.name == "Caves_Run_" + count && WorldSessionState.Phase == WorldPhase.Run, "Selected cave entered " + count);
             var world = Object.FindFirstObjectByType<CaveWorld>();
             Require(world && world.authoredLayout && world.courts.Count == count, "Actual platform count " + count);
+            Require(world.GetComponent<CaveRuntimeGenerator>()?.IsReady == true, "Generated during this entry " + count);
+            Require(world.seed != previousSeed, "Every entry uses its own run seed"); previousSeed = world.seed;
+            var boundary = Newtonsoft.Json.Linq.JObject.FromObject(CavePlatformBoundaryVerifier.VerifyWorld(world));
+            Write("boundary-" + (++visit) + ".json", boundary);
+            Require((string)boundary["status"] == "PASS", "Live platform gates and rims pass " + count + ": " + boundary["failures"]);
+            Require(!EditorUtility.IsPersistent(world.GetComponentInChildren<Terrain>().terrainData), "Terrain generated in memory");
+            Require(!EditorUtility.IsPersistent(world.GetComponent<Unity.AI.Navigation.NavMeshSurface>().navMeshData), "Navigation generated in memory");
+            var nav = new UnityEngine.AI.NavMeshPath();
+            var disconnected = world.courts.Where(c => !UnityEngine.AI.NavMesh.CalculatePath(world.courts[0].center, c.center, UnityEngine.AI.NavMesh.AllAreas, nav)
+                || nav.status != UnityEngine.AI.NavMeshPathStatus.PathComplete).Select(c => c.name).ToArray();
+            bool PathOK(Vector3 a,Vector3 b) => UnityEngine.AI.NavMesh.CalculatePath(a,b,UnityEngine.AI.NavMesh.AllAreas,nav) && nav.status==UnityEngine.AI.NavMeshPathStatus.PathComplete;
+            Write("navigation-"+visit+".json",new{seed=world.seed,disconnected,links=world.generatedRoot.GetComponentsInChildren<CaveRigidConnection>().Select(c=>{
+                var link=c.GetComponent<Unity.AI.Navigation.NavMeshLink>(); var a=link.transform.TransformPoint(link.startPoint); var b=link.transform.TransformPoint(link.endPoint);
+                var ca=world.courts.First(x=>x.tile.GetComponent<CavePlatformBoundary>()==c.boundaryA); var cb=world.courts.First(x=>x.tile.GetComponent<CavePlatformBoundary>()==c.boundaryB);
+                return new{name=c.name,from=ca.name,to=cb.name,aToStart=PathOK(ca.center,a),endToB=PathOK(b,cb.center),span=PathOK(a,b),a=a.ToString(),b=b.ToString()};}).ToArray()});
+            Require(disconnected.Length == 0, "All platform centers have a navigation path: " + string.Join(", ", disconnected));
+            var ground = world.GetComponentInChildren<Terrain>();
+            var lower = world.transform.Find(CaveRuntimeDetails.RootName);
+            Require(lower && lower.Find("Webs anchored in crevices").childCount > 0, "Lower webs generated");
+            Require(lower.Find("Egg nests at cliff feet").childCount > 0, "Lower egg nests generated");
+            foreach (var web in lower.Find("Webs anchored in crevices").GetComponentsInChildren<Renderer>())
+                Require(web.bounds.max.y <= new CaveRuntimeDetails(world.GetComponent<CaveRuntimeGenerator>().assets, world.GetComponent<CaveRuntimeGenerator>()).WebCeiling(world, web.bounds) + .02f, "Added web below platform surface");
             Require(!Object.FindFirstObjectByType<CaveExplorer>() && !Object.FindFirstObjectByType<CaveCamera>(), "Preview actor and camera disabled");
             Require(Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None).Count(a => a.enabled) == 1, "One active audio listener");
             Require(world.Ground(actor.transform.position, out var hit) && Mathf.Abs(actor.transform.position.y - hit.point.y) < 2, "Real player stands on entry platform " + count);
             Require(Overburst.Persistence.AccountGameplaySession.Current.ReadRun().phase == RunPhase.Active, "Account run activated " + count);
-            Write("entry-" + count + ".json", new { count, seconds = Time.realtimeSinceStartupAsDouble - started, player = actor.transform.position.ToString(), scene = world.gameObject.scene.path });
+            Write("entry-" + visit + ".json", new { count, seed=world.seed, generationMilliseconds=world.generationMilliseconds, seconds = Time.realtimeSinceStartupAsDouble - started, player = actor.transform.position.ToString(), scene = world.gameObject.scene.path });
             for (int f = 0; f < 30; f++) yield return null;
             ScreenCapture.CaptureScreenshot(Path.Combine(output, "cave-" + count + ".png"));
             for (int f = 0; f < 12; f++) yield return null;
@@ -123,6 +146,7 @@ public static class CaveMainPortalVerifier
             Require(exit.TryInteract(actor) == InteractionExecutionResult.StartedTransition, "Cave return interaction " + count);
             while (!WorldSessionState.IsHideout || PersistentSceneFlow.Instance.IsSwitching) yield return null;
             Require(WorldSessionState.ContentScene.name == "MainScene" && !Object.FindFirstObjectByType<CaveWorld>(), "Return unloads cave and reaches town " + count);
+            Require(!Enumerable.Range(0, SceneManager.sceneCount).Any(i => SceneManager.GetSceneAt(i).name.StartsWith("Cave layout probes") || SceneManager.GetSceneAt(i).name.StartsWith("Cave dressing probes")), "Generation probe scenes released");
             Require(Overburst.Persistence.AccountGameplaySession.Current.ReadRun().phase == RunPhase.Failed, "Exploration exit settles run without a boss-clear reward " + count);
             Require(!GameplayInputBlocker.IsGameplayInputBlocked, "Return restores gameplay input " + count);
         }

@@ -25,53 +25,7 @@ public static class CaveMainPortalBuilder
         AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
     }
 
-    public static object Bake(int count)
-    {
-        CavePlatformMapBuilder.Guard();
-        if (count != 9 && count != 12 && count != 15) throw new ArgumentOutOfRangeException(nameof(count));
-        string path = RunPath(count);
-        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path)) throw new InvalidOperationException("Run scene already exists: " + path);
-        if (count == 15)
-        {
-            if (!AssetDatabase.CopyAsset(CavePlatformMapBuilder.SceneRoot + "/Caves_WebNests_15_19216.unity", path)) throw new IOException(path);
-        }
-        else
-        {
-            var result = JObject.FromObject(CavePlatformMapBuilder.Generate(count, 19216));
-            var source = (string)result["scenePath"];
-            var error = AssetDatabase.MoveAsset(source, path);
-            if (!string.IsNullOrEmpty(error)) throw new IOException(error);
-        }
-        var original = SceneManager.GetActiveScene();
-        var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
-        try
-        {
-            SceneManager.SetActiveScene(scene);
-            var world = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<CaveWorld>(true)).Single();
-            foreach (var root in scene.GetRootGameObjects())
-            {
-                foreach (var explorer in root.GetComponentsInChildren<CaveExplorer>(true)) explorer.gameObject.SetActive(false);
-                foreach (var camera in root.GetComponentsInChildren<CaveCamera>(true)) camera.gameObject.SetActive(false);
-            }
-            int ground = LayerMask.NameToLayer("Ground");
-            foreach (var collider in world.generatedRoot.GetComponentsInChildren<Collider>(true))
-                if (collider.GetComponentInParent<CaveWalkSurface>()) collider.gameObject.layer = ground;
-            Physics.SyncTransforms();
-            var entry = new GameObject("Cave Run Entry").transform; entry.SetParent(world.transform);
-            entry.position = world.courts[0].center + Vector3.up * .12f;
-            var run = world.gameObject.AddComponent<CaveRunWorld>(); run.entryPoint = entry;
-            var portal = new GameObject("Cave Return Portal").AddComponent<CaveDungeonPortal>();
-            portal.transform.SetParent(world.transform); portal.returnToTown = true;
-            var at = entry.position + Vector3.right * 3;
-            portal.transform.position = world.Ground(at, out var hit) ? hit.point + Vector3.up * .05f : entry.position;
-            if (!EditorSceneManager.SaveScene(scene)) throw new IOException(path);
-            AddBuildScene(path);
-            return new { path, count = world.courts.Count, connections = world.passages.Count, entry = entry.position.ToString() };
-        }
-        finally { EditorSceneManager.CloseScene(scene, true); SceneManager.SetActiveScene(original); }
-    }
-
-    static void AddBuildScene(string path)
+    public static void AddBuildScene(string path)
     {
         var scenes = EditorBuildSettings.scenes.ToList();
         var existing = scenes.Find(s => s.path == path);
@@ -84,7 +38,7 @@ public static class CaveMainPortalBuilder
     {
         CavePlatformMapBuilder.Guard();
         foreach (int count in new[] { 9, 12, 15 })
-            if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(RunPath(count))) throw new InvalidOperationException("Bake the " + count + " platform run first.");
+            if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(RunPath(count))) throw new InvalidOperationException("Prepare live cave entry scenes first (Overburst/Caves).");
         Folder(ResourceRoot);
         var map = AssetDatabase.LoadAssetAtPath<MapItemData>(MapPath);
         if (!map)

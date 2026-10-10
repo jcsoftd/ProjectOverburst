@@ -92,6 +92,7 @@ public static class CaveFallProtectionVerifier
         Deck(world, "High platform", new Vector3(28, 3, 0), new Vector3(8, 1, 8));
         var scenery = Deck(world, "Lower scenery is not traversable", new Vector3(0, -12, 0), new Vector3(100, 1, 100));
         Object.DestroyImmediate(scenery.GetComponent<CaveWalkSurface>());
+        CavePlatformBoundaryVerifier.AddFixtureBoundaries(world);
         Physics.SyncTransforms(); CaveFallProtection.Register(world);
         return world;
     }

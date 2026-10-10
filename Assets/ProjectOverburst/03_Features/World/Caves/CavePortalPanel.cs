@@ -20,7 +20,7 @@ namespace Overburst.Caves
             countLabel.text = owner.SelectedCount + "개";
             previous.interactable = owner.SelectedIndex > 0;
             next.interactable = owner.SelectedIndex + 1 < owner.destinations.Length;
-            status.text = "준비된 동굴로 입장합니다.\n입구의 포탈에서 마을로 돌아올 수 있습니다.";
+            status.text = "입장할 때 새로운 동굴을 생성합니다.\n입구의 포탈에서 마을로 돌아올 수 있습니다.";
         }
         void Enter()
         {

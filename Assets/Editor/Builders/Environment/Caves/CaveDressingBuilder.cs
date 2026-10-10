@@ -209,82 +209,9 @@ public static class CaveDressingBuilder
 
     internal static void FitGroundHeights(float[,] heights, Vector3 origin, Vector3 size,
         IReadOnlyList<Bounds> supports, Vector2[][] hulls, IReadOnlyList<CaveWorld.Court> courts, IReadOnlyList<CaveWorld.Passage> passages)
-    {
-        int resolution = heights.GetLength(0);
-        for (int z = 0; z < resolution; z++) for (int x = 0; x < resolution; x++)
-            heights[z, x] = origin.y + heights[z, x] * size.y;
-
-        // Keep each cell's original operation order; only omit features whose blend weight is zero.
-        void Patch(Vector2 min, Vector2 max, Func<float, Vector2, float> adjust)
-        {
-            int x0 = Mathf.Clamp(Mathf.FloorToInt((min.x - origin.x) / size.x * (resolution - 1)) - 1, 0, resolution - 1);
-            int x1 = Mathf.Clamp(Mathf.CeilToInt((max.x - origin.x) / size.x * (resolution - 1)) + 1, 0, resolution - 1);
-            int z0 = Mathf.Clamp(Mathf.FloorToInt((min.y - origin.z) / size.z * (resolution - 1)) - 1, 0, resolution - 1);
-            int z1 = Mathf.Clamp(Mathf.CeilToInt((max.y - origin.z) / size.z * (resolution - 1)) + 1, 0, resolution - 1);
-            for (int z = z0; z <= z1; z++) for (int x = x0; x <= x1; x++)
-            {
-                var p = new Vector2(origin.x + x * size.x / (resolution - 1), origin.z + z * size.z / (resolution - 1));
-                heights[z, x] = adjust(heights[z, x], p);
-            }
-        }
-        foreach (var b in supports)
-            Patch(XZ(b.min) - Vector2.one * 9, XZ(b.max) + Vector2.one * 9, (h, p) =>
-            {
-                float dx = Mathf.Max(0, Mathf.Abs(p.x - b.center.x) - b.extents.x);
-                float dz = Mathf.Max(0, Mathf.Abs(p.y - b.center.z) - b.extents.z);
-                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Sqrt(dx * dx + dz * dz) / 9);
-                return Mathf.Max(h, Mathf.Lerp(h, b.min.y + .35f, weight));
-            });
-        for (int i = 0; i < hulls.Length; i++)
-        {
-            var hull = hulls[i]; float ceiling = courts[i].center.y - 3.5f;
-            var min = new Vector2(hull.Min(p => p.x), hull.Min(p => p.y));
-            var max = new Vector2(hull.Max(p => p.x), hull.Max(p => p.y));
-            Patch(min - Vector2.one * 12, max + Vector2.one * 12, (h, p) =>
-            {
-                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, Clearance(p, hull)) / 12);
-                return Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
-            });
-        }
-        foreach (var passage in passages) for (int i = 1; i < passage.points.Length; i++)
-        {
-            var start = passage.points[i - 1]; var end = passage.points[i];
-            var a = XZ(start); var b = XZ(end); var delta = b - a;
-            float halfWidth = passage.widths[Mathf.Min(i, passage.widths.Length - 1)] * .5f;
-            var padding = Vector2.one * (halfWidth + 8);
-            Patch(Vector2.Min(a, b) - padding, Vector2.Max(a, b) + padding, (h, p) =>
-            {
-                float t = Mathf.Clamp01(Vector2.Dot(p - a, delta) / Mathf.Max(.001f, delta.sqrMagnitude));
-                float distance = Vector2.Distance(p, a + delta * t);
-                float weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Max(0, distance - halfWidth) / 8);
-                float ceiling = Mathf.Lerp(start.y, end.y, t) - 3.5f;
-                return Mathf.Min(h, Mathf.Lerp(h, ceiling, weight));
-            });
-        }
-        for (int z = 0; z < resolution; z++) for (int x = 0; x < resolution; x++)
-            heights[z, x] = Mathf.Clamp01((heights[z, x] - origin.y) / size.y);
-    }
-
+        => CaveRuntimeDressing.FitGroundHeights(heights, origin, size, supports, hulls, courts, passages);
     public static float LowerGround(CaveWorld world, Terrain terrain)
-    {
-        CavePlatformMapBuilder.Guard();
-        // Translate the painted relief as a whole, so no shelf can resemble a second walkable floor.
-        float floor = world.courts.Min(c => c.center.y);
-        foreach (var passage in world.passages) foreach (var p in passage.points) floor = Mathf.Min(floor, p.y);
-        var bounds = new Bounds(world.courts[0].center, Vector3.zero);
-        foreach (var c in world.courts) foreach (var r in c.tile.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
-        bounds.Expand(40);
-        var data = terrain.terrainData; var origin = terrain.transform.position; var size = data.size;
-        int n = data.heightmapResolution;
-        int x0 = Mathf.Clamp(Mathf.FloorToInt((bounds.min.x - origin.x) / size.x * (n - 1)), 0, n - 1);
-        int z0 = Mathf.Clamp(Mathf.FloorToInt((bounds.min.z - origin.z) / size.z * (n - 1)), 0, n - 1);
-        int x1 = Mathf.Clamp(Mathf.CeilToInt((bounds.max.x - origin.x) / size.x * (n - 1)), x0, n - 1);
-        int z1 = Mathf.Clamp(Mathf.CeilToInt((bounds.max.z - origin.z) / size.z * (n - 1)), z0, n - 1);
-        float highest = data.GetHeights(x0, z0, x1 - x0 + 1, z1 - z0 + 1).Cast<float>().Max() * size.y + origin.y;
-        float drop = Mathf.Max(0, highest - (floor - GroundClearance));
-        terrain.transform.position -= Vector3.up * drop;
-        return drop;
-    }
+    { CavePlatformMapBuilder.Guard(); return CaveRuntimeDressing.LowerGround(world, terrain); }
 
     static Terrain AddDemoTerrain(CaveWorld world, Vector2[][] hulls, Vector2 center)
     {
