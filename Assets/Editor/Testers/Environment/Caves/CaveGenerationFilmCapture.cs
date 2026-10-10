@@ -16,7 +16,7 @@ using Object = UnityEngine.Object;
 
 // A presentation capture of the shipping runtime generator; it never saves a generated map.
 [InitializeOnLoad]
-public static class CaveGenerationFilmCapture
+public static partial class CaveGenerationFilmCapture
 {
     const string Key="Overburst.CaveFilm.";
     const int Width=1920,Height=1080,Fps=30;
@@ -67,6 +67,8 @@ public static class CaveGenerationFilmCapture
         EditorApplication.update-=Tick;EditorApplication.update+=Tick;
         IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(output,"Account"));
     }
+    public static void StartTour(string directory) { Start(directory); SessionState.SetBool(Key+"technical",true); }
+    public static void StartBoundary(string directory) { StartTour(directory); SessionState.SetBool(Key+"boundaryOnly",true); }
     static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert)errors.Add(message+"\n"+trace);}
     static void Tick()
     {
@@ -81,14 +83,14 @@ public static class CaveGenerationFilmCapture
             string prefab=SessionState.GetString(Key+"prefab","");
             if(prefab!=""){var stage=PrefabStageUtility.OpenPrefab(prefab);Selection.activeGameObject=stage.prefabContentsRoot;CavePlatformBoundaryEditor.Frame(stage.prefabContentsRoot.GetComponent<CavePlatformBoundary>());}
             Write("return.json",new{status="PASS",blocked=IsolatedSavePlayGuard.RequiresAccountChoice,active=IsolatedSavePlayGuard.ActiveDirectory,env=Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable),prefab,scenes=Enumerable.Range(0,SceneManager.sceneCount).Select(i=>{var s=SceneManager.GetSceneAt(i);return new{s.path,s.isDirty};}).ToArray()});
-            SessionState.EraseString(Key+"output");SessionState.EraseString(Key+"start");SessionState.EraseString(Key+"prefab");SessionState.EraseFloat(Key+"deadline");SessionState.EraseBool(Key+"finished");EditorApplication.update-=Tick;return;
+            SessionState.EraseString(Key+"output");SessionState.EraseString(Key+"start");SessionState.EraseString(Key+"prefab");SessionState.EraseFloat(Key+"deadline");SessionState.EraseBool(Key+"finished");SessionState.EraseBool(Key+"technical");SessionState.EraseBool(Key+"boundaryOnly");EditorApplication.update-=Tick;return;
         }
         try
         {
             if(EditorApplication.timeSinceStartup>SessionState.GetFloat(Key+"deadline",0))throw new TimeoutException("Cave film timeout.");
             if(!EditorApplication.isPlaying||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             EditorApplication.QueuePlayerLoopUpdate();
-            if(routine==null){maps.Clear();stages.Clear();errors.Clear();priorBackground=Application.runInBackground;Application.runInBackground=true;Application.logMessageReceived+=Log;routine=Film();}
+            if(routine==null){maps.Clear();stages.Clear();errors.Clear();priorBackground=Application.runInBackground;Application.runInBackground=true;Application.logMessageReceived+=Log;routine=SessionState.GetBool(Key+"technical",false)?TourFilm():Film();}
             if(waiting!=null&&!waiting.isDone){CaptureGeneration();return;}waiting=null;
             if(!routine.MoveNext()){Finish(null);return;}
             waiting=routine.Current as AsyncOperation;CaptureGeneration();
@@ -148,16 +150,20 @@ public static class CaveGenerationFilmCapture
         finally{(build as IDisposable)?.Dispose();}
         if(!gen.IsReady||world.courts.Count!=count)throw new InvalidOperationException("Live generation did not finish.");
     }
-    static IEnumerator Film()
+    static void SetupCamera()
     {
-        var bootstrap=Object.FindFirstObjectByType<CaveWorld>();if(!bootstrap)throw new InvalidOperationException("Live entry scene missing.");
-        var assets=bootstrap.GetComponent<CaveRuntimeGenerator>().assets;Object.Destroy(bootstrap.gameObject);yield return null;
         camera=new GameObject("Owned cave film camera").AddComponent<Camera>();camera.enabled=false;camera.orthographic=true;camera.aspect=Width/(float)Height;camera.nearClipPlane=.1f;camera.farClipPlane=1000;camera.backgroundColor=new Color(.012f,.018f,.026f);camera.clearFlags=CameraClearFlags.SolidColor;camera.allowHDR=true;
         var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=true;data.requiresDepthTexture=true;
         var pipeline=new SerializedObject(GraphicsSettings.currentRenderPipeline);var renderers=pipeline.FindProperty("m_RendererDataList");int index=-1;
         for(int i=0;i<renderers.arraySize;i++)if(renderers.GetArrayElementAtIndex(i).objectReferenceValue&&AssetDatabase.GetAssetPath(renderers.GetArrayElementAtIndex(i).objectReferenceValue)==CaveDressingBuilder.Root+"/CaveDemo1_AuthoredRenderer.asset")index=i;
         if(index<0)throw new InvalidOperationException("Cave renderer missing.");data.SetRenderer(index);
         target=new RenderTexture(Width,Height,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);target.Create();pixels=new Texture2D(Width,Height,TextureFormat.RGBA32,false);
+    }
+    static IEnumerator Film()
+    {
+        var bootstrap=Object.FindFirstObjectByType<CaveWorld>();if(!bootstrap)throw new InvalidOperationException("Live entry scene missing.");
+        var assets=bootstrap.GetComponent<CaveRuntimeGenerator>().assets;Object.Destroy(bootstrap.gameObject);yield return null;
+        SetupCamera();
         int[] counts={9,9,9,12,12,12,15,15,15,20,20,20};int[] seeds={-284089667,1556245222,73145,1904484630,73145,19216,-1619063537,19216,73146,-284089667,1556245222,1904484630};Bounds firstBounds=default;
         if(File.Exists(Path.Combine(output,"maps.json")))
         {
