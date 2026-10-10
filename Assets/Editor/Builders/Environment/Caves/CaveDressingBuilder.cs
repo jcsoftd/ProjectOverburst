@@ -19,6 +19,8 @@ public static class CaveDressingBuilder
     public const string SceneryName = "Demo1 attached rock formations";
     public const string LightingName = "Demo1 lighting";
     public const string GroundName = "Demo1 terrain ground";
+    public const float GroundClearance = 18;
+    public const string ColorProfilePath = Root + "/CaveOverburst_Color.asset";
     static Vector2 XZ(Vector3 p) => new Vector2(p.x, p.z);
     static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
     static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
@@ -52,6 +54,24 @@ public static class CaveDressingBuilder
         settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(pipeline); return index;
     }
 
+    public static VolumeProfile EnsureColorProfile()
+    {
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ColorProfilePath);
+        if (profile) return profile;
+        Folder(Root);
+        const string mainProfile = "Assets/ProjectOverburst/03_Features/World/AtmosphereTrial/OvercastVolume.asset";
+        if (!AssetDatabase.CopyAsset(mainProfile, ColorProfilePath))
+            throw new InvalidOperationException("Restore the MainScene atmosphere profile before creating the cave grade.");
+        profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ColorProfilePath);
+        // Match the town's tonal response while keeping unlit cave paths readable.
+        profile.TryGet<ColorAdjustments>(out var color); color.postExposure.Override(.65f);
+        profile.TryGet<Bloom>(out var bloom); bloom.intensity.Override(.15f); bloom.threshold.Override(1.1f);
+        profile.TryGet<Vignette>(out var vignette); vignette.intensity.Override(.15f); vignette.smoothness.Override(.35f);
+        foreach (var component in profile.components) EditorUtility.SetDirty(component);
+        EditorUtility.SetDirty(profile); AssetDatabase.SaveAssetIfDirty(profile);
+        return profile;
+    }
+
     public static Light DemoLighting(CaveWorld world)
     {
         var target = world.gameObject.scene; var active = SceneManager.GetActiveScene(); Scene demo = default;
@@ -65,21 +85,7 @@ public static class CaveDressingBuilder
             bool fog = RenderSettings.fog; float density = RenderSettings.fogDensity, start = RenderSettings.fogStartDistance, end = RenderSettings.fogEndDistance;
             var lights = demo.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Light>()).ToArray();
             var main = lights.First(l => l.type == LightType.Directional);
-            var legacyColor = demo.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<UnityStandardAssets.ImageEffects.ColorCorrectionCurves>(true)).First();
-            string colorPath = Root + "/CaveDemo1_Color.asset";
-            var colorProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(colorPath);
-            if (!colorProfile)
-            {
-                colorProfile = ScriptableObject.CreateInstance<VolumeProfile>();
-                AssetDatabase.CreateAsset(colorProfile, colorPath);
-                // Preserve Demo1's authored RGB curves in URP's supported post-processing path.
-                var curves = colorProfile.Add<ColorCurves>(true);
-                curves.red.value = new TextureCurve(legacyColor.redChannel, 0, false, new Vector2(0, 1));
-                curves.green.value = new TextureCurve(legacyColor.greenChannel, 0, false, new Vector2(0, 1));
-                curves.blue.value = new TextureCurve(legacyColor.blueChannel, 0, false, new Vector2(0, 1));
-                AssetDatabase.AddObjectToAsset(curves, colorProfile);
-                AssetDatabase.SaveAssetIfDirty(colorProfile);
-            }
+            var colorProfile = EnsureColorProfile();
             SceneManager.SetActiveScene(target);
             var root = new GameObject(LightingName);
             var volume = root.AddComponent<Volume>(); volume.isGlobal = true; volume.sharedProfile = colorProfile;
@@ -259,6 +265,27 @@ public static class CaveDressingBuilder
             heights[z, x] = Mathf.Clamp01((heights[z, x] - origin.y) / size.y);
     }
 
+    public static float LowerGround(CaveWorld world, Terrain terrain)
+    {
+        CavePlatformMapBuilder.Guard();
+        // Translate the painted relief as a whole, so no shelf can resemble a second walkable floor.
+        float floor = world.courts.Min(c => c.center.y);
+        foreach (var passage in world.passages) foreach (var p in passage.points) floor = Mathf.Min(floor, p.y);
+        var bounds = new Bounds(world.courts[0].center, Vector3.zero);
+        foreach (var c in world.courts) foreach (var r in c.tile.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(r.bounds);
+        bounds.Expand(40);
+        var data = terrain.terrainData; var origin = terrain.transform.position; var size = data.size;
+        int n = data.heightmapResolution;
+        int x0 = Mathf.Clamp(Mathf.FloorToInt((bounds.min.x - origin.x) / size.x * (n - 1)), 0, n - 1);
+        int z0 = Mathf.Clamp(Mathf.FloorToInt((bounds.min.z - origin.z) / size.z * (n - 1)), 0, n - 1);
+        int x1 = Mathf.Clamp(Mathf.CeilToInt((bounds.max.x - origin.x) / size.x * (n - 1)), x0, n - 1);
+        int z1 = Mathf.Clamp(Mathf.CeilToInt((bounds.max.z - origin.z) / size.z * (n - 1)), z0, n - 1);
+        float highest = data.GetHeights(x0, z0, x1 - x0 + 1, z1 - z0 + 1).Cast<float>().Max() * size.y + origin.y;
+        float drop = Mathf.Max(0, highest - (floor - GroundClearance));
+        terrain.transform.position -= Vector3.up * drop;
+        return drop;
+    }
+
     static Terrain AddDemoTerrain(CaveWorld world, Vector2[][] hulls, Vector2 center)
     {
         var active = SceneManager.GetActiveScene(); Scene demo = default;
@@ -284,6 +311,7 @@ public static class CaveDressingBuilder
             var terrain = go.GetComponent<Terrain>(); terrain.materialTemplate = source.materialTemplate;
             terrain.heightmapPixelError = 2; terrain.drawInstanced = true; terrain.basemapDistance = 2000;
             go.GetComponent<TerrainCollider>().enabled = false;
+            LowerGround(world, terrain);
             AssetDatabase.SaveAssetIfDirty(data); terrain.Flush(); return terrain;
         }
         finally

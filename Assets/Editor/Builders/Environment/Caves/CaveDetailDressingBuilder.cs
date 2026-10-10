@@ -10,10 +10,11 @@ using UnityEngine.SceneManagement;
 using Overburst.Caves;
 using Object = UnityEngine.Object;
 
-// Final scenery pass: gameplay surfaces, authored decorations and connections stay intact.
+// Final scenery pass: authored composition stays intact; additional webs belong below gameplay.
 public static class CaveDetailDressingBuilder
 {
     public const string RootName = "Procedural webs, egg nests and low mist";
+    public const float WebSurfaceClearance = 3.5f;
     const string Props = "Assets/ThirdParty/04_환경맵/TopDownCaves/Prefabs/";
     const string Output = CaveDressingBuilder.Root + "/Details";
     public sealed class Result { public int webs, eggClusters, eggs, mistPockets, supportMeshes; public string meshAsset; }
@@ -46,6 +47,23 @@ public static class CaveDetailDressingBuilder
     }
     static Bounds BoundsOf(GameObject g)
     { var renderers = g.GetComponentsInChildren<Renderer>(); var b = renderers[0].bounds; foreach (var r in renderers.Skip(1)) b.Encapsulate(r.bounds); return b; }
+    internal static float WebCeiling(CaveWorld world, Bounds sheet)
+    {
+        // Check the whole sheet footprint, including lower platforms in a compound court.
+        float floor = world.courts.OrderBy(c => (XZ(c.center) - XZ(sheet.center)).sqrMagnitude).First().center.y;
+        foreach (var c in world.courts)
+            foreach (var f in c.tile.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!Model(f).StartsWith("Platform", StringComparison.Ordinal) || !f.TryGetComponent<Renderer>(out var r)) continue;
+                var b = r.bounds;
+                if (sheet.min.x > b.max.x + 2 || sheet.max.x < b.min.x - 2 || sheet.min.z > b.max.z + 2 || sheet.max.z < b.min.z - 2) continue;
+                floor = Mathf.Min(floor, c.center.y, b.max.y);
+            }
+        foreach (var p in world.passages) for (int i = 1; i < p.points.Length; i++)
+            if (DistanceToSegment(XZ(sheet.center), XZ(p.points[i - 1]), XZ(p.points[i])) < XZ(sheet.extents).magnitude + p.widths[Mathf.Min(i, p.widths.Length - 1)] * .5f)
+                floor = Mathf.Min(floor, p.points[i - 1].y, p.points[i].y);
+        return floor - WebSurfaceClearance;
+    }
     static Material MistMaterial()
     {
         string path = Output + "/CaveLocalGreyMist.mat";
@@ -104,16 +122,14 @@ public static class CaveDetailDressingBuilder
             {
                 if (result.webs >= world.courts.Count * 3) break;
                 var bounds = rock.GetComponent<Renderer>().bounds;
-                var court = world.courts.OrderBy(c => (XZ(c.center) - XZ(bounds.center)).sqrMagnitude).First();
                 for (int attempt = 0; attempt < 12; attempt++)
                 {
                     float angle = Next(0, Mathf.PI * 2);
                     var radial = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
                     var p = bounds.center + radial * (Mathf.Max(bounds.extents.x, bounds.extents.z) + Next(.3f, 2));
-                    p.y = court.center.y + Next(-5, .5f);
+                    p.y = WebCeiling(world, new Bounds(p, new Vector3(12, 0, 12))) - Next(.5f, 7.5f);
                     float ground = terrain.SampleHeight(p) + terrain.transform.position.y;
                     if (p.y < ground + .6f || !ClearPassages(world, p, 2) || occupied.Any(v => Vector3.Distance(v, p) < 5) || existingWebs.Any(b => b.SqrDistance(p) < 2.25f)) continue;
-                    if (physics.Raycast(p + Vector3.up * 80, Vector3.down, out _, 79.8f)) continue;
                     // Three or more ray hits across at least two solid objects form a supported, sagging sheet.
                     var rotation = Quaternion.Euler(Next(-32, 32), Next(0, 360), Next(-20, 20));
                     var hits = new Dictionary<int, Vector3>(); var supports = new HashSet<Collider>();
@@ -137,6 +153,8 @@ public static class CaveDetailDressingBuilder
                     }
                     var center = ring.Aggregate(Vector3.zero, (sum, i) => sum + vertices[i]) / ring.Length;
                     center.y -= Next(.25f, .65f); vertices[centerIndex] = center;
+                    var sheet = new Bounds(vertices[0], Vector3.zero); foreach (var v in vertices) sheet.Encapsulate(v);
+                    if (sheet.max.y > WebCeiling(world, sheet)) continue;
                     if (vertices.Any(v => v.y < terrain.SampleHeight(v) + terrain.transform.position.y + .08f || !ClearPassages(world, v, 1))) continue;
                     if (physics.Raycast(center + Vector3.up * .1f, Vector3.down, out var under, .3f)) continue;
                     var mesh = Object.Instantiate(webSource.sharedMesh); meshes.Add(mesh); mesh.name = "Supported web " + (result.webs + 1);
@@ -162,7 +180,9 @@ public static class CaveDetailDressingBuilder
                     foreach (var offset in new[] {Vector3.zero, Vector3.right * 2, Vector3.left * 2, Vector3.forward * 2, Vector3.back * 2})
                         covered |= physics.Raycast(p + offset + Vector3.up * 80, Vector3.down, out _, 79.8f);
                     if (covered) continue;
-                    if (!physics.Raycast(p + Vector3.up * .8f, -outward, out var wall, 4) || wall.distance > 3) continue;
+                    // Project cliff-side nests onto the lower scenery floor, even below a suspended cliff base.
+                    var wallProbe = new Vector3(p.x, Mathf.Max(p.y, bounds.min.y) + .8f, p.z);
+                    if (!physics.Raycast(wallProbe, -outward, out var wall, 4) || wall.distance > 3) continue;
                     var uv = (p - terrain.transform.position); var normal = terrain.terrainData.GetInterpolatedNormal(uv.x / terrain.terrainData.size.x, uv.z / terrain.terrainData.size.z);
                     if (normal.y < .9f) continue;
                     var group = new GameObject("Nest " + (result.eggClusters + 1)).transform; group.SetParent(eggRoot, false); group.position = p;
