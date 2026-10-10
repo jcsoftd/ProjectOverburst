@@ -90,13 +90,13 @@ namespace Overburst.Mojave
         public void SetBounds(Vector2 dimensions,float spread)
         {
             bounds=dimensions==Vector2.zero?Vector2.one*extent:dimensions;
-            if(bounds.x<192||bounds.y<192||bounds.x>extent||bounds.y>extent||spread<.6f||spread>1)throw new ArgumentOutOfRangeException(nameof(dimensions));
+            if(bounds.x<MinimumMapSize||bounds.y<MinimumMapSize||bounds.x>extent||bounds.y>extent||spread<.6f||spread>1)throw new ArgumentOutOfRangeException(nameof(dimensions));
             combatSpread=spread;
         }
         public const float Elevation = 48;
         public const int Version = 3;
         public float junctionRounding;
-        public const int MinimumMapSize = 256, MaximumMapSize = 768;
+        public const int MinimumMapSize = 126, MaximumMapSize = 768;
         public MojaveLayout(int seed, int patchCount, bool expanded = false, bool compact = false,int combatAreaCount=0,int mapSizeOverride=0)
         {
             this.seed = seed;
@@ -140,10 +140,15 @@ namespace Overburst.Mojave
                 var indices=combatAreaCount==6?new[]{0,3,5,6,8,11}:new[]{0,1,3,4,5,6,8,10,11};
                 var selected=new List<MojavePlace>();foreach(int index in indices)selected.Add(places[index]);places.Clear();places.AddRange(selected);
             }
+            bool smallCount=expanded&&(combatAreaCount==2||combatAreaCount==3||combatAreaCount==4);
+            if(smallCount) {
+                var indices=combatAreaCount==2?new[]{0,11}:combatAreaCount==3?new[]{0,7,8}:new[]{0,3,8,11};
+                var selected=new List<MojavePlace>();foreach(int index in indices)selected.Add(places[index]);places.Clear();places.AddRange(selected);
+            }
             if(expanded&&compact)foreach(var place in places)place.center*=.78f;
             // Resize the layout, preserving authored tile, rock and passage widths.
             if(mapSizeOverride!=0)foreach(var place in places)place.center*=extent/presetExtent;
-            if(fewer||(expanded&&combatAreaCount==15)) {
+            if(fewer||smallCount||(expanded&&combatAreaCount==15)) {
                 ConnectByDistance(r,combatAreaCount==15?3:2);
             } else if(expanded) {
                 AddTrail(0,1,5.2f);AddTrail(1,2,4.6f);AddTrail(2,3,4.4f);AddTrail(1,5,5.1f);

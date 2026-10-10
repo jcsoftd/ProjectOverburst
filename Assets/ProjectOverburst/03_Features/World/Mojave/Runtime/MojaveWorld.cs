@@ -15,7 +15,7 @@ namespace Overburst.Mojave
         public bool compactMap;
         public int combatAreaCount;
         public bool randomCombatLayout;
-        [Tooltip("0 = preset; otherwise map side length in metres (256–768). Tiles retain their authored size.")]
+        [Tooltip("0 = preset; otherwise map side length in metres (126–768). Tiles retain their authored size.")]
         public int mapSizeOverride;
         [Tooltip("0,0 = square. Active map width/depth; each axis must fit within MapSize.")] public Vector2 mapDimensions;
         [Range(.6f,1f), Tooltip("Combat placement uses this fraction of the available map bounds.")] public float combatSpread = 1;
