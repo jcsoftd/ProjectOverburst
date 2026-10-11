@@ -175,6 +175,7 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             }
         }
 
+        FormatLegacyBody(item, priceOverride, rawLines, legacyBody);
         RenderFallback(legacyBody, contentTop);
         return true;
     }
@@ -431,6 +432,44 @@ public sealed class OverburstTooltipHybridSkin : MonoBehaviour
             view.marks.text = string.Join("\n", lines);
         }
         return height;
+    }
+
+    internal static void FormatLegacyBody(ItemData item, string priceOverride, string[] lines, TextMeshProUGUI body)
+    {
+        bool hasSubtitle=item.baseData is ElementGemItemData||item.baseData is WeaponItemData||item.baseData is GearItemData||item.baseData is FlaskItemData||item.baseData is BagItemData||item.baseData is ConsumableItemData||item.baseData is MapItemData;
+        string detail=string.Join("\n",lines.Skip(hasSubtitle?2:1)).Replace("<color=#7A6A4B>--------------------------</color>","").Trim();
+        var formatted=new System.Text.StringBuilder();bool gap=false;
+        foreach(var raw in detail.Split('\n')){
+            if(string.IsNullOrWhiteSpace(raw)){if(!gap&&formatted.Length>0)formatted.AppendLine("<line-height=10> </line-height><line-height=26>");gap=true;continue;}gap=false;
+            string plain=System.Text.RegularExpressions.Regex.Replace(raw,"<[^>]+>","");
+            if(priceOverride!=null&&plain.StartsWith("가치")){formatted.AppendLine("<color=#BBB6AB>거래 가격</color><pos=110><color=#EEE7D5>"+priceOverride+"</color>");continue;}
+            // Status and body remain separate from the stat comparison.
+            if(plain=="최종 효과"||plain=="장비칸에 장착하면 사용할 수 있습니다."||plain=="One-handed melee weapon.")continue;
+            var row=System.Text.RegularExpressions.Regex.Match(plain,@"^(.{1,14}?)\s*:?\s+([(+\-−]?\d.*)$");
+            if(row.Success){
+                string value=System.Text.RegularExpressions.Regex.Replace(row.Groups[2].Value,@"[★◆].*$","").Trim();
+                string marks=string.Join("",System.Text.RegularExpressions.Regex.Matches(raw,@"(?:<color=[^>]+>)?[★◆]+(?:</color>)?").Cast<System.Text.RegularExpressions.Match>().Select(m=>m.Value.Replace("★","◆")));
+                bool breakdown=OverburstUIQualityBreakdown.TryGet(item,row.Groups[1].Value,out var change,out var exact,out var baseline,out var delta,out var improved);
+                if(breakdown){
+                    string color=improved?"#8BD0A6":"#E29A8E";
+                    formatted.Append("<color=#BBB6AB>").Append(row.Groups[1].Value).Append("</color><pos=110><color=#EEE7D5>").Append(exact.TrimStart('+')).Append("</color>");
+                    if(delta!="—")formatted.Append(" <size=80%><color=").Append(color).Append(">(").Append(delta).Append(")</color></size>");
+                    if(marks.Length>0){
+                        marks=marks.Replace("#F2F2F2","#D5D8D8").Replace("#59FF59","#68AA84").Replace("#FFD84A","#D2A85D").Replace("#FF4A4A","#E29A8E");
+                        if(body.spriteAsset)marks=System.Text.RegularExpressions.Regex.Replace(marks,@"(?:<color=(#[A-Fa-f0-9]+)>)?(◆+)(?:</color>)?",m=>{
+                            string tint=m.Groups[1].Value; int index=tint=="#68AA84"?1:tint=="#D2A85D"?2:tint=="#E29A8E"?3:0;
+                            return string.Concat(Enumerable.Repeat("<sprite index="+index+" tint=0>",m.Groups[2].Value.Length));
+                        });
+                        string diamonds="<size=86%>"+marks+"</size>";
+                        float markerWidth=body.GetPreferredValues(diamonds,1000,0).x;
+                        if(markerWidth>90){diamonds="<size="+(86f*90/markerWidth).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+"%>"+marks+"</size>";markerWidth=body.GetPreferredValues(diamonds,1000,0).x;}
+                        formatted.Append("<pos=").Append(Mathf.Max(260,350-markerWidth).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)).Append('>').Append(diamonds);
+                    }
+                    formatted.AppendLine();
+                }else{formatted.Append("<color=#BBB6AB>").Append(row.Groups[1].Value).Append("</color><pos=110><color=#EEE7D5>").Append(value).AppendLine("</color>");}
+            }else formatted.AppendLine(raw.Replace("#9EAAB5","#BBB6AB").Replace("#F2D48C","#EEE7D5"));
+        }
+        body.text="<line-height=26>"+formatted.ToString().Trim()+"</line-height>";
     }
 
     private void RenderFallback(TextMeshProUGUI body, float contentTop)

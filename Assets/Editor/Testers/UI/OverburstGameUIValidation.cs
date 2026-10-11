@@ -35,7 +35,7 @@ public static class OverburstGameUIValidation
         ui.CloseEquipment();ui.inventory.SetVisible(false);Check(!GameplayInputBlocker.IsGameplayInputBlocked,"all windows closed releases input");ui.GetComponent<InventoryItemActionService>().UseQuickSlot(10);Check(PlayerFlaskController.Current.CooldownRemaining(0)>0,"slot ten uses real flask and starts cooldown");
         ui.inventory.SetVisible(true);ui.ToggleEquipment();ui.Refresh();
         foreach(var v in ui.inventoryWindow.GetComponentsInChildren<OverburstUIItemSlotView>(true)){var corners=new Vector3[4];((RectTransform)v.transform).GetWorldCorners(corners);Check(Mathf.Abs(corners[2].x-corners[0].x-84)<.1f,"inventory slot 84px");}
-        TooltipManager.Instance.ShowTooltip(flask);var tooltip=ui.GetComponentInChildren<OverburstGameTooltip>();Check(tooltip.view.gameObject.activeSelf&&tooltip.view.Body.text.Contains("sprite index="),"real flask tooltip uses generated quality sprites");TooltipManager.Instance.HideTooltip();
+        TooltipManager.Instance.ShowTooltip(flask);var tooltip=ui.GetComponentInChildren<OverburstGameTooltip>();Check(tooltip.view.gameObject.activeSelf&&tooltip.view.GetComponentsInChildren<TextMeshProUGUI>().Any(x=>x.enabled&&x.text.Contains("sprite index=")),"real flask tooltip uses generated quality sprites");TooltipManager.Instance.HideTooltip();
         Check(ui.equipmentWindow.GetComponentInChildren<OverburstUICharacterPreview>().Texture!=null,"live character render texture");
     }
     public static void StashInteractions(){
@@ -54,7 +54,9 @@ public static class OverburstGameUIValidation
         Check(shop.HandleShopSlotRightClicked(slot,Pointer()),"merchant right click opens trading menu");
         var context=(ShopContextMenuController)so.FindProperty("contextMenu").objectReferenceValue;context.Close();
         Check(shop.HandleShopSlotClicked(slot),"merchant item adds to trade offer");((Button)so.FindProperty("clearButton").objectReferenceValue).onClick.Invoke();
-        TooltipManager.Instance.ShowTooltip(slot.DisplayItem,definition,true);var tip=ui.GetComponentInChildren<OverburstGameTooltip>();Check(tip.view.Body.text.Contains("거래 가격"),"merchant price reaches RPG11 tooltip");TooltipManager.Instance.HideTooltip();
+        TooltipManager.Instance.ShowTooltip(slot.DisplayItem,definition,true);var tip=ui.GetComponentInChildren<OverburstGameTooltip>();string expectedPrice=Object.FindFirstObjectByType<MerchantTradeValueCalculator>(FindObjectsInactive.Include).GetBuyValue(slot.DisplayItem,definition).ToString("N0")+"G";
+        var priceLabel=tip.view.transform.Find("Approved Content/Price Label").GetComponent<TextMeshProUGUI>();var priceValue=tip.view.transform.Find("Approved Content/Price Value").GetComponent<TextMeshProUGUI>();
+        Check(tip.view.Body.enabled?tip.view.Body.text.Contains("거래 가격")&&tip.view.Body.text.Contains(expectedPrice):priceLabel.gameObject.activeInHierarchy&&priceValue.gameObject.activeInHierarchy&&priceLabel.text=="거래 가격"&&priceValue.text==expectedPrice,"merchant price reaches visible RPG11 tooltip");TooltipManager.Instance.HideTooltip();
         shop.ShowQuestTab();shop.ShowTradeTab();shop.Close();Check(!ui.inventory.IsVisible&&!GameplayInputBlocker.IsGameplayInputBlocked,"shop closes and restores inventory/input");
     }
     public static void LiveNumbers(){
