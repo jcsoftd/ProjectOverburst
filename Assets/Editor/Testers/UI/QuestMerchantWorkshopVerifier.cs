@@ -56,7 +56,7 @@ public static class QuestMerchantWorkshopVerifier
         }
         catch(Exception e){Write(output,"failure.json",new{error=e.ToString(),checks});throw;}
         finally{EditorSceneManager.ClosePreviewScene(scene);}
-        Check(before.SequenceEqual(sources.Select(Hash)),"native preview preserves source prefabs and saved scene bytes");Write(output,"result.json",new{success=true,checks,resolutions=new[]{"1920x1080","1280x720"},captures=20});return output;
+        Check(before.SequenceEqual(sources.Select(Hash)),"native preview preserves source prefabs and saved scene bytes");Write(output,"result.json",new{success=true,checks,resolutions=new[]{"1920x1080","1280x720"},captures=Directory.GetFiles(output,"*.png").Length});return output;
     }
     static void Capture(Camera camera,Vector2Int size,string path)
     {
