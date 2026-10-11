@@ -433,8 +433,6 @@ internal sealed class SlotVefectsTopOverlayRuntime : MonoBehaviour
         if (debugControls == null || !debugControls.IsValid)
             debugControls = SlotVefectsRuntimeControls.CreateOrReuse(controlRoot, this);
 
-        if (debugControls != null)
-            debugControls.RefreshVisual();
     }
 
     private void EnsureGraphicRaycaster()

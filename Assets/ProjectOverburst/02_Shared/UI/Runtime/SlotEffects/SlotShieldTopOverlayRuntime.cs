@@ -482,8 +482,6 @@ internal sealed class SlotShieldTopOverlayRuntime : MonoBehaviour
         if (layer.DebugControls == null || !layer.DebugControls.IsValid)
             layer.DebugControls = SlotShieldRuntimeControls.CreateOrReuse(controlRoot, layer);
 
-        if (layer.DebugControls != null)
-            layer.DebugControls.RefreshVisual();
     }
 
     private void EnsureGraphicRaycaster()
