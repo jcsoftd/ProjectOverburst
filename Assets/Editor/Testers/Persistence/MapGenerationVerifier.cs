@@ -42,11 +42,47 @@ public static class MapGenerationVerifier
             Check(candidates.Count == 30, "All 30 selected desert candidates generated");
             Check(caves > 1840 && caves < 2260, "4096 deterministic samples: terrain near initial 50/50 tuning");
             Check(true, "4096 paired samples: level/grade independent from terrain/size/seed");
+            var regionalCounts = new Dictionary<string, int>();
+            var desertThemes = new HashSet<string> { "PrimalHunt", "VenomBrood", "DeathHarvest" };
+            var caveThemes = new HashSet<string> { "CavernMutants", "SpiderBrood", "RotsporeMarsh", "AlienContainment" };
+            for (int i = 0; i < 4096; i++)
+            {
+                var a = new MapInstanceState();
+                var b = new MapInstanceState { level = 100, grade = ItemGrade.Mythic };
+                MapGenerationPolicy.Initialize(a, "regional-map-" + i);
+                UnityEngine.Random.InitState(i + 73130);
+                MapGenerationPolicy.Initialize(b, "regional-map-" + i);
+                var allowedThemes = a.terrain == MapTerrainKind.Desert ? desertThemes : caveThemes;
+                if (!allowedThemes.Contains(a.monsterThemeId) || a.monsterThemes.Count != 1
+                    || a.monsterThemes[0].themeId != a.monsterThemeId || a.monsterThemes[0].weight != 100)
+                    throw new Exception("Map did not retain exactly one allowed regional theme.");
+                if (a.monsterThemeId != b.monsterThemeId || a.terrain != b.terrain
+                    || a.seed != b.seed || a.areaCount != b.areaCount || a.desertCandidateId != b.desertCandidateId)
+                    throw new Exception("Map generation depends on level, grade or global random state.");
+                string key = a.terrain + "/" + a.monsterThemeId;
+                regionalCounts.TryGetValue(key, out int count); regionalCounts[key] = count + 1;
+            }
+            Check(regionalCounts.Count == 7, "4096 new maps: every regional candidate appears; GraveHunt absent");
+            Check(true, "4096 new maps: exactly one stored theme, independent of level/grade/global random");
+            foreach (var table in MapThemeCatalog.Tables)
+            {
+                var old = new MapInstanceState { monsterThemeId = table.ThemeId };
+                MapGenerationPolicy.Initialize(old, "legacy-theme-preserved-" + table.ThemeId);
+                string saved = Json(old);
+                Check(old.monsterThemeId == table.ThemeId && !MapGenerationPolicy.Initialize(old, "new-owner")
+                    && saved == Json(old), "Legacy theme preserved without reroll: " + table.ThemeId);
+            }
+            bool badTerrain = false;
+            try { MapThemeCatalog.RollThemeId(MapTerrainKind.Legacy, new System.Random(1)); }
+            catch (InvalidOperationException) { badTerrain = true; }
+            Check(badTerrain, "New theme selection rejects unsupported terrain instead of global fallback");
             foreach (var row in MapTerrainCatalog.DesertCandidates)
             {
                 Check(AssetDatabase.LoadAssetAtPath<SceneAsset>(row.scene) != null, "Native scene resolves: " + row.id);
             }
             var item = MapGenerationPolicy.CreateItem(definition, registry, 38, ItemGrade.Legendary);
+            Check((item.mapState.terrain == MapTerrainKind.Desert ? desertThemes : caveThemes).Contains(item.mapState.monsterThemeId),
+                "Production item factory selects its theme after terrain");
             var before = Json(item.mapState);
             var snapshot = ItemSnapshotCodec.Capture(item, registry);
             var restored = ItemSnapshotCodec.Restore(snapshot, registry);
@@ -137,8 +173,20 @@ public static class MapGenerationVerifier
             invalid.areaCount = 21; invalid.width = invalid.depth = 0;
             rejected = false; try { MapGenerationPolicy.Validate(invalid, false); } catch (InvalidDataException) { rejected = true; }
             Check(rejected, "Out-of-range cave size rejected instead of silently clamped");
+            invalid = ItemSnapshotCodec.CopyValues(item.mapState);
+            invalid.monsterThemes.Add(new MapMonsterTheme { themeId = "GraveHunt", weight = 20 });
+            rejected = false; try { MapGenerationPolicy.Validate(invalid, false); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "Multiple saved themes are rejected; no implicit mixed roster");
+            invalid = ItemSnapshotCodec.CopyValues(item.mapState);
+            invalid.monsterThemes[0].weight = 70;
+            rejected = false; try { MapGenerationPolicy.Validate(invalid, false); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "Partial theme allocation rejected for a single-theme map");
+            invalid = ItemSnapshotCodec.CopyValues(item.mapState);
+            invalid.monsterThemes[0].themeId = invalid.monsterThemeId == "GraveHunt" ? "PrimalHunt" : "GraveHunt";
+            rejected = false; try { MapGenerationPolicy.Validate(invalid, false); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "Saved theme fields must agree");
             string result = Path.Combine(output, "result.json");
-            File.WriteAllText(result, Newtonsoft.Json.JsonConvert.SerializeObject(new { status = "PASS", scope = "Native EditMode data and isolated saves; no Play/Player", caves, checks }, Newtonsoft.Json.Formatting.Indented));
+            File.WriteAllText(result, Newtonsoft.Json.JsonConvert.SerializeObject(new { status = "PASS", scope = "Native EditMode data and isolated saves; no Play/Player", caves, regionalCounts, checks }, Newtonsoft.Json.Formatting.Indented));
             return result;
         }
         catch (Exception e)

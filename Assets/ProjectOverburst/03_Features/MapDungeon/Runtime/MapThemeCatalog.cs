@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Overburst.Persistence;
 using UnityEngine;
 
 public static class MapThemeCatalog
@@ -54,5 +55,45 @@ public static class MapThemeCatalog
         foreach (var table in Tables) if (IsEnabledForRuns(table.ThemeId)) available.Add(table);
         if (available.Count == 0) throw new InvalidOperationException("사용 가능한 몬스터 테마가 없습니다.");
         return available[UnityEngine.Random.Range(0, available.Count)].ThemeId;
+    }
+
+    // One theme per newly acquired map. Regional weights are initial playtest tuning.
+    public static string RollThemeId(MapTerrainKind terrain, System.Random random)
+    {
+        if (random == null) throw new ArgumentNullException(nameof(random));
+        int total = 0;
+        foreach (var table in Tables) total += RegionalWeight(terrain, table.ThemeId);
+        if (total == 0) throw new InvalidOperationException("이 지형에서 사용할 몬스터 테마가 없습니다.");
+        int pick = random.Next(total);
+        foreach (var table in Tables)
+        {
+            pick -= RegionalWeight(terrain, table.ThemeId);
+            if (pick < 0) return table.ThemeId;
+        }
+        throw new InvalidOperationException("지역 몬스터 테마 추첨에 실패했습니다.");
+    }
+
+    private static int RegionalWeight(MapTerrainKind terrain, string themeId)
+    {
+        if (terrain == MapTerrainKind.Desert)
+        {
+            switch (themeId)
+            {
+                case "PrimalHunt": return 45;
+                case "VenomBrood": return 35;
+                case "DeathHarvest": return 20;
+            }
+        }
+        else if (terrain == MapTerrainKind.Cave)
+        {
+            switch (themeId)
+            {
+                case "CavernMutants": return 35;
+                case "SpiderBrood": return 30;
+                case "RotsporeMarsh": return 20;
+                case "AlienContainment": return 15;
+            }
+        }
+        return 0;
     }
 }

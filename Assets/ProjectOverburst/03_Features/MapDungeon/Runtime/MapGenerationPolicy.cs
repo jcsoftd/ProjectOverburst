@@ -16,7 +16,7 @@ public static class MapGenerationPolicy
         if (definition == null || registry == null) throw new ArgumentException("Registered map content is required.");
         var item = new ItemData(definition, level, grade) { originRunId = runId };
         item.mapState = new MapInstanceState { mapContentId = registry.IdFor(definition),
-            monsterThemeId = MapThemeCatalog.RollThemeId(), level = level, grade = grade };
+            level = level, grade = grade };
         foreach (var option in options ?? MapOptionPolicy.Roll(grade))
             item.mapState.options.Add(ItemSnapshotCodec.CopyValues(option));
         Initialize(item.mapState, item.runtimeInstanceId);
@@ -48,11 +48,8 @@ public static class MapGenerationPolicy
         }
         string theme = map.monsterThemeId;
         if (string.IsNullOrWhiteSpace(theme))
-        {
-            var tables = MapThemeCatalog.Tables;
-            if (tables.Count == 0) throw new InvalidDataException("사용 가능한 몬스터 테마가 없습니다.");
-            theme = tables[rng.Next(tables.Count)].ThemeId;
-        }
+            theme = MapThemeCatalog.RollThemeId(terrain, rng);
+        // An existing map keeps its saved theme, including old regional assignments.
         map.terrain = terrain; map.seed = seed; map.areaCount = count;
         map.desertCandidateId = candidate; map.width = width; map.depth = depth;
         map.monsterThemeId = theme;
@@ -70,18 +67,17 @@ public static class MapGenerationPolicy
                 throw new InvalidDataException("Invalid saved map option.");
         if (allowLegacy && map.generationVersion == 0) return;
         if (map.generationVersion != Version || map.seed <= 0 || !Enum.IsDefined(typeof(MapTerrainKind), map.terrain)
-            || map.terrain == MapTerrainKind.Legacy || map.monsterThemes == null || map.monsterThemes.Count == 0)
+            || map.terrain == MapTerrainKind.Legacy || map.monsterThemes == null || map.monsterThemes.Count != 1)
             throw new InvalidDataException("Unsupported map generation data.");
         if (map.terrain == MapTerrainKind.Cave
             ? map.areaCount < 4 || map.areaCount > 20 || !string.IsNullOrEmpty(map.desertCandidateId) || map.width != 0 || map.depth != 0
             : string.IsNullOrWhiteSpace(map.desertCandidateId) || DesertGroup(map.areaCount) < 0 || map.width < 126 || map.depth < 126)
             throw new InvalidDataException("Invalid saved map terrain/size.");
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var theme in map.monsterThemes)
-            if (theme == null || string.IsNullOrWhiteSpace(theme.themeId) || !seen.Add(theme.themeId) || theme.weight <= 0)
-                throw new InvalidDataException("Invalid saved monster theme allocation.");
-        if (map.monsterThemes[0].themeId != map.monsterThemeId)
-            throw new InvalidDataException("Primary monster theme disagrees with allocation.");
+        // Retain the G01A storage field for save compatibility; maps have one theme.
+        var savedTheme = map.monsterThemes[0];
+        if (savedTheme == null || string.IsNullOrWhiteSpace(savedTheme.themeId)
+            || savedTheme.weight != 100 || savedTheme.themeId != map.monsterThemeId)
+            throw new InvalidDataException("Saved map must contain its single monster theme at weight 100.");
     }
     public static string Describe(MapInstanceState map)
         => map == null || map.generationVersion == 0 ? "기존 지도"
