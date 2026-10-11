@@ -403,6 +403,10 @@ public class QuarterViewCamera : MonoBehaviour // 쿼터뷰 카메라
             return;
         }
 
+        var npcMenu = QuestMerchantUI.Current;
+        if (npcMenu && npcMenu.approach && npcMenu.approach.activeInHierarchy)
+            return;
+
         float scroll = facade.ZoomValue.y; // 휠 입력
         if (Mathf.Abs(scroll) <= 0.01f)
             return;

@@ -89,13 +89,15 @@ public static class NpcPresentationBuilder
     [MenuItem("OVERBURST/UI/NPC Names And Stylist/Apply")]
     public static void Apply()
     {
-        AppearanceCustomizationBuilder.RequireIdle(); EnsureAssets();
+        AppearanceCustomizationBuilder.RequireIdle();
+        foreach (string path in new[]{MainTownBuilder.ScenePath, "Assets/ProjectOverburst/00_Scenes/HideoutScene.unity", OverburstUIWorkshopBuilder.ScenePath})
+            if (SceneManager.GetSceneByPath(path).IsValid()) throw new InvalidOperationException("Preserve open scene: " + path);
+        EnsureAssets();
         var stylist = PrefabUtility.LoadPrefabContents(AppearanceCustomizationBuilder.NpcPath);
         try { ApplyName(stylist.GetComponent<AppearanceStylistInteractable>()); PrefabUtility.SaveAsPrefabAsset(stylist, AppearanceCustomizationBuilder.NpcPath); }
         finally { PrefabUtility.UnloadPrefabContents(stylist); }
         foreach (string path in new[]{MainTownBuilder.ScenePath, "Assets/ProjectOverburst/00_Scenes/HideoutScene.unity"})
         {
-            if (SceneManager.GetSceneByPath(path).IsValid()) throw new InvalidOperationException("Preserve open scene: " + path);
             var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
             try
             {

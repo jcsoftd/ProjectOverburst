@@ -27963,6 +27963,32 @@ PrefabInstance:
       addedObject: {fileID: 873173242}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dda84141e0c97f0498c16c02f17744fa, type: 3}
+--- !u!224 &73813425 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 1531133900796989977, guid: dda84141e0c97f0498c16c02f17744fa, type: 3}
+  m_PrefabInstance: {fileID: 73813424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!224 &73813426 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 2722878118629378398, guid: dda84141e0c97f0498c16c02f17744fa, type: 3}
+  m_PrefabInstance: {fileID: 73813424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!224 &73813427 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 6655158450263388192, guid: dda84141e0c97f0498c16c02f17744fa, type: 3}
+  m_PrefabInstance: {fileID: 73813424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &73813428 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1979865624316959614, guid: dda84141e0c97f0498c16c02f17744fa, type: 3}
+  m_PrefabInstance: {fileID: 73813424}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5577e89a847a74fa302dbd3a10f800, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestMerchantUI
 --- !u!1 &76368925
 GameObject:
   m_ObjectHideFlags: 0
@@ -73059,6 +73085,27 @@ PrefabInstance:
       addedObject: {fileID: 867088110}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8d0b2bcb386edd94a8657bd4fc9501cf, type: 3}
+--- !u!224 &405504273 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4480567239225072297, guid: 8d0b2bcb386edd94a8657bd4fc9501cf, type: 3}
+  m_PrefabInstance: {fileID: 405504272}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &405504274 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2524933214161810116, guid: 8d0b2bcb386edd94a8657bd4fc9501cf, type: 3}
+  m_PrefabInstance: {fileID: 405504272}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dde121f371ab554f9a5b37a6177cade, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OverburstHudMenu
+--- !u!224 &405504275 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4020084158190219409, guid: 8d0b2bcb386edd94a8657bd4fc9501cf, type: 3}
+  m_PrefabInstance: {fileID: 405504272}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &406492782
 GameObject:
   m_ObjectHideFlags: 0

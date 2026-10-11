@@ -21,11 +21,11 @@ public static class QuestMerchantWorkshopVerifier
     static void Check(bool condition,string name){if(!condition)throw new InvalidOperationException(name);checks.Add(name);}
     static string Hash(string path){using(var sha=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path)));}
     static void Write(string folder,string name,object result){Directory.CreateDirectory(folder);File.WriteAllText(Path.Combine(folder,name),JsonConvert.SerializeObject(result,Formatting.Indented));}
-    public static string Native(string label="ManagementNative")
+    public static string Native(string label="ManagementNative",string scenePath=null)
     {
         AppearanceCustomizationBuilder.RequireIdle();checks.Clear();string output=Path.Combine(Root,label);Directory.CreateDirectory(output);
         string[] sources={QuestMerchantUIBuilder.Prefab,OverburstHudMenuBuilder.PrefabPath,QuestMerchantUIBuilder.Folder+"/PF_QuestInventoryStyle.prefab",OverburstShopUIBuilder.PrefabPath,OverburstUIWorkshopBuilder.ScenePath};var before=sources.Select(Hash).ToArray();
-        var scene=EditorSceneManager.OpenPreviewScene(OverburstUIWorkshopBuilder.ScenePath);
+        var scene=EditorSceneManager.OpenPreviewScene(scenePath??OverburstUIWorkshopBuilder.ScenePath);
         try
         {
             var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();

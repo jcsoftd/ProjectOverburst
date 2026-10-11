@@ -149,7 +149,7 @@ public static class QuestMerchantPlayVerifier
         var ui=QuestMerchantUI.Current;var account=AccountGameplaySession.Current;var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var actor=PlayerContext.Instance.CurrentActor;
         Check(ui && QuestSession.Current && QuestSession.Current.IsBoundTo(account),"one quest session binds to current runtime account");
         Check(Object.FindObjectsByType<QuestInventoryStyle>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"one inventory style binds to existing inventory controls");
-        if(SessionState.GetBool(K+"npcPresentation",false)){yield return VerifyNpcPresentation(ui,account,actor);yield break;}
+        if(SessionState.GetBool(K+"npcPresentation",false)){yield return VerifyNpcPresentation(ui,account,actor);if(SessionState.GetBool(K+"edges",false))yield return VerifyNpcInputEdges(ui,account,actor);yield break;}
         var npc=WeaponMerchant();yield return Approach(npc,actor);Check(ui.SelectedOption==1,"approach defaults to trade");
         pointer.scroll=new Vector2(0,-120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(3);Check(ui.SelectedOption==2,"actual mouse wheel selects quest");
         yield return Click(ui.approachButtons[2]);Check(ui.Mode==QuestMerchantUI.WindowMode.Merchant&&!ui.DetailIsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"quest click opens list first and blocks combat");
@@ -266,6 +266,70 @@ public static class QuestMerchantPlayVerifier
         var weapon=WeaponMerchant();yield return Approach(weapon,actor);Check(ui.approachButtons.All(b=>b.gameObject.activeInHierarchy)&&ui.approachButtons[1].transform.Find("Label").GetComponent<Text>().text=="거래","merchant restores three options after stylist");
         Check(Mathf.Abs(((RectTransform)ui.approach.transform).rect.height-286.5f)<.1f,"merchant frame restores original height");Write("merchant-selection-before-F.json",new{option=ui.SelectedOption,pointerX=pointer.position.x,pointerY=pointer.position.y});pointer.position=new Vector2(40,50);yield return Frames(3);ui.SelectOption(1);yield return KeyPress(Key.F);Check(Field<ShopUI>(weapon,"shopUI")?.IsOpenFor(weapon.Definition)==true,"merchant F still opens trade");Field<ShopUI>(weapon,"shopUI")?.Close();yield return Frames(8);
         Write("account-after-trade-open.json",account.Read());
+    }
+
+    static IEnumerator VerifyNpcInputEdges(QuestMerchantUI ui,AccountGameplaySession account,PlayerActorRuntime actor)
+    {
+        var controller=actor.GetComponent<PlayerInteractionController>();
+        var stylist=Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Single(n=>n.gameObject.scene.name==PersistentSceneFlow.MainSceneName);
+        var weapon=WeaponMerchant();var bytes=ES3.Serialize(account.Read());
+        ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+Vector3.forward*15,actor.transform.rotation);yield return Frames(8);
+        Check(!ui.approach.activeInHierarchy,"wheel control is outside NPC approach");var testCamera=QuarterViewCamera.ActiveInstance;var freeZoomBefore=Field<float>(testCamera,"targetDistance");
+        pointer.scroll=new Vector2(0,120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(12);var freeZoomAfter=Field<float>(testCamera,"targetDistance");
+        Write("wheel-outside-npc.json",new{freeZoomBefore,freeZoomAfter});Check(freeZoomAfter<freeZoomBefore,"physical wheel still zooms outside NPC approach");testCamera.ResetZoom();yield return Frames(12);
+        for(int repeat=0;repeat<3;repeat++)
+        {
+            pointer.position=new Vector2(40,50);yield return Approach(weapon,actor);
+            Check(ui.approachBadge.gameObject.activeInHierarchy&&ui.approachBadge.text.Contains("새 의뢰"),"merchant quest badge restores after stylist cycle "+repeat);
+            if(repeat==0){var merchantCamera=QuarterViewCamera.ActiveInstance;var merchantZoomBefore=Field<float>(merchantCamera,"targetDistance");pointer.scroll=new Vector2(0,-120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(5);var merchantZoomAfter=Field<float>(merchantCamera,"targetDistance");Write("merchant-wheel.json",new{merchantZoomBefore,merchantZoomAfter,selected=ui.SelectedOption});Check(ui.SelectedOption==2&&Mathf.Abs(merchantZoomBefore-merchantZoomAfter)<.001f,"merchant wheel selects quest without camera zoom");}
+            ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+stylist.transform.forward*1.35f,Quaternion.LookRotation(-stylist.transform.forward));yield return Frames(10);
+            Check(controller.Current==stylist&&ui.approachButtons.Count(b=>b.gameObject.activeInHierarchy)==1&&!ui.approachBadge.gameObject.activeInHierarchy,"stylist restores compact menu without merchant badge "+repeat);
+            var camera=QuarterViewCamera.ActiveInstance;Check(camera,"active gameplay camera is available for wheel audit");var zoomBefore=Field<float>(camera,"targetDistance");
+            pointer.scroll=new Vector2(0,120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(12);var zoomAfter=Field<float>(camera,"targetDistance");
+            Write("stylist-wheel-"+repeat+".json",new{zoomBefore,zoomAfter,selected=ui.SelectedOption});
+            Check(ui.SelectedOption==1,"physical wheel stays on sole stylist action "+repeat);
+            Check(Mathf.Abs(zoomAfter-zoomBefore)<.001f,"NPC action wheel does not also zoom gameplay camera "+repeat);
+            yield return KeyPress(Key.F);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"repeat F opens same stylist owner "+repeat);
+            yield return KeyPress(Key.F);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"repeat F close releases all input owners "+repeat);
+        }
+        Check(ES3.Serialize(account.Read()).SequenceEqual(bytes),"repeated stylist entries preserve the whole account");
+        var blocker=new GameObject("Owned NPC audit blocker"){hideFlags=HideFlags.DontSave};GameplayInputBlocker.Block(blocker);
+        try
+        {
+            yield return Frames(4);yield return KeyPress(Key.F);yield return KeyPress(Key.J);
+            Check(!ui.approach.activeInHierarchy&&!AppearanceCustomizationPanel.IsOpen&&ui.Mode==QuestMerchantUI.WindowMode.None,"foreign modal rejects stylist F and J");
+            Check(controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected&&GameplayInputBlocker.IsGameplayInputBlocked,"stale stylist click preserves foreign input owner");
+        }
+        finally{GameplayInputBlocker.Unblock(blocker);Object.Destroy(blocker);}
+        yield return Frames(5);Check(ui.approach.activeInHierarchy&&!GameplayInputBlocker.IsGameplayInputBlocked,"stylist menu returns after foreign modal closes");
+        var inventory=Object.FindObjectsByType<InventoryUI>(FindObjectsInactive.Include,FindObjectsSortMode.None).Single();inventory.SetVisible(true);
+        try {yield return Frames(4);yield return KeyPress(Key.F);Check(!AppearanceCustomizationPanel.IsOpen&&!ui.approach.activeInHierarchy,"inventory prevents overlapping stylist entry");}
+        finally {inventory.SetVisible(false);}
+        // Opening the existing inventory commits its sort; compare appearance actions after that transaction.
+        bytes=ES3.Serialize(account.Read());Write("account-before-discard.json",account.Read());
+        yield return Frames(5);yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal&&!ui.approach.activeInHierarchy,"personal journal replaces stylist approach");
+        yield return KeyPress(Key.F);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal&&!AppearanceCustomizationPanel.IsOpen,"F cannot open stylist behind personal journal");yield return KeyPress(Key.Escape);yield return Frames(5);
+        int executions=controller.ExecutionCount;var first=controller.ExecuteMerchantOption(stylist,1);var second=controller.ExecuteMerchantOption(stylist,1);
+        Check(first==InteractionExecutionResult.Succeeded&&second==InteractionExecutionResult.Rejected&&controller.ExecutionCount==executions+1,"same-frame stylist click and F execute once");
+        yield return Frames(5);var panel=AppearanceCustomizationPanel.Instance;
+        var choice=panel.GetComponentsInChildren<AppearanceChoiceButton>(true).First(c=>c.kind==AppearanceChoiceKind.HairColor&&c.optionId!=panel.Session.Draft.hairColorId&&c.gameObject.activeInHierarchy&&c.button.interactable);
+        yield return Click(choice.button);Check(panel.Session.HasAppearanceChanges,"actual appearance choice creates an unsaved draft");
+        yield return KeyPress(Key.F);Check(AppearanceCustomizationPanel.IsOpen&&panel.discardConfirmation.activeInHierarchy&&GameplayInputBlocker.IsGameplayInputBlocked,"stylist F honors unsaved draft confirmation");
+        yield return KeyPress(Key.Escape);Check(AppearanceCustomizationPanel.IsOpen&&!panel.discardConfirmation.activeInHierarchy,"Esc returns from discard confirmation to editing");
+        yield return KeyPress(Key.F);yield return Click(panel.discardAndClose);yield return Frames(5);
+        Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"discard closes stylist without reentering approach action");
+        Write("account-after-discard.json",account.Read());Check(ES3.Serialize(account.Read()).SequenceEqual(bytes),"discarded appearance draft preserves the whole account");
+        pointer.position=new Vector2(40,50);yield return KeyPress(Key.F);yield return Frames(5);ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+Vector3.forward*9,actor.transform.rotation);yield return Frames(8);
+        Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&!ui.approach.activeInHierarchy,"range loss closes open stylist and releases input");
+        ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+stylist.transform.forward*1.35f,Quaternion.LookRotation(-stylist.transform.forward));yield return Frames(10);yield return KeyPress(Key.F);stylist.enabled=false;
+        try {yield return Frames(5);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"disabled stylist closes its open session");}
+        finally {stylist.enabled=true;}
+        yield return Frames(8);Check(ES3.Serialize(account.Read()).SequenceEqual(bytes),"invalidated stylist sessions leave account state unchanged");
+        yield return Approach(weapon,actor);ui.SelectOption(0);pointer.position=new Vector2(40,50);yield return KeyPress(Key.F);Check(ui.Mode==QuestMerchantUI.WindowMode.Dialogue,"merchant dialogue still opens after all stylist boundaries");yield return KeyPress(Key.Escape);yield return Frames(5);
+        ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+stylist.transform.forward*1.35f,Quaternion.LookRotation(-stylist.transform.forward));yield return Frames(10);yield return KeyPress(Key.F);actor.Health.SetDamageDeathPrevention(actor,false);actor.Health.TakeDamage(new DamageInfo(1000000,actor.transform.position,null,suppressDefaultHitVfx:true));yield return Frames(6);
+        Check(actor.Health.IsDead&&!AppearanceCustomizationPanel.IsOpen&&!ui.approach.activeInHierarchy,"death closes stylist session and hides approach");
+        Check(controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected,"dead actor rejects retained stylist click");
+        yield return KeyPress(Key.F);yield return KeyPress(Key.J);Check(!AppearanceCustomizationPanel.IsOpen&&ui.Mode==QuestMerchantUI.WindowMode.None,"dead actor F and J cannot create modal UI");
     }
     static IEnumerator VerifyMenuAndPortraits(QuestMerchantUI ui,AccountGameplaySession account,PlayerActorRuntime actor)
     {
