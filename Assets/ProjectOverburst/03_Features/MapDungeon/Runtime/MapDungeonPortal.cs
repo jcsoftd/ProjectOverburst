@@ -91,12 +91,7 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
         var account = AccountGameplaySession.Current;
         if (definition == null || account == null) return false;
-        var map = new MapInstanceState
-        {
-            mapContentId = account.ContentRegistry.IdFor(definition),
-            monsterThemeId = MapThemeCatalog.RollThemeId(),
-            level = 1, grade = ItemGrade.Common
-        };
+        var map = MapGenerationPolicy.CreateItem(definition, account.ContentRegistry, 1, ItemGrade.Common).mapState;
         return StartRun(map, null);
     }
 
@@ -115,7 +110,7 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
     {
         var flow = PersistentSceneFlow.Instance;
         if (flow == null || !WorldSessionState.IsHideout || flow.IsSwitching) return false;
-        if (!flow.EnterRun(DiamondDungeonWorld.SceneName, map, instanceId)) return false;
+        if (!flow.EnterMapRun(map, instanceId)) return false;
         entering = true;
         ClosePanel();
         return true;

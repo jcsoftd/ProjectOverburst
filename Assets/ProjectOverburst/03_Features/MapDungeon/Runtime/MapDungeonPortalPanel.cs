@@ -123,7 +123,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour
             details.text = "<color=#D7BA77>레벨 1 · 무료 입장</color>\n\n"
                 + "지도가 없어도 입장할 수 있습니다.\n"
                 + "몬스터 테마는 입장 때 무작위로 정해집니다.\n\n"
-                + "입장할 때마다 시작 모서리와 보스 위치가 바뀝니다.";
+                + "사막/동굴과 규모는 입장 때 무작위로 정해집니다.";
             return;
         }
         var selected = maps.FirstOrDefault(item => item.runtimeInstanceId == selectedId);
@@ -132,6 +132,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour
         var text = new System.Text.StringBuilder();
         text.Append("<color=#D7BA77>레벨 ").Append(map.level).Append("</color> · ")
             .Append(ItemTooltipFormatter.GetGradeName(map.grade)).AppendLine()
+            .Append("지형 · 규모: ").Append(MapGenerationPolicy.Describe(map)).AppendLine()
             .Append("몬스터 테마: ").Append(MapThemeCatalog.DisplayName(map.monsterThemeId)).AppendLine()
             .Append("획득 경험치 +")
             .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(map) - 1f) * 100f))

@@ -103,6 +103,17 @@ public static class MapGenerationVerifier
             Check(reloaded.stashTabs[2].slots[8] == actual.instanceId && Json(reloaded.items.Single(x => x.instanceId == actual.instanceId).map) == mapAfter,
                 "Stash move and fresh store reload preserve map");
             tx.Execute("move-from-stash", tx.Revision, s => { s.stashTabs[2].slots[8] = null; s.inventory[0] = actual.instanceId; }, true);
+            foreach (bool legacyRequest in new[] { false, true })
+            {
+                var stale = ItemSnapshotCodec.CopyValues(actual.map);
+                if (legacyRequest) stale.generationVersion = 0; else stale.seed++;
+                long unchangedRevision = tx.Revision;
+                bool staleRejected = false;
+                try { tx.Execute("stale-" + legacyRequest, tx.Revision, s => AccountRunCommands.PrepareEntry(s, "stale-run", stale, actual.instanceId), true); }
+                catch (InvalidOperationException) { staleRejected = true; }
+                Check(staleRejected && tx.Revision == unchangedRevision && tx.Read().items.Any(x => x.instanceId == actual.instanceId),
+                    legacyRequest ? "Legacy request cannot bypass stored generation identity" : "Stale map seed rejected before preparation and consumption");
+            }
             tx.Execute("prepare", tx.Revision, s => AccountRunCommands.PrepareEntry(s, "run-map-test", actual.map, actual.instanceId), true);
             Check(tx.Read().items.Any(x => x.instanceId == actual.instanceId), "Preparation does not consume map");
             tx.Execute("cancel", tx.Revision, s => AccountRunCommands.RecoverInterrupted(s), true);

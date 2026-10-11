@@ -45,7 +45,12 @@ public class CavePlatformLayout
         { var p = points[i]; while (hull.Count > lower && Cross(hull[hull.Count - 1] - hull[hull.Count - 2], p - hull[hull.Count - 1]) <= 0) hull.RemoveAt(hull.Count - 1); hull.Add(p); }
         hull.RemoveAt(hull.Count - 1); return hull.ToArray();
     }
-    protected static bool Inside(Vector2[] hull, Vector2 p) => Enumerable.Range(0, hull.Length).All(i => Cross(hull[(i + 1) % hull.Length] - hull[i], p - hull[i]) >= -.001f);
+    protected static bool Inside(Vector2[] hull, Vector2 p)
+    {
+        for (int i = 0; i < hull.Length; i++)
+            if (!(Cross(hull[(i + 1) % hull.Length] - hull[i], p - hull[i]) >= -.001f)) return false;
+        return true;
+    }
     protected static float EdgeDistance(Vector2[] hull, Vector2 p) => Enumerable.Range(0, hull.Length).Min(i =>
     { var a = hull[i]; var d = hull[(i + 1) % hull.Length] - a; return Vector2.Distance(p, a + d * Mathf.Clamp01(Vector2.Dot(p - a, d) / d.sqrMagnitude)); });
     protected static Vector2[] WorldHull(CavePlatformLibrary library, Room room) => library.platforms[room.platform].hull.Select(p => XZ(room.position + Rotate(new Vector3(p.x, 0, p.y), room.yaw))).ToArray();
@@ -84,6 +89,8 @@ public class CavePlatformLayout
             int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name.StartsWith("D1_19")) : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
             order.Remove(hub); order.Insert(0, hub);
             layout.rooms.Add(new Room { platform = hub, position = new Vector3(0, 22, 0), yaw = random.Next(360), used = new bool[library.platforms[hub].regions.Length] });
+            // Accepted rooms never move during this search; reuse their transformed footprints.
+            var placedHulls = new Dictionary<Room, Vector2[]> { [layout.rooms[0]] = WorldHull(library, layout.rooms[0]) };
             for (int next = 1; next < count; next++)
             {
                 bool added = false;
@@ -145,25 +152,26 @@ public class CavePlatformLayout
                     if (Mathf.Abs(room.position.y - 22) > 12) continue;
                     var hull = WorldHull(library, room);
                     float shortfall = 0;
-                    if (layout.rooms.Any(r => Overlap(WorldHull(library, r), hull, .4f)))
+                    if (layout.rooms.Any(r => Overlap(placedHulls[r], hull, .4f)))
                     {
                         // Keep a small near-miss as an explicitly marked review candidate; never stretch a connector.
                         if (attempt < priorityAttempts && attempt % socketAttempts < 200) { Reject("floor bounds " + definition.source.name); continue; }
                         room.position += direction * .65f; hull = WorldHull(library, room); shortfall = .65f;
-                        if (layout.rooms.Any(r => Overlap(WorldHull(library, r), hull, .4f))) { Reject("floor bounds " + definition.source.name); continue; }
+                        if (layout.rooms.Any(r => Overlap(placedHulls[r], hull, .4f))) { Reject("floor bounds " + definition.source.name); continue; }
                     }
                     if (layout.links.Any(l => SegmentCross(XZ(start), XZ(end), XZ(l.start), XZ(l.end)))) continue;
                     bool crossing = false;
                     for (int k = 1; k < 20; k++)
                     {
                         var p = Vector3.Lerp(start, end, k / 20f);
-                        for (int i = 0; i < layout.rooms.Count; i++) if (i != parentIndex && Inside(WorldHull(library, layout.rooms[i]), XZ(p))) crossing = true;
+                        for (int i = 0; i < layout.rooms.Count; i++) if (i != parentIndex && Inside(placedHulls[layout.rooms[i]], XZ(p))) crossing = true;
                     }
                     if (crossing) continue;
                     if (!ApproachClear(library.platforms[parent.platform], anchorA, Direction(aa)) || !ApproachClear(definition, anchorB, Direction(ab))) { Reject("approach " + definition.source.name); continue; }
                     if (layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
                     if (layout.rooms.Any(r => PassageHitsRoom(library, r, start, end))) continue;
                     parent.used[portA] = true; room.used[portB] = true; layout.rooms.Add(room);
+                    placedHulls.Add(room, hull);
                     order[candidateIndex] = order[next]; order[next] = candidatePlatform;
                     layout.links.Add(new Link { a = parentIndex, b = next, portA = portA, portB = portB, angleA = aa, angleB = ab, start = start, end = end, stone = ra.stone, pitch = pitch, stairCount = stairCount, stairDirection = ra.stairDirection, reviewShortfall = shortfall }); added = true;
                 }

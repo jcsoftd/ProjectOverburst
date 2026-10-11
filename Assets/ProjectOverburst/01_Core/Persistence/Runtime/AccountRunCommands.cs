@@ -23,10 +23,14 @@ namespace Overburst.Persistence
                 var item = state.items.SingleOrDefault(x => x.instanceId == mapItemId);
                 if (item?.map == null || !state.inventory.Contains(mapItemId) || item.map.level != map.level || item.map.grade != map.grade || item.map.mapContentId != map.mapContentId)
                     throw new InvalidOperationException("The selected map is not available.");
+                if ((item.map.generationVersion > 0 || map.generationVersion > 0)
+                    && !ES3.Serialize(item.map).SequenceEqual(ES3.Serialize(map)))
+                    throw new InvalidOperationException("The selected map properties have changed.");
                 map = item.map;
             }
             else if (!debugEntry && (map.level != 1 || map.grade != ItemGrade.Common || map.options.Count != 0))
                 throw new InvalidOperationException("A map item is required for this run.");
+            MapGenerationPolicy.Validate(map);
             state.run = new RunSnapshot { runId = runId, phase = RunPhase.EntryPending,
                 mapInstanceId = mapItemId, map = ItemSnapshotCodec.CopyValues(map) };
         }

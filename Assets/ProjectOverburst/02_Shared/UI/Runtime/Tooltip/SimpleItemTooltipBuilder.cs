@@ -174,6 +174,7 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         var builder = new StringBuilder();
         AppendTitle(builder, item, item.itemName, true);
         AppendSubtitle(builder, "지도 / " + MapThemeCatalog.DisplayName(item.mapState?.monsterThemeId));
+        builder.AppendLine(MapGenerationPolicy.Describe(item.mapState));
         AppendDescription(builder, item);
         builder.Append("획득 경험치 +")
             .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(item.mapState) - 1f) * 100f))

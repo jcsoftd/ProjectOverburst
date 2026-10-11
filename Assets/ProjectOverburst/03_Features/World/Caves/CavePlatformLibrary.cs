@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Overburst.Caves
@@ -45,6 +46,30 @@ namespace Overburst.Caves
             public Vector3 spawn;
             public Region[] regions;
             public Bounds[] obstacles;
+            [NonSerialized] Vector3[] indexedTriangles;
+            [NonSerialized] Dictionary<Vector2Int, List<int>> surfaceCells;
+            const float SurfaceCellSize = 2f;
+
+            public void InvalidateSurfaceCache() { indexedTriangles = null; surfaceCells = null; }
+            static Vector2Int SurfaceCell(Vector3 point) => new Vector2Int(
+                Mathf.FloorToInt(point.x / SurfaceCellSize), Mathf.FloorToInt(point.z / SurfaceCellSize));
+            void EnsureSurfaceCache()
+            {
+                if (ReferenceEquals(indexedTriangles, surfaceTriangles) && surfaceCells != null) return;
+                indexedTriangles = surfaceTriangles;
+                surfaceCells = new Dictionary<Vector2Int, List<int>>();
+                for (int i = 0; i < surfaceTriangles.Length; i += 3)
+                {
+                    var a = SurfaceCell(surfaceTriangles[i]); var b = SurfaceCell(surfaceTriangles[i + 1]); var c = SurfaceCell(surfaceTriangles[i + 2]);
+                    for (int z = Mathf.Min(a.y, Mathf.Min(b.y, c.y)); z <= Mathf.Max(a.y, Mathf.Max(b.y, c.y)); z++)
+                        for (int x = Mathf.Min(a.x, Mathf.Min(b.x, c.x)); x <= Mathf.Max(a.x, Mathf.Max(b.x, c.x)); x++)
+                        {
+                            var cell = new Vector2Int(x, z);
+                            if (!surfaceCells.TryGetValue(cell, out var triangles)) surfaceCells.Add(cell, triangles = new List<int>());
+                            triangles.Add(i);
+                        }
+                }
+            }
 
             public Vector3 Anchor(Region region, float angle)
             {
@@ -77,7 +102,9 @@ namespace Overburst.Caves
             public bool Surface(Vector3 p, out Vector3 point)
             {
                 float height = float.MinValue;
-                    for (int i = 0; i < surfaceTriangles.Length; i += 3)
+                EnsureSurfaceCache();
+                if (surfaceCells.TryGetValue(SurfaceCell(p), out var candidates))
+                    foreach (int i in candidates)
                     {
                         var a = surfaceTriangles[i]; var b = surfaceTriangles[i + 1]; var c = surfaceTriangles[i + 2];
                         if (p.x < Mathf.Min(a.x, Mathf.Min(b.x, c.x)) || p.x > Mathf.Max(a.x, Mathf.Max(b.x, c.x)) || p.z < Mathf.Min(a.z, Mathf.Min(b.z, c.z)) || p.z > Mathf.Max(a.z, Mathf.Max(b.z, c.z))) continue;
@@ -93,5 +120,9 @@ namespace Overburst.Caves
         }
         public Platform[] platforms;
         public Connector timber, singleStair, doubleStair;
+        void OnValidate()
+        {
+            if (platforms != null) foreach (var platform in platforms) platform?.InvalidateSurfaceCache();
+        }
     }
 }

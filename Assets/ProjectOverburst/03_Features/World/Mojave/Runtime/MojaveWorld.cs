@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -81,6 +81,10 @@ namespace Overburst.Mojave
         {
             if(!Application.isPlaying)return;
             SetWind();
+            var pending = Overburst.Persistence.AccountGameplaySession.Current?.ReadRun();
+            // Product maps must use their selected bake. A stale bake fails the run gate instead of regenerating here.
+            if (pending?.phase == Overburst.Persistence.RunPhase.EntryPending
+                && pending.map?.terrain == Overburst.Persistence.MapTerrainKind.Desert) return;
             if (generatedRoot != null && surface != null && bakedSeed == seed && bakedLayoutVersion == MojaveLayout.Version && bakedRandomCombatLayout == randomCombatLayout && Mathf.Approximately(surface.terrainData.size.x,MapSize))
                 {layout = CreateLayout();volcanoTrailField=catalog.volcano?new VolcanoTrailField(layout):null;}
             else Generate(seed);

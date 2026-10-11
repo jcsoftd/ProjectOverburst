@@ -54,6 +54,7 @@ public static class MapTerrainCatalog
             throw new InvalidDataException("저장된 지도와 사막 후보의 규모가 다릅니다.");
         return row.scene;
     }
+    public static string SceneNameFor(MapInstanceState map) => Path.GetFileNameWithoutExtension(SceneFor(map));
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() => catalog = null;
 }

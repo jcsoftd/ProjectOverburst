@@ -156,6 +156,12 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     public bool EnterRun(string sceneName, Overburst.Persistence.MapInstanceState map, string mapItemId = null)
         => BeginRun(sceneName, map, mapItemId, false);
 
+    public bool EnterMapRun(Overburst.Persistence.MapInstanceState map, string mapItemId = null)
+    {
+        try { return BeginRun(MapTerrainCatalog.SceneNameFor(map), map, mapItemId, false); }
+        catch (System.Exception error) { RunEntryError = error.Message; return false; }
+    }
+
     public bool EnterDebugRun(string sceneName, Overburst.Persistence.MapInstanceState map)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -170,6 +176,15 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         var account = Overburst.Persistence.AccountGameplaySession.Current;
         if (isSwitching || !WorldSessionState.IsHideout || account == null
             || string.IsNullOrWhiteSpace(sceneName) || sceneName == PersistentSceneName || IsHubSceneName(sceneName)) return false;
+        if (map != null && map.generationVersion > 0)
+        {
+            try
+            {
+                if (sceneName != MapTerrainCatalog.SceneNameFor(map))
+                { RunEntryError = "지도에 저장된 목적지와 요청한 월드가 다릅니다."; return false; }
+            }
+            catch (System.Exception error) { RunEntryError = error.Message; return false; }
+        }
         if (!IsSceneLoaded(sceneName) && !Application.CanStreamedLevelBeLoaded(sceneName))
         { RunEntryError = "입장할 월드 씬을 찾을 수 없습니다."; return false; }
         string runId = System.Guid.NewGuid().ToString("N");
@@ -200,12 +215,26 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         ResolveLoadingScreen();
         loadingScreen?.Show("ENTERING", "월드 준비 중...");
         AsyncOperation loading = null;
+        var pendingMap = account.ReadRun().map;
+        void PrepareLoadedScene(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != sceneName || pendingMap.generationVersion == 0
+                || pendingMap.terrain != Overburst.Persistence.MapTerrainKind.Desert) return;
+            try { Overburst.Mojave.DesertRunWorld.Install(scene, pendingMap); }
+            catch (System.Exception error) { RunEntryError = error.Message; }
+        }
         if (!IsSceneLoaded(sceneName))
         {
-            try { loading = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive); }
-            catch (System.Exception error) { RunEntryError = error.Message; }
-            if (loading != null) yield return loading;
+            SceneManager.sceneLoaded += PrepareLoadedScene;
+            try
+            {
+                try { loading = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive); }
+                catch (System.Exception error) { RunEntryError = error.Message; }
+                if (loading != null) yield return loading;
+            }
+            finally { SceneManager.sceneLoaded -= PrepareLoadedScene; }
         }
+        else PrepareLoadedScene(SceneManager.GetSceneByName(sceneName), LoadSceneMode.Additive);
         RunWorldGate gate = null;
         if (RunEntryError == null)
         {
@@ -221,8 +250,15 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 catch (System.Exception error) { RunEntryError = error.Message; }
         }
         float deadline = Time.realtimeSinceStartup + 60f;
+        var cavePreparation = gate ? gate.GetComponent<Overburst.Caves.CaveRuntimeGenerator>() : null;
+        var desertPreparation = gate ? gate.GetComponent<Overburst.Mojave.DesertRunWorld>() : null;
         while (RunEntryError == null && !cancelRunEntry && gate != null && !gate.IsReady && gate.Error == null
-            && Time.realtimeSinceStartup < deadline) yield return null;
+            && Time.realtimeSinceStartup < deadline)
+        {
+            string stage = cavePreparation ? cavePreparation.Stage : desertPreparation ? desertPreparation.PreparationStage : null;
+            if (!string.IsNullOrEmpty(stage)) loadingScreen?.SetStatus(MapGenerationPolicy.Describe(pendingMap) + " · " + stage);
+            yield return null;
+        }
         if (RunEntryError == null)
         {
             if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
