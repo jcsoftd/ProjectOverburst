@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Profiling;
+using Overburst.Caves;
 
 public sealed class WorldMinimapController : MonoBehaviour
 {
@@ -31,6 +32,14 @@ public sealed class WorldMinimapController : MonoBehaviour
     private Texture2D ownedTerrain;
     private int terrainRevision = -1;
     private bool usesRunTerrain;
+    private RunWorldGate mapGate;
+    private CaveWorld caveWorld;
+    private MinimapExplorationMap exploration;
+    private int explorationScene = int.MinValue;
+    private string explorationRun;
+    private float nextReveal;
+    private bool terrainFailed;
+    public MinimapExplorationMap Exploration => exploration;
     public int TerrainBuildCount { get; private set; }
 
     public static WorldMinimapController Instance
@@ -54,6 +63,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     {
         if (instance != null && instance != this) { enabled = false; return; }
         instance = this;
+        SceneManager.sceneUnloaded += HandleSceneUnloaded;
         minZoomSize = Mathf.Max(5f, minZoomSize);
         maxZoomSize = Mathf.Max(minZoomSize, maxZoomSize);
         currentZoomSize = Mathf.Clamp(defaultZoomSize, minZoomSize, maxZoomSize);
@@ -91,7 +101,12 @@ public sealed class WorldMinimapController : MonoBehaviour
         view?.SetVisible(false);
     }
 
-    private void OnDestroy() { ClearTerrain(); if (instance == this) instance = null; }
+    private void OnDestroy()
+    {
+        SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+        ClearTerrain(); ReleaseExploration();
+        if (instance == this) instance = null;
+    }
 
     public static void ShowHubMinimap(Transform player) => Instance?.ShowForHub(player);
     public static void ShowHideoutMinimap(Transform player) => ShowHubMinimap(player);
@@ -164,6 +179,13 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         if (!hasYaw) return;
         RefreshRunTerrain();
+        if (mapGate && mapGate.Map.generationVersion > 0 && caveWorld && exploration == null)
+        { source.Dispose(); view.SetVisible(false); return; }
+        if (exploration != null && now >= nextReveal)
+        {
+            if (exploration.Reveal(playerTarget.position, 12f)) forceRefresh = true;
+            nextReveal = now + .1f;
+        }
         view.SetVisible(true);
         view.UpdateSafeArea();
         view.UpdateTerrain(playerTarget.position, yaw, currentZoomSize);
@@ -172,7 +194,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         bool dirty = source.IsDirty || forceRefresh;
         if (dirty || now >= nextCandidates)
         {
-            source.Select(playerTarget.position, currentZoomSize, contentScene);
+            source.Select(playerTarget.position, currentZoomSize, contentScene, exploration);
             CandidateCount++;
             nextCandidates = now + 0.1f;
             dirty = true;
@@ -196,6 +218,7 @@ public sealed class WorldMinimapController : MonoBehaviour
             for (int i = 0; i < source.Count; i++)
             {
                 if (!source.TryGet(i, origin, currentZoomSize * currentZoomSize, out Vector3 position, out EnemyGradeType grade, out int id)) continue;
+                if (exploration != null && !exploration.IsRevealed(position)) continue;
                 markers[count++] = new MinimapMarkerGraphic.Marker
                 {
                     Position = MinimapProjection.ProjectBasis(position, origin, cos, sin, scale), Grade = grade, Id = id,
@@ -212,6 +235,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     private void BindTerrain()
     {
         ClearTerrain();
+        if (explorationScene != contentScene) ReleaseExploration();
         if (!contentSceneInfo.IsValid() || !contentSceneInfo.isLoaded || view == null) return;
         if (terrainMaps != null)
             foreach (TerrainMap map in terrainMaps)
@@ -220,13 +244,38 @@ public sealed class WorldMinimapController : MonoBehaviour
 
         // The global grid is consumed only by its owning product dungeon, never by another loaded scene.
         foreach (GameObject root in contentSceneInfo.GetRootGameObjects())
-            if (root.GetComponentInChildren<DiamondDungeonWorld>(true) != null)
-            { usesRunTerrain = true; break; }
+        {
+            if (!mapGate) mapGate = root.GetComponentInChildren<RunWorldGate>(true);
+            if (!caveWorld) caveWorld = root.GetComponentInChildren<CaveWorld>(true);
+            if (root.GetComponentInChildren<DiamondDungeonWorld>(true) != null) usesRunTerrain = true;
+        }
         RefreshRunTerrain();
     }
 
     private void RefreshRunTerrain()
     {
+        if (mapGate && mapGate.IsReady && mapGate.Map.generationVersion > 0 && caveWorld && !terrainFailed)
+        {
+            if (explorationRun != mapGate.Context.RunId) ReleaseExploration();
+            if (exploration == null)
+            {
+                try
+                {
+                    exploration = CaveMinimapTerrain.Build(caveWorld);
+                    exploration.EnsureTextures();
+                    explorationScene = contentScene; explorationRun = mapGate.Context.RunId;
+                    nextReveal = 0; TerrainBuildCount++;
+                }
+                catch (System.Exception error)
+                {
+                    ReleaseExploration(); terrainFailed = true;
+                    Debug.LogError("[WorldMinimap] Cave terrain could not be prepared: " + error, this);
+                }
+            }
+            if (exploration != null && view.TerrainImage.texture != exploration.TerrainTexture)
+                view.SetTerrain(exploration.TerrainTexture, exploration.Bounds);
+            return;
+        }
         if (!usesRunTerrain || terrainRevision == RunWalkableContext.Revision) return;
         terrainRevision = RunWalkableContext.Revision;
         ReleaseOwnedTerrain();
@@ -250,6 +299,19 @@ public sealed class WorldMinimapController : MonoBehaviour
         ReleaseOwnedTerrain();
         terrainRevision = -1;
         usesRunTerrain = false;
+        mapGate = null; caveWorld = null; terrainFailed = false;
+    }
+
+    private void HandleSceneUnloaded(Scene scene)
+    {
+        if (scene.handle == explorationScene) ReleaseExploration();
+        if (scene.handle == contentScene) ForceHide();
+    }
+
+    private void ReleaseExploration()
+    {
+        exploration?.Dispose(); exploration = null;
+        explorationRun = null; explorationScene = int.MinValue; nextReveal = 0;
     }
 
     private void ReleaseOwnedTerrain()

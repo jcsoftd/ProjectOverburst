@@ -36,7 +36,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -79,6 +79,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetBool(Key + "largeOnly", largeOnly);
         SessionState.SetInt(Key + "completionCases", completionCases);
         SessionState.SetInt(Key + "bossCases", bossCases);
+        SessionState.SetBool(Key + "minimapOnly", minimapOnly);
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
         SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 600);
@@ -225,11 +226,15 @@ public static class MapRunEntryPlayVerifier
                 yield return MapDesertCompletionPlayVerifier.Verify(gate, completionCase++, output, Check);
                 continue;
             }
-            yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
+            if (SessionState.GetBool(Key + "minimapOnly", false)) yield return MapExplorationVerifier.VerifyPlay(gate, output, Check);
+            else yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
             yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, label + ": abandon returns to hub");
             Check(account.ReadRun().phase == RunPhase.Failed, label + ": existing abandon settlement maintained");
+            if (SessionState.GetBool(Key + "minimapOnly", false))
+                Check(WorldMinimapController.Instance.Exploration == null && WorldMinimapController.Instance.View.TerrainImage.texture != null,
+                    label + ": unloading the run releases exploration and restores the hub bake");
         }
     }
     static void Finish(Exception error)
@@ -261,5 +266,6 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "desertOnly");
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
+        SessionState.EraseBool(Key + "minimapOnly");
     }
 }

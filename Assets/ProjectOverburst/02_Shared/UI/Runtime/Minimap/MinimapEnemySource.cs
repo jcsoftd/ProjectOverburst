@@ -42,7 +42,7 @@ public sealed class MinimapEnemySource : IDisposable
         public EnemyGradeType Grade;
     }
 
-    public void Select(Vector3 origin, float radius, int targetScene)
+    public void Select(Vector3 origin, float radius, int targetScene, MinimapExplorationMap exploration = null)
     {
         using (CandidateMarker.Auto())
         {
@@ -54,6 +54,7 @@ public sealed class MinimapEnemySource : IDisposable
             {
                 Entry entry = entries[i];
                 if (!IsValid(entry)) continue;
+                if (exploration != null && !exploration.IsRevealed(entry.Transform.position)) continue;
                 float distance = MinimapProjection.DistanceSquared(entry.Transform.position, origin);
                 if (distance > radiusSquared) continue;
                 var candidate = new Candidate { Entry = entry, Distance = distance, Grade = entry.Rank.GradeType };
