@@ -36,7 +36,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -49,17 +49,17 @@ public static class MapRunEntryPlayVerifier
         var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
         var state = NewAccountFactory.Create(registry); AccountCharacterCommands.EnsureLegacy(state);
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3 + Mathf.Max(0, completionCases - 1); i++)
         {
             var item = MapGenerationPolicy.CreateItem(definition, registry, 1, ItemGrade.Common);
             var map = item.mapState; map.seed = 48310;
-            if (i < 2) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 0 ? 4 : 20; map.width = map.depth = 0; map.desertCandidateId = null; }
+            if (i < 2 || i >= 3) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 1 ? 20 : 4; map.width = map.depth = 0; map.desertCandidateId = null; }
             else
             {
                 var row = MapTerrainCatalog.DesertCandidates[0]; map.terrain = MapTerrainKind.Desert;
                 map.desertCandidateId = row.id; map.areaCount = row.areaCount; map.width = row.width; map.depth = row.depth;
             }
-            map.monsterThemeId = i == 0 ? "CavernMutants" : i == 1 ? "SpiderBrood" : "PrimalHunt";
+            map.monsterThemeId = i == 0 || i >= 3 ? "CavernMutants" : i == 1 ? "SpiderBrood" : "PrimalHunt";
             map.monsterThemes[0].themeId = map.monsterThemeId;
             if (i == 1)
             {
@@ -75,6 +75,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
         SessionState.SetBool(Key + "largeOnly", largeOnly);
+        SessionState.SetInt(Key + "completionCases", completionCases);
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
         SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 600);
@@ -95,7 +96,7 @@ public static class MapRunEntryPlayVerifier
         if (!EditorApplication.isPlaying || !OwnPlay || !TitleCharacterPanel.Instance) return;
         EditorApplication.update -= Begin; SessionState.EraseString(Key + "pending");
         checks.Clear(); observations.Clear(); work.Clear(); Application.runInBackground = true;
-        deadline = EditorApplication.timeSinceStartup + 600; lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
+        deadline = EditorApplication.timeSinceStartup + (SessionState.GetInt(Key + "completionCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
     }
     static IEnumerator Frames(int n) { while (n-- > 0) yield return null; }
     static IEnumerator Wait(Func<bool> ready, string label, float seconds = 100)
@@ -142,7 +143,7 @@ public static class MapRunEntryPlayVerifier
         PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
         var maps = account.Read().items.Where(i => i.map != null).ToArray();
-        var cave4 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4);
+        var cave4 = maps.First(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4);
         var cave20 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 20);
         var desert = maps.Single(i => i.map.terrain == MapTerrainKind.Desert);
         long revision = account.Revision;
@@ -152,8 +153,11 @@ public static class MapRunEntryPlayVerifier
         yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, "Cancelled preparation returns to hub");
         Check(account.Read().items.Any(i => i.instanceId == cave20.instanceId), "Cancelled map remains owned");
         var selected = SessionState.GetBool(Key + "largeOnly", false) ? new[] { cave20 } : SessionState.GetBool(Key + "desertOnly", false) ? new[] { desert } : new[] { cave4, desert, cave20 };
+        if (SessionState.GetInt(Key + "completionCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4).ToArray();
+        int completionCase = 0;
         foreach (var item in selected)
         {
+            PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
             string label = MapGenerationPolicy.Describe(item.map); double began = EditorApplication.timeSinceStartup;
             Check(flow.EnterMapRun(item.map, item.instanceId), label + ": entry starts");
             yield return Wait(() => !flow.IsSwitching, label + ": transition terminates", 180);
@@ -207,6 +211,11 @@ public static class MapRunEntryPlayVerifier
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveExplorer>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring explorer disabled");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveCamera>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring camera disabled");
             }
+            if (SessionState.GetInt(Key + "completionCases", 0) > 0)
+            {
+                yield return MapCompletionPlayVerifier.Verify(gate, completionCase++, output, Check);
+                continue;
+            }
             yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
@@ -219,7 +228,7 @@ public static class MapRunEntryPlayVerifier
         EditorApplication.update -= Tick; EditorApplication.update -= Begin;
         while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
         SessionState.EraseString(Key + "pending"); output = SessionState.GetString(Key + "return", output);
-        Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = "Editor Play: entry, finite spawn/death/pool lifecycle and persistence; Player performance and direct control feel not covered" });
+        Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = "Editor Play: entry, finite population and selected completion/persistence cases; Player performance and direct control feel not covered" });
         if (EditorApplication.isPlaying && OwnPlay) EditorApplication.ExitPlaymode();
         EditorApplication.update -= Return; EditorApplication.update += Return;
     }
@@ -242,5 +251,6 @@ public static class MapRunEntryPlayVerifier
         foreach (var key in new[] { "return", "start", "scenes" }) SessionState.EraseString(Key + key);
         SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "background"); EditorApplication.update -= Return;
         SessionState.EraseBool(Key + "desertOnly");
+        SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases");
     }
 }

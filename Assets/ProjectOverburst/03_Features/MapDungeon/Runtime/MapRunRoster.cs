@@ -43,6 +43,7 @@ public sealed class MapRunRoster
     public int Pending => Total - Kills - Active;
     public bool PlacementReady { get; internal set; }
     public bool CaveTargetReached => Terrain == MapTerrainKind.Cave && Kills >= Target;
+    public event Action DeathRecorded;
 
     MapRunRoster(string runId, MapInstanceState map, List<Member> members, List<Area> areas)
     {
@@ -148,7 +149,8 @@ public sealed class MapRunRoster
     public bool TryRecordDeath(int index, int lease)
     {
         if (!Current(index, lease)) return false;
-        Members[index].State = Life.Dead; Active--; Kills++; return true;
+        Members[index].State = Life.Dead; Active--; Kills++;
+        DeathRecorded?.Invoke(); return true;
     }
     bool Current(int index, int lease) => index >= 0 && index < Total && lease > 0
         && Members[index].State == Life.Active && Members[index].Lease == lease;

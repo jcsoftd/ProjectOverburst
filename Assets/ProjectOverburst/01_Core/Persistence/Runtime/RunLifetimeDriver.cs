@@ -5,6 +5,7 @@ using UnityEngine;
 namespace Overburst.Persistence
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(32000)]
     public sealed class RunLifetimeDriver : MonoBehaviour
     {
         private bool portalRequested;
@@ -14,6 +15,7 @@ namespace Overburst.Persistence
         private RunOutcome outcome;
         private float nextPoll;
         private long pausedTicksSinceBossClear;
+        private int portalRequestFrame;
         public string LastError { get; private set; }
 
         private void OnEnable() => WorldSessionState.Changed += WorldChanged;
@@ -25,7 +27,9 @@ namespace Overburst.Persistence
 
         public bool RequestPortalExit()
         {
-            if (AccountGameplaySession.Current?.ReadRun()?.phase != RunPhase.BossCleared) return false;
+            if (!AccountInvariants.IsCompleted(AccountGameplaySession.Current?.ReadRun()?.phase)
+                || PlayerContext.Instance?.CurrentActorHealth?.IsDead != false) return false;
+            if (!portalRequested) portalRequestFrame = Time.frameCount;
             portalRequested = true;
             return true;
         }
@@ -37,7 +41,7 @@ namespace Overburst.Persistence
                 abandoned = true;
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             // 2026-10-01 ESC 메뉴: 보스 처치 뒤 180초 자동 귀환은 실제 시계(UTC)로 잰다.
             // 멈춘 동안은 정산하지 않고, 보스를 잡은 뒤 멈춰 있던 시간만큼 그 시계를 늦춰 준다.
@@ -66,6 +70,8 @@ namespace Overburst.Persistence
             if (WorldSessionState.Phase != WorldPhase.Run && !abandoned) return;
             var health = PlayerContext.Instance?.CurrentActorHealth;
             if (health == null) return;
+            // Finish the requesting frame's combat before resolving a successful extraction.
+            if (portalRequested && Time.frameCount <= portalRequestFrame && !health.IsDead && !abandoned) return;
             try
             {
                 outcome = new AccountRunSession(account).ResolveOutcome(utcTicks, health.IsDead, portalRequested, abandoned);

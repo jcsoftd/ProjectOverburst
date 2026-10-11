@@ -66,6 +66,11 @@ public sealed partial class MapSpawnBudget
                 yield return null;
             }
             budget.InitialPreparedCount = gate.Roster.Active; budget.InitialReady = true;
+            if (gate.Map.terrain == MapTerrainKind.Cave)
+            {
+                gate.Completion = gate.gameObject.AddComponent<MapRunCompletion>();
+                gate.Completion.Configure(gate, player.GetComponent<PlayerActorRuntime>());
+            }
         }
         finally { budget.preparingInitial = false; }
     }

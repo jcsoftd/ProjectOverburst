@@ -53,7 +53,7 @@ internal static class WorldDebugModule
             .Keywords("hideout", "귀환", "포기");
         back.Button("성공 귀환(포털)", SuccessReturn)
             .WithId("world.return.success")
-            .EnabledWhen(() => RunPhaseNow == RunPhase.BossCleared, "보스를 처치한 뒤에만")
+            .EnabledWhen(() => AccountInvariants.IsCompleted(RunPhaseNow), "런을 완료한 뒤에만")
             .Tip("RunLifetimeDriver.RequestPortalExit와 같다.");
     }
 

@@ -263,7 +263,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
     {
         bool dungeon = WorldSessionState.Phase == WorldPhase.Run;
         var run = AccountGameplaySession.Current?.ReadRun();
-        bool cleared = dungeon && run != null && run.phase == RunPhase.BossCleared;
+        bool cleared = dungeon && run != null && AccountInvariants.IsCompleted(run.phase);
         title.text = "일시정지";
         subtitle.text = (dungeon ? "던전" : "은신처") + "  ·  게임이 멈춰 있습니다";
         returnButton.gameObject.SetActive(dungeon);
@@ -319,9 +319,9 @@ public sealed class OverburstGameMenu : MonoBehaviour
     {
         Play(clickClip, .8f);
         var run = AccountGameplaySession.Current?.ReadRun();
-        bool cleared = run != null && run.phase == RunPhase.BossCleared;
+        bool cleared = run != null && AccountInvariants.IsCompleted(run.phase);
         if (cleared)
-            Confirm("포탈로 귀환할까요?", "보스 보상을 챙겨 은신처로 돌아갑니다.", "귀환", "취소", () => RequestReturn(true));
+            Confirm("은신처로 귀환할까요?", "소지한 전리품을 반출합니다.\n바닥에 남은 아이템은 가져오지 않습니다.", "귀환", "취소", () => RequestReturn(true));
         else
             Confirm("은신처로 돌아갈까요?", "이번 탐험을 포기합니다.\n창고로 보내지 않은 아이템은 잃습니다.", "포기하고 귀환", "계속하기", () => RequestReturn(false));
     }

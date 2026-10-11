@@ -4,13 +4,15 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class DungeonExitPortal : MonoBehaviour, IInteractable
 {
+    private string runId;
+    public void ConfigureRun(string id) => runId = id;
     public Component InteractionComponent => this;
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 320;
     public string InteractionPrompt => "F : 하이드아웃 귀환";
     public InteractionDistanceMode DistanceMode => InteractionDistanceMode.Horizontal;
     public float InteractionRange => 3.2f;
-    public string StableInteractionId => InteractionStableIdUtility.Build(this);
+    public string StableInteractionId => string.IsNullOrEmpty(runId) ? InteractionStableIdUtility.Build(this) : runId + "/completion-portal";
     public bool AllowsInteractionWhileInputBlocked => false;
     public bool WantsInteractionPrompt => isActiveAndEnabled;
 
@@ -18,8 +20,12 @@ public sealed class DungeonExitPortal : MonoBehaviour, IInteractable
     private void OnDisable() => InteractionRegistry.Unregister(this);
 
     public bool IsInteractionAvailable(PlayerActorRuntime actor)
-        => actor != null && isActiveAndEnabled && WorldSessionState.Phase == WorldPhase.Run
-            && AccountGameplaySession.Current?.ReadRun()?.phase == RunPhase.BossCleared;
+    {
+        var run = AccountGameplaySession.Current?.ReadRun();
+        return actor != null && actor.Health != null && !actor.Health.IsDead && isActiveAndEnabled
+            && WorldSessionState.Phase == WorldPhase.Run && run != null && AccountInvariants.IsCompleted(run.phase)
+            && (string.IsNullOrEmpty(runId) || runId == run.runId);
+    }
 
     public InteractionExecutionResult TryInteract(PlayerActorRuntime actor)
     {

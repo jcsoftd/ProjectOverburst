@@ -28,7 +28,7 @@ public sealed class EncounterContext
 
     public bool MatchesRun(RunSnapshot run)
     {
-        bool active = run != null && (run.phase == RunPhase.Active || run.phase == RunPhase.BossCleared);
+        bool active = run != null && AccountInvariants.IsRunning(run.phase);
         return IsRun ? active && string.Equals(run.runId, RunId, StringComparison.Ordinal) : !active;
     }
 

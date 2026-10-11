@@ -64,6 +64,7 @@ namespace Overburst.Persistence
             if (state.items.Any(x => x.instanceId == acquired.instanceId)) throw new InvalidOperationException("Item already acquired.");
             state.items.Add(acquired);
             state.inventory[slot] = acquired.instanceId;
+            RecordCompletionPickup(state, acquired.instanceId);
         }
 
         public static void Transfer(AccountSnapshot state, string runId, string objectId, string itemId, int tab, int slot)
@@ -174,16 +175,51 @@ namespace Overburst.Persistence
         public static void ClearBoss(AccountSnapshot state, string runId, long utcTicks)
         {
             var run = RequireActive(state, runId);
-            if (run.phase == RunPhase.BossCleared) return;
+            if (AccountInvariants.IsCompleted(run.phase)) return;
+            if (run.map.generationVersion > 0) throw new InvalidOperationException("Product maps require normal completion with a saved reward.");
             run.phase = RunPhase.BossCleared;
             run.bossClearedAtUtcTicks = utcTicks;
             state.bossClearCount = checked(state.bossClearCount + 1);
         }
 
+        public static void CompleteMap(AccountSnapshot state, string runId, long utcTicks,
+            int area, UnityEngine.Vector3 anchor, ItemSnapshot reward)
+        {
+            var run = RequireActive(state, runId);
+            if (run.phase == RunPhase.Completed) return;
+            if (run.phase != RunPhase.Active || run.map.generationVersion <= 0
+                || area < 0 || area >= run.map.areaCount || utcTicks <= 0 || utcTicks > DateTime.MaxValue.Ticks
+                || !Finite(anchor.x) || !Finite(anchor.y) || !Finite(anchor.z)
+                || reward?.map == null || reward.count != 1 || reward.originRunId != runId
+                || reward.instanceId != CompletionRewardId(runId))
+                throw new InvalidOperationException("Invalid map completion or reward.");
+            run.completedAtUtcTicks = utcTicks;
+            run.completionArea = area; run.completionAnchor = anchor;
+            run.completionReward = ItemSnapshotCodec.CopyValues(reward);
+            run.completionRewardClaimed = false;
+            run.phase = RunPhase.Completed;
+            if (run.map.terrain == MapTerrainKind.Desert) state.bossClearCount = checked(state.bossClearCount + 1);
+        }
+
+        public static string CompletionRewardId(string runId) => runId + "/completion-map";
+        static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        // The claim flag is committed in the same transaction as inventory acquisition.
+        public static void RecordCompletionPickup(AccountSnapshot state, string itemId)
+        {
+            var run = state.run;
+            if (run?.completionReward == null || run.completionReward.instanceId != itemId) return;
+            if (run.phase != RunPhase.Completed
+                || !state.items.Any(x => x.instanceId == itemId && x.originRunId == run.runId))
+                throw new InvalidOperationException("Completion reward is unavailable.");
+            // Dropping and picking up the same owned item does not create another completion reward.
+            run.completionRewardClaimed = true;
+        }
+
         public static void Extract(AccountSnapshot state, string runId)
         {
             var run = RequireActive(state, runId);
-            if (run.phase != RunPhase.BossCleared) throw new InvalidOperationException("Boss must be cleared before extraction.");
+            if (!AccountInvariants.IsCompleted(run.phase)) throw new InvalidOperationException("Run must be completed before extraction.");
             foreach (var item in state.items) if (item.originRunId == runId) item.originRunId = null;
             run.phase = RunPhase.Extracted;
         }

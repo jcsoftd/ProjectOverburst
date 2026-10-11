@@ -41,7 +41,9 @@ public sealed class OverburstGameUI : MonoBehaviour
     private string energyValue;
     private PlayerEquipment energyOwner;
     private OverburstElementEnergy cachedEnergy;
-    private bool? shownDungeon;
+    private int regionScene = int.MinValue;
+    private RunWorldGate regionGate;
+    private (int scene, bool dungeon, int kills, bool completed, bool portal) shownRegion = (int.MinValue, false, -1, false, false);
     private (string weapon,float elementalDamage)? shownCharacterDetail;
     private readonly (float? value,string format,string prefix,string suffix)?[] shownStats=new (float?,string,string,string)?[12];
     private void OnEnable()=>UnityEngine.SceneManagement.SceneManager.sceneUnloaded+=SceneUnloaded;
@@ -165,7 +167,7 @@ public sealed class OverburstGameUI : MonoBehaviour
             minimapScene=contentScene.handle;
             minimap.ShowForScene(context.CurrentActor.transform,minimapScene);
         }
-        if(shownDungeon!=dungeon){shownDungeon=dungeon;region.text=dungeon?"던전":"은신처";regionDetails.text=dungeon?"던전 탐험 중":"상인 · 창고 · 던전 포탈";}
+        RefreshRegion(dungeon, contentScene);
         RefreshInventoryCapacity(context.CurrentActorInventory);
         if(stashBridge&&stashWindow.gameObject.activeSelf){
             int tab=stashBridge.CurrentTabIndex;if(tab!=lastTab){lastTab=tab;var buttons=stashWindow.transform.Find("Tab Menu/Buttons Group");for(int i=0;i<3;i++)buttons.Find("Tab Button ("+(i+1)+")/Active").gameObject.SetActive(i==tab);}
@@ -184,6 +186,33 @@ public sealed class OverburstGameUI : MonoBehaviour
         SetStat(8,gear.NormalDamage,"0.##","+","%");SetStat(9,gear.WeakDamage,"0.##","+","%");
         SetStat(10,gear.HeavyDamage,"0.##","+","%");SetStat(11,gear.EliteBossDamage,"0.##","+","%");
         var controller=PlayerFlaskController.Current;for(int i=0;i<flasks.Length;i++){var item=controller?controller.GetItem(i):null;int key=quickSlots?quickSlots.GetFlaskKey(item):0;string keyLabel=key>0?QuickSlotKeyLabels.Short(key):"";if(shownFlasks[i]!=item||shownKeys[i]!=key||shownKeyLabels[i]!=keyLabel){shownFlasks[i]=item;shownKeys[i]=key;shownKeyLabels[i]=keyLabel;flasks[i].Present(item,keyLabel);}}
+    }
+    private void RefreshRegion(bool dungeon, UnityEngine.SceneManagement.Scene scene)
+    {
+        if (scene.handle != regionScene)
+        {
+            regionScene = scene.handle; regionGate = null;
+            if (scene.IsValid() && scene.isLoaded)
+                foreach (var root in scene.GetRootGameObjects())
+                {
+                    regionGate = root.GetComponentInChildren<RunWorldGate>();
+                    if (regionGate) break;
+                }
+        }
+        var roster = regionGate ? regionGate.Roster : null;
+        var completion = regionGate ? regionGate.Completion : null;
+        var state = (scene.handle, dungeon, roster != null ? Mathf.Min(roster.Kills, roster.Target) : 0,
+            completion && completion.IsCompleted, completion && completion.Portal && completion.Portal.gameObject.activeInHierarchy);
+        if (shownRegion == state) return;
+        shownRegion = state;
+        region.text = dungeon ? "던전" : "은신처";
+        regionDetails.text = dungeon ? "던전 탐험 중" : "상인 · 창고 · 던전 포탈";
+        if (!dungeon || roster == null) return;
+        bool cave = roster.Terrain == Overburst.Persistence.MapTerrainKind.Cave;
+        region.text = cave ? "동굴" : "사막";
+        regionDetails.text = state.Item4 ? (state.Item5 ? "탐험 완료 · 원할 때 귀환 포탈로 귀환" : "탐험 완료 · 귀환 포탈 준비 중")
+            : cave ? $"몬스터 토벌 {state.Item3:N0} / {roster.Target:N0}" + (roster.CaveTargetReached ? " · 완료 저장 중" : "")
+            : "보스 처치";
     }
     private void MarkInventoryDirty()=>inventoryDirty=true;
     private void UnbindInventory(){if(observedInventory)observedInventory.Changed-=MarkInventoryDirty;observedInventory=null;inventoryDirty=true;}

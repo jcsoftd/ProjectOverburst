@@ -86,7 +86,11 @@ namespace Overburst.Persistence
             if (inventory == null || item == null) return false;
             if (Current == null) return inventory.AddItem(item);
             if (Current.editing || Current.restoring) return false; // A pickup owns its completion boundary.
-            bool checkpoint = RequiresPickupCheckpoint(item);
+            var run = Current.ReadRun();
+            bool completionReward = run?.completionReward?.instanceId == item.runtimeInstanceId;
+            if (completionReward && (run.phase != RunPhase.Completed
+                || Current.Read().items.Any(x => x.instanceId == item.runtimeInstanceId))) return false;
+            bool checkpoint = completionReward || RequiresPickupCheckpoint(item);
             try
             {
                 if (checkpoint)
@@ -94,7 +98,8 @@ namespace Overburst.Persistence
                     CurrencyPickupBatch.DrainPending();
                     if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
                 }
-                return Current.Execute(() => inventory.AddItem(item), false, checkpoint);
+                return Current.Execute(() => inventory.AddItem(item), false, checkpoint,
+                    completionReward ? item.runtimeInstanceId : null);
             }
             catch (Exception error) when (error is System.IO.IOException || error is UnauthorizedAccessException)
             { Debug.LogError("아이템 획득 저장에 실패했습니다: " + error.Message); return false; }
@@ -107,7 +112,7 @@ namespace Overburst.Persistence
             catch (System.IO.IOException error) { Debug.LogError("재화 획득을 확정하지 못했습니다: " + error.Message); return false; }
         }
 
-        private bool Execute(Func<bool> operation, bool currencyOnly, bool saveImmediately = false)
+        private bool Execute(Func<bool> operation, bool currencyOnly, bool saveImmediately = false, string completionPickupId = null)
         {
             if (operation == null) throw new ArgumentNullException(nameof(operation));
             if (restoring) throw new InvalidOperationException("Cannot edit while restoring account state.");
@@ -130,9 +135,14 @@ namespace Overburst.Persistence
                         PlayerAccountInventoryService.Loadout.Bags, before.baseUnlockedSlots));
                 }
                 committed = transactions.ExecuteWithCandidate(Guid.NewGuid().ToString("N"), before.revision,
-                    () => currencyOnly
-                        ? AccountGameplayProjection.CaptureCurrencyInventory(before, account.Inventory, registry)
-                        : AccountGameplayProjection.Capture(before, account, registry), saveImmediately);
+                    () =>
+                    {
+                        var candidate = currencyOnly
+                            ? AccountGameplayProjection.CaptureCurrencyInventory(before, account.Inventory, registry)
+                            : AccountGameplayProjection.Capture(before, account, registry);
+                        if (completionPickupId != null) AccountRunCommands.RecordCompletionPickup(candidate, completionPickupId);
+                        return candidate;
+                    }, saveImmediately);
                 if (committed && !currencyOnly)
                 {
                     try

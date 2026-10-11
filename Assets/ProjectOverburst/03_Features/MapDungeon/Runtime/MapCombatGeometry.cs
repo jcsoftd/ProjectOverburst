@@ -140,6 +140,18 @@ public static class MapCombatGeometry
     public static bool Contains(Area area, Vector3 point)
         => area?.Source != null && area.Source.Floor(point, 0, out var floor) && Mathf.Abs(floor.y - point.y) < 3;
 
+    public static bool TryCompletionPoint(Area area, Vector3 near, float radius,
+        Collider[] overlaps, NavMeshPath path, out Vector3 point)
+    {
+        point = default;
+        if (area?.Source == null || !area.Source.Floor(near, radius, out point)
+            || !Clear(area.Source, point, new Body(radius, 2.5f), overlaps, true)
+            || !NavMesh.SamplePosition(point, out var nav, .25f, NavMesh.AllAreas)
+            || !NavMesh.CalculatePath(nav.position, area.Center, NavMesh.AllAreas, path)
+            || path.status != NavMeshPathStatus.PathComplete) return false;
+        point = nav.position; return true;
+    }
+
     // Existing installed connections supply walk-in positions on fully visible small platforms.
     public static List<Vector3> Approaches(Area area)
     {

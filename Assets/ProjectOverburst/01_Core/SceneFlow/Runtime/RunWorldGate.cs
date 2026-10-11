@@ -12,6 +12,7 @@ public sealed class RunWorldGate : MonoBehaviour
     public string Error { get; private set; }
     public MapRunRoster Roster { get; private set; }
     public MapSpawnBudget SpawnBudget { get; internal set; }
+    public MapRunCompletion Completion { get; internal set; }
     public string PreparationStage { get; internal set; }
 
     public void BeginPreparation(RunSnapshot run)

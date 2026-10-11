@@ -113,7 +113,8 @@ namespace Overburst.Persistence
         public List<string> currency = new List<string>();
     }
 
-    public enum RunPhase { EntryPending, Active, BossCleared, Extracted, Failed }
+    // Keep the serialized values of the legacy run phases.
+    public enum RunPhase { EntryPending = 0, Active = 1, BossCleared = 2, Extracted = 3, Failed = 4, Completed = 5 }
 
     [Serializable] public sealed class RunSnapshot
     {
@@ -122,6 +123,11 @@ namespace Overburst.Persistence
         public string mapInstanceId;
         public MapInstanceState map;
         public long bossClearedAtUtcTicks;
+        public long completedAtUtcTicks;
+        public int completionArea;
+        public UnityEngine.Vector3 completionAnchor;
+        public ItemSnapshot completionReward;
+        public bool completionRewardClaimed;
         public List<string> transferredObjects = new List<string>();
         public List<string> rewardedEncounters = new List<string>();
     }

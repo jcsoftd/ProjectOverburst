@@ -18,8 +18,8 @@ namespace Overburst.Persistence
             if (run == null || run.phase == RunPhase.Failed || run.phase == RunPhase.Extracted) return RunOutcome.None;
             if (playerDead || abandoned)
                 return Fail(run.runId) ? RunOutcome.Failed : RunOutcome.None;
-            if (run.phase != RunPhase.BossCleared) return RunOutcome.None;
-            bool expired = utcTicks >= run.bossClearedAtUtcTicks
+            if (!AccountInvariants.IsCompleted(run.phase)) return RunOutcome.None;
+            bool expired = run.phase == RunPhase.BossCleared && run.map.generationVersion == 0 && utcTicks >= run.bossClearedAtUtcTicks
                 && utcTicks - run.bossClearedAtUtcTicks >= TimeSpan.TicksPerSecond * ExitDelaySeconds;
             return (portalRequested || expired) && Extract(run.runId) ? RunOutcome.Extracted : RunOutcome.None;
         }
@@ -55,7 +55,7 @@ namespace Overburst.Persistence
         public bool ClearBoss(string runId, long utcTicks)
         {
             var run = account.ReadRun();
-            if (run != null && run.runId == runId && run.phase == RunPhase.BossCleared) return false;
+            if (run != null && run.runId == runId && AccountInvariants.IsCompleted(run.phase)) return false;
             return account.ExecuteState("boss-" + runId,
                 state => AccountRunCommands.ClearBoss(state, runId, utcTicks));
         }
@@ -65,7 +65,7 @@ namespace Overburst.Persistence
         {
             var run = account.ReadRun();
             if (run == null || run.runId != runId) throw new InvalidOperationException("Stale run identity.");
-            if (run.phase == RunPhase.BossCleared) return null;
+            if (AccountInvariants.IsCompleted(run.phase)) return null;
             if (run.phase != RunPhase.Active) throw new InvalidOperationException("Run is not active.");
             var reward = MapRewardPolicy.CreateBossMap(mapDefinition, account.ContentRegistry, run.map.level,
                 UnityEngine.Random.value, UnityEngine.Random.value, runId, rolledOptions);

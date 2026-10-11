@@ -100,6 +100,23 @@ namespace Overburst.Persistence
                     || run.bossClearedAtUtcTicks < 0 || run.bossClearedAtUtcTicks > DateTime.MaxValue.Ticks)
                     throw new InvalidDataException("Invalid saved run.");
                 MapGenerationPolicy.Validate(run.map);
+                if (run.phase == RunPhase.Completed && run.completionReward == null)
+                    throw new InvalidDataException("Completed map is missing its reward record.");
+                if (run.completionReward != null)
+                {
+                    ItemSnapshotCodec.Validate(run.completionReward, registry);
+                    var anchor = run.completionAnchor;
+                    if (run.map.generationVersion <= 0 || run.completionArea < 0 || run.completionArea >= run.map.areaCount
+                        || run.completedAtUtcTicks <= 0 || run.completedAtUtcTicks > DateTime.MaxValue.Ticks
+                        || float.IsNaN(anchor.x) || float.IsNaN(anchor.y) || float.IsNaN(anchor.z)
+                        || float.IsInfinity(anchor.x) || float.IsInfinity(anchor.y) || float.IsInfinity(anchor.z)
+                        || run.completionReward.map == null || run.completionReward.count != 1
+                        || run.completionReward.originRunId != run.runId
+                        || run.completionReward.instanceId != AccountRunCommands.CompletionRewardId(run.runId)
+                        || run.phase == RunPhase.Active || run.phase == RunPhase.EntryPending || run.phase == RunPhase.BossCleared)
+                        throw new InvalidDataException("Invalid map completion record.");
+                }
+                else if (run.completionRewardClaimed) throw new InvalidDataException("Claimed completion reward is missing.");
                 ValidateUniqueIds(run.transferredObjects);
                 ValidateUniqueIds(run.rewardedEncounters);
                 foreach (var option in run.map.options)
@@ -121,7 +138,8 @@ namespace Overburst.Persistence
                     throw new InvalidDataException("Invalid or duplicate run event identity.");
         }
 
-        public static bool IsRunning(RunPhase phase) => phase == RunPhase.Active || phase == RunPhase.BossCleared;
+        public static bool IsCompleted(RunPhase? phase) => phase == RunPhase.BossCleared || phase == RunPhase.Completed;
+        public static bool IsRunning(RunPhase phase) => phase == RunPhase.Active || IsCompleted(phase);
     }
 
     // Validated runtime commits may be coalesced; explicit checkpoints still save before publication.
