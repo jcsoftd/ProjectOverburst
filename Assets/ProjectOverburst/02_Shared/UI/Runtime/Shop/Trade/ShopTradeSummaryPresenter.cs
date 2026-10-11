@@ -1,5 +1,6 @@
 using System;
 using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class ShopTradeSummaryView
@@ -28,8 +29,8 @@ public sealed class ShopTradeSummaryPresenter
             if(view.ConfirmButton) view.ConfirmButton.interactable=false;
             return;
         }
-        int autoGold = tradeService.GetAutoGoldCost();
-        int merchantPayout = tradeService.GetMerchantGoldPayout();
+        int autoGold = Mathf.Max(0, merchantValue - playerValue);
+        int merchantPayout = Mathf.Max(0, playerValue - merchantValue);
         int inventoryGold = tradeService.GetInventoryGoldAmount();
         int stashGold = tradeService.GetStashGoldAmount();
 

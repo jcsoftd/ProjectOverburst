@@ -5,13 +5,6 @@ public class MerchantTradeValueCalculator : MonoBehaviour
     [SerializeField] private int smallHealPotionValue = 20;
     [SerializeField] private int moveSpeedPotionValue = 30;
 
-    private IMerchantPriceStrategy priceStrategy;
-
-    private void Awake()
-    {
-        priceStrategy = new ReputationDiscountPriceStrategy();
-    }
-
     public int GetValue(ItemData item)
     {
         return GetStackValue(item, null, false);
@@ -22,7 +15,7 @@ public class MerchantTradeValueCalculator : MonoBehaviour
         if (item == null || !item.HasValidBaseData || item.stackCount <= 0)
             return 0;
 
-        return Mathf.Max(0, item.baseData is ElementGemItemData ? ElementGemLootPolicy.Value(item) : GetUnitValue(item.baseData)) * Mathf.Max(1, item.stackCount);
+        return checked(Mathf.Max(0, item.baseData is ElementGemItemData ? ElementGemLootPolicy.Value(item) : GetUnitValue(item.baseData)) * item.stackCount);
     }
 
     public int GetBuyValue(ItemData item, MerchantDefinition merchant)
@@ -37,8 +30,7 @@ public class MerchantTradeValueCalculator : MonoBehaviour
 
     public float GetBuyDiscountRate(MerchantDefinition merchant)
     {
-        EnsurePriceStrategy();
-        return priceStrategy != null ? priceStrategy.GetBuyDiscountRate(merchant) : 0f;
+        return MerchantReputationService.GetDiscountRate(merchant);
     }
 
     private int GetStackValue(ItemData item, MerchantDefinition merchant, bool isBuyPrice)
@@ -48,13 +40,15 @@ public class MerchantTradeValueCalculator : MonoBehaviour
 
         int unitValue = item.baseData is ElementGemItemData ? ElementGemLootPolicy.Value(item) : GetUnitValue(item.baseData);
         if (item.baseData is CurrencyItemData)
-            return Mathf.Max(0, unitValue) * Mathf.Max(1, item.stackCount);
+            return checked(Mathf.Max(0, unitValue) * item.stackCount);
 
-        EnsurePriceStrategy();
-        int pricedUnitValue = isBuyPrice && priceStrategy != null
-            ? priceStrategy.CalculateBuyPrice(unitValue, merchant)
-            : priceStrategy != null ? priceStrategy.CalculateSellPrice(unitValue, merchant) : Mathf.Max(0, unitValue);
-        return Mathf.Max(0, pricedUnitValue) * Mathf.Max(1, item.stackCount);
+        int pricedUnitValue = Mathf.Max(0, unitValue);
+        if (isBuyPrice && unitValue > 0)
+        {
+            float discountRate = GetBuyDiscountRate(merchant);
+            pricedUnitValue = MerchantSalePrice.Unit(unitValue, Mathf.RoundToInt(discountRate * 10000));
+        }
+        return checked(Mathf.Max(0, pricedUnitValue) * item.stackCount);
     }
 
     public int GetUnitValue(BaseItemData itemData)
@@ -76,11 +70,5 @@ public class MerchantTradeValueCalculator : MonoBehaviour
             return Mathf.Max(0, itemData.sellPrice);
 
         return Mathf.Max(0, itemData.sellPrice);
-    }
-
-    private void EnsurePriceStrategy()
-    {
-        if (priceStrategy == null)
-            priceStrategy = new ReputationDiscountPriceStrategy();
     }
 }
