@@ -569,7 +569,14 @@ public static partial class PlayerEvadeVerifier
             float bootLimit = Time.unscaledTime + 25f;
             while ((PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
                 || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)
-                && Time.unscaledTime < bootLimit) yield return null;
+                && Time.unscaledTime < bootLimit)
+            {
+                var flow = PersistentSceneFlow.Instance;
+                if (SessionState.GetBool(ElementSupplementKey, false) && flow != null && !flow.IsSwitching
+                    && flow.CurrentSubSceneName == PersistentSceneFlow.MainSceneName)
+                    flow.SwitchHubScene(PersistentSceneFlow.HideoutSceneName);
+                yield return null;
+            }
             Check(PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching
                 && PersistentSceneFlow.Instance.CurrentSubSceneName == PersistentSceneFlow.HideoutSceneName,
                 "제품 검증 실제 Hideout 로딩 완료");

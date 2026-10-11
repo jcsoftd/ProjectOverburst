@@ -205,3 +205,8 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/05_Art/Environment/Caves/
 /Assets/ProjectOverburst/05_Art/Environment/Caves.meta
 # CAVE_MAIN_MIGRATION_20261010:END
+
+# Licensed Vefects zoom-blur particle and material derivatives; restore with private snapshot and original meta.
+/Assets/ProjectOverburst/Resources/Combat/VFX/PF_ParryZoomBlur_*.prefab*
+/Assets/ProjectOverburst/Resources/Combat/VFX/ParryZoomBlurMaterials/
+/Assets/ProjectOverburst/Resources/Combat/VFX/ParryZoomBlurMaterials.meta

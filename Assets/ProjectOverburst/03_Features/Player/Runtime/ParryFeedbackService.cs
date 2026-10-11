@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 패링 성공 한 번(같은 프레임의 다수 패링 포함)의 공용 피드백.
-// 무지개 플레어를 패링 중심에 한 번 재생하고 주변 소형 몬스터를 밀어내고 경직시킨다.
+// 무지개 플레어·등급별 줌 블러를 접점에 한 번 재생하고 주변 소형 몬스터를 밀어내고 경직시킨다.
 // 주 패링음(팅)은 CombatActionSfxService 소유를 유지하고, 여기서는 겹침·저음 레이어만 낸다.
 public sealed class ParryFeedbackService : MonoBehaviour
 {
@@ -31,6 +31,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
 
     private static ParryFeedbackService instance;
     private static EnemyTelegraphVisualLibrary library;
+    private static GameObject normalZoomBlur, perfectZoomBlur;
     private static readonly List<EnemyRank> ActiveScratch = new List<EnemyRank>(160);
     private static readonly List<KeyValuePair<float, EnemyActor>> Candidates = new List<KeyValuePair<float, EnemyActor>>(64);
     private readonly AudioSource[] voices = new AudioSource[VoiceCount];
@@ -40,7 +41,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
     public static int LastPerfectLayerCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() { instance = null; library = null; LastAdditionalTingCount = 0; LastPerfectLayerCount = 0; }
+    private static void ResetStatics() { instance = null; library = null; normalZoomBlur = perfectZoomBlur = null; LastAdditionalTingCount = 0; LastPerfectLayerCount = 0; }
 
     public static Tier ResolveTier(ParryGrade grade) => Grades[Mathf.Clamp((int)grade, 0, Grades.Length - 1)];
 
@@ -61,6 +62,7 @@ public sealed class ParryFeedbackService : MonoBehaviour
         if (!Application.isPlaying || !EnsureInstance()) return;
         // Keep the complete original bundle, then add the perfect-only contact layer.
         instance.SpawnFlash(center, tier.FlashScale);
+        instance.SpawnZoomBlur(center, tier.Grade);
         if (tier.KnockbackRadius > 0f) KnockbackSmall(center, tier.KnockbackRadius, parried);
         instance.PlayLayers(center, tier.Grade, parriedCount);
         RequestCamera(center - playerPosition, tier.CameraAmplitude, tier.CameraDuration);
@@ -117,6 +119,19 @@ public sealed class ParryFeedbackService : MonoBehaviour
         TransientVfxPool.Spawn(prefab, center, Quaternion.identity, 0f, FlashPoolCapacity,
             prepareBeforeActivation: value => value.transform.localScale = prefab.transform.localScale * scale,
             returnMode: TransientVfxReturnMode.NaturalParticleCompletion, useUnscaledTime: true);
+    }
+
+    private void SpawnZoomBlur(Vector3 center, ParryGrade grade)
+    {
+        GameObject prefab;
+        if (grade == ParryGrade.Perfect)
+            prefab = perfectZoomBlur != null ? perfectZoomBlur : (perfectZoomBlur = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Perfect"));
+        else if (grade == ParryGrade.Normal)
+            prefab = normalZoomBlur != null ? normalZoomBlur : (normalZoomBlur = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Normal"));
+        else return;
+        if (prefab != null)
+            TransientVfxPool.Spawn(prefab, center, Quaternion.identity, 0f, FlashPoolCapacity,
+                returnMode: TransientVfxReturnMode.NaturalParticleCompletion, useUnscaledTime: true);
     }
 
     // 소형(일반 등급 + 가벼운 체급)만 밀어낸다. 피해는 주지 않는다.

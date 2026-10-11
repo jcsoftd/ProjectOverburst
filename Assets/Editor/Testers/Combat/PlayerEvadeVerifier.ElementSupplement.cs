@@ -165,6 +165,10 @@ public static partial class PlayerEvadeVerifier
                 {
                     yield return SupplementReset(targets, range); actor.Health.ResetHealth(); SetSupplementGauge(energy, gauge);
                     phase = element + "_parry_" + gauge; int successBefore = parry.SuccessCount; parryDamage.Clear();
+                    var normalZoom = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Normal");
+                    var perfectZoom = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Perfect");
+                    var normalBefore = TransientVfxPool.GetStatistics(normalZoom);
+                    var perfectBefore = TransientVfxPool.GetStatistics(perfectZoom);
                     movie.Begin(Path.Combine(output, "Raw", phase), phase, gauge); yield return Wait(.8f);
                     Check(elite.AbilityController.TryStart(actor.transform), phase + " 실제 적 공격 시작");
                     float threatEnd = Time.unscaledTime + 6;
@@ -180,6 +184,15 @@ public static partial class PlayerEvadeVerifier
                     Send();
                     yield return PresentationAttackEnd(); yield return Wait(1.5f);
                     var take = movie.End();
+                    if (parryOnly && normalZoom != null && perfectZoom != null)
+                    {
+                        var n = TransientVfxPool.GetStatistics(normalZoom);
+                        var p = TransientVfxPool.GetStatistics(perfectZoom);
+                        Check(n.Requests - normalBefore.Requests == (gauge == 50 ? 1 : 0)
+                            && p.Requests - perfectBefore.Requests == (gauge == 100 ? 1 : 0), phase + " 등급별 줌 블러 한 번·불완전 제외");
+                        Check(n.Active == 0 && p.Active == 0 && n.Returns == n.Requests && p.Returns == p.Requests,
+                            phase + " 줌 블러 자연 종료·풀 반환");
+                    }
                     Check(parry.SuccessCount == successBefore + 1, phase + " 실제 패링 성공");
                     Check(parry.ActionGrade == PlayerParryController.ResolveGrade(gauge / 100f), phase + " 실제 패링 등급");
                     if (parryOnly && gauge == 50)
@@ -295,6 +308,7 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
     PerfectParryContactPresenter contactPresenter;
     PerfectParryWeaponAfterimage weaponAfterimage;
     int contactAtStart, afterimagesAtStart;
+    GameObject normalZoom, perfectZoom;
     readonly System.Reflection.FieldInfo incompleteCounter = typeof(MeleeRuntime).GetField("incompleteParryCounterConfigured", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
     public bool IncompleteCounterSeen { get; private set; }
     public float MaximumIncompleteClipProgress { get; private set; }
@@ -329,6 +343,8 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
         if (encoder != null) throw new InvalidOperationException("Previous shot still owned.");
         directory = path; phase = shot; startingGauge = gauge; Directory.CreateDirectory(path);
         error = null; FrameCount = 0; samples = 0; peak = 0; frames.Clear();
+        normalZoom = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Normal");
+        perfectZoom = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Perfect");
         NormalCollapseSeen = NormalHoldSeen = NormalRecoverSeen = PerfectStunSeen = false;
         IncompleteCounterSeen = false; MaximumIncompleteClipProgress = 0f;
         contactAtStart = contactPresenter != null ? contactPresenter.MainCount : 0;
@@ -399,7 +415,9 @@ public sealed class ElementSupplementMovieRecorder : MonoBehaviour
                 float approachSeparation = parryTarget != null ? Vector3.Dot(enemyPosition - position, initialApproachDirection) : 0f;
                 MinimumApproachSeparation = Mathf.Min(MinimumApproachSeparation, approachSeparation);
                 EvadeSeen |= evade.IsEvading;
-                frames.Add(new { index = FrameCount, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString(), playerX = position.x, playerY = position.y, playerZ = position.z, enemyX = enemyPosition.x, enemyY = enemyPosition.y, enemyZ = enemyPosition.z, approachSeparation, counterMoving = counterMovement != null && (bool)counterMovement.GetValue(melee), parryStage = parryStage?.GetValue(melee)?.ToString(), attackProgress = melee.IsAttackInProgress && attackProgress != null ? (float)attackProgress.Invoke(melee, null) : 0f, incompleteActive, nativeParrySample, nativeParryProgress, perfectContactCount = PerfectContactCount, perfectAfterimageCount = PerfectAfterimageCount, afterimageActive = weaponAfterimage != null ? weaponAfterimage.ActiveCount : 0, afterimageEmitting = weaponAfterimage != null && weaponAfterimage.IsEmitting, collapse, recover, normalReacting, stunned, enemySpeed, enemyProgress });
+                var normalStats = TransientVfxPool.GetStatistics(normalZoom);
+                var perfectStats = TransientVfxPool.GetStatistics(perfectZoom);
+                frames.Add(new { index = FrameCount, unscaledTime = Time.unscaledTime, normalZoomActive = normalStats.Active, perfectZoomActive = perfectStats.Active, normalZoomRequests = normalStats.Requests, perfectZoomRequests = perfectStats.Requests, time = Time.time, gauge = energy.Amount, element = actor.Equipment.ActiveElement.ToString(), attacking = melee.IsAttackInProgress, heavy = melee.IsHeavyAttackInProgress, evading = evade.IsEvading, parrySuccess = actor.GetComponent<PlayerParryController>().SuccessCount, grade = actor.GetComponent<PlayerParryController>().ActionGrade.ToString(), playerX = position.x, playerY = position.y, playerZ = position.z, enemyX = enemyPosition.x, enemyY = enemyPosition.y, enemyZ = enemyPosition.z, approachSeparation, counterMoving = counterMovement != null && (bool)counterMovement.GetValue(melee), parryStage = parryStage?.GetValue(melee)?.ToString(), attackProgress = melee.IsAttackInProgress && attackProgress != null ? (float)attackProgress.Invoke(melee, null) : 0f, incompleteActive, nativeParrySample, nativeParryProgress, perfectContactCount = PerfectContactCount, perfectAfterimageCount = PerfectAfterimageCount, afterimageActive = weaponAfterimage != null ? weaponAfterimage.ActiveCount : 0, afterimageEmitting = weaponAfterimage != null && weaponAfterimage.IsEmitting, collapse, recover, normalReacting, stunned, enemySpeed, enemyProgress });
                 if (FrameCount == 0) File.WriteAllBytes(Path.Combine(directory, "first.png"), texture.EncodeToPNG());
                 FrameCount++;
             }
