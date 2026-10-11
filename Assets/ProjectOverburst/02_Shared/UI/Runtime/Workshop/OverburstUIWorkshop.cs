@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -19,6 +19,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
     [SerializeField] private OverburstUIShopPreview shopPreview;
     [SerializeField] private OverburstUIMinimapPreview minimapPreview;
     [SerializeField] private OverburstUIRunPreview runPreview;
+    [SerializeField] private OverburstUIQuestMerchantPreview questPreview;
     public void ConfigureTooltips(GameObject samples){tooltipSamples=samples;samples.SetActive(false);}
     public void ShowTooltips(){HideWindows();if(tooltipSamples)tooltipSamples.SetActive(true);Label("아이템 툴팁");}
     public void ConfigureGrades(GameObject samples){gradeSamples=samples;gradeSamples.SetActive(false);}
@@ -33,7 +34,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
 
     private void HideWindows()
     {
-        inventory.Close(); equipment.Close(); stash.Close();shopPreview?.Hide();minimapPreview?.Hide();runPreview?.Hide();if(tooltipSamples)tooltipSamples.SetActive(false);GetComponentInChildren<OverburstUITooltipHost>(true)?.Hide();
+        inventory.Close(); equipment.Close(); stash.Close();shopPreview?.Hide();minimapPreview?.Hide();runPreview?.Hide();questPreview?.Hide();if(tooltipSamples)tooltipSamples.SetActive(false);GetComponentInChildren<OverburstUITooltipHost>(true)?.Hide();
         enemySamples.SetActive(false); notificationSamples.SetActive(false);if(gradeSamples)gradeSamples.SetActive(false);
     }
     public void ShowHud() { HideWindows(); minimapPreview?.Show(); Label("HUD · I 인벤토리 / C 장비 / B 창고 / S 상점 / R 카드 / T 전송"); }
@@ -42,6 +43,14 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
     public void ShowComparison() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); equipment.ResetPosition(); equipment.Show(); inventory.Show(); Label("장비 + 인벤토리 · 창 위치와 겹침 확인"); }
     public void ShowStash() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); stash.ResetPosition(); stash.Show(); inventory.Show(); Label("창고 + 인벤토리 · 3개 보관함 배치"); }
     public void ShowShop() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); shopPreview?.Show(); inventory.Show(); inventory.WindowRect.anchoredPosition = new Vector2(OverburstUIShopSkin.InventoryX, OverburstUIShopSkin.WindowY); Label("상점 + 인벤토리 · 공용 상점 뷰"); }
+    void ShowQuest(OverburstUIQuestMerchantPreview.Screen screen,string label){HideWindows();questPreview?.Show(screen);Label(label);}
+    public void ShowQuestApproach()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Approach,"상인 접근 · 클릭/휠/F 선택 전시");
+    public void ShowQuestDialogue()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Dialogue,"상인 대화 · 정식 대화 뷰");
+    public void ShowMerchantQuests()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.MerchantList,"상인 의뢰 목록 · 행 선택으로 오른쪽 상세");
+    public void ShowMerchantQuestDetail()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.MerchantDetail,"상인 의뢰 상세 · 수락/보상 배치");
+    public void ShowPersonalQuests()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Journal,"개인 퀘스트 목록 · 표시 수치는 전시용");
+    public void ShowQuestReport()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Report,"의뢰 보고 확인 · 실제 보상 없음");
+    public void ShowCornerMenu()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.HudMenu,"하단 메뉴 · 퀘스트 목록 클릭 연결");
     public void ShowRunCards() { HideWindows(); runPreview?.ShowCards(); Label("지도 카드 · 전시 표본 / 실제 런 보상 없음"); }
     public void ShowRunTransfer() { HideWindows(); runPreview?.ShowTransfer(inventory, equipment); Label("지도 전송 · 전시 표본 / 실제 아이템 전송 없음"); }
     public void ShowEnemies() { HideWindows(); enemySamples.SetActive(true); Label("몬스터 체력바 · 100% / 45% / 10% 표시"); }
@@ -55,7 +64,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null) return;
         bool modalPreviewOpen = (shopPreview != null && shopPreview.IsVisible)
-            || (runPreview != null && runPreview.IsOpen);
+            || (runPreview != null && runPreview.IsOpen) || (questPreview != null && questPreview.IsVisible);
         if (keyboard.iKey.wasPressedThisFrame)
         {
             if (modalPreviewOpen) ShowInventory();
@@ -71,6 +80,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
             if (modalPreviewOpen) ShowStash();
             else stash.Toggle();
         }
+        if (keyboard.jKey.wasPressedThisFrame) ShowPersonalQuests();
         if (keyboard.sKey.wasPressedThisFrame) ShowShop();
         if (keyboard.rKey.wasPressedThisFrame) ShowRunCards();
         if (keyboard.tKey.wasPressedThisFrame) ShowRunTransfer();

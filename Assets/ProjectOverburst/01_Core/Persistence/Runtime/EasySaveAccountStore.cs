@@ -8,7 +8,7 @@ namespace Overburst.Persistence
     [Serializable] public sealed class AccountSaveEnvelope
     {
         public string magic = "OVERBURST_ACCOUNT";
-        public int schemaVersion = 2;
+        public int schemaVersion = EasySaveAccountStore.SchemaVersion;
         public string profileId;
         public long generation;
         public string transactionId;
@@ -20,7 +20,7 @@ namespace Overburst.Persistence
 
     public sealed class EasySaveAccountStore
     {
-        public const int SchemaVersion = 2;
+        public const int SchemaVersion = 3;
         private readonly string directory;
         private readonly string profileId;
         private AccountSaveEnvelope latest;
@@ -75,10 +75,24 @@ namespace Overburst.Persistence
                 loaded = true;
                 return null;
             }
-            if (latest.schemaVersion != SchemaVersion) throw new InvalidDataException("Unsupported account schema: " + latest.schemaVersion);
+            if (latest.schemaVersion != SchemaVersion && latest.schemaVersion != 2) throw new InvalidDataException("Unsupported account schema: " + latest.schemaVersion);
             var snapshot = ES3.Deserialize<AccountSnapshot>(latest.payload);
             if (snapshot == null || snapshot.schemaVersion != latest.schemaVersion || snapshot.profileId != profileId)
                 throw new InvalidDataException("Account payload/header mismatch.");
+            if (latest.schemaVersion == 2)
+            {
+                // The source envelope was checksum-verified before deserialization/migration.
+                var upgraded = QuestAccountMigration.Upgrade(snapshot);
+                string backup = Path.Combine(directory, "schema2-original");
+                Directory.CreateDirectory(backup);
+                for (int slot = 0; slot < 2; slot++)
+                    if (File.Exists(FilePath(slot)))
+                    {
+                        string destination = Path.Combine(backup, Path.GetFileName(FilePath(slot)) + ".generation-" + Generation);
+                        if (!File.Exists(destination)) File.Copy(FilePath(slot), destination, false);
+                    }
+                snapshot = upgraded;
+            }
             loaded = true;
             return snapshot;
         }
@@ -94,7 +108,7 @@ namespace Overburst.Persistence
             if (!loaded) LoadCore();
             if (snapshot == null || snapshot.schemaVersion != SchemaVersion || snapshot.profileId != profileId || string.IsNullOrWhiteSpace(transactionId))
                 throw new InvalidDataException("Invalid account save request.");
-            if (latest != null && latest.schemaVersion != SchemaVersion) throw new InvalidDataException("Cannot overwrite a newer schema.");
+            if (latest != null && latest.schemaVersion != SchemaVersion && latest.schemaVersion != 2) throw new InvalidDataException("Cannot overwrite a newer schema.");
             for (int slot = 0; slot < 2; slot++)
             {
                 if (!File.Exists(FilePath(slot))) continue;

@@ -14,7 +14,7 @@ public static class MerchantTradeItemUtility
         {
             ItemData item = playerInventory.GetItemAt(i);
             if (IsGold(item))
-                total += item.stackCount;
+                total = checked(total + item.stackCount);
         }
 
         return total;

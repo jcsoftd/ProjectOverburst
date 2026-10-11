@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine.UI;
 
@@ -17,8 +18,16 @@ public sealed class ShopTradeSummaryPresenter
         if (view == null || tradeService == null)
             return;
 
-        int merchantValue = tradeService.GetMerchantOfferValue();
-        int playerValue = tradeService.GetPlayerOfferValue();
+        int merchantValue, playerValue;
+        try { merchantValue = tradeService.GetMerchantOfferValue(); playerValue = tradeService.GetPlayerOfferValue(); }
+        catch (OverflowException)
+        {
+            if(view.MerchantValueText) view.MerchantValueText.text="상인 제안 가치 : —";
+            if(view.PlayerValueText) view.PlayerValueText.text="플레이어 제안 가치 : —";
+            if(view.AutoGoldText) view.AutoGoldText.text="금액 범위 초과";
+            if(view.ConfirmButton) view.ConfirmButton.interactable=false;
+            return;
+        }
         int autoGold = tradeService.GetAutoGoldCost();
         int merchantPayout = tradeService.GetMerchantGoldPayout();
         int inventoryGold = tradeService.GetInventoryGoldAmount();

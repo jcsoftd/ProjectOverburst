@@ -28,8 +28,8 @@ public static class OverburstHudMenuVerifier
             Check(prefab,"Authored Resources menu prefab exists");
             Check(prefab.GetComponentsInChildren<Transform>(true).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))==0,"Missing scripts 0");
             var authored=prefab.GetComponent<OverburstHudMenu>();
-            Check(authored.entries.Length==4&&string.Join(",",authored.entries.Select(e=>e.label))=="인벤토리,장비,스킬트리,설정","Approved four destinations and order");
-            Check(authored.entries.All(e=>e.icon&&e.hoverIcon)&&authored.menuIcon&&authored.closeIcon,"Six native menu icons and six approved hover variants");
+            Check(authored.entries.Length==5&&string.Join(",",authored.entries.Select(e=>e.label))=="인벤토리,장비,스킬트리,퀘스트 목록,설정","Approved five destinations and order");
+            Check(authored.entries.All(e=>e.icon&&e.hoverIcon)&&authored.menuIcon&&authored.closeIcon,"Native menu icons and matching approved hover variants");
             Check(authored.triggerVisual&&authored.triggerVisual.normal&&authored.triggerVisual.hover&&authored.triggerVisual.expanded&&authored.rowTemplate.hoverBackground&&authored.rowTemplate.pressedBackground,"Approved background state references serialized");
             Check(authored.rowTemplate.label.font==AssetDatabase.LoadAssetAtPath<Font>("Assets/ProjectOverburst/Resources/UI/Fonts/DamageFloating/Pretendard_Medium.ttf"),"Existing Korean UI font");
             Check(authored.rowTemplate.label.fontSize==15&&authored.rowTemplate.icon.rectTransform.sizeDelta==new Vector2(28,28),"Approved label and glyph sizes");
@@ -60,7 +60,7 @@ public static class OverburstHudMenuVerifier
             var screen=new Rect(0,0,size.x,size.y);var panel=Bounds(ui.panel,camera);var trigger=Bounds((RectTransform)ui.trigger.transform,camera);var view=Bounds(ui.viewport,camera);
             Check(Contains(screen,panel)&&Contains(screen,trigger),"Menu inside screen "+size);
             Check(!Overlap(panel,trigger)&&Mathf.Abs(panel.xMax-trigger.xMax)<.6f,"Panel right alignment and separation "+size);
-            Check(ui.panel.sizeDelta==new Vector2(244,226)&&ui.dock.anchoredPosition==new Vector2(-24,24),"Approved panel and edge dimensions "+size);
+            Check(ui.panel.sizeDelta==new Vector2(244,278)&&ui.dock.anchoredPosition==new Vector2(-24,24),"Approved panel and edge dimensions "+size);
             var rows=ui.Rows.Select(row=>Bounds((RectTransform)row.transform,camera)).ToArray();
             for(int i=0;i<ui.Rows.Length;i++)
             {
@@ -80,12 +80,12 @@ public static class OverburstHudMenuVerifier
                 var row=ui.Rows[i];row.OnPointerEnter(pointer);
                 Check(row.highlight.enabled&&row.highlight.sprite==row.hoverBackground&&row.icon.sprite==ui.entries[i].hoverIcon&&row.label.color==(Color)new Color32(255,240,211,255),"Approved row hover background icon and text "+size+" / "+i);
                 row.OnPointerDown(pointer);Check(row.highlight.sprite==row.pressedBackground,"Approved pressed row "+size+" / "+i);row.OnPointerUp(pointer);
-                if(size.x==1920&&i==2){Render(camera,rt);Capture(rt,Path.Combine(output,"native-menu-hover.png"),ref pixels);}
+                if(size.x==1920&&i==3){Render(camera,rt);Capture(rt,Path.Combine(output,"native-menu-hover.png"),ref pixels);}
                 row.OnPointerExit(pointer);Check(!row.highlight.enabled&&row.icon.sprite==ui.entries[i].icon&&row.label.color==(Color)new Color32(237,227,209,255),"Pointer exit restores row "+size+" / "+i);
                 row.OnSelect(new BaseEventData(null));Check(row.highlight.enabled,"Keyboard focus highlights row "+size+" / "+i);row.OnDeselect(new BaseEventData(null));
             }
             ui.triggerVisual.OnPointerEnter(pointer);Check(ui.triggerVisual.background.sprite==ui.triggerVisual.expanded&&ui.triggerIcon.sprite==ui.triggerVisual.closeHover,"Expanded trigger retains approved surface and hover glyph "+size);ui.triggerVisual.OnPointerExit(pointer);
-            var original=ui.entries;var extended=Enumerable.Range(0,24).Select(i=>new OverburstHudMenu.Entry{label="확장 메뉴 "+(i+1),icon=original[i%4].icon,destination=original[i%4].destination}).ToArray();
+            var original=ui.entries;var extended=Enumerable.Range(0,24).Select(i=>new OverburstHudMenu.Entry{label="확장 메뉴 "+(i+1),icon=original[i%original.Length].icon,destination=original[i%original.Length].destination}).ToArray();
             ui.SetEntries(extended);ui.Open();ui.FitLayout();Canvas.ForceUpdateCanvases();Render(camera,rt);
             Check(ui.content.rect.height>ui.viewport.rect.height&&Contains(screen,Bounds(ui.panel,camera)),"Growing list clamped and scrollable "+size);
             ui.KeepVisible(23);Canvas.ForceUpdateCanvases();Check(Contains(Bounds(ui.viewport,camera),Bounds((RectTransform)ui.Rows[23].transform,camera)),"Keyboard last row scrolls into view "+size);

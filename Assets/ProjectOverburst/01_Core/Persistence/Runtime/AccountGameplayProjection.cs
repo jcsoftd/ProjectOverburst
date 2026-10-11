@@ -43,8 +43,9 @@ namespace Overburst.Persistence
             state.items.Clear(); state.merchants.Clear();
             AccountPlayerProjection.Capture(state, account.Inventory, account.Stash, PlayerProgression.Current, registry);
             AccountMerchantProjection.Capture(state, registry);
-            state.nextAcquisitionOrder = state.items.Count > 0 ? checked(state.items.Max(x => x.acquisitionOrder) + 1) : 1;
+            state.nextAcquisitionOrder = Math.Max(baseline.nextAcquisitionOrder, state.items.Count > 0 ? checked(state.items.Max(x => x.acquisitionOrder) + 1) : 1);
             AccountEquipmentPolicy.RecalculateCapacity(state, registry);
+            Overburst.Quests.AccountQuestCommands.CaptureMapAcquisitions(baseline, state);
             AccountInvariants.Validate(state, registry);
             return state;
         }

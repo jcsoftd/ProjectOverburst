@@ -8,7 +8,7 @@ using UnityEngine.UI;
 public sealed class OverburstHudMenu : MonoBehaviour
 {
     public const string ResourcePath = "UI/HudMenu/PF_OverburstHudMenu_Rpg11";
-    public enum Destination { Inventory, Equipment, SkillTree, Settings }
+    public enum Destination { Inventory, Equipment, SkillTree, Settings, QuestList }
     [Serializable] public sealed class Entry
     {
         public string label;
@@ -184,6 +184,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
             case Destination.Inventory: if (owner) owner.ToggleInventory(); break;
             case Destination.Equipment: if (owner) owner.ToggleEquipment(); break;
             case Destination.SkillTree: OverburstSkillTreeUI.Instance?.Open(); break;
+            case Destination.QuestList: QuestMerchantUI.Current?.OpenJournal(); break;
             case Destination.Settings:
                 var menu = OverburstGameMenu.Instance;
                 if (menu) { menu.Open(); menu.OpenSettings(); }

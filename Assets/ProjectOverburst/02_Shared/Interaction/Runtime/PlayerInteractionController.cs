@@ -40,11 +40,12 @@ public sealed class PlayerInteractionController : MonoBehaviour
 
         IInteractable selected = director.Refresh(actor);
         promptPresenter?.Present(selected);
+        QuestMerchantUI.Current?.Present(selected as GeneralGoodsMerchantInteractable, actor, this);
 
         if (inputFacade == null || !inputFacade.InteractPressedThisFrame)
             return;
 
-        InteractionExecutionResult result = director.ExecuteCurrent(actor);
+        InteractionExecutionResult result = ExecuteSelected(selected);
         LastResult = result;
         if (result != InteractionExecutionResult.Rejected)
         {
@@ -63,7 +64,8 @@ public sealed class PlayerInteractionController : MonoBehaviour
             return InteractionExecutionResult.Rejected;
 
         IInteractable selected = director.Refresh(actor);
-        InteractionExecutionResult result = director.ExecuteCurrent(actor);
+        QuestMerchantUI.Current?.Present(selected as GeneralGoodsMerchantInteractable, actor, this);
+        InteractionExecutionResult result = ExecuteSelected(selected);
         LastResult = result;
         if (result != InteractionExecutionResult.Rejected)
         {
@@ -79,6 +81,30 @@ public sealed class PlayerInteractionController : MonoBehaviour
     {
         promptPresenter?.Clear();
         director?.ClearSelection();
+        QuestMerchantUI.Current?.Present(null, actor, this);
+    }
+
+    private InteractionExecutionResult ExecuteSelected(IInteractable selected)
+    {
+        if (selected is GeneralGoodsMerchantInteractable merchant && QuestMerchantUI.Current)
+            return QuestMerchantUI.Current.Execute(merchant, actor, QuestMerchantUI.Current.SelectedOption);
+        return director.ExecuteCurrent(actor);
+    }
+
+    public InteractionExecutionResult ExecuteMerchantOption(GeneralGoodsMerchantInteractable expected, int option)
+    {
+        ResolveReferences();
+        if (!expected || !actor || !director || !QuestMerchantUI.Current
+            || !ReferenceEquals(director.Refresh(actor), expected)) return InteractionExecutionResult.Rejected;
+        var result = QuestMerchantUI.Current.Execute(expected, actor, option);
+        LastResult = result;
+        if (result != InteractionExecutionResult.Rejected)
+        {
+            ExecutionCount++;
+            InteractionExecuted?.Invoke(expected, result);
+            OverburstFeelFeedbackHub.Request(OverburstFeelCue.Interaction, transform.position);
+        }
+        return result;
     }
 
     private void ResolveReferences()

@@ -237,10 +237,10 @@ public sealed class MerchantTradeValidator
         return true;
     }
 
-    private int GetTotalGoldAmount(PlayerInventory playerInventory, StashCurrencyService stashCurrencyService)
+    private long GetTotalGoldAmount(PlayerInventory playerInventory, StashCurrencyService stashCurrencyService)
     {
         int stashGold = stashCurrencyService != null ? stashCurrencyService.GetAmount(CurrencyType.Gold) : 0;
-        return MerchantTradeItemUtility.GetInventoryGoldAmount(playerInventory) + stashGold;
+        return (long)MerchantTradeItemUtility.GetInventoryGoldAmount(playerInventory) + stashGold;
     }
 
     private bool CanPayAutoGold(int amount, PlayerInventory playerInventory, StashCurrencyService stashCurrencyService)

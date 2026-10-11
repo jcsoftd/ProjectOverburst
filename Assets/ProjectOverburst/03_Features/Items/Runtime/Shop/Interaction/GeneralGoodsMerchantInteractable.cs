@@ -17,6 +17,12 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
     private string stableInteractionId;
 
     public Component InteractionComponent => this;
+    public MerchantDefinition Definition => merchantDefinition;
+    public void OpenTrade()
+    {
+        ResolveReferences();
+        if (shopUI && merchantDefinition) shopUI.Open(merchantDefinition);
+    }
     public Transform InteractionTransform => transform;
     public int InteractionPriority => 200;
     public string InteractionPrompt => "F : " + (merchantDefinition != null ? merchantDefinition.MerchantName : "상인");
@@ -149,6 +155,6 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
     {
         if (promptText != null)
             promptText.text = InteractionPrompt;
-        SetPromptVisible(visible && WantsInteractionPrompt);
+        SetPromptVisible(visible && WantsInteractionPrompt && QuestMerchantUI.Current == null);
     }
 }

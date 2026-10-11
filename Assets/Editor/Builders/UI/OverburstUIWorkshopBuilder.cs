@@ -79,9 +79,12 @@ public static partial class OverburstUIWorkshopBuilder
         PolishWorkshop(canvasGo);
         BuildTooltipPreview(canvasGo,controller);
         BuildGallery();
+        QuestMerchantWorkshopBuilder.Install(scene);
         Canvas.ForceUpdateCanvases();
         foreach(var scroll in Object.FindObjectsByType<ScrollRect>(FindObjectsInactive.Include,FindObjectsSortMode.None)){scroll.verticalNormalizedPosition=1;scroll.content.anchoredPosition=Vector2.zero;PrefabUtility.RecordPrefabInstancePropertyModifications(scroll.content);}
         EditorSceneManager.SaveScene(scene,ScenePath); AssetDatabase.SaveAssets();
+        if(AssetDatabase.LoadAssetAtPath<GameObject>(TitleCharacterBuilder.PrefabPath)
+            &&AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath))TitleCharacterManagementBuilder.Apply();
         Selection.activeGameObject=canvasGo;
         return "CREATED "+ScenePath+"; project prefabs="+AssetDatabase.FindAssets("t:Prefab",new[]{Root}).Length;
     }

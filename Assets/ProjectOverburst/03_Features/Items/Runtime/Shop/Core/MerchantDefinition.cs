@@ -18,6 +18,8 @@ public class MerchantStockItemEntry
 public class MerchantDefinition : ScriptableObject
 {
     [SerializeField] private string merchantName = "상인";
+    [SerializeField] private Texture2D portrait;
+    [SerializeField] private string locationLabel = "메인 마을 · 상점";
     [SerializeField] private ShopCategory category = ShopCategory.GeneralGoods;
     [TextArea]
     [SerializeField] private string description;
@@ -30,6 +32,8 @@ public class MerchantDefinition : ScriptableObject
 
     public string MerchantName { get { return string.IsNullOrWhiteSpace(merchantName) ? name : merchantName; } }
     public ShopCategory Category { get { return category; } }
+    public Texture2D Portrait => portrait;
+    public string LocationLabel => locationLabel;
     public string Description { get { return description; } }
     public int MerchantGold { get { return Mathf.Max(0, merchantGold); } }
     public int InventoryCapacity { get { return Mathf.Max(1, inventoryCapacity); } }

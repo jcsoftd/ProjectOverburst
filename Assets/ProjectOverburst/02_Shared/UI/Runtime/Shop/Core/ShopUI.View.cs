@@ -15,6 +15,9 @@ public partial class ShopUI
 
     private void SyncMerchantTopPanelViewReferences()
     {
+        if (!merchantTopPanelView.MerchantPortrait && shopPanel)
+            foreach (var portrait in shopPanel.GetComponentsInChildren<RawImage>(true))
+                if (portrait.name == "Merchant Portrait") { merchantTopPanelView.MerchantPortrait = portrait; break; }
         merchantTopPanelView.HeaderTitleText = titleText;
         merchantTopPanelView.MerchantNameText = merchantNameText;
         merchantTopPanelView.MerchantGoldText = merchantGoldText;

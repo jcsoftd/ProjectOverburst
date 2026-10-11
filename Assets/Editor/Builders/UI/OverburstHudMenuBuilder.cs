@@ -21,7 +21,7 @@ public static class OverburstHudMenuBuilder
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) throw new InvalidOperationException("Idle Editor required.");
         font = AssetDatabase.LoadAssetAtPath<Font>("Assets/ProjectOverburst/Resources/UI/Fonts/DamageFloating/Pretendard_Medium.ttf");
         if (!font) throw new InvalidOperationException("Existing Korean UI font required.");
-        foreach (var name in new[]{"menu","close","inventory","equipment","skill-tree","settings"})
+        foreach (var name in new[]{"menu","close","inventory","equipment","skill-tree","quest","settings"})
         {
             Import(Icons+name+".png",128,Vector4.zero);Import(Icons+name+"-hover.png",128,Vector4.zero);
         }
@@ -38,7 +38,7 @@ public static class OverburstHudMenuBuilder
             Stretch((RectTransform)ui.outside.transform); var hit = ui.outside.gameObject.AddComponent<Image>(); hit.color = Color.clear; hit.raycastTarget = true; ui.outside.targetGraphic=hit; ui.outside.transition=Selectable.Transition.None;
             ui.dock = Rect(root.transform,"Corner Dock",0,0,58,58); ui.dock.anchorMin=ui.dock.anchorMax=ui.dock.pivot=new Vector2(1,0); ui.dock.anchoredPosition=new Vector2(-24,24);
             ui.popup = Rect(ui.dock,"Popup",0,0,58,58).gameObject.AddComponent<CanvasGroup>(); Stretch((RectTransform)ui.popup.transform);
-            ui.panel = Rect(ui.popup.transform,"Vertical Menu",0,0,244,226);ui.panel.anchorMin=ui.panel.anchorMax=new Vector2(1,0);ui.panel.pivot=new Vector2(1,0);ui.panel.anchoredPosition=new Vector2(0,70);
+            ui.panel = Rect(ui.popup.transform,"Vertical Menu",0,0,244,278);ui.panel.anchorMin=ui.panel.anchorMax=new Vector2(1,0);ui.panel.pivot=new Vector2(1,0);ui.panel.anchoredPosition=new Vector2(0,70);
             var surface=Image(ui.panel,"Approved Panel Skin",Skin("panel"),Color.white,0,0,292,274,true);surface.type=UnityEngine.UI.Image.Type.Sliced;surface.rectTransform.offsetMin=new Vector2(-24,-24);surface.rectTransform.offsetMax=new Vector2(24,24);
             Diamond(ui.panel,"Top Diamond",new Vector2(.5f,1),new Vector2(0,0),6);
             Diamond(ui.panel,"Bottom Diamond",new Vector2(.5f,0),new Vector2(0,0),6);
@@ -55,8 +55,9 @@ public static class OverburstHudMenuBuilder
             Diamond((RectTransform)ui.trigger.transform,"Button Diamond",new Vector2(.5f,0),new Vector2(0,5),4);
             ui.triggerVisual=ui.trigger.gameObject.AddComponent<OverburstHudMenuTrigger>();ui.triggerVisual.owner=ui;ui.triggerVisual.background=triggerBg;ui.triggerVisual.normal=Skin("trigger-normal");ui.triggerVisual.hover=Skin("trigger-hover");ui.triggerVisual.expanded=Skin("trigger-open");ui.triggerVisual.menuHover=Glyph("menu-hover");ui.triggerVisual.closeHover=Glyph("close-hover");
             ui.rowTemplate=Row(root.transform);ui.rowTemplate.gameObject.SetActive(false);
-            var labels=new[]{"인벤토리","장비","스킬트리","설정"};var icons=new[]{"inventory","equipment","skill-tree","settings"};
-            ui.entries=new OverburstHudMenu.Entry[4];for(int i=0;i<4;i++)ui.entries[i]=new OverburstHudMenu.Entry{label=labels[i],icon=Glyph(icons[i]),hoverIcon=Glyph(icons[i]+"-hover"),destination=(OverburstHudMenu.Destination)i};
+            var labels=new[]{"인벤토리","장비","스킬트리","퀘스트 목록","설정"};var icons=new[]{"inventory","equipment","skill-tree","quest","settings"};
+            var destinations=new[]{OverburstHudMenu.Destination.Inventory,OverburstHudMenu.Destination.Equipment,OverburstHudMenu.Destination.SkillTree,OverburstHudMenu.Destination.QuestList,OverburstHudMenu.Destination.Settings};
+            ui.entries=new OverburstHudMenu.Entry[labels.Length];for(int i=0;i<labels.Length;i++)ui.entries[i]=new OverburstHudMenu.Entry{label=labels[i],icon=Glyph(icons[i]),hoverIcon=Glyph(icons[i]+"-hover"),destination=destinations[i]};
             ui.outside.gameObject.SetActive(false);ui.popup.alpha=0;ui.popup.interactable=ui.popup.blocksRaycasts=false;ui.popup.gameObject.SetActive(false);
             root.SetActive(true);
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath));

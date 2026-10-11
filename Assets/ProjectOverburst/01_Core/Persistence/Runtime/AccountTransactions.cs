@@ -8,7 +8,7 @@ namespace Overburst.Persistence
     {
         public static void Validate(AccountSnapshot state, AccountContentRegistry registry)
         {
-            if (state == null || state.schemaVersion != 2 || state.revision < 0 || state.level < 1 || state.level > 100 || state.experience < 0)
+            if (state == null || state.schemaVersion != EasySaveAccountStore.SchemaVersion || state.revision < 0 || state.level < 1 || state.level > 100 || state.experience < 0)
                 throw new InvalidDataException("Invalid account header/progression.");
             if (state.items == null || state.inventory == null || state.stashTabs == null || state.merchants == null
                 || state.weapons == null || state.gear == null || state.bags == null || state.flasks == null || state.quickSlots == null)
@@ -56,7 +56,9 @@ namespace Overburst.Persistence
                 if (merchant == null || merchant.stock == null || merchant.currency == null)
                     throw new InvalidDataException("Missing merchant collections.");
                 registry.Resolve<MerchantDefinition>(merchant.contentId);
-                if (!merchants.Add(merchant.contentId) || (merchant.stockInitialized ? merchant.capacity < 1 : merchant.capacity != 0 || merchant.currency.Count != 0) || merchant.stock.Count != merchant.capacity || merchant.reputationLevel < 0 || merchant.reputationExperience < 0)
+                if (!merchants.Add(merchant.contentId) || (merchant.stockInitialized ? merchant.capacity < 1 : merchant.capacity != 0 || merchant.currency.Count != 0) || merchant.stock.Count != merchant.capacity || merchant.reputationLevel != 0 || merchant.reputationExperience != 0
+                    || merchant.reputationPolicyVersion != MerchantReputationPolicy.Version || merchant.reputationTotalXp < 0
+                    || merchant.reputationTotalXp > MerchantReputationPolicy.MaximumExperience)
                     throw new InvalidDataException("Invalid merchant state.");
                 container(merchant.stock); container(merchant.currency);
             }
@@ -106,6 +108,7 @@ namespace Overburst.Persistence
             foreach (var item in state.items)
                 if (!string.IsNullOrEmpty(item.originRunId) && (state.run == null || item.originRunId != state.run.runId || !IsRunning(state.run.phase)))
                     throw new InvalidDataException("Item refers to an inactive run.");
+            Overburst.Quests.AccountQuestCommands.Validate(state, registry);
         }
 
         private static void ValidateUniqueIds(List<string> values)
@@ -149,6 +152,7 @@ namespace Overburst.Persistence
         public long Revision => current.revision;
         public int BaseUnlockedSlots => current.baseUnlockedSlots;
         public AccountSnapshot Read() => ItemSnapshotCodec.CopyValues(current);
+        public List<QuestSnapshot> ReadQuests() => ItemSnapshotCodec.CopyValues(current.quests);
         public SkillTreeSnapshot ReadSkillTree() => current.skillTree?.Copy();
         public CharacterAppearanceSnapshot ReadAppearance() => current.appearance?.Copy();
         internal int CurrentLevel => current.level;

@@ -23,9 +23,28 @@ public class MerchantReputationService : MonoBehaviour
 
     internal static void RestoreAccountReputation(MerchantDefinition merchant, int level, int experience)
     {
-        string id = merchant != null ? merchant.name : string.Empty;
+        string id = merchant != null ? GetStableMerchantId(merchant) : string.Empty;
         reputations[id] = MerchantReputationData.Restore(id, level, experience);
     }
+
+    public static string GetStableMerchantId(MerchantDefinition merchant)
+    {
+        if (!merchant) return string.Empty;
+        var registry = Overburst.Persistence.AccountGameplaySession.Current?.ContentRegistry
+            ?? Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+        return registry ? registry.IdFor(merchant) : throw new InvalidOperationException("Account content registry is unavailable.");
+    }
+    internal static void RestoreAccountReputationTotal(MerchantDefinition merchant, int total) =>
+        reputations[GetStableMerchantId(merchant)] = MerchantReputationData.RestoreTotal(GetStableMerchantId(merchant), total);
+    public static int GetTotalExperience(MerchantDefinition merchant)
+    {
+        if (!merchant) return 0;
+        var service = ResolveInstance();
+        var data = service != null ? service.EnsureData(GetStableMerchantId(merchant))
+            : reputations.TryGetValue(GetStableMerchantId(merchant), out var saved) ? saved : null;
+        return data?.TotalExperience ?? 0;
+    }
+    public static int GetRequiredExperience(MerchantDefinition merchant) => MerchantReputationPolicy.Required(GetTotalExperience(merchant));
 
     internal static void ClearAccountReputations() => reputations.Clear();
 
@@ -59,13 +78,13 @@ public class MerchantReputationService : MonoBehaviour
     {
         MerchantReputationService service = ResolveInstance();
         return service != null ? service.GetLevelInternal(merchant)
-            : merchant != null && reputations.TryGetValue(merchant.name, out var saved) ? saved.Level : 0;
+            : merchant != null && reputations.TryGetValue(GetStableMerchantId(merchant), out var saved) ? saved.Level : 0;
     }
 
     public static float GetDiscountRate(MerchantDefinition merchant)
     {
         MerchantReputationService service = ResolveInstance();
-        return service != null ? service.GetSetting(merchant).BuyDiscountRate : 0f;
+        return MerchantReputationPolicy.DiscountBasisPoints(GetTotalExperience(merchant)) / 10000f;
     }
 
     public static float GetLevelProgress01(MerchantDefinition merchant)
@@ -81,14 +100,14 @@ public class MerchantReputationService : MonoBehaviour
         if (data.Level >= Mathf.Max(0, service.maxLevel))
             return 1f;
 
-        return Mathf.Clamp01((float)data.Experience / service.GetRequiredExperienceInternal());
+        return Mathf.Clamp01((float)data.Experience / Math.Max(1, MerchantReputationPolicy.Required(data.TotalExperience)));
     }
 
     public static int GetExperience(MerchantDefinition merchant)
     {
         MerchantReputationService service = ResolveInstance();
         if (service == null)
-            return merchant != null && reputations.TryGetValue(merchant.name, out var saved) ? saved.Experience : 0;
+            return merchant != null && reputations.TryGetValue(GetStableMerchantId(merchant), out var saved) ? saved.Experience : 0;
 
         MerchantReputationData data = service.EnsureData(service.GetMerchantId(merchant));
         return data != null ? data.Experience : 0;
@@ -276,7 +295,7 @@ public class MerchantReputationService : MonoBehaviour
 
     private string GetMerchantId(MerchantDefinition merchant)
     {
-        return merchant != null ? merchant.name : string.Empty;
+        return GetStableMerchantId(merchant);
     }
 
     private void EnsureDefaultLevelSettings()

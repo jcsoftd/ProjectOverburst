@@ -151,6 +151,7 @@ public sealed class EnemyRank : MonoBehaviour
         if (!Encounter.CanGrantRewards || experienceGranted || info.source == null
             || info.source.GetComponentInParent<PlayerActorRuntime>() == null) return;
         experienceGranted = true;
+        Overburst.Quests.QuestSession.RecordConfirmedKill(Encounter);
         PlayerProgression progression = PlayerProgression.Current;
         if (progression != null)
             progression.AddKillExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level)

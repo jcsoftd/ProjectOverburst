@@ -92,6 +92,8 @@ public sealed class OverburstGameUI : MonoBehaviour
         OverburstHudMenu.Install(this);
         Overburst.Appearance.AppearanceCustomizationPanel.Install(transform);
         Refresh();
+        QuestMerchantUI.Install();
+        inventory.ApplyQuestMerchantStyle(equipmentButton, inventoryCapacity);
     }
     private void Update(){
         if(PersistentSceneFlow.Instance&&PersistentSceneFlow.Instance.IsSwitching&&equipmentWindow.gameObject.activeSelf)CloseEquipment();
@@ -121,7 +123,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         var text=button.GetComponentInChildren<Text>(true);if(text){text.text=label;return;}
         var tmp=button.GetComponentInChildren<TMPro.TMP_Text>(true);if(tmp)tmp.text=label;
     }
-    public void ToggleEquipment(){if(equipmentWindow.gameObject.activeSelf)CloseEquipment();else if(!PersistentSceneFlow.Instance||!PersistentSceneFlow.Instance.IsSwitching){equipmentWindow.Show();Refresh();GameplayInputBlocker.Block(this);}}
+    public void ToggleEquipment(){if(QuestMerchantUI.Current && QuestMerchantUI.Current.Mode != QuestMerchantUI.WindowMode.None)return;if(equipmentWindow.gameObject.activeSelf)CloseEquipment();else if(!PersistentSceneFlow.Instance||!PersistentSceneFlow.Instance.IsSwitching){equipmentWindow.Show();Refresh();GameplayInputBlocker.Block(this);}}
     public void CloseEquipment(){equipmentWindow.Close();TooltipManager.Instance?.HideTooltip();GameplayInputBlocker.Unblock(this);}
     private void OnDisable(){UnityEngine.SceneManagement.SceneManager.sceneUnloaded-=SceneUnloaded;UnbindInventory();GameplayInputBlocker.Unblock(this);TooltipManager.Instance?.HideTooltip();}
     private void OnDestroy()=>UnbindInventory();

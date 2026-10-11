@@ -18,7 +18,7 @@ namespace Overburst.Persistence
                 var merchant = new MerchantSnapshot
                 {
                     contentId = registry.IdFor(definition), capacity = inventory != null ? inventory.Capacity : 0, stockInitialized = inventory != null,
-                    reputationLevel = MerchantReputationService.GetLevel(definition), reputationExperience = MerchantReputationService.GetExperience(definition)
+                    reputationTotalXp = MerchantReputationService.GetTotalExperience(definition), reputationPolicyVersion = MerchantReputationPolicy.Version
                 };
                 if (inventory != null)
                 {
@@ -44,8 +44,8 @@ namespace Overburst.Persistence
                     merchant = new MerchantSnapshot
                     {
                         contentId = contentId,
-                        reputationLevel = MerchantReputationService.GetLevel(pair.Key),
-                        reputationExperience = MerchantReputationService.GetExperience(pair.Key)
+                        reputationTotalXp = MerchantReputationService.GetTotalExperience(pair.Key),
+                        reputationPolicyVersion = MerchantReputationPolicy.Version
                     };
                     target.merchants.Add(merchant);
                 }
@@ -85,7 +85,7 @@ namespace Overburst.Persistence
             MerchantStockRefreshService.ApplyAccountInventories(restored);
             MerchantReputationService.ClearAccountReputations();
             foreach (var merchant in source.merchants)
-                MerchantReputationService.RestoreAccountReputation(registry.Resolve<MerchantDefinition>(merchant.contentId), merchant.reputationLevel, merchant.reputationExperience);
+                MerchantReputationService.RestoreAccountReputationTotal(registry.Resolve<MerchantDefinition>(merchant.contentId), merchant.reputationTotalXp);
             if (notify) MerchantStockRefreshService.NotifyAccountApplied();
         }
     }

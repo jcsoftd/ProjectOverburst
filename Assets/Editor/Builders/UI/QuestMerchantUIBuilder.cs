@@ -51,7 +51,7 @@ public static class QuestMerchantUIBuilder
             photo.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(Folder + "/WeaponMerchantPortrait.png");
             photo.material = AssetDatabase.LoadAssetAtPath<Material>(Folder + "/MerchantPortrait.mat");
             view.merchantPortrait = photo;
-            photo.raycastTarget = false; photo.uvRect = new Rect(169f/426, 1-(112+146f)/(426f*800/600), 96f/426, 146f/(426f*800/600));
+            photo.raycastTarget = false; photo.uvRect = new Rect(0, 0, 1, 1);
             var fade = Gradient(photoRoot, "Portrait Fade", 0, 80.3f, 96, 65.7f, new Color(.035f,.035f,.024f,0), C("090906B8"));
             view.merchantName = Label(list, "Merchant Name", 160, 109, 384, 32, "무기상인", 23, C("D2B778"), true);
             view.merchantLocation = Label(list, "Merchant Location", 160, 146, 384, 22, "메인 마을 · 대장간", 14, C("A79B81"));

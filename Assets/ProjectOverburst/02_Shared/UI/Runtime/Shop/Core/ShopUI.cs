@@ -408,7 +408,7 @@ public partial class ShopUI : MonoBehaviour
 
     private void HandleMerchantReputationChanged(string merchantId, int level)
     {
-        if (!IsOpen || currentMerchant == null || currentMerchant.name != merchantId)
+        if (!IsOpen || currentMerchant == null || MerchantReputationService.GetStableMerchantId(currentMerchant) != merchantId)
             return;
 
         RefreshHeader();

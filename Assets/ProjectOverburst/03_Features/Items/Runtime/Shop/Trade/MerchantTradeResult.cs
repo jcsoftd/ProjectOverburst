@@ -10,7 +10,9 @@ public enum MerchantTradeFailureReason
     MerchantNotEnoughGold,
     GoldReceiveInventoryFull,
     PaymentFailed,
-    TransferFailed
+    TransferFailed,
+    PriceChanged,
+    InvalidValue
 }
 
 public struct MerchantTradeResult

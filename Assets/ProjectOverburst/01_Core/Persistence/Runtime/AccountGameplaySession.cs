@@ -29,6 +29,7 @@ namespace Overburst.Persistence
         public bool HasPendingSave => transactions.HasPendingSave;
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
+        public List<QuestSnapshot> ReadQuests() => transactions.ReadQuests();
         public SkillTreeSnapshot ReadSkillTree() => transactions.ReadSkillTree();
         public CharacterAppearanceSnapshot ReadAppearance() => transactions.ReadAppearance();
         public event Action<CharacterAppearanceSnapshot> AppearanceCommitted;
@@ -246,6 +247,9 @@ namespace Overburst.Persistence
         {
             if (editing || restoring) throw new InvalidOperationException("A gameplay command is already running.");
             EnsureProjectionReady();
+            if (Overburst.Quests.QuestSession.Current != null && Overburst.Quests.QuestSession.Current.IsBoundTo(this)
+                && !Overburst.Quests.QuestSession.Current.DrainPending(false))
+                throw new System.IO.IOException("퀘스트 진행 확정을 기다리는 중입니다.");
             editing = true;
             notifications.Clear();
             try
@@ -262,6 +266,38 @@ namespace Overburst.Persistence
                 foreach (var notification in queued)
                     try { notification(); } catch (Exception error) { Debug.LogException(error); }
             }
+        }
+
+        public event Action QuestsCommitted;
+
+        // Quest-only progress never restores equipment or stock. Rewards restore after the durable commit.
+        public bool ExecuteQuest(string transactionId, long expectedRevision, Func<AccountSnapshot, bool> mutation,
+            bool checkpoint, bool projectRewards = false)
+        {
+            if (editing || restoring) throw new InvalidOperationException("계정 작업이 진행 중입니다.");
+            EnsureProjectionReady();
+            if (expectedRevision != transactions.Revision) throw new InvalidOperationException("퀘스트 상태가 변경되었습니다.");
+            var candidate = transactions.Read();
+            bool committed = false;
+            editing = true;
+            notifications.Clear();
+            try
+            {
+                if (!mutation(candidate)) return false;
+                committed = transactions.ExecuteWithCandidate(transactionId, expectedRevision, () => candidate, checkpoint);
+                if (committed && projectRewards) RestoreAuthoritativeProjection();
+            }
+            finally
+            {
+                editing = false;
+                var queued = notifications.ToArray(); notifications.Clear();
+                foreach (var notification in queued)
+                    try { notification(); } catch (Exception error) { Debug.LogException(error); }
+            }
+            if (committed && QuestsCommitted != null)
+                foreach (Action listener in QuestsCommitted.GetInvocationList())
+                    try { listener(); } catch (Exception error) { Debug.LogException(error); }
+            return committed;
         }
 
         private void EnsureProjectionReady()

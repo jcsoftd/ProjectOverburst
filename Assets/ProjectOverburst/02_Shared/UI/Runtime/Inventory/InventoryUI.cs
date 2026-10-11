@@ -28,6 +28,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
     [SerializeField] private InventoryItemActionService itemActionService;
     [SerializeField] private InventoryContextMenuController contextMenuController;
 
+    private QuestInventoryStyle questStyle;
     private bool initialized; // 초기화 완료
     private ItemSortMode sortMode = ItemSortMode.Grade; // 정렬 기준
     private ItemSortDirection sortDirection = ItemSortDirection.Descending; // 정렬 방향
@@ -254,6 +255,7 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
             return;
 
         int inventoryGold = GetInventoryGoldAmount();
+        if (questStyle) questStyle.gold.text = inventoryGold.ToString("N0") + " <size=13>G</size>";
         if(compactGoldSummary){goldSummaryText.text=inventoryGold.ToString("N0")+" G";return;}
         if (ShouldShowStashGold())
         {
@@ -485,10 +487,24 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
             ApplyKoreanFont(sortRefreshButtonText);
         }
 
+        if (questStyle) questStyle.PresentSort(ItemSortComparer.GetDisplayName(sortMode), sortDirection == ItemSortDirection.Ascending, canSort);
         if (sortStatusText != null)
         {
             sortStatusText.text = ItemSortComparer.GetDescription(sortMode) + "\n방향: " + ItemSortComparer.GetDirectionDisplayName(sortDirection); // 상태 표시
         }
+    }
+
+    public void ApplyQuestMerchantStyle(Button equipment, Text capacity)
+    {
+        if (questStyle || !inventoryPanel) return;
+        var prefab=Resources.Load<GameObject>("UI/Quests/PF_QuestInventoryStyle");
+        if(!prefab) throw new System.InvalidOperationException("Inventory style prefab is missing.");
+        questStyle=Instantiate(prefab,inventoryPanel.transform,false).GetComponent<QuestInventoryStyle>();
+        questStyle.Bind(sortDropdown,sortRefreshButton,equipment,capacity);
+        foreach(var label in inventoryPanel.GetComponentsInChildren<Text>(true))
+            if(label.name=="Currency Label")label.gameObject.SetActive(false);
+        if(goldSummaryText)goldSummaryText.enabled=false;
+        UpdateSortControls();RefreshGoldSummary();
     }
 
     private void ConfigureDropdown(TMP_Dropdown dropdown)

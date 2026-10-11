@@ -39,7 +39,7 @@ public static class QuestMerchantTradeUIBuilder
             var photoRect=B.Rect(window,"Merchant Portrait",37,102,108,166);
             var portrait=photoRect.GetComponent<RawImage>() ?? photoRect.gameObject.AddComponent<RawImage>();
             portrait.material=AssetDatabase.LoadAssetAtPath<Material>(B.Folder+"/MerchantPortrait.mat");portrait.texture=AssetDatabase.LoadAssetAtPath<Texture2D>(B.Folder+"/WeaponMerchantPortrait.png");portrait.raycastTarget=false;
-            portrait.uvRect=new Rect(190f/480,1-(126+166f)/(480f*800/600),108f/480,166f/(480f*800/600));
+            portrait.uvRect=new Rect(0,0,1,1);
             var fade=B.Rect(photoRect,"Fade",0,91.3f,108,74.7f);var gradient=fade.GetComponent<QuestUiGradient>() ?? fade.gameObject.AddComponent<QuestUiGradient>();gradient.top=new Color(.035f,.035f,.024f,0);gradient.bottom=B.C("090906B8");gradient.raycastTarget=false;
             Mirror(top.Find("MerchantNameText"),window,"Merchant Name",173,99,320,33.8f,26,"D7B477");
             Mirror(top.Find("DescriptionText"),window,"Merchant Location",173,140.8f,403,22,15,"A99F8B");

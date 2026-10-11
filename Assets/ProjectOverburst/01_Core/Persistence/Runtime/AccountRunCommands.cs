@@ -44,6 +44,9 @@ namespace Overburst.Persistence
                 if (--item.count == 0) Remove(state, new HashSet<string> { item.instanceId });
             }
             run.phase = RunPhase.Active;
+            Overburst.Quests.AccountQuestCommands.Progress(state, Overburst.Quests.QuestObjectiveKind.EnterRun, "run.any", 1, runId);
+            if (!string.IsNullOrEmpty(run.mapInstanceId))
+                Overburst.Quests.AccountQuestCommands.Progress(state, Overburst.Quests.QuestObjectiveKind.EnterRun, "run.map", 1, runId);
         }
 
         public static void Acquire(AccountSnapshot state, string runId, ItemSnapshot item)

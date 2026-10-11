@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: TownMerchant_Potion
   m_EditorClassIdentifier: Assembly-CSharp::MerchantDefinition
   merchantName: "\uBB3C\uC57D\uC0C1\uC778"
+  portrait: {fileID: 2800000, guid: 7da7aceda2108304abb81dd06fec354e, type: 3}
+  locationLabel: "\uBA54\uC778 \uB9C8\uC744 \xB7 \uC5F0\uAE08\uC220\uC810"
   category: 4
   description: "\uD68C\uBCF5\xB7\uC774\uB3D9 \uBB3C\uC57D\uACFC \uC804\uD22C \uD50C\uB77C\uC2A4\uD06C\uB97C
     \uD310\uB9E4\uD569\uB2C8\uB2E4."

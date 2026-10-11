@@ -20,6 +20,7 @@ public sealed class ShopMerchantTopPanelView
     public TextMeshProUGUI ReputationDiscountText;
     public TextMeshProUGUI ReputationStockGradeText;
     public TextMeshProUGUI MerchantGoldInfoText;
+    public RawImage MerchantPortrait;
 }
 
 public sealed class ShopMerchantTopPanelPresenter
@@ -68,8 +69,9 @@ public sealed class ShopMerchantTopPanelPresenter
         float progress01 = MerchantReputationService.GetLevelProgress01(merchant);
         int progressPercent = Mathf.RoundToInt(progress01 * 100f);
         int experience = MerchantReputationService.GetExperience(merchant);
-        int requiredExperience = MerchantReputationService.GetRequiredExperience();
+        int requiredExperience = MerchantReputationService.GetRequiredExperience(merchant);
 
+        if (view.MerchantPortrait) view.MerchantPortrait.texture = merchant ? merchant.Portrait : null;
         if (view.MerchantPortraitPlaceholderText != null)
         {
             string merchantName = merchant != null ? merchant.MerchantName : "상인";
@@ -91,13 +93,13 @@ public sealed class ShopMerchantTopPanelPresenter
         if (view.ReputationExpPercentText != null)
         {
             view.ReputationExpPercentText.overflowMode = TextOverflowModes.Overflow;
-            view.ReputationExpPercentText.text = "경험치 " + experience + "/" + requiredExperience + " (" + progressPercent + "%)";
+            view.ReputationExpPercentText.text = requiredExperience == 0 ? "MAX" : experience + " / " + requiredExperience + "  <size=12>(" + progressPercent + "%)</size>";
         }
 
         if (view.ReputationGradeText != null)
         {
             view.ReputationGradeText.overflowMode = TextOverflowModes.Overflow;
-            view.ReputationGradeText.text = "등급 : " + MerchantDisplayPolicy.GetReputationLabel(level);
+            view.ReputationGradeText.text = MerchantDisplayPolicy.GetReputationLabel(level);
         }
 
         if (view.ReputationEffectsTitleText != null)
@@ -106,7 +108,7 @@ public sealed class ShopMerchantTopPanelPresenter
         if (view.ReputationDiscountText != null)
         {
             view.ReputationDiscountText.overflowMode = TextOverflowModes.Overflow;
-            view.ReputationDiscountText.text = "할인 " + discountPercent + "%";
+            view.ReputationDiscountText.text = discountPercent + " <size=12>%</size>";
         }
 
         if (view.ReputationStockGradeText != null)
@@ -119,7 +121,7 @@ public sealed class ShopMerchantTopPanelPresenter
         if (view.MerchantGoldInfoText != null)
         {
             view.MerchantGoldInfoText.overflowMode = TextOverflowModes.Overflow;
-            view.MerchantGoldInfoText.text = "보유 골드 : " + merchantGold + "G";
+            view.MerchantGoldInfoText.text = merchantGold.ToString("N0") + " <size=13>G</size>";
         }
 
         if (view.MerchantDescriptionText != null)
@@ -137,7 +139,7 @@ public sealed class ShopMerchantTopPanelPresenter
             return "상인 정보가 없습니다.";
 
         if (!string.IsNullOrWhiteSpace(merchant.Description))
-            return merchant.Description;
+            return merchant.LocationLabel;
 
         return MerchantDisplayPolicy.GetStockSummary(merchant);
     }

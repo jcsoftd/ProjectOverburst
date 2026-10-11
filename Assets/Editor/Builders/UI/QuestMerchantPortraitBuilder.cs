@@ -20,6 +20,7 @@ public static class QuestMerchantPortraitBuilder
             AssetDatabase.ImportAsset(output, ImportAssetOptions.ForceSynchronousImport);
             var importer = (TextureImporter)AssetImporter.GetAtPath(output);
             importer.textureType = TextureImporterType.Default;
+            importer.npotScale = TextureImporterNPOTScale.None;
             importer.mipmapEnabled = false; importer.alphaIsTransparency = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed; importer.maxTextureSize = 1024;
             importer.SaveAndReimport();
@@ -33,7 +34,7 @@ public static class QuestMerchantPortraitBuilder
         string path = folder + "/MerchantPortrait.mat";
         var material = AssetDatabase.LoadAssetAtPath<Material>(path);
         if (!material) { material = new Material(Shader.Find("OVERBURST/UI Merchant Portrait")); AssetDatabase.CreateAsset(material, path); }
-        material.SetFloat("_Brightness", 1.85f); material.SetFloat("_Contrast", .93f);
+        material.SetFloat("_Brightness", 1); material.SetFloat("_Contrast", 1);
         EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
     }
 }

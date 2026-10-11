@@ -1,7 +1,9 @@
 using UnityEngine;
+using Overburst.Quests;
+using Overburst.Persistence;
 using UnityEngine.UI;
 
-/// <summary>Vendor objective tracker view. The game currently has no quest state, so it shows an honest empty state.</summary>
+/// <summary>Preserves the existing HUD artwork and collapse control; displays the tracked personal quest.</summary>
 public sealed class OverburstObjectiveTracker : MonoBehaviour
 {
     [SerializeField] private Toggle collapseToggle;
@@ -10,6 +12,8 @@ public sealed class OverburstObjectiveTracker : MonoBehaviour
     [SerializeField] private GameObject sampleObjectives;
     [SerializeField] private RectTransform backdrop;
     private bool toggleBound;
+    private AccountGameplaySession shownAccount;
+    private long shownRevision=-1;
 
     public void Configure(Toggle toggle, GameObject bodyRoot, Text message, GameObject sampleRows, RectTransform backdropRect)
     {
@@ -50,6 +54,22 @@ public sealed class OverburstObjectiveTracker : MonoBehaviour
 
     private void Update()
     {
+        var account=AccountGameplaySession.Current;
+        if(!ReferenceEquals(account,shownAccount) || (account?.Revision ?? -1)!=shownRevision)
+        {
+            shownAccount=account;shownRevision=account?.Revision ?? -1;
+            var snapshot=account?.Read();var quest=snapshot?.quests.Find(q=>q.questId==snapshot.trackedQuestId);
+            if(emptyMessage)
+            {
+                string progress="";
+                if(quest!=null)
+                {
+                    if(AccountQuestCommands.IsReady(quest))progress="상인에게 보고";
+                    else {var objective=quest.objectives.Find(o=>o.current<o.required);if(objective!=null)progress=objective.label+"  "+objective.current+" / "+objective.required;}
+                }
+                emptyMessage.text=quest==null ? "진행 중인 목표 없음" : quest.title+"\n"+progress;
+            }
+        }
         // Domain-reload-free Play can keep this scene object alive without OnEnable.
         BindToggle();
         if (collapseToggle != null && body != null && body.activeSelf != collapseToggle.isOn)

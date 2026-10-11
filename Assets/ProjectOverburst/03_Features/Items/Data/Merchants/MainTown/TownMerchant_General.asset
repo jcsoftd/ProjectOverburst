@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: TownMerchant_General
   m_EditorClassIdentifier: Assembly-CSharp::MerchantDefinition
   merchantName: "\uC7A1\uD654\uC0C1\uC778"
+  portrait: {fileID: 2800000, guid: 2fccae9e875127b498e2f7e0c823b3b2, type: 3}
+  locationLabel: "\uBA54\uC778 \uB9C8\uC744 \xB7 \uC7A1\uD654\uC810"
   category: 0
   description: "\uAC00\uBC29\uACFC \uC7A5\uC2E0\uAD6C\uB97C \uD310\uB9E4\uD569\uB2C8\uB2E4."
   merchantGold: 1500

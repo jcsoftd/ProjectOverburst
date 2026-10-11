@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: TownMerchant_Armor
   m_EditorClassIdentifier: Assembly-CSharp::MerchantDefinition
   merchantName: "\uBC29\uC5B4\uAD6C\uC0C1\uC778"
+  portrait: {fileID: 2800000, guid: 3fa2858bbdc49134891d3312e0ba7484, type: 3}
+  locationLabel: "\uBA54\uC778 \uB9C8\uC744 \xB7 \uBC29\uC5B4\uAD6C\uC810"
   category: 3
   description: "\uD22C\uAD6C\xB7\uAC11\uC637\xB7\uC7A5\uAC11\xB7\uC7A5\uD654\uB97C
     \uD310\uB9E4\uD569\uB2C8\uB2E4."

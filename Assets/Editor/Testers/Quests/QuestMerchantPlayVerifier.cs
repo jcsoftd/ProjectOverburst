@@ -158,7 +158,7 @@ public static class QuestMerchantPlayVerifier
         {
             Check(account.Read().quests.Count==2&&account.Read().quests.All(q=>q.state==SavedQuestState.Completed),"second isolated boot reloads both completed quests");
             Check(!ui.merchantInfo.primary.interactable,"reloaded completed quest cannot report again");
-            ui.Close();yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal&&ui.journalRows.GetComponentsInChildren<QuestRowView>().Count(r=>r.gameObject.activeInHierarchy)==2,"personal quest list reloads accepted completions only");yield return Capture("journal-reloaded");ui.Close();if(SessionState.GetBool(K+"edges",false))yield return VerifyInputEdges(npc,actor,ui,account);yield break;
+            ui.Close();yield return VerifyMenuAndPortraits(ui,account,actor);yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal&&ui.journalRows.GetComponentsInChildren<QuestRowView>().Count(r=>r.gameObject.activeInHierarchy)==2,"personal quest list reloads accepted completions only");yield return Capture("journal-reloaded");ui.Close();if(SessionState.GetBool(K+"edges",false))yield return VerifyInputEdges(npc,actor,ui,account);yield break;
         }
         Check(ui.merchantRows.GetComponentsInChildren<QuestRowView>().Single(r=>r.title.text=="미지의 지도").button.interactable==false,"prerequisite quest is visibly locked");
         yield return Capture("merchant-before-accept");yield return Click(ui.merchantInfo.primary);
@@ -225,6 +225,44 @@ public static class QuestMerchantPlayVerifier
         Check(account.FlushPendingSave(),"all final quest and trade state flushed");var disk=new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();Check(disk.quests.Count==2&&disk.quests.All(q=>q.state==SavedQuestState.Completed),"both completed quests survive final disk reload");
         AccountInvariants.Validate(disk,registry);yield return KeyPress(Key.J);yield return Capture("journal-completed");yield return KeyPress(Key.Escape);Check(!GameplayInputBlocker.IsGameplayInputBlocked,"final gameplay input owners released");
         Write("final-account.json",disk);
+    }
+
+    static IEnumerator VerifyMenuAndPortraits(QuestMerchantUI ui,AccountGameplaySession account,PlayerActorRuntime actor)
+    {
+        var menu=OverburstHudMenu.Instance;
+        Check(menu && menu.entries.Length==5,"HUD has five destinations with quest list");
+        Check(string.Join(",",menu.entries.Select(e=>e.label))=="인벤토리,장비,스킬트리,퀘스트 목록,설정","HUD quest list precedes settings without reordering old entries");
+        var before=ES3.Serialize(account.Read());
+        yield return Wait(()=>menu.trigger.gameObject.activeInHierarchy && menu.trigger.interactable,"HUD trigger returns after quest modal closes",120);
+        yield return Click(menu.trigger);yield return new WaitForSecondsRealtime(.3f);
+        Check(menu.IsOpen && menu.panel.rect.size==new Vector2(244,278),"HUD grows upward by one 52px row");
+        var quest=menu.Rows.Single(row=>row.label.text=="퀘스트 목록");
+        pointer=new MouseState{position=Point((RectTransform)quest.transform)};yield return Frames(5);
+        Check(quest.highlight.enabled,"Quest menu row uses existing pointer hover style");
+        yield return Capture("hud-quest-menu-native");
+        yield return Click(quest.button);
+        Check(!menu.IsOpen && ui.Mode==QuestMerchantUI.WindowMode.Journal && GameplayInputBlocker.IsGameplayInputBlocked,"Actual HUD quest click releases menu owner and opens personal quest list");
+        Check(ES3.Serialize(account.Read()).SequenceEqual(before),"Opening personal list leaves quest/save state unchanged");
+        yield return Capture("hud-quest-list-native");yield return KeyPress(Key.Escape);
+        Check(ui.Mode==QuestMerchantUI.WindowMode.None && !OverburstGameMenu.IsOpen && !GameplayInputBlocker.IsGameplayInputBlocked,"Escape returns input without opening pause menu");
+        for(int i=0;i<2;i++)
+        {
+            yield return Wait(()=>menu.trigger.gameObject.activeInHierarchy && menu.trigger.interactable,"HUD trigger returns on repeat "+i,120);
+            yield return Click(menu.trigger);yield return new WaitForSecondsRealtime(.2f);yield return Click(menu.Rows[3].button);
+            Check(ui.Mode==QuestMerchantUI.WindowMode.Journal && !menu.IsOpen,"HUD quest entry repeats "+i);
+            yield return KeyPress(Key.Escape);
+        }
+        foreach(var npc in Object.FindObjectsByType<GeneralGoodsMerchantInteractable>(FindObjectsSortMode.None).Where(n=>n.Definition && n.Definition.name.StartsWith("TownMerchant_")).OrderBy(n=>n.Definition.name).ToArray())
+        {
+            yield return Approach(npc,actor);ui.SelectOption(1);yield return KeyPress(Key.F);
+            var shop=Object.FindObjectsByType<ShopUI>(FindObjectsInactive.Include,FindObjectsSortMode.None).Single(s=>s.IsOpen);
+            var portrait=shop.GetComponentsInChildren<RawImage>().Single(image=>image.name=="Merchant Portrait");
+            Check(shop.IsOpenFor(npc.Definition) && portrait.texture==npc.Definition.Portrait,"Actual trade uses generated portrait "+npc.Definition.name);
+            Check(portrait.uvRect==new Rect(0,0,1,1) && Mathf.Approximately(portrait.material.GetFloat("_Brightness"),1),"Generated portrait uses full image and neutral material "+npc.Definition.name);
+            yield return Capture("portrait-"+npc.Definition.name);yield return Click(Field<Button>(shop,"closeButton"));
+        }
+        yield return Approach(WeaponMerchant(),actor);
+        Check(!GameplayInputBlocker.IsGameplayInputBlocked,"All portrait trade windows return input");
     }
 
     static IEnumerator VerifyInputEdges(GeneralGoodsMerchantInteractable npc,PlayerActorRuntime actor,QuestMerchantUI ui,AccountGameplaySession account)

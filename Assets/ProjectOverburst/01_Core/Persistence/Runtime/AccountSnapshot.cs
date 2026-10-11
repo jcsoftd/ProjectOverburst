@@ -6,7 +6,7 @@ namespace Overburst.Persistence
     [Serializable]
     public sealed class AccountSnapshot
     {
-        public int schemaVersion = 2;
+        public int schemaVersion = EasySaveAccountStore.SchemaVersion;
         public string profileId = "default";
         public long revision;
         public long nextAcquisitionOrder = 1;
@@ -29,6 +29,8 @@ namespace Overburst.Persistence
         public List<string> flasks = new List<string>();
         public List<QuickSlotSnapshot> quickSlots = new List<QuickSlotSnapshot>();
         public List<MerchantSnapshot> merchants = new List<MerchantSnapshot>();
+        public List<QuestSnapshot> quests = new List<QuestSnapshot>();
+        public string trackedQuestId;
         public RunSnapshot run;
         public string lastTransactionId;
         public long bossClearCount;
@@ -92,7 +94,9 @@ namespace Overburst.Persistence
         public string contentId;
         public int capacity;
         public int reputationLevel;
-        public int reputationExperience;
+        public int reputationExperience; // Legacy schema 2 only.
+        public int reputationTotalXp;
+        public int reputationPolicyVersion; // Zero identifies legacy data during schema migration.
         public bool stockInitialized;
         public List<string> stock = new List<string>();
         public List<string> currency = new List<string>();
