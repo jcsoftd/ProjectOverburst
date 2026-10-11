@@ -64,9 +64,9 @@ public sealed class OverburstRunCardView : MonoBehaviour
 
     public void Bind(RunCardPresentation presentation, Action onSelected)
     {
-        EnsureFeedback();
+        if (Application.isPlaying) EnsureFeedback();
         StopAllCoroutines();
-        flip.StopFeedbacks();
+        flip?.StopFeedbacks();
         data = presentation; selected = onSelected;
         gradeColor = data.IsReward ? new Color(.88f, .74f, .48f) : GradeConfig.GetGradeColor(data.Grade);
         title.text = data.Title ?? string.Empty;

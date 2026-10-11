@@ -15,6 +15,9 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public static OverburstSkillTreeUI Instance { get; private set; }
     public static bool IsWindowOpen => Instance != null && Instance.IsOpen;
     public TextAsset catalogAsset;
+    public bool managementPreview;
+    public int managementPoints = 20;
+    public string[] managementAllocation = Array.Empty<string>();
     public Canvas rootCanvas;
     public GameObject surface;
     public RectTransform window, viewport;
@@ -47,7 +50,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     long observedRevision = -1;
     AccountGameplaySession observedSession;
     bool staleDraft;
-    public bool CanEdit => !Application.isPlaying || (AccountGameplaySession.Current != null && WorldSessionState.IsHideout && !AccountGameplaySession.Current.NeedsProjectionRecovery);
+    public bool CanEdit => managementPreview || !Application.isPlaying || (AccountGameplaySession.Current != null && WorldSessionState.IsHideout && !AccountGameplaySession.Current.NeedsProjectionRecovery);
     public WeaponElement CurrentElement => PlayerContext.Instance?.CurrentActorEquipment != null ? PlayerContext.Instance.CurrentActorEquipment.ActiveElement : WeaponElement.None;
     Dictionary<string, OverburstSkillTreeCatalog.Node> index;
     Dictionary<string, OverburstSkillTreeNodeView> views;
@@ -70,11 +73,15 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     }
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this; Initialize(); surface.SetActive(false);
+        if (!managementPreview)
+        {
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            Instance = this;
+        }
+        Initialize(); surface.SetActive(false);
         rootCanvas.overrideSorting = true; rootCanvas.sortingOrder = 280;
     }
-    void OnEnable() => UnityEngine.SceneManagement.SceneManager.sceneUnloaded += SceneUnloaded;
+    void OnEnable() { if (!managementPreview) UnityEngine.SceneManagement.SceneManager.sceneUnloaded += SceneUnloaded; }
     void OnDisable() { UnityEngine.SceneManagement.SceneManager.sceneUnloaded -= SceneUnloaded; Close(); }
     void OnDestroy() { Close(); if (Instance == this) Instance = null; }
     void SceneUnloaded(UnityEngine.SceneManagement.Scene scene) { Plan?.Cancel(); Close(); }
@@ -82,6 +89,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     {
         if (initialized) return;
         Catalog = JsonUtility.FromJson<OverburstSkillTreeCatalog>(catalogAsset.text); Catalog.Validate(); Plan = new OverburstSkillTreePlan(Catalog);
+        if (managementPreview) Plan.Load(managementPoints, managementAllocation);
         index = Catalog.nodes.ToDictionary(n => n.id); views = nodes.ToDictionary(n => n.nodeId);
         mapExtent = new Vector2(Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.x))), Mathf.Max(1, Catalog.nodes.Max(n => Mathf.Abs(n.y))));
         // Direction names belong to their guide nodes, so pan, zoom and selection keep them together.
@@ -137,11 +145,11 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     {
         Initialize();
         if (IsOpen) return;
-        if (Application.isPlaying && (OverburstGameMenu.IsOpen || GameplayInputBlocker.IsGameplayInputBlocked)) return;
+        if (Application.isPlaying && !managementPreview && (OverburstGameMenu.IsOpen || GameplayInputBlocker.IsGameplayInputBlocked)) return;
         returnSelection = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
         entry.gameObject.SetActive(false);
         surface.SetActive(true); transform.SetAsLastSibling(); FitWindow(); Canvas.ForceUpdateCanvases(); SyncAccount(observedSession != AccountGameplaySession.Current || !CanEdit); ResetDefaultMap(); Refresh();
-        if (Application.isPlaying)
+        if (Application.isPlaying && !managementPreview)
         {
             TooltipManager.Instance?.HideTooltip(); GameplayInputBlocker.Block(this);
             SyncGameplayMapOwner();
@@ -150,6 +158,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     }
     void SyncGameplayMapOwner()
     {
+        if (managementPreview) return;
         var current = PlayerInputFacade.Current;
         if (current == null) return;
         lockedInput = current;
@@ -230,6 +239,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     }
     public void SyncAccount(bool discardDraft)
     {
+        if (managementPreview) return;
         var session = AccountGameplaySession.Current;
         if (session == null) return;
         var tree = session.ReadSkillTree(); observedRevision = session.Revision; observedSession = session;
@@ -251,7 +261,7 @@ public sealed class OverburstSkillTreeUI : MonoBehaviour
     public void ApplyPlan()
     {
         HideTooltip(); SyncAccount(false); if (!CanEdit || staleDraft || !Plan.Changed) return;
-        if (!Application.isPlaying) { Plan.Apply(); feedback.text = "Editor 미리보기"; Refresh(); return; }
+        if (managementPreview || !Application.isPlaying) { Plan.Apply(); feedback.text = managementPreview ? "관리씬 미리보기 · 계정에 반영되지 않습니다" : "Editor 미리보기"; Refresh(); return; }
         try
         {
             if (!AccountGameplaySession.Current.ApplySkillTree(expectedTree, Plan.Planned)) return;

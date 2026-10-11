@@ -3433,8 +3433,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.06666667, g: 0.07058824, b: 0.05882353, a: 1}
+  m_Material: {fileID: 2100000, guid: 6673f70891e3a2b45b3ea8dab9961f1e, type: 2}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -11016,8 +11016,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 0.06666667, g: 0.07058824, b: 0.05882353, a: 1}
+  m_Material: {fileID: 2100000, guid: 6673f70891e3a2b45b3ea8dab9961f1e, type: 2}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -17753,7 +17753,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23ac82d68b3b3e54aa07a40dfcf1b06a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuestUiGradient
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 2100000, guid: 6673f70891e3a2b45b3ea8dab9961f1e, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -17761,8 +17761,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  top: {r: 0.06666667, g: 0.07058824, b: 0.05882353, a: 0.9098039}
-  bottom: {r: 0.06666667, g: 0.07058824, b: 0.05882353, a: 0.8235294}
+  top: {r: 1, g: 1, b: 1, a: 0.9098039}
+  bottom: {r: 1, g: 1, b: 1, a: 0.8235294}
   horizontal: 0
 --- !u!222 &6683158015596106704
 CanvasRenderer:
@@ -18793,6 +18793,7 @@ MonoBehaviour:
   dialogueSecondary: {fileID: 6198043391144488886}
   popupConfirm: {fileID: 8864511717013123138}
   popupCancel: {fileID: 7130417385625440006}
+  previewOnly: 0
 --- !u!1 &8307130814343973308
 GameObject:
   m_ObjectHideFlags: 0

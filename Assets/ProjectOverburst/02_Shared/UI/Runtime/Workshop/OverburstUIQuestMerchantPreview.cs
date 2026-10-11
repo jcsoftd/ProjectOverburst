@@ -32,7 +32,7 @@ public sealed class OverburstUIQuestMerchantPreview : MonoBehaviour
         view.popupConfirm.onClick.AddListener(()=>{completed=true;Show(Screen.Journal);});view.popupCancel.onClick.AddListener(()=>Show(Screen.MerchantDetail));
         view.dialoguePrimary.onClick.AddListener(()=>Show(Screen.MerchantList));
         view.journalInfo.primary.onClick.AddListener(()=>view.journalInfo.primaryLabel.text=view.journalInfo.primaryLabel.text=="목표 표시"?"표시 해제":"목표 표시");
-        ConnectMenu(0,workshop.ShowInventory);ConnectMenu(1,workshop.ShowEquipment);ConnectMenu(3,()=>Show(Screen.Journal));
+        ConnectMenu(0,workshop.ShowInventory);ConnectMenu(1,workshop.ShowEquipment);ConnectMenu(2,workshop.ShowSkillTree);ConnectMenu(3,()=>Show(Screen.Journal));
         foreach(var style in workshop.GetComponentsInChildren<QuestInventoryStyle>(true))
         {
             var inventory=style.GetComponentInParent<OverburstUIWindow>(true);var sort=inventory.GetComponentInChildren<TMPro.TMP_Dropdown>(true);

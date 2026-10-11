@@ -58,6 +58,10 @@ public sealed class OverburstUIWorkshopPanel : EditorWindow
         var root=GameObject.Find(OverburstUIWorkshopBuilder.GalleryName);
         if(!root){EditorGUILayout.HelpBox("UI 관리 씬을 열어주세요.",MessageType.Info);return;}
         if(GUILayout.Button("전체 전시 한눈에 보기",GUILayout.Height(28))){Selection.activeGameObject=root;Frame(root);}
+        if(GUILayout.Button("전체 원본 · 공용 부품 · 개발 표본",GUILayout.Height(25)))UIPrefabStructureWindow.Open();
+        var catalog=GameObject.Find(UIManagementCompletionBuilder.SourceCatalog);
+        if(catalog&&GUILayout.Button("관리씬 원본 목록 선택",GUILayout.Height(25)))Selection.activeGameObject=catalog;
+        if(Selection.activeGameObject&&Selection.activeGameObject.name.StartsWith("Assets/",System.StringComparison.Ordinal)&&GUILayout.Button("선택 원본 열기",GUILayout.Height(25)))AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<GameObject>(Selection.activeGameObject.name));
         if(GUILayout.Button("NPC 이름표 정식 프리팹",GUILayout.Height(25)))AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<GameObject>(NpcPresentationBuilder.PrefabPath));
         scroll=EditorGUILayout.BeginScrollView(scroll);
         foreach(Transform group in root.transform)
@@ -80,7 +84,8 @@ public sealed class OverburstUIWorkshopPanel : EditorWindow
         }
         GUILayout.Space(18);GUILayout.Label("게임 화면 미리보기",EditorStyles.boldLabel);
         var w=Object.FindFirstObjectByType<OverburstUIWorkshop>();
-        if(w){string[] names={"HUD","인벤토리","장비·능력치","창고 + 인벤토리","장비 + 인벤토리","몬스터 체력바","알림","등급·크기 비교","아이템 툴팁","상인 접근","상인 대화","상인 의뢰 목록","상인 의뢰 상세","개인 퀘스트 목록","의뢰 보고 확인","하단 통합 메뉴","치장사 접근","창 위치 초기화"};System.Action[] actions={w.ShowHud,w.ShowInventory,w.ShowEquipment,w.ShowStash,w.ShowComparison,w.ShowEnemies,w.ShowNotifications,w.ShowGrades,w.ShowTooltips,w.ShowQuestApproach,w.ShowQuestDialogue,w.ShowMerchantQuests,w.ShowMerchantQuestDetail,w.ShowPersonalQuests,w.ShowQuestReport,w.ShowCornerMenu,w.ShowStylistApproach,w.ResetLayout};for(int i=0;i<names.Length;i++)if(GUILayout.Button(names[i],GUILayout.Height(25)))actions[i]();}
+        if(w&&Application.isPlaying){string[] names={"HUD","인벤토리","장비·능력치","창고 + 인벤토리","장비 + 인벤토리","몬스터 체력바","알림","등급·크기 비교","아이템 툴팁","상인 접근","상인 대화","상인 의뢰 목록","상인 의뢰 상세","개인 퀘스트 목록","의뢰 보고 확인","하단 통합 메뉴","치장사 접근","상점 + 인벤토리","스킬트리","보스 HUD","보스 다음 단계","런 카드 공개","장비 전송","창 위치 초기화"};System.Action[] actions={w.ShowHud,w.ShowInventory,w.ShowEquipment,w.ShowStash,w.ShowComparison,w.ShowEnemies,w.ShowNotifications,w.ShowGrades,w.ShowTooltips,w.ShowQuestApproach,w.ShowQuestDialogue,w.ShowMerchantQuests,w.ShowMerchantQuestDetail,w.ShowPersonalQuests,w.ShowQuestReport,w.ShowCornerMenu,w.ShowStylistApproach,w.ShowShop,w.ShowSkillTree,w.ShowBoss,w.NextBossPhase,w.ShowRunCards,w.ShowRunTransfer,w.ResetLayout};for(int i=0;i<names.Length;i++)if(GUILayout.Button(names[i],GUILayout.Height(25)))actions[i]();}
+        if(!Application.isPlaying)EditorGUILayout.HelpBox("게임 미리보기 동작은 관리씬 Play에서 실행합니다.",MessageType.Info);
         GUILayout.Space(12);EditorGUILayout.LabelField("규격",EditorStyles.boldLabel);EditorGUILayout.HelpBox("기준 1920×1080 · 창 높이 776\n제목 26 / 소제목 17 / 본문 16 / 보조 14\n제목 Noto Serif KR · 본문 Pretendard Medium\n공용 슬롯 84×84 · 간격 8 · 슬롯 프리팹 하나",MessageType.None);
         EditorGUILayout.EndScrollView();
     }

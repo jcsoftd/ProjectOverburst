@@ -14,10 +14,10 @@ using Object=UnityEngine.Object;
 // Connected production instances. Only exhibit state, framing and character stills are overrides.
 public static class TitleCharacterManagementBuilder
 {
-    public const string GroupName="08_Title • 타이틀·캐릭터·메뉴";
+    public const string GroupName="09_Title • 타이틀·캐릭터·메뉴";
     public const string Art="Assets/ProjectOverburst/05_Art/UI/Title/Management";
     public static readonly string[] States={"title","characters","classes","name","creation","discard","quit","menu","return","settings"};
-    public static readonly string[] Names={"18 타이틀","19 보유 캐릭터","20 클래스 선택","21 이름 입력","22 캐릭터 생성","23 생성 취소 확인","24 타이틀 종료 확인","25 Esc 일시정지","26 타이틀 복귀 확인","27 설정"};
+    public static readonly string[] Names={"27 타이틀","28 보유 캐릭터","29 클래스 선택","30 이름 입력","31 캐릭터 생성","32 생성 취소 확인","33 타이틀 종료 확인","34 Esc 일시정지","35 타이틀 복귀 확인","36 설정"};
     [MenuItem("OVERBURST/UI/Add Title And Character Screens To Management")]
     public static void Apply()=>Apply(false);
     public static void RefreshOwnedInstances()=>Apply(true);
@@ -38,7 +38,7 @@ public static class TitleCharacterManagementBuilder
             for(int i=0;i<States.Length;i++)
             {
                 var existing=group.Find(Names[i]);var board=existing?(RectTransform)existing:Rect(Names[i],group,new Vector2(1920,1080));
-                board.anchoredPosition=new Vector2(i%3*2120,-9240-i/3*1320);
+                board.anchoredPosition=new Vector2(i%3*2120,-13200-i/3*1320);
                 var canvas=board.GetComponent<Canvas>();if(!canvas)canvas=board.gameObject.AddComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;
                 Label(board,font,"Board Title",Names[i],600,32);
                 Label(board,font,"Board Note","1920 × 1080 / 게임과 동일한 정식 프리팹 / 전시 상태만 다름",560,18);
@@ -88,6 +88,8 @@ public static class TitleCharacterManagementBuilder
                 Canvas.ForceUpdateCanvases();
                 // Overlay modal capture can resize a reused root and its parent canvas in Edit Mode.
                 board.sizeDelta=new Vector2(1920,1080);
+                board.localScale=Vector3.one;
+                board.anchoredPosition3D=new Vector3(i%3*2120,-13200-i/3*1320,0);
                 StretchRoot((RectTransform)instance.transform);
                 foreach(var appearance in instance.GetComponentsInChildren<AppearanceCustomizationPanel>(true))StretchRoot((RectTransform)appearance.transform);
                 foreach(var t in instance.GetComponentsInChildren<Transform>(true))

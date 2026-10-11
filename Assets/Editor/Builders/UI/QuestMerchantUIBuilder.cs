@@ -23,6 +23,36 @@ public static class QuestMerchantUIBuilder
     private static Color Gold => C("D9B357");
     private static Color Ivory => C("BDB39E");
     private static Color Muted => C("A3987B");
+    private static Material BackgroundMaterial()
+    {
+        const string path = Folder + "/Background_11120F.mat";
+        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (!material) { material = new Material(Shader.Find("UI/Default")); AssetDatabase.CreateAsset(material, path); }
+        // Dark vertex colors lose precision in a Linear canvas. Keep RGB in the material.
+        material.SetColor("_Color", C("11120F"));
+        EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+        return material;
+    }
+    public static void NormalizeBackgrounds()
+    {
+        AppearanceCustomizationBuilder.RequireIdle();
+        var root = PrefabUtility.LoadPrefabContents(Prefab);
+        try
+        {
+            var material = BackgroundMaterial();
+            var approach = root.transform.Find("Approach/Background").GetComponent<QuestUiGradient>();
+            approach.top = new Color(1, 1, 1, approach.top.a);
+            approach.bottom = new Color(1, 1, 1, approach.bottom.a);
+            approach.color = Color.white; approach.material = material; approach.SetVerticesDirty();
+            foreach (string path in new[] { "Dialogue/Window/Background", "Report/Window/Background" })
+            {
+                var background = root.transform.Find(path).GetComponent<Image>();
+                background.color = Color.white; background.material = material;
+            }
+            if (!PrefabUtility.SaveAsPrefabAsset(root, Prefab)) throw new InvalidOperationException("Quest UI background save failed.");
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
     [MenuItem("OVERBURST/UI/상인 퀘스트 시안 적용")]
     public static string Build()
     {
@@ -97,7 +127,7 @@ public static class QuestMerchantUIBuilder
     private static void Approach(QuestMerchantUI view, RectTransform root)
     {
         var menu = Rect(root, "Approach", 1060, 484, 370, 286.5f); view.approach = menu.gameObject;
-        Gradient(menu, "Background", 0, 0, 370, 286.5f, C("11120FE8"), C("11120FD2"));
+        Gradient(menu, "Background", 0, 0, 370, 286.5f, C("FFFFFFE8"), C("FFFFFFD2")).material = BackgroundMaterial();
         Border(menu, "Border", 0, 0, 370, 286.5f, C("77603C77"));
         view.approachName = Label(menu, "Name", 23, 15, 230, 28, "무기상인", 21, C("D6B781"), true);
         view.approachLocation = Label(menu, "Location", 270, 20, 77, 20, "대장간", 13, C("A39373")); view.approachLocation.alignment = TextAnchor.MiddleRight;
@@ -222,7 +252,7 @@ public static class QuestMerchantUIBuilder
     }
     private static void ModalBackground(RectTransform root)
     {
-        Solid(root, "Background", 0, 0, root.sizeDelta.x, root.sizeDelta.y, C("11120F"));
+        Solid(root, "Background", 0, 0, root.sizeDelta.x, root.sizeDelta.y, Color.white).material = BackgroundMaterial();
         SpriteRect(root, "Border", 0, 0, root.sizeDelta.x, root.sizeDelta.y, "e4a991a559ef25445ae21424b7a86668", Color.white, 2.25f);
     }
     private static RectTransform Frame(Transform parent, string name, float x, float y, bool journal, string heading, out Button close)

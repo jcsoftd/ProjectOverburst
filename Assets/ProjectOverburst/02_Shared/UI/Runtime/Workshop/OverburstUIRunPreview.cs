@@ -19,8 +19,13 @@ public sealed class OverburstUIRunPreview : MonoBehaviour
     public void ShowCards()
     {
         if (!EnsureUi()) return;
+        runUi.ShowCards(CardSamples(), _ => true);
+        TMP_Text subtitle = runUi.transform.Find("Modal/CardChoices/Subtitle")?.GetComponent<TMP_Text>();
+        if (subtitle != null) subtitle.text = "관리씬 전시 표본 · 선택은 계정에 반영되지 않습니다";
+        showing = true;
+    }
 
-        var cards = new[]
+    public static RunCardPresentation[] CardSamples() => new[]
         {
             new RunCardPresentation
             {
@@ -38,11 +43,6 @@ public sealed class OverburstUIRunPreview : MonoBehaviour
                 Icon = RunCardIconSet.Resolve("transfer_object"), Grade = ItemGrade.Common, IsReward = true
             }
         };
-        runUi.ShowCards(cards, _ => true);
-        TMP_Text subtitle = runUi.transform.Find("Modal/CardChoices/Subtitle")?.GetComponent<TMP_Text>();
-        if (subtitle != null) subtitle.text = "관리씬 전시 표본 · 선택은 계정에 반영되지 않습니다";
-        showing = true;
-    }
 
     public void ShowTransfer(OverburstUIWindow inventory, OverburstUIWindow equipment)
     {

@@ -17,6 +17,13 @@ public sealed class OverburstSkillTreeRoutes : MaskableGraphic
     readonly Dictionary<string, OverburstSkillTreeCatalog.Node> index = new Dictionary<string, OverburstSkillTreeCatalog.Node>();
     readonly HashSet<string> plannedAreas = new HashSet<string>(), committedAreas = new HashSet<string>();
     public enum RouteState { Inactive, Learned, PurchaseDraft, RefundDraft }
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        // Scene View needs the same generated route mesh after reopening a static management exhibit.
+        var preview = GetComponentInParent<OverburstSkillTreeUI>();
+        if (!Application.isPlaying && preview && preview.managementPreview) preview.Initialize();
+    }
     public void Configure(OverburstSkillTreeCatalog data, OverburstSkillTreePlan allocation, float mapScale, Vector2 mapPan, float canvasPixelScale = 1)
     {
         if(catalog!=data){index.Clear();foreach(var node in data.nodes)index.Add(node.id,node);}
