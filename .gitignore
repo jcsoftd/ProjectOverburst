@@ -67,6 +67,10 @@ Assets/_BrokenSceneBackup.meta
 Assets/ThirdParty/
 Assets/ThirdParty.meta
 
+# Cambria-derived quest glyph atlas; restore locally with NpcQuestMarkerBuilder.
+/Assets/ProjectOverburst/Resources/UI/Fonts/NpcNames/QuestMarks SDF.asset
+/Assets/ProjectOverburst/Resources/UI/Fonts/NpcNames/QuestMarks SDF.asset.meta
+
 # 공개 저장소에 재배포하지 않는 Unity Asset Store 원본 패키지
 /Packages/com.shadercrew.seethroughshader.core/
 

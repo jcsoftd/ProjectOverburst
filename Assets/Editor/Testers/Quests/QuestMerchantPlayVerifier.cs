@@ -151,6 +151,8 @@ public static class QuestMerchantPlayVerifier
         Check(Object.FindObjectsByType<QuestInventoryStyle>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"one inventory style binds to existing inventory controls");
         if(SessionState.GetBool(K+"npcPresentation",false)){yield return VerifyNpcPresentation(ui,account,actor);if(SessionState.GetBool(K+"edges",false))yield return VerifyNpcInputEdges(ui,account,actor);yield break;}
         var npc=WeaponMerchant();yield return Approach(npc,actor);Check(ui.SelectedOption==1,"approach defaults to trade");
+        NpcQuestMarkerVerifier.CheckLive(SessionState.GetBool(K+"replay",false)?null:"!",true);
+        yield return Capture("quest-head-before-accept");
         pointer.scroll=new Vector2(0,-120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(3);Check(ui.SelectedOption==2,"actual mouse wheel selects quest");
         yield return Click(ui.approachButtons[2]);Check(ui.Mode==QuestMerchantUI.WindowMode.Merchant&&!ui.DetailIsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"quest click opens list first and blocks combat");
         var row=FirstRow(ui);yield return Click(row.button);Check(ui.DetailIsOpen,"quest row opens additional right detail");
@@ -164,8 +166,10 @@ public static class QuestMerchantPlayVerifier
         Check(ui.merchantRows.GetComponentsInChildren<QuestRowView>().Single(r=>r.title.text=="미지의 지도").button.interactable==false,"prerequisite quest is visibly locked");
         yield return Capture("merchant-before-accept");yield return Click(ui.merchantInfo.primary);
         Check(account.Read().quests.Count==1&&account.Read().quests[0].state==SavedQuestState.Active,"actual accept button commits quest");
+        yield return Frames(2);NpcQuestMarkerVerifier.CheckLive("?",false);
         Check(new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load().quests.Count==1,"accept button checkpoint survives fresh disk reader");
         yield return KeyPress(Key.Escape);Check(ui.Mode==QuestMerchantUI.WindowMode.Merchant&&!ui.DetailIsOpen,"first Esc closes detail and keeps list");yield return KeyPress(Key.Escape);Check(ui.Mode==QuestMerchantUI.WindowMode.None&&!GameplayInputBlocker.IsGameplayInputBlocked,"second Esc releases modal owners");
+        yield return Capture("quest-head-active");
         yield return KeyPress(Key.J);Check(ui.Mode==QuestMerchantUI.WindowMode.Journal&&ui.journalRows.GetComponentsInChildren<QuestRowView>().Count(r=>r.gameObject.activeInHierarchy)==1,"J opens accepted personal list only");yield return Capture("journal-accepted");yield return Click(ui.journalInfo.primary);Check(account.Read().trackedQuestId==null,"tracking toggle checkpoints untracked state");yield return Click(ui.journalInfo.primary);Check(account.Read().trackedQuestId=="quest.main-town.weapon.first-hunt","tracking toggle restores active quest");yield return KeyPress(Key.Escape);
         yield return Approach(npc,actor);yield return Click(ui.approachButtons[0]);Check(ui.Mode==QuestMerchantUI.WindowMode.Dialogue,"direct dialogue click opens correct mode");yield return Click(ui.dialoguePrimary);Check(ui.dialoguePage.text.StartsWith("02"),"dialogue advances to second page");yield return Click(ui.dialoguePrimary);Check(!GameplayInputBlocker.IsGameplayInputBlocked,"dialogue finish releases input owners");
         yield return Approach(npc,actor);ui.SelectOption(1);yield return KeyPress(Key.F);
@@ -204,6 +208,8 @@ public static class QuestMerchantPlayVerifier
         Check(AccountQuestCommands.IsReady(new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load().quests[0]),"ready progress checkpoints before leaving run");
         var driver=PersistentSceneFlow.Instance.GetComponent<RunLifetimeDriver>();driver.RequestAbandon();yield return Wait(()=>WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"existing abandon flow returns to town",3600);
         Check(account.Read().quests[0].objectives[0].current==10,"failed run retains accepted quest progress");actor.Health.SetDamageDeathPrevention(actor,false);
+        yield return Frames(2);NpcQuestMarkerVerifier.CheckLive("?",true);
+        npc=WeaponMerchant();yield return Approach(npc,actor);yield return Capture("quest-head-ready");
         npc=WeaponMerchant();yield return OpenQuests(npc,actor);yield return Click(FirstRow(ui).button);yield return Click(ui.merchantInfo.primary);Check(ui.ReportIsOpen,"ready quest opens report confirmation");yield return Capture("report-native");
         int rewardGold=MerchantTradeItemUtility.GetInventoryGoldAmount(PlayerAccountInventoryService.SharedInventory);var beforeReward=account.Read();yield return Click(ui.popupConfirm);var completed=account.Read();
         Check(completed.quests[0].state==SavedQuestState.Completed&&completed.trackedQuestId==null&&MerchantTradeItemUtility.GetInventoryGoldAmount(PlayerAccountInventoryService.SharedInventory)==rewardGold+100,"actual report grants gold and completes once");
@@ -224,6 +230,8 @@ public static class QuestMerchantPlayVerifier
         Check(AccountQuestCommands.IsReady(account.Read().quests[1]),"actual mapped run activation completes third objective");Check(!Object.FindFirstObjectByType<MapDungeonPortalPanel>(),"portal panel releases owner before dungeon activation");driver.RequestAbandon();yield return Wait(()=>WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"selected map run returns to town",3600);
         actor=PlayerContext.Instance.CurrentActor;actor.Health.SetDamageDeathPrevention(actor,false);npc=WeaponMerchant();yield return OpenQuests(npc,actor);mapRow=ui.merchantRows.GetComponentsInChildren<QuestRowView>().Single(r=>r.title.text=="미지의 지도");yield return Click(mapRow.button);yield return Click(ui.merchantInfo.primary);Check(ui.popupGold.text.StartsWith("150"),"report confirmation displays selected quest reward");yield return Click(ui.popupConfirm);ui.Close();
         Check(account.FlushPendingSave(),"all final quest and trade state flushed");var disk=new EasySaveAccountStore(AccountBootstrap.SaveDirectory).Load();Check(disk.quests.Count==2&&disk.quests.All(q=>q.state==SavedQuestState.Completed),"both completed quests survive final disk reload");
+        yield return Frames(2);NpcQuestMarkerVerifier.CheckLive(null,true);
+        yield return Capture("quest-head-completed");
         AccountInvariants.Validate(disk,registry);yield return KeyPress(Key.J);yield return Capture("journal-completed");yield return KeyPress(Key.Escape);Check(!GameplayInputBlocker.IsGameplayInputBlocked,"final gameplay input owners released");
         Write("final-account.json",disk);
     }
