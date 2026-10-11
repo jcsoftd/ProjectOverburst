@@ -98,7 +98,7 @@ OVERBURST는 대검과 다섯 원소의 힘으로 몬스터 무리를 돌파하�
 
 ## 직접 실행하기
 
-개발 소스는 [`JC` 브랜치](https://github.com/jcsoftd/ProjectOverburst/tree/JC)를 기준으로 합니다. **Unity 6 `6000.3.15f1`**을 사용합니다.
+개발 소스는 [`JC` 브랜치](https://github.com/jcsoftd/ProjectOverburst/tree/JC)를 기준으로 합니다. Unity 6 `6000.3.15f1`을 사용합니다.
 
 ```bash
 git clone --branch JC https://github.com/jcsoftd/ProjectOverburst.git
