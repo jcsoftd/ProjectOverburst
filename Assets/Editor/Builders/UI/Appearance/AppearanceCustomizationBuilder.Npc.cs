@@ -40,7 +40,7 @@ public static partial class AppearanceCustomizationBuilder
             var prompt=new GameObject("Interaction Prompt",typeof(TextMeshPro),typeof(AppearanceStylistLabel));prompt.transform.SetParent(root.transform,false);prompt.transform.localPosition=new Vector3(0,1.92f,0);
             var promptText=prompt.GetComponent<TextMeshPro>();promptText.font=bodyFont;promptText.fontSize=2f;promptText.color=Ivory;promptText.alignment=TextAlignmentOptions.Center;promptText.rectTransform.sizeDelta=new Vector2(3,.3f);promptText.text="F : 외모 변경";
             var serialized=new SerializedObject(npc);serialized.FindProperty("promptRoot").objectReferenceValue=prompt;serialized.FindProperty("promptText").objectReferenceValue=promptText;serialized.ApplyModifiedPropertiesWithoutUndo();
-            prompt.SetActive(false);PrefabUtility.SaveAsPrefabAsset(root,NpcPath);
+            prompt.SetActive(false);NpcPresentationBuilder.ApplyName(npc);PrefabUtility.SaveAsPrefabAsset(root,NpcPath);
         }
         finally{if(root)Object.DestroyImmediate(root);EditorSceneManager.ClosePreviewScene(scene);}
         BuildShowcase();

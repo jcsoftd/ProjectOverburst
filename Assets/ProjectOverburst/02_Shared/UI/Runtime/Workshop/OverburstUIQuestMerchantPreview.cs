@@ -8,7 +8,7 @@ using UnityEngine.UI;
 [DefaultExecutionOrder(-32000)]
 public sealed class OverburstUIQuestMerchantPreview : MonoBehaviour
 {
-    public enum Screen { Approach, Dialogue, MerchantList, MerchantDetail, Journal, EmptyJournal, Report, HudMenu }
+    public enum Screen { Approach, Dialogue, MerchantList, MerchantDetail, Journal, EmptyJournal, Report, HudMenu, StylistApproach }
     public QuestMerchantUI view;
     public OverburstHudMenu menu;
     public OverburstUIWorkshop workshop;
@@ -25,7 +25,7 @@ public sealed class OverburstUIQuestMerchantPreview : MonoBehaviour
         menu.gameObject.SetActive(true);menu.Initialize();menu.CloseImmediate();
         availableRow.button.onClick.AddListener(()=>Show(Screen.MerchantDetail));
         personalRow.button.onClick.AddListener(()=>Show(Screen.Journal));
-        for(int i=0;i<3;i++){int option=i;view.approachButtons[i].onClick.AddListener(()=>{if(option==0)Show(Screen.Dialogue);else if(option==1)workshop.ShowShop();else Show(Screen.MerchantList);});}
+        for(int i=0;i<3;i++){int option=i;view.approachButtons[i].onClick.AddListener(()=>{if(sample==Screen.StylistApproach){Hide();Overburst.Appearance.AppearanceCustomizationPanel.Install(workshop.transform)?.OpenExhibition();return;}if(option==0)Show(Screen.Dialogue);else if(option==1)workshop.ShowShop();else Show(Screen.MerchantList);});}
         foreach(var button in new[]{view.listClose,view.listHeaderClose,view.journalInfo.secondary,view.journalInfo.headerClose,view.dialogueSecondary})button.onClick.AddListener(Close);
         view.merchantInfo.secondary.onClick.AddListener(()=>Show(Screen.MerchantList));view.merchantInfo.headerClose.onClick.AddListener(()=>Show(Screen.MerchantList));
         view.merchantInfo.primary.onClick.AddListener(()=>{accepted=true;Show(Screen.MerchantDetail);});
@@ -66,11 +66,11 @@ public sealed class OverburstUIQuestMerchantPreview : MonoBehaviour
         lockedRow.Present("미지의 지도","첫 사냥을 완료하면 받을 수 있습니다.","150 G  ·  경험치 40","선행 의뢰 필요",false,false);
         personalRow.Present(definition.title,"","",completed?"완료":"진행 중",true,true);
         availableRow.gameObject.SetActive(true);lockedRow.gameObject.SetActive(true);personalRow.gameObject.SetActive(screen!=Screen.EmptyJournal);
-        view.approachName.text="무기상인";view.approachLocation.text="대장간";view.SelectOption(1);
+        view.ConfigureApproach(screen==Screen.StylistApproach);view.approachName.text=screen==Screen.StylistApproach?"치장사":"무기상인";view.approachLocation.text=screen==Screen.StylistApproach?"치장 천막":"대장간";view.SelectOption(1);
         view.dialogueBody.text="마을 밖으로 나갈 생각인가?\n무기부터 점검하게. 밖에서는 자네를 지켜줄 사람이 없으니.";
         view.popupMessage.text="첫 사냥의 목표를 달성했습니다.\n무기상인에게 보고하고 보상을 받으시겠습니까?";
         view.popupGold.text="100 G";view.popupExperience.text="30 XP";view.popupRewards.SetActive(true);
-        if(screen==Screen.Approach)view.approach.SetActive(true);
+        if(screen==Screen.Approach || screen==Screen.StylistApproach)view.approach.SetActive(true);
         else if(screen==Screen.Dialogue)view.dialogue.SetActive(true);
         else if(screen==Screen.MerchantList || screen==Screen.MerchantDetail){view.merchantList.SetActive(true);view.merchantDetail.SetActive(screen==Screen.MerchantDetail);}
         else if(screen==Screen.Journal || screen==Screen.EmptyJournal){view.journal.SetActive(true);if(screen==Screen.EmptyJournal)view.PresentPreview(state,null,true);}

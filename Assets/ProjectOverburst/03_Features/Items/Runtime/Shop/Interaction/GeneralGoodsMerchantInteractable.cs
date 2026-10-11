@@ -14,6 +14,7 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
     [SerializeField] private Transform player;
     [SerializeField] private GameObject promptRoot;
     [SerializeField] private TextMeshPro promptText;
+    [SerializeField] private TextMeshPro nameLabel;
     private string stableInteractionId;
 
     public Component InteractionComponent => this;
@@ -93,6 +94,7 @@ public class GeneralGoodsMerchantInteractable : MonoBehaviour, IInteractable
                 player = playerObject.transform;
         }
 
+        if (nameLabel != null && merchantDefinition != null) nameLabel.text = merchantDefinition.MerchantName;
         if (promptText != null)
             promptText.text = "F : " + (merchantDefinition != null ? merchantDefinition.MerchantName : "상인");
     }

@@ -36,11 +36,13 @@ public sealed class QuestMerchantUI : MonoBehaviour
     public bool IsPreviewOnly => previewOnly;
     public static QuestMerchantUI Current { get; private set; }
     public WindowMode Mode { get; private set; }
-    public GeneralGoodsMerchantInteractable ApproachMerchant => menuTarget;
+    public GeneralGoodsMerchantInteractable ApproachMerchant => menuTarget as GeneralGoodsMerchantInteractable;
+    public IInteractable ApproachTarget => menuTarget;
     public int SelectedOption { get; private set; } = 1;
     public bool DetailIsOpen => merchantDetail && merchantDetail.activeSelf;
     public bool ReportIsOpen => reportPopup && reportPopup.activeSelf;
-    private GeneralGoodsMerchantInteractable menuTarget, sessionMerchant;
+    private IInteractable menuTarget;
+    private GeneralGoodsMerchantInteractable sessionMerchant;
     private PlayerActorRuntime actor;
     private PlayerInteractionController interaction;
     private InventoryUI inventory;
@@ -51,6 +53,7 @@ public sealed class QuestMerchantUI : MonoBehaviour
     private int executeFrame = -1, escapeFrame = -1, dialogueIndex;
     private float nextWheel;
     private bool hasTracking;
+    private bool? approachIsStylist;
     private long badgeRevision = -1;
     private GeneralGoodsMerchantInteractable badgeMerchant;
     private readonly List<QuestRowView> merchantPool = new List<QuestRowView>();
@@ -95,21 +98,47 @@ public sealed class QuestMerchantUI : MonoBehaviour
         approach.SetActive(false); merchantList.SetActive(false); merchantDetail.SetActive(false);
         journal.SetActive(false); dialogue.SetActive(false); reportPopup.SetActive(false); tracker.SetActive(false);
     }
-    public void Present(GeneralGoodsMerchantInteractable merchant, PlayerActorRuntime player, PlayerInteractionController controller)
+    public void Present(IInteractable target, PlayerActorRuntime player, PlayerInteractionController controller)
     {
         actor = player; interaction = controller;
         if (Mode != WindowMode.None) { approach.SetActive(false); return; }
-        if (merchant != menuTarget) { menuTarget = merchant; SelectedOption = 1; nextWheel = 0; }
-        bool visible = merchant && merchant.Definition && actor && !GameplayInputBlocker.IsGameplayInputBlocked
+        var merchant = target as GeneralGoodsMerchantInteractable;
+        var stylist = target as AppearanceStylistInteractable;
+        if (!ReferenceEquals(target, menuTarget)) { menuTarget = target; SelectedOption = 1; nextWheel = 0; badgeRevision = -1; }
+        bool visible = (merchant && merchant.Definition || stylist) && actor && !GameplayInputBlocker.IsGameplayInputBlocked
             && WorldSessionState.IsHideout && PersistentSceneFlow.Instance?.IsSwitching != true;
         approach.SetActive(visible);
         if (!visible) return;
-        approachName.text = merchant.Definition.MerchantName;
-        approachLocation.text = MerchantDisplayPolicy.GetCategoryLabel(merchant.Definition) == "무기" ? "대장간" : "상점";
+        ConfigureApproach(stylist != null);
+        approachName.text = stylist ? "치장사" : merchant.Definition.MerchantName;
+        approachLocation.text = stylist ? "치장 천막" : MerchantDisplayPolicy.GetCategoryLabel(merchant.Definition) == "무기" ? "대장간" : "상점";
         RefreshApproachBadge(); RefreshSelection();
     }
+    public void ConfigureApproach(bool stylist)
+    {
+        if (approachIsStylist == stylist) return;
+        approachIsStylist = stylist;
+        for (int i = 0; i < approachButtons.Length; i++)
+        {
+            approachButtons[i].gameObject.SetActive(!stylist || i == 1);
+            var row = (RectTransform)approachButtons[i].transform;
+            row.anchoredPosition = new Vector2(row.anchoredPosition.x, -(70.71f + (stylist ? 0 : i * 59)));
+        }
+        approachButtons[1].transform.Find("Label").GetComponent<Text>().text = stylist ? "외모 변경" : "거래";
+        var rect = (RectTransform)approach.transform;
+        rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, stylist ? 168.5f : 286.5f);
+        float height = stylist ? 168.5f : 286.5f;
+        foreach (var name in new[]{"Background", "Border Left", "Border Right"})
+            ((RectTransform)approach.transform.Find(name)).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+        var bottom = (RectTransform)approach.transform.Find("Border Bottom");
+        bottom.anchoredPosition = new Vector2(bottom.anchoredPosition.x, -(height - 1));
+        var hint = approach.transform.Find("Hint").GetComponent<Text>();
+        hint.rectTransform.anchoredPosition = new Vector2(hint.rectTransform.anchoredPosition.x, -(stylist ? 137 : 255));
+        hint.text = stylist ? "클릭 / F 실행" : "휠 선택  ·  클릭 / F 실행";
+        if (stylist) approachBadge.gameObject.SetActive(false);
+    }
     public void SelectOption(int index)
-    { SelectedOption = Mathf.Clamp(index, 0, 2); RefreshSelection(); }
+    { SelectedOption = menuTarget is AppearanceStylistInteractable ? 1 : Mathf.Clamp(index, 0, 2); RefreshSelection(); }
     private void RefreshSelection()
     {
         for (int i = 0; i < approachSelections.Length; i++)
@@ -117,21 +146,30 @@ public sealed class QuestMerchantUI : MonoBehaviour
     }
     private void ClickOption(int index)
     {
-        if (!approach.activeInHierarchy || !interaction || !menuTarget) return;
+        if (!approach.activeInHierarchy || !interaction || menuTarget == null || !menuTarget.InteractionComponent) return;
         SelectOption(index);
         interaction.ExecuteMerchantOption(menuTarget, index);
     }
-    public InteractionExecutionResult Execute(GeneralGoodsMerchantInteractable target, PlayerActorRuntime player, int option)
+    public InteractionExecutionResult Execute(IInteractable target, PlayerActorRuntime player, int option)
     {
-        if (!target || !player || Mode != WindowMode.None || !approach.activeInHierarchy
-            || target != menuTarget || executeFrame == Time.frameCount || GameplayInputBlocker.IsGameplayInputBlocked
+        if (target == null || !target.InteractionComponent || !player || Mode != WindowMode.None || !approach.activeInHierarchy
+            || !ReferenceEquals(target, menuTarget) || executeFrame == Time.frameCount || GameplayInputBlocker.IsGameplayInputBlocked
             || player.Health == null || player.Health.IsDead || PersistentSceneFlow.Instance?.IsSwitching == true
-            || !WorldSessionState.IsHideout || Vector3.Distance(player.transform.position, target.transform.position) > target.InteractionRange)
+            || !WorldSessionState.IsHideout || Vector3.Distance(player.transform.position, target.InteractionTransform.position) > target.InteractionRange)
             return InteractionExecutionResult.Rejected;
         var director = player.GetComponent<InteractionDirector>();
         if (!director || !ReferenceEquals(director.Refresh(player), target)) return InteractionExecutionResult.Rejected;
-        executeFrame = Time.frameCount; actor = player; sessionMerchant = target;
-        if (option == 1) { target.OpenTrade(); approach.SetActive(false); return InteractionExecutionResult.Succeeded; }
+        executeFrame = Time.frameCount; actor = player;
+        if (target is AppearanceStylistInteractable stylist)
+        {
+            if (option != 1) return InteractionExecutionResult.Rejected;
+            var result = stylist.TryInteract(player);
+            if (result != InteractionExecutionResult.Rejected) approach.SetActive(false);
+            return result;
+        }
+        sessionMerchant = target as GeneralGoodsMerchantInteractable;
+        if (!sessionMerchant) return InteractionExecutionResult.Rejected;
+        if (option == 1) { sessionMerchant.OpenTrade(); approach.SetActive(false); return InteractionExecutionResult.Succeeded; }
         if (option == 0) { Mode = WindowMode.Dialogue; dialogueIndex = 0; dialogue.SetActive(true); RefreshDialogue(); }
         else { Mode = WindowMode.Merchant; selectedQuestId = null; merchantList.SetActive(true); merchantDetail.SetActive(false); RefreshMerchant(); }
         BeginModal();
@@ -209,11 +247,12 @@ public sealed class QuestMerchantUI : MonoBehaviour
     { QuestAvailability.Available => "수락 가능", QuestAvailability.Active => "진행 중", QuestAvailability.ReadyToReport => "보고 가능", QuestAvailability.Completed => "완료", _ => "선행 의뢰 필요" };
     private void RefreshApproachBadge()
     {
-        if (!menuTarget || AccountGameplaySession.Current == null) return;
-        if (badgeRevision == AccountGameplaySession.Current.Revision && badgeMerchant == menuTarget) return;
-        badgeRevision = AccountGameplaySession.Current.Revision; badgeMerchant = menuTarget;
+        var merchant = menuTarget as GeneralGoodsMerchantInteractable;
+        if (!merchant || AccountGameplaySession.Current == null) { approachBadge.gameObject.SetActive(false); return; }
+        if (badgeRevision == AccountGameplaySession.Current.Revision && badgeMerchant == merchant) return;
+        badgeRevision = AccountGameplaySession.Current.Revision; badgeMerchant = merchant;
         var state = AccountGameplaySession.Current.Read();
-        var definitions = QuestCatalog.All.Where(q => q.giverMerchantId == MerchantReputationService.GetStableMerchantId(menuTarget.Definition));
+        var definitions = QuestCatalog.All.Where(q => q.giverMerchantId == MerchantReputationService.GetStableMerchantId(merchant.Definition));
         int ready = definitions.Count(q => AccountQuestCommands.Availability(state, q) == QuestAvailability.ReadyToReport);
         int available = definitions.Count(q => AccountQuestCommands.Availability(state, q) == QuestAvailability.Available);
         approachBadge.text = ready > 0 ? "보고 가능 " + ready : available > 0 ? "새 의뢰 " + available : "";

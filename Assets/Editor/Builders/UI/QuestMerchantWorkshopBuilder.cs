@@ -30,19 +30,28 @@ public static class QuestMerchantWorkshopBuilder
         if(gallery.transform.Find(GroupName)||workshop.transform.Find(LiveName))throw new InvalidOperationException("Quest management registration already exists; inspect instead of rebuilding");
         var group=new GameObject(GroupName);SceneManager.MoveGameObjectToScene(group,scene);group.transform.SetParent(gallery.transform,false);
         float bottom=gallery.GetComponentsInChildren<Canvas>(true).Select(c=>c.transform.localPosition.y).DefaultIfEmpty(0).Min()-1320;
-        for(int i=0;i<8;i++)
-        {
-            var board=Rect((18+i).ToString("00")+" "+((OverburstUIQuestMerchantPreview.Screen)i),group.transform,new Vector2(i%3*2120,bottom-i/3*1320),new Vector2(1920,1080));
+        for(int i=0;i<9;i++)CreateBoard(group.transform,i,bottom);
+        var live=Rect(LiveName,workshop.transform,Vector2.zero,new Vector2(1920,1080));Stretch(live);var livePreview=Create(live,workshop);
+        var serialized=new SerializedObject(workshop);serialized.FindProperty("questPreview").objectReferenceValue=livePreview;serialized.ApplyModifiedPropertiesWithoutUndo();
+        livePreview.Hide();InstallInventoryStyles(scene);RefreshInventorySamples(scene);EditorSceneManager.MarkSceneDirty(scene);
+    }
+    public static void AppendStylist(Scene scene)
+    {
+        var gallery=scene.GetRootGameObjects().Single(r=>r.name==OverburstUIWorkshopBuilder.GalleryName);
+        var group=gallery.transform.Find(GroupName);
+        if(!group)throw new InvalidOperationException("Quest gallery missing");
+        if(!group.Find("26 StylistApproach"))CreateBoard(group,8,group.GetChild(0).localPosition.y);
+        EditorSceneManager.MarkSceneDirty(scene);
+    }
+    static void CreateBoard(Transform group,int i,float bottom)
+    {
+            var board=Rect((18+i).ToString("00")+" "+((OverburstUIQuestMerchantPreview.Screen)i),group,new Vector2(i%3*2120,bottom-i/3*1320),new Vector2(1920,1080));
             var canvas=board.gameObject.AddComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;
             var backdrop=Rect("Backdrop",board,Vector2.zero,new Vector2(1920,1080)).gameObject.AddComponent<Image>();backdrop.color=new Color(.055f,.048f,.043f);backdrop.raycastTarget=false;
             Label(board,"Board Title",new Vector2(-940,600),board.name+" · 정식 프리팹",28);
             Label(board,"Board Note",new Vector2(-940,562),"1920 × 1080 · Connected · 수치/선택/표시 상태만 전시 override",16);
             var preview=Create(board,null);preview.galleryOnly=true;preview.Show((OverburstUIQuestMerchantPreview.Screen)i);
             foreach(var child in board.GetComponentsInChildren<Transform>(true)){child.gameObject.layer=31;child.gameObject.tag="EditorOnly";Record(child.gameObject);foreach(var component in child.GetComponents<Component>())if(component)Record(component);}
-        }
-        var live=Rect(LiveName,workshop.transform,Vector2.zero,new Vector2(1920,1080));Stretch(live);var livePreview=Create(live,workshop);
-        var serialized=new SerializedObject(workshop);serialized.FindProperty("questPreview").objectReferenceValue=livePreview;serialized.ApplyModifiedPropertiesWithoutUndo();
-        livePreview.Hide();InstallInventoryStyles(scene);RefreshInventorySamples(scene);EditorSceneManager.MarkSceneDirty(scene);
     }
     public static void RefreshInventorySamples(Scene scene)
     {

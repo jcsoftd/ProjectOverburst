@@ -49,11 +49,11 @@ public static class QuestMerchantPlayVerifier
     }
     static string Dir(string name,string destination){string path=Path.GetFullPath(Path.Combine(destination,name));Directory.CreateDirectory(path);return path;}
     static void Write(string name,object data)=>File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(data,Formatting.Indented));
-    public static void Start(string label,string fixture=null,bool inputEdges=false)
+    public static void Start(string label,string fixture=null,bool inputEdges=false,bool npcPresentationOnly=false)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("External settings directory active");
-        SessionState.SetBool(K+"edges",inputEdges);SessionState.EraseString(K+"checks");checks.Clear();SessionState.SetBool(K+"replay",fixture!=null);string destination=Destination;
+        SessionState.SetBool(K+"npcPresentation",npcPresentationOnly);SessionState.SetBool(K+"edges",inputEdges);SessionState.EraseString(K+"checks");checks.Clear();SessionState.SetBool(K+"replay",fixture!=null);string destination=Destination;
         output=Dir(label,destination);string save=Path.Combine(output,"isolated-save");Directory.CreateDirectory(save);
         if(fixture!=null)foreach(string name in new[]{"account-A.es3","account-B.es3"})if(File.Exists(Path.Combine(fixture,name)))File.Copy(Path.Combine(fixture,name),Path.Combine(save,name),false);
         if(fixture==null)
@@ -149,6 +149,7 @@ public static class QuestMerchantPlayVerifier
         var ui=QuestMerchantUI.Current;var account=AccountGameplaySession.Current;var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var actor=PlayerContext.Instance.CurrentActor;
         Check(ui && QuestSession.Current && QuestSession.Current.IsBoundTo(account),"one quest session binds to current runtime account");
         Check(Object.FindObjectsByType<QuestInventoryStyle>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length==1,"one inventory style binds to existing inventory controls");
+        if(SessionState.GetBool(K+"npcPresentation",false)){yield return VerifyNpcPresentation(ui,account,actor);yield break;}
         var npc=WeaponMerchant();yield return Approach(npc,actor);Check(ui.SelectedOption==1,"approach defaults to trade");
         pointer.scroll=new Vector2(0,-120);yield return Frames(2);pointer.scroll=Vector2.zero;yield return Frames(3);Check(ui.SelectedOption==2,"actual mouse wheel selects quest");
         yield return Click(ui.approachButtons[2]);Check(ui.Mode==QuestMerchantUI.WindowMode.Merchant&&!ui.DetailIsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"quest click opens list first and blocks combat");
@@ -227,6 +228,45 @@ public static class QuestMerchantPlayVerifier
         Write("final-account.json",disk);
     }
 
+    static IEnumerator VerifyNpcPresentation(QuestMerchantUI ui,AccountGameplaySession account,PlayerActorRuntime actor)
+    {
+        var merchants=Object.FindObjectsByType<GeneralGoodsMerchantInteractable>(FindObjectsSortMode.None).Where(n=>n.gameObject.scene.name==PersistentSceneFlow.MainSceneName).ToArray();
+        var stylist=Object.FindObjectsByType<AppearanceStylistInteractable>(FindObjectsSortMode.None).Single(n=>n.gameObject.scene.name==PersistentSceneFlow.MainSceneName);
+        Check(merchants.Length==4,"four town merchants have authored name labels");
+        var before=ES3.Serialize(account.Read());Write("account-before.json",account.Read());
+        foreach(Component npc in merchants.Cast<Component>().Concat(new Component[]{stylist}))
+        {
+            var label=npc.GetComponentsInChildren<TextMeshPro>(true).Single(t=>t.name=="NPC Name" || t.name=="Stylist Name");
+            string expected=npc is GeneralGoodsMerchantInteractable merchant?merchant.Definition.MerchantName:"치장사";
+            Check(label.text==expected&&label.gameObject.activeInHierarchy,"always-visible name: "+expected);
+            Check(AssetDatabase.GetAssetPath(label.font)==NpcPresentationBuilder.FontPath&&Mathf.Abs(label.fontSize-2.8f)<.001f,"common font and size: "+expected);
+            Check(label.font.HasCharacters(expected)&&!label.raycastTarget,"all name glyphs and no pointer interception: "+expected);
+            ActorTeleportUtility.TeleportSafely(actor.transform,npc.transform.position+npc.transform.forward*1.35f,Quaternion.LookRotation(-npc.transform.forward));yield return Frames(15);
+            Check(ui.approach.activeInHierarchy&&ReferenceEquals(actor.GetComponent<PlayerInteractionController>().Current,npc),"shared approach selects "+expected);
+            Check(Mathf.Abs(Quaternion.Dot(label.transform.rotation,Camera.main.transform.rotation))>.999f,"name faces gameplay camera: "+expected);
+            yield return Capture("npc-name-"+expected);
+        }
+        var controller=actor.GetComponent<PlayerInteractionController>();
+        Check(ui.approachName.text=="치장사"&&ui.approachButtons.Count(b=>b.gameObject.activeInHierarchy)==1,"stylist uses one common approach row");
+        Check(ui.approachButtons[1].transform.Find("Label").GetComponent<Text>().text=="외모 변경"&&ui.SelectedOption==1,"stylist action caption and F selection");
+        Check(!Field<GameObject>(stylist,"promptRoot").activeSelf,"legacy floating stylist F prompt hidden");
+        Check(!GameplayInputBlocker.IsGameplayInputBlocked,"approach does not block movement");
+        var position=actor.transform.position;InputSystem.QueueStateEvent(keyboard,new KeyboardState(Key.W));yield return Frames(15);InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return Frames(4);
+        Check(Vector3.Distance(position,actor.transform.position)>.02f&&!GameplayInputBlocker.IsGameplayInputBlocked,"actual movement remains enabled with approach visible");
+        ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+stylist.transform.forward*1.35f,Quaternion.LookRotation(-stylist.transform.forward));yield return Frames(10);
+        ui.SelectOption(2);Check(ui.SelectedOption==1,"wheel/selection cannot choose unavailable stylist actions");
+        yield return KeyPress(Key.F);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"F opens existing stylist appearance session");
+        Check(!ui.approach.activeInHierarchy&&GameplayInputBlocker.IsGameplayInputBlocked,"actual appearance window takes modal ownership");yield return Capture("stylist-F-open");
+        yield return KeyPress(Key.F);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"F closes without reopening on same frame");yield return Frames(8);
+        yield return Click(ui.approachButtons[1]);Check(AppearanceCustomizationPanel.IsOpen&&AppearanceCustomizationPanel.Instance.Owner==stylist,"physical click opens same stylist session");
+        yield return KeyPress(Key.Escape);Check(!AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"Esc closes stylist session and releases owners");yield return Frames(8);
+        stylist.enabled=false;yield return Frames(4);Check(!ui.approach.activeInHierarchy&&controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected,"disabled stylist rejects retained command");stylist.enabled=true;yield return Frames(6);
+        ActorTeleportUtility.TeleportSafely(actor.transform,stylist.transform.position+Vector3.forward*9,actor.transform.rotation);yield return Frames(8);Check(controller.ExecuteMerchantOption(stylist,1)==InteractionExecutionResult.Rejected&&!AppearanceCustomizationPanel.IsOpen,"out-of-range click cannot open stylist");
+        Write("account-after-stylist.json",account.Read());Check(ES3.Serialize(account.Read()).SequenceEqual(before),"name display and unchanged stylist visits preserve whole account snapshot");
+        var weapon=WeaponMerchant();yield return Approach(weapon,actor);Check(ui.approachButtons.All(b=>b.gameObject.activeInHierarchy)&&ui.approachButtons[1].transform.Find("Label").GetComponent<Text>().text=="거래","merchant restores three options after stylist");
+        Check(Mathf.Abs(((RectTransform)ui.approach.transform).rect.height-286.5f)<.1f,"merchant frame restores original height");Write("merchant-selection-before-F.json",new{option=ui.SelectedOption,pointerX=pointer.position.x,pointerY=pointer.position.y});pointer.position=new Vector2(40,50);yield return Frames(3);ui.SelectOption(1);yield return KeyPress(Key.F);Check(Field<ShopUI>(weapon,"shopUI")?.IsOpenFor(weapon.Definition)==true,"merchant F still opens trade");Field<ShopUI>(weapon,"shopUI")?.Close();yield return Frames(8);
+        Write("account-after-trade-open.json",account.Read());
+    }
     static IEnumerator VerifyMenuAndPortraits(QuestMerchantUI ui,AccountGameplaySession account,PlayerActorRuntime actor)
     {
         var menu=OverburstHudMenu.Instance;
@@ -322,7 +362,7 @@ public static class QuestMerchantPlayVerifier
     {
         EditorApplication.update-=Tick;EditorApplication.update-=Begin;EditorApplication.update-=Interrupted;while(work.Count>0)(work.Pop() as IDisposable)?.Dispose();
         bool own=OwnPlay();if(own && QuestMerchantUI.Current)QuestMerchantUI.Current.Close();RestoreInput();
-        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseBool(K+"replay");SessionState.EraseBool(K+"edges");SessionState.EraseFloat(K+"deadline");
+        Application.runInBackground=SessionState.GetBool(K+"background",Application.runInBackground);SessionState.EraseBool(K+"background");SessionState.EraseString(K+"pending");SessionState.EraseBool(K+"running");SessionState.EraseBool(K+"replay");SessionState.EraseBool(K+"edges");SessionState.EraseBool(K+"npcPresentation");SessionState.EraseFloat(K+"deadline");
         output=SessionState.GetString(K+"return",output);
         if(checks.Count==0){var saved=SessionState.GetString(K+"checks","");if(!string.IsNullOrEmpty(saved))checks.AddRange(JsonConvert.DeserializeObject<List<string>>(saved));}
         try{Write("play-result.json",new{success=error==null,checks,error=error?.ToString()});}

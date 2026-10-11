@@ -310,6 +310,7 @@ public static class MainTownBuilder
         visual.transform.localPosition = Vector3.up * (-bounds.min.y * visual.transform.localScale.y);
         var collider = root.AddComponent<CapsuleCollider>(); collider.center = new Vector3(0, .9f, 0); collider.height = 1.8f; collider.radius = .28f;
         AddPrompt(interaction, root.transform, 2.35f);
+        NpcPresentationBuilder.ApplyName(interaction);
         return root.transform;
     }
 

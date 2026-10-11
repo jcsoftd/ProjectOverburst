@@ -35,8 +35,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 2.15}
-  m_SizeDelta: {x: 2, y: 0.3}
+  m_AnchoredPosition: {x: 0, y: 2.35}
+  m_SizeDelta: {x: 3.2, y: 0.4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &7703119624752802288
 MeshRenderer:
@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -6158758227845449705, guid: 2bf9cc7f7853b3643bb3d2d9e994a70f, type: 2}
+  - {fileID: -6249254153702834515, guid: 73300497752c65543af25272a053fe80, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -101,7 +101,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshPro
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -109,15 +109,15 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uCE58\uC7A5\uC0AC"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2bf9cc7f7853b3643bb3d2d9e994a70f, type: 2}
-  m_sharedMaterial: {fileID: -6158758227845449705, guid: 2bf9cc7f7853b3643bb3d2d9e994a70f, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73300497752c65543af25272a053fe80, type: 2}
+  m_sharedMaterial: {fileID: -6249254153702834515, guid: 73300497752c65543af25272a053fe80, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.82, g: 0.68, b: 0.4, a: 1}
+  m_fontColor: {r: 0.85490197, g: 0.7294118, b: 0.47843137, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -134,8 +134,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 2.6
-  m_fontSizeBase: 2.6
+  m_fontSize: 2.8
+  m_fontSizeBase: 2.8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -151,7 +151,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}

@@ -21,17 +21,17 @@ public static class QuestMerchantWorkshopVerifier
     static void Check(bool condition,string name){if(!condition)throw new InvalidOperationException(name);checks.Add(name);}
     static string Hash(string path){using(var sha=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path)));}
     static void Write(string folder,string name,object result){Directory.CreateDirectory(folder);File.WriteAllText(Path.Combine(folder,name),JsonConvert.SerializeObject(result,Formatting.Indented));}
-    public static string Native()
+    public static string Native(string label="ManagementNative")
     {
-        AppearanceCustomizationBuilder.RequireIdle();checks.Clear();string output=Path.Combine(Root,"ManagementNative");Directory.CreateDirectory(output);
+        AppearanceCustomizationBuilder.RequireIdle();checks.Clear();string output=Path.Combine(Root,label);Directory.CreateDirectory(output);
         string[] sources={QuestMerchantUIBuilder.Prefab,OverburstHudMenuBuilder.PrefabPath,QuestMerchantUIBuilder.Folder+"/PF_QuestInventoryStyle.prefab",OverburstShopUIBuilder.PrefabPath,OverburstUIWorkshopBuilder.ScenePath};var before=sources.Select(Hash).ToArray();
         var scene=EditorSceneManager.OpenPreviewScene(OverburstUIWorkshopBuilder.ScenePath);
         try
         {
             var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();
             Check(all.Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject))==0,"management scene missing scripts 0");
-            var previews=all.Select(t=>t.GetComponent<OverburstUIQuestMerchantPreview>()).Where(p=>p).ToArray();Check(previews.Length==9,"eight gallery boards and one live preview");
-            Check(previews.Count(p=>p.galleryOnly)==8,"eight static gallery samples");
+            var previews=all.Select(t=>t.GetComponent<OverburstUIQuestMerchantPreview>()).Where(p=>p).ToArray();Check(previews.Length==10,"nine gallery boards and one live preview");
+            Check(previews.Count(p=>p.galleryOnly)==9,"nine static gallery samples");
             foreach(var p in previews)
             {
                 Check(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(p.view.gameObject)==QuestMerchantUIBuilder.Prefab,"quest source shared "+p.name);
@@ -91,7 +91,9 @@ public static class QuestMerchantWorkshopVerifier
                 case 3:CaptureScene(output,"journal");w.ShowQuestReport();Check(v.reportPopup.activeInHierarchy,"report popup opens");v.popupConfirm.onClick.Invoke();Check(v.journal.activeInHierarchy&&p.personalRow.status.text=="완료","sample report shows completed state");w.ShowCornerMenu();break;
                 case 4:Check(p.menu.IsOpen,"workshop opens corner menu");CaptureScene(output,"hud-menu");p.menu.Rows[3].button.onClick.Invoke();Check(v.journal.activeInHierarchy&&!p.menu.IsOpen,"corner quest click opens personal list");w.ShowCornerMenu();p.menu.Rows[0].button.onClick.Invoke();Check(w.Inventory.gameObject.activeInHierarchy,"corner inventory click opens formal window");break;
                 case 5:var style=w.Inventory.GetComponentInChildren<QuestInventoryStyle>(true);Check(style!=null,"inventory uses connected quest artwork");Check(style.equipmentLabel.text=="장비창 열기","management equipment caption matches gameplay");var sort=style.modeHost.GetComponentInChildren<TMPro.TMP_Dropdown>(true);sort.value=(sort.value+1)%sort.options.Count;Check(style.modeLabel.text==sort.options[sort.value].text,"management sort label follows actual dropdown");var previous=style.directionLabel.text;style.directionHost.GetComponentInChildren<Button>(true).onClick.Invoke();Check(style.directionLabel.text!=previous,"management sort direction updates");w.ShowShop();break;
-                case 6:CaptureScene(output,"trade");var portrait=w.GetComponentsInChildren<RawImage>(true).First(x=>x.name=="Merchant Portrait");Check(portrait.texture==Resources.Load<Texture2D>("UI/Quests/GeneralMerchantPortrait"),"shop sample identity and generated portrait agree");w.ShowHud();Check(!p.IsVisible,"HUD return closes all quest previews");Check(QuestMerchantUI.Current==null&&AccountGameplaySession.Current==null,"sample actions leave gameplay owners untouched");Check(!GameplayInputBlocker.IsGameplayInputBlocked,"no input owner leaked by previews");Finish(null);break;
+                case 6:CaptureScene(output,"trade");var portrait=w.GetComponentsInChildren<RawImage>(true).First(x=>x.name=="Merchant Portrait");Check(portrait.texture==Resources.Load<Texture2D>("UI/Quests/GeneralMerchantPortrait"),"shop sample identity and generated portrait agree");w.ShowHud();Check(!p.IsVisible,"HUD return closes all quest previews");Check(QuestMerchantUI.Current==null&&AccountGameplaySession.Current==null,"sample actions leave gameplay owners untouched");Check(!GameplayInputBlocker.IsGameplayInputBlocked,"no input owner leaked by previews");w.ShowStylistApproach();break;
+                case 7:Check(v.approach.activeInHierarchy,"stylist uses formal shared approach");Check(v.approachButtons.Count(b=>b.gameObject.activeSelf)==1&&v.approachButtons[1].transform.Find("Label").GetComponent<Text>().text=="외모 변경","stylist approach exposes one appearance action");CaptureScene(output,"stylist-approach");v.approachButtons[1].onClick.Invoke();break;
+                case 8:var appearance=Overburst.Appearance.AppearanceCustomizationPanel.Instance;Check(appearance&&Overburst.Appearance.AppearanceCustomizationPanel.IsOpen&&appearance.IsExhibition,"stylist click opens formal appearance exhibition");Check(!p.IsVisible&&AccountGameplaySession.Current==null&&QuestMerchantUI.Current==null,"stylist preview leaves gameplay account and quest owner untouched");CaptureScene(output,"stylist-appearance");appearance.Close();w.ShowHud();Check(!Overburst.Appearance.AppearanceCustomizationPanel.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"appearance preview close releases input");Finish(null);break;
             }
         }
         catch(Exception error){Finish(error);}

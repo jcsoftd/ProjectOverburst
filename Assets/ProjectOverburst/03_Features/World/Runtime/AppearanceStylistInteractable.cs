@@ -53,7 +53,7 @@ public sealed class AppearanceStylistInteractable : MonoBehaviour,IInteractable
     public void SetInteractionPromptVisible(bool visible)
     {
         if(promptText)promptText.text=InteractionPrompt;
-        if(promptRoot)promptRoot.SetActive(visible&&WantsInteractionPrompt);
+        if(promptRoot)promptRoot.SetActive(visible&&WantsInteractionPrompt&&QuestMerchantUI.Current==null);
     }
 }
 

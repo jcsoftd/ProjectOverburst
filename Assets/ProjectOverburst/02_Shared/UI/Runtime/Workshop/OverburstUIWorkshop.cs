@@ -44,6 +44,7 @@ public sealed class OverburstUIWorkshop : MonoBehaviour
     public void ShowStash() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); stash.ResetPosition(); stash.Show(); inventory.Show(); Label("창고 + 인벤토리 · 3개 보관함 배치"); }
     public void ShowShop() { HideWindows(); minimapPreview?.Show(true); inventory.ResetPosition(); shopPreview?.Show(); inventory.Show(); inventory.WindowRect.anchoredPosition = new Vector2(OverburstUIShopSkin.InventoryX, OverburstUIShopSkin.WindowY); Label("상점 + 인벤토리 · 공용 상점 뷰"); }
     void ShowQuest(OverburstUIQuestMerchantPreview.Screen screen,string label){HideWindows();questPreview?.Show(screen);Label(label);}
+    public void ShowStylistApproach(){HideWindows();questPreview.Show(OverburstUIQuestMerchantPreview.Screen.StylistApproach);}
     public void ShowQuestApproach()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Approach,"상인 접근 · 클릭/휠/F 선택 전시");
     public void ShowQuestDialogue()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.Dialogue,"상인 대화 · 정식 대화 뷰");
     public void ShowMerchantQuests()=>ShowQuest(OverburstUIQuestMerchantPreview.Screen.MerchantList,"상인 의뢰 목록 · 행 선택으로 오른쪽 상세");
