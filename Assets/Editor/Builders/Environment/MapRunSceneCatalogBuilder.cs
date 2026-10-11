@@ -10,6 +10,7 @@ public static class MapRunSceneCatalogBuilder
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
             throw new InvalidOperationException("Use an idle Editor.");
+        MapTerrainCatalog.InvalidateCandidates();
         var required = new List<string> { MapTerrainCatalog.CaveScene };
         required.AddRange(MapTerrainCatalog.DesertCandidates.Select(c => c.scene));
         foreach (var path in required)

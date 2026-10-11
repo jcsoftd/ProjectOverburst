@@ -81,7 +81,7 @@ public sealed partial class MapMonsterField
     {
         foreach (var slot in slots)
             if (Valid(slot) && !slot.Actor.Health.IsDead && Mathf.Abs(slot.Actor.transform.position.y - point.y) < 3
-                && FlatDistance(slot.Actor.transform.position, point) < slot.Radius + radius + MapCombatGeometry.BodyGap) return false;
+                && !MapCombatGeometry.BodiesSeparated(slot.Actor.transform.position, slot.Radius, point, radius)) return false;
         return true;
     }
     internal void RefreshFinite(Vector3 player, bool preparing)

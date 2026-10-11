@@ -16,6 +16,8 @@ namespace Overburst.Mojave
         public string PreparationStage { get; private set; }
         public float PreparationSeconds { get; private set; }
         public int ConservativeObstacleCount { get; private set; }
+        public DesertMinimapData MinimapData { get; private set; }
+        public Transform TerrainRoot => world ? world.generatedRoot : null;
         readonly List<Vector3> centers = new List<Vector3>();
         RunWorldGate gate;
         MojaveWorld world;
@@ -23,6 +25,12 @@ namespace Overburst.Mojave
         NavMeshData navigation;
         IEnumerator preparation;
         bool started;
+
+        public static Vector3 EntryFor(MojaveWorld world)
+        {
+            world.EnsureLayout();
+            return world.Ground(world.layout.places[0].World(new Vector2(-2, -2)));
+        }
 
         // Called by sceneLoaded before the authoring explorer's Start/input/camera callbacks.
         public static DesertRunWorld Install(Scene scene, MapInstanceState map)
@@ -78,6 +86,7 @@ namespace Overburst.Mojave
             PreparationStage = "사막 전장 연결 확인";
             yield return null;
             world.EnsureLayout();
+            MinimapData = DesertMinimapData.Load(candidate, world);
             if (world.layout.places.Count != gate.Map.areaCount)
                 throw new InvalidOperationException("사막 전장 수가 저장된 지도와 다릅니다.");
             int ground = LayerMask.NameToLayer("Ground");
@@ -110,7 +119,7 @@ namespace Overburst.Mojave
             yield return NavMeshBuilder.UpdateNavMeshDataAsync(navigation, settings, sources, bounds);
             surface.navMeshData = navigation; surface.AddData();
             PreparationStage = "사막 입구와 전장 도달성 확인";
-            if (!TryFloor(world.Staging, out Vector3 entry)) throw new InvalidOperationException("사막 입구에서 안전한 바닥을 찾지 못했습니다.");
+            if (!TryFloor(EntryFor(world), out Vector3 entry)) throw new InvalidOperationException("사막 입구에서 안전한 바닥을 찾지 못했습니다.");
             var path = new NavMeshPath();
             foreach (var place in world.layout.places)
             {

@@ -6,3 +6,4 @@
 *.asset diff
 *.meta diff
 *.md diff
+Assets/ProjectOverburst/Resources/UI/Minimap/Desert/*.asset binary

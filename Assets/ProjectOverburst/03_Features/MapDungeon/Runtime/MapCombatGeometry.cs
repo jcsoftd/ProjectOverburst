@@ -13,6 +13,14 @@ public static class MapCombatGeometry
     public const float CellSize = 1f;
     public const float EntrySafety = 4f;
     public const float BodyGap = .05f;
+    // Planning and live placement must agree at the same packed-body boundary.
+    // The tolerance absorbs float rounding; the 5cm body gap remains intact.
+    public static bool BodiesSeparated(Vector3 a, float radiusA, Vector3 b, float radiusB)
+    {
+        var delta = a - b; delta.y = 0;
+        float space = radiusA + radiusB + BodyGap;
+        return delta.sqrMagnitude + .000001f >= space * space;
+    }
     public static int BandForDistance(int distance, int farthest)
         => distance <= 0 ? 0 : Mathf.Min(2, (distance * 3 - 1) / Mathf.Max(1, farthest));
     public sealed class Area
@@ -324,7 +332,7 @@ public static class MapCombatGeometry
                     {
                         bool blocked = false;
                         for (int i = 0; i < reserved.Count; i++)
-                        { var delta = point - reserved[i]; delta.y = 0; if (delta.sqrMagnitude < Mathf.Pow(radius + radii[i] + BodyGap, 2)) { blocked = true; break; } }
+                        { if (!BodiesSeparated(point, radius, reserved[i], radii[i])) { blocked = true; break; } }
                         if (blocked) continue;
                         member.PlannedPosition = point; reserved.Add(point); radii.Add(radius); placed = true; break;
                     }

@@ -115,11 +115,13 @@ public static class MapRunEntryPlayVerifier
         var generator = UnityEngine.Object.FindFirstObjectByType<Overburst.Caves.CaveRuntimeGenerator>();
         var pendingGate = UnityEngine.Object.FindFirstObjectByType<RunWorldGate>();
         string stage = pendingGate && pendingGate.PreparationStage != null ? pendingGate.PreparationStage : generator ? generator.Stage : null;
-        if (stage != lastStage || (stage != null && EditorApplication.timeSinceStartup - lastStageAt >= 5))
+        bool stalled = stage != null && stage == lastStage && EditorApplication.timeSinceStartup - lastStageAt >= 5;
+        if (stage != lastStage || stalled)
         {
             lastStage = stage; lastStageAt = EditorApplication.timeSinceStartup;
             File.AppendAllText(Path.Combine(output, "stages.jsonl"), JsonConvert.SerializeObject(new { utc = DateTime.UtcNow,
                 stage, courts = generator ? generator.GetComponent<Overburst.Caves.CaveWorld>().courts.Count : 0, frame = Time.frameCount }) + "\n");
+            if (stalled && SessionState.GetBool(Key + "minimapOnly", false)) MapExplorationVerifier.InspectPreparing(pendingGate, output);
         }
         if (Time.frameCount == lastFrame && EditorApplication.timeSinceStartup < deadline) return;
         lastFrame = Time.frameCount;

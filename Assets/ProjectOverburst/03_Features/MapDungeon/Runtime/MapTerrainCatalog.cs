@@ -19,6 +19,7 @@ public static class MapTerrainCatalog
         public DesertCandidate[] candidates;
     }
     private static Catalog catalog;
+    public static void InvalidateCandidates() => catalog = null;
     public static IReadOnlyList<DesertCandidate> DesertCandidates
     {
         get

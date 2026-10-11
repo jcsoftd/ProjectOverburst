@@ -8,6 +8,7 @@ public sealed class MinimapExplorationMap : IDisposable
     readonly byte[] cells, connections;
     readonly bool[] visited, queued;
     readonly Color32[] terrainPixels, outlinePixels;
+    readonly Color32[] basePixels;
     int[] queue = Array.Empty<int>();
     int lastCell = -1, lastSteps = -1;
     public int Width { get; }
@@ -21,15 +22,17 @@ public sealed class MinimapExplorationMap : IDisposable
     public Texture2D OutlineTexture { get; private set; }
 
     // Arrays are transferred to this owner; callers must not mutate them afterwards.
-    public MinimapExplorationMap(int width, int height, float cellSize, Vector2 origin, byte[] kinds, byte[] links)
+    public MinimapExplorationMap(int width, int height, float cellSize, Vector2 origin, byte[] kinds, byte[] links, Color32[] sourcePixels = null)
     {
         if (width < 1 || height < 1 || width > 4096 || height > 4096 || (long)width * height > 4194304
             || cellSize <= 0 || float.IsNaN(cellSize) || float.IsInfinity(cellSize)
-            || kinds == null || links == null || kinds.Length != width * height || links.Length != kinds.Length)
+            || kinds == null || links == null || kinds.Length != width * height || links.Length != kinds.Length
+            || sourcePixels != null && sourcePixels.Length != kinds.Length)
             throw new ArgumentException("Invalid exploration map dimensions.");
         Width = width; Height = height; CellSize = cellSize;
         Bounds = new Rect(origin.x, origin.y, width * cellSize, height * cellSize);
         cells = kinds; connections = links;
+        basePixels = sourcePixels;
         visited = new bool[cells.Length]; queued = new bool[cells.Length];
         terrainPixels = new Color32[cells.Length]; outlinePixels = new Color32[cells.Length];
     }
@@ -66,7 +69,7 @@ public sealed class MinimapExplorationMap : IDisposable
             {
                 visited[index] = true; RevealedCount++;
                 bool edge = connections[index] != (East | West | North | South);
-                terrainPixels[index] = edge ? MinimapTerrainPixels.EdgeColor : MinimapTerrainPixels.GroundColor;
+                terrainPixels[index] = basePixels != null ? basePixels[index] : edge ? MinimapTerrainPixels.EdgeColor : MinimapTerrainPixels.GroundColor;
                 if (edge) outlinePixels[index] = MinimapTerrainPixels.EdgeColor;
             }
             if (depth < steps)

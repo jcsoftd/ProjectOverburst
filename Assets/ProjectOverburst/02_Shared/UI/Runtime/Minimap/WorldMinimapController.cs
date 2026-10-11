@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Profiling;
 using Overburst.Caves;
+using Overburst.Mojave;
 
 public sealed class WorldMinimapController : MonoBehaviour
 {
@@ -34,6 +35,9 @@ public sealed class WorldMinimapController : MonoBehaviour
     private bool usesRunTerrain;
     private RunWorldGate mapGate;
     private CaveWorld caveWorld;
+    private DesertRunWorld desertWorld;
+    private Transform explorationRoot;
+    private int explorationVersion;
     private MinimapExplorationMap exploration;
     private int explorationScene = int.MinValue;
     private string explorationRun;
@@ -179,7 +183,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         if (!hasYaw) return;
         RefreshRunTerrain();
-        if (mapGate && mapGate.Map.generationVersion > 0 && caveWorld && exploration == null)
+        if (mapGate && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && exploration == null)
         { source.Dispose(); view.SetVisible(false); return; }
         if (exploration != null && now >= nextReveal)
         {
@@ -247,6 +251,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         {
             if (!mapGate) mapGate = root.GetComponentInChildren<RunWorldGate>(true);
             if (!caveWorld) caveWorld = root.GetComponentInChildren<CaveWorld>(true);
+            if (!desertWorld) desertWorld = root.GetComponentInChildren<DesertRunWorld>(true);
             if (root.GetComponentInChildren<DiamondDungeonWorld>(true) != null) usesRunTerrain = true;
         }
         RefreshRunTerrain();
@@ -254,22 +259,24 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     private void RefreshRunTerrain()
     {
-        if (mapGate && mapGate.IsReady && mapGate.Map.generationVersion > 0 && caveWorld && !terrainFailed)
+        if (mapGate && mapGate.IsReady && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && !terrainFailed)
         {
-            if (explorationRun != mapGate.Context.RunId) ReleaseExploration();
+            var root = caveWorld ? caveWorld.generatedRoot : desertWorld.TerrainRoot;
+            if (explorationRun != mapGate.Context.RunId || explorationRoot != root || explorationVersion != mapGate.Map.generationVersion) ReleaseExploration();
             if (exploration == null)
             {
                 try
                 {
-                    exploration = CaveMinimapTerrain.Build(caveWorld);
+                    exploration = caveWorld ? CaveMinimapTerrain.Build(caveWorld) : desertWorld.MinimapData.CreateExploration();
                     exploration.EnsureTextures();
                     explorationScene = contentScene; explorationRun = mapGate.Context.RunId;
+                    explorationRoot = root; explorationVersion = mapGate.Map.generationVersion;
                     nextReveal = 0; TerrainBuildCount++;
                 }
                 catch (System.Exception error)
                 {
                     ReleaseExploration(); terrainFailed = true;
-                    Debug.LogError("[WorldMinimap] Cave terrain could not be prepared: " + error, this);
+                    Debug.LogError("[WorldMinimap] Map terrain could not be prepared: " + error, this);
                 }
             }
             if (exploration != null && view.TerrainImage.texture != exploration.TerrainTexture)
@@ -299,7 +306,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         ReleaseOwnedTerrain();
         terrainRevision = -1;
         usesRunTerrain = false;
-        mapGate = null; caveWorld = null; terrainFailed = false;
+        mapGate = null; caveWorld = null; desertWorld = null; terrainFailed = false;
     }
 
     private void HandleSceneUnloaded(Scene scene)
@@ -312,6 +319,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     {
         exploration?.Dispose(); exploration = null;
         explorationRun = null; explorationScene = int.MinValue; nextReveal = 0;
+        explorationRoot = null; explorationVersion = 0;
     }
 
     private void ReleaseOwnedTerrain()
