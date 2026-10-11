@@ -96,7 +96,7 @@ public sealed class MapRunCompletion : MonoBehaviour
                 {
                     var definition = account.ContentRegistry.Resolve<MapItemData>(run.map.mapContentId);
                     var item = MapRewardPolicy.CreateBossMap(definition, account.ContentRegistry, run.map.level,
-                        UnityEngine.Random.value, UnityEngine.Random.value, run.runId);
+                        UnityEngine.Random.value, UnityEngine.Random.value, run.runId, sourceMap: run.map);
                     item.runtimeInstanceId = AccountRunCommands.CompletionRewardId(run.runId);
                     pendingReward = ItemSnapshotCodec.Capture(item, account.ContentRegistry);
                 }

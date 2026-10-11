@@ -63,15 +63,23 @@ public static class BagFarmingLoot
         return true;
     }
 
+    public static BagItemData[] Definitions
+    {
+        get
+        {
+            if (bagCatalog == null)
+            {
+                var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+                bagCatalog = registry?.Entries.Select(x => x.asset).OfType<BagItemData>()
+                    .Where(x => ItemGradeAvailabilityPolicy.IsEnabled(x.defaultGrade)).ToArray();
+            }
+            return bagCatalog ?? Array.Empty<BagItemData>();
+        }
+    }
+
     public static ItemData RollBag(EnemyRank rank, int level, ItemGrade mapGrade, float rarePercent)
     {
-        var definitions = bagCatalog;
-        if (definitions == null)
-        {
-            var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
-            definitions = bagCatalog = registry?.Entries.Select(x => x.asset).OfType<BagItemData>()
-                .Where(x => ItemGradeAvailabilityPolicy.IsEnabled(x.defaultGrade)).ToArray();
-        }
+        var definitions = Definitions;
         if (definitions == null || definitions.Length == 0) return null;
         bool boss = rank != null && rank.GradeType == EnemyGradeType.Boss;
         bool elite = rank != null && rank.GradeType != EnemyGradeType.Normal;

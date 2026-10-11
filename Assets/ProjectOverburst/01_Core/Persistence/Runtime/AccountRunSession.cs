@@ -68,7 +68,7 @@ namespace Overburst.Persistence
             if (AccountInvariants.IsCompleted(run.phase)) return null;
             if (run.phase != RunPhase.Active) throw new InvalidOperationException("Run is not active.");
             var reward = MapRewardPolicy.CreateBossMap(mapDefinition, account.ContentRegistry, run.map.level,
-                UnityEngine.Random.value, UnityEngine.Random.value, runId, rolledOptions);
+                UnityEngine.Random.value, UnityEngine.Random.value, runId, rolledOptions, run.map);
             var pickup = WorldItemDropFactory.CreateWorldPickup(reward, position, account.Owner.Inventory,
                 PlayerContext.Instance?.CurrentActor?.transform);
             if (pickup == null) throw new InvalidOperationException("Boss map pickup could not be created.");

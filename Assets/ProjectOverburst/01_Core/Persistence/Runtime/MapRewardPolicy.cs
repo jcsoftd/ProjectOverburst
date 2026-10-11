@@ -33,15 +33,17 @@ namespace Overburst.Persistence
 
         public static ItemData CreateBossMap(MapItemData definition, AccountContentRegistry registry,
             int dungeonLevel, float levelRoll, float gradeRoll, string runId,
-            IReadOnlyList<MapOptionRoll> rolledOptions = null)
+            IReadOnlyList<MapOptionRoll> rolledOptions = null, MapInstanceState sourceMap = null)
         {
             if (definition == null || registry == null || string.IsNullOrWhiteSpace(runId))
                 throw new ArgumentException("Registered map content and run identity are required.");
             if (float.IsNaN(gradeRoll) || float.IsInfinity(gradeRoll) || gradeRoll < 0f || gradeRoll > 1f)
                 throw new ArgumentOutOfRangeException(nameof(gradeRoll));
             int level = BossMapLevel(dungeonLevel, levelRoll);
-            ItemGrade grade = ItemGradeAvailabilityPolicy.ResolveWeightedGrade(gradeRoll,
-                ItemGradeAvailabilityPolicy.IsEnabled(ItemGrade.Cursed));
+            ItemGrade grade = MapFarmingLoot.Applies(sourceMap)
+                ? MapFarmingLoot.SelectGrade(gradeRoll, sourceMap.grade)
+                : ItemGradeAvailabilityPolicy.ResolveWeightedGrade(gradeRoll,
+                    ItemGradeAvailabilityPolicy.IsEnabled(ItemGrade.Cursed));
             return MapGenerationPolicy.CreateItem(definition, registry, level, grade, runId, rolledOptions);
         }
     }

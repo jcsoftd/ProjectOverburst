@@ -4,6 +4,7 @@ using UnityEngine;
 
 public static class MapOptionPolicy
 {
+    public const string ExtraDrop = "extra_drop";
     public const string EnemyHealth = "enemy_health";
     public const string EnemyDamage = "enemy_damage";
     public const string EnemySpeed = "enemy_speed";
@@ -72,6 +73,7 @@ public static class MapOptionPolicy
         int percent = Mathf.RoundToInt(option.value * 100f);
         switch (option.optionId)
         {
+            case ExtraDrop: return "아이템·자연 지도 드랍 확률 +" + percent + "%";
             case MoreSmall: return "소형 몬스터 수량 +" + percent + "%";
             case MoreMedium: return "중형 몬스터 수량 +" + percent + "%";
             case MoreElite: return "정예 몬스터 수량 +" + percent + "%";

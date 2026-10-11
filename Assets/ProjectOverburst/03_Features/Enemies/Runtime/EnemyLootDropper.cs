@@ -14,12 +14,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     [SerializeField] private float scatterRadius = 0.45f;
     [SerializeField] private int maxDroppedItemCount = -1;
 
-    [Header("Currency Drop")]
-    [SerializeField] private bool dropGoldCurrency = true;
-    [SerializeField] private CurrencyItemData goldCurrencyItem;
-    [SerializeField] private int minGoldAmount = 1;
-    [SerializeField] private int maxGoldAmount = 50;
-
     [Header("Weighted Drop Count")]
     [SerializeField] private bool useWeightedDropCount;
     [SerializeField, Range(0f, 1f)] private float zeroDropChance = 0.5f;
@@ -29,7 +23,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
     private static readonly ProfilerMarker ResolveMarker = new ProfilerMarker("Overburst.Loot.Resolve");
     private static readonly ProfilerMarker OriginMarker = new ProfilerMarker("Overburst.Loot.Origin");
-    private static readonly ProfilerMarker GoldMarker = new ProfilerMarker("Overburst.Loot.Gold");
     private static readonly ProfilerMarker ItemsMarker = new ProfilerMarker("Overburst.Loot.Items");
     private bool dropped; // 중복 드랍 방지
     private EncounterContext encounter = EncounterContext.Test;
@@ -94,7 +87,16 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         Vector3 dropOrigin;
         using (OriginMarker.Auto()) dropOrigin = GetDropOriginPosition(); // 드랍 기준점
-        if (encounter.IsRun)
+        if (MapFarmingLoot.Applies(encounter.Map))
+        {
+            var rank = GetComponent<EnemyRank>();
+            var grade = rank != null ? rank.GradeType : EnemyGradeType.Normal;
+            float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
+            for (int kind = 0; kind < 5; kind++)
+                DropFarmingItem(MapFarmingLoot.Roll((MapFarmingKind)kind, grade, encounter.Map, rarePercent),
+                    dropOrigin + dropOffset + GetScatterOffset(kind, 5));
+        }
+        else if (encounter.IsRun)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
             float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
@@ -104,7 +106,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.left * .35f);
             DropFarmingItem(WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.back * .35f);
         }
-        using (GoldMarker.Auto()) DropGoldCurrency(dropOrigin); // 테스트용 자동 획득 재화
 
         if (dropTable == null)
             return;
@@ -124,13 +125,17 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     private void DropFarmingItem(ItemData item, Vector3 position)
     {
         if (item == null) return;
+        if (item.baseData is CurrencyItemData currency && currency.currencyType == CurrencyType.Gold) return;
         position = ConstrainCaveDrop(position);
         WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickup(StampLoot(item), position, targetInventory, player, pickupGradeVfxSet);
         if (pickup == null || !encounter.IsRun || !BagFarmingLoot.Eligible(item.baseData)) return;
         float chance = BagQuality.EquippedBonus(BagStat.ExtraItemDrop) * .01f;
         if (chance <= 0 || Random.value >= chance) return;
-        ItemData extra = BagFarmingLoot.Extra(item, GetComponent<EnemyRank>(), encounter.MapLevel,
-            encounter.MapGrade, BagQuality.EquippedBonus(BagStat.RareGradeWeight));
+        var rank = GetComponent<EnemyRank>();
+        float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
+        ItemData extra = MapFarmingLoot.Applies(encounter.Map)
+            ? MapFarmingLoot.Extra(item, rank != null ? rank.GradeType : EnemyGradeType.Normal, encounter.Map, rarePercent)
+            : BagFarmingLoot.Extra(item, rank, encounter.MapLevel, encounter.MapGrade, rarePercent);
         // Direct factory call is intentional: an extra drop never rolls another extra.
         WorldItemDropFactory.CreateWorldPickup(StampLoot(extra), ConstrainCaveDrop(position + Vector3.forward * .35f), targetInventory, player, pickupGradeVfxSet);
     }
@@ -311,8 +316,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             }
             targetInventory = sharedInventory;
         }
-        if (goldCurrencyItem == null)
-            goldCurrencyItem = CurrencyItemRegistry.Get(CurrencyType.Gold);
         if (player != null) return;
         if ((sharedPlayer == null || !sharedPlayer.gameObject.activeInHierarchy)
             && playerLookupFrame != Time.frameCount)
@@ -323,26 +326,6 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
             sharedPlayer = playerObject != null ? playerObject.transform : null;
         }
         player = sharedPlayer;
-    }
-
-    private void DropGoldCurrency(Vector3 dropOrigin)
-    {
-        if (!dropGoldCurrency)
-            return;
-
-        CurrencyItemData goldItem = goldCurrencyItem != null ? goldCurrencyItem : CurrencyItemRegistry.Get(CurrencyType.Gold);
-        if (goldItem == null)
-            return;
-
-        int min = Mathf.Max(1, minGoldAmount);
-        int max = Mathf.Max(min, maxGoldAmount);
-        int amount = Random.Range(min, max + 1);
-        if (encounter.IsRun)
-            amount = BagFarmingLoot.CombatGoldAmount(amount, BagQuality.EquippedBonus(BagStat.CombatGold));
-        Vector3 position = dropOrigin + dropOffset + GetScatterOffset(0, 2);
-        position = ConstrainCaveDrop(position);
-        WorldItemDropFactory.CreateCurrencyWorldPickupFromExistingItem(
-            StampLoot(new ItemData(goldItem, encounter.MapLevel, ItemGrade.Common, amount)), position, targetInventory);
     }
 
     private Vector3 ConstrainCaveDrop(Vector3 position)

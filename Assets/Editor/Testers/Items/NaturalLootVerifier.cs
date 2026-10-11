@@ -127,11 +127,12 @@ public static class NaturalLootVerifier
         return failure == null ? "PASS: " + checks.Count + " native checks" : "FAIL: " + failure;
     }
 
-    public static void BeginPlay(string output)
+    public static void BeginPlay(string output, bool mapLoot = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(SessionState.GetString(Key + "output", ""))
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
+            || (mapLoot && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
             || !string.IsNullOrEmpty(SessionState.GetString(GuardKey + "prepared", "")))
             throw new InvalidOperationException("An idle, returned Editor is required for natural loot Play.");
         output = IsolatedSavePlayGuard.ValidateDirectory(output);
@@ -144,6 +145,20 @@ public static class NaturalLootVerifier
         SessionState.SetBool(Key + "started", false);
         SessionState.SetBool(Key + "return", false);
         executed = false;
+        SessionState.SetBool(Key + "mapLoot", mapLoot);
+        if (mapLoot)
+        {
+            var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+            var state = NewAccountFactory.Create(registry);
+            AccountCharacterCommands.EnsureLegacy(state);
+            new EasySaveAccountStore(SessionState.GetString(Key + "account", "")).Save(state, "map-loot-fixture");
+            SessionState.SetBool(Key + "background", Application.runInBackground);
+            Application.runInBackground = true;
+            Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", Path.Combine(output, "Settings"));
+            SessionState.SetInt(Key + "titleStep", 0);
+            SessionState.SetFloat(Key + "titleAt", 0);
+            SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 300);
+        }
         EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");
         try { IsolatedSavePlayGuard.EnterIsolatedPlay(SessionState.GetString(Key + "account", "")); }
         catch { SessionState.SetBool(Key + "return", true); throw; }
@@ -160,6 +175,7 @@ public static class NaturalLootVerifier
     {
         string output = SessionState.GetString(Key + "output", "");
         if (string.IsNullOrEmpty(output)) return;
+        if (SessionState.GetBool(Key + "mapLoot", false)) EditorApplication.QueuePlayerLoopUpdate();
         if (SessionState.GetBool(Key + "return", false))
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
@@ -169,6 +185,11 @@ public static class NaturalLootVerifier
             string start = SessionState.GetString(Key + "start", "");
             EditorSceneManager.playModeStartScene = string.IsNullOrEmpty(start) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(start);
             IsolatedSavePlayGuard.UseRealAccount();
+            if (SessionState.GetBool(Key + "mapLoot", false))
+            {
+                Application.runInBackground = SessionState.GetBool(Key + "background", false);
+                Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", null);
+            }
             bool preserved = HideoutCatalogLayoutBuilder.EditorSnapshot() == SessionState.GetString(Key + "sceneSetup", "");
             File.WriteAllText(Path.Combine(output, "Return.json"), JsonConvert.SerializeObject(new {
                 status = preserved && !IsolatedSavePlayGuard.RequiresAccountChoice ? "PASS" : "FAIL", sceneSetupPreserved = preserved,
@@ -177,6 +198,8 @@ public static class NaturalLootVerifier
                 env = Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable), startScene = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)
             }, Formatting.Indented));
             foreach (string suffix in new[] { "output", "start", "sceneSetup", "account" }) SessionState.EraseString(Key + suffix);
+            SessionState.EraseBool(Key + "mapLoot");
+            SessionState.EraseBool(Key + "background"); SessionState.EraseInt(Key + "titleStep"); SessionState.EraseFloat(Key + "titleAt");
             SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "return"); SessionState.EraseBool(Key + "started");
             executed = false;
             return;
@@ -188,6 +211,18 @@ public static class NaturalLootVerifier
             return;
         }
         if (executed) return;
+        if (SessionState.GetBool(Key + "mapLoot", false) && TitleCharacterPanel.Instance
+            && EditorApplication.timeSinceStartup >= SessionState.GetFloat(Key + "titleAt", 0))
+        {
+            int step = SessionState.GetInt(Key + "titleStep", 0);
+            if (step == 0) TitleCharacterPanel.Instance.start.onClick.Invoke();
+            if (step == 1) TitleCharacterPanel.Instance.enter.onClick.Invoke();
+            if (step < 2)
+            {
+                SessionState.SetInt(Key + "titleStep", step + 1);
+                SessionState.SetFloat(Key + "titleAt", (float)EditorApplication.timeSinceStartup + 1);
+            }
+        }
         if (!timedOut && (!AccountBootstrap.Ready || PlayerContext.Instance?.CurrentActor == null
             || WorldSessionState.Phase != WorldPhase.Hideout || PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching)) return;
         executed = true;
@@ -197,7 +232,8 @@ public static class NaturalLootVerifier
         {
             Require(AccountBootstrap.Ready && !timedOut, "isolated account and Hideout boot");
             Require(AccountBootstrap.SaveDirectory == SessionState.GetString(Key + "account", ""), "owned isolated account selected");
-            VerifyPlay();
+            if (SessionState.GetBool(Key + "mapLoot", false)) MapFarmingLootVerifier.VerifyPlay(Require);
+            else VerifyPlay();
         }
         catch (Exception error) { failure = error.ToString(); }
         finally

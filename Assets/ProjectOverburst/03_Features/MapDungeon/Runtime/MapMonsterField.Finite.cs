@@ -220,7 +220,7 @@ public sealed partial class MapMonsterField
             || !finiteRoster.TryRecordDeath(slot.Member.Index, slot.RosterLease)) return;
         Unbind(slot); triggered = true;
         if (!context.CanGrantRewards || !hit.source || !hit.source.GetComponentInParent<PlayerActorRuntime>()) return;
-        var item = MapDropPolicy.Roll(mapDefinition, registry, map.level, slot.Member.Tier, context.RunId);
+        var item = MapDropPolicy.Roll(mapDefinition, registry, map, slot.Member.Tier, context.RunId);
         if (item != null) WorldItemDropFactory.CreateWorldPickup(item, health.transform.position + Vector3.up * .4f,
             PlayerAccountInventoryService.SharedInventory, PlayerContext.Instance?.CurrentActor?.transform);
     }
