@@ -32,7 +32,7 @@ public static class MapSpawnPolicy
 
 // One queue for fields and events: individual producers cannot multiply the per-frame budget.
 [DisallowMultipleComponent]
-public sealed class MapSpawnBudget : MonoBehaviour
+public sealed partial class MapSpawnBudget : MonoBehaviour
 {
     sealed class Batch
     {
@@ -48,7 +48,7 @@ public sealed class MapSpawnBudget : MonoBehaviour
     readonly List<CombatHealth> expired = new List<CombatHealth>();
     EnemySpawnService service;
     public int AliveLimit { get; private set; }
-    public int AliveCount => living.Count;
+    public int AliveCount => runGate ? runGate.Roster.Active : living.Count;
     public int PendingCount { get; private set; }
     public int SpawnedThisFrame { get; private set; }
     public double LastSpawnMilliseconds { get; private set; }
@@ -78,6 +78,7 @@ public sealed class MapSpawnBudget : MonoBehaviour
     }
     void Update()
     {
+        if (runGate != null) { UpdateFinite(); return; }
         SpawnedThisFrame = 0; LastSpawnMilliseconds = 0;
         expired.Clear();
         foreach (var health in living)

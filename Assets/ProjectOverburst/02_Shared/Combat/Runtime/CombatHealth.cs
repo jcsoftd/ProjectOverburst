@@ -254,6 +254,15 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
             }
     }
 
+    // Restore a living streamed actor without manufacturing damage, death, healing or XP.
+    public bool RestoreLivingHealth(float value)
+    {
+        if (IsDead || value <= 0 || float.IsNaN(value) || float.IsInfinity(value)) return false;
+        currentHp = Mathf.Min(value, maxHp);
+        RaiseHealthChanged();
+        return true;
+    }
+
     // Compatibility: value is the previous penalty-relative input, not a new unmodified target.
     // Keep until all callers declare their units and their owner migrations pass regression checks.
     public void SetMaxHp(float value, bool refill)

@@ -139,6 +139,7 @@ public static class MapRunEntryPlayVerifier
         TitleCharacterPanel.Instance.enter.onClick.Invoke();
         yield return Wait(() => AccountBootstrap.Ready && WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, "Isolated title and MainScene boot");
         var account = AccountGameplaySession.Current; var flow = PersistentSceneFlow.Instance;
+        PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
         var maps = account.Read().items.Where(i => i.map != null).ToArray();
         var cave4 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4);
@@ -169,7 +170,8 @@ public static class MapRunEntryPlayVerifier
             var roster = gate.Roster;
             Check(roster != null && roster.PlacementReady && roster.Total >= item.map.areaCount * 50, label + ": finite population and physical placements prepared before consumption");
             Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == item.map.areaCount
-                && roster.Members.All(m => m.State == MapRunRoster.Life.Pending) && roster.Kills == 0, label + ": stored single theme and untouched logical population");
+                && roster.Kills == 0 && roster.Active > 0 && gate.SpawnBudget.InitialReady
+                && roster.Active + roster.Pending == roster.Total, label + ": stored single theme and finite initial actors prepared before entry");
             Check(item.map.terrain == MapTerrainKind.Cave ? roster.Target == MapRunRoster.CaveTarget(roster.Total) : roster.Target == 0, label + ": terrain-specific objective denominator");
             Check(roster.Areas.All(a => a.Count == a.Small + a.Medium + a.Elite
                 && roster.Members.Skip(a.FirstMember).Take(a.Count).Count(m => m.Tier == EnemyThemeTier.Small) == a.Small
@@ -178,7 +180,7 @@ public static class MapRunEntryPlayVerifier
             foreach (var area in roster.Areas)
             {
                 var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial).ToArray();
-                Check(initial.All(m => MapCombatGeometry.CanPlace(area.Ground, m.Definition, m.PlannedPosition)), label + ": actual body clearance at all initial positions in area " + area.Ground.Index);
+                Check(initial.All(m => MapCombatGeometry.CanPlace(area.Ground, m.Definition, m.PlannedPosition, true)), label + ": actual body clearance at all initial positions in area " + area.Ground.Index);
                 bool separated = true;
                 for (int i = 0; i < initial.Length; i++) for (int j = i + 1; j < initial.Length; j++)
                 {
@@ -205,6 +207,7 @@ public static class MapRunEntryPlayVerifier
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveExplorer>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring explorer disabled");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveCamera>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring camera disabled");
             }
+            yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
             yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, label + ": abandon returns to hub");
@@ -216,7 +219,7 @@ public static class MapRunEntryPlayVerifier
         EditorApplication.update -= Tick; EditorApplication.update -= Begin;
         while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
         SessionState.EraseString(Key + "pending"); output = SessionState.GetString(Key + "return", output);
-        Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = "Runtime scene/entry/persistence; combat and pointer UI not covered" });
+        Write("play-result.json", new { status = error == null ? "PASS" : "FAIL", checks, observations, error = error?.ToString(), scope = "Editor Play: entry, finite spawn/death/pool lifecycle and persistence; Player performance and direct control feel not covered" });
         if (EditorApplication.isPlaying && OwnPlay) EditorApplication.ExitPlaymode();
         EditorApplication.update -= Return; EditorApplication.update += Return;
     }

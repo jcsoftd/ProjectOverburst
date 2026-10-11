@@ -9,15 +9,27 @@ public sealed class EnemySpawnService : MonoBehaviour
     private readonly System.Collections.Generic.Dictionary<string, EnemyDefinition> additionalDefinitions =
         new System.Collections.Generic.Dictionary<string, EnemyDefinition>(System.StringComparer.Ordinal);
 
-    public static EnemySpawnService Current { get; private set; }
+    private static readonly System.Collections.Generic.List<EnemySpawnService> services = new System.Collections.Generic.List<EnemySpawnService>();
+    public static EnemySpawnService Current
+    {
+        get
+        {
+            // Hub and a preparing run coexist during additive loading; each keeps its own pool.
+            foreach (var candidate in services)
+                if (candidate && candidate.isActiveAndEnabled && candidate.gameObject.scene == WorldSessionState.ContentScene) return candidate;
+            foreach (var candidate in services) if (candidate && candidate.isActiveAndEnabled) return candidate;
+            return null;
+        }
+    }
     public EnemyCatalog Catalog => catalog;
     public EnemyPoolService Pool => pool;
     public bool IsAuthoringValid => catalog != null && pool != null && pool.IsAuthoringValid;
 
     private void Awake()
     {
-        if (Current != null && Current != this)
+        foreach (var candidate in services)
         {
+            if (!candidate || candidate == this || candidate.gameObject.scene != gameObject.scene) continue;
             Debug.LogWarning(
                 "[EnemySpawnService] 중복 서비스는 등록하지 않고 비활성화합니다.",
                 this);
@@ -25,13 +37,12 @@ public sealed class EnemySpawnService : MonoBehaviour
             return;
         }
 
-        Current = this;
+        services.Add(this);
     }
 
     private void OnDestroy()
     {
-        if (Current == this)
-            Current = null;
+        services.Remove(this);
     }
 
     public void Configure(EnemyCatalog enemyCatalog, EnemyPoolService poolService)

@@ -249,7 +249,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 try { gate.BeginPreparation(account.ReadRun()); }
                 catch (System.Exception error) { RunEntryError = error.Message; }
         }
-        float deadline = Time.realtimeSinceStartup + (gate.Map.generationVersion > 0 ? Mathf.Max(60f, 20f + gate.Map.areaCount * 5f) : 60f);
+        float deadline = Time.realtimeSinceStartup + (pendingMap.generationVersion > 0 ? Mathf.Max(60f, 20f + pendingMap.areaCount * 5f) : 60f);
         var cavePreparation = gate ? gate.GetComponent<Overburst.Caves.CaveRuntimeGenerator>() : null;
         var desertPreparation = gate ? gate.GetComponent<Overburst.Mojave.DesertRunWorld>() : null;
         while (RunEntryError == null && !cancelRunEntry && gate != null && !gate.IsReady && gate.Error == null
@@ -274,6 +274,26 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (RunEntryError == null)
         {
             yield return PrepareCommonPresentation(() => cancelRunEntry);
+            if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
+        }
+        if (RunEntryError == null && pendingMap.generationVersion > 0)
+        {
+            System.Collections.IEnumerator preparation = null;
+            try
+            {
+                try { preparation = MapSpawnBudget.PrepareRun(gate, FindPlayer()); }
+                catch (System.Exception error) { RunEntryError = error.Message; }
+                while (RunEntryError == null && !cancelRunEntry)
+                {
+                    bool next = false;
+                    try { next = preparation.MoveNext(); }
+                    catch (System.Exception error) { RunEntryError = error.Message; }
+                    if (!next) break;
+                    loadingScreen?.SetStatus(gate.PreparationStage);
+                    yield return preparation.Current;
+                }
+            }
+            finally { (preparation as System.IDisposable)?.Dispose(); }
             if (cancelRunEntry) RunEntryError = "입장을 취소했습니다.";
         }
         if (RunEntryError == null)

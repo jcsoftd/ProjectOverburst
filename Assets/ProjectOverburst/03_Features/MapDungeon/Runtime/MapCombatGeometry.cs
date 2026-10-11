@@ -80,13 +80,15 @@ public static class MapCombatGeometry
         var scale = Vector3.Scale(capsule.transform.lossyScale, definition.ResolveRuntimeStats().CollisionScale);
         return new Body(capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)), capsule.height * Mathf.Abs(scale.y));
     }
-    static bool Clear(Source source, Vector3 point, Body body, Collider[] overlaps)
+    static bool Clear(Source source, Vector3 point, Body body, Collider[] overlaps, bool ignoreActors = false)
     {
         float radius = body.Radius + .04f;
         int count = Physics.OverlapCapsuleNonAlloc(point + Vector3.up * (radius + .12f),
             point + Vector3.up * Mathf.Max(radius + .12f, body.Height - radius), radius, overlaps, ~0, QueryTriggerInteraction.Ignore);
         if (count == overlaps.Length) return false;
-        for (int i = 0; i < count; i++) if (overlaps[i] && overlaps[i].gameObject.scene == source.scene) return false;
+        for (int i = 0; i < count; i++)
+            if (overlaps[i] && overlaps[i].gameObject.scene == source.scene
+                && (!ignoreActors || !overlaps[i].GetComponentInParent<EnemyActor>())) return false;
         return true;
     }
     // Before bridge links, choose the largest connected clear floor component, not the first nearby rock-top polygon.
@@ -128,12 +130,66 @@ public static class MapCombatGeometry
         { var delta = floor - p; delta.y = 0; if (delta.sqrMagnitude < 1.25f * 1.25f) return false; }
         return true;
     }
-    public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point)
+    public static bool CanPlace(Area area, EnemyDefinition definition, Vector3 point, bool ignoreActors = false)
     {
         if (area?.Source == null) return false;
         var body = BodyFor(definition);
         return area.Source.Floor(point, body.Radius + .1f, out var floor) && Mathf.Abs(floor.y - point.y) <= .3f
-            && Clear(area.Source, floor, body, new Collider[32]);
+            && Clear(area.Source, floor, body, new Collider[32], ignoreActors);
+    }
+    public static bool Contains(Area area, Vector3 point)
+        => area?.Source != null && area.Source.Floor(point, 0, out var floor) && Mathf.Abs(floor.y - point.y) < 3;
+
+    // Existing installed connections supply walk-in positions on fully visible small platforms.
+    public static List<Vector3> Approaches(Area area)
+    {
+        var result = new List<Vector3>(); var source = area.Source;
+        void Add(Vector3 a, Vector3 b)
+        {
+            int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a, b) / 1.5f));
+            for (int i = 0; i < steps; i++)
+            {
+                var p = Vector3.Lerp(a, b, (float)i / steps);
+                if ((p - area.Center).sqrMagnitude <= 65 * 65) result.Add(p);
+            }
+        }
+        if (source.cave)
+            foreach (var passage in source.cave.passages)
+            {
+                if (passage.a != area.Index && passage.b != area.Index) continue;
+                for (int i = 1; i < passage.points.Length; i++) Add(passage.points[i - 1], passage.points[i]);
+            }
+        if (source.desert)
+            foreach (var trail in source.desert.layout.trails)
+            {
+                if (trail.from != area.Index && trail.to != area.Index) continue;
+                for (int i = 1; i < trail.points.Length; i++) Add(source.desert.Ground(trail.points[i - 1]), source.desert.Ground(trail.points[i]));
+            }
+        return result;
+    }
+    public static bool TryRuntimePoint(Area area, EnemyDefinition definition, Vector3 desired, bool approach,
+        Collider[] overlaps, NavMeshPath path, out Vector3 point)
+    {
+        point = default; var source = area.Source; var body = BodyFor(definition);
+        if (source == null) return false;
+        if (!approach)
+        { if (!source.Floor(desired, body.Radius + .1f, out point)) return false; }
+        else if (source.cave)
+        {
+            if (!source.cave.Ground(desired, out var hit) || !source.cave.CanStand(hit.point, body.Radius + .1f)) return false;
+            point = hit.point;
+        }
+        else
+        {
+            var xz = new Vector2(desired.x, desired.z);
+            if (!source.desert.IsWalkable(xz, body.Radius + .1f)) return false;
+            point = source.desert.Ground(xz);
+        }
+        if (!Clear(source, point, body, overlaps, true)
+            || !NavMesh.SamplePosition(point, out var nav, .25f, NavMesh.AllAreas)
+            || !NavMesh.CalculatePath(nav.position, area.Center, NavMesh.AllAreas, path)
+            || path.status != NavMeshPathStatus.PathComplete) return false;
+        return true;
     }
     public static IEnumerator Prepare(RunWorldGate gate, CaveWorld cave, MojaveWorld desert, Vector3 entry)
     {

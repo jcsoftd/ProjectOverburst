@@ -3,7 +3,7 @@ using Overburst.Persistence;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class MapMonsterField : MonoBehaviour
+public sealed partial class MapMonsterField : MonoBehaviour
 {
     private const float TriggerDistance = 25f;
     private MapSpawnBudget budget;
@@ -24,7 +24,7 @@ public sealed class MapMonsterField : MonoBehaviour
     public bool HasTriggered => triggered;
     public int Band => band;
     public int SpawnedCount { get; private set; }
-    public int RemainingCount => living.Count;
+    public int RemainingCount => finiteRoster != null ? FiniteActiveCount : living.Count;
 
     public void Configure(EnemyThemeTable selectedTheme, EnemySpawnService spawnService,
         EncounterContext encounter, MapInstanceState activeMap, MapItemData definition,
@@ -43,6 +43,7 @@ public sealed class MapMonsterField : MonoBehaviour
 
     private void Update()
     {
+        if (finiteRoster != null) return;
         if (triggered || Time.time < nextCheck || WorldSessionState.Phase != WorldPhase.Run)
             return;
         nextCheck = Time.time + .25f;
@@ -119,6 +120,7 @@ public sealed class MapMonsterField : MonoBehaviour
 
     private void OnDisable()
     {
+        ReleaseFinite();
         if (budget != null) budget.Cancel(this);
         IsSpawning = false;
         foreach (var pair in living)
