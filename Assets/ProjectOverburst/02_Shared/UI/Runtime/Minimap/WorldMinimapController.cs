@@ -24,6 +24,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     private static WorldMinimapController instance;
     private static readonly ProfilerMarker ProjectMarker = new ProfilerMarker("Minimap.Project");
     private readonly MinimapEnemySource source = new MinimapEnemySource();
+    private readonly MinimapGuideSource guides = new MinimapGuideSource();
     private readonly MinimapMarkerGraphic.Marker[] markers = new MinimapMarkerGraphic.Marker[MinimapEnemySource.Capacity];
     private PlayerContext playerContext;
     private Transform playerTarget;
@@ -44,6 +45,9 @@ public sealed class WorldMinimapController : MonoBehaviour
     private string explorationRun;
     private float nextReveal;
     private bool terrainFailed;
+    private int guideKills = -1;
+    private bool guideCompleted;
+    public MinimapGuideSource Guides => guides;
     public MinimapExplorationMap Exploration => exploration;
     public MinimapOverlayView Overlay => overlay;
     public bool OverlayRequested { get; private set; }
@@ -232,10 +236,15 @@ public sealed class WorldMinimapController : MonoBehaviour
             overlay.Bind(exploration);
             overlay.Render(playerTarget.position, yaw, yaw - playerTarget.eulerAngles.y, OverlayRadius, OverburstGameSettings.MapOverlayOpacity);
         }
-        bool dirty = source.IsDirty || forceRefresh;
+        bool guideChanged = mapGate && mapGate.Roster != null && (guideKills != mapGate.Roster.Kills
+            || guides.Portal != mapGate.Completion?.Portal || guideCompleted != (mapGate.Completion && mapGate.Completion.IsCompleted));
+        bool dirty = source.IsDirty || forceRefresh || guideChanged;
         if (dirty || now >= nextCandidates)
         {
             source.Select(playerTarget.position, currentZoomSize, contentScene, exploration);
+            guides.Refresh(mapGate, exploration, playerTarget.position, currentZoomSize);
+            guideKills = mapGate && mapGate.Roster != null ? mapGate.Roster.Kills : -1;
+            guideCompleted = mapGate && mapGate.Completion && mapGate.Completion.IsCompleted;
             CandidateCount++;
             nextCandidates = now + 0.1f;
             dirty = true;
@@ -270,6 +279,8 @@ public sealed class WorldMinimapController : MonoBehaviour
             }
             view.Markers.SetMarkers(markers, count);
             if (OverlayVisible) overlay.SetEnemies(markers, count, view.Radius, currentZoomSize, OverlayRadius);
+            view.Guides?.Render(guides, origin, yaw, scale, Vector2.one * view.Radius, true, 1);
+            if (OverlayVisible) overlay.guides?.Render(guides, origin, yaw, overlay.Radius / OverlayRadius, overlay.viewport.rect.size * .5f, false, .85f);
             ProjectionCount++;
         }
     }
@@ -340,6 +351,8 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     private void ClearTerrain()
     {
+        guides.Clear(); view?.Guides?.Clear(); if (overlay) overlay.guides?.Clear();
+        guideKills = -1; guideCompleted = false;
         if (overlay && overlay.IsReady) overlay.Bind(null);
         view?.SetTerrain(null, default);
         ReleaseOwnedTerrain();

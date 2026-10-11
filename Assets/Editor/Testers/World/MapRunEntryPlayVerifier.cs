@@ -36,7 +36,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -80,6 +80,7 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetInt(Key + "completionCases", completionCases);
         SessionState.SetInt(Key + "bossCases", bossCases);
         SessionState.SetBool(Key + "minimapOnly", minimapOnly);
+        SessionState.SetBool(Key + "guidanceOnly", guidanceOnly);
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
         SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 600);
@@ -161,6 +162,7 @@ public static class MapRunEntryPlayVerifier
         var selected = SessionState.GetBool(Key + "largeOnly", false) ? new[] { cave20 } : SessionState.GetBool(Key + "desertOnly", false) ? new[] { desert } : new[] { cave4, desert, cave20 };
         if (SessionState.GetInt(Key + "completionCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4).ToArray();
         if (SessionState.GetInt(Key + "bossCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert).ToArray();
+        if (SessionState.GetBool(Key + "guidanceOnly", false)) selected = new[] { cave4, desert };
         int completionCase = 0;
         foreach (var item in selected)
         {
@@ -218,6 +220,11 @@ public static class MapRunEntryPlayVerifier
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveExplorer>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring explorer disabled");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Mojave.MojaveCamera>(true)).Any(c => c.isActiveAndEnabled), label + ": authoring camera disabled");
             }
+            if (SessionState.GetBool(Key + "guidanceOnly", false))
+            {
+                yield return MapGuidanceVerifier.VerifyPlay(gate, output, Check);
+                continue;
+            }
             if (SessionState.GetInt(Key + "completionCases", 0) > 0)
             {
                 yield return MapCompletionPlayVerifier.Verify(gate, completionCase++, output, Check);
@@ -269,5 +276,6 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseBool(Key + "desertOnly");
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
         SessionState.EraseBool(Key + "minimapOnly");
+        SessionState.EraseBool(Key + "guidanceOnly");
     }
 }

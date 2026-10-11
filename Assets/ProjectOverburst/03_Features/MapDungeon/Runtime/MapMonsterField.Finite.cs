@@ -35,6 +35,12 @@ public sealed partial class MapMonsterField
         get { foreach (var slot in slots) if (slot.Member.Initial && !slot.EverSpawned) return false; return true; }
     }
     public int FiniteActiveCount => bindings.Count;
+    public IReadOnlyList<Vector3> FiniteApproaches => approaches;
+    public void CollectLivingActors(List<EnemyActor> result)
+    {
+        foreach (var slot in slots)
+            if (slot.Member.State == MapRunRoster.Life.Active && Valid(slot) && !slot.Actor.Health.IsDead) result.Add(slot.Actor);
+    }
     public bool TryGetActor(int memberIndex, out EnemyActor actor)
     {
         foreach (var slot in slots)

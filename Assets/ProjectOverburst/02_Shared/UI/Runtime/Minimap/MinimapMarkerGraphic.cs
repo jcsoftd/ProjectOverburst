@@ -12,9 +12,11 @@ public sealed class MinimapMarkerGraphic : MaskableGraphic
         public Color32 Color;
         public EnemyGradeType Grade;
         public int Id;
+        public float Rotation;
     }
 
     [SerializeField] private Texture2D atlas;
+    [SerializeField] private bool singleIcon;
     private readonly Marker[] markers = new Marker[MinimapEnemySource.Capacity];
     private static readonly ProfilerMarker MeshMarker = new ProfilerMarker("Minimap.Mesh");
     public override Texture mainTexture => atlas != null ? atlas : s_WhiteTexture;
@@ -31,7 +33,7 @@ public sealed class MinimapMarkerGraphic : MaskableGraphic
         for (int i = 0; i < count; i++)
         {
             Marker a = markers[i], b = values[i];
-            if (a.Id != b.Id || a.Grade != b.Grade || a.Size != b.Size || a.Color.r != b.Color.r
+            if (a.Id != b.Id || a.Grade != b.Grade || a.Size != b.Size || a.Rotation != b.Rotation || a.Color.r != b.Color.r
                 || a.Color.g != b.Color.g || a.Color.b != b.Color.b || a.Color.a != b.Color.a
                 || (a.Position - b.Position).sqrMagnitude >= 0.0625f) changed = true;
         }
@@ -58,12 +60,16 @@ public sealed class MinimapMarkerGraphic : MaskableGraphic
             {
                 Marker m = markers[i];
                 float r = m.Size * 0.5f;
-                float u = Mathf.Clamp((int)m.Grade, 0, 3) * 0.25f;
+                float u = singleIcon ? 0 : Mathf.Clamp((int)m.Grade, 0, 3) * 0.25f;
+                float span = singleIcon ? 1 : .25f;
+                float radians = m.Rotation * Mathf.Deg2Rad;
+                var right = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * r;
+                var up = new Vector2(-right.y, right.x);
                 int start = vh.currentVertCount;
-                vh.AddVert(m.Position + new Vector2(-r, -r), m.Color, new Vector2(u, 0));
-                vh.AddVert(m.Position + new Vector2(-r, r), m.Color, new Vector2(u, 1));
-                vh.AddVert(m.Position + new Vector2(r, r), m.Color, new Vector2(u + 0.25f, 1));
-                vh.AddVert(m.Position + new Vector2(r, -r), m.Color, new Vector2(u + 0.25f, 0));
+                vh.AddVert(m.Position - right - up, m.Color, new Vector2(u, 0));
+                vh.AddVert(m.Position - right + up, m.Color, new Vector2(u, 1));
+                vh.AddVert(m.Position + right + up, m.Color, new Vector2(u + span, 1));
+                vh.AddVert(m.Position + right - up, m.Color, new Vector2(u + span, 0));
                 vh.AddTriangle(start, start + 1, start + 2);
                 vh.AddTriangle(start + 2, start + 3, start);
             }

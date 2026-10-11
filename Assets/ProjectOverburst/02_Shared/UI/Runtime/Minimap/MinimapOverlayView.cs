@@ -6,6 +6,7 @@ public sealed class MinimapOverlayView : MonoBehaviour
     public RectTransform viewport;
     public UnityEngine.UI.RawImage outline;
     public MinimapMarkerGraphic markers;
+    public MinimapGuideView guides;
     public RectTransform playerMarker;
     readonly MinimapMarkerGraphic.Marker[] projected = new MinimapMarkerGraphic.Marker[MinimapEnemySource.Capacity];
     Rect bounds;
@@ -22,6 +23,7 @@ public sealed class MinimapOverlayView : MonoBehaviour
     {
         if (gameObject.activeSelf != visible) gameObject.SetActive(visible);
         if (!visible) markers.Clear();
+        if (!visible && guides) guides.Clear();
     }
     public void Render(Vector3 origin, float yaw, float facing, float worldRadius, float opacity)
     {

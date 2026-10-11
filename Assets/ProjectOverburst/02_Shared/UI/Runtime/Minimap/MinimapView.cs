@@ -8,6 +8,7 @@ public sealed class MinimapView : MonoBehaviour
     [SerializeField] private RectTransform viewport;
     [SerializeField] private RawImage terrainImage;
     [SerializeField] private MinimapMarkerGraphic markers;
+    [SerializeField] private MinimapGuideView guides;
     [SerializeField] private RectTransform playerMarker;
     [SerializeField] private RectTransform facingCone;
     [SerializeField] private Canvas minimapCanvas;
@@ -29,6 +30,7 @@ public sealed class MinimapView : MonoBehaviour
         && raycaster != null && zoomInButton != null && zoomOutButton != null && zoomValueText != null;
     public float Radius => Mathf.Max(1f, Mathf.Min(viewport.rect.width, viewport.rect.height) * 0.5f - edgeInset);
     public MinimapMarkerGraphic Markers => markers;
+    public MinimapGuideView Guides => guides;
     public Button ZoomInButton => zoomInButton;
     public Button ZoomOutButton => zoomOutButton;
     public GameObject ViewRoot => viewRoot;
@@ -71,6 +73,7 @@ public sealed class MinimapView : MonoBehaviour
         visible = value;
         if (viewRoot != null && viewRoot.activeSelf != value) viewRoot.SetActive(value);
         if (!value && markers != null) markers.Clear();
+        if (!value && guides != null) guides.Clear();
         if (raycaster != null) raycaster.enabled = value && !blocked;
     }
 

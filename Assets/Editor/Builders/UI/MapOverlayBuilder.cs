@@ -49,6 +49,40 @@ public static class MapOverlayBuilder
         }
         finally { Object.DestroyImmediate(asset); }
     }
+    public static string ApplyGuidance(string output)
+    {
+        OverburstSettingsGothicBuilder.RequireIdle();
+        output = Path.GetFullPath(output);
+        if (!output.StartsWith(Path.GetFullPath("../개인파일/코덱스산출") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output)) throw new ArgumentException("Fresh owned output required");
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(MinimapPath);
+        if (!asset || EditorUtility.IsDirty(asset)) throw new InvalidOperationException("Missing or dirty minimap");
+        Directory.CreateDirectory(output);
+        foreach (string p in new[] {MinimapPath, MinimapPath + ".meta"}) File.Copy(p, Path.Combine(output, Path.GetFileName(p)));
+        Edit(MinimapPath, root =>
+        {
+            var controller = root.GetComponent<WorldMinimapController>();
+            var player = root.transform.Find("MinimapView/CircleViewport/PlayerMarker").GetComponent<UnityEngine.UI.Image>();
+            MinimapGuideView Add(Transform parent)
+            {
+                var t = Rect("ObjectiveGuides", parent, Vector2.one * 1024);
+                var guides = t.gameObject.AddComponent<MinimapGuideView>();
+                guides.icons = Rect("KnownObjectives", t, Vector2.one * 1024).gameObject.AddComponent<MinimapMarkerGraphic>();
+                guides.arrows = Rect("Directions", t, Vector2.one * 1024).gameObject.AddComponent<MinimapMarkerGraphic>();
+                guides.icons.raycastTarget = guides.arrows.raycastTarget = false;
+                Set(guides.icons, "atlas", controller.View.Markers.Atlas); Set(guides.arrows, "atlas", player.sprite.texture);
+                var so = new SerializedObject(guides.arrows); so.FindProperty("singleIcon").boolValue = true; so.ApplyModifiedPropertiesWithoutUndo();
+                return guides;
+            }
+            if (!controller.View.Guides) Set(controller.View, "guides", Add(controller.View.Markers.transform.parent));
+            if (!controller.Overlay.guides) controller.Overlay.guides = Add(controller.Overlay.viewport);
+            if (controller.View.Guides.transform.GetSiblingIndex() > player.transform.GetSiblingIndex())
+                controller.View.Guides.transform.SetSiblingIndex(player.transform.GetSiblingIndex());
+            if (controller.Overlay.guides.transform.GetSiblingIndex() > controller.Overlay.playerMarker.GetSiblingIndex())
+                controller.Overlay.guides.transform.SetSiblingIndex(controller.Overlay.playerMarker.GetSiblingIndex());
+        });
+        return "PASS: objective and direction batches reuse the existing marker and player textures";
+    }
     static void Edit(string path, Action<GameObject> action)
     {
         var root = PrefabUtility.LoadPrefabContents(path);

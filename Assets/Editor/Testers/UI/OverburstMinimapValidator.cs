@@ -14,7 +14,8 @@ public static class OverburstMinimapValidator
         var controller = Object.FindFirstObjectByType<WorldMinimapController>(FindObjectsInactive.Include);
         Require(controller != null && controller.View != null && controller.View.IsReady, "Authored references");
         var view = controller.View;
-        Require(controller.GetComponentsInChildren<MinimapMarkerGraphic>(true).Length == 2, "Circular and overlay marker graphics");
+        Require(controller.GetComponentsInChildren<MinimapMarkerGraphic>(true).Length == 6, "Two enemy and four objective/direction graphics");
+        Require(view.Guides && view.Guides.IsReady && controller.Overlay.guides && controller.Overlay.guides.IsReady, "Both objective guide views");
         Require(controller.GetComponentsInChildren<Mask>(true).Length == 1, "One circular mask");
         Require(controller.GetComponentsInChildren<RectMask2D>(true).Length == 1, "Overlay rectangular clip");
         Require(controller.GetComponentsInChildren<RawImage>(true).Length == 2 && view.TerrainImage != null && controller.Overlay != null,
