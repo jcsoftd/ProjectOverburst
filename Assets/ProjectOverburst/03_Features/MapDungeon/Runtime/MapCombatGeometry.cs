@@ -279,7 +279,8 @@ public static class MapCombatGeometry
             if (points.Count < 6) throw new InvalidOperationException("실제 전투 가능한 바닥이 부족합니다: " + source.name + " / " + points.Count + "㎡");
             areas.Add(new Area(source.index, source.name, source.center, source.band, points, source));
         }
-        var roster = MapRunRoster.Build(gate.Context.RunId, gate.Map, areas);
+        if (desert) gate.BossArena = MapBossArena.Prepare(areas, entry);
+        var roster = MapRunRoster.Build(gate.Context.RunId, gate.Map, areas, gate.BossArena?.Ground.Index ?? -1);
         var random = new System.Random(unchecked(gate.Map.seed ^ 0x76B902));
         foreach (var area in roster.Areas)
         {

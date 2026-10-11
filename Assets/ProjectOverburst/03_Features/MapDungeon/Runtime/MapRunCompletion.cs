@@ -24,14 +24,28 @@ public sealed class MapRunCompletion : MonoBehaviour
     public int CompletionArea => requested ? completionArea : -1;
     public string LastError { get; private set; }
     public bool IsCompleted { get; private set; }
+    public CrustaspikanEncounter Boss { get; private set; }
 
-    public void Configure(RunWorldGate world, PlayerActorRuntime actor)
+    public void Configure(RunWorldGate world, PlayerActorRuntime actor, EnemySpawnService service = null)
     {
         if (gate || !world || world.Roster == null || !actor) throw new InvalidOperationException("Prepared map and player required.");
         gate = world; player = actor; path = new NavMeshPath();
         lastSafe = gate.EntryPoint.position;
         lastArea = Mathf.Max(0, FindArea(lastSafe, out _));
         gate.Roster.DeathRecorded += ObserveDeath;
+        if (gate.Map.terrain == MapTerrainKind.Desert)
+        {
+            if (gate.BossArena == null || !service) throw new InvalidOperationException("Reserved desert boss required.");
+            var root = new GameObject("Desert Crustaspikan"); root.transform.SetParent(transform, false);
+            Boss = root.AddComponent<CrustaspikanEncounter>();
+            if (!Boss.BeginMap(gate, actor, service)) throw new InvalidOperationException("사막 보스 준비 실패: " + Boss.LastFailure);
+        }
+    }
+    public void RequestBossCompletion()
+    {
+        if (requested || !Boss || !Boss.Defeated || gate.Map.terrain != MapTerrainKind.Desert) return;
+        completionArea = gate.BossArena.Ground.Index; completionAnchor = gate.BossArena.BossPoint;
+        completionFrame = Time.frameCount; requested = true;
     }
 
     int FindArea(Vector3 position, out Vector3 safe)
@@ -146,6 +160,11 @@ public sealed class MapRunCompletion : MonoBehaviour
     }
     bool TryPlace()
     {
+        if (gate.BossArena != null)
+        {
+            portalPoint = gate.BossArena.PortalPoint; rewardPoint = gate.BossArena.RewardPoint;
+            placed = true; return true;
+        }
         var area = gate.Roster.Areas[completionArea].Ground;
         var points = new List<Vector3>(area.Points);
         points.Sort((a, b) => (a - completionAnchor).sqrMagnitude.CompareTo((b - completionAnchor).sqrMagnitude));

@@ -60,6 +60,7 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     private CrustaspikanEncounter encounter;
     private EnemyActor actor;
     private uint lease;
+    private CombatHealth protectedPlayer, protectedBoss;
     private OverburstCinemachineCameraRig rig;
     private CinemachineCamera shotCamera;
     private GameObject presentation;
@@ -123,6 +124,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             player.GetComponent<MeleeRuntime>()?.CancelCurrentAction();
             owner.Brain.BeginEntrance();
             GameplayInputBlocker.Block(this);
+            protectedPlayer = player.Health; protectedBoss = actor.Health;
+            protectedPlayer.SetDamageImmunity(this, true); protectedBoss.SetDamageImmunity(this, true);
             CaptureCanvas(owner.BossHud);
             foreach (var view in FindObjectsByType<OverburstGameUI>(FindObjectsSortMode.None)) CaptureCanvas(view.hud);
             foreach (var view in FindObjectsByType<PlayerHealthHud>(FindObjectsSortMode.None)) CaptureCanvas(view);
@@ -536,7 +539,13 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             fractures.Clear(); debris.Clear(); crater = null;
             if (actor != null && actor.IsLeased && actor.LeaseVersion == lease) encounter.Brain?.FinishEntrance(cancelling ? 0f : settings.combatGraceSeconds);
         }
-        finally { GameplayInputBlocker.Unblock(this); }
+        finally
+        {
+            if (protectedPlayer != null) protectedPlayer.SetDamageImmunity(this, false);
+            if (protectedBoss != null) protectedBoss.SetDamageImmunity(this, false);
+            protectedPlayer = protectedBoss = null;
+            GameplayInputBlocker.Unblock(this);
+        }
     }
     private void OnDisable() => Cancel();
     private void OnDestroy() => Cancel();

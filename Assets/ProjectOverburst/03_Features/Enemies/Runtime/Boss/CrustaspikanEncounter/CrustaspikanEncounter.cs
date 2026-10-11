@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 // 무대/풀 수명을 소유한다. 카메라 조작과 보스 표시는 기존 게임 카메라와 저작된 HUD를 사용한다.
 [DefaultExecutionOrder(10000)]
-public sealed class CrustaspikanEncounter : MonoBehaviour
+public sealed partial class CrustaspikanEncounter : MonoBehaviour
 {
     public CrustaspikanEncounterSettings Settings { get; private set; }
     public CrustaspikanEncounterBrain Brain { get; private set; }
@@ -65,28 +65,42 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         portal.AddComponent<CrustaspikanEncounterPortal>().Configure(host, this);
         Teleport(ArenaCenter + new Vector3(0, .08f, -10), Quaternion.identity);
         if (!SpawnBoss()) return false;
-        if (settings.entrance != null && settings.entrance.enabled)
-        {
-            var director = new GameObject("Crustaspikan Entrance Director"); director.transform.SetParent(transform, false);
-            EntranceCinematic = director.AddComponent<CrustaspikanEntranceCinematic>();
-            if (!EntranceCinematic.Play(this, player, gameplayCamera, settings.entrance))
-            { Destroy(director); EntranceCinematic = null; Brain.FinishEntrance(1f); }
-        }
+        if (!PlayEntrance()) Brain.FinishEntrance(1f);
         return true;
+    }
+    private bool PlayEntrance()
+    {
+        if (Settings.entrance == null || !Settings.entrance.enabled) return !IsMapEncounter;
+        if (EntranceCinematic != null) Destroy(EntranceCinematic.gameObject);
+        var director = new GameObject("Crustaspikan Entrance Director"); director.transform.SetParent(transform, false);
+        EntranceCinematic = director.AddComponent<CrustaspikanEntranceCinematic>();
+        if (EntranceCinematic.Play(this, player, gameplayCamera, Settings.entrance)) return true;
+        LastFailure = "보스 등장 연출을 시작하지 못했습니다.";
+        Destroy(director); EntranceCinematic = null;
+        Debug.LogWarning("[Crustaspikan] " + LastFailure);
+        return false;
     }
     private bool SpawnBoss()
     {
         try
         {
-            if (!spawns.TrySpawn(new EnemySpawnRequest(Settings.materials.actorDefinition, ArenaCenter + new Vector3(0, .05f, 2), Quaternion.Euler(0, 180, 0),
-                targetTransform: player.transform, spawnParent: transform, context: EncounterContext.Test), out var actor))
+            if (!spawns.TrySpawn(new EnemySpawnRequest(Settings.materials.actorDefinition, IsMapEncounter ? mapArena.BossPoint : ArenaCenter + new Vector3(0, .05f, 2), Quaternion.Euler(0, 180, 0),
+                targetTransform: player.transform, spawnParent: transform, context: IsMapEncounter ? mapGate.Context : EncounterContext.Test), out var actor))
             { LastFailure = "보스를 대여하지 못했습니다."; return false; }
             // 전투 로직 생성이 실패하거나 드롭 컴포넌트가 없어도 대여 수명을 소유한다.
             leasedBoss = actor; leasedBossVersion = actor.LeaseVersion;
             bossMotor = actor.GetComponent<EnemyMotor>(); ResetMotionSamples();
-            DisableLoot(actor); Brain = new CrustaspikanEncounterBrain(this, actor, player);
-            Brain.Composite.MonsterLanded += DisableLoot;
-            bossHud.BindEncounter(Brain); return true;
+            if (IsMapEncounter) actor.Health.OnDamageResolved += MapBossDamage;
+            else DisableLoot(actor);
+            Brain = new CrustaspikanEncounterBrain(this, actor, player);
+            if (IsMapEncounter)
+            {
+                var context = mapGate.Context;
+                Brain.Composite.ConfigureSpawns(spawns, new EncounterContext(context.RunId, context.MapLevel,
+                    context.MapGrade, 0, context.Map, rewardsAllowed: false));
+            }
+            else Brain.Composite.MonsterLanded += DisableLoot;
+            bossHud?.BindEncounter(Brain); return true;
         }
         catch (System.Exception error)
         {
@@ -144,7 +158,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         if (gameplayCamera == null && Camera.main != null) gameplayCamera = Camera.main.GetComponent<QuarterViewCamera>();
         framingCaptured = gameplayCamera != null && gameplayCamera.TryBeginFramingScope(this, 1.65f);
         cameraRig = gameplayCamera != null ? gameplayCamera.CinemachineRig : null;
-        if (cameraRig != null && cameraRig.Confiner != null)
+        if (!IsMapEncounter && cameraRig != null && cameraRig.Confiner != null)
         {
             previousConfinerVolume = cameraRig.Confiner.BoundingVolume;
             previousConfinerSlowing = cameraRig.Confiner.SlowingDistance;
@@ -156,7 +170,9 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     private void Update()
     {
-        if (exiting || Brain == null) return;
+        if (exiting) return;
+        if (IsMapEncounter) { UpdateMap(); return; }
+        if (Brain == null) return;
         if (player == null || spawns == null) { Exit(false); return; }
         if (IsIntroducing)
         {
@@ -190,10 +206,17 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         previousPlayerPosition = playerPosition; previousBossPosition = bossPosition; hasMotionSample = true;
     }
     public Vector3 ClampArena(Vector3 position, float margin = 2f)
-    { Vector3 delta = position - ArenaCenter; delta.y = 0; return ArenaCenter + Vector3.ClampMagnitude(delta, Settings.arenaRadius - margin) + Vector3.up * .08f; }
+    {
+        if (IsMapEncounter) return ClampMapArena(position);
+        Vector3 delta = position - ArenaCenter; delta.y = 0; return ArenaCenter + Vector3.ClampMagnitude(delta, Settings.arenaRadius - margin) + Vector3.up * .08f;
+    }
     public void Announce(string text, float seconds) => bossHud?.ShowEncounterNotice(Brain, text, seconds);
     public void BossDefeated()
-    { if (Defeated) return; Defeated = true; }
+    {
+        if (Defeated) return;
+        Defeated = true;
+        if (IsMapEncounter) { ClearSummons(); mapGate.Completion?.RequestBossCompletion(); }
+    }
     private void Teleport(Vector3 position, Quaternion rotation)
     {
         if (player == null) return; var cc = player.CharacterController; bool enabled = cc != null && cc.enabled;
@@ -205,6 +228,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     private void ClearSummons(bool deferred)
     {
         if (Brain?.Composite == null) return;
+        if (IsMapEncounter) { Brain.Composite.Cancel(); Brain.Composite.ReleaseSummons(deferred); return; }
         RestoreAllLoot(); Brain.Composite.Cancel(); Brain.Composite.ReleaseSummons(deferred);
         foreach (var actor in new List<EnemyActor>(oldLoot.Keys))
         {
@@ -219,6 +243,8 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     }
     private void ClearCombat(bool deferred = false)
     {
+        if (IsMapEncounter && leasedBoss && leasedBoss.LeaseVersion == leasedBossVersion)
+            leasedBoss.Health.OnDamageResolved -= MapBossDamage;
         try
         {
             if (Brain != null)
@@ -249,7 +275,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
     public void Restart() => TryRestart();
     public bool TryRestart()
     {
-        if (exiting) return false;
+        if (exiting || IsMapEncounter) return false;
         bool restarted = false; LastFailure = "";
         try
         {
@@ -267,7 +293,7 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         }
         finally { if (!restarted) Exit(true); }
     }
-    public void Exit(bool returnToHideout) => Exit(returnToHideout, false);
+    public void Exit(bool returnToHideout) { if (!IsMapEncounter) Exit(returnToHideout, false); }
     private void Exit(bool returnToHideout, bool deferred)
     {
         if (exiting) return; exiting = true;
@@ -276,19 +302,24 @@ public sealed class CrustaspikanEncounter : MonoBehaviour
         {
             try
             {
-                if (framingCaptured && gameplayCamera != null) gameplayCamera.EndFramingScope(this); framingCaptured = false;
+                EndPresentation();
                 if (player != null && player.Health != null)
                 {
                     player.Health.SetDamageDeathPrevention(this, false);
                     if (returnToHideout) { Teleport(returnPosition, returnRotation); player.Health.Heal(Mathf.Max(0, returnHp - player.Health.CurrentHp)); }
                 }
-                if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing);
-                foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
-                pausedTargetHuds.Clear();
-                if (ownedBossHud != null) Destroy(ownedBossHud);
             }
             finally { host?.OnExit(this); Destroy(gameObject); }
         }
     }
     private void OnDestroy() { if (!exiting) Exit(false, true); visuals?.Dispose(); }
+    private void EndPresentation()
+    {
+        if (framingCaptured && gameplayCamera != null) gameplayCamera.EndFramingScope(this); framingCaptured = false;
+        if (confinerCaptured && cameraRig != null) cameraRig.SetConfinerVolume(previousConfinerVolume, previousConfinerSlowing); confinerCaptured = false;
+        foreach (var view in pausedTargetHuds) if (view != null) view.enabled = true;
+        pausedTargetHuds.Clear();
+        bossHud?.ClearEncounter(Brain);
+        if (ownedBossHud != null) { Destroy(ownedBossHud); ownedBossHud = null; bossHud = null; }
+    }
 }

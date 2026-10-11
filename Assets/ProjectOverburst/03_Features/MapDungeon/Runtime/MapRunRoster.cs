@@ -67,12 +67,14 @@ public sealed class MapRunRoster
         float count = minimum * Mathf.Pow(squareMetres / anchor, .75f) * density;
         return Mathf.Max(minimum, 5 * Mathf.RoundToInt(count / 5f));
     }
-    public static MapRunRoster Build(string runId, MapInstanceState map, IReadOnlyList<MapCombatGeometry.Area> ground)
+    public static MapRunRoster Build(string runId, MapInstanceState map, IReadOnlyList<MapCombatGeometry.Area> ground, int bossArea = -1)
     {
         MapGenerationPolicy.Validate(map, false);
         if (string.IsNullOrWhiteSpace(runId) || ground == null || ground.Count != map.areaCount)
             throw new ArgumentException("Map areas and run identity are required.");
         var theme = MapThemeCatalog.Resolve(map.monsterThemeId);
+        if (bossArea < -1 || bossArea >= ground.Count || bossArea >= 0 && map.terrain != MapTerrainKind.Desert)
+            throw new ArgumentException("Only a desert may reserve a boss area.");
         if (theme == null) throw new InvalidOperationException("저장된 지도 테마를 찾지 못했습니다.");
         var random = new System.Random(unchecked(map.seed ^ 0x45AD01));
         var areas = new List<Area>(); var counts = new int[ground.Count, 3];
@@ -80,7 +82,8 @@ public sealed class MapRunRoster
         {
             if (ground[i] == null || ground[i].Index != i || ground[i].Points.Count < 6)
                 throw new InvalidOperationException("전투 구역의 안전한 배치 공간이 부족합니다.");
-            int count = BasePopulation(map.terrain, ground[i].SquareMetres, .9f + (float)random.NextDouble() * .2f);
+            float density = .9f + (float)random.NextDouble() * .2f;
+            int count = i == bossArea ? 0 : BasePopulation(map.terrain, ground[i].SquareMetres, density);
             int band = ground[i].Band;
             int[] weights = band == 0 ? new[] { 85, 13, 2 } : band == 1 ? new[] { 80, 16, 4 } : new[] { 75, 19, 6 };
             var portions = Allocate(count, weights);
@@ -102,6 +105,7 @@ public sealed class MapRunRoster
         for (int a = 0; a < areas.Count; a++)
         {
             var area = areas[a];
+            if (a == bossArea) { area.FirstMember = members.Count; continue; }
             // Retain the existing fixed-count affix until its G05 migration; it does not replace small enemies.
             if (MapOptionPolicy.Value(map, MapOptionPolicy.MoreMediumElite) > 0)
             { counts[a, 1]++; if (area.Ground.Band > 0) counts[a, 2]++; }

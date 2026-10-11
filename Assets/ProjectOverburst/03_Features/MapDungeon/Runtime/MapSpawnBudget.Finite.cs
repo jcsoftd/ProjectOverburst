@@ -39,6 +39,8 @@ public sealed partial class MapSpawnBudget
         budget.preparingInitial = true;
         var account = AccountGameplaySession.Current;
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
+        gate.Completion = gate.gameObject.AddComponent<MapRunCompletion>();
+        gate.Completion.Configure(gate, player.GetComponent<PlayerActorRuntime>(), service);
         foreach (var area in gate.Roster.Areas)
         {
             var node = new GameObject("Natural Population " + area.Ground.Index); node.transform.SetParent(root.transform, false);
@@ -66,11 +68,6 @@ public sealed partial class MapSpawnBudget
                 yield return null;
             }
             budget.InitialPreparedCount = gate.Roster.Active; budget.InitialReady = true;
-            if (gate.Map.terrain == MapTerrainKind.Cave)
-            {
-                gate.Completion = gate.gameObject.AddComponent<MapRunCompletion>();
-                gate.Completion.Configure(gate, player.GetComponent<PlayerActorRuntime>());
-            }
         }
         finally { budget.preparingInitial = false; }
     }

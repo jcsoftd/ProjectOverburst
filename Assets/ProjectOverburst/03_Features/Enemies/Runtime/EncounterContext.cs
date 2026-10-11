@@ -9,11 +9,12 @@ public sealed class EncounterContext
     public ItemGrade MapGrade { get; }
     public float ExperienceMultiplier { get; }
     public MapInstanceState Map { get; }
+    public bool RewardsAllowed { get; }
     public bool IsRun => !string.IsNullOrEmpty(RunId);
     public static EncounterContext Test { get; } = new EncounterContext(null, 1, ItemGrade.Common);
 
     public EncounterContext(string runId, int mapLevel, ItemGrade mapGrade, float experienceMultiplier = 1f,
-        MapInstanceState map = null)
+        MapInstanceState map = null, bool rewardsAllowed = true)
     {
         if (mapLevel < 1 || mapLevel > 100) throw new ArgumentOutOfRangeException(nameof(mapLevel));
         if (!Enum.IsDefined(typeof(ItemGrade), mapGrade)) throw new ArgumentOutOfRangeException(nameof(mapGrade));
@@ -24,6 +25,7 @@ public sealed class EncounterContext
         MapGrade = mapGrade;
         ExperienceMultiplier = experienceMultiplier;
         Map = map;
+        RewardsAllowed = rewardsAllowed;
     }
 
     public bool MatchesRun(RunSnapshot run)
@@ -32,6 +34,6 @@ public sealed class EncounterContext
         return IsRun ? active && string.Equals(run.runId, RunId, StringComparison.Ordinal) : !active;
     }
 
-    public bool CanGrantRewards => MatchesRun(AccountGameplaySession.Current?.ReadRun())
+    public bool CanGrantRewards => RewardsAllowed && MatchesRun(AccountGameplaySession.Current?.ReadRun())
         && (IsRun ? WorldSessionState.Phase == WorldPhase.Run : WorldSessionState.IsHideout);
 }

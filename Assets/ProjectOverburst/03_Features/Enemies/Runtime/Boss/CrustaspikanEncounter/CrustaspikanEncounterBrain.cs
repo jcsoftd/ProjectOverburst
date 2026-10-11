@@ -94,13 +94,18 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
             actor.AI.SetTarget(player.transform);
             actor.BossPhaseController.ResetForPool(); actor.BossPhaseController.enabled = false;
             composite.Configure(runtimeComposite);
-            executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(runtimeAbilities, 1f, 1f);
+            var balance = OverburstBalanceTable.Current;
+            float levelProgress = (OverburstGrowthRules.ClampLevel(Actor.GetComponent<EnemyRank>().Level) - 1) / 99f;
+            float attackSpeed = encounter.IsMapEncounter
+                ? Mathf.Min(balance.EnemyAttackCap, Actor.RuntimeStats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress)) : 1f;
+            executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(runtimeAbilities,
+                encounter.IsMapEncounter ? Actor.RuntimeStats.DamageMultiplier : 1f, attackSpeed);
             // 공통 디렉터는 패링 접수와 반동만 담당. 수치/페이즈/선택은 이 전투가 한 번만 처리한다.
             var proxy = ScriptableObject.CreateInstance<EnemyBossCombatProfile>(); clones.Add(proxy);
             proxy.name = "Crustaspikan Parry Reception (Runtime)"; proxy.parryGain = 0; proxy.heavyHitGain = 0;
             proxy.groggyMax = settings.groggyMax; proxy.patterns = Array.Empty<EnemyBossCombatProfile.Pattern>();
             parryDirector.Configure(proxy); lastParry = parryDirector.ParryCount;
-            actor.Health.SetMaxHp(settings.bossHp, true);
+            if (!encounter.IsMapEncounter) actor.Health.SetMaxHp(settings.bossHp, true);
             actor.Health.OnDamageResolved += OnDamage;
             melee = player.GetComponent<MeleeRuntime>();
             energy = player.GetComponent<OverburstElementEnergy>();

@@ -17,6 +17,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
     private Coroutine activeDamageOverTimeRoutine; // DoT 루틴
     private readonly HashSet<Behaviour> damageDeathPreventionOwners = new HashSet<Behaviour>();
+    private readonly HashSet<Behaviour> damageImmunityOwners = new HashSet<Behaviour>();
     private float runMaxHpMultiplier = 1f;
     private float runHealingMultiplier = 1f;
     private float appliedRunMaxHpPenalty;
@@ -37,6 +38,23 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         if (owner == null) return;
         if (enabled) damageDeathPreventionOwners.Add(owner);
         else damageDeathPreventionOwners.Remove(owner);
+    }
+
+    // Cinematics own their temporary protection and release it on every exit path.
+    public bool IsDamageImmune
+    {
+        get
+        {
+            foreach (var owner in damageImmunityOwners)
+                if (owner != null && owner.isActiveAndEnabled) return true;
+            return false;
+        }
+    }
+    public void SetDamageImmunity(Behaviour owner, bool enabled)
+    {
+        if (owner == null) return;
+        if (enabled) damageImmunityOwners.Add(owner);
+        else damageImmunityOwners.Remove(owner);
     }
 
     public event Action<CombatHealth, DamageInfo> OnDamaged;
@@ -78,8 +96,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     private void TakeDamageCore(DamageInfo info, float residualFraction, bool parryResidual)
     {
         info.isParryResidualDamage = parryResidual;
-        if (IsDead)
-            return; // 사망 후 중복 피해 차단
+        if (IsDead || IsDamageImmune)
+            return; // 사망 후 또는 조작 불가 연출 중 피해 차단
 
         float damage = Mathf.Max(0f, info.damage); // 음수 피해 방지
         if (damage <= 0f)

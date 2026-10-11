@@ -10,6 +10,8 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
 {
     [SerializeField] EnemyBossCompositePatternSet patterns;
     EnemyActor actor;
+    EnemySpawnService spawnService;
+    EncounterContext summonContext;
     EnemyBossMaterialExecutor basic;
     EnemyMovementReaction reaction;
     CombatTarget owner;
@@ -95,6 +97,8 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     bool Usable=>actor!=null && actor.IsLeased && actor.Health!=null && !actor.Health.IsDead && actor.Melee!=null
         && actor.Melee.StatusActionSpeedMultiplier>0f && (reaction==null || !reaction.BlocksAttack);
     public void Configure(EnemyBossCompositePatternSet set){patterns=set;}
+    public void ConfigureSpawns(EnemySpawnService service, EncounterContext context)
+    { spawnService = service; summonContext = context; }
     void Resolve()
     {
         if(actor==null)actor=GetComponent<EnemyActor>();if(basic==null)basic=GetComponent<EnemyBossMaterialExecutor>();
@@ -325,10 +329,10 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
             EnemyStrongAttackImpactVfx.Play(flight.landing);warnings[flight.phase]?.Hide();
         }
         var payload=flight.visual.payload;if(payload==null)return;
-        var service=EnemySpawnService.Current;if(service==null){LastFailure="No spawn service for boss payload.";return;}
+        var service=spawnService ? spawnService : EnemySpawnService.Current;if(service==null){LastFailure="No spawn service for boss payload.";return;}
         if(!service.RegisterAdditionalCatalog(patterns.summonCatalog,out string error)){LastFailure=error;return;}
         if(service.TrySpawn(new EnemySpawnRequest(payload.definition,flight.landing,aimRotation,target,gameObject,transform,transform.parent,
-            seed:sequence,context:GetComponent<EnemyRank>()?.Encounter??EncounterContext.Test),out var summoned)){
+            seed:sequence,context:summonContext??GetComponent<EnemyRank>()?.Encounter??EncounterContext.Test),out var summoned)){
             bool ai=summoned.AI.enabled;summoned.AI.enabled=false;summoned.Movement.ApplyActionLock(payload.wakeSeconds);
             adds.Add(new Add{actor=summoned,lease=summoned.LeaseVersion,payload=payload,wake=Time.time+payload.wakeSeconds,ai=ai});SummonedCount++;MonsterLanded?.Invoke(summoned);
         }else LastFailure="Boss payload spawn rejected: "+payload.definition.EnemyId;
@@ -385,7 +389,7 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
     void ClearFlights(){foreach(var flight in flights)Free(flight.visual);flights.Clear();}
     public void ReleaseSummons(bool deferred = false)
     {
-        var service = EnemySpawnService.Current;
+        var service = spawnService ? spawnService : EnemySpawnService.Current;
         foreach (var add in adds)
             if (service != null && add.actor != null && add.actor.IsLeased && add.actor.LeaseVersion == add.lease)
             {
@@ -401,6 +405,6 @@ public sealed partial class EnemyBossCompositePatternExecutor : EnemyAbilityExec
         foreach(var visual in sprays.Values)visual.Stop(true);activeSpray=null;current=null;spit=null;prepared=false;preparedPayload=null;ActiveBeamPhase=-1;
         actor?.Movement?.CancelActionLock();
     }
-    public override void ResetForReuse(){Resolve();Cancel();ReleaseSummons();overridePayload=null;preparationSeen=false;throwCount=0;DamageCount=ReleaseCount=EmissionCount=SummonedCount=RockThrowCount=EliteThrowCount=CompletedCount=0;LastFailure=null;}
+    public override void ResetForReuse(){Resolve();Cancel();ReleaseSummons();spawnService=null;summonContext=null;overridePayload=null;preparationSeen=false;throwCount=0;DamageCount=ReleaseCount=EmissionCount=SummonedCount=RockThrowCount=EliteThrowCount=CompletedCount=0;LastFailure=null;}
     void OnDestroy(){Cancel();ReleaseSummons(true);foreach(var visual in visuals)if(visual.root!=null)Destroy(visual.root);foreach(var spray in sprays.Values)if(spray!=null)Destroy(spray.gameObject);}
 }
