@@ -53,17 +53,28 @@ public class CavePlatformLayout
     }
     protected static float EdgeDistance(Vector2[] hull, Vector2 p) => Enumerable.Range(0, hull.Length).Min(i =>
     { var a = hull[i]; var d = hull[(i + 1) % hull.Length] - a; return Vector2.Distance(p, a + d * Mathf.Clamp01(Vector2.Dot(p - a, d) / d.sqrMagnitude)); });
-    protected static Vector2[] WorldHull(CavePlatformLibrary library, Room room) => library.platforms[room.platform].hull.Select(p => XZ(room.position + Rotate(new Vector3(p.x, 0, p.y), room.yaw))).ToArray();
+    protected static Vector2[] WorldHull(CavePlatformLibrary library, Room room)
+    {
+        var source = library.platforms[room.platform].hull; var result = new Vector2[source.Length];
+        var rotation = Quaternion.Euler(0, room.yaw, 0);
+        for (int i = 0; i < source.Length; i++) result[i] = XZ(room.position + rotation * new Vector3(source[i].x, 0, source[i].y));
+        return result;
+    }
     protected static bool Overlap(Vector2[] a, Vector2[] b, float margin)
     {
-        foreach (var polygon in new[] { a, b })
+        for (int side = 0; side < 2; side++)
+        {
+            var polygon = side == 0 ? a : b;
             for (int i = 0; i < polygon.Length; i++)
             {
                 var edge = polygon[(i + 1) % polygon.Length] - polygon[i]; var axis = new Vector2(-edge.y, edge.x).normalized;
-                float amin = a.Min(p => Vector2.Dot(p, axis)), amax = a.Max(p => Vector2.Dot(p, axis));
-                float bmin = b.Min(p => Vector2.Dot(p, axis)), bmax = b.Max(p => Vector2.Dot(p, axis));
+                float amin = float.PositiveInfinity, amax = float.NegativeInfinity;
+                float bmin = float.PositiveInfinity, bmax = float.NegativeInfinity;
+                for (int j = 0; j < a.Length; j++) { float p = Vector2.Dot(a[j], axis); amin = Mathf.Min(amin, p); amax = Mathf.Max(amax, p); }
+                for (int j = 0; j < b.Length; j++) { float p = Vector2.Dot(b[j], axis); bmin = Mathf.Min(bmin, p); bmax = Mathf.Max(bmax, p); }
                 if (amax + margin < bmin || bmax + margin < amin) return false;
             }
+        }
         return true;
     }
     protected static bool SegmentCross(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
@@ -78,6 +89,17 @@ public class CavePlatformLayout
         { for(float n=-1.2f;n<2;n+=.4f) if(blocked(p,a+d*n)) return false; return true; }
         bool PassageHitsRoom(CavePlatformLibrary l, Room r, Vector3 a, Vector3 b)
         { for(float t=0;t<=1;t+=.05f) if(blocked(l.platforms[r.platform],Rotate(Vector3.Lerp(a,b,t)-r.position,-r.yaw))) return true; return false; }
+        // Peripheral decorations may reduce usable area, but may not split an otherwise connected combat floor.
+        var clearFloors = new Dictionary<CavePlatformLibrary.Platform, FloorGraph>();
+        bool InvadesFloor(Room floorRoom, Room obstacleRoom)
+        {
+            var definition = library.platforms[floorRoom.platform];
+            if (!clearFloors.TryGetValue(definition, out var graph))
+                clearFloors.Add(definition, graph = new FloorGraph(definition, blocked));
+            var rotation = Quaternion.Euler(0, -obstacleRoom.yaw, 0) * Quaternion.Euler(0, floorRoom.yaw, 0);
+            var offset = Quaternion.Euler(0, -obstacleRoom.yaw, 0) * (floorRoom.position - obstacleRoom.position);
+            return graph.Splits(p => blocked(library.platforms[obstacleRoom.platform], offset + rotation * p));
+        }
         var rejected = new Dictionary<string, int>(); int furthest = 0;
         Layout bestLayout = null; int bestJunctionDeficit = int.MaxValue, bestReviews = int.MaxValue, completeCandidates = 0;
         void Reject(string reason) { rejected.TryGetValue(reason, out int n); rejected[reason] = n + 1; }
@@ -170,6 +192,7 @@ public class CavePlatformLayout
                     if (!ApproachClear(library.platforms[parent.platform], anchorA, Direction(aa)) || !ApproachClear(definition, anchorB, Direction(ab))) { Reject("approach " + definition.source.name); continue; }
                     if (layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
                     if (layout.rooms.Any(r => PassageHitsRoom(library, r, start, end))) continue;
+                    if (layout.rooms.Any(r => InvadesFloor(r, room) || InvadesFloor(room, r))) { Reject("neighbour combat floor"); continue; }
                     parent.used[portA] = true; room.used[portB] = true; layout.rooms.Add(room);
                     placedHulls.Add(room, hull);
                     order[candidateIndex] = order[next]; order[next] = candidatePlatform;
@@ -193,6 +216,60 @@ public class CavePlatformLayout
         }
         if (bestLayout != null) { complete(bestLayout); yield break; }
         var failure = new InvalidOperationException("No layout satisfies the fixed connector dimensions and allowed joint angles for this seed."); failure.Data["LayoutConnectivity"] = true; throw failure;
+    }
+
+    sealed class FloorGraph
+    {
+        readonly List<Vector3> points = new List<Vector3>();
+        readonly List<int[]> neighbours = new List<int[]>();
+        readonly List<int[]> components = new List<int[]>();
+        public FloorGraph(CavePlatformLibrary.Platform platform, Func<CavePlatformLibrary.Platform, Vector3, bool> blocked)
+        {
+            var cells = new Dictionary<Vector2Int, int>();
+            var boundary = platform.prefab.GetComponent<CavePlatformBoundary>();
+            int left = Mathf.FloorToInt(platform.hull.Min(p => p.x)), right = Mathf.CeilToInt(platform.hull.Max(p => p.x));
+            int bottom = Mathf.FloorToInt(platform.hull.Min(p => p.y)), top = Mathf.CeilToInt(platform.hull.Max(p => p.y));
+            for (int z = bottom; z < top; z++) for (int x = left; x < right; x++)
+            {
+                var p = new Vector3(x + .5f, platform.spawn.y, z + .5f);
+                if (boundary && !boundary.ContainsLocal(p)) continue;
+                if (!platform.Surface(p, out var floor) || blocked(platform, floor)) continue;
+                cells.Add(new Vector2Int(x, z), points.Count); points.Add(floor);
+            }
+            for (int i = 0; i < points.Count; i++) neighbours.Add(null);
+            foreach (var cell in cells)
+            {
+                var edges = new List<int>();
+                foreach (var step in new[] { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down })
+                    if (cells.TryGetValue(cell.Key + step, out int i) && Mathf.Abs(points[i].y - points[cell.Value].y) <= .5f) edges.Add(i);
+                neighbours[cell.Value] = edges.ToArray();
+            }
+            var visited = new bool[points.Count];
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (visited[i]) continue;
+                var members = new List<int>(); var pending = new Queue<int>(); pending.Enqueue(i); visited[i] = true;
+                while (pending.Count > 0) { int n = pending.Dequeue(); members.Add(n); foreach (int next in neighbours[n]) if (!visited[next]) { visited[next] = true; pending.Enqueue(next); } }
+                if (members.Count >= 6) components.Add(members.ToArray());
+            }
+        }
+        public bool Splits(Func<Vector3, bool> obstructed)
+        {
+            var occupied = new bool[points.Count]; bool any = false;
+            for (int i = 0; i < points.Count; i++) { occupied[i] = obstructed(points[i]); any |= occupied[i]; }
+            if (!any) return false;
+            var visited = new bool[points.Count]; var pending = new Queue<int>();
+            foreach (var component in components)
+            {
+                int first = -1, available = 0;
+                foreach (int i in component) if (!occupied[i]) { first = i; available++; }
+                if (available < 6) return true;
+                int reached = 0; pending.Enqueue(first); visited[first] = true;
+                while (pending.Count > 0) { int n = pending.Dequeue(); reached++; foreach (int next in neighbours[n]) if (!occupied[next] && !visited[next]) { visited[next] = true; pending.Enqueue(next); } }
+                if (reached != available) return true;
+            }
+            return false;
+        }
     }
 
     public static CavePlatformLibrary.Connector[] ConnectorPieces(CavePlatformLibrary library, int stairs)

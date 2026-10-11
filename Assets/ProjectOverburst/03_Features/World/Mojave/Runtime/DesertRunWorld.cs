@@ -73,7 +73,7 @@ namespace Overburst.Mojave
             if (!world.generatedRoot || !world.surface || !world.surface.terrainData || world.bakedSeed != candidate.seed
                 || world.seed != candidate.seed || world.bakedLayoutVersion != MojaveLayout.Version)
                 throw new InvalidOperationException("사막 베이크 정보가 지도 후보와 다릅니다. 지도를 보존하고 입장을 취소합니다.");
-            if (MapThemeCatalog.ResolveForRun(gate.Map.monsterThemeId) == null)
+            if (MapThemeCatalog.Resolve(gate.Map.monsterThemeId) == null)
                 throw new InvalidOperationException("지도 몬스터 테마를 준비하지 못했습니다.");
             PreparationStage = "사막 전장 연결 확인";
             yield return null;
@@ -121,6 +121,10 @@ namespace Overburst.Mojave
             }
             var point = new GameObject("Desert Run Entry").transform; point.SetParent(transform, false);
             point.position = entry + Vector3.up * .12f;
+            PreparationStage = "전투 면적과 고정 몬스터 명단 준비";
+            var roster = MapCombatGeometry.Prepare(gate, null, world, point.position);
+            try { while (roster.MoveNext()) yield return roster.Current; }
+            finally { (roster as IDisposable)?.Dispose(); }
             PreparationStage = "지형 준비 완료";
             if (!gate.CompletePreparation(gate.Context.RunId, point)) throw new InvalidOperationException("사막 준비 완료를 확정하지 못했습니다.");
         }

@@ -31,6 +31,8 @@ namespace Overburst.Caves
                             MapGenerationPolicy.Validate(gate.Map, false);
                             if (gate.Map.terrain != Overburst.Persistence.MapTerrainKind.Cave)
                                 throw new InvalidOperationException("동굴에 사용할 지도 정보가 아닙니다.");
+                            if (MapThemeCatalog.Resolve(gate.Map.monsterThemeId) == null)
+                                throw new InvalidOperationException("저장된 지도 테마를 찾지 못했습니다.");
                             count = gate.Map.areaCount; seed = gate.Map.seed;
                         }
                         catch (Exception error) { gate.RejectPreparation(gate.Context.RunId, error.Message); return; }
@@ -84,6 +86,19 @@ namespace Overburst.Caves
                 }
                 else if (world.courts.Count != gate.Map.areaCount || world.seed != gate.Map.seed)
                 { gate.RejectPreparation(gate.Context.RunId, "생성된 동굴과 지도 정보가 다릅니다."); yield break; }
+                if (gate.Map.generationVersion > 0)
+                {
+                    (generation as IDisposable)?.Dispose();
+                    generation = MapCombatGeometry.Prepare(gate, world, null, entryPoint.position);
+                    while (true)
+                    {
+                        bool next;
+                        try { next = generation.MoveNext(); }
+                        catch (Exception error) { gate.RejectPreparation(gate.Context.RunId, error.Message); Debug.LogException(error); yield break; }
+                        if (!next) break;
+                        yield return generation.Current;
+                    }
+                }
                 if (!world.Ground(entryPoint.position, out _)) gate.RejectPreparation(gate.Context.RunId, "동굴 입구의 발판을 확인하지 못했습니다.");
                 else gate.CompletePreparation(gate.Context.RunId, entryPoint);
             }

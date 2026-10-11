@@ -249,13 +249,13 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
                 try { gate.BeginPreparation(account.ReadRun()); }
                 catch (System.Exception error) { RunEntryError = error.Message; }
         }
-        float deadline = Time.realtimeSinceStartup + 60f;
+        float deadline = Time.realtimeSinceStartup + (gate.Map.generationVersion > 0 ? Mathf.Max(60f, 20f + gate.Map.areaCount * 5f) : 60f);
         var cavePreparation = gate ? gate.GetComponent<Overburst.Caves.CaveRuntimeGenerator>() : null;
         var desertPreparation = gate ? gate.GetComponent<Overburst.Mojave.DesertRunWorld>() : null;
         while (RunEntryError == null && !cancelRunEntry && gate != null && !gate.IsReady && gate.Error == null
             && Time.realtimeSinceStartup < deadline)
         {
-            string stage = cavePreparation ? cavePreparation.Stage : desertPreparation ? desertPreparation.PreparationStage : null;
+            string stage = gate.PreparationStage ?? (cavePreparation ? cavePreparation.Stage : desertPreparation ? desertPreparation.PreparationStage : null);
             if (!string.IsNullOrEmpty(stage)) loadingScreen?.SetStatus(MapGenerationPolicy.Describe(pendingMap) + " · " + stage);
             yield return null;
         }

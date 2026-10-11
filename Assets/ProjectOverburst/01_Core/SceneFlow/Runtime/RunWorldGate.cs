@@ -10,6 +10,8 @@ public sealed class RunWorldGate : MonoBehaviour
     public bool IsReady { get; private set; }
     public Transform EntryPoint { get; private set; }
     public string Error { get; private set; }
+    public MapRunRoster Roster { get; private set; }
+    public string PreparationStage { get; internal set; }
 
     public void BeginPreparation(RunSnapshot run)
     {
@@ -17,12 +19,22 @@ public sealed class RunWorldGate : MonoBehaviour
         Map = ItemSnapshotCodec.CopyValues(run.map);
         Context = new EncounterContext(run.runId, Map.level, Map.grade,
             MapOptionPolicy.ExperienceMultiplier(Map), Map);
-        IsReady = false; EntryPoint = null; Error = null;
+        IsReady = false; EntryPoint = null; Error = null; Roster = null; PreparationStage = null;
+    }
+
+    public bool SetRoster(MapRunRoster roster)
+    {
+        if (Context == null || IsReady || Error != null || Roster != null || roster == null || !roster.PlacementReady
+            || roster.RunId != Context.RunId || roster.Seed != Map.seed || roster.ThemeId != Map.monsterThemeId
+            || roster.Terrain != Map.terrain || roster.Areas.Count != Map.areaCount || roster.Total <= 0
+            || roster.Kills != 0 || roster.Active != 0) return false;
+        Roster = roster; return true;
     }
 
     public bool CompletePreparation(string runId, Transform entryPoint)
     {
         if (Context == null || Context.RunId != runId || IsReady || Error != null
+            || (Map.generationVersion > 0 && (Roster == null || !Roster.PlacementReady))
             || entryPoint == null || entryPoint.gameObject.scene != gameObject.scene) return false;
         EntryPoint = entryPoint; IsReady = true;
         return true;

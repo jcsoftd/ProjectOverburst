@@ -8,6 +8,9 @@ public static class MapOptionPolicy
     public const string EnemyDamage = "enemy_damage";
     public const string EnemySpeed = "enemy_speed";
     public const string MoreMediumElite = "more_medium_elite";
+    public const string MoreSmall = "more_small";
+    public const string MoreMedium = "more_medium";
+    public const string MoreElite = "more_elite";
     public const string PlayerHealth = "player_health";
     public const string PlayerHealing = "player_healing";
 
@@ -69,6 +72,9 @@ public static class MapOptionPolicy
         int percent = Mathf.RoundToInt(option.value * 100f);
         switch (option.optionId)
         {
+            case MoreSmall: return "소형 몬스터 수량 +" + percent + "%";
+            case MoreMedium: return "중형 몬스터 수량 +" + percent + "%";
+            case MoreElite: return "정예 몬스터 수량 +" + percent + "%";
             case EnemyHealth: return "몬스터 최대 체력 +" + percent + "%";
             case EnemyDamage: return "몬스터 공격력 +" + percent + "%";
             case EnemySpeed: return "몬스터 이동속도 +" + percent + "%";

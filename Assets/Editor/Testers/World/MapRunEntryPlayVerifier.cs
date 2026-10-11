@@ -36,7 +36,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -59,6 +59,14 @@ public static class MapRunEntryPlayVerifier
                 var row = MapTerrainCatalog.DesertCandidates[0]; map.terrain = MapTerrainKind.Desert;
                 map.desertCandidateId = row.id; map.areaCount = row.areaCount; map.width = row.width; map.depth = row.depth;
             }
+            map.monsterThemeId = i == 0 ? "CavernMutants" : i == 1 ? "SpiderBrood" : "PrimalHunt";
+            map.monsterThemes[0].themeId = map.monsterThemeId;
+            if (i == 1)
+            {
+                map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreSmall, value = .9f });
+                map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreMedium, value = .6f });
+                map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.MoreElite, value = .4f });
+            }
             var value = ItemSnapshotCodec.Capture(item, registry); value.acquisitionOrder = state.nextAcquisitionOrder++;
             state.items.Add(value); state.inventory[i] = value.instanceId;
         }
@@ -66,6 +74,7 @@ public static class MapRunEntryPlayVerifier
         Write("fixture.json", state.items.Where(i => i.map != null));
         SessionState.SetString(Key + "pending", output); SessionState.SetString(Key + "return", output);
         SessionState.SetBool(Key + "desertOnly", desertOnly);
+        SessionState.SetBool(Key + "largeOnly", largeOnly);
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
         SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 600);
@@ -99,7 +108,8 @@ public static class MapRunEntryPlayVerifier
     {
         EditorApplication.QueuePlayerLoopUpdate();
         var generator = UnityEngine.Object.FindFirstObjectByType<Overburst.Caves.CaveRuntimeGenerator>();
-        string stage = generator ? generator.Stage : null;
+        var pendingGate = UnityEngine.Object.FindFirstObjectByType<RunWorldGate>();
+        string stage = pendingGate && pendingGate.PreparationStage != null ? pendingGate.PreparationStage : generator ? generator.Stage : null;
         if (stage != lastStage || (stage != null && EditorApplication.timeSinceStartup - lastStageAt >= 5))
         {
             lastStage = stage; lastStageAt = EditorApplication.timeSinceStartup;
@@ -140,7 +150,7 @@ public static class MapRunEntryPlayVerifier
         Check(flow.EnterMapRun(cave20.map, cave20.instanceId), "Begin cancellation case"); flow.CancelRunEntry();
         yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, "Cancelled preparation returns to hub");
         Check(account.Read().items.Any(i => i.instanceId == cave20.instanceId), "Cancelled map remains owned");
-        var selected = SessionState.GetBool(Key + "desertOnly", false) ? new[] { desert } : new[] { cave4, desert, cave20 };
+        var selected = SessionState.GetBool(Key + "largeOnly", false) ? new[] { cave20 } : SessionState.GetBool(Key + "desertOnly", false) ? new[] { desert } : new[] { cave4, desert, cave20 };
         foreach (var item in selected)
         {
             string label = MapGenerationPolicy.Describe(item.map); double began = EditorApplication.timeSinceStartup;
@@ -156,6 +166,31 @@ public static class MapRunEntryPlayVerifier
             Check(scene.name == MapTerrainCatalog.SceneNameFor(item.map), label + ": destination matches stored map");
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
+            var roster = gate.Roster;
+            Check(roster != null && roster.PlacementReady && roster.Total >= item.map.areaCount * 50, label + ": finite population and physical placements prepared before consumption");
+            Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == item.map.areaCount
+                && roster.Members.All(m => m.State == MapRunRoster.Life.Pending) && roster.Kills == 0, label + ": stored single theme and untouched logical population");
+            Check(item.map.terrain == MapTerrainKind.Cave ? roster.Target == MapRunRoster.CaveTarget(roster.Total) : roster.Target == 0, label + ": terrain-specific objective denominator");
+            Check(roster.Areas.All(a => a.Count == a.Small + a.Medium + a.Elite
+                && roster.Members.Skip(a.FirstMember).Take(a.Count).Count(m => m.Tier == EnemyThemeTier.Small) == a.Small
+                && roster.Members.Skip(a.FirstMember).Take(a.Count).Count(m => m.Tier == EnemyThemeTier.Medium) == a.Medium
+                && roster.Members.Skip(a.FirstMember).Take(a.Count).Count(m => m.Tier == EnemyThemeTier.Elite) == a.Elite && a.InitialCount == roster.Members.Skip(a.FirstMember).Take(a.Count).Count(m => m.Initial)), label + ": natural and initial allocation sums");
+            foreach (var area in roster.Areas)
+            {
+                var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial).ToArray();
+                Check(initial.All(m => MapCombatGeometry.CanPlace(area.Ground, m.Definition, m.PlannedPosition)), label + ": actual body clearance at all initial positions in area " + area.Ground.Index);
+                bool separated = true;
+                for (int i = 0; i < initial.Length; i++) for (int j = i + 1; j < initial.Length; j++)
+                {
+                    var delta = initial[i].PlannedPosition - initial[j].PlannedPosition; delta.y = 0;
+                    float space = MapCombatGeometry.BodyFor(initial[i].Definition).Radius + MapCombatGeometry.BodyFor(initial[j].Definition).Radius + MapCombatGeometry.BodyGap;
+                    if (delta.sqrMagnitude + .00001f < space * space) separated = false;
+                }
+                Check(separated, label + ": initial bodies do not overlap in area " + area.Ground.Index);
+            }
+            Write("roster-" + item.map.terrain + "-" + item.map.areaCount + ".json", new { roster.Total, roster.Target, roster.ThemeId,
+                areas = roster.Areas.Select(a => new { a.Ground.Index, a.Ground.Name, a.Ground.Band, a.Ground.SquareMetres, points = a.Ground.Points.Count, a.BasePopulation, a.Count, a.InitialCount, a.Small, a.Medium, a.Elite }),
+                members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, position = new[] { m.PlannedPosition.x, m.PlannedPosition.y, m.PlannedPosition.z } }) });
             if (item.map.terrain == MapTerrainKind.Cave)
             {
                 var cave = gate.GetComponent<Overburst.Caves.CaveWorld>();

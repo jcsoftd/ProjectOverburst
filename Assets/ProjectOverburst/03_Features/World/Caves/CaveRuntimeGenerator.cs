@@ -58,13 +58,15 @@ namespace Overburst.Caves
                     yield return null;
                 }
                 Physics.SyncTransforms();
+                var obstacleProbes = colliders.ToDictionary(pair => pair.Key,
+                    pair => pair.Value.Select(c => (collider: c, bounds: c.bounds, position: c.transform.position, rotation: c.transform.rotation)).ToArray());
                 bool Blocked(CavePlatformLibrary.Platform platform, Vector3 floor)
                 {
-                    foreach(var collider in colliders[platform])
+                    foreach(var obstacle in obstacleProbes[platform])
                     {
-                        var b=collider.bounds;
+                        var b=obstacle.bounds;
                         if(b.max.y<=floor.y+.5f||b.min.y>=floor.y+1.85f||floor.x<b.min.x-.4f||floor.x>b.max.x+.4f||floor.z<b.min.z-.4f||floor.z>b.max.z+.4f) continue;
-                        if(Physics.ComputePenetration(capsule,floor,Quaternion.identity,collider,collider.transform.position,collider.transform.rotation,out _,out float depth)&&depth>.015f) return true;
+                        if(Physics.ComputePenetration(capsule,floor,Quaternion.identity,obstacle.collider,obstacle.position,obstacle.rotation,out _,out float depth)&&depth>.015f) return true;
                     }
                     return false;
                 }
@@ -111,14 +113,9 @@ namespace Overburst.Caves
             surface.navMeshData=navigation; surface.AddData();
             foreach(var court in world.courts)
             {
-                var desired=court.center; bool standing=false;
-                for(int candidate=0;candidate<49&&!standing;candidate++)
-                {
-                    float radius=candidate==0?0:1+(candidate-1)/16, angle=(candidate%16)*Mathf.PI/8;
-                    var point=desired+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*radius;
-                    if(NavMesh.SamplePosition(point,out var hit,.7f,NavMesh.AllAreas)&&world.CanStand(hit.position,.45f)) { court.center=hit.position; standing=true; }
-                }
-                if(!standing) throw new InvalidOperationException("플랫폼 진입 위치를 찾지 못했습니다: "+court.name);
+                if (!MapCombatGeometry.TryNavigationCenter(world, court, out var center))
+                    throw new InvalidOperationException("플랫폼의 연결된 전투 바닥을 찾지 못했습니다: " + court.name);
+                court.center = center;
             }
             // Native stair treads can leave tiny navigation seams even when actors can step across.
             // Join only installed connectors, using contacts on the two authored platform floors.
