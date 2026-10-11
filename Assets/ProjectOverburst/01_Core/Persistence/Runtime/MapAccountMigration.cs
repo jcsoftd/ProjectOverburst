@@ -7,10 +7,17 @@ namespace Overburst.Persistence
         public static AccountSnapshot Load(EasySaveAccountStore store, AccountContentRegistry registry)
         {
             var state = store.Load();
-            if (state == null || !NeedsUpgrade(state)) return state;
+            if (state == null) return null;
+            bool maps = NeedsUpgrade(state), bags = BagAccountMigration.NeedsGoldUpgrade(state);
+            if (!maps && !bags) return state;
             // Existing transaction publishes only after a verified durable write.
             var transaction = new AccountTransactions(state, store, registry);
-            transaction.Execute("map-generation-v1-" + state.revision, state.revision, Upgrade, true);
+            transaction.Execute((bags ? "bag-quality-v2-" : "map-generation-v1-") + state.revision, state.revision,
+                candidate =>
+                {
+                    if (maps) Upgrade(candidate);
+                    if (bags) BagAccountMigration.UpgradeGoldOptions(candidate, registry);
+                }, true);
             return transaction.Read();
         }
         public static bool NeedsUpgrade(AccountSnapshot state)

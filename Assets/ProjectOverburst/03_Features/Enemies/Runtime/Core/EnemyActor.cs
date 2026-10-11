@@ -188,9 +188,8 @@ public sealed class EnemyActor : MonoBehaviour
         abilityController.Configure(
             enemyDefinition.AbilitySet,
             stats.DamageMultiplier,
-            enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss
-                ? Mathf.Min(balance.EnemyAttackCap, stats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress))
-                : EnemyRuntimeStats.ResolveAuthoredAttackSpeed(stats.AttackSpeedMultiplier, 1f + balance.EnemyAttackGrowth * levelProgress, balance.EnemyAttackCap),
+            MapOptionPolicy.AttackSpeedMultiplier(stats, request.Encounter.Map, rank != null ? rank.Level : 1,
+                enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss),
             enemyDefinition.Grade != null && enemyDefinition.Grade.GradeType == EnemyGradeType.Boss ? 0f : stats.AttackInterval);
         bossOutcomeController?.ResetForPool();
         if (bossPhaseController != null

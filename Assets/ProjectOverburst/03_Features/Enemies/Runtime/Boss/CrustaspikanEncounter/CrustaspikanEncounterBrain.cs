@@ -94,10 +94,9 @@ public sealed partial class CrustaspikanEncounterBrain : IDisposable, IEnemyBoss
             actor.AI.SetTarget(player.transform);
             actor.BossPhaseController.ResetForPool(); actor.BossPhaseController.enabled = false;
             composite.Configure(runtimeComposite);
-            var balance = OverburstBalanceTable.Current;
-            float levelProgress = (OverburstGrowthRules.ClampLevel(Actor.GetComponent<EnemyRank>().Level) - 1) / 99f;
+            var rank = Actor.GetComponent<EnemyRank>();
             float attackSpeed = encounter.IsMapEncounter
-                ? Mathf.Min(balance.EnemyAttackCap, Actor.RuntimeStats.AttackSpeedMultiplier * (1f + balance.EnemyAttackGrowth * levelProgress)) : 1f;
+                ? MapOptionPolicy.AttackSpeedMultiplier(Actor.RuntimeStats, rank.Encounter.Map, rank.Level, true) : 1f;
             executor.Configure(runtimeMaterials); Actor.AbilityController.Configure(runtimeAbilities,
                 encounter.IsMapEncounter ? Actor.RuntimeStats.DamageMultiplier : 1f, attackSpeed);
             // 공통 디렉터는 패링 접수와 반동만 담당. 수치/페이즈/선택은 이 전투가 한 번만 처리한다.

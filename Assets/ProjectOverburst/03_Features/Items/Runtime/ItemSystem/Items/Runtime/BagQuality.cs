@@ -36,7 +36,7 @@ public sealed class BagInstanceState
 
 public static class BagQuality
 {
-    public const int Version = 1;
+    public const int Version = 2;
     public const int InventoryCapacity = 48;
     public const int RowCount = 4;
     public const int MaxStarsPerRow = 6;
@@ -60,9 +60,7 @@ public static class BagQuality
         var rng = new System.Random(seed);
         var result = new BagInstanceState { version = Version, seed = seed };
         result.rows.Add(new BagStatRoll { stat = BagStat.InventorySlots });
-        var pool = new List<BagStat>();
-        for (int i = 1; i <= (int)BagStat.RareGradeWeight; i++)
-            if (!excludeExperience || (BagStat)i != BagStat.KillExperience) pool.Add((BagStat)i);
+        var pool = OptionPool(excludeExperience);
         while (result.rows.Count < RowCount)
         {
             int selected = rng.Next(pool.Count);
@@ -97,7 +95,7 @@ public static class BagQuality
 
     public static bool IsValid(BagInstanceState state, ItemGrade grade)
     {
-        if (state == null || state.version != Version || !Enum.IsDefined(typeof(ItemGrade), grade)
+        if (state == null || (state.version != 1 && state.version != Version) || !Enum.IsDefined(typeof(ItemGrade), grade)
             || state.rows == null || state.rows.Count != RowCount || state.rows[0] == null
             || state.rows[0].stat != BagStat.InventorySlots) return false;
         int positive = 0, negative = 0, mainPositive = 0;
@@ -107,6 +105,7 @@ public static class BagQuality
             var row = state.rows[i];
             if (row == null || !Enum.IsDefined(typeof(BagStat), row.stat) || !seen.Add(row.stat)
                 || row.stars == null || row.stars.Count > MaxStarsPerRow) return false;
+            if (state.version == Version && IsGold(row.stat)) return false;
             foreach (var star in row.stars)
                 if (star == WeaponGradeStarType.Red) negative++;
                 else if (star == WeaponGradeStarType.White || star == WeaponGradeStarType.Green || star == WeaponGradeStarType.Yellow)
@@ -116,6 +115,32 @@ public static class BagQuality
         return mainPositive >= MainMinimum(grade)
             && positive == WeaponGradeStatRoller.GetMeleePositiveStarCount(grade)
             && negative == WeaponGradeStatRoller.GetMeleeNegativeStarCount(grade);
+    }
+
+    private static bool IsGold(BagStat stat) => stat == BagStat.GoldMagnetRadius || stat == BagStat.CombatGold;
+    private static List<BagStat> OptionPool(bool excludeExperience)
+    {
+        var pool = new List<BagStat> { BagStat.ItemPickupDistance, BagStat.ExtraItemDrop, BagStat.RareGradeWeight };
+        if (!excludeExperience) pool.Add(BagStat.KillExperience);
+        return pool;
+    }
+
+    public static bool UpgradeGoldOptions(BagInstanceState state, ItemGrade grade, bool excludeExperience)
+    {
+        if (!IsValid(state, grade)) throw new System.IO.InvalidDataException("Invalid saved bag quality.");
+        if (state.version == Version) return false;
+        var pool = OptionPool(excludeExperience);
+        foreach (var row in state.rows) pool.Remove(row.stat);
+        var rng = new System.Random(state.seed ^ 0x42414702);
+        foreach (var row in state.rows)
+        {
+            if (!IsGold(row.stat)) continue;
+            int selected = rng.Next(pool.Count);
+            row.stat = pool[selected];
+            pool.RemoveAt(selected);
+        }
+        state.version = Version;
+        return true;
     }
 
     public static int BaseSlots(int level) => SlotBases[(OverburstGrowthRules.ClampLevel(level) - 1) / 10];

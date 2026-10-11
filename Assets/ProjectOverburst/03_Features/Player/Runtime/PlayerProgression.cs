@@ -65,13 +65,13 @@ public sealed class PlayerProgression : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (pendingExperience > 0 && Time.unscaledTime >= nextExperienceRetry)
+        if ((pendingExperience > 0 || pendingBagExperienceUnits > 0) && Time.unscaledTime >= nextExperienceRetry)
             FlushPendingExperience();
     }
 
     public bool FlushPendingExperience()
     {
-        if (pendingExperience == 0) return true;
+        if (pendingExperience == 0 && pendingBagExperienceUnits == 0) return true;
         if (!Overburst.Persistence.AccountGameplaySession.ShouldRoute) return false;
         int amount = pendingExperience;
         long bagUnits = pendingBagExperienceUnits;
@@ -81,10 +81,25 @@ public sealed class PlayerProgression : MonoBehaviour
         return committed;
     }
 
-    public void AddKillExperience(int amount)
+    public static long CalculateKillExperienceUnits(int amount, float baseMultiplier, float additionalPercent, float bagPercent)
+    {
+        if (amount < 0 || float.IsNaN(baseMultiplier) || float.IsInfinity(baseMultiplier) || baseMultiplier < 0
+            || float.IsNaN(additionalPercent) || float.IsInfinity(additionalPercent) || additionalPercent < 0
+            || float.IsNaN(bagPercent) || float.IsInfinity(bagPercent) || bagPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+        return checked((long)Math.Round(amount * (double)baseMultiplier
+            * (1d + (additionalPercent + (double)bagPercent) * .01d) * BagQuality.RewardScale,
+            MidpointRounding.AwayFromZero));
+    }
+
+    public void AddKillExperience(int amount, float additionalPercent = 0, float baseMultiplier = 1)
     {
         if (amount <= 0 || Level >= OverburstGrowthRules.MaximumLevel) return;
-        long units = BagQuality.BonusUnits(amount, BagQuality.EquippedBonus(BagStat.KillExperience));
+        long totalUnits = CalculateKillExperienceUnits(amount, baseMultiplier, additionalPercent,
+            BagQuality.EquippedBonus(BagStat.KillExperience));
+        amount = checked((int)(totalUnits / BagQuality.RewardScale));
+        long units = totalUnits % BagQuality.RewardScale;
+        if (totalUnits == 0) return;
         if (Overburst.Persistence.AccountGameplaySession.Current != null)
         {
             pendingExperience = checked(pendingExperience + amount);

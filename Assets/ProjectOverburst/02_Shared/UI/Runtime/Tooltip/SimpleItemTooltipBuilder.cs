@@ -176,12 +176,18 @@ public static class SimpleItemTooltipBuilder // 기본 툴팁 생성
         AppendSubtitle(builder, "지도 / " + MapThemeCatalog.DisplayName(item.mapState?.monsterThemeId));
         builder.AppendLine(MapGenerationPolicy.Describe(item.mapState));
         AppendDescription(builder, item);
-        builder.Append("획득 경험치 +")
-            .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(item.mapState) - 1f) * 100f))
-            .AppendLine("%");
-        builder.Append("장비·물약 고등급 보정 +")
-            .Append((MapOptionPolicy.HighGradeRollBias(item.grade) * 100f).ToString("0.#"))
-            .AppendLine("%");
+        if (MapFarmingLoot.Applies(item.mapState))
+            builder.Append("보상 등급 상한: ")
+                .AppendLine(ItemTooltipFormatter.GetGradeName(MapFarmingLoot.MaximumGrade(item.mapState.grade)));
+        else
+        {
+            builder.Append("획득 경험치 +")
+                .Append(Mathf.RoundToInt((MapOptionPolicy.ExperienceMultiplier(item.mapState) - 1f) * 100f))
+                .AppendLine("%");
+            builder.Append("장비·물약 고등급 보정 +")
+                .Append((MapOptionPolicy.HighGradeRollBias(item.grade) * 100f).ToString("0.#"))
+                .AppendLine("%");
+        }
         if (item.mapState?.options != null)
             foreach (var option in item.mapState.options)
             {

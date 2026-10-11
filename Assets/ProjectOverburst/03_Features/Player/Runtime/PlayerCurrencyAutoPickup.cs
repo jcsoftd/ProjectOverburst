@@ -28,7 +28,7 @@ public class PlayerCurrencyAutoPickup : MonoBehaviour
     private void ScanNearbyCurrency()
     {
         float baseRadius = Mathf.Max(0.1f, pickupRadius);
-        float goldRadius = baseRadius * (1f + BagQuality.EquippedBonus(BagStat.GoldMagnetRadius) * .01f);
+        float goldRadius = baseRadius;
         int hitCount;
         // Grow the retained buffer when saturated, so dense drop piles cannot starve pickups.
         do

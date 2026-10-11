@@ -203,7 +203,8 @@ namespace Overburst.Persistence
         public bool GrantExperience(string transactionId, long expectedRevision, int amount,
             out int level, out int experience, long bagBonusUnits = 0)
         {
-            if (amount <= 0 || bagBonusUnits < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            if (amount < 0 || bagBonusUnits < 0 || (amount == 0 && bagBonusUnits == 0))
+                throw new ArgumentOutOfRangeException(nameof(amount));
             // No live inventory capture or ES3 round-trip clone for a scalar change.
             // ExecuteWithCandidate retains revision, validation and notifications; autosave owns durability.
             bool committed = ExecuteWithCandidate(transactionId, expectedRevision, () =>

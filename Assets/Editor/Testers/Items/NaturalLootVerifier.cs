@@ -127,8 +127,9 @@ public static class NaturalLootVerifier
         return failure == null ? "PASS: " + checks.Count + " native checks" : "FAIL: " + failure;
     }
 
-    public static void BeginPlay(string output, bool mapLoot = false)
+    public static void BeginPlay(string output, bool mapLoot = false, bool mapOptions = false)
     {
+        mapLoot |= mapOptions;
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(SessionState.GetString(Key + "output", ""))
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -146,6 +147,7 @@ public static class NaturalLootVerifier
         SessionState.SetBool(Key + "return", false);
         executed = false;
         SessionState.SetBool(Key + "mapLoot", mapLoot);
+        SessionState.SetBool(Key + "mapOptions", mapOptions);
         if (mapLoot)
         {
             var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
@@ -199,6 +201,7 @@ public static class NaturalLootVerifier
             }, Formatting.Indented));
             foreach (string suffix in new[] { "output", "start", "sceneSetup", "account" }) SessionState.EraseString(Key + suffix);
             SessionState.EraseBool(Key + "mapLoot");
+            SessionState.EraseBool(Key + "mapOptions"); SessionState.EraseFloat(Key + "captureUntil");
             SessionState.EraseBool(Key + "background"); SessionState.EraseInt(Key + "titleStep"); SessionState.EraseFloat(Key + "titleAt");
             SessionState.EraseFloat(Key + "deadline"); SessionState.EraseBool(Key + "return"); SessionState.EraseBool(Key + "started");
             executed = false;
@@ -210,7 +213,13 @@ public static class NaturalLootVerifier
             if (!EditorApplication.isPlayingOrWillChangePlaymode && (timedOut || SessionState.GetBool(Key + "started", false))) SessionState.SetBool(Key + "return", true);
             return;
         }
-        if (executed) return;
+        if (executed)
+        {
+            if (SessionState.GetBool(Key + "mapOptions", false)
+                && EditorApplication.timeSinceStartup >= SessionState.GetFloat(Key + "captureUntil", 0))
+            { SessionState.SetBool(Key + "return", true); EditorApplication.isPlaying = false; }
+            return;
+        }
         if (SessionState.GetBool(Key + "mapLoot", false) && TitleCharacterPanel.Instance
             && EditorApplication.timeSinceStartup >= SessionState.GetFloat(Key + "titleAt", 0))
         {
@@ -232,15 +241,17 @@ public static class NaturalLootVerifier
         {
             Require(AccountBootstrap.Ready && !timedOut, "isolated account and Hideout boot");
             Require(AccountBootstrap.SaveDirectory == SessionState.GetString(Key + "account", ""), "owned isolated account selected");
-            if (SessionState.GetBool(Key + "mapLoot", false)) MapFarmingLootVerifier.VerifyPlay(Require);
+            if (SessionState.GetBool(Key + "mapOptions", false)) MapOptionBagVerifier.VerifyPlay(Require);
+            else if (SessionState.GetBool(Key + "mapLoot", false)) MapFarmingLootVerifier.VerifyPlay(Require);
             else VerifyPlay();
         }
         catch (Exception error) { failure = error.ToString(); }
         finally
         {
             File.WriteAllText(Path.Combine(output, "Play.json"), JsonConvert.SerializeObject(new { status = failure == null ? "PASS" : "FAIL", checks, failure }, Formatting.Indented));
-            SessionState.SetBool(Key + "return", true);
-            EditorApplication.isPlaying = false;
+            if (failure == null && SessionState.GetBool(Key + "mapOptions", false))
+                SessionState.SetFloat(Key + "captureUntil", (float)EditorApplication.timeSinceStartup + 120);
+            else { SessionState.SetBool(Key + "return", true); EditorApplication.isPlaying = false; }
         }
     }
 

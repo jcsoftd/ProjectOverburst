@@ -153,9 +153,16 @@ public sealed class EnemyRank : MonoBehaviour
         experienceGranted = true;
         Overburst.Quests.QuestSession.RecordConfirmedKill(Encounter);
         PlayerProgression progression = PlayerProgression.Current;
-        if (progression != null)
-            progression.AddKillExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level)
-                * Encounter.ExperienceMultiplier * (1f + MapRunBuffs.Bonus(MapBuffKind.ExperienceGain))));
+        if (progression == null) return;
+        if (MapFarmingLoot.Applies(Encounter.Map))
+        {
+            var grade = GradeType == EnemyGradeType.GreaterElite ? EnemyGradeType.Elite : GradeType;
+            progression.AddKillExperience(OverburstGrowthRules.ExperienceForKill(Level, grade, progression.Level),
+                100f * (MapOptionPolicy.Value(Encounter.Map, MapOptionPolicy.ExtraExperience)
+                    + MapRunBuffs.Bonus(MapBuffKind.ExperienceGain)), MapOptionPolicy.ExperienceDensity(Level));
+        }
+        else progression.AddKillExperience(Mathf.RoundToInt(OverburstGrowthRules.ExperienceForKill(Level, GradeType, progression.Level)
+            * Encounter.ExperienceMultiplier * (1f + MapRunBuffs.Bonus(MapBuffKind.ExperienceGain))));
     }
 
     public string DisplayName

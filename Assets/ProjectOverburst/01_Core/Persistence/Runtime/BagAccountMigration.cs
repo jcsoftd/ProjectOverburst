@@ -6,6 +6,25 @@ namespace Overburst.Persistence
 {
     public static class BagAccountMigration
     {
+        public static bool NeedsGoldUpgrade(AccountSnapshot state)
+        {
+            foreach (var item in state.items)
+                if (item.bag != null && item.bag.version == 1) return true;
+            if (state.characters != null)
+                foreach (var character in state.characters)
+                    if (character.personal != null && NeedsGoldUpgrade(character.personal)) return true;
+            return false;
+        }
+
+        public static void UpgradeGoldOptions(AccountSnapshot state, AccountContentRegistry registry)
+        {
+            foreach (var item in state.items)
+                UpgradeItem(item, registry.Resolve<BaseItemData>(item.contentId), state.level);
+            if (state.characters != null)
+                foreach (var character in state.characters)
+                    if (character.personal != null) UpgradeGoldOptions(character.personal, registry);
+        }
+
         public static AccountSnapshot Upgrade(AccountSnapshot source, AccountContentRegistry registry, out bool changed)
         {
             changed = false;
@@ -33,8 +52,8 @@ namespace Overburst.Persistence
             if (!(data is BagItemData)) return false;
             if (item.bag != null)
             {
-                if (!BagQuality.IsValid(item.bag, item.grade)) throw new InvalidDataException("Invalid saved bag quality.");
-                return false;
+                return BagQuality.UpgradeGoldOptions(item.bag, item.grade,
+                    acquisitionLevel >= OverburstGrowthRules.MaximumLevel);
             }
             throw new InvalidDataException("Legacy bag conversion is retired; saved bag state is required.");
         }
