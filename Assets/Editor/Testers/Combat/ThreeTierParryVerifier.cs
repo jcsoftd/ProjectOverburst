@@ -54,6 +54,7 @@ public static class ThreeTierParryVerifier
         try
         {
             MovementContracts();
+            CounterInvincibilityContracts();
             foreach (var sample in new[] { (0f, ParryGrade.Incomplete), (.29999f, ParryGrade.Incomplete),
                 (.30f, ParryGrade.Normal), (.79999f, ParryGrade.Normal), (.80f, ParryGrade.Perfect), (1f, ParryGrade.Perfect), (2f, ParryGrade.Perfect) })
                 Check(PlayerParryController.ResolveGrade(sample.Item1) == sample.Item2, "boundary " + sample.Item1);
@@ -92,6 +93,57 @@ public static class ThreeTierParryVerifier
         { foreach (var value in owned) if (value != null) UnityEngine.Object.DestroyImmediate(value); EditorSceneManager.ClosePreviewScene(scene); }
     }
 
+    static void CounterInvincibilityContracts()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var victim = new GameObject("ParryCounterInvincibilityVictim");
+        SceneManager.MoveGameObjectToScene(victim, scene);
+        try
+        {
+            var hp = victim.AddComponent<CombatHealth>();
+            var melee = victim.AddComponent<MeleeRuntime>();
+            Set(hp, "showDamageNumbers", false); hp.SetMaxHp(100f, true);
+            int resolved = 0, damaged = 0;
+            hp.OnDamageResolved += (_, __, ___, ____) => resolved++;
+            hp.OnDamaged += (_, __) => damaged++;
+            var hit = new DamageInfo(10f, Vector3.zero);
+            Set(melee, "isAttacking", true); Set(melee, "activeAttackIsHeavy", true);
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 90f), "unconfirmed heavy stays vulnerable");
+            Set(melee, "heavyParried", true);
+            foreach (bool tick in new[] { false, true })
+            {
+                var incoming = hit; incoming.isDamageOverTime = tick; incoming.triggersOnHitEffects = !tick;
+                incoming.knocksDownPlayer = !tick;
+                float before = hp.CurrentHp; int events = resolved;
+                hp.TakeDamage(incoming);
+                Check(Near(hp.CurrentHp, before) && resolved == events && damaged == events,
+                    "confirmed counter blocks HP and damage events: " + (tick ? "DoT" : "direct hit"));
+            }
+            // The short parry/bridge has ended; the same heavy counter still owns immunity.
+            Check(!melee.IsHeavyParryMotionActive, "counter immunity outlives the short parry motion");
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 90f), "counter recovery stays invincible");
+            Set(melee, "heavyParried", false); Set(melee, "heavyParryOnly", true);
+            hp.TakeParryResidualDamage(hit, .2f);
+            Check(Near(hp.CurrentHp, 88f), "incomplete contact keeps twenty-percent residual");
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 78f), "incomplete counter stays vulnerable");
+            Set(melee, "heavyParryOnly", false); Set(melee, "heavyParried", true);
+            Set(melee, "activeAttackIsHeavy", false);
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 68f), "completed or switched action releases immunity");
+            Set(melee, "activeAttackIsHeavy", true); Set(melee, "isAttacking", false);
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 58f), "cancelled action releases immunity");
+            Set(melee, "isAttacking", true); melee.enabled = false;
+            hp.TakeDamage(hit);
+            Check(Near(hp.CurrentHp, 48f), "disabled runtime cannot leave immunity behind");
+        }
+        finally
+        { UnityEngine.Object.DestroyImmediate(victim); EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
     static void MovementContracts()
     {
         var weapon = AssetDatabase.LoadAssetAtPath<MeleeWeaponDefinition>(GreatswordHeavyParryBuilder.WeaponDefinitionPath);
@@ -118,7 +170,7 @@ public static class ThreeTierParryVerifier
         }
     }
 
-    public static void StartIsolated(string directory, bool perfectContactComparison = false)
+    public static void StartIsolated(string directory, bool perfectContactComparison = false, bool counterInvincibilityOnly = false)
     {
         if (!string.IsNullOrEmpty(Output) || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -128,6 +180,7 @@ public static class ThreeTierParryVerifier
         checks.Clear(); cases.Clear(); frame = -1;
         SessionState.SetString(Key + "output", directory);
         SessionState.SetBool(Key + "perfectContactComparison", perfectContactComparison);
+        SessionState.SetBool(Key + "counterInvincibilityOnly", counterInvincibilityOnly);
         SessionState.SetString(Key + "startScene", EditorSceneManager.playModeStartScene == null ? "" : AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", JsonConvert.SerializeObject(Enumerable.Range(0, SceneManager.sceneCount).Select(i => new
             { path = SceneManager.GetSceneAt(i).path, dirty = SceneManager.GetSceneAt(i).isDirty, roots = SceneManager.GetSceneAt(i).rootCount }).ToArray()));
@@ -243,7 +296,7 @@ public static class ThreeTierParryVerifier
             expires = SessionState.GetString("Overburst.IsolatedSavePlayGuard.expires", ""), startScene = savedStart,
             pid = System.Diagnostics.Process.GetCurrentProcess().Id, project = Application.dataPath });
         foreach (string suffix in new[] { "output", "startScene", "scenes" }) SessionState.EraseString(Key + suffix);
-        foreach (string suffix in new[] { "started", "returnPending", "background", "perfectContactComparison" }) SessionState.EraseBool(Key + suffix);
+        foreach (string suffix in new[] { "started", "returnPending", "background", "perfectContactComparison", "counterInvincibilityOnly" }) SessionState.EraseBool(Key + suffix);
         foreach (string suffix in new[] { "deadline", "returnAfter", "returnDeadline" }) SessionState.EraseFloat(Key + suffix);
         Unsubscribe();
     }
@@ -276,8 +329,14 @@ public static class ThreeTierParryVerifier
             float bootUntil = Time.unscaledTime + 30f;
             while (PersistentSceneFlow.Instance == null || PersistentSceneFlow.Instance.IsSwitching
                 || PersistentSceneFlow.Instance.CurrentSubSceneName != PersistentSceneFlow.HideoutSceneName)
-            { Check(Time.unscaledTime < bootUntil, "hideout finishes boot before trial entry"); yield return null; }
+            {
+                var flow = PersistentSceneFlow.Instance;
+                if (flow != null && !flow.IsSwitching && flow.CurrentSubSceneName == PersistentSceneFlow.DefaultHubSceneName)
+                    flow.SwitchHubScene(PersistentSceneFlow.HideoutSceneName);
+                Check(Time.unscaledTime < bootUntil, "hideout finishes boot before trial entry"); yield return null;
+            }
             if (!ui.InArena) ui.ToggleArena(); yield return Wait(1f);
+            Check(ui.InArena, "actual parry trial arena entered: " + ui.LastMessage);
             Check(EnemyDebugSpawnRuntimeContext.TryGetSpawnService(player.transform, out spawn), "actual trial spawn service");
             foreach (var table in ui.tables) Check(spawn.RegisterAdditionalCatalog(table.Catalog, out _), "catalog registered");
             var definition = ui.tables.SelectMany(t => t.Entries).Select(e => e.definition).First(d => d != null
@@ -342,7 +401,8 @@ public static class ThreeTierParryVerifier
                 yield return Wait(.3f);
             }
             foreach (var item in new[] { (0f, 1, false), (29.999f, 1, false), (30f, 1, false), (79.999f, 1, false), (80f, 1, false),
-                (100f, 1, false), (20f, 2, false), (50f, 2, false), (80f, 2, false), (20f, 2, true), (50f, 2, true), (80f, 2, true), (120f, 1, false), (20f, 1, false) })
+                (100f, 1, false), (20f, 2, false), (50f, 2, false), (80f, 2, false), (20f, 2, true), (50f, 2, true), (80f, 2, true), (120f, 1, false), (20f, 1, false) }
+                .Where(item => !SessionState.GetBool(Key + "counterInvincibilityOnly", false) || item.Item2 == 1))
             {
                 melee.CancelCurrentAttackState(); parry.CloseWindow(); OverburstTimeEffectArbiter.ClearOwner(parry);
                 ResetPosition();
@@ -456,6 +516,8 @@ public static class ThreeTierParryVerifier
                     }
                 }
                 ObserveLabel();
+                int blockedCounterHits = 0;
+                bool protectedAfterWindow = false, protectedAfterBridge = false;
                 while (melee.IsAttackInProgress)
                 {
                     Check(Time.unscaledTime - started < 12f, "player action completes");
@@ -464,8 +526,27 @@ public static class ThreeTierParryVerifier
                     ObserveCancellation();
                     ObserveNormalReaction();
                     ObserveLabel();
+                    if (parry.ParriedAttackCount > parries && expected != ParryGrade.Incomplete)
+                    {
+                        Check(melee.IsParryCounterInvincible, "normal/perfect counter remains invincible until action completion");
+                        float beforeHit = actor.Health.CurrentHp; int beforeEvents = incoming;
+                        actor.Health.TakeDamage(new DamageInfo(25f, actor.transform.position, knocksDownPlayer: true));
+                        actor.Health.TakeDamage(new DamageInfo(10f, actor.transform.position,
+                            triggersOnHitEffects: false, isDamageOverTime: true, usesResolvedTickDamage: true));
+                        Check(Near(actor.Health.CurrentHp, beforeHit) && incoming == beforeEvents,
+                            "product counter blocks other direct hits, knockdown, DoT and damage events");
+                        blockedCounterHits += 2;
+                        protectedAfterWindow |= !parry.IsWindowOpen;
+                        protectedAfterBridge |= !melee.IsHeavyParryMotionActive;
+                    }
+                    else if (expected == ParryGrade.Incomplete)
+                        Check(!melee.IsParryCounterInvincible, "incomplete parry receives no counter immunity");
                     yield return null;
                 }
+                Check(!melee.IsParryCounterInvincible, "natural action completion releases counter immunity");
+                if (expected != ParryGrade.Incomplete)
+                    Check(blockedCounterHits > 0 && protectedAfterWindow && protectedAfterBridge,
+                        "counter immunity persists after acceptance window and bridge end");
                 ObserveLabel();
                 yield return Wait(.15f);
                 ObserveLabel();
@@ -509,10 +590,15 @@ public static class ThreeTierParryVerifier
                 var nextExecution = snapshots[0]; nextExecution.sourceAttackSequenceId = EnemyAttackSequence.Next();
                 Check(!parry.TryCancelDamage(nextExecution), "same actor has no blanket immunity for another execution");
                 Check(animator.updateMode == originalMode && Near(animator.speed, originalSpeed), "Animator clock restored");
-                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started, label = expectedLabel, visibleLabelCount = labelInstances.Count, delayedContact, forwardTravel, normalCollapseSeen, normalHoldSeen, normalRecoverSeen });
+                cases.Add(new { amount = item.Item1, targets = enemies.Count, deferred = item.Item3, grade = expected.ToString(), incoming, residual, commits, hits = hits.ToArray(), seconds = Time.unscaledTime - started, label = expectedLabel, visibleLabelCount = labelInstances.Count, delayedContact, forwardTravel, normalCollapseSeen, normalHoldSeen, normalRecoverSeen, blockedCounterHits, protectedAfterWindow, protectedAfterBridge });
                 Write("progress.json", new { status = "RUNNING", completed = cases.Count, cases });
                 foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback; hooks.Clear();
-                Release(); yield return Wait(.4f);
+                Release();
+                float completedHp = actor.Health.CurrentHp;
+                actor.Health.TakeDamage(new DamageInfo(10f, actor.transform.position,
+                    triggersOnHitEffects: false, isDamageOverTime: true, usesResolvedTickDamage: true));
+                Check(Near(completedHp - actor.Health.CurrentHp, 10f), "new damage resolves immediately after counter completion");
+                yield return Wait(.4f);
             }
             // Deliberately advance the source phase before invoking the real Health callback.
             // The callback must retain the original hit rather than snapshot the next phase.
@@ -554,7 +640,9 @@ public static class ThreeTierParryVerifier
                 Check(count == (amount < 30f ? 1 : 0), "callback execution absorbs duplicate once");
                 cases.Add(new { fixture = noMotion ? "parry-only motion fallback" : "original damage callback", amount, referenceLoss, loss, count });
                 foreach (var hook in hooks) if (hook.hp != null) hook.hp.OnDamageResolved -= hook.callback; hooks.Clear();
-                melee.CancelCurrentAttackState(); Release(); yield return Wait(.4f);
+                melee.CancelCurrentAttackState();
+                Check(!melee.IsParryCounterInvincible, "explicit action cancellation releases counter immunity");
+                Release(); yield return Wait(.4f);
             }
         }
         finally

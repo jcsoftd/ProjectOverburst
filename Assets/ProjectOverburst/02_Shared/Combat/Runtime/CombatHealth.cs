@@ -94,6 +94,8 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
 
         var parry = GetComponentInParent<PlayerParryController>();
         if (!parryResidual && parry != null && parry.TryCancelDamage(info)) return;
+        var melee = GetComponentInParent<MeleeRuntime>();
+        if (melee != null && melee.IsParryCounterInvincible) return;
 
         // Element status ticks are a fraction of a previously resolved HP loss.
         // Keep health/death/evade gates, but never apply that hit's stat scaling twice.

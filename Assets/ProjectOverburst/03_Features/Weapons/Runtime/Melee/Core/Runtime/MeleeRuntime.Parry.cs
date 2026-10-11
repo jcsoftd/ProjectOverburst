@@ -10,6 +10,8 @@ public partial class MeleeRuntime
     private bool heavyParryOnly;
     private int heavyParryStartedFrame;
     public bool IsHeavyParryMotionActive => heavyParryStage != HeavyParryStage.None;
+    // Normal/perfect success protects the entire accepted counter, including its recovery.
+    public bool IsParryCounterInvincible => isActiveAndEnabled && IsHeavyAttackInProgress && heavyParried;
     public float HeavyParryContactDelay { get; private set; }
     public bool IsHeavyParryBladeMotion => heavyParryStage == HeavyParryStage.Parry && !heavyParryOnly
         && Time.frameCount > heavyParryStartedFrame + 1;
