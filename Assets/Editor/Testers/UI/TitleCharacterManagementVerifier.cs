@@ -39,6 +39,9 @@ public static class TitleCharacterManagementVerifier
                 Check(source.GetComponentsInChildren<GraphicRaycaster>(true).All(r=>!r.enabled),"exhibit cannot receive gameplay pointer input "+i);
                 if(title)
                 {
+                    var rows=title.GetComponentsInChildren<Button>(true).Where(b=>b!=title.rosterTemplate&&b.name.StartsWith("Character ",StringComparison.Ordinal)).ToArray();
+                    Check(rows.All(b=>b.transform.IsChildOf(title.rosterContent)),"authored roster rows keep their actual content parent "+i);
+                    if(i==1)Check(rows.Length==2,"character exhibit has exactly the two fixture rows");
                     Check(title.managementPreview&&title.GetComponentInChildren<AppearanceCustomizationPanel>(true).managementPreview,"title and shared appearance cannot register game services "+i);
                     Check(title.GetComponentInChildren<AppearanceCustomizationPanel>(true).catalog==Resources.Load<CharacterAppearanceCatalog>(CharacterAppearanceCatalog.ResourcePath),"existing appearance catalog is shared "+i);
                     var appearance=title.GetComponentInChildren<AppearanceCustomizationPanel>(true);

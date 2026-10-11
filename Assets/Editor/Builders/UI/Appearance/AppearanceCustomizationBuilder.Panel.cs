@@ -115,6 +115,7 @@ public static partial class AppearanceCustomizationBuilder
             // and enable the persistent prefab canvas after it has left the live preview scene.
             canvas.enabled=false;rootRect.localScale=Vector3.one;
             SaveEditorPreviewExtensions(root);
+            UIPrefabStructureBuilder.Organize(root,PrefabPath);
             var saved=PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);
             var canvasData=new SerializedObject(saved.GetComponent<Canvas>());canvasData.FindProperty("m_Enabled").boolValue=true;canvasData.ApplyModifiedPropertiesWithoutUndo();
             var rectData=new SerializedObject(saved.transform);rectData.FindProperty("m_LocalScale").vector3Value=Vector3.one;rectData.ApplyModifiedPropertiesWithoutUndo();

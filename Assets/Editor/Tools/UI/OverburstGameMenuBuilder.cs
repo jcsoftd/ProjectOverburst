@@ -89,6 +89,7 @@ public static partial class OverburstGameMenuBuilder
             foreach (var stray in root.GetComponentsInChildren<UIBlackOverlay>(true)) Object.DestroyImmediate(stray.gameObject);
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
+            UIPrefabStructureBuilder.Organize(root, PrefabPath);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool saved);
             return (saved ? "saved " : "SAVE FAILED ") + PrefabPath;
         }

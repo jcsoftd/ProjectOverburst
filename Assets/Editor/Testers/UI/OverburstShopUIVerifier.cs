@@ -66,12 +66,14 @@ public static class OverburstShopUIVerifier
             Check(((RectTransform)asset.transform.Find("TradeWindow")).sizeDelta.x==448,"Compact 448 trade width");
             Check(OverburstUIShopSkin.TradeX-224-(OverburstUIShopSkin.MerchantX+304)==16 && OverburstUIShopSkin.InventoryX-304-(OverburstUIShopSkin.TradeX+224)==16,"Three windows have even 16 gaps");
             var trade=asset.transform.Find("TradeWindow");
+            bool questArtwork=trade.Find("ConfirmButton/Quest Artwork");
             foreach(string name in new[]{"ConfirmButton","ClearButton","CloseButton"})
             {
                 var button=trade.Find(name).GetComponent<Button>();var art=button.transform.Find("Approved Button Artwork");
-                Check(art && button.GetComponents<DuloGames.UI.UIHighlightTransition>().Length>=1 && button.GetComponent<DuloGames.UI.UIPressTransition>(),"Native asset hover and press reused "+name);
-                Check(!art.GetComponent<Button>() && button.targetGraphic.transform.IsChildOf(art),"Existing click owner with native artwork "+name);
-                Check(((RectTransform)button.transform).rect.height>=(name=="ConfirmButton"?60:48) && art.Find("Text").GetComponent<Text>().fontSize>=(name=="ConfirmButton"?19:17),"Readable button and hit area "+name);
+                var current=questArtwork?button.transform.Find("Quest Artwork"):art;
+                Check(current && (questArtwork?button.transition==Selectable.Transition.ColorTint && current.GetComponent<QuestUiButtonOpacity>()!=null:button.GetComponents<DuloGames.UI.UIHighlightTransition>().Length>=1 && button.GetComponent<DuloGames.UI.UIPressTransition>()!=null),"Current artwork hover and press configured "+name);
+                Check(button.GetComponentsInChildren<Button>(true).Count(b=>b.enabled&&b.gameObject.activeSelf)==1 && button.targetGraphic && button.targetGraphic.transform.IsChildOf(current),"Single live click owner with current artwork "+name);
+                Check(((RectTransform)button.transform).rect.height>=(name=="ConfirmButton"?(questArtwork?56:60):48) && current.Find(questArtwork?"Label":"Text").GetComponent<Text>().fontSize>=(name=="ConfirmButton"?19:17),"Readable button and hit area "+name);
             }
             Check(((RectTransform)trade.Find("ConfirmButton")).sizeDelta.x==384 && ((RectTransform)trade.Find("ClearButton")).sizeDelta.x==186,"Full width primary and equal secondary buttons");
             foreach(var entry in new[]{new{button="OkButton",text="확인"},new{button="CancelButton",text="취소"}})
@@ -92,7 +94,7 @@ public static class OverburstShopUIVerifier
                     Check(so.FindProperty(field).objectReferenceValue, "PersistentScene reference " + field);
             }
             Render("native-trade.png", false);
-            Render("native-quest.png", true);
+            if(!questArtwork)Render("native-quest.png", true); // Current quests have their own formal UI verifier.
             Render("native-split.png",false,true);
             Check(errors.Count==0,"Preview renders without errors or assertions");
             Check(scenes == Scenes(), "Open scenes and dirty state unchanged by previews");
@@ -326,11 +328,12 @@ public static class OverburstShopUIPlayVerifier
         var hover=main.transform.Find("Approved Button Artwork/Hover Overlay").GetComponent<Image>();
         var press=main.transform.Find("Approved Button Artwork/Press Overlay").GetComponent<Image>();
         ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerEnterHandler); float feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
-        Check(hover.canvasRenderer.GetColor().a>.5f,"Native hover feedback becomes visible"); Capture("product-button-hover.png");yield return null;
+        bool currentArtwork=main.transform.Find("Quest Artwork");
+        Check(currentArtwork?Vector4.Distance(main.targetGraphic.canvasRenderer.GetColor(),main.colors.highlightedColor*main.colors.colorMultiplier)<.05f:hover.canvasRenderer.GetColor().a>.5f,"Visible artwork hover feedback"); Capture("product-button-hover.png");yield return null;
         ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerDownHandler);feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
-        Check(press.canvasRenderer.GetColor().a>.5f,"Native press feedback becomes visible"); Capture("product-button-press.png");yield return null;
+        Check(currentArtwork?Vector4.Distance(main.targetGraphic.canvasRenderer.GetColor(),main.colors.pressedColor*main.colors.colorMultiplier)<.05f:press.canvasRenderer.GetColor().a>.5f,"Visible artwork press feedback"); Capture("product-button-press.png");yield return null;
         ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerUpHandler);EventSystem.current.SetSelectedGameObject(null);ExecuteEvents.Execute(main.gameObject,mainPointer,ExecuteEvents.pointerExitHandler);feedbackEnd=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<feedbackEnd)yield return null;
-        Check(hover.canvasRenderer.GetColor().a<.1f && press.canvasRenderer.GetColor().a<.1f && service.Session.MerchantOffers.Count==0,"Native pointer feedback resets without creating a trade");
+        Check((currentArtwork?Vector4.Distance(main.targetGraphic.canvasRenderer.GetColor(),main.colors.normalColor*main.colors.colorMultiplier)<.05f:hover.canvasRenderer.GetColor().a<.1f && press.canvasRenderer.GetColor().a<.1f) && service.Session.MerchantOffers.Count==0,"Visible pointer feedback resets without creating a trade");
         var buy=stock.First(s=>s.DisplayItem!=null && shop.CanShopContextTrade(ShopContextMenuTarget.MerchantInventory,s));
         Check(shop.HandleShopSlotClicked(buy) && service.Session.MerchantOffers.Count==1,"Double-click stock adds offer");
         Check(Field<InventorySlotBridge>(game.inventory,"slotBridge").CanSortInventory(out _)
@@ -378,10 +381,15 @@ public static class OverburstShopUIPlayVerifier
         Capture("product-failure.png"); for(int i=0;i<3;i++)yield return null;
         Field<Button>(shop,"failurePopupConfirmButton").onClick.Invoke();
         Check(!Field<GameObject>(shop,"failurePopupRoot").activeSelf && Field<Button>(shop,"confirmButton").interactable,"Failure popup confirm restores trade");
-        Field<Button>(shop,"questTabButton").onClick.Invoke(); for(int i=0;i<3;i++)yield return null;
-        Check(!shop.IsTradeTabActive && Field<GameObject>(shop,"questListRoot").activeInHierarchy && panel.transform.Find("Approved Tabs").gameObject.activeInHierarchy,"Quest keeps common tabs visible"); Capture("product-quest.png"); for(int i=0;i<3;i++)yield return null;
-        Field<Button>(shop,"firstSpecialtyTabButton").onClick.Invoke(); for(int i=0;i<3;i++)yield return null;
-        Check(Field<GameObject>(shop,"specialtyListRoot").activeInHierarchy,"Weapon specialty tab bound"); Capture("product-specialty.png"); for(int i=0;i<3;i++)yield return null;
+        if(currentArtwork)
+            Check(!panel.transform.Find("Approved Tabs").gameObject.activeInHierarchy && !Field<Button>(shop,"questTabButton").gameObject.activeInHierarchy && !Field<Button>(shop,"firstSpecialtyTabButton").gameObject.activeInHierarchy,"Removed legacy service tabs stay hidden; quests use formal separate UI");
+        else
+        {
+            Field<Button>(shop,"questTabButton").onClick.Invoke(); for(int i=0;i<3;i++)yield return null;
+            Check(!shop.IsTradeTabActive && Field<GameObject>(shop,"questListRoot").activeInHierarchy && panel.transform.Find("Approved Tabs").gameObject.activeInHierarchy,"Quest keeps common tabs visible"); Capture("product-quest.png"); for(int i=0;i<3;i++)yield return null;
+            Field<Button>(shop,"firstSpecialtyTabButton").onClick.Invoke(); for(int i=0;i<3;i++)yield return null;
+            Check(Field<GameObject>(shop,"specialtyListRoot").activeInHierarchy,"Weapon specialty tab bound"); Capture("product-specialty.png"); for(int i=0;i<3;i++)yield return null;
+        }
         Field<Button>(shop,"tradeTabButton").onClick.Invoke(); for(int i=0;i<3;i++)yield return null;
         var close=panel.transform.Find("TradeWindow/Window Chrome/Header/Button (Close)").GetComponent<Button>(); close.onClick.Invoke();
         for(int i=0;i<3;i++)yield return null;

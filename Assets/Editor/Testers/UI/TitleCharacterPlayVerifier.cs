@@ -211,6 +211,7 @@ public static class TitleCharacterPlayVerifier
         Check(actor.GetComponent<PlayerInteractionController>().Current==npc,"existing stylist selected by actual interaction resolver");yield return KeyPress(Key.F);
         var appearance=AppearanceCustomizationPanel.Instance;Check(AppearanceCustomizationPanel.IsOpen&&!appearance.IsCreation&&appearance.Owner==npc,"same shared panel returns to normal stylist context");
         Check(appearance.surface.transform.Find("Title").GetComponent<TMP_Text>().text=="외모 변경"&&!appearance.creationIdentity.activeSelf&&appearance.apply.GetComponentInChildren<TMP_Text>().text=="외모 적용","creation labels and controls restore for stylist");
+        if(Path.GetFileName(output).StartsWith("Extension",StringComparison.Ordinal)){yield return ExistingExtensions(appearance);appearance.Close();yield break;}
         if(Path.GetFileName(output).StartsWith("Stylist",StringComparison.Ordinal)){yield return StylistRegression(appearance,account,npc,actor);yield break;}
         var before=account.ReadAppearance();yield return Click(Choice(appearance,AppearanceChoiceKind.Face,appearance.catalog.faces[2].id).button);yield return Click(appearance.back);yield return Click(appearance.discardAndClose);yield return Frames(4);
         Check(!AppearanceCustomizationPanel.IsOpen&&account.ReadAppearance().Equals(before)&&!GameplayInputBlocker.IsGameplayInputBlocked,"stylist discard preserves saved appearance and returns gameplay input");

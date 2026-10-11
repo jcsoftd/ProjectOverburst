@@ -19,7 +19,9 @@ public static class TitleCharacterManagementBuilder
     public static readonly string[] States={"title","characters","classes","name","creation","discard","quit","menu","return","settings"};
     public static readonly string[] Names={"18 타이틀","19 보유 캐릭터","20 클래스 선택","21 이름 입력","22 캐릭터 생성","23 생성 취소 확인","24 타이틀 종료 확인","25 Esc 일시정지","26 타이틀 복귀 확인","27 설정"};
     [MenuItem("OVERBURST/UI/Add Title And Character Screens To Management")]
-    public static void Apply()
+    public static void Apply()=>Apply(false);
+    public static void RefreshOwnedInstances()=>Apply(true);
+    public static void Apply(bool replaceOwnedInstances)
     {
         AppearanceCustomizationBuilder.RequireIdle();
         var previous=SceneManager.GetActiveScene();var scene=SceneManager.GetSceneByPath(OverburstUIWorkshopBuilder.ScenePath);
@@ -43,6 +45,11 @@ public static class TitleCharacterManagementBuilder
                 bool menu=i>=7;string path=menu?OverburstGameMenuBuilder.PrefabPath:TitleCharacterBuilder.PrefabPath;
                 var source=AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 var instance=board.Find(source.name)?.gameObject;
+                if(instance&&replaceOwnedInstances)
+                {
+                    if(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instance)!=path)throw new InvalidOperationException("다른 전시 원본은 교체하지 않습니다.");
+                    Object.DestroyImmediate(instance);instance=null;
+                }
                 if(!instance)instance=(GameObject)PrefabUtility.InstantiatePrefab(source,board);
                 if(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instance)!=path)throw new InvalidOperationException("다른 전시 원본은 덮어쓰지 않습니다.");
                 StretchRoot((RectTransform)instance.transform);

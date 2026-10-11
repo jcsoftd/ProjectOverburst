@@ -103,7 +103,12 @@ public sealed class BuffBarUI : MonoBehaviour
     private void ResolveReferences()
     {
         CombatHealth next = PlayerContext.Instance != null ? PlayerContext.Instance.CurrentActorHealth : null;
-        if (actor == next) return;
+        if (actor == next)
+        {
+            // Element energy can be added after this actor was first bound.
+            if (energy == null && actor != null) energy = actor.GetComponent<OverburstElementEnergy>();
+            return;
+        }
         actor = next;
         buffController = actor != null ? actor.GetComponent<PlayerBuffController>() : null;
         flasks = actor != null ? actor.GetComponent<PlayerFlaskController>() : null;

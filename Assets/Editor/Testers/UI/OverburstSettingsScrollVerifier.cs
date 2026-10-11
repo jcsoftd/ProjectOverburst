@@ -156,7 +156,13 @@ public static class OverburstSettingsScrollVerifier
         Check(bounds.min.y>=scroll.viewport.rect.yMin-.1f && bounds.max.y<=scroll.viewport.rect.yMax+.1f,"keyboard-focused last row stays visible");
         Scroll(scroll,1);yield return Frames(2);yield return Wheel(scroll,-1);yield return Frames(2);
         var dragPoint=Point(scroll.viewport,.02f,.3f);pointer=new MouseState{position=dragPoint,buttons=1};yield return Frames(2);
-        float dragStart=scroll.content.anchoredPosition.y;pointer.position=dragPoint-new Vector2(0,50);yield return Frames(3);pointer.buttons=0;yield return Frames(2);
+        float dragStart=scroll.content.anchoredPosition.y;
+        // ScrollRect stores the cursor at BeginDrag. Send movement after crossing
+        // the threshold as a real continuous drag does, rather than one teleport.
+        pointer.position=dragPoint+new Vector2(0,10);pointer.delta=new Vector2(0,10);yield return Frames(1);pointer.delta=Vector2.zero;yield return Frames(1);
+        float threshold=scroll.content.anchoredPosition.y;
+        pointer.position=dragPoint+new Vector2(0,50);pointer.delta=new Vector2(0,40);yield return Frames(1);pointer.delta=Vector2.zero;yield return Frames(2);pointer.buttons=0;yield return Frames(2);
+        Write("drag-trace.json",new{dragStart,threshold,after=scroll.content.anchoredPosition.y});
         Check(scroll.content.anchoredPosition.y>dragStart+5,"native pointer dragging still moves the ScrollRect");
         scroll.StopMovement();float dragEnd=scroll.content.anchoredPosition.y;yield return Settle(.3f);
         Check(Mathf.Abs(scroll.content.anchoredPosition.y-dragEnd)<.1f,"released drag does not resume an earlier wheel target");

@@ -95,7 +95,8 @@ public static class ElementGemTransferPlayVerifier
                 return;
             }
             if(!string.Equals(AccountBootstrap.SaveDirectory,Path.Combine(output,"IsolatedAccount"),StringComparison.OrdinalIgnoreCase))return;
-            if(!AccountBootstrap.Ready || PersistentSceneFlow.Instance==null || PersistentSceneFlow.Instance.IsSwitching)return;
+            if(!AccountBootstrap.Ready || PersistentSceneFlow.Instance==null || PersistentSceneFlow.Instance.IsSwitching
+                || !WorldSessionState.IsHideout || PlayerContext.Instance?.CurrentActor==null)return;
             SessionState.SetInt(Key+"stage",3);
             try { Verify(output); }
             catch(Exception error) { Save(output,"Play.json",new {status="FAIL",failure=error.ToString()}); }

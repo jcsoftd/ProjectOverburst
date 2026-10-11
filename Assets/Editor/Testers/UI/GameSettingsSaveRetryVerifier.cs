@@ -45,7 +45,8 @@ public static class GameSettingsSaveRetryVerifier
             Check(Dirty() && !File.Exists(path), "First write failure retains dirty and no settings file");
             OverburstGameSettings.SaveIfDirty();
             Check(Dirty(), "Repeated write failure retains dirty");
-            Directory.Delete(temp);
+            if(Path.GetDirectoryName(Path.GetFullPath(temp))!=output)throw new InvalidOperationException("Owned retry fixture path required.");
+            Directory.Move(temp,Path.Combine(output,"failed-write-blocker-1"));
             OverburstGameSettings.SaveIfDirty();
             Check(!Dirty() && File.Exists(path), "Retry succeeds without another setting change");
             Check(Mathf.Approximately((float)Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path))["masterVolume"], .37f), "Saved retry contains intended value");
@@ -69,7 +70,7 @@ public static class GameSettingsSaveRetryVerifier
             Directory.CreateDirectory(temp);
             OverburstGameSettings.StoreBindingOverrides(bindings);
             Check(Dirty(), "Direct binding Save failure creates dirty retry state");
-            Directory.Delete(temp); OverburstGameSettings.SaveIfDirty();
+            Directory.Move(temp,Path.Combine(output,"failed-write-blocker-2")); OverburstGameSettings.SaveIfDirty();
             Check(!Dirty() && File.ReadAllText(path).Contains("<Keyboard>/v"), "Binding retry persists actual override JSON");
             Reset(); Check(Mathf.Approximately(OverburstGameSettings.MasterVolume, .61f), "Cold replacement load reads intended latest value");
             action.RemoveAllBindingOverrides(); OverburstGameSettings.ApplyBindingOverrides(bindings);

@@ -67,7 +67,13 @@ public static class StatusBuffIconVerifier
                 slot.name + " keeps time and stacks clear of its marker");
         }
         foreach (BuffIconSlotUI slot in bar.GetComponentsInChildren<BuffIconSlotUI>(true))
-            Require(slot.GetComponentsInChildren<Image>(true).All(i => !i.raycastTarget), slot.name + " leaves gameplay input available");
+        {
+            var tooltip = new SerializedObject(slot).FindProperty("tooltip").objectReferenceValue as BuffTooltipUI;
+            Require(slot.GetComponentsInChildren<Image>(true).All(i => i.raycastTarget == (tooltip != null && i.gameObject == slot.gameObject)),
+                slot.name + " only the tooltip hit area receives pointer input");
+            if (tooltip != null) Require(!tooltip.GetComponent<CanvasGroup>().blocksRaycasts
+                && tooltip.GetComponentsInChildren<Graphic>(true).All(g => !g.raycastTarget), slot.name + " tooltip does not intercept input");
+        }
         var cards = AssetDatabase.LoadAssetAtPath<RunCardIconSet>(StatusBuffIconBuilder.CardPath);
         foreach (RunCardIconSet.Entry entry in cards.Entries.Where(e => e.Key.StartsWith("buff_")))
             Require(entry.Icon == StatusBuffIcons.Map((MapBuffKind)Enum.Parse(typeof(MapBuffKind), entry.Key.Substring(5))), entry.Key + " card icon");
@@ -182,10 +188,18 @@ public static class StatusBuffIconVerifier
             Check(!Slots(bar).Any(s => s.DisplayedKey != null && s.DisplayedKey.StartsWith("flask_")), "Flask clearing removes symbols");
         }
         var weapon = AssetDatabase.LoadAssetAtPath<WeaponItemData>(WeaponPath);
-        var light = new ItemData(weapon, 1, ItemGrade.Common, element: WeaponElement.Light);
+        var light = new ItemData(weapon, 1, ItemGrade.Common);
         Check(player.Inventory.AddItem(light) && player.Equipment.EquipWeaponItem(light), "Equip light weapon");
-        var energy = player.GetComponent<OverburstElementEnergy>();
-        for (int i = 1; i <= 40; i++) energy.RecordConfirmedHit(light.runtimeInstanceId, WeaponElement.Light, i, 100f);
+        // Elements belong to the equipped gem; legacy weapon element flags are no longer authoritative.
+        var gemData = Resources.LoadAll<ElementGemItemData>("Items/ElementGems").First(g => g.element == WeaponElement.Light);
+        var gem = new ItemData(gemData, 1, gemData.fixedGrade);
+        Check(player.Inventory.AddItem(gem), "Add actual Light gem");
+        int gemSlot = Enumerable.Range(0, player.Inventory.Items.Count).First(i => player.Inventory.GetItemAt(i)?.runtimeInstanceId == gem.runtimeInstanceId);
+        Check(ElementGemEquipmentService.EquipFromInventorySlot(gemSlot, gem.runtimeInstanceId), "Equip actual Light gem");
+        var energy = player.Equipment.GetComponent<OverburstElementEnergy>() ?? player.Equipment.gameObject.AddComponent<OverburstElementEnergy>();
+        Check(player.Equipment.ActiveElement == WeaponElement.Light, "Equipped gem activates Light");
+        for (int i = 1; i <= 40; i++) Check(energy.RecordConfirmedHit(player.Equipment.CurrentWeaponItem.runtimeInstanceId, WeaponElement.Light, i, 100f), "Light energy accepts hit " + i);
+        Check(energy.RadianceStacks > 0, "Actual Light energy has radiance stacks");
         bar.Refresh();
         Check(energy.RadianceStacks > 0 && Shows(bar, "radiance", StatusBuffIcons.Status("radiance")), "Radiance reads player stacks");
         Check(energy.TryCommitDischarge(100f, out _), "Consume light discharge");

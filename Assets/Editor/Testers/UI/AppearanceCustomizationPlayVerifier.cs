@@ -113,6 +113,8 @@ public static class AppearanceCustomizationPlayVerifier
     public static IEnumerator Click(Selectable control)
     {
         Canvas.ForceUpdateCanvases();var pos=Point((RectTransform)control.transform);var data=new PointerEventData(EventSystem.current){position=pos};var hits=new List<RaycastResult>();EventSystem.current.RaycastAll(data,hits);
+        if(hits.Count==0||hits[0].gameObject.GetComponentInParent<Selectable>()!=control)
+            Write("failed-control-raycast.json",new{control=control.name,point=pos.ToString(),control.gameObject.activeInHierarchy,control.interactable,hits=hits.Select(h=>new{name=h.gameObject.name,path=UnityEditor.AnimationUtility.CalculateTransformPath(h.gameObject.transform,null),h.depth,h.sortingOrder}),ancestors=Ancestors(control.transform)});
         Check(hits.Count>0 && hits[0].gameObject.GetComponentInParent<Selectable>()==control,"pointer raycast reaches "+control.name);
         pointer=new MouseState{position=pos};yield return Frames(2);pointer.buttons=1;yield return Frames(2);pointer.buttons=0;yield return Frames(3);
     }

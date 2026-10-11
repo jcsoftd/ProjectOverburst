@@ -74,6 +74,7 @@ public static class TitleCharacterBuilder
             var allText=root.GetComponentsInChildren<TMP_Text>(true);serif.TryAddCharacters(string.Concat(allText.Where(t=>t.font==serif).Select(t=>t.text))+"마법사궁수캐릭터생성새로운모험기존1234567890");sans.TryAddCharacters(string.Concat(allText.Where(t=>t.font==sans).Select(t=>t.text))+"마법사궁수캐릭터없음개발중추후추가예정MAGEARCHERKNIGHT0123456789");
             AssetDatabase.SaveAssetIfDirty(serif);AssetDatabase.SaveAssetIfDirty(sans);
             root.SetActive(true);canvas.enabled=false;root.transform.localScale=Vector3.one;
+            UIPrefabStructureBuilder.Organize(root,PrefabPath);
             var saved=PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);
             var data=new SerializedObject(saved.GetComponent<Canvas>());data.FindProperty("m_Enabled").boolValue=true;data.ApplyModifiedPropertiesWithoutUndo();
             var modalData=new SerializedObject(saved.GetComponent<TitleCharacterPanel>().nameDialog.GetComponent<Canvas>());modalData.FindProperty("m_OverrideSorting").boolValue=true;modalData.ApplyModifiedPropertiesWithoutUndo();
