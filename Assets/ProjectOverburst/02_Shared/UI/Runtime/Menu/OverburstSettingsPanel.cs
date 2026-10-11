@@ -42,6 +42,7 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
     public Toggle edgeBlur;
     public Slider explorationEdgeBlurIntensity,combatEdgeBlurIntensity;
     public ScrollRect combatScroll;
+    public Slider mapOverlayOpacity, mapOverlayScale;
 
     [Header("Blood")]
     public UISwitchSelect bloodStyle, bloodPalette;
@@ -89,6 +90,8 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
         uiVolume.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.UiVolume = v; });
         muteInBackground.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.MuteInBackground = v; menu.PlayClick(); } });
         cameraShake.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.CameraShakeScale = v; });
+        if (mapOverlayOpacity) mapOverlayOpacity.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayOpacity = v; });
+        if (mapOverlayScale) mapOverlayScale.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.MapOverlayScale = v; });
         hitEffect.onValueChanged.AddListener(v => { if (!refreshing) OverburstGameSettings.HitEffectScale = v; });
         if (combatFacingIndicator != null) combatFacingIndicator.onValueChanged.AddListener(v => { if (!refreshing) { OverburstGameSettings.CombatFacingIndicator = v; RefreshDependencies(); menu.PlayClick(); } });
         if (combatFacingStyle != null) combatFacingStyle.onChange.AddListener((i, _) => { if (!refreshing) OverburstGameSettings.CombatFacingStyle = (CombatFacingIndicatorStyle)i; });
@@ -191,6 +194,8 @@ public sealed class OverburstSettingsPanel : MonoBehaviour
             uiVolume.SetValueWithoutNotify(OverburstGameSettings.UiVolume);
             muteInBackground.SetIsOnWithoutNotify(OverburstGameSettings.MuteInBackground);
             cameraShake.SetValueWithoutNotify(OverburstGameSettings.CameraShakeScale);
+            if (mapOverlayOpacity) mapOverlayOpacity.SetValueWithoutNotify(OverburstGameSettings.MapOverlayOpacity);
+            if (mapOverlayScale) mapOverlayScale.SetValueWithoutNotify(OverburstGameSettings.MapOverlayScale);
             hitEffect.SetValueWithoutNotify(OverburstGameSettings.HitEffectScale);
             if (combatFacingIndicator != null) combatFacingIndicator.SetIsOnWithoutNotify(OverburstGameSettings.CombatFacingIndicator);
             if (combatFacingStyle != null) FillOptions(combatFacingStyle, new[] { "기존 절제형", "끝 연장형" }, (int)OverburstGameSettings.CombatFacingStyle);

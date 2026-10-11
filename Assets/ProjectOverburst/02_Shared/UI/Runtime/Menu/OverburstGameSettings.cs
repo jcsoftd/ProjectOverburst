@@ -45,6 +45,7 @@ public static class OverburstGameSettings
         public bool motionBlur;
         public float motionBlurIntensity = .01f;
         public string bindingOverrides = string.Empty;
+        public float mapOverlayOpacity = .35f, mapOverlayScale = 1f;
     }
 
     private static Data data = new Data();
@@ -85,6 +86,18 @@ public static class OverburstGameSettings
     }
     public static float MotionBlurIntensity { get { Ensure(); return data.motionBlurIntensity; } set { Ensure(); float v=NormalizeEffect(value,.01f,1f); if(Mathf.Approximately(data.motionBlurIntensity,v))return; data.motionBlurIntensity=v; Notify(); } }
     private static float NormalizeEffect(float value,float fallback,float maximum) => float.IsNaN(value)||float.IsInfinity(value) ? fallback : Mathf.Clamp(value,0f,maximum);
+
+    public static float MapOverlayOpacity
+    {
+        get { Ensure(); return data.mapOverlayOpacity; }
+        set { Ensure(); float next = NormalizeMap(value, .35f, .1f, .8f); if (Mathf.Approximately(next, data.mapOverlayOpacity)) return; data.mapOverlayOpacity = next; Notify(); }
+    }
+    public static float MapOverlayScale
+    {
+        get { Ensure(); return data.mapOverlayScale; }
+        set { Ensure(); float next = NormalizeMap(value, 1f, .1f, 2.5f); if (Mathf.Approximately(next, data.mapOverlayScale)) return; data.mapOverlayScale = next; Notify(); }
+    }
+    static float NormalizeMap(float value, float fallback, float min, float max) => float.IsFinite(value) ? Mathf.Clamp(value, min, max) : fallback;
 
     public static BloodEffectStyle BloodStyle
     {
@@ -174,6 +187,8 @@ public static class OverburstGameSettings
             JsonUtility.FromJsonOverwrite(File.ReadAllText(path), read);
             read.combatFacingStyle = Mathf.Clamp(read.combatFacingStyle, 0, 1);
             read.combatFacingBrightness = NormalizeFacingBrightness(read.combatFacingBrightness);
+            read.mapOverlayOpacity = NormalizeMap(read.mapOverlayOpacity, .35f, .1f, .8f);
+            read.mapOverlayScale = NormalizeMap(read.mapOverlayScale, 1f, .1f, 2.5f);
             if (!MotionBlurAvailable && read.motionBlur)
             {
                 read.motionBlur = false;
@@ -243,6 +258,7 @@ public static class OverburstGameSettings
     {
         Ensure();
         var defaults = new Data();
+        if (section == "combat") { data.mapOverlayOpacity = defaults.mapOverlayOpacity; data.mapOverlayScale = defaults.mapOverlayScale; }
         switch (section)
         {
             case "sound": data.masterVolume = defaults.masterVolume; data.uiVolume = defaults.uiVolume; data.muteInBackground = defaults.muteInBackground; ApplyAudio(); break;

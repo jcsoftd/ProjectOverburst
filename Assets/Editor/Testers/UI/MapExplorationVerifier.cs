@@ -189,6 +189,7 @@ public static class MapExplorationVerifier
         controller.enabled = false; yield return Frames(3); controller.enabled = true; yield return Frames(12);
         controller.ShowForScene(player, gate.gameObject.scene.handle); yield return Frames(12);
         check(ReferenceEquals(map, controller.Exploration) && controller.TerrainBuildCount == builds, "Disable/rebind and repeated ShowForScene preserve the run map");
+        yield return MapOverlayVerifier.VerifyPlay(gate, output, check);
         var reachable = Reachable(map, map.CellAt(player.position));
         check(gate.Roster.Areas.All(a => map.IsGround(map.CellAt(a.Ground.Points[0])) && reachable[map.CellAt(a.Ground.Points[0])]), "Actual generated connections reach every combat tile in the map topology");
         var far = gate.Roster.Areas.OrderByDescending(a => (a.Ground.Center - player.position).sqrMagnitude).First();
@@ -196,6 +197,8 @@ public static class MapExplorationVerifier
         check(!map.IsRevealed(destination), "Unvisited distant platform is hidden");
         ActorTeleportUtility.TeleportSafely(player, destination + Vector3.up * .12f, Quaternion.identity);
         yield return Frames(30);
+        if (desert && gate.Completion.Boss.IsIntroducing)
+            check(GameplayInputBlocker.IsGameplayInputBlocked && !controller.OverlayVisible, "Boss entrance owns input and hides overlay during far-tile exploration");
         check(map.IsRevealed(player.position) && map.IsRevealed(origin), "Teleport reveals the destination and keeps previously explored floor");
         var ranks = new List<EnemyRank>(); EnemyRank.CollectActive(ranks);
         var byId = ranks.ToDictionary(r => r.GetInstanceID());

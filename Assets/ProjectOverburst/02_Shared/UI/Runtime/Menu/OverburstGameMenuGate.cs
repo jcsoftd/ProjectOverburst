@@ -19,5 +19,8 @@ public sealed class OverburstGameMenuGate : MonoBehaviour
         EscapeBelongsToMenu = !OverburstGameMenu.IsOpen
             && !GameplayInputBlocker.IsGameplayInputBlocked
             && (flow == null || !flow.IsSwitching);
+        if (EscapeBelongsToMenu && PlayerInputFacade.Current != null && PlayerInputFacade.Current.UiCancelPressedThisFrame
+            && WorldMinimapController.Instance != null && WorldMinimapController.Instance.TryCloseOverlay())
+            EscapeBelongsToMenu = false;
     }
 }

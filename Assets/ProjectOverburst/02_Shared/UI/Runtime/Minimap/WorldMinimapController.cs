@@ -14,6 +14,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         public Rect worldBounds;
     }
     [SerializeField] private MinimapView view;
+    [SerializeField] private MinimapOverlayView overlay;
     [SerializeField] private TerrainMap[] terrainMaps = System.Array.Empty<TerrainMap>();
     [SerializeField] private float defaultZoomSize = 55f;
     [SerializeField] private float currentZoomSize = 55f;
@@ -44,6 +45,10 @@ public sealed class WorldMinimapController : MonoBehaviour
     private float nextReveal;
     private bool terrainFailed;
     public MinimapExplorationMap Exploration => exploration;
+    public MinimapOverlayView Overlay => overlay;
+    public bool OverlayRequested { get; private set; }
+    public bool OverlayVisible => overlay && overlay.gameObject.activeInHierarchy;
+    public float OverlayRadius => 100f / OverburstGameSettings.MapOverlayScale;
     public int TerrainBuildCount { get; private set; }
 
     public static WorldMinimapController Instance
@@ -72,6 +77,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         maxZoomSize = Mathf.Max(minZoomSize, maxZoomSize);
         currentZoomSize = Mathf.Clamp(defaultZoomSize, minZoomSize, maxZoomSize);
         view?.SetVisible(false);
+        overlay?.SetVisible(false);
     }
 
     private void OnEnable()
@@ -103,6 +109,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         source.Dispose();
         ClearTerrain();
         view?.SetVisible(false);
+        overlay?.SetVisible(false);
     }
 
     private void OnDestroy()
@@ -154,6 +161,29 @@ public sealed class WorldMinimapController : MonoBehaviour
         playerTarget = null;
         contentScene = int.MinValue;
         view?.SetVisible(false);
+        overlay?.SetVisible(false);
+    }
+
+    private void Update()
+    {
+        var input = PlayerInputFacade.Current;
+        if (input == null || !IsVisible || blocked || !OverburstGameMenuGate.EscapeBelongsToMenu) return;
+        if (input.MapTogglePressedThisFrame) SetOverlay(!OverlayRequested);
+        if (!OverlayRequested) return;
+        if (input.MapZoomInPressedThisFrame) OverburstGameSettings.MapOverlayScale *= 1.25f;
+        if (input.MapZoomOutPressedThisFrame) OverburstGameSettings.MapOverlayScale /= 1.25f;
+    }
+    public void SetOverlay(bool visible)
+    {
+        if (visible && (blocked || !requested || exploration == null || !overlay || !overlay.IsReady)) return;
+        OverlayRequested = visible;
+        if (!visible) overlay?.SetVisible(false);
+        forceRefresh = true;
+    }
+    public bool TryCloseOverlay()
+    {
+        if (!OverlayRequested || !OverlayVisible) return false;
+        SetOverlay(false); return true;
     }
 
     private void LateUpdate()
@@ -172,7 +202,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         if (playerTarget == null || !playerTarget.gameObject.activeInHierarchy
             || contentScene == int.MinValue || !contentSceneInfo.isLoaded)
-        { view.SetVisible(false); return; }
+        { view.SetVisible(false); overlay?.SetVisible(false); return; }
         QuarterViewCamera camera = QuarterViewCamera.ActiveInstance;
         if (camera != null)
         {
@@ -184,7 +214,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         if (!hasYaw) return;
         RefreshRunTerrain();
         if (mapGate && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && exploration == null)
-        { source.Dispose(); view.SetVisible(false); return; }
+        { source.Dispose(); view.SetVisible(false); overlay?.SetVisible(false); return; }
         if (exploration != null && now >= nextReveal)
         {
             if (exploration.Reveal(playerTarget.position, 12f)) forceRefresh = true;
@@ -195,6 +225,13 @@ public sealed class WorldMinimapController : MonoBehaviour
         view.UpdateTerrain(playerTarget.position, yaw, currentZoomSize);
         view.SetFacing(yaw - playerTarget.eulerAngles.y);
         view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
+        bool showOverlay = OverlayRequested && !blocked && exploration != null && overlay && overlay.IsReady;
+        overlay?.SetVisible(showOverlay);
+        if (showOverlay)
+        {
+            overlay.Bind(exploration);
+            overlay.Render(playerTarget.position, yaw, yaw - playerTarget.eulerAngles.y, OverlayRadius, OverburstGameSettings.MapOverlayOpacity);
+        }
         bool dirty = source.IsDirty || forceRefresh;
         if (dirty || now >= nextCandidates)
         {
@@ -232,6 +269,7 @@ public sealed class WorldMinimapController : MonoBehaviour
                 };
             }
             view.Markers.SetMarkers(markers, count);
+            if (OverlayVisible) overlay.SetEnemies(markers, count, view.Radius, currentZoomSize, OverlayRadius);
             ProjectionCount++;
         }
     }
@@ -302,6 +340,7 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     private void ClearTerrain()
     {
+        if (overlay && overlay.IsReady) overlay.Bind(null);
         view?.SetTerrain(null, default);
         ReleaseOwnedTerrain();
         terrainRevision = -1;
@@ -317,6 +356,8 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     private void ReleaseExploration()
     {
+        SetOverlay(false);
+        if (overlay && overlay.IsReady) overlay.Bind(null);
         exploration?.Dispose(); exploration = null;
         explorationRun = null; explorationScene = int.MinValue; nextReveal = 0;
         explorationRoot = null; explorationVersion = 0;
@@ -363,6 +404,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     private void HandleBlocked(bool value)
     {
         blocked = value;
+        if (value) overlay?.SetVisible(false);
         view?.SetBlocked(value);
         if (view != null && view.IsReady) view.SetZoom(currentZoomSize, defaultZoomSize, minZoomSize, maxZoomSize);
     }

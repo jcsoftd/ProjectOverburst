@@ -14,18 +14,18 @@ public static class OverburstMinimapValidator
         var controller = Object.FindFirstObjectByType<WorldMinimapController>(FindObjectsInactive.Include);
         Require(controller != null && controller.View != null && controller.View.IsReady, "Authored references");
         var view = controller.View;
-        Require(controller.GetComponentsInChildren<MinimapMarkerGraphic>(true).Length == 1, "One marker graphic");
+        Require(controller.GetComponentsInChildren<MinimapMarkerGraphic>(true).Length == 2, "Circular and overlay marker graphics");
         Require(controller.GetComponentsInChildren<Mask>(true).Length == 1, "One circular mask");
-        Require(controller.GetComponentsInChildren<RectMask2D>(true).Length == 0, "No rectangular clip");
-        Require(controller.GetComponentsInChildren<RawImage>(true).Length == 1 && view.TerrainImage != null,
-            "One terrain image without legacy map/fog");
+        Require(controller.GetComponentsInChildren<RectMask2D>(true).Length == 1, "Overlay rectangular clip");
+        Require(controller.GetComponentsInChildren<RawImage>(true).Length == 2 && view.TerrainImage != null && controller.Overlay != null,
+            "Circular terrain and shared overlay outline");
         Require(controller.GetComponentsInChildren<Camera>(true).Length == 0, "No map camera");
         foreach (var graphic in controller.GetComponentsInChildren<Graphic>(true))
             Require(!graphic.raycastTarget || graphic.GetComponent<Button>() != null, "Only buttons receive raycasts");
         foreach (var rect in controller.GetComponentsInChildren<RectTransform>(true))
             Require(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(rect.gameObject) == 0, "Missing script: " + rect.name);
         Require(view.ZoomInButton != view.ZoomOutButton, "Distinct zoom buttons");
-        return "PASS: references, single circular Mask/marker Graphic/terrain image, no map camera, raycasts, missing scripts";
+        return "PASS: circular and overlay references, no map camera, raycasts, missing scripts";
     }
 
     public static object ValidatePlayCore()

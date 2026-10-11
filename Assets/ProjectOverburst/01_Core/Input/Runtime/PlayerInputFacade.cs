@@ -46,6 +46,7 @@ public sealed class PlayerInputFacade : MonoBehaviour
         "QuickSlot10",
         "Equipment",
         "LootModeCycle",
+        "MapToggle", "MapZoomIn", "MapZoomOut",
     };
 
     public static readonly string[] MajorUiActions =
@@ -188,6 +189,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
     public bool CombatModeReleasedThisFrame => WasReleasedThisFrame("CombatMode");
 
     public bool InventoryPressedThisFrame => WasPressedThisFrame("Inventory");
+    public bool MapTogglePressedThisFrame => WasPressedThisFrame("MapToggle");
+    public bool MapZoomInPressedThisFrame => WasPressedThisFrame("MapZoomIn");
+    public bool MapZoomOutPressedThisFrame => WasPressedThisFrame("MapZoomOut");
     public bool InventoryHeld => IsPressed("Inventory");
     public bool InventoryReleasedThisFrame => WasReleasedThisFrame("Inventory");
 
