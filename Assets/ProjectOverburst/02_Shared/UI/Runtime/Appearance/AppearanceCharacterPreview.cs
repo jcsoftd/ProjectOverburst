@@ -62,6 +62,7 @@ namespace Overburst.Appearance
         private Vector3 modelPosition;
         private Quaternion modelRotation;
         private double nextResize;
+        private Vector2Int displaySize;
         public AnimationClip ActiveClip=>activeClip;
         public bool CanPreviewAnimations
         {
@@ -81,9 +82,10 @@ namespace Overburst.Appearance
         public RenderTexture Texture=>texture;
         public GameObject Model=>model;
 
-        public void Open(CharacterAppearanceCatalog source, AppearanceCustomizationSession draft,RawImage image)
+        public void Open(CharacterAppearanceCatalog source, AppearanceCustomizationSession draft,RawImage image,Vector2Int renderSize=default,Vector3? origin=null)
         {
             Close();
+            displaySize=renderSize;
             catalog=source?source:throw new ArgumentNullException(nameof(source));
             session=draft??throw new ArgumentNullException(nameof(draft));target=image?image:target;
             quality=Resources.Load<AppearancePreviewQuality>(AppearancePreviewQuality.ResourcePath);
@@ -91,7 +93,7 @@ namespace Overburst.Appearance
             try
             {
                 rig=new GameObject("Appearance Preview Rig"){hideFlags=HideFlags.DontSave};
-                rig.transform.position=new Vector3(512,512,512);
+                rig.transform.position=origin??new Vector3(512,512,512);
                 // Source prefab is animation-only; never clone the gameplay actor.
                 model=Instantiate(catalog.visualPrefab,rig.transform,false);
                 model.name="Appearance Preview Model";
@@ -199,6 +201,7 @@ namespace Overburst.Appearance
             float scale=Mathf.Min(2f,3840f/displayWidth,2160f/displayHeight);
             int width=Mathf.Max(1,Mathf.RoundToInt(displayWidth*scale));
             int height=Mathf.Max(1,Mathf.RoundToInt(displayHeight*scale));
+            if(displaySize.x>0&&displaySize.y>0){width=displaySize.x;height=displaySize.y;}
             if(texture && texture.width==width && texture.height==height)return;
             if(texture){target.texture=null;viewCamera.targetTexture=null;texture.Release();ReleaseObject(texture);}
             texture=new RenderTexture(width,height,24,SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf)?RenderTextureFormat.ARGBHalf:RenderTextureFormat.ARGB32)
@@ -226,6 +229,7 @@ namespace Overburst.Appearance
         public void SetComparison(bool value){comparing=value;ApplyDraft();}
         public void SetFraming(AppearanceFraming framing){if(session==null)return;session.Framing=framing;zoom=1;FrameCamera();}
         public void ResetView(){yaw=180f;zoom=1f;FrameCamera();if(physics)physics.ResetSimulation();}
+        public void SetViewYaw(float angle){yaw=angle;FrameCamera();}
         private void FrameCamera()
         {
             if(!viewCamera||!model||session==null)return;
@@ -435,6 +439,7 @@ namespace Overburst.Appearance
         public void OnScroll(PointerEventData e){if(session==null)return;zoom=Mathf.Clamp(zoom+e.scrollDelta.y*.06f,.65f,1.6f);FrameCamera();}
         public void Close()
         {
+            if(rig)rig.SetActive(false);
             if(physics){physics.Dispose();physics=null;}
             if(session!=null)session.Changed-=ApplyDraft;
             if(graph.IsValid())graph.Destroy();

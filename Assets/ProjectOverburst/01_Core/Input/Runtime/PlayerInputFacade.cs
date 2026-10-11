@@ -236,6 +236,8 @@ public sealed class PlayerInputFacade : MonoBehaviour
 
     // 포인터 위치와 팝업/닫기용 UI 입력. 기존 UI map의 Point/Submit/Cancel을 재사용한다.
     public Vector2 PointerPosition => ReadUiVector2("Point");
+    public Vector2 ScrollWheelValue => ReadUiVector2("ScrollWheel");
+    public bool QuestListPressedThisFrame => WasUiPressedThisFrame("QuestList");
 
     public bool UiSubmitPressedThisFrame => WasUiPressedThisFrame("Submit");
     public bool UiSubmitHeld => IsUiPressed("Submit");
@@ -323,6 +325,9 @@ public sealed class PlayerInputFacade : MonoBehaviour
         // resolved map index after the .inputactions asset is reimported during Editor Play.
         runtimeAsset = InputActionAsset.FromJson(sourceAsset.ToJson());
         runtimeAsset.name = sourceAsset.name + " (Runtime)";
+        var questUiMap = runtimeAsset.FindActionMap(UiMapName);
+        if (questUiMap != null && questUiMap.FindAction("QuestList") == null)
+            questUiMap.AddAction("QuestList", InputActionType.Button, "<Keyboard>/j");
         // 2026-10-01 설정 > 조작에서 바꾼 키(저장된 바인딩 덮어쓰기)를 새 런타임 에셋에 다시 입힌다.
         OverburstGameSettings.ApplyBindingOverrides(runtimeAsset);
         gameplayMap = runtimeAsset.FindActionMap(GameplayMapName);

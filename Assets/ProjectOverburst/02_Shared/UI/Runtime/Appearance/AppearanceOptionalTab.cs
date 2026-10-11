@@ -9,7 +9,7 @@ namespace Overburst.Appearance
         public Button tabButton;
         public GameObject page;
         public AppearanceCustomizationPanel Owner {get;private set;}
-        public virtual bool IsAvailable=>isActiveAndEnabled&&Owner&&Owner.Session!=null;
+        public virtual bool IsAvailable=>isActiveAndEnabled&&Owner&&Owner.Session!=null&&!Owner.IsCreation;
         public void Bind(AppearanceCustomizationPanel owner)
         {
             Owner=owner;if(tabButton){tabButton.onClick.RemoveListener(Open);tabButton.onClick.AddListener(Open);}SetVisible(false);RefreshAvailability();

@@ -37,6 +37,8 @@ namespace Overburst.Persistence
         public string elementalGemInstanceId;
         public SkillTreeSnapshot skillTree;
         public CharacterAppearanceSnapshot appearance;
+        public string activeCharacterId;
+        public List<AccountCharacterSnapshot> characters;
 
         internal AccountSnapshot WithCurrencyInventory(List<string> slots, List<ItemSnapshot> values, long nextOrder)
         {
@@ -56,6 +58,15 @@ namespace Overburst.Persistence
             candidate.experience = nextExperience;
             return candidate;
         }
+    }
+
+    [Serializable] public sealed class AccountCharacterSnapshot
+    {
+        public string id;
+        public string name;
+        public string classId = "knight";
+        // Active personal data lives in the account root. Dormant data has no shared stash/merchants/roster.
+        public AccountSnapshot personal;
     }
 
     [Serializable] public sealed class ItemContainerSnapshot

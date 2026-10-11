@@ -107,6 +107,7 @@ public static partial class AppearanceCustomizationBuilder
             Object.DestroyImmediate(dev.iconButton.transform.Find("Native Skin").gameObject);Object.DestroyImmediate(dev.iconButton.transform.Find("Native Border").gameObject);Object.DestroyImmediate(dev.iconButton.GetComponent<AppearanceButtonVisual>());Object.DestroyImmediate(dev.iconButton.transform.Find("Native Selection").gameObject);
             var quiet=dev.iconButton.GetComponent<Image>();quiet.color=Color.clear;dev.iconButton.targetGraphic=quiet;
             ImageAt(dev.iconButton.transform,"Quiet Icon",8,8,8,8,KitSprite("Lobby/Character Create/Section/Lobby_CC_Section_Crystal.png"),new Color(.32f,.32f,.32f,.7f));
+            TitleCharacterBuilder.ConfigureCreationIdentity(panel);
             surface.gameObject.SetActive(false);root.SetActive(true);
             var rootRect=(RectTransform)root.transform;rootRect.localScale=Vector3.one;rootRect.localRotation=Quaternion.identity;
             rootRect.anchorMin=Vector2.zero;rootRect.anchorMax=Vector2.one;rootRect.offsetMin=Vector2.zero;rootRect.offsetMax=Vector2.zero;rootRect.anchoredPosition3D=Vector3.zero;
@@ -203,7 +204,7 @@ public static partial class AppearanceCustomizationBuilder
     {
         RequireIdle();string before=SceneState();
         var catalog=AssetDatabase.LoadAssetAtPath<CharacterAppearanceCatalog>(CatalogPath);
-        headingFont=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root+"/Fonts/AppearanceHeading.asset");
+        headingFont=EnsureHeadingFont();
         bodyFont=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root+"/Fonts/AppearanceBody.asset");
         if(!catalog||!headingFont||!bodyFont)throw new InvalidOperationException("제품 자산을 먼저 만들어 주세요.");
         extensions=TypeCache.GetTypesDerivedFrom<AppearanceAuthoringExtension>().Where(t=>!t.IsAbstract).Select(t=>(AppearanceAuthoringExtension)Activator.CreateInstance(t)).ToArray();

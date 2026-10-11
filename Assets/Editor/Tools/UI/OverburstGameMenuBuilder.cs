@@ -76,6 +76,7 @@ public static partial class OverburstGameMenuBuilder
             var settings = BuildSettings(menu, content);
             BuildKeyPrompt(settings, content);
             BuildModal(menu, content);
+            AddTitleButton(menu);
 
             foreach (var selectable in root.GetComponentsInChildren<Selectable>(true))
                 if (!selectable.GetComponent<OverburstMenuSoundHook>()) selectable.gameObject.AddComponent<OverburstMenuSoundHook>();
@@ -143,6 +144,38 @@ public static partial class OverburstGameMenuBuilder
         Restyle(text, label, serif, 50);
         StyleMainButtonLabel(text);
         return button;
+    }
+
+    private static void AddTitleButton(OverburstGameMenu menu)
+    {
+        if (menu.titleButton == null)
+        {
+            menu.titleButton = Object.Instantiate(menu.returnButton, menu.returnButton.transform.parent, false);
+            menu.titleButton.name = "Button (Title)";
+        }
+        menu.titleButton.transform.SetSiblingIndex(menu.returnButton.transform.GetSiblingIndex()+1);
+        menu.quitButton.transform.SetSiblingIndex(menu.titleButton.transform.GetSiblingIndex()+1);
+        StyleMainButtonLabel(menu.titleButton.transform.Find("Text").GetComponent<Text>());
+        menu.titleButton.transform.Find("Text").GetComponent<Text>().text = "타이틀로 돌아가기";
+        foreach (var button in new[] { menu.resumeButton, menu.settingsButton, menu.returnButton, menu.titleButton, menu.quitButton, menu.modalConfirm, menu.modalCancel })
+        {
+            if (button == null) continue;
+            var visual = button.GetComponent<Overburst.Appearance.AppearanceButtonVisual>() ?? button.gameObject.AddComponent<Overburst.Appearance.AppearanceButtonVisual>();
+            visual.legacyLabel = button.GetComponentInChildren<Text>(true);
+            if (visual.legacyLabel) visual.normalLabel = visual.selectedLabel = visual.legacyLabel.color;
+            visual.skin = button.targetGraphic as Image;
+            if (visual.skin) visual.normalSkin = visual.selectedSkin = visual.skin.color;
+            button.transition = Selectable.Transition.None;
+            if (!button.GetComponent<OverburstMenuSoundHook>()) button.gameObject.AddComponent<OverburstMenuSoundHook>();
+        }
+    }
+
+    public static void AddTitleReturnAndHover()
+    {
+        AppearanceCustomizationBuilder.RequireIdle();
+        var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        try { AddTitleButton(root.GetComponent<OverburstGameMenu>()); PrefabUtility.SaveAsPrefabAsset(root, PrefabPath); }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
     }
 
     // 기존 프리팹의 네 메인 버튼만 갱신한다. 다른 배치와 직렬화 연결은 보존한다.

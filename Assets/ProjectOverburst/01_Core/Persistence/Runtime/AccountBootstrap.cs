@@ -18,6 +18,19 @@ namespace Overburst.Persistence
             Error = SaveDirectory = null;
         }
 
+        public static string ResolveSaveDirectory()
+        {
+            string isolated = Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY");
+            return string.IsNullOrWhiteSpace(isolated) ? Path.Combine(Application.persistentDataPath, "Account") : Path.GetFullPath(isolated);
+        }
+
+        internal static void ReleaseForTitle(AccountGameplaySession session)
+        {
+            AccountAutosave.StopFor(session);
+            session.Detach();
+            Reset();
+        }
+
         public static bool Initialize(PlayerAccountInventoryService account)
         {
             if (Attempted) return Ready;
@@ -27,9 +40,7 @@ namespace Overburst.Persistence
                 if (account == null || account.Inventory == null || account.Stash == null
                     || PlayerProgression.Current == null || PlayerContext.Instance?.CurrentActor == null)
                     throw new InvalidOperationException("Persistent player/account services are not ready.");
-                string testDirectory = Environment.GetEnvironmentVariable("OVERBURST_SAVE_DIRECTORY");
-                SaveDirectory = string.IsNullOrWhiteSpace(testDirectory)
-                    ? Path.Combine(Application.persistentDataPath, "Account") : Path.GetFullPath(testDirectory);
+                SaveDirectory = ResolveSaveDirectory();
                 var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
                 if (registry == null) throw new InvalidDataException("Account content registry is missing.");
                 var store = new EasySaveAccountStore(SaveDirectory);
@@ -62,7 +73,8 @@ namespace Overburst.Persistence
                 AccountGameplayProjection.Restore(state, account, registry);
                 var session = new AccountGameplaySession(account, registry, store, state, deferDiskWrites: true);
                 session.Attach();
-                AccountAutosave.StartFor(session);
+                var autosave = AccountAutosave.StartFor(session);
+                autosave.gameObject.AddComponent<Overburst.Quests.QuestSession>().Bind(session);
                 Ready = true;
                 PlayerAppearanceController.Install();
                 return true;

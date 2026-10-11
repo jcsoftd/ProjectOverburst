@@ -28,6 +28,9 @@ namespace Overburst.Persistence
                 merchant.reputationPolicyVersion = MerchantReputationPolicy.Version;
                 merchant.reputationLevel = merchant.reputationExperience = 0;
             }
+            if (state.characters != null)
+                foreach (var character in state.characters)
+                    if (character.personal != null) UpgradePersonal(character.personal);
         }
     }
 }

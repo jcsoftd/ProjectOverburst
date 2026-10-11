@@ -13,6 +13,17 @@ namespace Overburst.Persistence
         private bool flushing;
         public string LastError { get; private set; }
         public int SuccessfulWrites { get; private set; }
+        public bool IsFor(AccountGameplaySession account) => session == account;
+
+        internal static void StopFor(AccountGameplaySession account)
+        {
+            foreach (var saver in FindObjectsByType<AccountAutosave>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (saver.session == account)
+                {
+                    saver.gameObject.SetActive(false);
+                    Destroy(saver.gameObject);
+                }
+        }
 
         public static AccountAutosave StartFor(AccountGameplaySession session)
         {
@@ -35,6 +46,7 @@ namespace Overburst.Persistence
             flushing = true;
             try
             {
+                if (Overburst.Quests.QuestSession.Current != null && !Overburst.Quests.QuestSession.Current.DrainPending(false)) return false;
                 CurrencyPickupBatch.DrainPending();
                 if (PlayerProgression.Current != null && !PlayerProgression.Current.FlushPendingExperience()) return false;
                 bool pending = session.HasPendingSave;

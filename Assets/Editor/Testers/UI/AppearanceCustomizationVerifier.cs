@@ -124,7 +124,7 @@ public static class AppearanceCustomizationVerifier
             }
             else panel.Close();
         }
-        finally{if(root)Object.DestroyImmediate(root);if(rt){rt.Release();Object.DestroyImmediate(rt);}if(cameraRoot)Object.DestroyImmediate(cameraRoot);EditorSceneManager.ClosePreviewScene(scene);}
+        finally{if(root){root.GetComponent<AppearanceCustomizationPanel>().Close();Object.DestroyImmediate(root);}if(rt){rt.Release();Object.DestroyImmediate(rt);}if(cameraRoot)Object.DestroyImmediate(cameraRoot);EditorSceneManager.ClosePreviewScene(scene);}
     }
     public static void CheckStageBackground(AppearanceCustomizationPanel panel,Action<bool,string> assert)
     {
@@ -144,7 +144,7 @@ public static class AppearanceCustomizationVerifier
     public static void CheckControlsLayout(AppearanceCustomizationPanel panel,Action<bool,string> assert)
     {
         Canvas.ForceUpdateCanvases();var surface=(RectTransform)panel.surface.transform;
-        var controls=panel.GetComponentsInChildren<Button>(false).Where(b=>!b.GetComponentInParent<RectMask2D>()&&!b.GetComponentInParent<AppearanceDeveloperPreview>()).ToArray();
+        var controls=panel.GetComponentsInChildren<Button>(false).Where(b=>!b.GetComponentsInParent<RectMask2D>().Any(m=>m.isActiveAndEnabled)&&!b.GetComponentInParent<AppearanceDeveloperPreview>()).ToArray();
         foreach(var button in controls)
         {
             var fill=button.GetComponent<Image>();var border=button.transform.Find("Native Border").GetComponent<Image>();

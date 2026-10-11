@@ -30,6 +30,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
     public Button settingsButton;
     public Button returnButton;
     public Text returnLabel;
+    public Button titleButton;
     public Button quitButton;
     public OverburstSettingsPanel settings;
 
@@ -55,6 +56,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
     private PlayerInputFacade lockedInput;
     private float fadeTarget;
     private GameObject lastSelection;
+    private Action standaloneSettingsClosed;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
@@ -79,8 +81,10 @@ public sealed class OverburstGameMenu : MonoBehaviour
         return menu;
     }
 
+    public bool managementPreview;
     private void Awake()
     {
+        if(managementPreview)return;
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         // 프리팹 루트 캔버스의 정렬 덮어쓰기는 저장 때 풀리므로(루트 캔버스로 취급) 설치된 뒤 켠다: HUD·창·툴팁보다 위.
@@ -89,6 +93,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
         resumeButton.onClick.AddListener(Close);
         settingsButton.onClick.AddListener(OpenSettings);
         returnButton.onClick.AddListener(AskReturn);
+        if (titleButton != null) titleButton.onClick.AddListener(AskTitle);
         quitButton.onClick.AddListener(AskQuit);
         modalConfirm.onClick.AddListener(() => ResolveModal(true));
         modalCancel.onClick.AddListener(() => ResolveModal(false));
@@ -114,6 +119,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
 
     private void Update()
     {
+        if(managementPreview)return;
         if (IsOpen) SyncGameplayMapOwner();
         UpdateFade();
         if (IsOpen) KeepSelection();
@@ -163,6 +169,7 @@ public sealed class OverburstGameMenu : MonoBehaviour
         fadeTarget = 0f;
         Play(closeClip, .6f);
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+        var standalone = standaloneSettingsClosed; standaloneSettingsClosed = null; standalone?.Invoke();
     }
 
     private void ReleasePause()
@@ -199,8 +206,15 @@ public sealed class OverburstGameMenu : MonoBehaviour
         settings.Show();
     }
 
+    public bool OpenStandaloneSettings(Action closed)
+    {
+        if (IsOpen) return false;
+        Open(); standaloneSettingsClosed = closed; OpenSettings(); return true;
+    }
+
     public void CloseSettings()
     {
+        if (standaloneSettingsClosed != null) { Close(); return; }
         settings.CancelRebind();
         OverburstGameSettings.SaveIfDirty();
         settings.gameObject.SetActive(false);
@@ -254,10 +268,14 @@ public sealed class OverburstGameMenu : MonoBehaviour
         subtitle.text = (dungeon ? "던전" : "은신처") + "  ·  게임이 멈춰 있습니다";
         returnButton.gameObject.SetActive(dungeon);
         returnLabel.text = cleared ? "포탈로 귀환" : "은신처로 귀환";
+        if (titleButton != null) titleButton.interactable = PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching;
         FitMainPanel();
 
         // 보이는 버튼만 위아래로 잇는다(방향키·패드).
         var order = dungeon
+            ? new Selectable[] { resumeButton, settingsButton, returnButton, titleButton, quitButton }
+            : new Selectable[] { resumeButton, settingsButton, titleButton, quitButton };
+        if (titleButton == null) order = dungeon
             ? new Selectable[] { resumeButton, settingsButton, returnButton, quitButton }
             : new Selectable[] { resumeButton, settingsButton, quitButton };
         for (int i = 0; i < order.Length; i++)
@@ -267,6 +285,24 @@ public sealed class OverburstGameMenu : MonoBehaviour
             nav.selectOnDown = order[(i + 1) % order.Length];
             order[i].navigation = nav;
         }
+    }
+
+    private void AskTitle()
+    {
+        Play(clickClip, .8f);
+        var run = AccountGameplaySession.Current?.ReadRun();
+        bool pending = run != null && run.phase != RunPhase.Failed && run.phase != RunPhase.Extracted;
+        Confirm("타이틀로 돌아갈까요?",
+            pending ? "이번 탐험을 포기합니다.\n창고로 보내지 않은 이번 탐험 아이템은 잃습니다."
+                : "진행 상황을 저장하고 타이틀로 돌아갑니다.",
+            "타이틀로 돌아가기", "취소", RequestTitle);
+    }
+
+    private void RequestTitle()
+    {
+        string error = "타이틀로 돌아갈 수 없습니다.";
+        if (PersistentSceneFlow.Instance == null || !PersistentSceneFlow.Instance.TryReturnToTitle(out error))
+            Confirm("타이틀로 돌아가지 못했습니다", error, "다시 시도", "취소", RequestTitle);
     }
 
     // 메인 기둥 높이를 버튼 수에 맞춘다(제목 위 여백과 안내 아래 여백을 같게).

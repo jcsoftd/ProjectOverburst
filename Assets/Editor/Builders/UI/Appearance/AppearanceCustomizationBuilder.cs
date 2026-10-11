@@ -40,7 +40,7 @@ public static partial class AppearanceCustomizationBuilder
         {
             Folder(Root);Folder(Art);Folder(Art+"/Thumbnails");Folder(Root+"/Materials");Folder(Root+"/Fonts");
             ImportBackground();
-            headingFont=FontAsset("AppearanceHeading","Assets/ProjectOverburst/05_Art/Fonts/NotoSerifKR-VariableFont_wght.ttf");
+            headingFont=EnsureHeadingFont();
             bodyFont=FontAsset("AppearanceBody","Assets/ProjectOverburst/Resources/UI/Fonts/DamageFloating/Pretendard_Medium.ttf");
             var catalog=BuildCatalog();
             ApplyColorIcons(catalog);
@@ -73,7 +73,7 @@ public static partial class AppearanceCustomizationBuilder
     }
     static void ImportBackground()
     {
-        string source=Path.GetFullPath(Output+"/GeneratedAssets/appearance-background-v2.png");
+        string source=Path.GetFullPath(Output+"/GeneratedAssets/appearance-background-v3.png");
         string destination=Art+"/AppearanceBackground.png";
         if(!File.Exists(source))throw new FileNotFoundException("생성한 배경이 없습니다.",source);
         File.Copy(source,destination,true);ImportSprite(destination,4096);
@@ -86,6 +86,7 @@ public static partial class AppearanceCustomizationBuilder
         importer.mipmapEnabled=false;importer.alphaIsTransparency=true;importer.textureCompression=TextureImporterCompression.Uncompressed;
         importer.maxTextureSize=size;importer.filterMode=FilterMode.Bilinear;importer.SaveAndReimport();
     }
+    public static TMP_FontAsset EnsureHeadingFont(){Folder(Root+"/Fonts");return FontAsset("AppearanceHeadingRegular",Root+"/Fonts/NotoSerifKR-Regular-UI.ttf");}
     static TMP_FontAsset FontAsset(string name,string source)
     {
         string path=Root+"/Fonts/"+name+".asset";var asset=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);

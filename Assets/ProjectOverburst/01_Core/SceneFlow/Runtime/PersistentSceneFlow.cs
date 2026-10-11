@@ -19,6 +19,8 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
     private bool isSwitching; // 전환 중
     private Coroutine switchRoutine; // 전환 루틴
     private LoadingScreenUI loadingScreen; // 로딩 UI
+    private PlayerMovement titleSuspendedMovement;
+    private bool titleMovementWasEnabled;
     private double presentationWaitSeconds;
     private const float PresentationWaitBudget = 10f;
 
@@ -112,6 +114,18 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         while ((PlayerAccountInventoryService.Instance == null || PlayerProgression.Current == null
             || PlayerContext.Instance?.CurrentActor == null) && waited++ < PlayerReadyWaitFrames)
             yield return null;
+        if (SceneManager.GetActiveScene().name == PersistentSceneName)
+        {
+            var title = TitleCharacterPanel.Install();
+            if (!title)
+            {
+                loadingScreen?.Show("화면 준비 오류", "타이틀 화면 자산을 찾지 못했습니다.");
+                yield break;
+            }
+            loadingScreen?.Hide();
+            yield return title.WaitForSelection();
+            loadingScreen?.Show("LOADING", "선택한 캐릭터를 준비 중...");
+        }
         if (!Overburst.Persistence.AccountBootstrap.Initialize(PlayerAccountInventoryService.Instance))
         {
             ResolveLoadingScreen();
@@ -125,6 +139,14 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         loadingScreen?.SetStatus("마을 준비 중...");
         loadingScreen?.SetProgress(0.35f);
         yield return EnsureInitialSubScene();
+        if (titleSuspendedMovement != null)
+        {
+            titleSuspendedMovement.enabled = titleMovementWasEnabled;
+            titleSuspendedMovement = null;
+            var health = PlayerContext.Instance?.CurrentActorHealth;
+            health?.SetRunMapModifiers(1f, 1f);
+            health?.ResetHealth();
+        }
         GameplayInputBlocker.Unblock(this);
     }
 
@@ -298,6 +320,57 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         }
 
         StartSubSceneSwitch(resolvedContext.TargetSceneName, resolvedContext);
+    }
+
+    public bool TryReturnToTitle(out string error)
+    {
+        error = null;
+        var account = Overburst.Persistence.AccountGameplaySession.Current;
+        var persistent = SceneManager.GetSceneByName(PersistentSceneName);
+        if (isSwitching || account == null || !persistent.IsValid() || !persistent.isLoaded
+            || Resources.Load<TitleCharacterPanel>(TitleCharacterPanel.ResourcePath) == null)
+        { error = "지금은 타이틀로 돌아갈 수 없습니다. 잠시 후 다시 시도해 주세요."; return false; }
+        var saver = FindFirstObjectByType<Overburst.Persistence.AccountAutosave>();
+        if (saver == null || !saver.IsFor(account) || !saver.FlushNow())
+        { error = "진행 상황을 저장하지 못했습니다. 다시 시도해 주세요.\n" + saver?.LastError; return false; }
+        try
+        {
+            var run = account.ReadRun();
+            if (run != null && run.phase != Overburst.Persistence.RunPhase.Failed
+                && run.phase != Overburst.Persistence.RunPhase.Extracted)
+                new Overburst.Persistence.AccountRunSession(account).Fail(run.runId);
+        }
+        catch (System.Exception failure)
+        { error = "탐험 종료를 저장하지 못했습니다. 다시 시도해 주세요.\n" + failure.Message; return false; }
+
+        isSwitching = true;
+        GameplayInputBlocker.Block(this);
+        ClosePersistentUiForSceneSwitch();
+        var driver = GetComponent<Overburst.Persistence.RunLifetimeDriver>();
+        if (driver != null) { driver.enabled = false; Destroy(driver); }
+        Overburst.Persistence.AccountBootstrap.ReleaseForTitle(account);
+        switchRoutine = StartCoroutine(ReturnToTitle());
+        return true;
+    }
+
+    private IEnumerator ReturnToTitle()
+    {
+        string previous = currentSubSceneName;
+        titleSuspendedMovement = PlayerContext.Instance?.CurrentActorMovement;
+        if (titleSuspendedMovement != null) { titleMovementWasEnabled = titleSuspendedMovement.enabled; titleSuspendedMovement.enabled = false; }
+        var guard = FindPlayer()?.GetComponent<RunFallGuard>();
+        if (guard != null) guard.enabled = false;
+        OverburstTimeEffectArbiter.ClearAll();
+        ActivateSubScene(PersistentSceneName);
+        WorldSessionState.SetPhase(WorldPhase.Booting);
+        ResolveLoadingScreen();
+        loadingScreen?.Show("LOADING", "타이틀로 돌아가는 중...");
+        if (!string.IsNullOrEmpty(previous) && previous != PersistentSceneName && IsSceneLoaded(previous))
+            yield return SceneManager.UnloadSceneAsync(previous);
+        currentSubSceneName = null;
+        yield return null; // Old autosave/quest/driver destruction finishes before the next selection.
+        switchRoutine = null;
+        yield return BootAccountAndWorld();
     }
 
     public void SwitchHubScene(string targetSceneName, string returnPointId = "Default")
@@ -671,6 +744,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         if (OverburstGameMenu.Instance != null) CloseOwnedUi(OverburstGameMenu.Instance.Close);
         if (OverburstSkillTreeUI.Instance != null) CloseOwnedUi(OverburstSkillTreeUI.Instance.Close);
         if (OverburstHudMenu.Instance != null) CloseOwnedUi(OverburstHudMenu.Instance.CloseImmediate);
+        if (QuestMerchantUI.Current != null) CloseOwnedUi(QuestMerchantUI.Current.Close);
         StashUI[] stashUis = FindObjectsByType<StashUI>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 창고 UI
         for (int i = 0; i < stashUis.Length; i++)
         {
