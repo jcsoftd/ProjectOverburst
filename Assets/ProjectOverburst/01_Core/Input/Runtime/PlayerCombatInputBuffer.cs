@@ -40,6 +40,12 @@ public sealed partial class PlayerCombatInputBuffer : IDisposable
     }
 
     public bool HasAttack { get { Refresh(); return attackPending; } }
+    public void SuppressPrimaryUntilRelease()
+    {
+        attackPending = false;
+        attackNeedsRelease = true;
+        attackSuppressedFrame = Time.frameCount;
+    }
     public bool HasHeavy { get { Refresh(); return heavyPending; } }
     public bool HasEvade { get { Refresh(); return evadePending; } }
     public bool AllowsHeldAttack

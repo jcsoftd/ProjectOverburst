@@ -41,6 +41,7 @@ public sealed class OverburstWorldHighlightController : MonoBehaviour
         PlayerPickupInteractor core = PlayerPickupInteractor.ActiveCore;
         if (overUi)
         {
+            input.CombatInputs?.SuppressPrimaryUntilRelease();
             // EventSystem은 이후 라벨 이벤트를 실행한다. 같은 프레임의 약공 누출을 먼저 막는다.
             if (overItemLabel) core?.ConsumePrimaryPointerForPickup();
             return;
