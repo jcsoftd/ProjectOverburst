@@ -39,19 +39,10 @@ namespace Overburst.Persistence
                 throw new ArgumentException("Registered map content and run identity are required.");
             if (float.IsNaN(gradeRoll) || float.IsInfinity(gradeRoll) || gradeRoll < 0f || gradeRoll > 1f)
                 throw new ArgumentOutOfRangeException(nameof(gradeRoll));
-            string contentId = registry.IdFor(definition);
             int level = BossMapLevel(dungeonLevel, levelRoll);
             ItemGrade grade = ItemGradeAvailabilityPolicy.ResolveWeightedGrade(gradeRoll,
                 ItemGradeAvailabilityPolicy.IsEnabled(ItemGrade.Cursed));
-            var item = new ItemData(definition, level, grade) { originRunId = runId };
-            item.mapState = new MapInstanceState
-            {
-                mapContentId = contentId, monsterThemeId = MapThemeCatalog.RollThemeId(),
-                level = level, grade = grade
-            };
-            var options = rolledOptions ?? MapOptionPolicy.Roll(grade);
-            foreach (var option in options) item.mapState.options.Add(ItemSnapshotCodec.CopyValues(option));
-            return item;
+            return MapGenerationPolicy.CreateItem(definition, registry, level, grade, runId, rolledOptions);
         }
     }
 }

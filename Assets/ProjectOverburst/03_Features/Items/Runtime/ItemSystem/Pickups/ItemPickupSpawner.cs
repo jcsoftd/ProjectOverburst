@@ -155,13 +155,9 @@ public class ItemPickupSpawner : MonoBehaviour
             ItemGrade grade = definition is ElementGemItemData gem ? gem.fixedGrade : ItemGradeAvailabilityPolicy.RollWeightedGrade();
             int level = definition is ElementGemItemData || definition is WeaponItemData || definition is GearItemData || definition is FlaskItemData
                 || definition is BagItemData || definition is MapItemData ? itemLevel : 1;
-            var item = new ItemData(definition, level, grade, 1);
-            if (definition is MapItemData)
-                item.mapState = new MapInstanceState
-                {
-                    mapContentId = registry.IdFor(definition), monsterThemeId = MapThemeCatalog.RollThemeId(),
-                    level = level, grade = grade, options = MapOptionPolicy.Roll(grade)
-                };
+            var item = definition is MapItemData map
+                ? MapGenerationPolicy.CreateItem(map, registry, level, grade)
+                : new ItemData(definition, level, grade, 1);
             Vector3 position = center + CalculateCatalogGridOffset(i, catalog.Count, hideoutCatalogColumns, hideoutCatalogSpacing);
             position = SnapCatalogPositionToGround(position);
             WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickupFromExistingItem(item, position, inventory, player, pickupGradeVfxSet);

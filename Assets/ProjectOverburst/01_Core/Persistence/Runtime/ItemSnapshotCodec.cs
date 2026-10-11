@@ -54,7 +54,7 @@ namespace Overburst.Persistence
             if (!(data is ElementGemItemData) && s.gemState != null) throw new InvalidDataException("Non-gem contains gem state.");
             if (!(data is BagItemData) && s.bag != null) throw new InvalidDataException("Non-bag item contains bag state.");
             if (data is FlaskItemData && !FlaskGradeRoller.IsValid(s.flask, s.grade)) throw new InvalidDataException("Invalid saved flask rolls.");
-            if (s.map != null && (s.map.level < 1 || s.map.level > 100 || s.map.options == null || !Enum.IsDefined(typeof(ItemGrade), s.map.grade))) throw new InvalidDataException("Invalid saved map.");
+            if (s.map != null) MapGenerationPolicy.Validate(s.map);
             if (data is MapItemData && (s.map == null || s.map.mapContentId != s.contentId || s.map.level != s.level || s.map.grade != s.grade)) throw new InvalidDataException("Map item and instance values disagree.");
             if (!(data is MapItemData) && s.map != null) throw new InvalidDataException("Non-map item contains map state.");
         }

@@ -99,6 +99,7 @@ namespace Overburst.Persistence
                     || run.map.options == null || run.transferredObjects == null || run.rewardedEncounters == null
                     || run.bossClearedAtUtcTicks < 0 || run.bossClearedAtUtcTicks > DateTime.MaxValue.Ticks)
                     throw new InvalidDataException("Invalid saved run.");
+                MapGenerationPolicy.Validate(run.map);
                 ValidateUniqueIds(run.transferredObjects);
                 ValidateUniqueIds(run.rewardedEncounters);
                 foreach (var option in run.map.options)

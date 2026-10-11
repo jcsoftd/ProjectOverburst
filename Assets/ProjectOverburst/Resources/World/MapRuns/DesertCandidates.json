@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "id": "mojave_b_20261010_p01",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P01_101101_126x126_2Areas.unity",
+      "seed": 101101,
+      "areaCount": 2,
+      "width": 126,
+      "depth": 126
+    },
+    {
+      "id": "mojave_b_20261010_p03",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P03_101303_160x160_3Areas.unity",
+      "seed": 101303,
+      "areaCount": 3,
+      "width": 160,
+      "depth": 160
+    },
+    {
+      "id": "mojave_b_20261010_p04",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P04_101404_176x126_2Areas.unity",
+      "seed": 101404,
+      "areaCount": 2,
+      "width": 176,
+      "depth": 126
+    },
+    {
+      "id": "mojave_b_20261010_p05",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P05_101505_176x176_4Areas.unity",
+      "seed": 101505,
+      "areaCount": 4,
+      "width": 176,
+      "depth": 176
+    },
+    {
+      "id": "mojave_b_20261010_p06",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P06_101606_192x192_4Areas.unity",
+      "seed": 101606,
+      "areaCount": 4,
+      "width": 192,
+      "depth": 192
+    },
+    {
+      "id": "mojave_b_20261010_p07",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P07_101707_224x224_4Areas.unity",
+      "seed": 101707,
+      "areaCount": 4,
+      "width": 224,
+      "depth": 224
+    },
+    {
+      "id": "mojave_b_20261010_p08",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P08_101808_224x224_6Areas.unity",
+      "seed": 101808,
+      "areaCount": 6,
+      "width": 224,
+      "depth": 224
+    },
+    {
+      "id": "mojave_b_20261010_p09",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P09_101909_256x192_4Areas.unity",
+      "seed": 101909,
+      "areaCount": 4,
+      "width": 256,
+      "depth": 192
+    },
+    {
+      "id": "mojave_b_20261010_p10",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P10_102010_256x256_6Areas.unity",
+      "seed": 102010,
+      "areaCount": 6,
+      "width": 256,
+      "depth": 256
+    },
+    {
+      "id": "mojave_b_20261010_p11",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P11_102111_256x256_6Areas.unity",
+      "seed": 102111,
+      "areaCount": 6,
+      "width": 256,
+      "depth": 256
+    },
+    {
+      "id": "mojave_b_20261010_p13",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P13_102313_288x288_9Areas.unity",
+      "seed": 102313,
+      "areaCount": 9,
+      "width": 288,
+      "depth": 288
+    },
+    {
+      "id": "mojave_b_20261010_p14",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P14_102414_288x288_6Areas.unity",
+      "seed": 102414,
+      "areaCount": 6,
+      "width": 288,
+      "depth": 288
+    },
+    {
+      "id": "mojave_b_20261010_p15",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P15_102515_320x224_6Areas.unity",
+      "seed": 102515,
+      "areaCount": 6,
+      "width": 320,
+      "depth": 224
+    },
+    {
+      "id": "mojave_b_20261010_p16",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P16_102616_320x320_9Areas.unity",
+      "seed": 102616,
+      "areaCount": 9,
+      "width": 320,
+      "depth": 320
+    },
+    {
+      "id": "mojave_b_20261010_p17",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P17_102717_320x320_9Areas.unity",
+      "seed": 102717,
+      "areaCount": 9,
+      "width": 320,
+      "depth": 320
+    },
+    {
+      "id": "mojave_b_20261010_p18",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P18_102818_320x320_6Areas.unity",
+      "seed": 102818,
+      "areaCount": 6,
+      "width": 320,
+      "depth": 320
+    },
+    {
+      "id": "mojave_b_20261010_p19",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P19_102919_320x320_12Areas.unity",
+      "seed": 102919,
+      "areaCount": 12,
+      "width": 320,
+      "depth": 320
+    },
+    {
+      "id": "mojave_b_20261010_p20",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P20_103020_384x384_12Areas.unity",
+      "seed": 103020,
+      "areaCount": 12,
+      "width": 384,
+      "depth": 384
+    },
+    {
+      "id": "mojave_b_20261010_p21",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P21_103121_384x384_9Areas.unity",
+      "seed": 103121,
+      "areaCount": 9,
+      "width": 384,
+      "depth": 384
+    },
+    {
+      "id": "mojave_b_20261010_p22",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P22_103222_384x384_12Areas.unity",
+      "seed": 103222,
+      "areaCount": 12,
+      "width": 384,
+      "depth": 384
+    },
+    {
+      "id": "mojave_b_20261010_p23",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P23_103323_384x384_15Areas.unity",
+      "seed": 103323,
+      "areaCount": 15,
+      "width": 384,
+      "depth": 384
+    },
+    {
+      "id": "mojave_b_20261010_p24",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P24_103424_384x256_9Areas.unity",
+      "seed": 103424,
+      "areaCount": 9,
+      "width": 384,
+      "depth": 256
+    },
+    {
+      "id": "mojave_b_20261010_p25",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P25_103525_448x448_15Areas.unity",
+      "seed": 103525,
+      "areaCount": 15,
+      "width": 448,
+      "depth": 448
+    },
+    {
+      "id": "mojave_b_20261010_p26",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P26_103626_448x448_12Areas.unity",
+      "seed": 103626,
+      "areaCount": 12,
+      "width": 448,
+      "depth": 448
+    },
+    {
+      "id": "mojave_b_20261010_p27",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P27_103727_320x448_12Areas.unity",
+      "seed": 103727,
+      "areaCount": 12,
+      "width": 320,
+      "depth": 448
+    },
+    {
+      "id": "mojave_b_20261010_p28",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P28_103828_512x512_15Areas.unity",
+      "seed": 103828,
+      "areaCount": 15,
+      "width": 512,
+      "depth": 512
+    },
+    {
+      "id": "mojave_b_20261010_p29",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P29_103929_512x512_12Areas.unity",
+      "seed": 103929,
+      "areaCount": 12,
+      "width": 512,
+      "depth": 512
+    },
+    {
+      "id": "mojave_b_20261010_p30",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P30_104030_512x320_15Areas.unity",
+      "seed": 104030,
+      "areaCount": 15,
+      "width": 512,
+      "depth": 320
+    },
+    {
+      "id": "mojave_b_20261010_p31",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P31_104131_512x512_15Areas.unity",
+      "seed": 104131,
+      "areaCount": 15,
+      "width": 512,
+      "depth": 512
+    },
+    {
+      "id": "mojave_b_20261010_p32",
+      "scene": "Assets/ProjectOverburst/00_Scenes/World/Mojave/Generated/MapPool20261010/Mojave_B_P32_104232_448x288_9Areas.unity",
+      "seed": 104232,
+      "areaCount": 9,
+      "width": 448,
+      "depth": 288
+    }
+  ]
+}

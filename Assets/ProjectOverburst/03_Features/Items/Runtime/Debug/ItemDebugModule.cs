@@ -207,23 +207,14 @@ internal static class ItemDebugModule
     /// <summary>레벨·등급을 그대로 쓴다(WorldItemDropFactory.CreateRuntimeItem은 레벨을 1로 고정해서 쓰지 않는다).</summary>
     internal static ItemData MakeItem(BaseItemData data, int itemLevel, ItemGrade itemGrade)
     {
-        var item = new ItemData(data, itemLevel, itemGrade);
         if (data is MapItemData map)
         {
             AccountContentRegistry registry = Registry;
             if (registry == null)
                 return null;
-            // MapDropPolicy.Roll과 같은 지도 상태. 런 밖에서 만들어 originRunId는 비운다.
-            item.mapState = new MapInstanceState
-            {
-                mapContentId = registry.IdFor(map),
-                monsterThemeId = MapThemeCatalog.RollThemeId(),
-                level = item.level,
-                grade = itemGrade,
-                options = MapOptionPolicy.Roll(itemGrade)
-            };
+            return MapGenerationPolicy.CreateItem(map, registry, itemLevel, itemGrade);
         }
-        return item;
+        return new ItemData(data, itemLevel, itemGrade);
     }
 
     private static bool Place(ItemData item, PlayerActorRuntime actor, int index, int total)

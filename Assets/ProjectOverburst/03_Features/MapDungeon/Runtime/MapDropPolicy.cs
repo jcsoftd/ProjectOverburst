@@ -21,12 +21,6 @@ public static class MapDropPolicy
             || Random.value >= Mathf.Min(1f, Chance(tier) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         int level = Random.Range(MinimumLevel(dungeonLevel, tier), MaximumLevel(dungeonLevel, tier) + 1);
         ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
-        var item = new ItemData(definition, level, grade) { originRunId = runId };
-        item.mapState = new MapInstanceState
-        {
-            mapContentId = registry.IdFor(definition), monsterThemeId = MapThemeCatalog.RollThemeId(),
-            level = level, grade = grade, options = MapOptionPolicy.Roll(grade)
-        };
-        return item;
+        return MapGenerationPolicy.CreateItem(definition, registry, level, grade, runId);
     }
 }

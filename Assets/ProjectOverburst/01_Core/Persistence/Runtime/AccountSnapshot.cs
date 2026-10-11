@@ -126,10 +126,25 @@ namespace Overburst.Persistence
         public List<string> rewardedEncounters = new List<string>();
     }
 
+    public enum MapTerrainKind { Legacy = 0, Desert = 1, Cave = 2 }
+
+    [Serializable] public sealed class MapMonsterTheme
+    {
+        public string themeId;
+        public int weight;
+    }
+
     [Serializable] public sealed class MapInstanceState
     {
         public string mapContentId;
         public string monsterThemeId;
+        public int generationVersion;
+        public MapTerrainKind terrain;
+        public int seed;
+        public int areaCount;
+        public string desertCandidateId;
+        public int width, depth;
+        public List<MapMonsterTheme> monsterThemes = new List<MapMonsterTheme>();
         public int level = 1;
         public ItemGrade grade;
         public List<MapOptionRoll> options = new List<MapOptionRoll>();

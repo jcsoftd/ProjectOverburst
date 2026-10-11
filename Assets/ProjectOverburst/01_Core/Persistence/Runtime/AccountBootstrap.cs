@@ -44,7 +44,7 @@ namespace Overburst.Persistence
                 var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
                 if (registry == null) throw new InvalidDataException("Account content registry is missing.");
                 var store = new EasySaveAccountStore(SaveDirectory);
-                var state = store.Load();
+                var state = MapAccountMigration.Load(store, registry);
                 if (state == null)
                 {
                     state = NewAccountFactory.Create(registry);

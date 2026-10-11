@@ -120,7 +120,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
     {
         try
         {
-            snapshot=store.Load();
+            snapshot=MapAccountMigration.Load(store,registry);
             if(snapshot!=null)
             {
                 AccountInvariants.Validate(snapshot,registry);
