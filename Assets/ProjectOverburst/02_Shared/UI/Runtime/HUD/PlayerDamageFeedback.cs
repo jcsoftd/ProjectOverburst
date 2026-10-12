@@ -40,6 +40,7 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
         BindSceneUI();
         ResolveReferences();
         SetVignetteAlpha(0f);
+        PlayerScreenSpaceVfx.Ensure();
     }
 
     private void OnEnable()
@@ -83,14 +84,14 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
         feedback.StartFeedback(Time.time, Vector3.zero);
     }
 
-    private void HandleDamaged(CombatHealth health, DamageInfo info)
+    private void HandleDamaged(CombatHealth health, DamageInfo info, float actualDamage, bool lethal)
     {
         if (health == null)
             return;
 
         BloodHitVfxService.RequestPlayerHit(health, info); // 피격 혈흔·바닥 자국(치명타 포함)
 
-        if (health.IsDead)
+        if (health.IsDead || lethal || actualDamage <= 0f)
             return; // 사망 후 무시
 
         if (ignoreDamageOverTime && info.isDamageOverTime)
@@ -108,7 +109,8 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
         feedbackStartTime = now;
         activeVignetteDuration = Mathf.Max(0.01f, vignetteFadeDuration);
         vignetteEndTime = now + activeVignetteDuration;
-        SetVignetteAlpha(PeakAlpha);
+        if (PlayerScreenSpaceVfx.TryDamage()) vignetteEndTime = now;
+        SetVignetteAlpha(vignetteEndTime > now ? PeakAlpha : 0f);
         CombatHitFeedbackService.RequestPlayerDamage(damageDirection, shakeDuration, shakeAmplitude);
     }
 
@@ -212,13 +214,13 @@ public class PlayerDamageFeedback : MonoBehaviour // 플레이어 피격 피드�
         UnsubscribeHealth();
         subscribedHealth = playerHealth;
         if (subscribedHealth != null)
-            subscribedHealth.OnDamaged += HandleDamaged;
+            subscribedHealth.OnDamageResolved += HandleDamaged;
     }
 
     private void UnsubscribeHealth()
     {
         if (subscribedHealth != null)
-            subscribedHealth.OnDamaged -= HandleDamaged;
+            subscribedHealth.OnDamageResolved -= HandleDamaged;
 
         subscribedHealth = null;
     }

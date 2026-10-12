@@ -172,7 +172,7 @@ public sealed class PlayerProgression : MonoBehaviour
         appliedHealthBonus = bonus;
         health.SetUnmodifiedMaxHp(nextMaximum, false);
         if (healIncrease && !health.IsDead && health.MaxHp > previousMaximum)
-            health.Heal(health.MaxHp - previousMaximum);
+            health.Heal(health.MaxHp - previousMaximum, notifyHealing: false);
         Changed?.Invoke();
     }
 

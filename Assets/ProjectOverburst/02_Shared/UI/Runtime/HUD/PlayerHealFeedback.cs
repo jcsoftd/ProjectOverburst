@@ -72,7 +72,8 @@ public class PlayerHealFeedback : MonoBehaviour
             return;
 
         DamageNumberSpawner.SpawnHeal(health.transform.position, actualHeal);
-        TriggerGlobal();
+        if (!PlayerScreenSpaceVfx.Handles(health) && PlayerContext.Instance != null
+            && PlayerContext.Instance.CurrentActorHealth == health) TriggerGlobal();
     }
 
     private static PlayerHealFeedback ResolveInstance()
@@ -92,6 +93,7 @@ public class PlayerHealFeedback : MonoBehaviour
 
     public void Trigger()
     {
+        if (PlayerScreenSpaceVfx.TryHealing()) { endTime = 0f; SetAlpha(0f); return; }
         startTime = Time.time;
         endTime = startTime + Mathf.Max(0.01f, fadeDuration);
         SetAlpha(peakAlpha);

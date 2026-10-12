@@ -61,6 +61,7 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
     // Emitted after mitigation with the actual HP loss. Enemy poise must not infer this from OnDamaged.
     public event Action<CombatHealth, DamageInfo, float, bool> OnDamageResolved;
     public event Action<CombatHealth, float, float> OnHealthChanged;
+    public event Action<CombatHealth, float> OnHealed;
     public event Action<CombatHealth, DamageInfo> OnDead;
     public event Action<CombatHealth> OnReset;
 
@@ -207,13 +208,23 @@ public class CombatHealth : MonoBehaviour, IDamageable // 체력 처리
         info.damage = damage;
     }
 
-    public void Heal(float amount)
+    public void Heal(float amount) => Heal(amount, true);
+
+    public void Heal(float amount, bool notifyHealing)
     {
         if (amount <= 0f || IsDead)
             return;
 
+        float before = currentHp;
         currentHp = Mathf.Min(maxHp, currentHp + amount * runHealingMultiplier);
+        float actual = Mathf.Max(0f, currentHp - before);
         RaiseHealthChanged();
+        if (notifyHealing && actual > 0f && OnHealed != null)
+            foreach (Action<CombatHealth, float> observer in OnHealed.GetInvocationList())
+            {
+                try { observer(this, actual); }
+                catch (Exception error) { Debug.LogException(error, this); }
+            }
     }
 
     public void SetRunMapModifiers(float maxHpMultiplier, float healingMultiplier)
