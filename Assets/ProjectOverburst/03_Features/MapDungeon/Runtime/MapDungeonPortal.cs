@@ -89,14 +89,21 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
 
     public void SetInteractionPromptVisible(bool visible) { if(promptRoot!=null)promptRoot.SetActive(visible); }
 
-    public bool EnterLevelOne()
+    #if UNITY_EDITOR
+    public bool EnterDebugLevelOne()
     {
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
         var account = AccountGameplaySession.Current;
         if (definition == null || account == null) return false;
         var map = MapGenerationPolicy.CreateItem(definition, account.ContentRegistry, 1, ItemGrade.Common).mapState;
-        return StartRun(map, null);
+        var flow = PersistentSceneFlow.Instance;
+        if (flow == null || !WorldSessionState.IsHideout || flow.IsSwitching
+            || !flow.EnterDebugRun(MapTerrainCatalog.SceneNameFor(map), map)) return false;
+        entering = true;
+        ClosePanel();
+        return true;
     }
+    #endif
 
     public bool EnterSelectedMap(string instanceId)
     {

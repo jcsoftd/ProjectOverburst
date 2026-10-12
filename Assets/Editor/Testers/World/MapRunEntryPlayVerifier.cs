@@ -17,6 +17,7 @@ public static class MapRunEntryPlayVerifier
     static string output;
     static double deadline;
     static int lastFrame;
+    static bool finishing;
     static string lastStage;
     static double lastStageAt;
     static readonly Stack<IEnumerator> work = new Stack<IEnumerator>();
@@ -49,12 +50,14 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
             throw new InvalidOperationException("Use an idle real-account Editor.");
+        if (caveCount != 0 && caveCount != 5 && caveCount != 10 && caveCount != 15) throw new ArgumentException("Scale case must be 5, 10 or 15.");
+        finishing = false;
         if (minimapCycles) minimapOnly = true;
         output = Path.GetFullPath(directory);
         string allowed = Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출")) + Path.DirectorySeparatorChar;
@@ -66,8 +69,8 @@ public static class MapRunEntryPlayVerifier
         for (int i = 0; i < (escapeCases > 0 ? escapeCases * 2 + 1 : minimapCycles ? 10 : 3 + Mathf.Max(0, Mathf.Max(completionCases, bossCases) - 1)); i++)
         {
             var item = MapGenerationPolicy.CreateItem(definition, registry, bossCases > 0 && i >= 2 ? 5 : 1, ItemGrade.Common);
-            var map = item.mapState; map.seed = 48310 + (minimapCycles && i >= 3 && i % 2 == 1 ? i * 97 : 0);
-            if (i < 2 || i >= 3 && bossCases == 0 && (!minimapCycles || i % 2 == 1) && !(escapeCases > 0 && i % 2 == 0)) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 1 ? 20 : 4; map.width = map.depth = 0; map.desertCandidateId = null; }
+            var map = item.mapState; map.seed = 48310 + (caveCount > 0 && i == 0 ? caveCount * 97 : 0) + (minimapCycles && i >= 3 && i % 2 == 1 ? i * 97 : 0);
+            if (i < 2 || i >= 3 && bossCases == 0 && (!minimapCycles || i % 2 == 1) && !(escapeCases > 0 && i % 2 == 0)) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 1 ? 20 : i == 0 && caveCount > 0 ? caveCount : 4; map.width = map.depth = 0; map.desertCandidateId = null; }
             else
             {
                 var row = MapTerrainCatalog.DesertCandidates[minimapCycles ? (i - 2) / 2 : desertCandidateIndex];
@@ -110,8 +113,10 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetBool(Key + "progressionOnly", progressionOnly);
         SessionState.SetBool(Key + "escapeSettlementOnly", escapeSettlementOnly);
         SessionState.SetInt(Key + "escapeCases", escapeCases);
+        SessionState.SetInt(Key + "caveCount", caveCount);
+        SessionState.SetBool(Key + "verifyMapRequired", verifyMapRequired);
         SessionState.SetBool(Key + "includeLargeCave", includeLargeCave);
-        Write("scope.json", new { includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
+        Write("scope.json", new { caveCount, scaleOnly = caveCount > 0, excludes = caveCount > 0 ? "prior failure-injection, escape, resolution and full-exhaustion tests" : null, includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
         SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + (minimapCycles ? 1200 : 600));
@@ -143,6 +148,7 @@ public static class MapRunEntryPlayVerifier
     }
     static void Tick()
     {
+        if (finishing) return;
         EditorApplication.QueuePlayerLoopUpdate();
         var generator = UnityEngine.Object.FindFirstObjectByType<Overburst.Caves.CaveRuntimeGenerator>();
         var pendingGate = UnityEngine.Object.FindFirstObjectByType<RunWorldGate>();
@@ -191,15 +197,19 @@ public static class MapRunEntryPlayVerifier
             yield break;
         }
         var maps = account.Read().items.Where(i => i.map != null).ToArray();
-        var cave4 = maps.First(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4);
+        int caveCount = SessionState.GetInt(Key + "caveCount", 0);
+        var cave4 = maps.First(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == (caveCount > 0 ? caveCount : 4));
         var cave20 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 20);
         var desert = maps.First(i => i.map.terrain == MapTerrainKind.Desert);
-        long revision = account.Revision;
-        Check(!flow.EnterRun(DiamondDungeonWorld.SceneName, cave4.map, cave4.instanceId), "Wrong destination is rejected before preparation");
-        Check(account.Revision == revision && account.Read().items.Any(i => i.instanceId == cave4.instanceId), "Wrong destination preserves map and account revision");
-        Check(flow.EnterMapRun(cave20.map, cave20.instanceId), "Begin cancellation case"); flow.CancelRunEntry();
-        yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, "Cancelled preparation returns to hub");
-        Check(account.Read().items.Any(i => i.instanceId == cave20.instanceId), "Cancelled map remains owned");
+        if (caveCount == 0)
+        {
+            long revision = account.Revision;
+            Check(!flow.EnterRun(DiamondDungeonWorld.SceneName, cave4.map, cave4.instanceId), "Wrong destination is rejected before preparation");
+            Check(account.Revision == revision && account.Read().items.Any(i => i.instanceId == cave4.instanceId), "Wrong destination preserves map and account revision");
+            Check(flow.EnterMapRun(cave20.map, cave20.instanceId), "Begin cancellation case"); flow.CancelRunEntry();
+            yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, "Cancelled preparation returns to hub");
+            Check(account.Read().items.Any(i => i.instanceId == cave20.instanceId), "Cancelled map remains owned");
+        }
         var selected = SessionState.GetBool(Key + "largeOnly", false) ? new[] { cave20 } : SessionState.GetBool(Key + "desertOnly", false) ? new[] { desert } : new[] { cave4, desert, cave20 };
         if (SessionState.GetInt(Key + "completionCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4).ToArray();
         if (SessionState.GetInt(Key + "bossCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert).ToArray();
@@ -207,6 +217,7 @@ public static class MapRunEntryPlayVerifier
         if (SessionState.GetBool(Key + "minimapCycles", false)) selected = maps;
         if (SessionState.GetInt(Key + "escapeCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert || i.map.areaCount == 4).ToArray();
         if (!SessionState.GetBool(Key + "includeLargeCave", true)) selected = selected.Where(i => i.map.terrain != MapTerrainKind.Cave || i.map.areaCount < 20).ToArray();
+        if (caveCount > 0) selected = new[] { cave4 };
         var priorTextures = new List<Texture2D>();
         int cycle = 0;
         int completionCase = 0;
@@ -217,7 +228,29 @@ public static class MapRunEntryPlayVerifier
             Directory.CreateDirectory(caseOutput);
             PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
             string label = MapGenerationPolicy.Describe(item.map); double began = EditorApplication.timeSinceStartup;
-            Check(flow.EnterMapRun(item.map, item.instanceId), label + ": entry starts");
+            if (SessionState.GetBool(Key + "verifyMapRequired", false))
+            {
+                var portal = UnityEngine.Object.FindFirstObjectByType<MapDungeonPortal>();
+                Check(portal && portal.TryInteract(PlayerContext.Instance.CurrentActor) == InteractionExecutionResult.Succeeded, "Map-required panel opens");
+                yield return Frames(2);
+                var panel = MapDungeonPortalPanel.Active;
+                var button = panel.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(value => value.name == "Enter");
+                long revision = account.Revision;
+                Check(!button.interactable && panel.SelectedMap == null, "No selected map disables entry");
+                button.onClick.Invoke(); yield return Frames(2);
+                Check(WorldSessionState.IsHideout && !flow.IsSwitching && account.Revision == revision, "No-map button invocation cannot start or save a run");
+                Check(!flow.EnterMapRun(item.map) && account.Revision == revision, "Normal scene flow rejects a level-one map without owned item");
+                var ui = UnityEngine.Object.FindFirstObjectByType<OverburstGameUI>();
+                var slot = ui.inventoryWindow.GetComponentsInChildren<SlotUI>(true).Single(value => value.DisplayItem != null && value.DisplayItem.runtimeInstanceId == item.instanceId);
+                Check(panel.TryInsert(slot) && button.interactable, "Owned level-one map enables entry");
+                var remove = panel.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(value => value.name == "RemoveMap");
+                remove.onClick.Invoke();
+                Check(!button.interactable && account.Read().items.Any(value => value.instanceId == item.instanceId), "Removing selection disables entry and preserves map");
+                Check(panel.TryInsert(slot), "Owned map can be selected again");
+                button.onClick.Invoke();
+                Check(flow.IsSwitching, label + ": owned map panel starts entry");
+            }
+            else Check(flow.EnterMapRun(item.map, item.instanceId), label + ": entry starts");
             yield return Wait(() => !flow.IsSwitching, label + ": transition terminates", 180);
             observations.Add(new { label, seconds = EditorApplication.timeSinceStartup - began, error = flow.RunEntryError, phase = WorldSessionState.Phase.ToString() });
             Write("observations.json", observations);
@@ -289,7 +322,8 @@ public static class MapRunEntryPlayVerifier
                 yield return MapEscapeRuntimeVerifier.Verify(gate, completionCase++ / 2, output, Check);
                 continue;
             }
-            if (SessionState.GetBool(Key + "progressionOnly", false)) yield return MapCaveProgressionPlayVerifier.Verify(gate, Check);
+            if (caveCount > 0) yield return MapFiniteSpawnPlayVerifier.VerifyScale(gate, output, Check);
+            else if (SessionState.GetBool(Key + "progressionOnly", false)) yield return MapCaveProgressionPlayVerifier.Verify(gate, Check);
             if (SessionState.GetBool(Key + "minimapOnly", false))
             {
                 if (SessionState.GetBool(Key + "minimapResolution", false)) yield return MapMinimapResolutionVerifier.Verify(gate, caseOutput, Check);
@@ -298,7 +332,7 @@ public static class MapRunEntryPlayVerifier
                 Check(priorTextures.All(t => !t), label + ": previous run textures remain released");
                 priorTextures.Add(current.TerrainTexture); priorTextures.Add(current.OutlineTexture);
             }
-            else yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
+            else if (caveCount == 0) yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
             yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, label + ": abandon returns to hub");
@@ -320,6 +354,8 @@ public static class MapRunEntryPlayVerifier
     }
     static void Finish(Exception error)
     {
+        if (finishing) return;
+        finishing = true;
         EditorApplication.update -= Tick; EditorApplication.update -= Begin;
         while (work.Count > 0) (work.Pop() as IDisposable)?.Dispose();
         SessionState.EraseString(Key + "pending"); output = SessionState.GetString(Key + "return", output);
@@ -355,6 +391,8 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseBool(Key + "progressionOnly");
         SessionState.EraseBool(Key + "escapeSettlementOnly");
         SessionState.EraseInt(Key + "escapeCases");
+        SessionState.EraseInt(Key + "caveCount");
+        SessionState.EraseBool(Key + "verifyMapRequired");
         SessionState.EraseBool(Key + "includeLargeCave");
     }
 }

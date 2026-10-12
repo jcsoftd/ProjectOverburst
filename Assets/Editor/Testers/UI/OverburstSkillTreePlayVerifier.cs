@@ -141,7 +141,7 @@ public static class OverburstSkillTreePlayVerifier
         ui.HideTooltip();ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-default.png"));yield return null;
         foreach (var n in ui.Catalog.nodes.Where(n => n.IsReserved)) { ui.SelectNode(n.id, true); Check(!ui.action.interactable && !ui.Plan.Has(n.id) && ui.actionLabel.text.Contains("확장 예정"), "Visible reserved node never purchases " + n.id); }
         ui.SelectNode("S_W1", true); Check(!ui.action.interactable, "No points disables purchase action");
-        Check(session.ExecuteState("skill-card-prepare", c => { AccountRunCommands.PrepareEntry(c, "skill-card-play", new MapInstanceState(), null); AccountRunCommands.Activate(c, "skill-card-play"); }), "Owned account run-state fixture for XP card");
+        Check(session.ExecuteState("skill-card-prepare", c => { AccountRunCommands.PrepareEntry(c, "skill-card-play", new MapInstanceState(), null, true); AccountRunCommands.Activate(c, "skill-card-play"); }), "Owned account run-state fixture for XP card");
         var cardRun = new AccountRunSession(session);
         Check(cardRun.ClaimEventCard("skill-card-play", "first-level", OverburstGrowthRules.ExperienceToNext(1)), "Actual account XP card commits");
         ui.SyncAccount(true);

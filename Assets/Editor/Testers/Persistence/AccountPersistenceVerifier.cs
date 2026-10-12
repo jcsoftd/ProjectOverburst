@@ -58,7 +58,7 @@ public static class AccountPersistenceVerifier
                 qualityCases++;
             }
         passed.Add("all equipment quality restore " + qualityCases);
-        commands.Execute("prepare", commands.Revision, x => AccountRunCommands.PrepareEntry(x, "run-1", new MapInstanceState(), null));
+        commands.Execute("prepare", commands.Revision, x => AccountRunCommands.PrepareEntry(x, "run-1", new MapInstanceState(), null, true));
         commands.Execute("ready", commands.Revision, x => AccountRunCommands.Activate(x, "run-1"));
         item.count = 7;
         commands.Execute("pickup", commands.Revision, x => AccountRunCommands.Acquire(x, "run-1", item));

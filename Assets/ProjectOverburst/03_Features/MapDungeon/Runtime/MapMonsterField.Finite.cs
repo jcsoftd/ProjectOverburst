@@ -9,7 +9,7 @@ public sealed partial class MapMonsterField
         public MapRunRoster.Member Member;
         public EnemyActor Actor;
         public uint ActorLease;
-        public int RosterLease, Cursor, Failures;
+        public int RosterLease, Cursor, Failures, SpawnAreaIndex;
         public bool Released, EverSpawned, Frozen, WasKinematic;
         public float HealthRatio = -1, RetryAt;
         public Vector3 Position, Safe;
@@ -23,12 +23,15 @@ public sealed partial class MapMonsterField
     readonly Collider[] spawnOverlaps = new Collider[32];
     NavMeshPath spawnPath;
     List<Vector3> approaches;
+    readonly List<MapCombatGeometry.Area> reinforcementNeighbours = new List<MapCombatGeometry.Area>();
     System.Random finiteRandom;
     float areaRadius, nextPackAt;
     bool finiteAwake;
+    int nextFiniteSlot;
     public MapRunRoster.Area FiniteArea => finiteArea;
     public int LocalFightLimit { get; private set; }
     public int ReinforcementReleased { get; private set; }
+    public int NeighbourSpawnedCount { get; private set; }
     public bool PrepareAtEntry { get; internal set; }
     public bool InitialPlaced
     {
@@ -57,6 +60,23 @@ public sealed partial class MapMonsterField
             : area.BasePopulation <= 170 ? finiteRandom.Next(28, 41) : finiteRandom.Next(40, 61);
         foreach (var point in area.Ground.Points) areaRadius = Mathf.Max(areaRadius, Vector3.Distance(point, area.Ground.Center));
         approaches = MapCombatGeometry.Approaches(area.Ground);
+        // Adjacent courts come from this generated terrain's links, never fixed coordinates.
+        void AddNeighbour(int index)
+        {
+            foreach (var other in roster.Areas)
+                if (other.Ground.Index == index && other.Count > 0 && !reinforcementNeighbours.Contains(other.Ground))
+                { reinforcementNeighbours.Add(other.Ground); break; }
+        }
+        var source = area.Ground.Source;
+        if (source != null && source.cave)
+            foreach (var passage in source.cave.passages)
+                if (passage.a == area.Ground.Index) AddNeighbour(passage.b);
+                else if (passage.b == area.Ground.Index) AddNeighbour(passage.a);
+        if (source != null && source.desert)
+            foreach (var trail in source.desert.layout.trails)
+                if (trail.from == area.Ground.Index) AddNeighbour(trail.to);
+                else if (trail.to == area.Ground.Index) AddNeighbour(trail.from);
+        reinforcementNeighbours.Sort((a,b) => (a.Center-area.Ground.Center).sqrMagnitude.CompareTo((b.Center-area.Ground.Center).sqrMagnitude));
         for (int i = area.FirstMember; i < area.FirstMember + area.Count; i++)
         {
             var member = roster.Members[i];
@@ -138,10 +158,13 @@ public sealed partial class MapMonsterField
         spawned = false;
         if (preparing ? !PrepareAtEntry : !NearForInitial(player)) return false;
         Slot chosen = null;
-        foreach (var slot in slots)
+        // A visible returning actor must not monopolize the frame budget ahead of reserves.
+        for (int n = 0; n < slots.Count; n++)
         {
+            int index = (nextFiniteSlot + n) % slots.Count;
+            var slot = slots[index];
             if (slot.Released && slot.Member.State == MapRunRoster.Life.Pending && slot.RetryAt <= Time.unscaledTime)
-            { chosen = slot; break; }
+            { chosen = slot; nextFiniteSlot = (index + 1) % slots.Count; break; }
         }
         if (chosen == null) return false;
         if (!preparing && !chosen.Member.Initial && budget.LocalAlive(player) >= LocalFightLimit) return false;
@@ -168,6 +191,7 @@ public sealed partial class MapMonsterField
         chosen.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp; chosen.EverSpawned = true; chosen.Failures = 0;
         bindings.Add(actor.Health, chosen); actor.Health.OnDead += FiniteDead; actor.Health.OnHealthChanged += FiniteHealth;
         SpawnedCount++; spawned = true;
+        if (chosen.SpawnAreaIndex != finiteArea.Ground.Index) NeighbourSpawnedCount++;
         Freeze(chosen, preparing || !finiteAwake);
         if (!preparing && !chosen.Member.Initial) actor.AI?.RequestAggro(PlayerContext.Instance?.CurrentActor?.transform);
         Physics.SyncTransforms();
@@ -175,18 +199,22 @@ public sealed partial class MapMonsterField
     }
     bool TryFinitePosition(Slot slot, Vector3 player, bool preparing, out Vector3 position)
     {
-        bool Clear(Vector3 candidate, bool approach, out Vector3 result)
+        bool Clear(MapCombatGeometry.Area ground, Vector3 candidate, bool approach, out Vector3 result)
         {
             result = default;
             if (FlatDistance(candidate, player) < MapCombatGeometry.EntrySafety + (preparing ? 0 : slot.Radius)) return false;
             if (!preparing && budget.InView(candidate, .12f, slot.Radius, slot.Height)) return false;
-            if (!MapCombatGeometry.TryRuntimePoint(finiteArea.Ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
-            return budget.IsSeparated(result, slot.Radius);
+            if (!MapCombatGeometry.TryRuntimePoint(ground, slot.Member.Definition, candidate, approach, spawnOverlaps, spawnPath, out result)) return false;
+            if (ground != finiteArea.Ground && (!NavMesh.CalculatePath(result, finiteArea.Ground.Center, NavMesh.AllAreas, spawnPath)
+                || spawnPath.status != NavMeshPathStatus.PathComplete)) return false;
+            if (!budget.IsSeparated(result, slot.Radius)) return false;
+            slot.SpawnAreaIndex = ground.Index;
+            return true;
         }
         if (slot.Member.Initial && slot.Cursor == 0)
         {
             // Retain G02's packed positions during entry; offsetting one can invalidate its neighbours.
-            if (Clear(slot.Position, false, out position)) return true;
+            if (Clear(finiteArea.Ground, slot.Position, false, out position)) return true;
             if (preparing) return false;
         }
         var points = finiteArea.Ground.Points;
@@ -196,8 +224,16 @@ public sealed partial class MapMonsterField
             int index = (slot.Cursor++ + slot.Member.Index * 17) % total;
             bool approach = index >= points.Count;
             var candidate = approach ? approaches[index - points.Count] : points[index];
-            if (Clear(candidate, approach, out position)) return true;
+            if (Clear(finiteArea.Ground, candidate, approach, out position)) return true;
         }
+        if (!preparing && !slot.Member.Initial)
+            foreach (var neighbour in reinforcementNeighbours)
+                for (int i = 0; i < Mathf.Min(8, neighbour.Points.Count); i++)
+                {
+                    var candidate = neighbour.Points[(slot.Cursor++ + slot.Member.Index * 17) % neighbour.Points.Count];
+                    if (FlatDistance(candidate, finiteArea.Ground.Center) > 65) continue;
+                    if (Clear(neighbour, candidate, false, out position)) return true;
+                }
         position = default; return false;
     }
     internal void SetFiniteAwake(bool awake)

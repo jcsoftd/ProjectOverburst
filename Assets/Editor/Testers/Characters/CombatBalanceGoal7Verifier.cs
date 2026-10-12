@@ -30,7 +30,7 @@ public static partial class CombatBalanceGoal3Verifier
             Check(AccountGameplaySession.AcquireWorldItem(PlayerAccountInventoryService.SharedInventory,life),"Acquire flask");
             var flask=player.GetComponent<PlayerFlaskController>();Check(flask.TryEquip(0,life,out string reason),"Equip flask "+reason);
             actor.Health.ResetHealth();var before=account.Read();float baseHp=actor.Health.MaxHp;
-            Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterLevelOne(),"Enter level1 map");
+            Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterDebugLevelOne(),"Enter level1 map");
             while(PersistentSceneFlow.Instance.IsSwitching||WorldSessionState.Phase!=WorldPhase.Run)yield return null;
             var world=Object.FindFirstObjectByType<DiamondDungeonWorld>();Check(world!=null,"Map world");
             string themeId=world.Theme.ThemeId;

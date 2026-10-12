@@ -70,7 +70,8 @@ namespace Overburst.Caves
                     }
                     return false;
                 }
-                var search=CavePlatformLayout.Solve(library,count,seed,1,Blocked,value=>plan=value);
+                var search=CavePlatformLayout.Solve(library,count,seed,1,Blocked,value=>plan=value,
+                    attempt=>Stage=attempt==1 ? "플랫폼 연결 계산" : "플랫폼 연결 재생성 " + attempt + "/" + CavePlatformLayout.MaxLayoutAttempts);
                 try { while(search.MoveNext()) yield return search.Current; }
                 finally { (search as IDisposable)?.Dispose(); }
             }

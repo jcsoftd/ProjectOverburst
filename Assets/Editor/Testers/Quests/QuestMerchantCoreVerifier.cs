@@ -188,7 +188,7 @@ public static class QuestMerchantCoreVerifier
         Check(!AccountQuestCommands.Progress(state,QuestObjectiveKind.SelectMap,"portal.map",1),"Map selection before acquisition does not skip sequence");
         var mapAsset=registry.ResolvedEntries.First(e=>e.asset is MapItemData);
         var mapData=new MapInstanceState{mapContentId=mapAsset.id,level=1,grade=ItemGrade.Common};
-        AccountRunCommands.PrepareEntry(state,"map-find",mapData,null);AccountRunCommands.Activate(state,"map-find");
+        AccountRunCommands.PrepareEntry(state,"map-find",mapData,null,true);AccountRunCommands.Activate(state,"map-find");
         Check(q.objectives[2].current==0,"Level-one entry cannot complete mapped entry objective");
         var acquired=new ItemData((MapItemData)mapAsset.asset,1,ItemGrade.Common);acquired.mapState=mapData;acquired.EnsureAcquisitionOrder();
         var baseline=ItemSnapshotCodec.CopyValues(state);

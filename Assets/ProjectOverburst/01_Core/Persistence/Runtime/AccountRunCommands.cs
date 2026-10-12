@@ -28,7 +28,7 @@ namespace Overburst.Persistence
                     throw new InvalidOperationException("The selected map properties have changed.");
                 map = item.map;
             }
-            else if (!debugEntry && (map.level != 1 || map.grade != ItemGrade.Common || map.options.Count != 0))
+            else if (!debugEntry)
                 throw new InvalidOperationException("A map item is required for this run.");
             MapGenerationPolicy.Validate(map);
             state.run = new RunSnapshot { runId = runId, phase = RunPhase.EntryPending,

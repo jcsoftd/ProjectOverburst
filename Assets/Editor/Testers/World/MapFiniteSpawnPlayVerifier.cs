@@ -140,6 +140,112 @@ public static class MapFiniteSpawnPlayVerifier
         ScreenCapture.CaptureScreenshot(Path.Combine(output, "density-" + roster.Terrain + "-" + roster.Areas.Count + ".png"));
         yield return Frames(3);
     }
+
+    // Scale-only pass: actual population in every area, without repeating the failure-injection suite.
+    public static IEnumerator VerifyScale(RunWorldGate gate, string output, Action<bool, string> check)
+    {
+        var roster = gate.Roster; var budget = gate.SpawnBudget; var player = PlayerContext.Instance.CurrentActor;
+        int total = roster.Total, target = roster.Target, lastKills = roster.Kills;
+        string label = "G08 cave " + roster.Areas.Count;
+        var samples = new System.Collections.Generic.List<int>();
+        var deaths = new System.Collections.Generic.List<int>();
+        var areas = new System.Collections.Generic.List<object>();
+        bool limits = true;
+        void Sample()
+        {
+            limits &= budget.AliveCount <= budget.AliveLimit && budget.SpawnedThisFrame <= MapSpawnBudget.MaxPerFrame
+                && roster.Kills >= lastKills && roster.Total == total && roster.Target == target;
+            lastKills = roster.Kills; samples.Add(budget.AliveCount);
+        }
+        double until = EditorApplication.timeSinceStartup + 30;
+        while (WorldMinimapController.Instance?.Exploration == null && EditorApplication.timeSinceStartup < until) yield return null;
+        var map = WorldMinimapController.Instance?.Exploration;
+        check(map != null, label + ": exploration ready");
+        var reached = (bool[])typeof(MapExplorationVerifier).GetMethod("Reachable", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .Invoke(null, new object[] { map, map.CellAt(player.transform.position) });
+        var entry = gate.EntryPoint.position;
+        MapRunRoster.Member saved = null; Vector3 savedPoint = default; int savedLease = 0;
+        void ClearNearbyOthers(int currentArea)
+        {
+            foreach (var member in roster.Members)
+                if (member.AreaIndex != currentArea && member.State == MapRunRoster.Life.Active && member != saved
+                    && budget.Fields[member.AreaIndex].TryGetActor(member.Index, out var enemy))
+                {
+                    var delta = enemy.transform.position - player.transform.position; delta.y = 0;
+                    if (delta.sqrMagnitude > 24 * 24) continue;
+                    enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true));
+                    deaths.Add(member.Index);
+                }
+        }
+        foreach (var area in roster.Areas)
+        {
+            var point = area.Ground.Points.OrderBy(p => (p - area.Ground.Center).sqrMagnitude).First();
+            var path = new UnityEngine.AI.NavMeshPath(); int cell = map.CellAt(point);
+            check(UnityEngine.AI.NavMesh.CalculatePath(entry, point, UnityEngine.AI.NavMesh.AllAreas, path)
+                && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete, label + ": NavMesh reaches area " + area.Ground.Index);
+            check(cell >= 0 && map.IsGround(cell) && reached[cell], label + ": minimap links reach area " + area.Ground.Index);
+            var field = budget.Fields[area.Ground.Index];
+            if (!field.InitialPlaced)
+            {
+                bool found = false; Vector3 approach = point;
+                float range = area.Ground.Points.Max(p => Vector3.Distance(p, area.Ground.Center)) + 30;
+                var initialMembers = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial).ToArray();
+                for (int n = path.corners.Length - 1; n > 0 && !found; n--)
+                {
+                    float length = Vector3.Distance(path.corners[n], path.corners[n - 1]);
+                    for (float step = 0; step <= length && !found; step += .5f)
+                    {
+                        var candidate = Vector3.Lerp(path.corners[n], path.corners[n - 1], length > 0 ? step / length : 0);
+                        var delta = candidate - area.Ground.Center; delta.y = 0;
+                        if (delta.sqrMagnitude > range * range) continue;
+                        if (initialMembers.Any(m => { var d = m.PlannedPosition - candidate; d.y = 0; return d.sqrMagnitude < 16; })) continue;
+                        approach = candidate; found = true;
+                    }
+                }
+                check(found, label + ": reachable pre-entry approach in area " + area.Ground.Index);
+                ActorTeleportUtility.TeleportSafely(player.transform, approach + Vector3.up * .12f, Quaternion.identity);
+                until = EditorApplication.timeSinceStartup + 20;
+                while (!field.InitialPlaced && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+            }
+            ActorTeleportUtility.TeleportSafely(player.transform, point + Vector3.up * .12f, Quaternion.identity);
+            until = EditorApplication.timeSinceStartup + 20;
+            while ((!field.InitialPlaced || !map.IsRevealed(point)) && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+            check(field.InitialPlaced && (field.FiniteActiveCount > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index)), label + ": actual initial actors in area " + area.Ground.Index);
+            check(map.IsRevealed(point), label + ": visiting reveals area " + area.Ground.Index);
+            var initial = roster.Members.Skip(area.FirstMember).Take(area.Count).Where(m => m.Initial && m.State == MapRunRoster.Life.Active).ToArray();
+            int before = roster.Kills;
+            foreach (var member in initial)
+                if (field.TryGetActor(member.Index, out var enemy))
+                { enemy.Health.TakeDamage(new DamageInfo(1000000, enemy.transform.position, player.gameObject, suppressDefaultHitVfx: true)); deaths.Add(member.Index); }
+            check(roster.Kills == before + initial.Length && (initial.Length > 0 || deaths.Any(i => roster.Members[i].AreaIndex == area.Ground.Index && roster.Members[i].Initial)), label + ": initial kills recorded once in area " + area.Ground.Index);
+            Write(output, label, gate);
+            until = EditorApplication.timeSinceStartup + 60;
+            while (!roster.Members.Skip(area.FirstMember).Take(area.Count).Any(m => !m.Initial && m.State == MapRunRoster.Life.Active)
+                && EditorApplication.timeSinceStartup < until) { ClearNearbyOthers(area.Ground.Index); Sample(); yield return null; }
+            var reserve = roster.Members.Skip(area.FirstMember).Take(area.Count).FirstOrDefault(m => !m.Initial && m.State == MapRunRoster.Life.Active);
+            check(reserve != null && field.ReinforcementReleased > 0, label + ": actual reinforcement in area " + area.Ground.Index);
+            if (saved == null && reserve != null && field.TryGetActor(reserve.Index, out var living))
+            { saved = reserve; savedLease = reserve.Lease; savedPoint = point; living.Health.RestoreLivingHealth(living.Health.MaxHp * .6f); }
+            areas.Add(new { area.Ground.Index, area.Count, area.InitialCount, initialKilled = initial.Length, field.ReinforcementReleased, field.FiniteActiveCount, field.NeighbourSpawnedCount });
+            Write(output, label, gate);
+        }
+        ActorTeleportUtility.TeleportSafely(player.transform, savedPoint + Vector3.up * .12f, Quaternion.identity);
+        until = EditorApplication.timeSinceStartup + 25;
+        var owner = budget.Fields[saved.AreaIndex];
+        while (!owner.TryGetActor(saved.Index, out _) && EditorApplication.timeSinceStartup < until) { Sample(); yield return null; }
+        check(owner.TryGetActor(saved.Index, out var returned) && saved.Lease >= savedLease
+            && Mathf.Abs(returned.Health.CurrentHp / returned.Health.MaxHp - .6f) < .002f,
+            label + ": revisit preserves living ID and damaged health ratio");
+        check(deaths.All(i => roster.Members[i].State == MapRunRoster.Life.Dead), label + ": revisiting does not restore killed IDs");
+        Sample();
+        check(limits && samples.Count > 0 && roster.Active == budget.Fields.Sum(f => f.FiniteActiveCount)
+            && roster.Active + roster.Pending + roster.Kills == total, label + ": frame/live limits and finite totals across traversal");
+        if (roster.Areas.Count == 10) check(budget.Fields.Sum(f => f.NeighbourSpawnedCount) > 0, label + ": actual neighbouring-platform reinforcement while remaining in the court");
+        var sorted = samples.OrderBy(n => n).ToArray();
+        File.WriteAllText(Path.Combine(output, "scale.json"), JsonConvert.SerializeObject(new { status = "PASS", roster.Total, roster.Target, roster.Kills,
+            roster.Active, roster.Pending, budget.StreamReturns, activeP95 = sorted[Mathf.Min(sorted.Length - 1, Mathf.FloorToInt(sorted.Length * .95f))],
+            activeMax = sorted.Last(), areas, scope = "All-area initial/reinforcement sample and teleport revisit with NavMesh/minimap topology; not a full clear, manual movement or Player performance." }, Formatting.Indented));
+    }
     static void Write(string output, string label, RunWorldGate gate)
     {
         var budget = gate.SpawnBudget; var roster = gate.Roster;
@@ -147,7 +253,7 @@ public static class MapFiniteSpawnPlayVerifier
         {
             label, roster.Total, roster.Target, roster.Kills, roster.Active, roster.Pending,
             budget.AliveLimit, budget.InitialPreparedCount, budget.SpawnRetries, budget.StreamReturns, budget.BoundaryRecoveries,
-            areas = budget.Fields.Select(f => new { index = f.FiniteArea.Ground.Index, f.PrepareAtEntry, f.InitialPlaced, f.HasTriggered, f.LocalFightLimit, f.FiniteActiveCount, f.ReinforcementReleased }),
+            areas = budget.Fields.Select(f => new { index = f.FiniteArea.Ground.Index, f.PrepareAtEntry, f.InitialPlaced, f.HasTriggered, f.LocalFightLimit, f.FiniteActiveCount, f.ReinforcementReleased, f.NeighbourSpawnedCount }),
             members = roster.Members.Select(m => new { m.Id, enemy = m.Definition.EnemyId, m.AreaIndex, m.Initial, life = m.State.ToString(), m.Lease })
         }, Formatting.Indented));
     }

@@ -102,7 +102,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         socketName = Label("지도 이름", "아직 지도가 없습니다",33,370,354,30,18,Muted,true);
         socketSummary = Label("슬롯 안내", "오른쪽 인벤토리의 지도를\n우클릭하거나 이 슬롯에 끌어 넣으세요.",33,407,354,54,14,Muted,true);
         remove = Button("RemoveMap", "지도 빼기",139,466,142,36,false,ClearSelection);
-        status = Label("입장 안내", "지도를 넣거나 1레벨 무료 입장을 선택하세요.",33,645,354,38,13,Muted,true);
+        status = Label("입장 안내", "입장할 지도를 슬롯에 넣어 주세요.",33,645,354,38,13,Muted,true);
         enter = Button("Enter", "던전 입장",94,675,232,52,true,TryEnter);
         Label("소모 안내", "입장 시 선택한 지도가 소모됩니다.",33,736,354,22,12,Muted,true);
         var divider = Rect("Divider",window); Place(divider,418,100,1,647);
@@ -142,7 +142,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         if (restored || !inventory) return;
         var map = ResolveSelected();
         bool unavailable = selectedId != null && map == null;
-        enter.interactable = !submitting && !unavailable;
+        enter.interactable = !submitting && map != null;
         if (unavailable) status.text = "선택한 지도가 변경되었습니다. 다른 지도를 넣어 주세요.";
         socket.SetDisplayItem(map);
         socket.SetContextSelected(false);
@@ -151,7 +151,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         socketSummary.text = map == null ? "오른쪽 인벤토리의 지도를\n우클릭하거나 이 슬롯에 끌어 넣으세요."
             : ItemTooltipFormatter.GetGradeName(map.grade)+" · Lv."+map.mapState.level+"\n선택한 지도 · 입장 대기";
         remove.gameObject.SetActive(selectedId != null);
-        SetButtonText(enter,map == null ? "Lv.1 무료 입장" : "던전 입장");
+        SetButtonText(enter,"던전 입장");
         foreach (var slot in inventorySlots)
         {
             var group=slot.GetComponent<CanvasGroup>();
@@ -226,7 +226,7 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
         TooltipManager.Instance?.HideTooltip(); Refresh(); return true;
     }
     private void ClearSelection()
-    { if(submitting)return; selectedId=null; status.text="지도를 넣거나 1레벨 무료 입장을 선택하세요."; Refresh(); }
+    { if(submitting)return; selectedId=null; status.text="입장할 지도를 슬롯에 넣어 주세요."; Refresh(); }
     public static bool HandleInventoryClick(SlotClickContext context)
     {
         if(!Active)return false;
@@ -255,15 +255,15 @@ public sealed class MapDungeonPortalPanel : MonoBehaviour, ISlotInteractionBridg
     {
         if(!owner||submitting)return;
         var selected=ResolveSelected();
-        if(selectedId!=null&&selected==null){selectedId=null;Refresh();status.text="선택한 지도를 다시 확인해 주세요.";return;}
+        if(selected==null){bool unavailable=selectedId!=null;selectedId=null;Refresh();status.text=unavailable?"선택한 지도를 다시 확인해 주세요.":"입장할 지도를 슬롯에 넣어 주세요.";return;}
         submitting=true; enter.interactable=false;
         try
         {
-            bool started=selected==null?owner.EnterLevelOne():owner.EnterSelectedMap(selected.runtimeInstanceId);
+            bool started=owner.EnterSelectedMap(selected.runtimeInstanceId);
             if(!started) status.text=PersistentSceneFlow.Instance?.RunEntryError??"입장을 시작하지 못했습니다.";
         }
         catch(Exception error){status.text=error.Message;}
-        finally { if(this){submitting=false;enter.interactable=true;} }
+        finally { if(this){submitting=false;if(!restored)Refresh();} }
     }
     private void Update()
     {

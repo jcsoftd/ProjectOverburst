@@ -252,7 +252,7 @@ public static class OverburstMinimapTerrainVerifier
             var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
             var legacy = new MapInstanceState { mapContentId = registry.IdFor(definition), monsterThemeId = "CavernMutants",
                 generationVersion = 0, level = 1, grade = ItemGrade.Common };
-            Check(PersistentSceneFlow.Instance.EnterRun(DiamondDungeonWorld.SceneName, legacy), "Legacy Diamond request " + cycle);
+            Check(PersistentSceneFlow.Instance.EnterDebugRun(DiamondDungeonWorld.SceneName, legacy), "Legacy Diamond request " + cycle);
             while (PersistentSceneFlow.Instance.IsSwitching) yield return null;
             for (int i = 0; i < 15; i++) yield return null;
             Check(PersistentSceneFlow.Instance.CurrentSubSceneName == DiamondDungeonWorld.SceneName && controller.IsVisible

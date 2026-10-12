@@ -59,7 +59,7 @@ public static partial class CombatBalanceGoal3Verifier
                 until=Time.unscaledTime+.5f;while(Time.unscaledTime<until)yield return null;
             }
         } finally {input?.Dispose();if(enemy!=null&&enemy.IsLeased)spawn.Release(enemy);if(wall!=null)Object.Destroy(wall);if(fixture!=null)Object.Destroy(fixture);if(ui.InArena)ui.ToggleArena();}
-        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterLevelOne(),"Death run entry");
+        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterDebugLevelOne(),"Death run entry");
         while(PersistentSceneFlow.Instance.IsSwitching||WorldSessionState.Phase!=WorldPhase.Run)yield return null;
         actor.Health.TakeDamage(new DamageInfo(1000000,p.transform.position));Check(actor.Health.IsDead,"Player death");
         while(PersistentSceneFlow.Instance.IsSwitching||!WorldSessionState.IsHideout)yield return null;

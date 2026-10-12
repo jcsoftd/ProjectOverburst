@@ -249,7 +249,7 @@ public static class MainTownPlayVerifier
             for (int i = 0; i < 15; i++) yield return null;
             PressF(); for (int i = 0; i < 3; i++) yield return null; ReleaseKeys(); for (int i = 0; i < 7; i++) yield return null;
             Check(Object.FindFirstObjectByType<MapDungeonPortalPanel>() != null, "F opens map selection"); Shot("MapSelection"); for (int i = 0; i < 3; i++) yield return null;
-            Check(dungeon.EnterLevelOne(), "Town portal requests level-one dungeon");
+            Check(dungeon.EnterDebugLevelOne(), "Town portal requests level-one dungeon");
             while (PersistentSceneFlow.Instance.IsSwitching) yield return null;
             Check(PersistentSceneFlow.Instance.CurrentSubSceneName == "DiamondDungeon01" && WorldSessionState.Phase == WorldPhase.Run, "Dungeon entry completes");
             var driver = Object.FindFirstObjectByType<RunLifetimeDriver>(); driver.RequestAbandon();

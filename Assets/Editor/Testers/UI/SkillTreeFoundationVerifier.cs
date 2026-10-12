@@ -70,7 +70,7 @@ public static class SkillTreeFoundationVerifier
             var copied = ItemSnapshotCodec.CopyValues(loaded); copied.skillTree.learnedNodeIds.Clear(); Check(loaded.skillTree.learnedNodeIds.Count == 2, "ES3 nested skill-tree copy isolated");
             var card = NewAccountFactory.Create(registry);
             card.skillTree = AccountSkillTree.GrantEligible(null, 1);
-            AccountRunCommands.PrepareEntry(card, "skill-card", new MapInstanceState(), null);
+            AccountRunCommands.PrepareEntry(card, "skill-card", new MapInstanceState(), null, true);
             AccountRunCommands.Activate(card, "skill-card");
             AccountRunCommands.ClaimEventCard(card, "skill-card", "first-level", OverburstGrowthRules.ExperienceToNext(1));
             Check(card.level == 2 && card.experience == 0 && card.skillTree.earnedPoints == 1, "XP card grants first level point atomically");

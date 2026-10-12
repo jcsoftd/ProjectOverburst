@@ -230,7 +230,7 @@ namespace Overburst.DebugTools
             }),
             new VisualPlayCategory("C21", "던전 입장·필드", new[]
             {
-                new VisualPlayCase("VT21-01", "지도 선택·취소·입장 화면", "레벨·등급·옵션·테마·입장 정보, 취소와 무료·지도 입장의 화면 흐름을 본다."),
+                new VisualPlayCase("VT21-01", "지도 선택·취소·입장 화면", "레벨·등급·옵션·테마·입장 정보, 지도 미선택 시 입장 차단, 취소와 소유 지도 입장의 화면 흐름을 본다."),
                 new VisualPlayCase("VT21-05", "입장 실패 안내와 복귀 화면", "제공되는 실패 안내와 지도창·게임 화면 복귀를 본다."),
                 new VisualPlayCase("VT21-06", "로딩 화면", "등록된 로딩 그림·문구·진행 표시와 화면 전환을 본다."),
                 new VisualPlayCase("VT21-07", "던전 입구·카메라·미니맵", "입구 구도·플레이어·카메라·미니맵과 귀환 후 다음 런의 시작 화면을 본다."),

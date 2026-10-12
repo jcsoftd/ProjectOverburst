@@ -249,7 +249,7 @@ public static class StatusBuffIconVerifier
         float expireAt = Time.time + .5f; while (Time.time < expireAt) yield return null;
         bar.Refresh(); Check(!Slots(bar).Any(s => s.DisplayedKey == "icon_expiry_fixture"), "Timed buff expires through controller");
 
-        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterLevelOne(), "Enter actual map run");
+        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterDebugLevelOne(), "Enter actual map run");
         while (PersistentSceneFlow.Instance.IsSwitching || WorldSessionState.Phase != WorldPhase.Run) yield return null;
         var map = MapRunBuffs.Current;
         Check(map != null, "Product map buff owner");
@@ -270,7 +270,7 @@ public static class StatusBuffIconVerifier
         player.Health.TakeDamage(new DamageInfo(1e9f, player.transform.position));
         while (PersistentSceneFlow.Instance.IsSwitching || !WorldSessionState.IsHideout) yield return null;
         bar.Refresh(); Check(bar.VisibleMapCount == 0, "Return clears map row");
-        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterLevelOne(), "Repeat map entry");
+        Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterDebugLevelOne(), "Repeat map entry");
         while (PersistentSceneFlow.Instance.IsSwitching || WorldSessionState.Phase != WorldPhase.Run) yield return null;
         bar.Refresh(); Check(bar.VisibleMapCount == 0 && MapRunBuffs.Current.Selected.Count == 0, "New run starts without old buffs");
         player.Health.TakeDamage(new DamageInfo(1e9f, player.transform.position));

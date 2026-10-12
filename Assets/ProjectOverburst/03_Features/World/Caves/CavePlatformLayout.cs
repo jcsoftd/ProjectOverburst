@@ -79,7 +79,33 @@ public class CavePlatformLayout
     }
     protected static bool SegmentCross(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
         => Cross(b - a, c - a) * Cross(b - a, d - a) < 0 && Cross(d - c, a - c) * Cross(d - c, b - c) < 0;
-    public static System.Collections.IEnumerator Solve(CavePlatformLibrary library, int count, int seed, float spacing, Func<CavePlatformLibrary.Platform, Vector3, bool> blocked, Action<Layout> complete)
+    public const int MaxLayoutAttempts = 3;
+    public static System.Collections.IEnumerator Solve(CavePlatformLibrary library, int count, int seed, float spacing, Func<CavePlatformLibrary.Platform, Vector3, bool> blocked, Action<Layout> complete, Action<int> onAttempt = null)
+    {
+        for (int attempt = 0; attempt < MaxLayoutAttempts; attempt++)
+        {
+            onAttempt?.Invoke(attempt + 1);
+            // Disjoint deterministic seed ranges: each search already tries 30 seeds spaced by 7919.
+            var search = SolveOnce(library, count, unchecked(seed + attempt * 30 * 7919), spacing, blocked, complete);
+            try
+            {
+                while (true)
+                {
+                    bool next;
+                    try { next = search.MoveNext(); }
+                    catch (InvalidOperationException error) when (error.Data["LayoutConnectivity"] is bool connectivity && connectivity)
+                    {
+                        if (attempt == MaxLayoutAttempts - 1) throw;
+                        break;
+                    }
+                    if (!next) yield break;
+                    yield return search.Current;
+                }
+            }
+            finally { (search as IDisposable)?.Dispose(); }
+        }
+    }
+    static System.Collections.IEnumerator SolveOnce(CavePlatformLibrary library, int count, int seed, float spacing, Func<CavePlatformLibrary.Platform, Vector3, bool> blocked, Action<Layout> complete)
     {
         if (!library || library.platforms == null || library.platforms.Length < 2 || count < 2 || count > 24) throw new ArgumentException("Use 2–24 rooms.");
         if (!Mathf.Approximately(spacing, 1)) throw new ArgumentException("Connection distances follow the original bridge/stair dimensions; spacing must stay 1.");
@@ -106,7 +132,7 @@ public class CavePlatformLayout
         for (int restart = 0; restart < 30; restart++)
         {
             var random = new System.Random(unchecked(seed + restart * 7919)); var layout = new Layout();
-            var order = Enumerable.Range(0, count).Select(i => i % library.platforms.Length).OrderBy(i => random.Next()).ToList();
+            var order = Enumerable.Range(0, Mathf.Max(count, library.platforms.Length)).Select(i => i % library.platforms.Length).OrderBy(i => random.Next()).ToList();
             if (count == 3) order = new[] { "D1_19", "D1_06", "D1_01" }.Select(prefix => Array.FindIndex(library.platforms, p => p.source.name.StartsWith(prefix))).ToList();
             int hub = count == 3 ? Array.FindIndex(library.platforms, p => p.source.name.StartsWith("D1_19")) : Array.FindIndex(library.platforms, p => p.regions.Length > 2); if (hub < 0) hub = order[0];
             order.Remove(hub); order.Insert(0, hub);

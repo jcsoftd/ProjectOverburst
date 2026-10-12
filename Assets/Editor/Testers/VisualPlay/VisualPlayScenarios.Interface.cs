@@ -386,7 +386,7 @@ public static partial class VisualPlayScenarios
             monsterThemeId = theme ?? MapThemeCatalog.RollThemeId(), options = MapOptionPolicy.Roll(grade) };
         VisualPlayContext.Require(c.Inventory.AddItem(item), "지도 아이템 준비 실패"); return item;
     }
-    static IEnumerator PortalEntry(VisualPlayContext c, bool free, ItemData map = null, bool fail = false, bool cancelFirst = false)
+    static IEnumerator PortalEntry(VisualPlayContext c, bool checkEmpty, ItemData map = null, bool fail = false, bool cancelFirst = false)
     {
         var portal = Targets().OfType<MapDungeonPortal>().FirstOrDefault(); yield return Approach(c, portal);
         VisualPlayContext.Require(portal.TryInteract(c.Actor) != InteractionExecutionResult.Rejected, "포탈 선택창 열기 실패"); yield return c.Wait(2f);
@@ -404,7 +404,13 @@ public static partial class VisualPlayScenarios
             panel = MapDungeonPortalPanel.Active;
             VisualPlayContext.Require(panel != null, "F 재입장에서 포탈이 열리지 않았어요");
         }
-        if (!free)
+        if (checkEmpty)
+        {
+            var button = panel.GetComponentsInChildren<Button>(true).First(value => value.name == "Enter");
+            VisualPlayContext.Require(!button.interactable, "지도 없이 입장 버튼이 활성화돼요");
+            button.onClick.Invoke(); yield return c.Wait(.2f);
+            VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, "지도 없이 입장이 시작됐어요");
+        }
         {
             VisualPlayContext.Require(map != null, "선택할 지도 아이템이 없어요");
             var ui = UnityEngine.Object.FindFirstObjectByType<OverburstGameUI>();
@@ -415,7 +421,7 @@ public static partial class VisualPlayScenarios
                 { button = UnityEngine.EventSystems.PointerEventData.InputButton.Right });
             VisualPlayContext.Require(panel.SelectedMap != null && panel.SelectedMap.runtimeInstanceId == map.runtimeInstanceId, "지도 슬롯 삽입 실패");
         }
-        c.Detail(free ? "무료 입장 선택" : "소유 지도 선택과 상세 정보"); yield return c.Wait(3f);
+        c.Detail("소유 지도 선택과 상세 정보"); yield return c.Wait(3f);
         if (fail)
         {
             VisualPlayContext.Require(c.Inventory.RemoveItem(map), "입장 실패 조건 준비 실패");
@@ -475,13 +481,13 @@ public static partial class VisualPlayScenarios
         string id = c.Entry.caseId;
         if (id == "VT21-01")
         {
-            yield return PortalEntry(c, true, cancelFirst: true); yield return ReturnHideout(c);
+            yield return PortalEntry(c, true, PrepareMap(c, 1, ItemGrade.Common), cancelFirst: true); yield return ReturnHideout(c);
             var map = PrepareMap(c, 10, ItemGrade.Rare); yield return PortalEntry(c, false, map); yield break;
         }
         if (id == "VT21-05")
         {
             var map = PrepareMap(c, 10, ItemGrade.Rare); yield return PortalEntry(c, false, map, fail: true);
-            c.Detail("실패 뒤 무료 입장 재시도"); yield return PortalEntry(c, true); yield break;
+            c.Detail("실패 뒤 다른 소유 지도로 재시도"); yield return PortalEntry(c, true, PrepareMap(c, 1, ItemGrade.Common)); yield break;
         }
         if (id == "VT21-10")
         {
@@ -493,7 +499,7 @@ public static partial class VisualPlayScenarios
         {
             string firstRun = AccountGameplaySession.Current.ReadRun().runId;
             c.Detail("첫 입장 후 실제 귀환"); yield return ReturnHideout(c);
-            c.Detail("같은 포탈에서 재입장"); yield return PortalEntry(c, true);
+            c.Detail("같은 포탈에서 다른 소유 지도로 재입장"); yield return PortalEntry(c, true, PrepareMap(c, 1, ItemGrade.Common));
             VisualPlayContext.Require(AccountGameplaySession.Current.ReadRun().runId != firstRun, "재입장에서 새 런이 시작되지 않았어요"); yield break;
         }
         if (id == "VT21-09")
