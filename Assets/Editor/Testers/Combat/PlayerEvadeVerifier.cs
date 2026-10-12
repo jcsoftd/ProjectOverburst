@@ -57,7 +57,6 @@ public static partial class PlayerEvadeVerifier
     static bool poseNextStart;
     static bool heldMove, heldShift, heldLeft, heldRight;
     static Key heldMoveKey = Key.W;
-    static bool pointerAtComparison;
     static bool requestPause, requestResume, pauseRecorded, invalidateOnCompletion;
     static float frozenProgress;
     static Vector3 frozenPosition;
@@ -331,7 +330,6 @@ public static partial class PlayerEvadeVerifier
         var keys = new List<Key>(); if (heldMove) keys.Add(heldMoveKey); if (heldShift) keys.Add(Key.LeftShift);
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(keys.ToArray()));
         Vector2 point = Camera.main != null ? (Vector2)Camera.main.WorldToScreenPoint(actor.transform.position + (dashAttackPointerDirection.sqrMagnitude > .001f ? dashAttackPointerDirection : testFacing) * 6f) : Vector2.zero;
-        if (pointerAtComparison) point = new Vector2(Mathf.Max(8f, Screen.width - 620f) + 145f, Screen.height - 164f);
         InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = (ushort)((heldLeft ? 1 : 0) | (heldRight ? 2 : 0)) });
         if (poseNextStart) actor.transform.rotation = Quaternion.LookRotation(testFacing);
         if (requestPause)
@@ -480,18 +478,8 @@ public static partial class PlayerEvadeVerifier
     }
     static IEnumerator VerifyDashPalette(PlayerDashVfx effect)
     {
-        var panel = PlayerDashVfxComparisonPanelBootstrap.Attach(effect);
-        fixtures.Add(panel.gameObject);
         effect.SetColorStyle(0);
-        Check(panel.SelectionCount == 7, "임시 단일 버튼7색상");
-        for (int i = 1; i <= panel.SelectionCount; i++)
-        {
-            panel.Cycle(1);
-            Check(panel.SelectionIndex == i % panel.SelectionCount, "단일 버튼 순환 " + i);
-            yield return null;
-        }
-        panel.Cycle(-1); Check(panel.SelectionIndex == 6, "Shift 이전 색상 순환");
-        panel.Cycle(1); Check(panel.SelectionIndex == 0, "기본 색상 복귀");
+        Check(PlayerDashVfx.ColorNames.Length == 7, "잔상 효과7색상 유지");
         var originalWeapon = weaponItem;
         var colors = new List<object>();
         var elementColors = new List<object>();
@@ -521,17 +509,11 @@ public static partial class PlayerEvadeVerifier
                 yield return CompleteEvade("원소 자동색 " + element, 5f, .48f, false);
             }
             weaponItem = originalWeapon; effect.SetColorStyle(0); yield return Reset();
-            pointerAtComparison = true; Send(false, false, true); yield return Frames(3);
-            Check(GameplayInputBlocker.IsGameplayInputBlocked && !melee.IsAttackInProgress, "임시 버튼 위 클릭 공격 차단");
-            Send(); pointerAtComparison = false; yield return Frames(3);
-            Check(!GameplayInputBlocker.IsGameplayInputBlocked, "버튼 밖 게임 입력 반환");
-            ScreenCapture.CaptureScreenshot(Path.Combine(output,"ComparisonButton.png")); yield return Wait(.2f);
-            File.WriteAllText(Path.Combine(output,"Palette.json"),JsonConvert.SerializeObject(new{status="PASS",colorsCount=panel.SelectionCount,colors,elementColors},Formatting.Indented));
+            File.WriteAllText(Path.Combine(output,"Palette.json"),JsonConvert.SerializeObject(new{status="PASS",colorsCount=PlayerDashVfx.ColorNames.Length,colors,elementColors},Formatting.Indented));
         }
         finally
         {
-            pointerAtComparison = false; weaponItem = originalWeapon; effect.SetColorStyle(0);
-            fixtures.Remove(panel.gameObject); UnityEngine.Object.DestroyImmediate(panel.gameObject);
+            weaponItem = originalWeapon; effect.SetColorStyle(0);
         }
     }
     static IEnumerator CompleteEvade(string label, float distance, float duration, bool checkPose = true)
@@ -732,7 +714,6 @@ public static partial class PlayerEvadeVerifier
             InputSystem.onBeforeUpdate -= PoseStart; poseNextStart = false; heldMove = heldShift = heldLeft = heldRight = false;
             heldMoveKey = Key.W;
             requestPause = requestResume = pauseRecorded = invalidateOnCompletion = false;
-            pointerAtComparison = false;
             if (OverburstGameMenu.IsOpen) OverburstGameMenu.Instance?.Close();
             if (evade != null) { evade.OnEvadeStarted -= Started; evade.OnEvadeEnded -= Ended; evade.CancelForKnockdown(); evade.enabled = true; }
             if (input != null) { input.EnableGameplay(); input.RuntimeAsset.devices = previousDevices; }
