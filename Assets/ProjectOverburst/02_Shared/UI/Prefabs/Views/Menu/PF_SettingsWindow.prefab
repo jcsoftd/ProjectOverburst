@@ -25817,6 +25817,8 @@ MonoBehaviour:
   explorationEdgeBlurIntensity: {fileID: 5891043782981534229}
   combatEdgeBlurIntensity: {fileID: 8597493677780864193}
   combatScroll: {fileID: 3576598974282742376}
+  mapOverlayOpacity: {fileID: 0}
+  mapOverlayScale: {fileID: 0}
   bloodStyle: {fileID: 647384353664364490}
   bloodPalette: {fileID: 8808147707958233925}
   bloodRows:
