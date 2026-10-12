@@ -20,6 +20,7 @@ public static class MainTownDestructionBuilder
     const string Dense = "Assets/ProjectOverburst/05_Art/Environment/MainTown/BanditExpansion/Vegetation/Prefabs";
     static bool TreeName(string name) => Regex.IsMatch(name, "^DF_(Aspen_|Birch_|Maple_|Pine_|Spruce_|Dead_Trees_|DeadStump_|Broken_Tree_Trunk_|FallenDeadTree_|Branch_)");
     static bool PropName(string name) => Regex.IsMatch(name, "^DF_(Barrel_Wood_|Wood_Box_|Wagon_Wheel_|Firewood_|Storage_Jar_|ClayJar$|Bucket$|Wood_Mortar$|Basket_[0-9]+$|Tavern_(Stool|Chair|Bench|Table)$)");
+    static EnvironmentBreakMaterial BreakMaterial(string name) => name.StartsWith("DF_Storage_Jar_") || name == "DF_ClayJar" ? EnvironmentBreakMaterial.Ceramic : EnvironmentBreakMaterial.Wood;
     static bool Eligible(string path) => TreeName(Path.GetFileNameWithoutExtension(path)) || PropName(Path.GetFileNameWithoutExtension(path));
     static bool Protected(Transform transform)
     {
@@ -119,7 +120,7 @@ public static class MainTownDestructionBuilder
         Folder(folder); string prefabPath = folder + "/PF_Debris_" + name + ".prefab";
         var sourcePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
         var existing = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-        if (existing != null) return new MainTownDestructionCatalog.Definition { source = sourcePrefab, debris = existing, bounds = BoundsFor(sourcePrefab), tree = TreeName(name) };
+        if (existing != null) return new MainTownDestructionCatalog.Definition { source = sourcePrefab, debris = existing, bounds = BoundsFor(sourcePrefab), tree = TreeName(name), material = BreakMaterial(name) };
         var scene = EditorSceneManager.NewPreviewScene(); GameObject original = null, debris = null;
         var transient = new List<Object>(); var state = UnityEngine.Random.state;
         try
@@ -174,7 +175,7 @@ public static class MainTownDestructionBuilder
             if (bodies.Count == 0) throw new InvalidOperationException("No visible LOD0 meshes: " + name);
             debris.AddComponent<MainTownDebris>().bodies = bodies.ToArray();
             var prefab = PrefabUtility.SaveAsPrefabAsset(debris, prefabPath);
-            return new MainTownDestructionCatalog.Definition { source = sourcePrefab, debris = prefab, bounds = bounds, tree = tree };
+            return new MainTownDestructionCatalog.Definition { source = sourcePrefab, debris = prefab, bounds = bounds, tree = tree, material = BreakMaterial(name) };
         }
         finally { UnityEngine.Random.state = state; if (original != null) Object.DestroyImmediate(original); if (debris != null) Object.DestroyImmediate(debris); foreach (var item in transient) if (item != null && !AssetDatabase.Contains(item)) Object.DestroyImmediate(item); EditorSceneManager.ClosePreviewScene(scene); }
     }

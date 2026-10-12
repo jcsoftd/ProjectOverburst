@@ -77,16 +77,17 @@ public static partial class MainTownDestructionVerifier
         try
         {
             string[] examples={"DF_Barrel_Wood_01","DF_Wood_Box_05","DF_Storage_Jar_03","DF_Broken_Tree_Trunk_01","DF_Aspen_01_Dense","DF_Pine_01","DF_FallenDeadTree_01","DF_Branch_Group_01"};
+            if(Path.GetFileName(Output).StartsWith("Contacts")) examples=Array.Empty<string>();
             for(int example=0;example<examples.Length;example++)
             {
                 int index=Enumerable.Range(0,controller.EntryCount).Where(i=>controller.catalog.definitions[controller.DefinitionFor(i)].source.name==examples[example]).OrderBy(i=>Vector3.Distance(controller.PositionFor(i),actor.transform.position)).First();
                 controller.RestoreAll();var position=controller.PositionFor(index);var definition=controller.catalog.definitions[controller.DefinitionFor(index)];
                 var direction=Approach(controller,index,actor.transform,5f);string id=example.ToString("00")+"-"+examples[example];
-                ActorTeleportUtility.TeleportSafely(actor.transform,position-direction*9,Quaternion.LookRotation(direction));float until=Time.time+.7f;while(Time.time<until)yield return null;
+                ActorTeleportUtility.TeleportSafely(actor.transform,GroundedPosition(controller,position-direction*9),Quaternion.LookRotation(direction));float until=Time.time+.7f;while(Time.time<until)yield return null;
                 controller.RefreshNearby(actor.transform.position);var request=new WeaponActionRequest(WeaponActionSource.PlayerInput,null,direction);
-                Check(melee.TryStartAction(request,out _)==WeaponActionResult.Accepted,id+": distant weak starts");until=Time.time+1.6f;while(Time.time<until)yield return null;
+                var weakResult=melee.TryStartAction(request,out _);Check(weakResult==WeaponActionResult.Accepted,id+": distant weak starts ("+weakResult+", grounded="+actor.GetComponent<PlayerMovement>().IsGrounded+", condition="+actor.GetComponent<PlayerStateCoordinator>().CurrentCondition+", blocked="+GameplayInputBlocker.IsGameplayInputBlocked+")");until=Time.time+1.6f;while(Time.time<until)yield return null;
                 Check(!controller.IsBroken(index),id+": out-of-range weak leaves original intact");
-                ActorTeleportUtility.TeleportSafely(actor.transform,position-direction*1.5f,Quaternion.LookRotation(direction));until=Time.time+.7f;while(Time.time<until)yield return null;controller.RefreshNearby(actor.transform.position);
+                ActorTeleportUtility.TeleportSafely(actor.transform,GroundedPosition(controller,position-direction*1.5f),Quaternion.LookRotation(direction));until=Time.time+.7f;while(Time.time<until)yield return null;controller.RefreshNearby(actor.transform.position);
                 var target=controller.TargetFor(index);Check(target!=null,id+": local neutral target activates");float hp=target.CurrentHp,actorHp=actor.Health.CurrentHp;
                 float height=Mathf.Clamp(definition.bounds.size.y,.8f,5f);camera.transform.position=position-direction*7+Vector3.Cross(Vector3.up,direction)*4+Vector3.up*(height*.65f+2);camera.transform.LookAt(position+Vector3.up*(height*.35f));Capture(id+"-before.png");
                 Check(melee.TryStartAction(request,out _)==WeaponActionResult.Accepted,id+": actual weak starts");int shot=0;float next=0;until=Time.time+3.8f;
@@ -96,8 +97,8 @@ public static partial class MainTownDestructionVerifier
                 Check(!controller.TryBreak(index,new DamageInfo(10,position,actor.gameObject,direction,0)),id+": repeated contact cannot break twice");
                 Check(TransientVfxPool.GetStatistics(definition.debris).Active==0,id+": debris returns after three seconds");
                 controller.RestoreAll();controller.RefreshNearby(actor.transform.position);Check(controller.TargetFor(index)==target,id+": restored entry retains its own target identity");
-                ActorTeleportUtility.TeleportSafely(actor.transform,position-direction*5f,Quaternion.LookRotation(direction));until=Time.time+.7f;while(Time.time<until)yield return null;
-                Check(melee.TryStartHeavyAttack(direction)==WeaponActionResult.Accepted,id+": real heavy starts");until=Time.time+2.5f;while(Time.time<until)yield return null;
+                ActorTeleportUtility.TeleportSafely(actor.transform,GroundedPosition(controller,position-direction*5f),Quaternion.LookRotation(direction));until=Time.time+.7f;while(Time.time<until)yield return null;
+                var heavyResult=melee.TryStartHeavyAttack(direction);Check(heavyResult==WeaponActionResult.Accepted,id+": real heavy starts ("+heavyResult+")");until=Time.time+2.5f;while(Time.time<until)yield return null;
                 Check(controller.IsBroken(index),id+": real heavy breaks restored original");
                 until=Time.time+2f;while(Time.time<until)yield return null;controller.RestoreAll();
                 Write("progress.json",new{status="ACTUAL_ATTACKS",completed=example+1,total=examples.Length,checks=checks.Count});
@@ -113,6 +114,10 @@ public static partial class MainTownDestructionVerifier
                 TransientVfxPool.PrepareOne(definition.debris,2);TransientVfxPool.PrepareOne(definition.debris,2);var before=TransientVfxPool.GetStatistics(definition.debris);
                 var clock=System.Diagnostics.Stopwatch.StartNew();Check(controller.TryBreak(index,new DamageInfo(10,position,actor.gameObject,Vector3.forward,0)),definition.source.name+": direct contact breaks once");clock.Stop();
                 var after=TransientVfxPool.GetStatistics(definition.debris);Check(after.Created==before.Created&&after.Misses==before.Misses,definition.source.name+": warmed contact reuses existing debris");
+                var audio = UnityEngine.Resources.FindObjectsOfTypeAll<CombatActionSfxService>().Single();
+                var voices = (AudioSource[])typeof(CombatActionSfxService).GetField("voices",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(audio);
+                var selected = definition.material == EnvironmentBreakMaterial.Ceramic ? controller.catalog.ceramicSounds : controller.catalog.woodSounds;
+                Check(voices.Any(v=>v!=null&&selected.Contains(v.clip)&&v.priority==110),definition.source.name+": break selects a material clip in existing voice pool");
                 costs.Add(new{name=definition.source.name,terrain=controller.IsTerrainTree(index),milliseconds=clock.Elapsed.TotalMilliseconds,pieces=definition.debris.GetComponent<MainTownDebris>().bodies.Length});
                 if(d%8==7||d==controller.catalog.definitions.Length-1){float until=Time.time+3.4f;while(Time.time<until)yield return null;Check(controller.catalog.definitions.Take(d+1).All(x=>TransientVfxPool.GetStatistics(x.debris).Active==0),"Completed debris batch returns to idle pool");}
             }
@@ -124,6 +129,11 @@ public static partial class MainTownDestructionVerifier
             Check(errors.Count==0,"No new runtime errors");
         }
         finally{rt.Release();Object.Destroy(rt);Object.Destroy(texture);Object.Destroy(cameraRoot);}
+    }
+    static Vector3 GroundedPosition(MainTownDestruction controller, Vector3 position)
+    {
+        position.y = controller.terrain.SampleHeight(position) + controller.terrain.transform.position.y;
+        return position;
     }
     static Vector3 Approach(MainTownDestruction controller,int index,Transform actor,float distance)
     {

@@ -26,6 +26,9 @@ public sealed class CombatActionSfxService : MonoBehaviour
     private float nextEnemyImpactAt;
     private static EnemyTelegraphVisualLibrary enemyVisuals;
 
+    public static bool PlayEnvironmentBreak(AudioClip clip, Vector3 position) => clip != null
+        && EnsureInstance() && instance.Play(clip, position, 1f, .65f, 3f, 24f, 110);
+
     public static bool PlayParrySuccess(Vector3 position) => EnsureInstance()
         && instance.Play(11, position, .08f, .90f, 4f, 32f, 10);
     public static bool PlayStrongWarning(Vector3 position)

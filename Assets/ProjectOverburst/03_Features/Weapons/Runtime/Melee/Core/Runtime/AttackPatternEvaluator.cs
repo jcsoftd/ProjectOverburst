@@ -2,6 +2,14 @@ using UnityEngine;
 
 public static class AttackPatternEvaluator
 {
+    public static bool TryEvaluate(AttackPatternRuntimeData pattern, AttackPatternBasis basis,
+        CombatTarget target, float rangeTolerance, out float requiredProgress)
+    {
+        if (target.DamageReceiver is MainTownBreakableTarget scenery)
+            return scenery.TryEvaluateAttack(pattern, basis, out requiredProgress);
+        return TryEvaluate(pattern, basis, target.CurrentHurtVolume, rangeTolerance, out requiredProgress);
+    }
+
     public static bool TryEvaluate(
         AttackPatternRuntimeData pattern,
         AttackPatternBasis basis,

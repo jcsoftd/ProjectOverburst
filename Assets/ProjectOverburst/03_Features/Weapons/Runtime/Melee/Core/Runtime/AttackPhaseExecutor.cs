@@ -336,7 +336,7 @@ public sealed class AttackPhaseExecutor
             if (!AttackPatternEvaluator.TryEvaluate(
                     state.Pattern,
                     state.Basis,
-                    target.CurrentHurtVolume,
+                    target,
                     state.Pattern.HitRevalidationTolerance,
                     out float currentRequiredProgress))
             {

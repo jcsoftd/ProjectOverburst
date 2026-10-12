@@ -24,6 +24,7 @@ public sealed class MainTownDestruction : MonoBehaviour
     TerrainData originalTerrain, runtimeTerrain;
     TerrainCollider terrainCollider;
     TreeInstance[] originalTrees, trees;
+    CombatTargetVolume[][] definitionContacts;
     float nextRefresh;
     Vector3 lastPosition;
     bool initialized, treeCollisionDirty;
@@ -57,6 +58,9 @@ public sealed class MainTownDestruction : MonoBehaviour
     void Start()
     {
         if (catalog == null) { enabled = false; return; }
+        definitionContacts = new CombatTargetVolume[catalog.definitions.Length][];
+        for (int i = 0; i < definitionContacts.Length; i++)
+            definitionContacts[i] = MainTownBreakableTarget.CreateLocalContacts(catalog.definitions[i]);
         for (int i = 0; i < placements.Length; i++)
         {
             var placement = placements[i]; if (placement.root == null || !placement.root.gameObject.activeInHierarchy) continue;
@@ -130,13 +134,8 @@ public sealed class MainTownDestruction : MonoBehaviour
                 CreatedTargetCount++;
             }
             health.transform.SetPositionAndRotation(entry.position, Quaternion.identity); health.transform.localScale = Vector3.one; health.Bind(this, index);
-            var definition = catalog.definitions[entry.definition]; var center = entry.rotation * Vector3.Scale(definition.bounds.center, entry.scale);
-            var size = Vector3.Scale(definition.bounds.size, entry.scale);
-            bool trunk = definition.tree && definition.bounds.size.y >= 3 && !definition.source.name.StartsWith("DF_FallenDeadTree") && !definition.source.name.StartsWith("DF_Branch");
-            float radius = trunk ? Mathf.Clamp(Mathf.Min(Mathf.Abs(size.x), Mathf.Abs(size.z)) * .15f, .15f, .55f) : Mathf.Max(Mathf.Abs(size.x), Mathf.Abs(size.z)) * .45f;
-            if (trunk) { center.x = 0; center.z = 0; }
             var target = health.GetComponent<CombatTarget>(); target.Configure(CombatTeam.Neutral, false);
-            target.ConfigureVolume(center, Mathf.Max(.1f, radius), Mathf.Max(.2f, Mathf.Abs(size.y)));
+            health.ConfigureContacts(definitionContacts[entry.definition], entry.rotation, entry.scale);
             health.gameObject.SetActive(true); active.Add(index, health);
             if (queuedDefinitions.Add(entry.definition)) { warm.Enqueue(entry.definition); warm.Enqueue(entry.definition); }
         }
@@ -161,6 +160,7 @@ public sealed class MainTownDestruction : MonoBehaviour
             treeCollisionDirty = true;
         }
         var definition = catalog.definitions[entry.definition];
+        CombatActionSfxService.PlayEnvironmentBreak(catalog.PickBreakSound(definition.material), entry.position);
         TransientVfxPool.Spawn(definition.debris, entry.position, entry.rotation, 3f, 4,
             prepareBeforeActivation: go => { go.transform.localScale = entry.scale; go.GetComponent<MainTownDebris>().Prepare(info.direction); },
             contentSceneHandle: gameObject.scene.handle);
