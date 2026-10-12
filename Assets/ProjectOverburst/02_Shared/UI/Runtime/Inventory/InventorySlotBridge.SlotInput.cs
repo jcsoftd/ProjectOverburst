@@ -9,6 +9,8 @@ public partial class InventorySlotBridge
         if (context == null || context.Slot == null || context.Item == null || context.Slot.IsLocked)
             return false;
 
+        if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
+
         if (TryHandleOpenShopPlayerSlot(context))
             return true;
 
@@ -40,6 +42,7 @@ public partial class InventorySlotBridge
 
     public bool HandleSlotSingleClick(SlotClickContext context)
     {
+        if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
         if (ShopUI.TryConsumeOpenPlayerInventorySingleClick())
             return true;
 
@@ -48,6 +51,7 @@ public partial class InventorySlotBridge
 
     public bool HandleSlotRightClick(SlotClickContext context)
     {
+        if (MapDungeonPortalPanel.HandleInventoryClick(context)) return true;
         return ShopUI.TryOpenPlayerInventoryShopContextMenu(context);
     }
 
@@ -55,6 +59,8 @@ public partial class InventorySlotBridge
     {
         if (context == null)
             return false;
+
+        if (MapDungeonPortalPanel.HandleInventoryDrop(context)) return true;
 
 
         bool handled;
@@ -96,6 +102,8 @@ public partial class InventorySlotBridge
 
     public InventoryActionResult HandleExternalDropResult(SlotUI sourceSlot, Vector2 screenPosition)
     {
+        if (MapDungeonPortalPanel.IsOpen)
+            return InventoryActionResult.Fail(InventoryActionFailureReason.BlockedSlotType, "지도 포탈이 열린 동안 아이템을 버릴 수 없습니다.");
         if (sourceSlot == null || sourceSlot.DisplayItem == null)
             return InventoryActionResult.Fail(InventoryActionFailureReason.InvalidSource, "드롭할 슬롯 아이템이 없습니다.");
 

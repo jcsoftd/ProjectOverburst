@@ -30,6 +30,7 @@ public class DragSlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (!MapDungeonPortalPanel.AllowsSlotDrag(slotUI)) return;
         if (slotUI == null || slotUI.DisplayItem == null || slotUI.IsLocked)
             return;
 

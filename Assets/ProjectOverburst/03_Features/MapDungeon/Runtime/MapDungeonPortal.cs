@@ -7,6 +7,7 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
 {
     private MapDungeonPortalPanel panel;
     private bool entering;
+    private int lastClosedFrame = -1;
     private GameObject promptRoot;
 
     public Component InteractionComponent => this;
@@ -66,12 +67,14 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
         if (entering && WorldSessionState.IsHideout
             && PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching)
             entering = false;
-        if (panel != null && PlayerInputFacade.Current?.UiCancelPressedThisFrame == true)
+        var input = PlayerInputFacade.Current;
+        if (panel != null && input != null && (input.UiCancelPressedThisFrame || input.InteractPressedThisFrame))
             ClosePanel();
     }
 
     public bool IsInteractionAvailable(PlayerActorRuntime actor)
         => actor != null && panel == null && !entering && WorldSessionState.IsHideout
+            && lastClosedFrame != Time.frameCount
             && PersistentSceneFlow.Instance != null && !PersistentSceneFlow.Instance.IsSwitching;
 
     public InteractionExecutionResult TryInteract(PlayerActorRuntime actor)
@@ -122,6 +125,8 @@ public sealed class MapDungeonPortal : MonoBehaviour, IInteractable
         {
             var old = panel;
             panel = null;
+            lastClosedFrame = Time.frameCount;
+            old.RestoreInventory();
             Destroy(old.gameObject);
         }
         PlayerStateCoordinator.Current?.ReleaseInteracting(this);

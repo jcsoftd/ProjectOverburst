@@ -395,21 +395,34 @@ public static partial class VisualPlayScenarios
         {
             c.Detail("입장 선택 취소"); ClickNamed(panel, "Close"); yield return c.Wait(1f);
             VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching, "취소 후 씬이 전환됐어요");
-            portal.TryInteract(c.Actor); yield return c.Wait(1f); panel = UnityEngine.Object.FindFirstObjectByType<MapDungeonPortalPanel>();
+            VisualPlayContext.Require(!MapDungeonPortalPanel.IsOpen && !UnityEngine.Object.FindFirstObjectByType<OverburstGameUI>().inventory.IsVisible, "포탈과 인벤토리가 함께 닫히지 않았어요");
+            c.Input(Vector2.zero, UnityEngine.InputSystem.Key.F); yield return c.Wait(.2f); c.ReleaseInput(); yield return c.Wait(.4f);
+            VisualPlayContext.Require(MapDungeonPortalPanel.IsOpen, "F 입력으로 포탈이 열리지 않았어요");
+            c.Input(Vector2.zero, UnityEngine.InputSystem.Key.F); yield return c.Wait(.2f); c.ReleaseInput(); yield return c.Wait(.4f);
+            VisualPlayContext.Require(!MapDungeonPortalPanel.IsOpen, "F 입력으로 포탈이 닫히지 않았어요");
+            c.Input(Vector2.zero, UnityEngine.InputSystem.Key.F); yield return c.Wait(.2f); c.ReleaseInput(); yield return c.Wait(.4f);
+            panel = MapDungeonPortalPanel.Active;
+            VisualPlayContext.Require(panel != null, "F 재입장에서 포탈이 열리지 않았어요");
         }
-        if (free) ClickNamed(panel, "FreeLevelOne");
-        else
+        if (!free)
         {
             VisualPlayContext.Require(map != null, "선택할 지도 아이템이 없어요");
-            var maps = Field<System.Collections.Generic.List<ItemData>>(panel, "maps"); int index = maps.FindIndex(value => value.runtimeInstanceId == map.runtimeInstanceId);
-            VisualPlayContext.Require(index >= 0 && index < 7, "선택할 지도 행이 첫 페이지에 없어요"); ClickNamed(panel, "MapRow_" + index);
+            var ui = UnityEngine.Object.FindFirstObjectByType<OverburstGameUI>();
+            var slot = ui.inventoryWindow.GetComponentsInChildren<SlotUI>(true)
+                .FirstOrDefault(value => value.DisplayItem != null && value.DisplayItem.runtimeInstanceId == map.runtimeInstanceId);
+            VisualPlayContext.Require(slot != null, "기존 인벤토리에 선택할 지도가 없어요");
+            slot.OnPointerClick(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
+                { button = UnityEngine.EventSystems.PointerEventData.InputButton.Right });
+            VisualPlayContext.Require(panel.SelectedMap != null && panel.SelectedMap.runtimeInstanceId == map.runtimeInstanceId, "지도 슬롯 삽입 실패");
         }
         c.Detail(free ? "무료 입장 선택" : "소유 지도 선택과 상세 정보"); yield return c.Wait(3f);
         if (fail)
         {
             VisualPlayContext.Require(c.Inventory.RemoveItem(map), "입장 실패 조건 준비 실패");
-            ClickNamed(panel, "Enter"); yield return c.Wait(3f);
-            VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching && !string.IsNullOrWhiteSpace(Field<TMPro.TMP_Text>(panel, "status").text), "입장 실패 안내가 표시되지 않았어요");
+            var enterButton = panel.GetComponentsInChildren<Button>(true).FirstOrDefault(button => button.name == "Enter");
+            VisualPlayContext.Require(enterButton != null && !enterButton.interactable, "사라진 지도로 입장할 수 있어요");
+            yield return c.Wait(3f);
+            VisualPlayContext.Require(WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching && !string.IsNullOrWhiteSpace(Field<UnityEngine.UI.Text>(panel, "status").text), "입장 실패 안내가 표시되지 않았어요");
             ClickNamed(panel, "Close"); yield return c.Wait(1f); yield break;
         }
         ClickNamed(panel, "Enter"); yield return c.Until(() => !PersistentSceneFlow.Instance.IsSwitching && WorldSessionState.Phase == WorldPhase.Run, 60, "포탈 버튼 입장");
