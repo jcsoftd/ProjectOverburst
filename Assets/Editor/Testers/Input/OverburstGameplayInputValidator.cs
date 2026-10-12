@@ -91,7 +91,7 @@ public static class OverburstGameplayInputValidator
             RequireBinding(errors, gameplayMap, "Evade", "<Keyboard>/leftShift");
             RequireBinding(errors, gameplayMap, "Evade", "<Keyboard>/rightShift");
             RequireBinding(errors, gameplayMap, "CombatMode", "<Keyboard>/x");
-            RequireBinding(errors, gameplayMap, "Inventory", "<Keyboard>/tab");
+            RequireBinding(errors, gameplayMap, "Inventory", "<Keyboard>/i");
             RequireBinding(errors, gameplayMap, "Cancel", "<Keyboard>/escape");
             RequireBinding(errors, gameplayMap, "WalkToggle", "<Keyboard>/c");
             RequireBinding(errors, gameplayMap, "Aim", "<Mouse>/rightButton");
@@ -120,7 +120,7 @@ public static class OverburstGameplayInputValidator
             RequirePressBinding(errors, gameplayMap, "Evade", "<Keyboard>/leftShift");
             RequirePressBinding(errors, gameplayMap, "Evade", "<Keyboard>/rightShift");
             RequirePressBinding(errors, gameplayMap, "CombatMode", "<Keyboard>/x");
-            RequirePressBinding(errors, gameplayMap, "Inventory", "<Keyboard>/tab");
+            RequirePressBinding(errors, gameplayMap, "Inventory", "<Keyboard>/i");
             RequirePressBinding(errors, gameplayMap, "Cancel", "<Keyboard>/escape");
             RequirePressBinding(errors, gameplayMap, "QuickSlot4", "<Keyboard>/4");
             RequirePressBinding(errors, gameplayMap, "QuickSlot4", "<Keyboard>/numpad4");

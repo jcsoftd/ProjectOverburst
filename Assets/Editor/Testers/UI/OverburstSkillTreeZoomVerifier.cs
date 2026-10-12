@@ -105,7 +105,7 @@ public static class OverburstSkillTreeZoomVerifier
     {
         var menu = OverburstHudMenu.Instance;
         Check(menu != null, "Vertical HUD menu installed");
-        Click(menu.trigger); yield return null;
+        if (!menu.IsOpen) Click(menu.trigger); yield return null;
         while (menu.popup.alpha < .999f) yield return null;
         var index = Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.SkillTree);
         Check(index >= 0, "Product HUD skill-tree entry");
@@ -118,7 +118,7 @@ public static class OverburstSkillTreeZoomVerifier
         File.WriteAllText(Path.Combine(Output,"menu-raycast-"+checks.Count+".json"),JsonConvert.SerializeObject(new{immediate=immediate?immediate.name:"null",settled=settled?settled.name:"null",point=new{x=Point(row).x,y=Point(row).y},beforePosition=new{x=beforePosition.x,y=beforePosition.y},afterPosition=new{x=menu.panel.anchoredPosition.x,y=menu.panel.anchoredPosition.y},alpha=menu.popup.alpha,menu.popup.blocksRaycasts,treeOpen=OverburstSkillTreeUI.IsWindowOpen,hits=hits.Select(h=>h.gameObject.name).ToArray()},Formatting.Indented));
         Check(settled == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
         Click(menu.Rows[index].button); yield return null;
-        Check(OverburstSkillTreeUI.IsWindowOpen && !menu.IsOpen, "HUD row transfers input ownership to skill tree");
+        Check(OverburstSkillTreeUI.IsWindowOpen && menu.IsOpen, "HUD remains expanded while skill tree owns input");
     }
     static IEnumerator Verify()
     {

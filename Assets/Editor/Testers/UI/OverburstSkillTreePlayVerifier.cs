@@ -120,13 +120,13 @@ public static class OverburstSkillTreePlayVerifier
     {
         var menu = OverburstHudMenu.Instance;
         Check(menu != null, "Vertical HUD menu installed");
-        Click(menu.trigger); yield return null;
+        if (!menu.IsOpen) Click(menu.trigger); yield return null;
         while (menu.popup.alpha < .999f) yield return null;
         Vector2 previous;do{previous=menu.panel.anchoredPosition;Canvas.ForceUpdateCanvases();yield return null;}while(Vector2.Distance(previous,menu.panel.anchoredPosition)>.01f);Canvas.ForceUpdateCanvases();
         var index = Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.SkillTree);
         Check(index >= 0 && Hit((RectTransform)menu.Rows[index].transform) == menu.Rows[index].gameObject, "Actual HUD skill-tree row raycast");
         Click(menu.Rows[index].button); yield return null;
-        Check(OverburstSkillTreeUI.IsWindowOpen && !menu.IsOpen, "HUD row transfers input ownership to skill tree");
+        Check(OverburstSkillTreeUI.IsWindowOpen && menu.IsOpen, "HUD remains expanded while skill tree owns input");
     }
     static IEnumerator Verify()
     {

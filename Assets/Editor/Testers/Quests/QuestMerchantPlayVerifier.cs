@@ -353,17 +353,18 @@ public static class QuestMerchantPlayVerifier
         Check(quest.highlight.enabled,"Quest menu row uses existing pointer hover style");
         yield return Capture("hud-quest-menu-native");
         yield return Click(quest.button);
-        Check(!menu.IsOpen && ui.Mode==QuestMerchantUI.WindowMode.Journal && GameplayInputBlocker.IsGameplayInputBlocked,"Actual HUD quest click releases menu owner and opens personal quest list");
+        Check(menu.IsOpen && ui.Mode==QuestMerchantUI.WindowMode.Journal && GameplayInputBlocker.IsGameplayInputBlocked,"Actual HUD quest click keeps menu expanded and opens personal quest list");
         Check(ES3.Serialize(account.Read()).SequenceEqual(before),"Opening personal list leaves quest/save state unchanged");
         yield return Capture("hud-quest-list-native");yield return KeyPress(Key.Escape);
         Check(ui.Mode==QuestMerchantUI.WindowMode.None && !OverburstGameMenu.IsOpen && !GameplayInputBlocker.IsGameplayInputBlocked,"Escape returns input without opening pause menu");
         for(int i=0;i<2;i++)
         {
             yield return Wait(()=>menu.trigger.gameObject.activeInHierarchy && menu.trigger.interactable,"HUD trigger returns on repeat "+i,120);
-            yield return Click(menu.trigger);yield return new WaitForSecondsRealtime(.2f);yield return Click(menu.Rows[3].button);
-            Check(ui.Mode==QuestMerchantUI.WindowMode.Journal && !menu.IsOpen,"HUD quest entry repeats "+i);
+            if(!menu.IsOpen)yield return Click(menu.trigger);yield return new WaitForSecondsRealtime(.2f);yield return Click(menu.Rows[3].button);
+            Check(ui.Mode==QuestMerchantUI.WindowMode.Journal && menu.IsOpen,"HUD quest entry repeats "+i);
             yield return KeyPress(Key.Escape);
         }
+        menu.CloseImmediate();
         foreach(var npc in Object.FindObjectsByType<GeneralGoodsMerchantInteractable>(FindObjectsSortMode.None).Where(n=>n.Definition && n.Definition.name.StartsWith("TownMerchant_")).OrderBy(n=>n.Definition.name).ToArray())
         {
             yield return Approach(npc,actor);ui.SelectOption(1);yield return KeyPress(Key.F);

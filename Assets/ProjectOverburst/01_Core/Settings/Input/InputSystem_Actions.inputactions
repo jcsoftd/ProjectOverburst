@@ -1477,7 +1477,7 @@
                 {
                     "name": "",
                     "id": "8ecaaa2d-1bdc-43f9-b023-6a3ec7991f94",
-                    "path": "<Keyboard>/tab",
+                    "path": "<Keyboard>/i",
                     "interactions": "Press",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
@@ -1807,7 +1807,7 @@
                 {
                     "name": "",
                     "id": "c33d1780-ea45-4194-b0a1-5567dd997e71",
-                    "path": "<Keyboard>/m",
+                    "path": "<Keyboard>/tab",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

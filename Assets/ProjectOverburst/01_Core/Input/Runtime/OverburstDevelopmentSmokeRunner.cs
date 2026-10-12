@@ -105,11 +105,11 @@ public sealed class OverburstDevelopmentSmokeRunner : MonoBehaviour
 
         InventoryUI inventory = FindFirstObjectByType<InventoryUI>(FindObjectsInactive.Include);
         Require(inventory != null && !inventory.IsVisible, "Unexpected inventory startup state");
-        SetKeys(Key.Tab);
+        SetKeys(Key.I);
         yield return null;
         SetKeys();
         yield return new WaitForSeconds(0.25f);
-        Require(inventory.IsVisible && GameplayInputBlocker.IsGameplayInputBlocked, "Tab did not open/block inventory");
+        Require(inventory.IsVisible && GameplayInputBlocker.IsGameplayInputBlocked, "I did not open/block inventory");
         Capture("inventory.png");
         before = actor.transform.position;
         SetKeys(Key.W);
@@ -117,11 +117,11 @@ public sealed class OverburstDevelopmentSmokeRunner : MonoBehaviour
         SetKeys();
         report.blockedMovementDistance = Vector3.ProjectOnPlane(actor.transform.position - before, Vector3.up).magnitude;
         Require(report.blockedMovementDistance < 0.1f, "Movement was not blocked by inventory");
-        SetKeys(Key.Tab);
+        SetKeys(Key.I);
         yield return null;
         SetKeys();
         yield return new WaitForSeconds(0.25f);
-        Require(!inventory.IsVisible && !GameplayInputBlocker.IsGameplayInputBlocked, "Tab did not close/unblock inventory");
+        Require(!inventory.IsVisible && !GameplayInputBlocker.IsGameplayInputBlocked, "I did not close/unblock inventory");
         report.inventoryInput = true;
 
         PlayerCombatModeController mode = PlayerCombatModeController.GetOrCreate();

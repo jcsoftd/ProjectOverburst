@@ -129,7 +129,7 @@ public static class OverburstGameplayInputMigration
         });
         changed |= EnsureButtonWithBindings(map, "Inventory", new BindingSpec[]
         {
-            new BindingSpec("<Keyboard>/tab", PressInteraction, KeyboardMouseGroup),
+            new BindingSpec("<Keyboard>/i", PressInteraction, KeyboardMouseGroup),
         });
         changed |= EnsureButtonWithBindings(map, "Cancel", new BindingSpec[]
         {

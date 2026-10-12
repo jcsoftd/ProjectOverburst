@@ -283,7 +283,9 @@ public static class LootAutoMoveProgressVerifier
             InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null; float combatUntil = Time.time + 2; while (Time.time < combatUntil) yield return null;
             Teleport(); yield return null; Spawn(30); foreach (var step in Steps(Ready())) yield return step; Begin();
             var menu = OverburstHudMenu.Instance; menu.Open(); yield return null; yield return null;
-            Check(!driver.HasActiveRequest && core.PendingAutoMovePickup == null && observed.Completions == 1, "Product menu input ownership cancels and releases pending approach"); menu.CloseImmediate(); yield return null;
+            Check(driver.HasActiveRequest, "Expanded navigation preserves pending approach");
+            menu.Activate(Array.FindIndex(menu.entries, e => e.destination == OverburstHudMenu.Destination.Inventory)); yield return null; yield return null;
+            Check(!driver.HasActiveRequest && core.PendingAutoMovePickup == null && observed.Completions == 1, "Inventory input ownership cancels and releases pending approach"); menu.CloseImmediate(); Object.FindFirstObjectByType<OverburstGameUI>().inventory.SetVisible(false); yield return null;
             Teleport(); Spawn(30); foreach (var step in Steps(Ready())) yield return step; Begin();
             target.gameObject.SetActive(false); yield return null; yield return null;
             Check(!driver.HasActiveRequest && core.PendingAutoMovePickup == null && observed.Completions == 1, "Invalid target completes once and clears pending");

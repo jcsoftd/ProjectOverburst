@@ -474,13 +474,13 @@ public static class OverburstGoalA2PlayModeVerifier
         Require(inventory != null, "InventoryUI was not found.");
         if (!inventory.IsVisible)
         {
-            PressEdge(Key.Tab);
+            PressEdge(Key.I);
             WaitSeconds(5f);
         }
         if (!inventory.IsVisible)
             return;
         Require(GameplayInputBlocker.IsGameplayInputBlocked, "InventoryUI open did not block gameplay input.");
-        ReleaseKey(Key.Tab);
+        ReleaseKey(Key.I);
         step = VerifyStep.InventoryBlockedInputs;
         WaitFrames(2);
     }
@@ -537,7 +537,7 @@ public static class OverburstGoalA2PlayModeVerifier
         Require(inventory != null, "InventoryUI was not found.");
         if (inventory.IsVisible)
         {
-            PressEdge(Key.Tab);
+            PressEdge(Key.I);
             WaitSeconds(5f);
         }
         if (inventory.IsVisible)
@@ -547,7 +547,7 @@ public static class OverburstGoalA2PlayModeVerifier
         Require(!GameplayInputBlocker.IsGameplayInputBlocked, "Gameplay input stayed blocked after inventory close.");
         Require(coordinator.CurrentCondition == PlayerConditionState.Normal,
             "Inventory close left Condition=" + coordinator.CurrentCondition + " instead of Normal.");
-        ReleaseKey(Key.Tab);
+        ReleaseKey(Key.I);
         step = VerifyStep.DeathReset;
         WaitFrames(10);
     }

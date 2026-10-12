@@ -94,8 +94,8 @@ public class InventoryUI : MonoBehaviour // 인벤토리 UI
 
     private void Update()
     {
-        // GOAL A2: Tab/Esc 직접 읽기 대신 Gameplay Inventory + UI Cancel을 사용한다.
-        // 기존 감각 Tab 항상 토글, Esc는 열려 있을 때만 닫기를 보존한다.
+        // GOAL A2: I/Esc 직접 읽기 대신 Gameplay Inventory + UI Cancel을 사용한다.
+        // I는 항상 토글, Esc는 열려 있을 때만 닫기를 보존한다.
         PlayerInputFacade facade = PlayerInputFacade.Current;
 
         if (facade == null || InputToggleLocked)

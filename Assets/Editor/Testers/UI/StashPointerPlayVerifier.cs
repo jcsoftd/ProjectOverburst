@@ -291,7 +291,7 @@ public static class StashPointerPlayVerifier
             yield return Frames(4); stash.Close();
             foreach (bool initiallyVisible in new[] { false, true })
                 foreach (bool fromStash in new[] { false, true })
-                    foreach (Key closeKey in new[] { Key.Escape, Key.Tab })
+                    foreach (Key closeKey in new[] { Key.Escape, Key.I })
                         foreach (string order in new[] { "close-first", "release-first-on-source", "same-frame-outside", "same-frame-on-target" })
                             yield return CloseCase(initiallyVisible, fromStash, closeKey, order);
             yield return NormalAndLocked();

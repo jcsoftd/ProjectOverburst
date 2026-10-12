@@ -208,7 +208,7 @@ public static class GameMenuCapture
         string saved = File.Exists(OverburstGameSettings.FilePath) ? File.ReadAllText(OverburstGameSettings.FilePath) : "";
         Check("settings saved", saved.Contains("\"cameraShake\": 0.4"), saved.Length + " chars");
 
-        // 7) 키 다시 정하기: 상호작용(F) → K, 그다음 상호작용 → Tab(인벤토리와 겹침) → 맞바꿈
+        // 7) 키 다시 정하기: 상호작용(F) → K, 그다음 상호작용 → I(인벤토리와 겹침) → 맞바꿈
         panel.tabs[3].isOn = true;
         yield return WaitReal(.2f);
         var asset = facade.RuntimeAsset;
@@ -225,18 +225,18 @@ public static class GameMenuCapture
         Check("rebind interact to K", interact.CurrentPath(asset) == "<Keyboard>/k", interact.CurrentPath(asset));
         interact.keyButton.onClick.Invoke();
         yield return WaitReal(.25f);
-        yield return Press(UnityEngine.InputSystem.Key.Tab);
+        yield return Press(UnityEngine.InputSystem.Key.I);
         yield return WaitReal(.3f);
-        Check("conflict swaps keys", interact.CurrentPath(asset) == "<Keyboard>/tab" && inventory.CurrentPath(asset) == "<Keyboard>/k",
+        Check("conflict swaps keys", interact.CurrentPath(asset) == "<Keyboard>/i" && inventory.CurrentPath(asset) == "<Keyboard>/k",
             "interact=" + interact.CurrentPath(asset) + " inventory=" + inventory.CurrentPath(asset) + " status=" + panel.statusText.text);
         yield return Shot("settings_controls_swapped");
         interact.keyButton.onClick.Invoke();
         yield return WaitReal(.25f);
         yield return Press(UnityEngine.InputSystem.Key.Escape);
         yield return WaitReal(.3f);
-        Check("ESC cancels rebind only", !panel.keyPrompt.activeSelf && panel.gameObject.activeSelf && OverburstGameMenu.IsOpen && interact.CurrentPath(asset) == "<Keyboard>/tab");
+        Check("ESC cancels rebind only", !panel.keyPrompt.activeSelf && panel.gameObject.activeSelf && OverburstGameMenu.IsOpen && interact.CurrentPath(asset) == "<Keyboard>/i");
         saved = File.ReadAllText(OverburstGameSettings.FilePath);
-        Check("binding overrides saved", saved.Contains("<Keyboard>/tab") && saved.Contains("<Keyboard>/k"));
+        Check("binding overrides saved", saved.Contains("<Keyboard>/i") && saved.Contains("<Keyboard>/k"));
 
         // 빈 칸만 비교해서 통과하지 않도록 격리 계정에 서로 다른 물약 세 개를 실제 장착한다.
         var fixtureFlasks = PlayerFlaskController.Current;
@@ -306,7 +306,7 @@ public static class GameMenuCapture
         yield return WaitReal(.2f);
         panel.resetButton.onClick.Invoke();
         yield return WaitReal(.2f);
-        Check("reset restores default keys", interact.CurrentPath(asset) == "<Keyboard>/f" && inventory.CurrentPath(asset) == "<Keyboard>/tab");
+        Check("reset restores default keys", interact.CurrentPath(asset) == "<Keyboard>/f" && inventory.CurrentPath(asset) == "<Keyboard>/i");
 
         // 8) 확인창(게임 종료)과 ESC 한 단계 뒤로
         yield return Press(UnityEngine.InputSystem.Key.Escape); // 설정 → 메인

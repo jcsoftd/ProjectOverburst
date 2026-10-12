@@ -107,7 +107,7 @@ public sealed class OverburstGameUI : MonoBehaviour
             else inventoryWindow.WindowRect.anchoredPosition=inventoryBeforeShop;
         }
         var input=PlayerInputFacade.Current;
-        if(input!=null&&!OverburstGameMenu.IsOpen&&!OverburstSkillTreeUI.IsWindowOpen&&!OverburstHudMenu.IsExpanded&&!Overburst.Appearance.AppearanceCustomizationPanel.IsOpen){if(input.EquipmentPressedThisFrame)ToggleEquipment();else if(input.UiCancelPressedThisFrame&&equipmentWindow.gameObject.activeSelf)CloseEquipment();}
+        if(input!=null&&!OverburstGameMenu.IsOpen&&!OverburstSkillTreeUI.IsWindowOpen&&!Overburst.Appearance.AppearanceCustomizationPanel.IsOpen){if(input.EquipmentPressedThisFrame)ToggleEquipment();else if(input.UiCancelPressedThisFrame&&equipmentWindow.gameObject.activeSelf)CloseEquipment();}
         if(Time.unscaledTime>=nextRefresh){nextRefresh=Time.unscaledTime+.1f;Refresh();}
         RefreshWindowButtons();
         GameplayInputBlocker.SetBlocked(this,equipmentWindow.gameObject.activeInHierarchy);

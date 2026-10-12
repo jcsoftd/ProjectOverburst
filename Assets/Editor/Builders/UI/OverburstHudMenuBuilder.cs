@@ -33,7 +33,7 @@ public static class OverburstHudMenuBuilder
         try
         {
             var ui = root.AddComponent<OverburstHudMenu>(); ui.canvas = root.GetComponent<Canvas>();
-            ui.canvas.overrideSorting = true; ui.canvas.sortingOrder = 210;
+            ui.canvas.overrideSorting = true; ui.canvas.sortingOrder = 510;
             ui.outside = Rect(root.transform,"Outside Click",0,0,1920,1080).gameObject.AddComponent<Button>();
             Stretch((RectTransform)ui.outside.transform); var hit = ui.outside.gameObject.AddComponent<Image>(); hit.color = Color.clear; hit.raycastTarget = true; ui.outside.targetGraphic=hit; ui.outside.transition=Selectable.Transition.None;
             ui.dock = Rect(root.transform,"Corner Dock",0,0,58,58); ui.dock.anchorMin=ui.dock.anchorMax=ui.dock.pivot=new Vector2(1,0); ui.dock.anchoredPosition=new Vector2(-24,24);

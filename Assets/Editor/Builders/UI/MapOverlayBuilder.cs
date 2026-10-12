@@ -11,7 +11,7 @@ public static class MapOverlayBuilder
     public const string MinimapPath = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/PF_OverburstWorldMinimap_Rpg11.prefab";
     public static readonly string[] Actions = { "MapToggle", "MapZoomIn", "MapZoomOut" };
     static readonly string[] Labels = { "지도 펼쳐보기", "펼친 지도 확대", "펼친 지도 축소" };
-    static readonly string[] Bindings = { "<Keyboard>/m", "<Keyboard>/equals", "<Keyboard>/minus" };
+    static readonly string[] Bindings = { "<Keyboard>/tab", "<Keyboard>/equals", "<Keyboard>/minus" };
 
     public static string Apply(string output)
     {

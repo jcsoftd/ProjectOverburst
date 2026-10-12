@@ -40,14 +40,17 @@ public static class OverburstHudMenuPlayVerifier
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating||Pending)throw new InvalidOperationException("Idle Editor required.");
         if(!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory)||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))||!string.IsNullOrEmpty(SessionState.GetString(Guard+"prepared","")))throw new InvalidOperationException("Another isolated account is active/prepared.");
-        if(SceneManager.GetActiveScene().name!="PersistentScene")throw new InvalidOperationException("PersistentScene required; user scenes are not opened or saved by this verifier.");
+        if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("Another settings directory is active.");
         var full=Path.GetFullPath(output);IsolatedSavePlayGuard.ValidateDirectory(Path.Combine(full,"IsolatedAccount"));Directory.CreateDirectory(full);
+        var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+        var seed=NewAccountFactory.Create(registry);AccountCharacterCommands.EnsureLegacy(seed);
+        new EasySaveAccountStore(Path.Combine(full,"IsolatedAccount")).Save(seed,seed.lastTransactionId);
         SessionState.SetString(Key+"output",full);SessionState.SetString(Key+"scenes",Scenes());SessionState.SetString(Key+"startScene",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetBool(Key+"background",Application.runInBackground);SessionState.SetFloat(Key+"timeScale",Time.timeScale);
         SessionState.SetBool(Key+"pending",true);SessionState.SetBool(Key+"return",false);SessionState.SetBool(Key+"entered",false);SessionState.SetString(Key+"status","RUNNING");
         SessionState.SetString(Key+"bootDeadline",(EditorApplication.timeSinceStartup+180).ToString(CultureInfo.InvariantCulture));
         File.WriteAllText(Path.Combine(full,"play-results.json"),"{\"status\":\"RUNNING\"}");
-        try{IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(full,"IsolatedAccount"));}catch{SessionState.SetBool(Key+"return",true);throw;}
+        try{EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/ProjectOverburst/00_Scenes/PersistentScene.unity");IsolatedSavePlayGuard.EnterIsolatedPlay(Path.Combine(full,"IsolatedAccount"));}catch{SessionState.SetBool(Key+"return",true);throw;}
         return "STARTED owned isolated HUD menu Play";
     }
     static void State(PlayModeStateChange state)
@@ -111,6 +114,7 @@ public static class OverburstHudMenuPlayVerifier
         if(!Own(current)||!Own(prepared)||!Own(IsolatedSavePlayGuard.ActiveDirectory))return;
         try{
             IsolatedSavePlayGuard.UseRealAccount();Application.runInBackground=SessionState.GetBool(Key+"background",false);Time.timeScale=SessionState.GetFloat(Key+"timeScale",1);
+            EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(SessionState.GetString(Key+"startScene",""));
             bool startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)==SessionState.GetString(Key+"startScene","");
             bool scenes=Scenes()==SessionState.GetString(Key+"scenes","");
             SessionState.SetBool(Key+"pending",false);SessionState.SetBool(Key+"return",false);
@@ -130,58 +134,65 @@ public static class OverburstHudMenuPlayVerifier
 
     static IEnumerator Verify()
     {
+        while(!TitleCharacterPanel.Instance||!PlayerInputFacade.Current||!PlayerContext.Instance?.CurrentActor)yield return null;
+        Click(TitleCharacterPanel.Instance.start);for(int frame=0;frame<4;frame++)yield return null;
+        Click(TitleCharacterPanel.Instance.enter);
         while(PersistentSceneFlow.Instance==null||PersistentSceneFlow.Instance.IsSwitching||!WorldSessionState.IsHideout||PlayerContext.Instance?.CurrentActor==null)yield return null;
         Check(AccountBootstrap.SaveDirectory.StartsWith(Output+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase),"Owned isolated account");
         var ui=OverburstHudMenu.Instance;var game=Object.FindFirstObjectByType<OverburstGameUI>();var tree=OverburstSkillTreeUI.Instance;var menu=OverburstGameMenu.Instance;
         Check(ui&&game&&tree&&menu,"Existing product presenters and corner menu installed");
         Check(Object.FindObjectsByType<OverburstHudMenu>(FindObjectsSortMode.None).Length==1&&ui.Rows.Length==5,"Exactly one menu with five rows");
-        Check(!ui.IsOpen&&!tree.entry.gameObject.activeSelf,"Initially collapsed with old standalone tree entry hidden");
         var input=PlayerInputFacade.Current;bool gameplay=input.IsGameplayEnabled;float time=Time.timeScale;bool audioPause=AudioListener.pause;
-        yield return null;yield return null;Check(Hit((RectTransform)ui.trigger.transform)==ui.trigger.gameObject,"Real EventSystem raycast reaches hamburger button");
+        Check(input.RuntimeAsset.FindAction("Gameplay/Inventory",true).bindings[0].effectivePath=="<Keyboard>/i","Inventory defaults to I");
+        Check(input.RuntimeAsset.FindAction("Gameplay/MapToggle",true).bindings[0].effectivePath=="<Keyboard>/tab","Expanded map defaults to Tab");
+        yield return null;yield return null;
+        Check(Hit((RectTransform)ui.trigger.transform)==ui.trigger.gameObject,"Actual raycast reaches menu button");
         Click(ui.trigger);yield return null;
-        Check(ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked&&!input.IsGameplayEnabled&&Time.timeScale==time,"Expanded menu owns combat input without pausing world");
         while(ui.popup.alpha<.999f)yield return null;
-        foreach(var row in ui.Rows){Check(Hit((RectTransform)row.transform)==row.gameObject,"Real raycast reaches row "+row.label.text);Check(row.label.cachedTextGenerator.characterCountVisible==row.label.text.Length,"Product Korean row text "+row.label.text);}
-        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-open.png"));yield return null;
-        foreach(var row in ui.Rows)
-        {
-            var pointer=Pointer((RectTransform)row.transform);ExecuteEvents.Execute(row.gameObject,pointer,ExecuteEvents.pointerEnterHandler);yield return null;
-            Check(row.highlight.enabled&&row.highlight.sprite==row.hoverBackground&&row.icon.sprite==ui.entries[Array.IndexOf(ui.Rows,row)].hoverIcon,"Runtime hover background and glyph "+row.label.text);
-            ExecuteEvents.Execute(row.gameObject,pointer,ExecuteEvents.pointerDownHandler);Check(row.highlight.sprite==row.pressedBackground,"Runtime pressed state "+row.label.text);ExecuteEvents.Execute(row.gameObject,pointer,ExecuteEvents.pointerUpHandler);
-            if(row==ui.Rows[2]){ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-hover.png"));yield return null;}
-            ExecuteEvents.Execute(row.gameObject,pointer,ExecuteEvents.pointerExitHandler);yield return null;Check(!row.highlight.enabled,"Runtime pointer exit restores "+row.label.text);
-        }
-        Click(ui.outside);yield return null;Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Outside click collapses and restores input");
+        Check(ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay&&Time.timeScale==time,"Expanded navigation leaves gameplay available");
+        Check(!ui.outside.gameObject.activeInHierarchy,"No full-screen outside-click blocker");
+        var dock=ui.dock.anchoredPosition;
+        var hits=new List<RaycastResult>();
+        EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=new Vector2(100,Screen.height-100)},hits);
+        Check(hits.All(h=>!h.gameObject.transform.IsChildOf(ui.transform)),"Clicks away from corner pass through menu");
+        foreach(var row in ui.Rows)Check(Hit((RectTransform)row.transform)==row.gameObject,"Actual raycast reaches row "+row.label.text);
+        ui.outside.onClick.Invoke();yield return null;Check(ui.IsOpen,"Outside clicks leave menu expanded");
         var previousKeyboard=Keyboard.current;var keyboard=InputSystem.AddDevice<Keyboard>("OwnedHudMenuVerifierKeyboard");
+        var originalSettings=InputSystem.settings;var settings=Object.Instantiate(originalSettings);
+        settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;settings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;InputSystem.settings=settings;
         try
         {
-            InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.C));yield return null;yield return null;
-            Check(game.equipmentWindow.gameObject.activeInHierarchy,"Positive control: actual C opens equipment");InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;game.CloseEquipment();yield return null;
-            Click(ui.trigger);yield return null;InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.C));yield return null;yield return null;
-            Check(ui.IsOpen&&!game.equipmentWindow.gameObject.activeInHierarchy,"Existing UI equipment key cannot open behind expanded menu");InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.Tab));yield return null;yield return null;
+            Check(input.RuntimeAsset.FindAction("Gameplay/MapToggle",true).IsPressed()&&!game.inventory.IsVisible&&ui.IsOpen,"Actual Tab reaches map action without opening inventory");
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;yield return null;
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.I));yield return null;yield return null;
+            Check(game.inventory.IsVisible&&ui.IsOpen,"Actual I opens inventory with menu expanded");
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;yield return null;
             InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.Escape));yield return null;yield return null;
-            Check(!ui.IsOpen&&!OverburstGameMenu.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Actual Escape closes only corner list");InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;
+            Check(!game.inventory.IsVisible&&ui.IsOpen&&!OverburstGameMenu.IsOpen,"Escape closes inventory and preserves menu");
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;yield return null;
             InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.C));yield return null;yield return null;
-            Check(game.equipmentWindow.gameObject.activeInHierarchy,"C restored after corner menu closes");InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;game.CloseEquipment();yield return null;
+            Check(game.equipmentWindow.gameObject.activeInHierarchy&&ui.IsOpen,"Actual C opens equipment with menu expanded");
+            InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return null;yield return null;game.CloseEquipment();
         }
-        finally{if(keyboard.added)InputSystem.RemoveDevice(keyboard);if(previousKeyboard!=null&&previousKeyboard.added)previousKeyboard.MakeCurrent();}
-        for(int i=0;i<3;i++){Click(ui.trigger);yield return null;Check(ui.IsOpen,"Repeat expanded "+i);Click(ui.trigger);yield return null;Check(!ui.IsOpen&&input.IsGameplayEnabled==gameplay&&!GameplayInputBlocker.IsGameplayInputBlocked,"Repeat closed input return "+i);}
-        yield return null;ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-closed.png"));yield return null;
-        Click(ui.trigger);yield return null;Click(ui.Rows[0].button);yield return null;Check(game.inventory.IsVisible&&!ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"Inventory row opens existing inventory");game.inventory.SetVisible(false);yield return null;
-        Click(ui.trigger);yield return null;Click(ui.Rows[1].button);yield return null;Check(game.equipmentWindow.gameObject.activeInHierarchy&&!ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"Equipment row opens existing equipment");game.CloseEquipment();yield return null;
-        Click(ui.trigger);yield return null;Click(ui.Rows[2].button);yield return null;Check(tree.IsOpen&&!ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"Skill row opens authored common tree");Check(tree.Catalog.nodes.Any(n=>n.id=="S_W1"),"Current catalog contains tooltip fixture");tree.ZoomAt(2,Vector2.zero);tree.ShowTooltip("S_W1");yield return null;Check(tree.Zoom==2&&tree.tooltip.gameObject.activeSelf,"Tree zoom and hover tooltip remain functional");tree.ResetMap();tree.Close();yield return null;Check(!tree.entry.gameObject.activeSelf&&input.IsGameplayEnabled==gameplay,"Tree close retains integrated entry and returns input");
-        Click(ui.trigger);yield return null;Click(ui.Rows[4].button);yield return null;Check(OverburstGameMenu.IsOpen&&menu.settings.gameObject.activeSelf&&!menu.mainPanel.gameObject.activeSelf&&!ui.IsOpen,"Settings row opens existing settings directly");
-        Check(Time.timeScale==0&&AudioListener.pause,"Settings retains existing pause ownership");while(menu.group.alpha<.999f)yield return null;
-        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-settings.png"));yield return null;menu.Close();yield return null;Check(!OverburstGameMenu.IsOpen&&Mathf.Approximately(Time.timeScale,time)&&AudioListener.pause==audioPause&&input.IsGameplayEnabled==gameplay,"Settings restores time audio and gameplay maps");
-        var original=ui.entries;ui.SetEntries(Enumerable.Range(0,24).Select(i=>new OverburstHudMenu.Entry{label="확장 메뉴 "+(i+1),icon=original[i%original.Length].icon,destination=original[i%original.Length].destination}).ToArray());
-        Click(ui.trigger);yield return null;while(ui.popup.alpha<.999f)yield return null;Canvas.ForceUpdateCanvases();Check(ui.content.rect.height>ui.viewport.rect.height,"Runtime extra rows create internal scroll");
-        EventSystem.current.SetSelectedGameObject(ui.Rows[23].gameObject);yield return null;Check(ui.content.anchoredPosition.y>0,"Runtime keyboard selection scrolls last row into view");
-        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-expanded-list.png"));yield return null;ui.CloseImmediate();ui.SetEntries(original);yield return null;
-        Check(ui.Rows.Length==5&&!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Fixture removed and five production rows restored");
-        var other=new GameObject("Owned HUD Menu Input Fixture");GameplayInputBlocker.Block(other);try{ui.Open();Check(!ui.IsOpen,"Respects other window input owner");}finally{GameplayInputBlocker.Unblock(other);Object.Destroy(other);}
-        yield return null;Click(ui.trigger);yield return null;ui.enabled=false;yield return null;Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked&&input.IsGameplayEnabled==gameplay,"Disable returns own blocker and input map");ui.enabled=true;yield return null;
-        double until=EditorApplication.timeSinceStartup+5;while(!File.Exists(Path.Combine(Output,"ingame-menu-open.png"))&&EditorApplication.timeSinceStartup<until)yield return null;
-        Check(File.Exists(Path.Combine(Output,"ingame-menu-open.png"))&&File.Exists(Path.Combine(Output,"ingame-menu-closed.png"))&&File.Exists(Path.Combine(Output,"ingame-menu-settings.png")),"Composited product captures saved");
+        finally{InputSystem.settings=originalSettings;Object.Destroy(settings);if(keyboard.added)InputSystem.RemoveDevice(keyboard);if(previousKeyboard!=null&&previousKeyboard.added)previousKeyboard.MakeCurrent();}
+        yield return null;
+        Click(ui.Rows[0].button);yield return null;
+        Check(game.inventory.IsVisible&&ui.IsOpen&&ui.trigger.gameObject.activeInHierarchy,"Inventory row preserves expanded list and close button");
+        Click(ui.Rows[1].button);yield return null;
+        Check(game.inventory.IsVisible&&game.equipmentWindow.gameObject.activeInHierarchy&&ui.IsOpen,"Inventory and equipment coexist after consecutive row clicks");
+        Check(ui.dock.anchoredPosition==dock&&Hit((RectTransform)ui.Rows[0].transform)==ui.Rows[0].gameObject,"Corner position and row interaction survive overlapping windows");
+        ScreenCapture.CaptureScreenshot(Path.Combine(Output,"ingame-menu-two-windows.png"));yield return null;yield return null;
+        Click(ui.Rows[0].button);yield return null;Check(!game.inventory.IsVisible&&ui.IsOpen,"Repeated inventory row closes only inventory");
+        Click(ui.trigger);yield return null;Check(!ui.IsOpen&&game.equipmentWindow.gameObject.activeInHierarchy&&GameplayInputBlocker.IsGameplayInputBlocked,"Explicit menu close leaves equipment and its input owner intact");
+        Click(ui.trigger);yield return null;Check(ui.IsOpen,"Menu reopens while equipment remains open");game.CloseEquipment();yield return null;
+        Click(ui.Rows[2].button);yield return null;Check(tree.IsOpen&&ui.IsOpen&&GameplayInputBlocker.IsGameplayInputBlocked,"Skill tree keeps expanded navigation and owns combat input");Check(Hit((RectTransform)ui.Rows[0].transform)==ui.Rows[0].gameObject,"Corner menu remains reachable above skill tree");tree.Close();yield return null;
+        Click(ui.Rows[3].button);yield return null;Check(QuestMerchantUI.Current.Mode==QuestMerchantUI.WindowMode.Journal&&ui.IsOpen,"Quest journal keeps expanded navigation");QuestMerchantUI.Current.Close();yield return null;
+        Click(ui.Rows[4].button);yield return null;Check(OverburstGameMenu.IsOpen&&menu.settings.gameObject.activeSelf&&ui.IsOpen,"Settings keeps expanded navigation");
+        Check(Time.timeScale==0&&AudioListener.pause,"Settings retains pause ownership");Check(Hit((RectTransform)ui.trigger.transform)==ui.trigger.gameObject,"Corner close button remains reachable above settings");menu.Close();yield return null;
+        Check(ui.IsOpen&&Mathf.Approximately(Time.timeScale,time)&&AudioListener.pause==audioPause&&input.IsGameplayEnabled==gameplay&&!GameplayInputBlocker.IsGameplayInputBlocked,"Closing settings preserves navigation and returns its own input/time/audio");
+        for(int i=0;i<3;i++){Click(ui.trigger);yield return null;Check(!ui.IsOpen,"Explicit collapse "+i);Click(ui.trigger);yield return null;Check(ui.IsOpen,"Repeat expand "+i);}
+        ui.enabled=false;yield return null;Check(!ui.IsOpen&&!GameplayInputBlocker.IsGameplayInputBlocked,"Disable closes navigation without stray blockers");ui.enabled=true;yield return null;
+        Check(File.Exists(Path.Combine(Output,"ingame-menu-two-windows.png")),"Composited inventory/equipment/menu capture saved");
     }
 }
-

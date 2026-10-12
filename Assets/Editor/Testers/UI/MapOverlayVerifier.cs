@@ -45,7 +45,7 @@ public static class MapOverlayVerifier
         if (!panel.mapOverlayOpacity || !panel.mapOverlayScale || panel.mapOverlayOpacity == panel.cameraShake) throw new Exception("Map settings missing");
         foreach (var action in MapOverlayBuilder.Actions)
             if (panel.keyRows.Count(k => k.actionName == action) != 1 || actions.FindAction("Gameplay/" + action) == null) throw new Exception("Input/row missing: " + action);
-        if (actions.FindAction("Gameplay/Inventory").bindings[0].path != "<Keyboard>/tab" || actions.FindAction("Gameplay/Zoom").bindings[0].path != "<Mouse>/scroll")
+        if (actions.FindAction("Gameplay/MapToggle").bindings[0].path != "<Keyboard>/tab" || actions.FindAction("Gameplay/Inventory").bindings[0].path != "<Keyboard>/i" || actions.FindAction("Gameplay/Zoom").bindings[0].path != "<Mouse>/scroll")
             throw new Exception("Inventory/camera controls changed");
         Directory.CreateDirectory(output);
         string path = Path.Combine(output, "overlay-assets.json");
@@ -93,9 +93,9 @@ public static class MapOverlayVerifier
             }
             Probe("before-close");
             controller.SetOverlay(false); yield return Frames(4); Probe("closed-four-frames");
-            yield return Press(keyboard, Key.M); Probe("after-open-key");
+            yield return Press(keyboard, Key.Tab); Probe("after-open-key");
             check(controller.OverlayVisible && controller.IsVisible && !GameplayInputBlocker.IsGameplayInputBlocked && Time.timeScale > 0,
-                "M opens shared map while combat and circular map remain active");
+                "Tab opens shared map while combat and circular map remain active");
             check(ReferenceEquals(map, controller.Exploration) && controller.Overlay.outline.texture == map.OutlineTexture && visited.All(map.IsRevealedCell) && controller.TerrainBuildCount == builds,
                 "Map key shares the existing outline and preserves visited cells while gameplay continues");
             check(controller.Overlay.GetComponentsInChildren<UnityEngine.UI.Graphic>(true).All(g => !g.raycastTarget), "Overlay never captures pointer input");
@@ -124,8 +124,8 @@ public static class MapOverlayVerifier
             yield return Press(keyboard, Key.Escape);
             check(!controller.OverlayRequested && !menu.gameObject.GetComponent<OverburstGameMenu>().ModalOpen && !OverburstGameMenu.IsOpen,
                 "ESC closes only the open overlay");
-            yield return Press(keyboard, Key.M); yield return Press(keyboard, Key.Tab);
-            check(GameplayInputBlocker.IsGameplayInputBlocked && controller.OverlayRequested && !controller.OverlayVisible, "Inventory Tab takes priority and hides overlay");
+            yield return Press(keyboard, Key.Tab); yield return Press(keyboard, Key.I);
+            check(GameplayInputBlocker.IsGameplayInputBlocked && controller.OverlayRequested && !controller.OverlayVisible, "Inventory I takes priority and hides overlay");
             yield return Press(keyboard, Key.Escape);
             check(!GameplayInputBlocker.IsGameplayInputBlocked && controller.OverlayVisible && !OverburstGameMenu.IsOpen, "Inventory ESC restores overlay without opening pause menu");
             check(ReferenceEquals(map, controller.Exploration) && visited.All(map.IsRevealedCell) && controller.TerrainBuildCount == builds, "Menu overlap preserves visited cells and the same terrain while gameplay continues");
@@ -146,7 +146,7 @@ public static class MapOverlayVerifier
                 yield return Press(keyboard, Key.N); yield return Frames(12);
                 check(row.CurrentPath(input.RuntimeAsset) == "<Keyboard>/n", "Map key rebind follows the existing interactive setting");
                 menu.Close(); yield return Frames(10);
-                yield return Press(keyboard, Key.M); check(!controller.OverlayRequested, "Old map key is released after rebinding");
+                yield return Press(keyboard, Key.Tab); check(!controller.OverlayRequested, "Old map key is released after rebinding");
                 yield return Press(keyboard, Key.N); check(controller.OverlayVisible, "Rebound key opens overlay");
                 check(Mathf.Approximately(controller.Overlay.outline.color.a, .6f), "Saved opacity is rendered");
                 var saved = File.ReadAllText(OverburstGameSettings.FilePath);

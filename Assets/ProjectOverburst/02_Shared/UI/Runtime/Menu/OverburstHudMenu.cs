@@ -31,7 +31,6 @@ public sealed class OverburstHudMenu : MonoBehaviour
     public static OverburstHudMenu Instance { get; private set; }
     public static bool IsExpanded => Instance != null && Instance.IsOpen;
     OverburstGameUI owner;
-    PlayerInputFacade lockedInput;
     bool initialized;
     float animation, slide;
     Vector2 lastRootSize;
@@ -56,7 +55,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
     {
         if (Instance && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        canvas.overrideSorting = true; canvas.sortingOrder = 210;
+        canvas.overrideSorting = true; canvas.sortingOrder = 510;
         Initialize(); CloseImmediate();
     }
     void OnEnable() => UnityEngine.SceneManagement.SceneManager.sceneUnloaded += SceneUnloaded;
@@ -68,7 +67,6 @@ public sealed class OverburstHudMenu : MonoBehaviour
     {
         if (initialized) return;
         trigger.onClick.AddListener(Toggle);
-        outside.onClick.AddListener(Close);
         initialized = true;
         SetEntries(entries);
     }
@@ -107,8 +105,6 @@ public sealed class OverburstHudMenu : MonoBehaviour
     void Update()
     {
         if (!initialized) return;
-        if (IsOpen) SyncGameplayMapOwner();
-        if (IsOpen && PlayerInputFacade.Current != null && PlayerInputFacade.Current.UiCancelPressedThisFrame) Close();
         if (IsOpen && PersistentSceneFlow.Instance && PersistentSceneFlow.Instance.IsSwitching) CloseImmediate();
         animation = Mathf.MoveTowards(animation, IsOpen ? 1 : 0, Time.unscaledDeltaTime / .13f);
         slide = Mathf.MoveTowards(slide, IsOpen ? 1 : 0, Time.unscaledDeltaTime / .17f);
@@ -127,14 +123,14 @@ public sealed class OverburstHudMenu : MonoBehaviour
     bool CanOpen()
     {
         var flow = PersistentSceneFlow.Instance;
-        return !OverburstGameMenu.IsOpen && !OverburstSkillTreeUI.IsWindowOpen && !GameplayInputBlocker.IsGameplayInputBlocked && (!flow || !flow.IsSwitching);
+        return !flow || !flow.IsSwitching;
     }
     public void Toggle() { if (IsOpen) Close(); else Open(); }
     public void Open()
     {
         Initialize();
         if (IsOpen || entries.Length == 0 || (Application.isPlaying && !CanOpen())) return;
-        IsOpen = true; popup.gameObject.SetActive(true); outside.gameObject.SetActive(true);
+        IsOpen = true; popup.gameObject.SetActive(true); outside.gameObject.SetActive(false);
         popup.interactable = popup.blocksRaycasts = true;
         triggerIcon.sprite = closeIcon;
         triggerVisual.Refresh();
@@ -143,17 +139,8 @@ public sealed class OverburstHudMenu : MonoBehaviour
         if (Application.isPlaying)
         {
             TooltipManager.Instance?.HideTooltip();
-            GameplayInputBlocker.Block(this);
-            SyncGameplayMapOwner();
             Play(false);
         }
-    }
-    void SyncGameplayMapOwner()
-    {
-        var current = PlayerInputFacade.Current;
-        if (current == null) return;
-        lockedInput = current;
-        if (lockedInput != null) lockedInput.SetGameplayMapDisabled(this, true);
     }
     public void Close()
     {
@@ -162,9 +149,6 @@ public sealed class OverburstHudMenu : MonoBehaviour
         if (outside) outside.gameObject.SetActive(false);
         if (triggerIcon) triggerIcon.sprite = menuIcon;
         if (triggerVisual) triggerVisual.Refresh();
-        GameplayInputBlocker.Unblock(this);
-        PlayerInputFacade.ReleaseGameplayMapDisabled(this);
-        lockedInput = null;
         if (EventSystem.current && EventSystem.current.currentSelectedGameObject && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(content))
             EventSystem.current.SetSelectedGameObject(trigger && trigger.gameObject.activeInHierarchy ? trigger.gameObject : null);
     }
@@ -177,7 +161,7 @@ public sealed class OverburstHudMenu : MonoBehaviour
     {
         if (!IsOpen || index < 0 || index >= entries.Length) return;
         var destination = entries[index].destination;
-        Play(true); CloseImmediate();
+        Play(true);
         if (!owner) owner = GetComponentInParent<OverburstGameUI>();
         switch (destination)
         {
@@ -190,7 +174,6 @@ public sealed class OverburstHudMenu : MonoBehaviour
                 if (menu) { menu.Open(); menu.OpenSettings(); }
                 break;
         }
-        if (Application.isPlaying && !CanOpen()) trigger.gameObject.SetActive(false);
     }
     public void KeepVisible(int index)
     {
