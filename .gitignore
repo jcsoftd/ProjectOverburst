@@ -214,3 +214,6 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/Resources/Combat/VFX/PF_ParryZoomBlur_*.prefab*
 /Assets/ProjectOverburst/Resources/Combat/VFX/ParryZoomBlurMaterials/
 /Assets/ProjectOverburst/Resources/Combat/VFX/ParryZoomBlurMaterials.meta
+# Supplier-derived world-level UI artwork; restore from the private WorldLevelNpc recovery.
+/Assets/ProjectOverburst/Resources/UI/WorldLevel/Artwork/*.png*
+!/Assets/ProjectOverburst/Resources/UI/WorldLevel/Artwork/npc-portrait-generated.png*

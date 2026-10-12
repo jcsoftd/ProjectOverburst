@@ -133,6 +133,7 @@ namespace Overburst.Persistence
                 if (!string.IsNullOrEmpty(item.originRunId) && (state.run == null || item.originRunId != state.run.runId || !IsRunning(state.run.phase)))
                     throw new InvalidDataException("Item refers to an inactive run.");
             Overburst.Quests.AccountQuestCommands.Validate(state, registry);
+            AccountWorldLevelCommands.Validate(state);
             AccountCharacterCommands.Validate(state, registry);
         }
 

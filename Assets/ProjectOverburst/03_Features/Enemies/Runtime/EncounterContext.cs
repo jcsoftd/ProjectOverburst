@@ -9,12 +9,14 @@ public sealed class EncounterContext
     public ItemGrade MapGrade { get; }
     public float ExperienceMultiplier { get; }
     public MapInstanceState Map { get; }
-    public bool RewardsAllowed { get; }
+    public string OutdoorSessionId { get; }
+    public bool IsOutdoor => !string.IsNullOrEmpty(OutdoorSessionId);
     public bool IsRun => !string.IsNullOrEmpty(RunId);
+    public bool RewardsAllowed { get; }
     public static EncounterContext Test { get; } = new EncounterContext(null, 1, ItemGrade.Common);
 
     public EncounterContext(string runId, int mapLevel, ItemGrade mapGrade, float experienceMultiplier = 1f,
-        MapInstanceState map = null, bool rewardsAllowed = true)
+        MapInstanceState map = null, string outdoorSessionId = null, bool rewardsAllowed = true)
     {
         if (mapLevel < 1 || mapLevel > 100) throw new ArgumentOutOfRangeException(nameof(mapLevel));
         if (!Enum.IsDefined(typeof(ItemGrade), mapGrade)) throw new ArgumentOutOfRangeException(nameof(mapGrade));
@@ -25,6 +27,8 @@ public sealed class EncounterContext
         MapGrade = mapGrade;
         ExperienceMultiplier = experienceMultiplier;
         Map = map;
+        if (!string.IsNullOrEmpty(outdoorSessionId) && !string.IsNullOrEmpty(runId)) throw new ArgumentException("Outdoor encounters cannot own a run.");
+        OutdoorSessionId = outdoorSessionId;
         RewardsAllowed = rewardsAllowed;
     }
 
@@ -35,5 +39,6 @@ public sealed class EncounterContext
     }
 
     public bool CanGrantRewards => RewardsAllowed && MatchesRun(AccountGameplaySession.Current?.ReadRun())
-        && (IsRun ? WorldSessionState.Phase == WorldPhase.Run : WorldSessionState.IsHideout);
+        && (IsRun ? WorldSessionState.Phase == WorldPhase.Run : WorldSessionState.IsHideout)
+        && (!IsOutdoor || (OutdoorWorldSpawner.Current && OutdoorWorldSpawner.Current.SessionId == OutdoorSessionId));
 }

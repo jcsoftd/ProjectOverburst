@@ -10,11 +10,11 @@ public static class FlaskLootPolicy
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset() { catalog = null; gameplayCatalog = null; }
 
-    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
-        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent);
+    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
+        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent, maximumGrade);
 
     // 등급 값만 받는 굴림. 디버그 창의 드롭 모의가 EnemyRank 없이 같은 규칙을 쓴다(90C 7.5). 난수 순서는 위와 같다.
-    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
+    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
         if (GameplayCatalog.Length == 0) return null;
         bool boss = gradeType == EnemyGradeType.Boss;
@@ -24,19 +24,19 @@ public static class FlaskLootPolicy
         float chanceRoll = Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         float roll = Random.value;
-        ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
+        ItemGrade grade = SelectGrade(roll, mapLevel, boss, elite, rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         return new ItemData(GameplayCatalog[Random.Range(0, GameplayCatalog.Length)],
             itemLevel, grade);
     }
 
     // Later dungeon tiers unlock artifact/mythic; starter-zone farming cannot supply them.
-    public static ItemGrade SelectGrade(float roll, int difficulty, bool boss, bool elite, float rareGradePercent = 0, float mapBias = 0)
+    public static ItemGrade SelectGrade(float roll, int difficulty, bool boss, bool elite, float rareGradePercent = 0, float mapBias = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
         float[] weights = boss ? new[] { 0f, 0f, 45f, 35f, 17f, 2.5f, .5f }
             : elite ? new[] { 10f, 30f, 40f, 16f, 3.7f, .28f, .02f }
             : new[] { 45f, 32f, 18f, 4.5f, .49f, .009f, .001f };
         int max = difficulty >= 25 ? 6 : difficulty >= 18 ? 5 : difficulty >= 10 ? 4 : difficulty >= 5 ? 3 : 2;
-        return BagFarmingLoot.SelectGrade(roll, weights, max, rareGradePercent, mapBias);
+        return BagFarmingLoot.SelectGrade(roll, weights, Mathf.Min(max, (int)maximumGrade), rareGradePercent, mapBias);
     }
 }

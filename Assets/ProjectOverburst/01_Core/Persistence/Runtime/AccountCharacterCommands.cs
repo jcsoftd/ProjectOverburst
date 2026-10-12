@@ -106,6 +106,7 @@ namespace Overburst.Persistence
         private static void ApplyPersonal(AccountSnapshot target, AccountSnapshot source)
         {
             target.level = source.level; target.experience = source.experience;
+            target.unlockedWorldLevel = source.unlockedWorldLevel; target.appliedWorldLevel = source.appliedWorldLevel;
             target.inventoryCapacity = source.inventoryCapacity; target.unlockedSlots = source.unlockedSlots;
             target.baseUnlockedSlots = source.baseUnlockedSlots; target.bagExperienceCarry = source.bagExperienceCarry;
             target.bagGoldCarry = source.bagGoldCarry; target.activeWeaponSlot = source.activeWeaponSlot;

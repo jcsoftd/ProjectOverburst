@@ -1,0 +1,359 @@
+[
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0.733) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(228, 222, 206)",
+    "classes": "confirmation-scrim",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "confirmation-scrim",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 1080.0000152587909,
+      "width": 1920,
+      "x": 0,
+      "y": 0
+    },
+    "tag": "DIV",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgb(17, 18, 15) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "10px solid rgba(0, 0, 0, 0)",
+    "classes": "confirm-window native-window",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "confirm-window",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 430.0000241597524,
+      "width": 820.0000432332412,
+      "x": 550.0000089009613,
+      "y": 325.99433466521384
+    },
+    "tag": "SECTION",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgba(101, 81, 53, 0.333)",
+    "classes": "confirm-header",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 73.99148737481275,
+      "width": 800.0000406901094,
+      "x": 560.0000101725274,
+      "y": 335.99433593677975
+    },
+    "tag": "HEADER",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(217, 179, 87)",
+    "classes": "",
+    "color": "rgb(217, 179, 87)",
+    "font": "OBTitle",
+    "fontSize": "26px",
+    "id": "confirm-title",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 37.272728891083894,
+      "width": 158.7641650853685,
+      "x": 880.610829748895,
+      "y": 353.89204329071595
+    },
+    "tag": "H2",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) url(\"http://127.0.0.1:46369/assets/close-bg.png\") repeat scroll 50% 50% / 100% 100% padding-box border-box",
+    "backgroundImage": "url(\"http://127.0.0.1:46369/assets/close-bg.png\")",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(228, 222, 206)",
+    "classes": "close-button",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "close-confirm",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 35.994320677988775,
+      "width": 35.994320677988775,
+      "x": 1310.0142046628575,
+      "y": 347.9829544045708
+    },
+    "tag": "BUTTON",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(228, 222, 206)",
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 11.775569505763944,
+      "width": 11.775569505763944,
+      "x": 1322.1165011236192,
+      "y": 360.0852203477504
+    },
+    "tag": "IMG",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(228, 222, 206)",
+    "classes": "confirm-content",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 273.5227093407579,
+      "width": 800.0000406901094,
+      "x": 560.0000101725274,
+      "y": 409.985800423406
+    },
+    "tag": "DIV",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(224, 208, 174)",
+    "classes": "confirm-lead",
+    "color": "rgb(224, 208, 174)",
+    "font": "OBTitle",
+    "fontSize": "24px",
+    "id": "confirm-lead",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 34.54542980771762,
+      "width": 724.0057072964614,
+      "x": 597.9971463517693,
+      "y": 437.982965848664
+    },
+    "tag": "P",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0.909091px solid rgb(80, 70, 48)",
+    "classes": "confirm-range",
+    "color": "rgb(184, 172, 145)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 57.61364334279929,
+      "width": 724.0057072964614,
+      "x": 597.9971463517693,
+      "y": 490.5255445512828
+    },
+    "tag": "DIV",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(184, 172, 145)",
+    "classes": "",
+    "color": "rgb(184, 172, 145)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "id": "confirm-from",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 118.0823438113332,
+      "x": 823.3948800906983,
+      "y": 508.423282422801
+    },
+    "tag": "SPAN",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(219, 188, 127)",
+    "classes": "",
+    "color": "rgb(219, 188, 127)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "id": "confirm-to",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 137.13069370660065,
+      "x": 959.474426202701,
+      "y": 508.423282422801
+    },
+    "tag": "STRONG",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(176, 162, 135)",
+    "classes": "",
+    "color": "rgb(176, 162, 135)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "id": "confirm-description",
+    "lineHeight": "30.6px",
+    "rect": {
+      "height": 61.193187865344726,
+      "width": 724.0057072964614,
+      "x": 597.9971463517693,
+      "y": 568.1391713637252
+    },
+    "tag": "P",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(176, 162, 135)",
+    "classes": "",
+    "color": "rgb(176, 162, 135)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "id": "",
+    "lineHeight": "30.6px",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 0,
+      "x": 1119.5454304435004,
+      "y": 572.684643133118
+    },
+    "tag": "BR",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(170, 186, 148)",
+    "classes": "confirm-loot",
+    "color": "rgb(170, 186, 148)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 724.0057072964614,
+      "x": 597.9971463517693,
+      "y": 645.3266811786247
+    },
+    "tag": "P",
+    "text": ""
+  },
+  {
+    "align": "start",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(228, 222, 206)",
+    "classes": "confirm-actions",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "id": "",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 77.98295821926857,
+      "width": 800.0000406901094,
+      "x": 560.0000101725274,
+      "y": 683.5085097641639
+    },
+    "tag": "FOOTER",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(220, 201, 170)",
+    "classes": "native-button secondary",
+    "color": "rgb(220, 201, 170)",
+    "font": "OBTitle",
+    "fontSize": "17px",
+    "id": "cancel-apply",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 51.98864262754346,
+      "width": 180.0000228881865,
+      "x": 739.0057092038103,
+      "y": 683.5085097641639
+    },
+    "tag": "BUTTON",
+    "text": ""
+  },
+  {
+    "align": "center",
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borderRadius": "0px",
+    "borderTop": "0px none rgb(234, 214, 182)",
+    "classes": "native-button primary",
+    "color": "rgb(234, 214, 182)",
+    "font": "OBTitle",
+    "fontSize": "20px",
+    "id": "confirm-apply",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 51.98864262754346,
+      "width": 245.00001589457395,
+      "x": 935.9943206779888,
+      "y": 683.5085097641639
+    },
+    "tag": "BUTTON",
+    "text": ""
+  }
+]

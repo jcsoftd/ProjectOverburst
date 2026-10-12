@@ -12,6 +12,8 @@ namespace Overburst.Persistence
         public long nextAcquisitionOrder = 1;
         public int level = 1;
         public int experience;
+        public int unlockedWorldLevel = 1;
+        public int appliedWorldLevel = 1;
         public int inventoryCapacity = BagQuality.InventoryCapacity;
         public int bagExperienceCarry;
         public int bagGoldCarry;

@@ -77,7 +77,7 @@ public static class BagFarmingLoot
         }
     }
 
-    public static ItemData RollBag(EnemyRank rank, int level, ItemGrade mapGrade, float rarePercent)
+    public static ItemData RollBag(EnemyRank rank, int level, ItemGrade mapGrade, float rarePercent, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
         var definitions = Definitions;
         if (definitions == null || definitions.Length == 0) return null;
@@ -88,7 +88,7 @@ public static class BagFarmingLoot
         float chanceRoll = UnityEngine.Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         ItemGrade grade = FlaskLootPolicy.SelectGrade(UnityEngine.Random.value, level, boss, elite, rarePercent,
-            MapOptionPolicy.HighGradeRollBias(mapGrade));
+            MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
         var data = definitions.FirstOrDefault(x => x.defaultGrade == grade) ?? definitions[0];
         return new ItemData(data, level, grade);
     }

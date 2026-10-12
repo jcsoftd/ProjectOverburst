@@ -33,12 +33,14 @@ public static class MapDropPolicy
     }
 
     public static ItemData Roll(MapItemData definition, AccountContentRegistry registry,
-        int dungeonLevel, EnemyThemeTier tier, string runId)
+        int dungeonLevel, EnemyThemeTier tier, string runId, bool outdoor = false)
     {
-        if (definition == null || registry == null || string.IsNullOrEmpty(runId)
+        if (definition == null || registry == null || (!outdoor && string.IsNullOrEmpty(runId))
             || Random.value >= Mathf.Min(1f, Chance(tier) * (1f + MapRunBuffs.Bonus(MapBuffKind.ItemDrop)))) return null;
         int level = Random.Range(MinimumLevel(dungeonLevel, tier), MaximumLevel(dungeonLevel, tier) + 1);
         ItemGrade grade = ItemGradeAvailabilityPolicy.RollWeightedGrade();
+        if (outdoor && grade > ItemGrade.Legendary) grade = ItemGrade.Legendary;
+        if (outdoor) runId = null;
         return MapGenerationPolicy.CreateItem(definition, registry, level, grade, runId);
     }
 }

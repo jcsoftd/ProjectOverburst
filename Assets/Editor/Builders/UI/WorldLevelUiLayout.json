@@ -1,0 +1,4922 @@
+[
+  {
+    "background": "rgba(0, 0, 0, 0) url(\"http://127.0.0.1:46369/assets/native-window-artwork.png\") no-repeat scroll 50% 50% / calc(100% + 20px) calc(100% + 20px) border-box border-box",
+    "backgroundImage": "url(\"http://127.0.0.1:46369/assets/native-window-artwork.png\")",
+    "borders": [
+      "10px solid rgba(0, 0, 0, 0)",
+      "10px solid rgba(0, 0, 0, 0)",
+      "10px solid rgba(0, 0, 0, 0)",
+      "10px solid rgba(0, 0, 0, 0)"
+    ],
+    "classes": "world-window native-window",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "world-window",
+    "key": "world-window",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 915.9943181348568,
+      "width": 1560.0000762939549,
+      "x": 180.0000076293955,
+      "y": 81.98863499814796
+    },
+    "runs": [],
+    "src": null,
+    "tag": "SECTION",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "window-head",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-1",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 81.98863499814796,
+      "width": 1543.9772471081094,
+      "x": 188.01136118715428,
+      "y": 90.00000381469775
+    },
+    "runs": [],
+    "src": null,
+    "tag": "HEADER",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "head-title",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-6",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 61.946022281140934,
+      "width": 147.38632550383574,
+      "x": 886.3068143598956,
+      "y": 98.01421076637403
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(184, 161, 122)",
+      "0px none rgb(184, 161, 122)",
+      "0px none rgb(184, 161, 122)",
+      "0px none rgb(184, 161, 122)"
+    ],
+    "classes": "",
+    "color": "rgb(184, 161, 122)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-7",
+    "letterSpacing": "2px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 15.4545469862044,
+      "width": 147.38632550383574,
+      "x": 886.3068143598956,
+      "y": 98.01421076637403
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 15.454546032529962,
+          "width": 58.12500739097689,
+          "x": 930.9374963045116,
+          "y": 98.01421076637403
+        },
+        "text": "야외 사냥"
+      }
+    ],
+    "src": null,
+    "tag": "SMALL",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)"
+    ],
+    "classes": "",
+    "color": "rgb(217, 179, 87)",
+    "font": "OBTitle",
+    "fontSize": "34px",
+    "fontWeight": "600",
+    "id": "window-title",
+    "key": "window-title",
+    "letterSpacing": "4px",
+    "lineHeight": "42.5px",
+    "rect": {
+      "height": 42.50000540415515,
+      "width": 147.38632550383574,
+      "x": 886.3068143598956,
+      "y": 117.46022764335984
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 49.09090284867641,
+          "width": 147.38631024504474,
+          "x": 886.3068143598956,
+          "y": 113.82386701251563
+        },
+        "text": "월드레벨"
+      }
+    ],
+    "src": null,
+    "tag": "H1",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) url(\"http://127.0.0.1:46369/assets/close-bg.png\") repeat scroll 50% 50% / 100% 100% padding-box border-box",
+    "backgroundImage": "url(\"http://127.0.0.1:46369/assets/close-bg.png\")",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "button": "close-window",
+    "classes": "close-button",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "close-window",
+    "key": "close-window",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 35.99431304859327,
+      "width": 35.994320677988775,
+      "x": 1674.0057060248955,
+      "y": 110.00000635782958
+    },
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "button": "close-window",
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-10",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 11.775569505763944,
+      "width": 11.775569505763944,
+      "x": 1686.108002485657,
+      "y": 122.10227230100917
+    },
+    "runs": [],
+    "src": "assets/close-x.png",
+    "tag": "IMG",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0.909091px solid rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)"
+    ],
+    "classes": "character-strip",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-11",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 66.98862546140359,
+      "width": 1488.0114196791865,
+      "x": 215.9943206779888,
+      "y": 171.98863881284572
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "character-name",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-12",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.45454730409588,
+      "width": 92.3437464833255,
+      "x": 215.9943206779888,
+      "y": 192.301141395714
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "500",
+    "id": "character-name",
+    "key": "character-name",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.45454730409588,
+      "width": 36.30680927363195,
+      "x": 215.9943206779888,
+      "y": 192.301141395714
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 25.45454730409588,
+          "width": 36.306813088329704,
+          "x": 215.9943206779888,
+          "y": 192.301141395714
+        },
+        "text": "세린"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)"
+    ],
+    "classes": "",
+    "color": "rgb(215, 180, 119)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "character-level",
+    "key": "character-level",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 44.048299668413755,
+      "x": 264.2897674929005,
+      "y": 194.11931789643833
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818194302647186,
+          "width": 44.04831492720476,
+          "x": 264.2897674929005,
+          "y": 194.11931789643833
+        },
+        "text": "Lv.35"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)"
+    ],
+    "classes": "strip-stats",
+    "color": "rgb(163, 154, 137)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-15",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 311.8892303325946,
+      "x": 1268.281289199993,
+      "y": 194.11931789643833
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)"
+    ],
+    "classes": "",
+    "color": "rgb(163, 154, 137)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-16",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 118.21023536812278,
+      "x": 1268.281289199993,
+      "y": 194.11931789643833
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818194302647186,
+          "width": 71.0227141091301,
+          "x": 1268.281289199993,
+          "y": 194.11931789643833
+        },
+        "text": "현재 적용 "
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)"
+    ],
+    "classes": "",
+    "color": "rgb(219, 194, 143)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "500",
+    "id": "current-summary",
+    "key": "current-summary",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 39.19034311807545,
+      "x": 1347.3011967088314,
+      "y": 194.11931789643833
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818194302647186,
+          "width": 39.19031260049344,
+          "x": 1347.3011967088314,
+          "y": 194.11931789643833
+        },
+        "text": "1단계"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(82, 73, 51) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)"
+    ],
+    "classes": "",
+    "color": "rgb(163, 154, 137)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-18",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.997160338994387,
+      "width": 0.9943182540662452,
+      "x": 1406.4915118524566,
+      "y": 196.02273000370403
+    },
+    "runs": [],
+    "src": null,
+    "tag": "I",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)",
+      "0px none rgb(163, 154, 137)"
+    ],
+    "classes": "",
+    "color": "rgb(163, 154, 137)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-19",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 152.68466602130457,
+      "x": 1427.485777217328,
+      "y": 194.11931789643833
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818194302647186,
+          "width": 71.0227141091301,
+          "x": 1427.485777217328,
+          "y": 194.11931789643833
+        },
+        "text": "해금 완료 "
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)",
+      "0px none rgb(219, 194, 143)"
+    ],
+    "classes": "",
+    "color": "rgb(219, 194, 143)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "500",
+    "id": "unlock-summary",
+    "key": "unlock-summary",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 21.818182858553932,
+      "width": 73.66478140065274,
+      "x": 1506.5056847261662,
+      "y": 194.11931789643833
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818194302647186,
+          "width": 73.66480428883925,
+          "x": 1506.5056847261662,
+          "y": 194.11931789643833
+        },
+        "text": "4단계까지"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0.909091px solid rgba(0, 0, 0, 0)",
+      "0.909091px solid rgba(0, 0, 0, 0)",
+      "0.909091px solid rgba(0, 0, 0, 0)",
+      "0.909091px solid rgba(0, 0, 0, 0)"
+    ],
+    "classes": "character-ownership",
+    "color": "rgb(165, 152, 123)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-21",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 29.090911749637822,
+      "width": 97.84091667695576,
+      "x": 1606.16475501566,
+      "y": 190.48296489498964
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.27272253325431,
+          "width": 76.02271474491306,
+          "x": 1617.073936090334,
+          "y": 196.39205378113476
+        },
+        "text": "캐릭터별 기록"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "window-body",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-22",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 685.0142472603159,
+      "width": 1540.000073750823,
+      "x": 190.0000089009614,
+      "y": 238.9772642742493
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "npc-column",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-23",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 644.0341395103632,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 262.96875292062794
+    },
+    "runs": [],
+    "src": null,
+    "tag": "ASIDE",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(25, 26, 22) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "7.27273px solid rgba(0, 0, 0, 0)",
+      "7.27273px solid rgba(0, 0, 0, 0)",
+      "7.27273px solid rgba(0, 0, 0, 0)",
+      "7.27273px solid rgba(0, 0, 0, 0)"
+    ],
+    "classes": "npc-portrait",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-24",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 287.9971679683899,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 262.96875292062794
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-25",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 273.4516949274311,
+      "width": 285.4545040708547,
+      "x": 223.26705719846817,
+      "y": 270.2414894411074
+    },
+    "runs": [],
+    "src": "assets/npc-portrait-generated.png",
+    "tag": "IMG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) linear-gradient(rgba(0, 0, 0, 0) 74%, rgba(17, 17, 14, 0.533)) repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "linear-gradient(rgba(0, 0, 0, 0) 74%, rgba(17, 17, 14, 0.533))",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "portrait-vignette",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-26",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 273.4516949274311,
+      "width": 285.4545040708547,
+      "x": 223.26705719846817,
+      "y": 270.2414894411074
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "npc-name",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-27",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 71.17898701718482,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 548.9772426576287
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(169, 148, 109)",
+      "0px none rgb(169, 148, 109)",
+      "0px none rgb(169, 148, 109)",
+      "0px none rgb(169, 148, 109)"
+    ],
+    "classes": "",
+    "color": "rgb(169, 148, 109)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-28",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 51.860800661824626,
+      "x": 340.0568364533534,
+      "y": 554.4318331949657
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 51.860785403033624,
+          "x": 340.0568364533534,
+          "y": 554.4318331949657
+        },
+        "text": "순찰대장"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(223, 198, 155)",
+      "0px none rgb(223, 198, 155)",
+      "0px none rgb(223, 198, 155)",
+      "0px none rgb(223, 198, 155)"
+    ],
+    "classes": "",
+    "color": "rgb(223, 198, 155)",
+    "font": "OBTitle",
+    "fontSize": "30px",
+    "fontWeight": "600",
+    "id": "npc-title",
+    "key": "npc-title",
+    "letterSpacing": "4px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 42.72727746674569,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 577.4289674668588
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 42.72730035493219,
+          "width": 65.9659202532349,
+          "x": 333.0113643660691,
+          "y": 577.4289674668588
+        },
+        "text": "로웬"
+      }
+    ],
+    "src": null,
+    "tag": "H2",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(186, 177, 159)",
+      "0px none rgb(186, 177, 159)",
+      "0px none rgb(186, 177, 159)",
+      "0px none rgb(186, 177, 159)"
+    ],
+    "classes": "npc-dialogue",
+    "color": "rgb(186, 177, 159)",
+    "font": "OBTitle",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "id": "npc-dialogue",
+    "key": "npc-dialogue",
+    "letterSpacing": "normal",
+    "lineHeight": "28.8px",
+    "rect": {
+      "height": 57.99716542525805,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 638.1534014579012
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72723677663635,
+          "width": 182.5994494882519,
+          "x": 274.6875044107443,
+          "y": 640.8806967265697
+        },
+        "text": "“열어둔 길 중에서 골라봐."
+      },
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 218.45168793381856,
+          "x": 256.761354670379,
+          "y": 669.6590817335868
+        },
+        "text": "준비가 되면 다음 길을 맡기지.”"
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0.909091px solid rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)"
+    ],
+    "classes": "unlock-block",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-32",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 176.44887497569718,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 730.5539869377119
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)"
+    ],
+    "classes": "unlock-kicker",
+    "color": "rgb(183, 193, 152)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-33",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 753.451694927431
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)",
+      "0px none rgb(183, 193, 152)"
+    ],
+    "classes": "",
+    "color": "rgb(183, 193, 152)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "unlock-kicker",
+    "key": "unlock-kicker",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 114.70171288829968,
+      "x": 308.63636126662715,
+      "y": 753.451694927431
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 114.70170525890416,
+          "x": 308.63636126662715,
+          "y": 753.451694927431
+        },
+        "text": "다음 단계 해금 조건"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(216, 195, 149)",
+      "0px none rgb(216, 195, 149)",
+      "0px none rgb(216, 195, 149)",
+      "0px none rgb(216, 195, 149)"
+    ],
+    "classes": "",
+    "color": "rgb(216, 195, 149)",
+    "font": "OBTitle",
+    "fontSize": "20px",
+    "fontWeight": "600",
+    "id": "unlock-detail",
+    "key": "unlock-detail",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 28.181821591926777,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 779.6307143695468
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 28.181827313973404,
+          "width": 117.03126488129487,
+          "x": 307.4715967142228,
+          "y": 779.6307143695468
+        },
+        "text": "캐릭터 Lv.40"
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)"
+    ],
+    "button": "unlock-button",
+    "classes": "native-button primary",
+    "color": "rgba(234, 214, 182, 0.48)",
+    "font": "OBTitle",
+    "fontSize": "20px",
+    "fontWeight": "500",
+    "id": "unlock-button",
+    "key": "unlock-button",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 57.99716542525805,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 820.8096746838473
+    },
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)"
+    ],
+    "button": "unlock-button",
+    "classes": "",
+    "color": "rgba(234, 214, 182, 0.48)",
+    "font": "OBTitle",
+    "fontSize": "20px",
+    "fontWeight": "500",
+    "id": "unlock-button-text",
+    "key": "unlock-button-text",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 28.181821591926777,
+      "width": 139.90057626095788,
+      "x": 296.0369333949958,
+      "y": 835.7102503090223
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 28.181827313973404,
+          "width": 139.90059151974887,
+          "x": 296.0369333949958,
+          "y": 835.7102503090223
+        },
+        "text": "5단계 해금 대기"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(148, 136, 111)",
+      "0px none rgb(148, 136, 111)",
+      "0px none rgb(148, 136, 111)",
+      "0px none rgb(148, 136, 111)"
+    ],
+    "classes": "action-caption",
+    "color": "rgb(148, 136, 111)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "unlock-caption",
+    "key": "unlock-caption",
+    "letterSpacing": "normal",
+    "lineHeight": "18.2px",
+    "rect": {
+      "height": 18.19602434743555,
+      "width": 299.9999771118135,
+      "x": 215.9943206779888,
+      "y": 888.8068146777871
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 197.7698920911016,
+          "x": 267.10226785052845,
+          "y": 889.7159334457313
+        },
+        "text": "Lv.40을 달성한 뒤 다시 찾아와 주세요."
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "levels-column",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-39",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 644.0341395103632,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 262.96875292062794
+    },
+    "runs": [],
+    "src": null,
+    "tag": "SECTION",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)"
+    ],
+    "classes": "section-title",
+    "color": "rgb(215, 180, 119)",
+    "font": "OBTitle",
+    "fontSize": "23px",
+    "fontWeight": "600",
+    "id": "level-list-title",
+    "key": "level-list-title",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 33.99147847385132,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 262.96875292062794
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 32.72726856578427,
+          "width": 96.00849609483032,
+          "x": 541.9886553432026,
+          "y": 263.59375300010083
+        },
+        "text": "사냥 단계 "
+      }
+    ],
+    "src": null,
+    "tag": "H2",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(140, 128, 107)",
+      "0px none rgb(140, 128, 107)",
+      "0px none rgb(140, 128, 107)",
+      "0px none rgb(140, 128, 107)"
+    ],
+    "classes": "",
+    "color": "rgb(140, 128, 107)",
+    "font": "OBBody",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-41",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 66.73296441815242,
+      "x": 1043.2669783613812,
+      "y": 271.3210183869703
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 66.73304071210742,
+          "x": 1043.2669783613812,
+          "y": 271.3210183869703
+        },
+        "text": "전체 10단계"
+      }
+    ],
+    "src": null,
+    "tag": "SMALL",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)"
+    ],
+    "classes": "list-head",
+    "color": "rgb(143, 133, 113)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-42",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 30.00000190734887,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 310.95169969580326
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)"
+    ],
+    "classes": "",
+    "color": "rgb(143, 133, 113)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-43",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 140.00001780192284,
+      "x": 557.982920072291,
+      "y": 310.95169969580326
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 48.409124807882286,
+          "x": 557.982920072291,
+          "y": 310.95169969580326
+        },
+        "text": "월드레벨"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)"
+    ],
+    "classes": "",
+    "color": "rgb(143, 133, 113)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-44",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 270.02838516596285,
+      "x": 707.9829391457798,
+      "y": 310.95169969580326
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 63.920479319315504,
+          "x": 707.9829391457798,
+          "y": 310.95169969580326
+        },
+        "text": "몬스터 레벨"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)",
+      "0px none rgb(143, 133, 113)"
+    ],
+    "classes": "",
+    "color": "rgb(143, 133, 113)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-45",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 105.9943295789502,
+      "x": 988.0113561008906,
+      "y": 310.95169969580326
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 24.20447085119513,
+          "x": 1028.906258761884,
+          "y": 310.95169969580326
+        },
+        "text": "상태"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "level-list",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "level-list",
+    "key": "level-list",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 495.86651813081335,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 340.95170351050103
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)"
+    ],
+    "button": "",
+    "classes": "level-row current",
+    "color": "rgb(217, 225, 188)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-47",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 340.95170351050103
+    },
+    "row": "1",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-48",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 352.5852193940759
+    },
+    "row": "1",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.81817904385618,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 353.03977877804806
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-49",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 352.5852193940759
+    },
+    "row": "1",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 8.52270616184313,
+          "x": 559.9857889793127,
+          "y": 352.5852193940759
+        },
+        "text": "1"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)",
+      "0px none rgb(217, 225, 188)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(217, 225, 188)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-50",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 353.4943076444381
+    },
+    "row": "1",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 64.88636078978993,
+          "x": 709.9858080528015,
+          "y": 353.4943076444381
+        },
+        "text": "Lv.1 – 10"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)"
+    ],
+    "button": "",
+    "classes": "status-chip current",
+    "color": "rgb(184, 162, 118)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-51",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 350.95170478206694
+    },
+    "row": "1",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 48.125006119410976,
+          "x": 1017.9403149846796,
+          "y": 356.22160291310666
+        },
+        "text": "현재 적용"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "level-row unlocked",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-52",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 390.93751919269806
+    },
+    "row": "2",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-53",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 402.57103507627295
+    },
+    "row": "2",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818209561438188,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 403.02556394266304
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-54",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 402.57103507627295
+    },
+    "row": "2",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72726729421835,
+          "width": 11.306825168205918,
+          "x": 559.9857889793127,
+          "y": 402.57103507627295
+        },
+        "text": "2"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-55",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 403.4801233266351
+    },
+    "row": "2",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.90909079349401,
+          "width": 75.3551121209605,
+          "x": 709.9858080528015,
+          "y": 403.4801233266351
+        },
+        "text": "Lv.11 – 20"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)"
+    ],
+    "button": "",
+    "classes": "status-chip unlocked",
+    "color": "rgb(184, 162, 118)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-56",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 400.937520464264
+    },
+    "row": "2",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.454561291320964,
+          "width": 48.125006119410976,
+          "x": 1017.9403149846796,
+          "y": 406.2073880777217
+        },
+        "text": "해금 완료"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "level-row unlocked",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-57",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99429524667043,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 440.92330435731304
+    },
+    "row": "3",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-58",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727246313380725,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 452.556820240888
+    },
+    "row": "3",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818148526274175,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 453.01137962486007
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-59",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727246313380725,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 452.556820240888
+    },
+    "row": "3",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72726729421835,
+          "width": 11.860780316769958,
+          "x": 559.9857889793127,
+          "y": 452.556820240888
+        },
+        "text": "3"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-60",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909065997958628,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 453.46590849125016
+    },
+    "row": "3",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.90909079349401,
+          "width": 79.78693641496486,
+          "x": 709.9858080528015,
+          "y": 453.46590849125016
+        },
+        "text": "Lv.21 – 30"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)"
+    ],
+    "button": "",
+    "classes": "status-chip unlocked",
+    "color": "rgb(184, 162, 118)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-61",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.9942927035386,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 450.92330562887895
+    },
+    "row": "3",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.454500256156953,
+          "width": 48.125006119410976,
+          "x": 1017.9403149846796,
+          "y": 456.1932037599187
+        },
+        "text": "해금 완료"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "level-row unlocked",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-62",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 490.9090895219281
+    },
+    "row": "4",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-63",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 502.54260540550297
+    },
+    "row": "4",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818148526274175,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 502.9971647894751
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)",
+      "0px none rgb(207, 179, 129)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(207, 179, 129)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-64",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 502.54260540550297
+    },
+    "row": "4",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 12.073854074332438,
+          "x": 559.9857889793127,
+          "y": 502.54260540550297
+        },
+        "text": "4"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)",
+      "0px none rgb(166, 155, 133)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(166, 155, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-65",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 503.45169365586514
+    },
+    "row": "4",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.90909079349401,
+          "width": 80.04261271700703,
+          "x": 709.9858080528015,
+          "y": 503.45169365586514
+        },
+        "text": "Lv.31 – 40"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)",
+      "0px none rgb(184, 162, 118)"
+    ],
+    "button": "",
+    "classes": "status-chip unlocked",
+    "color": "rgb(184, 162, 118)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-66",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 500.909090793494
+    },
+    "row": "4",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 48.125006119410976,
+          "x": 1017.9403149846796,
+          "y": 506.17895840695166
+        },
+        "text": "해금 완료"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)"
+    ],
+    "button": "",
+    "classes": "level-row locked selected",
+    "color": "rgb(192, 178, 149)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-67",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 540.894905204125
+    },
+    "row": "5",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(225, 194, 141)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-68",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 552.5283905701181
+    },
+    "row": "5",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818240079020192,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 552.982919436508
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)",
+      "0px none rgb(225, 194, 141)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(225, 194, 141)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-69",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 552.5283905701181
+    },
+    "row": "5",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 11.534120118982964,
+          "x": 559.9857889793127,
+          "y": 552.5283905701181
+        },
+        "text": "5"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)",
+      "0px none rgb(192, 178, 149)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(192, 178, 149)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-70",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 553.4375093380622
+    },
+    "row": "5",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909060275912,
+          "width": 80.00001017252734,
+          "x": 709.9858080528015,
+          "y": 553.4375093380622
+        },
+        "text": "Lv.41 – 50"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-71",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 550.894906475691
+    },
+    "row": "5",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45459180890297,
+          "width": 58.068122618118615,
+          "x": 1012.9687567353257,
+          "y": 556.1647435715666
+        },
+        "text": "Lv.40 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-row locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-72",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 590.8806903687401
+    },
+    "row": "6",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-73",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 602.514175734733
+    },
+    "row": "6",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.81817904385618,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 602.9687656362871
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-74",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 602.514175734733
+    },
+    "row": "6",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 11.8466201587194,
+          "x": 559.9857889793127,
+          "y": 602.514175734733
+        },
+        "text": "6"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-75",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 603.4232945026772
+    },
+    "row": "6",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 79.78693641496486,
+          "x": 709.9858080528015,
+          "y": 603.4232945026772
+        },
+        "text": "Lv.51 – 60"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-76",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 600.880691640306
+    },
+    "row": "6",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 57.542548820819704,
+          "x": 1013.2244330373678,
+          "y": 606.1505897713457
+        },
+        "text": "Lv.50 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-row locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-77",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 640.8664755333551
+    },
+    "row": "7",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-78",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 652.500021934512
+    },
+    "row": "7",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.81817904385618,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 652.9545508009021
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-79",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 652.500021934512
+    },
+    "row": "7",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72723677663635,
+          "width": 10.639222544253355,
+          "x": 559.9857889793127,
+          "y": 652.500021934512
+        },
+        "text": "7"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-80",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 653.4090796672922
+    },
+    "row": "7",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 78.46589132511028,
+          "x": 709.9858080528015,
+          "y": 653.4090796672922
+        },
+        "text": "Lv.61 – 70"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-81",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 650.866476804921
+    },
+    "row": "7",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 57.57105224241285,
+          "x": 1013.2102118441532,
+          "y": 656.1363749359607
+        },
+        "text": "Lv.60 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-row locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-82",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 690.8522606979701
+    },
+    "row": "8",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-83",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 702.4858070991271
+    },
+    "row": "8",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.81817904385618,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 702.9403359655172
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-84",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 702.4858070991271
+    },
+    "row": "8",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 11.747132841381434,
+          "x": 559.9857889793127,
+          "y": 702.4858070991271
+        },
+        "text": "8"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-85",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 703.3948648319073
+    },
+    "row": "8",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 78.7926125580613,
+          "x": 709.9858080528015,
+          "y": 703.3948648319073
+        },
+        "text": "Lv.71 – 80"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-86",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 700.852261969536
+    },
+    "row": "8",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 56.6477122812541,
+          "x": 1013.678961903758,
+          "y": 706.1221601005758
+        },
+        "text": "Lv.70 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-row locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-87",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 740.8381068977492
+    },
+    "row": "9",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-88",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 752.4715922637421
+    },
+    "row": "9",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.818240079020192,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 752.9261211301322
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-89",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 752.4715922637421
+    },
+    "row": "9",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 11.8466201587194,
+          "x": 559.9857889793127,
+          "y": 752.4715922637421
+        },
+        "text": "9"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-90",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 753.3807110316862
+    },
+    "row": "9",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909060275912,
+          "width": 79.75855506369973,
+          "x": 709.9858080528015,
+          "y": 753.3807110316862
+        },
+        "text": "Lv.81 – 90"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-91",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 750.8381081693151
+    },
+    "row": "9",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45459180890297,
+          "width": 57.528388662769146,
+          "x": 1013.2385931954184,
+          "y": 756.1079452651908
+        },
+        "text": "Lv.80 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-row locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-92",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 790.8238920623642
+    },
+    "row": "10",
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "level-number",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "18px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-93",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 140.00001780192284,
+      "x": 559.9857889793127,
+      "y": 802.4573774283571
+    },
+    "row": "10",
+    "runs": [
+      {
+        "rect": {
+          "height": 21.81817904385618,
+          "width": 31.122196340204408,
+          "x": 593.9772483796753,
+          "y": 802.9119673299111
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "19px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-94",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 22.727274923613855,
+      "width": 25.99432131377173,
+      "x": 559.9857889793127,
+      "y": 802.4573774283571
+    },
+    "row": "10",
+    "runs": [
+      {
+        "rect": {
+          "height": 22.72729781180036,
+          "width": 20.255678845174007,
+          "x": 559.9857889793127,
+          "y": 802.4573774283571
+        },
+        "text": "10"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "monster-range",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-95",
+    "letterSpacing": "0.35px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 269.01987063342676,
+      "x": 709.9858080528015,
+      "y": 803.3664961963012
+    },
+    "row": "10",
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 87.982982379021,
+          "x": 709.9858080528015,
+          "y": 803.3664961963012
+        },
+        "text": "Lv.91 – 100"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "button": "",
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-96",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 105.9943295789502,
+      "x": 989.0056799577942,
+      "y": 800.8238933339301
+    },
+    "row": "10",
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45453077373896,
+          "width": 57.7983471931899,
+          "x": 1013.0965643687648,
+          "y": 806.0937914649699
+        },
+        "text": "Lv.90 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "left"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(160, 147, 121)",
+      "0px none rgb(160, 147, 121)",
+      "0px none rgb(160, 147, 121)",
+      "0px none rgb(160, 147, 121)"
+    ],
+    "classes": "list-note",
+    "color": "rgb(160, 147, 121)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-103",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 568.0113637302861,
+      "x": 541.9886553432026,
+      "y": 851.8182235486632
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272707274463308,
+          "width": 238.5794981103895,
+          "x": 706.7045576355689,
+          "y": 851.8182235486632
+        },
+        "text": "단계를 선택한 뒤 오른쪽에서 적용해 주세요."
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "detail-column",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-104",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 644.0341395103632,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 262.96875292062794
+    },
+    "runs": [],
+    "src": null,
+    "tag": "SECTION",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)",
+      "0px none rgb(215, 180, 119)"
+    ],
+    "classes": "section-title",
+    "color": "rgb(215, 180, 119)",
+    "font": "OBTitle",
+    "fontSize": "23px",
+    "fontWeight": "600",
+    "id": "detail-title",
+    "key": "detail-title",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 33.99147847385132,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 262.96875292062794
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 32.72726856578427,
+          "width": 118.22450233771036,
+          "x": 1135.9942850741431,
+          "y": 263.59375300010083
+        },
+        "text": "선택한 단계 "
+      }
+    ],
+    "src": null,
+    "tag": "H2",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)",
+      "0px none rgb(127, 119, 98)"
+    ],
+    "classes": "status-chip locked",
+    "color": "rgb(127, 119, 98)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "detail-status",
+    "key": "detail-status",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 25.99432131377173,
+      "width": 78.06818619641446,
+      "x": 1625.9375846783428,
+      "y": 266.9602390238748
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 15.454561291320964,
+          "width": 58.068122618118615,
+          "x": 1635.937585949909,
+          "y": 272.2301066373325
+        },
+        "text": "Lv.40 필요"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) linear-gradient(135deg, rgba(50, 42, 27, 0.3), rgb(25, 27, 23)) repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "linear-gradient(135deg, rgba(50, 42, 27, 0.3), rgb(25, 27, 23))",
+    "borders": [
+      "0.909091px solid rgb(81, 71, 47)",
+      "0.909091px solid rgb(81, 71, 47)",
+      "0.909091px solid rgb(81, 71, 47)",
+      "0.909091px solid rgb(81, 71, 47)"
+    ],
+    "classes": "level-detail",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-107",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 117.9971692399558,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 310.95169969580326
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "level-emblem",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-108",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 87.99716542525805,
+      "width": 65.00000826517845,
+      "x": 1151.9033447142722,
+      "y": 325.9517016031522
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)",
+      "0px none rgb(217, 179, 87)"
+    ],
+    "classes": "",
+    "color": "rgb(217, 179, 87)",
+    "font": "OBTitle",
+    "fontSize": "42px",
+    "fontWeight": "600",
+    "id": "detail-stage",
+    "key": "detail-stage",
+    "letterSpacing": "normal",
+    "lineHeight": "42px",
+    "rect": {
+      "height": 42.002843475703365,
+      "width": 24.31818317644541,
+      "x": 1172.2442896835696,
+      "y": 343.664777585955
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 60.0000076293955,
+          "width": 24.31824039691167,
+          "x": 1172.2442896835696,
+          "y": 334.57386456475126
+        },
+        "text": "5"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(178, 154, 112)",
+      "0px none rgb(178, 154, 112)",
+      "0px none rgb(178, 154, 112)",
+      "0px none rgb(178, 154, 112)"
+    ],
+    "classes": "",
+    "color": "rgb(178, 154, 112)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "12px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-110",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 14.545455874818911,
+      "width": 20.752842680974663,
+      "x": 1174.0199246749785,
+      "y": 388.6647833080016
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 14.545442523376783,
+          "width": 20.752810256043784,
+          "x": 1174.0199246749785,
+          "y": 388.6647833080016
+        },
+        "text": "단계"
+      }
+    ],
+    "src": null,
+    "tag": "SMALL",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "level-summary",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-111",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 96.88921062332288,
+      "width": 210.1846733328086,
+      "x": 1239.9005482865075,
+      "y": 321.5056866335152
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(167, 150, 113)",
+      "0px none rgb(167, 150, 113)",
+      "0px none rgb(167, 150, 113)",
+      "0px none rgb(167, 150, 113)"
+    ],
+    "classes": "eyebrow",
+    "color": "rgb(167, 150, 113)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-112",
+    "letterSpacing": "1px",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 83.02557665832222,
+      "x": 1239.9005482865075,
+      "y": 327.8693349036325
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272707274463308,
+          "width": 83.02564532288174,
+          "x": 1239.9005482865075,
+          "y": 327.8693349036325
+        },
+        "text": "야외 월드레벨"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(225, 201, 155)",
+      "0px none rgb(225, 201, 155)",
+      "0px none rgb(225, 201, 155)",
+      "0px none rgb(225, 201, 155)"
+    ],
+    "classes": "",
+    "color": "rgb(225, 201, 155)",
+    "font": "OBTitle",
+    "fontSize": "26px",
+    "fontWeight": "600",
+    "id": "detail-monsters",
+    "key": "detail-monsters",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 37.272728891083894,
+      "width": 210.1846733328086,
+      "x": 1239.9005482865075,
+      "y": 353.9488670284102
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 37.27274033517715,
+          "width": 210.1847191091816,
+          "x": 1239.9005482865075,
+          "y": 353.9488670284102
+        },
+        "text": "몬스터 Lv.41 – 50"
+      }
+    ],
+    "src": null,
+    "tag": "H3",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(159, 147, 124)",
+      "0px none rgb(159, 147, 124)",
+      "0px none rgb(159, 147, 124)",
+      "0px none rgb(159, 147, 124)"
+    ],
+    "classes": "",
+    "color": "rgb(159, 147, 124)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "detail-requirement",
+    "key": "detail-requirement",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 210.1846733328086,
+      "x": 1239.9005482865075,
+      "y": 400.2130635850351
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 165.07106591174644,
+          "x": 1239.9005482865075,
+          "y": 400.2130635850351
+        },
+        "text": "캐릭터 Lv.40부터 해금 가능"
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(21, 22, 19) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0.909091px solid rgb(67, 61, 45)",
+      "0.909091px solid rgb(67, 61, 45)",
+      "0.909091px solid rgb(67, 61, 45)"
+    ],
+    "classes": "comparison",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-115",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 101.93179854479452,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 428.9488765651546
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-116",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 75.0283908880095,
+      "width": 125.99433212208204,
+      "x": 1163.8919936996451,
+      "y": 441.94604008306374
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)"
+    ],
+    "classes": "",
+    "color": "rgb(163, 148, 121)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-117",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 125.99433212208204,
+      "x": 1163.8919936996451,
+      "y": 441.94604008306374
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 51.81812182338992,
+          "x": 1200.980133181271,
+          "y": 441.94604008306374
+        },
+        "text": "현재 적용"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(222, 208, 172)",
+      "0px none rgb(222, 208, 172)",
+      "0px none rgb(222, 208, 172)",
+      "0px none rgb(222, 208, 172)"
+    ],
+    "classes": "",
+    "color": "rgb(222, 208, 172)",
+    "font": "OBTitle",
+    "fontSize": "23px",
+    "fontWeight": "600",
+    "id": "from-stage",
+    "key": "from-stage",
+    "letterSpacing": "normal",
+    "lineHeight": "27.6px",
+    "rect": {
+      "height": 27.585202863719033,
+      "width": 125.99433212208204,
+      "x": 1163.8919936996451,
+      "y": 465.2130718502136
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 32.72723804820227,
+          "width": 55.21314178633903,
+          "x": 1199.275543120771,
+          "y": 462.48580709912704
+        },
+        "text": "1단계"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)"
+    ],
+    "classes": "",
+    "color": "rgb(164, 154, 132)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "from-monsters",
+    "key": "from-monsters",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 125.99433212208204,
+      "x": 1163.8919936996451,
+      "y": 498.79260492866575
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 54.47437216114962,
+          "x": 1199.6449279333658,
+          "y": 498.79260492866575
+        },
+        "text": "Lv.1 – 10"
+      }
+    ],
+    "src": null,
+    "tag": "SMALL",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-120",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 75.0283908880095,
+      "width": 125.99433212208204,
+      "x": 1550.1137224977776,
+      "y": 441.94604008306374
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)",
+      "0px none rgb(163, 148, 121)"
+    ],
+    "classes": "",
+    "color": "rgb(163, 148, 121)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "14px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-121",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.272728255300937,
+      "width": 125.99433212208204,
+      "x": 1550.1137224977776,
+      "y": 441.94604008306374
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 17.272737792045312,
+          "width": 63.920418284151495,
+          "x": 1581.1505916786946,
+          "y": 441.94604008306374
+        },
+        "text": "선택한 단계"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(223, 188, 125)",
+      "0px none rgb(223, 188, 125)",
+      "0px none rgb(223, 188, 125)",
+      "0px none rgb(223, 188, 125)"
+    ],
+    "classes": "",
+    "color": "rgb(223, 188, 125)",
+    "font": "OBTitle",
+    "fontSize": "23px",
+    "fontWeight": "600",
+    "id": "to-stage",
+    "key": "to-stage",
+    "letterSpacing": "normal",
+    "lineHeight": "27.6px",
+    "rect": {
+      "height": 27.585202863719033,
+      "width": 125.99433212208204,
+      "x": 1550.1137224977776,
+      "y": 465.2130718502136
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 32.72723804820227,
+          "width": 57.755744648710206,
+          "x": 1584.2329895315793,
+          "y": 462.48580709912704
+        },
+        "text": "5단계"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)",
+      "0px none rgb(164, 154, 132)"
+    ],
+    "classes": "",
+    "color": "rgb(164, 154, 132)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "to-monsters",
+    "key": "to-monsters",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 125.99433212208204,
+      "x": 1550.1137224977776,
+      "y": 498.79260492866575
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 67.50000858306994,
+          "x": 1579.3607965292354,
+          "y": 498.79260492866575
+        },
+        "text": "Lv.41 – 50"
+      }
+    ],
+    "src": null,
+    "tag": "SMALL",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "field-notes",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-124",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 201.70456971544516,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 553.8778170112377
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)"
+    ],
+    "classes": "",
+    "color": "rgb(193, 177, 140)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-125",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 553.8778170112377
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 92.31531935568738,
+          "x": 1138.9914778380682,
+          "y": 553.8778170112377
+        },
+        "text": "단계를 바꾸면"
+      }
+    ],
+    "src": null,
+    "tag": "H3",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(169, 157, 133)",
+      "0px none rgb(169, 157, 133)",
+      "0px none rgb(169, 157, 133)",
+      "0px none rgb(169, 157, 133)"
+    ],
+    "classes": "",
+    "color": "rgb(169, 157, 133)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-126",
+    "letterSpacing": "normal",
+    "lineHeight": "28.8px",
+    "rect": {
+      "height": 57.55682341980278,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 585.7812634507832
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 19.090944810351665,
+          "width": 223.36648348064213,
+          "x": 1138.9914778380682,
+          "y": 590.326674185012
+        },
+        "text": "현재 야외의 몬스터가 초기화됩니다."
+      },
+      {
+        "rect": {
+          "height": 19.090883775187653,
+          "width": 286.491491507402,
+          "x": 1138.9914778380682,
+          "y": 619.1051202271932
+        },
+        "text": "이후 진입한 구역에서 새 몬스터가 등장합니다."
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(64, 60, 45) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)"
+    ],
+    "classes": "field-rule",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-128",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 0.9943182540662452,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 659.332420264234
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)",
+      "0px none rgb(193, 177, 140)"
+    ],
+    "classes": "",
+    "color": "rgb(193, 177, 140)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "17px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-129",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 20.909092700842884,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 676.3210088502259
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 20.909121311076017,
+          "width": 96.4630249612204,
+          "x": 1138.9914778380682,
+          "y": 676.3210088502259
+        },
+        "text": "야외 사냥 규칙"
+      }
+    ],
+    "src": null,
+    "tag": "H3",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)"
+    ],
+    "classes": "rule-pair",
+    "color": "rgb(157, 147, 127)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-130",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 708.2244552897714
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)"
+    ],
+    "classes": "",
+    "color": "rgb(157, 147, 127)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-131",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 135.2841053370292,
+      "x": 1138.9914778380682,
+      "y": 708.2244552897714
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 135.28407481944717,
+          "x": 1138.9914778380682,
+          "y": 708.2244552897714
+        },
+        "text": "아이템 · 지도 최고 등급"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(201, 181, 136)",
+      "0px none rgb(201, 181, 136)",
+      "0px none rgb(201, 181, 136)",
+      "0px none rgb(201, 181, 136)"
+    ],
+    "classes": "",
+    "color": "rgb(201, 181, 136)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-132",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 25.937503298124096,
+      "x": 1675.0710137775438,
+      "y": 708.2244552897714
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 25.937503298124096,
+          "x": 1675.0710137775438,
+          "y": 708.2244552897714
+        },
+        "text": "전설"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)"
+    ],
+    "classes": "rule-pair",
+    "color": "rgb(157, 147, 127)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-133",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 562.0171002727636,
+      "x": 1138.9914778380682,
+      "y": 737.4006064606484
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)",
+      "0px none rgb(157, 147, 127)"
+    ],
+    "classes": "",
+    "color": "rgb(157, 147, 127)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-134",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 114.70171288829968,
+      "x": 1138.9914778380682,
+      "y": 737.4006064606484
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181765007243474,
+          "width": 114.70167474132217,
+          "x": 1138.9914778380682,
+          "y": 737.4006064606484
+        },
+        "text": "사망 시 획득 아이템"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(167, 183, 144)",
+      "0px none rgb(167, 183, 144)",
+      "0px none rgb(167, 183, 144)",
+      "0px none rgb(167, 183, 144)"
+    ],
+    "classes": "sage",
+    "color": "rgb(167, 183, 144)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "500",
+    "id": "",
+    "key": "node-135",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 25.937503298124096,
+      "x": 1675.0710137775438,
+      "y": 737.4006064606484
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181765007243474,
+          "width": 25.937503298124096,
+          "x": 1675.0710137775438,
+          "y": 737.4006064606484
+        },
+        "text": "유지"
+      }
+    ],
+    "src": null,
+    "tag": "STRONG",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)",
+      "0px none rgb(228, 222, 206)"
+    ],
+    "classes": "apply-block",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-136",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 120.96591961745192,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 786.0369651841437
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(177, 155, 124)",
+      "0px none rgb(177, 155, 124)",
+      "0px none rgb(177, 155, 124)",
+      "0px none rgb(177, 155, 124)"
+    ],
+    "classes": "apply-hint locked",
+    "color": "rgb(177, 155, 124)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "apply-hint",
+    "key": "apply-hint",
+    "letterSpacing": "normal",
+    "lineHeight": "22.5px",
+    "rect": {
+      "height": 33.99147847385132,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 803.0256148052997
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 245.86660841199344,
+          "x": 1297.0596131718462,
+          "y": 810.5823784615044
+        },
+        "text": "캐릭터 Lv.40이 필요합니다. (현재 Lv.35)"
+      }
+    ],
+    "src": null,
+    "tag": "P",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)"
+    ],
+    "button": "apply-button",
+    "classes": "native-button primary apply-button",
+    "color": "rgba(234, 214, 182, 0.48)",
+    "font": "OBTitle",
+    "fontSize": "22px",
+    "fontWeight": "500",
+    "id": "apply-button",
+    "key": "apply-button",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 57.99716542525805,
+      "width": 568.0114247654501,
+      "x": 1135.9942850741431,
+      "y": 846.00853042711
+    },
+    "runs": [],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)",
+      "0px none rgba(234, 214, 182, 0.48)"
+    ],
+    "button": "apply-button",
+    "classes": "",
+    "color": "rgba(234, 214, 182, 0.48)",
+    "font": "OBTitle",
+    "fontSize": "22px",
+    "fontWeight": "500",
+    "id": "apply-button-text",
+    "key": "apply-button-text",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 31.81818413011985,
+      "width": 104.57387346571268,
+      "x": 1367.7130645387094,
+      "y": 859.0909295515606
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 31.818180315422097,
+          "width": 104.57386583631715,
+          "x": 1367.7130645387094,
+          "y": 859.0909295515606
+        },
+        "text": "5단계 적용"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0.909091px solid rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)",
+      "0px none rgba(101, 81, 53, 0.333)"
+    ],
+    "classes": "window-foot",
+    "color": "rgb(228, 222, 206)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "21px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-141",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 63.99142888278057,
+      "width": 1488.0114196791865,
+      "x": 215.9943206779888,
+      "y": 923.9915115345652
+    },
+    "runs": [],
+    "src": null,
+    "tag": "FOOTER",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)"
+    ],
+    "classes": "key-hint",
+    "color": "rgb(146, 133, 110)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-142",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 23.267047025940833,
+      "width": 365.4971473054437,
+      "x": 215.9943206779888,
+      "y": 944.8010844931392
+    },
+    "runs": [],
+    "src": null,
+    "tag": "DIV",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(41, 37, 27) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0.909091px solid rgb(94, 82, 58)",
+      "0.909091px solid rgb(94, 82, 58)",
+      "0.909091px solid rgb(94, 82, 58)",
+      "0.909091px solid rgb(94, 82, 58)"
+    ],
+    "classes": "",
+    "color": "rgb(205, 185, 142)",
+    "font": "OBBody",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-143",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 23.267047025940833,
+      "width": 36.94601147283064,
+      "x": 215.9943206779888,
+      "y": 944.8010844931392
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 15.45459180890297,
+          "width": 21.15054590232161,
+          "x": 223.89205727794103,
+          "y": 948.7073349898446
+        },
+        "text": "Esc"
+      }
+    ],
+    "src": null,
+    "tag": "KBD",
+    "textAlign": "center"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)"
+    ],
+    "classes": "",
+    "color": "rgb(146, 133, 110)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-144",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 25.937503298124096,
+      "x": 262.9403410517808,
+      "y": 947.3437483906744
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 25.937503298124096,
+          "x": 262.9403410517808,
+          "y": 947.3437483906744
+        },
+        "text": "닫기"
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgb(82, 73, 51) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)"
+    ],
+    "classes": "",
+    "color": "rgb(146, 133, 110)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-145",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 17.997160338994387,
+      "width": 0.9943182540662452,
+      "x": 306.8750085035971,
+      "y": 947.4289534796336
+    },
+    "runs": [],
+    "src": null,
+    "tag": "I",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)",
+      "0px none rgb(146, 133, 110)"
+    ],
+    "classes": "",
+    "color": "rgb(146, 133, 110)",
+    "font": "OBBody, \"Malgun Gothic\", sans-serif",
+    "fontSize": "15px",
+    "fontWeight": "400",
+    "id": "",
+    "key": "node-146",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 18.18182032036086,
+      "width": 255.62500198682173,
+      "x": 325.86646599661077,
+      "y": 947.3437483906744
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 18.181826042407486,
+          "width": 255.62500198682173,
+          "x": 325.86646599661077,
+          "y": 947.3437483906744
+        },
+        "text": "해금과 적용은 로웬에게 요청할 수 있습니다."
+      }
+    ],
+    "src": null,
+    "tag": "SPAN",
+    "textAlign": "start"
+  },
+  {
+    "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+    "backgroundImage": "none",
+    "borders": [
+      "0px none rgb(220, 201, 170)",
+      "0px none rgb(220, 201, 170)",
+      "0px none rgb(220, 201, 170)",
+      "0px none rgb(220, 201, 170)"
+    ],
+    "button": "leave-button",
+    "classes": "native-button secondary",
+    "color": "rgb(220, 201, 170)",
+    "font": "OBTitle",
+    "fontSize": "17px",
+    "fontWeight": "500",
+    "id": "leave-button",
+    "key": "leave-button",
+    "letterSpacing": "normal",
+    "lineHeight": "normal",
+    "rect": {
+      "height": 45.99432194955469,
+      "width": 161.9886528000708,
+      "x": 1542.0170417807317,
+      "y": 933.437496622403
+    },
+    "runs": [
+      {
+        "rect": {
+          "height": 24.545413277360694,
+          "width": 87.38636365081325,
+          "x": 1579.3181939847557,
+          "y": 944.1619242556158
+        },
+        "text": "대화 마치기"
+      }
+    ],
+    "src": null,
+    "tag": "BUTTON",
+    "textAlign": "center"
+  }
+]

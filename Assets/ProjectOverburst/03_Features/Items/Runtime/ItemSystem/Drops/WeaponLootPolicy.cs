@@ -30,10 +30,10 @@ public static class WeaponLootPolicy
         return catalogByLevel[OverburstGrowthRules.ClampLevel(level)];
     }
 
-    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
-        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent);
+    public static ItemData Roll(EnemyRank rank, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
+        => Roll(rank != null ? rank.GradeType : EnemyGradeType.Normal, mapLevel, mapGrade, rareGradePercent, maximumGrade);
 
-    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0)
+    public static ItemData Roll(EnemyGradeType gradeType, int mapLevel, ItemGrade mapGrade = ItemGrade.Common, float rareGradePercent = 0, ItemGrade maximumGrade = ItemGrade.Mythic)
     {
         int itemLevel = OverburstGrowthRules.ClampLevel(mapLevel);
         WeaponItemData[] items = DefinitionsForLevel(itemLevel);
@@ -45,7 +45,7 @@ public static class WeaponLootPolicy
         float chanceRoll = Random.value;
         if (effectiveChance <= 0f || (effectiveChance < 1f && chanceRoll >= effectiveChance)) return null;
         ItemGrade grade = FlaskLootPolicy.SelectGrade(Random.value, itemLevel, boss, elite,
-            rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade));
+            rareGradePercent, MapOptionPolicy.HighGradeRollBias(mapGrade), maximumGrade);
         return new ItemData(items[Random.Range(0, items.Length)], itemLevel, grade);
     }
 }

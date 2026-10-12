@@ -87,6 +87,17 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
 
         Vector3 dropOrigin;
         using (OriginMarker.Auto()) dropOrigin = GetDropOriginPosition(); // 드랍 기준점
+        if (encounter.IsOutdoor)
+        {
+            var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
+            var registry = Resources.Load<Overburst.Persistence.AccountContentRegistry>(Overburst.Persistence.AccountContentRegistry.ResourcePath);
+            var table = Resources.Load<EnemyThemeTable>("Enemies/Themes/Tables/GraveHunt");
+            var enemy = GetComponent<EnemyActor>();
+            var tier = EnemyThemeTier.Small;
+            if (table && enemy)
+                foreach (var entry in table.Entries) if (entry.definition == enemy.Definition) { tier = entry.tier; break; }
+            DropFarmingItem(MapDropPolicy.Roll(definition, registry, encounter.MapLevel, tier, null, outdoor: true), dropOrigin + dropOffset + Vector3.forward * .7f);
+        }
         if (MapFarmingLoot.Applies(encounter.Map))
         {
             var rank = GetComponent<EnemyRank>();
@@ -96,15 +107,16 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
                 DropFarmingItem(MapFarmingLoot.Roll((MapFarmingKind)kind, grade, encounter.Map, rarePercent),
                     dropOrigin + dropOffset + GetScatterOffset(kind, 5));
         }
-        else if (encounter.IsRun)
+        else if (encounter.IsRun || encounter.IsOutdoor)
         {
             EnemyRank rank = GetComponent<EnemyRank>();
             float rarePercent = BagQuality.EquippedBonus(BagStat.RareGradeWeight);
-            DropFarmingItem(FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset);
-            DropFarmingItem(ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.forward * .35f);
-            DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.right * .35f);
-            DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.left * .35f);
-            DropFarmingItem(WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent), dropOrigin + dropOffset + Vector3.back * .35f);
+            var maximum = encounter.IsOutdoor ? ItemGrade.Legendary : ItemGrade.Cursed;
+            DropFarmingItem(FlaskLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset);
+            DropFarmingItem(ElementGemLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.forward * .35f);
+            DropFarmingItem(GearLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.right * .35f);
+            DropFarmingItem(BagFarmingLoot.RollBag(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.left * .35f);
+            DropFarmingItem(WeaponLootPolicy.Roll(rank, encounter.MapLevel, encounter.MapGrade, rarePercent, maximum), dropOrigin + dropOffset + Vector3.back * .35f);
         }
 
         if (dropTable == null)
@@ -126,6 +138,8 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     {
         if (item == null) return;
         if (item.baseData is CurrencyItemData currency && currency.currencyType == CurrencyType.Gold) return;
+        // Authored tables can contain a fixed-grade definition. Never relabel its roll as a lower grade.
+        if (encounter.IsOutdoor && item.grade > ItemGrade.Legendary) return;
         position = ConstrainCaveDrop(position);
         WorldItemPickup pickup = WorldItemDropFactory.CreateWorldPickup(StampLoot(item), position, targetInventory, player, pickupGradeVfxSet);
         if (pickup == null || !encounter.IsRun || !BagFarmingLoot.Eligible(item.baseData)) return;
@@ -143,7 +157,7 @@ public class EnemyLootDropper : MonoBehaviour // 적 드랍
     private ItemData StampLoot(ItemData item)
     {
         if (item == null) return null;
-        item.level = encounter.MapLevel;
+        item.level = encounter.IsOutdoor && item.mapState != null ? item.mapState.level : encounter.MapLevel;
         item.originRunId = encounter.RunId;
         return item;
     }

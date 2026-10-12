@@ -27,6 +27,8 @@ namespace Overburst.Persistence
         public int BaseUnlockedSlots => transactions.BaseUnlockedSlots;
         public long PersistedRevision => transactions.PersistedRevision;
         public bool HasPendingSave => transactions.HasPendingSave;
+        public int AppliedWorldLevel => transactions.CurrentForCurrencyCapture.appliedWorldLevel;
+        public string ActiveCharacterId => transactions.CurrentForCurrencyCapture.activeCharacterId;
         public bool FlushPendingSave() => !editing && !restoring && transactions.FlushPendingSave();
         public AccountSnapshot Read() => transactions.Read();
         public List<QuestSnapshot> ReadQuests() => transactions.ReadQuests();
@@ -34,6 +36,32 @@ namespace Overburst.Persistence
         public CharacterAppearanceSnapshot ReadAppearance() => transactions.ReadAppearance();
         public event Action<CharacterAppearanceSnapshot> AppearanceCommitted;
         public string AppearanceProjectionError { get; private set; }
+
+        public bool UnlockWorldLevels(long expectedRevision) => CommitWorldLevel(expectedRevision, null);
+        public bool ApplyWorldLevel(long expectedRevision, int stage) => CommitWorldLevel(expectedRevision, stage);
+
+        private bool CommitWorldLevel(long expectedRevision, int? stage)
+        {
+            if (!WorldSessionState.IsHideout) throw new InvalidOperationException("마을에서 변경할 수 있습니다.");
+            if (editing || restoring) throw new InvalidOperationException("계정 작업이 진행 중입니다.");
+            EnsureProjectionReady();
+            if (expectedRevision != transactions.Revision) throw new InvalidOperationException("계정 상태가 변경됐습니다. 다시 선택해 주세요.");
+            var world = transactions.CurrentForCurrencyCapture;
+            if (stage.HasValue)
+            {
+                if (stage.Value < 1 || stage.Value > world.unlockedWorldLevel) throw new InvalidOperationException("해금한 단계만 적용할 수 있습니다.");
+                if (stage.Value == world.appliedWorldLevel) return false;
+            }
+            else if (AccountWorldLevelCommands.EligibleStage(world.level) <= world.unlockedWorldLevel) return false;
+            editing = true;
+            try
+            {
+                return transactions.Execute(Guid.NewGuid().ToString("N"), expectedRevision,
+                    candidate => { if (stage.HasValue) AccountWorldLevelCommands.Apply(candidate, stage.Value);
+                        else AccountWorldLevelCommands.Unlock(candidate); }, saveImmediately: true);
+            }
+            finally { editing = false; }
+        }
 
         public bool ApplyAppearance(CharacterAppearanceSnapshot expected, CharacterAppearanceSnapshot next)
         {
