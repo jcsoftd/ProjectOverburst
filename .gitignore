@@ -239,3 +239,7 @@ Assets/StreamingAssets/aa/
 # Licensed level-up sound mix; restore approved WAV and original meta from private LevelUpFeedback recovery.
 /Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav
 /Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav.meta
+
+# Licensed player-death sound mix; restore private PlayerDeath recovery with original meta.
+/Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav
+/Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav.meta

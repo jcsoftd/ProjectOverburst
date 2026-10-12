@@ -789,7 +789,7 @@ public sealed class PersistentSceneFlow : MonoBehaviour // 씬 전환 허브
         try { close(); } catch (System.Exception error) { Debug.LogException(error); }
     }
 
-    private static void ClosePersistentUiForSceneSwitch()
+    internal static void ClosePersistentUiForSceneSwitch()
     {
         foreach (ShopUI ui in FindObjectsByType<ShopUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             if (ui != null) CloseOwnedUi(ui.Close);

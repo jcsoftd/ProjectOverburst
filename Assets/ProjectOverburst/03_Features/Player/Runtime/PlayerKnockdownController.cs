@@ -173,6 +173,17 @@ public sealed class PlayerKnockdownController : MonoBehaviour
 
     private void Update()
     {
+        if (deathPose)
+        {
+            if (health == null || !health.IsDead) { ResetReaction(); return; }
+            elapsed += Time.deltaTime;
+            if (elapsed >= motion.clip.length)
+            {
+                animator.SetFloat(PlayerKnockdownAnimationSet.HoldTimeParameter, .9999f);
+                animator.Play(Animator.StringToHash(PlayerKnockdownAnimationSet.HoldState), layer, .9999f);
+            }
+            return;
+        }
         if (!IsActive) return;
         if (equipment != null && equipment.CurrentWeaponRoot != weaponAtStart) { ResetReaction(); return; }
         if (health == null || health.IsDead || health.CurrentHp <= 0 || animator == null || !animator.isActiveAndEnabled
@@ -305,7 +316,8 @@ public sealed class PlayerKnockdownController : MonoBehaviour
     }
     private void ReleaseReaction()
     {
-        bool wasActive = IsActive;
+        bool wasActive = IsActive || deathPose;
+        deathPose = false;
         Phase = PlayerKnockdownPhase.Ready;
         if (wasActive && visualRoot != null) visualRoot.localRotation = visualRotation;
         if (animator != null && layer >= 0 && layer < animator.layerCount) animator.SetLayerWeight(layer, 0);
@@ -317,5 +329,19 @@ public sealed class PlayerKnockdownController : MonoBehaviour
         PendingEvadeRise = IsEvadeRise = false;
         riseTravelInput = Vector2.zero;
         exiting = false;
+    }
+
+    private bool deathPose;
+    public float BeginDeathPose()
+    {
+        ResetReaction(); Resolve();
+        var fall = animationSet != null ? animationSet.SelectFall(0) : null;
+        if (fall == null || !PrepareAnimator(fall.clip)) return 1.35f;
+        motion = fall; elapsed = 0; deathPose = true; visualRoot = null;
+        router?.SuspendForKnockdown(true);
+        ApplyClip(animationSet.fallTemplate, fall.clip);
+        animator.SetLayerWeight(layer, 1);
+        animator.Play(Animator.StringToHash(PlayerKnockdownAnimationSet.FallState), layer, 0);
+        return Mathf.Max(1.35f, fall.clip.length + .05f);
     }
 }
