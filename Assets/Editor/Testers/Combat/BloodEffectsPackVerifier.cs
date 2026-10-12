@@ -9,8 +9,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
@@ -75,10 +73,10 @@ public static class BloodEffectsPackVerifier
         Check(catalog.screenSprite!=null && catalog.screenMaterials.Length==4,"pack screen sprite and 4 treatments loaded");
         foreach(var material in catalog.screenMaterials)
             Check(material!=null && material.shader.isSupported && !ShaderUtil.ShaderHasError(material.shader),"valid screen shader "+material.name);
-        var ui = AssetDatabase.LoadAssetAtPath<GameObject>(BloodEffectsPackBuilder.TogglePath).GetComponent<TemporaryBloodComparisonToggle>();
-        Check(ui.Button != null && ui.Caption != null && ui.ColorButton != null && ui.ColorCaption != null,"serialized comparison buttons and captions");
-        Check(ui.TuningButton && ui.ResetButton && ui.TuningPanel && ui.DecreaseButtons.Length==4 && ui.IncreaseButtons.Length==4 && ui.ValueCaptions.Length==4,"four serialized tuning rows and panel controls");
-        Check(ui.DecreaseButtons.All(b=>b) && ui.IncreaseButtons.All(b=>b) && ui.ValueCaptions.All(c=>c),"all tuning button and caption references loaded");
+        var ui = AssetDatabase.LoadAssetAtPath<GameObject>(OverburstGameMenuBuilder.PrefabPath).GetComponentInChildren<OverburstSettingsPanel>(true);
+        Check(ui != null && ui.bloodStyle != null && ui.bloodPalette != null,"formal settings expose blood style and palette");
+        Check(ui.bloodResetButton && ui.bloodRows.Length == 4,"formal settings expose four tuning rows and reset");
+        Check(ui.bloodRows.All(row => row && row.decrease && row.increase),"formal tuning buttons are connected");
         string path = Path.GetFullPath("../개인파일/코덱스산출/CombatVfx/20261004_BloodEffectsPackAB/data");
         Directory.CreateDirectory(path); File.WriteAllText(Path.Combine(path,"assets-result.json"),JsonConvert.SerializeObject(new {success=true,checks},Formatting.Indented));
         return "PASS " + checks.Count;
@@ -143,9 +141,7 @@ public static class BloodEffectsPackVerifier
         yield return Wait(2);
         blood=Object.FindFirstObjectByType<BloodHitVfxService>(); ground=Object.FindFirstObjectByType<BloodGroundDecalService>();
         player=PlayerInputFacade.Current.GetComponent<CombatHealth>();
-        var toggle=TemporaryBloodComparisonToggle.CreateForTesting();
-        Check(blood != null && ground != null && player != null && toggle != null,"product services, player and comparison HUD bootstrapped");
-        owned.Add(toggle.gameObject);
+        Check(blood != null && ground != null && player != null,"product blood services and player bootstrapped");
         float worldDeadline=Time.unscaledTime+60f;
         bool worldReady=false;
         while(Time.unscaledTime<worldDeadline)
@@ -171,9 +167,9 @@ public static class BloodEffectsPackVerifier
         so.FindProperty("profile").objectReferenceValue=profile;so.ApplyModifiedPropertiesWithoutUndo();
         foreach(bool pack in new[]{false,true}) foreach(bool red in new[]{false,true})
         {
-            if (BloodHitVfxService.PackEnabled != pack) Click(toggle.Button);
-            if (BloodHitVfxService.UniformRed != red) Click(toggle.ColorButton);
-            Check(BloodHitVfxService.PackEnabled == pack && BloodHitVfxService.UniformRed == red,"HUD switches effect and color independently");
+            if (BloodHitVfxService.PackEnabled != pack) OverburstGameSettings.BloodPack = pack;
+            if (BloodHitVfxService.UniformRed != red) OverburstGameSettings.BloodUniformRed = red;
+            Check(BloodHitVfxService.PackEnabled == pack && BloodHitVfxService.UniformRed == red,"saved settings switch effect and color independently");
             Check(blood.ActiveCount == 0 && ground.ActiveCount == 0,"switch clears mixed old marks and sprays");
             foreach(CombatImpactShape shape in Enum.GetValues(typeof(CombatImpactShape)))
             {
@@ -207,7 +203,7 @@ public static class BloodEffectsPackVerifier
             }
         }
         yield return Variety(profile,point);
-        yield return Adjustments(toggle,profile,point);
+        yield return Adjustments(profile,point);
         BloodHitVfxService.SetPackEnabled(true);BloodHitVfxService.SetUniformRed(false);
         int played=blood.PlayedCount;
         so.FindProperty("profile").objectReferenceValue=Resources.Load<BloodHitProfile>("Enemies/Themes/Blood/Bone");so.ApplyModifiedPropertiesWithoutUndo();
@@ -261,7 +257,7 @@ public static class BloodEffectsPackVerifier
         int count=blood.GetComponentsInChildren<ParticleSystem>(true).Length;
         yield return Wait(4.3f);Check(blood.ActiveCount==0,"all new spray leases expire");
         Check(blood.GetComponentsInChildren<ParticleSystem>(true).Length==count,"pool particle hierarchy does not grow");
-        Click(toggle.Button);Check(!BloodHitVfxService.PackEnabled && ground.ActiveCount==0,"return to A removes all B marks");
+        OverburstGameSettings.BloodPack=false;Check(!BloodHitVfxService.PackEnabled && ground.ActiveCount==0,"return to A removes all B marks");
         foreach(string name in new[]{"SpiderBrood","VenomBrood","PrimalHunt","CavernMutants","Rake"})
         {
             var theme=Resources.Load<BloodHitProfile>(name=="Rake"?"Enemies/Themes/Blood/Rake":"Combat/Blood/"+name);
@@ -294,13 +290,11 @@ public static class BloodEffectsPackVerifier
         if(pack)return blood.transform.Cast<Transform>().First(t=>t.name.StartsWith("Blood Pack ") && t.gameObject.activeSelf).localScale.x;
         return blood.GetComponentsInChildren<VisualEffect>().First(v=>v.gameObject.activeInHierarchy).GetFloat("HitSize");
     }
-    static IEnumerator Adjustments(TemporaryBloodComparisonToggle toggle,BloodHitProfile profile,Vector3 point)
+    static IEnumerator Adjustments(BloodHitProfile profile,Vector3 point)
     {
         foreach(bool pack in new[]{false,true})
         {
             BloodHitVfxService.SetPackEnabled(pack);BloodHitVfxService.SetUniformRed(false);BloodComparisonTuning.ResetCurrent();
-            if(!toggle.TuningPanel.activeSelf)Click(toggle.TuningButton);
-            Check(toggle.TuningPanel.activeSelf,"tuning panel opens "+pack);
             Check(Mathf.Approximately(BloodComparisonTuning.GroundBrightness,pack?.8f:1f),"floor default brightness aligned with spray "+pack);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,pack?1.5f:1f) && Mathf.Approximately(BloodComparisonTuning.SprayBrightness,pack?.8f:1f),"A/B initial scale and reduced B brightness "+pack);
             BloodHitVfxService.RequestAt(profile,point,Vector3.right,CombatImpactShape.Sweep,1f,1,targetId:7101);
@@ -308,23 +302,23 @@ public static class BloodEffectsPackVerifier
             var projector=ground.GetComponentsInChildren<DecalProjector>().First(p=>p.gameObject.activeInHierarchy);
             float originalScale=BloodComparisonTuning.Scale,originalAir=AirSize(pack);Vector3 originalFloor=projector.size;
             int materialCount=ground.MaterialVariantCount;
-            Click(toggle.IncreaseButtons[0]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale, 1);yield return Frames(2);
             Check(Mathf.Abs(BloodComparisonTuning.Scale-originalScale-.1f)<.0001f,"plus changes scale by exactly0.1 "+pack);
             float ratio=(originalScale+.1f)/originalScale;
             Check(Mathf.Abs(AirSize(pack)/originalAir-ratio)<.001f,"active spray size reaches A/B renderer "+pack);
             Check(Mathf.Abs(projector.size.x/originalFloor.x-ratio)<.001f && Mathf.Approximately(projector.size.z,originalFloor.z),"global scale updates existing floor XY and keeps depth "+pack);
-            Click(toggle.DecreaseButtons[0]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale, -1);yield return Frames(2);
             Check(Mathf.Abs(AirSize(pack)-originalAir)<.001f && Mathf.Abs(projector.size.x-originalFloor.x)<.001f,"scale down restores without cumulative drift "+pack);
-            Click(toggle.IncreaseButtons[2]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundScale, 1);yield return Frames(2);
             Check(Mathf.Abs(projector.size.x/originalFloor.x-1.1f)<.001f && Mathf.Abs(AirSize(pack)-originalAir)<.001f,"floor scale changes marks independently "+pack);
-            Click(toggle.DecreaseButtons[2]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundScale, -1);yield return Frames(2);
             Color initial=GroundTint(projector);
-            Click(toggle.IncreaseButtons[3]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundBrightness, 1);yield return Frames(2);
             Color brighter=GroundTint(projector);
             Check(brighter.r>initial.r && brighter.g>initial.g && brighter.b>initial.b,"floor brightness updates existing material "+pack);
-            Click(toggle.DecreaseButtons[3]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.GroundBrightness, -1);yield return Frames(2);
             Color floorBeforeAir=GroundTint(projector);
-            Click(toggle.DecreaseButtons[1]);yield return Frames(2);
+            BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.SprayBrightness, -1);yield return Frames(2);
             Check(GroundTint(projector)==floorBeforeAir,"spray brightness keeps floor tint "+pack);
             if(pack)
             {
@@ -338,21 +332,19 @@ public static class BloodEffectsPackVerifier
                 Check(Mathf.Abs(vfx.GetVector4("BloodColorMain").x-profile.mainColor.linear.r*.9f)<.0001f,"A brightness reaches graph vector");
             }
             Check(ground.MaterialVariantCount==materialCount,"live floor adjustment reuses cached materials "+pack);
-            Canvas.ForceUpdateCanvases();ScreenCapture.CaptureScreenshot(Path.Combine(output,(pack?"B":"A")+"_TuningHUD.png"));yield return Frames(1);
-            // UI rendering can outlast the original mark on a slow Editor frame.
+            // Refresh the mark before the tuned floor capture.
             ground.ClearForComparison();
             ground.Request(profile,point,Vector3.right,CombatImpactShape.Downward,1f,2,false,0f);
             yield return Frames(4);yield return Wait(.6f);
             Check(ground.ActiveCount>0,"fresh tuned floor visible for capture "+pack);
             Capture(point-Vector3.up*.6f,(pack?"B":"A")+"_TunedFloor");
-            Click(toggle.ResetButton);yield return Frames(2);
+            BloodComparisonTuning.ResetCurrent();yield return Frames(2);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,originalScale) && Mathf.Approximately(BloodComparisonTuning.GroundScale,1f),"current version reset restores defaults "+pack);
-            BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,.1f);Click(toggle.DecreaseButtons[0]);
+            BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,.1f);BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale, -1);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,.1f),"scale lower bound0.1 "+pack);
-            BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,4f);Click(toggle.IncreaseButtons[0]);
+            BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,4f);BloodComparisonTuning.Adjust(BloodComparisonTuning.Control.Scale, 1);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,4f),"scale upper bound4.0 "+pack);
-            Click(toggle.ResetButton);Click(toggle.TuningButton);
-            Check(!toggle.TuningPanel.activeSelf,"tuning panel closes "+pack);
+            BloodComparisonTuning.ResetCurrent();
         }
         BloodHitVfxService.SetPackEnabled(false);BloodComparisonTuning.Set(BloodComparisonTuning.Control.Scale,1.3f);
         BloodComparisonTuning.Set(BloodComparisonTuning.Control.GroundBrightness,.8f);
@@ -466,16 +458,6 @@ public static class BloodEffectsPackVerifier
         var old=RenderTexture.active;
         try {camera.Render();RenderTexture.active=texture;pixels.ReadPixels(new Rect(0,0,texture.width,texture.height),0,0);pixels.Apply();File.WriteAllBytes(Path.Combine(output,name+".png"),pixels.EncodeToPNG());}
         finally {RenderTexture.active=old;}
-    }
-    static void Click(Button button)
-    {
-        var corners=new Vector3[4];((RectTransform)button.transform).GetWorldCorners(corners);
-        var pointer=new PointerEventData(EventSystem.current){position=(corners[0]+corners[2])*.5f,button=PointerEventData.InputButton.Left};
-        var results=new List<RaycastResult>();EventSystem.current.RaycastAll(pointer,results);
-        Check(results.Count>0 && results[0].gameObject.GetComponentInParent<Button>()==button,"actual UI raycast reaches "+button.name);
-        ExecuteEvents.Execute(button.gameObject,pointer,ExecuteEvents.pointerDownHandler);
-        ExecuteEvents.Execute(button.gameObject,pointer,ExecuteEvents.pointerUpHandler);
-        ExecuteEvents.Execute(button.gameObject,pointer,ExecuteEvents.pointerClickHandler);
     }
     static void Finish(Exception error,bool exit)
     {

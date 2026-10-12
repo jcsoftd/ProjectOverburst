@@ -96,7 +96,7 @@ public static partial class SettingsPresentationVerifier
         if (File.Exists(Path.Combine(output,"only-c-ground"))) { yield return VerifyCGroundFixture(); yield break; }
         bool reload = File.Exists(Path.Combine(output, "expect-reload"));
         if (File.Exists(Path.Combine(output,"expect-c-reload"))) { CheckCReload(); OverburstGameSettings.BloodPack=true; }
-        Check(Object.FindFirstObjectByType<TemporaryBloodComparisonToggle>() == null, "temporary comparison HUD no longer auto creates");
+        Check(Resources.Load<GameObject>("Combat/VFX/PF_TemporaryBloodComparison") == null, "retired comparison HUD prefab is absent");
         Check(BloodHitVfxService.PackEnabled == reload && OverburstGameSettings.BloodPack == reload, "saved style applied at boot");
         CheckExclusivePools(Object.FindFirstObjectByType<BloodHitVfxService>(), reload, "saved boot");
         Check(OverburstGameSettings.BloodUniformRed == reload && BloodHitVfxService.UniformRed == reload, "saved palette applied at boot");

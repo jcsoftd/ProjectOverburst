@@ -1,18 +1,15 @@
 using System;
-using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.UI;
 
 public static class BloodEffectsPackBuilder
 {
     public const string Vendor = "Assets/ThirdParty/06_VFX/RVFX/BloodEffectsPack";
     public const string Root = "Assets/ProjectOverburst/Resources/Combat/BloodEffectsPack";
     public const string CatalogPath = "Assets/ProjectOverburst/Resources/Combat/BloodEffectsPackCatalog.asset";
-    public const string TogglePath = "Assets/ProjectOverburst/Resources/Combat/VFX/PF_TemporaryBloodComparison.prefab";
-    [MenuItem("OVERBURST/Combat/Blood Comparison/새 혈흔과 임시 비교 버튼 생성")]
+    [MenuItem("OVERBURST/Combat/Blood Comparison/새 혈흔 자산 생성")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -106,7 +103,7 @@ public static class BloodEffectsPackBuilder
         catalog.trailDecals = new[] { decals[8], decals[9] };
         BuildProfileShaders();
         BuildScreen(catalog);
-        EditorUtility.SetDirty(catalog); BuildToggle(); AssetDatabase.SaveAssetIfDirty(catalog);
+        EditorUtility.SetDirty(catalog); AssetDatabase.SaveAssetIfDirty(catalog);
     }
     // Keep the pack's texture relief and alpha, while profile RGB supplies the blood hue.
     [MenuItem("OVERBURST/Combat/Blood Comparison/A 색감 기준 셰이더 연결")]
@@ -177,79 +174,6 @@ public static class BloodEffectsPackBuilder
             EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
             catalog.screenMaterials[i] = material;
         }
-    }
-    [MenuItem("OVERBURST/Combat/Blood Comparison/임시 조절 UI 생성")]
-    public static void BuildToggle()
-    {
-        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
-            throw new InvalidOperationException("Idle Editor required");
-        var root = new GameObject("Temporary_BloodComparison", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        try
-        {
-            root.layer = 5;
-            root.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-            root.GetComponent<Canvas>().sortingOrder = 12063;
-            var scaler = root.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920,1080); scaler.matchWidthOrHeight = .5f;
-            var font = Resources.Load<TMP_FontAsset>("UI/Fonts/ProjectMT/FontAssets/TMP_SpoqaHanSansNeo_Body");
-            if (font == null) throw new InvalidOperationException("Project UI font missing");
-            var button = RunUiLayout.Button(root.transform, "BloodVersionToggle", "혈흔 A · 기존", font, null, 0, 0, 232, 40, null);
-            var rect = (RectTransform)button.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0,1); rect.anchoredPosition = new Vector2(16,-312);
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            button.GetComponentInChildren<TMP_Text>().fontSize = 19;
-            var so = new SerializedObject(root.AddComponent<TemporaryBloodComparisonToggle>());
-            so.FindProperty("button").objectReferenceValue = button;
-            so.FindProperty("caption").objectReferenceValue = button.GetComponentInChildren<TMP_Text>();
-            var colorButton = RunUiLayout.Button(root.transform, "BloodColorToggle", "색상 · 몬스터별 조정", font, null, 0, 0, 232, 40, null);
-            var colorRect = (RectTransform)colorButton.transform;
-            colorRect.anchorMin = colorRect.anchorMax = colorRect.pivot = new Vector2(0,1); colorRect.anchoredPosition = new Vector2(16,-360);
-            colorButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            colorButton.GetComponentInChildren<TMP_Text>().fontSize = 19;
-            so.FindProperty("colorButton").objectReferenceValue = colorButton;
-            so.FindProperty("colorCaption").objectReferenceValue = colorButton.GetComponentInChildren<TMP_Text>();
-            var tuningButton = RunUiLayout.Button(root.transform, "BloodTuningToggle", "크기 · 밝기 조절", font, null, 0, 0, 232, 32, null);
-            TopLeft(tuningButton, 16, -408); tuningButton.GetComponentInChildren<TMP_Text>().fontSize = 17;
-            tuningButton.navigation = new Navigation { mode = Navigation.Mode.None };
-            var panel = RunUiLayout.Image(root.transform, "BloodTuningPanel", null, new Color(.10f,.11f,.13f,.96f), 0, 0, 332, 224);
-            TopLeft(panel, 16, -448); panel.raycastTarget = true;
-            so.FindProperty("tuningButton").objectReferenceValue = tuningButton;
-            so.FindProperty("tuningPanel").objectReferenceValue = panel.gameObject;
-            string[] names = { "혈흔 크기", "비산 밝기", "바닥 크기", "바닥 밝기" };
-            var minus = so.FindProperty("decreaseButtons"); var plus = so.FindProperty("increaseButtons"); var values = so.FindProperty("valueCaptions");
-            minus.arraySize = plus.arraySize = values.arraySize = names.Length;
-            for (int i = 0; i < names.Length; i++)
-            {
-                float y = -12 - i * 40;
-                var label = RunUiLayout.Text(panel.transform, "Name" + i, names[i], font, 0, 0, 144, 34, 17, RunUiLayout.Ivory, TextAlignmentOptions.MidlineLeft);
-                TopLeft(label, 12, y);
-                var decrease = RunUiLayout.Button(panel.transform, "Decrease" + i, "-", font, null, 0, 0, 34, 34, null);
-                TopLeft(decrease, 166, y); decrease.navigation = new Navigation { mode = Navigation.Mode.None };
-                decrease.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(34,28);
-                var value = RunUiLayout.Text(panel.transform, "Value" + i, "1.0", font, 0, 0, 54, 34, 17, RunUiLayout.Ivory);
-                TopLeft(value, 210, y);
-                var increase = RunUiLayout.Button(panel.transform, "Increase" + i, "+", font, null, 0, 0, 34, 34, null);
-                TopLeft(increase, 274, y); increase.navigation = new Navigation { mode = Navigation.Mode.None };
-                increase.GetComponentInChildren<TMP_Text>().rectTransform.sizeDelta = new Vector2(34,28);
-                minus.GetArrayElementAtIndex(i).objectReferenceValue = decrease;
-                plus.GetArrayElementAtIndex(i).objectReferenceValue = increase;
-                values.GetArrayElementAtIndex(i).objectReferenceValue = value;
-            }
-            var reset = RunUiLayout.Button(panel.transform, "ResetTuning", "현재 버전 초기화", font, null, 0, 0, 308, 30, null);
-            TopLeft(reset, 12, -182); reset.GetComponentInChildren<TMP_Text>().fontSize = 16;
-            reset.navigation = new Navigation { mode = Navigation.Mode.None };
-            so.FindProperty("resetButton").objectReferenceValue = reset;
-            panel.gameObject.SetActive(false);
-            so.ApplyModifiedPropertiesWithoutUndo();
-            PrefabUtility.SaveAsPrefabAsset(root, TogglePath);
-        }
-        finally { UnityEngine.Object.DestroyImmediate(root); }
-    }
-    static void TopLeft(Component value, float x, float y)
-    {
-        var rect = (RectTransform)value.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0,1);
-        rect.anchoredPosition = new Vector2(x,y);
     }
     static void Folder(string path)
     {

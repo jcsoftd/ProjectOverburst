@@ -169,10 +169,6 @@ public static partial class SettingsPresentationVerifier
             yield return Click(panel.bloodResetButton);
             Check(Mathf.Approximately(BloodComparisonTuning.Scale,scale) && Mathf.Approximately(BloodComparisonTuning.GroundBrightness,brightness),"reset restores approved defaults "+style);
         }
-        var temp=TemporaryBloodComparisonToggle.CreateForTesting();owned.Add(temp.gameObject);
-        Check(temp.ValueCaptions.Length==4 && temp.DecreaseButtons.Length==4 && temp.IncreaseButtons.Length==4,"explicit preview also has four controls");
-        temp.ToggleTuning();yield return Frames(3);ScreenCapture.CaptureScreenshot(Path.Combine(output,"fixed-preview.png"));yield return Frames(2);
-        var temporaryRoot=temp.gameObject; owned.Remove(temporaryRoot); Object.DestroyImmediate(temporaryRoot);
         menu.CloseSettings();menu.Close();OverburstGameSettings.SaveIfDirty();yield return Frames(3);
         var json=Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(OverburstGameSettings.FilePath));
         Check(new[]{"bloodA","bloodB","bloodC"}.All(k=>json[k]["groundRgb"]==null),"saved file drops RGB while keeping all styles");
