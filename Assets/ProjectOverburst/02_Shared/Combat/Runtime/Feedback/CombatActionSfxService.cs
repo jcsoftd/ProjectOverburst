@@ -176,6 +176,24 @@ public sealed class CombatActionSfxService : MonoBehaviour
     }
 
     private static CombatActionSfxCatalog directClips;
+    private AudioClip levelUpClip;
+
+    public static bool PlayLevelUp(Vector3 position)
+    {
+        if (!EnsureInstance()) return false;
+        if (instance.levelUpClip == null) instance.levelUpClip = ResolveNamedClip("PlayerLevelUp");
+        if (instance.levelUpClip == null) return false;
+        for (int i = 0; i < instance.voiceCount; i++)
+            if (instance.voices[i].clip == instance.levelUpClip && instance.voices[i].isPlaying) return false;
+        return instance.Play(instance.levelUpClip, position, 0f, .70f, 2f, 20f, 50);
+    }
+
+    public static void StopLevelUp()
+    {
+        if (instance == null || instance.levelUpClip == null) return;
+        for (int i = 0; i < instance.voiceCount; i++)
+            if (instance.voices[i].clip == instance.levelUpClip) instance.voices[i].Stop();
+    }
     private static bool directClipsLoaded;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

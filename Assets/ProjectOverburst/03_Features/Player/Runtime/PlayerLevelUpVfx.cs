@@ -52,7 +52,7 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
     private void Play(int previousLevel, int currentLevel)
     {
         PlayerActorRuntime actor = context != null ? context.CurrentActor : null;
-        if (actor == null || !actor.isActiveAndEnabled)
+        if (actor == null || !actor.isActiveAndEnabled || actor.Health == null || actor.Health.IsDead)
             return;
 
         if (prefab == null)

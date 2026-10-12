@@ -235,3 +235,7 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Kapeloproboskid.meta
 /Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Telluropod.meta
 /Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Tetrapuss.meta
+
+# Licensed level-up sound mix; restore approved WAV and original meta from private LevelUpFeedback recovery.
+/Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav
+/Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav.meta

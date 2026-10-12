@@ -288,13 +288,16 @@ namespace Overburst.Persistence
             if (Overburst.Quests.QuestSession.Current != null && Overburst.Quests.QuestSession.Current.IsBoundTo(this)
                 && !Overburst.Quests.QuestSession.Current.DrainPending(false))
                 throw new System.IO.IOException("퀘스트 진행 확정을 기다리는 중입니다.");
+            PlayerProgression progression = PlayerProgression.Current;
+            int previousLevel = progression != null ? progression.Level : 0;
             editing = true;
             notifications.Clear();
             try
             {
                 bool committed = transactions.Execute(transactionId, transactions.Revision, mutation, saveImmediately: true);
                 if (!committed) return false;
-                RestoreAuthoritativeProjection();
+                if (RestoreAuthoritativeProjection() && progression != null && progression.Level > previousLevel)
+                    progression.NotifyExperienceCommitted(previousLevel);
                 return true;
             }
             finally
@@ -317,13 +320,17 @@ namespace Overburst.Persistence
             if (expectedRevision != transactions.Revision) throw new InvalidOperationException("퀘스트 상태가 변경되었습니다.");
             var candidate = transactions.Read();
             bool committed = false;
+            PlayerProgression progression = PlayerProgression.Current;
+            int previousLevel = progression != null ? progression.Level : 0;
             editing = true;
             notifications.Clear();
             try
             {
                 if (!mutation(candidate)) return false;
                 committed = transactions.ExecuteWithCandidate(transactionId, expectedRevision, () => candidate, checkpoint);
-                if (committed && projectRewards) RestoreAuthoritativeProjection();
+                if (committed && projectRewards && RestoreAuthoritativeProjection()
+                    && progression != null && progression.Level > previousLevel)
+                    progression.NotifyExperienceCommitted(previousLevel);
             }
             finally
             {

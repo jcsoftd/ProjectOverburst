@@ -137,13 +137,20 @@ public sealed class PlayerProgression : MonoBehaviour
         NotifyExperienceCommitted(previousLevel);
     }
 
-    private void NotifyExperienceCommitted(int previousLevel)
+    internal void NotifyExperienceCommitted(int previousLevel)
     {
         int nextLevel = Level;
         Overburst.Persistence.AccountGameplaySession.Notify(() =>
         {
             RefreshStats();
-            if (nextLevel > previousLevel) LeveledUp?.Invoke(previousLevel, nextLevel);
+            if (nextLevel > previousLevel)
+            {
+                // A level reward refills the final maximum, including run HP modifiers.
+                // RestoreLivingHealth cannot revive a dead actor or apply a healing penalty twice.
+                if (health != null && health.isActiveAndEnabled && !health.IsDead)
+                    health.RestoreLivingHealth(health.MaxHp);
+                LeveledUp?.Invoke(previousLevel, nextLevel);
+            }
             Changed?.Invoke();
         });
     }

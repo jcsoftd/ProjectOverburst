@@ -129,6 +129,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
     private Vector3 knockbackTargetPosition; // 넉백 목표 위치
     private float knockbackTravelStartTime; // 이동 시작 시각
     private float knockbackTravelEndTime; // 이동 종료 시각
+    private bool constrainKnockbackWorld;
     private int partyCollisionLayerMask;
     private readonly RaycastHit[] partyCollisionHits = new RaycastHit[PartyCollisionQueryCapacity];
     private readonly Collider[] partyCollisionOverlaps = new Collider[PartyCollisionQueryCapacity];
@@ -170,7 +171,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         ApplyKnockbackDistance(direction, ResolveKnockbackDistance(strength), ordinaryHit);
     }
 
-    public void ApplyKnockbackDistance(Vector3 direction, float distance, bool ordinaryHit = false)
+    public void ApplyKnockbackDistance(Vector3 direction, float distance, bool ordinaryHit = false, bool constrainWorld = false)
     {
         if (IsDead())
             return;
@@ -187,6 +188,8 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         float travelDuration = Mathf.Max(Time.fixedDeltaTime, HitWeightProfile != null ? HitWeightProfile.TravelDuration : knockbackTravelDuration);
         knockbackStartPosition = startPosition;
         knockbackTargetPosition = startPosition + direction.normalized * distance;
+        constrainKnockbackWorld = constrainWorld;
+        if (constrainWorld) knockbackTargetPosition = ClipWorldPosition(knockbackTargetPosition);
         knockbackTravelStartTime = Time.time;
         knockbackTravelEndTime = Time.time + travelDuration;
         knockbackEndTime = Mathf.Max(knockbackEndTime, knockbackTravelEndTime);
@@ -245,7 +248,33 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
             knockbackTravelEndTime = Time.time; // 파티 캡슐에 막히면 이동만 중단
         }
 
+        if (constrainKnockbackWorld) resolvedPosition = ClipWorldPosition(resolvedPosition);
         motor?.MoveToPosition(resolvedPosition);
+    }
+
+    private Vector3 ClipWorldPosition(Vector3 candidate)
+    {
+        Vector3 current = motor != null ? motor.Position : transform.position;
+        Vector3 delta = candidate - current; delta.y = 0f;
+        var walkable = RunWalkableContext.Current;
+        if (walkable != null)
+        {
+            int steps = Mathf.Max(1, Mathf.CeilToInt(delta.magnitude / Mathf.Min(.05f, walkable.CellSize * .5f)));
+            for (int i = 1; i <= steps; i++)
+            {
+                if (walkable.IsWalkable(current + delta * ((float)i / steps))) continue;
+                float lo = (float)(i - 1) / steps, hi = (float)i / steps;
+                for (int n = 0; n < 8; n++)
+                {
+                    float mid = (lo + hi) * .5f;
+                    if (walkable.IsWalkable(current + delta * mid)) lo = mid; else hi = mid;
+                }
+                delta *= lo; break;
+            }
+        }
+        if (combatTarget == null) return current;
+        var volume = combatTarget.ResolveVolumeAtRootPosition(current);
+        return current + EnemyAttackMovementClearance.Clip(gameObject, volume.Center, volume.Radius, volume.HalfHeight, delta, out _);
     }
 
     public void ResetReaction()
@@ -256,6 +285,7 @@ public sealed class EnemyMovementReaction : MonoBehaviour // 피격 경직과 �
         parryStunEndTime = 0f;
         forcedReactionEndTime = 0f;
         knockbackTravelEndTime = 0f;
+        constrainKnockbackWorld = false;
         strongStartPass = strongAttackActive = false;
         motor?.HoldPosition();
     }

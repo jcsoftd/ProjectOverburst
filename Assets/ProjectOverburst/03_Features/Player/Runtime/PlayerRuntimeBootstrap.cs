@@ -43,6 +43,10 @@ public sealed class PlayerRuntimeBootstrap : MonoBehaviour
             if (levelUpVfx == null)
                 levelUpVfx = context.gameObject.AddComponent<PlayerLevelUpVfx>();
             levelUpVfx.Bind(progression, context);
+            PlayerLevelUpFeedback levelUpFeedback = context.GetComponent<PlayerLevelUpFeedback>();
+            if (levelUpFeedback == null)
+                levelUpFeedback = context.gameObject.AddComponent<PlayerLevelUpFeedback>();
+            levelUpFeedback.Bind(progression, context);
             PlayerCameraBinder cameraBinder = context.GetComponent<PlayerCameraBinder>();
             if (cameraBinder == null)
                 cameraBinder = context.gameObject.AddComponent<PlayerCameraBinder>();
