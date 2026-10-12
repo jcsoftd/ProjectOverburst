@@ -140,10 +140,16 @@ public class CavePlatformLayout
                     if (frontier.Length == 0) break;
                     var socket = frontier[attempt < priorityAttempts ? attempt / socketAttempts : random.Next(frontier.Length)];
                     int parentIndex = socket.room; var parent = layout.rooms[parentIndex];
-                    int portA = socket.port, portB = random.Next(definition.regions.Length);
-                    var ra = library.platforms[parent.platform].regions[portA]; var rb = definition.regions[portB];
-                    if (ra.stone != rb.stone) { Reject("connector type"); continue; }
-                    if (ra.stone && ra.stairDirection == rb.stairDirection) { Reject("stair rise direction"); continue; }
+                    int portA = socket.port;
+                    var ra = library.platforms[parent.platform].regions[portA];
+                    bool Compatible(CavePlatformLibrary.Region candidate) => ra.stone == candidate.stone && (!ra.stone || ra.stairDirection != candidate.stairDirection);
+                    int compatibleCount = 0;
+                    foreach (var region in definition.regions) if (Compatible(region)) compatibleCount++;
+                    if (compatibleCount == 0) { Reject("connector type"); continue; }
+                    int choice = random.Next(compatibleCount), portB = 0;
+                    for (; portB < definition.regions.Length; portB++)
+                        if (Compatible(definition.regions[portB]) && choice-- == 0) break;
+                    var rb = definition.regions[portB];
                     float aa = attempt == 0 ? ra.heading : Mathf.Lerp(ra.MinAngle, ra.MaxAngle, (float)random.NextDouble());
                     float ab = attempt == 0 ? rb.heading : Mathf.Lerp(rb.MinAngle, rb.MaxAngle, (float)random.NextDouble());
                     if (!library.platforms[parent.platform].TryAnchor(ra, aa, out var anchorA) || !definition.TryAnchor(rb, ab, out var anchorB)) { Reject("contact"); continue; }
@@ -190,7 +196,7 @@ public class CavePlatformLayout
                     }
                     if (crossing) continue;
                     if (!ApproachClear(library.platforms[parent.platform], anchorA, Direction(aa)) || !ApproachClear(definition, anchorB, Direction(ab))) { Reject("approach " + definition.source.name); continue; }
-                    if (layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
+                    if (PassageHitsRoom(library, room, start, end) || layout.links.Any(l => PassageHitsRoom(library, room, l.start, l.end))) continue;
                     if (layout.rooms.Any(r => PassageHitsRoom(library, r, start, end))) continue;
                     if (layout.rooms.Any(r => InvadesFloor(r, room) || InvadesFloor(room, r))) { Reject("neighbour combat floor"); continue; }
                     parent.used[portA] = true; room.used[portB] = true; layout.rooms.Add(room);

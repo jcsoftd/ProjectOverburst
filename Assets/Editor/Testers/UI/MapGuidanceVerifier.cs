@@ -147,6 +147,11 @@ public static class MapGuidanceVerifier
             }
             yield return KillTo(gate, roster.Target, check);
         }
+        else if (!gate.BossArena.HasBoss)
+        {
+            check(!completion.Boss, "Small-only desert has no boss encounter");
+            ActorTeleportUtility.TeleportSafely(player.transform, gate.BossArena.PortalPoint + Vector3.up * .12f, Quaternion.identity);
+        }
         else
         {
             var boss = completion.Boss;

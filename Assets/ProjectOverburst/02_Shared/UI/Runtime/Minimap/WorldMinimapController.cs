@@ -43,6 +43,7 @@ public sealed class WorldMinimapController : MonoBehaviour
     private MinimapExplorationMap exploration;
     private int explorationScene = int.MinValue;
     private string explorationRun;
+    private EncounterContext explorationContext;
     private float nextReveal;
     private bool terrainFailed;
     private int guideKills = -1;
@@ -217,7 +218,7 @@ public sealed class WorldMinimapController : MonoBehaviour
         }
         if (!hasYaw) return;
         RefreshRunTerrain();
-        if (mapGate && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && exploration == null)
+        if (mapGate && mapGate.Map != null && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && exploration == null)
         { source.Dispose(); view.SetVisible(false); overlay?.SetVisible(false); return; }
         if (exploration != null && now >= nextReveal)
         {
@@ -308,23 +309,32 @@ public sealed class WorldMinimapController : MonoBehaviour
 
     private void RefreshRunTerrain()
     {
-        if (mapGate && mapGate.IsReady && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld) && !terrainFailed)
+        if (mapGate && mapGate.Map != null && mapGate.Map.generationVersion > 0 && (caveWorld || desertWorld))
         {
             var root = caveWorld ? caveWorld.generatedRoot : desertWorld.TerrainRoot;
-            if (explorationRun != mapGate.Context.RunId || explorationRoot != root || explorationVersion != mapGate.Map.generationVersion) ReleaseExploration();
-            if (exploration == null)
+            if (!mapGate.IsReady || !root)
+            {
+                if (exploration != null || terrainFailed) ReleaseExploration();
+                return;
+            }
+            // BeginPreparation creates a new immutable context, even when run ID/root/policy version are reused.
+            if (explorationRun != mapGate.Context.RunId || explorationContext != mapGate.Context
+                || explorationRoot != root || explorationVersion != mapGate.Map.generationVersion || explorationScene != contentScene)
+            {
+                ReleaseExploration();
+                explorationScene = contentScene; explorationRun = mapGate.Context.RunId;
+                explorationContext = mapGate.Context; explorationRoot = root; explorationVersion = mapGate.Map.generationVersion;
+            }
+            if (exploration == null && !terrainFailed)
             {
                 try
                 {
                     exploration = caveWorld ? CaveMinimapTerrain.Build(caveWorld) : desertWorld.MinimapData.CreateExploration();
-                    exploration.EnsureTextures();
-                    explorationScene = contentScene; explorationRun = mapGate.Context.RunId;
-                    explorationRoot = root; explorationVersion = mapGate.Map.generationVersion;
-                    nextReveal = 0; TerrainBuildCount++;
+                    exploration.EnsureTextures(); nextReveal = 0; TerrainBuildCount++;
                 }
                 catch (System.Exception error)
                 {
-                    ReleaseExploration(); terrainFailed = true;
+                    exploration?.Dispose(); exploration = null; terrainFailed = true;
                     Debug.LogError("[WorldMinimap] Map terrain could not be prepared: " + error, this);
                 }
             }
@@ -371,8 +381,11 @@ public sealed class WorldMinimapController : MonoBehaviour
     {
         SetOverlay(false);
         if (overlay && overlay.IsReady) overlay.Bind(null);
-        exploration?.Dispose(); exploration = null;
-        explorationRun = null; explorationScene = int.MinValue; nextReveal = 0;
+        view?.SetTerrain(null, default);
+        guides.Clear(); view?.Guides?.Clear(); if (overlay) overlay.guides?.Clear();
+        guideKills = -1; guideCompleted = false; forceRefresh = true;
+        exploration?.Dispose(); exploration = null; terrainFailed = false;
+        explorationContext = null; explorationRun = null; explorationScene = int.MinValue; nextReveal = 0;
         explorationRoot = null; explorationVersion = 0;
     }
 

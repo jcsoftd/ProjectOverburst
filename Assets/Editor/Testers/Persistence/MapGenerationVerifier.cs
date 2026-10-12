@@ -38,7 +38,15 @@ public static class MapGenerationVerifier
                 else candidates.Add(a.desertCandidateId);
                 MapTerrainCatalog.SceneFor(a);
             }
-            Check(sizes.Count == 17 && sizes.Min() == 4 && sizes.Max() == 20, "All 4..20 cave sizes generated");
+            Check(sizes.Count == 14 && sizes.Min() == 4 && sizes.Max() == 17, "All 4..17 cave sizes generated under temporary content limit");
+            for (int requested = 4; requested <= 20; requested++)
+            {
+                var saved = new MapInstanceState { generationVersion = 1, terrain = MapTerrainKind.Cave, areaCount = requested };
+                string original = Json(saved);
+                Check(MapGenerationPolicy.EffectiveAreaCount(saved) == Math.Min(requested, 17)
+                    && MapGenerationPolicy.Describe(saved) == "동굴 · " + Math.Min(requested, 17) + "개 플랫폼" && Json(saved) == original,
+                    "Stored cave display/count uses temporary limit without rewriting original: " + requested);
+            }
             Check(candidates.Count == 30, "All 30 selected desert candidates generated");
             Check(caves > 1840 && caves < 2260, "4096 deterministic samples: terrain near initial 50/50 tuning");
             Check(true, "4096 paired samples: level/grade independent from terrain/size/seed");

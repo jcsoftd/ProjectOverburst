@@ -179,25 +179,34 @@ public static class MapExplorationVerifier
         yield return Frames(4);
         int builds = controller.TerrainBuildCount, uploads = map.UploadCount, seen = map.RevealedCount;
         var texture = map.TerrainTexture;
-        foreach (float zoom in new[] { 20f, 80f, 55f }) { controller.SetZoom(zoom); yield return Frames(8); }
-        check(ReferenceEquals(map, controller.Exploration) && builds == controller.TerrainBuildCount && map.RevealedCount == seen && map.UploadCount == uploads,
-            "Zoom does not rebuild terrain or reveal extra floor");
+        var visited = Enumerable.Range(0, map.Width * map.Height).Where(map.IsRevealedCell).ToArray();
+        foreach (float zoom in new[] { 20f, 80f, 55f })
+        {
+            seen = map.RevealedCount; uploads = map.UploadCount;
+            controller.SetZoom(zoom);
+            controller.View.UpdateTerrain(player.position, QuarterViewCamera.ActiveInstance.CurrentYaw, zoom);
+            check(map.RevealedCount == seen && map.UploadCount == uploads, "Zoom/render does not reveal extra floor at " + zoom);
+            yield return Frames(8);
+        }
+        check(ReferenceEquals(map, controller.Exploration) && builds == controller.TerrainBuildCount && visited.All(map.IsRevealedCell),
+            "Zoom preserves terrain and visited cells while gameplay continues");
         controller.ForceHide(); yield return Frames(3);
         controller.ShowForScene(player, gate.gameObject.scene.handle); yield return Frames(12);
-        check(ReferenceEquals(map, controller.Exploration) && texture == controller.View.TerrainImage.texture && map.RevealedCount == seen,
+        check(ReferenceEquals(map, controller.Exploration) && texture == controller.View.TerrainImage.texture && visited.All(map.IsRevealedCell),
             "Hide and reopen preserves the same terrain and visit bits");
         controller.enabled = false; yield return Frames(3); controller.enabled = true; yield return Frames(12);
         controller.ShowForScene(player, gate.gameObject.scene.handle); yield return Frames(12);
         check(ReferenceEquals(map, controller.Exploration) && controller.TerrainBuildCount == builds, "Disable/rebind and repeated ShowForScene preserve the run map");
         yield return MapOverlayVerifier.VerifyPlay(gate, output, check);
         var reachable = Reachable(map, map.CellAt(player.position));
+        WriteTopology(gate, map, reachable, player.position, output);
         check(gate.Roster.Areas.All(a => map.IsGround(map.CellAt(a.Ground.Points[0])) && reachable[map.CellAt(a.Ground.Points[0])]), "Actual generated connections reach every combat tile in the map topology");
         var far = gate.Roster.Areas.OrderByDescending(a => (a.Ground.Center - player.position).sqrMagnitude).First();
         Vector3 origin = player.position, destination = far.Ground.Points[0];
         check(!map.IsRevealed(destination), "Unvisited distant platform is hidden");
         ActorTeleportUtility.TeleportSafely(player, destination + Vector3.up * .12f, Quaternion.identity);
         yield return Frames(30);
-        if (desert && gate.Completion.Boss.IsIntroducing)
+        if (desert && gate.Completion.Boss && gate.Completion.Boss.IsIntroducing)
             check(GameplayInputBlocker.IsGameplayInputBlocked && !controller.OverlayVisible, "Boss entrance owns input and hides overlay during far-tile exploration");
         check(map.IsRevealed(player.position) && map.IsRevealed(origin), "Teleport reveals the destination and keeps previously explored floor");
         var ranks = new List<EnemyRank>(); EnemyRank.CollectActive(ranks);
@@ -225,6 +234,40 @@ public static class MapExplorationVerifier
         }
         ActorTeleportUtility.TeleportSafely(player, origin, Quaternion.identity);
         yield return Frames(12);
+    }
+    static void WriteTopology(RunWorldGate gate, MinimapExplorationMap map, bool[] reachable, Vector3 entry, string output)
+    {
+        float[] Point(Vector3 p) => new[] { p.x, p.y, p.z };
+        bool Reached(Vector3 p) { int i = map.CellAt(p); return i >= 0 && reachable[i]; }
+        var areas = gate.Roster.Areas.Select(area =>
+        {
+            var target = area.Ground.Points[0]; var path = new UnityEngine.AI.NavMeshPath();
+            bool found = UnityEngine.AI.NavMesh.CalculatePath(entry, target, UnityEngine.AI.NavMesh.AllAreas, path);
+            var blocked = new List<object>();
+            for (int n = 1; n < path.corners.Length && blocked.Count < 40; n++)
+            {
+                int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(path.corners[n-1], path.corners[n]) / .25f));
+                for (int j = 0; j <= steps && blocked.Count < 40; j++)
+                {
+                    var p = Vector3.Lerp(path.corners[n-1], path.corners[n], j / (float)steps); int cell = map.CellAt(p);
+                    if (map.IsGround(cell)) continue;
+                    var center = cell >= 0 ? map.Center(cell) : p; center.y = p.y;
+                    blocked.Add(new { point=Point(p), cell, center=Point(center), colliders=Physics.OverlapBox(center + Vector3.up*.9f,
+                        new Vector3(map.CellSize*.5f,.55f,map.CellSize*.5f),Quaternion.identity,~0,QueryTriggerInteraction.Ignore)
+                        .Where(c=>!c.attachedRigidbody && !(c is CharacterController) && !c.GetComponentInParent<CaveWalkSurface>() && !c.GetComponentInParent<EnemyActor>() && !c.GetComponentInParent<PlayerActorRuntime>())
+                        .Select(c=>new { c.name, parent=c.transform.parent ? c.transform.parent.name : null, type=c.GetType().Name, low=c.bounds.min.y-p.y, high=c.bounds.max.y-p.y }).ToArray() });
+                }
+            }
+            return new { area.Ground.Index, area.Ground.Name, first=Point(target), firstGround=map.IsGround(map.CellAt(target)), firstReached=Reached(target),
+                points=area.Ground.Points.Count, groundPoints=area.Ground.Points.Count(p=>map.IsGround(map.CellAt(p))), reachablePoints=area.Ground.Points.Count(Reached),
+                navFound=found, navStatus=path.status.ToString(), navCorners=path.corners.Select(Point).ToArray(), blocked };
+        }).ToArray();
+        var cave = gate.GetComponent<CaveWorld>(); int count=map.Width*map.Height;
+        File.WriteAllText(Path.Combine(output,"topology.json"),JsonConvert.SerializeObject(new { map.Width,map.Height,map.CellSize,
+            origin=new[] {map.Bounds.x,map.Bounds.y},entry=Point(entry),areas,
+            ground=Convert.ToBase64String(Enumerable.Range(0,count).Select(i=>(byte)(map.IsGround(i)?1:0)).ToArray()),
+            links=Convert.ToBase64String(Enumerable.Range(0,count).Select(map.Connections).ToArray()),
+            passages=cave ? cave.passages.Select(p=>new {p.a,p.b,points=p.points.Select(Point).ToArray(),p.widths}).ToArray() : null },Formatting.Indented));
     }
     static bool[] Reachable(MinimapExplorationMap map, int start)
     {

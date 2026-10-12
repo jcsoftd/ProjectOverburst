@@ -62,6 +62,7 @@ public static class MapRunRosterVerifier
                 rows.Add(new { theme = theme.ThemeId, a.Total, a.Target, areas = a.Areas.Select(x => new { x.Ground.SquareMetres, x.BasePopulation, x.Count, x.InitialCount, x.Small, x.Medium, x.Elite }), boostedTotal = boosted.Total });
                 last = a; lastMap = high;
             }
+            Check(last.NaturalProgressMultiplier == 1f, "Cave progression starts at the original health and damage");
             Check(!last.TryActivate(0, out _) && !last.TryRecordDeath(0, 1), "No activation or kill before placement preparation");
             // Pure lifecycle exercise; physical placements are covered by the isolated entry Play verifier.
             typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(last, true);
@@ -71,9 +72,13 @@ public static class MapRunRosterVerifier
             Check(last.TryRecordDeath(0, second) && !last.TryRecordDeath(0, second) && !last.TryReturn(0, second)
                 && !last.TryActivate(0, out _), "Actual death transition is once-only; dead ID never respawns");
             int target = last.Target, total = last.Total;
+            Check(Mathf.Abs(last.NaturalProgressMultiplier - (1f + .15f / target)) < .000001f, "First unique death advances progression using the fixed 95 percent target");
             for (int i = 1; i < target; i++) { last.TryActivate(i, out int lease); if (!last.TryRecordDeath(i, lease)) throw new Exception("Unique death " + i); }
             Check(last.CaveTargetReached && last.Total == total && last.Target == target && last.Pending == total - target,
                 "95 percent target is reached with the finite remainder still pending");
+            Check(Mathf.Abs(last.NaturalProgressMultiplier - 1.15f) < .000001f, "95 percent completion reaches the 15 percent progression cap");
+            last.TryActivate(target, out int afterTargetLease); last.TryRecordDeath(target, afterTargetLease);
+            Check(Mathf.Abs(last.NaturalProgressMultiplier - 1.15f) < .000001f, "Optional remaining population keeps the progression cap");
             Check(!last.TryRecordDeath(-1, 1) && !last.TryRecordDeath(total, 1), "Unknown IDs never count");
             preview = EditorSceneManager.NewPreviewScene();
             var go = new GameObject("Owned roster gate fixture"); SceneManager.MoveGameObjectToScene(go, preview);
@@ -84,6 +89,19 @@ public static class MapRunRosterVerifier
             var fresh = MapRunRoster.Build("run-a", lastMap, areas);
             typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(fresh, true);
             Check(gate.SetRoster(fresh) && !gate.SetRoster(fresh) && gate.CompletePreparation("run-a", go.transform), "Prepared roster attaches once before world readiness");
+            var largeGround = Enumerable.Range(0, 17).Select(i => new MapCombatGeometry.Area(i, "Cap floor " + i, Vector3.right * i * 100,
+                Math.Min(2, i), areas[0].Points.ToList())).ToList();
+            foreach (int requested in new[] { 17, 18, 19, 20 })
+            {
+                var saved = ItemSnapshotCodec.CopyValues(lastMap); saved.areaCount = requested;
+                string original = JsonConvert.SerializeObject(saved);
+                gate.BeginPreparation(new RunSnapshot { runId = "cap-" + requested, phase = RunPhase.EntryPending, map = saved });
+                var capped = MapRunRoster.Build("cap-" + requested, gate.Map, largeGround);
+                typeof(MapRunRoster).GetProperty(nameof(MapRunRoster.PlacementReady)).SetValue(capped, true);
+                Check(gate.Map.areaCount == 17 && capped.Areas.Count == 17 && gate.SetRoster(capped)
+                    && gate.CompletePreparation("cap-" + requested, go.transform) && JsonConvert.SerializeObject(saved) == original,
+                    "Stored " + requested + "-platform map prepares a 17-area roster without changing reserved map identity");
+            }
             var invalid = ItemSnapshotCodec.CopyValues(lastMap); invalid.monsterThemeId = "missing-theme"; invalid.monsterThemes[0].themeId = invalid.monsterThemeId;
             bool rejected = false; try { MapRunRoster.Build("bad", invalid, areas); } catch (InvalidOperationException) { rejected = true; }
             Check(rejected, "Unavailable stored theme fails instead of substituting a different theme");

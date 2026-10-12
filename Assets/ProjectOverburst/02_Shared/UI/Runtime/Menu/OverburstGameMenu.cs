@@ -246,6 +246,11 @@ public sealed class OverburstGameMenu : MonoBehaviour
 
     public void CancelModal() => ResolveModal(false);
 
+    public void CancelModal(Action expectedConfirm)
+    {
+        if (modalConfirmAction == expectedConfirm) ResolveModal(false);
+    }
+
     public bool ModalOpen => modal != null && modal.activeSelf;
 
     private void ResolveModal(bool confirmed)

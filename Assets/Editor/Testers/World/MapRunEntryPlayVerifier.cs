@@ -26,7 +26,20 @@ public static class MapRunEntryPlayVerifier
     {
         EditorApplication.playModeStateChanged += State;
         if (SessionState.GetString(Key + "pending", "") != "") EditorApplication.update += Begin;
-        if (SessionState.GetString(Key + "return", "") != "") EditorApplication.update += Return;
+        if (SessionState.GetString(Key + "return", "") != "")
+        {
+            EditorApplication.update += Return;
+            if (SessionState.GetString(Key + "pending", "") == "") EditorApplication.update += StopInterruptedPlay;
+        }
+    }
+    static void StopInterruptedPlay()
+    {
+        EditorApplication.update -= StopInterruptedPlay;
+        if (!EditorApplication.isPlaying || !OwnPlay || SessionState.GetString(Key + "pending", "") != "") return;
+        output = SessionState.GetString(Key + "return", "");
+        Write("reload-interrupted.json", new { status = "INTERRUPTED", utc = DateTime.UtcNow,
+            reason = "Assembly reload interrupted the owned Play; prior progress.json retains completed checks." });
+        Finish(new InvalidOperationException("Assembly reload interrupted owned Play. See progress.json and reload-interrupted.json."));
     }
     static string Scenes() => JsonConvert.SerializeObject(Enumerable.Range(0, SceneManager.sceneCount).Select(i =>
     { var s = SceneManager.GetSceneAt(i); return new { s.path, s.isDirty, s.rootCount }; }));
@@ -36,12 +49,13 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))
             throw new InvalidOperationException("Use an idle real-account Editor.");
+        if (minimapCycles) minimapOnly = true;
         output = Path.GetFullPath(directory);
         string allowed = Path.GetFullPath(Path.Combine(Application.dataPath, "../../개인파일/코덱스산출")) + Path.DirectorySeparatorChar;
         if (!output.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || Directory.Exists(output)) throw new ArgumentException("Use a new owned evidence folder.");
@@ -49,16 +63,25 @@ public static class MapRunEntryPlayVerifier
         var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
         var state = NewAccountFactory.Create(registry); AccountCharacterCommands.EnsureLegacy(state);
-        for (int i = 0; i < 3 + Mathf.Max(0, Mathf.Max(completionCases, bossCases) - 1); i++)
+        for (int i = 0; i < (escapeCases > 0 ? escapeCases * 2 + 1 : minimapCycles ? 10 : 3 + Mathf.Max(0, Mathf.Max(completionCases, bossCases) - 1)); i++)
         {
             var item = MapGenerationPolicy.CreateItem(definition, registry, bossCases > 0 && i >= 2 ? 5 : 1, ItemGrade.Common);
-            var map = item.mapState; map.seed = 48310;
-            if (i < 2 || i >= 3 && bossCases == 0) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 1 ? 20 : 4; map.width = map.depth = 0; map.desertCandidateId = null; }
+            var map = item.mapState; map.seed = 48310 + (minimapCycles && i >= 3 && i % 2 == 1 ? i * 97 : 0);
+            if (i < 2 || i >= 3 && bossCases == 0 && (!minimapCycles || i % 2 == 1) && !(escapeCases > 0 && i % 2 == 0)) { map.terrain = MapTerrainKind.Cave; map.areaCount = i == 1 ? 20 : 4; map.width = map.depth = 0; map.desertCandidateId = null; }
             else
             {
-                var row = MapTerrainCatalog.DesertCandidates[0]; map.terrain = MapTerrainKind.Desert;
+                var row = MapTerrainCatalog.DesertCandidates[minimapCycles ? (i - 2) / 2 : desertCandidateIndex];
+                if (escapeCases > 0)
+                    row = MapTerrainCatalog.DesertCandidates.First(c => Resources.Load<DesertMinimapData>(DesertMinimapData.ResourceRoot + c.id).combatTiles.Any(t => t.combatSize != Overburst.Mojave.MojaveCombatSize.Small));
+                if (bossCases > 0)
+                {
+                    var wanted = i == 5 ? Overburst.Mojave.MojaveCombatSize.Medium : i >= 6 ? Overburst.Mojave.MojaveCombatSize.Small : Overburst.Mojave.MojaveCombatSize.Large;
+                    row = MapTerrainCatalog.DesertCandidates.First(c => Resources.Load<DesertMinimapData>(DesertMinimapData.ResourceRoot + c.id).combatTiles.Min(p => (int)p.combatSize) == (int)wanted);
+                }
+                map.terrain = MapTerrainKind.Desert;
                 map.desertCandidateId = row.id; map.areaCount = row.areaCount; map.width = row.width; map.depth = row.depth;
             }
+            if (escapeCases > 0) map.seed = MapEscapeRuntimeVerifier.SelectedSeed(48310);
             map.monsterThemeId = map.terrain == MapTerrainKind.Desert ? "PrimalHunt" : i == 1 ? "SpiderBrood" : "CavernMutants";
             if (bossCases > 0 && map.terrain == MapTerrainKind.Desert)
             { map.options.Add(new MapOptionRoll { optionId = MapOptionPolicy.EnemyHealth, value = .5f }); }
@@ -81,9 +104,17 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetInt(Key + "bossCases", bossCases);
         SessionState.SetBool(Key + "minimapOnly", minimapOnly);
         SessionState.SetBool(Key + "guidanceOnly", guidanceOnly);
+        SessionState.SetBool(Key + "minimapCycles", minimapCycles);
+        SessionState.SetBool(Key + "minimapCompatibility", minimapCompatibility);
+        SessionState.SetBool(Key + "minimapResolution", minimapResolution);
+        SessionState.SetBool(Key + "progressionOnly", progressionOnly);
+        SessionState.SetBool(Key + "escapeSettlementOnly", escapeSettlementOnly);
+        SessionState.SetInt(Key + "escapeCases", escapeCases);
+        SessionState.SetBool(Key + "includeLargeCave", includeLargeCave);
+        Write("scope.json", new { includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
         SessionState.SetString(Key + "scenes", Scenes()); SessionState.SetBool(Key + "background", Application.runInBackground);
-        SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + 600);
+        SessionState.SetFloat(Key + "deadline", (float)EditorApplication.timeSinceStartup + (minimapCycles ? 1200 : 600));
         Write("edit-before.json", new { scenes = Scenes(), start = AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene), previewCount = EditorSceneManager.previewSceneCount });
         Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY", Path.Combine(output, "Settings"));
         Application.runInBackground = true;
@@ -101,7 +132,7 @@ public static class MapRunEntryPlayVerifier
         if (!EditorApplication.isPlaying || !OwnPlay || !TitleCharacterPanel.Instance) return;
         EditorApplication.update -= Begin; SessionState.EraseString(Key + "pending");
         checks.Clear(); observations.Clear(); work.Clear(); Application.runInBackground = true;
-        deadline = EditorApplication.timeSinceStartup + (SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
+        deadline = EditorApplication.timeSinceStartup + (SessionState.GetBool(Key + "minimapCycles", false) || SessionState.GetInt(Key + "completionCases", 0) + SessionState.GetInt(Key + "bossCases", 0) + SessionState.GetInt(Key + "escapeCases", 0) > 0 ? 1200 : 600); lastFrame = -1; work.Push(Verify()); EditorApplication.update += Tick;
     }
     static IEnumerator Frames(int n) { while (n-- > 0) yield return null; }
     static IEnumerator Wait(Func<bool> ready, string label, float seconds = 100)
@@ -149,6 +180,16 @@ public static class MapRunEntryPlayVerifier
         var account = AccountGameplaySession.Current; var flow = PersistentSceneFlow.Instance;
         PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
+        if (SessionState.GetBool(Key + "minimapCompatibility", false))
+        {
+            yield return OverburstMinimapTerrainVerifier.VerifyInOwnedPlay(output, Check);
+            yield break;
+        }
+        if (SessionState.GetBool(Key + "escapeSettlementOnly", false))
+        {
+            MapEscapeSettlementVerifier.VerifyPlay(output, Check);
+            yield break;
+        }
         var maps = account.Read().items.Where(i => i.map != null).ToArray();
         var cave4 = maps.First(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4);
         var cave20 = maps.Single(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 20);
@@ -163,9 +204,17 @@ public static class MapRunEntryPlayVerifier
         if (SessionState.GetInt(Key + "completionCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Cave && i.map.areaCount == 4).ToArray();
         if (SessionState.GetInt(Key + "bossCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert).ToArray();
         if (SessionState.GetBool(Key + "guidanceOnly", false)) selected = new[] { cave4, desert };
+        if (SessionState.GetBool(Key + "minimapCycles", false)) selected = maps;
+        if (SessionState.GetInt(Key + "escapeCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert || i.map.areaCount == 4).ToArray();
+        if (!SessionState.GetBool(Key + "includeLargeCave", true)) selected = selected.Where(i => i.map.terrain != MapTerrainKind.Cave || i.map.areaCount < 20).ToArray();
+        var priorTextures = new List<Texture2D>();
+        int cycle = 0;
         int completionCase = 0;
         foreach (var item in selected)
         {
+            cycle++;
+            string caseOutput = SessionState.GetBool(Key + "minimapCycles", false) ? Path.Combine(output, "Cycle-" + cycle.ToString("D2")) : output;
+            Directory.CreateDirectory(caseOutput);
             PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
             string label = MapGenerationPolicy.Describe(item.map); double began = EditorApplication.timeSinceStartup;
             Check(flow.EnterMapRun(item.map, item.instanceId), label + ": entry starts");
@@ -181,8 +230,8 @@ public static class MapRunEntryPlayVerifier
             var gate = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<RunWorldGate>()).Single();
             Check(gate.IsReady && gate.EntryPoint && Vector3.Distance(PlayerContext.Instance.CurrentActor.transform.position, gate.EntryPoint.position) < 2, label + ": player placed at prepared entry");
             var roster = gate.Roster;
-            Check(roster != null && roster.PlacementReady && roster.Total >= (item.map.areaCount - (item.map.terrain == MapTerrainKind.Desert ? 1 : 0)) * 50, label + ": finite population and physical placements prepared before consumption");
-            Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == item.map.areaCount
+            Check(roster != null && roster.PlacementReady && roster.Total >= (MapGenerationPolicy.EffectiveAreaCount(item.map) - (item.map.terrain == MapTerrainKind.Desert ? 1 : 0)) * 50, label + ": finite population and physical placements prepared before consumption");
+            Check(roster.ThemeId == item.map.monsterThemeId && roster.Areas.Count == MapGenerationPolicy.EffectiveAreaCount(item.map)
                 && roster.Kills == 0 && roster.Active > 0 && gate.SpawnBudget.InitialReady
                 && roster.Active + roster.Pending == roster.Total, label + ": stored single theme and finite initial actors prepared before entry");
             Check(item.map.terrain == MapTerrainKind.Cave ? roster.Target == MapRunRoster.CaveTarget(roster.Total) : roster.Target == 0, label + ": terrain-specific objective denominator");
@@ -209,7 +258,7 @@ public static class MapRunEntryPlayVerifier
             if (item.map.terrain == MapTerrainKind.Cave)
             {
                 var cave = gate.GetComponent<Overburst.Caves.CaveWorld>();
-                Check(cave.courts.Count == item.map.areaCount && cave.seed == item.map.seed, label + ": count and seed match saved map");
+                Check(cave.courts.Count == MapGenerationPolicy.EffectiveAreaCount(item.map) && cave.seed == item.map.seed, label + ": count and seed match saved map");
                 Check(!scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Overburst.Caves.CaveDungeonPortal>()).Any(), label + ": no premature abandon portal");
             }
             else
@@ -235,15 +284,38 @@ public static class MapRunEntryPlayVerifier
                 yield return MapDesertCompletionPlayVerifier.Verify(gate, completionCase++, output, Check);
                 continue;
             }
-            if (SessionState.GetBool(Key + "minimapOnly", false)) yield return MapExplorationVerifier.VerifyPlay(gate, output, Check);
+            if (SessionState.GetInt(Key + "escapeCases", 0) > 0)
+            {
+                yield return MapEscapeRuntimeVerifier.Verify(gate, completionCase++ / 2, output, Check);
+                continue;
+            }
+            if (SessionState.GetBool(Key + "progressionOnly", false)) yield return MapCaveProgressionPlayVerifier.Verify(gate, Check);
+            if (SessionState.GetBool(Key + "minimapOnly", false))
+            {
+                if (SessionState.GetBool(Key + "minimapResolution", false)) yield return MapMinimapResolutionVerifier.Verify(gate, caseOutput, Check);
+                else yield return MapExplorationVerifier.VerifyPlay(gate, caseOutput, Check);
+                var current = WorldMinimapController.Instance.Exploration;
+                Check(priorTextures.All(t => !t), label + ": previous run textures remain released");
+                priorTextures.Add(current.TerrainTexture); priorTextures.Add(current.OutlineTexture);
+            }
             else yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
             yield return Wait(() => !flow.IsSwitching && WorldSessionState.IsHideout, label + ": abandon returns to hub");
             Check(account.ReadRun().phase == RunPhase.Failed, label + ": existing abandon settlement maintained");
             if (SessionState.GetBool(Key + "minimapOnly", false))
-                Check(WorldMinimapController.Instance.Exploration == null && WorldMinimapController.Instance.View.TerrainImage.texture != null,
+            {
+                yield return Frames(3);
+                var controller = WorldMinimapController.Instance;
+                Check(controller.Exploration == null && controller.View.TerrainImage.texture != null,
                     label + ": unloading the run releases exploration and restores the hub bake");
+                Check(priorTextures.All(t => !t), label + ": both textures from every visited run have been destroyed");
+                Check(!Resources.FindObjectsOfTypeAll<Texture2D>().Any(t => t.name == "Explored terrain (run)" || t.name == "Explored outline (run)"),
+                    label + ": no run-owned exploration texture accumulates at the hub");
+                var source = (MinimapEnemySource)typeof(WorldMinimapController).GetField("source", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(controller);
+                Check(source.RegisteredCount == 0 && controller.Guides.Count == 0 && !controller.OverlayRequested,
+                    label + ": old enemy subscriptions, guidance and overlay request are cleared at the hub");
+            }
         }
     }
     static void Finish(Exception error)
@@ -277,5 +349,12 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseBool(Key + "largeOnly"); SessionState.EraseInt(Key + "completionCases"); SessionState.EraseInt(Key + "bossCases");
         SessionState.EraseBool(Key + "minimapOnly");
         SessionState.EraseBool(Key + "guidanceOnly");
+        SessionState.EraseBool(Key + "minimapCycles");
+        SessionState.EraseBool(Key + "minimapCompatibility");
+        SessionState.EraseBool(Key + "minimapResolution");
+        SessionState.EraseBool(Key + "progressionOnly");
+        SessionState.EraseBool(Key + "escapeSettlementOnly");
+        SessionState.EraseInt(Key + "escapeCases");
+        SessionState.EraseBool(Key + "includeLargeCave");
     }
 }

@@ -13,6 +13,7 @@ public sealed class RunWorldGate : MonoBehaviour
     public MapRunRoster Roster { get; private set; }
     public MapSpawnBudget SpawnBudget { get; internal set; }
     public MapRunCompletion Completion { get; internal set; }
+    public MapEmergencyExit EmergencyExit { get; internal set; }
     public MapBossArena BossArena { get; internal set; }
     public string PreparationStage { get; internal set; }
 
@@ -20,6 +21,7 @@ public sealed class RunWorldGate : MonoBehaviour
     {
         if (run == null || run.phase != RunPhase.EntryPending) throw new ArgumentException("Pending run required.");
         Map = ItemSnapshotCodec.CopyValues(run.map);
+        Map.areaCount = MapGenerationPolicy.EffectiveAreaCount(Map);
         Context = new EncounterContext(run.runId, Map.level, Map.grade,
             MapOptionPolicy.ExperienceMultiplier(Map), Map);
         IsReady = false; EntryPoint = null; Error = null; Roster = null; PreparationStage = null;

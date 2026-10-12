@@ -15,7 +15,7 @@ public sealed partial class CrustaspikanEncounter
 
     public bool BeginMap(RunWorldGate gate, PlayerActorRuntime actor, EnemySpawnService service)
     {
-        if (!gate || gate.BossArena == null || !actor || !service || service.gameObject.scene != gate.gameObject.scene)
+        if (!gate || gate.BossArena == null || !gate.BossArena.HasBoss || !actor || !service || service.gameObject.scene != gate.gameObject.scene)
             throw new ArgumentException("Prepared desert and its spawn service required.");
         mapGate = gate; mapArena = gate.BossArena; Settings = mapArena.Settings;
         player = actor; spawns = service; mapPath = new NavMeshPath();

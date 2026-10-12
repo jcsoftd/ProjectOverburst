@@ -36,6 +36,7 @@ public sealed class MapRunCompletion : MonoBehaviour
         if (gate.Map.terrain == MapTerrainKind.Desert)
         {
             if (gate.BossArena == null || !service) throw new InvalidOperationException("Reserved desert boss required.");
+            if (!gate.BossArena.HasBoss) return;
             var root = new GameObject("Desert Crustaspikan"); root.transform.SetParent(transform, false);
             Boss = root.AddComponent<CrustaspikanEncounter>();
             if (!Boss.BeginMap(gate, actor, service)) throw new InvalidOperationException("사막 보스 준비 실패: " + Boss.LastFailure);
@@ -62,6 +63,12 @@ public sealed class MapRunCompletion : MonoBehaviour
     {
         int area = FindArea(player.transform.position, out var point);
         if (area >= 0) { lastArea = area; lastSafe = point; }
+        if (!requested && player.Health != null && !player.Health.IsDead
+            && gate.BossArena != null && !gate.BossArena.HasBoss && area == gate.BossArena.Ground.Index)
+        {
+            completionArea = area; completionAnchor = point;
+            completionFrame = Time.frameCount; requested = true;
+        }
     }
     void ObserveDeath()
     {
@@ -85,7 +92,7 @@ public sealed class MapRunCompletion : MonoBehaviour
         var run = account?.ReadRun();
         if (run == null || run.runId != gate.Context.RunId || !AccountInvariants.IsRunning(run.phase)) return;
         if (!requested && run.phase != RunPhase.Completed) return;
-        // Capture the platform on the exact death event, then let that frame's player damage finish.
+        // Capture the completion platform, then let that frame's player damage finish.
         if (run.phase == RunPhase.Active && Time.frameCount <= completionFrame) return;
         nextAttempt = Time.unscaledTime + .5f;
         try
@@ -103,7 +110,7 @@ public sealed class MapRunCompletion : MonoBehaviour
                 // A missing floor visual never rolls back an achieved target. Retry it from the saved event.
                 TryPreparePresentation(pendingReward, false, account);
                 account.ExecuteState("complete-" + run.runId, state => AccountRunCommands.CompleteMap(state,
-                    run.runId, DateTime.UtcNow.Ticks, completionArea, completionAnchor, pendingReward));
+                    run.runId, DateTime.UtcNow.Ticks, completionArea, completionAnchor, pendingReward, bossDefeated: Boss && Boss.Defeated));
                 run = account.ReadRun();
             }
             if (run.phase != RunPhase.Completed) return;

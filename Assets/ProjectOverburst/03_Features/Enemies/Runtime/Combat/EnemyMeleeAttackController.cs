@@ -44,6 +44,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
     private int attackPhaseIndex;
     private float statusActionSpeedMultiplier = 1f; // 상태이상 행동 배율
     private float definitionDamageMultiplier = 1f; // 등급·변형 피해 배율
+    private float EffectiveDamageMultiplier => definitionDamageMultiplier * (actor ? actor.NaturalProgressMultiplier : 1f);
     private float runtimeAttackSpeedMultiplier = 1f; // 등급·변형 공격속도 배율
     private readonly EnemyAttackClock weakAttackClock = new EnemyAttackClock();
     private Animator weakSamplingAnimator;
@@ -201,7 +202,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
 
         if (ability.HasWeakAttackExecution && (weakMotionDriver == null || !weakMotionDriver.CanUse(ability.WeakAttackExecution))) return false;
         if (ability.HasWeakAttackExecution && !ability.TryResolveWeakDamageBudget(GetComponent<EnemyRank>()?.Level ?? 1,
-            definitionDamageMultiplier, out _)) return false;
+            EffectiveDamageMultiplier, out _)) return false;
         if (ability.HasWeakAttackExecution && (animationBridge == null
             || !animationBridge.CanPlayAttackMotion(ability.AnimatorTrigger, ability.WeakAttackExecution.RuntimeClip))) return false;
         Vector3 aimPosition = ResolveAimPosition(attackTarget);
@@ -561,7 +562,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
             weakClockTrigger = triggerName;
             weakCommittedForward = transform.forward;
             int level = GetComponent<EnemyRank>()?.Level ?? 1;
-            if (!ability.TryResolveWeakDamageBudget(level, definitionDamageMultiplier, out weakDamageBudget)) yield break;
+            if (!ability.TryResolveWeakDamageBudget(level, EffectiveDamageMultiplier, out weakDamageBudget)) yield break;
             reactionScope = ability.HitCount > 1 ? new EnemyWeakAttackReactionScope(gameObject, executionSequence, actor) : null;
             weakReactionScope = reactionScope;
             float first = ability.GetHitNormalizedTime(0);
@@ -1220,7 +1221,7 @@ public partial class EnemyMeleeAttackController : MonoBehaviour // 적 근접 �
     }
 
     private float ResolveIncomingDamage(EnemyAbilityDefinition ability, int level)
-        => (ability != null ? ability.ResolveDamage(level) : damage) * definitionDamageMultiplier;
+        => (ability != null ? ability.ResolveDamage(level) : damage) * EffectiveDamageMultiplier;
 
     public bool TryGetParryDamageSnapshot(EnemyAbilityDefinition ability, CombatTarget victim, out DamageInfo info)
     {

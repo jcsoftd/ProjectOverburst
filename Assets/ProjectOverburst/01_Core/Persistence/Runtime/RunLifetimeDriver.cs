@@ -9,6 +9,7 @@ namespace Overburst.Persistence
     public sealed class RunLifetimeDriver : MonoBehaviour
     {
         private bool portalRequested;
+        private MapEmergencyExit emergencyExit;
         private bool abandoned;
         private bool returnPending;
         private bool returnRequested;
@@ -22,6 +23,7 @@ namespace Overburst.Persistence
         private void OnDisable()
         {
             WorldSessionState.Changed -= WorldChanged;
+            emergencyExit = null;
             GameplayInputBlocker.Unblock(this);
         }
 
@@ -32,6 +34,27 @@ namespace Overburst.Persistence
             if (!portalRequested) portalRequestFrame = Time.frameCount;
             portalRequested = true;
             return true;
+        }
+
+        public bool RequestEmergencyExit(MapEmergencyExit source)
+        {
+            if (!source || !source.CanExtract || returnPending
+                || PlayerContext.Instance?.CurrentActorHealth?.IsDead != false) return false;
+            if (!portalRequested && !emergencyExit) portalRequestFrame = Time.frameCount;
+            emergencyExit = source;
+            return true;
+        }
+
+        public void CancelEmergencyExit(MapEmergencyExit source)
+        {
+            if (emergencyExit != source) return;
+            emergencyExit = null;
+            if (!returnPending && !portalRequested && !abandoned
+                && PlayerContext.Instance?.CurrentActorHealth?.IsDead == false)
+            {
+                LastError = null;
+                GameplayInputBlocker.Unblock(this);
+            }
         }
 
         public void RequestAbandon()
@@ -70,14 +93,16 @@ namespace Overburst.Persistence
             if (WorldSessionState.Phase != WorldPhase.Run && !abandoned) return;
             var health = PlayerContext.Instance?.CurrentActorHealth;
             if (health == null) return;
+            if (emergencyExit && !emergencyExit.CanExtract) CancelEmergencyExit(emergencyExit);
             // Finish the requesting frame's combat before resolving a successful extraction.
-            if (portalRequested && Time.frameCount <= portalRequestFrame && !health.IsDead && !abandoned) return;
+            if ((portalRequested || emergencyExit) && Time.frameCount <= portalRequestFrame && !health.IsDead && !abandoned) return;
             try
             {
-                outcome = new AccountRunSession(account).ResolveOutcome(utcTicks, health.IsDead, portalRequested, abandoned);
+                outcome = new AccountRunSession(account).ResolveOutcome(utcTicks, health.IsDead, portalRequested, abandoned, emergencyExit && emergencyExit.CanExtract);
                 if (outcome == RunOutcome.None) return;
                 LastError = null;
                 portalRequested = abandoned = false;
+                emergencyExit = null;
                 returnPending = true;
                 GameplayInputBlocker.Block(this);
                 TryReturn();
@@ -112,6 +137,7 @@ namespace Overburst.Persistence
                 health.ResetHealth();
             }
             returnPending = returnRequested = false;
+            emergencyExit = null;
             outcome = RunOutcome.None;
             GameplayInputBlocker.Unblock(this);
         }

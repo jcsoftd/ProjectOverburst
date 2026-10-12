@@ -212,7 +212,7 @@ public sealed class OverburstGameUI : MonoBehaviour
         region.text = cave ? "동굴" : "사막";
         regionDetails.text = state.Item4 ? (state.Item5 ? "탐험 완료 · 원할 때 귀환 포탈로 귀환" : "탐험 완료 · 귀환 포탈 준비 중")
             : cave ? $"몬스터 토벌 {state.Item3:N0} / {roster.Target:N0}" + (roster.CaveTargetReached ? " · 완료 저장 중" : "")
-            : "보스 처치";
+            : regionGate.BossArena != null && !regionGate.BossArena.HasBoss ? "마지막 발판에 도달" : "보스 처치";
     }
     private void MarkInventoryDirty()=>inventoryDirty=true;
     private void UnbindInventory(){if(observedInventory)observedInventory.Changed-=MarkInventoryDirty;observedInventory=null;inventoryDirty=true;}

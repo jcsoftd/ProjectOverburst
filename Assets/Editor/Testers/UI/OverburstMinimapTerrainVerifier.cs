@@ -19,7 +19,8 @@ public static class OverburstMinimapTerrainVerifier
     const string Key = "Overburst.MinimapTerrainVerifier.";
     const string Prefab = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/PF_OverburstWorldMinimap_Rpg11.prefab";
     static int Phase { get => SessionState.GetInt(Key + "phase", 0); set => SessionState.SetInt(Key + "phase", value); }
-    static string Output => SessionState.GetString(Key + "output", "");
+    static string ownedOutput;
+    static string Output => ownedOutput ?? SessionState.GetString(Key + "output", "");
     static IEnumerator work;
     static int frame = -1;
     static readonly List<string> checks = new List<string>();
@@ -36,7 +37,8 @@ public static class OverburstMinimapTerrainVerifier
 
     public static string AssetsCheck()
     {
-        EditorSceneSafety.RequireNoUnsavedScenes("Minimap terrain assets check");
+        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new InvalidOperationException("Idle Editor required for the read-only prefab check.");
         GameObject root = PrefabUtility.LoadPrefabContents(Prefab);
         try
         {
@@ -46,7 +48,7 @@ public static class OverburstMinimapTerrainVerifier
                 throw new InvalidOperationException("Minimap authored references are missing.");
             var image = view.TerrainImage;
             if (image.raycastTarget || !image.maskable || image.transform.GetSiblingIndex() != 0
-                || root.GetComponentsInChildren<RawImage>(true).Length != 1
+                || root.GetComponentsInChildren<RawImage>(true).Length != 2
                 || image.GetComponentInParent<Mask>() == null || root.GetComponentsInChildren<Camera>(true).Length != 0)
                 throw new InvalidOperationException("Terrain image mask/order/raycast contract failed.");
             foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
@@ -169,6 +171,38 @@ public static class OverburstMinimapTerrainVerifier
         }
     }
 
+    // Reuse the current title/account runner, which preserves dirty user scenes and owns Play return.
+    public static IEnumerator VerifyInOwnedPlay(string output, Action<bool, string> check)
+    {
+        if (!Application.isPlaying || Phase != 0 || !string.IsNullOrEmpty(Output)
+            || AccountBootstrap.SaveDirectory != Path.Combine(output, "Account"))
+            throw new InvalidOperationException("An owned isolated map verification Play is required.");
+        ownedOutput = output;
+        checks.Clear(); errors.Clear(); reports.Clear(); Application.logMessageReceived += Log;
+        var probe = Probe(); bool complete = false;
+        try
+        {
+            while (probe.MoveNext())
+            {
+                yield return probe.Current;
+                while (!string.IsNullOrEmpty(pendingShot))
+                {
+                    if (File.Exists(pendingShot) && new FileInfo(pendingShot).Length > 0) { pendingShot = null; break; }
+                    if (EditorApplication.timeSinceStartup > shotDeadline) throw new TimeoutException("Screenshot did not finish.");
+                    yield return null;
+                }
+            }
+            complete = true;
+            foreach (var label in checks) check(true, label);
+        }
+        finally
+        {
+            (probe as IDisposable)?.Dispose();
+            WriteResult(complete ? "PASS" : "FAIL", complete ? null : "See the owning Play result for the failed check.");
+            Cleanup(); ownedOutput = null;
+        }
+    }
+
     static IEnumerator Probe()
     {
         for (int i = 0; i < 15; i++) yield return null;
@@ -176,6 +210,8 @@ public static class OverburstMinimapTerrainVerifier
         var view = controller.View;
         var actor = PlayerContext.Instance.CurrentActor;
         Check(controller.IsVisible && view.TerrainImage.texture != null, "MainScene terrain visible");
+        controller.SetOverlay(true);
+        Check(controller.Exploration == null && !controller.OverlayRequested && !controller.OverlayVisible, "Hub cannot retain a product exploration overlay");
         reports.Add(TextureReport("MainScene", view.TerrainImage.texture));
         checks.Add(OverburstMinimapValidator.ValidateAuthored());
         reports.Add(OverburstMinimapValidator.ValidatePlayCore());
@@ -212,11 +248,17 @@ public static class OverburstMinimapTerrainVerifier
         for (int i = 0; i < 12; i++) yield return null;
         for (int cycle = 0; cycle < 2; cycle++)
         {
-            Check(Object.FindFirstObjectByType<MapDungeonPortal>().EnterLevelOne(), "Dungeon request " + cycle);
+            var registry = Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);
+            var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
+            var legacy = new MapInstanceState { mapContentId = registry.IdFor(definition), monsterThemeId = "CavernMutants",
+                generationVersion = 0, level = 1, grade = ItemGrade.Common };
+            Check(PersistentSceneFlow.Instance.EnterRun(DiamondDungeonWorld.SceneName, legacy), "Legacy Diamond request " + cycle);
             while (PersistentSceneFlow.Instance.IsSwitching) yield return null;
             for (int i = 0; i < 15; i++) yield return null;
             Check(PersistentSceneFlow.Instance.CurrentSubSceneName == DiamondDungeonWorld.SceneName && controller.IsVisible
                 && view.TerrainImage.texture != null && !((Texture2D)view.TerrainImage.texture).isReadable, "Dungeon runtime terrain binds " + cycle);
+            controller.SetOverlay(true);
+            Check(controller.Exploration == null && !controller.OverlayRequested && !controller.OverlayVisible, "Legacy Diamond retains its own map branch " + cycle);
             builds = controller.TerrainBuildCount;
             if (cycle == 0) reports.Add(TextureReport("DiamondDungeon", view.TerrainImage.texture));
             for (int i = 0; i < 20; i++) { controller.SetZoom(i % 2 == 0 ? 20 : 80); yield return null; }

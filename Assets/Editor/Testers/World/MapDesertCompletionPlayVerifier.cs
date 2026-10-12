@@ -37,24 +37,56 @@ public static class MapDesertCompletionPlayVerifier
         var completion = gate.Completion; var arena = gate.BossArena; var encounter = completion.Boss;
         var roster = gate.Roster; long bosses = account.Read().bossClearCount;
         string runId = account.ReadRun().runId;
+        check(arena != null && (int)MapBossArena.TileSize(arena.Ground) == roster.Areas.Min(a => (int)MapBossArena.TileSize(a.Ground)),
+            label + ": selected authored tile follows large then medium then small priority");
+        check(!MapCombatGeometry.Contains(arena.Ground, player.transform.position), label + ": entry remains outside the completion platform");
+        if (!arena.HasBoss)
+        {
+            check(!encounter && !completion.Portal && !completion.Reward, label + ": small-only desert has no boss or early completion");
+            yield return Frames(10);
+            check(account.ReadRun().phase == RunPhase.Active, label + ": small-only run stays active before platform entry");
+            ActorTeleportUtility.TeleportSafely(player.transform, arena.PortalPoint + Vector3.up * .12f, Quaternion.identity);
+            yield return Wait(() => completion.IsCompleted && completion.Portal && completion.Reward, check, label + ": entering small final platform creates guaranteed map and return portal");
+            check(account.Read().bossClearCount == bosses && completion.CompletionArea == arena.Ground.Index
+                && !UnityEngine.Object.FindObjectsByType<CrustaspikanEncounter>(FindObjectsSortMode.None).Any(),
+                label + ": no boss actor, intro or boss-kill increment on small-only clear");
+            check(completion.Reward.TryPickup(PlayerAccountInventoryService.SharedInventory), label + ": small-only guaranteed map pickup");
+            string rewardId = account.ReadRun().completionReward.instanceId;
+            completion.Poll(); yield return Frames(3);
+            check(account.ReadRun().completionReward.instanceId == rewardId && account.Read().bossClearCount == bosses, label + ": repeated poll does not duplicate small-only reward");
+            check(driver.RequestPortalExit(), label + ": small-only manual return accepted");
+            yield return Wait(() => WorldSessionState.IsHideout && !flow.IsSwitching, check, label + ": small-only manual extraction reaches hub");
+            check(account.ReadRun().phase == RunPhase.Extracted && account.Read().items.Any(i => i.instanceId == rewardId && string.IsNullOrEmpty(i.originRunId)), label + ": small-only reward extraction persisted");
+            yield break;
+        }
+        GameObject blocker = null;
+        try
+        {
         check(arena != null && encounter && encounter.Brain == null && !encounter.MapEngaged && !encounter.IsIntroducing,
             label + ": boss actor and cinematic absent before room entry");
         check(!UnityEngine.Object.FindObjectsByType<EnemyActor>(FindObjectsSortMode.None).Any(a => a.IsLeased && a.gameObject.scene == gate.gameObject.scene && a.Definition.Grade.GradeType == EnemyGradeType.Boss),
             label + ": no active boss hidden elsewhere in scene");
         check(roster.Areas[arena.Ground.Index].Count == 0 && gate.SpawnBudget.Fields.Count == roster.Areas.Count,
             label + ": reserved boss room has no natural population and retains field indexing");
-        check(roster.Areas.All(a => Distance(gate.EntryPoint.position, a.Ground.Center) <= arena.WalkDistance + .1f),
-            label + ": room is farthest by actual shortest walk");
+        check(roster.Areas.Where(a => MapBossArena.TileSize(a.Ground) == MapBossArena.TileSize(arena.Ground))
+            .All(a => Distance(gate.EntryPoint.position, a.Ground.Center) <= arena.WalkDistance + .1f),
+            label + ": room is farthest by actual shortest walk within the preferred tile size");
         check(arena.DodgePoints.Count >= 4 && MapCombatGeometry.CanPlace(arena.Ground, arena.Settings.materials.actorDefinition, arena.BossPoint)
             && float.IsFinite(Distance(arena.BossPoint, arena.PortalPoint)) && float.IsFinite(Distance(arena.BossPoint, arena.RewardPoint)),
             label + ": actual body, evasion points, reward and portal are reachable");
         check(!completion.Portal && !completion.Reward, label + ": no early completion reward");
         yield return Frames(10);
         check(encounter.Brain == null, label + ": boss does not spawn while player remains outside");
+        blocker = GameObject.CreatePrimitive(PrimitiveType.Cube); blocker.name = "Owned intro camera blocker fixture";
+        UnityEngine.Object.DestroyImmediate(blocker.GetComponent<Collider>());
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(blocker, gate.gameObject.scene);
+        blocker.transform.position = arena.BossPoint + Vector3.up * 8; blocker.transform.localScale = new Vector3(20, 20, 20);
         ActorTeleportUtility.TeleportSafely(player.transform, arena.DodgePoints[0] + Vector3.up * .12f, Quaternion.identity);
         yield return Wait(() => encounter.IsIntroducing, check, label + ": room entry starts existing entrance cinematic");
         var brain = encounter.Brain; var actor = brain.Actor; uint lease = actor.LeaseVersion;
         var cinematic = encounter.EntranceCinematic;
+        yield return Wait(() => blocker.GetComponent<Renderer>().forceRenderingOff, check, label + ": live cinematic render callback hides foreground blocker");
+        check(cinematic.HiddenOccluderCount > 0 && blocker.activeInHierarchy, label + ": intro hides renderer without deactivating scenery");
         check(encounter.MapEngaged && cinematic.ShotCamera && cinematic.HiddenCanvasCount > 0 && cinematic.VisualOffset.y < 0
             && GameplayInputBlocker.IsGameplayInputBlocked, label + ": boss emerges from underground with cinematic camera and input block");
         player.Health.SetDamageDeathPrevention(flow, false);
@@ -65,6 +97,8 @@ public static class MapDesertCompletionPlayVerifier
         if (scenario == 2)
         {
             cinematic.Cancel();
+            check(!blocker.GetComponent<Renderer>().forceRenderingOff && cinematic.HiddenOccluderCount == 0, label + ": cancellation restores foreground rendering");
+            UnityEngine.Object.Destroy(blocker); blocker = null;
             check(!player.Health.IsDamageImmune && !actor.Health.IsDamageImmune && !GameplayInputBlocker.IsGameplayInputBlocked,
                 label + ": cancellation releases protection and input immediately");
             driver.RequestAbandon();
@@ -82,11 +116,14 @@ public static class MapDesertCompletionPlayVerifier
             ScreenCapture.CaptureScreenshot(Path.Combine(output, "desert-roar.png")); yield return Frames(2);
         }
         yield return Wait(() => !encounter.IsIntroducing, check, label + ": cinematic finishes or skips", 45);
+        check(!blocker.GetComponent<Renderer>().forceRenderingOff && cinematic.HiddenOccluderCount == 0, label + ": finish or skip restores foreground rendering");
+        UnityEngine.Object.Destroy(blocker); blocker = null;
+        if (scenario == 0) yield return VerifyLighting(gate, output, check);
         check(cinematic.VisualRestored && !player.Health.IsDamageImmune && !actor.Health.IsDamageImmune
             && !GameplayInputBlocker.IsGameplayInputBlocked && encounter.BossHud, label + ": camera flow, visuals, HUD, input and damage restored");
         if (scenario == 0) check(cinematic.ArrivalStarted && cinematic.ImpactStarted && cinematic.RoarStarted && !cinematic.WasSkipped,
             label + ": authored emergence, impact and roar played to completion");
-        else check(cinematic.WasSkipped, label + ": skip uses the same restoration path");
+        else if (scenario == 1) check(cinematic.WasSkipped, label + ": skip uses the same restoration path");
         var rank = actor.GetComponent<EnemyRank>(); var definition = actor.Definition;
         float expectedHp = definition.ReferenceHealthCoefficient > 0
             ? CombatBalanceFormulas.EnemyReferenceHealth(definition.ReferenceHealthCoefficient, gate.Map.level) * 1.5f
@@ -158,5 +195,28 @@ public static class MapDesertCompletionPlayVerifier
         check(account.ReadRun().phase == RunPhase.Extracted && account.Read().items.Any(i => i.instanceId == rewardId && string.IsNullOrEmpty(i.originRunId))
             && account.Read().bossClearCount == bosses + 1 && !player.Health.IsDamageImmune && !GameplayInputBlocker.IsGameplayInputBlocked,
             label + ": reward retained and presentation protection fully released after extraction");
+        }
+        finally { if (blocker) UnityEngine.Object.Destroy(blocker); }
+    }
+    static IEnumerator VerifyLighting(RunWorldGate gate, string output, Action<bool, string> check)
+    {
+        var world = gate.GetComponent<Overburst.Mojave.DesertRunWorld>();
+        var sun = gate.gameObject.scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Light>())
+            .Where(l => l.enabled && l.type == LightType.Directional).OrderByDescending(l => l.intensity).First();
+        var expected = Quaternion.Euler(0, QuarterViewCamera.ActiveInstance.CurrentYaw, 0) * new Vector3(-.65f, 1.15f, -1f).normalized;
+        check(Vector3.Dot(-sun.transform.forward, expected) > .999f && sun.shadowStrength <= .6801f, "Desert sun comes from camera-side lower left and keeps softer shadows");
+        float scale = Time.timeScale, intensity = sun.intensity; Color color = sun.color; Quaternion adjusted = sun.transform.rotation;
+        try
+        {
+            Time.timeScale = 0; yield return Frames(4);
+            world.enabled = false; yield return Frames(3);
+            check(Quaternion.Angle(sun.transform.rotation, adjusted) > 1f, "Disabling run lighting restores original authored sun");
+            ScreenCapture.CaptureScreenshot(Path.Combine(output, "desert-light-before.png")); yield return Frames(4);
+            world.enabled = true; yield return Frames(4);
+            check(Quaternion.Angle(sun.transform.rotation, adjusted) < .1f && sun.intensity == intensity && sun.color == color,
+                "Re-enabling restores camera-relative direction without changing sun intensity or color");
+            ScreenCapture.CaptureScreenshot(Path.Combine(output, "desert-light-after.png")); yield return Frames(4);
+        }
+        finally { world.enabled = true; Time.timeScale = scale; }
     }
 }

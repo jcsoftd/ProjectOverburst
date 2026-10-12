@@ -81,6 +81,10 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     private readonly List<LineRenderer> fractures = new List<LineRenderer>();
     private readonly List<Transform> debris = new List<Transform>();
     private readonly Dictionary<Renderer, bool> hiddenArenaRenderers = new Dictionary<Renderer, bool>();
+    private readonly List<Renderer> occlusionCandidates = new List<Renderer>();
+    private readonly Dictionary<Renderer, bool> hiddenOccluders = new Dictionary<Renderer, bool>();
+    private Vector3 shotFocus;
+    public int HiddenOccluderCount => hiddenOccluders.Count;
     private readonly List<UnityEngine.Object> resources = new List<UnityEngine.Object>();
     private Transform head, claw;
     private Vector3 smoothedHead, basePosition;
@@ -135,6 +139,8 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             cameraAppearanceCaptured = true;
             rig.OutputCamera.clearFlags = CameraClearFlags.SolidColor; rig.OutputCamera.backgroundColor = Backdrop;
             CaptureArena();
+            CaptureOccluders();
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += BeforeCameraRendering;
             BuildPresentation();
             visualRoot = actor.VisualRoot; visualRestPosition = visualRoot.localPosition; visualCaptured = true;
             ApplyEmergence(0f); smoothedHead = HeadPosition;
@@ -180,6 +186,38 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
         foreach (var light in encounter.GetComponentsInChildren<Light>())
             if (light.name == "Arena Fill Light")
             { arenaFill = light; previousFillIntensity = light.intensity; light.intensity = .6f; break; }
+    }
+
+    private void CaptureOccluders()
+    {
+        occlusionCandidates.Clear();
+        foreach (var root in encounter.gameObject.scene.GetRootGameObjects())
+            foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>())
+                if (renderer.enabled && !renderer.forceRenderingOff && renderer != arenaFloor
+                    && !renderer.GetComponentInParent<EnemyActor>() && !renderer.GetComponentInParent<PlayerActorRuntime>()
+                    && !renderer.GetComponentInParent<Overburst.Caves.CaveWalkSurface>()) occlusionCandidates.Add(renderer);
+    }
+    private void BeforeCameraRendering(UnityEngine.Rendering.ScriptableRenderContext context, Camera camera)
+    {
+        if (!IsPlaying || camera != rig?.OutputCamera) return;
+        HideOccluders(camera.transform.position, shotFocus);
+    }
+    private void HideOccluders(Vector3 cameraPosition, Vector3 focus)
+    {
+        // Keep a blocker hidden until the intro ends so changing shots cannot make it flash back in.
+        foreach (var renderer in occlusionCandidates)
+        {
+            if (!renderer || !renderer.enabled || hiddenOccluders.ContainsKey(renderer)) continue;
+            var bounds = renderer.bounds;
+            if (bounds.max.y <= basePosition.y + .05f) continue;
+            if (!Blocks(focus) && !Blocks(HeadPosition) && !Blocks(Local(-.2f, .4f, 0)) && !Blocks(Local(.2f, .4f, 0))) continue;
+            hiddenOccluders.Add(renderer, renderer.forceRenderingOff); renderer.forceRenderingOff = true;
+            bool Blocks(Vector3 target)
+            {
+                var delta = target - cameraPosition; float distance = delta.magnitude;
+                return distance > .1f && bounds.IntersectRay(new Ray(cameraPosition, delta / distance), out float hit) && hit < distance - .1f;
+            }
+        }
     }
 
     private void BuildPresentation()
@@ -489,6 +527,7 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
             position = Vector3.Lerp(Local(-.18f, .47f, 1.02f), Local(-.18f, .34f, 1.95f), t);
             focus = Vector3.Lerp(smoothedHead, Local(0, .48f, 0), t); fov = Mathf.Lerp(46f, 57f, t);
         }
+        shotFocus = focus;
         shotCamera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(focus - position));
         var lens = shotCamera.Lens; lens.FieldOfView = fov; lens.Dutch = dutch; lens.ModeOverride = LensSettings.OverrideModes.Perspective;
         shotCamera.Lens = lens;
@@ -512,6 +551,9 @@ public sealed class CrustaspikanEntranceCinematic : MonoBehaviour
     {
         if (!IsPlaying && cameraOverride < 0 && presentation == null) return;
         IsPlaying = false;
+        UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= BeforeCameraRendering;
+        foreach (var pair in hiddenOccluders) if (pair.Key) pair.Key.forceRenderingOff = pair.Value;
+        hiddenOccluders.Clear(); occlusionCandidates.Clear();
         try
         {
             if (rig?.Brain != null && cameraOverride >= 0) rig.Brain.ReleaseCameraOverride(cameraOverride);

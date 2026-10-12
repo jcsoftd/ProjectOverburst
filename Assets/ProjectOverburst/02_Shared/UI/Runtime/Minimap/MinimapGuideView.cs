@@ -20,9 +20,10 @@ public sealed class MinimapGuideView : MonoBehaviour
             bool arrow = outside || hint.Type == MinimapGuideSource.Kind.Frontier;
             var color = hint.Type == MinimapGuideSource.Kind.Portal ? new Color32(120, 220, 255, 255) : new Color32(255, 211, 105, 255);
             color.a = (byte)Mathf.RoundToInt(255 * opacity);
+            bool portal = hint.Type == MinimapGuideSource.Kind.Portal || hint.Type == MinimapGuideSource.Kind.EmergencyExit;
             var marker = new MinimapMarkerGraphic.Marker { Id = hint.Id, Position = clamped, Color = color,
-                Grade = hint.Type == MinimapGuideSource.Kind.Portal || hint.Type == MinimapGuideSource.Kind.Enemy ? EnemyGradeType.Boss : EnemyGradeType.Elite,
-                Size = hint.Type == MinimapGuideSource.Kind.Portal ? 17 : hint.Type == MinimapGuideSource.Kind.Enemy ? 10 : 14 };
+                Grade = portal || hint.Type == MinimapGuideSource.Kind.Enemy ? EnemyGradeType.Boss : EnemyGradeType.Elite,
+                Size = portal ? 17 : hint.Type == MinimapGuideSource.Kind.Enemy ? 10 : 14 };
             if (arrow)
             {
                 Vector2 direction = outside ? point : MinimapProjection.Project(hint.Position + hint.Direction, hint.Position, yaw, 1, 1);

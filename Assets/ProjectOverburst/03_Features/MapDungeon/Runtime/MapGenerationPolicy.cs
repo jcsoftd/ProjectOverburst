@@ -6,6 +6,8 @@ using Overburst.Persistence;
 public static class MapGenerationPolicy
 {
     public const int Version = 1;
+    // Temporary content limit: restore after the platform roster is expanded.
+    public const int CavePlatformLimit = 17;
     // Initial tuning from 80A. All sizes remain available at every level/grade.
     private static readonly int[] CaveWeights = { 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 4, 3, 3, 2 };
     private static readonly int[] DesertWeights = { 20, 25, 25, 20, 10 };
@@ -35,7 +37,7 @@ public static class MapGenerationPolicy
         int seed = rng.Next(1, int.MaxValue);
         int count, width = 0, depth = 0;
         string candidate = null;
-        if (terrain == MapTerrainKind.Cave) count = 4 + Pick(rng, CaveWeights);
+        if (terrain == MapTerrainKind.Cave) count = Math.Min(CavePlatformLimit, 4 + Pick(rng, CaveWeights));
         else
         {
             int group = Pick(rng, DesertWeights);
@@ -79,9 +81,12 @@ public static class MapGenerationPolicy
             || savedTheme.weight != 100 || savedTheme.themeId != map.monsterThemeId)
             throw new InvalidDataException("Saved map must contain its single monster theme at weight 100.");
     }
+    public static int EffectiveAreaCount(MapInstanceState map)
+        => map.generationVersion > 0 && map.terrain == MapTerrainKind.Cave && map.areaCount >= 4 && map.areaCount <= 20
+            ? Math.Min(map.areaCount, CavePlatformLimit) : map.areaCount;
     public static string Describe(MapInstanceState map)
         => map == null || map.generationVersion == 0 ? "기존 지도"
-            : map.terrain == MapTerrainKind.Cave ? "동굴 · " + map.areaCount + "개 플랫폼"
+            : map.terrain == MapTerrainKind.Cave ? "동굴 · " + EffectiveAreaCount(map) + "개 플랫폼"
             : "사막 · " + map.areaCount + "개 전장";
     private static int DesertGroup(int count) => count >= 2 && count <= 4 ? 0 : count == 6 ? 1 : count == 9 ? 2 : count == 12 ? 3 : count == 15 ? 4 : -1;
     private static int Pick(Random rng, int[] weights)

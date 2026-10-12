@@ -41,6 +41,7 @@ public sealed partial class MapSpawnBudget
         var definition = Resources.Load<MapItemData>("Items/Maps/Map_Diamond01");
         gate.Completion = gate.gameObject.AddComponent<MapRunCompletion>();
         gate.Completion.Configure(gate, player.GetComponent<PlayerActorRuntime>(), service);
+        MapEmergencyExit.Prepare(gate, player.GetComponent<PlayerActorRuntime>());
         foreach (var area in gate.Roster.Areas)
         {
             var node = new GameObject("Natural Population " + area.Ground.Index); node.transform.SetParent(root.transform, false);

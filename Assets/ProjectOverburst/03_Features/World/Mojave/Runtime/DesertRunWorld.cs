@@ -25,11 +25,42 @@ namespace Overburst.Mojave
         NavMeshData navigation;
         IEnumerator preparation;
         bool started;
+        Light gameplaySun;
+        Quaternion originalSunRotation;
+        float originalShadowStrength, lightingYaw = float.NaN;
+        void LateUpdate()
+        {
+            var camera = QuarterViewCamera.ActiveInstance;
+            if (!camera || WorldSessionState.ContentScene != gameObject.scene || WorldSessionState.Phase != WorldPhase.Run) return;
+            if (!gameplaySun)
+            {
+                foreach (var root in gameObject.scene.GetRootGameObjects())
+                    foreach (var light in root.GetComponentsInChildren<Light>())
+                        if (light.enabled && light.type == LightType.Directional && (!gameplaySun || light.intensity > gameplaySun.intensity)) gameplaySun = light;
+                if (!gameplaySun) return;
+                originalSunRotation = gameplaySun.transform.rotation; originalShadowStrength = gameplaySun.shadowStrength;
+                gameplaySun.shadowStrength = Mathf.Min(originalShadowStrength, .68f);
+            }
+            if (Mathf.Approximately(lightingYaw, camera.CurrentYaw)) return;
+            lightingYaw = camera.CurrentYaw;
+            // Light comes from the camera-side lower left, above the floor, to illuminate visible actor faces.
+            var source = Quaternion.Euler(0, lightingYaw, 0) * new Vector3(-.65f, 1.15f, -1f);
+            gameplaySun.transform.rotation = Quaternion.LookRotation(-source);
+        }
+        void OnDisable()
+        {
+            if (gameplaySun) { gameplaySun.transform.rotation = originalSunRotation; gameplaySun.shadowStrength = originalShadowStrength; }
+            gameplaySun = null; lightingYaw = float.NaN;
+        }
 
         public static Vector3 EntryFor(MojaveWorld world)
         {
             world.EnsureLayout();
-            return world.Ground(world.layout.places[0].World(new Vector2(-2, -2)));
+            var entrance = world.layout.places[0];
+            // Keep the sole large/medium tile available for the boss instead of spawning the player there.
+            foreach (var place in world.layout.places)
+                if (world.catalog.patches[place.patch].combatSize > world.catalog.patches[entrance.patch].combatSize) entrance = place;
+            return world.Ground(entrance.World(new Vector2(-2, -2)));
         }
 
         // Called by sceneLoaded before the authoring explorer's Start/input/camera callbacks.

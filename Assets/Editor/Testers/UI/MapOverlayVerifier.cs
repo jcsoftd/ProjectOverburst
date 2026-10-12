@@ -69,18 +69,40 @@ public static class MapOverlayVerifier
         string bindings = input.RuntimeAsset.SaveBindingOverridesAsJson();
         try
         {
-            int seen = map.RevealedCount, builds = controller.TerrainBuildCount;
-            controller.SetOverlay(false); yield return Frames(4);
-            yield return Press(keyboard, Key.M);
+            int seen = map.RevealedCount, builds = controller.TerrainBuildCount, uploads = map.UploadCount;
+            var visited = Enumerable.Range(0, map.Width * map.Height).Where(map.IsRevealedCell).ToArray();
+            // UI calls must not reveal terrain; live frames may legitimately reveal it as the actor moves.
+            controller.SetOverlay(true);
+            controller.Overlay.Bind(map);
+            foreach (float radius in new[] { 50f, 100f, 200f })
+            {
+                controller.Overlay.Render(PlayerContext.Instance.CurrentActor.transform.position, yaw, 0, radius, opacity);
+                check(map.RevealedCount == seen && map.UploadCount == uploads && controller.TerrainBuildCount == builds,
+                    "Opening and rendering overlay at radius " + radius + " do not explore or regenerate terrain");
+            }
+            var probes = new System.Collections.Generic.List<object>();
+            void Probe(string step)
+            {
+                var position = PlayerContext.Instance.CurrentActor.transform.position;
+                probes.Add(new { step, frame = Time.frameCount, time = Time.unscaledTime, seen = map.RevealedCount,
+                    builds = controller.TerrainBuildCount, sameMap = ReferenceEquals(map, controller.Exploration),
+                    sameTexture = controller.Overlay.outline.texture == map.OutlineTexture,
+                    cell = map.CellAt(position), lastRevealCell = (int)typeof(MinimapExplorationMap).GetField("lastCell", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(map),
+                    position = new[] { position.x, position.y, position.z } });
+                File.WriteAllText(Path.Combine(output, "overlay-observation.json"), JsonConvert.SerializeObject(probes, Formatting.Indented));
+            }
+            Probe("before-close");
+            controller.SetOverlay(false); yield return Frames(4); Probe("closed-four-frames");
+            yield return Press(keyboard, Key.M); Probe("after-open-key");
             check(controller.OverlayVisible && controller.IsVisible && !GameplayInputBlocker.IsGameplayInputBlocked && Time.timeScale > 0,
                 "M opens shared map while combat and circular map remain active");
-            check(controller.Overlay.outline.texture == map.OutlineTexture && map.RevealedCount == seen && controller.TerrainBuildCount == builds,
-                "Opening shares the existing outline without more exploration or terrain generation");
+            check(ReferenceEquals(map, controller.Exploration) && controller.Overlay.outline.texture == map.OutlineTexture && visited.All(map.IsRevealedCell) && controller.TerrainBuildCount == builds,
+                "Map key shares the existing outline and preserves visited cells while gameplay continues");
             check(controller.Overlay.GetComponentsInChildren<UnityEngine.UI.Graphic>(true).All(g => !g.raycastTarget), "Overlay never captures pointer input");
             check(controller.Overlay.markers.MarkerCount == controller.View.Markers.MarkerCount, "Large map uses the same local enemy candidates");
             float circle = controller.ZoomRadius, startScale = OverburstGameSettings.MapOverlayScale;
             yield return Press(keyboard, Key.Equals);
-            check(OverburstGameSettings.MapOverlayScale > startScale && controller.ZoomRadius == circle && map.RevealedCount == seen, "Dedicated zoom key changes only overlay scale");
+            check(OverburstGameSettings.MapOverlayScale > startScale && controller.ZoomRadius == circle && ReferenceEquals(map, controller.Exploration) && controller.TerrainBuildCount == builds, "Dedicated zoom key changes overlay scale without rebuilding terrain or changing circle zoom");
             yield return Press(keyboard, Key.Minus);
             foreach (float angle in new[] { 0f, 45f, 90f })
             {
@@ -91,7 +113,9 @@ public static class MapOverlayVerifier
                 for (int i = 0; i < controller.View.Markers.MarkerCount; i++)
                 {
                     var a = controller.View.Markers.GetMarker(i); var b = controller.Overlay.markers.GetMarker(i);
-                    check(a.Id == b.Id && (a.Position * ratio - b.Position).sqrMagnitude < .2f, "Shared marker projection at yaw " + angle + ": " + a.Id);
+                    // Each graphic skips movements below 0.25 UI units; compare their combined scaled tolerance.
+                    float tolerance = .25f * (1 + ratio) + .001f;
+                    check(a.Id == b.Id && (a.Position * ratio - b.Position).sqrMagnitude < tolerance * tolerance, "Shared marker projection at yaw " + angle + ": " + a.Id);
                 }
             }
             camera.SetYaw(yaw); yield return Frames(8);
@@ -104,7 +128,7 @@ public static class MapOverlayVerifier
             check(GameplayInputBlocker.IsGameplayInputBlocked && controller.OverlayRequested && !controller.OverlayVisible, "Inventory Tab takes priority and hides overlay");
             yield return Press(keyboard, Key.Escape);
             check(!GameplayInputBlocker.IsGameplayInputBlocked && controller.OverlayVisible && !OverburstGameMenu.IsOpen, "Inventory ESC restores overlay without opening pause menu");
-            check(map.RevealedCount == seen && controller.TerrainBuildCount == builds, "Menu overlap retains fog and terrain");
+            check(ReferenceEquals(map, controller.Exploration) && visited.All(map.IsRevealedCell) && controller.TerrainBuildCount == builds, "Menu overlap preserves visited cells and the same terrain while gameplay continues");
             controller.SetOverlay(false);
             if (gate.Map.terrain == Overburst.Persistence.MapTerrainKind.Cave && gate.Map.areaCount == 4)
             {

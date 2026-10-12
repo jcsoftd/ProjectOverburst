@@ -41,7 +41,25 @@ public sealed class EnemyActor : MonoBehaviour
     private CombatVfx combatVfx;
 
     public EnemyDefinition Definition => definition;
-    public EnemyRuntimeStats RuntimeStats => runtimeStats;
+    float progressBaseMaxHp;
+    public float NaturalProgressMultiplier { get; private set; } = 1f;
+    public EnemyRuntimeStats RuntimeStats => NaturalProgressMultiplier == 1f ? runtimeStats : new EnemyRuntimeStats(
+        runtimeStats.MaxHealth * NaturalProgressMultiplier, runtimeStats.DamageMultiplier * NaturalProgressMultiplier,
+        runtimeStats.MoveSpeedMultiplier, runtimeStats.AttackSpeedMultiplier, runtimeStats.VisualScale,
+        runtimeStats.CollisionScale, runtimeStats.AnchorScale, runtimeStats.Tint, runtimeStats.AttackInterval);
+
+    public void ApplyNaturalProgress(float multiplier)
+    {
+        if (!health || health.IsDead) return;
+        if (float.IsNaN(multiplier) || float.IsInfinity(multiplier) || multiplier < 1f || multiplier > 1.15001f)
+            throw new System.ArgumentOutOfRangeException(nameof(multiplier));
+        if (progressBaseMaxHp <= 0) progressBaseMaxHp = health.MaxHp;
+        if (NaturalProgressMultiplier == multiplier) return;
+        float ratio = health.CurrentHp / health.MaxHp;
+        NaturalProgressMultiplier = multiplier;
+        health.SetMaxHp(progressBaseMaxHp * multiplier, false);
+        health.RestoreLivingHealth(ratio * health.MaxHp);
+    }
     public EnemyIdentity Identity => identity;
     public Transform VisualRoot => visualRoot;
     public Transform CollisionRoot => collisionRoot;
@@ -142,6 +160,7 @@ public sealed class EnemyActor : MonoBehaviour
         LeaseVersion++;
         definition = enemyDefinition;
         runtimeStats = stats;
+        NaturalProgressMultiplier = 1f; progressBaseMaxHp = 0f;
         identity?.SetDefinition(enemyDefinition);
         rank?.ConfigureEncounter(request.Encounter);
         rank?.ConfigureFromDefinition(enemyDefinition);
@@ -261,6 +280,7 @@ public sealed class EnemyActor : MonoBehaviour
         definition = null;
         identity?.ClearDefinition();
         runtimeStats = default;
+        NaturalProgressMultiplier = 1f; progressBaseMaxHp = 0f;
         leased = false;
     }
 

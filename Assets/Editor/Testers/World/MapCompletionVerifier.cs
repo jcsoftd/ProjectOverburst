@@ -24,33 +24,35 @@ public static class MapCompletionVerifier
         {
             Check((int)RunPhase.EntryPending == 0 && (int)RunPhase.BossCleared == 2 && (int)RunPhase.Failed == 4 && (int)RunPhase.Completed == 5, "Legacy serialized enum values preserved");
             Check(MapRunRoster.CaveTarget(100) == 95 && MapRunRoster.CaveTarget(125) == 119, "95 percent uses ceiling for both divisible and fractional totals");
-            foreach (var terrain in new[] { MapTerrainKind.Cave, MapTerrainKind.Desert })
+            foreach (var variant in new[] { (MapTerrainKind.Cave, false), (MapTerrainKind.Desert, true), (MapTerrainKind.Desert, false) })
             {
+                var terrain = variant.Item1; bool bossDefeated = variant.Item2;
+                string caseName = terrain + (bossDefeated ? "Boss" : "NoBoss");
                 var initial = NewAccountFactory.Create(registry); AccountCharacterCommands.EnsureLegacy(initial);
                 var map = MapGenerationPolicy.CreateItem(definition, registry, 1, ItemGrade.Common).mapState;
                 map.terrain = terrain; map.monsterThemeId = terrain == MapTerrainKind.Cave ? "CavernMutants" : "PrimalHunt";
                 map.monsterThemes[0].themeId = map.monsterThemeId;
                 if (terrain == MapTerrainKind.Cave) { map.areaCount = 4; map.desertCandidateId = null; map.width = map.depth = 0; }
                 else { var candidate = MapTerrainCatalog.DesertCandidates[0]; map.desertCandidateId = candidate.id; map.areaCount = candidate.areaCount; map.width = candidate.width; map.depth = candidate.depth; }
-                string id = "completion-native-" + terrain;
+                string id = "completion-native-" + caseName;
                 AccountRunCommands.PrepareEntry(initial, id, map, null, true); AccountRunCommands.Activate(initial, id);
                 var rewardItem = MapRewardPolicy.CreateBossMap(definition, registry, 1, .1f, .1f, id);
                 rewardItem.runtimeInstanceId = AccountRunCommands.CompletionRewardId(id);
                 var reward = ItemSnapshotCodec.Capture(rewardItem, registry);
-                var store = new EasySaveAccountStore(Path.Combine(output, terrain.ToString())); store.Save(initial, "fixture");
+                var store = new EasySaveAccountStore(Path.Combine(output, caseName)); store.Save(initial, "fixture");
                 var transactions = new AccountTransactions(initial, store, registry, true);
                 long before = transactions.Revision;
-                Action<AccountSnapshot> complete = state => AccountRunCommands.CompleteMap(state, id, DateTime.UtcNow.Ticks, 1, new Vector3(3, 4, 5), reward);
+                Action<AccountSnapshot> complete = state => AccountRunCommands.CompleteMap(state, id, DateTime.UtcNow.Ticks, 1, new Vector3(3, 4, 5), reward, bossDefeated);
                 store.FaultInjector = point => { if (point == "before-write") throw new IOException("fixture completion write failure"); };
                 bool failed = false;
                 try { transactions.Execute("complete-" + id, before, complete, true); } catch (IOException) { failed = true; }
                 Check(failed && transactions.Revision == before && transactions.ReadRun().phase == RunPhase.Active, terrain + ": failed completion save preserves active state and revision");
                 store.FaultInjector = null;
                 Check(transactions.Execute("complete-" + id, before, complete, true), terrain + ": completion retry commits");
-                var saved = new EasySaveAccountStore(Path.Combine(output, terrain.ToString())).Load();
+                var saved = new EasySaveAccountStore(Path.Combine(output, caseName)).Load();
                 Check(saved.run.phase == RunPhase.Completed && saved.run.completionReward.instanceId == reward.instanceId
                     && !saved.run.completionRewardClaimed && saved.items.All(x => x.instanceId != reward.instanceId), terrain + ": floor reward is durable but not auto-acquired");
-                Check(saved.bossClearCount == (terrain == MapTerrainKind.Desert ? 1 : 0), terrain + ": boss count respects terrain");
+                Check(saved.bossClearCount == (bossDefeated ? 1 : 0), caseName + ": only actual boss defeat increments boss count");
                 Check(AccountInvariants.IsRunning(saved.run.phase) && new EncounterContext(id, 1, ItemGrade.Common).MatchesRun(saved.run), terrain + ": post-clear rewards remain eligible");
                 var duplicate = ItemSnapshotCodec.CopyValues(saved); complete(duplicate);
                 Check(duplicate.bossClearCount == saved.bossClearCount && duplicate.run.completionReward.instanceId == reward.instanceId, terrain + ": duplicate completion preserves identity and count");
@@ -78,7 +80,7 @@ public static class MapCompletionVerifier
                 Check(failed && transactions.ReadRun().phase == RunPhase.Completed && transactions.Read().items.Single(x => x.instanceId == reward.instanceId).originRunId == id, terrain + ": extraction failure cannot publish success");
                 store.FaultInjector = null;
                 transactions.Execute("extract", transactions.Revision, state => AccountRunCommands.Extract(state, id), true);
-                saved = new EasySaveAccountStore(Path.Combine(output, terrain.ToString())).Load();
+                saved = new EasySaveAccountStore(Path.Combine(output, caseName)).Load();
                 Check(saved.run.phase == RunPhase.Extracted && string.IsNullOrEmpty(saved.items.Single(x => x.instanceId == reward.instanceId).originRunId), terrain + ": extraction persists reward ownership");
             }
             File.WriteAllText(Path.Combine(output, "result.json"), JsonConvert.SerializeObject(new { status = "PASS", checks }, Formatting.Indented));

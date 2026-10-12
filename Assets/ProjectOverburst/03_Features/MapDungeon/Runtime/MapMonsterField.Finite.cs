@@ -11,7 +11,7 @@ public sealed partial class MapMonsterField
         public uint ActorLease;
         public int RosterLease, Cursor, Failures;
         public bool Released, EverSpawned, Frozen, WasKinematic;
-        public float Hp = -1, RetryAt;
+        public float HealthRatio = -1, RetryAt;
         public Vector3 Position, Safe;
         public float Radius, Height;
         public Rigidbody Body;
@@ -50,6 +50,7 @@ public sealed partial class MapMonsterField
     internal void ConfigureFinite(MapRunRoster roster, MapRunRoster.Area area, MapSpawnBudget sharedBudget)
     {
         finiteRoster = roster; finiteArea = area; budget = sharedBudget;
+        finiteRoster.DeathRecorded += ApplyNaturalProgress;
         spawnPath = new NavMeshPath();
         finiteRandom = new System.Random(unchecked(seed ^ 0x310AB));
         LocalFightLimit = area.BasePopulation <= 90 ? finiteRandom.Next(18, 25)
@@ -97,9 +98,9 @@ public sealed partial class MapMonsterField
             if (slot.Member.State != MapRunRoster.Life.Active) continue;
             if (!Valid(slot)) { ReturnSlot(slot, false); continue; }
             var actor = slot.Actor;
-            slot.Hp = actor.Health.CurrentHp;
+            slot.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp;
             if (actor.Health.IsDead) continue;
-            if (slot.Hp < actor.Health.MaxHp || actor.AI && actor.AI.IsAggroActive) triggered = true;
+            if (slot.HealthRatio < 1f || actor.AI && actor.AI.IsAggroActive) triggered = true;
             if (preparing) continue;
             var position = actor.transform.position;
             if (NavMesh.SamplePosition(position, out var nav, .75f, NavMesh.AllAreas) && Mathf.Abs(nav.position.y - position.y) < .75f)
@@ -162,8 +163,9 @@ public sealed partial class MapMonsterField
         if (!finiteRoster.TryActivate(chosen.Member.Index, out chosen.RosterLease)) { service.Release(actor); return true; }
         chosen.Actor = actor; chosen.ActorLease = actor.LeaseVersion; chosen.Safe = position;
         chosen.Body = actor.GetComponent<Rigidbody>(); chosen.WasKinematic = chosen.Body && chosen.Body.isKinematic;
-        if (chosen.Hp > 0) actor.Health.RestoreLivingHealth(chosen.Hp);
-        chosen.Hp = actor.Health.CurrentHp; chosen.EverSpawned = true; chosen.Failures = 0;
+        actor.ApplyNaturalProgress(finiteRoster.NaturalProgressMultiplier);
+        if (chosen.HealthRatio > 0) actor.Health.RestoreLivingHealth(chosen.HealthRatio * actor.Health.MaxHp);
+        chosen.HealthRatio = actor.Health.CurrentHp / actor.Health.MaxHp; chosen.EverSpawned = true; chosen.Failures = 0;
         bindings.Add(actor.Health, chosen); actor.Health.OnDead += FiniteDead; actor.Health.OnHealthChanged += FiniteHealth;
         SpawnedCount++; spawned = true;
         Freeze(chosen, preparing || !finiteAwake);
@@ -218,7 +220,7 @@ public sealed partial class MapMonsterField
     }
     void FiniteHealth(CombatHealth health, float current, float maximum)
     {
-        if (bindings.TryGetValue(health, out var slot) && Valid(slot)) slot.Hp = current;
+        if (bindings.TryGetValue(health, out var slot) && Valid(slot)) slot.HealthRatio = current / maximum;
     }
     void FiniteDead(CombatHealth health, DamageInfo hit)
     {
@@ -243,6 +245,15 @@ public sealed partial class MapMonsterField
         finiteRoster.TryReturn(slot.Member.Index, slot.RosterLease);
         if (release && valid && service) service.Release(slot.Actor);
         slot.Actor = null; slot.Body = null; slot.Frozen = false;
+    }
+    void ApplyNaturalProgress()
+    {
+        foreach (var pair in bindings)
+            if (Valid(pair.Value) && !pair.Key.IsDead) pair.Value.Actor.ApplyNaturalProgress(finiteRoster.NaturalProgressMultiplier);
+    }
+    void OnDestroy()
+    {
+        if (finiteRoster != null) finiteRoster.DeathRecorded -= ApplyNaturalProgress;
     }
     void ReleaseFinite()
     {

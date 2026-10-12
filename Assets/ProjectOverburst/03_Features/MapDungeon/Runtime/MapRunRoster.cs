@@ -43,6 +43,7 @@ public sealed class MapRunRoster
     public int Pending => Total - Kills - Active;
     public bool PlacementReady { get; internal set; }
     public bool CaveTargetReached => Terrain == MapTerrainKind.Cave && Kills >= Target;
+    public float NaturalProgressMultiplier => Terrain == MapTerrainKind.Cave ? 1f + .15f * Mathf.Clamp01(Kills / (float)Target) : 1f;
     public event Action DeathRecorded;
 
     MapRunRoster(string runId, MapInstanceState map, List<Member> members, List<Area> areas)

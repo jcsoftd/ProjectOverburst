@@ -5,7 +5,7 @@ using UnityEngine;
 // These are objective hints, separate from the circular map's local enemy detection.
 public sealed class MinimapGuideSource
 {
-    public enum Kind { Portal, Area, Enemy, Approach, Frontier }
+    public enum Kind { Portal, Area, Enemy, Approach, Frontier, EmergencyExit }
     public struct Hint { public Kind Type; public Vector3 Position, Direction; public int Id; }
     public const int Capacity = 48;
     readonly Hint[] hints = new Hint[Capacity];
@@ -29,6 +29,9 @@ public sealed class MinimapGuideSource
         Count = Remaining = frontierCount = 0; nearest.Clear(); actors.Clear(); origin = player;
         Portal = gate && gate.Completion ? gate.Completion.Portal : null;
         if (!gate || map == null || gate.Roster == null || !gate.SpawnBudget) return;
+        var escape = gate.EmergencyExit;
+        if (escape && escape.isActiveAndEnabled && escape.Discovered && map.IsRevealed(escape.transform.position))
+            Add(Kind.EmergencyExit, escape.transform.position, -2);
         if (gate.Completion && gate.Completion.IsCompleted)
         {
             if (Portal && Portal.gameObject.activeInHierarchy) Add(Kind.Portal, Portal.transform.position, -1);
