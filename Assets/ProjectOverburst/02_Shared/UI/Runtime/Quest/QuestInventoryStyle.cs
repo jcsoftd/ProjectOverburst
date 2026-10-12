@@ -33,6 +33,7 @@ public sealed class QuestInventoryStyle : MonoBehaviour
         foreach(var text in direction.GetComponentsInChildren<TMP_Text>(true))text.gameObject.SetActive(false);
         foreach(var text in direction.GetComponentsInChildren<Text>(true))text.gameObject.SetActive(false);
         if(equip.targetGraphic is Image equipmentImage)equipmentImage.color=Color.clear;
+        BindVisual(sort,modeHost);BindVisual(direction,directionHost);BindVisual(equip,equipmentHost);
         equipment=equip;equipmentLegacy=equip.GetComponentInChildren<Text>(true);equipmentTmp=equip.GetComponentInChildren<TMP_Text>(true);
         if(equipmentLegacy)equipmentLegacy.enabled=false;if(equipmentTmp)equipmentTmp.enabled=false;
         // Existing runtime controls keep their listeners, sort lock and dropdown dismissal.
@@ -49,6 +50,13 @@ public sealed class QuestInventoryStyle : MonoBehaviour
     {
         string label=equipmentLegacy ? equipmentLegacy.text : equipmentTmp ? equipmentTmp.text : "장비창 열기";
         if(equipmentLabel.text!=label)equipmentLabel.text=label;
+    }
+    private static void BindVisual(Selectable control,RectTransform host)
+    {
+        var artwork=host.parent.Find("Artwork").GetComponent<Selectable>();
+        control.colors=artwork.colors;
+        control.transition=artwork.transition;
+        control.targetGraphic=artwork.targetGraphic;
     }
     private static void Move(Transform source,RectTransform host)
     {source.SetParent(host,false);Stretch((RectTransform)source);}

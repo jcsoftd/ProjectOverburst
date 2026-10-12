@@ -53,12 +53,16 @@ public sealed class OverburstRunUi : MonoBehaviour
     {
         var go=Instantiate(actionButtonPrefab,parent,false);go.name=name;
         var rect=(RectTransform)go.transform;rect.anchorMin=rect.anchorMax=rect.pivot=new Vector2(.5f,.5f);
-        rect.anchoredPosition=new Vector2(x,y);rect.sizeDelta=new Vector2(width*2,88);rect.localScale=Vector3.one*.5f;
+        rect.anchoredPosition=new Vector2(x,y);rect.sizeDelta=new Vector2(width*2,name=="Close"?72:104);rect.localScale=Vector3.one*.5f;
         var button=go.GetComponent<Button>();button.onClick=new Button.ButtonClickedEvent();
         if(action!=null)button.onClick.AddListener(()=>action());
         SetButtonLabel(button,text);
-        if(!primary)foreach(var im in go.GetComponentsInChildren<Image>(true))
-            if(im.name=="Foreground")im.color=new Color(.27f,.23f,.20f);        return button;
+        if (!primary && button.targetGraphic is QuestUiGradient background) { background.top = new Color(.082f,.078f,.059f); background.bottom = new Color(.043f,.047f,.035f); }
+        var edge=go.transform.Find("Reviewed Border")?.GetComponent<Image>();
+        if(edge){edge.pixelsPerUnitMultiplier=1;edge.color=new Color(1,1,1,.72f);if(!primary)edge.sprite=Resources.Load<Sprite>("UI/Reviewed/border");}
+        var texture=go.transform.Find("Reviewed Texture")?.GetComponent<Image>();if(texture)texture.pixelsPerUnitMultiplier=.5f;
+        if(name=="Close")foreach(var label in go.GetComponentsInChildren<UnityEngine.UI.Text>(true)){label.font=Resources.Load<Font>("UI/Fonts/DamageFloating/Pretendard_Medium");label.fontSize=32;}
+        return button;
     }
     private static void SetButtonLabel(Button button,string text)
     {
@@ -93,14 +97,13 @@ public sealed class OverburstRunUi : MonoBehaviour
         modal = dim.gameObject;
         cardPanel = RunUiLayout.Rect(modal.transform,"CardChoices",0,0,1400,900).gameObject;
 
-        var cardHeading=Label(cardPanel.transform,"Heading","운명을 선택하세요",-28,328,600,42,30,RunUiLayout.Gold);
+        var cardHeading=Label(cardPanel.transform,"Heading","운명을 선택하세요",0,328,600,42,30,RunUiLayout.Gold);
         cardHeading.outlineColor=Color.black;cardHeading.outlineWidth=.35f;
         var headingShadow=cardHeading.gameObject.AddComponent<Shadow>();headingShadow.effectColor=Color.black;headingShadow.effectDistance=new Vector2(2,-2);
         var cardSubtitle=Label(cardPanel.transform,"Subtitle","이벤트 보상 · 세 장 중 하나를 선택합니다",0,288,630,36,22,RunUiLayout.Ivory);
         cardSubtitle.outlineColor=Color.black;cardSubtitle.outlineWidth=.4f;
         foreach(var text in new[]{cardHeading,cardSubtitle}){var material=text.fontMaterial;material.EnableKeyword("UNDERLAY_ON");material.SetColor("_UnderlayColor",Color.black);material.SetFloat("_UnderlayOffsetX",.4f);material.SetFloat("_UnderlayOffsetY",-.4f);material.SetFloat("_UnderlayDilate",.8f);material.SetFloat("_UnderlaySoftness",.25f);text.UpdateMeshPadding();}
         var subtitleShadow=cardSubtitle.gameObject.AddComponent<Shadow>();subtitleShadow.effectColor=Color.black;subtitleShadow.effectDistance=new Vector2(2,-2);
-        ActionButton(cardPanel.transform,"Close","닫기",220,328,68,false,Cancel);
         var choices = RunUiLayout.Rect(cardPanel.transform,"Cards",0,-25,1250,600);
         for(int i=0;i<3;i++)
         {
@@ -128,8 +131,8 @@ public sealed class OverburstRunUi : MonoBehaviour
         dropPlaceholder=Label(dropRect,"Placeholder","+",0,0,132,132,60,RunUiLayout.Gold);        selectedName = Label(transferRect,"SelectedItem","",58,28,260,90,19,RunUiLayout.Ivory,TextAlignmentOptions.Left);
         transferNote = Label(transferRect,"StackNote","",0,-56,402,68,17,RunUiLayout.Ivory);
         transferStatus = Label(transferRect,"Status","",0,-118,402,48,16,RunUiLayout.Gold);
-        transferCancel = ActionButton(transferRect,"Cancel","취소",-94,-172,132,false,Cancel);
-        confirm = ActionButton(transferRect,"ConfirmTransfer","전송",84,-172,180,true,ConfirmTransfer);
+        transferCancel = ActionButton(transferRect,"Cancel","취소",-106,-172,200,false,Cancel);
+        confirm = ActionButton(transferRect,"ConfirmTransfer","전송",106,-172,200,true,ConfirmTransfer);
         modal.SetActive(false);
     }
 

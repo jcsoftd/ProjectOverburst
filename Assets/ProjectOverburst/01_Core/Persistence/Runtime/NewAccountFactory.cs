@@ -14,7 +14,7 @@ namespace Overburst.Persistence
                 baseUnlockedSlots = 16, unlockedSlots = 16, stashCapacity = 63, currentStashTab = 0,
                 activeWeaponSlot = 0, lastTransactionId = "new-account-" + Guid.NewGuid().ToString("N") };
             for (int i = 0; i < state.inventoryCapacity; i++) state.inventory.Add(null);
-            for (int tab = 0; tab < 3; tab++)
+            for (int tab = 0; tab < PlayerStash.TotalTabCount; tab++)
             {
                 var container = new ItemContainerSnapshot();
                 for (int i = 0; i < state.stashCapacity; i++) container.slots.Add(null);

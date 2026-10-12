@@ -6,6 +6,7 @@ using UnityEngine.UI;
 // ShopUI partial: 상단 패널·요약·상태 문구·실패 팝업 표시. 필드와 Unity 수명주기는 ShopUI.cs에 있다.
 public partial class ShopUI
 {
+    private UnityEngine.UI.Text merchantStockCountText;
     private void RefreshHeader()
     {
         SyncMerchantTopPanelViewReferences();
@@ -62,6 +63,16 @@ public partial class ShopUI
             merchantInventorySlots,
             tradeService.MerchantInventory,
             tradeService.Session);
+
+        if (!merchantStockCountText && merchantInventoryWindowRoot)
+            merchantStockCountText = merchantInventoryWindowRoot.transform.Find("Stock Count")?.GetComponent<UnityEngine.UI.Text>();
+        if (merchantStockCountText)
+        {
+            int count = 0;
+            foreach (var item in tradeService.MerchantInventory.Items)
+                if (item != null && item.stackCount > 0) count++;
+            merchantStockCountText.text = count + "종";
+        }
     }
 
     private void RefreshOfferSlots()

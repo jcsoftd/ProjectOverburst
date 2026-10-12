@@ -127,6 +127,15 @@ public sealed class FlaskEquipmentPanelUI : MonoBehaviour
         if (flasks == null || flasks.GetItem(slot) == null || keyPicker == null) return;
         if (selectedSlot == slot && keyPicker.activeSelf)
         { CloseKeyPicker(); return; }
+        // The picker uses canvas-sized controls inside the equipment window's scaled root.
+        // Older scene instances retain the former 700 x 470 override.
+        var pickerRect = (RectTransform)keyPicker.transform;
+        var canvas = pickerRect.GetComponentInParent<Canvas>().rootCanvas;
+        float previousTop = pickerRect.rect.height * pickerRect.localScale.y * (1 - pickerRect.pivot.y);
+        pickerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 306);
+        pickerRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 144);
+        pickerRect.localScale = Vector3.one * Mathf.Abs(canvas.transform.lossyScale.x / pickerRect.parent.lossyScale.x);
+        pickerRect.anchoredPosition += Vector2.up * (previousTop - 144 * pickerRect.localScale.y * (1 - pickerRect.pivot.y));
         selectedSlot = slot;
         for (int i = 0; i < keyLabels.Length; i++)
         {

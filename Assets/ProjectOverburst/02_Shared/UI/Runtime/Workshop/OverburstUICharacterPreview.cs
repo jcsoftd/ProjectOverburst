@@ -374,7 +374,8 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         }
 
         if (weaponRoot)
-            BuildWeaponVisual(weaponRoot, equipment.CurrentWeaponPose, sourceByPath);
+            BuildWeaponVisual(weaponRoot, equipment.CurrentWeaponPose, sourceRoot,
+                equipment.transform.Find("BackWeaponAnchor"), sourceByPath);
     }
 
     private static Renderer MatchRenderer(Renderer source, Dictionary<Transform, string> sourceByPath, HashSet<Renderer> used)
@@ -472,32 +473,31 @@ public sealed class OverburstUICharacterPreview : MonoBehaviour, IBeginDragHandl
         return null;
     }
 
-    private static void BuildWeaponVisual(Transform sourceRoot, WeaponPose pose,
+    private static void BuildWeaponVisual(Transform sourceRoot, WeaponPose pose, Transform sourceModel, Transform backAnchor,
         Dictionary<Transform, string> sourceByPath)
     {
-        Transform hand = FindNamed(P09CharacterVisualAdapter.RightHandWeaponSocketName);
-        if (!hand)
+        if (!backAnchor || !pose)
             return;
 
-        weaponVisual = CloneVisualHierarchy(sourceRoot, hand, sourceByPath);
-        if (!weaponVisual)
-            return;
+        // Use the actor's authored back mount without changing the live weapon or combat pose.
+        weaponVisual = new GameObject("Back Weapon • UI Visual") { hideFlags = HideFlags.HideAndDontSave, layer = PreviewLayer };
+        Transform mount = weaponVisual.transform;
+        mount.SetParent(model.transform, false);
+        mount.localPosition = sourceModel.InverseTransformPoint(backAnchor.position);
+        mount.localRotation = Quaternion.Inverse(sourceModel.rotation) * backAnchor.rotation;
+        GameObject visual = CloneVisualHierarchy(sourceRoot, mount, sourceByPath);
+        Vector3 position = pose.GetPoseLocalPositionForTuning(WeaponPoseSlot.Back);
+        Quaternion rotation = Quaternion.Euler(pose.GetPoseLocalRotationForTuning(WeaponPoseSlot.Back));
 
         WeaponGripMount grip = sourceRoot.GetComponentInChildren<WeaponGripMount>(true);
-        if (pose && grip)
+        if (grip)
         {
-            Vector3 holdPosition = pose.GetPoseLocalPositionForTuning(WeaponPoseSlot.Hold);
-            Quaternion holdRotation = Quaternion.Euler(pose.GetPoseLocalRotationForTuning(WeaponPoseSlot.Hold));
-            grip.TryResolveRootLocalPose(sourceRoot, WeaponGripAnchor.RightHand, holdPosition, holdRotation,
+            grip.TryResolveRootLocalPose(sourceRoot, WeaponGripAnchor.Back, position, rotation,
                 out Vector3 rootPosition, out Quaternion rootRotation);
-            weaponVisual.transform.localPosition = rootPosition;
-            weaponVisual.transform.localRotation = rootRotation;
+            position = rootPosition;
+            rotation = rootRotation;
         }
-        else if (sourceRoot.parent != hand)
-        {
-            weaponVisual.transform.localPosition = Vector3.zero;
-            weaponVisual.transform.localRotation = Quaternion.identity;
-        }
+        visual.transform.SetLocalPositionAndRotation(position, rotation);
     }
 
     private static GameObject CloneVisualHierarchy(Transform sourceRoot, Transform parent,

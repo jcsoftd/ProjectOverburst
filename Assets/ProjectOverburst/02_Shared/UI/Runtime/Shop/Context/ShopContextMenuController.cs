@@ -13,9 +13,9 @@ public enum ShopContextMenuTarget
 
 public class ShopContextMenuController : MonoBehaviour
 {
-    private const float MinMenuWidth = 240f;
-    private const float MaxMenuWidth = 440f;
-    private const float ButtonHeight = 38f;
+    private const float MinMenuWidth = 184f;
+    private const float MaxMenuWidth = 184f;
+    private const float ButtonHeight = 36f;
 
     [Header("Objectized View")]
     [SerializeField] private RectTransform blockerRoot;

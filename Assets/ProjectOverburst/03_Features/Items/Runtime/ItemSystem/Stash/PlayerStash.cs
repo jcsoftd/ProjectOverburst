@@ -4,12 +4,16 @@ using UnityEngine;
 
 public class PlayerStash : MonoBehaviour // 플레이어 창고
 {
-    private const int TotalTabCount = 3; // 탭 수
+    public const int TotalTabCount = 7; // 탭 수
 
     [SerializeField] private int capacity = 63;
     [SerializeField] private List<ItemData> items = new List<ItemData>();
     [SerializeField] private List<ItemData> tab2Items = new List<ItemData>();
     [SerializeField] private List<ItemData> tab3Items = new List<ItemData>();
+    [SerializeField] private List<ItemData> tab4Items = new List<ItemData>();
+    [SerializeField] private List<ItemData> tab5Items = new List<ItemData>();
+    [SerializeField] private List<ItemData> tab6Items = new List<ItemData>();
+    [SerializeField] private List<ItemData> tab7Items = new List<ItemData>();
     [SerializeField] private int currentTabIndex;
 
     public event Action Changed; // 데이터 변경
@@ -27,6 +31,7 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         foreach (var tab in tabs) if (tab == null || tab.Count != savedCapacity) throw new ArgumentException("Invalid account stash capacity.");
         capacity = savedCapacity;
         items = tabs[0]; tab2Items = tabs[1]; tab3Items = tabs[2];
+        tab4Items = tabs[3]; tab5Items = tabs[4]; tab6Items = tabs[5]; tab7Items = tabs[6];
         currentTabIndex = Mathf.Clamp(selectedTab, 0, TotalTabCount - 1);
     }
 
@@ -473,6 +478,10 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
                 return tab2Items;
             case 2:
                 return tab3Items;
+            case 3: return tab4Items;
+            case 4: return tab5Items;
+            case 5: return tab6Items;
+            case 6: return tab7Items;
             default:
                 return items;
         }
@@ -483,6 +492,10 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         EnsureCapacity(items); // 1번 탭
         EnsureCapacity(tab2Items); // 2번 탭
         EnsureCapacity(tab3Items); // 3번 탭
+        EnsureCapacity(tab4Items);
+        EnsureCapacity(tab5Items);
+        EnsureCapacity(tab6Items);
+        EnsureCapacity(tab7Items);
     }
 
     private void EnsureCapacity(List<ItemData> targetItems)
@@ -503,6 +516,10 @@ public class PlayerStash : MonoBehaviour // 플레이어 창고
         bool changed = SanitizeInvalidItems(items); // 1번 탭
         changed |= SanitizeInvalidItems(tab2Items); // 2번 탭
         changed |= SanitizeInvalidItems(tab3Items); // 3번 탭
+        changed |= SanitizeInvalidItems(tab4Items);
+        changed |= SanitizeInvalidItems(tab5Items);
+        changed |= SanitizeInvalidItems(tab6Items);
+        changed |= SanitizeInvalidItems(tab7Items);
 
         if (changed)
             Overburst.Persistence.AccountGameplaySession.Notify(RaiseChanged);

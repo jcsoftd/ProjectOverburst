@@ -93,8 +93,23 @@ namespace Overburst.Persistence
                     }
                 snapshot = upgraded;
             }
+            ExpandLegacyStash(snapshot);
             loaded = true;
             return snapshot;
+        }
+
+        internal static void ExpandLegacyStash(AccountSnapshot state)
+        {
+            if (state?.stashTabs != null && state.stashTabs.Count == 3 && state.stashCapacity > 0)
+                while (state.stashTabs.Count < PlayerStash.TotalTabCount)
+                {
+                    var tab = new ItemContainerSnapshot();
+                    for (int i = 0; i < state.stashCapacity; i++) tab.slots.Add(null);
+                    state.stashTabs.Add(tab);
+                }
+            if (state?.characters != null)
+                foreach (var character in state.characters)
+                    if (character?.personal != null) ExpandLegacyStash(character.personal);
         }
 
         public void Save(AccountSnapshot snapshot, string transactionId)

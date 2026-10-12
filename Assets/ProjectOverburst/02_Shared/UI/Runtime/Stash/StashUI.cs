@@ -227,9 +227,47 @@ public class StashUI : MonoBehaviour // 창고 UI
             slotContainer = transform.Find("StashSlotGrid") as RectTransform; // 정식 grid
 
         bool slotsReady = BindSceneSlots(); // 씬 슬롯
+        ApplyReviewedLayout();
         bool toolbarReady = BindToolbarControls(); // 씬 툴바
         initialized = stashPanel != null && slotBridge != null && slotsReady && toolbarReady;
         return initialized;
+    }
+
+    // Existing scene instances keep their controller references; the reviewed prefab owns seven tabs.
+    private void ApplyReviewedLayout()
+    {
+        if (stashPanel == null) return;
+        Transform root = null;
+        foreach (var candidate in stashPanel.GetComponentsInChildren<Transform>(true))
+            if (candidate.name == "PF_OverburstStash_Rpg11") { root = candidate; break; }
+        if (root == null) return;
+        var tabs = root.Find("Tab Menu/Buttons Group");
+        if (tabs == null || tabs.Find("Tab Button (7)") == null) return;
+        tabButtons = new Button[PlayerStash.TotalTabCount];
+        tabButtonTexts = new TextMeshProUGUI[PlayerStash.TotalTabCount];
+        for (int i = 0; i < tabButtons.Length; i++)
+        {
+            var tab = tabs.Find("Tab Button (" + (i + 1) + ")");
+            tabButtons[i] = tab.GetComponent<Button>();
+            tabButtonTexts[i] = tab.GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+        void Place(Transform target, float x, float y, float width, float height)
+        {
+            if (target == null) return;
+            var rect = (RectTransform)target; rect.SetParent(root, false);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
+            rect.localScale = Vector3.one;
+            rect.anchoredPosition = new Vector2(x * 2, -y * 2);
+            rect.sizeDelta = new Vector2(width * 2, height * 2);
+        }
+        Place(sortDropdown ? sortDropdown.transform : root.Find("StashSortDropdown"), 38, 722, 136, 36);
+        Place(sortRefreshButton ? sortRefreshButton.transform : root.Find("StashSortRefreshButton"), 182, 722, 102, 36);
+        Place(storeAllButton ? storeAllButton.transform : root.Find("StashStoreAllButton"), 292, 722, 110, 36);
+        Place(root.Find("StashCurrencySummary/GoldBox/Label"), 424, 722, 100, 36);
+        Place(root.Find("StashCurrencySummary/MapFragmentBox/Label"), 552, 722, 150, 36);
+        Place(root.Find("Storage Hint"), 776, 722, 82, 36);
+        var caption = root.Find("Storage Caption"); if (caption) caption.gameObject.SetActive(false);
+        if (actionStatusText) actionStatusText.gameObject.SetActive(false);
     }
 
     public void UpdateTabVisuals()
@@ -245,6 +283,8 @@ public class StashUI : MonoBehaviour // 창고 UI
                 Image image = tabButtons[i].GetComponent<Image>();
                 if (image != null)
                     image.color = i == currentTabIndex ? new Color(.36f, .24f, .12f, 1f) : new Color(.12f, .10f, .08f, 1f);
+                var edge = tabButtons[i].transform.Find("Reviewed Border")?.GetComponent<Image>();
+                if (edge != null) edge.color = i == currentTabIndex ? new Color(.74f,.58f,.29f,1f) : new Color(.58f,.53f,.43f,.58f);
             }
         }
 

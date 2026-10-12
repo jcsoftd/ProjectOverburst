@@ -145,6 +145,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
         CloseVisuals();screen=next;nameDialog.SetActive(false);
         titleScreen.SetActive(next=="title");charactersScreen.SetActive(next=="characters");classesScreen.SetActive(next=="classes");
         back.gameObject.SetActive(next!="title");
+        ((RectTransform)back.transform).SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,next=="characters"?48:52);
         header.transform.parent.gameObject.SetActive(next!="title");subtitle.gameObject.SetActive(next=="classes");
         header.text=next=="classes"?"클래스 선택":"캐릭터 선택";
         subtitle.text=next=="classes"?"당신의 모험을 시작할 캐릭터를 선택하세요.":"나의 캐릭터";
@@ -176,7 +177,7 @@ public sealed class TitleCharacterPanel : MonoBehaviour
         foreach(var entry in list)
         {
             var captured=entry.id;var button=Instantiate(rosterTemplate,rosterContent);button.name="Character "+entry.id;button.gameObject.SetActive(true);
-            var rect=(RectTransform)button.transform;rect.anchoredPosition=new Vector2(0,-index++*153.6f);
+            var rect=(RectTransform)button.transform;rect.anchoredPosition=new Vector2(0,-index++*154f);
             var personal=entry.id==(snapshot.activeCharacterId??AccountCharacterCommands.LegacyId)?snapshot:entry.personal;
             button.transform.Find("Name").GetComponent<TMP_Text>().text=entry.name;
             button.transform.Find("Info").GetComponent<TMP_Text>().text="Lv. "+personal.level+"  ·  기사  ·  "+Element(personal);
@@ -184,9 +185,9 @@ public sealed class TitleCharacterPanel : MonoBehaviour
             var visual=button.GetComponent<AppearanceButtonVisual>();if(visual)visual.SetSelected(entry.id==selectedId);
             button.onClick.AddListener(()=>{selectedId=captured;Show("characters");});
         }
-        rosterContent.sizeDelta=new Vector2(rosterContent.sizeDelta.x,Mathf.Max(139.2f,index*153.6f-14.4f));
+        rosterContent.sizeDelta=new Vector2(rosterContent.sizeDelta.x,Mathf.Max(140f,index*154f-14f));
         rosterCount.text=index+"명";
-        ((RectTransform)create.transform).anchoredPosition=new Vector2(92,-(251.34f+Mathf.Clamp(index*153.6f-14.4f,0,456)+31.2f));
+        ((RectTransform)create.transform).anchoredPosition=new Vector2(92,-(251.34f+Mathf.Clamp(index*154f-14f,0,456)+14f));
         enter.interactable=selectedId!=null;characterName.text=list.FirstOrDefault(c=>c.id==selectedId)?.name??"새로운 모험";
         characterDetails.text=selectedId==null?"캐릭터를 생성해 모험을 시작하세요.":"기사 · 대검";
         characterLevel.text="";characterLocation.text="은신처";characterTime.text="—";characterLast.text="—";characterElement.text="없음";

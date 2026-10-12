@@ -14,7 +14,7 @@ namespace Overburst.Persistence
                 || state.weapons == null || state.gear == null || state.bags == null || state.flasks == null || state.quickSlots == null)
                 throw new InvalidDataException("Missing account collections.");
             if (state.weapons.Count != 1 || state.gear.Count != 6 || state.bags.Count != 1 || state.flasks.Count != 3
-                || state.quickSlots.Count != 10 || state.stashTabs.Count != 3 || state.activeWeaponSlot != 0)
+                || state.quickSlots.Count != 10 || state.stashTabs.Count != PlayerStash.TotalTabCount || state.activeWeaponSlot != 0)
                 throw new InvalidDataException("Unsupported account loadout dimensions.");
             if (state.stashCapacity < 1 || state.currentStashTab < 0 || state.currentStashTab >= state.stashTabs.Count
                 || state.baseUnlockedSlots < 0 || state.baseUnlockedSlots > state.inventoryCapacity || state.bossClearCount < 0)
