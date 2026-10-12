@@ -110,7 +110,9 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
     private void QueueArea(Vector2Int cell)
     {
         int seed = unchecked(73130 + cell.x * 73856093 + cell.y * 19349663 + stage * 83492791);
-        var roster = theme.BuildRoster(smallCount, mediumCount, eliteCount, seed);
+        int areaEliteCount = stage < 2 || stage == 2 && (seed & 1) != 0 ? 0 : eliteCount;
+        int areaSmallCount = smallCount + eliteCount - areaEliteCount;
+        var roster = theme.BuildRoster(areaSmallCount, mediumCount, areaEliteCount, seed, stage);
         var areaRandom = new System.Random(seed);
         for (int i = roster.Count - 1; i > 0; i--)
         { int j = areaRandom.Next(i + 1); var swap = roster[i]; roster[i] = roster[j]; roster[j] = swap; }

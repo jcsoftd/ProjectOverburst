@@ -40,7 +40,7 @@ MonoBehaviour:
   hitAngle: 130
   verticalTolerance: 1.5
   requireLineOfSight: 1
-  cooldown: 1.7
+  cooldown: 1.8478261
   hitDelay: 0.36666667
   hitNormalizedTime: 0.2972973
   attackAnimationDuration: 1.2333333

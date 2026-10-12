@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraveHunt_DarknessSpider
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: GraveHunt_DarknessSpider
-  moveSpeed: 1.15
+  moveSpeed: 1.3
   turnSpeed: 420
   animationReferenceSpeed: 1.422465
   runAnimationReferenceSpeed: 1.422465
   backpedalAnimationReferenceSpeed: 1.422465
-  runSpeedMultiplier: 2.173913
+  runSpeedMultiplier: 2.1153846
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1

@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraveHunt_Barghest
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: GraveHunt_Barghest
-  moveSpeed: 1.15
+  moveSpeed: 1.5
   turnSpeed: 420
   animationReferenceSpeed: 0.8330714
   runAnimationReferenceSpeed: 3.8370388
   backpedalAnimationReferenceSpeed: 0.8330714
-  runSpeedMultiplier: 2.173913
+  runSpeedMultiplier: 2.2666667
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1

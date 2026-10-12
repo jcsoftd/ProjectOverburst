@@ -18,7 +18,7 @@ MonoBehaviour:
   animationReferenceSpeed: 1.677526
   runAnimationReferenceSpeed: 5.9680877
   backpedalAnimationReferenceSpeed: 1.677526
-  runSpeedMultiplier: 1.5238097
+  runSpeedMultiplier: 1.4761904
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55
   crowdWeight: 4

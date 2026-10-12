@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: DeathHarvest_Reaper
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: DeathHarvest_Reaper
-  moveSpeed: 1.2
+  moveSpeed: 1.15
   turnSpeed: 190
   animationReferenceSpeed: 1.2
   runAnimationReferenceSpeed: 1.7400001
   backpedalAnimationReferenceSpeed: 0
-  runSpeedMultiplier: 1.45
+  runSpeedMultiplier: 1.6956522
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 55
   crowdWeight: 4

@@ -36,7 +36,7 @@ public static class WorldLevelPlayVerifier
     }
     static void Write(string name,object value)=>File.WriteAllText(Path.Combine(output,name),JsonConvert.SerializeObject(value,Formatting.Indented));
     static void Check(bool value,string label){if(!value)throw new InvalidOperationException(label);checks.Add(label);Write("progress.json",new{count=checks.Count,last=label,utc=DateTime.UtcNow});}
-    public static void Start(string directory,bool replay=false,string fixture=null)
+    public static void Start(string directory,bool replay=false,string fixture=null,bool graveHuntProgression=false)
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||IsolatedSavePlayGuard.ActiveDirectory!=""
             ||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")))throw new InvalidOperationException("Require idle real-account EditMode");
@@ -45,10 +45,11 @@ public static class WorldLevelPlayVerifier
         else
         {
             var registry=Resources.Load<AccountContentRegistry>(AccountContentRegistry.ResourcePath);var seed=NewAccountFactory.Create(registry);
-            seed.level=35;seed.skillTree=AccountSkillTree.GrantEligible(seed.skillTree,35);AccountCharacterCommands.EnsureLegacy(seed);
+            seed.level=graveHuntProgression?100:35;seed.skillTree=AccountSkillTree.GrantEligible(seed.skillTree,seed.level);AccountCharacterCommands.EnsureLegacy(seed);
             new EasySaveAccountStore(save).Save(seed,"world-level-fixture");
         }
         SessionState.SetString(K+"pending",output);SessionState.SetString(K+"return",output);SessionState.SetBool(K+"replay",replay);
+        SessionState.SetBool(K+"graveHuntProgression",graveHuntProgression);
         SessionState.SetString(K+"startScene",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));SessionState.SetBool(K+"background",Application.runInBackground);
         SessionState.SetFloat(K+"deadline",(float)EditorApplication.timeSinceStartup+300);
         Write("edit-before.json",new{scenes=Scenes(),input=InputSystem.settings.GetInstanceID(),previews=EditorSceneManager.previewSceneCount,startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)});
@@ -65,6 +66,11 @@ public static class WorldLevelPlayVerifier
         if(EditorApplication.timeSinceStartup>SessionState.GetFloat(K+"deadline",0)){Finish(new Exception("Boot timeout"));return;}
         if(!EditorApplication.isPlaying||!OwnPlay()||!TitleCharacterPanel.Instance||PlayerInputFacade.Current==null)return;
         EditorApplication.update-=Begin;SessionState.EraseString(K+"pending");checks.Clear();Application.runInBackground=true;
+        if(SessionState.GetBool(K+"graveHuntProgression",false))
+        {
+            EditorApplication.LockReloadAssemblies();SessionState.SetBool(K+"reloadLocked",true);
+            AssetDatabase.DisallowAutoRefresh();SessionState.SetBool(K+"refreshLocked",true);
+        }
         deadline=EditorApplication.timeSinceStartup+300;work.Push(Verify());lastFrame=-1;EditorApplication.update+=Tick;
     }
     static void Tick()
@@ -111,6 +117,8 @@ public static class WorldLevelPlayVerifier
         yield return Click(TitleCharacterPanel.Instance.start);yield return Frames(4);yield return Click(TitleCharacterPanel.Instance.enter);
         yield return Wait(()=>AccountBootstrap.Ready&&WorldSessionState.IsHideout&&!PersistentSceneFlow.Instance.IsSwitching,"title boots isolated MainScene");yield return Frames(15);
         var actor=PlayerContext.Instance.CurrentActor;actor.Health.SetDamageDeathPrevention(actor,true);
+        if(SessionState.GetBool(K+"graveHuntProgression",false))
+        { yield return GraveHuntWorldLevelVerifier.VerifyPlay(output,Check);yield break; }
         var npc=Object.FindFirstObjectByType<WorldLevelNpcInteractable>();var outdoor=OutdoorWorldSpawner.Current;var account=AccountGameplaySession.Current;
         Check(npc&&outdoor,"real scene contains Rowen and outdoor controller");Check(outdoor.ActiveCount==0&&outdoor.PendingCount==0,"town boot does not prepopulate outdoors");
         ActorTeleportUtility.TeleportSafely(actor.transform,npc.transform.position+Vector3.right*1.4f,Quaternion.LookRotation(Vector3.left));yield return Frames(12);
@@ -219,9 +227,13 @@ public static class WorldLevelPlayVerifier
     }
     static void Finish(Exception error)
     {
-        EditorApplication.update-=Tick;EditorApplication.update-=Begin;work.Clear();SessionState.EraseString(K+"pending");
+        EditorApplication.update-=Tick;EditorApplication.update-=Begin;
+        while(work.Count>0)try{(work.Pop() as IDisposable)?.Dispose();}catch(Exception cleanup){if(error==null)error=cleanup;}
+        SessionState.EraseString(K+"pending");
         output=SessionState.GetString(K+"return",output);if(WorldLevelUI.Current)WorldLevelUI.Current.Close();RestoreInput();
         Write("play-result.json",new{success=error==null,count=checks.Count,checks,error=error?.ToString()});
+        if(SessionState.GetBool(K+"refreshLocked",false)){AssetDatabase.AllowAutoRefresh();SessionState.EraseBool(K+"refreshLocked");}
+        if(SessionState.GetBool(K+"reloadLocked",false)){EditorApplication.UnlockReloadAssemblies();SessionState.EraseBool(K+"reloadLocked");}
         if(EditorApplication.isPlaying&&OwnPlay())EditorApplication.ExitPlaymode();EditorApplication.update-=Return;EditorApplication.update+=Return;
     }
     static void State(PlayModeStateChange state){if(state==PlayModeStateChange.EnteredEditMode){EditorApplication.update-=Return;EditorApplication.update+=Return;}}
@@ -234,6 +246,6 @@ public static class WorldLevelPlayVerifier
         if(Environment.GetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY")==Path.Combine(output,"isolated-settings"))Environment.SetEnvironmentVariable("OVERBURST_SETTINGS_DIRECTORY",null);
         Application.runInBackground=SessionState.GetBool(K+"background",false);IsolatedSavePlayGuard.UseRealAccount();
         Write("return-result.json",new{success=!IsolatedSavePlayGuard.RequiresAccountChoice&&string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable)),scenes=Scenes(),previews=EditorSceneManager.previewSceneCount,input=InputSystem.settings.GetInstanceID(),startScene=AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)});
-        SessionState.EraseString(K+"return");SessionState.EraseString(K+"startScene");SessionState.EraseFloat(K+"deadline");SessionState.EraseBool(K+"background");SessionState.EraseBool(K+"replay");EditorApplication.update-=Return;
+        SessionState.EraseString(K+"return");SessionState.EraseString(K+"startScene");SessionState.EraseFloat(K+"deadline");SessionState.EraseBool(K+"background");SessionState.EraseBool(K+"replay");SessionState.EraseBool(K+"graveHuntProgression");EditorApplication.update-=Return;
     }
 }

@@ -18,45 +18,59 @@ MonoBehaviour:
   - definition: {fileID: 11400000, guid: 8b7695aee27d85e4383639a16240ab30, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 1
   - definition: {fileID: 11400000, guid: 0c7c83c8e72ba0b4cb6f3fe9906d59e6, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 2
   - definition: {fileID: 11400000, guid: b886ce07cedae6f4598f58c603ca6b31, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 1
   - definition: {fileID: 11400000, guid: 9e1e11e294954c34e911667c3c7ee2e4, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 3
   - definition: {fileID: 11400000, guid: 2a5eba9ce67d2cb4d88957aa38251154, type: 2}
     tier: 1
     weight: 1
+    minimumOutdoorWorldLevel: 1
   - definition: {fileID: 11400000, guid: ab065d5f913e79d4d8a006ac21ce9c24, type: 2}
     tier: 1
     weight: 1
+    minimumOutdoorWorldLevel: 3
   - definition: {fileID: 11400000, guid: 011b0a131c61c5241bd49922a65e9818, type: 2}
     tier: 2
     weight: 1
+    minimumOutdoorWorldLevel: 2
   - definition: {fileID: 11400000, guid: 2191c51609d150842af235ff94e4a719, type: 2}
     tier: 1
     weight: 1
+    minimumOutdoorWorldLevel: 4
   - definition: {fileID: 11400000, guid: dc9bf0d614228624ba85199d69d0dd1b, type: 2}
     tier: 1
     weight: 1
+    minimumOutdoorWorldLevel: 5
   - definition: {fileID: 11400000, guid: a468ff9e6df40dd4899de7130a64fddf, type: 2}
     tier: 2
     weight: 1
+    minimumOutdoorWorldLevel: 5
   - definition: {fileID: 11400000, guid: ddad487c133b6814aa793a8617b98bef, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 1
   - definition: {fileID: 11400000, guid: e3ad8c9326a9bd7499531eb93a4456ea, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 3
   - definition: {fileID: 11400000, guid: d913c9277bcb82544892615102cac27c, type: 2}
     tier: 0
     weight: 1
+    minimumOutdoorWorldLevel: 4
   - definition: {fileID: 11400000, guid: ba72ee22d444edd48b30c29974d6f2e8, type: 2}
     tier: 1
     weight: 1
+    minimumOutdoorWorldLevel: 2
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 0.64, g: 0.46, b: 0.28, a: 1}
   approvedRosterLocked: 1

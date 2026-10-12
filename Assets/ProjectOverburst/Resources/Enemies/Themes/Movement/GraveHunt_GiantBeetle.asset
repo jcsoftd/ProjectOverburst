@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraveHunt_GiantBeetle
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: GraveHunt_GiantBeetle
-  moveSpeed: 1.15
+  moveSpeed: 1.05
   turnSpeed: 420
   animationReferenceSpeed: 1.0264164
   runAnimationReferenceSpeed: 1.0264164
   backpedalAnimationReferenceSpeed: 1.0264164
-  runSpeedMultiplier: 2.173913
+  runSpeedMultiplier: 1.7619048
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1

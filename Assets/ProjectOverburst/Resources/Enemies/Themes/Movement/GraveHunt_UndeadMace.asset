@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraveHunt_UndeadMace
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: GraveHunt_UndeadMace
-  moveSpeed: 1.15
+  moveSpeed: 1.05
   turnSpeed: 420
   animationReferenceSpeed: 0.4722233
   runAnimationReferenceSpeed: 1.0046222
   backpedalAnimationReferenceSpeed: 0.4722233
-  runSpeedMultiplier: 2.173913
+  runSpeedMultiplier: 1.6666667
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1

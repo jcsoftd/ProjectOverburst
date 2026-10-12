@@ -44,12 +44,12 @@ public static class SpeciesSpawnGroupVerifier
                 typeof(OutdoorWorldSpawner).GetMethod("QueueArea", Fields).Invoke(spawner, new object[] { cell });
                 var queued = Rows(spawner, "pending");
                 int seed = unchecked(73130 + cell.x * 73856093 + cell.y * 19349663 + stage * 83492791);
-                var baseline = theme.BuildRoster(40, 9, 1, seed); var random = new System.Random(seed);
+                var baseline = theme.BuildRoster(stage == 1 ? 41 : 40, 9, stage == 1 ? 0 : 1, seed, stage); var random = new System.Random(seed);
                 for (int i = baseline.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (baseline[i], baseline[j]) = (baseline[j], baseline[i]); }
                 var expected = baseline.Select(def => new { def, level = AccountWorldLevelCommands.MinimumMonsterLevel(stage) + random.Next(10), seed = random.Next() })
                     .Select(row => row.def.EnemyId + "/" + row.level + "/" + row.seed).OrderBy(s => s).ToArray();
                 var actual = queued.Select(row => ((EnemyDefinition)Read(row, "definition")).EnemyId + "/" + Read(row, "level") + "/" + Read(row, "seed")).OrderBy(s => s).ToArray();
-                Check(actual.SequenceEqual(expected) && queued.Length == 50, "outdoor original species/level/seed multiset: " + stage + "/" + cell);
+                Check(actual.SequenceEqual(expected) && queued.Length == 50, "outdoor stage-filtered species/level/seed multiset: " + stage + "/" + cell);
                 Check(queued.GroupBy(row => Read(row, "group")).All(group => group.Select(row => Read(row, "definition")).Distinct().Count() == 1
                     && group.Count() <= MapCombatGeometry.GroupSize(MapSpawnPolicy.Tier(theme, (EnemyDefinition)Read(group.First(), "definition")))), "homogeneous bounded outdoor groups: " + stage + "/" + cell);
                 Read(spawner, "pending").GetType().GetMethod("Clear").Invoke(Read(spawner, "pending"), null);
@@ -93,8 +93,10 @@ public static class SpeciesSpawnGroupVerifier
             var local = point - terrain.transform.position; float size = (float)Read(spawner, "areaSize");
             var cell = new Vector2Int(Mathf.FloorToInt(local.x / size), Mathf.FloorToInt(local.z / size));
             int seed = unchecked(73130 + cell.x * 73856093 + cell.y * 19349663 + spawner.AppliedStage * 83492791);
-            var baseline = theme.BuildRoster((int)Read(spawner, "smallCount"), (int)Read(spawner, "mediumCount"), (int)Read(spawner, "eliteCount"), seed);
-            check(actors.Select(a => a.Definition.EnemyId).OrderBy(s => s).SequenceEqual(baseline.Select(d => d.EnemyId).OrderBy(s => s)), "outdoor actual species counts match original roster");
+            int elite = spawner.AppliedStage < 2 || spawner.AppliedStage == 2 && (seed & 1) != 0 ? 0 : (int)Read(spawner, "eliteCount");
+            var baseline = theme.BuildRoster((int)Read(spawner, "smallCount") + (int)Read(spawner, "eliteCount") - elite,
+                (int)Read(spawner, "mediumCount"), elite, seed, spawner.AppliedStage);
+            check(actors.Select(a => a.Definition.EnemyId).OrderBy(s => s).SequenceEqual(baseline.Select(d => d.EnemyId).OrderBy(s => s)), "outdoor actual species counts match stage-filtered roster");
             var samples = actors.Where(a => MapSpawnPolicy.Tier(theme, a.Definition) == EnemyThemeTier.Small)
                 .Select(a => actors.Where(b => b != a && b.Definition == a.Definition).Min(b => Distance(positions[a.GetInstanceID()], positions[b.GetInstanceID()]))).ToArray();
             float ratio = samples.Count(d => d <= 5f) / (float)samples.Length;

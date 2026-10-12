@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: DeathHarvest_RakeBrute
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: DeathHarvest_RakeBrute
-  moveSpeed: 1.45
+  moveSpeed: 1.15
   turnSpeed: 390
   animationReferenceSpeed: 0.28348926
   runAnimationReferenceSpeed: 0.28348926
   backpedalAnimationReferenceSpeed: 0.28348926
-  runSpeedMultiplier: 1.45
+  runSpeedMultiplier: 1.5217391
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 25
   crowdWeight: 1.8

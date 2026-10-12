@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraveHunt_GiantRat
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementProfile
   profileId: GraveHunt_GiantRat
-  moveSpeed: 1.15
+  moveSpeed: 1.4
   turnSpeed: 420
   animationReferenceSpeed: 1.2996119
   runAnimationReferenceSpeed: 3.3248885
   backpedalAnimationReferenceSpeed: 1.2996119
-  runSpeedMultiplier: 2.173913
+  runSpeedMultiplier: 2.142857
   dodgeSpeedMultiplier: 2.2
   knockbackReductionPercent: 0
   crowdWeight: 1
