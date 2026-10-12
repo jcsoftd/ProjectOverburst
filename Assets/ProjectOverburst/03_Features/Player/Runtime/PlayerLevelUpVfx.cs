@@ -14,6 +14,9 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
     private GameObject activeEffect;
     private VisualEffect activeVisualEffect;
     private Transform activeAnchor;
+    private PlayerActorRuntime activeActor;
+    private UnityEngine.SceneManagement.Scene activeScene;
+    private int runRevision;
     private Coroutine releaseRoutine;
     private bool warnedMissingPrefab;
 
@@ -21,32 +24,40 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
     {
         if (progression != null)
             progression.LeveledUp -= Play;
+        if (context != null) context.CurrentActorChanged -= ActorChanged;
+        ReleaseActive();
         progression = nextProgression;
         context = nextContext;
+        if (context != null) context.CurrentActorChanged += ActorChanged;
         if (progression != null)
             progression.LeveledUp += Play;
     }
 
     private void LateUpdate()
     {
-        if (activeVisualEffect != null && activeAnchor != null)
-            SyncTransform(activeVisualEffect, activeAnchor);
+        if (activeEffect == null) return;
+        if (activeActor == null || !activeActor.isActiveAndEnabled || activeActor.Health == null || activeActor.Health.IsDead
+            || context == null || context.CurrentActor != activeActor || activeActor.gameObject.scene != activeScene
+            || RunWalkableContext.Revision != runRevision || PersistentSceneFlow.Instance?.IsSwitching == true)
+        { ReleaseActive(); return; }
+        if (activeVisualEffect != null && activeAnchor != null) SyncTransform(activeVisualEffect, activeAnchor);
     }
 
     private void OnDisable()
     {
         if (progression != null)
             progression.LeveledUp -= Play;
-        progression = null;
-        context = null;
-        if (releaseRoutine != null)
-            StopCoroutine(releaseRoutine);
+        if (context != null) context.CurrentActorChanged -= ActorChanged;
+        ReleaseActive(); progression = null; context = null;
+    }
+
+    private void ActorChanged(PlayerActorRuntime next) { if (activeActor != next) ReleaseActive(); }
+    private void ReleaseActive()
+    {
+        if (releaseRoutine != null) StopCoroutine(releaseRoutine);
         releaseRoutine = null;
-        if (activeEffect != null)
-            Destroy(activeEffect);
-        activeEffect = null;
-        activeVisualEffect = null;
-        activeAnchor = null;
+        if (activeEffect != null) { activeEffect.SetActive(false); Destroy(activeEffect); }
+        activeEffect = null; activeVisualEffect = null; activeAnchor = null; activeActor = null;
     }
 
     private void Play(int previousLevel, int currentLevel)
@@ -67,13 +78,7 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
             return;
         }
 
-        if (releaseRoutine != null)
-            StopCoroutine(releaseRoutine);
-        if (activeEffect != null)
-            Destroy(activeEffect);
-        activeEffect = null;
-        activeVisualEffect = null;
-        activeAnchor = null;
+        ReleaseActive();
 
         SkinnedMeshRenderer body = ResolveBody(actor);
         if (body == null)
@@ -83,7 +88,9 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
         }
 
         activeEffect = Instantiate(prefab, actor.transform);
+        activeActor = actor; activeScene = actor.gameObject.scene; runRevision = RunWalkableContext.Revision;
         activeEffect.name = "PlayerLevelUpVfx";
+        activeEffect.GetComponent<PlayerLevelUpBodyGlow>()?.Begin(actor);
         activeEffect.transform.localPosition = Vector3.zero;
         activeEffect.transform.localRotation = Quaternion.identity;
         activeEffect.transform.localScale = prefab.transform.localScale;
@@ -92,9 +99,7 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
         if (activeVisualEffect == null || activeVisualEffect.visualEffectAsset == null)
         {
             Debug.LogWarning("[PlayerLevelUpVfx] Replacement prefab has no usable VisualEffect.");
-            Destroy(activeEffect);
-            activeEffect = null;
-            activeVisualEffect = null;
+            ReleaseActive();
             return;
         }
 
@@ -162,14 +167,6 @@ public sealed class PlayerLevelUpVfx : MonoBehaviour
     private IEnumerator ReleaseAfterDelay(GameObject effect)
     {
         yield return new WaitForSeconds(EffectLifetimeSeconds);
-        if (effect != null)
-            Destroy(effect);
-        if (activeEffect == effect)
-        {
-            activeEffect = null;
-            activeVisualEffect = null;
-            activeAnchor = null;
-            releaseRoutine = null;
-        }
+        if (activeEffect == effect) { releaseRoutine = null; ReleaseActive(); }
     }
 }

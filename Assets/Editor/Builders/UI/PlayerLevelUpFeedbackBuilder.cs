@@ -14,6 +14,65 @@ public static class PlayerLevelUpFeedbackBuilder
     public const string Source = "Assets/ProjectOverburst/02_Shared/UI/Prefabs/RpgMmo11/PF_OverburstNotifications_Rpg11.prefab";
     public const string Prefab = "Assets/ProjectOverburst/Resources/UI/Notifications/PF_PlayerLevelUpNotification.prefab";
     public const string Audio = "Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav";
+    public const string ZoomPrefab = "Assets/ProjectOverburst/Resources/Combat/VFX/PF_PlayerLevelUpZoomBlur.prefab";
+    public const string ZoomMaterial = "Assets/ProjectOverburst/Resources/Combat/VFX/M_PlayerLevelUpZoomBlur.mat";
+
+    private sealed class GlowKey { public float time, value, inSlope, outSlope; }
+    public static string BuildBodyGlow(string curveManifest, string output)
+    {
+        AppearanceCustomizationBuilder.RequireIdle(); Directory.CreateDirectory(output);
+        const string prefabPath = "Assets/ProjectOverburst/Resources/VFX/PF_PlayerLevelUpVfx.prefab";
+        const string materialPath = "Assets/ThirdParty/06_VFX/GabrielAguiarProductions/Materials/GlowMaterial.mat";
+        var manifest = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(curveManifest));
+        Func<string, AnimationCurve> curve = name => new AnimationCurve(manifest["curves"][name].ToObject<GlowKey[]>()
+            .Select(k => new Keyframe(k.time, k.value, k.inSlope, k.outSlope)).ToArray());
+        var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+        if (material == null || !material.HasProperty("_Color")) throw new InvalidOperationException("Missing original Glow material");
+        var root = PrefabUtility.LoadPrefabContents(prefabPath);
+        try
+        {
+            var glow = root.GetComponent<PlayerLevelUpBodyGlow>();
+            if (glow == null) glow = root.AddComponent<PlayerLevelUpBodyGlow>();
+            glow.Configure(material, curve("red"), curve("green"), curve("blue"));
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+        string json = JsonConvert.SerializeObject(new { status="PASS", prefab=prefabPath, material=materialPath,
+            originalAnimationGuid=(string)manifest["sourceAnimationGuid"], bodyGlowDuration=curve("red").keys.Last().time,
+            poseEnabled=false, shader=AssetDatabase.GetAssetPath(material.shader) },Formatting.Indented);
+        File.WriteAllText(Path.Combine(output,"body-glow-assets.json"),json); return json;
+    }
+
+    public static string BuildZoomBlur(string output)
+    {
+        AppearanceCustomizationBuilder.RequireIdle(); Directory.CreateDirectory(output);
+        const string source = "Assets/ProjectOverburst/Resources/Combat/VFX/PF_ParryZoomBlur_Normal.prefab";
+        string before = AssetDatabase.GetAssetDependencyHash(source).ToString();
+        var original = AssetDatabase.LoadAssetAtPath<GameObject>(source);
+        var sourceMaterial = original.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+        var material = AssetDatabase.LoadAssetAtPath<Material>(ZoomMaterial);
+        if (material == null) { material = new Material(sourceMaterial); AssetDatabase.CreateAsset(material, ZoomMaterial); }
+        material.CopyPropertiesFromMaterial(sourceMaterial); material.name = "M_PlayerLevelUpZoomBlur";
+        material.SetFloat("_Strength", .035f); material.SetFloat("_Opacity", .5f);
+        EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
+        var scene = EditorSceneManager.NewPreviewScene(); GameObject effect = null;
+        try
+        {
+            effect = Object.Instantiate(original); SceneManager.MoveGameObjectToScene(effect, scene);
+            effect.name = "PF_PlayerLevelUpZoomBlur";
+            var particle = effect.GetComponent<ParticleSystem>(); particle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particle.main; main.duration = .22f; main.startLifetime = .22f; main.maxParticles = 1;
+            main.loop = false; main.useUnscaledTime = true; main.playOnAwake = false;
+            effect.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
+            PrefabUtility.SaveAsPrefabAsset(effect, ZoomPrefab);
+        }
+        finally { if (effect != null) Object.DestroyImmediate(effect); EditorSceneManager.ClosePreviewScene(scene); }
+        if (AssetDatabase.GetAssetDependencyHash(source).ToString() != before) throw new InvalidOperationException("Parry source changed");
+        string json = JsonConvert.SerializeObject(new {status="PASS",source,zoomPrefab=ZoomPrefab,material=ZoomMaterial,
+            shader=AssetDatabase.GetAssetPath(material.shader),strength=material.GetFloat("_Strength"),opacity=material.GetFloat("_Opacity"),
+            duration=.22f,samples=material.GetFloat("_Samples"),parryPreserved=true},Formatting.Indented);
+        File.WriteAllText(Path.Combine(output,"zoom-assets.json"),json);return json;
+    }
 
     public static string Build(string output)
     {

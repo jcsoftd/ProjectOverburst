@@ -75,6 +75,26 @@ public static class PlayerLevelUpFeedbackVerifier
                 == "1e915c7c8f3c3634c3eb4ff478e10b6b8ebdfb6408ea8bfbd95806897ba8b6f4", "Approved WAV bytes preserved");
         var settings = ((AudioImporter)AssetImporter.GetAtPath(PlayerLevelUpFeedbackBuilder.Audio)).defaultSampleSettings;
         Check(settings.compressionFormat == AudioCompressionFormat.PCM && settings.preloadAudioData, "PCM preload import preserves selected waveform");
+        var zoom = Resources.Load<GameObject>(PlayerLevelUpFeedback.ZoomBlurResourcePath);
+        Check(zoom != null && zoom.GetComponent<ParticleSystem>() != null, "Zoom resource resolves a particle effect");
+        var zoomMain = zoom.GetComponent<ParticleSystem>().main;
+        Check(!zoomMain.loop && zoomMain.useUnscaledTime && zoomMain.maxParticles == 1 && Mathf.Abs(zoomMain.startLifetime.constant - .22f) < .001f, "Zoom is a short single particle using real time");
+        var zoomMat = zoom.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+        var parry = Resources.Load<GameObject>("Combat/VFX/PF_ParryZoomBlur_Normal").GetComponent<ParticleSystemRenderer>().sharedMaterial;
+        Check(zoomMat.shader == parry.shader && zoomMat.shader.isSupported && zoomMat != parry, "Original Easy Zoom shader with an independent supported material");
+        Check(Mathf.Abs(zoomMat.GetFloat("_Strength")-.035f)<.0001f && zoomMat.GetFloat("_Strength") < parry.GetFloat("_Strength") && zoomMat.GetFloat("_Opacity") < parry.GetFloat("_Opacity"), "Level zoom remains milder than existing parry");
+        Check(zoomMat.GetFloat("_Samples") == 8 && parry.GetFloat("_Strength") == .14f && parry.GetFloat("_Opacity") == .85f, "Eight samples and approved normal parry values preserved");
+        var levelEffect = Resources.Load<GameObject>("VFX/PF_PlayerLevelUpVfx");
+        var glow = levelEffect.GetComponent<PlayerLevelUpBodyGlow>();
+        Check(glow != null && levelEffect.GetComponentsInChildren<Transform>(true).All(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)==0), "VFX resource contains a fully bound Glow component without missing scripts");
+        var glowMaterial = Field<Material>(glow,"sourceMaterial");
+        Check(glowMaterial != null && glowMaterial.shader.isSupported && AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(glowMaterial.shader))=="ef6400b7c5649584f899c7e52666052d", "Original package Glow shader resolves and is supported");
+        var red=Field<AnimationCurve>(glow,"red"); var green=Field<AnimationCurve>(glow,"green"); var blue=Field<AnimationCurve>(glow,"blue");
+        Check(red.length==4 && green.length==4 && blue.length==4 && Mathf.Abs(red.keys.Last().time-2.2666667f)<.0001f, "Original RGB glow curves retain four keys and complete duration");
+        Check(Mathf.Abs(red.Evaluate(.55f)-5.9921575f)<.0001f && Mathf.Abs(green.Evaluate(.55f)-3.532962f)<.0001f && Mathf.Abs(blue.Evaluate(.55f)-1.035294f)<.0001f && red.Evaluate(0)<.001f && red.Evaluate(2.2666667f)<.001f, "Original body glow rises to its golden peak and fades out");
+        Check(levelEffect.GetComponentsInChildren<Animator>(true).Length==0 && levelEffect.GetComponentsInChildren<Animation>(true).Length==0, "Level effect cannot play a character pose");
+        var graph = levelEffect.GetComponentInChildren<UnityEngine.VFX.VisualEffect>();
+        Check(graph != null && graph.visualEffectAsset != null && graph.HasSkinnedMeshRenderer("SkinnedMeshRenderer") && graph.HasVector3("Transform_position"), "Original skinned Graph and transform properties retained");
         var result = new { status = "PASS", scope = "NATIVE", count = checks.Count, checks };
         Write("native-results.json", result); return JsonConvert.SerializeObject(result);
     }
@@ -136,7 +156,13 @@ public static class PlayerLevelUpFeedbackVerifier
         yield return Wait(()=>AccountBootstrap.Ready && WorldSessionState.IsHideout && !PersistentSceneFlow.Instance.IsSwitching,"Real title-to-town boot with isolated account");
         yield return Frames(12); actor=PlayerContext.Instance.CurrentActor; progression=PlayerProgression.Current; feedback=PlayerContext.Instance.GetComponent<PlayerLevelUpFeedback>();
         Check(actor != null && feedback != null && progression.Level==17,"Bootstrap binds real player progression/feedback");
+        yield return ZoomCases();
+        var bodies=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.enabled && r.gameObject.activeInHierarchy && r.sharedMesh!=null).ToArray();
+        var originalMaterials=bodies.Select(r=>r.sharedMaterials).ToArray();
+        var animator=actor.GetComponentInChildren<Animator>(); var controller=animator.runtimeAnimatorController;
+        int poseBefore=animator.GetCurrentAnimatorStateInfo(0).fullPathHash;
         progression.LeveledUp+=Leveled; actor.Health.RestoreLivingHealth(7); Grant(10);
+        Check(animator.runtimeAnimatorController==controller && animator.GetCurrentAnimatorStateInfo(0).fullPathHash==poseBefore,"Level-up preserves character controller and current pose");
         Check(events==1 && progression.Level==18 && actor.Health.CurrentHp==actor.Health.MaxHp,"Single level commit refills final maximum HP and emits once");
         Check(LevelVoices()==1,"One selected sound voice starts");
         yield return Seconds(.4f); notification=Field<PlayerLevelUpNotification>(feedback,"notification");
@@ -144,6 +170,15 @@ public static class PlayerLevelUpFeedbackVerifier
         Check(Math.Abs(Field<CanvasGroup>(notification,"visibility").alpha-1)<.001,"Entrance finishes at full opacity");
         Check(Field<GameObject>(PlayerContext.Instance.GetComponent<PlayerLevelUpVfx>(),"activeEffect") != null,"Existing VFX still starts on real skinned player");
         Check(!GameplayInputBlocker.IsGameplayInputBlocked && Time.timeScale==1,"Notification preserves gameplay input/time");
+        var shells=actor.GetComponentsInChildren<SkinnedMeshRenderer>().Where(r=>r.name=="LevelUpBodyGlow").ToArray();
+        Check(shells.Length==bodies.Length && shells.Length>1,"Every visible modular body part receives glow");
+        Check(!OverburstWorldHighlight.CollectPlayerModelRenderers(actor.transform).Any(r=>r.name==PlayerLevelUpBodyGlow.RendererName),"Temporary glow surfaces are excluded from the player's occlusion silhouette");
+        Check(shells.All(r=>r.sharedMesh==r.transform.parent.GetComponent<SkinnedMeshRenderer>().sharedMesh && r.rootBone==r.transform.parent.GetComponent<SkinnedMeshRenderer>().rootBone && r.bones.SequenceEqual(r.transform.parent.GetComponent<SkinnedMeshRenderer>().bones)),"Glow follows the same actual animated mesh and bones");
+        Check(shells.All(r=>r.sharedMaterials.Length==r.sharedMesh.subMeshCount && r.sharedMaterials.All(m=>m==shells[0].sharedMaterial)),"Glow covers every submesh with one owned shared material");
+        Check(bodies.Select((r,i)=>r.sharedMaterials.SequenceEqual(originalMaterials[i])).All(x=>x),"All original appearance materials remain untouched");
+        Check(shells[0].sharedMaterial.GetColor("_Color").r>3f,"Actual player glow animates to visible HDR gold");
+        var activeGraph=Field<UnityEngine.VFX.VisualEffect>(PlayerContext.Instance.GetComponent<PlayerLevelUpVfx>(),"activeVisualEffect");
+        Check(activeGraph.GetSkinnedMeshRenderer("SkinnedMeshRenderer")!=null && activeGraph.aliveParticleCount>0,"Actual GPU Graph produces particles with real body binding");
         yield return Capture("level18-runtime");
         Grant(OverburstGrowthRules.ExperienceToNext(18)+OverburstGrowthRules.ExperienceToNext(19)+OverburstGrowthRules.ExperienceToNext(20));
         yield return Frames(2); Check(events==2 && progression.Level==21 && Field<Text>(notification,"levelText").text=="레벨 21","One multi-level grant updates the same panel once");
@@ -155,6 +190,7 @@ public static class PlayerLevelUpFeedbackVerifier
         Check(Field<CanvasGroup>(notification,"visibility").alpha>=alpha && Field<CanvasGroup>(notification,"visibility").alpha>0,"Reward during exit reverses without an alpha flash");
         yield return Seconds(.16f); Check(Field<CanvasGroup>(notification,"visibility").alpha==1,"Exit interruption returns to full opacity");
         yield return Seconds(2.4f); Check(!notification.IsVisible && Field<CanvasGroup>(notification,"visibility").alpha==0,"UI hides after its unscaled fade sequence");
+        Check(!actor.GetComponentsInChildren<SkinnedMeshRenderer>().Any(r=>r.name=="LevelUpBodyGlow"),"Glow ends and releases temporary body renderers after its curve");
         Call(progression,"ApplyAccountProgression",progression.Level,progression.Experience,false); Check(events==3,"Plain account projection does not emit level feedback");
         actor.Health.SetRunMapModifiers(.5f,.1f); actor.Health.RestoreLivingHealth(5); Grant(progression.ExperienceToNext-progression.Experience);
         Check(actor.Health.CurrentHp==actor.Health.MaxHp,"Full level HP refill survives maxHP and healing penalties"); actor.Health.SetRunMapModifiers(1,1);
@@ -165,11 +201,27 @@ public static class PlayerLevelUpFeedbackVerifier
         Check(Field<int>(feedback,"pendingPulses")==1,"Paused world queues exactly one pulse"); Time.timeScale=1; yield return Frames(2);
         Check(Field<int>(feedback,"pendingPulses")==0,"Resume consumes the pending pulse once");
         Grant(progression.ExperienceToNext-progression.Experience); yield return Frames(2); RunWalkableContext.Clear(); yield return Frames(2);
-        Check(!notification.IsVisible && LevelVoices()==0,"Run revision discards previous UI/audio state");
+        Check(!notification.IsVisible && LevelVoices()==0 && Field<ParticleSystem>(feedback,"zoomBlur")==null,"Run revision discards previous UI/audio/zoom state");
+        Check(Field<GameObject>(PlayerContext.Instance.GetComponent<PlayerLevelUpVfx>(),"activeEffect")==null && !actor.GetComponentsInChildren<SkinnedMeshRenderer>().Any(r=>r.name=="LevelUpBodyGlow"),"Run revision also releases Graph and body glow");
         int before=events; Set(actor.Health,"currentHp",0f); typeof(CombatHealth).GetProperty("IsDead").SetValue(actor.Health,true);
         Grant(progression.ExperienceToNext-progression.Experience); yield return Frames(2);
         Check(events==before+1 && actor.Health.IsDead && actor.Health.CurrentHp==0 && !notification.IsVisible && LevelVoices()==0,"Dead actor keeps committed growth without resurrection/feedback");
+        Check(Field<GameObject>(PlayerContext.Instance.GetComponent<PlayerLevelUpVfx>(),"activeEffect")==null,"Dead actor never starts Graph or body glow");
         actor.Health.ResetHealth();
+    }
+
+    static IEnumerator ZoomCases()
+    {
+        var prefab = Resources.Load<GameObject>(PlayerLevelUpFeedback.ZoomBlurResourcePath);
+        long requests = TransientVfxPool.GetStatistics(prefab).Requests;
+        Time.timeScale = 0;
+        Call(feedback,"PlayZoomBlur"); Call(feedback,"PlayZoomBlur");
+        var particle = Field<ParticleSystem>(feedback,"zoomBlur");
+        Check(particle != null && particle.isPlaying && TransientVfxPool.GetStatistics(prefab).Active == 1, "Real actor starts one pooled zoom particle");
+        Check(TransientVfxPool.GetStatistics(prefab).Requests == requests+1, "Same-frame repeated zoom never stacks screen effects");
+        yield return Capture("zoom-runtime"); yield return Seconds(.4f);
+        Check(TransientVfxPool.GetStatistics(prefab).Active == 0, "Zoom naturally returns to pool while world is paused");
+        Time.timeScale = 1;
     }
 
     static EnemyMovementReaction Enemy(string name,Vector3 local,EnemyHitWeight? weight=null,EnemyGradeType grade=EnemyGradeType.Normal)

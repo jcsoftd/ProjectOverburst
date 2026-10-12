@@ -10,6 +10,9 @@ public sealed class PlayerLevelUpFeedback : MonoBehaviour
     private PlayerContext context;
     private PlayerActorRuntime actor;
     private PlayerLevelUpNotification notification;
+    private GameObject zoomBlurPrefab;
+    private ParticleSystem zoomBlur;
+    public const string ZoomBlurResourcePath = "Combat/VFX/PF_PlayerLevelUpZoomBlur";
     private readonly List<CombatTarget> targets = new List<CombatTarget>(64);
     private readonly HashSet<int> processed = new HashSet<int>();
     private RaycastHit[] visibilityHits = new RaycastHit[32];
@@ -34,6 +37,7 @@ public sealed class PlayerLevelUpFeedback : MonoBehaviour
         hasFeedback = true;
         pendingLevel = nextLevel; shownAtFrame = Time.frameCount;
         CombatActionSfxService.PlayLevelUp(actor.transform.position);
+        PlayZoomBlur();
         if (Time.timeScale > 0f) Pulse(); else pendingPulses++;
         // A card reward closes its panel after its commit callback; show on the next frame.
     }
@@ -64,6 +68,19 @@ public sealed class PlayerLevelUpFeedback : MonoBehaviour
         pendingLevel = 0; pendingPulses = 0; hasFeedback = false;
         if (notification != null) notification.Hide();
         CombatActionSfxService.StopLevelUp();
+        if (zoomBlur != null) zoomBlur.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        zoomBlur = null;
+    }
+
+    private void PlayZoomBlur()
+    {
+        if (zoomBlur != null && zoomBlur.IsAlive(true)) return;
+        if (zoomBlurPrefab == null) zoomBlurPrefab = Resources.Load<GameObject>(ZoomBlurResourcePath);
+        if (zoomBlurPrefab == null) return;
+        var effect = TransientVfxPool.Spawn(zoomBlurPrefab, actor.transform.position + Vector3.up * .9f,
+            Quaternion.identity, 0f, 2, returnMode: TransientVfxReturnMode.NaturalParticleCompletion,
+            useUnscaledTime: true, contentSceneHandle: WorldSessionState.ContentScene.handle);
+        zoomBlur = effect != null ? effect.GetComponent<ParticleSystem>() : null;
     }
     private void Unbind()
     {

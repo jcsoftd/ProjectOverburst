@@ -100,6 +100,8 @@ public sealed class OverburstWorldHighlight : IDisposable
         foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
         {
             if (!renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
+            // Temporary glow surfaces overlap the body and must not become occlusion silhouettes.
+            if (renderer.gameObject.name == PlayerLevelUpBodyGlow.RendererName) continue;
             if (renderer is not MeshRenderer && renderer is not SkinnedMeshRenderer) continue;
             if (renderer.GetComponentInParent<ParticleSystem>() != null
                 || renderer.gameObject.name == WorldItemPickupHoverResolver.OutlineObjectName

@@ -240,6 +240,10 @@ Assets/StreamingAssets/aa/
 /Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav
 /Assets/ProjectOverburst/Resources/Combat/SFX/CombatAction/PlayerLevelUp.wav.meta
 
+# Licensed Easy Zoom Blur particle/material derivatives; restore private LevelUpFeedback recovery with original meta.
+/Assets/ProjectOverburst/Resources/Combat/VFX/PF_PlayerLevelUpZoomBlur.prefab*
+/Assets/ProjectOverburst/Resources/Combat/VFX/M_PlayerLevelUpZoomBlur.mat*
+
 # Licensed player-death sound mix; restore private PlayerDeath recovery with original meta.
 /Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav
 /Assets/ProjectOverburst/Resources/UI/Death/LowBoom_150.wav.meta
