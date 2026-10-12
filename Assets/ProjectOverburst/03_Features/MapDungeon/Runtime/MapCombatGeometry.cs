@@ -13,6 +13,7 @@ public static class MapCombatGeometry
     public const float CellSize = 1f;
     public const float EntrySafety = 4f;
     public const float BodyGap = .05f;
+    public static int GroupSize(EnemyThemeTier tier) => tier == EnemyThemeTier.Small ? 5 : tier == EnemyThemeTier.Medium ? 2 : 1;
     // Planning and live placement must agree at the same packed-body boundary.
     // The tolerance absorbs float rounding; the 5cm body gap remains intact.
     public static bool BodiesSeparated(Vector3 a, float radiusA, Vector3 b, float radiusB)
@@ -325,11 +326,17 @@ public static class MapCombatGeometry
             {
                 initial.Sort((a, b) => { int order = BodyFor(b.Definition).Radius.CompareTo(BodyFor(a.Definition).Radius); return order != 0 ? order : a.Index.CompareTo(b.Index); });
                 reserved.Clear(); radii.Clear(); MapRunRoster.Member failed = null;
+                var groupCounts = new Dictionary<EnemyDefinition, int>();
                 foreach (var member in initial)
                 {
                     float radius = BodyFor(member.Definition).Radius; bool placed = false;
-                    foreach (var point in safeByDefinition[member.Definition])
+                    groupCounts.TryGetValue(member.Definition, out int grouped);
+                    bool sameGroup = grouped % GroupSize(member.Tier) != 0;
+                    var candidates = safeByDefinition[member.Definition];
+                    int start = compact || sameGroup ? 0 : random.Next(candidates.Count);
+                    for (int candidate = 0; candidate < candidates.Count; candidate++)
                     {
+                        var point = candidates[(start + candidate) % candidates.Count];
                         bool blocked = false;
                         for (int i = 0; i < reserved.Count; i++)
                         { if (!BodiesSeparated(point, radius, reserved[i], radii[i])) { blocked = true; break; } }
@@ -337,6 +344,13 @@ public static class MapCombatGeometry
                         member.PlannedPosition = point; reserved.Add(point); radii.Add(radius); placed = true; break;
                     }
                     if (!placed) { failed = member; break; }
+                    groupCounts[member.Definition] = grouped + 1;
+                    // Prefer nearby safe points within each small group; compact fallback retains crowded-court capacity.
+                    if (!compact && !sameGroup)
+                    {
+                        var anchor = member.PlannedPosition;
+                        candidates.Sort((a, b) => { var da = a - anchor; var db = b - anchor; da.y = db.y = 0; return da.sqrMagnitude.CompareTo(db.sqrMagnitude); });
+                    }
                     if (watch.Elapsed.TotalMilliseconds >= 3) { yield return null; watch.Restart(); }
                 }
                 if (failed == null) break;

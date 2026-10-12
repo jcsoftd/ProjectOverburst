@@ -19,11 +19,17 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
     private readonly Queue<Pending> pending = new Queue<Pending>();
     private readonly List<Lease> leases = new List<Lease>();
     private readonly System.Random random = new System.Random(73130);
+    private sealed class SpawnGroup
+    {
+        public Vector3 point;
+        public bool placed;
+    }
     private readonly struct Pending
     {
         public readonly EnemyDefinition definition; public readonly Vector2Int cell; public readonly int level, seed;
-        public Pending(EnemyDefinition definition, Vector2Int cell, int level, int seed)
-        { this.definition = definition; this.cell = cell; this.level = level; this.seed = seed; }
+        public readonly SpawnGroup group;
+        public Pending(EnemyDefinition definition, Vector2Int cell, int level, int seed, SpawnGroup group = null)
+        { this.definition = definition; this.cell = cell; this.level = level; this.seed = seed; this.group = group; }
     }
     private readonly struct Lease
     {
@@ -96,6 +102,7 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
             var request = new EnemySpawnRequest(next.definition, point, Quaternion.Euler(0, random.Next(360), 0),
                 player.transform, gameObject, transform, enemiesRoot, seed: next.seed, context: context);
             if (!spawn.TrySpawn(request, out var actor)) { pending.Enqueue(next); continue; }
+            if (next.group != null && !next.group.placed) { next.group.point = point; next.group.placed = true; }
             leases.Add(new Lease(actor)); created++;
         }
     }
@@ -108,7 +115,21 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
         for (int i = roster.Count - 1; i > 0; i--)
         { int j = areaRandom.Next(i + 1); var swap = roster[i]; roster[i] = roster[j]; roster[j] = swap; }
         int minimum = AccountWorldLevelCommands.MinimumMonsterLevel(stage);
-        foreach (var definition in roster) pending.Enqueue(new Pending(definition, cell, minimum + areaRandom.Next(10), areaRandom.Next()));
+        var requests = new List<Pending>();
+        foreach (var definition in roster) requests.Add(new Pending(definition, cell, minimum + areaRandom.Next(10), areaRandom.Next()));
+        var used = new bool[requests.Count];
+        for (int i = 0; i < requests.Count; i++)
+        {
+            if (used[i]) continue;
+            var group = new SpawnGroup();
+            int remaining = MapCombatGeometry.GroupSize(MapSpawnPolicy.Tier(theme, requests[i].definition));
+            for (int j = i; j < requests.Count && remaining > 0; j++)
+            {
+                if (used[j] || requests[j].definition != requests[i].definition) continue;
+                var next = requests[j]; used[j] = true; remaining--;
+                pending.Enqueue(new Pending(next.definition, next.cell, next.level, next.seed, group));
+            }
+        }
     }
     private bool TryPosition(Pending next, Vector3 player, Camera camera, out Vector3 result)
     {
@@ -124,6 +145,14 @@ public sealed class OutdoorWorldSpawner : MonoBehaviour
         for (int i = 0; i < 24; i++)
         {
             var point = basePoint + new Vector3((float)random.NextDouble() * areaSize, 0, (float)random.NextDouble() * areaSize);
+            if (next.group != null && next.group.placed && i < 16)
+            {
+                float angle = (float)random.NextDouble() * Mathf.PI * 2;
+                float distance = Mathf.Max(radius * 2 + .12f, radius + 1.6f) * (1 + i / 8);
+                point = next.group.point + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
+                if (point.x < basePoint.x + radius || point.z < basePoint.z + radius
+                    || point.x > basePoint.x + areaSize - radius || point.z > basePoint.z + areaSize - radius) continue;
+            }
             if (point.x > terrainMax.x - radius || point.z > terrainMax.z - radius || IsInTown(point)
                 || new Vector2(point.x - player.x, point.z - player.z).sqrMagnitude < 14 * 14) continue;
             point.y = terrain.SampleHeight(point) + terrain.transform.position.y;

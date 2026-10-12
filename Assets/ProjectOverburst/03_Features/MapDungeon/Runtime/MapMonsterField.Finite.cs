@@ -4,6 +4,11 @@ using UnityEngine.AI;
 
 public sealed partial class MapMonsterField
 {
+    sealed class SpawnGroup
+    {
+        public Vector3 Point;
+        public MapCombatGeometry.Area Ground;
+    }
     sealed class Slot
     {
         public MapRunRoster.Member Member;
@@ -15,6 +20,8 @@ public sealed partial class MapMonsterField
         public Vector3 Position, Safe;
         public float Radius, Height;
         public Rigidbody Body;
+        public SpawnGroup Group;
+        public int GroupCursor;
     }
     MapRunRoster finiteRoster;
     MapRunRoster.Area finiteArea;
@@ -145,11 +152,20 @@ public sealed partial class MapMonsterField
         if (nearby > 0 && Time.unscaledTime < nextPackAt) return;
         int pack = finiteRandom.Next(6, 13);
         int amount = Mathf.Min(LocalFightLimit - nearby, pack * (nearby == 0 ? 2 : 1));
-        foreach (var slot in slots)
+        while (amount > 0)
         {
-            if (amount <= 0) break;
-            if (slot.Released || slot.Member.State != MapRunRoster.Life.Pending) continue;
-            slot.Released = true; amount--; ReinforcementReleased++;
+            Slot first = null;
+            foreach (var slot in slots)
+                if (!slot.Released && slot.Member.State == MapRunRoster.Life.Pending) { first = slot; break; }
+            if (first == null) break;
+            var group = new SpawnGroup();
+            int remaining = Mathf.Min(amount, MapCombatGeometry.GroupSize(first.Member.Tier));
+            foreach (var slot in slots)
+            {
+                if (remaining == 0) break;
+                if (slot.Released || slot.Member.State != MapRunRoster.Life.Pending || slot.Member.Definition != first.Member.Definition) continue;
+                slot.Group = group; slot.Released = true; remaining--; amount--; ReinforcementReleased++;
+            }
         }
         nextPackAt = Time.unscaledTime + .8f;
     }
@@ -185,6 +201,12 @@ public sealed partial class MapMonsterField
         }
         if (!finiteRoster.TryActivate(chosen.Member.Index, out chosen.RosterLease)) { service.Release(actor); return true; }
         chosen.Actor = actor; chosen.ActorLease = actor.LeaseVersion; chosen.Safe = position;
+        if (chosen.Group != null && chosen.Group.Ground == null)
+        {
+            chosen.Group.Point = position;
+            chosen.Group.Ground = chosen.SpawnAreaIndex == finiteArea.Ground.Index ? finiteArea.Ground
+                : reinforcementNeighbours.Find(area => area.Index == chosen.SpawnAreaIndex);
+        }
         chosen.Body = actor.GetComponent<Rigidbody>(); chosen.WasKinematic = chosen.Body && chosen.Body.isKinematic;
         actor.ApplyNaturalProgress(finiteRoster.NaturalProgressMultiplier);
         if (chosen.HealthRatio > 0) actor.Health.RestoreLivingHealth(chosen.HealthRatio * actor.Health.MaxHp);
@@ -211,6 +233,15 @@ public sealed partial class MapMonsterField
             slot.SpawnAreaIndex = ground.Index;
             return true;
         }
+        if (!slot.EverSpawned && slot.Group?.Ground != null)
+            for (int i = 0; i < 24; i++)
+            {
+                int n = slot.GroupCursor++;
+                float angle = (slot.Member.Index * 2.399963f + n * Mathf.PI * .25f);
+                float distance = (slot.Radius * 2 + MapCombatGeometry.BodyGap + .12f) * (1 + n % 24 / 8);
+                var candidate = slot.Group.Point + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
+                if (Clear(slot.Group.Ground, candidate, false, out position)) return true;
+            }
         if (slot.Member.Initial && slot.Cursor == 0)
         {
             // Retain G02's packed positions during entry; offsetting one can invalidate its neighbours.

@@ -50,7 +50,7 @@ public static class MapRunEntryPlayVerifier
         if (!value) throw new InvalidOperationException(name);
         checks.Add(name); Write("progress.json", new { checks = checks.Count, last = name, utc = DateTime.UtcNow });
     }
-    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false)
+    public static void Start(string directory, bool desertOnly = false, bool largeOnly = false, int completionCases = 0, int bossCases = 0, bool minimapOnly = false, bool guidanceOnly = false, bool minimapCycles = false, bool includeLargeCave = true, int desertCandidateIndex = 0, bool minimapCompatibility = false, bool minimapResolution = false, bool progressionOnly = false, bool escapeSettlementOnly = false, int escapeCases = 0, int caveCount = 0, bool verifyMapRequired = false, bool speciesGroupsOnly = false, bool caveOnly = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating
             || IsolatedSavePlayGuard.ActiveDirectory != "" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(IsolatedSavePlayGuard.Variable))
@@ -115,6 +115,8 @@ public static class MapRunEntryPlayVerifier
         SessionState.SetInt(Key + "escapeCases", escapeCases);
         SessionState.SetInt(Key + "caveCount", caveCount);
         SessionState.SetBool(Key + "verifyMapRequired", verifyMapRequired);
+        SessionState.SetBool(Key + "speciesGroupsOnly", speciesGroupsOnly);
+        SessionState.SetBool(Key + "caveOnly", caveOnly);
         SessionState.SetBool(Key + "includeLargeCave", includeLargeCave);
         Write("scope.json", new { caveCount, scaleOnly = caveCount > 0, excludes = caveCount > 0 ? "prior failure-injection, escape, resolution and full-exhaustion tests" : null, includeLargeCave, deferred = includeLargeCave ? null : "20-platform cave deferred by user until platform roster expansion" });
         SessionState.SetString(Key + "start", AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
@@ -186,6 +188,8 @@ public static class MapRunEntryPlayVerifier
         var account = AccountGameplaySession.Current; var flow = PersistentSceneFlow.Instance;
         PlayerContext.Instance.CurrentActor.Health.SetDamageDeathPrevention(flow, true);
         Check(AccountBootstrap.SaveDirectory == Path.Combine(output, "Account"), "Account is isolated");
+        if (SessionState.GetBool(Key + "speciesGroupsOnly", false) && !SessionState.GetBool(Key + "caveOnly", false))
+            yield return SpeciesSpawnGroupVerifier.VerifyOutdoor(output, Check);
         if (SessionState.GetBool(Key + "minimapCompatibility", false))
         {
             yield return OverburstMinimapTerrainVerifier.VerifyInOwnedPlay(output, Check);
@@ -218,6 +222,7 @@ public static class MapRunEntryPlayVerifier
         if (SessionState.GetInt(Key + "escapeCases", 0) > 0) selected = maps.Where(i => i.map.terrain == MapTerrainKind.Desert || i.map.areaCount == 4).ToArray();
         if (!SessionState.GetBool(Key + "includeLargeCave", true)) selected = selected.Where(i => i.map.terrain != MapTerrainKind.Cave || i.map.areaCount < 20).ToArray();
         if (caveCount > 0) selected = new[] { cave4 };
+        if (SessionState.GetBool(Key + "caveOnly", false)) selected = new[] { cave4 };
         var priorTextures = new List<Texture2D>();
         int cycle = 0;
         int completionCase = 0;
@@ -332,6 +337,7 @@ public static class MapRunEntryPlayVerifier
                 Check(priorTextures.All(t => !t), label + ": previous run textures remain released");
                 priorTextures.Add(current.TerrainTexture); priorTextures.Add(current.OutlineTexture);
             }
+            else if (SessionState.GetBool(Key + "speciesGroupsOnly", false)) yield return SpeciesSpawnGroupVerifier.VerifyMap(gate, output, Check);
             else if (caveCount == 0) yield return MapFiniteSpawnPlayVerifier.Verify(gate, output, Check);
             yield return Frames(12);
             flow.GetComponent<RunLifetimeDriver>().RequestAbandon();
@@ -393,6 +399,8 @@ public static class MapRunEntryPlayVerifier
         SessionState.EraseInt(Key + "escapeCases");
         SessionState.EraseInt(Key + "caveCount");
         SessionState.EraseBool(Key + "verifyMapRequired");
+        SessionState.EraseBool(Key + "speciesGroupsOnly");
+        SessionState.EraseBool(Key + "caveOnly");
         SessionState.EraseBool(Key + "includeLargeCave");
     }
 }
