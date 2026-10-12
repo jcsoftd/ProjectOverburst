@@ -5,6 +5,7 @@ using UnityEngine;
 namespace Overburst.Mojave
 {
     public enum MojaveCombatKind { OpenBasin, LongWash, BroadCourt, AsymmetricHollow, TwinClearing, CrescentBasin, JunctionClearing, CoverCourt }
+    public enum MojaveTileRole { Combat, Entrance, Boss }
 
     [Serializable]
     public sealed class MojavePlace
@@ -17,6 +18,7 @@ namespace Overburst.Mojave
         public int patch;
         public int theme;
         public MojaveCombatKind kind;
+        public MojaveTileRole role;
         public string KindLabel => CombatLabel(kind);
         public static string CombatLabel(MojaveCombatKind kind)
         {
@@ -163,7 +165,7 @@ namespace Overburst.Mojave
             void AddTrail(int a,int b,float width)=>CreateTrail(a,b,width,r);
         }
 
-        public void ScatterCombatPlaces(MojaveCatalog catalog)
+        public void ScatterCombatPlaces(MojaveCatalog catalog,bool preferRunPositions=false)
         {
             var random=new System.Random(unchecked(seed^0x71A95));
             var radii=new float[places.Count];var order=new List<int>();
@@ -171,22 +173,29 @@ namespace Overburst.Mojave
                 radii[i]=Mathf.Max(catalog.patches[places[i].patch].size*.707107f,Mathf.Max(places[i].radius.x,places[i].radius.y)*1.28f);
                 order.Add(i);
             }
-            // Plan large footprints first; commit positions only when every room fits.
-            order.Sort((a,b)=>radii[a]==radii[b]?a.CompareTo(b):radii[b].CompareTo(radii[a]));
+            // Reserve preferred entry/boss positions before filling the remaining large footprints.
+            int Priority(int i)=>!preferRunPositions?2:places[i].role==MojaveTileRole.Entrance?0:places[i].role==MojaveTileRole.Boss?1:2;
+            order.Sort((a,b)=>Priority(a)!=Priority(b)?Priority(a).CompareTo(Priority(b)):radii[a]==radii[b]?a.CompareTo(b):radii[b].CompareTo(radii[a]));
+            int entry=preferRunPositions?places.FindIndex(p=>p.role==MojaveTileRole.Entrance):-1;
+            var corner=entry<0?Vector2.zero:new Vector2(random.Next(2)==0?-1:1,random.Next(2)==0?-1:1);
             var positions=new Vector2[places.Count];bool fitted=false;
             for(int restart=0;restart<32&&!fitted;restart++) {
                 fitted=true;
                 for(int n=0;n<order.Count;n++) {
                     int index=order[n];var limit=(bounds*.5f-Vector2.one*(radii[index]+8))*combatSpread;bool found=false;
                     if(limit.x<=0||limit.y<=0)throw new InvalidOperationException("Map is too small for the combat tiles.");
-                    for(int attempt=0;attempt<2048&&!found;attempt++) {
+                    float best=-1;int candidates=0;
+                    bool preferBoss=places[index].role==MojaveTileRole.Boss&&entry>=0&&restart<8;
+                    for(int attempt=0;attempt<2048&&(!found||(preferBoss&&candidates<64));attempt++) {
                         var candidate=new Vector2(Mathf.Lerp(-limit.x,limit.x,(float)random.NextDouble()),Mathf.Lerp(-limit.y,limit.y,(float)random.NextDouble()));
+                        if(preferRunPositions&&places[index].role==MojaveTileRole.Entrance&&restart<8&&attempt<128)
+                            candidate=Vector2.Scale(corner,new Vector2(Mathf.Lerp(limit.x*.8f,limit.x,(candidate.x/limit.x+1)*.5f),Mathf.Lerp(limit.y*.8f,limit.y,(candidate.y/limit.y+1)*.5f)));
                         bool clear=true;
                         for(int previous=0;previous<n;previous++) {
                             int other=order[previous];float separation=radii[index]+radii[other]+6;
                             if((candidate-positions[other]).sqrMagnitude<separation*separation){clear=false;break;}
                         }
-                        if(clear){positions[index]=candidate;found=true;}
+                        if(clear){float score=preferBoss?(candidate-positions[entry]).sqrMagnitude:0;if(!found||score>best){positions[index]=candidate;best=score;}found=true;candidates++;}
                     }
                     if(!found){fitted=false;break;}
                 }
@@ -194,6 +203,72 @@ namespace Overburst.Mojave
             if(!fitted)throw new InvalidOperationException("Combat tiles cannot fit without overlap. Increase the map size or reduce the area count.");
             for(int i=0;i<places.Count;i++)places[i].center=positions[i];
             trails.Clear();ConnectByDistance(random,places.Count>=15?3:2);
+        }
+
+        public void PreferEntranceCorner(MojaveCatalog catalog)
+        {
+            int entry=places.FindIndex(p=>p.role==MojaveTileRole.Entrance);if(entry<0)return;
+            float Radius(int i)=>Mathf.Max(catalog.patches[places[i].patch].size*.707107f,Mathf.Max(places[i].radius.x,places[i].radius.y)*1.28f);
+            float radius=Radius(entry);var limit=(bounds*.5f-Vector2.one*(radius+8))*combatSpread;
+            var original=places[entry].center;var best=original;
+            float CornerDistance(Vector2 p)=>(bounds*.5f-new Vector2(Mathf.Abs(p.x),Mathf.Abs(p.y))).sqrMagnitude;
+            for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)for(int step=0;step<16;step++) {
+                var candidate=Vector2.Lerp(new Vector2(x*limit.x,y*limit.y),original,step/16f);bool clear=true;
+                for(int i=0;i<places.Count;i++)if(i!=entry&&(candidate-places[i].center).sqrMagnitude<Mathf.Pow(radius+Radius(i)+6,2)){clear=false;break;}
+                float score=CornerDistance(candidate),oldScore=CornerDistance(best);
+                if(clear&&(score<oldScore-.01f||Mathf.Abs(score-oldScore)<=.01f&&(candidate-original).sqrMagnitude<(best-original).sqrMagnitude))best=candidate;
+            }
+            if(best==original)return;places[entry].center=best;
+            trails.Clear();ConnectByDistance(new System.Random(unchecked(seed^0xC04E)),places.Count>=15?3:2);
+        }
+
+        public float[] RouteDistances(int start)
+        {
+            var distance=new float[places.Count];var visited=new bool[places.Count];
+            for(int i=0;i<distance.Length;i++)distance[i]=i==start?0:float.PositiveInfinity;
+            for(int pass=0;pass<distance.Length;pass++) {
+                int nearest=-1;for(int i=0;i<distance.Length;i++)if(!visited[i]&&(nearest<0||distance[i]<distance[nearest]))nearest=i;
+                if(nearest<0||float.IsInfinity(distance[nearest]))break;visited[nearest]=true;
+                foreach(var trail in trails) {
+                    int next=trail.from==nearest?trail.to:trail.to==nearest?trail.from:-1;if(next<0)continue;
+                    float length=0;for(int i=1;i<trail.points.Length;i++)length+=Vector2.Distance(trail.points[i-1],trail.points[i]);
+                    distance[next]=Mathf.Min(distance[next],distance[nearest]+length);
+                }
+            }
+            return distance;
+        }
+
+        public void ConnectBossEntrance(bool preferFarApproach=false)
+        {
+            int boss=places.FindIndex(p=>p.role==MojaveTileRole.Boss);
+            if(boss<0)return;
+            var random=new System.Random(unchecked(seed^0xB055));
+            trails.RemoveAll(t=>t.from==boss||t.to==boss);
+            var reached=new HashSet<int>{0};
+            void Reach(){for(int pass=0;pass<places.Count;pass++)foreach(var t in trails){if(reached.Contains(t.from))reached.Add(t.to);if(reached.Contains(t.to))reached.Add(t.from);}}
+            Reach();
+            while(reached.Count<places.Count-1) {
+                int from=-1,to=-1;float nearest=float.PositiveInfinity;
+                foreach(int a in reached)for(int b=0;b<places.Count;b++)if(b!=boss&&!reached.Contains(b)) {
+                    float d=(places[a].center-places[b].center).sqrMagnitude;
+                    if(d<nearest){nearest=d;from=a;to=b;}
+                }
+                CreateTrail(from,to,4.8f,random);Reach();
+            }
+            int neighbor=0;
+            for(int i=1;i<places.Count;i++)if(i!=boss&&(places[i].center-places[boss].center).sqrMagnitude<(places[neighbor].center-places[boss].center).sqrMagnitude)neighbor=i;
+            if(preferFarApproach) {
+                var distance=RouteDistances(places.FindIndex(p=>p.role==MojaveTileRole.Entrance));
+                float localRange=Vector2.Distance(places[neighbor].center,places[boss].center)*1.25f+8;
+                float route=distance[neighbor]+Vector2.Distance(places[neighbor].center,places[boss].center);
+                for(int i=0;i<places.Count;i++)if(i!=boss) {
+                    float gap=Vector2.Distance(places[i].center,places[boss].center),score=distance[i]+gap;
+                    if(gap<=localRange&&score>route){neighbor=i;route=score;}
+                }
+            }
+            var direction=places[neighbor].center-places[boss].center;
+            places[boss].rotation=Mathf.Atan2(-direction.x,direction.y)*Mathf.Rad2Deg;
+            CreateTrail(neighbor,boss,4.8f,random);
         }
 
         void ConnectByDistance(System.Random random,int loops)

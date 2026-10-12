@@ -15,31 +15,70 @@ namespace Overburst.Mojave
             public float[] exits;
         }
         public Rule[] rules;
+        public MojavePatch bossPatch;
+        [HideInInspector] public bool preferRunPositions;
         public bool mixedSizes;
+        public Vector3Int ordinaryCombatCounts;
         [Range(-1,2), Tooltip("-1 = mixed; 0 = large; 1 = medium; 2 = small.")] public int sizeFilter = -1;
         [HideInInspector] public int trailSidePlacementCount;
 
         public void Apply(MojaveLayout layout,MojaveCatalog catalog)
         {
             if(rules==null)return;
-            if(mixedSizes) {
+            bool exact=ordinaryCombatCounts!=Vector3Int.zero;
+            if(exact) {
+                if(ordinaryCombatCounts.x<0||ordinaryCombatCounts.y<0||ordinaryCombatCounts.z<0||bossPatch==null
+                    ||ordinaryCombatCounts.x+ordinaryCombatCounts.y+ordinaryCombatCounts.z+2!=layout.places.Count)
+                    throw new InvalidOperationException("Ordinary combat counts must match the layout plus one entrance and one boss.");
+                ReserveRunTiles(layout,catalog);
+            }
+            if(mixedSizes||exact) {
                 var random=new System.Random(layout.seed^0x361A2);
                 void Shuffle<T>(List<T> list) {for(int i=list.Count-1;i>0;i--){int j=random.Next(i+1);var value=list[i];list[i]=list[j];list[j]=value;}}
                 var tiers=new List<MojaveCombatSize>();
-                for(int i=0;i<layout.places.Count;i++)tiers.Add((MojaveCombatSize)(sizeFilter<0?i%3:sizeFilter));
+                var places=new List<int>();
+                for(int i=0;i<layout.places.Count;i++)if(!exact||layout.places[i].role==MojaveTileRole.Combat)places.Add(i);
+                if(exact) {
+                    for(int i=0;i<ordinaryCombatCounts.x;i++)tiers.Add(MojaveCombatSize.Small);
+                    for(int i=0;i<ordinaryCombatCounts.y;i++)tiers.Add(MojaveCombatSize.Medium);
+                    for(int i=0;i<ordinaryCombatCounts.z;i++)tiers.Add(MojaveCombatSize.Large);
+                } else for(int i=0;i<places.Count;i++)tiers.Add((MojaveCombatSize)(sizeFilter<0?i%3:sizeFilter));
                 Shuffle(tiers);
                 var candidates=new List<int>[3];var used=new int[3];
                 for(int tier=0;tier<3;tier++) {
                     candidates[tier]=new List<int>();
-                    for(int i=0;i<catalog.patches.Length;i++)if((int)catalog.patches[i].combatSize==tier)candidates[tier].Add(i);
+                    for(int i=0;i<catalog.patches.Length;i++)if(catalog.patches[i]!=bossPatch&&(int)catalog.patches[i].combatSize==tier)candidates[tier].Add(i);
                     if(candidates[tier].Count==0)throw new InvalidOperationException("Missing combat size "+tier);
                     Shuffle(candidates[tier]);
                 }
-                for(int i=0;i<layout.places.Count;i++){int tier=(int)tiers[i];layout.places[i].patch=candidates[tier][used[tier]++%candidates[tier].Count];}
+                for(int i=0;i<places.Count;i++){int tier=(int)tiers[i];layout.places[places[i]].patch=candidates[tier][used[tier]++%candidates[tier].Count];}
             }
             foreach(var place in layout.places)
                 foreach(var rule in rules)
                     if(rule.patch==catalog.patches[place.patch]) {place.kind=rule.kind;place.radius=rule.radius;break;}
+            if(bossPatch!=null&&!exact)ReserveRunTiles(layout,catalog);
+        }
+
+        void ReserveRunTiles(MojaveLayout layout,MojaveCatalog catalog)
+        {
+            int boss=Array.IndexOf(catalog.patches,bossPatch);
+            var small=new List<int>();var regular=new List<int>();
+            int tier=sizeFilter>=0?sizeFilter:(int)MojaveCombatSize.Large;
+            for(int i=0;i<catalog.patches.Length;i++)if(i!=boss) {
+                if(catalog.patches[i].combatSize==MojaveCombatSize.Small)small.Add(i);
+                if((int)catalog.patches[i].combatSize==tier)regular.Add(i);
+            }
+            if(layout.places.Count<2||boss<0||small.Count==0||regular.Count==0||bossPatch.combatSize==MojaveCombatSize.Small)
+                throw new InvalidOperationException("Required entrance/boss tile library is incomplete.");
+            var random=new System.Random(unchecked(layout.seed^0xB05521));
+            if(!mixedSizes)foreach(var place in layout.places)place.patch=regular[random.Next(regular.Count)];
+            var distance=layout.RouteDistances(0);
+            if(Array.Exists(distance,float.IsInfinity))throw new InvalidOperationException("Required tile layout is disconnected.");
+            int arena=1;for(int i=2;i<distance.Length;i++)if(distance[i]>distance[arena])arena=i;
+            layout.places[0].patch=small[random.Next(small.Count)];layout.places[0].role=MojaveTileRole.Entrance;layout.places[0].name="입구 · 소형";
+            layout.places[arena].patch=boss;layout.places[arena].role=MojaveTileRole.Boss;layout.places[arena].name="보스 · 분지";
+            foreach(var place in layout.places)foreach(var rule in rules)
+                if(rule.patch==catalog.patches[place.patch]){place.kind=rule.kind;place.radius=rule.radius;break;}
         }
 
         public void DressTrailSides(MojaveWorld world)

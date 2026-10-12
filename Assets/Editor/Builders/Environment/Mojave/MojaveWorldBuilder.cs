@@ -13,6 +13,7 @@ public static class MojaveWorldBuilder
     public const string ScenePath=SceneRoot+"/Mojave_Optimization_Final9.unity";
     public const string CatalogPath=OwnedRoot+"/CombatTiles/MojaveCombatCatalog.asset";
     public const string SizedLibraryPath=OwnedRoot+"/CombatTiles/SizedTiles/MojaveCombatSizeLibrary.asset";
+    public const string RequiredLibraryPath=OwnedRoot+"/CombatTiles/RequiredRunTiles/MojaveRequiredCombatSizeLibrary.asset";
     public const string BackdropLibraryPath=OwnedRoot+"/CombatTiles/Backdrops/NaturalSeparated/Data/MojaveSeparatedBackdropLibrary.asset";
     public const string PolishedLibraryPath=OwnedRoot+"/CombatTiles/Backdrops/Polished/MojaveBackdropLibrary_Polished.asset";
     public const string SourceRoot="Assets/ThirdParty/04_환경맵/BK/PureNature_Mojave";

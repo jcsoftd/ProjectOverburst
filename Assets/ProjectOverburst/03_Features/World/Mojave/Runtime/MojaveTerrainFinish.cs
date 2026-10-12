@@ -286,6 +286,7 @@ namespace Overburst.Mojave
             int count=0;var cache=new Dictionary<Mesh,Vector3[]>();var samples=new Dictionary<Mesh,Vector3[]>();var road=new Dictionary<Vector2Int,float>();
             foreach(var go in PropRoots(world)) {
                 if(!go.activeInHierarchy)continue;
+                if(world.IsBossDecoration(go))continue;
                 var b=BoundsOf(go);bool outside=world.mapDimensions!=Vector2.zero&&(!world.InMap(new Vector2(b.min.x,b.min.z),.5f)||!world.InMap(new Vector2(b.max.x,b.max.z),.5f));
                 if(!outside&&!IntrudesRoad(world,go,cache,samples,road))continue;
                 go.SetActive(false);if(Application.isPlaying)UnityEngine.Object.Destroy(go);else UnityEngine.Object.DestroyImmediate(go);count++;

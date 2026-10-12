@@ -74,9 +74,22 @@ public static class DesertMinimapBuilder
     static void Finish() { EditorApplication.update -= Tick; SessionState.EraseString(Key + "output"); output = null; candidates = null; }
     static void Write(string file, object value) => File.WriteAllText(Path.Combine(output, file), JsonConvert.SerializeObject(value, Formatting.Indented));
 
-    static object Bake(MapTerrainCatalog.DesertCandidate candidate)
+    public static object BakeCandidate(MapTerrainCatalog.DesertCandidate candidate, string directory, string assetRoot)
     {
-        string path = AssetRoot + "/" + candidate.id + ".asset";
+        if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating
+            ||output!=null||SessionState.GetString(Key+"output", "")!="")throw new InvalidOperationException("Idle Editor required.");
+        string allowed=Path.GetFullPath(Path.Combine(Application.dataPath,"../../개인파일/코덱스산출"))+Path.DirectorySeparatorChar;
+        directory=Path.GetFullPath(directory);
+        if(!directory.StartsWith(allowed,StringComparison.OrdinalIgnoreCase)||Directory.Exists(directory)
+            ||!assetRoot.StartsWith("Assets/ProjectOverburst/",StringComparison.Ordinal)||assetRoot.Contains(".."))
+            throw new ArgumentException("Fresh owned evidence and asset directories required.");
+        Directory.CreateDirectory(directory);output=directory;
+        try{return Bake(candidate,assetRoot);}
+        finally{output=null;}
+    }
+    static object Bake(MapTerrainCatalog.DesertCandidate candidate,string assetRoot=AssetRoot)
+    {
+        string path = assetRoot + "/" + candidate.id + ".asset";
         string dependency = AssetDatabase.GetAssetDependencyHash(candidate.scene).ToString();
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var scene = EditorSceneManager.OpenPreviewScene(candidate.scene);
@@ -158,8 +171,8 @@ public static class DesertMinimapBuilder
                     try { ValidateTopology(prepared, world); break; }
                     catch (InvalidOperationException e) when (attempt == 0) { coarseFailure = e.Message; }
                 }
-                EnsureFolder(AssetRoot + "/Images");
-                string imagePath = AssetRoot + "/Images/" + candidate.id + ".png";
+                EnsureFolder(assetRoot + "/Images");
+                string imagePath = assetRoot + "/Images/" + candidate.id + ".png";
                 Backup(path); Backup(imagePath);
                 texture = new Texture2D(prepared.width, prepared.height, TextureFormat.RGBA32, false);
                 texture.SetPixels32(MinimapTerrainPixels.Build(prepared.cells, prepared.width, prepared.height)); texture.Apply(false, false);

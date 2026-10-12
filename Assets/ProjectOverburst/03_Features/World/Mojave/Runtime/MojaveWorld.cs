@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -135,7 +135,7 @@ namespace Overburst.Mojave
             var finalDetails=GetComponent<MojaveDetailDressing>();
             if(finalDetails!=null&&finalDetails.enabled)finalDetails.DressOpenRoadPockets();
             if(terrainFinish) {
-                MojaveTerrainFinish.GroundProps(this);
+                MojaveTerrainFinish.GroundProps(this,go=>!IsBossDecoration(go));
             }
             checkpoint?.Invoke(MojaveGenerationStage.Grounding);
             if(finalDetails!=null&&finalDetails.enabled)finalDetails.Rebuild();
@@ -149,7 +149,7 @@ namespace Overburst.Mojave
         MojaveLayout CreateLayout() {
             var tileSet=GetComponent<MojaveCombatTileSet>();
             // Keep the accepted macro RNG stream: the original twelve large cuts define its patch count.
-            int count=tileSet!=null&&tileSet.mixedSizes?Array.FindAll(catalog.patches,p=>p.combatSize==MojaveCombatSize.Large).Length:catalog.patches.Length;
+            int count=tileSet!=null&&(tileSet.mixedSizes||tileSet.bossPatch!=null)?Array.FindAll(catalog.patches,p=>p!=tileSet.bossPatch&&p.combatSize==MojaveCombatSize.Large).Length:catalog.patches.Length;
             var result=new MojaveLayout(seed,count,expandedMap&&GetComponent<MojaveCombatTileSet>()!=null,compactMap,combatAreaCount,mapSizeOverride);
             result.SetBounds(mapDimensions,combatSpread);
             if(catalog.placeNames!=null&&catalog.placeNames.Length==result.places.Count)
@@ -161,7 +161,8 @@ namespace Overburst.Mojave
             }
             var authoredTiles=GetComponent<MojaveCombatTileSet>();
             if(authoredTiles!=null)authoredTiles.Apply(result,catalog);
-            if(randomCombatLayout)result.ScatterCombatPlaces(catalog);
+            if(randomCombatLayout)result.ScatterCombatPlaces(catalog,authoredTiles!=null&&authoredTiles.preferRunPositions);
+            if(authoredTiles!=null&&authoredTiles.bossPatch!=null){if(authoredTiles.preferRunPositions)result.PreferEntranceCorner(catalog);result.ConnectBossEntrance(authoredTiles.preferRunPositions);}
             if(terrainFinish)foreach(var trail in result.trails){trail.width*=1.45f;for(int i=0;i<trail.widths.Length;i++)trail.widths[i]*=1.45f;}
             var islands=GetComponent<IslandBiome>();if(islands!=null)islands.ConfigureLayout(result);
             var biomass=GetComponent<BiomassBiome>();if(biomass!=null)biomass.ConfigureLayout(result);
@@ -365,6 +366,11 @@ namespace Overburst.Mojave
             var parent=new GameObject(place.name+" · source tile "+catalog.patches[place.patch].name).transform;parent.SetParent(generatedRoot,false);
             foreach(var authored in catalog.patches[place.patch].placements) {
                 var p=place.World(new Vector2(authored.position.x,authored.position.z));
+                if(place.role==MojaveTileRole.Boss) {
+                    Spawn(authored.prefab,p,authored.scale,Quaternion.Euler(0,-place.rotation,0)*authored.rotation,parent,authored.kind,authored.position.y,false);
+                    if(authored.kind==MojavePropKind.Boulder)occupied.Add(new Vector3(p.x,p.y,Mathf.Min(authored.radius,12)));
+                    authoredPlacementCount++;continue;
+                }
                 if(!InMap(p,9))continue;
                 float rd=layout.RoomDistance(p,out _);float tr=TrailDistance(p,out _,out _);
                 float radius=authored.radius;
@@ -524,10 +530,19 @@ namespace Overburst.Mojave
             return Mathf.Max(.1f,new Vector2(bounds.extents.x,bounds.extents.z).magnitude
                 +new Vector2(bounds.center.x-prefab.transform.position.x,bounds.center.z-prefab.transform.position.z).magnitude);
         }
-        GameObject Spawn(GameObject prefab,Vector2 p,Vector3 scale,Quaternion rotation,Transform parent,MojavePropKind kind,float embed)
+        public bool IsBossDecoration(GameObject go)
+        {
+            foreach(var place in layout.places)if(place.role==MojaveTileRole.Boss) {
+                var root=generatedRoot.Find(place.name+" · source tile "+catalog.patches[place.patch].name);
+                return root!=null&&go.transform.IsChildOf(root);
+            }
+            return false;
+        }
+
+        GameObject Spawn(GameObject prefab,Vector2 p,Vector3 scale,Quaternion rotation,Transform parent,MojavePropKind kind,float embed,bool seatRock=true)
         {
             var go=Instantiate(prefab,Ground(p,embed),rotation,parent);go.name=prefab.name;go.transform.localScale=scale;
-            if(kind==MojavePropKind.Boulder)SeatRock(go);
+            if(seatRock&&kind==MojavePropKind.Boulder)SeatRock(go);
             // Native collision follows the explicit playable field. Small dressing cannot snag the review actor.
             foreach(var collider in go.GetComponentsInChildren<Collider>())collider.enabled=kind==MojavePropKind.Tree||kind==MojavePropKind.Boulder;
             foreach(var lod in go.GetComponentsInChildren<LODGroup>())lod.fadeMode=LODFadeMode.None;

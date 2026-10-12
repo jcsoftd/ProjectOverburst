@@ -139,7 +139,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     }
     public void SetCombatCount(int value,bool generate=true)
     {
-        Guard();if(value!=0&&value!=6&&value!=9&&value!=12&&value!=15)throw new InvalidOperationException("전투 구역은 6·9·12·15개 중 선택해.");
+        Guard();if(value!=0&&value!=4&&value!=6&&value!=9&&value!=12&&value!=15)throw new InvalidOperationException("전투 구역은 4·6·9·12·15개 중 선택해.");
         if(value!=0&&(themeIndex!=2||!expandedMap))throw new InvalidOperationException("전투 구역 수는 다듬은 Mojave 확장 맵에서 선택해.");
         if(combatAreaCount!=value){ReleaseDraft();ReleaseFrame();restoreDraft=false;combatAreaCount=value;history.Clear();historyIndex=-1;previewPlaceIndex=0;hasFreePose=false;}
         RefreshControls();if(generate)Generate(requestedSeed);
@@ -192,7 +192,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         root.AddToClassList("mojave-tool");
         var header = new VisualElement(); header.AddToClassList("header");
         header.Add(new Label(ThemeName.ToUpperInvariant()+"  /  MAP GENERATOR") { name = "title" });
-        header.Add(new Label("원본 장소 12개 · 전투 유형 8종 · 6·9·12·15구역 · 연속 지면") { name = "subtitle" });
+        header.Add(new Label("원본 장소 12개 · 전투 유형 8종 · 4·6·9·12·15구역 · 연속 지면") { name = "subtitle" });
         root.Add(header);
         var body = new VisualElement(); body.AddToClassList("body"); root.Add(body);
         var controls = new ScrollView(); controls.AddToClassList("controls"); body.Add(controls);
@@ -202,8 +202,8 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         sizeField.RegisterValueChangedCallback(_=>Execute(()=>SetMapPreset(sizeField.index,false)));controls.Add(sizeField);
         mapMetresField=new IntegerField("맵 한 변(m)") {name="map-metres",isDelayed=true,tooltip="256~768m. 타일과 바위 크기는 유지하고 구역 간격과 배경 범위를 바꿉니다. 입력 후 생성 버튼을 누르세요."};
         mapMetresField.RegisterValueChangedCallback(e=>Execute(()=>SetMapSize(e.newValue,false)));controls.Add(mapMetresField);
-        combatCountField=new DropdownField("전투 구역 수",new List<string>{"맵 크기 기본값","6개","9개","12개","15개"},combatAreaCount==6?1:combatAreaCount==9?2:combatAreaCount==12?3:combatAreaCount==15?4:0) {name="combat-count"};
-        combatCountField.RegisterValueChangedCallback(_=>Execute(()=>SetCombatCount(new[]{0,6,9,12,15}[combatCountField.index],false)));controls.Add(combatCountField);
+        combatCountField=new DropdownField("전투 구역 수",new List<string>{"맵 크기 기본값","4개","6개","9개","12개","15개"},combatAreaCount==4?1:combatAreaCount==6?2:combatAreaCount==9?3:combatAreaCount==12?4:combatAreaCount==15?5:0) {name="combat-count"};
+        combatCountField.RegisterValueChangedCallback(_=>Execute(()=>SetCombatCount(new[]{0,4,6,9,12,15}[combatCountField.index],false)));controls.Add(combatCountField);
         backdropField=new Toggle("빈 공간에 바위 배경 타일 배치") {name="backdrops",value=useBackdrops};
         backdropField.RegisterValueChangedCallback(e=>Execute(()=>SetBackdrops(e.newValue,false)));controls.Add(backdropField);
         combatSizeField=new Toggle("소형 32m · 중형 46m · 대형 62.4m 타일 혼합") {name="combat-sizes",value=mixedCombatSizes};
@@ -299,16 +299,23 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         AssetDatabase.LoadAssetAtPath<MojaveBackdropLibrary>(MojaveWorldBuilder.BackdropLibraryPath)
         ?? throw new InvalidOperationException("확정된 분리 배경 21종 라이브러리를 찾을 수 없습니다. 삭제예정 자료로 대체하지 않고 현재 라이브러리 연결을 복원해 주세요.");
 
-    public static MojaveLayout BuildLayoutPreview(int seed,int mapSize,int count,bool mixed,bool backdrops,bool expanded,bool compact,out MojaveCatalog catalog,bool randomCombatLayout=false)
+    static MojaveCombatSizeLibrary LoadRunLibrary()
+    {
+        var library=AssetDatabase.LoadAssetAtPath<MojaveCombatSizeLibrary>(MojaveWorldBuilder.RequiredLibraryPath);
+        if(library==null||library.bossPatch==null)throw new InvalidOperationException("필수 소형 입구·보스 타일 라이브러리를 찾을 수 없습니다.");
+        return library;
+    }
+    Hash128 ReadSourceBaseline()=>Hash128.Compute(AssetDatabase.GetAssetDependencyHash(SourceScenePath).ToString()+AssetDatabase.GetAssetDependencyHash(MojaveWorldBuilder.RequiredLibraryPath).ToString());
+
+    public static MojaveLayout BuildLayoutPreview(int seed,int mapSize,int count,bool mixed,bool backdrops,bool expanded,bool compact,out MojaveCatalog catalog,bool randomCombatLayout=false,Vector2 dimensions=default,Vector3Int ordinaryCounts=default)
     {
         Guard();var scene=EditorSceneManager.NewPreviewScene();GameObject owner=null;
         try {
             owner=new GameObject("Mojave layout preview") {hideFlags=HideFlags.HideAndDontSave};SceneManager.MoveGameObjectToScene(owner,scene);
             var model=owner.AddComponent<MojaveWorld>();var set=owner.AddComponent<MojaveCombatTileSet>();
-            model.catalog=AssetDatabase.LoadAssetAtPath<MojaveCatalog>(MojaveWorldBuilder.CatalogPath);
-            set.rules=MojaveWorldBuilder.Rules(model.catalog);set.mixedSizes=mixed;
-            if(mixed) {var library=AssetDatabase.LoadAssetAtPath<MojaveCombatSizeLibrary>(MojaveWorldBuilder.SizedLibraryPath);model.catalog=library.catalog;set.rules=library.rules;}
+            var library=LoadRunLibrary();model.catalog=library.catalog;set.rules=library.rules;set.mixedSizes=mixed;set.bossPatch=library.bossPatch;set.preferRunPositions=true;
             model.seed=seed;model.mapSizeOverride=mapSize;model.combatAreaCount=count;model.expandedMap=expanded;model.compactMap=compact;
+            model.mapDimensions=dimensions;set.ordinaryCombatCounts=ordinaryCounts;
             model.randomCombatLayout=randomCombatLayout;
             model.roundedJunctions=backdrops;model.organicConnections=backdrops;model.terrainFinish=backdrops;model.yieldBlockedLargeShoulders=backdrops&&!mixed;
             model.refinedRoads=backdrops;
@@ -323,7 +330,8 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         ReleaseDraft();ReleaseFrame();restoreDraft=false;QuickLayout=plan;overlay.BindPlan(plan,catalog);FitOverlay();
         foreach(var place in plan.places) {
             var tier=catalog.patches[place.patch].combatSize;string size=tier==MojaveCombatSize.Large?"대형":tier==MojaveCombatSize.Medium?"중형":"소형";
-            var label=new Label($"{areaLabels.Count+1} · {size}"){pickingMode=PickingMode.Ignore};label.AddToClassList("area-label");overlay.Add(label);areaLabels.Add(label);
+            string role=place.role==MojaveTileRole.Entrance?"입구":place.role==MojaveTileRole.Boss?"보스":"전투";
+            var label=new Label($"{areaLabels.Count+1} · {role} · {size}"){pickingMode=PickingMode.Ignore};label.AddToClassList("area-label");overlay.Add(label);areaLabels.Add(label);
         }
         QuickLayoutSeconds=clock.Elapsed.TotalSeconds;
         stats.text=$"레이아웃 · {plan.extent:0}m × {plan.extent:0}m\n전투 {plan.places.Count}구역 · 길 {plan.trails.Count}개\n시드 {requestedSeed} · {QuickLayoutSeconds:0.00}초";
@@ -332,18 +340,20 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     }
     public void Generate(int seed) => GenerateCore(seed, true);
     public void Generate(int seed,MojaveBackdropLibrary backdropLibrary) => GenerateCore(seed,true,backdropLibrary);
-    void GenerateCore(int seed, bool remember,MojaveBackdropLibrary backdropLibrary=null)
+    public void Generate(int seed,Vector2 dimensions,Vector3Int ordinaryCounts) => GenerateCore(seed,true,null,dimensions,ordinaryCounts);
+    void GenerateCore(int seed, bool remember,MojaveBackdropLibrary backdropLibrary=null,Vector2? dimensions=null,Vector3Int ordinaryCounts=default)
     {
         Guard();
         bool restoreFree=freeCamera&&hasFreePose;var previousFreePosition=freePosition;var previousFreeAngles=freeAngles;
         if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SourceScenePath) == null)
             throw new InvalidOperationException("먼저 해당 지역의 Build expedition 메뉴로 기본 씬을 만들어.");
-        var before = AssetDatabase.GetAssetDependencyHash(SourceScenePath);
+        var before = ReadSourceBaseline();
         var candidate = EditorSceneManager.OpenPreviewScene(SourceScenePath);
         try
         {
             var candidateWorld = Components<MojaveWorld>(candidate).Single();
             candidateWorld.mapSizeOverride=themeIndex==2?customMapSize:0;
+            if(dimensions.HasValue)candidateWorld.mapDimensions=dimensions.Value;
             candidateWorld.expandedMap=themeIndex==2&&expandedMap;candidateWorld.compactMap=themeIndex==2&&compactMap;
             candidateWorld.combatAreaCount=themeIndex==2&&expandedMap?combatAreaCount:0;
             candidateWorld.randomCombatLayout=themeIndex==2&&randomCombatLayout;
@@ -362,12 +372,12 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
                 if(backdrops.fillLibrary!=null)backdrops.fillGaps=true;
                 if(backdrops.fillGaps)backdrops.majorForms=true;
             }
-            if(themeIndex==2&&mixedCombatSizes) {
-                var library=AssetDatabase.LoadAssetAtPath<MojaveCombatSizeLibrary>(MojaveWorldBuilder.SizedLibraryPath);
-                if(library==null)throw new InvalidOperationException("먼저 Combat Tiles / Cut small and medium combat tiles 메뉴로 전투 타일을 만들어.");
+            if(themeIndex==2) {
+                var library=LoadRunLibrary();
                 var tileSet=candidateWorld.GetComponent<MojaveCombatTileSet>();
                 if(tileSet==null)throw new InvalidOperationException("전투 타일 기준 씬이 필요해.");
-                candidateWorld.catalog=library.catalog;tileSet.rules=library.rules;tileSet.mixedSizes=true;
+                candidateWorld.catalog=library.catalog;tileSet.rules=library.rules;tileSet.mixedSizes=mixedCombatSizes;tileSet.bossPatch=library.bossPatch;tileSet.preferRunPositions=true;
+                tileSet.ordinaryCombatCounts=ordinaryCounts;
                 var backdrop=candidateWorld.GetComponent<MojaveBackdropSet>();if(backdrop!=null)backdrop.majorForms=true;
             }
             candidateWorld.Generate(seed);
@@ -383,7 +393,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
             var candidateCamera = candidateRig.GetComponent<Camera>(); candidateCamera.enabled = false; candidateCamera.scene = candidate;
             candidateRig.target = candidateExplorer.transform; candidateRig.distance = previewDistance; candidateRig.yaw = 225; candidateRig.Snap();
             foreach (var listener in Components<AudioListener>(candidate)) listener.enabled = false;
-            if (AssetDatabase.GetAssetDependencyHash(SourceScenePath) != before)
+            if (ReadSourceBaseline() != before)
                 throw new InvalidOperationException("생성 중 원본 씬 또는 연결 자산이 바뀌었어. 다시 생성해.");
             ReleaseDraft(); draft = candidate; candidate = default;
             world = candidateWorld; explorer = candidateExplorer; rig = candidateRig; camera = candidateCamera; baselineHash = before;
@@ -583,7 +593,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     {
         Guard();
         if (!HasDraft) throw new InvalidOperationException("저장할 맵을 먼저 생성해.");
-        if (AssetDatabase.GetAssetDependencyHash(SourceScenePath) != baselineHash)
+        if (ReadSourceBaseline() != baselineHash)
             throw new InvalidOperationException("미리보기 생성 후 원본 또는 연결 자산이 바뀌었어. 새로 생성한 뒤 저장해.");
         Folder(MojaveWorldBuilder.SceneRoot + "/Generated"); Folder(OwnedRoot + "/Data/Generated");
         string suffix=world.compactMap?"_Compact":world.expandedMap?"_Expanded":"";
@@ -599,6 +609,9 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
         if(world.randomCombatLayout)suffix+="_ScatteredCombat";
         if(world.GetComponent<MojaveBackdropSet>()?.library?.useAllNaturalCandidates==true)suffix+="_SeparatedBackground";
         if(world.refinedRoads)suffix+="_VariedRoads";
+        if(world.GetComponent<MojaveCombatTileSet>()?.bossPatch!=null)
+            suffix=$"_RequiredEntryBoss_{world.MapSize:0}m_{world.layout.places.Count}Areas_{(world.GetComponent<MojaveCombatTileSet>().mixedSizes?"Mixed":"Large")}_{(world.randomCombatLayout?"Random":"Fixed")}";
+        if(world.GetComponent<MojaveCombatTileSet>()?.preferRunPositions==true)suffix+="_CornerFar";
         string scenePath = AssetDatabase.GenerateUniqueAssetPath(MojaveWorldBuilder.SceneRoot + $"/Generated/{ThemeName}_{world.seed}{suffix}.unity");
         string terrainPath = AssetDatabase.GenerateUniqueAssetPath(OwnedRoot + $"/Data/Generated/{ThemeName}_{world.seed}{suffix}_Terrain.asset");
         var saved = default(Scene); var oldActive = SceneManager.GetActiveScene();
@@ -630,7 +643,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
             MojaveWorldBuilder.ApplyEnvironment(Components<Light>(saved).First(x => x.type == LightType.Directional),savedWorld.catalog.skybox,savedWorld.catalog.volcano);
             if (savedExplorer.world != savedWorld || savedExplorer.portal.gameObject.scene != saved || savedExplorer.view != savedRig)
                 throw new InvalidOperationException("저장 씬 연결 검사에 실패했어.");
-            if (AssetDatabase.GetAssetDependencyHash(SourceScenePath) != baselineHash)
+            if (ReadSourceBaseline() != baselineHash)
                 throw new InvalidOperationException("저장 준비 중 원본이 변경되어 저장을 중단했어.");
             if (!EditorSceneManager.SaveScene(saved, scenePath)) throw new IOException("새 씬을 저장하지 못했어.");
             lastSavedPath = scenePath; RefreshControls(); SetStatus("저장 완료 · " + scenePath); return scenePath;
@@ -677,7 +690,7 @@ public sealed class MojaveMapGeneratorWindow : EditorWindow
     {
         sizeField?.SetEnabled(themeIndex==2);sizeField?.SetValueWithoutNotify(sizeField.choices[compactMap?2:expandedMap?1:0]);
         mapMetresField?.SetEnabled(themeIndex==2);mapMetresField?.SetValueWithoutNotify(customMapSize>0?customMapSize:compactMap?320:expandedMap?384:256);
-        combatCountField?.SetEnabled(themeIndex==2&&expandedMap);combatCountField?.SetValueWithoutNotify(combatCountField.choices[combatAreaCount==6?1:combatAreaCount==9?2:combatAreaCount==12?3:combatAreaCount==15?4:0]);
+        combatCountField?.SetEnabled(themeIndex==2&&expandedMap);combatCountField?.SetValueWithoutNotify(combatCountField.choices[combatAreaCount==4?1:combatAreaCount==6?2:combatAreaCount==9?3:combatAreaCount==12?4:combatAreaCount==15?5:0]);
         combatSizeField?.SetEnabled(themeIndex==2);combatSizeField?.SetValueWithoutNotify(mixedCombatSizes);
         randomCombatField?.SetEnabled(themeIndex==2);randomCombatField?.SetValueWithoutNotify(randomCombatLayout);
         backdropField?.SetEnabled(themeIndex==2);backdropField?.SetValueWithoutNotify(useBackdrops);
