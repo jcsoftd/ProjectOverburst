@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public enum EnemyHpBarTier { Small, Medium, Elite }
@@ -27,8 +28,11 @@ public sealed class WorldUiOverlayService : MonoBehaviour
     private readonly Queue<EnemyHpBarView> mediumHealthBarPool = new Queue<EnemyHpBarView>();
     private readonly Queue<EnemyHpBarView> eliteHealthBarPool = new Queue<EnemyHpBarView>();
     private Camera targetCamera;
+    private TextMeshProUGUI hoverName;
+    private string shownHoverName;
 
     public RectTransform DamagePopupRoot => damagePopupRoot;
+    public TextMeshProUGUI HoverName => hoverName;
 
     private void Awake()
     {
@@ -46,8 +50,45 @@ public sealed class WorldUiOverlayService : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (hoverName != null)
+        {
+            if (Application.isPlaying) Destroy(hoverName.gameObject);
+            else DestroyImmediate(hoverName.gameObject);
+        }
+        hoverName = null;
+        shownHoverName = null;
         if (instance == this)
             instance = null;
+    }
+
+    private void OnDisable() => HideHoverName();
+
+    public void ShowHoverName(string displayName, Vector3 worldPosition)
+    {
+        if (string.IsNullOrWhiteSpace(displayName) || !TryProject(worldPosition, out Vector2 position))
+        {
+            HideHoverName();
+            return;
+        }
+        if (hoverName == null)
+        {
+            var prefab = Resources.Load<TextMeshProUGUI>("UI/World/PF_EnemyHoverName");
+            if (prefab == null) return;
+            hoverName = Instantiate(prefab, healthBarRoot, false);
+            hoverName.name = "EnemyHoverName";
+        }
+        if (shownHoverName != displayName)
+        {
+            hoverName.text = displayName;
+            shownHoverName = displayName;
+        }
+        hoverName.rectTransform.anchoredPosition = position;
+        if (!hoverName.gameObject.activeSelf) hoverName.gameObject.SetActive(true);
+    }
+
+    public void HideHoverName()
+    {
+        if (hoverName != null && hoverName.gameObject.activeSelf) hoverName.gameObject.SetActive(false);
     }
 
     public static bool TryResolve(out WorldUiOverlayService service)

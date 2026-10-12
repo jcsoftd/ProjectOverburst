@@ -10,8 +10,16 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     [SerializeField] private EnemyTargetHpSlotUI slot;
     private CombatHealth currentTarget;
     private EnemyRank currentRank;
+    private CombatHealth lastHitTarget;
+    private EnemyActor lastHitActor;
+    private uint lastHitLease;
+    private CombatHealth hoveredTarget;
+    private EnemyActor hoveredActor;
+    private uint hoveredLease;
     private bool healthDirty;
     public CombatHealth CurrentTarget => currentTarget;
+    public CombatHealth LastHitTarget => lastHitTarget;
+    public CombatHealth HoveredTarget => hoveredTarget;
     public int PresentationRefreshCount { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -31,26 +39,36 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
         Clear();
         if (instance == this)
         {
-            instance = null; pendingTarget = null; hasPendingTarget = false;
+            instance = null; pendingTarget = null; hasPendingTarget = false; pendingPreHitHp = -1f;
         }
     }
     private static bool IsAvailable(CombatHealth target) => target != null
         && target.isActiveAndEnabled && !target.IsDead;
+    private static bool IsAvailable(CombatHealth target, EnemyActor actor, uint lease) =>
+        IsAvailable(target) && (actor == null || actor.LeaseVersion == lease);
 
     private void LateUpdate()
     {
+        CombatHealth freshHit = null;
+        float preHit = -1f;
         if (hasPendingTarget)
         {
-            var next = pendingTarget;
-            float preHit = pendingPreHitHp;
+            freshHit = pendingTarget;
+            preHit = pendingPreHitHp;
             pendingTarget = null; hasPendingTarget = false; pendingPreHitHp = -1f;
-            ShowTarget(next, preHit);
+            RememberLastHit(freshHit);
         }
-        if (!IsAvailable(currentTarget))
+        if (!IsAvailable(lastHitTarget, lastHitActor, lastHitLease)) RememberLastHit(null);
+        if (!IsAvailable(hoveredTarget, hoveredActor, hoveredLease)) SetHover(null);
+        bool inspect = !PlayerCombatModeController.IsSharedCombatModeActive();
+        CombatHealth next = inspect && IsAvailable(hoveredTarget) ? hoveredTarget : lastHitTarget;
+        if (!IsAvailable(next))
         {
-            if (!ReferenceEquals(currentTarget, null)) Clear();
+            if (!ReferenceEquals(currentTarget, null)) ClearPresentation();
             return;
         }
+        // A delayed return to the last hit starts at current HP, not an old damage trail.
+        if (currentTarget != next) ShowPresentation(next, next == freshHit ? preHit : -1f);
         if (healthDirty && slot != null)
         {
             slot.Refresh(currentTarget);
@@ -75,7 +93,40 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     {
         if (target == null) return;
         if (pendingTarget == target) { pendingTarget = null; hasPendingTarget = true; }
-        if (instance != null && instance.currentTarget == target) instance.Clear();
+        if (instance == null) return;
+        if (instance.lastHitTarget == target) instance.RememberLastHit(null);
+        if (instance.hoveredTarget == target) instance.SetHover(null);
+        if (instance.currentTarget == target) instance.ClearPresentation();
+    }
+    public static void SetExplorationHoverTarget(CombatHealth target)
+    {
+        if (instance == null || !instance.isActiveAndEnabled) return;
+        instance.SetHover(IsAvailable(target) ? target : null);
+    }
+    private void SetHover(CombatHealth target)
+    {
+        if (hoveredTarget == target && (hoveredActor == null || hoveredActor.LeaseVersion == hoveredLease)) return;
+        hoveredTarget = target;
+        hoveredActor = target != null ? target.GetComponentInParent<EnemyActor>() : null;
+        hoveredLease = hoveredActor != null ? hoveredActor.LeaseVersion : 0;
+    }
+    private void RememberLastHit(CombatHealth target)
+    {
+        if (!IsAvailable(target)) target = null;
+        if (lastHitTarget == target && (lastHitActor == null || lastHitActor.LeaseVersion == lastHitLease)) return;
+        if (lastHitTarget != null)
+        {
+            lastHitTarget.OnReset -= HandleLastHitReset;
+            lastHitTarget.OnDead -= HandleLastHitDead;
+        }
+        lastHitTarget = target;
+        lastHitActor = target != null ? target.GetComponentInParent<EnemyActor>() : null;
+        lastHitLease = lastHitActor != null ? lastHitActor.LeaseVersion : 0;
+        if (lastHitTarget != null)
+        {
+            lastHitTarget.OnReset += HandleLastHitReset;
+            lastHitTarget.OnDead += HandleLastHitDead;
+        }
     }
     public void ShowLastHitTarget(IReadOnlyList<CombatHealth> hitTargets)
     {
@@ -84,22 +135,30 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     }
     public void ShowTarget(CombatHealth target)
     {
-        ShowTarget(target, -1f);
+        RememberLastHit(target);
+        ShowPresentation(target, -1f);
     }
 
-    private void ShowTarget(CombatHealth target, float preHitHp)
+    private void ShowPresentation(CombatHealth target, float preHitHp)
     {
-        if (!IsAvailable(target)) { Clear(); return; }
+        if (!IsAvailable(target)) { ClearPresentation(); return; }
         if (currentTarget == target) { healthDirty = true; return; }
         Unsubscribe(currentTarget);
         currentTarget = target;
         currentRank = target.GetComponentInParent<EnemyRank>();
         currentTarget.OnHealthChanged += HandleHealthChanged;
         currentTarget.OnDead += HandleDead;
+        currentTarget.OnReset += HandleReset;
         if (slot != null) { slot.Show(currentTarget, currentRank, preHitHp); PresentationRefreshCount++; }
         healthDirty = false;
     }
     public void Clear()
+    {
+        RememberLastHit(null);
+        SetHover(null);
+        ClearPresentation();
+    }
+    private void ClearPresentation()
     {
         Unsubscribe(currentTarget);
         currentTarget = null; currentRank = null; healthDirty = false;
@@ -110,6 +169,7 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
         if (target == null) return;
         target.OnHealthChanged -= HandleHealthChanged;
         target.OnDead -= HandleDead;
+        target.OnReset -= HandleReset;
     }
     private void HandleHealthChanged(CombatHealth source, float currentHp, float maxHp)
     {
@@ -117,6 +177,9 @@ public sealed class EnemyTargetHpHud : MonoBehaviour
     }
     private void HandleDead(CombatHealth source, DamageInfo info)
     {
-        if (source == currentTarget) Clear();
+        if (source == currentTarget) ClearPresentation();
     }
+    private void HandleReset(CombatHealth source) => ForgetTarget(source);
+    private void HandleLastHitReset(CombatHealth source) => ForgetTarget(source);
+    private void HandleLastHitDead(CombatHealth source, DamageInfo info) => RememberLastHit(null);
 }

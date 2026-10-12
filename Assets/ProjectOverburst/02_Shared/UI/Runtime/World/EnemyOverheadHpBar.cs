@@ -120,6 +120,8 @@ public sealed class EnemyOverheadHpBar : MonoBehaviour
     }
 
     public Transform HpBarAnchor => hpBarAnchor;
+    public Vector3 HeadWorldPosition => ResolveHeadWorldPosition();
+    public bool HasActiveNameplate => isActiveAndEnabled && activeView != null;
 
     public void ConfigureAnchor(Transform anchor)
     {
