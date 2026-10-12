@@ -109,13 +109,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
         bool isPersistentLabelTarget,
         bool isHovered)
     {
-        if (mode == WorldLootInteractionMode.LootFocus)
-            return true;
-
-        if (mode == WorldLootInteractionMode.CombatAutoLegendary)
-            return isPersistentLabelTarget || isHovered;
-
-        return isHovered; // CombatForcedHidden은 hover 하나만 표시
+        return mode == WorldLootInteractionMode.LootFocus || isHovered; // 숨김은 hover 하나만 표시
     }
 
     public static bool IsPointerClickable(
@@ -249,9 +243,7 @@ public sealed class WorldItemNameplatePresenter : MonoBehaviour
                 continue;
             }
 
-            bool eligible = snapshot.Mode == WorldLootInteractionMode.LootFocus
-                || snapshot.Mode == WorldLootInteractionMode.CombatAutoLegendary
-                    && pickupSnapshot.IsPersistentLabelTarget;
+            bool eligible = pickupSnapshot.IsPersistentLabelTarget;
             displayOptions.Add(new WorldItemNameplateDisplayOption(
                 instanceId,
                 stableOrder,

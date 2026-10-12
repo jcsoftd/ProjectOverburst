@@ -501,7 +501,13 @@ public static partial class VisualPlayScenarios
         if (id == "VT17-07")
         {
             PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
-            VisualPlayContext.Require(!WorldItemNameplatePresenter.ShouldDisplay(WorldLootInteractionMode.CombatAutoLegendary, false, false), "일반 아이템 이름표 숨김 조건이 달라요");
+            if (PlayerPickupInteractor.ActiveCore.CurrentMode != WorldLootInteractionMode.CombatForcedHidden)
+            {
+                c.Input(Vector2.zero, Key.CapsLock); yield return c.Wait(.2f);
+                c.ReleaseInput(); yield return c.Wait(.2f);
+            }
+            VisualPlayContext.Require(PlayerPickupInteractor.ActiveCore.CurrentMode == WorldLootInteractionMode.CombatForcedHidden
+                && !WorldItemNameplatePresenter.ShouldDisplay(WorldLootInteractionMode.CombatForcedHidden, false, false), "아이템 이름표 숨김 조건이 달라요");
         }
         WorldItemPickup pickup = null;
         for (int i = 0; i < count; i++) pickup = c.Drop(definition, new Vector3((i % 5 - 2) * .35f, 1, 2f + i / 5f));

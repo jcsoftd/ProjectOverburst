@@ -4,7 +4,6 @@ using UnityEngine;
 
 public enum WorldLootInteractionMode // 월드 아이템 표시/획득 모드
 {
-    CombatAutoLegendary,
     LootFocus,
     CombatForcedHidden
 }
@@ -404,13 +403,13 @@ public static class WorldLootNearestSelectionFixture
             return false; // 거리·instanceId 동률
 
         candidates.Clear();
-        bool combatAutoLegendaryHoverVisible =
+        bool fullDisplayVisible =
             WorldLootNearestSelectionPolicy.IsVisiblePriorityCandidate(true);
         candidates.Add(new WorldLootSelectionCandidate(null, 50, 1f, true, false));
         candidates.Add(new WorldLootSelectionCandidate(null, 60, 4f, true,
-            combatAutoLegendaryHoverVisible));
+            fullDisplayVisible));
         if (!ExpectInstance(candidates, false, 60))
-            return false; // CombatAutoLegendary 일반 hover visible 우선
+            return false; // 전체 표시 명찰 visible 우선
 
         candidates.Clear();
         bool combatForcedHiddenHoverVisible =
@@ -524,7 +523,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
     [Header("Pickup")]
     [SerializeField] private float pickupRadius = 2.2f;
 
-    private static WorldLootInteractionMode sessionMode = WorldLootInteractionMode.CombatAutoLegendary; // 세션 최초 모드
+    private static WorldLootInteractionMode sessionMode = WorldLootInteractionMode.LootFocus; // 최초 전체 표시
     private static PlayerPickupInteractor activeCore; // 현재 플레이어 코어
 
     private readonly List<WorldItemPickup> registryBuffer = new List<WorldItemPickup>(); // 레지스트리 복사 버퍼
@@ -583,7 +582,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSessionState()
     {
-        sessionMode = WorldLootInteractionMode.CombatAutoLegendary;
+        sessionMode = WorldLootInteractionMode.LootFocus;
         activeCore = null;
     }
 
@@ -724,23 +723,14 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
 
     public static WorldLootInteractionMode GetNextMode(WorldLootInteractionMode current)
     {
-        return current == WorldLootInteractionMode.CombatAutoLegendary
-            ? WorldLootInteractionMode.LootFocus
-            : current == WorldLootInteractionMode.LootFocus
-                ? WorldLootInteractionMode.CombatForcedHidden
-                : WorldLootInteractionMode.LootFocus;
+        return current == WorldLootInteractionMode.LootFocus
+            ? WorldLootInteractionMode.CombatForcedHidden
+            : WorldLootInteractionMode.LootFocus;
     }
 
     public static bool IsPersistentLabelTarget(WorldLootInteractionMode mode, WorldItemPickup pickup)
     {
-        if (!IsValidPickup(pickup))
-            return false;
-
-        if (mode == WorldLootInteractionMode.LootFocus)
-            return true;
-
-        return mode == WorldLootInteractionMode.CombatAutoLegendary
-            && pickup.Grade >= ItemGrade.Legendary;
+        return mode == WorldLootInteractionMode.LootFocus && IsValidPickup(pickup);
     }
 
     private void HandleModeInput()
@@ -752,7 +742,7 @@ public class PlayerPickupInteractor : MonoBehaviour, IInteractable // 월드 아
 
         if (facade.LootModeCyclePressedThisFrame)
         {
-            sessionMode = GetNextMode(sessionMode); // 최초 Auto 이후 2상태 전환
+            sessionMode = GetNextMode(sessionMode); // 전체 표시 ↔ 숨김
             // Label visibility does not revoke an explicit pickup request.
         }
     }

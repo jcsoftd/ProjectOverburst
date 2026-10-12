@@ -280,6 +280,12 @@ public static class WeaponCatalogConnectionsVerifier
         Vector3 groupA = new Vector3(100, 0, 100), groupB = new Vector3(160, 0, 100);
         for (int i = 0; i < weapons.Length; i++) { weapons[i].transform.position = groupA + Grid(i, 6, 2.8f); weapons[i].RuntimeItem.grade = ItemGrade.Common; }
         for (int i = 0; i < other.Length; i++) { other[i].transform.position = groupB + Grid(i, 6, 2.8f); other[i].RuntimeItem.grade = ItemGrade.Mythic; }
+        Require(core.CurrentMode == WorldLootInteractionMode.LootFocus, "new session starts with all item labels visible");
+        InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(UnityEngine.InputSystem.Key.CapsLock));
+        yield return null; InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
+        for (int i = 0; i < 4; i++) yield return null;
+        Require(core.CurrentMode == WorldLootInteractionMode.CombatForcedHidden, "CapsLock hides persistent loot labels through input action");
+        Require(display.Count == 0, "hidden mode has no persistent nameplate rows");
         InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(UnityEngine.InputSystem.Key.CapsLock));
         yield return null; InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
         for (int i = 0; i < 4; i++) yield return null;

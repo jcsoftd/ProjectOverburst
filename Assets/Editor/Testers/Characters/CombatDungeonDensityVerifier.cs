@@ -115,8 +115,8 @@ public static partial class CombatBalanceGoal3Verifier
                 float settle=Time.unscaledTime+2;while(Time.unscaledTime<settle)yield return null;
                 var core=player.GetComponent<PlayerPickupInteractor>();var melee=player.GetComponent<MeleeRuntime>();
                 PlayerCombatModeController.GetOrCreate().EnterCombatMode(PlayerCombatModeReason.System);
-                // A real nameplate pointer event in both combat modes (including a temporary hover label).
-                foreach(var mode in new[]{WorldLootInteractionMode.CombatAutoLegendary,WorldLootInteractionMode.CombatForcedHidden})
+                // A real nameplate pointer event in both display modes (including a temporary hover label).
+                foreach(var mode in new[]{WorldLootInteractionMode.LootFocus,WorldLootInteractionMode.CombatForcedHidden})
                 {
                     var drop=loadout.First(p=>p!=null&&p.CanPickup&&p.RuntimeItem.baseData is GearItemData);
                     typeof(PlayerPickupInteractor).GetField("sessionMode",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,mode);
