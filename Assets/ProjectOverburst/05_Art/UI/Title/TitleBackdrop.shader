@@ -5,6 +5,7 @@ Shader "Overburst/UI/Title Backdrop"
         [PerRendererData] _MainTex("Texture",2D)="white"{}
         _Brightness("Brightness",Float)=1
         _Saturation("Saturation",Float)=1
+        _Silhouette("Silhouette",Float)=0
         _Vignette("Title vignette",Float)=0
         _WindowGradient("Window gradient",Float)=0
     }
@@ -23,7 +24,7 @@ Shader "Overburst/UI/Title Backdrop"
             #include "UnityUI.cginc"
             struct appdata {float4 vertex:POSITION;float4 color:COLOR;float2 uv:TEXCOORD0;};
             struct v2f {float4 vertex:SV_POSITION;float4 color:COLOR;float2 uv:TEXCOORD0;float2 local:TEXCOORD1;};
-            sampler2D _MainTex;float _Brightness,_Saturation,_Vignette,_WindowGradient;float4 _ClipRect;
+            sampler2D _MainTex;float _Brightness,_Saturation,_Silhouette,_Vignette,_WindowGradient;float4 _ClipRect;
             v2f vert(appdata v){v2f o;o.vertex=UnityObjectToClipPos(v.vertex);o.color=v.color;o.uv=v.uv;o.local=v.vertex.xy;return o;}
             float4 frag(v2f i):SV_Target
             {
@@ -31,7 +32,7 @@ Shader "Overburst/UI/Title Backdrop"
                 #ifndef UNITY_COLORSPACE_GAMMA
                 c.rgb=LinearToGammaSpace(c.rgb);
                 #endif
-                float l=dot(c.rgb,float3(.2126,.7152,.0722));c.rgb=lerp(l.xxx,c.rgb,_Saturation)*_Brightness;
+                float l=dot(c.rgb,float3(.2126,.7152,.0722));c.rgb=lerp(lerp(l.xxx,c.rgb,_Saturation),float3(1,1,1),_Silhouette)*_Brightness;
                 if(_WindowGradient>.5)
                 {
                     float radius=length(float2((i.uv.x-.5)/.70710678,(1-i.uv.y)/1.41421356));
