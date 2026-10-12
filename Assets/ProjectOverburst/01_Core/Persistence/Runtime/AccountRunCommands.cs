@@ -183,7 +183,7 @@ namespace Overburst.Persistence
         }
 
         public static void CompleteMap(AccountSnapshot state, string runId, long utcTicks,
-            int area, UnityEngine.Vector3 anchor, ItemSnapshot reward)
+            int area, UnityEngine.Vector3 anchor, ItemSnapshot reward, bool bossDefeated = true)
         {
             var run = RequireActive(state, runId);
             if (run.phase == RunPhase.Completed) return;
@@ -198,7 +198,7 @@ namespace Overburst.Persistence
             run.completionReward = ItemSnapshotCodec.CopyValues(reward);
             run.completionRewardClaimed = false;
             run.phase = RunPhase.Completed;
-            if (run.map.terrain == MapTerrainKind.Desert) state.bossClearCount = checked(state.bossClearCount + 1);
+            if (bossDefeated && run.map.terrain == MapTerrainKind.Desert) state.bossClearCount = checked(state.bossClearCount + 1);
         }
 
         public static string CompletionRewardId(string runId) => runId + "/completion-map";
@@ -216,10 +216,14 @@ namespace Overburst.Persistence
             run.completionRewardClaimed = true;
         }
 
-        public static void Extract(AccountSnapshot state, string runId)
+        public static void Extract(AccountSnapshot state, string runId, bool emergencyEscape = false)
         {
             var run = RequireActive(state, runId);
-            if (!AccountInvariants.IsCompleted(run.phase)) throw new InvalidOperationException("Run must be completed before extraction.");
+            bool completed = AccountInvariants.IsCompleted(run.phase);
+            if (!completed && (!emergencyEscape || run.map.generationVersion <= 0))
+                throw new InvalidOperationException("Run must be completed or use a map emergency exit.");
+            // A durable completion wins over a simultaneous emergency-exit request.
+            run.exitReason = completed ? RunExitReason.Completed : RunExitReason.EmergencyEscape;
             foreach (var item in state.items) if (item.originRunId == runId) item.originRunId = null;
             run.phase = RunPhase.Extracted;
         }

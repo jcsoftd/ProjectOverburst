@@ -12,16 +12,18 @@ namespace Overburst.Persistence
 
         public const int ExitDelaySeconds = 180;
 
-        public RunOutcome ResolveOutcome(long utcTicks, bool playerDead, bool portalRequested = false, bool abandoned = false)
+        public RunOutcome ResolveOutcome(long utcTicks, bool playerDead, bool portalRequested = false, bool abandoned = false, bool emergencyRequested = false)
         {
             var run = account.ReadRun();
             if (run == null || run.phase == RunPhase.Failed || run.phase == RunPhase.Extracted) return RunOutcome.None;
             if (playerDead || abandoned)
                 return Fail(run.runId) ? RunOutcome.Failed : RunOutcome.None;
-            if (!AccountInvariants.IsCompleted(run.phase)) return RunOutcome.None;
+            if (!AccountInvariants.IsCompleted(run.phase))
+                return emergencyRequested && run.phase == RunPhase.Active && run.map.generationVersion > 0
+                    && Extract(run.runId, true) ? RunOutcome.Extracted : RunOutcome.None;
             bool expired = run.phase == RunPhase.BossCleared && run.map.generationVersion == 0 && utcTicks >= run.bossClearedAtUtcTicks
                 && utcTicks - run.bossClearedAtUtcTicks >= TimeSpan.TicksPerSecond * ExitDelaySeconds;
-            return (portalRequested || expired) && Extract(run.runId) ? RunOutcome.Extracted : RunOutcome.None;
+            return (portalRequested || emergencyRequested || expired) && Extract(run.runId) ? RunOutcome.Extracted : RunOutcome.None;
         }
 
         public bool Prepare(string runId, MapInstanceState map, string mapItemId = null, bool debugEntry = false)
@@ -97,15 +99,16 @@ namespace Overburst.Persistence
             return committed;
         }
 
-        public bool Extract(string runId)
+        public bool Extract(string runId, bool emergencyEscape = false)
         {
             var run = account.ReadRun();
             if (run != null && run.runId == runId && run.phase == RunPhase.Extracted) return false;
             bool committed = account.ExecuteState("extract-" + runId,
                 state =>
                 {
-                    AccountRunCommands.Extract(state, runId);
-                    AccountMerchantProjection.RefreshForSuccessfulRun(state, account.ContentRegistry);
+                    AccountRunCommands.Extract(state, runId, emergencyEscape);
+                    if (state.run.exitReason == RunExitReason.Completed)
+                        AccountMerchantProjection.RefreshForSuccessfulRun(state, account.ContentRegistry);
                 });
             if (committed) WorldSessionState.SetPhase(WorldPhase.Settling);
             return committed;

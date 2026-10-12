@@ -100,6 +100,12 @@ namespace Overburst.Persistence
                     || run.bossClearedAtUtcTicks < 0 || run.bossClearedAtUtcTicks > DateTime.MaxValue.Ticks)
                     throw new InvalidDataException("Invalid saved run.");
                 MapGenerationPolicy.Validate(run.map);
+                if (!Enum.IsDefined(typeof(RunExitReason), run.exitReason)
+                    || (run.phase != RunPhase.Extracted && run.exitReason != RunExitReason.None)
+                    || (run.exitReason == RunExitReason.EmergencyEscape
+                        && (run.map.generationVersion <= 0 || run.completionReward != null
+                            || run.completedAtUtcTicks != 0 || run.bossClearedAtUtcTicks != 0)))
+                    throw new InvalidDataException("Invalid saved run exit reason.");
                 if (run.phase == RunPhase.Completed && run.completionReward == null)
                     throw new InvalidDataException("Completed map is missing its reward record.");
                 if (run.completionReward != null)

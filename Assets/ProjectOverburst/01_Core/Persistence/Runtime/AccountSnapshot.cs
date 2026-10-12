@@ -116,10 +116,14 @@ namespace Overburst.Persistence
     // Keep the serialized values of the legacy run phases.
     public enum RunPhase { EntryPending = 0, Active = 1, BossCleared = 2, Extracted = 3, Failed = 4, Completed = 5 }
 
+    // None also accepts older extracted saves that predate this field.
+    public enum RunExitReason { None = 0, Completed = 1, EmergencyEscape = 2 }
+
     [Serializable] public sealed class RunSnapshot
     {
         public string runId;
         public RunPhase phase;
+        public RunExitReason exitReason;
         public string mapInstanceId;
         public MapInstanceState map;
         public long bossClearedAtUtcTicks;
