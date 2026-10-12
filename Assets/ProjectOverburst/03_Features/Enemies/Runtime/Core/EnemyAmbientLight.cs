@@ -44,14 +44,13 @@ public sealed class EnemyAmbientLight : MonoBehaviour
         }
         var scale = body.transform.lossyScale;
         float radius = body.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
-        // Place the light outside the body, so a small monster does not get a light buried in its mesh.
-        ambientLight.transform.position = body.transform.TransformPoint(body.center)
-            + transform.up * (body.height * Mathf.Abs(scale.y) * .25f)
-            + transform.forward * (radius + 1f);
+        // Center the light in the body to brighten the surroundings evenly.
+        ambientLight.transform.position = body.transform.TransformPoint(body.center);
         ambientLight.type = LightType.Point;
         ambientLight.color = new Color(1f, .88f, .70f, 1f);
-        ambientLight.intensity = .3f;
+        ambientLight.intensity = .15f;
         ambientLight.range = Mathf.Clamp(radius + 1.2f, 1.6f, 3f);
+        ambientLight.cullingMask = ~LayerMask.GetMask("Enemy", "Player");
         ambientLight.shadows = LightShadows.None;
         ambientLight.bounceIntensity = 0f;
         ambientLight.lightmapBakeType = LightmapBakeType.Realtime;

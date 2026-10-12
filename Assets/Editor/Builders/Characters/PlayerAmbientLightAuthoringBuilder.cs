@@ -9,7 +9,7 @@ public static class PlayerAmbientLightAuthoringBuilder
         "Assets/ProjectOverburst/03_Features/Player/Prefabs/"
         + "PF_PlayerActor.prefab";
     public const string LightObjectName = "PlayerAmbientLight";
-    public const float LightIntensity = 2f;
+    public const float LightIntensity = 1.5f;
     public const float LightRange = 5.5f;
     public static readonly Vector3 LocalPosition =
         new(0f, 1.3f, 0.65f);
