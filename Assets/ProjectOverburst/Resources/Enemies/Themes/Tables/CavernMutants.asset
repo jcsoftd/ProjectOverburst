@@ -42,9 +42,6 @@ MonoBehaviour:
   - definition: {fileID: 11400000, guid: 73989dd4d4c59f44c98ba02f3f21bc3e, type: 2}
     tier: 1
     weight: 1
-  - definition: {fileID: 11400000, guid: 450556e09a58b3148b33ee2f6b79dd14, type: 2}
-    tier: 0
-    weight: 1
   catalog: {fileID: 11400000, guid: b83f21adf5f45ce40ae13deb830ccc84, type: 2}
   accent: {r: 0.42, g: 0.76, b: 0.65, a: 1}
   approvedRosterLocked: 1

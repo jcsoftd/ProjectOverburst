@@ -22,7 +22,6 @@ MonoBehaviour:
   - {fileID: 6481229745826855543, guid: e11af370018dffd4faab1b451070f374, type: 3}
   - {fileID: 5830359132219417066, guid: 6601b826024e88849a26251847f488a9, type: 3}
   - {fileID: 3581357567983519530, guid: ebfa10bcfebbbdb44bf4583a46499a6e, type: 3}
-  - {fileID: 6127770081363601318, guid: 15754047570cca8459f67dc772f6c55b, type: 3}
   activationCount: 41
   minimumSquadSize: 4
   maximumSquadSize: 8

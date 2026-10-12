@@ -28,6 +28,8 @@ public static class MapThemeCatalog
     public static EnemyThemeTable Resolve(string themeId)
     {
         if (string.IsNullOrWhiteSpace(themeId)) return null;
+        // Saved maps retain their seed and options when their retired theme is replaced.
+        if (themeId == "DeathHarvest") themeId = "PrimalHunt";
         foreach (var table in Tables)
             if (string.Equals(table.ThemeId, themeId, StringComparison.Ordinal)) return table;
         return null;
@@ -39,11 +41,12 @@ public static class MapThemeCatalog
         return table != null ? table.DisplayName : "미지정";
     }
 
-    public static bool IsEnabledForRuns(string themeId) => Resolve(themeId) != null;
+    public static bool IsEnabledForRuns(string themeId) => themeId != "DeathHarvest" && Resolve(themeId) != null;
 
     public static EnemyThemeTable ResolveForRun(string themeId)
     {
-        if (IsEnabledForRuns(themeId)) return Resolve(themeId);
+        var resolved = Resolve(themeId);
+        if (resolved != null) return resolved;
         // Existing saved maps remain usable while this theme is temporarily disabled.
         foreach (var table in Tables) if (IsEnabledForRuns(table.ThemeId)) return table;
         return null;
@@ -81,7 +84,6 @@ public static class MapThemeCatalog
             {
                 case "PrimalHunt": return 45;
                 case "VenomBrood": return 35;
-                case "DeathHarvest": return 20;
             }
         }
         else if (terrain == MapTerrainKind.Cave)

@@ -18,10 +18,10 @@ public static partial class UpcomingMonsterThemeReviewBuilder
         if(EditorApplication.isCompiling||EditorApplication.isUpdating||!string.IsNullOrEmpty(IsolatedSavePlayGuard.ActiveDirectory))throw new Exception("Idle Editor required");
         var existing=SceneManager.GetSceneByPath(ScenePath);
         if(existing.IsValid()&&existing.isLoaded&&existing.isDirty)throw new Exception("Unsaved showcase edits must be preserved");
-        var tables=new[]{"SpiderBrood","VenomBrood","PrimalHunt","CavernMutants","DeathHarvest","RotsporeMarsh","AlienContainment","GraveHunt"}
+        var tables=new[]{"SpiderBrood","VenomBrood","PrimalHunt","CavernMutants","RotsporeMarsh","AlienContainment","GraveHunt"}
             .Select(id=>AssetDatabase.LoadAssetAtPath<EnemyThemeTable>("Assets/ProjectOverburst/Resources/Enemies/Themes/Tables/"+id+".asset")).ToArray();
         var catalog=AssetDatabase.LoadAssetAtPath<EnemyCatalog>("Assets/ProjectOverburst/Resources/Enemies/Themes/Catalog.asset");
-        if(catalog==null||tables.Any(t=>t==null||!t.Validate(out _))||tables.Sum(t=>t.Entries.Count)!=catalog.Count)throw new Exception("Eight valid themes must match the saved catalog");
+        if(catalog==null||tables.Any(t=>t==null||!t.Validate(out _))||tables.Sum(t=>t.Entries.Count)!=catalog.Count)throw new Exception("Seven valid themes must match the saved catalog");
         Directory.CreateDirectory(directory);string project=Directory.GetParent(Application.dataPath).FullName;
         foreach(string suffix in new[]{"",".meta"})File.Copy(Path.Combine(project,ScenePath+suffix),Path.Combine(directory,"showcase-before"+suffix+(suffix==""?".unity":"")),false);
         var previousActive=SceneManager.GetActiveScene();bool wasOpen=existing.IsValid()&&existing.isLoaded;
@@ -44,7 +44,7 @@ public static partial class UpcomingMonsterThemeReviewBuilder
         var stations=new JArray();
         try{
             for(int index=0;index<tables.Length;index++){
-                var table=tables[index];int number=index+1;var origin=new Vector3((index%2)*104,0,(index/2)*84);
+                var table=tables[index];int number=index<4?index+1:index+2;var origin=new Vector3((index%2)*104,0,(index/2)*84);
                 var theme=new GameObject(number.ToString("00")+"_"+table.DisplayName);theme.transform.position=origin;theme.tag="EditorOnly";
                 Cube("Theme floor",theme.transform,new Vector3(0,-.3f,7),new Vector3(86,.3f,68),floor);
                 Text("Theme title",theme.transform,number+" · "+table.DisplayName,new Vector3(0,13,31),1.8f,78,Color.white);
@@ -82,8 +82,8 @@ public static partial class UpcomingMonsterThemeReviewBuilder
             }
             foreach(var root in scene.GetRootGameObjects())root.tag="EditorOnly";
             EditorSceneManager.MarkSceneDirty(scene);if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new Exception("Showcase save failed");
-            File.WriteAllText(Path.Combine(directory,"showcase-result.json"),new JObject{["status"]="PASS_SAVED_SHOWCASE",["scene"]=ScenePath,["themes"]=8,["actors"]=stations.Count,["stations"]=stations,["bossExhibitPreserved"]=boss!=null}.ToString());
+            File.WriteAllText(Path.Combine(directory,"showcase-result.json"),new JObject{["status"]="PASS_SAVED_SHOWCASE",["scene"]=ScenePath,["themes"]=tables.Length,["actors"]=stations.Count,["stations"]=stations,["bossExhibitPreserved"]=boss!=null}.ToString());
         }finally{materialCache.Clear();if(previousActive.IsValid()&&previousActive.isLoaded)SceneManager.SetActiveScene(previousActive);if(!wasOpen&&!scene.isDirty)EditorSceneManager.CloseScene(scene,true);}
-        return "PASS_CURRENT_SHOWCASE_8_THEMES_"+stations.Count+"_ACTORS";
+        return "PASS_CURRENT_SHOWCASE_7_THEMES_"+stations.Count+"_ACTORS";
     }
 }
