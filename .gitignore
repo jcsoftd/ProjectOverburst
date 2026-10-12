@@ -217,3 +217,21 @@ Assets/StreamingAssets/aa/
 # Supplier-derived world-level UI artwork; restore from the private WorldLevelNpc recovery.
 /Assets/ProjectOverburst/Resources/UI/WorldLevel/Artwork/*.png*
 !/Assets/ProjectOverburst/Resources/UI/WorldLevel/Artwork/npc-portrait-generated.png*
+
+
+# Local generated preview aliases and empty tuner folder metadata (2026-10-12).
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/characters-Selected Character Render.png
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/characters-Selected Character Render.png.meta
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/classes-Model.png
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/classes-Model.png.meta
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/name-Model.png
+/Assets/ProjectOverburst/05_Art/UI/Title/Management/name-Model.png.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/SpiderBrood_Rostrokarck.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Anglerox.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Clypeosaurus.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Crassoplast.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Funglicane.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Kapeloproboskid.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Telluropod.meta
+/Assets/ProjectOverburst/Resources/Enemies/Tuning/V3_Tetrapuss.meta
